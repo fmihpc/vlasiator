@@ -270,50 +270,50 @@ void computeSpatialTargetCellsForPencilsWithFaces(const dccrg::Dccrg<SpatialCell
       vector <CellID> backNeighborIds;
       const auto frontNeighbors = mpiGrid.get_face_neighbors_of(ids.front());
       if (frontNeighbors.size() > 0) {
-	for (const auto nbr: frontNeighbors) {
-	  if(nbr.second == (-((int)dimension + 1))) {
-	    frontNeighborIds.push_back(nbr.first);
-	  }
-	}
-	refLvl = mpiGrid.get_refinement_level(ids.front());
-
-	if (frontNeighborIds.size() == 0) {
-	  std::cerr<<"abort frontNeighborIds.size() == 0 at "<<ids.front()<<std::endl;
-	  for( const auto nbrPair: frontNeighbors ) {
-	    std::cerr<<ids.front()<<" dim "<<dimension<<" "<<nbrPair.first<<" "<<nbrPair.second<<std::endl;
-	  }
-	}
-	if (frontNeighborIds.size() == 1) {
-	  targetCells[GID] = mpiGrid[frontNeighborIds[0]];
-	} else if ( pencils.path[iPencil][refLvl] < frontNeighborIds.size() ) {
-	  targetCells[GID] = mpiGrid[frontNeighborIds[pencils.path[iPencil][refLvl]]];
-	}
+         for (const auto nbr: frontNeighbors) {
+            if(nbr.second == (-((int)dimension + 1))) {
+               frontNeighborIds.push_back(nbr.first);
+            }
+         }
+         refLvl = mpiGrid.get_refinement_level(ids.front());
+         
+         if (frontNeighborIds.size() == 0) {
+            std::cerr<<"abort frontNeighborIds.size() == 0 at "<<ids.front()<<std::endl;
+            for( const auto nbrPair: frontNeighbors ) {
+               std::cerr<<ids.front()<<" dim "<<dimension<<" "<<nbrPair.first<<" "<<nbrPair.second<<std::endl;
+            }
+         }
+         if (frontNeighborIds.size() == 1) {
+            targetCells[GID] = mpiGrid[frontNeighborIds[0]];
+         } else if ( pencils.path[iPencil][refLvl] < frontNeighborIds.size() ) {
+            targetCells[GID] = mpiGrid[frontNeighborIds[pencils.path[iPencil][refLvl]]];
+         }
       } else {
-	std::cerr<<"error, found cell without any face neighbors"<<std::endl;
+         std::cerr<<"error, found cell without any face neighbors"<<std::endl;
       }
       frontNeighborIds.clear();
 
       const auto backNeighbors = mpiGrid.get_face_neighbors_of(ids.back());
       if (backNeighbors.size() > 0) {
-	for (const auto nbr: backNeighbors) {
-	  if(nbr.second == ((int)dimension + 1)) {
-	  backNeighborIds.push_back(nbr.first);
-	  }
-	}
-	refLvl = mpiGrid.get_refinement_level(ids.back());
-	if (backNeighborIds.size() == 0) {
-	  std::cerr<<"abort backNeighborIds.size() == 0 at "<<ids.back()<<std::endl;
-	  for( const auto nbrPair: backNeighbors ) {
-	    std::cerr<<ids.back()<<" dim "<<dimension<<" "<<nbrPair.first<<" "<<nbrPair.second<<std::endl;
-	  }
-	}
-	if (backNeighborIds.size() == 1) {
-	  targetCells[GID + L + 1] = mpiGrid[backNeighborIds[0]];
-	} else if ( pencils.path[iPencil][refLvl] < backNeighborIds.size() ) {
-	  targetCells[GID + L + 1] = mpiGrid[backNeighborIds[pencils.path[iPencil][refLvl]]];
-	}
+         for (const auto nbr: backNeighbors) {
+            if(nbr.second == ((int)dimension + 1)) {
+               backNeighborIds.push_back(nbr.first);
+            }
+         }
+         refLvl = mpiGrid.get_refinement_level(ids.back());
+         if (backNeighborIds.size() == 0) {
+            std::cerr<<"abort backNeighborIds.size() == 0 at "<<ids.back()<<std::endl;
+            for( const auto nbrPair: backNeighbors ) {
+               std::cerr<<ids.back()<<" dim "<<dimension<<" "<<nbrPair.first<<" "<<nbrPair.second<<std::endl;
+            }
+         }
+         if (backNeighborIds.size() == 1) {
+            targetCells[GID + L + 1] = mpiGrid[backNeighborIds[0]];
+         } else if ( pencils.path[iPencil][refLvl] < backNeighborIds.size() ) {
+            targetCells[GID + L + 1] = mpiGrid[backNeighborIds[pencils.path[iPencil][refLvl]]];
+         }
       } else {
-	std::cerr<<"error, found cell without any face neighbors"<<std::endl;
+         std::cerr<<"error, found cell without any face neighbors"<<std::endl;
       }
       backNeighborIds.clear();
 
