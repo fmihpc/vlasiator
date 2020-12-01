@@ -26,7 +26,6 @@
 #include "datareducer.h"
 #include "../common.h"
 #include "dro_populations.h"
-//#include <boost/algorithm/string.hpp>
 using namespace std;
 
 void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosticReducer)
@@ -44,7 +43,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       */
 
       // Sidestep mixed case errors
-      //const std::string lowercase = boost::algorithm::to_lower_copy(*it);
       std::string lowercase = *it;
       for(auto& c : lowercase) c = tolower(c);
       
@@ -1196,7 +1194,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
         it++) {
 
       // Sidestep mixed case errors
-      //const std::string lowercase = boost::algorithm::to_lower_copy(*it);
       std::string lowercase = *it;
       for(auto& c : lowercase) c = tolower(c);
 

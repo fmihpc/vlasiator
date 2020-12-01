@@ -86,7 +86,7 @@ INC_PAPI = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/include
 
 #header libraries
 INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid/
-INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg-master/
+INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg/
 INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass/
 
 

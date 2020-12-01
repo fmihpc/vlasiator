@@ -7,7 +7,7 @@
 #include "cpu_trans_map_amr.hpp"
 #include "cpu_trans_map.hpp"
 
-// use DCCRG version Nov 8th 2018
+// use DCCRG version Nov 8th 2018 01482cfba8
 
 using namespace std;
 using namespace spatial_cell;
@@ -139,7 +139,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
       } else if ( pencils.path[iPencil][refLvl] < neighbors.size() ) {
          if (sourceCells[iSrc+1] == mpiGrid[neighbors.at(pencils.path[iPencil][refLvl])]) continue; // already found this cell for different distance (should not happen)
          sourceCells[iSrc--] = mpiGrid[neighbors.at(pencils.path[iPencil][refLvl])];
-         // Code to verify that multiple neighbors are in correct ordering (z-y-x)
+         // Code for alternate approach to verify that multiple neighbors are in correct ordering (z-y-x)
          // int ix=0,iy=0;
          // switch(dimension) {
          //    case 0:
@@ -158,9 +158,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
          // bool accept = false;
          // std::array<double, 3> parentCoords = mpiGrid.get_center(ids.front());
          // for (CellID n : neighbors) {
-         //    //auto myCoords = mpiGrid.get_center(neighbors.at(pencils.path[iPencil][refLvl]));
          //    std::array<double, 3> myCoords = mpiGrid.get_center(n);
-         //    //std::cerr<<" dim "<<dimension<<" dist "<<*it<<" path "<<pencils.path[iPencil][refLvl]<<" coords "<<myCoords[dimension]<<" "<<myCoords[ix]<<" "<<myCoords[iy]<<" in pencil "<<parentCoords[dimension]<<" "<<parentCoords[ix]<<" "<<parentCoords[iy]<<" atend? "<<sourceCells[iSrc]<<std::endl;
          //    switch (pencils.path[iPencil][refLvl]) {
          //       case 0:
          //          if (myCoords[ix] < parentCoords[ix] && myCoords[iy] < parentCoords[iy]) accept=true;
@@ -272,50 +270,50 @@ void computeSpatialTargetCellsForPencilsWithFaces(const dccrg::Dccrg<SpatialCell
       vector <CellID> backNeighborIds;
       const auto frontNeighbors = mpiGrid.get_face_neighbors_of(ids.front());
       if (frontNeighbors.size() > 0) {
-	for (const auto nbr: frontNeighbors) {
-	  if(nbr.second == (-((int)dimension + 1))) {
-	    frontNeighborIds.push_back(nbr.first);
-	  }
-	}
-	refLvl = mpiGrid.get_refinement_level(ids.front());
-
-	if (frontNeighborIds.size() == 0) {
-	  std::cerr<<"abort frontNeighborIds.size() == 0 at "<<ids.front()<<std::endl;
-	  for( const auto nbrPair: frontNeighbors ) {
-	    std::cerr<<ids.front()<<" dim "<<dimension<<" "<<nbrPair.first<<" "<<nbrPair.second<<std::endl;
-	  }
-	}
-	if (frontNeighborIds.size() == 1) {
-	  targetCells[GID] = mpiGrid[frontNeighborIds[0]];
-	} else if ( pencils.path[iPencil][refLvl] < frontNeighborIds.size() ) {
-	  targetCells[GID] = mpiGrid[frontNeighborIds[pencils.path[iPencil][refLvl]]];
-	}
+         for (const auto nbr: frontNeighbors) {
+            if(nbr.second == (-((int)dimension + 1))) {
+               frontNeighborIds.push_back(nbr.first);
+            }
+         }
+         refLvl = mpiGrid.get_refinement_level(ids.front());
+         
+         if (frontNeighborIds.size() == 0) {
+            std::cerr<<"abort frontNeighborIds.size() == 0 at "<<ids.front()<<std::endl;
+            for( const auto nbrPair: frontNeighbors ) {
+               std::cerr<<ids.front()<<" dim "<<dimension<<" "<<nbrPair.first<<" "<<nbrPair.second<<std::endl;
+            }
+         }
+         if (frontNeighborIds.size() == 1) {
+            targetCells[GID] = mpiGrid[frontNeighborIds[0]];
+         } else if ( pencils.path[iPencil][refLvl] < frontNeighborIds.size() ) {
+            targetCells[GID] = mpiGrid[frontNeighborIds[pencils.path[iPencil][refLvl]]];
+         }
       } else {
-	std::cerr<<"error, found cell without any face neighbors"<<std::endl;
+         std::cerr<<"error, found cell without any face neighbors"<<std::endl;
       }
       frontNeighborIds.clear();
 
       const auto backNeighbors = mpiGrid.get_face_neighbors_of(ids.back());
       if (backNeighbors.size() > 0) {
-	for (const auto nbr: backNeighbors) {
-	  if(nbr.second == ((int)dimension + 1)) {
-	  backNeighborIds.push_back(nbr.first);
-	  }
-	}
-	refLvl = mpiGrid.get_refinement_level(ids.back());
-	if (backNeighborIds.size() == 0) {
-	  std::cerr<<"abort backNeighborIds.size() == 0 at "<<ids.back()<<std::endl;
-	  for( const auto nbrPair: backNeighbors ) {
-	    std::cerr<<ids.back()<<" dim "<<dimension<<" "<<nbrPair.first<<" "<<nbrPair.second<<std::endl;
-	  }
-	}
-	if (backNeighborIds.size() == 1) {
-	  targetCells[GID + L + 1] = mpiGrid[backNeighborIds[0]];
-	} else if ( pencils.path[iPencil][refLvl] < backNeighborIds.size() ) {
-	  targetCells[GID + L + 1] = mpiGrid[backNeighborIds[pencils.path[iPencil][refLvl]]];
-	}
+         for (const auto nbr: backNeighbors) {
+            if(nbr.second == ((int)dimension + 1)) {
+               backNeighborIds.push_back(nbr.first);
+            }
+         }
+         refLvl = mpiGrid.get_refinement_level(ids.back());
+         if (backNeighborIds.size() == 0) {
+            std::cerr<<"abort backNeighborIds.size() == 0 at "<<ids.back()<<std::endl;
+            for( const auto nbrPair: backNeighbors ) {
+               std::cerr<<ids.back()<<" dim "<<dimension<<" "<<nbrPair.first<<" "<<nbrPair.second<<std::endl;
+            }
+         }
+         if (backNeighborIds.size() == 1) {
+            targetCells[GID + L + 1] = mpiGrid[backNeighborIds[0]];
+         } else if ( pencils.path[iPencil][refLvl] < backNeighborIds.size() ) {
+            targetCells[GID + L + 1] = mpiGrid[backNeighborIds[pencils.path[iPencil][refLvl]]];
+         }
       } else {
-	std::cerr<<"error, found cell without any face neighbors"<<std::endl;
+         std::cerr<<"error, found cell without any face neighbors"<<std::endl;
       }
       backNeighborIds.clear();
 
@@ -697,17 +695,6 @@ void propagatePencil(
          }
       }
    }
-
-   // Previously we wrote target data into source data, but this is unnecessary
-   // for (uint i = 0; i < lengthOfPencil + 2 * nTargetNeighborsPerPencil; i++) {
-   //    for (uint k = 0; k < WID; ++k) {
-   //       for (uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++) {            
-   //          int im1 = i - 1; // doing this to shut up compiler warnings
-   //          values[i_trans_ps_blockv_pencil(planeVector, k, im1, lengthOfPencil)] =
-   //             targetValues[i_trans_pt_blockv(planeVector, k, im1)];
-   //       }
-   //    }
-   // }  
 }
 
 /* Determine which cells in the local DCCRG mesh should be starting points for pencils.
@@ -1403,7 +1390,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                         // Unpack the vector data
                         Realf vector[VECL];
                         //pencilSourceVecData[pencili][i_trans_ps_blockv_pencil(planeVector, k, icell - 1, L)].store(vector);
-			pencilTargetValues[pencili][i_trans_pt_blockv(planeVector, k, icell - 1)].store(vector);
+                        pencilTargetValues[pencili][i_trans_pt_blockv(planeVector, k, icell - 1)].store(vector);
 
                         // Loop over 3rd (vectorized) vspace dimension
                         for (uint iv = 0; iv < VECL; iv++) {
