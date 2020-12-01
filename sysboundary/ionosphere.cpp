@@ -956,10 +956,10 @@ namespace SBC {
       // Pick an initial stepsize
       Real stepSize = min(100e3, technicalGrid.DX / 2.); 
 
-      #pragma omp parallel firstprivate(stepSize)
+      //#pragma omp parallel firstprivate(stepSize)
       {
          // Trace node coordinates outwards until a non-sysboundary cell is encountered 
-         #pragma omp parallel for
+         //#pragma omp parallel for
          for(uint n=0; n<nodes.size(); n++) {
 
             Node& no = nodes[n];
