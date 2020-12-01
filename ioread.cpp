@@ -1207,14 +1207,12 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    phiprof::stop("readBlockData");
 
    phiprof::start("updateMpiGridNeighbors");
-   logFile << " - remote update... " << endl << write;
    mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
    phiprof::stop("updateMpiGridNeighbors");
    
    phiprof::start("readFsGrid");
    // Read fsgrid data back in
    int fsgridInputRanks=0;
-   logFile << " - read fsgrids... " << endl << write;
    if(readScalarParameter(file,"numWritingRanks",fsgridInputRanks, MASTER_RANK, MPI_COMM_WORLD) == false) {
       exitOnError(false, "(RESTART) FSGrid writing rank number not found in restart file", MPI_COMM_WORLD);
    }
@@ -1226,7 +1224,6 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    
    success = file.close();
    phiprof::stop("readGrid");
-   logFile << " - read complete." << endl << write;
 
    exitOnError(success,"(RESTART) Other failure",MPI_COMM_WORLD);
    return success;
