@@ -35,14 +35,8 @@
 #include "../../ioread.h"
 #include "../../memoryallocation.h"
 #include "../../fieldsolver/gridGlue.hpp"
-#ifdef PAPI_MEM
-#include "papi.h"
-#endif
 
 #include "ElVentana.h"
-// #include "vlsv_reader.h"
-// #include "../../tools/vlsvreaderinterface.h"
-//#include <boost/math/special_functions/bessel.hpp>
 
 using namespace std;
 using namespace spatial_cell;
@@ -206,10 +200,7 @@ namespace projects {
    }
 
    bool ElVentana::rescalesDensity(const uint popID) const {
-      //Real mass = getObjectWrapper().particleSpecies[popID].mass;
-      //if (mass < 0.5*physicalconstants::MASS_PROTON) return true;
-      // Don't scale non-electron populations
-      //return false;
+      // Rescale all population densities to ensure conservation of mass for accurate current
       return true;
    }
 
@@ -284,8 +275,6 @@ namespace projects {
 	     distvalue = initRho * pow(mass / (2.0 * M_PI * physicalconstants::K_B * temperature), 1.5) *
 		exp(- mass * ( pow(vx - v0[0], 2.0) + pow(vy - v0[1], 2.0) + pow(vz - v0[2], 2.0) ) /
 		    (2.0 * physicalconstants::K_B * temperature));
-	     //if(myRank == MASTER_RANK) std::cerr << "Pdist " << distvalue << std::endl;
-	     //if((cellID>1450)&&(cellID<1460)) std::cerr << "Pdist " << distvalue << std::endl;
 	     return distvalue;
 	  } else {
 	     // electrons: assume that we have only protons and electrons as active populations
@@ -311,14 +300,6 @@ namespace projects {
 	     ve[1] = (Jreq[1] - Ji[1])/(initRho*getObjectWrapper().particleSpecies[popID].charge);
 	     ve[2] = (Jreq[2] - Ji[2])/(initRho*getObjectWrapper().particleSpecies[popID].charge);
 
-	     /*
-	     if(myRank == MASTER_RANK) {
-		std::cerr << "cid " << cellID << " Ji" << Ji[0] << " " << Ji[1] << " " << Ji[2] << std::endl;
-		std::cerr << "cid " << cellID << " Jreq" << Jreq[0] << " " << Jreq[1] << " " << Jreq[2] << std::endl;
-		std::cerr << "cid " << cellID << " Je" << Jreq[0] - Ji[0] << " " << Jreq[1] - Ji[1] << " " << Jreq[2] - Ji[2] << std::endl;
-		std::cerr << "cid " << cellID << " ve" << ve[0] << " " << ve[1] << " " << ve[2] << std::endl;
-		}*/
-	     
 	     distvalue = initRho * pow(mass / (2.0 * M_PI * physicalconstants::K_B * temperature), 1.5) *
 		exp(- mass * ( pow(vx - ve[0], 2.0) + pow(vy - ve[1], 2.0) + pow(vz - ve[2], 2.0) ) /
 		    (2.0 * physicalconstants::K_B * temperature));
@@ -351,7 +332,6 @@ namespace projects {
       } else {
           return 0;
       }
-
 
    }
 
@@ -745,14 +725,6 @@ namespace projects {
       FsGrid< fsgrids::technical, 2>& technicalGrid
    ) {
 
-   //void ElVentana::setCellBackgroundField(SpatialCell* cell) const {
-      //setBackgroundFieldToZero(cell->parameters, cell->derivatives,cell->derivativesBVOL);
-      //if(cell->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN) {
-         //setBackgroundFieldToZero(cell->parameters, cell->derivatives,cell->derivativesBVOL);
-      //   setBackgroundFieldToZero(BgBGrid);
-      //}
-      //else {
-
      Dipole bgFieldDipole;
      LineDipole bgFieldLineDipole;
 
@@ -763,12 +735,10 @@ namespace projects {
      switch(this->dipoleType) {
 	 case 0:
 	    bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
-	    // setBackgroundField(bgFieldDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL);
 	    setBackgroundField(bgFieldDipole,BgBGrid);
 	    break;
 	 case 1:
 	    bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0 );//set dipole moment     
-	    //setBackgroundField(bgFieldLineDipole,cell->parameters, cell->derivatives,cell->derivativesBVOL);
 	    setBackgroundField(bgFieldLineDipole,BgBGrid);
 	    break;
 	 case 2:

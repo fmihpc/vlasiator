@@ -139,23 +139,10 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    // in this many substeps we iterate forward when the complete transformation is computed (0.1 deg per substep).
    unsigned int transformation_substeps; 
    transformation_substeps = fabs(dt) / fabs(gyro_period*(0.1/360.0));
-   //
    if (smallparticle) {
       unsigned int transformation_substeps_2; 
       transformation_substeps_2 = fabs(dt) / fabs(plasma_period*(0.1/360.0));
       transformation_substeps = transformation_substeps_2 > transformation_substeps ? transformation_substeps_2 : transformation_substeps;
-
-    /*ofstream substepFile;
-      substepFile.open ("substep_test.txt", ios::app);
-      if (dt > 0.001*fabs(gyro_period)) {
-      substepFile << " transformation_substeps = " << transformation_substeps << endl;
-      substepFile << " dt: " << dt << endl;
-      substepFile << " substeps_radians: " << substeps_radians << endl;
-      substepFile << " gyro and plasma periods: " << fabs(gyro_period) << "\t" << plasma_period << endl;
-      substepFile << " CellID: " << spatial_cell->parameters[CellParams::CELLID] << endl;
-      substepFile << " N: " << floor(dt/fabs(gyro_period)) << endl;
-      substepFile << endl;
-      }*/
    }
    if (transformation_substeps < 1) transformation_substeps=1;
       
@@ -172,7 +159,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       spatial_cell->parameters[CellParams::EYJE],
       spatial_cell->parameters[CellParams::EZJE]);
 
-   // Calculate E from charge density imbalance
+   // Calculate E from charge density imbalance?
    /* Eigen::Matrix<Real,3,1> Efromrq(
     spatial_cell->parameters[CellParams::ERHOQX],
     spatial_cell->parameters[CellParams::ERHOQY],
@@ -201,7 +188,6 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    Ji[1] += (dBXdz - dBZdx)/physicalconstants::MU_0;
    Ji[2] += (dBYdx - dBXdy)/physicalconstants::MU_0;
 
-   bool RKN = true; // Select electron propagation method
    for (uint i=0; i<transformation_substeps; ++i) {
       Eigen::Matrix<Real,3,1> dEJEt(0.,0.,0.);
       Eigen::Matrix<Real,3,1> Je(0.,0.,0.);
@@ -226,123 +212,35 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 	 rotation_pivot[1]-= hallPrefactor*(dBXdz - dBZdx);
 	 rotation_pivot[2]-= hallPrefactor*(dBYdx - dBXdy);
       }
-      // NB: Alternatively we could just go to the ion + Hall frame and assume it is the same as
-      // the electron frame.
       
       // Calculate EJE only for the electron population
       if ((smallparticle) && (fabs(substeps_dt) > EPSILON)) {
 	 // First find the current electron moments, this results in leapfrog-like propagation of EJE
 	 Eigen::Matrix<Real,3,1> electronVcurr(total_transform*electronV);
-	 // std::cerr  << EfromJe[0] << " "  << EfromJe[1] << " "  << EfromJe[2] << " " 
-	 // 	    << electronVcurr[0] << " " << electronVcurr[1] << " " << electronVcurr[2] << " " << endl;
 	    
-	 if (RKN) {
-            // This is a traditional RK4 integrator 
-	    // In effect, it runs two RK4 integrators in parallel, one for velocity, one for electric field
+         // This is a traditional RK4 integrator 
+         // In effect, it runs two RK4 integrators in parallel, one for velocity, one for electric field
+         const Eigen::Matrix<Real,3,1> beta  = -q * Ji / (mass * physicalconstants::EPS_0);
+         const Real alpha = -pow(q, 2.) * rho / (mass * physicalconstants::EPS_0);
+         // derivative estimates for acceleration and field changes at start of step
+         k11 = h * q / mass * (EfromJe+Efromrq);  // h * dv/dt
+         k12 = h * (beta + alpha * electronVcurr); // h * (-q/m eps) * J_tot  ==  h * d^2 v / dt^2 == (q/m) dE/dt
 
-            const Eigen::Matrix<Real,3,1> beta  = -q * Ji / (mass * physicalconstants::EPS_0);
-            const Real alpha = -pow(q, 2.) * rho / (mass * physicalconstants::EPS_0);
-	    // derivative estimates for acceleration and field changes at start of step
-            k11 = h * q / mass * (EfromJe+Efromrq);  // h * dv/dt
-            k12 = h * (beta + alpha * electronVcurr); // h * (-q/m eps) * J_tot  ==  h * d^2 v / dt^2 == (q/m) dE/dt
+         k21 = h * (q / mass * (EfromJe+Efromrq) + k12/2); // estimate acceleration using k12 field estimate (at half interval)
+         k22 = h * (beta + alpha * (electronVcurr + k11/2)); // estimate field change using k11 current estimate (at half interval)
 
-            k21 = h * (q / mass * (EfromJe+Efromrq) + k12/2); // estimate acceleration using k12 field estimate (at half interval)
-            k22 = h * (beta + alpha * (electronVcurr + k11/2)); // estimate field change using k11 current estimate (at half interval)
+         k31 = h * (q / mass * (EfromJe+Efromrq) + k22/2); // estimate acceleration using k22 field estimate (at half interval)
+         k32 = h * (beta + alpha * (electronVcurr + k21/2)); // estimate field change using k21 current estimate (at half interval)
 
-            k31 = h * (q / mass * (EfromJe+Efromrq) + k22/2); // estimate acceleration using k22 field estimate (at half interval)
-            k32 = h * (beta + alpha * (electronVcurr + k21/2)); // estimate field change using k21 current estimate (at half interval)
-
-            k41 = h * (q / mass * (EfromJe+Efromrq) + k32); // estimate acceleration using k32 field estimate (at full interval)
-            k42 = h * (beta + alpha * (electronVcurr + k31)); // estimate field change using k31 current estimate (at full interval)
+         k41 = h * (q / mass * (EfromJe+Efromrq) + k32); // estimate acceleration using k32 field estimate (at full interval)
+         k42 = h * (beta + alpha * (electronVcurr + k31)); // estimate field change using k31 current estimate (at full interval)
 	    
-            deltaV = (k11 + 2*k21 + 2*k31 + k41) / 6.; // Finally update velocity based on weighted acceleration estimate
-	    EfromJe += mass / q * (k12 + 2*k22 + 2*k32 + k42) / 6.; // And update fields based on weighted velocity (current) estimate
-
-	    // Thiago's original version (works the same)
-	    // const Eigen::Matrix<Real,3,1> beta  = -q / mass / physicalconstants::EPS_0 * Ji;
-	    // const Real alpha = pow(q, 2.)  / mass / physicalconstants::EPS_0 * rho;
-	    // k11 = h * q / mass * EfromJe;
-	    // k12 = h * (beta - alpha * electronVcurr);
-	    // k21 = h * (q / mass * EfromJe + k12/2);
-	    // k22 = h * (beta - alpha * (electronVcurr + k11/2)); 
-	    // k31 = h * (q / mass * EfromJe + k22/2);
-	    // k32 = h * (beta - alpha * (electronVcurr + k21/2)); 
-	    // k41 = h * (q / mass * EfromJe + k32);
-	    // k42 = h * (beta - alpha * (electronVcurr + k31));
-	    // deltaV = (k11 + 2*k21 + 2*k31 + k41) / 6.; 
-	    // EfromJe += mass / q * (k12 + 2*k22 + 2*k32 + k42) / 6.; 
-
-         } else {  
-	    // Use simple Eulerian solver
-	    /* Calculate electrostatic field derivative via current
-	       using the substep-transformed electron bulkV and exising other population bulkVs */
-	    for (uint popID_EJE=0; popID_EJE<getObjectWrapper().particleSpecies.size(); ++popID_EJE) {
-	       if (getObjectWrapper().particleSpecies[popID_EJE].mass < 0.5*physicalconstants::MASS_PROTON) {
-		  dEJEt[0] += -getObjectWrapper().particleSpecies[popID_EJE].charge *spatial_cell->get_population(popID_EJE).RHO
-		     * electronVcurr[0] / physicalconstants::EPS_0;
-		  dEJEt[1] += -getObjectWrapper().particleSpecies[popID_EJE].charge *spatial_cell->get_population(popID_EJE).RHO
-		     * electronVcurr[1] / physicalconstants::EPS_0;
-		  dEJEt[2] += -getObjectWrapper().particleSpecies[popID_EJE].charge *spatial_cell->get_population(popID_EJE).RHO
-		     * electronVcurr[2] / physicalconstants::EPS_0;
-	       } else {
-		  dEJEt[0] += -getObjectWrapper().particleSpecies[popID_EJE].charge *spatial_cell->get_population(popID_EJE).RHO
-		     * spatial_cell->get_population(popID_EJE).V_R[0] / physicalconstants::EPS_0;
-		  dEJEt[1] += -getObjectWrapper().particleSpecies[popID_EJE].charge *spatial_cell->get_population(popID_EJE).RHO
-		     * spatial_cell->get_population(popID_EJE).V_R[1] / physicalconstants::EPS_0;
-		  dEJEt[2] += -getObjectWrapper().particleSpecies[popID_EJE].charge *spatial_cell->get_population(popID_EJE).RHO
-		     * spatial_cell->get_population(popID_EJE).V_R[2] / physicalconstants::EPS_0;
-	       }         
-	    }	    
-	    // Increment EfromJe with derivative times half of substep to get representative field throughout integration step
-	    EfromJe += dEJEt*0.5*substeps_dt;
-	    // Find B-perpendicular and B-parallel components of EfromJe
-	    Eigen::Matrix<Real,3,1> EfromJe_parallel(EfromJe.dot(unit_B)*unit_B);
-	    Eigen::Matrix<Real,3,1> EfromJe_perpendicular(EfromJe-EfromJe_parallel);
-	    Eigen::Matrix<Real,3,1> unit_EJEperp(EfromJe_perpendicular.normalized());	    
-	    // Add pivot transformation to negate component of EfromJe perpendicular to B
-	    // Vnorm = Bnorm cross Enorm
-	    Real EJEperpperB = EfromJe_perpendicular.norm() / B.norm();
-	    rotation_pivot[0]-= EJEperpperB * (unit_B[1]*unit_EJEperp[2] - unit_B[2]*unit_EJEperp[1]);
-	    rotation_pivot[1]-= EJEperpperB * (unit_B[2]*unit_EJEperp[0] - unit_B[0]*unit_EJEperp[2]);
-	    rotation_pivot[2]-= EJEperpperB * (unit_B[0]*unit_EJEperp[1] - unit_B[1]*unit_EJEperp[0]);
-	    
-         }
-	 
-         /* if (getObjectWrapper().particleSpecies[popID].charge < 0 && int(spatial_cell->parameters[CellParams::CELLID]) == 1 &&
-	    i % 10 == 0) {
-	    substepFile << " EJEperpperB :\n" << EJEperpperB << endl;
-	    substepFile << " EfromJe: \n" << EfromJe << endl;
-	    substepFile << " EfromJe_parallel: \n" << EfromJe_parallel << endl;
-	    substepFile << " EfromJe_perpendicular: \n" << EfromJe_perpendicular << endl;
-            substepFile << " " << endl;
-	    } */
+         deltaV = (k11 + 2*k21 + 2*k31 + k41) / 6.; // Finally update velocity based on weighted acceleration estimate
+         EfromJe += mass / q * (k12 + 2*k22 + 2*k32 + k42) / 6.; // And update fields based on weighted velocity (current) estimate
       } // end if (smallparticle==true) and dt>0
 
-      // Question: should we first apply deltaV and then do the rotation? Or the other way? Or perhaps add
-      // half of deltaV, do rotation, then add the second half of deltaV?
-      
       if (smallparticle) {	  
-	if (RKN) {
 	  total_transform=Translation<Real,3>(deltaV) * total_transform;
-	  //Eigen::Matrix<Real,3,1> deltaVpar(deltaV.dot(unit_B)*unit_B);
-	  //total_transform = Translation<Real,3>(deltaVpar) * total_transform;
-
-	} else {
-	  // If using the Eulerian scheme, then the rotation algorithm is used
-	  // and only the B-parallel nudge from EJE is required:
-	  Eigen::Matrix<Real,3,1> EfromJe_parallel(EfromJe.dot(unit_B)*unit_B);
-	  total_transform=Translation<Real,3>( (getObjectWrapper().particleSpecies[popID].charge/
-						getObjectWrapper().particleSpecies[popID].mass) * 
-					       EfromJe_parallel * substeps_dt) * total_transform;	  
-	  /* The alternative to decomposing the EJE field into parallel and perpendicular components is to
-	     treat it a simple acceleration term. This acceleration was found by integrating over
-	     the time-varying electric field. */
-	  //total_transform=Translation<Real,3>( (getObjectWrapper().particleSpecies[popID].charge/
-	  //   getObjectWrapper().particleSpecies[popID].mass) * 
-	  //   EfromJe * substeps_dt) * total_transform;	  
-	  // Update the stored EJE value to match the end of the step
-	  EfromJe += dEJEt*0.5*substeps_dt;
-	}
       }
 
       /* Evaluate electron pressure gradient term. This is treated as a simple
@@ -366,7 +264,6 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       }
 
    }
-   //substepFile.close();
    
    // Update EJE in CELLPARAMS
    spatial_cell->parameters[CellParams::EXJE] = EfromJe[0];
