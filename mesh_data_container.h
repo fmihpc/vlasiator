@@ -31,6 +31,7 @@
 #include <cstdlib>
 #include <map>
 #include <vector>
+#include <string>
 
 #include "mesh_data.h"
 

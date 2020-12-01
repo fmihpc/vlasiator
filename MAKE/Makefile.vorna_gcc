@@ -44,7 +44,7 @@ LIB_MPI = -lgomp
 
 #======== PAPI ==========
 #Add PAPI_MEM define to use papi to report memory consumption?
-#CXXFLAGS +=  -DPAPI_MEM
+CXXFLAGS +=  -DPAPI_MEM
 
 #======== Allocator =========
 #Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
@@ -81,8 +81,8 @@ INC_PROFILE = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/includ
 
 LDFLAGS += -Wl,-rpath=$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/lib:$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/lib:$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/vlsv/lib:$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/lib:$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/lib   
 
-#LIB_PAPI = -L$(LIBRARY_PREFIX)/taito/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/5.5.0/lib -lpapi
-#INC_PAPI = -I$(LIBRARY_PREFIX)/taito/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/5.5.0/include
+LIB_PAPI = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/lib -lpapi -Wl,-rpath=$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/lib
+INC_PAPI = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/include
 
 #header libraries
 INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid/

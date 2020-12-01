@@ -78,7 +78,7 @@ struct setOfPencils {
 
    std::vector<CellID> getIds(const uint pencilId) const {
       
-      if (pencilId > N) {
+      if (pencilId >= N) {
          std::vector<CellID> idsEmpty;
          return idsEmpty;
       }
@@ -100,7 +100,8 @@ struct setOfPencils {
       // Find paths that members of this pencil may have in other pencils (can happen)
       // so that we don't add duplicates.
       std::vector<int> existingSteps;
-      
+
+#pragma omp parallel for      
       for (uint theirPencilId = 0; theirPencilId < this->N; ++theirPencilId) {
          if(theirPencilId == myPencilId) continue;
          auto theirIds = this->getIds(theirPencilId);
@@ -119,7 +120,10 @@ struct setOfPencils {
 
                      if(samePath) {
                         uint theirStep = theirPath.at(myPath.size());
-                        existingSteps.push_back(theirStep);
+#pragma omp critical
+                        {
+                           existingSteps.push_back(theirStep);
+                        }
                      }
                   }
                }

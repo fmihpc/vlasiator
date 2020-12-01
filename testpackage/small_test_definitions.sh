@@ -125,14 +125,21 @@ variable_components[15]="0 0 1 2 0 1 2 0 1 2"
 ##AMR tests
 # translation test
 test_name[16]="transtest_amr"
-comparison_vlsv[3]="fullf.0000001.vlsv"
-comparison_phiprof[3]="phiprof_0.txt"
-variable_names[3]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v proton"
-variable_components[3]="0 0 1 2"
+comparison_vlsv[16]="fullf.0000001.vlsv"
+comparison_phiprof[16]="phiprof_0.txt"
+variable_names[16]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v proton"
+variable_components[16]="0 0 1 2"
 
 # Flowthrough test
 test_name[17]="Flowthrough_amr"
-comparison_vlsv[12]="bulk.0000001.vlsv"
-comparison_phiprof[12]="phiprof_0.txt"
-variable_names[12]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e"
-variable_components[12]="0 0 1 2 0 1 2 0 1 2"
+comparison_vlsv[17]="bulk.0000001.vlsv"
+comparison_phiprof[17]="phiprof_0.txt"
+variable_names[17]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e"
+variable_components[17]="0 0 1 2 0 1 2 0 1 2"
+
+# Magnetosphere 3D
+test_name[17]="Magnetosphere_3D_small"
+comparison_vlsv[17]="bulk.0000001.vlsv"
+comparison_phiprof[17]="phiprof_0.txt"
+variable_names[17]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e"
+variable_components[17]="0 0 1 2 0 1 2 0 1 2"

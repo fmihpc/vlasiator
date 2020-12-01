@@ -161,7 +161,7 @@ namespace DRO {
       if(writeAsFloat) {
          // Convert down to 32bit floats to save output space
          std::vector<float> varBufferFloat(varBuffer.size());
-         for(int i=0; i<varBuffer.size(); i++) {
+         for(uint i=0; i<varBuffer.size(); i++) {
             varBufferFloat[i] = (float)varBuffer[i];
          }
          if(vlsvWriter.writeArray("VARIABLE",attribs, "float", gridSize[0]*gridSize[1]*gridSize[2], vectorSize, sizeof(float), reinterpret_cast<const char*>(varBufferFloat.data())) == false) {
@@ -258,23 +258,33 @@ namespace DRO {
       attribs["unitConversion"]=unitConversion;
       attribs["variableLaTeX"]=variableLaTeX;
 
-      // Only task 0 of the ionosphere communicator writes
+      // Only task 0 of the ionosphere communicator writes, but all others need to sync vectorSize
       int rank = -1;
+      int worldRank = 0;
       if(grid.isCouplingToCells) {
         MPI_Comm_rank(grid.communicator,&rank);
       }
+      MPI_Comm_rank(MPI_COMM_WORLD,&worldRank);
+      int allVectorSize = 1;
       if(rank == 0) {
         std::vector<Real> varBuffer = lambda(grid);
 
         std::array<int32_t, 3> gridSize{(int32_t)grid.nodes.size(), 1,1};
         int vectorSize = varBuffer.size() / grid.nodes.size();
+
+        // We need to have vectorSize the same on all ranks, otherwise MPI_COMM_WORLD rank 0 writes a bogus value
+        MPI_Scatter(&vectorSize, 1, MPI_INT, &allVectorSize, 1, MPI_INT, grid.writingRank, MPI_COMM_WORLD);
+
         if(vlsvWriter.writeArray("VARIABLE", attribs, "float", grid.nodes.size(), vectorSize, sizeof(Real), reinterpret_cast<const char*>(varBuffer.data())) == false) {
           string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
           bailout(true, message, __FILE__, __LINE__);
         }
       } else {
+        // We need to have vectorSize the same on all ranks, otherwise MPI_COMM_WORLD rank 0 writes a bogus value
+        MPI_Scatter(NULL, 1, MPI_INT, &allVectorSize, 1, MPI_INT, grid.writingRank, MPI_COMM_WORLD);
+
         // Dummy write
-        vlsvWriter.writeArray("VARIABLE", attribs, "float", 0, 1, sizeof(Real), nullptr);
+        vlsvWriter.writeArray("VARIABLE", attribs, "float", 0, allVectorSize, sizeof(Real), nullptr);
       }
 
       return true;
@@ -616,7 +626,7 @@ namespace DRO {
    }
    MaxDistributionFunction::~MaxDistributionFunction() { }
    
-   std::string MaxDistributionFunction::getName() const {return popName + "/maximumdistributionfunctionvalue";}
+   std::string MaxDistributionFunction::getName() const {return popName + "/vg_maxdistributionfunction";}
    
    bool MaxDistributionFunction::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
@@ -670,7 +680,7 @@ namespace DRO {
    }
    MinDistributionFunction::~MinDistributionFunction() { }
    
-   std::string MinDistributionFunction::getName() const {return popName + "/minimumdistributionfunctionvalue";}
+   std::string MinDistributionFunction::getName() const {return popName + "/vg_mindistributionfunction";}
    
    bool MinDistributionFunction::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
@@ -1456,7 +1466,7 @@ namespace DRO {
       emax = getObjectWrapper().particleSpecies[popID].precipitationEmax;    // already converted to SI
       nChannels = getObjectWrapper().particleSpecies[popID].precipitationNChannels; // number of energy channels, logarithmically spaced between emin and emax
       for (int i=0; i<nChannels; i++){
-         channels.push_back(emin * pow(emax/emin,float(i)/(nChannels-1)));
+         channels.push_back(emin * pow(emax/emin,(Real)i/(nChannels-1)));
       }
    }
    VariablePrecipitationDiffFlux::~VariablePrecipitationDiffFlux() { }

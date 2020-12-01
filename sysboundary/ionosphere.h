@@ -44,7 +44,6 @@ namespace SBC {
       uint nVelocitySamples;
    };
 
-
    static const int MAX_TOUCHING_ELEMENTS = 11; // Maximum number of elements touching one node
    static const int MAX_DEPENDING_NODES = 22;   // Maximum number of depending nodes
 
@@ -76,7 +75,34 @@ namespace SBC {
 
          std::array<Real, N_IONOSPHERE_PARAMETERS> parameters = {0}; // Parameters carried by the node, see common.h
          std::array<Real,3> fsgridCellCoupling = {0,0,0}; // Where (in fsgrid cell coordinate space) does this fieldline map?
+
+         // Some calculation helpers
+         Real electronDensity() { // Electron Density
+            return parameters[ionosphereParameters::RHON];
+         }
+         Real electronTemperature() { // Electron Temperature
+            return parameters[ionosphereParameters::PRESSURE] /
+               (ion_electron_T_ratio * physicalconstants::K_B * electronDensity());
+         }
+         Real deltaPhi() { // Field aligned potential drop between i'spherer and m'sphere
+
+            if(electronDensity() == 0) {
+               return 0;
+            }
+
+            Real retval = physicalconstants::K_B * electronTemperature() / physicalconstants::CHARGE
+               * ((parameters[ionosphereParameters::SOURCE] / (physicalconstants::CHARGE * electronDensity()))
+               * sqrt(2. * M_PI * physicalconstants::MASS_ELECTRON / (physicalconstants::K_B * electronTemperature())) - 1.);
+            // A positive value means an upward current (i.e. electron precipitation).
+            // A negative value quickly gets neutralized from the atmosphere.
+            //if(retval < 0 || isnan(retval)) {
+            //   retval = 0;
+            //}
+            return retval;
+         }
+
       };
+
       std::vector<Node> nodes;
 
       // Atmospheric height layers that are being integrated over
@@ -90,6 +116,11 @@ namespace SBC {
          Real hallcoeff;
       };
       std::array<AtmosphericLayer, numAtmosphereLevels> atmosphere;
+
+      enum IonosphereCouplingMethod {
+         Euler,
+         BS
+      } couplingMethod;
 
       // Hardcoded constants for calculating ion production table
       // TODO: Make these parameters?
@@ -105,8 +136,9 @@ namespace SBC {
       std::array< std::array< std::array< Real, productionNumTemperatures >, productionNumAccEnergies >, numAtmosphereLevels > productionTable;
       Real lookupProductionValue(int heightindex, Real energy_keV, Real temperature_keV);
 
-      MPI_Comm communicator;             // The communicator internally used to solve
-      int rank = -1;
+      MPI_Comm communicator;              // The communicator internally used to solve
+      int rank = -1;                      // Own rank in the ionosphere communicator
+      int writingRank;                    // Rank in the MPI_COMM_WORLD communicator that does ionosphere I/O
       bool isCouplingToCells;             // True for any rank that actually couples to the outer simulation
 
       void readAtmosphericModelFile(const char* filename);
@@ -118,9 +150,17 @@ namespace SBC {
       void initializeSphericalFibonacci(int n); // Initialize grid as a spherical fibonacci lattice
       int32_t findElementNeighbour(uint32_t e, int n1, int n2);
       void subdivideElement(uint32_t e);  // Subdivide mesh within element e
+      void calculatePrecipitation(); // Estimate precipitation flux
       void calculateConductivityTensor(const Real F10_7, const Real recombAlpha, const Real backgroundIonisation); // Update sigma tensor
       void calculateFsgridCoupling(FsGrid< fsgrids::technical, 2> & technicalGrid, FieldFunction& dipole, Real radius);     // Link each element to fsgrid cells for coupling
-
+      //Field Line Tracing functions
+      int ijk2Index(int i , int j ,int k ,std::array<int,3>dims); //3D to 1D indexing 
+      void getOutwardBfieldDirection(FieldFunction& dipole ,std::array<Real,3>& r,std::array<Real,3>& b);
+      void bulirschStoerStep(FieldFunction& dipole, std::array<Real, 3>& r, std::array<Real, 3>& b, Real& stepsize,Real maxStepsize); //Bulrisch Stoer step
+      void eulerStep(FieldFunction& dipole, std::array<Real, 3>& x, std::array<Real, 3>& v, Real& stepsize); //Euler step
+      void modifiedMidpointMethod(FieldFunction& dipole,std::array<Real,3> r,std::array<Real,3>& r1 , Real n , Real stepsize); // Modified Midpoint Method used by BS step
+      void richardsonExtrapolation(int i, std::vector<Real>& table , Real& maxError,std::array<int,3>dims ); //Richardson extrapolation method used by BS step
+      void stepFieldLine(std::array<Real, 3>& x, std::array<Real, 3>& v, FieldFunction& dipole, Real& stepsize,Real maxStepsize,IonosphereCouplingMethod method); // Handler function for field line tracing
       // Conjugate Gradient solver functions
       void addMatrixDependency(uint node1, uint node2, Real coeff, bool transposed=false); // Add matrix value for the solver
       void addAllMatrixDependencies(uint nodeIndex);
@@ -154,9 +194,6 @@ namespace SBC {
          
          return 0.5 * sqrt( area[0]*area[0] + area[1]*area[1] + area[2]*area[2] );
       }
-
-      // Calculate potential drop between ionosphere and magnetospher
-      Real getDeltaPhi(int nodeindex);
 
       // Returns the projected surface area of one element, mapped up along the magnetic field to
       // the simulation boundary. If one of the nodes maps nowhere, returns 0.
@@ -290,6 +327,7 @@ namespace SBC {
       virtual uint getIndex() const;
       static Real innerRadius; /*!< Radius of the ionosphere model */
       static int solverMaxIterations; /*!< Maximum iterations of CG solver per timestep */
+      static Real eps; // Tolerance for Bulirsch Stoer Method
       
       // TODO: Make these parameters of the IonosphereGrid
       static Real recombAlpha; // Recombination parameter, determining atmosphere ionizability (parameter)
@@ -325,11 +363,11 @@ namespace SBC {
 
       std::string baseShape; // Basic mesh shape (sphericalFibonacci / icosahedron / tetrahedron)
       int fibonacciNodeNum;  // If spherical fibonacci: number of nodes to generate
+      std::string tracerString; /*!< Fieldline tracer to use for coupling ionosphere and magnetosphere */
       std::string atmosphericModelFile; // MSIS data file
       // Boundaries of refinement latitude bands
       std::vector<Real> refineMinLatitudes;
       std::vector<Real> refineMaxLatitudes;
-
       
       uint nSpaceSamples;
       uint nVelocitySamples;
