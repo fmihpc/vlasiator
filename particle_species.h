@@ -70,9 +70,9 @@ namespace species {
       Real precipitationEmax;                  /*!< Highest energy channel (in keV) for precipitation differential flux evaluation. Default 100. */
       Real precipitationLossConeAngle;         /*!< Fixed loss cone opening angle (in deg) for precipitation differential flux evaluation. Default 10. */
 
-       Species();
-       Species(const Species& other);
-       ~Species();
+      Species();
+      Species(const Species& other);
+      ~Species();
     };
 
 } // namespace species

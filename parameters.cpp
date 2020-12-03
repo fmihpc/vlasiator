@@ -20,6 +20,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <algorithm>
 #include <cstdlib>
 #include <iostream>
 #include "parameters.h"
@@ -67,6 +68,8 @@ Real P::fieldSolverMaxCFL = NAN;
 Real P::fieldSolverMinCFL = NAN;
 uint P::fieldSolverSubcycles = 1;
 
+bool P::transShortPencils = true;
+
 uint P::tstep = 0;
 uint P::tstep_min = 0;
 uint P::tstep_max = 0;
@@ -84,6 +87,8 @@ vector<int> P::systemWriteDistributionWriteStride;
 vector<int> P::systemWriteDistributionWriteXlineStride;
 vector<int> P::systemWriteDistributionWriteYlineStride;
 vector<int> P::systemWriteDistributionWriteZlineStride;
+vector<Real> P::systemWriteDistributionWriteShellRadius;
+vector<int> P::systemWriteDistributionWriteShellStride;
 vector<int> P::systemWrites;
 std::vector<std::pair<std::string,std::string>> P::systemWriteHints;
 
@@ -110,10 +115,13 @@ bool P::fieldSolverDiffusiveEterms = true;
 uint P::ohmHallTerm = 0;
 uint P::ohmGradPeTerm = 0;
 Real P::electronTemperature = 0.0;
+Real P::electronDensity = 0.0;
+Real P::electronPTindex = 1.0;
 
 string P::restartFileName = string("");
 bool P::isRestart=false;
 int P::writeAsFloat = false;
+int P::writeRestartAsFloat = false;
 string P::loadBalanceAlgorithm = string("");
 string P::loadBalanceTolerance = string("");
 uint P::rebalanceInterval = numeric_limits<uint>::max();
@@ -134,7 +142,7 @@ Real P::bailout_max_memory = 1073741824.;
 uint P::amrMaxVelocityRefLevel = 0;
 Realf P::amrRefineLimit = 1.0;
 Realf P::amrCoarsenLimit = 0.5;
-string P::amrVelRefCriterion = "";
+string P::amrVelRefCriterion = string("");
 int P::amrMaxSpatialRefLevel = 0;
 int P::amrBoxHalfWidthX = 1;
 int P::amrBoxHalfWidthY = 1;
@@ -142,6 +150,10 @@ int P::amrBoxHalfWidthZ = 1;
 Realf P::amrBoxCenterX = 0.0;
 Realf P::amrBoxCenterY = 0.0;
 Realf P::amrBoxCenterZ = 0.0;
+vector<string> P::blurPassString;
+std::vector<int> P::numPasses;
+
+
 
 bool Parameters::addParameters(){
    //the other default parameters we read through the add/get interface
@@ -154,6 +166,8 @@ bool Parameters::addParameters(){
    Readparameters::addComposing("io.system_write_distribution_xline_stride", "Every this many lines of cells along the x direction write out their velocity space. 0 is none. [Define for all groups.]");
    Readparameters::addComposing("io.system_write_distribution_yline_stride", "Every this many lines of cells along the y direction write out their velocity space. 0 is none. [Define for all groups.]");
    Readparameters::addComposing("io.system_write_distribution_zline_stride", "Every this many lines of cells along the z direction write out their velocity space. 0 is none. [Define for all groups.]");
+   Readparameters::addComposing("io.system_write_distribution_shell_radius", "At cells intersecting spheres with those radii centred at the origin write out their velocity space. 0 is none.");
+   Readparameters::addComposing("io.system_write_distribution_shell_stride", "Every this many cells for those on selected shells write out their velocity space. 0 is none.");
    Readparameters::addComposing("io.system_write_mpiio_hint_key", "MPI-IO hint key passed to the non-restart IO. Has to be matched by io.system_write_mpiio_hint_value.");
    Readparameters::addComposing("io.system_write_mpiio_hint_value", "MPI-IO hint value passed to the non-restart IO. Has to be matched by io.system_write_mpiio_hint_key.");
 
@@ -165,6 +179,8 @@ bool Parameters::addParameters(){
    Readparameters::add("io.write_restart_stripe_factor","Stripe factor for restart writing.", -1);
    Readparameters::add("io.write_as_float","If true, write in floats instead of doubles", false);
    Readparameters::add("io.restart_write_path", "Path to the location where restart files should be written. Defaults to the local directory, also if the specified destination is not writeable.", string("./"));
+
+   Readparameters::add("transShortPencils", "if true, use one-cell pencils", true);
    
    Readparameters::add("propagate_field","Propagate magnetic field during the simulation",true);
    Readparameters::add("propagate_vlasov_acceleration","Propagate distribution functions during the simulation in velocity space. If false, it is propagated with zero length timesteps.",true);
@@ -173,6 +189,7 @@ bool Parameters::addParameters(){
    Readparameters::add("hallMinimumRho", "Minimum rho value used for the Hall and electron pressure gradient terms in the Lorentz force and in the field solver. Default is very low and has no effect in practice.", 1.0);
    Readparameters::add("project", "Specify the name of the project to use. Supported to date (20150610): Alfven Diffusion Dispersion Distributions Firehose Flowthrough Fluctuations Harris KHB Larmor Magnetosphere Multipeak Riemann1 Shock Shocktest Template test_fp testHall test_trans VelocityBox verificationLarmor", string(""));
 
+   Readparameters::add("restart.write_as_float","If true, write restart fields in floats instead of doubles", false);
    Readparameters::add("restart.filename","Restart from this vlsv file. No restart if empty file.",string(""));
    
    Readparameters::add("gridbuilder.geometry","Simulation geometry XY4D,XZ4D,XY5D,XZ5D,XYZ6D",string("XYZ6D"));
@@ -198,7 +215,9 @@ bool Parameters::addParameters(){
    Readparameters::add("fieldsolver.diffusiveEterms", "Enable diffusive terms in the computation of E",true);
    Readparameters::add("fieldsolver.ohmHallTerm", "Enable/choose spatial order of the Hall term in Ohm's law. 0: off, 1: 1st spatial order, 2: 2nd spatial order", 0);
    Readparameters::add("fieldsolver.ohmGradPeTerm", "Enable/choose spatial order of the electron pressure gradient term in Ohm's law. 0: off, 1: 1st spatial order.", 0);
-   Readparameters::add("fieldsolver.electronTemperature", "Constant electron temperature to be used for the electron pressure gradient term (K).", 0.0);
+   Readparameters::add("fieldsolver.electronTemperature", "Upstream electron temperature to be used for the electron pressure gradient term (K).", 0.0);
+   Readparameters::add("fieldsolver.electronDensity", "Upstream electron density to be used for the electron pressure gradient term (m^-3).", 0.0);
+   Readparameters::add("fieldsolver.electronPTindex", "Polytropic index for electron pressure gradient term. 0 is isobaric, 1 is isothermal, 1.667 is adiabatic electrons, ", 0.0);
    Readparameters::add("fieldsolver.maxCFL","The maximum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.",0.5);
    Readparameters::add("fieldsolver.minCFL","The minimum CFL limit for field propagation. Used to set timestep if dynamic_timestep is true.",0.4);
 
@@ -230,6 +249,7 @@ bool Parameters::addParameters(){
 				"vg_boundarytype fg_boundarytype vg_boundarylayer fg_boundarylayer "+
 				"populations_vg_blocks vg_f_saved "+
 				"populations_vg_acceleration_subcycles "+
+				"vg_e_vol fg_e_vol "+
 				"fg_e_hall vg_e_gradpe fg_b_vol vg_b_vol vg_b_background_vol vg_b_perturbed_vol "+
 				"vg_pressure fg_pressure populations_vg_ptensor "+
 				"b_vol_derivatives "+
@@ -251,6 +271,7 @@ bool Parameters::addParameters(){
 				"FsGridBoundaryType BoundaryType FsGridBoundaryLayer BoundaryLayer "+
 				"populations_Blocks fSaved vg_fsaved"+
 				"populations_accSubcycles populations_acceleration_subcycles"+
+				"VolE vg_VolE Evol E_vol fg_VolE fg_Evol "+
 				"HallE fg_HallE GradPeE e_gradpe VolB vg_VolB fg_VolB B_vol Bvol vg_Bvol fg_volB fg_Bvol"+
 				"BackgroundVolB PerturbedVolB "+
 				"Pressure vg_Pressure fg_Pressure populations_PTensor "+
@@ -258,19 +279,26 @@ bool Parameters::addParameters(){
 
    // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
    Readparameters::addComposing("variables.diagnostic", std::string()+"List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX. Names are case insensitive. "+
-				"Available (20190320): "+
-				"populations_blocks "+
-				"rhom populations_rho_loss_adjust"+
-				"loadbalance_weight"+
-				"maxdt_acceleration maxdt_translation populations_maxdt_acceleration populations_maxdt_translation "+
-				"maxdt_fieldsolver "+
-				"populations_maxdistributionfunction populations_mindistributionfunction");
+				"Available (20201111): "+
+				"populations_vg_blocks "+
+				"vg_rhom populations_vg_rho_loss_adjust "+
+				"vg_loadbalance_weight "+
+				"vg_maxdt_acceleration vg_maxdt_translation "+
+				"fg_maxdt_fieldsolver "+
+                                "populations_vg_maxdt_acceleration populations_vg_maxdt_translation "+
+				"populations_vg_maxdistributionfunction populations_vg_mindistributionfunction");
 
    Readparameters::addComposing("variables_deprecated.diagnostic", std::string()+"List of deprecated data reduction operators (DROs) to add to the diagnostic runtime output. Names are case insensitive. "+
-				"Available (20190320): "+
-				"populations_rholossadjust"+
-				"LBweight"+
-				"populations_MaxVdt MaxVdt populations_MaxRdt MaxRdt MaxFieldsdt");
+				"Available (20201111): "+
+				"rhom populations_rholossadjust populations_rho_loss_adjust "+
+				"populations_blocks lbweight loadbalance_weight "+
+                                "vg_lbweight vg_loadbalanceweight "+
+                                "maxvdt maxdt_acceleration "+
+                                "maxrdt maxdt_translation "+
+				"populations_maxvdt populations_maxrdt "+
+                                "populations_maxdt_acceleration populations_maxdt_translation "+
+				"populations_maxdistributionfunction populations_mindistributionfunction "+
+                                "maxfieldsdt maxdt_fieldsolver fg_maxfieldsdt");
 
    // bailout parameters
    Readparameters::add("bailout.write_restart", "If 1, write a restart file on bailout. Gets reset when sending a STOP (1) or a KILL (0).", true);
@@ -289,6 +317,7 @@ bool Parameters::addParameters(){
    Readparameters::add("AMR.box_center_x","x coordinate of the center of the box that is refined (for testing)",0.0);
    Readparameters::add("AMR.box_center_y","y coordinate of the center of the box that is refined (for testing)",0.0);
    Readparameters::add("AMR.box_center_z","z coordinate of the center of the box that is refined (for testing)",0.0);
+   Readparameters::addComposing("AMR.filterpasses", std::string("AMR filter passes for each individual refinement level"));
    return true;
 }
 
@@ -304,6 +333,8 @@ bool Parameters::getParameters(){
    Readparameters::get("io.system_write_distribution_xline_stride", P::systemWriteDistributionWriteXlineStride);
    Readparameters::get("io.system_write_distribution_yline_stride", P::systemWriteDistributionWriteYlineStride);
    Readparameters::get("io.system_write_distribution_zline_stride", P::systemWriteDistributionWriteZlineStride);
+   Readparameters::get("io.system_write_distribution_shell_radius", P::systemWriteDistributionWriteShellRadius);
+   Readparameters::get("io.system_write_distribution_shell_stride", P::systemWriteDistributionWriteShellStride);
    Readparameters::get("io.write_initial_state", P::writeInitialState);
    Readparameters::get("io.restart_walltime_interval", P::saveRestartWalltimeInterval);
    Readparameters::get("io.number_of_restarts", P::exitAfterRestarts);
@@ -311,6 +342,7 @@ bool Parameters::getParameters(){
    Readparameters::get("io.write_restart_stripe_factor", P::restartStripeFactor);
    Readparameters::get("io.restart_write_path", P::restartWritePath);
    Readparameters::get("io.write_as_float", P::writeAsFloat);
+   Readparameters::get("transShortPencils", P::transShortPencils);
    
    // Checks for validity of io and restart parameters
    int myRank;
@@ -372,6 +404,13 @@ bool Parameters::getParameters(){
       }
       return false;
    }
+   if ( P::systemWriteDistributionWriteShellStride.size() != P::systemWriteDistributionWriteShellRadius.size()) {
+      if(myRank == MASTER_RANK) {
+         cerr << "ERROR You should set the same number of io.system_write_distribution_shell_stride " <<
+                 "and io.system_write_distribution_shell_radius." << endl;
+      }
+      return false;
+   }
    if ( P::systemWritePath.size() == 0 ) {
       for (uint i = 0; i < P::systemWriteName.size(); i++) {
          P::systemWritePath.push_back(string("./"));
@@ -409,6 +448,7 @@ bool Parameters::getParameters(){
    Readparameters::get("hallMinimumRho",hallRho);
    P::hallMinimumRhom = hallRho*physicalconstants::MASS_PROTON;
    P::hallMinimumRhoq = hallRho*physicalconstants::CHARGE;
+   Readparameters::get("restart.write_as_float", P::writeRestartAsFloat);
    Readparameters::get("restart.filename",P::restartFileName);
    P::isRestart=(P::restartFileName!=string(""));
 
@@ -451,7 +491,68 @@ bool Parameters::getParameters(){
    Readparameters::get("AMR.vel_refinement_criterion",P::amrVelRefCriterion);
    Readparameters::get("AMR.refine_limit",P::amrRefineLimit);
    Readparameters::get("AMR.coarsen_limit",P::amrCoarsenLimit);
+  
+  /*Read Blur Passes per Refinement Level*/
+   Readparameters::get("AMR.filterpasses",P::blurPassString);
    
+   // Construct Vector of Passes used in grid.cpp
+   bool isEmpty = blurPassString.size()==0;
+   std::vector<int>::iterator  maxNumPassesPtr;
+   int maxNumPassesInt;
+   
+   if (!isEmpty){
+
+      for (auto i : blurPassString){
+         P::numPasses.push_back(std::stoi(i));
+      }
+
+      
+      // Reverse Sort and Get the maximum number of filter passes
+      sort(numPasses.begin(), numPasses.end(), greater<int>());
+
+      // Sanity Check
+      if (P::numPasses.size()!=P::amrMaxSpatialRefLevel+1){
+         cerr<<"Filter Passes="<<P::numPasses.size()<<"\t"<<"AMR Levels="<<P::amrMaxSpatialRefLevel+1<<endl;
+         cerr << "FilterPasses do not match AMR levels \t" << " in " << __FILE__ << ":" << __LINE__ << endl;
+         return false;
+      }
+      
+      if(myRank == MASTER_RANK) {
+
+         maxNumPassesPtr=std::max_element(P::numPasses.begin(), P::numPasses.end());
+         if(maxNumPassesPtr != numPasses.end()){
+            maxNumPassesInt = *maxNumPassesPtr;
+         } else{
+            cerr << "Trying to dereference null pointer \t" << " in " << __FILE__ << ":" << __LINE__ << endl;
+            return false;
+         }
+
+         printf("Filtering is on with max number of Passes= \t%d\n", maxNumPassesInt);
+         int lev=0;
+         for ( auto &iter : P::numPasses ){
+            printf("Refinement Level %d-->%d Passes\n",lev,iter);
+            lev++;
+         }
+      }
+   }else{
+      numPasses={0};
+      
+      if(myRank == MASTER_RANK) {
+         maxNumPassesPtr=std::max_element(P::numPasses.begin(), P::numPasses.end());
+         if(maxNumPassesPtr != numPasses.end()){
+            maxNumPassesInt = *maxNumPassesPtr;
+         } else{
+            cerr << "Trying to dereference null pointer \t" << " in " << __FILE__ << ":" << __LINE__ << endl;
+            return false;
+         }
+
+
+         printf("Filtering is off and max number of Passes is = \t %d\n", *max_element(P::numPasses.begin(), P::numPasses.end()));
+   
+      }  
+   }
+
+
    if (geometryString == "XY4D") P::geometry = geometry::XY4D;
    else if (geometryString == "XZ4D") P::geometry = geometry::XZ4D;
    else if (geometryString == "XY5D") P::geometry = geometry::XY5D;
@@ -492,6 +593,8 @@ bool Parameters::getParameters(){
    Readparameters::get("fieldsolver.ohmHallTerm", P::ohmHallTerm);
    Readparameters::get("fieldsolver.ohmGradPeTerm", P::ohmGradPeTerm);
    Readparameters::get("fieldsolver.electronTemperature", P::electronTemperature);
+   Readparameters::get("fieldsolver.electronDensity", P::electronDensity);
+   Readparameters::get("fieldsolver.electronPTindex", P::electronPTindex);
    Readparameters::get("fieldsolver.maxCFL",P::fieldSolverMaxCFL);
    Readparameters::get("fieldsolver.minCFL",P::fieldSolverMinCFL);
    // Get Vlasov solver parameters

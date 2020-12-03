@@ -1,0 +1,94 @@
+CMP = mpic++
+LNK = mpic++
+
+#======== Vectorization ==========
+#Set vector backend type for vlasov solvers, sets precision and length. 
+#Options: 
+# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VEC4D_FALLBACK, VEC4F_FALLBACK, VEC8F_FALLBACK
+
+ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
+#Single-precision        
+	VECTORCLASS = VEC8F_AGNER
+else
+#Double-precision
+	VECTORCLASS = VEC4D_AGNER
+endif
+
+#======= Compiler and compilation flags =========
+# NOTES on compiler flags:
+# CXXFLAGS is for compiler flags, they are always used
+# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
+# LDFLAGS flags for linker
+
+#-DNO_WRITE_AT_ALL:  Define to disable write at all to 
+#                    avoid memleak (much slower IO)
+#-DMPICH_IGNORE_CXX_SEEK: Ignores some multiple definition 
+#                         errors that come up when using 
+#                         mpi.h in c++ on Cray
+#
+# CXXFLAGS = -DMPICH_IGNORE_CXX_SEEK
+
+FLAGS = 
+
+#GNU flags:
+CC_BRAND = gcc
+CC_BRAND_VERSION = 8.3.0
+CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -mavx
+testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++0x  -mavx
+
+MATHFLAGS = -ffast-math
+LDFLAGS = -lrt -lgfortran -std=c++17
+LIB_MPI = -lgomp 
+
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+CXXFLAGS +=  -DPAPI_MEM
+
+#======== Allocator =========
+#Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
+#Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
+CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+
+
+# BOOST_VERSION = current trilinos version
+# ZOLTAN_VERSION = current trilinos verson
+#
+#======== Libraries ===========
+
+MPT_VERSION = 3.1.3
+JEMALLOC_VERSION = 4.0.4
+#LIBRARY_PREFIX = /proj/markusb/libraries
+LIBRARY_PREFIX = /proj/group/spacephysics/libraries
+
+
+#compiled libraries
+INC_BOOST = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/include
+LIB_BOOST = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/lib  -lboost_program_options
+
+INC_ZOLTAN = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/lib -lzoltan
+
+INC_JEMALLOC = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/include
+LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/lib -ljemalloc
+
+INC_VLSV = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/vlsv
+LIB_VLSV = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/vlsv -lvlsv
+
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/lib -lphiprof
+INC_PROFILE = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/include
+
+LDFLAGS += -Wl,-rpath=$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/lib:$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/lib:$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/vlsv/lib:$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/lib:$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/lib   
+
+LIB_PAPI = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/lib -lpapi -Wl,-rpath=$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/lib
+INC_PAPI = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/papi/include
+
+#header libraries
+INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid/
+INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg/
+INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass/
+
+
+
+

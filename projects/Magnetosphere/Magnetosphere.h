@@ -85,6 +85,9 @@ namespace projects {
       Real dipoleMirrorLocationX;
       uint dipoleType;
 
+      Real refine_L4radius;
+      Real refine_L4nosexmin;
+
       Real refine_L3radius;
       Real refine_L3nosexmin;
       Real refine_L3tailheight;
@@ -102,6 +105,7 @@ namespace projects {
       Real dipoleXFull;
       Real dipoleXZero;
       Real dipoleInflowB[3];
+      Real zeroOutComponents[3]; //0->x,1->y,2->z
 
       std::vector<MagnetosphereSpeciesParameters> speciesParams;
    }; // class Magnetosphere

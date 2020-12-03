@@ -87,6 +87,7 @@ namespace projects {
          virtual std::vector<std::array<Real, 3>> getV0(creal x, creal y, creal z, const uint popID) const;
          //virtual void calcCellParameters(Real* cellParams,creal& t);
          virtual void calcCellParameters(spatial_cell::SpatialCell* cell, creal& t);
+	 bool refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
          // Interpolate between up- and downstream quantities
          // based on position
          Real interpolate(Real u, Real d, Real x) const;
@@ -107,6 +108,10 @@ namespace projects {
          int Bzdsign;
 
          Real Shockwidth;
+	 Real AMR_L1width;
+	 Real AMR_L2width;
+	 Real AMR_L3width;
+	 Real AMR_L4width;
 
          std::vector<IPShockSpeciesParameters> speciesParams;
 
