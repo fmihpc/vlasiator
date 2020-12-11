@@ -41,8 +41,10 @@ Real P::input_dt = 1;
 Real P::start_time = 0;
 Real P::end_time = 0;
 uint64_t P::num_particles = 0;
-std::string P::V_field_name = "V";
-std::string P::rho_field_name = "rho";
+std::string P::V_field_name = "fg_v";
+std::string P::B_field_name = "fg_b";
+std::string P::E_field_name = "fg_e";
+std::string P::rho_field_name = "fg_rhom";
 bool P::divide_rhov_by_rho = false;
 
 bool P::staticfields = 0;
@@ -87,9 +89,6 @@ Real P::ipshock_inject_z1;
 Real P::ipshock_transmit;
 Real P::ipshock_reflect;
 
-// Real P::injection_r0;
-// Real P::injection_alpha;
-// Real P::injection_ecc;
 Real P::injection_bs_p0;
 Real P::injection_bs_p1;
 Real P::injection_bs_p2;
@@ -131,8 +130,12 @@ bool ParticleParameters::addParameters() {
    Readparameters::add("particles.start_time", "Simulation time (seconds) for particle start.",0);
    Readparameters::add("particles.end_time", "Simulation time (seconds) at which particle simulation stops.",0);
    Readparameters::add("particles.num_particles", "Number of particles to simulate.",10000);
-   Readparameters::add("particles.V_field_name", "Name of the Velocity data set in the input files", "V");
-   Readparameters::add("particles.rho_field_name", "Name of the Density data set in the input files", "rho");
+
+   Readparameters::add("particles.B_field_name", "Name of the Magnetic field data set in the input files", "fg_b");
+   Readparameters::add("particles.E_field_name", "Name of the Electric field data set in the input files", "fg_e");
+   Readparameters::add("particles.V_field_name", "Name of the Velocity data set in the input files", "fg_v");
+   Readparameters::add("particles.rho_field_name", "Name of the Density data set in the input files", "fg_rhom");
+   
    Readparameters::add("particles.divide_rhov_by_rho", "Do the input file store rho_v and rho separately?", false);
    Readparameters::add("particles.random_seed", "Random seed for particle creation.",1);
    Readparameters::add("particles.distribution", "Type of distribution function to sample particles from.",

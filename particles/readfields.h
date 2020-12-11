@@ -31,54 +31,8 @@
 
 #define DEBUG
 
-extern std::string B_field_name;
-extern std::string E_field_name;
-extern std::string rho_name;
-//extern std::string V_field_name;
-extern bool do_divide_by_rho;
-
 /* Read the cellIDs into an array */
 std::vector<uint64_t> readCellIds(vlsvinterface::Reader& r);
-
-template <class Reader>
-static void detect_field_names(Reader& r) {
-
-#ifdef DEBUG
-   std::cerr << "Checking for volume-averaged fields... ";
-#endif
-   std::list<std::string> variableNames;
-   std::string gridname("SpatialGrid");
-
-   r.getVariableNames(gridname,variableNames);
-   if(find(variableNames.begin(), variableNames.end(), std::string("B_vol"))!=variableNames.end()) {
-#ifdef DEBUG
-      std::cerr << "yep!" << std::endl;
-#endif
-      B_field_name = "B_vol";
-      E_field_name = "E_vol";
-   } else if(find(variableNames.begin(), variableNames.end(), std::string("B"))!=variableNames.end()) {
-#ifdef DEBUG
-      std::cerr << "Nope!" << std::endl;
-#endif
-      B_field_name = "B";
-      E_field_name = "E";
-   } else {
-      std::cerr << "No B- or E-fields found! Strange file format?" << std::endl;
-      exit(1);
-   }
-   if(find(variableNames.begin(), variableNames.end(), std::string("rho"))!=variableNames.end()) {   
-     rho_name = "rho";
-   } else if (find(variableNames.begin(), variableNames.end(), std::string("proton/rho"))!=variableNames.end()) {
-     rho_name = "proton/rho";
-   } else if (find(variableNames.begin(), variableNames.end(), std::string("rhom"))!=variableNames.end()) {
-     rho_name = "rhom";
-   } else {
-      std::cerr << "Error, could not identify plasma density variable." << std::endl;
-      exit(1);
-   }
-   std::cerr << "Rho variable detected as "<<rho_name << std::endl;
-
-}
 
 /* Read the "raw" field data in file order */
 template <class Reader>
@@ -152,9 +106,9 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int directi
 
       /* Read CellIDs and Field data */
       std::vector<uint64_t> cellIds = readCellIds(r);
-      std::string name(B_field_name);
+      std::string name(ParticleParameters::B_field_name);
       std::vector<double> Bbuffer = readFieldData(r,name,3u);
-      name = E_field_name;
+      name = ParticleParameters::E_field_name;
       std::vector<double> Ebuffer = readFieldData(r,name,3u);
       std::vector<double> Vbuffer;
       std::vector<double> Rhobuffer;
@@ -266,16 +220,13 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
    std::cerr <<"ok." << std::endl;
 #endif
 
-   /* Check whethere we got volume-centered fields */
-   detect_field_names<Reader>(r);
-
    /* Read the MESH, yielding the CellIDs */
    std::vector<uint64_t> cellIds = readCellIds(r);
 
    /* Also read the raw field data */
-   std::string name= B_field_name;
+   std::string name(ParticleParameters::B_field_name);
    std::vector<double> Bbuffer(readFieldData(r,name,3u));
-   name = E_field_name;
+   name = ParticleParameters::E_field_name;
    std::vector<double> Ebuffer(readFieldData(r,name,3u));
 
    std::vector<double> rho_v_buffer,rho_buffer;

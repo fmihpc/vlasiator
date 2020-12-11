@@ -78,17 +78,14 @@ int main(int argc, char** argv) {
    if(B[0].dimension[0]->cells <= 1) {
       delete ParticleParameters::boundary_behaviour_x;
       ParticleParameters::boundary_behaviour_x = createBoundary<CompactSpatialDimension>(0);      
-      //ParticleParameters::boundary_behaviour_x->cells=1;
    }
    if(B[0].dimension[1]->cells <= 1) {
       delete ParticleParameters::boundary_behaviour_y;
       ParticleParameters::boundary_behaviour_y = createBoundary<CompactSpatialDimension>(1);
-      //ParticleParameters::boundary_behaviour_y->cells=1;
    }
    if(B[0].dimension[2]->cells <= 1) {
       delete ParticleParameters::boundary_behaviour_z;
       ParticleParameters::boundary_behaviour_z = createBoundary<CompactSpatialDimension>(2);
-      //ParticleParameters::boundary_behaviour_z->cells=1;
    }
 
    // Make sure updated boundary conditions are also correctly known to the fields
@@ -195,7 +192,6 @@ int main(int argc, char** argv) {
 
          Eval = cur_E(particles[i].x);
          Bval = cur_B(particles[i].x);
-	 //std::cerr<<"Eval "<<Eval[0]<<" "<<Eval[1]<<" "<<Eval[2]<<"Bval "<<Bval[0]<<" "<<Bval[1]<<" "<<Bval[2]<<std::endl;
 
          if(dt < 0) {
            // If propagating backwards in time, flip B-field pseudovector
