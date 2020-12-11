@@ -223,7 +223,7 @@ bool Parameters::addParameters(){
 // Output variable parameters
    // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
    Readparameters::addComposing("variables.output", std::string()+"List of data reduction operators (DROs) to add to the grid file output.  Each variable to be added has to be on a new line output = XXX. Names are case insensitive.  "+
-				"Available (20191009): "+
+				"Available (20201211): "+
 				"fg_b fg_b_background fg_b_perturbed fg_e "+
 				"vg_rhom vg_rhoq populations_vg_rho "+
 				"fg_rhom fg_rhoq "+
@@ -239,13 +239,13 @@ bool Parameters::addParameters(){
 				"populations_vg_blocks vg_f_saved "+
 				"populations_vg_acceleration_subcycles "+
 				"vg_e_vol fg_e_vol "+
-				"fg_e_hall vg_e_gradpe fg_b_vol vg_b_vol vg_b_background_vol vg_b_perturbed_vol "+
+				"fg_e_hall fg_e_gradpe vg_e_gradpe fg_b_vol vg_b_vol vg_b_background_vol vg_b_perturbed_vol "+
 				"vg_pressure fg_pressure populations_vg_ptensor "+
 				"b_vol_derivatives "+
 				"vg_gridcoordinates fg_gridcoordinates meshdata");
 
    Readparameters::addComposing("variables_deprecated.output", std::string()+"List of deprecated names for data reduction operators (DROs). Names are case insensitive. "+
-				"Available (20191009): "+
+				"Available (20201211): "+
 				"B BackgroundB fg_BackgroundB PerturbedB fg_PerturbedB "+
 				"E "+
 				"Rhom Rhoq populations_Rho "+
@@ -257,7 +257,7 @@ bool Parameters::addParameters(){
 				"populations_EnergyDensity populations_PrecipitationFlux populations_precipitationdifferentialflux"+
 				"LBweight vg_lbweight vg_loadbalanceweight MaxVdt MaxRdt populations_MaxVdt populations_MaxRdt "+
 				"populations_maxdt_acceleration populations_maxdt_translation MaxFieldsdt fg_maxfieldsdt"+
-				"EJE MPIrank FsGridRank "+
+				"MPIrank FsGridRank "+
 				"FsGridBoundaryType BoundaryType FsGridBoundaryLayer BoundaryLayer "+
 				"populations_Blocks fSaved vg_fsaved"+
 				"populations_accSubcycles populations_acceleration_subcycles"+
@@ -269,18 +269,19 @@ bool Parameters::addParameters(){
 
    // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
    Readparameters::addComposing("variables.diagnostic", std::string()+"List of data reduction operators (DROs) to add to the diagnostic runtime output. Each variable to be added has to be on a new line diagnostic = XXX. Names are case insensitive. "+
-				"Available (20190320): "+
+				"Available (20201211): "+
 				"populations_vg_blocks "+
-				"rhom populations_rho_loss_adjust"+
-				"loadbalance_weight"+
+				"rhom populations_rho_loss_adjust "+
+				"loadbalance_weight "+
+                                "vg_eje "+
 				"maxdt_acceleration maxdt_translation populations_maxdt_acceleration populations_maxdt_translation "+
 				"maxdt_fieldsolver "+
 				"populations_maxdistributionfunction populations_mindistributionfunction");
 
    Readparameters::addComposing("variables_deprecated.diagnostic", std::string()+"List of deprecated data reduction operators (DROs) to add to the diagnostic runtime output. Names are case insensitive. "+
-				"Available (20190320): "+
-				"populations_rholossadjust"+
-				"LBweight"+
+				"Available (20201211): "+
+				"populations_rholossadjust "+
+				"LBweight eje "+
 				"populations_MaxVdt MaxVdt populations_MaxRdt MaxRdt MaxFieldsdt");
 
    // bailout parameters

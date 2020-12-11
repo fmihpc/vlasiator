@@ -117,7 +117,7 @@ void blockVelocitySecondMoments(
         const REAL averageVY,
         const REAL averageVZ,
         REAL* array,
-	const bool doOffDiagonal) {
+        const bool doOffDiagonal) {
 
    const Real HALF = 0.5;
 
@@ -136,9 +136,9 @@ void blockVelocitySecondMoments(
       nvy2_sum += avgs[cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY);
       nvz2_sum += avgs[cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ);
       if (doOffDiagonal==true) {
-	 nvxvy_sum += avgs[cellIndex(i,j,k)] * (VX - averageVX) * (VY - averageVY);
-	 nvzvx_sum += avgs[cellIndex(i,j,k)] * (VZ - averageVZ) * (VX - averageVX);
-	 nvyvz_sum += avgs[cellIndex(i,j,k)] * (VY - averageVY) * (VZ - averageVZ);
+         nvxvy_sum += avgs[cellIndex(i,j,k)] * (VX - averageVX) * (VY - averageVY);
+         nvzvx_sum += avgs[cellIndex(i,j,k)] * (VZ - averageVZ) * (VX - averageVX);
+         nvyvz_sum += avgs[cellIndex(i,j,k)] * (VY - averageVY) * (VZ - averageVZ);
       }
    }
    

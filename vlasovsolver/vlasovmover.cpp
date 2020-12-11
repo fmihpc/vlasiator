@@ -307,20 +307,20 @@ void calculateSpatialTranslation(
          string profName = "translate "+getObjectWrapper().particleSpecies[popID].name;
          phiprof::start(profName);
          SpatialCell::setCommunicatedSpecies(popID);
-	 calculateSpatialTranslation(
+         calculateSpatialTranslation(
             mpiGrid,
-	    localCells,
-	    local_propagated_cells,
-	    local_target_cells,
-	    remoteTargetCellsx,
-	    remoteTargetCellsy,
-	    remoteTargetCellsz,
-	    nPencils,
-	    dt,
-	    popID,
-	    time
-	 );
-	 phiprof::stop(profName);
+            localCells,
+            local_propagated_cells,
+            local_target_cells,
+            remoteTargetCellsx,
+            remoteTargetCellsy,
+            remoteTargetCellsz,
+            nPencils,
+            dt,
+            popID,
+            time
+            );
+         phiprof::stop(profName);
       }
    }
    
