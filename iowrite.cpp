@@ -1255,7 +1255,7 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       FsGrid< fsgrids::technical, 2>& technicalGrid,
                   DataReducer& dataReducer,
                   const string& name,
-                  const uint& fileIndex
+                  const uint& fileIndex,
                   const int& stripe) {
    // Writes a restart
    double allStart = MPI_Wtime();
