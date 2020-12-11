@@ -173,8 +173,9 @@ setOfPencils buildPencils( dccrg::Dccrg<grid_data> grid,
     uint i1 = i + 1;
     uint id = idsIn[i];
 
-    vector<CellID> children = grid.get_all_children(id);
-    bool hasChildren = ( grid.get_parent(children[0]) == id );
+    
+    std::array<uint64_t, 8> children = mpiGrid.mapping.get_all_children(id);
+    bool hasChildren = ( grid.mapping.get_parent(children[0]) == id );
     
     // Check if the current cell contains refined cells
     if (hasChildren) {
@@ -303,12 +304,12 @@ int main(int argc, char* argv[]) {
     ids.push_back(cell.id);
     
     // Add parent cells of refined cells to the list of cell ids.
-    CellID parent = grid.get_parent(cell.id);
+    CellID parent = grid.mapping.get_parent(cell.id);
     if (parent > 0 &&
 	!(std::find(ids.begin(), ids.end(), parent) != ids.end())) {
       ids.push_back(parent);
       std::cout << "Cell " << parent << " at refinement level " << grid.get_refinement_level(parent) << " has been refined into ";
-      for (const auto& child: grid.get_all_children(parent)) {
+      for (const auto& child: grid.mapping.get_all_children(parent)) {
 	std::cout << child << " ";
       }
       std::cout << "\n";

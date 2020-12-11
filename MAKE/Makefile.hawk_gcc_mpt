@@ -1,6 +1,17 @@
 CMP = mpicxx
 LNK = mpicxx
 
+# module load gcc mpt papi boost
+# Currently Loaded Modules:
+#  1) system/site_names   2) system/ws/1.3.1   3) system/wrappers/1.0   4) gcc/9.2.0   5) mpt/2.23   6) papi/c048e224f   7) boost/1.70.0
+#
+#  in jobscript, use:
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/zhome/academic/HLRS/pri/ipryakem/libraries/mpt/2.23/gcc/9.2.0/phiprof/lib
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/zhome/academic/HLRS/pri/ipryakem/libraries/mpt/2.23/gcc/9.2.0/jemalloc/lib
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/zhome/academic/HLRS/pri/ipryakem/libraries/mpt/2.23/gcc/9.2.0/zoltan/lib
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/zhome/academic/HLRS/pri/ipryakem/libraries/mpt/2.23/gcc/9.2.0/vlsv/lib
+
+
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length. 
 #Options: 
@@ -68,8 +79,8 @@ CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 LIB_BOOST= -L/opt/hlrs/spack/rev-004_2020-06-17/boost/1.70.0-gcc-9.2.0-ohuvjbhm/lib -lboost_program_options
 INC_BOOST=-L/opt/hlrs/spack/rev-004_2020-06-17/boost/1.70.0-gcc-9.2.0-ohuvjbhm/include
 
-INC_ZOLTAN = -I/opt/hlrs/spack/rev-004_2020-06-17/trilinos/12.14.1-gcc-9.2.0-jp6yigfc/include
-LIB_ZOLTAN = -L/opt/hlrs/spack/rev-004_2020-06-17/trilinos/12.14.1-gcc-9.2.0-jp6yigfc/lib -lzoltan
+INC_ZOLTAN = -I$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/lib -lzoltan
 
 INC_JEMALLOC = -I$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/include
 LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/jemalloc/lib -ljemalloc
