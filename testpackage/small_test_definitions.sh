@@ -138,12 +138,18 @@ comparison_phiprof[17]="phiprof_0.txt"
 variable_names[17]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e"
 variable_components[17]="0 0 1 2 0 1 2 0 1 2"
 
+# Magnetosphere 3D
+test_name[18]="Magnetosphere_3D_small"
+comparison_vlsv[18]="bulk.0000001.vlsv"
+comparison_phiprof[18]="phiprof_0.txt"
+variable_names[18]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e"
+variable_components[18]="0 0 1 2 0 1 2 0 1 2"
+
 ##Electron tests
 # Gyration test with electrons
-test_name[18]="acctest_6_electron"
-comparison_vlsv[18]="fullf.0000001.vlsv"
-comparison_phiprof[18]="phiprof_0.txt"
-variable_names[18]="electron/vg_rho electron/vg_v electron/vg_v electron/vg_v electron"
-variable_components[18]="0 0 1 2"
-single_cell[18]=1
-
+test_name[19]="acctest_6_electron"
+comparison_vlsv[19]="fullf.0000001.vlsv"
+comparison_phiprof[19]="phiprof_0.txt"
+variable_names[19]="electron/vg_rho electron/vg_v electron/vg_v electron/vg_v electron"
+variable_components[19]="0 0 1 2"
+single_cell[19]=1

@@ -358,6 +358,9 @@ namespace fsgrids {
       RHOQEx,    /*!< Cell-averaged Ex field from charge imbalance. Move these to some other place? */
       RHOQEy,    /*!< Cell-averaged Ey field from charge imbalance. Move these to some other place? */
       RHOQEz,    /*!< Cell-averaged Ez field from charge imbalance. Move these to some other place? */
+      dPedx,    /*!< Derivative of electron pressure to x-direction. */
+      dPedy,    /*!< Derivative of electron pressure to y-direction. */
+      dPedz,    /*!< Derivative of electron pressure to z-direction. */
       N_DMOMENTS
    };
    
@@ -464,6 +467,7 @@ struct globalflags {
    static int bailingOut; /*!< Global flag raised to true if a run bailout (write restart if requested/set and stop the simulation peacefully) is needed. */
    static bool writeRestart; /*!< Global flag raised to true if a restart writing is needed (without bailout). NOTE: used only by MASTER_RANK in vlasiator.cpp. */
    static bool balanceLoad; /*!< Global flag raised to true if a load balancing is needed. NOTE: used only by MASTER_RANK in vlasiator.cpp. */
+   static int AMRstencilWidth; /*!< Global variable used for the extended AMR stencil width */
 };
 
 /*!
