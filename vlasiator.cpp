@@ -836,6 +836,7 @@ int main(int argn,char* args[]) {
          computeNewTimeStep(mpiGrid, technicalGrid, newDt, dtIsChanged);
          addTimedBarrier("barrier-check-dt");
          if(dtIsChanged) {
+#WARNING dt change step in acceleration at restart cannot be done without additional information such as egradpe
             phiprof::start("update-dt");
             //propagate velocity space back to real-time
             if( P::propagateVlasovAcceleration ) {

@@ -339,6 +339,7 @@ void initializeGrids(
       phiprof::stop("Init moments");
    } else {
       phiprof::start("Init moments");
+      #pragma omp parallel for
       for (size_t i=0; i<cells.size(); ++i) {
          calculateCellMoments(mpiGrid[cells[i]], true);
       }
