@@ -334,7 +334,8 @@ bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::
    for (auto cellId : mpiGrid.get_cells()) {
       SpatialCell* cell = mpiGrid[cellId];
       if(cell) {
-         if (cell->sysBoundaryFlag == sysboundarytype::IONOSPHERE || sysboundarytype::STATICIONOSPHERE) {
+         if (cell->sysBoundaryFlag == sysboundarytype::IONOSPHERE ||
+             cell->sysBoundaryFlag == sysboundarytype::STATICIONOSPHERE) {
             innerBoundaryCells.insert(cellId);
             innerBoundaryRefLvl = mpiGrid.get_refinement_level(cellId);
             if (cell->sysBoundaryLayer == 1) {
