@@ -38,9 +38,7 @@ FLAGS =
 #GNU flags:
 CC_BRAND = gcc
 CC_BRAND_VERSION = 9.3.0
-#CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++71 -W -Wall -Wno-unused -fabi-version=0 -march=native -mfma -mavx2
-#from Vorna
-CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wextra -Wconditionally-supported -Wno-unused -mavx
+CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wextra -Wno-unused -mavx2
 
 testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0 -mfma
 
