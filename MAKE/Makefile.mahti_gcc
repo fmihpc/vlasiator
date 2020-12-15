@@ -3,7 +3,6 @@ LNK = mpic++
 
 # Modules loaded
 # module load gcc boost jemalloc papi openmpi zoltan
-#module load intel jemalloc papi openmpi
 
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length. 
