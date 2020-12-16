@@ -4,7 +4,6 @@ LNK = mpic++
 # Modules loaded
 # module load gcc boost jemalloc papi openmpi zoltan
 
-
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length. 
 #Options: 
@@ -15,9 +14,13 @@ LNK = mpic++
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
 #Single-precision        
 	VECTORCLASS = VEC8F_AGNER
+	INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass/
+	#VECTORCLASS = VEC8F_FALLBACK
+	#INC_VECTORCLASS = -I$(HOME)/vlasiator/vlasovsolver
 else
 #Double-precision
 	VECTORCLASS = VEC4D_AGNER
+	INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass/
 endif
 
 
@@ -35,11 +38,16 @@ FLAGS =
 #GNU flags:
 CC_BRAND = gcc
 CC_BRAND_VERSION = 9.3.0
-CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -fabi-version=0 -march=native -mfma -mavx2
+CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wextra -Wno-unused -mavx2
+
 testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0 -mfma
+
+#CXXFLAGS += -g -O3 -qopenmp -std=c++11 -W -Wall -Wno-unused -march=core-avx2 -qopt-zmm-usage=high
+#testpackage: CXXFLAGS = -g -traceback -O2 -qopenmp -std=c++14  -W -Wall -Wno-unused -march=core-avx2
 
 MATHFLAGS = -ffast-math
 LDFLAGS = -lrt
+#LDFLAGS = -qopenmp -lifcore -liomp5 -pthread -lboost_program_options -lzoltan -lvlsv -lphiprof -ljemalloc 
 LIB_MPI = -lgomp 
 
 # BOOST_VERSION = current trilinos version
@@ -47,13 +55,14 @@ LIB_MPI = -lgomp
 #
 #======== Libraries ===========
 
-MPT_VERSION = 4.0.3
+MPT_VERSION = 3.1.6
 JEMALLOC_VERSION = 5.2.1
-LIBRARY_PREFIX = /users/kempf/libraries
+LIBRARY_PREFIX = /projappl/project_2002873/vlasiatorlib/
+
 
 #======== PAPI ==========
 #Add PAPI_MEM define to use papi to report memory consumption?
-CXXFLAGS +=  -DPAPI_MEM
+CXXFLAGS += -DPAPI_MEM
 
 
 #======== Allocator =========
@@ -61,26 +70,30 @@ CXXFLAGS +=  -DPAPI_MEM
 #Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
 CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
+#module libraries
+LIB_JEMALLOC = -ljemalloc
+BOOST_VERSION = 
 
 #compiled libraries
-LIB_BOOST = -lboost_program_options
-
-LIB_ZOLTAN = -lzoltan
-
-LIB_JEMALLOC = -ljemalloc
 
 LIB_PAPI = -lpapi
 
-INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
-LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv
+INC_VLSV = -I$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/vlsv
+LIB_VLSV = -L$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/vlsv -lvlsv
+
+LIB_BOOST = -lboost_program_options
+
+INC_ZOLTAN = -I$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/openmpi/$(MPT_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/lib -lzoltan
 
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -lgfortran -Wl,-rpath=$(LIBRARY_PREFIX)/phiprof/lib
-INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include 
-
+INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
 
 #header libraries
 
 INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid/
-INC_EIGEN = -I$(LIBRARY_PREFIX)/eigen/
+INC_EIGEN = -I$(LIBRARY_PREFIX)/eigen-3.2.8/
 INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg/
 INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass/
+
+
