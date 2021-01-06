@@ -318,7 +318,7 @@ int main(int argn, char *args[])
       {
          cerr << "(MAIN) ERROR: getParameters failed!" << endl;
       }
-      exit(1);
+      MPI_Abort(MPI_COMM_WORLD, 1);
    }
 
    getObjectWrapper().addPopulationParameters();
