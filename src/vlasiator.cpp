@@ -185,9 +185,9 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mp
    MPI_Allreduce(&(dtMaxLocal[0]), &(dtMaxGlobal[0]), 3, MPI_Type<Real>(), MPI_MIN, MPI_COMM_WORLD);
 
    // If any of the solvers are disabled there should be no limits in timespace from it
-   if (P::propagateVlasovTranslation == false) dtMaxGlobal[0] = numeric_limits<Real>::max();
-   if (P::propagateVlasovAcceleration == false) dtMaxGlobal[1] = numeric_limits<Real>::max();
-   if (P::propagateField == false) dtMaxGlobal[2] = numeric_limits<Real>::max();
+   if (!P::propagateVlasovTranslation) dtMaxGlobal[0] = numeric_limits<Real>::max();
+   if (!P::propagateVlasovAcceleration) dtMaxGlobal[1] = numeric_limits<Real>::max();
+   if (!P::propagateField) dtMaxGlobal[2] = numeric_limits<Real>::max();
 
    creal meanVlasovCFL = 0.5 * (P::vlasovSolverMaxCFL + P::vlasovSolverMinCFL);
    creal meanFieldsCFL = 0.5 * (P::fieldSolverMaxCFL + P::fieldSolverMinCFL);
@@ -219,7 +219,7 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mp
               << dtMaxGlobal[2] * P::maxFieldSolverSubcycles << " " << endl
               << writeVerbose;
 
-      if (P::dynamicTimestep == true)
+      if (P::dynamicTimestep)
       {
          subcycleDt = newDt;
       }
@@ -312,7 +312,7 @@ int main(int argn, char *args[])
    P::addParameters();
    getObjectWrapper().addParameters();
    readparameters.parse(); // First pass parsing
-   if (P::getParameters() == false)
+   if (!P::getParameters())
    {
       if (myRank == MASTER_RANK)
       {
@@ -337,14 +337,14 @@ int main(int argn, char *args[])
    // Init parallel logger:
    phiprof::start("open logFile & diagnostic");
    // If restarting we will append to logfiles
-   if (logFile.open(MPI_COMM_WORLD, MASTER_RANK, "logfile.txt", P::isRestart) == false)
+   if (!logFile.open(MPI_COMM_WORLD, MASTER_RANK, "logfile.txt", P::isRestart))
    {
       if (myRank == MASTER_RANK) cerr << "(MAIN) ERROR: Logger failed to open logfile!" << endl;
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
    if (P::diagnosticInterval != 0)
    {
-      if (diagnostic.open(MPI_COMM_WORLD, MASTER_RANK, "diagnostic.txt", P::isRestart) == false)
+      if (!diagnostic.open(MPI_COMM_WORLD, MASTER_RANK, "diagnostic.txt", P::isRestart))
       {
          if (myRank == MASTER_RANK) cerr << "(MAIN) ERROR: Logger failed to open diagnostic file!" << endl;
          MPI_Abort(MPI_COMM_WORLD, 1);
@@ -365,12 +365,12 @@ int main(int argn, char *args[])
 
    // Init project
    phiprof::start("Init project");
-   if (project->initialize() == false)
+   if (!project->initialize())
    {
       if (myRank == MASTER_RANK) cerr << "(MAIN): Project did not initialize correctly!" << endl;
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
-   if (project->initialized() == false)
+   if (!project->initialized())
    {
       if (myRank == MASTER_RANK)
       {
@@ -416,20 +416,20 @@ int main(int argn, char *args[])
    // TODO: This is currently just taking the values from cell 1, and assuming them to be
    // constant throughout the simulation.
    perBGrid.DX = perBDt2Grid.DX = EGrid.DX = EDt2Grid.DX = EHallGrid.DX = EGradPeGrid.DX = momentsGrid.DX =
-       momentsDt2Grid.DX = dPerBGrid.DX = dMomentsGrid.DX = BgBGrid.DX = volGrid.DX = technicalGrid.DX =
-           P::dx_ini * pow(2, -P::amrMaxSpatialRefLevel);
+      momentsDt2Grid.DX = dPerBGrid.DX = dMomentsGrid.DX = BgBGrid.DX = volGrid.DX = technicalGrid.DX =
+      P::dx_ini * pow(2, -P::amrMaxSpatialRefLevel);
    perBGrid.DY = perBDt2Grid.DY = EGrid.DY = EDt2Grid.DY = EHallGrid.DY = EGradPeGrid.DY = momentsGrid.DY =
-       momentsDt2Grid.DY = dPerBGrid.DY = dMomentsGrid.DY = BgBGrid.DY = volGrid.DY = technicalGrid.DY =
-           P::dy_ini * pow(2, -P::amrMaxSpatialRefLevel);
+      momentsDt2Grid.DY = dPerBGrid.DY = dMomentsGrid.DY = BgBGrid.DY = volGrid.DY = technicalGrid.DY =
+      P::dy_ini * pow(2, -P::amrMaxSpatialRefLevel);
    perBGrid.DZ = perBDt2Grid.DZ = EGrid.DZ = EDt2Grid.DZ = EHallGrid.DZ = EGradPeGrid.DZ = momentsGrid.DZ =
-       momentsDt2Grid.DZ = dPerBGrid.DZ = dMomentsGrid.DZ = BgBGrid.DZ = volGrid.DZ = technicalGrid.DZ =
-           P::dz_ini * pow(2, -P::amrMaxSpatialRefLevel);
+      momentsDt2Grid.DZ = dPerBGrid.DZ = dMomentsGrid.DZ = BgBGrid.DZ = volGrid.DZ = technicalGrid.DZ =
+      P::dz_ini * pow(2, -P::amrMaxSpatialRefLevel);
    // Set the physical start (lower left corner) X, Y, Z
    perBGrid.physicalGlobalStart = perBDt2Grid.physicalGlobalStart = EGrid.physicalGlobalStart =
-       EDt2Grid.physicalGlobalStart = EHallGrid.physicalGlobalStart = EGradPeGrid.physicalGlobalStart =
-           momentsGrid.physicalGlobalStart = momentsDt2Grid.physicalGlobalStart = dPerBGrid.physicalGlobalStart =
-               dMomentsGrid.physicalGlobalStart = BgBGrid.physicalGlobalStart = volGrid.physicalGlobalStart =
-                   technicalGrid.physicalGlobalStart = {P::xmin, P::ymin, P::zmin};
+      EDt2Grid.physicalGlobalStart = EHallGrid.physicalGlobalStart = EGradPeGrid.physicalGlobalStart =
+      momentsGrid.physicalGlobalStart = momentsDt2Grid.physicalGlobalStart = dPerBGrid.physicalGlobalStart =
+      dMomentsGrid.physicalGlobalStart = BgBGrid.physicalGlobalStart = volGrid.physicalGlobalStart =
+      technicalGrid.physicalGlobalStart = {P::xmin, P::ymin, P::zmin};
 
    // Checking that spatial cells are cubic, otherwise field solver is incorrect (cf. derivatives in E, Hall term)
    if ((abs((technicalGrid.DX - technicalGrid.DY) / technicalGrid.DX) > 0.001) ||
@@ -476,7 +476,7 @@ int main(int argn, char *args[])
    getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
    phiprof::stop("getFieldsFromFsGrid");
 
-   if (P::isRestart == false)
+   if (!P::isRestart)
    {
       phiprof::start("compute-dt");
       // Run Vlasov solver once with zero dt to initialize
@@ -505,10 +505,10 @@ int main(int argn, char *args[])
       }
 
       const bool writeGhosts = true;
-      if (writeGrid(mpiGrid,
+      if (!writeGrid(mpiGrid,
                     perBGrid, // TODO: Merge all the fsgrids passed here into one meta-object
                     EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, volGrid,
-                    technicalGrid, &outputReducer, P::systemWriteName.size() - 1, writeGhosts) == false)
+                    technicalGrid, &outputReducer, P::systemWriteName.size() - 1, writeGhosts))
       {
          cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
       }
@@ -523,12 +523,12 @@ int main(int argn, char *args[])
       phiprof::stop("write-initial-state");
    }
 
-   if (P::isRestart == false)
+   if (!P::isRestart)
    {
       // Compute new dt
       phiprof::start("compute-dt");
       computeNewTimeStep(mpiGrid, technicalGrid, newDt, dtIsChanged);
-      if (P::dynamicTimestep == true && dtIsChanged == true)
+      if (P::dynamicTimestep && dtIsChanged)
       {
          // Only actually update the timestep if dynamicTimestep is on
          P::dt = newDt;
@@ -647,7 +647,7 @@ int main(int argn, char *args[])
       {
 
          phiprof::start("diagnostic-io");
-         if (writeDiagnostic(mpiGrid, diagnosticReducer) == false)
+         if (!writeDiagnostic(mpiGrid, diagnosticReducer))
          {
             if (myRank == MASTER_RANK) cerr << "ERROR with diagnostic computation" << endl;
          }
@@ -666,10 +666,10 @@ int main(int argn, char *args[])
                     << " t = " << P::t << endl
                     << writeVerbose;
             const bool writeGhosts = true;
-            if (writeGrid(mpiGrid,
+            if (!writeGrid(mpiGrid,
                           perBGrid, // TODO: Merge all the fsgrids passed here into one meta-object
                           EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, volGrid,
-                          technicalGrid, &outputReducer, i, writeGhosts) == false)
+                          technicalGrid, &outputReducer, i, writeGhosts))
             {
                cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
             }
@@ -695,7 +695,7 @@ int main(int argn, char *args[])
              (doBailout > 0 && P::bailout_write_restart) || globalflags::writeRestart)
          {
             doNow[0] = 1;
-            if (globalflags::writeRestart == true)
+            if (globalflags::writeRestart)
             {
                doNow[0] = 2; // Setting to 2 so as to not increment the restart count below.
                // This flag is only used by MASTER_RANK here and
@@ -707,7 +707,7 @@ int main(int argn, char *args[])
          {
             doNow[0] = 0;
          }
-         if (globalflags::balanceLoad == true)
+         if (globalflags::balanceLoad)
          {
             doNow[1] = 1;
             globalflags::balanceLoad = false;
@@ -735,10 +735,10 @@ int main(int argn, char *args[])
             logFile << "(IO): Writing restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl
                     << writeVerbose;
          // Write the restart:
-         if (writeRestart(mpiGrid,
+         if (!writeRestart(mpiGrid,
                           perBGrid, // TODO: Merge all the fsgrids passed here into one meta-object
                           EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, volGrid,
-                          technicalGrid, outputReducer, "restart", (uint)P::t, P::restartStripeFactor) == false)
+                          technicalGrid, outputReducer, "restart", (uint)P::t, P::restartStripeFactor))
          {
             logFile << "(IO): ERROR Failed to write restart!" << endl << writeVerbose;
             cerr << "FAILED TO WRITE RESTART" << endl;
@@ -820,9 +820,9 @@ int main(int argn, char *args[])
          }
       }
 
-      if (P::tstep % P::rebalanceInterval == P::rebalanceInterval - 1 || P::prepareForRebalance == true)
+      if (P::tstep % P::rebalanceInterval == P::rebalanceInterval - 1 || P::prepareForRebalance)
       {
-         if (P::prepareForRebalance == true)
+         if (P::prepareForRebalance)
          {
             overrideRebalanceNow = true;
          }
