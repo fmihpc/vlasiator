@@ -141,6 +141,18 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       unsigned int transformation_substeps_2; 
       transformation_substeps_2 = fabs(dt) / fabs(plasma_period*(0.1/360.0));
       transformation_substeps = transformation_substeps_2 > transformation_substeps ? transformation_substeps_2 : transformation_substeps;
+
+      // Account for extra substeps when plasma period ~ gyro period
+      Real logFactor = 1.0/fabs(log( fabs(gyro_period)/fabs(plasma_period) ));
+      if(std::isnan(logFactor) == false){
+         //constraint: max n times more subcycles
+         Real maxFactor = 100;
+         logFactor = min(logFactor, maxFactor);
+         //constraint: do not lower subcycle count
+         logFactor = max(logFactor, 1.0);
+      
+         transformation_substeps = transformation_substeps * logFactor;
+      }
    }
    if ((transformation_substeps < 1) && (fabs(dt)>0)) transformation_substeps=1;
       
@@ -206,9 +218,9 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 	 isn't needed.
       */
       if (!smallparticle) {
-	 rotation_pivot[0]-= hallPrefactor*(dBZdy - dBYdz);
-	 rotation_pivot[1]-= hallPrefactor*(dBXdz - dBZdx);
-	 rotation_pivot[2]-= hallPrefactor*(dBYdx - dBXdy);
+         rotation_pivot[0]-= hallPrefactor*(dBZdy - dBYdz);
+         rotation_pivot[1]-= hallPrefactor*(dBXdz - dBZdx);
+         rotation_pivot[2]-= hallPrefactor*(dBYdx - dBXdy);
       }
       
       // Calculate EJE only for the electron population
@@ -238,7 +250,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       } // end if (smallparticle==true) and dt>0
 
       if (smallparticle) {	  
-	  total_transform=Translation<Real,3>(deltaV) * total_transform;
+         total_transform=Translation<Real,3>(deltaV) * total_transform;
       }
 
       /* Evaluate electron pressure gradient term. This is treated as a simple
