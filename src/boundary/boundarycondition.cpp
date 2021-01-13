@@ -24,8 +24,8 @@
  * \brief Implementation of the base class BoundaryCondition to handle
  * boundary cells.
  *
- * \sa nocompute.cpp ionosphere.cpp outflow.cpp user.cpp setmaxwellian.cpp
- *
+ * \sa nocompute.cpp ionosphere.cpp outflow.cpp user.cpp inflow.cpp
+ * maxwellian.cpp
  */
 
 #include <cstdlib>

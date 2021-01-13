@@ -20,8 +20,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-/*!\file user.cpp
- * \brief Implementation of the class BoundaryCondition::User.
+/*!\file inflow.cpp
+ * \brief Implementation of the class BoundaryCondition::Inflow.
  * This serves as the base class for further classes like BoundaryCondition::SetMaxwellian.
  */
 
@@ -32,7 +32,7 @@
 #include "../fieldsolver/fs_common.h"
 #include "../object_wrapper.h"
 #include "../vlasovmover.h"
-#include "user.h"
+#include "inflow.h"
 
 #ifndef NDEBUG
 #define DEBUG_USER
@@ -45,14 +45,14 @@ using namespace std;
 
 namespace BC
 {
-User::User() : BoundaryCondition() {}
-User::~User() {}
+Inflow::Inflow() : BoundaryCondition() {}
+Inflow::~Inflow() {}
 
-bool User::initBoundary(creal &t, Project &project)
+bool Inflow::initBoundary(creal &t, Project &project)
 {
-   /* The array of bool describes which of the x+, x-, y+, y-, z+, z- faces are to have user-set boundary
-    * conditions. A true indicates the corresponding face will have user-set boundary conditions. The 6 elements
-    * correspond to x+, x-, y+, y-, z+, z- respectively.
+   /* The array of bool describes which of the x+, x-, y+, y-, z+, z- faces are
+    * to have inflow boundary conditions, indicated by trues.
+    * The 6 elements correspond to x+, x-, y+, y-, z+, z- respectively.
     */
    bool success = true;
    for (uint i = 0; i < 6; i++)
@@ -80,7 +80,7 @@ bool User::initBoundary(creal &t, Project &project)
    return success;
 }
 
-bool User::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+bool Inflow::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                FsGrid<fsgrids::technical, 2> &technicalGrid)
 {
    bool doAssign;
@@ -155,7 +155,7 @@ bool User::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &
    return true;
 }
 
-bool User::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+bool Inflow::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                   FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, Project &project)
 {
    bool success = true;
@@ -168,7 +168,7 @@ bool User::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Ge
    return success;
 }
 
-Real User::fieldSolverBoundaryCondMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &bGrid,
+Real Inflow::fieldSolverBoundaryCondMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &bGrid,
                                                      FsGrid<fsgrids::technical, 2> &technicalGrid, cint i, cint j,
                                                      cint k, creal &dt, cuint &component)
 {
@@ -195,13 +195,13 @@ Real User::fieldSolverBoundaryCondMagneticField(FsGrid<std::array<Real, fsgrids:
    return result;
 }
 
-void User::fieldSolverBoundaryCondElectricField(FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, 2> &EGrid,
+void Inflow::fieldSolverBoundaryCondElectricField(FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, 2> &EGrid,
                                                      cint i, cint j, cint k, cuint component)
 {
    EGrid.get(i, j, k)->at(fsgrids::efield::EX + component) = 0.0;
 }
 
-void User::fieldSolverBoundaryCondHallElectricField(
+void Inflow::fieldSolverBoundaryCondHallElectricField(
     FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, 2> &EHallGrid, cint i, cint j, cint k, cuint component)
 {
    std::array<Real, fsgrids::ehall::N_EHALL> *cp = EHallGrid.get(i, j, k);
@@ -231,13 +231,13 @@ void User::fieldSolverBoundaryCondHallElectricField(
    }
 }
 
-void User::fieldSolverBoundaryCondGradPeElectricField(
+void Inflow::fieldSolverBoundaryCondGradPeElectricField(
     FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> &EGradPeGrid, cint i, cint j, cint k, cuint component)
 {
    EGradPeGrid.get(i, j, k)->at(fsgrids::egradpe::EXGRADPE + component) = 0.0;
 }
 
-void User::fieldSolverBoundaryCondDerivatives(
+void Inflow::fieldSolverBoundaryCondDerivatives(
     FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, 2> &dPerBGrid,
     FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> &dMomentsGrid, cint i, cint j, cint k, cuint &RKCase,
     cuint &component)
@@ -245,19 +245,19 @@ void User::fieldSolverBoundaryCondDerivatives(
    this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
 }
 
-void User::fieldSolverBoundaryCondBVOLDerivatives(FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, 2> &volGrid,
+void Inflow::fieldSolverBoundaryCondBVOLDerivatives(FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, 2> &volGrid,
                                                        cint i, cint j, cint k, cuint &component)
 {
    this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
 }
 
-void User::vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+void Inflow::vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                         const CellID &cellID, const uint popID, const bool calculate_V_moments)
 {
    // No need to do anything in this function, as the propagators do not touch the distribution function
 }
 
-bool User::setBFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+bool Inflow::setBFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                  FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid)
 {
 
@@ -313,7 +313,7 @@ bool User::setBFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geo
    return true;
 }
 
-bool User::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+bool Inflow::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                      const uint popID)
 {
    vector<CellID> cells = mpiGrid.get_cells();
@@ -346,15 +346,15 @@ bool User::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian
    return true;
 }
 
-void User::getFaces(bool *faces)
+void Inflow::getFaces(bool *faces)
 {
    for (uint i = 0; i < 6; i++)
       faces[i] = facesToProcess[i];
 }
 
-bool User::loadInputData(const uint popID)
+bool Inflow::loadInputData(const uint popID)
 {
-   UserSpeciesParameters &sP = speciesParams[popID];
+   InflowSpeciesParameters &sP = speciesParams[popID];
 
    for (uint i = 0; i < 6; i++)
    {
@@ -377,16 +377,15 @@ bool User::loadInputData(const uint popID)
    return true;
 }
 
-/*! Load user-set boundary data from given file.
+/*! Load inflow boundary data from given file.
  * The first entry of each line is assumed to be the time.
- * The number of entries per line is given by nParams which is defined as a parameter
- * from the configuration file/command line.
- *
+ * The number of entries per line is given by nParams which is defined as a
+ * parameter from the configuration file/command line.
  * \param fn Name of the file to be opened.
- * \retval dataset Vector of Real vectors. Each line of length nParams is put into a vector. Each of these is then put
- * into the vector returned here.
+ * \retval dataset Vector of Real vectors. Each line of length nParams is put
+ * into a vector. Each of these is then put into the vector returned here.
  */
-vector<vector<Real>> User::loadFile(const char *fn, const unsigned int nParams)
+vector<vector<Real>> Inflow::loadFile(const char *fn, const unsigned int nParams)
 {
    vector<vector<Real>> dataset(0, vector<Real>(nParams, 0));
 
@@ -460,7 +459,7 @@ vector<vector<Real>> User::loadFile(const char *fn, const unsigned int nParams)
  * \param t Simulation time.
  * \sa generateTemplateCell
  */
-bool User::generateTemplateCells(creal &t)
+bool Inflow::generateTemplateCells(creal &t)
 {
 #pragma omp parallel for
    for (uint i = 0; i < 6; i++)
@@ -481,10 +480,10 @@ bool User::generateTemplateCells(creal &t)
  * \param outputData Pointer to the location where to write the result. Make sure from the calling side that nParams
  * Real values can be written there!
  */
-void User::interpolate(const int inputDataIndex, const uint popID, creal t, Real *outputData)
+void Inflow::interpolate(const int inputDataIndex, const uint popID, creal t, Real *outputData)
 {
 
-   UserSpeciesParameters &sP = speciesParams[popID];
+   InflowSpeciesParameters &sP = speciesParams[popID];
 
    // Find first data[0] value which is >= t
    int i1 = 0, i2 = 0;

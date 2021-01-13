@@ -20,9 +20,9 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-/*!\file setmaxwellian.cpp
- * \brief Implementation of the class BoundaryCondition::SetMaxwellian to handle cells classified as
- * boundarytype::MAXWELLIAN.
+/*!\file maxwellian.cpp
+ * \brief Implementation of the class BoundaryCondition::Maxwellian to handle
+ * cells classified as boundarytype::MAXWELLIAN.
  */
 
 #include <cstdlib>
@@ -30,14 +30,14 @@
 
 #include "../object_wrapper.h"
 #include "../vlasovmover.h"
-#include "setmaxwellian.h"
+#include "maxwellian.h"
 
 namespace BC
 {
-SetMaxwellian::SetMaxwellian() : User() {}
-SetMaxwellian::~SetMaxwellian() {}
+Maxwellian::Maxwellian() : Inflow() {}
+Maxwellian::~Maxwellian() {}
 
-void SetMaxwellian::addParameters()
+void Maxwellian::addParameters()
 {
    Readparameters::addComposing(
        "maxwellian.face", "List of faces on which set Maxwellian boundary conditions are to be applied ([xyz][+-]).");
@@ -85,7 +85,7 @@ void SetMaxwellian::addParameters()
    }
 }
 
-void SetMaxwellian::getParameters()
+void Maxwellian::getParameters()
 {
    Readparameters::get("maxwellian.face", faceList);
    Readparameters::get("maxwellian.precedence", precedence);
@@ -103,7 +103,7 @@ void SetMaxwellian::getParameters()
    {
       const std::string &pop = getObjectWrapper().particleSpecies[i].name;
 
-      UserSpeciesParameters sP;
+      InflowSpeciesParameters sP;
       sP.nParams = 9;
 
       Readparameters::get(pop + "_maxwellian.dynamic", isThisDynamic);
@@ -119,14 +119,14 @@ void SetMaxwellian::getParameters()
    }
 }
 
-Real SetMaxwellian::maxwellianDistribution(const uint popID, creal &rho, creal &T, creal &vx, creal &vy, creal &vz)
+Real Maxwellian::maxwellianDistribution(const uint popID, creal &rho, creal &T, creal &vx, creal &vy, creal &vz)
 {
    const Real MASS = getObjectWrapper().particleSpecies[popID].mass;
    return rho * pow(MASS / (2.0 * M_PI * physicalconstants::K_B * T), 1.5) *
           exp(-MASS * (vx * vx + vy * vy + vz * vz) / (2.0 * physicalconstants::K_B * T));
 }
 
-std::vector<vmesh::GlobalID> SetMaxwellian::findBlocksToInitialize(const uint popID, spatial_cell::SpatialCell &cell,
+std::vector<vmesh::GlobalID> Maxwellian::findBlocksToInitialize(const uint popID, spatial_cell::SpatialCell &cell,
                                                                    creal &rho, creal &T, creal &VX0, creal &VY0,
                                                                    creal &VZ0)
 {
@@ -191,7 +191,7 @@ std::vector<vmesh::GlobalID> SetMaxwellian::findBlocksToInitialize(const uint po
  * \param inputDataIndex Index used for the location of the input data.
  * \param t Current simulation time.
  */
-void SetMaxwellian::generateTemplateCell(spatial_cell::SpatialCell &templateCell, Real B[3], int inputDataIndex,
+void Maxwellian::generateTemplateCell(spatial_cell::SpatialCell &templateCell, Real B[3], int inputDataIndex,
                                          creal &t)
 {
    Real rho, T, Vx, Vy, Vz, Bx = 0.0, By = 0.0, Bz = 0.0, buffer[8];
@@ -317,7 +317,7 @@ void SetMaxwellian::generateTemplateCell(spatial_cell::SpatialCell &templateCell
    }
 }
 
-string SetMaxwellian::getName() const { return "SetMaxwellian"; }
-uint SetMaxwellian::getIndex() const { return boundarytype::SET_MAXWELLIAN; }
+string Maxwellian::getName() const { return "Maxwellian"; }
+uint Maxwellian::getIndex() const { return boundarytype::SET_MAXWELLIAN; }
 
 } // namespace BC

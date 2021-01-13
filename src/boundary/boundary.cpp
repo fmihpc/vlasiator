@@ -35,7 +35,7 @@
 #include "nocompute.h"
 #include "ionosphere.h"
 #include "outflow.h"
-#include "setmaxwellian.h"
+#include "maxwellian.h"
 
 using namespace std;
 using namespace spatial_cell;
@@ -92,7 +92,7 @@ void Boundary::addParameters()
    BC::NoCompute::addParameters();
    BC::Ionosphere::addParameters();
    BC::Outflow::addParameters();
-   BC::SetMaxwellian::addParameters();
+   BC::Maxwellian::addParameters();
 }
 
 /*!\brief Get this class' parameters.
@@ -256,7 +256,7 @@ bool Boundary::initBoundaries(Project &project, creal &t)
       }
       if (*it == "Maxwellian")
       {
-         if (this->addBoundary(new BC::SetMaxwellian, project, t) == false)
+         if (this->addBoundary(new BC::Maxwellian, project, t) == false)
          {
             if (myRank == MASTER_RANK) cerr << "Error in adding Maxwellian boundary." << endl;
             success = false;

@@ -20,8 +20,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef USER_H
-#define USER_H
+#ifndef INFLOW_H
+#define INFLOW_H
 
 #include "../definitions.h"
 #include "../readparameters.h"
@@ -32,15 +32,17 @@
 namespace BC
 {
 
-struct UserSpeciesParameters
+struct InflowSpeciesParameters
 {
-   /*! Vector containing a vector for each face which has the current boundary condition. Each of these vectors has one
-    * line per input data line (time point). The length of the lines is nParams.*/
+   /*! Vector containing a vector for each face which has the current boundary
+    * condition. Each of these vectors has one line per input data line
+    * (time point). The length of the lines is nParams.*/
    std::vector<std::vector<Real>> inputData[6];
-   /*! Input files for the user-set boundary conditions. */
+   /*! Input files for the inflow boundary conditions. */
    std::string files[6];
 
-   /*! Number of space- and velocityspace samples used when creating phase space densities */
+   /*! Number of space- and velocityspace samples used when creating phase space
+    * densities */
    uint nSpaceSamples;
    uint nVelocitySamples;
 
@@ -48,23 +50,25 @@ struct UserSpeciesParameters
    uint nParams;
 };
 
-/*!\brief Base class for boundary conditions with user-set settings and parameters read from file.
+/*!\brief Base class for boundary conditions with settings and parameters read
+ * from file.
  *
- * User is a base class for e.g. BoundaryConditon::SetMaxwellian.
- * It defines the managing functions to set boundary conditions on the faces of the
+ * Inflow is a base class for e.g. BoundaryConditon::SetMaxwellian. It defines
+ * the managing functions to set boundary conditions on the faces of the
  * simulation domain.
  *
- * This class handles the import and interpolation in time of the input parameters read
- * from file as well as the assignment of the state from the template cells.
+ * This class handles the import and interpolation in time of the input
+ * parameters read from file as well as the assignment of the state from the
+ * template cells.
  *
- * The daughter classes have then to handle parameters and generate the template cells as
- * wished from the data returned.
+ * The daughter classes have then to handle parameters and generate the
+ * template cells as wished from the data returned.
  */
-class User : public BoundaryCondition
+class Inflow : public BoundaryCondition
 {
 public:
-   User();
-   virtual ~User();
+   Inflow();
+   virtual ~Inflow();
 
    virtual void getParameters() = 0;
 
@@ -116,10 +120,10 @@ protected:
     * an active face is actually being touched at all by the code. */
    spatial_cell::SpatialCell templateCells[6];
    Real templateB[6][3];
-   /*! List of faces on which user-set boundary conditions are to be applied ([xyz][+-]). */
+   /*! List of faces on which inflow boundary conditions are to be applied ([xyz][+-]). */
    std::vector<std::string> faceList;
 
-   std::vector<UserSpeciesParameters> speciesParams;
+   std::vector<InflowSpeciesParameters> speciesParams;
 };
 } // namespace BC
 

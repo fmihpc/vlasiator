@@ -20,21 +20,21 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef SETMAXWELLIAN_H
-#define SETMAXWELLIAN_H
+#ifndef Maxwellian_H
+#define Maxwellian_H
 
 #include "../definitions.h"
 #include "../readparameters.h"
 #include "../spatial_cell.hpp"
 #include "boundarycondition.h"
-#include "user.h"
+#include "inflow.h"
 #include <vector>
 
 using namespace std;
 
 namespace BC
 {
-/*!\brief SetMaxwellian is a class applying fixed Maxwellian conditions according to parameters read from an input file.
+/*!\brief Maxwellian is a class applying fixed Maxwellian conditions according to parameters read from an input file.
  *
  * Maxwellian is a class handling cells tagged as boundarytype::MAXWELLIAN by this
  * boundary condition.
@@ -42,17 +42,16 @@ namespace BC
  * It applies fixed Maxwellian settings to the boundary cells, the parameters of
  * which are being read from an input file.
  *
- * The class inherits most of its machinery from
- * BoundaryCondition::User. The parameters are more general than for Maxwellian
- * and could be put in BoundaryCondition::User but this way they can have a
- * specific prefix which is needed if several inheriting classes are needed.
- *
+ * The class inherits most of its machinery from BoundaryCondition::Inflow.
+ * The parameters are more general than for Maxwellian and could be put in
+ * BoundaryCondition::Inflow but this way they can have a specific prefix which
+ * is needed if several inheriting classes are needed.
  */
-class SetMaxwellian : public User
+class Maxwellian : public Inflow
 {
 public:
-   SetMaxwellian();
-   virtual ~SetMaxwellian();
+   Maxwellian();
+   virtual ~Maxwellian();
 
    static void addParameters();
    virtual void getParameters();
