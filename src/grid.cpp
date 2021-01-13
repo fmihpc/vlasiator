@@ -161,7 +161,7 @@ void initializeGrids(
    phiprof::stop("Set spatial cell coordinates");
    
    phiprof::start("Initialize system boundary conditions");
-   if(boundaries.initSysBoundaries(project, P::t_min) == false) {
+   if(boundaries.initBoundaries(project, P::t_min) == false) {
       if (myRank == MASTER_RANK) cerr << "Error in initialising the system boundaries." << endl;
       exit(1);
    }
@@ -559,7 +559,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, B
    phiprof::stop("update block lists");
 
    phiprof::start("update sysboundaries");
-   boundaries.updateSysBoundariesAfterLoadBalance( mpiGrid );
+   boundaries.updateBoundariesAfterLoadBalance( mpiGrid );
    phiprof::stop("update sysboundaries");
 
    phiprof::start("Init solvers");

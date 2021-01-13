@@ -41,7 +41,7 @@
  * them to the simulation volume cells if the cells pertain to a specific boundary type.
  * If the simulation domain is not fully periodic then the behaviour at the edges or boundaries of the volume has to be properly defined.
  * 
- * initSysBoundaries creates the instances of BC::BoundaryConditions that are needed.
+ * initBoundaries creates the instances of BC::BoundaryConditions that are needed.
  * They are then initialised, which means the internals are prepared for the system
  * boundary condition to be applied (import and process parameters, generate template cells
  * etc.). When the whole simulation domain is initialised, the boundary conditions are
@@ -63,7 +63,7 @@ class Boundary {
                        Project& project,
                        creal& t
                       );
-   bool initSysBoundaries(
+   bool initBoundaries(
                           Project& project,
                           creal& t
                          );
@@ -80,7 +80,7 @@ class Boundary {
    BC::BoundaryCondition* getBoundary(cuint boundaryType) const;
    bool isDynamic() const;
    bool isBoundaryPeriodic(uint direction) const;
-   bool updateSysBoundariesAfterLoadBalance(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+   bool updateBoundariesAfterLoadBalance(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 
    private:
       /*! Private copy-constructor to prevent copying the class. */
@@ -93,7 +93,7 @@ class Boundary {
       /*! A map from the system boundary types to the corresponding class member. */
       std::map<uint, BC::BoundaryCondition*> indexToBoundary;
       /*! List of system boundary conditions (BC) to be used. */
-      std::vector<std::string> sysBoundaryCondList;
+      std::vector<std::string> boundaryCondList;
       /*! bool telling whether any system boundary condition is dynamic in time (and thus needs updating). */
       bool isThisDynamic;
 

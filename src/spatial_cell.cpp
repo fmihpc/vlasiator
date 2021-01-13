@@ -35,7 +35,7 @@ using namespace std;
 namespace spatial_cell {
    int SpatialCell::activePopID = 0;
    uint64_t SpatialCell::mpi_transfer_type = 0;
-   bool SpatialCell::mpiTransferAtSysBoundaries = false;
+   bool SpatialCell::mpiTransferAtBoundaries = false;
 
    SpatialCell::SpatialCell() {
       // Block list and cache always have room for all blocks
@@ -590,7 +590,7 @@ namespace spatial_cell {
 
       // create datatype for actual data if we are in the first two 
       // layers around a boundary, or if we send for the whole system
-      if (this->mpiTransferEnabled && (SpatialCell::mpiTransferAtSysBoundaries==false || this->boundaryLayer ==1 || this->boundaryLayer ==2 )) {
+      if (this->mpiTransferEnabled && (SpatialCell::mpiTransferAtBoundaries==false || this->boundaryLayer ==1 || this->boundaryLayer ==2 )) {
          //add data to send/recv to displacement and block length lists
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST_STAGE1) != 0) {
             //first copy values in case this is the send operation

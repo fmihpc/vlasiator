@@ -55,8 +55,8 @@ Boundary::Boundary() { }
 
 /*!\brief Destructor for class Boundary.
  * 
- * Reduces the value of Boundary::nSysBoundaries by one,
- * and if after the destruction Boundary::nSysBoundaries equals zero all stored SysBoundaries are deleted.
+ * Reduces the value of Boundary::nBoundaries by one,
+ * and if after the destruction Boundary::nBoundaries equals zero all stored Boundaries are deleted.
  */
 Boundary::~Boundary() {
    // Call delete for each BoundaryCondition:
@@ -98,7 +98,7 @@ void Boundary::addParameters() {
 void Boundary::getParameters() {
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-   if(!Readparameters::get("boundaries.boundary", sysBoundaryCondList)) {
+   if(!Readparameters::get("boundaries.boundary", boundaryCondList)) {
       if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
       exit(1);
    }
@@ -123,7 +123,7 @@ void Boundary::getParameters() {
    if (periodic_z == "yes") isPeriodic[2] = true;
 }
 
-/*! Add a new BC::BoundaryCondition which has been created with new sysBoundary. 
+/*! Add a new BC::BoundaryCondition which has been created with new boundary. 
  * Boundary will take care of deleting it.
  * 
  * \param bc BoundaryCondition object
@@ -166,7 +166,7 @@ bool Boundary::addBoundary(
  * \retval success If true, the initialisation of all system boundaries succeeded.
  * \sa addBoundary
  */
-bool Boundary::initSysBoundaries(
+bool Boundary::initBoundaries(
                                     Project& project,
                                     creal& t
                                    ) {
@@ -175,7 +175,7 @@ bool Boundary::initSysBoundaries(
    bool success = true;
    vector<string>::const_iterator it;
    
-   if (sysBoundaryCondList.size() == 0) {
+   if (boundaryCondList.size() == 0) {
       if(!isPeriodic[0] && !Readparameters::helpRequested) {
          if(myRank == MASTER_RANK) cerr << "You set boundaries.periodic_x = no but you didn't load any system boundary condition using the option boundaries.boundary, are you sure this is correct?" << endl;
       }
@@ -187,8 +187,8 @@ bool Boundary::initSysBoundaries(
       }
    }
    
-   for (it = sysBoundaryCondList.begin();
-        it != sysBoundaryCondList.end();
+   for (it = boundaryCondList.begin();
+        it != boundaryCondList.end();
         it++) {
       if(*it == "Outflow") {
          if(this->addBoundary(new BC::Outflow, project, t) == false) {
@@ -397,7 +397,7 @@ bool Boundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Carte
    }
    
    /*
-     loop through sysboundaries and let all sysboundaries set in local
+     loop through boundaries and let all boundaries set in local
    cells if they are part of which boundary (cell location needs to
    be updated by now. No remote data needed/available, so assignement
    has to be based individually on each cells location
@@ -770,16 +770,16 @@ bool getBoundaryCellList(
  * \param mpiGrid The DCCRG grid
  * \retval Returns true if the operation is successful
  */
-bool Boundary::updateSysBoundariesAfterLoadBalance(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
-   phiprof::start("updateSysBoundariesAfterLoadBalance");
+bool Boundary::updateBoundariesAfterLoadBalance(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+   phiprof::start("updateBoundariesAfterLoadBalance");
    vector<uint64_t> local_cells_on_boundary;
    getBoundaryCellList(mpiGrid, mpiGrid.get_cells(), local_cells_on_boundary);
-   // Loop over sysboundaries:
+   // Loop over boundaries:
    for( std::list<BC::BoundaryCondition*>::iterator it = boundaries.begin(); it != boundaries.end(); ++it ) {
       (*it)->updateBoundaryConditionsAfterLoadBalance(mpiGrid, local_cells_on_boundary);
    }
 
-   phiprof::stop("updateSysBoundariesAfterLoadBalance");
+   phiprof::stop("updateBoundariesAfterLoadBalance");
    return true;
 }
 
