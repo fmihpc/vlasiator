@@ -20,8 +20,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef Maxwellian_H
-#define Maxwellian_H
+#ifndef MAXWELLIAN_H
+#define MAXWELLIAN_H
 
 #include "../definitions.h"
 #include "../readparameters.h"

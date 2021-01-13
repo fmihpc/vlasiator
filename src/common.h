@@ -384,7 +384,8 @@ namespace boundarytype {
       NOT_BOUNDARY,     /*!< Cells within the simulation domain are not boundary cells. */
       IONOSPHERE,       /*!< Initially a perfectly conducting sphere. */
       OUTFLOW,          /*!< No fixed conditions on the fields and distribution function. */
-      SET_MAXWELLIAN,   /*!< Set Maxwellian boundary condition, i.e. set fields and distribution function. */
+      MAXWELLIAN,       /*!< Set Maxwellian BC, i.e. set fields and distribution function. */
+      USER,             /*!< User-set BC. */
       N_BOUNDARY_CONDITIONS
    };
 }

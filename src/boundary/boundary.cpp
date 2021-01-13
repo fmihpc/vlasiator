@@ -36,6 +36,7 @@
 #include "ionosphere.h"
 #include "outflow.h"
 #include "maxwellian.h"
+#include "user.h"
 
 using namespace std;
 using namespace spatial_cell;
@@ -93,6 +94,7 @@ void Boundary::addParameters()
    BC::Ionosphere::addParameters();
    BC::Outflow::addParameters();
    BC::Maxwellian::addParameters();
+   BC::User::addParameters();
 }
 
 /*!\brief Get this class' parameters.
@@ -261,9 +263,9 @@ bool Boundary::initBoundaries(Project &project, creal &t)
             if (myRank == MASTER_RANK) cerr << "Error in adding Maxwellian boundary." << endl;
             success = false;
          }
-         isThisDynamic = isThisDynamic | this->getBoundary(boundarytype::SET_MAXWELLIAN)->isDynamic();
+         isThisDynamic = isThisDynamic | this->getBoundary(boundarytype::MAXWELLIAN)->isDynamic();
          bool faces[6];
-         this->getBoundary(boundarytype::SET_MAXWELLIAN)->getFaces(&faces[0]);
+         this->getBoundary(boundarytype::MAXWELLIAN)->getFaces(&faces[0]);
          if ((faces[0] || faces[1]) && isPeriodic[0])
          {
             if (myRank == MASTER_RANK)

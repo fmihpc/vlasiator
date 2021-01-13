@@ -318,6 +318,6 @@ void Maxwellian::generateTemplateCell(spatial_cell::SpatialCell &templateCell, R
 }
 
 string Maxwellian::getName() const { return "Maxwellian"; }
-uint Maxwellian::getIndex() const { return boundarytype::SET_MAXWELLIAN; }
+uint Maxwellian::getIndex() const { return boundarytype::MAXWELLIAN; }
 
 } // namespace BC

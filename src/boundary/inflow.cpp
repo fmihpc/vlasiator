@@ -35,10 +35,10 @@
 #include "inflow.h"
 
 #ifndef NDEBUG
-#define DEBUG_USER
+#define DEBUG_INFLOW
 #endif
 #ifdef DEBUG_BOUNDARY
-#define DEBUG_USER
+#define DEBUG_INFLOW
 #endif
 
 using namespace std;
