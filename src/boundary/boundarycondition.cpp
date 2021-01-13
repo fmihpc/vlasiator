@@ -43,17 +43,23 @@ namespace BC
 // ***** DEFINITIONS FOR BOUNDARYCONDITION BASE CLASS *****
 // ************************************************************
 
-/*!\brief Function used to determine on which face(s) if any the cell at given coordinates is.
- *
+/*!\brief Function used to determine on which face(s) if any cell at the given
+ * coordinates is.
  * This function is used by some of the classes inheriting from this base class.
- *
- * Depth is hard-coded to be 2 as other parts of the code (field solver especially) rely on that.
- *
- * \param isThisCellOnAFace Pointer to an array of 6 bool returning of each face whether the cell is on that face.
- * Order: 0 x+; 1 x-; 2 y+; 3 y-; 4 z+; 5 z- \param x Cell x coordinate \param y Cell y coordinate \param z Cell z
- * coordinate \param dx Cell dx size \param dy Cell dy size \param dz Cell dz size \param
- * excludeSlicesAndPeriodicDimensions If true, do not consider a cell to be part of the face if that face has a depth of
- * 1 only (single-cell thick slices/columns) or if that direciton is periodic..
+ * Depth is hard-coded to be 2 as other parts of the code (field solver
+ * especially) rely on that.
+ * \param isThisCellOnAFace Pointer to an array of 6 bool returning of each face
+ * whether the cell is on that face.
+ * Order: 0 x+; 1 x-; 2 y+; 3 y-; 4 z+; 5 z-
+ * \param x Cell x coordinate
+ * \param y Cell y coordinate
+ * \param z Cell z coordinate
+ * \param dx Cell dx size
+ * \param dy Cell dy size
+ * \param dz Cell dz size
+ * \param excludeSlicesAndPeriodicDimensions If true, do not consider a cell to
+ * be part of the face if that face has a depth of 1 only (single-cell thick
+ * slices/columns) or if that direction is periodic.
  */
 void BoundaryCondition::determineFace(bool *isThisCellOnAFace, creal x, creal y, creal z, creal dx, creal dy, creal dz,
                                       const bool excludeSlicesAndPeriodicDimensions //=false (default)
@@ -107,24 +113,25 @@ void BoundaryCondition::determineFace(bool *isThisCellOnAFace, creal x, creal y,
    }
 }
 
-/*! BoundaryCondition base class constructor. The constructor is empty.*/
+
+/*! BoundaryCondition base class default empty constructor.*/
 BoundaryCondition::BoundaryCondition() {}
 
-/*! BoundaryCondition base class virtual destructor. The destructor is empty.*/
+/*! BoundaryCondition base class default empty virtual destructor.*/
 BoundaryCondition::~BoundaryCondition() {}
 
-/*! BoundaryCondition base class instance of the addParameters function. Should not be used, each derived class should
- * have its own.*/
+/*! BoundaryCondition base class instance of the addParameters function.
+ * Each derived class should have its own implementation.*/
 void BoundaryCondition::addParameters()
 {
-   cerr << "ERROR: BoundaryCondition::addParameters called instead of derived class function!" << endl;
+   abort_mpi("ERROR: BoundaryCondition::addParameters called instead of derived class function!");
 }
 
-/*! Function used to set the system boundary condition cell's derivatives to 0.
+/*! Function used to set the boundary condition cell's derivatives to 0.
  * \param mpiGrid Grid
  * \param cellID The cell's ID.
- * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives, 3: xy-derivatives, 4: xz-derivatives, 5:
- * yz-derivatives.
+ * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives,
+ * 3: xy-derivatives, 4: xz-derivatives, 5: yz-derivatives.
  */
 void BoundaryCondition::setCellDerivativesToZero(
     FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, 2> &dPerBGrid,
@@ -186,14 +193,13 @@ void BoundaryCondition::setCellDerivativesToZero(
       dPerBGrid0->at(fsgrids::dperb::dPERBxdyz) = 0.0;
       break;
    default:
-      cerr << __FILE__ << ":" << __LINE__ << ":"
-           << " Invalid component" << endl;
+      abort_mpi(" Invalid component", 1);
    }
 }
 
-/*! Function used to set the system boundary condition cell's BVOL derivatives to 0.
- * \param mpiGrid Grid
- * \param cellID The cell's ID.
+/*! Function used to set the boundary condition cell's BVOL derivatives to 0.
+ * \param mpiGrid
+ * \param cellID
  * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives.
  */
 void BoundaryCondition::setCellBVOLDerivativesToZero(FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, 2> &volGrid,
@@ -215,69 +221,66 @@ void BoundaryCondition::setCellBVOLDerivativesToZero(FsGrid<std::array<Real, fsg
       volGrid0->at(fsgrids::volfields::dPERBYVOLdz) = 0.0;
       break;
    default:
-      cerr << __FILE__ << ":" << __LINE__ << ":"
-           << " Invalid component" << endl;
+      abort_mpi(" Invalid component", 1);
    }
 }
 
-/*! Function used to copy the distribution and moments from (one of) the closest boundarytype::NOT_BOUNDARY cell.
- * \param mpiGrid Grid
- * \param cellID The cell's ID.
+/*! Function used to copy the distribution and moments from (one of) the
+ * closest boundarytype::NOT_BOUNDARY cell.
+ * \param mpiGrid
+ * \param cellID
  * \param copyMomentsOnly If true, do not touch velocity space.
  */
 void BoundaryCondition::vlasovBoundaryCopyFromTheClosestNbr(
     const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid, const CellID &cellID,
-    const bool &copyMomentsOnly, const uint popID, const bool calculate_V_moments)
+    const bool &copyMomentsOnly, const uint popID, const bool doCalcMomentsV)
 {
    const CellID closestCell = getTheClosestNonboundaryCell(cellID);
 
-   if (closestCell == INVALID_CELLID)
-   {
-      cerr << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
-      abort();
-   }
+   if (closestCell == INVALID_CELLID) abort_mpi(": No closest cell found!", 1);
 
-   copyCellData(mpiGrid[closestCell], mpiGrid[cellID], copyMomentsOnly, popID, calculate_V_moments);
+   copyCellData(mpiGrid[closestCell], mpiGrid[cellID], copyMomentsOnly, popID, doCalcMomentsV);
 }
 
-/*! Function used to average and copy the distribution and moments from all the closest boundarytype::NOT_BOUNDARY
- * cells. \param mpiGrid Grid \param cellID The cell's ID.
+/*! Function used to average and copy the distribution and moments from all the
+ * closest boundarytype::NOT_BOUNDARY cells.
+ * \param mpiGrid
+ * \param cellID
+ * \param popID
+ * \param doCalcMomentsV if true, compute into _V; false into _R moments
  */
 void BoundaryCondition::vlasovBoundaryCopyFromAllClosestNbrs(
     const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid, const CellID &cellID, const uint popID,
-    const bool calculate_V_moments)
+    const bool doCalcMomentsV)
 {
    const std::vector<CellID> closestCells = getAllClosestNonboundaryCells(cellID);
 
-   if (closestCells[0] == INVALID_CELLID)
-   {
-      cerr << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
-      abort();
-   }
-   averageCellData(mpiGrid, closestCells, mpiGrid[cellID], popID, calculate_V_moments);
+   if (closestCells[0] == INVALID_CELLID) abort_mpi(": No closest cell found!", 1);
+
+   averageCellData(mpiGrid, closestCells, mpiGrid[cellID], popID, doCalcMomentsV);
 }
 
-/*! Function used to average and copy the distribution and moments from all the close boundarytype::NOT_BOUNDARY cells.
+/*! Function used to average and copy the distribution and moments from all the
+ * close boundarytype::NOT_BOUNDARY cells.
  * \param mpiGrid Grid
  * \param cellID The cell's ID.
  */
 void BoundaryCondition::vlasovBoundaryFluffyCopyFromAllCloseNbrs(
     const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid, const CellID &cellID, const uint popID,
-    const bool calculate_V_moments, creal fluffiness)
+    const bool doCalcMomentsV, creal fluffiness)
 {
    const std::vector<CellID> closeCells = getAllCloseNonboundaryCells(cellID);
 
-   if (closeCells[0] == INVALID_CELLID)
-   {
-      cerr << __FILE__ << ":" << __LINE__ << ": No close cell found!" << endl;
-      abort();
-   }
-   averageCellData(mpiGrid, closeCells, mpiGrid[cellID], popID, calculate_V_moments, fluffiness);
+   if (closeCells[0] == INVALID_CELLID) abort_mpi(": No close cell found!", 1);
+
+   averageCellData(mpiGrid, closeCells, mpiGrid[cellID], popID, doCalcMomentsV, fluffiness);
 }
 
-/*! Function used to copy the distribution from (one of) the closest boundarytype::NOT_BOUNDARY cell but limiting to
- * values no higher than where it can flow into. Moments are recomputed. \param mpiGrid Grid \param cellID The cell's
- * ID.
+/*! Function used to copy the distribution from (one of) the closest
+ * boundarytype::NOT_BOUNDARY cell but limit to values no higher than
+ * where it can flow into. Moments are recomputed.
+ * \param mpiGrid Grid
+ * \param cellID The cell's ID.
  */
 void BoundaryCondition::vlasovBoundaryCopyFromTheClosestNbrAndLimit(
     const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid, const CellID &cellID, const uint popID)
@@ -286,15 +289,12 @@ void BoundaryCondition::vlasovBoundaryCopyFromTheClosestNbrAndLimit(
    SpatialCell *from = mpiGrid[closestCell];
    SpatialCell *to = mpiGrid[cellID];
 
-   if (closestCell == INVALID_CELLID)
-   {
-      cerr << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
-      abort();
-   }
+   if (closestCell == INVALID_CELLID) abort_mpi(": No closest cell found!", 1);
 
    const std::array<SpatialCell *, 27> flowtoCells = getFlowtoCells(cellID);
-   // Do not allow block adjustment, the block structure when calling vlasovBoundaryCondition should be static
-   // just copy data to existing blocks, no modification of to blocks allowed
+   // Do not allow block adjustment, the block structure when calling
+   // vlasovBoundaryCondition should be static just copy data to existing
+   // blocks, no modification of to blocks allowed.
    for (vmesh::LocalID blockLID = 0; blockLID < to->get_number_of_velocity_blocks(popID); ++blockLID)
    {
       const vmesh::GlobalID blockGID = to->get_velocity_block_global_id(blockLID, popID);
@@ -364,11 +364,11 @@ void BoundaryCondition::vlasovBoundaryCopyFromTheClosestNbrAndLimit(
  * \param to Pointer to destination cell.
  */
 void BoundaryCondition::copyCellData(SpatialCell *from, SpatialCell *to, const bool copyMomentsOnly, const uint popID,
-                                     const bool calculate_V_moments)
+                                     const bool doCalcMomentsV)
 {
    if (popID == 0)
    {
-      if (calculate_V_moments)
+      if (doCalcMomentsV)
       {
          to->parameters[CellParams::RHOM_V] = from->parameters[CellParams::RHOM_V];
          to->parameters[CellParams::VX_V] = from->parameters[CellParams::VX_V];
@@ -393,12 +393,12 @@ void BoundaryCondition::copyCellData(SpatialCell *from, SpatialCell *to, const b
    }
 
    if (!copyMomentsOnly)
-   { // Do this only if copyMomentsOnly is false.
+   {
       to->set_population(from->get_population(popID), popID);
    }
    else
    {
-      if (calculate_V_moments)
+      if (doCalcMomentsV)
       {
          to->get_population(popID).RHO_V = from->get_population(popID).RHO_V;
       }
@@ -409,7 +409,7 @@ void BoundaryCondition::copyCellData(SpatialCell *from, SpatialCell *to, const b
 
       for (uint i = 0; i < 3; i++)
       {
-         if (calculate_V_moments)
+         if (doCalcMomentsV)
          {
             to->get_population(popID).V_V[i] = from->get_population(popID).V_V[i];
             to->get_population(popID).P_V[i] = from->get_population(popID).P_V[i];
@@ -427,11 +427,11 @@ void BoundaryCondition::copyCellData(SpatialCell *from, SpatialCell *to, const b
  * \param mpiGrid Grid
  * \param cellList Vector of cells to copy from.
  * \param to Pointer to cell in which to set the averaged distribution.
+ * \param fluffiness Modification factor, default to 0.0?
  */
 void BoundaryCondition::averageCellData(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                         const std::vector<CellID> cellList, SpatialCell *to, const uint popID,
-                                        const bool calculate_V_moments, creal fluffiness /* default =0.0*/
-)
+                                        const bool doCalcMomentsV, creal fluffiness)
 {
    const size_t numberOfCells = cellList.size();
    creal factor = fluffiness / convert<Real>(numberOfCells);
@@ -487,9 +487,11 @@ void BoundaryCondition::averageCellData(const dccrg::Dccrg<SpatialCell, dccrg::C
    }
 }
 
-/*! Take neighboring distribution and reflect all parts going in the direction opposite to the normal vector given in.
+/*! Take neighboring distribution and reflect all parts going in the direction
+ * opposite to the normal vector given in.
  * \param mpiGrid Grid
- * \param cellID Cell in which to set the distribution where incoming velocity cells have been reflected/bounced.
+ * \param cellID Cell in which to set the distribution where incoming velocity
+ * cells have been reflected/bounced.
  * \param nx Unit vector x component normal to the bounce/reflection plane.
  * \param ny Unit vector y component normal to the bounce/reflection plane.
  * \param nz Unit vector z component normal to the bounce/reflection plane.
@@ -550,14 +552,16 @@ void BoundaryCondition::vlasovBoundaryReflect(const dccrg::Dccrg<SpatialCell, dc
    } // for-loop over spatial cells
 }
 
-/*! Take neighboring distribution and absorb all parts going in the direction opposite to the normal vector given in.
+/*! Take neighboring distribution and absorb all parts going in the direction
+ * opposite to the normal vector given in.
  * \param mpiGrid Grid
- * \param cellID Cell in which to set the distribution where incoming velocity cells have been kept or swallowed.
+ * \param cellID Cell in which to set the distribution where incoming velocity
+ * cells have been kept or swallowed.
  * \param nx Unit vector x component normal to the absorption plane.
  * \param ny Unit vector y component normal to the absorption plane.
  * \param nz Unit vector z component normal to the absorption plane.
- * \param quenchingFactor Multiplicative factor by which to scale the distribution function values. 0: absorb. ]0;1[:
- * quench.
+ * \param quenchingFactor Multiplicative factor by which to scale the
+ * distribution function values. 0: absorb; 1: quench.
  */
 void BoundaryCondition::vlasovBoundaryAbsorb(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                              const CellID &cellID, creal &nx, creal &ny, creal &nz,
@@ -616,7 +620,8 @@ void BoundaryCondition::vlasovBoundaryAbsorb(const dccrg::Dccrg<SpatialCell, dcc
    } // for-loop over spatial cells
 }
 
-/*! Updates the system boundary conditions after load balancing. This is called from e.g. the class Boundary.
+/*! Updates the boundary conditions after load balancing.
+ * This is called from e.g. the class Boundary.
  * \param mpiGrid Grid
  * \param local_cells_on_boundary Cells within this process
  * \retval success Returns true if the operation is successful
@@ -791,8 +796,10 @@ std::vector<CellID> &BoundaryCondition::getAllCloseNonboundaryCells(const CellID
    return closeCells;
 }
 
-/*! Get the cellIDs of all flowto cells (cells into which the velocity distribution can flow and which is of type
- * NOT_BOUNDARY). \param cellID ID of the cell to start look from. \return The vector of cell indices of those cells
+/*! Get the cellIDs of all flowto cells (cells into which the velocity
+ * distribution can flow and which is of type NOT_BOUNDARY).
+ * \param cellID ID of the cell to start look from.
+ * \return The vector of cell indices of those cells.
  */
 std::array<SpatialCell *, 27> &BoundaryCondition::getFlowtoCells(const CellID &cellID)
 {
@@ -871,30 +878,23 @@ Real BoundaryCondition::fieldBoundaryCopyFromSolvingNbrMagneticField(
       }
    }
 
-   if (closestCells.size() == 0)
-   {
-      cerr << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
-      abort();
-   }
+   if (closestCells.size() == 0) abort_mpi("No closest cell found!", 1);
 
    return bGrid.get(closestCells[0][0], closestCells[0][1], closestCells[0][2])->at(fsgrids::bfield::PERBX + component);
 }
 
-/*! Function used in some cases to know which faces the system boundary condition is being applied to.
- * \param faces Pointer to array of 6 bool in which the values are returned whether the corresponding face is of that
- * type. Order: 0 x+; 1 x-; 2 y+; 3 y-; 4 z+; 5 z-
+/*! Function used to know which faces the boundary condition is applied to.
+ * \param faces Pointer to array of 6 bool in which the values are returned
+ * whether the corresponding face is of that type.
+ * Order: 0 x+; 1 x-; 2 y+; 3 y-; 4 z+; 5 z-
  */
 void BoundaryCondition::getFaces(bool *faces)
 {
-   cerr << "ERROR: BoundaryCondition::getFaces called instead of derived class function!" << endl;
-   for (int i = 0; i < 6; i++)
-   {
-      faces[i] = false;
-   }
+   abort_mpi("ERROR: BoundaryCondition::getFaces called instead of derived class function!");
 }
 
-/*! Get the precedence value of the system boundary condition.
- * \return The precedence value of the system boundary condition as set by parameter.
+/*! Get the precedence value of the boundary condition.
+ * \return The precedence value of the boundary condition as set by parameter.
  */
 uint BoundaryCondition::getPrecedence() const { return precedence; }
 
@@ -911,7 +911,8 @@ void BoundaryCondition::setPeriodicity(bool isFacePeriodic[3])
    }
 }
 
-/*! Get a bool telling whether to call again applyInitialState upon restarting the simulation. */
+/*! Get a bool telling whether to call again applyInitialState upon restarting
+ * the simulation. */
 bool BoundaryCondition::doApplyUponRestart() const { return this->applyUponRestart; }
 
 /*! Helper function for error handling. err_type default to 0.*/

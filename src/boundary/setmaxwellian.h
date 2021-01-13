@@ -23,59 +23,51 @@
 #ifndef SETMAXWELLIAN_H
 #define SETMAXWELLIAN_H
 
-#include <vector>
 #include "../definitions.h"
 #include "../readparameters.h"
 #include "../spatial_cell.hpp"
 #include "boundarycondition.h"
 #include "setbyuser.h"
+#include <vector>
 
 using namespace std;
 
-namespace BC {
-   /*!\brief SetMaxwellian is a class applying fixed Maxwellian conditions according to parameters read from an input file.
-    * 
-    * Maxwellian is a class handling cells tagged as boundarytype::MAXWELLIAN by this
-    * system boundary condition.
-    * 
-    * It applies fixed Maxwellian settings to the system boundary cells, the parameters of
-    * which are being read from an input file.
-    * 
-    * The class inherits most of its machinery from
-    * BoundaryCondition::SetByUser. The parameters are more general than for Maxwellian
-    * and could be put in BoundaryCondition::SetByUser but this way they can have a
-    * specific prefix which is needed if several inheriting classes are needed.
-    * 
-    */
-   class SetMaxwellian: public SetByUser {
-   public:
-      SetMaxwellian();
-      virtual ~SetMaxwellian();
-      
-      static void addParameters();
-      virtual void getParameters();
-      
-      virtual string getName() const;
-      virtual uint getIndex() const;
-      
-   protected:
-      void generateTemplateCell(spatial_cell::SpatialCell& templateCell, Real B[3], int inputDataIndex, creal& t);
-      
-      Real maxwellianDistribution(const uint popID,
-         creal& rho, creal& T, creal& vx, creal& vy, creal& vz
-      );
-      
-      vector<vmesh::GlobalID> findBlocksToInitialize(
-         const uint popID,
-         SpatialCell& cell,
-         creal& rho,
-         creal& T,
-         creal& VX,
-         creal& VY,
-         creal& VZ
-      );
-      
-   };
-}
+namespace BC
+{
+/*!\brief SetMaxwellian is a class applying fixed Maxwellian conditions according to parameters read from an input file.
+ *
+ * Maxwellian is a class handling cells tagged as boundarytype::MAXWELLIAN by this
+ * system boundary condition.
+ *
+ * It applies fixed Maxwellian settings to the system boundary cells, the parameters of
+ * which are being read from an input file.
+ *
+ * The class inherits most of its machinery from
+ * BoundaryCondition::SetByUser. The parameters are more general than for Maxwellian
+ * and could be put in BoundaryCondition::SetByUser but this way they can have a
+ * specific prefix which is needed if several inheriting classes are needed.
+ *
+ */
+class SetMaxwellian : public SetByUser
+{
+public:
+   SetMaxwellian();
+   virtual ~SetMaxwellian();
+
+   static void addParameters();
+   virtual void getParameters();
+
+   virtual string getName() const;
+   virtual uint getIndex() const;
+
+protected:
+   void generateTemplateCell(spatial_cell::SpatialCell &templateCell, Real B[3], int inputDataIndex, creal &t);
+
+   Real maxwellianDistribution(const uint popID, creal &rho, creal &T, creal &vx, creal &vy, creal &vz);
+
+   vector<vmesh::GlobalID> findBlocksToInitialize(const uint popID, SpatialCell &cell, creal &rho, creal &T, creal &VX,
+                                                  creal &VY, creal &VZ);
+};
+} // namespace BC
 
 #endif

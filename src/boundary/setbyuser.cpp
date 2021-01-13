@@ -35,10 +35,10 @@
 #include "setbyuser.h"
 
 #ifndef NDEBUG
-   #define DEBUG_SETBYUSER
+#define DEBUG_SETBYUSER
 #endif
 #ifdef DEBUG_BOUNDARY
-   #define DEBUG_SETBYUSER
+#define DEBUG_SETBYUSER
 #endif
 
 using namespace std;
@@ -81,7 +81,7 @@ bool SetByUser::initBoundary(creal &t, Project &project)
 }
 
 bool SetByUser::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                  FsGrid<fsgrids::technical, 2> &technicalGrid)
+                               FsGrid<fsgrids::technical, 2> &technicalGrid)
 {
    bool doAssign;
    std::array<bool, 6> isThisCellOnAFace;
