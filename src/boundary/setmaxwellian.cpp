@@ -34,7 +34,7 @@
 
 namespace BC
 {
-SetMaxwellian::SetMaxwellian() : SetByUser() {}
+SetMaxwellian::SetMaxwellian() : User() {}
 SetMaxwellian::~SetMaxwellian() {}
 
 void SetMaxwellian::addParameters()

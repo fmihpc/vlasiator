@@ -20,8 +20,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef SETBYUSER_H
-#define SETBYUSER_H
+#ifndef USER_H
+#define USER_H
 
 #include "../definitions.h"
 #include "../readparameters.h"
@@ -50,7 +50,7 @@ struct UserSpeciesParameters
 
 /*!\brief Base class for system boundary conditions with user-set settings and parameters read from file.
  *
- * SetByUser is a base class for e.g. BoundaryConditon::SetMaxwellian.
+ * User is a base class for e.g. BoundaryConditon::SetMaxwellian.
  * It defines the managing functions to set boundary conditions on the faces of the
  * simulation domain.
  *
@@ -60,11 +60,11 @@ struct UserSpeciesParameters
  * The daughter classes have then to handle parameters and generate the template cells as
  * wished from the data returned.
  */
-class SetByUser : public BoundaryCondition
+class User : public BoundaryCondition
 {
 public:
-   SetByUser();
-   virtual ~SetByUser();
+   User();
+   virtual ~User();
 
    virtual void getParameters() = 0;
 

@@ -27,7 +27,7 @@
 #include "../readparameters.h"
 #include "../spatial_cell.hpp"
 #include "boundarycondition.h"
-#include "setbyuser.h"
+#include "user.h"
 #include <vector>
 
 using namespace std;
@@ -43,12 +43,12 @@ namespace BC
  * which are being read from an input file.
  *
  * The class inherits most of its machinery from
- * BoundaryCondition::SetByUser. The parameters are more general than for Maxwellian
- * and could be put in BoundaryCondition::SetByUser but this way they can have a
+ * BoundaryCondition::User. The parameters are more general than for Maxwellian
+ * and could be put in BoundaryCondition::User but this way they can have a
  * specific prefix which is needed if several inheriting classes are needed.
  *
  */
-class SetMaxwellian : public SetByUser
+class SetMaxwellian : public User
 {
 public:
    SetMaxwellian();

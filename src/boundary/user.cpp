@@ -20,8 +20,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-/*!\file setbyuser.cpp
- * \brief Implementation of the class BoundaryCondition::SetByUser.
+/*!\file user.cpp
+ * \brief Implementation of the class BoundaryCondition::User.
  * This serves as the base class for further classes like BoundaryCondition::SetMaxwellian.
  */
 
@@ -32,23 +32,23 @@
 #include "../fieldsolver/fs_common.h"
 #include "../object_wrapper.h"
 #include "../vlasovmover.h"
-#include "setbyuser.h"
+#include "user.h"
 
 #ifndef NDEBUG
-#define DEBUG_SETBYUSER
+#define DEBUG_USER
 #endif
 #ifdef DEBUG_BOUNDARY
-#define DEBUG_SETBYUSER
+#define DEBUG_USER
 #endif
 
 using namespace std;
 
 namespace BC
 {
-SetByUser::SetByUser() : BoundaryCondition() {}
-SetByUser::~SetByUser() {}
+User::User() : BoundaryCondition() {}
+User::~User() {}
 
-bool SetByUser::initBoundary(creal &t, Project &project)
+bool User::initBoundary(creal &t, Project &project)
 {
    /* The array of bool describes which of the x+, x-, y+, y-, z+, z- faces are to have user-set system boundary
     * conditions. A true indicates the corresponding face will have user-set system boundary conditions. The 6 elements
@@ -80,7 +80,7 @@ bool SetByUser::initBoundary(creal &t, Project &project)
    return success;
 }
 
-bool SetByUser::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+bool User::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                FsGrid<fsgrids::technical, 2> &technicalGrid)
 {
    bool doAssign;
@@ -155,7 +155,7 @@ bool SetByUser::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geomet
    return true;
 }
 
-bool SetByUser::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+bool User::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                   FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, Project &project)
 {
    bool success = true;
@@ -168,7 +168,7 @@ bool SetByUser::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesi
    return success;
 }
 
-Real SetByUser::fieldSolverBoundaryCondMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &bGrid,
+Real User::fieldSolverBoundaryCondMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &bGrid,
                                                      FsGrid<fsgrids::technical, 2> &technicalGrid, cint i, cint j,
                                                      cint k, creal &dt, cuint &component)
 {
@@ -195,13 +195,13 @@ Real SetByUser::fieldSolverBoundaryCondMagneticField(FsGrid<std::array<Real, fsg
    return result;
 }
 
-void SetByUser::fieldSolverBoundaryCondElectricField(FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, 2> &EGrid,
+void User::fieldSolverBoundaryCondElectricField(FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, 2> &EGrid,
                                                      cint i, cint j, cint k, cuint component)
 {
    EGrid.get(i, j, k)->at(fsgrids::efield::EX + component) = 0.0;
 }
 
-void SetByUser::fieldSolverBoundaryCondHallElectricField(
+void User::fieldSolverBoundaryCondHallElectricField(
     FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, 2> &EHallGrid, cint i, cint j, cint k, cuint component)
 {
    std::array<Real, fsgrids::ehall::N_EHALL> *cp = EHallGrid.get(i, j, k);
@@ -231,13 +231,13 @@ void SetByUser::fieldSolverBoundaryCondHallElectricField(
    }
 }
 
-void SetByUser::fieldSolverBoundaryCondGradPeElectricField(
+void User::fieldSolverBoundaryCondGradPeElectricField(
     FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> &EGradPeGrid, cint i, cint j, cint k, cuint component)
 {
    EGradPeGrid.get(i, j, k)->at(fsgrids::egradpe::EXGRADPE + component) = 0.0;
 }
 
-void SetByUser::fieldSolverBoundaryCondDerivatives(
+void User::fieldSolverBoundaryCondDerivatives(
     FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, 2> &dPerBGrid,
     FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> &dMomentsGrid, cint i, cint j, cint k, cuint &RKCase,
     cuint &component)
@@ -245,19 +245,19 @@ void SetByUser::fieldSolverBoundaryCondDerivatives(
    this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
 }
 
-void SetByUser::fieldSolverBoundaryCondBVOLDerivatives(FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, 2> &volGrid,
+void User::fieldSolverBoundaryCondBVOLDerivatives(FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, 2> &volGrid,
                                                        cint i, cint j, cint k, cuint &component)
 {
    this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
 }
 
-void SetByUser::vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+void User::vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                         const CellID &cellID, const uint popID, const bool calculate_V_moments)
 {
    // No need to do anything in this function, as the propagators do not touch the distribution function
 }
 
-bool SetByUser::setBFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+bool User::setBFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                  FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid)
 {
 
@@ -313,7 +313,7 @@ bool SetByUser::setBFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesia
    return true;
 }
 
-bool SetByUser::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+bool User::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                      const uint popID)
 {
    vector<CellID> cells = mpiGrid.get_cells();
@@ -346,13 +346,13 @@ bool SetByUser::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cart
    return true;
 }
 
-void SetByUser::getFaces(bool *faces)
+void User::getFaces(bool *faces)
 {
    for (uint i = 0; i < 6; i++)
       faces[i] = facesToProcess[i];
 }
 
-bool SetByUser::loadInputData(const uint popID)
+bool User::loadInputData(const uint popID)
 {
    UserSpeciesParameters &sP = speciesParams[popID];
 
@@ -386,7 +386,7 @@ bool SetByUser::loadInputData(const uint popID)
  * \retval dataset Vector of Real vectors. Each line of length nParams is put into a vector. Each of these is then put
  * into the vector returned here.
  */
-vector<vector<Real>> SetByUser::loadFile(const char *fn, const unsigned int nParams)
+vector<vector<Real>> User::loadFile(const char *fn, const unsigned int nParams)
 {
    vector<vector<Real>> dataset(0, vector<Real>(nParams, 0));
 
@@ -460,7 +460,7 @@ vector<vector<Real>> SetByUser::loadFile(const char *fn, const unsigned int nPar
  * \param t Simulation time.
  * \sa generateTemplateCell
  */
-bool SetByUser::generateTemplateCells(creal &t)
+bool User::generateTemplateCells(creal &t)
 {
 #pragma omp parallel for
    for (uint i = 0; i < 6; i++)
@@ -481,7 +481,7 @@ bool SetByUser::generateTemplateCells(creal &t)
  * \param outputData Pointer to the location where to write the result. Make sure from the calling side that nParams
  * Real values can be written there!
  */
-void SetByUser::interpolate(const int inputDataIndex, const uint popID, creal t, Real *outputData)
+void User::interpolate(const int inputDataIndex, const uint popID, creal t, Real *outputData)
 {
 
    UserSpeciesParameters &sP = speciesParams[popID];
