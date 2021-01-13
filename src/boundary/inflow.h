@@ -72,10 +72,10 @@ public:
 
    virtual void getParameters() = 0;
 
-   virtual bool initBoundary(creal &t, Project &project);
-   virtual bool assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+   virtual void initBoundary(creal &t, Project &project);
+   virtual void assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                FsGrid<fsgrids::technical, 2> &technicalGrid);
-   virtual bool applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+   virtual void applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                   FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, Project &project);
    virtual Real fieldSolverBoundaryCondMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &bGrid,
                                                      FsGrid<fsgrids::technical, 2> &technicalGrid, cint i, cint j,
@@ -103,15 +103,15 @@ public:
    virtual uint getIndex() const = 0;
 
 protected:
-   bool loadInputData(const uint popID);
+   void loadInputData(const uint popID);
    std::vector<std::vector<Real>> loadFile(const char *file, unsigned int nParams);
    void interpolate(const int inputDataIndex, const uint popID, creal t, Real *outputData);
 
-   bool generateTemplateCells(creal &t);
+   void generateTemplateCells(creal &t);
    virtual void generateTemplateCell(spatial_cell::SpatialCell &templateCell, Real B[3], int inputDataIndex,
                                      creal &t) = 0;
-   bool setCellsFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid, const uint popID);
-   bool setBFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+   void setCellsFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid, const uint popID);
+   void setBFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                          FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid);
 
    /*! Array of bool telling which faces are going to be processed by the boundary condition.*/

@@ -32,10 +32,10 @@
 #include "../vlasovsolver/cpu_moments.h"
 
 #include "boundary.h"
-#include "nocompute.h"
 #include "ionosphere.h"
-#include "outflow.h"
 #include "maxwellian.h"
+#include "nocompute.h"
+#include "outflow.h"
 #include "user.h"
 
 using namespace std;
@@ -99,7 +99,7 @@ void Boundary::addParameters()
 
 /*!\brief Get this class' parameters.
  *
- * getParameters for each actually used boundary condition is called by
+ * Get actually used boundary conditions, parameters of which are read from
  * each BoundaryCondition's initialization function.
  */
 void Boundary::getParameters()
@@ -116,28 +116,17 @@ void Boundary::getParameters()
  * \param bc BoundaryCondition object
  * \param project Project object
  * \param t Current time
- * \retval success If true, the given BC::BoundaryCondition was added successfully.
  */
-bool Boundary::addBoundary(BC::BoundaryCondition *bc, Project &project, creal &t)
+void Boundary::addBoundary(BC::BoundaryCondition *bc, Project &project, creal &t)
 {
    // Initialize the boundary condition
-   bool success = true;
-   if (bc->initBoundary(t, project) == false)
-   {
-      cerr << "Failed to initialize boundary condition '" << bc->getName() << "'" << endl;
-      return false;
-   }
+   bc->initBoundary(t, project);
 
    boundaries.push_back(bc);
-   if (boundaries.size() > 1)
-   {
-      boundaries.sort(precedenceSort);
-   }
+   if (boundaries.size() > 1) boundaries.sort(precedenceSort);
 
    // This assumes that only one instance of each type is created.
    indexToBoundary[bc->getIndex()] = bc;
-
-   return success;
 }
 
 /*!\brief Initialise all boundary conditions actually used.
@@ -146,171 +135,81 @@ bool Boundary::addBoundary(BC::BoundaryCondition *bc, Project &project, creal &t
  * in the configuration file/command line arguments. For each of these it adds the
  * corresponding instance and updates the member isThisDynamic to determine whether any
  * BoundaryCondition is dynamic in time.
- *
  * \param project Project object
  * \param t Current time
- * \retval success If true, the initialisation of all boundaries succeeded.
  * \sa addBoundary
  */
-bool Boundary::initBoundaries(Project &project, creal &t)
+void Boundary::initBoundaries(Project &project, creal &t)
 {
-   int myRank;
-   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-   bool success = true;
    vector<string>::const_iterator it;
 
    if (boundaryCondList.size() == 0)
    {
       if (!isPeriodic[0] && !Readparameters::helpRequested)
-      {
-         if (myRank == MASTER_RANK)
-            cerr << "You set boundaries.periodic_x = no but you didn't load any boundary condition using the "
-                    "option boundaries.boundary, are you sure this is correct?"
-                 << endl;
-      }
+         BC::abort_mpi("Non-periodic in x but no boundary condtion loaded!");
       if (!isPeriodic[1] && !Readparameters::helpRequested)
-      {
-         if (myRank == MASTER_RANK)
-            cerr << "You set boundaries.periodic_y = no but you didn't load any boundary condition using the "
-                    "option boundaries.boundary, are you sure this is correct?"
-                 << endl;
-      }
+         BC::abort_mpi("Non-periodic in y but no boundary condtion loaded!");
       if (!isPeriodic[2] && !Readparameters::helpRequested)
-      {
-         if (myRank == MASTER_RANK)
-            cerr << "You set boundaries.periodic_z = no but you didn't load any boundary condition using the "
-                    "option boundaries.boundary, are you sure this is correct?"
-                 << endl;
-      }
+         BC::abort_mpi("Non-periodic in z but no boundary condtion loaded!");
    }
 
    for (it = boundaryCondList.begin(); it != boundaryCondList.end(); it++)
    {
       if (*it == "Outflow")
       {
-         if (this->addBoundary(new BC::Outflow, project, t) == false)
-         {
-            if (myRank == MASTER_RANK) cerr << "Error in adding Outflow boundary." << endl;
-            success = false;
-         }
-         isThisDynamic = isThisDynamic | this->getBoundary(boundarytype::OUTFLOW)->isDynamic();
+         this->addBoundary(new BC::Outflow, project, t);
+         isThisDynamic = false;
          bool faces[6];
          this->getBoundary(boundarytype::OUTFLOW)->getFaces(&faces[0]);
+
          if ((faces[0] || faces[1]) && isPeriodic[0])
-         {
-            if (myRank == MASTER_RANK)
-               cerr << "You set boundaries.periodic_x = yes and load Outflow boundary conditions on the x+ or "
-                       "x- face, are you sure this is correct?"
-                    << endl;
-         }
+            BC::abort_mpi("Conflict: x boundaries set to periodic but found Outflow conditions!");
+
          if ((faces[2] || faces[3]) && isPeriodic[1])
-         {
-            if (myRank == MASTER_RANK)
-               cerr << "You set boundaries.periodic_y = yes and load Outflow boundary conditions on the y+ or "
-                       "y- face, are you sure this is correct?"
-                    << endl;
-         }
+            BC::abort_mpi("Conflict: y boundaries set to periodic but found Outflow conditions!");
+
          if ((faces[4] || faces[5]) && isPeriodic[2])
-         {
-            if (myRank == MASTER_RANK)
-               cerr << "You set boundaries.periodic_z = yes and load Outflow boundary conditions on the z+ or "
-                       "z- face, are you sure this is correct?"
-                    << endl;
-         }
+            BC::abort_mpi("Conflict: z boundaries set to periodic but found Outflow conditions!");
+
          if ((faces[0] || faces[1]) && P::xcells_ini < 5)
-         {
-            if (myRank == MASTER_RANK)
-               cerr << "You load Outflow boundary conditions on the x+ or x- face but there is not enough cells "
-                       "in that direction to make sense."
-                    << endl;
-            exit(1);
-         }
+            BC::abort_mpi("Outflow condition loaded on x- or x+ face but not enough cells in x!");
+
          if ((faces[2] || faces[3]) && P::ycells_ini < 5)
-         {
-            if (myRank == MASTER_RANK)
-               cerr << "You load Outflow boundary conditions on the y+ or y- face but there is not enough cells "
-                       "in that direction to make sense."
-                    << endl;
-            exit(1);
-         }
+            BC::abort_mpi("Outflow condition loaded on y- or y+ face but not enough cells in y!");
+
          if ((faces[4] || faces[5]) && P::zcells_ini < 5)
-         {
-            if (myRank == MASTER_RANK)
-               cerr << "You load Outflow boundary conditions on the z+ or z- face but there is not enough cells "
-                       "in that direction to make sense."
-                    << endl;
-            exit(1);
-         }
+            BC::abort_mpi("Outflow condition loaded on z- or z+ face but not enough cells in z!");
       }
       if (*it == "Ionosphere")
       {
-         if (this->addBoundary(new BC::Ionosphere, project, t) == false)
-         {
-            if (myRank == MASTER_RANK) cerr << "Error in adding Ionosphere boundary." << endl;
-            success = false;
-         }
-         if (this->addBoundary(new BC::NoCompute, project, t) == false)
-         {
-            if (myRank == MASTER_RANK) cerr << "Error in adding NoCompute boundary (for Ionosphere)." << endl;
-            success = false;
-         }
+         this->addBoundary(new BC::Ionosphere, project, t);
+         this->addBoundary(new BC::NoCompute, project, t);
          isThisDynamic = isThisDynamic | this->getBoundary(boundarytype::IONOSPHERE)->isDynamic();
       }
       if (*it == "Maxwellian")
       {
-         if (this->addBoundary(new BC::Maxwellian, project, t) == false)
-         {
-            if (myRank == MASTER_RANK) cerr << "Error in adding Maxwellian boundary." << endl;
-            success = false;
-         }
-         isThisDynamic = isThisDynamic | this->getBoundary(boundarytype::MAXWELLIAN)->isDynamic();
+         this->addBoundary(new BC::Maxwellian, project, t);
+         isThisDynamic = false;
          bool faces[6];
          this->getBoundary(boundarytype::MAXWELLIAN)->getFaces(&faces[0]);
+
          if ((faces[0] || faces[1]) && isPeriodic[0])
-         {
-            if (myRank == MASTER_RANK)
-               cerr << "You set boundaries.periodic_x = yes and load Maxwellian boundary conditions on the x+ "
-                       "or x- face, are you sure this is correct?"
-                    << endl;
-         }
+            BC::abort_mpi("Conflict: x boundaries set to periodic but found fixed also!");
+
          if ((faces[2] || faces[3]) && isPeriodic[1])
-         {
-            if (myRank == MASTER_RANK)
-               cerr << "You set boundaries.periodic_y = yes and load Maxwellian boundary conditions on the y+ "
-                       "or y- face, are you sure this is correct?"
-                    << endl;
-         }
+            BC::abort_mpi("Conflict: y boundaries set to periodic but found fixed also!");
+
          if ((faces[4] || faces[5]) && isPeriodic[2])
-         {
-            if (myRank == MASTER_RANK)
-               cerr << "You set boundaries.periodic_z = yes and load Maxwellian boundary conditions on the z+ "
-                       "or z- face, are you sure this is correct?"
-                    << endl;
-         }
+            BC::abort_mpi("Conflict: z boundaries set to periodic but found fixed also!");
+
          if ((faces[0] || faces[1]) && P::xcells_ini < 5)
-         {
-            if (myRank == MASTER_RANK)
-               cerr << "You load Maxwellian boundary conditions on the x+ or x- face but there is not enough "
-                       "cells in that direction to make sense."
-                    << endl;
-            exit(1);
-         }
+            BC::abort_mpi("Fixed condition loaded on x- or x+ face but not enough cells in x!");
+
          if ((faces[2] || faces[3]) && P::ycells_ini < 5)
-         {
-            if (myRank == MASTER_RANK)
-               cerr << "You load Maxwellian boundary conditions on the y+ or y- face but there is not enough "
-                       "cells in that direction to make sense."
-                    << endl;
-            exit(1);
-         }
+            BC::abort_mpi("Fixed condition loaded on y- or y+ face but not enough cells in y!");
+
          if ((faces[4] || faces[5]) && P::zcells_ini < 5)
-         {
-            if (myRank == MASTER_RANK)
-               cerr << "You load Maxwellian boundary conditions on the z+ or z- face but there is not enough "
-                       "cells in that direction to make sense."
-                    << endl;
-            exit(1);
-         }
+            BC::abort_mpi("Fixed condition loaded on z- or z+ face but not enough cells in z!");
       }
    }
 
@@ -319,8 +218,6 @@ bool Boundary::initBoundaries(Project &project, creal &t)
    {
       (*it2)->setPeriodicity(isPeriodic);
    }
-
-   return success;
 }
 
 bool Boundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid)
@@ -356,8 +253,7 @@ bool Boundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Ca
                }
             }
          }
-         else if (cell->boundaryFlag != boundarytype::NOT_BOUNDARY &&
-                  cell->boundaryFlag != boundarytype::NO_COMPUTE)
+         else if (cell->boundaryFlag != boundarytype::NOT_BOUNDARY && cell->boundaryFlag != boundarytype::NO_COMPUTE)
          {
             outerBoundaryCells.insert(cellId);
             outerBoundaryRefLvl = mpiGrid.get_refinement_level(cellId);
@@ -437,15 +333,13 @@ bool belongsToLayer(const int layer, const int x, const int y, const int z,
 
 /*!\brief Classify all simulation cells with respect to the boundary conditions.
  *
- * Loops through all cells and and for each assigns the correct boundaryFlag depending on
- * the return value of each BoundaryCondition's assignBoundary.
- *
+ * Loops through all cells and and for each assigns the correct boundaryFlag
+ * depending on the return value of each BoundaryCondition's assignBoundary.
  * \param mpiGrid Grid
  */
-bool Boundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+void Boundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                              FsGrid<fsgrids::technical, 2> &technicalGrid)
 {
-   bool success = true;
    vector<CellID> cells = mpiGrid.get_cells();
    auto localSize = technicalGrid.getLocalSize().data();
 
@@ -478,9 +372,7 @@ bool Boundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cart
    */
    list<BC::BoundaryCondition *>::iterator it;
    for (it = boundaries.begin(); it != boundaries.end(); it++)
-   {
-      success = success && (*it)->assignBoundary(mpiGrid, technicalGrid);
-   }
+      (*it)->assignBoundary(mpiGrid, technicalGrid);
 
    // communicate boundary assignments (boundaryFlag and
    // boundaryLayer communicated)
@@ -690,22 +582,16 @@ bool Boundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cart
    }
 
    technicalGrid.updateGhostCells();
-
-   return success;
 }
 
 /*!\brief Apply the initial state to all boundary cells.
- * Loops through all BoundaryConditions and calls the corresponding applyInitialState
- * function. This function must apply the initial state for all existing particle species.
- *
+ * Loops through all BoundaryConditions and apply the initial state for all
+ * existing particle species.
  * \param mpiGrid Grid
- * \retval success If true, the application of all boundary states succeeded.
  */
-bool Boundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+void Boundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                  FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, Project &project)
 {
-   bool success = true;
-
    list<BC::BoundaryCondition *>::iterator it;
    for (it = boundaries.begin(); it != boundaries.end(); it++)
    {
@@ -716,15 +602,9 @@ bool Boundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geom
       {
          continue;
       }
-      if ((*it)->applyInitialState(mpiGrid, perBGrid, project) == false)
-      {
-         cerr << "ERROR: " << (*it)->getName() << " boundary condition initial state not applied correctly."
-              << endl;
-         success = false;
-      }
+      (*it)->applyInitialState(mpiGrid, perBGrid, project);
    }
 
-   return success;
 }
 
 /*!\brief Apply the Vlasov boundary conditions to all boundary cells at time t.

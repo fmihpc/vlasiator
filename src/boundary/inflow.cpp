@@ -48,13 +48,12 @@ namespace BC
 Inflow::Inflow() : BoundaryCondition() {}
 Inflow::~Inflow() {}
 
-bool Inflow::initBoundary(creal &t, Project &project)
+void Inflow::initBoundary(creal &t, Project &project)
 {
    /* The array of bool describes which of the x+, x-, y+, y-, z+, z- faces are
     * to have inflow boundary conditions, indicated by trues.
     * The 6 elements correspond to x+, x-, y+, y-, z+, z- respectively.
     */
-   bool success = true;
    for (uint i = 0; i < 6; i++)
       facesToProcess[i] = false;
 
@@ -72,15 +71,12 @@ bool Inflow::initBoundary(creal &t, Project &project)
    }
 
    for (unsigned int i = 0; i < speciesParams.size(); i++)
-   {
-      success = loadInputData(i);
-   }
-   success = success & generateTemplateCells(t);
+      loadInputData(i);
 
-   return success;
+   generateTemplateCells(t);
 }
 
-bool Inflow::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+void Inflow::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                FsGrid<fsgrids::technical, 2> &technicalGrid)
 {
    bool doAssign;
@@ -151,21 +147,16 @@ bool Inflow::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>
          }
       }
    }
-
-   return true;
 }
 
-bool Inflow::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+void Inflow::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                   FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, Project &project)
 {
-   bool success = true;
    for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID)
    {
-      if (!setCellsFromTemplate(mpiGrid, popID)) success = false;
+      setCellsFromTemplate(mpiGrid, popID);
    }
-   if (!setBFromTemplate(mpiGrid, perBGrid)) success = false;
-
-   return success;
+   setBFromTemplate(mpiGrid, perBGrid);
 }
 
 Real Inflow::fieldSolverBoundaryCondMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &bGrid,
@@ -257,10 +248,9 @@ void Inflow::vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cart
    // No need to do anything in this function, as the propagators do not touch the distribution function
 }
 
-bool Inflow::setBFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+void Inflow::setBFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                  FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid)
 {
-
    std::array<bool, 6> isThisCellOnAFace;
    const std::array<int, 3> gridDims(perBGrid.getLocalSize());
 
@@ -282,11 +272,7 @@ bool Inflow::setBFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_G
             const auto refLvl = mpiGrid.get_refinement_level(mpiGrid.get_existing_cell(cellCenterCoords));
 
             if (refLvl == -1)
-            {
-               cerr << "Error, could not get refinement level of remote DCCRG cell " << __FILE__ << " " << __LINE__
-                    << endl;
-               return false;
-            }
+               abort_mpi("Error, could not get refinement level of remote DCCRG cell!", 1);
 
             creal dx = P::dx_ini * pow(2, -refLvl);
             creal dy = P::dy_ini * pow(2, -refLvl);
@@ -310,10 +296,9 @@ bool Inflow::setBFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_G
          }
       }
    }
-   return true;
 }
 
-bool Inflow::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+void Inflow::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                      const uint popID)
 {
    vector<CellID> cells = mpiGrid.get_cells();
@@ -343,7 +328,6 @@ bool Inflow::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesi
          }
       }
    }
-   return true;
 }
 
 void Inflow::getFaces(bool *faces)
@@ -352,7 +336,7 @@ void Inflow::getFaces(bool *faces)
       faces[i] = facesToProcess[i];
 }
 
-bool Inflow::loadInputData(const uint popID)
+void Inflow::loadInputData(const uint popID)
 {
    InflowSpeciesParameters &sP = speciesParams[popID];
 
@@ -374,7 +358,6 @@ bool Inflow::loadInputData(const uint popID)
          sP.inputData[i] = tmp2;
       }
    }
-   return true;
 }
 
 /*! Load inflow boundary data from given file.
@@ -453,13 +436,13 @@ vector<vector<Real>> Inflow::loadFile(const char *fn, const unsigned int nParams
    return dataset;
 }
 
-/*! Loops through the array of template cells and generates the ones needed. The function
- * generateTemplateCell is defined in the inheriting class such as to have the specific
- * condition needed.
+/*! Loops through the array of template cells and generates the ones needed.
+ * The function generateTemplateCell is defined in the inheriting class such as
+ * to have the specific condition needed.
  * \param t Simulation time.
  * \sa generateTemplateCell
  */
-bool Inflow::generateTemplateCells(creal &t)
+void Inflow::generateTemplateCells(creal &t)
 {
 #pragma omp parallel for
    for (uint i = 0; i < 6; i++)
@@ -470,7 +453,6 @@ bool Inflow::generateTemplateCells(creal &t)
          generateTemplateCell(templateCells[i], templateB[i], i, t);
       }
    }
-   return true;
 }
 
 /*!Interpolate the input data to the given time.

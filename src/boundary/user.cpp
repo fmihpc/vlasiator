@@ -50,16 +50,16 @@ User::~User() {}
 
 void User::addParameters() {}
 
-bool User::initBoundary(creal &t, Project &project) {}
+void User::initBoundary(creal &t, Project &project) {}
 
 void User::getParameters() {}
 
-bool User::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+void User::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                           FsGrid<fsgrids::technical, 2> &technicalGrid)
 {
 }
 
-bool User::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+void User::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                              FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, Project &project)
 {
 }

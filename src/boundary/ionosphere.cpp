@@ -126,16 +126,13 @@ void Ionosphere::getParameters()
    }
 }
 
-bool Ionosphere::initBoundary(creal &t, Project &project)
+void Ionosphere::initBoundary(creal &t, Project &project)
 {
    getParameters();
    isThisDynamic = false;
 
-   // iniBoundary is only called once, generateTemplateCell must
-   // init all particle species
+   // only called once, generateTemplateCell must init all particle species
    generateTemplateCell(project);
-
-   return true;
 }
 
 Real getR(creal x, creal y, creal z, uint geometry, Real center[3])
@@ -171,7 +168,7 @@ Real getR(creal x, creal y, creal z, uint geometry, Real center[3])
    return r;
 }
 
-bool Ionosphere::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+void Ionosphere::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                 FsGrid<fsgrids::technical, 2> &technicalGrid)
 {
    vector<CellID> cells = mpiGrid.get_cells();
@@ -220,11 +217,9 @@ bool Ionosphere::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geome
          }
       }
    }
-
-   return true;
 }
 
-bool Ionosphere::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+void Ionosphere::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                    FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, Project &project)
 {
    vector<CellID> cells = mpiGrid.get_cells();
@@ -237,7 +232,6 @@ bool Ionosphere::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartes
       for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID)
          setCellFromTemplate(cell, popID);
    }
-   return true;
 }
 
 std::array<Real, 3> Ionosphere::fieldSolverGetNormalDirection(FsGrid<fsgrids::technical, 2> &technicalGrid, cint i,

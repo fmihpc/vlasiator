@@ -187,11 +187,11 @@ void Outflow::getParameters()
    }
 }
 
-bool Outflow::initBoundary(creal &t, Project &project)
+void Outflow::initBoundary(creal &t, Project &project)
 {
-   /* The array of bool describes which of the x+, x-, y+, y-, z+, z- faces are to have outflow boundary
-    * conditions. A true indicates the corresponding face will have outflow. The 6 elements correspond to x+, x-, y+,
-    * y-, z+, z- respectively.
+   /* The array of bool describes which of the x+, x-, y+, y-, z+, z- faces are
+    * to have outflow boundary conditions, indicated by trues.
+    * The 6 elements correspond to x+, x-, y+, y-, z+, z- respectively.
     */
    for (uint i = 0; i < 6; i++)
    {
@@ -228,10 +228,9 @@ bool Outflow::initBoundary(creal &t, Project &project)
          if (*it == "z-") facesToReapply[5] = true;
       }
    }
-   return true;
 }
 
-bool Outflow::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+void Outflow::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                              FsGrid<fsgrids::technical, 2> &technicalGrid)
 {
 
@@ -305,11 +304,9 @@ bool Outflow::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry
          }
       }
    }
-
-   return true;
 }
 
-bool Outflow::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+void Outflow::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                 FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, Project &project)
 {
    const vector<CellID> &cells = getLocalCells();
@@ -361,7 +358,6 @@ bool Outflow::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian
          cell->parameters[CellParams::P_33_DT2] = cell->parameters[CellParams::P_33];
       }
    }
-   return true;
 }
 
 Real Outflow::fieldSolverBoundaryCondMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &bGrid,

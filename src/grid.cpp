@@ -161,20 +161,13 @@ void initializeGrids(
    phiprof::stop("Set spatial cell coordinates");
    
    phiprof::start("Initialize boundary conditions");
-   if(boundaries.initBoundaries(project, P::t_min) == false) {
-      if (myRank == MASTER_RANK) cerr << "Error in initialising the boundaries." << endl;
-      exit(1);
-   }
+   boundaries.initBoundaries(project, P::t_min);
    phiprof::stop("Initialize boundary conditions");
    
    // Initialise boundary conditions (they need the initialised positions!!)
    phiprof::start("Classify cells (boundary conditions)");
-   if(boundaries.classifyCells(mpiGrid,technicalGrid) == false) {
-      cerr << "(MAIN) ERROR: boundary conditions were not set correctly." << endl;
-      exit(1);
-   }
+   boundaries.classifyCells(mpiGrid,technicalGrid);
    phiprof::stop("Classify cells (boundary conditions)");
-
 
    // Check refined cells do not touch boundary cells
    phiprof::start("Check boundary refinement");
@@ -195,10 +188,7 @@ void initializeGrids(
    
       //initial state for boundary cells, will skip those not set to be reapplied at restart
       phiprof::start("Apply boundary conditions state");
-      if (boundaries.applyInitialState(mpiGrid, perBGrid, project) == false) {
-         cerr << " (MAIN) ERROR: boundary conditions initial state was not applied correctly." << endl;
-         exit(1);
-      }
+      boundaries.applyInitialState(mpiGrid, perBGrid, project);
       phiprof::stop("Apply boundary conditions state");
    }
 
@@ -252,10 +242,7 @@ void initializeGrids(
       // Initial state for boundary cells
       phiprof::stop("Apply initial state");
       phiprof::start("Apply boundary conditions state");
-      if (boundaries.applyInitialState(mpiGrid, perBGrid, project) == false) {
-         cerr << " (MAIN) ERROR: boundary conditions initial state was not applied correctly." << endl;
-         exit(1);
-      }
+      boundaries.applyInitialState(mpiGrid, perBGrid, project);
       phiprof::stop("Apply boundary conditions state");
       
       for (size_t i=0; i<cells.size(); ++i) {

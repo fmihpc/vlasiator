@@ -62,12 +62,12 @@ public:
    void addParameters();
    void getParameters();
 
-   bool addBoundary(BC::BoundaryCondition *sbc, Project &project, creal &t);
-   bool initBoundaries(Project &project, creal &t);
+   void addBoundary(BC::BoundaryCondition *sbc, Project &project, creal &t);
+   void initBoundaries(Project &project, creal &t);
    bool checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid);
-   bool classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+   void classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                       FsGrid<fsgrids::technical, 2> &technicalGrid);
-   bool applyInitialState(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+   void applyInitialState(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                           FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, Project &project);
    void applyBoundaryVlasovConditions(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                       creal &t, const bool calculate_V_moments);

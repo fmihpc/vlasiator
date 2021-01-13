@@ -41,20 +41,18 @@ NoCompute::~NoCompute() {}
 void NoCompute::addParameters() {}
 void NoCompute::getParameters() {}
 
-bool NoCompute::initBoundary(creal &t, Project &project)
+void NoCompute::initBoundary(creal &t, Project &project)
 {
    precedence = 0;
    isThisDynamic = false;
-   return true;
 }
 
-bool NoCompute::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &,
+void NoCompute::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &,
                                FsGrid<fsgrids::technical, 2> &technicalGrid)
 {
-   return true;
 }
 
-bool NoCompute::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+void NoCompute::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                   FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, Project &)
 {
    vector<CellID> cells = mpiGrid.get_cells();
@@ -81,8 +79,6 @@ bool NoCompute::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesi
       for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID)
          cell->adjustSingleCellVelocityBlocks(popID);
    }
-
-   return true;
 }
 
 std::string NoCompute::getName() const { return "NoCompute"; }

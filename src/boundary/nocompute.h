@@ -47,10 +47,10 @@ public:
    static void addParameters();
    void getParameters() override;
 
-   bool initBoundary(creal &t, Project &project) override;
-   bool assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+   void initBoundary(creal &t, Project &project) override;
+   void assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                        FsGrid<fsgrids::technical, 2> &technicalGrid) override;
-   bool applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+   void applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                           FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, Project &project) override;
    std::string getName() const override;
    uint getIndex() const override;
