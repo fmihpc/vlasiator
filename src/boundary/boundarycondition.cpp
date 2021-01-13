@@ -20,8 +20,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-/*!\file sysboundarycondition.cpp
- * \brief Implementation of the base class SysBoundaryCondition to handle system boundary cells.
+/*!\file boundarycondition.cpp
+ * \brief Implementation of the base class BoundaryCondition to handle system boundary cells.
  * 
  * \sa donotcompute.cpp ionosphere.cpp outflow.cpp setbyuser.cpp setmaxwellian.cpp
  * 
@@ -32,12 +32,12 @@
 
 #include "../parameters.h"
 #include "../vlasovmover.h"
-#include "sysboundarycondition.h"
+#include "boundarycondition.h"
 #include "../projects/projects_common.h"
 
 using namespace std;
 
-namespace SBC {
+namespace BC {
    // ************************************************************
    // ***** DEFINITIONS FOR BOUNDARYCONDITION BASE CLASS *****
    // ************************************************************
@@ -57,7 +57,7 @@ namespace SBC {
     * \param dz Cell dz size
     * \param excludeSlicesAndPeriodicDimensions If true, do not consider a cell to be part of the face if that face has a depth of 1 only (single-cell thick slices/columns) or if that direciton is periodic..
     */
-   void SysBoundaryCondition::determineFace(
+   void BoundaryCondition::determineFace(
       bool* isThisCellOnAFace,
       creal x, creal y, creal z,
       creal dx, creal dy, creal dz,
@@ -100,15 +100,15 @@ namespace SBC {
       }
    }
    
-   /*! SysBoundaryCondition base class constructor. The constructor is empty.*/
-   SysBoundaryCondition::SysBoundaryCondition() { }
+   /*! BoundaryCondition base class constructor. The constructor is empty.*/
+   BoundaryCondition::BoundaryCondition() { }
    
-   /*! SysBoundaryCondition base class virtual destructor. The destructor is empty.*/
-   SysBoundaryCondition::~SysBoundaryCondition() { }
+   /*! BoundaryCondition base class virtual destructor. The destructor is empty.*/
+   BoundaryCondition::~BoundaryCondition() { }
    
-   /*! SysBoundaryCondition base class instance of the addParameters function. Should not be used, each derived class should have its own.*/
-   void SysBoundaryCondition::addParameters() {
-      cerr << "ERROR: SysBoundaryCondition::addParameters called instead of derived class function!" << endl;
+   /*! BoundaryCondition base class instance of the addParameters function. Should not be used, each derived class should have its own.*/
+   void BoundaryCondition::addParameters() {
+      cerr << "ERROR: BoundaryCondition::addParameters called instead of derived class function!" << endl;
    }
    
    /*! Function used to set the system boundary condition cell's derivatives to 0.
@@ -116,7 +116,7 @@ namespace SBC {
     * \param cellID The cell's ID.
     * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives, 3: xy-derivatives, 4: xz-derivatives, 5: yz-derivatives.
     */
-   void SysBoundaryCondition::setCellDerivativesToZero(
+   void BoundaryCondition::setCellDerivativesToZero(
       FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
       FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
       cint i,
@@ -188,7 +188,7 @@ namespace SBC {
     * \param cellID The cell's ID.
     * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives.
     */
-   void SysBoundaryCondition::setCellBVOLDerivativesToZero(
+   void BoundaryCondition::setCellBVOLDerivativesToZero(
       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
       cint i,
       cint j,
@@ -219,14 +219,14 @@ namespace SBC {
     * \param cellID The cell's ID.
     * \param copyMomentsOnly If true, do not touch velocity space.
     */
-   void SysBoundaryCondition::vlasovBoundaryCopyFromTheClosestNbr(
+   void BoundaryCondition::vlasovBoundaryCopyFromTheClosestNbr(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
          const bool& copyMomentsOnly,
          const uint popID,
          const bool calculate_V_moments
    ) {
-      const CellID closestCell = getTheClosestNonsysboundaryCell(cellID);
+      const CellID closestCell = getTheClosestNonboundaryCell(cellID);
       
       if(closestCell == INVALID_CELLID) {
          cerr << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
@@ -240,11 +240,11 @@ namespace SBC {
     * \param mpiGrid Grid
     * \param cellID The cell's ID.
     */
-   void SysBoundaryCondition::vlasovBoundaryCopyFromAllClosestNbrs(
+   void BoundaryCondition::vlasovBoundaryCopyFromAllClosestNbrs(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,const uint popID, const bool calculate_V_moments
    ) {
-      const std::vector<CellID> closestCells = getAllClosestNonsysboundaryCells(cellID);
+      const std::vector<CellID> closestCells = getAllClosestNonboundaryCells(cellID);
       
       if(closestCells[0] == INVALID_CELLID) {
          cerr << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
@@ -257,11 +257,11 @@ namespace SBC {
     * \param mpiGrid Grid
     * \param cellID The cell's ID.
     */
-   void SysBoundaryCondition::vlasovBoundaryFluffyCopyFromAllCloseNbrs(
+   void BoundaryCondition::vlasovBoundaryFluffyCopyFromAllCloseNbrs(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,const uint popID,const bool calculate_V_moments, creal fluffiness
    ) {
-      const std::vector<CellID> closeCells = getAllCloseNonsysboundaryCells(cellID);
+      const std::vector<CellID> closeCells = getAllCloseNonboundaryCells(cellID);
       
       if(closeCells[0] == INVALID_CELLID) {
          cerr << __FILE__ << ":" << __LINE__ << ": No close cell found!" << endl;
@@ -274,12 +274,12 @@ namespace SBC {
     * \param mpiGrid Grid
     * \param cellID The cell's ID.
     */
-   void SysBoundaryCondition::vlasovBoundaryCopyFromTheClosestNbrAndLimit(
+   void BoundaryCondition::vlasovBoundaryCopyFromTheClosestNbrAndLimit(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
       const uint popID
       ) {
-      const CellID closestCell = getTheClosestNonsysboundaryCell(cellID);
+      const CellID closestCell = getTheClosestNonboundaryCell(cellID);
       SpatialCell * from = mpiGrid[closestCell];
       SpatialCell * to = mpiGrid[cellID];
       
@@ -347,7 +347,7 @@ namespace SBC {
     * \param from Pointer to parent cell to copy from.
     * \param to Pointer to destination cell.
     */
-   void SysBoundaryCondition::copyCellData(
+   void BoundaryCondition::copyCellData(
             SpatialCell* from,
             SpatialCell* to,
             const bool copyMomentsOnly,
@@ -402,7 +402,7 @@ namespace SBC {
     * \param cellList Vector of cells to copy from.
     * \param to Pointer to cell in which to set the averaged distribution.
     */
-   void SysBoundaryCondition::averageCellData(
+   void BoundaryCondition::averageCellData(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const std::vector<CellID> cellList,
          SpatialCell *to,
@@ -462,7 +462,7 @@ namespace SBC {
     * \param ny Unit vector y component normal to the bounce/reflection plane.
     * \param nz Unit vector z component normal to the bounce/reflection plane.
     */
-   void SysBoundaryCondition::vlasovBoundaryReflect(
+   void BoundaryCondition::vlasovBoundaryReflect(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
          creal& nx,
@@ -471,7 +471,7 @@ namespace SBC {
          const uint popID
    ) {
       SpatialCell * cell = mpiGrid[cellID];
-      const std::vector<CellID> cellList = this->getAllClosestNonsysboundaryCells(cellID);
+      const std::vector<CellID> cellList = this->getAllClosestNonboundaryCells(cellID);
       const size_t numberOfCells = cellList.size();
 
       creal factor = 1.0 / convert<Real>(numberOfCells);
@@ -530,7 +530,7 @@ namespace SBC {
     * \param nz Unit vector z component normal to the absorption plane.
     * \param quenchingFactor Multiplicative factor by which to scale the distribution function values. 0: absorb. ]0;1[: quench.
     */
-   void SysBoundaryCondition::vlasovBoundaryAbsorb(
+   void BoundaryCondition::vlasovBoundaryAbsorb(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
       creal& nx,
@@ -540,7 +540,7 @@ namespace SBC {
       const uint popID
    ) {
       SpatialCell* cell = mpiGrid[cellID];
-      const std::vector<CellID> cellList = this->getAllClosestNonsysboundaryCells(cellID);
+      const std::vector<CellID> cellList = this->getAllClosestNonboundaryCells(cellID);
       const size_t numberOfCells = cellList.size();
 
       creal factor = 1.0 / convert<Real>(numberOfCells);
@@ -594,21 +594,21 @@ namespace SBC {
    }
 
 
-   /*! Updates the system boundary conditions after load balancing. This is called from e.g. the class SysBoundary.
+   /*! Updates the system boundary conditions after load balancing. This is called from e.g. the class Boundary.
     * \param mpiGrid Grid
     * \param local_cells_on_boundary Cells within this process
     * \retval success Returns true if the operation is successful
     */
-   bool SysBoundaryCondition::updateSysBoundaryConditionsAfterLoadBalance(
+   bool BoundaryCondition::updateBoundaryConditionsAfterLoadBalance(
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const vector<CellID> & local_cells_on_boundary
    ) {
       // Loop over cellids
       for( vector<CellID>::const_iterator it = local_cells_on_boundary.begin(); it != local_cells_on_boundary.end(); ++it ) {
          const CellID cellId = *it;
-         std::vector<CellID> & closestCells = allClosestNonsysboundaryCells[cellId];
+         std::vector<CellID> & closestCells = allClosestNonboundaryCells[cellId];
          closestCells.clear();
-         std::vector<CellID> & closeCells = allCloseNonsysboundaryCells[cellId];
+         std::vector<CellID> & closeCells = allCloseNonboundaryCells[cellId];
          closeCells.clear();
          std::array<SpatialCell*,27> & flowtoCells = allFlowtoCells[cellId];
          flowtoCells.fill(NULL);
@@ -662,24 +662,24 @@ namespace SBC {
    /*! Get the cellID of the first closest cell of type NOT_BOUNDARY found.
     * \param i,j,k Coordinates of the cell to start looking from
     * \return The cell index of that cell
-    * \sa getAllClosestNonsysboundaryCells
+    * \sa getAllClosestNonboundaryCells
     */
-   std::array<int, 3> SysBoundaryCondition::getTheClosestNonsysboundaryCell(
+   std::array<int, 3> BoundaryCondition::getTheClosestNonboundaryCell(
       FsGrid< fsgrids::technical, 2> & technicalGrid,
       cint i,
       cint j,
       cint k
    ) {
-      const std::vector< std::array<int, 3> > closestCells = getAllClosestNonsysboundaryCells(technicalGrid, i, j, k);
+      const std::vector< std::array<int, 3> > closestCells = getAllClosestNonboundaryCells(technicalGrid, i, j, k);
       return closestCells.at(0);
    }
    
    /*! Get the cellIDs of all the closest cells of type NOT_BOUNDARY.
     * \param i,j,k Coordinates of the cell to start looking from
     * \return The vector of cell indices of those cells
-    * \sa getTheClosestNonsysboundaryCell
+    * \sa getTheClosestNonboundaryCell
     */
-   std::vector< std::array<int, 3> > SysBoundaryCondition::getAllClosestNonsysboundaryCells(
+   std::vector< std::array<int, 3> > BoundaryCondition::getAllClosestNonboundaryCells(
       FsGrid< fsgrids::technical, 2> & technicalGrid,
       cint i,
       cint j,
@@ -723,24 +723,24 @@ namespace SBC {
    /*! Get the cellID of the first closest cell of type NOT_BOUNDARY found.
     * \param cellID ID of the cell to start look from.
     * \return The cell index of that cell
-    * \sa getAllClosestNonsysboundaryCells
+    * \sa getAllClosestNonboundaryCells
     */
-   CellID & SysBoundaryCondition::getTheClosestNonsysboundaryCell(
+   CellID & BoundaryCondition::getTheClosestNonboundaryCell(
       const CellID& cellID
    ) {
-      std::vector<CellID> & closestCells = allClosestNonsysboundaryCells.at(cellID);
+      std::vector<CellID> & closestCells = allClosestNonboundaryCells.at(cellID);
       return closestCells.at(0);
    }
    
    /*! Get the cellIDs of all the closest cells of type NOT_BOUNDARY.
     * \param cellID ID of the cell to start look from.
     * \return The vector of cell indices of those cells
-    * \sa getTheClosestNonsysboundaryCell
+    * \sa getTheClosestNonboundaryCell
     */
-   std::vector<CellID> & SysBoundaryCondition::getAllClosestNonsysboundaryCells(
+   std::vector<CellID> & BoundaryCondition::getAllClosestNonboundaryCells(
       const CellID& cellID
    ) {
-      std::vector<CellID> & closestCells = allClosestNonsysboundaryCells.at(cellID);
+      std::vector<CellID> & closestCells = allClosestNonboundaryCells.at(cellID);
       return closestCells;
    }
    
@@ -748,10 +748,10 @@ namespace SBC {
     * \param cellID ID of the cell to start look from.
     * \return The vector of cell indices of those cells
     */
-   std::vector<CellID> & SysBoundaryCondition::getAllCloseNonsysboundaryCells(
+   std::vector<CellID> & BoundaryCondition::getAllCloseNonboundaryCells(
       const CellID& cellID
    ) {
-      std::vector<CellID> & closeCells = allCloseNonsysboundaryCells.at(cellID);
+      std::vector<CellID> & closeCells = allCloseNonboundaryCells.at(cellID);
       return closeCells;
    }
    
@@ -759,7 +759,7 @@ namespace SBC {
     * \param cellID ID of the cell to start look from.
     * \return The vector of cell indices of those cells
     */
-   std::array<SpatialCell*,27> & SysBoundaryCondition::getFlowtoCells(
+   std::array<SpatialCell*,27> & BoundaryCondition::getFlowtoCells(
       const CellID& cellID
    ) {
       phiprof::start("getFlowtoCells");
@@ -768,7 +768,7 @@ namespace SBC {
       return flowtoCells;
    }
    
-   std::array<Realf*,27> SysBoundaryCondition::getFlowtoCellsBlock(
+   std::array<Realf*,27> BoundaryCondition::getFlowtoCellsBlock(
       const std::array<SpatialCell*,27> flowtoCells,
       const vmesh::GlobalID blockGID,
       const uint popID
@@ -785,7 +785,7 @@ namespace SBC {
       return flowtoCellsBlock;
    }
    
-   Real SysBoundaryCondition::fieldBoundaryCopyFromSolvingNbrMagneticField(
+   Real BoundaryCondition::fieldBoundaryCopyFromSolvingNbrMagneticField(
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & bGrid,
       FsGrid< fsgrids::technical, 2> & technicalGrid,
       cint i,
@@ -839,8 +839,8 @@ namespace SBC {
    /*! Function used in some cases to know which faces the system boundary condition is being applied to.
     * \param faces Pointer to array of 6 bool in which the values are returned whether the corresponding face is of that type. Order: 0 x+; 1 x-; 2 y+; 3 y-; 4 z+; 5 z-
     */
-   void SysBoundaryCondition::getFaces(bool* faces) {
-      cerr << "ERROR: SysBoundaryCondition::getFaces called instead of derived class function!" << endl;
+   void BoundaryCondition::getFaces(bool* faces) {
+      cerr << "ERROR: BoundaryCondition::getFaces called instead of derived class function!" << endl;
       for(int i=0; i<6; i++) {
         faces[i]=false;
       }
@@ -849,14 +849,14 @@ namespace SBC {
    /*! Get the precedence value of the system boundary condition.
     * \return The precedence value of the system boundary condition as set by parameter.
     */
-   uint SysBoundaryCondition::getPrecedence() const {return precedence;}
+   uint BoundaryCondition::getPrecedence() const {return precedence;}
    
    /*! Returns whether the boundary condition is dynamic in time.
     * \return Boolean value.
     */
-   bool SysBoundaryCondition::isDynamic() const {return isThisDynamic;}
+   bool BoundaryCondition::isDynamic() const {return isThisDynamic;}
    
-   void SysBoundaryCondition::setPeriodicity(
+   void BoundaryCondition::setPeriodicity(
       bool isFacePeriodic[3]
    ) {
       for (uint i=0; i<3; i++) {
@@ -865,5 +865,5 @@ namespace SBC {
    }
    
    /*! Get a bool telling whether to call again applyInitialState upon restarting the simulation. */
-   bool SysBoundaryCondition::doApplyUponRestart() const {return this->applyUponRestart;}
-} // namespace SBC
+   bool BoundaryCondition::doApplyUponRestart() const {return this->applyUponRestart;}
+} // namespace BC

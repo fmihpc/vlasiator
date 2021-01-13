@@ -21,8 +21,8 @@
  */
 
 /*!\file setbyuser.cpp
- * \brief Implementation of the class SysBoundaryCondition::SetByUser.
- * This serves as the base class for further classes like SysBoundaryCondition::SetMaxwellian.
+ * \brief Implementation of the class BoundaryCondition::SetByUser.
+ * This serves as the base class for further classes like BoundaryCondition::SetMaxwellian.
  */
 
 #include <cstdlib>
@@ -37,18 +37,18 @@
 #ifndef NDEBUG
    #define DEBUG_SETBYUSER
 #endif
-#ifdef DEBUG_SYSBOUNDARY
+#ifdef DEBUG_BOUNDARY
    #define DEBUG_SETBYUSER
 #endif
 
 using namespace std;
 
-namespace SBC
+namespace BC
 {
-SetByUser::SetByUser() : SysBoundaryCondition() {}
+SetByUser::SetByUser() : BoundaryCondition() {}
 SetByUser::~SetByUser() {}
 
-bool SetByUser::initSysBoundary(creal &t, Project &project)
+bool SetByUser::initBoundary(creal &t, Project &project)
 {
    /* The array of bool describes which of the x+, x-, y+, y-, z+, z- faces are to have user-set system boundary
     * conditions. A true indicates the corresponding face will have user-set system boundary conditions. The 6 elements
@@ -80,7 +80,7 @@ bool SetByUser::initSysBoundary(creal &t, Project &project)
    return success;
 }
 
-bool SetByUser::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+bool SetByUser::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                   FsGrid<fsgrids::technical, 2> &technicalGrid)
 {
    bool doAssign;
@@ -538,4 +538,4 @@ void SetByUser::interpolate(const int inputDataIndex, const uint popID, creal t,
       outputData[i] = s1 * sP.inputData[inputDataIndex][i1][i + 1] + s * sP.inputData[inputDataIndex][i2][i + 1];
    }
 }
-} // namespace SBC
+} // namespace BC

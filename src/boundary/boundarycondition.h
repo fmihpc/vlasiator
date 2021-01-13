@@ -20,8 +20,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef SYSBOUNDARYCONDITION_H
-#define SYSBOUNDARYCONDITION_H
+#ifndef BOUNDARYCONDITION_H
+#define BOUNDARYCONDITION_H
 
 #include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
@@ -36,36 +36,36 @@
 using namespace spatial_cell;
 using namespace projects;
 
-namespace SBC {
-   /*!\brief SBC::SysBoundaryCondition is the base class for system boundary conditions.
+namespace BC {
+   /*!\brief BC::BoundaryCondition is the base class for system boundary conditions.
     * 
-    * SBC::SysBoundaryCondition defines a base class for applying boundary conditions.
+    * BC::BoundaryCondition defines a base class for applying boundary conditions.
     * Specific system boundary conditions inherit from this base class, that's why most
     * functions defined here are not meant to be called and contain a corresponding error
     * message. The functions to be called are the inherited class members.
     * 
-    * The initSysBoundary function is used to initialise the internal workings needed by the
+    * The initBoundary function is used to initialise the internal workings needed by the
     * system boundary condition to run (e.g. importing parameters, initialising class
-    * members). assignSysBoundary is used to determine whether a given cell is within the
+    * members). assignBoundary is used to determine whether a given cell is within the
     * domain of system boundary condition. applyInitialState is called to initialise a system
     * boundary cell's parameters and velocity space.
     * 
-    * If needed, a user can write his or her own SBC::SysBoundaryConditions, which 
+    * If needed, a user can write his or her own BC::BoundaryConditions, which 
     * are loaded when the simulation initializes.
     */
-   class SysBoundaryCondition {
+   class BoundaryCondition {
       public:
-         SysBoundaryCondition();
-         virtual ~SysBoundaryCondition();
+         BoundaryCondition();
+         virtual ~BoundaryCondition();
          
          static void addParameters();
          virtual void getParameters()=0;
          
-         virtual bool initSysBoundary(
+         virtual bool initBoundary(
             creal& t,
             Project &project
          )=0;
-         virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell,
+         virtual bool assignBoundary(dccrg::Dccrg<SpatialCell,
                                         dccrg::Cartesian_Geometry>& mpiGrid,
                                         FsGrid< fsgrids::technical, 2> & technicalGrid)=0;
          virtual bool applyInitialState(
@@ -154,7 +154,7 @@ namespace SBC {
          uint getPrecedence() const;
          bool isDynamic() const;
       
-         bool updateSysBoundaryConditionsAfterLoadBalance(
+         bool updateBoundaryConditionsAfterLoadBalance(
             dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const std::vector<CellID> & local_cells_on_boundary
          );
@@ -247,25 +247,25 @@ namespace SBC {
             creal& quenchingFactor,
             const uint popID
          );
-         std::array<int, 3> getTheClosestNonsysboundaryCell(
+         std::array<int, 3> getTheClosestNonboundaryCell(
             FsGrid< fsgrids::technical, 2> & technicalGrid,
             cint i,
             cint j,
             cint k
          );
-         std::vector< std::array<int, 3> > getAllClosestNonsysboundaryCells(
+         std::vector< std::array<int, 3> > getAllClosestNonboundaryCells(
             FsGrid< fsgrids::technical, 2> & technicalGrid,
             cint i,
             cint j,
             cint k
          );
-         CellID & getTheClosestNonsysboundaryCell(
+         CellID & getTheClosestNonboundaryCell(
             const CellID& cellID
          );
-         std::vector<CellID> & getAllClosestNonsysboundaryCells(
+         std::vector<CellID> & getAllClosestNonboundaryCells(
             const CellID& cellID
          );
-         std::vector<CellID> & getAllCloseNonsysboundaryCells(
+         std::vector<CellID> & getAllCloseNonboundaryCells(
             const CellID& cellID
          );
          Real fieldBoundaryCopyFromSolvingNbrMagneticField(
@@ -284,10 +284,10 @@ namespace SBC {
          bool isThisDynamic;
          /*! Array of bool telling whether the system is periodic in any direction. */
          bool isPeriodic[3];
-         /*! Map of closest nonsysboundarycells. Used in getAllClosestNonsysboundaryCells. */
-         std::unordered_map<CellID, std::vector<CellID>> allClosestNonsysboundaryCells;
-         /*! Map of close nonsysboundarycells. Used in getAllCloseNonsysboundaryCells. */
-         std::unordered_map<CellID, std::vector<CellID>> allCloseNonsysboundaryCells;
+         /*! Map of closest nonboundarycells. Used in getAllClosestNonboundaryCells. */
+         std::unordered_map<CellID, std::vector<CellID>> allClosestNonboundaryCells;
+         /*! Map of close nonboundarycells. Used in getAllCloseNonboundaryCells. */
+         std::unordered_map<CellID, std::vector<CellID>> allCloseNonboundaryCells;
       
          /*! Array of cells into which the distribution function can flow. Used in getAllFlowtoCells. Cells into which one cannot flow are set to INVALID_CELLID. */
          std::unordered_map<CellID, std::array<SpatialCell*, 27>> allFlowtoCells;
@@ -297,6 +297,6 @@ namespace SBC {
    
 
 
-} // namespace SBC
+} // namespace BC
 
 #endif

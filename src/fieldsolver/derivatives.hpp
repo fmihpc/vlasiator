@@ -23,7 +23,7 @@
 #include <vector>
 
 #include "../spatial_cell.hpp"
-#include "../sysboundary/sysboundary.h"
+#include "../boundary/boundary.h"
 
 #include "fs_limiters.h"
 
@@ -35,7 +35,7 @@ void calculateDerivativesSimple(
    FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
    FsGrid< fsgrids::technical, 2> & technicalGrid,
-   SysBoundary& sysBoundaries,
+   Boundary& boundaries,
    cint& RKCase,
    const bool communicateMoments);
 
@@ -43,7 +43,7 @@ void calculateDerivativesSimple(
 void calculateBVOLDerivativesSimple(
    FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
    FsGrid< fsgrids::technical, 2> & technicalGrid,
-   SysBoundary& sysBoundaries
+   Boundary& boundaries
 );
 
 

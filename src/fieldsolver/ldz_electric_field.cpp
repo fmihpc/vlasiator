@@ -1505,7 +1505,7 @@ void calculateEdgeElectricFieldZ(
  * \param BgBGrid fsGrid holding the background B quantities
  * \param technicalGrid fsGrid holding technical information (such as boundary types)
  * \param i,j,k fsGrid cell coordinates for the current cell
- * \param sysBoundaries System boundary conditions existing
+ * \param boundaries System boundary conditions existing
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  * 
  * \sa calculateUpwindedElectricFieldSimple calculateEdgeElectricFieldX calculateEdgeElectricFieldY calculateEdgeElectricFieldZ
@@ -1524,12 +1524,12 @@ void calculateElectricField(
    cint i,
    cint j,
    cint k,
-   SysBoundary& sysBoundaries,
+   Boundary& boundaries,
    cint& RKCase
 ) {
-   cuint cellSysBoundaryFlag = technicalGrid.get(i,j,k)->boundaryFlag;
+   cuint cellBoundaryFlag = technicalGrid.get(i,j,k)->boundaryFlag;
    
-   if (cellSysBoundaryFlag == boundarytype::DO_NOT_COMPUTE) return;
+   if (cellBoundaryFlag == boundarytype::DO_NOT_COMPUTE) return;
    
    cuint bitfield = technicalGrid.get(i,j,k)->SOLVE;
    
@@ -1550,7 +1550,7 @@ void calculateElectricField(
          RKCase
       );
    } else {
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 0);
+      boundaries.getBoundary(cellBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 0);
    }
    
    if ((bitfield & compute::EY) == compute::EY) {
@@ -1570,7 +1570,7 @@ void calculateElectricField(
          RKCase
       );
    } else {
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 1);
+      boundaries.getBoundary(cellBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 1);
    }
    
    if ((bitfield & compute::EZ) == compute::EZ) {
@@ -1590,7 +1590,7 @@ void calculateElectricField(
          RKCase
       );
    } else {
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 2);
+      boundaries.getBoundary(cellBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 2);
    }
 }
 
@@ -1610,7 +1610,7 @@ void calculateElectricField(
  * \param dMomentsGrid fsGrid holding the derviatives of moments
  * \param BgBGrid fsGrid holding the background B quantities
  * \param technicalGrid fsGrid holding technical information (such as boundary types)
- * \param sysBoundaries System boundary conditions existing
+ * \param boundaries System boundary conditions existing
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  * 
  * \sa calculateElectricField calculateEdgeElectricFieldX calculateEdgeElectricFieldY calculateEdgeElectricFieldZ
@@ -1628,7 +1628,7 @@ void calculateUpwindedElectricFieldSimple(
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid,
    FsGrid< fsgrids::technical, 2> & technicalGrid,
-   SysBoundary& sysBoundaries,
+   Boundary& boundaries,
    cint& RKCase
 ) {
    int timer;
@@ -1672,7 +1672,7 @@ void calculateUpwindedElectricFieldSimple(
                   i,
                   j,
                   k,
-                  sysBoundaries,
+                  boundaries,
                   RKCase
                );
             } else { // RKCase == RK_ORDER2_STEP1
@@ -1689,7 +1689,7 @@ void calculateUpwindedElectricFieldSimple(
                   i,
                   j,
                   k,
-                  sysBoundaries,
+                  boundaries,
                   RKCase
                );
             }

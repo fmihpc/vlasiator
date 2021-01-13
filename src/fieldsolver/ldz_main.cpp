@@ -54,7 +54,7 @@
 #include "mpiconversion.h"
 
 /*! Re-initialize field propagator after rebalance. E, BGB, RHO, RHO_V,
- cell_dimensions, sysboundaryflag need to be up to date for the
+ cell_dimensions, boundaryflag need to be up to date for the
  extended neighborhood
  */
 bool initializeFieldPropagatorAfterRebalance() {
@@ -97,7 +97,7 @@ bool propagateFields(
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid,
    FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
    FsGrid< fsgrids::technical, 2> & technicalGrid,
-   SysBoundary& sysBoundaries,
+   Boundary& boundaries,
    creal& dt,
    cuint subcycles
 ) {
@@ -123,10 +123,10 @@ bool propagateFields(
    
    if (subcycles == 1) {
       #ifdef FS_1ST_ORDER_TIME
-      propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, dt, RK_ORDER1);
-      calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1, true);
+      propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, boundaries, dt, RK_ORDER1);
+      calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, boundaries, RK_ORDER1, true);
       if(P::ohmGradPeTerm > 0){
-         calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1);
+         calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, boundaries, RK_ORDER1);
          hallTermCommunicateDerivatives = false;
       }
       if(P::ohmHallTerm > 0) {
@@ -140,7 +140,7 @@ bool propagateFields(
             dMomentsGrid,
             BgBGrid,
             technicalGrid,
-            sysBoundaries,
+            boundaries,
             RK_ORDER1,
             hallTermCommunicateDerivatives
          );
@@ -158,14 +158,14 @@ bool propagateFields(
          dMomentsGrid,
          BgBGrid,
          technicalGrid,
-         sysBoundaries,
+         boundaries,
          RK_ORDER1
       );
       #else
-      propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, dt, RK_ORDER2_STEP1);
-      calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1, true);
+      propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, boundaries, dt, RK_ORDER2_STEP1);
+      calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, boundaries, RK_ORDER2_STEP1, true);
       if(P::ohmGradPeTerm > 0) {
-         calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1);
+         calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, boundaries, RK_ORDER2_STEP1);
          hallTermCommunicateDerivatives = false;
       }
       if(P::ohmHallTerm > 0) {
@@ -179,7 +179,7 @@ bool propagateFields(
             dMomentsGrid,
             BgBGrid,
             technicalGrid,
-            sysBoundaries,
+            boundaries,
             RK_ORDER2_STEP1,
             hallTermCommunicateDerivatives
          );
@@ -197,14 +197,14 @@ bool propagateFields(
          dMomentsGrid,
          BgBGrid,
          technicalGrid,
-         sysBoundaries,
+         boundaries,
          RK_ORDER2_STEP1
       );
       
-      propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, dt, RK_ORDER2_STEP2);
-      calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2, true);
+      propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, boundaries, dt, RK_ORDER2_STEP2);
+      calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, boundaries, RK_ORDER2_STEP2, true);
       if(P::ohmGradPeTerm > 0) {
-         calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2);
+         calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, boundaries, RK_ORDER2_STEP2);
          hallTermCommunicateDerivatives = false;
       }
       if(P::ohmHallTerm > 0) {
@@ -218,7 +218,7 @@ bool propagateFields(
             dMomentsGrid,
             BgBGrid,
             technicalGrid,
-            sysBoundaries,
+            boundaries,
             RK_ORDER2_STEP2,
             hallTermCommunicateDerivatives
          );
@@ -236,7 +236,7 @@ bool propagateFields(
          dMomentsGrid,
          BgBGrid,
          technicalGrid,
-         sysBoundaries,
+         boundaries,
          RK_ORDER2_STEP2
       );
       #endif
@@ -251,13 +251,13 @@ bool propagateFields(
       while (subcycleCount < maxSubcycleCount ) {         
          // In case of subcycling, we decided to go for a blunt Runge-Kutta subcycling even though e.g. moments are not going along.
          // Result of the Summer of Debugging 2016, the behaviour in wave dispersion was much improved with this.
-         propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, subcycleDt, RK_ORDER2_STEP1);
+         propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, boundaries, subcycleDt, RK_ORDER2_STEP1);
          
          // We need to calculate derivatives of the moments at every substep, but they only
          // need to be communicated in the first one.
-         calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1, (subcycleCount==0));
+         calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, boundaries, RK_ORDER2_STEP1, (subcycleCount==0));
          if(P::ohmGradPeTerm > 0 && subcycleCount==0) {
-            calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1);
+            calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, boundaries, RK_ORDER2_STEP1);
             hallTermCommunicateDerivatives = false;
          }
          if(P::ohmHallTerm > 0) {
@@ -271,7 +271,7 @@ bool propagateFields(
                dMomentsGrid,
                BgBGrid,
                technicalGrid,
-               sysBoundaries,
+               boundaries,
                RK_ORDER2_STEP1,
                hallTermCommunicateDerivatives
             );
@@ -289,17 +289,17 @@ bool propagateFields(
             dMomentsGrid,
             BgBGrid,
             technicalGrid,
-            sysBoundaries,
+            boundaries,
             RK_ORDER2_STEP1
          );
          
-         propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, subcycleDt, RK_ORDER2_STEP2);
+         propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, boundaries, subcycleDt, RK_ORDER2_STEP2);
          
          // We need to calculate derivatives of the moments at every substep, but they only
          // need to be communicated in the first one.
-         calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2, (subcycleCount==0));
+         calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, boundaries, RK_ORDER2_STEP2, (subcycleCount==0));
          if(P::ohmGradPeTerm > 0 && subcycleCount==0) {
-            calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2);
+            calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, boundaries, RK_ORDER2_STEP2);
             hallTermCommunicateDerivatives = false;
          }
          if(P::ohmHallTerm > 0) {
@@ -313,7 +313,7 @@ bool propagateFields(
                dMomentsGrid,
                BgBGrid,
                technicalGrid,
-               sysBoundaries,
+               boundaries,
                RK_ORDER2_STEP2,
                hallTermCommunicateDerivatives
             );
@@ -331,7 +331,7 @@ bool propagateFields(
             dMomentsGrid,
             BgBGrid,
             technicalGrid,
-            sysBoundaries,
+            boundaries,
             RK_ORDER2_STEP2
          );
          
@@ -407,6 +407,6 @@ bool propagateFields(
    }
    
    calculateVolumeAveragedFields(perBGrid,EGrid,dPerBGrid,volGrid,technicalGrid);
-   calculateBVOLDerivativesSimple(volGrid, technicalGrid, sysBoundaries);
+   calculateBVOLDerivativesSimple(volGrid, technicalGrid, boundaries);
    return true;
 }

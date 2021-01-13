@@ -49,7 +49,7 @@ void propagateMagneticFieldSimple(
    FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
    FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EDt2Grid,
    FsGrid< fsgrids::technical, 2> & technicalGrid,
-   SysBoundary& sysBoundaries,
+   Boundary& boundaries,
    creal& dt,
    cint& RKCase
 );

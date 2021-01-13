@@ -27,9 +27,9 @@
 #include "../definitions.h"
 #include "../readparameters.h"
 #include "../spatial_cell.hpp"
-#include "sysboundarycondition.h"
+#include "boundarycondition.h"
 
-namespace SBC {
+namespace BC {
 
 	struct OutflowSpeciesParameters {
       /*! Array of bool telling which faces are going to be skipped by the Vlasov system boundary condition.*/
@@ -45,13 +45,13 @@ namespace SBC {
 
    /*!\brief Outflow is a class applying copy/outflow boundary conditions.
     * 
-    * Outflow is a class handling cells tagged as sysboundarytype::OUTFLOW by this system boundary condition. It applies copy/outflow boundary conditions.
+    * Outflow is a class handling cells tagged as boundarytype::OUTFLOW by this system boundary condition. It applies copy/outflow boundary conditions.
     * 
     * These consist in:
     * - Copy the distribution and moments from the nearest NOT_BOUNDARY cell;
     * - Copy the perturbed B components from the nearest NOT_BOUNDARY cell. EXCEPTION: the face components adjacent to the simulation domain at the +x/+y/+z faces are propagated still.
     */
-   class Outflow: public SysBoundaryCondition {
+   class Outflow: public BoundaryCondition {
    public:
       Outflow();
       virtual ~Outflow();
@@ -59,11 +59,11 @@ namespace SBC {
       static void addParameters();
       virtual void getParameters();
       
-      virtual bool initSysBoundary(
+      virtual bool initBoundary(
          creal& t,
          Project &project
       );
-      virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      virtual bool assignBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                      FsGrid< fsgrids::technical, 2> & technicalGrid);
       virtual bool applyInitialState(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -151,6 +151,6 @@ namespace SBC {
       };
       
    }; // class Outflow
-} // namespace SBC
+} // namespace BC
 
 #endif

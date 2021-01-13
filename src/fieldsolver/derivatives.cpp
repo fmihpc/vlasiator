@@ -35,7 +35,7 @@
  * \param dPerBGrid fsGrid holding the derivatives of perturbed B
  * \param dMomentsGrid fsGrid holding the derviatives of moments
  * \param technicalGrid fsGrid holding technical information (such as boundary types)
- * \param sysBoundaries System boundary conditions existing
+ * \param boundaries System boundary conditions existing
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  * 
  * \sa calculateDerivativesSimple calculateBVOLDerivativesSimple calculateBVOLDerivatives
@@ -49,7 +49,7 @@ void calculateDerivatives(
    FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
    FsGrid< fsgrids::technical, 2> & technicalGrid,
-   SysBoundary& sysBoundaries,
+   Boundary& boundaries,
    cint& RKCase
 ) {
    std::array<Real, fsgrids::dperb::N_DPERB> * dPerB = dPerBGrid.get(i,j,k);
@@ -121,9 +121,9 @@ void calculateDerivatives(
    } else {
       // Boundary conditions handle derivatives.
       if (boundaryFlag == boundarytype::NOT_BOUNDARY) {
-         SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 0);
+         BC::BoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 0);
       } else {
-         sysBoundaries.getSysBoundary(boundaryFlag)->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, 0);
+         boundaries.getBoundary(boundaryFlag)->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, 0);
       }
    }
 
@@ -158,9 +158,9 @@ void calculateDerivatives(
    } else {
       // Boundary conditions handle derivatives.
       if (boundaryFlag == boundarytype::NOT_BOUNDARY) {
-         SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 1);
+         BC::BoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 1);
       } else {
-         sysBoundaries.getSysBoundary(boundaryFlag)->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, 1);
+         boundaries.getBoundary(boundaryFlag)->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, 1);
       }
    }
    
@@ -194,9 +194,9 @@ void calculateDerivatives(
    } else {
       // Boundary conditions handle derivatives.
       if (boundaryFlag == boundarytype::NOT_BOUNDARY) {
-         SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 2);
+         BC::BoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 2);
       } else {
-         sysBoundaries.getSysBoundary(boundaryFlag)->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, 2);
+         boundaries.getBoundary(boundaryFlag)->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, 2);
       }
    }
    
@@ -218,9 +218,9 @@ void calculateDerivatives(
       } else {
          // Boundary conditions handle derivatives.
          if (boundaryFlag == boundarytype::NOT_BOUNDARY) {
-            SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 3);
+            BC::BoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 3);
          } else {
-            sysBoundaries.getSysBoundary(boundaryFlag)->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, 3);
+            boundaries.getBoundary(boundaryFlag)->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, 3);
          }
       }
       
@@ -237,9 +237,9 @@ void calculateDerivatives(
       } else {
          // Boundary conditions handle derivatives.
          if (boundaryFlag == boundarytype::NOT_BOUNDARY) {
-            SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 4);
+            BC::BoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 4);
          } else {
-            sysBoundaries.getSysBoundary(boundaryFlag)->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, 4);
+            boundaries.getBoundary(boundaryFlag)->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, 4);
          }
       }
       
@@ -256,9 +256,9 @@ void calculateDerivatives(
       } else {
          // Boundary conditions handle derivatives.
          if (boundaryFlag == boundarytype::NOT_BOUNDARY) {
-            SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 5);
+            BC::BoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 5);
          } else {
-            sysBoundaries.getSysBoundary(boundaryFlag)->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, 5);
+            boundaries.getBoundary(boundaryFlag)->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, 5);
          }
       }
    }
@@ -279,7 +279,7 @@ void calculateDerivatives(
  * \param dPerBGrid fsGrid holding the derivatives of perturbed B
  * \param dMomentsGrid fsGrid holding the derviatives of moments
  * \param technicalGrid fsGrid holding technical information (such as boundary types)
- * \param sysBoundaries System boundary conditions existing
+ * \param boundaries System boundary conditions existing
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  * \param communicateMoments If true, the derivatives of moments (rho, V, P) are communicated to neighbours.
  
@@ -293,7 +293,7 @@ void calculateDerivativesSimple(
    FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
    FsGrid< fsgrids::technical, 2> & technicalGrid,
-   SysBoundary& sysBoundaries,
+   Boundary& boundaries,
    cint& RKCase,
    const bool communicateMoments) {
    int timer;
@@ -352,9 +352,9 @@ void calculateDerivativesSimple(
          for (int i=0; i<gridDims[0]; i++) {
             if (technicalGrid.get(i,j,k)->boundaryFlag == boundarytype::DO_NOT_COMPUTE) continue;
             if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-               calculateDerivatives(i,j,k, perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RKCase);
+               calculateDerivatives(i,j,k, perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, technicalGrid, boundaries, RKCase);
             } else {
-               calculateDerivatives(i,j,k, perBDt2Grid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RKCase);
+               calculateDerivatives(i,j,k, perBDt2Grid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, boundaries, RKCase);
             }
          }
       }
@@ -372,7 +372,7 @@ void calculateDerivativesSimple(
  * \param volGrid fsGrid holding the volume averaged fields
  * \param technicalGrid fsGrid holding technical information (such as boundary types)
  * \param i,j,k fsGrid cell coordinates for the current cell
- * \param sysBoundaries System boundary conditions existing
+ * \param boundaries System boundary conditions existing
  *
  * \sa calculateDerivatives calculateBVOLDerivativesSimple calculateDerivativesSimple
  */
@@ -383,7 +383,7 @@ void calculateBVOLDerivatives(
    cint i,
    cint j,
    cint k,
-   SysBoundary& sysBoundaries
+   Boundary& boundaries
 ) {
    std::array<Real, fsgrids::volfields::N_VOL> * array = volGrid.get(i,j,k);
    
@@ -399,9 +399,9 @@ void calculateBVOLDerivatives(
       array->at(fsgrids::volfields::dPERBZVOLdx) = limiter(left->at(fsgrids::volfields::PERBZVOL),array->at(fsgrids::volfields::PERBZVOL),rght->at(fsgrids::volfields::PERBZVOL));
    } else {
       if (technicalGrid.get(i,j,k)->boundaryFlag == boundarytype::NOT_BOUNDARY) {
-         SBC::SysBoundaryCondition::setCellBVOLDerivativesToZero(volGrid, i, j, k, 0);
+         BC::BoundaryCondition::setCellBVOLDerivativesToZero(volGrid, i, j, k, 0);
       } else {
-         sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->boundaryFlag)->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, 0);
+         boundaries.getBoundary(technicalGrid.get(i,j,k)->boundaryFlag)->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, 0);
       }
    }
    
@@ -414,9 +414,9 @@ void calculateBVOLDerivatives(
       array->at(fsgrids::volfields::dPERBZVOLdy) = limiter(left->at(fsgrids::volfields::PERBZVOL),array->at(fsgrids::volfields::PERBZVOL),rght->at(fsgrids::volfields::PERBZVOL));
    } else {
       if (technicalGrid.get(i,j,k)->boundaryFlag == boundarytype::NOT_BOUNDARY) {
-         SBC::SysBoundaryCondition::setCellBVOLDerivativesToZero(volGrid, i, j, k, 1);
+         BC::BoundaryCondition::setCellBVOLDerivativesToZero(volGrid, i, j, k, 1);
       } else {
-         sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->boundaryFlag)->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, 1);
+         boundaries.getBoundary(technicalGrid.get(i,j,k)->boundaryFlag)->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, 1);
       }
    }
    
@@ -429,9 +429,9 @@ void calculateBVOLDerivatives(
       array->at(fsgrids::volfields::dPERBYVOLdz) = limiter(left->at(fsgrids::volfields::PERBYVOL),array->at(fsgrids::volfields::PERBYVOL),rght->at(fsgrids::volfields::PERBYVOL));
    } else {
       if (technicalGrid.get(i,j,k)->boundaryFlag == boundarytype::NOT_BOUNDARY) {
-         SBC::SysBoundaryCondition::setCellBVOLDerivativesToZero(volGrid, i, j, k, 2);
+         BC::BoundaryCondition::setCellBVOLDerivativesToZero(volGrid, i, j, k, 2);
       } else {
-         sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->boundaryFlag)->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, 2);
+         boundaries.getBoundary(technicalGrid.get(i,j,k)->boundaryFlag)->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, 2);
       }
    }
 }
@@ -443,14 +443,14 @@ void calculateBVOLDerivatives(
  * 
  * \param volGrid fsGrid holding the volume averaged fields
  * \param technicalGrid fsGrid holding technical information (such as boundary types)
- * \param sysBoundaries System boundary conditions existing
+ * \param boundaries System boundary conditions existing
  * 
  * \sa calculateDerivatives calculateBVOLDerivatives calculateDerivativesSimple
  */
 void calculateBVOLDerivativesSimple(
    FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
    FsGrid< fsgrids::technical, 2> & technicalGrid,
-   SysBoundary& sysBoundaries
+   Boundary& boundaries
 ) {
    int timer;
    //const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
@@ -476,7 +476,7 @@ void calculateBVOLDerivativesSimple(
          for (int i=0; i<gridDims[0]; i++) {
             if (technicalGrid.get(i,j,k)->boundaryFlag == boundarytype::DO_NOT_COMPUTE) continue;
             
-            calculateBVOLDerivatives(volGrid,technicalGrid,i,j,k,sysBoundaries);
+            calculateBVOLDerivatives(volGrid,technicalGrid,i,j,k,boundaries);
          }
       }
    }

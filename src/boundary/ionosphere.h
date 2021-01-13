@@ -27,12 +27,12 @@
 #include "../definitions.h"
 #include "../readparameters.h"
 #include "../spatial_cell.hpp"
-#include "sysboundarycondition.h"
+#include "boundarycondition.h"
 
 using namespace projects;
 using namespace std;
 
-namespace SBC {
+namespace BC {
 
    struct IonosphereSpeciesParameters {
       Real rho;
@@ -45,14 +45,14 @@ namespace SBC {
 
    /*!\brief Ionosphere is a class applying ionospheric boundary conditions.
     * 
-    * Ionosphere is a class handling cells tagged as sysboundarytype::IONOSPHERE by this system boundary condition. It applies ionospheric boundary conditions.
+    * Ionosphere is a class handling cells tagged as boundarytype::IONOSPHERE by this system boundary condition. It applies ionospheric boundary conditions.
     * 
     * These consist in:
     * - Do nothing for the distribution (keep the initial state constant in time);
     * - Keep only the normal perturbed B component and null out the other perturbed components (perfect conductor behavior);
     * - Null out the electric fields.
     */
-   class Ionosphere: public SysBoundaryCondition {
+   class Ionosphere: public BoundaryCondition {
    public:
       Ionosphere();
       virtual ~Ionosphere();
@@ -60,11 +60,11 @@ namespace SBC {
       static void addParameters();
       virtual void getParameters();
       
-      virtual bool initSysBoundary(
+      virtual bool initBoundary(
          creal& t,
          Project &project
       );
-      virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      virtual bool assignBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                      FsGrid< fsgrids::technical, 2> & technicalGrid);
       virtual bool applyInitialState(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,

@@ -111,7 +111,7 @@ void calculateEdgeGradPeTermZComponents(
 }
 
 /** Calculate the electron pressure gradient term on all given cells.
- * @param sysBoundaries System boundary condition functions.
+ * @param boundaries System boundary condition functions.
  */
 void calculateGradPeTerm(
    FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> & EGradPeGrid,
@@ -121,7 +121,7 @@ void calculateGradPeTerm(
    cint i,
    cint j,
    cint k,
-   SysBoundary& sysBoundaries
+   Boundary& boundaries
 ) {
    #ifdef DEBUG_FSOLVER
    if (technicalGrid.get(i,j,k) == NULL) {
@@ -130,16 +130,16 @@ void calculateGradPeTerm(
    }
    #endif
    
-   cuint cellSysBoundaryFlag = technicalGrid.get(i,j,k)->boundaryFlag;
+   cuint cellBoundaryFlag = technicalGrid.get(i,j,k)->boundaryFlag;
    
-   if (cellSysBoundaryFlag == boundarytype::DO_NOT_COMPUTE) return;
+   if (cellBoundaryFlag == boundarytype::DO_NOT_COMPUTE) return;
    
-   cuint cellSysBoundaryLayer = technicalGrid.get(i,j,k)->boundaryLayer;
+   cuint cellBoundaryLayer = technicalGrid.get(i,j,k)->boundaryLayer;
    
-   if ((cellSysBoundaryFlag != boundarytype::NOT_BOUNDARY) && (cellSysBoundaryLayer != 1)) {
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid,i,j,k,0);
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid,i,j,k,1);
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid,i,j,k,2);
+   if ((cellBoundaryFlag != boundarytype::NOT_BOUNDARY) && (cellBoundaryLayer != 1)) {
+      boundaries.getBoundary(cellBoundaryFlag)->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid,i,j,k,0);
+      boundaries.getBoundary(cellBoundaryFlag)->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid,i,j,k,1);
+      boundaries.getBoundary(cellBoundaryFlag)->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid,i,j,k,2);
    } else {
       calculateEdgeGradPeTermXComponents(EGradPeGrid,momentsGrid,dMomentsGrid,i,j,k);
       calculateEdgeGradPeTermYComponents(EGradPeGrid,momentsGrid,dMomentsGrid,i,j,k);
@@ -153,7 +153,7 @@ void calculateGradPeTermSimple(
    FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsDt2Grid,
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
    FsGrid< fsgrids::technical, 2> & technicalGrid,
-   SysBoundary& sysBoundaries,
+   Boundary& boundaries,
    cint& RKCase
 ) {
    int timer;
@@ -175,9 +175,9 @@ void calculateGradPeTermSimple(
       for (int j=0; j<gridDims[1]; j++) {
          for (int i=0; i<gridDims[0]; i++) {
             if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-               calculateGradPeTerm(EGradPeGrid, momentsGrid, dMomentsGrid, technicalGrid, i, j, k, sysBoundaries);
+               calculateGradPeTerm(EGradPeGrid, momentsGrid, dMomentsGrid, technicalGrid, i, j, k, boundaries);
             } else {
-               calculateGradPeTerm(EGradPeGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, i, j, k, sysBoundaries);
+               calculateGradPeTerm(EGradPeGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, i, j, k, boundaries);
             }
          }
       }

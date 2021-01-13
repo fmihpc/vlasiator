@@ -39,7 +39,7 @@
 #include "parameters.h"
 #include "readparameters.h"
 #include "spatial_cell.hpp"
-#include "sysboundary/sysboundary.h"
+#include "boundary/boundary.h"
 #include "vlasovmover.h"
 
 #include "fieldsolver/fs_common.h"
@@ -159,7 +159,7 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mp
 
       if (cell->boundaryFlag == boundarytype::NOT_BOUNDARY && cell->parameters[CellParams::MAXVDT] != 0)
       {
-         // Acceleration only done on non-sysboundary cells
+         // Acceleration only done on non-boundary cells
          dtMaxLocal[1] = min(dtMaxLocal[1], cell->parameters[CellParams::MAXVDT]);
       }
    }
@@ -293,8 +293,8 @@ int main(int argn, char *args[])
 
    MPI_Comm comm = MPI_COMM_WORLD;
    MPI_Comm_rank(comm, &myRank);
-   SysBoundary sysBoundaries;
-   bool isSysBoundaryCondDynamic;
+   Boundary boundaries;
+   bool isBoundaryCondDynamic;
 
 #ifdef CATCH_FPE
    // WARNING FE_INEXACT is too sensitive to be used. See man fenv.
@@ -322,7 +322,7 @@ int main(int argn, char *args[])
    }
 
    getObjectWrapper().addPopulationParameters();
-   sysBoundaries.addParameters();
+   boundaries.addParameters();
    projects::Project::addParameters();
    Project *project = projects::createProject();
    getObjectWrapper().project = project;
@@ -331,7 +331,7 @@ int main(int argn, char *args[])
    readparameters.helpMessage(); // Call after last parse, exits after printing help if help requested
    getObjectWrapper().getParameters();
    project->getParameters();
-   sysBoundaries.getParameters();
+   boundaries.getParameters();
    phiprof::stop("Read parameters");
 
    // Init parallel logger:
@@ -392,8 +392,8 @@ int main(int argn, char *args[])
                                            convert<int>(P::ycells_ini) * pow(2, P::amrMaxSpatialRefLevel),
                                            convert<int>(P::zcells_ini) * pow(2, P::amrMaxSpatialRefLevel)};
 
-   array<bool, 3> periodicity{sysBoundaries.isBoundaryPeriodic(0), sysBoundaries.isBoundaryPeriodic(1),
-                              sysBoundaries.isBoundaryPeriodic(2)};
+   array<bool, 3> periodicity{boundaries.isBoundaryPeriodic(0), boundaries.isBoundaryPeriodic(1),
+                              boundaries.isBoundaryPeriodic(2)};
 
    FsGridCouplingInformation gridCoupling;
    FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, 2> perBGrid(fsGridDimensions, comm, periodicity, gridCoupling);
@@ -449,8 +449,8 @@ int main(int argn, char *args[])
    // (but dist function has not been communicated)
    phiprof::start("Init grids");
    initializeGrids(argn, args, mpiGrid, perBGrid, BgBGrid, momentsGrid, momentsDt2Grid, EGrid, EGradPeGrid, volGrid,
-                   technicalGrid, sysBoundaries, *project);
-   isSysBoundaryCondDynamic = sysBoundaries.isDynamic();
+                   technicalGrid, boundaries, *project);
+   isBoundaryCondDynamic = boundaries.isDynamic();
 
    const vector<CellID> &cells = getLocalCells();
 
@@ -469,7 +469,7 @@ int main(int argn, char *args[])
    // Run the field solver once with zero dt. This will initialize
    // Fieldsolver dt limits, and also calculate volumetric B-fields.
    propagateFields(perBGrid, perBDt2Grid, EGrid, EDt2Grid, EHallGrid, EGradPeGrid, momentsGrid, momentsDt2Grid,
-                   dPerBGrid, dMomentsGrid, BgBGrid, volGrid, technicalGrid, sysBoundaries, 0.0, 1.0);
+                   dPerBGrid, dMomentsGrid, BgBGrid, volGrid, technicalGrid, boundaries, 0.0, 1.0);
 
    phiprof::start("getFieldsFromFsGrid");
    volGrid.updateGhostCells();
@@ -762,7 +762,7 @@ int main(int argn, char *args[])
       if (((P::tstep % P::rebalanceInterval == 0 && P::tstep > P::tstep_min) || overrideRebalanceNow))
       {
          logFile << "(LB): Start load balance, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
-         balanceLoad(mpiGrid, sysBoundaries);
+         balanceLoad(mpiGrid, boundaries);
          addTimedBarrier("barrier-end-load-balance");
          phiprof::start("Shrink_to_fit");
          // * shrink to fit after LB * //
@@ -858,7 +858,7 @@ int main(int argn, char *args[])
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration)
       {
          phiprof::start("Update system boundaries (Vlasov post-translation)");
-         sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t + 0.5 * P::dt, false);
+         boundaries.applyBoundaryVlasovConditions(mpiGrid, P::t + 0.5 * P::dt, false);
          phiprof::stop("Update system boundaries (Vlasov post-translation)");
          addTimedBarrier("barrier-boundary-conditions");
       }
@@ -883,7 +883,7 @@ int main(int argn, char *args[])
          phiprof::stop("fsgrid-coupling-in");
 
          propagateFields(perBGrid, perBDt2Grid, EGrid, EDt2Grid, EHallGrid, EGradPeGrid, momentsGrid, momentsDt2Grid,
-                         dPerBGrid, dMomentsGrid, BgBGrid, volGrid, technicalGrid, sysBoundaries, P::dt,
+                         dPerBGrid, dMomentsGrid, BgBGrid, volGrid, technicalGrid, boundaries, P::dt,
                          P::fieldSolverSubcycles);
 
          phiprof::start("getFieldsFromFsGrid");
@@ -913,7 +913,7 @@ int main(int argn, char *args[])
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration)
       {
          phiprof::start("Update system boundaries (Vlasov post-acceleration)");
-         sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t + 0.5 * P::dt, true);
+         boundaries.applyBoundaryVlasovConditions(mpiGrid, P::t + 0.5 * P::dt, true);
          phiprof::stop("Update system boundaries (Vlasov post-acceleration)");
          addTimedBarrier("barrier-boundary-conditions");
       }

@@ -25,7 +25,7 @@
 #include "spatial_cell.hpp"
 #include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
-#include "sysboundary/sysboundary.h"
+#include "boundary/boundary.h"
 #include "projects/project.h"
 #include <string>
 
@@ -44,7 +44,7 @@ void initializeGrids(
    FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> & EGradPeGrid,
    FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
    FsGrid< fsgrids::technical, 2>& technicalGrid,
-   SysBoundary& sysBoundaries,
+   Boundary& boundaries,
    Project& project
 );
 
@@ -53,7 +53,7 @@ void initializeGrids(
 
     \param[in,out] mpiGrid The DCCRG grid with spatial cells
 */
-void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, SysBoundary& sysBoundaries);
+void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, Boundary& boundaries);
 
 /*!
 

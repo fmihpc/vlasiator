@@ -21,7 +21,7 @@
  */
 
 /*!\file ionosphere.cpp
- * \brief Implementation of the class SysBoundaryCondition::Ionosphere to handle cells classified as boundarytype::IONOSPHERE.
+ * \brief Implementation of the class BoundaryCondition::Ionosphere to handle cells classified as boundarytype::IONOSPHERE.
  */
 
 #include <cstdlib>
@@ -40,12 +40,12 @@
 #ifndef NDEBUG
    #define DEBUG_IONOSPHERE
 #endif
-#ifdef DEBUG_SYSBOUNDARY
+#ifdef DEBUG_BOUNDARY
    #define DEBUG_IONOSPHERE
 #endif
 
-namespace SBC {
-   Ionosphere::Ionosphere(): SysBoundaryCondition() { }
+namespace BC {
+   Ionosphere::Ionosphere(): BoundaryCondition() { }
    
    Ionosphere::~Ionosphere() { }
    
@@ -149,14 +149,14 @@ namespace SBC {
       }
    }
    
-   bool Ionosphere::initSysBoundary(
+   bool Ionosphere::initBoundary(
       creal& t,
       Project &project
    ) {
       getParameters();
       isThisDynamic = false;
 
-      // iniSysBoundary is only called once, generateTemplateCell must 
+      // iniBoundary is only called once, generateTemplateCell must 
       // init all particle species
       generateTemplateCell(project);
       
@@ -192,7 +192,7 @@ namespace SBC {
       return r;
    }
    
-   bool Ionosphere::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   bool Ionosphere::assignBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                       FsGrid< fsgrids::technical, 2> & technicalGrid) {
       vector<CellID> cells = mpiGrid.get_cells();
       for(uint i=0; i<cells.size(); i++) {

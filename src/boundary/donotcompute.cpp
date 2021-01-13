@@ -21,7 +21,7 @@
  */
 
 /*!\file donotcompute.cpp
- * \brief Implementation of the class SysBoundaryCondition::DoNotCompute to handle cells classified as boundarytype::DO_NOT_COMPUTE.
+ * \brief Implementation of the class BoundaryCondition::DoNotCompute to handle cells classified as boundarytype::DO_NOT_COMPUTE.
  */
 
 #include <cstdlib>
@@ -32,14 +32,14 @@
 
 using namespace std;
 
-namespace SBC {
-   DoNotCompute::DoNotCompute(): SysBoundaryCondition() { }
+namespace BC {
+   DoNotCompute::DoNotCompute(): BoundaryCondition() { }
    DoNotCompute::~DoNotCompute() { }
    
    void DoNotCompute::addParameters() { }
    void DoNotCompute::getParameters() { }
    
-   bool DoNotCompute::initSysBoundary(
+   bool DoNotCompute::initBoundary(
       creal& t,
       Project &project
    ) {
@@ -48,7 +48,7 @@ namespace SBC {
       return true;
    }
    
-   bool DoNotCompute::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&,
+   bool DoNotCompute::assignBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&,
                                         FsGrid< fsgrids::technical, 2> & technicalGrid) {
       return true;
    }

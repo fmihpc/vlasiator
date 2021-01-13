@@ -718,7 +718,7 @@ void calculateEdgeHallTermZComponents(
  * \param dMomentsGrid fsGrid holding the derviatives of moments
  * \param BgBGrid fsGrid holding the background B quantities
  * \param technicalGrid fsGrid holding technical information (such as boundary types)
- * \param sysBoundaries System boundary condition functions.
+ * \param boundaries System boundary condition functions.
  * \param i,j,k fsGrid cell coordinates for the current cell
  * 
  * \sa calculateHallTermSimple calculateEdgeHallTermXComponents calculateEdgeHallTermYComponents calculateEdgeHallTermZComponents
@@ -731,7 +731,7 @@ void calculateHallTerm(
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid,
    FsGrid< fsgrids::technical, 2> & technicalGrid,
-   SysBoundary& sysBoundaries,
+   Boundary& boundaries,
    cint i,
    cint j,
    cint k
@@ -744,11 +744,11 @@ void calculateHallTerm(
    }
    #endif
    
-   cuint cellSysBoundaryFlag = technicalGrid.get(i,j,k)->boundaryFlag;
+   cuint cellBoundaryFlag = technicalGrid.get(i,j,k)->boundaryFlag;
    
-   if (cellSysBoundaryFlag == boundarytype::DO_NOT_COMPUTE) return;
+   if (cellBoundaryFlag == boundarytype::DO_NOT_COMPUTE) return;
    
-   cuint cellSysBoundaryLayer = technicalGrid.get(i,j,k)->boundaryLayer;
+   cuint cellBoundaryLayer = technicalGrid.get(i,j,k)->boundaryLayer;
    
    Real perturbedCoefficients[Rec::N_REC_COEFFICIENTS];
 
@@ -762,10 +762,10 @@ void calculateHallTerm(
       3 // Reconstruction order of the fields after Balsara 2009, 2 used for general B, 3 used here for 2nd-order Hall term
    );
 
-   if ((cellSysBoundaryFlag != boundarytype::NOT_BOUNDARY) && (cellSysBoundaryLayer != 1)) {
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 0);
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 1);
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 2);
+   if ((cellBoundaryFlag != boundarytype::NOT_BOUNDARY) && (cellBoundaryLayer != 1)) {
+      boundaries.getBoundary(cellBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 0);
+      boundaries.getBoundary(cellBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 1);
+      boundaries.getBoundary(cellBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 2);
    } else {
       calculateEdgeHallTermXComponents(perBGrid, EHallGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, perturbedCoefficients, i, j, k);
       calculateEdgeHallTermYComponents(perBGrid, EHallGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, perturbedCoefficients, i, j, k);
@@ -787,7 +787,7 @@ void calculateHallTerm(
  * \param dMomentsGrid fsGrid holding the derviatives of moments
  * \param BgBGrid fsGrid holding the background B quantities
  * \param technicalGrid fsGrid holding technical information (such as boundary types)
- * \param sysBoundaries System boundary condition functions.
+ * \param boundaries System boundary condition functions.
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  * \param communicateMomentsDerivatives whether to communicate derivatves with the neighbour CPUs
  * 
@@ -803,7 +803,7 @@ void calculateHallTermSimple(
    FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid,
    FsGrid< fsgrids::technical, 2> & technicalGrid,
-   SysBoundary& sysBoundaries,
+   Boundary& boundaries,
    cint& RKCase,
    const bool communicateMomentsDerivatives
 ) {
@@ -827,9 +827,9 @@ void calculateHallTermSimple(
       for (int j=0; j<gridDims[1]; j++) {
          for (int i=0; i<gridDims[0]; i++) {
             if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-               calculateHallTerm(perBGrid, EHallGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid,sysBoundaries, i, j, k);
+               calculateHallTerm(perBGrid, EHallGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid,boundaries, i, j, k);
             } else {
-               calculateHallTerm(perBDt2Grid, EHallGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid,sysBoundaries, i, j, k);
+               calculateHallTerm(perBDt2Grid, EHallGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid,boundaries, i, j, k);
             }
          }
       }

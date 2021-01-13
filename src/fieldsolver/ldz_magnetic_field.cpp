@@ -165,13 +165,13 @@ void propagateMagneticField(
  * \param EDt2Grid fsGrid holding the Electric field quantities at runge-kutta t=0.5
  * \param technicalGrid fsGrid holding technical information (such as boundary types)
  * \param i,j,k fsGrid cell coordinates for the current cell
- * \param sysBoundaries System boundary conditions existing
+ * \param boundaries System boundary conditions existing
  * \param dt Length of the time step
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  * 
  * \sa propagateMagneticFieldSimple propagateMagneticField
  */
-void propagateSysBoundaryMagneticField(
+void propagateBoundaryMagneticField(
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
    FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
@@ -180,15 +180,15 @@ void propagateSysBoundaryMagneticField(
    cint i,
    cint j,
    cint k,
-   SysBoundary& sysBoundaries,
+   Boundary& boundaries,
    creal& dt,
    cint& RKCase,
    cuint component
 ) {
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX + component) = sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->boundaryFlag)->fieldSolverBoundaryCondMagneticField(perBGrid, technicalGrid, i, j, k, dt, component);
+      perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX + component) = boundaries.getBoundary(technicalGrid.get(i,j,k)->boundaryFlag)->fieldSolverBoundaryCondMagneticField(perBGrid, technicalGrid, i, j, k, dt, component);
    } else {
-      perBDt2Grid.get(i,j,k)->at(fsgrids::bfield::PERBX + component) = sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->boundaryFlag)->fieldSolverBoundaryCondMagneticField(perBDt2Grid, technicalGrid, i, j, k, dt, component);
+      perBDt2Grid.get(i,j,k)->at(fsgrids::bfield::PERBX + component) = boundaries.getBoundary(technicalGrid.get(i,j,k)->boundaryFlag)->fieldSolverBoundaryCondMagneticField(perBDt2Grid, technicalGrid, i, j, k, dt, component);
    }
 }
 
@@ -201,11 +201,11 @@ void propagateSysBoundaryMagneticField(
  * \param EGrid fsGrid holding the Electric field quantities at runge-kutta t=0
  * \param EDt2Grid fsGrid holding the Electric field quantities at runge-kutta t=0.5
  * \param technicalGrid fsGrid holding technical information (such as boundary types)
- * \param sysBoundaries System boundary conditions existing
+ * \param boundaries System boundary conditions existing
  * \param dt Length of the time step
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  * 
- * \sa propagateMagneticField propagateSysBoundaryMagneticField
+ * \sa propagateMagneticField propagateBoundaryMagneticField
  */
 void propagateMagneticFieldSimple(
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
@@ -213,7 +213,7 @@ void propagateMagneticFieldSimple(
    FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
    FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EDt2Grid,
    FsGrid< fsgrids::technical, 2> & technicalGrid,
-   SysBoundary& sysBoundaries,
+   Boundary& boundaries,
    creal& dt,
    cint& RKCase
 ) {
@@ -267,13 +267,13 @@ void propagateMagneticFieldSimple(
             // L1 pass
             if (technicalGrid.get(i,j,k)->boundaryLayer == 1) {
                if ((bitfield & compute::BX) != compute::BX) {
-                  propagateSysBoundaryMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, i, j, k, sysBoundaries, dt, RKCase, 0);
+                  propagateBoundaryMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, i, j, k, boundaries, dt, RKCase, 0);
                }
                if ((bitfield & compute::BY) != compute::BY) {
-                  propagateSysBoundaryMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, i, j, k, sysBoundaries, dt, RKCase, 1);
+                  propagateBoundaryMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, i, j, k, boundaries, dt, RKCase, 1);
                }
                if ((bitfield & compute::BZ) != compute::BZ) {
-                  propagateSysBoundaryMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, i, j, k, sysBoundaries, dt, RKCase, 2);
+                  propagateBoundaryMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, i, j, k, boundaries, dt, RKCase, 2);
                }
             }
          }
@@ -289,7 +289,7 @@ void propagateMagneticFieldSimple(
                technicalGrid.get(i,j,k)->boundaryLayer == 2
             ) {
                for (uint component = 0; component < 3; component++) {
-                  propagateSysBoundaryMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, i, j, k, sysBoundaries, dt, RKCase, component);
+                  propagateBoundaryMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, i, j, k, boundaries, dt, RKCase, component);
                }
             }
          }

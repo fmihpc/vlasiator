@@ -97,7 +97,7 @@ namespace spatial_cell {
       const uint64_t VEL_BLOCK_PARAMETERS     = (1ull<<6);
       const uint64_t VEL_BLOCK_WITH_CONTENT_STAGE1  = (1ull<<7); 
       const uint64_t VEL_BLOCK_WITH_CONTENT_STAGE2  = (1ull<<8); 
-      const uint64_t CELL_SYSBOUNDARYFLAG     = (1ull<<9);
+      const uint64_t CELL_BOUNDARYFLAG        = (1ull<<9);
       const uint64_t CELL_E                   = (1ull<<10);
       const uint64_t CELL_EDT2                = (1ull<<11);
       const uint64_t CELL_PERB                = (1ull<<12);
@@ -122,14 +122,14 @@ namespace spatial_cell {
       CELL_PARAMETERS
       | CELL_DERIVATIVES | CELL_BVOL_DERIVATIVES
       | VEL_BLOCK_DATA
-      | CELL_SYSBOUNDARYFLAG
+      | CELL_BOUNDARYFLAG
       | POP_METADATA | RANDOMGEN;
 
       //all data, except the distribution function
       const uint64_t ALL_SPATIAL_DATA =
       CELL_PARAMETERS
       | CELL_DERIVATIVES | CELL_BVOL_DERIVATIVES
-      | CELL_SYSBOUNDARYFLAG
+      | CELL_BOUNDARYFLAG
       | POP_METADATA | RANDOMGEN;
    }
 
@@ -331,9 +331,9 @@ namespace spatial_cell {
       std::array<vmesh::LocalID,MAX_NEIGHBORS_PER_DIM> neighbor_number_of_blocks;
       std::map<int,std::set<int>> face_neighbor_ranks;
       uint boundaryFlag;                                                   /**< What type of system boundary does the cell belong to. 
-                                                                               * Enumerated in the sysboundarytype namespace's enum.*/
+                                                                               * Enumerated in the boundarytype namespace's enum.*/
       uint boundaryLayer;                                                  /**< Layers counted from closest systemBoundary. If 0 then it has not 
-                                                                               * been computed. First sysboundary layer is layer 1.*/
+                                                                               * been computed. First boundary layer is layer 1.*/
       int boundaryLayerNew;
       std::vector<vmesh::GlobalID> velocity_block_with_content_list;          /**< List of existing cells with content, only up-to-date after
                                                                                * call to update_has_content().*/

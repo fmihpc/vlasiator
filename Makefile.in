@@ -87,10 +87,10 @@ EXECUTABLE := vlasiator
 SRC_FILES := \
 		 src/version.cpp \
 		 $(filter-out src/version.cpp, $(wildcard src/*.cpp)) \
-	     $(wildcard src/backgroundfield/*.cpp) \
-	     $(wildcard src/fieldsolver/*.cpp) \
+	    $(wildcard src/backgroundfield/*.cpp) \
+	    $(wildcard src/fieldsolver/*.cpp) \
 		 $(wildcard src/vlasovsolver/*.cpp) \
-		 $(wildcard src/sysboundary/*.cpp) \
+		 $(wildcard src/boundary/*.cpp) \
 		 $(wildcard src/datareduction/*.cpp) \
 		 $(wildcard src/projects/*.cpp) \
 		 $(wildcard src/projects/Alfven/*.cpp) \

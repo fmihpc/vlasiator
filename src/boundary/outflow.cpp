@@ -21,7 +21,7 @@
  */
 
 /*!\file outflow.cpp
- * \brief Implementation of the class SysBoundaryCondition::Outflow to handle cells classified as boundarytype::OUTFLOW.
+ * \brief Implementation of the class BoundaryCondition::Outflow to handle cells classified as boundarytype::OUTFLOW.
  */
 
 #include <cstdlib>
@@ -37,14 +37,14 @@
 #ifndef NDEBUG
    #define DEBUG_OUTFLOW
 #endif
-#ifdef DEBUG_SYSBOUNDARY
+#ifdef DEBUG_BOUNDARY
    #define DEBUG_OUTFLOW
 #endif
 
 using namespace std;
 
-namespace SBC {
-   Outflow::Outflow(): SysBoundaryCondition() { }
+namespace BC {
+   Outflow::Outflow(): BoundaryCondition() { }
    Outflow::~Outflow() { }
    
    void Outflow::addParameters() {
@@ -120,40 +120,40 @@ namespace SBC {
            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
            exit(1);
         }
-        std::array<std::string, 6> vlasovSysBoundarySchemeName;
-        if(!Readparameters::get(pop + "_outflow.vlasovScheme_face_x+", vlasovSysBoundarySchemeName[0])) {
+        std::array<std::string, 6> vlasovBoundarySchemeName;
+        if(!Readparameters::get(pop + "_outflow.vlasovScheme_face_x+", vlasovBoundarySchemeName[0])) {
            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
            exit(1);
         }
-        if(!Readparameters::get(pop + "_outflow.vlasovScheme_face_x-", vlasovSysBoundarySchemeName[1])) {
+        if(!Readparameters::get(pop + "_outflow.vlasovScheme_face_x-", vlasovBoundarySchemeName[1])) {
            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
            exit(1);
         }
-        if(!Readparameters::get(pop + "_outflow.vlasovScheme_face_y+", vlasovSysBoundarySchemeName[2])) {
+        if(!Readparameters::get(pop + "_outflow.vlasovScheme_face_y+", vlasovBoundarySchemeName[2])) {
            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
            exit(1);
         }
-        if(!Readparameters::get(pop + "_outflow.vlasovScheme_face_y-", vlasovSysBoundarySchemeName[3])) {
+        if(!Readparameters::get(pop + "_outflow.vlasovScheme_face_y-", vlasovBoundarySchemeName[3])) {
            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
            exit(1);
         }
-        if(!Readparameters::get(pop + "_outflow.vlasovScheme_face_z+", vlasovSysBoundarySchemeName[4])) {
+        if(!Readparameters::get(pop + "_outflow.vlasovScheme_face_z+", vlasovBoundarySchemeName[4])) {
            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
            exit(1);
         }
-        if(!Readparameters::get(pop + "_outflow.vlasovScheme_face_z-", vlasovSysBoundarySchemeName[5])) {
+        if(!Readparameters::get(pop + "_outflow.vlasovScheme_face_z-", vlasovBoundarySchemeName[5])) {
            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
            exit(1);
         }
         for(uint j=0; j<6 ; j++) {
-           if(vlasovSysBoundarySchemeName[j] == "None") {
+           if(vlasovBoundarySchemeName[j] == "None") {
               sP.faceVlasovScheme[j] = vlasovscheme::NONE;
-           } else if (vlasovSysBoundarySchemeName[j] == "Copy") {
+           } else if (vlasovBoundarySchemeName[j] == "Copy") {
               sP.faceVlasovScheme[j] = vlasovscheme::COPY;
-           } else if(vlasovSysBoundarySchemeName[j] == "Limit") {
+           } else if(vlasovBoundarySchemeName[j] == "Limit") {
               sP.faceVlasovScheme[j] = vlasovscheme::LIMIT;
            } else {
-              if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: " << vlasovSysBoundarySchemeName[j] << " is an invalid Outflow Vlasov scheme!" << endl;
+              if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: " << vlasovBoundarySchemeName[j] << " is an invalid Outflow Vlasov scheme!" << endl;
               exit(1);
            }
         }
@@ -168,7 +168,7 @@ namespace SBC {
       }
    }
    
-   bool Outflow::initSysBoundary(
+   bool Outflow::initBoundary(
       creal& t,
       Project &project
    ) {
@@ -214,7 +214,7 @@ namespace SBC {
       return true;
    }
    
-   bool Outflow::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   bool Outflow::assignBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                    FsGrid< fsgrids::technical, 2> & technicalGrid) {
 
       bool doAssign;

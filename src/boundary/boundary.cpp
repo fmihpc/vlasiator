@@ -20,8 +20,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-/*! \file sysboundary.cpp
- * \brief Implementation of the class SysBoundary.
+/*! \file boundary.cpp
+ * \brief Implementation of the class Boundary.
  */
 
 #include <cstdlib>
@@ -31,7 +31,7 @@
 #include "../object_wrapper.h"
 #include "../vlasovsolver/cpu_moments.h"
 
-#include "sysboundary.h"
+#include "boundary.h"
 #include "donotcompute.h"
 #include "ionosphere.h"
 #include "outflow.h"
@@ -40,8 +40,8 @@
 using namespace std;
 using namespace spatial_cell;
 
-bool precedenceSort(const SBC::SysBoundaryCondition* first,
-                    const SBC::SysBoundaryCondition* second) {
+bool precedenceSort(const BC::BoundaryCondition* first,
+                    const BC::BoundaryCondition* second) {
    if(first->getPrecedence() < second->getPrecedence()) return true;
    else return false;
 }
@@ -50,42 +50,42 @@ bool precedenceSort(const SBC::SysBoundaryCondition* first,
 // ***** DEFINITIONS FOR BOUNDARY CLASS *****
 // ************************************************************
 
-/*! Constructor for class SysBoundary.*/
-SysBoundary::SysBoundary() { }
+/*! Constructor for class Boundary.*/
+Boundary::Boundary() { }
 
-/*!\brief Destructor for class SysBoundary.
+/*!\brief Destructor for class Boundary.
  * 
- * Reduces the value of SysBoundary::nSysBoundaries by one,
- * and if after the destruction SysBoundary::nSysBoundaries equals zero all stored SysBoundaries are deleted.
+ * Reduces the value of Boundary::nSysBoundaries by one,
+ * and if after the destruction Boundary::nSysBoundaries equals zero all stored SysBoundaries are deleted.
  */
-SysBoundary::~SysBoundary() {
-   // Call delete for each SysBoundaryCondition:
-   for (list<SBC::SysBoundaryCondition*>::iterator it=sysBoundaries.begin();
-        it!=sysBoundaries.end();
+Boundary::~Boundary() {
+   // Call delete for each BoundaryCondition:
+   for (list<BC::BoundaryCondition*>::iterator it=boundaries.begin();
+        it!=boundaries.end();
         it++) {
       delete *it;
       *it = NULL;
    }
 }
 
-/*!\brief Add its own and all existing SysBoundaryConditions' parameters.
+/*!\brief Add its own and all existing BoundaryConditions' parameters.
  * 
  * Adds the parameters specific to the SysBondary class handling the list of
- * SysBoundaryConditions and then calls the static addParameters functions of all
- * SysBoundaryConditions implemented in the code in order to have them appear also in the
+ * BoundaryConditions and then calls the static addParameters functions of all
+ * BoundaryConditions implemented in the code in order to have them appear also in the
  * help.
  */
-void SysBoundary::addParameters() {
+void Boundary::addParameters() {
    Readparameters::addComposing("boundaries.boundary", "List of boundary condition (BC) types to be used. Each boundary condition to be used has to be on a new line boundary = YYY. Available (20140113) are Outflow Ionosphere Maxwellian.");
    Readparameters::add("boundaries.periodic_x","If 'yes' the grid is periodic in x-direction. Defaults to 'no'.","no");
    Readparameters::add("boundaries.periodic_y","If 'yes' the grid is periodic in y-direction. Defaults to 'no'.","no");
    Readparameters::add("boundaries.periodic_z","If 'yes' the grid is periodic in z-direction. Defaults to 'no'.","no");
    
    //call static addParameter functions in all bc's
-   SBC::DoNotCompute::addParameters();
-   SBC::Ionosphere::addParameters();
-   SBC::Outflow::addParameters();
-   SBC::SetMaxwellian::addParameters();
+   BC::DoNotCompute::addParameters();
+   BC::Ionosphere::addParameters();
+   BC::Outflow::addParameters();
+   BC::SetMaxwellian::addParameters();
 }
 
 /*!\brief Get this class' parameters.
@@ -93,9 +93,9 @@ void SysBoundary::addParameters() {
  * Get the parameters pertaining to this class.
  * 
  * getParameters for each actually used system boundary condition is called by each
- * SysBoundaryCondition's initialization function.
+ * BoundaryCondition's initialization function.
  */
-void SysBoundary::getParameters() {
+void Boundary::getParameters() {
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    if(!Readparameters::get("boundaries.boundary", sysBoundaryCondList)) {
@@ -123,33 +123,33 @@ void SysBoundary::getParameters() {
    if (periodic_z == "yes") isPeriodic[2] = true;
 }
 
-/*! Add a new SBC::SysBoundaryCondition which has been created with new sysBoundary. 
- * SysBoundary will take care of deleting it.
+/*! Add a new BC::BoundaryCondition which has been created with new sysBoundary. 
+ * Boundary will take care of deleting it.
  * 
- * \param bc SysBoundaryCondition object
+ * \param bc BoundaryCondition object
  * \param project Project object
  * \param t Current time
- * \retval success If true, the given SBC::SysBoundaryCondition was added successfully.
+ * \retval success If true, the given BC::BoundaryCondition was added successfully.
  */
-bool SysBoundary::addSysBoundary(
-   SBC::SysBoundaryCondition* bc,
+bool Boundary::addBoundary(
+   BC::BoundaryCondition* bc,
    Project &project,
    creal& t
 ) {
    // Initialize the boundary condition
    bool success = true;
-   if (bc->initSysBoundary(t, project) == false) {
+   if (bc->initBoundary(t, project) == false) {
       cerr << "Failed to initialize system boundary condition '" << bc->getName() << "'" << endl;
       return false;
    }
 
-   sysBoundaries.push_back(bc);
-   if (sysBoundaries.size() > 1) {
-      sysBoundaries.sort(precedenceSort);
+   boundaries.push_back(bc);
+   if (boundaries.size() > 1) {
+      boundaries.sort(precedenceSort);
    }
 
    // This assumes that only one instance of each type is created.
-   indexToSysBoundary[bc->getIndex()] = bc;
+   indexToBoundary[bc->getIndex()] = bc;
 
    return success;
 }
@@ -159,14 +159,14 @@ bool SysBoundary::addSysBoundary(
  * This function loops through the list of system boundary conditions listed as to be used
  * in the configuration file/command line arguments. For each of these it adds the
  * corresponding instance and updates the member isThisDynamic to determine whether any
- * SysBoundaryCondition is dynamic in time.
+ * BoundaryCondition is dynamic in time.
  * 
  * \param project Project object
  * \param t Current time
  * \retval success If true, the initialisation of all system boundaries succeeded.
- * \sa addSysBoundary
+ * \sa addBoundary
  */
-bool SysBoundary::initSysBoundaries(
+bool Boundary::initSysBoundaries(
                                     Project& project,
                                     creal& t
                                    ) {
@@ -191,13 +191,13 @@ bool SysBoundary::initSysBoundaries(
         it != sysBoundaryCondList.end();
         it++) {
       if(*it == "Outflow") {
-         if(this->addSysBoundary(new SBC::Outflow, project, t) == false) {
+         if(this->addBoundary(new BC::Outflow, project, t) == false) {
             if(myRank == MASTER_RANK) cerr << "Error in adding Outflow boundary." << endl;
             success = false;
          }
-         isThisDynamic = isThisDynamic|this->getSysBoundary(boundarytype::OUTFLOW)->isDynamic();
+         isThisDynamic = isThisDynamic|this->getBoundary(boundarytype::OUTFLOW)->isDynamic();
          bool faces[6];
-         this->getSysBoundary(boundarytype::OUTFLOW)->getFaces(&faces[0]);
+         this->getBoundary(boundarytype::OUTFLOW)->getFaces(&faces[0]);
          if((faces[0] || faces[1]) && isPeriodic[0]) {
             if(myRank == MASTER_RANK) cerr << "You set boundaries.periodic_x = yes and load Outflow system boundary conditions on the x+ or x- face, are you sure this is correct?" << endl;
          }
@@ -221,26 +221,26 @@ bool SysBoundary::initSysBoundaries(
          }
       }
       if(*it == "Ionosphere") {
-         if(this->addSysBoundary(new SBC::Ionosphere, project, t) == false) {
+         if(this->addBoundary(new BC::Ionosphere, project, t) == false) {
             if(myRank == MASTER_RANK) cerr << "Error in adding Ionosphere boundary." << endl;
             success = false;
          }
-         if(this->addSysBoundary(new SBC::DoNotCompute, project, t) == false) {
+         if(this->addBoundary(new BC::DoNotCompute, project, t) == false) {
             if(myRank == MASTER_RANK) cerr << "Error in adding DoNotCompute boundary (for Ionosphere)." << endl;
             success = false;
          }
          isThisDynamic = isThisDynamic|
-         this->getSysBoundary(boundarytype::IONOSPHERE)->isDynamic();
+         this->getBoundary(boundarytype::IONOSPHERE)->isDynamic();
       }
       if(*it == "Maxwellian") {
-         if(this->addSysBoundary(new SBC::SetMaxwellian, project, t) == false) {
+         if(this->addBoundary(new BC::SetMaxwellian, project, t) == false) {
             if(myRank == MASTER_RANK) cerr << "Error in adding Maxwellian boundary." << endl;
             success = false;
          }
          isThisDynamic = isThisDynamic|
-         this->getSysBoundary(boundarytype::SET_MAXWELLIAN)->isDynamic();
+         this->getBoundary(boundarytype::SET_MAXWELLIAN)->isDynamic();
          bool faces[6];
-         this->getSysBoundary(boundarytype::SET_MAXWELLIAN)->getFaces(&faces[0]);
+         this->getBoundary(boundarytype::SET_MAXWELLIAN)->getFaces(&faces[0]);
          if((faces[0] || faces[1]) && isPeriodic[0]) {
             if(myRank == MASTER_RANK) cerr << "You set boundaries.periodic_x = yes and load Maxwellian system boundary conditions on the x+ or x- face, are you sure this is correct?" << endl;
          }
@@ -265,9 +265,9 @@ bool SysBoundary::initSysBoundaries(
       }
    }
    
-   list<SBC::SysBoundaryCondition*>::iterator it2;
-   for (it2 = sysBoundaries.begin();
-        it2 != sysBoundaries.end();
+   list<BC::BoundaryCondition*>::iterator it2;
+   for (it2 = boundaries.begin();
+        it2 != boundaries.end();
         it2++
        ) {
       (*it2)->setPeriodicity(isPeriodic);
@@ -276,7 +276,7 @@ bool SysBoundary::initSysBoundaries(
    return success;
 }
 
-bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+bool Boundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
 
    // Set is used to avoid storing duplicates - each cell only needs to be checked once
    std::set<CellID> innerBoundaryCells;
@@ -369,17 +369,17 @@ bool belongsToLayer(const int layer, const int x, const int y, const int z,
 /*!\brief Classify all simulation cells with respect to the system boundary conditions.
  * 
  * Loops through all cells and and for each assigns the correct boundaryFlag depending on
- * the return value of each SysBoundaryCondition's assignSysBoundary.
+ * the return value of each BoundaryCondition's assignBoundary.
  * 
  * \param mpiGrid Grid
  */
-bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+bool Boundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                 FsGrid< fsgrids::technical, 2> & technicalGrid) {
    bool success = true;
    vector<CellID> cells = mpiGrid.get_cells();
    auto localSize = technicalGrid.getLocalSize().data();
    
-   /*set all cells to default value, not_sysboundary*/
+   /*set all cells to default value, not_boundary*/
    for(uint i=0; i<cells.size(); i++) {
       mpiGrid[cells[i]]->boundaryFlag = boundarytype::NOT_BOUNDARY;
    }
@@ -398,26 +398,26 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
    
    /*
      loop through sysboundaries and let all sysboundaries set in local
-   cells if they are part of which sysboundary (cell location needs to
+   cells if they are part of which boundary (cell location needs to
    be updated by now. No remote data needed/available, so assignement
    has to be based individually on each cells location
    */
-   list<SBC::SysBoundaryCondition*>::iterator it;
-   for (it = sysBoundaries.begin(); it != sysBoundaries.end(); it++) {
-      success = success && (*it)->assignSysBoundary(mpiGrid,technicalGrid);
+   list<BC::BoundaryCondition*>::iterator it;
+   for (it = boundaries.begin(); it != boundaries.end(); it++) {
+      success = success && (*it)->assignBoundary(mpiGrid,technicalGrid);
    }
    
 
    // communicate boundary assignments (boundaryFlag and
    // boundaryLayer communicated)
-   SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
-   mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
+   SpatialCell::set_mpi_transfer_type(Transfer::CELL_BOUNDARYFLAG);
+   mpiGrid.update_copies_of_remote_neighbors(BOUNDARIES_NEIGHBORHOOD_ID);
 
    // set distance 1 cells to boundary cells, that have neighbors which are normal cells
    for(uint i=0; i<cells.size(); i++) {
       mpiGrid[cells[i]]->boundaryLayer=0; /*Initial value*/
       if(mpiGrid[cells[i]]->boundaryFlag != boundarytype::NOT_BOUNDARY ) {
-         const auto* nbrs = mpiGrid.get_neighbors_of(cells[i],SYSBOUNDARIES_NEIGHBORHOOD_ID);
+         const auto* nbrs = mpiGrid.get_neighbors_of(cells[i],BOUNDARIES_NEIGHBORHOOD_ID);
          for(uint j=0; j<(*nbrs).size(); j++) {
             if((*nbrs)[j].first!=0 ) {
                if(mpiGrid[(*nbrs)[j].first]->boundaryFlag == boundarytype::NOT_BOUNDARY ) {
@@ -430,16 +430,16 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
 
    /*communicate which cells have Layer 1 set above for local cells (boundaryFlag
     * and boundaryLayer communicated)*/
-   SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
+   SpatialCell::set_mpi_transfer_type(Transfer::CELL_BOUNDARYFLAG);
 
-   mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
+   mpiGrid.update_copies_of_remote_neighbors(BOUNDARIES_NEIGHBORHOOD_ID);
 
    /*Compute distances*/
    uint maxLayers=3;//max(max(P::xcells_ini, P::ycells_ini), P::zcells_ini);
    for(uint layer=1;layer<maxLayers;layer++){
       for(uint i=0; i<cells.size(); i++) {
          if(mpiGrid[cells[i]]->boundaryLayer==0){
-            const auto* nbrs = mpiGrid.get_neighbors_of(cells[i],SYSBOUNDARIES_NEIGHBORHOOD_ID);
+            const auto* nbrs = mpiGrid.get_neighbors_of(cells[i],BOUNDARIES_NEIGHBORHOOD_ID);
             for(uint j=0; j<(*nbrs).size(); j++) {
                if((*nbrs)[j].first!=0 && (*nbrs)[j].first!=cells[i] ) {
                   if(mpiGrid[(*nbrs)[j].first]->boundaryLayer==layer) { 
@@ -451,8 +451,8 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
          }
       }
 
-      SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
-      mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
+      SpatialCell::set_mpi_transfer_type(Transfer::CELL_BOUNDARYFLAG);
+      mpiGrid.update_copies_of_remote_neighbors(BOUNDARIES_NEIGHBORHOOD_ID);
    }
 
    /*set cells to DO_NOT_COMPUTE if they are on boundary, and are not
@@ -469,7 +469,7 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
    // The following is done so that everyone knows their neighbour's
    // layer flags.  This is needed for the correct use of the system
    // boundary local communication patterns.
-   SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
+   SpatialCell::set_mpi_transfer_type(Transfer::CELL_BOUNDARYFLAG);
    mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
    
    
@@ -585,22 +585,22 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
 }
 
 /*!\brief Apply the initial state to all system boundary cells.
- * Loops through all SysBoundaryConditions and calls the corresponding applyInitialState
+ * Loops through all BoundaryConditions and calls the corresponding applyInitialState
  * function. This function must apply the initial state for all existing particle species.
  * 
  * \param mpiGrid Grid
  * \retval success If true, the application of all system boundary states succeeded.
  */
-bool SysBoundary::applyInitialState(
+bool Boundary::applyInitialState(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
    Project& project
 ) {
    bool success = true;
    
-   list<SBC::SysBoundaryCondition*>::iterator it;
-   for (it = sysBoundaries.begin();
-        it != sysBoundaries.end();
+   list<BC::BoundaryCondition*>::iterator it;
+   for (it = boundaries.begin();
+        it != boundaries.end();
         it++) {
       if(                                                        // This is to skip the reapplication
          Parameters::isRestart == true                           // When not restarting
@@ -619,7 +619,7 @@ bool SysBoundary::applyInitialState(
 
 /*!\brief Apply the Vlasov system boundary conditions to all system boundary cells at time t.
  *
- * Loops through all SysBoundaryConditions and calls the corresponding vlasovBoundaryCondition() function.
+ * Loops through all BoundaryConditions and calls the corresponding vlasovBoundaryCondition() function.
  * The boundary condition functions are called for all particle species, one at a time.
  * 
  * WARNING (see end of the function) Blocks are changed but lists not updated now, 
@@ -629,12 +629,12 @@ bool SysBoundary::applyInitialState(
  * \param mpiGrid Grid
  * \param t Current time
  */
-void SysBoundary::applySysBoundaryVlasovConditions(
+void Boundary::applyBoundaryVlasovConditions(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    creal& t,
    const bool calculate_V_moments // if true, compute into _V, false into _R moments so that the interpolated ones can be done
 ) {
-   if(sysBoundaries.size()==0) {
+   if(boundaries.size()==0) {
       return; //no system boundaries
    }
 
@@ -644,20 +644,20 @@ void SysBoundary::applySysBoundaryVlasovConditions(
    SpatialCell::set_mpi_transfer_type(
       Transfer::CELL_PARAMETERS|
       Transfer::POP_METADATA|
-      Transfer::CELL_SYSBOUNDARYFLAG,true);
-   mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
+      Transfer::CELL_BOUNDARYFLAG,true);
+   mpiGrid.update_copies_of_remote_neighbors(BOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
    
    // Loop over existing particle species
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       SpatialCell::setCommunicatedSpecies(popID);
       //update lists in larger neighborhood
-      updateRemoteVelocityBlockLists(mpiGrid, popID, SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
+      updateRemoteVelocityBlockLists(mpiGrid, popID, BOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
 
       // Then the block data in the reduced neighbourhood:
       int timer=phiprof::initializeTimer("Start comm of cell and block data","MPI");
       phiprof::start(timer);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,true);
-      mpiGrid.start_remote_neighbor_copy_updates(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
+      mpiGrid.start_remote_neighbor_copy_updates(BOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
       phiprof::stop(timer);
 
       timer=phiprof::initializeTimer("Compute process inner cells");
@@ -665,12 +665,12 @@ void SysBoundary::applySysBoundaryVlasovConditions(
 
       // Compute Vlasov boundary condition on system boundary/process inner cells
       vector<CellID> localCells;
-      getBoundaryCellList(mpiGrid,mpiGrid.get_local_cells_not_on_process_boundary(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID),localCells);
+      getBoundaryCellList(mpiGrid,mpiGrid.get_local_cells_not_on_process_boundary(BOUNDARIES_EXTENDED_NEIGHBORHOOD_ID),localCells);
    
       #pragma omp parallel for
       for (uint i=0; i<localCells.size(); i++) {
-         cuint sysBoundaryType = mpiGrid[localCells[i]]->boundaryFlag;
-         this->getSysBoundary(sysBoundaryType)->vlasovBoundaryCondition(mpiGrid,localCells[i],popID,calculate_V_moments);
+         cuint boundaryType = mpiGrid[localCells[i]]->boundaryFlag;
+         this->getBoundary(boundaryType)->vlasovBoundaryCondition(mpiGrid,localCells[i],popID,calculate_V_moments);
       }
       if (calculate_V_moments) {
          calculateMoments_V(mpiGrid, localCells, true);
@@ -681,18 +681,18 @@ void SysBoundary::applySysBoundaryVlasovConditions(
    
       timer=phiprof::initializeTimer("Wait for receives","MPI","Wait");
       phiprof::start(timer);
-      mpiGrid.wait_remote_neighbor_copy_update_receives(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
+      mpiGrid.wait_remote_neighbor_copy_update_receives(BOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
       phiprof::stop(timer);
 
       // Compute vlasov boundary on system boundary/process boundary cells
       timer=phiprof::initializeTimer("Compute process boundary cells");
       phiprof::start(timer);
       vector<CellID> boundaryCells;
-      getBoundaryCellList(mpiGrid,mpiGrid.get_local_cells_on_process_boundary(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID),boundaryCells);
+      getBoundaryCellList(mpiGrid,mpiGrid.get_local_cells_on_process_boundary(BOUNDARIES_EXTENDED_NEIGHBORHOOD_ID),boundaryCells);
       #pragma omp parallel for
       for (uint i=0; i<boundaryCells.size(); i++) {
-         cuint sysBoundaryType = mpiGrid[boundaryCells[i]]->boundaryFlag;
-         this->getSysBoundary(sysBoundaryType)->vlasovBoundaryCondition(mpiGrid, boundaryCells[i],popID,calculate_V_moments);
+         cuint boundaryType = mpiGrid[boundaryCells[i]]->boundaryFlag;
+         this->getBoundary(boundaryType)->vlasovBoundaryCondition(mpiGrid, boundaryCells[i],popID,calculate_V_moments);
       }
       if (calculate_V_moments) {
          calculateMoments_V(mpiGrid, boundaryCells, true);
@@ -713,36 +713,36 @@ void SysBoundary::applySysBoundaryVlasovConditions(
    } // for-loop over populations
 }
 
-/*! Get a pointer to the SysBoundaryCondition of given index.
- * \param sysBoundaryType Type of the system boundary condition to return
- * \return Pointer to the instance of the SysBoundaryCondition. NULL if sysBoundaryType is invalid.
+/*! Get a pointer to the BoundaryCondition of given index.
+ * \param boundaryType Type of the system boundary condition to return
+ * \return Pointer to the instance of the BoundaryCondition. NULL if boundaryType is invalid.
  */
-SBC::SysBoundaryCondition* SysBoundary::getSysBoundary(cuint sysBoundaryType) const {
-   auto it = indexToSysBoundary.find(sysBoundaryType);
-   if(it != indexToSysBoundary.end()){
+BC::BoundaryCondition* Boundary::getBoundary(cuint boundaryType) const {
+   auto it = indexToBoundary.find(boundaryType);
+   if(it != indexToBoundary.end()){
       return it->second;
    }
    else{
-      std::cerr << "System boundary "<< sysBoundaryType << " is invalid  " << __FILE__ << ":" << __LINE__ << std::endl;
+      std::cerr << "System boundary "<< boundaryType << " is invalid  " << __FILE__ << ":" << __LINE__ << std::endl;
       return NULL;
    }
 }
 
-/*! Get the number of SysBoundaryConditions stored in SysBoundary.
- * \retval size Number of SysBoundaryConditions stored in SysBoundary.
+/*! Get the number of BoundaryConditions stored in Boundary.
+ * \retval size Number of BoundaryConditions stored in Boundary.
  */
-unsigned int SysBoundary::size() const {return sysBoundaries.size();}
+unsigned int Boundary::size() const {return boundaries.size();}
 
 /*! Get a bool telling whether any system boundary condition is dynamic in time (and thus needs updating).
  * \retval isThisDynamic Is any system boundary condition dynamic in time.
  */
-bool SysBoundary::isDynamic() const {return isThisDynamic;}
+bool Boundary::isDynamic() const {return isThisDynamic;}
 
 /*! Get a bool telling whether the system is periodic in the queried direction.
  * \param direction 0: x, 1: y, 2: z.
  * \retval isPeriodic Is the system periodic in the queried direction.
  */
-bool SysBoundary::isBoundaryPeriodic(uint direction) const {return isPeriodic[direction];}
+bool Boundary::isBoundaryPeriodic(uint direction) const {return isPeriodic[direction];}
 
 /*! Get a vector containing the cellID of all cells which are not DO_NOT_COMPUTE or NOT_BOUNDARY in the vector of cellIDs passed to the function.
  * 
@@ -766,17 +766,17 @@ bool getBoundaryCellList(
    return true;
 }
 
-/*! Updates all NonsysboundaryCells into an internal map. This should be called in loadBalance.
+/*! Updates all NonboundaryCells into an internal map. This should be called in loadBalance.
  * \param mpiGrid The DCCRG grid
  * \retval Returns true if the operation is successful
  */
-bool SysBoundary::updateSysBoundariesAfterLoadBalance(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+bool Boundary::updateSysBoundariesAfterLoadBalance(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
    phiprof::start("updateSysBoundariesAfterLoadBalance");
    vector<uint64_t> local_cells_on_boundary;
    getBoundaryCellList(mpiGrid, mpiGrid.get_cells(), local_cells_on_boundary);
    // Loop over sysboundaries:
-   for( std::list<SBC::SysBoundaryCondition*>::iterator it = sysBoundaries.begin(); it != sysBoundaries.end(); ++it ) {
-      (*it)->updateSysBoundaryConditionsAfterLoadBalance(mpiGrid, local_cells_on_boundary);
+   for( std::list<BC::BoundaryCondition*>::iterator it = boundaries.begin(); it != boundaries.end(); ++it ) {
+      (*it)->updateBoundaryConditionsAfterLoadBalance(mpiGrid, local_cells_on_boundary);
    }
 
    phiprof::stop("updateSysBoundariesAfterLoadBalance");

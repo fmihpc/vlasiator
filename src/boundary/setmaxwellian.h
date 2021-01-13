@@ -27,23 +27,23 @@
 #include "../definitions.h"
 #include "../readparameters.h"
 #include "../spatial_cell.hpp"
-#include "sysboundarycondition.h"
+#include "boundarycondition.h"
 #include "setbyuser.h"
 
 using namespace std;
 
-namespace SBC {
+namespace BC {
    /*!\brief SetMaxwellian is a class applying fixed Maxwellian conditions according to parameters read from an input file.
     * 
-    * Maxwellian is a class handling cells tagged as sysboundarytype::MAXWELLIAN by this
+    * Maxwellian is a class handling cells tagged as boundarytype::MAXWELLIAN by this
     * system boundary condition.
     * 
     * It applies fixed Maxwellian settings to the system boundary cells, the parameters of
     * which are being read from an input file.
     * 
     * The class inherits most of its machinery from
-    * SysBoundaryCondition::SetByUser. The parameters are more general than for Maxwellian
-    * and could be put in SysBoundaryCondition::SetByUser but this way they can have a
+    * BoundaryCondition::SetByUser. The parameters are more general than for Maxwellian
+    * and could be put in BoundaryCondition::SetByUser but this way they can have a
     * specific prefix which is needed if several inheriting classes are needed.
     * 
     */

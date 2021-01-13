@@ -1100,7 +1100,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_SPATIAL_DATA);
 
-   //Do initial load balance based on pins. Need to transfer at least sysboundaryflags
+   //Do initial load balance based on pins. Need to transfer at least boundaryflags
    mpiGrid.balance_load(false);
 
    //update list of local gridcells

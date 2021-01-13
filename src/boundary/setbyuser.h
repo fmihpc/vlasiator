@@ -27,9 +27,9 @@
 #include "../definitions.h"
 #include "../readparameters.h"
 #include "../spatial_cell.hpp"
-#include "sysboundarycondition.h"
+#include "boundarycondition.h"
 
-namespace SBC {
+namespace BC {
 
    struct UserSpeciesParameters {
       /*! Vector containing a vector for each face which has the current boundary condition. Each of these vectors has one line per input data line (time point). The length of the lines is nParams.*/
@@ -47,7 +47,7 @@ namespace SBC {
 
    /*!\brief Base class for system boundary conditions with user-set settings and parameters read from file.
     * 
-    * SetByUser is a base class for e.g. SysBoundaryConditon::SetMaxwellian.
+    * SetByUser is a base class for e.g. BoundaryConditon::SetMaxwellian.
     * It defines the managing functions to set boundary conditions on the faces of the
     * simulation domain.
     * 
@@ -57,18 +57,18 @@ namespace SBC {
     * The daughter classes have then to handle parameters and generate the template cells as
     * wished from the data returned.
     */
-   class SetByUser: public SysBoundaryCondition {
+   class SetByUser: public BoundaryCondition {
    public:
       SetByUser();
       virtual ~SetByUser();
       
       virtual void getParameters() = 0;
       
-      virtual bool initSysBoundary(
+      virtual bool initBoundary(
          creal& t,
          Project &project
       );
-      virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      virtual bool assignBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                      FsGrid< fsgrids::technical, 2> & technicalGrid);
       virtual bool applyInitialState(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,

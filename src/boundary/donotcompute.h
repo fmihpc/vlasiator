@@ -27,16 +27,16 @@
 #include "../definitions.h"
 #include "../readparameters.h"
 #include "../spatial_cell.hpp"
-#include "sysboundarycondition.h"
+#include "boundarycondition.h"
 
 using namespace projects;
 
-namespace SBC {
+namespace BC {
    /*!\brief DoNotCompute is a class handling cells not to be computed.
     * 
-    * DoNotCompute is a class handling cells tagged as sysboundarytype::DO_NOT_COMPUTE by a system boundary condition (e.g. SysBoundaryCondition::Ionosphere).
+    * DoNotCompute is a class handling cells tagged as boundarytype::DO_NOT_COMPUTE by a system boundary condition (e.g. BoundaryCondition::Ionosphere).
     */
-   class DoNotCompute: public SysBoundaryCondition {
+   class DoNotCompute: public BoundaryCondition {
    public:
       DoNotCompute();
       virtual ~DoNotCompute();
@@ -44,11 +44,11 @@ namespace SBC {
       static void addParameters();
       virtual void getParameters();
       
-      virtual bool initSysBoundary(
+      virtual bool initBoundary(
          creal& t,
          Project &project
       );
-      virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      virtual bool assignBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                      FsGrid< fsgrids::technical, 2> & technicalGrid);
       virtual bool applyInitialState(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,

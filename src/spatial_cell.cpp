@@ -728,7 +728,7 @@ namespace spatial_cell {
          }
          
          // send  boundaryFlag
-         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_SYSBOUNDARYFLAG)!=0){
+         if ((SpatialCell::mpi_transfer_type & Transfer::CELL_BOUNDARYFLAG)!=0){
             displacements.push_back((uint8_t*) &(this->boundaryFlag) - (uint8_t*) this);
             block_lengths.push_back(sizeof(uint));
             displacements.push_back((uint8_t*) &(this->boundaryLayer) - (uint8_t*) this);

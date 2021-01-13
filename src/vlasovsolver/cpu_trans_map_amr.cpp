@@ -1265,7 +1265,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
             phiprof::stop(t1);
             phiprof::start(t2);
             
-            // reset blocks in all non-sysboundary neighbor spatial cells for this block id
+            // reset blocks in all non-boundary neighbor spatial cells for this block id
             // At this point the block data is saved in targetBlockData so we can reset the spatial cells
 
             for (auto *spatial_cell: targetCells) {

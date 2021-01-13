@@ -21,7 +21,7 @@
  */
 
 /*!\file setmaxwellian.cpp
- * \brief Implementation of the class SysBoundaryCondition::SetMaxwellian to handle cells classified as boundarytype::MAXWELLIAN.
+ * \brief Implementation of the class BoundaryCondition::SetMaxwellian to handle cells classified as boundarytype::MAXWELLIAN.
  */
 
 #include <cstdlib>
@@ -31,7 +31,7 @@
 #include "../vlasovmover.h"
 #include "../object_wrapper.h"
 
-namespace SBC {
+namespace BC {
    SetMaxwellian::SetMaxwellian(): SetByUser() {
    }
    SetMaxwellian::~SetMaxwellian() { }
@@ -339,4 +339,4 @@ namespace SBC {
    string SetMaxwellian::getName() const {return "SetMaxwellian";}
    uint SetMaxwellian::getIndex() const {return boundarytype::SET_MAXWELLIAN;}
    
-} // namespace SBC
+} // namespace BC

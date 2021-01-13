@@ -54,7 +54,7 @@ using namespace spatial_cell;
 const int PAD=1;
 static Realf tempSource[(WID+2*PAD)*(WID+2*PAD)*(WID+2*PAD)];
 
-//Is cell translated? It is not translated if DO_NO_COMPUTE or if it is sysboundary cell and not in first sysboundarylayer
+//Is cell translated? It is not translated if DO_NO_COMPUTE or if it is boundary cell and not in first boundarylayer
 bool do_translate_cell(SpatialCell* SC) {
    if (SC->boundaryFlag == boundarytype::DO_NOT_COMPUTE ||
       (SC->boundaryLayer != 1 && SC->boundaryFlag != boundarytype::NOT_BOUNDARY))

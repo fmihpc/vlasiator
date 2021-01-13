@@ -55,7 +55,7 @@ using namespace spatial_cell;
 //#define i_trans_pt_blockv(j, k, b_k) ( ( (j) * WID + (k) * WID2 + ((b_k) + 1 ) * WID3) / VECL )
 #define i_trans_pt_blockv(planeVectorIndex, planeIndex, blockIndex)  ( planeVectorIndex + planeIndex * VEC_PER_PLANE + (blockIndex + 1) * VEC_PER_BLOCK)
 
-//Is cell translated? It is not translated if DO_NO_COMPUTE or if it is sysboundary cell and not in first sysboundarylayer
+//Is cell translated? It is not translated if DO_NO_COMPUTE or if it is boundary cell and not in first boundarylayer
 bool do_translate_cell(SpatialCell* SC){
    if(SC->boundaryFlag == boundarytype::DO_NOT_COMPUTE ||
       (SC->boundaryLayer != 1 && SC->boundaryFlag != boundarytype::NOT_BOUNDARY))
@@ -577,7 +577,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          phiprof::stop(t1);
          phiprof::start(t2);
                
-         //reset blocks in all non-sysboundary spatial cells for this block id
+         //reset blocks in all non-boundary spatial cells for this block id
          for(uint celli = 0; celli < allCellsPointer.size(); celli++){
             SpatialCell* spatial_cell = allCellsPointer[celli];
             if(spatial_cell->boundaryFlag == boundarytype::NOT_BOUNDARY) {
