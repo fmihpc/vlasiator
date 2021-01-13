@@ -84,14 +84,11 @@ void Boundary::addParameters()
        "boundaries.boundary",
        "List of boundary condition (BC) types to be used. Each boundary condition to be used has to be on a new line "
        "boundary = YYY. Available (20140113) are Outflow Ionosphere Maxwellian.");
-   Readparameters::add("boundaries.periodic_x", "If 'yes' the grid is periodic in x-direction. Defaults to 'no'.",
-                       "no");
-   Readparameters::add("boundaries.periodic_y", "If 'yes' the grid is periodic in y-direction. Defaults to 'no'.",
-                       "no");
-   Readparameters::add("boundaries.periodic_z", "If 'yes' the grid is periodic in z-direction. Defaults to 'no'.",
-                       "no");
+   Readparameters::add("boundaries.periodic_x", "Set the grid periodicity in x-direction. true(default)/false.", true);
+   Readparameters::add("boundaries.periodic_y", "Set the grid periodicity in y-direction. true(default)/false.", true);
+   Readparameters::add("boundaries.periodic_z", "Set the grid periodicity in z-direction. true(default)/false.", true);
 
-   // call static addParameter functions in all bc's
+   // Call static addParameter functions in all BC's
    BC::DoNotCompute::addParameters();
    BC::Ionosphere::addParameters();
    BC::Outflow::addParameters();
@@ -105,39 +102,10 @@ void Boundary::addParameters()
  */
 void Boundary::getParameters()
 {
-   int myRank;
-   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-   if (!Readparameters::get("boundaries.boundary", boundaryCondList))
-   {
-      if (myRank == MASTER_RANK)
-         cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-      exit(1);
-   }
-   std::string periodic_x, periodic_y, periodic_z;
-   if (!Readparameters::get("boundaries.periodic_x", periodic_x))
-   {
-      if (myRank == MASTER_RANK)
-         cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-      exit(1);
-   }
-   if (!Readparameters::get("boundaries.periodic_y", periodic_y))
-   {
-      if (myRank == MASTER_RANK)
-         cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-      exit(1);
-   };
-   if (!Readparameters::get("boundaries.periodic_z", periodic_z))
-   {
-      if (myRank == MASTER_RANK)
-         cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-      exit(1);
-   };
-   isPeriodic[0] = false;
-   isPeriodic[1] = false;
-   isPeriodic[2] = false;
-   if (periodic_x == "yes") isPeriodic[0] = true;
-   if (periodic_y == "yes") isPeriodic[1] = true;
-   if (periodic_z == "yes") isPeriodic[2] = true;
+   Readparameters::get("boundaries.boundary", boundaryCondList);
+   Readparameters::get("boundaries.periodic_x", isPeriodic[0]);
+   Readparameters::get("boundaries.periodic_y", isPeriodic[1]);
+   Readparameters::get("boundaries.periodic_z", isPeriodic[2]);
 }
 
 /*! Add a new BC::BoundaryCondition which has been created with new boundary.

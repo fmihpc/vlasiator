@@ -49,10 +49,7 @@ namespace projects {
       typedef Readparameters RP;
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-      if(!RP::get("Template.param", this->param)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
+      RP::get("Template.param", this->param);
    }
    
    bool Template::initialize() {

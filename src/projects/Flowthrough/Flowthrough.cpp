@@ -81,27 +81,12 @@ namespace projects {
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       typedef Readparameters RP;
 
-      if (!RP::get("Flowthrough.emptyBox",emptyBox)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!RP::get("Flowthrough.Bx", this->Bx)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!RP::get("Flowthrough.By", this->By)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!RP::get("Flowthrough.Bz", this->Bz)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
+      RP::get("Flowthrough.emptyBox",emptyBox);
+      RP::get("Flowthrough.Bx", this->Bx);
+      RP::get("Flowthrough.By", this->By);
+      RP::get("Flowthrough.Bz", this->Bz);
       string densityModelString;
-      if (!RP::get("Flowthrough.densityModel",densityModelString)) {
-         if (myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
+      RP::get("Flowthrough.densityModel",densityModelString);
       if (densityModelString == "Maxwellian") densityModel = Maxwellian;
       else if (densityModelString == "SheetMaxwellian") densityModel = SheetMaxwellian;
       else {
@@ -114,34 +99,13 @@ namespace projects {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          FlowthroughSpeciesParameters sP;
 
-         if(!RP::get(pop + "_Flowthrough.rho", sP.rho)) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-            exit(1);
-         }
-         if(!RP::get(pop + "_Flowthrough.T", sP.T)) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-            exit(1);
-         }
-         if(!RP::get(pop + "_Flowthrough.VX0", sP.V0[0])) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-            exit(1);
-         }
-         if(!RP::get(pop + "_Flowthrough.VY0", sP.V0[1])) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-            exit(1);
-         }
-         if(!RP::get(pop + "_Flowthrough.VZ0", sP.V0[2])) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-            exit(1);
-         }
-         if(!RP::get(pop + "_Flowthrough.nSpaceSamples", sP.nSpaceSamples)) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-            exit(1);
-         }
-         if(!RP::get(pop + "_Flowthrough.nVelocitySamples", sP.nVelocitySamples)) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-            exit(1);
-         }
+         RP::get(pop + "_Flowthrough.rho", sP.rho);
+         RP::get(pop + "_Flowthrough.T", sP.T);
+         RP::get(pop + "_Flowthrough.VX0", sP.V0[0]);
+         RP::get(pop + "_Flowthrough.VY0", sP.V0[1]);
+         RP::get(pop + "_Flowthrough.VZ0", sP.V0[2]);
+         RP::get(pop + "_Flowthrough.nSpaceSamples", sP.nSpaceSamples);
+         RP::get(pop + "_Flowthrough.nVelocitySamples", sP.nVelocitySamples);
 
          speciesParams.push_back(sP);
       }

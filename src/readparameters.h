@@ -30,49 +30,52 @@
 
 #include "common.h"
 
-struct Readparameters {
-    Readparameters(int argc, char* argv[],MPI_Comm comm);
-    static bool add(const std::string& name,const std::string& desc,const std::string& defValue);
-    static bool add(const std::string& name,const std::string& desc,const bool& defValue);
-    static bool add(const std::string& name,const std::string& desc,const int& defValue);
-    static bool add(const std::string& name,const std::string& desc,const unsigned int& defValue);
-    static bool add(const std::string& name,const std::string& desc,const float& defValue);
-    static bool add(const std::string& name,const std::string& desc,const double& defValue);
+using std::string;
+using std::vector;
 
-    static bool get(const std::string& name,std::string& value);
-    static bool get(const std::string& name,bool& value);
-    static bool get(const std::string& name,int& value);
-    static bool get(const std::string& name,unsigned int& value);
-    static bool get(const std::string& name,unsigned long& value);
-    static bool get(const std::string& name,float& value);
-    static bool get(const std::string& name,double& value);
+struct Readparameters
+{
+   Readparameters(int argc, char *argv[], MPI_Comm comm);
+   static void add(const string &name, const string &desc, const string &defValue);
+   static void add(const string &name, const string &desc, const bool &defValue);
+   static void add(const string &name, const string &desc, const int &defValue);
+   static void add(const string &name, const string &desc, const unsigned int &defValue);
+   static void add(const string &name, const string &desc, const float &defValue);
+   static void add(const string &name, const string &desc, const double &defValue);
 
-//Functions for composing options (can be defined multiple times and are all returned as a vector)
-    static bool addComposing(const std::string& name,const std::string& desc);
-    static bool get(const std::string& name,std::vector<std::string>& value);
-    static bool get(const std::string& name,std::vector<int>& value);
-    static bool get(const std::string& name,std::vector<unsigned int>& value);
-    static bool get(const std::string& name,std::vector<float>& value);
-    static bool get(const std::string& name,std::vector<double>& value);
+   static void get(const string &name, string &value);
+   static void get(const string &name, bool &value);
+   static void get(const string &name, int &value);
+   static void get(const string &name, unsigned int &value);
+   static void get(const string &name, unsigned long &value);
+   static void get(const string &name, float &value);
+   static void get(const string &name, double &value);
 
-    
-    static bool finalize();
-    static void helpMessage();
-    static bool versionMessage();
-    static bool isInitialized();
-    static bool parse(const bool needsRunConfig=true);
-   
+   // Functions for composing options (can be defined multiple times and are all returned as a vector)
+   static void addComposing(const string &name, const string &desc);
+   static void get(const string &name, vector<string> &value);
+   static void get(const string &name, vector<int> &value);
+   static void get(const string &name, vector<unsigned int> &value);
+   static void get(const string &name, vector<float> &value);
+   static void get(const string &name, vector<double> &value);
+
+   static void finalize();
+   static void helpMessage();
+   static bool versionMessage();
+   static bool isInitialized();
+   static bool parse(const bool needsRunConfig = true);
+
    static bool helpRequested;
-   
+
 private:
-    static int argc;                  /**< How many entries argv contains.*/
-    static char** argv;              /**< Pointer to char* array containing command line parameters.*/
-    static int rank;
-    static MPI_Comm comm;
-   
-    /** Private default constructor to prevent incorrect initialization.*/
-    Readparameters();
-    static bool addDefaultParameters();
+   static int argc;    /**< How many entries argv contains.*/
+   static char **argv; /**< Pointer to char* array containing command line parameters.*/
+   static int rank;
+   static MPI_Comm comm;
+
+   /** Private default constructor to prevent incorrect initialization.*/
+   Readparameters();
+   static void addDefaultParameters();
 };
 
 #endif

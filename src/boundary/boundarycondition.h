@@ -295,7 +295,7 @@ namespace BC {
          bool applyUponRestart;
    };
    
-
+void abort_mpi(const std::string str, const int err_type = 0);
 
 } // namespace BC
 
