@@ -76,7 +76,7 @@ namespace mesh {
    template<typename T> inline
    size_t MeshDataContainer::addData(const std::string& name,const size_t& vectorSize,const std::string& datatype) {
       // Return with an invalid data ID if class has not been initialized
-      if (initialized == false) return std::numeric_limits<size_t>::max();
+      if (!initialized) return std::numeric_limits<size_t>::max();
       
       // Check that data doesn't already exist
       std::map<std::string,size_t>::const_iterator it = meshDataNames.find(name);
@@ -93,7 +93,7 @@ namespace mesh {
    template<typename T> inline
    T* MeshDataContainer::getData(const size_t& dataID) {
       // Return with a NULL pointer if class has not been initialized
-      if (initialized == false) return NULL;
+      if (!initialized) return NULL;
 
       // Return pointer to the data
       return meshData[dataID].getData<T>();
@@ -102,7 +102,7 @@ namespace mesh {
    template<typename T> inline
    T* MeshDataContainer::getData(const std::string& name) {
       // Return with a NULL pointer if class has not been initialized
-      if (initialized == false) return NULL;
+      if (!initialized) return NULL;
       
       // If data doesn't exist return a NULL pointer.
       std::map<std::string,size_t>::const_iterator it = meshDataNames.find(name);

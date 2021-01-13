@@ -1540,7 +1540,7 @@ namespace spatial_cell {
       const vmesh::LocalID blockLID = get_velocity_block_local_id(blockGID, popID);
       //const Velocity_Block block_ptr = at(block);
       if (blockLID == invalid_local_id()) {
-      //if (block_ptr.is_null() == true) {
+      //if (block_ptr.is_null() ) {
          std::cerr << __FILE__ << ":" << __LINE__
             << " block_ptr == NULL" << std::endl; 
          abort();
@@ -1558,7 +1558,7 @@ namespace spatial_cell {
       const vmesh::LocalID blockLID = get_velocity_block_local_id(blockGID, popID);
       //const Velocity_Block block_ptr = at(block);
       if (blockLID == invalid_local_id()) {
-      //if (block_ptr.is_null() == true) {
+      //if (block_ptr.is_null() ) {
          std::cerr << __FILE__ << ":" << __LINE__
             << " block_ptr == NULL" << std::endl; 
          abort();
@@ -1661,7 +1661,7 @@ namespace spatial_cell {
       // Block insert will fail, if the block already exists, or if 
       // there are too many blocks in the spatial cell
       bool success = true;
-      if (populations[popID].vmesh.push_back(block) == false) {
+      if (!populations[popID].vmesh.push_back(block)) {
          return false;
       }
 
@@ -1771,7 +1771,7 @@ namespace spatial_cell {
 		  break;
 	       }
 	    }
-	    if (createBlock == true) add_velocity_block(siblings[s]);
+	    if (createBlock ) add_velocity_block(siblings[s]);
 	    add_velocity_block(siblings[s]);
 	 }*/
 //      }

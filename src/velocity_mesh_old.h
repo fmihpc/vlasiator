@@ -595,7 +595,7 @@ namespace vmesh {
       std::pair<typename std::unordered_map<GID,LID>::iterator,bool> position
         = globalToLocalMap.insert(std::make_pair(globalID,localToGlobalMap.size()));
 
-      if (position.second == true) {
+      if (position.second) {
          localToGlobalMap.push_back(globalID);
       }
 

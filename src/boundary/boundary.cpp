@@ -595,9 +595,9 @@ void Boundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geom
    list<BC::BoundaryCondition *>::iterator it;
    for (it = boundaries.begin(); it != boundaries.end(); it++)
    {
-      if (                                        // This is to skip the reapplication
-          Parameters::isRestart == true           // When not restarting
-          && (*it)->doApplyUponRestart() == false // When reapplicaiton is not requested
+      if (                                // This is to skip the reapplication
+          Parameters::isRestart           // When not restarting
+          && !(*it)->doApplyUponRestart() // When reapplicaiton is not requested
       )
       {
          continue;

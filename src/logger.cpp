@@ -49,7 +49,7 @@ Logger::~Logger() {
  * @return If true, the logfile was closed successfully.
  */
 bool Logger::close() {
-   if (fileOpen == false) return false;
+   if (!fileOpen) return false;
    bool success = true;
    masterStream->close();
    delete masterStream;
@@ -65,12 +65,12 @@ bool Logger::close() {
  * @return If true, the buffer was written successfully and buffer was emptied.
  */
 bool Logger::flush(bool verbose) {
-   if (fileOpen == false) return false;
+   if (!fileOpen) return false;
    bool success = true;
    if (mpiRank != masterRank) return true;
    stringstream tmp;
    string strTime;
-   if (verbose == true)
+   if (verbose )
    {
       // Get the current time. Remove the line break from 
       // the string output given by ctime.
@@ -127,7 +127,7 @@ bool Logger::open(MPI_Comm comm,const int& MASTERRANK,const std::string& fname,c
    else
       masterStream->open(fname.c_str(), fstream::out);
 
-   if (masterStream->good() == false) rvalue = false;
+   if (!masterStream->good()) rvalue = false;
    fileOpen = true;
    return rvalue;
 }
@@ -175,7 +175,7 @@ Logger& Logger::operator<<(std::ostream& (*pf)(std::ostream& )) {
  * @return Reference to Logger.
  */
 Logger& writeVerbose(Logger& logger) {
-   if (logger.flush(true) == false) {
+   if (!logger.flush(true)) {
       cerr << "Logger failed to write!" << endl;
    }
    return logger;
@@ -191,7 +191,7 @@ Logger& writeVerbose(Logger& logger) {
  * @return Reference to Logger.
  */
 Logger& write(Logger& logger) {
-   if (logger.flush(false) == false) {
+   if (!logger.flush(false)) {
       cerr << "Logger failed to write!" << endl;
    }
    return logger;

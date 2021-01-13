@@ -182,7 +182,7 @@ namespace spatial_cell {
             std::unordered_set<vmesh::GlobalID>::iterator it = neighbors_have_content.find(blockGID);
             if (it == neighbors_have_content.end()) removeBlock = true;
 
-            if (removeBlock == true) {
+            if (removeBlock ) {
                //No content, and also no neighbor have content -> remove
                //and increment rho loss counters
                const Real* block_parameters = get_block_parameters(popID)+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
@@ -276,7 +276,7 @@ namespace spatial_cell {
             // It is safe to remove this block
             removeBlock = true;
 
-            if (removeBlock == true) {
+            if (removeBlock ) {
                //No content, and also no neighbor have content -> remove
                //and increment rho loss counters
                const Real* block_parameters = get_block_parameters(popID)+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
@@ -351,7 +351,7 @@ namespace spatial_cell {
                break;
             }  
          }
-         if (childrensExist == true) {
+         if (childrensExist ) {
             // Attempt to add all children, only succeeds if the 
             // children does not exist
             for (size_t c=0; c<children.size(); ++c) add_velocity_block(children[c],popID);
@@ -392,7 +392,7 @@ namespace spatial_cell {
 
       // First create the parent (coarse) block and grab pointer to its data.
       // add_velocity_block initializes data to zero values.
-      if (add_velocity_block(parent,popID) == false) return;
+      if (!add_velocity_block(parent,popID)) return;
       vmesh::LocalID parentLID = populations[popID].vmesh.getLocalID(parent);
       Realf* parent_data = get_data(popID)+parentLID*SIZE_VELBLOCK;
 
@@ -492,10 +492,10 @@ namespace spatial_cell {
             }
 
             // Check that the mesh structure allows coarsening
-            if (populations[popID].vmesh.coarsenAllowed(*it) == false) continue;
+            if (!populations[popID].vmesh.coarsenAllowed(*it)) continue;
 
             // If all siblings allow coarsening, add block to coarsen list
-            if (allows == true) {
+            if (allows ) {
                allowCoarsen.insert(make_pair(populations[popID].vmesh.getParent(*it),siblings));
             }
          }
@@ -861,7 +861,7 @@ namespace spatial_cell {
        // END TEST */
 
       // No children, try to merge values to this block:
-      if (hasChildren == false) {
+      if (!hasChildren) {
          vmesh::LocalID blockLID = populations[activePopID].vmesh.getLocalID(blockGID);
 	 
          #ifdef DEBUG_SPATIAL_CELL
@@ -1289,7 +1289,7 @@ namespace spatial_cell {
       // in newInserted (the children) for each entry in erasedBlocks.
       std::set<vmesh::GlobalID> erasedBlocks;
       std::map<vmesh::GlobalID,vmesh::LocalID> newInserted;
-      if (populations[popID].vmesh.refine(blockGID,erasedBlocks,newInserted) == false) {
+      if (!populations[popID].vmesh.refine(blockGID,erasedBlocks,newInserted)) {
          return;
       }
 
@@ -1387,7 +1387,7 @@ namespace spatial_cell {
          
          // Allow capacity to be a bit large than needed by number of blocks, shrink otherwise
          if (populations[p].blockContainer.capacity() > amount ) 
-            if (populations[p].blockContainer.recapacitate(amount) == false) success = false;
+            if (!populations[p].blockContainer.recapacitate(amount)) success = false;
 
       }
       return success;
@@ -1436,7 +1436,7 @@ namespace spatial_cell {
       bool success = true;
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          const species::Species& spec = getObjectWrapper().particleSpecies[popID];
-         if (populations[popID].vmesh.initialize(spec.velocityMesh,getObjectWrapper().velocityMeshes) == false) {
+         if (!populations[popID].vmesh.initialize(spec.velocityMesh,getObjectWrapper().velocityMeshes)) {
             success = false;
          }
       }

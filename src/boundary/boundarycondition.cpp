@@ -94,7 +94,7 @@ void BoundaryCondition::determineFace(bool *isThisCellOnAFace, creal x, creal y,
    {
       isThisCellOnAFace[5] = true;
    }
-   if (excludeSlicesAndPeriodicDimensions == true)
+   if (excludeSlicesAndPeriodicDimensions)
    {
       if (Parameters::xcells_ini == 1 || this->isPeriodic[0])
       {

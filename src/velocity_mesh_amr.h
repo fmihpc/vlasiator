@@ -162,9 +162,9 @@ namespace vmesh {
          bool hasChildren = false;
          for (size_t c=0; c<children.size(); ++c) {
             if (children[c] == invalidGlobalID()) continue;
-            if (checkChildren(children[c]) == true) hasChildren = true;
+            if (checkChildren(children[c]) ) hasChildren = true;
          }
-         if (hasChildren == true) {
+         if (hasChildren ) {
             std::cerr << "VM AMR ERROR: block " << globalID << " at refinement level " << (int)getRefinementLevel(globalID);
             std::cerr << " exists and has children or grandchildren" << std::endl;
             std::cerr << "\t ERROR from " << __FILE__ << ':' << __LINE__ << std::endl;
@@ -173,8 +173,8 @@ namespace vmesh {
          /*
           // Recursively check that parents do not exist:
           bool hasParents = false;
-          if (checkParent(globalID) == true) hasParents=true;
-          if (hasParents == true) {
+          if (checkParent(globalID) ) hasParents=true;
+          if (hasParents ) {
           std::cerr << "VM AMR ERROR: block " << globalID << " at refinement level " << (int)getRefinementLevel(globalID);
           std::cerr << " exists and has a parent or a grandparent" << std::endl;
           std::cerr << "\t ERROR from " << __FILE__ << ':' << __LINE__ << std::endl;
@@ -197,7 +197,7 @@ namespace vmesh {
       
       // Recursively check that none of the grandchildren exist:
       for (size_t c=0; c<children.size(); ++c) {
-         if (checkChildren(children[c]) == true) return true;
+         if (checkChildren(children[c]) ) return true;
       }
       return false;
    }
@@ -259,7 +259,7 @@ namespace vmesh {
       bool ok=true;
       if (sourceLID >= localToGlobalMap.size()) ok=false;
       if (targetLID >= localToGlobalMap.size()) ok=false;
-      if (ok == false) {
+      if (!ok) {
          std::cerr << "ERROR in copy, source/target LIDs are " << sourceLID << ' ' << targetLID << std::endl;
          std::cerr << "\t exiting from " << __FILE__ << ':' << __LINE__ << std::endl;
          exit(1);
@@ -272,7 +272,7 @@ namespace vmesh {
       #ifdef DEBUG_AMR_MESH
       if (globalToLocalMap.find(sourceGID) == globalToLocalMap.end()) ok=false;
       if (globalToLocalMap.find(targetGID) == globalToLocalMap.end()) ok=false;
-      if (ok == false) {
+      if (!ok) {
          std::cerr << "ERROR in copy, source/target LIDs are " << sourceLID << ' ' << targetLID << std::endl;
          std::cerr << "                             GIDs are " << sourceGID << ' ' << targetGID << std::endl;
          std::cerr << "\t sourceGID valid? ";
@@ -455,7 +455,7 @@ namespace vmesh {
       bool ok=true;
       const GID globalID = localToGlobalMap[localID];
       if (globalToLocalMap.find(globalID) == globalToLocalMap.end()) ok=false;
-      if (ok == false) {
+      if (!ok) {
          std::cerr << "ERROR in getGlobalID, localID=" << localID << " and globalID=" << globalID;
          std::cerr << " but globalToLocalMap does not contain the block" << std::endl;
          std::cerr << "\t exiting from " << __FILE__ << ':' << __LINE__ << std::endl;
@@ -938,7 +938,7 @@ namespace vmesh {
       #ifdef DEBUG_AMR_MESH
          bool ok = true;
          if (globalToLocalMap.find(lastGID) == globalToLocalMap.end()) ok = false;
-         if (ok == false) {
+         if (!ok) {
             std::cerr << "ERROR in pop(): last localID=" << lastLID << " globalID=" << lastGID;
             std::cerr << " but globalToLocalMap does not contain that block" << std::endl;
             std::cerr << "\t exiting from " << __FILE__ << ':' << __LINE__ << std::endl;
@@ -962,7 +962,7 @@ namespace vmesh {
       std::pair<typename std::unordered_map<GID,LID>::iterator,bool> position
         = globalToLocalMap.insert(std::make_pair(globalID,localToGlobalMap.size()));
 
-      if (position.second == true) {	 
+      if (position.second ) {	 
          localToGlobalMap.push_back(globalID);
       }
 
@@ -982,7 +982,7 @@ namespace vmesh {
          const GID globalID = blocks[b];
          std::pair<typename std::unordered_map<GID,LID>::iterator,bool> position
            = globalToLocalMap.insert(std::make_pair(globalID,localToGlobalMap.size()+b));
-         if (position.second == true) {
+         if (position.second ) {
             localToGlobalMap.push_back(globalID);
             ++adds;
          }

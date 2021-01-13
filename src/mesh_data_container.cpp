@@ -60,7 +60,7 @@ namespace mesh {
    }
    
    void MeshDataContainer::reallocate() {
-      if (initialized == false) {
+      if (!initialized) {
          cerr << "(MeshDataContainer) ERROR: Class has not been initialized, exiting at ";
          cerr << __FILE__ << ":" << __LINE__ << endl;
          exit(1);

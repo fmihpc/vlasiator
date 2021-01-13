@@ -180,7 +180,7 @@ void initializeGrids(
    if (P::isRestart) {
       logFile << "Restart from "<< P::restartFileName << std::endl << writeVerbose;
       phiprof::start("Read restart");
-      if (readGrid(mpiGrid,perBGrid,EGrid,technicalGrid,P::restartFileName) == false) {
+      if (!readGrid(mpiGrid,perBGrid,EGrid,technicalGrid,P::restartFileName)) {
          logFile << "(MAIN) ERROR: restarting failed" << endl;
          exit(1);
       }
@@ -279,7 +279,7 @@ void initializeGrids(
 
 
    // Init mesh data container
-   if (getObjectWrapper().meshData.initialize("SpatialGrid") == false) {
+   if (!getObjectWrapper().meshData.initialize("SpatialGrid")) {
       cerr << "(Grid) Failed to initialize mesh data container in " << __FILE__ << ":" << __LINE__ << endl;
       exit(1);
    }
@@ -295,7 +295,7 @@ void initializeGrids(
    
    phiprof::stop("Fetch Neighbour data");
    
-   if (P::isRestart == false) {
+   if (!P::isRestart) {
       // Apply boundary conditions so that we get correct initial moments
       boundaries.applyBoundaryVlasovConditions(mpiGrid,Parameters::t, true); // It doesn't matter here whether we put _R or _V moments
       
@@ -551,8 +551,8 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, B
 
    phiprof::start("Init solvers");
    // Initialize field propagator (only if in use):
-   if (Parameters::propagateField == true) {
-      if (initializeFieldPropagatorAfterRebalance() == false) {
+   if (Parameters::propagateField) {
+      if (!initializeFieldPropagatorAfterRebalance()) {
          logFile << "(MAIN): Field propagator did not initialize correctly!" << endl << writeVerbose;
          exit(1);
       }
@@ -1169,7 +1169,7 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
       // Exit if all processes are done with mesh refinements
       int16_t globalSuccess = 0;
       int16_t localSuccess = 0;
-      if (needAnotherPass == true) localSuccess=1;
+      if (needAnotherPass ) localSuccess=1;
       MPI_Allreduce(&localSuccess,&globalSuccess,1,MPI_Type<int16_t>(),MPI_MAX,MPI_COMM_WORLD);
       if (globalSuccess == 0) break;
    } while (true);
