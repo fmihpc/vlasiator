@@ -218,7 +218,7 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
          }
          
          //compute first moments for this block
-         if (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)
+         if (SC->boundaryFlag == boundarytype::NOT_BOUNDARY)
            cpu_calcVelocityFirstMoments(
                                         SC,
                                         block_i,			 
@@ -231,7 +231,7 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
       // Second iteration needed as rho has to be already computed when computing pressure
       for (vmesh::LocalID block_i=0; block_i< SC->get_number_of_velocity_blocks(); ++block_i){
          //compute second moments for this block
-         if (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)
+         if (SC->boundaryFlag == boundarytype::NOT_BOUNDARY)
            cpu_calcVelocitySecondMoments(
                                          SC,
                                          block_i,			  
@@ -274,7 +274,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
       SpatialCell* SC = mpiGrid[cells[c]];
       //disregard boundary cells
       //do not integrate cells with no blocks  (well, do not computes in practice)
-      if (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY &&
+      if (SC->boundaryFlag == boundarytype::NOT_BOUNDARY &&
           SC->get_number_of_velocity_blocks() != 0) {
          propagatedCells.push_back(cells[c]);
       }
@@ -360,7 +360,7 @@ void calculateInterpolatedVelocityMoments(
    for (size_t c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
       SpatialCell* SC = mpiGrid[cellID];
-      if(SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+      if(SC->boundaryFlag == boundarytype::NOT_BOUNDARY) {
          SC->parameters[cp_rhom  ] = 0.5* ( SC->parameters[CellParams::RHOM_R] + SC->parameters[CellParams::RHOM_V] );
          SC->parameters[cp_vx] = 0.5* ( SC->parameters[CellParams::VX_R] + SC->parameters[CellParams::VX_V] );
          SC->parameters[cp_vy] = 0.5* ( SC->parameters[CellParams::VY_R] + SC->parameters[CellParams::VY_V] );
@@ -381,9 +381,9 @@ void calculateCellVelocityMoments(SpatialCell* SC,
    // otherwise we skip DO_NOT_COMPUTE cells
    // or boundary cells of layer larger than 1
    if (!doNotSkip &&
-       (SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-	(SC->sysBoundaryLayer != 1  &&
-	 SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY))
+       (SC->boundaryFlag == boundarytype::DO_NOT_COMPUTE ||
+	(SC->boundaryLayer != 1  &&
+	 SC->boundaryFlag != boundarytype::NOT_BOUNDARY))
        ) return;
 
    // Clear old moments

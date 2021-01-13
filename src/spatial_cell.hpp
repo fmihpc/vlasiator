@@ -330,11 +330,11 @@ namespace spatial_cell {
                                                                                * cell block data. We do not allocate memory for the pointer.*/
       std::array<vmesh::LocalID,MAX_NEIGHBORS_PER_DIM> neighbor_number_of_blocks;
       std::map<int,std::set<int>> face_neighbor_ranks;
-      uint sysBoundaryFlag;                                                   /**< What type of system boundary does the cell belong to. 
+      uint boundaryFlag;                                                   /**< What type of system boundary does the cell belong to. 
                                                                                * Enumerated in the sysboundarytype namespace's enum.*/
-      uint sysBoundaryLayer;                                                  /**< Layers counted from closest systemBoundary. If 0 then it has not 
+      uint boundaryLayer;                                                  /**< Layers counted from closest systemBoundary. If 0 then it has not 
                                                                                * been computed. First sysboundary layer is layer 1.*/
-      int sysBoundaryLayerNew;
+      int boundaryLayerNew;
       std::vector<vmesh::GlobalID> velocity_block_with_content_list;          /**< List of existing cells with content, only up-to-date after
                                                                                * call to update_has_content().*/
       vmesh::LocalID velocity_block_with_content_list_size;                   /**< Size of vector. Needed for MPI communication of size before actual list transfer.*/
@@ -1888,9 +1888,9 @@ namespace spatial_cell {
    }
 
    // inline SpatialCell& SpatialCell::operator=(const SpatialCell& other) {
-   //    this->sysBoundaryFlag = other.sysBoundaryFlag;
-   //    this->sysBoundaryLayer = other.sysBoundaryLayer;
-   //    this->sysBoundaryLayerNew = other.sysBoundaryLayerNew;
+   //    this->boundaryFlag = other.boundaryFlag;
+   //    this->boundaryLayer = other.boundaryLayer;
+   //    this->boundaryLayerNew = other.boundaryLayerNew;
    //    this->velocity_block_with_content_list = other.velocity_block_with_content_list;
    //    this->velocity_block_with_no_content_list = other.velocity_block_with_no_content_list;
    //    this->initialized = other.initialized;

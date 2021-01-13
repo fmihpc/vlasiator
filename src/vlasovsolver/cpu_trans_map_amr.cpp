@@ -264,7 +264,7 @@ void computeSpatialTargetCellsForPencils(const dccrg::Dccrg<SpatialCell,dccrg::C
 
    // Remove any boundary cells from the list of valid targets
    for (uint i = 0; i < GID; ++i) {
-      if (targetCells[i] && targetCells[i]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY ) {
+      if (targetCells[i] && targetCells[i]->boundaryFlag != boundarytype::NOT_BOUNDARY ) {
          targetCells[i] = NULL;
       }
    }
@@ -886,7 +886,7 @@ bool checkPencils(
 
    for (auto id : cells) {
 
-      if (mpiGrid[id]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY )  {
+      if (mpiGrid[id]->boundaryFlag == boundarytype::NOT_BOUNDARY )  {
       
          int myCount = std::count(pencils.ids.begin(), pencils.ids.end(), id);
          
@@ -1270,7 +1270,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
             for (auto *spatial_cell: targetCells) {
                // Check for null and system boundary
-               if (spatial_cell && spatial_cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+               if (spatial_cell && spatial_cell->boundaryFlag == boundarytype::NOT_BOUNDARY) {
                   
                   // Get local velocity block id
                   const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blockGID, popID);
@@ -1516,7 +1516,7 @@ void update_remote_mapping_contribution_amr(
                SpatialCell *pcell = mpiGrid[nbr];
                
                // 4) it exists and is not a boundary cell,
-               if(pcell && pcell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+               if(pcell && pcell->boundaryFlag == boundarytype::NOT_BOUNDARY) {
 
                   ccell->neighbor_number_of_blocks.at(sendIndex) = pcell->get_number_of_velocity_blocks(popID);
                   
@@ -1543,7 +1543,7 @@ void update_remote_mapping_contribution_amr(
                      
                   } // closes if(send_cells.find(nbr) == send_cells.end())
                   
-               } // closes if(pcell && pcell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)
+               } // closes if(pcell && pcell->boundaryFlag == boundarytype::NOT_BOUNDARY)
                
             } // closes if(nbr != INVALID_CELLID && do_translate_cell(ccell) && !mpiGrid.is_local(nbr))
             
@@ -1558,7 +1558,7 @@ void update_remote_mapping_contribution_amr(
          for (const auto nbr : n_nbrs) {
          
             if (nbr != INVALID_CELLID && !mpiGrid.is_local(nbr) &&
-                ccell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+                ccell->boundaryFlag == boundarytype::NOT_BOUNDARY) {
                //Receive data that ncell mapped to this local cell data array,
                //if 1) ncell is a valid source cell, 2) center cell is to be updated (normal cell) 3) ncell is remote
 

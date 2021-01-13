@@ -364,28 +364,28 @@ namespace fsgrids {
    };
    
    struct technical {
-      int sysBoundaryFlag;  /*!< System boundary flags. */
-      int sysBoundaryLayer; /*!< System boundary layer index. */
-      Real maxFsDt;         /*!< maximum timestep allowed in ordinary space by fieldsolver for this cell**/
-      int fsGridRank;       /*!< Rank in the fsGrids cartesian coordinator */
-      uint SOLVE;           /*!< Bit mask to determine whether a given cell should solve E or B components. */
-      int refLevel;         /*!<AMR Refinement Level*/
+      int boundaryFlag;  /*!< boundary flags. */
+      int boundaryLayer; /*!< boundary layer index. */
+      Real maxFsDt;      /*!< maximum timestep allowed in ordinary space by fieldsolver for this cell**/
+      int fsGridRank;    /*!< Rank in the fsGrids cartesian coordinator */
+      uint SOLVE;        /*!< Bit mask to determine whether a given cell should solve E or B components. */
+      int refLevel;      /*!<AMR Refinement Level*/
    };
    
 }
 
-/*! The namespace sysboundarytype contains the identification index of the boundary condition types applied to a cell,
- * it is stored in SpatialCell::sysBoundaryFlag and used by the BoundaryCondition class' functions to determine what type of BC to apply to a cell.
+/*! The namespace boundarytype contains the identification index of the boundary condition types applied to a cell,
+ * it is stored in SpatialCell::boundaryFlag and used by the BoundaryCondition class' functions to determine what type of BC to apply to a cell.
  * At least for the workings of vlasovmover_leveque.cpp the order of the first two entries should not be changed.
  */
-namespace sysboundarytype {
+namespace boundarytype {
    enum {
       DO_NOT_COMPUTE,   /*!< E.g. cells within the ionospheric outer radius should not be computed at all. */
-      NOT_SYSBOUNDARY,  /*!< Cells within the simulation domain are not boundary cells. */
+      NOT_BOUNDARY,     /*!< Cells within the simulation domain are not boundary cells. */
       IONOSPHERE,       /*!< Initially a perfectly conducting sphere. */
       OUTFLOW,          /*!< No fixed conditions on the fields and distribution function. */
       SET_MAXWELLIAN,   /*!< Set Maxwellian boundary condition, i.e. set fields and distribution function. */
-      N_SYSBOUNDARY_CONDITIONS
+      N_BOUNDARY_CONDITIONS
    };
 }
 

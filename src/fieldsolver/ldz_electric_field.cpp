@@ -1527,9 +1527,9 @@ void calculateElectricField(
    SysBoundary& sysBoundaries,
    cint& RKCase
 ) {
-   cuint cellSysBoundaryFlag = technicalGrid.get(i,j,k)->sysBoundaryFlag;
+   cuint cellSysBoundaryFlag = technicalGrid.get(i,j,k)->boundaryFlag;
    
-   if (cellSysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) return;
+   if (cellSysBoundaryFlag == boundarytype::DO_NOT_COMPUTE) return;
    
    cuint bitfield = technicalGrid.get(i,j,k)->SOLVE;
    

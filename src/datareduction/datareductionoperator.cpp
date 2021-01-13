@@ -271,7 +271,7 @@ namespace DRO {
    }
    
    bool BoundaryType::setSpatialCell(const SpatialCell* cell) {
-      boundaryType = (int)cell->sysBoundaryFlag;
+      boundaryType = (int)cell->boundaryFlag;
       return true;
    }
 
@@ -296,7 +296,7 @@ namespace DRO {
    }
    
    bool BoundaryLayer::setSpatialCell(const SpatialCell* cell) {
-      boundaryLayer = (int)cell->sysBoundaryLayer;
+      boundaryLayer = (int)cell->boundaryLayer;
       return true;
    }
    

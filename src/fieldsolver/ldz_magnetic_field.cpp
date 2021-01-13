@@ -186,9 +186,9 @@ void propagateSysBoundaryMagneticField(
    cuint component
 ) {
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX + component) = sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondMagneticField(perBGrid, technicalGrid, i, j, k, dt, component);
+      perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX + component) = sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->boundaryFlag)->fieldSolverBoundaryCondMagneticField(perBGrid, technicalGrid, i, j, k, dt, component);
    } else {
-      perBDt2Grid.get(i,j,k)->at(fsgrids::bfield::PERBX + component) = sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondMagneticField(perBDt2Grid, technicalGrid, i, j, k, dt, component);
+      perBDt2Grid.get(i,j,k)->at(fsgrids::bfield::PERBX + component) = sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->boundaryFlag)->fieldSolverBoundaryCondMagneticField(perBDt2Grid, technicalGrid, i, j, k, dt, component);
    }
 }
 
@@ -265,7 +265,7 @@ void propagateMagneticFieldSimple(
          for (int i=0; i<gridDims[0]; i++) {
             cuint bitfield = technicalGrid.get(i,j,k)->SOLVE;
             // L1 pass
-            if (technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) {
+            if (technicalGrid.get(i,j,k)->boundaryLayer == 1) {
                if ((bitfield & compute::BX) != compute::BX) {
                   propagateSysBoundaryMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, i, j, k, sysBoundaries, dt, RKCase, 0);
                }
@@ -285,8 +285,8 @@ void propagateMagneticFieldSimple(
    for (int k=0; k<gridDims[2]; k++) {
       for (int j=0; j<gridDims[1]; j++) {
          for (int i=0; i<gridDims[0]; i++) {
-            if(technicalGrid.get(i,j,k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
-               technicalGrid.get(i,j,k)->sysBoundaryLayer == 2
+            if(technicalGrid.get(i,j,k)->boundaryFlag != boundarytype::NOT_BOUNDARY &&
+               technicalGrid.get(i,j,k)->boundaryLayer == 2
             ) {
                for (uint component = 0; component < 3; component++) {
                   propagateSysBoundaryMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, i, j, k, sysBoundaries, dt, RKCase, component);

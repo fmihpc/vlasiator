@@ -21,7 +21,7 @@
  */
 
 /*!\file donotcompute.cpp
- * \brief Implementation of the class SysBoundaryCondition::DoNotCompute to handle cells classified as sysboundarytype::DO_NOT_COMPUTE.
+ * \brief Implementation of the class SysBoundaryCondition::DoNotCompute to handle cells classified as boundarytype::DO_NOT_COMPUTE.
  */
 
 #include <cstdlib>
@@ -62,7 +62,7 @@ namespace SBC {
 #pragma omp parallel for
       for (size_t i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
-         if(cell->sysBoundaryFlag != this->getIndex()) continue;
+         if(cell->boundaryFlag != this->getIndex()) continue;
 
          //TODO: Set fields on B grid to 0         
          cell->parameters[CellParams::RHOM] = 0.0;
@@ -87,5 +87,5 @@ namespace SBC {
    
    std::string DoNotCompute::getName() const {return "DoNotCompute";}
    
-   uint DoNotCompute::getIndex() const {return sysboundarytype::DO_NOT_COMPUTE;}
+   uint DoNotCompute::getIndex() const {return boundarytype::DO_NOT_COMPUTE;}
 }

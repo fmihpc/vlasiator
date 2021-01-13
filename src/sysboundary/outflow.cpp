@@ -21,7 +21,7 @@
  */
 
 /*!\file outflow.cpp
- * \brief Implementation of the class SysBoundaryCondition::Outflow to handle cells classified as sysboundarytype::OUTFLOW.
+ * \brief Implementation of the class SysBoundaryCondition::Outflow to handle cells classified as boundarytype::OUTFLOW.
  */
 
 #include <cstdlib>
@@ -223,7 +223,7 @@ namespace SBC {
       // Assign boundary flags to local DCCRG cells
       vector<CellID> cells = mpiGrid.get_cells();
       for(const auto& dccrgId : cells) {
-         if(mpiGrid[dccrgId]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+         if(mpiGrid[dccrgId]->boundaryFlag == boundarytype::DO_NOT_COMPUTE) continue;
          creal* const cellParams = &(mpiGrid[dccrgId]->parameters[0]);
          creal dx = cellParams[CellParams::DX];
          creal dy = cellParams[CellParams::DY];
@@ -239,7 +239,7 @@ namespace SBC {
          doAssign = false;
          for(int j=0; j<6; j++) doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
          if(doAssign) {
-            mpiGrid[dccrgId]->sysBoundaryFlag = this->getIndex();
+            mpiGrid[dccrgId]->boundaryFlag = this->getIndex();
          }         
       }
       
@@ -271,7 +271,7 @@ namespace SBC {
                determineFace(isThisCellOnAFace.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx, dy, dz);
                for(int iface=0; iface<6; iface++) doAssign = doAssign || (facesToProcess[iface] && isThisCellOnAFace[iface]);
                if(doAssign) {
-                  technicalGrid.get(i,j,k)->sysBoundaryFlag = this->getIndex();
+                  technicalGrid.get(i,j,k)->boundaryFlag = this->getIndex();
                }
             }
          }
@@ -289,7 +289,7 @@ namespace SBC {
       #pragma omp parallel for
       for (uint i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
-         if (cell->sysBoundaryFlag != this->getIndex()) continue;
+         if (cell->boundaryFlag != this->getIndex()) continue;
          
          bool doApply = true;
          
@@ -484,6 +484,6 @@ namespace SBC {
    }
    
    std::string Outflow::getName() const {return "Outflow";}
-   uint Outflow::getIndex() const {return sysboundarytype::OUTFLOW;}
+   uint Outflow::getIndex() const {return boundarytype::OUTFLOW;}
       
 }

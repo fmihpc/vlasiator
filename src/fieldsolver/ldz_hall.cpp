@@ -744,11 +744,11 @@ void calculateHallTerm(
    }
    #endif
    
-   cuint cellSysBoundaryFlag = technicalGrid.get(i,j,k)->sysBoundaryFlag;
+   cuint cellSysBoundaryFlag = technicalGrid.get(i,j,k)->boundaryFlag;
    
-   if (cellSysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) return;
+   if (cellSysBoundaryFlag == boundarytype::DO_NOT_COMPUTE) return;
    
-   cuint cellSysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
+   cuint cellSysBoundaryLayer = technicalGrid.get(i,j,k)->boundaryLayer;
    
    Real perturbedCoefficients[Rec::N_REC_COEFFICIENTS];
 
@@ -762,7 +762,7 @@ void calculateHallTerm(
       3 // Reconstruction order of the fields after Balsara 2009, 2 used for general B, 3 used here for 2nd-order Hall term
    );
 
-   if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) && (cellSysBoundaryLayer != 1)) {
+   if ((cellSysBoundaryFlag != boundarytype::NOT_BOUNDARY) && (cellSysBoundaryLayer != 1)) {
       sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 0);
       sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 1);
       sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 2);

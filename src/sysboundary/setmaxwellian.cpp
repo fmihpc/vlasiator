@@ -21,7 +21,7 @@
  */
 
 /*!\file setmaxwellian.cpp
- * \brief Implementation of the class SysBoundaryCondition::SetMaxwellian to handle cells classified as sysboundarytype::MAXWELLIAN.
+ * \brief Implementation of the class SysBoundaryCondition::SetMaxwellian to handle cells classified as boundarytype::MAXWELLIAN.
  */
 
 #include <cstdlib>
@@ -217,8 +217,8 @@ namespace SBC {
       Real rho, T, Vx, Vy, Vz, Bx=0.0, By=0.0, Bz=0.0, buffer[8];
       
       
-      templateCell.sysBoundaryFlag = this->getIndex();
-      templateCell.sysBoundaryLayer = 1;
+      templateCell.boundaryFlag = this->getIndex();
+      templateCell.boundaryLayer = 1;
       
       templateCell.parameters[CellParams::XCRD] = 0.0;
       templateCell.parameters[CellParams::YCRD] = 0.0;
@@ -337,6 +337,6 @@ namespace SBC {
    }
    
    string SetMaxwellian::getName() const {return "SetMaxwellian";}
-   uint SetMaxwellian::getIndex() const {return sysboundarytype::SET_MAXWELLIAN;}
+   uint SetMaxwellian::getIndex() const {return boundarytype::SET_MAXWELLIAN;}
    
 } // namespace SBC

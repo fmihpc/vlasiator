@@ -135,7 +135,7 @@ template< unsigned int numFields > void getFieldDataFromFsGrid(
       int nCellsToSum = 0;
       
       for(int iCell = 0; iCell < nCells; ++iCell) {
-         if ((transferBufferPointerTechnical[i] + iCell)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+         if ((transferBufferPointerTechnical[i] + iCell)->boundaryFlag == boundarytype::DO_NOT_COMPUTE) {
             continue;
          } else {
             nCellsToSum++;

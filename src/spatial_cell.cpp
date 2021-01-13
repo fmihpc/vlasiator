@@ -39,7 +39,7 @@ namespace spatial_cell {
 
    SpatialCell::SpatialCell() {
       // Block list and cache always have room for all blocks
-      this->sysBoundaryLayer=0; // Default value, layer not yet initialized
+      this->boundaryLayer=0; // Default value, layer not yet initialized
       for (unsigned int i=0; i<WID3; ++i) null_block_data[i] = 0.0;
 
       // reset spatial cell parameters
@@ -73,8 +73,8 @@ namespace spatial_cell {
    }
 
    SpatialCell::SpatialCell(const SpatialCell& other):
-     sysBoundaryFlag(other.sysBoundaryFlag),
-     sysBoundaryLayer(other.sysBoundaryLayer),
+     boundaryFlag(other.boundaryFlag),
+     boundaryLayer(other.boundaryLayer),
      velocity_block_with_content_list(other.velocity_block_with_content_list),
      velocity_block_with_no_content_list(other.velocity_block_with_no_content_list),
      initialized(other.initialized),
@@ -590,7 +590,7 @@ namespace spatial_cell {
 
       // create datatype for actual data if we are in the first two 
       // layers around a boundary, or if we send for the whole system
-      if (this->mpiTransferEnabled && (SpatialCell::mpiTransferAtSysBoundaries==false || this->sysBoundaryLayer ==1 || this->sysBoundaryLayer ==2 )) {
+      if (this->mpiTransferEnabled && (SpatialCell::mpiTransferAtSysBoundaries==false || this->boundaryLayer ==1 || this->boundaryLayer ==2 )) {
          //add data to send/recv to displacement and block length lists
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST_STAGE1) != 0) {
             //first copy values in case this is the send operation
@@ -727,11 +727,11 @@ namespace spatial_cell {
             block_lengths.push_back(sizeof(Real) * 3);
          }
          
-         // send  sysBoundaryFlag
+         // send  boundaryFlag
          if ((SpatialCell::mpi_transfer_type & Transfer::CELL_SYSBOUNDARYFLAG)!=0){
-            displacements.push_back((uint8_t*) &(this->sysBoundaryFlag) - (uint8_t*) this);
+            displacements.push_back((uint8_t*) &(this->boundaryFlag) - (uint8_t*) this);
             block_lengths.push_back(sizeof(uint));
-            displacements.push_back((uint8_t*) &(this->sysBoundaryLayer) - (uint8_t*) this);
+            displacements.push_back((uint8_t*) &(this->boundaryLayer) - (uint8_t*) this);
             block_lengths.push_back(sizeof(uint));
          }
          

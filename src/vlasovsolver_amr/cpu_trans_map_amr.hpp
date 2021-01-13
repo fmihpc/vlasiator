@@ -56,8 +56,8 @@ static Realf tempSource[(WID+2*PAD)*(WID+2*PAD)*(WID+2*PAD)];
 
 //Is cell translated? It is not translated if DO_NO_COMPUTE or if it is sysboundary cell and not in first sysboundarylayer
 bool do_translate_cell(SpatialCell* SC) {
-   if (SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-      (SC->sysBoundaryLayer != 1 && SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY))
+   if (SC->boundaryFlag == boundarytype::DO_NOT_COMPUTE ||
+      (SC->boundaryLayer != 1 && SC->boundaryFlag != boundarytype::NOT_BOUNDARY))
      return false;
    else
      return true;
@@ -124,20 +124,20 @@ CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geom
    }
 
    // not existing cell or do not compute       
-   if( mpiGrid[nbrID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE)
+   if( mpiGrid[nbrID]->boundaryFlag == boundarytype::DO_NOT_COMPUTE)
       return INVALID_CELLID; 
 
    //cell on boundary, but not first layer and we want to include
    //first layer (e.g. when we compute source cells)
    if( include_first_boundary_layer &&
-       mpiGrid[nbrID]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
-       mpiGrid[nbrID]->sysBoundaryLayer != 1 ) {
+       mpiGrid[nbrID]->boundaryFlag != boundarytype::NOT_BOUNDARY &&
+       mpiGrid[nbrID]->boundaryLayer != 1 ) {
       return INVALID_CELLID;
    }
    //cell on boundary, and we want none of the layers,
    //invalid.(e.g. when we compute targets)
    if( !include_first_boundary_layer &&
-       mpiGrid[nbrID]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY){
+       mpiGrid[nbrID]->boundaryFlag != boundarytype::NOT_BOUNDARY){
       return INVALID_CELLID;
    }
 
@@ -470,7 +470,7 @@ bool trans_prepare_block_data(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    bool return_value=false;
    SpatialCell* spatial_cell = mpiGrid[cellID];   
    // if we are on boundary then we do not set the data values to zero as these cells should not be updated
-   const bool is_boundary = (spatial_cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY);
+   const bool is_boundary = (spatial_cell->boundaryFlag != boundarytype::NOT_BOUNDARY);
    // if the cell is remote, then we do no copy data to the fx table, it should already have been set there
    const bool is_local = mpiGrid.is_local(cellID);
    
@@ -884,7 +884,7 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell,dccrg::Cartesia
          send_cells.push_back(p_ngbr);
       }
       
-      if (m_ngbr != INVALID_CELLID && !mpiGrid.is_local(m_ngbr) && ccell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+      if (m_ngbr != INVALID_CELLID && !mpiGrid.is_local(m_ngbr) && ccell->boundaryFlag == boundarytype::NOT_BOUNDARY) {
          //Receive data that mcell mapped to ccell to this local cell
          //fx array, if 1) m is a valid source cell, 2) center cell is to be updated (normal cell) 3)  m is remote
          mcell->neighbor_block_data = &(ccell->get_fx()[0]);

@@ -21,7 +21,7 @@
  */
 
 /*!\file ionosphere.cpp
- * \brief Implementation of the class SysBoundaryCondition::Ionosphere to handle cells classified as sysboundarytype::IONOSPHERE.
+ * \brief Implementation of the class SysBoundaryCondition::Ionosphere to handle cells classified as boundarytype::IONOSPHERE.
  */
 
 #include <cstdlib>
@@ -196,7 +196,7 @@ namespace SBC {
                                       FsGrid< fsgrids::technical, 2> & technicalGrid) {
       vector<CellID> cells = mpiGrid.get_cells();
       for(uint i=0; i<cells.size(); i++) {
-         if(mpiGrid[cells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+         if(mpiGrid[cells[i]]->boundaryFlag == boundarytype::DO_NOT_COMPUTE) {
             continue;
          }
          
@@ -209,7 +209,7 @@ namespace SBC {
          creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
          
          if(getR(x,y,z,this->geometry,this->center) < this->radius) {
-            mpiGrid[cells[i]]->sysBoundaryFlag = this->getIndex();
+            mpiGrid[cells[i]]->boundaryFlag = this->getIndex();
          }
       }
 
@@ -227,7 +227,7 @@ namespace SBC {
                cellCenterCoords[2] += 0.5 * technicalGrid.DZ;
 
                if(getR(cellCenterCoords[0],cellCenterCoords[1],cellCenterCoords[2],this->geometry,this->center) < this->radius) {
-                  technicalGrid.get(i,j,k)->sysBoundaryFlag = this->getIndex();
+                  technicalGrid.get(i,j,k)->boundaryFlag = this->getIndex();
                }
 
             }
@@ -246,7 +246,7 @@ namespace SBC {
       #pragma omp parallel for
       for (uint i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
-         if (cell->sysBoundaryFlag != this->getIndex()) continue;
+         if (cell->boundaryFlag != this->getIndex()) continue;
          
          for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
             setCellFromTemplate(cell,popID);
@@ -542,7 +542,7 @@ namespace SBC {
       creal& dt,
       cuint& component
    ) {
-      if (technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) {
+      if (technicalGrid.get(i,j,k)->boundaryLayer == 1) {
          switch(component) {
             case 0:
                if (  ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BX) == compute::BX)
@@ -692,7 +692,7 @@ namespace SBC {
          for (int a=i-1; a<i+2; a++) {
             for (int b=j-1; b<j+2; b++) {
                for (int c=k-1; c<k+2; c++) {
-                  if (technicalGrid.get(a,b,c)->sysBoundaryLayer == 1) {
+                  if (technicalGrid.get(a,b,c)->boundaryLayer == 1) {
                      retval += bGrid.get(a,b,c)->at(fsgrids::bfield::PERBX + component);
                      nCells++;
                   }
@@ -800,8 +800,8 @@ namespace SBC {
     */
    void Ionosphere::generateTemplateCell(Project &project) {
       // WARNING not 0.0 here or the dipole() function fails miserably.
-      templateCell.sysBoundaryFlag = this->getIndex();
-      templateCell.sysBoundaryLayer = 1;
+      templateCell.boundaryFlag = this->getIndex();
+      templateCell.boundaryLayer = 1;
       templateCell.parameters[CellParams::XCRD] = 1.0;
       templateCell.parameters[CellParams::YCRD] = 1.0;
       templateCell.parameters[CellParams::ZCRD] = 1.0;
@@ -969,5 +969,5 @@ namespace SBC {
 
    std::string Ionosphere::getName() const {return "Ionosphere";}
    
-   uint Ionosphere::getIndex() const {return sysboundarytype::IONOSPHERE;}
+   uint Ionosphere::getIndex() const {return boundarytype::IONOSPHERE;}
 }

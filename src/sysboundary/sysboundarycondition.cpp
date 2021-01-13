@@ -214,7 +214,7 @@ namespace SBC {
       }
    }
    
-   /*! Function used to copy the distribution and moments from (one of) the closest sysboundarytype::NOT_SYSBOUNDARY cell.
+   /*! Function used to copy the distribution and moments from (one of) the closest boundarytype::NOT_BOUNDARY cell.
     * \param mpiGrid Grid
     * \param cellID The cell's ID.
     * \param copyMomentsOnly If true, do not touch velocity space.
@@ -236,7 +236,7 @@ namespace SBC {
       copyCellData(mpiGrid[closestCell],mpiGrid[cellID], copyMomentsOnly, popID, calculate_V_moments);
    }
    
-   /*! Function used to average and copy the distribution and moments from all the closest sysboundarytype::NOT_SYSBOUNDARY cells.
+   /*! Function used to average and copy the distribution and moments from all the closest boundarytype::NOT_BOUNDARY cells.
     * \param mpiGrid Grid
     * \param cellID The cell's ID.
     */
@@ -253,7 +253,7 @@ namespace SBC {
       averageCellData(mpiGrid, closestCells, mpiGrid[cellID], popID, calculate_V_moments);
    }
    
-   /*! Function used to average and copy the distribution and moments from all the close sysboundarytype::NOT_SYSBOUNDARY cells.
+   /*! Function used to average and copy the distribution and moments from all the close boundarytype::NOT_BOUNDARY cells.
     * \param mpiGrid Grid
     * \param cellID The cell's ID.
     */
@@ -270,7 +270,7 @@ namespace SBC {
       averageCellData(mpiGrid, closeCells, mpiGrid[cellID], popID, calculate_V_moments, fluffiness);
    }
    
-   /*! Function used to copy the distribution from (one of) the closest sysboundarytype::NOT_SYSBOUNDARY cell but limiting to values no higher than where it can flow into. Moments are recomputed.
+   /*! Function used to copy the distribution from (one of) the closest boundarytype::NOT_BOUNDARY cell but limiting to values no higher than where it can flow into. Moments are recomputed.
     * \param mpiGrid Grid
     * \param cellID The cell's ID.
     */
@@ -620,7 +620,7 @@ namespace SBC {
                for(int k=-2; k<3; k++) {
                   const CellID cell = getNeighbour(mpiGrid,cellId,i,j,k);
                   if(cell != INVALID_CELLID) {
-                     if(mpiGrid[cell]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+                     if(mpiGrid[cell]->boundaryFlag == boundarytype::NOT_BOUNDARY) {
                         cuint d2 = i*i+j*j+k*k;
                         if(d2 < dist) {
                            dist = d2;
@@ -630,10 +630,10 @@ namespace SBC {
                         if(d2 < 4 && i != 0 && j != 0 && k != 0) {
                            flowtoCells.at(i + 3*j + 9*k + 13) = mpiGrid[cell];
                         }
-                        if(mpiGrid[cellId]->sysBoundaryLayer == 1 && abs(i) < 2 && abs(j) < 2 && abs(k) < 2) {
+                        if(mpiGrid[cellId]->boundaryLayer == 1 && abs(i) < 2 && abs(j) < 2 && abs(k) < 2) {
                            closeCells.push_back(cell);
                         }
-                        if(mpiGrid[cellId]->sysBoundaryLayer == 2) {
+                        if(mpiGrid[cellId]->boundaryLayer == 2) {
                            closeCells.push_back(cell);
                         }
                      }
@@ -645,7 +645,7 @@ namespace SBC {
                for(int k=-2; k<3; k++) {
                   const CellID cell = getNeighbour(mpiGrid,cellId,i,j,k);
                   if(cell != INVALID_CELLID) {
-                     if(mpiGrid[cell]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+                     if(mpiGrid[cell]->boundaryFlag == boundarytype::NOT_BOUNDARY) {
                         cuint d2 = i*i+j*j+k*k;
                         if(d2 == dist) {
                            closestCells.push_back(cell);
@@ -659,7 +659,7 @@ namespace SBC {
       return true;
    }
    
-   /*! Get the cellID of the first closest cell of type NOT_SYSBOUNDARY found.
+   /*! Get the cellID of the first closest cell of type NOT_BOUNDARY found.
     * \param i,j,k Coordinates of the cell to start looking from
     * \return The cell index of that cell
     * \sa getAllClosestNonsysboundaryCells
@@ -674,7 +674,7 @@ namespace SBC {
       return closestCells.at(0);
    }
    
-   /*! Get the cellIDs of all the closest cells of type NOT_SYSBOUNDARY.
+   /*! Get the cellIDs of all the closest cells of type NOT_BOUNDARY.
     * \param i,j,k Coordinates of the cell to start looking from
     * \return The vector of cell indices of those cells
     * \sa getTheClosestNonsysboundaryCell
@@ -691,7 +691,7 @@ namespace SBC {
       for (int kk=-2; kk<3; kk++) {
          for (int jj=-2; jj<3; jj++) {
             for (int ii=-2; ii<3 ; ii++) {
-               if( technicalGrid.get(i+ii,j+jj,k+kk) && technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+               if( technicalGrid.get(i+ii,j+jj,k+kk) && technicalGrid.get(i+ii,j+jj,k+kk)->boundaryFlag == boundarytype::NOT_BOUNDARY) {
                   distance = min(distance, ii*ii + jj*jj + kk*kk);
                }
             }
@@ -701,7 +701,7 @@ namespace SBC {
       for (int kk=-2; kk<3; kk++) {
          for (int jj=-2; jj<3; jj++) {
             for (int ii=-2; ii<3 ; ii++) {
-               if( technicalGrid.get(i+ii,j+jj,k+kk) && technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+               if( technicalGrid.get(i+ii,j+jj,k+kk) && technicalGrid.get(i+ii,j+jj,k+kk)->boundaryFlag == boundarytype::NOT_BOUNDARY) {
                   int d = ii*ii + jj*jj + kk*kk;
                   if( d == distance ) {
                      std::array<int, 3> cell = {i+ii, j+jj, k+kk};
@@ -720,7 +720,7 @@ namespace SBC {
       return closestCells;
    }
    
-   /*! Get the cellID of the first closest cell of type NOT_SYSBOUNDARY found.
+   /*! Get the cellID of the first closest cell of type NOT_BOUNDARY found.
     * \param cellID ID of the cell to start look from.
     * \return The cell index of that cell
     * \sa getAllClosestNonsysboundaryCells
@@ -732,7 +732,7 @@ namespace SBC {
       return closestCells.at(0);
    }
    
-   /*! Get the cellIDs of all the closest cells of type NOT_SYSBOUNDARY.
+   /*! Get the cellIDs of all the closest cells of type NOT_BOUNDARY.
     * \param cellID ID of the cell to start look from.
     * \return The vector of cell indices of those cells
     * \sa getTheClosestNonsysboundaryCell
@@ -744,7 +744,7 @@ namespace SBC {
       return closestCells;
    }
    
-   /*! Get the cellIDs of all the close cells of type NOT_SYSBOUNDARY.
+   /*! Get the cellIDs of all the close cells of type NOT_BOUNDARY.
     * \param cellID ID of the cell to start look from.
     * \return The vector of cell indices of those cells
     */
@@ -755,7 +755,7 @@ namespace SBC {
       return closeCells;
    }
    
-   /*! Get the cellIDs of all flowto cells (cells into which the velocity distribution can flow and which is of type NOT_SYSBOUNDARY).
+   /*! Get the cellIDs of all flowto cells (cells into which the velocity distribution can flow and which is of type NOT_BOUNDARY).
     * \param cellID ID of the cell to start look from.
     * \return The vector of cell indices of those cells
     */
@@ -803,7 +803,7 @@ namespace SBC {
             for (int ii=-2; ii<3 ; ii++) {
                if( technicalGrid.get(i+ii,j+jj,k+kk) // skip invalid cells returning NULL
                    && (technicalGrid.get(i+ii,j+jj,k+kk)->SOLVE & mask) == mask // Did that guy solve this component?
-                   && technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE // Do not copy from there
+                   && technicalGrid.get(i+ii,j+jj,k+kk)->boundaryFlag != boundarytype::DO_NOT_COMPUTE // Do not copy from there
                ) {
                   distance = min(distance, ii*ii + jj*jj + kk*kk);
                }
@@ -816,7 +816,7 @@ namespace SBC {
             for (int ii=-2; ii<3 ; ii++) {
                if( technicalGrid.get(i+ii,j+jj,k+kk) // skip invalid cells returning NULL
                    && (technicalGrid.get(i+ii,j+jj,k+kk)->SOLVE & mask) == mask // Did that guy solve this component?
-                   && technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE // Do not copy from there
+                   && technicalGrid.get(i+ii,j+jj,k+kk)->boundaryFlag != boundarytype::DO_NOT_COMPUTE // Do not copy from there
                ) {
                   int d = ii*ii + jj*jj + kk*kk;
                   if( d == distance ) {

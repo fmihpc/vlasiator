@@ -243,7 +243,7 @@ void initializeGrids(
       #pragma omp parallel for schedule(dynamic)
       for (size_t i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
-         if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+         if (cell->boundaryFlag == boundarytype::NOT_BOUNDARY) {
             project.setCell(cell);
          }
       }

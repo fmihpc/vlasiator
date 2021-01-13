@@ -74,7 +74,7 @@ namespace projects {
       virtual void setupBeforeSetCell(const std::vector<CellID>& cells);
 
       /*!\brief Set the perturbed fields and distribution of a cell according to the default simulation settings.
-       * This is used for the NOT_SYSBOUNDARY cells and some other system boundary conditions (e.g. Outflow).
+       * This is used for the NOT_BOUNDARY cells and some other system boundary conditions (e.g. Outflow).
        * NOTE: This function is called inside parallel region so it must be declared as const.
        * \param cell Pointer to the cell to set.
        */

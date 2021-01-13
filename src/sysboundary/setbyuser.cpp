@@ -89,7 +89,7 @@ bool SetByUser::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geo
    vector<CellID> cells = mpiGrid.get_cells();
    for (uint i = 0; i < cells.size(); i++)
    {
-      if (mpiGrid[cells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+      if (mpiGrid[cells[i]]->boundaryFlag == boundarytype::DO_NOT_COMPUTE) continue;
       creal *const cellParams = &(mpiGrid[cells[i]]->parameters[0]);
       creal dx = cellParams[CellParams::DX];
       creal dy = cellParams[CellParams::DY];
@@ -106,7 +106,7 @@ bool SetByUser::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geo
          doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
       if (doAssign)
       {
-         mpiGrid[cells[i]]->sysBoundaryFlag = this->getIndex();
+         mpiGrid[cells[i]]->boundaryFlag = this->getIndex();
       }
    }
 
@@ -146,7 +146,7 @@ bool SetByUser::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geo
                doAssign = doAssign || (facesToProcess[iface] && isThisCellOnAFace[iface]);
             if (doAssign)
             {
-               technicalGrid.get(i, j, k)->sysBoundaryFlag = this->getIndex();
+               technicalGrid.get(i, j, k)->boundaryFlag = this->getIndex();
             }
          }
       }
@@ -321,7 +321,7 @@ bool SetByUser::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cart
    for (size_t c = 0; c < cells.size(); c++)
    {
       SpatialCell *cell = mpiGrid[cells[c]];
-      if (cell->sysBoundaryFlag != this->getIndex()) continue;
+      if (cell->boundaryFlag != this->getIndex()) continue;
 
       creal dx = cell->parameters[CellParams::DX];
       creal dy = cell->parameters[CellParams::DY];

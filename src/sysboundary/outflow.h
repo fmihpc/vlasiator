@@ -48,8 +48,8 @@ namespace SBC {
     * Outflow is a class handling cells tagged as sysboundarytype::OUTFLOW by this system boundary condition. It applies copy/outflow boundary conditions.
     * 
     * These consist in:
-    * - Copy the distribution and moments from the nearest NOT_SYSBOUNDARY cell;
-    * - Copy the perturbed B components from the nearest NOT_SYSBOUNDARY cell. EXCEPTION: the face components adjacent to the simulation domain at the +x/+y/+z faces are propagated still.
+    * - Copy the distribution and moments from the nearest NOT_BOUNDARY cell;
+    * - Copy the perturbed B components from the nearest NOT_BOUNDARY cell. EXCEPTION: the face components adjacent to the simulation domain at the +x/+y/+z faces are propagated still.
     */
    class Outflow: public SysBoundaryCondition {
    public:

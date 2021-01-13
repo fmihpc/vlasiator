@@ -150,14 +150,14 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mp
          }
       }
 
-      if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
-          (cell->sysBoundaryLayer == 1 && cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY))
+      if (cell->boundaryFlag == boundarytype::NOT_BOUNDARY ||
+          (cell->boundaryLayer == 1 && cell->boundaryFlag != boundarytype::NOT_BOUNDARY))
       {
          // Spatial fluxes computed also for boundary cells
          dtMaxLocal[0] = min(dtMaxLocal[0], cell->parameters[CellParams::MAXRDT]);
       }
 
-      if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY && cell->parameters[CellParams::MAXVDT] != 0)
+      if (cell->boundaryFlag == boundarytype::NOT_BOUNDARY && cell->parameters[CellParams::MAXVDT] != 0)
       {
          // Acceleration only done on non-sysboundary cells
          dtMaxLocal[1] = min(dtMaxLocal[1], cell->parameters[CellParams::MAXVDT]);
@@ -173,8 +173,8 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mp
          for (int i = 0; i < gridDims[0]; i++)
          {
             fsgrids::technical *cell = technicalGrid.get(i, j, k);
-            if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
-                (cell->sysBoundaryLayer == 1 && cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY))
+            if (cell->boundaryFlag == boundarytype::NOT_BOUNDARY ||
+                (cell->boundaryLayer == 1 && cell->boundaryFlag != boundarytype::NOT_BOUNDARY))
             {
                dtMaxLocal[2] = min(dtMaxLocal[2], cell->maxFsDt);
             }

@@ -47,7 +47,7 @@ void calculateVolumeAveragedFields(
    for (int k=0; k<gridDims[2]; k++) {
       for (int j=0; j<gridDims[1]; j++) {
          for (int i=0; i<gridDims[0]; i++) {
-            if(technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+            if(technicalGrid.get(i,j,k)->boundaryFlag == boundarytype::DO_NOT_COMPUTE) continue;
             
             Real perturbedCoefficients[Rec::N_REC_COEFFICIENTS];
             std::array<Real, fsgrids::volfields::N_VOL> * volGrid0 = volGrid.get(i,j,k);
@@ -70,8 +70,8 @@ void calculateVolumeAveragedFields(
 
             // Calculate volume average of E (FIXME NEEDS IMPROVEMENT):
             std::array<Real, fsgrids::efield::N_EFIELD> * EGrid_i1j1k1 = EGrid.get(i,j,k);
-            if ( technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
-                (technicalGrid.get(i,j,k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && technicalGrid.get(i,j,k)->sysBoundaryLayer == 1)
+            if ( technicalGrid.get(i,j,k)->boundaryFlag == boundarytype::NOT_BOUNDARY ||
+                (technicalGrid.get(i,j,k)->boundaryFlag != boundarytype::NOT_BOUNDARY && technicalGrid.get(i,j,k)->boundaryLayer == 1)
             ) {
                #ifdef DEBUG_FSOLVER
                bool ok = true;
@@ -99,8 +99,8 @@ void calculateVolumeAveragedFields(
                volGrid0->at(fsgrids::volfields::EXVOL) = 0.0;
             }
 
-            if ( technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
-                 (technicalGrid.get(i,j,k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && technicalGrid.get(i,j,k)->sysBoundaryLayer == 1)
+            if ( technicalGrid.get(i,j,k)->boundaryFlag == boundarytype::NOT_BOUNDARY ||
+                 (technicalGrid.get(i,j,k)->boundaryFlag != boundarytype::NOT_BOUNDARY && technicalGrid.get(i,j,k)->boundaryLayer == 1)
             ) {
                #ifdef DEBUG_FSOLVER
                bool ok = true;
@@ -128,8 +128,8 @@ void calculateVolumeAveragedFields(
                volGrid0->at(fsgrids::volfields::EYVOL) = 0.0;
             }
 
-            if ( technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
-                (technicalGrid.get(i,j,k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && technicalGrid.get(i,j,k)->sysBoundaryLayer == 1)
+            if ( technicalGrid.get(i,j,k)->boundaryFlag == boundarytype::NOT_BOUNDARY ||
+                (technicalGrid.get(i,j,k)->boundaryFlag != boundarytype::NOT_BOUNDARY && technicalGrid.get(i,j,k)->boundaryLayer == 1)
             ) {
                #ifdef DEBUG_FSOLVER
                bool ok = true;
