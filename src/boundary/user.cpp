@@ -50,8 +50,8 @@ User::~User() {}
 
 bool User::initBoundary(creal &t, Project &project)
 {
-   /* The array of bool describes which of the x+, x-, y+, y-, z+, z- faces are to have user-set system boundary
-    * conditions. A true indicates the corresponding face will have user-set system boundary conditions. The 6 elements
+   /* The array of bool describes which of the x+, x-, y+, y-, z+, z- faces are to have user-set boundary
+    * conditions. A true indicates the corresponding face will have user-set boundary conditions. The 6 elements
     * correspond to x+, x-, y+, y-, z+, z- respectively.
     */
    bool success = true;

@@ -37,9 +37,9 @@ namespace BC
 /*!\brief SetMaxwellian is a class applying fixed Maxwellian conditions according to parameters read from an input file.
  *
  * Maxwellian is a class handling cells tagged as boundarytype::MAXWELLIAN by this
- * system boundary condition.
+ * boundary condition.
  *
- * It applies fixed Maxwellian settings to the system boundary cells, the parameters of
+ * It applies fixed Maxwellian settings to the boundary cells, the parameters of
  * which are being read from an input file.
  *
  * The class inherits most of its machinery from

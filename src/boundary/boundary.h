@@ -85,11 +85,11 @@ private:
 
    /*! A container for all BC::BoundaryConditions stored in Boundary.*/
    std::list<BC::BoundaryCondition *> boundaries;
-   /*! A map from the system boundary types to the corresponding class member. */
+   /*! A map from the boundary types to the corresponding class member. */
    std::map<uint, BC::BoundaryCondition *> indexToBoundary;
-   /*! List of system boundary conditions (BC) to be used. */
+   /*! List of boundary conditions (BC) to be used. */
    std::vector<std::string> boundaryCondList;
-   /*! bool telling whether any system boundary condition is dynamic in time (and thus needs updating). */
+   /*! bool telling whether any boundary condition is dynamic in time (and thus needs updating). */
    bool isThisDynamic;
 
    /*! Array of bool telling whether the system is periodic in any direction. */

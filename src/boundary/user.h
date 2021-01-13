@@ -48,7 +48,7 @@ struct UserSpeciesParameters
    uint nParams;
 };
 
-/*!\brief Base class for system boundary conditions with user-set settings and parameters read from file.
+/*!\brief Base class for boundary conditions with user-set settings and parameters read from file.
  *
  * User is a base class for e.g. BoundaryConditon::SetMaxwellian.
  * It defines the managing functions to set boundary conditions on the faces of the
@@ -110,7 +110,7 @@ protected:
    bool setBFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                          FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid);
 
-   /*! Array of bool telling which faces are going to be processed by the system boundary condition.*/
+   /*! Array of bool telling which faces are going to be processed by the boundary condition.*/
    bool facesToProcess[6];
    /*! Array of template spatial cells replicated over the corresponding simulation volume face. Only the template for
     * an active face is actually being touched at all by the code. */

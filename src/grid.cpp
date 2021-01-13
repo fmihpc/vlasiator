@@ -160,20 +160,20 @@ void initializeGrids(
    initSpatialCellCoordinates(mpiGrid);
    phiprof::stop("Set spatial cell coordinates");
    
-   phiprof::start("Initialize system boundary conditions");
+   phiprof::start("Initialize boundary conditions");
    if(boundaries.initBoundaries(project, P::t_min) == false) {
-      if (myRank == MASTER_RANK) cerr << "Error in initialising the system boundaries." << endl;
+      if (myRank == MASTER_RANK) cerr << "Error in initialising the boundaries." << endl;
       exit(1);
    }
-   phiprof::stop("Initialize system boundary conditions");
+   phiprof::stop("Initialize boundary conditions");
    
-   // Initialise system boundary conditions (they need the initialised positions!!)
-   phiprof::start("Classify cells (sys boundary conditions)");
+   // Initialise boundary conditions (they need the initialised positions!!)
+   phiprof::start("Classify cells (boundary conditions)");
    if(boundaries.classifyCells(mpiGrid,technicalGrid) == false) {
-      cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
+      cerr << "(MAIN) ERROR: boundary conditions were not set correctly." << endl;
       exit(1);
    }
-   phiprof::stop("Classify cells (sys boundary conditions)");
+   phiprof::stop("Classify cells (boundary conditions)");
 
 
    // Check refined cells do not touch boundary cells
@@ -193,13 +193,13 @@ void initializeGrids(
       }
       phiprof::stop("Read restart");
    
-      //initial state for sys-boundary cells, will skip those not set to be reapplied at restart
-      phiprof::start("Apply system boundary conditions state");
+      //initial state for boundary cells, will skip those not set to be reapplied at restart
+      phiprof::start("Apply boundary conditions state");
       if (boundaries.applyInitialState(mpiGrid, perBGrid, project) == false) {
-         cerr << " (MAIN) ERROR: System boundary conditions initial state was not applied correctly." << endl;
+         cerr << " (MAIN) ERROR: boundary conditions initial state was not applied correctly." << endl;
          exit(1);
       }
-      phiprof::stop("Apply system boundary conditions state");
+      phiprof::stop("Apply boundary conditions state");
    }
 
   if (P::amrMaxSpatialRefLevel>0) {
@@ -249,14 +249,14 @@ void initializeGrids(
       }
       phiprof::stop("setCell");
       
-      // Initial state for sys-boundary cells
+      // Initial state for boundary cells
       phiprof::stop("Apply initial state");
-      phiprof::start("Apply system boundary conditions state");
+      phiprof::start("Apply boundary conditions state");
       if (boundaries.applyInitialState(mpiGrid, perBGrid, project) == false) {
-         cerr << " (MAIN) ERROR: System boundary conditions initial state was not applied correctly." << endl;
+         cerr << " (MAIN) ERROR: boundary conditions initial state was not applied correctly." << endl;
          exit(1);
       }
-      phiprof::stop("Apply system boundary conditions state");
+      phiprof::stop("Apply boundary conditions state");
       
       for (size_t i=0; i<cells.size(); ++i) {
          mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
@@ -558,9 +558,9 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, B
       updateRemoteVelocityBlockLists(mpiGrid,popID);
    phiprof::stop("update block lists");
 
-   phiprof::start("update sysboundaries");
+   phiprof::start("update boundaries");
    boundaries.updateBoundariesAfterLoadBalance( mpiGrid );
-   phiprof::stop("update sysboundaries");
+   phiprof::stop("update boundaries");
 
    phiprof::start("Init solvers");
    // Initialize field propagator (only if in use):

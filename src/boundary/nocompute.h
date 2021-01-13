@@ -36,7 +36,7 @@ namespace BC
 /*!\brief NoCompute is a class handling cells not to be computed.
  *
  * NoCompute is a class handling cells tagged as boundarytype::NO_COMPUTE by a
- * system boundary condition (e.g. BoundaryCondition::Ionosphere).
+ * boundary condition (e.g. BoundaryCondition::Ionosphere).
  */
 class NoCompute : public BoundaryCondition
 {

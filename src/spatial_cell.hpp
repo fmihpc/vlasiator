@@ -330,7 +330,7 @@ namespace spatial_cell {
                                                                                * cell block data. We do not allocate memory for the pointer.*/
       std::array<vmesh::LocalID,MAX_NEIGHBORS_PER_DIM> neighbor_number_of_blocks;
       std::map<int,std::set<int>> face_neighbor_ranks;
-      uint boundaryFlag;                                                   /**< What type of system boundary does the cell belong to. 
+      uint boundaryFlag;                                                   /**< What type of boundary does the cell belong to. 
                                                                                * Enumerated in the boundarytype namespace's enum.*/
       uint boundaryLayer;                                                  /**< Layers counted from closest systemBoundary. If 0 then it has not 
                                                                                * been computed. First boundary layer is layer 1.*/

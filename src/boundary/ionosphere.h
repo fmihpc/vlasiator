@@ -47,13 +47,13 @@ struct IonosphereSpeciesParameters
 
 /*!\brief Ionosphere is a class applying ionospheric boundary conditions.
  *
- * Ionosphere is a class handling cells tagged as boundarytype::IONOSPHERE by this system boundary condition. It applies
- * ionospheric boundary conditions.
+ * Ionosphere is a class handling cells tagged as boundarytype::IONOSPHERE by
+ * this boundary condition. It applies ionospheric boundary conditions.
  *
  * These consist in:
  * - Do nothing for the distribution (keep the initial state constant in time);
- * - Keep only the normal perturbed B component and null out the other perturbed components (perfect conductor
- * behavior);
+ * - Keep only the normal perturbed B component and null out the other perturbed
+ * components (perfect conductor behavior);
  * - Null out the electric fields.
  */
 class Ionosphere : public BoundaryCondition

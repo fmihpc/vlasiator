@@ -156,7 +156,7 @@ protected:
                                                      FsGrid<fsgrids::technical, 2> &technicalGrid, cint i, cint j,
                                                      cint k, cuint component, cuint mask);
 
-   /*! Precedence value of the system boundary condition. */
+   /*! Precedence value of the boundary condition. */
    uint precedence;
    /*! Is the boundary condition dynamic in time or not. */
    bool isThisDynamic;

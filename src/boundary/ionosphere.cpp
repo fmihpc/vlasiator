@@ -63,7 +63,7 @@ void Ionosphere::addParameters()
                        2);
    Readparameters::add(
        "ionosphere.precedence",
-       "Precedence value of the ionosphere system boundary condition (integer), the higher the stronger.", 2);
+       "Precedence value of the ionosphere boundary condition (integer), the higher the stronger.", 2);
    Readparameters::add("ionosphere.reapplyUponRestart",
                        "If 0 (default), keep going with the state existing in the restart file. If 1, calls again "
                        "applyInitialState. Can be used to change boundary condition behaviour during a run.",

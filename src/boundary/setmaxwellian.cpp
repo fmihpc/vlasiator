@@ -43,7 +43,7 @@ void SetMaxwellian::addParameters()
        "maxwellian.face", "List of faces on which set Maxwellian boundary conditions are to be applied ([xyz][+-]).");
    Readparameters::add(
        "maxwellian.precedence",
-       "Precedence value of the set Maxwellian system boundary condition (integer), the higher the stronger.", 3);
+       "Precedence value of the set Maxwellian boundary condition (integer), the higher the stronger.", 3);
    Readparameters::add("maxwellian.reapplyUponRestart",
                        "If 0 (default), keep going with the state existing in the restart file. If 1, calls again "
                        "applyInitialState. Can be used to change boundary condition behaviour during a run.",
@@ -186,7 +186,7 @@ std::vector<vmesh::GlobalID> SetMaxwellian::findBlocksToInitialize(const uint po
 
 /*!\brief Generate the template cell for the face corresponding to the index passed.
  * This function generates a spatial cell which is to be used as a template for the
- * system boundary condition.
+ * boundary condition.
  * \param templateCell Address of the template cell to be generated.
  * \param inputDataIndex Index used for the location of the input data.
  * \param t Current simulation time.

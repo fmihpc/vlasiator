@@ -34,7 +34,7 @@ namespace BC
 
 struct OutflowSpeciesParameters
 {
-   /*! Array of bool telling which faces are going to be skipped by the Vlasov system boundary condition.*/
+   /*! Array of bool telling which faces are going to be skipped by the Vlasov boundary condition.*/
    std::array<bool, 6> facesToSkipVlasov;
    /*! List of schemes to use for the Vlasov outflow boundary conditions on each face ([xyz][+-]). */
    std::array<uint, 6> faceVlasovScheme;
@@ -47,13 +47,14 @@ struct OutflowSpeciesParameters
 
 /*!\brief Outflow is a class applying copy/outflow boundary conditions.
  *
- * Outflow is a class handling cells tagged as boundarytype::OUTFLOW by this system boundary condition. It applies
- * copy/outflow boundary conditions.
+ * Outflow is a class handling cells tagged as boundarytype::OUTFLOW by this
+ * boundary condition. It applies copy/outflow boundary conditions.
  *
  * These consist in:
  * - Copy the distribution and moments from the nearest NOT_BOUNDARY cell;
- * - Copy the perturbed B components from the nearest NOT_BOUNDARY cell. EXCEPTION: the face components adjacent to the
- * simulation domain at the +x/+y/+z faces are propagated still.
+ * - Copy the perturbed B components from the nearest NOT_BOUNDARY cell.
+ * EXCEPTION: the face components adjacent to the simulation domain at the
+ * +x/+y/+z faces are propagated still.
  */
 class Outflow : public BoundaryCondition
 {
@@ -94,9 +95,9 @@ public:
    virtual uint getIndex() const;
 
 protected:
-   /*! Array of bool telling which faces are going to be processed by the system boundary condition.*/
+   /*! Array of bool telling which faces are going to be processed by the boundary condition.*/
    bool facesToProcess[6];
-   /*! Array of bool telling which faces are going to be processed by the fields system boundary condition.*/
+   /*! Array of bool telling which faces are going to be processed by the fields boundary condition.*/
    bool facesToSkipFields[6];
    /*! Array of bool telling which faces are going to be reapplied upon restart.*/
    bool facesToReapply[6];

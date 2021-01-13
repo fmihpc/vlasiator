@@ -55,7 +55,7 @@ void Outflow::addParameters()
        "outflow.faceNoFields",
        "List of faces on which no field outflow boundary conditions are to be applied ([xyz][+-]).");
    Readparameters::add("outflow.precedence",
-                       "Precedence value of the outflow system boundary condition (integer), the higher the stronger.",
+                       "Precedence value of the outflow boundary condition (integer), the higher the stronger.",
                        4);
    Readparameters::add("outflow.reapplyUponRestart",
                        "If 0 (default), keep going with the state existing in the restart file. If 1, calls again "
@@ -189,7 +189,7 @@ void Outflow::getParameters()
 
 bool Outflow::initBoundary(creal &t, Project &project)
 {
-   /* The array of bool describes which of the x+, x-, y+, y-, z+, z- faces are to have outflow system boundary
+   /* The array of bool describes which of the x+, x-, y+, y-, z+, z- faces are to have outflow boundary
     * conditions. A true indicates the corresponding face will have outflow. The 6 elements correspond to x+, x-, y+,
     * y-, z+, z- respectively.
     */
@@ -348,7 +348,7 @@ bool Outflow::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian
       if (doApply)
       {
          // Defined in project.cpp, used here as the outflow cell has the same state
-         // as the initial state of non-system boundary cells.
+         // as the initial state of non-boundary cells.
          project.setCell(cell);
          // WARNING Time-independence assumed here.
          cell->parameters[CellParams::RHOM_DT2] = cell->parameters[CellParams::RHOM];

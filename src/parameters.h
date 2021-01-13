@@ -148,11 +148,12 @@ struct Parameters {
     /*! \brief Add the global parameters.
     * 
     * This function adds all the parameters that are loaded at a global level.
-    * More are being loaded e.g. in the projects and in the system boundary conditions.
+    * More are being loaded e.g. in the projects and in the boundary conditions.
     * 
-    * Note that due to the large number of parameters added here, no code is added to check
-    * for consistency when they are read later. Please make sure when coding new parameters
-    * here that the options in getParameters match the ones added here.
+    * Note that due to the large number of parameters added here, no code is
+    * added to check for consistency when they are read later. Please make sure
+    * when coding new parameters here that the options in getParameters match
+    * the ones added here.
     * 
     * \sa getParameters
     */
@@ -161,15 +162,16 @@ struct Parameters {
    /*! \brief Get the global parameters.
     * 
     * This function gets all the parameters loaded at a global level.
-    * More are being loaded e.g. in the projects and in the system boundary conditions.
+    * More are being loaded e.g. in the projects and in the boundary conditions.
     * 
-    * Note that due to the large number of parameters read here, no code is added to check
-    * for consistency with the loaded options, or the code here would become much less
-    * readable. Please make sure when coding new parameters here that the options in
-    * addParameters match the ones read here.
+    * Note that due to the large number of parameters read here, no code is
+    * added to check for consistency with the loaded options, or the code here
+    * would become much less readable. Please make sure when coding new
+    * parameters here that the options in addParameters match the ones read
+    * here.
     * 
-    * \param firstPass determines whether to only parse out particle populations (first pass),
-    *                  to parse all other parameters.
+    * \param firstPass determines whether to only parse out particle populations
+    * (first pass), to parse all other parameters.
     * \sa addParameters
     */
    static bool getParameters();
