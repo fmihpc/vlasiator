@@ -51,13 +51,13 @@ class Maxwellian : public Inflow
 {
 public:
    Maxwellian();
-   virtual ~Maxwellian();
+   ~Maxwellian() override;
 
    static void addParameters();
-   virtual void getParameters();
+   void getParameters() override;
 
-   virtual string getName() const;
-   virtual uint getIndex() const;
+   string getName() const override;
+   uint getIndex() const override;
 
 protected:
    void generateTemplateCell(spatial_cell::SpatialCell &templateCell, Real B[3], int inputDataIndex, creal &t);

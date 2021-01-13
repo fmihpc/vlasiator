@@ -60,39 +60,37 @@ class Outflow : public BoundaryCondition
 {
 public:
    Outflow();
-   virtual ~Outflow();
+   ~Outflow() override;
 
    static void addParameters();
-   virtual void getParameters();
+   void getParameters() override;
 
-   virtual bool initBoundary(creal &t, Project &project);
-   virtual bool assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                               FsGrid<fsgrids::technical, 2> &technicalGrid);
-   virtual bool applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                  FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, Project &project);
-   virtual Real fieldSolverBoundaryCondMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &bGrid,
-                                                     FsGrid<fsgrids::technical, 2> &technicalGrid, cint i, cint j,
-                                                     cint k, creal &dt, cuint &component);
-   virtual void fieldSolverBoundaryCondElectricField(FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, 2> &EGrid,
-                                                     cint i, cint j, cint k, cuint component);
-   virtual void
-   fieldSolverBoundaryCondHallElectricField(FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, 2> &EHallGrid, cint i,
-                                            cint j, cint k, cuint component);
-   virtual void
+   bool initBoundary(creal &t, Project &project) override;
+   bool assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+                       FsGrid<fsgrids::technical, 2> &technicalGrid) override;
+   bool applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+                          FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, Project &project) override;
+   Real fieldSolverBoundaryCondMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &bGrid,
+                                             FsGrid<fsgrids::technical, 2> &technicalGrid, cint i, cint j, cint k,
+                                             creal &dt, cuint &component) override;
+   void fieldSolverBoundaryCondElectricField(FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, 2> &EGrid, cint i,
+                                             cint j, cint k, cuint component) override;
+   void fieldSolverBoundaryCondHallElectricField(FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, 2> &EHallGrid,
+                                                 cint i, cint j, cint k, cuint component) override;
+   void
    fieldSolverBoundaryCondGradPeElectricField(FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> &EGradPeGrid,
-                                              cint i, cint j, cint k, cuint component);
-   virtual void
-   fieldSolverBoundaryCondDerivatives(FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, 2> &dPerBGrid,
-                                      FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> &dMomentsGrid, cint i,
-                                      cint j, cint k, cuint &RKCase, cuint &component);
-   virtual void fieldSolverBoundaryCondBVOLDerivatives(FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, 2> &volGrid,
-                                                       cint i, cint j, cint k, cuint &component);
-   virtual void vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                        const CellID &cellID, const uint popID, const bool calculate_V_moments);
+                                              cint i, cint j, cint k, cuint component) override;
+   void fieldSolverBoundaryCondDerivatives(FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, 2> &dPerBGrid,
+                                           FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> &dMomentsGrid,
+                                           cint i, cint j, cint k, cuint &RKCase, cuint &component) override;
+   void fieldSolverBoundaryCondBVOLDerivatives(FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, 2> &volGrid, cint i,
+                                               cint j, cint k, cuint &component) override;
+   void vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+                                const CellID &cellID, const uint popID, const bool calculate_V_moments) override;
 
-   virtual void getFaces(bool *faces);
-   virtual std::string getName() const;
-   virtual uint getIndex() const;
+   void getFaces(bool *faces) override;
+   std::string getName() const override;
+   uint getIndex() const override;
 
 protected:
    /*! Array of bool telling which faces are going to be processed by the boundary condition.*/

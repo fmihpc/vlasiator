@@ -42,58 +42,56 @@ class NoCompute : public BoundaryCondition
 {
 public:
    NoCompute();
-   virtual ~NoCompute();
+   ~NoCompute() override;
 
    static void addParameters();
-   virtual void getParameters();
+   void getParameters() override;
 
-   virtual bool initBoundary(creal &t, Project &project);
-   virtual bool assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                               FsGrid<fsgrids::technical, 2> &technicalGrid);
-   virtual bool applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                  FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, Project &project);
-   virtual std::string getName() const;
-   virtual uint getIndex() const;
+   bool initBoundary(creal &t, Project &project) override;
+   bool assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+                       FsGrid<fsgrids::technical, 2> &technicalGrid) override;
+   bool applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+                          FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, Project &project) override;
+   std::string getName() const override;
+   uint getIndex() const override;
 
-   // Explicit warning functions to inform the user if a doNotCompute cell gets computed
-   virtual Real fieldSolverBoundaryCondMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid,
-                                                     FsGrid<fsgrids::technical, 2> &technicalGrid, cint i, cint j,
-                                                     cint k, creal &dt, cuint &component)
+   // Explicit warning functions to inform the user if a NoCompute cell gets computed
+   Real fieldSolverBoundaryCondMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid,
+                                             FsGrid<fsgrids::technical, 2> &technicalGrid, cint i, cint j, cint k,
+                                             creal &dt, cuint &component) override
    {
       std::cerr << "ERROR: NoCompute::fieldSolverBoundaryCondMagneticField called!" << std::endl;
       return 0.;
    }
-   virtual void fieldSolverBoundaryCondElectricField(FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, 2> &EGrid,
-                                                     cint i, cint j, cint k, cuint component)
+   void fieldSolverBoundaryCondElectricField(FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, 2> &EGrid, cint i,
+                                             cint j, cint k, cuint component) override
    {
       std::cerr << "ERROR: NoCompute::fieldSolverBoundaryCondElectricField called!" << std::endl;
    }
-   virtual void
-   fieldSolverBoundaryCondHallElectricField(FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, 2> &EHallGrid, cint i,
-                                            cint j, cint k, cuint component)
+   void fieldSolverBoundaryCondHallElectricField(FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, 2> &EHallGrid,
+                                                 cint i, cint j, cint k, cuint component) override
    {
       std::cerr << "ERROR: NoCompute::fieldSolverBoundaryCondHallElectricField called!" << std::endl;
    }
-   virtual void
+   void
    fieldSolverBoundaryCondGradPeElectricField(FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> &EGradPeGrid,
-                                              cint i, cint j, cint k, cuint component)
+                                              cint i, cint j, cint k, cuint component) override
    {
       std::cerr << "ERROR: NoCompute::fieldSolverBoundaryCondGradPeElectricField called!" << std::endl;
    }
-   virtual void
-   fieldSolverBoundaryCondDerivatives(FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, 2> &dPerBGrid,
-                                      FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> &dMomentsGrid, cint i,
-                                      cint j, cint k, cuint &RKCase, cuint &component)
+   void fieldSolverBoundaryCondDerivatives(FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, 2> &dPerBGrid,
+                                           FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> &dMomentsGrid,
+                                           cint i, cint j, cint k, cuint &RKCase, cuint &component) override
    {
       std::cerr << "ERROR: NoCompute::fieldSolverBoundaryCondDerivatives called!" << std::endl;
    }
-   virtual void fieldSolverBoundaryCondBVOLDerivatives(FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, 2> &volGrid,
-                                                       cint i, cint j, cint k, cuint &component)
+   void fieldSolverBoundaryCondBVOLDerivatives(FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, 2> &volGrid, cint i,
+                                               cint j, cint k, cuint &component) override
    {
       std::cerr << "ERROR: NoCompute::fieldSolverBoundaryCondBVOLDerivatives called!" << std::endl;
    }
-   virtual void vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                        const CellID &cellID, const uint popID, const bool calculate_V_moments)
+   void vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+                                const CellID &cellID, const uint popID, const bool calculate_V_moments) override
    {
       std::cerr << "ERROR: NoCompute::vlasovBoundaryCondition called!" << std::endl;
    }
