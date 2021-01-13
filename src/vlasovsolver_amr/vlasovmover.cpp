@@ -378,10 +378,10 @@ void calculateCellVelocityMoments(SpatialCell* SC,
                                  ) {
    /*
    // if doNotSkip == true then the first clause is false and we will never return, i.e. always compute
-   // otherwise we skip DO_NOT_COMPUTE cells
+   // otherwise we skip NO_COMPUTE cells
    // or boundary cells of layer larger than 1
    if (!doNotSkip &&
-       (SC->boundaryFlag == boundarytype::DO_NOT_COMPUTE ||
+       (SC->boundaryFlag == boundarytype::NO_COMPUTE ||
 	(SC->boundaryLayer != 1  &&
 	 SC->boundaryFlag != boundarytype::NOT_BOUNDARY))
        ) return;

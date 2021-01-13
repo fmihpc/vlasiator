@@ -89,7 +89,7 @@ bool SetByUser::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geomet
    vector<CellID> cells = mpiGrid.get_cells();
    for (uint i = 0; i < cells.size(); i++)
    {
-      if (mpiGrid[cells[i]]->boundaryFlag == boundarytype::DO_NOT_COMPUTE) continue;
+      if (mpiGrid[cells[i]]->boundaryFlag == boundarytype::NO_COMPUTE) continue;
       creal *const cellParams = &(mpiGrid[cells[i]]->parameters[0]);
       creal dx = cellParams[CellParams::DX];
       creal dy = cellParams[CellParams::DY];

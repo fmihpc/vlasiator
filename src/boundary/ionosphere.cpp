@@ -177,7 +177,7 @@ bool Ionosphere::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geome
    vector<CellID> cells = mpiGrid.get_cells();
    for (uint i = 0; i < cells.size(); i++)
    {
-      if (mpiGrid[cells[i]]->boundaryFlag == boundarytype::DO_NOT_COMPUTE)
+      if (mpiGrid[cells[i]]->boundaryFlag == boundarytype::NO_COMPUTE)
       {
          continue;
       }

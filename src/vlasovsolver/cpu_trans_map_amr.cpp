@@ -627,7 +627,7 @@ void propagatePencil(
  *
  * @param [in] mpiGrid DCCRG grid object
  * @param [in] localPropagatedCells List of local cells that get propagated
- * ie. not boundary or DO_NOT_COMPUTE
+ * ie. not boundary or NO_COMPUTE
  * @param [in] dimension Spatial dimension
  * @param [out] seedIds list of cell ids that will be starting points for pencils
  */
@@ -972,7 +972,7 @@ void printPencilsFunc(const setOfPencils& pencils, const uint dimension, const i
  *
  * @param [in] mpiGrid DCCRG grid object
  * @param [in] localPropagatedCells List of local cells that get propagated
- * ie. not boundary or DO_NOT_COMPUTE
+ * ie. not boundary or NO_COMPUTE
  * @param [in] remoteTargetCells List of non-local target cells
  * @param dimension Spatial dimension
  * @param [in] dt Time step

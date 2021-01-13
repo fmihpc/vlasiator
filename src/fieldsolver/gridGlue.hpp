@@ -118,7 +118,7 @@ template< unsigned int numFields > void getFieldDataFromFsGrid(
    technicalGrid.finishTransfersOut();
 
    // Average data in transferBuffer
-   // Disregard DO_NOT_COMPUTE cells
+   // Disregard NO_COMPUTE cells
 #pragma omp parallel for
    for(uint i = 0; i < cells.size(); ++i) {
       
@@ -135,7 +135,7 @@ template< unsigned int numFields > void getFieldDataFromFsGrid(
       int nCellsToSum = 0;
       
       for(int iCell = 0; iCell < nCells; ++iCell) {
-         if ((transferBufferPointerTechnical[i] + iCell)->boundaryFlag == boundarytype::DO_NOT_COMPUTE) {
+         if ((transferBufferPointerTechnical[i] + iCell)->boundaryFlag == boundarytype::NO_COMPUTE) {
             continue;
          } else {
             nCellsToSum++;

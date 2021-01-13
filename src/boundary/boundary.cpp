@@ -32,7 +32,7 @@
 #include "../vlasovsolver/cpu_moments.h"
 
 #include "boundary.h"
-#include "donotcompute.h"
+#include "nocompute.h"
 #include "ionosphere.h"
 #include "outflow.h"
 #include "setmaxwellian.h"
@@ -89,7 +89,7 @@ void Boundary::addParameters()
    Readparameters::add("boundaries.periodic_z", "Set the grid periodicity in z-direction. true(default)/false.", true);
 
    // Call static addParameter functions in all BC's
-   BC::DoNotCompute::addParameters();
+   BC::NoCompute::addParameters();
    BC::Ionosphere::addParameters();
    BC::Outflow::addParameters();
    BC::SetMaxwellian::addParameters();
@@ -247,9 +247,9 @@ bool Boundary::initBoundaries(Project &project, creal &t)
             if (myRank == MASTER_RANK) cerr << "Error in adding Ionosphere boundary." << endl;
             success = false;
          }
-         if (this->addBoundary(new BC::DoNotCompute, project, t) == false)
+         if (this->addBoundary(new BC::NoCompute, project, t) == false)
          {
-            if (myRank == MASTER_RANK) cerr << "Error in adding DoNotCompute boundary (for Ionosphere)." << endl;
+            if (myRank == MASTER_RANK) cerr << "Error in adding NoCompute boundary (for Ionosphere)." << endl;
             success = false;
          }
          isThisDynamic = isThisDynamic | this->getBoundary(boundarytype::IONOSPHERE)->isDynamic();
@@ -355,7 +355,7 @@ bool Boundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Ca
             }
          }
          else if (cell->boundaryFlag != boundarytype::NOT_BOUNDARY &&
-                  cell->boundaryFlag != boundarytype::DO_NOT_COMPUTE)
+                  cell->boundaryFlag != boundarytype::NO_COMPUTE)
          {
             outerBoundaryCells.insert(cellId);
             outerBoundaryRefLvl = mpiGrid.get_refinement_level(cellId);
@@ -538,14 +538,14 @@ bool Boundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cart
       mpiGrid.update_copies_of_remote_neighbors(BOUNDARIES_NEIGHBORHOOD_ID);
    }
 
-   /*set cells to DO_NOT_COMPUTE if they are on boundary, and are not
+   /*set cells to NO_COMPUTE if they are on boundary, and are not
     * in the first two layers of the boundary*/
    for (uint i = 0; i < cells.size(); i++)
    {
       if (mpiGrid[cells[i]]->boundaryFlag != boundarytype::NOT_BOUNDARY && mpiGrid[cells[i]]->boundaryLayer != 1 &&
           mpiGrid[cells[i]]->boundaryLayer != 2)
       {
-         mpiGrid[cells[i]]->boundaryFlag = boundarytype::DO_NOT_COMPUTE;
+         mpiGrid[cells[i]]->boundaryFlag = boundarytype::NO_COMPUTE;
       }
    }
 
@@ -587,7 +587,7 @@ bool Boundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cart
 
                      if (layer > 2 && technicalGrid.get(x, y, z)->boundaryFlag != boundarytype::NOT_BOUNDARY)
                      {
-                        technicalGrid.get(x, y, z)->boundaryFlag = boundarytype::DO_NOT_COMPUTE;
+                        technicalGrid.get(x, y, z)->boundaryFlag = boundarytype::NO_COMPUTE;
                      }
                   }
                }
@@ -610,7 +610,7 @@ bool Boundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cart
             if (technicalGrid.get(x, y, z)->boundaryLayer == 0 &&
                 technicalGrid.get(x, y, z)->boundaryFlag == boundarytype::IONOSPHERE)
             {
-               technicalGrid.get(x, y, z)->boundaryFlag = boundarytype::DO_NOT_COMPUTE;
+               technicalGrid.get(x, y, z)->boundaryFlag = boundarytype::NO_COMPUTE;
             }
          }
       }
@@ -867,7 +867,7 @@ bool Boundary::isDynamic() const { return isThisDynamic; }
  */
 bool Boundary::isBoundaryPeriodic(uint direction) const { return isPeriodic[direction]; }
 
-/*! Get a vector containing the cellID of all cells which are not DO_NOT_COMPUTE or NOT_BOUNDARY in the vector of
+/*! Get a vector containing the cellID of all cells which are not NO_COMPUTE or NOT_BOUNDARY in the vector of
  * cellIDs passed to the function.
  *
  * \param mpiGrid Grid
@@ -882,7 +882,7 @@ bool getBoundaryCellList(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geomet
    for (size_t cell = 0; cell < cellList.size(); ++cell)
    {
       const CellID cellID = cellList[cell];
-      if (mpiGrid[cellID]->boundaryFlag == boundarytype::DO_NOT_COMPUTE ||
+      if (mpiGrid[cellID]->boundaryFlag == boundarytype::NO_COMPUTE ||
           mpiGrid[cellID]->boundaryFlag == boundarytype::NOT_BOUNDARY)
          continue;
       boundaryCellList.push_back(cellID);

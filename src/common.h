@@ -380,7 +380,7 @@ namespace fsgrids {
  */
 namespace boundarytype {
    enum {
-      DO_NOT_COMPUTE,   /*!< E.g. cells within the ionospheric outer radius should not be computed at all. */
+      NO_COMPUTE,       /*!< e.g. cells within the ionospheric outer radius should not be computed at all. */
       NOT_BOUNDARY,     /*!< Cells within the simulation domain are not boundary cells. */
       IONOSPHERE,       /*!< Initially a perfectly conducting sphere. */
       OUTFLOW,          /*!< No fixed conditions on the fields and distribution function. */

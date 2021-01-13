@@ -33,15 +33,15 @@ using namespace std;
  * all existing particle populations. This function is AMR safe.
  * @param cell Spatial cell.
  * @param computeSecond If true, second velocity moments are calculated.
- * @param doNotSkip If false, DO_NOT_COMPUTE cells are skipped.*/
+ * @param doNotSkip If false, NO_COMPUTE cells are skipped.*/
 void calculateCellMoments(spatial_cell::SpatialCell* cell,
                           const bool& computeSecond,
                           const bool& doNotSkip) {
 
     // if doNotSkip == true then the first clause is false and we will never return,
-    // i.e. always compute, otherwise we skip DO_NOT_COMPUTE cells
+    // i.e. always compute, otherwise we skip NO_COMPUTE cells
     bool skipMoments = false;
-    if (!doNotSkip && cell->boundaryFlag == boundarytype::DO_NOT_COMPUTE) {
+    if (!doNotSkip && cell->boundaryFlag == boundarytype::NO_COMPUTE) {
         skipMoments = true;
     }
 
@@ -156,7 +156,7 @@ void calculateMoments_R(
        for (size_t c=0; c<cells.size(); ++c) {
           SpatialCell* cell = mpiGrid[cells[c]];
           
-          if (cell->boundaryFlag == boundarytype::DO_NOT_COMPUTE) {
+          if (cell->boundaryFlag == boundarytype::NO_COMPUTE) {
              continue;
           }
           
@@ -226,7 +226,7 @@ void calculateMoments_R(
     #pragma omp parallel for
     for (size_t c=0; c<cells.size(); ++c) {
        SpatialCell* cell = mpiGrid[cells[c]];
-       if (cell->boundaryFlag == boundarytype::DO_NOT_COMPUTE) {
+       if (cell->boundaryFlag == boundarytype::NO_COMPUTE) {
           continue;
        }
        cell->parameters[CellParams::VX_R] = divideIfNonZero(cell->parameters[CellParams::VX_R], cell->parameters[CellParams::RHOM_R]);
@@ -245,7 +245,7 @@ void calculateMoments_R(
       for (size_t c=0; c<cells.size(); ++c) {
          SpatialCell* cell = mpiGrid[cells[c]];
          
-         if (cell->boundaryFlag == boundarytype::DO_NOT_COMPUTE) {
+         if (cell->boundaryFlag == boundarytype::NO_COMPUTE) {
             continue;
          }
          
@@ -305,7 +305,7 @@ void calculateMoments_V(
       for (size_t c=0; c<cells.size(); ++c) {
          SpatialCell* cell = mpiGrid[cells[c]];
          
-         if (cell->boundaryFlag == boundarytype::DO_NOT_COMPUTE) {
+         if (cell->boundaryFlag == boundarytype::NO_COMPUTE) {
             continue;
          }
          
@@ -357,7 +357,7 @@ void calculateMoments_V(
    #pragma omp parallel for
    for (size_t c=0; c<cells.size(); ++c) {
       SpatialCell* cell = mpiGrid[cells[c]];
-      if (cell->boundaryFlag == boundarytype::DO_NOT_COMPUTE) {
+      if (cell->boundaryFlag == boundarytype::NO_COMPUTE) {
          continue;
       }
       cell->parameters[CellParams::VX_V] = divideIfNonZero(cell->parameters[CellParams::VX_V], cell->parameters[CellParams::RHOM_V]);
@@ -376,7 +376,7 @@ void calculateMoments_V(
       for (size_t c=0; c<cells.size(); ++c) {
          SpatialCell* cell = mpiGrid[cells[c]];
          
-         if (cell->boundaryFlag == boundarytype::DO_NOT_COMPUTE) {
+         if (cell->boundaryFlag == boundarytype::NO_COMPUTE) {
             continue;
          }
 

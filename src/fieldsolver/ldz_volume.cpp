@@ -47,7 +47,7 @@ void calculateVolumeAveragedFields(
    for (int k=0; k<gridDims[2]; k++) {
       for (int j=0; j<gridDims[1]; j++) {
          for (int i=0; i<gridDims[0]; i++) {
-            if(technicalGrid.get(i,j,k)->boundaryFlag == boundarytype::DO_NOT_COMPUTE) continue;
+            if(technicalGrid.get(i,j,k)->boundaryFlag == boundarytype::NO_COMPUTE) continue;
             
             Real perturbedCoefficients[Rec::N_REC_COEFFICIENTS];
             std::array<Real, fsgrids::volfields::N_VOL> * volGrid0 = volGrid.get(i,j,k);

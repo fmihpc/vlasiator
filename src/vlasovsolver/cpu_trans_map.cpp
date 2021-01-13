@@ -57,7 +57,7 @@ using namespace spatial_cell;
 
 //Is cell translated? It is not translated if DO_NO_COMPUTE or if it is boundary cell and not in first boundarylayer
 bool do_translate_cell(SpatialCell* SC){
-   if(SC->boundaryFlag == boundarytype::DO_NOT_COMPUTE ||
+   if(SC->boundaryFlag == boundarytype::NO_COMPUTE ||
       (SC->boundaryLayer != 1 && SC->boundaryFlag != boundarytype::NOT_BOUNDARY))
       return false;
    else
@@ -117,7 +117,7 @@ CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geom
    }
    
    // not existing cell or do not compute
-   if( mpiGrid[nbrID]->boundaryFlag == boundarytype::DO_NOT_COMPUTE)
+   if( mpiGrid[nbrID]->boundaryFlag == boundarytype::NO_COMPUTE)
       return INVALID_CELLID;
 
    //cell on boundary, but not first layer and we want to include

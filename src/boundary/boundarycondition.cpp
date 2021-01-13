@@ -23,7 +23,7 @@
 /*!\file boundarycondition.cpp
  * \brief Implementation of the base class BoundaryCondition to handle system boundary cells.
  *
- * \sa donotcompute.cpp ionosphere.cpp outflow.cpp setbyuser.cpp setmaxwellian.cpp
+ * \sa nocompute.cpp ionosphere.cpp outflow.cpp setbyuser.cpp setmaxwellian.cpp
  *
  */
 
@@ -845,7 +845,7 @@ Real BoundaryCondition::fieldBoundaryCopyFromSolvingNbrMagneticField(
                 &&
                 (technicalGrid.get(i + ii, j + jj, k + kk)->SOLVE & mask) == mask // Did that guy solve this component?
                 && technicalGrid.get(i + ii, j + jj, k + kk)->boundaryFlag !=
-                       boundarytype::DO_NOT_COMPUTE // Do not copy from there
+                       boundarytype::NO_COMPUTE // Do not copy from there
             )
             {
                distance = min(distance, ii * ii + jj * jj + kk * kk);
@@ -864,7 +864,7 @@ Real BoundaryCondition::fieldBoundaryCopyFromSolvingNbrMagneticField(
                 &&
                 (technicalGrid.get(i + ii, j + jj, k + kk)->SOLVE & mask) == mask // Did that guy solve this component?
                 && technicalGrid.get(i + ii, j + jj, k + kk)->boundaryFlag !=
-                       boundarytype::DO_NOT_COMPUTE // Do not copy from there
+                       boundarytype::NO_COMPUTE // Do not copy from there
             )
             {
                int d = ii * ii + jj * jj + kk * kk;
