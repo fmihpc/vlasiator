@@ -281,10 +281,7 @@ void Outflow::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry
             const auto refLvl = mpiGrid.get_refinement_level(mpiGrid.get_existing_cell(cellCenterCoords));
 
             if (refLvl == -1)
-            {
-               cerr << "Error, could not get refinement level of remote DCCRG cell " << __FILE__ << " " << __LINE__
-                    << endl;
-            }
+               abort_mpi("ERROR: Could not get refinement level of remote DCCRG cell!", 1);
 
             creal dx = P::dx_ini * pow(2, -refLvl);
             creal dy = P::dy_ini * pow(2, -refLvl);
@@ -412,8 +409,7 @@ void Outflow::fieldSolverBoundaryCondHallElectricField(FsGrid<std::array<Real, f
       cp->at(fsgrids::ehall::EZHALL_110_111) = 0.0;
       break;
    default:
-      cerr << __FILE__ << ":" << __LINE__ << ":"
-           << " Invalid component" << endl;
+      abort_mpi("Invalid component");
    }
 }
 
@@ -445,8 +441,6 @@ void Outflow::fieldSolverBoundaryCondBVOLDerivatives(FsGrid<std::array<Real, fsg
 void Outflow::vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                       const CellID &cellID, const uint popID, const bool calculate_V_moments)
 {
-   //      phiprof::start("vlasovBoundaryCondition (Outflow)");
-
    const OutflowSpeciesParameters &sP = this->speciesParams[popID];
    SpatialCell *cell = mpiGrid[cellID];
    creal *const cellParams = cell->parameters.data();
@@ -475,14 +469,11 @@ void Outflow::vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Car
             vlasovBoundaryCopyFromTheClosestNbrAndLimit(mpiGrid, cellID, popID);
             break;
          default:
-            std::cerr << __FILE__ << ":" << __LINE__ << "ERROR: invalid Outflow Vlasov scheme!" << std::endl;
-            exit(1);
+            abort_mpi("ERROR: invalid Outflow Vlasov scheme", 1);
             break;
          }
       }
    }
-
-   //      phiprof::stop("vlasovBoundaryCondition (Outflow)");
 }
 
 void Outflow::getFaces(bool *faces)

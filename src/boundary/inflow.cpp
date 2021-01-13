@@ -125,8 +125,7 @@ void Inflow::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>
 
             if (refLvl == -1)
             {
-               cerr << "Error, could not get refinement level of remote DCCRG cell " << __FILE__ << " " << __LINE__
-                    << endl;
+               abort_mpi("Error, could not get refinement level of remote DCCRG cell!", 1);
             }
 
             creal dx = P::dx_ini * pow(2, -refLvl);
@@ -217,8 +216,7 @@ void Inflow::fieldSolverBoundaryCondHallElectricField(
       cp->at(fsgrids::ehall::EZHALL_110_111) = 0.0;
       break;
    default:
-      cerr << __FILE__ << ":" << __LINE__ << ":"
-           << " Invalid component" << endl;
+      abort_mpi("Invalid component", 1);
    }
 }
 
