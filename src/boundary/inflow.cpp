@@ -50,10 +50,8 @@ Inflow::~Inflow() {}
 
 void Inflow::initBoundary(creal &t, Project &project)
 {
-   /* The array of bool describes which of the x+, x-, y+, y-, z+, z- faces are
-    * to have inflow boundary conditions, indicated by trues.
-    * The 6 elements correspond to x+, x-, y+, y-, z+, z- respectively.
-    */
+   // The array of bool describes which of the faces are to have inflow boundary
+   // conditions, in the order of x+, x-, y+, y-, z+, z-.
    for (uint i = 0; i < 6; i++)
       facesToProcess[i] = false;
 
@@ -77,10 +75,10 @@ void Inflow::initBoundary(creal &t, Project &project)
 }
 
 void Inflow::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                               FsGrid<fsgrids::technical, 2> &technicalGrid)
+                            FsGrid<fsgrids::technical, 2> &technicalGrid)
 {
    bool doAssign;
-   std::array<bool, 6> isThisCellOnAFace;
+   array<bool, 6> isThisCellOnAFace;
 
    vector<CellID> cells = mpiGrid.get_cells();
    for (uint i = 0; i < cells.size(); i++)
@@ -96,7 +94,8 @@ void Inflow::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>
 
       isThisCellOnAFace.fill(false);
       determineFace(isThisCellOnAFace.data(), x, y, z, dx, dy, dz);
-      // Comparison of the array defining which faces to use and the array telling on which faces this cell is
+      // Comparison of the array defining which faces to use and the array
+      // telling on which faces this cell is
       doAssign = false;
       for (int j = 0; j < 6; j++)
          doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
@@ -107,7 +106,7 @@ void Inflow::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>
    }
 
    // Assign boundary flags to local fsgrid cells
-   const std::array<int, 3> gridDims(technicalGrid.getLocalSize());
+   const array<int, 3> gridDims(technicalGrid.getLocalSize());
    for (int k = 0; k < gridDims[2]; k++)
    {
       for (int j = 0; j < gridDims[1]; j++)
@@ -123,10 +122,7 @@ void Inflow::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>
             cellCenterCoords[2] += 0.5 * technicalGrid.DZ;
             const auto refLvl = mpiGrid.get_refinement_level(mpiGrid.get_existing_cell(cellCenterCoords));
 
-            if (refLvl == -1)
-            {
-               abort_mpi("Error, could not get refinement level of remote DCCRG cell!", 1);
-            }
+            if (refLvl == -1) abort_mpi("Error, could not get refinement level of remote DCCRG cell!", 1);
 
             creal dx = P::dx_ini * pow(2, -refLvl);
             creal dy = P::dy_ini * pow(2, -refLvl);
@@ -149,24 +145,23 @@ void Inflow::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>
 }
 
 void Inflow::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                  FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, Project &project)
+                               FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, Project &project)
 {
    for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID)
-   {
       setCellsFromTemplate(mpiGrid, popID);
-   }
+
    setBFromTemplate(mpiGrid, perBGrid);
 }
 
-Real Inflow::fieldSolverBoundaryCondMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &bGrid,
-                                                     FsGrid<fsgrids::technical, 2> &technicalGrid, cint i, cint j,
-                                                     cint k, creal &dt, cuint &component)
+Real Inflow::fieldSolverBoundaryCondMagneticField(FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, 2> &bGrid,
+                                                  FsGrid<fsgrids::technical, 2> &technicalGrid, cint i, cint j, cint k,
+                                                  creal &dt, cuint &component)
 {
    Real result = 0.0;
    creal dx = Parameters::dx_ini;
    creal dy = Parameters::dy_ini;
    creal dz = Parameters::dz_ini;
-   const std::array<int, 3> globalIndices = technicalGrid.getGlobalIndices(i, j, k);
+   const array<int, 3> globalIndices = technicalGrid.getGlobalIndices(i, j, k);
    creal x = (convert<Real>(globalIndices[0]) + 0.5) * technicalGrid.DX + Parameters::xmin;
    creal y = (convert<Real>(globalIndices[1]) + 0.5) * technicalGrid.DY + Parameters::ymin;
    creal z = (convert<Real>(globalIndices[2]) + 0.5) * technicalGrid.DZ + Parameters::zmin;
@@ -185,16 +180,16 @@ Real Inflow::fieldSolverBoundaryCondMagneticField(FsGrid<std::array<Real, fsgrid
    return result;
 }
 
-void Inflow::fieldSolverBoundaryCondElectricField(FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, 2> &EGrid,
-                                                     cint i, cint j, cint k, cuint component)
+void Inflow::fieldSolverBoundaryCondElectricField(FsGrid<array<Real, fsgrids::efield::N_EFIELD>, 2> &EGrid, cint i,
+                                                  cint j, cint k, cuint component)
 {
    EGrid.get(i, j, k)->at(fsgrids::efield::EX + component) = 0.0;
 }
 
-void Inflow::fieldSolverBoundaryCondHallElectricField(
-    FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, 2> &EHallGrid, cint i, cint j, cint k, cuint component)
+void Inflow::fieldSolverBoundaryCondHallElectricField(FsGrid<array<Real, fsgrids::ehall::N_EHALL>, 2> &EHallGrid,
+                                                      cint i, cint j, cint k, cuint component)
 {
-   std::array<Real, fsgrids::ehall::N_EHALL> *cp = EHallGrid.get(i, j, k);
+   array<Real, fsgrids::ehall::N_EHALL> *cp = EHallGrid.get(i, j, k);
    switch (component)
    {
    case 0:
@@ -221,36 +216,35 @@ void Inflow::fieldSolverBoundaryCondHallElectricField(
 }
 
 void Inflow::fieldSolverBoundaryCondGradPeElectricField(
-    FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> &EGradPeGrid, cint i, cint j, cint k, cuint component)
+    FsGrid<array<Real, fsgrids::egradpe::N_EGRADPE>, 2> &EGradPeGrid, cint i, cint j, cint k, cuint component)
 {
    EGradPeGrid.get(i, j, k)->at(fsgrids::egradpe::EXGRADPE + component) = 0.0;
 }
 
-void Inflow::fieldSolverBoundaryCondDerivatives(
-    FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, 2> &dPerBGrid,
-    FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> &dMomentsGrid, cint i, cint j, cint k, cuint &RKCase,
-    cuint &component)
+void Inflow::fieldSolverBoundaryCondDerivatives(FsGrid<array<Real, fsgrids::dperb::N_DPERB>, 2> &dPerBGrid,
+                                                FsGrid<array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> &dMomentsGrid,
+                                                cint i, cint j, cint k, cuint &RKCase, cuint &component)
 {
    this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
 }
 
-void Inflow::fieldSolverBoundaryCondBVOLDerivatives(FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, 2> &volGrid,
-                                                       cint i, cint j, cint k, cuint &component)
+void Inflow::fieldSolverBoundaryCondBVOLDerivatives(FsGrid<array<Real, fsgrids::volfields::N_VOL>, 2> &volGrid, cint i,
+                                                    cint j, cint k, cuint &component)
 {
    this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
 }
 
 void Inflow::vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                        const CellID &cellID, const uint popID, const bool calculate_V_moments)
+                                     const CellID &cellID, const uint popID, const bool doCalcMomentsV)
 {
    // No need to do anything in this function, as the propagators do not touch the distribution function
 }
 
 void Inflow::setBFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                 FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid)
+                              FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid)
 {
-   std::array<bool, 6> isThisCellOnAFace;
-   const std::array<int, 3> gridDims(perBGrid.getLocalSize());
+   array<bool, 6> isThisCellOnAFace;
+   const array<int, 3> gridDims(perBGrid.getLocalSize());
 
    for (int k = 0; k < gridDims[2]; k++)
    {
@@ -260,8 +254,9 @@ void Inflow::setBFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_G
          {
             const auto coords = perBGrid.getPhysicalCoords(i, j, k);
 
-            // TODO: This code up to determineFace() should be in a separate function, it gets called in a lot of
-            // places. Shift to the center of the fsgrid cell
+            // TODO: This code up to determineFace() should be in a separate
+            // function, it gets called in a lot of places.
+            // Shift to the center of the fsgrid cell
             auto cellCenterCoords = coords;
             cellCenterCoords[0] += 0.5 * perBGrid.DX;
             cellCenterCoords[1] += 0.5 * perBGrid.DY;
@@ -269,8 +264,7 @@ void Inflow::setBFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_G
 
             const auto refLvl = mpiGrid.get_refinement_level(mpiGrid.get_existing_cell(cellCenterCoords));
 
-            if (refLvl == -1)
-               abort_mpi("Error, could not get refinement level of remote DCCRG cell!", 1);
+            if (refLvl == -1) abort_mpi("Error, could not get refinement level of remote DCCRG cell!", 1);
 
             creal dx = P::dx_ini * pow(2, -refLvl);
             creal dy = P::dy_ini * pow(2, -refLvl);
@@ -296,8 +290,7 @@ void Inflow::setBFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_G
    }
 }
 
-void Inflow::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                     const uint popID)
+void Inflow::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid, const uint popID)
 {
    vector<CellID> cells = mpiGrid.get_cells();
 #pragma omp parallel for
@@ -340,38 +333,19 @@ void Inflow::loadInputData(const uint popID)
 
    for (uint i = 0; i < 6; i++)
    {
-      if (facesToProcess[i])
-      {
-         sP.inputData[i] = loadFile(sP.files[i].c_str(), sP.nParams);
-      }
-      else
-      {
-         vector<Real> tmp1;
-         vector<vector<Real>> tmp2;
-         for (uint j = 0; j < sP.nParams; j++)
-         {
-            tmp1.push_back(-1.0);
-         }
-         tmp2.push_back(tmp1);
-         sP.inputData[i] = tmp2;
-      }
+      if (facesToProcess[i]) sP.inputData[i] = loadFile(sP.files[i].c_str(), sP.nParams);
    }
 }
 
 /*! Load inflow boundary data from given file.
- * The first entry of each line is assumed to be the time.
  * The number of entries per line is given by nParams which is defined as a
  * parameter from the configuration file/command line.
- * \param fn Name of the file to be opened.
- * \retval dataset Vector of Real vectors. Each line of length nParams is put
- * into a vector. Each of these is then put into the vector returned here.
+ * \param fn Name of the data file.
+ * \retval dataset Vector of Real vectors.
  */
 vector<vector<Real>> Inflow::loadFile(const char *fn, const unsigned int nParams)
 {
    vector<vector<Real>> dataset(0, vector<Real>(nParams, 0));
-
-   int myRank;
-   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 
    ifstream fi;
    fi.open(fn);
@@ -437,7 +411,7 @@ vector<vector<Real>> Inflow::loadFile(const char *fn, const unsigned int nParams
 /*! Loops through the array of template cells and generates the ones needed.
  * The function generateTemplateCell is defined in the inheriting class such as
  * to have the specific condition needed.
- * \param t Simulation time.
+ * \param t Simulation time
  * \sa generateTemplateCell
  */
 void Inflow::generateTemplateCells(creal &t)
@@ -445,11 +419,7 @@ void Inflow::generateTemplateCells(creal &t)
 #pragma omp parallel for
    for (uint i = 0; i < 6; i++)
    {
-      int index;
-      if (facesToProcess[i])
-      {
-         generateTemplateCell(templateCells[i], templateB[i], i, t);
-      }
+      if (facesToProcess[i]) generateTemplateCell(templateCells[i], templateB[i], i, t);
    }
 }
 
@@ -457,8 +427,9 @@ void Inflow::generateTemplateCells(creal &t)
  * The first entry of each line is assumed to be the time.
  * \param inputDataIndex Index used to get the correct face's input data.
  * \param t Current simulation time.
- * \param outputData Pointer to the location where to write the result. Make sure from the calling side that nParams
- * Real values can be written there!
+ * \param outputData Pointer to the location where to write the result.
+ * Make sure from the calling side that nParams Real values can be written
+ * there!
  */
 void Inflow::interpolate(const int inputDataIndex, const uint popID, creal t, Real *outputData)
 {
@@ -470,7 +441,7 @@ void Inflow::interpolate(const int inputDataIndex, const uint popID, creal t, Re
    bool found = false;
    Real s; // 0 <= s < 1
 
-   // use first value of sw data if interpolating for time before sw data starts
+   // Use the first value of data if interpolating for time before data starts
    if (t < sP.inputData[inputDataIndex][0][0])
    {
       i1 = i2 = 0;

@@ -41,9 +41,9 @@ void Maxwellian::addParameters()
 {
    Readparameters::addComposing(
        "maxwellian.face", "List of faces on which set Maxwellian boundary conditions are to be applied ([xyz][+-]).");
-   Readparameters::add(
-       "maxwellian.precedence",
-       "Precedence value of the set Maxwellian boundary condition (integer), the higher the stronger.", 3);
+   Readparameters::add("maxwellian.precedence",
+                       "Precedence value of the set Maxwellian boundary condition (integer), the higher the stronger.",
+                       3);
    Readparameters::add("maxwellian.reapplyUponRestart",
                        "If 0 (default), keep going with the state existing in the restart file. If 1, calls again "
                        "applyInitialState. Can be used to change boundary condition behaviour during a run.",
@@ -127,8 +127,8 @@ Real Maxwellian::maxwellianDistribution(const uint popID, creal &rho, creal &T, 
 }
 
 std::vector<vmesh::GlobalID> Maxwellian::findBlocksToInitialize(const uint popID, spatial_cell::SpatialCell &cell,
-                                                                   creal &rho, creal &T, creal &VX0, creal &VY0,
-                                                                   creal &VZ0)
+                                                                creal &rho, creal &T, creal &VX0, creal &VY0,
+                                                                creal &VZ0)
 {
    vector<vmesh::GlobalID> blocksToInitialize;
    bool search = true;
@@ -184,17 +184,17 @@ std::vector<vmesh::GlobalID> Maxwellian::findBlocksToInitialize(const uint popID
    return blocksToInitialize;
 }
 
-/*!\brief Generate the template cell for the face corresponding to the index passed.
- * This function generates a spatial cell which is to be used as a template for the
- * boundary condition.
+/*!\brief Generate the template cell for the face corresponding to the index
+ * passed.
+ * This function generates a spatial cell which is to be used as a template for
+ * the boundary condition.
  * \param templateCell Address of the template cell to be generated.
  * \param inputDataIndex Index used for the location of the input data.
  * \param t Current simulation time.
  */
-void Maxwellian::generateTemplateCell(spatial_cell::SpatialCell &templateCell, Real B[3], int inputDataIndex,
-                                         creal &t)
+void Maxwellian::generateTemplateCell(spatial_cell::SpatialCell &templateCell, Real B[3], int inputDataIndex, creal &t)
 {
-   Real rho, T, Vx, Vy, Vz, Bx = 0.0, By = 0.0, Bz = 0.0, buffer[8];
+   Real rho, T, Vx, Vy, Vz, Bx, By, Bz, buffer[8];
 
    templateCell.boundaryFlag = this->getIndex();
    templateCell.boundaryLayer = 1;

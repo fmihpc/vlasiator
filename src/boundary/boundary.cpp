@@ -110,9 +110,8 @@ void Boundary::getParameters()
    Readparameters::get("boundaries.periodic_z", isPeriodic[2]);
 }
 
-/*! Add a new BC::BoundaryCondition which has been created with new boundary.
+/*! Add a new BC::BoundaryCondition.
  * Boundary will take care of deleting it.
- *
  * \param bc BoundaryCondition object
  * \param project Project object
  * \param t Current time
@@ -604,34 +603,30 @@ void Boundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geom
       }
       (*it)->applyInitialState(mpiGrid, perBGrid, project);
    }
-
 }
 
 /*!\brief Apply the Vlasov boundary conditions to all boundary cells at time t.
  *
- * Loops through all BoundaryConditions and calls the corresponding vlasovBoundaryCondition() function.
- * The boundary condition functions are called for all particle species, one at a time.
+ * Loops through all BoundaryConditions and calls the corresponding
+ * vlasovBoundaryCondition() function. The boundary condition functions are
+ * called for all particle species, one at a time.
  *
- * WARNING (see end of the function) Blocks are changed but lists not updated now,
- * if you need to use/communicate them before the next update is done, add an
- * update at the end of this function.
+ * WARNING (see end of the function) Blocks are changed but lists not updated
+ * now, if you need to use/communicate them before the next update is done, add
+ * an update at the end of this function.
  *
  * \param mpiGrid Grid
  * \param t Current time
+ * \param doCalcMomentsV Compute into _V moments if true or _R moments if false
+ * so that the interpolated ones can be done.
  */
-void Boundary::applyBoundaryVlasovConditions(
-    dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid, creal &t,
-    const bool
-        calculate_V_moments // if true, compute into _V, false into _R moments so that the interpolated ones can be done
-)
+void Boundary::applyBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid, creal &t,
+                                             const bool doCalcMomentsV)
 {
-   if (boundaries.size() == 0)
-   {
-      return; // no boundaries
-   }
+   if (boundaries.size() == 0) return; // no boundaries
 
-/*Transfer along boundaries*/
-// First the small stuff without overlapping in an extended neighbourhood:
+      /*Transfer along boundaries*/
+      // First the small stuff without overlapping in an extended neighbourhood:
 #warning TODO This now communicates in the wider neighbourhood for both layers, could be reduced to smaller neighbourhood for layer 1, larger neighbourhood for layer 2.
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_PARAMETERS | Transfer::POP_METADATA | Transfer::CELL_BOUNDARYFLAG,
                                       true);
@@ -663,16 +658,13 @@ void Boundary::applyBoundaryVlasovConditions(
       for (uint i = 0; i < localCells.size(); i++)
       {
          cuint boundaryType = mpiGrid[localCells[i]]->boundaryFlag;
-         this->getBoundary(boundaryType)->vlasovBoundaryCondition(mpiGrid, localCells[i], popID, calculate_V_moments);
+         this->getBoundary(boundaryType)->vlasovBoundaryCondition(mpiGrid, localCells[i], popID, doCalcMomentsV);
       }
-      if (calculate_V_moments)
-      {
+      if (doCalcMomentsV)
          calculateMoments_V(mpiGrid, localCells, true);
-      }
       else
-      {
          calculateMoments_R(mpiGrid, localCells, true);
-      }
+
       phiprof::stop(timer);
 
       timer = phiprof::initializeTimer("Wait for receives", "MPI", "Wait");
@@ -690,17 +682,13 @@ void Boundary::applyBoundaryVlasovConditions(
       for (uint i = 0; i < boundaryCells.size(); i++)
       {
          cuint boundaryType = mpiGrid[boundaryCells[i]]->boundaryFlag;
-         this->getBoundary(boundaryType)
-             ->vlasovBoundaryCondition(mpiGrid, boundaryCells[i], popID, calculate_V_moments);
+         this->getBoundary(boundaryType)->vlasovBoundaryCondition(mpiGrid, boundaryCells[i], popID, doCalcMomentsV);
       }
-      if (calculate_V_moments)
-      {
+      if (doCalcMomentsV)
          calculateMoments_V(mpiGrid, boundaryCells, true);
-      }
       else
-      {
          calculateMoments_R(mpiGrid, boundaryCells, true);
-      }
+
       phiprof::stop(timer);
 
       timer = phiprof::initializeTimer("Wait for sends", "MPI", "Wait");
@@ -708,8 +696,9 @@ void Boundary::applyBoundaryVlasovConditions(
       mpiGrid.wait_remote_neighbor_copy_update_sends();
       phiprof::stop(timer);
 
-      // WARNING Blocks are changed but lists not updated now, if you need to use/communicate them before the next
-      // update is done, add an update here. reset lists in smaller default neighborhood
+      // WARNING Blocks are changed but lists not updated now, if you need to
+      // use/communicate them before the next update is done, add an update
+      // here. Reset lists in smaller default neighborhood.
       updateRemoteVelocityBlockLists(mpiGrid, popID);
 
    } // for-loop over populations
@@ -717,30 +706,21 @@ void Boundary::applyBoundaryVlasovConditions(
 
 /*! Get a pointer to the BoundaryCondition of given index.
  * \param boundaryType Type of the boundary condition to return
- * \return Pointer to the instance of the BoundaryCondition. NULL if boundaryType is invalid.
+ * \return Pointer to the instance of the BoundaryCondition
  */
 BC::BoundaryCondition *Boundary::getBoundary(cuint boundaryType) const
 {
    auto it = indexToBoundary.find(boundaryType);
    if (it != indexToBoundary.end())
-   {
       return it->second;
-   }
    else
-   {
-      std::cerr << "Boundary " << boundaryType << " is invalid  " << __FILE__ << ":" << __LINE__ << std::endl;
-      return NULL;
-   }
+      BC::abort_mpi("ERROR: Boundary " + to_string(boundaryType) + " is invalid", 1);
 }
 
-/*! Get the number of BoundaryConditions stored in Boundary.
- * \retval size Number of BoundaryConditions stored in Boundary.
- */
+/*! Get the number of BoundaryConditions stored in Boundary. */
 unsigned int Boundary::size() const { return boundaries.size(); }
 
-/*! Get a bool telling whether any boundary condition is dynamic in time (and thus needs updating).
- * \retval isThisDynamic Is any boundary condition dynamic in time.
- */
+/*! Check whether any boundary condition is dynamic in time. */
 bool Boundary::isDynamic() const { return isThisDynamic; }
 
 /*! Get a bool telling whether the system is periodic in the queried direction.
@@ -749,15 +729,13 @@ bool Boundary::isDynamic() const { return isThisDynamic; }
  */
 bool Boundary::isBoundaryPeriodic(uint direction) const { return isPeriodic[direction]; }
 
-/*! Get a vector containing the cellID of all cells which are not NO_COMPUTE or NOT_BOUNDARY in the vector of
- * cellIDs passed to the function.
- *
+/*! Get a vector containing the cellID of all cells which are not NO_COMPUTE or
+ * NOT_BOUNDARY in the vector of cellIDs passed to the function.
  * \param mpiGrid Grid
  * \param cellList Vector of cellIDs in which to look for boundary cells
  * \param boundaryCellList Vector of boundary the cells' cellIDs
- * \retval Returns true if the operation is successful
  */
-bool getBoundaryCellList(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+void getBoundaryCellList(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                          const vector<uint64_t> &cellList, vector<uint64_t> &boundaryCellList)
 {
    boundaryCellList.clear();
@@ -769,16 +747,14 @@ bool getBoundaryCellList(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geomet
          continue;
       boundaryCellList.push_back(cellID);
    }
-   return true;
 }
 
-/*! Updates all NonboundaryCells into an internal map. This should be called in loadBalance.
+/*! Updates all NonboundaryCells into an internal map. This should be called in
+ * loadBalance.
  * \param mpiGrid The DCCRG grid
- * \retval Returns true if the operation is successful
  */
-bool Boundary::updateBoundariesAfterLoadBalance(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid)
+void Boundary::updateBoundariesAfterLoadBalance(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid)
 {
-   phiprof::start("updateBoundariesAfterLoadBalance");
    vector<uint64_t> local_cells_on_boundary;
    getBoundaryCellList(mpiGrid, mpiGrid.get_cells(), local_cells_on_boundary);
    // Loop over boundaries:
@@ -786,7 +762,4 @@ bool Boundary::updateBoundariesAfterLoadBalance(dccrg::Dccrg<SpatialCell, dccrg:
    {
       (*it)->updateBoundaryConditionsAfterLoadBalance(mpiGrid, local_cells_on_boundary);
    }
-
-   phiprof::stop("updateBoundariesAfterLoadBalance");
-   return true;
 }

@@ -75,7 +75,7 @@ public:
    BC::BoundaryCondition *getBoundary(cuint boundaryType) const;
    bool isDynamic() const;
    bool isBoundaryPeriodic(uint direction) const;
-   bool updateBoundariesAfterLoadBalance(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid);
+   void updateBoundariesAfterLoadBalance(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid);
 
 private:
    /*! Private copy-constructor to prevent copying the class. */
@@ -102,7 +102,7 @@ bool precedenceSort(const BC::BoundaryCondition *first, const BC::BoundaryCondit
    Input a vector of cellIDs (cellList) and compute a new vector with only those cells which are on a boundary and are
    to be computed
 */
-bool getBoundaryCellList(const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+void getBoundaryCellList(const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                          const std::vector<CellID> &cellList, std::vector<CellID> &boundaryCellList);
 
 #endif

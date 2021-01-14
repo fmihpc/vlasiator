@@ -116,8 +116,9 @@ protected:
 
    /*! Array of bool telling which faces are going to be processed by the boundary condition.*/
    bool facesToProcess[6];
-   /*! Array of template spatial cells replicated over the corresponding simulation volume face. Only the template for
-    * an active face is actually being touched at all by the code. */
+   /*! Array of template spatial cells replicated over the corresponding
+    * simulation volume face. Only the template for an active face is actually
+    * being touched at all by the code. */
    spatial_cell::SpatialCell templateCells[6];
    Real templateB[6][3];
    /*! List of faces on which inflow boundary conditions are to be applied ([xyz][+-]). */

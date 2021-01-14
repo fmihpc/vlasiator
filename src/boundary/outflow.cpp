@@ -189,10 +189,8 @@ void Outflow::getParameters()
 
 void Outflow::initBoundary(creal &t, Project &project)
 {
-   /* The array of bool describes which of the x+, x-, y+, y-, z+, z- faces are
-    * to have outflow boundary conditions, indicated by trues.
-    * The 6 elements correspond to x+, x-, y+, y-, z+, z- respectively.
-    */
+   // The array of bool describes which of the faces are to have outflow
+   // boundary conditions, in the order of x+, x-, y+, y-, z+, z-.
    for (uint i = 0; i < 6; i++)
    {
       facesToProcess[i] = false;
