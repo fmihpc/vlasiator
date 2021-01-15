@@ -50,7 +50,7 @@ User::~User() {}
 
 void User::addParameters() {}
 
-void User::initBoundary(creal &t, Project &project) {}
+void User::initBoundary(creal t, Project &project) {}
 
 void User::getParameters() {}
 
@@ -61,6 +61,11 @@ void User::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &
 
 void User::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                              FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, Project &project)
+{
+}
+
+void User::vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+                                   const CellID &cellID, const uint popID, const bool doCalcMomentsV, creal t)
 {
 }
 

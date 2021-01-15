@@ -72,7 +72,7 @@ public:
 
    virtual void getParameters() = 0;
 
-   virtual void initBoundary(creal &t, Project &project);
+   virtual void initBoundary(creal t, Project &project);
    virtual void assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                FsGrid<fsgrids::technical, 2> &technicalGrid);
    virtual void applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
@@ -95,7 +95,7 @@ public:
    virtual void fieldSolverBoundaryCondBVOLDerivatives(FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, 2> &volGrid,
                                                        cint i, cint j, cint k, cuint &component);
    virtual void vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                        const CellID &cellID, const uint popID, const bool calculate_V_moments);
+                                        const CellID &cellID, const uint popID, const bool doCalcMomentsV, creal t);
 
    virtual void getFaces(bool *faces);
 
@@ -107,9 +107,9 @@ protected:
    std::vector<std::vector<Real>> loadFile(const char *file, unsigned int nParams);
    void interpolate(const int inputDataIndex, const uint popID, creal t, Real *outputData);
 
-   void generateTemplateCells(creal &t);
+   void generateTemplateCells(creal t);
    virtual void generateTemplateCell(spatial_cell::SpatialCell &templateCell, Real B[3], int inputDataIndex,
-                                     creal &t) = 0;
+                                     creal t) = 0;
    void setCellsFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid, const uint popID);
    void setBFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                          FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid);

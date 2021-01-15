@@ -61,7 +61,7 @@ public:
    static void addParameters();
    virtual void getParameters() = 0;
 
-   virtual void initBoundary(creal &t, Project &project) = 0;
+   virtual void initBoundary(creal t, Project &project) = 0;
    virtual void assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                FsGrid<fsgrids::technical, 2> &technicalGrid) = 0;
    virtual void applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
@@ -92,12 +92,12 @@ public:
 
    /** This function computes the Vlasov (distribution function)
     * boundary condition for the given particle species only.
-    * It is not! allowed to change block structure in cell.
+    * It is NOT allowed to change block structure in cell.
     * @param mpiGrid Parallel grid.
     * @param cellID Spatial cell ID.
     * @param popID Particle species ID.*/
    virtual void vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                        const CellID &cellID, const uint popID, const bool doCalcMomentsV) = 0;
+                                        const CellID &cellID, const uint popID, const bool doCalcMomentsV, creal t) = 0;
 
    virtual void getFaces(bool *faces);
    virtual std::string getName() const = 0;

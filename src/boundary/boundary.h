@@ -70,7 +70,7 @@ public:
    void applyInitialState(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                           FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, Project &project);
    void applyBoundaryVlasovConditions(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                      creal &t, const bool calculate_V_moments);
+                                      creal t, const bool doCalcMomentsV);
    unsigned int size() const;
    BC::BoundaryCondition *getBoundary(cuint boundaryType) const;
    bool isDynamic() const;

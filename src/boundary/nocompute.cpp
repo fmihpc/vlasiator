@@ -41,7 +41,7 @@ NoCompute::~NoCompute() {}
 void NoCompute::addParameters() {}
 void NoCompute::getParameters() {}
 
-void NoCompute::initBoundary(creal &t, Project &project)
+void NoCompute::initBoundary(creal t, Project &project)
 {
    precedence = 0;
    isThisDynamic = false;

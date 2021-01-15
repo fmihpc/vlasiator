@@ -187,7 +187,7 @@ void Outflow::getParameters()
    }
 }
 
-void Outflow::initBoundary(creal &t, Project &project)
+void Outflow::initBoundary(creal t, Project &project)
 {
    // The array of bool describes which of the faces are to have outflow
    // boundary conditions, in the order of x+, x-, y+, y-, z+, z-.
@@ -437,7 +437,7 @@ void Outflow::fieldSolverBoundaryCondBVOLDerivatives(FsGrid<std::array<Real, fsg
  * @param cellID
  */
 void Outflow::vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                      const CellID &cellID, const uint popID, const bool calculate_V_moments)
+                                      const CellID &cellID, const uint popID, const bool calculate_V_moments, creal t)
 {
    const OutflowSpeciesParameters &sP = this->speciesParams[popID];
    SpatialCell *cell = mpiGrid[cellID];

@@ -61,9 +61,8 @@ void Ionosphere::addParameters()
                        "Select the geometry of the ionosphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm "
                        "(circle, DEFAULT), 3: 2-norm cylinder aligned with y-axis, use with polar plane/line dipole.",
                        2);
-   Readparameters::add(
-       "ionosphere.precedence",
-       "Precedence value of the ionosphere boundary condition (integer), the higher the stronger.", 2);
+   Readparameters::add("ionosphere.precedence",
+                       "Precedence value of the ionosphere boundary condition (integer), the higher the stronger.", 2);
    Readparameters::add("ionosphere.reapplyUponRestart",
                        "If 0 (default), keep going with the state existing in the restart file. If 1, calls again "
                        "applyInitialState. Can be used to change boundary condition behaviour during a run.",
@@ -126,7 +125,7 @@ void Ionosphere::getParameters()
    }
 }
 
-void Ionosphere::initBoundary(creal &t, Project &project)
+void Ionosphere::initBoundary(creal t, Project &project)
 {
    getParameters();
    isThisDynamic = false;
@@ -857,7 +856,8 @@ void Ionosphere::fieldSolverBoundaryCondBVOLDerivatives(FsGrid<std::array<Real, 
 }
 
 void Ionosphere::vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                         const CellID &cellID, const uint popID, const bool calculate_V_moments)
+                                         const CellID &cellID, const uint popID, const bool calculate_V_moments,
+                                         creal t)
 {
    phiprof::start("vlasovBoundaryCondition (Ionosphere)");
    this->vlasovBoundaryFluffyCopyFromAllCloseNbrs(mpiGrid, cellID, popID, calculate_V_moments,

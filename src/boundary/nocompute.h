@@ -47,7 +47,7 @@ public:
    static void addParameters();
    void getParameters() override;
 
-   void initBoundary(creal &t, Project &project) override;
+   void initBoundary(creal t, Project &project) override;
    void assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                        FsGrid<fsgrids::technical, 2> &technicalGrid) override;
    void applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
@@ -91,7 +91,8 @@ public:
       std::cerr << "ERROR: NoCompute::fieldSolverBoundaryCondBVOLDerivatives called!" << std::endl;
    }
    void vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                const CellID &cellID, const uint popID, const bool calculate_V_moments) override
+                                const CellID &cellID, const uint popID, const bool calculate_V_moments,
+                                creal t) override
    {
       std::cerr << "ERROR: NoCompute::vlasovBoundaryCondition called!" << std::endl;
    }

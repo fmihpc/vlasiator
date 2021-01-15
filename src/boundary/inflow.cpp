@@ -48,7 +48,7 @@ namespace BC
 Inflow::Inflow() : BoundaryCondition() {}
 Inflow::~Inflow() {}
 
-void Inflow::initBoundary(creal &t, Project &project)
+void Inflow::initBoundary(creal t, Project &project)
 {
    // The array of bool describes which of the faces are to have inflow boundary
    // conditions, in the order of x+, x-, y+, y-, z+, z-.
@@ -235,7 +235,7 @@ void Inflow::fieldSolverBoundaryCondBVOLDerivatives(FsGrid<array<Real, fsgrids::
 }
 
 void Inflow::vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                     const CellID &cellID, const uint popID, const bool doCalcMomentsV)
+                                     const CellID &cellID, const uint popID, const bool doCalcMomentsV, creal t)
 {
    // No need to do anything in this function, as the propagators do not touch the distribution function
 }
@@ -414,7 +414,7 @@ vector<vector<Real>> Inflow::loadFile(const char *fn, const unsigned int nParams
  * \param t Simulation time
  * \sa generateTemplateCell
  */
-void Inflow::generateTemplateCells(creal &t)
+void Inflow::generateTemplateCells(creal t)
 {
 #pragma omp parallel for
    for (uint i = 0; i < 6; i++)

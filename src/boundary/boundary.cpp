@@ -613,7 +613,7 @@ void Boundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geom
  * \param doCalcMomentsV Compute into _V moments if true or _R moments if false
  * so that the interpolated ones can be done.
  */
-void Boundary::applyBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid, creal &t,
+void Boundary::applyBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid, creal t,
                                              const bool doCalcMomentsV)
 {
    if (boundaries.size() == 0) return; // no boundaries
@@ -651,7 +651,7 @@ void Boundary::applyBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell, dccrg::Ca
       for (uint i = 0; i < localCells.size(); i++)
       {
          cuint boundaryType = mpiGrid[localCells[i]]->boundaryFlag;
-         this->getBoundary(boundaryType)->vlasovBoundaryCondition(mpiGrid, localCells[i], popID, doCalcMomentsV);
+         this->getBoundary(boundaryType)->vlasovBoundaryCondition(mpiGrid, localCells[i], popID, doCalcMomentsV, t);
       }
       if (doCalcMomentsV)
          calculateMoments_V(mpiGrid, localCells, true);
@@ -675,7 +675,7 @@ void Boundary::applyBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell, dccrg::Ca
       for (uint i = 0; i < boundaryCells.size(); i++)
       {
          cuint boundaryType = mpiGrid[boundaryCells[i]]->boundaryFlag;
-         this->getBoundary(boundaryType)->vlasovBoundaryCondition(mpiGrid, boundaryCells[i], popID, doCalcMomentsV);
+         this->getBoundary(boundaryType)->vlasovBoundaryCondition(mpiGrid, boundaryCells[i], popID, doCalcMomentsV, t);
       }
       if (doCalcMomentsV)
          calculateMoments_V(mpiGrid, boundaryCells, true);

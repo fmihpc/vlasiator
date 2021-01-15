@@ -65,7 +65,7 @@ public:
    static void addParameters();
    void getParameters() override;
 
-   void initBoundary(creal &t, Project &project) override;
+   void initBoundary(creal t, Project &project) override;
    void assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                        FsGrid<fsgrids::technical, 2> &technicalGrid) override;
    void applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
@@ -86,7 +86,7 @@ public:
    void fieldSolverBoundaryCondBVOLDerivatives(FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, 2> &volGrid, cint i,
                                                cint j, cint k, cuint &component) override;
    void vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                const CellID &cellID, const uint popID, const bool calculate_V_moments) override;
+                                const CellID &cellID, const uint popID, const bool doCalcMomentsV, creal t) override;
 
    std::string getName() const override;
    uint getIndex() const override;

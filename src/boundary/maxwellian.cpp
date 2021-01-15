@@ -190,7 +190,7 @@ std::vector<vmesh::GlobalID> Maxwellian::findBlocksToInitialize(const uint popID
  * \param inputDataIndex Index used for the location of the input data.
  * \param t Current simulation time.
  */
-void Maxwellian::generateTemplateCell(spatial_cell::SpatialCell &templateCell, Real B[3], int inputDataIndex, creal &t)
+void Maxwellian::generateTemplateCell(spatial_cell::SpatialCell &templateCell, Real B[3], int inputDataIndex, creal t)
 {
    Real rho, T, Vx, Vy, Vz, Bx, By, Bz, buffer[8];
 
