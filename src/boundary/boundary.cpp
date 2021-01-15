@@ -594,13 +594,8 @@ void Boundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geom
    list<BC::BoundaryCondition *>::iterator it;
    for (it = boundaries.begin(); it != boundaries.end(); it++)
    {
-      if (                                // This is to skip the reapplication
-          Parameters::isRestart           // When not restarting
-          && !(*it)->doApplyUponRestart() // When reapplicaiton is not requested
-      )
-      {
-         continue;
-      }
+      // Skip when not restarting or not requested.
+      if (Parameters::isRestart && !(*it)->doApplyUponRestart()) continue;
       (*it)->applyInitialState(mpiGrid, perBGrid, project);
    }
 }

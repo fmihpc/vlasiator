@@ -186,7 +186,7 @@ void initializeGrids(
       }
       phiprof::stop("Read restart");
    
-      //initial state for boundary cells, will skip those not set to be reapplied at restart
+      // Initialize state for boundary cells
       phiprof::start("Apply boundary conditions state");
       boundaries.applyInitialState(mpiGrid, perBGrid, project);
       phiprof::stop("Apply boundary conditions state");

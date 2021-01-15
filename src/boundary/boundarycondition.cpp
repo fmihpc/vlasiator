@@ -60,40 +60,18 @@ namespace BC
  * \param dz Cell dz size
  * \param excludeSlicesAndPeriodicDimensions If true, do not consider a cell to
  * be part of the face if that face has a depth of 1 only (single-cell thick
- * slices/columns) or if that direction is periodic.
+ * slices/columns) or if that direction is periodic. false by default.
  */
 void BoundaryCondition::determineFace(bool *isThisCellOnAFace, creal x, creal y, creal z, creal dx, creal dy, creal dz,
-                                      const bool excludeSlicesAndPeriodicDimensions //=false (default)
-)
+                                      const bool excludeSlicesAndPeriodicDimensions)
 {
-   for (uint i = 0; i < 6; i++)
-   {
-      isThisCellOnAFace[i] = false;
-   }
-   if (x > Parameters::xmax - 2.0 * dx)
-   {
-      isThisCellOnAFace[0] = true;
-   }
-   if (x < Parameters::xmin + 2.0 * dx)
-   {
-      isThisCellOnAFace[1] = true;
-   }
-   if (y > Parameters::ymax - 2.0 * dy)
-   {
-      isThisCellOnAFace[2] = true;
-   }
-   if (y < Parameters::ymin + 2.0 * dy)
-   {
-      isThisCellOnAFace[3] = true;
-   }
-   if (z > Parameters::zmax - 2.0 * dz)
-   {
-      isThisCellOnAFace[4] = true;
-   }
-   if (z < Parameters::zmin + 2.0 * dz)
-   {
-      isThisCellOnAFace[5] = true;
-   }
+   isThisCellOnAFace[0] = (x > Parameters::xmax - 2.0 * dx) ? true : false;
+   isThisCellOnAFace[1] = (x < Parameters::xmin + 2.0 * dx) ? true : false;
+   isThisCellOnAFace[2] = (y > Parameters::ymax - 2.0 * dy) ? true : false;
+   isThisCellOnAFace[3] = (y < Parameters::ymin + 2.0 * dy) ? true : false;
+   isThisCellOnAFace[4] = (z > Parameters::zmax - 2.0 * dz) ? true : false;
+   isThisCellOnAFace[5] = (z < Parameters::zmin + 2.0 * dz) ? true : false;
+
    if (excludeSlicesAndPeriodicDimensions)
    {
       if (Parameters::xcells_ini == 1 || this->isPeriodic[0])
@@ -113,7 +91,6 @@ void BoundaryCondition::determineFace(bool *isThisCellOnAFace, creal x, creal y,
       }
    }
 }
-
 
 /*! BoundaryCondition base class default empty constructor.*/
 BoundaryCondition::BoundaryCondition() {}
