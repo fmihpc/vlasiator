@@ -54,7 +54,7 @@ void updateAccelerationMaxdt(
    
    // Constrain Vlasov solver with plasma frequency?
    if (P::ResolvePlasmaPeriod) {
-     Real rho = EPSILON > spatial_cell->get_population(popID).RHO ? EPSILON : spatial_cell->get_population(popID).RHO;
+     Real rho = EPSILON > spatial_cell->get_population(popID).RHO_V ? EPSILON : spatial_cell->get_population(popID).RHO_V;
      const Real plasma_period
        = fabs(2 * M_PI * sqrt(physicalconstants::EPS_0 * getObjectWrapper().particleSpecies[popID].mass / 
 			      rho)/getObjectWrapper().particleSpecies[popID].charge); 
@@ -108,7 +108,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
      / (getObjectWrapper().particleSpecies[popID].charge * B_mag);
    const Real plasma_period
      = fabs(2 * M_PI * sqrt(physicalconstants::EPS_0 * getObjectWrapper().particleSpecies[popID].mass / 
-			    spatial_cell->get_population(popID).RHO)/getObjectWrapper().particleSpecies[popID].charge);
+			    spatial_cell->get_population(popID).RHO_V)/getObjectWrapper().particleSpecies[popID].charge);
 
    // scale rho for hall term, if user requests
    const Real rhoq = EPSILON > spatial_cell->parameters[CellParams::RHOQ_V] ? EPSILON : spatial_cell->parameters[CellParams::RHOQ_V];
@@ -116,9 +116,9 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    const Real hallPrefactor = 1.0 / (physicalconstants::MU_0 * hallRhoq );
 
    // Bulk velocity is used to transform to a frame where the motional E-field vanishes
-   Eigen::Matrix<Real,3,1> bulk_velocity(spatial_cell->parameters[CellParams::VX_R],
-                                         spatial_cell->parameters[CellParams::VY_R],
-                                         spatial_cell->parameters[CellParams::VZ_R]);
+   Eigen::Matrix<Real,3,1> bulk_velocity(spatial_cell->parameters[CellParams::VX_V],
+                                         spatial_cell->parameters[CellParams::VY_V],
+                                         spatial_cell->parameters[CellParams::VZ_V]);
 
    // Use electron solvers for anything below half a proton mass
    bool smallparticle = false;
@@ -126,9 +126,9 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    if (getObjectWrapper().particleSpecies[popID].mass < 0.5*physicalconstants::MASS_PROTON) {
       smallparticle = true;
       // Store the original electron bulk velocity
-      bulk_velocity(0,0) = electronV[0] = spatial_cell->get_population(popID).V_R[0];
-      bulk_velocity(1,0) = electronV[1] = spatial_cell->get_population(popID).V_R[1];
-      bulk_velocity(2,0) = electronV[2] = spatial_cell->get_population(popID).V_R[2];
+      bulk_velocity(0,0) = electronV[0] = spatial_cell->get_population(popID).V_V[0];
+      bulk_velocity(1,0) = electronV[1] = spatial_cell->get_population(popID).V_V[1];
+      bulk_velocity(2,0) = electronV[2] = spatial_cell->get_population(popID).V_V[2];
    }  
 
     // compute total transformation
@@ -166,19 +166,19 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       
    const Real q = getObjectWrapper().particleSpecies[popID].charge;
    const Real mass = getObjectWrapper().particleSpecies[popID].mass;
-   const Real rho = spatial_cell->get_population(popID).RHO;
+   const Real rho = spatial_cell->get_population(popID).RHO_V;
    const Real h = substeps_dt;
    
    // Gather ion current density for electron calculations
    Eigen::Matrix<Real,3,1> Ji(0.,0.,0.);
    for (uint popID_EJE=0; popID_EJE<getObjectWrapper().particleSpecies.size(); ++popID_EJE) {
      if (getObjectWrapper().particleSpecies[popID_EJE].mass > 0.5*physicalconstants::MASS_PROTON) {
-       Ji[0] += getObjectWrapper().particleSpecies[popID_EJE].charge * spatial_cell->get_population(popID_EJE).RHO 
-	      * spatial_cell->get_population(popID_EJE).V_R[0];
-       Ji[1] += getObjectWrapper().particleSpecies[popID_EJE].charge * spatial_cell->get_population(popID_EJE).RHO 
-	 * spatial_cell->get_population(popID_EJE).V_R[1];
-       Ji[2] += getObjectWrapper().particleSpecies[popID_EJE].charge * spatial_cell->get_population(popID_EJE).RHO 
-	 * spatial_cell->get_population(popID_EJE).V_R[2];
+       Ji[0] += getObjectWrapper().particleSpecies[popID_EJE].charge * spatial_cell->get_population(popID_EJE).RHO_V 
+	      * spatial_cell->get_population(popID_EJE).V_V[0];
+       Ji[1] += getObjectWrapper().particleSpecies[popID_EJE].charge * spatial_cell->get_population(popID_EJE).RHO_V 
+	 * spatial_cell->get_population(popID_EJE).V_V[1];
+       Ji[2] += getObjectWrapper().particleSpecies[popID_EJE].charge * spatial_cell->get_population(popID_EJE).RHO_V 
+	 * spatial_cell->get_population(popID_EJE).V_V[2];
      }
    }
    // Now account for current requirement from curl of B

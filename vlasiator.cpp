@@ -851,7 +851,7 @@ int main(int argn,char* args[]) {
          computeNewTimeStep(mpiGrid, technicalGrid, newDt, dtIsChanged);
          addTimedBarrier("barrier-check-dt");
          if(dtIsChanged) {
-#WARNING dt change step in acceleration at restart cannot be done without additional information such as egradpe
+#warning dt change step in acceleration at restart cannot be done without additional information such as egradpe
             phiprof::start("update-dt");
             //propagate velocity space back to real-time
             if( P::propagateVlasovAcceleration ) {
@@ -965,7 +965,7 @@ int main(int argn,char* args[]) {
       }
 
       // Additional feeding of moments into fsgrid required by electron runs
-      if (P::ResolvePlasmaPeriod==true) {
+      if (!P::propagateField && (P::ResolvePlasmaPeriod==true)) {
 	phiprof::start("fsgrid-coupling-in");
 	feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid, technicalGrid, false);
 	feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, technicalGrid, true);
