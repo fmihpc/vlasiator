@@ -185,9 +185,7 @@ std::vector<vmesh::GlobalID> Maxwellian::findBlocksToInitialize(const uint popID
 }
 
 /*!\brief Generate the template cell for the face corresponding to the index
- * passed.
- * This function generates a spatial cell which is to be used as a template for
- * the boundary condition.
+ * passed, which will be used for setting the boundary conditions.
  * \param templateCell Address of the template cell to be generated.
  * \param inputDataIndex Index used for the location of the input data.
  * \param t Current simulation time.
@@ -242,7 +240,7 @@ void Maxwellian::generateTemplateCell(spatial_cell::SpatialCell &templateCell, R
          creal dy = templateCell.parameters[CellParams::DY];
          creal dz = templateCell.parameters[CellParams::DZ];
 
-         // Calculate volume average of distrib. function for each cell in the block.
+         // Calculate volume average of distribution function for each cell in the block.
          for (uint kc = 0; kc < WID; ++kc)
             for (uint jc = 0; jc < WID; ++jc)
                for (uint ic = 0; ic < WID; ++ic)
@@ -250,7 +248,7 @@ void Maxwellian::generateTemplateCell(spatial_cell::SpatialCell &templateCell, R
                   creal vxCell = vxBlock + ic * dvxCell;
                   creal vyCell = vyBlock + jc * dvyCell;
                   creal vzCell = vzBlock + kc * dvzCell;
-                  Real average = 0.0;
+                  Real avr = 0.0;
                   if (speciesParams[popID].nVelocitySamples > 1)
                   {
                      creal d_vx = dvxCell / (speciesParams[popID].nVelocitySamples - 1);
@@ -260,27 +258,23 @@ void Maxwellian::generateTemplateCell(spatial_cell::SpatialCell &templateCell, R
                         for (uint vj = 0; vj < speciesParams[popID].nVelocitySamples; ++vj)
                            for (uint vk = 0; vk < speciesParams[popID].nVelocitySamples; ++vk)
                            {
-                              average += maxwellianDistribution(popID, rho, T, vxCell + vi * d_vx - Vx,
-                                                                vyCell + vj * d_vy - Vy, vzCell + vk * d_vz - Vz);
+                              avr += maxwellianDistribution(popID, rho, T, vxCell + vi * d_vx - Vx,
+                                                            vyCell + vj * d_vy - Vy, vzCell + vk * d_vz - Vz);
                            }
-                     average /= speciesParams[popID].nVelocitySamples * speciesParams[popID].nVelocitySamples *
-                                speciesParams[popID].nVelocitySamples;
+                     avr /= speciesParams[popID].nVelocitySamples * speciesParams[popID].nVelocitySamples *
+                            speciesParams[popID].nVelocitySamples;
                   }
                   else
                   {
-                     average = maxwellianDistribution(popID, rho, T, vxCell + 0.5 * dvxCell - Vx,
-                                                      vyCell + 0.5 * dvyCell - Vy, vzCell + 0.5 * dvzCell - Vz);
+                     avr = maxwellianDistribution(popID, rho, T, vxCell + 0.5 * dvxCell - Vx,
+                                                  vyCell + 0.5 * dvyCell - Vy, vzCell + 0.5 * dvzCell - Vz);
                   }
 
-                  if (average != 0.0)
-                  {
-                     data[blockLID * WID3 + cellIndex(ic, jc, kc)] = average;
-                  }
+                  if (avr != 0.0) data[blockLID * WID3 + cellIndex(ic, jc, kc)] = avr;
                } // for-loop over cells in velocity block
       }          // for-loop over velocity blocks
 
-      // let's get rid of blocks not fulfilling the criteria here to save
-      // memory.
+      // Get rid of blocks not fulfilling the criteria here to save memory.
       templateCell.adjustSingleCellVelocityBlocks(popID);
    } // for-loop over particle species
 

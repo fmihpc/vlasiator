@@ -315,7 +315,7 @@ void Inflow::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesi
          {
             copyCellData(&templateCells[i], cell, false, popID, true); // copy also vdf, _V
             copyCellData(&templateCells[i], cell, true, popID, false); // don't copy vdf again but copy _R now
-            break; // This effectively sets the precedence of faces through the order of faces.
+            break; // Effectively sets the precedence of faces through the order of faces.
          }
       }
    }

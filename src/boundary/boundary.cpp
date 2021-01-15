@@ -130,10 +130,10 @@ void Boundary::addBoundary(BC::BoundaryCondition *bc, Project &project, creal &t
 
 /*!\brief Initialise all boundary conditions actually used.
  *
- * This function loops through the list of boundary conditions listed as to be used
- * in the configuration file/command line arguments. For each of these it adds the
- * corresponding instance and updates the member isThisDynamic to determine whether any
- * BoundaryCondition is dynamic in time.
+ * This function loops through the list of boundary conditions listed as to be
+ * used in the configuration file/command line arguments. For each of these it
+ * adds the corresponding instance and updates the member isThisDynamic to
+ * determine whether any BoundaryCondition is dynamic in time.
  * \param project Project object
  * \param t Current time
  * \sa addBoundary
@@ -188,35 +188,33 @@ void Boundary::initBoundaries(Project &project, creal &t)
       if (*it == "Maxwellian")
       {
          this->addBoundary(new BC::Maxwellian, project, t);
-         isThisDynamic = false;
+         isThisDynamic = this->getBoundary(boundarytype::MAXWELLIAN)->isDynamic();
          bool faces[6];
          this->getBoundary(boundarytype::MAXWELLIAN)->getFaces(&faces[0]);
 
          if ((faces[0] || faces[1]) && isPeriodic[0])
-            BC::abort_mpi("Conflict: x boundaries set to periodic but found fixed also!");
+            BC::abort_mpi("Conflict: x boundaries set to periodic but found Maxwellian also!");
 
          if ((faces[2] || faces[3]) && isPeriodic[1])
-            BC::abort_mpi("Conflict: y boundaries set to periodic but found fixed also!");
+            BC::abort_mpi("Conflict: y boundaries set to periodic but found Maxwellian also!");
 
          if ((faces[4] || faces[5]) && isPeriodic[2])
-            BC::abort_mpi("Conflict: z boundaries set to periodic but found fixed also!");
+            BC::abort_mpi("Conflict: z boundaries set to periodic but found Maxwellian also!");
 
          if ((faces[0] || faces[1]) && P::xcells_ini < 5)
-            BC::abort_mpi("Fixed condition loaded on x- or x+ face but not enough cells in x!");
+            BC::abort_mpi("Maxwellian condition loaded on x- or x+ face but not enough cells in x!");
 
          if ((faces[2] || faces[3]) && P::ycells_ini < 5)
-            BC::abort_mpi("Fixed condition loaded on y- or y+ face but not enough cells in y!");
+            BC::abort_mpi("Maxwellian condition loaded on y- or y+ face but not enough cells in y!");
 
          if ((faces[4] || faces[5]) && P::zcells_ini < 5)
-            BC::abort_mpi("Fixed condition loaded on z- or z+ face but not enough cells in z!");
+            BC::abort_mpi("Maxwellian condition loaded on z- or z+ face but not enough cells in z!");
       }
    }
 
    list<BC::BoundaryCondition *>::iterator it2;
    for (it2 = boundaries.begin(); it2 != boundaries.end(); it2++)
-   {
       (*it2)->setPeriodicity(isPeriodic);
-   }
 }
 
 bool Boundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid)
