@@ -48,6 +48,8 @@ namespace BC
 Inflow::Inflow() : BoundaryCondition() {}
 Inflow::~Inflow() {}
 
+Real Inflow::tCurrent;
+
 void Inflow::initBoundary(creal t, Project &project)
 {
    // The array of bool describes which of the faces are to have inflow boundary
@@ -72,6 +74,7 @@ void Inflow::initBoundary(creal t, Project &project)
       loadInputData(i);
 
    generateTemplateCells(t);
+   tCurrent = t;
 }
 
 void Inflow::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
@@ -237,7 +240,39 @@ void Inflow::fieldSolverBoundaryCondBVOLDerivatives(FsGrid<array<Real, fsgrids::
 void Inflow::vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                      const CellID &cellID, const uint popID, const bool doCalcMomentsV, creal t)
 {
-   // No need to do anything in this function, as the propagators do not touch the distribution function
+   if (isThisDynamic)
+   {
+      if (tCurrent != t)
+      {
+         generateTemplateCells(t);
+         tCurrent = t;
+      }
+
+      SpatialCell *cell = mpiGrid[cellID];
+
+      creal dx = cell->parameters[CellParams::DX];
+      creal dy = cell->parameters[CellParams::DY];
+      creal dz = cell->parameters[CellParams::DZ];
+      creal x = cell->parameters[CellParams::XCRD] + 0.5 * dx;
+      creal y = cell->parameters[CellParams::YCRD] + 0.5 * dy;
+      creal z = cell->parameters[CellParams::ZCRD] + 0.5 * dz;
+
+      bool isThisCellOnAFace[6];
+      determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);
+
+      for (uint i = 0; i < 6; i++)
+      {
+         if (facesToProcess[i] && isThisCellOnAFace[i])
+         {
+            copyCellData(&templateCells[i], cell, false, popID, true); // copy also vdf, _V
+            copyCellData(&templateCells[i], cell, true, popID, false); // don't copy vdf again but copy _R now
+            break; // Effectively sets the precedence of faces through the order of faces.
+         }
+      }
+
+      // hyzhou: currently the B grid is not passed!
+      // setBFromTemplate(mpiGrid, perBGrid);
+   }
 }
 
 void Inflow::setBFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
@@ -418,9 +453,7 @@ void Inflow::generateTemplateCells(creal t)
 {
 #pragma omp parallel for
    for (uint i = 0; i < 6; i++)
-   {
       if (facesToProcess[i]) generateTemplateCell(templateCells[i], templateB[i], i, t);
-   }
 }
 
 /*!Interpolate the input data to the given time.
@@ -433,7 +466,6 @@ void Inflow::generateTemplateCells(creal t)
  */
 void Inflow::interpolate(const int inputDataIndex, const uint popID, creal t, Real *outputData)
 {
-
    InflowSpeciesParameters &sP = speciesParams[popID];
 
    // Find first data[0] value which is >= t

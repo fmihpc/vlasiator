@@ -140,17 +140,17 @@ namespace CellParams {
       VX_DT2,  /*!< Vx. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       VY_DT2,  /*!< Vy. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       VZ_DT2,  /*!< Vz. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
-      RHOQ_DT2,    /*!< Total charge density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
+      RHOQ_DT2,  /*!< Total charge density. Calculated by Vlasov propagator, used to propagate BX,BY,BZ.*/
       BGBXVOL,   /*!< background magnetic field averaged over spatial cell.*/
       BGBYVOL,   /*!< background magnetic field averaged over spatial cell.*/
       BGBZVOL,   /*!< background magnetic field averaged over spatial cell.*/
-      PERBXVOL,  /*!< perturbed magnetic field  PERBX averaged over spatial cell.*/
-      PERBYVOL,  /*!< perturbed magnetic field  PERBY averaged over spatial cell.*/
-      PERBZVOL,  /*!< perturbed magnetic field  PERBZ averaged over spatial cell.*/
-      EXGRADPE,         /*!< Electron pressure gradient term x.*/
-      EYGRADPE,         /*!< Electron pressure gradient term y.*/
-      EZGRADPE,         /*!< Electron pressure gradient term z.*/
-      RHOM_R,     /*!< RHO after propagation in ordinary space*/
+      PERBXVOL,  /*!< perturbed magnetic field PERBX averaged over spatial cell.*/
+      PERBYVOL,  /*!< perturbed magnetic field PERBY averaged over spatial cell.*/
+      PERBZVOL,  /*!< perturbed magnetic field PERBZ averaged over spatial cell.*/
+      EXGRADPE,  /*!< Electron pressure gradient term x.*/
+      EYGRADPE,  /*!< Electron pressure gradient term y.*/
+      EZGRADPE,  /*!< Electron pressure gradient term z.*/
+      RHOM_R,    /*!< RHO after propagation in ordinary space*/
       VX_R,   /*!< VX after propagation in ordinary space*/
       VY_R,   /*!< VY after propagation in ordinary space*/
       VZ_R,   /*!< VZ after propagation in ordinary space*/

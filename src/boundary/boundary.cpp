@@ -116,7 +116,7 @@ void Boundary::getParameters()
  * \param project Project object
  * \param t Current time
  */
-void Boundary::addBoundary(BC::BoundaryCondition *bc, Project &project, creal &t)
+void Boundary::addBoundary(BC::BoundaryCondition *bc, Project &project, creal t)
 {
    // Initialize the boundary condition
    bc->initBoundary(t, project);
@@ -138,7 +138,7 @@ void Boundary::addBoundary(BC::BoundaryCondition *bc, Project &project, creal &t
  * \param t Current time
  * \sa addBoundary
  */
-void Boundary::initBoundaries(Project &project, creal &t)
+void Boundary::initBoundaries(Project &project, creal t)
 {
    vector<string>::const_iterator it;
 
@@ -217,15 +217,12 @@ void Boundary::initBoundaries(Project &project, creal &t)
       (*it2)->setPeriodicity(isPeriodic);
 }
 
-bool Boundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid)
+void Boundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid)
 {
+   // Set is used such that each cell will only be checked once.
+   set<CellID> innerBoundaryCells, outerBoundaryCells;
 
-   // Set is used to avoid storing duplicates - each cell only needs to be checked once
-   std::set<CellID> innerBoundaryCells;
-   std::set<CellID> outerBoundaryCells;
-
-   int innerBoundaryRefLvl = -1;
-   int outerBoundaryRefLvl = -1;
+   int innerBoundaryRefLvl = -1, outerBoundaryRefLvl = -1;
 
    // Collect cells by boundarytype
    for (auto cellId : mpiGrid.get_cells())
@@ -243,10 +240,7 @@ bool Boundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Ca
                auto *nbrPairVector = mpiGrid.get_neighbors_of(cellId, FULL_NEIGHBORHOOD_ID);
                for (auto nbrPair : *nbrPairVector)
                {
-                  if (nbrPair.first != INVALID_CELLID)
-                  {
-                     innerBoundaryCells.insert(nbrPair.first);
-                  }
+                  if (nbrPair.first != INVALID_CELLID) innerBoundaryCells.insert(nbrPair.first);
                }
             }
          }
@@ -258,10 +252,7 @@ bool Boundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Ca
             auto *nbrPairVector = mpiGrid.get_neighbors_of(cellId, FULL_NEIGHBORHOOD_ID);
             for (auto nbrPair : *nbrPairVector)
             {
-               if (nbrPair.first != INVALID_CELLID)
-               {
-                  outerBoundaryCells.insert(nbrPair.first);
-               }
+               if (nbrPair.first != INVALID_CELLID) outerBoundaryCells.insert(nbrPair.first);
             }
          }
       }
@@ -270,28 +261,19 @@ bool Boundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Ca
    for (auto cellId : innerBoundaryCells)
    {
       if (cellId != INVALID_CELLID && mpiGrid.get_refinement_level(cellId) != innerBoundaryRefLvl)
-      {
-         return false;
-      }
+         BC::abort_mpi("ERROR: Boundary cells must have identical refinement level!");
    }
 
    for (auto cellId : outerBoundaryCells)
    {
       if (cellId != INVALID_CELLID && mpiGrid.get_refinement_level(cellId) != outerBoundaryRefLvl)
-      {
-         // cout << "Failed refinement check " << cellId << " " << mpiGrid.get_refinement_level(cellId) << " "<<
-         // outerBoundaryRefLvl << endl;
-         return false;
-      }
+         BC::abort_mpi("ERROR: Boundary cells must have identical refinement level!");
    }
-
-   return true;
 }
 
 bool belongsToLayer(const int layer, const int x, const int y, const int z,
                     FsGrid<fsgrids::technical, 2> &technicalGrid)
 {
-
    bool belongs = false;
 
    // loop through all neighbors (including diagonals)
@@ -301,13 +283,9 @@ bool belongsToLayer(const int layer, const int x, const int y, const int z,
       {
          for (int iz = -1; iz <= 1; ++iz)
          {
-
             // not strictly necessary but logically we should not consider the cell itself
             // among its neighbors.
-            if ((ix == 0 && iy == 0 && iz == 0) || !technicalGrid.get(x + ix, y + iy, z + iz))
-            {
-               continue;
-            }
+            if ((ix == 0 && iy == 0 && iz == 0) || !technicalGrid.get(x + ix, y + iy, z + iz)) continue;
 
             if (layer == 1 && technicalGrid.get(x + ix, y + iy, z + iz)->boundaryFlag == boundarytype::NOT_BOUNDARY)
             {
@@ -340,11 +318,10 @@ void Boundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cart
    vector<CellID> cells = mpiGrid.get_cells();
    auto localSize = technicalGrid.getLocalSize().data();
 
-   /*set all cells to default value, not_boundary*/
+   // Set all cells to default value
    for (uint i = 0; i < cells.size(); i++)
-   {
       mpiGrid[cells[i]]->boundaryFlag = boundarytype::NOT_BOUNDARY;
-   }
+
 #pragma omp parallel for collapse(3)
    for (int x = 0; x < localSize[0]; ++x)
    {

@@ -197,13 +197,6 @@ void Maxwellian::generateTemplateCell(spatial_cell::SpatialCell &templateCell, R
    templateCell.boundaryFlag = this->getIndex();
    templateCell.boundaryLayer = 1;
 
-   templateCell.parameters[CellParams::XCRD] = 0.0;
-   templateCell.parameters[CellParams::YCRD] = 0.0;
-   templateCell.parameters[CellParams::ZCRD] = 0.0;
-   templateCell.parameters[CellParams::DX] = 1;
-   templateCell.parameters[CellParams::DY] = 1;
-   templateCell.parameters[CellParams::DZ] = 1;
-
    // Init all particle species
    for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID)
    {
@@ -232,13 +225,6 @@ void Maxwellian::generateTemplateCell(spatial_cell::SpatialCell &templateCell, R
          creal dvxCell = block_parameters[BlockParams::DVX];
          creal dvyCell = block_parameters[BlockParams::DVY];
          creal dvzCell = block_parameters[BlockParams::DVZ];
-
-         creal x = templateCell.parameters[CellParams::XCRD];
-         creal y = templateCell.parameters[CellParams::YCRD];
-         creal z = templateCell.parameters[CellParams::ZCRD];
-         creal dx = templateCell.parameters[CellParams::DX];
-         creal dy = templateCell.parameters[CellParams::DY];
-         creal dz = templateCell.parameters[CellParams::DZ];
 
          // Calculate volume average of distribution function for each cell in the block.
          for (uint kc = 0; kc < WID; ++kc)
@@ -284,30 +270,31 @@ void Maxwellian::generateTemplateCell(spatial_cell::SpatialCell &templateCell, R
 
    calculateCellMoments(&templateCell, true, true);
 
+   templateCell.parameters[CellParams::RHOM_R] = templateCell.parameters[CellParams::RHOM];
+   templateCell.parameters[CellParams::VX_R] = templateCell.parameters[CellParams::VX];
+   templateCell.parameters[CellParams::VY_R] = templateCell.parameters[CellParams::VY];
+   templateCell.parameters[CellParams::VZ_R] = templateCell.parameters[CellParams::VZ];
+   templateCell.parameters[CellParams::RHOQ_R] = templateCell.parameters[CellParams::RHOQ];
+   templateCell.parameters[CellParams::P_11_R] = templateCell.parameters[CellParams::P_11];
+   templateCell.parameters[CellParams::P_22_R] = templateCell.parameters[CellParams::P_22];
+   templateCell.parameters[CellParams::P_33_R] = templateCell.parameters[CellParams::P_33];
+   templateCell.parameters[CellParams::RHOM_V] = templateCell.parameters[CellParams::RHOM];
+   templateCell.parameters[CellParams::VX_V] = templateCell.parameters[CellParams::VX];
+   templateCell.parameters[CellParams::VY_V] = templateCell.parameters[CellParams::VY];
+   templateCell.parameters[CellParams::VZ_V] = templateCell.parameters[CellParams::VZ];
+   templateCell.parameters[CellParams::RHOQ_V] = templateCell.parameters[CellParams::RHOQ];
+   templateCell.parameters[CellParams::P_11_V] = templateCell.parameters[CellParams::P_11];
+   templateCell.parameters[CellParams::P_22_V] = templateCell.parameters[CellParams::P_22];
+   templateCell.parameters[CellParams::P_33_V] = templateCell.parameters[CellParams::P_33];
+
    if (!this->isThisDynamic)
    {
       // WARNING Time-independence assumed here.
-      templateCell.parameters[CellParams::RHOM_R] = templateCell.parameters[CellParams::RHOM];
-      templateCell.parameters[CellParams::VX_R] = templateCell.parameters[CellParams::VX];
-      templateCell.parameters[CellParams::VY_R] = templateCell.parameters[CellParams::VY];
-      templateCell.parameters[CellParams::VZ_R] = templateCell.parameters[CellParams::VZ];
-      templateCell.parameters[CellParams::RHOQ_R] = templateCell.parameters[CellParams::RHOQ];
-      templateCell.parameters[CellParams::P_11_R] = templateCell.parameters[CellParams::P_11];
-      templateCell.parameters[CellParams::P_22_R] = templateCell.parameters[CellParams::P_22];
-      templateCell.parameters[CellParams::P_33_R] = templateCell.parameters[CellParams::P_33];
-      templateCell.parameters[CellParams::RHOM_V] = templateCell.parameters[CellParams::RHOM];
-      templateCell.parameters[CellParams::VX_V] = templateCell.parameters[CellParams::VX];
-      templateCell.parameters[CellParams::VY_V] = templateCell.parameters[CellParams::VY];
-      templateCell.parameters[CellParams::VZ_V] = templateCell.parameters[CellParams::VZ];
-      templateCell.parameters[CellParams::RHOQ_V] = templateCell.parameters[CellParams::RHOQ];
-      templateCell.parameters[CellParams::P_11_V] = templateCell.parameters[CellParams::P_11];
-      templateCell.parameters[CellParams::P_22_V] = templateCell.parameters[CellParams::P_22];
-      templateCell.parameters[CellParams::P_33_V] = templateCell.parameters[CellParams::P_33];
    }
    else
    {
-      cerr << "ERROR: this is not dynamic in time, please code it!" << endl;
-      abort();
+      //hyzhou
+      cout << "We are testing dynamic BC, t = " << t << endl;
    }
 }
 

@@ -29,6 +29,8 @@
 #include "boundarycondition.h"
 #include <vector>
 
+using namespace std;
+
 namespace BC
 {
 
@@ -37,9 +39,9 @@ struct InflowSpeciesParameters
    /*! Vector containing a vector for each face which has the current boundary
     * condition. Each of these vectors has one line per input data line
     * (time point). The length of the lines is nParams.*/
-   std::vector<std::vector<Real>> inputData[6];
+   vector<vector<Real>> inputData[6];
    /*! Input files for the inflow boundary conditions. */
-   std::string files[6];
+   string files[6];
 
    /*! Number of space- and velocityspace samples used when creating phase space
     * densities */
@@ -76,44 +78,33 @@ public:
    virtual void assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                FsGrid<fsgrids::technical, 2> &technicalGrid);
    virtual void applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                  FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, Project &project);
-   virtual Real fieldSolverBoundaryCondMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &bGrid,
+                                  FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, Project &project);
+   virtual Real fieldSolverBoundaryCondMagneticField(FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, 2> &bGrid,
                                                      FsGrid<fsgrids::technical, 2> &technicalGrid, cint i, cint j,
                                                      cint k, creal &dt, cuint &component);
-   virtual void fieldSolverBoundaryCondElectricField(FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, 2> &EGrid,
+   virtual void fieldSolverBoundaryCondElectricField(FsGrid<array<Real, fsgrids::efield::N_EFIELD>, 2> &EGrid,
                                                      cint i, cint j, cint k, cuint component);
    virtual void
-   fieldSolverBoundaryCondHallElectricField(FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, 2> &EHallGrid, cint i,
+   fieldSolverBoundaryCondHallElectricField(FsGrid<array<Real, fsgrids::ehall::N_EHALL>, 2> &EHallGrid, cint i,
                                             cint j, cint k, cuint component);
    virtual void
-   fieldSolverBoundaryCondGradPeElectricField(FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> &EGradPeGrid,
+   fieldSolverBoundaryCondGradPeElectricField(FsGrid<array<Real, fsgrids::egradpe::N_EGRADPE>, 2> &EGradPeGrid,
                                               cint i, cint j, cint k, cuint component);
    virtual void
-   fieldSolverBoundaryCondDerivatives(FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, 2> &dPerBGrid,
-                                      FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> &dMomentsGrid, cint i,
+   fieldSolverBoundaryCondDerivatives(FsGrid<array<Real, fsgrids::dperb::N_DPERB>, 2> &dPerBGrid,
+                                      FsGrid<array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> &dMomentsGrid, cint i,
                                       cint j, cint k, cuint &RKCase, cuint &component);
-   virtual void fieldSolverBoundaryCondBVOLDerivatives(FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, 2> &volGrid,
+   virtual void fieldSolverBoundaryCondBVOLDerivatives(FsGrid<array<Real, fsgrids::volfields::N_VOL>, 2> &volGrid,
                                                        cint i, cint j, cint k, cuint &component);
    virtual void vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                         const CellID &cellID, const uint popID, const bool doCalcMomentsV, creal t);
 
    virtual void getFaces(bool *faces);
 
-   virtual std::string getName() const = 0;
+   virtual string getName() const = 0;
    virtual uint getIndex() const = 0;
 
 protected:
-   void loadInputData(const uint popID);
-   std::vector<std::vector<Real>> loadFile(const char *file, unsigned int nParams);
-   void interpolate(const int inputDataIndex, const uint popID, creal t, Real *outputData);
-
-   void generateTemplateCells(creal t);
-   virtual void generateTemplateCell(spatial_cell::SpatialCell &templateCell, Real B[3], int inputDataIndex,
-                                     creal t) = 0;
-   void setCellsFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid, const uint popID);
-   void setBFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                         FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid);
-
    /*! Array of bool telling which faces are going to be processed by the boundary condition.*/
    bool facesToProcess[6];
    /*! Array of template spatial cells replicated over the corresponding
@@ -122,9 +113,19 @@ protected:
    spatial_cell::SpatialCell templateCells[6];
    Real templateB[6][3];
    /*! List of faces on which inflow boundary conditions are to be applied ([xyz][+-]). */
-   std::vector<std::string> faceList;
+   vector<string> faceList;
+   vector<InflowSpeciesParameters> speciesParams;
+   static Real tCurrent;
+   vector<vector<Real>> loadFile(const char *file, unsigned int nParams);
 
-   std::vector<InflowSpeciesParameters> speciesParams;
+   void loadInputData(const uint popID);
+   void interpolate(const int inputDataIndex, const uint popID, creal t, Real *outputData);
+   void generateTemplateCells(creal t);
+   virtual void generateTemplateCell(spatial_cell::SpatialCell &templateCell, Real B[3], int inputDataIndex,
+                                     creal t) = 0;
+   void setCellsFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid, const uint popID);
+   void setBFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+                         FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid);
 };
 } // namespace BC
 

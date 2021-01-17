@@ -94,8 +94,8 @@ void initializeGrids(
    FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
    FsGrid< fsgrids::technical, 2>& technicalGrid,
    Boundary& boundaries,
-   Project& project
-) {
+   Project& project) 
+{
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    
@@ -171,10 +171,7 @@ void initializeGrids(
 
    // Check refined cells do not touch boundary cells
    phiprof::start("Check boundary refinement");
-   if(!boundaries.checkRefinement(mpiGrid)) {
-      cerr << "(MAIN) ERROR: Boundary cells must have identical refinement level " << endl;
-      exit(1);
-   }
+   boundaries.checkRefinement(mpiGrid);
    phiprof::stop("Check boundary refinement");
    
    if (P::isRestart) {

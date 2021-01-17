@@ -62,9 +62,9 @@ public:
    void addParameters();
    void getParameters();
 
-   void addBoundary(BC::BoundaryCondition *sbc, Project &project, creal &t);
-   void initBoundaries(Project &project, creal &t);
-   bool checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid);
+   void addBoundary(BC::BoundaryCondition *sbc, Project &project, creal t);
+   void initBoundaries(Project &project, creal t);
+   void checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid);
    void classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                       FsGrid<fsgrids::technical, 2> &technicalGrid);
    void applyInitialState(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,

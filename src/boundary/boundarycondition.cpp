@@ -52,12 +52,6 @@ namespace BC
  * \param isThisCellOnAFace Pointer to an array of 6 bool returning of each face
  * whether the cell is on that face.
  * Order: 0 x+; 1 x-; 2 y+; 3 y-; 4 z+; 5 z-
- * \param x Cell x coordinate
- * \param y Cell y coordinate
- * \param z Cell z coordinate
- * \param dx Cell dx size
- * \param dy Cell dy size
- * \param dz Cell dz size
  * \param excludeSlicesAndPeriodicDimensions If true, do not consider a cell to
  * be part of the face if that face has a depth of 1 only (single-cell thick
  * slices/columns) or if that direction is periodic. false by default.
@@ -106,8 +100,6 @@ void BoundaryCondition::addParameters()
 }
 
 /*! Function used to set the boundary condition cell's derivatives to 0.
- * \param mpiGrid Grid
- * \param cellID The cell's ID.
  * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives,
  * 3: xy-derivatives, 4: xz-derivatives, 5: yz-derivatives.
  */
@@ -176,8 +168,6 @@ void BoundaryCondition::setCellDerivativesToZero(
 }
 
 /*! Function used to set the boundary condition cell's BVOL derivatives to 0.
- * \param mpiGrid
- * \param cellID
  * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives.
  */
 void BoundaryCondition::setCellBVOLDerivativesToZero(FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, 2> &volGrid,
@@ -205,8 +195,6 @@ void BoundaryCondition::setCellBVOLDerivativesToZero(FsGrid<std::array<Real, fsg
 
 /*! Function used to copy the distribution and moments from (one of) the
  * closest boundarytype::NOT_BOUNDARY cell.
- * \param mpiGrid
- * \param cellID
  * \param copyMomentsOnly If true, do not touch velocity space.
  */
 void BoundaryCondition::vlasovBoundaryCopyFromTheClosestNbr(
@@ -222,9 +210,6 @@ void BoundaryCondition::vlasovBoundaryCopyFromTheClosestNbr(
 
 /*! Function used to average and copy the distribution and moments from all the
  * closest boundarytype::NOT_BOUNDARY cells.
- * \param mpiGrid
- * \param cellID
- * \param popID
  * \param doCalcMomentsV if true, compute into _V; false into _R moments
  */
 void BoundaryCondition::vlasovBoundaryCopyFromAllClosestNbrs(
@@ -240,8 +225,6 @@ void BoundaryCondition::vlasovBoundaryCopyFromAllClosestNbrs(
 
 /*! Function used to average and copy the distribution and moments from all the
  * close boundarytype::NOT_BOUNDARY cells.
- * \param mpiGrid Grid
- * \param cellID The cell's ID.
  */
 void BoundaryCondition::vlasovBoundaryFluffyCopyFromAllCloseNbrs(
     const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid, const CellID &cellID, const uint popID,
@@ -255,10 +238,8 @@ void BoundaryCondition::vlasovBoundaryFluffyCopyFromAllCloseNbrs(
 }
 
 /*! Function used to copy the distribution from (one of) the closest
- * boundarytype::NOT_BOUNDARY cell but limit to values no higher than
- * where it can flow into. Moments are recomputed.
- * \param mpiGrid Grid
- * \param cellID The cell's ID.
+ * boundarytype::NOT_BOUNDARY cell but limit to values no higher than where it
+ * can flow into. Moments are recomputed.
  */
 void BoundaryCondition::vlasovBoundaryCopyFromTheClosestNbrAndLimit(
     const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid, const CellID &cellID, const uint popID)
@@ -276,14 +257,12 @@ void BoundaryCondition::vlasovBoundaryCopyFromTheClosestNbrAndLimit(
    for (vmesh::LocalID blockLID = 0; blockLID < to->get_number_of_velocity_blocks(popID); ++blockLID)
    {
       const vmesh::GlobalID blockGID = to->get_velocity_block_global_id(blockLID, popID);
-      //          const Realf* fromBlock_data = from->get_data(from->get_velocity_block_local_id(blockGID) );
+      //const Realf* fromBlock_data = from->get_data(from->get_velocity_block_local_id(blockGID) );
       Realf *toBlock_data = to->get_data(blockLID, popID);
       if (from->get_velocity_block_local_id(blockGID, popID) == from->invalid_local_id())
       {
          for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++)
-         {
             toBlock_data[i] = 0.0; // block did not exist in from cell, fill with zeros.
-         }
       }
       else
       {
@@ -337,10 +316,7 @@ void BoundaryCondition::vlasovBoundaryCopyFromTheClosestNbrAndLimit(
    }
 }
 
-/*! Function used to copy the distribution and moments from one cell to another.
- * \param from Pointer to parent cell to copy from.
- * \param to Pointer to destination cell.
- */
+/*! Function used to copy the distribution and moments from one cell to another.*/
 void BoundaryCondition::copyCellData(SpatialCell *from, SpatialCell *to, const bool copyMomentsOnly, const uint popID,
                                      const bool doCalcMomentsV)
 {
@@ -871,22 +847,16 @@ void BoundaryCondition::getFaces(bool *faces)
    abort_mpi("ERROR: BoundaryCondition::getFaces called instead of derived class function!");
 }
 
-/*! Get the precedence value of the boundary condition.
- * \return The precedence value of the boundary condition as set by parameter.
- */
+/*! Get the precedence value of the boundary condition.*/
 uint BoundaryCondition::getPrecedence() const { return precedence; }
 
-/*! Returns whether the boundary condition is dynamic in time.
- * \return Boolean value.
- */
+/*! Returns whether the boundary condition is dynamic in time.*/
 bool BoundaryCondition::isDynamic() const { return isThisDynamic; }
 
 void BoundaryCondition::setPeriodicity(bool isFacePeriodic[3])
 {
    for (uint i = 0; i < 3; i++)
-   {
       this->isPeriodic[i] = isFacePeriodic[i];
-   }
 }
 
 /*! Get a bool telling whether to call again applyInitialState upon restarting
