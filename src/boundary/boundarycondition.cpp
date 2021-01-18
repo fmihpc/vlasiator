@@ -257,7 +257,7 @@ void BoundaryCondition::vlasovBoundaryCopyFromTheClosestNbrAndLimit(
    for (vmesh::LocalID blockLID = 0; blockLID < to->get_number_of_velocity_blocks(popID); ++blockLID)
    {
       const vmesh::GlobalID blockGID = to->get_velocity_block_global_id(blockLID, popID);
-      //const Realf* fromBlock_data = from->get_data(from->get_velocity_block_local_id(blockGID) );
+      // const Realf* fromBlock_data = from->get_data(from->get_velocity_block_local_id(blockGID) );
       Realf *toBlock_data = to->get_data(blockLID, popID);
       if (from->get_velocity_block_local_id(blockGID, popID) == from->invalid_local_id())
       {
@@ -580,7 +580,7 @@ void BoundaryCondition::vlasovBoundaryAbsorb(const dccrg::Dccrg<SpatialCell, dcc
  * \param local_cells_on_boundary Cells within this process
  * \retval success Returns true if the operation is successful
  */
-bool BoundaryCondition::updateBoundaryConditionsAfterLoadBalance(
+void BoundaryCondition::updateBoundaryConditionsAfterLoadBalance(
     dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid, const vector<CellID> &local_cells_on_boundary)
 {
    // Loop over cellids
@@ -595,60 +595,73 @@ bool BoundaryCondition::updateBoundaryConditionsAfterLoadBalance(
       flowtoCells.fill(NULL);
       uint dist = numeric_limits<uint>::max();
 
-      // First iteration of search to determine closest distance
-      for (int i = -2; i < 3; i++)
-         for (int j = -2; j < 3; j++)
-            for (int k = -2; k < 3; k++)
+      uint d2 = numeric_limits<uint>::max();
+      int indexstep =
+          pow(2, P::amrMaxSpatialRefLevel - mpiGrid[cellId]->SpatialCell::parameters[CellParams::REFINEMENT_LEVEL]);
+      // Note this must be int, not uint, for latter calculations
+
+      // Find flowto cells (note, L2 cells do not have flowto cells)
+      auto *nearNbrs = mpiGrid.get_neighbors_of(cellId, NEAREST_NEIGHBORHOOD_ID);
+      for (auto nbrPair : *nearNbrs)
+      {
+         if (nbrPair.first != INVALID_CELLID)
+         {
+            if (mpiGrid[nbrPair.first]->boundaryFlag == boundarytype::NOT_BOUNDARY)
             {
-               const CellID cell = getNeighbour(mpiGrid, cellId, i, j, k);
-               if (cell != INVALID_CELLID)
+               flowtoCells.at((int)(nbrPair.second[0] / indexstep) + 3 * (int)(nbrPair.second[1] / indexstep) +
+                              9 * (int)(nbrPair.second[2] / indexstep) + 13) = mpiGrid[nbrPair.first];
+               // flowtoCells.at(i + 3*j + 9*k + 13) = mpiGrid[cell];
+            }
+         }
+      }
+      // Find all close cells
+      auto *Nbrs = mpiGrid.get_neighbors_of(cellId, BOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
+      for (auto nbrPair : *Nbrs)
+      {
+         if (nbrPair.first != INVALID_CELLID)
+         {
+            if (mpiGrid[nbrPair.first]->boundaryFlag == boundarytype::NOT_BOUNDARY)
+            {
+               // Find distance and update closestCells
+               d2 = nbrPair.second[0] * nbrPair.second[0] + nbrPair.second[1] * nbrPair.second[1] +
+                    nbrPair.second[2] * nbrPair.second[2];
+               // Only neighboring cells for L1
+               if ((mpiGrid[cellId]->boundaryLayer == 1) && (abs(nbrPair.second[0]) <= indexstep) &&
+                   (abs(nbrPair.second[1]) <= indexstep) && (abs(nbrPair.second[2]) <= indexstep))
                {
-                  if (mpiGrid[cell]->boundaryFlag == boundarytype::NOT_BOUNDARY)
+                  closeCells.push_back(nbrPair.first);
+                  if (d2 == dist)
                   {
-                     cuint d2 = i * i + j * j + k * k;
-                     if (d2 < dist)
-                     {
-                        dist = d2;
-                     }
-                     // Flowto neighbours have distances of 1, 2 or 3 at a distance of 1 layer, 4, 5 or 6 at a distance
-                     // of 2 layers. Furthermore one does not want to have the cell itself in this list.
-                     if (d2 < 4 && i != 0 && j != 0 && k != 0)
-                     {
-                        flowtoCells.at(i + 3 * j + 9 * k + 13) = mpiGrid[cell];
-                     }
-                     if (mpiGrid[cellId]->boundaryLayer == 1 && abs(i) < 2 && abs(j) < 2 && abs(k) < 2)
-                     {
-                        closeCells.push_back(cell);
-                     }
-                     if (mpiGrid[cellId]->boundaryLayer == 2)
-                     {
-                        closeCells.push_back(cell);
-                     }
+                     closestCells.push_back(nbrPair.first);
+                  }
+                  else if (d2 < dist)
+                  {
+                     closestCells.clear();
+                     closestCells.push_back(nbrPair.first);
+                     dist = d2;
+                  }
+               }
+               // search further for L2
+               if (mpiGrid[cellId]->boundaryLayer == 2)
+               {
+                  closeCells.push_back(nbrPair.first);
+                  if (d2 == dist)
+                  {
+                     closestCells.push_back(nbrPair.first);
+                  }
+                  else if (d2 < dist)
+                  {
+                     closestCells.clear();
+                     closestCells.push_back(nbrPair.first);
+                     dist = d2;
                   }
                }
             }
-      // Second iteration to record the cellIds of all cells at closest distance
-      for (int i = -2; i < 3; i++)
-         for (int j = -2; j < 3; j++)
-            for (int k = -2; k < 3; k++)
-            {
-               const CellID cell = getNeighbour(mpiGrid, cellId, i, j, k);
-               if (cell != INVALID_CELLID)
-               {
-                  if (mpiGrid[cell]->boundaryFlag == boundarytype::NOT_BOUNDARY)
-                  {
-                     cuint d2 = i * i + j * j + k * k;
-                     if (d2 == dist)
-                     {
-                        closestCells.push_back(cell);
-                     }
-                  }
-               }
-            }
+         }
+      }
       if (closestCells.size() == 0) closestCells.push_back(INVALID_CELLID);
       if (closeCells.size() == 0) closeCells.push_back(INVALID_CELLID);
    }
-   return true;
 }
 
 /*! Get the cellID of the first closest cell of type NOT_BOUNDARY found.

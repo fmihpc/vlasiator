@@ -161,7 +161,7 @@ namespace DRO {
       if(writeAsFloat) {
          // Convert down to 32bit floats to save output space
          std::vector<float> varBufferFloat(varBuffer.size());
-         for(int i=0; i<varBuffer.size(); i++) {
+         for(uint i=0; i<varBuffer.size(); i++) {
             varBufferFloat[i] = (float)varBuffer[i];
          }
          if(vlsvWriter.writeArray("VARIABLE",attribs, "float", gridSize[0]*gridSize[1]*gridSize[2], vectorSize, sizeof(float), reinterpret_cast<const char*>(varBufferFloat.data())) == false) {
@@ -515,7 +515,7 @@ namespace DRO {
    }
    MaxDistributionFunction::~MaxDistributionFunction() { }
    
-   std::string MaxDistributionFunction::getName() const {return popName + "/maximumdistributionfunctionvalue";}
+   std::string MaxDistributionFunction::getName() const {return popName + "/vg_maxdistributionfunction";}
    
    bool MaxDistributionFunction::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
@@ -569,7 +569,7 @@ namespace DRO {
    }
    MinDistributionFunction::~MinDistributionFunction() { }
    
-   std::string MinDistributionFunction::getName() const {return popName + "/minimumdistributionfunctionvalue";}
+   std::string MinDistributionFunction::getName() const {return popName + "/vg_mindistributionfunction";}
    
    bool MinDistributionFunction::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";

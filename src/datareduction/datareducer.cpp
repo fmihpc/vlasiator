@@ -26,7 +26,6 @@
 #include "datareducer.h"
 #include "../common.h"
 #include "dro_populations.h"
-#include <boost/algorithm/string.hpp>    
 using namespace std;
 
 void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosticReducer)
@@ -44,7 +43,8 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       */
 
       // Sidestep mixed case errors
-      const std::string lowercase = boost::algorithm::to_lower_copy(*it);
+      std::string lowercase = *it;
+      for(auto& c : lowercase) c = tolower(c);
       
       if(lowercase == "fg_b" || lowercase == "b") { // Bulk magnetic field at Yee-Lattice locations
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_b",[](
@@ -648,7 +648,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(lowercase =="gradpee" || lowercase == "e_gradpe" || lowercase == "vg_e_gradpe") {
          // Electron pressure gradient contribution to the generalized ohm's law
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_e_gradpe",CellParams::EXGRADPE,3));
-	 outputReducer->addMetadata(outputReducer->size()-1,"V/m","$\\mathrm{V}\\,\\mathrm{m}^{-1}$","$E_{\\del P_\\mathrm{e}}$","1.0");
+	 outputReducer->addMetadata(outputReducer->size()-1,"V/m","$\\mathrm{V}\\,\\mathrm{m}^{-1}$","$E_{\\nabla P_\\mathrm{e}}$","1.0");
          continue;
       }
       if(lowercase == "volb" || lowercase == "vg_volb" || lowercase == "b_vol" || lowercase == "bvol" || lowercase == "vg_bvol" || lowercase == "vg_b_vol") {
@@ -942,7 +942,8 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
         it++) {
 
       // Sidestep mixed case errors
-      const std::string lowercase = boost::algorithm::to_lower_copy(*it);
+      std::string lowercase = *it;
+      for(auto& c : lowercase) c = tolower(c);
 
       if(lowercase == "populations_blocks" || lowercase == "populations_vg_blocks") {
          // Per-population total block counts
@@ -953,7 +954,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       }
       if(lowercase == "vg_rhom" || lowercase == "rhom") {
          // Overall mass density
-         diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("rhom",CellParams::RHOM,1));
+         diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_rhom",CellParams::RHOM,1));
          continue;
       }
       if(lowercase == "populations_rholossadjust" || lowercase == "populations_rho_loss_adjust" || lowercase == "populations_vg_rho_loss_adjust") {
@@ -961,7 +962,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
-            diagnosticReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/rho_loss_adjust", i, offsetof(spatial_cell::Population, RHOLOSSADJUST), 1));
+            diagnosticReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/vg_rho_loss_adjust", i, offsetof(spatial_cell::Population, RHOLOSSADJUST), 1));
          }
          continue;
       }
@@ -970,28 +971,28 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       //   continue;
       //}
       if(lowercase == "lbweight" || lowercase == "vg_lbweight" || lowercase == "vg_loadbalanceweight" || lowercase == "vg_loadbalance_weight" || lowercase == "loadbalance_weight") {
-         diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("loadbalance_weight",CellParams::LBWEIGHTCOUNTER,1));
+         diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_loadbalance_weight",CellParams::LBWEIGHTCOUNTER,1));
          continue;
       }
       if(lowercase == "maxvdt" || lowercase == "maxdt_acceleration" || lowercase == "vg_maxdt_acceleration") {
-         diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("maxdt_acceleration",CellParams::MAXVDT,1));
+         diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_maxdt_acceleration",CellParams::MAXVDT,1));
          continue;
       }
       if(lowercase == "maxrdt" || lowercase == "maxdt_translation" || lowercase == "vg_maxdt_translation") {
-         diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("maxdt_translation",CellParams::MAXRDT,1));
+         diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_maxdt_translation",CellParams::MAXRDT,1));
          continue;
       }
       if(lowercase == "maxfieldsdt" || lowercase == "maxdt_fieldsolver" || lowercase == "fg_maxfieldsdt" || lowercase == "fg_maxdt_fieldsolver") {
-         diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("maxdt_fieldsolver",CellParams::MAXFDT,1));
+         diagnosticReducer->addOperator(new DRO::DataReductionOperatorCellParams("fg_maxdt_fieldsolver",CellParams::MAXFDT,1));
          continue;
       }
-      if(lowercase == "populations_maxdistributionfunction") {
+      if(lowercase == "populations_maxdistributionfunction" || lowercase == "populations_vg_maxdistributionfunction") {
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             diagnosticReducer->addOperator(new DRO::MaxDistributionFunction(i));
          }
          continue;
       }
-      if(lowercase == "populations_mindistributionfunction") {
+      if(lowercase == "populations_mindistributionfunction" || lowercase == "populations_vg_mindistributionfunction") {
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             diagnosticReducer->addOperator(new DRO::MinDistributionFunction(i));
          }
@@ -1001,7 +1002,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
-            diagnosticReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/maxdt_translation", i, offsetof(spatial_cell::Population, max_dt[0]), 1));
+            diagnosticReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/vg_maxdt_translation", i, offsetof(spatial_cell::Population, max_dt[0]), 1));
          }
          continue;
       }
@@ -1009,7 +1010,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
-            diagnosticReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/maxdt_acceleration", i, offsetof(spatial_cell::Population, max_dt[1]), 1));
+            diagnosticReducer->addOperator(new DRO::DataReductionOperatorPopulations<Real>(pop + "/vg_maxdt_acceleration", i, offsetof(spatial_cell::Population, max_dt[1]), 1));
          }
          continue;
       }

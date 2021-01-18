@@ -217,6 +217,8 @@ void Boundary::initBoundaries(Project &project, creal t)
       (*it2)->setPeriodicity(isPeriodic);
 }
 
+/* Verifies that all cells within FULL_NEIGHBORHOOD_ID of L1 boundary cells are on the same refinement
+ * level (one group for inner boundary, another for outer boundary). */
 void Boundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid)
 {
    // Set is used such that each cell will only be checked once.
@@ -236,8 +238,8 @@ void Boundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Ca
             innerBoundaryRefLvl = mpiGrid.get_refinement_level(cellId);
             if (cell->boundaryLayer == 1)
             {
-               // Add non-boundary neighbors of layer 1 cells
-               auto *nbrPairVector = mpiGrid.get_neighbors_of(cellId, FULL_NEIGHBORHOOD_ID);
+               // Add all stencil neighbors of layer 1 cells
+               auto *nbrPairVector = mpiGrid.get_neighbors_of(cellId, BOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
                for (auto nbrPair : *nbrPairVector)
                {
                   if (nbrPair.first != INVALID_CELLID) innerBoundaryCells.insert(nbrPair.first);
@@ -248,8 +250,8 @@ void Boundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Ca
          {
             outerBoundaryCells.insert(cellId);
             outerBoundaryRefLvl = mpiGrid.get_refinement_level(cellId);
-            // Add non-boundary neighbors of outer boundary cells
-            auto *nbrPairVector = mpiGrid.get_neighbors_of(cellId, FULL_NEIGHBORHOOD_ID);
+            // Add all stencil neighbors of outer boundary cells
+            auto *nbrPairVector = mpiGrid.get_neighbors_of(cellId, BOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
             for (auto nbrPair : *nbrPairVector)
             {
                if (nbrPair.first != INVALID_CELLID) outerBoundaryCells.insert(nbrPair.first);
@@ -261,13 +263,13 @@ void Boundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Ca
    for (auto cellId : innerBoundaryCells)
    {
       if (cellId != INVALID_CELLID && mpiGrid.get_refinement_level(cellId) != innerBoundaryRefLvl)
-         BC::abort_mpi("ERROR: Boundary cells must have identical refinement level!");
+         BC::abort_mpi("ERROR: inner boundary cells must have identical refinement level!");
    }
 
    for (auto cellId : outerBoundaryCells)
    {
       if (cellId != INVALID_CELLID && mpiGrid.get_refinement_level(cellId) != outerBoundaryRefLvl)
-         BC::abort_mpi("ERROR: Boundary cells must have identical refinement level!");
+         BC::abort_mpi("ERROR: outer boundary cells must have identical refinement level!");
    }
 }
 
@@ -388,6 +390,9 @@ void Boundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cart
          if (mpiGrid[cells[i]]->boundaryLayer == 0)
          {
             const auto *nbrs = mpiGrid.get_neighbors_of(cells[i], BOUNDARIES_NEIGHBORHOOD_ID);
+            // Note: this distance calculation will be non-plateau monotonic only assuming that
+            // Boundary::checkRefinement has been applied correctly and there are no refinement
+            // level changes within BOUNDARIES_NEIGHBORHOOD_ID.
             for (uint j = 0; j < (*nbrs).size(); j++)
             {
                if ((*nbrs)[j].first != 0 && (*nbrs)[j].first != cells[i])

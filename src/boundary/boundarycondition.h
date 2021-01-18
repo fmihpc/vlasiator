@@ -105,7 +105,7 @@ public:
    uint getPrecedence() const;
    bool isDynamic() const;
 
-   bool updateBoundaryConditionsAfterLoadBalance(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+   void updateBoundaryConditionsAfterLoadBalance(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                                  const std::vector<CellID> &local_cells_on_boundary);
    bool doApplyUponRestart() const;
    void setPeriodicity(bool isFacePeriodic[3]);

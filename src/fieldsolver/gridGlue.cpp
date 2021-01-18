@@ -196,20 +196,6 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
     /*----------------------Filtering------------------------*/
     phiprof::start("BoxCar Filtering");
 
-    // Kernel Matrix-- Needs to be precomputed in memory and not recomputed at every call
-    // Real kernel[3][3][3];
-
-    // for (int i =0; i<3; i++){
-    //   for (int j =0; j<3; j++){
-    //     for (int k =0; k<3; k++){
-
-    //       kernel[i][j][k]=1.0/27.0;  //normalized for 27 neighbours.
-
-    //     }
-    //   }
-    // }
-
-
     // Kernel Characteristics
     // int stencilWidth = sizeof( kernel) / sizeof( kernel[0]); //get the stnecil width
     // int kernelOffset= stencilWidth/3; //this is the kernel offset -int
@@ -228,9 +214,18 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
     FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, 2> swapGrid = momentsGrid;  //swap array 
     const int maxRefLevel = mpiGrid.mapping.get_maximum_refinement_level();
 
-
     // Filtering Loop
-    for (int blurPass = 0; blurPass < maxRefLevel; blurPass++){
+   std::vector<int>::iterator  maxNumPassesPtr;
+   int maxNumPasses;
+   maxNumPassesPtr=std::max_element(P::numPasses.begin(), P::numPasses.end());
+   if(maxNumPassesPtr != P::numPasses.end()){ 
+      maxNumPasses = *maxNumPassesPtr;
+   }else{
+      std::cerr << "Trying to dereference null pointer \t" << " in " << __FILE__ << ":" << __LINE__ << std::endl;
+      abort();
+   } 
+
+    for (int blurPass = 0; blurPass < maxNumPasses; blurPass++){
 
       // Blurring Pass
       phiprof::start("BlurPass");
@@ -243,18 +238,18 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
             int refLevel = technicalGrid.get(ii, jj, kk)->refLevel;
 
             // Skip pass
-            if (refLevel == maxRefLevel ||
-              blurPass < refLevel ||
-              technicalGrid.get(ii, jj, kk)->boundaryFlag == boundarytype::NO_COMPUTE ||
-              (technicalGrid.get(ii, jj, kk)->boundaryFlag != boundarytype::NOT_BOUNDARY && technicalGrid.get(ii, jj, kk)->boundaryLayer == 2)
+            if (blurPass >= P::numPasses.at(refLevel) ||
+                technicalGrid.get(ii, jj, kk)->boundaryFlag == boundarytype::NO_COMPUTE ||
+                (technicalGrid.get(ii, jj, kk)->boundaryFlag != boundarytype::NOT_BOUNDARY && technicalGrid.get(ii, jj, kk)->boundaryLayer == 2)
               )
-            {
+            { 
               continue;
             }
 
-
+            // Define some Pointers
             std::array<Real, fsgrids::moments::N_MOMENTS> *cell;  
             std::array<Real,fsgrids::moments::N_MOMENTS> *swap;
+           
             // Set Cell to zero before passing filter
             swap = swapGrid.get(ii,jj,kk);
             for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
@@ -276,8 +271,6 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
                   swap = swapGrid.get(ii,jj,kk);
 
                   for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
-
-                    // swap->at(e)+=cell->at(e) * kernel[a][b][c];
                     swap->at(e)+=cell->at(e) * kernelWeight;
 
                     } 
@@ -300,6 +293,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
       phiprof::stop("GhostUpdate");
 
     }
+    
 
     phiprof::stop("BoxCar Filtering");  
 

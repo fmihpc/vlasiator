@@ -35,7 +35,7 @@
  * \param dPerBGrid fsGrid holding the derivatives of perturbed B
  * \param dMomentsGrid fsGrid holding the derviatives of moments
  * \param technicalGrid fsGrid holding technical information (such as boundary types)
- * \param boundaries System boundary conditions existing
+ * \param boundaries Boundary conditions existing
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  * 
  * \sa calculateDerivativesSimple calculateBVOLDerivativesSimple calculateBVOLDerivatives
@@ -58,7 +58,12 @@ void calculateDerivatives(
    // Get boundary flag for the cell:
    cuint boundaryFlag  = technicalGrid.get(i,j,k)->boundaryFlag;
    cuint boundaryLayer = technicalGrid.get(i,j,k)->boundaryLayer;
-   
+
+   // Constants for electron pressure derivatives
+   // Upstream pressure
+   Real Peupstream = Parameters::electronTemperature * Parameters::electronDensity * physicalconstants::K_B;
+   Real Peconst = Peupstream * pow(Parameters::electronDensity, -Parameters::electronPTindex);
+
    std::array<Real, fsgrids::moments::N_MOMENTS> * leftMoments = NULL;
    std::array<Real, fsgrids::bfield::N_BFIELD> * leftPerB = NULL;
    std::array<Real, fsgrids::moments::N_MOMENTS> * centMoments = momentsGrid.get(i,j,k);
@@ -111,6 +116,10 @@ void calculateDerivatives(
       dMoments->at(fsgrids::dmoments::dVzdx)  = limiter(leftMoments->at(fsgrids::moments::VZ), centMoments->at(fsgrids::moments::VZ), rghtMoments->at(fsgrids::moments::VZ));
       dPerB->at(fsgrids::dperb::dPERBydx)  = limiter(leftPerB->at(fsgrids::bfield::PERBY),centPerB->at(fsgrids::bfield::PERBY),rghtPerB->at(fsgrids::bfield::PERBY));
       dPerB->at(fsgrids::dperb::dPERBzdx)  = limiter(leftPerB->at(fsgrids::bfield::PERBZ),centPerB->at(fsgrids::bfield::PERBZ),rghtPerB->at(fsgrids::bfield::PERBZ));
+
+      // pres_e = const * np.power(rho_e, index)
+      dMoments->at(fsgrids::dmoments::dPedx) = Peconst * limiter(pow(leftMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(centMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(rghtMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex));      
+      
       if (Parameters::ohmHallTerm < 2 || boundaryLayer == 1) {
         dPerB->at(fsgrids::dperb::dPERBydxx) = 0.0;
         dPerB->at(fsgrids::dperb::dPERBzdxx) = 0.0;
@@ -146,6 +155,9 @@ void calculateDerivatives(
 
       dPerB->at(fsgrids::dperb::dPERBxdy)  = limiter(leftPerB->at(fsgrids::bfield::PERBX),centPerB->at(fsgrids::bfield::PERBX),rghtPerB->at(fsgrids::bfield::PERBX));
       dPerB->at(fsgrids::dperb::dPERBzdy)  = limiter(leftPerB->at(fsgrids::bfield::PERBZ),centPerB->at(fsgrids::bfield::PERBZ),rghtPerB->at(fsgrids::bfield::PERBZ));
+
+      // pres_e = const * np.power(rho_e, index)
+      dMoments->at(fsgrids::dmoments::dPedy) = Peconst * limiter(pow(leftMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(centMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(rghtMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex));      
 
       if (Parameters::ohmHallTerm < 2 || boundaryLayer == 1) {
          dPerB->at(fsgrids::dperb::dPERBxdyy) = 0.0;
@@ -183,6 +195,10 @@ void calculateDerivatives(
       
       dPerB->at(fsgrids::dperb::dPERBxdz)  = limiter(leftPerB->at(fsgrids::bfield::PERBX),centPerB->at(fsgrids::bfield::PERBX),rghtPerB->at(fsgrids::bfield::PERBX));
       dPerB->at(fsgrids::dperb::dPERBydz)  = limiter(leftPerB->at(fsgrids::bfield::PERBY),centPerB->at(fsgrids::bfield::PERBY),rghtPerB->at(fsgrids::bfield::PERBY));
+
+      // pres_e = const * np.power(rho_e, index)
+      dMoments->at(fsgrids::dmoments::dPedz) = Peconst * limiter(pow(leftMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(centMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex),pow(rghtMoments->at(fsgrids::moments::RHOQ)/physicalconstants::CHARGE,Parameters::electronPTindex));      
+
       if (Parameters::ohmHallTerm < 2 || boundaryLayer == 1) {
         dPerB->at(fsgrids::dperb::dPERBxdzz) = 0.0;
         dPerB->at(fsgrids::dperb::dPERBydzz) = 0.0;
@@ -268,7 +284,7 @@ void calculateDerivatives(
 /*! \brief High-level derivative calculation wrapper function.
  * 
 
- * B has to be updated because after the system boundary update in propagateMagneticFieldSimple there is no consistent state of B yet everywhere.
+ * B has to be updated because after the boundary update in propagateMagneticFieldSimple there is no consistent state of B yet everywhere.
  * 
  * Then the derivatives are calculated.
  * 
@@ -279,7 +295,7 @@ void calculateDerivatives(
  * \param dPerBGrid fsGrid holding the derivatives of perturbed B
  * \param dMomentsGrid fsGrid holding the derviatives of moments
  * \param technicalGrid fsGrid holding technical information (such as boundary types)
- * \param boundaries System boundary conditions existing
+ * \param boundaries Boundary conditions existing
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  * \param communicateMoments If true, the derivatives of moments (rho, V, P) are communicated to neighbours.
  
@@ -310,7 +326,7 @@ void calculateDerivativesSimple(
     case RK_ORDER1:
       // Means initialising the solver as well as RK_ORDER1
       // standard case Exchange PERB* with neighbours
-      // The update of PERB[XYZ] is needed after the system
+      // The update of PERB[XYZ] is needed after the
       // boundary update of propagateMagneticFieldSimple.
        perBGrid.updateGhostCells();
        if(communicateMoments) {
@@ -319,7 +335,7 @@ void calculateDerivativesSimple(
        break;
     case RK_ORDER2_STEP1:
       // Exchange PERB*_DT2,RHO_DT2,V*_DT2 with neighbours The
-      // update of PERB[XYZ]_DT2 is needed after the system
+      // update of PERB[XYZ]_DT2 is needed after the
       // boundary update of propagateMagneticFieldSimple.
        perBDt2Grid.updateGhostCells();
        if(communicateMoments) {
@@ -328,7 +344,7 @@ void calculateDerivativesSimple(
        break;
     case RK_ORDER2_STEP2:
       // Exchange PERB*,RHO,V* with neighbours The update of B
-      // is needed after the system boundary update of
+      // is needed after the boundary update of
       // propagateMagneticFieldSimple.
        perBGrid.updateGhostCells();
        if(communicateMoments) {
@@ -372,7 +388,7 @@ void calculateDerivativesSimple(
  * \param volGrid fsGrid holding the volume averaged fields
  * \param technicalGrid fsGrid holding technical information (such as boundary types)
  * \param i,j,k fsGrid cell coordinates for the current cell
- * \param boundaries System boundary conditions existing
+ * \param boundaries Boundary conditions existing
  *
  * \sa calculateDerivatives calculateBVOLDerivativesSimple calculateDerivativesSimple
  */
@@ -443,7 +459,7 @@ void calculateBVOLDerivatives(
  * 
  * \param volGrid fsGrid holding the volume averaged fields
  * \param technicalGrid fsGrid holding technical information (such as boundary types)
- * \param boundaries System boundary conditions existing
+ * \param boundaries Boundary conditions existing
  * 
  * \sa calculateDerivatives calculateBVOLDerivatives calculateDerivativesSimple
  */

@@ -416,20 +416,20 @@ int main(int argn, char *args[])
    // TODO: This is currently just taking the values from cell 1, and assuming them to be
    // constant throughout the simulation.
    perBGrid.DX = perBDt2Grid.DX = EGrid.DX = EDt2Grid.DX = EHallGrid.DX = EGradPeGrid.DX = momentsGrid.DX =
-      momentsDt2Grid.DX = dPerBGrid.DX = dMomentsGrid.DX = BgBGrid.DX = volGrid.DX = technicalGrid.DX =
-      P::dx_ini * pow(2, -P::amrMaxSpatialRefLevel);
+       momentsDt2Grid.DX = dPerBGrid.DX = dMomentsGrid.DX = BgBGrid.DX = volGrid.DX = technicalGrid.DX =
+       P::dx_ini * pow(2, -P::amrMaxSpatialRefLevel);
    perBGrid.DY = perBDt2Grid.DY = EGrid.DY = EDt2Grid.DY = EHallGrid.DY = EGradPeGrid.DY = momentsGrid.DY =
-      momentsDt2Grid.DY = dPerBGrid.DY = dMomentsGrid.DY = BgBGrid.DY = volGrid.DY = technicalGrid.DY =
-      P::dy_ini * pow(2, -P::amrMaxSpatialRefLevel);
+       momentsDt2Grid.DY = dPerBGrid.DY = dMomentsGrid.DY = BgBGrid.DY = volGrid.DY = technicalGrid.DY =
+       P::dy_ini * pow(2, -P::amrMaxSpatialRefLevel);
    perBGrid.DZ = perBDt2Grid.DZ = EGrid.DZ = EDt2Grid.DZ = EHallGrid.DZ = EGradPeGrid.DZ = momentsGrid.DZ =
-      momentsDt2Grid.DZ = dPerBGrid.DZ = dMomentsGrid.DZ = BgBGrid.DZ = volGrid.DZ = technicalGrid.DZ =
-      P::dz_ini * pow(2, -P::amrMaxSpatialRefLevel);
+       momentsDt2Grid.DZ = dPerBGrid.DZ = dMomentsGrid.DZ = BgBGrid.DZ = volGrid.DZ = technicalGrid.DZ =
+       P::dz_ini * pow(2, -P::amrMaxSpatialRefLevel);
    // Set the physical start (lower left corner) X, Y, Z
    perBGrid.physicalGlobalStart = perBDt2Grid.physicalGlobalStart = EGrid.physicalGlobalStart =
-      EDt2Grid.physicalGlobalStart = EHallGrid.physicalGlobalStart = EGradPeGrid.physicalGlobalStart =
-      momentsGrid.physicalGlobalStart = momentsDt2Grid.physicalGlobalStart = dPerBGrid.physicalGlobalStart =
-      dMomentsGrid.physicalGlobalStart = BgBGrid.physicalGlobalStart = volGrid.physicalGlobalStart =
-      technicalGrid.physicalGlobalStart = {P::xmin, P::ymin, P::zmin};
+       EDt2Grid.physicalGlobalStart = EHallGrid.physicalGlobalStart = EGradPeGrid.physicalGlobalStart =
+       momentsGrid.physicalGlobalStart = momentsDt2Grid.physicalGlobalStart = dPerBGrid.physicalGlobalStart =
+       dMomentsGrid.physicalGlobalStart = BgBGrid.physicalGlobalStart = volGrid.physicalGlobalStart =
+       technicalGrid.physicalGlobalStart = {P::xmin, P::ymin, P::zmin};
 
    // Checking that spatial cells are cubic, otherwise field solver is incorrect (cf. derivatives in E, Hall term)
    if ((abs((technicalGrid.DX - technicalGrid.DY) / technicalGrid.DX) > 0.001) ||
@@ -506,9 +506,9 @@ int main(int argn, char *args[])
 
       const bool writeGhosts = true;
       if (!writeGrid(mpiGrid,
-                    perBGrid, // TODO: Merge all the fsgrids passed here into one meta-object
-                    EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, volGrid,
-                    technicalGrid, &outputReducer, P::systemWriteName.size() - 1, writeGhosts))
+                     perBGrid, // TODO: Merge all the fsgrids passed here into one meta-object
+                     EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, volGrid,
+                     technicalGrid, &outputReducer, P::systemWriteName.size() - 1, writeGhosts))
       {
          cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
       }
@@ -574,7 +574,13 @@ int main(int argn, char *args[])
       // is requested for writing, then jump to next writing index.
       // This is to make sure that at restart we do not write in the middle of
       // the interval.
-      if (P::t_min > (index + 0.01) * P::systemWriteTimeInterval[i]) index++;
+      if (P::t_min > (index + 0.01) * P::systemWriteTimeInterval[i])
+      {
+         index++;
+         // Special case for large timesteps
+         int index2 = (int)((P::t_min + P::dt) / P::systemWriteTimeInterval[i]);
+         if (index2 > index) index = index2;
+      }
       P::systemWrites.push_back(index);
    }
 
@@ -667,9 +673,9 @@ int main(int argn, char *args[])
                     << writeVerbose;
             const bool writeGhosts = true;
             if (!writeGrid(mpiGrid,
-                          perBGrid, // TODO: Merge all the fsgrids passed here into one meta-object
-                          EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, volGrid,
-                          technicalGrid, &outputReducer, i, writeGhosts))
+                           perBGrid, // TODO: Merge all the fsgrids passed here into one meta-object
+                           EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, volGrid,
+                           technicalGrid, &outputReducer, i, writeGhosts))
             {
                cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
             }
@@ -736,9 +742,9 @@ int main(int argn, char *args[])
                     << writeVerbose;
          // Write the restart:
          if (!writeRestart(mpiGrid,
-                          perBGrid, // TODO: Merge all the fsgrids passed here into one meta-object
-                          EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, volGrid,
-                          technicalGrid, outputReducer, "restart", (uint)P::t, P::restartStripeFactor))
+                           perBGrid, // TODO: Merge all the fsgrids passed here into one meta-object
+                           EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, volGrid,
+                           technicalGrid, outputReducer, "restart", (uint)P::t, P::restartStripeFactor))
          {
             logFile << "(IO): ERROR Failed to write restart!" << endl << writeVerbose;
             cerr << "FAILED TO WRITE RESTART" << endl;
