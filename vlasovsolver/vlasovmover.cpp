@@ -87,10 +87,10 @@ void calculateSpatialTranslation(
     int myRank;
     MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    
-//   int bt=phiprof::initializeTimer("barrier-trans-pre-z","Barriers","MPI");
-//   phiprof::start(bt);
-//   MPI_Barrier(MPI_COMM_WORLD);
-//   phiprof::stop(bt);
+   // int bt=phiprof::initializeTimer("barrier-trans-pre-z","Barriers","MPI");
+   // phiprof::start(bt);
+   // MPI_Barrier(MPI_COMM_WORLD);
+   // phiprof::stop(bt);
  
     // ------------- SLICE - map dist function in Z --------------- //
    if(P::zcells_ini > 1){
@@ -100,10 +100,10 @@ void calculateSpatialTranslation(
       mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
       phiprof::stop(trans_timer);
 
-//      bt=phiprof::initializeTimer("barrier-trans-pre-trans_map_1d-z","Barriers","MPI");
-//      phiprof::start(bt);
-//      MPI_Barrier(MPI_COMM_WORLD);
-//      phiprof::stop(bt);
+      // bt=phiprof::initializeTimer("barrier-trans-pre-trans_map_1d-z","Barriers","MPI");
+      // phiprof::start(bt);
+      // MPI_Barrier(MPI_COMM_WORLD);
+      // phiprof::stop(bt);
 
       t1 = MPI_Wtime();
       phiprof::start("compute-mapping-z");
@@ -115,10 +115,10 @@ void calculateSpatialTranslation(
       phiprof::stop("compute-mapping-z");
       time += MPI_Wtime() - t1;
 
-//      bt=phiprof::initializeTimer("barrier-trans-pre-update_remote-z","Barriers","MPI");
-//      phiprof::start(bt);
-//      MPI_Barrier(MPI_COMM_WORLD);
-//      phiprof::stop(bt);
+      // bt=phiprof::initializeTimer("barrier-trans-pre-update_remote-z","Barriers","MPI");
+      // phiprof::start(bt);
+      // MPI_Barrier(MPI_COMM_WORLD);
+      // phiprof::stop(bt);
 
       trans_timer=phiprof::initializeTimer("update_remote-z","MPI");
       phiprof::start("update_remote-z");
@@ -133,10 +133,10 @@ void calculateSpatialTranslation(
 
    }
 
-//   bt=phiprof::initializeTimer("barrier-trans-pre-x","Barriers","MPI");
-//   phiprof::start(bt);
-//   MPI_Barrier(MPI_COMM_WORLD);
-//   phiprof::stop(bt);
+   // bt=phiprof::initializeTimer("barrier-trans-pre-x","Barriers","MPI");
+   // phiprof::start(bt);
+   // MPI_Barrier(MPI_COMM_WORLD);
+   // phiprof::stop(bt);
    
    // ------------- SLICE - map dist function in X --------------- //
    if(P::xcells_ini > 1){
@@ -149,10 +149,10 @@ void calculateSpatialTranslation(
       mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
       phiprof::stop(trans_timer);
       
-//      bt=phiprof::initializeTimer("barrier-trans-pre-trans_map_1d-x","Barriers","MPI");
-//      phiprof::start(bt);
-//      MPI_Barrier(MPI_COMM_WORLD);
-//      phiprof::stop(bt);
+      // bt=phiprof::initializeTimer("barrier-trans-pre-trans_map_1d-x","Barriers","MPI");
+      // phiprof::start(bt);
+      // MPI_Barrier(MPI_COMM_WORLD);
+      // phiprof::stop(bt);
 
       t1 = MPI_Wtime();
       phiprof::start("compute-mapping-x");
@@ -164,10 +164,10 @@ void calculateSpatialTranslation(
       phiprof::stop("compute-mapping-x");
       time += MPI_Wtime() - t1;
 
-//      bt=phiprof::initializeTimer("barrier-trans-pre-update_remote-x","Barriers","MPI");
-//      phiprof::start(bt);
-//      MPI_Barrier(MPI_COMM_WORLD);
-//      phiprof::stop(bt);
+      // bt=phiprof::initializeTimer("barrier-trans-pre-update_remote-x","Barriers","MPI");
+      // phiprof::start(bt);
+      // MPI_Barrier(MPI_COMM_WORLD);
+      // phiprof::stop(bt);
 
       trans_timer=phiprof::initializeTimer("update_remote-x","MPI");
       phiprof::start("update_remote-x");
@@ -182,10 +182,10 @@ void calculateSpatialTranslation(
 
    }
 
-//   bt=phiprof::initializeTimer("barrier-trans-pre-y","Barriers","MPI");
-//   phiprof::start(bt);
-//   MPI_Barrier(MPI_COMM_WORLD);
-//   phiprof::stop(bt);
+   // bt=phiprof::initializeTimer("barrier-trans-pre-y","Barriers","MPI");
+   // phiprof::start(bt);
+   // MPI_Barrier(MPI_COMM_WORLD);
+   // phiprof::stop(bt);
 
    // ------------- SLICE - map dist function in Y --------------- //
    if(P::ycells_ini > 1) {
@@ -198,10 +198,10 @@ void calculateSpatialTranslation(
       mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
       phiprof::stop(trans_timer);
       
-//      bt=phiprof::initializeTimer("barrier-trans-pre-trans_map_1d-y","Barriers","MPI");
-//      phiprof::start(bt);
-//      MPI_Barrier(MPI_COMM_WORLD);
-//      phiprof::stop(bt);
+      // bt=phiprof::initializeTimer("barrier-trans-pre-trans_map_1d-y","Barriers","MPI");
+      // phiprof::start(bt);
+      // MPI_Barrier(MPI_COMM_WORLD);
+      // phiprof::stop(bt);
 
       t1 = MPI_Wtime();
       phiprof::start("compute-mapping-y");
@@ -213,10 +213,10 @@ void calculateSpatialTranslation(
       phiprof::stop("compute-mapping-y");
       time += MPI_Wtime() - t1;
       
-//      bt=phiprof::initializeTimer("barrier-trans-pre-update_remote-y","Barriers","MPI");
-//      phiprof::start(bt);
-//      MPI_Barrier(MPI_COMM_WORLD);
-//      phiprof::stop(bt);
+      // bt=phiprof::initializeTimer("barrier-trans-pre-update_remote-y","Barriers","MPI");
+      // phiprof::start(bt);
+      // MPI_Barrier(MPI_COMM_WORLD);
+      // phiprof::stop(bt);
 
       trans_timer=phiprof::initializeTimer("update_remote-y","MPI");
       phiprof::start("update_remote-y");
@@ -231,10 +231,10 @@ void calculateSpatialTranslation(
      
    }
 
-//   bt=phiprof::initializeTimer("barrier-trans-post-trans","Barriers","MPI");
-//   phiprof::start(bt);
-//   MPI_Barrier(MPI_COMM_WORLD);
-//   phiprof::stop(bt);
+   // bt=phiprof::initializeTimer("barrier-trans-post-trans","Barriers","MPI");
+   // phiprof::start(bt);
+   // MPI_Barrier(MPI_COMM_WORLD);
+   // phiprof::stop(bt);
 
    // MPI_Barrier(MPI_COMM_WORLD);
    // bailout(true, "", __FILE__, __LINE__);
@@ -374,11 +374,6 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
    // Set active population
    SpatialCell::setCommunicatedSpecies(popID);
    
-   // Calculate velocity moments, these are needed to 
-   // calculate the transforms used in the accelerations.
-   // Calculated moments are stored in the "_V" variables.
-   calculateMoments_V(mpiGrid, propagatedCells, false);
-
    // Semi-Lagrangian acceleration for those cells which are subcycled
    #pragma omp parallel for schedule(dynamic,1)
    for (size_t c=0; c<propagatedCells.size(); ++c) {
@@ -459,6 +454,11 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    }
    phiprof::start("semilag-acc");
     
+   // Calculate velocity moments, these are needed to 
+   // calculate the transforms used in the accelerations.
+   // Calculated moments are stored in the "_V" variables.
+   calculateMoments_V(mpiGrid,cells,false);
+
    // Accelerate all particle species
     for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
        if (getObjectWrapper().particleSpecies[popID].propagateSpecies == true) {
@@ -580,6 +580,8 @@ void calculateInterpolatedVelocityMoments(
          pop.RHO = 0.5 * ( pop.RHO_R + pop.RHO_V );
          for(int i=0; i<3; i++) {
             pop.V[i] = 0.5 * ( pop.V_R[i] + pop.V_V[i] );
+         }
+         for(int i=0; i<6; i++) {
             pop.P[i] = 0.5 * ( pop.P_R[i] + pop.P_V[i] );
          }
       }

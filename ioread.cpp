@@ -786,6 +786,7 @@ template<unsigned long int N> bool readFsGridVariable(
    vlsv::datatype::type dataType;
    uint64_t byteSize;
    list<pair<string,string> > attribs;
+   bool convertFloatType = false;
    
    attribs.push_back(make_pair("name",variableName));
    attribs.push_back(make_pair("mesh","fsgrid"));
@@ -795,8 +796,8 @@ template<unsigned long int N> bool readFsGridVariable(
       return false;
    }
    if(! (dataType == vlsv::datatype::type::FLOAT && byteSize == sizeof(Real))) {
-      logFile << "(RESTART)  ERROR: Attempting to read fsgrid variable " << variableName << ", but it is not in the same floating point format as the simulation expects (" << byteSize*8 << " bits instead of " << sizeof(Real)*8 << ")." << endl << write;
-      return false;
+      logFile << "(RESTART) Converting floating point format of fsgrid variable " << variableName << " from " << byteSize * 8 << " bits to " << sizeof(Real) * 8 << " bits." << endl << write;
+      convertFloatType = true;
    }
 
    // Are we restarting from the same number of tasks, or a different number?
@@ -830,9 +831,24 @@ template<unsigned long int N> bool readFsGridVariable(
       // Read into buffer
       std::vector<Real> buffer(storageSize*N);
 
-      if(file.readArray("VARIABLE",attribs, localStartOffset, storageSize, (char*)buffer.data()) == false) {
-         logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
-         return false;
+      if(!convertFloatType) {
+         if(file.readArray("VARIABLE",attribs, localStartOffset, storageSize, (char*)buffer.data()) == false) {
+            logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
+            return false;
+         }
+      } else {
+
+         // Read to temporary float buffer
+         std::vector<float> readBuffer(storageSize*N);
+
+         if(file.readArray("VARIABLE",attribs, localStartOffset, storageSize, (char*)readBuffer.data()) == false) {
+            logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
+            return false;
+         }
+
+         for(int i=0; i<storageSize*N; i++) {
+            buffer[i] = readBuffer[i];
+         }
       }
       
       // Assign buffer into fsgrid
@@ -901,12 +917,27 @@ template<unsigned long int N> bool readFsGridVariable(
          // Read into buffer
          std::vector<Real> buffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
 
-         // TODO: Should these be multireads instead? And/or can this be parallelized?
-         if(file.readArray("VARIABLE",attribs, fileOffset, thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2], (char*)buffer.data()) == false) {
-            logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
-            return false;
-         }
+         phiprof::start("readArray");
+         if(!convertFloatType) {
+            // TODO: Should these be multireads instead? And/or can this be parallelized?
+            if(file.readArray("VARIABLE",attribs, fileOffset, thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2], (char*)buffer.data()) == false) {
+               logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
+               return false;
+            }
+         } else {
+            std::vector<float> readBuffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
+            if(file.readArray("VARIABLE",attribs, fileOffset, thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2], (char*)readBuffer.data()) == false) {
+               logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
+               return false;
+            }
 
+            for(int i=0; i< thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N; i++) {
+               buffer[i]=readBuffer[i];
+            }
+         }
+         phiprof::stop("readArray");
+
+         phiprof::start("memcpy");
          // Read every source rank that we have an overlap with.
          if(overlapSize[0]*overlapSize[1]*overlapSize[2] > 0) {
 
@@ -924,10 +955,12 @@ template<unsigned long int N> bool readFsGridVariable(
             }
          } 
          fileOffset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2];
+         phiprof::stop("memcpy");
       }
    }
-
+   phiprof::start("updateGhostCells");
    targetGrid.updateGhostCells();
+   phiprof::stop("updateGhostCells");
    return true;
 }
 
@@ -1000,6 +1033,8 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
    phiprof::start("readGrid");
 
+   phiprof::start("readScalars");
+
    vlsv::ParallelReader file;
    MPI_Info mpiInfo = MPI_INFO_NULL;
 
@@ -1043,6 +1078,8 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    checkScalarParameter(file,"xcells_ini",P::xcells_ini,MASTER_RANK,MPI_COMM_WORLD);
    checkScalarParameter(file,"ycells_ini",P::ycells_ini,MASTER_RANK,MPI_COMM_WORLD);
    checkScalarParameter(file,"zcells_ini",P::zcells_ini,MASTER_RANK,MPI_COMM_WORLD);
+
+   phiprof::stop("readScalars");
 
    phiprof::start("readDatalayout");
    if (success == true) success = readCellIds(file,fileCells,MASTER_RANK,MPI_COMM_WORLD);
@@ -1157,17 +1194,16 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments_dt2",CellParams::RHOM_DT2,6,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments_r",CellParams::RHOM_R,6,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments_v",CellParams::RHOM_V,6,mpiGrid); }
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"pressure",CellParams::P_11,3,mpiGrid); }
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"pressure_dt2",CellParams::P_11_DT2,3,mpiGrid); }
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"pressure_r",CellParams::P_11_R,3,mpiGrid); }
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"pressure_v",CellParams::P_11_V,3,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"pressure",CellParams::P_11,6,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"pressure_dt2",CellParams::P_11_DT2,6,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"pressure_r",CellParams::P_11_R,6,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"pressure_v",CellParams::P_11_V,6,mpiGrid); }
    if(success && P::ResolvePlasmaPeriod) {
       success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"EJE",CellParams::EXJE,3,mpiGrid);
    }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"LB_weight",CellParams::LBWEIGHTCOUNTER,1,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_v_dt",CellParams::MAXVDT,1,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_r_dt",CellParams::MAXRDT,1,mpiGrid); }
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_fields_dt",CellParams::MAXFDT,1,mpiGrid); }
 // Backround B has to be set, there are also the derivatives that should be written/read if we wanted to only read in background field
    exitOnError(success,"(RESTART) Failure reading spatial cell restart variables",MPI_COMM_WORLD);
 
@@ -1179,8 +1215,11 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    }
    phiprof::stop("readBlockData");
 
+   phiprof::start("updateMpiGridNeighbors");
    mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
+   phiprof::stop("updateMpiGridNeighbors");
    
+   phiprof::start("readFsGrid");
    // Read fsgrid data back in
    int fsgridInputRanks=0;
    if(readScalarParameter(file,"numWritingRanks",fsgridInputRanks, MASTER_RANK, MPI_COMM_WORLD) == false) {
@@ -1190,6 +1229,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    if(success) { success = readFsGridVariable(file, "fg_PERB", fsgridInputRanks, perBGrid); }
    if(success) { success = readFsGridVariable(file, "fg_E", fsgridInputRanks, EGrid); }
    exitOnError(success,"(RESTART) Failure reading fsgrid restart variables",MPI_COMM_WORLD);
+   phiprof::stop("readFsGrid");
    
    success = file.close();
    phiprof::stop("readGrid");

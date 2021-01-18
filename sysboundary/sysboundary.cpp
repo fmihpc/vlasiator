@@ -322,7 +322,9 @@ bool SysBoundary::initSysBoundaries(
 }
 
 bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
-
+   // Verifies that all cells within FULL_NEIGHBORHOOD_ID of L1 boundary cells are on the same refinement
+   // level (one group for inner boundary, another for outer boundary)
+  
    // Set is used to avoid storing duplicates - each cell only needs to be checked once
    std::set<CellID> innerBoundaryCells;
    std::set<CellID> outerBoundaryCells;
@@ -339,8 +341,8 @@ bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::
             innerBoundaryCells.insert(cellId);
             innerBoundaryRefLvl = mpiGrid.get_refinement_level(cellId);
             if (cell->sysBoundaryLayer == 1) {
-               // Add non-boundary neighbors of layer 1 cells
-               auto* nbrPairVector = mpiGrid.get_neighbors_of(cellId,FULL_NEIGHBORHOOD_ID);
+               // Add all stencil neighbors of layer 1 cells
+               auto* nbrPairVector = mpiGrid.get_neighbors_of(cellId,SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
                for (auto nbrPair : *nbrPairVector) {
                   if(nbrPair.first != INVALID_CELLID) {
                      innerBoundaryCells.insert(nbrPair.first);
@@ -351,8 +353,8 @@ bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::
                     cell->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE) {
             outerBoundaryCells.insert(cellId);
             outerBoundaryRefLvl = mpiGrid.get_refinement_level(cellId);
-            // Add non-boundary neighbors of outer boundary cells
-            auto* nbrPairVector = mpiGrid.get_neighbors_of(cellId,FULL_NEIGHBORHOOD_ID);
+            // Add all stencil neighbors of outer boundary cells
+            auto* nbrPairVector = mpiGrid.get_neighbors_of(cellId,SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
             for (auto nbrPair : *nbrPairVector) {
                if(nbrPair.first != INVALID_CELLID) {
                   outerBoundaryCells.insert(nbrPair.first);
@@ -364,13 +366,20 @@ bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::
 
    for (auto cellId : innerBoundaryCells) {
       if (cellId != INVALID_CELLID && mpiGrid.get_refinement_level(cellId) != innerBoundaryRefLvl) {
+         cout << "Failed refinement check (innerBoundary) , cellId = " << cellId << 
+         " at (" << mpiGrid[cellId]->parameters[CellParams::XCRD] << ", " << mpiGrid[cellId]->parameters[CellParams::YCRD] << ", " << mpiGrid[cellId]->parameters[CellParams::ZCRD] <<
+         "). Cell level = " << mpiGrid.get_refinement_level(cellId) <<
+         ", boundary level = " << innerBoundaryRefLvl << endl;
          return false;
       }
    }
 
    for (auto cellId : outerBoundaryCells) {
       if (cellId != INVALID_CELLID && mpiGrid.get_refinement_level(cellId) != outerBoundaryRefLvl) {
-         // cout << "Failed refinement check " << cellId << " " << mpiGrid.get_refinement_level(cellId) << " "<< outerBoundaryRefLvl << endl;
+         cout << "Failed refinement check (outerBoundary), cellId = " << cellId << 
+         " at (" << mpiGrid[cellId]->parameters[CellParams::XCRD] << ", " << mpiGrid[cellId]->parameters[CellParams::YCRD] << ", " << mpiGrid[cellId]->parameters[CellParams::ZCRD] <<
+         "). Cell level = " << mpiGrid.get_refinement_level(cellId) <<
+         ", boundary level = " << outerBoundaryRefLvl << endl;
          return false;
       }
    }
@@ -486,6 +495,9 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
       for(uint i=0; i<cells.size(); i++) {
          if(mpiGrid[cells[i]]->sysBoundaryLayer==0){
             const auto* nbrs = mpiGrid.get_neighbors_of(cells[i],SYSBOUNDARIES_NEIGHBORHOOD_ID);
+	    // Note: this distance calculation will be non-plateau monotonic only assuming that
+	    // SysBoundary::checkRefinement has been applied correctly and there are no refinement
+	    // level changes within SYSBOUNDARIES_NEIGHBORHOOD_ID.
             for(uint j=0; j<(*nbrs).size(); j++) {
                if((*nbrs)[j].first!=0 && (*nbrs)[j].first!=cells[i] ) {
                   if(mpiGrid[(*nbrs)[j].first]->sysBoundaryLayer==layer) { 

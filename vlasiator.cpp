@@ -618,8 +618,12 @@ int main(int argn,char* args[]) {
       //is requested for writing, then jump to next writing index. This is to
       //make sure that at restart we do not write in the middle of
       //the interval.
-      if(P::t_min>(index+0.01)*P::systemWriteTimeInterval[i])
+      if(P::t_min>(index+0.01)*P::systemWriteTimeInterval[i]) {
          index++;
+         // Special case for large timesteps
+         int index2=(int)((P::t_min+P::dt)/P::systemWriteTimeInterval[i]);
+         if (index2>index) index=index2;
+      }
       P::systemWrites.push_back(index);
    }
 
@@ -699,6 +703,14 @@ int main(int argn,char* args[]) {
       for (uint i = 0; i < P::systemWriteTimeInterval.size(); i++) {
          if (P::systemWriteTimeInterval[i] >= 0.0 &&
              P::t >= P::systemWrites[i] * P::systemWriteTimeInterval[i] - DT_EPSILON) {
+            // If we have only just restarted, the bulk file should already exist from the previous slot.
+            if ((P::tstep == P::tstep_min) && (P::tstep>0)) {
+               P::systemWrites[i]++;
+               // Special case for large timesteps
+               int index2=(int)((P::t+P::dt)/P::systemWriteTimeInterval[i]);
+               if (index2>P::systemWrites[i]) P::systemWrites[i]=index2;
+               continue;
+            }
             
             phiprof::start("write-system");
             logFile << "(IO): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
@@ -718,6 +730,9 @@ int main(int argn,char* args[]) {
                cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
             }
             P::systemWrites[i]++;
+            // Special case for large timesteps
+            int index2=(int)((P::t+P::dt)/P::systemWriteTimeInterval[i]);
+            if (index2>P::systemWrites[i]) P::systemWrites[i]=index2;
             logFile << "(IO): .... done!" << endl << writeVerbose;
             phiprof::stop("write-system");
          }
@@ -836,6 +851,7 @@ int main(int argn,char* args[]) {
          computeNewTimeStep(mpiGrid, technicalGrid, newDt, dtIsChanged);
          addTimedBarrier("barrier-check-dt");
          if(dtIsChanged) {
+#warning dt change step in acceleration at restart cannot be done without additional information such as egradpe
             phiprof::start("update-dt");
             //propagate velocity space back to real-time
             if( P::propagateVlasovAcceleration ) {
@@ -949,7 +965,7 @@ int main(int argn,char* args[]) {
       }
 
       // Additional feeding of moments into fsgrid required by electron runs
-      if (P::ResolvePlasmaPeriod==true) {
+      if (!P::propagateField && (P::ResolvePlasmaPeriod==true)) {
 	phiprof::start("fsgrid-coupling-in");
 	feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid, technicalGrid, false);
 	feedMomentsIntoFsGrid(mpiGrid, cells, momentsDt2Grid, technicalGrid, true);
