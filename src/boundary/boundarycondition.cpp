@@ -197,7 +197,7 @@ void BoundaryCondition::setCellBVOLDerivativesToZero(FsGrid<std::array<Real, fsg
  * closest boundarytype::NOT_BOUNDARY cell.
  * \param copyMomentsOnly If true, do not touch velocity space.
  */
-void BoundaryCondition::vlasovBoundaryCopyFromTheClosestNbr(
+void BoundaryCondition::vlasovBoundaryCopyFromClosestNbr(
     const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid, const CellID &cellID,
     const bool &copyMomentsOnly, const uint popID, const bool doCalcMomentsV)
 {
@@ -241,7 +241,7 @@ void BoundaryCondition::vlasovBoundaryFluffyCopyFromAllCloseNbrs(
  * boundarytype::NOT_BOUNDARY cell but limit to values no higher than where it
  * can flow into. Moments are recomputed.
  */
-void BoundaryCondition::vlasovBoundaryCopyFromTheClosestNbrAndLimit(
+void BoundaryCondition::vlasovBoundaryCopyFromClosestNbrAndLimit(
     const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid, const CellID &cellID, const uint popID)
 {
    const CellID closestCell = getTheClosestNonboundaryCell(cellID);
@@ -355,10 +355,18 @@ void BoundaryCondition::copyCellData(SpatialCell *from, SpatialCell *to, const b
       if (doCalcMomentsV)
       {
          to->get_population(popID).RHO_V = from->get_population(popID).RHO_V;
+         //hyzhou
+         cout << "Do we touch here? CalcMomentsV" << endl;
       }
       else
       {
          to->get_population(popID).RHO_R = from->get_population(popID).RHO_R;
+         //hyzhou
+         cout << "Do we touch here? CalcMomentsR, popID = " << popID << endl;
+         cout << "RHOM_R = " << from->parameters[CellParams::RHOM_R]/1.67262e-27 << endl;
+         cout << "RHOM_V = " << from->parameters[CellParams::RHOM_V]/1.67262e-27 << endl;
+         cout << "RHO_R = " << from->get_population(popID).RHO_R << endl;
+         cout << "RHO_V = " << from->get_population(popID).RHO_V << endl;
       }
 
       for (uint i = 0; i < 3; i++)

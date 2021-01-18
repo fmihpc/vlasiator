@@ -437,7 +437,7 @@ void Outflow::fieldSolverBoundaryCondBVOLDerivatives(FsGrid<std::array<Real, fsg
  * @param cellID
  */
 void Outflow::vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                      const CellID &cellID, const uint popID, const bool calculate_V_moments, creal t)
+                                      const CellID &cellID, const uint popID, const bool doCalcMoments_V, creal t)
 {
    const OutflowSpeciesParameters &sP = this->speciesParams[popID];
    SpatialCell *cell = mpiGrid[cellID];
@@ -461,10 +461,10 @@ void Outflow::vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Car
          case vlasovscheme::NONE:
             break;
          case vlasovscheme::COPY:
-            vlasovBoundaryCopyFromTheClosestNbr(mpiGrid, cellID, false, popID, calculate_V_moments);
+            vlasovBoundaryCopyFromClosestNbr(mpiGrid, cellID, false, popID, doCalcMoments_V);
             break;
          case vlasovscheme::LIMIT:
-            vlasovBoundaryCopyFromTheClosestNbrAndLimit(mpiGrid, cellID, popID);
+            vlasovBoundaryCopyFromClosestNbrAndLimit(mpiGrid, cellID, popID);
             break;
          default:
             abort_mpi("ERROR: invalid Outflow Vlasov scheme", 1);

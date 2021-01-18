@@ -131,10 +131,10 @@ protected:
     */
    inline int nbrID(const int i, const int j, const int k) { return (k + 1) * 9 + (j + 1) * 3 + i + 1; }
 
-   void vlasovBoundaryCopyFromTheClosestNbr(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+   void vlasovBoundaryCopyFromClosestNbr(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                             const CellID &cellID, const bool &copyMomentsOnly, const uint popID,
                                             const bool doCalcMomentsV);
-   void vlasovBoundaryCopyFromTheClosestNbrAndLimit(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+   void vlasovBoundaryCopyFromClosestNbrAndLimit(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                                     const CellID &cellID, const uint popID);
    void vlasovBoundaryCopyFromAllClosestNbrs(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                              const CellID &cellID, const uint popID, const bool doCalcMomentsV);

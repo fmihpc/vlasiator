@@ -137,10 +137,9 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
 }
 
 /** Calculate zeroth, first, and (possibly) second bulk velocity moments for the 
- * given spatial cell. The calculated moments include 
- * contributions from all existing particle populations. The calculated moments 
- * are stored to SpatialCell::parameters in _R variables. This function is AMR safe.
- * @param mpiGrid Parallel grid library.
+ * given spatial cell. The calculated moments include contributions from all 
+ * existing particle populations. The calculated moments are stored to 
+ * SpatialCell::parameters in _R variables. This function is AMR safe.
  * @param cells Vector containing the spatial cells to be calculated.
  * @param computeSecond If true, second velocity moments are calculated.*/
 void calculateMoments_R(
@@ -156,9 +155,7 @@ void calculateMoments_R(
        for (size_t c=0; c<cells.size(); ++c) {
           SpatialCell* cell = mpiGrid[cells[c]];
           
-          if (cell->boundaryFlag == boundarytype::NO_COMPUTE) {
-             continue;
-          }
+          if (cell->boundaryFlag == boundarytype::NO_COMPUTE) continue;
           
           // Clear old moments to zero value
           if (popID == 0) {
@@ -214,12 +211,12 @@ void calculateMoments_R(
           pop.V_R[0] = divideIfNonZero(array[1], array[0]);
           pop.V_R[1] = divideIfNonZero(array[2], array[0]);
           pop.V_R[2] = divideIfNonZero(array[3], array[0]);
-          
-          cell->parameters[CellParams::RHOM_R  ] += array[0]*mass;
+
+          cell->parameters[CellParams::RHOM_R] += array[0]*mass;
           cell->parameters[CellParams::VX_R] += array[1]*mass;
           cell->parameters[CellParams::VY_R] += array[2]*mass;
           cell->parameters[CellParams::VZ_R] += array[3]*mass;
-          cell->parameters[CellParams::RHOQ_R  ] += array[0]*charge;
+          cell->parameters[CellParams::RHOQ_R] += array[0]*charge;
        } // for-loop over spatial cells
     } // for-loop over particle species
     
@@ -288,8 +285,8 @@ void calculateMoments_R(
  * given spatial cell. Additionally, for each species, calculate the maximum 
  * spatial time step so that CFL(spatial)=1. The calculated moments include 
  * contributions from all existing particle populations. The calculated moments 
- * are stored to SpatialCell::parameters in _V variables. This function is AMR safe.
- * @param mpiGrid Parallel grid library.
+ * are stored to SpatialCell::parameters in _V variables. This function is AMR
+ * safe.
  * @param cells Vector containing the spatial cells to be calculated.
  * @param computeSecond If true, second velocity moments are calculated.*/
 void calculateMoments_V(
@@ -305,17 +302,15 @@ void calculateMoments_V(
       for (size_t c=0; c<cells.size(); ++c) {
          SpatialCell* cell = mpiGrid[cells[c]];
          
-         if (cell->boundaryFlag == boundarytype::NO_COMPUTE) {
-            continue;
-         }
+         if (cell->boundaryFlag == boundarytype::NO_COMPUTE) continue;
          
          // Clear old moments to zero value
          if (popID == 0) {
-             cell->parameters[CellParams::RHOM_V  ] = 0.0;
+             cell->parameters[CellParams::RHOM_V] = 0.0;
              cell->parameters[CellParams::VX_V] = 0.0;
              cell->parameters[CellParams::VY_V] = 0.0;
              cell->parameters[CellParams::VZ_V] = 0.0;
-             cell->parameters[CellParams::RHOQ_V  ] = 0.0;
+             cell->parameters[CellParams::RHOQ_V] = 0.0;
              cell->parameters[CellParams::P_11_V] = 0.0;
              cell->parameters[CellParams::P_22_V] = 0.0;
              cell->parameters[CellParams::P_33_V] = 0.0;
@@ -346,11 +341,11 @@ void calculateMoments_V(
          pop.V_V[1] = divideIfNonZero(array[2], array[0]);
          pop.V_V[2] = divideIfNonZero(array[3], array[0]);
          
-         cell->parameters[CellParams::RHOM_V  ] += array[0]*mass;
+         cell->parameters[CellParams::RHOM_V] += array[0]*mass;
          cell->parameters[CellParams::VX_V] += array[1]*mass;
          cell->parameters[CellParams::VY_V] += array[2]*mass;
          cell->parameters[CellParams::VZ_V] += array[3]*mass;
-         cell->parameters[CellParams::RHOQ_V  ] += array[0]*charge;
+         cell->parameters[CellParams::RHOQ_V] += array[0]*charge;
       } // for-loop over spatial cells
    } // for-loop over particle species
    

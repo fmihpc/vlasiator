@@ -243,10 +243,9 @@ void Maxwellian::generateTemplateCell(spatial_cell::SpatialCell &templateCell, R
                      for (uint vi = 0; vi < speciesParams[popID].nVelocitySamples; ++vi)
                         for (uint vj = 0; vj < speciesParams[popID].nVelocitySamples; ++vj)
                            for (uint vk = 0; vk < speciesParams[popID].nVelocitySamples; ++vk)
-                           {
                               avr += maxwellianDistribution(popID, rho, T, vxCell + vi * d_vx - Vx,
                                                             vyCell + vj * d_vy - Vy, vzCell + vk * d_vz - Vz);
-                           }
+
                      avr /= speciesParams[popID].nVelocitySamples * speciesParams[popID].nVelocitySamples *
                             speciesParams[popID].nVelocitySamples;
                   }
@@ -259,6 +258,16 @@ void Maxwellian::generateTemplateCell(spatial_cell::SpatialCell &templateCell, R
                   if (avr != 0.0) data[blockLID * WID3 + cellIndex(ic, jc, kc)] = avr;
                } // for-loop over cells in velocity block
       }          // for-loop over velocity blocks
+
+      templateCell.get_population(popID).RHO_R = templateCell.get_population(popID).RHO;
+      templateCell.get_population(popID).RHO_V = templateCell.get_population(popID).RHO;
+      for (int i = 0; i < 3; i++)
+      {
+         templateCell.get_population(popID).V_R[i] = templateCell.get_population(popID).V[i];
+         templateCell.get_population(popID).V_V[i] = templateCell.get_population(popID).V[i];
+         templateCell.get_population(popID).P_R[i] = templateCell.get_population(popID).P[i];
+         templateCell.get_population(popID).P_V[i] = templateCell.get_population(popID).P[i];
+      }
 
       // Get rid of blocks not fulfilling the criteria here to save memory.
       templateCell.adjustSingleCellVelocityBlocks(popID);
@@ -289,8 +298,13 @@ void Maxwellian::generateTemplateCell(spatial_cell::SpatialCell &templateCell, R
 
    if (this->isThisDynamic)
    {
-      //hyzhou
+      // hyzhou
       cout << "We are testing dynamic BC, t = " << t << endl;
+
+      cout << "RHOM_R = " << templateCell.parameters[CellParams::RHOM_R] / 1.67262e-27 << endl;
+      cout << "RHOM_V = " << templateCell.parameters[CellParams::RHOM_V] / 1.67262e-27 << endl;
+      cout << "RHO_R = " << templateCell.get_population(0).RHO_R << endl;
+      cout << "RHO_V = " << templateCell.get_population(0).RHO_V << endl;
    }
 }
 
