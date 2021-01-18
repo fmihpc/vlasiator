@@ -287,11 +287,7 @@ void Maxwellian::generateTemplateCell(spatial_cell::SpatialCell &templateCell, R
    templateCell.parameters[CellParams::P_22_V] = templateCell.parameters[CellParams::P_22];
    templateCell.parameters[CellParams::P_33_V] = templateCell.parameters[CellParams::P_33];
 
-   if (!this->isThisDynamic)
-   {
-      // WARNING Time-independence assumed here.
-   }
-   else
+   if (this->isThisDynamic)
    {
       //hyzhou
       cout << "We are testing dynamic BC, t = " << t << endl;
