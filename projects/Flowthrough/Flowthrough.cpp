@@ -201,7 +201,7 @@ namespace projects {
          break;
       case Triangle:
          if (abs(x) < 0.5*densityWidth) {            
-            rvalue = 4*sP.rho * pow(mass / (2.0 * M_PI * physicalconstants::K_B * sP.T), 1.5)
+            rvalue = 4* pow(mass / (2.0 * M_PI * physicalconstants::K_B * sP.T), 1.5)
               * exp(- mass * ((  vx-sP.V0[0])*(vx-sP.V0[0]) + (vy-sP.V0[1])*(vy-sP.V0[1])
                                 + (vz-sP.V0[2])*(vz-sP.V0[2])) / (2.0 * physicalconstants::K_B * sP.T));
             rvalue *= ( sP.rhoBase + (sP.rho-sP.rhoBase) * (1.-abs(x) / (0.5*densityWidth)));
@@ -214,7 +214,7 @@ namespace projects {
          break;
       case Sinewave:
          if (abs(x) < 0.5*densityWidth) {            
-            rvalue = 4*sP.rho * pow(mass / (2.0 * M_PI * physicalconstants::K_B * sP.T), 1.5)
+            rvalue = 4 * pow(mass / (2.0 * M_PI * physicalconstants::K_B * sP.T), 1.5)
               * exp(- mass * ((  vx-sP.V0[0])*(vx-sP.V0[0]) + (vy-sP.V0[1])*(vy-sP.V0[1])
                                 + (vz-sP.V0[2])*(vz-sP.V0[2])) / (2.0 * physicalconstants::K_B * sP.T));
             rvalue *= ( sP.rhoBase + (sP.rho-sP.rhoBase) * (0.5 + 0.5*cos(M_PI * x / (0.5*densityWidth))));
