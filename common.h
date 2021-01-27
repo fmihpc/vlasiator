@@ -320,6 +320,9 @@ namespace fsgrids {
       dVzdx,     /*!< Derivative of volume-averaged Vz to x-direction. */
       dVzdy,     /*!< Derivative of volume-averaged Vz to y-direction. */
       dVzdz,     /*!< Derivative of volume-averaged Vz to z-direction. */
+      dPedx,    /*!< Derivative of electron pressure to x-direction. */
+      dPedy,    /*!< Derivative of electron pressure to y-direction. */
+      dPedz,    /*!< Derivative of electron pressure to z-direction. */
       N_DMOMENTS
    };
    

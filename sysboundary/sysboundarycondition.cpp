@@ -615,15 +615,16 @@ namespace SBC {
          uint dist = numeric_limits<uint>::max();
 
 	 uint d2 = numeric_limits<uint>::max();
-	 uint indexstep = pow(2,P::amrMaxSpatialRefLevel - mpiGrid[cellId]->SpatialCell::parameters[CellParams::REFINEMENT_LEVEL]);
-			
+	 int indexstep = pow(2,P::amrMaxSpatialRefLevel - mpiGrid[cellId]->SpatialCell::parameters[CellParams::REFINEMENT_LEVEL]);
+	 // Note this must be int, not uint, for latter calculations
+
 	 // Find flowto cells (note, L2 cells do not have flowto cells)
 	 auto* nearNbrs = mpiGrid.get_neighbors_of(cellId, NEAREST_NEIGHBORHOOD_ID);
 	 for (auto nbrPair : *nearNbrs) {
 	    if(nbrPair.first != INVALID_CELLID) {
 	       if(mpiGrid[nbrPair.first]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-		  flowtoCells.at(nbrPair.second[0]/indexstep + 3*nbrPair.second[1]/indexstep
-				 + 9*nbrPair.second[2]/indexstep + 13) = mpiGrid[nbrPair.first];
+		  flowtoCells.at((int)(nbrPair.second[0]/indexstep) + 3*(int)(nbrPair.second[1]/indexstep)
+                                 + 9*(int)(nbrPair.second[2]/indexstep) + 13) = mpiGrid[nbrPair.first];
 		  //flowtoCells.at(i + 3*j + 9*k + 13) = mpiGrid[cell];
 	       }
 	    }
@@ -664,46 +665,6 @@ namespace SBC {
 	    }
 	 }	 
 	 
-         // // First iteration of search to determine closest distance
-         // for(int i=-2; i<3; i++)
-         //    for(int j=-2; j<3; j++)
-         //       for(int k=-2; k<3; k++) {
-         //          const CellID cell = getNeighbour(mpiGrid,cellId,i,j,k);
-         //          if(cell != INVALID_CELLID) {
-         //             if(mpiGrid[cell]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-         //                cuint d2 = i*i+j*j+k*k;
-         //                if(d2 < dist) {
-         //                   dist = d2;
-         //                }
-         //                // Flowto neighbours have distances of 1, 2 or 3 at a distance of 1 layer, 4, 5 or 6 at a distance of 2 layers.
-         //                // Furthermore one does not want to have the cell itself in this list.
-         //                if(d2 < 4 && i != 0 && j != 0 && k != 0) {
-	 // 		   flowtoCells.at(i + 3*j + 9*k + 13) = mpiGrid[cell];
-         //                }
-         //                if(mpiGrid[cellId]->sysBoundaryLayer == 1 && abs(i) < 2 && abs(j) < 2 && abs(k) < 2) {
-         //                   closeCells.push_back(cell);
-         //                }
-         //                if(mpiGrid[cellId]->sysBoundaryLayer == 2) {
-         //                   closeCells.push_back(cell);
-         //                }
-         //             }
-         //          }
-         //       }
-         // Second iteration to record the cellIds of all cells at closest distance
-         // for(int i=-2; i<3; i++)
-         //    for(int j=-2; j<3; j++)
-         //       for(int k=-2; k<3; k++) {
-         //          const CellID cell = getNeighbour(mpiGrid,cellId,i,j,k);
-         //          if(cell != INVALID_CELLID) {
-         //             if(mpiGrid[cell]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-         //                cuint d2 = i*i+j*j+k*k;
-         //                if(d2 == dist) {
-         //                   closestCells.push_back(cell);
-         //                }
-         //             }
-         //          }
-         //       }
-
          if(closestCells.size() == 0) closestCells.push_back(INVALID_CELLID);
          if(closeCells.size() == 0) closeCells.push_back(INVALID_CELLID);
       }

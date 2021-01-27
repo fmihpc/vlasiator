@@ -515,7 +515,7 @@ namespace DRO {
    }
    MaxDistributionFunction::~MaxDistributionFunction() { }
    
-   std::string MaxDistributionFunction::getName() const {return popName + "/maximumdistributionfunctionvalue";}
+   std::string MaxDistributionFunction::getName() const {return popName + "/vg_maxdistributionfunction";}
    
    bool MaxDistributionFunction::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
@@ -569,7 +569,7 @@ namespace DRO {
    }
    MinDistributionFunction::~MinDistributionFunction() { }
    
-   std::string MinDistributionFunction::getName() const {return popName + "/minimumdistributionfunctionvalue";}
+   std::string MinDistributionFunction::getName() const {return popName + "/vg_mindistributionfunction";}
    
    bool MinDistributionFunction::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
