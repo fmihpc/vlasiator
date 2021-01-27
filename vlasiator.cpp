@@ -688,7 +688,7 @@ int main(int argn,char* args[]) {
          if (P::systemWriteTimeInterval[i] >= 0.0 &&
              P::t >= P::systemWrites[i] * P::systemWriteTimeInterval[i] - DT_EPSILON) {
             // If we have only just restarted, the bulk file should already exist from the previous slot.
-            if (P::tstep == P::tstep_min) {
+            if ((P::tstep == P::tstep_min) && (P::tstep>0)) {
                P::systemWrites[i]++;
                // Special case for large timesteps
                int index2=(int)((P::t+P::dt)/P::systemWriteTimeInterval[i]);
