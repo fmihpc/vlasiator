@@ -33,6 +33,7 @@ namespace projects {
 
    struct FlowthroughSpeciesParameters {
       Real rho;
+      Real rhoBase;
       Real T;
       Real V0[3];
       uint nSpaceSamples;
@@ -77,6 +78,7 @@ namespace projects {
       bool emptyBox;               /**< If true, then the simulation domain is empty initially 
                                     * and matter will flow in only through the boundaries.*/
 
+      Real densityWidth;
       Real Bx;
       Real By;
       Real Bz;
