@@ -131,9 +131,9 @@ namespace projects {
 //       cellParams[CellParams::PERBZ   ] = this->BZ0 * (x+0.5*Dx)*(y+0.5*Dy)*(z+0.5*Dz)*(x+0.5*Dx)*(y+0.5*Dy)*(z+0.5*Dz)*(x+0.5*Dx)*(y+0.5*Dy)*(z+0.5*Dz);
    
    void TestHall::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
-      FsGrid< fsgrids::technical, 2>& technicalGrid
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
    ) {
       setBackgroundFieldToZero(BgBGrid);
       
