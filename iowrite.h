@@ -54,8 +54,9 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
                DataReducer* dataReducer,
                const uint& index,
+               const int& stripe,
                const bool writeGhosts = true
-);
+   );
 
 /*!
 
@@ -80,7 +81,8 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                   DataReducer& dataReducer,
                   const std::string& name,
                   const uint& fileIndex,
-                  const int& stripe);
+                  const int& stripe
+   );
 
 /*!
 

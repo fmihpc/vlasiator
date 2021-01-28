@@ -542,7 +542,7 @@ int main(int argn,char* args[]) {
             BgBGrid,
             volGrid,
             technicalGrid,
-            &outputReducer,P::systemWriteName.size()-1, writeGhosts) == false ) {
+            &outputReducer,P::systemWriteName.size()-1, P::restartStripeFactor, writeGhosts) == false ) {
          cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
       }
 
@@ -710,7 +710,7 @@ int main(int argn,char* args[]) {
                      BgBGrid,
                      volGrid,
                      technicalGrid,
-                     &outputReducer, i, writeGhosts) == false ) {
+                     &outputReducer, i, P::bulkStripeFactor, writeGhosts) == false ) {
                cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
             }
             P::systemWrites[i]++;
@@ -781,7 +781,7 @@ int main(int argn,char* args[]) {
                   BgBGrid,
                   volGrid,
                   technicalGrid,
-                  outputReducer,"restart",(uint)P::t, P::restartStripeFactor) == false ) {
+                  outputReducer,"restart",(uint)P::t,P::restartStripeFactor) == false ) {
             logFile << "(IO): ERROR Failed to write restart!" << endl << writeVerbose;
             cerr << "FAILED TO WRITE RESTART" << endl;
          }
