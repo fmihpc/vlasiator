@@ -70,8 +70,8 @@ void User::vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartes
 }
 
 Real User::fieldSolverBoundaryCondMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &bGrid,
-                                                FsGrid<fsgrids::technical, 2> &technicalGrid, cint i, cint j, cint k,
-                                                creal &dt, cuint &component)
+                                                FsGrid<fsgrids::technical, 2> &technicalGrid,
+                                                cint i, cint j, cint k, creal dt, cuint component)
 {
 }
 
@@ -92,12 +92,12 @@ void User::fieldSolverBoundaryCondGradPeElectricField(
 
 void User::fieldSolverBoundaryCondDerivatives(FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, 2> &dPerBGrid,
                                               FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> &dMomentsGrid,
-                                              cint i, cint j, cint k, cuint &RKCase, cuint &component)
+                                              cint i, cint j, cint k, cuint RKCase, cuint component)
 {
 }
 
 void User::fieldSolverBoundaryCondBVOLDerivatives(FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, 2> &volGrid,
-                                                  cint i, cint j, cint k, cuint &component)
+                                                  cint i, cint j, cint k, cuint component)
 {
 }
 

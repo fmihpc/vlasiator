@@ -68,8 +68,8 @@ public:
                                   FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid,
                                   Project &project) = 0;
    virtual Real fieldSolverBoundaryCondMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &bGrid,
-                                                     FsGrid<fsgrids::technical, 2> &technicalGrid, cint i, cint j,
-                                                     cint k, creal &dt, cuint &component) = 0;
+                                                     FsGrid<fsgrids::technical, 2> &technicalGrid,
+                                                     cint i, cint j, cint k, creal dt, cuint component) = 0;
    virtual void fieldSolverBoundaryCondElectricField(FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, 2> &EGrid,
                                                      cint i, cint j, cint k, cuint component) = 0;
    virtual void
@@ -81,14 +81,14 @@ public:
    virtual void
    fieldSolverBoundaryCondDerivatives(FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, 2> &dPerBGrid,
                                       FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> &dMomentsGrid, cint i,
-                                      cint j, cint k, cuint &RKCase, cuint &component) = 0;
+                                      cint j, cint k, cuint RKCase, cuint component) = 0;
    virtual void fieldSolverBoundaryCondBVOLDerivatives(FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, 2> &volGrid,
-                                                       cint i, cint j, cint k, cuint &component) = 0;
+                                                       cint i, cint j, cint k, cuint component) = 0;
    static void setCellDerivativesToZero(FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, 2> &dPerBGrid,
                                         FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> &dMomentsGrid,
-                                        cint i, cint j, cint k, cuint &component);
+                                        cint i, cint j, cint k, cuint component);
    static void setCellBVOLDerivativesToZero(FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, 2> &volGrid, cint i,
-                                            cint j, cint k, cuint &component);
+                                            cint j, cint k, cuint component);
 
    /** This function computes the Vlasov (distribution function)
     * boundary condition for the given particle species only.

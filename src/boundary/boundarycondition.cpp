@@ -105,7 +105,7 @@ void BoundaryCondition::addParameters()
  */
 void BoundaryCondition::setCellDerivativesToZero(
     FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, 2> &dPerBGrid,
-    FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> &dMomentsGrid, cint i, cint j, cint k, cuint &component)
+    FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> &dMomentsGrid, cint i, cint j, cint k, cuint component)
 {
    std::array<Real, fsgrids::dperb::N_DPERB> *dPerBGrid0 = dPerBGrid.get(i, j, k);
    std::array<Real, fsgrids::dmoments::N_DMOMENTS> *dMomentsGrid0 = dMomentsGrid.get(i, j, k);
@@ -171,7 +171,7 @@ void BoundaryCondition::setCellDerivativesToZero(
  * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives.
  */
 void BoundaryCondition::setCellBVOLDerivativesToZero(FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, 2> &volGrid,
-                                                     cint i, cint j, cint k, cuint &component)
+                                                     cint i, cint j, cint k, cuint component)
 {
    std::array<Real, fsgrids::volfields::N_VOL> *volGrid0 = volGrid.get(i, j, k);
    switch (component)
@@ -362,11 +362,11 @@ void BoundaryCondition::copyCellData(SpatialCell *from, SpatialCell *to, const b
       {
          to->get_population(popID).RHO_R = from->get_population(popID).RHO_R;
          //hyzhou
-         cout << "Do we touch here? CalcMomentsR, popID = " << popID << endl;
-         cout << "RHOM_R = " << from->parameters[CellParams::RHOM_R]/1.67262e-27 << endl;
-         cout << "RHOM_V = " << from->parameters[CellParams::RHOM_V]/1.67262e-27 << endl;
-         cout << "RHO_R = " << from->get_population(popID).RHO_R << endl;
-         cout << "RHO_V = " << from->get_population(popID).RHO_V << endl;
+         //cout << "Do we touch here? CalcMomentsR, popID = " << popID << endl;
+         //cout << "RHOM_R = " << from->parameters[CellParams::RHOM_R]/1.67262e-27 << endl;
+         //cout << "RHOM_V = " << from->parameters[CellParams::RHOM_V]/1.67262e-27 << endl;
+         //cout << "RHO_R = " << from->get_population(popID).RHO_R << endl;
+         //cout << "RHO_V = " << from->get_population(popID).RHO_V << endl;
       }
 
       for (uint i = 0; i < 3; i++)

@@ -157,8 +157,8 @@ void Inflow::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_
 }
 
 Real Inflow::fieldSolverBoundaryCondMagneticField(FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, 2> &bGrid,
-                                                  FsGrid<fsgrids::technical, 2> &technicalGrid, cint i, cint j, cint k,
-                                                  creal &dt, cuint &component)
+                                                  FsGrid<fsgrids::technical, 2> &technicalGrid,
+                                                  cint i, cint j, cint k, creal dt, cuint component)
 {
    Real result = 0.0;
    creal dx = Parameters::dx_ini;
@@ -226,13 +226,13 @@ void Inflow::fieldSolverBoundaryCondGradPeElectricField(
 
 void Inflow::fieldSolverBoundaryCondDerivatives(FsGrid<array<Real, fsgrids::dperb::N_DPERB>, 2> &dPerBGrid,
                                                 FsGrid<array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> &dMomentsGrid,
-                                                cint i, cint j, cint k, cuint &RKCase, cuint &component)
+                                                cint i, cint j, cint k, cuint RKCase, cuint component)
 {
    this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
 }
 
 void Inflow::fieldSolverBoundaryCondBVOLDerivatives(FsGrid<array<Real, fsgrids::volfields::N_VOL>, 2> &volGrid, cint i,
-                                                    cint j, cint k, cuint &component)
+                                                    cint j, cint k, cuint component)
 {
    this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
 }

@@ -356,8 +356,8 @@ void Outflow::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian
 }
 
 Real Outflow::fieldSolverBoundaryCondMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &bGrid,
-                                                   FsGrid<fsgrids::technical, 2> &technicalGrid, cint i, cint j, cint k,
-                                                   creal &dt, cuint &component)
+                                                   FsGrid<fsgrids::technical, 2> &technicalGrid,
+                                                   cint i, cint j, cint k, creal dt, cuint component)
 {
    switch (component)
    {
@@ -419,14 +419,14 @@ void Outflow::fieldSolverBoundaryCondGradPeElectricField(
 
 void Outflow::fieldSolverBoundaryCondDerivatives(
     FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, 2> &dPerBGrid,
-    FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> &dMomentsGrid, cint i, cint j, cint k, cuint &RKCase,
-    cuint &component)
+    FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> &dMomentsGrid, cint i, cint j, cint k, cuint RKCase,
+    cuint component)
 {
    this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
 }
 
 void Outflow::fieldSolverBoundaryCondBVOLDerivatives(FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, 2> &volGrid,
-                                                     cint i, cint j, cint k, cuint &component)
+                                                     cint i, cint j, cint k, cuint component)
 {
    this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
 }

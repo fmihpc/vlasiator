@@ -568,8 +568,8 @@ std::array<Real, 3> Ionosphere::fieldSolverGetNormalDirection(FsGrid<fsgrids::te
  * -- Retain only the normal components of perturbed face B
  */
 Real Ionosphere::fieldSolverBoundaryCondMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &bGrid,
-                                                      FsGrid<fsgrids::technical, 2> &technicalGrid, cint i, cint j,
-                                                      cint k, creal &dt, cuint &component)
+                                                      FsGrid<fsgrids::technical, 2> &technicalGrid,
+                                                      cint i, cint j, cint k, creal dt, cuint component)
 {
    if (technicalGrid.get(i, j, k)->boundaryLayer == 1)
    {
@@ -840,15 +840,15 @@ void Ionosphere::fieldSolverBoundaryCondGradPeElectricField(
 
 void Ionosphere::fieldSolverBoundaryCondDerivatives(
     FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, 2> &dPerBGrid,
-    FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> &dMomentsGrid, cint i, cint j, cint k, cuint &RKCase,
-    cuint &component)
+    FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> &dMomentsGrid, cint i, cint j, cint k, cuint RKCase,
+    cuint component)
 {
    this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
    return;
 }
 
 void Ionosphere::fieldSolverBoundaryCondBVOLDerivatives(FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, 2> &volGrid,
-                                                        cint i, cint j, cint k, cuint &component)
+                                                        cint i, cint j, cint k, cuint component)
 {
    // FIXME This should be OK as the BVOL derivatives are only used for Lorentz force JXB, which is not applied on the
    // ionosphere cells.

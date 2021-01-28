@@ -80,8 +80,8 @@ public:
    virtual void applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                   FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, Project &project);
    virtual Real fieldSolverBoundaryCondMagneticField(FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, 2> &bGrid,
-                                                     FsGrid<fsgrids::technical, 2> &technicalGrid, cint i, cint j,
-                                                     cint k, creal &dt, cuint &component);
+                                                     FsGrid<fsgrids::technical, 2> &technicalGrid,
+                                                     cint i, cint j, cint k, creal dt, cuint component);
    virtual void fieldSolverBoundaryCondElectricField(FsGrid<array<Real, fsgrids::efield::N_EFIELD>, 2> &EGrid,
                                                      cint i, cint j, cint k, cuint component);
    virtual void
@@ -93,9 +93,9 @@ public:
    virtual void
    fieldSolverBoundaryCondDerivatives(FsGrid<array<Real, fsgrids::dperb::N_DPERB>, 2> &dPerBGrid,
                                       FsGrid<array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> &dMomentsGrid, cint i,
-                                      cint j, cint k, cuint &RKCase, cuint &component);
+                                      cint j, cint k, cuint RKCase, cuint component);
    virtual void fieldSolverBoundaryCondBVOLDerivatives(FsGrid<array<Real, fsgrids::volfields::N_VOL>, 2> &volGrid,
-                                                       cint i, cint j, cint k, cuint &component);
+                                                       cint i, cint j, cint k, cuint component);
    virtual void vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                         const CellID &cellID, const uint popID, const bool doCalcMomentsV, creal t);
 

@@ -36,8 +36,8 @@ void propagateMagneticField(
    cint i,
    cint j,
    cint k,
-   creal& dt,
-   cint& RKCase,
+   creal dt,
+   cint RKCase,
    const bool doX=true,
    const bool doY=true,
    const bool doZ=true
@@ -50,8 +50,8 @@ void propagateMagneticFieldSimple(
    FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EDt2Grid,
    FsGrid< fsgrids::technical, 2> & technicalGrid,
    Boundary& boundaries,
-   creal& dt,
-   cint& RKCase
+   creal dt,
+   cint RKCase
 );
 
 #endif
