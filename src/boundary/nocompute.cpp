@@ -81,6 +81,11 @@ void NoCompute::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesi
    }
 }
 
+void NoCompute::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+                            FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, creal t)
+{
+}
+
 std::string NoCompute::getName() const { return "NoCompute"; }
 
 uint NoCompute::getIndex() const { return boundarytype::NO_COMPUTE; }

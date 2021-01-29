@@ -187,10 +187,12 @@ std::vector<vmesh::GlobalID> Maxwellian::findBlocksToInitialize(const uint popID
 /*!\brief Generate the template cell for the face corresponding to the index
  * passed, which will be used for setting the boundary conditions.
  * \param templateCell Address of the template cell to be generated.
+ * \param B Address of the magnetic field to be used as template.
  * \param inputDataIndex Index used for the location of the input data.
  * \param t Current simulation time.
  */
-void Maxwellian::generateTemplateCell(spatial_cell::SpatialCell &templateCell, Real B[3], int inputDataIndex, creal t)
+void Maxwellian::generateTemplateCell(spatial_cell::SpatialCell &templateCell, Real (&B)[3], int inputDataIndex,
+                                      creal t)
 {
    Real rho, T, Vx, Vy, Vz, Bx, By, Bz, buffer[8];
 

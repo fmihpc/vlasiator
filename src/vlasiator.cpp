@@ -860,6 +860,8 @@ int main(int argn, char *args[])
       }
       phiprof::stop("Spatial-space", computedCells, "Cells");
 
+      boundaries.updateState(mpiGrid, perBGrid, P::t + 0.5 * P::dt);
+
       // Apply boundary conditions
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration)
       {

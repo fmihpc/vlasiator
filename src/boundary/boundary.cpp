@@ -580,6 +580,18 @@ void Boundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geom
    }
 }
 
+void Boundary::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+                           FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, creal t)
+{
+   list<BC::BoundaryCondition *>::iterator it;
+   for (it = boundaries.begin(); it != boundaries.end(); it++)
+   {
+      // Skip when not restarting or not requested.
+      if (Parameters::isRestart && !(*it)->doApplyUponRestart()) continue;
+      (*it)->updateState(mpiGrid, perBGrid, t);
+   }
+}
+
 /*!\brief Apply the Vlasov boundary conditions to all boundary cells at time t.
  *
  * Loops through all BoundaryConditions and calls the corresponding
@@ -633,7 +645,7 @@ void Boundary::applyBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell, dccrg::Ca
       for (uint i = 0; i < localCells.size(); i++)
       {
          cuint boundaryType = mpiGrid[localCells[i]]->boundaryFlag;
-         this->getBoundary(boundaryType)->vlasovBoundaryCondition(mpiGrid, localCells[i], popID, doCalcMomentsV, t);
+         this->getBoundary(boundaryType)->vlasovBoundaryCondition(mpiGrid, localCells[i], popID, doCalcMomentsV);
       }
       if (doCalcMomentsV)
          calculateMoments_V(mpiGrid, localCells, true);
@@ -657,7 +669,7 @@ void Boundary::applyBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell, dccrg::Ca
       for (uint i = 0; i < boundaryCells.size(); i++)
       {
          cuint boundaryType = mpiGrid[boundaryCells[i]]->boundaryFlag;
-         this->getBoundary(boundaryType)->vlasovBoundaryCondition(mpiGrid, boundaryCells[i], popID, doCalcMomentsV, t);
+         this->getBoundary(boundaryType)->vlasovBoundaryCondition(mpiGrid, boundaryCells[i], popID, doCalcMomentsV);
       }
       if (doCalcMomentsV)
          calculateMoments_V(mpiGrid, boundaryCells, true);

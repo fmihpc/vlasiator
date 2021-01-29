@@ -37,10 +37,10 @@
 
 /*! \brief Boundary contains the BoundaryConditions used in the simulation.
  *
- * The purpose of Boundary is to contain BC::BoundaryConditions, and 
+ * The purpose of Boundary is to contain BC::BoundaryConditions, and
  * apply them to the simulation volume cells if the cells pertain to a specific
  * boundary type. If the simulation domain is not fully periodic then the
- * behaviour at the edges or boundaries of the volume has to be properly 
+ * behaviour at the edges or boundaries of the volume has to be properly
  * defined.
  *
  * initBoundaries creates the instances of BC::BoundaryConditions that
@@ -69,6 +69,8 @@ public:
                       FsGrid<fsgrids::technical, 2> &technicalGrid);
    void applyInitialState(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                           FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, Project &project);
+   void updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+                    FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, creal t);
    void applyBoundaryVlasovConditions(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                       creal t, const bool doCalcMomentsV);
    unsigned int size() const;

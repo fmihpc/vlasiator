@@ -64,14 +64,19 @@ void User::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Ge
 {
 }
 
+void User::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+                       FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, creal t)
+{
+}
+
 void User::vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                   const CellID &cellID, const uint popID, const bool doCalcMomentsV, creal t)
+                                   const CellID &cellID, const uint popID, const bool doCalcMomentsV)
 {
 }
 
 Real User::fieldSolverBoundaryCondMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &bGrid,
-                                                FsGrid<fsgrids::technical, 2> &technicalGrid,
-                                                cint i, cint j, cint k, creal dt, cuint component)
+                                                FsGrid<fsgrids::technical, 2> &technicalGrid, cint i, cint j, cint k,
+                                                creal dt, cuint component)
 {
 }
 

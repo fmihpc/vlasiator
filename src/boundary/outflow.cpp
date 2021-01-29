@@ -55,8 +55,7 @@ void Outflow::addParameters()
        "outflow.faceNoFields",
        "List of faces on which no field outflow boundary conditions are to be applied ([xyz][+-]).");
    Readparameters::add("outflow.precedence",
-                       "Precedence value of the outflow boundary condition (integer), the higher the stronger.",
-                       4);
+                       "Precedence value of the outflow boundary condition (integer), the higher the stronger.", 4);
    Readparameters::add("outflow.reapplyUponRestart",
                        "If 0 (default), keep going with the state existing in the restart file. If 1, calls again "
                        "applyInitialState. Can be used to change boundary condition behaviour during a run.",
@@ -278,8 +277,7 @@ void Outflow::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry
             cellCenterCoords[2] += 0.5 * technicalGrid.DZ;
             const auto refLvl = mpiGrid.get_refinement_level(mpiGrid.get_existing_cell(cellCenterCoords));
 
-            if (refLvl == -1)
-               abort_mpi("ERROR: Could not get refinement level of remote DCCRG cell!", 1);
+            if (refLvl == -1) abort_mpi("ERROR: Could not get refinement level of remote DCCRG cell!", 1);
 
             creal dx = P::dx_ini * pow(2, -refLvl);
             creal dy = P::dy_ini * pow(2, -refLvl);
@@ -355,9 +353,14 @@ void Outflow::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian
    }
 }
 
+void Outflow::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+                          FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, creal t)
+{
+}
+
 Real Outflow::fieldSolverBoundaryCondMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &bGrid,
-                                                   FsGrid<fsgrids::technical, 2> &technicalGrid,
-                                                   cint i, cint j, cint k, creal dt, cuint component)
+                                                   FsGrid<fsgrids::technical, 2> &technicalGrid, cint i, cint j, cint k,
+                                                   creal dt, cuint component)
 {
    switch (component)
    {
@@ -437,7 +440,7 @@ void Outflow::fieldSolverBoundaryCondBVOLDerivatives(FsGrid<std::array<Real, fsg
  * @param cellID
  */
 void Outflow::vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                      const CellID &cellID, const uint popID, const bool doCalcMoments_V, creal t)
+                                      const CellID &cellID, const uint popID, const bool doCalcMoments_V)
 {
    const OutflowSpeciesParameters &sP = this->speciesParams[popID];
    SpatialCell *cell = mpiGrid[cellID];

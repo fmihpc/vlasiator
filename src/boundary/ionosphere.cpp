@@ -233,6 +233,11 @@ void Ionosphere::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartes
    }
 }
 
+void Ionosphere::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+                             FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, creal t)
+{
+}
+
 std::array<Real, 3> Ionosphere::fieldSolverGetNormalDirection(FsGrid<fsgrids::technical, 2> &technicalGrid, cint i,
                                                               cint j, cint k)
 {
@@ -568,8 +573,8 @@ std::array<Real, 3> Ionosphere::fieldSolverGetNormalDirection(FsGrid<fsgrids::te
  * -- Retain only the normal components of perturbed face B
  */
 Real Ionosphere::fieldSolverBoundaryCondMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &bGrid,
-                                                      FsGrid<fsgrids::technical, 2> &technicalGrid,
-                                                      cint i, cint j, cint k, creal dt, cuint component)
+                                                      FsGrid<fsgrids::technical, 2> &technicalGrid, cint i, cint j,
+                                                      cint k, creal dt, cuint component)
 {
    if (technicalGrid.get(i, j, k)->boundaryLayer == 1)
    {
@@ -856,8 +861,7 @@ void Ionosphere::fieldSolverBoundaryCondBVOLDerivatives(FsGrid<std::array<Real, 
 }
 
 void Ionosphere::vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                         const CellID &cellID, const uint popID, const bool calculate_V_moments,
-                                         creal t)
+                                         const CellID &cellID, const uint popID, const bool calculate_V_moments)
 {
    phiprof::start("vlasovBoundaryCondition (Ionosphere)");
    this->vlasovBoundaryFluffyCopyFromAllCloseNbrs(mpiGrid, cellID, popID, calculate_V_moments,

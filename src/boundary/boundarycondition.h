@@ -67,9 +67,11 @@ public:
    virtual void applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                   FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid,
                                   Project &project) = 0;
+   virtual void updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+                            FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, creal t) = 0;
    virtual Real fieldSolverBoundaryCondMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &bGrid,
-                                                     FsGrid<fsgrids::technical, 2> &technicalGrid,
-                                                     cint i, cint j, cint k, creal dt, cuint component) = 0;
+                                                     FsGrid<fsgrids::technical, 2> &technicalGrid, cint i, cint j,
+                                                     cint k, creal dt, cuint component) = 0;
    virtual void fieldSolverBoundaryCondElectricField(FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, 2> &EGrid,
                                                      cint i, cint j, cint k, cuint component) = 0;
    virtual void
@@ -97,7 +99,7 @@ public:
     * @param cellID Spatial cell ID.
     * @param popID Particle species ID.*/
    virtual void vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                        const CellID &cellID, const uint popID, const bool doCalcMomentsV, creal t) = 0;
+                                        const CellID &cellID, const uint popID, const bool doCalcMomentsV) = 0;
 
    virtual void getFaces(bool *faces);
    virtual std::string getName() const = 0;
@@ -132,10 +134,10 @@ protected:
    inline int nbrID(const int i, const int j, const int k) { return (k + 1) * 9 + (j + 1) * 3 + i + 1; }
 
    void vlasovBoundaryCopyFromClosestNbr(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                            const CellID &cellID, const bool &copyMomentsOnly, const uint popID,
-                                            const bool doCalcMomentsV);
+                                         const CellID &cellID, const bool &copyMomentsOnly, const uint popID,
+                                         const bool doCalcMomentsV);
    void vlasovBoundaryCopyFromClosestNbrAndLimit(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                                    const CellID &cellID, const uint popID);
+                                                 const CellID &cellID, const uint popID);
    void vlasovBoundaryCopyFromAllClosestNbrs(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                              const CellID &cellID, const uint popID, const bool doCalcMomentsV);
    void vlasovBoundaryFluffyCopyFromAllCloseNbrs(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,

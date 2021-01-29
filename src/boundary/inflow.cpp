@@ -22,7 +22,7 @@
 
 /*!\file inflow.cpp
  * \brief Implementation of the class BoundaryCondition::Inflow.
- * This serves as the base class for further classes like BoundaryCondition::SetMaxwellian.
+ * This serves as the base class for further classes like BoundaryCondition::Maxwellian.
  */
 
 #include <cstdlib>
@@ -48,8 +48,6 @@ namespace BC
 Inflow::Inflow() : BoundaryCondition() {}
 Inflow::~Inflow() {}
 
-Real Inflow::tCurrent;
-
 void Inflow::initBoundary(creal t, Project &project)
 {
    // The array of bool describes which of the faces are to have inflow boundary
@@ -74,7 +72,6 @@ void Inflow::initBoundary(creal t, Project &project)
       loadInputData(i);
 
    generateTemplateCells(t);
-   tCurrent = t;
 }
 
 void Inflow::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
@@ -156,9 +153,24 @@ void Inflow::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_
    setBFromTemplate(mpiGrid, perBGrid);
 }
 
+void Inflow::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+                         FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, creal t)
+{
+#pragma omp parallel for
+   for (uint i = 0; i < 6; i++)
+   {
+      if (facesToProcess[i]) generateTemplateCell(templateCells[i], templateB[i], i, t);
+   }
+
+   for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID)
+      setCellsFromTemplate(mpiGrid, popID);
+
+   setBFromTemplate(mpiGrid, perBGrid);
+}
+
 Real Inflow::fieldSolverBoundaryCondMagneticField(FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, 2> &bGrid,
-                                                  FsGrid<fsgrids::technical, 2> &technicalGrid,
-                                                  cint i, cint j, cint k, creal dt, cuint component)
+                                                  FsGrid<fsgrids::technical, 2> &technicalGrid, cint i, cint j, cint k,
+                                                  creal dt, cuint component)
 {
    Real result = 0.0;
    creal dx = Parameters::dx_ini;
@@ -238,16 +250,10 @@ void Inflow::fieldSolverBoundaryCondBVOLDerivatives(FsGrid<array<Real, fsgrids::
 }
 
 void Inflow::vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                     const CellID &cellID, const uint popID, const bool doCalcMomentsV, creal t)
+                                     const CellID &cellID, const uint popID, const bool doCalcMomentsV)
 {
    if (isThisDynamic)
    {
-      if (tCurrent != t)
-      {
-         generateTemplateCells(t);
-         tCurrent = t;
-      }
-
       SpatialCell *cell = mpiGrid[cellID];
 
       creal dx = cell->parameters[CellParams::DX];
@@ -269,9 +275,6 @@ void Inflow::vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cart
             break; // Effectively sets the precedence of faces through the order of faces.
          }
       }
-
-      // hyzhou: currently the B grid is not passed!
-      // setBFromTemplate(mpiGrid, perBGrid);
    }
 }
 
