@@ -19,6 +19,59 @@ import sys
 import warnings
 import fileinput
 
+def display():
+    print('Vlasiator has now been configured with the following options:')
+    print('  Machine:                    ' + (args['machine'] if args['machine'] else 'new'))
+    print('  Coordinate system:          ' + args['coord'])
+    print('  Floating-point precision:   ' + ('single' if args['float'] else 'double'))
+    print('  Distribution precision:     ' + ('single' if args['distfloat'] else 'double'))
+    print('  Block size:                 ' + str(args['nx']) + ' ' \
+                                           + str(args['ny']) + ' ' \
+                                           + str(args['nz']))
+    print('  MPI parallelism:            ' + ('ON' if args['mpi'] else 'OFF'))
+    print('  OpenMP parallelism:         ' + ('ON' if args['omp'] else 'OFF'))
+    print('  Order of field solver:      ' + str(args['fieldorder']))
+    print('  Order of semilog velocity:  ' + str(args['velocityorder']))
+    print('  Order of semilog spatial:   ' + str(args['spatialorder']))
+    print('  AMR:                        ' + ('ON' if args['amr'] else 'OFF'))
+    print('  Profiler:                   ' + ('ON' if args['profile'] else 'OFF'))
+    print('  Memory tracker:             ' + ('ON' if args['papi'] else 'OFF'))
+    print('  Debug flags:                ' + ('ON' if args['debug'] else 'OFF'))
+    print('  Compiler:                   ' + args['cxx'])
+    print('  Compilation command:        ' + makefile_options['COMPILER_COMMAND'] + ' '
+          + makefile_options['COMPILER_FLAGS'])
+
+
+def check_dependencies():
+    if os.path.isfile(os.path.join(makefile_options['INC_VECTORCLASS'], "vectorf512.h")):
+        if not os.path.isfile(os.path.join(makefile_options['INC_VECTORCLASS'], "vector3d.h")):
+            raise SystemExit('### CONFIGURE ERROR: vector3d.h not found!')
+    else:
+        raise SystemExit('### CONFIGURE ERROR: unknown vectorclass location!')
+
+    if not os.path.isfile(os.path.join(makefile_options['INC_FSGRID'], "fsgrid.hpp")):
+        raise SystemExit('### CONFIGURE ERROR: unknown fsgrid location!')
+
+    if not os.path.isfile(os.path.join(makefile_options['INC_DCCRG'], "dccrg.hpp")):
+        raise SystemExit('### CONFIGURE ERROR: unknown dccrg location!')
+
+    if not os.path.isfile(os.path.join(makefile_options['ZOLTAN_PATH'], "libzoltan.a")):
+        raise SystemExit('### CONFIGURE ERROR: unknown Zoltan location!')
+
+    if not os.path.isfile(os.path.join(makefile_options['VLSV_PATH'], "conv_mtx_vlsv")):
+        raise SystemExit('### CONFIGURE ERROR: vlsv not found or compiled!')
+
+    if not os.path.isfile(os.path.join(makefile_options['BOOST_PATH'], "libboost_program_options.a")):
+        raise SystemExit('### CONFIGURE ERROR: unknown Boost location!')
+
+    if args['jemalloc']:
+        if not os.path.isfile(os.path.join(makefile_options['JEMALLOC_PATH'], "libjemalloc.a")):
+            raise SystemExit('### CONFIGURE ERROR: unknown jemalloc location!')
+
+    if args['profile']:
+        if not os.path.isfile(os.path.join(makefile_options['PROFILE_PATH'], "libphiprof.a")):
+            raise SystemExit('### CONFIGURE ERROR: unknown phiprof location!')
+
 
 # Set template and output filenames
 makefile_input = 'Makefile.in'
@@ -322,6 +375,26 @@ makefile_options['LOADER_FLAGS'] = ''
 makefile_options['PREPROCESSOR_FLAGS'] = ''
 makefile_options['LINKER_FLAGS'] = ''
 makefile_options['LIBRARY_FLAGS'] = ''
+
+if len(sys.argv) == 1:
+    # Check existing Makefile if no argument is passed
+    if not os.path.isfile("Makefile"):
+        print("Vlasiator is not installed.")
+    else:
+        with open('Makefile') as f:
+            fstr = f.read()
+            makefile_options['INC_VECTORCLASS'] = re.search(r"INC_VECTORCLASS := -I(.*)", fstr).group(1)
+            makefile_options['INC_FSGRID'] = re.search(r"INC_FSGRID := -I(.*)", fstr).group(1)
+            makefile_options['INC_DCCRG'] = re.search(r"INC_DCCRG := -I(.*)", fstr).group(1)
+            makefile_options['ZOLTAN_PATH'] = re.search(r"LIB_ZOLTAN := -L(.*)", fstr).group(1)
+            makefile_options['VLSV_PATH'] = re.search(r"LIB_VLSV := -L(.*)", fstr).group(1)
+            makefile_options['BOOST_PATH'] = re.search(r"LIB_BOOST := -L(.*)", fstr).group(1)
+            makefile_options['JEMALLOC_PATH'] = re.search(r"LIB_JEMALLOC := -L(.*)", fstr).group(1)
+            makefile_options['PROFILE_PATH'] = re.search(r"LIB_PROFILE := -L(.*)", fstr).group(1)
+
+        check_dependencies()
+        print("Vlasiator installed with dependencies linked.")
+        sys.exit()
 
 # --cxx=[name] argument
 if args['cxx'] == 'g++':
@@ -689,36 +762,7 @@ if args['machine']:
 
 # --- Step 4. Check dependencies -----------------------------------------
 
-# Check dependencies
-if os.path.isfile(os.path.join(makefile_options['INC_VECTORCLASS'], "vectorf512.h")):
-    if not os.path.isfile(os.path.join(makefile_options['INC_VECTORCLASS'], "vector3d.h")):
-        raise SystemExit('### CONFIGURE ERROR: vector3d.h not found!')
-else:
-    raise SystemExit('### CONFIGURE ERROR: unknown vectorclass location!')
-
-if not os.path.isfile(os.path.join(makefile_options['INC_FSGRID'], "fsgrid.hpp")):
-    raise SystemExit('### CONFIGURE ERROR: unknown fsgrid location!')
-
-if not os.path.isfile(os.path.join(makefile_options['INC_DCCRG'], "dccrg.hpp")):
-    raise SystemExit('### CONFIGURE ERROR: unknown dccrg location!')
-
-if not os.path.isfile(os.path.join(makefile_options['ZOLTAN_PATH'], "libzoltan.a")):
-    raise SystemExit('### CONFIGURE ERROR: unknown Zoltan location!')
-
-if not os.path.isfile(os.path.join(makefile_options['VLSV_PATH'], "conv_mtx_vlsv")):
-    raise SystemExit('### CONFIGURE ERROR: vlsv not found or compiled!')
-
-if not os.path.isfile(os.path.join(makefile_options['BOOST_PATH'], "libboost_program_options.a")):
-    raise SystemExit('### CONFIGURE ERROR: unknown Boost location!')
-
-if args['jemalloc']:
-    if not os.path.isfile(os.path.join(makefile_options['JEMALLOC_PATH'], "libjemalloc.a")):
-        raise SystemExit('### CONFIGURE ERROR: unknown jemalloc location!')
-
-if args['profile']:
-    if not os.path.isfile(os.path.join(makefile_options['PROFILE_PATH'], "libphiprof.a")):
-        raise SystemExit('### CONFIGURE ERROR: unknown phiprof location!')
-
+check_dependencies()
 
 # --- Step 5. Create new files, finish up --------------------------------
 
@@ -794,24 +838,4 @@ else:
         current_file.write(makefile_template)
 
 # Finish with diagnostic output
-
-print('Your Vlasiator distribution has now been configured with the following options:')
-print('  Machine:                    ' + (args['machine'] if args['machine'] else 'new'))
-print('  Coordinate system:          ' + args['coord'])
-print('  Floating-point precision:   ' + ('single' if args['float'] else 'double'))
-print('  Distribution precision:     ' + ('single' if args['distfloat'] else 'double'))
-print('  Block size:                 ' + str(args['nx']) + ' ' \
-                                       + str(args['ny']) + ' ' \
-                                       + str(args['nz']))
-print('  MPI parallelism:            ' + ('ON' if args['mpi'] else 'OFF'))
-print('  OpenMP parallelism:         ' + ('ON' if args['omp'] else 'OFF'))
-print('  Order of field solver:      ' + str(args['fieldorder']))
-print('  Order of semilog velocity:  ' + str(args['velocityorder']))
-print('  Order of semilog spatial:   ' + str(args['spatialorder']))
-print('  AMR:                        ' + ('ON' if args['amr'] else 'OFF'))
-print('  Profiler:                   ' + ('ON' if args['profile'] else 'OFF'))
-print('  Memory tracker:             ' + ('ON' if args['papi'] else 'OFF'))
-print('  Debug flags:                ' + ('ON' if args['debug'] else 'OFF'))
-print('  Compiler:                   ' + args['cxx'])
-print('  Compilation command:        ' + makefile_options['COMPILER_COMMAND'] + ' '
-      + makefile_options['COMPILER_FLAGS'])
+display()
