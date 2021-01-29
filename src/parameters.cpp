@@ -96,6 +96,7 @@ Real P::saveRestartWalltimeInterval = -1.0;
 uint P::exitAfterRestarts = numeric_limits<uint>::max();
 uint64_t P::vlsvBufferSize = 0;
 int P::restartStripeFactor = -1;
+int P::bulkStripeFactor = -1;
 string P::restartWritePath = string("");
 
 uint P::transmit = 0;
@@ -177,6 +178,7 @@ bool Parameters::addParameters(){
    Readparameters::add("io.number_of_restarts","Exit the simulation after certain number of walltime-based restarts.",numeric_limits<uint>::max());
    Readparameters::add("io.vlsv_buffer_size", "Buffer size passed to VLSV writer (bytes, up to uint64_t), default 0 as this is sensible on sisu", 0);
    Readparameters::add("io.write_restart_stripe_factor","Stripe factor for restart writing.", -1);
+   Readparameters::add("io.write_bulk_stripe_factor","Stripe factor for bulk file and initial grid writing.", -1);
    Readparameters::add("io.write_as_float","If true, write in floats instead of doubles", false);
    Readparameters::add("io.restart_write_path", "Path to the location where restart files should be written. Defaults to the local directory, also if the specified destination is not writeable.", string("./"));
 
@@ -235,7 +237,7 @@ bool Parameters::addParameters(){
 // Output variable parameters
    // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
    Readparameters::addComposing("variables.output", std::string()+"List of data reduction operators (DROs) to add to the grid file output.  Each variable to be added has to be on a new line output = XXX. Names are case insensitive.  "+
-				"Available (20190521): "+
+				"Available (20210125): "+
 				"fg_b fg_b_background fg_b_perturbed fg_e "+
 				"vg_rhom vg_rhoq populations_vg_rho "+
 				"fg_rhom fg_rhoq "+
@@ -245,7 +247,7 @@ bool Parameters::addParameters(){
 				"populations_vg_energydensity populations_vg_precipitationdifferentialflux "+
 				"vg_maxdt_acceleration vg_maxdt_translation populations_vg_maxdt_acceleration populations_vg_maxdt_translation "+
 				"fg_maxdt_fieldsolver "+
-				"vg_rank fg_rank vg_loadbalance_weight "+
+				"vg_rank fg_rank fg_amr_level vg_loadbalance_weight "+
 				"vg_boundarytype fg_boundarytype vg_boundarylayer fg_boundarylayer "+
 				"populations_vg_blocks vg_f_saved "+
 				"populations_vg_acceleration_subcycles "+
@@ -340,6 +342,7 @@ bool Parameters::getParameters(){
    Readparameters::get("io.number_of_restarts", P::exitAfterRestarts);
    Readparameters::get("io.vlsv_buffer_size", P::vlsvBufferSize);
    Readparameters::get("io.write_restart_stripe_factor", P::restartStripeFactor);
+   Readparameters::get("io.write_bulk_stripe_factor", P::bulkStripeFactor);
    Readparameters::get("io.restart_write_path", P::restartWritePath);
    Readparameters::get("io.write_as_float", P::writeAsFloat);
    Readparameters::get("transShortPencils", P::transShortPencils);

@@ -66,11 +66,12 @@ public:
    void initBoundaries(Project &project, creal t);
    void checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid);
    void classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                      FsGrid<fsgrids::technical, 2> &technicalGrid);
+                      FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid);
    void applyInitialState(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                          FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, Project &project);
+                          FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid,
+                          Project &project);
    void updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                    FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, creal t);
+                    FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid, creal t);
    void applyBoundaryVlasovConditions(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                       creal t, const bool doCalcMomentsV);
    unsigned int size() const;

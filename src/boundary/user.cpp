@@ -55,17 +55,18 @@ void User::initBoundary(creal t, Project &project) {}
 void User::getParameters() {}
 
 void User::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                          FsGrid<fsgrids::technical, 2> &technicalGrid)
+                          FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid)
 {
 }
 
 void User::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                             FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, Project &project)
+                             FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid,
+                             Project &project)
 {
 }
 
 void User::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                       FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, creal t)
+                       FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid, creal t)
 {
 }
 
@@ -74,19 +75,21 @@ void User::vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartes
 {
 }
 
-Real User::fieldSolverBoundaryCondMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &bGrid,
-                                                FsGrid<fsgrids::technical, 2> &technicalGrid, cint i, cint j, cint k,
-                                                creal dt, cuint component)
+Real User::fieldSolverBoundaryCondMagneticField(
+    FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &bGrid,
+    FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid, cint i, cint j, cint k, creal dt, cuint component)
 {
 }
 
-void User::fieldSolverBoundaryCondElectricField(FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, 2> &EGrid, cint i,
-                                                cint j, cint k, cuint component)
+void User::fieldSolverBoundaryCondElectricField(
+    FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> &EGrid, cint i, cint j, cint k,
+    cuint component)
 {
 }
 
-void User::fieldSolverBoundaryCondHallElectricField(FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, 2> &EHallGrid,
-                                                    cint i, cint j, cint k, cuint component)
+void User::fieldSolverBoundaryCondHallElectricField(
+    FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> &EHallGrid, cint i, cint j, cint k,
+    cuint component)
 {
 }
 
@@ -95,14 +98,16 @@ void User::fieldSolverBoundaryCondGradPeElectricField(
 {
 }
 
-void User::fieldSolverBoundaryCondDerivatives(FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, 2> &dPerBGrid,
-                                              FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> &dMomentsGrid,
-                                              cint i, cint j, cint k, cuint RKCase, cuint component)
+void User::fieldSolverBoundaryCondDerivatives(
+    FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> &dPerBGrid,
+    FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> &dMomentsGrid, cint i, cint j, cint k,
+    cuint RKCase, cuint component)
 {
 }
 
-void User::fieldSolverBoundaryCondBVOLDerivatives(FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, 2> &volGrid,
-                                                  cint i, cint j, cint k, cuint component)
+void User::fieldSolverBoundaryCondBVOLDerivatives(
+    FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> &volGrid, cint i, cint j, cint k,
+    cuint component)
 {
 }
 

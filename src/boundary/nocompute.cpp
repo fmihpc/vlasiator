@@ -48,12 +48,13 @@ void NoCompute::initBoundary(creal t, Project &project)
 }
 
 void NoCompute::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &,
-                               FsGrid<fsgrids::technical, 2> &technicalGrid)
+                               FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid)
 {
 }
 
 void NoCompute::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                  FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, Project &)
+                                  FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid,
+                                  Project &project)
 {
    vector<CellID> cells = mpiGrid.get_cells();
 #pragma omp parallel for
@@ -82,7 +83,7 @@ void NoCompute::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesi
 }
 
 void NoCompute::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                            FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, creal t)
+                            FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid, creal t)
 {
 }
 

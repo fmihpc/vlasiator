@@ -104,8 +104,9 @@ void BoundaryCondition::addParameters()
  * 3: xy-derivatives, 4: xz-derivatives, 5: yz-derivatives.
  */
 void BoundaryCondition::setCellDerivativesToZero(
-    FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, 2> &dPerBGrid,
-    FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> &dMomentsGrid, cint i, cint j, cint k, cuint component)
+    FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> &dPerBGrid,
+    FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> &dMomentsGrid, cint i, cint j, cint k,
+    cuint component)
 {
    std::array<Real, fsgrids::dperb::N_DPERB> *dPerBGrid0 = dPerBGrid.get(i, j, k);
    std::array<Real, fsgrids::dmoments::N_DMOMENTS> *dMomentsGrid0 = dMomentsGrid.get(i, j, k);
@@ -170,8 +171,9 @@ void BoundaryCondition::setCellDerivativesToZero(
 /*! Function used to set the boundary condition cell's BVOL derivatives to 0.
  * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives.
  */
-void BoundaryCondition::setCellBVOLDerivativesToZero(FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, 2> &volGrid,
-                                                     cint i, cint j, cint k, cuint component)
+void BoundaryCondition::setCellBVOLDerivativesToZero(
+    FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> &volGrid, cint i, cint j, cint k,
+    cuint component)
 {
    std::array<Real, fsgrids::volfields::N_VOL> *volGrid0 = volGrid.get(i, j, k);
    switch (component)
@@ -355,18 +357,18 @@ void BoundaryCondition::copyCellData(SpatialCell *from, SpatialCell *to, const b
       if (doCalcMomentsV)
       {
          to->get_population(popID).RHO_V = from->get_population(popID).RHO_V;
-         //hyzhou
+         // hyzhou
          cout << "Do we touch here? CalcMomentsV" << endl;
       }
       else
       {
          to->get_population(popID).RHO_R = from->get_population(popID).RHO_R;
-         //hyzhou
-         //cout << "Do we touch here? CalcMomentsR, popID = " << popID << endl;
-         //cout << "RHOM_R = " << from->parameters[CellParams::RHOM_R]/1.67262e-27 << endl;
-         //cout << "RHOM_V = " << from->parameters[CellParams::RHOM_V]/1.67262e-27 << endl;
-         //cout << "RHO_R = " << from->get_population(popID).RHO_R << endl;
-         //cout << "RHO_V = " << from->get_population(popID).RHO_V << endl;
+         // hyzhou
+         // cout << "Do we touch here? CalcMomentsR, popID = " << popID << endl;
+         // cout << "RHOM_R = " << from->parameters[CellParams::RHOM_R]/1.67262e-27 << endl;
+         // cout << "RHOM_V = " << from->parameters[CellParams::RHOM_V]/1.67262e-27 << endl;
+         // cout << "RHO_R = " << from->get_population(popID).RHO_R << endl;
+         // cout << "RHO_V = " << from->get_population(popID).RHO_V << endl;
       }
 
       for (uint i = 0; i < 3; i++)
@@ -677,8 +679,9 @@ void BoundaryCondition::updateBoundaryConditionsAfterLoadBalance(
  * \return The cell index of that cell
  * \sa getAllClosestNonboundaryCells
  */
-std::array<int, 3> BoundaryCondition::getTheClosestNonboundaryCell(FsGrid<fsgrids::technical, 2> &technicalGrid, cint i,
-                                                                   cint j, cint k)
+std::array<int, 3>
+BoundaryCondition::getTheClosestNonboundaryCell(FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid, cint i,
+                                                cint j, cint k)
 {
    const std::vector<std::array<int, 3>> closestCells = getAllClosestNonboundaryCells(technicalGrid, i, j, k);
    return closestCells.at(0);
@@ -690,7 +693,8 @@ std::array<int, 3> BoundaryCondition::getTheClosestNonboundaryCell(FsGrid<fsgrid
  * \sa getTheClosestNonboundaryCell
  */
 std::vector<std::array<int, 3>>
-BoundaryCondition::getAllClosestNonboundaryCells(FsGrid<fsgrids::technical, 2> &technicalGrid, cint i, cint j, cint k)
+BoundaryCondition::getAllClosestNonboundaryCells(FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid, cint i,
+                                                 cint j, cint k)
 {
    int distance = std::numeric_limits<int>::max();
    std::vector<std::array<int, 3>> closestCells;
@@ -803,8 +807,8 @@ std::array<Realf *, 27> BoundaryCondition::getFlowtoCellsBlock(const std::array<
 }
 
 Real BoundaryCondition::fieldBoundaryCopyFromSolvingNbrMagneticField(
-    FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &bGrid, FsGrid<fsgrids::technical, 2> &technicalGrid, cint i,
-    cint j, cint k, cuint component, cuint mask)
+    FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &bGrid,
+    FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid, cint i, cint j, cint k, cuint component, cuint mask)
 {
 
    int distance = std::numeric_limits<int>::max();

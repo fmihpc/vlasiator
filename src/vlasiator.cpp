@@ -32,6 +32,7 @@
 
 #include <fsgrid.hpp>
 
+#include "boundary/boundary.h"
 #include "datareduction/datareducer.h"
 #include "definitions.h"
 #include "logger.h"
@@ -39,7 +40,6 @@
 #include "parameters.h"
 #include "readparameters.h"
 #include "spatial_cell.hpp"
-#include "boundary/boundary.h"
 #include "vlasovmover.h"
 
 #include "fieldsolver/fs_common.h"
@@ -92,7 +92,7 @@ void addTimedBarrier(string name)
 }
 
 bool computeNewTimeStep(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                        FsGrid<fsgrids::technical, 2> &technicalGrid, Real &newDt, bool &isChanged)
+                        FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid, Real &newDt, bool &isChanged)
 {
 
    phiprof::start("compute-timestep");
@@ -396,40 +396,50 @@ int main(int argn, char *args[])
                               boundaries.isBoundaryPeriodic(2)};
 
    FsGridCouplingInformation gridCoupling;
-   FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, 2> perBGrid(fsGridDimensions, comm, periodicity, gridCoupling);
-   FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, 2> perBDt2Grid(fsGridDimensions, comm, periodicity, gridCoupling);
-   FsGrid<array<Real, fsgrids::efield::N_EFIELD>, 2> EGrid(fsGridDimensions, comm, periodicity, gridCoupling);
-   FsGrid<array<Real, fsgrids::efield::N_EFIELD>, 2> EDt2Grid(fsGridDimensions, comm, periodicity, gridCoupling);
-   FsGrid<array<Real, fsgrids::ehall::N_EHALL>, 2> EHallGrid(fsGridDimensions, comm, periodicity, gridCoupling);
-   FsGrid<array<Real, fsgrids::egradpe::N_EGRADPE>, 2> EGradPeGrid(fsGridDimensions, comm, periodicity, gridCoupling);
-   FsGrid<array<Real, fsgrids::moments::N_MOMENTS>, 2> momentsGrid(fsGridDimensions, comm, periodicity, gridCoupling);
-   FsGrid<array<Real, fsgrids::moments::N_MOMENTS>, 2> momentsDt2Grid(fsGridDimensions, comm, periodicity,
-                                                                      gridCoupling);
-   FsGrid<array<Real, fsgrids::dperb::N_DPERB>, 2> dPerBGrid(fsGridDimensions, comm, periodicity, gridCoupling);
-   FsGrid<array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> dMomentsGrid(fsGridDimensions, comm, periodicity,
-                                                                      gridCoupling);
-   FsGrid<array<Real, fsgrids::bgbfield::N_BGB>, 2> BgBGrid(fsGridDimensions, comm, periodicity, gridCoupling);
-   FsGrid<array<Real, fsgrids::volfields::N_VOL>, 2> volGrid(fsGridDimensions, comm, periodicity, gridCoupling);
-   FsGrid<fsgrids::technical, 2> technicalGrid(fsGridDimensions, comm, periodicity, gridCoupling);
+   FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBGrid(fsGridDimensions, comm, periodicity,
+                                                                             gridCoupling);
+   FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBDt2Grid(fsGridDimensions, comm, periodicity,
+                                                                                gridCoupling);
+   FsGrid<array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> EGrid(fsGridDimensions, comm, periodicity,
+                                                                          gridCoupling);
+   FsGrid<array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> EDt2Grid(fsGridDimensions, comm, periodicity,
+                                                                             gridCoupling);
+   FsGrid<array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> EHallGrid(fsGridDimensions, comm, periodicity,
+                                                                            gridCoupling);
+   FsGrid<array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> EGradPeGrid(fsGridDimensions, comm, periodicity,
+                                                                                  gridCoupling);
+   FsGrid<array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> momentsGrid(fsGridDimensions, comm, periodicity,
+                                                                                  gridCoupling);
+   FsGrid<array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> momentsDt2Grid(fsGridDimensions, comm,
+                                                                                     periodicity, gridCoupling);
+   FsGrid<array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> dPerBGrid(fsGridDimensions, comm, periodicity,
+                                                                            gridCoupling);
+   FsGrid<array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> dMomentsGrid(fsGridDimensions, comm,
+                                                                                     periodicity, gridCoupling);
+   FsGrid<array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> BgBGrid(fsGridDimensions, comm, periodicity,
+                                                                           gridCoupling);
+   FsGrid<array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> volGrid(fsGridDimensions, comm, periodicity,
+                                                                            gridCoupling);
+   FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> technicalGrid(fsGridDimensions, comm, periodicity, gridCoupling);
 
    // Set DX, DY and DZ
    // TODO: This is currently just taking the values from cell 1, and assuming them to be
    // constant throughout the simulation.
    perBGrid.DX = perBDt2Grid.DX = EGrid.DX = EDt2Grid.DX = EHallGrid.DX = EGradPeGrid.DX = momentsGrid.DX =
        momentsDt2Grid.DX = dPerBGrid.DX = dMomentsGrid.DX = BgBGrid.DX = volGrid.DX = technicalGrid.DX =
-       P::dx_ini * pow(2, -P::amrMaxSpatialRefLevel);
+           P::dx_ini * pow(2, -P::amrMaxSpatialRefLevel);
    perBGrid.DY = perBDt2Grid.DY = EGrid.DY = EDt2Grid.DY = EHallGrid.DY = EGradPeGrid.DY = momentsGrid.DY =
        momentsDt2Grid.DY = dPerBGrid.DY = dMomentsGrid.DY = BgBGrid.DY = volGrid.DY = technicalGrid.DY =
-       P::dy_ini * pow(2, -P::amrMaxSpatialRefLevel);
+           P::dy_ini * pow(2, -P::amrMaxSpatialRefLevel);
    perBGrid.DZ = perBDt2Grid.DZ = EGrid.DZ = EDt2Grid.DZ = EHallGrid.DZ = EGradPeGrid.DZ = momentsGrid.DZ =
        momentsDt2Grid.DZ = dPerBGrid.DZ = dMomentsGrid.DZ = BgBGrid.DZ = volGrid.DZ = technicalGrid.DZ =
-       P::dz_ini * pow(2, -P::amrMaxSpatialRefLevel);
+           P::dz_ini * pow(2, -P::amrMaxSpatialRefLevel);
    // Set the physical start (lower left corner) X, Y, Z
    perBGrid.physicalGlobalStart = perBDt2Grid.physicalGlobalStart = EGrid.physicalGlobalStart =
        EDt2Grid.physicalGlobalStart = EHallGrid.physicalGlobalStart = EGradPeGrid.physicalGlobalStart =
-       momentsGrid.physicalGlobalStart = momentsDt2Grid.physicalGlobalStart = dPerBGrid.physicalGlobalStart =
-       dMomentsGrid.physicalGlobalStart = BgBGrid.physicalGlobalStart = volGrid.physicalGlobalStart =
-       technicalGrid.physicalGlobalStart = {P::xmin, P::ymin, P::zmin};
+           momentsGrid.physicalGlobalStart = momentsDt2Grid.physicalGlobalStart = dPerBGrid.physicalGlobalStart =
+               dMomentsGrid.physicalGlobalStart = BgBGrid.physicalGlobalStart = volGrid.physicalGlobalStart =
+                   technicalGrid.physicalGlobalStart = {P::xmin, P::ymin, P::zmin};
 
    // Checking that spatial cells are cubic, otherwise field solver is incorrect (cf. derivatives in E, Hall term)
    if ((abs((technicalGrid.DX - technicalGrid.DY) / technicalGrid.DX) > 0.001) ||
@@ -666,7 +676,15 @@ int main(int argn, char *args[])
          if (P::systemWriteTimeInterval[i] >= 0.0 &&
              P::t >= P::systemWrites[i] * P::systemWriteTimeInterval[i] - DT_EPSILON)
          {
-
+            // If we have only just restarted, the bulk file should already exist from the previous slot.
+            if ((P::tstep == P::tstep_min) && (P::tstep > 0))
+            {
+               P::systemWrites[i]++;
+               // Special case for large timesteps
+               int index2 = (int)((P::t + P::dt) / P::systemWriteTimeInterval[i]);
+               if (index2 > P::systemWrites[i]) P::systemWrites[i] = index2;
+               continue;
+            }
             phiprof::start("write-system");
             logFile << "(IO): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep
                     << " t = " << P::t << endl
@@ -680,6 +698,9 @@ int main(int argn, char *args[])
                cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
             }
             P::systemWrites[i]++;
+            // Special case for large timesteps
+            int index2 = (int)((P::t + P::dt) / P::systemWriteTimeInterval[i]);
+            if (index2 > P::systemWrites[i]) P::systemWrites[i] = index2;
             logFile << "(IO): .... done!" << endl << writeVerbose;
             phiprof::stop("write-system");
          }

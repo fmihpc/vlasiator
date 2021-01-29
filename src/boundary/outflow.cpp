@@ -228,7 +228,7 @@ void Outflow::initBoundary(creal t, Project &project)
 }
 
 void Outflow::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                             FsGrid<fsgrids::technical, 2> &technicalGrid)
+                             FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid)
 {
 
    bool doAssign;
@@ -300,7 +300,8 @@ void Outflow::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry
 }
 
 void Outflow::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, Project &project)
+                                FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid,
+                                Project &project)
 {
    const vector<CellID> &cells = getLocalCells();
 #pragma omp parallel for
@@ -354,13 +355,13 @@ void Outflow::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian
 }
 
 void Outflow::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                          FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, creal t)
+                          FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid, creal t)
 {
 }
 
-Real Outflow::fieldSolverBoundaryCondMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &bGrid,
-                                                   FsGrid<fsgrids::technical, 2> &technicalGrid, cint i, cint j, cint k,
-                                                   creal dt, cuint component)
+Real Outflow::fieldSolverBoundaryCondMagneticField(
+    FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &bGrid,
+    FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid, cint i, cint j, cint k, creal dt, cuint component)
 {
    switch (component)
    {
@@ -379,14 +380,16 @@ Real Outflow::fieldSolverBoundaryCondMagneticField(FsGrid<std::array<Real, fsgri
    }
 }
 
-void Outflow::fieldSolverBoundaryCondElectricField(FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, 2> &EGrid,
-                                                   cint i, cint j, cint k, cuint component)
+void Outflow::fieldSolverBoundaryCondElectricField(
+    FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> &EGrid, cint i, cint j, cint k,
+    cuint component)
 {
    EGrid.get(i, j, k)->at(fsgrids::efield::EX + component) = 0.0;
 }
 
-void Outflow::fieldSolverBoundaryCondHallElectricField(FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, 2> &EHallGrid,
-                                                       cint i, cint j, cint k, cuint component)
+void Outflow::fieldSolverBoundaryCondHallElectricField(
+    FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> &EHallGrid, cint i, cint j, cint k,
+    cuint component)
 {
    std::array<Real, fsgrids::ehall::N_EHALL> *cp = EHallGrid.get(i, j, k);
    switch (component)
@@ -421,15 +424,16 @@ void Outflow::fieldSolverBoundaryCondGradPeElectricField(
 }
 
 void Outflow::fieldSolverBoundaryCondDerivatives(
-    FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, 2> &dPerBGrid,
-    FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> &dMomentsGrid, cint i, cint j, cint k, cuint RKCase,
-    cuint component)
+    FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> &dPerBGrid,
+    FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> &dMomentsGrid, cint i, cint j, cint k,
+    cuint RKCase, cuint component)
 {
    this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
 }
 
-void Outflow::fieldSolverBoundaryCondBVOLDerivatives(FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, 2> &volGrid,
-                                                     cint i, cint j, cint k, cuint component)
+void Outflow::fieldSolverBoundaryCondBVOLDerivatives(
+    FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> &volGrid, cint i, cint j, cint k,
+    cuint component)
 {
    this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
 }

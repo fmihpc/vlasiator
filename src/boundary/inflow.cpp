@@ -75,7 +75,7 @@ void Inflow::initBoundary(creal t, Project &project)
 }
 
 void Inflow::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                            FsGrid<fsgrids::technical, 2> &technicalGrid)
+                            FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid)
 {
    bool doAssign;
    array<bool, 6> isThisCellOnAFace;
@@ -168,9 +168,9 @@ void Inflow::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geomet
    setBFromTemplate(mpiGrid, perBGrid);
 }
 
-Real Inflow::fieldSolverBoundaryCondMagneticField(FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, 2> &bGrid,
-                                                  FsGrid<fsgrids::technical, 2> &technicalGrid, cint i, cint j, cint k,
-                                                  creal dt, cuint component)
+Real Inflow::fieldSolverBoundaryCondMagneticField(
+    FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &bGrid,
+    FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid, cint i, cint j, cint k, creal dt, cuint component)
 {
    Real result = 0.0;
    creal dx = Parameters::dx_ini;
@@ -195,14 +195,14 @@ Real Inflow::fieldSolverBoundaryCondMagneticField(FsGrid<array<Real, fsgrids::bf
    return result;
 }
 
-void Inflow::fieldSolverBoundaryCondElectricField(FsGrid<array<Real, fsgrids::efield::N_EFIELD>, 2> &EGrid, cint i,
-                                                  cint j, cint k, cuint component)
+void Inflow::fieldSolverBoundaryCondElectricField(
+    FsGrid<array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> &EGrid, cint i, cint j, cint k, cuint component)
 {
    EGrid.get(i, j, k)->at(fsgrids::efield::EX + component) = 0.0;
 }
 
-void Inflow::fieldSolverBoundaryCondHallElectricField(FsGrid<array<Real, fsgrids::ehall::N_EHALL>, 2> &EHallGrid,
-                                                      cint i, cint j, cint k, cuint component)
+void Inflow::fieldSolverBoundaryCondHallElectricField(
+    FsGrid<array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> &EHallGrid, cint i, cint j, cint k, cuint component)
 {
    array<Real, fsgrids::ehall::N_EHALL> *cp = EHallGrid.get(i, j, k);
    switch (component)
@@ -236,15 +236,16 @@ void Inflow::fieldSolverBoundaryCondGradPeElectricField(
    EGradPeGrid.get(i, j, k)->at(fsgrids::egradpe::EXGRADPE + component) = 0.0;
 }
 
-void Inflow::fieldSolverBoundaryCondDerivatives(FsGrid<array<Real, fsgrids::dperb::N_DPERB>, 2> &dPerBGrid,
-                                                FsGrid<array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> &dMomentsGrid,
-                                                cint i, cint j, cint k, cuint RKCase, cuint component)
+void Inflow::fieldSolverBoundaryCondDerivatives(
+    FsGrid<array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> &dPerBGrid,
+    FsGrid<array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> &dMomentsGrid, cint i, cint j, cint k,
+    cuint RKCase, cuint component)
 {
    this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
 }
 
-void Inflow::fieldSolverBoundaryCondBVOLDerivatives(FsGrid<array<Real, fsgrids::volfields::N_VOL>, 2> &volGrid, cint i,
-                                                    cint j, cint k, cuint component)
+void Inflow::fieldSolverBoundaryCondBVOLDerivatives(
+    FsGrid<array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> &volGrid, cint i, cint j, cint k, cuint component)
 {
    this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
 }
@@ -279,7 +280,7 @@ void Inflow::vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cart
 }
 
 void Inflow::setBFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                              FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid)
+                              FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid)
 {
    array<bool, 6> isThisCellOnAFace;
    const array<int, 3> gridDims(perBGrid.getLocalSize());

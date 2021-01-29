@@ -274,7 +274,7 @@ void Boundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Ca
 }
 
 bool belongsToLayer(const int layer, const int x, const int y, const int z,
-                    FsGrid<fsgrids::technical, 2> &technicalGrid)
+                    FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid)
 {
    bool belongs = false;
 
@@ -315,7 +315,7 @@ bool belongsToLayer(const int layer, const int x, const int y, const int z,
  * \param mpiGrid Grid
  */
 void Boundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                             FsGrid<fsgrids::technical, 2> &technicalGrid)
+                             FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid)
 {
    vector<CellID> cells = mpiGrid.get_cells();
    auto localSize = technicalGrid.getLocalSize().data();
@@ -569,7 +569,8 @@ void Boundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cart
  * \param mpiGrid Grid
  */
 void Boundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                 FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, Project &project)
+                                 FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid,
+                                 Project &project)
 {
    list<BC::BoundaryCondition *>::iterator it;
    for (it = boundaries.begin(); it != boundaries.end(); it++)
@@ -581,7 +582,7 @@ void Boundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geom
 }
 
 void Boundary::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                           FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, creal t)
+                           FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid, creal t)
 {
    list<BC::BoundaryCondition *>::iterator it;
    for (it = boundaries.begin(); it != boundaries.end(); it++)

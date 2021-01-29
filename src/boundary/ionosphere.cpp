@@ -168,7 +168,7 @@ Real getR(creal x, creal y, creal z, uint geometry, Real center[3])
 }
 
 void Ionosphere::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                FsGrid<fsgrids::technical, 2> &technicalGrid)
+                                FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid)
 {
    vector<CellID> cells = mpiGrid.get_cells();
    for (uint i = 0; i < cells.size(); i++)
@@ -238,8 +238,9 @@ void Ionosphere::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Ge
 {
 }
 
-std::array<Real, 3> Ionosphere::fieldSolverGetNormalDirection(FsGrid<fsgrids::technical, 2> &technicalGrid, cint i,
-                                                              cint j, cint k)
+std::array<Real, 3>
+Ionosphere::fieldSolverGetNormalDirection(FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid, cint i, cint j,
+                                          cint k)
 {
    phiprof::start("Ionosphere::fieldSolverGetNormalDirection");
    std::array<Real, 3> normalDirection{{0.0, 0.0, 0.0}};
@@ -572,9 +573,9 @@ std::array<Real, 3> Ionosphere::fieldSolverGetNormalDirection(FsGrid<fsgrids::te
  *
  * -- Retain only the normal components of perturbed face B
  */
-Real Ionosphere::fieldSolverBoundaryCondMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &bGrid,
-                                                      FsGrid<fsgrids::technical, 2> &technicalGrid, cint i, cint j,
-                                                      cint k, creal dt, cuint component)
+Real Ionosphere::fieldSolverBoundaryCondMagneticField(
+    FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &bGrid,
+    FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid, cint i, cint j, cint k, creal dt, cuint component)
 {
    if (technicalGrid.get(i, j, k)->boundaryLayer == 1)
    {
@@ -801,14 +802,16 @@ Real Ionosphere::fieldSolverBoundaryCondMagneticField(FsGrid<std::array<Real, fs
    }
 }
 
-void Ionosphere::fieldSolverBoundaryCondElectricField(FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, 2> &EGrid,
-                                                      cint i, cint j, cint k, cuint component)
+void Ionosphere::fieldSolverBoundaryCondElectricField(
+    FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> &EGrid, cint i, cint j, cint k,
+    cuint component)
 {
    EGrid.get(i, j, k)->at(fsgrids::efield::EX + component) = 0.0;
 }
 
 void Ionosphere::fieldSolverBoundaryCondHallElectricField(
-    FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, 2> &EHallGrid, cint i, cint j, cint k, cuint component)
+    FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> &EHallGrid, cint i, cint j, cint k,
+    cuint component)
 {
    std::array<Real, fsgrids::ehall::N_EHALL> *cp = EHallGrid.get(i, j, k);
    switch (component)
@@ -844,16 +847,17 @@ void Ionosphere::fieldSolverBoundaryCondGradPeElectricField(
 }
 
 void Ionosphere::fieldSolverBoundaryCondDerivatives(
-    FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, 2> &dPerBGrid,
-    FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> &dMomentsGrid, cint i, cint j, cint k, cuint RKCase,
-    cuint component)
+    FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> &dPerBGrid,
+    FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> &dMomentsGrid, cint i, cint j, cint k,
+    cuint RKCase, cuint component)
 {
    this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
    return;
 }
 
-void Ionosphere::fieldSolverBoundaryCondBVOLDerivatives(FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, 2> &volGrid,
-                                                        cint i, cint j, cint k, cuint component)
+void Ionosphere::fieldSolverBoundaryCondBVOLDerivatives(
+    FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> &volGrid, cint i, cint j, cint k,
+    cuint component)
 {
    // FIXME This should be OK as the BVOL derivatives are only used for Lorentz force JXB, which is not applied on the
    // ionosphere cells.

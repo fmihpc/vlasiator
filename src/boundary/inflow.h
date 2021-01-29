@@ -76,26 +76,32 @@ public:
 
    virtual void initBoundary(creal t, Project &project);
    virtual void assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                               FsGrid<fsgrids::technical, 2> &technicalGrid);
+                               FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid);
    virtual void applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                  FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, Project &project);
+                                  FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid,
+                                  Project &project);
    virtual void updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                            FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, creal t);
-   virtual Real fieldSolverBoundaryCondMagneticField(FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, 2> &bGrid,
-                                                     FsGrid<fsgrids::technical, 2> &technicalGrid, cint i, cint j,
-                                                     cint k, creal dt, cuint component);
-   virtual void fieldSolverBoundaryCondElectricField(FsGrid<array<Real, fsgrids::efield::N_EFIELD>, 2> &EGrid, cint i,
-                                                     cint j, cint k, cuint component);
-   virtual void fieldSolverBoundaryCondHallElectricField(FsGrid<array<Real, fsgrids::ehall::N_EHALL>, 2> &EHallGrid,
-                                                         cint i, cint j, cint k, cuint component);
+                            FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid, creal t);
+   virtual Real
+   fieldSolverBoundaryCondMagneticField(FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &bGrid,
+                                        FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid, cint i, cint j,
+                                        cint k, creal dt, cuint component);
    virtual void
-   fieldSolverBoundaryCondGradPeElectricField(FsGrid<array<Real, fsgrids::egradpe::N_EGRADPE>, 2> &EGradPeGrid, cint i,
-                                              cint j, cint k, cuint component);
-   virtual void fieldSolverBoundaryCondDerivatives(FsGrid<array<Real, fsgrids::dperb::N_DPERB>, 2> &dPerBGrid,
-                                                   FsGrid<array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> &dMomentsGrid,
-                                                   cint i, cint j, cint k, cuint RKCase, cuint component);
-   virtual void fieldSolverBoundaryCondBVOLDerivatives(FsGrid<array<Real, fsgrids::volfields::N_VOL>, 2> &volGrid,
-                                                       cint i, cint j, cint k, cuint component);
+   fieldSolverBoundaryCondElectricField(FsGrid<array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> &EGrid, cint i,
+                                        cint j, cint k, cuint component);
+   virtual void
+   fieldSolverBoundaryCondHallElectricField(FsGrid<array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> &EHallGrid,
+                                            cint i, cint j, cint k, cuint component);
+   virtual void fieldSolverBoundaryCondGradPeElectricField(
+       FsGrid<array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> &EGradPeGrid, cint i, cint j, cint k,
+       cuint component);
+   virtual void fieldSolverBoundaryCondDerivatives(
+       FsGrid<array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> &dPerBGrid,
+       FsGrid<array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> &dMomentsGrid, cint i, cint j, cint k,
+       cuint RKCase, cuint component);
+   virtual void
+   fieldSolverBoundaryCondBVOLDerivatives(FsGrid<array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> &volGrid,
+                                          cint i, cint j, cint k, cuint component);
    virtual void vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                         const CellID &cellID, const uint popID, const bool doCalcMomentsV);
 
@@ -124,7 +130,7 @@ protected:
                                      creal t) = 0;
    void setCellsFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid, const uint popID);
    void setBFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                         FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid);
+                         FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid);
 };
 } // namespace BC
 

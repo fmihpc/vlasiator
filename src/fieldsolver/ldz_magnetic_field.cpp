@@ -45,10 +45,10 @@
  * \param doY If true, compute the y component (default true).
  * \param doZ If true, compute the z component (default true).
  */
-void propagateMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid,
-                            FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBDt2Grid,
-                            FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, 2> &EGrid,
-                            FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, 2> &EDt2Grid,
+void propagateMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid,
+                            FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBDt2Grid,
+                            FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> &EGrid,
+                            FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> &EDt2Grid,
                             cint i, cint j, cint k, creal dt, cint RKCase,
                             const bool doX, //=true (default)
                             const bool doY, //=true (default)
@@ -196,11 +196,11 @@ void propagateMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 
  *
  * \sa propagateMagneticFieldSimple propagateMagneticField
  */
-void propagateBoundaryMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid,
-                                    FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBDt2Grid,
-                                    FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, 2> &EGrid,
-                                    FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, 2> &EDt2Grid,
-                                    FsGrid<fsgrids::technical, 2> &technicalGrid, cint i, cint j, cint k,
+void propagateBoundaryMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid,
+                                    FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBDt2Grid,
+                                    FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> &EGrid,
+                                    FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> &EDt2Grid,
+                                    FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid, cint i, cint j, cint k,
                                     Boundary &boundaries, creal dt, cint RKCase, cuint component)
 {
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2)
@@ -233,11 +233,11 @@ void propagateBoundaryMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_B
  *
  * \sa propagateMagneticField propagateBoundaryMagneticField
  */
-void propagateMagneticFieldSimple(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid,
-                                  FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBDt2Grid,
-                                  FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, 2> &EGrid,
-                                  FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, 2> &EDt2Grid,
-                                  FsGrid<fsgrids::technical, 2> &technicalGrid,
+void propagateMagneticFieldSimple(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid,
+                                  FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBDt2Grid,
+                                  FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> &EGrid,
+                                  FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> &EDt2Grid,
+                                  FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid,
                                   Boundary &boundaries, creal dt, cint RKCase)
 {
    int timer;
