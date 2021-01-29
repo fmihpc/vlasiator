@@ -54,7 +54,7 @@ bool precedenceSort(const BC::BoundaryCondition *first, const BC::BoundaryCondit
 // ************************************************************
 
 /*! Constructor for class Boundary.*/
-Boundary::Boundary() {}
+Boundary::Boundary() : isAnyDynamic(false) {}
 
 /*!\brief Destructor for class Boundary.
  *
@@ -132,7 +132,7 @@ void Boundary::addBoundary(BC::BoundaryCondition *bc, Project &project, creal t)
  *
  * This function loops through the list of boundary conditions listed as to be
  * used in the configuration file/command line arguments. For each of these it
- * adds the corresponding instance and updates the member isThisDynamic to
+ * adds the corresponding instance and updates the member isAnyDynamic to
  * determine whether any BoundaryCondition is dynamic in time.
  * \param project Project object
  * \param t Current time
@@ -157,7 +157,7 @@ void Boundary::initBoundaries(Project &project, creal t)
       if (*it == "Outflow")
       {
          this->addBoundary(new BC::Outflow, project, t);
-         isThisDynamic = false;
+
          bool faces[6];
          this->getBoundary(boundarytype::OUTFLOW)->getFaces(&faces[0]);
 
@@ -183,12 +183,12 @@ void Boundary::initBoundaries(Project &project, creal t)
       {
          this->addBoundary(new BC::Ionosphere, project, t);
          this->addBoundary(new BC::NoCompute, project, t);
-         isThisDynamic = isThisDynamic | this->getBoundary(boundarytype::IONOSPHERE)->isDynamic();
+         isAnyDynamic = isAnyDynamic || this->getBoundary(boundarytype::IONOSPHERE)->isDynamicBC();
       }
       if (*it == "Maxwellian")
       {
          this->addBoundary(new BC::Maxwellian, project, t);
-         isThisDynamic = this->getBoundary(boundarytype::MAXWELLIAN)->isDynamic();
+         isAnyDynamic = isAnyDynamic || this->getBoundary(boundarytype::MAXWELLIAN)->isDynamicBC();
          bool faces[6];
          this->getBoundary(boundarytype::MAXWELLIAN)->getFaces(&faces[0]);
 
@@ -585,11 +585,13 @@ void Boundary::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geom
                            FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid, creal t)
 {
    list<BC::BoundaryCondition *>::iterator it;
+   if (isAnyDynamic){
    for (it = boundaries.begin(); it != boundaries.end(); it++)
    {
       // Skip when not restarting or not requested.
       if (Parameters::isRestart && !(*it)->doApplyUponRestart()) continue;
-      (*it)->updateState(mpiGrid, perBGrid, t);
+      if ((*it)->isDynamicBC()) (*it)->updateState(mpiGrid, perBGrid, t);
+   }
    }
 }
 
@@ -709,7 +711,7 @@ BC::BoundaryCondition *Boundary::getBoundary(cuint boundaryType) const
 unsigned int Boundary::size() const { return boundaries.size(); }
 
 /*! Check whether any boundary condition is dynamic in time. */
-bool Boundary::isDynamic() const { return isThisDynamic; }
+bool Boundary::isDynamic() const { return isAnyDynamic; }
 
 /*! Get a bool telling whether the system is periodic in the queried direction.
  * \param direction 0: x, 1: y, 2: z.

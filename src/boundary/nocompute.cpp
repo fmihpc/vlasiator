@@ -44,7 +44,7 @@ void NoCompute::getParameters() {}
 void NoCompute::initBoundary(creal t, Project &project)
 {
    precedence = 0;
-   isThisDynamic = false;
+   isDynamic = false;
 }
 
 void NoCompute::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &,

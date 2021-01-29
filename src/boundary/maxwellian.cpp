@@ -106,7 +106,7 @@ void Maxwellian::getParameters()
       InflowSpeciesParameters sP;
       sP.nParams = 9;
 
-      Readparameters::get(pop + "_maxwellian.dynamic", isThisDynamic);
+      Readparameters::get(pop + "_maxwellian.dynamic", isDynamic);
       Readparameters::get(pop + "_maxwellian.file_x+", sP.files[0]);
       Readparameters::get(pop + "_maxwellian.file_x-", sP.files[1]);
       Readparameters::get(pop + "_maxwellian.file_y+", sP.files[2]);
@@ -300,7 +300,7 @@ void Maxwellian::generateTemplateCell(spatial_cell::SpatialCell &templateCell, R
    templateCell.parameters[CellParams::P_22_V] = templateCell.parameters[CellParams::P_22];
    templateCell.parameters[CellParams::P_33_V] = templateCell.parameters[CellParams::P_33];
 
-   if (this->isThisDynamic)
+   if (this->isDynamic)
    {
       // hyzhou
       cout << "We are testing dynamic BC, t = " << t << endl;

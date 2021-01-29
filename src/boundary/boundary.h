@@ -93,7 +93,7 @@ private:
    /*! List of boundary conditions (BC) to be used. */
    std::vector<std::string> boundaryCondList;
    /*! bool telling whether any boundary condition is dynamic in time (and thus needs updating). */
-   bool isThisDynamic;
+   bool isAnyDynamic;
 
    /*! Array of bool telling whether the system is periodic in any direction. */
    bool isPeriodic[3];

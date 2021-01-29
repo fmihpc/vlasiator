@@ -876,7 +876,7 @@ void BoundaryCondition::getFaces(bool *faces)
 uint BoundaryCondition::getPrecedence() const { return precedence; }
 
 /*! Returns whether the boundary condition is dynamic in time.*/
-bool BoundaryCondition::isDynamic() const { return isThisDynamic; }
+bool BoundaryCondition::isDynamicBC() const { return isDynamic; }
 
 void BoundaryCondition::setPeriodicity(bool isFacePeriodic[3])
 {

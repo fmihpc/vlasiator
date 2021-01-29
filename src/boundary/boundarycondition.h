@@ -111,7 +111,7 @@ public:
    virtual std::string getName() const = 0;
    virtual uint getIndex() const = 0;
    uint getPrecedence() const;
-   bool isDynamic() const;
+   bool isDynamicBC() const;
 
    void updateBoundaryConditionsAfterLoadBalance(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                                  const std::vector<CellID> &local_cells_on_boundary);
@@ -168,7 +168,7 @@ protected:
    /*! Precedence value of the boundary condition. */
    uint precedence;
    /*! Is the boundary condition dynamic in time or not. */
-   bool isThisDynamic;
+   bool isDynamic;
    /*! Array of bool telling whether the system is periodic in any direction. */
    bool isPeriodic[3];
    /*! Map of closest nonboundarycells. Used in getAllClosestNonboundaryCells. */
