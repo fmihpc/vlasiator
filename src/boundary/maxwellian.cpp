@@ -29,7 +29,7 @@
 #include <iostream>
 
 #include "../object_wrapper.h"
-#include "../vlasovmover.h"
+#include "../vlasovsolver/vlasovmover.h"
 #include "maxwellian.h"
 
 namespace BC

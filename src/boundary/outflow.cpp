@@ -31,7 +31,7 @@
 #include "../fieldsolver/ldz_magnetic_field.hpp"
 #include "../object_wrapper.h"
 #include "../projects/projects_common.h"
-#include "../vlasovmover.h"
+#include "../vlasovsolver/vlasovmover.h"
 #include "outflow.h"
 
 #ifndef NDEBUG

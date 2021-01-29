@@ -40,7 +40,7 @@
 #include "phiprof.hpp"
 #include "parameters.h"
 #include "logger.h"
-#include "vlasovmover.h"
+#include "vlasovsolver/vlasovmover.h"
 #include "object_wrapper.h"
 
 using namespace std;

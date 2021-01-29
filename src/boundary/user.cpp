@@ -31,7 +31,7 @@
 
 #include "../fieldsolver/fs_common.h"
 #include "../object_wrapper.h"
-#include "../vlasovmover.h"
+#include "../vlasovsolver/vlasovmover.h"
 #include "user.h"
 
 #ifndef NDEBUG

@@ -37,7 +37,7 @@
 #include "../mpiconversion.h"
 #include "../object_wrapper.h"
 #include "../spatial_cell.hpp"
-#include "../vlasovmover.h"
+#include "vlasovmover.h"
 
 #include "cpu_acc_semilag.hpp"
 #include "cpu_moments.h"

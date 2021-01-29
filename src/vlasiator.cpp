@@ -40,7 +40,7 @@
 #include "parameters.h"
 #include "readparameters.h"
 #include "spatial_cell.hpp"
-#include "vlasovmover.h"
+#include "vlasovsolver/vlasovmover.h"
 
 #include "fieldsolver/fs_common.h"
 #include "grid.h"

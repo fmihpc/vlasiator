@@ -35,7 +35,7 @@
 #include "../object_wrapper.h"
 #include "../projects/project.h"
 #include "../projects/projects_common.h"
-#include "../vlasovmover.h"
+#include "../vlasovsolver/vlasovmover.h"
 #include "ionosphere.h"
 
 #ifndef NDEBUG

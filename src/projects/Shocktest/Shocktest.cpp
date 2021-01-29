@@ -33,7 +33,7 @@
 #include "../project.h"
 #include "../../parameters.h"
 #include "../../readparameters.h"
-#include "../../vlasovmover.h"
+#include "../../vlasovsolver/vlasovmover.h"
 
 using namespace std;
 using namespace spatial_cell;

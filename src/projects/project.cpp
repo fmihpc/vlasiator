@@ -25,7 +25,7 @@
 #include "../common.h"
 #include "../parameters.h"
 #include "../readparameters.h"
-#include "../vlasovmover.h"
+#include "../vlasovsolver/vlasovmover.h"
 #include "../logger.h"
 #include "../object_wrapper.h"
 
