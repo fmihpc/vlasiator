@@ -128,7 +128,7 @@ void Ionosphere::getParameters()
 void Ionosphere::initBoundary(creal t, Project &project)
 {
    getParameters();
-   isDynamic = false;
+   dynamic = false;
 
    // only called once, generateTemplateCell must init all particle species
    generateTemplateCell(project);

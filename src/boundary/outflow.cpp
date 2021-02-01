@@ -199,7 +199,7 @@ void Outflow::initBoundary(creal t, Project &project)
 
    this->getParameters();
 
-   isDynamic = false;
+   dynamic = false;
 
    vector<string>::const_iterator it;
    for (it = faceNoFieldsList.begin(); it != faceNoFieldsList.end(); it++)

@@ -54,7 +54,7 @@ bool precedenceSort(const BC::BoundaryCondition *first, const BC::BoundaryCondit
 // ************************************************************
 
 /*! Constructor for class Boundary.*/
-Boundary::Boundary() : isAnyDynamic(false) {}
+Boundary::Boundary() : anyDynamic(false) {}
 
 /*!\brief Destructor for class Boundary.
  *
@@ -105,9 +105,9 @@ void Boundary::addParameters()
 void Boundary::getParameters()
 {
    Readparameters::get("boundaries.boundary", boundaryCondList);
-   Readparameters::get("boundaries.periodic_x", isPeriodic[0]);
-   Readparameters::get("boundaries.periodic_y", isPeriodic[1]);
-   Readparameters::get("boundaries.periodic_z", isPeriodic[2]);
+   Readparameters::get("boundaries.periodic_x", periodic[0]);
+   Readparameters::get("boundaries.periodic_y", periodic[1]);
+   Readparameters::get("boundaries.periodic_z", periodic[2]);
 }
 
 /*! Add a new BC::BoundaryCondition.
@@ -132,7 +132,7 @@ void Boundary::addBoundary(BC::BoundaryCondition *bc, Project &project, creal t)
  *
  * This function loops through the list of boundary conditions listed as to be
  * used in the configuration file/command line arguments. For each of these it
- * adds the corresponding instance and updates the member isAnyDynamic to
+ * adds the corresponding instance and updates the member anyDynamic to
  * determine whether any BoundaryCondition is dynamic in time.
  * \param project Project object
  * \param t Current time
@@ -144,11 +144,11 @@ void Boundary::initBoundaries(Project &project, creal t)
 
    if (boundaryCondList.size() == 0)
    {
-      if (!isPeriodic[0] && !Readparameters::helpRequested)
+      if (!periodic[0] && !Readparameters::helpRequested)
          BC::abort_mpi("Non-periodic in x but no boundary condtion loaded!");
-      if (!isPeriodic[1] && !Readparameters::helpRequested)
+      if (!periodic[1] && !Readparameters::helpRequested)
          BC::abort_mpi("Non-periodic in y but no boundary condtion loaded!");
-      if (!isPeriodic[2] && !Readparameters::helpRequested)
+      if (!periodic[2] && !Readparameters::helpRequested)
          BC::abort_mpi("Non-periodic in z but no boundary condtion loaded!");
    }
 
@@ -161,13 +161,13 @@ void Boundary::initBoundaries(Project &project, creal t)
          bool faces[6];
          this->getBoundary(boundarytype::OUTFLOW)->getFaces(&faces[0]);
 
-         if ((faces[0] || faces[1]) && isPeriodic[0])
+         if ((faces[0] || faces[1]) && periodic[0])
             BC::abort_mpi("Conflict: x boundaries set to periodic but found Outflow conditions!");
 
-         if ((faces[2] || faces[3]) && isPeriodic[1])
+         if ((faces[2] || faces[3]) && periodic[1])
             BC::abort_mpi("Conflict: y boundaries set to periodic but found Outflow conditions!");
 
-         if ((faces[4] || faces[5]) && isPeriodic[2])
+         if ((faces[4] || faces[5]) && periodic[2])
             BC::abort_mpi("Conflict: z boundaries set to periodic but found Outflow conditions!");
 
          if ((faces[0] || faces[1]) && P::xcells_ini < 5)
@@ -183,22 +183,22 @@ void Boundary::initBoundaries(Project &project, creal t)
       {
          this->addBoundary(new BC::Ionosphere, project, t);
          this->addBoundary(new BC::NoCompute, project, t);
-         isAnyDynamic = isAnyDynamic || this->getBoundary(boundarytype::IONOSPHERE)->isDynamicBC();
+         anyDynamic = anyDynamic || this->getBoundary(boundarytype::IONOSPHERE)->isDynamic();
       }
       if (*it == "Maxwellian")
       {
          this->addBoundary(new BC::Maxwellian, project, t);
-         isAnyDynamic = isAnyDynamic || this->getBoundary(boundarytype::MAXWELLIAN)->isDynamicBC();
+         anyDynamic = anyDynamic || this->getBoundary(boundarytype::MAXWELLIAN)->isDynamic();
          bool faces[6];
          this->getBoundary(boundarytype::MAXWELLIAN)->getFaces(&faces[0]);
 
-         if ((faces[0] || faces[1]) && isPeriodic[0])
+         if ((faces[0] || faces[1]) && periodic[0])
             BC::abort_mpi("Conflict: x boundaries set to periodic but found Maxwellian also!");
 
-         if ((faces[2] || faces[3]) && isPeriodic[1])
+         if ((faces[2] || faces[3]) && periodic[1])
             BC::abort_mpi("Conflict: y boundaries set to periodic but found Maxwellian also!");
 
-         if ((faces[4] || faces[5]) && isPeriodic[2])
+         if ((faces[4] || faces[5]) && periodic[2])
             BC::abort_mpi("Conflict: z boundaries set to periodic but found Maxwellian also!");
 
          if ((faces[0] || faces[1]) && P::xcells_ini < 5)
@@ -214,7 +214,7 @@ void Boundary::initBoundaries(Project &project, creal t)
 
    list<BC::BoundaryCondition *>::iterator it2;
    for (it2 = boundaries.begin(); it2 != boundaries.end(); it2++)
-      (*it2)->setPeriodicity(isPeriodic);
+      (*it2)->setPeriodicity(periodic);
 }
 
 /* Verifies that all cells within FULL_NEIGHBORHOOD_ID of L1 boundary cells are on the same refinement
@@ -506,11 +506,11 @@ void Boundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cart
             std::array<int32_t, 3> globalIndices = technicalGrid.getGlobalIndices(x, y, z);
 
             if (((globalIndices[0] == 0 || globalIndices[0] == fsGridDimensions[0] - 1) &&
-                 !this->isBoundaryPeriodic(0)) ||
+                 !this->isPeriodic(0)) ||
                 ((globalIndices[1] == 0 || globalIndices[1] == fsGridDimensions[1] - 1) &&
-                 !this->isBoundaryPeriodic(1)) ||
+                 !this->isPeriodic(1)) ||
                 ((globalIndices[2] == 0 || globalIndices[2] == fsGridDimensions[2] - 1) &&
-                 !this->isBoundaryPeriodic(2)))
+                 !this->isPeriodic(2)))
             {
                continue;
             }
@@ -585,12 +585,12 @@ void Boundary::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geom
                            FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid, creal t)
 {
    list<BC::BoundaryCondition *>::iterator it;
-   if (isAnyDynamic){
+   if (anyDynamic){
    for (it = boundaries.begin(); it != boundaries.end(); it++)
    {
       // Skip when not restarting or not requested.
       if (Parameters::isRestart && !(*it)->doApplyUponRestart()) continue;
-      if ((*it)->isDynamicBC()) (*it)->updateState(mpiGrid, perBGrid, t);
+      if ((*it)->isDynamic()) (*it)->updateState(mpiGrid, perBGrid, t);
    }
    }
 }
@@ -711,13 +711,13 @@ BC::BoundaryCondition *Boundary::getBoundary(cuint boundaryType) const
 unsigned int Boundary::size() const { return boundaries.size(); }
 
 /*! Check whether any boundary condition is dynamic in time. */
-bool Boundary::isDynamic() const { return isAnyDynamic; }
+bool Boundary::isDynamic() const { return anyDynamic; }
 
 /*! Get a bool telling whether the system is periodic in the queried direction.
  * \param direction 0: x, 1: y, 2: z.
- * \retval isPeriodic Is the system periodic in the queried direction.
+ * \retval periodic Is the system periodic in the queried direction.
  */
-bool Boundary::isBoundaryPeriodic(uint direction) const { return isPeriodic[direction]; }
+bool Boundary::isPeriodic(uint direction) const { return periodic[direction]; }
 
 /*! Get a vector containing the cellID of all cells which are not NO_COMPUTE or
  * NOT_BOUNDARY in the vector of cellIDs passed to the function.

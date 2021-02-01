@@ -77,7 +77,7 @@ public:
    unsigned int size() const;
    BC::BoundaryCondition *getBoundary(cuint boundaryType) const;
    bool isDynamic() const;
-   bool isBoundaryPeriodic(uint direction) const;
+   bool isPeriodic(uint direction) const;
    void updateBoundariesAfterLoadBalance(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid);
 
 private:
@@ -93,10 +93,10 @@ private:
    /*! List of boundary conditions (BC) to be used. */
    std::vector<std::string> boundaryCondList;
    /*! bool telling whether any boundary condition is dynamic in time (and thus needs updating). */
-   bool isAnyDynamic;
+   bool anyDynamic;
 
    /*! Array of bool telling whether the system is periodic in any direction. */
-   bool isPeriodic[3];
+   bool periodic[3];
 };
 
 bool precedenceSort(const BC::BoundaryCondition *first, const BC::BoundaryCondition *second);

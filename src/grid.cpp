@@ -145,9 +145,9 @@ void initializeGrids(
       .set_load_balancing_method(&P::loadBalanceAlgorithm[0])
       .set_neighborhood_length(neighborhood_size)
       .set_maximum_refinement_level(P::amrMaxSpatialRefLevel)
-      .set_periodic(boundaries.isBoundaryPeriodic(0),
-                    boundaries.isBoundaryPeriodic(1),
-                    boundaries.isBoundaryPeriodic(2))
+      .set_periodic(boundaries.isPeriodic(0),
+                    boundaries.isPeriodic(1),
+                    boundaries.isPeriodic(2))
       .initialize(comm)
       .set_geometry(geom_params);
 
