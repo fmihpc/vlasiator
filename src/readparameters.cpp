@@ -315,6 +315,7 @@ void Readparameters::get(const std::string &name, std::vector<int> &value)
       catch (...)
       {
          if (Readparameters::rank == 0) cerr << "Problems casting value to int " << name << " = " << *i << endl;
+         MPI_Abort(MPI_COMM_WORLD, 1);
       }
    }
 }
@@ -334,6 +335,7 @@ void Readparameters::get(const std::string &name, std::vector<unsigned int> &val
       {
          if (Readparameters::rank == 0)
             cerr << "Problems casting value to unsigned int " << name << " = " << *i << endl;
+         MPI_Abort(MPI_COMM_WORLD, 1);
       }
    }
 }
@@ -352,6 +354,7 @@ void Readparameters::get(const std::string &name, std::vector<float> &value)
       catch (...)
       {
          if (Readparameters::rank == 0) cerr << "Problems casting value to float " << name << " = " << *i << endl;
+         MPI_Abort(MPI_COMM_WORLD, 1);
       }
    }
 }
@@ -370,6 +373,7 @@ void Readparameters::get(const std::string &name, std::vector<double> &value)
       catch (...)
       {
          if (Readparameters::rank == 0) cerr << "Problems casting value to double " << name << " = " << *i << endl;
+         MPI_Abort(MPI_COMM_WORLD, 1);
       }
    }
 }
@@ -404,6 +408,7 @@ void Readparameters::get(const std::string &name, bool &value)
    catch (...)
    {
       if (Readparameters::rank == 0) cerr << "Problems casting value to bool " << name << " = " << sval << endl;
+      MPI_Abort(MPI_COMM_WORLD, 1);
    }
 }
 
@@ -419,6 +424,7 @@ void Readparameters::get(const std::string &name, int &value)
    catch (...)
    {
       if (Readparameters::rank == 0) cerr << "Problems casting value to int " << name << " = " << sval << endl;
+      MPI_Abort(MPI_COMM_WORLD, 1);
    }
 }
 
@@ -434,6 +440,7 @@ void Readparameters::get(const std::string &name, unsigned int &value)
    catch (...)
    {
       if (Readparameters::rank == 0) cerr << "Problems casting value to unsigned int " << name << " = " << sval << endl;
+      MPI_Abort(MPI_COMM_WORLD, 1);
    }
 }
 
@@ -450,6 +457,7 @@ void Readparameters::get(const std::string &name, unsigned long &value)
    {
       if (Readparameters::rank == 0)
          cerr << "Problems casting value to unsigned long " << name << " = " << sval << endl;
+      MPI_Abort(MPI_COMM_WORLD, 1);
    }
 }
 
@@ -465,6 +473,7 @@ void Readparameters::get(const std::string &name, float &value)
    catch (...)
    {
       if (Readparameters::rank == 0) cerr << "Problems casting value to float " << name << " = " << sval << endl;
+      MPI_Abort(MPI_COMM_WORLD, 1);
    }
 }
 
@@ -480,6 +489,7 @@ void Readparameters::get(const std::string &name, double &value)
    catch (...)
    {
       if (Readparameters::rank == 0) cerr << "Problems casting value to double " << name << " = " << sval << endl;
+      MPI_Abort(MPI_COMM_WORLD, 1);
    }
 }
 
