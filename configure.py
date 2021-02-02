@@ -73,6 +73,9 @@ def check_dependencies():
             raise SystemExit('### CONFIGURE ERROR: unknown phiprof location!')
 
 
+if sys.version_info[0] < 3:
+    raise Exception("Must be using Python 3")
+
 # Set template and output filenames
 makefile_input = 'Makefile.in'
 makefile_output = 'Makefile'
