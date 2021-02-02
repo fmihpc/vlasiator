@@ -150,7 +150,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
          //constraint: do not lower subcycle count
          logFactor = max(logFactor, 1.0);
          cout << logFactor << "\n";
-         transformation_substeps = transformation_substeps * logFactor;
+         transformation_substeps = int(transformation_substeps * logFactor);
       }
    }
    if ((transformation_substeps < 1) && (fabs(dt)>0)) transformation_substeps=1;
