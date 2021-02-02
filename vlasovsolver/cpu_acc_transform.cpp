@@ -146,11 +146,10 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       Real logFactor = 1.0/fabs(log( fabs(gyro_period)/fabs(plasma_period) ));
       if(std::isnan(logFactor) == false){
          //constraint: max n times more subcycles
-         Real maxFactor = 100;
-         logFactor = min(logFactor, maxFactor);
+         logFactor = min(logFactor, (Real)P::maxResonantSubcycleFactor);
          //constraint: do not lower subcycle count
          logFactor = max(logFactor, 1.0);
-      
+         cout << logFactor << "\n";
          transformation_substeps = transformation_substeps * logFactor;
       }
    }
