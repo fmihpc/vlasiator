@@ -31,15 +31,13 @@
 
 using namespace projects;
 
-namespace BC
-{
+namespace BC {
 /*!\brief NoCompute is a class handling cells not to be computed.
  *
  * NoCompute is a class handling cells tagged as boundarytype::NO_COMPUTE by a
  * boundary condition (e.g. BoundaryCondition::Ionosphere).
  */
-class NoCompute : public BoundaryCondition
-{
+class NoCompute : public BoundaryCondition {
 public:
    NoCompute();
    ~NoCompute() override;
@@ -62,8 +60,7 @@ public:
    Real
    fieldSolverBoundaryCondMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid,
                                         FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid, cint i, cint j,
-                                        cint k, creal dt, cuint component) override
-   {
+                                        cint k, creal dt, cuint component) override {
       std::string errmsg = "ERROR: calling NoCompute::";
       errmsg += __func__;
       abort_mpi(errmsg);
@@ -71,24 +68,21 @@ public:
    }
    void
    fieldSolverBoundaryCondElectricField(FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> &EGrid,
-                                        cint i, cint j, cint k, cuint component) override
-   {
+                                        cint i, cint j, cint k, cuint component) override {
       std::string errmsg = "ERROR: calling NoCompute::";
       errmsg += __func__;
       abort_mpi(errmsg);
    }
    void fieldSolverBoundaryCondHallElectricField(
        FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> &EHallGrid, cint i, cint j, cint k,
-       cuint component) override
-   {
+       cuint component) override {
       std::string errmsg = "ERROR: calling NoCompute::";
       errmsg += __func__;
       abort_mpi(errmsg);
    }
    void fieldSolverBoundaryCondGradPeElectricField(
        FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> &EGradPeGrid, cint i, cint j, cint k,
-       cuint component) override
-   {
+       cuint component) override {
       std::string errmsg = "ERROR: calling NoCompute::";
       errmsg += __func__;
       abort_mpi(errmsg);
@@ -96,23 +90,20 @@ public:
    void fieldSolverBoundaryCondDerivatives(
        FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> &dPerBGrid,
        FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> &dMomentsGrid, cint i, cint j, cint k,
-       cuint RKCase, cuint component) override
-   {
+       cuint RKCase, cuint component) override {
       std::string errmsg = "ERROR: calling NoCompute::";
       errmsg += __func__;
       abort_mpi(errmsg);
    }
    void fieldSolverBoundaryCondBVOLDerivatives(
        FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> &volGrid, cint i, cint j, cint k,
-       cuint component) override
-   {
+       cuint component) override {
       std::string errmsg = "ERROR: calling NoCompute::";
       errmsg += __func__;
       abort_mpi(errmsg);
    }
    void vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                const CellID &cellID, const uint popID, const bool calculate_V_moments) override
-   {
+                                const CellID &cellID, const uint popID, const bool calculate_V_moments) override {
       std::string errmsg = "ERROR: calling NoCompute::";
       errmsg += __func__;
       abort_mpi(errmsg);

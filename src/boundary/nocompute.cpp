@@ -33,35 +33,30 @@
 
 using namespace std;
 
-namespace BC
-{
+namespace BC {
 NoCompute::NoCompute() : BoundaryCondition() {}
 NoCompute::~NoCompute() {}
 
 void NoCompute::addParameters() {}
 void NoCompute::getParameters() {}
 
-void NoCompute::initBoundary(creal t, Project &project)
-{
+void NoCompute::initBoundary(creal t, Project &project) {
    precedence = 0;
    dynamic = false;
 }
 
 void NoCompute::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &,
-                               FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid)
-{
-}
+                               FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid) {}
 
 void NoCompute::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                   FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid,
-                                  Project &project)
-{
+                                  Project &project) {
    vector<CellID> cells = mpiGrid.get_cells();
 #pragma omp parallel for
-   for (size_t i = 0; i < cells.size(); ++i)
-   {
+   for (size_t i = 0; i < cells.size(); ++i) {
       SpatialCell *cell = mpiGrid[cells[i]];
-      if (cell->boundaryFlag != this->getIndex()) continue;
+      if (cell->boundaryFlag != this->getIndex())
+         continue;
 
       // TODO: Set fields on B grid to 0
       cell->parameters[CellParams::RHOM] = 0.0;
@@ -83,9 +78,7 @@ void NoCompute::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesi
 }
 
 void NoCompute::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                            FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid, creal t)
-{
-}
+                            FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid, creal t) {}
 
 std::string NoCompute::getName() const { return "NoCompute"; }
 

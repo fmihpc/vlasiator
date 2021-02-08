@@ -31,11 +31,9 @@
 
 using namespace std;
 
-namespace BC
-{
+namespace BC {
 
-struct InflowSpeciesParameters
-{
+struct InflowSpeciesParameters {
    /*! Vector containing a vector for each face which has the current boundary
     * condition. Each of these vectors has one line per input data line
     * (time point). The length of the lines is nParams.*/
@@ -66,8 +64,7 @@ struct InflowSpeciesParameters
  * The daughter classes have then to handle parameters and generate the
  * template cells as wished from the data returned.
  */
-class Inflow : public BoundaryCondition
-{
+class Inflow : public BoundaryCondition {
 public:
    Inflow();
    virtual ~Inflow();

@@ -31,9 +31,9 @@
 void propagateMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid,
                             FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBDt2Grid,
                             FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> &EGrid,
-                            FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> &EDt2Grid,
-                            cint i, cint j, cint k, creal dt, cint RKCase,
-                            const bool doX = true, const bool doY = true, const bool doZ = true);
+                            FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> &EDt2Grid, cint i,
+                            cint j, cint k, creal dt, cint RKCase, const bool doX = true, const bool doY = true,
+                            const bool doZ = true);
 
 void propagateMagneticFieldSimple(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid,
                                   FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBDt2Grid,

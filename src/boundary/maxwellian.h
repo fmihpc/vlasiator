@@ -32,8 +32,7 @@
 
 using namespace std;
 
-namespace BC
-{
+namespace BC {
 /*!\brief Maxwellian is a class applying fixed Maxwellian conditions according to parameters read from an input file.
  *
  * Maxwellian is a class handling cells tagged as boundarytype::MAXWELLIAN by this
@@ -47,8 +46,7 @@ namespace BC
  * BoundaryCondition::Inflow but this way they can have a specific prefix which
  * is needed if several inheriting classes are needed.
  */
-class Maxwellian : public Inflow
-{
+class Maxwellian : public Inflow {
 public:
    Maxwellian();
    ~Maxwellian() override;

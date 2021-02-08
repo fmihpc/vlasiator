@@ -29,11 +29,9 @@
 #include "boundarycondition.h"
 #include <vector>
 
-namespace BC
-{
+namespace BC {
 
-struct OutflowSpeciesParameters
-{
+struct OutflowSpeciesParameters {
    /*! Array of bool telling which faces are going to be skipped by the Vlasov boundary condition.*/
    std::array<bool, 6> facesToSkipVlasov;
    /*! List of schemes to use for the Vlasov outflow boundary conditions on each face ([xyz][+-]). */
@@ -56,8 +54,7 @@ struct OutflowSpeciesParameters
  * EXCEPTION: the face components adjacent to the simulation domain at the
  * +x/+y/+z faces are propagated still.
  */
-class Outflow : public BoundaryCondition
-{
+class Outflow : public BoundaryCondition {
 public:
    Outflow();
    ~Outflow() override;
@@ -116,13 +113,7 @@ protected:
    /*! Factor by which to quench the inflowing parts of the velocity distribution function.*/
    Real quenchFactor;
 
-   enum vlasovscheme
-   {
-      NONE,
-      COPY,
-      LIMIT,
-      N_SCHEMES
-   };
+   enum vlasovscheme { NONE, COPY, LIMIT, N_SCHEMES };
 
 }; // class Outflow
 } // namespace BC

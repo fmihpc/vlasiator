@@ -299,11 +299,6 @@ void Inflow::setBFromTemplate(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_G
                   perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBX) = templateB[iface][0];
                   perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBY) = templateB[iface][1];
                   perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBZ) = templateB[iface][2];
-                  //hyzhou
-                  cout << "--------" << endl;
-                  cout << "x = " << cellCenterCoords[0] << endl;
-                  cout << "i = " << i << endl;
-                  cout << "Bz = " << templateB[iface][2] << endl;
                   break;
                }
             }

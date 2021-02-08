@@ -45,14 +45,12 @@
 #define DEBUG_IONOSPHERE
 #endif
 
-namespace BC
-{
+namespace BC {
 Ionosphere::Ionosphere() : BoundaryCondition() {}
 
 Ionosphere::~Ionosphere() {}
 
-void Ionosphere::addParameters()
-{
+void Ionosphere::addParameters() {
    Readparameters::add("ionosphere.centerX", "X coordinate of ionosphere center (m)", 0.0);
    Readparameters::add("ionosphere.centerY", "Y coordinate of ionosphere center (m)", 0.0);
    Readparameters::add("ionosphere.centerZ", "Z coordinate of ionosphere center (m)", 0.0);
@@ -69,8 +67,7 @@ void Ionosphere::addParameters()
                        0);
 
    // Per-population parameters
-   for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++)
-   {
+   for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
       const std::string &pop = getObjectWrapper().particleSpecies[i].name;
 
       Readparameters::add(pop + "_ionosphere.taperRadius",
@@ -90,8 +87,7 @@ void Ionosphere::addParameters()
    }
 }
 
-void Ionosphere::getParameters()
-{
+void Ionosphere::getParameters() {
 
    Readparameters::get("ionosphere.centerX", this->center[0]);
    Readparameters::get("ionosphere.centerY", this->center[1]);
@@ -102,13 +98,11 @@ void Ionosphere::getParameters()
    uint reapply;
    Readparameters::get("ionosphere.reapplyUponRestart", reapply);
    this->applyUponRestart = false;
-   if (reapply == 1)
-   {
+   if (reapply == 1) {
       this->applyUponRestart = true;
    }
 
-   for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++)
-   {
+   for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
       const std::string &pop = getObjectWrapper().particleSpecies[i].name;
       IonosphereSpeciesParameters sP;
 
@@ -125,8 +119,7 @@ void Ionosphere::getParameters()
    }
 }
 
-void Ionosphere::initBoundary(creal t, Project &project)
-{
+void Ionosphere::initBoundary(creal t, Project &project) {
    getParameters();
    dynamic = false;
 
@@ -134,13 +127,11 @@ void Ionosphere::initBoundary(creal t, Project &project)
    generateTemplateCell(project);
 }
 
-Real getR(creal x, creal y, creal z, uint geometry, Real center[3])
-{
+Real getR(creal x, creal y, creal z, uint geometry, Real center[3]) {
 
    Real r;
 
-   switch (geometry)
-   {
+   switch (geometry) {
    case 0:
       // infinity-norm, result is a diamond/square with diagonals aligned on the axes in 2D
       r = fabs(x - center[0]) + fabs(y - center[1]) + fabs(z - center[2]);
@@ -168,13 +159,10 @@ Real getR(creal x, creal y, creal z, uint geometry, Real center[3])
 }
 
 void Ionosphere::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid)
-{
+                                FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid) {
    vector<CellID> cells = mpiGrid.get_cells();
-   for (uint i = 0; i < cells.size(); i++)
-   {
-      if (mpiGrid[cells[i]]->boundaryFlag == boundarytype::NO_COMPUTE)
-      {
+   for (uint i = 0; i < cells.size(); i++) {
+      if (mpiGrid[cells[i]]->boundaryFlag == boundarytype::NO_COMPUTE) {
          continue;
       }
 
@@ -186,20 +174,16 @@ void Ionosphere::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geome
       creal y = cellParams[CellParams::YCRD] + 0.5 * dy;
       creal z = cellParams[CellParams::ZCRD] + 0.5 * dz;
 
-      if (getR(x, y, z, this->geometry, this->center) < this->radius)
-      {
+      if (getR(x, y, z, this->geometry, this->center) < this->radius) {
          mpiGrid[cells[i]]->boundaryFlag = this->getIndex();
       }
    }
 
    // Assign boundary flags to local fsgrid cells
    const std::array<int, 3> gridDims(technicalGrid.getLocalSize());
-   for (int k = 0; k < gridDims[2]; k++)
-   {
-      for (int j = 0; j < gridDims[1]; j++)
-      {
-         for (int i = 0; i < gridDims[0]; i++)
-         {
+   for (int k = 0; k < gridDims[2]; k++) {
+      for (int j = 0; j < gridDims[1]; j++) {
+         for (int i = 0; i < gridDims[0]; i++) {
             const auto &coords = technicalGrid.getPhysicalCoords(i, j, k);
 
             // Shift to the center of the fsgrid cell
@@ -209,8 +193,7 @@ void Ionosphere::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geome
             cellCenterCoords[2] += 0.5 * technicalGrid.DZ;
 
             if (getR(cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], this->geometry, this->center) <
-                this->radius)
-            {
+                this->radius) {
                technicalGrid.get(i, j, k)->boundaryFlag = this->getIndex();
             }
          }
@@ -219,14 +202,13 @@ void Ionosphere::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geome
 }
 
 void Ionosphere::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                   FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, Project &project)
-{
+                                   FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, Project &project) {
    vector<CellID> cells = mpiGrid.get_cells();
 #pragma omp parallel for
-   for (uint i = 0; i < cells.size(); ++i)
-   {
+   for (uint i = 0; i < cells.size(); ++i) {
       SpatialCell *cell = mpiGrid[cells[i]];
-      if (cell->boundaryFlag != this->getIndex()) continue;
+      if (cell->boundaryFlag != this->getIndex())
+         continue;
 
       for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID)
          setCellFromTemplate(cell, popID);
@@ -234,14 +216,11 @@ void Ionosphere::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartes
 }
 
 void Ionosphere::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                             FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, creal t)
-{
-}
+                             FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, creal t) {}
 
 std::array<Real, 3>
 Ionosphere::fieldSolverGetNormalDirection(FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid, cint i, cint j,
-                                          cint k)
-{
+                                          cint k) {
    phiprof::start("Ionosphere::fieldSolverGetNormalDirection");
    std::array<Real, 3> normalDirection{{0.0, 0.0, 0.0}};
 
@@ -261,12 +240,9 @@ Ionosphere::fieldSolverGetNormalDirection(FsGrid<fsgrids::technical, FS_STENCIL_
 
    Real length = 0.0;
 
-   if (Parameters::xcells_ini == 1)
-   {
-      if (Parameters::ycells_ini == 1)
-      {
-         if (Parameters::zcells_ini == 1)
-         {
+   if (Parameters::xcells_ini == 1) {
+      if (Parameters::ycells_ini == 1) {
+         if (Parameters::zcells_ini == 1) {
             // X,Y,Z
             std::cerr
                 << __FILE__ << ":" << __LINE__ << ":"
@@ -274,53 +250,41 @@ Ionosphere::fieldSolverGetNormalDirection(FsGrid<fsgrids::technical, FS_STENCIL_
                 << std::endl;
             abort();
             // end of X,Y,Z
-         }
-         else
-         {
+         } else {
             // X,Y
             normalDirection[2] = zsign;
             // end of X,Y
          }
-      }
-      else if (Parameters::zcells_ini == 1)
-      {
+      } else if (Parameters::zcells_ini == 1) {
          // X,Z
          normalDirection[1] = ysign;
          // end of X,Z
-      }
-      else
-      {
+      } else {
          // X
-         switch (this->geometry)
-         {
+         switch (this->geometry) {
          case 0:
             normalDirection[1] = DIAG2 * ysign;
             normalDirection[2] = DIAG2 * zsign;
             break;
          case 1:
-            if (fabs(y) == fabs(z))
-            {
+            if (fabs(y) == fabs(z)) {
                normalDirection[1] = ysign * DIAG2;
                normalDirection[2] = zsign * DIAG2;
                break;
             }
-            if (fabs(y) > (this->radius - dy))
-            {
+            if (fabs(y) > (this->radius - dy)) {
                normalDirection[1] = ysign;
                break;
             }
-            if (fabs(z) > (this->radius - dz))
-            {
+            if (fabs(z) > (this->radius - dz)) {
                normalDirection[2] = zsign;
                break;
             }
-            if (fabs(y) > (this->radius - 2.0 * dy))
-            {
+            if (fabs(y) > (this->radius - 2.0 * dy)) {
                normalDirection[1] = ysign;
                break;
             }
-            if (fabs(z) > (this->radius - 2.0 * dz))
-            {
+            if (fabs(z) > (this->radius - 2.0 * dz)) {
                normalDirection[2] = zsign;
                break;
             }
@@ -337,48 +301,37 @@ Ionosphere::fieldSolverGetNormalDirection(FsGrid<fsgrids::technical, FS_STENCIL_
          }
          // end of X
       }
-   }
-   else if (Parameters::ycells_ini == 1)
-   {
-      if (Parameters::zcells_ini == 1)
-      {
+   } else if (Parameters::ycells_ini == 1) {
+      if (Parameters::zcells_ini == 1) {
          // Y,Z
          normalDirection[0] = xsign;
          // end of Y,Z
-      }
-      else
-      {
+      } else {
          // Y
-         switch (this->geometry)
-         {
+         switch (this->geometry) {
          case 0:
             normalDirection[0] = DIAG2 * xsign;
             normalDirection[2] = DIAG2 * zsign;
             break;
          case 1:
-            if (fabs(x) == fabs(z))
-            {
+            if (fabs(x) == fabs(z)) {
                normalDirection[0] = xsign * DIAG2;
                normalDirection[2] = zsign * DIAG2;
                break;
             }
-            if (fabs(x) > (this->radius - dx))
-            {
+            if (fabs(x) > (this->radius - dx)) {
                normalDirection[0] = xsign;
                break;
             }
-            if (fabs(z) > (this->radius - dz))
-            {
+            if (fabs(z) > (this->radius - dz)) {
                normalDirection[2] = zsign;
                break;
             }
-            if (fabs(x) > (this->radius - 2.0 * dx))
-            {
+            if (fabs(x) > (this->radius - 2.0 * dx)) {
                normalDirection[0] = xsign;
                break;
             }
-            if (fabs(z) > (this->radius - 2.0 * dz))
-            {
+            if (fabs(z) > (this->radius - 2.0 * dz)) {
                normalDirection[2] = zsign;
                break;
             }
@@ -396,40 +349,32 @@ Ionosphere::fieldSolverGetNormalDirection(FsGrid<fsgrids::technical, FS_STENCIL_
          }
          // end of Y
       }
-   }
-   else if (Parameters::zcells_ini == 1)
-   {
+   } else if (Parameters::zcells_ini == 1) {
       // Z
-      switch (this->geometry)
-      {
+      switch (this->geometry) {
       case 0:
          normalDirection[0] = DIAG2 * xsign;
          normalDirection[1] = DIAG2 * ysign;
          break;
       case 1:
-         if (fabs(x) == fabs(y))
-         {
+         if (fabs(x) == fabs(y)) {
             normalDirection[0] = xsign * DIAG2;
             normalDirection[1] = ysign * DIAG2;
             break;
          }
-         if (fabs(x) > (this->radius - dx))
-         {
+         if (fabs(x) > (this->radius - dx)) {
             normalDirection[0] = xsign;
             break;
          }
-         if (fabs(y) > (this->radius - dy))
-         {
+         if (fabs(y) > (this->radius - dy)) {
             normalDirection[1] = ysign;
             break;
          }
-         if (fabs(x) > (this->radius - 2.0 * dx))
-         {
+         if (fabs(x) > (this->radius - 2.0 * dx)) {
             normalDirection[0] = xsign;
             break;
          }
-         if (fabs(y) > (this->radius - 2.0 * dy))
-         {
+         if (fabs(y) > (this->radius - 2.0 * dy)) {
             normalDirection[1] = ysign;
             break;
          }
@@ -445,101 +390,84 @@ Ionosphere::fieldSolverGetNormalDirection(FsGrid<fsgrids::technical, FS_STENCIL_
          abort();
       }
       // end of Z
-   }
-   else
-   {
+   } else {
       // 3D
-      switch (this->geometry)
-      {
+      switch (this->geometry) {
       case 0:
          normalDirection[0] = DIAG3 * xsign;
          normalDirection[1] = DIAG3 * ysign;
          normalDirection[2] = DIAG3 * zsign;
          break;
       case 1:
-         if (fabs(x) == fabs(y) && fabs(x) == fabs(z) && fabs(x) > this->radius - dx)
-         {
+         if (fabs(x) == fabs(y) && fabs(x) == fabs(z) && fabs(x) > this->radius - dx) {
             normalDirection[0] = xsign * DIAG3;
             normalDirection[1] = ysign * DIAG3;
             normalDirection[2] = zsign * DIAG3;
             break;
          }
-         if (fabs(x) == fabs(y) && fabs(x) == fabs(z) && fabs(x) > this->radius - 2.0 * dx)
-         {
+         if (fabs(x) == fabs(y) && fabs(x) == fabs(z) && fabs(x) > this->radius - 2.0 * dx) {
             normalDirection[0] = xsign * DIAG3;
             normalDirection[1] = ysign * DIAG3;
             normalDirection[2] = zsign * DIAG3;
             break;
          }
-         if (fabs(x) == fabs(y) && fabs(x) > this->radius - dx && fabs(z) < this->radius - dz)
-         {
+         if (fabs(x) == fabs(y) && fabs(x) > this->radius - dx && fabs(z) < this->radius - dz) {
             normalDirection[0] = xsign * DIAG2;
             normalDirection[1] = ysign * DIAG2;
             normalDirection[2] = 0.0;
             break;
          }
-         if (fabs(y) == fabs(z) && fabs(y) > this->radius - dy && fabs(x) < this->radius - dx)
-         {
+         if (fabs(y) == fabs(z) && fabs(y) > this->radius - dy && fabs(x) < this->radius - dx) {
             normalDirection[0] = 0.0;
             normalDirection[1] = ysign * DIAG2;
             normalDirection[2] = zsign * DIAG2;
             break;
          }
-         if (fabs(x) == fabs(z) && fabs(x) > this->radius - dx && fabs(y) < this->radius - dy)
-         {
+         if (fabs(x) == fabs(z) && fabs(x) > this->radius - dx && fabs(y) < this->radius - dy) {
             normalDirection[0] = xsign * DIAG2;
             normalDirection[1] = 0.0;
             normalDirection[2] = zsign * DIAG2;
             break;
          }
-         if (fabs(x) == fabs(y) && fabs(x) > this->radius - 2.0 * dx && fabs(z) < this->radius - 2.0 * dz)
-         {
+         if (fabs(x) == fabs(y) && fabs(x) > this->radius - 2.0 * dx && fabs(z) < this->radius - 2.0 * dz) {
             normalDirection[0] = xsign * DIAG2;
             normalDirection[1] = ysign * DIAG2;
             normalDirection[2] = 0.0;
             break;
          }
-         if (fabs(y) == fabs(z) && fabs(y) > this->radius - 2.0 * dy && fabs(x) < this->radius - 2.0 * dx)
-         {
+         if (fabs(y) == fabs(z) && fabs(y) > this->radius - 2.0 * dy && fabs(x) < this->radius - 2.0 * dx) {
             normalDirection[0] = 0.0;
             normalDirection[1] = ysign * DIAG2;
             normalDirection[2] = zsign * DIAG2;
             break;
          }
-         if (fabs(x) == fabs(z) && fabs(x) > this->radius - 2.0 * dx && fabs(y) < this->radius - 2.0 * dy)
-         {
+         if (fabs(x) == fabs(z) && fabs(x) > this->radius - 2.0 * dx && fabs(y) < this->radius - 2.0 * dy) {
             normalDirection[0] = xsign * DIAG2;
             normalDirection[1] = 0.0;
             normalDirection[2] = zsign * DIAG2;
             break;
          }
-         if (fabs(x) > (this->radius - dx))
-         {
+         if (fabs(x) > (this->radius - dx)) {
             normalDirection[0] = xsign;
             break;
          }
-         if (fabs(y) > (this->radius - dy))
-         {
+         if (fabs(y) > (this->radius - dy)) {
             normalDirection[1] = ysign;
             break;
          }
-         if (fabs(z) > (this->radius - dz))
-         {
+         if (fabs(z) > (this->radius - dz)) {
             normalDirection[2] = zsign;
             break;
          }
-         if (fabs(x) > (this->radius - 2.0 * dx))
-         {
+         if (fabs(x) > (this->radius - 2.0 * dx)) {
             normalDirection[0] = xsign;
             break;
          }
-         if (fabs(y) > (this->radius - 2.0 * dy))
-         {
+         if (fabs(y) > (this->radius - 2.0 * dy)) {
             normalDirection[1] = ysign;
             break;
          }
-         if (fabs(z) > (this->radius - 2.0 * dz))
-         {
+         if (fabs(z) > (this->radius - 2.0 * dz)) {
             normalDirection[2] = zsign;
             break;
          }
@@ -575,61 +503,42 @@ Ionosphere::fieldSolverGetNormalDirection(FsGrid<fsgrids::technical, FS_STENCIL_
  */
 Real Ionosphere::fieldSolverBoundaryCondMagneticField(
     FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &bGrid,
-    FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid, cint i, cint j, cint k, creal dt, cuint component)
-{
-   if (technicalGrid.get(i, j, k)->boundaryLayer == 1)
-   {
-      switch (component)
-      {
+    FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid, cint i, cint j, cint k, creal dt, cuint component) {
+   if (technicalGrid.get(i, j, k)->boundaryLayer == 1) {
+      switch (component) {
       case 0:
          if (((technicalGrid.get(i - 1, j, k)->SOLVE & compute::BX) == compute::BX) &&
-             ((technicalGrid.get(i + 1, j, k)->SOLVE & compute::BX) == compute::BX))
-         {
+             ((technicalGrid.get(i + 1, j, k)->SOLVE & compute::BX) == compute::BX)) {
             return 0.5 * (bGrid.get(i - 1, j, k)->at(fsgrids::bfield::PERBX) +
                           bGrid.get(i + 1, j, k)->at(fsgrids::bfield::PERBX));
-         }
-         else if ((technicalGrid.get(i - 1, j, k)->SOLVE & compute::BX) == compute::BX)
-         {
+         } else if ((technicalGrid.get(i - 1, j, k)->SOLVE & compute::BX) == compute::BX) {
             return bGrid.get(i - 1, j, k)->at(fsgrids::bfield::PERBX);
-         }
-         else if ((technicalGrid.get(i + 1, j, k)->SOLVE & compute::BX) == compute::BX)
-         {
+         } else if ((technicalGrid.get(i + 1, j, k)->SOLVE & compute::BX) == compute::BX) {
             return bGrid.get(i + 1, j, k)->at(fsgrids::bfield::PERBX);
-         }
-         else
-         {
+         } else {
             Real retval = 0.0;
             uint nCells = 0;
-            if ((technicalGrid.get(i, j - 1, k)->SOLVE & compute::BX) == compute::BX)
-            {
+            if ((technicalGrid.get(i, j - 1, k)->SOLVE & compute::BX) == compute::BX) {
                retval += bGrid.get(i, j - 1, k)->at(fsgrids::bfield::PERBX);
                nCells++;
             }
-            if ((technicalGrid.get(i, j + 1, k)->SOLVE & compute::BX) == compute::BX)
-            {
+            if ((technicalGrid.get(i, j + 1, k)->SOLVE & compute::BX) == compute::BX) {
                retval += bGrid.get(i, j + 1, k)->at(fsgrids::bfield::PERBX);
                nCells++;
             }
-            if ((technicalGrid.get(i, j, k - 1)->SOLVE & compute::BX) == compute::BX)
-            {
+            if ((technicalGrid.get(i, j, k - 1)->SOLVE & compute::BX) == compute::BX) {
                retval += bGrid.get(i, j, k - 1)->at(fsgrids::bfield::PERBX);
                nCells++;
             }
-            if ((technicalGrid.get(i, j, k + 1)->SOLVE & compute::BX) == compute::BX)
-            {
+            if ((technicalGrid.get(i, j, k + 1)->SOLVE & compute::BX) == compute::BX) {
                retval += bGrid.get(i, j, k + 1)->at(fsgrids::bfield::PERBX);
                nCells++;
             }
-            if (nCells == 0)
-            {
-               for (int a = i - 1; a < i + 2; a++)
-               {
-                  for (int b = j - 1; b < j + 2; b++)
-                  {
-                     for (int c = k - 1; c < k + 2; c++)
-                     {
-                        if ((technicalGrid.get(a, b, c)->SOLVE & compute::BX) == compute::BX)
-                        {
+            if (nCells == 0) {
+               for (int a = i - 1; a < i + 2; a++) {
+                  for (int b = j - 1; b < j + 2; b++) {
+                     for (int c = k - 1; c < k + 2; c++) {
+                        if ((technicalGrid.get(a, b, c)->SOLVE & compute::BX) == compute::BX) {
                            retval += bGrid.get(a, b, c)->at(fsgrids::bfield::PERBX);
                            nCells++;
                         }
@@ -637,8 +546,7 @@ Real Ionosphere::fieldSolverBoundaryCondMagneticField(
                   }
                }
             }
-            if (nCells == 0)
-            {
+            if (nCells == 0) {
                cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
                return 0.0;
             }
@@ -646,53 +554,37 @@ Real Ionosphere::fieldSolverBoundaryCondMagneticField(
          }
       case 1:
          if ((technicalGrid.get(i, j - 1, k)->SOLVE & compute::BY) == compute::BY &&
-             (technicalGrid.get(i, j + 1, k)->SOLVE & compute::BY) == compute::BY)
-         {
+             (technicalGrid.get(i, j + 1, k)->SOLVE & compute::BY) == compute::BY) {
             return 0.5 * (bGrid.get(i, j - 1, k)->at(fsgrids::bfield::PERBY) +
                           bGrid.get(i, j + 1, k)->at(fsgrids::bfield::PERBY));
-         }
-         else if ((technicalGrid.get(i, j - 1, k)->SOLVE & compute::BY) == compute::BY)
-         {
+         } else if ((technicalGrid.get(i, j - 1, k)->SOLVE & compute::BY) == compute::BY) {
             return bGrid.get(i, j - 1, k)->at(fsgrids::bfield::PERBY);
-         }
-         else if ((technicalGrid.get(i, j + 1, k)->SOLVE & compute::BY) == compute::BY)
-         {
+         } else if ((technicalGrid.get(i, j + 1, k)->SOLVE & compute::BY) == compute::BY) {
             return bGrid.get(i, j + 1, k)->at(fsgrids::bfield::PERBY);
-         }
-         else
-         {
+         } else {
             Real retval = 0.0;
             uint nCells = 0;
-            if ((technicalGrid.get(i - 1, j, k)->SOLVE & compute::BY) == compute::BY)
-            {
+            if ((technicalGrid.get(i - 1, j, k)->SOLVE & compute::BY) == compute::BY) {
                retval += bGrid.get(i - 1, j, k)->at(fsgrids::bfield::PERBY);
                nCells++;
             }
-            if ((technicalGrid.get(i + 1, j, k)->SOLVE & compute::BY) == compute::BY)
-            {
+            if ((technicalGrid.get(i + 1, j, k)->SOLVE & compute::BY) == compute::BY) {
                retval += bGrid.get(i + 1, j, k)->at(fsgrids::bfield::PERBY);
                nCells++;
             }
-            if ((technicalGrid.get(i, j, k - 1)->SOLVE & compute::BY) == compute::BY)
-            {
+            if ((technicalGrid.get(i, j, k - 1)->SOLVE & compute::BY) == compute::BY) {
                retval += bGrid.get(i, j, k - 1)->at(fsgrids::bfield::PERBY);
                nCells++;
             }
-            if ((technicalGrid.get(i, j, k + 1)->SOLVE & compute::BY) == compute::BY)
-            {
+            if ((technicalGrid.get(i, j, k + 1)->SOLVE & compute::BY) == compute::BY) {
                retval += bGrid.get(i, j, k + 1)->at(fsgrids::bfield::PERBY);
                nCells++;
             }
-            if (nCells == 0)
-            {
-               for (int a = i - 1; a < i + 2; a++)
-               {
-                  for (int b = j - 1; b < j + 2; b++)
-                  {
-                     for (int c = k - 1; c < k + 2; c++)
-                     {
-                        if ((technicalGrid.get(a, b, c)->SOLVE & compute::BY) == compute::BY)
-                        {
+            if (nCells == 0) {
+               for (int a = i - 1; a < i + 2; a++) {
+                  for (int b = j - 1; b < j + 2; b++) {
+                     for (int c = k - 1; c < k + 2; c++) {
+                        if ((technicalGrid.get(a, b, c)->SOLVE & compute::BY) == compute::BY) {
                            retval += bGrid.get(a, b, c)->at(fsgrids::bfield::PERBY);
                            nCells++;
                         }
@@ -700,8 +592,7 @@ Real Ionosphere::fieldSolverBoundaryCondMagneticField(
                   }
                }
             }
-            if (nCells == 0)
-            {
+            if (nCells == 0) {
                cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
                return 0.0;
             }
@@ -709,53 +600,37 @@ Real Ionosphere::fieldSolverBoundaryCondMagneticField(
          }
       case 2:
          if ((technicalGrid.get(i, j, k - 1)->SOLVE & compute::BZ) == compute::BZ &&
-             (technicalGrid.get(i, j, k + 1)->SOLVE & compute::BZ) == compute::BZ)
-         {
+             (technicalGrid.get(i, j, k + 1)->SOLVE & compute::BZ) == compute::BZ) {
             return 0.5 * (bGrid.get(i, j, k - 1)->at(fsgrids::bfield::PERBZ) +
                           bGrid.get(i, j, k + 1)->at(fsgrids::bfield::PERBZ));
-         }
-         else if ((technicalGrid.get(i, j, k - 1)->SOLVE & compute::BZ) == compute::BZ)
-         {
+         } else if ((technicalGrid.get(i, j, k - 1)->SOLVE & compute::BZ) == compute::BZ) {
             return bGrid.get(i, j, k - 1)->at(fsgrids::bfield::PERBZ);
-         }
-         else if ((technicalGrid.get(i, j, k + 1)->SOLVE & compute::BZ) == compute::BZ)
-         {
+         } else if ((technicalGrid.get(i, j, k + 1)->SOLVE & compute::BZ) == compute::BZ) {
             return bGrid.get(i, j, k + 1)->at(fsgrids::bfield::PERBZ);
-         }
-         else
-         {
+         } else {
             Real retval = 0.0;
             uint nCells = 0;
-            if ((technicalGrid.get(i - 1, j, k)->SOLVE & compute::BZ) == compute::BZ)
-            {
+            if ((technicalGrid.get(i - 1, j, k)->SOLVE & compute::BZ) == compute::BZ) {
                retval += bGrid.get(i - 1, j, k)->at(fsgrids::bfield::PERBZ);
                nCells++;
             }
-            if ((technicalGrid.get(i + 1, j, k)->SOLVE & compute::BZ) == compute::BZ)
-            {
+            if ((technicalGrid.get(i + 1, j, k)->SOLVE & compute::BZ) == compute::BZ) {
                retval += bGrid.get(i + 1, j, k)->at(fsgrids::bfield::PERBZ);
                nCells++;
             }
-            if ((technicalGrid.get(i, j - 1, k)->SOLVE & compute::BZ) == compute::BZ)
-            {
+            if ((technicalGrid.get(i, j - 1, k)->SOLVE & compute::BZ) == compute::BZ) {
                retval += bGrid.get(i, j - 1, k)->at(fsgrids::bfield::PERBZ);
                nCells++;
             }
-            if ((technicalGrid.get(i, j + 1, k)->SOLVE & compute::BZ) == compute::BZ)
-            {
+            if ((technicalGrid.get(i, j + 1, k)->SOLVE & compute::BZ) == compute::BZ) {
                retval += bGrid.get(i, j + 1, k)->at(fsgrids::bfield::PERBZ);
                nCells++;
             }
-            if (nCells == 0)
-            {
-               for (int a = i - 1; a < i + 2; a++)
-               {
-                  for (int b = j - 1; b < j + 2; b++)
-                  {
-                     for (int c = k - 1; c < k + 2; c++)
-                     {
-                        if ((technicalGrid.get(a, b, c)->SOLVE & compute::BZ) == compute::BZ)
-                        {
+            if (nCells == 0) {
+               for (int a = i - 1; a < i + 2; a++) {
+                  for (int b = j - 1; b < j + 2; b++) {
+                     for (int c = k - 1; c < k + 2; c++) {
+                        if ((technicalGrid.get(a, b, c)->SOLVE & compute::BZ) == compute::BZ) {
                            retval += bGrid.get(a, b, c)->at(fsgrids::bfield::PERBZ);
                            nCells++;
                         }
@@ -763,8 +638,7 @@ Real Ionosphere::fieldSolverBoundaryCondMagneticField(
                   }
                }
             }
-            if (nCells == 0)
-            {
+            if (nCells == 0) {
                cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
                return 0.0;
             }
@@ -774,27 +648,20 @@ Real Ionosphere::fieldSolverBoundaryCondMagneticField(
          cerr << "ERROR: ionosphere boundary tried to copy nonsensical magnetic field component " << component << endl;
          return 0.0;
       }
-   }
-   else
-   { // L2 cells
+   } else { // L2 cells
       Real retval = 0.0;
       uint nCells = 0;
-      for (int a = i - 1; a < i + 2; a++)
-      {
-         for (int b = j - 1; b < j + 2; b++)
-         {
-            for (int c = k - 1; c < k + 2; c++)
-            {
-               if (technicalGrid.get(a, b, c)->boundaryLayer == 1)
-               {
+      for (int a = i - 1; a < i + 2; a++) {
+         for (int b = j - 1; b < j + 2; b++) {
+            for (int c = k - 1; c < k + 2; c++) {
+               if (technicalGrid.get(a, b, c)->boundaryLayer == 1) {
                   retval += bGrid.get(a, b, c)->at(fsgrids::bfield::PERBX + component);
                   nCells++;
                }
             }
          }
       }
-      if (nCells == 0)
-      {
+      if (nCells == 0) {
          cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
          return 0.0;
       }
@@ -804,18 +671,15 @@ Real Ionosphere::fieldSolverBoundaryCondMagneticField(
 
 void Ionosphere::fieldSolverBoundaryCondElectricField(
     FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> &EGrid, cint i, cint j, cint k,
-    cuint component)
-{
+    cuint component) {
    EGrid.get(i, j, k)->at(fsgrids::efield::EX + component) = 0.0;
 }
 
 void Ionosphere::fieldSolverBoundaryCondHallElectricField(
     FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> &EHallGrid, cint i, cint j, cint k,
-    cuint component)
-{
+    cuint component) {
    std::array<Real, fsgrids::ehall::N_EHALL> *cp = EHallGrid.get(i, j, k);
-   switch (component)
-   {
+   switch (component) {
    case 0:
       cp->at(fsgrids::ehall::EXHALL_000_100) = 0.0;
       cp->at(fsgrids::ehall::EXHALL_010_110) = 0.0;
@@ -841,32 +705,28 @@ void Ionosphere::fieldSolverBoundaryCondHallElectricField(
 }
 
 void Ionosphere::fieldSolverBoundaryCondGradPeElectricField(
-    FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> &EGradPeGrid, cint i, cint j, cint k, cuint component)
-{
+    FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> &EGradPeGrid, cint i, cint j, cint k, cuint component) {
    EGradPeGrid.get(i, j, k)->at(fsgrids::egradpe::EXGRADPE + component) = 0.0;
 }
 
 void Ionosphere::fieldSolverBoundaryCondDerivatives(
     FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> &dPerBGrid,
     FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> &dMomentsGrid, cint i, cint j, cint k,
-    cuint RKCase, cuint component)
-{
+    cuint RKCase, cuint component) {
    this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
    return;
 }
 
 void Ionosphere::fieldSolverBoundaryCondBVOLDerivatives(
     FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> &volGrid, cint i, cint j, cint k,
-    cuint component)
-{
+    cuint component) {
    // FIXME This should be OK as the BVOL derivatives are only used for Lorentz force JXB, which is not applied on the
    // ionosphere cells.
    this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
 }
 
 void Ionosphere::vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                         const CellID &cellID, const uint popID, const bool calculate_V_moments)
-{
+                                         const CellID &cellID, const uint popID, const bool calculate_V_moments) {
    phiprof::start("vlasovBoundaryCondition (Ionosphere)");
    this->vlasovBoundaryFluffyCopyFromAllCloseNbrs(mpiGrid, cellID, popID, calculate_V_moments,
                                                   this->speciesParams[popID].fluffiness);
@@ -877,8 +737,7 @@ void Ionosphere::vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::
  * NOTE: This function must initialize all particle species!
  * @param project
  */
-void Ionosphere::generateTemplateCell(Project &project)
-{
+void Ionosphere::generateTemplateCell(Project &project) {
    // WARNING not 0.0 here or the dipole() function fails miserably.
    templateCell.boundaryFlag = this->getIndex();
    templateCell.boundaryLayer = 1;
@@ -890,14 +749,12 @@ void Ionosphere::generateTemplateCell(Project &project)
    templateCell.parameters[CellParams::DZ] = 1;
 
    // Loop over particle species
-   for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID)
-   {
+   for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
       const IonosphereSpeciesParameters &sP = this->speciesParams[popID];
       const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(templateCell, popID);
       Realf *data = templateCell.get_data(popID);
 
-      for (size_t i = 0; i < blocksToInitialize.size(); i++)
-      {
+      for (size_t i = 0; i < blocksToInitialize.size(); i++) {
          const vmesh::GlobalID blockGID = blocksToInitialize.at(i);
          const vmesh::LocalID blockLID = templateCell.get_velocity_block_local_id(blockGID, popID);
          const Real *block_parameters = templateCell.get_block_parameters(blockLID, popID);
@@ -918,34 +775,28 @@ void Ionosphere::generateTemplateCell(Project &project)
          // Calculate volume average of distrib. function for each cell in the block.
          for (uint kc = 0; kc < WID; ++kc)
             for (uint jc = 0; jc < WID; ++jc)
-               for (uint ic = 0; ic < WID; ++ic)
-               {
+               for (uint ic = 0; ic < WID; ++ic) {
                   creal vxCell = vxBlock + ic * dvxCell;
                   creal vyCell = vyBlock + jc * dvyCell;
                   creal vzCell = vzBlock + kc * dvzCell;
                   Real average = 0.0;
-                  if (sP.nVelocitySamples > 1)
-                  {
+                  if (sP.nVelocitySamples > 1) {
                      creal d_vx = dvxCell / (sP.nVelocitySamples - 1);
                      creal d_vy = dvyCell / (sP.nVelocitySamples - 1);
                      creal d_vz = dvzCell / (sP.nVelocitySamples - 1);
                      for (uint vi = 0; vi < sP.nVelocitySamples; ++vi)
                         for (uint vj = 0; vj < sP.nVelocitySamples; ++vj)
-                           for (uint vk = 0; vk < sP.nVelocitySamples; ++vk)
-                           {
+                           for (uint vk = 0; vk < sP.nVelocitySamples; ++vk) {
                               average += shiftedMaxwellianDistribution(popID, vxCell + vi * d_vx, vyCell + vj * d_vy,
                                                                        vzCell + vk * d_vz);
                            }
                      average /= sP.nVelocitySamples * sP.nVelocitySamples * sP.nVelocitySamples;
-                  }
-                  else
-                  {
+                  } else {
                      average = shiftedMaxwellianDistribution(popID, vxCell + 0.5 * dvxCell, vyCell + 0.5 * dvyCell,
                                                              vzCell + 0.5 * dvzCell);
                   }
 
-                  if (average != 0.0)
-                  {
+                  if (average != 0.0) {
                      data[blockLID * WID3 + cellIndex(ic, jc, kc)] = average;
                   }
                } // for-loop over cells in velocity block
@@ -976,8 +827,7 @@ void Ionosphere::generateTemplateCell(Project &project)
    templateCell.parameters[CellParams::P_33_V] = templateCell.parameters[CellParams::P_33];
 }
 
-Real Ionosphere::shiftedMaxwellianDistribution(const uint popID, creal &vx, creal &vy, creal &vz)
-{
+Real Ionosphere::shiftedMaxwellianDistribution(const uint popID, creal &vx, creal &vy, creal &vz) {
 
    const Real MASS = getObjectWrapper().particleSpecies[popID].mass;
    const IonosphereSpeciesParameters &sP = this->speciesParams[popID];
@@ -989,8 +839,7 @@ Real Ionosphere::shiftedMaxwellianDistribution(const uint popID, creal &vx, crea
               (2.0 * physicalconstants::K_B * sP.T));
 }
 
-std::vector<vmesh::GlobalID> Ionosphere::findBlocksToInitialize(spatial_cell::SpatialCell &cell, const uint popID)
-{
+std::vector<vmesh::GlobalID> Ionosphere::findBlocksToInitialize(spatial_cell::SpatialCell &cell, const uint popID) {
    vector<vmesh::GlobalID> blocksToInitialize;
    bool search = true;
    uint counter = 0;
@@ -998,14 +847,12 @@ std::vector<vmesh::GlobalID> Ionosphere::findBlocksToInitialize(spatial_cell::Sp
 
    const vmesh::LocalID *vblocks_ini = cell.get_velocity_grid_length(popID, refLevel);
 
-   while (search)
-   {
+   while (search) {
 #warning TODO: add SpatialCell::getVelocityBlockMinValue() in place of sparseMinValue ? (if applicable)
       if (0.1 * getObjectWrapper().particleSpecies[popID].sparseMinValue >
               shiftedMaxwellianDistribution(popID, counter * cell.get_velocity_grid_block_size(popID, refLevel)[0], 0.0,
                                             0.0) ||
-          counter > vblocks_ini[0])
-      {
+          counter > vblocks_ini[0]) {
          search = false;
       }
       ++counter;
@@ -1016,8 +863,7 @@ std::vector<vmesh::GlobalID> Ionosphere::findBlocksToInitialize(spatial_cell::Sp
 
    for (uint kv = 0; kv < vblocks_ini[2]; ++kv)
       for (uint jv = 0; jv < vblocks_ini[1]; ++jv)
-         for (uint iv = 0; iv < vblocks_ini[0]; ++iv)
-         {
+         for (uint iv = 0; iv < vblocks_ini[0]; ++iv) {
             vmesh::LocalID blockIndices[3];
             blockIndices[0] = iv;
             blockIndices[1] = jv;
@@ -1035,8 +881,7 @@ std::vector<vmesh::GlobalID> Ionosphere::findBlocksToInitialize(spatial_cell::Sp
             // P::vzmin + (kv+0.5) * cell.get_velocity_grid_block_size(popID)[2]; // vz-
 
             if (blockCoords[0] * blockCoords[0] + blockCoords[1] * blockCoords[1] + blockCoords[2] * blockCoords[2] <
-                vRadiusSquared)
-            {
+                vRadiusSquared) {
                // if (vx*vx + vy*vy + vz*vz < vRadiusSquared) {
                // Adds velocity block to active population's velocity mesh
                // const vmesh::GlobalID newBlockGID = cell.get_velocity_block(popID,vx,vy,vz);
@@ -1048,8 +893,7 @@ std::vector<vmesh::GlobalID> Ionosphere::findBlocksToInitialize(spatial_cell::Sp
    return blocksToInitialize;
 }
 
-void Ionosphere::setCellFromTemplate(SpatialCell *cell, const uint popID)
-{
+void Ionosphere::setCellFromTemplate(SpatialCell *cell, const uint popID) {
    copyCellData(&templateCell, cell, false, popID, true); // copy also vdf, _V
    copyCellData(&templateCell, cell, true, popID, false); // don't copy vdf again but copy _R now
 }

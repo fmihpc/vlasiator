@@ -211,9 +211,9 @@ namespace DRO {
    }
    
    bool VariableBVol::setSpatialCell(const SpatialCell* cell) {
-      B[0] = cell->parameters[CellParams::PERBXVOL] +  cell->parameters[CellParams::BGBXVOL];
-      B[1] = cell->parameters[CellParams::PERBYVOL] +  cell->parameters[CellParams::BGBYVOL];
-      B[2] = cell->parameters[CellParams::PERBZVOL] +  cell->parameters[CellParams::BGBZVOL];
+      B[0] = cell->parameters[CellParams::PERBXVOL] + cell->parameters[CellParams::BGBXVOL];
+      B[1] = cell->parameters[CellParams::PERBYVOL] + cell->parameters[CellParams::BGBYVOL];
+      B[2] = cell->parameters[CellParams::PERBZVOL] + cell->parameters[CellParams::BGBZVOL];
       if(std::isinf(B[0]) || std::isnan(B[0]) ||
          std::isinf(B[1]) || std::isnan(B[1]) ||
          std::isinf(B[2]) || std::isnan(B[2])

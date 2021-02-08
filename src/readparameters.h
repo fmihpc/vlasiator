@@ -33,8 +33,7 @@
 using std::string;
 using std::vector;
 
-struct Readparameters
-{
+struct Readparameters {
    Readparameters(int argc, char *argv[], MPI_Comm comm);
    static void add(const string &name, const string &desc, const string &defValue);
    static void add(const string &name, const string &desc, const bool &defValue);

@@ -357,18 +357,10 @@ void BoundaryCondition::copyCellData(SpatialCell *from, SpatialCell *to, const b
       if (doCalcMomentsV)
       {
          to->get_population(popID).RHO_V = from->get_population(popID).RHO_V;
-         // hyzhou
-         cout << "Do we touch here? CalcMomentsV" << endl;
       }
       else
       {
          to->get_population(popID).RHO_R = from->get_population(popID).RHO_R;
-         // hyzhou
-         // cout << "Do we touch here? CalcMomentsR, popID = " << popID << endl;
-         // cout << "RHOM_R = " << from->parameters[CellParams::RHOM_R]/1.67262e-27 << endl;
-         // cout << "RHOM_V = " << from->parameters[CellParams::RHOM_V]/1.67262e-27 << endl;
-         // cout << "RHO_R = " << from->get_population(popID).RHO_R << endl;
-         // cout << "RHO_V = " << from->get_population(popID).RHO_V << endl;
       }
 
       for (uint i = 0; i < 3; i++)

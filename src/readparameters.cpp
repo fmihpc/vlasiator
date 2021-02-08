@@ -59,12 +59,10 @@ int Readparameters::rank;
 MPI_Comm Readparameters::comm;
 
 /*! Helper function for error handling. err_type default to 0.*/
-void abort_mpi(const string str, const int err_type = 0)
-{
+void abort_mpi(const string str, const int err_type = 0) {
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-   if (myRank == MASTER_RANK)
-   {
+   if (myRank == MASTER_RANK) {
       if (err_type == 0)
          cerr << str << endl;
       else
@@ -80,17 +78,14 @@ void abort_mpi(const string str, const int err_type = 0)
  * @param argv Command line argv.
  * @param mpicomm Communicator for processes that will access options
  */
-Readparameters::Readparameters(int argc, char *argv[], MPI_Comm mpicomm)
-{
+Readparameters::Readparameters(int argc, char *argv[], MPI_Comm mpicomm) {
    Readparameters::argc = argc;
    Readparameters::argv = argv;
    MPI_Comm_dup(mpicomm, &(Readparameters::comm));
    MPI_Comm_rank(Readparameters::comm, &(Readparameters::rank));
 
-   if (Readparameters::rank == MASTER_RANK)
-   {
-      if (!isInit)
-      {
+   if (Readparameters::rank == MASTER_RANK) {
+      if (!isInit) {
          descriptions = new PO::options_description("Usage: main [options (options given on the command line override "
                                                     "options given everywhere else)], where options are:",
                                                     160);
@@ -105,9 +100,7 @@ Readparameters::Readparameters(int argc, char *argv[], MPI_Comm mpicomm)
          helpRequested = (variables->count("help") > 0);
          MPI_Bcast(&helpRequested, sizeof(bool), MPI_BYTE, 0, MPI_COMM_WORLD);
       }
-   }
-   else
-   {
+   } else {
       descriptions = NULL;
       variables = NULL;
       MPI_Bcast(&helpRequested, sizeof(bool), MPI_BYTE, 0, MPI_COMM_WORLD);
@@ -126,12 +119,11 @@ Readparameters::Readparameters(int argc, char *argv[], MPI_Comm mpicomm)
  * @param desc Description for the parameter.
  * @param defValue Default value for variable var.
  */
-void Readparameters::add(const string &name, const string &desc, const std::string &defValue)
-{
-   if (!isInit) abort_mpi("Readparameter Class not initialized!");
+void Readparameters::add(const string &name, const string &desc, const std::string &defValue) {
+   if (!isInit)
+      abort_mpi("Readparameter Class not initialized!");
 
-   if (rank == MASTER_RANK)
-   {
+   if (rank == MASTER_RANK) {
       options[name] = "";
       isOptionParsed[name] = false;
       descriptions->add_options()(name.c_str(), PO::value<string>(&(options[name]))->default_value(defValue),
@@ -139,14 +131,13 @@ void Readparameters::add(const string &name, const string &desc, const std::stri
    }
 }
 
-void Readparameters::add(const string &name, const string &desc, const bool &defValue)
-{
-   if (!isInit) abort_mpi("Readparameter Class not initialized!");
+void Readparameters::add(const string &name, const string &desc, const bool &defValue) {
+   if (!isInit)
+      abort_mpi("Readparameter Class not initialized!");
    stringstream ss;
    ss << defValue;
 
-   if (rank == MASTER_RANK)
-   {
+   if (rank == MASTER_RANK) {
       options[name] = "";
       isOptionParsed[name] = false;
       descriptions->add_options()(name.c_str(), PO::value<string>(&(options[name]))->default_value(ss.str()),
@@ -154,14 +145,13 @@ void Readparameters::add(const string &name, const string &desc, const bool &def
    }
 }
 
-void Readparameters::add(const string &name, const string &desc, const int &defValue)
-{
-   if (!isInit) abort_mpi("Readparameter Class not initialized!");
+void Readparameters::add(const string &name, const string &desc, const int &defValue) {
+   if (!isInit)
+      abort_mpi("Readparameter Class not initialized!");
    stringstream ss;
    ss << defValue;
 
-   if (rank == MASTER_RANK)
-   {
+   if (rank == MASTER_RANK) {
       options[name] = "";
       isOptionParsed[name] = false;
       descriptions->add_options()(name.c_str(), PO::value<string>(&(options[name]))->default_value(ss.str()),
@@ -169,14 +159,13 @@ void Readparameters::add(const string &name, const string &desc, const int &defV
    }
 }
 
-void Readparameters::add(const string &name, const string &desc, const unsigned int &defValue)
-{
-   if (!isInit) abort_mpi("Readparameter Class not initialized!");
+void Readparameters::add(const string &name, const string &desc, const unsigned int &defValue) {
+   if (!isInit)
+      abort_mpi("Readparameter Class not initialized!");
    stringstream ss;
    ss << defValue;
 
-   if (rank == MASTER_RANK)
-   {
+   if (rank == MASTER_RANK) {
       options[name] = "";
       isOptionParsed[name] = false;
       descriptions->add_options()(name.c_str(), PO::value<string>(&(options[name]))->default_value(ss.str()),
@@ -184,14 +173,13 @@ void Readparameters::add(const string &name, const string &desc, const unsigned 
    }
 }
 
-void Readparameters::add(const string &name, const string &desc, const float &defValue)
-{
-   if (!isInit) abort_mpi("Readparameter Class not initialized!");
+void Readparameters::add(const string &name, const string &desc, const float &defValue) {
+   if (!isInit)
+      abort_mpi("Readparameter Class not initialized!");
    stringstream ss;
    // set full precision
    ss << setprecision(numeric_limits<float>::digits10 + 1) << defValue;
-   if (rank == MASTER_RANK)
-   {
+   if (rank == MASTER_RANK) {
       options[name] = "";
       isOptionParsed[name] = false;
       descriptions->add_options()(name.c_str(), PO::value<string>(&(options[name]))->default_value(ss.str()),
@@ -199,15 +187,14 @@ void Readparameters::add(const string &name, const string &desc, const float &de
    }
 }
 
-void Readparameters::add(const string &name, const string &desc, const double &defValue)
-{
-   if (!isInit) abort_mpi("Readparameter Class not initialized!");
+void Readparameters::add(const string &name, const string &desc, const double &defValue) {
+   if (!isInit)
+      abort_mpi("Readparameter Class not initialized!");
    stringstream ss;
 
    // set full precision
    ss << setprecision(numeric_limits<double>::digits10 + 1) << defValue;
-   if (rank == MASTER_RANK)
-   {
+   if (rank == MASTER_RANK) {
       options[name] = "";
       isOptionParsed[name] = false;
       descriptions->add_options()(name.c_str(), PO::value<string>(&(options[name]))->default_value(ss.str()),
@@ -222,12 +209,11 @@ void Readparameters::add(const string &name, const string &desc, const double &d
  * @param name The name of the parameter, as given in the input file(s).
  * @param desc Description for the parameter.
  */
-void Readparameters::addComposing(const string &name, const string &desc)
-{
-   if (!isInit) abort_mpi("Readparameter Class not initialized!");
+void Readparameters::addComposing(const string &name, const string &desc) {
+   if (!isInit)
+      abort_mpi("Readparameter Class not initialized!");
 
-   if (rank == MASTER_RANK)
-   {
+   if (rank == MASTER_RANK) {
       isVectorOptionParsed[name] = false;
       descriptions->add_options()(name.c_str(), PO::value<vector<string>>(&(vectorOptions[name]))->composing(),
                                   desc.c_str());
@@ -235,11 +221,10 @@ void Readparameters::addComposing(const string &name, const string &desc)
 }
 
 // add names of input files
-void Readparameters::addDefaultParameters()
-{
-   if (!isInit) abort_mpi("Readparameter Class not initialized!");
-   if (rank == MASTER_RANK)
-   {
+void Readparameters::addDefaultParameters() {
+   if (!isInit)
+      abort_mpi("Readparameter Class not initialized!");
+   if (rank == MASTER_RANK) {
       descriptions->add_options()("help", "print this help message");
       descriptions->add_options()("version", "print version information");
 
@@ -265,10 +250,8 @@ void Readparameters::addDefaultParameters()
 /** Deallocate memory reserved by Parameters.
  * @return If true, class Parameters finalized successfully.
  */
-void Readparameters::finalize()
-{
-   if (rank == MASTER_RANK)
-   {
+void Readparameters::finalize() {
+   if (rank == MASTER_RANK) {
       delete descriptions;
       delete variables;
       descriptions = NULL;
@@ -283,14 +266,10 @@ void Readparameters::finalize()
  * @param name The name of the parameter.
  * @param value A variable where the value of the parameter is written.
  */
-void Readparameters::get(const std::string &name, std::vector<std::string> &value)
-{
-   if (vectorOptions.find(name) != vectorOptions.end())
-   { // check if it exists
+void Readparameters::get(const std::string &name, std::vector<std::string> &value) {
+   if (vectorOptions.find(name) != vectorOptions.end()) { // check if it exists
       value = vectorOptions[name];
-   }
-   else
-   {
+   } else {
       abort_mpi(name + " not found in the configuration file!", 1);
    }
 }
@@ -301,38 +280,29 @@ void Readparameters::get(const std::string &name, std::vector<std::string> &valu
  * @param name The name of the parameter.
  * @param value A variable where the value of the parameter is written.
  */
-void Readparameters::get(const std::string &name, std::vector<int> &value)
-{
+void Readparameters::get(const std::string &name, std::vector<int> &value) {
    vector<string> stringValue;
    Readparameters::get(name, stringValue);
 
-   for (vector<string>::iterator i = stringValue.begin(); i != stringValue.end(); ++i)
-   {
-      try
-      {
+   for (vector<string>::iterator i = stringValue.begin(); i != stringValue.end(); ++i) {
+      try {
          value.push_back(lexical_cast<int>(*i));
-      }
-      catch (...)
-      {
-         if (Readparameters::rank == 0) cerr << "Problems casting value to int " << name << " = " << *i << endl;
+      } catch (...) {
+         if (Readparameters::rank == 0)
+            cerr << "Problems casting value to int " << name << " = " << *i << endl;
          MPI_Abort(MPI_COMM_WORLD, 1);
       }
    }
 }
 
-void Readparameters::get(const std::string &name, std::vector<unsigned int> &value)
-{
+void Readparameters::get(const std::string &name, std::vector<unsigned int> &value) {
    vector<string> stringValue;
    Readparameters::get(name, stringValue);
 
-   for (vector<string>::iterator i = stringValue.begin(); i != stringValue.end(); ++i)
-   {
-      try
-      {
+   for (vector<string>::iterator i = stringValue.begin(); i != stringValue.end(); ++i) {
+      try {
          value.push_back(lexical_cast<unsigned int>(*i));
-      }
-      catch (...)
-      {
+      } catch (...) {
          if (Readparameters::rank == 0)
             cerr << "Problems casting value to unsigned int " << name << " = " << *i << endl;
          MPI_Abort(MPI_COMM_WORLD, 1);
@@ -340,39 +310,31 @@ void Readparameters::get(const std::string &name, std::vector<unsigned int> &val
    }
 }
 
-void Readparameters::get(const std::string &name, std::vector<float> &value)
-{
+void Readparameters::get(const std::string &name, std::vector<float> &value) {
    vector<string> stringValue;
    Readparameters::get(name, stringValue);
 
-   for (vector<string>::iterator i = stringValue.begin(); i != stringValue.end(); ++i)
-   {
-      try
-      {
+   for (vector<string>::iterator i = stringValue.begin(); i != stringValue.end(); ++i) {
+      try {
          value.push_back(lexical_cast<float>(*i));
-      }
-      catch (...)
-      {
-         if (Readparameters::rank == 0) cerr << "Problems casting value to float " << name << " = " << *i << endl;
+      } catch (...) {
+         if (Readparameters::rank == 0)
+            cerr << "Problems casting value to float " << name << " = " << *i << endl;
          MPI_Abort(MPI_COMM_WORLD, 1);
       }
    }
 }
 
-void Readparameters::get(const std::string &name, std::vector<double> &value)
-{
+void Readparameters::get(const std::string &name, std::vector<double> &value) {
    vector<string> stringValue;
    Readparameters::get(name, stringValue);
 
-   for (vector<string>::iterator i = stringValue.begin(); i != stringValue.end(); ++i)
-   {
-      try
-      {
+   for (vector<string>::iterator i = stringValue.begin(); i != stringValue.end(); ++i) {
+      try {
          value.push_back(lexical_cast<double>(*i));
-      }
-      catch (...)
-      {
-         if (Readparameters::rank == 0) cerr << "Problems casting value to double " << name << " = " << *i << endl;
+      } catch (...) {
+         if (Readparameters::rank == 0)
+            cerr << "Problems casting value to double " << name << " = " << *i << endl;
          MPI_Abort(MPI_COMM_WORLD, 1);
       }
    }
@@ -384,111 +346,88 @@ void Readparameters::get(const std::string &name, std::vector<double> &value)
  * @param name The name of the parameter.
  * @param value A variable where the value of the parameter is written.
  */
-void Readparameters::get(const std::string &name, std::string &value)
-{
-   if (options.find(name) != options.end())
-   { // check if it exists
+void Readparameters::get(const std::string &name, std::string &value) {
+   if (options.find(name) != options.end()) { // check if it exists
       value = options[name];
-   }
-   else
-   {
+   } else {
       abort_mpi(name + " not found in the configuration file!", 1);
    }
 }
 
-void Readparameters::get(const std::string &name, bool &value)
-{
+void Readparameters::get(const std::string &name, bool &value) {
    string sval;
    Readparameters::get(name, sval);
 
-   try
-   {
+   try {
       value = lexical_cast<bool>(sval);
-   }
-   catch (...)
-   {
-      if (Readparameters::rank == 0) cerr << "Problems casting value to bool " << name << " = " << sval << endl;
+   } catch (...) {
+      if (Readparameters::rank == 0)
+         cerr << "Problems casting value to bool " << name << " = " << sval << endl;
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
 }
 
-void Readparameters::get(const std::string &name, int &value)
-{
+void Readparameters::get(const std::string &name, int &value) {
    string sval;
    Readparameters::get(name, sval);
 
-   try
-   {
+   try {
       value = lexical_cast<int>(sval);
-   }
-   catch (...)
-   {
-      if (Readparameters::rank == 0) cerr << "Problems casting value to int " << name << " = " << sval << endl;
+   } catch (...) {
+      if (Readparameters::rank == 0)
+         cerr << "Problems casting value to int " << name << " = " << sval << endl;
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
 }
 
-void Readparameters::get(const std::string &name, unsigned int &value)
-{
+void Readparameters::get(const std::string &name, unsigned int &value) {
    string sval;
    Readparameters::get(name, sval);
 
-   try
-   {
+   try {
       value = lexical_cast<unsigned int>(sval);
-   }
-   catch (...)
-   {
-      if (Readparameters::rank == 0) cerr << "Problems casting value to unsigned int " << name << " = " << sval << endl;
+   } catch (...) {
+      if (Readparameters::rank == 0)
+         cerr << "Problems casting value to unsigned int " << name << " = " << sval << endl;
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
 }
 
-void Readparameters::get(const std::string &name, unsigned long &value)
-{
+void Readparameters::get(const std::string &name, unsigned long &value) {
    string sval;
    Readparameters::get(name, sval);
 
-   try
-   {
+   try {
       value = lexical_cast<unsigned long>(sval);
-   }
-   catch (...)
-   {
+   } catch (...) {
       if (Readparameters::rank == 0)
          cerr << "Problems casting value to unsigned long " << name << " = " << sval << endl;
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
 }
 
-void Readparameters::get(const std::string &name, float &value)
-{
+void Readparameters::get(const std::string &name, float &value) {
    string sval;
    Readparameters::get(name, sval);
 
-   try
-   {
+   try {
       value = lexical_cast<float>(sval);
-   }
-   catch (...)
-   {
-      if (Readparameters::rank == 0) cerr << "Problems casting value to float " << name << " = " << sval << endl;
+   } catch (...) {
+      if (Readparameters::rank == 0)
+         cerr << "Problems casting value to float " << name << " = " << sval << endl;
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
 }
 
-void Readparameters::get(const std::string &name, double &value)
-{
+void Readparameters::get(const std::string &name, double &value) {
    string sval;
    Readparameters::get(name, sval);
 
-   try
-   {
+   try {
       value = lexical_cast<double>(sval);
-   }
-   catch (...)
-   {
-      if (Readparameters::rank == 0) cerr << "Problems casting value to double " << name << " = " << sval << endl;
+   } catch (...) {
+      if (Readparameters::rank == 0)
+         cerr << "Problems casting value to double " << name << " = " << sval << endl;
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
 }
@@ -496,12 +435,9 @@ void Readparameters::get(const std::string &name, double &value)
 /** Write the descriptions of known input options to standard output if
  * an option called "help" has been read, and exit in that case.
  */
-void Readparameters::helpMessage()
-{
-   if (helpRequested)
-   {
-      if (rank == MASTER_RANK)
-      {
+void Readparameters::helpMessage() {
+   if (helpRequested) {
+      if (rank == MASTER_RANK) {
          cout << *descriptions << endl;
       }
       MPI_Finalize();
@@ -514,12 +450,9 @@ void Readparameters::helpMessage()
  * @return If true, option called "version" was found and descriptions were
  * written to standard output.
  */
-bool Readparameters::versionMessage()
-{
-   if (rank == MASTER_RANK)
-   {
-      if (variables->count("version") > 0)
-      {
+bool Readparameters::versionMessage() {
+   if (rank == MASTER_RANK) {
+      if (variables->count("version") > 0) {
          printVersion();
          return true;
       }
@@ -541,13 +474,12 @@ bool Readparameters::isInitialized() { return isInit; }
  * file (esm: vlasiator can't, but particle pusher can)
  * @return If true, input file(s) were parsed successfully.
  */
-bool Readparameters::parse(const bool needsRunConfig)
-{
-   if (!isInit) return false;
+bool Readparameters::parse(const bool needsRunConfig) {
+   if (!isInit)
+      return false;
    // Tell Boost to allow undescribed options (throws exception otherwise)
 
-   if (rank == MASTER_RANK)
-   {
+   if (rank == MASTER_RANK) {
       const bool ALLOW_UNKNOWN = true;
       // Read options from command line: Duplicated in constructor for help message processing
       PO::store(PO::parse_command_line(argc, argv, *descriptions), *variables);
@@ -556,51 +488,39 @@ bool Readparameters::parse(const bool needsRunConfig)
       PO::store(PO::parse_environment(*descriptions, "MAIN_"), *variables);
       PO::notify(*variables);
       // Read options from run config file:
-      if (run_config_file_name.size() > 0)
-      {
+      if (run_config_file_name.size() > 0) {
          ifstream run_config_file(run_config_file_name.c_str(), fstream::in);
-         if (run_config_file.good() == true)
-         {
+         if (run_config_file.good() == true) {
             PO::store(PO::parse_config_file(run_config_file, *descriptions, ALLOW_UNKNOWN), *variables);
             PO::notify(*variables);
             run_config_file.close();
-         }
-         else
-         {
+         } else {
             if (Readparameters::rank == 0)
                cerr << "Couldn't open or read run config file " << run_config_file_name << endl;
             abort();
          }
       }
       // Read options from user config file:
-      if (user_config_file_name.size() > 0)
-      {
+      if (user_config_file_name.size() > 0) {
          ifstream user_config_file(user_config_file_name.c_str(), fstream::in);
-         if (user_config_file.good() == true)
-         {
+         if (user_config_file.good() == true) {
             PO::store(PO::parse_config_file(user_config_file, *descriptions, ALLOW_UNKNOWN), *variables);
             PO::notify(*variables);
             user_config_file.close();
-         }
-         else
-         {
+         } else {
             if (Readparameters::rank == 0)
                cerr << "Couldn't open or read user config file " << user_config_file_name << endl;
             abort();
          }
       }
       // Read options from global config file:
-      if (global_config_file_name.size() > 0)
-      {
+      if (global_config_file_name.size() > 0) {
          ifstream global_config_file(global_config_file_name.c_str(), fstream::in);
-         if (global_config_file.good() == true)
-         {
+         if (global_config_file.good() == true) {
             PO::store(PO::parse_config_file(global_config_file, *descriptions, ALLOW_UNKNOWN), *variables);
             PO::notify(*variables);
             global_config_file.close();
-         }
-         else
-         {
+         } else {
             if (Readparameters::rank == 0)
                cerr << "Couldn't open or read global config file " << global_config_file_name << endl;
             abort();
@@ -611,8 +531,7 @@ bool Readparameters::parse(const bool needsRunConfig)
    // Check if the user has specified --version
    bool hasVersionOption = versionMessage();
    MPI_Bcast(&hasVersionOption, sizeof(bool), MPI_BYTE, 0, MPI_COMM_WORLD);
-   if (hasVersionOption)
-   {
+   if (hasVersionOption) {
       MPI_Finalize();
       exit(0);
    }
@@ -624,10 +543,8 @@ bool Readparameters::parse(const bool needsRunConfig)
    // on with nasty error messages.
    bool hasRunConfigFile = (run_config_file_name.size() > 0);
    MPI_Bcast(&hasRunConfigFile, sizeof(bool), MPI_BYTE, 0, MPI_COMM_WORLD);
-   if (needsRunConfig && !hasRunConfigFile && !helpRequested)
-   {
-      if (Readparameters::rank == MASTER_RANK)
-      {
+   if (needsRunConfig && !hasRunConfigFile && !helpRequested) {
+      if (Readparameters::rank == MASTER_RANK) {
          cout << "Run config file required. Use --help to list all options" << endl;
       }
       MPI_Finalize();
@@ -649,24 +566,20 @@ bool Readparameters::parse(const bool needsRunConfig)
    */
 
    // count number of options not parsed/broarcasted previously
-   if (rank == MASTER_RANK)
-   {
+   if (rank == MASTER_RANK) {
       nOptionsToBroadcast = 0;
-      for (map<string, bool>::iterator ip = isOptionParsed.begin(); ip != isOptionParsed.end(); ++ip)
-      {
-         if (!ip->second) nOptionsToBroadcast++;
+      for (map<string, bool>::iterator ip = isOptionParsed.begin(); ip != isOptionParsed.end(); ++ip) {
+         if (!ip->second)
+            nOptionsToBroadcast++;
       }
    }
 
    MPI_Bcast(&nOptionsToBroadcast, 1, MPI_INT, 0, MPI_COMM_WORLD);
-   if (rank == MASTER_RANK)
-   {
+   if (rank == MASTER_RANK) {
       // iterate through map and bcast cstrings of key/value pairs not parsed before
-      for (map<string, string>::iterator p = options.begin(); p != options.end(); ++p)
-      {
+      for (map<string, string>::iterator p = options.begin(); p != options.end(); ++p) {
 
-         if (!isOptionParsed[p->first])
-         {
+         if (!isOptionParsed[p->first]) {
             strncpy(name, p->first.c_str(), maxStringLength - 1);
             strncpy(value, p->second.c_str(), maxStringLength - 1);
             MPI_Bcast(name, maxStringLength, MPI_CHAR, 0, MPI_COMM_WORLD);
@@ -674,12 +587,9 @@ bool Readparameters::parse(const bool needsRunConfig)
             isOptionParsed[p->first] = true;
          }
       }
-   }
-   else
-   {
+   } else {
       // reveive new options
-      for (int p = 0; p < nOptionsToBroadcast; p++)
-      {
+      for (int p = 0; p < nOptionsToBroadcast; p++) {
          MPI_Bcast(name, maxStringLength, MPI_CHAR, 0, MPI_COMM_WORLD);
          MPI_Bcast(value, maxStringLength, MPI_CHAR, 0, MPI_COMM_WORLD);
          string sName(name);
@@ -695,47 +605,39 @@ bool Readparameters::parse(const bool needsRunConfig)
    */
 
    // count number of vector options not parsed/broarcasted previously
-   if (rank == MASTER_RANK)
-   {
+   if (rank == MASTER_RANK) {
       nOptionsToBroadcast = 0;
-      for (map<string, bool>::iterator ip = isVectorOptionParsed.begin(); ip != isVectorOptionParsed.end(); ++ip)
-      {
-         if (!ip->second) nOptionsToBroadcast++;
+      for (map<string, bool>::iterator ip = isVectorOptionParsed.begin(); ip != isVectorOptionParsed.end(); ++ip) {
+         if (!ip->second)
+            nOptionsToBroadcast++;
       }
    }
 
    // root broadcasts its new vector values
    MPI_Bcast(&nOptionsToBroadcast, 1, MPI_INT, 0, MPI_COMM_WORLD);
-   if (rank == MASTER_RANK)
-   {
+   if (rank == MASTER_RANK) {
       // iterate through map and bcast cstrings of key/value pairs not parsed before
-      for (map<string, vector<string>>::iterator p = vectorOptions.begin(); p != vectorOptions.end(); ++p)
-      {
-         if (!isVectorOptionParsed[p->first])
-         {
+      for (map<string, vector<string>>::iterator p = vectorOptions.begin(); p != vectorOptions.end(); ++p) {
+         if (!isVectorOptionParsed[p->first]) {
             strncpy(name, p->first.c_str(), maxStringLength - 1);
             MPI_Bcast(name, maxStringLength, MPI_CHAR, 0, MPI_COMM_WORLD);
             vectorSize = vectorOptions[p->first].size();
             MPI_Bcast(&vectorSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
-            for (vector<string>::iterator v = vectorOptions[p->first].begin(); v != vectorOptions[p->first].end(); ++v)
-            {
+            for (vector<string>::iterator v = vectorOptions[p->first].begin(); v != vectorOptions[p->first].end();
+                 ++v) {
                strncpy(value, v->c_str(), maxStringLength - 1);
                MPI_Bcast(value, maxStringLength, MPI_CHAR, 0, MPI_COMM_WORLD);
             }
             isVectorOptionParsed[p->first] = true;
          }
       }
-   }
-   else
-   {
+   } else {
       // others receive new options
-      for (int p = 0; p < nOptionsToBroadcast; p++)
-      {
+      for (int p = 0; p < nOptionsToBroadcast; p++) {
          MPI_Bcast(name, maxStringLength, MPI_CHAR, 0, MPI_COMM_WORLD);
          string sName(name);
          MPI_Bcast(&vectorSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
-         for (int i = 0; i < vectorSize; i++)
-         {
+         for (int i = 0; i < vectorSize; i++) {
             MPI_Bcast(value, maxStringLength, MPI_CHAR, 0, MPI_COMM_WORLD);
             string sValue(value);
             vectorOptions[sName].push_back(sValue);

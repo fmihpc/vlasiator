@@ -36,8 +36,7 @@
 using namespace spatial_cell;
 using namespace projects;
 
-namespace BC
-{
+namespace BC {
 /*!\brief BC::BoundaryCondition is the base class for boundary conditions.
  *
  * BC::BoundaryCondition defines a base class for applying boundary
@@ -52,8 +51,7 @@ namespace BC
  * If needed, a user can write his or her own BC::BoundaryConditions, which
  * are loaded when the simulation initializes.
  */
-class BoundaryCondition
-{
+class BoundaryCondition {
 public:
    BoundaryCondition();
    virtual ~BoundaryCondition();

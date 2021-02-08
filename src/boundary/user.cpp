@@ -43,8 +43,7 @@
 
 using namespace std;
 
-namespace BC
-{
+namespace BC {
 User::User() : BoundaryCondition() {}
 User::~User() {}
 
@@ -55,61 +54,41 @@ void User::initBoundary(creal t, Project &project) {}
 void User::getParameters() {}
 
 void User::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                          FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid)
-{
-}
+                          FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid) {}
 
 void User::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                              FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid,
-                             Project &project)
-{
-}
+                             Project &project) {}
 
 void User::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                       FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid, creal t)
-{
-}
+                       FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid, creal t) {}
 
 void User::vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                   const CellID &cellID, const uint popID, const bool doCalcMomentsV)
-{
-}
+                                   const CellID &cellID, const uint popID, const bool doCalcMomentsV) {}
 
 Real User::fieldSolverBoundaryCondMagneticField(
     FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &bGrid,
-    FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid, cint i, cint j, cint k, creal dt, cuint component)
-{
-}
+    FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid, cint i, cint j, cint k, creal dt, cuint component) {}
 
 void User::fieldSolverBoundaryCondElectricField(
     FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> &EGrid, cint i, cint j, cint k,
-    cuint component)
-{
-}
+    cuint component) {}
 
 void User::fieldSolverBoundaryCondHallElectricField(
     FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> &EHallGrid, cint i, cint j, cint k,
-    cuint component)
-{
-}
+    cuint component) {}
 
 void User::fieldSolverBoundaryCondGradPeElectricField(
-    FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> &EGradPeGrid, cint i, cint j, cint k, cuint component)
-{
-}
+    FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> &EGradPeGrid, cint i, cint j, cint k, cuint component) {}
 
 void User::fieldSolverBoundaryCondDerivatives(
     FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> &dPerBGrid,
     FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> &dMomentsGrid, cint i, cint j, cint k,
-    cuint RKCase, cuint component)
-{
-}
+    cuint RKCase, cuint component) {}
 
 void User::fieldSolverBoundaryCondBVOLDerivatives(
     FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> &volGrid, cint i, cint j, cint k,
-    cuint component)
-{
-}
+    cuint component) {}
 
 void User::getFaces(bool *faces) {}
 

@@ -32,11 +32,9 @@
 using namespace projects;
 using namespace std;
 
-namespace BC
-{
+namespace BC {
 
-struct IonosphereSpeciesParameters
-{
+struct IonosphereSpeciesParameters {
    Real rho;
    Real V0[3];
    Real T;
@@ -56,8 +54,7 @@ struct IonosphereSpeciesParameters
  * components (perfect conductor behavior);
  * - Null out the electric fields.
  */
-class Ionosphere : public BoundaryCondition
-{
+class Ionosphere : public BoundaryCondition {
 public:
    Ionosphere();
    ~Ionosphere() override;

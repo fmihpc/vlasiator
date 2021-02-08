@@ -29,14 +29,12 @@
 #include "boundarycondition.h"
 #include <vector>
 
-namespace BC
-{
+namespace BC {
 
 /*!\brief Class for boundary conditions with user-set settings.
  * To be implemented by the user.
  */
-class User : public BoundaryCondition
-{
+class User : public BoundaryCondition {
 public:
    User();
    ~User() override;

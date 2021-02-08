@@ -53,8 +53,7 @@
  * If needed, a user can write his or her own BC::BoundaryConditions, which
  * are loaded when the simulation initializes.
  */
-class Boundary
-{
+class Boundary {
 public:
    Boundary();
    ~Boundary();
