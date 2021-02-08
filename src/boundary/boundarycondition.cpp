@@ -210,7 +210,7 @@ void BoundaryCondition::vlasovBoundaryCopyFromClosestNbr(
    copyCellData(mpiGrid[closestCell], mpiGrid[cellID], copyMomentsOnly, popID, doCalcMomentsV);
 }
 
-/*! Function used to average and copy the distribution and moments from all the
+/*! Function used to average and copy the distribution and moments from all the 
  * closest boundarytype::NOT_BOUNDARY cells.
  * \param doCalcMomentsV if true, compute into _V; false into _R moments
  */

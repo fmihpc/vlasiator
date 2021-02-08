@@ -301,20 +301,18 @@ void Outflow::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry
 
 void Outflow::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                 FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid,
-                                Project &project)
-{
+                                Project &project) {
    const vector<CellID> &cells = getLocalCells();
 #pragma omp parallel for
-   for (uint i = 0; i < cells.size(); ++i)
-   {
-      SpatialCell *cell = mpiGrid[cells[i]];
-      if (cell->boundaryFlag != this->getIndex()) continue;
+   for (uint iC = 0; iC < cells.size(); ++iC) {
+      SpatialCell *cell = mpiGrid[cells[iC]];
+      if (cell->boundaryFlag != this->getIndex())
+         continue;
 
       bool doApply = true;
 
-      if (Parameters::isRestart)
-      {
-         creal *const cellParams = &(mpiGrid[cells[i]]->parameters[0]);
+      if (Parameters::isRestart) {
+         creal *const cellParams = &(mpiGrid[cells[iC]]->parameters[0]);
          creal dx = cellParams[CellParams::DX];
          creal dy = cellParams[CellParams::DY];
          creal dz = cellParams[CellParams::DZ];
@@ -327,21 +325,18 @@ void Outflow::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian
 
          doApply = false;
          // Comparison of the array defining which faces to use and the array telling on which faces this cell is
-         for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++)
-         {
-            for (uint j = 0; j < 6; j++)
-            {
+         for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            for (uint j = 0; j < 6; j++) {
                doApply = doApply || (facesToReapply[j] && isThisCellOnAFace[j]);
             }
          }
       }
 
-      if (doApply)
-      {
+      if (doApply) {
          // Defined in project.cpp, used here as the outflow cell has the same state
          // as the initial state of non-boundary cells.
          project.setCell(cell);
-         // WARNING Time-independence assumed here.
+
          cell->parameters[CellParams::RHOM_DT2] = cell->parameters[CellParams::RHOM];
          cell->parameters[CellParams::RHOQ_DT2] = cell->parameters[CellParams::RHOQ];
          cell->parameters[CellParams::VX_DT2] = cell->parameters[CellParams::VX];
@@ -352,6 +347,59 @@ void Outflow::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian
          cell->parameters[CellParams::P_33_DT2] = cell->parameters[CellParams::P_33];
       }
    }
+
+   // Magnetic field
+   // hyzhou
+   //cout << "Outflow Bz = " << cell->parameters[CellParams::PERBZVOL] << endl;
+   /*
+   array<bool, 6> isThisCellOnAFace;
+   const array<int, 3> gridDims(perBGrid.getLocalSize());
+
+   for (int k = 0; k < gridDims[2]; k++) {
+      for (int j = 0; j < gridDims[1]; j++) {
+         for (int i = 0; i < gridDims[0]; i++) {
+            const auto coords = perBGrid.getPhysicalCoords(i, j, k);
+
+            // TODO: This code up to determineFace() should be in a separate
+            // function, it gets called in a lot of places.
+            // Shift to the center of the fsgrid cell
+            auto cellCenterCoords = coords;
+            cellCenterCoords[0] += 0.5 * perBGrid.DX;
+            cellCenterCoords[1] += 0.5 * perBGrid.DY;
+            cellCenterCoords[2] += 0.5 * perBGrid.DZ;
+
+            const auto refLvl = mpiGrid.get_refinement_level(mpiGrid.get_existing_cell(cellCenterCoords));
+
+            if (refLvl == -1)
+               abort_mpi("Error, could not get refinement level of remote DCCRG cell!", 1);
+
+            creal dx = P::dx_ini * pow(2, -refLvl);
+            creal dy = P::dy_ini * pow(2, -refLvl);
+            creal dz = P::dz_ini * pow(2, -refLvl);
+
+            determineFace(isThisCellOnAFace.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx,
+                          dy, dz);
+
+            for (uint iface = 0; iface < 6; iface++) {
+               if (facesToProcess[iface] && isThisCellOnAFace[iface]) {
+                  perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBX) = 0.0;
+                  perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBY) = 0.0;
+                  perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBZ) = 0.0;
+
+                  // hyzhou
+                  cout << "face = " << iface << endl;
+                  cout << "i = " << i << endl;
+                  cout << "init bz = " << perBGrid.get(i, j, k)->at(fsgrids::bfield::PERBZ) << endl;
+
+                  break;
+               }
+            }
+         }
+      }
+   }
+   */
+
+
 }
 
 void Outflow::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,

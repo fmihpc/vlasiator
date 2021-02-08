@@ -62,9 +62,9 @@ namespace projects {
       RP::add("Flowthrough.emptyBox","Is the simulation domain empty initially?",false);
       RP::add("Flowthrough.densityModel","Plasma density model, 'Maxwellian' or 'SheetMaxwellian'",string("Maxwellian"));
       RP::add("Flowthrough.densityWidth","Width of signal around origin",6.e7);
-      RP::add("Flowthrough.Bx", "Magnetic field x component (T)", 0.0);
-      RP::add("Flowthrough.By", "Magnetic field y component (T)", 0.0);
-      RP::add("Flowthrough.Bz", "Magnetic field z component (T)", 0.0);
+      RP::add("Flowthrough.backgroundBx", "Background magnetic field x component (T)", 0.0);
+      RP::add("Flowthrough.backgroundBy", "Background magnetic field y component (T)", 0.0);
+      RP::add("Flowthrough.backgroundBz", "Background magnetic field z component (T)", 0.0);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
@@ -87,9 +87,9 @@ namespace projects {
       typedef Readparameters RP;
 
       RP::get("Flowthrough.emptyBox",emptyBox);
-      RP::get("Flowthrough.Bx", this->Bx);
-      RP::get("Flowthrough.By", this->By);
-      RP::get("Flowthrough.Bz", this->Bz);
+      RP::get("Flowthrough.backgroundBx", this->Bx);
+      RP::get("Flowthrough.backgroundBy", this->By);
+      RP::get("Flowthrough.backgroundBz", this->Bz);
       string densityModelString;
       RP::get("Flowthrough.densityModel",densityModelString);
       if (densityModelString == "Maxwellian") densityModel = Maxwellian;
@@ -222,7 +222,7 @@ namespace projects {
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
    ) {
       ConstantField bgField;
-      bgField.initialize(Bx,By,Bz); //bg bx, by,bz      
+      bgField.initialize(Bx,By,Bz); //bg bx,by,bz      
       setBackgroundField(bgField, BgBGrid);
    }
    
