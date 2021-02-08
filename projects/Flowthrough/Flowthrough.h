@@ -33,6 +33,7 @@ namespace projects {
 
    struct FlowthroughSpeciesParameters {
       Real rho;
+      Real rhoBase;
       Real T;
       Real V0[3];
       uint nSpaceSamples;
@@ -48,9 +49,9 @@ namespace projects {
       static void addParameters(void);
       virtual void getParameters(void);
       virtual void setProjectBField(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
-         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
-         FsGrid< fsgrids::technical, 2>& technicalGrid
+         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
       );
 
     protected:
@@ -77,6 +78,7 @@ namespace projects {
       bool emptyBox;               /**< If true, then the simulation domain is empty initially 
                                     * and matter will flow in only through the boundaries.*/
 
+      Real densityWidth;
       Real Bx;
       Real By;
       Real Bz;

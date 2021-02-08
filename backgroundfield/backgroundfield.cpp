@@ -31,7 +31,7 @@
 //FieldFunction should be initialized
 void setBackgroundField(
    FieldFunction& bgFunction,
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
    bool append) {
    
    /*if we do not add a new background to the existing one we first put everything to zero*/
@@ -134,7 +134,7 @@ void setBackgroundField(
 }
 
 void setBackgroundFieldToZero(
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid
 ) {
    auto localSize = BgBGrid.getLocalSize().data();
    
@@ -153,7 +153,7 @@ void setBackgroundFieldToZero(
 
 void setPerturbedField(
    FieldFunction& bfFunction,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
    bool append) {
    
    /*if we do not add a new background to the existing one we first put everything to zero*/
@@ -219,7 +219,7 @@ void setPerturbedField(
 }
 
 void setPerturbedFieldToZero(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid) {
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid) {
    auto localSize = perBGrid.getLocalSize().data();
    
    #pragma omp parallel for collapse(3)
