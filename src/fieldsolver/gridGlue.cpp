@@ -239,7 +239,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
             // Skip pass
             if (blurPass >= P::numPasses.at(refLevel) ||
-                technicalGrid.get(ii, jj, kk)->boundaryFlag == boundarytype::NO_COMPUTE ||
+                technicalGrid.get(ii, jj, kk)->boundaryFlag == boundarytype::NOTHING ||
                 (technicalGrid.get(ii, jj, kk)->boundaryFlag != boundarytype::NOT_BOUNDARY && technicalGrid.get(ii, jj, kk)->boundaryLayer == 2)
               )
             { 
@@ -384,7 +384,7 @@ void getFieldsFromFsGrid(
       auto const &fsgridCells = onFsgridMapCells[dccrgCell];
       for (auto const fsgridCell: fsgridCells){
         //loop over fsgrid cells for which we compute the average that is sent to dccrgCell on rank remoteRank
-        if(technicalGrid.get(fsgridCell)->boundaryFlag == boundarytype::NO_COMPUTE) {
+        if(technicalGrid.get(fsgridCell)->boundaryFlag == boundarytype::NOTHING) {
            continue;
         }
         std::array<Real, fsgrids::volfields::N_VOL> * volcell = volumeFieldsGrid.get(fsgridCell);

@@ -34,7 +34,7 @@
 #include "boundary.h"
 #include "ionosphere.h"
 #include "maxwellian.h"
-#include "nocompute.h"
+#include "nothing.h"
 #include "outflow.h"
 #include "user.h"
 
@@ -86,7 +86,7 @@ void Boundary::addParameters() {
    Readparameters::add("boundaries.periodic_z", "Set the grid periodicity in z-direction. true(default)/false.", true);
 
    // Call static addParameter functions in all BC's
-   BC::NoCompute::addParameters();
+   BC::Nothing::addParameters();
    BC::Ionosphere::addParameters();
    BC::Outflow::addParameters();
    BC::Maxwellian::addParameters();
@@ -172,7 +172,7 @@ void Boundary::initBoundaries(Project &project, creal t) {
       }
       if (*it == "Ionosphere") {
          this->addBoundary(new BC::Ionosphere, project, t);
-         this->addBoundary(new BC::NoCompute, project, t);
+         this->addBoundary(new BC::Nothing, project, t);
          anyDynamic = anyDynamic || this->getBoundary(boundarytype::IONOSPHERE)->isDynamic();
       }
       if (*it == "Maxwellian") {
@@ -230,7 +230,7 @@ void Boundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Ca
                }
             }
          } else if (cell->boundaryFlag != boundarytype::NOT_BOUNDARY &&
-                    cell->boundaryFlag != boundarytype::NO_COMPUTE) {
+                    cell->boundaryFlag != boundarytype::NOTHING) {
             outerBoundaryCells.insert(cellId);
             outerBoundaryRefLvl = mpiGrid.get_refinement_level(cellId);
             // Add all stencil neighbors of outer boundary cells
@@ -371,12 +371,12 @@ void Boundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cart
       mpiGrid.update_copies_of_remote_neighbors(BOUNDARIES_NEIGHBORHOOD_ID);
    }
 
-   /*set cells to NO_COMPUTE if they are on boundary, and are not
+   /*set cells to NOTHING if they are on boundary, and are not
     * in the first two layers of the boundary*/
    for (uint i = 0; i < cells.size(); i++) {
       if (mpiGrid[cells[i]]->boundaryFlag != boundarytype::NOT_BOUNDARY && mpiGrid[cells[i]]->boundaryLayer != 1 &&
           mpiGrid[cells[i]]->boundaryLayer != 2) {
-         mpiGrid[cells[i]]->boundaryFlag = boundarytype::NO_COMPUTE;
+         mpiGrid[cells[i]]->boundaryFlag = boundarytype::NOTHING;
       }
    }
 
@@ -411,7 +411,7 @@ void Boundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cart
                      technicalGrid.get(x, y, z)->boundaryLayer = layer;
 
                      if (layer > 2 && technicalGrid.get(x, y, z)->boundaryFlag != boundarytype::NOT_BOUNDARY) {
-                        technicalGrid.get(x, y, z)->boundaryFlag = boundarytype::NO_COMPUTE;
+                        technicalGrid.get(x, y, z)->boundaryFlag = boundarytype::NOTHING;
                      }
                   }
                }
@@ -430,7 +430,7 @@ void Boundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cart
          for (int z = 0; z < localSize[2]; ++z) {
             if (technicalGrid.get(x, y, z)->boundaryLayer == 0 &&
                 technicalGrid.get(x, y, z)->boundaryFlag == boundarytype::IONOSPHERE) {
-               technicalGrid.get(x, y, z)->boundaryFlag = boundarytype::NO_COMPUTE;
+               technicalGrid.get(x, y, z)->boundaryFlag = boundarytype::NOTHING;
             }
          }
       }
@@ -645,7 +645,7 @@ bool Boundary::isDynamic() const { return anyDynamic; }
  */
 bool Boundary::isPeriodic(uint direction) const { return periodic[direction]; }
 
-/*! Get a vector containing the cellID of all cells which are not NO_COMPUTE or
+/*! Get a vector containing the cellID of all cells which are not NOTHING or
  * NOT_BOUNDARY in the vector of cellIDs passed to the function.
  * \param mpiGrid Grid
  * \param cellList Vector of cellIDs in which to look for boundary cells
@@ -656,7 +656,7 @@ void getBoundaryCellList(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geomet
    boundaryCellList.clear();
    for (size_t cell = 0; cell < cellList.size(); ++cell) {
       const CellID cellID = cellList[cell];
-      if (mpiGrid[cellID]->boundaryFlag == boundarytype::NO_COMPUTE ||
+      if (mpiGrid[cellID]->boundaryFlag == boundarytype::NOTHING ||
           mpiGrid[cellID]->boundaryFlag == boundarytype::NOT_BOUNDARY)
          continue;
       boundaryCellList.push_back(cellID);

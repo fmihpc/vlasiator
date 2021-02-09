@@ -24,7 +24,7 @@
  * \brief Implementation of the base class BoundaryCondition to handle
  * boundary cells.
  *
- * \sa nocompute.cpp ionosphere.cpp outflow.cpp user.cpp inflow.cpp
+ * \sa nothing.cpp ionosphere.cpp outflow.cpp user.cpp inflow.cpp
  * maxwellian.cpp
  */
 
@@ -32,14 +32,13 @@
 #include <iostream>
 
 #include "../parameters.h"
+#include "../projects/projects_common.h"
 #include "../vlasovsolver/vlasovmover.h"
 #include "boundarycondition.h"
-#include "../projects/projects_common.h"
 
 using namespace std;
 
-namespace BC
-{
+namespace BC {
 // ************************************************************
 // ***** DEFINITIONS FOR BOUNDARYCONDITION BASE CLASS *****
 // ************************************************************
@@ -57,8 +56,7 @@ namespace BC
  * slices/columns) or if that direction is periodic. false by default.
  */
 void BoundaryCondition::determineFace(bool *isThisCellOnAFace, creal x, creal y, creal z, creal dx, creal dy, creal dz,
-                                      const bool excludeSlicesAndPeriodicDimensions)
-{
+                                      const bool excludeSlicesAndPeriodicDimensions) {
    isThisCellOnAFace[0] = (x > Parameters::xmax - 2.0 * dx) ? true : false;
    isThisCellOnAFace[1] = (x < Parameters::xmin + 2.0 * dx) ? true : false;
    isThisCellOnAFace[2] = (y > Parameters::ymax - 2.0 * dy) ? true : false;
@@ -66,20 +64,16 @@ void BoundaryCondition::determineFace(bool *isThisCellOnAFace, creal x, creal y,
    isThisCellOnAFace[4] = (z > Parameters::zmax - 2.0 * dz) ? true : false;
    isThisCellOnAFace[5] = (z < Parameters::zmin + 2.0 * dz) ? true : false;
 
-   if (excludeSlicesAndPeriodicDimensions)
-   {
-      if (Parameters::xcells_ini == 1 || this->periodic[0])
-      {
+   if (excludeSlicesAndPeriodicDimensions) {
+      if (Parameters::xcells_ini == 1 || this->periodic[0]) {
          isThisCellOnAFace[0] = false;
          isThisCellOnAFace[1] = false;
       }
-      if (Parameters::ycells_ini == 1 || this->periodic[1])
-      {
+      if (Parameters::ycells_ini == 1 || this->periodic[1]) {
          isThisCellOnAFace[2] = false;
          isThisCellOnAFace[3] = false;
       }
-      if (Parameters::zcells_ini == 1 || this->periodic[2])
-      {
+      if (Parameters::zcells_ini == 1 || this->periodic[2]) {
          isThisCellOnAFace[4] = false;
          isThisCellOnAFace[5] = false;
       }
@@ -94,8 +88,7 @@ BoundaryCondition::~BoundaryCondition() {}
 
 /*! BoundaryCondition base class instance of the addParameters function.
  * Each derived class should have its own implementation.*/
-void BoundaryCondition::addParameters()
-{
+void BoundaryCondition::addParameters() {
    abort_mpi("ERROR: BoundaryCondition::addParameters called instead of derived class function!");
 }
 
@@ -106,12 +99,10 @@ void BoundaryCondition::addParameters()
 void BoundaryCondition::setCellDerivativesToZero(
     FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> &dPerBGrid,
     FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> &dMomentsGrid, cint i, cint j, cint k,
-    cuint component)
-{
+    cuint component) {
    std::array<Real, fsgrids::dperb::N_DPERB> *dPerBGrid0 = dPerBGrid.get(i, j, k);
    std::array<Real, fsgrids::dmoments::N_DMOMENTS> *dMomentsGrid0 = dMomentsGrid.get(i, j, k);
-   switch (component)
-   {
+   switch (component) {
    case 0: // x, xx
       dMomentsGrid0->at(fsgrids::dmoments::drhomdx) = 0.0;
       dMomentsGrid0->at(fsgrids::dmoments::drhoqdx) = 0.0;
@@ -173,11 +164,9 @@ void BoundaryCondition::setCellDerivativesToZero(
  */
 void BoundaryCondition::setCellBVOLDerivativesToZero(
     FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> &volGrid, cint i, cint j, cint k,
-    cuint component)
-{
+    cuint component) {
    std::array<Real, fsgrids::volfields::N_VOL> *volGrid0 = volGrid.get(i, j, k);
-   switch (component)
-   {
+   switch (component) {
    case 0:
       volGrid0->at(fsgrids::volfields::dPERBYVOLdx) = 0.0;
       volGrid0->at(fsgrids::volfields::dPERBZVOLdx) = 0.0;
@@ -201,26 +190,26 @@ void BoundaryCondition::setCellBVOLDerivativesToZero(
  */
 void BoundaryCondition::vlasovBoundaryCopyFromClosestNbr(
     const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid, const CellID &cellID,
-    const bool &copyMomentsOnly, const uint popID, const bool doCalcMomentsV)
-{
+    const bool &copyMomentsOnly, const uint popID, const bool doCalcMomentsV) {
    const CellID closestCell = getTheClosestNonboundaryCell(cellID);
 
-   if (closestCell == INVALID_CELLID) abort_mpi(": No closest cell found!", 1);
+   if (closestCell == INVALID_CELLID)
+      abort_mpi(": No closest cell found!", 1);
 
    copyCellData(mpiGrid[closestCell], mpiGrid[cellID], copyMomentsOnly, popID, doCalcMomentsV);
 }
 
-/*! Function used to average and copy the distribution and moments from all the 
+/*! Function used to average and copy the distribution and moments from all the
  * closest boundarytype::NOT_BOUNDARY cells.
  * \param doCalcMomentsV if true, compute into _V; false into _R moments
  */
 void BoundaryCondition::vlasovBoundaryCopyFromAllClosestNbrs(
     const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid, const CellID &cellID, const uint popID,
-    const bool doCalcMomentsV)
-{
+    const bool doCalcMomentsV) {
    const std::vector<CellID> closestCells = getAllClosestNonboundaryCells(cellID);
 
-   if (closestCells[0] == INVALID_CELLID) abort_mpi(": No closest cell found!", 1);
+   if (closestCells[0] == INVALID_CELLID)
+      abort_mpi(": No closest cell found!", 1);
 
    averageCellData(mpiGrid, closestCells, mpiGrid[cellID], popID, doCalcMomentsV);
 }
@@ -230,11 +219,11 @@ void BoundaryCondition::vlasovBoundaryCopyFromAllClosestNbrs(
  */
 void BoundaryCondition::vlasovBoundaryFluffyCopyFromAllCloseNbrs(
     const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid, const CellID &cellID, const uint popID,
-    const bool doCalcMomentsV, creal fluffiness)
-{
+    const bool doCalcMomentsV, creal fluffiness) {
    const std::vector<CellID> closeCells = getAllCloseNonboundaryCells(cellID);
 
-   if (closeCells[0] == INVALID_CELLID) abort_mpi(": No close cell found!", 1);
+   if (closeCells[0] == INVALID_CELLID)
+      abort_mpi(": No close cell found!", 1);
 
    averageCellData(mpiGrid, closeCells, mpiGrid[cellID], popID, doCalcMomentsV, fluffiness);
 }
@@ -244,30 +233,26 @@ void BoundaryCondition::vlasovBoundaryFluffyCopyFromAllCloseNbrs(
  * can flow into. Moments are recomputed.
  */
 void BoundaryCondition::vlasovBoundaryCopyFromClosestNbrAndLimit(
-    const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid, const CellID &cellID, const uint popID)
-{
+    const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid, const CellID &cellID, const uint popID) {
    const CellID closestCell = getTheClosestNonboundaryCell(cellID);
    SpatialCell *from = mpiGrid[closestCell];
    SpatialCell *to = mpiGrid[cellID];
 
-   if (closestCell == INVALID_CELLID) abort_mpi(": No closest cell found!", 1);
+   if (closestCell == INVALID_CELLID)
+      abort_mpi(": No closest cell found!", 1);
 
    const std::array<SpatialCell *, 27> flowtoCells = getFlowtoCells(cellID);
    // Do not allow block adjustment, the block structure when calling
    // vlasovBoundaryCondition should be static just copy data to existing
    // blocks, no modification of to blocks allowed.
-   for (vmesh::LocalID blockLID = 0; blockLID < to->get_number_of_velocity_blocks(popID); ++blockLID)
-   {
+   for (vmesh::LocalID blockLID = 0; blockLID < to->get_number_of_velocity_blocks(popID); ++blockLID) {
       const vmesh::GlobalID blockGID = to->get_velocity_block_global_id(blockLID, popID);
       // const Realf* fromBlock_data = from->get_data(from->get_velocity_block_local_id(blockGID) );
       Realf *toBlock_data = to->get_data(blockLID, popID);
-      if (from->get_velocity_block_local_id(blockGID, popID) == from->invalid_local_id())
-      {
+      if (from->get_velocity_block_local_id(blockGID, popID) == from->invalid_local_id()) {
          for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++)
             toBlock_data[i] = 0.0; // block did not exist in from cell, fill with zeros.
-      }
-      else
-      {
+      } else {
          const Real *blockParameters = to->get_block_parameters(blockLID, popID);
          // check where cells are
          creal vxBlock = blockParameters[BlockParams::VXCRD];
@@ -279,12 +264,9 @@ void BoundaryCondition::vlasovBoundaryCopyFromClosestNbrAndLimit(
 
          std::array<Realf *, 27> flowtoCellsBlockCache = getFlowtoCellsBlock(flowtoCells, blockGID, popID);
 
-         for (uint kc = 0; kc < WID; ++kc)
-         {
-            for (uint jc = 0; jc < WID; ++jc)
-            {
-               for (uint ic = 0; ic < WID; ++ic)
-               {
+         for (uint kc = 0; kc < WID; ++kc) {
+            for (uint jc = 0; jc < WID; ++jc) {
+               for (uint ic = 0; ic < WID; ++ic) {
                   velocity_cell_indices_t indices = {ic, jc, kc};
                   const uint cell = from->get_velocity_cell(indices);
 
@@ -296,15 +278,11 @@ void BoundaryCondition::vlasovBoundaryCopyFromClosestNbrAndLimit(
                   const int vzCellSign = vzCellCenter < 0 ? -1 : 1;
                   Realf value = from->get_value(blockGID, cell, popID);
                   // loop over spatial cells in quadrant of influence
-                  for (int dvx = 0; dvx <= 1; dvx++)
-                  {
-                     for (int dvy = 0; dvy <= 1; dvy++)
-                     {
-                        for (int dvz = 0; dvz <= 1; dvz++)
-                        {
+                  for (int dvx = 0; dvx <= 1; dvx++) {
+                     for (int dvy = 0; dvy <= 1; dvy++) {
+                        for (int dvz = 0; dvz <= 1; dvz++) {
                            const int flowToId = nbrID(dvx * vxCellSign, dvy * vyCellSign, dvz * vzCellSign);
-                           if (flowtoCells.at(flowToId))
-                           {
+                           if (flowtoCells.at(flowToId)) {
                               value = min(value, flowtoCellsBlockCache.at(flowToId)[cell]);
                            }
                         }
@@ -320,12 +298,9 @@ void BoundaryCondition::vlasovBoundaryCopyFromClosestNbrAndLimit(
 
 /*! Function used to copy the distribution and moments from one cell to another.*/
 void BoundaryCondition::copyCellData(SpatialCell *from, SpatialCell *to, const bool copyMomentsOnly, const uint popID,
-                                     const bool doCalcMomentsV)
-{
-   if (popID == 0)
-   {
-      if (doCalcMomentsV)
-      {
+                                     const bool doCalcMomentsV) {
+   if (popID == 0) {
+      if (doCalcMomentsV) {
          to->parameters[CellParams::RHOM_V] = from->parameters[CellParams::RHOM_V];
          to->parameters[CellParams::VX_V] = from->parameters[CellParams::VX_V];
          to->parameters[CellParams::VY_V] = from->parameters[CellParams::VY_V];
@@ -334,9 +309,7 @@ void BoundaryCondition::copyCellData(SpatialCell *from, SpatialCell *to, const b
          to->parameters[CellParams::P_11_V] = from->parameters[CellParams::P_11_V];
          to->parameters[CellParams::P_22_V] = from->parameters[CellParams::P_22_V];
          to->parameters[CellParams::P_33_V] = from->parameters[CellParams::P_33_V];
-      }
-      else
-      {
+      } else {
          to->parameters[CellParams::RHOM_R] = from->parameters[CellParams::RHOM_R];
          to->parameters[CellParams::VX_R] = from->parameters[CellParams::VX_R];
          to->parameters[CellParams::VY_R] = from->parameters[CellParams::VY_R];
@@ -348,30 +321,20 @@ void BoundaryCondition::copyCellData(SpatialCell *from, SpatialCell *to, const b
       }
    }
 
-   if (!copyMomentsOnly)
-   {
+   if (!copyMomentsOnly) {
       to->set_population(from->get_population(popID), popID);
-   }
-   else
-   {
-      if (doCalcMomentsV)
-      {
+   } else {
+      if (doCalcMomentsV) {
          to->get_population(popID).RHO_V = from->get_population(popID).RHO_V;
-      }
-      else
-      {
+      } else {
          to->get_population(popID).RHO_R = from->get_population(popID).RHO_R;
       }
 
-      for (uint i = 0; i < 3; i++)
-      {
-         if (doCalcMomentsV)
-         {
+      for (uint i = 0; i < 3; i++) {
+         if (doCalcMomentsV) {
             to->get_population(popID).V_V[i] = from->get_population(popID).V_V[i];
             to->get_population(popID).P_V[i] = from->get_population(popID).P_V[i];
-         }
-         else
-         {
+         } else {
             to->get_population(popID).V_R[i] = from->get_population(popID).V_R[i];
             to->get_population(popID).P_R[i] = from->get_population(popID).P_R[i];
          }
@@ -387,43 +350,37 @@ void BoundaryCondition::copyCellData(SpatialCell *from, SpatialCell *to, const b
  */
 void BoundaryCondition::averageCellData(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                         const std::vector<CellID> cellList, SpatialCell *to, const uint popID,
-                                        const bool doCalcMomentsV, creal fluffiness)
-{
+                                        const bool doCalcMomentsV, creal fluffiness) {
    const size_t numberOfCells = cellList.size();
    creal factor = fluffiness / convert<Real>(numberOfCells);
 
    // Rescale own vspace
    const Realf *toData = to->get_data(popID);
-   for (vmesh::LocalID toBlockLID = 0; toBlockLID < to->get_number_of_velocity_blocks(popID); ++toBlockLID)
-   {
+   for (vmesh::LocalID toBlockLID = 0; toBlockLID < to->get_number_of_velocity_blocks(popID); ++toBlockLID) {
       // Pointer to target block data
       Realf *toData = to->get_data(toBlockLID, popID);
 
       // Add values from source cells
       for (uint kc = 0; kc < WID; ++kc)
          for (uint jc = 0; jc < WID; ++jc)
-            for (uint ic = 0; ic < WID; ++ic)
-            {
+            for (uint ic = 0; ic < WID; ++ic) {
                toData[cellIndex(ic, jc, kc)] *= 1.0 - fluffiness;
             }
       toData += SIZE_VELBLOCK;
    } // for-loop over velocity blocks
 
-   for (size_t i = 0; i < numberOfCells; i++)
-   {
+   for (size_t i = 0; i < numberOfCells; i++) {
       const SpatialCell *incomingCell = mpiGrid[cellList[i]];
 
       const Realf *fromData = incomingCell->get_data(popID);
       for (vmesh::LocalID incBlockLID = 0; incBlockLID < incomingCell->get_number_of_velocity_blocks(popID);
-           ++incBlockLID)
-      {
+           ++incBlockLID) {
          // Global ID of the block containing incoming data
          vmesh::GlobalID incBlockGID = incomingCell->get_velocity_block_global_id(incBlockLID, popID);
 
          // Get local ID of the target block. If the block doesn't exist, create it.
          vmesh::GlobalID toBlockLID = to->get_velocity_block_local_id(incBlockGID, popID);
-         if (toBlockLID == SpatialCell::invalid_local_id())
-         {
+         if (toBlockLID == SpatialCell::invalid_local_id()) {
             to->add_velocity_block(incBlockGID, popID);
             toBlockLID = to->get_velocity_block_local_id(incBlockGID, popID);
          }
@@ -434,8 +391,7 @@ void BoundaryCondition::averageCellData(const dccrg::Dccrg<SpatialCell, dccrg::C
          // Add values from source cells
          for (uint kc = 0; kc < WID; ++kc)
             for (uint jc = 0; jc < WID; ++jc)
-               for (uint ic = 0; ic < WID; ++ic)
-               {
+               for (uint ic = 0; ic < WID; ++ic) {
                   toData[cellIndex(ic, jc, kc)] += factor * fromData[cellIndex(ic, jc, kc)];
                }
          fromData += SIZE_VELBLOCK;
@@ -453,8 +409,7 @@ void BoundaryCondition::averageCellData(const dccrg::Dccrg<SpatialCell, dccrg::C
  * \param nz Unit vector z component normal to the bounce/reflection plane.
  */
 void BoundaryCondition::vlasovBoundaryReflect(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                              const CellID &cellID, creal &nx, creal &ny, creal &nz, const uint popID)
-{
+                                              const CellID &cellID, creal &nx, creal &ny, creal &nz, const uint popID) {
    SpatialCell *cell = mpiGrid[cellID];
    const std::vector<CellID> cellList = this->getAllClosestNonboundaryCells(cellID);
    const size_t numberOfCells = cellList.size();
@@ -463,14 +418,12 @@ void BoundaryCondition::vlasovBoundaryReflect(const dccrg::Dccrg<SpatialCell, dc
 
    cell->clear(popID);
 
-   for (size_t i = 0; i < numberOfCells; i++)
-   {
+   for (size_t i = 0; i < numberOfCells; i++) {
       SpatialCell *incomingCell = mpiGrid[cellList[i]];
       const Real *blockParameters = incomingCell->get_block_parameters(popID);
 
       // add blocks
-      for (vmesh::LocalID blockLID = 0; blockLID < incomingCell->get_number_of_velocity_blocks(popID); ++blockLID)
-      {
+      for (vmesh::LocalID blockLID = 0; blockLID < incomingCell->get_number_of_velocity_blocks(popID); ++blockLID) {
          // check where cells are
          creal vxBlock = blockParameters[BlockParams::VXCRD];
          creal vyBlock = blockParameters[BlockParams::VYCRD];
@@ -480,22 +433,18 @@ void BoundaryCondition::vlasovBoundaryReflect(const dccrg::Dccrg<SpatialCell, dc
          creal dvzCell = blockParameters[BlockParams::DVZ];
          for (uint kc = 0; kc < WID; ++kc)
             for (uint jc = 0; jc < WID; ++jc)
-               for (uint ic = 0; ic < WID; ++ic)
-               {
+               for (uint ic = 0; ic < WID; ++ic) {
                   creal vxCellCenter = vxBlock + (ic + convert<Real>(0.5)) * dvxCell;
                   creal vyCellCenter = vyBlock + (jc + convert<Real>(0.5)) * dvyCell;
                   creal vzCellCenter = vzBlock + (kc + convert<Real>(0.5)) * dvzCell;
                   // scalar product v.n
                   creal vNormal = vxCellCenter * nx + vyCellCenter * ny + vzCellCenter * nz;
-                  if (vNormal >= 0.0)
-                  {
+                  if (vNormal >= 0.0) {
                      // Not flowing in, leave as is.
                      cell->increment_value(
                          vxCellCenter, vyCellCenter, vzCellCenter,
                          factor * incomingCell->get_value(vxCellCenter, vyCellCenter, vzCellCenter, popID), popID);
-                  }
-                  else
-                  {
+                  } else {
                      // Flowing in, bounce off.
                      cell->increment_value(
                          vxCellCenter - 2.0 * vNormal * nx, vyCellCenter - 2.0 * vNormal * ny,
@@ -521,8 +470,7 @@ void BoundaryCondition::vlasovBoundaryReflect(const dccrg::Dccrg<SpatialCell, dc
  */
 void BoundaryCondition::vlasovBoundaryAbsorb(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                              const CellID &cellID, creal &nx, creal &ny, creal &nz,
-                                             creal &quenchingFactor, const uint popID)
-{
+                                             creal &quenchingFactor, const uint popID) {
    SpatialCell *cell = mpiGrid[cellID];
    const std::vector<CellID> cellList = this->getAllClosestNonboundaryCells(cellID);
    const size_t numberOfCells = cellList.size();
@@ -531,14 +479,12 @@ void BoundaryCondition::vlasovBoundaryAbsorb(const dccrg::Dccrg<SpatialCell, dcc
 
    cell->clear(popID);
 
-   for (size_t i = 0; i < numberOfCells; i++)
-   {
+   for (size_t i = 0; i < numberOfCells; i++) {
       SpatialCell *incomingCell = mpiGrid[cellList[i]];
       const Real *blockParameters = incomingCell->get_block_parameters(popID);
 
       // add blocks
-      for (vmesh::LocalID blockLID = 0; blockLID < incomingCell->get_number_of_velocity_blocks(popID); ++blockLID)
-      {
+      for (vmesh::LocalID blockLID = 0; blockLID < incomingCell->get_number_of_velocity_blocks(popID); ++blockLID) {
          // check where cells are
          creal vxBlock = blockParameters[BlockParams::VXCRD];
          creal vyBlock = blockParameters[BlockParams::VYCRD];
@@ -548,22 +494,18 @@ void BoundaryCondition::vlasovBoundaryAbsorb(const dccrg::Dccrg<SpatialCell, dcc
          creal dvzCell = blockParameters[BlockParams::DVZ];
          for (uint kc = 0; kc < WID; ++kc)
             for (uint jc = 0; jc < WID; ++jc)
-               for (uint ic = 0; ic < WID; ++ic)
-               {
+               for (uint ic = 0; ic < WID; ++ic) {
                   creal vxCellCenter = vxBlock + (ic + convert<Real>(0.5)) * dvxCell;
                   creal vyCellCenter = vyBlock + (jc + convert<Real>(0.5)) * dvyCell;
                   creal vzCellCenter = vzBlock + (kc + convert<Real>(0.5)) * dvzCell;
                   // scalar product v.n
                   creal vNormal = vxCellCenter * nx + vyCellCenter * ny + vzCellCenter * nz;
-                  if (vNormal >= 0.0)
-                  {
+                  if (vNormal >= 0.0) {
                      // Not flowing in, leave as is.
                      cell->increment_value(vxCellCenter, vyCellCenter, vzCellCenter,
                                            factor * incomingCell->get_value(vxCellCenter, vyCellCenter, vzCellCenter),
                                            popID);
-                  }
-                  else
-                  {
+                  } else {
                      // Flowing in, bounce off.
                      cell->increment_value(vxCellCenter, vyCellCenter, vzCellCenter,
                                            factor * quenchingFactor *
@@ -583,11 +525,10 @@ void BoundaryCondition::vlasovBoundaryAbsorb(const dccrg::Dccrg<SpatialCell, dcc
  * \retval success Returns true if the operation is successful
  */
 void BoundaryCondition::updateBoundaryConditionsAfterLoadBalance(
-    dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid, const vector<CellID> &local_cells_on_boundary)
-{
+    dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid, const vector<CellID> &local_cells_on_boundary) {
    // Loop over cellids
-   for (vector<CellID>::const_iterator it = local_cells_on_boundary.begin(); it != local_cells_on_boundary.end(); ++it)
-   {
+   for (vector<CellID>::const_iterator it = local_cells_on_boundary.begin(); it != local_cells_on_boundary.end();
+        ++it) {
       const CellID cellId = *it;
       std::vector<CellID> &closestCells = allClosestNonboundaryCells[cellId];
       closestCells.clear();
@@ -604,12 +545,9 @@ void BoundaryCondition::updateBoundaryConditionsAfterLoadBalance(
 
       // Find flowto cells (note, L2 cells do not have flowto cells)
       auto *nearNbrs = mpiGrid.get_neighbors_of(cellId, NEAREST_NEIGHBORHOOD_ID);
-      for (auto nbrPair : *nearNbrs)
-      {
-         if (nbrPair.first != INVALID_CELLID)
-         {
-            if (mpiGrid[nbrPair.first]->boundaryFlag == boundarytype::NOT_BOUNDARY)
-            {
+      for (auto nbrPair : *nearNbrs) {
+         if (nbrPair.first != INVALID_CELLID) {
+            if (mpiGrid[nbrPair.first]->boundaryFlag == boundarytype::NOT_BOUNDARY) {
                flowtoCells.at((int)(nbrPair.second[0] / indexstep) + 3 * (int)(nbrPair.second[1] / indexstep) +
                               9 * (int)(nbrPair.second[2] / indexstep) + 13) = mpiGrid[nbrPair.first];
                // flowtoCells.at(i + 3*j + 9*k + 13) = mpiGrid[cell];
@@ -618,41 +556,30 @@ void BoundaryCondition::updateBoundaryConditionsAfterLoadBalance(
       }
       // Find all close cells
       auto *Nbrs = mpiGrid.get_neighbors_of(cellId, BOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
-      for (auto nbrPair : *Nbrs)
-      {
-         if (nbrPair.first != INVALID_CELLID)
-         {
-            if (mpiGrid[nbrPair.first]->boundaryFlag == boundarytype::NOT_BOUNDARY)
-            {
+      for (auto nbrPair : *Nbrs) {
+         if (nbrPair.first != INVALID_CELLID) {
+            if (mpiGrid[nbrPair.first]->boundaryFlag == boundarytype::NOT_BOUNDARY) {
                // Find distance and update closestCells
                d2 = nbrPair.second[0] * nbrPair.second[0] + nbrPair.second[1] * nbrPair.second[1] +
                     nbrPair.second[2] * nbrPair.second[2];
                // Only neighboring cells for L1
                if ((mpiGrid[cellId]->boundaryLayer == 1) && (abs(nbrPair.second[0]) <= indexstep) &&
-                   (abs(nbrPair.second[1]) <= indexstep) && (abs(nbrPair.second[2]) <= indexstep))
-               {
+                   (abs(nbrPair.second[1]) <= indexstep) && (abs(nbrPair.second[2]) <= indexstep)) {
                   closeCells.push_back(nbrPair.first);
-                  if (d2 == dist)
-                  {
+                  if (d2 == dist) {
                      closestCells.push_back(nbrPair.first);
-                  }
-                  else if (d2 < dist)
-                  {
+                  } else if (d2 < dist) {
                      closestCells.clear();
                      closestCells.push_back(nbrPair.first);
                      dist = d2;
                   }
                }
                // search further for L2
-               if (mpiGrid[cellId]->boundaryLayer == 2)
-               {
+               if (mpiGrid[cellId]->boundaryLayer == 2) {
                   closeCells.push_back(nbrPair.first);
-                  if (d2 == dist)
-                  {
+                  if (d2 == dist) {
                      closestCells.push_back(nbrPair.first);
-                  }
-                  else if (d2 < dist)
-                  {
+                  } else if (d2 < dist) {
                      closestCells.clear();
                      closestCells.push_back(nbrPair.first);
                      dist = d2;
@@ -661,8 +588,10 @@ void BoundaryCondition::updateBoundaryConditionsAfterLoadBalance(
             }
          }
       }
-      if (closestCells.size() == 0) closestCells.push_back(INVALID_CELLID);
-      if (closeCells.size() == 0) closeCells.push_back(INVALID_CELLID);
+      if (closestCells.size() == 0)
+         closestCells.push_back(INVALID_CELLID);
+      if (closeCells.size() == 0)
+         closeCells.push_back(INVALID_CELLID);
    }
 }
 
@@ -673,8 +602,7 @@ void BoundaryCondition::updateBoundaryConditionsAfterLoadBalance(
  */
 std::array<int, 3>
 BoundaryCondition::getTheClosestNonboundaryCell(FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid, cint i,
-                                                cint j, cint k)
-{
+                                                cint j, cint k) {
    const std::vector<std::array<int, 3>> closestCells = getAllClosestNonboundaryCells(technicalGrid, i, j, k);
    return closestCells.at(0);
 }
@@ -686,38 +614,28 @@ BoundaryCondition::getTheClosestNonboundaryCell(FsGrid<fsgrids::technical, FS_ST
  */
 std::vector<std::array<int, 3>>
 BoundaryCondition::getAllClosestNonboundaryCells(FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid, cint i,
-                                                 cint j, cint k)
-{
+                                                 cint j, cint k) {
    int distance = std::numeric_limits<int>::max();
    std::vector<std::array<int, 3>> closestCells;
 
-   for (int kk = -2; kk < 3; kk++)
-   {
-      for (int jj = -2; jj < 3; jj++)
-      {
-         for (int ii = -2; ii < 3; ii++)
-         {
+   for (int kk = -2; kk < 3; kk++) {
+      for (int jj = -2; jj < 3; jj++) {
+         for (int ii = -2; ii < 3; ii++) {
             if (technicalGrid.get(i + ii, j + jj, k + kk) &&
-                technicalGrid.get(i + ii, j + jj, k + kk)->boundaryFlag == boundarytype::NOT_BOUNDARY)
-            {
+                technicalGrid.get(i + ii, j + jj, k + kk)->boundaryFlag == boundarytype::NOT_BOUNDARY) {
                distance = min(distance, ii * ii + jj * jj + kk * kk);
             }
          }
       }
    }
 
-   for (int kk = -2; kk < 3; kk++)
-   {
-      for (int jj = -2; jj < 3; jj++)
-      {
-         for (int ii = -2; ii < 3; ii++)
-         {
+   for (int kk = -2; kk < 3; kk++) {
+      for (int jj = -2; jj < 3; jj++) {
+         for (int ii = -2; ii < 3; ii++) {
             if (technicalGrid.get(i + ii, j + jj, k + kk) &&
-                technicalGrid.get(i + ii, j + jj, k + kk)->boundaryFlag == boundarytype::NOT_BOUNDARY)
-            {
+                technicalGrid.get(i + ii, j + jj, k + kk)->boundaryFlag == boundarytype::NOT_BOUNDARY) {
                int d = ii * ii + jj * jj + kk * kk;
-               if (d == distance)
-               {
+               if (d == distance) {
                   std::array<int, 3> cell = {i + ii, j + jj, k + kk};
                   closestCells.push_back(cell);
                }
@@ -726,8 +644,7 @@ BoundaryCondition::getAllClosestNonboundaryCells(FsGrid<fsgrids::technical, FS_S
       }
    }
 
-   if (closestCells.size() == 0)
-   {
+   if (closestCells.size() == 0) {
       std::array<int, 3> dummy = {std::numeric_limits<int>::min()};
       closestCells.push_back(dummy);
    }
@@ -740,8 +657,7 @@ BoundaryCondition::getAllClosestNonboundaryCells(FsGrid<fsgrids::technical, FS_S
  * \return The cell index of that cell
  * \sa getAllClosestNonboundaryCells
  */
-CellID &BoundaryCondition::getTheClosestNonboundaryCell(const CellID &cellID)
-{
+CellID &BoundaryCondition::getTheClosestNonboundaryCell(const CellID &cellID) {
    std::vector<CellID> &closestCells = allClosestNonboundaryCells.at(cellID);
    return closestCells.at(0);
 }
@@ -751,8 +667,7 @@ CellID &BoundaryCondition::getTheClosestNonboundaryCell(const CellID &cellID)
  * \return The vector of cell indices of those cells
  * \sa getTheClosestNonboundaryCell
  */
-std::vector<CellID> &BoundaryCondition::getAllClosestNonboundaryCells(const CellID &cellID)
-{
+std::vector<CellID> &BoundaryCondition::getAllClosestNonboundaryCells(const CellID &cellID) {
    std::vector<CellID> &closestCells = allClosestNonboundaryCells.at(cellID);
    return closestCells;
 }
@@ -761,8 +676,7 @@ std::vector<CellID> &BoundaryCondition::getAllClosestNonboundaryCells(const Cell
  * \param cellID ID of the cell to start look from.
  * \return The vector of cell indices of those cells
  */
-std::vector<CellID> &BoundaryCondition::getAllCloseNonboundaryCells(const CellID &cellID)
-{
+std::vector<CellID> &BoundaryCondition::getAllCloseNonboundaryCells(const CellID &cellID) {
    std::vector<CellID> &closeCells = allCloseNonboundaryCells.at(cellID);
    return closeCells;
 }
@@ -772,8 +686,7 @@ std::vector<CellID> &BoundaryCondition::getAllCloseNonboundaryCells(const CellID
  * \param cellID ID of the cell to start look from.
  * \return The vector of cell indices of those cells.
  */
-std::array<SpatialCell *, 27> &BoundaryCondition::getFlowtoCells(const CellID &cellID)
-{
+std::array<SpatialCell *, 27> &BoundaryCondition::getFlowtoCells(const CellID &cellID) {
    phiprof::start("getFlowtoCells");
    std::array<SpatialCell *, 27> &flowtoCells = allFlowtoCells.at(cellID);
    phiprof::stop("getFlowtoCells");
@@ -781,15 +694,12 @@ std::array<SpatialCell *, 27> &BoundaryCondition::getFlowtoCells(const CellID &c
 }
 
 std::array<Realf *, 27> BoundaryCondition::getFlowtoCellsBlock(const std::array<SpatialCell *, 27> flowtoCells,
-                                                               const vmesh::GlobalID blockGID, const uint popID)
-{
+                                                               const vmesh::GlobalID blockGID, const uint popID) {
    phiprof::start("getFlowtoCellsBlock");
    std::array<Realf *, 27> flowtoCellsBlock;
    flowtoCellsBlock.fill(NULL);
-   for (uint i = 0; i < 27; i++)
-   {
-      if (flowtoCells.at(i))
-      {
+   for (uint i = 0; i < 27; i++) {
+      if (flowtoCells.at(i)) {
          flowtoCellsBlock.at(i) =
              flowtoCells.at(i)->get_data(flowtoCells.at(i)->get_velocity_block_local_id(blockGID, popID), popID);
       }
@@ -800,47 +710,37 @@ std::array<Realf *, 27> BoundaryCondition::getFlowtoCellsBlock(const std::array<
 
 Real BoundaryCondition::fieldBoundaryCopyFromSolvingNbrMagneticField(
     FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &bGrid,
-    FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid, cint i, cint j, cint k, cuint component, cuint mask)
-{
+    FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid, cint i, cint j, cint k, cuint component, cuint mask) {
 
    int distance = std::numeric_limits<int>::max();
    std::vector<std::array<int, 3>> closestCells;
 
-   for (int kk = -2; kk < 3; kk++)
-   {
-      for (int jj = -2; jj < 3; jj++)
-      {
-         for (int ii = -2; ii < 3; ii++)
-         {
+   for (int kk = -2; kk < 3; kk++) {
+      for (int jj = -2; jj < 3; jj++) {
+         for (int ii = -2; ii < 3; ii++) {
             if (technicalGrid.get(i + ii, j + jj, k + kk) // skip invalid cells returning NULL
                 &&
                 (technicalGrid.get(i + ii, j + jj, k + kk)->SOLVE & mask) == mask // Did that guy solve this component?
                 && technicalGrid.get(i + ii, j + jj, k + kk)->boundaryFlag !=
-                       boundarytype::NO_COMPUTE // Do not copy from there
-            )
-            {
+                       boundarytype::NOTHING // Do not copy from there
+            ) {
                distance = min(distance, ii * ii + jj * jj + kk * kk);
             }
          }
       }
    }
 
-   for (int kk = -2; kk < 3; kk++)
-   {
-      for (int jj = -2; jj < 3; jj++)
-      {
-         for (int ii = -2; ii < 3; ii++)
-         {
+   for (int kk = -2; kk < 3; kk++) {
+      for (int jj = -2; jj < 3; jj++) {
+         for (int ii = -2; ii < 3; ii++) {
             if (technicalGrid.get(i + ii, j + jj, k + kk) // skip invalid cells returning NULL
                 &&
                 (technicalGrid.get(i + ii, j + jj, k + kk)->SOLVE & mask) == mask // Did that guy solve this component?
                 && technicalGrid.get(i + ii, j + jj, k + kk)->boundaryFlag !=
-                       boundarytype::NO_COMPUTE // Do not copy from there
-            )
-            {
+                       boundarytype::NOTHING // Do not copy from there
+            ) {
                int d = ii * ii + jj * jj + kk * kk;
-               if (d == distance)
-               {
+               if (d == distance) {
                   std::array<int, 3> cell = {i + ii, j + jj, k + kk};
                   closestCells.push_back(cell);
                }
@@ -849,7 +749,8 @@ Real BoundaryCondition::fieldBoundaryCopyFromSolvingNbrMagneticField(
       }
    }
 
-   if (closestCells.size() == 0) abort_mpi("No closest cell found!", 1);
+   if (closestCells.size() == 0)
+      abort_mpi("No closest cell found!", 1);
 
    return bGrid.get(closestCells[0][0], closestCells[0][1], closestCells[0][2])->at(fsgrids::bfield::PERBX + component);
 }
@@ -859,8 +760,7 @@ Real BoundaryCondition::fieldBoundaryCopyFromSolvingNbrMagneticField(
  * whether the corresponding face is of that type.
  * Order: 0 x+; 1 x-; 2 y+; 3 y-; 4 z+; 5 z-
  */
-void BoundaryCondition::getFaces(bool *faces)
-{
+void BoundaryCondition::getFaces(bool *faces) {
    abort_mpi("ERROR: BoundaryCondition::getFaces called instead of derived class function!");
 }
 
@@ -870,8 +770,7 @@ uint BoundaryCondition::getPrecedence() const { return precedence; }
 /*! Returns whether the boundary condition is dynamic in time.*/
 bool BoundaryCondition::isDynamic() const { return dynamic; }
 
-void BoundaryCondition::setPeriodicity(bool isFacePeriodic[3])
-{
+void BoundaryCondition::setPeriodicity(bool isFacePeriodic[3]) {
    for (uint i = 0; i < 3; i++)
       this->periodic[i] = isFacePeriodic[i];
 }
@@ -881,12 +780,10 @@ void BoundaryCondition::setPeriodicity(bool isFacePeriodic[3])
 bool BoundaryCondition::doApplyUponRestart() const { return this->applyUponRestart; }
 
 /*! Helper function for error handling. err_type default to 0.*/
-void abort_mpi(const string str, const int err_type)
-{
+void abort_mpi(const string str, const int err_type) {
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-   if (myRank == MASTER_RANK)
-   {
+   if (myRank == MASTER_RANK) {
       if (err_type == 0)
          cerr << str << endl;
       else

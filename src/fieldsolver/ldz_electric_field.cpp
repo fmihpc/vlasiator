@@ -1529,7 +1529,7 @@ void calculateElectricField(
 ) {
    cuint cellBoundaryFlag = technicalGrid.get(i,j,k)->boundaryFlag;
    
-   if (cellBoundaryFlag == boundarytype::NO_COMPUTE) return;
+   if (cellBoundaryFlag == boundarytype::NOTHING) return;
    
    cuint bitfield = technicalGrid.get(i,j,k)->SOLVE;
    

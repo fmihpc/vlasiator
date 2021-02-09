@@ -162,7 +162,7 @@ void Ionosphere::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geome
                                 FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid) {
    vector<CellID> cells = mpiGrid.get_cells();
    for (uint i = 0; i < cells.size(); i++) {
-      if (mpiGrid[cells[i]]->boundaryFlag == boundarytype::NO_COMPUTE) {
+      if (mpiGrid[cells[i]]->boundaryFlag == boundarytype::NOTHING) {
          continue;
       }
 

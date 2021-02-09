@@ -366,7 +366,7 @@ void calculateDerivativesSimple(
    for (int k=0; k<gridDims[2]; k++) {
       for (int j=0; j<gridDims[1]; j++) {
          for (int i=0; i<gridDims[0]; i++) {
-            if (technicalGrid.get(i,j,k)->boundaryFlag == boundarytype::NO_COMPUTE) continue;
+            if (technicalGrid.get(i,j,k)->boundaryFlag == boundarytype::NOTHING) continue;
             if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
                calculateDerivatives(i,j,k, perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, technicalGrid, boundaries, RKCase);
             } else {
@@ -490,7 +490,7 @@ void calculateBVOLDerivativesSimple(
    for (int k=0; k<gridDims[2]; k++) {
       for (int j=0; j<gridDims[1]; j++) {
          for (int i=0; i<gridDims[0]; i++) {
-            if (technicalGrid.get(i,j,k)->boundaryFlag == boundarytype::NO_COMPUTE) continue;
+            if (technicalGrid.get(i,j,k)->boundaryFlag == boundarytype::NOTHING) continue;
             
             calculateBVOLDerivatives(volGrid,technicalGrid,i,j,k,boundaries);
          }

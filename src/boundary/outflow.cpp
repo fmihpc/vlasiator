@@ -238,7 +238,7 @@ void Outflow::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry
    vector<CellID> cells = mpiGrid.get_cells();
    for (const auto &dccrgId : cells)
    {
-      if (mpiGrid[dccrgId]->boundaryFlag == boundarytype::NO_COMPUTE) continue;
+      if (mpiGrid[dccrgId]->boundaryFlag == boundarytype::NOTHING) continue;
       creal *const cellParams = &(mpiGrid[dccrgId]->parameters[0]);
       creal dx = cellParams[CellParams::DX];
       creal dy = cellParams[CellParams::DY];

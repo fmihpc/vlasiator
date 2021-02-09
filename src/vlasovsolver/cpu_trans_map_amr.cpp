@@ -221,7 +221,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
    /*loop to negative side and replace all invalid cells with the closest good cell*/
    SpatialCell* lastGoodCell = mpiGrid[ids.front()];
    for(int i = VLASOV_STENCIL_WIDTH - 1; i >= 0 ;--i){
-      if(sourceCells[i] == NULL || sourceCells[i]->boundaryFlag == boundarytype::NO_COMPUTE)
+      if(sourceCells[i] == NULL || sourceCells[i]->boundaryFlag == boundarytype::NOTHING)
          sourceCells[i] = lastGoodCell;
       else
          lastGoodCell = sourceCells[i];
@@ -229,7 +229,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
    /*loop to positive side and replace all invalid cells with the closest good cell*/
    lastGoodCell = mpiGrid[ids.back()];
    for(int i = VLASOV_STENCIL_WIDTH + L; i < (L + 2*VLASOV_STENCIL_WIDTH); ++i){
-      if(sourceCells[i] == NULL || sourceCells[i]->boundaryFlag == boundarytype::NO_COMPUTE)
+      if(sourceCells[i] == NULL || sourceCells[i]->boundaryFlag == boundarytype::NOTHING)
          sourceCells[i] = lastGoodCell;
       else
          lastGoodCell = sourceCells[i];
@@ -703,7 +703,7 @@ void propagatePencil(
  *
  * @param [in] mpiGrid DCCRG grid object
  * @param [in] localPropagatedCells List of local cells that get propagated
- * ie. not boundary or NO_COMPUTE
+ * ie. not boundary or NOTHING
  * @param [in] dimension Spatial dimension
  * @param [out] seedIds list of cell ids that will be starting points for pencils
  */
@@ -1102,7 +1102,7 @@ void printPencilsFunc(const setOfPencils& pencils, const uint dimension, const i
  *
  * @param [in] mpiGrid DCCRG grid object
  * @param [in] localPropagatedCells List of local cells that get propagated
- * ie. not boundary or NO_COMPUTE
+ * ie. not boundary or NOTHING
  * @param [in] remoteTargetCells List of non-local target cells
  * @param dimension Spatial dimension
  * @param [in] dt Time step

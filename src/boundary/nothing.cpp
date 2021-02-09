@@ -20,35 +20,35 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-/*!\file nocompute.cpp
- * \brief Implementation of the class BoundaryCondition::NoCompute to handle
- * cells classified as boundarytype::NO_COMPUTE.
+/*!\file nothing.cpp
+ * \brief Implementation of the class BoundaryCondition::Nothing to handle
+ * cells classified as boundarytype::NOTHING.
  */
 
 #include <cstdlib>
 #include <iostream>
 
 #include "../object_wrapper.h"
-#include "nocompute.h"
+#include "nothing.h"
 
 using namespace std;
 
 namespace BC {
-NoCompute::NoCompute() : BoundaryCondition() {}
-NoCompute::~NoCompute() {}
+Nothing::Nothing() : BoundaryCondition() {}
+Nothing::~Nothing() {}
 
-void NoCompute::addParameters() {}
-void NoCompute::getParameters() {}
+void Nothing::addParameters() {}
+void Nothing::getParameters() {}
 
-void NoCompute::initBoundary(creal t, Project &project) {
+void Nothing::initBoundary(creal t, Project &project) {
    precedence = 0;
    dynamic = false;
 }
 
-void NoCompute::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &,
+void Nothing::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &,
                                FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid) {}
 
-void NoCompute::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+void Nothing::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                                   FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid,
                                   Project &project) {
    vector<CellID> cells = mpiGrid.get_cells();
@@ -77,10 +77,10 @@ void NoCompute::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesi
    }
 }
 
-void NoCompute::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+void Nothing::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                             FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid, creal t) {}
 
-std::string NoCompute::getName() const { return "NoCompute"; }
+std::string Nothing::getName() const { return "Nothing"; }
 
-uint NoCompute::getIndex() const { return boundarytype::NO_COMPUTE; }
+uint Nothing::getIndex() const { return boundarytype::NOTHING; }
 } // namespace BC

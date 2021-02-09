@@ -84,7 +84,7 @@ void Inflow::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>
 
    vector<CellID> cells = mpiGrid.get_cells();
    for (uint i = 0; i < cells.size(); i++) {
-      if (mpiGrid[cells[i]]->boundaryFlag == boundarytype::NO_COMPUTE)
+      if (mpiGrid[cells[i]]->boundaryFlag == boundarytype::NOTHING)
          continue;
       creal *const cellParams = &(mpiGrid[cells[i]]->parameters[0]);
       creal dx = cellParams[CellParams::DX];
