@@ -50,15 +50,15 @@ struct Parameters {
    static uint zcells_ini; /*!< Initial number of spatial cells in z-direction. */
    
    static Real t;                    /*!< Current simulation time. */
-   static Real t_min;                    /*!< Initial simulation time. */
-   static Real t_max;                    /*!< Maximum simulation time. */
+   static Real t_min;                /*!< Initial simulation time. */
+   static Real t_max;                /*!< Maximum simulation time. */
    static Real dt;                   /*!< The value of the timestep to use in propagation. If CflLimit defined then it is dynamically updated during simulation*/
    static Real vlasovSolverMaxCFL;   /*!< The maximum CFL limit for propagation of distribution function. Used to set timestep if useCFLlimit is true. */
    static Real vlasovSolverMinCFL;   /*!< The minimum CFL limit for propagation of distribution function. Used to set timestep if useCFLlimit is true. */
-   static Real fieldSolverMinCFL;     /*!< The minimum CFL limit for propagation of fields. Used to set timestep if useCFLlimit is true.*/
-   static Real fieldSolverMaxCFL;     /*!< The maximum CFL limit for propagation of fields. Used to set timestep if useCFLlimit is true.*/
-   static uint fieldSolverSubcycles;     /*!< The number of field solver subcycles to compute.*/
-   static bool transShortPencils;        /*!< Use short or longpencils in AMR translation.*/
+   static Real fieldSolverMinCFL;    /*!< The minimum CFL limit for propagation of fields. Used to set timestep if useCFLlimit is true.*/
+   static Real fieldSolverMaxCFL;    /*!< The maximum CFL limit for propagation of fields. Used to set timestep if useCFLlimit is true.*/
+   static uint fieldSolverSubcycles; /*!< The number of field solver subcycles to compute.*/
+   static bool transShortPencils;    /*!< Use short or longpencils in AMR translation.*/
   
    static uint tstep_min;           /*!< Timestep when simulation starts, needed for restarts.*/
    static uint tstep_max;           /*!< Maximum timestep. */

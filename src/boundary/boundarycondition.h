@@ -117,6 +117,23 @@ public:
    void setPeriodicity(bool isFacePeriodic[3]);
 
 protected:
+   /*! Precedence value of the boundary condition. */
+   uint precedence;
+   /*! Is the boundary condition dynamic in time or not. */
+   bool dynamic;
+   /*! Array of bool telling whether the system is periodic in any direction. */
+   bool periodic[3];
+   /*! Map of closest nonboundarycells. Used in getAllClosestNonboundaryCells. */
+   std::unordered_map<CellID, std::vector<CellID>> allClosestNonboundaryCells;
+   /*! Map of close nonboundarycells. Used in getAllCloseNonboundaryCells. */
+   std::unordered_map<CellID, std::vector<CellID>> allCloseNonboundaryCells;
+
+   /*! Array of cells into which the distribution function can flow. Used in getAllFlowtoCells. Cells into which one
+    * cannot flow are set to INVALID_CELLID. */
+   std::unordered_map<CellID, std::array<SpatialCell *, 27>> allFlowtoCells;
+   /*! bool telling whether to call again applyInitialState upon restarting the simulation. */
+   bool applyUponRestart;
+
    void determineFace(bool *isThisCellOnAFace, creal x, creal y, creal z, creal dx, creal dy, creal dz,
                       const bool excludeSlicesAndPeriodicDimensions = false);
    void copyCellData(SpatialCell *from, SpatialCell *to, const bool copyMomentsOnly, const uint popID,
@@ -162,23 +179,6 @@ protected:
        FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &bGrid,
        FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid, cint i, cint j, cint k, cuint component,
        cuint mask);
-
-   /*! Precedence value of the boundary condition. */
-   uint precedence;
-   /*! Is the boundary condition dynamic in time or not. */
-   bool dynamic;
-   /*! Array of bool telling whether the system is periodic in any direction. */
-   bool periodic[3];
-   /*! Map of closest nonboundarycells. Used in getAllClosestNonboundaryCells. */
-   std::unordered_map<CellID, std::vector<CellID>> allClosestNonboundaryCells;
-   /*! Map of close nonboundarycells. Used in getAllCloseNonboundaryCells. */
-   std::unordered_map<CellID, std::vector<CellID>> allCloseNonboundaryCells;
-
-   /*! Array of cells into which the distribution function can flow. Used in getAllFlowtoCells. Cells into which one
-    * cannot flow are set to INVALID_CELLID. */
-   std::unordered_map<CellID, std::array<SpatialCell *, 27>> allFlowtoCells;
-   /*! bool telling whether to call again applyInitialState upon restarting the simulation. */
-   bool applyUponRestart;
 };
 
 void abort_mpi(const std::string str, const int err_type = 0);

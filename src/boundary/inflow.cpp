@@ -47,6 +47,8 @@ namespace BC {
 Inflow::Inflow() : BoundaryCondition() {}
 Inflow::~Inflow() {}
 
+Real Inflow::tLastApply = 0.0;
+
 void Inflow::initBoundary(creal t, Project &project) {
    // The array of bool describes which of the faces are to have inflow boundary
    // conditions, in the order of x+, x-, y+, y-, z+, z-.
@@ -75,6 +77,7 @@ void Inflow::initBoundary(creal t, Project &project) {
       loadInputData(i);
 
    generateTemplateCells(t);
+   tLastApply = t;
 }
 
 void Inflow::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
@@ -152,6 +155,11 @@ void Inflow::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_
 
 void Inflow::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                          FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, creal t) {
+   if (t - tLastApply < tInterval) {
+      return;
+   } else {
+      tLastApply = t;
+   }
 #pragma omp parallel for
    for (uint i = 0; i < 6; i++) {
       if (facesToProcess[i])

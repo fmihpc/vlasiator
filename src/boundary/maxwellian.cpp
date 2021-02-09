@@ -46,6 +46,8 @@ void Maxwellian::addParameters() {
                        "If 0 (default), keep going with the state existing in the restart file. If 1, calls again "
                        "applyInitialState. Can be used to change boundary condition behaviour during a run.",
                        0);
+   Readparameters::add("maxwellian.t_interval", "Time interval in seconds for applying the varying inflow condition.",
+                       0.0);
 
    // Per-population parameters
    for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
@@ -88,6 +90,7 @@ void Maxwellian::getParameters() {
 
    uint reapply;
    Readparameters::get("maxwellian.reapplyUponRestart", reapply);
+   Readparameters::get("maxwellian.t_interval", tInterval);
    this->applyUponRestart = false;
    if (reapply == 1) {
       this->applyUponRestart = true;
@@ -279,11 +282,6 @@ void Maxwellian::generateTemplateCell(spatial_cell::SpatialCell &templateCell, R
    templateCell.parameters[CellParams::P_11_V] = templateCell.parameters[CellParams::P_11];
    templateCell.parameters[CellParams::P_22_V] = templateCell.parameters[CellParams::P_22];
    templateCell.parameters[CellParams::P_33_V] = templateCell.parameters[CellParams::P_33];
-
-   if (this->dynamic) {
-      // hyzhou
-      cout << "We are testing dynamic BC, t = " << t << endl;
-   }
 }
 
 string Maxwellian::getName() const { return "Maxwellian"; }
