@@ -487,7 +487,8 @@ int main(int argn, char *args[]) {
       if (!writeGrid(mpiGrid,
                      perBGrid, // TODO: Merge all the fsgrids passed here into one meta-object
                      EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, volGrid,
-                     technicalGrid, &outputReducer, P::systemWriteName.size() - 1, writeGhosts)) {
+                     technicalGrid, &outputReducer, P::systemWriteName.size() - 1, P::restartStripeFactor,
+                     writeGhosts)) {
          cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
       }
 
@@ -650,7 +651,7 @@ int main(int argn, char *args[]) {
             if (!writeGrid(mpiGrid,
                            perBGrid, // TODO: Merge all the fsgrids passed here into one meta-object
                            EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, volGrid,
-                           technicalGrid, &outputReducer, i, writeGhosts)) {
+                           technicalGrid, &outputReducer, i, P::bulkStripeFactor, writeGhosts)) {
                cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
             }
             P::systemWrites[i]++;
