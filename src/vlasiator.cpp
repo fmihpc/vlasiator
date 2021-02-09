@@ -813,7 +813,9 @@ int main(int argn, char *args[]) {
       }
       phiprof::stop("Spatial-space", computedCells, "Cells");
 
+      phiprof::start("Update dynamic boundary cells");
       boundaries.updateState(mpiGrid, perBGrid, P::t + 0.5 * P::dt);
+      phiprof::stop("Update dynamic boundary cells");
 
       // Apply boundary conditions
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration) {
