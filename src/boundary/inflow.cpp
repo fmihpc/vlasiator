@@ -47,8 +47,6 @@ namespace BC {
 Inflow::Inflow() : BoundaryCondition() {}
 Inflow::~Inflow() {}
 
-Real Inflow::tLastApply = 0.0;
-
 void Inflow::initBoundary(creal t, Project &project) {
    // The array of bool describes which of the faces are to have inflow boundary
    // conditions, in the order of x+, x-, y+, y-, z+, z-.

@@ -118,7 +118,7 @@ protected:
    /*! Time interval for applying the dynamic BC. */
    Real tInterval;
    /*! Last simulation time the dynamic BC is applied. */
-   static Real tLastApply;
+   Real tLastApply;
    /*! List of faces on which inflow boundary conditions are to be applied ([xyz][+-]). */
    vector<string> faceList;
    vector<InflowSpeciesParameters> speciesParams;
