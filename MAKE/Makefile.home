@@ -9,8 +9,8 @@ LDFLAGS = -L $(HOME)/lib
 LIB_MPI = -lgomp
 # LIB_MPI = 
 
-LIBRARY_PREFIX = $HOME
-LIBRARY_PREFIX_B = $HOME
+LIBRARY_PREFIX = $(HOME)
+LIBRARY_PREFIX_B = $(HOME)
 
 INC_BOOST = -I${HOME}/include
 LIB_BOOST = -L${HOME}/lib -lboost_program_options
