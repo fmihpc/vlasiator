@@ -957,7 +957,7 @@ bool writeIonosphereGridMetadata(vlsv::Writer& vlsvWriter) {
   }
   
   // write DomainSizes
-  std::array<uint32_t,4> meshDomainSize({SBC::ionosphereGrid.elements.size(), 0, SBC::ionosphereGrid.nodes.size(), 0});
+  std::array<uint64_t,4> meshDomainSize({SBC::ionosphereGrid.elements.size(), 0, SBC::ionosphereGrid.nodes.size(), 0});
   if(rank == 0) {
     vlsvWriter.writeArray("MESH_DOMAIN_SIZES", xmlAttributes, 1, 4, &meshDomainSize[0]);
   } else {
@@ -965,7 +965,7 @@ bool writeIonosphereGridMetadata(vlsv::Writer& vlsvWriter) {
   }
 
   // write Offset arrays (no offset here, since we're writing only from a single task)
-  std::array<uint32_t, 2> meshOffsets({SBC::ionosphereGrid.elements.size()*5, SBC::ionosphereGrid.nodes.size()});
+  std::array<uint64_t, 2> meshOffsets({SBC::ionosphereGrid.elements.size()*5, SBC::ionosphereGrid.nodes.size()});
   if(rank == 0) {
     vlsvWriter.writeArray("MESH_OFFSETS", xmlAttributes, 1, 2, &meshOffsets[0]);
   } else {
@@ -975,7 +975,7 @@ bool writeIonosphereGridMetadata(vlsv::Writer& vlsvWriter) {
 
   // Write node coordinates
   std::vector<double> nodeCoordinates(3*SBC::ionosphereGrid.nodes.size());
-  for(int64_t i=0; i<SBC::ionosphereGrid.nodes.size(); i++) {
+  for(uint64_t i=0; i<SBC::ionosphereGrid.nodes.size(); i++) {
     nodeCoordinates[3*i] = SBC::ionosphereGrid.nodes[i].x[0];
     nodeCoordinates[3*i+1] = SBC::ionosphereGrid.nodes[i].x[1];
     nodeCoordinates[3*i+2] = SBC::ionosphereGrid.nodes[i].x[2];
