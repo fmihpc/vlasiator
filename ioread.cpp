@@ -845,7 +845,7 @@ template<unsigned long int N> bool readFsGridVariable(
             return false;
          }
 
-         for(int i=0; i<storageSize*N; i++) {
+         for(uint64_t i=0; i<storageSize*N; i++) {
             buffer[i] = readBuffer[i];
          }
       }
@@ -930,7 +930,7 @@ template<unsigned long int N> bool readFsGridVariable(
                return false;
             }
 
-            for(int i=0; i< thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N; i++) {
+            for(uint64_t i=0; i< thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N; i++) {
                buffer[i]=readBuffer[i];
             }
          }
