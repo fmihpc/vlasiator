@@ -936,7 +936,7 @@ bool writeIonosphereGridMetadata(vlsv::Writer& vlsvWriter) {
   const std::string meshName="ionosphere";
   xmlAttributes["mesh"] = meshName;
   int rank;
-  if(SBC::ionosphereGrid.isCouplingToCells) {
+  if(SBC::ionosphereGrid.isCouplingInwards || SBC::ionosphereGrid.isCouplingOutwards) {
     MPI_Comm_rank(SBC::ionosphereGrid.communicator, &rank);
   } else {
     rank = -1;

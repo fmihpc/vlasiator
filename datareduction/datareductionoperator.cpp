@@ -209,7 +209,7 @@ namespace DRO {
 
       // Only task 0 of the ionosphere communicator writes
       int rank = -1;
-      if(grid.isCouplingToCells) {
+      if(grid.isCouplingInwards || grid.isCouplingOutwards) {
         MPI_Comm_rank(grid.communicator,&rank);
       }
       if(rank == 0) {
@@ -261,7 +261,7 @@ namespace DRO {
       // Only task 0 of the ionosphere communicator writes, but all others need to sync vectorSize
       int rank = -1;
       int worldRank = 0;
-      if(grid.isCouplingToCells) {
+      if(grid.isCouplingInwards || grid.isCouplingOutwards) {
         MPI_Comm_rank(grid.communicator,&rank);
       }
       MPI_Comm_rank(MPI_COMM_WORLD,&worldRank);

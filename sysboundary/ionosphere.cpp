@@ -943,6 +943,30 @@ namespace SBC {
       }
    }//stepFieldLine
 
+   // (Re-)create the subcommunicator for ionosphere-internal communication
+   // This needs to be rerun after Vlasov grid load balancing to ensure that
+   // ionosphere info is still communicated to the right ranks.
+   void SphericalTriGrid::updateIonosphereCommunicator(FsGrid< fsgrids::technical, 2> & technicalGrid) {
+      phiprof::start("ionosphere-updateIonosphereCommunicator");
+      int writingRankInput=0;
+      if(isCouplingInwards || isCouplingOutwards) {
+         int size;
+         MPI_Comm_split(MPI_COMM_WORLD, 1, technicalGrid.getRank(), &communicator);
+         MPI_Comm_rank(communicator, &rank);
+         MPI_Comm_size(communicator, &size);
+         if(rank == 0) {
+            writingRankInput = technicalGrid.getRank();
+            cerr << "(ionosphere) New Ionosphere subcommunicator has size " << size << ", rank 0 corresponds to global rank " << technicalGrid.getRank() << endl;
+         }
+      } else {
+         MPI_Comm_split(MPI_COMM_WORLD, MPI_UNDEFINED, 0, &communicator); // All other ranks are staying out of the communicator.
+         rank = -1;
+      }
+
+      // Make sure all tasks know which task does the writing
+      MPI_Allreduce(&writingRankInput, &writingRank, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+      phiprof::stop("ionosphere-updateIonosphereCommunicator");
+   }
 
    /* Calculate mapping between ionospheric nodes and fsGrid cells.
     * To do so, the magnetic field lines are traced from all mesh nodes
@@ -996,7 +1020,7 @@ namespace SBC {
                if(technicalGrid.get( fsgridCell[0], fsgridCell[1], fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
 
                   // Cell found, add association.
-                  isCouplingToCells = true;
+                  isCouplingInwards = true;
 
                   // Calculate interpolation factor for this neighbour
                   //Real a = 1. - fabs(offset_x - interpolationFactor[0]) *
@@ -1019,23 +1043,8 @@ namespace SBC {
 
       // Now generate the subcommunicator to solve the ionosphere only on those ranks that actually couple
       // to simulation cells
-      int writingRankInput=0;
-      if(isCouplingToCells) {
-        int size;
-        MPI_Comm_split(MPI_COMM_WORLD, 1, technicalGrid.getRank(), &communicator);
-        MPI_Comm_rank(communicator, &rank);
-        MPI_Comm_size(communicator, &size);
-        if(rank == 0) {
-          writingRankInput = technicalGrid.getRank();
-          cerr << "(ionosphere) Ionosphere Subcommunicator has size " << size << ", rank 0 corresponds to global rank " << technicalGrid.getRank() << endl;
-        }
-      } else {
-        MPI_Comm_split(MPI_COMM_WORLD, MPI_UNDEFINED, 0, &communicator); // All other ranks are staying out of the communicator.
-        rank = -1;
-      }
+      updateIonosphereCommunicator(technicalGrid);
 
-      // Make sure all tasks know which task does the writing
-      MPI_Allreduce(&writingRankInput, &writingRank, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
       phiprof::stop("ionosphere-calculateCoupling");
    }
 
@@ -1047,10 +1056,10 @@ namespace SBC {
        FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsGrid,
        FsGrid< fsgrids::technical, 2> & technicalGrid) {
 
-     // Tasks that don't have anything to couple to can skip this process outright.
-     if(!isCouplingToCells) {
-       return;
+     if(!isCouplingInwards && !isCouplingOutwards) {
+        return;
      }
+
      phiprof::start("ionosphere-mapDownMagnetosphere");
 
      // Create zeroed-out input arrays
@@ -1059,156 +1068,159 @@ namespace SBC {
      std::vector<double> pressureInput(nodes.size());
 
      // Map all coupled nodes down into it
+     // Tasks that don't have anything to couple to can skip this step.
+     if(isCouplingInwards) {
      //#pragma omp parallel for
-     for(uint n=0; n<nodes.size(); n++) {
+        for(uint n=0; n<nodes.size(); n++) {
 
-        Real J = 0;
-        Real area = 0;
-        Real upmappedArea = 0;
-        std::array<int,3> fsc;
+           Real J = 0;
+           Real area = 0;
+           Real upmappedArea = 0;
+           std::array<int,3> fsc;
 
-        // Iterate through the elements touching that node
-        for(uint e=0; e<nodes[n].numTouchingElements; e++) {
-           const Element& el= elements[nodes[n].touchingElements[e]];
+           // Iterate through the elements touching that node
+           for(uint e=0; e<nodes[n].numTouchingElements; e++) {
+              const Element& el= elements[nodes[n].touchingElements[e]];
 
-           // This element has 3 corner nodes
-           // Get the B-values at the upmapped coordinates
-           std::array< std::array< Real, 3>, 3> B = {0};
-           for(int c=0; c <3 ;c++) {
+              // This element has 3 corner nodes
+              // Get the B-values at the upmapped coordinates
+              std::array< std::array< Real, 3>, 3> B = {0};
+              for(int c=0; c <3 ;c++) {
 
-              const Node& corner = nodes[el.corners[c]];
+                 const Node& corner = nodes[el.corners[c]];
 
-              // Get fsgrid coordinate of mapping
-              std::array<Real,3> cell = corner.fsgridCellCoupling;
-              for(int i=0; i<3; i++) {
-                 fsc[i] = floor(cell[i]);
+                 // Get fsgrid coordinate of mapping
+                 std::array<Real,3> cell = corner.fsgridCellCoupling;
+                 for(int i=0; i<3; i++) {
+                    fsc[i] = floor(cell[i]);
+                 }
+
+                 // Local cell
+                 std::array<int,3> lfsc = technicalGrid.globalToLocal(fsc[0],fsc[1],fsc[2]);
+
+                 for(int xoffset : {0,1}) {
+                    for(int yoffset : {0,1}) {
+                       for(int zoffset : {0,1}) {
+
+                          Real coupling = abs(xoffset - (cell[0]-fsc[0])) * abs(yoffset - (cell[1]-fsc[1])) * abs(zoffset - (cell[2]-fsc[2]));
+
+                          // TODO: Use volume fields here?
+                          B[c][0] += coupling*perBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::PERBX);
+                          B[c][1] += coupling*perBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::PERBY);
+                          B[c][2] += coupling*perBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::PERBZ);
+                       }
+                    }
+                 }
               }
 
-              // Local cell
-              std::array<int,3> lfsc = technicalGrid.globalToLocal(fsc[0],fsc[1],fsc[2]);
+              ////// Calculate rot(B) by taking the path integral around the edge of the
+              ////// upmapped element
+              //J += B[0][0]*(nodes[el.corners[1]].xMapped[0] - nodes[el.corners[2]].xMapped[0])
+              //   + B[0][1]*(nodes[el.corners[1]].xMapped[1] - nodes[el.corners[2]].xMapped[1])
+              //   + B[0][2]*(nodes[el.corners[1]].xMapped[2] - nodes[el.corners[2]].xMapped[2]);
+              //J += B[1][0]*(nodes[el.corners[2]].xMapped[0] - nodes[el.corners[0]].xMapped[0])
+              //   + B[1][1]*(nodes[el.corners[2]].xMapped[1] - nodes[el.corners[0]].xMapped[1])
+              //   + B[1][2]*(nodes[el.corners[2]].xMapped[2] - nodes[el.corners[0]].xMapped[2]);
+              //J += B[2][0]*(nodes[el.corners[0]].xMapped[0] - nodes[el.corners[1]].xMapped[0])
+              //   + B[2][1]*(nodes[el.corners[0]].xMapped[1] - nodes[el.corners[1]].xMapped[1])
+              //   + B[2][2]*(nodes[el.corners[0]].xMapped[2] - nodes[el.corners[1]].xMapped[2]);
 
-              for(int xoffset : {0,1}) {
-                 for(int yoffset : {0,1}) {
-                    for(int zoffset : {0,1}) {
+              // Also sum up touching elements' areas and upmapped areas to compress
+              // density and pressure bit them
+              // TODO: Precalculate this?
+              area += elementArea(nodes[n].touchingElements[e]);
 
-                       Real coupling = abs(xoffset - (cell[0]-fsc[0])) * abs(yoffset - (cell[1]-fsc[1])) * abs(zoffset - (cell[2]-fsc[2]));
+              std::array<Real, 3> areaVector = mappedElementArea(nodes[n].touchingElements[e]);
+              std::array<Real, 3> avgB = {(B[0][0] + B[1][0] + B[2][0])/3.,
+                 (B[0][1] + B[1][1] + B[2][1]) / 3.,
+                 (B[0][2] + B[1][2] + B[2][2]) / 3.};
+              upmappedArea += fabs(areaVector[0] * avgB[0] + areaVector[1]*avgB[1] + areaVector[2]+avgB[2]);
+           }
 
-                       // TODO: Use volume fields here?
-                       B[c][0] += coupling*perBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::PERBX);
-                       B[c][1] += coupling*perBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::PERBY);
-                       B[c][2] += coupling*perBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::PERBZ);
+           // divide by mu0 to get J. Also divide by 3, as every
+           // element will be counted from each of its corners.
+           //J /= 3. * physicalconstants::MU_0;
+           //FACinput[n] = J / area;
+
+           // Prevent areas from being multiply-counted
+           area /= 3.;
+           upmappedArea /= 3.;
+
+           //// Map down FAC based on magnetosphere rotB
+           //std::array<int,3> fsc;
+           std::array<Real,3> cell = nodes[n].fsgridCellCoupling;
+           for(int c=0; c<3; c++) {
+              fsc[c] = floor(cell[c]);
+           }
+
+           // Local cell
+           std::array<int,3> lfsc = technicalGrid.globalToLocal(fsc[0],fsc[1],fsc[2]);
+
+           // Linearly interpolate neighbourhood
+           for(int xoffset : {0,1}) {
+              for(int yoffset : {0,1}) {
+                 for(int zoffset : {0,1}) {
+
+                    Real coupling = abs(xoffset - (cell[0]-fsc[0])) * abs(yoffset - (cell[1]-fsc[1])) * abs(zoffset - (cell[2]-fsc[2]));
+
+                    // Calc rotB
+                    std::array<Real, 3> rotB;
+                    rotB[0] = (dPerBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBzdy)
+                          - dPerBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBydz)) / dPerBGrid.DX;
+                    rotB[1] = (dPerBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBxdz)
+                          - dPerBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBzdx)) / dPerBGrid.DX;
+                    rotB[2] = (dPerBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBydx)
+                          - dPerBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBxdy)) / dPerBGrid.DX;
+
+                    // Dot with background (dipole) B
+                    std::array<Real, 3> B({BgBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::BGBX),
+                          BgBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::BGBY),
+                          BgBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::BGBZ)});
+                    Real Bnorm = 1./sqrt(B[0]*B[0]+B[1]*B[1]+B[2]*B[2]);
+                    // Yielding the field-aligned current
+                    Real FAC = Bnorm * (B[0]*rotB[0] + B[1]*rotB[1] + B[2]*rotB[2]) / physicalconstants::MU_0;
+
+                    FACinput[n] += FAC * coupling * upmappedArea/area;
+                 }
+              }
+           }
+
+
+           // By definition, a downwards current into the ionosphere has a positive FAC value,
+           // as it corresponds to positive divergence of horizontal current in the ionospheric plane.
+           // To make sure we match that, flip FAC sign on the southern hemisphere
+           if(nodes[n].x[2] < 0) {
+              FACinput[n] *= -1;
+           }
+
+           // Map density and pressure down
+
+           // Linearly interpolate
+           for(int xoffset : {0,1}) {
+              for(int yoffset : {0,1}) {
+                 for(int zoffset : {0,1}) {
+
+                    Real coupling = abs(xoffset - (cell[0]-fsc[0])) * abs(yoffset - (cell[1]-fsc[1])) * abs(zoffset - (cell[2]-fsc[2]));
+                    if(coupling < 0. || coupling > 1.) {
+                       logFile << "Ionosphere warning: node << " << n << " has coupling value " << coupling <<
+                          ", which is outside [0,1] at line " << __LINE__ << "!" << endl << write;
+                    }
+
+                    if(technicalGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+                       rhoInput[n] += coupling * momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::RHOQ) / physicalconstants::CHARGE;
+                       pressureInput[n] += coupling * (
+                             momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_11) +
+                             momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_22) +
+                             momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_33));
                     }
                  }
               }
            }
 
-           ////// Calculate rot(B) by taking the path integral around the edge of the
-           ////// upmapped element
-           //J += B[0][0]*(nodes[el.corners[1]].xMapped[0] - nodes[el.corners[2]].xMapped[0])
-           //   + B[0][1]*(nodes[el.corners[1]].xMapped[1] - nodes[el.corners[2]].xMapped[1])
-           //   + B[0][2]*(nodes[el.corners[1]].xMapped[2] - nodes[el.corners[2]].xMapped[2]);
-           //J += B[1][0]*(nodes[el.corners[2]].xMapped[0] - nodes[el.corners[0]].xMapped[0])
-           //   + B[1][1]*(nodes[el.corners[2]].xMapped[1] - nodes[el.corners[0]].xMapped[1])
-           //   + B[1][2]*(nodes[el.corners[2]].xMapped[2] - nodes[el.corners[0]].xMapped[2]);
-           //J += B[2][0]*(nodes[el.corners[0]].xMapped[0] - nodes[el.corners[1]].xMapped[0])
-           //   + B[2][1]*(nodes[el.corners[0]].xMapped[1] - nodes[el.corners[1]].xMapped[1])
-           //   + B[2][2]*(nodes[el.corners[0]].xMapped[2] - nodes[el.corners[1]].xMapped[2]);
-
-           // Also sum up touching elements' areas and upmapped areas to compress
-           // density and pressure bit them
-           // TODO: Precalculate this?
-           area += elementArea(nodes[n].touchingElements[e]);
-
-           std::array<Real, 3> areaVector = mappedElementArea(nodes[n].touchingElements[e]);
-           std::array<Real, 3> avgB = {(B[0][0] + B[1][0] + B[2][0])/3.,
-                                       (B[0][1] + B[1][1] + B[2][1]) / 3.,
-                                       (B[0][2] + B[1][2] + B[2][2]) / 3.};
-           upmappedArea += fabs(areaVector[0] * avgB[0] + areaVector[1]*avgB[1] + areaVector[2]+avgB[2]);
+           // Scale density and pressure by area ratio
+           //rhoInput[n] *= upmappedArea / area;
+           //pressureInput[n] *= upmappedArea / area;
         }
-
-        // divide by mu0 to get J. Also divide by 3, as every
-        // element will be counted from each of its corners.
-        //J /= 3. * physicalconstants::MU_0;
-        //FACinput[n] = J / area;
-        
-        // Prevent areas from being multiply-counted
-        area /= 3.;
-        upmappedArea /= 3.;
-
-        //// Map down FAC based on magnetosphere rotB
-        //std::array<int,3> fsc;
-        std::array<Real,3> cell = nodes[n].fsgridCellCoupling;
-        for(int c=0; c<3; c++) {
-           fsc[c] = floor(cell[c]);
-        }
-
-        // Local cell
-        std::array<int,3> lfsc = technicalGrid.globalToLocal(fsc[0],fsc[1],fsc[2]);
-
-        // Linearly interpolate neighbourhood
-        for(int xoffset : {0,1}) {
-           for(int yoffset : {0,1}) {
-              for(int zoffset : {0,1}) {
-
-                 Real coupling = abs(xoffset - (cell[0]-fsc[0])) * abs(yoffset - (cell[1]-fsc[1])) * abs(zoffset - (cell[2]-fsc[2]));
-
-                 // Calc rotB
-                 std::array<Real, 3> rotB;
-                 rotB[0] = (dPerBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBzdy)
-                       - dPerBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBydz)) / dPerBGrid.DX;
-                 rotB[1] = (dPerBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBxdz)
-                       - dPerBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBzdx)) / dPerBGrid.DX;
-                 rotB[2] = (dPerBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBydx)
-                       - dPerBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBxdy)) / dPerBGrid.DX;
-
-                 // Dot with background (dipole) B
-                 std::array<Real, 3> B({BgBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::BGBX),
-                       BgBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::BGBY),
-                       BgBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::BGBZ)});
-                 Real Bnorm = 1./sqrt(B[0]*B[0]+B[1]*B[1]+B[2]*B[2]);
-                 // Yielding the field-aligned current
-                 Real FAC = Bnorm * (B[0]*rotB[0] + B[1]*rotB[1] + B[2]*rotB[2]) / physicalconstants::MU_0;
-
-                 FACinput[n] += FAC * coupling * upmappedArea/area;
-              }
-           }
-        }
-
-
-        // By definition, a downwards current into the ionosphere has a positive FAC value,
-        // as it corresponds to positive divergence of horizontal current in the ionospheric plane.
-        // To make sure we match that.  flip FAC sign on the southern hemisphere
-        if(nodes[n].x[2] < 0) {
-           FACinput[n] *= -1;
-        }
-
-        // Map density and pressure down
-
-        // Linearly interpolate
-        for(int xoffset : {0,1}) {
-           for(int yoffset : {0,1}) {
-              for(int zoffset : {0,1}) {
-
-                 Real coupling = abs(xoffset - (cell[0]-fsc[0])) * abs(yoffset - (cell[1]-fsc[1])) * abs(zoffset - (cell[2]-fsc[2]));
-                 if(coupling < 0. || coupling > 1.) {
-                   logFile << "Ionosphere warning: node << " << n << " has coupling value " << coupling <<
-                      ", which is outside [0,1] at line " << __LINE__ << "!" << endl << write;
-                 }
-
-                 if(technicalGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                    rhoInput[n] += coupling * momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::RHOQ) / physicalconstants::CHARGE;
-                    pressureInput[n] += coupling * (
-                          momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_11) +
-                          momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_22) +
-                          momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_33));
-                 }
-              }
-           }
-        }
-
-        // Scale density and pressure by area ratio
-        //rhoInput[n] *= upmappedArea / area;
-        //pressureInput[n] *= upmappedArea / area;
      }
 
      // Allreduce on the ionosphere communicator
@@ -1228,6 +1240,7 @@ namespace SBC {
            nodes[n].parameters[ionosphereParameters::PRESSURE] = 2.76131e-10; // This pressure value results in an electron temp of 5e6 K
         } else {
            // Store as the node's parameter values.
+           // TODO: This is the point where a coupling timescale could be introduced.
            nodes[n].parameters[ionosphereParameters::SOURCE] = FACsum[n];
            nodes[n].parameters[ionosphereParameters::RHON] = rhoSum[n];
            nodes[n].parameters[ionosphereParameters::PRESSURE] = pressureSum[n];
@@ -1480,7 +1493,7 @@ namespace SBC {
    void SphericalTriGrid::solve() {
 
      // Ranks that don't participate in ionosphere solving skip this function outright
-     if(!isCouplingToCells) {
+     if(!isCouplingInwards && !isCouplingOutwards) {
        return;
      }
      phiprof::start("ionosphere-solve");
@@ -1786,6 +1799,7 @@ namespace SBC {
       getParameters();
       isThisDynamic = false;
 
+      // Initialize ionosphere mesh base shape
       if(baseShape == "icosahedron") {
          ionosphereGrid.initializeIcosahedron();
       } else if(baseShape == "tetrahedron") {
@@ -1806,6 +1820,7 @@ namespace SBC {
          abort();
       }
 
+      // Refine the base shape to acheive desired resolution
       auto refineBetweenLatitudes = [](Real phi1, Real phi2) -> void {
          uint numElems=ionosphereGrid.elements.size();
 
@@ -1897,6 +1912,11 @@ namespace SBC {
 
          if(getR(x,y,z,this->geometry,this->center) < this->radius) {
             mpiGrid[cells[i]]->sysBoundaryFlag = this->getIndex();
+
+            // As this Rank contains Ionosphere boundary vlasov grid cells, it needs to be included
+            // in the ionosphere communicator.
+            // TODO: Recalculate this on load balancing?
+            ionosphereGrid.isCouplingOutwards = true;
          }
       }
 
