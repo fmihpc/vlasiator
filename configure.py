@@ -222,6 +222,11 @@ parser.add_argument('-omp',
                     default=False,
                     help='enable parallelization with OpenMP')
 
+parser.add_argument('-nocheck',
+                    action='store_true',
+                    default=False,
+                    help='disable linking library checking')
+
 
 # --machine=[name]
 parser.add_argument('--machine',
@@ -716,9 +721,9 @@ if args['machine']:
             if line.startswith("CXXFLAGS"):
                 makefile_options['COMPILER_FLAGS'] = line.split(' = ')[1]
             elif line.startswith("LDFLAGS"):
-                makefile_options['LINKER_FLAGS'] = line.split(' ')[1]
+                makefile_options['LINKER_FLAGS'] = line.split(' = ')[1]
             elif line.startswith("LIBFLAGS"):
-                makefile_options['LIBRARY_FLAGS'] = line.split(' ')[1]
+                makefile_options['LIBRARY_FLAGS'] = line.split(' = ')[1]
             if line.startswith("INC_DCCRG"):
                 makefile_options['INC_DCCRG'] = line.split(' = -I')[1]
             elif line.startswith("INC_FSGRID"):
@@ -765,7 +770,8 @@ if args['machine']:
 
 # --- Step 4. Check dependencies -----------------------------------------
 
-check_dependencies()
+if not args["nocheck"]:
+    check_dependencies()
 
 # --- Step 5. Create new files, finish up --------------------------------
 
