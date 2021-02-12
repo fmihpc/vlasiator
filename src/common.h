@@ -371,7 +371,7 @@ namespace fsgrids {
       int boundaryLayer; /*!< boundary layer index. */
       Real maxFsDt;      /*!< maximum timestep allowed in ordinary space by fieldsolver for this cell**/
       int fsGridRank;    /*!< Rank in the fsGrids cartesian coordinator */
-      uint SOLVE;        /*!< Bit mask to determine whether a given cell should solve E or B components. */
+      uint SOLVE;        /*!< Bit mask to determine whether a given cell should solve E or B components. See namespace compute below.*/
       int refLevel;      /*!<AMR Refinement Level*/
    };
    
@@ -393,6 +393,15 @@ namespace boundarytype {
    };
 }
 
+
+/*! Bit field used to determine whether a given fsgrid cell needs to solve BX, BY, BZ, EX, EY, EZ
+ * BX is ...0001
+ * BY is ...0010
+ * etc so each is shifted one bit further.
+ * The technicalGrid->SOLVE flag contains the bitwise OR of all of these.
+ * To check whether a cell should solve BX, check (cell->SOLVE & compute::BX) against compute::BX.
+ * /!\ WARNING use bitwise operators /!\
+ */
 namespace compute {
    const uint BX = (1 << 0); // 1
    const uint BY = (1 << 1); // 2
