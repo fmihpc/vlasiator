@@ -946,8 +946,25 @@ namespace SBC {
    // (Re-)create the subcommunicator for ionosphere-internal communication
    // This needs to be rerun after Vlasov grid load balancing to ensure that
    // ionosphere info is still communicated to the right ranks.
-   void SphericalTriGrid::updateIonosphereCommunicator(FsGrid< fsgrids::technical, 2> & technicalGrid) {
+   void SphericalTriGrid::updateIonosphereCommunicator(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid< fsgrids::technical, 2> & technicalGrid) {
       phiprof::start("ionosphere-updateIonosphereCommunicator");
+
+      // Check if the current rank contains ionosphere boundary cells.
+      isCouplingOutwards = false;
+      for(const auto& cell: mpiGrid.get_cells()) {
+         if(mpiGrid[cell]->sysBoundaryFlag == sysboundarytype::IONOSPHERE) {
+            isCouplingOutwards = true;
+         }
+      }
+
+      // If a previous communicator existed, destroy it.
+      if(communicator != MPI_COMM_NULL) {
+         MPI_Comm_free(&communicator);
+         communicator = MPI_COMM_NULL;
+      }
+
+      // Whether or not the current rank is coupling inwards from fsgrid was determined at
+      // grid initialization time and does not change during runtime.
       int writingRankInput=0;
       if(isCouplingInwards || isCouplingOutwards) {
          int size;
@@ -963,7 +980,7 @@ namespace SBC {
          rank = -1;
       }
 
-      // Make sure all tasks know which task does the writing
+      // Make sure all tasks know which task on MPI_COMM_WORLD does the writing
       MPI_Allreduce(&writingRankInput, &writingRank, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
       phiprof::stop("ionosphere-updateIonosphereCommunicator");
    }
@@ -973,7 +990,7 @@ namespace SBC {
     * outwards until a non-boundary cell is encountered. Their proportional
     * coupling values are recorded in the grid nodes.
     */
-   void SphericalTriGrid::calculateFsgridCoupling( FsGrid< fsgrids::technical, 2> & technicalGrid, FieldFunction& dipole, Real couplingRadius) {
+   void SphericalTriGrid::calculateFsgridCoupling(FsGrid< fsgrids::technical, 2> & technicalGrid, FieldFunction& dipole, Real couplingRadius) {
 
       phiprof::start("ionosphere-calculateCoupling");
       logFile << "(ionosphere) Starting FsGrid coupling of " << nodes.size() << " nodes." << endl << write;
@@ -1040,10 +1057,6 @@ namespace SBC {
             }
          }
       }
-
-      // Now generate the subcommunicator to solve the ionosphere only on those ranks that actually couple
-      // to simulation cells
-      updateIonosphereCommunicator(technicalGrid);
 
       phiprof::stop("ionosphere-calculateCoupling");
    }
@@ -1912,11 +1925,6 @@ namespace SBC {
 
          if(getR(x,y,z,this->geometry,this->center) < this->radius) {
             mpiGrid[cells[i]]->sysBoundaryFlag = this->getIndex();
-
-            // As this Rank contains Ionosphere boundary vlasov grid cells, it needs to be included
-            // in the ionosphere communicator.
-            // TODO: Recalculate this on load balancing?
-            ionosphereGrid.isCouplingOutwards = true;
          }
       }
 

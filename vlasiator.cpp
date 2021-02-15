@@ -578,6 +578,9 @@ int main(int argn,char* args[]) {
       phiprof::stop("propagate-velocity-space-dt/2");
 
    }
+
+   // Build communicator for ionosphere solving
+   SBC::ionosphereGrid.updateIonosphereCommunicator(mpiGrid, technicalGrid);
    
    phiprof::stop("Initialization");
 
@@ -815,6 +818,10 @@ int main(int argn,char* args[]) {
          P::prepareForRebalance = false;
 
          overrideRebalanceNow = false;
+
+         // Make sure the ionosphere communicator is up-to-date, in case inner boundary cells
+         // moved.
+         SBC::ionosphereGrid.updateIonosphereCommunicator(mpiGrid, technicalGrid);
       }
       
       //get local cells

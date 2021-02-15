@@ -136,7 +136,7 @@ namespace SBC {
       std::array< std::array< std::array< Real, productionNumTemperatures >, productionNumAccEnergies >, numAtmosphereLevels > productionTable;
       Real lookupProductionValue(int heightindex, Real energy_keV, Real temperature_keV);
 
-      MPI_Comm communicator;              // The communicator internally used to solve the ionosphere potenital
+      MPI_Comm communicator = MPI_COMM_NULL; // The communicator internally used to solve the ionosphere potenital
       int rank = -1;                      // Own rank in the ionosphere communicator
       int writingRank;                    // Rank in the MPI_COMM_WORLD communicator that does ionosphere I/O
       bool isCouplingInwards = false;     // True for any rank that actually couples fsgrid information into the ionosphere
@@ -146,7 +146,7 @@ namespace SBC {
       void offset_FAC();                  // Offset field aligned currents to get overall zero current
       void normalizeRadius(Node& n, Real R); // Scale all coordinates onto sphere with radius R
       void updateConnectivity();          // Re-link elements and nodes
-      void updateIonosphereCommunicator(FsGrid< fsgrids::technical, 2> & technicalGrid); // (Re-)create the subcommunicator for ionosphere-internal communication
+      void updateIonosphereCommunicator(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid< fsgrids::technical, 2> & technicalGrid);// (Re-)create the subcommunicator for ionosphere-internal communication
       void initializeTetrahedron();       // Initialize grid as a base tetrahedron
       void initializeIcosahedron();       // Initialize grid as a base icosahedron
       void initializeSphericalFibonacci(int n); // Initialize grid as a spherical fibonacci lattice
