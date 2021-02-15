@@ -318,7 +318,7 @@ namespace SBC {
    //
    // And three new nodes get created at the interfaces,
    // unless they already exist.
-   // The new center node (3) replaces the old parent element in place.
+   // The new center element (3) replaces the old parent element in place.
    void SphericalTriGrid::subdivideElement(uint32_t e) {
 
       phiprof::start("ionosphere-subdivideElement");
@@ -769,18 +769,20 @@ namespace SBC {
 
    /*Richardson extrapolation using polynomial fitting used by the Bulirsch-Stoer Mehtod*/
    void SphericalTriGrid::richardsonExtrapolation(int i, std::vector<Real>&table , Real& maxError, std::array<int,3>dims ){
-      std::vector<Real> errors;
       int k;
+      maxError = 0;
       for (int dim=0; dim<3; dim++){
          for(k =1; k<i+1; k++){
             
             table.at(ijk2Index(i,k,dim,dims)) = table.at(ijk2Index(i,k-1,dim,dims))  +(table.at(ijk2Index(i,k-1,dim,dims)) -table.at(ijk2Index(i-1,k-1,dim,dims)))/(std::pow(4,i) -1);
 
          }
-         errors.push_back( fabs(table.at(ijk2Index(k-1,k-1,dim,dims))   -  table.at(ijk2Index(k-2,k-2,dim,dims))));
+         
+         Real thisError = fabs(table.at(ijk2Index(k-1,k-1,dim,dims))   -  table.at(ijk2Index(k-2,k-2,dim,dims)));
+         if(thisError > maxError) {
+            maxError = thisError;
+         }
       }
-
-     maxError =*std::max_element(errors.begin(), errors.end());
    }
   
    /*Modified Midpoint Method used by the Bulirsch Stoer integrations
@@ -851,7 +853,7 @@ namespace SBC {
 
       //Save values in table
       for(int c =0; c<3; ++c){
-         table.at(ijk2Index(0,0,c,dims)) = r1[c];
+         table[ijk2Index(0,0,c,dims)] = r1[c];
       }
   
       for(i=1; i<kMax; ++i){
@@ -861,7 +863,7 @@ namespace SBC {
 
          //Save values in table
          for(int c =0; c<3; ++c){
-            table.at(ijk2Index(i,0,c,dims)) = rnew[c];
+            table[ijk2Index(i,0,c,dims)] = rnew[c];
          }
 
          //Now let's Extrapolate
@@ -2505,6 +2507,10 @@ namespace SBC {
       const bool calculate_V_moments
    ) {
       phiprof::start("vlasovBoundaryCondition (Ionosphere)");
+
+      // If we are to couple to the ionosphere grid, we better be part of its communicator.
+      assert(ionosphereGrid.communicator != MPI_COMM_NULL);
+      
       this->vlasovBoundaryFluffyCopyFromAllCloseNbrs(mpiGrid, cellID, popID, calculate_V_moments, this->speciesParams[popID].fluffiness);
       phiprof::stop("vlasovBoundaryCondition (Ionosphere)");
    }
