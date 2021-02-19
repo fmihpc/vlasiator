@@ -149,7 +149,6 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
          logFactor = min(logFactor, (Real)P::maxResonantSubcycleFactor);
          //constraint: do not lower subcycle count
          logFactor = max(logFactor, 1.0);
-         cout << logFactor << "\n";
          transformation_substeps = int(transformation_substeps * logFactor);
       }
    }
