@@ -83,15 +83,15 @@ void flagSpatialCellsForAmrCommunication(const dccrg::Dccrg<SpatialCell,dccrg::C
       return;
    }
    int zero=0;
-   if (reset==true) {
+   if (reset) {
       // set all skip flags to false
       for (auto c : localPropagatedCells) {
          // SpatialCell *ccell = mpiGrid[c];
          // if (!ccell) continue;
+         if (mpiGrid[c]->mpiTransferSpatialAMRskip == true) zero++;
          mpiGrid[c]->mpiTransferSpatialAMRskip = false;
-         zero++;
       }
-      //std::cerr<<"Zero "<<zero<<std::endl;
+      std::cerr<<"Zero "<<zero<<std::endl;
       return;
    }
 
@@ -105,8 +105,8 @@ void flagSpatialCellsForAmrCommunication(const dccrg::Dccrg<SpatialCell,dccrg::C
       SpatialCell *ccell = mpiGrid[c];
       if (!ccell) continue;
       numcells++;
-      // Start with false
-      mpiGrid[c]->mpiTransferSpatialAMRskip = false;
+      // Start with true
+      mpiGrid[c]->mpiTransferSpatialAMRskip = true;
 
       // In dimension, check iteratively if any neighbors up to VLASOV_STENCIL_WIDTH distance away are remote
       const auto* NbrPairs = mpiGrid.get_neighbors_of(c, neighborhood);
@@ -126,14 +126,14 @@ void flagSpatialCellsForAmrCommunication(const dccrg::Dccrg<SpatialCell,dccrg::C
       int iSrc = VLASOV_STENCIL_WIDTH - 1;
       // Iterate through positive distances for VLASOV_STENCIL_WIDTH elements starting from the smallest distance.
       for (auto it = distancesplus.begin(); it != distancesplus.end(); ++it) {
-         if (mpiGrid[c]->mpiTransferSpatialAMRskip == true) iSrc = -1;
+         if (mpiGrid[c]->mpiTransferSpatialAMRskip == false) iSrc = -1;
          if (iSrc < 0) break; // found enough elements
          // Check all neighbors at distance *it
          for (const auto nbrPair : *NbrPairs) {
             int distanceInRefinedCells = nbrPair.second[dimension];
             if (distanceInRefinedCells == *it) {
                if (!mpiGrid.is_local(nbrPair.first)) {
-                  mpiGrid[c]->mpiTransferSpatialAMRskip = true;
+                  mpiGrid[c]->mpiTransferSpatialAMRskip = false;
                   flag++;
                   break;
                }
@@ -145,14 +145,14 @@ void flagSpatialCellsForAmrCommunication(const dccrg::Dccrg<SpatialCell,dccrg::C
       iSrc = VLASOV_STENCIL_WIDTH - 1;
       // Iterate through negtive distances for VLASOV_STENCIL_WIDTH elements starting from the smallest distance.
       for (auto it = distancesminus.begin(); it != distancesminus.end(); ++it) {
-         if (mpiGrid[c]->mpiTransferSpatialAMRskip == true) iSrc = -1;
+         if (mpiGrid[c]->mpiTransferSpatialAMRskip == false) iSrc = -1;
          if (iSrc < 0) break; // found enough elements
          // Check all neighbors at distance *it
          for (const auto nbrPair : *NbrPairs) {
             int distanceInRefinedCells = nbrPair.second[dimension];
             if (distanceInRefinedCells == *it) {
                if (!mpiGrid.is_local(nbrPair.first)) {
-                  mpiGrid[c]->mpiTransferSpatialAMRskip = true;
+                  mpiGrid[c]->mpiTransferSpatialAMRskip = false;
                   flag++;
                   break;
                }
@@ -162,7 +162,7 @@ void flagSpatialCellsForAmrCommunication(const dccrg::Dccrg<SpatialCell,dccrg::C
       } // end loop over negative distances
 
    } // end loop over local propagated cells
-   //std::cerr<<"Numcells "<<numcells<<" flags "<<flag<<std::endl;
+   std::cerr<<"Numcells "<<numcells<<" flags "<<flag<<std::endl;
 
    return;
 }
