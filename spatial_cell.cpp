@@ -36,6 +36,7 @@ namespace spatial_cell {
    int SpatialCell::activePopID = 0;
    uint64_t SpatialCell::mpi_transfer_type = 0;
    bool SpatialCell::mpiTransferAtSysBoundaries = false;
+   //std::array<bool,3> mpiTransferSpatialAMRskip = {false,false,false};
    bool SpatialCell::mpiTransferSpatialAMRskip = false;
 
    SpatialCell::SpatialCell() {

@@ -344,7 +344,8 @@ namespace spatial_cell {
       static uint64_t mpi_transfer_type;                                      /**< Which data is transferred by the mpi datatype given by spatial cells.*/
       static bool mpiTransferAtSysBoundaries;                                 /**< Do we only transfer data at boundaries (true), or in the whole system (false).*/
 
-      static bool mpiTransferSpatialAMRskip;                                   /**< Flag, set to skip this cell in spatial AMR translation communications. */
+      //std::array<bool,3> mpiTransferSpatialAMRskip;                /**< Flags, set to skip this cell in spatial AMR translation communications. */
+      static bool mpiTransferSpatialAMRskip;                /**< Flags, set to skip this cell in spatial AMR translation communications. */
 
       //SpatialCell& operator=(const SpatialCell& other);
     private:
