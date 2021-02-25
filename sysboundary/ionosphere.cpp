@@ -303,6 +303,61 @@ namespace SBC {
       return -1;
    }
 
+   // Find the mesh node closest to the given coordinates.
+   uint32_t SphericalTriGrid::findNodeAtCoordinates(std::array<Real,3> x) {
+
+      // Project onto sphere
+      Real L=sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]);
+      for(int c=0; c<3; c++) {
+         x[c] *= Ionosphere::innerRadius/L;
+      }
+
+      uint32_t node = 0;
+      uint32_t nextNode = 0;
+
+      // TODO: For spherical fibonacci meshes, this can be accelerated by
+      // doing an iSF lookup
+
+      // Iterate through nodes to find the closest one
+      while(true) {
+
+         node = nextNode;
+
+         // This nodes' distance to our target point
+         std::array<Real, 3> deltaX({x[0]-nodes[node].x[0],
+               x[1]-nodes[node].x[1],
+               x[2]-nodes[node].x[2]});
+         Real minDist=sqrt(deltaX[0]*deltaX[0] + deltaX[1]*deltaX[1] + deltaX[2]*deltaX[2]);
+
+         // Iterate through our neighbours
+         for(int i=0; i<nodes[node].numTouchingElements; i++) {
+            for(int j=0; j<3; j++) {
+               uint32_t thatNode = elements[nodes[node].touchingElements[i]].corners[j];
+               if(thatNode == node || thatNode == nextNode) {
+                  continue;
+               }
+
+               // If it is closer, continue there.
+               deltaX = {x[0]-nodes[thatNode].x[0],
+                  x[1]-nodes[thatNode].x[1],
+                  x[2]-nodes[thatNode].x[2]};
+               Real thatDist = sqrt(deltaX[0]*deltaX[0] + deltaX[1]*deltaX[1] + deltaX[2]*deltaX[2]);
+               if(thatDist < minDist) {
+                  minDist = thatDist;
+                  nextNode = thatNode;
+               }
+            }
+         }
+
+         // Didn't find a closer one, use this one.
+         if(nextNode == node) {
+            break;
+         }
+      }
+
+      return node;
+   }
+
    // Subdivide mesh within element e
    // The element gets replaced by four new ones:
    //
@@ -742,16 +797,16 @@ namespace SBC {
       return i + j*dims[0] +k*dims[0]*dims[1];
    }
 
-   void SphericalTriGrid::getOutwardBfieldDirection(FieldFunction& dipole ,std::array<Real,3>& r,std::array<Real,3>& b){
+   void SphericalTriGrid::getRadialBfieldDirection(std::array<Real,3>& r, bool outwards, std::array<Real,3>& b){
 
        // Get field direction
-      dipole.setDerivative(0);
-      dipole.setComponent(X);
-      b[0] = dipole.call(r[0],r[1],r[2]);
-      dipole.setComponent(Y);
-      b[1] = dipole.call(r[0],r[1],r[2]);
-      dipole.setComponent(Z);
-      b[2] = dipole.call(r[0],r[1],r[2]);
+      dipoleField->setDerivative(0);
+      dipoleField->setComponent(X);
+      b[0] = dipoleField->call(r[0],r[1],r[2]);
+      dipoleField->setComponent(Y);
+      b[1] = dipoleField->call(r[0],r[1],r[2]);
+      dipoleField->setComponent(Z);
+      b[2] = dipoleField->call(r[0],r[1],r[2]);
 
       // Normalize
       Real  norm = 1. / sqrt(b[0]*b[0] + b[1]*b[1] + b[2]*b[2]);
@@ -760,10 +815,18 @@ namespace SBC {
       }
 
       // Make sure motion is outwards. Flip b if dot(r,b) < 0
-      if(b[0]*r[0] + b[1]*r[1] + b[2]*r[2] < 0) {
-         b[0]*=-1;
-         b[1]*=-1;
-         b[2]*=-1;
+      if(outwards) {
+         if(b[0]*r[0] + b[1]*r[1] + b[2]*r[2] < 0) {
+            b[0]*=-1;
+            b[1]*=-1;
+            b[2]*=-1;
+         }
+      } else {
+         if(b[0]*r[0] + b[1]*r[1] + b[2]*r[2] > 0) {
+            b[0]*=-1;
+            b[1]*=-1;
+            b[2]*=-1;
+         }
       }
    }
 
@@ -793,7 +856,7 @@ namespace SBC {
     * stepsize: big stepsize to use
     * z0,zmid,z2: intermediate approximations
     * */
-   void SphericalTriGrid::modifiedMidpointMethod(FieldFunction& dipole,std::array<Real,3> r,std::array<Real,3>& r1, Real  n , Real stepsize){
+   void SphericalTriGrid::modifiedMidpointMethod(std::array<Real,3> r,std::array<Real,3>& r1, Real n, Real stepsize, bool outwards){
       
       //Allocate some memory.
       std::array<Real,3> bunit,crd,z0,zmid,z1;
@@ -802,17 +865,17 @@ namespace SBC {
       Real norm;
      
       //First step 
-      getOutwardBfieldDirection(dipole,r,bunit);
+      getRadialBfieldDirection(r,outwards,bunit);
       z0=r;
       z1={ r[0]+h*bunit[0], r[1]+h*bunit[1], r[2]+h*bunit[2]  };
-      getOutwardBfieldDirection(dipole,z1,bunit);
+      getRadialBfieldDirection(z1,outwards,bunit);
 
       for (int m =0; m<=n; m++){
          zmid= { z0[0]+2*h*bunit[0] , z0[1]+2*h*bunit[1], z0[2]+2*h*bunit[2] };
          z0=z1;
          z1=zmid;
          crd = { r[0]+2.*m*h*bunit[0]  ,  r[1]+2.*m*h*bunit[1], r[2]+2.*m*h*bunit[2]};
-         getOutwardBfieldDirection(dipole,crd,bunit);
+         getRadialBfieldDirection(crd,outwards,bunit);
       }
       
       //These are now are new position
@@ -824,7 +887,7 @@ namespace SBC {
 
 
    /*Bulirsch-Stoer Mehtod to trace field line to next point along it*/
-   void SphericalTriGrid::bulirschStoerStep(FieldFunction& dipole, std::array<Real, 3>& r, std::array<Real, 3>& b, Real& stepsize,Real maxStepsize){
+   void SphericalTriGrid::bulirschStoerStep(std::array<Real, 3>& r, std::array<Real, 3>& b, Real& stepsize,Real maxStepsize, bool outwards){
       
       //Factors by which the stepsize is multiplied 
       Real shrink = 0.92;
@@ -841,7 +904,7 @@ namespace SBC {
       bool converged = false;
 
       //Get B field unit vector in case we don't converge yet
-      getOutwardBfieldDirection(dipole,r,b);
+      getRadialBfieldDirection(r,outwards,b);
 
       //Let's start things up with 2 substeps
       int n =2;
@@ -849,7 +912,7 @@ namespace SBC {
       //Save old state
       rold = r;
       //Take a first Step
-      modifiedMidpointMethod(dipole,r,r1,n,stepsize);
+      modifiedMidpointMethod(r,r1,n,stepsize,outwards);
 
       //Save values in table
       for(int c =0; c<3; ++c){
@@ -859,7 +922,7 @@ namespace SBC {
       for(i=1; i<kMax; ++i){
          //Increment n. Each iteration doubles the number of substeps
          n*=2;
-         modifiedMidpointMethod(dipole,r,rnew,n,stepsize);
+         modifiedMidpointMethod(r,rnew,n,stepsize,outwards);
 
          //Save values in table
          for(int c =0; c<3; ++c){
@@ -892,36 +955,17 @@ namespace SBC {
             r[c]=table.at(ijk2Index(i,i,c,dims));
          }
          //And also save B unit vector here
-         getOutwardBfieldDirection(dipole,r,b);
+         getRadialBfieldDirection(r,outwards,b);
 
       }
    } //Bulirsch-Stoer Step 
 
    
    /*Take an Euler step*/
-   void SphericalTriGrid::eulerStep(FieldFunction& dipole, std::array<Real, 3>& x, std::array<Real, 3>& v, Real& stepsize){
+   void SphericalTriGrid::eulerStep(std::array<Real, 3>& x, std::array<Real, 3>& v, Real& stepsize, bool outwards){
 
       // Get field direction
-      dipole.setDerivative(0);
-      dipole.setComponent(X);
-      v[0] = dipole.call(x[0],x[1],x[2]);
-      dipole.setComponent(Y);
-      v[1] = dipole.call(x[0],x[1],x[2]);
-      dipole.setComponent(Z);
-      v[2] = dipole.call(x[0],x[1],x[2]);
-
-      // Normalize
-      Real norm = 1. / sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
-      for(int c=0; c<3; c++) {
-         v[c] = v[c] * norm;
-      }
-
-      // Make sure motion is outwards. Flip v if dot(x,v) < 0
-      if(v[0]*x[0] + v[1]*x[1] + v[2]*x[2] < 0) {
-         v[0]*=-1;
-         v[1]*=-1;
-         v[2]*=-1;
-      }
+      getRadialBfieldDirection(x,outwards,v);
 
       for(int c=0; c<3; c++) {
          x[c] += stepsize * v[c];
@@ -931,14 +975,14 @@ namespace SBC {
    
    
    /*Take a step along the field line*/
-   void SphericalTriGrid::stepFieldLine(std::array<Real, 3>& x, std::array<Real, 3>& v, FieldFunction& dipole, Real& stepsize,Real maxStepsize, IonosphereCouplingMethod method){
+   void SphericalTriGrid::stepFieldLine(std::array<Real, 3>& x, std::array<Real, 3>& v, Real& stepsize,Real maxStepsize, IonosphereCouplingMethod method, bool outwards){
 
       switch(method) {
          case Euler:
-            eulerStep(dipole, x, v,stepsize);
+            eulerStep(x, v,stepsize, outwards);
             break;
          case BS:
-            bulirschStoerStep(dipole, x, v,stepsize,maxStepsize);
+            bulirschStoerStep(x, v,stepsize,maxStepsize, outwards);
             break;
          default:
             break;
@@ -992,9 +1036,9 @@ namespace SBC {
     * outwards until a non-boundary cell is encountered. Their proportional
     * coupling values are recorded in the grid nodes.
     */
-   void SphericalTriGrid::calculateFsgridCoupling(FsGrid< fsgrids::technical, 2> & technicalGrid, FieldFunction& dipole, Real couplingRadius) {
+   void SphericalTriGrid::calculateFsgridCoupling(FsGrid< fsgrids::technical, 2> & technicalGrid, Real couplingRadius) {
 
-      phiprof::start("ionosphere-calculateCoupling");
+      phiprof::start("ionosphere-fsgridCoupling");
       logFile << "(ionosphere) Starting FsGrid coupling of " << nodes.size() << " nodes." << endl << write;
       // Pick an initial stepsize
       Real stepSize = min(100e3, technicalGrid.DX / 2.); 
@@ -1002,6 +1046,7 @@ namespace SBC {
       //#pragma omp parallel firstprivate(stepSize)
       {
          // Trace node coordinates outwards until a non-sysboundary cell is encountered 
+         // TODO: create thread-local copy of dipole field to be thread safe
          //#pragma omp parallel for
          for(uint n=0; n<nodes.size(); n++) {
 
@@ -1014,7 +1059,7 @@ namespace SBC {
             while( sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]) < 1.5*couplingRadius ) {
 
                // Make one step along the fieldline
-               stepFieldLine(x,v,dipole, stepSize,technicalGrid.DX/2,couplingMethod);
+               stepFieldLine(x,v, stepSize,technicalGrid.DX/2,couplingMethod,true);
 
                // Look up the fsgrid cell beloinging to these coordinates
                std::array<int, 3> fsgridCell;
@@ -1060,7 +1105,37 @@ namespace SBC {
          }
       }
 
-      phiprof::stop("ionosphere-calculateCoupling");
+      phiprof::stop("ionosphere-fsgridCoupling");
+   }
+
+   // Calculate mapping between ionospheric nodes and Vlasov grid cells.
+   // Input is the cell coordinate of the vlasov grid cell.
+   // To do so, magnetic field lines are traced inwords from the Vlasov grid
+   // IONOSPHERE boundary cells to the ionosphere shell.
+   int32_t SphericalTriGrid::calculateVlasovGridCoupling(std::array<Real,3> x, Real stepSize, Real couplingRadius) {
+
+      std::array<Real,3> v;
+      phiprof::start("ionosphere-VlasovGridCoupling");
+
+      while(sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]) > Ionosphere::innerRadius) {
+
+         // Make one step along the fieldline
+         stepFieldLine(x,v, stepSize,stepSize,couplingMethod,false);
+
+         // If the field lines is moving even further outwards, abort.
+         // (this shouldn't happen under normal magnetospheric conditions, but who
+         // knows what crazy driving this will be run with)
+         if(sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]) > 1.5*couplingRadius) {
+            logFile << "(ionosphere) Warning: coupling of Vlasov grid cell failed due to weird magnetic field topology." << endl << write;
+            return -1;
+         }
+      }
+
+      // Determine the nearest ionosphere node to this point.
+      uint32_t nearestNode = findNodeAtCoordinates(x);
+
+      phiprof::stop("ionosphere-VlasovGridCoupling");
+      return nearestNode;
    }
 
    // Transport field-aligned currents down from the simulation cells to the ionosphere
@@ -2511,6 +2586,18 @@ namespace SBC {
       // If we are to couple to the ionosphere grid, we better be part of its communicator.
       assert(ionosphereGrid.communicator != MPI_COMM_NULL);
       
+      // And we should have coupling information to an ionosphere cell
+      if(mpiGrid[cellID]->parameters[CellParams::COUPLED_IONOSPHERE_NODE] == -1) {
+         // If not: calculate it!
+         const std::array<Real, CellParams::N_SPATIAL_CELL_PARAMS>& cellParams = mpiGrid[cellID]->parameters;
+         // Start tracing from middle of the cell
+         std::array<Real,3> x({cellParams[CellParams::XCRD] + 0.5*cellParams[CellParams::DX],
+               cellParams[CellParams::YCRD] + 0.5*cellParams[CellParams::DY],
+               cellParams[CellParams::ZCRD] + 0.5*cellParams[CellParams::DZ]});
+         mpiGrid[cellID]->parameters[CellParams::COUPLED_IONOSPHERE_NODE] = ionosphereGrid.calculateVlasovGridCoupling(x, cellParams[CellParams::DX], radius);
+         cerr << "Coupling VlasovGrid cell " << cellID << " to ionosphere grid node " << mpiGrid[cellID]->parameters[CellParams::COUPLED_IONOSPHERE_NODE] << endl;
+      }
+
       this->vlasovBoundaryFluffyCopyFromAllCloseNbrs(mpiGrid, cellID, popID, calculate_V_moments, this->speciesParams[popID].fluffiness);
       phiprof::stop("vlasovBoundaryCondition (Ionosphere)");
    }

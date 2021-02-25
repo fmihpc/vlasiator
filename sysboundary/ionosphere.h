@@ -141,7 +141,12 @@ namespace SBC {
       int writingRank;                    // Rank in the MPI_COMM_WORLD communicator that does ionosphere I/O
       bool isCouplingInwards = false;     // True for any rank that actually couples fsgrid information into the ionosphere
       bool isCouplingOutwards = false;    // True for any rank that actually couples ionosphere potential information out to the vlasov grid
+      FieldFunction* dipoleField;         // Simulation background field model to trace connections with
 
+      template<class C> void setDipoleField(C& dipole) {
+         // Create a copy of the dipole and store it locally.
+         dipoleField = new C(dipole);
+      };
       void readAtmosphericModelFile(const char* filename);
       void offset_FAC();                  // Offset field aligned currents to get overall zero current
       void normalizeRadius(Node& n, Real R); // Scale all coordinates onto sphere with radius R
@@ -151,18 +156,20 @@ namespace SBC {
       void initializeIcosahedron();       // Initialize grid as a base icosahedron
       void initializeSphericalFibonacci(int n); // Initialize grid as a spherical fibonacci lattice
       int32_t findElementNeighbour(uint32_t e, int n1, int n2);
+      uint32_t findNodeAtCoordinates(std::array<Real,3> x); // Find the mesh node closest to the given coordinate
       void subdivideElement(uint32_t e);  // Subdivide mesh within element e
       void calculatePrecipitation(); // Estimate precipitation flux
       void calculateConductivityTensor(const Real F10_7, const Real recombAlpha, const Real backgroundIonisation); // Update sigma tensor
-      void calculateFsgridCoupling(FsGrid< fsgrids::technical, 2> & technicalGrid, FieldFunction& dipole, Real radius);     // Link each element to fsgrid cells for coupling
+      void calculateFsgridCoupling(FsGrid< fsgrids::technical, 2> & technicalGrid, Real radius);     // Link each element to fsgrid cells for coupling
+      int32_t calculateVlasovGridCoupling(std::array<Real,3> x, Real stepSize, Real couplingRadius); // Find coupled ionosphere mesh node for given location
       //Field Line Tracing functions
       int ijk2Index(int i , int j ,int k ,std::array<int,3>dims); //3D to 1D indexing 
-      void getOutwardBfieldDirection(FieldFunction& dipole ,std::array<Real,3>& r,std::array<Real,3>& b);
-      void bulirschStoerStep(FieldFunction& dipole, std::array<Real, 3>& r, std::array<Real, 3>& b, Real& stepsize,Real maxStepsize); //Bulrisch Stoer step
-      void eulerStep(FieldFunction& dipole, std::array<Real, 3>& x, std::array<Real, 3>& v, Real& stepsize); //Euler step
-      void modifiedMidpointMethod(FieldFunction& dipole,std::array<Real,3> r,std::array<Real,3>& r1 , Real n , Real stepsize); // Modified Midpoint Method used by BS step
+      void getRadialBfieldDirection(std::array<Real,3>& r, bool outwards, std::array<Real,3>& b);
+      void bulirschStoerStep(std::array<Real, 3>& r, std::array<Real, 3>& b, Real& stepsize,Real maxStepsize, bool outwards=true); //Bulrisch Stoer step
+      void eulerStep(std::array<Real, 3>& x, std::array<Real, 3>& v, Real& stepsize, bool outwards=true); //Euler step
+      void modifiedMidpointMethod(std::array<Real,3> r,std::array<Real,3>& r1 , Real n , Real stepsize, bool outwards=true); // Modified Midpoint Method used by BS step
       void richardsonExtrapolation(int i, std::vector<Real>& table , Real& maxError,std::array<int,3>dims ); //Richardson extrapolation method used by BS step
-      void stepFieldLine(std::array<Real, 3>& x, std::array<Real, 3>& v, FieldFunction& dipole, Real& stepsize,Real maxStepsize,IonosphereCouplingMethod method); // Handler function for field line tracing
+      void stepFieldLine(std::array<Real, 3>& x, std::array<Real, 3>& v, Real& stepsize, Real maxStepsize, IonosphereCouplingMethod method,bool outwards=true); // Handler function for field line tracing
       // Conjugate Gradient solver functions
       void addMatrixDependency(uint node1, uint node2, Real coeff, bool transposed=false); // Add matrix value for the solver
       void addAllMatrixDependencies(uint nodeIndex);

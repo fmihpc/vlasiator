@@ -369,12 +369,12 @@ namespace projects {
             case 0:
                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
                setBackgroundField(bgFieldDipole, BgBGrid);
-               SBC::ionosphereGrid.calculateFsgridCoupling(technicalGrid, bgFieldDipole, ionosphereRadius);
+               SBC::ionosphereGrid.setDipoleField(bgFieldDipole);
                break;
             case 1:
                bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0 );//set dipole moment     
                setBackgroundField(bgFieldLineDipole, BgBGrid);
-               SBC::ionosphereGrid.calculateFsgridCoupling(technicalGrid, bgFieldLineDipole, ionosphereRadius);
+               SBC::ionosphereGrid.setDipoleField(bgFieldLineDipole);
                break;
             case 2:
                bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0 );//set dipole moment     
@@ -382,7 +382,7 @@ namespace projects {
                //Append mirror dipole
                bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0 );
                setBackgroundField(bgFieldLineDipole, BgBGrid, true);
-               SBC::ionosphereGrid.calculateFsgridCoupling(technicalGrid, bgFieldLineDipole, ionosphereRadius);
+               SBC::ionosphereGrid.setDipoleField(bgFieldLineDipole);
                break;
             case 3:
                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
@@ -390,7 +390,7 @@ namespace projects {
                //Append mirror dipole                
                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0, 0.0 );//mirror
                setBackgroundField(bgFieldDipole, BgBGrid, true);
-               SBC::ionosphereGrid.calculateFsgridCoupling(technicalGrid, bgFieldDipole, ionosphereRadius);
+               SBC::ionosphereGrid.setDipoleField(bgFieldDipole);
                break; 
             case 4:  // Vector potential dipole, vanishes or optionally scales to static inflow value after a given x-coordinate
                // What we in fact do is we place the regular dipole in the background field, and the
@@ -404,11 +404,12 @@ namespace projects {
                   bgVectorDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi*M_PI/180., this->dipoleTiltTheta*M_PI/180., this->dipoleXFull, this->dipoleXZero, this->dipoleInflowB[0], this->dipoleInflowB[1], this->dipoleInflowB[2]);
                   setPerturbedField(bgVectorDipole, perBGrid, true);
                }
-               SBC::ionosphereGrid.calculateFsgridCoupling(technicalGrid, bgFieldDipole,ionosphereRadius);
+               SBC::ionosphereGrid.setDipoleField(bgFieldDipole);
                break;
             default:
                setBackgroundFieldToZero(BgBGrid);
       }
+      SBC::ionosphereGrid.calculateFsgridCoupling(technicalGrid, ionosphereRadius);
       SBC::ionosphereGrid.initSolver();
       
       const auto localSize = BgBGrid.getLocalSize().data();
