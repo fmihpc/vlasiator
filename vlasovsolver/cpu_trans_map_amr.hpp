@@ -190,8 +190,6 @@ void update_remote_mapping_contribution_amr(dccrg::Dccrg<spatial_cell::SpatialCe
 
 void flagSpatialCellsForAmrCommunication(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                          const std::vector<CellID>& localPropagatedCells,
-                                         const std::vector<CellID>& remoteTargetCells,
-                                         const uint dimension,
-                                         const bool reset);
+                                         const uint dimension);
 
 #endif

@@ -90,17 +90,23 @@ void calculateSpatialTranslation(
    // MPI_Barrier(MPI_COMM_WORLD);
    // phiprof::stop(bt);
  
+    // flag transfers if AMR
+    phiprof::start("compute_amr_transfer_flags");
+    flagSpatialCellsForAmrCommunication(mpiGrid,local_propagated_cells,0); 
+    flagSpatialCellsForAmrCommunication(mpiGrid,local_propagated_cells,1); 
+    flagSpatialCellsForAmrCommunication(mpiGrid,local_propagated_cells,2); 
+    SpatialCell::set_mpi_transfer_type(Transfer::CELL_PARAMETERS);
+    mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
+    phiprof::stop("compute_amr_transfer_flags");
+
     // ------------- SLICE - map dist function in Z --------------- //
    if(P::zcells_ini > 1){
 
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-z","MPI");
       phiprof::start(trans_timer);
-      flagSpatialCellsForAmrCommunication(mpiGrid,local_propagated_cells,remoteTargetCellsz,2,false); // flag transfers if AMR
-      //SpatialCell::set_mpi_transfer_type(Transfer::CELL_PARAMETERS|Transfer::POP_METADATA);
-      //mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
-      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
+      SpatialCell::set_mpi_transfer_direction(2);
+      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false,true);
       mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
-      flagSpatialCellsForAmrCommunication(mpiGrid,local_propagated_cells,remoteTargetCellsz,2,true); // reset flag
       phiprof::stop(trans_timer);
 
       // bt=phiprof::initializeTimer("barrier-trans-pre-trans_map_1d-z","Barriers","MPI");
@@ -146,12 +152,9 @@ void calculateSpatialTranslation(
       
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-x","MPI");
       phiprof::start(trans_timer);
-      flagSpatialCellsForAmrCommunication(mpiGrid,local_propagated_cells,remoteTargetCellsx,0,false); // flag transfers if AMR
-      //SpatialCell::set_mpi_transfer_type(Transfer::CELL_PARAMETERS|Transfer::POP_METADATA);
-      //mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
-      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
+      SpatialCell::set_mpi_transfer_direction(0);
+      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false,true);
       mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
-      flagSpatialCellsForAmrCommunication(mpiGrid,local_propagated_cells,remoteTargetCellsx,0,true); // reset flag
       phiprof::stop(trans_timer);
       
       // bt=phiprof::initializeTimer("barrier-trans-pre-trans_map_1d-x","Barriers","MPI");
@@ -197,12 +200,9 @@ void calculateSpatialTranslation(
       
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-y","MPI");
       phiprof::start(trans_timer);
-      flagSpatialCellsForAmrCommunication(mpiGrid,local_propagated_cells,remoteTargetCellsy,1,false); // flag transfers if AMR
-      //SpatialCell::set_mpi_transfer_type(Transfer::CELL_PARAMETERS|Transfer::POP_METADATA);
-      //mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
-      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
+      SpatialCell::set_mpi_transfer_direction(1);
+      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false,true);
       mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
-      flagSpatialCellsForAmrCommunication(mpiGrid,local_propagated_cells,remoteTargetCellsy,1,true); // reset flag
       phiprof::stop(trans_timer);
       
       // bt=phiprof::initializeTimer("barrier-trans-pre-trans_map_1d-y","Barriers","MPI");
@@ -237,13 +237,6 @@ void calculateSpatialTranslation(
       phiprof::stop("update_remote-y");
      
    }
-
-   // Restore population metadata
-   phiprof::start(trans_timer);
-   SpatialCell::set_mpi_transfer_type(Transfer::CELL_PARAMETERS|Transfer::POP_METADATA);
-   mpiGrid.set_send_single_cells(false);
-   mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
-   phiprof::stop(trans_timer);
 
    // bt=phiprof::initializeTimer("barrier-trans-post-trans","Barriers","MPI");
    // phiprof::start(bt);

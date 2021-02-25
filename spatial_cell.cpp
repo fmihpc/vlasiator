@@ -36,8 +36,8 @@ namespace spatial_cell {
    int SpatialCell::activePopID = 0;
    uint64_t SpatialCell::mpi_transfer_type = 0;
    bool SpatialCell::mpiTransferAtSysBoundaries = false;
-   //std::array<bool,3> mpiTransferSpatialAMRskip = {false,false,false};
-   bool SpatialCell::mpiTransferSpatialAMRskip = false;
+   bool SpatialCell::mpiTransferInAMRTranslation = false;
+   int SpatialCell::mpiTransferXYZTranslation = 0;
 
    SpatialCell::SpatialCell() {
       // Block list and cache always have room for all blocks
@@ -592,8 +592,12 @@ namespace spatial_cell {
 
       // create datatype for actual data if we are in the first two 
       // layers around a boundary, or if we send for the whole system
-      if (this->mpiTransferEnabled && (SpatialCell::mpiTransferAtSysBoundaries==false || this->sysBoundaryLayer ==1 || this->sysBoundaryLayer ==2 )
-          && (SpatialCell::mpiTransferSpatialAMRskip==false)) {
+      // in AMR translation, only send the necessary cells
+      if (this->mpiTransferEnabled && ((SpatialCell::mpiTransferAtSysBoundaries==false && SpatialCell::mpiTransferInAMRTranslation==false) ||
+                                       (SpatialCell::mpiTransferAtSysBoundaries==true && (this->sysBoundaryLayer ==1 || this->sysBoundaryLayer ==2)) ||
+                                       (SpatialCell::mpiTransferInAMRTranslation==true &&
+                                        this->parameters[CellParams::AMR_TRANSLATE_COMM_X+SpatialCell::mpiTransferXYZTranslation]==true ))) {
+
          //add data to send/recv to displacement and block length lists
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_LIST_STAGE1) != 0) {
             //first copy values in case this is the send operation
