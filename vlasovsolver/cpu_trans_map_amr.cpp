@@ -71,8 +71,7 @@ int getNeighborhood(const uint dimension, const uint stencil) {
 }
 
 void flagSpatialCellsForAmrCommunication(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                         const vector<CellID>& localPropagatedCells,
-                                         const uint dimension) {
+                                         const vector<CellID>& localPropagatedCells) {
 
    // Only flag/unflag cells if AMR is active
    if (mpiGrid.get_maximum_refinement_level()==0) return;
@@ -83,74 +82,79 @@ void flagSpatialCellsForAmrCommunication(const dccrg::Dccrg<SpatialCell,dccrg::C
       return;
    }
 
-   // These neighborhoods now include the AMR addition beyond the regular vlasov stencil
-   int neighborhood = getNeighborhood(dimension,VLASOV_STENCIL_WIDTH);
+   for (int dimension=0; dimension<3; dimension++) {
+      // These neighborhoods now include the AMR addition beyond the regular vlasov stencil
+      int neighborhood = getNeighborhood(dimension,VLASOV_STENCIL_WIDTH);
 
-   // Set flags: loop over local cells
+      // Set flags: loop over local cells
 #pragma parallel for
-   for (uint i=0; i<localPropagatedCells.size(); i++) {
-      CellID c = localPropagatedCells[i];
-      SpatialCell *ccell = mpiGrid[c];
-      if (!ccell) continue;
-      // Start with false
-      ccell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_X+dimension] = false;
+      for (uint i=0; i<localPropagatedCells.size(); i++) {
+         CellID c = localPropagatedCells[i];
+         SpatialCell *ccell = mpiGrid[c];
+         if (!ccell) continue;
+         // Is the cell translated?
+         if (!do_translate_cell(ccell)) continue;
 
-      // In dimension, check iteratively if any neighbors up to VLASOV_STENCIL_WIDTH distance away are on a different process
-      const auto* NbrPairs = mpiGrid.get_neighbors_of(c, neighborhood);
+         // Start with false
+         ccell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_X+dimension] = false;
 
-      // Create list of unique distances in the negative direction from the first cell in pencil
-      std::set< int > distancesplus;
-      std::set< int > distancesminus;
-      for (const auto nbrPair : *NbrPairs) {
-         if(nbrPair.second[dimension] > 0) {
-            distancesplus.insert(nbrPair.second[dimension]);
-         }
-         if(nbrPair.second[dimension] < 0) {
-            distancesminus.insert(-nbrPair.second[dimension]);
-         }
-      }
+         // In dimension, check iteratively if any neighbors up to VLASOV_STENCIL_WIDTH distance away are on a different process
+         const auto* NbrPairs = mpiGrid.get_neighbors_of(c, neighborhood);
 
-      int iSrc = VLASOV_STENCIL_WIDTH - 1;
-      // Iterate through positive distances for VLASOV_STENCIL_WIDTH elements starting from the smallest distance.
-      for (auto it = distancesplus.begin(); it != distancesplus.end(); ++it) {
-         if (ccell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_X+dimension] == true) iSrc = -1;
-         if (iSrc < 0) break; // found enough elements
-         // Check all neighbors at distance *it
+         // Create list of unique distances in the negative direction from the first cell in pencil
+         std::set< int > distancesplus;
+         std::set< int > distancesminus;
          for (const auto nbrPair : *NbrPairs) {
-            SpatialCell *ncell = mpiGrid[nbrPair.first];
-            if (!ncell) continue;
-            int distanceInRefinedCells = nbrPair.second[dimension];
-            if (distanceInRefinedCells == *it) {
-               if (!mpiGrid.is_local(nbrPair.first)) {
-                  ccell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_X+dimension] = true;
-                  break;
-               }
+            if(nbrPair.second[dimension] > 0) {
+               distancesplus.insert(nbrPair.second[dimension]);
             }
-         } // end loop over neighbors
-         iSrc--;
-      } // end loop over positive distances
-
-      iSrc = VLASOV_STENCIL_WIDTH - 1;
-      // Iterate through negtive distances for VLASOV_STENCIL_WIDTH elements starting from the smallest distance.
-      for (auto it = distancesminus.begin(); it != distancesminus.end(); ++it) {
-         if (ccell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_X+dimension] == true) iSrc = -1;
-         if (iSrc < 0) break; // found enough elements
-         // Check all neighbors at distance *it
-         for (const auto nbrPair : *NbrPairs) {
-            SpatialCell *ncell = mpiGrid[nbrPair.first];
-            if (!ncell) continue;
-            int distanceInRefinedCells = -nbrPair.second[dimension];
-            if (distanceInRefinedCells == *it) {
-               if (!mpiGrid.is_local(nbrPair.first)) {
-                  ccell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_X+dimension] = true;
-                  break;
-               }
+            if(nbrPair.second[dimension] < 0) {
+               distancesminus.insert(-nbrPair.second[dimension]);
             }
-         } // end loop over neighbors
-         iSrc--;
-      } // end loop over negative distances
+         }
 
-   } // end loop over local propagated cells
+         int iSrc = VLASOV_STENCIL_WIDTH - 1;
+         // Iterate through positive distances for VLASOV_STENCIL_WIDTH elements starting from the smallest distance.
+         for (auto it = distancesplus.begin(); it != distancesplus.end(); ++it) {
+            if (ccell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_X+dimension] == true) iSrc = -1;
+            if (iSrc < 0) break; // found enough elements
+            // Check all neighbors at distance *it
+            for (const auto nbrPair : *NbrPairs) {
+               SpatialCell *ncell = mpiGrid[nbrPair.first];
+               if (!ncell) continue;
+               int distanceInRefinedCells = nbrPair.second[dimension];
+               if (distanceInRefinedCells == *it) {
+                  if (!mpiGrid.is_local(nbrPair.first)) {
+                     ccell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_X+dimension] = true;
+                     break;
+                  }
+               }
+            } // end loop over neighbors
+            iSrc--;
+         } // end loop over positive distances
+
+         iSrc = VLASOV_STENCIL_WIDTH - 1;
+         // Iterate through negtive distances for VLASOV_STENCIL_WIDTH elements starting from the smallest distance.
+         for (auto it = distancesminus.begin(); it != distancesminus.end(); ++it) {
+            if (ccell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_X+dimension] == true) iSrc = -1;
+            if (iSrc < 0) break; // found enough elements
+            // Check all neighbors at distance *it
+            for (const auto nbrPair : *NbrPairs) {
+               SpatialCell *ncell = mpiGrid[nbrPair.first];
+               if (!ncell) continue;
+               int distanceInRefinedCells = -nbrPair.second[dimension];
+               if (distanceInRefinedCells == *it) {
+                  if (!mpiGrid.is_local(nbrPair.first)) {
+                     ccell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_X+dimension] = true;
+                     break;
+                  }
+               }
+            } // end loop over neighbors
+            iSrc--;
+         } // end loop over negative distances
+
+      } // end loop over local propagated cells
+   } // end loop over dimensions
    return;
 }
 

@@ -90,15 +90,6 @@ void calculateSpatialTranslation(
    // MPI_Barrier(MPI_COMM_WORLD);
    // phiprof::stop(bt);
  
-    // flag transfers if AMR
-    phiprof::start("compute_amr_transfer_flags");
-    flagSpatialCellsForAmrCommunication(mpiGrid,local_propagated_cells,0); 
-    flagSpatialCellsForAmrCommunication(mpiGrid,local_propagated_cells,1); 
-    flagSpatialCellsForAmrCommunication(mpiGrid,local_propagated_cells,2); 
-    SpatialCell::set_mpi_transfer_type(Transfer::CELL_PARAMETERS);
-    mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
-    phiprof::stop("compute_amr_transfer_flags");
-
     // ------------- SLICE - map dist function in Z --------------- //
    if(P::zcells_ini > 1){
 

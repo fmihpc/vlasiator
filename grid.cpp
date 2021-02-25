@@ -38,6 +38,7 @@
 #include "sysboundary/sysboundary.h"
 #include "fieldsolver/fs_common.h"
 #include "fieldsolver/gridGlue.hpp"
+#include "vlasovsolver/cpu_trans_map_amr.hpp"
 #include "projects/project.h"
 #include "iowrite.h"
 #include "ioread.h"
@@ -566,7 +567,13 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    recalculateLocalCellsCache();
    getObjectWrapper().meshData.reallocate();
    cells = mpiGrid.get_cells();
+   #pragma parallel for
    for (uint i=0; i<cells.size(); ++i) mpiGrid[cells[i]]->set_mpi_transfer_enabled(true);
+
+   // flag transfers if AMR
+   phiprof::start("compute_amr_transfer_flags");
+   flagSpatialCellsForAmrCommunication(mpiGrid,cells);
+   phiprof::stop("compute_amr_transfer_flags");
 
    // Communicate all spatial data for FULL neighborhood, which
    // includes all data with the exception of dist function data
