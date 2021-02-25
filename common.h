@@ -186,6 +186,7 @@ namespace CellParams {
       FSGRID_BOUNDARYTYPE, /*!< Boundary type of this cell, as stored in the fsGrid */
       CELLID, /*! < DCCRG cell index */
       REFINEMENT_LEVEL, /*! < Refinement level */
+      COUPLED_IONOSPHERE_NODE, /*! < Ionosphere node that this cell couples to (-1 for none) */
       N_SPATIAL_CELL_PARAMS
    };
 }
