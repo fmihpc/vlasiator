@@ -145,8 +145,8 @@ void calculateSpatialTranslation(
       }
       nPencils[c]=0;
    }
-   nPencils[nPencils.size()]=0;
-   std::cout<<"shortpencils Z "<<P::transShortPencils<<" nPencils="<<nPencils.size()-1<<" total="<<nPencils[local_propagated_cells.size()]<<" one="<<one<<" four=="<<four<<" other="<<other<<std::endl;
+   nPencils[local_propagated_cells.size()]=0;
+   std::cout<<"shortpencils Z "<<P::transShortPencils<<" nPencils-total="<<nPencils[local_propagated_cells.size()]<<" one="<<one<<" four=="<<four<<" other="<<other<<std::endl;
    one=0;
    four=0;
    other=0;
@@ -211,8 +211,8 @@ void calculateSpatialTranslation(
       }
       nPencils[c]=0;
    }
-   nPencils[nPencils.size()]=0;
-   std::cout<<"shortpencils X "<<P::transShortPencils<<" nPencils="<<nPencils.size()-1<<" total="<<nPencils[local_propagated_cells.size()]<<" one="<<one<<" four=="<<four<<" other="<<other<<std::endl;
+   nPencils[local_propagated_cells.size()]=0;
+   std::cout<<"shortpencils X "<<P::transShortPencils<<" nPencils-total="<<nPencils[local_propagated_cells.size()]<<" one="<<one<<" four=="<<four<<" other="<<other<<std::endl;
    one=0;
    four=0;
    other=0;
@@ -276,7 +276,7 @@ void calculateSpatialTranslation(
          other++;
       }
    }
-   std::cout<<"shortpencils Y "<<P::transShortPencils<<" nPencils="<<nPencils.size()-1<<" total="<<nPencils[local_propagated_cells.size()]<<" one="<<one<<" four=="<<four<<" other="<<other<<std::endl;
+   std::cout<<"shortpencils Y "<<P::transShortPencils<<" nPencils-total="<<nPencils[local_propagated_cells.size()]<<" one="<<one<<" four=="<<four<<" other="<<other<<std::endl;
    }
    // bt=phiprof::initializeTimer("barrier-trans-post-trans","Barriers","MPI");
    // phiprof::start(bt);
