@@ -716,37 +716,129 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
    int myRank;
    if (debug) MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    
-   int neighborhood = getNeighborhood(dimension,1);
-   
-   for(auto celli : localPropagatedCells) {
+   // These neighborhoods now include the AMR addition beyond the regular vlasov stencil
+   int neighborhood = getNeighborhood(dimension,VLASOV_STENCIL_WIDTH);
 
-      auto myIndices = mpiGrid.mapping.get_indices(celli);
-      
+#pragma parallel for
+   for (uint i=0; i<localPropagatedCells.size(); i++) {
+      CellID celli = localPropagatedCells[i];
+
       bool addToSeedIds = P::transShortPencils;
       if (addToSeedIds) {
+#pragma omp critical
          seedIds.push_back(celli);
          continue;
       }
+      auto myIndices = mpiGrid.mapping.get_indices(celli);
+      int myRefLevel;
 
+      /* -----------------------------------------
+         | A |   | B |   |_|_|_|_|   |   | C |   |
+         |   |   |   |   | | | | |   |   |   |   |
+         -----------------------------------------
+         For optimal pencil generation, we need seedids at A, B, and C.
+         A Is triggered in the previous if-clause. Pencils starting from B
+         will be split (but won't cause A to split), and pencils from
+         C will be able to remain again un-split. These checks need to be done
+         only if we aren't already at the maximum refinement level.
+      */
+
+      // First check negative face neighbors (A)
       // Returns all neighbors as (id, direction-dimension) pair pointers.
-      for ( const auto nbrPair : mpiGrid.get_face_neighbors_of(celli) ) {
-	 if ( nbrPair.second == -((int)dimension + 1) ) {
+      for ( const auto faceNbrPair : mpiGrid.get_face_neighbors_of(celli) ) {
+	 if ( faceNbrPair.second == -((int)dimension + 1) ) {
 	    // Check that the neighbor is not across a periodic boundary by calculating
 	    // the distance in indices between this cell and its neighbor.
-	    auto nbrIndices = mpiGrid.mapping.get_indices(nbrPair.first);
+	    auto nbrIndices = mpiGrid.mapping.get_indices(faceNbrPair.first);
 
 	    // If a neighbor is non-local, across a periodic boundary, or in non-periodic boundary layer 1
 	    // then we use this cell as a seed for pencils
 	    if ( abs ( (int64_t)(myIndices[dimension] - nbrIndices[dimension]) ) >
 		 pow(2,mpiGrid.get_maximum_refinement_level()) ||
-		 !mpiGrid.is_local(nbrPair.first) ||
-		 !do_translate_cell(mpiGrid[nbrPair.first]) ) {
-	       addToSeedIds = true;
+		 !mpiGrid.is_local(faceNbrPair.first) ||
+		 !do_translate_cell(mpiGrid[faceNbrPair.first]) ) {
+               addToSeedIds = true;
+               break;
 	    }
-	 }
+         }
+      } // finish check A
+      if ( addToSeedIds ) {
+#pragma omp critical
+         seedIds.push_back(celli);
+         continue;
       }
+      myRefLevel = mpiGrid.get_refinement_level(celli);
+      if (mpiGrid.get_maximum_refinement_level() != myRefLevel) continue;
+
+      // Gather neighbours in neighbourhood stencil)
+      const auto* nbrPairs  = mpiGrid.get_neighbors_of(celli, neighborhood);
+      // Create list of unique neighbour distances in both directions
+      std::set< int > distancesplus;
+      std::set< int > distancesminus;
+      for (const auto nbrPair : *nbrPairs) {
+         if(nbrPair.second[dimension] > 0) {
+            distancesplus.insert(nbrPair.second[dimension]);
+         }
+         if(nbrPair.second[dimension] < 0) {
+            // gather positive distance values
+            distancesminus.insert(-nbrPair.second[dimension]);
+         }
+      }
+      /* Proceed with B, checking if the next positive neighbour has the same refinement level as ccell, but the
+         second neighbour a higher one. Iterate through positive distances for VLASOV_STENCIL_WIDTH elements
+         starting from the smallest distance. */
+      int iSrc = VLASOV_STENCIL_WIDTH-1;
+      for (auto it = distancesplus.begin(); it != distancesplus.end(); ++it) {
+         if (iSrc < 0) break; // found enough elements
+         for (const auto nbrPair : *nbrPairs) {
+            int distanceInRefinedCells = nbrPair.second[dimension];
+            if(distanceInRefinedCells == *it) {
+               // Break search if we are not at the final entry, and have different refinement level
+               if (iSrc!=0 && mpiGrid.get_refinement_level(nbrPair.first)!=myRefLevel) {
+                  iSrc = -1;
+                  break;
+               }
+               // Flag as seed id if VLASOV_STENCIL_WIDTH positive neighbour is at higher refinement level
+               if (iSrc==0 && mpiGrid.get_refinement_level(nbrPair.first)>myRefLevel) {
+                  addToSeedIds = true;
+                  break;
+               }
+            }
+         }
+         iSrc--;
+      } // Finish B check
 
       if ( addToSeedIds ) {
+#pragma omp critical
+         seedIds.push_back(celli);
+         continue;
+      }
+      /* Proceed with C, checking if the next two negative neighbours have the same refinement level as ccell, but the
+         third neighbour a higher one. Iterate through negative distances for VLASOV_STENCIL_WIDTH+1 elements
+         starting from the smallest distance. */
+      iSrc = VLASOV_STENCIL_WIDTH;
+      for (auto it = distancesminus.begin(); it != distancesminus.end(); ++it) {
+         if (iSrc < 0) break; // found enough elements
+         for (const auto nbrPair : *nbrPairs) {
+            int distanceInRefinedCells = -nbrPair.second[dimension];
+            if(distanceInRefinedCells == *it) {
+               // Break search if we are not at the final entry, and have different refinement level
+               if (iSrc!=0 && mpiGrid.get_refinement_level(nbrPair.first)!=myRefLevel) {
+                  iSrc = -1;
+                  break;
+               }
+               // Flag as seed id if VLASOV_STENCIL_WIDTH+1 positive neighbour is at higher refinement level
+               if (iSrc==0 && mpiGrid.get_refinement_level(nbrPair.first)>myRefLevel) {
+                  addToSeedIds = true;
+                  break;
+               }
+            }
+         }
+         iSrc--;
+      } // Finish C check
+
+      if ( addToSeedIds ) {
+#pragma omp critical
          seedIds.push_back(celli);
       }
    }

@@ -340,6 +340,7 @@ void calculateSpatialTranslation(
             mpiGrid[local_propagated_cells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += nPencils[c] * counter;
 //            mpiGrid[localCells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += time / localCells.size();
          }
+         //std::cout<<"nPencils-total="<<nPencils[local_propagated_cells.size()]<<std::endl;
       }
    }
    
