@@ -1211,6 +1211,28 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1, "A/m^2", "$\\mathrm{A m}^{-2}$", "$I_\\text{FAC}$", "1.0");
          continue;
       }
+      if(lowercase == "vg_ionospherecoupling") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorMPIGridCell("vg_ionospherecoupling", 3, [](
+                     const SpatialCell* cell)->std::vector<Real> {
+
+                  std::vector<Real> retval(3);
+
+                  int coupledNode = cell->parameters[CellParams::COUPLED_IONOSPHERE_NODE];
+                  if(coupledNode == -1) {
+                     retval[0] = 0;
+                     retval[1] = 0;
+                     retval[2] = 0;
+                  } else {
+                     retval[0] = SBC::ionosphereGrid.nodes[coupledNode].x[0] - (cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX]);
+                     retval[1] = SBC::ionosphereGrid.nodes[coupledNode].x[1] - (cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY]);
+                     retval[2] = SBC::ionosphereGrid.nodes[coupledNode].x[2] - (cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ]);
+                  }
+
+                  return retval;
+			}));
+         outputReducer->addMetadata(outputReducer->size()-1, "m", "m", "$x_\\text{coupled}$", "1.0");
+         continue;
+      }
       // After all the continue; statements one should never land here.
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
