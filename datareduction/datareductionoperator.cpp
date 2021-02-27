@@ -290,6 +290,23 @@ namespace DRO {
       return true;
    }
 
+   std::string DataReductionOperatorMPIGridCell::getName() const {return variableName;}
+   bool DataReductionOperatorMPIGridCell::getDataVectorInfo(std::string& dataType, unsigned int& dataSize, unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize = sizeof(Real);
+      vectorSize = numFloats;
+      return true;
+   }
+   bool DataReductionOperatorMPIGridCell::reduceData(const SpatialCell* cell,char* buffer) {
+      std::vector<Real> varBuffer = lambda(cell);
+
+      assert(varBuffer.size() == numFloats);
+
+      for(int i=0; i<numFloats; i++) {
+         buffer[i] = varBuffer[i];
+      }
+   }
+
    DataReductionOperatorBVOLDerivatives::DataReductionOperatorBVOLDerivatives(const std::string& name,const unsigned int parameterIndex,const unsigned int vectorSize):
    DataReductionOperatorCellParams(name,parameterIndex,vectorSize) {
       
