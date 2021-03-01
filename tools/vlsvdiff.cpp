@@ -256,7 +256,7 @@ bool HandleFsGrid(const string& inputFileName,
    patch["vectorsize"]=to_string(vectorsize2);
    
    //Override MESH_DOMAIN_SIZES
-   std::array<uint32_t,2> meshDomainSize({globalIds.size(), 0});
+   std::array<uint64_t,2> meshDomainSize({globalIds.size(), 0});
    output.writeArray("MESH_DOMAIN_SIZES",patch ,1,vectorsize2, &meshDomainSize[0]);
 
 
