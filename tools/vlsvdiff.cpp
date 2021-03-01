@@ -1778,10 +1778,6 @@ int main(int argn,char* args[]) {
 
    // 4th arg is its component, 0 for scalars, 2 for z component etc
    uint compToExtract = atoi(argsVector[4].c_str());
-   if (compToExtract > 2){
-      std::cerr<<"Component\t"<<compToExtract<<"\t does not make sense! Aborting.."<<std::endl  ;
-      abort();
-   }
    // 5h arg if there is one:
    uint compToExtract2;
    if(argsVector.size() > 5 ) {
