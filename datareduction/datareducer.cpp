@@ -1217,7 +1217,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 
                   std::vector<Real> retval(3);
 
-                  int coupledNode = cell->parameters[CellParams::COUPLED_IONOSPHERE_NODE];
+                  int coupledNode = -1; //TODO: Fixme!
                   if(coupledNode == -1) {
                      retval[0] = 0;
                      retval[1] = 0;

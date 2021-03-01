@@ -46,10 +46,6 @@ namespace spatial_cell {
       for (unsigned int i = 0; i < CellParams::N_SPATIAL_CELL_PARAMS; i++) {
          this->parameters[i]=0.0;
       }
-      // Not coupling to ionosphere by default
-      // TODO: Move this into a ionosphere boundary member element as to
-      // not waste memory
-      this->parameters[CellParams::COUPLED_IONOSPHERE_NODE] = -1;
             
       // reset BVOL derivatives
       for (unsigned int i = 0; i < bvolderivatives::N_BVOL_DERIVATIVES; i++) {

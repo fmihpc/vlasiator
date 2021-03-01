@@ -142,6 +142,8 @@ namespace SBC {
       bool isCouplingInwards = false;     // True for any rank that actually couples fsgrid information into the ionosphere
       bool isCouplingOutwards = false;    // True for any rank that actually couples ionosphere potential information out to the vlasov grid
       FieldFunction* dipoleField;         // Simulation background field model to trace connections with
+      std::map< std::array<Real, 3>, std::array<
+         std::pair<int, Real>, 3> > vlasovGridCoupling; // Grid coupling information, caching how vlasovGrid coordinate couple to ionosphere data
 
       template<class C> void setDipoleField(C& dipole) {
          // Create a copy of the dipole and store it locally.
@@ -161,7 +163,8 @@ namespace SBC {
       void calculatePrecipitation(); // Estimate precipitation flux
       void calculateConductivityTensor(const Real F10_7, const Real recombAlpha, const Real backgroundIonisation); // Update sigma tensor
       void calculateFsgridCoupling(FsGrid< fsgrids::technical, 2> & technicalGrid, Real radius);     // Link each element to fsgrid cells for coupling
-      int32_t calculateVlasovGridCoupling(std::array<Real,3> x, Real stepSize, Real couplingRadius); // Find coupled ionosphere mesh node for given location
+      Real interpolateUpmappedPotential(const std::array<Real, 3>& x); // Calculate upmapped potential at the given point
+      std::array<std::pair<int, Real>, 3> calculateVlasovGridCoupling(std::array<Real,3> x, Real couplingRadius); // Find coupled ionosphere mesh node for given location
       //Field Line Tracing functions
       int ijk2Index(int i , int j ,int k ,std::array<int,3>dims); //3D to 1D indexing 
       void getRadialBfieldDirection(std::array<Real,3>& r, bool outwards, std::array<Real,3>& b);

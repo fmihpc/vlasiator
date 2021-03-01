@@ -1112,30 +1112,123 @@ namespace SBC {
    // Input is the cell coordinate of the vlasov grid cell.
    // To do so, magnetic field lines are traced inwords from the Vlasov grid
    // IONOSPHERE boundary cells to the ionosphere shell.
-   int32_t SphericalTriGrid::calculateVlasovGridCoupling(std::array<Real,3> x, Real stepSize, Real couplingRadius) {
+   //
+   // The return value is a pair of nodeID and coupling factor for the three
+   // corners of the containing element.
+   std::array<std::pair<int, Real>, 3> SphericalTriGrid::calculateVlasovGridCoupling(std::array<Real,3> x, Real couplingRadius) {
 
+      std::array<std::pair<int, Real>, 3> coupling;
+
+      Real stepSize = 100e3;
       std::array<Real,3> v;
       phiprof::start("ionosphere-VlasovGridCoupling");
 
       while(sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]) > Ionosphere::innerRadius) {
 
          // Make one step along the fieldline
-         stepFieldLine(x,v, stepSize,stepSize,couplingMethod,false);
+         stepFieldLine(x,v, stepSize,100e3,couplingMethod,false);
 
          // If the field lines is moving even further outwards, abort.
          // (this shouldn't happen under normal magnetospheric conditions, but who
          // knows what crazy driving this will be run with)
          if(sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]) > 1.5*couplingRadius) {
             logFile << "(ionosphere) Warning: coupling of Vlasov grid cell failed due to weird magnetic field topology." << endl << write;
-            return -1;
+
+            // Return a coupling that has 0 value and results in zero potential
+            return coupling;
          }
       }
 
       // Determine the nearest ionosphere node to this point.
       uint32_t nearestNode = findNodeAtCoordinates(x);
 
+      Real secondNearestNode=-1;
+      Real secondDistance=std::numeric_limits<Real>::infinity();
+      Real thirdNearestNode =-1;
+      Real thirdDistance=std::numeric_limits<Real>::infinity();
+
+      // Which two neighbours are enclosing the nearby element?
+      for(int i=0; i< nodes[nearestNode].numDepNodes; i++) {
+         uint32_t candidate = nodes[nearestNode].dependingNodes[i];
+
+         // Skip selfcoupling
+         if(candidate == nearestNode) {
+            continue;
+         }
+
+         // How far are we from this node?
+         std::array<Real, 3> deltaX({
+               x[0] - nodes[candidate].x[0],
+               x[1] - nodes[candidate].x[1],
+               x[2] - nodes[candidate].x[2]
+               });
+         Real dist = sqrt(deltaX[0]*deltaX[0] + deltaX[1]*deltaX[1] + deltaX[2]*deltaX[2]);
+
+         if(dist < secondDistance) {
+            thirdDistance = secondDistance;
+            secondDistance = dist;
+            thirdNearestNode = secondNearestNode;
+            secondNearestNode = candidate;
+         } else if(dist < thirdDistance) {
+            thirdDistance = dist;
+            thirdNearestNode = candidate;
+         }
+      }
+
+      if(isnan(secondDistance) || isnan(thirdDistance)) {
+         logFile << "(ionosphere) Error: Unable to find element neighbours to couple with downmapped coordinates " <<
+            x[0] << ", " << x[1] << ", " << x[2] << "!" << endl << write;
+         return coupling;
+      }
+
+      // Calculate barycentric coordinates for x in this element.
+      // Node coordinates
+      Vec3d r1(nodes[nearestNode].x[0], nodes[nearestNode].x[1], nodes[nearestNode].x[2]);
+      Vec3d r2(nodes[secondNearestNode].x[0], nodes[secondNearestNode].x[1], nodes[secondNearestNode].x[2]);
+      Vec3d r3(nodes[thirdNearestNode].x[0], nodes[thirdNearestNode].x[1], nodes[thirdNearestNode].x[2]);
+      Vec3d rx(x[0],x[1],x[2]);
+
+      // Total area
+      Real A = vector_length(cross_product(r2-r1,r3-r1));
+
+      // Area of the sub-triangles
+      Real lambda1 = vector_length(cross_product(r2-rx, r3-rx)) / A;
+      Real lambda2 = vector_length(cross_product(r1-rx, r3-rx)) / A;
+      Real lambda3 = vector_length(cross_product(r1-rx, r2-rx)) / A;
+
+      if(lambda1+lambda2+lambda3 > 1.1 || lambda1+lambda2+lambda3 < 0.9) {
+         logFile << "(ionosphere) Error: vlasovGridCoupling lambdas for coordinate " <<
+            x[0] << ", " << x[1] << ", " << x[2] << " do not sum up to 1: ["<<
+            lambda1 << ", " << lambda2 << ", " << lambda3 << endl << write;
+         return coupling;
+      }
+
+      coupling[0] = {nearestNode, lambda1};
+      coupling[1] = {secondNearestNode, lambda2};
+      coupling[2] = {thirdNearestNode, lambda3};
+
       phiprof::stop("ionosphere-VlasovGridCoupling");
-      return nearestNode;
+      return coupling;
+   }
+
+   // Calculate upmapped potential at the given coordinates,
+   // by tracing down to the ionosphere and interpolating the appropriate element
+   Real SphericalTriGrid::interpolateUpmappedPotential(const std::array<Real, 3>& x) {
+      
+      // Do we have a stored coupling for these coordinates already?
+      if(vlasovGridCoupling.find(x) == vlasovGridCoupling.end()) {
+
+         // If not, create one.
+         vlasovGridCoupling[x] = calculateVlasovGridCoupling(x, Ionosphere::innerRadius);
+      }
+
+      const std::array<std::pair<int, Real>, 3>& coupling = vlasovGridCoupling[x];
+
+      Real potential = 0;
+      for(int i=0; i<3; i++) {
+         potential += coupling[0].second * nodes[coupling[0].first].parameters[ionosphereParameters::SOLUTION];
+      }
+      return potential;
    }
 
    // Transport field-aligned currents down from the simulation cells to the ionosphere
@@ -2586,19 +2679,80 @@ namespace SBC {
       // If we are to couple to the ionosphere grid, we better be part of its communicator.
       assert(ionosphereGrid.communicator != MPI_COMM_NULL);
       
-      // And we should have coupling information to an ionosphere cell
-      if(mpiGrid[cellID]->parameters[CellParams::COUPLED_IONOSPHERE_NODE] == -1) {
-         // If not: calculate it!
-         const std::array<Real, CellParams::N_SPATIAL_CELL_PARAMS>& cellParams = mpiGrid[cellID]->parameters;
-         // Start tracing from middle of the cell
-         std::array<Real,3> x({cellParams[CellParams::XCRD] + 0.5*cellParams[CellParams::DX],
-               cellParams[CellParams::YCRD] + 0.5*cellParams[CellParams::DY],
-               cellParams[CellParams::ZCRD] + 0.5*cellParams[CellParams::DZ]});
-         mpiGrid[cellID]->parameters[CellParams::COUPLED_IONOSPHERE_NODE] = ionosphereGrid.calculateVlasovGridCoupling(x, cellParams[CellParams::DX], radius);
-         cerr << "Coupling VlasovGrid cell " << cellID << " to ionosphere grid node " << mpiGrid[cellID]->parameters[CellParams::COUPLED_IONOSPHERE_NODE] << endl;
+      // Get potential upmapped from six points 
+      // (Cell's face centres)
+      // inside the cell to calculate E
+      const std::array<Real, CellParams::N_SPATIAL_CELL_PARAMS>& cellParams = mpiGrid[cellID]->parameters;
+      const Real xmin = cellParams[CellParams::XCRD];
+      const Real ymin = cellParams[CellParams::YCRD];
+      const Real zmin = cellParams[CellParams::ZCRD];
+      const Real xmax = xmin + cellParams[CellParams::DX];
+      const Real ymax = ymin + cellParams[CellParams::DY];
+      const Real zmax = zmin + cellParams[CellParams::DZ];
+      const Real xcen = 0.5*(xmin+xmax);
+      const Real ycen = 0.5*(ymin+ymax);
+      const Real zcen = 0.5*(zmin+zmax);
+      std::array< std::array<Real, 3>, 6> tracepoints;
+      tracepoints[0] = {xmin, ycen, zcen};
+      tracepoints[1] = {xmax, ycen, zcen};
+      tracepoints[2] = {xcen, ymin, zcen};
+      tracepoints[3] = {xcen, ymax, zcen};
+      tracepoints[4] = {xcen, ycen, zmin};
+      tracepoints[5] = {xcen, ycen, zmax};
+      std::array<Real, 6> potentials;
+
+      for(int i=0; i<6; i++) {
+         // Get potential at each of these 6 points
+         potentials[i] = ionosphereGrid.interpolateUpmappedPotential(tracepoints[i]);
       }
 
-      this->vlasovBoundaryFluffyCopyFromAllCloseNbrs(mpiGrid, cellID, popID, calculate_V_moments, this->speciesParams[popID].fluffiness);
+      // Calculate E from potential differences
+      std::array<Real, 3> E({
+            (potentials[1] - potentials[0]) / cellParams[CellParams::DX],
+            (potentials[3] - potentials[2]) / cellParams[CellParams::DY],
+            (potentials[5] - potentials[4]) / cellParams[CellParams::DZ]});
+
+      const std::array<Real, 3> B({
+            cellParams[CellParams::BGBXVOL],
+            cellParams[CellParams::BGBYVOL],
+            cellParams[CellParams::BGBZVOL]});
+      const Real Bsqr = B[0]*B[0] + B[1]*B[1] + B[2]*B[2];
+
+      // Calculate cell bulk velocity as E x B / B^2
+      std::array<Real, 3> vDrift;
+      vDrift[0] = (E[1] * B[2] - E[2] * B[1])/Bsqr;
+      vDrift[1] = (E[2] * B[0] - E[0] * B[2])/Bsqr;
+      vDrift[2] = (E[0] * B[1] - E[1] * B[0])/Bsqr;
+
+      // Fill velocity space with new maxwellian data
+      // NOTE: We are *not* block adjusting here, but just filling in new values.
+      // The assumption behind this is that ionosphere processes happen at much slower timescales
+      // than the vlasov solver, and other components' block adjustment will do our dirty work for
+      // us here.
+      SpatialCell& cell = *mpiGrid[cellID];
+      Realf* data = cell.get_data(popID);
+      const Real* blockParameters = cell.get_block_parameters(popID);
+
+      for(vmesh::LocalID block=0; block<cell.get_number_of_velocity_blocks(popID); block++) {
+            creal vxBlock = blockParameters[block * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD];
+            creal vyBlock = blockParameters[block * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD];
+            creal vzBlock = blockParameters[block * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD];
+            creal dvxCell = blockParameters[block * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+            creal dvyCell = blockParameters[block * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+            creal dvzCell = blockParameters[block * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+         
+            // Iterate over cells within block
+            for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
+               creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell - vDrift[0];
+               creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell - vDrift[1];
+               creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell - vDrift[2];
+               
+               data[block*WID3 + cellIndex(ic,jc,kc)] = shiftedMaxwellianDistribution(popID, vxCellCenter, vyCellCenter, vzCellCenter);
+            }
+      }
+
+      //TODO: Do we need to update moments now?
+
       phiprof::stop("vlasovBoundaryCondition (Ionosphere)");
    }
 
