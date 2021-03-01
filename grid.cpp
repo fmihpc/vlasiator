@@ -567,7 +567,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    recalculateLocalCellsCache();
    getObjectWrapper().meshData.reallocate();
    cells = mpiGrid.get_cells();
-   #pragma parallel for
+   #pragma omp parallel for
    for (uint i=0; i<cells.size(); ++i) mpiGrid[cells[i]]->set_mpi_transfer_enabled(true);
 
    // flag transfers if AMR
