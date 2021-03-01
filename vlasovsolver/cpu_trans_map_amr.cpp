@@ -1188,6 +1188,84 @@ void printPencilsFunc(const setOfPencils& pencils, const uint dimension, const i
    MPI_Barrier(MPI_COMM_WORLD);
 }
 
+/* Wrapper function for calling seed ID selection and pencil generation, per dimension.
+ * Includes threading and gathering of pencils into thread-containers.
+ *
+ * @param [in] mpiGrid DCCRG grid object
+ * @param [in] dimension Spatial dimension
+ */
+void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                              const uint dimension) {
+
+   const bool printPencils = false;
+   int myRank;
+   if(printPencils) MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+
+   const vector<CellID>& localCells = getLocalCells();
+   vector<CellID> localPropagatedCells;
+   // Figure out which spatial cells are translated,
+   // result independent of particle species.
+   for (size_t c=0; c<localCells.size(); ++c) {
+      if (do_translate_cell(mpiGrid[localCells[c]])) {
+         localPropagatedCells.push_back(localCells[c]);
+      }
+   }
+
+   phiprof::start("getSeedIds");
+   vector<CellID> seedIds;
+   getSeedIds(mpiGrid, localPropagatedCells, dimension, seedIds);
+   phiprof::stop("getSeedIds");
+
+   phiprof::start("buildPencils");
+   // Output vectors for ready pencils
+   //setOfPencils pencils;
+
+   // Clear previous set
+   DimensionPencils[dimension].removeAllPencils();
+   
+#pragma omp parallel
+   {
+      // Empty vectors for internal use of buildPencilsWithNeighbors. Could be default values but
+      // default vectors are complicated. Should overload buildPencilsWithNeighbors like suggested here
+      // https://stackoverflow.com/questions/3147274/c-default-argument-for-vectorint
+      vector<CellID> ids;
+      vector<uint> path;
+      // thread-internal pencil set to be accumulated at the end
+      setOfPencils thread_pencils;
+      // iterators used in the accumulation
+      std::vector<CellID>::iterator ibeg, iend;
+
+#pragma omp for schedule(guided)
+      for (uint i=0; i<seedIds.size(); i++) {
+         cuint seedId = seedIds[i];
+         // Construct pencils from the seedIds into a set of pencils.
+         thread_pencils = buildPencilsWithNeighbors(mpiGrid, thread_pencils, seedId, ids, dimension, path, seedIds);
+      }
+
+      // accumulate thread results in global set of pencils
+#pragma omp critical
+      {
+         for (uint i=0; i<thread_pencils.N; i++) {
+            // Use vector range constructor
+            ibeg = thread_pencils.ids.begin() + thread_pencils.idsStart[i];
+            iend = ibeg + thread_pencils.lengthOfPencils[i];
+            std::vector<CellID> pencilIds(ibeg, iend);
+            DimensionPencils[dimension].addPencil(pencilIds,thread_pencils.x[i],thread_pencils.y[i],thread_pencils.periodic[i],thread_pencils.path[i]);
+         }
+      }
+   }
+
+   phiprof::start("check_ghost_cells");
+   // Check refinement of two ghost cells on each end of each pencil
+   check_ghost_cells(mpiGrid,DimensionPencils[dimension],dimension);
+   phiprof::stop("check_ghost_cells");
+
+   // ****************************************************************************
+
+   if(printPencils) printPencilsFunc(DimensionPencils[dimension],dimension,myRank);
+   phiprof::stop("buildPencils");
+}
+
 /* Map velocity blocks in all local cells forward by one time step in one spatial dimension.
  * This function uses 1-cell wide pencils to update cells in-place to avoid allocating large
  * temporary buffers.
@@ -1196,7 +1274,7 @@ void printPencilsFunc(const setOfPencils& pencils, const uint dimension, const i
  * @param [in] localPropagatedCells List of local cells that get propagated
  * ie. not boundary or DO_NOT_COMPUTE
  * @param [in] remoteTargetCells List of non-local target cells
- * @param dimension Spatial dimension
+ * @param [in] dimension Spatial dimension
  * @param [in] dt Time step
  * @param [in] popId Particle population ID
  */
@@ -1210,7 +1288,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    
    phiprof::start("setup");
 
-   const bool printPencils = false;
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
    unsigned char  cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
    // return if there's no cells to propagate
@@ -1219,9 +1296,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       return false;
    }
 
-   int myRank;
-   if(printPencils) MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-   
    // Vector with all cell ids
    vector<CellID> allCells(localPropagatedCells);
    allCells.insert(allCells.end(), remoteTargetCells.begin(), remoteTargetCells.end());  
@@ -1267,71 +1341,21 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    // ****************************************************************************
 
    // compute pencils => set of pencils (shared datastructure)
-   
-   phiprof::start("getSeedIds");
-   vector<CellID> seedIds;
-   getSeedIds(mpiGrid, localPropagatedCells, dimension, seedIds);
-   phiprof::stop("getSeedIds");
-   
-   phiprof::start("buildPencils");
+   // prepareSeedIdsAndPencils(mpiGrid,dimension); // moved to grid.cpp
 
-   // Output vectors for ready pencils
-   setOfPencils pencils;
-   
-   #pragma omp parallel
-   {
-      // Empty vectors for internal use of buildPencilsWithNeighbors. Could be default values but
-      // default vectors are complicated. Should overload buildPencilsWithNeighbors like suggested here
-      // https://stackoverflow.com/questions/3147274/c-default-argument-for-vectorint
-      vector<CellID> ids;
-      vector<uint> path;
-      // thread-internal pencil set to be accumulated at the end
-      setOfPencils thread_pencils;
-      // iterators used in the accumulation
-      std::vector<CellID>::iterator ibeg, iend;
-      
-      #pragma omp for schedule(guided)
-      for (uint i=0; i<seedIds.size(); i++) {
-         cuint seedId = seedIds[i];
-         // Construct pencils from the seedIds into a set of pencils.
-         thread_pencils = buildPencilsWithNeighbors(mpiGrid, thread_pencils, seedId, ids, dimension, path, seedIds);
-      }
-      
-      // accumulate thread results in global set of pencils
-      #pragma omp critical
-      {
-	 for (uint i=0; i<thread_pencils.N; i++) {
-	    // Use vector range constructor
-            ibeg = thread_pencils.ids.begin() + thread_pencils.idsStart[i];
-            iend = ibeg + thread_pencils.lengthOfPencils[i];
-            std::vector<CellID> pencilIds(ibeg, iend);
-            pencils.addPencil(pencilIds,thread_pencils.x[i],thread_pencils.y[i],thread_pencils.periodic[i],thread_pencils.path[i]);
-         }
-      }
-
-      // init cellid_transpose (moved here to take advantage of the omp parallel region)
-      #pragma omp for collapse(3)
-      for (uint k=0; k<WID; ++k) {
-         for (uint j=0; j<WID; ++j) {
-            for (uint i=0; i<WID; ++i) {
-               const uint cell =
-                  i * cell_indices_to_id[0] +
-                  j * cell_indices_to_id[1] +
-                  k * cell_indices_to_id[2];
-               cellid_transpose[ i + j * WID + k * WID2] = cell;
-            }
+   // init cellid_transpose (moved here to take advantage of the omp parallel region)
+#pragma omp parallel for collapse(3)
+   for (uint k=0; k<WID; ++k) {
+      for (uint j=0; j<WID; ++j) {
+         for (uint i=0; i<WID; ++i) {
+            const uint cell =
+               i * cell_indices_to_id[0] +
+               j * cell_indices_to_id[1] +
+               k * cell_indices_to_id[2];
+            cellid_transpose[ i + j * WID + k * WID2] = cell;
          }
       }
    }
-   
-   phiprof::start("check_ghost_cells");
-   // Check refinement of two ghost cells on each end of each pencil
-   check_ghost_cells(mpiGrid,pencils,dimension);
-   phiprof::stop("check_ghost_cells");
-
-   // ****************************************************************************   
-
-   if(printPencils) printPencilsFunc(pencils,dimension,myRank);
 
    // Warning: checkPencils fails to understand situations where pencils reach across 3 levels of refinement.
    // if(!checkPencils(mpiGrid, localPropagatedCells, pencils)) {
@@ -1340,14 +1364,14 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    // }
    
    if (Parameters::prepareForRebalance == true) {
-      std::cerr<<"dimension "<<dimension<<" nPencils "<<pencils.N<<std::endl;
+      //std::cerr<<"dimension "<<dimension<<" nPencils "<<pencils.N<<std::endl;
+      std::cerr<<"dimension "<<dimension<<" nPencils "<<DimensionPencils[dimension].N<<std::endl;
       for (uint i=0; i<localPropagatedCells.size(); i++) {
-         cuint myPencilCount = std::count(pencils.ids.begin(), pencils.ids.end(), localPropagatedCells[i]);
+         cuint myPencilCount = std::count(DimensionPencils[dimension].ids.begin(), DimensionPencils[dimension].ids.end(), localPropagatedCells[i]);
          nPencils[i] += myPencilCount;
          nPencils[nPencils.size()-1] += myPencilCount;
       }
    }
-   phiprof::stop("buildPencils");
    
    // Get a pointer to the velocity mesh of the first spatial cell
    const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = allCellsPointer[0]->get_velocity_mesh(popID);
@@ -1392,8 +1416,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    // Compute spatial neighbors for target cells.
    // For targets we need the local cells, plus a padding of 1 cell at both ends
    phiprof::start("computeSpatialTargetCellsForPencils");
-   std::vector<SpatialCell*> targetCells(pencils.sumOfLengths + pencils.N * 2 * nTargetNeighborsPerPencil );
-   computeSpatialTargetCellsForPencilsWithFaces(mpiGrid, pencils, dimension, targetCells.data());
+   std::vector<SpatialCell*> targetCells(DimensionPencils[dimension].sumOfLengths + DimensionPencils[dimension].N * 2 * nTargetNeighborsPerPencil );
+   computeSpatialTargetCellsForPencilsWithFaces(mpiGrid, DimensionPencils[dimension], dimension, targetCells.data());
    phiprof::stop("computeSpatialTargetCellsForPencils");
    
    
@@ -1405,7 +1429,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    #pragma omp parallel
    {
       // declarations for variables needed by the threads
-      std::vector<Realf, aligned_allocator<Realf, WID3>> targetBlockData((pencils.sumOfLengths + 2 * nTargetNeighborsPerPencil * pencils.N) * WID3);
+      std::vector<Realf, aligned_allocator<Realf, WID3>> targetBlockData((DimensionPencils[dimension].sumOfLengths + 2 * nTargetNeighborsPerPencil * DimensionPencils[dimension].N) * WID3);
       std::vector<std::vector<SpatialCell*>> pencilSourceCells;
       
       // Allocate aligned vectors which are needed once per pencil to avoid reallocating once per block loop + pencil loop iteration
@@ -1413,9 +1437,9 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       std::vector<std::vector<Vec, aligned_allocator<Vec,WID3>>> pencilSourceVecData;
       std::vector<std::vector<Vec, aligned_allocator<Vec,WID3>>> pencildz;
       
-      for(uint pencili = 0; pencili < pencils.N; ++pencili) {
+      for(uint pencili = 0; pencili < DimensionPencils[dimension].N; ++pencili) {
          
-         cint L = pencils.lengthOfPencils[pencili];
+         cint L = DimensionPencils[dimension].lengthOfPencils[pencili];
          cuint sourceLength = L + 2 * VLASOV_STENCIL_WIDTH;
          
          // Vector buffer where we write data, initialized to 0*/
@@ -1429,7 +1453,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
          // Compute spatial neighbors for the source cells of the pencil. In
          // source cells we have a wider stencil and take into account boundaries.
          std::vector<SpatialCell*> sourceCells(sourceLength);
-         computeSpatialSourceCellsForPencil(mpiGrid, pencils, pencili, dimension, sourceCells.data());
+         computeSpatialSourceCellsForPencil(mpiGrid, DimensionPencils[dimension], pencili, dimension, sourceCells.data());
          pencilSourceCells.push_back(sourceCells);
 
          // dz is the cell size in the direction of the pencil
@@ -1451,10 +1475,10 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
             
             // Loop over pencils
             uint totalTargetLength = 0;
-            for(uint pencili = 0; pencili < pencils.N; ++pencili){
+            for(uint pencili = 0; pencili < DimensionPencils[dimension].N; ++pencili){
 //             for ( auto pencili : unionOfBlocksMapToPencilIds.at(blockGID) ) {
                
-               int L = pencils.lengthOfPencils[pencili];
+               int L = DimensionPencils[dimension].lengthOfPencils[pencili];
                uint targetLength = L + 2 * nTargetNeighborsPerPencil;
                uint sourceLength = L + 2 * VLASOV_STENCIL_WIDTH;
                               
@@ -1530,9 +1554,9 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
             // store_data(target_data => targetCells)  :Aggregate data for blockid to original location 
             // Loop over pencils again
             totalTargetLength = 0;
-            for(uint pencili = 0; pencili < pencils.N; pencili++){
+            for(uint pencili = 0; pencili < DimensionPencils[dimension].N; pencili++){
                
-               uint targetLength = pencils.lengthOfPencils[pencili] + 2 * nTargetNeighborsPerPencil;
+               uint targetLength = DimensionPencils[dimension].lengthOfPencils[pencili] + 2 * nTargetNeighborsPerPencil;
                
                // store values from targetBlockData array to the actual blocks
                // Loop over cells in the pencil, including the padded cells of the target array
@@ -1553,7 +1577,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                      Realf* blockData = targetCell->get_data(blockLID, popID);
                      
                      // areaRatio is the reatio of the cross-section of the spatial cell to the cross-section of the pencil.
-                     int diff = targetCell->SpatialCell::parameters[CellParams::REFINEMENT_LEVEL] - pencils.path[pencili].size();
+                     int diff = targetCell->SpatialCell::parameters[CellParams::REFINEMENT_LEVEL] - DimensionPencils[dimension].path[pencili].size();
                      int ratio;
                      Realf areaRatio;
                      if(diff>=0) {

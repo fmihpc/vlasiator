@@ -46,6 +46,21 @@ struct setOfPencils {
       sumOfLengths = 0;
    }
 
+   void removeAllPencils() {
+
+      N = 0;
+      sumOfLengths = 0;
+      sumOfLengths = 0;
+      lengthOfPencils.clear();
+      idsStart.clear();
+      ids.clear();
+      x.clear();
+      y.clear();
+      periodic.clear();
+      path.clear();
+   }
+
+
    void addPencil(std::vector<CellID> idsIn, Real xIn, Real yIn, bool periodicIn, std::vector<uint> pathIn) {
 
       N++;
@@ -180,12 +195,17 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                   const Realv dt,
                   const uint popID);
 
-
 void update_remote_mapping_contribution_amr(dccrg::Dccrg<spatial_cell::SpatialCell,
                                             dccrg::Cartesian_Geometry>& mpiGrid,
                                             const uint dimension,
                                             int direction,
                                             const uint popID);
 
+// grid.cpp calls this function to both find seed cells and build pencils
+void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                              const uint dimension);
+
+// pencils used for AMR translation
+static std::array<setOfPencils,3> DimensionPencils;
 
 #endif

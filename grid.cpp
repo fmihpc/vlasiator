@@ -39,6 +39,7 @@
 #include "fieldsolver/fs_common.h"
 #include "fieldsolver/gridGlue.hpp"
 #include "projects/project.h"
+#include "vlasovsolver/cpu_trans_map_amr.hpp"
 #include "iowrite.h"
 #include "ioread.h"
 #include "object_wrapper.h"
@@ -600,7 +601,15 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
       setFaceNeighborRanks( mpiGrid );
       phiprof::stop("set face neighbor ranks");
    }
-   
+
+   // Prepare cellIDs and pencils for AMR translation
+   if(P::amrMaxSpatialRefLevel > 0) {
+      phiprof::start("GetSeedIdsAndBuildPencils");
+      for (int dimension=0; dimension<3; dimension++) {
+         prepareSeedIdsAndPencils(mpiGrid,dimension);
+      }
+      phiprof::stop("GetSeedIdsAndBuildPencils");
+   }
    
    phiprof::stop("Balancing load");
 }
