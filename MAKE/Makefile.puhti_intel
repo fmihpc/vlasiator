@@ -16,16 +16,28 @@ else
 	VECTORCLASS = VEC8D_AGNER
 endif
 
+FLAGS = 
+
+#GNU flags:
+CC_BRAND = intel
+CC_BRAND_VERSION = 19.0.4
+CXXFLAGS += -traceback -g -O3 -qopenmp -std=c++17 -W -Wall -Wno-unused -xHost -ipo -qopt-zmm-usage=high 
+testpackage: CXXFLAGS = -g -traceback -O2 -qopenmp -std=c++17 -W -Wno-unused -xHost -ipo
+
+MATHFLAGS = -ffast-math
+LDFLAGS = -qopenmp -lifcore -ipo
+LIB_MPI = 
+
 #======== PAPI ==========
 #Add PAPI_MEM define to use papi to report memory consumption?
 #CXXFLAGS +=  -DPAPI_MEM
-
+#testpackage: CXXFLAGS +=  -DPAPI_MEM
 
 #======== Allocator =========
 #Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
 #Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
 CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
-
+testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 #======= Compiler and compilation flags =========
 # NOTES on compiler flags:
@@ -40,18 +52,7 @@ CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 #                         mpi.h in c++ on Cray
 
 CXXFLAGS += -DMAX_VECTOR_SIZE=512
-
-FLAGS = 
-
-#GNU flags:
-CC_BRAND = intel
-CC_BRAND_VERSION = 19.0.4
-CXXFLAGS += -traceback -g -O3 -qopenmp -std=c++17 -W -Wall -Wno-unused -xHost -ipo -qopt-zmm-usage=high 
-testpackage: CXXFLAGS += -g -traceback -O2 -qopenmp -std=c++17 -W -Wno-unused -xHost -ipo
-
-MATHFLAGS = -ffast-math
-LDFLAGS = -qopenmp -lifcore -ipo
-LIB_MPI = 
+testpackage: CXXFLAGS += -DMAX_VECTOR_SIZE=512
 
 # BOOST_VERSION = current trilinos version
 # ZOLTAN_VERSION = current trilinos verson
