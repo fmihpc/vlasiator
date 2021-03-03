@@ -256,7 +256,7 @@ bool HandleFsGrid(const string& inputFileName,
    patch["vectorsize"]=to_string(vectorsize2);
    
    //Override MESH_DOMAIN_SIZES
-   std::array<uint32_t,2> meshDomainSize({globalIds.size(), 0});
+   std::array<uint64_t,2> meshDomainSize({globalIds.size(), 0});
    output.writeArray("MESH_DOMAIN_SIZES",patch ,1,vectorsize2, &meshDomainSize[0]);
 
 
@@ -421,18 +421,18 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
       cerr << "ERROR, failed to get array info for '" << _varToExtract << "' at " << __FILE__ << " " << __LINE__ << endl;
       return false;
    }
+      char *variableBuffer = new char[variableVectorSize * variableDataSize];
+      float *variablePtrFloat = reinterpret_cast<float *>(variableBuffer);
+      double *variablePtrDouble = reinterpret_cast<double *>(variableBuffer);
+      uint *variablePtrUint = reinterpret_cast<uint *>(variableBuffer);
+      int *variablePtrInt = reinterpret_cast<int *>(variableBuffer);
 
 
    if (gridName==gridType::SpatialGrid){
   
       // Read the mesh array one node (of a spatial cell) at a time
       // and create a map which contains each cell's CellID and variable to be extracted
-      char *variableBuffer = new char[variableVectorSize * variableDataSize];
-      float *variablePtrFloat = reinterpret_cast<float *>(variableBuffer);
-      double *variablePtrDouble = reinterpret_cast<double *>(variableBuffer);
-      uint *variablePtrUint = reinterpret_cast<uint *>(variableBuffer);
-      int *variablePtrInt = reinterpret_cast<int *>(variableBuffer);
-      //Get local cell ids:
+         //Get local cell ids:
       vector<uint64_t> local_cells;
       if ( vlsvReader.getCellIds( local_cells, meshName) == false ) {
          cerr << "Failed to read cell ids at "  << __FILE__ << " " << __LINE__ << endl;
@@ -509,7 +509,7 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
       std::array<int32_t,3> taskSize,taskStart;
       std::array<int32_t,3> taskEnd;
       int readOffset=0;
-      int readSize;
+      size_t readSize;
       int index,my_x,my_y,my_z;
       orderedData->clear();
 
@@ -536,11 +536,6 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
          readSize= taskSize[0] * taskSize[1] * taskSize[2];
          std::vector<Real> readIn(variableVectorSize * variableDataSize*readSize);
 
-         if (vlsvReader.readArray("VARIABLE", variableAttributes, readOffset,readSize, (char*)readIn.data()) == false){
-               cerr << "ERROR, failed to read variable '" << _varToExtract << "' at " << __FILE__ << " " << __LINE__ << endl;
-               variableSuccess = false;
-               break;
-            }
          
          int counter2=0;
          uint64_t globalindex;
@@ -551,20 +546,39 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
 
                   //Get global index
                   globalindex= x + y*xcells + z*xcells*ycells;
-                  Real extract;
-                  extract = (Real) readIn[counter+compToExtract];
 
+                  if (vlsvReader.readArray("VARIABLE", variableAttributes, readOffset+counter,1, variableBuffer) == false) {
+                     cerr << "ERROR, failed to read variable '" << _varToExtract << "' at " << __FILE__ << " " << __LINE__ << endl;
+                     variableSuccess = false; 
+                     abort();
+                     break;
+                  }
+
+                  // Get the variable value
+                  Real extract = NAN;
+
+                  switch (variableDataType) {
+                     case datatype::type::FLOAT:
+                        if(variableDataSize == sizeof(float)) extract = (Real)(variablePtrFloat[compToExtract]);
+                        if(variableDataSize == sizeof(double)) extract = (Real)(variablePtrDouble[compToExtract]);
+                        break;
+                     case datatype::type::UINT:
+                        extract = (Real)(variablePtrUint[compToExtract]);
+                        break;
+                     case datatype::type::INT:
+                        extract = (Real)(variablePtrInt[compToExtract]);
+                        break;
+                     case datatype::type::UNKNOWN:
+                        cerr << "ERROR, BAD DATATYPE AT " << __FILE__ << " " << __LINE__ << endl;
+                        break;
+                  }
                   orderedData->insert(pair<uint64_t, Real>(globalindex, extract));
-                  counter+=variableVectorSize;
+                  counter++;
                
                }
             }
          }
-
-
          readOffset+=readSize;
-
-            
       }
    }else{
     cerr<<"meshName not recognized\t" << __FILE__ << " " << __LINE__ <<endl;
@@ -577,6 +591,7 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
    if (variableSuccess == false) {
       cerr << "ERROR reading array VARIABLE " << varToExtract << endl;
    }
+   delete variableBuffer;
    return meshSuccess && variableSuccess;
 }
 
@@ -1531,11 +1546,15 @@ bool process2Files(const string fileName1,
          }
 
 
+         map<string,string>::const_iterator it = attributes.find("--meshname");
+         if (cloneMesh(fileName1,outputFile,it->second,orderedData1) == false) {
+            std::cerr<<"Failed"<<std::endl;
+            return false;
+         }
+      }
+
       singleStatistics(&orderedData1, &size, &mini, &maxi, &avg, &stdev); //CONTINUE
       // Clone mesh from input file to diff file
-      map<string,string>::const_iterator it = attributes.find("--meshname");
-         if (cloneMesh(fileName1,outputFile,it->second,orderedData1) == false) return false;
-      }
       outputStats(&size, &mini, &maxi, &avg, &stdev, verboseOutput, false);
 
       singleStatistics(&orderedData2, &size, &mini, &maxi, &avg, &stdev);
