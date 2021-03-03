@@ -40,6 +40,10 @@
 #include "vectorclass.h"
 #include "vector3d.h"
 
+#if VECTORCLASS_H >= 200
+#define Vec3d Vec3Dd
+#endif
+
 #ifndef NDEBUG
    #define DEBUG_IONOSPHERE
 #endif
@@ -719,7 +723,7 @@ namespace SBC {
             Real ne = nodes[n].electronDensity();
             Real electronTemp = nodes[n].electronTemperature();
             Real temperature_keV = (physicalconstants::K_B / physicalconstants::CHARGE) / 1000. * electronTemp;
-            if(isnan(energy_keV) || isnan(temperature_keV)) {
+            if(std::isnan(energy_keV) || std::isnan(temperature_keV)) {
                logFile << "(ionosphere) NaN encountered in conductivity calculation: " << endl
                   << "   `-> DeltaPhi     = " << nodes[n].deltaPhi()/1000. << " keV" << endl
                   << "   `-> energy_keV   = " << energy_keV << endl
@@ -1175,7 +1179,7 @@ namespace SBC {
          }
       }
 
-      if(isnan(secondDistance) || isnan(thirdDistance)) {
+      if(std::isnan(secondDistance) || std::isnan(thirdDistance)) {
          logFile << "(ionosphere) Error: Unable to find element neighbours to couple with downmapped coordinates " <<
             x[0] << ", " << x[1] << ", " << x[2] << "!" << endl << write;
          return coupling;
