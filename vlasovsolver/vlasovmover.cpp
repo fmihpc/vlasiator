@@ -90,9 +90,6 @@ void calculateSpatialTranslation(
    // MPI_Barrier(MPI_COMM_WORLD);
    // phiprof::stop(bt);
  
-    int one=0;
-    int four=0;
-    int other=0;
     // ------------- SLICE - map dist function in Z --------------- //
    if(P::zcells_ini > 1){
 
@@ -137,23 +134,6 @@ void calculateSpatialTranslation(
 
    }
 
-   if (Parameters::prepareForRebalance == true) {
-   for (size_t c=0; c<local_propagated_cells.size(); ++c) {
-      if (nPencils[c]==1) {
-         one++;
-      } else if (nPencils[c]==4) {
-         four++;
-      } else {
-         other++;
-      }
-      nPencils[c]=0;
-   }
-   nPencils[local_propagated_cells.size()]=0;
-   std::cout<<"shortpencils Z "<<P::transShortPencils<<" nPencils-total="<<nPencils[local_propagated_cells.size()]<<" one="<<one<<" four=="<<four<<" other="<<other<<std::endl;
-   one=0;
-   four=0;
-   other=0;
-   }
    // bt=phiprof::initializeTimer("barrier-trans-pre-x","Barriers","MPI");
    // phiprof::start(bt);
    // MPI_Barrier(MPI_COMM_WORLD);
@@ -203,23 +183,6 @@ void calculateSpatialTranslation(
 
    }
 
-   if (Parameters::prepareForRebalance == true) {
-   for (size_t c=0; c<local_propagated_cells.size(); ++c) {
-      if (nPencils[c]==1) {
-         one++;
-      } else if (nPencils[c]==4) {
-         four++;
-      } else {
-         other++;
-      }
-      nPencils[c]=0;
-   }
-   nPencils[local_propagated_cells.size()]=0;
-   std::cout<<"shortpencils X "<<P::transShortPencils<<" nPencils-total="<<nPencils[local_propagated_cells.size()]<<" one="<<one<<" four=="<<four<<" other="<<other<<std::endl;
-   one=0;
-   four=0;
-   other=0;
-   }
    // bt=phiprof::initializeTimer("barrier-trans-pre-y","Barriers","MPI");
    // phiprof::start(bt);
    // MPI_Barrier(MPI_COMM_WORLD);
@@ -269,18 +232,6 @@ void calculateSpatialTranslation(
      
    }
 
-   if (Parameters::prepareForRebalance == true) {
-   for (size_t c=0; c<local_propagated_cells.size(); ++c) {
-      if (nPencils[c]==1) {
-         one++;
-      } else if (nPencils[c]==4) {
-         four++;
-      } else {
-         other++;
-      }
-   }
-   std::cout<<"shortpencils Y "<<P::transShortPencils<<" nPencils-total="<<nPencils[local_propagated_cells.size()]<<" one="<<one<<" four=="<<four<<" other="<<other<<std::endl;
-   }
    // bt=phiprof::initializeTimer("barrier-trans-post-trans","Barriers","MPI");
    // phiprof::start(bt);
    // MPI_Barrier(MPI_COMM_WORLD);
@@ -391,7 +342,6 @@ void calculateSpatialTranslation(
             mpiGrid[local_propagated_cells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += nPencils[c] * counter;
 //            mpiGrid[localCells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += time / localCells.size();
          }
-         //std::cout<<"nPencils-total="<<nPencils[local_propagated_cells.size()]<<std::endl;
       }
    }
    

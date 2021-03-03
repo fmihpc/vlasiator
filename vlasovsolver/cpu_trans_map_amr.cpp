@@ -1469,8 +1469,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    // }
    
    if (Parameters::prepareForRebalance == true) {
-      //std::cerr<<"dimension "<<dimension<<" nPencils "<<pencils.N<<std::endl;
-      std::cerr<<"dimension "<<dimension<<" nPencils "<<DimensionPencils[dimension].N<<std::endl;
       for (uint i=0; i<localPropagatedCells.size(); i++) {
          cuint myPencilCount = std::count(DimensionPencils[dimension].ids.begin(), DimensionPencils[dimension].ids.end(), localPropagatedCells[i]);
          nPencils[i] += myPencilCount;
