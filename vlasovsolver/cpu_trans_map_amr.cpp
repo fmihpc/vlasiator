@@ -87,7 +87,7 @@ void flagSpatialCellsForAmrCommunication(const dccrg::Dccrg<SpatialCell,dccrg::C
       int neighborhood = getNeighborhood(dimension,VLASOV_STENCIL_WIDTH);
 
       // Set flags: loop over local cells
-#pragma parallel for
+#pragma omp parallel for
       for (uint i=0; i<localPropagatedCells.size(); i++) {
          CellID c = localPropagatedCells[i];
          SpatialCell *ccell = mpiGrid[c];
@@ -101,17 +101,33 @@ void flagSpatialCellsForAmrCommunication(const dccrg::Dccrg<SpatialCell,dccrg::C
          // In dimension, check iteratively if any neighbors up to VLASOV_STENCIL_WIDTH distance away are on a different process
          const auto* NbrPairs = mpiGrid.get_neighbors_of(c, neighborhood);
 
-         // Create list of unique distances in the negative direction from the first cell in pencil
+         // Create list of unique distances
          std::set< int > distancesplus;
          std::set< int > distancesminus;
+         std::set<CellID> foundNeighborsP;
+         std::set<CellID> foundNeighborsM;
+         /** Using sets of cells as well, we should only get one distance per
+             (potentially less refined) cell. This should result in safe behaviour
+             as long as the neighborhood of a cell does not contain cells with a
+             refinement level more than 1 level apart from the cell itself.
+         */
          for (const auto nbrPair : *NbrPairs) {
             if(nbrPair.second[dimension] > 0) {
-               distancesplus.insert(nbrPair.second[dimension]);
+               if (foundNeighborsP.find(nbrPair.first) == foundNeighborsP.end()) {
+                  distancesplus.insert(nbrPair.second[dimension]);
+                  foundNeighborsP.insert(nbrPair.first);
+               }
             }
             if(nbrPair.second[dimension] < 0) {
-               distancesminus.insert(-nbrPair.second[dimension]);
+               if (foundNeighborsM.find(nbrPair.first) == foundNeighborsM.end()) {
+                  distancesminus.insert(-nbrPair.second[dimension]);
+                  foundNeighborsM.insert(nbrPair.first);
+               }
             }
          }
+
+         foundNeighborsP.clear();
+         foundNeighborsM.clear();
 
          int iSrc = VLASOV_STENCIL_WIDTH - 1;
          // Iterate through positive distances for VLASOV_STENCIL_WIDTH elements starting from the smallest distance.
@@ -124,6 +140,8 @@ void flagSpatialCellsForAmrCommunication(const dccrg::Dccrg<SpatialCell,dccrg::C
                if (!ncell) continue;
                int distanceInRefinedCells = nbrPair.second[dimension];
                if (distanceInRefinedCells == *it) {
+                  if (foundNeighborsP.find(nbrPair.first) != foundNeighborsP.end()) continue;
+                  foundNeighborsP.insert(nbrPair.first);
                   if (!mpiGrid.is_local(nbrPair.first)) {
                      ccell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_X+dimension] = true;
                      break;
@@ -144,6 +162,8 @@ void flagSpatialCellsForAmrCommunication(const dccrg::Dccrg<SpatialCell,dccrg::C
                if (!ncell) continue;
                int distanceInRefinedCells = -nbrPair.second[dimension];
                if (distanceInRefinedCells == *it) {
+                  if (foundNeighborsM.find(nbrPair.first) != foundNeighborsM.end()) continue;
+                  foundNeighborsM.insert(nbrPair.first);
                   if (!mpiGrid.is_local(nbrPair.first)) {
                      ccell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_X+dimension] = true;
                      break;
