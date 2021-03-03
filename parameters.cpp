@@ -253,7 +253,7 @@ bool Parameters::addParameters(){
 				"populations_vg_acceleration_subcycles "+
 				"vg_e_vol fg_e_vol "+
 				"ig_fac ig_latitude ig_cellarea ig_upmappedarea ig_sigmap ig_sigmah ig_rhom ig_electronTemp ig_potential" +
-				"ig_solverinternals ig_upmappedcodecoords "+
+				"ig_solverinternals ig_upmappedcodecoords ig_potential"+
 				"fg_e_hall vg_e_gradpe fg_b_vol vg_b_vol vg_b_background_vol vg_b_perturbed_vol "+
 				"vg_pressure fg_pressure populations_vg_ptensor "+
 				"b_vol_derivatives "+
