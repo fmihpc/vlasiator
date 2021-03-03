@@ -186,6 +186,9 @@ namespace CellParams {
       FSGRID_BOUNDARYTYPE, /*!< Boundary type of this cell, as stored in the fsGrid */
       CELLID, /*! < DCCRG cell index */
       REFINEMENT_LEVEL, /*! < Refinement level */
+      AMR_TRANSLATE_COMM_X, /*! < Flag to include this cell in AMR pre-translate communication  */
+      AMR_TRANSLATE_COMM_Y, /*! < Flag to include this cell in AMR pre-translate communication  */
+      AMR_TRANSLATE_COMM_Z, /*! < Flag to include this cell in AMR pre-translate communication  */
       N_SPATIAL_CELL_PARAMS
    };
 }
