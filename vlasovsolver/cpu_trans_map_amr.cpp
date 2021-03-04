@@ -828,7 +828,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
    for (uint i=0; i<localPropagatedCells.size(); i++) {
       CellID celli = localPropagatedCells[i];
 
-      bool addToSeedIds = P::transShortPencils;
+      bool addToSeedIds = P::amrTransShortPencils;
       if (addToSeedIds) {
 #pragma omp critical
          seedIds.push_back(celli);
