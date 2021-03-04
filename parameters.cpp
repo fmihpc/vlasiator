@@ -152,8 +152,8 @@ Realf P::amrBoxCenterY = 0.0;
 Realf P::amrBoxCenterZ = 0.0;
 vector<string> P::blurPassString;
 std::vector<int> P::numPasses;
-
-
+bool P::artificialPADiff;
+Realf P::PADcoefficient;
 
 bool Parameters::addParameters(){
    //the other default parameters we read through the add/get interface
@@ -318,6 +318,8 @@ bool Parameters::addParameters(){
    Readparameters::add("AMR.box_center_y","y coordinate of the center of the box that is refined (for testing)",0.0);
    Readparameters::add("AMR.box_center_z","z coordinate of the center of the box that is refined (for testing)",0.0);
    Readparameters::addComposing("AMR.filterpasses", std::string("AMR filter passes for each individual refinement level"));
+   Readparameters::add("PAD.enable","Enable Artificial pitch-angle diffusion",0);
+   Readparameters::add("PAD.coefficient","Set artificial pitch-angle diffusion coefficient",0);
    return true;
 }
 
@@ -629,6 +631,12 @@ bool Parameters::getParameters(){
    Readparameters::get("bailout.max_memory", P::bailout_max_memory);
 
    for (size_t s=0; s<P::systemWriteName.size(); ++s) P::systemWrites.push_back(0);
-   
+ 
+   Readparameters::get("PAD.enable", P::artificialPADiff);   
+   Readparameters::get("PAD.coefficient", P::PADcoefficient);
+
    return true;
+
 }
+
+

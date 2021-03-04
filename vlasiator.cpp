@@ -43,6 +43,7 @@
 #include "spatial_cell.hpp"
 #include "datareduction/datareducer.h"
 #include "sysboundary/sysboundary.h"
+#include "vlasovsolver/velocity_space_diffusion.h"
 
 #include "fieldsolver/fs_common.h"
 #include "projects/project.h"
@@ -952,7 +953,12 @@ int main(int argn,char* args[]) {
       }
       phiprof::stop("Velocity-space",computedCells,"Cells");
       addTimedBarrier("barrier-after-acceleration");
-      
+     
+      if (P::artificialPADiff){
+
+	      velocitySpaceDiffusion(mpiGrid,0);
+      }      
+
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
          phiprof::start("Update system boundaries (Vlasov post-acceleration)");
          sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt, true);
