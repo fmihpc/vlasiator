@@ -141,13 +141,12 @@ namespace SBC {
       int writingRank;                    // Rank in the MPI_COMM_WORLD communicator that does ionosphere I/O
       bool isCouplingInwards = false;     // True for any rank that actually couples fsgrid information into the ionosphere
       bool isCouplingOutwards = false;    // True for any rank that actually couples ionosphere potential information out to the vlasov grid
-      FieldFunction* dipoleField;         // Simulation background field model to trace connections with
+      FieldFunction dipoleField;          // Simulation background field model to trace connections with
       std::map< std::array<Real, 3>, std::array<
          std::pair<int, Real>, 3> > vlasovGridCoupling; // Grid coupling information, caching how vlasovGrid coordinate couple to ionosphere data
 
-      template<class C> void setDipoleField(C& dipole) {
-         // Create a copy of the dipole and store it locally.
-         dipoleField = new C(dipole);
+      void setDipoleField(const FieldFunction& dipole) {
+         dipoleField = dipole;
       };
       void readAtmosphericModelFile(const char* filename);
       void offset_FAC();                  // Offset field aligned currents to get overall zero current

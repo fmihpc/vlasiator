@@ -803,14 +803,12 @@ namespace SBC {
 
    void SphericalTriGrid::getRadialBfieldDirection(std::array<Real,3>& r, bool outwards, std::array<Real,3>& b){
 
+      assert(dipoleField);
+
        // Get field direction
-      dipoleField->setDerivative(0);
-      dipoleField->setComponent(X);
-      b[0] = dipoleField->call(r[0],r[1],r[2]);
-      dipoleField->setComponent(Y);
-      b[1] = dipoleField->call(r[0],r[1],r[2]);
-      dipoleField->setComponent(Z);
-      b[2] = dipoleField->call(r[0],r[1],r[2]);
+      b[0] = dipoleField(r[0],r[1],r[2],X,0,X);
+      b[1] = dipoleField(r[0],r[1],r[2],Y,0,Y);
+      b[2] = dipoleField(r[0],r[1],r[2],Z,0,Z);
 
       // Normalize
       Real  norm = 1. / sqrt(b[0]*b[0] + b[1]*b[1] + b[2]*b[2]);

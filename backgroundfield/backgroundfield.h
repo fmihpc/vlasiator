@@ -29,7 +29,7 @@
 #include "fsgrid.hpp"
 
 void setBackgroundField(
-   FieldFunction& bgFunction,
+   const FieldFunction& bgFunction,
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
    bool append=false
 );
@@ -39,7 +39,7 @@ void setBackgroundFieldToZero(
 );
 
 void setPerturbedField(
-   FieldFunction& bgFunction,
+   const FieldFunction& bgFunction,
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
    bool append=false
 );
