@@ -30,21 +30,18 @@ Background magnetic field class of Vlasiator.
 
 
 
-class VectorDipole: public FieldFunction {
+class VectorDipole {
 private:
-   bool initialized;
+   bool initialized = false;
    double q[3];      // Dipole moment; set to (0,0,moment) for z-aligned
    double center[3]; // Coordinates where the dipole sits; set to (0,0,0)
    double xlimit[2]; // X-coodrinate extents of full and zero dipole
    double IMF[3];    // IMF value to scale to, starting at xlimit[0] and finishing at xlimit[1]
 public:
    
-   VectorDipole(){
-      this->initialized = false;
-   }
+   VectorDipole(){};
    void initialize(const double moment,const double center_x, const double center_y, const double center_z, const double tilt_angle_phi, const double tilt_angle_theta, const double xlimit_f, const double xlimit_z, const double IMF_Bx, const double IMF_By, const double IMF_Bz);
-   virtual double call(double x, double y, double z) const;  
-   virtual ~VectorDipole() {}
+   double operator()(double x, double y, double z, coordinate component, unsigned int derivative=0, coordinate dcomponent=X) const;
 };
 
 #endif
