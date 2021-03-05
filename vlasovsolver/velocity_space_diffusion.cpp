@@ -32,11 +32,18 @@
 
 using namespace spatial_cell;
 
+static bool checkExistingNeighbour(SpatialCell* cell, Realf VX, Realf VY, Realf VZ, const uint popID) {
+
+      const vmesh::GlobalID blockGID = cell->get_velocity_block(popID,VX, VY, VZ);
+      vmesh::LocalID blockLID = cell->get_population(popID).vmesh.getLocalID(blockGID);
+      return blockLID != vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID();
+}
+
 void velocitySpaceDiffusion(
         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID){
 
-    const auto LocalCells=getLocalCells();
-    for (auto & CellID: LocalCells) {
+    const auto LocalCells=getLocalCells(); 
+    for (auto & CellID: LocalCells) { //Iterate through spatial cell
 
         SpatialCell* cell     = mpiGrid[CellID];
         SpatialCell cellCopy  = *mpiGrid[CellID];
@@ -51,10 +58,10 @@ void velocitySpaceDiffusion(
 
         const vmesh::LocalID* nBlocks = cellCopy.get_velocity_grid_length(popID);
 
-         for (vmesh::LocalID n=0; n<cellCopy.get_number_of_velocity_blocks(popID); n++) {
+         for (vmesh::LocalID n=0; n<cellCopy.get_number_of_velocity_blocks(popID); n++) { //Iterate through velocity blocks
             for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
-               //Get velocity space coordinates      
-                     
+
+               //Get velocity space coordinates                    
 	       const Real VX 
                   =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
                   + (i + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
@@ -89,9 +96,9 @@ void velocitySpaceDiffusion(
                Vec3d phi             = normalize_vector(cross_product(r,b));
                Vec3d theta           = normalize_vector(cross_product(r,phi));
                Realf muOrigin        = dot_product(r,b);
-               Realf OXCoeff         = abs(theta[0]); //How much to diffuse through the interface based on the dot product between
-               Realf OYCoeff         = abs(theta[1]); //the theta vector and the normal to the interface (Same goes for the other cell)
-               Realf OZCoeff         = abs(theta[2]); //Number between 0 and 1
+               Realf OXCoeff         = theta[0]; //How much to diffuse through the interface based on the dot product between
+               Realf OYCoeff         = theta[1]; //the theta vector and the normal to the interface (Same goes for the other cell)
+               Realf OZCoeff         = theta[2]; //Number between 0 and 1
                    //Get cell extents in mu
                        //Along X
                Vec3d OXPlus(VX+DV/2.0,VY,VZ);
@@ -112,100 +119,115 @@ void velocitySpaceDiffusion(
                Realf muOZMin  = dot_product(normalize_vector(OZMinus-bulkV),b);
                Realf OZlength = abs(muOZMax - muOZMin); 
  
-               //Get +X cell values
-               Realf XCellValue = cellCopy.get_value(VX+DV,VY,VZ,popID);
-               Vec3d XVelocity(VX+DV-bulkV[0],VY-bulkV[1],VZ-bulkV[2]);
-               Vec3d Xr      = normalize_vector(XVelocity);
-               Vec3d Xphi    = normalize_vector(cross_product(Xr,b));
-               Vec3d Xtheta  = normalize_vector(cross_product(Xr,Xphi));
-               Realf Xmu     = dot_product(Xr,b);
-               Realf XOCoeff = abs(Xtheta[0]); 
-               Realf dmuX    = abs(muOrigin - Xmu);
-                   //Get cell extents in mu
-               Vec3d XOPlus(VX+DV*(3.0/2.0),VY,VZ);
-               Vec3d XOMinus(VX+DV/2.0,VY,VZ);
-               Realf muXOMax = dot_product(normalize_vector(XOPlus-bulkV),b);
-               Realf muXOMin = dot_product(normalize_vector(XOMinus-bulkV),b);
-               Realf Xlength = abs(muXOMax - muXOMin);
-                   //Get diffusion from +X to Origin
-               Realf erfplusX  = erf((Xmu + Xlength/2.0)*(1.0/sqrt(4.0*Dmumu*dt)));
-               Realf erfminusX = erf((Xmu - Xlength/2.0)*(1.0/sqrt(4.0*Dmumu*dt)));
-               Realf diffXO    = XOCoeff * 1.0/2.0 * (erfminusX - erfplusX) * dmuX; 
-                   //Get diffusion from Origin to +X
-               Realf erfplusOX  = erf((muOrigin + OXlength/2.0)*(1.0/sqrt(4.0*Dmumu*dt)));
-               Realf erfminusOX = erf((muOrigin - OXlength/2.0)*(1.0/sqrt(4.0*Dmumu*dt)));
-               Realf diffOX     = OXCoeff * 1.0/2.0 * (erfminusOX - erfplusOX) * dmuX; 
+               Realf diffOX = 0.0;
+               Realf diffOY = 0.0;
+               Realf diffOZ = 0.0;
+               Realf diffXO = 0.0;
+               Realf diffYO = 0.0;
+               Realf diffZO = 0.0;
+               Realf XCellValue = 0.0;
+               Realf YCellValue = 0.0;
+               Realf ZCellValue = 0.0;
 
-               //Get +Y cell values
-               Realf YCellValue = cellCopy.get_value(VX,VY+DV,VZ,popID);
-               Vec3d YVelocity(VX-bulkV[0],VY+DV-bulkV[1],VZ-bulkV[2]);
-	       Vec3d Yr      = normalize_vector(YVelocity);
-	       Vec3d Yphi    = normalize_vector(cross_product(Yr,b));
-	       Vec3d Ytheta  = normalize_vector(cross_product(Yr,Yphi));
-	       Realf Ymu     = dot_product(Yr,b);
-               Realf YOCoeff = abs(Ytheta[1]); 
-               Realf dmuY    = abs(muOrigin - Ymu);
-                   //Get cell extents in mu
-               Vec3d YOPlus(VX,VY+DV*(3.0/2.0),VZ);
-               Vec3d YOMinus(VX,VY+DV/2.0,VZ);
-               Realf muYOMax = dot_product(normalize_vector(YOPlus-bulkV),b);
-               Realf muYOMin = dot_product(normalize_vector(YOMinus-bulkV),b);
-               Realf Ylength = abs(muYOMax - muYOMin);
-                   //Get diffusion from +Y to Origin
-               Realf erfplusY  = erf((Ymu + Ylength/2.0)*(1.0/sqrt(4.0*Dmumu*dt)));
-               Realf erfminusY = erf((Ymu - Ylength/2.0)*(1.0/sqrt(4.0*Dmumu*dt)));
-               Realf diffYO    = YOCoeff * 1.0/2.0 * (erfminusY - erfplusY) * dmuY; 
-                   //Get diffusion from Origin to +Y
-               Realf erfplusOY  = erf((muOrigin + OYlength/2.0)*(1.0/sqrt(4.0*Dmumu*dt)));
-               Realf erfminusOY = erf((muOrigin - OYlength/2.0)*(1.0/sqrt(4.0*Dmumu*dt)));
-               Realf diffOY     = OYCoeff * 1.0/2.0 * (erfminusOY - erfplusOY) * dmuY; 
 
-               //Get +Z cell values
-               Realf ZCellValue = cellCopy.get_value(VX,VY,VZ+DV,popID);
-               Vec3d ZVelocity(VX-bulkV[0],VY-bulkV[1],VZ+DV-bulkV[2]);
-	       Vec3d Zr      = normalize_vector(ZVelocity);
-	       Vec3d Zphi    = normalize_vector(cross_product(Zr,b));
-	       Vec3d Ztheta  = normalize_vector(cross_product(Zr,Zphi));
-	       Realf Zmu     = dot_product(Zr,b);
-               Realf ZOCoeff = abs(Ztheta[2]); 
-               Realf dmuZ    = abs(muOrigin - Zmu);
-                   //Get cell extents in mu
-               Vec3d ZOPlus(VX,VY,VZ+DV*(3.0/2.0));
-               Vec3d ZOMinus(VX,VY,VZ+DV/2.0);
-               Realf muZOMax = dot_product(normalize_vector(ZOPlus-bulkV),b);
-               Realf muZOMin = dot_product(normalize_vector(ZOMinus-bulkV),b);
-               Realf Zlength = abs(muZOMax - muZOMin);
-                   //Get diffusion from +Z to Origin
-               Realf erfplusZ  = erf((Zmu + Zlength/2.0)*(1.0/sqrt(4.0*Dmumu*dt)));
-               Realf erfminusZ = erf((Zmu - Zlength/2.0)*(1.0/sqrt(4.0*Dmumu*dt)));
-               Realf diffZO    = ZOCoeff * 1.0/2.0 * (erfminusZ - erfplusZ) * dmuZ; 
-                   //Get diffusion from Origin to +Z
-               Realf erfplusOZ  = erf((muOrigin + OZlength/2.0)*(1.0/sqrt(4.0*Dmumu*dt)));
-               Realf erfminusOZ = erf((muOrigin - OZlength/2.0)*(1.0/sqrt(4.0*Dmumu*dt)));
-               Realf diffOZ     = OZCoeff * 1.0/2.0 * (erfminusOZ - erfplusOZ) * dmuZ; 
+               if (checkExistingNeighbour(&cellCopy,VX+DV,VY,VZ,popID)) {
+                   //Get +X cell values
+                   XCellValue = cellCopy.get_value(VX+DV,VY,VZ,popID);
+                   Vec3d XVelocity(VX+DV-bulkV[0],VY-bulkV[1],VZ-bulkV[2]);
+                   Vec3d Xr      = normalize_vector(XVelocity);
+                   Vec3d Xphi    = normalize_vector(cross_product(Xr,b));
+                   Vec3d Xtheta  = normalize_vector(cross_product(Xr,Xphi));
+                   Realf Xmu     = dot_product(Xr,b);
+                   Realf XOCoeff = Xtheta[0]; 
+                   Realf dmuX    = abs(muOrigin - Xmu);
+                       //Get cell extents in mu
+                   Vec3d XOPlus(VX+DV*(3.0/2.0),VY,VZ);
+                   Vec3d XOMinus(VX+DV/2.0,VY,VZ);
+                   Realf muXOMax = dot_product(normalize_vector(XOPlus-bulkV),b);
+                   Realf muXOMin = dot_product(normalize_vector(XOMinus-bulkV),b);
+                   Realf Xlength = abs(muXOMax - muXOMin);
+                       //Get diffusion from +X to Origin
+                   Realf erfplusX  = erf((Xmu + Xlength/2.0)*(1.0/sqrt(4.0*Dmumu*dt)));
+                   Realf erfminusX = erf((Xmu - Xlength/2.0)*(1.0/sqrt(4.0*Dmumu*dt)));
+                   diffXO          = XOCoeff * 1.0/2.0 * (erfminusX - erfplusX) * dmuX; 
+                       //Get diffusion from Origin to +X
+                   Realf erfplusOX  = erf((muOrigin + OXlength/2.0)*(1.0/sqrt(4.0*Dmumu*dt)));
+                   Realf erfminusOX = erf((muOrigin - OXlength/2.0)*(1.0/sqrt(4.0*Dmumu*dt)));
+                   diffOX           = OXCoeff * 1.0/2.0 * (erfminusOX - erfplusOX) * dmuX; 
+                   //Update +X cell value
+                   Realf DeltaXValue = - diffXO*XCellValue + diffOX*OriginCellValue;
+                   cell->increment_value(VX+DV,VY,VZ,DeltaXValue,popID);
 
+                   //Update Origin cell value
+	           //Realf DeltaOriginValue = diffXO*XCellValue - (diffOX)*OriginCellValue;
+                   //cell->increment_value(VX,VY,VZ,DeltaOriginValue,popID); 
+
+               }
+
+               if (checkExistingNeighbour(&cellCopy,VX,VY+DV,VZ,popID)) {
+                   //Get +Y cell values
+                   YCellValue = cellCopy.get_value(VX,VY+DV,VZ,popID);
+                   Vec3d YVelocity(VX-bulkV[0],VY+DV-bulkV[1],VZ-bulkV[2]);
+	           Vec3d Yr      = normalize_vector(YVelocity);
+	           Vec3d Yphi    = normalize_vector(cross_product(Yr,b));
+	           Vec3d Ytheta  = normalize_vector(cross_product(Yr,Yphi));
+	           Realf Ymu     = dot_product(Yr,b);
+                   Realf YOCoeff = Ytheta[1]; 
+                   Realf dmuY    = abs(muOrigin - Ymu);
+                       //Get cell extents in mu
+                   Vec3d YOPlus(VX,VY+DV*(3.0/2.0),VZ);
+                   Vec3d YOMinus(VX,VY+DV/2.0,VZ);
+                   Realf muYOMax = dot_product(normalize_vector(YOPlus-bulkV),b);
+                   Realf muYOMin = dot_product(normalize_vector(YOMinus-bulkV),b);
+                   Realf Ylength = abs(muYOMax - muYOMin);
+                       //Get diffusion from +Y to Origin
+                   Realf erfplusY  = erf((Ymu + Ylength/2.0)*(1.0/sqrt(4.0*Dmumu*dt)));
+                   Realf erfminusY = erf((Ymu - Ylength/2.0)*(1.0/sqrt(4.0*Dmumu*dt)));
+                   diffYO          = YOCoeff * 1.0/2.0 * (erfminusY - erfplusY) * dmuY; 
+                       //Get diffusion from Origin to +Y
+                   Realf erfplusOY  = erf((muOrigin + OYlength/2.0)*(1.0/sqrt(4.0*Dmumu*dt)));
+                   Realf erfminusOY = erf((muOrigin - OYlength/2.0)*(1.0/sqrt(4.0*Dmumu*dt)));
+                   diffOY           = OYCoeff * 1.0/2.0 * (erfminusOY - erfplusOY) * dmuY; 
+                   //Update +Y cell value
+                   Realf DeltaYValue = - diffYO*YCellValue + diffOY*OriginCellValue;
+                   cell->increment_value(VX,VY+DV,VZ,DeltaYValue,popID);
+               }
+
+               if (checkExistingNeighbour(&cellCopy,VX,VY,VZ+DV,popID)) {
+                   //Get +Z cell values
+                   ZCellValue = cellCopy.get_value(VX,VY,VZ+DV,popID);
+                   Vec3d ZVelocity(VX-bulkV[0],VY-bulkV[1],VZ+DV-bulkV[2]);
+	           Vec3d Zr      = normalize_vector(ZVelocity);
+	           Vec3d Zphi    = normalize_vector(cross_product(Zr,b));
+	           Vec3d Ztheta  = normalize_vector(cross_product(Zr,Zphi));
+	           Realf Zmu     = dot_product(Zr,b);
+                   Realf ZOCoeff = Ztheta[2]; 
+                   Realf dmuZ    = abs(muOrigin - Zmu);
+                       //Get cell extents in mu
+                   Vec3d ZOPlus(VX,VY,VZ+DV*(3.0/2.0));
+                   Vec3d ZOMinus(VX,VY,VZ+DV/2.0);
+                   Realf muZOMax = dot_product(normalize_vector(ZOPlus-bulkV),b);
+                   Realf muZOMin = dot_product(normalize_vector(ZOMinus-bulkV),b);
+                   Realf Zlength = abs(muZOMax - muZOMin);
+                       //Get diffusion from +Z to Origin
+                   Realf erfplusZ  = erf((Zmu + Zlength/2.0)*(1.0/sqrt(4.0*Dmumu*dt)));
+                   Realf erfminusZ = erf((Zmu - Zlength/2.0)*(1.0/sqrt(4.0*Dmumu*dt)));
+                   diffZO          = ZOCoeff * 1.0/2.0 * (erfminusZ - erfplusZ) * dmuZ; 
+                       //Get diffusion from Origin to +Z
+                   Realf erfplusOZ  = erf((muOrigin + OZlength/2.0)*(1.0/sqrt(4.0*Dmumu*dt)));
+                   Realf erfminusOZ = erf((muOrigin - OZlength/2.0)*(1.0/sqrt(4.0*Dmumu*dt)));
+                   diffOZ           = OZCoeff * 1.0/2.0 * (erfminusOZ - erfplusOZ) * dmuZ; 
+                   //Update +Z cell value
+                   Realf DeltaZValue = - diffZO*ZCellValue + diffOZ*OriginCellValue;
+                   cell->increment_value(VX,VY,VZ+DV,DeltaZValue,popID);
+               }
                
-               std::cerr << "diffXO = " << diffXO << std::endl;
-               std::cerr << "diffYO = " << diffYO << std::endl;
-               std::cerr << "diffZO = " << diffZO << std::endl;
-               std::cerr << "diffOX = " << diffOX << std::endl;
-               std::cerr << "diffOY = " << diffOY << std::endl;
-               std::cerr << "diffOZ = " << diffOZ << std::endl;
-
                //Update origin cell value
-	       Realf DeltaOriginValue = diffXO*XCellValue + diffYO*YCellValue + diffZO*ZCellValue - (diffOX + diffOY + diffOZ)*OriginCellValue;
-	       cell->increment_value(VX,VY,VZ,DeltaOriginValue,popID); 
+	       Realf DeltaOriginValue = diffXO*XCellValue + diffYO*YCellValue + diffZO*ZCellValue - (diffOX + diffOY + diffOZ)*OriginCellValue;      
+	       //Realf DeltaOriginValue = diffYO*YCellValue + diffZO*ZCellValue - (diffOY + diffOZ)*OriginCellValue;      
 
-               //Update +X cell value
-               Realf DeltaXValue = - diffXO*XCellValue + diffOX*OriginCellValue;
-               cell->increment_value(VX+DV,VY,VZ,DeltaXValue,popID);
-               //Update +Y cell value
-               Realf DeltaYValue = - diffYO*YCellValue + diffOY*OriginCellValue;
-               cell->increment_value(VX,VY+DV,VZ,DeltaYValue,popID);
-               //Update +Z cell value
-               Realf DeltaZValue = - diffZO*ZCellValue + diffOZ*OriginCellValue;
-               cell->increment_value(VX,VY,VZ+DV,DeltaZValue,popID);
-
+               cell->increment_value(VX,VY,VZ,DeltaOriginValue,popID); 
+                
 	    }
 
 
