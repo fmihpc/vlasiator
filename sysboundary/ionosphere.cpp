@@ -334,7 +334,7 @@ namespace SBC {
          Real minDist=sqrt(deltaX[0]*deltaX[0] + deltaX[1]*deltaX[1] + deltaX[2]*deltaX[2]);
 
          // Iterate through our neighbours
-         for(int i=0; i<nodes[node].numTouchingElements; i++) {
+         for(uint i=0; i<nodes[node].numTouchingElements; i++) {
             for(int j=0; j<3; j++) {
                uint32_t thatNode = elements[nodes[node].touchingElements[i]].corners[j];
                if(thatNode == node || thatNode == nextNode) {
@@ -1150,7 +1150,7 @@ namespace SBC {
       Real thirdDistance=std::numeric_limits<Real>::infinity();
 
       // Which two neighbours are enclosing the nearby element?
-      for(int i=0; i< nodes[nearestNode].numDepNodes; i++) {
+      for(uint i=0; i< nodes[nearestNode].numDepNodes; i++) {
          uint32_t candidate = nodes[nearestNode].dependingNodes[i];
 
          // Skip selfcoupling

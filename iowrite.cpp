@@ -1054,7 +1054,7 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 	 // Loop over AMR levels
 	 uint startindex=1;
 	 uint endindex=1;
-	 for (uint AMR = 0; AMR <= P::amrMaxSpatialRefLevel; AMR++) {
+	 for (int AMR = 0; AMR <= P::amrMaxSpatialRefLevel; AMR++) {
 	    uint AMRm = std::floor(std::pow(2,AMR));
 	    uint cellsthislevel = (AMRm*P::xcells_ini)*(AMRm*P::ycells_ini)*(AMRm*P::zcells_ini);
 	    startindex = endindex;
@@ -1080,11 +1080,11 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 		    P::systemWriteDistributionWriteXlineStride[index] > 0 &&
 		    lineZ % P::systemWriteDistributionWriteZlineStride[index] == 0 &&
 		    lineX % P::systemWriteDistributionWriteXlineStride[index] == 0)
-		   ) {
-		  velSpaceCells.push_back(cells[i]);
-		  mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 1.0;
-                  continue; // Avoid double entries in case the cell also matches following conditions.
-	       }
+         ) {
+             velSpaceCells.push_back(cells[i]);
+             mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 1.0;
+             continue; // Avoid double entries in case the cell also matches following conditions.
+          }
 	    }
 	 }
 

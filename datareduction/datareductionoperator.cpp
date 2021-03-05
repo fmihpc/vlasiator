@@ -305,6 +305,8 @@ namespace DRO {
       for(int i=0; i<numFloats; i++) {
          buffer[i] = varBuffer[i];
       }
+
+      return true;
    }
 
    DataReductionOperatorBVOLDerivatives::DataReductionOperatorBVOLDerivatives(const std::string& name,const unsigned int parameterIndex,const unsigned int vectorSize):
