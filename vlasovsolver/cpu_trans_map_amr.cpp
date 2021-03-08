@@ -696,6 +696,12 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
   
 }
 
+bool check_skip_remapping(Vec* values) {
+   for (int index=-VLASOV_STENCIL_WIDTH; index<VLASOV_STENCIL_WIDTH+1; ++index) {
+      if (horizontal_or(values[index] > Vec(0))) return false;
+   }
+   return true;
+}
 /* Propagate a given velocity block in all spatial cells of a pencil by a time step dt using a PPM reconstruction.
  *
  * @param dz Width of spatial cells in the direction of the pencil, vector datatype
@@ -768,7 +774,10 @@ void propagatePencil(
          // }
          
          for (uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++) {   
-      
+
+            // Check if all values are 0:
+            if (check_skip_remapping(values + i_trans_ps_blockv_pencil(planeVector, k, i-VLASOV_STENCIL_WIDTH, lengthOfPencil))) continue;
+
             // Compute polynomial coefficients
             Vec a[3];
             // Dz: is a padded array, pointer can point to the beginning, i + VLASOV_STENCIL_WIDTH will get the right cell.
