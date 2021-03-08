@@ -68,12 +68,16 @@ double LineDipole::operator()( double x, double y, double z, coordinate componen
    
    switch(derivative) {
       case 0:
-         if(component == 0)
+         if(component == 0) {
             return D*2*r[0]*r[2]/(r2*r2);
-         if(component == 2)
+         }
+         if(component == 2) {
             return D*(r[2]*r[2]-r[0]*r[0])/(r2*r2); 
-         if(component == 1)
+         }
+         if(component == 1) {
             return 0;
+         }
+         return 0;
       case 1:
          //first derivatives
          if(dcomponent== 1 || component==1) {
@@ -88,6 +92,7 @@ double LineDipole::operator()( double x, double y, double z, coordinate componen
          } else { 
             return DerivativeDiffComponent;
          }
+         return 0;
       default:
          return 0;   // dummy, but prevents gcc from yelling
    }

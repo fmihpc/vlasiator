@@ -1217,6 +1217,10 @@ namespace SBC {
    // by tracing down to the ionosphere and interpolating the appropriate element
    Real SphericalTriGrid::interpolateUpmappedPotential(const std::array<Real, 3>& x) {
       
+      if(!dipoleField) {
+         // Timestep zero => apparently the dipole field is not initialized yet.
+         return 0.;
+      }
       // Do we have a stored coupling for these coordinates already?
       if(vlasovGridCoupling.find(x) == vlasovGridCoupling.end()) {
 
