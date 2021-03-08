@@ -529,6 +529,11 @@ namespace SBC {
 
       // Open file, read in
       ifstream in(filename);
+      if(!in) {
+         logFile << "(ionosphere) WARNING: Atmospheric Model file " << filename << " could not be opened: " <<
+            strerror(errno) << endl
+            << "(ionosphere) All atmospheric values will be zero, and there will be no ionization!" << endl << write;
+      }
       int altindex = 0;
       Real integratedDensity = 0;
       Real prevDensity = 0;
@@ -803,12 +808,12 @@ namespace SBC {
 
    void SphericalTriGrid::getRadialBfieldDirection(std::array<Real,3>& r, bool outwards, std::array<Real,3>& b){
 
-      assert(dipoleField);
+      assert(this->dipoleField);
 
        // Get field direction
-      b[0] = dipoleField(r[0],r[1],r[2],X,0,X);
-      b[1] = dipoleField(r[0],r[1],r[2],Y,0,Y);
-      b[2] = dipoleField(r[0],r[1],r[2],Z,0,Z);
+      b[0] = this->dipoleField(r[0],r[1],r[2],X,0,X);
+      b[1] = this->dipoleField(r[0],r[1],r[2],Y,0,Y);
+      b[2] = this->dipoleField(r[0],r[1],r[2],Z,0,Z);
 
       // Normalize
       Real  norm = 1. / sqrt(b[0]*b[0] + b[1]*b[1] + b[2]*b[2]);
@@ -817,6 +822,13 @@ namespace SBC {
       }
 
       // Make sure motion is outwards. Flip b if dot(r,b) < 0
+      if(std::isnan(b[0]) || std::isnan(b[1]) || std::isnan(b[2])) {
+         logFile << "(ionosphere) Error: magnetic field is nan in getRadialBfieldDirection at location "
+            << r[0] << ", " << r[1] << ", " << r[2] << ", with B = " << b[0] << ", " << b[1] << ", " << b[2] << endl << write;
+         b[0] = 0;
+         b[1] = 0;
+         b[2] = 0;
+      }
       if(outwards) {
          if(b[0]*r[0] + b[1]*r[1] + b[2]*r[2] < 0) {
             b[0]*=-1;
@@ -1040,6 +1052,11 @@ namespace SBC {
     */
    void SphericalTriGrid::calculateFsgridCoupling(FsGrid< fsgrids::technical, 2> & technicalGrid, Real couplingRadius) {
 
+      // we don't need to do anything if we have no nodes
+      if(nodes.size() == 0) {
+         return;
+      }
+
       phiprof::start("ionosphere-fsgridCoupling");
       logFile << "(ionosphere) Starting FsGrid coupling of " << nodes.size() << " nodes." << endl << write;
       // Pick an initial stepsize
@@ -1217,7 +1234,7 @@ namespace SBC {
    // by tracing down to the ionosphere and interpolating the appropriate element
    Real SphericalTriGrid::interpolateUpmappedPotential(const std::array<Real, 3>& x) {
       
-      if(!dipoleField) {
+      if(!this->dipoleField) {
          // Timestep zero => apparently the dipole field is not initialized yet.
          return 0.;
       }
@@ -1834,7 +1851,7 @@ namespace SBC {
       Readparameters::add("ionosphere.fibonacciNodeNum", "Number of nodes in the spherical fibonacci mesh.",256);
       Readparameters::addComposing("ionosphere.refineMinLatitude", "Refine the grid polewards of the given latitude. Multiple of these lines can be given for successive refinement, paired up with refineMaxLatitude lines.");
       Readparameters::addComposing("ionosphere.refineMaxLatitude", "Refine the grid equatorwards of the given latitude. Multiple of these lines can be given for successive refinement, paired up with refineMinLatitude lines.");
-      Readparameters::add("ionosphere.atmosphericModelFile", "Filename to read the MSIS atmosphere data from (default: MSIS.dat)", "MSIS.dat");
+      Readparameters::add("ionosphere.atmosphericModelFile", "Filename to read the MSIS atmosphere data from (default: MSIS.dat)", std::string("MSIS.dat"));
       Readparameters::add("ionosphere.recombAlpha", "Ionospheric recombination parameter (m^3/s)", 3e-13);
       Readparameters::add("ionosphere.F10_7", "Solar 10.7 cm radio flux (W/m^2)", 1e-20);
       Readparameters::add("ionosphere.backgroundIonisation", "Background ionoisation due to cosmic rays (mho)", 0.5);
