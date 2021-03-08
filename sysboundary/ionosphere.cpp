@@ -66,6 +66,11 @@ namespace SBC {
 
    // Offset field aligned currents so their sum is 0
    void SphericalTriGrid::offset_FAC() {
+
+      if(nodes.size() == 0) {
+         return;
+      }
+
       Real sum=0.;
 
       for(uint n = 0; n<nodes.size(); n++) {
@@ -577,7 +582,7 @@ namespace SBC {
       // Energies of particles that sample the production array
       // are logspace-distributed from 10^-1 to 10^2.3 keV
       std::array< Real, productionNumParticleEnergies+1 > particle_energy;
-      for(int e=0; e<productionNumAccEnergies; e++) {
+      for(int e=0; e<productionNumParticleEnergies; e++) {
          // TODO: Hardcoded constants. Make parameter?
          particle_energy[e] = pow(10.0, -1.+e*(2.3+1.)/(productionNumParticleEnergies-1));
       }
@@ -1332,7 +1337,7 @@ namespace SBC {
               //   + B[2][2]*(nodes[el.corners[0]].xMapped[2] - nodes[el.corners[1]].xMapped[2]);
 
               // Also sum up touching elements' areas and upmapped areas to compress
-              // density and pressure bit them
+              // density and pressure with them
               // TODO: Precalculate this?
               area += elementArea(nodes[n].touchingElements[e]);
 
