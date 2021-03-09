@@ -318,9 +318,10 @@ void initializeGrids(
       exit(1);
    }
    
-   //Balance load before we transfer all data below
+   // Balance load before we transfer all data below
    balanceLoad(mpiGrid, sysBoundaries);
-   
+   // Function includes re-calculation of local cells cache
+
    phiprof::initializeTimer("Fetch Neighbour data","MPI");
    phiprof::start("Fetch Neighbour data");
    // update complete cell spatial data for full stencil (
