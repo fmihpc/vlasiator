@@ -642,7 +642,7 @@ void update_remote_mapping_contribution(
    int direction,
    const uint popID) {
    
-   const vector<CellID> local_cells = mpiGrid.get_cells();
+   const vector<CellID>& local_cells = getLocalCells();
    const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_NEIGHBORHOOD_ID);
    vector<CellID> receive_cells;
    vector<CellID> send_cells;

@@ -58,7 +58,7 @@ namespace SBC {
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
       Project&
    ) {
-      vector<CellID> cells = mpiGrid.get_cells();
+     const vector<CellID>& cells = getLocalCells();
 #pragma omp parallel for
       for (size_t i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];

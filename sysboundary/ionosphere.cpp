@@ -194,7 +194,7 @@ namespace SBC {
    
    bool Ionosphere::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
-      vector<CellID> cells = mpiGrid.get_cells();
+      const vector<CellID>& cells = getLocalCells();
       for(uint i=0; i<cells.size(); i++) {
          if(mpiGrid[cells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
             continue;
@@ -242,7 +242,7 @@ namespace SBC {
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
       Project &project
    ) {
-      vector<CellID> cells = mpiGrid.get_cells();
+      const vector<CellID>& cells = getLocalCells();
       #pragma omp parallel for
       for (uint i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
