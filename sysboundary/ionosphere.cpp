@@ -716,6 +716,11 @@ namespace SBC {
 
       phiprof::start("ionosphere-calculateConductivityTensor");
 
+      // Ranks that don't participate in ionosphere solving skip this function outright
+      if(!isCouplingInwards && !isCouplingOutwards) {
+         return;
+      }
+
       calculatePrecipitation();
 
       //Calculate height-integrated conductivities and 3D electron density
