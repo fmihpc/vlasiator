@@ -221,7 +221,7 @@ namespace SBC {
       std::array<bool,6> isThisCellOnAFace;
       
       // Assign boundary flags to local DCCRG cells
-      vector<CellID> cells = mpiGrid.get_cells();
+      const vector<CellID>& cells = getLocalCells();
       for(const auto& dccrgId : cells) {
          if(mpiGrid[dccrgId]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
          creal* const cellParams = &(mpiGrid[dccrgId]->parameters[0]);
