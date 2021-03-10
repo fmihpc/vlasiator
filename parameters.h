@@ -58,7 +58,8 @@ struct Parameters {
    static Real fieldSolverMinCFL;     /*!< The minimum CFL limit for propagation of fields. Used to set timestep if useCFLlimit is true.*/
    static Real fieldSolverMaxCFL;     /*!< The maximum CFL limit for propagation of fields. Used to set timestep if useCFLlimit is true.*/
    static uint fieldSolverSubcycles;     /*!< The number of field solver subcycles to compute.*/
-
+   static bool transShortPencils;        /*!< Use short or longpencils in AMR translation.*/
+  
    static uint tstep_min;           /*!< Timestep when simulation starts, needed for restarts.*/
    static uint tstep_max;           /*!< Maximum timestep. */
    static uint tstep;               /*!< The number of the current timestep. 0=initial state. */
@@ -74,6 +75,8 @@ struct Parameters {
    static std::vector<int> systemWriteDistributionWriteXlineStride; /*!< Every this many lines of cells along the x direction write out their velocity space in each class. */
    static std::vector<int> systemWriteDistributionWriteYlineStride; /*!< Every this many lines of cells along the y direction write out their velocity space in each class. */
    static std::vector<int> systemWriteDistributionWriteZlineStride; /*!< Every this many lines of cells along the z direction write out their velocity space in each class. */
+   static std::vector<Real> systemWriteDistributionWriteShellRadius; /*!< At cells intersecting spheres with those radii centred at the origin write out their velocity space in each class. */
+   static std::vector<int> systemWriteDistributionWriteShellStride; /*!< Every this many cells for those on selected shells write out their velocity space in each class. */
    static std::vector<int> systemWrites; /*!< How many files have been written of each class*/
    static std::vector<std::pair<std::string,std::string>> systemWriteHints; /*!< Collection of MPI-IO hints passed for non-restart IO. Pairs of key-value strings. */
    
@@ -82,6 +85,7 @@ struct Parameters {
    static uint exitAfterRestarts;           /*!< Exit after this many restarts*/
    static uint64_t vlsvBufferSize;          /*!< Buffer size in bytes passed to VLSV writer. */
    static int restartStripeFactor;          /*!< stripe_factor for restart writing*/
+   static int bulkStripeFactor;          /*!< stripe_factor for bulk and initial grid writing*/
    static std::string restartWritePath;          /*!< Path to the location where restart files should be written. Defaults to the local directory, also if the specified destination is not writeable. */
    
    static uint transmit;
@@ -100,7 +104,10 @@ struct Parameters {
    static Real resistivity; /*!< Resistivity in Ohm's law eta*J term. */
    static uint ohmHallTerm; /*!< Enable/choose spatial order of Hall term in Ohm's law JXB term. 0: off, 1: 1st spatial order, 2: 2nd spatial order. */
    static uint ohmGradPeTerm; /*!< Enable/choose spatial order of the electron pressure gradient term in Ohm's law. 0: off, 1: 1st spatial order. */
-   static Real electronTemperature; /*!< Constant electron temperature to be used for the electron pressure gradient term (K). */
+   static Real electronTemperature; /*!< Upstream electron temperature to be used for the electron pressure gradient term (K). */
+   static Real electronDensity; /*!< Upstream electron density to be used for the electron pressure gradient term (m^-3). */
+   static Real electronPTindex; /*!> Polytropic index for electron pressure gradient term. 0 is isobaric, 1 is isothermal, 1.667 is adiabatic electrons */
+
    static bool fieldSolverDiffusiveEterms; /*!< Enable resistive terms in the computation of E*/
    
    static Real maxSlAccelerationRotation; /*!< Maximum rotation in acceleration for semilagrangian solver*/
@@ -121,6 +128,7 @@ struct Parameters {
    static std::string restartFileName; /*!< If defined, restart from this file*/
    static bool isRestart; /*!< true if this is a restart, false otherwise */
    static int writeAsFloat; /*!< true if writing into VLSV in floats instead of doubles, false otherwise */
+   static int writeRestartAsFloat; /*!< true if writing into restart files in floats instead of doubles, false otherwise */
    static bool dynamicTimestep; /*!< If true, timestep is set based on  CFL limit */
    
    static std::string projectName; /*!< Project to be used in this run. */
@@ -142,8 +150,10 @@ struct Parameters {
    static Realf amrBoxCenterX;
    static Realf amrBoxCenterY;
    static Realf amrBoxCenterZ;
+   static std::vector<std::string> blurPassString;
+   static std::vector<int> numPasses;
 
-   /*! \brief Add the global parameters.
+    /*! \brief Add the global parameters.
     * 
     * This function adds all the parameters that are loaded at a global level.
     * More are being loaded e.g. in the projects and in the system boundary conditions.
