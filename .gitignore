@@ -2,6 +2,9 @@
 *.vlsv
 *.silo
 *.o
+*.txt
+*.tar.gz
+lib
 vscode/
 .vscode/
 version.cpp
@@ -9,5 +12,6 @@ version.cpp
 *~
 nbproject
 vlasiator
+vlsvdiff_DP
 vlasiator+pat
 nbproject
