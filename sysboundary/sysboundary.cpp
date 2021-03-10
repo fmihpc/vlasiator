@@ -287,8 +287,9 @@ bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::
    int innerBoundaryRefLvl = -1;
    int outerBoundaryRefLvl = -1;
    
+   const vector<CellID>& local_cells = getLocalCells();
    // Collect cells by sysboundarytype
-   for (auto cellId : mpiGrid.get_cells()) {
+   for (auto cellId : local_cells) {
       SpatialCell* cell = mpiGrid[cellId];
       if(cell) {
          if (cell->sysBoundaryFlag == sysboundarytype::IONOSPHERE) {
@@ -385,7 +386,7 @@ bool belongsToLayer(const int layer, const int x, const int y, const int z,
 bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                 FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
    bool success = true;
-   vector<CellID> cells = mpiGrid.get_cells();
+   const vector<CellID>& cells = getLocalCells();
    auto localSize = technicalGrid.getLocalSize().data();
    
    /*set all cells to default value, not_sysboundary*/
@@ -693,7 +694,7 @@ void SysBoundary::applySysBoundaryVlasovConditions(
    
       timer=phiprof::initializeTimer("Wait for receives","MPI","Wait");
       phiprof::start(timer);
-      mpiGrid.wait_remote_neighbor_copy_update_receives(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
+      mpiGrid.wait_remote_neighbor_copy_updates(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
       phiprof::stop(timer);
 
       // Compute vlasov boundary on system boundary/process boundary cells
@@ -711,11 +712,6 @@ void SysBoundary::applySysBoundaryVlasovConditions(
       } else {
          calculateMoments_R(mpiGrid, boundaryCells, true);
       }
-      phiprof::stop(timer);
-
-      timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
-      phiprof::start(timer);
-      mpiGrid.wait_remote_neighbor_copy_update_sends();
       phiprof::stop(timer);
 
       // WARNING Blocks are changed but lists not updated now, if you need to use/communicate them before the next update is done, add an update here.

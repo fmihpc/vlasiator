@@ -16,27 +16,13 @@ else
 	VECTORCLASS = VEC4D_AGNER
 endif
 
-#======= Compiler and compilation flags =========
-# NOTES on compiler flags:
-# CXXFLAGS is for compiler flags, they are always used
-# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
-# LDFLAGS flags for linker
-
-#-DNO_WRITE_AT_ALL:  Define to disable write at all to 
-#                    avoid memleak (much slower IO)
-#-DMPICH_IGNORE_CXX_SEEK: Ignores some multiple definition 
-#                         errors that come up when using 
-#                         mpi.h in c++ on Cray
-#
-# CXXFLAGS = -DMPICH_IGNORE_CXX_SEEK
-
 FLAGS = 
 
 #GNU flags:
 CC_BRAND = gcc
 CC_BRAND_VERSION = 8.3.0
 CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -mavx
-testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++0x  -mavx
+testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17  -mavx
 
 MATHFLAGS = -ffast-math
 LDFLAGS = -lrt -lgfortran -std=c++17
@@ -45,12 +31,19 @@ LIB_MPI = -lgomp
 #======== PAPI ==========
 #Add PAPI_MEM define to use papi to report memory consumption?
 CXXFLAGS +=  -DPAPI_MEM
+testpackage: CXXFLAGS +=  -DPAPI_MEM
 
 #======== Allocator =========
 #Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
 #Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
 CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
+#======= Compiler and compilation flags =========
+# NOTES on compiler flags:
+# CXXFLAGS is for compiler flags, they are always used
+# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
+# LDFLAGS flags for linker
 
 # BOOST_VERSION = current trilinos version
 # ZOLTAN_VERSION = current trilinos verson
