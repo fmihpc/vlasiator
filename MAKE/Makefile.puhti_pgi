@@ -16,15 +16,29 @@ else
 	VECTORCLASS = VEC4D_FALLBACK
 endif
 
+FLAGS = 
+
+#GNU flags:
+CC_BRAND = pgi
+CC_BRAND_VERSION = 19.7
+CXXFLAGS += -g -O3 -acc -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -Minfo=accel
+testpackage: CXXFLAGS = -g -O2 -acc -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -Minfo=accel
+
+MATHFLAGS =
+LDFLAGS = -O3 -acc -g
+LIB_MPI = 
+
 #======== PAPI ==========
 #Add PAPI_MEM define to use papi to report memory consumption?
 #CXXFLAGS +=  -DPAPI_MEM
+#testpackage: CXXFLAGS +=  -DPAPI_MEM
 
 
 #======== Allocator =========
 #Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
 #Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
 #CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+#testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 
 #======= Compiler and compilation flags =========
@@ -39,17 +53,6 @@ endif
 #                         errors that come up when using 
 #                         mpi.h in c++ on Cray
 
-FLAGS = 
-
-#GNU flags:
-CC_BRAND = pgi
-CC_BRAND_VERSION = 19.7
-CXXFLAGS += -g -O3 -acc -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -Minfo=accel
-testpackage: CXXFLAGS += -g -O2 -acc -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -Minfo=accel
-
-MATHFLAGS =
-LDFLAGS = -O3 -acc -g
-LIB_MPI = 
 
 # BOOST_VERSION = current trilinos version
 # ZOLTAN_VERSION = current trilinos verson
