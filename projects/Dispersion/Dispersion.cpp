@@ -113,9 +113,11 @@ namespace projects {
          vector<Real> localRhom(P::xcells_ini, 0.0),
             outputRhom(P::xcells_ini, 0.0);
 
-         for(uint i=0; i<Parameters::localCells.size(); i++) {
-            if(Parameters::localCells[i] <= P::xcells_ini) {
-               localRhom[Parameters::localCells[i] - 1] = mpiGrid[Parameters::localCells[i]]->parameters[CellParams::RHOM];
+         const vector<CellID>& cells = getLocalCells();
+
+         for(uint i=0; i<cells.size(); i++) {
+            if(cells[i] <= P::xcells_ini) {
+               localRhom[cells[i] - 1] = mpiGrid[cells[i]]->parameters[CellParams::RHOM];
             }
          }
          

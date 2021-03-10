@@ -16,16 +16,17 @@ else
 	VECTORCLASS = VEC4D_AGNER
 endif
 
-#======== PAPI ==========
-#Add PAPI_MEM define to use papi to report memory consumption?
-#CXXFLAGS +=  -DPAPI_MEM
+FLAGS = 
 
+#GNU flags:
+CC_BRAND = gcc
+CC_BRAND_VERSION = 7.3.0
+CXXFLAGS += -g -O3 -qopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -mavx
+testpackage: CXXFLAGS += -g -O2 -qopenmp -funroll-loops -std=c++17  -mavx
 
-#======== Allocator =========
-#Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
-#Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
-CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
-
+MATHFLAGS = -ffast-math
+LDFLAGS = -lrt -std=c++17 -liomp5
+LIB_MPI = -lgomp
 
 #======= Compiler and compilation flags =========
 # NOTES on compiler flags:
@@ -40,18 +41,19 @@ CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 #                         mpi.h in c++ on Cray
 
 CXXFLAGS += -DMPICH_IGNORE_CXX_SEEK
+testpackage: CXXFLAGS += -DMPICH_IGNORE_CXX_SEEK
 
-FLAGS = 
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+#CXXFLAGS +=  -DPAPI_MEM
+#testpackage: CXXFLAGS +=  -DPAPI_MEM
 
-#GNU flags:
-CC_BRAND = gcc
-CC_BRAND_VERSION = 7.3.0
-CXXFLAGS += -g -O3 -qopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -mavx
-testpackage: CXXFLAGS += -g -O2 -qopenmp -funroll-loops -std=c++0x  -mavx
+#======== Allocator =========
+#Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
+#Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
+CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
-MATHFLAGS = -ffast-math
-LDFLAGS = -lrt -std=c++17 -liomp5
-LIB_MPI = -lgomp
 
 # BOOST_VERSION = current trilinos version
 # ZOLTAN_VERSION = current trilinos verson

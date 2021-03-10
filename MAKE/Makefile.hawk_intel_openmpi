@@ -26,6 +26,7 @@ FLAGS =
 #GNU flags:
 CC_BRAND = intel
 CC_BRAND_VERSION = 19.1.0
+#note: std was not updated to c++17
 CXXFLAGS += -traceback -g -O3 -qopenmp -std=c++14 -W -Wall -Wno-unused -march=core-avx2 -qopt-zmm-usage=high
 testpackage: CXXFLAGS = -g -traceback -O2 -qopenmp -std=c++14 -W -Wno-unused -march=core-avx2
 not_parallel_tools: CXXFLAGS += -march=native -mno-avx2 -mavx 
@@ -49,12 +50,14 @@ LIBRARY_PREFIX = /zhome/academic/HLRS/pri/ipryakem/libraries
 #======== PAPI ==========
 #Add PAPI_MEM define to use papi to report memory consumption?
 CXXFLAGS +=  -DPAPI_MEM
+testpackage: CXXFLAGS +=  -DPAPI_MEM
 
 
 #======== Allocator =========
 #Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
 #Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
 CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 
 #compiled libraries
