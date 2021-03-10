@@ -544,8 +544,8 @@ namespace SBC {
       Real prevDensity = 0;
       Real prevAltitude = 0;
       while(in) {
-         Real altitude, density, c1, c2, c3;
-         in >> altitude >>  c1 >> c2 >> c3 >> density; // TODO: Add a dummy at the end?
+         Real altitude, density, c1, c2, c3, extra;
+         in >> altitude >>  c1 >> c2 >> c3 >> density >> extra; // TODO: Add a dummy at the end?
 
          integratedDensity += (altitude - prevAltitude) *1000 * 0.5 * (density + prevDensity);
          prevAltitude = altitude;
