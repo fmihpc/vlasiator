@@ -23,8 +23,8 @@
 #include <vector>
 #include "vectorclass.h"
 #include "vector3d.h"
-#include "../definitions.h"
-#include "../memoryallocation.h"
+#include "../src/definitions.h"
+#include "../src/memoryallocation.h"
 
 struct Particle {
       Vec3d x;

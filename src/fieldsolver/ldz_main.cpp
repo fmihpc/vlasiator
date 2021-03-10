@@ -51,7 +51,7 @@
 #include "fs_common.h"
 #include "derivatives.hpp"
 #include "fs_limiters.h"
-#include "mpiconversion.h"
+#include "../mpiconversion.h"
 
 /*! Re-initialize field propagator after rebalance. E, BGB, RHO, RHO_V,
  cell_dimensions, sysboundaryflag need to be up to date for the
