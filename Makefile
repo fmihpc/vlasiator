@@ -11,7 +11,7 @@ vlasiator:
 	cd src; make vlasiator
 	mv src/vlasiator .
 
-clean: data
+clean:
 	rm -rf src/*.o *.o *~ */*~ */*/*~ vlasiator particle_post_pusher particles/*.o
 cleantools:
 	rm -rf *.o vlsv2silo_${FP_PRECISION} vlsvextract_${FP_PRECISION}  vlsvdiff_${FP_PRECISION}
