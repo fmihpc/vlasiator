@@ -76,8 +76,8 @@ CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 #compiled libraries
 
-LIB_BOOST= -L/opt/hlrs/spack/rev-004_2020-06-17/boost/1.70.0-gcc-9.2.0-ohuvjbhm/lib -lboost_program_options
-INC_BOOST=-L/opt/hlrs/spack/rev-004_2020-06-17/boost/1.70.0-gcc-9.2.0-ohuvjbhm/include
+LIB_BOOST= -L$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/lib -lboost_program_options
+INC_BOOST=-L$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/include
 
 INC_ZOLTAN = -I$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/include
 LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/lib -lzoltan
