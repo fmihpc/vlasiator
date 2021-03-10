@@ -545,7 +545,7 @@ namespace SBC {
       Real prevAltitude = 0;
       while(in) {
          Real altitude, density, c1, c2, c3, extra;
-         in >> altitude >>  c1 >> c2 >> c3 >> density >> extra; // TODO: Add a dummy at the end?
+         in >> altitude >>  c1 >> c2 >> c3 >> density >> extra;
 
          integratedDensity += (altitude - prevAltitude) *1000 * 0.5 * (density + prevDensity);
          prevAltitude = altitude;
@@ -1863,7 +1863,7 @@ namespace SBC {
       Readparameters::addComposing("ionosphere.refineMaxLatitude", "Refine the grid equatorwards of the given latitude. Multiple of these lines can be given for successive refinement, paired up with refineMinLatitude lines.");
       Readparameters::add("ionosphere.atmosphericModelFile", "Filename to read the MSIS atmosphere data from (default: MSIS.dat)", std::string("MSIS.dat"));
       Readparameters::add("ionosphere.recombAlpha", "Ionospheric recombination parameter (m^3/s)", 3e-13);
-      Readparameters::add("ionosphere.F10_7", "Solar 10.7 cm radio flux (W/m^2)", 1e-20);
+      Readparameters::add("ionosphere.F10_7", "Solar 10.7 cm radio flux (sfu = 10^{-22} W/m^2)", 100);
       Readparameters::add("ionosphere.backgroundIonisation", "Background ionoisation due to cosmic rays (mho)", 0.5);
       Readparameters::add("ionosphere.solverMaxIterations", "Maximum number of iterations for the conjugate gradient solver", 2000);
       Readparameters::add("ionosphere.fieldLineTracer", "Field line tracing method to use for coupling ionosphere and magnetosphere (options are: Euler, BS)", std::string("Euler"));
