@@ -58,6 +58,7 @@ namespace SBC {
 
    // Static ionosphere member variables
    Real Ionosphere::innerRadius;
+   Real Ionosphere::radius;
    Real Ionosphere::recombAlpha; // Recombination parameter, determining atmosphere ionizability (parameter)
    Real Ionosphere::F10_7; // Solar 10.7 Flux value (parameter)
    Real Ionosphere::backgroundIonisation; // Background ionisation due to stellar UV and cosmic rays
@@ -1252,7 +1253,7 @@ namespace SBC {
       if(vlasovGridCoupling.find(x) == vlasovGridCoupling.end()) {
 
          // If not, create one.
-         vlasovGridCoupling[x] = calculateVlasovGridCoupling(x, Ionosphere::innerRadius);
+         vlasovGridCoupling[x] = calculateVlasovGridCoupling(x, Ionosphere::radius);
       }
 
       const std::array<std::pair<int, Real>, 3>& coupling = vlasovGridCoupling[x];
@@ -1313,6 +1314,9 @@ namespace SBC {
 
                  // Local cell
                  std::array<int,3> lfsc = technicalGrid.globalToLocal(fsc[0],fsc[1],fsc[2]);
+                 if(lfsc[0] == -1 && lfsc[1] == -1 && lfsc[2] == -1) {
+                    continue;
+                 }
 
                  for(int xoffset : {0,1}) {
                     for(int yoffset : {0,1}) {
@@ -1371,6 +1375,9 @@ namespace SBC {
 
            // Local cell
            std::array<int,3> lfsc = technicalGrid.globalToLocal(fsc[0],fsc[1],fsc[2]);
+           if(lfsc[0] == -1 && lfsc[1] == -1 && lfsc[2] == -1) {
+              continue;
+           }
 
            // Linearly interpolate neighbourhood
            for(int xoffset : {0,1}) {
