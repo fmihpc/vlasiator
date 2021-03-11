@@ -2736,33 +2736,39 @@ namespace SBC {
       vDrift[2] = (E[0] * B[1] - E[1] * B[0])/Bsqr;
 
       // Fill velocity space with new maxwellian data
-      // NOTE: We are *not* block adjusting here, but just filling in new values.
-      // The assumption behind this is that ionosphere processes happen at much slower timescales
-      // than the vlasov solver, and other components' block adjustment will do our dirty work for
-      // us here.
       SpatialCell& cell = *mpiGrid[cellID];
+      cell.clear(popID); // Clear previous velocity space completely
+      const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(templateCell,popID);
       Realf* data = cell.get_data(popID);
-      const Real* blockParameters = cell.get_block_parameters(popID);
 
-      for(vmesh::LocalID block=0; block<cell.get_number_of_velocity_blocks(popID); block++) {
-            creal vxBlock = blockParameters[block * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD];
-            creal vyBlock = blockParameters[block * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD];
-            creal vzBlock = blockParameters[block * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD];
-            creal dvxCell = blockParameters[block * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
-            creal dvyCell = blockParameters[block * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
-            creal dvzCell = blockParameters[block * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+      for (size_t i = 0; i < blocksToInitialize.size(); i++) {
+         const vmesh::GlobalID blockGID = blocksToInitialize[i];
+         const vmesh::LocalID block = templateCell.get_velocity_block_local_id(blockGID,popID);
+         const Real* blockParameters = templateCell.get_block_parameters(block,popID);
+         creal vxBlock = blockParameters[BlockParams::VXCRD];
+         creal vyBlock = blockParameters[BlockParams::VYCRD];
+         creal vzBlock = blockParameters[BlockParams::VZCRD];
+         creal dvxCell = blockParameters[BlockParams::DVX];
+         creal dvyCell = blockParameters[BlockParams::DVY];
+         creal dvzCell = blockParameters[BlockParams::DVZ];
          
-            // Iterate over cells within block
-            for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
-               creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell - vDrift[0];
-               creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell - vDrift[1];
-               creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell - vDrift[2];
-               
-               data[block*WID3 + cellIndex(ic,jc,kc)] = shiftedMaxwellianDistribution(popID, vxCellCenter, vyCellCenter, vzCellCenter);
-            }
+         // Iterate over cells within block
+         for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
+            creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell - vDrift[0];
+            creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell - vDrift[1];
+            creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell - vDrift[2];
+
+            data[block*WID3 + cellIndex(ic,jc,kc)] = shiftedMaxwellianDistribution(popID, vxCellCenter, vyCellCenter, vzCellCenter);
+         }
       }
 
-      //TODO: Do we need to update moments now?
+      // Block adjust and recalculate moments
+      cell.adjustSingleCellVelocityBlocks(popID);
+      // TODO: The moments can also be analytically calculated from ionosphere parameters.
+      // Maybe that's faster?
+      calculateCellMoments(mpiGrid[cellID], true, true);
+
+      //this->vlasovBoundaryFluffyCopyFromAllCloseNbrs(mpiGrid, cellID, popID, calculate_V_moments, this->speciesParams[popID].fluffiness);
 
       phiprof::stop("vlasovBoundaryCondition (Ionosphere)");
    }
