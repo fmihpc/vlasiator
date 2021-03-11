@@ -207,7 +207,6 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
 
 // pencils used for AMR translation
 static std::array<setOfPencils,3> DimensionPencils;
-const Realv EPSILONSKIP = std::numeric_limits<Realv>::min();
 
 void flagSpatialCellsForAmrCommunication(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                          const std::vector<CellID>& localPropagatedCells);
