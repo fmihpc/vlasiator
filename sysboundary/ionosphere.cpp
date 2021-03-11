@@ -1172,71 +1172,42 @@ namespace SBC {
       // Determine the nearest ionosphere node to this point.
       uint32_t nearestNode = findNodeAtCoordinates(x);
 
-      Real secondNearestNode=-1;
-      Real secondDistance=std::numeric_limits<Real>::infinity();
-      Real thirdNearestNode =-1;
-      Real thirdDistance=std::numeric_limits<Real>::infinity();
+      Vec3d r1,r2,r3;
+      Vec3d rx(x[0],x[1],x[2]);
+      // Which neighbouring element encloses our test point?
+      for(uint i=0; i< nodes[nearestNode].numTouchingElements; i++) {
+         Element& el = elements[nodes[nearestNode].touchingElements[i]];
 
-      // Which two neighbours are enclosing the nearby element?
-      for(uint i=0; i< nodes[nearestNode].numDepNodes; i++) {
-         uint32_t candidate = nodes[nearestNode].dependingNodes[i];
+         // Calculate barycentric coordinates for x in this element.
+         r1.load(nodes[el.corners[0]].x.data());
+         r2.load(nodes[el.corners[1]].x.data());
+         r3.load(nodes[el.corners[2]].x.data());
 
-         // Skip selfcoupling
-         if(candidate == nearestNode) {
+         // Total area
+         Real A = vector_length(cross_product(r2-r1,r3-r1));
+
+         // Area of the sub-triangles
+         Real lambda1 = vector_length(cross_product(r2-rx, r3-rx)) / A;
+         Real lambda2 = vector_length(cross_product(r1-rx, r3-rx)) / A;
+         Real lambda3 = vector_length(cross_product(r1-rx, r2-rx)) / A;
+
+         // If any of the lambdas is out of range, this is not our enclosing element.
+         if(lambda1+lambda2+lambda3 > 1.01 || lambda1+lambda2+lambda3 < 0.99) {
             continue;
          }
 
-         // How far are we from this node?
-         std::array<Real, 3> deltaX({
-               x[0] - nodes[candidate].x[0],
-               x[1] - nodes[candidate].x[1],
-               x[2] - nodes[candidate].x[2]
-               });
-         Real dist = sqrt(deltaX[0]*deltaX[0] + deltaX[1]*deltaX[1] + deltaX[2]*deltaX[2]);
-
-         if(dist < secondDistance) {
-            thirdDistance = secondDistance;
-            secondDistance = dist;
-            thirdNearestNode = secondNearestNode;
-            secondNearestNode = candidate;
-         } else if(dist < thirdDistance) {
-            thirdDistance = dist;
-            thirdNearestNode = candidate;
-         }
-      }
-
-      if(std::isnan(secondDistance) || std::isnan(thirdDistance)) {
-         logFile << "(ionosphere) Error: Unable to find element neighbours to couple with downmapped coordinates " <<
-            x[0] << ", " << x[1] << ", " << x[2] << "!" << endl << write;
+         coupling[0] = {el.corners[0], lambda1};
+         coupling[1] = {el.corners[1], lambda2};
+         coupling[2] = {el.corners[2], lambda3};
+         phiprof::stop("ionosphere-VlasovGridCoupling");
          return coupling;
+
       }
 
-      // Calculate barycentric coordinates for x in this element.
-      // Node coordinates
-      Vec3d r1(nodes[nearestNode].x[0], nodes[nearestNode].x[1], nodes[nearestNode].x[2]);
-      Vec3d r2(nodes[secondNearestNode].x[0], nodes[secondNearestNode].x[1], nodes[secondNearestNode].x[2]);
-      Vec3d r3(nodes[thirdNearestNode].x[0], nodes[thirdNearestNode].x[1], nodes[thirdNearestNode].x[2]);
-      Vec3d rx(x[0],x[1],x[2]);
-
-      // Total area
-      Real A = vector_length(cross_product(r2-r1,r3-r1));
-
-      // Area of the sub-triangles
-      Real lambda1 = vector_length(cross_product(r2-rx, r3-rx)) / A;
-      Real lambda2 = vector_length(cross_product(r1-rx, r3-rx)) / A;
-      Real lambda3 = vector_length(cross_product(r1-rx, r2-rx)) / A;
-
-      if(lambda1+lambda2+lambda3 > 1.1 || lambda1+lambda2+lambda3 < 0.9) {
-         logFile << "(ionosphere) Error: vlasovGridCoupling lambdas for coordinate " <<
-            x[0] << ", " << x[1] << ", " << x[2] << " do not sum up to 1: ["<<
-            lambda1 << ", " << lambda2 << ", " << lambda3 << endl << write;
-         return coupling;
-      }
-
-      coupling[0] = {nearestNode, lambda1};
-      coupling[1] = {secondNearestNode, lambda2};
-      coupling[2] = {thirdNearestNode, lambda3};
-
+      // If we arrived here, we did not find an element to couple to (why?)
+      // Return an empty coupling instead
+      logFile << "(ionosphere) Failed to find an ionosphere element to couple to for coordinate " <<
+         x[0] << ", " << x[1] << ", " << x[2] << endl << write;
       phiprof::stop("ionosphere-VlasovGridCoupling");
       return coupling;
    }
