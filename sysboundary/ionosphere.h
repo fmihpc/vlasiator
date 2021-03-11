@@ -337,6 +337,7 @@ namespace SBC {
       virtual std::string getName() const;
       virtual uint getIndex() const;
       static Real innerRadius; /*!< Radius of the ionosphere model */
+      static Real radius; /*!< Radius of the inner simulation boundary */
       static int solverMaxIterations; /*!< Maximum iterations of CG solver per timestep */
       static Real eps; // Tolerance for Bulirsch Stoer Method
       
@@ -362,7 +363,6 @@ namespace SBC {
       );
       
       Real center[3]; /*!< Coordinates of the centre of the ionosphere. */
-      Real radius; /*!< Radius of the inner simulation boundary */
       uint geometry; /*!< Geometry of the ionosphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: polar-plane cylinder with line dipole. */
 
       std::vector<IonosphereSpeciesParameters> speciesParams;
