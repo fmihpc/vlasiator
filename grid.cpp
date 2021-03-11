@@ -40,7 +40,6 @@
 #include "fieldsolver/gridGlue.hpp"
 #include "vlasovsolver/cpu_trans_map_amr.hpp"
 #include "projects/project.h"
-#include "vlasovsolver/cpu_trans_map_amr.hpp"
 #include "iowrite.h"
 #include "ioread.h"
 #include "object_wrapper.h"
