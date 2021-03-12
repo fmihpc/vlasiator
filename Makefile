@@ -5,10 +5,16 @@ FP_PRECISION = DP
 
 include MAKE/Makefile.${ARCH}
 
+.PHONY: testpackage
+
 default: vlasiator
 
 vlasiator:
 	cd src; make vlasiator
+	mv src/vlasiator .
+
+testpackage:
+	cd src; make testpackage
 	mv src/vlasiator .
 
 clean:
