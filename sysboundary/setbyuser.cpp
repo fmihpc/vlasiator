@@ -83,7 +83,7 @@ namespace SBC {
       bool doAssign;
       std::array<bool,6> isThisCellOnAFace;
 
-      vector<CellID> cells = mpiGrid.get_cells();
+      const vector<CellID>& cells = getLocalCells();
       for(uint i = 0; i < cells.size(); i++) {
          if(mpiGrid[cells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
          creal* const cellParams = &(mpiGrid[cells[i]]->parameters[0]);
@@ -318,7 +318,7 @@ namespace SBC {
 
 
    bool SetByUser::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID) {
-      vector<CellID> cells = mpiGrid.get_cells();
+      const vector<CellID>& cells = getLocalCells();
       #pragma omp parallel for
       for (size_t c=0; c<cells.size(); c++) {
          SpatialCell* cell = mpiGrid[cells[c]];

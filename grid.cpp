@@ -165,7 +165,7 @@ void initializeGrids(
    mpiGrid.set_partitioning_option("IMBALANCE_TOL", P::loadBalanceTolerance);
    phiprof::start("Initial load-balancing");
    if (myRank == MASTER_RANK) logFile << "(INIT): Starting initial load balance." << endl << writeVerbose;
-   mpiGrid.balance_load();
+   mpiGrid.balance_load(); // Direct DCCRG call, recalculate cache afterwards
    recalculateLocalCellsCache();
 
    if(P::amrMaxSpatialRefLevel > 0) {
@@ -318,9 +318,10 @@ void initializeGrids(
       exit(1);
    }
    
-   //Balance load before we transfer all data below
+   // Balance load before we transfer all data below
    balanceLoad(mpiGrid, sysBoundaries);
-   
+   // Function includes re-calculation of local cells cache
+
    phiprof::initializeTimer("Fetch Neighbour data","MPI");
    phiprof::start("Fetch Neighbour data");
    // update complete cell spatial data for full stencil (
@@ -399,7 +400,7 @@ Record for each cell which processes own one or more of its face neighbors
  */
 void setFaceNeighborRanks( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) {
 
-   const auto& cells = mpiGrid.get_cells();
+   const vector<CellID>& cells = getLocalCells();
    // TODO: Try a #pragma omp parallel for
    for (const auto& cellid : cells) {
       
@@ -460,7 +461,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
 
    phiprof::stop("deallocate boundary data");
    //set weights based on each cells LB weight counter
-   vector<CellID> cells = mpiGrid.get_cells();
+   const vector<CellID>& cells = getLocalCells();
    for (size_t i=0; i<cells.size(); ++i){
       //Set weight. If acceleration is enabled then we use the weight
       //counter which is updated in acceleration, otherwise we just
@@ -565,7 +566,6 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    //Make sure transfers are enabled for all cells
    recalculateLocalCellsCache();
    getObjectWrapper().meshData.reallocate();
-   cells = mpiGrid.get_cells();
    for (uint i=0; i<cells.size(); ++i) mpiGrid[cells[i]]->set_mpi_transfer_enabled(true);
 
    // Communicate all spatial data for FULL neighborhood, which

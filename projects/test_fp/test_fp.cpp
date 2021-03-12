@@ -314,7 +314,7 @@ namespace projects {
                   
       mpiGrid.balance_load();
 
-//       auto cells = mpiGrid.get_cells();           
+//       const vector<CellID>& cells = getLocalCells();
 //       if(cells.empty()) {
 //          std::cout << "Rank " << myRank << " has no cells!" << std::endl;
 //       } else {

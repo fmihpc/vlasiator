@@ -845,7 +845,7 @@ template<unsigned long int N> bool readFsGridVariable(
             return false;
          }
 
-         for(int i=0; i<storageSize*N; i++) {
+         for(uint64_t i=0; i<storageSize*N; i++) {
             buffer[i] = readBuffer[i];
          }
       }
@@ -917,28 +917,30 @@ template<unsigned long int N> bool readFsGridVariable(
          std::vector<Real> buffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
 
          phiprof::start("readArray");
-         if(!convertFloatType) {
-            // TODO: Should these be multireads instead? And/or can this be parallelized?
-            if(file.readArray("VARIABLE",attribs, fileOffset, thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2], (char*)buffer.data()) == false) {
-               logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
-               return false;
-            }
-         } else {
-            std::vector<float> readBuffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
-            if(file.readArray("VARIABLE",attribs, fileOffset, thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2], (char*)readBuffer.data()) == false) {
-               logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
-               return false;
-            }
 
-            for(int i=0; i< thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N; i++) {
-               buffer[i]=readBuffer[i];
-            }
-         }
-         phiprof::stop("readArray");
-
-         phiprof::start("memcpy");
+         file.startMultiread("VARIABLE", attribs);
          // Read every source rank that we have an overlap with.
          if(overlapSize[0]*overlapSize[1]*overlapSize[2] > 0) {
+
+
+            if(!convertFloatType) {
+               if(file.addMultireadUnit((char*)buffer.data(), thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2])==false) {
+                  logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
+                  return false;
+               }
+               file.endMultiread(fileOffset);
+            } else {
+               std::vector<float> readBuffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
+               if(file.addMultireadUnit((char*)readBuffer.data(), thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2])==false) {
+                  logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
+                  return false;
+               }
+               file.endMultiread(fileOffset);
+
+               for(uint64_t i=0; i< thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N; i++) {
+                  buffer[i]=readBuffer[i];
+               }
+            }
 
             // Copy continuous stripes in x direction.
             for(int z=overlapStart[2]; z<overlapEnd[2]; z++) {
@@ -952,7 +954,10 @@ template<unsigned long int N> bool readFsGridVariable(
                   }
                }
             }
-         } 
+         } else {
+            // If we don't overlap, just perform a dummy read.
+            file.endMultiread(fileOffset);
+         }
          fileOffset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2];
          phiprof::stop("memcpy");
       }
