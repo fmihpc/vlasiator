@@ -1173,7 +1173,6 @@ namespace SBC {
       uint32_t nearestNode = findNodeAtCoordinates(x);
 
       Vec3d r1,r2,r3;
-      Vec3d rx(x[0],x[1],x[2]);
       // Which neighbouring element encloses our test point?
       for(uint i=0; i< nodes[nearestNode].numTouchingElements; i++) {
          Element& el = elements[nodes[nearestNode].touchingElements[i]];
@@ -1182,6 +1181,11 @@ namespace SBC {
          r1.load(nodes[el.corners[0]].x.data());
          r2.load(nodes[el.corners[1]].x.data());
          r3.load(nodes[el.corners[2]].x.data());
+
+         // Project x into the plane of this triangle
+         Vec3d rx(x[0],x[1],x[2]);
+         Vec3d normal = normalize_vector(cross_product(r2-r1, r3-r1));
+         rx -= normal*dot_product(rx-r1, normal);
 
          // Total area
          Real A = vector_length(cross_product(r2-r1,r3-r1));
@@ -1208,6 +1212,12 @@ namespace SBC {
       // Return an empty coupling instead
       logFile << "(ionosphere) Failed to find an ionosphere element to couple to for coordinate " <<
          x[0] << ", " << x[1] << ", " << x[2] << endl << write;
+      logFile << "    (checked " << nodes[nearestNode].numTouchingElements << " elements around node " << nearestNode << " at location ("
+         << nodes[nearestNode].x[0] << ", " << nodes[nearestNode].x[1] << ", " << nodes[nearestNode].x[2] << "): [";
+      for(uint i=0; i< nodes[nearestNode].numTouchingElements; i++) {
+         logFile << nodes[nearestNode].touchingElements[i] << ", ";
+      }
+      logFile << "]" << endl << write;
       phiprof::stop("ionosphere-VlasovGridCoupling");
       return coupling;
    }
