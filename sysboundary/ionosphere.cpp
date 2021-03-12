@@ -2748,7 +2748,7 @@ namespace SBC {
       // Fill velocity space with new maxwellian data
       SpatialCell& cell = *mpiGrid[cellID];
       cell.clear(popID); // Clear previous velocity space completely
-      const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(templateCell,popID);
+      const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(cell,popID);
       Realf* data = cell.get_data(popID);
 
       for (size_t i = 0; i < blocksToInitialize.size(); i++) {
