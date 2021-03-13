@@ -5,7 +5,7 @@ FP_PRECISION = DP
 
 include MAKE/Makefile.${ARCH}
 
-.PHONY: testpackage
+.PHONY: testpackage vlasiator
 
 default: vlasiator
 
