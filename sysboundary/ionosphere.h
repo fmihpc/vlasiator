@@ -95,9 +95,9 @@ namespace SBC {
                * sqrt(2. * M_PI * physicalconstants::MASS_ELECTRON / (physicalconstants::K_B * electronTemperature())) - 1.);
             // A positive value means an upward current (i.e. electron precipitation).
             // A negative value quickly gets neutralized from the atmosphere.
-            //if(retval < 0 || isnan(retval)) {
-            //   retval = 0;
-            //}
+            if(retval < 0 || isnan(retval)) {
+               retval = 0;
+            }
             return retval;
          }
 

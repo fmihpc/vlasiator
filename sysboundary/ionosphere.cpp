@@ -553,7 +553,7 @@ namespace SBC {
          prevDensity = density;
 
          // When we encounter one of our reference layers, record its values
-         if(altitude == alt[altindex]) {
+         if(altitude >= alt[altindex]) {
             AtmosphericLayer newLayer;
             newLayer.altitude = altitude;
             newLayer.density = density;
@@ -561,6 +561,7 @@ namespace SBC {
             // TODO: Ugh, hardcoded constants. What is this?
             newLayer.nui = 1e-16*(2*c1 + 3.8*c2 + 5*c3);
             atmosphere[altindex++] = newLayer;
+            //logFile << "(ionosphere) added atmospheric layer at altitude " << altitude << " with density " << density << ", depth" << integratedDensity << ", nui=" << newLayer.nui << endl << write;
          }
       }
 

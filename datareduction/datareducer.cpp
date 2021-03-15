@@ -1219,6 +1219,9 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 
                   // Just return a 0,0,0 vector for non-ionosphere cells
                   if(cell->sysBoundaryFlag != sysboundarytype::IONOSPHERE) {
+                     retval[0]=0;
+                     retval[1]=0;
+                     retval[2]=0;
                      return retval;
                   }
 
