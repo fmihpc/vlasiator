@@ -597,9 +597,9 @@ namespace SBC {
 
          // TODO: Ugh, hardcoded constants. What are these?
          // From Robinson et al 1987
-         const Real electronRange = 4.3e-6 + 5.26e-5 * pow(particle_energy[e], 1.67); // kg m^-2
+         const Real electronRange = 4.3e-6 + 5.36e-5 * pow(particle_energy[e], 1.67); // kg m^-2
          for(int h=0; h<numAtmosphereLevels; h++) {
-            const Real lambda = ReesIsotropicLambda(atmosphere[h].depth*particle_energy[e]);
+            const Real lambda = ReesIsotropicLambda(atmosphere[h].depth/electronRange);
             const Real prerate = (lambda * atmosphere[h].density * particle_energy[e]) / (electronRange * eps_ion_keV);
             scatteringRate[h][e] = max(0., prerate); // m^-1
          }
