@@ -1705,9 +1705,6 @@ namespace SBC {
  
      initSolver(false);
 
-     int rank;
-     MPI_Comm_rank(communicator, &rank);
-
      // Calculate sourcenorm and initial residual estimate
      Real sourcenorm = 0;
      for(uint n=0; n<nodes.size(); n++) {
@@ -1725,8 +1722,6 @@ namespace SBC {
 
      // Abort if there is nothing to solve.
      if(sourcenorm == 0) {
-       if(rank == 0) {
-       }
        return;
      }
      sourcenorm = sqrt(sourcenorm);
@@ -1764,7 +1759,7 @@ namespace SBC {
          }
        }
        bkden = bknum;
-       if(bkden == 0 && rank==0) {
+       if(bkden == 0) {
          bkden = 1;
        }
 
@@ -1821,12 +1816,10 @@ namespace SBC {
 
      }
 
-     if(rank == 0) {
-       //cerr << "(ionosphere) Exhausted iterations. Remaining error " << minerr << endl;
-       for(uint n=0; n<nodes.size(); n++) {
-         Node& N=nodes[n];
-         N.parameters[ionosphereParameters::SOLUTION] = N.parameters[ionosphereParameters::BEST_SOLUTION];
-       }
+     //cerr << "(ionosphere) Exhausted iterations. Remaining error " << minerr << endl;
+     for(uint n=0; n<nodes.size(); n++) {
+        Node& N=nodes[n];
+        N.parameters[ionosphereParameters::SOLUTION] = N.parameters[ionosphereParameters::BEST_SOLUTION];
      }
      phiprof::stop("ionosphere-solve");
    }
