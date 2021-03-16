@@ -1231,18 +1231,22 @@ namespace SBC {
          // Timestep zero => apparently the dipole field is not initialized yet.
          return 0.;
       }
-      // Do we have a stored coupling for these coordinates already?
-      if(vlasovGridCoupling.find(x) == vlasovGridCoupling.end()) {
-
-         // If not, create one.
-         vlasovGridCoupling[x] = calculateVlasovGridCoupling(x, Ionosphere::radius);
-      }
-
-      const std::array<std::pair<int, Real>, 3>& coupling = vlasovGridCoupling[x];
-
       Real potential = 0;
-      for(int i=0; i<3; i++) {
-         potential += coupling[0].second * nodes[coupling[0].first].parameters[ionosphereParameters::SOLUTION];
+
+      // Do we have a stored coupling for these coordinates already?
+#pragma omp critical
+      {
+         if(vlasovGridCoupling.find(x) == vlasovGridCoupling.end()) {
+
+            // If not, create one.
+            vlasovGridCoupling[x] = calculateVlasovGridCoupling(x, Ionosphere::radius);
+         }
+
+         const std::array<std::pair<int, Real>, 3>& coupling = vlasovGridCoupling[x];
+
+         for(int i=0; i<3; i++) {
+            potential += coupling[0].second * nodes[coupling[0].first].parameters[ionosphereParameters::SOLUTION];
+         }
       }
       return potential;
    }
