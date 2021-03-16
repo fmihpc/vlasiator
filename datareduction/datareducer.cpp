@@ -1203,7 +1203,12 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      std::vector<Real> retval(grid.nodes.size());
 
                      for(uint i=0; i<grid.nodes.size(); i++) {
-                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::SOURCE];
+                        Real area = 0;
+                        for(uint e=0; e<grid.nodes[i].numTouchingElements; e++) {
+                           area += grid.elementArea(grid.nodes[i].touchingElements[e]);
+                        }
+                        area /= 3.; // As every element has 3 corners, don't double-count areas
+                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::SOURCE]/area;
                      }
 
                      return retval;

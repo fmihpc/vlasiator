@@ -1389,7 +1389,7 @@ namespace SBC {
                     // Yielding the field-aligned current
                     Real FAC = Bnorm * (B[0]*rotB[0] + B[1]*rotB[1] + B[2]*rotB[2]) / physicalconstants::MU_0;
 
-                    FACinput[n] += FAC * coupling * upmappedArea/area;
+                    FACinput[n] += FAC * coupling * upmappedArea;
                  }
               }
            }

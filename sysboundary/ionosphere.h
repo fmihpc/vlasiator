@@ -86,19 +86,24 @@ namespace SBC {
          }
          Real deltaPhi() { // Field aligned potential drop between i'spherer and m'sphere
 
-            if(electronDensity() == 0) {
-               return 0;
-            }
+            // When the Knight-parameter is irrelevant, we can set this to zero
+            return 0;
 
-            Real retval = physicalconstants::K_B * electronTemperature() / physicalconstants::CHARGE
-               * ((parameters[ionosphereParameters::SOURCE] / (physicalconstants::CHARGE * electronDensity()))
-               * sqrt(2. * M_PI * physicalconstants::MASS_ELECTRON / (physicalconstants::K_B * electronTemperature())) - 1.);
-            // A positive value means an upward current (i.e. electron precipitation).
-            // A negative value quickly gets neutralized from the atmosphere.
-            if(retval < 0 || isnan(retval)) {
-               retval = 0;
-            }
-            return retval;
+            // Alternative: Calculate it just like GUMCS does
+
+            //if(electronDensity() == 0) {
+            //   return 0;
+            //}
+
+            //Real retval = physicalconstants::K_B * electronTemperature() / physicalconstants::CHARGE
+            //   * ((parameters[ionosphereParameters::SOURCE] / (physicalconstants::CHARGE * electronDensity()))
+            //   * sqrt(2. * M_PI * physicalconstants::MASS_ELECTRON / (physicalconstants::K_B * electronTemperature())) - 1.);
+            //// A positive value means an upward current (i.e. electron precipitation).
+            //// A negative value quickly gets neutralized from the atmosphere.
+            //if(retval < 0 || isnan(retval)) {
+            //   retval = 0;
+            //}
+            //return retval;
          }
 
       };

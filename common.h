@@ -379,7 +379,7 @@ namespace fsgrids {
 
 // Ionosphere node parameters
 enum ionosphereParameters {
-  SOURCE,    /*!< Field aligned current source term */
+  SOURCE,    /*!< Field aligned current source term (Ampere). Note: this is current, *not* density. */
   SIGMA,   SIGMA12, SIGMA13, 
   SIGMA21, SIGMA22, SIGMA23, /*!< Overall conductivity tensor */
   SIGMA31, SIGMA32, SIGMA33,
