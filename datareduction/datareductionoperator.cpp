@@ -265,15 +265,15 @@ namespace DRO {
         MPI_Comm_rank(grid.communicator,&rank);
       }
       MPI_Comm_rank(MPI_COMM_WORLD,&worldRank);
-      int allVectorSize = 1;
+      int vectorSize = 0;
       if(rank == 0) {
         std::vector<Real> varBuffer = lambda(grid);
 
         std::array<int32_t, 3> gridSize{(int32_t)grid.nodes.size(), 1,1};
-        int vectorSize = varBuffer.size() / grid.nodes.size();
+        vectorSize = varBuffer.size() / grid.nodes.size();
 
         // We need to have vectorSize the same on all ranks, otherwise MPI_COMM_WORLD rank 0 writes a bogus value
-        MPI_Scatter(&vectorSize, 1, MPI_INT, &allVectorSize, 1, MPI_INT, grid.writingRank, MPI_COMM_WORLD);
+        MPI_Bcast(&vectorSize, 1, MPI_INT, grid.writingRank, MPI_COMM_WORLD);
 
         if(vlsvWriter.writeArray("VARIABLE", attribs, "float", grid.nodes.size(), vectorSize, sizeof(Real), reinterpret_cast<const char*>(varBuffer.data())) == false) {
           string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
@@ -281,10 +281,10 @@ namespace DRO {
         }
       } else {
         // We need to have vectorSize the same on all ranks, otherwise MPI_COMM_WORLD rank 0 writes a bogus value
-        MPI_Scatter(NULL, 1, MPI_INT, &allVectorSize, 1, MPI_INT, grid.writingRank, MPI_COMM_WORLD);
+        MPI_Bcast(&vectorSize, 1, MPI_INT, grid.writingRank, MPI_COMM_WORLD);
 
         // Dummy write
-        vlsvWriter.writeArray("VARIABLE", attribs, "float", 0, allVectorSize, sizeof(Real), nullptr);
+        vlsvWriter.writeArray("VARIABLE", attribs, "float", 0, vectorSize, sizeof(Real), nullptr);
       }
 
       return true;
