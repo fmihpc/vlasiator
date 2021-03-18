@@ -2746,13 +2746,14 @@ namespace SBC {
       // Fill velocity space with new maxwellian data
       SpatialCell& cell = *mpiGrid[cellID];
       cell.clear(popID); // Clear previous velocity space completely
-      const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(cell,popID);
+      const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(cell,vDrift,popID);
       Realf* data = cell.get_data(popID);
 
       for (size_t i = 0; i < blocksToInitialize.size(); i++) {
          const vmesh::GlobalID blockGID = blocksToInitialize[i];
-         const vmesh::LocalID block = templateCell.get_velocity_block_local_id(blockGID,popID);
-         const Real* blockParameters = templateCell.get_block_parameters(block,popID);
+         cell.add_velocity_block(blockGID,popID);
+         const vmesh::LocalID block = cell.get_velocity_block_local_id(blockGID,popID);
+         const Real* blockParameters = cell.get_block_parameters(block,popID);
          creal vxBlock = blockParameters[BlockParams::VXCRD];
          creal vyBlock = blockParameters[BlockParams::VYCRD];
          creal vzBlock = blockParameters[BlockParams::VZCRD];
@@ -2799,7 +2800,8 @@ namespace SBC {
       // Loop over particle species
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          const IonosphereSpeciesParameters& sP = this->speciesParams[popID];
-         const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(templateCell,popID);
+         const std::array<Real, 3> vDrift = {0,0,0};
+         const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(templateCell,vDrift,popID);
          Realf* data = templateCell.get_data(popID);
 
          for (size_t i = 0; i < blocksToInitialize.size(); i++) {
@@ -2895,7 +2897,7 @@ namespace SBC {
       (2.0 * physicalconstants::K_B * sP.T));
    }
 
-   std::vector<vmesh::GlobalID> Ionosphere::findBlocksToInitialize(spatial_cell::SpatialCell& cell,const uint popID) {
+   std::vector<vmesh::GlobalID> Ionosphere::findBlocksToInitialize(spatial_cell::SpatialCell& cell,const std::array<Real, 3> & vDrift, const uint popID) {
       vector<vmesh::GlobalID> blocksToInitialize;
       bool search = true;
       uint counter = 0;
@@ -2906,7 +2908,7 @@ namespace SBC {
       while (search) {
          #warning TODO: add SpatialCell::getVelocityBlockMinValue() in place of sparseMinValue ? (if applicable)
          if (0.1 * getObjectWrapper().particleSpecies[popID].sparseMinValue >
-            shiftedMaxwellianDistribution(popID,counter*cell.get_velocity_grid_block_size(popID,refLevel)[0], 0.0, 0.0)
+            shiftedMaxwellianDistribution(popID,counter*cell.get_velocity_grid_block_size(popID,refLevel)[0] - vDrift[0], 0.0 - vDrift[1], 0.0 - vDrift[2])
             || counter > vblocks_ini[0]) {
             search = false;
          }
@@ -2930,9 +2932,9 @@ namespace SBC {
                cell.get_velocity_block_coordinates(popID,blockGID,blockCoords);
                Real blockSize[3];
                cell.get_velocity_block_size(popID,blockGID,blockSize);
-               blockCoords[0] += 0.5*blockSize[0];
-               blockCoords[1] += 0.5*blockSize[1];
-               blockCoords[2] += 0.5*blockSize[2];
+               blockCoords[0] += 0.5*blockSize[0] - vDrift[0];
+               blockCoords[1] += 0.5*blockSize[1] - vDrift[1];
+               blockCoords[2] += 0.5*blockSize[2] - vDrift[2];
                //creal vx = P::vxmin + (iv+0.5) * cell.get_velocity_grid_block_size(popID)[0]; // vx-coordinate of the centre
                //creal vy = P::vymin + (jv+0.5) * cell.get_velocity_grid_block_size(popID)[1]; // vy-
                //creal vz = P::vzmin + (kv+0.5) * cell.get_velocity_grid_block_size(popID)[2]; // vz-
