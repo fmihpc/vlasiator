@@ -182,7 +182,7 @@ namespace SBC {
       void addAllMatrixDependencies(uint nodeIndex);
       void initSolver(bool zeroOut=true);  // Initialize the CG solver
       Real Atimes(uint nodeIndex, int parameter, bool transpose=false); // Evaluate neighbour nodes' coupled parameter
-      Real Asolve(uint nodeIndex, int parameter); // Evaluate own parameter value
+      Real Asolve(uint nodeIndex, int parameter, bool transpose=false); // Evaluate own parameter value
       void solve();
 
       // Map field-aligned currents, density and pressure
@@ -344,6 +344,7 @@ namespace SBC {
       static Real innerRadius; /*!< Radius of the ionosphere model */
       static Real radius; /*!< Radius of the inner simulation boundary */
       static int solverMaxIterations; /*!< Maximum iterations of CG solver per timestep */
+      static bool solverPreconditioning; /*!< Preconditioning for the CG solver */
       static Real eps; // Tolerance for Bulirsch Stoer Method
       
       // TODO: Make these parameters of the IonosphereGrid

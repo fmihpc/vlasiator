@@ -63,6 +63,7 @@ namespace SBC {
    Real Ionosphere::F10_7; // Solar 10.7 Flux value (parameter)
    Real Ionosphere::backgroundIonisation; // Background ionisation due to stellar UV and cosmic rays
    int  Ionosphere::solverMaxIterations;
+   bool  Ionosphere::solverPreconditioning;
    Real  Ionosphere::eps;
 
    // Offset field aligned currents so their sum is 0
@@ -1692,10 +1693,27 @@ namespace SBC {
 
    // Evaluate a nodes' own parameter value
    // (If preconditioning is used, this is already adjusted for self-coupling)
-   Real SphericalTriGrid::Asolve(uint nodeIndex, int parameter) {
+   Real SphericalTriGrid::Asolve(uint nodeIndex, int parameter, bool transpose) {
 
-     // TODO: Implement preconditioning
-     return nodes[nodeIndex].parameters[parameter];
+      Node& n = nodes[nodeIndex];
+
+     if(Ionosphere::solverPreconditioning) {
+        // Find this nodes' selfcoupling coefficient
+        // TODO: Since every node needs to have a selfcoupling anyway, why not store that in index 0?
+        for(uint i=0; i<n.numDepNodes; i++) {
+          if(n.dependingNodes[i] == nodeIndex) {
+             if(transpose) {
+                return n.parameters[parameter] / n.transposedCoeffs[i];
+             } else { 
+                return n.parameters[parameter] / n.dependingCoeffs[i];
+             }
+          }
+        }
+        logFile << "(ionosphere) Warning: Unable to use preconditioning on node " << nodeIndex << " due to missing selfcoupling!" << endl << write;
+        return n.parameters[parameter];
+     } else {
+        return n.parameters[parameter];
+     }
    }
 
    // Solve the ionosphere potential using a conjugate gradient solver
@@ -1721,7 +1739,7 @@ namespace SBC {
      }
      for(uint n=0; n<nodes.size(); n++) {
        Node& N=nodes[n];
-       N.parameters[ionosphereParameters::ZPARAM] = Asolve(n,ionosphereParameters::RESIDUAL);
+       N.parameters[ionosphereParameters::ZPARAM] = Asolve(n,ionosphereParameters::RESIDUAL, false);
      }
 
      // Abort if there is nothing to solve.
@@ -1737,7 +1755,7 @@ namespace SBC {
 
        for(uint n=0; n<nodes.size(); n++) {
          Node& N=nodes[n];
-         N.parameters[ionosphereParameters::ZZPARAM] = Asolve(n,ionosphereParameters::RRESIDUAL);
+         N.parameters[ionosphereParameters::ZZPARAM] = Asolve(n,ionosphereParameters::RRESIDUAL, true);
        }
 
        // Calculate bk and gradient vector p
@@ -1790,7 +1808,7 @@ namespace SBC {
        }
        for(uint n=0; n<nodes.size(); n++) {
          Node& N=nodes[n];
-         N.parameters[ionosphereParameters::ZPARAM] = Asolve(n, ionosphereParameters::RESIDUAL);
+         N.parameters[ionosphereParameters::ZPARAM] = Asolve(n, ionosphereParameters::RESIDUAL, false);
        }
 
        // See if this solved the potential better than before
@@ -1852,6 +1870,7 @@ namespace SBC {
       Readparameters::add("ionosphere.F10_7", "Solar 10.7 cm radio flux (sfu = 10^{-22} W/m^2)", 100);
       Readparameters::add("ionosphere.backgroundIonisation", "Background ionoisation due to cosmic rays (mho)", 0.5);
       Readparameters::add("ionosphere.solverMaxIterations", "Maximum number of iterations for the conjugate gradient solver", 2000);
+      Readparameters::add("ionosphere.solverPreconditioning", "Use preconditioning for the solver? (0/1)", 1);
       Readparameters::add("ionosphere.fieldLineTracer", "Field line tracing method to use for coupling ionosphere and magnetosphere (options are: Euler, BS)", std::string("Euler"));
       Readparameters::add("ionosphere.tracerTolerance", "Tolerance for the Bulirsch Stoer Method", 1000);
 
@@ -1909,6 +1928,10 @@ namespace SBC {
          exit(1);
       }
       if(!Readparameters::get("ionosphere.solverMaxIterations", solverMaxIterations)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("ionosphere.solverPreconditioning", solverPreconditioning)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
