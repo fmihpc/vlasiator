@@ -1497,7 +1497,7 @@ namespace SBC {
 
    // calculate integral( grd(Ti) Sigma grad(Tj) ) over the area of the given element
    // The i and j parameters enumerate the piecewise linear element basis function
-   double SphericalTriGrid::elementIntegral(uint elementIndex, int i, int j, bool transpose) {
+   Real SphericalTriGrid::elementIntegral(uint elementIndex, int i, int j, bool transpose) {
 
      Element& e = elements[elementIndex];
      const std::array<Real, 3>& c1 = nodes[e.corners[0]].x;
@@ -1674,8 +1674,8 @@ namespace SBC {
    // matrix
    //
    // -> "A times parameter"
-   Real SphericalTriGrid::Atimes(uint nodeIndex, int parameter, bool transpose) {
-     Real retval=0;
+   iSolverReal SphericalTriGrid::Atimes(uint nodeIndex, int parameter, bool transpose) {
+     iSolverReal retval=0;
      Node& n = nodes[nodeIndex];
 
      if(transpose) {
@@ -1728,10 +1728,10 @@ namespace SBC {
      initSolver(false);
 
      // Calculate sourcenorm and initial residual estimate
-     Real sourcenorm = 0;
+     iSolverReal sourcenorm = 0;
      for(uint n=0; n<nodes.size(); n++) {
        Node& N=nodes[n];
-       Real source = N.parameters[ionosphereParameters::SOURCE];
+       iSolverReal source = N.parameters[ionosphereParameters::SOURCE];
        sourcenorm += source*source;
        N.parameters[ionosphereParameters::RESIDUAL] = source - Atimes(n, ionosphereParameters::SOLUTION);
        N.parameters[ionosphereParameters::BEST_SOLUTION] = N.parameters[ionosphereParameters::SOLUTION];
@@ -1748,9 +1748,9 @@ namespace SBC {
      }
      sourcenorm = sqrt(sourcenorm);
 
-     Real err = 0;
-     Real minerr = 1e30;
-     Real bkden = 1.;
+     iSolverReal err = 0;
+     iSolverReal minerr = 1e30;
+     iSolverReal bkden = 1.;
      for(int iteration =0; iteration < Ionosphere::solverMaxIterations; iteration++) {
 
        for(uint n=0; n<nodes.size(); n++) {
@@ -1759,26 +1759,28 @@ namespace SBC {
        }
 
        // Calculate bk and gradient vector p
-       Real bknum = 0;
+       iSolverReal bknum = 0;
        for(uint n=0; n<nodes.size(); n++) {
          Node& N=nodes[n];
          bknum += N.parameters[ionosphereParameters::ZPARAM] * N.parameters[ionosphereParameters::RRESIDUAL];
        }
        if(iteration == 0) {
-         for(uint n=0; n<nodes.size(); n++) {
-           Node& N=nodes[n];
-           N.parameters[ionosphereParameters::PPARAM] = N.parameters[ionosphereParameters::ZPARAM];
-           N.parameters[ionosphereParameters::PPPARAM] = N.parameters[ionosphereParameters::ZZPARAM];
-         }
+          // Just use the gradient vector as-is
+          for(uint n=0; n<nodes.size(); n++) {
+             Node& N=nodes[n];
+             N.parameters[ionosphereParameters::PPARAM] = N.parameters[ionosphereParameters::ZPARAM];
+             N.parameters[ionosphereParameters::PPPARAM] = N.parameters[ionosphereParameters::ZZPARAM];
+          }
        } else {
-         Real bk = bknum / bkden;
-         for(uint n=0; n<nodes.size(); n++) {
-           Node& N=nodes[n];
-           N.parameters[ionosphereParameters::PPARAM] *= bk;
-           N.parameters[ionosphereParameters::PPARAM] += N.parameters[ionosphereParameters::ZPARAM];
-           N.parameters[ionosphereParameters::PPPARAM] *= bk;
-           N.parameters[ionosphereParameters::PPPARAM] += N.parameters[ionosphereParameters::ZZPARAM];
-         }
+          // Perform gram-smith orthogonalization to get conjugate gradient
+          iSolverReal bk = bknum / bkden;
+          for(uint n=0; n<nodes.size(); n++) {
+             Node& N=nodes[n];
+             N.parameters[ionosphereParameters::PPARAM] *= bk;
+             N.parameters[ionosphereParameters::PPARAM] += N.parameters[ionosphereParameters::ZPARAM];
+             N.parameters[ionosphereParameters::PPPARAM] *= bk;
+             N.parameters[ionosphereParameters::PPPARAM] += N.parameters[ionosphereParameters::ZZPARAM];
+          }
        }
        bkden = bknum;
        if(bkden == 0) {
@@ -1787,21 +1789,21 @@ namespace SBC {
 
 
        // Calculate ak, new solution and new residual
-       Real akden = 0;
+       iSolverReal akden = 0;
        for(uint n=0; n<nodes.size(); n++) {
          Node& N=nodes[n];
-         Real zparam = Atimes(n, ionosphereParameters::PPARAM);
+         iSolverReal zparam = Atimes(n, ionosphereParameters::PPARAM);
          N.parameters[ionosphereParameters::ZPARAM] = zparam;
          akden += zparam * N.parameters[ionosphereParameters::PPPARAM];
        }
-       Real ak=bknum/akden;
+       iSolverReal ak=bknum/akden;
 
-       Real residualnorm = 0;
+       iSolverReal residualnorm = 0;
        for(uint n=0; n<nodes.size(); n++) {
          Node& N=nodes[n];
          N.parameters[ionosphereParameters::ZZPARAM] = Atimes(n,ionosphereParameters::PPPARAM, true);
          N.parameters[ionosphereParameters::SOLUTION] += ak * N.parameters[ionosphereParameters::PPARAM];
-         Real newresid = N.parameters[ionosphereParameters::RESIDUAL] - ak * N.parameters[ionosphereParameters::ZPARAM];
+         iSolverReal newresid = N.parameters[ionosphereParameters::RESIDUAL] - ak * N.parameters[ionosphereParameters::ZPARAM];
          N.parameters[ionosphereParameters::RESIDUAL] = newresid;
          residualnorm += newresid * newresid;
          N.parameters[ionosphereParameters::RRESIDUAL] -= ak * N.parameters[ionosphereParameters::ZZPARAM];

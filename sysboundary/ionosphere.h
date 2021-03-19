@@ -47,6 +47,8 @@ namespace SBC {
    static const int MAX_TOUCHING_ELEMENTS = 11; // Maximum number of elements touching one node
    static const int MAX_DEPENDING_NODES = 22;   // Maximum number of depending nodes
 
+   typedef Real iSolverReal; // Datatype for the ionosphere solver internal state
+
    // Ionosphere finite element grid
    struct SphericalTriGrid {
 
@@ -73,7 +75,7 @@ namespace SBC {
          std::array<Real, 3> x = {0,0,0}; // Coordinates of the node
          std::array<Real, 3> xMapped = {0,0,0}; // Coordinates mapped along fieldlines into simulation domain
 
-         std::array<Real, N_IONOSPHERE_PARAMETERS> parameters = {0}; // Parameters carried by the node, see common.h
+         std::array<iSolverReal, N_IONOSPHERE_PARAMETERS> parameters = {0}; // Parameters carried by the node, see common.h
          std::array<Real,3> fsgridCellCoupling = {0,0,0}; // Where (in fsgrid cell coordinate space) does this fieldline map?
 
          // Some calculation helpers
@@ -181,7 +183,7 @@ namespace SBC {
       void addMatrixDependency(uint node1, uint node2, Real coeff, bool transposed=false); // Add matrix value for the solver
       void addAllMatrixDependencies(uint nodeIndex);
       void initSolver(bool zeroOut=true);  // Initialize the CG solver
-      Real Atimes(uint nodeIndex, int parameter, bool transpose=false); // Evaluate neighbour nodes' coupled parameter
+      iSolverReal Atimes(uint nodeIndex, int parameter, bool transpose=false); // Evaluate neighbour nodes' coupled parameter
       Real Asolve(uint nodeIndex, int parameter, bool transpose=false); // Evaluate own parameter value
       void solve();
 
