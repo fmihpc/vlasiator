@@ -1623,7 +1623,12 @@ namespace SBC {
    // Add solver matrix dependencies for the neighbouring nodes
    void SphericalTriGrid::addAllMatrixDependencies(uint nodeIndex) {
 
-     nodes[nodeIndex].numDepNodes = 0;
+     nodes[nodeIndex].numDepNodes = 1;
+
+     // Add selfcoupling dependency already, to guarantee that it sits at index 0
+     nodes[nodeIndex].dependingNodes[0] = nodeIndex;
+     nodes[nodeIndex].dependingCoeffs[0] = 0;
+     nodes[nodeIndex].transposedCoeffs[0] = 0;
 
      for(uint t=0; t<nodes[nodeIndex].numTouchingElements; t++) {
        int j0=-1;
@@ -1710,18 +1715,11 @@ namespace SBC {
 
      if(Ionosphere::solverPreconditioning) {
         // Find this nodes' selfcoupling coefficient
-        // TODO: Since every node needs to have a selfcoupling anyway, why not store that in index 0?
-        for(uint i=0; i<n.numDepNodes; i++) {
-          if(n.dependingNodes[i] == nodeIndex) {
-             if(transpose) {
-                return n.parameters[parameter] / n.transposedCoeffs[i];
-             } else { 
-                return n.parameters[parameter] / n.dependingCoeffs[i];
-             }
-          }
+        if(transpose) {
+           return n.parameters[parameter] / n.transposedCoeffs[0];
+        } else { 
+           return n.parameters[parameter] / n.dependingCoeffs[0];
         }
-        logFile << "(ionosphere) Warning: Unable to use preconditioning on node " << nodeIndex << " due to missing selfcoupling!" << endl << write;
-        return n.parameters[parameter];
      } else {
         return n.parameters[parameter];
      }
