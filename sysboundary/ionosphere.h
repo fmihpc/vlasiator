@@ -44,7 +44,7 @@ namespace SBC {
       uint nVelocitySamples;
    };
 
-   static const int MAX_TOUCHING_ELEMENTS = 11; // Maximum number of elements touching one node
+   static const int MAX_TOUCHING_ELEMENTS = 12; // Maximum number of elements touching one node
    static const int MAX_DEPENDING_NODES = 22;   // Maximum number of depending nodes
 
    typedef Real iSolverReal; // Datatype for the ionosphere solver internal state
@@ -86,7 +86,7 @@ namespace SBC {
             return parameters[ionosphereParameters::PRESSURE] /
                (ion_electron_T_ratio * physicalconstants::K_B * electronDensity());
          }
-         Real deltaPhi() { // Field aligned potential drop between i'spherer and m'sphere
+         Real deltaPhi() { // Field aligned potential drop between i'sphere and m'sphere
 
             // When the Knight-parameter is irrelevant, we can set this to zero
             return 0;
@@ -166,6 +166,7 @@ namespace SBC {
       int32_t findElementNeighbour(uint32_t e, int n1, int n2);
       uint32_t findNodeAtCoordinates(std::array<Real,3> x); // Find the mesh node closest to the given coordinate
       void subdivideElement(uint32_t e);  // Subdivide mesh within element e
+      void stitchRefinementInterfaces(); // Make sure there are no t-junctions in the mesh by splitting neighbours
       void calculatePrecipitation(); // Estimate precipitation flux
       void calculateConductivityTensor(const Real F10_7, const Real recombAlpha, const Real backgroundIonisation); // Update sigma tensor
       void calculateFsgridCoupling(FsGrid< fsgrids::technical, 2> & technicalGrid, Real radius);     // Link each element to fsgrid cells for coupling

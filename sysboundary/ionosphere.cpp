@@ -107,6 +107,8 @@ namespace SBC {
    }
 
    // Regenerate linking information between nodes and elements
+   // Note: if this runs *before* stitchRefinementInterfaces(), there will be no
+   // more information about t-junctions, so further stitiching won't work
    void SphericalTriGrid::updateConnectivity() {
 
       for(uint n=0; n<nodes.size(); n++) {
@@ -1660,6 +1662,179 @@ namespace SBC {
      }
    }
 
+   // Make sure refinement interfaces are properly "stitched", and that there are no
+   // nodes remaining on t-junctions. This is done by splitting the bigger neighbour:
+   //
+   //      A---------------C         A---------------C
+   //     / \             /         / \  resized .-'/ 
+   //    /   \           /         /   \      .-'  /  
+   //   /     \         /         /     \  .-'    /   
+   //  o-------n       /    ==>  o-------n' new  /.  <- potential other node to update next?  
+   //   \     / \     /           \     / \     /  .   
+   //    \   /   \   /             \   /   \   /    .   
+   //     \ /     \ /               \ /     \ /      . 
+   //      o-------B                 o-------B . . .  .   
+   void SphericalTriGrid::stitchRefinementInterfaces() {
+      
+      for(uint n=0; n<nodes.size(); n++) {
+         addAllMatrixDependencies(n);
+
+         for(uint t=0; t<nodes[n].numTouchingElements; t++) {
+            Element& e = elements[nodes[n].touchingElements[t]];
+            int j0=-1;
+
+            // Find the corner this node is touching
+            for(int c=0; c <3; c++) {
+               if(e.corners[c] == n) {
+                  j0=c;
+               }
+            }
+
+            if(j0 != -1) {
+               // Normal element corner
+               continue;
+            }
+
+            // Not a corner of this element => Split element
+
+            // Find the corners of this element that we are collinear with
+            int farCorner=-1;
+            Real bestColinearity = 0;
+            for(int c=0; c <3; c++) {
+               Node& a=nodes[e.corners[c]];
+               Node& b=nodes[e.corners[(c+1)%3]];
+               Vec3d ab(b.x[0] - a.x[0], b.x[1] - a.x[1], b.x[2] - a.x[2]);
+               Vec3d an(nodes[n].x[0] - a.x[0], nodes[n].x[1] - a.x[1], nodes[n].x[2] - a.x[2]);
+
+               Real dotproduct = dot_product(normalize_vector(ab), normalize_vector(an));
+               if(dotproduct > 0.9 && dotproduct > bestColinearity) {
+                  farCorner = (c+2)%3;
+                  bestColinearity = dotproduct;
+               }
+            }
+
+            uint A = e.corners[(farCorner+1)%3];
+            uint B = e.corners[(farCorner+2)%3];
+            uint C = e.corners[farCorner];
+
+            if(farCorner == -1) {
+               logFile << "(ionosphere) Stitiching refinement boundaries failed: Element " <<  nodes[n].touchingElements[t] << " does not contain node "
+                  << n << " as a corner, yet farCorner not found." << endl << write;
+               Vec3d ab(nodes[A].x[0] - nodes[B].x[0], nodes[A].x[1] - nodes[B].x[1], nodes[A].x[2] - nodes[B].x[2]);
+               Vec3d an(nodes[A].x[0] - nodes[n].x[0], nodes[A].x[1] - nodes[n].x[1], nodes[A].x[2] - nodes[n].x[2]);
+               Vec3d ac(nodes[A].x[0] - nodes[C].x[0], nodes[A].x[1] - nodes[C].x[1], nodes[A].x[2] - nodes[C].x[2]);
+               Vec3d bc(nodes[B].x[0] - nodes[C].x[0], nodes[B].x[1] - nodes[C].x[1], nodes[B].x[2] - nodes[C].x[2]);
+               Vec3d bn(nodes[B].x[0] - nodes[n].x[0], nodes[B].x[1] - nodes[n].x[1], nodes[B].x[2] - nodes[n].x[2]);
+               logFile << "             Colinearities:" << endl;
+               logFile << "             AnB: " << fabs(dot_product(normalize_vector(ab), normalize_vector(an))) << endl;
+               logFile << "             AnC: " << fabs(dot_product(normalize_vector(ac), normalize_vector(an))) << endl;
+               logFile << "             BnC: " << fabs(dot_product(normalize_vector(bc), normalize_vector(bn))) << endl;
+               continue;
+            }
+
+            // We form two elements: AnC and nBC from the old element ABC
+            if(A==n || B==n || C==n) {
+               logFile << "(ionosphere) ERROR: Trying to split an element at a node that is already it's corner" << endl << write;
+            }
+
+            Real oldArea = elementArea(nodes[n].touchingElements[t]);
+            // Old element modified
+            e.corners = {A,n,C};
+            Real newArea1 = elementArea(nodes[n].touchingElements[t]);
+            // New element
+            Element newElement;
+            newElement.corners = {n,B,C};
+
+            uint ne = elements.size();
+            elements.push_back(newElement);
+            Real newArea2 = elementArea(ne);
+
+            if(newArea1/oldArea < 0.4 || newArea2/oldArea < 0.4) {
+               logFile << "(ionosphere) Warning: Splitting element " << nodes[n].touchingElements[t] << " badly (ratios " << newArea1/oldArea << " / " << newArea2/oldArea << ")" << endl << write;
+               Vec3d ab(nodes[A].x[0] - nodes[B].x[0], nodes[A].x[1] - nodes[B].x[1], nodes[A].x[2] - nodes[B].x[2]);
+               Vec3d an(nodes[A].x[0] - nodes[n].x[0], nodes[A].x[1] - nodes[n].x[1], nodes[A].x[2] - nodes[n].x[2]);
+               Vec3d ac(nodes[A].x[0] - nodes[C].x[0], nodes[A].x[1] - nodes[C].x[1], nodes[A].x[2] - nodes[C].x[2]);
+               Vec3d bc(nodes[B].x[0] - nodes[C].x[0], nodes[B].x[1] - nodes[C].x[1], nodes[B].x[2] - nodes[C].x[2]);
+               Vec3d bn(nodes[B].x[0] - nodes[n].x[0], nodes[B].x[1] - nodes[n].x[1], nodes[B].x[2] - nodes[n].x[2]);
+               logFile << "             Colinearities:" << endl;
+               logFile << "             ABC: " << fabs(dot_product(normalize_vector(ab), normalize_vector(ac))) << endl;
+               logFile << "             AnB: " << fabs(dot_product(normalize_vector(ab), normalize_vector(an))) << endl;
+               logFile << "             AnC: " << fabs(dot_product(normalize_vector(ac), normalize_vector(an))) << endl;
+               logFile << "             BnC: " << fabs(dot_product(normalize_vector(bc), normalize_vector(bn))) << endl;
+            }
+
+            // Fix touching element lists:
+            // Far corner touches both elements
+            nodes[C].touchingElements[nodes[C].numTouchingElements++] = ne;
+            if(nodes[C].numTouchingElements > MAX_TOUCHING_ELEMENTS) {
+               logFile << "(ionosphere) ERROR: node " << C << "'s numTouchingElements (" << nodes[C].numTouchingElements << ") exceeds MAX_TOUCHING_ELEMENTS (= " <<
+                        MAX_TOUCHING_ELEMENTS << ")" << endl << write;
+            }
+
+            // Also it's neighbour element nodes might now need their element information updated, if they sit on the B-C line
+            Vec3d bc(nodes[C].x[0] - nodes[B].x[0], nodes[C].x[1] - nodes[B].x[1], nodes[C].x[2] - nodes[B].x[2]);
+            for(uint i=0; i<nodes[C].numTouchingElements; i++) {
+               for(int c=0; c<3; c++) {
+                  uint nn=elements[nodes[C].touchingElements[i]].corners[c];
+                  if(nn == A || nn == B || nn == C || nn==n) {
+                     // Skip our own nodes
+                     continue;
+                  }
+
+                  Vec3d bn(nodes[nn].x[0] - nodes[B].x[0], nodes[nn].x[1] - nodes[B].x[1], nodes[nn].x[2] - nodes[B].x[2]);
+                  if(dot_product(normalize_vector(bc), normalize_vector(bn)) > 0.9) {
+                     for(uint j=0; j<nodes[nn].numTouchingElements; j++) {
+                        if(nodes[nn].touchingElements[j] == nodes[n].touchingElements[t]) {
+                           nodes[nn].touchingElements[j] = ne;
+                           continue;
+                        }
+                     }
+                  }
+               }
+
+               // TODO: What about cases where we refine more than one level at once?
+            }
+
+            // Our own node too.
+            nodes[n].touchingElements[nodes[n].numTouchingElements++] = ne;
+            if(nodes[n].numTouchingElements > MAX_TOUCHING_ELEMENTS) {
+               logFile << "(ionosphere) ERROR: node " << n << "'s numTouchingElements [" << nodes[n].numTouchingElements << "] exceeds MAX_TOUCHING_ELEMENTS (= " <<
+                        MAX_TOUCHING_ELEMENTS << ")" << endl << write;
+            }
+
+            // One node has been shifted to the other element. Find the old one and change it.
+            Node& neighbour=nodes[B];
+            for(uint i=0; i<neighbour.numTouchingElements; i++) {
+               if(neighbour.touchingElements[i] == nodes[n].touchingElements[t]) {
+                  neighbour.touchingElements[i] = ne;
+                  continue;
+               }
+
+               // Also it's neighbour element nodes might now need their element information updated, if they sit on the B-C line
+               for(int c=0; c<3; c++) {
+                  uint nn=elements[neighbour.touchingElements[i]].corners[c];
+                  if(nn == A || nn == B || nn == C || nn==n) {
+                     // Skip our own nodes
+                     continue;
+                  }
+
+                  Vec3d bn(nodes[nn].x[0] - nodes[B].x[0], nodes[nn].x[1] - nodes[B].x[1], nodes[nn].x[2] - nodes[B].x[2]);
+                  if(dot_product(normalize_vector(bc), normalize_vector(bn)) > 0.9) {
+                     for(uint j=0; j<nodes[nn].numTouchingElements; j++) {
+                        if(nodes[nn].touchingElements[j] == nodes[n].touchingElements[t]) {
+                           nodes[nn].touchingElements[j] = ne;
+                           continue;
+                        }
+                     }
+                  }
+               }
+
+               // TODO: What about cases where we refine more than one level at once?
+            }
+         }
+      }
+   }
+
    // Initialize the CG sover by assigning matrix dependency weights
    void SphericalTriGrid::initSolver(bool zeroOut) {
 
@@ -2093,6 +2268,7 @@ namespace SBC {
          }
          refineBetweenLatitudes(lmin, lmax);
       }
+      //ionosphereGrid.stitchRefinementInterfaces();
 
       // Set up ionospheric atmosphere model
       ionosphereGrid.readAtmosphericModelFile(atmosphericModelFile.c_str());
