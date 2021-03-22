@@ -1124,7 +1124,10 @@ namespace SBC {
                   continue;
                }
 
-               if(technicalGrid.get( fsgridCell[0], fsgridCell[1], fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+               if(
+                  technicalGrid.get( fsgridCell[0], fsgridCell[1], fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY
+                  && technicalGrid.getRank() == technicalGrid.getTaskForGlobalID(technicalGrid.GlobalIDForCoords(fsgridCell[0], fsgridCell[1], fsgridCell[2])).first // this returns a <rank, LocalID> pair
+               ) {
 
                   // Cell found, add association.
                   isCouplingInwards = true;
