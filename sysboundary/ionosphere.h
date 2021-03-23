@@ -191,8 +191,7 @@ namespace SBC {
       // Map field-aligned currents, density and pressure
       // down from the simulation boundary onto this grid
       void mapDownBoundaryData(
-          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
-          FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
+          FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volgrid,
           FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid,
           FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsGrid,
           FsGrid< fsgrids::technical, 2> & technicalGrid);
