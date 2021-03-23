@@ -75,18 +75,22 @@ namespace SBC {
 
       // Separately make sure that both hemispheres are divergence-free
       Real northSum=0.;
+      int northNum=0;
       Real southSum=0.;
+      int southNum=0;
 
       for(uint n = 0; n<nodes.size(); n++) {
          if(nodes[n].x[2] > 0) {
             northSum += nodes[n].parameters[ionosphereParameters::SOURCE];
+            northNum++;
          } else {
             southSum += nodes[n].parameters[ionosphereParameters::SOURCE];
+            southNum++;
          }
       }
 
-      northSum /= nodes.size()/2.;
-      southSum /= nodes.size()/2.;
+      northSum /= northNum;
+      southSum /= southSum;
 
       for(uint n = 0; n<nodes.size(); n++) {
          if(nodes[n].x[2] > 0) {
