@@ -90,7 +90,7 @@ namespace SBC {
       }
 
       northSum /= northNum;
-      southSum /= southSum;
+      southSum /= southNum;
 
       for(uint n = 0; n<nodes.size(); n++) {
          if(nodes[n].x[2] > 0) {
