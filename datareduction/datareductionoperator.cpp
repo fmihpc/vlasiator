@@ -249,6 +249,10 @@ namespace DRO {
    bool DataReductionOperatorIonosphereNode::writeIonosphereData(SBC::SphericalTriGrid&
             grid, vlsv::Writer& vlsvWriter) {
 
+      // skip ionosphere for inital-grid as it breaks
+      if(P::systemWriteName[P::systemWriteName.size() - 1] == "initial-grid") {
+         return true;
+      }
       std::map<std::string,std::string> attribs;
       attribs["mesh"]="ionosphere";
       attribs["name"]=variableName;
