@@ -237,8 +237,17 @@ namespace SBC {
                                    0.5 * (e1[2]*e2[0] - e1[0]*e2[2]),
                                    0.5 * (e1[0]*e2[1] - e1[1]*e2[0])};
         
+         // By definition, the area is oriented outwards, so if dot(r,A) < 0, flip it.
+         std::array<Real, 3> r{
+            (a[0]+b[0]+c[0])/3.,
+            (a[1]+b[1]+c[1])/3.,
+            (a[2]+b[2]+c[2])/3.};
+         if(area[0]*r[0] + area[1]*r[1] + area[2] *r[2] < 0) {
+            area[0]*=-1.;
+            area[1]*=-1.;
+            area[2]*=-1.;
+         }
          return area;
-         //return 0.5 * sqrt( area[0]*area[0] + area[1]*area[1] + area[2]*area[2] );
       }
 
       Real nodeNeighbourArea(uint32_t nodeIndex) { // Summed area of all touching elements

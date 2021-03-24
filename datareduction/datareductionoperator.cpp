@@ -207,23 +207,33 @@ namespace DRO {
       attribs["unitConversion"]=unitConversion;
       attribs["variableLaTeX"]=variableLaTeX;
 
-      // Only task 0 of the ionosphere communicator writes
+      // Only task 0 of the ionosphere communicator writes, but all other need to sync vectorSize
       int rank = -1;
+      int worldRank = 0;
       if(grid.isCouplingInwards || grid.isCouplingOutwards) {
         MPI_Comm_rank(grid.communicator,&rank);
       }
+      MPI_Comm_rank(MPI_COMM_WORLD,&worldRank);
+      int vectorSize = 0;
       if(rank == 0) {
         std::vector<Real> varBuffer = lambda(grid);
 
         std::array<int32_t, 3> gridSize{(int32_t)grid.elements.size(), 1,1};
         int vectorSize = varBuffer.size() / grid.elements.size();
+
+        // We need to have vectorSize the same on all ranks, otherwise MPI_COMM_WORLD rank 0 writes a bogus value
+        MPI_Bcast(&vectorSize, 1, MPI_INT, grid.writingRank, MPI_COMM_WORLD);
+
         if(vlsvWriter.writeArray("VARIABLE", attribs, "float", grid.elements.size(), vectorSize, sizeof(Real), reinterpret_cast<const char*>(varBuffer.data())) == false) {
           string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
           bailout(true, message, __FILE__, __LINE__);
         }
       } else {
+        // We need to have vectorSize the same on all ranks, otherwise MPI_COMM_WORLD rank 0 writes a bogus value
+        MPI_Bcast(&vectorSize, 1, MPI_INT, grid.writingRank, MPI_COMM_WORLD);
+
         // Dummy write
-        vlsvWriter.writeArray("VARIABLE", attribs, "float", 0, 1, sizeof(Real), nullptr);
+        vlsvWriter.writeArray("VARIABLE", attribs, "float", 0, vectorSize, sizeof(Real), nullptr);
       }
 
       return true;
