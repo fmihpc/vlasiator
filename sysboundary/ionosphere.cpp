@@ -1065,6 +1065,12 @@ namespace SBC {
             writingRankInput = technicalGrid.getRank();
             cerr << "(ionosphere) New Ionosphere subcommunicator has size " << size << ", rank 0 corresponds to global rank " << technicalGrid.getRank() << endl;
          }
+
+         // Since we may have added new ranks to the communicator, we need to re-distribute the xMapped values to all of them.
+         for(uint n=0; n<nodes.size(); n++) {
+            std::array<Real,3> sendMapped = nodes[n].xMapped;
+            MPI_Allreduce(sendMapped.data(), nodes[n].xMapped.data(), 3*sizeof(Real), MPI_BYTE, MPI_BOR, communicator);
+         }
       } else {
          MPI_Comm_split(MPI_COMM_WORLD, MPI_UNDEFINED, 0, &communicator); // All other ranks are staying out of the communicator.
          rank = -1;
