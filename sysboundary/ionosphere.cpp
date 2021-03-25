@@ -1321,6 +1321,8 @@ namespace SBC {
                  // Get fsgrid coordinate of mapping
                  std::array<Real,3> cell = corner.fsgridCellCoupling;
                  for(int i=0; i<3; i++) {
+                    // Shift by half a cell, as we are sampling volume quantities that are logically located at cell centres.
+                    cell[i] -= 0.5; 
                     fsc[i] = floor(cell[i]);
                  }
 
@@ -1345,18 +1347,6 @@ namespace SBC {
                  }
               }
 
-              ////// Calculate rot(B) by taking the path integral around the edge of the
-              ////// upmapped element
-              //J += B[0][0]*(nodes[el.corners[1]].xMapped[0] - nodes[el.corners[2]].xMapped[0])
-              //   + B[0][1]*(nodes[el.corners[1]].xMapped[1] - nodes[el.corners[2]].xMapped[1])
-              //   + B[0][2]*(nodes[el.corners[1]].xMapped[2] - nodes[el.corners[2]].xMapped[2]);
-              //J += B[1][0]*(nodes[el.corners[2]].xMapped[0] - nodes[el.corners[0]].xMapped[0])
-              //   + B[1][1]*(nodes[el.corners[2]].xMapped[1] - nodes[el.corners[0]].xMapped[1])
-              //   + B[1][2]*(nodes[el.corners[2]].xMapped[2] - nodes[el.corners[0]].xMapped[2]);
-              //J += B[2][0]*(nodes[el.corners[0]].xMapped[0] - nodes[el.corners[1]].xMapped[0])
-              //   + B[2][1]*(nodes[el.corners[0]].xMapped[1] - nodes[el.corners[1]].xMapped[1])
-              //   + B[2][2]*(nodes[el.corners[0]].xMapped[2] - nodes[el.corners[1]].xMapped[2]);
-
               // Also sum up touching elements' areas and upmapped areas to compress
               // density and pressure with them
               // TODO: Precalculate this?
@@ -1378,6 +1368,8 @@ namespace SBC {
            //std::array<int,3> fsc;
            std::array<Real,3> cell = nodes[n].fsgridCellCoupling;
            for(int c=0; c<3; c++) {
+              // Shift by half a cell, as we are sampling volume quantities that are logically located at cell centres.
+              cell[c] -= 0.5; 
               fsc[c] = floor(cell[c]);
            }
 
@@ -1388,6 +1380,7 @@ namespace SBC {
            }
 
            // Linearly interpolate neighbourhood
+           Real couplingSum = 0;
            for(int xoffset : {0,1}) {
               for(int yoffset : {0,1}) {
                  for(int zoffset : {0,1}) {
@@ -1396,6 +1389,13 @@ namespace SBC {
                     if(coupling < 0. || coupling > 1.) {
                        logFile << "Ionosphere warning: node << " << n << " has coupling value " << coupling <<
                           ", which is outside [0,1] at line " << __LINE__ << "!" << endl << write;
+                    }
+
+                    // Only couple to actual simulation cells
+                    if(technicalGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+                       couplingSum += coupling;
+                    } else {
+                       continue;
                     }
 
                     // Calc rotB
@@ -1428,6 +1428,14 @@ namespace SBC {
                     }
                  }
               }
+           }
+
+           // The coupling values *would* have summed to 1 in free and open space, but since we are close to the inner
+           // boundary, some cells were skipped, as they are in the sysbondary. Renormalize values by dividing by the couplingSum.
+           if(couplingSum > 0) {
+               rhoInput[n] /= couplingSum;
+               pressureInput[n] /= couplingSum;
+               FACinput[n] /= couplingSum;
            }
 
            // By definition, a downwards current into the ionosphere has a positive FAC value,
