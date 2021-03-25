@@ -1326,7 +1326,8 @@ namespace SBC {
 
                  // Local cell
                  std::array<int,3> lfsc = technicalGrid.globalToLocal(fsc[0],fsc[1],fsc[2]);
-                 if(lfsc[0] == -1 && lfsc[1] == -1 && lfsc[2] == -1) {
+                 if( (lfsc[0] == -1 && lfsc[1] == -1 && lfsc[2] == -1)
+                      || (fsc[0] == 0 && fsc[1] == 0 && fsc[2] == 0)) {
                     continue;
                  }
 
@@ -1334,7 +1335,7 @@ namespace SBC {
                     for(int yoffset : {0,1}) {
                        for(int zoffset : {0,1}) {
 
-                          Real coupling = abs(xoffset - (cell[0]-fsc[0])) * abs(yoffset - (cell[1]-fsc[1])) * abs(zoffset - (cell[2]-fsc[2]));
+                          Real coupling = fabs(xoffset - (cell[0]-fsc[0])) * fabs(yoffset - (cell[1]-fsc[1])) * fabs(zoffset - (cell[2]-fsc[2]));
 
                           B[c][0] += coupling*volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::PERBXVOL);
                           B[c][1] += coupling*volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::PERBYVOL);
@@ -1368,12 +1369,8 @@ namespace SBC {
               upmappedArea += fabs(areaVector[0] * avgB[0] + areaVector[1]*avgB[1] + areaVector[2]+avgB[2]);
            }
 
-           // divide by mu0 to get J. Also divide by 3, as every
-           // element will be counted from each of its corners.
-           //J /= 3. * physicalconstants::MU_0;
-           //FACinput[n] = J / area;
-
-           // Prevent areas from being multiply-counted
+           // Divide by 3, as every element will be counted from each of its
+           // corners.  Prevent areas from being multiply-counted
            area /= 3.;
            upmappedArea /= 3.;
 
@@ -1396,6 +1393,10 @@ namespace SBC {
                  for(int zoffset : {0,1}) {
 
                     Real coupling = abs(xoffset - (cell[0]-fsc[0])) * abs(yoffset - (cell[1]-fsc[1])) * abs(zoffset - (cell[2]-fsc[2]));
+                    if(coupling < 0. || coupling > 1.) {
+                       logFile << "Ionosphere warning: node << " << n << " has coupling value " << coupling <<
+                          ", which is outside [0,1] at line " << __LINE__ << "!" << endl << write;
+                    }
 
                     // Calc rotB
                     std::array<Real, 3> rotB;
@@ -1415,31 +1416,9 @@ namespace SBC {
                     Real FAC = Bnorm * (B[0]*rotB[0] + B[1]*rotB[1] + B[2]*rotB[2]) / physicalconstants::MU_0;
 
                     FACinput[n] += FAC * coupling * upmappedArea;
-                 }
-              }
-           }
 
 
-           // By definition, a downwards current into the ionosphere has a positive FAC value,
-           // as it corresponds to positive divergence of horizontal current in the ionospheric plane.
-           // To make sure we match that, flip FAC sign on the southern hemisphere
-           if(nodes[n].x[2] < 0) {
-              FACinput[n] *= -1;
-           }
-
-           // Map density and pressure down
-
-           // Linearly interpolate
-           for(int xoffset : {0,1}) {
-              for(int yoffset : {0,1}) {
-                 for(int zoffset : {0,1}) {
-
-                    Real coupling = abs(xoffset - (cell[0]-fsc[0])) * abs(yoffset - (cell[1]-fsc[1])) * abs(zoffset - (cell[2]-fsc[2]));
-                    if(coupling < 0. || coupling > 1.) {
-                       logFile << "Ionosphere warning: node << " << n << " has coupling value " << coupling <<
-                          ", which is outside [0,1] at line " << __LINE__ << "!" << endl << write;
-                    }
-
+                    // Map density and pressure down
                     if(technicalGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
                        rhoInput[n] += coupling * momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::RHOQ) / physicalconstants::CHARGE;
                        pressureInput[n] += coupling * 1./3. * (
@@ -1449,6 +1428,13 @@ namespace SBC {
                     }
                  }
               }
+           }
+
+           // By definition, a downwards current into the ionosphere has a positive FAC value,
+           // as it corresponds to positive divergence of horizontal current in the ionospheric plane.
+           // To make sure we match that, flip FAC sign on the southern hemisphere
+           if(nodes[n].x[2] < 0) {
+              FACinput[n] *= -1;
            }
 
            // Scale density and pressure by area ratio
