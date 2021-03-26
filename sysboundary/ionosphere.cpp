@@ -56,6 +56,8 @@ namespace SBC {
    // Ionosphere finite element grid
    SphericalTriGrid ionosphereGrid;
 
+   std::vector<IonosphereSpeciesParameters> Ionosphere::speciesParams;
+
    // Static ionosphere member variables
    Real Ionosphere::innerRadius;
    Real Ionosphere::radius;
@@ -1487,8 +1489,13 @@ namespace SBC {
         if(rhoSum[n] == 0 || pressureSum[n] == 0) {
            // Node couples nowhere. Assume some default values.
            nodes[n].parameters[ionosphereParameters::SOURCE] = 0;
-           nodes[n].parameters[ionosphereParameters::RHON] = 1e6; // TODO: shouldn't this be density 0?
-           nodes[n].parameters[ionosphereParameters::PRESSURE] = 2.76131e-10; // This pressure value results in an electron temp of 5e6 K
+
+           // TODO: These are assuming that population 0 is protons. Should it
+           // rather be a sum over all positively charged populations?
+           nodes[n].parameters[ionosphereParameters::RHON] = Ionosphere::speciesParams[0].rho;
+           nodes[n].parameters[ionosphereParameters::PRESSURE] =
+              Ionosphere::speciesParams[0].rho * physicalconstants::K_B *
+              Ionosphere::speciesParams[0].T;
         } else {
            // Store as the node's parameter values.
            // TODO: This is the point where a coupling timescale could be introduced.

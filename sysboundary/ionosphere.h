@@ -352,8 +352,11 @@ namespace SBC {
       
       virtual std::string getName() const;
       virtual uint getIndex() const;
-      static Real innerRadius; /*!< Radius of the ionosphere model */
       static Real radius; /*!< Radius of the inner simulation boundary */
+      static std::vector<IonosphereSpeciesParameters> speciesParams;
+
+      // Parameters of the ionosphere model
+      static Real innerRadius; /*!< Radius of the ionosphere model */
       static int solverMaxIterations; /*!< Maximum iterations of CG solver per timestep */
       static bool solverPreconditioning; /*!< Preconditioning for the CG solver */
       static Real eps; // Tolerance for Bulirsch Stoer Method
@@ -362,6 +365,7 @@ namespace SBC {
       static Real recombAlpha; // Recombination parameter, determining atmosphere ionizability (parameter)
       static Real F10_7; // Solar 10.7 Flux value (parameter)
       static Real backgroundIonisation; // Background ionisation due to stellar UV and cosmic rays
+
    protected:
       void generateTemplateCell(Project &project);
       void setCellFromTemplate(SpatialCell* cell,const uint popID);
@@ -384,12 +388,6 @@ namespace SBC {
       Real center[3]; /*!< Coordinates of the centre of the ionosphere. */
       uint geometry; /*!< Geometry of the ionosphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: polar-plane cylinder with line dipole. */
 
-      std::vector<IonosphereSpeciesParameters> speciesParams;
-      Real T;
-      Real rho;
-      Real VX0;
-      Real VY0;
-      Real VZ0;
 
       std::string baseShape; // Basic mesh shape (sphericalFibonacci / icosahedron / tetrahedron)
       int fibonacciNodeNum;  // If spherical fibonacci: number of nodes to generate
