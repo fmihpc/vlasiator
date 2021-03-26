@@ -1348,9 +1348,15 @@ namespace SBC {
 
                           Real coupling = fabs(xoffset - (cell[0]-fsc[0])) * fabs(yoffset - (cell[1]-fsc[1])) * fabs(zoffset - (cell[2]-fsc[2]));
 
-                          B[c][0] += coupling*volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::PERBXVOL);
-                          B[c][1] += coupling*volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::PERBYVOL);
-                          B[c][2] += coupling*volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::PERBZVOL);
+                          B[c][0] += coupling* (
+                                volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::PERBXVOL) +
+                                BgBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::BGBXVOL));
+                          B[c][1] += coupling* (
+                                volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::PERBYVOL) +
+                                BgBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::BGBYVOL));
+                          B[c][2] += coupling* (
+                                volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::PERBZVOL) +
+                                BgBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::BGBZVOL));
                        }
                     }
                  }
@@ -1365,7 +1371,8 @@ namespace SBC {
               std::array<Real, 3> avgB = {(B[0][0] + B[1][0] + B[2][0])/3.,
                  (B[0][1] + B[1][1] + B[2][1]) / 3.,
                  (B[0][2] + B[1][2] + B[2][2]) / 3.};
-              upmappedArea += fabs(areaVector[0] * avgB[0] + areaVector[1]*avgB[1] + areaVector[2]+avgB[2]);
+              upmappedArea += fabs(areaVector[0] * avgB[0] + areaVector[1]*avgB[1] + areaVector[2]+avgB[2]) /
+                 sqrt(avgB[0]*avgB[0] + avgB[1]*avgB[1] + avgB[2]*avgB[2]);
            }
 
            // Divide by 3, as every element will be counted from each of its
