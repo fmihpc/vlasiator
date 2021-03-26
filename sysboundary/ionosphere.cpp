@@ -1390,7 +1390,7 @@ namespace SBC {
 
            // Local cell
            std::array<int,3> lfsc = technicalGrid.globalToLocal(fsc[0],fsc[1],fsc[2]);
-           if(lfsc[0] == -1 && lfsc[1] == -1 && lfsc[2] == -1) {
+           if(lfsc[0] == -1 || lfsc[1] == -1 || lfsc[2] == -1) {
               continue;
            }
 
@@ -1471,7 +1471,7 @@ namespace SBC {
            }
 
            // Scale density and pressure by area ratio
-           //rhoInput[n] *= upmappedArea / area;
+           rhoInput[n] *= upmappedArea / area;
            //pressureInput[n] *= upmappedArea / area;
         }
      }
