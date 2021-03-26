@@ -1322,7 +1322,6 @@ namespace SBC {
                  std::array<Real,3> cell = corner.fsgridCellCoupling;
                  for(int i=0; i<3; i++) {
                     // Shift by half a cell, as we are sampling volume quantities that are logically located at cell centres.
-                    cell[i] -= 0.5; 
                     fsc[i] = floor(cell[i]);
                  }
 
@@ -1331,6 +1330,16 @@ namespace SBC {
                  if( (lfsc[0] == -1 && lfsc[1] == -1 && lfsc[2] == -1)
                       || (fsc[0] == 0 && fsc[1] == 0 && fsc[2] == 0)) {
                     continue;
+                 }
+
+                 for(int c=0; c<3; c++) {
+                    // Shift by half a cell, as we are sampling volume quantities that are logically located at cell centres.
+                    Real frac = cell[c] - floor(cell[c]);
+                    if(frac < 0.5) {
+                       lfsc[c] -= 1;
+                       fsc[c]-= 1;
+                    }
+                    cell[c] -= 0.5;
                  }
 
                  for(int xoffset : {0,1}) {
@@ -1365,11 +1374,8 @@ namespace SBC {
            upmappedArea /= 3.;
 
            //// Map down FAC based on magnetosphere rotB
-           //std::array<int,3> fsc;
            std::array<Real,3> cell = nodes[n].fsgridCellCoupling;
            for(int c=0; c<3; c++) {
-              // Shift by half a cell, as we are sampling volume quantities that are logically located at cell centres.
-              cell[c] -= 0.5; 
               fsc[c] = floor(cell[c]);
            }
 
@@ -1377,6 +1383,16 @@ namespace SBC {
            std::array<int,3> lfsc = technicalGrid.globalToLocal(fsc[0],fsc[1],fsc[2]);
            if(lfsc[0] == -1 && lfsc[1] == -1 && lfsc[2] == -1) {
               continue;
+           }
+
+           for(int c=0; c<3; c++) {
+              // Shift by half a cell, as we are sampling volume quantities that are logically located at cell centres.
+              Real frac = cell[c] - floor(cell[c]);
+              if(frac < 0.5) {
+                 lfsc[c] -= 1;
+                 fsc[c]-= 1;
+              }
+              cell[c] -= 0.5;
            }
 
            // Linearly interpolate neighbourhood
