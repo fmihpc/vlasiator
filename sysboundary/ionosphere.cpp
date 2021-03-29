@@ -1334,14 +1334,14 @@ namespace SBC {
                     continue;
                  }
 
-                 for(int c=0; c<3; c++) {
+                 for(int coord=0; coord<3; coord++) {
                     // Shift by half a cell, as we are sampling volume quantities that are logically located at cell centres.
-                    Real frac = cell[c] - floor(cell[c]);
+                    Real frac = cell[coord] - floor(cell[coord]);
                     if(frac < 0.5) {
-                       lfsc[c] -= 1;
-                       fsc[c]-= 1;
+                       lfsc[coord] -= 1;
+                       fsc[coord]-= 1;
                     }
-                    cell[c] -= 0.5;
+                    cell[coord] -= 0.5;
                  }
 
                  for(int xoffset : {0,1}) {
@@ -1988,7 +1988,14 @@ namespace SBC {
          Node& N=nodes[n];
          N.parameters[ionosphereParameters::ZZPARAM] = Atimes(n,ionosphereParameters::PPPARAM, true);
          N.parameters[ionosphereParameters::SOLUTION] += ak * N.parameters[ionosphereParameters::PPARAM];
-         //iSolverReal newresid = N.parameters[ionosphereParameters::RESIDUAL] - ak * N.parameters[ionosphereParameters::ZPARAM];
+
+         // Calculate residual of the new solution. The faster way to do this would be
+         //
+         // iSolverReal newresid = N.parameters[ionosphereParameters::RESIDUAL] - ak * N.parameters[ionosphereParameters::ZPARAM];
+         // 
+         // but doing so leads to numerical inaccuracy due to roundoff errors
+         // when iteration counts are high (because, for example, mesh node count is high).
+         // See https://en.wikipedia.org/wiki/Conjugate_gradient_method#Explicit_residual_calculation
          iSolverReal newresid = N.parameters[ionosphereParameters::SOURCE] - Atimes(n, ionosphereParameters::SOLUTION);
          N.parameters[ionosphereParameters::RESIDUAL] = newresid;
          residualnorm += newresid * newresid;
