@@ -1949,7 +1949,7 @@ namespace SBC {
          Node& N=nodes[n];
          bknum += N.parameters[ionosphereParameters::ZPARAM] * N.parameters[ionosphereParameters::RRESIDUAL];
        }
-       if(iteration == 0) {
+       if(iteration%100 == 0) {
           // Just use the gradient vector as-is
           for(uint n=0; n<nodes.size(); n++) {
              Node& N=nodes[n];
@@ -1977,7 +1977,7 @@ namespace SBC {
        iSolverReal akden = 0;
        for(uint n=0; n<nodes.size(); n++) {
          Node& N=nodes[n];
-         iSolverReal zparam = Atimes(n, ionosphereParameters::PPARAM);
+         iSolverReal zparam = Atimes(n, ionosphereParameters::PPARAM, false);
          N.parameters[ionosphereParameters::ZPARAM] = zparam;
          akden += zparam * N.parameters[ionosphereParameters::PPPARAM];
        }
@@ -1988,7 +1988,8 @@ namespace SBC {
          Node& N=nodes[n];
          N.parameters[ionosphereParameters::ZZPARAM] = Atimes(n,ionosphereParameters::PPPARAM, true);
          N.parameters[ionosphereParameters::SOLUTION] += ak * N.parameters[ionosphereParameters::PPARAM];
-         iSolverReal newresid = N.parameters[ionosphereParameters::RESIDUAL] - ak * N.parameters[ionosphereParameters::ZPARAM];
+         //iSolverReal newresid = N.parameters[ionosphereParameters::RESIDUAL] - ak * N.parameters[ionosphereParameters::ZPARAM];
+         iSolverReal newresid = N.parameters[ionosphereParameters::SOURCE] - Atimes(n, ionosphereParameters::SOLUTION);
          N.parameters[ionosphereParameters::RESIDUAL] = newresid;
          residualnorm += newresid * newresid;
          N.parameters[ionosphereParameters::RRESIDUAL] -= ak * N.parameters[ionosphereParameters::ZZPARAM];
@@ -2025,11 +2026,13 @@ namespace SBC {
 
      }
 
-     //cerr << "(ionosphere) Exhausted iterations. Remaining error " << minerr << endl;
-     for(uint n=0; n<nodes.size(); n++) {
-        Node& N=nodes[n];
-        N.parameters[ionosphereParameters::SOLUTION] = N.parameters[ionosphereParameters::BEST_SOLUTION];
+     if(rank == 0) { 
+        cerr << "(ionosphere) Solver exhausted iterations. Remaining error " << minerr << endl;
      }
+     //for(uint n=0; n<nodes.size(); n++) {
+     //   Node& N=nodes[n];
+     //   N.parameters[ionosphereParameters::SOLUTION] = N.parameters[ionosphereParameters::BEST_SOLUTION];
+     //}
      phiprof::stop("ionosphere-solve");
    }
 
