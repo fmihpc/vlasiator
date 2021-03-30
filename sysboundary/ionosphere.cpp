@@ -1320,48 +1320,11 @@ namespace SBC {
 
                  const Node& corner = nodes[el.corners[c]];
 
-                 // Get fsgrid coordinate of mapping
-                 std::array<Real,3> cell = corner.fsgridCellCoupling;
-                 for(int i=0; i<3; i++) {
-                    // Shift by half a cell, as we are sampling volume quantities that are logically located at cell centres.
-                    fsc[i] = floor(cell[i]);
-                 }
+                 const std::array<Real,3>& x = corner.xMapped;
 
-                 // Local cell
-                 std::array<int,3> lfsc = technicalGrid.globalToLocal(fsc[0],fsc[1],fsc[2]);
-                 if( (lfsc[0] == -1 && lfsc[1] == -1 && lfsc[2] == -1)
-                      || (fsc[0] == 0 && fsc[1] == 0 && fsc[2] == 0)) {
-                    continue;
-                 }
-
-                 for(int coord=0; coord<3; coord++) {
-                    // Shift by half a cell, as we are sampling volume quantities that are logically located at cell centres.
-                    Real frac = cell[coord] - floor(cell[coord]);
-                    if(frac < 0.5) {
-                       lfsc[coord] -= 1;
-                       fsc[coord]-= 1;
-                    }
-                    cell[coord] -= 0.5;
-                 }
-
-                 for(int xoffset : {0,1}) {
-                    for(int yoffset : {0,1}) {
-                       for(int zoffset : {0,1}) {
-
-                          Real coupling = fabs(xoffset - (cell[0]-fsc[0])) * fabs(yoffset - (cell[1]-fsc[1])) * fabs(zoffset - (cell[2]-fsc[2]));
-
-                          B[c][0] += coupling* (
-                                volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::PERBXVOL) +
-                                BgBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::BGBXVOL));
-                          B[c][1] += coupling* (
-                                volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::PERBYVOL) +
-                                BgBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::BGBYVOL));
-                          B[c][2] += coupling* (
-                                volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::PERBZVOL) +
-                                BgBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::BGBZVOL));
-                       }
-                    }
-                 }
+                 B[c][0] = dipoleField(x[0],x[1],x[2],X, 0, X);
+                 B[c][1] = dipoleField(x[0],x[1],x[2],Y, 0, Y);
+                 B[c][2] = dipoleField(x[0],x[1],x[2],Z, 0, Z);
               }
 
               // Also sum up touching elements' areas and upmapped areas to compress
