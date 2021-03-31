@@ -1146,18 +1146,14 @@ namespace SBC {
                   // Cell found, add association.
                   isCouplingInwards = true;
 
-                  // Calculate interpolation factor for this neighbour
-                  //Real a = 1. - fabs(offset_x - interpolationFactor[0]) *
-                  //   fabs(offset_y - interpolationFactor[1]) *
-                  //   fabs(offset_z - interpolationFactor[2]);
-
-                  //no.fsgridCellCoupling.push_back({fsgridCell, a});
-
-                  // Store the cells mapped coordinates
+                  // Store the cells mapped coordinates and upmapped magnetic field
                   no.xMapped = x;
                   for(int c=0; c<3; c++) {
                      no.fsgridCellCoupling[c] = (x[c] - technicalGrid.physicalGlobalStart[c]) / technicalGrid.DX;
                   }
+                  no.parameters[ionosphereParameters::UPMAPPED_BX]= dipoleField(x[0],x[1],x[2],X, 0, X);
+                  no.parameters[ionosphereParameters::UPMAPPED_BY]= dipoleField(x[0],x[1],x[2],Y, 0, Y);
+                  no.parameters[ionosphereParameters::UPMAPPED_BZ]= dipoleField(x[0],x[1],x[2],Z, 0, Z);
 
                   break;
                }
@@ -1320,11 +1316,9 @@ namespace SBC {
 
                  const Node& corner = nodes[el.corners[c]];
 
-                 const std::array<Real,3>& x = corner.xMapped;
-
-                 B[c][0] = dipoleField(x[0],x[1],x[2],X, 0, X);
-                 B[c][1] = dipoleField(x[0],x[1],x[2],Y, 0, Y);
-                 B[c][2] = dipoleField(x[0],x[1],x[2],Z, 0, Z);
+                 B[c][0] = corner.parameters[ionosphereParameters::UPMAPPED_BX];
+                 B[c][1] = corner.parameters[ionosphereParameters::UPMAPPED_BY];
+                 B[c][2] = corner.parameters[ionosphereParameters::UPMAPPED_BZ];
               }
 
               // Also sum up touching elements' areas and upmapped areas to compress
