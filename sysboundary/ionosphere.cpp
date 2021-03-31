@@ -1893,6 +1893,7 @@ namespace SBC {
      iSolverReal err = 0;
      iSolverReal minerr = 1e30;
      iSolverReal bkden = 1.;
+     int failcount=0;
      for(int iteration =0; iteration < Ionosphere::solverMaxIterations; iteration++) {
 
        for(uint n=0; n<nodes.size(); n++) {
@@ -1906,13 +1907,15 @@ namespace SBC {
          Node& N=nodes[n];
          bknum += N.parameters[ionosphereParameters::ZPARAM] * N.parameters[ionosphereParameters::RRESIDUAL];
        }
-       if(iteration%100 == 0) {
+       if(iteration == 0 || failcount > 64) {
           // Just use the gradient vector as-is
           for(uint n=0; n<nodes.size(); n++) {
              Node& N=nodes[n];
              N.parameters[ionosphereParameters::PPARAM] = N.parameters[ionosphereParameters::ZPARAM];
              N.parameters[ionosphereParameters::PPPARAM] = N.parameters[ionosphereParameters::ZZPARAM];
           }
+
+          failcount = 0;
        } else {
           // Perform gram-smith orthogonalization to get conjugate gradient
           iSolverReal bk = bknum / bkden;
@@ -1937,26 +1940,29 @@ namespace SBC {
          iSolverReal zparam = Atimes(n, ionosphereParameters::PPARAM, false);
          N.parameters[ionosphereParameters::ZPARAM] = zparam;
          akden += zparam * N.parameters[ionosphereParameters::PPPARAM];
+         N.parameters[ionosphereParameters::ZZPARAM] = Atimes(n,ionosphereParameters::PPPARAM, true);
        }
        iSolverReal ak=bknum/akden;
 
        iSolverReal residualnorm = 0;
        for(uint n=0; n<nodes.size(); n++) {
          Node& N=nodes[n];
-         N.parameters[ionosphereParameters::ZZPARAM] = Atimes(n,ionosphereParameters::PPPARAM, true);
          N.parameters[ionosphereParameters::SOLUTION] += ak * N.parameters[ionosphereParameters::PPARAM];
 
          // Calculate residual of the new solution. The faster way to do this would be
          //
          // iSolverReal newresid = N.parameters[ionosphereParameters::RESIDUAL] - ak * N.parameters[ionosphereParameters::ZPARAM];
+         // and
+         // N.parameters[ionosphereParameters::RRESIDUAL] -= ak * N.parameters[ionosphereParameters::ZZPARAM];
          // 
          // but doing so leads to numerical inaccuracy due to roundoff errors
-         // when iteration counts are high (because, for example, mesh node count is high).
+         // when iteration counts are high (because, for example, mesh node count is high and the matrix condition is bad).
          // See https://en.wikipedia.org/wiki/Conjugate_gradient_method#Explicit_residual_calculation
          iSolverReal newresid = N.parameters[ionosphereParameters::SOURCE] - Atimes(n, ionosphereParameters::SOLUTION);
          N.parameters[ionosphereParameters::RESIDUAL] = newresid;
          residualnorm += newresid * newresid;
-         N.parameters[ionosphereParameters::RRESIDUAL] -= ak * N.parameters[ionosphereParameters::ZZPARAM];
+         
+         N.parameters[ionosphereParameters::RRESIDUAL] = N.parameters[ionosphereParameters::SOURCE] - Atimes(n, ionosphereParameters::SOLUTION, true);
        }
        for(uint n=0; n<nodes.size(); n++) {
          Node& N=nodes[n];
@@ -1972,12 +1978,14 @@ namespace SBC {
            N.parameters[ionosphereParameters::BEST_SOLUTION] = N.parameters[ionosphereParameters::SOLUTION];
          }
          minerr = err;
+         failcount = 0;
        } else {
-         // If no, keep going with the best one.
+         // If no, keep going with the best one
          for(uint n=0; n<nodes.size(); n++) {
            Node& N=nodes[n];
            N.parameters[ionosphereParameters::SOLUTION] = N.parameters[ionosphereParameters::BEST_SOLUTION];
          }
+         failcount++;
        }
 
        if(minerr < 1e-6) {
@@ -1987,16 +1995,17 @@ namespace SBC {
          phiprof::stop("ionosphere-solve");
          return;
        }
-
+       
      }
 
      if(rank == 0) { 
         cerr << "(ionosphere) Solver exhausted iterations. Remaining error " << minerr << endl;
      }
-     //for(uint n=0; n<nodes.size(); n++) {
-     //   Node& N=nodes[n];
-     //   N.parameters[ionosphereParameters::SOLUTION] = N.parameters[ionosphereParameters::BEST_SOLUTION];
-     //}
+
+     for(uint n=0; n<nodes.size(); n++) {
+        Node& N=nodes[n];
+        N.parameters[ionosphereParameters::SOLUTION] = N.parameters[ionosphereParameters::BEST_SOLUTION];
+     }
      phiprof::stop("ionosphere-solve");
    }
 
