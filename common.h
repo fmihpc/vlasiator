@@ -379,7 +379,7 @@ namespace fsgrids {
 
 // Ionosphere node parameters
 enum ionosphereParameters {
-  SOURCE,    /*!< Field aligned current source term */
+  SOURCE,    /*!< Field aligned current source term (Ampere). Note: this is current, *not* density. */
   SIGMA,   SIGMA12, SIGMA13, 
   SIGMA21, SIGMA22, SIGMA23, /*!< Overall conductivity tensor */
   SIGMA31, SIGMA32, SIGMA33,
@@ -389,9 +389,7 @@ enum ionosphereParameters {
   PRECIP,   /*!< Precipitation */
   RHON,     /*!< Downmapped magnetospheric plasma number density */
   PRESSURE, /*!< Downmapped scalar pressure */
-  //BX1,       
-  //BY1,
-  //BZ1,
+  UPMAPPED_BX,UPMAPPED_BY,UPMAPPED_BZ, /*!< Magnetic field at the upper and of the mapping fieldline */
   SOLUTION, /*!< Currently considered solution potential */
   BEST_SOLUTION, /*!< Best solution found so far */
   RESIDUAL, /*!< Residual of the current solution */

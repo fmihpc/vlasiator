@@ -44,8 +44,10 @@ namespace SBC {
       uint nVelocitySamples;
    };
 
-   static const int MAX_TOUCHING_ELEMENTS = 11; // Maximum number of elements touching one node
+   static const int MAX_TOUCHING_ELEMENTS = 12; // Maximum number of elements touching one node
    static const int MAX_DEPENDING_NODES = 22;   // Maximum number of depending nodes
+
+   typedef Real iSolverReal; // Datatype for the ionosphere solver internal state
 
    // Ionosphere finite element grid
    struct SphericalTriGrid {
@@ -73,7 +75,7 @@ namespace SBC {
          std::array<Real, 3> x = {0,0,0}; // Coordinates of the node
          std::array<Real, 3> xMapped = {0,0,0}; // Coordinates mapped along fieldlines into simulation domain
 
-         std::array<Real, N_IONOSPHERE_PARAMETERS> parameters = {0}; // Parameters carried by the node, see common.h
+         std::array<iSolverReal, N_IONOSPHERE_PARAMETERS> parameters = {0}; // Parameters carried by the node, see common.h
          std::array<Real,3> fsgridCellCoupling = {0,0,0}; // Where (in fsgrid cell coordinate space) does this fieldline map?
 
          // Some calculation helpers
@@ -84,21 +86,26 @@ namespace SBC {
             return parameters[ionosphereParameters::PRESSURE] /
                (ion_electron_T_ratio * physicalconstants::K_B * electronDensity());
          }
-         Real deltaPhi() { // Field aligned potential drop between i'spherer and m'sphere
+         Real deltaPhi() { // Field aligned potential drop between i'sphere and m'sphere
 
-            if(electronDensity() == 0) {
-               return 0;
-            }
+            // When the Knight-parameter is irrelevant, we can set this to zero
+            return 0;
 
-            Real retval = physicalconstants::K_B * electronTemperature() / physicalconstants::CHARGE
-               * ((parameters[ionosphereParameters::SOURCE] / (physicalconstants::CHARGE * electronDensity()))
-               * sqrt(2. * M_PI * physicalconstants::MASS_ELECTRON / (physicalconstants::K_B * electronTemperature())) - 1.);
-            // A positive value means an upward current (i.e. electron precipitation).
-            // A negative value quickly gets neutralized from the atmosphere.
+            // Alternative: Calculate it just like GUMCS does
+
+            //if(electronDensity() == 0) {
+            //   return 0;
+            //}
+
+            //Real retval = physicalconstants::K_B * electronTemperature() / physicalconstants::CHARGE
+            //   * ((parameters[ionosphereParameters::SOURCE] / (physicalconstants::CHARGE * electronDensity()))
+            //   * sqrt(2. * M_PI * physicalconstants::MASS_ELECTRON / (physicalconstants::K_B * electronTemperature())) - 1.);
+            //// A positive value means an upward current (i.e. electron precipitation).
+            //// A negative value quickly gets neutralized from the atmosphere.
             //if(retval < 0 || isnan(retval)) {
             //   retval = 0;
             //}
-            return retval;
+            //return retval;
          }
 
       };
@@ -159,6 +166,7 @@ namespace SBC {
       int32_t findElementNeighbour(uint32_t e, int n1, int n2);
       uint32_t findNodeAtCoordinates(std::array<Real,3> x); // Find the mesh node closest to the given coordinate
       void subdivideElement(uint32_t e);  // Subdivide mesh within element e
+      void stitchRefinementInterfaces(); // Make sure there are no t-junctions in the mesh by splitting neighbours
       void calculatePrecipitation(); // Estimate precipitation flux
       void calculateConductivityTensor(const Real F10_7, const Real recombAlpha, const Real backgroundIonisation); // Update sigma tensor
       void calculateFsgridCoupling(FsGrid< fsgrids::technical, 2> & technicalGrid, Real radius);     // Link each element to fsgrid cells for coupling
@@ -176,15 +184,14 @@ namespace SBC {
       void addMatrixDependency(uint node1, uint node2, Real coeff, bool transposed=false); // Add matrix value for the solver
       void addAllMatrixDependencies(uint nodeIndex);
       void initSolver(bool zeroOut=true);  // Initialize the CG solver
-      Real Atimes(uint nodeIndex, int parameter, bool transpose=false); // Evaluate neighbour nodes' coupled parameter
-      Real Asolve(uint nodeIndex, int parameter); // Evaluate own parameter value
+      iSolverReal Atimes(uint nodeIndex, int parameter, bool transpose=false); // Evaluate neighbour nodes' coupled parameter
+      Real Asolve(uint nodeIndex, int parameter, bool transpose=false); // Evaluate own parameter value
       void solve();
 
       // Map field-aligned currents, density and pressure
       // down from the simulation boundary onto this grid
       void mapDownBoundaryData(
-          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
-          FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
+          FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volgrid,
           FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid,
           FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsGrid,
           FsGrid< fsgrids::technical, 2> & technicalGrid);
@@ -230,8 +237,17 @@ namespace SBC {
                                    0.5 * (e1[2]*e2[0] - e1[0]*e2[2]),
                                    0.5 * (e1[0]*e2[1] - e1[1]*e2[0])};
         
+         // By definition, the area is oriented outwards, so if dot(r,A) < 0, flip it.
+         std::array<Real, 3> r{
+            (a[0]+b[0]+c[0])/3.,
+            (a[1]+b[1]+c[1])/3.,
+            (a[2]+b[2]+c[2])/3.};
+         if(area[0]*r[0] + area[1]*r[1] + area[2] *r[2] < 0) {
+            area[0]*=-1.;
+            area[1]*=-1.;
+            area[2]*=-1.;
+         }
          return area;
-         //return 0.5 * sqrt( area[0]*area[0] + area[1]*area[1] + area[2]*area[2] );
       }
 
       Real nodeNeighbourArea(uint32_t nodeIndex) { // Summed area of all touching elements
@@ -336,14 +352,20 @@ namespace SBC {
       
       virtual std::string getName() const;
       virtual uint getIndex() const;
+      static Real radius; /*!< Radius of the inner simulation boundary */
+      static std::vector<IonosphereSpeciesParameters> speciesParams;
+
+      // Parameters of the ionosphere model
       static Real innerRadius; /*!< Radius of the ionosphere model */
       static int solverMaxIterations; /*!< Maximum iterations of CG solver per timestep */
+      static bool solverPreconditioning; /*!< Preconditioning for the CG solver */
       static Real eps; // Tolerance for Bulirsch Stoer Method
       
       // TODO: Make these parameters of the IonosphereGrid
       static Real recombAlpha; // Recombination parameter, determining atmosphere ionizability (parameter)
       static Real F10_7; // Solar 10.7 Flux value (parameter)
       static Real backgroundIonisation; // Background ionisation due to stellar UV and cosmic rays
+
    protected:
       void generateTemplateCell(Project &project);
       void setCellFromTemplate(SpatialCell* cell,const uint popID);
@@ -351,7 +373,9 @@ namespace SBC {
       Real shiftedMaxwellianDistribution(const uint popID,creal& vx, creal& vy, creal& vz);
       
       vector<vmesh::GlobalID> findBlocksToInitialize(
-         SpatialCell& cell,const uint popID
+         SpatialCell& cell,
+         const std::array<Real, 3> & vDrift,
+         const uint popID
       );
       
       std::array<Real, 3> fieldSolverGetNormalDirection(
@@ -362,15 +386,8 @@ namespace SBC {
       );
       
       Real center[3]; /*!< Coordinates of the centre of the ionosphere. */
-      Real radius; /*!< Radius of the inner simulation boundary */
       uint geometry; /*!< Geometry of the ionosphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: polar-plane cylinder with line dipole. */
 
-      std::vector<IonosphereSpeciesParameters> speciesParams;
-      Real T;
-      Real rho;
-      Real VX0;
-      Real VY0;
-      Real VZ0;
 
       std::string baseShape; // Basic mesh shape (sphericalFibonacci / icosahedron / tetrahedron)
       int fibonacciNodeNum;  // If spherical fibonacci: number of nodes to generate

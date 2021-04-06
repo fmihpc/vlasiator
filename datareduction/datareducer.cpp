@@ -1203,7 +1203,12 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      std::vector<Real> retval(grid.nodes.size());
 
                      for(uint i=0; i<grid.nodes.size(); i++) {
-                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::SOURCE];
+                        Real area = 0;
+                        for(uint e=0; e<grid.nodes[i].numTouchingElements; e++) {
+                           area += grid.elementArea(grid.nodes[i].touchingElements[e]);
+                        }
+                        area /= 3.; // As every element has 3 corners, don't double-count areas
+                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::SOURCE]/area;
                      }
 
                      return retval;
@@ -1217,15 +1222,26 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 
                   std::vector<Real> retval(3);
 
-                  int coupledNode = -1; //TODO: Fixme!
-                  if(coupledNode == -1) {
-                     retval[0] = 0;
-                     retval[1] = 0;
-                     retval[2] = 0;
-                  } else {
-                     retval[0] = SBC::ionosphereGrid.nodes[coupledNode].x[0] - (cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX]);
-                     retval[1] = SBC::ionosphereGrid.nodes[coupledNode].x[1] - (cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY]);
-                     retval[2] = SBC::ionosphereGrid.nodes[coupledNode].x[2] - (cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ]);
+                  // Just return a 0,0,0 vector for non-ionosphere cells
+                  if(cell->sysBoundaryFlag != sysboundarytype::IONOSPHERE) {
+                     retval[0]=0;
+                     retval[1]=0;
+                     retval[2]=0;
+                     return retval;
+                  }
+
+                  std::array<Real, 3> x;
+                  x[0] = cell->parameters[CellParams::XCRD] + cell->parameters[CellParams::DX];
+                  x[1] = cell->parameters[CellParams::YCRD] + cell->parameters[CellParams::DY];
+                  x[2] = cell->parameters[CellParams::ZCRD] + cell->parameters[CellParams::DZ];
+
+                  std::array<std::pair<int, Real>, 3> coupling = SBC::ionosphereGrid.calculateVlasovGridCoupling(x, SBC::Ionosphere::radius);
+                  for(int i=0; i<3; i++) {
+                     uint coupledNode = coupling[i].first;
+                     Real a = coupling[i].second;
+                     retval[0] += a*SBC::ionosphereGrid.nodes[coupledNode].x[0] - (cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX]);
+                     retval[1] = a*SBC::ionosphereGrid.nodes[coupledNode].x[1] - (cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY]);
+                     retval[2] = a*SBC::ionosphereGrid.nodes[coupledNode].x[2] - (cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ]);
                   }
 
                   return retval;
