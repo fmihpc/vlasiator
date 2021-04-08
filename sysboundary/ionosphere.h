@@ -76,7 +76,7 @@ namespace SBC {
          std::array<Real, 3> xMapped = {0,0,0}; // Coordinates mapped along fieldlines into simulation domain
 
          std::array<iSolverReal, N_IONOSPHERE_PARAMETERS> parameters = {0}; // Parameters carried by the node, see common.h
-         std::array<Real,3> fsgridCellCoupling = {0,0,0}; // Where (in fsgrid cell coordinate space) does this fieldline map?
+         std::array<Real,3> fsgridCellCoupling = {-1.,-1.,-1.}; // Where (in fsgrid cell coordinate space) does this fieldline map?
 
          // Some calculation helpers
          Real electronDensity() { // Electron Density

@@ -1341,6 +1341,10 @@ namespace SBC {
 
            //// Map down FAC based on magnetosphere rotB
            std::array<Real,3> cell = nodes[n].fsgridCellCoupling;
+           if(cell[0] == -1. || cell[1] == -1. || cell[2] == -1.) {
+              // Skip cells that couple nowhere
+              continue;
+           }
            for(int c=0; c<3; c++) {
               fsc[c] = floor(cell[c]);
            }
