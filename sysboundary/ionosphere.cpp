@@ -830,7 +830,7 @@ namespace SBC {
             }
          }
       }
-      phiprof::stop("ionosphere-readAtmosphericModelFile");
+      phiprof::stop("ionosphere-calculateConductivityTensor");
    }
     
    /*Simple method to tranlate 3D to 1D indeces*/
