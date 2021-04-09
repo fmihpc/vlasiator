@@ -26,6 +26,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 
 #include "ionosphere.h"
@@ -1820,6 +1821,24 @@ namespace SBC {
      for(uint n=0; n<nodes.size(); n++) {
        addAllMatrixDependencies(n);
      }
+     
+     logFile << "(ionosphere) Solver dependency matrix: " << endl;
+     for(uint n=0; n<nodes.size(); n++) {
+        for(uint m=0; m<nodes.size(); m++) {
+
+           Real val=0;
+           for(int d=0; d<nodes[n].numDepNodes; d++) {
+             if(nodes[n].dependingNodes[d] == m) {
+               val=nodes[n].dependingCoeffs[d];
+             }
+           }
+
+           logFile << std::setw(5) << val << "\t";
+        }
+        logFile << endl;
+     }
+     logFile << write;
+
      phiprof::stop("ionosphere-initSolver");
    }
 
