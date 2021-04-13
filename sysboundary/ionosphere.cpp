@@ -26,6 +26,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 
 #include "ionosphere.h"
@@ -804,7 +805,7 @@ namespace SBC {
             coschi = 0;
          }
          Real sigmaP_dayside = backgroundIonisation + F10_7_p_049 * (0.34 * coschi + 0.93 * sqrt(coschi));
-         Real sigmaH_dayside = backgroundIonisation + F10_7_p_053 * (0.81 * coschi + 0.52 * sqrt(coschi));
+         Real sigmaH_dayside = backgroundIonisation + F10_7_p_053 * (0.81 * coschi + 0.54 * sqrt(coschi));
 
          nodes[n].parameters[ionosphereParameters::SIGMAP] = sqrt( pow(nodes[n].parameters[ionosphereParameters::SIGMAP],2) + pow(sigmaP_dayside,2));
          nodes[n].parameters[ionosphereParameters::SIGMAH] = sqrt( pow(nodes[n].parameters[ionosphereParameters::SIGMAH],2) + pow(sigmaH_dayside,2));
@@ -830,7 +831,7 @@ namespace SBC {
             }
          }
       }
-      phiprof::stop("ionosphere-readAtmosphericModelFile");
+      phiprof::stop("ionosphere-calculateConductivityTensor");
    }
     
    /*Simple method to tranlate 3D to 1D indeces*/
@@ -1341,6 +1342,10 @@ namespace SBC {
 
            //// Map down FAC based on magnetosphere rotB
            std::array<Real,3> cell = nodes[n].fsgridCellCoupling;
+           if(cell[0] == -1. || cell[1] == -1. || cell[2] == -1.) {
+              // Skip cells that couple nowhere
+              continue;
+           }
            for(int c=0; c<3; c++) {
               fsc[c] = floor(cell[c]);
            }
@@ -1816,6 +1821,24 @@ namespace SBC {
      for(uint n=0; n<nodes.size(); n++) {
        addAllMatrixDependencies(n);
      }
+     
+     logFile << "(ionosphere) Solver dependency matrix: " << endl;
+     for(uint n=0; n<nodes.size(); n++) {
+        for(uint m=0; m<nodes.size(); m++) {
+
+           Real val=0;
+           for(int d=0; d<nodes[n].numDepNodes; d++) {
+             if(nodes[n].dependingNodes[d] == m) {
+               val=nodes[n].dependingCoeffs[d];
+             }
+           }
+
+           logFile << std::setw(5) << val << "\t";
+        }
+        logFile << endl;
+     }
+     logFile << write;
+
      phiprof::stop("ionosphere-initSolver");
    }
 
