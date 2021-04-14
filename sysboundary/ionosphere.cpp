@@ -67,6 +67,7 @@ namespace SBC {
    Real Ionosphere::backgroundIonisation; // Background ionisation due to stellar UV and cosmic rays
    int  Ionosphere::solverMaxIterations;
    bool  Ionosphere::solverPreconditioning;
+   enum Ionosphere::IonosphereConductivityModel Ionosphere::conductivityModel;
    Real  Ionosphere::eps;
 
    // Offset field aligned currents so their sum is 0
@@ -582,7 +583,6 @@ namespace SBC {
             // TODO: Ugh, hardcoded constants. What is this?
             newLayer.nui = 1e-16*(2*c1 + 3.8*c2 + 5*c3);
             atmosphere[altindex++] = newLayer;
-            //logFile << "(ionosphere) added atmospheric layer at altitude " << altitude << " with density " << density << ", depth" << integratedDensity << ", nui=" << newLayer.nui << endl << write;
          }
       }
 
@@ -592,13 +592,14 @@ namespace SBC {
          atmosphere[h].depth = integratedDensity - atmosphere[h].depth;
       }
 
-      // Calculate hall and pederson conductivity coefficient based on charge carrier density
+      // Calculate Hall and Pedersen conductivity coefficient based on charge carrier density
       const Real Bval = 5e-5; // TODO: Hardcoded B strength here?
       const Real gyroFreq = physicalconstants::CHARGE * Bval / (31*physicalconstants::MASS_PROTON); // Oxygen gyration frequency
       for(int h=0; h<numAtmosphereLevels; h++) {
          Real rho = atmosphere[h].nui / gyroFreq;
          atmosphere[h].pedersencoeff = (physicalconstants::CHARGE/Bval)*(rho/(1+rho*rho));
          atmosphere[h].hallcoeff = rho * atmosphere[h].pedersencoeff;
+         atmosphere[h].parallelcoeff = physicalconstants::CHARGE*physicalconstants::CHARGE / ((31. * physicalconstants::MASS_PROTON)  * atmosphere[h].nui);
       }
 
 
@@ -777,9 +778,11 @@ namespace SBC {
             Real halfdx = 1000 * 0.5 * (atmosphere[h].altitude -  atmosphere[h-1].altitude);
             Real halfCH = halfdx * 0.5 * (atmosphere[h-1].hallcoeff + atmosphere[h].hallcoeff);
             Real halfCP = halfdx * 0.5 * (atmosphere[h-1].pedersencoeff + atmosphere[h].pedersencoeff);
+            Real halfCpara = halfdx * 0.5 * (atmosphere[h-1].parallelcoeff + atmosphere[h].parallelcoeff);
 
             nodes[n].parameters[ionosphereParameters::SIGMAP] += (electronDensity[h]+electronDensity[h-1]) * halfCP;
             nodes[n].parameters[ionosphereParameters::SIGMAH] += (electronDensity[h]+electronDensity[h-1]) * halfCH;
+            nodes[n].parameters[ionosphereParameters::SIGMAPARALLEL] += (electronDensity[h]+electronDensity[h-1]) * halfCpara;
          }
       }
 
@@ -810,25 +813,53 @@ namespace SBC {
          nodes[n].parameters[ionosphereParameters::SIGMAP] = sqrt( pow(nodes[n].parameters[ionosphereParameters::SIGMAP],2) + pow(sigmaP_dayside,2));
          nodes[n].parameters[ionosphereParameters::SIGMAH] = sqrt( pow(nodes[n].parameters[ionosphereParameters::SIGMAH],2) + pow(sigmaH_dayside,2));
 
-         // Approximate B vector = radial vector
-         // TODO: Can't we easily do better than this?
-         std::array<Real, 3> b = {x[0] / Ionosphere::innerRadius, x[1] / Ionosphere::innerRadius, x[2] / Ionosphere::innerRadius};
-         if(x[2] >= 0) {
-            b[0] *= -1;
-            b[1] *= -1;
-            b[2] *= -1;
-         }
-
          // Build conductivity tensor
          Real sigmaP = nodes[n].parameters[ionosphereParameters::SIGMAP];
          Real sigmaH = nodes[n].parameters[ionosphereParameters::SIGMAH];
-         for(int i=0; i<3; i++) {
-            for(int j=0; j<3; j++) {
-               nodes[n].parameters[ionosphereParameters::SIGMA + i*3 + j] = sigmaP * ((i==j? 1. : 0.) - b[i]*b[j]);
-               for(int k=0; k<3; k++) {
-                  nodes[n].parameters[ionosphereParameters::SIGMA + i*3 + j] -= sigmaH * epsilon[i][j][k]*b[k];
+         Real sigmaParallel = nodes[n].parameters[ionosphereParameters::SIGMAPARALLEL] + 1000;
+
+         // GUMICS-Style conductivity tensor.
+         // Approximate B vector = radial vector
+         // SigmaP and SigmaH are both in-plane with the mesh
+         // No longitudinal conductivity
+         if(Ionosphere::conductivityModel == Ionosphere::GUMICS) {
+            std::array<Real, 3> b = {x[0] / Ionosphere::innerRadius, x[1] / Ionosphere::innerRadius, x[2] / Ionosphere::innerRadius};
+            if(x[2] >= 0) {
+               b[0] *= -1;
+               b[1] *= -1;
+               b[2] *= -1;
+            }
+
+            for(int i=0; i<3; i++) {
+               for(int j=0; j<3; j++) {
+                  nodes[n].parameters[ionosphereParameters::SIGMA + i*3 + j] = sigmaP * (((i==j)? 1. : 0.) - b[i]*b[j]);
+                  for(int k=0; k<3; k++) {
+                     nodes[n].parameters[ionosphereParameters::SIGMA + i*3 + j] -= sigmaH * epsilon[i][j][k]*b[k];
+                  }
                }
             }
+         } else if(Ionosphere::conductivityModel == Ionosphere::Ridley) {
+
+            std::array<Real, 3> b = {
+               dipoleField(x[0],x[1],x[2],X,0,X),
+               dipoleField(x[0],x[1],x[2],Y,0,Y),
+               dipoleField(x[0],x[1],x[2],Z,0,Z)
+            };
+            Real Bnorm = sqrt(b[0]*b[0]+b[1]*b[1]+b[2]*b[2]);
+            b[0] /= Bnorm;
+            b[1] /= Bnorm;
+            b[2] /= Bnorm;
+
+            for(int i=0; i<3; i++) {
+               for(int j=0; j<3; j++) {
+                  nodes[n].parameters[ionosphereParameters::SIGMA + i*3 + j] = sigmaP * ((i==j)? 1. : 0.) + (sigmaParallel - sigmaP)*b[i]*b[j];
+                  for(int k=0; k<3; k++) {
+                     nodes[n].parameters[ionosphereParameters::SIGMA + i*3 + j] -= sigmaH * epsilon[i][j][k]*b[k];
+                  }
+               }
+            }
+         } else {
+            logFile << "(ionosphere) Error: Undefined conductivity model " << Ionosphere::conductivityModel << "! Ionospheric Sigma Tensor will be zero." << endl << write;
          }
       }
       phiprof::stop("ionosphere-calculateConductivityTensor");
@@ -1851,13 +1882,13 @@ namespace SBC {
      Node& n = nodes[nodeIndex];
 
      if(transpose) {
-       for(uint i=0; i<n.numDepNodes; i++) {
-         retval += nodes[n.dependingNodes[i]].parameters[parameter] * n.transposedCoeffs[i];
-       }
+        for(uint i=0; i<n.numDepNodes; i++) {
+           retval += nodes[n.dependingNodes[i]].parameters[parameter] * n.transposedCoeffs[i];
+        }
      } else {
-       for(uint i=0; i<n.numDepNodes; i++) {
-         retval += nodes[n.dependingNodes[i]].parameters[parameter] * n.dependingCoeffs[i];
-       }
+        for(uint i=0; i<n.numDepNodes; i++) {
+           retval += nodes[n.dependingNodes[i]].parameters[parameter] * n.dependingCoeffs[i];
+        }
      }
 
      return retval;
@@ -2048,6 +2079,7 @@ namespace SBC {
       Readparameters::add("ionosphere.precedence", "Precedence value of the ionosphere system boundary condition (integer), the higher the stronger.", 2);
       Readparameters::add("ionosphere.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
       Readparameters::add("ionosphere.baseShape", "Select the seed mesh geometry for the spherical ionosphere grid. Options are: sphericalFibonacci, tetrahedron, icosahedron.",std::string("sphericalFibonacci"));
+      Readparameters::add("ionosphere.conductivityModel", "Select ionosphere conductivity tensor construction model. Options are: 0=GUMICS style (Vertical B, only SigmaH and SigmaP), 1=Ridley et al 2004 (1000 mho longitudinal conductivity).", 0);
       Readparameters::add("ionosphere.fibonacciNodeNum", "Number of nodes in the spherical fibonacci mesh.",256);
       Readparameters::addComposing("ionosphere.refineMinLatitude", "Refine the grid polewards of the given latitude. Multiple of these lines can be given for successive refinement, paired up with refineMaxLatitude lines.");
       Readparameters::addComposing("ionosphere.refineMaxLatitude", "Refine the grid equatorwards of the given latitude. Multiple of these lines can be given for successive refinement, paired up with refineMinLatitude lines.");
@@ -2106,6 +2138,10 @@ namespace SBC {
          exit(1);
       };
       if(!Readparameters::get("ionosphere.baseShape",baseShape)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("ionosphere.conductivityModel", *(int*)(&conductivityModel))) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }

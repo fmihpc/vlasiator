@@ -121,6 +121,7 @@ namespace SBC {
          Real depth; // integrated density from the top of the atmosphere
          Real pedersencoeff;
          Real hallcoeff;
+         Real parallelcoeff;
       };
       std::array<AtmosphericLayer, numAtmosphereLevels> atmosphere;
 
@@ -365,6 +366,10 @@ namespace SBC {
       static Real recombAlpha; // Recombination parameter, determining atmosphere ionizability (parameter)
       static Real F10_7; // Solar 10.7 Flux value (parameter)
       static Real backgroundIonisation; // Background ionisation due to stellar UV and cosmic rays
+      static enum IonosphereConductivityModel { // How should the conductivity tensor be assembled?
+         GUMICS, // Like GUMICS-5 does it? (Only SigmaH and SigmaP, B perp to surface)
+         Ridley  // Or like the Ridley 2004 paper (with 1000 mho longitudinal conductivity)
+      } conductivityModel;
 
    protected:
       void generateTemplateCell(Project &project);
