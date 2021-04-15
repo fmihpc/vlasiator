@@ -45,22 +45,23 @@ void velocitySpaceDiffusion(
     const auto LocalCells=getLocalCells(); 
     for (auto & CellID: LocalCells) { //Iterate through spatial cell
 
+        SpatialCell& cell = *mpiGrid[CellID];
+
+        std::vector<std::array<Realf,3>> arraydf(cell.get_number_of_velocity_blocks(popID)*WID3); 
+
         for (int coord = 0; coord < 3; coord++) {
 
-           SpatialCell* cell     = mpiGrid[CellID];
-           SpatialCell cellCopy  = *mpiGrid[CellID];
-
-	   Vec3d B(cellCopy.parameters[CellParams::PERBXVOL] +  cellCopy.parameters[CellParams::BGBXVOL],
-                   cellCopy.parameters[CellParams::PERBYVOL] +  cellCopy.parameters[CellParams::BGBYVOL],
-	           cellCopy.parameters[CellParams::PERBZVOL] +  cellCopy.parameters[CellParams::BGBZVOL]);
+	   Vec3d B(cell.parameters[CellParams::PERBXVOL] +  cell.parameters[CellParams::BGBXVOL],
+                   cell.parameters[CellParams::PERBYVOL] +  cell.parameters[CellParams::BGBYVOL],
+	           cell.parameters[CellParams::PERBZVOL] +  cell.parameters[CellParams::BGBZVOL]);
            Vec3d b = normalize_vector(B);
 
 
-	   const Real* parameters  = cellCopy.get_block_parameters(popID);
+	   const Real* parameters  = cell.get_block_parameters(popID);
 
-           const vmesh::LocalID* nBlocks = cellCopy.get_velocity_grid_length(popID);
+           const vmesh::LocalID* nBlocks = cell.get_velocity_grid_length(popID);
 
-            for (vmesh::LocalID n=0; n<cellCopy.get_number_of_velocity_blocks(popID); n++) { //Iterate through velocity blocks
+            for (vmesh::LocalID n=0; n<cell.get_number_of_velocity_blocks(popID); n++) { //Iterate through velocity blocks
                for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
 
                   //Get velocity space coordinates                    
@@ -74,11 +75,12 @@ void velocitySpaceDiffusion(
                      =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD]
                      + (k + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
                   
-                  Vec3d bulkV(cellCopy.parameters[CellParams::VX], cellCopy.parameters[CellParams::VY], cellCopy.parameters[CellParams::VZ]);
+                  Vec3d bulkV(cell.parameters[CellParams::VX], cell.parameters[CellParams::VY], cell.parameters[CellParams::VZ]);
 
                   Vec3d V(VX - bulkV[0] , VY - bulkV[1] , VZ - bulkV[2]); //Velocity in the cell, in the plasma frame
-                  Vec3d NeighbourV(VX,VY,VZ);
-                 
+                  
+                  Vec3d NeighbourVcoord(VX,VY,VZ); //Coordinates of Neighbour Cell
+                  
                   const Real DV 
                      = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
 	
@@ -87,93 +89,119 @@ void velocitySpaceDiffusion(
                   Vec3d VDV;
                   VDV.load(DVarray);
 
-                  NeighbourV += VDV;              
-           
-	          //Norm it
-                  const Real normV = sqrt(V[0]*V[0]+V[1]*V[1]+V[2]*V[2]);
+                  NeighbourVcoord += VDV; 
 
-	          if (normV==0){ continue; }
+                  Realf CellValue      = cell.get_value(VX,VY,VZ,popID);
+                  Realf NeighbourValue = cell.get_value(NeighbourVcoord[0],NeighbourVcoord[1],NeighbourVcoord[2],popID);
 
-	          //Get Vmesh
-	          std::vector<vmesh::LocalID> Neighbors;
-       
-                  Realf Dmumu = Parameters::PADcoefficient; //from config file
-                  Realf dt    = Parameters::dt; //Overwritten by the simulation dt
+                  Realf dfdcoord = (NeighbourValue - CellValue)/DV;
+                  arraydf[WID3*n+i+WID*j+WID*WID*k][coord] = dfdcoord;
+               }
 
-                  //Get origin cell values
-	          Realf OriginCellValue = cellCopy.get_value(VX,VY,VZ,popID);
-                  Vec3d r               = normalize_vector(V);
-                  Vec3d phi             = normalize_vector(cross_product(r,b));
-                  Vec3d theta           = normalize_vector(cross_product(r,phi));
-                  Realf muOrigin        = dot_product(r,b);
-                  Realf ONCoeff         = abs(theta[coord]); //How much to diffuse through the interface based on the dot product between
+            } 
 
-                      //Get cell extents in mu
-                          //Along X
-                  Vec3d ONPlus(VX,VY,VZ);
-                  ONPlus += VDV/2.0;
-                  Vec3d ONMinus(VX,VY,VZ);
-                  ONMinus -= VDV/2.0;
-                  Realf muONMax  = dot_product(normalize_vector(ONPlus-bulkV),b);
-                  Realf muONMin  = dot_product(normalize_vector(ONMinus-bulkV),b);
-                  Realf ONlength = abs(muONMax - muONMin);
- 
-                  Realf diffON = 0.0;
-                  Realf diffNO = 0.0;
-                  Realf NCellValue = 0.0;
+        }
 
-                  if (checkExistingNeighbour(&cellCopy,NeighbourV[0],NeighbourV[1],NeighbourV[2],popID)) {
-                      //Get +X cell values
-                      NCellValue = cellCopy.get_value(NeighbourV[0],NeighbourV[1],NeighbourV[2],popID);
-                      Vec3d NVelocity = NeighbourV - bulkV;
-                      Vec3d Nr      = normalize_vector(NVelocity);
-                      Vec3d Nphi    = normalize_vector(cross_product(Nr,b));
-                      Vec3d Ntheta  = normalize_vector(cross_product(Nr,Nphi));
-                      Realf Nmu     = dot_product(Nr,b);
-                      Realf NOCoeff = abs(Ntheta[coord]); 
-                      Realf dmuN    = abs(muOrigin - Nmu);
-                          //Get cell extents in mu
-                      Vec3d NOPlus(VX,VY,VZ);
-                      NOPlus += VDV*3.0/2.0;
-                      Vec3d NOMinus(VX,VY,VZ);
-                      NOMinus += VDV/2.0;
-                      Realf muNOMax = dot_product(normalize_vector(NOPlus-bulkV),b);
-                      Realf muNOMin = dot_product(normalize_vector(NOMinus-bulkV),b);
-                      Realf Nlength = abs(muNOMax - muNOMin);
-                          //Get diffusion from +X to Origin
-                      Realf erfplusN  = erf((Nmu + Nlength/2.0)*(1.0/sqrt(4.0*Dmumu*dt)));
-                      Realf erfminusN = erf((Nmu - Nlength/2.0)*(1.0/sqrt(4.0*Dmumu*dt)));
-                      diffNO          = NOCoeff * 1.0/2.0 * (erfminusN - erfplusN) * dmuN; 
-                          //Get diffusion from Origin to +X
-                      Realf erfplusON  = erf((muOrigin + ONlength/2.0)*(1.0/sqrt(4.0*Dmumu*dt)));
-                      Realf erfminusON = erf((muOrigin - ONlength/2.0)*(1.0/sqrt(4.0*Dmumu*dt)));
-                      diffON           = ONCoeff * 1.0/2.0 * (erfminusON - erfplusON) * dmuN; 
-                      //Update +X cell value
-                      Realf DeltaNValue = - diffNO*NCellValue + diffON*OriginCellValue;
-                      cell->increment_value(NeighbourV[0],NeighbourV[1],NeighbourV[2],DeltaNValue,popID);
 
-                      //Update origin cell value
-	              Realf DeltaOriginValue = diffNO*NCellValue - diffON*OriginCellValue;      
-                      cell->increment_value(VX,VY,VZ,DeltaOriginValue,popID); 
+	for (int coord = 0; coord < 3; coord++) {
 
-                      std::cerr << "For V(" << V[0] << "," << V[1] << "," << V[2] << ")" << std::endl;
-                      std::cerr << "To VNeighbour(" << NeighbourV[0] << "," << NeighbourV[1] << "," << NeighbourV[2] << ")" << std::endl;
-                      std::cerr << "theta(" << theta[0] << "," << theta[1] << "," << theta[2] << ")" << std::endl;
-                      std::cerr << "Ntheta(" << Ntheta[0] << "," << Ntheta[1] << "," << Ntheta[2] << ")" << std::endl;
-                      std::cerr << "muOrigin = " << muOrigin << std::endl;
-                      std::cerr << "Nmu = " << Nmu << std::endl;
-                      std::cerr << "diffNO = " << diffNO << std::endl;
-                      std::cerr << "diffON = " << diffON << std::endl;
-                      std::cerr << "OriginCellValue = " << OriginCellValue << std::endl;
-                      std::cerr << "NCellValue = " << NCellValue << std::endl;
-                      std::cerr << "DeltaNValue = " << DeltaNValue << std::endl;
-                      std::cerr << "DeltaOriginValue = " << DeltaOriginValue << std::endl;
+           SpatialCell& cell = *mpiGrid[CellID];
+
+	   Vec3d B(cell.parameters[CellParams::PERBXVOL] +  cell.parameters[CellParams::BGBXVOL],
+                   cell.parameters[CellParams::PERBYVOL] +  cell.parameters[CellParams::BGBYVOL],
+	           cell.parameters[CellParams::PERBZVOL] +  cell.parameters[CellParams::BGBZVOL]);
+           Vec3d b = normalize_vector(B);
+
+
+	   const Real* parameters  = cell.get_block_parameters(popID);
+
+           const vmesh::LocalID* nBlocks = cell.get_velocity_grid_length(popID);
+
+            for (vmesh::LocalID n=0; n<cell.get_number_of_velocity_blocks(popID); n++) { //Iterate through velocity blocks
+               for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
+
+                  //Get velocity space coordinates                    
+	          const Real VX 
+                     =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+                     + (i + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+                  const Real VY 
+                     =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
+                     + (j + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+                  const Real VZ 
+                     =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD]
+                     + (k + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+                  
+                  Vec3d bulkV(cell.parameters[CellParams::VX], cell.parameters[CellParams::VY], cell.parameters[CellParams::VZ]);
+
+                  Vec3d V(VX - bulkV[0] , VY - bulkV[1] , VZ - bulkV[2]); //Velocity in the cell, in the plasma frame
+                  Realf normV = sqrt(dot_product(V,V));
+                                    
+                  Vec3d NeighbourVcoord(VX,VY,VZ); //Coordinates of Neighbour Cell
+                  
+                  const Real DV 
+                     = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+	
+                  Real DVarray[3] = {0,0,0};
+                  DVarray[coord] = DV;
+                  Vec3d VDV;
+                  VDV.load(DVarray);
+
+                  NeighbourVcoord -= VDV; 
+                  auto LeftNGID = cell.get_velocity_block(popID,NeighbourVcoord[0],NeighbourVcoord[1],NeighbourVcoord[2],0);
+                  auto LeftNLID = cell.get_velocity_block_local_id(LeftNGID,popID);
+
+                  int Lefti = (i - (coord == 0)? 1:0)%WID;
+                  int Leftj = (j - (coord == 1)? 1:0)%WID;
+                  int Leftk = (k - (coord == 2)? 1:0)%WID;
+
+                  Vec3d leftV  = V-1.0/2.0*VDV;
+                  Vec3d rightV = V+1.0/2.0*VDV;
+                  
+                  Realf normVright = sqrt(dot_product(rightV,rightV));
+                  Realf normVleft  = sqrt(dot_product(leftV,leftV));
+
+                  Realf ddcoordleft     = 0.0;
+                  Realf ddcoordright    = 0.0;
+                  Realf precoeffyzleft  = 0.0;
+                  Realf precoeffyzright = 0.0;
+                  Realf precoeffx       = 0.0;
+
+                  if (coord == 0){
+                      precoeffx    = (V[1]*V[1] + V[2]*V[2]);
+                      if (LeftNGID == vmesh::INVALID_GLOBALID) {ddcoordleft = 0.0;}
+                      else {ddcoordleft  = precoeffx/normVleft * arraydf[WID3*LeftNLID+Lefti+WID*Leftj+WID*WID*Leftk][coord];}
+                      ddcoordright = precoeffx/normVright * arraydf[WID3*n+i+WID*j+WID*WID*k][coord];
+                  } else{    
+                      precoeffyzleft  = sqrt(leftV[1]*leftV[1] + leftV[2]*leftV[2])/normVleft;
+                      precoeffyzright = sqrt(rightV[1]*rightV[1] + rightV[2]*rightV[2])/normVright;
+                      if (LeftNGID == vmesh::INVALID_GLOBALID) {ddcoordleft = 0.0;}
+                      else{ddcoordleft     = precoeffyzleft * arraydf[WID3*LeftNLID+Lefti+WID*Leftj+WID*WID*Leftk][coord];}
+                      ddcoordright    = precoeffyzright * arraydf[WID3*n+i+WID*j+WID*WID*k][coord];
+                  }
+
+                  Realf Dvv = Parameters::PADcoefficient;
+                  Realf dt  = Parameters::dt;
+
+                  Realf ddv = Dvv * (ddcoordright - ddcoordleft)/DV; 
+
+                  Realf termdcoord = 0.0;
+                  if (coord == 0){
+                      termdcoord = normV * ddv;
+                  } else{
+                      termdcoord = normV * V[0]*V[0] / (2.0 * sqrt(V[1]*V[1] + V[2]*V[2])) * ddv; 
+                  
                   }
                   
-              }
+                  Realf CellValue = cell.get_value(VX,VY,VZ,popID);
+                  CellValue = CellValue + termdcoord * dt ;
+                  if (CellValue <= 0.0) { CellValue = 0.0;}
+
+                  cell.set_value(VX,VY,VZ,CellValue,popID);
+
            } 
 
 	 }
+       }
     }
 }
 
