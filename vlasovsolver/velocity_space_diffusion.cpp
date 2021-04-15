@@ -47,9 +47,9 @@ void velocitySpaceDiffusion(
 
         SpatialCell& cell = *mpiGrid[CellID];
 
-        std::vector<std::array<Realf,3>> arraydf(cell.get_number_of_velocity_blocks(popID)*WID3); 
+        std::vector<std::array<Realf,3>> arraydf(cell.get_number_of_velocity_blocks(popID)*WID3); // Array of vspace size
 
-        for (int coord = 0; coord < 3; coord++) {
+        for (int coord = 0; coord < 3; coord++) { // First derivative loop
 
 	   Vec3d B(cell.parameters[CellParams::PERBXVOL] +  cell.parameters[CellParams::BGBXVOL],
                    cell.parameters[CellParams::PERBYVOL] +  cell.parameters[CellParams::BGBYVOL],
@@ -103,7 +103,7 @@ void velocitySpaceDiffusion(
         }
 
 
-	for (int coord = 0; coord < 3; coord++) {
+	for (int coord = 0; coord < 3; coord++) { // Second derivative loop
 
            SpatialCell& cell = *mpiGrid[CellID];
 
@@ -150,7 +150,7 @@ void velocitySpaceDiffusion(
                   auto LeftNGID = cell.get_velocity_block(popID,NeighbourVcoord[0],NeighbourVcoord[1],NeighbourVcoord[2],0);
                   auto LeftNLID = cell.get_velocity_block_local_id(LeftNGID,popID);
 
-                  int Lefti = (i - (coord == 0)? 1:0)%WID;
+                  int Lefti = (i - (coord == 0)? 1:0)%WID; //Looking for the left cell neighbour which could be in another block
                   int Leftj = (j - (coord == 1)? 1:0)%WID;
                   int Leftk = (k - (coord == 2)? 1:0)%WID;
 
@@ -182,7 +182,7 @@ void velocitySpaceDiffusion(
                   Realf Dvv = Parameters::PADcoefficient;
                   Realf dt  = Parameters::dt;
 
-                  Realf ddv = Dvv * (ddcoordright - ddcoordleft)/DV; 
+                  Realf ddv = Dvv * (ddcoordright - ddcoordleft)/DV; // Second derivative (left and right so it is centered on cell)
 
                   Realf termdcoord = 0.0;
                   if (coord == 0){
