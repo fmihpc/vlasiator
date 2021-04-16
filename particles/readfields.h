@@ -49,13 +49,19 @@ static void detect_field_names(Reader& r) {
    std::string gridname("SpatialGrid");
 
    r.getVariableNames(gridname,variableNames);
-   if(find(variableNames.begin(), variableNames.end(), std::string("B_vol"))!=variableNames.end()) {
+   if (find(variableNames.begin(), variableNames.end(), std::string("vg_b_vol"))!=variableNames.end()) {
+#ifdef DEBUG
+      std::cerr << "yep!" << std::endl;
+#endif
+      B_field_name = "vg_b_vol";
+      E_field_name = "vg_e_vol";
+   } else if (find(variableNames.begin(), variableNames.end(), std::string("B_vol"))!=variableNames.end()) {
 #ifdef DEBUG
       std::cerr << "yep!" << std::endl;
 #endif
       B_field_name = "B_vol";
       E_field_name = "E_vol";
-   } else if(find(variableNames.begin(), variableNames.end(), std::string("B"))!=variableNames.end()) {
+   } else if (find(variableNames.begin(), variableNames.end(), std::string("B"))!=variableNames.end()) {
 #ifdef DEBUG
       std::cerr << "Nope!" << std::endl;
 #endif
