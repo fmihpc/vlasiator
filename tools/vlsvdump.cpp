@@ -160,12 +160,21 @@ struct File{
          std::size_t count = 0, pos = 0 ;
          std::string tab(" ");
          std::string equals("=");
-
+         std::string memIdr(">");
+         
+         //Get memory location
+         std::size_t memloc = line.rfind(memIdr);
+         std::string mem ;
+         if (memloc !=std::string::npos){
+            mem=line.substr(memloc+memIdr.size(),line.size()-memloc);
+         }
+         
          while ((pos = line.find(equals, 0)) != std::string::npos) {
             uint64_t p0=0,p1=0,p2=0;
             p0=line.find(tab,p0);
             p1=line.find(equals,p0);
             p2=line.find(tab,p1);
+
 
             std::string line2=line.substr(p0,p2-p0);
  
@@ -183,6 +192,9 @@ struct File{
             line.erase(p0, p2-p0);
             this->vars.at(cnt).attributes.insert(std::make_pair(name,info));
          }
+         //Get location in binary file
+         this->vars.at(cnt).attributes.insert(std::make_pair("Location",mem));
+
          cnt++;
       }
    }
@@ -234,6 +246,10 @@ struct File{
                std::cout<<"  "<<it->first<<"="<<it->second<<std::endl;
                };
             it = c.attributes.find("vectorsize"); 
+            if (it != c.attributes.end()){
+               std::cout<<"  "<<it->first<<"="<<it->second<<std::endl;
+               };
+            it = c.attributes.find("Location"); 
             if (it != c.attributes.end()){
                std::cout<<"  "<<it->first<<"="<<it->second<<std::endl;
                };
