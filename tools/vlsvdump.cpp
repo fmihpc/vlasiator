@@ -51,12 +51,13 @@ struct File{
       lookup.push_back(std::make_pair("<MESH ","</MESH>"));
       lookup.push_back(std::make_pair("<VARIABLE","</VARIABLE>"));
       for (auto c:lookup){
+         vars.clear();
          tags.clear();
          tags=getVariableKind(c);
          vars.resize(tags.size());
          extractTags();
+         print();
       }
-      print();
    }
   
    bool getArgs(int argc,char *argv[]){
@@ -135,12 +136,14 @@ struct File{
       
       while ((pos = xmlTag.find(kind, pos)) != std::string::npos) {
           tags.push_back(std::make_pair(pos,0)  );
+          //std::cout<<pos<<std::endl;
           pos+= kind.size(); 
       }
   
       pos=0;
       while ((pos = xmlTag.find(complement, pos)) != std::string::npos) {
           tags.at(count).second = pos ;
+          //std::cout<<pos<<std::endl;
           pos+= complement.size(); 
           count++;
       }
@@ -187,7 +190,6 @@ struct File{
 
    void  print(){
 
-      printf("File %s contains:\n",filename.c_str());
       std::map<std::string,std::string>::const_iterator it;
       for (auto c:vars){
          it = c.attributes.find("name"); 
@@ -264,6 +266,7 @@ int main(int argc, char *argv[]){
    std::string fname(argv[2]);
 
 
+   printf("File %s contains:\n",fname.c_str());
    File vlsv(fname,argc,argv);
    return 0;
 
