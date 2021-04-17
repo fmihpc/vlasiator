@@ -89,7 +89,7 @@ default: vlasiator
 
 tools: parallel_tools not_parallel_tools
 
-parallel_tools: vlsvextract vlsvdiff
+parallel_tools: vlsvextract vlsvdiff vlsvdump
 
 testpackage: vlasiator
 
@@ -505,6 +505,10 @@ vlsv2silo:  ${DEPS_VLSVREADERINTERFACE} tools/vlsv2silo.cpp  ${OBJS_VLSVREADERIN
 vlsvdiff:  ${DEPS_VLSVREADERINTERFACE} tools/vlsvdiff.cpp ${OBJS_VLSVREADEREXTRA} ${OBJS_VLSVREADERINTERFACE}
 	${CMP} ${CXXEXTRAFLAGS} ${FLAGS} -c tools/vlsvdiff.cpp ${INC_VLSV} -I$(CURDIR)
 	${LNK} -o vlsvdiff_${FP_PRECISION} vlsvdiff.o  ${OBJS_VLSVREADERINTERFACE} ${LIB_VLSV} ${LDFLAGS}
+
+vlsvdump: tools/vlsvdump.cpp 
+	${CMP} -c tools/vlsvdump.cpp 
+	${LNK} -o vlsvdump vlsvdump.o 
 
 vlsvreaderinterface.o:  tools/vlsvreaderinterface.h tools/vlsvreaderinterface.cpp 
 	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsvreaderinterface.cpp ${INC_VLSV} -I$(CURDIR) 
