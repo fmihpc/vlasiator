@@ -25,7 +25,11 @@
 #include <fstream>
 #include <vector>
 #include <algorithm>
+#include <sstream>
+#include <cstring>
 #include <map>    
+#include "zstd.h"
+
 
 struct variables{
 
@@ -38,17 +42,43 @@ struct File{
    std::string filename,xmlTag;
    std::fstream vlsv;
    std::vector<variables> vars;
+   std::vector<variables> extract;
    std::vector<std::pair< uint64_t,uint64_t> > tags;
    std::vector<std::pair< std::string,std::string> > lookup;
-   bool verbose;
+   bool verbose=false;
+   bool show=false;
+   bool write=false;
+   bool compress=false;
+   bool decompress=false;
+   float filesize;
+   std::vector<std::string> key;
 
 
    File(std::string fname,int argc,char * argv[]){
       getArgs(argc,argv);
       filename=fname;
+      if (!this->decompress){
+         analyse(this->show);
+         if (this->write){
+            writeExtractedVars();
+         }
+      }
+      else{
+         //lz4_Decompress();
+         zDecompress();
+      }
+   }
+
+
+   bool analyse(bool doPrint){
+
+      this->filesize=get_file_size(filename);
       open();
       getXmlTag();
       lookup.push_back(std::make_pair("<MESH ","</MESH>"));
+      //lookup.push_back(std::make_pair("<BLOCKIDS","</BLOCKIDS>"));
+      //lookup.push_back(std::make_pair("<BLOCKSPECELL","</BLOCKSPECELL>"));
+      //lookup.push_back(std::make_pair("<BLOCKVARIABLE","</BLOCKVARIABLE>"));
       lookup.push_back(std::make_pair("<VARIABLE","</VARIABLE>"));
       for (auto c:lookup){
          vars.clear();
@@ -56,35 +86,103 @@ struct File{
          tags=getVariableKind(c);
          vars.resize(tags.size());
          extractTags();
-         print();
+         
+         if (this->write){
+            //Let's look for variables to extract
+            std::map<std::string,std::string>::const_iterator it;
+            for (auto c:vars){
+               it = c.attributes.find("name"); 
+               if (it!=c.attributes.end()){
+                  auto itkey = find(this->key.begin(), this->key.end(), it->second);
+                  if(itkey!=this->key.end()){
+                     this->extract.push_back(c);
+                     this->key.erase(itkey);
+                  }
+               }
+            }
+         }
+
+         if (doPrint){
+            print();
+         }
       }
    }
-  
+
+
    bool getArgs(int argc,char *argv[]){
 
-      //std::cout<<std::string(argv[0])=="-h"<<std::endl;
       if (std::string(argv[1])=="-h"){
          this->verbose=false;
+         this->show=true;
       }else if(std::string(argv[1])=="-hv"){
          this->verbose=true;
+         this->show=true;
+      }else if(std::string(argv[1])=="-d"){
+         this->decompress=true;
+      }else if(std::string(argv[1])=="-e"){
+         if (argc<4){
+            std::cerr<<"Detected -e but no variables specified"<<std::endl;
+            helpMenu();
+            throw std::exception();
+         }
+         std::string temp(argv[3]);
+         temp+=",";
+         std::stringstream lookup(temp);
+         while(lookup.good()) {
+            std::string substr;
+            getline(lookup, substr,','); 
+            this->key.push_back(substr);
+         }
+
+         if (this->key.size()>1){
+            this->write=true;
+         }else{
+            std::cerr<<"-e detected but could not read variable list.."<<std::endl;
+            helpMenu();
+            throw std::exception();
+         }
+      }else if(std::string(argv[1])=="-ez"){
+         if (argc<4){
+            std::cerr<<"Detected -e but no variables specified"<<std::endl;
+            helpMenu();
+            throw std::exception();
+         }
+         std::string temp(argv[3]);
+         temp+=",";
+         std::stringstream lookup(temp);
+         while(lookup.good()) {
+            std::string substr;
+            getline(lookup, substr,','); 
+            this->key.push_back(substr);
+         }
+         if (this->key.size()>1){
+            this->write=true;
+            this->compress=true;
+         }else{
+            std::cerr<<"-e detected but could not read variable list.."<<std::endl;
+            helpMenu();
+            throw std::exception();
+         }
       }else{
          std::cerr<<"Invalid usage"<<std::endl;
          helpMenu();
          throw std::exception();
-        
       }
       
    }
 
+
    void helpMenu(){
       
       std::cout << "vlsvdump: Prints header information of vlsv vlasiator files. " << std::endl;
-      std::cout << "Usage: ./vlsvdump [options] <file> " << std::endl;
+      std::cout << "Usage: ./vlsvdump [options] <file>  [variablelist] " << std::endl;
       std::cout << "Options:" << std::endl;
       std::cout << "\t -h \t\t Header information. No data." << std::endl;
       std::cout << "\t -hv \t\t Header information with a bit of spice. No data." << std::endl;
+      std::cout << "\t -e \t\t Extracts variable(s) to binary file(s). Variable(s) should be delimited by comma"<<std::endl;
+      std::cout << "\t -ez \t\t Extracts variable(s) and compresses using zstd to binary file(s). Variable(s) should be delimited by comma"<<std::endl;
+      std::cout << "\t -d  \t\t Decompresses file compressed by vlsvdump using zstd"<<std::endl;
    }
-
 
 
    uint64_t convUInt64(const char* const ptr,const bool& swapEndian) {
@@ -110,6 +208,109 @@ struct File{
    }
  
 
+   bool writeExtractedVars(){
+      
+      for (auto c:extract){
+      
+         //Get stats
+         uint64_t arraysize,datasize,vectorsize,tagLocation;
+         std::map<std::string,std::string>::const_iterator it_0,it_1,it_2,it_3,it_4;
+         it_0 = c.attributes.find("arraysize"); 
+         it_1 = c.attributes.find("datasize"); 
+         it_2 = c.attributes.find("vectorsize");
+         it_3 = c.attributes.find("tag_location");
+         it_4 = c.attributes.find("name");
+         bool doKeepGoing= (it_0!=c.attributes.end() && 
+                            it_1!=c.attributes.end() && 
+                            it_2!=c.attributes.end() && 
+                            it_3!=c.attributes.end() &&
+                            it_4!=c.attributes.end() 
+                            );
+         if (!doKeepGoing){return false;}
+         arraysize=std::stoul(it_0->second,nullptr,10);
+         datasize=std::stoul(it_1->second,nullptr,10);
+         vectorsize=std::stoul(it_2->second,nullptr,10);
+         tagLocation=std::stoul(it_3->second,nullptr,10);
+
+         //Read in  from original vlsv file
+         open();
+         uint64_t readIn=arraysize*datasize*vectorsize;
+         char *buffer = new char [readIn];
+         vlsv.seekg(tagLocation);
+         vlsv.read(buffer,readIn);
+         vlsv.close();
+
+         //Compress if asked for
+         std::string outname= this->filename + "_"  +it_4->second+".bin";
+         std::replace(outname.begin(), outname.end(), '/', '_');
+         if (this->compress){
+            //writeBufferLZ4(buffer,outname,readIn);
+            zWrite(buffer,outname,readIn);
+         }else {
+            writeBuffer(buffer,outname,readIn);
+         }
+         delete [] buffer; buffer=NULL;
+      }
+      if(this->key.size()>1){
+         std::cerr<<"One/Some variable(s) not extracted. Check your input against variables in this file:"<<std::endl;
+         for (auto k:this->key){
+            std::cerr<<"\t"<<k<<std::endl;
+         }
+         
+      }
+   }
+
+
+
+   bool writeBuffer(const char* buffer,std::string outFileName,uint64_t amount){
+         //Write 
+         std::fstream outfile;
+         outfile = std::fstream(outFileName, std::ios::out | std::ios::binary);
+         outfile.write(buffer,amount);
+         outfile.close();
+      return true;
+   }
+
+   bool zWrite(const char* data,std::string outFileName,uint64_t buffSize){
+            outFileName+=".zst";
+            std::fstream outfile;
+            outfile = std::fstream(outFileName, std::ios::out | std::ios::binary);
+            size_t bound=ZSTD_compressBound(buffSize);
+            char *buffer_z = new char[bound];
+            size_t res= ZSTD_compress(buffer_z,bound,data,buffSize,5); 
+            outfile.write(buffer_z,res);
+            outfile.close();
+            delete [] buffer_z;
+    
+      return true;
+   }
+
+
+   void zDecompress(){
+
+      std::ifstream infile( this->filename, std::ifstream::binary );
+      infile.seekg (0,infile.end);
+      uint64_t buffSize_z = infile.tellg();
+      infile.clear();
+      infile.seekg(0,std::ios::beg);
+      char* data=new char[buffSize_z];
+      char* buffer=new char[2*buffSize_z];
+      infile.read(data,buffSize_z);
+      infile.close();
+
+      //Outfile name
+      size_t lastindex = this->filename.find_last_of("."); 
+      std:: string outname = this->filename.substr(0, lastindex); 
+      std::fstream outfile;
+      outfile = std::fstream(outname, std::ios::out | std::ios::binary);
+      size_t res=ZSTD_decompress(buffer,2*buffSize_z,data,buffSize_z);
+      std::cerr<<ZSTD_getErrorName(res)<<std::endl;
+      outfile.write(buffer,res);
+      outfile.close();
+      delete [] data;
+      delete [] buffer;
+   }
+
    void getXmlTag(){
       uint64_t footer;
       char buffer[sizeof(uint64_t)];
@@ -128,7 +329,7 @@ struct File{
    }
 
 
-   std::vector<std::pair<uint64_t,uint64_t> > getVariableKind(std::pair<std::string,std::string> node){
+std::vector<std::pair<uint64_t,uint64_t> > getVariableKind(std::pair<std::string,std::string> node){
       uint64_t count = 0, pos = 0;
       std::vector< std::pair<uint64_t,uint64_t> > tags;
       std::string kind=node.first;
@@ -136,20 +337,51 @@ struct File{
       
       while ((pos = xmlTag.find(kind, pos)) != std::string::npos) {
           tags.push_back(std::make_pair(pos,0)  );
-          //std::cout<<pos<<std::endl;
           pos+= kind.size(); 
       }
   
       pos=0;
       while ((pos = xmlTag.find(complement, pos)) != std::string::npos) {
           tags.at(count).second = pos ;
-          //std::cout<<pos<<std::endl;
           pos+= complement.size(); 
           count++;
       }
       return tags;
   }
 
+   std::string getSizePretty(uint64_t bytes){
+
+      float thissize=(double)bytes;
+      float kilo = 1024.0;
+      float mega = (1024.0*1024.0);
+      float giga = 1024.0*1024.0*1024.0;
+      
+      
+      float portion=100*(thissize/this->filesize);
+      std::string retval;
+      if (thissize/giga > 1.0){
+         retval= std::to_string(thissize/giga)+"GB"+" [" +std::to_string(portion)+ "%]";
+      }else if(thissize/mega > 1.0){
+         retval= std::to_string(thissize/mega)+"MB"+" [" +std::to_string(portion)+ "%]";
+      }else if(thissize/kilo > 1.0){
+         retval= std::to_string(thissize/kilo)+"KB"+" [" +std::to_string(portion)+ "%]";
+      }else{
+         retval= std::to_string(thissize)+"B" + " [" +std::to_string(portion)+ "%]";
+      }
+
+      return retval;
+
+   }
+   uint64_t get_file_size(std::string filename) // path to file
+   {
+      FILE *p_file = NULL;
+      p_file = fopen(filename.c_str(),"rb");
+      fseek(p_file,0,SEEK_END);
+      uint64_t size = ftell(p_file);
+      fclose(p_file);
+      p_file=NULL;
+      return size;
+   }
 
    void extractTags(){
 
@@ -174,7 +406,14 @@ struct File{
             p0=line.find(tab,p0);
             p1=line.find(equals,p0);
             p2=line.find(tab,p1);
-
+            if(p2==std::string::npos){
+               p2=line.find(">",p1);
+            }
+            bool test=line[p2-1]=='"';
+            if (!test){
+               p2=line.find(tab,p2+1);
+            }
+            
 
             std::string line2=line.substr(p0,p2-p0);
  
@@ -193,8 +432,29 @@ struct File{
             this->vars.at(cnt).attributes.insert(std::make_pair(name,info));
          }
          //Get location in binary file
-         this->vars.at(cnt).attributes.insert(std::make_pair("Location",mem));
+         this->vars.at(cnt).attributes.insert(std::make_pair("tag_location",mem));
+         //Calculate datasize
+         std::map<std::string,std::string>::const_iterator it_0;
+         std::map<std::string,std::string>::const_iterator it_1;
+         std::map<std::string,std::string>::const_iterator it_2;
+         it_0 = this->vars.at(cnt).attributes.find("arraysize"); 
+         it_1 = this->vars.at(cnt).attributes.find("datasize"); 
+         it_2 = this->vars.at(cnt).attributes.find("vectorsize");
+         bool doCalculate= ( it_0!=this->vars.at(cnt).attributes.end() &&
+                            it_1!=this->vars.at(cnt).attributes.end() &&
+                            it_2!=this->vars.at(cnt).attributes.end());
 
+         if (doCalculate){
+            uint64_t arraysize;
+            uint64_t datasize;
+            uint64_t vectorsize;
+            arraysize=std::stoul(it_0->second,nullptr,10);
+            datasize=std::stoul(it_1->second,nullptr,10);
+            vectorsize=std::stoul(it_2->second,nullptr,10);
+            uint64_t dSize=arraysize*vectorsize*datasize;
+            std::string humanSize=getSizePretty(dSize);
+            this->vars.at(cnt).attributes.insert(std::make_pair("full_size",humanSize));
+         }
          cnt++;
       }
    }
@@ -249,7 +509,11 @@ struct File{
             if (it != c.attributes.end()){
                std::cout<<"  "<<it->first<<"="<<it->second<<std::endl;
                };
-            it = c.attributes.find("Location"); 
+            it = c.attributes.find("tag_location"); 
+            if (it != c.attributes.end()){
+               std::cout<<"  "<<it->first<<"="<<it->second<<std::endl;
+               };
+            it = c.attributes.find("full_size"); 
             if (it != c.attributes.end()){
                std::cout<<"  "<<it->first<<"="<<it->second<<std::endl;
                };
@@ -261,18 +525,21 @@ struct File{
 
 };
 
+
 void helpMenu(){
-   
+      
    std::cout << "vlsvdump: Prints header information of vlsv vlasiator files. " << std::endl;
-   std::cout << "Usage: ./vlsvdump [options] <file> " << std::endl;
+   std::cout << "Usage: ./vlsvdump [options] <file>  [variablelist] " << std::endl;
    std::cout << "Options:" << std::endl;
    std::cout << "\t -h \t\t Header information. No data." << std::endl;
    std::cout << "\t -hv \t\t Header information with a bit of spice. No data." << std::endl;
+   std::cout << "\t -e \t\t Extracts variable(s) to binary file(s). Variable(s) should be delimited by comma"<<std::endl;
+   std::cout << "\t -ez \t\t Extracts variable(s) and compresses using zstd to binary file(s). Variable(s) should be delimited by comma"<<std::endl;
+   std::cout << "\t -d  \t\t Decompresses file compressed by vlsvdump using zstd"<<std::endl;
 }
 
 
 int main(int argc, char *argv[]){
-
    if (argc<3){
       std::cerr<<"Invalid Usage\n";
       helpMenu();
@@ -282,7 +549,6 @@ int main(int argc, char *argv[]){
    std::string fname(argv[2]);
 
 
-   printf("File %s contains:\n",fname.c_str());
    File vlsv(fname,argc,argv);
    return 0;
 
