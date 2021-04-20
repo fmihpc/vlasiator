@@ -47,7 +47,9 @@ void velocitySpaceDiffusion(
 
         SpatialCell& cell = *mpiGrid[CellID];
 
-        std::vector<std::array<Realf,3>> arraydf(cell.get_number_of_velocity_blocks(popID)*WID3); // Array of vspace size
+        std::vector<std::array<Realf,3>> arrayDFright(cell.get_number_of_velocity_blocks(popID)*WID3); // Array of vspace size for storing derivatives +DV
+        std::vector<std::array<Realf,3>> arrayDFleft(cell.get_number_of_velocity_blocks(popID)*WID3); // Array of vspace size for storing derivatives -DV
+
 
         for (int coord = 0; coord < 3; coord++) { // First derivative loop
 
@@ -75,12 +77,8 @@ void velocitySpaceDiffusion(
                      =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD]
                      + (k + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
                   
-                  Vec3d bulkV(cell.parameters[CellParams::VX], cell.parameters[CellParams::VY], cell.parameters[CellParams::VZ]);
-
-                  Vec3d V(VX - bulkV[0] , VY - bulkV[1] , VZ - bulkV[2]); //Velocity in the cell, in the plasma frame
-                  
-                  Vec3d NeighbourVcoord(VX,VY,VZ); //Coordinates of Neighbour Cell
-                  
+                  Vec3d V(VX,VY,VZ); // Velocity in the cell, in the simulation frame
+                                  
                   const Real DV 
                      = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
 	
@@ -89,13 +87,21 @@ void velocitySpaceDiffusion(
                   Vec3d VDV;
                   VDV.load(DVarray);
 
-                  NeighbourVcoord += VDV; 
-
+                  Vec3d NeighbourVright = V + VDV; // Cell coordinates in +DV direction
+                  Vec3d NeighbourVleft  = V - VDV; // Cell coordinates in -DV direction
+ 
+                  // f values for center, +DV and -DV (= 0 if cell doesnt exist)
                   Realf CellValue      = cell.get_value(VX,VY,VZ,popID);
-                  Realf NeighbourValue = cell.get_value(NeighbourVcoord[0],NeighbourVcoord[1],NeighbourVcoord[2],popID);
+                  Realf CellValueRight = cell.get_value(NeighbourVright[0],NeighbourVright[1],NeighbourVright[2],popID);
+                  Realf CellValueLeft  = cell.get_value(NeighbourVleft[0],NeighbourVleft[1],NeighbourVleft[2],popID);
 
-                  Realf dfdcoord = (NeighbourValue - CellValue)/DV;
-                  arraydf[WID3*n+i+WID*j+WID*WID*k][coord] = dfdcoord;
+                  // First derivatives on right and left faces of center cell
+                  Realf dfdcoordRight = (CellValueRight - CellValue)/DV;
+                  Realf dfdcoordLeft  = (CellValue - CellValueLeft)/DV;
+
+                  arrayDFright[WID3*n+i+WID*j+WID*WID*k][coord] = dfdcoordRight;
+                  arrayDFleft[WID3*n+i+WID*j+WID*WID*k][coord]  = dfdcoordLeft;
+                     
                }
 
             } 
@@ -132,12 +138,11 @@ void velocitySpaceDiffusion(
                      + (k + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
                   
                   Vec3d bulkV(cell.parameters[CellParams::VX], cell.parameters[CellParams::VY], cell.parameters[CellParams::VZ]);
-
-                  Vec3d V(VX - bulkV[0] , VY - bulkV[1] , VZ - bulkV[2]); //Velocity in the cell, in the plasma frame
-                  Realf normV = sqrt(dot_product(V,V));
-                                    
-                  Vec3d NeighbourVcoord(VX,VY,VZ); //Coordinates of Neighbour Cell
+                  Vec3d V(VX,VY,VZ); // Velocity in the cell, in the simulation frame
+                  Vec3d Vplasma(VX - bulkV[0] , VY - bulkV[1] , VZ - bulkV[2]); //Velocity in the cell, in the plasma frame
                   
+                  Realf normV = sqrt(dot_product(Vplasma,Vplasma));
+
                   const Real DV 
                      = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
 	
@@ -146,54 +151,52 @@ void velocitySpaceDiffusion(
                   Vec3d VDV;
                   VDV.load(DVarray);
 
-                  NeighbourVcoord -= VDV; 
-                  auto LeftNGID = cell.get_velocity_block(popID,NeighbourVcoord[0],NeighbourVcoord[1],NeighbourVcoord[2],0);
-                  auto LeftNLID = cell.get_velocity_block_local_id(LeftNGID,popID);
+                  Realf Dvv = Parameters::PADcoefficient; // Diffusion coefficient taken from cfg file
 
-                  int Lefti = (i - (coord == 0)? 1:0)%WID; //Looking for the left cell neighbour which could be in another block
-                  int Leftj = (j - (coord == 1)? 1:0)%WID;
-                  int Leftk = (k - (coord == 2)? 1:0)%WID;
+                  // Calculation of theta at center of the cell
+                  Vec3d r        = normalize_vector(Vplasma);
+                  Vec3d alpha    = normalize_vector(cross_product(r,b));
+                  Vec3d vecTheta = normalize_vector(cross_product(r,alpha));
+                  Realf theta    = acos(dot_product(b,vecTheta));
 
-                  Vec3d leftV  = V-1.0/2.0*VDV;
-                  Vec3d rightV = V+1.0/2.0*VDV;
+                  // Calculation of terms inside the second derivative according to Eq. (18) of the PDF
+                      // Right terms
+
+                  Vec3d rightVplasma = Vplasma + 1.0/2.0*VDV; // Velocity at the right face of the cell, in the plasma frame
+                  Realf normVright   = sqrt(dot_product(rightVplasma,rightVplasma));
+
+                  Realf rightTermDVX = sqrt(rightVplasma[1]*rightVplasma[1] + rightVplasma[2]*rightVplasma[2]) * arrayDFright[WID3*n+i+WID*j+WID*WID*k][0];
+                  Realf rightTermDVY = rightVplasma[0] * sin(theta) * arrayDFright[WID3*n+i+WID*j+WID*WID*k][1];
+                  Realf rightTermDVZ = rightVplasma[0] * cos(theta) * arrayDFright[WID3*n+i+WID*j+WID*WID*k][2];
+            
+                  Realf rightTerm = sqrt(rightVplasma[1]*rightVplasma[1] + rightVplasma[2]*rightVplasma[2])/normVright * Dvv * (rightTermDVY + rightTermDVZ - rightTermDVX);
+
+                      // Left terms
                   
-                  Realf normVright = sqrt(dot_product(rightV,rightV));
-                  Realf normVleft  = sqrt(dot_product(leftV,leftV));
+                  Vec3d leftVplasma = Vplasma - 1.0/2.0*VDV; // Velocity at the right face of the cell, in the plasma frame
+                  Realf normVleft   = sqrt(dot_product(leftVplasma,leftVplasma));
 
-                  Realf ddcoordleft     = 0.0;
-                  Realf ddcoordright    = 0.0;
-                  Realf precoeffyzleft  = 0.0;
-                  Realf precoeffyzright = 0.0;
-                  Realf precoeffx       = 0.0;
-
-                  if (coord == 0){
-                      precoeffx    = (V[1]*V[1] + V[2]*V[2]);
-                      if (LeftNGID == vmesh::INVALID_GLOBALID) {ddcoordleft = 0.0;}
-                      else {ddcoordleft  = precoeffx/normVleft * arraydf[WID3*LeftNLID+Lefti+WID*Leftj+WID*WID*Leftk][coord];}
-                      ddcoordright = precoeffx/normVright * arraydf[WID3*n+i+WID*j+WID*WID*k][coord];
-                  } else{    
-                      precoeffyzleft  = sqrt(leftV[1]*leftV[1] + leftV[2]*leftV[2])/normVleft;
-                      precoeffyzright = sqrt(rightV[1]*rightV[1] + rightV[2]*rightV[2])/normVright;
-                      if (LeftNGID == vmesh::INVALID_GLOBALID) {ddcoordleft = 0.0;}
-                      else{ddcoordleft     = precoeffyzleft * arraydf[WID3*LeftNLID+Lefti+WID*Leftj+WID*WID*Leftk][coord];}
-                      ddcoordright    = precoeffyzright * arraydf[WID3*n+i+WID*j+WID*WID*k][coord];
-                  }
-
-                  Realf Dvv = Parameters::PADcoefficient;
-                  Realf dt  = Parameters::dt;
-
-                  Realf ddv = Dvv * (ddcoordright - ddcoordleft)/DV; // Second derivative (left and right so it is centered on cell)
-
-                  Realf termdcoord = 0.0;
-                  if (coord == 0){
-                      termdcoord = normV * ddv;
-                  } else{
-                      termdcoord = normV * V[0]*V[0] / (2.0 * sqrt(V[1]*V[1] + V[2]*V[2])) * ddv; 
+                  Realf leftTermDVX = sqrt(leftVplasma[1]*leftVplasma[1] + leftVplasma[2]*leftVplasma[2]) * arrayDFleft[WID3*n+i+WID*j+WID*WID*k][0];
+                  Realf leftTermDVY = leftVplasma[0] * sin(theta) * arrayDFleft[WID3*n+i+WID*j+WID*WID*k][1];
+                  Realf leftTermDVZ = leftVplasma[0] * cos(theta) * arrayDFleft[WID3*n+i+WID*j+WID*WID*k][2];
+            
+                  Realf leftTerm = sqrt(leftVplasma[1]*leftVplasma[1] + leftVplasma[2]*leftVplasma[2])/normVleft * Dvv * (leftTermDVY + leftTermDVZ - leftTermDVX);
                   
-                  }
-                  
+                  // Second derivative (centered difference of left and right sides)
+
+                  Realf precoeff = 0.0;
+                  if (coord == 0) { precoeff = - normV;}
+                  else if (coord == 1) {precoeff = normV * Vplasma[0] * sin(theta) / sqrt(Vplasma[1]*Vplasma[1] + Vplasma[2]*Vplasma[2]);}
+                  else if (coord == 2) {precoeff = normV * Vplasma[0] * cos(theta) / sqrt(Vplasma[1]*Vplasma[1] + Vplasma[2]*Vplasma[2]);} 
+
+                  Realf dfdtCoord = precoeff * (rightTerm - leftTerm)/DV; 
+
+                  // Update cell
+
+                  Realf dt = Parameters::dt; // Simulation time step
+
                   Realf CellValue = cell.get_value(VX,VY,VZ,popID);
-                  CellValue = CellValue + termdcoord * dt ;
+                  CellValue = CellValue + dfdtCoord * dt ;
                   if (CellValue <= 0.0) { CellValue = 0.0;}
 
                   cell.set_value(VX,VY,VZ,CellValue,popID);
