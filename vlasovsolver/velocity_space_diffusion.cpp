@@ -117,7 +117,12 @@ void velocitySpaceDiffusion(
                    cell.parameters[CellParams::PERBYVOL] +  cell.parameters[CellParams::BGBYVOL],
 	           cell.parameters[CellParams::PERBZVOL] +  cell.parameters[CellParams::BGBZVOL]);
            Vec3d b = normalize_vector(B);
-
+           Vec3d ey(0.0,1.0,0.0);
+           Vec3d evec;
+           if (dot_product(b,ey) > 0.1) {Vec3d evec(0.0,1.0,0.0);}
+           else {Vec3d evec(0.0,0.0,1.0);} 
+           Vec3d c = normalize_vector(cross_product(b,evec));
+           Vec3d d = normalize_vector(cross_product(b,c));
 
 	   const Real* parameters  = cell.get_block_parameters(popID);
 
@@ -154,10 +159,10 @@ void velocitySpaceDiffusion(
                   Realf Dvv = Parameters::PADcoefficient; // Diffusion coefficient taken from cfg file
 
                   // Calculation of theta at center of the cell
-                  Vec3d r        = normalize_vector(Vplasma);
-                  Vec3d alpha    = normalize_vector(cross_product(r,b));
-                  Vec3d vecTheta = normalize_vector(cross_product(r,alpha));
-                  Realf theta    = acos(dot_product(b,vecTheta));
+                  Vec3d r     = normalize_vector(Vplasma);
+                  Realf rc    = dot_product(r,c);
+                  Realf rd    = dot_product(r,d);
+                  Realf theta = atan2(rc,rd);  
 
                   // Calculation of terms inside the second derivative according to Eq. (18) of the PDF
                       // Right terms
