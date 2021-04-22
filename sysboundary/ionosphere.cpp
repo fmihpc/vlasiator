@@ -1861,13 +1861,24 @@ namespace SBC {
            }
         }
      } else {
-       // Only zero the gradient states
+        // Only zero the gradient states
+        Real potentialSum=0;
         for(uint n=0; n<nodes.size(); n++) {
+           Node& N=nodes[n];
+           potentialSum += N.parameters[ionosphereParameters::SOLUTION];
            for(uint p=ionosphereParameters::ZPARAM; p<ionosphereParameters::N_IONOSPHERE_PARAMETERS; p++) {
-              Node& N=nodes[n];
               N.parameters[p] = 0;
            }
         }
+
+        potentialSum /= nodes.size();
+        // One option for gauge fixing: 
+        // Make sure the potential is symmetric around 0 (to prevent it from drifting)
+        //for(uint n=0; n<nodes.size(); n++) {
+        //   Node& N=nodes[n];
+        //   N.parameters[ionosphereParameters::SOLUTION] -= potentialSum;
+        //}
+
      }
 
      //#pragma omp parallel for
@@ -1947,7 +1958,7 @@ namespace SBC {
 
      // Calculate sourcenorm and initial residual estimate
      iSolverReal sourcenorm = 0;
-     for(uint n=0; n<nodes.size(); n++) {
+     for(uint n=1; n<nodes.size(); n++) {
        Node& N=nodes[n];
        iSolverReal source = N.parameters[ionosphereParameters::SOURCE];
        sourcenorm += source*source;
@@ -1955,7 +1966,7 @@ namespace SBC {
        N.parameters[ionosphereParameters::BEST_SOLUTION] = N.parameters[ionosphereParameters::SOLUTION];
        N.parameters[ionosphereParameters::RRESIDUAL] = N.parameters[ionosphereParameters::RESIDUAL];
      }
-     for(uint n=0; n<nodes.size(); n++) {
+     for(uint n=1; n<nodes.size(); n++) {
        Node& N=nodes[n];
        N.parameters[ionosphereParameters::ZPARAM] = Asolve(n,ionosphereParameters::RESIDUAL, false);
      }
@@ -1967,25 +1978,25 @@ namespace SBC {
      sourcenorm = sqrt(sourcenorm);
 
      iSolverReal err = 0;
-     iSolverReal minerr = 1e30;
+     iSolverReal minerr = std::numeric_limits<iSolverReal>::max();
      iSolverReal bkden = 1.;
      int failcount=0;
      for(int iteration =0; iteration < Ionosphere::solverMaxIterations; iteration++) {
 
-       for(uint n=0; n<nodes.size(); n++) {
+       for(uint n=1; n<nodes.size(); n++) {
          Node& N=nodes[n];
          N.parameters[ionosphereParameters::ZZPARAM] = Asolve(n,ionosphereParameters::RRESIDUAL, true);
        }
 
        // Calculate bk and gradient vector p
        iSolverReal bknum = 0;
-       for(uint n=0; n<nodes.size(); n++) {
+       for(uint n=1; n<nodes.size(); n++) {
          Node& N=nodes[n];
          bknum += N.parameters[ionosphereParameters::ZPARAM] * N.parameters[ionosphereParameters::RRESIDUAL];
        }
-       if(iteration == 0 || failcount > 64) {
-          // Just use the gradient vector as-is
-          for(uint n=0; n<nodes.size(); n++) {
+       if(iteration == 0 || failcount > 4) {
+          // Just use the gradient vector as-is, starting from the best known solution
+          for(uint n=1; n<nodes.size(); n++) {
              Node& N=nodes[n];
              N.parameters[ionosphereParameters::PPARAM] = N.parameters[ionosphereParameters::ZPARAM];
              N.parameters[ionosphereParameters::PPPARAM] = N.parameters[ionosphereParameters::ZZPARAM];
@@ -1995,7 +2006,7 @@ namespace SBC {
        } else {
           // Perform gram-smith orthogonalization to get conjugate gradient
           iSolverReal bk = bknum / bkden;
-          for(uint n=0; n<nodes.size(); n++) {
+          for(uint n=1; n<nodes.size(); n++) {
              Node& N=nodes[n];
              N.parameters[ionosphereParameters::PPARAM] *= bk;
              N.parameters[ionosphereParameters::PPARAM] += N.parameters[ionosphereParameters::ZPARAM];
@@ -2011,7 +2022,7 @@ namespace SBC {
 
        // Calculate ak, new solution and new residual
        iSolverReal akden = 0;
-       for(uint n=0; n<nodes.size(); n++) {
+       for(uint n=1; n<nodes.size(); n++) {
          Node& N=nodes[n];
          iSolverReal zparam = Atimes(n, ionosphereParameters::PPARAM, false);
          N.parameters[ionosphereParameters::ZPARAM] = zparam;
@@ -2021,10 +2032,12 @@ namespace SBC {
        iSolverReal ak=bknum/akden;
 
        iSolverReal residualnorm = 0;
-       for(uint n=0; n<nodes.size(); n++) {
+       for(uint n=1; n<nodes.size(); n++) {
          Node& N=nodes[n];
          N.parameters[ionosphereParameters::SOLUTION] += ak * N.parameters[ionosphereParameters::PPARAM];
-
+       }
+       for(uint n=0; n<nodes.size(); n++) {
+         Node& N=nodes[n];
          // Calculate residual of the new solution. The faster way to do this would be
          //
          // iSolverReal newresid = N.parameters[ionosphereParameters::RESIDUAL] - ak * N.parameters[ionosphereParameters::ZPARAM];
@@ -2040,7 +2053,7 @@ namespace SBC {
          
          N.parameters[ionosphereParameters::RRESIDUAL] = N.parameters[ionosphereParameters::SOURCE] - Atimes(n, ionosphereParameters::SOLUTION, true);
        }
-       for(uint n=0; n<nodes.size(); n++) {
+       for(uint n=1; n<nodes.size(); n++) {
          Node& N=nodes[n];
          N.parameters[ionosphereParameters::ZPARAM] = Asolve(n, ionosphereParameters::RESIDUAL, false);
        }
@@ -2065,18 +2078,14 @@ namespace SBC {
        }
 
        if(minerr < 1e-6) {
-         //if(rank == 0) {
-         //  cerr << "Solved ionosphere potential after " << iteration << " iterations." << endl;
-         //}
+         logFile << "Solved ionosphere potential after " << iteration << " iterations." << endl;
          phiprof::stop("ionosphere-solve");
          return;
        }
        
      }
 
-     if(rank == 0) { 
-        cerr << "(ionosphere) Solver exhausted iterations. Remaining error " << minerr << endl;
-     }
+     logFile << "(ionosphere) Solver exhausted iterations. Remaining error " << minerr << endl;
 
      for(uint n=0; n<nodes.size(); n++) {
         Node& N=nodes[n];
