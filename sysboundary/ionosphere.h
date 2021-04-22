@@ -367,8 +367,9 @@ namespace SBC {
       static Real F10_7; // Solar 10.7 Flux value (parameter)
       static Real backgroundIonisation; // Background ionisation due to stellar UV and cosmic rays
       static enum IonosphereConductivityModel { // How should the conductivity tensor be assembled?
-         GUMICS, // Like GUMICS-5 does it? (Only SigmaH and SigmaP, B perp to surface)
-         Ridley  // Or like the Ridley 2004 paper (with 1000 mho longitudinal conductivity)
+         GUMICS,   // Like GUMICS-5 does it? (Only SigmaH and SigmaP, B perp to surface)
+         Ridley,   // Or like the Ridley 2004 paper (with 1000 mho longitudinal conductivity)
+         Koskinen  // Like Koskinen's 2001 "Physics of Space Storms" book suggests
       } conductivityModel;
 
    protected:

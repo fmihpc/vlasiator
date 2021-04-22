@@ -755,7 +755,8 @@ namespace SBC {
          nodes[n].parameters[ionosphereParameters::SIGMAH] = 0;
          std::vector<Real> electronDensity(numAtmosphereLevels);
 
-         for(int h=1; h<numAtmosphereLevels; h++) { // Note this loop counts from 1
+         // Note this loop counts from 1 (std::vector is zero-initialized, so electronDensity[0] = 0)
+         for(int h=1; h<numAtmosphereLevels; h++) { 
             // Calculate production rate
             Real energy_keV = max(nodes[n].deltaPhi()/1000., productionMinAccEnergy);
 
@@ -816,7 +817,7 @@ namespace SBC {
          // Build conductivity tensor
          Real sigmaP = nodes[n].parameters[ionosphereParameters::SIGMAP];
          Real sigmaH = nodes[n].parameters[ionosphereParameters::SIGMAH];
-         Real sigmaParallel = nodes[n].parameters[ionosphereParameters::SIGMAPARALLEL] + 1000;
+         Real sigmaParallel = nodes[n].parameters[ionosphereParameters::SIGMAPARALLEL];
 
          // GUMICS-Style conductivity tensor.
          // Approximate B vector = radial vector
@@ -839,6 +840,27 @@ namespace SBC {
                }
             }
          } else if(Ionosphere::conductivityModel == Ionosphere::Ridley) {
+
+            sigmaParallel = 1000;
+            std::array<Real, 3> b = {
+               dipoleField(x[0],x[1],x[2],X,0,X),
+               dipoleField(x[0],x[1],x[2],Y,0,Y),
+               dipoleField(x[0],x[1],x[2],Z,0,Z)
+            };
+            Real Bnorm = sqrt(b[0]*b[0]+b[1]*b[1]+b[2]*b[2]);
+            b[0] /= Bnorm;
+            b[1] /= Bnorm;
+            b[2] /= Bnorm;
+
+            for(int i=0; i<3; i++) {
+               for(int j=0; j<3; j++) {
+                  nodes[n].parameters[ionosphereParameters::SIGMA + i*3 + j] = sigmaP * ((i==j)? 1. : 0.) + (sigmaParallel - sigmaP)*b[i]*b[j];
+                  for(int k=0; k<3; k++) {
+                     nodes[n].parameters[ionosphereParameters::SIGMA + i*3 + j] -= sigmaH * epsilon[i][j][k]*b[k];
+                  }
+               }
+            }
+         } else if(Ionosphere::conductivityModel == Ionosphere::Koskinen) {
 
             std::array<Real, 3> b = {
                dipoleField(x[0],x[1],x[2],X,0,X),
@@ -2079,7 +2101,7 @@ namespace SBC {
       Readparameters::add("ionosphere.precedence", "Precedence value of the ionosphere system boundary condition (integer), the higher the stronger.", 2);
       Readparameters::add("ionosphere.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
       Readparameters::add("ionosphere.baseShape", "Select the seed mesh geometry for the spherical ionosphere grid. Options are: sphericalFibonacci, tetrahedron, icosahedron.",std::string("sphericalFibonacci"));
-      Readparameters::add("ionosphere.conductivityModel", "Select ionosphere conductivity tensor construction model. Options are: 0=GUMICS style (Vertical B, only SigmaH and SigmaP), 1=Ridley et al 2004 (1000 mho longitudinal conductivity).", 0);
+      Readparameters::add("ionosphere.conductivityModel", "Select ionosphere conductivity tensor construction model. Options are: 0=GUMICS style (Vertical B, only SigmaH and SigmaP), 1=Ridley et al 2004 (1000 mho longitudinal conductivity), 2=Koskinen 2011 full conductivity tensor.", 0);
       Readparameters::add("ionosphere.fibonacciNodeNum", "Number of nodes in the spherical fibonacci mesh.",256);
       Readparameters::addComposing("ionosphere.refineMinLatitude", "Refine the grid polewards of the given latitude. Multiple of these lines can be given for successive refinement, paired up with refineMaxLatitude lines.");
       Readparameters::addComposing("ionosphere.refineMaxLatitude", "Refine the grid equatorwards of the given latitude. Multiple of these lines can be given for successive refinement, paired up with refineMinLatitude lines.");
