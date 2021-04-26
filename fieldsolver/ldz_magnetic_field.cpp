@@ -205,7 +205,7 @@ void propagateSysBoundaryMagneticField(
  *
  * \sa propagateMagneticFieldSimple propagateMagneticField
  */
-void projectSysBoundaryMagneticField(
+void SysBoundaryMagneticFieldProjection(
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBDt2Grid,
    FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
@@ -216,9 +216,9 @@ void projectSysBoundaryMagneticField(
    cint& RKCase
 ) {
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondMagneticFieldProject(perBGrid, technicalGrid, i, j, k);
+      sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondMagneticFieldProjection(perBGrid, technicalGrid, i, j, k);
    } else {
-      sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondMagneticFieldProject(perBDt2Grid, technicalGrid, i, j, k);
+      sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondMagneticFieldProjection(perBDt2Grid, technicalGrid, i, j, k);
    }
 }
 
@@ -341,7 +341,7 @@ void propagateMagneticFieldSimple(
    }
    phiprof::stop(timer,N_cells,"Spatial Cells");
 
-   // Project magnetic field to normal of boundary, if necessary
+   // Projection of magnetic field to normal of boundary, if necessary
    timer=phiprof::initializeTimer("Compute system boundary cells");
    phiprof::start(timer);
    #pragma omp parallel for collapse(3)
@@ -352,7 +352,7 @@ void propagateMagneticFieldSimple(
                 ((technicalGrid.get(i,j,k)->sysBoundaryLayer == 2) ||
                  (technicalGrid.get(i,j,k)->sysBoundaryLayer == 1))
                ) {
-               projectSysBoundaryMagneticField(perBGrid, perBDt2Grid, technicalGrid, i, j, k, sysBoundaries, RKCase);
+               SysBoundaryMagneticFieldProjection(perBGrid, perBDt2Grid, technicalGrid, i, j, k, sysBoundaries, RKCase);
             }
          }
       }
