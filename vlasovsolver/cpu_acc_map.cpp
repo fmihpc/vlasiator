@@ -20,11 +20,14 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-
 #include <math.h>
 #include <algorithm>
 #include <utility>
 #include <omp.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "vec.h"
 #include "cpu_acc_sort_blocks.hpp"
@@ -33,6 +36,7 @@
 #include "cpu_1d_ppm.hpp"
 #include "cpu_1d_plm.hpp"
 #include "cpu_acc_map.hpp"
+#include "../vlasovsolver_cuda/open_acc_map_h.cuh"
 
 using namespace std;
 using namespace spatial_cell;
@@ -79,7 +83,6 @@ vmesh::LocalID addVelocityBlock(const vmesh::GlobalID& blockGID,
 
 
 void inline swapBlockIndices(velocity_block_indices_t &blockIndices, const uint dimension){
-
    uint temp;
    // Switch block indices according to dimensions, the algorithm has
    // been written for integrating along z.
@@ -101,7 +104,14 @@ void inline swapBlockIndices(velocity_block_indices_t &blockIndices, const uint 
    }
 }
 
-
+  void wrapperCaller(int b)
+  {
+    printf("STAGE 2\n");
+    printf("b = %d\n", b);
+    //CUDA SOLUTION START
+    wrapper(b);
+    //CUDA SOLUTION END
+  }
 
 /*
    Here we map from the current time step grid, to a target grid which
@@ -111,10 +121,14 @@ void inline swapBlockIndices(velocity_block_indices_t &blockIndices, const uint 
 */
 bool map_1d(SpatialCell* spatial_cell,
             const uint popID,
-            Realv intersection, Realv intersection_di, Realv intersection_dj,Realv intersection_dk,
+            Realv intersection, Realv intersection_di, Realv intersection_dj, Realv intersection_dk,
             const uint dimension, const bool useAccelerator) {
+   //CALL CUDA FUNCTION WRAPPER START
+   printf("STAGE 1\n");
+   int a = 1000;
+   wrapperCaller(a);
+   //CALL CUDA FUNCTION WRAPPER END
    no_subnormals();
-
    Realv dv,v_min;
    Realv is_temp;
    uint max_v_length;
@@ -545,7 +559,7 @@ bool map_1d(SpatialCell* spatial_cell,
                   if(gk < minGk || gk > maxGk) {
                      continue;
                   }
-               
+
                   const int blockK = gk/WID;
                   const int gk_mod_WID = (gk - blockK * WID);
                   //the block of the Lagrangian cell to which we map
@@ -735,7 +749,7 @@ bool map_1d(SpatialCell* spatial_cell,
                   if(gk < minGk || gk > maxGk) {
                      continue;
                   }
-               
+
                   const int blockK = gk/WID;
                   const int gk_mod_WID = (gk - blockK * WID);
                   //the block of the Lagrangian cell to which we map
@@ -804,4 +818,3 @@ bool map_1d(SpatialCell* spatial_cell,
    delete [] columns;
    return true;
 }
-

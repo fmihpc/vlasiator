@@ -1,15 +1,15 @@
-CMP = mpic++ 
-LNK = mpic++ 
+CMP = mpic++
+LNK = mpic++
 
-#-DNO_WRITE_AT_ALL:  Define to disable write at all to 
+#-DNO_WRITE_AT_ALL:  Define to disable write at all to
 #                    avoid memleak (much slower IO)
-#-DMPICH_IGNORE_CXX_SEEK: Ignores some multiple definition 
-#                         errors that come up when using 
+#-DMPICH_IGNORE_CXX_SEEK: Ignores some multiple definition
+#                         errors that come up when using
 #                         mpi.h in c++ on Cray
 
 #CXXFLAGS = -DMPICH_IGNORE_CXX_SEEK
 
-FLAGS = 
+FLAGS =
 
 # NOTES on compiler flags:
 # CXXFLAGS is for compiler flags, they are always used
@@ -58,5 +58,3 @@ INC_VECTORCLASS = -I$(LIBRARY_PREFIX_A)/vectorclass
 
 INC_VLSV = -I$(LIBRARY_PREFIX_A)/vlsv
 LIB_VLSV = -L$(LIBRARY_PREFIX_A)/vlsv -lvlsv
-
-
