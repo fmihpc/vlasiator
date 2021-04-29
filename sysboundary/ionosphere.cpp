@@ -64,6 +64,7 @@ namespace SBC {
    Real Ionosphere::radius;
    Real Ionosphere::recombAlpha; // Recombination parameter, determining atmosphere ionizability (parameter)
    Real Ionosphere::F10_7; // Solar 10.7 Flux value (parameter)
+   Real Ionosphere::couplingTimescale; // Magnetosphere->Ionosphere coupling timescale (seconds)
    Real Ionosphere::backgroundIonisation; // Background ionisation due to stellar UV and cosmic rays
    int  Ionosphere::solverMaxIterations;
    bool  Ionosphere::solverPreconditioning;
@@ -1523,10 +1524,21 @@ namespace SBC {
               Ionosphere::speciesParams[0].T;
         } else {
            // Store as the node's parameter values.
-           // TODO: This is the point where a coupling timescale could be introduced.
-           nodes[n].parameters[ionosphereParameters::SOURCE] = FACsum[n];
-           nodes[n].parameters[ionosphereParameters::RHON] = rhoSum[n];
-           nodes[n].parameters[ionosphereParameters::PRESSURE] = pressureSum[n];
+           if(Ionosphere::couplingTimescale == 0) {
+              // Immediate coupling
+              nodes[n].parameters[ionosphereParameters::SOURCE] = FACsum[n];
+              nodes[n].parameters[ionosphereParameters::RHON] = rhoSum[n];
+              nodes[n].parameters[ionosphereParameters::PRESSURE] = pressureSum[n];
+           } else {
+
+              // Slow coupling with a given timescale.
+              Real a = Parameters::dt / Ionosphere::couplingTimescale;
+              if(a>1) {a=1.;}
+
+              nodes[n].parameters[ionosphereParameters::SOURCE] = (1.-a) * nodes[n].parameters[ionosphereParameters::SOURCE] + a * FACsum[n];
+              nodes[n].parameters[ionosphereParameters::RHON] = (1.-a) * nodes[n].parameters[ionosphereParameters::RHON] + a * rhoSum[n];
+              nodes[n].parameters[ionosphereParameters::PRESSURE] = (1.-a) * nodes[n].parameters[ionosphereParameters::PRESSURE] + a * pressureSum[n];
+           }
         }
      }
 
@@ -2131,6 +2143,7 @@ namespace SBC {
       Readparameters::add("ionosphere.solverMaxIterations", "Maximum number of iterations for the conjugate gradient solver", 2000);
       Readparameters::add("ionosphere.solverPreconditioning", "Use preconditioning for the solver? (0/1)", 1);
       Readparameters::add("ionosphere.fieldLineTracer", "Field line tracing method to use for coupling ionosphere and magnetosphere (options are: Euler, BS)", std::string("Euler"));
+      Readparameters::add("ionosphere.couplingTimescale", "Magnetosphere->Ionosphere coupling timescale (seconds, 0=immediate coupling", 1.);
       Readparameters::add("ionosphere.tracerTolerance", "Tolerance for the Bulirsch Stoer Method", 1000);
 
       // Per-population parameters
@@ -2199,6 +2212,10 @@ namespace SBC {
          exit(1);
       }
       if(!Readparameters::get("ionosphere.fieldLineTracer", tracerString)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("ionosphere.couplingTimescale",couplingTimescale)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
