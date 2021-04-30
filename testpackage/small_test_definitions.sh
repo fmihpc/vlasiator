@@ -2,7 +2,9 @@
 ## Define test and runs
 #vlasiator binary
 
-bin=vlasiator
+#bin=vlasiator
+#diffbin=vlsvdiff_DP
+# Assume bin is set job script
 if [ ! -f $bin ]
 then
    echo Executable $bin does not exist
