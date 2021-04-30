@@ -1532,8 +1532,11 @@ namespace SBC {
            } else {
 
               // Slow coupling with a given timescale.
-              Real a = Parameters::dt / Ionosphere::couplingTimescale;
-              if(a>1) {a=1.;}
+              // See https://en.wikipedia.org/wiki/Exponential_smoothing#Time_constant
+              Real a = 1. - exp(- Parameters::dt / Ionosphere::couplingTimescale);
+              if(a>1) {
+                 a=1.;
+              }
 
               nodes[n].parameters[ionosphereParameters::SOURCE] = (1.-a) * nodes[n].parameters[ionosphereParameters::SOURCE] + a * FACsum[n];
               nodes[n].parameters[ionosphereParameters::RHON] = (1.-a) * nodes[n].parameters[ionosphereParameters::RHON] + a * rhoSum[n];
