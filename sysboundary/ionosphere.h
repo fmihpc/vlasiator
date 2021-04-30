@@ -74,7 +74,7 @@ namespace SBC {
 
          std::array<Real, 3> x = {0,0,0}; // Coordinates of the node
          std::array<Real, 3> xMapped = {0,0,0}; // Coordinates mapped along fieldlines into simulation domain
-         int numRanksCoupling = 0;
+         int numRanksCoupling = 0; // How many ranks are trying to couple this node (0 or 1)
 
          std::array<iSolverReal, N_IONOSPHERE_PARAMETERS> parameters = {0}; // Parameters carried by the node, see common.h
          std::array<Real,3> fsgridCellCoupling = {-1.,-1.,-1.}; // Where (in fsgrid cell coordinate space) does this fieldline map?

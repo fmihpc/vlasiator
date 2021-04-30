@@ -1125,6 +1125,8 @@ namespace SBC {
 
          // Since we may have added new ranks to the communicator, we need to re-distribute the xMapped values to all of them.
          for(uint n=0; n<nodes.size(); n++) {
+
+            // First, sum up how many ranks want to couple any given node. This might be 0, 1 or 2.
             int sendNumRanksCoupling = nodes[n].numRanksCoupling;
             int sumRanksCoupling;
             MPI_Allreduce(&sendNumRanksCoupling, &sumRanksCoupling, sizeof(int), MPI_INT, MPI_SUM, communicator);
@@ -1132,6 +1134,8 @@ namespace SBC {
             if(sumRanksCoupling > 0) {
                std::array<Real,3> sendMapped = nodes[n].xMapped;
                MPI_Allreduce(sendMapped.data(), nodes[n].xMapped.data(), 3, MPI_DOUBLE, MPI_SUM, communicator);
+
+               // If more than one rank is coupling this node, take average coordinate values
                nodes[n].xMapped[0] /= sumRanksCoupling;
                nodes[n].xMapped[1] /= sumRanksCoupling;
                nodes[n].xMapped[2] /= sumRanksCoupling;
