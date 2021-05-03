@@ -66,18 +66,19 @@ LIBRARY_PREFIX = /zhome/academic/HLRS/pri/ipryakem/libraries
 #======== PAPI ==========
 #Add PAPI_MEM define to use papi to report memory consumption?
 CXXFLAGS +=  -DPAPI_MEM
-
+testpackage: CXXFLAGS +=  -DPAPI_MEM
 
 #======== Allocator =========
 #Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
 #Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
 CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 
 #compiled libraries
 
-LIB_BOOST= -L/opt/hlrs/spack/rev-004_2020-06-17/boost/1.70.0-gcc-9.2.0-ohuvjbhm/lib -lboost_program_options
-INC_BOOST=-L/opt/hlrs/spack/rev-004_2020-06-17/boost/1.70.0-gcc-9.2.0-ohuvjbhm/include
+LIB_BOOST= -L$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/lib -lboost_program_options
+INC_BOOST=-L$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/boost/include
 
 INC_ZOLTAN = -I$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/include
 LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/zoltan/lib -lzoltan
@@ -99,7 +100,5 @@ LIB_PAPI = -L/opt/hlrs/spack/rev-004_2020-06-17/papi/c048e224f-gcc-9.2.0-hxfnx7k
 INC_EIGEN = -I$(LIBRARY_PREFIX)/
 INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg/
 INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid/
-
-
-
+INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass-version1
 
