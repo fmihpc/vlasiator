@@ -28,7 +28,9 @@
 #include <vector3d.h>
 #include "../parameters.h"
 #include <math.h>
-
+#include <iostream>
+#include <fstream>
+#include <iomanip>
 
 using namespace spatial_cell;
 
@@ -49,6 +51,9 @@ void velocitySpaceDiffusion(
 
         std::vector<std::array<Realf,3>> arrayDFright(cell.get_number_of_velocity_blocks(popID)*WID3); // Array of vspace size for storing derivatives +DV
         std::vector<std::array<Realf,3>> arrayDFleft(cell.get_number_of_velocity_blocks(popID)*WID3); // Array of vspace size for storing derivatives -DV
+        std::vector<Realf> theta(cell.get_number_of_velocity_blocks(popID)*WID3); // Array of vspace size for storing theta
+
+        std::vector<std::array<Realf,3>> VPCoords(cell.get_number_of_velocity_blocks(popID)*WID3); // Array of vspace size for storing VPlasma coordinates
 
 
         for (int coord = 0; coord < 3; coord++) { // First derivative loop
@@ -119,8 +124,8 @@ void velocitySpaceDiffusion(
            Vec3d b = normalize_vector(B);
            Vec3d ey(0.0,1.0,0.0);
            Vec3d evec;
-           if (dot_product(b,ey) > 0.1) {Vec3d evec(0.0,1.0,0.0);}
-           else {Vec3d evec(0.0,0.0,1.0);} 
+           if (dot_product(b,ey) > 0.1) {Vec3d evectemp(0.0,1.0,0.0); evec = evectemp;}
+           else {Vec3d evectemp(0.0,0.0,1.0); evec = evectemp;}
            Vec3d c = normalize_vector(cross_product(b,evec));
            Vec3d d = normalize_vector(cross_product(b,c));
 
@@ -146,6 +151,11 @@ void velocitySpaceDiffusion(
                   Vec3d V(VX,VY,VZ); // Velocity in the cell, in the simulation frame
                   Vec3d Vplasma(VX - bulkV[0] , VY - bulkV[1] , VZ - bulkV[2]); //Velocity in the cell, in the plasma frame
                   
+
+                  VPCoords[WID3*n+i+WID*j+WID*WID*k][0] = V[0];
+                  VPCoords[WID3*n+i+WID*j+WID*WID*k][1] = V[1];
+                  VPCoords[WID3*n+i+WID*j+WID*WID*k][2] = V[2];
+
                   Realf normV = sqrt(dot_product(Vplasma,Vplasma));
 
                   const Real DV 
@@ -159,10 +169,10 @@ void velocitySpaceDiffusion(
                   Realf Dvv = Parameters::PADcoefficient; // Diffusion coefficient taken from cfg file
 
                   // Calculation of theta at center of the cell
-                  Vec3d r     = normalize_vector(Vplasma);
-                  Realf rc    = dot_product(r,c);
-                  Realf rd    = dot_product(r,d);
-                  Realf theta = atan2(rc,rd);  
+                  Vec3d r  = normalize_vector(Vplasma);
+                  Realf rc = dot_product(r,c);
+                  Realf rd = dot_product(r,d);
+                  theta[WID3*n+i+WID*j+WID*WID*k] = atan2(-rc,-rd);  
 
                   // Calculation of terms inside the second derivative according to Eq. (18) of the PDF
                       // Right terms
@@ -171,8 +181,8 @@ void velocitySpaceDiffusion(
                   Realf normVright   = sqrt(dot_product(rightVplasma,rightVplasma));
 
                   Realf rightTermDVX = sqrt(rightVplasma[1]*rightVplasma[1] + rightVplasma[2]*rightVplasma[2]) * arrayDFright[WID3*n+i+WID*j+WID*WID*k][0];
-                  Realf rightTermDVY = rightVplasma[0] * sin(theta) * arrayDFright[WID3*n+i+WID*j+WID*WID*k][1];
-                  Realf rightTermDVZ = rightVplasma[0] * cos(theta) * arrayDFright[WID3*n+i+WID*j+WID*WID*k][2];
+                  Realf rightTermDVY = rightVplasma[0] * sin(theta[WID3*n+i+WID*j+WID*WID*k]) * arrayDFright[WID3*n+i+WID*j+WID*WID*k][1];
+                  Realf rightTermDVZ = rightVplasma[0] * cos(theta[WID3*n+i+WID*j+WID*WID*k]) * arrayDFright[WID3*n+i+WID*j+WID*WID*k][2];
             
                   Realf rightTerm = sqrt(rightVplasma[1]*rightVplasma[1] + rightVplasma[2]*rightVplasma[2])/normVright * Dvv * (rightTermDVY + rightTermDVZ - rightTermDVX);
 
@@ -182,8 +192,8 @@ void velocitySpaceDiffusion(
                   Realf normVleft   = sqrt(dot_product(leftVplasma,leftVplasma));
 
                   Realf leftTermDVX = sqrt(leftVplasma[1]*leftVplasma[1] + leftVplasma[2]*leftVplasma[2]) * arrayDFleft[WID3*n+i+WID*j+WID*WID*k][0];
-                  Realf leftTermDVY = leftVplasma[0] * sin(theta) * arrayDFleft[WID3*n+i+WID*j+WID*WID*k][1];
-                  Realf leftTermDVZ = leftVplasma[0] * cos(theta) * arrayDFleft[WID3*n+i+WID*j+WID*WID*k][2];
+                  Realf leftTermDVY = leftVplasma[0] * sin(theta[WID3*n+i+WID*j+WID*WID*k]) * arrayDFleft[WID3*n+i+WID*j+WID*WID*k][1];
+                  Realf leftTermDVZ = leftVplasma[0] * cos(theta[WID3*n+i+WID*j+WID*WID*k]) * arrayDFleft[WID3*n+i+WID*j+WID*WID*k][2];
             
                   Realf leftTerm = sqrt(leftVplasma[1]*leftVplasma[1] + leftVplasma[2]*leftVplasma[2])/normVleft * Dvv * (leftTermDVY + leftTermDVZ - leftTermDVX);
                   
@@ -191,8 +201,8 @@ void velocitySpaceDiffusion(
 
                   Realf precoeff = 0.0;
                   if (coord == 0) { precoeff = - normV;}
-                  else if (coord == 1) {precoeff = normV * Vplasma[0] * sin(theta) / sqrt(Vplasma[1]*Vplasma[1] + Vplasma[2]*Vplasma[2]);}
-                  else if (coord == 2) {precoeff = normV * Vplasma[0] * cos(theta) / sqrt(Vplasma[1]*Vplasma[1] + Vplasma[2]*Vplasma[2]);} 
+                  else if (coord == 1) {precoeff = normV * Vplasma[0] * sin(theta[WID3*n+i+WID*j+WID*WID*k]) / sqrt(Vplasma[1]*Vplasma[1] + Vplasma[2]*Vplasma[2]);}
+                  else if (coord == 2) {precoeff = normV * Vplasma[0] * cos(theta[WID3*n+i+WID*j+WID*WID*k]) / sqrt(Vplasma[1]*Vplasma[1] + Vplasma[2]*Vplasma[2]);} 
 
                   Realf dfdtCoord = precoeff * (rightTerm - leftTerm)/DV; 
 
@@ -205,10 +215,21 @@ void velocitySpaceDiffusion(
                   if (CellValue <= 0.0) { CellValue = 0.0;}
 
                   cell.set_value(VX,VY,VZ,CellValue,popID);
-
-           } 
+               
 
 	 }
+       }
+    
+       }
+
+       
+       // Write data to txt file (FOR TESTING, TO BE REMOVED)
+       std::ostringstream tmp;
+       tmp << std::setw(7) << std::setfill('0') << P::tstep;
+       std::string outputstring = tmp.str();
+       std::ofstream dftheta("/wrk/users/dubart/300_test/proc_test/test_files/dftheta_" +outputstring+".txt");
+       for(int i=0; i < cell.get_number_of_velocity_blocks(popID)*WID3; i++) {
+       dftheta << VPCoords[i][0] << " " << VPCoords[i][1] << " " << VPCoords[i][2] << " " << arrayDFright[i][0] << " " << arrayDFright[i][1] << " " << arrayDFright[i][2] << " " << arrayDFleft[i][0] << " " << arrayDFleft[i][1] << " " << arrayDFleft[i][2] << " " << theta[i] << std::endl;
        }
     }
 }
