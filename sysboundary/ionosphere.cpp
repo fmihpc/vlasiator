@@ -743,6 +743,7 @@ namespace SBC {
 
       // Ranks that don't participate in ionosphere solving skip this function outright
       if(!isCouplingInwards && !isCouplingOutwards) {
+         phiprof::stop("ionosphere-calculateConductivityTensor");
          return;
       }
 
