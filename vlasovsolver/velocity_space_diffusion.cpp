@@ -122,10 +122,11 @@ void velocitySpaceDiffusion(
                    cell.parameters[CellParams::PERBYVOL] +  cell.parameters[CellParams::BGBYVOL],
 	           cell.parameters[CellParams::PERBZVOL] +  cell.parameters[CellParams::BGBZVOL]);
            Vec3d b = normalize_vector(B);
-           Vec3d ey(0.0,1.0,0.0);
-           Vec3d evec;
-           if (dot_product(b,ey) > 0.1) {Vec3d evectemp(0.0,1.0,0.0); evec = evectemp;}
-           else {Vec3d evectemp(0.0,0.0,1.0); evec = evectemp;}
+           Vec3d evec(0.0,1.0,0.0);
+           Real evecarray[3] = {0.0,0.0,0.0};
+           if (abs(dot_product(b,evec)) < 0.1) { evecarray[1] = 1.0;}
+           else  {evecarray[2] = 1.0;}
+           evec.load(evecarray);
            Vec3d c = normalize_vector(cross_product(b,evec));
            Vec3d d = normalize_vector(cross_product(b,c));
 
@@ -172,7 +173,7 @@ void velocitySpaceDiffusion(
                   Vec3d r  = normalize_vector(Vplasma);
                   Realf rc = dot_product(r,c);
                   Realf rd = dot_product(r,d);
-                  theta[WID3*n+i+WID*j+WID*WID*k] = atan2(-rc,-rd);  
+                  theta[WID3*n+i+WID*j+WID*WID*k] = atan2(rc,rd);  
 
                   // Calculation of terms inside the second derivative according to Eq. (18) of the PDF
                       // Right terms
