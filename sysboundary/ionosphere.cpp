@@ -1261,6 +1261,7 @@ namespace SBC {
             logFile << "(ionosphere) Warning: coupling of Vlasov grid cell failed due to weird magnetic field topology." << endl << write;
 
             // Return a coupling that has 0 value and results in zero potential
+            phiprof::stop("ionosphere-VlasovGridCoupling");
             return coupling;
          }
       }
@@ -2003,6 +2004,7 @@ namespace SBC {
 
      // Abort if there is nothing to solve.
      if(sourcenorm == 0) {
+       phiprof::stop("ionosphere-solve");
        return;
      }
      sourcenorm = sqrt(sourcenorm);
