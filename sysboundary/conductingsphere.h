@@ -80,6 +80,13 @@ namespace SBC {
          creal& dt,
          cuint& component
       );
+      virtual void fieldSolverBoundaryCondMagneticFieldProjection(
+         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
+         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+         cint i,
+         cint j,
+         cint k
+      );
       virtual void fieldSolverBoundaryCondElectricField(
          FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
          cint i,
