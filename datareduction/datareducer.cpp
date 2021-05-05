@@ -1045,6 +1045,21 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1, "mho", "$\\mathrm{\\mho}$", "$\\Sigma_H$", "1.0");
          continue;
       }
+      if(lowercase == "ig_sigmaparallel") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_sigmaparallel", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+
+                     std::vector<Real> retval(grid.nodes.size());
+
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::SIGMAPARALLEL];
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addMetadata(outputReducer->size()-1, "mho", "$\\mathrm{\\mho}$", "$\\Sigma_\\parallel$", "1.0");
+         continue;
+      }
       if(lowercase == "ig_rhon") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_rhon", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {

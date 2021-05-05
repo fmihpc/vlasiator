@@ -64,9 +64,11 @@ namespace SBC {
    Real Ionosphere::radius;
    Real Ionosphere::recombAlpha; // Recombination parameter, determining atmosphere ionizability (parameter)
    Real Ionosphere::F10_7; // Solar 10.7 Flux value (parameter)
+   Real Ionosphere::couplingTimescale; // Magnetosphere->Ionosphere coupling timescale (seconds)
    Real Ionosphere::backgroundIonisation; // Background ionisation due to stellar UV and cosmic rays
    int  Ionosphere::solverMaxIterations;
    bool  Ionosphere::solverPreconditioning;
+   enum Ionosphere::IonosphereConductivityModel Ionosphere::conductivityModel;
    Real  Ionosphere::eps;
 
    // Offset field aligned currents so their sum is 0
@@ -582,7 +584,6 @@ namespace SBC {
             // TODO: Ugh, hardcoded constants. What is this?
             newLayer.nui = 1e-16*(2*c1 + 3.8*c2 + 5*c3);
             atmosphere[altindex++] = newLayer;
-            //logFile << "(ionosphere) added atmospheric layer at altitude " << altitude << " with density " << density << ", depth" << integratedDensity << ", nui=" << newLayer.nui << endl << write;
          }
       }
 
@@ -592,13 +593,14 @@ namespace SBC {
          atmosphere[h].depth = integratedDensity - atmosphere[h].depth;
       }
 
-      // Calculate hall and pederson conductivity coefficient based on charge carrier density
+      // Calculate Hall and Pedersen conductivity coefficient based on charge carrier density
       const Real Bval = 5e-5; // TODO: Hardcoded B strength here?
       const Real gyroFreq = physicalconstants::CHARGE * Bval / (31*physicalconstants::MASS_PROTON); // Oxygen gyration frequency
       for(int h=0; h<numAtmosphereLevels; h++) {
          Real rho = atmosphere[h].nui / gyroFreq;
          atmosphere[h].pedersencoeff = (physicalconstants::CHARGE/Bval)*(rho/(1+rho*rho));
          atmosphere[h].hallcoeff = rho * atmosphere[h].pedersencoeff;
+         atmosphere[h].parallelcoeff = physicalconstants::CHARGE*physicalconstants::CHARGE / ((31. * physicalconstants::MASS_PROTON)  * atmosphere[h].nui);
       }
 
 
@@ -741,6 +743,7 @@ namespace SBC {
 
       // Ranks that don't participate in ionosphere solving skip this function outright
       if(!isCouplingInwards && !isCouplingOutwards) {
+         phiprof::stop("ionosphere-calculateConductivityTensor");
          return;
       }
 
@@ -754,7 +757,8 @@ namespace SBC {
          nodes[n].parameters[ionosphereParameters::SIGMAH] = 0;
          std::vector<Real> electronDensity(numAtmosphereLevels);
 
-         for(int h=1; h<numAtmosphereLevels; h++) { // Note this loop counts from 1
+         // Note this loop counts from 1 (std::vector is zero-initialized, so electronDensity[0] = 0)
+         for(int h=1; h<numAtmosphereLevels; h++) { 
             // Calculate production rate
             Real energy_keV = max(nodes[n].deltaPhi()/1000., productionMinAccEnergy);
 
@@ -777,9 +781,11 @@ namespace SBC {
             Real halfdx = 1000 * 0.5 * (atmosphere[h].altitude -  atmosphere[h-1].altitude);
             Real halfCH = halfdx * 0.5 * (atmosphere[h-1].hallcoeff + atmosphere[h].hallcoeff);
             Real halfCP = halfdx * 0.5 * (atmosphere[h-1].pedersencoeff + atmosphere[h].pedersencoeff);
+            Real halfCpara = halfdx * 0.5 * (atmosphere[h-1].parallelcoeff + atmosphere[h].parallelcoeff);
 
             nodes[n].parameters[ionosphereParameters::SIGMAP] += (electronDensity[h]+electronDensity[h-1]) * halfCP;
             nodes[n].parameters[ionosphereParameters::SIGMAH] += (electronDensity[h]+electronDensity[h-1]) * halfCH;
+            nodes[n].parameters[ionosphereParameters::SIGMAPARALLEL] += (electronDensity[h]+electronDensity[h-1]) * halfCpara;
          }
       }
 
@@ -810,25 +816,74 @@ namespace SBC {
          nodes[n].parameters[ionosphereParameters::SIGMAP] = sqrt( pow(nodes[n].parameters[ionosphereParameters::SIGMAP],2) + pow(sigmaP_dayside,2));
          nodes[n].parameters[ionosphereParameters::SIGMAH] = sqrt( pow(nodes[n].parameters[ionosphereParameters::SIGMAH],2) + pow(sigmaH_dayside,2));
 
-         // Approximate B vector = radial vector
-         // TODO: Can't we easily do better than this?
-         std::array<Real, 3> b = {x[0] / Ionosphere::innerRadius, x[1] / Ionosphere::innerRadius, x[2] / Ionosphere::innerRadius};
-         if(x[2] >= 0) {
-            b[0] *= -1;
-            b[1] *= -1;
-            b[2] *= -1;
-         }
-
          // Build conductivity tensor
          Real sigmaP = nodes[n].parameters[ionosphereParameters::SIGMAP];
          Real sigmaH = nodes[n].parameters[ionosphereParameters::SIGMAH];
-         for(int i=0; i<3; i++) {
-            for(int j=0; j<3; j++) {
-               nodes[n].parameters[ionosphereParameters::SIGMA + i*3 + j] = sigmaP * ((i==j? 1. : 0.) - b[i]*b[j]);
-               for(int k=0; k<3; k++) {
-                  nodes[n].parameters[ionosphereParameters::SIGMA + i*3 + j] -= sigmaH * epsilon[i][j][k]*b[k];
+         Real sigmaParallel = nodes[n].parameters[ionosphereParameters::SIGMAPARALLEL];
+
+         // GUMICS-Style conductivity tensor.
+         // Approximate B vector = radial vector
+         // SigmaP and SigmaH are both in-plane with the mesh
+         // No longitudinal conductivity
+         if(Ionosphere::conductivityModel == Ionosphere::GUMICS) {
+            std::array<Real, 3> b = {x[0] / Ionosphere::innerRadius, x[1] / Ionosphere::innerRadius, x[2] / Ionosphere::innerRadius};
+            if(x[2] >= 0) {
+               b[0] *= -1;
+               b[1] *= -1;
+               b[2] *= -1;
+            }
+
+            for(int i=0; i<3; i++) {
+               for(int j=0; j<3; j++) {
+                  nodes[n].parameters[ionosphereParameters::SIGMA + i*3 + j] = sigmaP * (((i==j)? 1. : 0.) - b[i]*b[j]);
+                  for(int k=0; k<3; k++) {
+                     nodes[n].parameters[ionosphereParameters::SIGMA + i*3 + j] -= sigmaH * epsilon[i][j][k]*b[k];
+                  }
                }
             }
+         } else if(Ionosphere::conductivityModel == Ionosphere::Ridley) {
+
+            sigmaParallel = 1000;
+            std::array<Real, 3> b = {
+               dipoleField(x[0],x[1],x[2],X,0,X),
+               dipoleField(x[0],x[1],x[2],Y,0,Y),
+               dipoleField(x[0],x[1],x[2],Z,0,Z)
+            };
+            Real Bnorm = sqrt(b[0]*b[0]+b[1]*b[1]+b[2]*b[2]);
+            b[0] /= Bnorm;
+            b[1] /= Bnorm;
+            b[2] /= Bnorm;
+
+            for(int i=0; i<3; i++) {
+               for(int j=0; j<3; j++) {
+                  nodes[n].parameters[ionosphereParameters::SIGMA + i*3 + j] = sigmaP * ((i==j)? 1. : 0.) + (sigmaParallel - sigmaP)*b[i]*b[j];
+                  for(int k=0; k<3; k++) {
+                     nodes[n].parameters[ionosphereParameters::SIGMA + i*3 + j] -= sigmaH * epsilon[i][j][k]*b[k];
+                  }
+               }
+            }
+         } else if(Ionosphere::conductivityModel == Ionosphere::Koskinen) {
+
+            std::array<Real, 3> b = {
+               dipoleField(x[0],x[1],x[2],X,0,X),
+               dipoleField(x[0],x[1],x[2],Y,0,Y),
+               dipoleField(x[0],x[1],x[2],Z,0,Z)
+            };
+            Real Bnorm = sqrt(b[0]*b[0]+b[1]*b[1]+b[2]*b[2]);
+            b[0] /= Bnorm;
+            b[1] /= Bnorm;
+            b[2] /= Bnorm;
+
+            for(int i=0; i<3; i++) {
+               for(int j=0; j<3; j++) {
+                  nodes[n].parameters[ionosphereParameters::SIGMA + i*3 + j] = sigmaP * ((i==j)? 1. : 0.) + (sigmaParallel - sigmaP)*b[i]*b[j];
+                  for(int k=0; k<3; k++) {
+                     nodes[n].parameters[ionosphereParameters::SIGMA + i*3 + j] -= sigmaH * epsilon[i][j][k]*b[k];
+                  }
+               }
+            }
+         } else {
+            logFile << "(ionosphere) Error: Undefined conductivity model " << Ionosphere::conductivityModel << "! Ionospheric Sigma Tensor will be zero." << endl << write;
          }
       }
       phiprof::stop("ionosphere-calculateConductivityTensor");
@@ -1071,8 +1126,21 @@ namespace SBC {
 
          // Since we may have added new ranks to the communicator, we need to re-distribute the xMapped values to all of them.
          for(uint n=0; n<nodes.size(); n++) {
-            std::array<Real,3> sendMapped = nodes[n].xMapped;
-            MPI_Allreduce(sendMapped.data(), nodes[n].xMapped.data(), 3*sizeof(Real), MPI_BYTE, MPI_BOR, communicator);
+
+            // First, sum up how many ranks want to couple any given node. This might be 0, 1 or 2.
+            int sendNumRanksCoupling = nodes[n].numRanksCoupling;
+            int sumRanksCoupling;
+            MPI_Allreduce(&sendNumRanksCoupling, &sumRanksCoupling, sizeof(int), MPI_INT, MPI_SUM, communicator);
+
+            if(sumRanksCoupling > 0) {
+               std::array<Real,3> sendMapped = nodes[n].xMapped;
+               MPI_Allreduce(sendMapped.data(), nodes[n].xMapped.data(), 3, MPI_DOUBLE, MPI_SUM, communicator);
+
+               // If more than one rank is coupling this node, take average coordinate values
+               nodes[n].xMapped[0] /= sumRanksCoupling;
+               nodes[n].xMapped[1] /= sumRanksCoupling;
+               nodes[n].xMapped[2] /= sumRanksCoupling;
+            }
          }
       } else {
          MPI_Comm_split(MPI_COMM_WORLD, MPI_UNDEFINED, 0, &communicator); // All other ranks are staying out of the communicator.
@@ -1149,6 +1217,7 @@ namespace SBC {
 
                   // Store the cells mapped coordinates and upmapped magnetic field
                   no.xMapped = x;
+                  no.numRanksCoupling = 1;
                   for(int c=0; c<3; c++) {
                      no.fsgridCellCoupling[c] = (x[c] - technicalGrid.physicalGlobalStart[c]) / technicalGrid.DX;
                   }
@@ -1192,6 +1261,7 @@ namespace SBC {
             logFile << "(ionosphere) Warning: coupling of Vlasov grid cell failed due to weird magnetic field topology." << endl << write;
 
             // Return a coupling that has 0 value and results in zero potential
+            phiprof::stop("ionosphere-VlasovGridCoupling");
             return coupling;
          }
       }
@@ -1460,10 +1530,24 @@ namespace SBC {
               Ionosphere::speciesParams[0].T;
         } else {
            // Store as the node's parameter values.
-           // TODO: This is the point where a coupling timescale could be introduced.
-           nodes[n].parameters[ionosphereParameters::SOURCE] = FACsum[n];
-           nodes[n].parameters[ionosphereParameters::RHON] = rhoSum[n];
-           nodes[n].parameters[ionosphereParameters::PRESSURE] = pressureSum[n];
+           if(Ionosphere::couplingTimescale == 0) {
+              // Immediate coupling
+              nodes[n].parameters[ionosphereParameters::SOURCE] = FACsum[n];
+              nodes[n].parameters[ionosphereParameters::RHON] = rhoSum[n];
+              nodes[n].parameters[ionosphereParameters::PRESSURE] = pressureSum[n];
+           } else {
+
+              // Slow coupling with a given timescale.
+              // See https://en.wikipedia.org/wiki/Exponential_smoothing#Time_constant
+              Real a = 1. - exp(- Parameters::dt / Ionosphere::couplingTimescale);
+              if(a>1) {
+                 a=1.;
+              }
+
+              nodes[n].parameters[ionosphereParameters::SOURCE] = (1.-a) * nodes[n].parameters[ionosphereParameters::SOURCE] + a * FACsum[n];
+              nodes[n].parameters[ionosphereParameters::RHON] = (1.-a) * nodes[n].parameters[ionosphereParameters::RHON] + a * rhoSum[n];
+              nodes[n].parameters[ionosphereParameters::PRESSURE] = (1.-a) * nodes[n].parameters[ionosphereParameters::PRESSURE] + a * pressureSum[n];
+           }
         }
      }
 
@@ -1808,13 +1892,24 @@ namespace SBC {
            }
         }
      } else {
-       // Only zero the gradient states
+        // Only zero the gradient states
+        Real potentialSum=0;
         for(uint n=0; n<nodes.size(); n++) {
+           Node& N=nodes[n];
+           potentialSum += N.parameters[ionosphereParameters::SOLUTION];
            for(uint p=ionosphereParameters::ZPARAM; p<ionosphereParameters::N_IONOSPHERE_PARAMETERS; p++) {
-              Node& N=nodes[n];
               N.parameters[p] = 0;
            }
         }
+
+        potentialSum /= nodes.size();
+        // One option for gauge fixing: 
+        // Make sure the potential is symmetric around 0 (to prevent it from drifting)
+        //for(uint n=0; n<nodes.size(); n++) {
+        //   Node& N=nodes[n];
+        //   N.parameters[ionosphereParameters::SOLUTION] -= potentialSum;
+        //}
+
      }
 
      //#pragma omp parallel for
@@ -1822,22 +1917,22 @@ namespace SBC {
        addAllMatrixDependencies(n);
      }
      
-     logFile << "(ionosphere) Solver dependency matrix: " << endl;
-     for(uint n=0; n<nodes.size(); n++) {
-        for(uint m=0; m<nodes.size(); m++) {
+     //logFile << "(ionosphere) Solver dependency matrix: " << endl;
+     //for(uint n=0; n<nodes.size(); n++) {
+     //   for(uint m=0; m<nodes.size(); m++) {
 
-           Real val=0;
-           for(int d=0; d<nodes[n].numDepNodes; d++) {
-             if(nodes[n].dependingNodes[d] == m) {
-               val=nodes[n].dependingCoeffs[d];
-             }
-           }
+     //      Real val=0;
+     //      for(int d=0; d<nodes[n].numDepNodes; d++) {
+     //        if(nodes[n].dependingNodes[d] == m) {
+     //          val=nodes[n].dependingCoeffs[d];
+     //        }
+     //      }
 
-           logFile << std::setw(5) << val << "\t";
-        }
-        logFile << endl;
-     }
-     logFile << write;
+     //      logFile << val << "\t";
+     //   }
+     //   logFile << endl;
+     //}
+     //logFile << write;
 
      phiprof::stop("ionosphere-initSolver");
    }
@@ -1851,13 +1946,13 @@ namespace SBC {
      Node& n = nodes[nodeIndex];
 
      if(transpose) {
-       for(uint i=0; i<n.numDepNodes; i++) {
-         retval += nodes[n.dependingNodes[i]].parameters[parameter] * n.transposedCoeffs[i];
-       }
+        for(uint i=0; i<n.numDepNodes; i++) {
+           retval += nodes[n.dependingNodes[i]].parameters[parameter] * n.transposedCoeffs[i];
+        }
      } else {
-       for(uint i=0; i<n.numDepNodes; i++) {
-         retval += nodes[n.dependingNodes[i]].parameters[parameter] * n.dependingCoeffs[i];
-       }
+        for(uint i=0; i<n.numDepNodes; i++) {
+           retval += nodes[n.dependingNodes[i]].parameters[parameter] * n.dependingCoeffs[i];
+        }
      }
 
      return retval;
@@ -1894,7 +1989,7 @@ namespace SBC {
 
      // Calculate sourcenorm and initial residual estimate
      iSolverReal sourcenorm = 0;
-     for(uint n=0; n<nodes.size(); n++) {
+     for(uint n=1; n<nodes.size(); n++) {
        Node& N=nodes[n];
        iSolverReal source = N.parameters[ionosphereParameters::SOURCE];
        sourcenorm += source*source;
@@ -1902,37 +1997,38 @@ namespace SBC {
        N.parameters[ionosphereParameters::BEST_SOLUTION] = N.parameters[ionosphereParameters::SOLUTION];
        N.parameters[ionosphereParameters::RRESIDUAL] = N.parameters[ionosphereParameters::RESIDUAL];
      }
-     for(uint n=0; n<nodes.size(); n++) {
+     for(uint n=1; n<nodes.size(); n++) {
        Node& N=nodes[n];
        N.parameters[ionosphereParameters::ZPARAM] = Asolve(n,ionosphereParameters::RESIDUAL, false);
      }
 
      // Abort if there is nothing to solve.
      if(sourcenorm == 0) {
+       phiprof::stop("ionosphere-solve");
        return;
      }
      sourcenorm = sqrt(sourcenorm);
 
      iSolverReal err = 0;
-     iSolverReal minerr = 1e30;
+     iSolverReal minerr = std::numeric_limits<iSolverReal>::max();
      iSolverReal bkden = 1.;
      int failcount=0;
      for(int iteration =0; iteration < Ionosphere::solverMaxIterations; iteration++) {
 
-       for(uint n=0; n<nodes.size(); n++) {
+       for(uint n=1; n<nodes.size(); n++) {
          Node& N=nodes[n];
          N.parameters[ionosphereParameters::ZZPARAM] = Asolve(n,ionosphereParameters::RRESIDUAL, true);
        }
 
        // Calculate bk and gradient vector p
        iSolverReal bknum = 0;
-       for(uint n=0; n<nodes.size(); n++) {
+       for(uint n=1; n<nodes.size(); n++) {
          Node& N=nodes[n];
          bknum += N.parameters[ionosphereParameters::ZPARAM] * N.parameters[ionosphereParameters::RRESIDUAL];
        }
-       if(iteration == 0 || failcount > 64) {
-          // Just use the gradient vector as-is
-          for(uint n=0; n<nodes.size(); n++) {
+       if(iteration == 0 || failcount > 4) {
+          // Just use the gradient vector as-is, starting from the best known solution
+          for(uint n=1; n<nodes.size(); n++) {
              Node& N=nodes[n];
              N.parameters[ionosphereParameters::PPARAM] = N.parameters[ionosphereParameters::ZPARAM];
              N.parameters[ionosphereParameters::PPPARAM] = N.parameters[ionosphereParameters::ZZPARAM];
@@ -1942,7 +2038,7 @@ namespace SBC {
        } else {
           // Perform gram-smith orthogonalization to get conjugate gradient
           iSolverReal bk = bknum / bkden;
-          for(uint n=0; n<nodes.size(); n++) {
+          for(uint n=1; n<nodes.size(); n++) {
              Node& N=nodes[n];
              N.parameters[ionosphereParameters::PPARAM] *= bk;
              N.parameters[ionosphereParameters::PPARAM] += N.parameters[ionosphereParameters::ZPARAM];
@@ -1958,7 +2054,7 @@ namespace SBC {
 
        // Calculate ak, new solution and new residual
        iSolverReal akden = 0;
-       for(uint n=0; n<nodes.size(); n++) {
+       for(uint n=1; n<nodes.size(); n++) {
          Node& N=nodes[n];
          iSolverReal zparam = Atimes(n, ionosphereParameters::PPARAM, false);
          N.parameters[ionosphereParameters::ZPARAM] = zparam;
@@ -1968,10 +2064,12 @@ namespace SBC {
        iSolverReal ak=bknum/akden;
 
        iSolverReal residualnorm = 0;
-       for(uint n=0; n<nodes.size(); n++) {
+       for(uint n=1; n<nodes.size(); n++) {
          Node& N=nodes[n];
          N.parameters[ionosphereParameters::SOLUTION] += ak * N.parameters[ionosphereParameters::PPARAM];
-
+       }
+       for(uint n=0; n<nodes.size(); n++) {
+         Node& N=nodes[n];
          // Calculate residual of the new solution. The faster way to do this would be
          //
          // iSolverReal newresid = N.parameters[ionosphereParameters::RESIDUAL] - ak * N.parameters[ionosphereParameters::ZPARAM];
@@ -1987,7 +2085,7 @@ namespace SBC {
          
          N.parameters[ionosphereParameters::RRESIDUAL] = N.parameters[ionosphereParameters::SOURCE] - Atimes(n, ionosphereParameters::SOLUTION, true);
        }
-       for(uint n=0; n<nodes.size(); n++) {
+       for(uint n=1; n<nodes.size(); n++) {
          Node& N=nodes[n];
          N.parameters[ionosphereParameters::ZPARAM] = Asolve(n, ionosphereParameters::RESIDUAL, false);
        }
@@ -2012,18 +2110,14 @@ namespace SBC {
        }
 
        if(minerr < 1e-6) {
-         //if(rank == 0) {
-         //  cerr << "Solved ionosphere potential after " << iteration << " iterations." << endl;
-         //}
+         logFile << "Solved ionosphere potential after " << iteration << " iterations." << endl;
          phiprof::stop("ionosphere-solve");
          return;
        }
        
      }
 
-     if(rank == 0) { 
-        cerr << "(ionosphere) Solver exhausted iterations. Remaining error " << minerr << endl;
-     }
+     logFile << "(ionosphere) Solver exhausted iterations. Remaining error " << minerr << endl;
 
      for(uint n=0; n<nodes.size(); n++) {
         Node& N=nodes[n];
@@ -2048,6 +2142,7 @@ namespace SBC {
       Readparameters::add("ionosphere.precedence", "Precedence value of the ionosphere system boundary condition (integer), the higher the stronger.", 2);
       Readparameters::add("ionosphere.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
       Readparameters::add("ionosphere.baseShape", "Select the seed mesh geometry for the spherical ionosphere grid. Options are: sphericalFibonacci, tetrahedron, icosahedron.",std::string("sphericalFibonacci"));
+      Readparameters::add("ionosphere.conductivityModel", "Select ionosphere conductivity tensor construction model. Options are: 0=GUMICS style (Vertical B, only SigmaH and SigmaP), 1=Ridley et al 2004 (1000 mho longitudinal conductivity), 2=Koskinen 2011 full conductivity tensor.", 0);
       Readparameters::add("ionosphere.fibonacciNodeNum", "Number of nodes in the spherical fibonacci mesh.",256);
       Readparameters::addComposing("ionosphere.refineMinLatitude", "Refine the grid polewards of the given latitude. Multiple of these lines can be given for successive refinement, paired up with refineMaxLatitude lines.");
       Readparameters::addComposing("ionosphere.refineMaxLatitude", "Refine the grid equatorwards of the given latitude. Multiple of these lines can be given for successive refinement, paired up with refineMinLatitude lines.");
@@ -2058,6 +2153,7 @@ namespace SBC {
       Readparameters::add("ionosphere.solverMaxIterations", "Maximum number of iterations for the conjugate gradient solver", 2000);
       Readparameters::add("ionosphere.solverPreconditioning", "Use preconditioning for the solver? (0/1)", 1);
       Readparameters::add("ionosphere.fieldLineTracer", "Field line tracing method to use for coupling ionosphere and magnetosphere (options are: Euler, BS)", std::string("Euler"));
+      Readparameters::add("ionosphere.couplingTimescale", "Magnetosphere->Ionosphere coupling timescale (seconds, 0=immediate coupling", 1.);
       Readparameters::add("ionosphere.tracerTolerance", "Tolerance for the Bulirsch Stoer Method", 1000);
 
       // Per-population parameters
@@ -2109,6 +2205,10 @@ namespace SBC {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
+      if(!Readparameters::get("ionosphere.conductivityModel", *(int*)(&conductivityModel))) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
       if(!Readparameters::get("ionosphere.fibonacciNodeNum",fibonacciNodeNum)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
@@ -2122,6 +2222,10 @@ namespace SBC {
          exit(1);
       }
       if(!Readparameters::get("ionosphere.fieldLineTracer", tracerString)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("ionosphere.couplingTimescale",couplingTimescale)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
@@ -2308,7 +2412,7 @@ namespace SBC {
 
    bool Ionosphere::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
-      vector<CellID> cells = mpiGrid.get_cells();
+      const vector<CellID>& cells = getLocalCells();
       for(uint i=0; i<cells.size(); i++) {
          if(mpiGrid[cells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
             continue;
@@ -2356,7 +2460,7 @@ namespace SBC {
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
       Project &project
    ) {
-      vector<CellID> cells = mpiGrid.get_cells();
+      const vector<CellID>& cells = getLocalCells();
       //#pragma omp parallel for
       for (uint i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];

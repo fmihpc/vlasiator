@@ -14,11 +14,12 @@ LNK = mpic++
 
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
 #Single-precision
-	VECTORCLASS = VEC4F_FALLBACK
+	VECTORCLASS = VEC8F_AGNER
 else
 #Double-precision
-	VECTORCLASS = VEC4D_FALLBACK
+	VECTORCLASS = VEC4D_AGNER
 endif
+
 
 
 #======== Flags =========
@@ -46,6 +47,13 @@ testpackage: CXXFLAGS +=  -DPAPI_MEM
 #Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
 CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+
+#======== Allocator =========
+#Use TBB malloc
+
+
+PAPI_FLAG =
+
 
 #======== Libraries ===========
 

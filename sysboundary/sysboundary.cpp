@@ -301,8 +301,9 @@ bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::
    int innerBoundaryRefLvl = -1;
    int outerBoundaryRefLvl = -1;
    
+   const vector<CellID>& local_cells = getLocalCells();
    // Collect cells by sysboundarytype
-   for (auto cellId : mpiGrid.get_cells()) {
+   for (auto cellId : local_cells) {
       SpatialCell* cell = mpiGrid[cellId];
       if(cell) {
          if (cell->sysBoundaryFlag == sysboundarytype::IONOSPHERE || cell->sysBoundaryFlag == sysboundarytype::CONDUCTINGSPHERE) {
@@ -399,7 +400,7 @@ bool belongsToLayer(const int layer, const int x, const int y, const int z,
 bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                 FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
    bool success = true;
-   vector<CellID> cells = mpiGrid.get_cells();
+   const vector<CellID>& cells = getLocalCells();
    auto localSize = technicalGrid.getLocalSize().data();
    
    /*set all cells to default value, not_sysboundary*/

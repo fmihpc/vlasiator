@@ -74,6 +74,7 @@ namespace SBC {
 
          std::array<Real, 3> x = {0,0,0}; // Coordinates of the node
          std::array<Real, 3> xMapped = {0,0,0}; // Coordinates mapped along fieldlines into simulation domain
+         int numRanksCoupling = 0; // How many ranks are trying to couple this node (0 or 1)
 
          std::array<iSolverReal, N_IONOSPHERE_PARAMETERS> parameters = {0}; // Parameters carried by the node, see common.h
          std::array<Real,3> fsgridCellCoupling = {-1.,-1.,-1.}; // Where (in fsgrid cell coordinate space) does this fieldline map?
@@ -121,6 +122,7 @@ namespace SBC {
          Real depth; // integrated density from the top of the atmosphere
          Real pedersencoeff;
          Real hallcoeff;
+         Real parallelcoeff;
       };
       std::array<AtmosphericLayer, numAtmosphereLevels> atmosphere;
 
@@ -365,6 +367,12 @@ namespace SBC {
       static Real recombAlpha; // Recombination parameter, determining atmosphere ionizability (parameter)
       static Real F10_7; // Solar 10.7 Flux value (parameter)
       static Real backgroundIonisation; // Background ionisation due to stellar UV and cosmic rays
+      static Real couplingTimescale; // Magnetosphere->Ionosphere coupling timescale (seconds)
+      static enum IonosphereConductivityModel { // How should the conductivity tensor be assembled?
+         GUMICS,   // Like GUMICS-5 does it? (Only SigmaH and SigmaP, B perp to surface)
+         Ridley,   // Or like the Ridley 2004 paper (with 1000 mho longitudinal conductivity)
+         Koskinen  // Like Koskinen's 2001 "Physics of Space Storms" book suggests
+      } conductivityModel;
 
    protected:
       void generateTemplateCell(Project &project);
