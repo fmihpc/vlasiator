@@ -161,7 +161,7 @@ namespace SBC {
       void offset_FAC();                  // Offset field aligned currents to get overall zero current
       void normalizeRadius(Node& n, Real R); // Scale all coordinates onto sphere with radius R
       void updateConnectivity();          // Re-link elements and nodes
-      void updateIonosphereCommunicator(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid< fsgrids::technical, 2> & technicalGrid);// (Re-)create the subcommunicator for ionosphere-internal communication
+      void updateIonosphereCommunicator(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);// (Re-)create the subcommunicator for ionosphere-internal communication
       void initializeTetrahedron();       // Initialize grid as a base tetrahedron
       void initializeIcosahedron();       // Initialize grid as a base icosahedron
       void initializeSphericalFibonacci(int n); // Initialize grid as a spherical fibonacci lattice
@@ -171,7 +171,7 @@ namespace SBC {
       void stitchRefinementInterfaces(); // Make sure there are no t-junctions in the mesh by splitting neighbours
       void calculatePrecipitation(); // Estimate precipitation flux
       void calculateConductivityTensor(const Real F10_7, const Real recombAlpha, const Real backgroundIonisation); // Update sigma tensor
-      void calculateFsgridCoupling(FsGrid< fsgrids::technical, 2> & technicalGrid, Real radius);     // Link each element to fsgrid cells for coupling
+      void calculateFsgridCoupling(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, Real radius);     // Link each element to fsgrid cells for coupling
       Real interpolateUpmappedPotential(const std::array<Real, 3>& x); // Calculate upmapped potential at the given point
       std::array<std::pair<int, Real>, 3> calculateVlasovGridCoupling(std::array<Real,3> x, Real couplingRadius); // Find coupled ionosphere mesh node for given location
       //Field Line Tracing functions
@@ -193,10 +193,10 @@ namespace SBC {
       // Map field-aligned currents, density and pressure
       // down from the simulation boundary onto this grid
       void mapDownBoundaryData(
-          FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volgrid,
-          FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid,
-          FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsGrid,
-          FsGrid< fsgrids::technical, 2> & technicalGrid);
+          FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volgrid,
+          FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+          FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+          FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
 
       // Returns the surface area of one element on the sphere
       Real elementArea(uint32_t elementIndex) {

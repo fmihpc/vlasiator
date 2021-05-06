@@ -1094,7 +1094,7 @@ namespace SBC {
    // (Re-)create the subcommunicator for ionosphere-internal communication
    // This needs to be rerun after Vlasov grid load balancing to ensure that
    // ionosphere info is still communicated to the right ranks.
-   void SphericalTriGrid::updateIonosphereCommunicator(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid< fsgrids::technical, 2> & technicalGrid) {
+   void SphericalTriGrid::updateIonosphereCommunicator(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
       phiprof::start("ionosphere-updateIonosphereCommunicator");
 
       // Check if the current rank contains ionosphere boundary cells.
@@ -1157,7 +1157,7 @@ namespace SBC {
     * outwards until a non-boundary cell is encountered. Their proportional
     * coupling values are recorded in the grid nodes.
     */
-   void SphericalTriGrid::calculateFsgridCoupling(FsGrid< fsgrids::technical, 2> & technicalGrid, Real couplingRadius) {
+   void SphericalTriGrid::calculateFsgridCoupling(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, Real couplingRadius) {
 
       // we don't need to do anything if we have no nodes
       if(nodes.size() == 0) {
@@ -1349,10 +1349,10 @@ namespace SBC {
 
    // Transport field-aligned currents down from the simulation cells to the ionosphere
    void SphericalTriGrid::mapDownBoundaryData(
-       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volgrid,
-       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid,
-       FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsGrid,
-       FsGrid< fsgrids::technical, 2> & technicalGrid) {
+       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volgrid,
+       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+       FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
 
      if(!isCouplingInwards && !isCouplingOutwards) {
         return;
