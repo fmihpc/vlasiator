@@ -1169,11 +1169,10 @@ namespace SBC {
       // Pick an initial stepsize
       Real stepSize = min(100e3, technicalGrid.DX / 2.); 
 
-      //#pragma omp parallel firstprivate(stepSize)
+      #pragma omp parallel firstprivate(stepSize)
       {
          // Trace node coordinates outwards until a non-sysboundary cell is encountered 
-         // TODO: create thread-local copy of dipole field to be thread safe
-         //#pragma omp parallel for
+         #pragma omp parallel for
          for(uint n=0; n<nodes.size(); n++) {
 
             Node& no = nodes[n];
@@ -1347,7 +1346,7 @@ namespace SBC {
       Real potential = 0;
 
       // Do we have a stored coupling for these coordinates already?
-#pragma omp critical
+      #pragma omp critical
       {
          if(vlasovGridCoupling.find(x) == vlasovGridCoupling.end()) {
 
@@ -1385,7 +1384,7 @@ namespace SBC {
      // Map all coupled nodes down into it
      // Tasks that don't have anything to couple to can skip this step.
      if(isCouplingInwards) {
-     //#pragma omp parallel for
+     #pragma omp parallel for
         for(uint n=0; n<nodes.size(); n++) {
 
            Real J = 0;
@@ -1927,7 +1926,7 @@ namespace SBC {
 
      }
 
-     //#pragma omp parallel for
+     #pragma omp parallel for
      for(uint n=0; n<nodes.size(); n++) {
        addAllMatrixDependencies(n);
      }
