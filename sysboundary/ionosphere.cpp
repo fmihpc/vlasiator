@@ -1231,6 +1231,23 @@ namespace SBC {
          }
       }
 
+      // Reduce upmapped magnetic field to be consistent on all nodes
+      std::vector<Real> sendUpmappedB(3 * nodes.size());
+      std::vector<Real> reducedUpmappedB(3 * nodes.size());
+      for(uint n=0; n<nodes.size(); n++) {
+         Node& no = nodes[n];
+         sendUpmappedB[3*n] = no.parameters[ionosphereParameters::UPMAPPED_BX];
+         sendUpmappedB[3*n+1] = no.parameters[ionosphereParameters::UPMAPPED_BY];
+         sendUpmappedB[3*n+2] = no.parameters[ionosphereParameters::UPMAPPED_BZ];
+      }
+      MPI_Allreduce(sendUpmappedB.data(), reducedUpmappedB.data(), 3*nodes.size(), MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+      for(uint n=0; n<nodes.size(); n++) {
+         Node& no = nodes[n];
+         no.parameters[ionosphereParameters::UPMAPPED_BX] = reducedUpmappedB[3*n];
+         no.parameters[ionosphereParameters::UPMAPPED_BY] = reducedUpmappedB[3*n+1];
+         no.parameters[ionosphereParameters::UPMAPPED_BZ] = reducedUpmappedB[3*n+2];
+      }
+
       phiprof::stop("ionosphere-fsgridCoupling");
    }
 
@@ -1476,13 +1493,11 @@ namespace SBC {
 
 
                     // Map density and pressure down
-                    if(technicalGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                       rhoInput[n] += coupling * momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::RHOQ) / physicalconstants::CHARGE;
-                       pressureInput[n] += coupling * 1./3. * (
-                             momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_11) +
-                             momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_22) +
-                             momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_33));
-                    }
+                    rhoInput[n] += coupling * momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::RHOQ) / physicalconstants::CHARGE;
+                    pressureInput[n] += coupling * 1./3. * (
+                          momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_11) +
+                          momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_22) +
+                          momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_33));
                  }
               }
            }
