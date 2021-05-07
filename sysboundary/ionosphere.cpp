@@ -2029,6 +2029,7 @@ namespace SBC {
      int failcount=0;
      for(int iteration =0; iteration < Ionosphere::solverMaxIterations; iteration++) {
 
+       #pragma omp parallel for
        for(uint n=1; n<nodes.size(); n++) {
          Node& N=nodes[n];
          N.parameters[ionosphereParameters::ZZPARAM] = Asolve(n,ionosphereParameters::RRESIDUAL, true);
@@ -2068,6 +2069,7 @@ namespace SBC {
 
        // Calculate ak, new solution and new residual
        iSolverReal akden = 0;
+       #pragma omp parallel for reduction(+:akden)
        for(uint n=1; n<nodes.size(); n++) {
          Node& N=nodes[n];
          iSolverReal zparam = Atimes(n, ionosphereParameters::PPARAM, false);
@@ -2077,11 +2079,12 @@ namespace SBC {
        }
        iSolverReal ak=bknum/akden;
 
-       iSolverReal residualnorm = 0;
        for(uint n=1; n<nodes.size(); n++) {
          Node& N=nodes[n];
          N.parameters[ionosphereParameters::SOLUTION] += ak * N.parameters[ionosphereParameters::PPARAM];
        }
+       iSolverReal residualnorm = 0;
+       #pragma omp parallel for reduction(+:residualnorm)
        for(uint n=0; n<nodes.size(); n++) {
          Node& N=nodes[n];
          // Calculate residual of the new solution. The faster way to do this would be
