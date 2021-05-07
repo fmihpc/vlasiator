@@ -1211,6 +1211,23 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1, "m", "m", "$x_\\text{mapped}$", "1.0");
          continue;
       }
+      if(lowercase == "ig_upmappedb") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_upmappedb", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+                  
+                     std::vector<Real> retval(grid.nodes.size()*3);
+
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        retval[3*i] = grid.nodes[i].parameters[ionosphereParameters::UPMAPPED_BX];
+                        retval[3*i+1] = grid.nodes[i].parameters[ionosphereParameters::UPMAPPED_BY];
+                        retval[3*i+2] = grid.nodes[i].parameters[ionosphereParameters::UPMAPPED_BZ];
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addMetadata(outputReducer->size()-1, "T", "T", "$B_\\text{mapped}$", "1.0");
+         continue;
+      }
       if(lowercase == "ig_fac") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_fac", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
