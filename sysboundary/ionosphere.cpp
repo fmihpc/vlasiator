@@ -1094,7 +1094,7 @@ namespace SBC {
    // (Re-)create the subcommunicator for ionosphere-internal communication
    // This needs to be rerun after Vlasov grid load balancing to ensure that
    // ionosphere info is still communicated to the right ranks.
-   void SphericalTriGrid::updateIonosphereCommunicator(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid< fsgrids::technical, 2> & technicalGrid) {
+   void SphericalTriGrid::updateIonosphereCommunicator(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
       phiprof::start("ionosphere-updateIonosphereCommunicator");
 
       // Check if the current rank contains ionosphere boundary cells.
@@ -1157,7 +1157,7 @@ namespace SBC {
     * outwards until a non-boundary cell is encountered. Their proportional
     * coupling values are recorded in the grid nodes.
     */
-   void SphericalTriGrid::calculateFsgridCoupling(FsGrid< fsgrids::technical, 2> & technicalGrid, Real couplingRadius) {
+   void SphericalTriGrid::calculateFsgridCoupling(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, Real couplingRadius) {
 
       // we don't need to do anything if we have no nodes
       if(nodes.size() == 0) {
@@ -1169,11 +1169,10 @@ namespace SBC {
       // Pick an initial stepsize
       Real stepSize = min(100e3, technicalGrid.DX / 2.); 
 
-      //#pragma omp parallel firstprivate(stepSize)
+      #pragma omp parallel firstprivate(stepSize)
       {
          // Trace node coordinates outwards until a non-sysboundary cell is encountered 
-         // TODO: create thread-local copy of dipole field to be thread safe
-         //#pragma omp parallel for
+         #pragma omp parallel for
          for(uint n=0; n<nodes.size(); n++) {
 
             Node& no = nodes[n];
@@ -1229,6 +1228,23 @@ namespace SBC {
                }
             }
          }
+      }
+
+      // Reduce upmapped magnetic field to be consistent on all nodes
+      std::vector<Real> sendUpmappedB(3 * nodes.size());
+      std::vector<Real> reducedUpmappedB(3 * nodes.size());
+      for(uint n=0; n<nodes.size(); n++) {
+         Node& no = nodes[n];
+         sendUpmappedB[3*n] = no.parameters[ionosphereParameters::UPMAPPED_BX];
+         sendUpmappedB[3*n+1] = no.parameters[ionosphereParameters::UPMAPPED_BY];
+         sendUpmappedB[3*n+2] = no.parameters[ionosphereParameters::UPMAPPED_BZ];
+      }
+      MPI_Allreduce(sendUpmappedB.data(), reducedUpmappedB.data(), 3*nodes.size(), MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+      for(uint n=0; n<nodes.size(); n++) {
+         Node& no = nodes[n];
+         no.parameters[ionosphereParameters::UPMAPPED_BX] = reducedUpmappedB[3*n];
+         no.parameters[ionosphereParameters::UPMAPPED_BY] = reducedUpmappedB[3*n+1];
+         no.parameters[ionosphereParameters::UPMAPPED_BZ] = reducedUpmappedB[3*n+2];
       }
 
       phiprof::stop("ionosphere-fsgridCoupling");
@@ -1330,7 +1346,7 @@ namespace SBC {
       Real potential = 0;
 
       // Do we have a stored coupling for these coordinates already?
-#pragma omp critical
+      #pragma omp critical
       {
          if(vlasovGridCoupling.find(x) == vlasovGridCoupling.end()) {
 
@@ -1349,10 +1365,10 @@ namespace SBC {
 
    // Transport field-aligned currents down from the simulation cells to the ionosphere
    void SphericalTriGrid::mapDownBoundaryData(
-       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volgrid,
-       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid,
-       FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsGrid,
-       FsGrid< fsgrids::technical, 2> & technicalGrid) {
+       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volgrid,
+       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+       FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
 
      if(!isCouplingInwards && !isCouplingOutwards) {
         return;
@@ -1368,7 +1384,7 @@ namespace SBC {
      // Map all coupled nodes down into it
      // Tasks that don't have anything to couple to can skip this step.
      if(isCouplingInwards) {
-     //#pragma omp parallel for
+     #pragma omp parallel for
         for(uint n=0; n<nodes.size(); n++) {
 
            Real J = 0;
@@ -1476,13 +1492,11 @@ namespace SBC {
 
 
                     // Map density and pressure down
-                    if(technicalGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                       rhoInput[n] += coupling * momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::RHOQ) / physicalconstants::CHARGE;
-                       pressureInput[n] += coupling * 1./3. * (
-                             momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_11) +
-                             momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_22) +
-                             momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_33));
-                    }
+                    rhoInput[n] += coupling * momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::RHOQ) / physicalconstants::CHARGE;
+                    pressureInput[n] += coupling * 1./3. * (
+                          momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_11) +
+                          momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_22) +
+                          momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_33));
                  }
               }
            }
@@ -1912,7 +1926,7 @@ namespace SBC {
 
      }
 
-     //#pragma omp parallel for
+     #pragma omp parallel for
      for(uint n=0; n<nodes.size(); n++) {
        addAllMatrixDependencies(n);
      }
@@ -2015,6 +2029,7 @@ namespace SBC {
      int failcount=0;
      for(int iteration =0; iteration < Ionosphere::solverMaxIterations; iteration++) {
 
+       #pragma omp parallel for
        for(uint n=1; n<nodes.size(); n++) {
          Node& N=nodes[n];
          N.parameters[ionosphereParameters::ZZPARAM] = Asolve(n,ionosphereParameters::RRESIDUAL, true);
@@ -2054,6 +2069,7 @@ namespace SBC {
 
        // Calculate ak, new solution and new residual
        iSolverReal akden = 0;
+       #pragma omp parallel for reduction(+:akden)
        for(uint n=1; n<nodes.size(); n++) {
          Node& N=nodes[n];
          iSolverReal zparam = Atimes(n, ionosphereParameters::PPARAM, false);
@@ -2063,11 +2079,12 @@ namespace SBC {
        }
        iSolverReal ak=bknum/akden;
 
-       iSolverReal residualnorm = 0;
        for(uint n=1; n<nodes.size(); n++) {
          Node& N=nodes[n];
          N.parameters[ionosphereParameters::SOLUTION] += ak * N.parameters[ionosphereParameters::PPARAM];
        }
+       iSolverReal residualnorm = 0;
+       #pragma omp parallel for reduction(+:residualnorm)
        for(uint n=0; n<nodes.size(); n++) {
          Node& N=nodes[n];
          // Calculate residual of the new solution. The faster way to do this would be
@@ -2922,6 +2939,41 @@ namespace SBC {
             return 0.0;
          }
          return retval / nCells;
+      }
+   }
+
+   /*! We want here to
+    *
+    * -- Retain only the boundary-normal projection of perturbed face B
+    */
+   void Ionosphere::fieldSolverBoundaryCondMagneticFieldProjection(
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      cint i,
+      cint j,
+      cint k
+   ) {
+      // Projection of B-field to normal direction
+      Real BdotN = 0;
+      std::array<Real, 3> normalDirection = fieldSolverGetNormalDirection(technicalGrid, i, j, k);
+      for(uint component=0; component<3; component++) {
+         BdotN += bGrid.get(i,j,k)->at(fsgrids::bfield::PERBX+component) * normalDirection[component];
+      }
+      // Apply to any components that were not solved
+      if ((technicalGrid.get(i,j,k)->sysBoundaryLayer == 2) ||
+          ((technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) && ((technicalGrid.get(i,j,k)->SOLVE & compute::BX) != compute::BX))
+         ) {
+         bGrid.get(i,j,k)->at(fsgrids::bfield::PERBX) = BdotN*normalDirection[0];
+      }
+      if ((technicalGrid.get(i,j,k)->sysBoundaryLayer == 2) ||
+          ((technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) && ((technicalGrid.get(i,j,k)->SOLVE & compute::BY) != compute::BY))
+         ) {
+         bGrid.get(i,j,k)->at(fsgrids::bfield::PERBY) = BdotN*normalDirection[1];
+      }
+      if ((technicalGrid.get(i,j,k)->sysBoundaryLayer == 2) ||
+          ((technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) && ((technicalGrid.get(i,j,k)->SOLVE & compute::BZ) != compute::BZ))
+         ) {
+         bGrid.get(i,j,k)->at(fsgrids::bfield::PERBZ) = BdotN*normalDirection[2];
       }
    }
 
