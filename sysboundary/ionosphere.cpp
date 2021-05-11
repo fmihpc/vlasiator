@@ -1239,7 +1239,7 @@ namespace SBC {
          sendUpmappedB[3*n+1] = no.parameters[ionosphereParameters::UPMAPPED_BY];
          sendUpmappedB[3*n+2] = no.parameters[ionosphereParameters::UPMAPPED_BZ];
       }
-      MPI_Allreduce(sendUpmappedB.data(), reducedUpmappedB.data(), 3*nodes.size(), MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+      MPI_Allreduce(sendUpmappedB.data(), reducedUpmappedB.data(), 3*nodes.size(), MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
       for(uint n=0; n<nodes.size(); n++) {
          Node& no = nodes[n];
          no.parameters[ionosphereParameters::UPMAPPED_BX] = reducedUpmappedB[3*n];
