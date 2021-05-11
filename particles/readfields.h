@@ -49,24 +49,40 @@ static void detect_field_names(Reader& r) {
    std::string gridname("SpatialGrid");
 
    r.getVariableNames(gridname,variableNames);
-   if (find(variableNames.begin(), variableNames.end(), std::string("vg_b_vol"))!=variableNames.end()) {
-#ifdef DEBUG
-      std::cerr << "yep!" << std::endl;
-#endif
-      B_field_name = "vg_b_vol";
-      E_field_name = "vg_e_vol";
-   } else if (find(variableNames.begin(), variableNames.end(), std::string("B_vol"))!=variableNames.end()) {
-#ifdef DEBUG
-      std::cerr << "yep!" << std::endl;
-#endif
-      B_field_name = "B_vol";
-      E_field_name = "E_vol";
-   } else if (find(variableNames.begin(), variableNames.end(), std::string("B"))!=variableNames.end()) {
-#ifdef DEBUG
+   if (false) {// (find(variableNames.begin(), variableNames.end(), std::string("fg_B"))!=variableNames.end()) {
+      #ifdef DEBUG
       std::cerr << "Nope!" << std::endl;
-#endif
+      #endif
+      B_field_name = "fg_b";
+      E_field_name = "fg_e";
+   } else if (find(variableNames.begin(), variableNames.end(), std::string("B"))!=variableNames.end()) {
+      #ifdef DEBUG
+      std::cerr << "Nope!" << std::endl;
+      #endif
       B_field_name = "B";
       E_field_name = "E";
+   } else if (false) {//(find(variableNames.begin(), variableNames.end(), std::string("fg_b_background")) != variableNames.end() && 
+              //find(variableNames.begin(), variableNames.end(), std::string("fg_b_perturbed")) != variableNames.end()) {
+      std::cerr << "Not yet implemented!" << std::endl;
+      exit(1);
+      B_field_name = "fg_b_background";
+      E_field_name = "fg_E"  // This is a bit shady but I suppose a reasonable assumption
+   } else if (find(variableNames.begin(), variableNames.end(), std::string("B_vol"))!=variableNames.end()) {
+      #ifdef DEBUG
+      std::cerr << "yep!" << std::endl;
+      #endif
+      B_field_name = "B_vol";
+      E_field_name = "E_vol";
+   } else if (find(variableNames.begin(), variableNames.end(), std::string("vg_b_vol"))!=variableNames.end()) {
+      #ifdef DEBUG
+      std::cerr << "yep!" << std::endl;
+      #endif
+      B_field_name = "vg_b_vol";
+      E_field_name = "vg_e_vol";
+   } else if (find(variableNames.begin(), variableNames.end(), std::string("vg_b_background_vol")) != variableNames.end() && 
+              find(variableNames.begin(), variableNames.end(), std::string("vg_b_perturbed_vol")) != variableNames.end()) {
+      B_field_name = "vg_b_background_vol";
+      E_field_name = "vg_e_vol"  // This is a bit shady but I suppose a reasonable assumption
    } else {
       std::cerr << "No B- or E-fields found! Strange file format?" << std::endl;
       exit(1);
@@ -108,6 +124,7 @@ std::vector<double> readFieldData(Reader& r, std::string& name, unsigned int num
 /* Read the next logical input file. Depending on sign of dt,
  * this may be a numerically larger or smaller file.
  * Return value: true if a new file was read, otherwise false.
+ * TODO: might need some DRY
  */
 template <class Reader>
 bool readNextTimestep(const std::string& filename_pattern, double t, int step, Field& E0, Field& E1,
@@ -147,6 +164,13 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
       std::vector<uint64_t> cellIds = readCellIds(r);
       std::string name(B_field_name);
       std::vector<double> Bbuffer = readFieldData(r,name,3u);
+      if (B_field_name == "vg_b_background_vol") {
+         name = "vg_b_perturbed_vol";
+         std::vector<double> perturbedBbuffer = readFieldData(r,name,3u);
+         for (int i = 0; i < Bbuffer.size(); ++i) {
+            Bbuffer[i] += perturbedBbuffer[i];
+         }
+      }
       name = E_field_name;
       std::vector<double> Ebuffer = readFieldData(r,name,3u);
       std::vector<double> Vbuffer;
@@ -229,6 +253,13 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, bool doV=tru
    /* Also read the raw field data */
    std::string name= B_field_name;
    std::vector<double> Bbuffer(readFieldData(r,name,3u));
+   if (B_field_name == "vg_b_background_vol") {
+      name = "vg_b_perturbed_vol";
+      std::vector<double> perturbedBbuffer = readFieldData(r,name,3u);
+      for (int i = 0; i < Bbuffer.size(); ++i) {
+         Bbuffer[i] += perturbedBbuffer[i];
+      }
+   }
    name = E_field_name;
    std::vector<double> Ebuffer(readFieldData(r,name,3u));
 
