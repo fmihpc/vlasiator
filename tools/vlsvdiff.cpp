@@ -491,20 +491,39 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
        }
   
    }else if (gridName==gridType::fsgrid){
- 
- 
+      
+
+      // Get Spatial Grid's  max refinement Level
+      int maxRefLevel=0;
+      list<pair<string, string>> meshAttributesIn;
+      meshAttributesIn.push_back(make_pair("name", "SpatialGrid"));
+      map<string,string> meshAttributesOut;
+      if (vlsvReader.getArrayAttributes("MESH", meshAttributesIn,meshAttributesOut) == false)
+      {
+         cerr << "ERROR, failed to get array info for '" << _varToExtract << "' at " << __FILE__ << " " << __LINE__ << endl;
+         return false;
+      }
+
+      std::map<string, string>::iterator attributesOutIt;
+      attributesOutIt = meshAttributesOut.find("max_refinement_level");
+      if (attributesOutIt != meshAttributesOut.end())
+      {
+         maxRefLevel = stoi(attributesOutIt->second);
+      }
       int numtasks;
-      int xcells,ycells,zcells; 
+      int xcells,ycells,zcells;
       vlsvReader.readParameter("numWritingRanks",numtasks);
       vlsvReader.readParameter("xcells_ini",xcells);
       vlsvReader.readParameter("ycells_ini",ycells);
       vlsvReader.readParameter("zcells_ini",zcells);
+      xcells*=pow(2,maxRefLevel);
+      ycells*=pow(2,maxRefLevel);
+      zcells*=pow(2,maxRefLevel);
       std::array<int,3> GlobalBox={xcells,ycells,zcells};
       std::array<int,3> thisDomainDecomp;
       
       //Compute Domain Decomposition Scheme for this vlsv file
       computeDomainDecomposition(GlobalBox,numtasks,thisDomainDecomp);
-
 
       std::array<int32_t,3> taskSize,taskStart;
       std::array<int32_t,3> taskEnd;
@@ -513,7 +532,6 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
       int index,my_x,my_y,my_z;
       orderedData->clear();
 
-      //Read into buffer
       for (int task=0; task<numtasks; task++){
 
          my_x=task/thisDomainDecomp[2]/thisDomainDecomp[1];
@@ -533,53 +551,47 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
          taskEnd[1]= taskStart[1]+taskSize[1];
          taskEnd[2]= taskStart[2]+taskSize[2];
          
-         readSize= taskSize[0] * taskSize[1] * taskSize[2];
-         std::vector<Real> readIn(variableVectorSize * variableDataSize*readSize);
+         readSize=  taskSize[0] * taskSize[1] * taskSize[2] ;
+         //Allocate vector for reading
+         std::vector<Real> buffer(readSize*variableVectorSize);
 
-         
-         int counter2=0;
-         uint64_t globalindex;
-         int64_t counter=0;
-         for(int z=taskStart[2]; z<taskEnd[2]; z++) {
-            for(int y=taskStart[1]; y<taskEnd[1]; y++) {
-               for(int x=taskStart[0]; x<taskEnd[0]; x++) {
+         if (vlsvReader.readArray("VARIABLE", variableAttributes, readOffset, readSize,  (char*)buffer.data()) == false) {
+            cerr << "ERROR, failed to read variable '" << _varToExtract << "' at " << __FILE__ << " " << __LINE__ << endl;
+            variableSuccess = false; 
+            break;
+         }
 
-                  //Get global index
-                  globalindex= x + y*xcells + z*xcells*ycells;
-
-                  if (vlsvReader.readArray("VARIABLE", variableAttributes, readOffset+counter,1, variableBuffer) == false) {
-                     cerr << "ERROR, failed to read variable '" << _varToExtract << "' at " << __FILE__ << " " << __LINE__ << endl;
-                     variableSuccess = false; 
-                     abort();
-                     break;
-                  }
-
-                  // Get the variable value
-                  Real extract = NAN;
-
-                  switch (variableDataType) {
+         uint64_t globalindex,counter=0;;
+         for (int z=taskStart[2]; z<taskEnd[2]; z++){
+               for (int y=taskStart[1]; y< taskEnd[1]; y++){
+                  for (int x=taskStart[0]; x<taskEnd[0]; x++){
+                     globalindex= x + y*xcells + z*xcells*ycells;
+                     Real data;
+                     switch (variableDataType){
                      case datatype::type::FLOAT:
-                        if(variableDataSize == sizeof(float)) extract = (Real)(variablePtrFloat[compToExtract]);
-                        if(variableDataSize == sizeof(double)) extract = (Real)(variablePtrDouble[compToExtract]);
+                        if (variableDataSize == sizeof(float))
+                           memcpy(&data, &buffer[counter + compToExtract], sizeof(float));
+                        if (variableDataSize == sizeof(double))
+                           memcpy(&data, &buffer[counter + compToExtract], sizeof(double));
                         break;
                      case datatype::type::UINT:
-                        extract = (Real)(variablePtrUint[compToExtract]);
+                        memcpy(&data, &buffer[counter + compToExtract], sizeof(uint));
                         break;
                      case datatype::type::INT:
-                        extract = (Real)(variablePtrInt[compToExtract]);
+                        memcpy(&data, &buffer[counter + compToExtract], sizeof(int));
                         break;
                      case datatype::type::UNKNOWN:
                         cerr << "ERROR, BAD DATATYPE AT " << __FILE__ << " " << __LINE__ << endl;
                         break;
+                     }
+                     //Add to map
+                     orderedData->insert(pair<uint64_t, Real>(globalindex, data));
                   }
-                  orderedData->insert(pair<uint64_t, Real>(globalindex, extract));
-                  counter++;
-               
                }
             }
-         }
          readOffset+=readSize;
-      }
+         counter++;
+     }
    }else{
     cerr<<"meshName not recognized\t" << __FILE__ << " " << __LINE__ <<endl;
     abort();
