@@ -1124,24 +1124,6 @@ namespace SBC {
             cerr << "(ionosphere) New Ionosphere subcommunicator has size " << size << ", rank 0 corresponds to global rank " << technicalGrid.getRank() << endl;
          }
 
-         // Since we may have added new ranks to the communicator, we need to re-distribute the xMapped values to all of them.
-         for(uint n=0; n<nodes.size(); n++) {
-
-            // First, sum up how many ranks want to couple any given node. This might be 0, 1 or 2.
-            int sendNumRanksCoupling = nodes[n].numRanksCoupling;
-            int sumRanksCoupling;
-            MPI_Allreduce(&sendNumRanksCoupling, &sumRanksCoupling, sizeof(int), MPI_INT, MPI_SUM, communicator);
-
-            if(sumRanksCoupling > 0) {
-               std::array<Real,3> sendMapped = nodes[n].xMapped;
-               MPI_Allreduce(sendMapped.data(), nodes[n].xMapped.data(), 3, MPI_DOUBLE, MPI_SUM, communicator);
-
-               // If more than one rank is coupling this node, take average coordinate values
-               nodes[n].xMapped[0] /= sumRanksCoupling;
-               nodes[n].xMapped[1] /= sumRanksCoupling;
-               nodes[n].xMapped[2] /= sumRanksCoupling;
-            }
-         }
       } else {
          MPI_Comm_split(MPI_COMM_WORLD, MPI_UNDEFINED, 0, &communicator); // All other ranks are staying out of the communicator.
          rank = -1;
@@ -1165,7 +1147,6 @@ namespace SBC {
       }
 
       phiprof::start("ionosphere-fsgridCoupling");
-      logFile << "(ionosphere) Starting FsGrid coupling of " << nodes.size() << " nodes." << endl << write;
       // Pick an initial stepsize
       Real stepSize = min(100e3, technicalGrid.DX / 2.); 
 
@@ -1216,7 +1197,7 @@ namespace SBC {
 
                   // Store the cells mapped coordinates and upmapped magnetic field
                   no.xMapped = x;
-                  no.numRanksCoupling = 1;
+                  no.haveCouplingData = 1;
                   for(int c=0; c<3; c++) {
                      no.fsgridCellCoupling[c] = (x[c] - technicalGrid.physicalGlobalStart[c]) / technicalGrid.DX;
                   }
@@ -1233,18 +1214,43 @@ namespace SBC {
       // Reduce upmapped magnetic field to be consistent on all nodes
       std::vector<Real> sendUpmappedB(3 * nodes.size());
       std::vector<Real> reducedUpmappedB(3 * nodes.size());
+      // Likewise, reduce upmapped coordinates
+      std::vector<Real> sendxMapped(3 * nodes.size());
+      std::vector<Real> reducedxMapped(3 * nodes.size());
+      // And coupling rank number
+      std::vector<int> sendCouplingNum(nodes.size());
+      std::vector<int> reducedCouplingNum(nodes.size());
       for(uint n=0; n<nodes.size(); n++) {
          Node& no = nodes[n];
          sendUpmappedB[3*n] = no.parameters[ionosphereParameters::UPMAPPED_BX];
          sendUpmappedB[3*n+1] = no.parameters[ionosphereParameters::UPMAPPED_BY];
          sendUpmappedB[3*n+2] = no.parameters[ionosphereParameters::UPMAPPED_BZ];
+         sendxMapped[3*n] = no.xMapped[0];
+         sendxMapped[3*n+1] = no.xMapped[1];
+         sendxMapped[3*n+2] = no.xMapped[2];
+         sendCouplingNum[n] = no.haveCouplingData;
       }
-      MPI_Allreduce(sendUpmappedB.data(), reducedUpmappedB.data(), 3*nodes.size(), MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+      if(sizeof(Real) == sizeof(double)) { 
+         MPI_Allreduce(sendUpmappedB.data(), reducedUpmappedB.data(), 3*nodes.size(), MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+         MPI_Allreduce(sendxMapped.data(), reducedxMapped.data(), 3*nodes.size(), MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+      } else {
+         MPI_Allreduce(sendUpmappedB.data(), reducedUpmappedB.data(), 3*nodes.size(), MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
+         MPI_Allreduce(sendxMapped.data(), reducedxMapped.data(), 3*nodes.size(), MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
+      }
+      MPI_Allreduce(sendCouplingNum.data(), reducedCouplingNum.data(), nodes.size(), MPI_INT, MPI_SUM, MPI_COMM_WORLD);
       for(uint n=0; n<nodes.size(); n++) {
          Node& no = nodes[n];
-         no.parameters[ionosphereParameters::UPMAPPED_BX] = reducedUpmappedB[3*n];
-         no.parameters[ionosphereParameters::UPMAPPED_BY] = reducedUpmappedB[3*n+1];
-         no.parameters[ionosphereParameters::UPMAPPED_BZ] = reducedUpmappedB[3*n+2];
+
+         // We don't even care about nodes that couple nowhere.
+         if(reducedCouplingNum[n] == 0) {
+            continue;
+         }
+         no.parameters[ionosphereParameters::UPMAPPED_BX] = reducedUpmappedB[3*n] / reducedCouplingNum[n];
+         no.parameters[ionosphereParameters::UPMAPPED_BY] = reducedUpmappedB[3*n+1] / reducedCouplingNum[n];
+         no.parameters[ionosphereParameters::UPMAPPED_BZ] = reducedUpmappedB[3*n+2] / reducedCouplingNum[n];
+         no.xMapped[0] = reducedxMapped[3*n] / reducedCouplingNum[n];
+         no.xMapped[1] = reducedxMapped[3*n+1] / reducedCouplingNum[n];
+         no.xMapped[2] = reducedxMapped[3*n+2] / reducedCouplingNum[n];
       }
 
       phiprof::stop("ionosphere-fsgridCoupling");
