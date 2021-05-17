@@ -455,17 +455,17 @@ namespace SBC {
                }
             }
             if(insertedNode == -1) {
-               logFile << "(IONOSPHERE) Warning: did not find neighbouring split node when trying to refine "
+               cerr << "(IONOSPHERE) Warning: did not find neighbouring split node when trying to refine "
                   << "element " << e << " on edge " << i << " with nodes (" << parentElement.corners[0]
-                  << ", " << parentElement.corners[1] << ", " << parentElement.corners[2] << ")" << endl << write;
+                  << ", " << parentElement.corners[1] << ", " << parentElement.corners[2] << ")" << endl;
                insertedNode = 0;
             }
 
             // Double-check that this node currently has 4 touching elements
             if(nodes[insertedNode].numTouchingElements != 4) {
-               logFile << "(IONOSPHERE) Warning: mesh topology screwup when refining: node "
+               cerr << "(IONOSPHERE) Warning: mesh topology screwup when refining: node "
                   << insertedNode << " is touching " << nodes[insertedNode].numTouchingElements
-                  << " elements, should be 4." << endl << write;
+                  << " elements, should be 4." << endl;
             }
 
             // Add the other 2
@@ -559,9 +559,9 @@ namespace SBC {
       // Open file, read in
       ifstream in(filename);
       if(!in) {
-         logFile << "(ionosphere) WARNING: Atmospheric Model file " << filename << " could not be opened: " <<
+         cerr << "(ionosphere) WARNING: Atmospheric Model file " << filename << " could not be opened: " <<
             strerror(errno) << endl
-            << "(ionosphere) All atmospheric values will be zero, and there will be no ionization!" << endl << write;
+            << "(ionosphere) All atmospheric values will be zero, and there will be no ionization!" << endl;
       }
       int altindex = 0;
       Real integratedDensity = 0;
@@ -679,12 +679,12 @@ namespace SBC {
             normEnergy *= productionNumAccEnergies;
             int energyindex = int(float(normEnergy));
             if(energyindex < 0) {
-               //logFile << "(ionosphere) lookupProductionValue: energyIndex < 0: energy_keV = " << energy_keV << ", index = " << energyindex << endl << write;
+               //cerr << "(ionosphere) lookupProductionValue: energyIndex < 0: energy_keV = " << energy_keV << ", index = " << energyindex << endl;
                energyindex = 0;
                normEnergy = 0;
             }
             if(energyindex > productionNumAccEnergies - 2) {
-               //logFile << "(ionosphere) lookupProductionValue: energyIndex > " << (productionNumAccEnergies -2) << ": energy_keV = " << energy_keV << ", index = " << energyindex << endl << write;
+               //cerr << "(ionosphere) lookupProductionValue: energyIndex > " << (productionNumAccEnergies -2) << ": energy_keV = " << energy_keV << ", index = " << energyindex << endl;
                energyindex = productionNumAccEnergies - 2;
                normEnergy = 0;
             }
@@ -694,12 +694,12 @@ namespace SBC {
             int temperatureindex = int(float(normTemperature));
             float s = normTemperature - floor(normTemperature);
             if(temperatureindex < 0) {
-               //logFile << "(ionosphere) lookupProductionValue: temperatureIndex < 0: temperature_keV = " << temperature_keV << ", index = " << temperatureindex << endl << write;
+               //cerr << "(ionosphere) lookupProductionValue: temperatureIndex < 0: temperature_keV = " << temperature_keV << ", index = " << temperatureindex << endl;
                temperatureindex = 0;
                normTemperature = 0;
             }
             if(temperatureindex > productionNumTemperatures - 2) {
-               //logFile << "(ionosphere) lookupProductionValue: temperatureIndex > " << (productionNumTemperatures -2) << ": temperature_keV = " << temperature_keV << ", index = " << temperatureindex << endl << write;
+               //cerr << "(ionosphere) lookupProductionValue: temperatureIndex > " << (productionNumTemperatures -2) << ": temperature_keV = " << temperature_keV << ", index = " << temperatureindex << endl;
                temperatureindex = productionNumTemperatures - 2;
                normTemperature = 0;
             }
@@ -766,11 +766,11 @@ namespace SBC {
             Real electronTemp = nodes[n].electronTemperature();
             Real temperature_keV = (physicalconstants::K_B / physicalconstants::CHARGE) / 1000. * electronTemp;
             if(std::isnan(energy_keV) || std::isnan(temperature_keV)) {
-               logFile << "(ionosphere) NaN encountered in conductivity calculation: " << endl
+               cerr << "(ionosphere) NaN encountered in conductivity calculation: " << endl
                   << "   `-> DeltaPhi     = " << nodes[n].deltaPhi()/1000. << " keV" << endl
                   << "   `-> energy_keV   = " << energy_keV << endl
                   << "   `-> ne           = " << ne << " m^-3" << endl
-                  << "   `-> electronTemp = " << electronTemp << " K" << endl << write;
+                  << "   `-> electronTemp = " << electronTemp << " K" << endl;
             }
             Real qref = ne * lookupProductionValue(h, energy_keV, temperature_keV);
 
@@ -883,7 +883,7 @@ namespace SBC {
                }
             }
          } else {
-            logFile << "(ionosphere) Error: Undefined conductivity model " << Ionosphere::conductivityModel << "! Ionospheric Sigma Tensor will be zero." << endl << write;
+            cerr << "(ionosphere) Error: Undefined conductivity model " << Ionosphere::conductivityModel << "! Ionospheric Sigma Tensor will be zero." << endl;
          }
       }
       phiprof::stop("ionosphere-calculateConductivityTensor");
@@ -911,8 +911,8 @@ namespace SBC {
 
       // Make sure motion is outwards. Flip b if dot(r,b) < 0
       if(std::isnan(b[0]) || std::isnan(b[1]) || std::isnan(b[2])) {
-         logFile << "(ionosphere) Error: magnetic field is nan in getRadialBfieldDirection at location "
-            << r[0] << ", " << r[1] << ", " << r[2] << ", with B = " << b[0] << ", " << b[1] << ", " << b[2] << endl << write;
+         cerr << "(ionosphere) Error: magnetic field is nan in getRadialBfieldDirection at location "
+            << r[0] << ", " << r[1] << ", " << r[2] << ", with B = " << b[0] << ", " << b[1] << ", " << b[2] << endl;
          b[0] = 0;
          b[1] = 0;
          b[2] = 0;
@@ -1280,7 +1280,7 @@ namespace SBC {
          // (this shouldn't happen under normal magnetospheric conditions, but who
          // knows what crazy driving this will be run with)
          if(sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]) > 1.5*couplingRadius) {
-            logFile << "(ionosphere) Warning: coupling of Vlasov grid cell failed due to weird magnetic field topology." << endl << write;
+            cerr << "(ionosphere) Warning: coupling of Vlasov grid cell failed due to weird magnetic field topology." << endl;
 
             // Return a coupling that has 0 value and results in zero potential
             phiprof::stop("ionosphere-VlasovGridCoupling");
@@ -1329,14 +1329,14 @@ namespace SBC {
 
       // If we arrived here, we did not find an element to couple to (why?)
       // Return an empty coupling instead
-      logFile << "(ionosphere) Failed to find an ionosphere element to couple to for coordinate " <<
-         x[0] << ", " << x[1] << ", " << x[2] << endl << write;
-      logFile << "    (checked " << nodes[nearestNode].numTouchingElements << " elements around node " << nearestNode << " at location ("
+      cerr << "(ionosphere) Failed to find an ionosphere element to couple to for coordinate " <<
+         x[0] << ", " << x[1] << ", " << x[2] << endl;
+      cerr << "    (checked " << nodes[nearestNode].numTouchingElements << " elements around node " << nearestNode << " at location ("
          << nodes[nearestNode].x[0] << ", " << nodes[nearestNode].x[1] << ", " << nodes[nearestNode].x[2] << "): [";
       for(uint i=0; i< nodes[nearestNode].numTouchingElements; i++) {
-         logFile << nodes[nearestNode].touchingElements[i] << ", ";
+         cerr << nodes[nearestNode].touchingElements[i] << ", ";
       }
-      logFile << "]" << endl << write;
+      cerr << "]" << endl;
       phiprof::stop("ionosphere-VlasovGridCoupling");
       return coupling;
    }
@@ -1466,8 +1466,8 @@ namespace SBC {
 
                     Real coupling = abs(xoffset - (cell[0]-fsc[0])) * abs(yoffset - (cell[1]-fsc[1])) * abs(zoffset - (cell[2]-fsc[2]));
                     if(coupling < 0. || coupling > 1.) {
-                       logFile << "Ionosphere warning: node << " << n << " has coupling value " << coupling <<
-                          ", which is outside [0,1] at line " << __LINE__ << "!" << endl << write;
+                       cerr << "Ionosphere warning: node << " << n << " has coupling value " << coupling <<
+                          ", which is outside [0,1] at line " << __LINE__ << "!" << endl;
                     }
 
                     // Only couple to actual simulation cells
@@ -1688,12 +1688,12 @@ namespace SBC {
      // Not found, let's add it.
      if(n.numDepNodes >= MAX_DEPENDING_NODES-1) {
        // This shouldn't happen (but did in tests!)
-       logFile << "(ionosphere) Node " << node1 << " already has " << MAX_DEPENDING_NODES << " depending nodes:" << endl << write;
-       logFile << "     [ ";
+       cerr << "(ionosphere) Node " << node1 << " already has " << MAX_DEPENDING_NODES << " depending nodes:" << endl;
+       cerr << "     [ ";
        for(int i=0; i< MAX_DEPENDING_NODES; i++) {
-         logFile << n.dependingNodes[i] << ", ";
+         cerr << n.dependingNodes[i] << ", ";
        }
-       logFile << " ]." << endl << write;
+       cerr << " ]." << endl;
 
        std::set<uint> neighbourNodes;
        for(uint e = 0; e<nodes[node1].numTouchingElements; e++) {
@@ -1702,14 +1702,14 @@ namespace SBC {
            neighbourNodes.emplace(E.corners[c]);
          }
        }
-       logFile << "    (it has " << nodes[node1].numTouchingElements << " neighbour elements and "
-         << neighbourNodes.size()-1 << " direct neighbour nodes:" << endl << "    [ " << write;
+       cerr << "    (it has " << nodes[node1].numTouchingElements << " neighbour elements and "
+         << neighbourNodes.size()-1 << " direct neighbour nodes:" << endl << "    [ ";
        for(auto& n : neighbourNodes) {
           if(n != node1) {
-            logFile << n << ", ";
+            cerr << n << ", ";
           }
        }
-       logFile << "])." << endl << write;
+       cerr << "])." << endl;
        return;
      }
      n.dependingNodes[n.numDepNodes] = node2;
@@ -1814,14 +1814,14 @@ namespace SBC {
 
 
             if(bestColinearity == 0) {
-               logFile << "(ionosphere) Stitiching refinement boundaries failed: Element " <<  nodes[n].touchingElements[t] << " does not contain node "
-                  << n << " as a corner, yet matching edge not found." << endl << write;
+               cerr << "(ionosphere) Stitiching refinement boundaries failed: Element " <<  nodes[n].touchingElements[t] << " does not contain node "
+                  << n << " as a corner, yet matching edge not found." << endl;
                continue;
             }
 
             // We form two elements: AnC and nBC from the old element ABC
             if(A==n || B==n || C==n) {
-               logFile << "(ionosphere) ERROR: Trying to split an element at a node that is already it's corner" << endl << write;
+               cerr << "(ionosphere) ERROR: Trying to split an element at a node that is already it's corner" << endl;
             }
 
             //Real oldArea = elementArea(nodes[n].touchingElements[t]);
@@ -1837,32 +1837,32 @@ namespace SBC {
             //Real newArea2 = elementArea(ne);
 
             //if(newArea1/oldArea < 0.4 || newArea2/oldArea < 0.4) {
-            //   logFile << "(ionosphere) Warning: Splitting element " << nodes[n].touchingElements[t] << " badly (ratios " << newArea1/oldArea << " / " << newArea2/oldArea << ")" << endl << write;
+            //   cerr << "(ionosphere) Warning: Splitting element " << nodes[n].touchingElements[t] << " badly (ratios " << newArea1/oldArea << " / " << newArea2/oldArea << ")" << endl;
             //   Vec3d ab(nodes[A].x[0] - nodes[B].x[0], nodes[A].x[1] - nodes[B].x[1], nodes[A].x[2] - nodes[B].x[2]);
             //   Vec3d an(nodes[A].x[0] - nodes[n].x[0], nodes[A].x[1] - nodes[n].x[1], nodes[A].x[2] - nodes[n].x[2]);
             //   Vec3d ac(nodes[A].x[0] - nodes[C].x[0], nodes[A].x[1] - nodes[C].x[1], nodes[A].x[2] - nodes[C].x[2]);
             //   Vec3d bc(nodes[B].x[0] - nodes[C].x[0], nodes[B].x[1] - nodes[C].x[1], nodes[B].x[2] - nodes[C].x[2]);
             //   Vec3d bn(nodes[B].x[0] - nodes[n].x[0], nodes[B].x[1] - nodes[n].x[1], nodes[B].x[2] - nodes[n].x[2]);
-            //   logFile << "             Colinearities:" << endl;
-            //   logFile << "             ABC: " << fabs(dot_product(normalize_vector(ab), normalize_vector(ac))) << endl;
-            //   logFile << "             AnB: " << fabs(dot_product(normalize_vector(ab), normalize_vector(an))) << endl;
-            //   logFile << "             AnC: " << fabs(dot_product(normalize_vector(ac), normalize_vector(an))) << endl;
-            //   logFile << "             BnC: " << fabs(dot_product(normalize_vector(bc), normalize_vector(bn))) << endl;
+            //   cerr << "             Colinearities:" << endl;
+            //   cerr << "             ABC: " << fabs(dot_product(normalize_vector(ab), normalize_vector(ac))) << endl;
+            //   cerr << "             AnB: " << fabs(dot_product(normalize_vector(ab), normalize_vector(an))) << endl;
+            //   cerr << "             AnC: " << fabs(dot_product(normalize_vector(ac), normalize_vector(an))) << endl;
+            //   cerr << "             BnC: " << fabs(dot_product(normalize_vector(bc), normalize_vector(bn))) << endl;
             //}
 
             // Fix touching element lists:
             // Far corner touches both elements
             nodes[C].touchingElements[nodes[C].numTouchingElements++] = ne;
             if(nodes[C].numTouchingElements > MAX_TOUCHING_ELEMENTS) {
-               logFile << "(ionosphere) ERROR: node " << C << "'s numTouchingElements (" << nodes[C].numTouchingElements << ") exceeds MAX_TOUCHING_ELEMENTS (= " <<
-                        MAX_TOUCHING_ELEMENTS << ")" << endl << write;
+               cerr << "(ionosphere) ERROR: node " << C << "'s numTouchingElements (" << nodes[C].numTouchingElements << ") exceeds MAX_TOUCHING_ELEMENTS (= " <<
+                        MAX_TOUCHING_ELEMENTS << ")" << endl;
             }
 
             // Our own node too.
             nodes[n].touchingElements[nodes[n].numTouchingElements++] = ne;
             if(nodes[n].numTouchingElements > MAX_TOUCHING_ELEMENTS) {
-               logFile << "(ionosphere) ERROR: node " << n << "'s numTouchingElements [" << nodes[n].numTouchingElements << "] exceeds MAX_TOUCHING_ELEMENTS (= " <<
-                        MAX_TOUCHING_ELEMENTS << ")" << endl << write;
+               cerr << "(ionosphere) ERROR: node " << n << "'s numTouchingElements [" << nodes[n].numTouchingElements << "] exceeds MAX_TOUCHING_ELEMENTS (= " <<
+                        MAX_TOUCHING_ELEMENTS << ")" << endl;
             }
 
             // One node has been shifted to the other element. Find the old one and change it.
@@ -1937,7 +1937,7 @@ namespace SBC {
        addAllMatrixDependencies(n);
      }
      
-     //logFile << "(ionosphere) Solver dependency matrix: " << endl;
+     //cerr << "(ionosphere) Solver dependency matrix: " << endl;
      //for(uint n=0; n<nodes.size(); n++) {
      //   for(uint m=0; m<nodes.size(); m++) {
 
@@ -1948,11 +1948,10 @@ namespace SBC {
      //        }
      //      }
 
-     //      logFile << val << "\t";
+     //      cerr << val << "\t";
      //   }
-     //   logFile << endl;
+     //   cerr << endl;
      //}
-     //logFile << write;
 
      phiprof::stop("ionosphere-initSolver");
    }
@@ -2133,14 +2132,14 @@ namespace SBC {
        }
 
        if(minerr < 1e-6) {
-         logFile << "Solved ionosphere potential after " << iteration << " iterations." << endl;
+         cerr << "Solved ionosphere potential after " << iteration << " iterations." << endl;
          phiprof::stop("ionosphere-solve");
          return;
        }
        
      }
 
-     logFile << "(ionosphere) Solver exhausted iterations. Remaining error " << minerr << endl;
+     cerr << "(ionosphere) Solver exhausted iterations. Remaining error " << minerr << endl;
 
      for(uint n=0; n<nodes.size(); n++) {
         Node& N=nodes[n];
@@ -2345,7 +2344,7 @@ namespace SBC {
       } else if(baseShape == "sphericalFibonacci") {
          ionosphereGrid.initializeSphericalFibonacci(fibonacciNodeNum);
       } else {
-         logFile << "(IONOSPHERE) Unknown mesh base shape \"" << baseShape << "\". Aborting." << endl << write;
+         cerr << "(IONOSPHERE) Unknown mesh base shape \"" << baseShape << "\". Aborting." << endl;
          abort();
       }
 
@@ -2354,7 +2353,7 @@ namespace SBC {
       } else if (tracerString == "BS") {
          ionosphereGrid.couplingMethod = SphericalTriGrid::BS;
       } else {
-         logFile << __FILE__ << ":" << __LINE__ << " ERROR: Unknown value for ionosphere.fieldLineTracer: " << tracerString << endl;
+         cerr << __FILE__ << ":" << __LINE__ << " ERROR: Unknown value for ionosphere.fieldLineTracer: " << tracerString << endl;
          abort();
       }
 
