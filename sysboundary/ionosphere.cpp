@@ -1288,43 +1288,56 @@ namespace SBC {
          }
       }
 
-      // Determine the nearest ionosphere node to this point.
-      uint32_t nearestNode = findNodeAtCoordinates(x);
+      uint32_t nearestNode;
+      for (uint toto=0; toto<2; toto++) {
+         // Determine the nearest ionosphere node to this point.
+         nearestNode = findNodeAtCoordinates(x);
 
-      Vec3d r1,r2,r3;
-      // Which neighbouring element encloses our test point?
-      for(uint i=0; i< nodes[nearestNode].numTouchingElements; i++) {
-         Element& el = elements[nodes[nearestNode].touchingElements[i]];
+         Vec3d r1,r2,r3;
+         // Which neighbouring element encloses our test point?
+         for(uint i=0; i< nodes[nearestNode].numTouchingElements; i++) {
+            Element& el = elements[nodes[nearestNode].touchingElements[i]];
 
-         // Calculate barycentric coordinates for x in this element.
-         r1.load(nodes[el.corners[0]].x.data());
-         r2.load(nodes[el.corners[1]].x.data());
-         r3.load(nodes[el.corners[2]].x.data());
+            // Calculate barycentric coordinates for x in this element.
+            r1.load(nodes[el.corners[0]].x.data());
+            r2.load(nodes[el.corners[1]].x.data());
+            r3.load(nodes[el.corners[2]].x.data());
 
-         // Project x into the plane of this triangle
-         Vec3d rx(x[0],x[1],x[2]);
-         Vec3d normal = normalize_vector(cross_product(r2-r1, r3-r1));
-         rx -= normal*dot_product(rx-r1, normal);
+            // Project x into the plane of this triangle
+            Vec3d rx(x[0],x[1],x[2]);
+            Vec3d normal = normalize_vector(cross_product(r2-r1, r3-r1));
+            rx -= normal*dot_product(rx-r1, normal);
 
-         // Total area
-         Real A = vector_length(cross_product(r2-r1,r3-r1));
+            // Total area
+            Real A = vector_length(cross_product(r2-r1,r3-r1));
 
-         // Area of the sub-triangles
-         Real lambda1 = vector_length(cross_product(r2-rx, r3-rx)) / A;
-         Real lambda2 = vector_length(cross_product(r1-rx, r3-rx)) / A;
-         Real lambda3 = vector_length(cross_product(r1-rx, r2-rx)) / A;
+            // Area of the sub-triangles
+            Real lambda1 = vector_length(cross_product(r2-rx, r3-rx)) / A;
+            Real lambda2 = vector_length(cross_product(r1-rx, r3-rx)) / A;
+            Real lambda3 = vector_length(cross_product(r1-rx, r2-rx)) / A;
 
-         // If any of the lambdas is out of range, this is not our enclosing element.
-         if(lambda1+lambda2+lambda3 > 1.01 || lambda1+lambda2+lambda3 < 0.99) {
-            continue;
+            // If any of the lambdas is out of range, this is not our enclosing element.
+            if(lambda1+lambda2+lambda3 > 1.01 || lambda1+lambda2+lambda3 < 0.99) {
+               continue;
+            }
+
+            coupling[0] = {el.corners[0], lambda1};
+            coupling[1] = {el.corners[1], lambda2};
+            coupling[2] = {el.corners[2], lambda3};
+            phiprof::stop("ionosphere-VlasovGridCoupling");
+            return coupling;
+
          }
-
-         coupling[0] = {el.corners[0], lambda1};
-         coupling[1] = {el.corners[1], lambda2};
-         coupling[2] = {el.corners[2], lambda3};
-         phiprof::stop("ionosphere-VlasovGridCoupling");
-         return coupling;
-
+         
+         // If we get here, the 1st try failed. Let's try moving x away from the nearest node in the opposite direction as a likely case was now being closest but outside the element.
+         Vec3d oldNearest;
+         oldNearest.load(nodes[nearestNode].x.data());
+         Vec3d rx(x[0],x[1],x[2]);
+         Vec3d newRx = rx - (oldNearest - rx);
+         x[0] = newRx[0];
+         x[1] = newRx[1];
+         x[2] = newRx[2];
+         
       }
 
       // If we arrived here, we did not find an element to couple to (why?)
