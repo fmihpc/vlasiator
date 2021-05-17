@@ -21,7 +21,7 @@ FLAGS =
 #GNU flags:
 CC_BRAND = gcc
 CC_BRAND_VERSION = 8.3.0
-CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -mavx
+CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -mavx
 testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17  -mavx
 
 MATHFLAGS = -ffast-math
