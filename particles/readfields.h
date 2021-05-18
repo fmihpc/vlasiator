@@ -28,6 +28,7 @@
 #include <vector>
 #include <string>
 #include <set>
+#include <cstring>
 
 #define DEBUG
 
@@ -64,7 +65,7 @@ static void detect_field_names(Reader& r) {
    } else if (find(variableNames.begin(), variableNames.end(), std::string("fg_b_background")) != variableNames.end() && 
               find(variableNames.begin(), variableNames.end(), std::string("fg_b_perturbed")) != variableNames.end()) {
       B_field_name = "fg_b_background";
-      E_field_name = "fg_E"  // This is a bit shady but I suppose a reasonable assumption
+      E_field_name = "fg_e";  // This is a bit shady but I suppose a reasonable assumption
    } else if (find(variableNames.begin(), variableNames.end(), std::string("B_vol"))!=variableNames.end()) {
       #ifdef DEBUG
       std::cerr << "yep!" << std::endl;
@@ -80,7 +81,7 @@ static void detect_field_names(Reader& r) {
    } else if (find(variableNames.begin(), variableNames.end(), std::string("vg_b_background_vol")) != variableNames.end() && 
               find(variableNames.begin(), variableNames.end(), std::string("vg_b_perturbed_vol")) != variableNames.end()) {
       B_field_name = "vg_b_background_vol";
-      E_field_name = "vg_e_vol"  // This is a bit shady but I suppose a reasonable assumption
+      E_field_name = "vg_e_vol";  // This is a bit shady but I suppose a reasonable assumption
    } else {
       std::cerr << "No B- or E-fields found! Strange file format?" << std::endl;
       exit(1);
@@ -200,13 +201,12 @@ std::vector<double> readFsGridData(Reader& r, std::string& name, unsigned int nu
    uint64_t vectorSize;
    vlsv::datatype::type dataType;
    uint64_t byteSize;
-   std::list<pair<string,string> > attribs;
-   bool convertFloatType = false;
+   std::list<std::pair<std::string,std::string> > attribs;
    
-   attribs.push_back(make_pair("name",name));
-   attribs.push_back(make_pair("mesh","fsgrid"));
+   attribs.push_back(std::make_pair("name",name));
+   attribs.push_back(std::make_pair("mesh","fsgrid"));
 
-   if (file.getArrayInfo("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
+   if (r.getArrayInfo("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
       std::cerr << "getArrayInfo returned false when trying to read VARIABLE \""
          << name << "\"." << std::endl;
       exit(1);
@@ -218,14 +218,13 @@ std::vector<double> readFsGridData(Reader& r, std::string& name, unsigned int nu
    }
 
    int numWritingRanks=0;
-   if(readScalarParameter(file,"numWritingRanks",fsgridInputRanks, MASTER_RANK, MPI_COMM_WORLD) == false) {
-      exitOnError(false, "(RESTART) FSGrid writing rank number not found in restart file", MPI_COMM_WORLD);
+   if(r.readParameter("numWritingRanks",numWritingRanks) == false) {
+      std::cerr << "FSGrid writing rank number not found";
+      exit(1);
    }
 
    // Are we restarting from the same number of tasks, or a different number?
-   std::array<int32_t,3>& localStart = targetGrid.getLocalStart();
-
-   uint64_t size[3];
+   std::array<int, 3> size;
    r.readParameter("xcells_ini",size[0]);
    r.readParameter("ycells_ini",size[1]);
    r.readParameter("zcells_ini",size[2]);
@@ -233,7 +232,14 @@ std::vector<double> readFsGridData(Reader& r, std::string& name, unsigned int nu
 
    // Determine our tasks storage size
    size_t storageSize = size[0]*size[1]*size[2];
+   std::vector<Real> readBuffer(storageSize*numcomponents);
    std::vector<Real> buffer(storageSize*numcomponents);
+
+   if(r.readArray("VARIABLE",attribs,0,arraySize,(char*) readBuffer.data()) == false) {
+      std::cerr << "readArray faied when trying to read VARIABLE \"" << name << "\"." << std::endl;
+      exit(1);
+   }
+
 
    // More difficult case: different number of tasks.
    // In this case, our own fsgrid domain overlaps (potentially many) domains in the file.
@@ -255,7 +261,7 @@ std::vector<double> readFsGridData(Reader& r, std::string& name, unsigned int nu
    // +------------+----------------+
 
    std::array<int,3> fileDecomposition;
-   computeFsgridDecomposition(globalSize, numWritingRanks, fileDecomposition);
+   computeFsGridDecomposition(size, numWritingRanks, fileDecomposition);
 
 
    // Iterate through tasks and find their overlap with our domain.
@@ -263,42 +269,25 @@ std::vector<double> readFsGridData(Reader& r, std::string& name, unsigned int nu
    for(int task = 0; task < numWritingRanks; task++) {
       std::array<int,3> overlapStart,overlapEnd,overlapSize;
 
-      overlapStart[0] = targetGrid.calcFsgridStart(size[0], fileDecomposition[0], task/fileDecomposition[2]/fileDecomposition[1]);
-      overlapStart[1] = targetGrid.calcFsgridStart(size[1], fileDecomposition[1], (task/fileDecomposition[2])%fileDecomposition[1]);
-      overlapStart[2] = targetGrid.calcFsgridStart(size[2], fileDecomposition[2], task%fileDecomposition[2]);
+      overlapStart[0] = calcFsgridStart(size[0], fileDecomposition[0], task/fileDecomposition[2]/fileDecomposition[1]);
+      overlapStart[1] = calcFsgridStart(size[1], fileDecomposition[1], (task/fileDecomposition[2])%fileDecomposition[1]);
+      overlapStart[2] = calcFsgridStart(size[2], fileDecomposition[2], task%fileDecomposition[2]);
 
-      overlapSize[0] = targetGrid.calcFsgridSize(size[0], fileDecomposition[0], task/fileDecomposition[2]/fileDecomposition[1]);
-      overlapSize[1] = targetGrid.calcFsgridSize(size[1], fileDecomposition[1], (task/fileDecomposition[2])%fileDecomposition[1]);
-      overlapSize[2] = targetGrid.calcFsgridSize(size[2], fileDecomposition[2], task%fileDecomposition[2]);
+      overlapSize[0] = calcFsgridSize(size[0], fileDecomposition[0], task/fileDecomposition[2]/fileDecomposition[1]);
+      overlapSize[1] = calcFsgridSize(size[1], fileDecomposition[1], (task/fileDecomposition[2])%fileDecomposition[1]);
+      overlapSize[2] = calcFsgridSize(size[2], fileDecomposition[2], task%fileDecomposition[2]);
 
       overlapEnd[0] = overlapStart[0]+overlapSize[0];
       overlapEnd[1] = overlapStart[1]+overlapSize[1];
       overlapEnd[2] = overlapStart[2]+overlapSize[2];
 
-      // Read into buffer
-      std::vector<Real> readBuffer(overlapSize[0]*overlapSize[1]*overlapSize[2]*numcomponents);
-
-
-      reader.startMultiread("VARIABLE", attribs);
-      // Read every source rank that we have an overlap with.
-      if(!convertFloatType) {
-         if(reader.addMultireadUnit((char*)readBuffer.data(), overlapSize[0]*overlapSize[1]*overlapSize[2])==false) {
-            logFile << "ERROR: Failed to read fsgrid variable " << variableName << endl << write;
-            exit(1);
-         }
-         reader.endMultiread(fileOffset);
-      } else {
-         std::vector<float> tempBuffer(overlapSize[0]*overlapSize[1]*overlapSize[2]*numcomponents);
-         if(reader.addMultireadUnit((char*)tempBuffer.data(), overlapSize[0]*overlapSize[1]*overlapSize[2])==false) {
-            logFile << "ERROR: Failed to read fsgrid variable " << variableName << endl << write;
-            exit(1);
-         }
-         reader.endMultiread(fileOffset);
-
-         for(uint64_t i=0; i< overlapSize[0]*overlapSize[1]*overlapSize[2]*numcomponents; i++) {
-            readBuffer[i]=tempBuffer[i];
-         }
-      }
+      // r.startMultiread("VARIABLE", attribs);
+      // // Read every source rank that we have an overlap with.
+      // if(r.addMultireadUnit((char*)readBuffer.data(), overlapSize[0]*overlapSize[1]*overlapSize[2])==false) {
+      //    std::cerr << "ERROR: Failed to read fsgrid variable " << name << std::endl;
+      //    exit(1);
+      // }
+      // r.endMultiread(fileOffset);
 
       // Copy continuous stripes in x direction.
       for(int z=overlapStart[2]; z<overlapEnd[2]; z++) {
@@ -308,13 +297,13 @@ std::vector<double> readFsGridData(Reader& r, std::string& name, unsigned int nu
                   + (y - overlapStart[1]) * overlapSize[0]
                   + (x - overlapStart[0]);
 
-               memcpy(&buffer[size[0]*size[1]*z + size[0]*y + x], &readBuffer[index*numcomponents], numcomponents*sizeof(Real));
+               std::memcpy(&buffer[size[0]*size[1]*z + size[0]*y + x], &readBuffer[(fileOffset + index)*numcomponents], numcomponents*sizeof(Real));
             }
          }
       }
-      fileOffset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2];
+      fileOffset += overlapSize[0] * overlapSize[1] * overlapSize[2];
    }
-   return true;
+   return buffer;
 }
 
 /* Read the next logical input file. Depending on sign of dt,
@@ -362,7 +351,7 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
       std::vector<double> Bbuffer;
       std::vector<double> Ebuffer;
       if (B_field_name == "fg_b_perturbed_vol" || B_field_name == "fg_b_background") {
-         Bbuffer = readFsGridData(r,name,3u)
+         Bbuffer = readFsGridData(r,name,3u);
          if (B_field_name == "fg_b_background") {
             name = "fg_b_perturbed";
             std::vector<double> perturbedBbuffer = readFieldData(r,name,3u);
@@ -370,8 +359,8 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
                Bbuffer[i] += perturbedBbuffer[i];
             }
          }
-         name = E_field_name
-         Ebuffer = readFsGridData(r,name,3u)
+         name = E_field_name;
+         Ebuffer = readFsGridData(r,name,3u);
       } else {
          Bbuffer = readFieldData(r,name,3u);
          if (B_field_name == "vg_b_background_vol") {
@@ -466,7 +455,7 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, bool doV=tru
    std::vector<double> Ebuffer;
    std::string name = B_field_name;
    if (B_field_name == "fg_b_perturbed_vol" || B_field_name == "fg_b_background") {
-      Bbuffer = readFsGridData(r,name,3u)
+      Bbuffer = readFsGridData(r,name,3u);
       if (B_field_name == "fg_b_background") {
          name = "fg_b_perturbed";
          std::vector<double> perturbedBbuffer = readFieldData(r,name,3u);
@@ -474,8 +463,8 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, bool doV=tru
             Bbuffer[i] += perturbedBbuffer[i];
          }
       }
-      name = E_field_name
-      Ebuffer = readFsGridData(r,name,3u)
+      name = E_field_name;
+      Ebuffer = readFsGridData(r,name,3u);
    } else {
       Bbuffer = readFieldData(r,name,3u);
       if (B_field_name == "vg_b_background_vol") {
