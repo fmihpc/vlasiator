@@ -586,7 +586,7 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
                      }
                      //Add to map
                      orderedData->insert(pair<uint64_t, Real>(globalindex, data));
-                     counter++;
+                     counter+=variableVectorSize;
                   }
                }
             }
