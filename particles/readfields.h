@@ -50,7 +50,7 @@ static void detect_field_names(Reader& r) {
    std::string gridname("SpatialGrid");
 
    r.getVariableNames(gridname,variableNames);
-   if (find(variableNames.begin(), variableNames.end(), std::string("fg_B"))!=variableNames.end()) {
+   if (find(variableNames.begin(), variableNames.end(), std::string("fg_b"))!=variableNames.end()) {
       #ifdef DEBUG
       std::cerr << "Nope!" << std::endl;
       #endif
