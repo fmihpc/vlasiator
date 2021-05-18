@@ -248,7 +248,7 @@ static double median3(double a, double b, double c) {
 
 int main(int argc, char** argv) {
 
-  MPI::Init(argc, argv);
+  // MPI::Init(argc, argv);
 
   if(argc < 3) {
     cerr << "Syntax: fluxfunction input.vlsv output.bin" << endl;
