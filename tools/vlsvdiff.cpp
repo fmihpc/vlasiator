@@ -503,6 +503,7 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
          cerr << "ERROR, failed to get array info for '" << _varToExtract << "' at " << __FILE__ << " " << __LINE__ << endl;
          return false;
       }
+      std::cerr << "read" << std::endl;
 
       std::map<string, string>::iterator attributesOutIt;
       attributesOutIt = meshAttributesOut.find("max_refinement_level");
@@ -528,7 +529,6 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
       std::array<int32_t,3> taskSize,taskStart;
       std::array<int32_t,3> taskEnd;
       int readOffset=0;
-      size_t readSize;
       int index,my_x,my_y,my_z;
       orderedData->clear();
 
@@ -551,7 +551,7 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
          taskEnd[1]= taskStart[1]+taskSize[1];
          taskEnd[2]= taskStart[2]+taskSize[2];
          
-         readSize=  taskSize[0] * taskSize[1] * taskSize[2] ;
+         int64_t readSize=  taskSize[0] * taskSize[1] * taskSize[2] ;
          //Allocate vector for reading
          std::vector<Real> buffer(readSize*variableVectorSize);
 
@@ -586,11 +586,12 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
                      }
                      //Add to map
                      orderedData->insert(pair<uint64_t, Real>(globalindex, data));
+                     counter++;
                   }
                }
             }
          readOffset+=readSize;
-         counter++;
+         
      }
    }else{
     cerr<<"meshName not recognized\t" << __FILE__ << " " << __LINE__ <<endl;
