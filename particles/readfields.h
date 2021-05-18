@@ -55,35 +55,54 @@ static void detect_field_names(Reader& r) {
       std::cerr << "Nope!" << std::endl;
       #endif
       B_field_name = "fg_b";
-      E_field_name = "fg_e";
    } else if (find(variableNames.begin(), variableNames.end(), std::string("B"))!=variableNames.end()) {
       #ifdef DEBUG
       std::cerr << "Nope!" << std::endl;
       #endif
       B_field_name = "B";
-      E_field_name = "E";
    } else if (find(variableNames.begin(), variableNames.end(), std::string("fg_b_background")) != variableNames.end() && 
               find(variableNames.begin(), variableNames.end(), std::string("fg_b_perturbed")) != variableNames.end()) {
       B_field_name = "fg_b_background";
-      E_field_name = "fg_e";  // This is a bit shady but I suppose a reasonable assumption
    } else if (find(variableNames.begin(), variableNames.end(), std::string("B_vol"))!=variableNames.end()) {
       #ifdef DEBUG
       std::cerr << "yep!" << std::endl;
       #endif
       B_field_name = "B_vol";
-      E_field_name = "E_vol";
    } else if (find(variableNames.begin(), variableNames.end(), std::string("vg_b_vol"))!=variableNames.end()) {
       #ifdef DEBUG
       std::cerr << "yep!" << std::endl;
       #endif
       B_field_name = "vg_b_vol";
-      E_field_name = "vg_e_vol";
    } else if (find(variableNames.begin(), variableNames.end(), std::string("vg_b_background_vol")) != variableNames.end() && 
               find(variableNames.begin(), variableNames.end(), std::string("vg_b_perturbed_vol")) != variableNames.end()) {
       B_field_name = "vg_b_background_vol";
-      E_field_name = "vg_e_vol";  // This is a bit shady but I suppose a reasonable assumption
    } else {
-      std::cerr << "No B- or E-fields found! Strange file format?" << std::endl;
+      std::cerr << "No B-fields found! Strange file format?" << std::endl;
+      exit(1);
+   }
+   
+   if (find(variableNames.begin(), variableNames.end(), std::string("fg_e"))!=variableNames.end()) {
+      #ifdef DEBUG
+      std::cerr << "Nope!" << std::endl;
+      #endif
+      E_field_name = "fg_e";
+   } else if (find(variableNames.begin(), variableNames.end(), std::string("E"))!=variableNames.end()) {
+      #ifdef DEBUG
+      std::cerr << "Nope!" << std::endl;
+      #endif
+      E_field_name = "E";
+   } else if (find(variableNames.begin(), variableNames.end(), std::string("E_vol"))!=variableNames.end()) {
+      #ifdef DEBUG
+      std::cerr << "yep!" << std::endl;
+      #endif
+      E_field_name = "E_vol";
+   } else if (find(variableNames.begin(), variableNames.end(), std::string("vg_e_vol"))!=variableNames.end()) {
+      #ifdef DEBUG
+      std::cerr << "yep!" << std::endl;
+      #endif
+      E_field_name = "vg_e_vol";
+   } else {
+      std::cerr << "No E-fields found! Strange file format?" << std::endl;
       exit(1);
    }
 }
