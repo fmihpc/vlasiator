@@ -503,7 +503,6 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
          cerr << "ERROR, failed to get array info for '" << _varToExtract << "' at " << __FILE__ << " " << __LINE__ << endl;
          return false;
       }
-      std::cerr << "read" << std::endl;
 
       std::map<string, string>::iterator attributesOutIt;
       attributesOutIt = meshAttributesOut.find("max_refinement_level");
