@@ -1363,7 +1363,7 @@ namespace SBC {
          const std::array<std::pair<int, Real>, 3>& coupling = vlasovGridCoupling[x];
 
          for(int i=0; i<3; i++) {
-            potential += coupling[0].second * nodes[coupling[0].first].parameters[ionosphereParameters::SOLUTION];
+            potential += coupling[i].second * nodes[coupling[i].first].parameters[ionosphereParameters::SOLUTION];
          }
       }
       return potential;
