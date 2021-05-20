@@ -554,10 +554,22 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
          //Allocate vector for reading
          std::vector<Real> buffer(readSize*variableVectorSize);
 
-         if (vlsvReader.readArray("VARIABLE", variableAttributes, readOffset, readSize,  (char*)buffer.data()) == false) {
-            cerr << "ERROR, failed to read variable '" << _varToExtract << "' at " << __FILE__ << " " << __LINE__ << endl;
-            variableSuccess = false; 
-            break;
+         if ( variableDataSize==sizeof(Real)){
+            if (vlsvReader.readArray("VARIABLE", variableAttributes, readOffset, readSize,  (char*)buffer.data()) == false) {
+               cerr << "ERROR, failed to read variable '" << _varToExtract << "' at " << __FILE__ << " " << __LINE__ << endl;
+               variableSuccess = false; 
+               break;
+            }
+         }else{
+            std::vector<float> tmpbuffer(readSize * variableVectorSize);
+            if (vlsvReader.readArray("VARIABLE", variableAttributes, readOffset, readSize, (char *)tmpbuffer.data()) == false){
+               cerr << "ERROR, failed to read variable '" << _varToExtract << "' at " << __FILE__ << " " << __LINE__ << endl;
+               variableSuccess = false;
+               break;
+            }
+            for (int i = 0; i < readSize * variableVectorSize; i++){
+               buffer[i] = tmpbuffer[i];
+            }
          }
 
          uint64_t globalindex,counter=0;;
