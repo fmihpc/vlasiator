@@ -1098,12 +1098,12 @@ namespace SBC {
       phiprof::start("ionosphere-updateIonosphereCommunicator");
 
       // Check if the current rank contains ionosphere boundary cells.
-      isCouplingOutwards = false;
-      for(const auto& cell: mpiGrid.get_cells()) {
-         if(mpiGrid[cell]->sysBoundaryFlag == sysboundarytype::IONOSPHERE) {
-            isCouplingOutwards = true;
-         }
-      }
+      isCouplingOutwards = true;
+      //for(const auto& cell: mpiGrid.get_cells()) {
+      //   if(mpiGrid[cell]->sysBoundaryFlag == sysboundarytype::IONOSPHERE) {
+      //      isCouplingOutwards = true;
+      //   }
+      //}
 
       // If a previous communicator existed, destroy it.
       if(communicator != MPI_COMM_NULL) {

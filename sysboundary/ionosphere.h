@@ -149,7 +149,7 @@ namespace SBC {
       int rank = -1;                      // Own rank in the ionosphere communicator
       int writingRank;                    // Rank in the MPI_COMM_WORLD communicator that does ionosphere I/O
       bool isCouplingInwards = false;     // True for any rank that actually couples fsgrid information into the ionosphere
-      bool isCouplingOutwards = false;    // True for any rank that actually couples ionosphere potential information out to the vlasov grid
+      bool isCouplingOutwards = true;    // True for any rank that actually couples ionosphere potential information out to the vlasov grid
       FieldFunction dipoleField;          // Simulation background field model to trace connections with
       std::map< std::array<Real, 3>, std::array<
          std::pair<int, Real>, 3> > vlasovGridCoupling; // Grid coupling information, caching how vlasovGrid coordinate couple to ionosphere data
