@@ -203,7 +203,7 @@ std::vector<double> readFsGridData(Reader& r, std::string& name, unsigned int nu
    // +------------+----------------+
 
    std::array<int,3> fileDecomposition;
-   FsGrid<std::array<Real, 3>,FS_STENCIL_WIDTH>::computeDomainDecomposition(size, numWritingRanks, fileDecomposition);
+   FsGridTools::computeDomainDecomposition(size, numWritingRanks, fileDecomposition);
    //computeFsGridDecomposition(size, numWritingRanks, fileDecomposition);
 
 
@@ -212,13 +212,13 @@ std::vector<double> readFsGridData(Reader& r, std::string& name, unsigned int nu
    for(int task = 0; task < numWritingRanks; task++) {
       std::array<int,3> overlapStart,overlapEnd,overlapSize;
 
-      overlapStart[0] = FsGrid<std::array<Real, 3>,FS_STENCIL_WIDTH>::calcLocalStart(size[0], fileDecomposition[0], task/fileDecomposition[2]/fileDecomposition[1]);
-      overlapStart[1] = FsGrid<std::array<Real, 3>,FS_STENCIL_WIDTH>::calcLocalStart(size[1], fileDecomposition[1], (task/fileDecomposition[2])%fileDecomposition[1]);
-      overlapStart[2] = FsGrid<std::array<Real, 3>,FS_STENCIL_WIDTH>::calcLocalStart(size[2], fileDecomposition[2], task%fileDecomposition[2]);
+      overlapStart[0] = FsGridTools::calcLocalStart(size[0], fileDecomposition[0], task/fileDecomposition[2]/fileDecomposition[1]);
+      overlapStart[1] = FsGridTools::calcLocalStart(size[1], fileDecomposition[1], (task/fileDecomposition[2])%fileDecomposition[1]);
+      overlapStart[2] = FsGridTools::calcLocalStart(size[2], fileDecomposition[2], task%fileDecomposition[2]);
 
-      overlapSize[0] = FsGrid<std::array<Real, 3>,FS_STENCIL_WIDTH>::calcLocalSize(size[0], fileDecomposition[0], task/fileDecomposition[2]/fileDecomposition[1]);
-      overlapSize[1] = FsGrid<std::array<Real, 3>,FS_STENCIL_WIDTH>::calcLocalSize(size[1], fileDecomposition[1], (task/fileDecomposition[2])%fileDecomposition[1]);
-      overlapSize[2] = FsGrid<std::array<Real, 3>,FS_STENCIL_WIDTH>::calcLocalSize(size[2], fileDecomposition[2], task%fileDecomposition[2]);
+      overlapSize[0] = FsGridTools::calcLocalSize(size[0], fileDecomposition[0], task/fileDecomposition[2]/fileDecomposition[1]);
+      overlapSize[1] = FsGridTools::calcLocalSize(size[1], fileDecomposition[1], (task/fileDecomposition[2])%fileDecomposition[1]);
+      overlapSize[2] = FsGridTools::calcLocalSize(size[2], fileDecomposition[2], task%fileDecomposition[2]);
 
       overlapEnd[0] = overlapStart[0]+overlapSize[0];
       overlapEnd[1] = overlapStart[1]+overlapSize[1];
