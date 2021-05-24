@@ -504,6 +504,9 @@ int main(int argn,char* args[]) {
    getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
    phiprof::stop("getFieldsFromFsGrid");
 
+   // Build communicator for ionosphere solving
+   SBC::ionosphereGrid.updateIonosphereCommunicator(mpiGrid, technicalGrid);
+
    if (P::isRestart == false) {
       phiprof::start("compute-dt");
       // Run Vlasov solver once with zero dt to initialize
@@ -578,9 +581,6 @@ int main(int argn,char* args[]) {
       phiprof::stop("propagate-velocity-space-dt/2");
 
    }
-
-   // Build communicator for ionosphere solving
-   SBC::ionosphereGrid.updateIonosphereCommunicator(mpiGrid, technicalGrid);
    
    phiprof::stop("Initialization");
 
