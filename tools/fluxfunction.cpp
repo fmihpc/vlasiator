@@ -46,16 +46,17 @@ std::vector<double> computeFluxUp(Field& B, int outerBoundary, int innerBoundary
 
    // First, fill the y/z=3 cells
    // Then integrate in y/z direction
-   for(int x = B.dimension[0]->cells - (outerBoundary+1); x > outerBoundary + 1; x--) {
-      int y = eqPlane ? outerBoundary : 0;
-      int z = eqPlane ? 0 : outerBoundary;
+   for(int x = B.dimension[0]->cells - (outerBoundary+1); x >= outerBoundary; x--) {
+      int i = outerBoundary;
+      int y = eqPlane ? i : 0;
+      int z = eqPlane ? 0 : i;
       Vec3d bval = B.getCell(x,y,z);
 
       bottom_flux -= bval[yCoord] * B.dx[0];
-      flux[B.dimension[0]->cells * outerBoundary + x] = tmp_flux;
+      flux[B.dimension[0]->cells * i + x] = bottom_flux;
 
-      tmp_flux = bottom_flux
-      for(int i=outerBoundary + 1; i < B.dimension[yCoord]->cells - outerBoundary; i++) {
+      tmp_flux = bottom_flux;
+      for(i++; i < B.dimension[yCoord]->cells - outerBoundary; i++) {
          y = eqPlane ? i : 0;
          z = eqPlane ? 0 : i;
          bval = B.getCell(x,y,z);
@@ -82,25 +83,28 @@ std::vector<double> computeFluxDown(Field& B, int outerBoundary, int innerBounda
    // Calculate flux-difference between bottom and top edge
    // of +x boundary (so that values are consistent with computeFluxUp)
    for(int i = outerBoundary; i < B.dimension[yCoord]->cells - outerBoundary; i++) {
+      int x = B.dimension[0]->cells - (outerBoundary + 1);
       int y = eqPlane ? i : 0;
       int z = eqPlane ? 0 : i;
-      Vec3d bval = B.getCell(B.dimension[0]->cells - (outerBoundary + 1), y, z);
+      Vec3d bval = B.getCell(x, y, z);
 
-      tmp_flux -= bval[0]*B.dx[yCoord];
+      top_flux -= bval[0]*B.dx[yCoord];
+      flux[B.dimension[0]->cells * i + x] = top_flux;
    }
 
    // First, fill the y/z = max - 4 cells
    // Then integrate in -y/z direction
    for(int x = B.dimension[0]->cells - (outerBoundary + 2); x >= outerBoundary; x--) {
-      int y = eqPlane ? B.dimension[1]->cells - (outerBoundary + 1) : 0;
-      int z = eqPlane ? 0 : B.dimension[2]->cells - (outerBoundary + 1);
+      int i = B.dimension[1]->cells - (outerBoundary + 1);
+      int y = eqPlane ? i : 0;
+      int z = eqPlane ? 0 : i;
       Vec3d bval = B.getCell(x, y, z);
 
       top_flux -= bval[yCoord] * B.dx[0];
-      flux[B.dimension[0]->cells * (B.dimension[yCoord]->cells - (outerBoundary + 1)) + x] = top_flux;
+      flux[B.dimension[0]->cells * i + x] = top_flux;
 
-      tmp_flux = top_flux
-      for(int i=B.dimension[yCoord]->cells - (outerBoundary + 2); i > 0; i--) {
+      tmp_flux = top_flux;
+      for(i--; i >= outerBoundary; i--) {
          y = eqPlane ? i : 0;
          z = eqPlane ? 0 : i;
          bval = B.getCell(x, y, z);
@@ -126,15 +130,16 @@ std::vector<double> computeFluxLeft(Field& B, int outerBoundary, int innerBounda
    // First calculate flux difference to bottom right corner
    // Now, for each row, integrate in -z-direction.
    for(int i=0; i < B.dimension[yCoord]->cells - outerBoundary; i++) {
+      int x = B.dimension[0]->cells - (outerBoundary + 1);
       int y = eqPlane ? i : 0;
       int z = eqPlane ? 0 : i;
-      Vec3d bval = B.getCell(B.dimension[0]->cells - (outerBoundary + 1), y, z);
+      Vec3d bval = B.getCell(x, y, z);
 
       right_flux -= bval[0] * B.dx[yCoord];
-      flux[B.dimension[0]->cells * i + B.dimension[0]->cells - (outerboundary + 1)] = tmp_flux;
+      flux[B.dimension[0]->cells * i + x] = tmp_flux;
 
       tmp_flux = right_flux;
-      for(int x = B.dimension[0]->cells - (outerBoundary + 2); x >= outerBoundary; x--) {
+      for(x--; x >= outerBoundary; x--) {
 
          bval = B.getCell(x,y,z);
 
@@ -150,8 +155,6 @@ std::vector<double> computeFluxLeft(Field& B, int outerBoundary, int innerBounda
 static double median3(double a, double b, double c) {
   return max(min(a,b), min(max(a,b),c));
 }
-
-
 
 int main(int argc, char** argv) {
 
