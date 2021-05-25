@@ -1453,6 +1453,9 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    //Write FSGrid metadata
    if( writeFsGridMetadata( technicalGrid, vlsvWriter ) == false ) return false;
 
+   //Write Ionosphere Grid
+   if( writeIonosphereGridMetadata( vlsvWriter ) == false ) return false;
+
    phiprof::stop("metadataIO");
    phiprof::start("reduceddataIO");   
    //write out DROs we need for restarts
@@ -1527,6 +1530,54 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             return retval;
          }
    ));
+
+   // Add ionosphere restart variables
+   // (To reconstruct state, we need the time-smoothed downmapped quantities: FACs, rhon and pressure.
+   // Also, to be immediately consistent after restart, write the potential)
+   restartReducer.addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_fac", [](SBC::SphericalTriGrid& grid) -> std::vector<Real> {
+       std::vector<Real> retval(grid.nodes.size());
+
+       for (uint i = 0; i < grid.nodes.size(); i++) {
+          Real area = 0;
+          for (uint e = 0; e < grid.nodes[i].numTouchingElements; e++) {
+             area += grid.elementArea(grid.nodes[i].touchingElements[e]);
+          }
+          area /= 3.; // As every element has 3 corners, don't double-count areas
+          retval[i] = grid.nodes[i].parameters[ionosphereParameters::SOURCE] / area;
+       }
+
+       return retval;
+   }));
+   restartReducer.addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_rhon", [](SBC::SphericalTriGrid& grid)->std::vector<Real> {
+
+      std::vector<Real> retval(grid.nodes.size());
+
+      for (uint i = 0; i < grid.nodes.size(); i++) {
+         retval[i] = grid.nodes[i].parameters[ionosphereParameters::RHON];
+      }
+
+      return retval;
+   }));
+   restartReducer.addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_pressure", [](SBC::SphericalTriGrid& grid)->std::vector<Real> {
+
+      std::vector<Real> retval(grid.nodes.size());
+
+      for(uint i=0; i<grid.nodes.size(); i++) {
+         retval[i] = grid.nodes[i].parameters[ionosphereParameters::PRESSURE];
+      }
+
+      return retval;
+   }));
+   restartReducer.addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_potential", [](SBC::SphericalTriGrid& grid)->std::vector<Real> {
+
+      std::vector<Real> retval(grid.nodes.size());
+
+      for(uint i=0; i<grid.nodes.size(); i++) {
+         retval[i] = grid.nodes[i].parameters[ionosphereParameters::SOLUTION];
+      }
+
+      return retval;
+   }));
    
    //Write necessary variables:
    const bool writeAsFloat = P::writeRestartAsFloat;

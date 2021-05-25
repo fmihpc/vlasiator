@@ -777,6 +777,12 @@ bool readCellParamsVariable(
    return false;
 }
 
+/*! Read a fsgrid variable (consinting of N real values) from the given vlsv file.
+ * \param file VLSV parallel reader with a file open.
+ * \param variableName Name of the variable in the file
+ * \param numWritingRanks Number of mpi ranks that were used to write this file (used for reconstruction of the spatial order)
+ * \param targetGrid target location where the data will be stored.
+ */
 template<unsigned long int N> bool readFsGridVariable(
    vlsv::ParallelReader& file, const string& variableName, int numWritingRanks, FsGrid<std::array<Real, N>,FS_STENCIL_WIDTH> & targetGrid) {
 
@@ -964,6 +970,76 @@ template<unsigned long int N> bool readFsGridVariable(
    phiprof::start("updateGhostCells");
    targetGrid.updateGhostCells();
    phiprof::stop("updateGhostCells");
+   return true;
+}
+
+/*! Read an ionosphere variable from the given vlsv file.
+ * Note that only singular floating point values (no vectors) can be read at this time.
+ * \param file VLSV parallel reader with a file open.
+ * \param variableName Name of the variable in the file
+ * \param grid the ionosphere grid that data will be deposited into
+ * \param index index into the nodes' parameters array, where the data will end up.
+ */
+bool readIonosphereNodeVariable(
+   vlsv::ParallelReader& file, const string& variableName, SBC::SphericalTriGrid& grid, ionosphereParameters index) {
+
+   uint64_t arraySize;
+   uint64_t vectorSize;
+   vlsv::datatype::type dataType;
+   uint64_t byteSize;
+   list<pair<string,string> > attribs;
+   bool convertFloatType = false;
+   
+   attribs.push_back(make_pair("name",variableName));
+   attribs.push_back(make_pair("mesh","ionosphere"));
+
+   // If we don't have an ionosphere (zero nodes), we simply skip trying to read any restart data for this.
+   if(grid.nodes.size() == 0) {
+      return true;
+   }
+
+   if (file.getArrayInfo("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
+      logFile << "(RESTART)  ERROR: Failed to read array info for " << variableName << endl << write;
+      return false;
+   }
+
+   if(! (dataType == vlsv::datatype::type::FLOAT && byteSize == sizeof(Real))) {
+      logFile << "(RESTART) Converting floating point format of ionosphere variable " << variableName << " from " << byteSize * 8 << " bits to " << sizeof(Real) * 8 << " bits." << endl << write;
+      convertFloatType = true;
+   }
+
+   // Verify that this is a scalar variable
+   if(vectorSize != 1) {
+      logFile << "(RESTART) ERROR: Trying to read vector valued (" << vectorSize << " components) ionosphere parameter from restart file. Only scalars are supported." << endl << write;
+      return false;
+   }
+
+   // Verify that the size matches our constructed ionosphere object
+   if(grid.nodes.size() != arraySize) {
+      logFile << "(RESTART) ERROR: Ionosphere restart size mismatch: trying to read variable " << variableName << " with " << arraySize << " values into a ionosphere grid with " << grid.nodes.size() << " nodes!" << endl << write;
+      return false;
+   }
+
+   if(!convertFloatType) {
+      std::vector<Real> buffer(arraySize);
+      if(file.readArray("VARIABLE", attribs, 0, arraySize, (char*)buffer.data()) == false) {
+         logFile << "(RESTART) ERROR: Failed to read ionosphere variable " << variableName << endl << write;
+      }
+
+      for(uint i=0; i<grid.nodes.size(); i++) {
+         grid.nodes[i].parameters[index] = buffer[i];
+      }
+   } else {
+      std::vector<float> buffer(arraySize);
+      if(file.readArray("VARIABLE", attribs, 0, arraySize, (char*)buffer.data()) == false) {
+         logFile << "(RESTART) ERROR: Failed to read ionosphere variable " << variableName << endl << write;
+      }
+
+      for(uint i=0; i<grid.nodes.size(); i++) {
+         grid.nodes[i].parameters[index] = buffer[i];
+      }
+   }
+
    return true;
 }
 
@@ -1204,7 +1280,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_v_dt",CellParams::MAXVDT,1,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_r_dt",CellParams::MAXRDT,1,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_fields_dt",CellParams::MAXFDT,1,mpiGrid); }
-// Backround B has to be set, there are also the derivatives that should be written/read if we wanted to only read in background field
+   // Backround B has to be set, there are also the derivatives that should be written/read if we wanted to only read in background field
    phiprof::stop("readCellParameters");
 
    phiprof::start("readBlockData");
@@ -1229,6 +1305,21 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    exitOnError(success,"(RESTART) Failure reading fsgrid restart variables",MPI_COMM_WORLD);
    phiprof::stop("readFsGrid");
    
+   phiprof::start("readIonosphere");
+   if(success) { success = readIonosphereNodeVariable(file, "ig_fac", SBC::ionosphereGrid, ionosphereParameters::SOURCE); }
+   // Reconstruct source term by multiplying the fac density with the element area
+   for(uint i = 0; i<SBC::ionosphereGrid.nodes.size(); i++) {
+      Real area = 0;
+      for(uint e=0; e< SBC::ionosphereGrid.nodes[i].numTouchingElements; e++) {
+         area += SBC::ionosphereGrid.elementArea(SBC::ionosphereGrid.nodes[i].touchingElements[e]);
+      }
+      SBC::ionosphereGrid.nodes[i].parameters[ionosphereParameters::SOURCE] *= area;
+   }
+   if(success) { success = readIonosphereNodeVariable(file, "ig_rhon", SBC::ionosphereGrid, ionosphereParameters::RHON); }
+   if(success) { success = readIonosphereNodeVariable(file, "ig_pressure", SBC::ionosphereGrid, ionosphereParameters::PRESSURE); }
+   if(success) { success = readIonosphereNodeVariable(file, "ig_potential", SBC::ionosphereGrid, ionosphereParameters::SOLUTION); }
+   phiprof::stop("readIonosphere");
+
    success = file.close();
    phiprof::stop("readGrid");
 
