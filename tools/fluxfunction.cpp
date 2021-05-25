@@ -33,209 +33,120 @@
 
 using namespace std;
 
-namespace Polarplane {
-   // Calculate fluxfunction by integrating along -z boundary first,
-   // and then going along z-direction.
-   std::vector<double> computeFluxUp(Field& B) {
-      // Create fluxfunction-field to be the same shape as B
-      std::vector<double> flux(B.dimension[0]->cells * B.dimension[1]->cells * B.dimension[2]->cells);
+// Calculate fluxfunction by integrating along -y/z boundary first,
+// and then going along y/z-direction.
+std::vector<double> computeFluxUp(Field& B, int outerBoundary, int innerBoundaryRE) {
+   // Create fluxfunction-field to be the same shape as B
+   std::vector<double> flux(B.dimension[0]->cells * B.dimension[1]->cells * B.dimension[2]->cells);
+   bool eqPlane = B.dimension[1]->cells > 1;
+   int yCoord = eqPlane ? 1 : 2;
 
-      long double tmp_flux=0.;
+   long double tmp_flux=0.;
 
-      // First, fill the z=3 cells
-      for(int x=B.dimension[0]->cells-2; x>0; x--) {
-         Vec3d bval = B.getCell(x,0,3);
+   // First, fill the y/z=3 cells
+   for(int x = B.dimension[0]->cells - (outerBoundary+1); x > outerBoundary + 1; x--) {
+      int y = eqPlane ? outerBoundary : 0;
+      int z = eqPlane ? 0 : outerBoundary;
+      Vec3d bval = B.getCell(x,y,z);
 
-         tmp_flux -= bval[2] * B.dx[0];
-         flux[B.dimension[0]->cells * B.dimension[1]->cells * 3 + x] = tmp_flux;
-      }
-
-      // Now, for each row, integrate in z-direction.
-      for(int x=1; x< B.dimension[0]->cells-1; x++) {
-
-         tmp_flux = flux[B.dimension[0]->cells * B.dimension[1]->cells * 3 + x];
-         for(int z=4; z< B.dimension[2]->cells; z++) {
-            Vec3d bval = B.getCell(x,0,z);
-
-            tmp_flux -= bval[0]*B.dx[2];
-            flux[B.dimension[0]->cells * B.dimension[1]->cells * z  +  x] = tmp_flux;
-         }
-      }
-
-      return flux;
+      tmp_flux -= bval[yCoord] * B.dx[0];
+      flux[B.dimension[0]->cells * outerBoundary + x] = tmp_flux;
    }
 
+   // Now, for each row, integrate in y/z-direction.
+   for(int x=outerBoundary; x< B.dimension[0]->cells - outerBoundary; x++) {
 
+      tmp_flux = flux[B.dimension[0]->cells * outerBoundary + x];
+      for(int i=outerBoundary+1; i < B.dimension[yCoord]->cells - outerBoundary; i++) {
+         int y = eqPlane ? i : 0;
+         int z = eqPlane ? 0 : i;
+         Vec3d bval = B.getCell(x,y,z);
 
-   // Calculate fluxfunction by integrating along +z boundary first,
-   // and then going along negative z-direction.
-   std::vector<double> computeFluxDown(Field& B) {
-      // Create fluxfunction-field to be the same shape as B
-      std::vector<double> flux(B.dimension[0]->cells * B.dimension[1]->cells * B.dimension[2]->cells);
-
-      long double tmp_flux=0.;
-
-      // Calculate flux-difference between bottom and top edge
-      // of +x boundary (so that values are consistent with computeFluxUp)
-      for(int z=3; z<B.dimension[2]->cells-4; z++) {
-         Vec3d bval = B.getCell(B.dimension[0]->cells-2,0,z);
-
-         tmp_flux -= bval[0]*B.dx[2];
+         tmp_flux -= bval[0] * B.dx[yCoord];
+         flux[B.dimension[0]->cells * i + x] = tmp_flux;
       }
-
-      // First, fill the z=max - 4 cells
-      for(int x=B.dimension[0]->cells-2; x>0; x--) {
-         Vec3d bval = B.getCell(x,0,B.dimension[2]->cells-4);
-
-         tmp_flux -= bval[2] * B.dx[0];
-         flux[B.dimension[0]->cells * B.dimension[1]->cells * (B.dimension[2]->cells - 4) + x] = tmp_flux;
-      }
-
-      // Now, for each row, integrate in -z-direction.
-      for(int x=1; x< B.dimension[0]->cells-1; x++) {
-
-         tmp_flux = flux[B.dimension[0]->cells * B.dimension[1]->cells * (B.dimension[2]->cells - 4) + x];
-         for(int z=B.dimension[2]->cells-5; z > 0; z--) {
-            Vec3d bval = B.getCell(x,0,z);
-
-            tmp_flux += bval[0] * B.dx[2];
-            flux[B.dimension[0]->cells * B.dimension[1]->cells * z  +  x] = tmp_flux;
-         }
-      }
-
-      return flux;
    }
 
-
-
-   // Calculate fluxfunction by integrating along -x from the right boundary
-   std::vector<double> computeFluxLeft(Field& B) {
-      // Create fluxfunction-field to be the same shape as B
-      std::vector<double> flux(B.dimension[0]->cells * B.dimension[1]->cells * B.dimension[2]->cells);
-
-      long double tmp_flux=0.;
-      long double bottom_right_flux=0.;
-
-      // First calculate flux difference to bottom right corner
-      // Now, for each row, integrate in -z-direction.
-      for(int z=0; z < B.dimension[2]->cells; z++) {
-         Vec3d bval = B.getCell(B.dimension[0]->cells-1,0,z);
-         bottom_right_flux -= bval[0] * B.dx[2];
-
-         tmp_flux = bottom_right_flux;
-         for(int x=B.dimension[0]->cells-1; x>0; x--) {
-
-            bval = B.getCell(x,0,z);
-
-            tmp_flux -= bval[2] * B.dx[0];
-            flux[B.dimension[0]->cells * B.dimension[1]->cells * z  +  x] = tmp_flux;
-         }
-      }
-
-      return flux;
-   }
+   return flux;
 }
 
-namespace Equatorialplane {
-   // Calculate fluxfunction by integrating along -y boundary first,
-   // and then going along y-direction.
-   std::vector<double> computeFluxUp(Field& B) {
-      // Create fluxfunction-field to be the same shape as B
-      std::vector<double> flux(B.dimension[0]->cells * B.dimension[1]->cells * B.dimension[2]->cells);
+// Calculate fluxfunction by integrating along +y/z boundary first,
+// and then going along negative y/z-direction.
+std::vector<double> computeFluxDown(Field& B, int outerBoundary, int innerBoundaryRE) {
+   // Create fluxfunction-field to be the same shape as B
+   std::vector<double> flux(B.dimension[0]->cells * B.dimension[1]->cells * B.dimension[2]->cells);
+   bool eqPlane = B.dimension[1]->cells > 1;
+   int yCoord = eqPlane ? 1 : 2;
 
-      long double tmp_flux=0.;
+   long double tmp_flux=0.;
 
-      // First, fill the y=3 cells
-      for(int x=B.dimension[0]->cells-2; x>0; x--) {
-         Vec3d bval = B.getCell(x,3,0);
+   // Calculate flux-difference between bottom and top edge
+   // of +x boundary (so that values are consistent with computeFluxUp)
+   for(int i = outerBoundary; i < B.dimension[yCoord]->cells - outerBoundary; i++) {
+      int y = eqPlane ? i : 0;
+      int z = eqPlane ? 0 : i;
+      Vec3d bval = B.getCell(B.dimension[0]->cells - (outerBoundary + 1), y, z);
 
-         tmp_flux -= bval[1] * B.dx[0];
-         flux[B.dimension[0]->cells * 3 + x] = tmp_flux;
-      }
-
-      // Now, for each row, integrate in y-direction.
-      for(int x=1; x< B.dimension[0]->cells-1; x++) {
-
-         tmp_flux = flux[B.dimension[0]->cells * 3 + x];
-         for(int y=4; y< B.dimension[1]->cells; y++) {
-            Vec3d bval = B.getCell(x,y,0);
-
-            tmp_flux -= bval[0]*B.dx[1];
-            flux[B.dimension[0]->cells * y  +  x] = tmp_flux;
-         }
-      }
-
-      return flux;
+      tmp_flux -= bval[0]*B.dx[yCoord];
    }
 
+   // First, fill the y/z = max - 4 cells
+   for(int x = B.dimension[0]->cells - (outerBoundary + 1); x >= outerBoundary; x--) {
+      int y = eqPlane ? B.dimension[1]->cells - (outerBoundary + 1) : 0;
+      int z = eqPlane ? 0 : B.dimension[2]->cells - (outerBoundary + 1);
+      Vec3d bval = B.getCell(x, y, z);
 
-
-   // Calculate fluxfunction by integrating along +y boundary first,
-   // and then going along negative y-direction.
-   std::vector<double> computeFluxDown(Field& B) {
-      // Create fluxfunction-field to be the same shape as B
-      std::vector<double> flux(B.dimension[0]->cells * B.dimension[1]->cells * B.dimension[2]->cells);
-
-      long double tmp_flux=0.;
-
-      // Calculate flux-difference between bottom and top edge
-      // of +x boundary (so that values are consistent with computeFluxUp)
-      for(int y=3; y<B.dimension[1]->cells-4; y++) {
-         Vec3d bval = B.getCell(B.dimension[0]->cells-2,y,0);
-
-         tmp_flux -= bval[0]*B.dx[1];
-      }
-
-      // First, fill the y=max - 4 cells
-      for(int x=B.dimension[0]->cells-2; x>0; x--) {
-         Vec3d bval = B.getCell(x,B.dimension[1]->cells-4,0);
-
-         tmp_flux -= bval[1] * B.dx[0];
-         flux[B.dimension[0]->cells * (B.dimension[1]->cells - 4) + x] = tmp_flux;
-      }
-
-      // Now, for each row, integrate in -y-direction.
-      for(int x=1; x< B.dimension[0]->cells-1; x++) {
-
-         tmp_flux = flux[B.dimension[0]->cells * (B.dimension[1]->cells - 4) + x];
-         for(int y=B.dimension[1]->cells-5; y > 0; y--) {
-            Vec3d bval = B.getCell(x,y,0);
-
-            tmp_flux += bval[0] * B.dx[1];
-            flux[B.dimension[0]->cells * y  +  x] = tmp_flux;
-         }
-      }
-
-      return flux;
+      tmp_flux -= bval[yCoord] * B.dx[0];
+      flux[B.dimension[0]->cells * (B.dimension[yCoord]->cells - (outerBoundary + 1)) + x] = tmp_flux;
    }
 
+   // Now, for each row, integrate in -z-direction.
+   for(int x = outerBoundary; x < B.dimension[0]->cells - outerBoundary; x++) {
 
+      tmp_flux = flux[B.dimension[0]->cells * (B.dimension[yCoord]->cells - (outerBoundary + 1)) + x];
+      for(int i=B.dimension[yCoord]->cells - (outerBoundary + 2); i > 0; i--) {
+         int y = eqPlane ? i : 0;
+         int z = eqPlane ? 0 : i;
+         Vec3d bval = B.getCell(x, y, z);
 
-   // Calculate fluxfunction by integrating along -x from the right boundary
-   std::vector<double> computeFluxLeft(Field& B) {
-      // Create fluxfunction-field to be the same shape as B
-      std::vector<double> flux(B.dimension[0]->cells * B.dimension[1]->cells * B.dimension[2]->cells);
-
-      long double tmp_flux=0.;
-      long double bottom_right_flux=0.;
-
-      // Now, for each row, integrate in -y-direction.
-      for(int y=0; y < B.dimension[1]->cells; y++) {
-         Vec3d bval = B.getCell(B.dimension[0]->cells-1,y,0);
-         bottom_right_flux -= bval[0] * B.dx[1];
-         tmp_flux = bottom_right_flux;
-         for(int x=B.dimension[0]->cells-1; x>0; x--) {
-
-            bval = B.getCell(x,y,0);
-
-            tmp_flux -= bval[1] * B.dx[0];
-            flux[B.dimension[0]->cells * y  +  x] = tmp_flux;
-         }
+         tmp_flux += bval[0] * B.dx[yCoord];
+         flux[B.dimension[0]->cells * i + x] = tmp_flux;
       }
-
-      return flux;
    }
 
+   return flux;
+}
+
+// Calculate fluxfunction by integrating along -x from the right boundary
+std::vector<double> computeFluxLeft(Field& B, int outerBoundary, int innerBoundaryRE) {
+   // Create fluxfunction-field to be the same shape as B
+   std::vector<double> flux(B.dimension[0]->cells * B.dimension[1]->cells * B.dimension[2]->cells);
+   bool eqPlane = B.dimension[1]->cells > 1;
+   int yCoord = eqPlane ? 1 : 2;
+
+   long double tmp_flux=0.;
+   long double bottom_right_flux=0.;
+
+   // First calculate flux difference to bottom right corner
+   // Now, for each row, integrate in -z-direction.
+   for(int i=0; i < B.dimension[yCoord]->cells - outerBoundary; i++) {
+      int y = eqPlane ? i : 0;
+      int z = eqPlane ? 0 : i;
+
+      Vec3d bval = B.getCell(B.dimension[0]->cells - (outerBoundary + 1), y, z);
+      bottom_right_flux -= bval[0] * B.dx[yCoord];
+
+      tmp_flux = bottom_right_flux;
+      for(int x = B.dimension[0]->cells - (outerBoundary + 1); x >= outerBoundary; x--) {
+
+         bval = B.getCell(x,y,z);
+
+         tmp_flux -= bval[yCoord] * B.dx[0];
+         flux[B.dimension[0]->cells * i + x] = tmp_flux;
+      }
+   }
+
+   return flux;
 }
 
 
@@ -261,7 +172,6 @@ int main(int argc, char** argv) {
 
   // TODO: Don't uselessly read E, we really only care about B.
   Field E,B,V;
-  bool eqPlane = false;
   readfields(inFile.c_str(),E,B,V,false);
 
   // Make sure we are working with a 2D simulation here.
@@ -270,24 +180,14 @@ int main(int argc, char** argv) {
          << endl;
       exit(1);
   }
-  // Check if we are in x-y plane
-  if(B.dimension[1]->cells > 1) {
-     eqPlane = true;
-  }
 
   cerr << "File read, calculating flux function..." << endl;
 
 
   std::vector<double> fluxUp, fluxDown, fluxLeft;
-  if(eqPlane) {
-     fluxUp = Equatorialplane::computeFluxUp(B);
-     fluxDown = Equatorialplane::computeFluxDown(B);
-     fluxLeft = Equatorialplane::computeFluxLeft(B);
-  } else {
-     fluxUp = Polarplane::computeFluxUp(B);
-     fluxDown = Polarplane::computeFluxDown(B);
-     fluxLeft = Polarplane::computeFluxLeft(B);
-  }
+   fluxUp = computeFluxUp(B, 2, 5);
+   fluxDown = computeFluxDown(B, 2, 5);
+   fluxLeft = computeFluxLeft(B, 2, 5);
 
   for(unsigned int i=0; i<fluxUp.size(); i++) {
     // Calc median flux value;
