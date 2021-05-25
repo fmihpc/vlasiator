@@ -1306,6 +1306,7 @@ namespace SBC {
          } else {
             // This element was already seen, entering a loop, let's get out
             // It happens when the projection rx is left seen from the right triangle and right seen from the left triangle.
+            cerr << "Entered a loop, taking the current element " << elementIndex << "." << endl;
             override=true;
          }
          
@@ -1314,10 +1315,7 @@ namespace SBC {
          r2.load(nodes[el.corners[1]].x.data());
          r3.load(nodes[el.corners[2]].x.data());
 
-         // Project x into the plane of this triangle
          Vec3d rx(x[0],x[1],x[2]);
-         Vec3d normal = normalize_vector(cross_product(r2-r1, r3-r1));
-         rx -= normal*dot_product(rx-r1, normal);
          
          cint handedness = sign(dot_product(cross_product(r2-r1, r3-r1), r1));
          
@@ -1328,6 +1326,10 @@ namespace SBC {
          if(override || (kappa1 > 0 && kappa2 > 0 && kappa3 > 0)) {
             // Total area
             Real A = vector_length(cross_product(r2-r1,r3-r1));
+            
+            // Project x into the plane of this triangle
+            Vec3d normal = normalize_vector(cross_product(r2-r1, r3-r1));
+            rx -= normal*dot_product(rx-r1, normal);
             
             // Area of the sub-triangles
             Real lambda1 = vector_length(cross_product(r2-rx, r3-rx)) / A;
