@@ -129,7 +129,7 @@ std::vector<double> computeFluxLeft(Field& B, int outerBoundary, int innerBounda
 
    // First calculate flux difference to bottom right corner
    // Now, for each row, integrate in -z-direction.
-   for(int i=0; i < B.dimension[yCoord]->cells - outerBoundary; i++) {
+   for(int i = outerBoundary; i < B.dimension[yCoord]->cells - outerBoundary; i++) {
       int x = B.dimension[0]->cells - (outerBoundary + 1);
       int y = eqPlane ? i : 0;
       int z = eqPlane ? 0 : i;
