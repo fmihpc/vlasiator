@@ -851,7 +851,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
          |   |   |   |   | | | | |   |   |   |   |
          -----------------------------------------
          For optimal pencil generation, we need seedids at A, B, and C.
-         A Is triggered in the previous if-clause. Pencils starting from B
+         A Is triggered in the first if-clause. Pencils starting from B
          will be split (but won't cause A to split), and pencils from
          C will be able to remain again un-split. These checks need to be done
          only if we aren't already at the maximum refinement level.
@@ -882,9 +882,9 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
          continue;
       }
       myRefLevel = mpiGrid.get_refinement_level(celli);
-      if (mpiGrid.get_maximum_refinement_level() != myRefLevel) continue;
+      if (mpiGrid.get_maximum_refinement_level() == myRefLevel) continue;
 
-      // Gather neighbours in neighbourhood stencil)
+      // Gather neighbours in neighbourhood stencil
       const auto* nbrPairs  = mpiGrid.get_neighbors_of(celli, neighborhood);
       // Create list of unique neighbour distances in both directions
       std::set< int > distancesplus;
@@ -1677,7 +1677,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                   uint GID = celli + totalTargetLength; 
                   SpatialCell* targetCell = targetCells[GID];
 
-                  if(targetCell) {
+                  if(targetCell) { // this check also skips sysboundary cells
                   
                      const vmesh::LocalID blockLID = targetCell->get_velocity_block_local_id(blockGID, popID);
 
