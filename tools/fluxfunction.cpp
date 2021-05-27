@@ -28,16 +28,30 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
+#include "common.h"
 #include "particles/field.h"
 #include "particles/readfields.h"
 
 using namespace std;
 
+static bool isInside(Field& B, double R, double x, double y, double z) {
+   double R2 = 0;
+   std::array<int, 3> xyz{x, y, z};
+   for (int i = 0; i < 3; ++i) {
+      R2 += pow(B.dimension[i]->min + xyz[i] * B.dx[i], 2);
+   }
+   return R2 < pow(R, 2);
+}
+
 // Calculate fluxfunction by integrating along -y/z boundary first,
 // and then going along y/z-direction.
-std::vector<double> computeFluxUp(Field& B, int outerBoundary, int innerBoundaryRE) {
+std::vector<double> computeFluxUp(Field& B, int outerBoundary, double innerBoundary) {
    // Create fluxfunction-field to be the same shape as B
    std::vector<double> flux(B.dimension[0]->cells * B.dimension[1]->cells * B.dimension[2]->cells);
+   for (int i = 0; i < flux.size(); ++i) {
+      flux[i] = NAN;
+   }
+
    bool eqPlane = B.dimension[1]->cells > 1;
    int yCoord = eqPlane ? 1 : 2;
 
@@ -46,10 +60,14 @@ std::vector<double> computeFluxUp(Field& B, int outerBoundary, int innerBoundary
 
    // First, fill the y/z=3 cells
    // Then integrate in y/z direction
-   for(int x = B.dimension[0]->cells - (outerBoundary+1); x >= outerBoundary; x--) {
+   for (int x = B.dimension[0]->cells - (outerBoundary+1); x >= outerBoundary; x--) {
       int i = outerBoundary;
       int y = eqPlane ? i : 0;
       int z = eqPlane ? 0 : i;
+      if (isInside(B, innerBoundary, x, y, z)) {
+         break;
+      }
+
       Vec3d bval = B.getCell(x,y,z);
 
       bottom_flux -= bval[yCoord] * B.dx[0];
@@ -59,6 +77,10 @@ std::vector<double> computeFluxUp(Field& B, int outerBoundary, int innerBoundary
       for(i++; i < B.dimension[yCoord]->cells - outerBoundary; i++) {
          y = eqPlane ? i : 0;
          z = eqPlane ? 0 : i;
+         if (isInside(B, innerBoundary, x, y, z)) {
+            break;
+         }
+
          bval = B.getCell(x,y,z);
 
          tmp_flux -= bval[0] * B.dx[yCoord];
@@ -71,9 +93,13 @@ std::vector<double> computeFluxUp(Field& B, int outerBoundary, int innerBoundary
 
 // Calculate fluxfunction by integrating along +y/z boundary first,
 // and then going along negative y/z-direction.
-std::vector<double> computeFluxDown(Field& B, int outerBoundary, int innerBoundaryRE) {
+std::vector<double> computeFluxDown(Field& B, int outerBoundary, double innerBoundary) {
    // Create fluxfunction-field to be the same shape as B
    std::vector<double> flux(B.dimension[0]->cells * B.dimension[1]->cells * B.dimension[2]->cells);
+   for (int i = 0; i < flux.size(); ++i) {
+      flux[i] = NAN;
+   }
+
    bool eqPlane = B.dimension[1]->cells > 1;
    int yCoord = eqPlane ? 1 : 2;
 
@@ -86,6 +112,10 @@ std::vector<double> computeFluxDown(Field& B, int outerBoundary, int innerBounda
       int x = B.dimension[0]->cells - (outerBoundary + 1);
       int y = eqPlane ? i : 0;
       int z = eqPlane ? 0 : i;
+      if (isInside(B, innerBoundary, x, y, z)) {
+         break;
+      }
+
       Vec3d bval = B.getCell(x, y, z);
 
       top_flux -= bval[0]*B.dx[yCoord];
@@ -98,15 +128,23 @@ std::vector<double> computeFluxDown(Field& B, int outerBoundary, int innerBounda
       int i = B.dimension[1]->cells - (outerBoundary + 1);
       int y = eqPlane ? i : 0;
       int z = eqPlane ? 0 : i;
+      if (isInside(B, innerBoundary, x, y, z)) {
+         break;
+      }
+
       Vec3d bval = B.getCell(x, y, z);
 
       top_flux -= bval[yCoord] * B.dx[0];
       flux[B.dimension[0]->cells * i + x] = top_flux;
 
       tmp_flux = top_flux;
-      for(i--; i >= outerBoundary; i--) {
+      for (i--; i >= outerBoundary; i--) {
          y = eqPlane ? i : 0;
          z = eqPlane ? 0 : i;
+         if (isInside(B, innerBoundary, x, y, z)) {
+            break;
+         }
+
          bval = B.getCell(x, y, z);
 
          tmp_flux += bval[0] * B.dx[yCoord];
@@ -118,9 +156,13 @@ std::vector<double> computeFluxDown(Field& B, int outerBoundary, int innerBounda
 }
 
 // Calculate fluxfunction by integrating along -x from the right boundary
-std::vector<double> computeFluxLeft(Field& B, int outerBoundary, int innerBoundaryRE) {
+std::vector<double> computeFluxLeft(Field& B, int outerBoundary, double innerBoundary) {
    // Create fluxfunction-field to be the same shape as B
    std::vector<double> flux(B.dimension[0]->cells * B.dimension[1]->cells * B.dimension[2]->cells);
+   for (int i = 0; i < flux.size(); ++i) {
+      flux[i] = NAN;
+   }
+
    bool eqPlane = B.dimension[1]->cells > 1;
    int yCoord = eqPlane ? 1 : 2;
 
@@ -133,6 +175,10 @@ std::vector<double> computeFluxLeft(Field& B, int outerBoundary, int innerBounda
       int x = B.dimension[0]->cells - (outerBoundary + 1);
       int y = eqPlane ? i : 0;
       int z = eqPlane ? 0 : i;
+      if (isInside(B, innerBoundary, x, y, z)) {
+         break;
+      }
+
       Vec3d bval = B.getCell(x, y, z);
 
       right_flux -= bval[0] * B.dx[yCoord];
@@ -140,6 +186,9 @@ std::vector<double> computeFluxLeft(Field& B, int outerBoundary, int innerBounda
 
       tmp_flux = right_flux;
       for(x--; x >= outerBoundary; x--) {
+         if (isInside(B, innerBoundary, x, y, z)) {
+            break;
+         }
 
          bval = B.getCell(x,y,z);
 
@@ -154,9 +203,13 @@ std::vector<double> computeFluxLeft(Field& B, int outerBoundary, int innerBounda
 // Calculate fluxfunction by integrating along -y/z boundary
 // Then along the -x boundary
 // And finally right in the +x direction
-std::vector<double> computeFluxUpRight(Field& B, int outerBoundary, int innerBoundaryRE) {
+std::vector<double> computeFluxUpRight(Field& B, int outerBoundary, double innerBoundary) {
    // Create fluxfunction-field to be the same shape as B
    std::vector<double> flux(B.dimension[0]->cells * B.dimension[1]->cells * B.dimension[2]->cells);
+   for (int i = 0; i < flux.size(); ++i) {
+      flux[i] = NAN;
+   }
+
    bool eqPlane = B.dimension[1]->cells > 1;
    int yCoord = eqPlane ? 1 : 2;
 
@@ -168,6 +221,10 @@ std::vector<double> computeFluxUpRight(Field& B, int outerBoundary, int innerBou
       int i = outerBoundary;
       int y = eqPlane ? i : 0;
       int z = eqPlane ? 0 : i;
+      if (isInside(B, innerBoundary, x, y, z)) {
+         break;
+      }
+
       Vec3d bval = B.getCell(x,y,z);
 
       left_flux -= bval[yCoord] * B.dx[0];
@@ -180,6 +237,10 @@ std::vector<double> computeFluxUpRight(Field& B, int outerBoundary, int innerBou
       int x = outerBoundary;
       int y = eqPlane ? i : 0;
       int z = eqPlane ? 0 : i;
+      if (isInside(B, innerBoundary, x, y, z)) {
+         break;
+      }
+
       Vec3d bval = B.getCell(x, y, z);
 
       left_flux -= bval[0] * B.dx[yCoord];
@@ -187,6 +248,9 @@ std::vector<double> computeFluxUpRight(Field& B, int outerBoundary, int innerBou
 
       tmp_flux = left_flux;
       for(x++; x < B.dimension[0]->cells - outerBoundary; x++) {
+         if (isInside(B, innerBoundary, x, y, z)) {
+            break;
+         }
 
          bval = B.getCell(x,y,z);
 
@@ -201,9 +265,13 @@ std::vector<double> computeFluxUpRight(Field& B, int outerBoundary, int innerBou
 // Calculate fluxfunction by integrating along +y/z boundary
 // Then along the -x boundary
 // And finally right in the +x direction
-std::vector<double> computeDownRight(Field& B, int outerBoundary, int innerBoundaryRE) {
+std::vector<double> computeFluxDownRight(Field& B, int outerBoundary, double innerBoundary) {
    // Create fluxfunction-field to be the same shape as B
    std::vector<double> flux(B.dimension[0]->cells * B.dimension[1]->cells * B.dimension[2]->cells);
+   for (int i = 0; i < flux.size(); ++i) {
+      flux[i] = NAN;
+   }
+
    bool eqPlane = B.dimension[1]->cells > 1;
    int yCoord = eqPlane ? 1 : 2;
 
@@ -216,6 +284,10 @@ std::vector<double> computeDownRight(Field& B, int outerBoundary, int innerBound
       int x = B.dimension[0]->cells - (outerBoundary + 1);
       int y = eqPlane ? i : 0;
       int z = eqPlane ? 0 : i;
+      if (isInside(B, innerBoundary, x, y, z)) {
+         break;
+      }
+
       Vec3d bval = B.getCell(x, y, z);
 
       left_flux -= bval[0]*B.dx[yCoord];
@@ -227,6 +299,10 @@ std::vector<double> computeDownRight(Field& B, int outerBoundary, int innerBound
       int i = B.dimension[yCoord]->cells - (outerBoundary + 1);
       int y = eqPlane ? i : 0;
       int z = eqPlane ? 0 : i;
+      if (isInside(B, innerBoundary, x, y, z)) {
+         break;
+      }
+
       Vec3d bval = B.getCell(x, y, z);
 
       left_flux -= bval[yCoord]*B.dx[0];
@@ -235,10 +311,14 @@ std::vector<double> computeDownRight(Field& B, int outerBoundary, int innerBound
 
    // Now, for each row, integrate in y/z-direction,
    // Then integrate in +x direction
-   for (int i = B.dimension[yCoord]->cells - (outerBoundary + 2); i >= outerBoundary; i-- {
+   for (int i = B.dimension[yCoord]->cells - (outerBoundary + 2); i >= outerBoundary; i--) {
       int x = outerBoundary;
       int y = eqPlane ? i : 0;
       int z = eqPlane ? 0 : i;
+      if (isInside(B, innerBoundary, x, y, z)) {
+         break;
+      }
+
       Vec3d bval = B.getCell(x, y, z);
 
       left_flux += bval[0] * B.dx[yCoord];
@@ -246,6 +326,9 @@ std::vector<double> computeDownRight(Field& B, int outerBoundary, int innerBound
 
       tmp_flux = left_flux;
       for(x++; x < B.dimension[0]->cells - outerBoundary; x++) {
+         if (isInside(B, innerBoundary, x, y, z)) {
+            break;
+         }
 
          bval = B.getCell(x,y,z);
 
@@ -257,84 +340,102 @@ std::vector<double> computeDownRight(Field& B, int outerBoundary, int innerBound
    return flux;
 }
 
-// Get a median of 3 values (branch-free!)
-static double median3(double a, double b, double c) {
-  return max(min(a,b), min(max(a,b),c));
+// Get median of vector without NaNs
+double nanMedian(std::vector<double> &v) {
+   std::remove_if(v.begin(), v.end(), [](const auto& value) {return std::isnan(value);});
+   int n = v.size();
+   if (!n) {
+      return NAN;
+   }
+   std::cout << n << std::endl << n/2 << std::endl << std::endl;
+   std::nth_element(v.begin(), v.begin() + n/2, v.end());
+   return v[v.size()/2];
+}
+
+// Get mean of vector without NaNs
+double nanMean(std::vector<double> &v) {
+   double sum = 0;
+   int n = 0;
+   for (double d : v) {
+      if (!std::isnan(d)) {
+         sum += d;
+         n++;
+      }
+   }
+   return n ? sum / n : NAN;
 }
 
 int main(int argc, char** argv) {
 
-  // MPI::Init(argc, argv);
+   // MPI::Init(argc, argv);
 
-  if(argc < 3) {
-    cerr << "Syntax: fluxfunction input.vlsv output.bin" << endl;
-    cerr << "Output will be two files: output.bin and output.bin.bov." << endl;
-    cerr << "Point visit to the BOV file." << endl;
-    return 1;
-  }
-  string inFile(argv[1]);
-  string outFile(argv[2]);
+   if(argc < 3) {
+      cerr << "Syntax: fluxfunction input.vlsv output.bin" << endl;
+      cerr << "Output will be two files: output.bin and output.bin.bov." << endl;
+      cerr << "Point visit to the BOV file." << endl;
+      return 1;
+   }
+   string inFile(argv[1]);
+   string outFile(argv[2]);
 
-  // TODO: Don't uselessly read E, we really only care about B.
-  Field E,B,V;
-  readfields(inFile.c_str(),E,B,V,false);
+   // TODO: Don't uselessly read E, we really only care about B.
+   Field E,B,V;
+   readfields(inFile.c_str(),E,B,V,false);
 
-  // Make sure we are working with a 2D simulation here.
-  if(B.dimension[0]->cells > 1 && B.dimension[1]->cells > 1 && B.dimension[2]->cells > 1) {
-      cerr << "This is a 3D simulation output. Flux function calculation only makes sense for 2D data."
-         << endl;
-      exit(1);
-  }
+   // Make sure we are working with a 2D simulation here.
+   if(B.dimension[0]->cells > 1 && B.dimension[1]->cells > 1 && B.dimension[2]->cells > 1) {
+         cerr << "This is a 3D simulation output. Flux function calculation only makes sense for 2D data."
+            << endl;
+         exit(1);
+   }
 
-  cerr << "File read, calculating flux function..." << endl;
+   cerr << "File read, calculating flux function..." << endl;
 
+   double rInner = 5*physicalconstants::R_E;  // Default for now
+   std::vector<double> fluxUp, fluxDown, fluxLeft, fluxUR, fluxDR;
+   fluxUp = computeFluxUp(B, 2, rInner);
+   fluxDown = computeFluxDown(B, 2, rInner);
+   fluxLeft = computeFluxLeft(B, 2, rInner);
+   fluxUR = computeFluxUpRight(B, 2, rInner);
+   fluxDR = computeFluxDownRight(B, 2, rInner);
 
-  std::vector<double> fluxUp, fluxDown, fluxLeft;
-   fluxUp = computeFluxUp(B, 2, 5);
-   fluxDown = computeFluxDown(B, 2, 5);
-   fluxLeft = computeFluxLeft(B, 2, 5);
+   for(unsigned int i=0; i<fluxUp.size(); i++) {
+      std::vector<double> v {fluxUp[i], fluxDown[i], fluxLeft[i], fluxUR[i], fluxDR[i]};
+      fluxUp[i] = nanMean(v);
+   }
 
-  for(unsigned int i=0; i<fluxUp.size(); i++) {
-    // Calc median flux value;
-    double a = fluxUp[i];
-    double b = fluxDown[i];
-    double c = fluxLeft[i];
+   cerr << "Done. Writing output..." << endl;
 
-    fluxUp[i] = median3(a,b,c);
-  }
+   // Write output as a visit-compatible BOV file
+   int fd = open(outFile.c_str(), O_CREAT|O_TRUNC|O_WRONLY, 0644);
+   if(!fd || fd == -1) {
+      cerr << "Error: cannot open output file " << outFile << ": " << strerror(errno) << endl;
+      return 1;
+   }
+   size_t size=B.dimension[0]->cells*B.dimension[1]->cells*B.dimension[2]->cells*sizeof(double);
 
-  cerr << "Done. Writing output..." << endl;
+   // Write binary blob
+   for(ssize_t remain=size; remain > 0; ) {
+      remain -= write(fd, ((char*) &(fluxUp[0]))+remain-size, remain);
+   }
+   close(fd);
 
-  // Write output as a visit-compatible BOV file
-  int fd = open(outFile.c_str(), O_CREAT|O_TRUNC|O_WRONLY, 0644);
-  if(!fd || fd == -1) {
-    cerr << "Error: cannot open output file " << outFile << ": " << strerror(errno) << endl;
-    return 1;
-  }
-  size_t size=B.dimension[0]->cells*B.dimension[1]->cells*B.dimension[2]->cells*sizeof(double);
+   // Write BOV header
+   string outBov = outFile + ".bov";
+   FILE* f=fopen(outBov.c_str(), "w");
+   if(!f) {
+      cerr<< "Error: unable to write BOV ascii file " << outBov << ":" << strerror(errno) << endl;
+      return 1;
+   }
+   fprintf(f, "TIME: %lf\n", B.time);
+   fprintf(f, "DATA_FILE: %s\n", outFile.c_str());
+   fprintf(f, "DATA_SIZE: %i %i %i\n", B.dimension[0]->cells, B.dimension[1]->cells, B.dimension[2]->cells);
+   fprintf(f, "DATA_FORMAT: DOUBLE\nVARIABLE: fluxfunction\nDATA_ENDIAN: LITTLE\nCENTERING: zonal\n");
+   fprintf(f, "BRICK_ORIGIN: %lf %lf %lf\n", B.dimension[0]->min, B.dimension[1]->min, B.dimension[2]->min);
+   fprintf(f, "BRICK_SIZE: %lf %lf %lf\n", B.dimension[0]->max - B.dimension[0]->min, B.dimension[1]->max - B.dimension[1]->min, B.dimension[2]->max - B.dimension[2]->min);
+   fprintf(f, "DATA_COMPONENTS: 1\n");
 
-  // Write binary blob
-  for(ssize_t remain=size; remain > 0; ) {
-    remain -= write(fd, ((char*) &(fluxUp[0]))+remain-size, remain);
-  }
-  close(fd);
+   fclose(f);
 
-  // Write BOV header
-  string outBov = outFile + ".bov";
-  FILE* f=fopen(outBov.c_str(), "w");
-  if(!f) {
-    cerr<< "Error: unable to write BOV ascii file " << outBov << ":" << strerror(errno) << endl;
-    return 1;
-  }
-  fprintf(f, "TIME: %lf\n", B.time);
-  fprintf(f, "DATA_FILE: %s\n", outFile.c_str());
-  fprintf(f, "DATA_SIZE: %i %i %i\n", B.dimension[0]->cells, B.dimension[1]->cells, B.dimension[2]->cells);
-  fprintf(f, "DATA_FORMAT: DOUBLE\nVARIABLE: fluxfunction\nDATA_ENDIAN: LITTLE\nCENTERING: zonal\n");
-  fprintf(f, "BRICK_ORIGIN: %lf %lf %lf\n", B.dimension[0]->min, B.dimension[1]->min, B.dimension[2]->min);
-  fprintf(f, "BRICK_SIZE: %lf %lf %lf\n", B.dimension[0]->max - B.dimension[0]->min, B.dimension[1]->max - B.dimension[1]->min, B.dimension[2]->max - B.dimension[2]->min);
-  fprintf(f, "DATA_COMPONENTS: 1\n");
-
-  fclose(f);
-
-  return 0;
+   return 0;
 }
