@@ -340,29 +340,25 @@ std::vector<double> computeFluxDownRight(Field& B, int outerBoundary, double inn
    return flux;
 }
 
-// Get median of vector without NaNs
-double nanMedian(std::vector<double> &v) {
-   std::remove_if(v.begin(), v.end(), [](const auto& value) {return std::isnan(value);});
+// Get median of vector
+double median(std::vector<double> &v) {
    int n = v.size();
    if (!n) {
       return NAN;
+   } else if (n % 2) {
+      std::nth_element(v.begin(), v.begin() + n/2, v.end());
+      return v[n/2];
+   } else {
+      std::nth_element(v.begin(), v.begin() + n/2 - 1, v.end()); // Left median
+      std::nth_element(v.begin(), v.begin() + n/2, v.end());     // Right median
+      return (v[n/2 - 1] + v[n/2])/2;
    }
-   std::cout << n << std::endl << n/2 << std::endl << std::endl;
-   std::nth_element(v.begin(), v.begin() + n/2, v.end());
-   return v[v.size()/2];
 }
 
-// Get mean of vector without NaNs
-double nanMean(std::vector<double> &v) {
-   double sum = 0;
-   int n = 0;
-   for (double d : v) {
-      if (!std::isnan(d)) {
-         sum += d;
-         n++;
-      }
-   }
-   return n ? sum / n : NAN;
+// Get mean of vector
+double mean(std::vector<double> &v) {
+   int n = v.size();
+   return n ? std::accumulate(v.begin(), v.end(), 0.0) / n : NAN;
 }
 
 int main(int argc, char** argv) {
@@ -401,7 +397,8 @@ int main(int argc, char** argv) {
 
    for(unsigned int i=0; i<fluxUp.size(); i++) {
       std::vector<double> v {fluxUp[i], fluxDown[i], fluxLeft[i], fluxUR[i], fluxDR[i]};
-      fluxUp[i] = nanMean(v);
+      v.erase(std::remove_if(v.begin(), v.end(), [](const double& value) {return isnan(value);}), v.end());
+      fluxUp[i] = median(v);
    }
 
    cerr << "Done. Writing output..." << endl;
