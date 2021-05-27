@@ -341,7 +341,8 @@ std::vector<double> computeFluxDownRight(Field& B, int outerBoundary, double inn
 }
 
 // Get median of vector
-double median(std::vector<double> &v) {
+double nanMedian(std::vector<double> &v) {
+   v.erase(std::remove_if(v.begin(), v.end(), [](const double& value) {return isnan(value);}), v.end());
    int n = v.size();
    if (!n) {
       return NAN;
@@ -356,7 +357,8 @@ double median(std::vector<double> &v) {
 }
 
 // Get mean of vector
-double mean(std::vector<double> &v) {
+double nanMean(std::vector<double> &v) {
+   v.erase(std::remove_if(v.begin(), v.end(), [](const double& value) {return isnan(value);}), v.end());
    int n = v.size();
    return n ? std::accumulate(v.begin(), v.end(), 0.0) / n : NAN;
 }
@@ -387,21 +389,31 @@ int main(int argc, char** argv) {
 
    cerr << "File read, calculating flux function..." << endl;
 
+   double dOuter = 2;
    double rInner = 5*physicalconstants::R_E;  // Default for now
    std::vector<double> fluxUp, fluxDown, fluxLeft, fluxUR, fluxDR;
-   fluxUp = computeFluxUp(B, 2, rInner);
-   fluxDown = computeFluxDown(B, 2, rInner);
-   fluxLeft = computeFluxLeft(B, 2, rInner);
-   fluxUR = computeFluxUpRight(B, 2, rInner);
-   fluxDR = computeFluxDownRight(B, 2, rInner);
+   fluxUp = computeFluxUp(B, dOuter, rInner);
+   fluxDown = computeFluxDown(B, dOuter, rInner);
+   fluxLeft = computeFluxLeft(B, dOuter, rInner);
+   fluxUR = computeFluxUpRight(B, dOuter, rInner);
+   fluxDR = computeFluxDownRight(B, dOuter, rInner);
 
    for(unsigned int i=0; i<fluxUp.size(); i++) {
       std::vector<double> v {fluxUp[i], fluxDown[i], fluxLeft[i], fluxUR[i], fluxDR[i]};
-      v.erase(std::remove_if(v.begin(), v.end(), [](const double& value) {return isnan(value);}), v.end());
-      fluxUp[i] = median(v);
+      fluxUp[i] = nanMedian(v);
+      //fluxDown[i] = nanMedian(v);
+      //fluxLeft[i] = nanMean(v);
+      //fluxUR[i] = abs((fluxDown[i] - fluxLeft[i])/fluxDown[i]);
+      //fluxDR[i] = abs((fluxDown[i] - fluxLeft[i])/fluxLeft[i]);
    }
 
    cerr << "Done. Writing output..." << endl;
+   // std::cout << "Mean of medians " << nanMean(fluxDown) << std::endl;
+   // std::cout << "Mean of means " << nanMean(fluxLeft) << std::endl;
+   // std::cout << "Mean relative difference " << nanMean(fluxUR) << std::endl;
+   // std::cout << "Mean relative difference " << nanMean(fluxDR) << std::endl;
+   // std::cout << "Maximum difference " << *max_element(fluxUR.begin(), fluxUR.end()) << std::endl;
+   // std::cout << "Maximum difference " << *max_element(fluxDR.begin(), fluxDR.end()) << std::endl;
 
    // Write output as a visit-compatible BOV file
    int fd = open(outFile.c_str(), O_CREAT|O_TRUNC|O_WRONLY, 0644);
