@@ -305,7 +305,7 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
          name = E_field_name;
          Ebuffer = readFsGridData(r,name,3u);
          for (int i = 0; i < cellIds.size(); ++i) {
-            cellIds[i] = i;
+            cellIds[i] = i+1;
          }
       } else {
          Bbuffer = readFieldData(r,name,3u);
@@ -412,7 +412,7 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, bool doV=tru
       name = E_field_name;
       Ebuffer = readFsGridData(r,name,3u);
       for (int i = 0; i < cellIds.size(); ++i) {
-         cellIds[i] = i;
+         cellIds[i] = i+1;
       }
    } else {
       Bbuffer = readFieldData(r,name,3u);
