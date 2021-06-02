@@ -125,7 +125,7 @@ std::vector<double> computeFluxDown(Field& B, int outerBoundary, double innerBou
    // First, fill the y/z = max - 4 cells
    // Then integrate in -y/z direction
    for(int x = B.dimension[0]->cells - (outerBoundary + 2); x >= outerBoundary; x--) {
-      int i = B.dimension[1]->cells - (outerBoundary + 1);
+      int i = B.dimension[yCoord]->cells - (outerBoundary + 1);
       int y = eqPlane ? i : 0;
       int z = eqPlane ? 0 : i;
       if (isInside(B, innerBoundary, x, y, z)) {
