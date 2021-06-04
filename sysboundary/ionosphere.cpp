@@ -2021,7 +2021,7 @@ namespace SBC {
 
      // Calculate sourcenorm and initial residual estimate
      iSolverReal sourcenorm = 0;
-     for(uint n=1; n<nodes.size(); n++) {
+     for(uint n=0; n<nodes.size(); n++) {
        Node& N=nodes[n];
        iSolverReal source = N.parameters[ionosphereParameters::SOURCE];
        sourcenorm += source*source;
@@ -2029,7 +2029,7 @@ namespace SBC {
        N.parameters[ionosphereParameters::BEST_SOLUTION] = N.parameters[ionosphereParameters::SOLUTION];
        N.parameters[ionosphereParameters::RRESIDUAL] = N.parameters[ionosphereParameters::RESIDUAL];
      }
-     for(uint n=1; n<nodes.size(); n++) {
+     for(uint n=0; n<nodes.size(); n++) {
        Node& N=nodes[n];
        N.parameters[ionosphereParameters::ZPARAM] = Asolve(n,ionosphereParameters::RESIDUAL, false);
      }
@@ -2048,20 +2048,20 @@ namespace SBC {
      for(int iteration =0; iteration < Ionosphere::solverMaxIterations; iteration++) {
 
        #pragma omp parallel for
-       for(uint n=1; n<nodes.size(); n++) {
+       for(uint n=0; n<nodes.size(); n++) {
          Node& N=nodes[n];
          N.parameters[ionosphereParameters::ZZPARAM] = Asolve(n,ionosphereParameters::RRESIDUAL, true);
        }
 
        // Calculate bk and gradient vector p
        iSolverReal bknum = 0;
-       for(uint n=1; n<nodes.size(); n++) {
+       for(uint n=0; n<nodes.size(); n++) {
          Node& N=nodes[n];
          bknum += N.parameters[ionosphereParameters::ZPARAM] * N.parameters[ionosphereParameters::RRESIDUAL];
        }
        if(iteration == 0 || failcount > 4) {
           // Just use the gradient vector as-is, starting from the best known solution
-          for(uint n=1; n<nodes.size(); n++) {
+          for(uint n=0; n<nodes.size(); n++) {
              Node& N=nodes[n];
              N.parameters[ionosphereParameters::PPARAM] = N.parameters[ionosphereParameters::ZPARAM];
              N.parameters[ionosphereParameters::PPPARAM] = N.parameters[ionosphereParameters::ZZPARAM];
@@ -2071,7 +2071,7 @@ namespace SBC {
        } else {
           // Perform gram-smith orthogonalization to get conjugate gradient
           iSolverReal bk = bknum / bkden;
-          for(uint n=1; n<nodes.size(); n++) {
+          for(uint n=0; n<nodes.size(); n++) {
              Node& N=nodes[n];
              N.parameters[ionosphereParameters::PPARAM] *= bk;
              N.parameters[ionosphereParameters::PPARAM] += N.parameters[ionosphereParameters::ZPARAM];
@@ -2088,7 +2088,7 @@ namespace SBC {
        // Calculate ak, new solution and new residual
        iSolverReal akden = 0;
        #pragma omp parallel for reduction(+:akden)
-       for(uint n=1; n<nodes.size(); n++) {
+       for(uint n=0; n<nodes.size(); n++) {
          Node& N=nodes[n];
          iSolverReal zparam = Atimes(n, ionosphereParameters::PPARAM, false);
          N.parameters[ionosphereParameters::ZPARAM] = zparam;
@@ -2097,10 +2097,33 @@ namespace SBC {
        }
        iSolverReal ak=bknum/akden;
 
-       for(uint n=1; n<nodes.size(); n++) {
+       for(uint n=0; n<nodes.size(); n++) {
          Node& N=nodes[n];
          N.parameters[ionosphereParameters::SOLUTION] += ak * N.parameters[ionosphereParameters::PPARAM];
        }
+
+       // Rebalance the potential by calculating its area integral
+       Real potentialInt=0;
+       #pragma omp parallel for reduction(+:potentialInt)
+       for(uint e=0; e<elements.size(); e++) {
+          Real area = elementArea(e);
+          Real effPotential = 0;
+          for(int c=0; c<3; c++) {
+            effPotential += nodes[elements[e].corners[c]].parameters[ionosphereParameters::SOLUTION];
+          }
+
+          potentialInt += effPotential * area;
+       }
+       
+       // Calculate average potential on the sphere
+       potentialInt /= 4. * M_PI * Ionosphere::innerRadius * Ionosphere::innerRadius;
+
+       // Offset potentials to make it zero
+       for(uint n=0; n<nodes.size(); n++) {
+          Node& N=nodes[n];
+          N.parameters[ionosphereParameters::SOLUTION] -= potentialInt;
+       }
+
        iSolverReal residualnorm = 0;
        #pragma omp parallel for reduction(+:residualnorm)
        for(uint n=0; n<nodes.size(); n++) {
@@ -2120,7 +2143,7 @@ namespace SBC {
          
          N.parameters[ionosphereParameters::RRESIDUAL] = N.parameters[ionosphereParameters::SOURCE] - Atimes(n, ionosphereParameters::SOLUTION, true);
        }
-       for(uint n=1; n<nodes.size(); n++) {
+       for(uint n=0; n<nodes.size(); n++) {
          Node& N=nodes[n];
          N.parameters[ionosphereParameters::ZPARAM] = Asolve(n, ionosphereParameters::RESIDUAL, false);
        }
