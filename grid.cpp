@@ -251,7 +251,8 @@ void initializeGrids(
 
    // Update technicalGrid
    technicalGrid.updateGhostCells(); // This needs to be done at some point
-
+   
+   bool needCurl = false;
    if (!P::isRestart) {
       //Initial state based on project, background field in all cells
       //and other initial values in non-sysboundary cells
@@ -262,12 +263,23 @@ void initializeGrids(
       // Each initialization has to be independent to avoid threading problems 
 
       // Allow the project to set up data structures for it's setCell calls
-      bool needCurl=false;
       project.setupBeforeSetCell(cells, mpiGrid, needCurl);
-      if (needCurl==true) {
-         // Communicate the perturbed B-fields and E-fileds read from the start file over to FSgrid
+      if (needCurl) {
          feedPerBIntoFsGrid(mpiGrid, cells, perBGrid);
          perBGrid.updateGhostCells();
+      }
+   }
+
+   phiprof::start("setProjectBField");
+   project.setProjectBField(perBGrid, BgBGrid, technicalGrid);
+   // Set E field here as well?
+   perBGrid.updateGhostCells();
+   BgBGrid.updateGhostCells();
+   EGrid.updateGhostCells();
+   phiprof::stop("setProjectBField");
+
+   if (!P::isRestart) {
+      if (needCurl) {
          // E is needed only because both volumetric fields are calculated in 1 call
          feedEIntoFsGrid(mpiGrid, cells, EGrid);
          EGrid.updateGhostCells();
@@ -366,13 +378,6 @@ void initializeGrids(
       }
       phiprof::stop("Init moments");
    }
-   
-   phiprof::start("setProjectBField");
-   project.setProjectBField(perBGrid, BgBGrid, technicalGrid);
-   perBGrid.updateGhostCells();
-   BgBGrid.updateGhostCells();
-   EGrid.updateGhostCells();
-   phiprof::stop("setProjectBField");
    
    phiprof::start("Finish fsgrid setup");
    feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,technicalGrid, false);
