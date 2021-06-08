@@ -458,7 +458,22 @@ namespace projects {
             exit(1);
          }
 
-         readParameters(fileMin, fileMax, fileCells, fileD);
+         if (this->vlsvParaReader.open(filename,MPI_COMM_WORLD,MASTER_RANK,mpiInfo) == false) {
+            if (myRank == MASTER_RANK) 
+               cout << "Could not open file: " << filename << endl;
+            exit(1);
+         }
+
+         if (readCellIds(this->vlsvParaReader,fileCellsID,MASTER_RANK,MPI_COMM_WORLD) == false) {
+            if (myRank == MASTER_RANK)
+               cout << "Could not read cell IDs." << endl;
+            exit(1);
+         }
+
+         MPI_Bcast(&(fileCellsID[0]),fileCellsID.size(),MPI_UINT64_T,MASTER_RANK,MPI_COMM_WORLD);
+
+         readGridSize(fileMin, fileMax, fileCells, fileD);
+         this->vlsvParaReader.close();
          // Check if cell size from file is the same as from new grid!! 
 
          // Check file type... couldn't get the VLSVreader interface to work yet
@@ -510,15 +525,20 @@ namespace projects {
             attribs.push_back(make_pair("name","perturbed_B"));
             if (this->vlsvSerialReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizeperturbed_B,dataType,byteSize) == false) {
                if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read perturbed_B array info" << endl << write;
-               exit(1);
+               perBSet = false;
             }
             buffer=new Real[this->vecsizeperturbed_B];
             if (this->vlsvSerialReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)buffer) == false ) {
                if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read perturbed_B"  << endl << write;
-               exit(1);
+               perBSet = false;
+            } else {
+               perBSet = true;
             }
-            for (uint j=0; j<vecsizeperturbed_B; j++) {
-               mpiGrid[cells[i]]->parameters[CellParams::PERBXVOL+j] = buffer[j];
+
+            if (perBSet) {
+               for (uint j=0; j<vecsizeperturbed_B; j++) {
+                  mpiGrid[cells[i]]->parameters[CellParams::PERBXVOL+j] = buffer[j];
+               }
             }
             delete[] buffer;
             attribs.pop_back();
@@ -808,7 +828,10 @@ namespace projects {
       }
 
       // Try reading perturbed B-field here
-      readFsGridVariable("fg_PERB", perBGrid);
+      if (!readFsGridVariable("fg_PERB", perBGrid) && !perBSet) {
+         logFile << "(START)  ERROR: No B field in file!" << endl << write;
+         exit(1);
+      }
    }
 
   
@@ -839,9 +862,10 @@ namespace projects {
       return cellID;
    }
 
-   bool ElVentana::readParameters(std::array<double, 3> &fileMin, std::array<double, 3> &fileMax, std::array<uint, 3> &fileCells, std::array<double, 3> &fileD) {
-      int myRank;
-      MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+   // Reads physical minima and maxima, amount of cells and 
+   bool ElVentana::readGridSize(std::array<double, 3> &fileMin, std::array<double, 3> &fileMax, std::array<uint, 3> &fileCells, std::array<double, 3> &fileD) {
+      int myRank = 0;
+      //MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 
       double filexmin, fileymin, filezmin, filexmax, fileymax, filezmax;
       uint filexcells, fileycells, filezcells;
@@ -905,8 +929,6 @@ namespace projects {
          fileD[i] = (fileMax[i] - fileMin[i])/fileCells[i];
       }
 
-      this->vlsvParaReader.close();
-
       return true;
    }
 
@@ -920,6 +942,19 @@ namespace projects {
       bool convertFloatType = false;
 
       int numWritingRanks = 0;
+
+      // Are we restarting from the same number of tasks, or a different number?
+      int size, myRank;
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+      MPI_Comm_size(MPI_COMM_WORLD,&size);
+      MPI_Info mpiInfo = MPI_INFO_NULL;
+
+      if (this->vlsvParaReader.open(this->StartFile,MPI_COMM_WORLD,MASTER_RANK,mpiInfo) == false) {
+         if (myRank == MASTER_RANK) 
+            cout << "Could not open file: " << this->StartFile << endl;
+         exit(1);
+      }
+
       if(this->vlsvParaReader.readParameter("numWritingRanks",numWritingRanks) == false) {
          std::cerr << "FSGrid writing rank number not found";
          return false;
@@ -937,14 +972,9 @@ namespace projects {
          convertFloatType = true;
       }
 
-      // Are we restarting from the same number of tasks, or a different number?
-      int size, myRank;
-      MPI_Comm_size(MPI_COMM_WORLD, &size);
-      MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-
       std::array<double, 3> fileMin, fileMax, fileD;
       std::array<uint, 3> fileCells;
-      if(!readParameters(fileMin, fileMax, fileCells, fileD)) {
+      if(!readGridSize(fileMin, fileMax, fileCells, fileD)) {
          return false;
       }
 
@@ -1049,6 +1079,9 @@ namespace projects {
       phiprof::start("updateGhostCells");
       targetGrid.updateGhostCells();
       phiprof::stop("updateGhostCells");
+
+      this->vlsvParaReader.close();
+
       return true;
    }
 
