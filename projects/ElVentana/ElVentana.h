@@ -102,6 +102,7 @@ namespace projects {
       CellID findCellID(spatial_cell::SpatialCell *cell) const;
       CellID findCellIDXYZ(creal x, creal y, creal z) const;
 
+      const std::string pickVarName(const std::list<std::string> varNames);
       bool readGridSize(std::array<double, 3> &fileMin, std::array<double, 3> &fileMax, std::array<uint, 3> &fileCells, std::array<double, 3> &fileD);
       template<unsigned long int N> bool readFsGridVariable(const std::string& variableName, FsGrid<std::array<Real, N>,2>& targetGrid);
 
