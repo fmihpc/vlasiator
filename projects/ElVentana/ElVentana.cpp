@@ -617,7 +617,7 @@ namespace projects {
             // }
 
             attribs.push_back(make_pair("mesh","SpatialGrid"));
-            varname = pickVarName({"vg_rho", "rho", "moments"});
+            varname = pickVarName({"proton/vg_rho", "rho", "moments"});
             if (varname == "") {
                if (myRank == MASTER_RANK) 
                   logFile << "(START)  ERROR: No rho variable found!" << endl << write;
@@ -658,7 +658,15 @@ namespace projects {
 
                // Now read rho_v in a separate read call	    
                attribs.push_back(make_pair("mesh","SpatialGrid"));
-               attribs.push_back(make_pair("name","rho_v"));
+
+               varname = pickVarName({"proton/vg_v", "rho_v"});
+               if (varname == "") {
+                  if (myRank == MASTER_RANK) 
+                     logFile << "(START)  ERROR: No v variable found!" << endl << write;
+                  exit(1);
+               }
+               attribs.push_back(make_pair("name", varname));
+
                if (this->vlsvSerialReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizebulkv,dataType,byteSize) == false) { 
                   if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read rho_v array info" << endl << write;
                   exit(1);
@@ -668,10 +676,17 @@ namespace projects {
                   if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read rho_v"  << endl << write;
                   exit(1);
                }
-               for (uint j=0; j<vecsizebulkv; j++) {
-                  mpiGrid[cells[i]]->parameters[CellParams::VX+j] = bufferV[j]/buffer[0];
-               }
                delete[] bufferV;
+
+               if(varname=="rho_v") {
+                  for (uint j=0; j<vecsizebulkv; j++) {
+                     mpiGrid[cells[i]]->parameters[CellParams::VX+j] = bufferV[j]/buffer[0];
+                  }
+               } else {
+                  for (uint j=0; j<vecsizebulkv; j++) {
+                     mpiGrid[cells[i]]->parameters[CellParams::VX+j] = bufferV[j];
+                  }
+               }
                attribs.pop_back();
                attribs.pop_back();
             } else {
@@ -687,7 +702,7 @@ namespace projects {
             // } else {
             //    attribs.push_back(make_pair("name","pressure"));
             // }
-            varname = pickVarName({"vg_ptensor_diagonal", "PTensorDiagonal", "pressure"});
+            varname = pickVarName({"proton/vg_ptensor_diagonal", "PTensorDiagonal", "pressure"});
             if (varname == "") {
                if (myRank == MASTER_RANK) 
                   logFile << "(START)  ERROR: No PTensorDiagonal variable found!" << endl << write;
@@ -1106,9 +1121,9 @@ namespace projects {
                   }
                }
             }
+            phiprof::stop("memcpy");
          } 
          fileOffset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2];
-         phiprof::stop("memcpy");
       }
       phiprof::start("updateGhostCells");
       targetGrid.updateGhostCells();
@@ -1119,7 +1134,7 @@ namespace projects {
       return true;
    }
 
-   const std::string ElVentana::pickVarName(const std::list<std::string> varNames) {
+   const std::string ElVentana::pickVarName(const std::list<std::string> &varNames) {
       vlsvinterface::Reader r;
       r.open(StartFile);
 
