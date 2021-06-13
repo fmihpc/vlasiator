@@ -22,10 +22,9 @@
 #ifndef VECTORCLASS_INTERFACE_H
 #define VECTORCLASS_INTERFACE_H
 
-
 /*!
 
-\file vec.h 
+\file vec.h
 \brief An interface to a type with  floating point values
 
 By setting suitable compile-time defines oen can set the length,
@@ -45,11 +44,11 @@ VEC4F_AGNER
  - Use Agner's vectorclass with AVX/SSE2 intrinisics
 
 VEC8F_AGNER
- - Single precision     
+ - Single precision
  - Vector length of 8
  - Use Agner's vectorclass with AVX intrinisics
 
- 
+
 */
 
 
@@ -134,7 +133,7 @@ typedef float Realv;
 
 #ifdef VEC4D_FALLBACK
 //user portable vectorclass
-#include "vectorclass_fallback.h"
+#include "vectorclass_fallback.cuh"
 typedef Vec4Simple<double> Vec;
 typedef Vec4Simple<bool> Vecb;
 typedef Vec4Simple<int> Veci;
@@ -148,7 +147,7 @@ typedef double Realv;
 
 #ifdef VEC4F_FALLBACK
 //user portable vectorclass
-#include "vectorclass_fallback.h"
+#include "vectorclass_fallback.cuh"
 typedef Vec4Simple<float> Vec;
 typedef Vec4Simple<bool> Vecb;
 typedef Vec4Simple<int> Veci;
@@ -162,7 +161,7 @@ typedef float Realv;
 
 #ifdef VEC8D_FALLBACK
 //user portable vecto rclass
-#include "vectorclass_fallback.h"
+#include "vectorclass_fallback.cuh"
 typedef Vec8Simple<double> Vec;
 typedef Vec8Simple<bool> Vecb;
 typedef Vec8Simple<int> Veci;
@@ -177,7 +176,7 @@ typedef double Realv;
 
 #ifdef VEC8F_FALLBACK
 //user portable vectorclass
-#include "vectorclass_fallback.h"
+#include "vectorclass_fallback.cuh"
 typedef Vec8Simple<float> Vec;
 typedef Vec8Simple<bool> Vecb;
 typedef Vec8Simple<int> Veci;

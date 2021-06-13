@@ -155,6 +155,10 @@ DEPS_PROJECTS =	projects/project.h projects/project.cpp \
 		projects/verificationLarmor/verificationLarmor.h projects/verificationLarmor/verificationLarmor.cpp \
 		projects/Shocktest/Shocktest.h projects/Shocktest/Shocktest.cpp ${DEPS_CELL}
 
+DEPS_CPU_VECTORCLASS_FALLBACK = vlasovsolver_cuda/cuda_header.cuh vlasovsolver/vectorclass_fallback.cuh vlasovsolver/vectorclass_fallback.cu
+
+DEPS_GPU_OPEN_ACC_MAP_CUDA = ${DEPS_CPU_VECTORCLASS} vlasovsolver/vec.h vlasovsolver_cuda/cuda_header.cuh vlasovsolver_cuda/open_acc_map_h.cuh vlasovsolver_cuda/open_acc_map_cuda.cu
+
 DEPS_CPU_ACC_INTERSECTS = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/cpu_acc_intersections.hpp vlasovsolver/cpu_acc_intersections.cpp
 
 DEPS_CPU_ACC_MAP = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/vec.h vlasovsolver/cpu_acc_map.hpp vlasovsolver/cpu_acc_map.cpp
@@ -202,7 +206,7 @@ ifeq ($(MESH),AMR)
 OBJS += cpu_moments.o
 else
 OBJS += cpu_acc_intersections.o cpu_acc_map.o open_acc_map_cuda.o cpu_acc_sort_blocks.o cpu_acc_load_blocks.o cpu_acc_semilag.o cpu_acc_transform.o \
-	cpu_moments.o cpu_trans_map.o cpu_trans_map_amr.o
+	cpu_moments.o cpu_trans_map.o cpu_trans_map_amr.o vectorclass_fallback.o link1.o link2.o
 endif
 
 # Add field solver objects
@@ -386,11 +390,14 @@ else
 cpu_acc_intersections.o: ${DEPS_CPU_ACC_INTERSECTS}
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_intersections.cpp ${INC_EIGEN}
 
-cpu_acc_map.o: ${DEPS_CPU_ACC_MAP} vlasovsolver_cuda/open_acc_map_h.cuh
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_map.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE} ${INC_VECTORCLASS}
+vectorclass_fallback.o: ${DEPS_CPU_VECTORCLASS_FALLBACK}
+	${NVCC} ${CUDAFLAGS} -D${VECTORCLASS} -dc vlasovsolver/vectorclass_fallback.cu
 
-open_acc_map_cuda.o: vlasovsolver_cuda/open_acc_map_cuda.cu vlasovsolver_cuda/open_acc_map_h.cuh
-	${NVCC} ${CUDAFLAGS} -c vlasovsolver_cuda/open_acc_map_cuda.cu
+open_acc_map_cuda.o: ${DEPS_GPU_OPEN_ACC_MAP_CUDA}
+	${NVCC} ${CUDAFLAGS} -D${VECTORCLASS} -dc vlasovsolver_cuda/open_acc_map_cuda.cu vlasovsolver/vectorclass_fallback.cu
+
+cpu_acc_map.o: ${DEPS_CPU_ACC_MAP} ${DEPS_GPU_OPEN_ACC_MAP_CUDA} ${DEPS_CPU_VECTORCLASS_FALLBACK}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_map.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE} ${INC_VECTORCLASS} ${LIB_CUDA}
 
 cpu_acc_semilag.o: ${DEPS_CPU_ACC_SEMILAG}
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_semilag.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE} ${INC_VECTORCLASS}
@@ -399,7 +406,7 @@ cpu_acc_sort_blocks.o: ${DEPS_CPU_ACC_SORT_BLOCKS}
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_sort_blocks.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE}
 
 cpu_acc_load_blocks.o: ${DEPS_CPU_ACC_LOAD_BLOCKS}
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_load_blocks.cpp  ${INC_VECTORCLASS}
+	${NVCC} ${CUDAFLAGS} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_load_blocks.cpp  ${INC_VECTORCLASS}
 
 cpu_acc_transform.o: ${DEPS_CPU_ACC_TRANSFORM}
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_transform.cpp ${INC_EIGEN} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN} ${INC_BOOST} ${INC_FSGRID}
@@ -481,10 +488,10 @@ object_wrapper.o:  $(DEPS_COMMON) object_wrapper.h object_wrapper.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c object_wrapper.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_FSGRID}
 # Make executable
 vlasiator: $(OBJS) $(OBJS_FSOLVER)
+	${NVCC} ${CUDAFLAGS} -dlink cpu_acc_map.o vectorclass_fallback.o -o link1.o
+	${NVCC} ${CUDAFLAGS} -dlink open_acc_map_cuda.o vectorclass_fallback.o -o link2.o
 	$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) $(LIBS) $(OBJS_FSOLVER)
 
-#main: main.o wrapperCaller.o open_acc_map_cuda.o
-#	g++ main.o wrapperCaller.o open_acc_map_cuda.o -o main -L/usr/local/cuda/lib64 -lcuda -lcudart
 #/// TOOLS section/////
 
 #common reader filter
