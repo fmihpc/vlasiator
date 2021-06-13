@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 #include "../vlasovsolver/vec.h"
 #include "../common.h"
 
@@ -62,7 +61,7 @@ extern Acceleration_1_struct acceleration_1_wrapper
   Realv dv,
   Realv v_min
 );
-=======
+
 #define DIMS 1
 #define BLOCKS 4
 #define THREADS 32
@@ -70,4 +69,3 @@ extern Acceleration_1_struct acceleration_1_wrapper
 
 extern void wrapperCaller(int b);
 extern void wrapper(int c);
->>>>>>> 9cb81919d4b35cac85e930260bf4c5f785cefa0e
