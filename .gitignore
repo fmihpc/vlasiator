@@ -2,6 +2,10 @@
 *.vlsv
 *.silo
 *.o
+*.ll
+*.gpu
+*.ptx
+*.s
 vscode/
 .vscode/
 version.cpp
