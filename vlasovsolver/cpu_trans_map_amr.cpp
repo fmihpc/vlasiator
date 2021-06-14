@@ -1,11 +1,11 @@
-#include "cpu_1d_ppm_nonuniform.hpp"
 //#include "cpu_1d_ppm_nonuniform_conserving.hpp"
-#include "vec.h"
 #include "../grid.h"
 #include "../object_wrapper.h"
 #include "../memoryallocation.h"
 #include "cpu_trans_map_amr.hpp"
 #include "cpu_trans_map.hpp"
+#include "vec.h"
+#include "cpu_1d_ppm_nonuniform.hpp"
 
 using namespace std;
 using namespace spatial_cell;
