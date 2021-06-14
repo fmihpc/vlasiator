@@ -1122,8 +1122,8 @@ namespace projects {
             }
          }
          phiprof::stop("memcpy");
+         fileOffset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2];
       } 
-      fileOffset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2];
       phiprof::start("updateGhostCells");
       targetGrid.updateGhostCells();
       phiprof::stop("updateGhostCells");
