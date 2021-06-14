@@ -112,7 +112,7 @@ void inline swapBlockIndices(velocity_block_indices_t &blockIndices, const uint 
     Column *columns,
     int valuesSizeRequired,
     Vec values[],
-    uint cell_indices_to_id[],
+    uint cell_indices_to_id[3],
     Realv intersection,
     Realv intersection_di,
     Realv intersection_dj,

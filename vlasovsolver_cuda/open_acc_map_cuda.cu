@@ -65,14 +65,15 @@ __device__ Vec slope_limiter(Vec& l,Vec& m,Vec& r)
 {
    return slope_limiter_sb(l,m,r);
 }
-__device__ void compute_plm_coeff(Vec *values, uint k, Vec *a, Realv threshold)
+//changed to Real it was Realv
+__device__ void compute_plm_coeff(Vec *values, uint k, Vec *a, Realv *threshold)
 {
   // scale values closer to 1 for more accurate slope limiter calculation
-  Realv scale = 1./threshold;
-  Vec v_1 = values[k - 1]*scale;
-  Vec v_2 = values[k]*scale;
-  Vec v_3 = values[k + 1]*scale;
-  Vec d_cv = slope_limiter(v_1, v_2, v_3)*threshold;
+  Realv *scale = 1./(*threshold);
+  Vec v_1 = values[k - 1] * (*scale);
+  Vec v_2 = values[k] * (*scale);
+  Vec v_3 = values[k + 1] * (*scale);
+  Vec d_cv = slope_limiter(v_1, v_2, v_3) * (*threshold);
   a[0] = values[k] - d_cv * 0.5;
   a[1] = d_cv * 0.5;
 }
@@ -131,16 +132,16 @@ __global__ void acceleration_1
         // swaps that is) of the lowest possible z plane for each i,j
         // index (i in vector)
         const Vec intersection_min =
-           dev_intersection +
-           (dev_columns[column].i * WID_DEVICE + to_realv(i_indices)) * dev_intersection_di +
-           (dev_columns[column].j * WID_DEVICE + to_realv(j_indices)) * dev_intersection_dj;
+          (*dev_intersection) +
+          (dev_columns[column].i * WID_DEVICE + to_realv(i_indices)) * (*dev_intersection_di) +
+          (dev_columns[column].j * WID_DEVICE + to_realv(j_indices)) * (*dev_intersection_dj);
 
         /*compute some initial values, that are used to set up the
          * shifting of values as we go through all blocks in
          * order. See comments where they are shifted for
          * explanations of their meaning*/
-        Vec v_r0((WID_DEVICE * dev_columns[column].kBegin) * dev_dv + dev_v_min);
-        Vec lagrangian_v_r0((v_r0-intersection_min)/dev_intersection_dk);
+        Vec v_r0((WID_DEVICE * dev_columns[column].kBegin) * (*dev_dv) + (*dev_v_min) );
+        Vec lagrangian_v_r0((v_r0-intersection_min)/(*dev_intersection_dk) );
 
         /* compute location of min and max, this does not change for one
         column (or even for this set of intersections, and can be used
@@ -201,8 +202,8 @@ __global__ void acceleration_1
            // (in reduced cell units), this will be shifted to target_density_1, see below.
            Vec target_density_r(0.0);
            // v_l, v_r are the left and right velocity coordinates of source cell.
-           Vec v_r = v_r0  + (k+1)* dev_dv;
-           Vec v_l = v_r0  + k* dev_dv;
+           Vec v_r = v_r0  + (k+1) * (*dev_dv);
+           Vec v_l = v_r0  + k * (*dev_dv);
            // left(l) and right(r) k values (global index) in the target
            // Lagrangian grid, the intersecting cells. Again old right is new left.
            Veci lagrangian_gk_l,lagrangian_gk_r;
@@ -219,8 +220,8 @@ __global__ void acceleration_1
             }
             */
             // I keep only this version with Fallback, because the version with Agner requires another call to CPU
-            lagrangian_gk_l = truncate_to_int((v_l-intersection_min)/dev_intersection_dk);
-            lagrangian_gk_r = truncate_to_int((v_r-intersection_min)/dev_intersection_dk);
+            lagrangian_gk_l = truncate_to_int((v_l-intersection_min)/ (*dev_intersection_dk) );
+            lagrangian_gk_r = truncate_to_int((v_r-intersection_min)/ (*dev_intersection_dk) );
            //limits in lagrangian k for target column. Also take into
            //account limits of target column
            int minGk = max(int(lagrangian_gk_l[minGkIndex]), int(dev_columns[column].minBlockK * WID_DEVICE));
@@ -245,7 +246,7 @@ __global__ void acceleration_1
               //then v_1,v_2 should be between v_l and v_r.
               //v_1 and v_2 normalized to be between 0 and 1 in the cell.
               //For vector elements where gk is already larger than needed (lagrangian_gk_r), v_2=v_1=v_r and thus the value is zero.
-              const Vec v_norm_r = (  min(  max( (gk + 1) * dev_intersection_dk + intersection_min, v_l), v_r) - v_l) * (1.0/dev_dv);
+              const Vec v_norm_r = (  min(  max( (gk + 1) * (*dev_intersection_dk) + intersection_min, v_l), v_r) - v_l) * (1.0/(*dev_dv));
               /*shift, old right is new left*/
               const Vec target_density_l = target_density_r;
               // compute right integrand
@@ -397,9 +398,7 @@ Acceleration_1_struct acceleration_1_wrapper
     dv,
     minValue,
     columns,
-    values,
-    cell_indices_to_id
+    values
   };
   return acceleration_1_wrapper;
-
 }

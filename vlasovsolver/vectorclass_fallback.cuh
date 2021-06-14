@@ -950,7 +950,8 @@ static CUDA_HOSTDEV inline Vec8Simple<T> operator * (const Vec8Simple<T> &l, con
 template <class T, class S>
 static CUDA_HOSTDEV inline Vec8Simple<T> operator * (const Vec8Simple<T> &l, const S &r)
 {
-   return Vec8Simple<T>(
+   return Vec8Simple<T>
+   (
       l.val[0]*r,
       l.val[1]*r,
       l.val[2]*r,

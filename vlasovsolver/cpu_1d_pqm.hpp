@@ -35,7 +35,7 @@ using namespace std;
 
 
 /*make sure quartic polynomial is monotonic*/
-inline void filter_pqm_monotonicity(Vec *values, uint k, Vec &fv_l, Vec &fv_r, Vec &fd_l, Vec &fd_r){   
+inline void filter_pqm_monotonicity(Vec *values, uint k, Vec &fv_l, Vec &fv_r, Vec &fd_l, Vec &fd_r){
    const Vec root_outside = Vec(100.0); //fixed values give to roots clearly outside [0,1], or nonexisting ones*/
    /*second derivative coefficients, eq 23 in white et al.*/
    Vec b0 =   60.0 * values[k] - 24.0 * fv_r - 36.0 * fv_l + 3.0 * (fd_r - 3.0 * fd_l);
@@ -50,11 +50,11 @@ inline void filter_pqm_monotonicity(Vec *values, uint k, Vec &fv_l, Vec &fv_r, V
 #ifdef VEC16F_AGNER
    //this sqrt gives 10% more perf on acceleration on KNL. Also fairly
    //accurate with AVX512ER. On Xeon it is not any faster, and less accurate.
-   const Vec sqrt_val = select(val_to_sqrt < 0.0, 
+   const Vec sqrt_val = select(val_to_sqrt < 0.0,
                                b1 + 200.0 * b2,
                                val_to_sqrt * approx_rsqrt(val_to_sqrt));
 #else
-   const Vec sqrt_val = select(val_to_sqrt < 0.0, 
+   const Vec sqrt_val = select(val_to_sqrt < 0.0,
                                b1 + 200.0 * b2,
                                sqrt(val_to_sqrt));
 #endif
@@ -82,7 +82,7 @@ inline void filter_pqm_monotonicity(Vec *values, uint k, Vec &fv_l, Vec &fv_r, V
                             c0  + root2 * ( c1 + root2 * (c2 + root2 * c3 ) ),
                             slope_sign);
    Vecb fixInflexion = root1_slope * slope_sign < 0.0 || root2_slope * slope_sign < 0.0;
-   if (horizontal_or (fixInflexion) ){ 
+   if (horizontal_or (fixInflexion) ){
       Realv valuesa[VECL];
       Realv fva_l[VECL];
       Realv fva_r[VECL];
@@ -95,11 +95,11 @@ inline void filter_pqm_monotonicity(Vec *values, uint k, Vec &fv_l, Vec &fv_r, V
       fv_r.store(fva_r);
       fd_r.store(fda_r);
       slope_sign.store(slope_signa);
-      
+
       //todo store and then load data to avoid inserts (is it beneficial...?)
-      
+
 //serialized the handling of inflexion points, these do not happen for smooth regions
-#pragma ivdep
+//#pragma ivdep
       for(uint i = 0;i < VECL; i++) {
          if(fixInflexion[i]){
             //need to collapse, at least one inflexion point has wrong
@@ -137,7 +137,7 @@ inline void filter_pqm_monotonicity(Vec *values, uint k, Vec &fv_l, Vec &fv_r, V
                }
             }
          }
-      }      
+      }
       fv_l.load(fva_l);
       fd_l.load(fda_l);
       fv_r.load(fva_r);
@@ -158,10 +158,10 @@ inline void compute_pqm_coeff(Vec *values, face_estimate_order order, uint k, Ve
    Vec fv_r; /*right face value*/
    Vec fd_l; /*left face derivative*/
    Vec fd_r; /*right face derivative*/
-   
+
    compute_filtered_face_values_derivatives(values, k, order, fv_l, fv_r, fd_l, fd_r, threshold);
-   filter_pqm_monotonicity(values, k, fv_l, fv_r, fd_l, fd_r); 
-   
+   filter_pqm_monotonicity(values, k, fv_l, fv_r, fd_l, fd_r);
+
    //Fit a second order polynomial for reconstruction see, e.g., White
    //2008 (PQM article) (note additional integration factors built in,
    //contrary to White (2008) eq. 4

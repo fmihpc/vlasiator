@@ -14,17 +14,15 @@ struct Column
 struct Acceleration_1_struct
 {
   Realf *blockData;
-  int totalColumns;
-  Column *columns;
-  Vec *values;
-  uint cell_indices_to_id[];
   Realv intersection;
   Realv intersection_di;
   Realv intersection_dj;
   Realv intersection_dk;
-  Real minValue;
-  Realv dv;
   Realv v_min;
+  Realv dv;
+  Real minValue;
+  Column *columns;
+  Vec *values;
 };
 
 extern Acceleration_1_struct acceleration_1_wrapperCaller
