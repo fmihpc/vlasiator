@@ -451,7 +451,7 @@ namespace projects {
          MPI_Comm_size(MPI_COMM_WORLD,&processes);
          MPI_Info mpiInfo = MPI_INFO_NULL;
          std::array<double, 3> fileMin, fileMax, fileD;
-         std::array<uint, 3> fileCells;
+         std::array<int, 3> fileCells;
 
          if (this->vlsvSerialReader.open(filename) == false) {
             if(myRank == MASTER_RANK) 
@@ -559,54 +559,57 @@ namespace projects {
             // Also assumes the E values have been saved to the bulk files.
             //
             // The values are edge-averages, not cell-averages, but are temporarily read into EXVOL anyway.
-            // attribs.push_back(make_pair("mesh","SpatialGrid"));
-            // attribs.push_back(make_pair("name","E"));
-            // if (this->vlsvSerialReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizeE,dataType,byteSize) == false) {
-            //    if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read E array info" << endl << write;
-            //    exit(1);
-            // }
-            // buffer=new Real[this->vecsizeE];
-            // if (this->vlsvSerialReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)buffer) == false ) {
-            //    if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read E"  << endl << write;
-            //    exit(1);
-            // }
-            // for (uint j=0; j<vecsizeE; j++) {
-            //    mpiGrid[cells[i]]->parameters[CellParams::EXVOL+j] = buffer[j];
-            // }
-            // delete[] buffer;
-            // attribs.pop_back();
-            // attribs.pop_back();
+            //attribs.push_back(make_pair("mesh","SpatialGrid"));
+            //attribs.push_back(make_pair("name","E"));
+            //if (this->vlsvSerialReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizeE,dataType,byteSize) == false) {
+            //   if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read E array info" << endl << write;
+            //   exit(1);
+            //}
+            //buffer=new Real[this->vecsizeE];
+            //if (this->vlsvSerialReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)buffer) == false ) {
+            //   if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read E"  << endl << write;
+            //   exit(1);
+            //}
+            //for (uint j=0; j<vecsizeE; j++) {
+            //   mpiGrid[cells[i]]->parameters[CellParams::EXVOL+j] = buffer[j];
+            //}
+            //delete[] buffer;
+            //attribs.pop_back();
+            //attribs.pop_back();
                
             // The background fields are initialized directly on FSgrid and are not read in.
             // The commented out block literally reads them in. What the fuck?
 
-            // attribs.push_back(make_pair("mesh","SpatialGrid"));
-            // if (isbulk == 1) {
-            //    attribs.push_back(make_pair("name","B"));
-            // } else {
-            //    attribs.push_back(make_pair("name","background_B"));
-            // }
-            // if (this->vlsvSerialReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizebackground_B,dataType,byteSize) == false) {
-            //    logFile << "(START)  ERROR: Failed to read background_B (or B in case of bulk file) array info" << endl << write; 
-            //    exit(1);
-            // }
-            // buffer=new Real[this->vecsizebackground_B];
-            // if (this->vlsvSerialReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)buffer) == false ) {
-            //    logFile << "(START)  ERROR: Failed to read background_B (or B in case of bulk file)"  << endl << write;
-            //    exit(1);
-            // }
-            // if (isbulk == 1) {
-            //    for (uint j=0; j<vecsizebackground_B; j++) {
-            //       mpiGrid[cells[i]]->parameters[CellParams::BGBXVOL+j] = buffer[j] - mpiGrid[cells[i]]->parameters[CellParams::PERBXVOL+j]; 
-            //    }
-            // } else {
-            //    for (uint j=0; j<vecsizebackground_B; j++) {
-            //       mpiGrid[cells[i]]->parameters[CellParams::BGBXVOL+j] = buffer[j];
-            //    }
-            // }
-            // delete[] buffer;
-            // attribs.pop_back();
-            // attribs.pop_back();
+            //attribs.push_back(make_pair("mesh","SpatialGrid"));
+            //varname = pickVarName({"background_B", "B"});
+            //if (varname == "") {
+            //   if (myRank == MASTER_RANK) 
+            //      logFile << "(START)  ERROR: No background B variable found!" << endl << write;
+            //   exit(1);
+            //}
+            //attribs.push_back(make_pair("name", varname));
+
+            //if (this->vlsvSerialReader.getArrayInfo("VARIABLE",attribs,arraySize,this->vecsizebackground_B,dataType,byteSize) == false) {
+            //   logFile << "(START)  ERROR: Failed to read " << varname << " array info" << endl << write; 
+            //   exit(1);
+            //}
+            //buffer=new Real[this->vecsizebackground_B];
+            //if (this->vlsvSerialReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)buffer) == false ) {
+            //   logFile << "(START)  ERROR: Failed to read " << varname << endl << write;
+            //   exit(1);
+            //}
+            //if (varname == "B") {
+            //   for (uint j=0; j<vecsizebackground_B; j++) {
+            //      mpiGrid[cells[i]]->parameters[CellParams::BGBXVOL+j] = buffer[j] - mpiGrid[cells[i]]->parameters[CellParams::PERBXVOL+j]; 
+            //   }
+            //} else {
+            //   for (uint j=0; j<vecsizebackground_B; j++) {
+            //      mpiGrid[cells[i]]->parameters[CellParams::BGBXVOL+j] = buffer[j];
+            //   }
+            //}
+            //delete[] buffer;
+            //attribs.pop_back();
+            //attribs.pop_back();
 
             // The following sections are not multipop-safe. Multipop-handling can probably be added via the
             // variableNames list (see detection of bulk / restart files)
@@ -911,7 +914,7 @@ namespace projects {
    }
 
    // Reads physical minima and maxima, amount of cells and 
-   bool ElVentana::readGridSize(std::array<double, 3> &fileMin, std::array<double, 3> &fileMax, std::array<uint, 3> &fileCells, std::array<double, 3> &fileD) {
+   bool ElVentana::readGridSize(std::array<double, 3> &fileMin, std::array<double, 3> &fileMax, std::array<int, 3> &fileCells, std::array<double, 3> &fileD) {
       int myRank = 0;
       //MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 
@@ -1022,14 +1025,13 @@ namespace projects {
       }
 
       std::array<double, 3> fileMin, fileMax, fileD;
-      std::array<uint, 3> fileCells;
+      std::array<int, 3> fileCells;
       if(!readGridSize(fileMin, fileMax, fileCells, fileD)) {
          return false;
       }
 
       std::array<int32_t,3>& localSize = targetGrid.getLocalSize();
       std::array<int32_t,3>& localStart = targetGrid.getLocalStart();
-      std::array<int32_t,3>& globalSize = targetGrid.getGlobalSize();
       std::array<int32_t,3> localOffset;
       for (int i = 0; i < 3; ++i) {
          localOffset[i] = (targetGrid.physicalGlobalStart[i] - fileMin[i]) / fileD[i];
@@ -1059,20 +1061,20 @@ namespace projects {
 
       // Determine the decomposition in the file and the one in RAM for our restart
       std::array<int,3> fileDecomposition;
-      targetGrid.computeDomainDecomposition(globalSize, numWritingRanks, fileDecomposition);
+      targetGrid.computeDomainDecomposition(fileCells, numWritingRanks, fileDecomposition);
 
       // Iterate through tasks and find their overlap with our domain.
       size_t fileOffset = 0;
       for(int task = 0; task < numWritingRanks; task++) {
          std::array<int32_t,3> thatTasksSize;
          std::array<int32_t,3> thatTasksStart;
-         thatTasksSize[0] = targetGrid.calcLocalSize(globalSize[0], fileDecomposition[0], task/fileDecomposition[2]/fileDecomposition[1]);
-         thatTasksSize[1] = targetGrid.calcLocalSize(globalSize[1], fileDecomposition[1], (task/fileDecomposition[2])%fileDecomposition[1]);
-         thatTasksSize[2] = targetGrid.calcLocalSize(globalSize[2], fileDecomposition[2], task%fileDecomposition[2]);
+         thatTasksSize[0] = targetGrid.calcLocalSize(fileCells[0], fileDecomposition[0], task/fileDecomposition[2]/fileDecomposition[1]);
+         thatTasksSize[1] = targetGrid.calcLocalSize(fileCells[1], fileDecomposition[1], (task/fileDecomposition[2])%fileDecomposition[1]);
+         thatTasksSize[2] = targetGrid.calcLocalSize(fileCells[2], fileDecomposition[2], task%fileDecomposition[2]);
 
-         thatTasksStart[0] = targetGrid.calcLocalStart(globalSize[0], fileDecomposition[0], task/fileDecomposition[2]/fileDecomposition[1]);
-         thatTasksStart[1] = targetGrid.calcLocalStart(globalSize[1], fileDecomposition[1], (task/fileDecomposition[2])%fileDecomposition[1]);
-         thatTasksStart[2] = targetGrid.calcLocalStart(globalSize[2], fileDecomposition[2], task%fileDecomposition[2]);
+         thatTasksStart[0] = targetGrid.calcLocalStart(fileCells[0], fileDecomposition[0], task/fileDecomposition[2]/fileDecomposition[1]);
+         thatTasksStart[1] = targetGrid.calcLocalStart(fileCells[1], fileDecomposition[1], (task/fileDecomposition[2])%fileDecomposition[1]);
+         thatTasksStart[2] = targetGrid.calcLocalStart(fileCells[2], fileDecomposition[2], task%fileDecomposition[2]);
 
          // Iterate through overlap area
          std::array<int,3> overlapStart,overlapEnd,overlapSize;
@@ -1085,46 +1087,43 @@ namespace projects {
          // Read into buffer
          std::vector<Real> buffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
 
-         // Read every source rank that we have an overlap with.
-         if(overlapSize[0]*overlapSize[1]*overlapSize[2] > 0) {
-            phiprof::start("readArray");
-            if(!convertFloatType) {
-               // TODO: Should these be multireads instead? And/or can this be parallelized?
-               if(this->vlsvParaReader.readArray("VARIABLE",attribs, fileOffset, thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2], (char*)buffer.data()) == false) {
-                  logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
-                  return false;
-               }
-            } else {
-               std::vector<float> readBuffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
-               if(this->vlsvParaReader.readArray("VARIABLE",attribs, fileOffset, thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2], (char*)readBuffer.data()) == false) {
-                  logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
-                  return false;
-               }
+         phiprof::start("readArray");
+         if(!convertFloatType) {
+            // TODO: Should these be multireads instead? And/or can this be parallelized?
+            if(this->vlsvParaReader.readArray("VARIABLE",attribs, fileOffset, thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2], (char*)buffer.data()) == false) {
+               logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
+               return false;
+            }
+         } else {
+            std::vector<float> readBuffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
+            if(this->vlsvParaReader.readArray("VARIABLE",attribs, fileOffset, thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2], (char*)readBuffer.data()) == false) {
+               logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
+               return false;
+            }
 
-               for(int i=0; i< thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N; i++) {
-                  buffer[i]=readBuffer[i];
+            for(int i=0; i< thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N; i++) {
+               buffer[i]=readBuffer[i];
+            }
+         }
+         phiprof::stop("readArray");
+
+         phiprof::start("memcpy");
+
+         // Copy continuous stripes in x direction.
+         for(int z=overlapStart[2]; z<overlapEnd[2]; z++) {
+            for(int y=overlapStart[1]; y<overlapEnd[1]; y++) {
+               for(int x=overlapStart[0]; x<overlapEnd[0]; x++) {
+                  int index = (z - thatTasksStart[2]) * thatTasksSize[0]*thatTasksSize[1]
+                     + (y - thatTasksStart[1]) * thatTasksSize[0]
+                     + (x - thatTasksStart[0]);
+
+                  memcpy(targetGrid.get(x - localStart[0] - localOffset[0], y - localStart[1] - localOffset[1], z - localStart[2] - localOffset[2]), &buffer[index*N], N*sizeof(Real));
                }
             }
-            phiprof::stop("readArray");
-
-            phiprof::start("memcpy");
-
-            // Copy continuous stripes in x direction.
-            for(int z=overlapStart[2]; z<overlapEnd[2]; z++) {
-               for(int y=overlapStart[1]; y<overlapEnd[1]; y++) {
-                  for(int x=overlapStart[0]; x<overlapEnd[0]; x++) {
-                     int index = (z - thatTasksStart[2]) * thatTasksSize[0]*thatTasksSize[1]
-                        + (y - thatTasksStart[1]) * thatTasksSize[0]
-                        + (x - thatTasksStart[0]);
-
-                     memcpy(targetGrid.get(x - localStart[0] - localOffset[0], y - localStart[1] - localOffset[1], z - localStart[2] - localOffset[2]), &buffer[index*N], N*sizeof(Real));
-                  }
-               }
-            }
-            phiprof::stop("memcpy");
-         } 
-         fileOffset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2];
-      }
+         }
+         phiprof::stop("memcpy");
+      } 
+      fileOffset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2];
       phiprof::start("updateGhostCells");
       targetGrid.updateGhostCells();
       phiprof::stop("updateGhostCells");
@@ -1134,7 +1133,7 @@ namespace projects {
       return true;
    }
 
-   const std::string ElVentana::pickVarName(const std::list<std::string> &varNames) {
+   std::string ElVentana::pickVarName(const std::list<std::string> &varNames) {
       vlsvinterface::Reader r;
       r.open(StartFile);
 
