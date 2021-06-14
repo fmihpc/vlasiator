@@ -341,9 +341,6 @@ Realf* acceleration_1_wrapper
   );
 
   HANDLE_ERROR( cudaMemcpy(blockData, dev_blockData, bdsw3*sizeof(Realf), cudaMemcpyDeviceToHost));
-  HANDLE_ERROR( cudaMemcpy(columns, dev_columns, totalColumns*sizeof(Column), cudaMemcpyDeviceToHost));
-  HANDLE_ERROR( cudaMemcpy(values, dev_values, valuesSizeRequired*sizeof(Vec), cudaMemcpyDeviceToHost));
-  HANDLE_ERROR( cudaMemcpy(cell_indices_to_id, dev_cell_indices_to_id, 3*sizeof(Vec), cudaMemcpyDeviceToHost));
 
   HANDLE_ERROR( cudaFree(dev_blockData) );
   HANDLE_ERROR( cudaFree(dev_cell_indices_to_id) );
