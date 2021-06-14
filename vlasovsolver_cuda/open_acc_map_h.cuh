@@ -47,9 +47,9 @@ extern Realf* acceleration_1_wrapper
 );
 
 #define DIMS 1
-#define BLOCKS 4
-#define THREADS 32
-#define CUDASIZE 32
+#define BLOCKS 1
+#define THREADS 1
+#define CUDASIZE 1
 
 extern void wrapperCaller(int b);
 extern void wrapper(int c);

@@ -496,6 +496,7 @@ bool map_1d(SpatialCell* spatial_cell,
        dv,
        v_min
      );
+     blockData = returnedBlockData;
      //DON'T FORGET TO RECEIVE DATA
      /*
      totalColumns = acceleration_1_struct.totalColumns;
