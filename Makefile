@@ -406,7 +406,8 @@ cpu_acc_sort_blocks.o: ${DEPS_CPU_ACC_SORT_BLOCKS}
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_sort_blocks.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE}
 
 cpu_acc_load_blocks.o: ${DEPS_CPU_ACC_LOAD_BLOCKS}
-	${NVCC} ${CUDAFLAGS} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_load_blocks.cpp  ${INC_VECTORCLASS}
+	${NVCC} ${CUDAFLAGS} -D${VECTORCLASS} -dc vlasovsolver/cpu_acc_load_blocks.cpp
+	#${NVCC} ${CUDAFLAGS} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_load_blocks.cpp  ${INC_VECTORCLASS}
 
 cpu_acc_transform.o: ${DEPS_CPU_ACC_TRANSFORM}
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_transform.cpp ${INC_EIGEN} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN} ${INC_BOOST} ${INC_FSGRID}
