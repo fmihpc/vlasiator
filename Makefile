@@ -492,7 +492,7 @@ link2.o: open_acc_map_cuda.o
 
 # Make executable
 vlasiator: $(OBJS) $(OBJS_FSOLVER)
-	$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) $(LIBS) $(OBJS_FSOLVER) -lcuda
+	$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) $(LIBS) $(OBJS_FSOLVER) -lcudart
 
 #/// TOOLS section/////
 

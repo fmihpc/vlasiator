@@ -24,7 +24,7 @@ extern Realf* acceleration_1_wrapperCaller
   Realv intersection_di,
   Realv intersection_dj,
   Realv intersection_dk,
-  Real minValue,
+  Realv minValue,
   Realv dv,
   Realv v_min
 );
@@ -41,7 +41,7 @@ extern Realf* acceleration_1_wrapper
   Realv intersection_di,
   Realv intersection_dj,
   Realv intersection_dk,
-  Real minValue,
+  Realv minValue,
   Realv dv,
   Realv v_min
 );
