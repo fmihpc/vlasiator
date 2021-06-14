@@ -133,7 +133,11 @@ typedef float Realv;
 
 #ifdef VEC4D_FALLBACK
 //user portable vectorclass
+#ifdef __CUDACC__
 #include "vectorclass_fallback.cuh"
+#else 
+#include "vectorclass_fallback.h"
+#endif
 typedef Vec4Simple<double> Vec;
 typedef Vec4Simple<bool> Vecb;
 typedef Vec4Simple<int> Veci;
