@@ -89,13 +89,13 @@ __global__ void acceleration_1
   Column *dev_columns,
   Vec *values,
   int *dev_cell_indices_to_id,
-  Vec intersection,
-  Vec intersection_di,
-  Vec intersection_dj,
-  Vec intersection_dk,
-  Real minValue,
-  Vec dv,
-  Vec v_min
+  Realv intersection,
+  Realv intersection_di,
+  Realv intersection_dj,
+  Realv intersection_dk,
+  Realv minValue,
+  Realv dv,
+  Realv v_min
 )
 {
   for( uint column=0; column < TOTALCOLUMNS_DEVICE; column++)
