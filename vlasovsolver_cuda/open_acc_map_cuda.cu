@@ -66,14 +66,14 @@ __device__ Vec slope_limiter(Vec& l,Vec& m,Vec& r)
    return slope_limiter_sb(l,m,r);
 }
 //changed to Real it was Realv
-__device__ void compute_plm_coeff(Vec *values, uint k, Vec *a, Realv *threshold)
+__device__ void compute_plm_coeff(Vec *values, uint k, Vec *a, Real threshold)
 {
   // scale values closer to 1 for more accurate slope limiter calculation
-  Realv *scale = 1./(*threshold);
-  Vec v_1 = values[k - 1] * (*scale);
-  Vec v_2 = values[k] * (*scale);
-  Vec v_3 = values[k + 1] * (*scale);
-  Vec d_cv = slope_limiter(v_1, v_2, v_3) * (*threshold);
+  Realv scale = 1./threshold;
+  Vec v_1 = values[k - 1] * scale;
+  Vec v_2 = values[k] * scale;
+  Vec v_3 = values[k + 1] * scale;
+  Vec d_cv = slope_limiter(v_1, v_2, v_3) * threshold;
   a[0] = values[k] - d_cv * 0.5;
   a[1] = d_cv * 0.5;
 }
