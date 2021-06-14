@@ -88,13 +88,13 @@ __global__ void acceleration_1
   Column *dev_columns,
   Vec *values,
   int *dev_cell_indices_to_id,
-  Realv *dev_intersection,
-  Realv *dev_intersection_di,
-  Realv *dev_intersection_dj,
-  Realv *dev_intersection_dk,
-  Real *dev_minValue,
-  Realv *dev_dv,
-  Realv *dev_v_min
+  Vec intersection,
+  Vec intersection_di,
+  Vec intersection_dj,
+  Vec intersection_dk,
+  Real minValue,
+  Vec dv,
+  Vec v_min
 )
 {
   for( uint column=0; column < TOTALCOLUMNS_DEVICE; column++)
@@ -131,16 +131,16 @@ __global__ void acceleration_1
         // swaps that is) of the lowest possible z plane for each i,j
         // index (i in vector)
         const Vec intersection_min =
-           dev_intersection +
-           (dev_columns[column].i * WID_DEVICE + to_realv(i_indices)) * dev_intersection_di +
-           (dev_columns[column].j * WID_DEVICE + to_realv(j_indices)) * dev_intersection_dj;
+           intersection +
+           (dev_columns[column].i * WID_DEVICE + to_realv(i_indices)) * intersection_di +
+           (dev_columns[column].j * WID_DEVICE + to_realv(j_indices)) * intersection_dj;
 
         /*compute some initial values, that are used to set up the
          * shifting of values as we go through all blocks in
          * order. See comments where they are shifted for
          * explanations of their meaning*/
-        Vec v_r0((WID_DEVICE * dev_columns[column].kBegin) * dev_dv + dev_v_min);
-        Vec lagrangian_v_r0((v_r0-intersection_min)/dev_intersection_dk);
+        Vec v_r0( (WID_DEVICE * dev_columns[column].kBegin) * dv + v_min);
+        Vec lagrangian_v_r0((v_r0-intersection_min)/intersection_dk);
 
         /* compute location of min and max, this does not change for one
         column (or even for this set of intersections, and can be used
@@ -183,44 +183,44 @@ __global__ void acceleration_1
             //{
               //Vec a[2];
               Vec *a = new Vec[2];
-              compute_plm_coeff(values + dev_columns[column].valuesOffset + i_pcolumnv(j, 0, -1, nblocks), k + WID_DEVICE , a, dev_minValue);
+              compute_plm_coeff(values + dev_columns[column].valuesOffset + i_pcolumnv(j, 0, -1, nblocks), k + WID_DEVICE, a, minValue);
             //}
             /*
             if(acc_semilag_flag==1)
             {
               Vec a[3];
-              compute_ppm_coeff(values + columns[column].valuesOffset  + i_pcolumnv(j, 0, -1, nblocks), h4, k + WID, a, dev_minValue);
+              compute_ppm_coeff(values + columns[column].valuesOffset  + i_pcolumnv(j, 0, -1, nblocks), h4, k + WID, a, minValue);
             }
             if(acc_semilag_flag==2)
             {
               Vec a[5];
-              compute_pqm_coeff(values + columns[column].valuesOffset  + i_pcolumnv(j, 0, -1, nblocks), h8, k + WID, a, dev_minValue);
+              compute_pqm_coeff(values + columns[column].valuesOffset  + i_pcolumnv(j, 0, -1, nblocks), h8, k + WID, a, minValue);
             }
             */
            // set the initial value for the integrand at the boundary at v = 0
            // (in reduced cell units), this will be shifted to target_density_1, see below.
            Vec target_density_r(0.0);
            // v_l, v_r are the left and right velocity coordinates of source cell.
-           Vec v_r = v_r0  + (k+1)* dev_dv;
-           Vec v_l = v_r0  + k* dev_dv;
+           Vec v_r = v_r0  + (k+1)* dv;
+           Vec v_l = v_r0  + k* dv;
            // left(l) and right(r) k values (global index) in the target
            // Lagrangian grid, the intersecting cells. Again old right is new left.
            Veci lagrangian_gk_l,lagrangian_gk_r;
            /*
            if(VECTORCLASS_H_DEVICE >= 20000)
             {
-              lagrangian_gk_r = truncatei((v_l-intersection_min)/dev_intersection_dk);
-              lagrangian_gk_r = truncatei((v_r-intersection_min)/dev_intersection_dk);
+              lagrangian_gk_r = truncatei((v_l-intersection_min)/intersection_dk);
+              lagrangian_gk_r = truncatei((v_r-intersection_min)/intersection_dk);
             }
             else
             {
-              lagrangian_gk_l = truncate_to_int((v_l-intersection_min)/dev_intersection_dk);
-              lagrangian_gk_r = truncate_to_int((v_r-intersection_min)/dev_intersection_dk);
+              lagrangian_gk_l = truncate_to_int((v_l-intersection_min)/intersection_dk);
+              lagrangian_gk_r = truncate_to_int((v_r-intersection_min)/intersection_dk);
             }
             */
             // I keep only this version with Fallback, because the version with Agner requires another call to CPU
-            lagrangian_gk_l = truncate_to_int((v_l-intersection_min)/dev_intersection_dk);
-            lagrangian_gk_r = truncate_to_int((v_r-intersection_min)/dev_intersection_dk);
+            lagrangian_gk_l = truncate_to_int((v_l-intersection_min)/intersection_dk);
+            lagrangian_gk_r = truncate_to_int((v_r-intersection_min)/intersection_dk);
            //limits in lagrangian k for target column. Also take into
            //account limits of target column
            int minGk = max(int(lagrangian_gk_l[minGkIndex]), int(dev_columns[column].minBlockK * WID_DEVICE));
@@ -245,7 +245,7 @@ __global__ void acceleration_1
               //then v_1,v_2 should be between v_l and v_r.
               //v_1 and v_2 normalized to be between 0 and 1 in the cell.
               //For vector elements where gk is already larger than needed (lagrangian_gk_r), v_2=v_1=v_r and thus the value is zero.
-              const Vec v_norm_r = (  min(  max( (gk + 1) * dev_intersection_dk + intersection_min, v_l), v_r) - v_l) * (1.0/dev_dv);
+              const Vec v_norm_r = (  min(  max( (gk + 1) * intersection_dk + intersection_min, v_l), v_r) - v_l) * (1.0/dv);
               /*shift, old right is new left*/
               const Vec target_density_l = target_density_r;
               // compute right integrand
@@ -272,7 +272,7 @@ __global__ void acceleration_1
   } //for loop over columns
 }
 
-Acceleration_1_struct acceleration_1_wrapper
+Realf* acceleration_1_wrapper
 (
   int bdsw3,
   Realf *blockData,
@@ -353,13 +353,13 @@ Acceleration_1_struct acceleration_1_wrapper
     dev_columns,
     dev_values,
     dev_cell_indices_to_id,
-    dev_intersection,
-    dev_intersection_di,
-    dev_intersection_dj,
-    dev_intersection_dk,
-    dev_minValue,
-    dev_dv,
-    dev_v_min
+    intersection,
+    intersection_di,
+    intersection_dj,
+    intersection_dk,
+    minValue,
+    dv,
+    v_min
   );
 
   HANDLE_ERROR( cudaMemcpy(&intersection, dev_intersection, sizeof(Realv), cudaMemcpyDeviceToHost));
@@ -386,20 +386,6 @@ Acceleration_1_struct acceleration_1_wrapper
   HANDLE_ERROR( cudaFree(dev_columns) );
   HANDLE_ERROR( cudaFree(dev_values) );
 
-  Acceleration_1_struct acceleration_1_wrapper =
-  {
-    blockData,
-    intersection,
-    intersection_di,
-    intersection_dj,
-    intersection_dk,
-    v_min,
-    dv,
-    minValue,
-    columns,
-    values,
-    cell_indices_to_id
-  };
-  return acceleration_1_wrapper;
+  return blockData;
 
 }
