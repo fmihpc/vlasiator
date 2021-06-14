@@ -154,7 +154,7 @@ bool map_1d(SpatialCell* spatial_cell,
    no_subnormals();
    Realv dv,v_min;
    Realv is_temp;
-   uint max_v_length;
+   int max_v_length;
    uint block_indices_to_id[3] = {0, 0, 0}; /*< used when computing id of target block, 0 for compiler */
    uint cell_indices_to_id[3] = {0, 0, 0}; /*< used when computing id of target cell in block, 0 for compiler */
    vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = spatial_cell->get_velocity_mesh(popID);
@@ -242,7 +242,7 @@ bool map_1d(SpatialCell* spatial_cell,
                             setColumnOffsets, setNumColumns);
 
    // Calculate total sum of columns and total values size
-   int totalColumns = 0;
+   uint totalColumns = 0;
    int valuesSizeRequired = 0;
 
    for(uint setIndex=0; setIndex< setColumnOffsets.size(); ++setIndex) {
@@ -267,7 +267,7 @@ bool map_1d(SpatialCell* spatial_cell,
    Column *columns = new Column[totalColumns];
 
    // Iterate through all identified columns and shovel them into the values array.
-   uint valuesColumnOffset = 0; //offset to values array for data in a column in this set
+   int valuesColumnOffset = 0; //offset to values array for data in a column in this set
    for( uint setIndex=0; setIndex< setColumnOffsets.size(); ++setIndex) {
 
       //Load data into values array (this also zeroes the original data)
@@ -430,7 +430,7 @@ bool map_1d(SpatialCell* spatial_cell,
    size_t blockDataSize = blockContainer.size();
    if(useAccelerator)
    {
-    for(int cell=0; cell < blockDataSize*WID3; cell++)
+    for(uint cell=0; cell < blockDataSize*WID3; cell++)
     {
       blockData[cell] = 0;
     }
