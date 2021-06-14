@@ -308,29 +308,6 @@ Realf* acceleration_1_wrapper
   #endif
   cudaMemcpyToSymbol("acc_semilag_flag", &acc_semilag_flag, sizeof(int));
 
-  Realv *dev_intersection;
-  Realv *dev_intersection_di;
-  Realv *dev_intersection_dj;
-  Realv *dev_intersection_dk;
-  Realv *dev_v_min;
-  Realv *dev_dv;
-  Real *dev_minValue;
-
-	HANDLE_ERROR( cudaMalloc((void**)&dev_intersection, sizeof(Realv)) );
-	HANDLE_ERROR( cudaMemcpy(dev_intersection, &intersection, sizeof(Realv), cudaMemcpyHostToDevice));
-  HANDLE_ERROR( cudaMalloc((void**)&dev_intersection_di, sizeof(Realv)));
-	HANDLE_ERROR( cudaMemcpy(dev_intersection_di, &intersection_di, sizeof(Realv), cudaMemcpyHostToDevice));
-  HANDLE_ERROR( cudaMalloc((void**)&dev_intersection_dj, sizeof(Realv)));
-  HANDLE_ERROR( cudaMemcpy(dev_intersection_dj, &intersection_dj, sizeof(Realv), cudaMemcpyHostToDevice));
-  HANDLE_ERROR( cudaMalloc((void**)&dev_intersection_dk, sizeof(Realv)));
-  HANDLE_ERROR( cudaMemcpy(dev_intersection_dk, &intersection_dk, sizeof(Realv), cudaMemcpyHostToDevice));
-  HANDLE_ERROR( cudaMalloc((void**)&dev_v_min, sizeof(Realv)));
-  HANDLE_ERROR( cudaMemcpy(dev_v_min, &v_min, sizeof(Realv), cudaMemcpyHostToDevice));
-  HANDLE_ERROR( cudaMalloc((void**)&dev_dv, sizeof(Realv)));
-  HANDLE_ERROR( cudaMemcpy(dev_dv, &dv, sizeof(Realv), cudaMemcpyHostToDevice));
-  HANDLE_ERROR( cudaMalloc((void**)&dev_minValue, sizeof(Real)));
-  HANDLE_ERROR( cudaMemcpy(dev_minValue, &minValue, sizeof(Real), cudaMemcpyHostToDevice));
-
   Realf *dev_blockData;
   HANDLE_ERROR( cudaMalloc((void**)&dev_blockData, bdsw3*sizeof(Realf)));
   HANDLE_ERROR( cudaMemcpy(dev_blockData, blockData, bdsw3*sizeof(Realf), cudaMemcpyHostToDevice));
@@ -362,13 +339,6 @@ Realf* acceleration_1_wrapper
     v_min
   );
 
-  HANDLE_ERROR( cudaMemcpy(&intersection, dev_intersection, sizeof(Realv), cudaMemcpyDeviceToHost));
-  HANDLE_ERROR( cudaMemcpy(&intersection_di, dev_intersection_di, sizeof(Realv), cudaMemcpyDeviceToHost));
-  HANDLE_ERROR( cudaMemcpy(&intersection_dj, dev_intersection_dj, sizeof(Realv), cudaMemcpyDeviceToHost));
-  HANDLE_ERROR( cudaMemcpy(&intersection_dk, dev_intersection_dk, sizeof(Realv), cudaMemcpyDeviceToHost));
-  HANDLE_ERROR( cudaMemcpy(&v_min, dev_v_min, sizeof(Realv), cudaMemcpyDeviceToHost));
-  HANDLE_ERROR( cudaMemcpy(&dv, dev_dv, sizeof(Realv), cudaMemcpyDeviceToHost));
-  HANDLE_ERROR( cudaMemcpy(&minValue, dev_minValue, sizeof(Real), cudaMemcpyDeviceToHost));
   HANDLE_ERROR( cudaMemcpy(blockData, dev_blockData, bdsw3*sizeof(Realf), cudaMemcpyDeviceToHost));
   HANDLE_ERROR( cudaMemcpy(columns, dev_columns, totalColumns*sizeof(Column), cudaMemcpyDeviceToHost));
   HANDLE_ERROR( cudaMemcpy(values, dev_values, valuesSizeRequired*sizeof(Vec), cudaMemcpyDeviceToHost));
@@ -376,13 +346,6 @@ Realf* acceleration_1_wrapper
 
   HANDLE_ERROR( cudaFree(dev_blockData) );
   HANDLE_ERROR( cudaFree(dev_cell_indices_to_id) );
-  HANDLE_ERROR( cudaFree(dev_intersection) );
-  HANDLE_ERROR( cudaFree(dev_intersection_di) );
-  HANDLE_ERROR( cudaFree(dev_intersection_dj) );
-  HANDLE_ERROR( cudaFree(dev_intersection_dk) );
-  HANDLE_ERROR( cudaFree(dev_v_min) );
-  HANDLE_ERROR( cudaFree(dev_dv) );
-  HANDLE_ERROR( cudaFree(dev_minValue) );
   HANDLE_ERROR( cudaFree(dev_columns) );
   HANDLE_ERROR( cudaFree(dev_values) );
 
