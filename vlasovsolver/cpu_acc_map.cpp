@@ -104,7 +104,7 @@ void inline swapBlockIndices(velocity_block_indices_t &blockIndices, const uint 
    }
 }
 
-  extern Acceleration_1_struct acceleration_1_wrapperCaller
+  extern Realf* acceleration_1_wrapperCaller
   (
     int bdsw3,
     Realf *blockData,
@@ -123,7 +123,7 @@ void inline swapBlockIndices(velocity_block_indices_t &blockIndices, const uint 
   )
   {
     printf("STAGE 2\n");
-    Acceleration_1_struct acceleration_1_struct = acceleration_1_wrapper
+    Realf* returned_blockData = acceleration_1_wrapper
     (
       bdsw3,
       blockData,
@@ -140,7 +140,7 @@ void inline swapBlockIndices(velocity_block_indices_t &blockIndices, const uint 
       dv,
       v_min
     );
-    return acceleration_1_struct;
+    return returned_blockData;
   }
 /*
    Here we map from the current time step grid, to a target grid which
@@ -479,7 +479,7 @@ bool map_1d(SpatialCell* spatial_cell,
    {
      //CALL CUDA FUNCTION WRAPPER START
      printf("STAGE 1\n");
-     Acceleration_1_struct acceleration_1_struct = acceleration_1_wrapperCaller
+     Realf* returnedBlockData =  acceleration_1_wrapperCaller
      (
        blockDataSize*WID3,
        blockData,

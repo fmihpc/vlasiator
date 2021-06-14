@@ -272,7 +272,7 @@ __global__ void acceleration_1
   } //for loop over columns
 }
 
-Acceleration_1_struct acceleration_1_wrapper
+Realf* acceleration_1_wrapper
 (
   int bdsw3,
   Realf *blockData,
@@ -386,20 +386,6 @@ Acceleration_1_struct acceleration_1_wrapper
   HANDLE_ERROR( cudaFree(dev_columns) );
   HANDLE_ERROR( cudaFree(dev_values) );
 
-  Acceleration_1_struct acceleration_1_wrapper =
-  {
-    blockData,
-    intersection,
-    intersection_di,
-    intersection_dj,
-    intersection_dk,
-    v_min,
-    dv,
-    minValue,
-    columns,
-    values,
-    cell_indices_to_id
-  };
-  return acceleration_1_wrapper;
+  return blockData;
 
 }
