@@ -443,7 +443,7 @@ namespace projects {
          list<pair<string,string> > attribs;
          uint64_t arraySize, byteSize, fileOffset;
          vlsv::datatype::type dataType;
-         int k;
+         //int k;
 
          // Read densities, velocities, pressures and magnetic fields from VLSV file
          // Attempt to open VLSV file for reading:
@@ -504,7 +504,6 @@ namespace projects {
 
          std::string varname = "";
 
-
          for (uint64_t i=0; i<cells.size(); i++) {
             SpatialCell* cell = mpiGrid[cells[i]];
             creal x = cell->parameters[CellParams::XCRD];
@@ -514,19 +513,13 @@ namespace projects {
             CellID oldcellID = 1 + (uint64_t) ((x - fileMin[0]) / fileD[0]) + (uint64_t) ((y - fileMin[1]) / fileD[1]) * fileCells[0] +
                (uint64_t) ((z - fileMin[2]) / fileD[2]) * fileCells[0] * fileCells[1];
 
-            fileOffset = -1;
             // Calculate fileoffset corresponding to old cellID
-            for (uint64_t j=0; j<fileCellsID.size(); j++) {
-               if (fileCellsID[j] == oldcellID) {
-                  fileOffset = j;
-                  k = j;
-                  break;
-               }
-            }
-
-            if (fileOffset == -1) {
+            auto cellIt = std::find(fileCellsID.begin(), fileCellsID.end(), oldcellID);
+            if (cellIt == fileCellsID.end()) {
                cerr << "File offset not found!" << endl;
                exit(1);
+            } else {
+               fileOffset = *cellIt;
             }
 
             // NOTE: This section assumes that the magnetic field values are saved on the spatial
@@ -537,7 +530,7 @@ namespace projects {
             //
             // The values are face-averages, not cell-averages, but are temporarily read into PERBXVOL anyway.
             attribs.push_back(make_pair("mesh","SpatialGrid"));
-            varname = pickVarName({"vg_b_perturbed_vol", "perturbed_B"});
+            varname = pickVarName("SpatialGrid", {"vg_b_perturbed_vol", "perturbed_B"});
             if (varname == "") {
                perBSet = false;
                if (myRank == MASTER_RANK) 
@@ -629,7 +622,7 @@ namespace projects {
             // }
 
             attribs.push_back(make_pair("mesh","SpatialGrid"));
-            varname = pickVarName({"proton/vg_rho", "rho", "moments"});
+            varname = pickVarName("SpatialGrid", {"proton/vg_rho", "rho", "moments"});
             if (varname == "") {
                if (myRank == MASTER_RANK) 
                   logFile << "(START)  ERROR: No rho variable found!" << endl << write;
@@ -671,7 +664,7 @@ namespace projects {
                // Now read rho_v in a separate read call	    
                attribs.push_back(make_pair("mesh","SpatialGrid"));
 
-               varname = pickVarName({"proton/vg_v", "rho_v"});
+               varname = pickVarName("SpatialGrid", {"proton/vg_v", "rho_v"});
                if (varname == "") {
                   if (myRank == MASTER_RANK) 
                      logFile << "(START)  ERROR: No v variable found!" << endl << write;
@@ -714,7 +707,7 @@ namespace projects {
             // } else {
             //    attribs.push_back(make_pair("name","pressure"));
             // }
-            varname = pickVarName({"proton/vg_ptensor_diagonal", "PTensorDiagonal", "pressure"});
+            varname = pickVarName("SpatialGrid", {"proton/vg_ptensor_diagonal", "PTensorDiagonal", "pressure"});
             if (varname == "") {
                if (myRank == MASTER_RANK) 
                   logFile << "(START)  ERROR: No PTensorDiagonal variable found!" << endl << write;
@@ -884,26 +877,29 @@ namespace projects {
       }
 
       // Try reading perturbed B-field here
-      if (!readFsGridVariable("fg_b_perturbed", perBGrid)) {
-         if (readFsGridVariable("fg_b", perBGrid)) {
-            logFile << "(START)  ERROR: No b_perturbed in FsGrid, calculating from b!" << endl << write;
-            #pragma omp for collapse(3)
-            for (int x = 0; x < localSize[0]; ++x) {
-               for (int y = 0; y < localSize[1]; ++y) {
-                  for (int z = 0; z < localSize[2]; ++z) {
-                     std::array<Real, fsgrids::bfield::N_BFIELD>* bcell = perBGrid.get(x, y, z);
-                     std::array<Real, fsgrids::bgbfield::N_BGB>* bgcell = BgBGrid.get(x, y, z);
-                     bcell->at(fsgrids::bfield::PERBX) -= bgcell->at(fsgrids::bgbfield::BGBX);
-                     bcell->at(fsgrids::bfield::PERBY) -= bgcell->at(fsgrids::bgbfield::BGBY);
-                     bcell->at(fsgrids::bfield::PERBZ) -= bgcell->at(fsgrids::bgbfield::BGBZ);
-                  }
-               }
-            }
-         } else if (!perBSet) {
+      std::string varName = pickVarName("fsgrid", {"fg_b_perturbed", "fg_b"});
+      if (varName == "" || !readFsGridVariable(varName, perBGrid)) {            
+         if (!perBSet) {
             logFile << "(START)  ERROR: No B field in file!" << endl << write;
             exit(1);
          } else {
             logFile << "(START)  No B field in FsGrid, using volumetric averages" << endl << write;
+         }
+      }
+
+      if (varName == "fg_b") {
+         logFile << "(START)  No b_perturbed in FsGrid, calculating from b!" << endl << write;
+         #pragma omp for collapse(3)
+         for (int x = 0; x < localSize[0]; ++x) {
+            for (int y = 0; y < localSize[1]; ++y) {
+               for (int z = 0; z < localSize[2]; ++z) {
+                  std::array<Real, fsgrids::bfield::N_BFIELD>* bcell = perBGrid.get(x, y, z);
+                  std::array<Real, fsgrids::bgbfield::N_BGB>* bgcell = BgBGrid.get(x, y, z);
+                  bcell->at(fsgrids::bfield::PERBX) -= bgcell->at(fsgrids::bgbfield::BGBX);
+                  bcell->at(fsgrids::bfield::PERBY) -= bgcell->at(fsgrids::bgbfield::BGBY);
+                  bcell->at(fsgrids::bfield::PERBZ) -= bgcell->at(fsgrids::bgbfield::BGBZ);
+               }
+            }
          }
       }
    }
@@ -1156,12 +1152,12 @@ namespace projects {
       return true;
    }
 
-   std::string ElVentana::pickVarName(const std::list<std::string> &varNames) {
+   std::string ElVentana::pickVarName(const std::string &grid, const std::list<std::string> &varNames) {
       vlsvinterface::Reader r;
       r.open(StartFile);
 
       std::list<std::string> fileVarNames;
-      r.getVariableNames("SpatialGrid",fileVarNames);
+      r.getVariableNames(grid, fileVarNames);
 
       std::string varName = "";
       for (std::string s : varNames) {
