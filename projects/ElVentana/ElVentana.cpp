@@ -503,18 +503,31 @@ namespace projects {
          }
 
          std::string varname = "";
+         
+         // Refine all cells that aren't found in file.
+         for (uint64_t refLevel=0; refLevel < P::amrMaxSpatialRefLevel; ++refLevel) {
+            //if (myRank == MASTER_RANK)
+            //   std::cout << "refLevel: " << refLevel;
+            for (auto it = cells.begin(); it < cells.end(); ++it) {
+               CellID id = *it;
+               //if (myRank == MASTER_RANK)
+               //   std::cout << "ID: " << id;
+               CellID oldCellID = getOldCellID(id, mpiGrid, fileMin, fileMax, fileCells, fileD);
+               if (std::find(fileCellsID.begin(), fileCellsID.end(), oldCellID) == fileCellsID.end())
+                  mpiGrid.refine_completely(id);
+            }
+            recalculateLocalCellsCache();
+         }
+
+         MPI_Barrier(MPI_COMM_WORLD);
 
          for (uint64_t i=0; i<cells.size(); i++) {
             SpatialCell* cell = mpiGrid[cells[i]];
-            creal x = cell->parameters[CellParams::XCRD];
-            creal y = cell->parameters[CellParams::YCRD];
-            creal z = cell->parameters[CellParams::ZCRD];
             // Calculate cellID in old grid
-            CellID oldcellID = 1 + (uint64_t) ((x - fileMin[0]) / fileD[0]) + (uint64_t) ((y - fileMin[1]) / fileD[1]) * fileCells[0] +
-               (uint64_t) ((z - fileMin[2]) / fileD[2]) * fileCells[0] * fileCells[1];
+            CellID oldCellID = getOldCellID(cells[i], mpiGrid, fileMin, fileMax, fileCells, fileD);
 
             // Calculate fileoffset corresponding to old cellID
-            auto cellIt = std::find(fileCellsID.begin(), fileCellsID.end(), oldcellID);
+            auto cellIt = std::find(fileCellsID.begin(), fileCellsID.end(), oldCellID);
             if (cellIt == fileCellsID.end()) {
                cerr << "File offset not found!" << endl;
                exit(1);
@@ -1169,6 +1182,24 @@ namespace projects {
 
       r.close();
       return varName;
+   }
+
+   CellID ElVentana::getOldCellID(CellID newID, dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, std::array<double, 3> &fileMin, std::array<double, 3> &fileMax, std::array<int, 3> &fileCells, std::array<double, 3> fileD) {
+      CellID oldCellID = 1;
+      int refLevel = mpiGrid[newID]->parameters[CellParams::REFINEMENT_LEVEL];
+      for (int i = 0; i < refLevel; ++i) {
+         for (auto it = fileD.begin(); it < fileD.end(); ++it)
+            *it /= 2;
+         oldCellID += fileCells[0] * fileCells[1] * fileCells[2] * pow(8, i);
+      }
+
+      creal x = mpiGrid[newID]->parameters[CellParams::XCRD];
+      creal y = mpiGrid[newID]->parameters[CellParams::YCRD];
+      creal z = mpiGrid[newID]->parameters[CellParams::ZCRD];
+      oldCellID += (uint64_t) ((x - fileMin[0]) / fileD[0]) + (uint64_t) ((y - fileMin[1]) / fileD[1]) * fileCells[0] +
+         (uint64_t) ((z - fileMin[2]) / fileD[2]) * fileCells[0] * fileCells[1];
+
+      return oldCellID;
    }
 
 } // namespace projects

@@ -105,6 +105,7 @@ namespace projects {
       std::string pickVarName(const std::string &grid, const std::list<std::string> &varNames);
       bool readGridSize(std::array<double, 3> &fileMin, std::array<double, 3> &fileMax, std::array<int, 3> &fileCells, std::array<double, 3> &fileD);
       template<unsigned long int N> bool readFsGridVariable(const std::string& variableName, FsGrid<std::array<Real, N>,2>& targetGrid);
+      CellID getOldCellID(CellID newID, dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, std::array<double, 3> &fileMin, std::array<double, 3> &fileMax, std::array<int, 3> &fileCells, std::array<double, 3> fileD);
 
       //bool includeIonosphere;
       Real ionosphereRadius;
@@ -113,6 +114,7 @@ namespace projects {
       Real dipoleScalingFactor;
       uint dipoleType;
       bool perBSet = false;
+
    }; // class ElVentana
 } // namespace projects
 
