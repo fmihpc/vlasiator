@@ -106,13 +106,13 @@ void inline swapBlockIndices(velocity_block_indices_t &blockIndices, const uint 
 
   extern Realf* acceleration_1_wrapperCaller
   (
-    int bdsw3,
     Realf *blockData,
-    int totalColumns,
     Column *columns,
-    int valuesSizeRequired,
     Vec values[],
     uint cell_indices_to_id[3],
+    int totalColumns,
+    int valuesSizeRequired,
+    int bdsw3,
     Realv intersection,
     Realv intersection_di,
     Realv intersection_dj,
@@ -122,16 +122,16 @@ void inline swapBlockIndices(velocity_block_indices_t &blockIndices, const uint 
     Realv v_min
   )
   {
-    printf("STAGE 2\n");
+    //printf("STAGE 2\n");
     Realf* returned_blockData = acceleration_1_wrapper
     (
-      bdsw3,
       blockData,
-      totalColumns,
       columns,
-      valuesSizeRequired,
       values,
       cell_indices_to_id,
+      totalColumns,
+      valuesSizeRequired,
+      bdsw3,
       intersection,
       intersection_di,
       intersection_dj,
@@ -428,9 +428,10 @@ bool map_1d(SpatialCell* spatial_cell,
    // CUDA: I removed acceleration and keep simple C++
    Realf* blockData = blockContainer.getData();
    size_t blockDataSize = blockContainer.size();
+   int bdsw3 = blockDataSize * WID3;
    if(useAccelerator)
    {
-    for(uint cell=0; cell < blockDataSize*WID3; cell++)
+    for(uint cell=0; cell < bdsw3; cell++)
     {
       blockData[cell] = 0;
     }
@@ -478,16 +479,34 @@ bool map_1d(SpatialCell* spatial_cell,
    if(useAccelerator)
    {
      //CALL CUDA FUNCTION WRAPPER START
-     printf("STAGE 1\n");
-     Realf* returnedBlockData =  acceleration_1_wrapperCaller
+     //printf("STAGE 1\n");
+     blockData = acceleration_1_wrapperCaller
      (
-       blockDataSize*WID3,
        blockData,
-       totalColumns,
        columns,
-       valuesSizeRequired,
        values,
        cell_indices_to_id,
+       totalColumns,
+       valuesSizeRequired,
+       bdsw3,
+       intersection,
+       intersection_di,
+       intersection_dj,
+       intersection_dk,
+       minValue,
+       dv,
+       v_min
+     );
+     /*
+     Realf* returnedBlockData =  acceleration_1_wrapperCaller
+     (
+       blockData,
+       columns,
+       values,
+       cell_indices_to_id,
+       totalColumns,
+       valuesSizeRequired,
+       bdsw3,
        intersection,
        intersection_di,
        intersection_dj,
@@ -497,20 +516,22 @@ bool map_1d(SpatialCell* spatial_cell,
        v_min
      );
      blockData = returnedBlockData;
+     delete [] returnedBlockData;
+     */
      //DON'T FORGET TO RECEIVE DATA
      /*
-     totalColumns = acceleration_1_struct.totalColumns;
-     columns* = acceleration_1_struct.columns;
-     values[] = acceleration_1_struct.values[];
-     a[] = acceleration_1_struct.a[];
-     cell_indices_to_id = acceleration_1_struct.cell_indices_to_id;
-     intersection = acceleration_1_struct.intersection;
-     intersection_di = acceleration_1_struct.intersection_di;
-     intersection_dj = acceleration_1_struct.intersection_dj;
-     intersection_dk = acceleration_1_struct.intersection_dk;
-     minValue = acceleration_1_struct.minValue;
-     dv = acceleration_1_struct.dv;
-     v_min = acceleration_1_struct.v_min;
+       totalColumns = acceleration_1_struct.totalColumns;
+       columns* = acceleration_1_struct.columns;
+       values[] = acceleration_1_struct.values[];
+       a[] = acceleration_1_struct.a[];
+       cell_indices_to_id = acceleration_1_struct.cell_indices_to_id;
+       intersection = acceleration_1_struct.intersection;
+       intersection_di = acceleration_1_struct.intersection_di;
+       intersection_dj = acceleration_1_struct.intersection_dj;
+       intersection_dk = acceleration_1_struct.intersection_dk;
+       minValue = acceleration_1_struct.minValue;
+       dv = acceleration_1_struct.dv;
+       v_min = acceleration_1_struct.v_min;
      */
      //CALL CUDA FUNCTION WRAPPER END
    }
@@ -701,8 +722,6 @@ bool map_1d(SpatialCell* spatial_cell,
          } //for loop over j index
       } //for loop over columns
    }
-
-
    delete [] blocks;
    delete [] columns;
    return true;

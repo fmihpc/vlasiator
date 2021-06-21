@@ -13,13 +13,13 @@ struct Column
 
 extern Realf* acceleration_1_wrapperCaller
 (
-  int bdsw3,
   Realf *blockData,
-  int totalColumns,
   Column *columns,
-  int valuesSizeRequired,
   Vec *values,
   uint cell_indices_to_id[],
+  int totalColumns,
+  int valuesSizeRequired,
+  int bdsw3,
   Realv intersection,
   Realv intersection_di,
   Realv intersection_dj,
@@ -30,13 +30,13 @@ extern Realf* acceleration_1_wrapperCaller
 );
 extern Realf* acceleration_1_wrapper
 (
-  int bdsw3,
   Realf *blockData,
-  int totalColumns,
   Column *columns,
-  int valuesSizeRequired,
   Vec *values,
   uint cell_indices_to_id[],
+  int totalColumns,
+  int valuesSizeRequired,
+  int bdsw3,
   Realv intersection,
   Realv intersection_di,
   Realv intersection_dj,

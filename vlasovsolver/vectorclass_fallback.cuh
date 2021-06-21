@@ -19,7 +19,7 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#pragma once
+//#pragma once
 #include "../vlasovsolver_cuda/cuda_header.cuh"
 
 #include "device_launch_parameters.h"

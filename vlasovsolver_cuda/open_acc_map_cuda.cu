@@ -19,18 +19,6 @@
 
 #define HANDLE_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ));
 
-__constant__ int acc_semilag_flag;
-//__constant__ int WID_DEVICE = WID;
-
-/*
-#if VECTORCLASS_H >= 20000
-  __constant__ int VECTORCLASS_H_DEVICE = 20102;
-#else
-  __constant__ int VECTORCLASS_H_DEVICE = 0;
-#endif
-*/
-
-#define HANDLE_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ));
 static void HandleError( cudaError_t err, const char *file, int line )
 {
     if (err != cudaSuccess)
@@ -39,7 +27,6 @@ static void HandleError( cudaError_t err, const char *file, int line )
         exit( EXIT_FAILURE );
     }
 }
-
 __device__ Vec minmod(const Vec slope1, const Vec slope2)
 {
   Vec zero(0.0);
@@ -86,10 +73,10 @@ __device__ int i_pcolumnv(int j, int k, int k_block, int num_k_blocks, int WID_d
 __global__ void acceleration_1
 (
   Realf *dev_blockData,
-  int totalColumns,
   Column *dev_columns,
   Vec *values,
   int *dev_cell_indices_to_id,
+  int totalColumns,
   int WID_device,
   Realv intersection,
   Realv intersection_di,
@@ -97,20 +84,21 @@ __global__ void acceleration_1
   Realv intersection_dk,
   Realv minValue,
   Realv dv,
-  Realv v_min
+  Realv v_min,
+  int acc_semilag_flag
 )
 {
   //printf("CUDA 1\n");
   for( uint column=0; column < totalColumns; column++)
   {
     //printf("CUDA 2\n");
-     // i,j,k are relative to the order in which we copied data to the values array.
-     // After this point in the k,j,i loops there should be no branches based on dimensions
-     // Note that the i dimension is vectorized, and thus there are no loops over i
-     // Iterate through the perpendicular directions of the column
+    // i,j,k are relative to the order in which we copied data to the values array.
+    // After this point in the k,j,i loops there should be no branches based on dimensions
+    // Note that the i dimension is vectorized, and thus there are no loops over i
+    // Iterate through the perpendicular directions of the column
      for (uint j = 0; j < WID_device; j += VECL/WID_device)
      {
-       //printf("CUDA 3\n");
+       //printf("CUDA 3; VECL = %d\n", VECL);
         const vmesh::LocalID nblocks = dev_columns[column].nblocks;
         // create vectors with the i and j indices in the vector position on the plane.
         #if VECL == 4
@@ -155,14 +143,14 @@ __global__ void acceleration_1
         //identiacal for each set of intersections
         int minGkIndex=0, maxGkIndex=0; // 0 for compiler
         {
-            #if defined (VEC4D_FALLBACK) || defined (VEC8D_FALLBACK)
-            Realv maxV = NPP_MAXABS_64F;
-            Realv minV = NPP_MINABS_64F;
-            #endif
-            #if defined (VEC4F_FALLBACK) || defined (VEC8F_FALLBACK)
-            Realv maxV = NPP_MAXABS_32F;
-            Realv minV = NPP_MINABS_32F;
-            #endif
+          #if defined (VEC4D_FALLBACK) || defined (VEC8D_FALLBACK)
+            Realv maxV = NPP_MINABS_64F;
+            Realv minV = NPP_MAXABS_64F;
+          #endif
+          #if defined (VEC4F_FALLBACK) || defined (VEC8F_FALLBACK)
+            Realv maxV = NPP_MINABS_32F;
+            Realv minV = NPP_MAXABS_32F;
+          #endif
            //Realv maxV = std::numeric_limits<Realv>::min();
            //Realv minV = std::numeric_limits<Realv>::max();
            for(int i = 0; i < VECL; i++)
@@ -195,13 +183,13 @@ __global__ void acceleration_1
             /*
             if(acc_semilag_flag==1)
             {
-              Vec a[3];
-              compute_ppm_coeff(values + columns[column].valuesOffset  + i_pcolumnv(j, 0, -1, nblocks), h4, k + WID, a, minValue);
+              Vec *a = new Vec[3];
+              //compute_ppm_coeff(values + dev_columns[column].valuesOffset  + i_pcolumnv(j, 0, -1, nblocks), h4, k + WID_device, a, minValue);
             }
             if(acc_semilag_flag==2)
             {
-              Vec a[5];
-              compute_pqm_coeff(values + columns[column].valuesOffset  + i_pcolumnv(j, 0, -1, nblocks), h8, k + WID, a, minValue);
+              Vec *a = new Vec[5];
+              //compute_pqm_coeff(values + dev_columns[column].valuesOffset  + i_pcolumnv(j, 0, -1, nblocks), h8, k + WID_device, a, minValue);
             }
             */
            // set the initial value for the integrand at the boundary at v = 0
@@ -213,8 +201,8 @@ __global__ void acceleration_1
            // left(l) and right(r) k values (global index) in the target
            // Lagrangian grid, the intersecting cells. Again old right is new left.
            Veci lagrangian_gk_l,lagrangian_gk_r;
-           /*
-           if(VECTORCLASS_H_DEVICE >= 20000)
+            /*
+            if(VECTORCLASS_H_DEVICE >= 20000)
             {
               lagrangian_gk_r = truncatei((v_l-intersection_min)/intersection_dk);
               lagrangian_gk_r = truncatei((v_r-intersection_min)/intersection_dk);
@@ -230,17 +218,17 @@ __global__ void acceleration_1
             lagrangian_gk_r = truncate_to_int((v_r-intersection_min)/intersection_dk);
            //limits in lagrangian k for target column. Also take into
            //account limits of target column
-           int minGk = max(int(lagrangian_gk_l[minGkIndex]), int(dev_columns[column].minBlockK * WID_device));
-           int maxGk = min(int(lagrangian_gk_r[maxGkIndex]), int((dev_columns[column].maxBlockK + 1) * WID_device - 1));
+           int minGk = min(int(lagrangian_gk_l[minGkIndex]), int(dev_columns[column].minBlockK * WID_device));
+           int maxGk = max(int(lagrangian_gk_r[maxGkIndex]), int((dev_columns[column].maxBlockK + 1) * WID_device - 1));
            // Run along the column and perform the polynomial reconstruction
            //for(int gk = minGk; gk <= maxGk; gk++){
            for(int gk = dev_columns[column].minBlockK * WID_device; gk <= dev_columns[column].maxBlockK * WID_device; gk++)
            {
-             //printf("CUDA 5\n");
+              //printf("acc_semilag_flag = %d\n", acc_semilag_flag);
+              //printf("gk = %d; minGk = %d; maxGk = %d;\n", gk, minGk, maxGk);
               if(gk < minGk || gk > maxGk)
-              {
-                 continue;
-              }
+              { continue; }
+              printf("CUDA 6\n");
               const int blockK = gk/WID_device;
               const int gk_mod_WID = (gk - blockK * VECL);
               //the block of the Lagrangian cell to which we map
@@ -282,13 +270,13 @@ __global__ void acceleration_1
 
 Realf* acceleration_1_wrapper
 (
-  int bdsw3,
   Realf *blockData,
-  int totalColumns,
   Column *columns,
-  int valuesSizeRequired,
-  Vec values[],
+  Vec *values,
   uint cell_indices_to_id[],
+  int totalColumns,
+  int valuesSizeRequired,
+  int bdsw3,
   Realv intersection,
   Realv intersection_di,
   Realv intersection_dj,
@@ -298,11 +286,7 @@ Realf* acceleration_1_wrapper
   Real minValue
 )
 {
-  printf("STAGE 3\n");
-
-//    cudaMemcpyToSymbol("WID_DEVICE", &WID_DEVICE, sizeof(int));
-//  cudaMemcpyToSymbol("VECTORCLASS_H_DEVICE", &VECTORCLASS_H_DEVICE, sizeof(int));
-
+  int WID_device = WID;
   int acc_semilag_flag = 0;
   #ifdef ACC_SEMILAG_PLM
     acc_semilag_flag = 0;
@@ -313,8 +297,8 @@ Realf* acceleration_1_wrapper
   #ifdef ACC_SEMILAG_PQM
     acc_semilag_flag = 2;
   #endif
-  cudaMemcpyToSymbol("acc_semilag_flag", &acc_semilag_flag, sizeof(int));
 
+  printf("bdsw3 = %d;\n", bdsw3);
   Realf *dev_blockData;
   HANDLE_ERROR( cudaMalloc((void**)&dev_blockData, bdsw3*sizeof(Realf)));
   HANDLE_ERROR( cudaMemcpy(dev_blockData, blockData, bdsw3*sizeof(Realf), cudaMemcpyHostToDevice));
@@ -331,31 +315,31 @@ Realf* acceleration_1_wrapper
   HANDLE_ERROR( cudaMalloc((void**)&dev_cell_indices_to_id, 3*sizeof(int)));
   HANDLE_ERROR( cudaMemcpy(dev_cell_indices_to_id, cell_indices_to_id, 3*sizeof(int), cudaMemcpyHostToDevice));
 
-  int WID_device = WID;
-  printf("WID_device = %d\n", WID_device);
   acceleration_1<<<BLOCKS, THREADS>>>
   (
     dev_blockData,
-    totalColumns,
     dev_columns,
     dev_values,
     dev_cell_indices_to_id,
-    WID_device,
-    intersection,
-    intersection_di,
-    intersection_dj,
-    intersection_dk,
-    minValue,
-    dv,
-    v_min
+        totalColumns,
+        WID_device,
+        intersection,
+        intersection_di,
+        intersection_dj,
+        intersection_dk,
+        minValue,
+        dv,
+        v_min,
+        acc_semilag_flag
   );
-
-  HANDLE_ERROR( cudaMemcpy(blockData, dev_blockData, bdsw3*sizeof(Realf), cudaMemcpyDeviceToHost));
+  cudaDeviceSynchronize();
+  Realf *bd = new Realf[bdsw3];
+  HANDLE_ERROR( cudaMemcpy(bd, dev_blockData, bdsw3*sizeof(Realf), cudaMemcpyDeviceToHost) );
 
   HANDLE_ERROR( cudaFree(dev_blockData) );
   HANDLE_ERROR( cudaFree(dev_cell_indices_to_id) );
   HANDLE_ERROR( cudaFree(dev_columns) );
   HANDLE_ERROR( cudaFree(dev_values) );
 
-  return blockData;
+  return bd;
 }
