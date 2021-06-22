@@ -426,15 +426,17 @@ bool map_1d(SpatialCell* spatial_cell,
    // and will not change shape anymore.
    // Create empty velocity space on the GPU and fill it with zeros
    // CUDA: I removed acceleration and keep simple C++
-   Realf* blockData = blockContainer.getData();
+   //Realf* blockData = blockContainer.getData();
+
    size_t blockDataSize = blockContainer.size();
    int bdsw3 = blockDataSize * WID3;
-   if(useAccelerator)
-   {
-    for(uint cell=0; cell < bdsw3; cell++)
-    {
-      blockData[cell] = 0;
-    }
+   Realf *blockData = new Realf[bdsw3];
+   for(uint cell=0; cell<bdsw3; cell++)
+    { blockData[cell] = 0; }
+    //if(useAccelerator)
+    //{
+    //for(uint cell=0; cell<bdsw3; cell++)
+    //{ blockData[cell] = 0; }
     //#pragma acc enter data copyin(blockData[:blockDataSize*WID3]) async(openacc_async_queue_id)
     /*
     previous version:
@@ -451,7 +453,7 @@ bool map_1d(SpatialCell* spatial_cell,
     //blockData = wrapperCaller(blockDataSizeTimesWID3, blockData);
     //CALL CUDA FUNCTION WRAPPER END
     //Acceleration_1_struct
-   }
+    //}
 
    // Now we iterate through target columns again, identifying their block offsets
    for( uint column=0; column < totalColumns; column++)

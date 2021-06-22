@@ -46,10 +46,10 @@ extern Realf* acceleration_1_wrapper
   Realv v_min
 );
 
-#define DIMS 1
-#define BLOCKS 1
-#define THREADS 1
-#define CUDASIZE 1
+#define DIMS 4
+#define BLOCKS 2
+#define THREADS 4
+#define CUDASIZE 4
 
 extern void wrapperCaller(int b);
 extern void wrapper(int c);

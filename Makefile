@@ -391,7 +391,7 @@ cpu_acc_intersections.o: ${DEPS_CPU_ACC_INTERSECTS}
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_intersections.cpp ${INC_EIGEN}
 
 open_acc_map_cuda.o: ${DEPS_GPU_OPEN_ACC_MAP_CUDA}
-	${NVCC} ${CUDAFLAGS} -lineinfo -D${VECTORCLASS} -dc vlasovsolver_cuda/open_acc_map_cuda.cu
+	${NVCC} ${CUDAFLAGS} -D${VECTORCLASS} -dc vlasovsolver_cuda/open_acc_map_cuda.cu
 
 cpu_acc_map.o: ${DEPS_CPU_ACC_MAP} ${DEPS_GPU_OPEN_ACC_MAP_CUDA} ${DEPS_CPU_VECTORCLASS_FALLBACK}
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_map.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE} ${INC_VECTORCLASS} ${LIB_CUDA}
