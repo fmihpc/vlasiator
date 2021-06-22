@@ -3133,15 +3133,21 @@ namespace SBC {
       }
 
       // Calculate E from potential differences
-      std::array<Real, 3> E({
+      Vec3d E({
             (potentials[1] - potentials[0]) / cellParams[CellParams::DX],
             (potentials[3] - potentials[2]) / cellParams[CellParams::DY],
             (potentials[5] - potentials[4]) / cellParams[CellParams::DZ]});
-
-      const std::array<Real, 3> B({
+      Vec3d B({
             cellParams[CellParams::BGBXVOL],
             cellParams[CellParams::BGBYVOL],
             cellParams[CellParams::BGBZVOL]});
+
+      // Add E from neutral wind convection
+      Vec3d Omega(0,0,7.2921159e-5); // Earth rotation vector, in radians/s
+      Vec3d r(xcen,ycen,zcen);
+      Vec3d vn = cross_product(Omega,r);
+      E+= cross_product(vn,B);
+
       const Real Bsqr = B[0]*B[0] + B[1]*B[1] + B[2]*B[2];
 
       // Calculate cell bulk velocity as E x B / B^2
