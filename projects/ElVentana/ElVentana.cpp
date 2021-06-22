@@ -38,6 +38,7 @@
 #include "../../tools/vlsvreaderinterface.h"
 
 #include "ElVentana.h"
+#include "../../grid.h"
 
 using namespace std;
 using namespace spatial_cell;
@@ -516,7 +517,13 @@ namespace projects {
                if (std::find(fileCellsID.begin(), fileCellsID.end(), oldCellID) == fileCellsID.end())
                   mpiGrid.refine_completely(id);
             }
+            bool done = false;
+            done = mpiGrid.stop_refining().empty();
             recalculateLocalCellsCache();
+            initSpatialCellCoordinates(mpiGrid);
+            setFaceNeighborRanks(mpiGrid);
+            if (done)
+               break;
          }
 
          MPI_Barrier(MPI_COMM_WORLD);
@@ -529,7 +536,9 @@ namespace projects {
             // Calculate fileoffset corresponding to old cellID
             auto cellIt = std::find(fileCellsID.begin(), fileCellsID.end(), oldCellID);
             if (cellIt == fileCellsID.end()) {
-               cerr << "File offset not found!" << endl;
+               cerr << "Could not find cell " << oldCellID << std::endl;
+               cerr << "Reflevel " << cell->parameters[CellParams::REFINEMENT_LEVEL] << std::endl;
+               cerr << cell->parameters[CellParams::XCRD] << " " << cell->parameters[CellParams::YCRD] << " " << cell->parameters[CellParams::ZCRD] << std::endl;
                exit(1);
             } else {
                fileOffset = *cellIt;
@@ -1060,6 +1069,11 @@ namespace projects {
       std::array<int, 3> fileCells;
       if(!readGridSize(fileMin, fileMax, fileCells, fileD)) {
          return false;
+      }
+
+      for (int i = 0; i < P::amrMaxSpatialRefLevel; ++i) {
+         for (auto it = fileD.begin(); it < fileD.end(); ++it)
+            *it /= 2;
       }
 
       std::array<int32_t,3>& localSize = targetGrid.getLocalSize();
