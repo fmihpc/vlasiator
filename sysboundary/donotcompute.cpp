@@ -49,16 +49,16 @@ namespace SBC {
    }
    
    bool DoNotCompute::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&,
-                                        FsGrid< fsgrids::technical, 2> & technicalGrid) {
+                                        FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
       return true;
    }
    
    bool DoNotCompute::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
       Project&
    ) {
-      vector<CellID> cells = mpiGrid.get_cells();
+     const vector<CellID>& cells = getLocalCells();
 #pragma omp parallel for
       for (size_t i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];

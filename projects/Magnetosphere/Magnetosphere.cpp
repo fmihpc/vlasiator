@@ -352,9 +352,9 @@ namespace projects {
 
    /* set 0-centered dipole */
    void Magnetosphere::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
-      FsGrid< fsgrids::technical, 2>& technicalGrid
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
    ) {
       Dipole bgFieldDipole;
       LineDipole bgFieldLineDipole;
@@ -396,7 +396,7 @@ namespace projects {
 	       if (P::isRestart == false) {
 		  bgFieldDipole.initialize(-8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );
 		  setPerturbedField(bgFieldDipole, perBGrid);
-		  bgVectorDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi*3.14159/180., this->dipoleTiltTheta*3.14159/180., this->dipoleXFull, this->dipoleXZero, this->dipoleInflowB[0], this->dipoleInflowB[1], this->dipoleInflowB[2]);
+		  bgVectorDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi*M_PI/180., this->dipoleTiltTheta*M_PI/180., this->dipoleXFull, this->dipoleXZero, this->dipoleInflowB[0], this->dipoleInflowB[1], this->dipoleInflowB[2]);
 		  setPerturbedField(bgVectorDipole, perBGrid, true);
 	       }
                break;              
@@ -631,15 +631,16 @@ namespace projects {
      if(myRank == MASTER_RANK) std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
       
      // Leave boundary cells and a bit of safety margin
-     const int bw = 2* VLASOV_STENCIL_WIDTH;
-     const int bw2 = 2*(bw + VLASOV_STENCIL_WIDTH);
-     const int bw3 = 2*(bw2 + VLASOV_STENCIL_WIDTH);
-     const int bw4 = 2*(bw3 + VLASOV_STENCIL_WIDTH);
+     const int bw = 2* (globalflags::AMRstencilWidth);
+     const int bw2 = 2*(bw + globalflags::AMRstencilWidth);
+     const int bw3 = 2*(bw2 + globalflags::AMRstencilWidth);
+     const int bw4 = 2*(bw3 + globalflags::AMRstencilWidth);
 
      // Calculate regions for refinement
      if (P::amrMaxSpatialRefLevel > 0) {
 
 	// L1 refinement.
+//#pragma omp parallel for collapse(3)
 	for (uint i = bw; i < P::xcells_ini-bw; ++i) {
 	   for (uint j = bw; j < P::ycells_ini-bw; ++j) {
 	      for (uint k = bw; k < P::zcells_ini-bw; ++k) {
@@ -674,6 +675,7 @@ namespace projects {
      if (P::amrMaxSpatialRefLevel > 1) {
 	
 	// L2 refinement.
+//#pragma omp parallel for collapse(3)
 	for (uint i = bw2; i < 2*P::xcells_ini-bw2; ++i) {
 	   for (uint j = bw2; j < 2*P::ycells_ini-bw2; ++j) {
 	      for (uint k = bw2; k < 2*P::zcells_ini-bw2; ++k) {
@@ -709,6 +711,7 @@ namespace projects {
      
      if (P::amrMaxSpatialRefLevel > 2) {
 	// L3 refinement.
+//#pragma omp parallel for collapse(3)
 	   for (uint i = bw3; i < 4*P::xcells_ini-bw3; ++i) {
 	      for (uint j = bw3; j < 4*P::ycells_ini-bw3; ++j) {
 		 for (uint k = bw3; k < 4*P::zcells_ini-bw3; ++k) {
@@ -760,6 +763,7 @@ namespace projects {
 
      if (P::amrMaxSpatialRefLevel > 3) {
 	// L4 refinement.
+//#pragma omp parallel for collapse(3)
 	   for (uint i = bw4; i < 8*P::xcells_ini-bw4; ++i) {
 	      for (uint j = bw4; j < 8*P::ycells_ini-bw4; ++j) {
 		 for (uint k = bw4; k < 8*P::zcells_ini-bw4; ++k) {

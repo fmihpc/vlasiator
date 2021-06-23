@@ -276,8 +276,10 @@ bool SysBoundary::initSysBoundaries(
    return success;
 }
 
-bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
-
+bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry> & mpiGrid) {
+   // Verifies that all cells within FULL_NEIGHBORHOOD_ID of L1 boundary cells are on the same refinement
+   // level (one group for inner boundary, another for outer boundary)
+  
    // Set is used to avoid storing duplicates - each cell only needs to be checked once
    std::set<CellID> innerBoundaryCells;
    std::set<CellID> outerBoundaryCells;
@@ -285,16 +287,17 @@ bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::
    int innerBoundaryRefLvl = -1;
    int outerBoundaryRefLvl = -1;
    
+   const vector<CellID>& local_cells = getLocalCells();
    // Collect cells by sysboundarytype
-   for (auto cellId : mpiGrid.get_cells()) {
+   for (auto cellId : local_cells) {
       SpatialCell* cell = mpiGrid[cellId];
       if(cell) {
          if (cell->sysBoundaryFlag == sysboundarytype::IONOSPHERE) {
             innerBoundaryCells.insert(cellId);
             innerBoundaryRefLvl = mpiGrid.get_refinement_level(cellId);
             if (cell->sysBoundaryLayer == 1) {
-               // Add non-boundary neighbors of layer 1 cells
-               auto* nbrPairVector = mpiGrid.get_neighbors_of(cellId,FULL_NEIGHBORHOOD_ID);
+               // Add all stencil neighbors of layer 1 cells
+               auto* nbrPairVector = mpiGrid.get_neighbors_of(cellId,SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
                for (auto nbrPair : *nbrPairVector) {
                   if(nbrPair.first != INVALID_CELLID) {
                      innerBoundaryCells.insert(nbrPair.first);
@@ -305,8 +308,8 @@ bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::
                     cell->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE) {
             outerBoundaryCells.insert(cellId);
             outerBoundaryRefLvl = mpiGrid.get_refinement_level(cellId);
-            // Add non-boundary neighbors of outer boundary cells
-            auto* nbrPairVector = mpiGrid.get_neighbors_of(cellId,FULL_NEIGHBORHOOD_ID);
+            // Add all stencil neighbors of outer boundary cells
+            auto* nbrPairVector = mpiGrid.get_neighbors_of(cellId,SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
             for (auto nbrPair : *nbrPairVector) {
                if(nbrPair.first != INVALID_CELLID) {
                   outerBoundaryCells.insert(nbrPair.first);
@@ -318,13 +321,20 @@ bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::
 
    for (auto cellId : innerBoundaryCells) {
       if (cellId != INVALID_CELLID && mpiGrid.get_refinement_level(cellId) != innerBoundaryRefLvl) {
+         cout << "Failed refinement check (innerBoundary) , cellId = " << cellId << 
+         " at (" << mpiGrid[cellId]->parameters[CellParams::XCRD] << ", " << mpiGrid[cellId]->parameters[CellParams::YCRD] << ", " << mpiGrid[cellId]->parameters[CellParams::ZCRD] <<
+         "). Cell level = " << mpiGrid.get_refinement_level(cellId) <<
+         ", boundary level = " << innerBoundaryRefLvl << endl;
          return false;
       }
    }
 
    for (auto cellId : outerBoundaryCells) {
       if (cellId != INVALID_CELLID && mpiGrid.get_refinement_level(cellId) != outerBoundaryRefLvl) {
-         // cout << "Failed refinement check " << cellId << " " << mpiGrid.get_refinement_level(cellId) << " "<< outerBoundaryRefLvl << endl;
+         cout << "Failed refinement check (outerBoundary), cellId = " << cellId << 
+         " at (" << mpiGrid[cellId]->parameters[CellParams::XCRD] << ", " << mpiGrid[cellId]->parameters[CellParams::YCRD] << ", " << mpiGrid[cellId]->parameters[CellParams::ZCRD] <<
+         "). Cell level = " << mpiGrid.get_refinement_level(cellId) <<
+         ", boundary level = " << outerBoundaryRefLvl << endl;
          return false;
       }
    }
@@ -334,7 +344,7 @@ bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::
 
 
 bool belongsToLayer(const int layer, const int x, const int y, const int z,
-                    FsGrid< fsgrids::technical, 2>& technicalGrid) {
+                    FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
    
    bool belongs = false;
    
@@ -374,9 +384,9 @@ bool belongsToLayer(const int layer, const int x, const int y, const int z,
  * \param mpiGrid Grid
  */
 bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                FsGrid< fsgrids::technical, 2> & technicalGrid) {
+                                FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
    bool success = true;
-   vector<CellID> cells = mpiGrid.get_cells();
+   const vector<CellID>& cells = getLocalCells();
    auto localSize = technicalGrid.getLocalSize().data();
    
    /*set all cells to default value, not_sysboundary*/
@@ -440,6 +450,9 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
       for(uint i=0; i<cells.size(); i++) {
          if(mpiGrid[cells[i]]->sysBoundaryLayer==0){
             const auto* nbrs = mpiGrid.get_neighbors_of(cells[i],SYSBOUNDARIES_NEIGHBORHOOD_ID);
+	    // Note: this distance calculation will be non-plateau monotonic only assuming that
+	    // SysBoundary::checkRefinement has been applied correctly and there are no refinement
+	    // level changes within SYSBOUNDARIES_NEIGHBORHOOD_ID.
             for(uint j=0; j<(*nbrs).size(); j++) {
                if((*nbrs)[j].first!=0 && (*nbrs)[j].first!=cells[i] ) {
                   if(mpiGrid[(*nbrs)[j].first]->sysBoundaryLayer==layer) { 
@@ -593,7 +606,7 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
  */
 bool SysBoundary::applyInitialState(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
    Project& project
 ) {
    bool success = true;
@@ -681,7 +694,7 @@ void SysBoundary::applySysBoundaryVlasovConditions(
    
       timer=phiprof::initializeTimer("Wait for receives","MPI","Wait");
       phiprof::start(timer);
-      mpiGrid.wait_remote_neighbor_copy_update_receives(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
+      mpiGrid.wait_remote_neighbor_copy_updates(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
       phiprof::stop(timer);
 
       // Compute vlasov boundary on system boundary/process boundary cells
@@ -699,11 +712,6 @@ void SysBoundary::applySysBoundaryVlasovConditions(
       } else {
          calculateMoments_R(mpiGrid, boundaryCells, true);
       }
-      phiprof::stop(timer);
-
-      timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
-      phiprof::start(timer);
-      mpiGrid.wait_remote_neighbor_copy_update_sends();
       phiprof::stop(timer);
 
       // WARNING Blocks are changed but lists not updated now, if you need to use/communicate them before the next update is done, add an update here.

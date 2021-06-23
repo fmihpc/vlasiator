@@ -24,6 +24,7 @@
 #define ITEM_STORAGE_H
 
 #include <map>
+#include <string>
 
 #include "definitions.h"
 

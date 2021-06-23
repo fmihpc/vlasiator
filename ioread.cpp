@@ -778,13 +778,14 @@ bool readCellParamsVariable(
 }
 
 template<unsigned long int N> bool readFsGridVariable(
-   vlsv::ParallelReader& file, const string& variableName, int numWritingRanks, FsGrid<std::array<Real, N>,2>& targetGrid) {
+   vlsv::ParallelReader& file, const string& variableName, int numWritingRanks, FsGrid<std::array<Real, N>,FS_STENCIL_WIDTH> & targetGrid) {
 
    uint64_t arraySize;
    uint64_t vectorSize;
    vlsv::datatype::type dataType;
    uint64_t byteSize;
    list<pair<string,string> > attribs;
+   bool convertFloatType = false;
    
    attribs.push_back(make_pair("name",variableName));
    attribs.push_back(make_pair("mesh","fsgrid"));
@@ -794,8 +795,8 @@ template<unsigned long int N> bool readFsGridVariable(
       return false;
    }
    if(! (dataType == vlsv::datatype::type::FLOAT && byteSize == sizeof(Real))) {
-      logFile << "(RESTART)  ERROR: Attempting to read fsgrid variable " << variableName << ", but it is not in the same floating point format as the simulation expects (" << byteSize*8 << " bits instead of " << sizeof(Real)*8 << ")." << endl << write;
-      return false;
+      logFile << "(RESTART) Converting floating point format of fsgrid variable " << variableName << " from " << byteSize * 8 << " bits to " << sizeof(Real) * 8 << " bits." << endl << write;
+      convertFloatType = true;
    }
 
    // Are we restarting from the same number of tasks, or a different number?
@@ -829,9 +830,24 @@ template<unsigned long int N> bool readFsGridVariable(
       // Read into buffer
       std::vector<Real> buffer(storageSize*N);
 
-      if(file.readArray("VARIABLE",attribs, localStartOffset, storageSize, (char*)buffer.data()) == false) {
-         logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
-         return false;
+      if(!convertFloatType) {
+         if(file.readArray("VARIABLE",attribs, localStartOffset, storageSize, (char*)buffer.data()) == false) {
+            logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
+            return false;
+         }
+      } else {
+
+         // Read to temporary float buffer
+         std::vector<float> readBuffer(storageSize*N);
+
+         if(file.readArray("VARIABLE",attribs, localStartOffset, storageSize, (char*)readBuffer.data()) == false) {
+            logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
+            return false;
+         }
+
+         for(uint64_t i=0; i<storageSize*N; i++) {
+            buffer[i] = readBuffer[i];
+         }
       }
       
       // Assign buffer into fsgrid
@@ -900,14 +916,31 @@ template<unsigned long int N> bool readFsGridVariable(
          // Read into buffer
          std::vector<Real> buffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
 
-         // TODO: Should these be multireads instead? And/or can this be parallelized?
-         if(file.readArray("VARIABLE",attribs, fileOffset, thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2], (char*)buffer.data()) == false) {
-            logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
-            return false;
-         }
+         phiprof::start("readArray");
 
+         file.startMultiread("VARIABLE", attribs);
          // Read every source rank that we have an overlap with.
          if(overlapSize[0]*overlapSize[1]*overlapSize[2] > 0) {
+
+
+            if(!convertFloatType) {
+               if(file.addMultireadUnit((char*)buffer.data(), thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2])==false) {
+                  logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
+                  return false;
+               }
+               file.endMultiread(fileOffset);
+            } else {
+               std::vector<float> readBuffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
+               if(file.addMultireadUnit((char*)readBuffer.data(), thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2])==false) {
+                  logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
+                  return false;
+               }
+               file.endMultiread(fileOffset);
+
+               for(uint64_t i=0; i< thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N; i++) {
+                  buffer[i]=readBuffer[i];
+               }
+            }
 
             // Copy continuous stripes in x direction.
             for(int z=overlapStart[2]; z<overlapEnd[2]; z++) {
@@ -921,12 +954,17 @@ template<unsigned long int N> bool readFsGridVariable(
                   }
                }
             }
-         } 
+         } else {
+            // If we don't overlap, just perform a dummy read.
+            file.endMultiread(fileOffset);
+         }
          fileOffset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2];
+         phiprof::stop("memcpy");
       }
    }
-
+   phiprof::start("updateGhostCells");
    targetGrid.updateGhostCells();
+   phiprof::stop("updateGhostCells");
    return true;
 }
 
@@ -981,9 +1019,9 @@ bool checkScalarParameter(vlsv::ParallelReader& file,const string& name,T correc
  \sa readGrid
  */
 bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
-      FsGrid< fsgrids::technical, 2>& technicalGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
                    const std::string& name) {
    vector<CellID> fileCells; /*< CellIds for all cells in file*/
    vector<size_t> nBlocks;/*< Number of blocks for all cells in file*/
@@ -998,6 +1036,8 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    MPI_Comm_size(MPI_COMM_WORLD,&processes);
 
    phiprof::start("readGrid");
+
+   phiprof::start("readScalars");
 
    vlsv::ParallelReader file;
    MPI_Info mpiInfo = MPI_INFO_NULL;
@@ -1042,6 +1082,8 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    checkScalarParameter(file,"xcells_ini",P::xcells_ini,MASTER_RANK,MPI_COMM_WORLD);
    checkScalarParameter(file,"ycells_ini",P::ycells_ini,MASTER_RANK,MPI_COMM_WORLD);
    checkScalarParameter(file,"zcells_ini",P::zcells_ini,MASTER_RANK,MPI_COMM_WORLD);
+
+   phiprof::stop("readScalars");
 
    phiprof::start("readDatalayout");
    if (success == true) success = readCellIds(file,fileCells,MASTER_RANK,MPI_COMM_WORLD);
@@ -1172,8 +1214,11 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    }
    phiprof::stop("readBlockData");
 
+   phiprof::start("updateMpiGridNeighbors");
    mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
+   phiprof::stop("updateMpiGridNeighbors");
    
+   phiprof::start("readFsGrid");
    // Read fsgrid data back in
    int fsgridInputRanks=0;
    if(readScalarParameter(file,"numWritingRanks",fsgridInputRanks, MASTER_RANK, MPI_COMM_WORLD) == false) {
@@ -1183,6 +1228,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    if(success) { success = readFsGridVariable(file, "fg_PERB", fsgridInputRanks, perBGrid); }
    if(success) { success = readFsGridVariable(file, "fg_E", fsgridInputRanks, EGrid); }
    exitOnError(success,"(RESTART) Failure reading fsgrid restart variables",MPI_COMM_WORLD);
+   phiprof::stop("readFsGrid");
    
    success = file.close();
    phiprof::stop("readGrid");
@@ -1198,9 +1244,9 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 \param name Name of the restart file e.g. "restart.00052.vlsv"
 */
 bool readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
-      FsGrid< fsgrids::technical, 2>& technicalGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
               const std::string& name){
    //Check the vlsv version from the file:
    return exec_readGrid(mpiGrid,perBGrid,EGrid,technicalGrid,name);

@@ -29,6 +29,7 @@
 #include <mpi.h>
 #include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
+#include "../definitions.h"
 #include "../parameters.h"
 #include "../readparameters.h"
 #include "../spatial_cell.hpp"
@@ -69,10 +70,10 @@ class SysBoundary {
                          );
    bool checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
    bool classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                      FsGrid< fsgrids::technical, 2> & technicalGrid);
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
    bool applyInitialState(
                           dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+                          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
                           Project& project
                          );
    void applySysBoundaryVlasovConditions(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, creal& t, const bool calculate_V_moments);

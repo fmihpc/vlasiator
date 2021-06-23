@@ -117,8 +117,8 @@ namespace SBC {
     * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives, 3: xy-derivatives, 4: xz-derivatives, 5: yz-derivatives.
     */
    void SysBoundaryCondition::setCellDerivativesToZero(
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
-      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
+      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
       cint i,
       cint j,
       cint k,
@@ -189,7 +189,7 @@ namespace SBC {
     * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives.
     */
    void SysBoundaryCondition::setCellBVOLDerivativesToZero(
-      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
+      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
       cint i,
       cint j,
       cint k,
@@ -613,46 +613,58 @@ namespace SBC {
          std::array<SpatialCell*,27> & flowtoCells = allFlowtoCells[cellId];
          flowtoCells.fill(NULL);
          uint dist = numeric_limits<uint>::max();
-      
-         // First iteration of search to determine closest distance
-         for(int i=-2; i<3; i++)
-            for(int j=-2; j<3; j++)
-               for(int k=-2; k<3; k++) {
-                  const CellID cell = getNeighbour(mpiGrid,cellId,i,j,k);
-                  if(cell != INVALID_CELLID) {
-                     if(mpiGrid[cell]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                        cuint d2 = i*i+j*j+k*k;
-                        if(d2 < dist) {
-                           dist = d2;
-                        }
-                        // Flowto neighbours have distances of 1, 2 or 3 at a distance of 1 layer, 4, 5 or 6 at a distance of 2 layers.
-                        // Furthermore one does not want to have the cell itself in this list.
-                        if(d2 < 4 && i != 0 && j != 0 && k != 0) {
-                           flowtoCells.at(i + 3*j + 9*k + 13) = mpiGrid[cell];
-                        }
-                        if(mpiGrid[cellId]->sysBoundaryLayer == 1 && abs(i) < 2 && abs(j) < 2 && abs(k) < 2) {
-                           closeCells.push_back(cell);
-                        }
-                        if(mpiGrid[cellId]->sysBoundaryLayer == 2) {
-                           closeCells.push_back(cell);
-                        }
-                     }
-                  }
-               }
-         // Second iteration to record the cellIds of all cells at closest distance
-         for(int i=-2; i<3; i++)
-            for(int j=-2; j<3; j++)
-               for(int k=-2; k<3; k++) {
-                  const CellID cell = getNeighbour(mpiGrid,cellId,i,j,k);
-                  if(cell != INVALID_CELLID) {
-                     if(mpiGrid[cell]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                        cuint d2 = i*i+j*j+k*k;
-                        if(d2 == dist) {
-                           closestCells.push_back(cell);
-                        }
-                     }
-                  }
-               }
+
+	 uint d2 = numeric_limits<uint>::max();
+	 int indexstep = pow(2,P::amrMaxSpatialRefLevel - mpiGrid[cellId]->SpatialCell::parameters[CellParams::REFINEMENT_LEVEL]);
+	 // Note this must be int, not uint, for latter calculations
+
+	 // Find flowto cells (note, L2 cells do not have flowto cells)
+	 auto* nearNbrs = mpiGrid.get_neighbors_of(cellId, NEAREST_NEIGHBORHOOD_ID);
+	 for (auto nbrPair : *nearNbrs) {
+	    if(nbrPair.first != INVALID_CELLID) {
+	       if(mpiGrid[nbrPair.first]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+		  flowtoCells.at((int)(nbrPair.second[0]/indexstep) + 3*(int)(nbrPair.second[1]/indexstep)
+                                 + 9*(int)(nbrPair.second[2]/indexstep) + 13) = mpiGrid[nbrPair.first];
+		  //flowtoCells.at(i + 3*j + 9*k + 13) = mpiGrid[cell];
+	       }
+	    }
+	 }
+	 // Find all close cells
+	 auto* Nbrs = mpiGrid.get_neighbors_of(cellId, SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
+	 for (auto nbrPair : *Nbrs) {
+	    if(nbrPair.first != INVALID_CELLID) {
+	       if(mpiGrid[nbrPair.first]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+		  // Find distance and update closestCells
+		  d2 = nbrPair.second[0]*nbrPair.second[0] + nbrPair.second[1]*nbrPair.second[1] + nbrPair.second[2]*nbrPair.second[2];
+		  // Only neighboring cells for L1
+		  if( (mpiGrid[cellId]->sysBoundaryLayer == 1) &&
+		      (abs(nbrPair.second[0]) <= indexstep) &&
+		      (abs(nbrPair.second[1]) <= indexstep) &&
+		      (abs(nbrPair.second[2]) <= indexstep) ) {		      
+		     closeCells.push_back(nbrPair.first);
+		     if(d2 == dist) {
+		        closestCells.push_back(nbrPair.first);
+		     } else if (d2 < dist) {
+		        closestCells.clear();
+			closestCells.push_back(nbrPair.first);
+			dist = d2;
+		     }
+		  }
+		  // search further for L2
+		  if(mpiGrid[cellId]->sysBoundaryLayer == 2) {
+		     closeCells.push_back(nbrPair.first);
+		     if(d2 == dist) {
+		        closestCells.push_back(nbrPair.first);
+		     } else if (d2 < dist) {
+		        closestCells.clear();
+			closestCells.push_back(nbrPair.first);
+			dist = d2;
+		     }
+		  }
+	       }
+	    }
+	 }	 
+	 
          if(closestCells.size() == 0) closestCells.push_back(INVALID_CELLID);
          if(closeCells.size() == 0) closeCells.push_back(INVALID_CELLID);
       }
@@ -665,7 +677,7 @@ namespace SBC {
     * \sa getAllClosestNonsysboundaryCells
     */
    std::array<int, 3> SysBoundaryCondition::getTheClosestNonsysboundaryCell(
-      FsGrid< fsgrids::technical, 2> & technicalGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
       cint i,
       cint j,
       cint k
@@ -680,7 +692,7 @@ namespace SBC {
     * \sa getTheClosestNonsysboundaryCell
     */
    std::vector< std::array<int, 3> > SysBoundaryCondition::getAllClosestNonsysboundaryCells(
-      FsGrid< fsgrids::technical, 2> & technicalGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
       cint i,
       cint j,
       cint k
@@ -786,8 +798,8 @@ namespace SBC {
    }
    
    Real SysBoundaryCondition::fieldBoundaryCopyFromSolvingNbrMagneticField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & bGrid,
-      FsGrid< fsgrids::technical, 2> & technicalGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
       cint i,
       cint j,
       cint k,
