@@ -2210,6 +2210,7 @@ namespace SBC {
       Readparameters::add("ionosphere.backgroundIonisation", "Background ionoisation due to cosmic rays (mho)", 0.5);
       Readparameters::add("ionosphere.solverMaxIterations", "Maximum number of iterations for the conjugate gradient solver", 2000);
       Readparameters::add("ionosphere.solverPreconditioning", "Use preconditioning for the solver? (0/1)", 1);
+      Readparameters::add("ionosphere.earthAngularVelocity", "Angular velocity of inner boundary convection, in rad/s", 7.2921159e-5);
       Readparameters::add("ionosphere.fieldLineTracer", "Field line tracing method to use for coupling ionosphere and magnetosphere (options are: Euler, BS)", std::string("Euler"));
       Readparameters::add("ionosphere.couplingTimescale", "Magnetosphere->Ionosphere coupling timescale (seconds, 0=immediate coupling", 1.);
       Readparameters::add("ionosphere.tracerTolerance", "Tolerance for the Bulirsch Stoer Method", 1000);
@@ -2276,6 +2277,10 @@ namespace SBC {
          exit(1);
       }
       if(!Readparameters::get("ionosphere.solverPreconditioning", solverPreconditioning)) {
+         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
+         exit(1);
+      }
+      if(!Readparameters::get("ionosphere.earthAngularVelocity", earthAngularVelocity)) {
          if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
          exit(1);
       }
@@ -3143,7 +3148,7 @@ namespace SBC {
             cellParams[CellParams::BGBZVOL]});
 
       // Add E from neutral wind convection
-      Vec3d Omega(0,0,7.2921159e-5); // Earth rotation vector, in radians/s
+      Vec3d Omega(0,0,Ionosphere::earthAngularVelocity); // Earth rotation vector
       Vec3d r(xcen,ycen,zcen);
       Vec3d vn = cross_product(Omega,r);
       E+= cross_product(vn,B);
