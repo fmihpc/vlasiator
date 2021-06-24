@@ -275,7 +275,7 @@ namespace projects {
       return this->getV0(x,y,z,dx,dy,dz,popID);
    }
 
-   bool test_fp::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+   bool test_fp::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
  
      int myRank;       
      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
