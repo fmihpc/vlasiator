@@ -420,7 +420,7 @@ namespace projects {
          // Check if velocity is within the velocity space boundaries
          if ( v[0] < getObjectWrapper().velocityMeshes[popID].meshMinLimits[0] ||
             v[0] > getObjectWrapper().velocityMeshes[popID].meshMaxLimits[0] ||
-            v[1] < getObjectWrapper().velocityMeshes[popID].meshMinLimits[1] ||
+         v[1] < getObjectWrapper().velocityMeshes[popID].meshMinLimits[1] ||
             v[1] > getObjectWrapper().velocityMeshes[popID].meshMaxLimits[1] ||
             v[2] < getObjectWrapper().velocityMeshes[popID].meshMinLimits[2] ||
             v[2] > getObjectWrapper().velocityMeshes[popID].meshMaxLimits[2] ) {
@@ -452,7 +452,7 @@ namespace projects {
          MPI_Comm_size(MPI_COMM_WORLD,&processes);
          MPI_Info mpiInfo = MPI_INFO_NULL;
          std::array<double, 3> fileMin, fileMax, fileD;
-         std::array<int, 3> fileCells;
+         std::array<uint64_t, 3> fileCells;
 
          if (this->vlsvSerialReader.open(filename) == false) {
             if(myRank == MASTER_RANK) 
@@ -460,11 +460,11 @@ namespace projects {
             exit(1);
          }
 
-         if (this->vlsvParaReader.open(filename,MPI_COMM_WORLD,MASTER_RANK,mpiInfo) == false) {
-            if (myRank == MASTER_RANK) 
-               cout << "Could not open file: " << filename << endl;
-            exit(1);
-         }
+         //if (this->vlsvParaReader.open(filename,MPI_COMM_WORLD,MASTER_RANK,mpiInfo) == false) {
+         //   if (myRank == MASTER_RANK) 
+         //      cout << "Could not open file: " << filename << endl;
+         //   exit(1);
+         //}
 
          if (readCellIds(this->vlsvParaReader,fileCellsID,MASTER_RANK,MPI_COMM_WORLD) == false) {
             if (myRank == MASTER_RANK)
@@ -476,6 +476,7 @@ namespace projects {
 
          readGridSize(fileMin, fileMax, fileCells, fileD);
          //this->vlsvParaReader.close();
+         //MPI_Barrier(MPI_COMM_WORLD);
          // Closed later
          // :D
 
@@ -504,34 +505,15 @@ namespace projects {
          }
 
          std::string varname = "";
+
+         dccrg::Mapping fileMapping;
+         fileMapping.set_length(fileCells);
+         fileMapping.set_maximum_refinement_level(P::amrMaxSpatialRefLevel);
          
-         // Refine all cells that aren't found in file.
-         for (uint64_t refLevel=0; refLevel < P::amrMaxSpatialRefLevel; ++refLevel) {
-            //if (myRank == MASTER_RANK)
-            //   std::cout << "refLevel: " << refLevel;
-            for (auto it = cells.begin(); it < cells.end(); ++it) {
-               CellID id = *it;
-               //if (myRank == MASTER_RANK)
-               //   std::cout << "ID: " << id;
-               CellID oldCellID = getOldCellID(id, mpiGrid, fileMin, fileMax, fileCells, fileD);
-               if (std::find(fileCellsID.begin(), fileCellsID.end(), oldCellID) == fileCellsID.end())
-                  mpiGrid.refine_completely(id);
-            }
-            bool done = false;
-            done = mpiGrid.stop_refining().empty();
-            recalculateLocalCellsCache();
-            initSpatialCellCoordinates(mpiGrid);
-            setFaceNeighborRanks(mpiGrid);
-            if (done)
-               break;
-         }
-
-         MPI_Barrier(MPI_COMM_WORLD);
-
          for (uint64_t i=0; i<cells.size(); i++) {
             SpatialCell* cell = mpiGrid[cells[i]];
             // Calculate cellID in old grid
-            CellID oldCellID = getOldCellID(cells[i], mpiGrid, fileMin, fileMax, fileCells, fileD);
+            CellID oldCellID = getOldCellID(cells[i], mpiGrid, fileMapping, fileMin, fileD);
 
             // Calculate fileoffset corresponding to old cellID
             auto cellIt = std::find(fileCellsID.begin(), fileCellsID.end(), oldCellID);
@@ -955,7 +937,7 @@ namespace projects {
    }
 
    // Reads physical minima and maxima, amount of cells and 
-   bool ElVentana::readGridSize(std::array<double, 3> &fileMin, std::array<double, 3> &fileMax, std::array<int, 3> &fileCells, std::array<double, 3> &fileD) {
+   bool ElVentana::readGridSize(std::array<double, 3> &fileMin, std::array<double, 3> &fileMax, std::array<uint64_t, 3> &fileCells, std::array<double, 3> &fileD) {
       int myRank = 0;
       //MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 
@@ -1066,7 +1048,7 @@ namespace projects {
       }
 
       std::array<double, 3> fileMin, fileMax, fileD;
-      std::array<int, 3> fileCells;
+      std::array<uint64_t, 3> fileCells;
       if(!readGridSize(fileMin, fileMax, fileCells, fileD)) {
          return false;
       }
@@ -1107,7 +1089,12 @@ namespace projects {
 
       // Determine the decomposition in the file and the one in RAM for our restart
       std::array<int,3> fileDecomposition;
-      targetGrid.computeDomainDecomposition(fileCells, numWritingRanks, fileDecomposition);
+      // WHY does this want int instead of uint_64t (CellID)?
+      std::array<int, 3> fileCellsCopy;
+      for (int i = 0; i < 3; ++i) {
+         fileCellsCopy[i] = fileCells[i];
+      }
+      targetGrid.computeDomainDecomposition(fileCellsCopy, numWritingRanks, fileDecomposition);
 
       // Iterate through tasks and find their overlap with our domain.
       size_t fileOffset = 0;
@@ -1198,22 +1185,83 @@ namespace projects {
       return varName;
    }
 
-   CellID ElVentana::getOldCellID(CellID newID, dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, std::array<double, 3> &fileMin, std::array<double, 3> &fileMax, std::array<int, 3> &fileCells, std::array<double, 3> fileD) {
-      CellID oldCellID = 1;
+   CellID ElVentana::getOldCellID(CellID newID, dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, dccrg::Mapping &mapping, std::array<double, 3> &fileMin, std::array<double, 3> fileD) {
       int refLevel = mpiGrid[newID]->parameters[CellParams::REFINEMENT_LEVEL];
       for (int i = 0; i < refLevel; ++i) {
          for (auto it = fileD.begin(); it < fileD.end(); ++it)
             *it /= 2;
-         oldCellID += fileCells[0] * fileCells[1] * fileCells[2] * pow(8, i);
       }
 
-      creal x = mpiGrid[newID]->parameters[CellParams::XCRD];
-      creal y = mpiGrid[newID]->parameters[CellParams::YCRD];
-      creal z = mpiGrid[newID]->parameters[CellParams::ZCRD];
-      oldCellID += (uint64_t) ((x - fileMin[0]) / fileD[0]) + (uint64_t) ((y - fileMin[1]) / fileD[1]) * fileCells[0] +
-         (uint64_t) ((z - fileMin[2]) / fileD[2]) * fileCells[0] * fileCells[1];
+      std::array<double, 3> xyz;
+      for (int i = 0; i < 3; ++i) {
+         xyz[i] = mpiGrid[newID]->parameters[CellParams::XCRD + i];
+      }
 
-      return oldCellID;
+      std::array<uint64_t, 3> indices;
+      for (int i = 0; i < 3; ++i) {
+         indices[i] = (xyz[i] - fileMin[i]) / fileD[i];
+      }
+
+      //oldCellID += (uint64_t) ((x - fileMin[0]) / fileD[0]) + (uint64_t) ((y - fileMin[1]) / fileD[1]) * fileCells[0] +
+      //   (uint64_t) ((z - fileMin[2]) / fileD[2]) * fileCells[0] * fileCells[1];
+
+      return mapping.get_cell_from_indices(indices, refLevel);
+   }
+
+   bool ElVentana::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+      vector<CellID> fileCellsID; /*< CellIds for all cells in file*/
+      std::array<double, 3> fileMin, fileMax, fileD;
+      std::array<CellID, 3> fileCells;
+      const string filename = this->StartFile;
+      const std::vector<CellID>& cells = getLocalCells();
+
+      int myRank, processes;
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+      MPI_Comm_size(MPI_COMM_WORLD,&processes);
+      MPI_Info mpiInfo = MPI_INFO_NULL;
+
+      if (this->vlsvParaReader.open(filename,MPI_COMM_WORLD,MASTER_RANK,mpiInfo) == false) {
+         if (myRank == MASTER_RANK)
+            cout << "Could not open file: " << filename << endl;
+         exit(1);
+      }
+
+      if (readCellIds(this->vlsvParaReader,fileCellsID,MASTER_RANK,MPI_COMM_WORLD) == false) {
+         if (myRank == MASTER_RANK)
+            cout << "Could not read cell IDs." << endl;
+         exit(1);
+      }
+
+      readGridSize(fileMin, fileMax, fileCells, fileD);
+
+      dccrg::Mapping fileMapping;
+      fileMapping.set_length(fileCells);
+      fileMapping.set_maximum_refinement_level(P::amrMaxSpatialRefLevel);
+
+      // Refine all cells that aren't found in file.
+      for (uint64_t refLevel=0; refLevel < P::amrMaxSpatialRefLevel; ++refLevel) {
+         for (auto it = cells.begin(); it < cells.end(); ++it) {
+            CellID id = *it;
+            //if (myRank == MASTER_RANK)
+            //   std::cout << "ID: " << id;
+            CellID oldCellID = getOldCellID(id, mpiGrid, fileMapping, fileMin, fileD);
+            if (std::find(fileCellsID.begin(), fileCellsID.end(), oldCellID) == fileCellsID.end())
+               mpiGrid.refine_completely(id);
+         }
+         //bool done = false;
+         //done = mpiGrid.stop_refining().empty();
+         mpiGrid.stop_refining();
+         mpiGrid.balance_load();
+         recalculateLocalCellsCache();
+         initSpatialCellCoordinates(mpiGrid);
+         setFaceNeighborRanks(mpiGrid);
+         //if (done)
+         //   break;
+      }
+
+      //this->vlsvParaReader.close();
+      //MPI_Barrier(MPI_COMM_WORLD);
+      return true;
    }
 
 } // namespace projects

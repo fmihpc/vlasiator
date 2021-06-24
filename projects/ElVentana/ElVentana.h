@@ -103,9 +103,10 @@ namespace projects {
       CellID findCellIDXYZ(creal x, creal y, creal z) const;
 
       std::string pickVarName(const std::string &grid, const std::list<std::string> &varNames);
-      bool readGridSize(std::array<double, 3> &fileMin, std::array<double, 3> &fileMax, std::array<int, 3> &fileCells, std::array<double, 3> &fileD);
+      bool readGridSize(std::array<double, 3> &fileMin, std::array<double, 3> &fileMax, std::array<uint64_t, 3> &fileCells, std::array<double, 3> &fileD);
       template<unsigned long int N> bool readFsGridVariable(const std::string& variableName, FsGrid<std::array<Real, N>,2>& targetGrid);
-      CellID getOldCellID(CellID newID, dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, std::array<double, 3> &fileMin, std::array<double, 3> &fileMax, std::array<int, 3> &fileCells, std::array<double, 3> fileD);
+      CellID getOldCellID(CellID newID, dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, dccrg::Mapping &mapping, std::array<double, 3> &fileMin, std::array<double, 3> fileD);
+      bool refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 
       //bool includeIonosphere;
       Real ionosphereRadius;
