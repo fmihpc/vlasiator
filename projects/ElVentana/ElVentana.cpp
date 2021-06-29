@@ -517,7 +517,7 @@ namespace projects {
                cerr << "Could not find cell " << cells[i] << " old ID " << oldCellID << " Reflevel " << cell->parameters[CellParams::REFINEMENT_LEVEL] << " at " << cell->parameters[CellParams::XCRD] << " " << cell->parameters[CellParams::YCRD] << " " << cell->parameters[CellParams::ZCRD] << std::endl;
                exit(1);
             } else {
-               fileOffset = *cellIt;
+               fileOffset = cellIt - fileCellsID.begin();
             }
 
             // NOTE: This section assumes that the magnetic field values are saved on the spatial
@@ -1199,7 +1199,7 @@ namespace projects {
       // Not working for some reason
       dccrg::Mapping fileMapping;
       if (!(fileMapping.set_length(fileCells) && fileMapping.set_maximum_refinement_level(P::amrMaxSpatialRefLevel))) {
-         std::cerr << "FUCK!" << std::endl;
+         std::cerr << "Could not set file mapping!" << std::endl;
       }
 
       std::array<double,3> xyz = mpiGrid.get_center(newID);      
@@ -1251,6 +1251,7 @@ namespace projects {
       //return oldCellID;
 
       //std::cerr << fileMapping.get_cell_from_indices(indices, refLevel) << std::endl;
+      //std::cerr << "New CellID " << newID << " old CellID " << fileMapping.get_cell_from_indices(indices, refLevel) << std::endl;
       return fileMapping.get_cell_from_indices(indices, refLevel);
 
       //return cell;
@@ -1283,11 +1284,8 @@ namespace projects {
       readGridSize(fileMin, fileMax, fileCells, fileD);
 
       // Refine all cells that aren't found in file.
-      //for (uint64_t refLevel=0; refLevel < P::amrMaxSpatialRefLevel; ++refLevel) {
-      int j = 0;
-      while(true) {
+      for (uint64_t refLevel=0; refLevel < P::amrMaxSpatialRefLevel; ++refLevel) {
          int oldCells = cells.size();
-         std::cerr << j << << " " << oldCells << std::endl;
          for (int i = 0; i < cells.size(); ++i) {
             CellID id = cells[i];
             //if (myRank == MASTER_RANK)
@@ -1303,12 +1301,7 @@ namespace projects {
          //bool done = false;
          //done = mpiGrid.stop_refining().empty();
          cells = mpiGrid.stop_refining();
-         if (cells.empty())
-            break;
-         else
-            std::cerr << "Refined " << cells.size() / 8 << " cells out of " << oldCells << std::endl;
-
-         ++j;
+         std::cerr << "Refined " << cells.size() << " cells out of " << oldCells << std::endl;
          //mpiGrid.balance_load();
          //recalculateLocalCellsCache();
          //initSpatialCellCoordinates(mpiGrid);
@@ -1318,7 +1311,6 @@ namespace projects {
       }
 
       //this->vlsvParaReader.close();
-      MPI_Barrier(MPI_COMM_WORLD);
       return true;
    }
 

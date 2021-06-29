@@ -366,8 +366,10 @@ bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::
 
    for (auto cellId : innerBoundaryCells) {
       if (cellId != INVALID_CELLID && mpiGrid.get_refinement_level(cellId) != innerBoundaryRefLvl) {
+         std::array<double,3> xyz = mpiGrid.get_center(cellId);      
          cout << "Failed refinement check (innerBoundary) , cellId = " << cellId << 
-         " at (" << mpiGrid[cellId]->parameters[CellParams::XCRD] << ", " << mpiGrid[cellId]->parameters[CellParams::YCRD] << ", " << mpiGrid[cellId]->parameters[CellParams::ZCRD] <<
+         //" at (" << mpiGrid[cellId]->parameters[CellParams::XCRD] << ", " << mpiGrid[cellId]->parameters[CellParams::YCRD] << ", " << mpiGrid[cellId]->parameters[CellParams::ZCRD] <<
+         " at (" << xyz[0] << ", " << xyz[1] << ", " << xyz[2] <<
          "). Cell level = " << mpiGrid.get_refinement_level(cellId) <<
          ", boundary level = " << innerBoundaryRefLvl << endl;
          return false;
@@ -376,8 +378,10 @@ bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::
 
    for (auto cellId : outerBoundaryCells) {
       if (cellId != INVALID_CELLID && mpiGrid.get_refinement_level(cellId) != outerBoundaryRefLvl) {
+         std::array<double,3> xyz = mpiGrid.get_center(cellId);      
          cout << "Failed refinement check (outerBoundary), cellId = " << cellId << 
-         " at (" << mpiGrid[cellId]->parameters[CellParams::XCRD] << ", " << mpiGrid[cellId]->parameters[CellParams::YCRD] << ", " << mpiGrid[cellId]->parameters[CellParams::ZCRD] <<
+         //" at (" << mpiGrid[cellId]->parameters[CellParams::XCRD] << ", " << mpiGrid[cellId]->parameters[CellParams::YCRD] << ", " << mpiGrid[cellId]->parameters[CellParams::ZCRD] <<
+         " at (" << xyz[0] << ", " << xyz[1] << ", " << xyz[2] <<
          "). Cell level = " << mpiGrid.get_refinement_level(cellId) <<
          ", boundary level = " << outerBoundaryRefLvl << endl;
          return false;
