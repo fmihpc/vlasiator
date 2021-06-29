@@ -505,22 +505,16 @@ namespace projects {
          }
 
          std::string varname = "";
-
-         dccrg::Mapping fileMapping;
-         fileMapping.set_length(fileCells);
-         fileMapping.set_maximum_refinement_level(P::amrMaxSpatialRefLevel);
          
          for (uint64_t i=0; i<cells.size(); i++) {
             SpatialCell* cell = mpiGrid[cells[i]];
             // Calculate cellID in old grid
-            CellID oldCellID = getOldCellID(cells[i], mpiGrid, fileMapping, fileMin, fileD);
+            CellID oldCellID = getOldCellID(cells[i], mpiGrid, fileCells, fileMin, fileD);
 
             // Calculate fileoffset corresponding to old cellID
             auto cellIt = std::find(fileCellsID.begin(), fileCellsID.end(), oldCellID);
             if (cellIt == fileCellsID.end()) {
-               cerr << "Could not find cell " << oldCellID << std::endl;
-               cerr << "Reflevel " << cell->parameters[CellParams::REFINEMENT_LEVEL] << std::endl;
-               cerr << cell->parameters[CellParams::XCRD] << " " << cell->parameters[CellParams::YCRD] << " " << cell->parameters[CellParams::ZCRD] << std::endl;
+               cerr << "Could not find cell " << cells[i] << " old ID " << oldCellID << " Reflevel " << cell->parameters[CellParams::REFINEMENT_LEVEL] << " at " << cell->parameters[CellParams::XCRD] << " " << cell->parameters[CellParams::YCRD] << " " << cell->parameters[CellParams::ZCRD] << std::endl;
                exit(1);
             } else {
                fileOffset = *cellIt;
@@ -1185,27 +1179,81 @@ namespace projects {
       return varName;
    }
 
-   CellID ElVentana::getOldCellID(CellID newID, dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, dccrg::Mapping &mapping, std::array<double, 3> &fileMin, std::array<double, 3> fileD) {
-      int refLevel = mpiGrid[newID]->parameters[CellParams::REFINEMENT_LEVEL];
-      for (int i = 0; i < refLevel; ++i) {
-         for (auto it = fileD.begin(); it < fileD.end(); ++it)
-            *it /= 2;
+   CellID ElVentana::getOldCellID(CellID newID, dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, std::array<CellID, 3> fileCells, std::array<double, 3> &fileMin, std::array<double, 3> fileD) {
+      int refLevel = mpiGrid.get_refinement_level(newID);
+      //CellID oldCellID = 1;
+      //int refLevel = mpiGrid[newID]->parameters[CellParams::REFINEMENT_LEVEL];
+      //for (int i = 0; i < refLevel; ++i) {
+      //   for (auto it = fileD.begin(); it < fileD.end(); ++it)
+      //      *it /= 2;
+      //   //oldCellID += fileCells[0] * fileCells[1] * fileCells[2] * pow(8, i);
+      //}
+
+      // std::cerr << newID << std::endl;
+
+      // std::array<double, 3> xyz;
+      // for (int i = 0; i < 3; ++i) {
+      //    xyz[i] = mpiGrid[newID]->parameters[CellParams::XCRD + i];
+      // }
+
+      // Not working for some reason
+      dccrg::Mapping fileMapping;
+      if (!(fileMapping.set_length(fileCells) && fileMapping.set_maximum_refinement_level(P::amrMaxSpatialRefLevel))) {
+         std::cerr << "FUCK!" << std::endl;
       }
 
-      std::array<double, 3> xyz;
-      for (int i = 0; i < 3; ++i) {
-         xyz[i] = mpiGrid[newID]->parameters[CellParams::XCRD + i];
-      }
+      std::array<double,3> xyz = mpiGrid.get_center(newID);      
 
       std::array<uint64_t, 3> indices;
       for (int i = 0; i < 3; ++i) {
-         indices[i] = (xyz[i] - fileMin[i]) / fileD[i];
+         indices[i] = (xyz[i] - fileMin[i]) / (fileD[i] / pow(2, P::amrMaxSpatialRefLevel));
       }
 
-      //oldCellID += (uint64_t) ((x - fileMin[0]) / fileD[0]) + (uint64_t) ((y - fileMin[1]) / fileD[1]) * fileCells[0] +
-      //   (uint64_t) ((z - fileMin[2]) / fileD[2]) * fileCells[0] * fileCells[1];
+      // // cell numbering starts at 1
+      // uint64_t cell = 1;
 
-      return mapping.get_cell_from_indices(indices, refLevel);
+      // // add ids of larger cells
+      // for (int i = 0; i < refLevel; i++) {
+      //    cell +=
+      //       fileCells[0]
+      //       * fileCells[1]
+      //       * fileCells[2]
+      //       * (uint64_t(1) << (i * 3));
+      // }
+
+      // // convert to indices of this cell's refinement level
+      // //const std::array<CellID, 3> this_level_indices = {{
+      // //	indices[0] / (uint64_t(1) << (P::amrMaxSpatialRefLevel - refLevel)),
+      // //	indices[1] / (uint64_t(1) << (P::amrMaxSpatialRefLevel - refLevel)),
+      // //	indices[2] / (uint64_t(1) << (P::amrMaxSpatialRefLevel - refLevel))
+      // //}};
+
+      // // get the length of the grid in terms of cells of this refinement level
+      // const std::array<CellID, 2> this_level_length = {{
+      //    fileCells[0] * (uint64_t(1) << refLevel),
+      //    fileCells[1] * (uint64_t(1) << refLevel)
+      // }};
+
+      // cell
+      // //	+= this_level_indices[0]
+      // //	+ this_level_indices[1] * this_level_length[0]
+      // //	+ this_level_indices[2] * this_level_length[0] * this_level_length[1];
+      //    += indices[0]
+      //    + indices[1] * this_level_length[0]
+      //    + indices[2] * this_level_length[0] * this_level_length[1];
+      // std::cout << cell << std::endl;
+      // std::cout << std::endl;
+
+      //std::cerr << cell << std::endl;
+
+      //oldCellID += (uint64_t) ((xyz[0] - fileMin[0]) / fileD[0]) + (uint64_t) ((xyz[1] - fileMin[1]) / fileD[1]) * fileCells[0] +
+      //   (uint64_t) ((xyz[2] - fileMin[2]) / fileD[2]) * fileCells[0] * fileCells[1];
+      //return oldCellID;
+
+      //std::cerr << fileMapping.get_cell_from_indices(indices, refLevel) << std::endl;
+      return fileMapping.get_cell_from_indices(indices, refLevel);
+
+      //return cell;
    }
 
    bool ElVentana::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
@@ -1213,7 +1261,7 @@ namespace projects {
       std::array<double, 3> fileMin, fileMax, fileD;
       std::array<CellID, 3> fileCells;
       const string filename = this->StartFile;
-      const std::vector<CellID>& cells = getLocalCells();
+      std::vector<CellID> cells = getLocalCells();
 
       int myRank, processes;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
@@ -1234,33 +1282,43 @@ namespace projects {
 
       readGridSize(fileMin, fileMax, fileCells, fileD);
 
-      dccrg::Mapping fileMapping;
-      fileMapping.set_length(fileCells);
-      fileMapping.set_maximum_refinement_level(P::amrMaxSpatialRefLevel);
-
       // Refine all cells that aren't found in file.
-      for (uint64_t refLevel=0; refLevel < P::amrMaxSpatialRefLevel; ++refLevel) {
-         for (auto it = cells.begin(); it < cells.end(); ++it) {
-            CellID id = *it;
+      //for (uint64_t refLevel=0; refLevel < P::amrMaxSpatialRefLevel; ++refLevel) {
+      int j = 0;
+      while(true) {
+         int oldCells = cells.size();
+         std::cerr << j << << " " << oldCells << std::endl;
+         for (int i = 0; i < cells.size(); ++i) {
+            CellID id = cells[i];
             //if (myRank == MASTER_RANK)
             //   std::cout << "ID: " << id;
-            CellID oldCellID = getOldCellID(id, mpiGrid, fileMapping, fileMin, fileD);
-            if (std::find(fileCellsID.begin(), fileCellsID.end(), oldCellID) == fileCellsID.end())
+            CellID oldCellID = getOldCellID(id, mpiGrid, fileCells, fileMin, fileD);
+            if (std::find(fileCellsID.begin(), fileCellsID.end(), oldCellID) == fileCellsID.end()) {
+               //std::cerr << "Refined " << id << " old ID " << oldCellID << std::endl;
                mpiGrid.refine_completely(id);
+            } else {
+               //std::cerr << "Found " << id << " old ID " << oldCellID << std::endl;
+            }
          }
          //bool done = false;
          //done = mpiGrid.stop_refining().empty();
-         mpiGrid.stop_refining();
-         mpiGrid.balance_load();
-         recalculateLocalCellsCache();
-         initSpatialCellCoordinates(mpiGrid);
-         setFaceNeighborRanks(mpiGrid);
+         cells = mpiGrid.stop_refining();
+         if (cells.empty())
+            break;
+         else
+            std::cerr << "Refined " << cells.size() / 8 << " cells out of " << oldCells << std::endl;
+
+         ++j;
+         //mpiGrid.balance_load();
+         //recalculateLocalCellsCache();
+         //initSpatialCellCoordinates(mpiGrid);
+         //setFaceNeighborRanks(mpiGrid);
          //if (done)
          //   break;
       }
 
       //this->vlsvParaReader.close();
-      //MPI_Barrier(MPI_COMM_WORLD);
+      MPI_Barrier(MPI_COMM_WORLD);
       return true;
    }
 
