@@ -3147,11 +3147,15 @@ namespace SBC {
             cellParams[CellParams::BGBYVOL],
             cellParams[CellParams::BGBZVOL]});
 
-      // Add E from neutral wind convection
+      // Add E from neutral wind convection for all cells with L <= 5
       Vec3d Omega(0,0,Ionosphere::earthAngularVelocity); // Earth rotation vector
       Vec3d r(xcen,ycen,zcen);
       Vec3d vn = cross_product(Omega,r);
-      E+= cross_product(vn,B);
+
+      Real radius = vector_length(r);
+      if(radius/Ionosphere::innerRadius <= 5 * radius*radius/(r[0]*r[0] + r[1]*r[1])) {
+         E += cross_product(vn, B);
+      }
 
       const Real Bsqr = B[0]*B[0] + B[1]*B[1] + B[2]*B[2];
 
