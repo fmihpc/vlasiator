@@ -99,7 +99,6 @@ namespace projects {
       vlsv::ParallelReader vlsvParaReader;
       vlsv::Reader vlsvSerialReader;
       uint64_t vecsizeperturbed_B, vecsizebackground_B, vecsizeE, vecsizemoments, vecsizebulkv, vecsizepressure; 
-      CellID findCellID(spatial_cell::SpatialCell *cell) const;
       CellID findCellIDXYZ(creal x, creal y, creal z) const;
 
       std::string pickVarName(const std::string &grid, const std::list<std::string> &varNames);
