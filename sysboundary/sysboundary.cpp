@@ -76,10 +76,13 @@ SysBoundary::~SysBoundary() {
  * help.
  */
 void SysBoundary::addParameters() {
-   Readparameters::addComposing("boundaries.boundary", "List of boundary condition (BC) types to be used. Each boundary condition to be used has to be on a new line boundary = YYY. Available (20140113) are Outflow Ionosphere Maxwellian.");
-   Readparameters::add("boundaries.periodic_x","If 'yes' the grid is periodic in x-direction. Defaults to 'no'.","no");
-   Readparameters::add("boundaries.periodic_y","If 'yes' the grid is periodic in y-direction. Defaults to 'no'.","no");
-   Readparameters::add("boundaries.periodic_z","If 'yes' the grid is periodic in z-direction. Defaults to 'no'.","no");
+   Readparameters::addComposing(
+       "boundaries.boundary",
+       "List of boundary condition (BC) types to be used. Each boundary condition to be used has to be on a new line "
+       "boundary = YYY. Available options are: Outflow, Ionosphere, Maxwellian, User.");
+   Readparameters::add("boundaries.periodic_x", "Set the grid periodicity in x-direction. true(default)/false.", true);
+   Readparameters::add("boundaries.periodic_y", "Set the grid periodicity in y-direction. true(default)/false.", true);
+   Readparameters::add("boundaries.periodic_z", "Set the grid periodicity in z-direction. true(default)/false.", true);
    
    //call static addParameter functions in all bc's
    SBC::DoNotCompute::addParameters();
@@ -96,25 +99,13 @@ void SysBoundary::addParameters() {
  * SysBoundaryCondition's initialization function.
  */
 void SysBoundary::getParameters() {
-   int myRank;
-   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-   if(!Readparameters::get("boundaries.boundary", sysBoundaryCondList)) {
-      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-      exit(1);
-   }
    std::string periodic_x,periodic_y,periodic_z;
-   if(!Readparameters::get("boundaries.periodic_x",periodic_x)) {
-      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-      exit(1);
-   }
-   if(!Readparameters::get("boundaries.periodic_y",periodic_y)) {
-      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-      exit(1);
-   };
-   if(!Readparameters::get("boundaries.periodic_z",periodic_z)) {
-      if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-      exit(1);
-   };
+
+   Readparameters::get("boundaries.boundary", sysBoundaryCondList);
+   Readparameters::get("boundaries.periodic_x", periodic_x);
+   Readparameters::get("boundaries.periodic_y", periodic_y);
+   Readparameters::get("boundaries.periodic_z", periodic_z);
+
    isPeriodic[0] = false;
    isPeriodic[1] = false;
    isPeriodic[2] = false;

@@ -316,28 +316,29 @@ int main(int argn,char* args[]) {
    signal(SIGFPE, fpehandler);
    #endif
 
+
+
    phiprof::start("main");
    phiprof::start("Initialization");
    phiprof::start("Read parameters");
    //init parameter file reader
-   Readparameters readparameters(argn,args,MPI_COMM_WORLD);
+   Readparameters readparameters(argn,args);
+
    P::addParameters();
+
    getObjectWrapper().addParameters();
-   readparameters.parse(); // First pass parsing
-   if (P::getParameters() == false) {
-      if (myRank == MASTER_RANK) {
-         cerr << "(MAIN) ERROR: getParameters failed!" << endl;
-      }
-      exit(1);
-   }
+
+   readparameters.parse();
+
+   P::getParameters();
 
    getObjectWrapper().addPopulationParameters();
    sysBoundaries.addParameters();
    projects::Project::addParameters();
+
    Project* project = projects::createProject();
    getObjectWrapper().project = project;
-   
-   readparameters.parse(); // Second pass parsing: specific population parameters
+   readparameters.parse(true, false); // 2nd parsing for specific population parameters
    readparameters.helpMessage(); // Call after last parse, exits after printing help if help requested
    getObjectWrapper().getParameters();
    project->getParameters();
@@ -384,7 +385,7 @@ int main(int argn,char* args[]) {
       }
    }
    phiprof::stop("Init project");
-   
+
    // Add AMR refinement criterias:
    amr_ref_criteria::addRefinementCriteria();
 
@@ -399,7 +400,7 @@ int main(int argn,char* args[]) {
    std::array<bool,3> periodicity{sysBoundaries.isBoundaryPeriodic(0),
                                   sysBoundaries.isBoundaryPeriodic(1),
                                   sysBoundaries.isBoundaryPeriodic(2)};
-   
+
    FsGridCouplingInformation gridCoupling;
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBGrid(fsGridDimensions, comm, periodicity,gridCoupling);
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBDt2Grid(fsGridDimensions, comm, periodicity,gridCoupling);
@@ -441,7 +442,7 @@ int main(int argn,char* args[]) {
      std::cerr << "WARNING: Your spatial cells seem not to be cubic. However the field solver is assuming them to be. Use at your own risk and responsibility!" << std::endl;
    }
    phiprof::stop("Init fieldsolver grids");
-   
+
    // Initialize grid.  After initializeGrid local cells have dist
    // functions, and B fields set. Cells have also been classified for
    // the various sys boundary conditions.  All remote cells have been
@@ -478,7 +479,7 @@ int main(int argn,char* args[]) {
    phiprof::stop("Init DROs");  
    
    // Free up memory:
-   readparameters.finalize();
+   readparameters.~Readparameters();
 
    // Run the field solver once with zero dt. This will initialize
    // Fieldsolver dt limits, and also calculate volumetric B-fields.
@@ -881,9 +882,9 @@ int main(int argn,char* args[]) {
       
       // Apply boundary conditions
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
-         phiprof::start("Update system boundaries (Vlasov post-translation)");
+         phiprof::start("Update system sysBoundaries (Vlasov post-translation)");
          sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt, false);
-         phiprof::stop("Update system boundaries (Vlasov post-translation)");
+         phiprof::stop("Update system sysBoundaries (Vlasov post-translation)");
          addTimedBarrier("barrier-boundary-conditions");
       }
       
@@ -954,9 +955,9 @@ int main(int argn,char* args[]) {
       addTimedBarrier("barrier-after-acceleration");
       
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
-         phiprof::start("Update system boundaries (Vlasov post-acceleration)");
+         phiprof::start("Update system sysBoundaries (Vlasov post-acceleration)");
          sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt, true);
-         phiprof::stop("Update system boundaries (Vlasov post-acceleration)");
+         phiprof::stop("Update system sysBoundaries (Vlasov post-acceleration)");
          addTimedBarrier("barrier-boundary-conditions");
       }
       
@@ -1045,7 +1046,7 @@ int main(int argn,char* args[]) {
    BgBGrid.finalize();
    volGrid.finalize();
    technicalGrid.finalize();
-   
+
    MPI_Finalize();
    return 0;
 }
