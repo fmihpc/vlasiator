@@ -130,9 +130,10 @@ namespace SBC {
          creal x = cellParams[CellParams::XCRD] + 0.5*dx;
          creal y = cellParams[CellParams::YCRD] + 0.5*dy;
          creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
+         int refLevel = cellParams[CellParams::REFINEMENT_LEVEL];
          
          isThisCellOnAFace.fill(false);
-         determineFace(isThisCellOnAFace.data(), x, y, z, dx, dy, dz);
+         determineFace(isThisCellOnAFace.data(), x, y, z, P::dx_ini, P::dy_ini, P::dz_ini);
          
          // Comparison of the array defining which faces to use and the array telling on which faces this cell is
          doAssign = false;
@@ -160,9 +161,12 @@ namespace SBC {
                   cerr << "Error, could not get refinement level of remote DCCRG cell " << __FILE__ << " " << __LINE__ << endl;
                }
                
-               creal dx = P::dx_ini * pow(2,-refLvl);
-               creal dy = P::dy_ini * pow(2,-refLvl);
-               creal dz = P::dz_ini * pow(2,-refLvl);
+               //creal dx = P::dx_ini * pow(2,-refLvl);
+               //creal dy = P::dy_ini * pow(2,-refLvl);
+               //creal dz = P::dz_ini * pow(2,-refLvl);
+               creal dx = P::dx_ini;
+               creal dy = P::dy_ini;
+               creal dz = P::dz_ini;
 
                isThisCellOnAFace.fill(false);
                doAssign = false;
