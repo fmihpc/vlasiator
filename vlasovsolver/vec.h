@@ -133,11 +133,15 @@ typedef float Realv;
 
 #ifdef VEC4D_FALLBACK
 //user portable vectorclass
+/*
 #ifdef __CUDACC__
+*/
 #include "vectorclass_fallback.cuh"
+/*
 #else
 #include "vectorclass_fallback.h"
 #endif
+*/
 typedef Vec4Simple<double> Vec;
 typedef Vec4Simple<bool> Vecb;
 typedef Vec4Simple<int> Veci;
@@ -151,11 +155,16 @@ typedef double Realv;
 
 #ifdef VEC4F_FALLBACK
 //user portable vectorclass
+//user portable vectorclass
+/*
 #ifdef __CUDACC__
+*/
 #include "vectorclass_fallback.cuh"
+/*
 #else
 #include "vectorclass_fallback.h"
 #endif
+*/
 typedef Vec4Simple<float> Vec;
 typedef Vec4Simple<bool> Vecb;
 typedef Vec4Simple<int> Veci;
@@ -169,11 +178,16 @@ typedef float Realv;
 
 #ifdef VEC8D_FALLBACK
 //user portable vecto rclass
+//user portable vectorclass
+/*
 #ifdef __CUDACC__
+*/
 #include "vectorclass_fallback.cuh"
+/*
 #else
 #include "vectorclass_fallback.h"
 #endif
+*/
 typedef Vec8Simple<double> Vec;
 typedef Vec8Simple<bool> Vecb;
 typedef Vec8Simple<int> Veci;
@@ -188,11 +202,16 @@ typedef double Realv;
 
 #ifdef VEC8F_FALLBACK
 //user portable vectorclass
+//user portable vectorclass
+/*
 #ifdef __CUDACC__
+*/
 #include "vectorclass_fallback.cuh"
+/*
 #else
 #include "vectorclass_fallback.h"
 #endif
+*/
 typedef Vec8Simple<float> Vec;
 typedef Vec8Simple<bool> Vecb;
 typedef Vec8Simple<int> Veci;

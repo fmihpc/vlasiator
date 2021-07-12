@@ -24,9 +24,10 @@ extern Realf* acceleration_1_wrapperCaller
   Realv intersection_di,
   Realv intersection_dj,
   Realv intersection_dk,
-  Realv minValue,
+  Realv v_min,
+  Realv i_dv,
   Realv dv,
-  Realv v_min
+  double minValue
 );
 extern Realf* acceleration_1_wrapper
 (
@@ -41,15 +42,13 @@ extern Realf* acceleration_1_wrapper
   Realv intersection_di,
   Realv intersection_dj,
   Realv intersection_dk,
-  Realv minValue,
+  Realv v_min,
+  Realv i_dv,
   Realv dv,
-  Realv v_min
+  double minValue
 );
 
 #define DIMS 4
 #define BLOCKS 2
 #define THREADS 4
 #define CUDASIZE 4
-
-extern void wrapperCaller(int b);
-extern void wrapper(int c);

@@ -25,9 +25,7 @@
 
 /*! \file vectorclass_fallback.h
   \brief Simple class for implementing a vector with 4 real values
-
 */
-
 // Prefetching does nothing in the fallback vectorclass, if no system implementation
 // is available
 #ifndef _mm_prefetch
@@ -46,14 +44,14 @@ public:
       for(unsigned int i=0;i<4;i++)
          val[i]=x;
    }
-   
-   // Replicate 4 values across v.   
+
+   // Replicate 4 values across v.
    Vec4Simple(T a,T b,T c,T d){
       val[0]=a;
       val[1]=b;
       val[2]=c;
       val[3]=d;
-      
+
    }
    // Copy vector v.
    Vec4Simple(Vec4Simple const &x){
@@ -71,7 +69,7 @@ public:
    Vec4Simple & load_a(T const * p){
       return this->load(p);
    }
-   
+
    Vec4Simple & insert(int i,T const &x) {
       val[i]=x;
       return *this;
@@ -91,7 +89,7 @@ public:
    Vec4Simple & operator = (Vec4Simple const & r){
       for(unsigned int i=0;i<4;i++)
          val[i]=r.val[i];
-      
+
       return *this;
    }
 
@@ -290,7 +288,7 @@ static inline Vec4Simple<T> & operator -= (Vec4Simple<T> &l, const Vec4Simple<T>
    return l;
 }
 
-template <class T, class S>   
+template <class T, class S>
 static inline Vec4Simple<T> & operator -= (Vec4Simple<T> &l, const S &r){
    l = l - r;
    return l;
@@ -391,7 +389,7 @@ static inline Vec4Simple<bool> operator > (const Vec4Simple<T> &l, const S r)
 
 
 template <class T, class S>
-  static inline Vec4Simple<bool> operator > (const S l,const Vec4Simple<T> &r) 
+  static inline Vec4Simple<bool> operator > (const S l,const Vec4Simple<T> &r)
 {
    return Vec4Simple<bool>(
       l > r.val[0],
@@ -428,7 +426,7 @@ static inline Vec4Simple<bool> operator >= (const Vec4Simple<T> &l, const S r)
 
 
 template <class T, class S>
-  static inline Vec4Simple<bool> operator >= (const S l,const Vec4Simple<T> &r) 
+  static inline Vec4Simple<bool> operator >= (const S l,const Vec4Simple<T> &r)
 {
    return Vec4Simple<bool>(
       l >= r.val[0],
@@ -464,7 +462,7 @@ static inline Vec4Simple<bool> operator < (const Vec4Simple<T> &l,const S &r)
 }
 
 template <class T, class S>
-  static inline Vec4Simple<bool> operator < (const S l, const Vec4Simple<T> &r) 
+  static inline Vec4Simple<bool> operator < (const S l, const Vec4Simple<T> &r)
 {
    return Vec4Simple<bool>(
       l < r.val[0],
@@ -500,7 +498,7 @@ static inline Vec4Simple<bool> operator <= (const Vec4Simple<T> &l,const S &r)
 }
 
 template <class T, class S>
-  static inline Vec4Simple<bool> operator <= (const S l, const Vec4Simple<T> &r) 
+  static inline Vec4Simple<bool> operator <= (const S l, const Vec4Simple<T> &r)
 {
    return Vec4Simple<bool>(
       l <= r.val[0],
@@ -568,7 +566,7 @@ template <class T, class S>
 
 
 template <class T>
-static inline Vec4Simple<T> select(Vec4Simple<bool> const & a, Vec4Simple<T> const & b, Vec4Simple<T> const & c){ 
+static inline Vec4Simple<T> select(Vec4Simple<bool> const & a, Vec4Simple<T> const & b, Vec4Simple<T> const & c){
    return Vec4Simple<T>(
       a.val[0] ? b.val[0] : c.val[0],
       a.val[1] ? b.val[1] : c.val[1],
@@ -579,7 +577,7 @@ static inline Vec4Simple<T> select(Vec4Simple<bool> const & a, Vec4Simple<T> con
 
 
 template <class T, class S>
-static inline Vec4Simple<T> select(Vec4Simple<bool> const & a, S const & b, Vec4Simple<T> const & c){ 
+static inline Vec4Simple<T> select(Vec4Simple<bool> const & a, S const & b, Vec4Simple<T> const & c){
    return Vec4Simple<T>(
       a.val[0] ? b : c.val[0],
       a.val[1] ? b : c.val[1],
@@ -611,36 +609,36 @@ template <class T>
 }
 
 template <class T>
-static inline bool horizontal_or(Vec4Simple<T> const & a){ 
+static inline bool horizontal_or(Vec4Simple<T> const & a){
   return a.val[0] || a.val[1] || a.val[2] || a.val[3];
 }
 
 
 template <class T>
-static inline bool horizontal_and(Vec4Simple<T> const & a){ 
+static inline bool horizontal_and(Vec4Simple<T> const & a){
   return a.val[0] && a.val[1] && a.val[2] && a.val[3];
 }
 
 
 
 template <class T>
-static inline Vec4Simple<int> truncate_to_int(Vec4Simple<T> const & a){ 
+static inline Vec4Simple<int> truncate_to_int(Vec4Simple<T> const & a){
   return Vec4Simple<int>(a.val[0], a.val[1], a.val[2], a.val[3]);
 }
 
 template <class T>
-static inline Vec4Simple<double> to_double(Vec4Simple<T> const & a){ 
+static inline Vec4Simple<double> to_double(Vec4Simple<T> const & a){
   return Vec4Simple<double>(a.val[0], a.val[1], a.val[2], a.val[3]);
 }
 
 template <class T>
-static inline Vec4Simple<float> to_float(Vec4Simple<T> const & a){ 
+static inline Vec4Simple<float> to_float(Vec4Simple<T> const & a){
   return Vec4Simple<float>(a.val[0], a.val[1], a.val[2], a.val[3]);
 }
 
 // Dummy functions that Agner vectorclass has.
 // These are here to suppress compiler error messages only
-static void no_subnormals() 
+static void no_subnormals()
 {
 }
 
@@ -658,8 +656,8 @@ public:
       for(unsigned int i=0; i<8; i++)
          val[i]=x;
    }
-   
-   // Replicate 4 values across v.   
+
+   // Replicate 4 values across v.
    Vec8Simple(T a,T b,T c,T d, T e,T f,T g,T h ){
       val[0]=a;
       val[1]=b;
@@ -686,7 +684,7 @@ public:
    Vec8Simple & load_a(T const * p){
       return this->load(p);
    }
-   
+
    Vec8Simple & insert(int i,T const &x) {
       val[i]=x;
       return *this;
@@ -706,7 +704,7 @@ public:
    Vec8Simple & operator = (Vec8Simple const & r){
       for(unsigned int i=0;i<8;i++)
          val[i]=r.val[i];
-      
+
       return *this;
    }
 
@@ -973,7 +971,7 @@ static inline Vec8Simple<T> & operator -= (Vec8Simple<T> &l, const Vec8Simple<T>
    return l;
 }
 
-template <class T, class S>   
+template <class T, class S>
 static inline Vec8Simple<T> & operator -= (Vec8Simple<T> &l, const S &r){
    l = l - r;
    return l;
@@ -1123,7 +1121,7 @@ static inline Vec8Simple<bool> operator > (const Vec8Simple<T> &l, const S r)
 
 
 template <class T, class S>
-  static inline Vec8Simple<bool> operator > (const S l,const Vec8Simple<T> &r) 
+  static inline Vec8Simple<bool> operator > (const S l,const Vec8Simple<T> &r)
 {
    return Vec8Simple<bool>(
       l > r.val[0],
@@ -1175,7 +1173,7 @@ static inline Vec8Simple<bool> operator >= (const Vec8Simple<T> &l, const S r)
 
 
 template <class T, class S>
-  static inline Vec8Simple<bool> operator >= (const S l,const Vec8Simple<T> &r) 
+  static inline Vec8Simple<bool> operator >= (const S l,const Vec8Simple<T> &r)
 {
    return Vec8Simple<bool>(
       l >= r.val[0],
@@ -1226,7 +1224,7 @@ static inline Vec8Simple<bool> operator < (const Vec8Simple<T> &l,const S &r)
 }
 
 template <class T, class S>
-  static inline Vec8Simple<bool> operator < (const S l, const Vec8Simple<T> &r) 
+  static inline Vec8Simple<bool> operator < (const S l, const Vec8Simple<T> &r)
 {
    return Vec8Simple<bool>(
       l < r.val[0],
@@ -1277,7 +1275,7 @@ static inline Vec8Simple<bool> operator <= (const Vec8Simple<T> &l,const S &r)
 }
 
 template <class T, class S>
-  static inline Vec8Simple<bool> operator <= (const S l, const Vec8Simple<T> &r) 
+  static inline Vec8Simple<bool> operator <= (const S l, const Vec8Simple<T> &r)
 {
    return Vec8Simple<bool>(
       l <= r.val[0],
@@ -1372,7 +1370,7 @@ template <class T, class S>
 
 
 template <class T>
-static inline Vec8Simple<T> select(Vec8Simple<bool> const & a, Vec8Simple<T> const & b, Vec8Simple<T> const & c){ 
+static inline Vec8Simple<T> select(Vec8Simple<bool> const & a, Vec8Simple<T> const & b, Vec8Simple<T> const & c){
    return Vec8Simple<T>(
       a.val[0] ? b.val[0] : c.val[0],
       a.val[1] ? b.val[1] : c.val[1],
@@ -1387,7 +1385,7 @@ static inline Vec8Simple<T> select(Vec8Simple<bool> const & a, Vec8Simple<T> con
 
 
 template <class T, class S>
-static inline Vec8Simple<T> select(Vec8Simple<bool> const & a, S const & b, Vec8Simple<T> const & c){ 
+static inline Vec8Simple<T> select(Vec8Simple<bool> const & a, S const & b, Vec8Simple<T> const & c){
    return Vec8Simple<T>(
       a.val[0] ? b : c.val[0],
       a.val[1] ? b : c.val[1],
@@ -1431,38 +1429,36 @@ template <class T>
 }
 
 template <class T>
-static inline bool horizontal_or(Vec8Simple<T> const & a){ 
+static inline bool horizontal_or(Vec8Simple<T> const & a){
   return a.val[0] || a.val[1] || a.val[2] || a.val[3] ||
      a.val[4] || a.val[5] || a.val[6] || a.val[7];
 }
 
 
 template <class T>
-static inline bool horizontal_and(Vec8Simple<T> const & a){ 
-   return a.val[0] && a.val[1] && a.val[2] && a.val[3] && 
+static inline bool horizontal_and(Vec8Simple<T> const & a){
+   return a.val[0] && a.val[1] && a.val[2] && a.val[3] &&
       a.val[4] && a.val[5] && a.val[6] && a.val[7];
 }
 
 
 
 template <class T>
-static inline Vec8Simple<int> truncate_to_int(Vec8Simple<T> const & a){ 
+static inline Vec8Simple<int> truncate_to_int(Vec8Simple<T> const & a){
    return Vec8Simple<int>(a.val[0], a.val[1], a.val[2], a.val[3],
                           a.val[4], a.val[5], a.val[6], a.val[7]);
-   
+
 }
 
 template <class T>
-static inline Vec8Simple<double> to_double(Vec8Simple<T> const & a){ 
+static inline Vec8Simple<double> to_double(Vec8Simple<T> const & a){
    return Vec8Simple<double>(a.val[0], a.val[1], a.val[2], a.val[3],
                              a.val[4], a.val[5], a.val[6], a.val[7]);
 }
 
 template <class T>
-static inline Vec8Simple<float> to_float(Vec8Simple<T> const & a){ 
+static inline Vec8Simple<float> to_float(Vec8Simple<T> const & a){
    return Vec8Simple<float>(a.val[0], a.val[1], a.val[2], a.val[3],
                             a.val[4], a.val[5], a.val[6], a.val[7]);
 }
-
-
 #endif
