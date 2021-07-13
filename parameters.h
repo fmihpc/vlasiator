@@ -58,7 +58,6 @@ struct Parameters {
    static Real fieldSolverMinCFL;     /*!< The minimum CFL limit for propagation of fields. Used to set timestep if useCFLlimit is true.*/
    static Real fieldSolverMaxCFL;     /*!< The maximum CFL limit for propagation of fields. Used to set timestep if useCFLlimit is true.*/
    static uint fieldSolverSubcycles;     /*!< The number of field solver subcycles to compute.*/
-   static bool transShortPencils;        /*!< Use short or longpencils in AMR translation.*/
   
    static uint tstep_min;           /*!< Timestep when simulation starts, needed for restarts.*/
    static uint tstep_max;           /*!< Maximum timestep. */
@@ -150,6 +149,7 @@ struct Parameters {
    static Realf amrBoxCenterX;
    static Realf amrBoxCenterY;
    static Realf amrBoxCenterZ;
+   static bool amrTransShortPencils;        /*!< Use short or longpencils in AMR translation.*/
    static std::vector<std::string> blurPassString;
    static std::vector<int> numPasses;
 
