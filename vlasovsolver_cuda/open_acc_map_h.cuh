@@ -11,40 +11,40 @@ struct Column
    int i,j;                                       // Blocks' perpendicular coordinates
 };
 
-extern Realf* acceleration_1_wrapperCaller
+extern double* acceleration_1_wrapperCaller
 (
-  Realf *blockData,
+  double *blockData,
   Column *columns,
   Vec *values,
   uint cell_indices_to_id[],
   int totalColumns,
   int valuesSizeRequired,
   int bdsw3,
-  Realv intersection,
-  Realv intersection_di,
-  Realv intersection_dj,
-  Realv intersection_dk,
-  Realv v_min,
-  Realv i_dv,
-  Realv dv,
+  double intersection,
+  double intersection_di,
+  double intersection_dj,
+  double intersection_dk,
+  double v_min,
+  double i_dv,
+  double dv,
   double minValue
 );
-extern Realf* acceleration_1_wrapper
+extern double* acceleration_1_wrapper
 (
-  Realf *blockData,
+  double *blockData,
   Column *columns,
   Vec *values,
   uint cell_indices_to_id[],
   int totalColumns,
   int valuesSizeRequired,
   int bdsw3,
-  Realv intersection,
-  Realv intersection_di,
-  Realv intersection_dj,
-  Realv intersection_dk,
-  Realv v_min,
-  Realv i_dv,
-  Realv dv,
+  double intersection,
+  double intersection_di,
+  double intersection_dj,
+  double intersection_dk,
+  double v_min,
+  double i_dv,
+  double dv,
   double minValue
 );
 

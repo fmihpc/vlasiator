@@ -67,18 +67,18 @@ __device__ void compute_plm_coeff(const Vec * const values, uint k, Vec a[2], co
 
 __global__ void acceleration_1
 (
-  Realf *dev_blockData,
+  double *dev_blockData,
   Column *dev_columns,
   Vec *dev_values,
   int *dev_cell_indices_to_id,
   int totalColumns,
-  Realv intersection,
-  Realv intersection_di,
-  Realv intersection_dj,
-  Realv intersection_dk,
-  Realv v_min,
-  Realv i_dv,
-  Realv dv,
+  double intersection,
+  double intersection_di,
+  double intersection_dj,
+  double intersection_dk,
+  double v_min,
+  double i_dv,
+  double dv,
   double minValue,
   int acc_semilag_flag,
   int bdsw3
@@ -269,22 +269,22 @@ __global__ void acceleration_1
   }
 }
 
-Realf* acceleration_1_wrapper
+double* acceleration_1_wrapper
 (
-  Realf *blockData,
+  double *blockData,
   Column *columns,
   Vec *values,
   uint cell_indices_to_id[],
   int totalColumns,
   int valuesSizeRequired,
   int bdsw3,
-  Realv intersection,
-  Realv intersection_di,
-  Realv intersection_dj,
-  Realv intersection_dk,
-  Realv v_min,
-  Realv i_dv,
-  Realv dv,
+  double intersection,
+  double intersection_di,
+  double intersection_dj,
+  double intersection_dk,
+  double v_min,
+  double i_dv,
+  double dv,
   double minValue
 )
 {
@@ -299,9 +299,9 @@ Realf* acceleration_1_wrapper
     acc_semilag_flag = 2;
   #endif
 
-  Realf *dev_blockData;
-  HANDLE_ERROR( cudaMalloc((void**)&dev_blockData, bdsw3*sizeof(Realf)) );
-  HANDLE_ERROR( cudaMemcpy(dev_blockData, blockData, bdsw3*sizeof(Realf), cudaMemcpyHostToDevice) );
+  double *dev_blockData;
+  HANDLE_ERROR( cudaMalloc((void**)&dev_blockData, bdsw3*sizeof(double)) );
+  HANDLE_ERROR( cudaMemcpy(dev_blockData, blockData, bdsw3*sizeof(double), cudaMemcpyHostToDevice) );
 
   Column *dev_columns;
   HANDLE_ERROR( cudaMalloc((void**)&dev_columns, totalColumns*sizeof(Column)) );
@@ -335,7 +335,7 @@ Realf* acceleration_1_wrapper
   );
 
   cudaDeviceSynchronize();
-  HANDLE_ERROR( cudaMemcpy(blockData, dev_blockData, bdsw3*sizeof(Realf), cudaMemcpyDeviceToHost) );
+  HANDLE_ERROR( cudaMemcpy(blockData, dev_blockData, bdsw3*sizeof(double), cudaMemcpyDeviceToHost) );
 
   HANDLE_ERROR( cudaFree(dev_blockData) );
   HANDLE_ERROR( cudaFree(dev_cell_indices_to_id) );

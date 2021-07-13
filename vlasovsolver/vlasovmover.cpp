@@ -405,7 +405,7 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
 
          // If we are the "first" thread, we get to use the accelerator.
          bool isThreadZero = omp_get_thread_num() == 0;
-
+         //bool isThreadZero = false;
          phiprof::start("cell-semilag-acc");
          cpu_accelerate_cell(mpiGrid[cellID],popID,map_order,order_step,subcycleDt,isThreadZero);
          phiprof::stop("cell-semilag-acc");
