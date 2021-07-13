@@ -134,10 +134,7 @@ namespace SBC {
          for (int j=0; j<6; j++) 
             doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
          if(doAssign) {
-            if (int refLevel = mpiGrid[dccrgId]->parameters[CellParams::REFINEMENT_LEVEL])
-               std::cerr << dccrgId << " on boundary " << this->getIndex() << ", refLevel" << refLevel << ", " << x[0] << " " << x[1] << " " << x[2] << std::endl; 
             mpiGrid[dccrgId]->sysBoundaryFlag = this->getIndex();
-            std::cerr << "Flag " << mpiGrid[dccrgId]->sysBoundaryFlag << std::endl;
          }         
       }
       
@@ -159,12 +156,9 @@ namespace SBC {
                   cerr << "Error, could not get refinement level of remote DCCRG cell " << __FILE__ << " " << __LINE__ << endl;
                }
                
-               //creal dx = P::dx_ini * pow(2,-refLvl);
-               //creal dy = P::dy_ini * pow(2,-refLvl);
-               //creal dz = P::dz_ini * pow(2,-refLvl);
-               creal dx = P::dx_ini;
-               creal dy = P::dy_ini;
-               creal dz = P::dz_ini;
+               creal dx = P::dx_ini * pow(2,-refLvl);
+               creal dy = P::dy_ini * pow(2,-refLvl);
+               creal dz = P::dz_ini * pow(2,-refLvl);
 
                isThisCellOnAFace.fill(false);
                doAssign = false;
