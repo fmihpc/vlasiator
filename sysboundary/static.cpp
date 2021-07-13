@@ -123,23 +123,21 @@ namespace SBC {
       vector<CellID> cells = mpiGrid.get_cells();
       for(const auto& dccrgId : cells) {
          if(mpiGrid[dccrgId]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-         creal* const cellParams = &(mpiGrid[dccrgId]->parameters[0]);
-         creal dx = cellParams[CellParams::DX];
-         creal dy = cellParams[CellParams::DY];
-         creal dz = cellParams[CellParams::DZ];
-         creal x = cellParams[CellParams::XCRD] + 0.5*dx;
-         creal y = cellParams[CellParams::YCRD] + 0.5*dy;
-         creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
-         int refLevel = cellParams[CellParams::REFINEMENT_LEVEL];
+         std::array<double, 3> dx = mpiGrid.geometry.get_length(dccrgId);
+         std::array<double, 3> x = mpiGrid.get_center(dccrgId);
          
          isThisCellOnAFace.fill(false);
-         determineFace(isThisCellOnAFace.data(), x, y, z, P::dx_ini, P::dy_ini, P::dz_ini);
+         determineFace(isThisCellOnAFace.data(), x[0], x[1], x[2], dx[0], dx[1], dx[2]);
          
          // Comparison of the array defining which faces to use and the array telling on which faces this cell is
          doAssign = false;
-         for(int j=0; j<6; j++) doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
+         for (int j=0; j<6; j++) 
+            doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
          if(doAssign) {
+            if (int refLevel = mpiGrid[dccrgId]->parameters[CellParams::REFINEMENT_LEVEL])
+               std::cerr << dccrgId << " on boundary " << this->getIndex() << ", refLevel" << refLevel << ", " << x[0] << " " << x[1] << " " << x[2] << std::endl; 
             mpiGrid[dccrgId]->sysBoundaryFlag = this->getIndex();
+            std::cerr << "Flag " << mpiGrid[dccrgId]->sysBoundaryFlag << std::endl;
          }         
       }
       
@@ -172,7 +170,8 @@ namespace SBC {
                doAssign = false;
 
                determineFace(isThisCellOnAFace.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx, dy, dz);
-               for(int iface=0; iface<6; iface++) doAssign = doAssign || (facesToProcess[iface] && isThisCellOnAFace[iface]);
+               for (int iface=0; iface<6; iface++) 
+                  doAssign = doAssign || (facesToProcess[iface] && isThisCellOnAFace[iface]);
                if(doAssign) {
                   technicalGrid.get(i,j,k)->sysBoundaryFlag = this->getIndex();
                }
