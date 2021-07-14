@@ -52,7 +52,7 @@ endif
 #FLAGS =
 CC = g++
 NVCC = nvcc
-CUDAFLAGS = -arch=sm_60
+CUDAFLAGS = -arch=sm_60 -DDP -DSPF
 
 #GNU flags:
 CC_BRAND = pgi

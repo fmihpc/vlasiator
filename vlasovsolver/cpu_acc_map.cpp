@@ -104,27 +104,27 @@ void inline swapBlockIndices(velocity_block_indices_t &blockIndices, const uint 
    }
 }
 
-  extern double* acceleration_1_wrapperCaller
+  extern Realf* acceleration_1_wrapperCaller
   (
-    double *blockData,
+    Realf *blockData,
     Column *columns,
     Vec values[],
     uint cell_indices_to_id[3],
     int totalColumns,
     int valuesSizeRequired,
     int bdsw3,
-    double intersection,
-    double intersection_di,
-    double intersection_dj,
-    double intersection_dk,
-    double v_min,
-    double i_dv,
-    double dv,
-    double minValue
+    Realv intersection,
+    Realv intersection_di,
+    Realv intersection_dj,
+    Realv intersection_dk,
+    Realv v_min,
+    Realv i_dv,
+    Realv dv,
+    Realv minValue
   )
   {
     //printf("STAGE 2\n");
-    double* returned_blockData = acceleration_1_wrapper
+    Realf* returned_blockData = acceleration_1_wrapper
     (
       blockData,
       columns,
@@ -416,7 +416,7 @@ bool map_1d(SpatialCell* spatial_cell,
    // Velocity space has all extra blocks added and/or removed for the transform target
    // and will not change shape anymore.
    // Create empty velocity space on the GPU and fill it with zeros
-    Realf* blockData = blockContainer.getData();
+    Realf *blockData = blockContainer.getData();
     size_t blockDataSize = blockContainer.size();
     int bdsw3 = blockDataSize * WID3;
     //Realf *blockData = new Realf[bdsw3];
@@ -484,7 +484,7 @@ bool map_1d(SpatialCell* spatial_cell,
    else
    {
       // CPU version
-      for( uint column=0; column < totalColumns; column++)
+      for(uint column=0; column < totalColumns; column++)
       {
          // i,j,k are relative to the order in which we copied data to the values array.
          // After this point in the k,j,i loops there should be no branches based on dimensions

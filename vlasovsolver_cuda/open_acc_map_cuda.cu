@@ -72,14 +72,14 @@ __global__ void acceleration_1
   Vec *dev_values,
   int *dev_cell_indices_to_id,
   int totalColumns,
-  double intersection,
-  double intersection_di,
-  double intersection_dj,
-  double intersection_dk,
-  double v_min,
-  double i_dv,
-  double dv,
-  double minValue,
+  Realv intersection,
+  Realv intersection_di,
+  Realv intersection_dj,
+  Realv intersection_dk,
+  Realv v_min,
+  Realv i_dv,
+  Realv dv,
+  Realv minValue,
   int acc_semilag_flag,
   int bdsw3
 )
@@ -249,7 +249,7 @@ __global__ void acceleration_1
                   // do the conversion from Realv to Realf here, faster than doing it in accumulation
                   const Realf tval = target_density[target_i];
                   const uint tcell = target_cell[target_i];
-                  //printf("CUDA: tval = %.2f; tcell = %d;\n", tval, tcell);
+                  printf("CUDA: tval = %.2f; tcell = %d;\n", tval, tcell);
                   //printf("&dev_blockData[a] = %.2f; tcell = %d\n", dev_blockData[dev_columns[column].targetBlockOffsets[blockK]], tcell );
                   (&dev_blockData[dev_columns[column].targetBlockOffsets[blockK]])[tcell] += tval;
                   //for(uint cell=0; cell<bdsw3; cell++)
@@ -269,23 +269,23 @@ __global__ void acceleration_1
   }
 }
 
-double* acceleration_1_wrapper
+Realf* acceleration_1_wrapper
 (
-  double *blockData,
+  Realf *blockData,
   Column *columns,
   Vec *values,
   uint cell_indices_to_id[],
   int totalColumns,
   int valuesSizeRequired,
   int bdsw3,
-  double intersection,
-  double intersection_di,
-  double intersection_dj,
-  double intersection_dk,
-  double v_min,
-  double i_dv,
-  double dv,
-  double minValue
+  Realv intersection,
+  Realv intersection_di,
+  Realv intersection_dj,
+  Realv intersection_dk,
+  Realv v_min,
+  Realv i_dv,
+  Realv dv,
+  Realv minValue
 )
 {
   int acc_semilag_flag = 0;

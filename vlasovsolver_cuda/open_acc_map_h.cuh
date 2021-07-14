@@ -11,44 +11,44 @@ struct Column
    int i,j;                                       // Blocks' perpendicular coordinates
 };
 
-extern double* acceleration_1_wrapperCaller
+extern Realf* acceleration_1_wrapperCaller
 (
-  double *blockData,
+  Realf *blockData,
   Column *columns,
   Vec *values,
   uint cell_indices_to_id[],
   int totalColumns,
   int valuesSizeRequired,
   int bdsw3,
-  double intersection,
-  double intersection_di,
-  double intersection_dj,
-  double intersection_dk,
-  double v_min,
-  double i_dv,
-  double dv,
-  double minValue
+  Realv intersection,
+  Realv intersection_di,
+  Realv intersection_dj,
+  Realv intersection_dk,
+  Realv v_min,
+  Realv i_dv,
+  Realv dv,
+  Realv minValue
 );
-extern double* acceleration_1_wrapper
+extern Realf* acceleration_1_wrapper
 (
-  double *blockData,
+  Realf *blockData,
   Column *columns,
   Vec *values,
   uint cell_indices_to_id[],
   int totalColumns,
   int valuesSizeRequired,
   int bdsw3,
-  double intersection,
-  double intersection_di,
-  double intersection_dj,
-  double intersection_dk,
-  double v_min,
-  double i_dv,
-  double dv,
-  double minValue
+  Realv intersection,
+  Realv intersection_di,
+  Realv intersection_dj,
+  Realv intersection_dk,
+  Realv v_min,
+  Realv i_dv,
+  Realv dv,
+  Realv minValue
 );
 
-#define DIMS 4
-#define BLOCKS 2
-#define THREADS 4
-#define CUDASIZE 4
+#define DIMS 1
+#define BLOCKS 1
+#define THREADS 1
+#define CUDASIZE 1
