@@ -757,26 +757,26 @@ namespace projects {
      // https://github.com/fmihpc/vlasiator/issues/20 for a derivation of the
      // values used here.
      switch(this->dipoleType) {
-	 case 0:
-	    bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
-	    setBackgroundField(bgFieldDipole,BgBGrid);
-	    break;
-	 case 1:
-	    bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0 );//set dipole moment     
-	    setBackgroundField(bgFieldLineDipole,BgBGrid);
-	    break;
-	 case 2:
-	    bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0 );//set dipole moment     
-	    setBackgroundField(bgFieldLineDipole,BgBGrid);
-	    // Ignore mirror dipole for ElVentana runs. Could be added here if needed.
-	    break;
-	 case 3:
-	    bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
-	    setBackgroundField(bgFieldDipole,BgBGrid);
-	    // Ignore mirror dipole for ElVentana runs. Could be added here if needed.
-	    break;
-	 //case 4, vector potential dipole is not yet supported.
-	 default:
+      case 0:
+         bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
+         setBackgroundField(bgFieldDipole,BgBGrid);
+         break;
+      case 1:
+         bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0 );//set dipole moment     
+         setBackgroundField(bgFieldLineDipole,BgBGrid);
+         break;
+      case 2:
+         bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0 );//set dipole moment     
+         setBackgroundField(bgFieldLineDipole,BgBGrid);
+         // Ignore mirror dipole for ElVentana runs. Could be added here if needed.
+         break;
+      case 3:
+      case 4: // Vector potential dipole stored in perturbed field, which is read later
+         bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
+         setBackgroundField(bgFieldDipole,BgBGrid);
+         // Ignore mirror dipole for ElVentana runs. Could be added here if needed.
+         break;
+      default:
 	    setBackgroundFieldToZero(BgBGrid);
 	    
      }
