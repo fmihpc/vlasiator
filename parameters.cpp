@@ -382,6 +382,7 @@ bool P::addParameters() {
    RP::add("AMR.box_center_z", "z coordinate of the center of the box that is refined (for testing)", 0.0);
    RP::add("AMR.transShortPencils", "if true, use one-cell pencils", false);
    RP::addComposing("AMR.filterpasses", std::string("AMR filter passes for each individual refinement level"));
+
    return true;
 }
 
