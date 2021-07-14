@@ -69,7 +69,7 @@ Real P::fieldSolverMaxCFL = NAN;
 Real P::fieldSolverMinCFL = NAN;
 uint P::fieldSolverSubcycles = 1;
 
-bool P::transShortPencils = true;
+bool P::amrTransShortPencils = false;
 
 uint P::tstep = 0;
 uint P::tstep_min = 0;
@@ -206,8 +206,6 @@ bool P::addParameters() {
            "Path to the location where restart files should be written. Defaults to the local directory, also if the "
            "specified destination is not writeable.",
            string("./"));
-
-   RP::add("transShortPencils", "if true, use one-cell pencils", true);
 
    RP::add("propagate_field", "Propagate magnetic field during the simulation", true);
    RP::add("propagate_vlasov_acceleration",
@@ -382,6 +380,7 @@ bool P::addParameters() {
    RP::add("AMR.box_center_x", "x coordinate of the center of the box that is refined (for testing)", 0.0);
    RP::add("AMR.box_center_y", "y coordinate of the center of the box that is refined (for testing)", 0.0);
    RP::add("AMR.box_center_z", "z coordinate of the center of the box that is refined (for testing)", 0.0);
+   RP::add("AMR.transShortPencils", "if true, use one-cell pencils", false);
    RP::addComposing("AMR.filterpasses", std::string("AMR filter passes for each individual refinement level"));
    return true;
 }
@@ -407,7 +406,6 @@ void Parameters::getParameters() {
    RP::get("io.write_bulk_stripe_factor", P::bulkStripeFactor);
    RP::get("io.restart_write_path", P::restartWritePath);
    RP::get("io.write_as_float", P::writeAsFloat);
-   RP::get("transShortPencils", P::transShortPencils);
 
    // Checks for validity of io and restart parameters
    int myRank;
@@ -528,6 +526,7 @@ void Parameters::getParameters() {
 
    /*get numerical values, let Readparameters handle the conversions*/
    string geometryString;
+
    RP::get("gridbuilder.geometry", geometryString);
    RP::get("gridbuilder.x_min", P::xmin);
    RP::get("gridbuilder.x_max", P::xmax);
@@ -550,6 +549,7 @@ void Parameters::getParameters() {
    RP::get("AMR.vel_refinement_criterion", P::amrVelRefCriterion);
    RP::get("AMR.refine_limit", P::amrRefineLimit);
    RP::get("AMR.coarsen_limit", P::amrCoarsenLimit);
+   RP::get("AMR.transShortPencils", P::amrTransShortPencils);
 
    /*Read Blur Passes per Refinement Level*/
    RP::get("AMR.filterpasses", P::blurPassString);
@@ -590,7 +590,7 @@ void Parameters::getParameters() {
 
          printf("Filtering is on with max number of Passes= \t%d\n", maxNumPassesInt);
          int lev = 0;
-         for (auto &iter : P::numPasses) {
+         for (auto& iter : P::numPasses) {
             printf("Refinement Level %d-->%d Passes\n", lev, iter);
             lev++;
          }
@@ -613,17 +613,17 @@ void Parameters::getParameters() {
       }
    }
 
-   if (geometryString == "XY4D")
+   if (geometryString == "XY4D") {
       P::geometry = geometry::XY4D;
-   else if (geometryString == "XZ4D")
+   } else if (geometryString == "XZ4D") {
       P::geometry = geometry::XZ4D;
-   else if (geometryString == "XY5D")
+   } else if (geometryString == "XY5D") {
       P::geometry = geometry::XY5D;
-   else if (geometryString == "XZ5D")
+   } else if (geometryString == "XZ5D") {
       P::geometry = geometry::XZ5D;
-   else if (geometryString == "XYZ6D")
+   } else if (geometryString == "XYZ6D") {
       P::geometry = geometry::XYZ6D;
-   else {
+   } else {
       cerr << "Unknown simulation geometry " << geometryString << " in " << __FILE__ << ":" << __LINE__ << endl;
       MPI_Abort(MPI_COMM_WORLD, 1);
    }

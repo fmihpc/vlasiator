@@ -102,6 +102,7 @@ namespace SBC {
          UserSpeciesParameters sP;
          sP.nParams = 9;
 
+         Readparameters::get(pop + "_maxwellian.dynamic", isThisDynamic);
          Readparameters::get(pop + "_maxwellian.file_x+", sP.files[0]);
          Readparameters::get(pop + "_maxwellian.file_x-", sP.files[1]);
          Readparameters::get(pop + "_maxwellian.file_y+", sP.files[2]);

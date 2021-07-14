@@ -156,7 +156,7 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       }
 
       if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY && cell->parameters[CellParams::MAXVDT] != 0) {
-         //Acceleration only done on non sysboundary cells
+         //Acceleration only done on non-boundary cells
          dtMaxLocal[1]=min(dtMaxLocal[1], cell->parameters[CellParams::MAXVDT]);
       }
    }
@@ -416,18 +416,18 @@ int main(int argn,char* args[]) {
    FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> volGrid(fsGridDimensions, comm, periodicity,gridCoupling);
    FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> technicalGrid(fsGridDimensions, comm, periodicity,gridCoupling);
 
-   // Set DX,DY and DZ
+   // Set DX, DY and DZ
    // TODO: This is currently just taking the values from cell 1, and assuming them to be
    // constant throughout the simulation.
    perBGrid.DX = perBDt2Grid.DX = EGrid.DX = EDt2Grid.DX = EHallGrid.DX = EGradPeGrid.DX = momentsGrid.DX
       = momentsDt2Grid.DX = dPerBGrid.DX = dMomentsGrid.DX = BgBGrid.DX = volGrid.DX = technicalGrid.DX
-      = P::dx_ini * pow(2,-P::amrMaxSpatialRefLevel);
+      = P::dx_ini / pow(2, P::amrMaxSpatialRefLevel);
    perBGrid.DY = perBDt2Grid.DY = EGrid.DY = EDt2Grid.DY = EHallGrid.DY = EGradPeGrid.DY = momentsGrid.DY
       = momentsDt2Grid.DY = dPerBGrid.DY = dMomentsGrid.DY = BgBGrid.DY = volGrid.DY = technicalGrid.DY
-      = P::dy_ini * pow(2,-P::amrMaxSpatialRefLevel);
+      = P::dy_ini / pow(2, P::amrMaxSpatialRefLevel);
    perBGrid.DZ = perBDt2Grid.DZ = EGrid.DZ = EDt2Grid.DZ = EHallGrid.DZ = EGradPeGrid.DZ = momentsGrid.DZ
       = momentsDt2Grid.DZ = dPerBGrid.DZ = dMomentsGrid.DZ = BgBGrid.DZ = volGrid.DZ = technicalGrid.DZ
-      = P::dz_ini * pow(2,-P::amrMaxSpatialRefLevel);
+      = P::dz_ini / pow(2, P::amrMaxSpatialRefLevel);
    // Set the physical start (lower left corner) X, Y, Z
    perBGrid.physicalGlobalStart = perBDt2Grid.physicalGlobalStart = EGrid.physicalGlobalStart = EDt2Grid.physicalGlobalStart
       = EHallGrid.physicalGlobalStart = EGradPeGrid.physicalGlobalStart = momentsGrid.physicalGlobalStart
@@ -882,9 +882,9 @@ int main(int argn,char* args[]) {
       
       // Apply boundary conditions
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
-         phiprof::start("Update system sysBoundaries (Vlasov post-translation)");
+         phiprof::start("Update system boundaries (Vlasov post-translation)");
          sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt, false);
-         phiprof::stop("Update system sysBoundaries (Vlasov post-translation)");
+         phiprof::stop("Update system boundaries (Vlasov post-translation)");
          addTimedBarrier("barrier-boundary-conditions");
       }
       
@@ -955,9 +955,9 @@ int main(int argn,char* args[]) {
       addTimedBarrier("barrier-after-acceleration");
       
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
-         phiprof::start("Update system sysBoundaries (Vlasov post-acceleration)");
+         phiprof::start("Update system boundaries (Vlasov post-acceleration)");
          sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt, true);
-         phiprof::stop("Update system sysBoundaries (Vlasov post-acceleration)");
+         phiprof::stop("Update system boundaries (Vlasov post-acceleration)");
          addTimedBarrier("barrier-boundary-conditions");
       }
       

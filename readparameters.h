@@ -38,8 +38,6 @@
 #include "common.h"
 #include "version.h"
 
-namespace PO = boost::program_options;
-
 class Readparameters {
 public:
    Readparameters(int cmdargc, char* cmdargv[]);
@@ -58,8 +56,9 @@ public:
       if (rank == MASTER_RANK) {
          options[name] = "";
          isOptionParsed[name] = false;
-         descriptions->add_options()(name.c_str(), PO::value<std::string>(&(options[name]))->default_value(defValue),
-                                     desc.c_str());
+         descriptions->add_options()(
+             name.c_str(), boost::program_options::value<std::string>(&(options[name]))->default_value(defValue),
+             desc.c_str());
       }
    }
 
@@ -76,8 +75,9 @@ public:
          }
          options[name] = "";
          isOptionParsed[name] = false;
-         descriptions->add_options()(name.c_str(), PO::value<std::string>(&(options[name]))->default_value(ss.str()),
-                                     desc.c_str());
+         descriptions->add_options()(
+             name.c_str(), boost::program_options::value<std::string>(&(options[name]))->default_value(ss.str()),
+             desc.c_str());
       }
    }
 
@@ -172,8 +172,8 @@ private:
    static int argc;    /**< How many entries argv contains.*/
    static char** argv; /**< Pointer to char* array containing command line parameters.*/
 
-   static PO::options_description* descriptions;
-   static PO::variables_map* variables;
+   static boost::program_options::options_description* descriptions;
+   static boost::program_options::variables_map* variables;
 
    static std::map<std::string, std::string> options;
    static std::map<std::string, bool> isOptionParsed;

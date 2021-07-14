@@ -121,11 +121,12 @@ namespace SBC {
 
                if(refLvl == -1) {
                   cerr << "Error, could not get refinement level of remote DCCRG cell " << __FILE__ << " " << __LINE__ << endl;
+                  MPI_Abort(MPI_COMM_WORLD, 1);
                }
 
-               creal dx = P::dx_ini * pow(2,-refLvl);
-               creal dy = P::dy_ini * pow(2,-refLvl);
-               creal dz = P::dz_ini * pow(2,-refLvl);
+               creal dx = P::dx_ini / pow(2, refLvl);
+               creal dy = P::dy_ini / pow(2, refLvl);
+               creal dz = P::dz_ini / pow(2, refLvl);
                
                isThisCellOnAFace.fill(false);
                doAssign = false;
@@ -303,9 +304,9 @@ namespace SBC {
                   return false;
                }
 
-               creal dx = P::dx_ini * pow(2,-refLvl);
-               creal dy = P::dy_ini * pow(2,-refLvl);
-               creal dz = P::dz_ini * pow(2,-refLvl);
+               creal dx = P::dx_ini / pow(2, refLvl);
+               creal dy = P::dy_ini / pow(2, refLvl);
+               creal dz = P::dz_ini / pow(2, refLvl);
                
                isThisCellOnAFace.fill(false);
 

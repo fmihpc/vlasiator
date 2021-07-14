@@ -22,11 +22,8 @@
 
 #include "readparameters.h"
 
-using std::fstream;
-using std::ifstream;
-using std::map;
-using std::string;
-using std::vector;
+using namespace std;
+namespace PO = boost::program_options;
 
 // Initialize static member of class ReadParameters
 bool Readparameters::helpRequested = false;
@@ -74,10 +71,12 @@ Readparameters::Readparameters(int cmdargc, char* cmdargv[]) {
 }
 
 Readparameters::~Readparameters() {
-   delete descriptions;
-   delete variables;
-   descriptions = NULL;
-   variables = NULL;
+   if(descriptions != nullptr) {
+      delete descriptions;
+      delete variables;
+      descriptions = NULL;
+      variables = NULL;
+   }
 }
 
 /** Add a new composing input parameter.
@@ -105,7 +104,7 @@ void Readparameters::helpMessage() {
       int rank;
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
       if (rank == MASTER_RANK) {
-         std::cout << *descriptions << std::endl;
+         cout << *descriptions << endl;
       }
       MPI_Finalize();
       exit(0);
@@ -159,8 +158,8 @@ bool Readparameters::parse(const bool needsRunConfig, const bool allowUnknown) {
             PO::notify(*variables);
             run_config_file.close();
          } else {
-            std::cerr << __FILE__ << ":" << __LINE__ << "Couldn't open or read run config file " + run_config_file_name
-                      << std::endl;
+            cerr << __FILE__ << ":" << __LINE__ << "Couldn't open or read run config file " + run_config_file_name
+                 << endl;
             MPI_Abort(MPI_COMM_WORLD, 1);
          }
       }
@@ -172,8 +171,8 @@ bool Readparameters::parse(const bool needsRunConfig, const bool allowUnknown) {
             PO::notify(*variables);
             user_config_file.close();
          } else {
-            std::cerr << __FILE__ << ":" << __LINE__
-                      << "Couldn't open or read user config file " + user_config_file_name << std::endl;
+            cerr << __FILE__ << ":" << __LINE__ << "Couldn't open or read user config file " + user_config_file_name
+                 << endl;
             MPI_Abort(MPI_COMM_WORLD, 1);
          }
       }
@@ -185,8 +184,8 @@ bool Readparameters::parse(const bool needsRunConfig, const bool allowUnknown) {
             PO::notify(*variables);
             global_config_file.close();
          } else {
-            std::cerr << __FILE__ << ":" << __LINE__
-                      << "Couldn't open or read global config file " + global_config_file_name << std::endl;
+            cerr << __FILE__ << ":" << __LINE__ << "Couldn't open or read global config file " + global_config_file_name
+                 << endl;
             MPI_Abort(MPI_COMM_WORLD, 1);
          }
       }
@@ -207,7 +206,7 @@ bool Readparameters::parse(const bool needsRunConfig, const bool allowUnknown) {
    MPI_Bcast(&hasRunConfigFile, sizeof(bool), MPI_BYTE, 0, MPI_COMM_WORLD);
    if (needsRunConfig && !hasRunConfigFile && !helpRequested) {
       if (rank == MASTER_RANK) {
-         std::cout << "Run config file required. Use --help to list all options" << std::endl;
+         cout << "Run config file required. Use --help to list all options" << endl;
       }
       MPI_Finalize();
       exit(0);

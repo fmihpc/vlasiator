@@ -38,6 +38,7 @@
 #include "sysboundary/sysboundary.h"
 #include "fieldsolver/fs_common.h"
 #include "fieldsolver/gridGlue.hpp"
+#include "vlasovsolver/cpu_trans_map_amr.hpp"
 #include "projects/project.h"
 #include "iowrite.h"
 #include "ioread.h"
@@ -566,7 +567,13 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    //Make sure transfers are enabled for all cells
    recalculateLocalCellsCache();
    getObjectWrapper().meshData.reallocate();
+   #pragma omp parallel for
    for (uint i=0; i<cells.size(); ++i) mpiGrid[cells[i]]->set_mpi_transfer_enabled(true);
+
+   // flag transfers if AMR
+   phiprof::start("compute_amr_transfer_flags");
+   flagSpatialCellsForAmrCommunication(mpiGrid,cells);
+   phiprof::stop("compute_amr_transfer_flags");
 
    // Communicate all spatial data for FULL neighborhood, which
    // includes all data with the exception of dist function data
@@ -600,7 +607,15 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
       setFaceNeighborRanks( mpiGrid );
       phiprof::stop("set face neighbor ranks");
    }
-   
+
+   // Prepare cellIDs and pencils for AMR translation
+   if(P::amrMaxSpatialRefLevel > 0) {
+      phiprof::start("GetSeedIdsAndBuildPencils");
+      for (int dimension=0; dimension<3; dimension++) {
+         prepareSeedIdsAndPencils(mpiGrid,dimension);
+      }
+      phiprof::stop("GetSeedIdsAndBuildPencils");
+   }
    
    phiprof::stop("Balancing load");
 }
