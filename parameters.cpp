@@ -79,7 +79,7 @@ bool P::writeInitialState = true;
 
 bool P::meshRepartitioned = true;
 bool P::prepareForRebalance = false;
-std::vector<CellID> P::localCells;
+vector<CellID> P::localCells;
 
 vector<string> P::systemWriteName;
 vector<string> P::systemWritePath;
@@ -91,7 +91,7 @@ vector<int> P::systemWriteDistributionWriteZlineStride;
 vector<Real> P::systemWriteDistributionWriteShellRadius;
 vector<int> P::systemWriteDistributionWriteShellStride;
 vector<int> P::systemWrites;
-std::vector<std::pair<std::string, std::string>> P::systemWriteHints;
+vector<pair<string, string>> P::systemWriteHints;
 
 Real P::saveRestartWalltimeInterval = -1.0;
 uint P::exitAfterRestarts = numeric_limits<uint>::max();
@@ -153,7 +153,7 @@ Realf P::amrBoxCenterX = 0.0;
 Realf P::amrBoxCenterY = 0.0;
 Realf P::amrBoxCenterZ = 0.0;
 vector<string> P::blurPassString;
-std::vector<int> P::numPasses;
+vector<int> P::numPasses;
 
 bool P::addParameters() {
    typedef Readparameters RP;
@@ -298,7 +298,7 @@ bool P::addParameters() {
    // Output variable parameters
    // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
    RP::addComposing("variables.output",
-                    std::string() +
+                    string() +
                         "List of data reduction operators (DROs) to add to the grid file output.  Each variable to be "
                         "added has to be on a new line output = XXX. Names are case insensitive.  " +
                         "Available (20210125): " + "fg_b fg_b_background fg_b_perturbed fg_e " +
@@ -318,7 +318,7 @@ bool P::addParameters() {
 
    RP::addComposing(
        "variables_deprecated.output",
-       std::string() + "List of deprecated names for data reduction operators (DROs). Names are case insensitive. " +
+       string() + "List of deprecated names for data reduction operators (DROs). Names are case insensitive. " +
            "Available (20190521): " + "B BackgroundB fg_BackgroundB PerturbedB fg_PerturbedB " + "E " +
            "Rhom Rhoq populations_Rho " + "V populations_V " +
            "populations_moments_Backstream populations_moments_NonBackstream " +
@@ -337,7 +337,7 @@ bool P::addParameters() {
 
    // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
    RP::addComposing("variables.diagnostic",
-                    std::string() +
+                    string() +
                         "List of data reduction operators (DROs) to add to the diagnostic runtime output. Each "
                         "variable to be added has to be on a new line diagnostic = XXX. Names are case insensitive. " +
                         "Available (20201111): " + "populations_vg_blocks " +
@@ -347,7 +347,7 @@ bool P::addParameters() {
                         "populations_vg_maxdistributionfunction populations_vg_mindistributionfunction");
 
    RP::addComposing("variables_deprecated.diagnostic",
-                    std::string() +
+                    string() +
                         "List of deprecated data reduction operators (DROs) to add to the diagnostic runtime output. "
                         "Names are case insensitive. " +
                         "Available (20201111): " + "rhom populations_rholossadjust populations_rho_loss_adjust " +
@@ -381,7 +381,7 @@ bool P::addParameters() {
    RP::add("AMR.box_center_y", "y coordinate of the center of the box that is refined (for testing)", 0.0);
    RP::add("AMR.box_center_z", "z coordinate of the center of the box that is refined (for testing)", 0.0);
    RP::add("AMR.transShortPencils", "if true, use one-cell pencils", false);
-   RP::addComposing("AMR.filterpasses", std::string("AMR filter passes for each individual refinement level"));
+   RP::addComposing("AMR.filterpasses", string("AMR filter passes for each individual refinement level"));
 
    return true;
 }
@@ -492,7 +492,7 @@ void Parameters::getParameters() {
       }
    }
 
-   std::vector<std::string> mpiioKeys, mpiioValues;
+   vector<string> mpiioKeys, mpiioValues;
    RP::get("io.system_write_mpiio_hint_key", mpiioKeys);
    RP::get("io.system_write_mpiio_hint_value", mpiioValues);
 
@@ -557,13 +557,13 @@ void Parameters::getParameters() {
 
    // Construct Vector of Passes used in grid.cpp
    bool isEmpty = blurPassString.size() == 0;
-   std::vector<int>::iterator maxNumPassesPtr;
+   vector<int>::iterator maxNumPassesPtr;
    int maxNumPassesInt;
 
    if (!isEmpty) {
 
       for (auto i : blurPassString) {
-         P::numPasses.push_back(std::stoi(i));
+         P::numPasses.push_back(stoi(i));
       }
 
       // Reverse Sort and Get the maximum number of filter passes
@@ -580,7 +580,7 @@ void Parameters::getParameters() {
 
       if (myRank == MASTER_RANK) {
 
-         maxNumPassesPtr = std::max_element(P::numPasses.begin(), P::numPasses.end());
+         maxNumPassesPtr = max_element(P::numPasses.begin(), P::numPasses.end());
          if (maxNumPassesPtr != numPasses.end()) {
             maxNumPassesInt = *maxNumPassesPtr;
          } else {
@@ -600,7 +600,7 @@ void Parameters::getParameters() {
       numPasses = {0};
 
       if (myRank == MASTER_RANK) {
-         maxNumPassesPtr = std::max_element(P::numPasses.begin(), P::numPasses.end());
+         maxNumPassesPtr = max_element(P::numPasses.begin(), P::numPasses.end());
          if (maxNumPassesPtr != numPasses.end()) {
             maxNumPassesInt = *maxNumPassesPtr;
          } else {
