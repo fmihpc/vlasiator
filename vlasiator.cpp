@@ -156,7 +156,7 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       }
 
       if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY && cell->parameters[CellParams::MAXVDT] != 0) {
-         //Acceleration only done on non sysboundary cells
+         //Acceleration only done on non-boundary cells
          dtMaxLocal[1]=min(dtMaxLocal[1], cell->parameters[CellParams::MAXVDT]);
       }
    }
@@ -316,28 +316,29 @@ int main(int argn,char* args[]) {
    signal(SIGFPE, fpehandler);
    #endif
 
+
+
    phiprof::start("main");
    phiprof::start("Initialization");
    phiprof::start("Read parameters");
    //init parameter file reader
-   Readparameters readparameters(argn,args,MPI_COMM_WORLD);
+   Readparameters readparameters(argn,args);
+
    P::addParameters();
+
    getObjectWrapper().addParameters();
-   readparameters.parse(); // First pass parsing
-   if (P::getParameters() == false) {
-      if (myRank == MASTER_RANK) {
-         cerr << "(MAIN) ERROR: getParameters failed!" << endl;
-      }
-      exit(1);
-   }
+
+   readparameters.parse();
+
+   P::getParameters();
 
    getObjectWrapper().addPopulationParameters();
    sysBoundaries.addParameters();
    projects::Project::addParameters();
+
    Project* project = projects::createProject();
    getObjectWrapper().project = project;
-   
-   readparameters.parse(); // Second pass parsing: specific population parameters
+   readparameters.parse(true, false); // 2nd parsing for specific population parameters
    readparameters.helpMessage(); // Call after last parse, exits after printing help if help requested
    getObjectWrapper().getParameters();
    project->getParameters();
@@ -384,7 +385,7 @@ int main(int argn,char* args[]) {
       }
    }
    phiprof::stop("Init project");
-   
+
    // Add AMR refinement criterias:
    amr_ref_criteria::addRefinementCriteria();
 
@@ -399,7 +400,7 @@ int main(int argn,char* args[]) {
    std::array<bool,3> periodicity{sysBoundaries.isBoundaryPeriodic(0),
                                   sysBoundaries.isBoundaryPeriodic(1),
                                   sysBoundaries.isBoundaryPeriodic(2)};
-   
+
    FsGridCouplingInformation gridCoupling;
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBGrid(fsGridDimensions, comm, periodicity,gridCoupling);
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBDt2Grid(fsGridDimensions, comm, periodicity,gridCoupling);
@@ -415,18 +416,18 @@ int main(int argn,char* args[]) {
    FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> volGrid(fsGridDimensions, comm, periodicity,gridCoupling);
    FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> technicalGrid(fsGridDimensions, comm, periodicity,gridCoupling);
 
-   // Set DX,DY and DZ
+   // Set DX, DY and DZ
    // TODO: This is currently just taking the values from cell 1, and assuming them to be
    // constant throughout the simulation.
    perBGrid.DX = perBDt2Grid.DX = EGrid.DX = EDt2Grid.DX = EHallGrid.DX = EGradPeGrid.DX = momentsGrid.DX
       = momentsDt2Grid.DX = dPerBGrid.DX = dMomentsGrid.DX = BgBGrid.DX = volGrid.DX = technicalGrid.DX
-      = P::dx_ini * pow(2,-P::amrMaxSpatialRefLevel);
+      = P::dx_ini / pow(2, P::amrMaxSpatialRefLevel);
    perBGrid.DY = perBDt2Grid.DY = EGrid.DY = EDt2Grid.DY = EHallGrid.DY = EGradPeGrid.DY = momentsGrid.DY
       = momentsDt2Grid.DY = dPerBGrid.DY = dMomentsGrid.DY = BgBGrid.DY = volGrid.DY = technicalGrid.DY
-      = P::dy_ini * pow(2,-P::amrMaxSpatialRefLevel);
+      = P::dy_ini / pow(2, P::amrMaxSpatialRefLevel);
    perBGrid.DZ = perBDt2Grid.DZ = EGrid.DZ = EDt2Grid.DZ = EHallGrid.DZ = EGradPeGrid.DZ = momentsGrid.DZ
       = momentsDt2Grid.DZ = dPerBGrid.DZ = dMomentsGrid.DZ = BgBGrid.DZ = volGrid.DZ = technicalGrid.DZ
-      = P::dz_ini * pow(2,-P::amrMaxSpatialRefLevel);
+      = P::dz_ini / pow(2, P::amrMaxSpatialRefLevel);
    // Set the physical start (lower left corner) X, Y, Z
    perBGrid.physicalGlobalStart = perBDt2Grid.physicalGlobalStart = EGrid.physicalGlobalStart = EDt2Grid.physicalGlobalStart
       = EHallGrid.physicalGlobalStart = EGradPeGrid.physicalGlobalStart = momentsGrid.physicalGlobalStart
@@ -441,7 +442,7 @@ int main(int argn,char* args[]) {
      std::cerr << "WARNING: Your spatial cells seem not to be cubic. However the field solver is assuming them to be. Use at your own risk and responsibility!" << std::endl;
    }
    phiprof::stop("Init fieldsolver grids");
-   
+
    // Initialize grid.  After initializeGrid local cells have dist
    // functions, and B fields set. Cells have also been classified for
    // the various sys boundary conditions.  All remote cells have been
@@ -478,7 +479,7 @@ int main(int argn,char* args[]) {
    phiprof::stop("Init DROs");  
    
    // Free up memory:
-   readparameters.finalize();
+   readparameters.~Readparameters();
 
    // Run the field solver once with zero dt. This will initialize
    // Fieldsolver dt limits, and also calculate volumetric B-fields.
@@ -1059,7 +1060,7 @@ int main(int argn,char* args[]) {
    BgBGrid.finalize();
    volGrid.finalize();
    technicalGrid.finalize();
-   
+
    MPI_Finalize();
    return 0;
 }

@@ -1,3 +1,10 @@
+# Makefile for University of Helsinki's "vorna" Cluster
+#
+# Reccomended modules in .bashrc:
+# module load GCCcore/8.3.0
+# module load OpenMPI/3.1.4-GCC-8.3.0
+# module load Eigen
+
 CMP = mpic++
 LNK = mpic++
 
