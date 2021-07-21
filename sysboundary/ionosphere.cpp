@@ -2211,6 +2211,7 @@ namespace SBC {
       Readparameters::add("ionosphere.solverMaxIterations", "Maximum number of iterations for the conjugate gradient solver", 2000);
       Readparameters::add("ionosphere.solverPreconditioning", "Use preconditioning for the solver? (0/1)", 1);
       Readparameters::add("ionosphere.earthAngularVelocity", "Angular velocity of inner boundary convection, in rad/s", 7.2921159e-5);
+      Readparameters::add("ionosphere.plasmapauseL", "L-shell at which the plasmapause resides (for corotation)", 5.);
       Readparameters::add("ionosphere.fieldLineTracer", "Field line tracing method to use for coupling ionosphere and magnetosphere (options are: Euler, BS)", std::string("Euler"));
       Readparameters::add("ionosphere.couplingTimescale", "Magnetosphere->Ionosphere coupling timescale (seconds, 0=immediate coupling", 1.);
       Readparameters::add("ionosphere.tracerTolerance", "Tolerance for the Bulirsch Stoer Method", 1000);
@@ -2244,6 +2245,7 @@ namespace SBC {
       Readparameters::get("ionosphere.solverMaxIterations", solverMaxIterations);
       Readparameters::get("ionosphere.solverPreconditioning", solverPreconditioning);
       Readparameters::get("ionosphere.earthAngularVelocity", earthAngularVelocity);
+      Readparameters::get("ionosphere.plasmapauseL", plasmapauseL);
       Readparameters::get("ionosphere.fieldLineTracer", tracerString);
       Readparameters::get("ionosphere.couplingTimescale",couplingTimescale);
       Readparameters::get("ionosphere.tracerTolerance", eps);
@@ -3059,7 +3061,7 @@ namespace SBC {
       Vec3d vn = cross_product(Omega,r);
 
       Real radius = vector_length(r);
-      if(radius/Ionosphere::innerRadius <= 5 * radius*radius/(r[0]*r[0] + r[1]*r[1])) {
+      if(radius/Ionosphere::innerRadius <= Ionosphere::plasmapauseL * radius*radius/(r[0]*r[0] + r[1]*r[1])) {
          E += cross_product(vn, B);
       }
 

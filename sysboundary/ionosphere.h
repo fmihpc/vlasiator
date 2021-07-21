@@ -407,6 +407,7 @@ namespace SBC {
       std::string baseShape; // Basic mesh shape (sphericalFibonacci / icosahedron / tetrahedron)
       int fibonacciNodeNum;  // If spherical fibonacci: number of nodes to generate
       Real earthAngularVelocity; // Earth rotation vector, in radians/s
+      Real plasmapauseL; // L-Value at which the plasma pause resides (everything inside corotates)
       std::string tracerString; /*!< Fieldline tracer to use for coupling ionosphere and magnetosphere */
       std::string atmosphericModelFile; // MSIS data file
       // Boundaries of refinement latitude bands
