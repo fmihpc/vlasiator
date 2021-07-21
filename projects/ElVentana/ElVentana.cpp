@@ -449,7 +449,7 @@ namespace projects {
          MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
          MPI_Comm_size(MPI_COMM_WORLD,&processes);
          MPI_Info mpiInfo = MPI_INFO_NULL;
-         std::array<double, 3> fileMin, fileMax, fileD;
+         std::array<double, 3> fileMin, fileMax, fileDx;
          std::array<uint64_t, 3> fileCells;
 
          if (this->vlsvSerialReader.open(filename) == false) {
@@ -472,7 +472,7 @@ namespace projects {
 
          MPI_Bcast(&(fileCellsID[0]),fileCellsID.size(),MPI_UINT64_T,MASTER_RANK,MPI_COMM_WORLD);
 
-         readGridSize(fileMin, fileMax, fileCells, fileD);
+         readGridSize(fileMin, fileMax, fileCells, fileDx);
          //this->vlsvParaReader.close();
          //MPI_Barrier(MPI_COMM_WORLD);
          // Closed later
@@ -507,7 +507,7 @@ namespace projects {
          for (uint64_t i=0; i<cells.size(); i++) {
             SpatialCell* cell = mpiGrid[cells[i]];
             // Calculate cellID in old grid
-            CellID oldCellID = getOldCellID(cells[i], mpiGrid, fileCells, fileMin, fileD);
+            CellID oldCellID = getOldCellID(cells[i], mpiGrid, fileCells, fileMin, fileDx);
 
             // Calculate fileoffset corresponding to old cellID
             auto cellIt = std::find(fileCellsID.begin(), fileCellsID.end(), oldCellID);
@@ -848,8 +848,8 @@ namespace projects {
       return newmpiGrid->get_existing_cell({x, y, z});
    }
 
-   // Reads physical minima and maxima, amount of cells and 
-   bool ElVentana::readGridSize(std::array<double, 3> &fileMin, std::array<double, 3> &fileMax, std::array<uint64_t, 3> &fileCells, std::array<double, 3> &fileD) {
+   // Reads physical minima and maxima, amount of cells and their dimensions
+   bool ElVentana::readGridSize(std::array<double, 3> &fileMin, std::array<double, 3> &fileMax, std::array<uint64_t, 3> &fileCells, std::array<double, 3> &fileDx) {
       int myRank = 0;
       //MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 
@@ -912,12 +912,13 @@ namespace projects {
       fileMax = {filexmax, fileymax, filezmax};
       fileCells = {filexcells, fileycells, filezcells};
       for (int i = 0; i < 3; ++i) {
-         fileD[i] = (fileMax[i] - fileMin[i])/fileCells[i];
+         fileDx[i] = (fileMax[i] - fileMin[i])/fileCells[i];
       }
 
       return true;
    }
 
+   // Read variable from FsGrid to the ElVentana window
    template<unsigned long int N> bool ElVentana::readFsGridVariable(const string& variableName, FsGrid<std::array<Real, N>,2>& targetGrid) {
 
       uint64_t arraySize;
@@ -959,14 +960,14 @@ namespace projects {
          convertFloatType = true;
       }
 
-      std::array<double, 3> fileMin, fileMax, fileD;
+      std::array<double, 3> fileMin, fileMax, fileDx;
       std::array<uint64_t, 3> fileCells;
-      if(!readGridSize(fileMin, fileMax, fileCells, fileD)) {
+      if(!readGridSize(fileMin, fileMax, fileCells, fileDx)) {
          return false;
       }
 
       for (int i = 0; i < P::amrMaxSpatialRefLevel; ++i) {
-         for (auto it = fileD.begin(); it < fileD.end(); ++it)
+         for (auto it = fileDx.begin(); it < fileDx.end(); ++it)
             *it /= 2;
       }
 
@@ -974,7 +975,7 @@ namespace projects {
       std::array<int32_t,3>& localStart = targetGrid.getLocalStart();
       std::array<int32_t,3> localOffset;
       for (int i = 0; i < 3; ++i) {
-         localOffset[i] = (targetGrid.physicalGlobalStart[i] - fileMin[i]) / fileD[i];
+         localOffset[i] = (targetGrid.physicalGlobalStart[i] - fileMin[i]) / fileDx[i];
       }
 
       // Determine our tasks storage size
@@ -1080,6 +1081,7 @@ namespace projects {
       return true;
    }
 
+   // Pick first variable found in file from list of names given
    std::string ElVentana::pickVarName(const std::string &grid, const std::list<std::string> &varNames) {
       vlsvinterface::Reader r;
       r.open(StartFile);
@@ -1099,6 +1101,7 @@ namespace projects {
       return varName;
    }
 
+   // Read variable in single cell with given offset. Returns pointer to buffer size vecsize containing the variable
    Real* ElVentana::readVar(string varname, CellID fileOffset, uint64_t &vecsize) {
       list<pair<string,string>> attribs;
       uint64_t arraySize, byteSize;
@@ -1143,7 +1146,8 @@ namespace projects {
       return buffer;
    }
 
-   CellID ElVentana::getOldCellID(CellID newID, dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, std::array<CellID, 3> fileCells, std::array<double, 3> &fileMin, std::array<double, 3> fileD) {
+   // Returrns CellID in file grid corresponding to newID in the window
+   CellID ElVentana::getOldCellID(CellID newID, dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, std::array<CellID, 3> fileCells, std::array<double, 3> &fileMin, std::array<double, 3> fileDx) {
       int refLevel = mpiGrid.get_refinement_level(newID);
       dccrg::Mapping fileMapping;
       if (!(fileMapping.set_length(fileCells) && fileMapping.set_maximum_refinement_level(P::amrMaxSpatialRefLevel))) {
@@ -1154,15 +1158,16 @@ namespace projects {
 
       std::array<uint64_t, 3> indices;
       for (int i = 0; i < 3; ++i) {
-         indices[i] = (xyz[i] - fileMin[i]) / (fileD[i] / pow(2, P::amrMaxSpatialRefLevel));
+         indices[i] = (xyz[i] - fileMin[i]) / (fileDx[i] / pow(2, P::amrMaxSpatialRefLevel));
       }
 
       return fileMapping.get_cell_from_indices(indices, refLevel);
    }
 
+   // Refine spatial cells to same level as file
    bool ElVentana::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
       vector<CellID> fileCellsID; /*< CellIds for all cells in file*/
-      std::array<double, 3> fileMin, fileMax, fileD;
+      std::array<double, 3> fileMin, fileMax, fileDx;
       std::array<CellID, 3> fileCells;
       const string filename = this->StartFile;
       std::vector<CellID> cells = getLocalCells();
@@ -1184,7 +1189,7 @@ namespace projects {
          exit(1);
       }
 
-      readGridSize(fileMin, fileMax, fileCells, fileD);
+      readGridSize(fileMin, fileMax, fileCells, fileDx);
 
       // Refine all cells that aren't found in file.
       for (uint64_t refLevel=0; refLevel < P::amrMaxSpatialRefLevel; ++refLevel) {
@@ -1193,7 +1198,7 @@ namespace projects {
             CellID id = cells[i];
             //if (myRank == MASTER_RANK)
             //   std::cout << "ID: " << id;
-            CellID oldCellID = getOldCellID(id, mpiGrid, fileCells, fileMin, fileD);
+            CellID oldCellID = getOldCellID(id, mpiGrid, fileCells, fileMin, fileDx);
             if (std::find(fileCellsID.begin(), fileCellsID.end(), oldCellID) == fileCellsID.end()) {
                //std::cerr << "Refined " << id << " old ID " << oldCellID << std::endl;
                mpiGrid.refine_completely(id);
