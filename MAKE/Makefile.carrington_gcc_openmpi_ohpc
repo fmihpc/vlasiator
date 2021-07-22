@@ -1,0 +1,73 @@
+# module load gnu9/9.3.0                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
+# module load openmpi4/4.0.5
+# module load pmix/3.1.4
+CMP = mpicxx
+LNK = mpicxx
+#======== Vectorization ==========
+#Set vector backend type for vlasov solvers, sets precision and length.  
+#Options:  
+# AVX:      VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VEC4D_FALLBACK, VEC4F_FALLBACK, VEC8F_FALLBACK
+ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
+#Single-precision         
+       VECTORCLASS = VEC8F_AGNER
+else
+#Double-precision
+       VECTORCLASS = VEC4D_AGNER
+endif
+#======= Compiler and compilation flags =========
+# NOTES on compiler flags:
+# CXXFLAGS is for compiler flags, they are always used
+# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
+# LDFLAGS flags for linker
+#-DNO_WRITE_AT_ALL:  Define to disable write at all to  
+#                    avoid memleak (much slower IO)
+#-DMPICH_IGNORE_CXX_SEEK: Ignores some multiple definition  
+#                         errors that come up when using  
+#                         mpi.h in c++ on Cray
+#
+# CXXFLAGS = -DMPICH_IGNORE_CXX_SEEK
+FLAGS =  
+#GNU flags:
+CC_BRAND = gcc
+CC_BRAND_VERSION = 9.3.0
+CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -m64 -march=znver2 #-flto
+testpackage: CXXFLAGS = -g -O2 -fopenmp -funroll-loops -std=c++17 -m64 -march=znver2
+MATHFLAGS = -ffast-math
+LDFLAGS = -lrt -lgfortran -std=c++17 -lgomp
+LIB_MPI = -lgomp -lmpi
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+CXXFLAGS += -DPAPI_MEM
+#======== Allocator =========
+#Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
+#Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
+CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+# BOOST_VERSION = current trilinos version
+# ZOLTAN_VERSION = current trilinos verson
+#
+#======== Libraries ===========
+MPT_BRAND = OpenMPI
+MPT_VERSION = 4.0.5
+JEMALLOC_VERSION = 5.2.1
+LIBRARY_PREFIX_B = /proj/ykempf/libraries
+LIBRARY_PREFIX = /proj/group/spacephysics/libraries
+#compiled libraries mostly in modules
+LIB_PROFILE = -L$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/phiprof/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/phiprof/lib
+INC_PROFILE = -I$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/phiprof/include
+LIB_VLSV = -L$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/vlsv
+INC_VLSV = -I$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/vlsv
+LIB_JEMALLOC = -L$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/jemalloc/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/jemalloc/lib
+INC_JEMALLOC = -I$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/jemalloc/include
+LIB_BOOST = -L$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/boost/lib -lboost_program_options -Wl,-rpath=$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/boost/lib
+INC_BOOST = -I$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/boost/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/zoltan/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/zoltan/lib
+INC_ZOLTAN = -I$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/zoltan/include
+LIB_PAPI = -L$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/papi/lib -lpapi -Wl,-rpath=$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/papi/lib   
+INC_PAPI = -I$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/papi/include
+#header libraries
+INC_EIGEN = -I$(LIBRARY_PREFIX)/ -I$(LIBRARY_PREFIX)/Eigen/
+INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid/
+INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg/
+INC_VECTORCLASS = -I/proj/ykempf/vectorclass/version1
