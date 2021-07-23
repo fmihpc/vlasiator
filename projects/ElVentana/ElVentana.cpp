@@ -624,7 +624,6 @@ namespace projects {
                   mpiGrid[cells[i]]->parameters[CellParams::RHOM+j] = buffer[j];
                }	   
             } else if (vecsize == 1)  {
-               if(myRank == MASTER_RANK) cout << "Reading bulk file: " << this->StartFile << endl;
                // Reading a bulk file. First store number density.
                mpiGrid[cells[i]]->parameters[CellParams::RHOM] = buffer[0];
 
@@ -825,6 +824,8 @@ namespace projects {
          } else {
             logFile << "(START)  No B field in FsGrid, using volumetric averages" << endl << write;
          }
+      } else {
+         std::cerr << "B Read!" << std::endl;
       }
 
       if (varName == "fg_b") {
@@ -926,7 +927,6 @@ namespace projects {
       vlsv::datatype::type dataType;
       uint64_t byteSize;
       list<pair<string,string> > attribs;
-      bool convertFloatType = false;
       const string filename = this->StartFile;
 
       int numWritingRanks = 0;
@@ -936,6 +936,8 @@ namespace projects {
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       MPI_Comm_size(MPI_COMM_WORLD,&size);
       MPI_Info mpiInfo = MPI_INFO_NULL;
+      if (myRank == MASTER_RANK)
+         std::cerr << "Reading " << variableName << "from FsGrid!" << std::endl;
 
       //if (this->vlsvParaReader.open(filename,MPI_COMM_WORLD,MASTER_RANK,mpiInfo) == false) {
       //   if (myRank == MASTER_RANK) 
@@ -954,10 +956,6 @@ namespace projects {
       if (this->vlsvParaReader.getArrayInfo("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
          logFile << "(RESTART)  ERROR: Failed to read array info for " << variableName << endl << write;
          return false;
-      }
-      if(!(dataType == vlsv::datatype::type::FLOAT && byteSize == sizeof(Real))) {
-         logFile << "(RESTART) Converting floating point format of fsgrid variable " << variableName << " from " << byteSize * 8 << " bits to " << sizeof(Real) * 8 << " bits." << endl << write;
-         convertFloatType = true;
       }
 
       std::array<double, 3> fileMin, fileMax, fileDx;
@@ -1036,22 +1034,10 @@ namespace projects {
          std::vector<Real> buffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
 
          phiprof::start("readArray");
-         if(!convertFloatType) {
-            // TODO: Should these be multireads instead? And/or can this be parallelized?
-            if(this->vlsvParaReader.readArray("VARIABLE",attribs, fileOffset, thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2], (char*)buffer.data()) == false) {
-               logFile << "(START)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
-               return false;
-            }
-         } else {
-            std::vector<float> readBuffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
-            if(this->vlsvParaReader.readArray("VARIABLE",attribs, fileOffset, thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2], (char*)readBuffer.data()) == false) {
-               logFile << "(START)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
-               return false;
-            }
-
-            for(int i=0; i< thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N; i++) {
-               buffer[i]=readBuffer[i];
-            }
+         // TODO: Should these be multireads instead? And/or can this be parallelized?
+         if(this->vlsvParaReader.readArray("VARIABLE",attribs, fileOffset, thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2], buffer.data()) == false) {
+            logFile << "(START)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
+            return false;
          }
          phiprof::stop("readArray");
 
@@ -1106,7 +1092,6 @@ namespace projects {
       list<pair<string,string>> attribs;
       uint64_t arraySize, byteSize;
       vlsv::datatype::type dataType;
-      bool convertFloatType = false;
 
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
@@ -1120,27 +1105,9 @@ namespace projects {
 
       Real* buffer = new Real[vecsize];
 
-      if(!(dataType == vlsv::datatype::type::FLOAT && byteSize == sizeof(Real))) {
-         //logFile << "(RESTART) Converting floating point format of variable " << varname << " from " << byteSize * 8 << " bits to " << sizeof(Real) * 8 << " bits." << endl << write;
-         convertFloatType = true;
-      }
-
-      if (!convertFloatType) {
-         if (this->vlsvSerialReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)buffer) == false ) {
-            if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read " << varname << endl << write;
-            exit(1);
-         }
-      } else {
-         float* readBuffer = new float[vecsize];
-         if (this->vlsvSerialReader.readArray("VARIABLE", attribs, fileOffset, 1, (char *)readBuffer) == false ) {
-            if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read " << varname << endl << write;
-            exit(1);
-         }
-
-         for(int i=0; i < vecsize; i++) {
-            buffer[i]=readBuffer[i];
-         }
-         delete[] readBuffer;
+      if (this->vlsvSerialReader.readArray("VARIABLE", attribs, fileOffset, 1, buffer) == false ) {
+         if(myRank == MASTER_RANK) logFile << "(START)  ERROR: Failed to read " << varname << endl << write;
+         exit(1);
       }
 
       return buffer;
