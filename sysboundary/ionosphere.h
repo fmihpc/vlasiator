@@ -126,10 +126,17 @@ namespace SBC {
       };
       std::array<AtmosphericLayer, numAtmosphereLevels> atmosphere;
 
-      enum IonosphereCouplingMethod {
-         Euler,
-         BS
+      enum IonosphereCouplingMethod { // Field line integrator for Magnetosphere<->Ionosphere coupling
+         Euler, // Euler stepping
+         BS     // Bulirsch-Stoer Stepping
       } couplingMethod;
+
+      enum IonosphereSolverGaugeFixing { // Potenital solver gauge fixing method
+         None,     // No gauge fixing, solver won't converge well
+         Pole,     // Fixing north pole (node 0) potential to zero
+         Integral, // Fixing integral of potential to zero (unstable?)
+         Equator   // Fixing all nodes within +-10 dgrees to zero
+      } gaugeFixing;
 
       // Hardcoded constants for calculating ion production table
       // TODO: Make these parameters?

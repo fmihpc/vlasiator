@@ -1746,6 +1746,20 @@ namespace SBC {
      nodes[nodeIndex].dependingCoeffs[0] = 0;
      nodes[nodeIndex].transposedCoeffs[0] = 0;
 
+     if(gaugeFixing == Pole && nodeIndex == 0) {
+       // If we are gauge fixing at the pole, node zero only couples to itself.
+       nodes[nodeIndex].dependingCoeffs[0] = 1;
+       nodes[nodeIndex].transposedCoeffs[0] = 1;
+       return;
+     }
+
+     if(gaugeFixing == Equator && fabs(nodes[nodeIndex].x[2]) < Ionosphere::innerRadius / 10.) {
+       // If we are gauge fixing at the equator, those nodes don't couple.
+       nodes[nodeIndex].dependingCoeffs[0] = 1;
+       nodes[nodeIndex].transposedCoeffs[0] = 1;
+       return;
+     }
+
      for(uint t=0; t<nodes[nodeIndex].numTouchingElements; t++) {
        int j0=-1;
        Element& e = elements[nodes[nodeIndex].touchingElements[t]];
@@ -2099,29 +2113,37 @@ namespace SBC {
 
        for(uint n=0; n<nodes.size(); n++) {
          Node& N=nodes[n];
-         N.parameters[ionosphereParameters::SOLUTION] += ak * N.parameters[ionosphereParameters::PPARAM];
+         if(gaugeFixing == Pole && n == 0) {
+            N.parameters[ionosphereParameters::SOLUTION] = 0;
+         } else if(gaugeFixing == Equator && fabs(N.x[2]) < Ionosphere::innerRadius / 10.) {
+            N.parameters[ionosphereParameters::SOLUTION] = 0;
+         } else {
+            N.parameters[ionosphereParameters::SOLUTION] += ak * N.parameters[ionosphereParameters::PPARAM];
+         }
        }
 
        // Rebalance the potential by calculating its area integral
-       Real potentialInt=0;
-       #pragma omp parallel for reduction(+:potentialInt)
-       for(uint e=0; e<elements.size(); e++) {
-          Real area = elementArea(e);
-          Real effPotential = 0;
-          for(int c=0; c<3; c++) {
-            effPotential += nodes[elements[e].corners[c]].parameters[ionosphereParameters::SOLUTION];
+       if(gaugeFixing == Integral) {
+          Real potentialInt=0;
+          #pragma omp parallel for reduction(+:potentialInt)
+          for(uint e=0; e<elements.size(); e++) {
+             Real area = elementArea(e);
+             Real effPotential = 0;
+             for(int c=0; c<3; c++) {
+               effPotential += nodes[elements[e].corners[c]].parameters[ionosphereParameters::SOLUTION];
+             }
+
+             potentialInt += effPotential * area;
           }
+          
+          // Calculate average potential on the sphere
+          potentialInt /= 4. * M_PI * Ionosphere::innerRadius * Ionosphere::innerRadius;
 
-          potentialInt += effPotential * area;
-       }
-       
-       // Calculate average potential on the sphere
-       potentialInt /= 4. * M_PI * Ionosphere::innerRadius * Ionosphere::innerRadius;
-
-       // Offset potentials to make it zero
-       for(uint n=0; n<nodes.size(); n++) {
-          Node& N=nodes[n];
-          N.parameters[ionosphereParameters::SOLUTION] -= potentialInt;
+          // Offset potentials to make it zero
+          for(uint n=0; n<nodes.size(); n++) {
+             Node& N=nodes[n];
+             N.parameters[ionosphereParameters::SOLUTION] -= potentialInt;
+          }
        }
 
        iSolverReal residualnorm = 0;
@@ -2209,6 +2231,7 @@ namespace SBC {
       Readparameters::add("ionosphere.F10_7", "Solar 10.7 cm radio flux (sfu = 10^{-22} W/m^2)", 100);
       Readparameters::add("ionosphere.backgroundIonisation", "Background ionoisation due to cosmic rays (mho)", 0.5);
       Readparameters::add("ionosphere.solverMaxIterations", "Maximum number of iterations for the conjugate gradient solver", 2000);
+      Readparameters::add("ionosphere.solverGaugeFixing", "Gauge fixing method of the ionosphere solver. Options are: pole, integral, equatorial", std::string("equator"));
       Readparameters::add("ionosphere.solverPreconditioning", "Use preconditioning for the solver? (0/1)", 1);
       Readparameters::add("ionosphere.earthAngularVelocity", "Angular velocity of inner boundary convection, in rad/s", 7.2921159e-5);
       Readparameters::add("ionosphere.plasmapauseL", "L-shell at which the plasmapause resides (for corotation)", 5.);
@@ -2243,6 +2266,20 @@ namespace SBC {
       Readparameters::get("ionosphere.conductivityModel", *(int*)(&conductivityModel));
       Readparameters::get("ionosphere.fibonacciNodeNum",fibonacciNodeNum);
       Readparameters::get("ionosphere.solverMaxIterations", solverMaxIterations);
+      std::string gaugeFixingString;
+      Readparameters::get("ionosphere.solverGaugeFixing", gaugeFixingString);
+      if(gaugeFixingString == "pole") {
+         ionosphereGrid.gaugeFixing = SphericalTriGrid::Pole;
+      } else if (gaugeFixingString == "integral") {
+         ionosphereGrid.gaugeFixing = SphericalTriGrid::Integral;
+      } else if (gaugeFixingString == "equator") {
+         ionosphereGrid.gaugeFixing = SphericalTriGrid::Equator;
+      } else if (gaugeFixingString == "None") {
+         ionosphereGrid.gaugeFixing = SphericalTriGrid::None;
+      } else {
+         cerr << "(IONOSPHERE) Unknown solver gauge fixing method \"" << gaugeFixingString << "\". Aborting." << endl;
+         abort();
+      }
       Readparameters::get("ionosphere.solverPreconditioning", solverPreconditioning);
       Readparameters::get("ionosphere.earthAngularVelocity", earthAngularVelocity);
       Readparameters::get("ionosphere.plasmapauseL", plasmapauseL);
