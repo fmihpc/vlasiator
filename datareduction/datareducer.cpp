@@ -1032,7 +1032,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 
                      return retval;
                      }));
-         outputReducer->addMetadata(outputReducer->size()-1, "mho", "$\\mathrm{\\mho}$", "$\\Sigma_P$", "1.0");
+         outputReducer->addMetadata(outputReducer->size()-1, "mho", "$\\mathrm{\\Omega^{-1}}$", "$\\Sigma_P$", "1.0");
          continue;
       }
       if(lowercase == "ig_sigmah") {
@@ -1047,7 +1047,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 
                      return retval;
                      }));
-         outputReducer->addMetadata(outputReducer->size()-1, "mho", "$\\mathrm{\\mho}$", "$\\Sigma_H$", "1.0");
+         outputReducer->addMetadata(outputReducer->size()-1, "mho", "$\\mathrm{\\Omega^{-1}}$", "$\\Sigma_H$", "1.0");
          continue;
       }
       if(lowercase == "ig_sigmaparallel") {
@@ -1062,7 +1062,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 
                      return retval;
                      }));
-         outputReducer->addMetadata(outputReducer->size()-1, "mho", "$\\mathrm{\\mho}$", "$\\Sigma_\\parallel$", "1.0");
+         outputReducer->addMetadata(outputReducer->size()-1, "mho", "$\\mathrm{\\Omega^{-1}}$", "$\\Sigma_\\parallel$", "1.0");
          continue;
       }
       if(lowercase == "ig_rhon") {
@@ -1122,7 +1122,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 
                      return retval;
                      }));
-         outputReducer->addMetadata(outputReducer->size()-1, "W/m^2", "$\\mathrm{W m^{-2}}$", "$W_\\text{precipitation}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size()-1, "W/m^2", "$\\mathrm{W m^{-2}}$", "$W_\\mathrm{precipitation}$", "1.0");
          continue;
       }
       if(lowercase == "ig_potential") {
@@ -1213,7 +1213,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 
                      return retval;
                      }));
-         outputReducer->addMetadata(outputReducer->size()-1, "m", "m", "$x_\\text{mapped}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size()-1, "m", "m", "$x_\\mathrm{mapped}$", "1.0");
          continue;
       }
       if(lowercase == "ig_upmappedb") {
@@ -1230,7 +1230,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 
                      return retval;
                      }));
-         outputReducer->addMetadata(outputReducer->size()-1, "T", "T", "$B_\\text{mapped}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size()-1, "T", "T", "$B_\\mathrm{mapped}$", "1.0");
          continue;
       }
       if(lowercase == "ig_fac") {
@@ -1250,7 +1250,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 
                      return retval;
                      }));
-         outputReducer->addMetadata(outputReducer->size()-1, "A/m^2", "$\\mathrm{A m}^{-2}$", "$I_\\text{FAC}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size()-1, "A/m^2", "$\\mathrm{A m}^{-2}$", "$I_\\mathrm{FAC}$", "1.0");
          continue;
       }
       if(lowercase == "vg_ionospherecoupling") {
@@ -1283,7 +1283,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 
                   return retval;
 			}));
-         outputReducer->addMetadata(outputReducer->size()-1, "m", "m", "$x_\\text{coupled}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size()-1, "m", "m", "$x_\\mathrm{coupled}$", "1.0");
          continue;
       }
       // After all the continue; statements one should never land here.
