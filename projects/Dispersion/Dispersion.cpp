@@ -113,9 +113,11 @@ namespace projects {
          vector<Real> localRhom(P::xcells_ini, 0.0),
             outputRhom(P::xcells_ini, 0.0);
 
-         for(uint i=0; i<Parameters::localCells.size(); i++) {
-            if(Parameters::localCells[i] <= P::xcells_ini) {
-               localRhom[Parameters::localCells[i] - 1] = mpiGrid[Parameters::localCells[i]]->parameters[CellParams::RHOM];
+         const vector<CellID>& cells = getLocalCells();
+
+         for(uint i=0; i<cells.size(); i++) {
+            if(cells[i] <= P::xcells_ini) {
+               localRhom[cells[i] - 1] = mpiGrid[cells[i]]->parameters[CellParams::RHOM];
             }
          }
          
@@ -205,9 +207,9 @@ namespace projects {
    }
    
    void Dispersion::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
-      FsGrid< fsgrids::technical, 2>& technicalGrid
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
    ) {
       ConstantField bgField;
       bgField.initialize(this->B0 * cos(this->angleXY) * cos(this->angleXZ),

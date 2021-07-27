@@ -48,9 +48,9 @@ namespace projects {
       static void addParameters(void);
       virtual void getParameters(void);
       virtual void setProjectBField(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
-         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
-         FsGrid< fsgrids::technical, 2>& technicalGrid
+         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
       );
       virtual Real calcPhaseSpaceDensity(
                                          creal& x, creal& y, creal& z,
@@ -108,6 +108,7 @@ namespace projects {
       Real dipoleXFull;
       Real dipoleXZero;
       Real dipoleInflowB[3];
+      Real zeroOutComponents[3]; //0->x,1->y,2->z
 
       std::vector<MagnetosphereSpeciesParameters> speciesParams;
    }; // class Magnetosphere

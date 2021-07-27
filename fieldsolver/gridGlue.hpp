@@ -1,4 +1,5 @@
 #pragma once
+#include "../definitions.h"
 #include <fsgrid.hpp>
 #include <vector>
 #include <array>
@@ -16,8 +17,8 @@ std::vector<CellID> mapDccrgIdToFsGridGlobalID(dccrg::Dccrg<SpatialCell,dccrg::C
  */
 void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                            const std::vector<CellID>& cells,
-                           FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
-                           FsGrid< fsgrids::technical, 2>& technicalGrid,
+                           FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                           FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
                            bool dt2=false);
 
 /*! Copy field solver result (VOLB, VOLE, VOLPERB derivatives, gradpe) and store them back into DCCRG
@@ -27,10 +28,10 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
  *
  * This function assumes that proper grid coupling has been set up.
  */
-void getFieldsFromFsGrid(FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volumeFieldsGrid,
-			 FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
-			 FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
-			 FsGrid< fsgrids::technical, 2>& technicalGrid,
+void getFieldsFromFsGrid(FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volumeFieldsGrid,
+			 FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+			 FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+			 FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
 			 dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 			 const std::vector<CellID>& cells
 			 );
@@ -43,8 +44,8 @@ void getFieldsFromFsGrid(FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>
  * This function assumes that proper grid coupling has been set up.
  */
 void getBgFieldsAndDerivativesFromFsGrid(
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
-   FsGrid< fsgrids::technical, 2>& technicalGrid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const std::vector<CellID>& cells
 );
@@ -54,9 +55,9 @@ void getBgFieldsAndDerivativesFromFsGrid(
  * This should only be neccessary for debugging.
  */
 void getDerivativesFromFsGrid(
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2>& dperbGrid,
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2>& dmomentsGrid,
-   FsGrid< fsgrids::technical, 2>& technicalGrid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dperbGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dmomentsGrid,
+   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const std::vector<CellID>& cells
 );
@@ -78,8 +79,8 @@ int getNumberOfCellsOnMaxRefLvl(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
  * This function assumes that proper grid coupling has been set up.
  */
 template< unsigned int numFields > void getFieldDataFromFsGrid(
-   FsGrid< std::array<Real, numFields>, 2>& sourceGrid,
-   FsGrid< fsgrids::technical, 2>& technicalGrid,
+   FsGrid< std::array<Real, numFields>, FS_STENCIL_WIDTH> & sourceGrid,
+   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const std::vector<CellID>& cells,
    int index
