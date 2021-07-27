@@ -202,7 +202,7 @@ void initializeGrids(
    // Check refined cells do not touch boundary cells
    phiprof::start("Check boundary refinement");
    if(!sysBoundaries.checkRefinement(mpiGrid)) {
-      cerr << "(MAIN) ERROR: Boundary cells must have identical refinement level " << endl;
+      cerr << "(MAIN) WARNING: Boundary cells don't have identical refinement level " << endl;
       //exit(1);
    }
    phiprof::stop("Check boundary refinement");
