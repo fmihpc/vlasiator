@@ -154,7 +154,8 @@ void initializeGrids(
 
    phiprof::start("Refine spatial cells");
    recalculateLocalCellsCache();
-   if(P::amrMaxSpatialRefLevel > 0 && project.refineSpatialCells(mpiGrid)) {
+   // refineSpatialCells should be a nop if amrMaxSpatialRefLevel is 0. Make this better later
+   if(project.refineSpatialCells(mpiGrid)) {
       mpiGrid.balance_load();
       recalculateLocalCellsCache();
    }

@@ -525,7 +525,7 @@ namespace projects {
             // the analytically calculated background fields.
             //
             // The values are face-averages, not cell-averages, but are temporarily read into PERBXVOL anyway.
-            varname = pickVarName("SpatialGrid", {"vg_b_perturbed_vol", "perturbed_B"});
+            varname = pickVarName("SpatialGrid", {"perturbed_B", "B"});
             if (varname == "") {
                perBSet = false;
             } else {
@@ -534,6 +534,9 @@ namespace projects {
                   mpiGrid[cells[i]]->parameters[CellParams::PERBXVOL+j] = buffer[j];
                }
                perBSet = true;
+
+               totalBRead = (varname == "B");
+
                delete[] buffer;
             }
 
@@ -825,10 +828,11 @@ namespace projects {
             logFile << "(START)  No B field in FsGrid, using volumetric averages" << endl << write;
          }
       } else {
+         totalBRead = (varName == "fg_b");
          std::cerr << "B Read!" << std::endl;
       }
 
-      if (varName == "fg_b") {
+      if (totalBRead) {
          logFile << "(START)  No b_perturbed in FsGrid, calculating from b!" << endl << write;
          #pragma omp for collapse(3)
          for (int x = 0; x < localSize[0]; ++x) {

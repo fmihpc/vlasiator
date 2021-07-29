@@ -115,6 +115,7 @@ namespace projects {
       Real dipoleScalingFactor;
       uint dipoleType;
       bool perBSet = false;
+      bool totalBRead = false;
 
    }; // class ElVentana
 } // namespace projects
