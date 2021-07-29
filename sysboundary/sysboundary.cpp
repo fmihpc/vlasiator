@@ -422,21 +422,13 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
       mpiGrid[cells[i]]->sysBoundaryLayer=0; /*Initial value*/
 
       bool onFace = false;
-      std::array<bool,6> isThisCellOnAFace;
       std::array<double, 3> dx = mpiGrid.geometry.get_length(cells[i]);
       std::array<double, 3> x = mpiGrid.get_center(cells[i]);
-      isThisCellOnAFace.fill(false);
-      if (x[0] > Parameters::xmax - dx[0]) {
+      if (!isPeriodic[0] && (x[0] > Parameters::xmax - dx[0] || x[0] < Parameters::xmin + dx[0])) {
          continue;
-      } else if (x[0] < Parameters::xmin + dx[0]) {
+      } else if (!isPeriodic[1] && (x[1] > Parameters::ymax - dx[1] || x[1] < Parameters::ymin + dx[1])) {
          continue;
-      } else if (x[1] > Parameters::ymax - dx[1]) {
-         continue;
-      } else if (x[1] < Parameters::ymin + dx[1]) {
-         continue;
-      } else if (x[2] > Parameters::zmax - dx[2]) {
-         continue;
-      } else if (x[2] < Parameters::zmin + dx[2]) {
+      } else if (!isPeriodic[2] && (x[2] > Parameters::zmax - dx[2] || x[2] < Parameters::zmin + dx[2])) {
          continue;
       }
 
