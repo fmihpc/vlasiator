@@ -818,31 +818,33 @@ namespace projects {
          setBackgroundField(bgConstantField, BgBGrid, true);
       }
 
-      // Try reading perturbed B-field here
-      std::string varName = pickVarName("fsgrid", {"fg_b_perturbed", "fg_b"});
-      if (varName == "" || !readFsGridVariable(varName, perBGrid)) {            
-         if (!perBSet) {
-            logFile << "(START)  ERROR: No B field in file!" << endl << write;
-            exit(1);
+      // Try reading perturbed B-field here if we're not in restart
+      if (!P::isRestart) {
+         std::string varName = pickVarName("fsgrid", {"fg_b_perturbed", "fg_b"});
+         if (varName == "" || !readFsGridVariable(varName, perBGrid)) {            
+            if (!perBSet) {
+               logFile << "(START)  ERROR: No B field in file!" << endl << write;
+               exit(1);
+            } else {
+               logFile << "(START)  No B field in FsGrid, using volumetric averages" << endl << write;
+            }
          } else {
-            logFile << "(START)  No B field in FsGrid, using volumetric averages" << endl << write;
+            totalBRead = (varName == "fg_b");
+            std::cerr << "B Read!" << std::endl;
          }
-      } else {
-         totalBRead = (varName == "fg_b");
-         std::cerr << "B Read!" << std::endl;
-      }
 
-      if (totalBRead) {
-         logFile << "(START)  No b_perturbed in FsGrid, calculating from b!" << endl << write;
-         #pragma omp for collapse(3)
-         for (int x = 0; x < localSize[0]; ++x) {
-            for (int y = 0; y < localSize[1]; ++y) {
-               for (int z = 0; z < localSize[2]; ++z) {
-                  std::array<Real, fsgrids::bfield::N_BFIELD>* bcell = perBGrid.get(x, y, z);
-                  std::array<Real, fsgrids::bgbfield::N_BGB>* bgcell = BgBGrid.get(x, y, z);
-                  bcell->at(fsgrids::bfield::PERBX) -= bgcell->at(fsgrids::bgbfield::BGBX);
-                  bcell->at(fsgrids::bfield::PERBY) -= bgcell->at(fsgrids::bgbfield::BGBY);
-                  bcell->at(fsgrids::bfield::PERBZ) -= bgcell->at(fsgrids::bgbfield::BGBZ);
+         if (totalBRead) {
+            logFile << "(START)  No b_perturbed in FsGrid, calculating from b!" << endl << write;
+            #pragma omp for collapse(3)
+            for (int x = 0; x < localSize[0]; ++x) {
+               for (int y = 0; y < localSize[1]; ++y) {
+                  for (int z = 0; z < localSize[2]; ++z) {
+                     std::array<Real, fsgrids::bfield::N_BFIELD>* bcell = perBGrid.get(x, y, z);
+                     std::array<Real, fsgrids::bgbfield::N_BGB>* bgcell = BgBGrid.get(x, y, z);
+                     bcell->at(fsgrids::bfield::PERBX) -= bgcell->at(fsgrids::bgbfield::BGBX);
+                     bcell->at(fsgrids::bfield::PERBY) -= bgcell->at(fsgrids::bgbfield::BGBY);
+                     bcell->at(fsgrids::bfield::PERBZ) -= bgcell->at(fsgrids::bgbfield::BGBZ);
+                  }
                }
             }
          }
