@@ -38,6 +38,7 @@
 #include "static.h"
 #include "staticionosphere.h"
 #include "setmaxwellian.h"
+#include "../fieldsolver/gridGlue.hpp"
 
 using namespace std;
 using namespace spatial_cell;
@@ -466,11 +467,12 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
       success = success && (*it)->assignSysBoundary(mpiGrid,technicalGrid);
    }
    
-
    // communicate boundary assignments (sysBoundaryFlag and
    // sysBoundaryLayer communicated)
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
+
+   feedBoundaryIntoFsGrid(mpiGrid, cells, technicalGrid);
 
    // set distance 1 cells to boundary cells, that have neighbors which are normal cells
    for(uint i=0; i<cells.size(); i++) {
