@@ -201,10 +201,18 @@ namespace SBC {
          
          // Comparison of the array defining which faces to use and the array telling on which faces this cell is
          doAssign = false;
-         for(int j=0; j<6; j++) doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
+         for(int j=0; j<6; j++) 
+            doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
          if(doAssign) {
             mpiGrid[dccrgId]->sysBoundaryFlag = this->getIndex();
+            const auto nbrs = mpiGrid.get_face_neighbors_of(dccrgId);
+            for(uint j=0; j<nbrs.size(); j++) {
+               if(nbrs[j].first!=0) {
+                  mpiGrid[nbrs[j].first]->sysBoundaryFlag = this->getIndex();
+               }
+            }
          }         
+
       }
       
       return true;
@@ -212,10 +220,12 @@ namespace SBC {
    
    bool Outflow::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
       FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
       Project &project
    ) {
       const vector<CellID>& cells = getLocalCells();
+      std::set<CellID> cellsToApply;
       #pragma omp parallel for
       for (uint i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
@@ -244,21 +254,32 @@ namespace SBC {
             }
          }
 
-         if(doApply) {
-            // Defined in project.cpp, used here as the outflow cell has the same state 
-            // as the initial state of non-system boundary cells.
-            project.setCell(cell);
-            // WARNING Time-independence assumed here.
-            cell->parameters[CellParams::RHOM_DT2] = cell->parameters[CellParams::RHOM];
-            cell->parameters[CellParams::RHOQ_DT2] = cell->parameters[CellParams::RHOQ];
-            cell->parameters[CellParams::VX_DT2] = cell->parameters[CellParams::VX];
-            cell->parameters[CellParams::VY_DT2] = cell->parameters[CellParams::VY];
-            cell->parameters[CellParams::VZ_DT2] = cell->parameters[CellParams::VZ];
-            cell->parameters[CellParams::P_11_DT2] = cell->parameters[CellParams::P_11];
-            cell->parameters[CellParams::P_22_DT2] = cell->parameters[CellParams::P_22];
-            cell->parameters[CellParams::P_33_DT2] = cell->parameters[CellParams::P_33];
+         if (doApply) {
+            cellsToApply.insert(cells[i]);
+            const auto nbrs = mpiGrid.get_face_neighbors_of(cells[i]);
+            for(uint j=0; j<nbrs.size(); j++) {
+               if(nbrs[j].first!=0) {
+                  cellsToApply.insert(nbrs[j].first);
+               }
+            }
          }
+
       }
+
+      for (CellID i : cellsToApply) {
+         SpatialCell* cell = mpiGrid[i];
+         project.setCell(cell);
+         // WARNING Time-independence assumed here.
+         cell->parameters[CellParams::RHOM_DT2] = cell->parameters[CellParams::RHOM];
+         cell->parameters[CellParams::RHOQ_DT2] = cell->parameters[CellParams::RHOQ];
+         cell->parameters[CellParams::VX_DT2] = cell->parameters[CellParams::VX];
+         cell->parameters[CellParams::VY_DT2] = cell->parameters[CellParams::VY];
+         cell->parameters[CellParams::VZ_DT2] = cell->parameters[CellParams::VZ];
+         cell->parameters[CellParams::P_11_DT2] = cell->parameters[CellParams::P_11];
+         cell->parameters[CellParams::P_22_DT2] = cell->parameters[CellParams::P_22];
+         cell->parameters[CellParams::P_33_DT2] = cell->parameters[CellParams::P_33];
+      }
+
       return true;
    }
 
@@ -384,16 +405,27 @@ namespace SBC {
       
       const OutflowSpeciesParameters& sP = this->speciesParams[popID];
       SpatialCell* cell = mpiGrid[cellID];
+      if (cell->sysBoundaryFlag != this->getIndex()) {
+         return;
+      }
+
       creal* const cellParams = cell->parameters.data();
-      creal dx = cellParams[CellParams::DX];
-      creal dy = cellParams[CellParams::DY];
-      creal dz = cellParams[CellParams::DZ];
+      Real dx = cellParams[CellParams::DX];
+      Real dy = cellParams[CellParams::DY];
+      Real dz = cellParams[CellParams::DZ];
       creal x = cellParams[CellParams::XCRD] + 0.5*dx;
       creal y = cellParams[CellParams::YCRD] + 0.5*dy;
       creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
       
       bool isThisCellOnAFace[6];
-      determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);
+      // if refLevel isn't 0, assume neighbour might be on a lower refinement level
+      if (cellParams[CellParams::REFINEMENT_LEVEL] > 0) {
+         dx *= 2;
+         dy *= 2;
+         dz *= 2;
+      }
+
+      determineFace(&isThisCellOnAFace[0], x, y, z, dx*2, dy*2, dz*2, true);
       
       for(uint i=0; i<6; i++) {
          if(isThisCellOnAFace[i] && facesToProcess[i] && !sP.facesToSkipVlasov[i]) {

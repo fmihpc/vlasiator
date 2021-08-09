@@ -614,6 +614,7 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
  */
 bool SysBoundary::applyInitialState(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
    FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
    Project& project
 ) {
@@ -629,7 +630,7 @@ bool SysBoundary::applyInitialState(
       ) {
          continue;
       }
-      if((*it)->applyInitialState(mpiGrid, perBGrid, project) == false) {
+      if((*it)->applyInitialState(mpiGrid, technicalGrid, perBGrid, project) == false) {
          cerr << "ERROR: " << (*it)->getName() << " system boundary condition initial state not applied correctly." << endl;
          success = false;
       }

@@ -66,22 +66,22 @@ namespace SBC {
       for(uint i=0; i<6; i++) {
          isThisCellOnAFace[i] = false;
       }
-      if(x > Parameters::xmax - 2.0*dx) {
+      if(x > Parameters::xmax - dx) {
          isThisCellOnAFace[0] = true;
       }
-      if(x < Parameters::xmin + 2.0*dx) {
+      if(x < Parameters::xmin + dx) {
          isThisCellOnAFace[1] = true;
       }
-      if(y > Parameters::ymax - 2.0*dy) {
+      if(y > Parameters::ymax - dy) {
          isThisCellOnAFace[2] = true;
       }
-      if(y < Parameters::ymin + 2.0*dy) {
+      if(y < Parameters::ymin + dy) {
          isThisCellOnAFace[3] = true;
       }
-      if(z > Parameters::zmax - 2.0*dz) {
+      if(z > Parameters::zmax - dz) {
          isThisCellOnAFace[4] = true;
       }
-      if(z < Parameters::zmin + 2.0*dz) {
+      if(z < Parameters::zmin + dz) {
          isThisCellOnAFace[5] = true;
       }
       if(excludeSlicesAndPeriodicDimensions == true) {

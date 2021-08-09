@@ -101,6 +101,12 @@ namespace SBC {
          for(int j=0; j<6; j++) doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
          if(doAssign) {
             mpiGrid[cells[i]]->sysBoundaryFlag = this->getIndex();
+            const auto nbrs = mpiGrid.get_face_neighbors_of(cells[i]);
+            for(uint j=0; j<nbrs.size(); j++) {
+               if(nbrs[j].first!=0) {
+                  mpiGrid[nbrs[j].first]->sysBoundaryFlag = this->getIndex();
+               }
+            }
          }
       }
 
@@ -109,6 +115,7 @@ namespace SBC {
    
    bool SetByUser::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
       FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
       Project &project
    ) {
@@ -116,7 +123,7 @@ namespace SBC {
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          if (!setCellsFromTemplate(mpiGrid, popID)) success = false;
       }
-      if (!setBFromTemplate(mpiGrid, perBGrid)) success = false;
+      if (!setBFromTemplate(technicalGrid, perBGrid)) success = false;
       
       return success;
    }
@@ -140,16 +147,23 @@ namespace SBC {
       cuint& component
    ) {
       Real result = 0.0;
-      creal dx = Parameters::dx_ini;
-      creal dy = Parameters::dy_ini;
-      creal dz = Parameters::dz_ini;
       const array<int, 3> globalIndices = technicalGrid.getGlobalIndices(i,j,k);
+
       creal x = (convert<Real>(globalIndices[0])+0.5)*technicalGrid.DX + Parameters::xmin;
       creal y = (convert<Real>(globalIndices[1])+0.5)*technicalGrid.DY + Parameters::ymin;
       creal z = (convert<Real>(globalIndices[2])+0.5)*technicalGrid.DZ + Parameters::zmin;
+      int refLevel = technicalGrid.get(i, j, k)->refLevel;
+
+      // if refLevel isn't 0, assume neighbour might be on a lower refinement level
+      if (refLevel > 0)
+         --refLevel;
+
+      creal dx = Parameters::dx_ini * pow(2, -refLevel);
+      creal dy = Parameters::dy_ini * pow(2, -refLevel);
+      creal dz = Parameters::dz_ini * pow(2, -refLevel);
       
       bool isThisCellOnAFace[6];
-      determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);
+      determineFace(&isThisCellOnAFace[0], x, y, z, dx*2, dy*2, dz*2, true);
 
       for (uint i=0; i<6; i++) {
          if (isThisCellOnAFace[i]) {
@@ -243,8 +257,7 @@ namespace SBC {
       // No need to do anything in this function, as the propagators do not touch the distribution function   
    }
    
-   bool SetByUser::setBFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                    FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid) {
+   bool SetByUser::setBFromTemplate(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid) {
 
       array<bool,6> isThisCellOnAFace;
       const array<int, 3> gridDims(perBGrid.getLocalSize());
@@ -252,7 +265,10 @@ namespace SBC {
       for (int k=0; k<gridDims[2]; k++) {
          for (int j=0; j<gridDims[1]; j++) {
             for (int i=0; i<gridDims[0]; i++) {
-               const auto coords = perBGrid.getPhysicalCoords(i,j,k);
+               if (technicalGrid.get(i, j, k)->sysBoundaryFlag != this->getIndex())
+                  continue;
+
+               const auto coords = technicalGrid.getPhysicalCoords(i,j,k);
                
                // TODO: This code up to determineFace() should be in a separate function, it gets called in a lot of places.
                // Shift to the center of the fsgrid cell
@@ -261,20 +277,24 @@ namespace SBC {
                cellCenterCoords[1] += 0.5 * perBGrid.DY;
                cellCenterCoords[2] += 0.5 * perBGrid.DZ;
 
-               const auto refLvl = mpiGrid.get_refinement_level(mpiGrid.get_existing_cell(cellCenterCoords));
+               int refLevel = technicalGrid.get(i, j, k)->refLevel;
 
-               if(refLvl == -1) {
+               if(refLevel == -1) {
                   cerr << "Error, could not get refinement level of remote DCCRG cell " << __FILE__ << " " << __LINE__ << endl;
                   return false;
                }
 
-               creal dx = P::dx_ini / pow(2, refLvl);
-               creal dy = P::dy_ini / pow(2, refLvl);
-               creal dz = P::dz_ini / pow(2, refLvl);
+               // if refLevel isn't 0, assume neighbour might be on a lower refinement level
+               if (refLevel > 0)
+                  --refLevel;
+
+               creal dx = P::dx_ini / pow(2, refLevel);
+               creal dy = P::dy_ini / pow(2, refLevel);
+               creal dz = P::dz_ini / pow(2, refLevel);
                
                isThisCellOnAFace.fill(false);
 
-               determineFace(isThisCellOnAFace.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx, dy, dz);
+               determineFace(isThisCellOnAFace.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx*2, dy*2, dz*2);
 
                for(uint iface=0; iface < 6; iface++) {
                   if(facesToProcess[iface] && isThisCellOnAFace[iface]) {
@@ -293,6 +313,9 @@ namespace SBC {
 
    bool SetByUser::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID) {
       const vector<CellID>& cells = getLocalCells();
+
+      std::array<std::set<CellID>, 6> cellsToApply;
+
       #pragma omp parallel for
       for (size_t c=0; c<cells.size(); c++) {
          SpatialCell* cell = mpiGrid[cells[c]];
@@ -307,15 +330,30 @@ namespace SBC {
          
          bool isThisCellOnAFace[6];
          determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);
+
          
          for(uint i=0; i<6; i++) {
             if(facesToProcess[i] && isThisCellOnAFace[i]) {
-               copyCellData(&templateCells[i], cell,false,popID,true); // copy also vdf, _V
-               copyCellData(&templateCells[i], cell,true,popID,false); // don't copy vdf again but copy _R now
+               cellsToApply[i].insert(cells[c]);
+               const auto nbrs = mpiGrid.get_face_neighbors_of(cells[c]);
+               for(uint j=0; j<nbrs.size(); j++) {
+                  if(nbrs[j].first!=0) {
+                     cellsToApply[i].insert(nbrs[j].first);
+                  }
+               }
                break; // This effectively sets the precedence of faces through the order of faces.
             }
          }
       }
+
+      #pragma omp parallel for
+      for (int i = 0; i < 6; ++i) {
+         for (CellID i : cellsToApply[i]) {
+            copyCellData(&templateCells[i], mpiGrid[i] ,false,popID,true); // copy also vdf, _V
+            copyCellData(&templateCells[i], mpiGrid[i] ,true,popID,false); // don't copy vdf again but copy _R now
+         }
+      }
+
       return true;
    }
    
