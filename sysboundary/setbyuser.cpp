@@ -314,9 +314,10 @@ namespace SBC {
    bool SetByUser::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID) {
       const vector<CellID>& cells = getLocalCells();
 
-      std::array<std::set<CellID>, 6> cellsToApply;
+      //std::set<CellID> cellsToApply[6];
+      std::set<CellID> cellsSet;
 
-      #pragma omp parallel for
+      //#pragma omp parallel for
       for (size_t c=0; c<cells.size(); c++) {
          SpatialCell* cell = mpiGrid[cells[c]];
          if(cell->sysBoundaryFlag != this->getIndex()) continue;
@@ -334,23 +335,19 @@ namespace SBC {
          
          for(uint i=0; i<6; i++) {
             if(facesToProcess[i] && isThisCellOnAFace[i]) {
-               cellsToApply[i].insert(cells[c]);
+               copyCellData(&templateCells[i], cell ,false,popID,true); // copy also vdf, _V
+               copyCellData(&templateCells[i], cell ,true,popID,false); // don't copy vdf again but copy _R now
+               cellsSet.insert(cells[c]);
                const auto nbrs = mpiGrid.get_face_neighbors_of(cells[c]);
                for(uint j=0; j<nbrs.size(); j++) {
-                  if(nbrs[j].first!=0) {
-                     cellsToApply[i].insert(nbrs[j].first);
+                  if(nbrs[j].first != 0 && cellsSet.count(nbrs[j].first) == 0) {
+                     copyCellData(&templateCells[i], mpiGrid[nbrs[j].first] ,false,popID,true); // copy also vdf, _V
+                     copyCellData(&templateCells[i], mpiGrid[nbrs[j].first] ,true,popID,false); // don't copy vdf again but copy _R now
+                     cellsSet.insert(nbrs[j].first);
                   }
                }
                break; // This effectively sets the precedence of faces through the order of faces.
             }
-         }
-      }
-
-      #pragma omp parallel for
-      for (int i = 0; i < 6; ++i) {
-         for (CellID i : cellsToApply[i]) {
-            copyCellData(&templateCells[i], mpiGrid[i] ,false,popID,true); // copy also vdf, _V
-            copyCellData(&templateCells[i], mpiGrid[i] ,true,popID,false); // don't copy vdf again but copy _R now
          }
       }
 
