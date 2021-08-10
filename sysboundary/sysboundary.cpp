@@ -458,6 +458,9 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
       for(uint i=0; i<cells.size(); i++) {
          if(mpiGrid[cells[i]]->sysBoundaryLayer==0){
             const auto* nbrs = mpiGrid.get_neighbors_of(cells[i],SYSBOUNDARIES_NEIGHBORHOOD_ID);
+            if (nbrs == nullptr) {
+               continue;
+            }
 	    // Note: this distance calculation will be non-plateau monotonic only assuming that
 	    // SysBoundary::checkRefinement has been applied correctly and there are no refinement
 	    // level changes within SYSBOUNDARIES_NEIGHBORHOOD_ID.
@@ -547,7 +550,7 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
    technicalGrid.updateGhostCells();
    
    const array<int,3> fsGridDimensions = technicalGrid.getGlobalSize();
-   
+
    // One pass to setup the bit field to know which components the field solver should propagate.
    #pragma omp parallel for collapse(3)
    for (int x = 0; x < localSize[0]; ++x) {
@@ -601,7 +604,7 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
    }
    
    technicalGrid.updateGhostCells();
-   
+
    return success;
 }
 
