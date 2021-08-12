@@ -45,7 +45,7 @@ FLAGS =
 CC_BRAND = gcc
 CC_BRAND_VERSION = 9.3.0
 CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -mavx -march=znver2 #-flto
-testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -mavx
+testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -mavx -march=znver2
 
 MATHFLAGS = -ffast-math
 LDFLAGS = -lrt -lgfortran -std=c++17 -lgomp
@@ -54,11 +54,13 @@ LIB_MPI = -lgomp -lmpi
 #======== PAPI ==========
 #Add PAPI_MEM define to use papi to report memory consumption?
 CXXFLAGS += -DPAPI_MEM
+testpackage: CXXFLAGS += -DPAPI_MEM
 
 #======== Allocator =========
 #Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
 #Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
 CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 
 # BOOST_VERSION = current trilinos version
