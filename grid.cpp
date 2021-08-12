@@ -218,12 +218,13 @@ void initializeGrids(
       if (P::adaptRefinement) {
          phiprof::start("Re-refine spatial cells");
          for (int i = 0; i < P::amrMaxSpatialRefLevel; ++i) {
-            project.adaptRefinement(mpiGrid);
-            initSpatialCellCoordinates(mpiGrid);
             if(sysBoundaries.classifyCells(mpiGrid,technicalGrid) == false) {
                cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
                exit(1);
             }
+
+            project.adaptRefinement(mpiGrid);
+            initSpatialCellCoordinates(mpiGrid);
 
             // balance load, update ghost cells
             balanceLoad(mpiGrid, sysBoundaries);
