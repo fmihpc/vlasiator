@@ -477,16 +477,8 @@ namespace projects {
       return centerPoints;
    }
 
-   bool Magnetosphere::canRefine(const std::array<double,3> xyz, const int refLevel) const {
-      const int bw = (2 + 1*refLevel) * VLASOV_STENCIL_WIDTH; // Seems to be the limit
-
-      return refLevel < P::amrMaxSpatialRefLevel &&
-             xyz[0] > P::xmin + P::dx_ini * bw && 
-             xyz[0] < P::xmax - P::dx_ini * bw && 
-             xyz[1] > P::ymin + P::dy_ini * bw && 
-             xyz[1] < P::ymax - P::dy_ini * bw && 
-             xyz[2] > P::zmin + P::dz_ini * bw &&
-             xyz[2] < P::zmax - P::dz_ini * bw;
+   bool Magnetosphere::canRefine(spatial_cell::SpatialCell* cell) const {
+      return cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY;
    }
 
    bool Magnetosphere::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
@@ -540,7 +532,7 @@ namespace projects {
             Real radius2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
             bool inSphere = radius2 < refine_L1radius*refine_L1radius;
             bool inTail = xyz[0] < 0 && fabs(xyz[1]) < refine_L1radius && fabs(xyz[2]) < refine_L1tailthick;
-            if (canRefine(xyz, 0) && (inSphere || inTail)) {
+            if (canRefine(mpiGrid[id]) && (inSphere || inTail)) {
                //#pragma omp critical
                mpiGrid.refine_completely(id);
             }
@@ -567,7 +559,7 @@ namespace projects {
             Real radius2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
             bool inSphere = radius2 < pow(refine_L2radius, 2);
             bool inTail = xyz[0] < 0 && fabs(xyz[1]) < refine_L2radius && fabs(xyz[2])<refine_L2tailthick;
-            if (canRefine(xyz, 1) && (inSphere || inTail)) {
+            if (canRefine(mpiGrid[id]) && (inSphere || inTail)) {
                //#pragma omp critical
                mpiGrid.refine_completely(id);
             }
@@ -593,7 +585,7 @@ namespace projects {
             Real radius2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
             bool inNoseCap = (xyz[0]>refine_L3nosexmin) && (radius2<refine_L3radius*refine_L3radius);
             bool inTail = (xyz[0]>refine_L3tailxmin) && (xyz[0]<refine_L3tailxmax) && (fabs(xyz[1])<refine_L3tailwidth) && (fabs(xyz[2])<refine_L3tailheight);
-            if (canRefine(xyz, 2) && (inNoseCap || inTail)) {
+            if (canRefine(mpiGrid[id]) && (inNoseCap || inTail)) {
                //#pragma omp critical
                mpiGrid.refine_completely(id);			  
             }
@@ -673,7 +665,7 @@ namespace projects {
             // Skip refining, we shouldn't touch borders when reading restart
             continue;
          } else if (cell->parameters[CellParams::AMR_ALPHA] > refineTreshold) {
-            if (canRefine(xyz, refLevel)) {
+            if (canRefine(mpiGrid[id])) {
                //#pragma omp critical
                mpiGrid.refine_completely(id);
             }
