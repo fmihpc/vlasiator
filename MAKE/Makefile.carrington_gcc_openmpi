@@ -1,5 +1,11 @@
 # Makefile for the Carrington Cluster at UH.
 #
+# Recommended setup:
+# * Compile on an interactive node with the below modules;
+# * Load the modules in the job script too;
+# * Use the full command to run:
+# ** mpirun -mca pml ucx --mca btl ^vader,tcp,openib -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global $executable --run_config $configfile
+#
 # Required modules:
 #
 # module load gnu9/9.3.0
