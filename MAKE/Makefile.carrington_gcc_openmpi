@@ -1,12 +1,7 @@
 # Makefile for the Carrington Cluster at UH.
 #
-# Suggested modules:
+# Required modules:
 #
-# module purge
-# module load GCC/10.2.0
-# module load OpenMPI/4.0.5-GCC-10.2.0
-#
-
 # module load gnu9/9.3.0
 # module load openmpi4/4.0.5
 # module load pmix/3.1.4
