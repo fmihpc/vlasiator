@@ -41,10 +41,11 @@ using namespace std;
 using namespace spatial_cell;
 
 bool precedenceSort(const SBC::SysBoundaryCondition* first, const SBC::SysBoundaryCondition* second) {
-   if (first->getPrecedence() < second->getPrecedence())
+   if (first->getPrecedence() < second->getPrecedence()) {
       return true;
-   else
+   } else {
       return false;
+   }
 }
 
 // ************************************************************
@@ -108,12 +109,15 @@ void SysBoundary::getParameters() {
    isPeriodic[0] = false;
    isPeriodic[1] = false;
    isPeriodic[2] = false;
-   if (periodic_x == "yes")
+   if (periodic_x == "yes") {
       isPeriodic[0] = true;
-   if (periodic_y == "yes")
+   }
+   if (periodic_y == "yes") {
       isPeriodic[1] = true;
-   if (periodic_z == "yes")
+   }
+   if (periodic_z == "yes") {
       isPeriodic[2] = true;
+   }
 }
 
 /*! Add a new SBC::SysBoundaryCondition which has been created with new sysBoundary.
@@ -163,137 +167,157 @@ bool SysBoundary::initSysBoundaries(Project& project, creal& t) {
 
    if (sysBoundaryCondList.size() == 0) {
       if (!isPeriodic[0] && !Readparameters::helpRequested) {
-         if (myRank == MASTER_RANK)
+         if (myRank == MASTER_RANK) {
             cerr << "You set boundaries.periodic_x = no but you didn't load any system boundary condition using the "
                     "option boundaries.boundary, are you sure this is correct?"
                  << endl;
+         }
       }
       if (!isPeriodic[1] && !Readparameters::helpRequested) {
-         if (myRank == MASTER_RANK)
+         if (myRank == MASTER_RANK) {
             cerr << "You set boundaries.periodic_y = no but you didn't load any system boundary condition using the "
                     "option boundaries.boundary, are you sure this is correct?"
                  << endl;
+         }
       }
       if (!isPeriodic[2] && !Readparameters::helpRequested) {
-         if (myRank == MASTER_RANK)
+         if (myRank == MASTER_RANK) {
             cerr << "You set boundaries.periodic_z = no but you didn't load any system boundary condition using the "
                     "option boundaries.boundary, are you sure this is correct?"
                  << endl;
+         }
       }
    }
 
    for (it = sysBoundaryCondList.begin(); it != sysBoundaryCondList.end(); it++) {
       if (*it == "Outflow") {
          if (!this->addSysBoundary(new SBC::Outflow, project, t)) {
-            if (myRank == MASTER_RANK)
+            if (myRank == MASTER_RANK) {
                cerr << "Error in adding Outflow boundary." << endl;
+            }
             success = false;
          }
          isThisDynamic = isThisDynamic | this->getSysBoundary(sysboundarytype::OUTFLOW)->isDynamic();
          bool faces[6];
          this->getSysBoundary(sysboundarytype::OUTFLOW)->getFaces(&faces[0]);
          if ((faces[0] || faces[1]) && isPeriodic[0]) {
-            if (myRank == MASTER_RANK)
+            if (myRank == MASTER_RANK) {
                cerr << "You set boundaries.periodic_x = yes and load Outflow system boundary conditions on the x+ or "
                        "x- face, are you sure this is correct?"
                     << endl;
+            }
          }
          if ((faces[2] || faces[3]) && isPeriodic[1]) {
-            if (myRank == MASTER_RANK)
+            if (myRank == MASTER_RANK) {
                cerr << "You set boundaries.periodic_y = yes and load Outflow system boundary conditions on the y+ or "
                        "y- face, are you sure this is correct?"
                     << endl;
+            }
          }
          if ((faces[4] || faces[5]) && isPeriodic[2]) {
-            if (myRank == MASTER_RANK)
+            if (myRank == MASTER_RANK) {
                cerr << "You set boundaries.periodic_z = yes and load Outflow system boundary conditions on the z+ or "
                        "z- face, are you sure this is correct?"
                     << endl;
+            }
          }
          if ((faces[0] || faces[1]) && P::xcells_ini < 5) {
-            if (myRank == MASTER_RANK)
+            if (myRank == MASTER_RANK) {
                cerr << "You load Outflow system boundary conditions on the x+ or x- face but there is not enough cells "
                        "in that direction to make sense."
                     << endl;
+            }
             exit(1);
          }
          if ((faces[2] || faces[3]) && P::ycells_ini < 5) {
-            if (myRank == MASTER_RANK)
+            if (myRank == MASTER_RANK) {
                cerr << "You load Outflow system boundary conditions on the y+ or y- face but there is not enough cells "
                        "in that direction to make sense."
                     << endl;
+            }
             exit(1);
          }
          if ((faces[4] || faces[5]) && P::zcells_ini < 5) {
-            if (myRank == MASTER_RANK)
+            if (myRank == MASTER_RANK) {
                cerr << "You load Outflow system boundary conditions on the z+ or z- face but there is not enough cells "
                        "in that direction to make sense."
                     << endl;
+            }
             exit(1);
          }
       } else if (*it == "Ionosphere") {
          if (!this->addSysBoundary(new SBC::Ionosphere, project, t)) {
-            if (myRank == MASTER_RANK)
+            if (myRank == MASTER_RANK) {
                cerr << "Error in adding Ionosphere boundary." << endl;
+            }
             success = false;
          }
          if (!this->addSysBoundary(new SBC::DoNotCompute, project, t)) {
-            if (myRank == MASTER_RANK)
+            if (myRank == MASTER_RANK) {
                cerr << "Error in adding DoNotCompute boundary (for Ionosphere)." << endl;
+            }
             success = false;
          }
          isThisDynamic = isThisDynamic | this->getSysBoundary(sysboundarytype::IONOSPHERE)->isDynamic();
       } else if (*it == "Maxwellian") {
          if (!this->addSysBoundary(new SBC::SetMaxwellian, project, t)) {
-            if (myRank == MASTER_RANK)
+            if (myRank == MASTER_RANK) {
                cerr << "Error in adding Maxwellian boundary." << endl;
+            }
             success = false;
          }
          isThisDynamic = isThisDynamic | this->getSysBoundary(sysboundarytype::SET_MAXWELLIAN)->isDynamic();
          bool faces[6];
          this->getSysBoundary(sysboundarytype::SET_MAXWELLIAN)->getFaces(&faces[0]);
          if ((faces[0] || faces[1]) && isPeriodic[0]) {
-            if (myRank == MASTER_RANK)
+            if (myRank == MASTER_RANK) {
                cerr << "You set boundaries.periodic_x = yes and load Maxwellian system boundary conditions on the x+ "
                        "or x- face, are you sure this is correct?"
                     << endl;
+            }
          }
          if ((faces[2] || faces[3]) && isPeriodic[1]) {
-            if (myRank == MASTER_RANK)
+            if (myRank == MASTER_RANK) {
                cerr << "You set boundaries.periodic_y = yes and load Maxwellian system boundary conditions on the y+ "
                        "or y- face, are you sure this is correct?"
                     << endl;
+            }
          }
          if ((faces[4] || faces[5]) && isPeriodic[2]) {
-            if (myRank == MASTER_RANK)
+            if (myRank == MASTER_RANK) {
                cerr << "You set boundaries.periodic_z = yes and load Maxwellian system boundary conditions on the z+ "
                        "or z- face, are you sure this is correct?"
                     << endl;
+            }
          }
          if ((faces[0] || faces[1]) && P::xcells_ini < 5) {
-            if (myRank == MASTER_RANK)
+            if (myRank == MASTER_RANK) {
                cerr << "You load Maxwellian system boundary conditions on the x+ or x- face but there is not enough "
                        "cells in that direction to make sense."
                     << endl;
+            }
             exit(1);
          }
          if ((faces[2] || faces[3]) && P::ycells_ini < 5) {
-            if (myRank == MASTER_RANK)
+            if (myRank == MASTER_RANK) {
                cerr << "You load Maxwellian system boundary conditions on the y+ or y- face but there is not enough "
                        "cells in that direction to make sense."
                     << endl;
+            }
             exit(1);
          }
          if ((faces[4] || faces[5]) && P::zcells_ini < 5) {
-            if (myRank == MASTER_RANK)
+            if (myRank == MASTER_RANK) {
                cerr << "You load Maxwellian system boundary conditions on the z+ or z- face but there is not enough "
                        "cells in that direction to make sense."
                     << endl;
+            }
             exit(1);
          }
       } else {
-         if (myRank == MASTER_RANK)
+         if (myRank == MASTER_RANK) {
             cerr << "Unknown type of boundary read: " << *it << endl;
+         }
          MPI_Abort(MPI_COMM_WORLD, 1);
       }
    }
@@ -668,11 +692,11 @@ bool SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_G
  *
  * \param mpiGrid Grid
  * \param t Current time
+ * \param calculate_V_moments if true, compute into _V, false into _R moments so that the interpolated ones can be done
  */
 void SysBoundary::applySysBoundaryVlasovConditions(
     dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, creal& t,
-    const bool
-        calculate_V_moments // if true, compute into _V, false into _R moments so that the interpolated ones can be done
+    const bool calculate_V_moments
 ) {
    if (sysBoundaries.size() == 0) {
       return; // no system boundaries
