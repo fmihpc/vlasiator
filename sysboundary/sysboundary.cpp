@@ -624,7 +624,6 @@ bool SysBoundary::applyInitialState(
    for (it = sysBoundaries.begin();
         it != sysBoundaries.end();
         it++) {
-      std::cerr << (*it)->getIndex() << std::endl;
       if(                                                        // This is to skip the reapplication
          Parameters::isRestart == true                           // When not restarting
          && (*it)->doApplyUponRestart() == false                 // When reapplicaiton is not requested
