@@ -225,7 +225,6 @@ namespace SBC {
       Project &project
    ) {
       const vector<CellID>& cells = getLocalCells();
-      std::set<CellID> cellsToApply;
       #pragma omp parallel for
       for (uint i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
@@ -255,29 +254,31 @@ namespace SBC {
          }
 
          if (doApply) {
-            cellsToApply.insert(cells[i]);
+            project.setCell(cell);
+            cell->parameters[CellParams::RHOM_DT2] = cell->parameters[CellParams::RHOM];
+            cell->parameters[CellParams::RHOQ_DT2] = cell->parameters[CellParams::RHOQ];
+            cell->parameters[CellParams::VX_DT2] = cell->parameters[CellParams::VX];
+            cell->parameters[CellParams::VY_DT2] = cell->parameters[CellParams::VY];
+            cell->parameters[CellParams::VZ_DT2] = cell->parameters[CellParams::VZ];
+            cell->parameters[CellParams::P_11_DT2] = cell->parameters[CellParams::P_11];
+            cell->parameters[CellParams::P_22_DT2] = cell->parameters[CellParams::P_22];
+            cell->parameters[CellParams::P_33_DT2] = cell->parameters[CellParams::P_33];
             const auto nbrs = mpiGrid.get_face_neighbors_of(cells[i]);
             for(uint j=0; j<nbrs.size(); j++) {
-               if(nbrs[j].first!=0) {
-                  cellsToApply.insert(nbrs[j].first);
+               if (nbrs[j].first!=0) {
+                  cell = mpiGrid[nbrs[j].first];
+                  project.setCell(cell);
+                  cell->parameters[CellParams::RHOM_DT2] = cell->parameters[CellParams::RHOM];
+                  cell->parameters[CellParams::RHOQ_DT2] = cell->parameters[CellParams::RHOQ];
+                  cell->parameters[CellParams::VX_DT2] = cell->parameters[CellParams::VX];
+                  cell->parameters[CellParams::VY_DT2] = cell->parameters[CellParams::VY];
+                  cell->parameters[CellParams::VZ_DT2] = cell->parameters[CellParams::VZ];
+                  cell->parameters[CellParams::P_11_DT2] = cell->parameters[CellParams::P_11];
+                  cell->parameters[CellParams::P_22_DT2] = cell->parameters[CellParams::P_22];
+                  cell->parameters[CellParams::P_33_DT2] = cell->parameters[CellParams::P_33];
                }
             }
          }
-
-      }
-
-      for (CellID i : cellsToApply) {
-         SpatialCell* cell = mpiGrid[i];
-         project.setCell(cell);
-         // WARNING Time-independence assumed here.
-         cell->parameters[CellParams::RHOM_DT2] = cell->parameters[CellParams::RHOM];
-         cell->parameters[CellParams::RHOQ_DT2] = cell->parameters[CellParams::RHOQ];
-         cell->parameters[CellParams::VX_DT2] = cell->parameters[CellParams::VX];
-         cell->parameters[CellParams::VY_DT2] = cell->parameters[CellParams::VY];
-         cell->parameters[CellParams::VZ_DT2] = cell->parameters[CellParams::VZ];
-         cell->parameters[CellParams::P_11_DT2] = cell->parameters[CellParams::P_11];
-         cell->parameters[CellParams::P_22_DT2] = cell->parameters[CellParams::P_22];
-         cell->parameters[CellParams::P_33_DT2] = cell->parameters[CellParams::P_33];
       }
 
       return true;
