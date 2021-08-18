@@ -55,7 +55,7 @@ void velocitySpaceDiffusion(
 
         std::vector<std::array<Realf,3>> VPCoords(cell.get_number_of_velocity_blocks(popID)*WID3); // Array of vspace size for storing V coordinates
 
-        std::vector<std::array<Realf,3>> dfdtCoord(cell.get_number_of_velocity_blocks(popID)*WID3); // Array of vspace size to store dfdt coordinates
+        //std::vector<std::array<Realf,3>> dfdtCoord(cell.get_number_of_velocity_blocks(popID)*WID3); // Array of vspace size to store dfdt coordinates
 
         for (int coord = 0; coord < 3; coord++) { // First derivative loop
 
@@ -224,14 +224,16 @@ void velocitySpaceDiffusion(
                   else if (coord == 1) {precoeff = normV * Vplasma[0] * sin(theta[WID3*n+i+WID*j+WID*WID*k]) / sqrt(Vplasma[1]*Vplasma[1] + Vplasma[2]*Vplasma[2]);}
                   else if (coord == 2) {precoeff = normV * Vplasma[0] * cos(theta[WID3*n+i+WID*j+WID*WID*k]) / sqrt(Vplasma[1]*Vplasma[1] + Vplasma[2]*Vplasma[2]);} 
 
-                  dfdtCoord[WID3*n+i+WID*j+WID*WID*k][coord] = precoeff * (rightTerm - leftTerm)/DV; 
+                  //dfdtCoord[WID3*n+i+WID*j+WID*WID*k][coord] = precoeff * (rightTerm - leftTerm)/DV; 
+                  Realf dfdtCoord = precoeff * (rightTerm - leftTerm)/DV; 
            
                   // Update cell
 
                   Realf dt = Parameters::dt; // Simulation time step
 
                   Realf CellValue = cell.get_value(VX,VY,VZ,popID);
-                  CellValue = CellValue + dfdtCoord[WID3*n+i+WID*j+WID*WID*k][coord] * dt ;
+                  //CellValue = CellValue + dfdtCoord[WID3*n+i+WID*j+WID*WID*k][coord] * dt ;
+                  CellValue = CellValue + dfdtCoord * dt ;
                   if (CellValue <= 0.0) { CellValue = 0.0;}
 
                   cell.set_value(VX,VY,VZ,CellValue,popID);
@@ -242,13 +244,13 @@ void velocitySpaceDiffusion(
  
          }
 
-         std::ostringstream tmp;
-         tmp << std::setw(7) << std::setfill('0') << P::tstep;
-         std::string outputstring = tmp.str();
-         std::ofstream dfdttxt("/wrk/users/dubart/300_test/proc_test/test_files/dfdtCoord_" +outputstring+".txt");
-         for(int i=0; i < cell.get_number_of_velocity_blocks(popID)*WID3; i++) {
-             dfdttxt << VPCoords[i][0] << " " << VPCoords[i][1] << " " << VPCoords[i][2] << " " << dfdtCoord[i][0] << " " << dfdtCoord[i][1] << " " << dfdtCoord[i][2] << std::endl;
-         }
+//         std::ostringstream tmp;
+//         tmp << std::setw(7) << std::setfill('0') << P::tstep;
+//         std::string outputstring = tmp.str();
+//         std::ofstream dfdttxt("/wrk/users/dubart/300_test/proc_test/test_files/dfdtCoord_" +outputstring+".txt");
+//         for(int i=0; i < cell.get_number_of_velocity_blocks(popID)*WID3; i++) {
+//             dfdttxt << VPCoords[i][0] << " " << VPCoords[i][1] << " " << VPCoords[i][2] << " " << dfdtCoord[i][0] << " " << dfdtCoord[i][1] << " " << dfdtCoord[i][2] << std::endl;
+//        }
 
     }
 }
