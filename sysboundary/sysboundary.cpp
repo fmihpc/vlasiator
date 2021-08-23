@@ -436,6 +436,10 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
 
       if(mpiGrid[cells[i]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY ) {
          const auto* nbrs = mpiGrid.get_neighbors_of(cells[i],SYSBOUNDARIES_NEIGHBORHOOD_ID);
+         if (nbrs == nullptr) {
+            std::cerr << "Nullptr!" << std::endl;
+            continue;
+         }
          for(uint j=0; j<(*nbrs).size(); j++) {
             if((*nbrs)[j].first!=0 ) {
                if(mpiGrid[(*nbrs)[j].first]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ) {

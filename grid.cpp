@@ -181,6 +181,7 @@ void initializeGrids(
 
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
    mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
+   mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
 
    if(P::amrMaxSpatialRefLevel > 0) {
       setFaceNeighborRanks( mpiGrid );
@@ -269,6 +270,8 @@ void initializeGrids(
          exit(1);
       }
       phiprof::stop("Classify cells (sys boundary conditions)");
+
+      std::cerr << "Cells classified!" << std::endl;
 
 
       // Check refined cells do not touch boundary cells
