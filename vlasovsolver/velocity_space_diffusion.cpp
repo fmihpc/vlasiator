@@ -51,9 +51,9 @@ void velocitySpaceDiffusion(
 
         std::vector<std::array<Realf,3>> arrayDFright(cell.get_number_of_velocity_blocks(popID)*WID3); // Array of vspace size for storing derivatives +DV
         std::vector<std::array<Realf,3>> arrayDFleft(cell.get_number_of_velocity_blocks(popID)*WID3); // Array of vspace size for storing derivatives -DV
-        std::vector<Realf> theta(cell.get_number_of_velocity_blocks(popID)*WID3); // Array of vspace size for storing theta
+        //std::vector<Realf> theta(cell.get_number_of_velocity_blocks(popID)*WID3); // Array of vspace size for storing theta
 
-        std::vector<std::array<Realf,3>> VPCoords(cell.get_number_of_velocity_blocks(popID)*WID3); // Array of vspace size for storing V coordinates
+        //std::vector<std::array<Realf,3>> VPCoords(cell.get_number_of_velocity_blocks(popID)*WID3); // Array of vspace size for storing V coordinates
 
         //std::vector<std::array<Realf,3>> dfdtCoord(cell.get_number_of_velocity_blocks(popID)*WID3); // Array of vspace size to store dfdt coordinates
 
@@ -166,9 +166,9 @@ void velocitySpaceDiffusion(
                       Vplasma.push_back(V.at(indx) - bulkV.at(indx));
                   }
 
-                  VPCoords[WID3*n+i+WID*j+WID*WID*k][0] = V[0];
-                  VPCoords[WID3*n+i+WID*j+WID*WID*k][1] = V[1];
-                  VPCoords[WID3*n+i+WID*j+WID*WID*k][2] = V[2];
+                  //VPCoords[WID3*n+i+WID*j+WID*WID*k][0] = V[0];
+                  //VPCoords[WID3*n+i+WID*j+WID*WID*k][1] = V[1];
+                  //VPCoords[WID3*n+i+WID*j+WID*WID*k][2] = V[2];
 
                   Realf normV = sqrt(Vplasma.at(0)*Vplasma.at(0) + Vplasma.at(1)*Vplasma.at(1) + Vplasma.at(2)*Vplasma.at(2));
 
@@ -184,7 +184,8 @@ void velocitySpaceDiffusion(
                   std::array<Realf,3> r  = {Vplasma.at(0)/normV, Vplasma.at(1)/normV, Vplasma.at(2)/normV};
                   Realf rc = r.at(0)*c.at(0) + r.at(1)*c.at(1) + r.at(2)*c.at(2);
                   Realf rd = r.at(0)*d.at(0) + r.at(1)*d.at(1) + r.at(2)*d.at(2);
-                  theta[WID3*n+i+WID*j+WID*WID*k] = atan2(rc,rd);  
+                  //theta[WID3*n+i+WID*j+WID*WID*k] = atan2(rc,rd);  
+                  theta = atan2(rc,rd);
 
                   // Calculation of terms inside the second derivative according to Eq. (18) of the PDF
                       // Right terms
@@ -197,8 +198,8 @@ void velocitySpaceDiffusion(
                   Realf normVright   = sqrt(rightVplasma.at(0)*rightVplasma.at(0) + rightVplasma.at(1)*rightVplasma.at(1) + rightVplasma.at(2)*rightVplasma.at(2));
 
                   Realf rightTermDVX = sqrt(rightVplasma[1]*rightVplasma[1] + rightVplasma[2]*rightVplasma[2]) * arrayDFright[WID3*n+i+WID*j+WID*WID*k][0];
-                  Realf rightTermDVY = rightVplasma[0] * sin(theta[WID3*n+i+WID*j+WID*WID*k]) * arrayDFright[WID3*n+i+WID*j+WID*WID*k][1];
-                  Realf rightTermDVZ = rightVplasma[0] * cos(theta[WID3*n+i+WID*j+WID*WID*k]) * arrayDFright[WID3*n+i+WID*j+WID*WID*k][2];
+                  Realf rightTermDVY = rightVplasma[0] * sin(theta) * arrayDFright[WID3*n+i+WID*j+WID*WID*k][1];
+                  Realf rightTermDVZ = rightVplasma[0] * cos(theta) * arrayDFright[WID3*n+i+WID*j+WID*WID*k][2];
             
                   Realf rightTerm = sqrt(rightVplasma[1]*rightVplasma[1] + rightVplasma[2]*rightVplasma[2])/normVright * Dvv * (rightTermDVY + rightTermDVZ - rightTermDVX);
 
@@ -212,8 +213,8 @@ void velocitySpaceDiffusion(
                   Realf normVleft   = sqrt(leftVplasma.at(0)*leftVplasma.at(0) + leftVplasma.at(1)*leftVplasma.at(1) + leftVplasma.at(2)*leftVplasma.at(2));
 
                   Realf leftTermDVX = sqrt(leftVplasma[1]*leftVplasma[1] + leftVplasma[2]*leftVplasma[2]) * arrayDFleft[WID3*n+i+WID*j+WID*WID*k][0];
-                  Realf leftTermDVY = leftVplasma[0] * sin(theta[WID3*n+i+WID*j+WID*WID*k]) * arrayDFleft[WID3*n+i+WID*j+WID*WID*k][1];
-                  Realf leftTermDVZ = leftVplasma[0] * cos(theta[WID3*n+i+WID*j+WID*WID*k]) * arrayDFleft[WID3*n+i+WID*j+WID*WID*k][2];
+                  Realf leftTermDVY = leftVplasma[0] * sin(theta) * arrayDFleft[WID3*n+i+WID*j+WID*WID*k][1];
+                  Realf leftTermDVZ = leftVplasma[0] * cos(theta) * arrayDFleft[WID3*n+i+WID*j+WID*WID*k][2];
             
                   Realf leftTerm = sqrt(leftVplasma[1]*leftVplasma[1] + leftVplasma[2]*leftVplasma[2])/normVleft * Dvv * (leftTermDVY + leftTermDVZ - leftTermDVX);
                   
@@ -221,8 +222,8 @@ void velocitySpaceDiffusion(
 
                   Realf precoeff = 0.0;
                   if (coord == 0) { precoeff = - normV;}
-                  else if (coord == 1) {precoeff = normV * Vplasma[0] * sin(theta[WID3*n+i+WID*j+WID*WID*k]) / sqrt(Vplasma[1]*Vplasma[1] + Vplasma[2]*Vplasma[2]);}
-                  else if (coord == 2) {precoeff = normV * Vplasma[0] * cos(theta[WID3*n+i+WID*j+WID*WID*k]) / sqrt(Vplasma[1]*Vplasma[1] + Vplasma[2]*Vplasma[2]);} 
+                  else if (coord == 1) {precoeff = normV * Vplasma[0] * sin(theta) / sqrt(Vplasma[1]*Vplasma[1] + Vplasma[2]*Vplasma[2]);}
+                  else if (coord == 2) {precoeff = normV * Vplasma[0] * cos(theta) / sqrt(Vplasma[1]*Vplasma[1] + Vplasma[2]*Vplasma[2]);} 
 
                   //dfdtCoord[WID3*n+i+WID*j+WID*WID*k][coord] = precoeff * (rightTerm - leftTerm)/DV; 
                   Realf dfdtCoord = precoeff * (rightTerm - leftTerm)/DV; 
