@@ -126,7 +126,7 @@ bool map_1d(SpatialCell* spatial_cell,
    auto minValue = spatial_cell->getVelocityBlockMinValue(popID);
 
    //nothing to do if no blocks
-   if(vmesh.size() == 0 )
+   if(vmesh.size() == 0)
       return true;
 
    const int NUM_ASYNC_QUEUES=P::openaccQueueNum;
@@ -418,7 +418,8 @@ bool map_1d(SpatialCell* spatial_cell,
    }
 
    // loop over columns in set and do the mapping
-   if(useAccelerator) {
+   if(useAccelerator)
+   {
       #pragma acc parallel loop copyin(columns[:totalColumns]) present(blockData[:blockContainer.size()*WID3], values[:valuesSizeRequired]) async(openacc_async_queue_id)
       for( uint column=0; column < totalColumns; column++) {
 
@@ -513,10 +514,25 @@ bool map_1d(SpatialCell* spatial_cell,
                Vec a[5];
                compute_pqm_coeff(values + columns[column].valuesOffset  + i_pcolumnv(j, 0, -1, nblocks), h8, k + WID, a, minValue);
 #endif
-
+                /*
+                for(int a_1 = 0; a_1 < VECL; a_1++)
+                {
+                    printf("OpenACC a[0]: column = %d; j = %d; k = %d; a[%d] = %.12e\n", column, j, k, a_1, a[0][a_1]);
+                    printf("OpenACC a[1]: column = %d; j = %d; k = %d; a[%d] = %.12e\n", column, j, k, a_1, a[1][a_1]);
+                }
+                */
                // set the initial value for the integrand at the boundary at v = 0
                // (in reduced cell units), this will be shifted to target_density_1, see below.
                Vec target_density_r(0.0);
+               /*
+               if(column==0 && j==0 && k==0)
+               {
+                 for(int a_1 = 0; a_1 < VECL; a_1++)
+                 {
+                   printf("OpenAcc 0: target_density_r [%d] = %.2f\n", a_1, target_density_r[a_1]);
+                 }
+               }
+               */
                // v_l, v_r are the left and right velocity coordinates of source cell.
                Vec v_r = v_r0  + (k+1)* dv;
                Vec v_l = v_r0  + k* dv;
@@ -530,9 +546,7 @@ bool map_1d(SpatialCell* spatial_cell,
 #else
                lagrangian_gk_l = truncate_to_int((v_l-intersection_min)/intersection_dk);
                lagrangian_gk_r = truncate_to_int((v_r-intersection_min)/intersection_dk);
-
 #endif
-
                //limits in lagrangian k for target column. Also take into
                //account limits of target column
                int minGk = max(int(lagrangian_gk_l[minGkIndex]), int(columns[column].minBlockK * WID));
@@ -541,29 +555,77 @@ bool map_1d(SpatialCell* spatial_cell,
                #pragma acc loop
                // Run along the column and perform the polynomial reconstruction
                //for(int gk = minGk; gk <= maxGk; gk++){
-               for(int gk = columns[column].minBlockK * WID; gk <= columns[column].maxBlockK * WID; gk++) {
-                  if(gk < minGk || gk > maxGk) {
+               for(int gk = columns[column].minBlockK * WID; gk <= columns[column].maxBlockK * WID; gk++)
+               {
+                 /*
+                 if(column==0 && j==0 && k==0)
+                 {
+                  printf("OpenAcc 1: minGk = %d; gk = %d; maxGk = %d;\n", minGk, gk, maxGk);
+                 }
+                 */
+                  if(gk < minGk || gk > maxGk)
+                  {
                      continue;
                   }
-
                   const int blockK = gk/WID;
                   const int gk_mod_WID = (gk - blockK * WID);
+                  /*
+                  if(column==0 && j==0 && k==0)
+                  {
+                   printf("OpenAcc 2: blockK = %d; gk_mod_WID = %d;\n", blockK, gk_mod_WID);
+                  }
+                  */
                   //the block of the Lagrangian cell to which we map
                   //const int target_block(target_block_index_common + blockK * block_indices_to_id[2]);
-
                   //cell indices in the target block  (TODO: to be replaced by
                   //compile time generated scatter write operation)
                   const Veci target_cell(target_cell_index_common + gk_mod_WID * cell_indices_to_id[2]);
-
+                  /*
+                  if(column==0 && j==0 && k==0)
+                  {
+                    for(int a_1 = 0; a_1 < VECL; a_1++)
+                    {
+                      printf("OpenAcc 3: target_cell [%d] = %d\n", a_1, target_cell[a_1]);
+                    }
+                  }
+                  */
                   //the velocity between which we will integrate to put mass
                   //in the targe cell. If both v_r and v_l are in same cell
                   //then v_1,v_2 should be between v_l and v_r.
                   //v_1 and v_2 normalized to be between 0 and 1 in the cell.
                   //For vector elements where gk is already larger than needed (lagrangian_gk_r), v_2=v_1=v_r and thus the value is zero.
                   const Vec v_norm_r = (  min(  max( (gk + 1) * intersection_dk + intersection_min, v_l), v_r) - v_l) * i_dv;
+                  /*
+                  if(column==0 && j==0 && k==0)
+                  {
+                    printf("OpenAcc CHECK 1: gk = %d; intersection_dk = %d; intersection_min = %d; i_dv = %d;\n", gk, intersection_dk, intersection_min, i_dv);
+                    for(int a_1 = 0; a_1 < VECL; a_1++)
+                    {
+                      printf("OpenAcc CHECK 2: v_l [%d] = %.2f\n", a_1, v_l[a_1]);
+                      printf("OpenAcc CHECK 3: v_r [%d] = %.2f\n", a_1, v_r[a_1]);
+                    }
+                  }
+                  */
+                  /*
+                  if(column==0 && j==0 && k==0)
+                  {
+                    for(int a_1 = 0; a_1 < VECL; a_1++)
+                    {
+                      printf("OpenAcc 4: v_norm_r [%d] = %d\n", a_1, v_norm_r[a_1]);
+                    }
+                  }
+                  */
                   /*shift, old right is new left*/
                   const Vec target_density_l = target_density_r;
-
+                  /*
+                  if(column==0 && j==0 && k==0)
+                  {
+                    for(int a_1 = 0; a_1 < VECL; a_1++)
+                    {
+                      printf("OpenAcc 5: target_density_l [%d] = %d\n", a_1, target_density_l[a_1]);
+                    }
+                  }
+                  */
                   // compute right integrand
                   #ifdef ACC_SEMILAG_PLM
                   target_density_r =
@@ -572,28 +634,33 @@ bool map_1d(SpatialCell* spatial_cell,
                   #ifdef ACC_SEMILAG_PPM
                   target_density_r =
                      v_norm_r * ( a[0] + v_norm_r * ( a[1] + v_norm_r * a[2] ) );
-
                   #endif
                   #ifdef ACC_SEMILAG_PQM
                   target_density_r =
                      v_norm_r * ( a[0] + v_norm_r * ( a[1] + v_norm_r * ( a[2] + v_norm_r * ( a[3] + v_norm_r * a[4] ) ) ) );
                   #endif
-
                   //store values, one element at a time. All blocks
                   //have been created by now.
                   //TODO replace by vector version & scatter & gather operation
-
-
-                  //if(dimension == 2) {
+                  //if(dimension == 2)
+                  //{
                   //   Realf* targetDataPointer = blockData + columns[column].targetBlockOffsets[blockK] + j * cell_indices_to_id[1] + gk_mod_WID * cell_indices_to_id[2];
                   //   Vec targetData;
                   //   targetData.load_a(targetDataPointer);
                   //   targetData += target_density_r - target_density_l;
                   //   targetData.store_a(targetDataPointer);
                   //}
-                  //else{
-                     // total value of integrand
+                  //else
+                  //{
+                  //total value of integrand
                      const Vec target_density = target_density_r - target_density_l;
+                     /*
+                     for(int aa = 0; aa < VECL; aa++)
+                     {
+                       printf("OpenACC: target_density[%d] = %.2f;\n", aa, target_density[aa]);
+                       printf("OpenACC: target_cell[%d] = %.2f;\n", aa, target_cell[aa]);
+                     }
+                     */
                      #pragma ivdep
                      //#pragma GCC ivdep
                      #pragma acc loop vector
@@ -602,7 +669,8 @@ bool map_1d(SpatialCell* spatial_cell,
                         // do the conversion from Realv to Realf here, faster than doing it in accumulation
                         const Realf tval = target_density[target_i];
                         const uint tcell = target_cell[target_i];
-                        //printf("C++: tval = %.2f; tcell = %d;\n", tval, tcell);
+                        //printf("size of target_cell = %.1f\n", sizeof(target_cell)/sizeof(target_cell[0]));
+                        //printf("size of target_density = %.1f\n", sizeof(target_density)/sizeof(target_density[0]));
                         (&blockData[columns[column].targetBlockOffsets[blockK]])[tcell] += tval;
                      }  // for-loop over vector elements
                   //}

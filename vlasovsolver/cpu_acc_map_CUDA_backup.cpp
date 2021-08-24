@@ -106,26 +106,41 @@ void inline swapBlockIndices(velocity_block_indices_t &blockIndices, const uint 
   (
     Realf *blockData,
     Column *columns,
-    Vec target_density,
-    Veci target_cell,
-    const int totalColumns,
-    const int blockK,
-    const uint column,
-    const int bdsw3
+    Vec values[],
+    uint cell_indices_to_id[3],
+    int totalColumns,
+    int valuesSizeRequired,
+    int bdsw3,
+    Realv intersection,
+    Realv intersection_di,
+    Realv intersection_dj,
+    Realv intersection_dk,
+    Realv v_min,
+    Realv i_dv,
+    Realv dv,
+    Realv minValue
   )
   {
-    Realf* returnedBlockData = acceleration_1_wrapper
+    //printf("STAGE 2\n");
+    Realf* returned_blockData = acceleration_1_wrapper
     (
       blockData,
       columns,
-      target_density,
-      target_cell,
+      values,
+      cell_indices_to_id,
       totalColumns,
-      blockK,
-      column,
-      bdsw3
+      valuesSizeRequired,
+      bdsw3,
+      intersection,
+      intersection_di,
+      intersection_dj,
+      intersection_dk,
+      v_min,
+      i_dv,
+      dv,
+      minValue
     );
-    return returnedBlockData;
+    return returned_blockData;
   }
 /*
    Here we map from the current time step grid, to a target grid which
@@ -402,10 +417,10 @@ bool map_1d(SpatialCell* spatial_cell,
    // Create empty velocity space on the GPU and fill it with zeros
     Realf *blockData = blockContainer.getData();
     size_t blockDataSize = blockContainer.size();
-    const int bdsw3 = blockDataSize * WID3;
+    int bdsw3 = blockDataSize * WID3;
     if(useAccelerator)
     {
-     for(uint cell=0; cell<blockDataSize*WID3; cell++)
+     for(uint cell=0; cell<bdsw3; cell++)
      {
        blockData[cell] = 0;
      }
@@ -436,287 +451,35 @@ bool map_1d(SpatialCell* spatial_cell,
    // loop over columns in set and do the mapping
    if(useAccelerator)
    {
-     #pragma acc parallel loop copyin(columns[:totalColumns]) present(blockData[:blockContainer.size()*WID3], values[:valuesSizeRequired]) async(openacc_async_queue_id)
-     //#pragma acc parallel loop copyin(columns[:totalColumns]) present(values[:valuesSizeRequired]) async(openacc_async_queue_id)
-     for( uint column=0; column < totalColumns; column++) {
-
-        // i,j,k are relative to the order in which we copied data to the values array.
-        // After this point in the k,j,i loops there should be no branches based on dimensions
-        //
-        // Note that the i dimension is vectorized, and thus there are no loops over i
-
-        // Iterate through the perpendicular directions of the column
-        #pragma acc loop
-        for (uint j = 0; j < WID; j += VECL/WID){
-           const vmesh::LocalID nblocks = columns[column].nblocks;
-           // create vectors with the i and j indices in the vector position on the plane.
-           #if VECL == 4
-           const Veci i_indices = Veci(0, 1, 2, 3);
-           const Veci j_indices = Veci(j, j, j, j);
-           #elif VECL == 8
-           const Veci i_indices = Veci(0, 1, 2, 3,
-                                       0, 1, 2, 3);
-           const Veci j_indices = Veci(j, j, j, j,
-                                       j + 1, j + 1, j + 1, j + 1);
-           #elif VECL == 16
-           const Veci i_indices = Veci(0, 1, 2, 3,
-                                       0, 1, 2, 3,
-                                       0, 1, 2, 3,
-                                       0, 1, 2, 3);
-           const Veci j_indices = Veci(j, j, j, j,
-                                       j + 1, j + 1, j + 1, j + 1,
-                                       j + 2, j + 2, j + 2, j + 2,
-                                       j + 3, j + 3, j + 3, j + 3);
-           #endif
-
-           const Veci  target_cell_index_common =
-              i_indices * cell_indices_to_id[0] +
-              j_indices * cell_indices_to_id[1];
-
-           //const int target_block_index_common =
-           //   columns[column].i * block_indices_to_id[0] +
-           //   columns[column].j * block_indices_to_id[1];
-
-           // intersection_min is the intersection z coordinate (z after
-           // swaps that is) of the lowest possible z plane for each i,j
-           // index (i in vector)
-           const Vec intersection_min =
-              intersection +
-              (columns[column].i * WID + to_realv(i_indices)) * intersection_di +
-              (columns[column].j * WID + to_realv(j_indices)) * intersection_dj;
-
-           /*compute some initial values, that are used to set up the
-            * shifting of values as we go through all blocks in
-            * order. See comments where they are shifted for
-            * explanations of their meaning*/
-           Vec v_r0((WID * columns[column].kBegin) * dv + v_min);
-           Vec lagrangian_v_r0((v_r0-intersection_min)/intersection_dk);
-
-           // compute location of min and max, this does not change for one
-           //  column (or even for this set of intersections, and can be used
-           //  to quickly compute max and min later on*/
-           //TODO, these can be computed much earlier, since they are
-           //identiacal for each set of intersections
-           int minGkIndex=0, maxGkIndex=0; // 0 for compiler
-           {
-              Realv maxV = std::numeric_limits<Realv>::min();
-              Realv minV = std::numeric_limits<Realv>::max();
-              for(int i = 0; i < VECL; i++) {
-                 if ( lagrangian_v_r0[i] > maxV) {
-                    maxV = lagrangian_v_r0[i];
-                    maxGkIndex = i;
-                 }
-                 if ( lagrangian_v_r0[i] < minV) {
-                    minV = lagrangian_v_r0[i];
-                    minGkIndex = i;
-                 }
-              }
-           }
-
-           // loop through all blocks in column and compute the mapping as integrals.
-           #pragma acc loop
-           for (uint k=0; k < WID * nblocks; ++k ){
-              // Compute reconstructions
-              // values + i_pcolumnv(n_cblocks, -1, j, 0) is the starting point of the column data for fixed j
-              // k + WID is the index where we have stored k index, WID amount of padding.
-     #ifdef ACC_SEMILAG_PLM
-              Vec a[2];
-              compute_plm_coeff(values + columns[column].valuesOffset + i_pcolumnv(j, 0, -1, nblocks), k + WID , a, minValue);
-     #endif
-     #ifdef ACC_SEMILAG_PPM
-              Vec a[3];
-              compute_ppm_coeff(values + columns[column].valuesOffset  + i_pcolumnv(j, 0, -1, nblocks), h4, k + WID, a, minValue);
-     #endif
-     #ifdef ACC_SEMILAG_PQM
-              Vec a[5];
-              compute_pqm_coeff(values + columns[column].valuesOffset  + i_pcolumnv(j, 0, -1, nblocks), h8, k + WID, a, minValue);
-     #endif
-                /*
-               for(int a_1 = 0; a_1 < VECL; a_1++)
-               {
-                   printf("OpenACC a[0]: column = %d; j = %d; k = %d; a[%d] = %.12e\n", column, j, k, a_1, a[0][a_1]);
-                   printf("OpenACC a[1]: column = %d; j = %d; k = %d; a[%d] = %.12e\n", column, j, k, a_1, a[1][a_1]);
-               }
-               */
-              // set the initial value for the integrand at the boundary at v = 0
-              // (in reduced cell units), this will be shifted to target_density_1, see below.
-              Vec target_density_r(0.0);
-              /*
-              if(column==0 && j==0 && k==0)
-              {
-                for(int a_1 = 0; a_1 < VECL; a_1++)
-                {
-                  printf("OpenAcc 0: target_density_r [%d] = %.2f\n", a_1, target_density_r[a_1]);
-                }
-              }
-              */
-              // v_l, v_r are the left and right velocity coordinates of source cell.
-              Vec v_r = v_r0  + (k+1)* dv;
-              Vec v_l = v_r0  + k* dv;
-
-              // left(l) and right(r) k values (global index) in the target
-              // Lagrangian grid, the intersecting cells. Again old right is new left.
-              Veci lagrangian_gk_l,lagrangian_gk_r;
-     #if VECTORCLASS_H >= 20000
-              lagrangian_gk_r = truncatei((v_l-intersection_min)/intersection_dk);
-              lagrangian_gk_r = truncatei((v_r-intersection_min)/intersection_dk);
-     #else
-              lagrangian_gk_l = truncate_to_int((v_l-intersection_min)/intersection_dk);
-              lagrangian_gk_r = truncate_to_int((v_r-intersection_min)/intersection_dk);
-     #endif
-              //limits in lagrangian k for target column. Also take into
-              //account limits of target column
-              int minGk = max(int(lagrangian_gk_l[minGkIndex]), int(columns[column].minBlockK * WID));
-              int maxGk = min(int(lagrangian_gk_r[maxGkIndex]), int((columns[column].maxBlockK + 1) * WID - 1));
-
-              #pragma acc loop
-              // Run along the column and perform the polynomial reconstruction
-              //for(int gk = minGk; gk <= maxGk; gk++){
-              for(int gk = columns[column].minBlockK * WID; gk <= columns[column].maxBlockK * WID; gk++)
-              {
-                /*
-                if(column==0 && j==0 && k==0)
-                {
-                 printf("OpenAcc 1: minGk = %d; gk = %d; maxGk = %d;\n", minGk, gk, maxGk);
-                }
-                */
-                 if(gk < minGk || gk > maxGk)
-                 {
-                    continue;
-                 }
-                 const int blockK = gk/WID;
-                 const int gk_mod_WID = (gk - blockK * WID);
-                 /*
-                 if(column==0 && j==0 && k==0)
-                 {
-                  printf("OpenAcc 2: blockK = %d; gk_mod_WID = %d;\n", blockK, gk_mod_WID);
-                 }
-                 */
-                 //the block of the Lagrangian cell to which we map
-                 //const int target_block(target_block_index_common + blockK * block_indices_to_id[2]);
-                 //cell indices in the target block  (TODO: to be replaced by
-                 //compile time generated scatter write operation)
-                 const Veci target_cell(target_cell_index_common + gk_mod_WID * cell_indices_to_id[2]);
-                 /*
-                 if(column==0 && j==0 && k==0)
-                 {
-                   for(int a_1 = 0; a_1 < VECL; a_1++)
-                   {
-                     printf("OpenAcc 3: target_cell [%d] = %d\n", a_1, target_cell[a_1]);
-                   }
-                 }
-                 */
-                 //the velocity between which we will integrate to put mass
-                 //in the targe cell. If both v_r and v_l are in same cell
-                 //then v_1,v_2 should be between v_l and v_r.
-                 //v_1 and v_2 normalized to be between 0 and 1 in the cell.
-                 //For vector elements where gk is already larger than needed (lagrangian_gk_r), v_2=v_1=v_r and thus the value is zero.
-                 const Vec v_norm_r = (  min(  max( (gk + 1) * intersection_dk + intersection_min, v_l), v_r) - v_l) * i_dv;
-                 /*
-                 if(column==0 && j==0 && k==0)
-                 {
-                   printf("OpenAcc CHECK 1: gk = %d; intersection_dk = %d; intersection_min = %d; i_dv = %d;\n", gk, intersection_dk, intersection_min, i_dv);
-                   for(int a_1 = 0; a_1 < VECL; a_1++)
-                   {
-                     printf("OpenAcc CHECK 2: v_l [%d] = %.2f\n", a_1, v_l[a_1]);
-                     printf("OpenAcc CHECK 3: v_r [%d] = %.2f\n", a_1, v_r[a_1]);
-                   }
-                 }
-                 */
-                 /*
-                 if(column==0 && j==0 && k==0)
-                 {
-                   for(int a_1 = 0; a_1 < VECL; a_1++)
-                   {
-                     printf("OpenAcc 4: v_norm_r [%d] = %d\n", a_1, v_norm_r[a_1]);
-                   }
-                 }
-                 */
-                 /*shift, old right is new left*/
-                 const Vec target_density_l = target_density_r;
-                 /*
-                 if(column==0 && j==0 && k==0)
-                 {
-                   for(int a_1 = 0; a_1 < VECL; a_1++)
-                   {
-                     printf("OpenAcc 5: target_density_l [%d] = %d\n", a_1, target_density_l[a_1]);
-                   }
-                 }
-                 */
-                 // compute right integrand
-                 #ifdef ACC_SEMILAG_PLM
-                 target_density_r =
-                    v_norm_r * ( a[0] + v_norm_r * a[1] );
-                 #endif
-                 #ifdef ACC_SEMILAG_PPM
-                 target_density_r =
-                    v_norm_r * ( a[0] + v_norm_r * ( a[1] + v_norm_r * a[2] ) );
-                 #endif
-                 #ifdef ACC_SEMILAG_PQM
-                 target_density_r =
-                    v_norm_r * ( a[0] + v_norm_r * ( a[1] + v_norm_r * ( a[2] + v_norm_r * ( a[3] + v_norm_r * a[4] ) ) ) );
-                 #endif
-                 //store values, one element at a time. All blocks
-                 //have been created by now.
-                 //TODO replace by vector version & scatter & gather operation
-                 //if(dimension == 2)
-                 //{
-                 //   Realf* targetDataPointer = blockData + columns[column].targetBlockOffsets[blockK] + j * cell_indices_to_id[1] + gk_mod_WID * cell_indices_to_id[2];
-                 //   Vec targetData;
-                 //   targetData.load_a(targetDataPointer);
-                 //   targetData += target_density_r - target_density_l;
-                 //   targetData.store_a(targetDataPointer);
-                 //}
-                 //else
-                 //{
-                 //total value of integrand
-                    const Vec target_density = target_density_r - target_density_l;
-                    /*
-                    for(int aa = 0; aa < VECL; aa++)
-                    {
-                      printf("OpenACC: target_density[%d] = %.2f;\n", aa, target_density[aa]);
-                      printf("OpenACC: target_cell[%d] = %.2f;\n", aa, target_cell[aa]);
-                    }
-                    */
-                    #pragma ivdep
-                    //#pragma GCC ivdep
-                    #pragma acc loop vector
-                    blockData = acceleration_1_wrapperCaller
-                    (
-                      blockData,
-                      columns,
-                      target_density,
-                      target_cell,
-                      totalColumns,
-                      blockK,
-                      column,
-                      bdsw3
-                    );
-                    //for (int target_i=0; target_i < VECL; ++target_i)
-                    //{
-                       //int size_td = sizeof(target_density)/sizeof(target_density[0]);
-                       //int size_tc = sizeof(target_cell)/sizeof(target_cell[0]);
-                       // target_density, target_i, target_cell, blockdata, columns, column, blockK
-                       // do the conversion from Realv to Realf here, faster than doing it in accumulation
-                       /*
-                       const Realf tval = target_density[target_i];
-                       const uint tcell = target_cell[target_i];
-                       //if( target_i == ( (VECL) - 1) )
-                       //  printf("OpenACC: tval = %.2f; tcell = %d;\n", tval, tcell);
-                       (&blockData[columns[column].targetBlockOffsets[blockK]])[tcell] += tval;
-                       */
-                    //}  // for-loop over vector elements
-                 //}
-              } // for loop over target k-indices of current source block
-           } // for-loop over source blocks
-        } //for loop over j index
-     } //for loop over columns
-     //for(uint aa=0; aa<bdsw3; aa++)
-     //{
-     //    printf("C++ blockData[%d] = %.2f\n", aa, blockData[aa]);
-     //}
-     #pragma acc exit data copyout(blockData[:blockContainer.size()*WID3]) delete(columns[:totalColumns]) delete(values[:valuesSizeRequired]) async(openacc_async_queue_id)
-     //#pragma acc exit data delete(columns[:totalColumns]) delete(values[:valuesSizeRequired]) async(openacc_async_queue_id)
+     //in OpenAcc version following data was copied:
+     //values, blockData
+     //CALL CUDA FUNCTION WRAPPER START
+     //printf("STAGE 1\n");
+     blockData = acceleration_1_wrapperCaller
+     (
+       blockData,
+       columns,
+       values,
+       cell_indices_to_id,
+       totalColumns,
+       valuesSizeRequired,
+       bdsw3,
+       intersection,
+       intersection_di,
+       intersection_dj,
+       intersection_dk,
+       v_min,
+       i_dv,
+       dv,
+       minValue
+     );
+     //CALL CUDA FUNCTION WRAPPER END
+     /*
+     for(uint cell=0; cell<bdsw3; cell++)
+     {
+       printf("blockData[cell] = %.2f\n", blockData[cell]);
+     }
+     */
    }
    else
    {
