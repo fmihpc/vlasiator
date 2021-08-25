@@ -435,7 +435,8 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
       }
 
       if(mpiGrid[cells[i]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY ) {
-         const auto* nbrs = mpiGrid.get_neighbors_of(cells[i],SYSBOUNDARIES_NEIGHBORHOOD_ID);
+         //const auto* nbrs = mpiGrid.get_neighbors_of(cells[i],SYSBOUNDARIES_NEIGHBORHOOD_ID);
+         const std::vector<std::pair<CellID, std::array<int, 4>>>* nbrs = mpiGrid.get_neighbors_of(cells[i],SYSBOUNDARIES_NEIGHBORHOOD_ID);
          if (nbrs == nullptr) {
             std::cerr << "Nullptr!" << std::endl;
             continue;
@@ -625,9 +626,11 @@ bool SysBoundary::applyInitialState(
    bool success = true;
    
    list<SBC::SysBoundaryCondition*>::iterator it;
+   std::cerr << "Applying initial states" << std::endl;
    for (it = sysBoundaries.begin();
         it != sysBoundaries.end();
         it++) {
+      std::cerr << (*it)->getIndex() << std::endl; 
       if(                                                        // This is to skip the reapplication
          Parameters::isRestart == true                           // When not restarting
          && (*it)->doApplyUponRestart() == false                 // When reapplicaiton is not requested
@@ -635,10 +638,13 @@ bool SysBoundary::applyInitialState(
          continue;
       }
       if((*it)->applyInitialState(mpiGrid, technicalGrid, perBGrid, project) == false) {
+
          cerr << "ERROR: " << (*it)->getName() << " system boundary condition initial state not applied correctly." << endl;
          success = false;
       }
+
    }
+   std::cerr << "Initial states applied" << std::endl;
 
    return success;
 }

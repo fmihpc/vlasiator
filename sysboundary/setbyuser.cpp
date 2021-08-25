@@ -98,7 +98,8 @@ namespace SBC {
          determineFace(isThisCellOnAFace.data(), x, y, z, dx, dy, dz);
          // Comparison of the array defining which faces to use and the array telling on which faces this cell is
          doAssign = false;
-         for(int j=0; j<6; j++) doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
+         for(int j=0; j<6; j++) 
+            doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
          if(doAssign) {
             mpiGrid[cells[i]]->sysBoundaryFlag = this->getIndex();
             const auto nbrs = mpiGrid.get_face_neighbors_of(cells[i]);
@@ -320,7 +321,8 @@ namespace SBC {
       //#pragma omp parallel for
       for (size_t c=0; c<cells.size(); c++) {
          SpatialCell* cell = mpiGrid[cells[c]];
-         if(cell->sysBoundaryFlag != this->getIndex()) continue;
+         if(cell->sysBoundaryFlag != this->getIndex()) 
+            continue;
          
          creal dx = cell->parameters[CellParams::DX];
          creal dy = cell->parameters[CellParams::DY];
@@ -341,6 +343,9 @@ namespace SBC {
                const auto nbrs = mpiGrid.get_face_neighbors_of(cells[c]);
                for(uint j=0; j<nbrs.size(); j++) {
                   if(nbrs[j].first != 0 && cellsSet.count(nbrs[j].first) == 0) {
+                     cell = mpiGrid[nbrs[j].first];
+                     if (cell->sysBoundaryFlag != this->getIndex())
+                        continue;
                      copyCellData(&templateCells[i], mpiGrid[nbrs[j].first] ,false,popID,true); // copy also vdf, _V
                      copyCellData(&templateCells[i], mpiGrid[nbrs[j].first] ,true,popID,false); // don't copy vdf again but copy _R now
                      cellsSet.insert(nbrs[j].first);
