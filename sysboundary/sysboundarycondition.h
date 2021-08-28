@@ -170,7 +170,6 @@ namespace SBC {
          void setPeriodicity(
             bool isFacePeriodic[3]
          );
-         virtual bool copySysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) {std::cerr << "Base copy called for " << getIndex() << std::endl; return true;}
       protected:
          void determineFace(
             bool* isThisCellOnAFace,
@@ -306,7 +305,6 @@ namespace SBC {
 			virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell,
 														dccrg::Cartesian_Geometry>& mpiGrid,
 														FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
-			virtual bool copySysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid);
 		protected:
 			/*! Array of bool telling which faces are going to be processed by the system boundary condition.*/
 			bool facesToProcess[6];

@@ -181,7 +181,6 @@ void initializeGrids(
 
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
    mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
-   mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
 
    if(P::amrMaxSpatialRefLevel > 0) {
       setFaceNeighborRanks( mpiGrid );
@@ -264,6 +263,13 @@ void initializeGrids(
       phiprof::stop("Map Refinement Level to FsGrid");
 
    }
+
+   phiprof::start("Set spatial cell coordinates");
+   initSpatialCellCoordinates(mpiGrid);
+   phiprof::stop("Set spatial cell coordinates");
+
+   SpatialCell::set_mpi_transfer_type(Transfer::CELL_PARAMETERS);
+   mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
 
    // Initialise system boundary conditions (they need the initialised positions!!)
    phiprof::start("Classify cells (sys boundary conditions)");

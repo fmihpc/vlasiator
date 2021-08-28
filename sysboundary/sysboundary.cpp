@@ -413,17 +413,6 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
    for (it = sysBoundaries.begin(); it != sysBoundaries.end(); it++) {
       success = success && (*it)->assignSysBoundary(mpiGrid,technicalGrid);
    }
-   
-   // communicate boundary assignments (sysBoundaryFlag and
-   // sysBoundaryLayer communicated)
-   SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
-   mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
-
-   for (it = sysBoundaries.begin(); it != sysBoundaries.end(); it++) {
-      // TODO: this is done for each edge sysboundary, so probably twice for normal runs
-      // Unfortunately we don't know precedence from just the index...
-      success = success && (*it)->copySysBoundary(mpiGrid);
-   }
 
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
