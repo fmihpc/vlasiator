@@ -44,7 +44,7 @@
 using namespace std;
 
 namespace SBC {
-   SetByUser::SetByUser(): SysBoundaryCondition() { }
+   SetByUser::SetByUser(): OuterBoundaryCondition() { }
    SetByUser::~SetByUser() { }
    
    bool SetByUser::initSysBoundary(
@@ -102,12 +102,6 @@ namespace SBC {
             doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
          if(doAssign) {
             mpiGrid[cells[i]]->sysBoundaryFlag = this->getIndex();
-            const auto nbrs = mpiGrid.get_face_neighbors_of(cells[i]);
-            for(uint j=0; j<nbrs.size(); j++) {
-               if(nbrs[j].first!=0) {
-                  mpiGrid[nbrs[j].first]->sysBoundaryFlag = this->getIndex();
-               }
-            }
          }
       }
 
@@ -315,43 +309,37 @@ namespace SBC {
    bool SetByUser::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID) {
       const vector<CellID>& cells = getLocalCells();
 
-      //std::set<CellID> cellsToApply[6];
-      std::set<CellID> cellsSet;
-
       //#pragma omp parallel for
       for (size_t c=0; c<cells.size(); c++) {
          SpatialCell* cell = mpiGrid[cells[c]];
          if(cell->sysBoundaryFlag != this->getIndex()) 
             continue;
          
-         creal dx = cell->parameters[CellParams::DX];
-         creal dy = cell->parameters[CellParams::DY];
-         creal dz = cell->parameters[CellParams::DZ];
-         creal x = cell->parameters[CellParams::XCRD] + 0.5*dx;
-         creal y = cell->parameters[CellParams::YCRD] + 0.5*dy;
-         creal z = cell->parameters[CellParams::ZCRD] + 0.5*dz;
-         
-         bool isThisCellOnAFace[6];
-         determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);
+         std::array<bool, 6> isThisCellOnAFace;
+         determineFace(isThisCellOnAFace, cell, true);
 
-         
-         for(uint i=0; i<6; i++) {
-            if(facesToProcess[i] && isThisCellOnAFace[i]) {
+         int max = 6;
+         for (uint i=0; i < max; i++) {
+            if (facesToProcess[i] && isThisCellOnAFace[i]) {
                copyCellData(&templateCells[i], cell ,false,popID,true); // copy also vdf, _V
                copyCellData(&templateCells[i], cell ,true,popID,false); // don't copy vdf again but copy _R now
-               cellsSet.insert(cells[c]);
-               const auto nbrs = mpiGrid.get_face_neighbors_of(cells[c]);
-               for(uint j=0; j<nbrs.size(); j++) {
-                  if(nbrs[j].first != 0 && cellsSet.count(nbrs[j].first) == 0) {
-                     cell = mpiGrid[nbrs[j].first];
-                     if (cell->sysBoundaryFlag != this->getIndex())
-                        continue;
-                     copyCellData(&templateCells[i], mpiGrid[nbrs[j].first] ,false,popID,true); // copy also vdf, _V
-                     copyCellData(&templateCells[i], mpiGrid[nbrs[j].first] ,true,popID,false); // don't copy vdf again but copy _R now
-                     cellsSet.insert(nbrs[j].first);
+               max = i; // This effectively sets the precedence of faces through the order of faces.
+            }
+         }
+
+         // Repeat process for neighbors
+         const auto nbrs = mpiGrid.get_face_neighbors_of(cells[c]);
+         for (uint j=0; j<nbrs.size(); j++) {
+            CellID neighbor = nbrs[j].first;
+            if (neighbor) {
+               determineFace(isThisCellOnAFace, mpiGrid[neighbor], true);
+               for (uint i=0; i < max; i++) {
+                  if (facesToProcess[i] && isThisCellOnAFace[i]) {
+                     copyCellData(&templateCells[i], cell ,false,popID,true); // copy also vdf, _V
+                     copyCellData(&templateCells[i], cell ,true,popID,false); // don't copy vdf again but copy _R now
+                     max = i; // This effectively sets the precedence of faces through the order of faces.
                   }
                }
-               break; // This effectively sets the precedence of faces through the order of faces.
             }
          }
       }

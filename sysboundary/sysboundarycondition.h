@@ -166,15 +166,21 @@ namespace SBC {
             dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const std::vector<CellID> & local_cells_on_boundary
          );
-      bool doApplyUponRestart() const;
-      void setPeriodicity(
-         bool isFacePeriodic[3]
-      );
+         bool doApplyUponRestart() const;
+         void setPeriodicity(
+            bool isFacePeriodic[3]
+         );
+         virtual bool copySysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) {std::cerr << "Base copy called for " << getIndex() << std::endl; return true;}
       protected:
          void determineFace(
             bool* isThisCellOnAFace,
             creal x, creal y, creal z,
             creal dx, creal dy, creal dz,
+            const bool excludeSlicesAndPeriodicDimensions = false
+         );
+         void determineFace(
+            std::array<bool, 6> &isThisCellOnAFace,
+            SpatialCell *cell,
             const bool excludeSlicesAndPeriodicDimensions = false
          );
          void copyCellData(
@@ -294,6 +300,17 @@ namespace SBC {
          /*! bool telling whether to call again applyInitialState upon restarting the simulation. */
          bool applyUponRestart;
    };
+
+	class OuterBoundaryCondition: public SysBoundaryCondition {
+		public:
+			virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell,
+														dccrg::Cartesian_Geometry>& mpiGrid,
+														FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
+			virtual bool copySysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid);
+		protected:
+			/*! Array of bool telling which faces are going to be processed by the system boundary condition.*/
+			bool facesToProcess[6];
+	};
    
    // Moved outside the class since it's a helper function that doesn't require member access
    void averageCellData (

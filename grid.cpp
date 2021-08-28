@@ -263,26 +263,26 @@ void initializeGrids(
       }
       phiprof::stop("Map Refinement Level to FsGrid");
 
-      // Initialise system boundary conditions (they need the initialised positions!!)
-      phiprof::start("Classify cells (sys boundary conditions)");
-      if(sysBoundaries.classifyCells(mpiGrid,technicalGrid) == false) {
-         cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
-         exit(1);
-      }
-      phiprof::stop("Classify cells (sys boundary conditions)");
+   }
 
-      std::cerr << "Cells classified!" << std::endl;
+   // Initialise system boundary conditions (they need the initialised positions!!)
+   phiprof::start("Classify cells (sys boundary conditions)");
+   if(sysBoundaries.classifyCells(mpiGrid,technicalGrid) == false) {
+      cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
+      exit(1);
+   }
+   phiprof::stop("Classify cells (sys boundary conditions)");
 
 
-      // Check refined cells do not touch boundary cells
-      phiprof::start("Check boundary refinement");
-      if(!sysBoundaries.checkRefinement(mpiGrid)) {
-         cerr << "(MAIN) WARNING: Boundary cells don't have identical refinement level " << endl;
-         //exit(1);
-      }
-      phiprof::stop("Check boundary refinement");
+   // Check refined cells do not touch boundary cells
+   phiprof::start("Check boundary refinement");
+   if(!sysBoundaries.checkRefinement(mpiGrid)) {
+      cerr << "(MAIN) WARNING: Boundary cells don't have identical refinement level " << endl;
+      //exit(1);
+   }
+   phiprof::stop("Check boundary refinement");
 
-   
+   if (P::isRestart) {
       //initial state for sys-boundary cells, will skip those not set to be reapplied at restart
       phiprof::start("Apply system boundary conditions state");
       if (sysBoundaries.applyInitialState(mpiGrid, technicalGrid, perBGrid, project) == false) {
@@ -290,23 +290,6 @@ void initializeGrids(
          exit(1);
       }
       phiprof::stop("Apply system boundary conditions state");
-   } else {
-      // Initialise system boundary conditions (they need the initialised positions!!)
-      phiprof::start("Classify cells (sys boundary conditions)");
-      if(sysBoundaries.classifyCells(mpiGrid,technicalGrid) == false) {
-         cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
-         exit(1);
-      }
-      phiprof::stop("Classify cells (sys boundary conditions)");
-
-
-      // Check refined cells do not touch boundary cells
-      phiprof::start("Check boundary refinement");
-      if(!sysBoundaries.checkRefinement(mpiGrid)) {
-         cerr << "(MAIN) WARNING: Boundary cells don't have identical refinement level " << endl;
-         //exit(1);
-      }
-      phiprof::stop("Check boundary refinement");
    }
 
   if (P::amrMaxSpatialRefLevel>0) {

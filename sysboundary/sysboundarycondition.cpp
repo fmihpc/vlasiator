@@ -99,6 +99,29 @@ namespace SBC {
          }
       }
    }
+
+   // Wrapper for previous funciton, using std::array and SpatialCell. Additionally returns true if any element is true.
+   void SysBoundaryCondition::determineFace(
+      std::array<bool, 6> &isThisCellOnAFace,
+      SpatialCell *cell,
+      const bool excludeSlicesAndPeriodicDimensions //=false (default)
+   ) {
+      creal* const cellParams = &(cell->parameters[0]);
+      creal dx = cellParams[CellParams::DX];
+      creal dy = cellParams[CellParams::DY];
+      creal dz = cellParams[CellParams::DZ];
+      creal x = cellParams[CellParams::XCRD] + 0.5*dx;
+      creal y = cellParams[CellParams::YCRD] + 0.5*dy;
+      creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
+
+      //std::cerr << "id: " << cellParams[CellParams::CELLID] << std::endl
+      //          << "x: " << x << ", " << y << ", " << z << std::endl
+      //          << "dx: " << dx << ", " << dy << ", " << dz << std::endl;
+
+      isThisCellOnAFace.fill(false);
+      determineFace(isThisCellOnAFace.data(), x, y, z, dx, dy, dz);
+      return;
+   }
    
    /*! SysBoundaryCondition base class constructor. The constructor is empty.*/
    SysBoundaryCondition::SysBoundaryCondition() { }
@@ -877,4 +900,50 @@ namespace SBC {
    
    /*! Get a bool telling whether to call again applyInitialState upon restarting the simulation. */
    bool SysBoundaryCondition::doApplyUponRestart() const {return this->applyUponRestart;}
+
+   bool OuterBoundaryCondition::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
+      std::cerr << "Assigning boundary " << this->getIndex() << std::endl;
+      bool doAssign = false;
+      array<bool,6> isThisCellOnAFace;
+      
+      // Assign boundary flags to local DCCRG cells
+      const vector<CellID>& cells = getLocalCells();
+      for(const auto& dccrgId : cells) {
+         SpatialCell* cell = mpiGrid[dccrgId];
+         if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) 
+            continue;
+
+         determineFace(isThisCellOnAFace, cell);
+         for(int j=0; j<6; j++) 
+            doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
+         if (doAssign)
+            mpiGrid[dccrgId]->sysBoundaryFlag = this->getIndex();
+      }
+      
+      return true;
+   }
+
+   bool OuterBoundaryCondition::copySysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+      std::cerr << "Copying boundary " << this->getIndex() << std::endl;
+      // Assign boundary flags to local DCCRG cells
+      const vector<CellID>& cells = getLocalCells();
+      for(const auto& dccrgId : cells) {
+         SpatialCell* cell = mpiGrid[dccrgId];
+         if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE || cell->sysBoundaryFlag == this->getIndex()) 
+            continue;
+
+         const auto nbrs = mpiGrid.get_face_neighbors_of(dccrgId);
+         for (uint j = 0; j < nbrs.size(); j++) {
+            CellID neighbor = nbrs[j].first;
+            if (neighbor && mpiGrid[neighbor]->sysBoundaryFlag == this->getIndex() && mpiGrid[neighbor]->sysBoundaryLayer == 0) {
+               cell->sysBoundaryFlag = this->getIndex();
+               cell->sysBoundaryLayer = 1;
+            }
+         }
+      }
+      
+      return true;
+   }
+
 } // namespace SBC

@@ -383,7 +383,7 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
    bool success = true;
    const vector<CellID>& cells = getLocalCells();
    auto localSize = technicalGrid.getLocalSize().data();
-   
+
    /*set all cells to default value, not_sysboundary*/
    for(uint i=0; i<cells.size(); i++) {
       mpiGrid[cells[i]]->sysBoundaryFlag = sysboundarytype::NOT_SYSBOUNDARY;
@@ -392,7 +392,9 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
    for (int x = 0; x < localSize[0]; ++x) {
       for (int y = 0; y < localSize[1]; ++y) {
          for (int z = 0; z < localSize[2]; ++z) {
-            technicalGrid.get(x,y,z)->sysBoundaryFlag = sysboundarytype::NOT_SYSBOUNDARY;
+            //technicalGrid.get(x,y,z)->sysBoundaryFlag = sysboundarytype::NOT_SYSBOUNDARY;
+            // Here for debugging since boundarytype should be fed from MPIGrid
+            technicalGrid.get(x,y,z)->sysBoundaryFlag = sysboundarytype::N_SYSBOUNDARY_CONDITIONS;
             technicalGrid.get(x,y,z)->sysBoundaryLayer = 0;
             technicalGrid.get(x,y,z)->maxFsDt = numeric_limits<Real>::max();
             // Set the fsgrid rank in the technical grid
@@ -417,6 +419,15 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
 
+   for (it = sysBoundaries.begin(); it != sysBoundaries.end(); it++) {
+      // TODO: this is done for each edge sysboundary, so probably twice for normal runs
+      // Unfortunately we don't know precedence from just the index...
+      success = success && (*it)->copySysBoundary(mpiGrid);
+   }
+
+   SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
+   mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
+
    feedBoundaryIntoFsGrid(mpiGrid, cells, technicalGrid);
 
    // set distance 1 cells to boundary cells, that have neighbors which are normal cells
@@ -435,12 +446,7 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
       }
 
       if(mpiGrid[cells[i]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY ) {
-         //const auto* nbrs = mpiGrid.get_neighbors_of(cells[i],SYSBOUNDARIES_NEIGHBORHOOD_ID);
          const std::vector<std::pair<CellID, std::array<int, 4>>>* nbrs = mpiGrid.get_neighbors_of(cells[i],SYSBOUNDARIES_NEIGHBORHOOD_ID);
-         if (nbrs == nullptr) {
-            std::cerr << "Nullptr!" << std::endl;
-            continue;
-         }
          for(uint j=0; j<(*nbrs).size(); j++) {
             if((*nbrs)[j].first!=0 ) {
                if(mpiGrid[(*nbrs)[j].first]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ) {

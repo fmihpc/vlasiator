@@ -44,7 +44,7 @@
 using namespace std;
 
 namespace SBC {
-   Outflow::Outflow(): SysBoundaryCondition() { }
+   Outflow::Outflow(): OuterBoundaryCondition() { }
    Outflow::~Outflow() { }
    
    void Outflow::addParameters() {
@@ -177,8 +177,8 @@ namespace SBC {
       }
       return true;
    }
-   
-   bool Outflow::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+
+      bool Outflow::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                    FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
 
       bool doAssign;
@@ -205,19 +205,13 @@ namespace SBC {
             doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
          if(doAssign) {
             mpiGrid[dccrgId]->sysBoundaryFlag = this->getIndex();
-            const auto nbrs = mpiGrid.get_face_neighbors_of(dccrgId);
-            for(uint j=0; j<nbrs.size(); j++) {
-               if(nbrs[j].first!=0) {
-                  mpiGrid[nbrs[j].first]->sysBoundaryFlag = this->getIndex();
-               }
-            }
          }         
 
       }
       
       return true;
    }
-   
+
    bool Outflow::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
@@ -234,22 +228,26 @@ namespace SBC {
          bool doApply = true;
          
          if(Parameters::isRestart) {
-            creal* const cellParams = &(mpiGrid[cells[i]]->parameters[0]);
-            creal dx = cellParams[CellParams::DX];
-            creal dy = cellParams[CellParams::DY];
-            creal dz = cellParams[CellParams::DZ];
-            creal x = cellParams[CellParams::XCRD] + 0.5*dx;
-            creal y = cellParams[CellParams::YCRD] + 0.5*dy;
-            creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
-            
-            bool isThisCellOnAFace[6];
-            determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);
+            std::array<bool, 6> isThisCellOnAFace;
+            determineFace(isThisCellOnAFace, cell);
             
             doApply=false;
             // Comparison of the array defining which faces to use and the array telling on which faces this cell is
-            for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-               for(uint j=0; j<6; j++) {
-                  doApply = doApply || (facesToReapply[j] && isThisCellOnAFace[j]);
+            for (uint j=0; j<6; j++) {
+               doApply = doApply || (facesToReapply[j] && isThisCellOnAFace[j]);
+            }
+
+            // God
+            if (!doApply) {
+               const auto nbrs = mpiGrid.get_face_neighbors_of(cells[i]);
+               for (uint j=0; j < nbrs.size(); ++j) {
+                  CellID neighbor = nbrs[j].first;
+                  if (neighbor) {
+                     determineFace(isThisCellOnAFace, mpiGrid[neighbor]);
+                     for (uint j=0; j<6; j++) {
+                        doApply = doApply || (facesToReapply[j] && isThisCellOnAFace[j]);
+                     }
+                  }
                }
             }
          }
@@ -264,24 +262,6 @@ namespace SBC {
             cell->parameters[CellParams::P_11_DT2] = cell->parameters[CellParams::P_11];
             cell->parameters[CellParams::P_22_DT2] = cell->parameters[CellParams::P_22];
             cell->parameters[CellParams::P_33_DT2] = cell->parameters[CellParams::P_33];
-            const auto nbrs = mpiGrid.get_face_neighbors_of(cells[i]);
-            // todo: fix this
-            //for(uint j=0; j<nbrs.size(); j++) {
-            //   if (nbrs[j].first!=0) {
-            //      cell = mpiGrid[nbrs[j].first];
-            //      if (cell->sysBoundaryFlag != this->getIndex()) 
-            //         continue;
-            //      project.setCell(cell);
-            //      cell->parameters[CellParams::RHOM_DT2] = cell->parameters[CellParams::RHOM];
-            //      cell->parameters[CellParams::RHOQ_DT2] = cell->parameters[CellParams::RHOQ];
-            //      cell->parameters[CellParams::VX_DT2] = cell->parameters[CellParams::VX];
-            //      cell->parameters[CellParams::VY_DT2] = cell->parameters[CellParams::VY];
-            //      cell->parameters[CellParams::VZ_DT2] = cell->parameters[CellParams::VZ];
-            //      cell->parameters[CellParams::P_11_DT2] = cell->parameters[CellParams::P_11];
-            //      cell->parameters[CellParams::P_22_DT2] = cell->parameters[CellParams::P_22];
-            //      cell->parameters[CellParams::P_33_DT2] = cell->parameters[CellParams::P_33];
-            //   }
-            //}
          }
       }
 
