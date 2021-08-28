@@ -901,24 +901,58 @@ namespace SBC {
    /*! Get a bool telling whether to call again applyInitialState upon restarting the simulation. */
    bool SysBoundaryCondition::doApplyUponRestart() const {return this->applyUponRestart;}
 
+   //bool OuterBoundaryCondition::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   //                                FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
+   //   std::cerr << "Assigning boundary " << this->getIndex() << std::endl;
+   //   bool doAssign = false;
+   //   array<bool,6> isThisCellOnAFace;
+   //   
+   //   // Assign boundary flags to local DCCRG cells
+   //   const vector<CellID>& cells = getLocalCells();
+   //   for(const auto& dccrgId : cells) {
+   //      SpatialCell* cell = mpiGrid[dccrgId];
+   //      if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) 
+   //         continue;
+
+   //      determineFace(isThisCellOnAFace, cell);
+   //      for(int j=0; j<6; j++) 
+   //         doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
+   //      if (doAssign)
+   //         mpiGrid[dccrgId]->sysBoundaryFlag = this->getIndex();
+   //   }
+   //   
+   //   return true;
+   //}
+
    bool OuterBoundaryCondition::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
-      std::cerr << "Assigning boundary " << this->getIndex() << std::endl;
-      bool doAssign = false;
+                                 FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
+
+      bool doAssign;
       array<bool,6> isThisCellOnAFace;
       
       // Assign boundary flags to local DCCRG cells
       const vector<CellID>& cells = getLocalCells();
       for(const auto& dccrgId : cells) {
-         SpatialCell* cell = mpiGrid[dccrgId];
-         if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) 
-            continue;
-
-         determineFace(isThisCellOnAFace, cell);
+         if(mpiGrid[dccrgId]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+         creal* const cellParams = &(mpiGrid[dccrgId]->parameters[0]);
+         creal dx = cellParams[CellParams::DX];
+         creal dy = cellParams[CellParams::DY];
+         creal dz = cellParams[CellParams::DZ];
+         creal x = cellParams[CellParams::XCRD] + 0.5*dx;
+         creal y = cellParams[CellParams::YCRD] + 0.5*dy;
+         creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
+         
+         isThisCellOnAFace.fill(false);
+         determineFace(isThisCellOnAFace.data(), x, y, z, dx, dy, dz);
+         
+         // Comparison of the array defining which faces to use and the array telling on which faces this cell is
+         doAssign = false;
          for(int j=0; j<6; j++) 
             doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
-         if (doAssign)
+         if(doAssign) {
             mpiGrid[dccrgId]->sysBoundaryFlag = this->getIndex();
+         }         
+
       }
       
       return true;

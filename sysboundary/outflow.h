@@ -63,8 +63,6 @@ namespace SBC {
          creal& t,
          Project &project
       );
-      virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                     FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
       virtual bool applyInitialState(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
