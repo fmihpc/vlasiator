@@ -621,11 +621,9 @@ bool SysBoundary::applyInitialState(
    bool success = true;
    
    list<SBC::SysBoundaryCondition*>::iterator it;
-   std::cerr << "Applying initial states" << std::endl;
    for (it = sysBoundaries.begin();
         it != sysBoundaries.end();
         it++) {
-      std::cerr << (*it)->getIndex() << std::endl; 
       if(                                                        // This is to skip the reapplication
          Parameters::isRestart == true                           // When not restarting
          && (*it)->doApplyUponRestart() == false                 // When reapplicaiton is not requested
@@ -639,7 +637,6 @@ bool SysBoundary::applyInitialState(
       }
 
    }
-   std::cerr << "Initial states applied" << std::endl;
 
    return success;
 }
