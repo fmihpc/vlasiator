@@ -264,11 +264,7 @@ void initializeGrids(
 
    }
 
-   phiprof::start("Set spatial cell coordinates");
-   initSpatialCellCoordinates(mpiGrid);
-   phiprof::stop("Set spatial cell coordinates");
-
-   SpatialCell::set_mpi_transfer_type(Transfer::CELL_PARAMETERS);
+   SpatialCell::set_mpi_transfer_type(Transfer::CELL_DIMENSIONS);
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
 
    // Initialise system boundary conditions (they need the initialised positions!!)
