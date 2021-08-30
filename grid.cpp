@@ -183,6 +183,9 @@ void initializeGrids(
    phiprof::start("Set spatial cell coordinates");
    initSpatialCellCoordinates(mpiGrid);
    phiprof::stop("Set spatial cell coordinates");
+
+   SpatialCell::set_mpi_transfer_type(Transfer::CELL_PARAMETERS);
+   mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
    
    phiprof::start("Initialize system boundary conditions");
    if(sysBoundaries.initSysBoundaries(project, P::t_min) == false) {

@@ -133,15 +133,22 @@ namespace SBC {
          doAssign = false;
          for (int j=0; j<6; j++) 
             doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
-         if(doAssign) {
-            mpiGrid[dccrgId]->sysBoundaryFlag = this->getIndex();
-            const auto nbrs = mpiGrid.get_face_neighbors_of(dccrgId);
-            for(uint j=0; j<nbrs.size(); j++) {
-               if(nbrs[j].first!=0) {
-                  mpiGrid[nbrs[j].first]->sysBoundaryFlag = this->getIndex();
-               }
+
+         const auto nbrs = mpiGrid.get_face_neighbors_of(dccrgId);
+         for (uint j=0; j<nbrs.size(); j++) {
+            CellID neighbor = nbrs[j].first;
+            if (neighbor) {
+               std::array<double, 3> dx = mpiGrid.geometry.get_length(neighbor);
+               std::array<double, 3> x = mpiGrid.get_center(neighbor);
+               isThisCellOnAFace.fill(false);
+               determineFace(isThisCellOnAFace.data(), x[0], x[1], x[2], dx[0]/2, dx[1]/2, dx[2]/2);
+               for (int j=0; j<6; j++) 
+                  doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
             }
-         }         
+         }
+
+         if (doAssign)
+            mpiGrid[dccrgId]->sysBoundaryFlag = this->getIndex();
       }
       return true;
    }
