@@ -48,6 +48,7 @@ void velocitySpaceDiffusion(
     for (auto & CellID: LocalCells) { //Iterate through spatial cell
 
         SpatialCell& cell = *mpiGrid[CellID];
+        Realf Sparsity = cell -> getVelocityBlockMinValue(popID);
 
         Realf dtTotalDiff = 0.0; // Diffusion time elapsed
 
@@ -181,8 +182,6 @@ void velocitySpaceDiffusion(
                        std::vector<Realf> VDV = {0.0,0.0,0.0};
                        VDV.at(coord) = DV;
 
-                       Realf Dvv = Parameters::PADcoefficient; // Diffusion coefficient taken from cfg file
-
                        // Calculation of theta at center of the cell
                        std::array<Realf,3> r  = {Vplasma.at(0)/normV, Vplasma.at(1)/normV, Vplasma.at(2)/normV};
                        Realf rc = r.at(0)*c.at(0) + r.at(1)*c.at(1) + r.at(2)*c.at(2);
@@ -204,7 +203,7 @@ void velocitySpaceDiffusion(
                        Realf rightTermDVY = rightVplasma[0] * sin(theta) * arrayDFright[WID3*n+i+WID*j+WID*WID*k][1];
                        Realf rightTermDVZ = rightVplasma[0] * cos(theta) * arrayDFright[WID3*n+i+WID*j+WID*WID*k][2];
                 
-                       Realf rightTerm = sqrt(rightVplasma[1]*rightVplasma[1] + rightVplasma[2]*rightVplasma[2])/normVright * Dvv * (rightTermDVY + rightTermDVZ - rightTermDVX);
+                       Realf rightTerm = sqrt(rightVplasma[1]*rightVplasma[1] + rightVplasma[2]*rightVplasma[2])/normVright * Parameters::PADcoefficient * (rightTermDVY + rightTermDVZ - rightTermDVX);
 
                            // Left terms
                        
@@ -219,7 +218,7 @@ void velocitySpaceDiffusion(
                        Realf leftTermDVY = leftVplasma[0] * sin(theta) * arrayDFleft[WID3*n+i+WID*j+WID*WID*k][1];
                        Realf leftTermDVZ = leftVplasma[0] * cos(theta) * arrayDFleft[WID3*n+i+WID*j+WID*WID*k][2];
                 
-                       Realf leftTerm = sqrt(leftVplasma[1]*leftVplasma[1] + leftVplasma[2]*leftVplasma[2])/normVleft * Dvv * (leftTermDVY + leftTermDVZ - leftTermDVX);
+                       Realf leftTerm = sqrt(leftVplasma[1]*leftVplasma[1] + leftVplasma[2]*leftVplasma[2])/normVleft * Parameters::PADcoefficient * (leftTermDVY + leftTermDVZ - leftTermDVX);
                        
                        // Second derivative (centered difference of left and right sides)
 
@@ -234,7 +233,7 @@ void velocitySpaceDiffusion(
                        //Sum dfdtCoord
                        dfdt[WID3*n+i+WID*j+WID*WID*k] = dfdt[WID3*n+i+WID*j+WID*WID*k] + dfdtCoord;
                        Realf CellValue                = cell.get_value(VX,VY,VZ,popID);
-                       
+                       if (CellValue == 0.0) {CellValue = Sparsity}; //Set CellValue to sparsity Threshold for empty cells otherwise div by 0
                        if (coord == 2) {checkCFL[WID3*n+i+WID*j+WID*WID*k] = CellValue * Parameters::PADCFL * (1.0 / abs(dfdt[WID3*n+i+WID*j+WID*WID*k]));} //Only calculate if all coords have been done 
 
                        }
@@ -244,7 +243,7 @@ void velocitySpaceDiffusion(
 
         //Calculate Diffusion time step based on min of CFL condition  
         Realf mincheckCFL = *min_element(checkCFL.begin(),checkCFL.end());
-        Rea f Ddt = mincheckCFL; // Diffusion time step
+        Realf Ddt = mincheckCFL; // Diffusion time step
         if (Ddt > RemainT) { Ddt = RemainT; }
         dtTotalDiff = dtTotalDiff + Ddt;
 
