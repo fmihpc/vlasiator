@@ -77,6 +77,10 @@ namespace projects {
       RP::add("Magnetosphere.dipoleInflowBX","Inflow magnetic field Bx component to which the vector potential dipole converges. Default is none.", 0.0);
       RP::add("Magnetosphere.dipoleInflowBY","Inflow magnetic field By component to which the vector potential dipole converges. Default is none.", 0.0);
       RP::add("Magnetosphere.dipoleInflowBZ","Inflow magnetic field Bz component to which the vector potential dipole converges. Default is none.", 0.0);
+      //New Parameter for zeroing out derivativeNew Parameter for zeroing out derivativess
+      RP::add("Magnetosphere.zeroOutDerivativesX","Zero Out Perpendicular components", 1.0);
+      RP::add("Magnetosphere.zeroOutDerivativesY","Zero Out Perpendicular components", 1.0);
+      RP::add("Magnetosphere.zeroOutDerivativesZ","Zero Out Perpendicular components", 1.0);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
@@ -94,199 +98,71 @@ namespace projects {
    
    void Magnetosphere::getParameters(){
       Project::getParameters();
-      
-      int myRank;
+
       Real dummy;
-      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       typedef Readparameters RP;
-      if(!RP::get("Magnetosphere.constBgBX", this->constBgB[0])) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!RP::get("Magnetosphere.constBgBY", this->constBgB[1])) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!RP::get("Magnetosphere.constBgBZ", this->constBgB[2])) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!RP::get("Magnetosphere.noDipoleInSW", dummy)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
+      RP::get("Magnetosphere.constBgBX", this->constBgB[0]);
+      RP::get("Magnetosphere.constBgBY", this->constBgB[1]);
+      RP::get("Magnetosphere.constBgBZ", this->constBgB[2]);
+      RP::get("Magnetosphere.noDipoleInSW", dummy);
       this->noDipoleInSW = dummy == 1 ? true:false;
-      if(!RP::get("Magnetosphere.dipoleScalingFactor", this->dipoleScalingFactor)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
+      RP::get("Magnetosphere.dipoleScalingFactor", this->dipoleScalingFactor);
 
-      if(!RP::get("Magnetosphere.dipoleMirrorLocationX", this->dipoleMirrorLocationX)) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
+      RP::get("Magnetosphere.dipoleMirrorLocationX", this->dipoleMirrorLocationX);
 
-      if(!RP::get("Magnetosphere.dipoleType", this->dipoleType)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);       
-      }
-      if(!RP::get("ionosphere.radius", this->ionosphereRadius)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!RP::get("ionosphere.centerX", this->center[0])) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!RP::get("ionosphere.centerY", this->center[1])) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!RP::get("ionosphere.centerZ", this->center[2])) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("ionosphere.geometry", this->ionosphereGeometry)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
+      RP::get("Magnetosphere.dipoleType", this->dipoleType);
+      RP::get("ionosphere.radius", this->ionosphereRadius);
+      RP::get("ionosphere.centerX", this->center[0]);
+      RP::get("ionosphere.centerY", this->center[1]);
+      RP::get("ionosphere.centerZ", this->center[2]);
+      RP::get("ionosphere.geometry", this->ionosphereGeometry);
 
+      RP::get("Magnetosphere.refine_L4radius", this->refine_L4radius);
+      RP::get("Magnetosphere.refine_L4nosexmin", this->refine_L4nosexmin);
 
-      if(!Readparameters::get("Magnetosphere.refine_L4radius", this->refine_L4radius)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("Magnetosphere.refine_L4nosexmin", this->refine_L4nosexmin)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
+      RP::get("Magnetosphere.refine_L3radius", this->refine_L3radius);
+      RP::get("Magnetosphere.refine_L3nosexmin", this->refine_L3nosexmin);
+      RP::get("Magnetosphere.refine_L3tailwidth", this->refine_L3tailwidth);
+      RP::get("Magnetosphere.refine_L3tailheight", this->refine_L3tailheight);
+      RP::get("Magnetosphere.refine_L3tailxmin", this->refine_L3tailxmin);
+      RP::get("Magnetosphere.refine_L3tailxmax", this->refine_L3tailxmax);
 
-      if(!Readparameters::get("Magnetosphere.refine_L3radius", this->refine_L3radius)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("Magnetosphere.refine_L3nosexmin", this->refine_L3nosexmin)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("Magnetosphere.refine_L3tailwidth", this->refine_L3tailwidth)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("Magnetosphere.refine_L3tailheight", this->refine_L3tailheight)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("Magnetosphere.refine_L3tailxmin", this->refine_L3tailxmin)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("Magnetosphere.refine_L3tailxmax", this->refine_L3tailxmax)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
+      RP::get("Magnetosphere.refine_L2radius", this->refine_L2radius);
+      RP::get("Magnetosphere.refine_L2tailthick", this->refine_L2tailthick);
+      RP::get("Magnetosphere.refine_L1radius", this->refine_L1radius);
+      RP::get("Magnetosphere.refine_L1tailthick", this->refine_L1tailthick);
 
-      if(!Readparameters::get("Magnetosphere.refine_L2radius", this->refine_L2radius)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("Magnetosphere.refine_L2tailthick", this->refine_L2tailthick)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("Magnetosphere.refine_L1radius", this->refine_L1radius)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("Magnetosphere.refine_L1tailthick", this->refine_L1tailthick)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
+      RP::get("Magnetosphere.dipoleTiltPhi", this->dipoleTiltPhi);
+      RP::get("Magnetosphere.dipoleTiltTheta", this->dipoleTiltTheta);
+      RP::get("Magnetosphere.dipoleXFull", this->dipoleXFull);
+      RP::get("Magnetosphere.dipoleXZero", this->dipoleXZero);
+      RP::get("Magnetosphere.dipoleInflowBX", this->dipoleInflowB[0]);
+      RP::get("Magnetosphere.dipoleInflowBY", this->dipoleInflowB[1]);
+      RP::get("Magnetosphere.dipoleInflowBZ", this->dipoleInflowB[2]);
 
-      if(!Readparameters::get("Magnetosphere.dipoleTiltPhi", this->dipoleTiltPhi)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("Magnetosphere.dipoleTiltTheta", this->dipoleTiltTheta)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("Magnetosphere.dipoleXFull", this->dipoleXFull)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("Magnetosphere.dipoleXZero", this->dipoleXZero)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("Magnetosphere.dipoleInflowBX", this->dipoleInflowB[0])) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("Magnetosphere.dipoleInflowBY", this->dipoleInflowB[1])) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("Magnetosphere.dipoleInflowBZ", this->dipoleInflowB[2])) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
+      RP::get("Magnetosphere.zeroOutDerivativesX", this->zeroOutComponents[0]);
+      RP::get("Magnetosphere.zeroOutDerivativesY", this->zeroOutComponents[1]);
+      RP::get("Magnetosphere.zeroOutDerivativesZ", this->zeroOutComponents[2]);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          MagnetosphereSpeciesParameters sP;
 
-         if(!RP::get(pop + "_Magnetosphere.rho", sP.rho)) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-            exit(1);
-         }
-         if(!RP::get(pop + "_Magnetosphere.T", sP.T)) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-            exit(1);
-         }
-         if(!RP::get(pop + "_Magnetosphere.VX0", sP.V0[0])) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-            exit(1);
-         }
-         if(!RP::get(pop + "_Magnetosphere.VY0", sP.V0[1])) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-            exit(1);
-         }
-         if(!RP::get(pop + "_Magnetosphere.VZ0", sP.V0[2])) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-            exit(1);
-         }
+         RP::get(pop + "_Magnetosphere.rho", sP.rho);
+         RP::get(pop + "_Magnetosphere.T", sP.T);
+         RP::get(pop + "_Magnetosphere.VX0", sP.V0[0]);
+         RP::get(pop + "_Magnetosphere.VY0", sP.V0[1]);
+         RP::get(pop + "_Magnetosphere.VZ0", sP.V0[2]);
 
-         if(!RP::get(pop + "_Magnetosphere.nSpaceSamples", sP.nSpaceSamples)) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-            exit(1);
-         }
-         if(!RP::get(pop + "_Magnetosphere.nVelocitySamples", sP.nVelocitySamples)) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-            exit(1);
-         }
+         RP::get(pop + "_Magnetosphere.nSpaceSamples", sP.nSpaceSamples);
+         RP::get(pop + "_Magnetosphere.nVelocitySamples", sP.nVelocitySamples);
 
-         if(!RP::get(pop + "_ionosphere.rho", sP.ionosphereRho)) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-            exit(1);
-         }
-         if(!RP::get(pop + "_ionosphere.VX0", sP.ionosphereV0[0])) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-            exit(1);
-         }
-         if(!RP::get(pop + "_ionosphere.VY0", sP.ionosphereV0[1])) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-            exit(1);
-         }
-         if(!RP::get(pop + "_ionosphere.VZ0", sP.ionosphereV0[2])) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-            exit(1);
-         }
-         if(!RP::get(pop + "_ionosphere.taperRadius", sP.ionosphereTaperRadius)) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-            exit(1);
-         }
+         RP::get(pop + "_ionosphere.rho", sP.ionosphereRho);
+         RP::get(pop + "_ionosphere.VX0", sP.ionosphereV0[0]);
+         RP::get(pop + "_ionosphere.VY0", sP.ionosphereV0[1]);
+         RP::get(pop + "_ionosphere.VZ0", sP.ionosphereV0[2]);
+         RP::get(pop + "_ionosphere.taperRadius", sP.ionosphereTaperRadius);
 
         speciesParams.push_back(sP);
       }
@@ -335,9 +211,9 @@ namespace projects {
 
    /* set 0-centered dipole */
    void Magnetosphere::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
-      FsGrid< fsgrids::technical, 2>& technicalGrid
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
    ) {
       Dipole bgFieldDipole;
       LineDipole bgFieldLineDipole;
@@ -379,7 +255,7 @@ namespace projects {
 	       if (P::isRestart == false) {
 		  bgFieldDipole.initialize(-8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );
 		  setPerturbedField(bgFieldDipole, perBGrid);
-		  bgVectorDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi*3.14159/180., this->dipoleTiltTheta*3.14159/180., this->dipoleXFull, this->dipoleXZero, this->dipoleInflowB[0], this->dipoleInflowB[1], this->dipoleInflowB[2]);
+		  bgVectorDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi*M_PI/180., this->dipoleTiltTheta*M_PI/180., this->dipoleXFull, this->dipoleXZero, this->dipoleInflowB[0], this->dipoleInflowB[1], this->dipoleInflowB[2]);
 		  setPerturbedField(bgVectorDipole, perBGrid, true);
 	       }
                break;              
@@ -391,8 +267,11 @@ namespace projects {
       
 #pragma omp parallel
       {
+         bool doZeroOut;
          //Force field to zero in the perpendicular direction for 2D (1D) simulations. Otherwise we have unphysical components.
-         if(P::xcells_ini==1) {
+         doZeroOut = P::xcells_ini ==1 && this->zeroOutComponents[0]==1;
+      
+         if(doZeroOut) {
 #pragma omp for collapse(3)
             for (int x = 0; x < localSize[0]; ++x) {
                for (int y = 0; y < localSize[1]; ++y) {
@@ -412,28 +291,32 @@ namespace projects {
                }
             }
          }
-         if(P::ycells_ini==1) {
-            /*2D simulation in x and z. Set By and derivatives along Y, and derivatives of By to zero*/
-#pragma omp for collapse(3)
-            for (int x = 0; x < localSize[0]; ++x) {
-               for (int y = 0; y < localSize[1]; ++y) {
-                  for (int z = 0; z < localSize[2]; ++z) {
-                     std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
-                     cell->at(fsgrids::bgbfield::BGBY)=0.0;
-                     cell->at(fsgrids::bgbfield::BGBYVOL)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBxdy)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBzdy)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBydx)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBydz)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBXVOLdy)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBZVOLdy)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBYVOLdx)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBYVOLdz)=0.0;
-                  }
-               }
-            }
-         }
-         if(P::zcells_ini==1) {
+            
+          doZeroOut = P::ycells_ini ==1 && this->zeroOutComponents[1]==1;
+          if(doZeroOut) {
+             /*2D simulation in x and z. Set By and derivatives along Y, and derivatives of By to zero*/
+ #pragma omp for collapse(3)
+             for (int x = 0; x < localSize[0]; ++x) {
+                for (int y = 0; y < localSize[1]; ++y) {
+                   for (int z = 0; z < localSize[2]; ++z) {
+                      std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
+                      cell->at(fsgrids::bgbfield::BGBY)=0.0;
+                      cell->at(fsgrids::bgbfield::BGBYVOL)=0.0;
+                      cell->at(fsgrids::bgbfield::dBGBxdy)=0.0;
+                      cell->at(fsgrids::bgbfield::dBGBzdy)=0.0;
+                      cell->at(fsgrids::bgbfield::dBGBydx)=0.0;
+                      cell->at(fsgrids::bgbfield::dBGBydz)=0.0;
+                      cell->at(fsgrids::bgbfield::dBGBXVOLdy)=0.0;
+                      cell->at(fsgrids::bgbfield::dBGBZVOLdy)=0.0;
+                      cell->at(fsgrids::bgbfield::dBGBYVOLdx)=0.0;
+                      cell->at(fsgrids::bgbfield::dBGBYVOLdz)=0.0;
+                   }
+                }
+             }
+          }
+
+         doZeroOut = P::zcells_ini ==1 && this->zeroOutComponents[2]==1;
+         if(doZeroOut) {
 #pragma omp for collapse(3)
             for (int x = 0; x < localSize[0]; ++x) {
                for (int y = 0; y < localSize[1]; ++y) {
@@ -594,16 +477,8 @@ namespace projects {
       return centerPoints;
    }
 
-   bool Magnetosphere::canRefine(const std::array<double,3> xyz, const int refLevel) const {
-      const int bw = (2 + 1*refLevel) * VLASOV_STENCIL_WIDTH; // Seems to be the limit
-
-      return refLevel < P::amrMaxSpatialRefLevel &&
-             xyz[0] > P::xmin + P::dx_ini * bw && 
-             xyz[0] < P::xmax - P::dx_ini * bw && 
-             xyz[1] > P::ymin + P::dy_ini * bw && 
-             xyz[1] < P::ymax - P::dy_ini * bw && 
-             xyz[2] > P::zmin + P::dz_ini * bw &&
-             xyz[2] < P::zmax - P::dz_ini * bw;
+   bool Magnetosphere::canRefine(spatial_cell::SpatialCell* cell) const {
+      return cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY;
    }
 
    bool Magnetosphere::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
@@ -657,7 +532,7 @@ namespace projects {
             Real radius2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
             bool inSphere = radius2 < refine_L1radius*refine_L1radius;
             bool inTail = xyz[0] < 0 && fabs(xyz[1]) < refine_L1radius && fabs(xyz[2]) < refine_L1tailthick;
-            if (canRefine(xyz, 0) && (inSphere || inTail)) {
+            if (canRefine(mpiGrid[id]) && (inSphere || inTail)) {
                //#pragma omp critical
                mpiGrid.refine_completely(id);
             }
@@ -684,7 +559,7 @@ namespace projects {
             Real radius2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
             bool inSphere = radius2 < pow(refine_L2radius, 2);
             bool inTail = xyz[0] < 0 && fabs(xyz[1]) < refine_L2radius && fabs(xyz[2])<refine_L2tailthick;
-            if (canRefine(xyz, 1) && (inSphere || inTail)) {
+            if (canRefine(mpiGrid[id]) && (inSphere || inTail)) {
                //#pragma omp critical
                mpiGrid.refine_completely(id);
             }
@@ -710,7 +585,7 @@ namespace projects {
             Real radius2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
             bool inNoseCap = (xyz[0]>refine_L3nosexmin) && (radius2<refine_L3radius*refine_L3radius);
             bool inTail = (xyz[0]>refine_L3tailxmin) && (xyz[0]<refine_L3tailxmax) && (fabs(xyz[1])<refine_L3tailwidth) && (fabs(xyz[2])<refine_L3tailheight);
-            if (canRefine(xyz, 2) && (inNoseCap || inTail)) {
+            if (canRefine(mpiGrid[id]) && (inNoseCap || inTail)) {
                //#pragma omp critical
                mpiGrid.refine_completely(id);			  
             }
@@ -790,7 +665,7 @@ namespace projects {
             // Skip refining, we shouldn't touch borders when reading restart
             continue;
          } else if (cell->parameters[CellParams::AMR_ALPHA] > refineTreshold) {
-            if (canRefine(xyz, refLevel)) {
+            if (canRefine(mpiGrid[id])) {
                //#pragma omp critical
                mpiGrid.refine_completely(id);
             }

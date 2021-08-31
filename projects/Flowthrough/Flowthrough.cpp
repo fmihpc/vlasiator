@@ -41,7 +41,10 @@ using namespace std;
 
 enum DensityModel {
    Maxwellian,
-   SheetMaxwellian
+   SheetMaxwellian,
+   Square,
+   Triangle,
+   Sinewave
 };
 
 static DensityModel densityModel;
@@ -58,6 +61,7 @@ namespace projects {
       typedef Readparameters RP;
       RP::add("Flowthrough.emptyBox","Is the simulation domain empty initially?",false);
       RP::add("Flowthrough.densityModel","Plasma density model, 'Maxwellian' or 'SheetMaxwellian'",string("Maxwellian"));
+      RP::add("Flowthrough.densityWidth","Width of signal around origin",6.e7);
       RP::add("Flowthrough.Bx", "Magnetic field x component (T)", 0.0);
       RP::add("Flowthrough.By", "Magnetic field y component (T)", 0.0);
       RP::add("Flowthrough.Bz", "Magnetic field z component (T)", 0.0);
@@ -66,6 +70,7 @@ namespace projects {
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          RP::add(pop + "_Flowthrough.rho", "Number density (m^-3)", 0.0);
+         RP::add(pop + "_Flowthrough.rhoBase", "Background number density (m^-3)", 0.0);
          RP::add(pop + "_Flowthrough.T", "Temperature (K)", 0.0);
          RP::add(pop + "_Flowthrough.VX0", "Initial bulk velocity in x-direction", 0.0);
          RP::add(pop + "_Flowthrough.VY0", "Initial bulk velocity in y-direction", 0.0);
@@ -81,67 +86,36 @@ namespace projects {
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       typedef Readparameters RP;
 
-      if (!RP::get("Flowthrough.emptyBox",emptyBox)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!RP::get("Flowthrough.Bx", this->Bx)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!RP::get("Flowthrough.By", this->By)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!RP::get("Flowthrough.Bz", this->Bz)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
+      RP::get("Flowthrough.emptyBox",emptyBox);
+      RP::get("Flowthrough.Bx", this->Bx);
+      RP::get("Flowthrough.By", this->By);
+      RP::get("Flowthrough.Bz", this->Bz);
       string densityModelString;
-      if (!RP::get("Flowthrough.densityModel",densityModelString)) {
-         if (myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
+      RP::get("Flowthrough.densityModel",densityModelString);
       if (densityModelString == "Maxwellian") densityModel = Maxwellian;
       else if (densityModelString == "SheetMaxwellian") densityModel = SheetMaxwellian;
+      else if (densityModelString == "Square") densityModel = Square;
+      else if (densityModelString == "Triangle") densityModel = Triangle;
+      else if (densityModelString == "Sinewave") densityModel = Sinewave;
       else {
          if (myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: Unknown option value!" << endl;
          exit(1);
       }
+      RP::get("Flowthrough.densityWidth",this->densityWidth);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          FlowthroughSpeciesParameters sP;
 
-         if(!RP::get(pop + "_Flowthrough.rho", sP.rho)) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-            exit(1);
-         }
-         if(!RP::get(pop + "_Flowthrough.T", sP.T)) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-            exit(1);
-         }
-         if(!RP::get(pop + "_Flowthrough.VX0", sP.V0[0])) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-            exit(1);
-         }
-         if(!RP::get(pop + "_Flowthrough.VY0", sP.V0[1])) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-            exit(1);
-         }
-         if(!RP::get(pop + "_Flowthrough.VZ0", sP.V0[2])) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-            exit(1);
-         }
-         if(!RP::get(pop + "_Flowthrough.nSpaceSamples", sP.nSpaceSamples)) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-            exit(1);
-         }
-         if(!RP::get(pop + "_Flowthrough.nVelocitySamples", sP.nVelocitySamples)) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-            exit(1);
-         }
+         RP::get(pop + "_Flowthrough.rho", sP.rho);
+         RP::get(pop + "_Flowthrough.rhoBase", sP.rhoBase);
+         RP::get(pop + "_Flowthrough.T", sP.T);
+         RP::get(pop + "_Flowthrough.VX0", sP.V0[0]);
+         RP::get(pop + "_Flowthrough.VY0", sP.V0[1]);
+         RP::get(pop + "_Flowthrough.VZ0", sP.V0[2]);
+         RP::get(pop + "_Flowthrough.nSpaceSamples", sP.nSpaceSamples);
+         RP::get(pop + "_Flowthrough.nVelocitySamples", sP.nVelocitySamples);
 
          speciesParams.push_back(sP);
       }
@@ -163,7 +137,7 @@ namespace projects {
          break;
        case SheetMaxwellian:
          rvalue = sqrt(x*x + y*y + z*z);
-         if (rvalue <= +3e7) {
+         if (rvalue <= 0.5*densityWidth) {
             rvalue = 4*sP.rho * pow(mass / (2.0 * M_PI * physicalconstants::K_B * sP.T), 1.5)
               * exp(- mass * ((  vx-sP.V0[0])*(vx-sP.V0[0]) + (vy-sP.V0[1])*(vy-sP.V0[1])
                                 + (vz-sP.V0[2])*(vz-sP.V0[2])) / (2.0 * physicalconstants::K_B * sP.T));
@@ -171,7 +145,45 @@ namespace projects {
             rvalue = 0;
          }
          break;
-      }
+      case Square:
+         if (abs(x) < 0.5*densityWidth) {
+            rvalue = 4*sP.rho * pow(mass / (2.0 * M_PI * physicalconstants::K_B * sP.T), 1.5)
+              * exp(- mass * ((  vx-sP.V0[0])*(vx-sP.V0[0]) + (vy-sP.V0[1])*(vy-sP.V0[1])
+                                + (vz-sP.V0[2])*(vz-sP.V0[2])) / (2.0 * physicalconstants::K_B * sP.T));
+         } else {
+            rvalue = 4*sP.rhoBase * pow(mass / (2.0 * M_PI * physicalconstants::K_B * sP.T), 1.5)
+              * exp(- mass * ((  vx-sP.V0[0])*(vx-sP.V0[0]) + (vy-sP.V0[1])*(vy-sP.V0[1])
+                                + (vz-sP.V0[2])*(vz-sP.V0[2])) / (2.0 * physicalconstants::K_B * sP.T));
+            //rvalue = 0;
+         }
+         break;
+      case Triangle:
+         if (abs(x) < 0.5*densityWidth) {            
+            rvalue = 4* pow(mass / (2.0 * M_PI * physicalconstants::K_B * sP.T), 1.5)
+              * exp(- mass * ((  vx-sP.V0[0])*(vx-sP.V0[0]) + (vy-sP.V0[1])*(vy-sP.V0[1])
+                                + (vz-sP.V0[2])*(vz-sP.V0[2])) / (2.0 * physicalconstants::K_B * sP.T));
+            rvalue *= ( sP.rhoBase + (sP.rho-sP.rhoBase) * (1.-abs(x) / (0.5*densityWidth)));
+         } else {
+            rvalue = 4*sP.rhoBase * pow(mass / (2.0 * M_PI * physicalconstants::K_B * sP.T), 1.5)
+              * exp(- mass * ((  vx-sP.V0[0])*(vx-sP.V0[0]) + (vy-sP.V0[1])*(vy-sP.V0[1])
+                                + (vz-sP.V0[2])*(vz-sP.V0[2])) / (2.0 * physicalconstants::K_B * sP.T));
+            //rvalue = 0;
+         }
+         break;
+      case Sinewave:
+         if (abs(x) < 0.5*densityWidth) {            
+            rvalue = 4 * pow(mass / (2.0 * M_PI * physicalconstants::K_B * sP.T), 1.5)
+              * exp(- mass * ((  vx-sP.V0[0])*(vx-sP.V0[0]) + (vy-sP.V0[1])*(vy-sP.V0[1])
+                                + (vz-sP.V0[2])*(vz-sP.V0[2])) / (2.0 * physicalconstants::K_B * sP.T));
+            rvalue *= ( sP.rhoBase + (sP.rho-sP.rhoBase) * (0.5 + 0.5*cos(M_PI * x / (0.5*densityWidth))));
+         } else {
+            rvalue = 4*sP.rhoBase * pow(mass / (2.0 * M_PI * physicalconstants::K_B * sP.T), 1.5)
+              * exp(- mass * ((  vx-sP.V0[0])*(vx-sP.V0[0]) + (vy-sP.V0[1])*(vy-sP.V0[1])
+                                + (vz-sP.V0[2])*(vz-sP.V0[2])) / (2.0 * physicalconstants::K_B * sP.T));
+            //rvalue = 0;
+         }
+         break;
+      }  
       
       return rvalue;
    }
@@ -205,9 +217,9 @@ namespace projects {
    void Flowthrough::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
 
    void Flowthrough::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
-      FsGrid< fsgrids::technical, 2>& technicalGrid
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
    ) {
       ConstantField bgField;
       bgField.initialize(Bx,By,Bz); //bg bx, by,bz      

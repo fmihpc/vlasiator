@@ -1,0 +1,14 @@
+---
+BasedOnStyle:  LLVM
+UseTab: Never
+IndentWidth: 3
+TabWidth: 3
+BreakBeforeBraces: Attach
+PointerAlignment: Left
+AlignAfterOpenBracket: true
+AllowShortIfStatementsOnASingleLine: false
+IndentCaseLabels: false
+ColumnLimit: 120
+AccessModifierOffset: -3
+...
+

@@ -94,8 +94,8 @@ template <typename T, int stencil> void computeCoupling(dccrg::Dccrg<SpatialCell
 
 void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                            const std::vector<CellID>& cells,
-                           FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2>& momentsGrid,
-                           FsGrid< fsgrids::technical, 2>& technicalGrid,
+                           FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                           FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
 
                            bool dt2 /*=false*/) {
 
@@ -196,20 +196,6 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
     /*----------------------Filtering------------------------*/
     phiprof::start("BoxCar Filtering");
 
-    // Kernel Matrix-- Needs to be precomputed in memory and not recomputed at every call
-    // Real kernel[3][3][3];
-
-    // for (int i =0; i<3; i++){
-    //   for (int j =0; j<3; j++){
-    //     for (int k =0; k<3; k++){
-
-    //       kernel[i][j][k]=1.0/27.0;  //normalized for 27 neighbours.
-
-    //     }
-    //   }
-    // }
-
-
     // Kernel Characteristics
     // int stencilWidth = sizeof( kernel) / sizeof( kernel[0]); //get the stnecil width
     // int kernelOffset= stencilWidth/3; //this is the kernel offset -int
@@ -225,12 +211,21 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
     // Get size of local domain and create swapGrid for filtering
     const int *mntDims= &momentsGrid.getLocalSize()[0];   //get local size for each proc.
-    FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, 2> swapGrid = momentsGrid;  //swap array 
+    FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> swapGrid = momentsGrid;  //swap array 
     const int maxRefLevel = mpiGrid.mapping.get_maximum_refinement_level();
 
-
     // Filtering Loop
-    for (int blurPass = 0; blurPass < maxRefLevel; blurPass++){
+   std::vector<int>::iterator  maxNumPassesPtr;
+   int maxNumPasses;
+   maxNumPassesPtr=std::max_element(P::numPasses.begin(), P::numPasses.end());
+   if(maxNumPassesPtr != P::numPasses.end()){ 
+      maxNumPasses = *maxNumPassesPtr;
+   }else{
+      std::cerr << "Trying to dereference null pointer \t" << " in " << __FILE__ << ":" << __LINE__ << std::endl;
+      abort();
+   } 
+
+    for (int blurPass = 0; blurPass < maxNumPasses; blurPass++){
 
       // Blurring Pass
       phiprof::start("BlurPass");
@@ -243,18 +238,19 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
             int refLevel = technicalGrid.get(ii, jj, kk)->refLevel;
 
             // Skip pass
-            if (refLevel == maxRefLevel ||
-              blurPass < refLevel ||
-              technicalGrid.get(ii, jj, kk)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-              (technicalGrid.get(ii, jj, kk)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && technicalGrid.get(ii, jj, kk)->sysBoundaryLayer == 2)
+            if (blurPass >= P::numPasses.at(refLevel) ||
+                technicalGrid.get(ii, jj, kk)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
+                (technicalGrid.get(ii, jj, kk)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && technicalGrid.get(ii, jj, kk)->sysBoundaryLayer == 2)
               )
             {
+              
               continue;
             }
 
-
+            // Define some Pointers
             std::array<Real, fsgrids::moments::N_MOMENTS> *cell;  
             std::array<Real,fsgrids::moments::N_MOMENTS> *swap;
+           
             // Set Cell to zero before passing filter
             swap = swapGrid.get(ii,jj,kk);
             for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
@@ -276,8 +272,6 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
                   swap = swapGrid.get(ii,jj,kk);
 
                   for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
-
-                    // swap->at(e)+=cell->at(e) * kernel[a][b][c];
                     swap->at(e)+=cell->at(e) * kernelWeight;
 
                     } 
@@ -300,6 +294,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
       phiprof::stop("GhostUpdate");
 
     }
+    
 
     phiprof::stop("BoxCar Filtering");  
 
@@ -308,10 +303,10 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
 
 void getFieldsFromFsGrid(
-   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volumeFieldsGrid,
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
-   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2>& EGradPeGrid,
-   FsGrid< fsgrids::technical, 2>& technicalGrid,
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volumeFieldsGrid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const std::vector<CellID>& cells
 ) {
@@ -523,3 +518,76 @@ std::vector<CellID> mapDccrgIdToFsGridGlobalID(dccrg::Dccrg<SpatialCell,dccrg::C
    return fsgridIDs;
 }
 
+void feedBoundaryIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+			const std::vector<CellID>& cells,
+			FsGrid< fsgrids::technical, 2> & technicalGrid) {
+
+  int ii;
+  //sorted list of dccrg cells. cells is typicall already sorted, but just to make sure....
+  std::vector<CellID> dccrgCells = cells;
+  std::sort(dccrgCells.begin(), dccrgCells.end());
+
+  //Datastructure for coupling
+  std::map<int, std::set<CellID> > onDccrgMapRemoteProcess; 
+  std::map<int, std::set<CellID> > onFsgridMapRemoteProcess; 
+  std::map<CellID, std::vector<int64_t> >  onFsgridMapCells;
+    
+  // map receive process => receive buffers 
+  std::map<int, std::vector<int> > receivedData; 
+
+  // send buffers  to each process
+  std::map<int, std::vector<int> > sendData;
+
+  //list of requests
+  std::vector<MPI_Request> sendRequests;
+  std::vector<MPI_Request> receiveRequests;
+  
+  //computeCoupling
+  computeCoupling(mpiGrid, cells, technicalGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
+ 
+  // Post receives
+  receiveRequests.resize(onFsgridMapRemoteProcess.size());  
+  ii=0;
+  for(auto const &receives: onFsgridMapRemoteProcess){
+    int process = receives.first;
+    int count = receives.second.size();
+    receivedData[process].resize(count);
+    MPI_Irecv(receivedData[process].data(), count * sizeof(int),
+	      MPI_BYTE, process, 1, MPI_COMM_WORLD,&(receiveRequests[ii++]));
+  }
+  
+  // Launch sends
+  ii=0;
+  sendRequests.resize(onDccrgMapRemoteProcess.size());
+  for (auto const &snd : onDccrgMapRemoteProcess){
+    int targetProc = snd.first; 
+    auto& sendBuffer=sendData[targetProc];
+    for(CellID sendCell: snd.second){
+      //Collect data to send for this dccrg cell
+      sendBuffer.push_back(mpiGrid[sendCell]->sysBoundaryFlag);
+    }
+    int count = sendBuffer.size(); //note, compared to receive this includes all elements to be sent
+    MPI_Isend(sendBuffer.data(), sendBuffer.size() * sizeof(int),
+	      MPI_BYTE, targetProc, 1, MPI_COMM_WORLD,&(sendRequests[ii]));
+    ii++;
+  }
+  
+  MPI_Waitall(receiveRequests.size(), receiveRequests.data(), MPI_STATUSES_IGNORE);
+
+  for(auto const &receives: onFsgridMapRemoteProcess){
+    int process = receives.first; //data received from this process
+    int* receiveBuffer = receivedData[process].data(); // data received from process
+    for(auto const &cell: receives.second){ //loop over cellids (dccrg) for receive
+      // this part heavily relies on both sender and receiver having cellids sorted!
+      for(auto lid: onFsgridMapCells[cell]){
+        // Now save the values to face-averages
+        technicalGrid.get(lid)->sysBoundaryFlag = receiveBuffer[0];
+      }
+      
+      receiveBuffer++;
+    }
+  }
+
+  MPI_Waitall(sendRequests.size(), sendRequests.data(), MPI_STATUSES_IGNORE);
+
+}
