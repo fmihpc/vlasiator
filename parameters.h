@@ -152,7 +152,9 @@ struct Parameters {
    static std::vector<std::string> blurPassString;
    static std::vector<int> numPasses;
    static bool artificialPADiff; // Artificial velocity space Diffusion
-   static Realf PADcoefficient; //Artificial pitc-angle diffusion coefficient
+   static Realf PADcoefficient; //Artificial pitch-angle diffusion coefficient
+   static std::string PADmode;
+   static Realf PADcfl; //Artificial pitch-angle diffusion CFL
     /*! \brief Add the global parameters.
     * 
     * This function adds all the parameters that are loaded at a global level.

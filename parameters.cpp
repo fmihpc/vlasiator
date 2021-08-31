@@ -154,6 +154,8 @@ vector<string> P::blurPassString;
 std::vector<int> P::numPasses;
 bool P::artificialPADiff;
 Realf P::PADcoefficient;
+string P::PADmode = string("");
+Realf P::PADCFL;
 
 bool Parameters::addParameters(){
    //the other default parameters we read through the add/get interface
@@ -320,6 +322,8 @@ bool Parameters::addParameters(){
    Readparameters::addComposing("AMR.filterpasses", std::string("AMR filter passes for each individual refinement level"));
    Readparameters::add("PAD.enable","Enable Artificial pitch-angle diffusion",0);
    Readparameters::add("PAD.coefficient","Set artificial pitch-angle diffusion coefficient",0);
+   Readparameters::add("PAD.mode","Set diffusion method",string(""));
+   Readparameters::add("PAD.CFL","Set CFL condition",0);
    return true;
 }
 
@@ -634,6 +638,8 @@ bool Parameters::getParameters(){
  
    Readparameters::get("PAD.enable", P::artificialPADiff);   
    Readparameters::get("PAD.coefficient", P::PADcoefficient);
+   Readparameters::get("PAD.mode",P::PADmode);
+   Readparameters::get("PAD.CFL",P::PADCFL);
 
    return true;
 
