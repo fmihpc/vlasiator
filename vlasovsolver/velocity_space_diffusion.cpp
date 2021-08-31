@@ -54,6 +54,7 @@ void velocitySpaceDiffusion(
         //std::vector<Realf> theta(cell.get_number_of_velocity_blocks(popID)*WID3); // Array of vspace size for storing theta
 
         std::vector<Realf> dfdt(cell.get_number_of_velocity_blocks(popID)*WID3); // Array of vspace size to store dfdt
+        std::vector<Realf> checkCFL(cell.get_number_of_velocity_blocks(popID)*WID3); // Array of vspace size to store checkCFl
 
         for (int coord = 0; coord < 3; coord++) { // First derivative loop
 
@@ -166,10 +167,6 @@ void velocitySpaceDiffusion(
                        Vplasma.push_back(V.at(indx) - bulkV.at(indx));
                    }
 
-                   //VPCoords[WID3*n+i+WID*j+WID*WID*k][0] = V[0];
-                   //VPCoords[WID3*n+i+WID*j+WID*WID*k][1] = V[1];
-                   //VPCoords[WID3*n+i+WID*j+WID*WID*k][2] = V[2];
-
                    Realf normV = sqrt(Vplasma.at(0)*Vplasma.at(0) + Vplasma.at(1)*Vplasma.at(1) + Vplasma.at(2)*Vplasma.at(2));
 
                    const Real DV 
@@ -230,22 +227,16 @@ void velocitySpaceDiffusion(
 
                    //Sum dfdtCoord
                    dfdt[WID3*n+i+WID*j+WID*WID*k] = dfdt[WID3*n+i+WID*j+WID*WID*k] + dfdtCoord;
-           
-                   // Update cell
-                   Realf dt = Parameters::dt; // Simulation time step
-
-                   Realf CellValue = cell.get_value(VX,VY,VZ,popID);
-                   //CellValue = CellValue + dfdtCoord[WID3*n+i+WID*j+WID*WID*k][coord] * dt ;
-                   Realf NewCellValue = CellValue + dfdtCoord * dt ;
-                   if (NewCellValue <= 0.0) { NewCellValue = 0.0;}
-
-                   cell.set_value(VX,VY,VZ,NewCellValue,popID);
-              
+                   Realf CellValue                = cell.get_value(VX,VY,VZ,popID);
+                   
+                   if (coord == 2) {checkCFL[WID3*n+i+WID*j+WID*WID*k] = CellValue * Parameters::PADCFL * (1.0 / abs(dfdt[WID3*n+i+WID*j+WID*WID*k]));} //Only calculate if all coords have been done 
 
                    }
             }
  
         }
+  
+    Realf mincheckCFL = *min_element(checkCFL.begin(),checkCFL.end());
 
         //Loop to check CFL and update cell
         for (vmesh::LocalID n=0; n<cell.get_number_of_velocity_blocks(popID); n++) { //Iterate through velocity blocks
@@ -258,10 +249,17 @@ void velocitySpaceDiffusion(
 
                 //Check CFL
                 Realf CellValue = cell.get_value(VX,VY,VZ,popID);
-                checkCFL = dfdt[WID3*n+i+WID*j+WID*WID*k] / CellValue;
 
-             }
-         }
+                Realf Ddt = mincheckCFL; // Diffusion time step
+                if (Ddt > Parameters::dt) { Ddt = Parameters::dt; }
+
+                //Update cell
+                Realf NewCellValue = CellValue + dfdt[WID3*n+i+WID*j+WID*WID*k] * Ddt;
+                if (NewCellValue <= 0.0) { NewCellValue = 0.0;}
+
+                cell.set_value(VX,VY,VZ,NewCellValue,popID);
+            }
+        }
 
 
     }
