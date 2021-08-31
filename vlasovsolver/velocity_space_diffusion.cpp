@@ -48,7 +48,7 @@ void velocitySpaceDiffusion(
     for (auto & CellID: LocalCells) { //Iterate through spatial cell
 
         SpatialCell& cell = *mpiGrid[CellID];
-        Realf Sparsity = cell -> getVelocityBlockMinValue(popID);
+        Realf Sparsity    = cell.getVelocityBlockMinValue(popID);
 
         Realf dtTotalDiff = 0.0; // Diffusion time elapsed
 
@@ -233,10 +233,10 @@ void velocitySpaceDiffusion(
                        //Sum dfdtCoord
                        dfdt[WID3*n+i+WID*j+WID*WID*k] = dfdt[WID3*n+i+WID*j+WID*WID*k] + dfdtCoord;
                        Realf CellValue                = cell.get_value(VX,VY,VZ,popID);
-                       if (CellValue == 0.0) {CellValue = Sparsity}; //Set CellValue to sparsity Threshold for empty cells otherwise div by 0
+                       if (CellValue == 0.0) {CellValue = Sparsity;} //Set CellValue to sparsity Threshold for empty cells otherwise div by 0
                        if (coord == 2) {checkCFL[WID3*n+i+WID*j+WID*WID*k] = CellValue * Parameters::PADCFL * (1.0 / abs(dfdt[WID3*n+i+WID*j+WID*WID*k]));} //Only calculate if all coords have been done 
 
-                       }
+                    }
                 }
  
             }
@@ -245,6 +245,7 @@ void velocitySpaceDiffusion(
         Realf mincheckCFL = *min_element(checkCFL.begin(),checkCFL.end());
         Realf Ddt = mincheckCFL; // Diffusion time step
         if (Ddt > RemainT) { Ddt = RemainT; }
+        std::cout << "Diffusion dt = " << Ddt << std::endl;
         dtTotalDiff = dtTotalDiff + Ddt;
 
             //Loop to check CFL and update cell
