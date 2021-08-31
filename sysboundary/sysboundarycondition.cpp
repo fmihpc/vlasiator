@@ -114,8 +114,8 @@ namespace SBC {
       creal y = cellParams[CellParams::YCRD] + 0.5*dy;
       creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
 
-      if (cellParams[CellParams::CELLID] == 0) {
-         std::cerr << "Warning, cell ID not initialized in " << __FILE__ << ":" << __LINE__ << std::endl;
+      if (cellParams[CellParams::DX] == 0) {
+         std::cerr << "Warning, cell coordinates not initialized in " << __FILE__ << ":" << __LINE__ << std::endl;
       }
 
 
