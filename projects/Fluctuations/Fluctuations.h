@@ -32,7 +32,9 @@ namespace projects {
 
    struct FluctuationsSpeciesParameters {
       Real DENSITY;
-      Real TEMPERATURE;
+      Real TEMPERATUREX;
+      Real TEMPERATUREY;
+      Real TEMPERATUREZ;
       Real densityPertRelAmp;
       Real velocityPertAbsAmp;
       Real maxwCutoff;

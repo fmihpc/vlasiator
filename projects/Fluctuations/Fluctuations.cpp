@@ -57,7 +57,9 @@ namespace projects {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
 
          RP::add(pop + "_Fluctuations.rho", "Number density (m^-3)", 1.0e7);
-         RP::add(pop + "_Fluctuations.Temperature", "Temperature (K)", 2.0e6);
+         RP::add(pop + "_Fluctuations.TemperatureX", "Temperature (K)", 2.0e6);
+         RP::add(pop + "_Fluctuations.TemperatureY", "Temperature (K)", 2.0e6);
+         RP::add(pop + "_Fluctuations.TemperatureZ", "Temperature (K)", 2.0e6);
          RP::add(pop + "_Fluctuations.densityPertRelAmp", "Amplitude factor of the density perturbation", 0.1);
          RP::add(pop + "_Fluctuations.velocityPertAbsAmp", "Amplitude of the velocity perturbation", 1.0e6);
          RP::add(pop + "_Fluctuations.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
@@ -82,7 +84,9 @@ namespace projects {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          FluctuationsSpeciesParameters sP;
          RP::get(pop + "_Fluctuations.rho", sP.DENSITY);
-         RP::get(pop + "_Fluctuations.Temperature", sP.TEMPERATURE);
+         RP::get(pop + "_Fluctuations.TemperatureX", sP.TEMPERATUREX);
+         RP::get(pop + "_Fluctuations.TemperatureY", sP.TEMPERATUREY);
+         RP::get(pop + "_Fluctuations.TemperatureZ", sP.TEMPERATUREZ);
          RP::get(pop + "_Fluctuations.densityPertRelAmp", sP.densityPertRelAmp);
          RP::get(pop + "_Fluctuations.velocityPertAbsAmp", sP.velocityPertAbsAmp);
          RP::get(pop + "_Fluctuations.nSpaceSamples", sP.nSpaceSamples);
@@ -98,7 +102,7 @@ namespace projects {
 
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
-      return exp(- mass * (vx*vx + vy*vy + vz*vz) / (2.0 * kb * sP.TEMPERATURE));
+      return exp((- mass / (2.0 * kb)) * ((vx*vx) / sP.TEMPERATUREX + (vy*vy) / sP.TEMPERATUREY + (vz*vz) / sP.TEMPERATUREZ));
    }
 
    Real Fluctuations::calcPhaseSpaceDensity(
@@ -139,8 +143,8 @@ namespace projects {
       
       creal result = avg *
          sP.DENSITY * (1.0 + sP.densityPertRelAmp * (0.5 - rndRho)) *
-         pow(mass / (2.0 * M_PI * kb * sP.TEMPERATURE), 1.5) /
-         (sP.nVelocitySamples*sP.nVelocitySamples*sP.nVelocitySamples);
+         pow(mass / (2.0 * M_PI * kb ), 1.5) / ( sqrt(sP.TEMPERATUREX) * sqrt(sP.TEMPERATUREY) * sqrt(sP.TEMPERATUREZ) ) /
+         (sP.nVelocitySamples*sP.nVelocitySamples*sP.nVelocitySamples );
       
       if(result < sP.maxwCutoff) {
          return 0.0;
