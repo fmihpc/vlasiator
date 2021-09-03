@@ -154,7 +154,7 @@ struct Parameters {
    static bool artificialPADiff; // Artificial velocity space Diffusion
    static Realf PADcoefficient; //Artificial pitch-angle diffusion coefficient
    static std::string PADmode;
-   static Realf PADcfl; //Artificial pitch-angle diffusion CFL
+   static Realf PADCFL; //Artificial pitch-angle diffusion CFL
     /*! \brief Add the global parameters.
     * 
     * This function adds all the parameters that are loaded at a global level.

@@ -191,7 +191,7 @@ OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipo
 	project.o projectTriAxisSearch.o read_gaussian_population.o\
 	Alfven.o Diffusion.o Dispersion.o Distributions.o Firehose.o\
 	Flowthrough.o Fluctuations.o Harris.o KHB.o Larmor.o Magnetosphere.o MultiPeak.o\
-	VelocityBox.o Riemann1.o Shock.o Template.o test_fp.o testAmr.o testHall.o test_trans.o\
+	VelocityBox.o velocity_space_diffusion.o Riemann1.o Shock.o Template.o test_fp.o testAmr.o testHall.o test_trans.o\
 	IPShock.o object_wrapper.o\
 	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o vlasiator.o logger.o\
 	common.o parameters.o readparameters.o spatial_cell.o mesh_data_container.o\
@@ -338,6 +338,9 @@ MultiPeak.o: ${DEPS_COMMON} projects/MultiPeak/MultiPeak.h projects/MultiPeak/Mu
 
 VelocityBox.o: ${DEPS_COMMON} projects/VelocityBox/VelocityBox.h projects/VelocityBox/VelocityBox.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/VelocityBox/VelocityBox.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_FSGRID}
+
+velocity_space_diffusion.o: ${DEPS_COMMON} vlasovsolver/velocity_space_diffusion.h vlasovsolver/velocity_space_diffusion.cpp
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/velocity_space_diffusion.cpp $(CURDIR) ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VECTORCLASS} ${INC_EIGEN} ${INC_VLSV}
 
 Riemann1.o: ${DEPS_COMMON} projects/Riemann1/Riemann1.h projects/Riemann1/Riemann1.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/Riemann1/Riemann1.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_FSGRID}
