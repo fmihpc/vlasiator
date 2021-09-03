@@ -180,11 +180,11 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    MPI_Allreduce(&(dtMaxLocal[0]), &(dtMaxGlobal[0]), 3, MPI_Type<Real>(), MPI_MIN, MPI_COMM_WORLD);
    
    //If any of the solvers are disabled there should be no limits in timespace from it
-   if (P::propagateVlasovTranslation == false)
+   if (!P::propagateVlasovTranslation)
       dtMaxGlobal[0]=numeric_limits<Real>::max();
-   if (P::propagateVlasovAcceleration == false)
+   if (!P::propagateVlasovAcceleration)
       dtMaxGlobal[1]=numeric_limits<Real>::max();
-   if (P::propagateField == false)
+   if (!P::propagateField)
       dtMaxGlobal[2]=numeric_limits<Real>::max();
    
    creal meanVlasovCFL = 0.5*(P::vlasovSolverMaxCFL+ P::vlasovSolverMinCFL);
@@ -239,7 +239,7 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          dtMaxGlobal[2] * P::maxFieldSolverSubcycles<< " " <<
          endl << writeVerbose;
 
-      if(P::dynamicTimestep == true) {
+      if(P::dynamicTimestep) {
          subcycleDt = newDt;
       } else {
          logFile <<"(TIMESTEP) However, fixed timestep in config overrides dt = " << P::dt << endl << writeVerbose;
@@ -348,12 +348,12 @@ int main(int argn,char* args[]) {
    // Init parallel logger:
    phiprof::start("open logFile & diagnostic");
    //if restarting we will append to logfiles
-   if (logFile.open(MPI_COMM_WORLD,MASTER_RANK,"logfile.txt",P::isRestart) == false) {
+   if (!logFile.open(MPI_COMM_WORLD,MASTER_RANK,"logfile.txt",P::isRestart)) {
       if(myRank == MASTER_RANK) cerr << "(MAIN) ERROR: Logger failed to open logfile!" << endl;
       exit(1);
    }
    if (P::diagnosticInterval != 0) {
-      if (diagnostic.open(MPI_COMM_WORLD,MASTER_RANK,"diagnostic.txt",P::isRestart) == false) {
+      if (!diagnostic.open(MPI_COMM_WORLD,MASTER_RANK,"diagnostic.txt",P::isRestart)) {
          if(myRank == MASTER_RANK) cerr << "(MAIN) ERROR: Logger failed to open diagnostic file!" << endl;
          exit(1);
       }
@@ -373,11 +373,11 @@ int main(int argn,char* args[]) {
    
    // Init project
    phiprof::start("Init project");
-   if (project->initialize() == false) {
+   if (!project->initialize()) {
       if(myRank == MASTER_RANK) cerr << "(MAIN): Project did not initialize correctly!" << endl;
       exit(1);
    }
-   if (project->initialized() == false) {
+   if (!project->initialized()) {
       if (myRank == MASTER_RANK) {
          cerr << "(MAIN): Project base class was not initialized!" << endl;
          cerr << "\t Call Project::initialize() in your project's initialize()-function." << endl;
@@ -505,7 +505,7 @@ int main(int argn,char* args[]) {
    getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
    phiprof::stop("getFieldsFromFsGrid");
 
-   if (P::isRestart == false) {
+   if (!P::isRestart) {
       phiprof::start("compute-dt");
       // Run Vlasov solver once with zero dt to initialize
       // per-cell dt limits. In restarts, we read the dt from file.
@@ -532,7 +532,7 @@ int main(int argn,char* args[]) {
       }
 
       const bool writeGhosts = true;
-      if( writeGrid(mpiGrid,
+      if( !writeGrid(mpiGrid,
             perBGrid, // TODO: Merge all the fsgrids passed here into one meta-object
             EGrid,
             EHallGrid,
@@ -543,7 +543,7 @@ int main(int argn,char* args[]) {
             BgBGrid,
             volGrid,
             technicalGrid,
-            &outputReducer,P::systemWriteName.size()-1, P::restartStripeFactor, writeGhosts) == false ) {
+            &outputReducer,P::systemWriteName.size()-1, P::restartStripeFactor, writeGhosts) ) {
          cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
       }
 
@@ -557,11 +557,11 @@ int main(int argn,char* args[]) {
       phiprof::stop("write-initial-state");
    }
 
-   if (P::isRestart == false) {
+   if (!P::isRestart) {
       //compute new dt
       phiprof::start("compute-dt");
       computeNewTimeStep(mpiGrid, technicalGrid, newDt, dtIsChanged);
-      if (P::dynamicTimestep == true && dtIsChanged == true) {
+      if (P::dynamicTimestep && dtIsChanged) {
          // Only actually update the timestep if dynamicTimestep is on
          P::dt=newDt;
       }
@@ -677,7 +677,7 @@ int main(int argn,char* args[]) {
       if (P::diagnosticInterval != 0 && P::tstep % P::diagnosticInterval == 0) {
          
          phiprof::start("diagnostic-io");
-         if (writeDiagnostic(mpiGrid, diagnosticReducer) == false) {
+         if (!writeDiagnostic(mpiGrid, diagnosticReducer)) {
             if(myRank == MASTER_RANK)  cerr << "ERROR with diagnostic computation" << endl;
             
          }
@@ -700,7 +700,7 @@ int main(int argn,char* args[]) {
             phiprof::start("write-system");
             logFile << "(IO): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
             const bool writeGhosts = true;
-            if( writeGrid(mpiGrid,
+            if( !writeGrid(mpiGrid,
                      perBGrid, // TODO: Merge all the fsgrids passed here into one meta-object
                      EGrid,
                      EHallGrid,
@@ -711,7 +711,7 @@ int main(int argn,char* args[]) {
                      BgBGrid,
                      volGrid,
                      technicalGrid,
-                     &outputReducer, i, P::bulkStripeFactor, writeGhosts) == false ) {
+                     &outputReducer, i, P::bulkStripeFactor, writeGhosts) ) {
                cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
             }
             P::systemWrites[i]++;
@@ -740,7 +740,7 @@ int main(int argn,char* args[]) {
             || globalflags::writeRestart
          ) {
             doNow[0] = 1;
-            if (globalflags::writeRestart == true) {
+            if (globalflags::writeRestart) {
                doNow[0] = 2; // Setting to 2 so as to not increment the restart count below.
                globalflags::writeRestart = false; // This flag is only used by MASTER_RANK here and it needs to be reset after a restart write has been issued.
             }
@@ -748,7 +748,7 @@ int main(int argn,char* args[]) {
          else {
             doNow[0] = 0;
          }
-         if (globalflags::balanceLoad == true) {
+         if (globalflags::balanceLoad) {
             doNow[1] = 1;
             globalflags::balanceLoad = false;
          }
@@ -771,7 +771,7 @@ int main(int argn,char* args[]) {
          if (myRank == MASTER_RANK)
             logFile << "(IO): Writing restart data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          //Write the restart:
-         if( writeRestart(mpiGrid,
+         if( !writeRestart(mpiGrid,
                   perBGrid, // TODO: Merge all the fsgrids passed here into one meta-object
                   EGrid,
                   EHallGrid,
@@ -782,7 +782,7 @@ int main(int argn,char* args[]) {
                   BgBGrid,
                   volGrid,
                   technicalGrid,
-                  outputReducer,"restart",(uint)P::t,P::restartStripeFactor) == false ) {
+                  outputReducer,"restart",(uint)P::t,P::restartStripeFactor) ) {
             logFile << "(IO): ERROR Failed to write restart!" << endl << writeVerbose;
             cerr << "FAILED TO WRITE RESTART" << endl;
          }
@@ -857,8 +857,8 @@ int main(int argn,char* args[]) {
          }
       }
       
-      if (P::tstep % P::rebalanceInterval == P::rebalanceInterval-1 || P::prepareForRebalance == true) {
-         if(P::prepareForRebalance == true) {
+      if (P::tstep % P::rebalanceInterval == P::rebalanceInterval-1 || P::prepareForRebalance) {
+         if(P::prepareForRebalance) {
             overrideRebalanceNow = true;
          } else {
             P::prepareForRebalance = true;
@@ -880,6 +880,10 @@ int main(int argn,char* args[]) {
       }
       phiprof::stop("Spatial-space",computedCells,"Cells");
       
+      // phiprof::start("Update dynamic boundary cells");
+      // boundaries.updateState(mpiGrid, perBGrid, P::t + 0.5 * P::dt);
+      // phiprof::stop("Update dynamic boundary cells");
+
       // Apply boundary conditions
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
          phiprof::start("Update system boundaries (Vlasov post-translation)");
