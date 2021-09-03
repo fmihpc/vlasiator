@@ -331,7 +331,7 @@ void velocitySpaceDiffusion(
 
                    // dfdt according to Eq. 28 of the PDF
                    dfdt[WID3*n+i+WID*j+WID*WID*k] = Parameters::PADcoefficient * 
-                   (-2.0 * arrayDFdcoordFirst[WID3*n+i+WID*j+WID*WID*k][0] + (2.0 * Vplasma[0]*Vplasma[0] - normV*normV) / sqrt(Vplasma[1]*Vplasma[1] + Vplasma[2]*Vplasma[2]) * (sin(phi) * arrayDFdcoordFirst[WID3*n+i+WID*j+WID*WID*k][1] + cos(phi) * arrayDFdcoordFirst[WID3*n+i+WID*j+WID*WID*k][2])
+                   (-2.0 * Vplasma[0] * arrayDFdcoordFirst[WID3*n+i+WID*j+WID*WID*k][0] + (2.0 * Vplasma[0]*Vplasma[0] - normV*normV) / sqrt(Vplasma[1]*Vplasma[1] + Vplasma[2]*Vplasma[2]) * (sin(phi) * arrayDFdcoordFirst[WID3*n+i+WID*j+WID*WID*k][1] + cos(phi) * arrayDFdcoordFirst[WID3*n+i+WID*j+WID*WID*k][2])
                      - 2.0 * Vplasma[0] * sqrt(Vplasma[1]*Vplasma[1] + Vplasma[2]*Vplasma[2]) * (sin(phi) * arrayDFdVXdVY[WID3*n+i+WID*j+WID*WID*k] + cos(phi) * arrayDFdVXdVZ[WID3*n+i+WID*j+WID*WID*k]) + 2.0 * Vplasma[0]*Vplasma[0] * Vplasma[2] * Vplasma[1] / (Vplasma[2]*Vplasma[2] + Vplasma[1]*Vplasma[1]) * arrayDFdVYdVZ[WID3*n+i+WID*j+WID*WID*k] 
                      + (Vplasma[1]*Vplasma[1] + Vplasma[2]*Vplasma[2]) * arrayDFdcoordSecond[WID3*n+i+WID*j+WID*WID*k][0] + Vplasma[0]*Vplasma[0] * Vplasma[2]*Vplasma[2] / (Vplasma[2]*Vplasma[2] + Vplasma[1]*Vplasma[1]) * arrayDFdcoordSecond[WID3*n+i+WID*j+WID*WID*k][2] + Vplasma[0]*Vplasma[0] * Vplasma[1]*Vplasma[1] / (Vplasma[2]*Vplasma[2] + Vplasma[1]*Vplasma[1]) * arrayDFdcoordSecond[WID3*n+i+WID*j+WID*WID*k][1]);
                    // CFL condition
