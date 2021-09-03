@@ -32,10 +32,10 @@
 #include "../vlasovsolver/cpu_moments.h"
 
 #include "donotcompute.h"
-#include "sysboundary.h"
 #include "ionosphere.h"
 #include "maxwellian.h"
 #include "outflow.h"
+#include "sysboundary.h"
 #include "user.h"
 
 using namespace std;
@@ -162,13 +162,11 @@ void SysBoundary::initBoundaries(Project& project, creal t) {
 
          if ((faces[4] || faces[5]) && P::zcells_ini < 5)
             SBC::abort_mpi("Outflow condition loaded on z- or z+ face but not enough cells in z!");
-      }
-      if (*it == "Ionosphere") {
+      } else if (*it == "Ionosphere") {
          this->addBoundary(new SBC::Ionosphere, project, t);
          this->addBoundary(new SBC::DoNotCompute, project, t);
          anyDynamic = anyDynamic || this->getBoundary(sysboundarytype::IONOSPHERE)->isDynamic();
-      }
-      if (*it == "Maxwellian") {
+      } else if (*it == "Maxwellian") {
          this->addBoundary(new SBC::Maxwellian, project, t);
          anyDynamic = anyDynamic || this->getBoundary(sysboundarytype::MAXWELLIAN)->isDynamic();
          bool faces[6];
@@ -191,6 +189,10 @@ void SysBoundary::initBoundaries(Project& project, creal t) {
 
          if ((faces[4] || faces[5]) && P::zcells_ini < 5)
             SBC::abort_mpi("Maxwellian condition loaded on z- or z+ face but not enough cells in z!");
+      } else {
+         std::ostringstream msg;
+         msg << "Unknown type of boundary read: " << *it;
+         SBC::abort_mpi(msg.str());
       }
    }
 
@@ -368,8 +370,8 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
    /*set cells to DO_NOT_COMPUTE if they are on boundary, and are not
     * in the first two layers of the boundary*/
    for (uint i = 0; i < cells.size(); i++) {
-      if (mpiGrid[cells[i]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && mpiGrid[cells[i]]->sysBoundaryLayer != 1 &&
-          mpiGrid[cells[i]]->sysBoundaryLayer != 2) {
+      if (mpiGrid[cells[i]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
+          mpiGrid[cells[i]]->sysBoundaryLayer != 1 && mpiGrid[cells[i]]->sysBoundaryLayer != 2) {
          mpiGrid[cells[i]]->sysBoundaryFlag = sysboundarytype::DO_NOT_COMPUTE;
       }
    }
@@ -543,8 +545,8 @@ void SysBoundary::applyBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell, dccrg:
       /*Transfer along boundaries*/
       // First the small stuff without overlapping in an extended neighbourhood:
 #warning TODO This now communicates in the wider neighbourhood for both layers, could be reduced to smaller neighbourhood for layer 1, larger neighbourhood for layer 2.
-   SpatialCell::set_mpi_transfer_type(Transfer::CELL_PARAMETERS | Transfer::POP_METADATA | Transfer::CELL_SYSBOUNDARYFLAG,
-                                      true);
+   SpatialCell::set_mpi_transfer_type(
+       Transfer::CELL_PARAMETERS | Transfer::POP_METADATA | Transfer::CELL_SYSBOUNDARYFLAG, true);
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
 
    // Loop over existing particle species
@@ -565,8 +567,8 @@ void SysBoundary::applyBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell, dccrg:
 
       // Compute Vlasov boundary condition on boundary/process inner cells
       vector<CellID> localCells;
-      getBoundaryCellList(mpiGrid, mpiGrid.get_local_cells_not_on_process_boundary(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID),
-                          localCells);
+      getBoundaryCellList(
+          mpiGrid, mpiGrid.get_local_cells_not_on_process_boundary(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID), localCells);
 
 #pragma omp parallel for
       for (uint i = 0; i < localCells.size(); i++) {
