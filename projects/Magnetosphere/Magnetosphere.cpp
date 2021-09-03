@@ -344,7 +344,7 @@ namespace projects {
             for (int x = 0; x < localSize[0]; ++x) {
                for (int y = 0; y < localSize[1]; ++y) {
                   for (int z = 0; z < localSize[2]; ++z) {
-                     if(technicalGrid.get(x, y, z)->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN ) {
+                     if(technicalGrid.get(x, y, z)->sysBoundaryFlag == sysboundarytype::MAXWELLIAN ) {
                         for (int i = 0; i < fsgrids::bgbfield::N_BGB; ++i) {
                            BgBGrid.get(x,y,z)->at(i) = 0;
                         }

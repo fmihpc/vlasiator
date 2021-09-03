@@ -23,98 +23,86 @@
 #ifndef SYSBOUNDARY_H
 #define SYSBOUNDARY_H
 
-#include <map>
-#include <list>
-#include <vector>
-#include <mpi.h>
-#include <dccrg.hpp>
-#include <dccrg_cartesian_geometry.hpp>
-#include "../definitions.h"
 #include "../parameters.h"
 #include "../readparameters.h"
 #include "../spatial_cell.hpp"
+#include <dccrg.hpp>
+#include <dccrg_cartesian_geometry.hpp>
+#include <list>
+#include <map>
+#include <mpi.h>
+#include <vector>
 
 #include "sysboundarycondition.h"
 
 /*! \brief SysBoundary contains the SysBoundaryConditions used in the simulation.
- * 
- * The purpose of SysBoundary is to contain SBC::SysBoundaryConditions, and apply 
- * them to the simulation volume cells if the cells pertain to a specific boundary type.
- * If the simulation domain is not fully periodic then the behaviour at the edges or boundaries of the volume has to be properly defined.
- * 
- * initSysBoundaries creates the instances of SBC::SysBoundaryConditions that are needed.
- * They are then initialised, which means the internals are prepared for the system
- * boundary condition to be applied (import and process parameters, generate template cells
- * etc.). When the whole simulation domain is initialised, the boundary conditions are
- * applied to the cells they have by calling applyInitialState.
- * 
- * If needed, a user can write his or her own SBC::SysBoundaryConditions, which 
+ *
+ * The purpose of SysBoundary is to contain SBC::SysBoundaryConditions, and
+ * apply them to the simulation volume cells if the cells pertain to a specific
+ * boundary type. If the simulation domain is not fully periodic then the
+ * behaviour at the edges or boundaries of the volume has to be properly
+ * defined.
+ *
+ * initBoundaries creates the instances of SBC::SysBoundaryConditions that
+ * are needed. They are then initialised, which means the internals are prepared
+ * for the boundary condition to be applied (import and process
+ * parameters, generate template cells etc.). When the whole simulation domain
+ * is initialised, the boundary conditions are applied to the cells they have by
+ * calling applyInitialState.
+ *
+ * If needed, a user can write his or her own SBC::SysBoundaryConditions, which
  * are loaded when the simulation initializes.
  */
 class SysBoundary {
- public:
+public:
    SysBoundary();
    ~SysBoundary();
-      
+
    void addParameters();
    void getParameters();
-      
-   bool addSysBoundary(
-                       SBC::SysBoundaryCondition* sbc,
-                       Project& project,
-                       creal& t
-                      );
-   bool initSysBoundaries(
-                          Project& project,
-                          creal& t
-                         );
-   bool checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
-   bool classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
-   bool applyInitialState(
-                          dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-                          Project& project
-                         );
-   void applySysBoundaryVlasovConditions(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, creal& t, const bool calculate_V_moments);
+
+   void addBoundary(SBC::SysBoundaryCondition *sbc, Project &project, creal t);
+   void initBoundaries(Project &project, creal t);
+   void checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid);
+   void classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+                      FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid);
+   void applyInitialState(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+                          FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid,
+                          Project &project);
+   void updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+                    FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid, creal t);
+   void applyBoundaryVlasovConditions(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+                                      creal t, const bool doCalcMomentsV);
    unsigned int size() const;
-   SBC::SysBoundaryCondition* getSysBoundary(cuint sysBoundaryType) const;
+   SBC::SysBoundaryCondition *getBoundary(cuint sysBoundaryType) const;
    bool isDynamic() const;
-   bool isBoundaryPeriodic(uint direction) const;
-   bool updateSysBoundariesAfterLoadBalance(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+   bool isPeriodic(uint direction) const;
+   void updateBoundariesAfterLoadBalance(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid);
 
-   private:
-      /*! Private copy-constructor to prevent copying the class. */
-      SysBoundary(const SysBoundary& bc);
-   
-      //std::set<SBC::SysBoundaryCondition*,SBC::Comparator> sysBoundaries;
+private:
+   /*! Private copy-constructor to prevent copying the class. */
+   SysBoundary(const SysBoundary &bc);
 
-      /*! A container for all SBC::SysBoundaryConditions stored in SysBoundary.*/
-      std::list<SBC::SysBoundaryCondition*> sysBoundaries;
-      /*! A map from the system boundary types to the corresponding class member. */
-      std::map<uint, SBC::SysBoundaryCondition*> indexToSysBoundary;
-      /*! List of system boundary conditions (SBC) to be used. */
-      std::vector<std::string> sysBoundaryCondList;
-      /*! bool telling whether any system boundary condition is dynamic in time (and thus needs updating). */
-      bool isThisDynamic;
+   /*! A container for all SBC::SysBoundaryConditions stored in SysBoundary.*/
+   std::list<SBC::SysBoundaryCondition *> sysBoundaries;
+   /*! A map from the boundary types to the corresponding class member. */
+   std::map<uint, SBC::SysBoundaryCondition *> indexToBoundary;
+   /*! List of boundary conditions (SBC) to be used. */
+   std::vector<std::string> sysBoundaryCondList;
+   /*! bool telling whether any boundary condition is dynamic in time (and thus needs updating). */
+   bool anyDynamic;
 
-      /*! Array of bool telling whether the system is periodic in any direction. */
-      bool isPeriodic[3];
+   /*! Array of bool telling whether the system is periodic in any direction. */
+   bool periodic[3];
 };
 
-bool precedenceSort(const SBC::SysBoundaryCondition* first, 
-                    const SBC::SysBoundaryCondition* second);
-
-
+bool precedenceSort(const SBC::SysBoundaryCondition *first, const SBC::SysBoundaryCondition *second);
 
 /*
-   Input a vector of cellIDs (cellList) and compute a new vector with only those cells which are on a sysboundary and are to be computed
+   Input a vector of cellIDs (cellList) and compute a new vector with only those cells which are on a boundary and are
+   to be computed
 */
-bool getBoundaryCellList(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                         const std::vector<CellID>& cellList,
-                         std::vector<CellID>& boundaryCellList);
-
-
-
+void getBoundaryCellList(const dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+                         const std::vector<CellID> &cellList, std::vector<CellID> &BoundaryCellList);
 
 #endif
