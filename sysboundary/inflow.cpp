@@ -162,8 +162,9 @@ void Inflow::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geomet
    }
 #pragma omp parallel for
    for (uint i = 0; i < 6; i++) {
-      if (facesToProcess[i])
+      if (facesToProcess[i]) {
          generateTemplateCell(templateCells[i], templateB[i], i, t);
+      }
    }
 
    for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
@@ -432,9 +433,11 @@ vector<vector<Real>> Inflow::loadFile(const char* fn, const unsigned int nParams
  */
 void Inflow::generateTemplateCells(creal t) {
 #pragma omp parallel for
-   for (uint i = 0; i < 6; i++)
-      if (facesToProcess[i])
+   for (uint i = 0; i < 6; i++) {
+      if (facesToProcess[i]) {
          generateTemplateCell(templateCells[i], templateB[i], i, t);
+      }
+   }
 }
 
 /*!Interpolate the input data to the given time.

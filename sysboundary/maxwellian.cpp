@@ -242,8 +242,9 @@ void Maxwellian::generateTemplateCell(spatial_cell::SpatialCell& templateCell, R
                                                   vyCell + 0.5 * dvyCell - Vy, vzCell + 0.5 * dvzCell - Vz);
                   }
 
-                  if (avr != 0.0)
+                  if (avr != 0.0) {
                      data[blockLID * WID3 + cellIndex(ic, jc, kc)] = avr;
+                  }
                } // for-loop over cells in velocity block
       }          // for-loop over velocity blocks
 
