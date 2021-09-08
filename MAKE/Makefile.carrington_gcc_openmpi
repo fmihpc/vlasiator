@@ -1,11 +1,17 @@
 # Makefile for the Carrington Cluster at UH.
 #
-# Suggested modules:
+# Recommended setup:
+# * Compile on an interactive node with the below modules;
+# * Load the modules in the job script too;
+# * Use the full command to run:
+# ** mpirun -mca pml ucx --mca btl ^vader,tcp,openib -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global $executable --run_config $configfile
 #
-# module purge
-# module load GCC/10.2.0
-# module load OpenMPI/4.0.5-GCC-10.2.0
+# Required modules:
 #
+# module load gnu9/9.3.0
+# module load openmpi4/4.0.5
+# module load pmix/3.1.4
+
 
 CMP = mpicxx
 LNK = mpicxx
@@ -39,13 +45,13 @@ endif
 #
 # CXXFLAGS = -DMPICH_IGNORE_CXX_SEEK
 
-FLAGS = 
+FLAGS =
 
 #GNU flags:
 CC_BRAND = gcc
-CC_BRAND_VERSION = 10.2.0
-CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -m64 -march=znver2 -flto
-testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -m64 -march=znver2
+CC_BRAND_VERSION = 9.3.0
+CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -mavx -march=znver2 #-flto
+testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -mavx -march=znver2
 
 MATHFLAGS = -ffast-math
 LDFLAGS = -lrt -lgfortran -std=c++17 -lgomp
@@ -53,12 +59,14 @@ LIB_MPI = -lgomp -lmpi
 
 #======== PAPI ==========
 #Add PAPI_MEM define to use papi to report memory consumption?
-#CXXFLAGS += -DPAPI_MEM
+CXXFLAGS += -DPAPI_MEM
+testpackage: CXXFLAGS += -DPAPI_MEM
 
 #======== Allocator =========
 #Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
 #Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
 CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 
 # BOOST_VERSION = current trilinos version
@@ -74,23 +82,24 @@ LIBRARY_PREFIX_B = /proj/ykempf/libraries
 LIBRARY_PREFIX = /proj/group/spacephysics/libraries
 
 #compiled libraries mostly in modules
-LIB_PROFILE = -L$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/phiprof/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/phiprof/lib
-INC_PROFILE = -I$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/phiprof/include
+LIB_PROFILE = -L$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/phiprof/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/phiprof/lib
+INC_PROFILE = -I$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/phiprof/include
 
-LIB_VLSV = -L$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/vlsv
-INC_VLSV = -I$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/vlsv
+LIB_VLSV = -L$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/vlsv
+INC_VLSV = -I$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/vlsv
 
-LIB_JEMALLOC = -L$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/jemalloc/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/jemalloc/lib
-INC_JEMALLOC = -I$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/jemalloc/include
+LIB_JEMALLOC = -L$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/jemalloc/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/jemalloc/lib
+INC_JEMALLOC = -I$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/jemalloc/include
 
-LIB_BOOST = -L$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/boost/lib -lboost_program_options -Wl,-rpath=$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/boost/lib
-INC_BOOST = -I$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/boost/include
+LIB_BOOST = -L$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/boost/lib -lboost_program_options -Wl,-rpath=$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/boost/lib
+INC_BOOST = -I$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/boost/include
 
-LIB_ZOLTAN = -L$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/zoltan/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/zoltan/lib
-INC_ZOLTAN = -I$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/zoltan/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/zoltan/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/zoltan/lib
+INC_ZOLTAN = -I$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/zoltan/include
 
-#LIB_PAPI = -L/appl/spack/v014/install-tree/gcc-9.3.0/papi-5.7.0-hz54ug/lib -lpapi
-#INC_PAPI = -I/appl/spack/v014/install-tree/gcc-9.3.0/papi-5.7.0-hz54ug/include
+LIB_PAPI = -L$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/papi/lib -lpapi -Wl,-rpath=$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/papi/lib
+INC_PAPI = -I$(LIBRARY_PREFIX_B)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/papi/include
+
 
 #header libraries
 INC_EIGEN = -I$(LIBRARY_PREFIX)/ -I$(LIBRARY_PREFIX)/Eigen/

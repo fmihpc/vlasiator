@@ -182,6 +182,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 	 outputReducer->addMetadata(outputReducer->size()-1,"kg/m^3","$\\mathrm{kg}\\,\\mathrm{m}^{-3}$","$\\rho_\\mathrm{m}$","1.0");
          continue;
       }
+      if(lowercase == "vg_amr_translate_comm") { // Flag for AMR translation communication
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_translate_comm",CellParams::AMR_TRANSLATE_COMM_X,3));
+	 //outputReducer->addMetadata(outputReducer->size()-1,"","AMR-translate","1.0");
+         continue;
+      }
       if(lowercase == "fg_rhom") { // Overall mass density (summed over all populations)
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_rhom",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
