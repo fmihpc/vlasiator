@@ -10,20 +10,8 @@ struct Column
    int kBegin;                                    // Actual un-sheared starting block index
    int i,j;                                       // Blocks' perpendicular coordinates
 };
-#pragma acc routine seq
+/*
 extern Realf* acceleration_1_wrapperCaller
-(
-  Realf *blockData,
-  Column *columns,
-  Vec target_density,
-  Veci target_cell,
-  const int totalColumns,
-  const int blockK,
-  const uint column,
-  const int bdsw3
-);
-#pragma acc routine seq
-extern Realf* acceleration_1_wrapper
 (
   Realf *blockData,
   Column *columns,
@@ -35,7 +23,18 @@ extern Realf* acceleration_1_wrapper
   const int bdsw3
 );
 
-/*
+extern Realf* acceleration_1_wrapper
+(
+  Realf *blockData,
+  Column *columns,
+  Vec target_density,
+  Veci target_cell,
+  const int totalColumns,
+  const int blockK,
+  const uint column,
+  const int bdsw3
+);
+*/
 extern Realf* acceleration_1_wrapperCaller
 (
   Realf *blockData,
@@ -72,7 +71,7 @@ extern Realf* acceleration_1_wrapper
   Realv dv,
   Realv minValue
 );
-*/
+
 #define DIMS 1
 #define BLOCKS 1
 #define THREADS 1

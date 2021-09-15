@@ -46,8 +46,8 @@ COMPFLAGS += -DNDEBUG
 #  TRANS_SEMILAG_PLM 	2nd order
 #  TRANS_SEMILAG_PPM	3rd order (for production use, use unless testing)
 #  TRANS_SEMILAG_PQM	5th order (significantly slower due to larger stencil)
-COMPFLAGS += -DACC_SEMILAG_PQM -DTRANS_SEMILAG_PPM
-
+COMPFLAGS += -DACC_SEMILAG_PLM -DTRANS_SEMILAG_PPM
+CUDAFLAGS += -DACC_SEMILAG_PLM
 #Add -DCATCH_FPE to catch floating point exceptions and stop execution
 #May cause problems
 #COMPFLAGS += -DCATCH_FPE
@@ -116,6 +116,7 @@ LIBS += ${LIB_PROFILE}
 LIBS += ${LIB_VLSV}
 LIBS += ${LIB_JEMALLOC}
 LIBS += ${LIB_PAPI}
+LIBS += ${LIB_CUDA}
 
 # Define common dependencies
 DEPS_COMMON = common.h common.cpp definitions.h mpiconversion.h logger.h object_wrapper.h
@@ -153,6 +154,10 @@ DEPS_PROJECTS =	projects/project.h projects/project.cpp \
 		projects/test_trans/test_trans.h projects/test_trans/test_trans.cpp \
 		projects/verificationLarmor/verificationLarmor.h projects/verificationLarmor/verificationLarmor.cpp \
 		projects/Shocktest/Shocktest.h projects/Shocktest/Shocktest.cpp ${DEPS_CELL}
+
+DEPS_CPU_VECTORCLASS_FALLBACK = vlasovsolver_cuda/cuda_header.cuh vlasovsolver/vectorclass_fallback.cuh
+
+DEPS_GPU_OPEN_ACC_MAP_CUDA = ${DEPS_CPU_VECTORCLASS_FALLBACK} vlasovsolver/vec.h vlasovsolver_cuda/cuda_header.cuh vlasovsolver_cuda/open_acc_map_h.cuh vlasovsolver_cuda/open_acc_map_cuda.cu
 
 DEPS_CPU_ACC_INTERSECTS = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/cpu_acc_intersections.hpp vlasovsolver/cpu_acc_intersections.cpp
 
@@ -196,13 +201,12 @@ OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipo
 	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o vlasiator.o logger.o\
 	common.o parameters.o readparameters.o spatial_cell.o mesh_data_container.o\
 	vlasovmover.o $(FIELDSOLVER).o fs_common.o fs_limiters.o gridGlue.o
-
 # Add Vlasov solver objects (depend on mesh: AMR or non-AMR)
 ifeq ($(MESH),AMR)
 OBJS += cpu_moments.o
 else
-OBJS += cpu_acc_intersections.o cpu_acc_map.o cpu_acc_sort_blocks.o cpu_acc_load_blocks.o cpu_acc_semilag.o cpu_acc_transform.o \
-	cpu_moments.o cpu_trans_map.o cpu_trans_map_amr.o
+OBJS += cpu_acc_intersections.o cpu_acc_map.o open_acc_map_cuda.o cpu_acc_sort_blocks.o cpu_acc_load_blocks.o cpu_acc_semilag.o cpu_acc_transform.o \
+	cpu_moments.o cpu_trans_map.o cpu_trans_map_amr.o link1.o link2.o
 endif
 
 # Add field solver objects
@@ -239,7 +243,7 @@ amr_refinement_criteria.o: ${DEPS_COMMON} velocity_blocks.h amr_refinement_crite
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c amr_refinement_criteria.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_FSGRID}
 
 memoryallocation.o: memoryallocation.cpp
-	 ${CMP} ${CXXFLAGS} ${FLAGS} -c memoryallocation.cpp ${INC_PAPI}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c memoryallocation.cpp ${INC_PAPI}
 
 dipole.o: backgroundfield/dipole.cpp backgroundfield/dipole.hpp backgroundfield/fieldfunction.hpp backgroundfield/functions.hpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/dipole.cpp
@@ -386,8 +390,11 @@ else
 cpu_acc_intersections.o: ${DEPS_CPU_ACC_INTERSECTS}
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_intersections.cpp ${INC_EIGEN}
 
-cpu_acc_map.o: ${DEPS_CPU_ACC_MAP}
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_map.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE} ${INC_VECTORCLASS}
+open_acc_map_cuda.o: ${DEPS_GPU_OPEN_ACC_MAP_CUDA}
+	${NVCC} ${CUDAFLAGS} -D${VECTORCLASS} -dc vlasovsolver_cuda/open_acc_map_cuda.cu
+
+cpu_acc_map.o: ${DEPS_CPU_ACC_MAP} ${DEPS_GPU_OPEN_ACC_MAP_CUDA} ${DEPS_CPU_VECTORCLASS_FALLBACK}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_map.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE} ${INC_VECTORCLASS} ${LIB_CUDA}
 
 cpu_acc_semilag.o: ${DEPS_CPU_ACC_SEMILAG}
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_semilag.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE} ${INC_VECTORCLASS}
@@ -435,7 +442,6 @@ ldz_hall.o: ${DEPS_FSOLVER} fieldsolver/ldz_hall.hpp fieldsolver/ldz_hall.cpp
 ldz_gradpe.o: ${DEPS_FSOLVER} fieldsolver/ldz_gradpe.hpp fieldsolver/ldz_gradpe.cpp
 	${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c fieldsolver/ldz_gradpe.cpp ${INC_BOOST} ${INC_FSGRID} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN}
 
-
 ldz_magnetic_field.o: ${DEPS_FSOLVER} fieldsolver/ldz_magnetic_field.hpp fieldsolver/ldz_magnetic_field.cpp
 	${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c fieldsolver/ldz_magnetic_field.cpp ${INC_BOOST} ${INC_FSGRID} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN}
 
@@ -445,7 +451,7 @@ ldz_volume.o: ${DEPS_FSOLVER} fieldsolver/ldz_volume.hpp fieldsolver/ldz_volume.
 gridGlue.o: ${DEPS_FSOLVER} fieldsolver/gridGlue.hpp fieldsolver/gridGlue.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/gridGlue.cpp ${INC_BOOST} ${INC_FSGRID} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN}
 
-vlasiator.o: ${DEPS_COMMON} readparameters.h parameters.h ${DEPS_PROJECTS} grid.h vlasovmover.h ${DEPS_CELL} vlasiator.cpp iowrite.h fieldsolver/gridGlue.hpp
+vlasiator.o: ${DEPS_COMMON} readparameters.h parameters.h ${DEPS_PROJECTS} grid.h vlasovmover.h ${DEPS_CELL} vlasiator.cpp iowrite.h fieldsolver/gridGlue.hpp vlasovsolver_cuda/open_acc_map_h.cuh
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c vlasiator.cpp ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV}
 
 grid.o:  ${DEPS_COMMON} parameters.h ${DEPS_PROJECTS} ${DEPS_CELL} grid.cpp grid.h  sysboundary/sysboundary.h
@@ -475,13 +481,18 @@ particle_species.o: particle_species.h ${DEPS_COMMON}
 vlscommon.o:  $(DEPS_COMMON)  vlscommon.h vlscommon.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c vlscommon.cpp
 
-object_wrapper.o:  $(DEPS_COMMON)  object_wrapper.h object_wrapper.cpp
+object_wrapper.o:  $(DEPS_COMMON) object_wrapper.h object_wrapper.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c object_wrapper.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_FSGRID}
+
+link1.o: cpu_acc_map.o
+	${NVCC} ${CUDAFLAGS} -dlink cpu_acc_map.o -o link1.o
+
+link2.o: open_acc_map_cuda.o
+	${NVCC} ${CUDAFLAGS} -dlink open_acc_map_cuda.o -o link2.o
 
 # Make executable
 vlasiator: $(OBJS) $(OBJS_FSOLVER)
-	$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) $(LIBS) $(OBJS_FSOLVER)
-
+	$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) $(LIBS) $(OBJS_FSOLVER) -lcudart
 
 #/// TOOLS section/////
 
