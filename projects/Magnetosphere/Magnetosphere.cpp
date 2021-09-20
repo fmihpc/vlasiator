@@ -409,7 +409,7 @@ namespace projects {
             abort();
       }
       
-      if(radius < sP.ionosphereTaperOuterRadius && radius >= sP.ionosphereTaperInnerRadius) {
+      if(radius < sP.ionosphereTaperOuterRadius) {
          // linear tapering
          //initRho = this->ionosphereRho - (ionosphereRho-tailRho)*(radius-sP.ionosphereTaperInnerRadius) / (sP.ionosphereTaperOuterRadius-sP.ionosphereTaperInnerRadius);
          
@@ -464,7 +464,7 @@ namespace projects {
             abort();
       }
       
-      if(radius < sP.ionosphereTaperOuterRadius && radius >= sP.ionosphereTaperInnerRadius) {
+      if(radius < sP.ionosphereTaperOuterRadius) {
          // linear tapering
          //initV0[i] *= (radius-sP.ionosphereTaperInnerRadius) / (sP.ionosphereTaperOuterRadius-sP.ionosphereTaperInnerRadius);
          
