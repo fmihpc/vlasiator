@@ -62,8 +62,10 @@ namespace SBC {
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          
-         Readparameters::add(pop + "_ionosphere.taperRadius", "Width of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
+         Readparameters::add(pop + "_ionosphere.taperInnerRadius", "Inner radius of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
+         Readparameters::add(pop + "_ionosphere.taperOuterRadius", "Outer radius of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
          Readparameters::add(pop + "_ionosphere.rho", "Number density of the ionosphere (m^-3)", 1.0e6);
+         Readparameters::add(pop + "_ionosphere.T", "Temperature of the ionosphere (K)", 5.0e5);
          Readparameters::add(pop + "_ionosphere.VX0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
          Readparameters::add(pop + "_ionosphere.VY0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
          Readparameters::add(pop + "_ionosphere.VZ0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
@@ -95,7 +97,7 @@ namespace SBC {
         Readparameters::get(pop + "_ionosphere.VY0", sP.V0[1]);
         Readparameters::get(pop + "_ionosphere.VZ0", sP.V0[2]);
         Readparameters::get(pop + "_ionosphere.fluffiness", sP.fluffiness);
-        Readparameters::get(pop + "_Magnetosphere.T", sP.T);
+        Readparameters::get(pop + "_ionosphere.T", sP.T);
         Readparameters::get(pop + "_Magnetosphere.nSpaceSamples", sP.nSpaceSamples);
         Readparameters::get(pop + "_Magnetosphere.nVelocitySamples", sP.nVelocitySamples);
 
