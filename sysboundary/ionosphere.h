@@ -381,6 +381,7 @@ namespace SBC {
       static Real recombAlpha; // Recombination parameter, determining atmosphere ionizability (parameter)
       static Real F10_7; // Solar 10.7 Flux value (parameter)
       static Real backgroundIonisation; // Background ionisation due to stellar UV and cosmic rays
+      static Real downmapRadius; // Radius from which FACs are downmapped (RE)
       static Real couplingTimescale; // Magnetosphere->Ionosphere coupling timescale (seconds)
       static enum IonosphereConductivityModel { // How should the conductivity tensor be assembled?
          GUMICS,   // Like GUMICS-5 does it? (Only SigmaH and SigmaP, B perp to surface)

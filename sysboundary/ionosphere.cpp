@@ -64,6 +64,7 @@ namespace SBC {
    Real Ionosphere::radius;
    Real Ionosphere::recombAlpha; // Recombination parameter, determining atmosphere ionizability (parameter)
    Real Ionosphere::F10_7; // Solar 10.7 Flux value (parameter)
+   Real Ionosphere::downmapRadius; // Radius from which FACs are downmapped (RE)
    Real Ionosphere::couplingTimescale; // Magnetosphere->Ionosphere coupling timescale (seconds)
    Real Ionosphere::backgroundIonisation; // Background ionisation due to stellar UV and cosmic rays
    int  Ionosphere::solverMaxIterations;
@@ -1162,7 +1163,7 @@ namespace SBC {
             std::array<Real, 3> v({0,0,0});
             //Real stepSize = min(100e3, technicalGrid.DX / 2.); 
             
-            while( sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]) < 1.5*couplingRadius ) {
+            while( sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]) < 1.5*max(couplingRadius, Ionosphere::downmapRadius*physicalconstants::R_E) ) {
 
                // Make one step along the fieldline
                stepFieldLine(x,v, stepSize,technicalGrid.DX/2,couplingMethod,true);
@@ -1178,6 +1179,8 @@ namespace SBC {
 
                // If the field line is no longer moving outwards but tangentially (88 degrees), abort.
                // (Note that v is normalized)
+               // TODO: If we are inside the magnetospheric domain, but under the coupling radius, should thes *still* be taking along, just to have a
+               // better shot at the region 2 currents? Or is that simply opening the door to boundary artifact hell?
                if(fabs(x[0]*v[0]+x[1]*v[1]+x[2]*v[2])/sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]) < cos(88. / 180. * M_PI)) {
                   break;
                }
@@ -1190,6 +1193,7 @@ namespace SBC {
                if(
                   technicalGrid.get( fsgridCell[0], fsgridCell[1], fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY
                   && technicalGrid.getRank() == technicalGrid.getTaskForGlobalID(technicalGrid.GlobalIDForCoords(fsgridCell[0], fsgridCell[1], fsgridCell[2])).first // this returns a <rank, LocalID> pair
+                  && x[0]*x[0]+x[1]*x[1]+x[2]*x[2] > Ionosphere::downmapRadius*Ionosphere::downmapRadius*physicalconstants::R_E*physicalconstants::R_E
                ) {
 
                   // Cell found, add association.
@@ -2236,6 +2240,7 @@ namespace SBC {
       Readparameters::add("ionosphere.earthAngularVelocity", "Angular velocity of inner boundary convection, in rad/s", 7.2921159e-5);
       Readparameters::add("ionosphere.plasmapauseL", "L-shell at which the plasmapause resides (for corotation)", 5.);
       Readparameters::add("ionosphere.fieldLineTracer", "Field line tracing method to use for coupling ionosphere and magnetosphere (options are: Euler, BS)", std::string("Euler"));
+      Readparameters::add("ionosphere.downmapRadius", "Radius (in RE) from which FACs are coupled down into the ionosphere. If -1: use inner boundary clls.", -1.);
       Readparameters::add("ionosphere.couplingTimescale", "Magnetosphere->Ionosphere coupling timescale (seconds, 0=immediate coupling", 1.);
       Readparameters::add("ionosphere.tracerTolerance", "Tolerance for the Bulirsch Stoer Method", 1000);
 
@@ -2285,6 +2290,7 @@ namespace SBC {
       Readparameters::get("ionosphere.plasmapauseL", plasmapauseL);
       Readparameters::get("ionosphere.fieldLineTracer", tracerString);
       Readparameters::get("ionosphere.couplingTimescale",couplingTimescale);
+      Readparameters::get("ionosphere.downmapRadius",downmapRadius);
       Readparameters::get("ionosphere.tracerTolerance", eps);
       Readparameters::get("ionosphere.innerRadius", innerRadius);
       Readparameters::get("ionosphere.refineMinLatitude",refineMinLatitudes);
