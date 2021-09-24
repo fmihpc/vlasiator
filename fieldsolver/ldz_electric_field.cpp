@@ -1550,7 +1550,7 @@ void calculateElectricField(
          RKCase
       );
    } else {
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 0);
+      sysBoundaries.getBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 0);
    }
    
    if ((bitfield & compute::EY) == compute::EY) {
@@ -1570,7 +1570,7 @@ void calculateElectricField(
          RKCase
       );
    } else {
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 1);
+      sysBoundaries.getBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 1);
    }
    
    if ((bitfield & compute::EZ) == compute::EZ) {
@@ -1590,7 +1590,7 @@ void calculateElectricField(
          RKCase
       );
    } else {
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 2);
+      sysBoundaries.getBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, 2);
    }
 }
 

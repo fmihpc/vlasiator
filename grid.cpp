@@ -146,9 +146,9 @@ void initializeGrids(
       .set_load_balancing_method(&P::loadBalanceAlgorithm[0])
       .set_neighborhood_length(neighborhood_size)
       .set_maximum_refinement_level(P::amrMaxSpatialRefLevel)
-      .set_periodic(sysBoundaries.isBoundaryPeriodic(0),
-                    sysBoundaries.isBoundaryPeriodic(1),
-                    sysBoundaries.isBoundaryPeriodic(2))
+      .set_periodic(sysBoundaries.isPeriodic(0),
+                    sysBoundaries.isPeriodic(1),
+                    sysBoundaries.isPeriodic(2))
       .initialize(comm)
       .set_geometry(geom_params);
 
@@ -183,27 +183,18 @@ void initializeGrids(
    phiprof::stop("Set spatial cell coordinates");
    
    phiprof::start("Initialize system boundary conditions");
-   if(sysBoundaries.initSysBoundaries(project, P::t_min) == false) {
-      if (myRank == MASTER_RANK) cerr << "Error in initialising the system boundaries." << endl;
-      exit(1);
-   }
+   sysBoundaries.initBoundaries(project, P::t_min);
    phiprof::stop("Initialize system boundary conditions");
    
    // Initialise system boundary conditions (they need the initialised positions!!)
    phiprof::start("Classify cells (sys boundary conditions)");
-   if(sysBoundaries.classifyCells(mpiGrid,technicalGrid) == false) {
-      cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
-      exit(1);
-   }
+   sysBoundaries.classifyCells(mpiGrid,technicalGrid);
    phiprof::stop("Classify cells (sys boundary conditions)");
 
 
    // Check refined cells do not touch boundary cells
    phiprof::start("Check boundary refinement");
-   if(!sysBoundaries.checkRefinement(mpiGrid)) {
-      cerr << "(MAIN) ERROR: Boundary cells must have identical refinement level " << endl;
-      exit(1);
-   }
+   sysBoundaries.checkRefinement(mpiGrid);
    phiprof::stop("Check boundary refinement");
    
    if (P::isRestart) {
@@ -217,10 +208,7 @@ void initializeGrids(
    
       //initial state for sys-boundary cells, will skip those not set to be reapplied at restart
       phiprof::start("Apply system boundary conditions state");
-      if (sysBoundaries.applyInitialState(mpiGrid, perBGrid, project) == false) {
-         cerr << " (MAIN) ERROR: System boundary conditions initial state was not applied correctly." << endl;
-         exit(1);
-      }
+      sysBoundaries.applyInitialState(mpiGrid, perBGrid, project);
       phiprof::stop("Apply system boundary conditions state");
    }
 
@@ -274,10 +262,7 @@ void initializeGrids(
       // Initial state for sys-boundary cells
       phiprof::stop("Apply initial state");
       phiprof::start("Apply system boundary conditions state");
-      if (sysBoundaries.applyInitialState(mpiGrid, perBGrid, project) == false) {
-         cerr << " (MAIN) ERROR: System boundary conditions initial state was not applied correctly." << endl;
-         exit(1);
-      }
+      sysBoundaries.applyInitialState(mpiGrid, perBGrid, project);
       phiprof::stop("Apply system boundary conditions state");
       
       for (size_t i=0; i<cells.size(); ++i) {
@@ -302,7 +287,7 @@ void initializeGrids(
 
       /*
       // Apply boundary conditions so that we get correct initial moments
-      sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid,Parameters::t);
+      sysBoundaries.applyBoundaryVlasovConditions(mpiGrid,Parameters::t);
       
       //compute moments, and set them  in RHO* and RHO_*_DT2. If restart, they are already read in
       phiprof::start("Init moments");
@@ -314,7 +299,7 @@ void initializeGrids(
 
 
    // Init mesh data container
-   if (getObjectWrapper().meshData.initialize("SpatialGrid") == false) {
+   if (!getObjectWrapper().meshData.initialize("SpatialGrid")) {
       cerr << "(Grid) Failed to initialize mesh data container in " << __FILE__ << ":" << __LINE__ << endl;
       exit(1);
    }
@@ -331,9 +316,9 @@ void initializeGrids(
    
    phiprof::stop("Fetch Neighbour data");
    
-   if (P::isRestart == false) {
+   if (!P::isRestart) {
       // Apply boundary conditions so that we get correct initial moments
-      sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid,Parameters::t, true); // It doesn't matter here whether we put _R or _V moments
+      sysBoundaries.applyBoundaryVlasovConditions(mpiGrid,Parameters::t, true); // It doesn't matter here whether we put _R or _V moments
       
       //compute moments, and set them  in RHO* and RHO_*_DT2. If restart, they are already read in
       phiprof::start("Init moments");
@@ -587,7 +572,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    phiprof::stop("update block lists");
 
    phiprof::start("update sysboundaries");
-   sysBoundaries.updateSysBoundariesAfterLoadBalance( mpiGrid );
+   sysBoundaries.updateBoundariesAfterLoadBalance( mpiGrid );
    phiprof::stop("update sysboundaries");
 
    phiprof::start("Init solvers");

@@ -20,8 +20,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef DONOTCOMPUTE_H
-#define DONOTCOMPUTE_H
+#ifndef USER_H
+#define USER_H
 
 #include "../definitions.h"
 #include "../readparameters.h"
@@ -29,14 +29,15 @@
 #include "sysboundarycondition.h"
 #include <vector>
 
-using namespace projects;
-
 namespace SBC {
-/*!\brief DoNotCompute is a class handling cells not to be computed.*/
-class DoNotCompute : public SysBoundaryCondition {
+
+/*!\brief Class for boundary conditions with user-set settings.
+ * To be implemented by the user.
+ */
+class User : public SysBoundaryCondition {
 public:
-   DoNotCompute();
-   ~DoNotCompute() override;
+   User();
+   ~User() override;
 
    static void addParameters();
    void getParameters() override;
@@ -49,68 +50,36 @@ public:
                           Project &project) override;
    void updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
                     FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid, creal t) override;
-   std::string getName() const override;
-   uint getIndex() const override;
-
-   // Explicit warning functions to inform the user if a DoNotCompute cell gets computed
    Real
-   fieldSolverBoundaryCondMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid,
+   fieldSolverBoundaryCondMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &bGrid,
                                         FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid, cint i, cint j,
-                                        cint k, creal dt, cuint component) override {
-      std::string errmsg = "ERROR: calling DoNotCompute::";
-      errmsg += __func__;
-      abort_mpi(errmsg);
-      return 0.;
-   }
+                                        cint k, creal dt, cuint component) override;
    void fieldSolverBoundaryCondMagneticFieldProjection(
-       FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid,
-       FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid, cint i, cint j, cint k) {
-      std::string errmsg = "ERROR: calling DoNotCompute::";
-      errmsg += __func__;
-      abort_mpi(errmsg);
-   }
+       FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &bGrid,
+       FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid, cint i, cint j, cint k) override;
    void
    fieldSolverBoundaryCondElectricField(FsGrid<std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> &EGrid,
-                                        cint i, cint j, cint k, cuint component) override {
-      std::string errmsg = "ERROR: calling DoNotCompute::";
-      errmsg += __func__;
-      abort_mpi(errmsg);
-   }
+                                        cint i, cint j, cint k, cuint component) override;
    void fieldSolverBoundaryCondHallElectricField(
        FsGrid<std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> &EHallGrid, cint i, cint j, cint k,
-       cuint component) override {
-      std::string errmsg = "ERROR: calling DoNotCompute::";
-      errmsg += __func__;
-      abort_mpi(errmsg);
-   }
+       cuint component) override;
    void fieldSolverBoundaryCondGradPeElectricField(
        FsGrid<std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> &EGradPeGrid, cint i, cint j, cint k,
-       cuint component) override {
-      std::string errmsg = "ERROR: calling DoNotCompute::";
-      errmsg += __func__;
-      abort_mpi(errmsg);
-   }
+       cuint component) override;
    void fieldSolverBoundaryCondDerivatives(
        FsGrid<std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> &dPerBGrid,
        FsGrid<std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> &dMomentsGrid, cint i, cint j, cint k,
-       cuint RKCase, cuint component) override {
-      std::string errmsg = "ERROR: calling DoNotCompute::";
-      errmsg += __func__;
-      abort_mpi(errmsg);
-   }
+       cuint RKCase, cuint component) override;
    void fieldSolverBoundaryCondBVOLDerivatives(
        FsGrid<std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> &volGrid, cint i, cint j, cint k,
-       cuint component) override {
-      std::string errmsg = "ERROR: calling DoNotCompute::";
-      errmsg += __func__;
-      abort_mpi(errmsg);
-   }
+       cuint component) override;
    void vlasovBoundaryCondition(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                                const CellID &cellID, const uint popID, const bool calculate_V_moments) override {
-      std::string errmsg = "ERROR: calling DoNotCompute::";
-      errmsg += __func__;
-      abort_mpi(errmsg);
-   }
+                                const CellID &cellID, const uint popID, const bool doCalcMomentsV) override;
+
+   void getFaces(bool *faces) override;
+
+   std::string getName() const override;
+   uint getIndex() const override;
 };
 } // namespace SBC
 

@@ -21,71 +21,67 @@
  */
 
 /*!\file donotcompute.cpp
- * \brief Implementation of the class SysBoundaryCondition::DoNotCompute to handle cells classified as sysboundarytype::DO_NOT_COMPUTE.
+ * \brief Implementation of the class SysBoundaryCondition::DoNotCompute to handle
+ * cells classified as boundarytype::DoNotCompute.
  */
 
 #include <cstdlib>
 #include <iostream>
 
-#include "donotcompute.h"
 #include "../object_wrapper.h"
+#include "donotcompute.h"
 
 using namespace std;
 
 namespace SBC {
-   DoNotCompute::DoNotCompute(): SysBoundaryCondition() { }
-   DoNotCompute::~DoNotCompute() { }
-   
-   void DoNotCompute::addParameters() { }
-   void DoNotCompute::getParameters() { }
-   
-   bool DoNotCompute::initSysBoundary(
-      creal& t,
-      Project &project
-   ) {
-      precedence = 0;
-      isThisDynamic = false;
-      return true;
-   }
-   
-   bool DoNotCompute::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&,
-                                        FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
-      return true;
-   }
-   
-   bool DoNotCompute::applyInitialState(
-      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      Project&
-   ) {
-     const vector<CellID>& cells = getLocalCells();
-#pragma omp parallel for
-      for (size_t i=0; i<cells.size(); ++i) {
-         SpatialCell* cell = mpiGrid[cells[i]];
-         if(cell->sysBoundaryFlag != this->getIndex()) continue;
+DoNotCompute::DoNotCompute() : SysBoundaryCondition() {}
+DoNotCompute::~DoNotCompute() {}
 
-         //TODO: Set fields on B grid to 0         
-         cell->parameters[CellParams::RHOM] = 0.0;
-         cell->parameters[CellParams::VX] = 0.0;
-         cell->parameters[CellParams::VY] = 0.0;
-         cell->parameters[CellParams::VZ] = 0.0;
-         cell->parameters[CellParams::RHOQ] = 0.0;
-         cell->parameters[CellParams::RHOM_DT2] = 0.0;
-         cell->parameters[CellParams::VX_DT2] = 0.0;
-         cell->parameters[CellParams::VY_DT2] = 0.0;
-         cell->parameters[CellParams::VZ_DT2] = 0.0;
-         cell->parameters[CellParams::RHOQ_DT2] = 0.0;
-         
-         //let's get rid of blocks not fulfilling the criteria here to save
-         //memory.
-         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
-            cell->adjustSingleCellVelocityBlocks(popID);
-      }
-      
-      return true;
-   }
-   
-   string DoNotCompute::getName() const {return "DoNotCompute";}
-   
-   uint DoNotCompute::getIndex() const {return sysboundarytype::DO_NOT_COMPUTE;}
+void DoNotCompute::addParameters() {}
+void DoNotCompute::getParameters() {}
+
+void DoNotCompute::initBoundary(creal t, Project &project) {
+   precedence = 0;
+   dynamic = false;
 }
+
+void DoNotCompute::assignBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &,
+                               FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid) {}
+
+void DoNotCompute::applyInitialState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+                                  FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid,
+                                  Project &project) {
+   // Assign boundary flags to local DCCRG cells
+   const vector<CellID>& cells = getLocalCells();
+#pragma omp parallel for
+   for (size_t i = 0; i < cells.size(); ++i) {
+      SpatialCell *cell = mpiGrid[cells[i]];
+      if (cell->sysBoundaryFlag != this->getIndex())
+         continue;
+
+      // TODO: Set fields on B grid to 0
+      cell->parameters[CellParams::RHOM] = 0.0;
+      cell->parameters[CellParams::VX] = 0.0;
+      cell->parameters[CellParams::VY] = 0.0;
+      cell->parameters[CellParams::VZ] = 0.0;
+      cell->parameters[CellParams::RHOQ] = 0.0;
+      cell->parameters[CellParams::RHOM_DT2] = 0.0;
+      cell->parameters[CellParams::VX_DT2] = 0.0;
+      cell->parameters[CellParams::VY_DT2] = 0.0;
+      cell->parameters[CellParams::VZ_DT2] = 0.0;
+      cell->parameters[CellParams::RHOQ_DT2] = 0.0;
+
+      // let's get rid of blocks not fulfilling the criteria here to save
+      // memory.
+      for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID)
+         cell->adjustSingleCellVelocityBlocks(popID);
+   }
+}
+
+void DoNotCompute::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+                            FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid, creal t) {}
+
+std::string DoNotCompute::getName() const { return "DoNotCompute"; }
+
+uint DoNotCompute::getIndex() const { return sysboundarytype::DO_NOT_COMPUTE; }
+} // namespace SBC
