@@ -189,6 +189,13 @@ namespace CellParams {
       AMR_TRANSLATE_COMM_X, /*! < Flag to include this cell in AMR pre-translate communication  */
       AMR_TRANSLATE_COMM_Y, /*! < Flag to include this cell in AMR pre-translate communication  */
       AMR_TRANSLATE_COMM_Z, /*! < Flag to include this cell in AMR pre-translate communication  */
+      AMR_DRHO,
+      AMR_DU,
+      AMR_DPSQ,
+      AMR_DBSQ,
+      AMR_DB,
+      AMR_ALPHA,
+      RECENTLY_REFINED,
       N_SPATIAL_CELL_PARAMS
    };
 }

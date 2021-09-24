@@ -42,6 +42,7 @@
 #include "logger.h"
 #include "vlasovmover.h"
 #include "object_wrapper.h"
+#include "fieldsolver/derivatives.hpp"
 
 using namespace std;
 using namespace phiprof;
@@ -1261,6 +1262,9 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    double allStart = MPI_Wtime();
    bool success = true;
    int myRank;
+
+   // Calculates gradients for alpha
+   calculateScaledDeltasSimple(mpiGrid);
    
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    phiprof::initializeTimer("BarrierEnteringWriteRestart","MPI","Barrier");
@@ -1370,6 +1374,8 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    restartReducer.addOperator(new DRO::MPIrank);
    restartReducer.addOperator(new DRO::BoundaryType);
    restartReducer.addOperator(new DRO::BoundaryLayer);
+   // Needed for re-adapting the mesh
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_alpha",CellParams::AMR_ALPHA,1));
 
    // Fsgrid Reducers
    restartReducer.addOperator(new DRO::DataReductionOperatorFsGrid("fg_E",[](

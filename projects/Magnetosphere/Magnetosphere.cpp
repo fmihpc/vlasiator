@@ -35,6 +35,7 @@
 #include "../../object_wrapper.h"
 
 #include "Magnetosphere.h"
+#include "../../fieldsolver/derivatives.hpp"
 
 using namespace std;
 using namespace spatial_cell;
@@ -476,186 +477,216 @@ namespace projects {
       return centerPoints;
    }
 
+   bool Magnetosphere::canRefine(spatial_cell::SpatialCell* cell) const {
+      return cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY;
+   }
+
    bool Magnetosphere::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
- 
-     int myRank;       
-     MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+   
+      int myRank;       
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
-     // mpiGrid.set_maximum_refinement_level(std::min(this->maxSpatialRefinementLevel, mpiGrid.mapping.get_maximum_refinement_level()));
+      if(myRank == MASTER_RANK) {
+         std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
+      }
 
-     std::vector<CellID> refinedCells;
+      std::vector<CellID> cells = getLocalCells();
+      Real ibr2 = pow(ionosphereRadius + 2*P::dx_ini, 2);
 
-      // cout << "I am at line " << __LINE__ << " of " << __FILE__ <<  endl;
-     if(myRank == MASTER_RANK) std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
+      if (!P::shouldRefine) {
+         if (myRank == MASTER_RANK) 
+            std::cout << "Refinement disabled, only refining ionosphere!" << std::endl;
+
+         // Keep the center a bit less refined, otherwise it's way too heavy
+         // Ionosphere refinement hardcoded to max. 2 right now, consider parametrization
+         for (int i = 0; i < P::amrMaxSpatialRefLevel && i < 2; ++i) {
+            //#pragma omp parallel for
+            for (int j = 0; j < cells.size(); ++j) {
+               CellID id = cells[j];
+               std::array<double,3> xyz = mpiGrid.get_center(id);
+               SpatialCell* cell = mpiGrid[id];
+               Real r2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
+               if (r2 < ibr2) {
+                  //#pragma omp critical
+                  mpiGrid.refine_completely(id);
+               }
+            }
+
+            cells = mpiGrid.stop_refining();
+            #ifndef NDEBUG
+            if (cells.size() > 0)
+               std::cout << "Rank " << myRank << " refined " << cells.size() << " cells to level " << i + 1 << std::endl;
+            #endif
+         }
+
+         return true;
+      }
+
+      // L1 refinement.
+      if (P::amrMaxSpatialRefLevel > 0) {
+         //#pragma omp parallel for
+         for (int i = 0; i < cells.size(); ++i) {
+            CellID id = cells[i];
+            std::array<double,3> xyz = mpiGrid.get_center(id);
+                     
+            Real radius2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
+            bool inSphere = radius2 < refine_L1radius*refine_L1radius;
+            bool inTail = xyz[0] < 0 && fabs(xyz[1]) < refine_L1radius && fabs(xyz[2]) < refine_L1tailthick;
+            if (canRefine(mpiGrid[id]) && (inSphere || inTail)) {
+               //#pragma omp critical
+               mpiGrid.refine_completely(id);
+            }
+         }
+
+         cells = mpiGrid.stop_refining();      
+         if (myRank == MASTER_RANK) {
+            std::cout << "Finished first level of refinement" << endl;
+         }
+         #ifndef NDEBUG
+         if (cells.size() > 0) {
+            std::cout << "Rank " << myRank << " refined " << cells.size() << " cells to level 1" << std::endl;
+         }
+         #endif NDEBUG
+      }
       
-     // Leave boundary cells and a bit of safety margin
-     const int bw = 2* (globalflags::AMRstencilWidth);
-     const int bw2 = 2*(bw + globalflags::AMRstencilWidth);
-     const int bw3 = 2*(bw2 + globalflags::AMRstencilWidth);
-     const int bw4 = 2*(bw3 + globalflags::AMRstencilWidth);
+      // L2 refinement.
+      if (P::amrMaxSpatialRefLevel > 1) {
+         //#pragma omp parallel for
+         for (int i = 0; i < cells.size(); ++i) {
+            CellID id = cells[i];
+            std::array<double,3> xyz = mpiGrid.get_center(id);
+                     
+            Real radius2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
+            bool inSphere = radius2 < pow(refine_L2radius, 2);
+            bool inTail = xyz[0] < 0 && fabs(xyz[1]) < refine_L2radius && fabs(xyz[2])<refine_L2tailthick;
+            if (canRefine(mpiGrid[id]) && (inSphere || inTail)) {
+               //#pragma omp critical
+               mpiGrid.refine_completely(id);
+            }
+         }
+         cells = mpiGrid.stop_refining();
+         if(myRank == MASTER_RANK) {
+            std::cout << "Finished second level of refinement" << endl;
+         }
+         #ifndef NDEBUG
+         if (cells.size() > 0) {
+            std::cout << "Rank " << myRank << " refined " << cells.size() << " cells to level 2" << std::endl;
+         }
+         #endif NDEBUG
+      }
+      
+      // L3 refinement.
+      if (P::amrMaxSpatialRefLevel > 2) {
+         //#pragma omp parallel for
+         for (int i = 0; i < cells.size(); ++i) {
+            CellID id = cells[i];
+            std::array<double,3> xyz = mpiGrid.get_center(id);
+                     
+            Real radius2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
+            bool inNoseCap = (xyz[0]>refine_L3nosexmin) && (radius2<refine_L3radius*refine_L3radius);
+            bool inTail = (xyz[0]>refine_L3tailxmin) && (xyz[0]<refine_L3tailxmax) && (fabs(xyz[1])<refine_L3tailwidth) && (fabs(xyz[2])<refine_L3tailheight);
+            if (canRefine(mpiGrid[id]) && (inNoseCap || inTail)) {
+               //#pragma omp critical
+               mpiGrid.refine_completely(id);			  
+            }
+         }
+         cells = mpiGrid.stop_refining();
+         if (myRank == MASTER_RANK) {
+            std::cout << "Finished third level of refinement" << endl;
+         }
+         #ifndef NDEBUG
+         if (cells.size() > 0) {
+            std::cout << "Rank " << myRank << " refined " << cells.size() << " cells to level 3" << std::endl;
+         }
+         #endif NDEBUG
+      }
 
-     // Calculate regions for refinement
-     if (P::amrMaxSpatialRefLevel > 0) {
+      // L4 refinement.
+      if (P::amrMaxSpatialRefLevel > 3) {
+         //#pragma omp parallel for
+         for (int i = 0; i < cells.size(); ++i) {
+            CellID id = cells[i];
+            std::array<double,3> xyz = mpiGrid.get_center(id);
+                     
+            Real radius2 = (xyz[0]*xyz[0]+xyz[1]*xyz[1]+xyz[2]*xyz[2]);
 
-	// L1 refinement.
-//#pragma omp parallel for collapse(3)
-	for (uint i = bw; i < P::xcells_ini-bw; ++i) {
-	   for (uint j = bw; j < P::ycells_ini-bw; ++j) {
-	      for (uint k = bw; k < P::zcells_ini-bw; ++k) {
-		 
-		 std::array<double,3> xyz;
-		 xyz[0] = P::xmin + (i+0.5)*P::dx_ini;
-		 xyz[1] = P::ymin + (j+0.5)*P::dy_ini;
-		 xyz[2] = P::zmin + (k+0.5)*P::dz_ini;
-                 
-		 Real radius2 = (xyz[0]*xyz[0]+xyz[1]*xyz[1]+xyz[2]*xyz[2]);
-		 // Check if cell is within L1 sphere, or within L1 tail slice
-		 if ((radius2 < refine_L1radius*refine_L1radius) ||
-                     ((xyz[0] < 0) && (std::abs(xyz[1]) < refine_L1radius) && 
-		      (std::abs(xyz[2])<refine_L1tailthick)))
-		    {
-		       CellID myCell = mpiGrid.get_existing_cell(xyz);
-		       mpiGrid.refine_completely(myCell);
-		    }
-	      }
-	   }
-	}
-	refinedCells = mpiGrid.stop_refining(true);      
-	if(myRank == MASTER_RANK) std::cout << "Finished first level of refinement" << endl;
-#ifndef NDEBUG
-	if(refinedCells.size() > 0) {
-	   std::cout << "Rank " << myRank << " refined " << refinedCells.size() << " cells. " << std::endl;
-	}
-#endif
-	mpiGrid.balance_load();
-     }
-     
-     if (P::amrMaxSpatialRefLevel > 1) {
-	
-	// L2 refinement.
-//#pragma omp parallel for collapse(3)
-	for (uint i = bw2; i < 2*P::xcells_ini-bw2; ++i) {
-	   for (uint j = bw2; j < 2*P::ycells_ini-bw2; ++j) {
-	      for (uint k = bw2; k < 2*P::zcells_ini-bw2; ++k) {
-		 
-		 std::array<double,3> xyz;
-		 xyz[0] = P::xmin + (i+0.5)*0.5*P::dx_ini;
-		 xyz[1] = P::ymin + (j+0.5)*0.5*P::dy_ini;
-		 xyz[2] = P::zmin + (k+0.5)*0.5*P::dz_ini;
-                 
-		 Real radius2 = (xyz[0]*xyz[0]+xyz[1]*xyz[1]+xyz[2]*xyz[2]);
-		 // Check if cell is within L1 sphere, or within L1 tail slice
-		 if ((radius2 < refine_L2radius*refine_L2radius) ||
-		     ((xyz[0] < 0) && (std::abs(xyz[1]) < refine_L2radius) && 
-		      (std::abs(xyz[2])<refine_L2tailthick)))
-		    {
-		       CellID myCell = mpiGrid.get_existing_cell(xyz);
-		       // Check if the cell is tagged as do not compute
-		       mpiGrid.refine_completely(myCell);
-		    }
-	      }
-	   }
-	}
-	refinedCells = mpiGrid.stop_refining(true);
-	if(myRank == MASTER_RANK) std::cout << "Finished second level of refinement" << endl;
-#ifndef NDEBUG
-	if(refinedCells.size() > 0) {
-	   std::cout << "Rank " << myRank << " refined " << refinedCells.size() << " cells. " << std::endl;
-	}
-#endif
-	
-	mpiGrid.balance_load();
-     }
-     
-     if (P::amrMaxSpatialRefLevel > 2) {
-	// L3 refinement.
-//#pragma omp parallel for collapse(3)
-	   for (uint i = bw3; i < 4*P::xcells_ini-bw3; ++i) {
-	      for (uint j = bw3; j < 4*P::ycells_ini-bw3; ++j) {
-		 for (uint k = bw3; k < 4*P::zcells_ini-bw3; ++k) {
-		    
-		    std::array<double,3> xyz;
-		    xyz[0] = P::xmin + (i+0.5)*0.25*P::dx_ini;
-		    xyz[1] = P::ymin + (j+0.5)*0.25*P::dy_ini;
-		    xyz[2] = P::zmin + (k+0.5)*0.25*P::dz_ini;
-                    
- 		    Real radius2 = (xyz[0]*xyz[0]+xyz[1]*xyz[1]+xyz[2]*xyz[2]);
-// 		    // Check if cell is within L1 sphere, or within L1 tail slice
-// 		    if (radius2 < refine_L3radius*refine_L3radius)
-// 		       {
-// 			  CellID myCell = mpiGrid.get_existing_cell(xyz);
-// 			  // Check if the cell is tagged as do not compute
-// 			  mpiGrid.refine_completely(myCell);
-// 		       }
+            // Check if cell is within the nose cap
+            bool inNose = refine_L4nosexmin && radius2<refine_L4radius*refine_L4radius;
+            if (inNose) {
+               //#pragma omp critical
+               mpiGrid.refine_completely(id);			  
+            }
+         }
 
-		    // Check if cell is within the nose cap
-		    if ((xyz[0]>refine_L3nosexmin) && (radius2<refine_L3radius*refine_L3radius))
-		       {
-			  CellID myCell = mpiGrid.get_existing_cell(xyz);
-			  // Check if the cell is tagged as do not compute
-			  mpiGrid.refine_completely(myCell);			  
-		       }
+         cells = mpiGrid.stop_refining();
+         if (myRank == MASTER_RANK) {
+            std::cout << "Finished fourth level of refinement" << endl;
+         }
+         #ifndef NDEBUG
+         if (cells.size() > 0) {
+            std::cout << "Rank " << myRank << " refined " << cells.size() << " cells to level 4" << std::endl;
+         }
+         #endif NDEBUG
+      }
 
-		    // Check if cell is within the tail box
-		    if ((xyz[0]>refine_L3tailxmin) && (xyz[0]<refine_L3tailxmax) &&
-			(abs(xyz[1])<refine_L3tailwidth) && (abs(xyz[2])<refine_L3tailheight))
-		       {
-			  CellID myCell = mpiGrid.get_existing_cell(xyz);
-			  // Check if the cell is tagged as do not compute
-			  mpiGrid.refine_completely(myCell);
-		       }
+      return true;
+   }
 
- 		 }
-	      }
-	   }
-	   refinedCells = mpiGrid.stop_refining(true);
-	   if(myRank == MASTER_RANK) std::cout << "Finished third level of refinement" << endl;
-#ifndef NDEBUG
-	   if(refinedCells.size() > 0) {
-	      std::cout << "Rank " << myRank << " refined " << refinedCells.size() << " cells. " << std::endl;
-	   }
-#endif
-	   
-	   mpiGrid.balance_load();
-     }
+   bool Magnetosphere::adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+      int myRank;       
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+      if(myRank == MASTER_RANK) {
+         std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
+      }
 
-     if (P::amrMaxSpatialRefLevel > 3) {
-	// L4 refinement.
-//#pragma omp parallel for collapse(3)
-	   for (uint i = bw4; i < 8*P::xcells_ini-bw4; ++i) {
-	      for (uint j = bw4; j < 8*P::ycells_ini-bw4; ++j) {
-		 for (uint k = bw4; k < 8*P::zcells_ini-bw4; ++k) {
-		    
-		    std::array<double,3> xyz;
-		    xyz[0] = P::xmin + (i+0.5)*0.125*P::dx_ini;
-		    xyz[1] = P::ymin + (j+0.5)*0.125*P::dy_ini;
-		    xyz[2] = P::zmin + (k+0.5)*0.125*P::dz_ini;
-                    
- 		    Real radius2 = (xyz[0]*xyz[0]+xyz[1]*xyz[1]+xyz[2]*xyz[2]);
+      if (!P::adaptRefinement) {
+         if (myRank == MASTER_RANK)  {
+            std::cout << "Skipping re-refinement!" << std::endl;
+         }
+         return false;
+      }
 
-		    // Check if cell is within the nose cap
-		    if ((xyz[0]>refine_L4nosexmin) && (radius2<refine_L4radius*refine_L4radius))
-		       {
-			  CellID myCell = mpiGrid.get_existing_cell(xyz);
-			  // Check if the cell is tagged as do not compute
-			  mpiGrid.refine_completely(myCell);			  
-		       }
+      Real ibr2 = pow(ionosphereRadius + 2*P::dx_ini, 2);
 
- 		 }
-	      }
-	   }
-	   refinedCells = mpiGrid.stop_refining(true);
-	   if(myRank == MASTER_RANK) std::cout << "Finished fourth level of refinement" << endl;
-#ifndef NDEBUG
-	   if(refinedCells.size() > 0) {
-	      std::cout << "Rank " << myRank << " refined " << refinedCells.size() << " cells. " << std::endl;
-	   }
-#endif
-	   
-	   mpiGrid.balance_load();
-     }
+      std::vector<CellID> cells = getLocalCells();
+      Real refineTreshold = P::refineTreshold;
+      Real unrefineTreshold = P::unrefineTreshold;
+      
+      //#pragma omp parallel for
+      for (int j = 0; j < cells.size(); ++j) {
+         CellID id = cells[j];
+         std::array<double,3> xyz = mpiGrid.get_center(id);
+         SpatialCell* cell = mpiGrid[id];
+         int refLevel = mpiGrid.get_refinement_level(id);
+         Real r2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
 
-     return true;
+         bool refine = false;
+         if (r2 < ibr2) {
+            // Skip refining, we shouldn't touch borders when reading restart
+            continue;
+         } else if (cell->parameters[CellParams::AMR_ALPHA] > refineTreshold) {
+            if (canRefine(mpiGrid[id])) {
+               //#pragma omp critical
+               mpiGrid.refine_completely(id);
+            }
+         }
+      }
+
+      cells = mpiGrid.stop_refining();
+
+      //#pragma omp parallel for
+      for (int j = 0; j < cells.size(); ++j) {
+         CellID id = cells[j];
+         *mpiGrid[id] = *mpiGrid[mpiGrid.get_parent(id)];
+         mpiGrid[id]->parameters[CellParams::AMR_ALPHA] /= P::refineMultiplier;
+         mpiGrid[id]->parameters[CellParams::RECENTLY_REFINED] = 1;
+      }
+
+      if (myRank == MASTER_RANK) {
+         std::cout << "Finished re-refinement" << endl;
+      }
+
+      return !cells.empty();
    }
    
 } // namespace projects

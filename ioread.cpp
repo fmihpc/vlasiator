@@ -140,8 +140,8 @@ bool exitOnError(bool success,string message,MPI_Comm comm) {
  \param masterRank The simulation's master rank id (Vlasiator uses 0, which should be the default)
  \param comm MPI comm (MPI_COMM_WORLD should be the default)
 */
-bool readCellIds(vlsv::ParallelReader & file,
-                 vector<CellID>& fileCells, const int masterRank,MPI_Comm comm){
+bool readCellIds(vlsv::ParallelReader & file, vector<CellID>& fileCells, const int masterRank,MPI_Comm comm)
+{
    // Get info on array containing cell Ids:
    uint64_t arraySize = 0;
    uint64_t vectorSize;
@@ -1086,12 +1086,13 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    phiprof::stop("readScalars");
 
    phiprof::start("readDatalayout");
-   if (success == true) success = readCellIds(file,fileCells,MASTER_RANK,MPI_COMM_WORLD);
+   if (success) success = readCellIds(file,fileCells,MASTER_RANK,MPI_COMM_WORLD);
 
    // Check that the cellID lists are identical in file and grid
-   if (myRank==0){
-      vector<CellID> allGridCells=mpiGrid.get_all_cells();
-      if (fileCells.size() != allGridCells.size()){
+   if (myRank==0) {
+      vector<CellID> allGridCells = mpiGrid.get_all_cells();
+      if (fileCells.size() != allGridCells.size()) {
+         std::cout << "File has " << fileCells.size() << " cells, got " << allGridCells.size() << " cells!" << std::endl;
          success=false;
       }
    }
@@ -1205,6 +1206,11 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_v_dt",CellParams::MAXVDT,1,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_r_dt",CellParams::MAXRDT,1,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_fields_dt",CellParams::MAXFDT,1,mpiGrid); }
+   if(success) {
+      if (!readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"vg_amr_alpha",CellParams::AMR_ALPHA,1,mpiGrid)) {
+         std::cout << "Alpha not found in restart, re-refinement will not be possible!" << std::endl;
+      }
+   }
 // Backround B has to be set, there are also the derivatives that should be written/read if we wanted to only read in background field
    phiprof::stop("readCellParameters");
 
@@ -1225,8 +1231,8 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       exitOnError(false, "(RESTART) FSGrid writing rank number not found in restart file", MPI_COMM_WORLD);
    }
    
-   if(success) { success = readFsGridVariable(file, "fg_PERB", fsgridInputRanks, perBGrid); }
-   if(success) { success = readFsGridVariable(file, "fg_E", fsgridInputRanks, EGrid); }
+   if (success) { success = readFsGridVariable(file, "fg_PERB", fsgridInputRanks, perBGrid); }
+   if (success) { success = readFsGridVariable(file, "fg_E", fsgridInputRanks, EGrid); }
    exitOnError(success,"(RESTART) Failure reading fsgrid restart variables",MPI_COMM_WORLD);
    phiprof::stop("readFsGrid");
    
@@ -1250,4 +1256,29 @@ bool readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
               const std::string& name){
    //Check the vlsv version from the file:
    return exec_readGrid(mpiGrid,perBGrid,EGrid,technicalGrid,name);
+}
+
+/*!
+\brief Refine the grid to be identical to the file's
+\param mpiGrid Vlasiator's grid
+\param name Name of the restart file e.g. "restart.00052.vlsv"
+*/
+bool readFileCells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const std::string& name)
+{
+   vector<CellID> fileCells; /*< CellIds for all cells in file*/
+   bool success = true;
+   vlsv::ParallelReader file;
+   MPI_Info mpiInfo = MPI_INFO_NULL;
+
+   // Not sure if this success business is useful at all...
+   success = file.open(name,MPI_COMM_WORLD,MASTER_RANK,mpiInfo);
+   exitOnError(success,"(READ_FILE_CELLS) Could not open file",MPI_COMM_WORLD);
+
+   readCellIds(file,fileCells,MASTER_RANK,MPI_COMM_WORLD);
+   success = mpiGrid.load_cells(fileCells);
+   exitOnError(success,"(READ_FILE_CELLS) Failed to refine grid",MPI_COMM_WORLD);
+
+   success = file.close();
+   exitOnError(success,"(READ_FILE_CELLS) Other error",MPI_COMM_WORLD);
+   return success;
 }

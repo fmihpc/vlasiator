@@ -239,4 +239,59 @@ namespace projects {
       return centerPoints;
    }
 
+   bool Flowthrough::canRefine(const std::array<double,3> xyz, const int refLevel) const {
+      const int bw = (2 + 1*refLevel) * VLASOV_STENCIL_WIDTH; // Seems to be the limit
+
+      return refLevel < P::amrMaxSpatialRefLevel &&
+             xyz[0] > P::xmin + P::dx_ini * bw && 
+             xyz[0] < P::xmax - P::dx_ini * bw;
+   }
+
+   bool Flowthrough::adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+      int myRank;       
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+      if(myRank == MASTER_RANK) {
+         std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
+      }
+
+      if (!P::adaptRefinement) {
+         if (myRank == MASTER_RANK)  {
+            std::cout << "Skipping re-refinement!" << std::endl;
+         }
+         return false;
+      }
+
+      std::vector<CellID> cells = mpiGrid.get_cells();
+      for (CellID id : cells) {
+         std::array<double,3> xyz = mpiGrid.get_center(id);
+         bool inBox = xyz[0] > P::amrBoxCenterX - P::amrBoxHalfWidthX * mpiGrid[id]->parameters[CellParams::DX] &&
+                      xyz[0] < P::amrBoxCenterX + P::amrBoxHalfWidthX * mpiGrid[id]->parameters[CellParams::DX] &&
+                      xyz[1] > P::amrBoxCenterY - P::amrBoxHalfWidthY * mpiGrid[id]->parameters[CellParams::DY] &&
+                      xyz[1] < P::amrBoxCenterY + P::amrBoxHalfWidthY * mpiGrid[id]->parameters[CellParams::DY] &&
+                      xyz[2] > P::amrBoxCenterZ - P::amrBoxHalfWidthZ * mpiGrid[id]->parameters[CellParams::DZ] &&
+                      xyz[2] < P::amrBoxCenterZ + P::amrBoxHalfWidthZ * mpiGrid[id]->parameters[CellParams::DZ];
+         if (inBox) {
+            mpiGrid.refine_completely(id);
+         }
+      }
+
+      cells = mpiGrid.stop_refining();
+      std::cout << cells.size() << std::endl;
+
+      //#pragma omp parallel for
+      for (int j = 0; j < cells.size(); ++j) {
+         CellID id = cells[j];
+         *mpiGrid[id] = *mpiGrid[mpiGrid.get_parent(id)];
+         mpiGrid[id]->parameters[CellParams::AMR_ALPHA] /= P::refineMultiplier;
+         mpiGrid[id]->parameters[CellParams::RECENTLY_REFINED] = 1;
+      }
+
+      if (myRank == MASTER_RANK) {
+         std::cout << "Finished re-refinement" << endl;
+      }
+
+      return !cells.empty();
+   }
+   
+
 } //namespace projects

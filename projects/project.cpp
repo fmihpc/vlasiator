@@ -54,6 +54,7 @@
 #include "../backgroundfield/backgroundfield.h"
 #include "../backgroundfield/constantfield.hpp"
 #include "Shocktest/Shocktest.h"
+#include "../sysboundary/sysboundarycondition.h"
 
 using namespace std;
 
@@ -511,8 +512,7 @@ namespace projects {
    }
 
    /*
-     Refine cells of mpiGrid. Each project that wants refinement shoudl implement this function. 
-     Base class function prints a warning and does nothing.
+     Refine cells of mpiGrid. Each project that wants refinement should implement this function. 
     */
    bool Project::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
       int myRank;
@@ -524,6 +524,11 @@ namespace projects {
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       
       if(myRank == MASTER_RANK) std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
+
+      if (!P::shouldRefine) {
+         std::cout << "Skipping refinement!";
+         return true;
+      }
       
       std::vector<bool> refineSuccess;
       
@@ -595,6 +600,79 @@ namespace projects {
       }
          
          return true;
+   }
+
+   bool Project::adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+      int myRank;
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+      if (myRank == MASTER_RANK) {
+         cerr << "(Project.cpp) Base class 'adaptRefinement' in " << __FILE__ << ":" << __LINE__ << " called. Function is not implemented for project." << endl;
+      }
+
+      return false;
+   }
+
+   bool Project::filterRefined( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+      int myRank;       
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+
+      std::vector<CellID> cells = getLocalCells();
+      std::map<CellID, SpatialCell*> cellsMap;
+      for (CellID id : cells) {
+         if (mpiGrid[id]->parameters[CellParams::RECENTLY_REFINED]) {
+            cellsMap[id] = new SpatialCell(*mpiGrid[id]);
+         }
+      }
+
+      for (std::pair<CellID, SpatialCell*> cellPair : cellsMap) {
+         CellID id = cellPair.first;
+         const std::vector<std::pair<CellID, std::array<int, 4>>>* neighbours = mpiGrid.get_neighbors_of(id, NEAREST_NEIGHBORHOOD_ID);
+
+         // To preserve the mean, we must only consider refined cells
+         int refLevel = mpiGrid.get_refinement_level(id);
+         std::vector<CellID> refinedNeighbours;
+         for (std::pair<CellID, std::array<int, 4>> neighbour : *neighbours) {
+            if (mpiGrid[neighbour.first]->parameters[CellParams::RECENTLY_REFINED] && mpiGrid.get_refinement_level(neighbour.first) == refLevel) {
+               refinedNeighbours.push_back(neighbour.first);
+            }
+         }
+
+         if (refinedNeighbours.size() == 7) {
+            continue;   // Simple heuristic, in these cases all neighbours are from the same parent cell, ergo are identical
+         }
+
+         // In boxcar filter, we take the average of each of the neighbours and the cell itself. For each missing neighbour, add the cell one more time
+         Real fluffiness = (Real) refinedNeighbours.size() / 27.0;
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+            SBC::averageCellData(mpiGrid, refinedNeighbours, cellPair.second, popID, fluffiness);
+         }
+
+         // Averaging moments
+         // Not sure if this is necessary, but let's do it anyway
+         for (int param = CellParams::RHOM; param < CellParams::EXVOL; ++param) {
+            if (param == CellParams::BGBXVOL) {
+               param = CellParams::RHOM_R;   // Skip FG stuff
+            }
+            cellPair.second->parameters[param] *= (1.0 - fluffiness);
+            for (CellID id : refinedNeighbours) {
+               cellPair.second->parameters[param] += mpiGrid[id]->parameters[param] / 27.0;
+            }
+         }
+      }
+
+      for (std::pair<CellID, SpatialCell*> cellPair : cellsMap) {
+         *mpiGrid[cellPair.first] = *cellPair.second;
+         mpiGrid[cellPair.first]->parameters[CellParams::RECENTLY_REFINED] = 0;
+         
+         delete cellPair.second;
+         cellPair.second = nullptr;
+      }
+
+      if (myRank == MASTER_RANK) {
+         std::cout << "Filtered refined cells!" << std::endl;
+      }
+
+      return true;
    }
    
 Project* createProject() {

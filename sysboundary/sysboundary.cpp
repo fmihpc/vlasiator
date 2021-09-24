@@ -36,6 +36,7 @@
 #include "outflow.h"
 #include "setmaxwellian.h"
 #include "sysboundary.h"
+#include "../fieldsolver/gridGlue.hpp"
 
 using namespace std;
 using namespace spatial_cell;
@@ -373,6 +374,9 @@ bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg:
       }
    }
 
+   // For debugging
+   bool success = true;
+
    for (auto cellId : innerBoundaryCells) {
       if (cellId != INVALID_CELLID && mpiGrid.get_refinement_level(cellId) != innerBoundaryRefLvl) {
          cout << "Failed refinement check (innerBoundary) , cellId = " << cellId << " at ("
@@ -395,7 +399,7 @@ bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg:
       }
    }
 
-   return true;
+   return success;
 }
 
 bool belongsToLayer(const int layer, const int x, const int y, const int z,
@@ -452,7 +456,9 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
    for (int x = 0; x < localSize[0]; ++x) {
       for (int y = 0; y < localSize[1]; ++y) {
          for (int z = 0; z < localSize[2]; ++z) {
-            technicalGrid.get(x, y, z)->sysBoundaryFlag = sysboundarytype::NOT_SYSBOUNDARY;
+            //technicalGrid.get(x, y, z)->sysBoundaryFlag = sysboundarytype::NOT_SYSBOUNDARY;
+            // Here for debugging since boundarytype should be fed from MPIGrid
+            technicalGrid.get(x, y, z)->sysBoundaryFlag = sysboundarytype::N_SYSBOUNDARY_CONDITIONS;
             technicalGrid.get(x, y, z)->sysBoundaryLayer = 0;
             technicalGrid.get(x, y, z)->maxFsDt = numeric_limits<Real>::max();
             // Set the fsgrid rank in the technical grid
@@ -472,14 +478,27 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
       success = success && (*it)->assignSysBoundary(mpiGrid, technicalGrid);
    }
 
-   // communicate boundary assignments (sysBoundaryFlag and
-   // sysBoundaryLayer communicated)
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
 
+   feedBoundaryIntoFsGrid(mpiGrid, cells, technicalGrid);
+
    // set distance 1 cells to boundary cells, that have neighbors which are normal cells
    for (uint i = 0; i < cells.size(); i++) {
+
       mpiGrid[cells[i]]->sysBoundaryLayer = 0; /*Initial value*/
+
+      bool onFace = false;
+      std::array<double, 3> dx = mpiGrid.geometry.get_length(cells[i]);
+      std::array<double, 3> x = mpiGrid.get_center(cells[i]);
+      if (!isPeriodic[0] && (x[0] > Parameters::xmax - dx[0] || x[0] < Parameters::xmin + dx[0])) {
+         continue;
+      } else if (!isPeriodic[1] && (x[1] > Parameters::ymax - dx[1] || x[1] < Parameters::ymin + dx[1])) {
+         continue;
+      } else if (!isPeriodic[2] && (x[2] > Parameters::zmax - dx[2] || x[2] < Parameters::zmin + dx[2])) {
+         continue;
+      }
+
       if (mpiGrid[cells[i]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
          const auto* nbrs = mpiGrid.get_neighbors_of(cells[i], SYSBOUNDARIES_NEIGHBORHOOD_ID);
          for (uint j = 0; j < (*nbrs).size(); j++) {
@@ -589,9 +608,9 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
 
    technicalGrid.updateGhostCells();
 
-   const array<int, 3> fsGridDimensions = technicalGrid.getGlobalSize();
+   const array<int,3> fsGridDimensions = technicalGrid.getGlobalSize();
 
-// One pass to setup the bit field to know which components the field solver should propagate.
+   // One pass to setup the bit field to know which components the field solver should propagate.
 #pragma omp parallel for collapse(3)
    for (int x = 0; x < localSize[0]; ++x) {
       for (int y = 0; y < localSize[1]; ++y) {
@@ -658,6 +677,7 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
  * \retval success If true, the application of all system boundary states succeeded.
  */
 bool SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                                    FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>&technicalGrid,
                                     FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
                                     Project& project) {
    bool success = true;
@@ -670,10 +690,11 @@ bool SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_G
       ) {
          continue;
       }
-      if (!(*it)->applyInitialState(mpiGrid, perBGrid, project)) {
+      if (!(*it)->applyInitialState(mpiGrid, technicalGrid, perBGrid, project)) {
          cerr << "ERROR: " << (*it)->getName() << " system boundary condition initial state not applied correctly." << endl;
          success = false;
       }
+
    }
 
    return success;

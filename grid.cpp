@@ -154,8 +154,18 @@ void initializeGrids(
 
 
    phiprof::start("Refine spatial cells");
-   if(P::amrMaxSpatialRefLevel > 0 && project.refineSpatialCells(mpiGrid)) {
-      recalculateLocalCellsCache();
+   // We need this first as well
+   recalculateLocalCellsCache();
+   if (!P::isRestart) {
+      if (P::amrMaxSpatialRefLevel > 0 && project.refineSpatialCells(mpiGrid)) {
+         mpiGrid.balance_load();
+         recalculateLocalCellsCache();
+      }
+   } else {
+      if (readFileCells(mpiGrid, P::restartFileName)) {
+         mpiGrid.balance_load();
+         recalculateLocalCellsCache();
+      }
    }
    phiprof::stop("Refine spatial cells");
    
@@ -168,6 +178,9 @@ void initializeGrids(
    if (myRank == MASTER_RANK) logFile << "(INIT): Starting initial load balance." << endl << writeVerbose;
    mpiGrid.balance_load(); // Direct DCCRG call, recalculate cache afterwards
    recalculateLocalCellsCache();
+
+   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
+   mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
 
    if(P::amrMaxSpatialRefLevel > 0) {
       setFaceNeighborRanks( mpiGrid );
@@ -189,6 +202,71 @@ void initializeGrids(
    }
    phiprof::stop("Initialize system boundary conditions");
    
+   // Init mesh data container
+   if (getObjectWrapper().meshData.initialize("SpatialGrid") == false) {
+      cerr << "(Grid) Failed to initialize mesh data container in " << __FILE__ << ":" << __LINE__ << endl;
+      exit(1);
+   }
+   
+   if (P::isRestart) {
+      logFile << "Restart from "<< P::restartFileName << std::endl << writeVerbose;
+      phiprof::start("Read restart");
+      if (readGrid(mpiGrid,perBGrid,EGrid,technicalGrid,P::restartFileName) == false) {
+         logFile << "(MAIN) ERROR: restarting failed" << endl;
+         exit(1);
+      }
+      phiprof::stop("Read restart");
+
+      // For now, alpha is read from the restart file
+      if (P::adaptRefinement) {
+         phiprof::start("Re-refine spatial cells");
+         for (int i = 0; i < P::amrMaxSpatialRefLevel; ++i) {
+            if(sysBoundaries.classifyCells(mpiGrid,technicalGrid) == false) {
+               cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
+               exit(1);
+            }
+
+            project.adaptRefinement(mpiGrid);
+            initSpatialCellCoordinates(mpiGrid);
+
+            // balance load, update ghost cells
+            balanceLoad(mpiGrid, sysBoundaries);
+            SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
+            mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
+
+            if (P::shouldFilter) {
+               project.filterRefined(mpiGrid);
+            }
+
+            // Consider recalculating alphas here. Requires fs grid to be set up and grid glue
+         }
+
+         phiprof::stop("Re-refine spatial cells");
+      }
+
+      phiprof::start("Map Refinement Level to FsGrid");
+      const int *localDims = &momentsGrid.getLocalSize()[0];
+
+      // #pragma omp parallel for collapse(3)
+      for (int k=0; k<localDims[2]; k++) {
+         for (int j=0; j<localDims[1]; j++) {
+            for (int i=0; i<localDims[0]; i++) {
+
+               const std::array<int, 3> mapIndices = momentsGrid.getGlobalIndices(i,j,k);
+               const dccrg::Types<3>::indices_t  indices = {{(uint64_t)mapIndices[0],(uint64_t)mapIndices[1],(uint64_t)mapIndices[2]}}; //cast to avoid warnings
+               CellID dccrgCellID2 = mpiGrid.get_existing_cell(indices, 0, mpiGrid.mapping.get_maximum_refinement_level());
+               int amrLevel= mpiGrid.get_refinement_level(dccrgCellID2);
+               technicalGrid.get(i, j, k)-> refLevel =amrLevel ;
+            }
+         }
+      }
+      phiprof::stop("Map Refinement Level to FsGrid");
+
+   }
+
+   SpatialCell::set_mpi_transfer_type(Transfer::CELL_DIMENSIONS);
+   mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
+
    // Initialise system boundary conditions (they need the initialised positions!!)
    phiprof::start("Classify cells (sys boundary conditions)");
    if(sysBoundaries.classifyCells(mpiGrid,technicalGrid) == false) {
@@ -201,23 +279,15 @@ void initializeGrids(
    // Check refined cells do not touch boundary cells
    phiprof::start("Check boundary refinement");
    if(!sysBoundaries.checkRefinement(mpiGrid)) {
-      cerr << "(MAIN) ERROR: Boundary cells must have identical refinement level " << endl;
-      exit(1);
+      cerr << "(MAIN) WARNING: Boundary cells don't have identical refinement level " << endl;
+      //exit(1);
    }
    phiprof::stop("Check boundary refinement");
-   
+
    if (P::isRestart) {
-      logFile << "Restart from "<< P::restartFileName << std::endl << writeVerbose;
-      phiprof::start("Read restart");
-      if (readGrid(mpiGrid,perBGrid,EGrid,technicalGrid,P::restartFileName) == false) {
-         logFile << "(MAIN) ERROR: restarting failed" << endl;
-         exit(1);
-      }
-      phiprof::stop("Read restart");
-   
       //initial state for sys-boundary cells, will skip those not set to be reapplied at restart
       phiprof::start("Apply system boundary conditions state");
-      if (sysBoundaries.applyInitialState(mpiGrid, perBGrid, project) == false) {
+      if (sysBoundaries.applyInitialState(mpiGrid, technicalGrid, perBGrid, project) == false) {
          cerr << " (MAIN) ERROR: System boundary conditions initial state was not applied correctly." << endl;
          exit(1);
       }
@@ -274,7 +344,7 @@ void initializeGrids(
       // Initial state for sys-boundary cells
       phiprof::stop("Apply initial state");
       phiprof::start("Apply system boundary conditions state");
-      if (sysBoundaries.applyInitialState(mpiGrid, perBGrid, project) == false) {
+      if (sysBoundaries.applyInitialState(mpiGrid, technicalGrid, perBGrid, project) == false) {
          cerr << " (MAIN) ERROR: System boundary conditions initial state was not applied correctly." << endl;
          exit(1);
       }
@@ -365,6 +435,17 @@ void initializeGrids(
    momentsGrid.updateGhostCells();
    momentsDt2Grid.updateGhostCells();
    phiprof::stop("Finish fsgrid setup");
+
+   // Set this so CFL doesn't break
+   if(P::adaptRefinement) {
+      // Half-step acceleration
+      if( P::propagateVlasovAcceleration ) {
+         calculateAcceleration(mpiGrid, -0.5*P::dt + 0.5*P::bailout_min_dt);
+      } else {
+         calculateAcceleration(mpiGrid, 0.0);
+      }
+      P::dt = P::bailout_min_dt;
+   }
    
    phiprof::stop("Set initial state");
 }
