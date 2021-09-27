@@ -165,13 +165,13 @@ namespace projects {
          RP::get(pop + "_ionosphere.VX0", sP.ionosphereV0[0]);
          RP::get(pop + "_ionosphere.VY0", sP.ionosphereV0[1]);
          RP::get(pop + "_ionosphere.VZ0", sP.ionosphereV0[2]);
-         RP::get(pop + "_ionosphere.taperInnerRadius", sP.ionosphereTaperInnerRadius);
-         RP::get(pop + "_ionosphere.taperOuterRadius", sP.ionosphereTaperOuterRadius);
+         RP::get(pop + "_Magnetosphere.taperInnerRadius", sP.taperInnerRadius);
+         RP::get(pop + "_Magnetosphere.taperOuterRadius", sP.taperOuterRadius);
          // Backward-compatibility: cfgs from before Sep 2021 setting pop_ionosphere.taperRadius will fail with the unknown option.
          // Some fail-safety checks
-         if(sP.ionosphereTaperInnerRadius > sP.ionosphereTaperOuterRadius) {
+         if(sP.taperInnerRadius > sP.taperOuterRadius) {
             if(myRank == MASTER_RANK) {
-               cerr << "Error: " << pop << "_ionosphere.taperInnerRadius should be <= taperOuterRadius" << endl;
+               cerr << "Error: " << pop << "_Magnetosphere.taperInnerRadius should be <= taperOuterRadius" << endl;
             }
             abort();
          }
@@ -428,11 +428,11 @@ namespace projects {
             abort();
       }
       
-      if(radius < sP.ionosphereTaperOuterRadius) {
+      if(radius < sP.taperOuterRadius) {
          // sine tapering
-         initRho = sP.rho - (sP.rho-sP.ionosphereRho)*0.5*(1.0+sin(M_PI*(radius-sP.ionosphereTaperInnerRadius)/(sP.ionosphereTaperOuterRadius-sP.ionosphereTaperInnerRadius)+0.5*M_PI));
-         initT = sP.T - (sP.T-sP.ionosphereT)*0.5*(1.0+sin(M_PI*(radius-sP.ionosphereTaperInnerRadius)/(sP.ionosphereTaperOuterRadius-sP.ionosphereTaperInnerRadius)+0.5*M_PI));
-         if(radius < sP.ionosphereTaperInnerRadius) {
+         initRho = sP.rho - (sP.rho-sP.ionosphereRho)*0.5*(1.0+sin(M_PI*(radius-sP.taperInnerRadius)/(sP.taperOuterRadius-sP.taperInnerRadius)+0.5*M_PI));
+         initT = sP.T - (sP.T-sP.ionosphereT)*0.5*(1.0+sin(M_PI*(radius-sP.taperInnerRadius)/(sP.taperOuterRadius-sP.taperInnerRadius)+0.5*M_PI));
+         if(radius < sP.taperInnerRadius) {
             initRho = sP.ionosphereRho;
             initT = sP.ionosphereT;
          }
@@ -480,13 +480,13 @@ namespace projects {
             abort();
       }
       
-      if(radius < sP.ionosphereTaperOuterRadius) {
+      if(radius < sP.taperOuterRadius) {
          // sine tapering
-         Real q=0.5*(1.0-sin(M_PI*(radius-sP.ionosphereTaperInnerRadius)/(sP.ionosphereTaperOuterRadius-sP.ionosphereTaperInnerRadius)+0.5*M_PI));
+         Real q=0.5*(1.0-sin(M_PI*(radius-sP.taperInnerRadius)/(sP.taperOuterRadius-sP.taperInnerRadius)+0.5*M_PI));
          
          for(uint i=0; i<3; i++) {
             V0[i]=q*(V0[i]-ionosphereV0[i])+ionosphereV0[i];
-            if(radius < sP.ionosphereTaperInnerRadius) {
+            if(radius < sP.taperInnerRadius) {
                V0[i] = ionosphereV0[i];
             }
          }

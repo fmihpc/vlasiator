@@ -35,8 +35,8 @@ namespace projects {
       Real ionosphereV0[3];
       Real ionosphereRho;
       Real ionosphereT;
-      Real ionosphereTaperInnerRadius;
-      Real ionosphereTaperOuterRadius;
+      Real taperInnerRadius;
+      Real taperOuterRadius;
       uint nSpaceSamples;
       uint nVelocitySamples;
    };
