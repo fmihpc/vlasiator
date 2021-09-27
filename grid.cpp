@@ -557,7 +557,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
 
    // flag transfers if AMR
    phiprof::start("compute_amr_transfer_flags");
-   flagSpatialCellsForAmrCommunication(mpiGrid,cells);
+   //flagSpatialCellsForAmrCommunication(mpiGrid,cells);
    phiprof::stop("compute_amr_transfer_flags");
 
    // Communicate all spatial data for FULL neighborhood, which

@@ -267,8 +267,7 @@ bool belongsToLayer(const int layer, const int x, const int y, const int z,
             if ((ix == 0 && iy == 0 && iz == 0) || !technicalGrid.get(x + ix, y + iy, z + iz))
                continue;
 
-            if (layer == 1 &&
-                technicalGrid.get(x + ix, y + iy, z + iz)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+            if (layer == 1 && technicalGrid.get(x + ix, y + iy, z + iz)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
                // in the first layer, boundary cell belongs if it has a non-boundary neighbor
                belongs = true;
                return belongs;
@@ -506,8 +505,9 @@ void SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_G
    list<SBC::SysBoundaryCondition*>::iterator it;
    for (it = sysBoundaries.begin(); it != sysBoundaries.end(); it++) {
       // Skip when not restarting or not requested.
-      if (Parameters::isRestart && !(*it)->doApplyUponRestart())
+      if (Parameters::isRestart && !(*it)->doApplyUponRestart()) {
          continue;
+      }
       (*it)->applyInitialState(mpiGrid, perBGrid, project);
    }
 }
@@ -542,16 +542,18 @@ void SysBoundary::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_G
  * \param doCalcMomentsV Compute into _V moments if true or _R moments if false
  * so that the interpolated ones can be done.
  */
-void SysBoundary::applyBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, creal t,
-                                                const bool doCalcMomentsV) {
-   if (sysBoundaries.size() == 0)
-      return; // no boundaries
+void SysBoundary::applyBoundaryVlasovConditions(
+    dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, creal t,
+    const bool doCalcMomentsV) {
+
+   if (sysBoundaries.size() == 0) {
+      return; // no system boundaries
+   }
 
       /*Transfer along boundaries*/
       // First the small stuff without overlapping in an extended neighbourhood:
 #warning TODO This now communicates in the wider neighbourhood for both layers, could be reduced to smaller neighbourhood for layer 1, larger neighbourhood for layer 2.
-   SpatialCell::set_mpi_transfer_type(
-       Transfer::CELL_PARAMETERS | Transfer::POP_METADATA | Transfer::CELL_SYSBOUNDARYFLAG, true);
+   SpatialCell::set_mpi_transfer_type(Transfer::CELL_PARAMETERS | Transfer::POP_METADATA | Transfer::CELL_SYSBOUNDARYFLAG, true);
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
 
    // Loop over existing particle species
@@ -572,13 +574,12 @@ void SysBoundary::applyBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell, dccrg:
 
       // Compute Vlasov boundary condition on boundary/process inner cells
       vector<CellID> localCells;
-      getBoundaryCellList(
-          mpiGrid, mpiGrid.get_local_cells_not_on_process_boundary(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID), localCells);
+      getBoundaryCellList(mpiGrid, mpiGrid.get_local_cells_not_on_process_boundary(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID), localCells);
 
 #pragma omp parallel for
       for (uint i = 0; i < localCells.size(); i++) {
-         cuint sysboundarytype = mpiGrid[localCells[i]]->sysBoundaryFlag;
-         this->getBoundary(sysboundarytype)->vlasovBoundaryCondition(mpiGrid, localCells[i], popID, doCalcMomentsV);
+         cuint sysBoundaryType = mpiGrid[localCells[i]]->sysBoundaryFlag;
+         this->getBoundary(sysBoundaryType)->vlasovBoundaryCondition(mpiGrid, localCells[i], popID, doCalcMomentsV);
       }
       if (doCalcMomentsV)
          calculateMoments_V(mpiGrid, localCells, true);
@@ -600,8 +601,8 @@ void SysBoundary::applyBoundaryVlasovConditions(dccrg::Dccrg<SpatialCell, dccrg:
                           boundaryCells);
 #pragma omp parallel for
       for (uint i = 0; i < boundaryCells.size(); i++) {
-         cuint sysboundarytype = mpiGrid[boundaryCells[i]]->sysBoundaryFlag;
-         this->getBoundary(sysboundarytype)->vlasovBoundaryCondition(mpiGrid, boundaryCells[i], popID, doCalcMomentsV);
+         cuint sysBoundaryType = mpiGrid[boundaryCells[i]]->sysBoundaryFlag;
+         this->getBoundary(sysBoundaryType)->vlasovBoundaryCondition(mpiGrid, boundaryCells[i], popID, doCalcMomentsV);
       }
       if (doCalcMomentsV)
          calculateMoments_V(mpiGrid, boundaryCells, true);
@@ -654,8 +655,9 @@ void getBoundaryCellList(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geomet
    for (size_t cell = 0; cell < cellList.size(); ++cell) {
       const CellID cellID = cellList[cell];
       if (mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-          mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY)
+          mpiGrid[cellID]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
          continue;
+      }
       boundaryCellList.push_back(cellID);
    }
 }
