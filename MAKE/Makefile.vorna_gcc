@@ -6,6 +6,9 @@
 # module load OpenMPI/4.0.5-GCC-10.2.0
 # Same in one line to past on the command line:
 # module purge ; module load GCC/10.2.0 ; module load OpenMPI/4.0.5-GCC-10.2.0
+# Remember to compile interactively, see the It4Science wiki or the Vorna guide
+# https://github.com/fmihpc/analysator/wiki/Vorna-guide
+# for the current best practice.
 
 CMP = mpic++
 LNK = mpic++
