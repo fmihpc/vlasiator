@@ -429,9 +429,6 @@ namespace projects {
       }
       
       if(radius < sP.ionosphereTaperOuterRadius) {
-         // linear tapering
-         //initRho = this->ionosphereRho - (ionosphereRho-tailRho)*(radius-sP.ionosphereTaperInnerRadius) / (sP.ionosphereTaperOuterRadius-sP.ionosphereTaperInnerRadius);
-         
          // sine tapering
          initRho = sP.rho - (sP.rho-sP.ionosphereRho)*0.5*(1.0+sin(M_PI*(radius-sP.ionosphereTaperInnerRadius)/(sP.ionosphereTaperOuterRadius-sP.ionosphereTaperInnerRadius)+0.5*M_PI));
          initT = sP.T - (sP.T-sP.ionosphereT)*0.5*(1.0+sin(M_PI*(radius-sP.ionosphereTaperInnerRadius)/(sP.ionosphereTaperOuterRadius-sP.ionosphereTaperInnerRadius)+0.5*M_PI));
@@ -484,9 +481,6 @@ namespace projects {
       }
       
       if(radius < sP.ionosphereTaperOuterRadius) {
-         // linear tapering
-         //initV0[i] *= (radius-sP.ionosphereTaperInnerRadius) / (sP.ionosphereTaperOuterRadius-sP.ionosphereTaperInnerRadius);
-         
          // sine tapering
          Real q=0.5*(1.0-sin(M_PI*(radius-sP.ionosphereTaperInnerRadius)/(sP.ionosphereTaperOuterRadius-sP.ionosphereTaperInnerRadius)+0.5*M_PI));
          
