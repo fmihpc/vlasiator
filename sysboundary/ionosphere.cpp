@@ -64,8 +64,8 @@ namespace SBC {
          
          Readparameters::add(pop + "_ionosphere.taperInnerRadius", "Inner radius of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
          Readparameters::add(pop + "_ionosphere.taperOuterRadius", "Outer radius of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
-         Readparameters::add(pop + "_ionosphere.rho", "Number density of the ionosphere (m^-3)", 1.0e6);
-         Readparameters::add(pop + "_ionosphere.T", "Temperature of the ionosphere (K)", 5.0e5);
+         Readparameters::add(pop + "_ionosphere.rho", "Number density of the ionosphere (m^-3)", 0.0);
+         Readparameters::add(pop + "_ionosphere.T", "Temperature of the ionosphere (K)", 0.0);
          Readparameters::add(pop + "_ionosphere.VX0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
          Readparameters::add(pop + "_ionosphere.VY0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
          Readparameters::add(pop + "_ionosphere.VZ0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);

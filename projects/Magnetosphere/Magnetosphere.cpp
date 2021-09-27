@@ -96,6 +96,9 @@ namespace projects {
    }
    
    void Magnetosphere::getParameters(){
+      int myRank;
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+
       Project::getParameters();
 
       Real dummy;
@@ -164,9 +167,25 @@ namespace projects {
          RP::get(pop + "_ionosphere.VZ0", sP.ionosphereV0[2]);
          RP::get(pop + "_ionosphere.taperInnerRadius", sP.ionosphereTaperInnerRadius);
          RP::get(pop + "_ionosphere.taperOuterRadius", sP.ionosphereTaperOuterRadius);
+         // Backward-compatibility: cfgs from before Sep 2021 setting pop_ionosphere.taperRadius will fail with the unknown option.
+         // Some fail-safety checks
          if(sP.ionosphereTaperInnerRadius > sP.ionosphereTaperOuterRadius) {
-            cerr << "Error: " << pop << "_ionosphere.taperInnerRadius should be <= taperOuterRadius" << endl;
+            if(myRank == MASTER_RANK) {
+               cerr << "Error: " << pop << "_ionosphere.taperInnerRadius should be <= taperOuterRadius" << endl;
+            }
             abort();
+         }
+         if(sP.ionosphereT == 0) {
+            if(myRank == MASTER_RANK) {
+               cerr << "Warning: " << pop << "_ionosphere.T is zero (default), now setting to the same value as " << pop << "_Magnetosphere.T, that is " << sP.T << ". Set/change " << pop << "_ionosphere.T if this is not the expected behavior." << endl;
+            }
+            sP.ionosphereT = sP.T;
+         }
+         if(sP.ionosphereRho == 0) {
+            if(myRank == MASTER_RANK) {
+               cerr << "Warning: " << pop << "_ionosphere.rho is zero (default), now setting to the same value as " << pop << "_Magnetosphere.rho, that is " << sP.rho << ". Set/change " << pop << "_ionosphere.rho if this is not the expected behavior." << endl;
+            }
+            sP.ionosphereRho = sP.rho;
          }
 
          speciesParams.push_back(sP);
