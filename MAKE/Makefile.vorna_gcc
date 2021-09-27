@@ -85,10 +85,10 @@ LIB_PAPI = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MP
 INC_PAPI = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/vorna/papi/include
 
 #header libraries
-INC_FSGRID = -I/proj/group/spacephysics/libraries/fsgrid/
-INC_DCCRG = -I/proj/group/spacephysics/libraries/dccrg/
-INC_VECTORCLASS = -I/proj/group/spacephysics/libraries/vectorclass/
-INC_EIGEN = -I/proj/group/spacephysics/libraries/
+INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid/
+INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg/
+INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass/
+INC_EIGEN = -I$(LIBRARY_PREFIX)/ -I$(LIBRARY_PREFIX)/Eigen
 
 
 
