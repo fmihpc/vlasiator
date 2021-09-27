@@ -92,6 +92,8 @@ namespace projects {
          RP::add(pop + "_Magnetosphere.VZ0", "Initial bulk velocity in z-direction", 0.0);
          RP::add(pop + "_Magnetosphere.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
          RP::add(pop + "_Magnetosphere.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
+         RP::add(pop + "_Magnetosphere.taperInnerRadius", "Inner radius of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
+         RP::add(pop + "_Magnetosphere.taperOuterRadius", "Outer radius of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
       }
    }
    
@@ -169,11 +171,23 @@ namespace projects {
          RP::get(pop + "_Magnetosphere.taperOuterRadius", sP.taperOuterRadius);
          // Backward-compatibility: cfgs from before Sep 2021 setting pop_ionosphere.taperRadius will fail with the unknown option.
          // Some fail-safety checks
-         if(sP.taperInnerRadius > sP.taperOuterRadius) {
+         if(sP.taperInnerRadius < 0 || sP.taperOuterRadius < 0) {
             if(myRank == MASTER_RANK) {
-               cerr << "Error: " << pop << "_Magnetosphere.taperInnerRadius should be <= taperOuterRadius" << endl;
+               cerr << "Error: " << pop << "_Magnetosphere.taperInnerRadius and tapeOuterRadius should be >= 0! Aborting." << endl;
             }
             abort();
+         }
+         if(sP.taperInnerRadius > sP.taperOuterRadius) {
+            if(myRank == MASTER_RANK) {
+               cerr << "Error: " << pop << "_Magnetosphere.taperInnerRadius should be <= taperOuterRadius! Aborting." << endl;
+            }
+            abort();
+         }
+         if(sP.taperInnerRadius == 0 && sP.taperOuterRadius > 0) {
+            if(myRank == MASTER_RANK) {
+               cerr << "Warning: " << pop << "_Magnetosphere.taperInnerRadius is zero (default), now setting this to the same value as ionosphere.radius, that is " << this->ionosphereRadius << ". Set/change " << pop << "_Magnetosphere.taperInnerRadius if this is not the expected behavior." << endl;
+            }
+            sP.taperInnerRadius = this->ionosphereRadius;
          }
          if(sP.ionosphereT == 0) {
             if(myRank == MASTER_RANK) {
