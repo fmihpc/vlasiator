@@ -36,7 +36,6 @@
 #include <limits>
 
 #include "iowrite.h"
-#include "math.h"
 #include "grid.h"
 #include "phiprof.hpp"
 #include "parameters.h"
@@ -939,7 +938,6 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       Real cellX, cellY, cellZ, DX, DY, DZ;
       Real dx_rm, dx_rp, dy_rm, dy_rp, dz_rm, dz_rp;
       Real rsquare_minus,rsquare_plus;
-      bool withinshell,stridecheck;
       for (uint i = 0; i < cells.size(); i++) {
          mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 0.0;
          // CellID stride selection
@@ -955,7 +953,7 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 	 // Loop over AMR levels
 	 uint startindex=1;
 	 uint endindex=1;
-	 for (int AMR = 0; AMR <= P::amrMaxSpatialRefLevel; AMR++) {
+	 for (uint AMR = 0; AMR <= P::amrMaxSpatialRefLevel; AMR++) {
 	    uint AMRm = std::floor(std::pow(2,AMR));
 	    uint cellsthislevel = (AMRm*P::xcells_ini)*(AMRm*P::ycells_ini)*(AMRm*P::zcells_ini);
 	    startindex = endindex;
@@ -1007,66 +1005,12 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             dz_rp = cellZ < 0 ? 0 : DZ;
             rsquare_minus = (cellX + dx_rm) * (cellX + dx_rm) + (cellY + dy_rm) * (cellY + dy_rm) + (cellZ + dz_rm) * (cellZ + dz_rm);
             rsquare_plus  = (cellX + dx_rp) * (cellX + dx_rp) + (cellY + dy_rp) * (cellY + dy_rp) + (cellZ + dz_rp) * (cellZ + dz_rp);
-            // The above method can results in face-neighboring cells both intersecting the sphere and both getting saved if
-            // The relevant stride to use is in a different direction.
-            withinshell = (rsquare_minus <= shellRadiusSquare && rsquare_plus > shellRadiusSquare &&
-                                P::systemWriteDistributionWriteShellStride[ishell] > 0);
-            if (withinshell) {
-               if (P::xcells_ini!=1 && P::ycells_ini!=1 && P::zcells_ini!=1) {
-                  // 3D simulation, stride from cellid
-                  //stridecheck = (cells[i] % P::systemWriteDistributionWriteShellStride[ishell] == 0);
-                  // Find dominant coordinate
-                  if (abs(cellX)>max(abs(cellY),abs(cellZ))) {
-                     // X-dominant, strides from Y and Z
-                     stridecheck = ((int)(abs(cellY)/DY) % P::systemWriteDistributionWriteShellStride[ishell] == 0)
-                        && ((int)(abs(cellZ)/DZ) % P::systemWriteDistributionWriteShellStride[ishell] == 0);
-                     if (abs(abs(cellY)-abs(cellZ))<DY) { // 45 degrees
-                        stridecheck = ((int)(abs(cellX)/DX) % P::systemWriteDistributionWriteShellStride[ishell] == 0);
-                     }
-                  } else if (abs(cellY)>max(abs(cellX),abs(cellZ))) {
-                     // Y-dominant, strides from X and Z
-                     stridecheck = ((int)(abs(cellX)/DX) % P::systemWriteDistributionWriteShellStride[ishell] == 0)
-                        && ((int)(abs(cellZ)/DZ) % P::systemWriteDistributionWriteShellStride[ishell] == 0);
-                     if (abs(abs(cellX)-abs(cellZ))<DX) { // 45 degrees
-                        stridecheck = ((int)(abs(cellY)/DY) % P::systemWriteDistributionWriteShellStride[ishell] == 0);
-                     }
-                  } else {
-                     // Z-dominant, strides from X and Y
-                     stridecheck = ((int)(abs(cellX)/DX) % P::systemWriteDistributionWriteShellStride[ishell] == 0)
-                        && ((int)(abs(cellY)/DY) % P::systemWriteDistributionWriteShellStride[ishell] == 0);
-                     if (abs(abs(cellX)-abs(cellY))<DX) { // 45 degrees
-                        stridecheck = ((int)(abs(cellZ)/DZ) % P::systemWriteDistributionWriteShellStride[ishell] == 0);
-                     }
-                  }
-               } else if (P::ycells_ini==1) {  // 2D meridional, limit based on polar stride
-                  if (abs(abs(cellX)-abs(cellZ))<DX) { // 45 degrees
-                     stridecheck = true;
-                  } else if (abs(cellX)>abs(cellZ)) { // closer to nose
-                     stridecheck = ((int)(abs(cellZ)/DZ) % P::systemWriteDistributionWriteShellStride[ishell] == 0);
-                  } else { // closer to poles
-                     stridecheck = ((int)(abs(cellX)/DX) % P::systemWriteDistributionWriteShellStride[ishell] == 0);
-                  }
-               } else if (P::zcells_ini==1) {  // 2D equatorial, limit based on nose stride
-                  if (abs(abs(cellX)-abs(cellY))<DX) { // 45 degrees
-                     stridecheck = true;
-                  } else if (abs(cellX)>abs(cellY)) { // closer to nose
-                     stridecheck = ((int)(abs(cellY)/DY) % P::systemWriteDistributionWriteShellStride[ishell] == 0);
-                  } else { // closer to dawn/dusk
-                     stridecheck = ((int)(abs(cellX)/DX) % P::systemWriteDistributionWriteShellStride[ishell] == 0);
-                  }
-               } else if (P::xcells_ini==1) { // X-Y plane run, limit based on polar stride
-                  if (abs(abs(cellY)-abs(cellZ))<DX) { // 45 degrees
-                     stridecheck = true;
-                  } else if (abs(cellY)>abs(cellZ)) { // closer to dawn/dusk
-                     stridecheck = ((int)(abs(cellZ)/DZ) % P::systemWriteDistributionWriteShellStride[ishell] == 0);
-                  } else { // closer to poles
-                     stridecheck = ((int)(abs(cellY)/DY) % P::systemWriteDistributionWriteShellStride[ishell] == 0);
-                  }
-               }
-               if (stridecheck) {
-                  velSpaceCells.push_back(cells[i]);
-                  mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 1.0;
-               }
+            if (rsquare_minus <= shellRadiusSquare && rsquare_plus > shellRadiusSquare &&
+                P::systemWriteDistributionWriteShellStride[ishell] > 0 && 
+                cells[i] % P::systemWriteDistributionWriteShellStride[ishell] == 0
+               ) {
+               velSpaceCells.push_back(cells[i]);
+               mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 1.0;
             }
          }
       }
