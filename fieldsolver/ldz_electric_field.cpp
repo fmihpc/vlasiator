@@ -166,7 +166,9 @@ void calculateWaveSpeedYZ(
    // T E Stringer, Low-frequency waves in an unbounded plasma
    // Journal of Nuclear Energy. Part C, Plasma Physics, Accelerators, Thermonuclear Research
    // Volume 5, Number 2, page 89
-   // Section BC in Fig. 1 and Table 1, referneced later e.g. by Gary.
+   // Section BC in Fig. 1 and Table 1, referenced later e.g. by Gary, for the current one,
+   // and the below for the heavy ions
+   // https://www.ann-geophys.net/26/1605/2008/  (Whistler waves)
    // and
    // http://iopscience.iop.org/article/10.1088/0253-6102/43/2/026/meta (Alfven waves)
    // for details.
@@ -287,7 +289,9 @@ void calculateWaveSpeedXZ(
    // T E Stringer, Low-frequency waves in an unbounded plasma
    // Journal of Nuclear Energy. Part C, Plasma Physics, Accelerators, Thermonuclear Research
    // Volume 5, Number 2, page 89
-   // Section BC in Fig. 1 and Table 1, referneced later e.g. by Gary.
+   // Section BC in Fig. 1 and Table 1, referenced later e.g. by Gary, for the current one,
+   // and the below for the heavy ions
+   // https://www.ann-geophys.net/26/1605/2008/  (Whistler waves)
    // and
    // http://iopscience.iop.org/article/10.1088/0253-6102/43/2/026/meta (Alfven waves)
    // for details.
@@ -408,7 +412,9 @@ void calculateWaveSpeedXY(
    // T E Stringer, Low-frequency waves in an unbounded plasma
    // Journal of Nuclear Energy. Part C, Plasma Physics, Accelerators, Thermonuclear Research
    // Volume 5, Number 2, page 89
-   // Section BC in Fig. 1 and Table 1, referneced later e.g. by Gary.
+   // Section BC in Fig. 1 and Table 1, referenced later e.g. by Gary, for the current one,
+   // and the below for the heavy ions
+   // https://www.ann-geophys.net/26/1605/2008/  (Whistler waves)
    // and
    // http://iopscience.iop.org/article/10.1088/0253-6102/43/2/026/meta (Alfven waves)
    // for details.
