@@ -183,6 +183,12 @@ namespace projects {
             }
             abort();
          }
+         if(sP.taperOuterRadius > 0 && sP.taperOuterRadius <= this->ionosphereRadius) {
+            if(myRank == MASTER_RANK) {
+               cerr << "Error: " << pop << "_Magnetosphere.taperOuterRadius is non-zero yet smaller than ionosphere.radius! Aborting." << endl;
+            }
+            abort();
+         }
          if(sP.taperInnerRadius == 0 && sP.taperOuterRadius > 0) {
             if(myRank == MASTER_RANK) {
                cerr << "Warning: " << pop << "_Magnetosphere.taperInnerRadius is zero (default), now setting this to the same value as ionosphere.radius, that is " << this->ionosphereRadius << ". Set/change " << pop << "_Magnetosphere.taperInnerRadius if this is not the expected behavior." << endl;
