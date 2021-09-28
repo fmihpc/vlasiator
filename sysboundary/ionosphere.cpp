@@ -62,8 +62,8 @@ namespace SBC {
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          
-         Readparameters::add(pop + "_ionosphere.taperRadius", "Width of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
-         Readparameters::add(pop + "_ionosphere.rho", "Number density of the ionosphere (m^-3)", 1.0e6);
+         Readparameters::add(pop + "_ionosphere.rho", "Number density of the ionosphere (m^-3)", 0.0);
+         Readparameters::add(pop + "_ionosphere.T", "Temperature of the ionosphere (K)", 0.0);
          Readparameters::add(pop + "_ionosphere.VX0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
          Readparameters::add(pop + "_ionosphere.VY0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
          Readparameters::add(pop + "_ionosphere.VZ0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
@@ -72,37 +72,15 @@ namespace SBC {
    }
    
    void Ionosphere::getParameters() {
-      int myRank;
-      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-      if(!Readparameters::get("ionosphere.centerX", this->center[0])) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("ionosphere.centerY", this->center[1])) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("ionosphere.centerZ", this->center[2])) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("ionosphere.radius", this->radius)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("ionosphere.geometry", this->geometry)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("ionosphere.precedence", this->precedence)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
+   
+      Readparameters::get("ionosphere.centerX", this->center[0]);
+      Readparameters::get("ionosphere.centerY", this->center[1]);
+      Readparameters::get("ionosphere.centerZ", this->center[2]);
+      Readparameters::get("ionosphere.radius", this->radius);
+      Readparameters::get("ionosphere.geometry", this->geometry);
+      Readparameters::get("ionosphere.precedence", this->precedence);
       uint reapply;
-      if(!Readparameters::get("ionosphere.reapplyUponRestart",reapply)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      };
+      Readparameters::get("ionosphere.reapplyUponRestart", reapply);
       this->applyUponRestart = false;
       if(reapply == 1) {
          this->applyUponRestart = true;
@@ -112,38 +90,14 @@ namespace SBC {
         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
         IonosphereSpeciesParameters sP;
 
-        if(!Readparameters::get(pop + "_ionosphere.rho", sP.rho)) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
-        if(!Readparameters::get(pop + "_ionosphere.VX0", sP.V0[0])) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
-        if(!Readparameters::get(pop + "_ionosphere.VY0", sP.V0[1])) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
-        if(!Readparameters::get(pop + "_ionosphere.VZ0", sP.V0[2])) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
-        if(!Readparameters::get(pop + "_ionosphere.fluffiness", sP.fluffiness)) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
-        if(!Readparameters::get(pop + "_Magnetosphere.T", sP.T)) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
-        if(!Readparameters::get(pop + "_Magnetosphere.nSpaceSamples", sP.nSpaceSamples)) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
-        if(!Readparameters::get(pop + "_Magnetosphere.nVelocitySamples", sP.nVelocitySamples)) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
+        Readparameters::get(pop + "_ionosphere.rho", sP.rho);
+        Readparameters::get(pop + "_ionosphere.VX0", sP.V0[0]);
+        Readparameters::get(pop + "_ionosphere.VY0", sP.V0[1]);
+        Readparameters::get(pop + "_ionosphere.VZ0", sP.V0[2]);
+        Readparameters::get(pop + "_ionosphere.fluffiness", sP.fluffiness);
+        Readparameters::get(pop + "_ionosphere.T", sP.T);
+        Readparameters::get(pop + "_Magnetosphere.nSpaceSamples", sP.nSpaceSamples);
+        Readparameters::get(pop + "_Magnetosphere.nVelocitySamples", sP.nVelocitySamples);
 
         speciesParams.push_back(sP);
       }
@@ -530,8 +484,6 @@ namespace SBC {
    /*! We want here to
     * 
     * -- Average perturbed face B from the nearest neighbours
-    * 
-    * -- Retain only the normal components of perturbed face B
     */
    Real Ionosphere::fieldSolverBoundaryCondMagneticField(
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
@@ -704,6 +656,41 @@ namespace SBC {
             return 0.0;
          }
          return retval / nCells;
+      }
+   }
+
+   /*! We want here to
+    *
+    * -- Retain only the boundary-normal projection of perturbed face B
+    */
+   void Ionosphere::fieldSolverBoundaryCondMagneticFieldProjection(
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      cint i,
+      cint j,
+      cint k
+   ) {
+      // Projection of B-field to normal direction
+      Real BdotN = 0;
+      std::array<Real, 3> normalDirection = fieldSolverGetNormalDirection(technicalGrid, i, j, k);
+      for(uint component=0; component<3; component++) {
+         BdotN += bGrid.get(i,j,k)->at(fsgrids::bfield::PERBX+component) * normalDirection[component];
+      }
+      // Apply to any components that were not solved
+      if ((technicalGrid.get(i,j,k)->sysBoundaryLayer == 2) ||
+          ((technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) && ((technicalGrid.get(i,j,k)->SOLVE & compute::BX) != compute::BX))
+         ) {
+         bGrid.get(i,j,k)->at(fsgrids::bfield::PERBX) = BdotN*normalDirection[0];
+      }
+      if ((technicalGrid.get(i,j,k)->sysBoundaryLayer == 2) ||
+          ((technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) && ((technicalGrid.get(i,j,k)->SOLVE & compute::BY) != compute::BY))
+         ) {
+         bGrid.get(i,j,k)->at(fsgrids::bfield::PERBY) = BdotN*normalDirection[1];
+      }
+      if ((technicalGrid.get(i,j,k)->sysBoundaryLayer == 2) ||
+          ((technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) && ((technicalGrid.get(i,j,k)->SOLVE & compute::BZ) != compute::BZ))
+         ) {
+         bGrid.get(i,j,k)->at(fsgrids::bfield::PERBZ) = BdotN*normalDirection[2];
       }
    }
 

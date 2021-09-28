@@ -48,14 +48,14 @@ namespace SBC {
    Outflow::~Outflow() { }
    
    void Outflow::addParameters() {
-      const std::string defStr = "Copy";
+      const string defStr = "Copy";
       Readparameters::addComposing("outflow.faceNoFields", "List of faces on which no field outflow boundary conditions are to be applied ([xyz][+-]).");
       Readparameters::add("outflow.precedence", "Precedence value of the outflow system boundary condition (integer), the higher the stronger.", 4);
       Readparameters::add("outflow.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-        const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+        const string& pop = getObjectWrapper().particleSpecies[i].name;
 
         Readparameters::addComposing(pop + "_outflow.reapplyFaceUponRestart", "List of faces on which outflow boundary conditions are to be reapplied upon restart ([xyz][+-]).");
         Readparameters::addComposing(pop + "_outflow.face", "List of faces on which outflow boundary conditions are to be applied ([xyz][+-]).");
@@ -73,19 +73,10 @@ namespace SBC {
    void Outflow::getParameters() {
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-      if(!Readparameters::get("outflow.faceNoFields", this->faceNoFieldsList)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("outflow.precedence", precedence)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
+      Readparameters::get("outflow.faceNoFields", this->faceNoFieldsList);
+      Readparameters::get("outflow.precedence", precedence);
       uint reapply;
-      if(!Readparameters::get("outflow.reapplyUponRestart",reapply)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      };
+      Readparameters::get("outflow.reapplyUponRestart", reapply);
       this->applyUponRestart = false;
       if(reapply == 1) {
          this->applyUponRestart = true;
@@ -93,7 +84,7 @@ namespace SBC {
 
       // Per-species parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-        const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+        const string& pop = getObjectWrapper().particleSpecies[i].name;
         OutflowSpeciesParameters sP;
 
         // Unless we find out otherwise, we assume that this species will not be treated at any boundary
@@ -101,11 +92,8 @@ namespace SBC {
           sP.facesToSkipVlasov[j] = true;
         }
 
-        std::vector<std::string> thisSpeciesFaceList;
-        if(!Readparameters::get(pop + "_outflow.face", thisSpeciesFaceList)) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
+        vector<string> thisSpeciesFaceList;
+        Readparameters::get(pop + "_outflow.face", thisSpeciesFaceList);
 
         for(auto& face : thisSpeciesFaceList) {
           if(face == "x+") { facesToProcess[0] = true; sP.facesToSkipVlasov[0] = false; }
@@ -116,35 +104,15 @@ namespace SBC {
           if(face == "z-") { facesToProcess[5] = true; sP.facesToSkipVlasov[5] = false; }
         }
 
-        if(!Readparameters::get(pop + "_outflow.reapplyFaceUponRestart", sP.faceToReapplyUponRestartList)) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
-        std::array<std::string, 6> vlasovSysBoundarySchemeName;
-        if(!Readparameters::get(pop + "_outflow.vlasovScheme_face_x+", vlasovSysBoundarySchemeName[0])) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
-        if(!Readparameters::get(pop + "_outflow.vlasovScheme_face_x-", vlasovSysBoundarySchemeName[1])) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
-        if(!Readparameters::get(pop + "_outflow.vlasovScheme_face_y+", vlasovSysBoundarySchemeName[2])) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
-        if(!Readparameters::get(pop + "_outflow.vlasovScheme_face_y-", vlasovSysBoundarySchemeName[3])) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
-        if(!Readparameters::get(pop + "_outflow.vlasovScheme_face_z+", vlasovSysBoundarySchemeName[4])) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
-        if(!Readparameters::get(pop + "_outflow.vlasovScheme_face_z-", vlasovSysBoundarySchemeName[5])) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
+        Readparameters::get(pop + "_outflow.reapplyFaceUponRestart", sP.faceToReapplyUponRestartList);
+        array<string, 6> vlasovSysBoundarySchemeName;
+        Readparameters::get(pop + "_outflow.vlasovScheme_face_x+", vlasovSysBoundarySchemeName[0]);
+        Readparameters::get(pop + "_outflow.vlasovScheme_face_x-", vlasovSysBoundarySchemeName[1]);
+        Readparameters::get(pop + "_outflow.vlasovScheme_face_y+", vlasovSysBoundarySchemeName[2]);
+
+        Readparameters::get(pop + "_outflow.vlasovScheme_face_y-", vlasovSysBoundarySchemeName[3]);
+        Readparameters::get(pop + "_outflow.vlasovScheme_face_z+", vlasovSysBoundarySchemeName[4]);
+        Readparameters::get(pop + "_outflow.vlasovScheme_face_z-", vlasovSysBoundarySchemeName[5]);
         for(uint j=0; j<6 ; j++) {
            if(vlasovSysBoundarySchemeName[j] == "None") {
               sP.faceVlasovScheme[j] = vlasovscheme::NONE;
@@ -158,11 +126,7 @@ namespace SBC {
            }
         }
 
-
-        if(!Readparameters::get(pop + "_outflow.quench", sP.quenchFactor)) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-           exit(1);
-        }
+        Readparameters::get(pop + "_outflow.quench", sP.quenchFactor);
 
         speciesParams.push_back(sP);
       }
@@ -218,7 +182,7 @@ namespace SBC {
                                    FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
 
       bool doAssign;
-      std::array<bool,6> isThisCellOnAFace;
+      array<bool,6> isThisCellOnAFace;
       
       // Assign boundary flags to local DCCRG cells
       const vector<CellID>& cells = getLocalCells();
@@ -244,7 +208,7 @@ namespace SBC {
       }
       
       // Assign boundary flags to local fsgrid cells
-      const std::array<int, 3> gridDims(technicalGrid.getLocalSize());  
+      const array<int, 3> gridDims(technicalGrid.getLocalSize());  
       for (int k=0; k<gridDims[2]; k++) {
          for (int j=0; j<gridDims[1]; j++) {
             for (int i=0; i<gridDims[0]; i++) {
@@ -257,13 +221,15 @@ namespace SBC {
                cellCenterCoords[2] += 0.5 * technicalGrid.DZ;
                const auto refLvl = mpiGrid.get_refinement_level(mpiGrid.get_existing_cell(cellCenterCoords));
 
-               if(refLvl == -1) {
-                  cerr << "Error, could not get refinement level of remote DCCRG cell " << __FILE__ << " " << __LINE__ << endl;
+               if (refLvl == -1) {
+                  cerr << "Error, could not get refinement level of remote DCCRG cell " << i << " " << j << " " << k
+                       << " " << __FILE__ << " " << __LINE__ << endl;
+                  MPI_Abort(MPI_COMM_WORLD, 1);
                }
-               
-               creal dx = P::dx_ini * pow(2,-refLvl);
-               creal dy = P::dy_ini * pow(2,-refLvl);
-               creal dz = P::dz_ini * pow(2,-refLvl);
+
+               creal dx = P::dx_ini / pow(2, refLvl);
+               creal dy = P::dy_ini / pow(2, refLvl);
+               creal dz = P::dz_ini / pow(2, refLvl);
 
                isThisCellOnAFace.fill(false);
                doAssign = false;
@@ -282,7 +248,7 @@ namespace SBC {
    
    bool Outflow::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
       Project &project
    ) {
       const vector<CellID>& cells = getLocalCells();
@@ -333,7 +299,7 @@ namespace SBC {
    }
 
    Real Outflow::fieldSolverBoundaryCondMagneticField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
+      FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
       cint i,
       cint j,
@@ -357,8 +323,16 @@ namespace SBC {
       }
    }
 
+   void Outflow::fieldSolverBoundaryCondMagneticFieldProjection(
+      FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      cint i,
+      cint j,
+      cint k
+   ) {
+   }
    void Outflow::fieldSolverBoundaryCondElectricField(
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+      FsGrid< array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
       cint i,
       cint j,
       cint k,
@@ -368,13 +342,13 @@ namespace SBC {
    }
    
    void Outflow::fieldSolverBoundaryCondHallElectricField(
-      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+      FsGrid< array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
       cint i,
       cint j,
       cint k,
       cuint component
    ) {
-      std::array<Real, fsgrids::ehall::N_EHALL> * cp = EHallGrid.get(i,j,k);
+      array<Real, fsgrids::ehall::N_EHALL> * cp = EHallGrid.get(i,j,k);
       switch (component) {
          case 0:
             cp->at(fsgrids::ehall::EXHALL_000_100) = 0.0;
@@ -400,7 +374,7 @@ namespace SBC {
    }
    
    void Outflow::fieldSolverBoundaryCondGradPeElectricField(
-      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+      FsGrid< array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
       cint i,
       cint j,
       cint k,
@@ -410,8 +384,8 @@ namespace SBC {
    }
    
    void Outflow::fieldSolverBoundaryCondDerivatives(
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+      FsGrid< array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+      FsGrid< array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
       cint i,
       cint j,
       cint k,
@@ -422,7 +396,7 @@ namespace SBC {
    }
    
    void Outflow::fieldSolverBoundaryCondBVOLDerivatives(
-      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+      FsGrid< array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
       cint i,
       cint j,
       cint k,
@@ -469,7 +443,7 @@ namespace SBC {
                   vlasovBoundaryCopyFromTheClosestNbrAndLimit(mpiGrid,cellID,popID);
                   break;
                default:
-                  std::cerr << __FILE__ << ":" << __LINE__ << "ERROR: invalid Outflow Vlasov scheme!" << std::endl;
+                  cerr << __FILE__ << ":" << __LINE__ << "ERROR: invalid Outflow Vlasov scheme!" << endl;
                   exit(1);
                   break;
             }
@@ -483,7 +457,7 @@ namespace SBC {
       for(uint i=0; i<6; i++) faces[i] = facesToProcess[i];
    }
    
-   std::string Outflow::getName() const {return "Outflow";}
+   string Outflow::getName() const {return "Outflow";}
    uint Outflow::getIndex() const {return sysboundarytype::OUTFLOW;}
       
 }

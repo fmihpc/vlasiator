@@ -55,7 +55,7 @@ namespace SBC {
    
    bool DoNotCompute::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
       Project&
    ) {
      const vector<CellID>& cells = getLocalCells();
@@ -85,7 +85,7 @@ namespace SBC {
       return true;
    }
    
-   std::string DoNotCompute::getName() const {return "DoNotCompute";}
+   string DoNotCompute::getName() const {return "DoNotCompute";}
    
    uint DoNotCompute::getIndex() const {return sysboundarytype::DO_NOT_COMPUTE;}
 }
