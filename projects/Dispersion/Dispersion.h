@@ -58,7 +58,8 @@ namespace projects {
       );
       virtual void hook(
          cuint& stage,
-         const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
+         const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid
       ) const;
     protected:
       Real getDistribValue(creal& vx, creal& vy, creal& vz, const uint popID) const;
