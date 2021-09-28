@@ -1012,6 +1012,28 @@ bool checkScalarParameter(vlsv::ParallelReader& file,const string& name,T correc
 }
 
 /*!
+\brief read length of SpatialGrid vector variable
+\param file The ParallelReader file to use
+\param variableName Name of the variable to check
+*/
+int readVectorSize(vlsv::ParallelReader& file,
+                   const std::string& variableName){
+   uint64_t arraySize;
+   uint64_t vectorSize;
+   vlsv::datatype::type dataType;
+   uint64_t byteSize;
+   list<pair<string,string> > attribs;
+   attribs.push_back(make_pair("name",variableName));
+   attribs.push_back(make_pair("mesh","SpatialGrid"));
+
+   if (file.getArrayInfo("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
+      logFile << "(RESTART)  ERROR: Failed to read " << endl << write;
+      return -1;
+   }
+   return (int)vectorSize;
+}
+
+/*!
 \brief Read in state from a vlsv file in order to restart simulations
 \param mpiGrid Vlasiator's grid
 \param name Name of the restart file e.g. "restart.00052.vlsv"
@@ -1201,10 +1223,16 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"pressure_dt2",CellParams::P_11_DT2,3,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"pressure_r",CellParams::P_11_R,3,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"pressure_v",CellParams::P_11_V,3,mpiGrid); }
-   // TODO this still reads old 1 LBW
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"LB_weight",CellParams::LBWEIGHTCOUNTERX,1,mpiGrid); }
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"LB_weight",CellParams::LBWEIGHTCOUNTERY,1,mpiGrid); }
-   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"LB_weight",CellParams::LBWEIGHTCOUNTERZ,1,mpiGrid); }
+   if(success) { // Read 1 or 3 length LBweights
+      int LBlength = readVectorSize(file,string("LB_weight"));
+      if (LBlength==3) {
+         success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"LB_weight",CellParams::LBWEIGHTCOUNTERX,3,mpiGrid);
+      } else {
+         success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"LB_weight",CellParams::LBWEIGHTCOUNTERX,1,mpiGrid);
+         success=success && readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"LB_weight",CellParams::LBWEIGHTCOUNTERY,1,mpiGrid);
+         success=success && readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"LB_weight",CellParams::LBWEIGHTCOUNTERZ,1,mpiGrid);
+      }
+   }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_v_dt",CellParams::MAXVDT,1,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_r_dt",CellParams::MAXRDT,1,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_fields_dt",CellParams::MAXFDT,1,mpiGrid); }

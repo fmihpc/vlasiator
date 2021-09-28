@@ -213,7 +213,7 @@ void calculateSpatialTranslation(
       if(P::amrMaxSpatialRefLevel == 0) {
          trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsy, 1,dt,popID); // map along y//
       } else {
-         trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsy, nPencilsY, 1,dt,popID); // map along y//      
+         trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsy, nPencilsY, 1,dt,popID); // map along y//
       }
       phiprof::stop("compute-mapping-y");
       time += MPI_Wtime() - t1;
@@ -324,8 +324,8 @@ void calculateSpatialTranslation(
          remoteTargetCellsy,
          remoteTargetCellsz,
          nPencilsX,
-	 nPencilsY,
-	 nPencilsZ,
+         nPencilsY,
+         nPencilsZ,
          dt,
          popID,
          time
@@ -338,19 +338,14 @@ void calculateSpatialTranslation(
 //          const double deltat = (MPI_Wtime() - t1) / local_propagated_cells.size();
          for (size_t c=0; c<localCells.size(); ++c) {
 //            mpiGrid[localCells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += time / localCells.size();
-            for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-               mpiGrid[localCells[c]]->parameters[CellParams::LBWEIGHTCOUNTERX] += mpiGrid[localCells[c]]->get_number_of_velocity_blocks(popID);
-               mpiGrid[localCells[c]]->parameters[CellParams::LBWEIGHTCOUNTERY] += mpiGrid[localCells[c]]->get_number_of_velocity_blocks(popID);
-               mpiGrid[localCells[c]]->parameters[CellParams::LBWEIGHTCOUNTERZ] += mpiGrid[localCells[c]]->get_number_of_velocity_blocks(popID);
-            }
+            mpiGrid[localCells[c]]->parameters[CellParams::LBWEIGHTCOUNTERX] += mpiGrid[localCells[c]]->get_number_of_all_velocity_blocks();
+            mpiGrid[localCells[c]]->parameters[CellParams::LBWEIGHTCOUNTERY] += mpiGrid[localCells[c]]->get_number_of_all_velocity_blocks();
+            mpiGrid[localCells[c]]->parameters[CellParams::LBWEIGHTCOUNTERZ] += mpiGrid[localCells[c]]->get_number_of_all_velocity_blocks();
          }
       } else {
 //          const double deltat = MPI_Wtime() - t1;
          for (size_t c=0; c<local_propagated_cells.size(); ++c) {
-            Real counter = 0;
-            for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-               counter += mpiGrid[local_propagated_cells[c]]->get_number_of_velocity_blocks(popID);
-            }
+            Real counter = mpiGrid[local_propagated_cells[c]]->get_number_of_all_velocity_blocks();
             mpiGrid[local_propagated_cells[c]]->parameters[CellParams::LBWEIGHTCOUNTERX] += nPencilsX[c] * counter;
             mpiGrid[local_propagated_cells[c]]->parameters[CellParams::LBWEIGHTCOUNTERY] += nPencilsY[c] * counter;
             mpiGrid[local_propagated_cells[c]]->parameters[CellParams::LBWEIGHTCOUNTERZ] += nPencilsZ[c] * counter;
