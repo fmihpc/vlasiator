@@ -62,8 +62,8 @@ namespace SBC {
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          
-         Readparameters::add(pop + "_ionosphere.taperRadius", "Width of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
-         Readparameters::add(pop + "_ionosphere.rho", "Number density of the ionosphere (m^-3)", 1.0e6);
+         Readparameters::add(pop + "_ionosphere.rho", "Number density of the ionosphere (m^-3)", 0.0);
+         Readparameters::add(pop + "_ionosphere.T", "Temperature of the ionosphere (K)", 0.0);
          Readparameters::add(pop + "_ionosphere.VX0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
          Readparameters::add(pop + "_ionosphere.VY0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
          Readparameters::add(pop + "_ionosphere.VZ0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
@@ -72,37 +72,15 @@ namespace SBC {
    }
    
    void Ionosphere::getParameters() {
-      int myRank;
-      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-      if(!Readparameters::get("ionosphere.centerX", this->center[0])) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("ionosphere.centerY", this->center[1])) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("ionosphere.centerZ", this->center[2])) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("ionosphere.radius", this->radius)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("ionosphere.geometry", this->geometry)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("ionosphere.precedence", this->precedence)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
+   
+      Readparameters::get("ionosphere.centerX", this->center[0]);
+      Readparameters::get("ionosphere.centerY", this->center[1]);
+      Readparameters::get("ionosphere.centerZ", this->center[2]);
+      Readparameters::get("ionosphere.radius", this->radius);
+      Readparameters::get("ionosphere.geometry", this->geometry);
+      Readparameters::get("ionosphere.precedence", this->precedence);
       uint reapply;
-      if(!Readparameters::get("ionosphere.reapplyUponRestart",reapply)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      };
+      Readparameters::get("ionosphere.reapplyUponRestart", reapply);
       this->applyUponRestart = false;
       if(reapply == 1) {
          this->applyUponRestart = true;
@@ -112,38 +90,14 @@ namespace SBC {
         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
         IonosphereSpeciesParameters sP;
 
-        if(!Readparameters::get(pop + "_ionosphere.rho", sP.rho)) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
-        if(!Readparameters::get(pop + "_ionosphere.VX0", sP.V0[0])) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
-        if(!Readparameters::get(pop + "_ionosphere.VY0", sP.V0[1])) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
-        if(!Readparameters::get(pop + "_ionosphere.VZ0", sP.V0[2])) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
-        if(!Readparameters::get(pop + "_ionosphere.fluffiness", sP.fluffiness)) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
-        if(!Readparameters::get(pop + "_Magnetosphere.T", sP.T)) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
-        if(!Readparameters::get(pop + "_Magnetosphere.nSpaceSamples", sP.nSpaceSamples)) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
-        if(!Readparameters::get(pop + "_Magnetosphere.nVelocitySamples", sP.nVelocitySamples)) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
+        Readparameters::get(pop + "_ionosphere.rho", sP.rho);
+        Readparameters::get(pop + "_ionosphere.VX0", sP.V0[0]);
+        Readparameters::get(pop + "_ionosphere.VY0", sP.V0[1]);
+        Readparameters::get(pop + "_ionosphere.VZ0", sP.V0[2]);
+        Readparameters::get(pop + "_ionosphere.fluffiness", sP.fluffiness);
+        Readparameters::get(pop + "_ionosphere.T", sP.T);
+        Readparameters::get(pop + "_Magnetosphere.nSpaceSamples", sP.nSpaceSamples);
+        Readparameters::get(pop + "_Magnetosphere.nVelocitySamples", sP.nVelocitySamples);
 
         speciesParams.push_back(sP);
       }

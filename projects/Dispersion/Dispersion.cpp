@@ -101,17 +101,14 @@ namespace projects {
    
    void Dispersion::hook(
       cuint& stage,
-      const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
+      const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid
    ) const {
       if(hook::END_OF_TIME_STEP == stage) {
          int myRank;
          MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
-         cerr << "Warning, this function does virtually nothing, since B and E are not updated in DCCRG cell params since PR#405" << endl;
-         cerr << "If this is undersirable to you, please implement writing the fields out of fsgrid objects" << endl;
-
-         vector<Real> localRhom(P::xcells_ini, 0.0),
-            outputRhom(P::xcells_ini, 0.0);
+         vector<Real> localRhom(P::xcells_ini, 0.0), outputRhom(P::xcells_ini, 0.0);
 
          const vector<CellID>& cells = getLocalCells();
 
@@ -122,9 +119,36 @@ namespace projects {
          }
          
          MPI_Reduce(&(localRhom[0]), &(outputRhom[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
+
+         vector<Real> localPerBx(P::xcells_ini, 0.0);
+         vector<Real> localPerBy(P::xcells_ini, 0.0);
+         vector<Real> localPerBz(P::xcells_ini, 0.0);
+         vector<Real> outputPerBx(P::xcells_ini, 0.0);
+         vector<Real> outputPerBy(P::xcells_ini, 0.0);
+         vector<Real> outputPerBz(P::xcells_ini, 0.0);
+         
+         const std::array<int32_t, 3> localSize = perBGrid.getLocalSize();
+         const std::array<int32_t, 3> localStart = perBGrid.getLocalStart();
+         for (int x = 0; x < localSize[0]; ++x) {
+            localPerBx[x + localStart[0]] = perBGrid.get(x, 0, 0)->at(fsgrids::bfield::PERBX);
+            localPerBy[x + localStart[0]] = perBGrid.get(x, 0, 0)->at(fsgrids::bfield::PERBY);
+            localPerBz[x + localStart[0]] = perBGrid.get(x, 0, 0)->at(fsgrids::bfield::PERBZ);
+         }
+         
+         MPI_Reduce(&(localPerBx[0]), &(outputPerBx[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
+         MPI_Reduce(&(localPerBy[0]), &(outputPerBy[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
+         MPI_Reduce(&(localPerBz[0]), &(outputPerBz[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
          
          if(myRank == MASTER_RANK) {
             FILE* outputFile = fopen("perBxt.bin", "ab");
+            fwrite(&(outputPerBx[0]), sizeof(outputPerBx[0]), P::xcells_ini, outputFile);
+            fclose(outputFile);
+            outputFile = fopen("perByt.bin", "ab");
+            fwrite(&(outputPerBy[0]), sizeof(outputPerBy[0]), P::xcells_ini, outputFile);
+            fclose(outputFile);
+            outputFile = fopen("perBzt.bin", "ab");
+            fwrite(&(outputPerBz[0]), sizeof(outputPerBz[0]), P::xcells_ini, outputFile);
+            fclose(outputFile);
             outputFile = fopen("rhomt.bin", "ab");
             fwrite(&(outputRhom[0]), sizeof(outputRhom[0]), P::xcells_ini, outputFile);
             fclose(outputFile);
