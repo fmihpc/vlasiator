@@ -1007,15 +1007,15 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             dz_rp = cellZ < 0 ? 0 : DZ;
             rsquare_minus = (cellX + dx_rm) * (cellX + dx_rm) + (cellY + dy_rm) * (cellY + dy_rm) + (cellZ + dz_rm) * (cellZ + dz_rm);
             rsquare_plus  = (cellX + dx_rp) * (cellX + dx_rp) + (cellY + dy_rp) * (cellY + dy_rp) + (cellZ + dz_rp) * (cellZ + dz_rp);
-            // The above method can results in face-neighboring cells both intersecting the sphere and both getting saved if
-            // The relevant stride to use is in a different direction.
+            // Sometimes two face-neighboring cells can both intersect the sphere. In these cases, if the
+            // stride applied in that region is in a different direction than the neighborhood, both cells will be saved.
             withinshell = (rsquare_minus <= shellRadiusSquare && rsquare_plus > shellRadiusSquare &&
                                 P::systemWriteDistributionWriteShellStride[ishell] > 0);
             if (withinshell) {
                if (P::xcells_ini!=1 && P::ycells_ini!=1 && P::zcells_ini!=1) {
-                  // 3D simulation, stride from cellid
-                  //stridecheck = (cells[i] % P::systemWriteDistributionWriteShellStride[ishell] == 0);
-                  // Find dominant coordinate
+                  // 3D simulation, old stride from cellid
+                  // stridecheck = (cells[i] % P::systemWriteDistributionWriteShellStride[ishell] == 0);
+                  // Now: find dominant coordinate
                   if (abs(cellX)>max(abs(cellY),abs(cellZ))) {
                      // X-dominant, strides from Y and Z
                      stridecheck = ((int)(abs(cellY)/DY) % P::systemWriteDistributionWriteShellStride[ishell] == 0)
