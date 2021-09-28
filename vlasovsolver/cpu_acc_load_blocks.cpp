@@ -127,6 +127,26 @@ for dimension in range(0, 2):
          values[i_pcolumnv_b(2, 3, block_k, n_blocks)] = gather4d<11 ,27 ,43 ,59>(data);
          values[i_pcolumnv_b(3, 3, block_k, n_blocks)] = gather4d<15 ,31 ,47 ,63>(data);
    #endif //VEC4D_AGNER
+
+#if defined(VEC4F_FALLBACK) || defined(VEC4D_FALLBACK)
+         values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = Vec(data[0], data[16], data[32], data[48]);
+         values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = Vec(data[4], data[20], data[36], data[52]);
+         values[i_pcolumnv_b(2, 0, block_k, n_blocks)] = Vec(data[8], data[24], data[40], data[56]);
+         values[i_pcolumnv_b(3, 0, block_k, n_blocks)] = Vec(data[12], data[28], data[44], data[60]);
+         values[i_pcolumnv_b(0, 1, block_k, n_blocks)] = Vec(data[1], data[17], data[33], data[49]);
+         values[i_pcolumnv_b(1, 1, block_k, n_blocks)] = Vec(data[5], data[21], data[37], data[53]);
+         values[i_pcolumnv_b(2, 1, block_k, n_blocks)] = Vec(data[9], data[25], data[41], data[57]);
+         values[i_pcolumnv_b(3, 1, block_k, n_blocks)] = Vec(data[13], data[29], data[45], data[61]);
+         values[i_pcolumnv_b(0, 2, block_k, n_blocks)] = Vec(data[2], data[18], data[34], data[50]);
+         values[i_pcolumnv_b(1, 2, block_k, n_blocks)] = Vec(data[6], data[22], data[38], data[54]);
+         values[i_pcolumnv_b(2, 2, block_k, n_blocks)] = Vec(data[10], data[26], data[42], data[58]);
+         values[i_pcolumnv_b(3, 2, block_k, n_blocks)] = Vec(data[14], data[30], data[46], data[62]);
+         values[i_pcolumnv_b(0, 3, block_k, n_blocks)] = Vec(data[3], data[19], data[35], data[51]);
+         values[i_pcolumnv_b(1, 3, block_k, n_blocks)] = Vec(data[7], data[23], data[39], data[55]);
+         values[i_pcolumnv_b(2, 3, block_k, n_blocks)] = Vec(data[11], data[27], data[43], data[59]);
+         values[i_pcolumnv_b(3, 3, block_k, n_blocks)] = Vec(data[15], data[31], data[47], data[63]);
+#endif //VEC4F_FALLBACK || VEC4D_FALLBACK
+
    #ifdef VEC8F_AGNER
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = gather8f<0 ,16 ,32 ,48 ,4 ,20 ,36 ,52>(data);
          values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = gather8f<8 ,24 ,40 ,56 ,12 ,28 ,44 ,60>(data);
@@ -147,6 +167,18 @@ for dimension in range(0, 2):
          values[i_pcolumnv_b(0, 3, block_k, n_blocks)] = gather8d<3 ,19 ,35 ,51 ,7 ,23 ,39 ,55>(data);
          values[i_pcolumnv_b(1, 3, block_k, n_blocks)] = gather8d<11 ,27 ,43 ,59 ,15 ,31 ,47 ,63>(data);
    #endif //VEC8D_AGNER
+
+#if defined(VEC8F_FALLBACK) || defined(VEC8D_FALLBACK)
+         values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = Vec(data[0], data[16], data[32], data[48], data[4], data[20], data[36], data[52]);
+         values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = Vec(data[8], data[24], data[40], data[56], data[12], data[28], data[44], data[60]);
+         values[i_pcolumnv_b(0, 1, block_k, n_blocks)] = Vec(data[1], data[17], data[33], data[49], data[5], data[21], data[37], data[53]);
+         values[i_pcolumnv_b(1, 1, block_k, n_blocks)] = Vec(data[9], data[25], data[41], data[57], data[13], data[29], data[45], data[61]);
+         values[i_pcolumnv_b(0, 2, block_k, n_blocks)] = Vec(data[2], data[18], data[34], data[50], data[6], data[22], data[38], data[54]);
+         values[i_pcolumnv_b(1, 2, block_k, n_blocks)] = Vec(data[10], data[26], data[42], data[58], data[14], data[30], data[46], data[62]);
+         values[i_pcolumnv_b(0, 3, block_k, n_blocks)] = Vec(data[3], data[19], data[35], data[51], data[7], data[23], data[39], data[55]);
+         values[i_pcolumnv_b(1, 3, block_k, n_blocks)] = Vec(data[11], data[27], data[43], data[59], data[15], data[31], data[47], data[63]);
+#endif //VEC8F_FALLBACK || VEC8D_FALLBACK
+
    #ifdef VEC16F_AGNER
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = gather16f<0 ,16 ,32 ,48 ,4 ,20 ,36 ,52 ,8 ,24 ,40 ,56 ,12 ,28 ,44 ,60>(data);
          values[i_pcolumnv_b(0, 1, block_k, n_blocks)] = gather16f<1 ,17 ,33 ,49 ,5 ,21 ,37 ,53 ,9 ,25 ,41 ,57 ,13 ,29 ,45 ,61>(data);
@@ -186,6 +218,26 @@ for dimension in range(0, 2):
          values[i_pcolumnv_b(2, 3, block_k, n_blocks)] = gather4f<44 ,45 ,46 ,47>(data);
          values[i_pcolumnv_b(3, 3, block_k, n_blocks)] = gather4f<60 ,61 ,62 ,63>(data);
    #endif //VEC4F_AGNER
+
+#if defined(VEC4F_FALLBACK) || defined(VEC4D_FALLBACK)
+         values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = Vec(data[0], data[1], data[2], data[3]);
+         values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = Vec(data[16], data[17], data[18], data[19]);
+         values[i_pcolumnv_b(2, 0, block_k, n_blocks)] = Vec(data[32], data[33], data[34], data[35]);
+         values[i_pcolumnv_b(3, 0, block_k, n_blocks)] = Vec(data[48], data[49], data[50], data[51]);
+         values[i_pcolumnv_b(0, 1, block_k, n_blocks)] = Vec(data[4], data[5], data[6], data[7]);
+         values[i_pcolumnv_b(1, 1, block_k, n_blocks)] = Vec(data[20], data[21], data[22], data[23]);
+         values[i_pcolumnv_b(2, 1, block_k, n_blocks)] = Vec(data[36], data[37], data[38], data[39]);
+         values[i_pcolumnv_b(3, 1, block_k, n_blocks)] = Vec(data[52], data[53], data[54], data[55]);
+         values[i_pcolumnv_b(0, 2, block_k, n_blocks)] = Vec(data[8], data[9], data[10], data[11]);
+         values[i_pcolumnv_b(1, 2, block_k, n_blocks)] = Vec(data[24], data[25], data[26], data[27]);
+         values[i_pcolumnv_b(2, 2, block_k, n_blocks)] = Vec(data[40], data[41], data[42], data[43]);
+         values[i_pcolumnv_b(3, 2, block_k, n_blocks)] = Vec(data[56], data[57], data[58], data[59]);
+         values[i_pcolumnv_b(0, 3, block_k, n_blocks)] = Vec(data[12], data[13], data[14], data[15]);
+         values[i_pcolumnv_b(1, 3, block_k, n_blocks)] = Vec(data[28], data[29], data[30], data[31]);
+         values[i_pcolumnv_b(2, 3, block_k, n_blocks)] = Vec(data[44], data[45], data[46], data[47]);
+         values[i_pcolumnv_b(3, 3, block_k, n_blocks)] = Vec(data[60], data[61], data[62], data[63]);
+#endif //VEC4F_FALLBACK || VEC4D_FALLBACK
+
    #ifdef VEC4D_AGNER
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = gather4d<0 ,1 ,2 ,3>(data);
          values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = gather4d<16 ,17 ,18 ,19>(data);
@@ -224,6 +276,18 @@ for dimension in range(0, 2):
          values[i_pcolumnv_b(0, 3, block_k, n_blocks)] = gather8d<12 ,13 ,14 ,15 ,28 ,29 ,30 ,31>(data);
          values[i_pcolumnv_b(1, 3, block_k, n_blocks)] = gather8d<44 ,45 ,46 ,47 ,60 ,61 ,62 ,63>(data);
    #endif //VEC8D_AGNER
+
+#if defined (VEC8F_FALLBACK) || defined (VEC8D_FALLBACK)
+         values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = Vec(data[0], data[1], data[2], data[3], data[16], data[17], data[18], data[19]);
+         values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = Vec(data[32], data[33], data[34], data[35], data[48], data[49], data[50], data[51]);
+         values[i_pcolumnv_b(0, 1, block_k, n_blocks)] = Vec(data[4], data[5], data[6], data[7], data[20], data[21], data[22], data[23]);
+         values[i_pcolumnv_b(1, 1, block_k, n_blocks)] = Vec(data[36], data[37], data[38], data[39], data[52], data[53], data[54], data[55]);
+         values[i_pcolumnv_b(0, 2, block_k, n_blocks)] = Vec(data[8], data[9], data[10], data[11], data[24], data[25], data[26], data[27]);
+         values[i_pcolumnv_b(1, 2, block_k, n_blocks)] = Vec(data[40], data[41], data[42], data[43], data[56], data[57], data[58], data[59]);
+         values[i_pcolumnv_b(0, 3, block_k, n_blocks)] = Vec(data[12], data[13], data[14], data[15], data[28], data[29], data[30], data[31]);
+         values[i_pcolumnv_b(1, 3, block_k, n_blocks)] = Vec(data[44], data[45], data[46], data[47], data[60], data[61], data[62], data[63]);
+#endif //VEC8F_FALLBACK || VEC8D_FALLBACK
+
    #ifdef VEC16F_AGNER
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = gather16f<0 ,1 ,2 ,3 ,16 ,17 ,18 ,19 ,32 ,33 ,34 ,35 ,48 ,49 ,50 ,51>(data);
          values[i_pcolumnv_b(0, 1, block_k, n_blocks)] = gather16f<4 ,5 ,6 ,7 ,20 ,21 ,22 ,23 ,36 ,37 ,38 ,39 ,52 ,53 ,54 ,55>(data);

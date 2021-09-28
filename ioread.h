@@ -26,6 +26,7 @@
 #include <dccrg_cartesian_geometry.hpp>
 #include <string>
 
+#include "definitions.h"
 #include "spatial_cell.hpp"
 #include "datareduction/datareducer.h"
 
@@ -37,9 +38,9 @@
 \param name Name of the restart file e.g. "restart.00052.vlsv"
 */
 bool readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
-      FsGrid< fsgrids::technical, 2>& technicalGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
               const std::string& name);
 
 

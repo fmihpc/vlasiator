@@ -47,12 +47,7 @@ namespace projects {
       Parameters::getParameters();
 
       typedef Readparameters RP;
-      int myRank;
-      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-      if(!RP::get("Template.param", this->param)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
+      RP::get("Template.param", this->param);
    }
    
    bool Template::initialize() {
@@ -72,9 +67,9 @@ namespace projects {
    }
    
    void Template::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
-      FsGrid< fsgrids::technical, 2>& technicalGrid
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
    ) {
       Dipole bgField;
       bgField.initialize(8e15, 0.0, 0.0, 0.0, 0.0); //set dipole moment and location
