@@ -163,7 +163,10 @@ void calculateWaveSpeedYZ(
    // Simulations which predominantly contain heavier ion species will have to change this!
    //
    // See
-   // https://www.ann-geophys.net/26/1605/2008/  (Whistler waves)
+   // T E Stringer, Low-frequency waves in an unbounded plasma
+   // Journal of Nuclear Energy. Part C, Plasma Physics, Accelerators, Thermonuclear Research
+   // Volume 5, Number 2, page 89
+   // Section BC in Fig. 1 and Table 1, referneced later e.g. by Gary.
    // and
    // http://iopscience.iop.org/article/10.1088/0253-6102/43/2/026/meta (Alfven waves)
    // for details.
@@ -281,7 +284,10 @@ void calculateWaveSpeedXZ(
    // Simulations which predominantly contain heavier ion species will have to change this!
    //
    // See
-   // https://www.ann-geophys.net/26/1605/2008/  (Whistler waves)
+   // T E Stringer, Low-frequency waves in an unbounded plasma
+   // Journal of Nuclear Energy. Part C, Plasma Physics, Accelerators, Thermonuclear Research
+   // Volume 5, Number 2, page 89
+   // Section BC in Fig. 1 and Table 1, referneced later e.g. by Gary.
    // and
    // http://iopscience.iop.org/article/10.1088/0253-6102/43/2/026/meta (Alfven waves)
    // for details.
@@ -399,7 +405,10 @@ void calculateWaveSpeedXY(
    // Simulations which predominantly contain heavier ion species will have to change this!
    //
    // See
-   // https://www.ann-geophys.net/26/1605/2008/  (Whistler waves)
+   // T E Stringer, Low-frequency waves in an unbounded plasma
+   // Journal of Nuclear Energy. Part C, Plasma Physics, Accelerators, Thermonuclear Research
+   // Volume 5, Number 2, page 89
+   // Section BC in Fig. 1 and Table 1, referneced later e.g. by Gary.
    // and
    // http://iopscience.iop.org/article/10.1088/0253-6102/43/2/026/meta (Alfven waves)
    // for details.
