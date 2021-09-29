@@ -41,6 +41,11 @@ static bool checkExistingNeighbour(SpatialCell* cell, Realf VX, Realf VY, Realf 
       return blockLID != vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID();
 }
 
+Real geoMean(Real var1, Real var2, Real delta){ 
+      
+      return( exp((1.0/2.0) * (log(var1 + delta) + log(var2 + delta))) - delta );
+}
+
 void velocitySpaceDiffusion(
         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID){
 
@@ -111,8 +116,9 @@ void velocitySpaceDiffusion(
                       Realf dfdcoordLeft  = (CellValue - CellValueLeft)/DV;
      
                       // First derivatives at the center of the cell
-                      arrayDFdcoordFirst[WID3*n+i+WID*j+WID*WID*k][coord] = (dfdcoordRight + dfdcoordLeft)/2.0; 
-                    
+                      //arrayDFdcoordFirst[WID3*n+i+WID*j+WID*WID*k][coord] = (dfdcoordRight + dfdcoordLeft)/2.0; 
+                      arrayDFdcoordFirst[WID3*n+i+WID*j+WID*WID*k][coord] = geoMean(dfdcoordRight,dfdcoordLeft,Sparsity);
+
                       // Second derivatives at the center of the cell
                       arrayDFdcoordSecond[WID3*n+i+WID*j+WID*WID*k][coord] = (CellValueRight - 2*CellValue + CellValueLeft)/(DV*DV);     
 
@@ -142,7 +148,7 @@ void velocitySpaceDiffusion(
                          = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
 	    
                     // 19 cell values
-                    Realf CellValue     = cell.get_value(VX,VY,VZ,popID);
+                    Realf CellValue     = cell.get_value(VX,   VY,   VZ,   popID);
                     Realf CellValuePX   = cell.get_value(VX+DV,VY,   VZ,   popID);
                     Realf CellValueMX   = cell.get_value(VX-DV,VY,   VZ,   popID);
                     Realf CellValuePY   = cell.get_value(VX,   VY+DV,VZ,   popID);
@@ -167,102 +173,126 @@ void velocitySpaceDiffusion(
                         //dvx        
                     Realf dfdxPX     = (CellValuePX - CellValue)/DV;
                     Realf dfdxMX     = (CellValue - CellValueMX)/DV;
-                    Realf dfdxCenter = (dfdxPX + dfdxMX)/2.0;
+                    //Realf dfdxCenter = (dfdxPX + dfdxMX)/2.0;
+                    Realf dfdxCenter = geoMean(dfdxPX,dfdxMX,Sparsity);
                         //dvy
                     Realf dfdyPY     = (CellValuePY - CellValue)/DV;
                     Realf dfdyMY     = (CellValue - CellValueMY)/DV;
-                    Realf dfdyCenter = (dfdyPY + dfdyMY)/2.0;
+                    //Realf dfdyCenter = (dfdyPY + dfdyMY)/2.0;
+                    Realf dfdyCenter = geoMean(dfdyPY,dfdyMY,Sparsity);
                         //dvz
                     Realf dfdzPZ     = (CellValuePZ - CellValue)/DV;
                     Realf dfdzMZ     = (CellValue - CellValueMZ)/DV;
-                    Realf dfdzCenter = (dfdzPZ + dfdzMZ)/2.0;
+                    //Realf dfdzCenter = (dfdzPZ + dfdzMZ)/2.0;
+                    Realf dfdzCenter = geoMean(dfdzPZ,dfdzMZ,Sparsity);
 
 
                     // d2f/dvxdvy
                         //dvx first
                     Realf dfdxPXPY   = (CellValuePXPY - CellValuePY)/DV;
                     Realf dfdxMXPY   = (CellValuePY - CellValueMXPY)/DV;
-                    Realf dfdxPY     = (dfdxPXPY + dfdxMXPY)/2.0;
- 
+                    //Realf dfdxPY     = (dfdxPXPY + dfdxMXPY)/2.0;
+                    Realf dfdxPY     = geoMean(dfdxPXPY,dfdxMXPY,Sparsity);
+                      
                     Realf dfdxPXMY   = (CellValuePXMY - CellValueMY)/DV;
                     Realf dfdxMXMY   = (CellValueMY - CellValueMXMY)/DV;
-                    Realf dfdxMY     = (dfdxPXMY + dfdxMXMY)/2.0;
+                    //Realf dfdxMY     = (dfdxPXMY + dfdxMXMY)/2.0;
+                    Realf dfdxMY     = geoMean(dfdxPXMY,dfdxMXMY,Sparsity);
 
-                    Realf dfdxdyPY = (dfdxPY - dfdxCenter)/DV;
-                    Realf dfdxdyMY = (dfdxCenter - dfdxMY)/DV;
-                    Realf dfdxdy   = (dfdxdyPY + dfdxdyMY)/2.0;
+                    Realf dfdxdyPY   = (dfdxPY - dfdxCenter)/DV;
+                    Realf dfdxdyMY   = (dfdxCenter - dfdxMY)/DV;
+                    //Realf dfdxdy   = (dfdxdyPY + dfdxdyMY)/2.0;
+                    Realf dfdxdy     = geoMean(dfdxdyPY,dfdxdyMY,Sparsity);
                         //dvy first
                     Realf dfdyPXPY   = (CellValuePXPY - CellValuePX)/DV;
                     Realf dfdyPXMY   = (CellValuePX - CellValuePXMY)/DV;
-                    Realf dfdyPX     = (dfdyPXPY + dfdyPXMY)/2.0;
+                    //Realf dfdyPX     = (dfdyPXPY + dfdyPXMY)/2.0;
+                    Realf dfdyPX     = geoMean(dfdyPXPY,dfdyPXMY,Sparsity);
  
                     Realf dfdyMXPY   = (CellValueMXPY - CellValueMX)/DV;
                     Realf dfdyMXMY   = (CellValueMX - CellValueMXMY)/DV;
-                    Realf dfdyMX     = (dfdyMXPY + dfdyMXMY)/2.0;
+                    //Realf dfdyMX     = (dfdyMXPY + dfdyMXMY)/2.0;
+                    Realf dfdyMX     = geoMean(dfdyMXPY,dfdyMXMY,Sparsity);
 
-                    Realf dfdydxPX = (dfdyPX - dfdyCenter)/DV;
-                    Realf dfdydxMX = (dfdyCenter - dfdyMX)/DV;
-                    Realf dfdydx   = (dfdydxPX + dfdydxMX)/2.0;
+                    Realf dfdydxPX   = (dfdyPX - dfdyCenter)/DV;
+                    Realf dfdydxMX   = (dfdyCenter - dfdyMX)/DV;
+                    //Realf dfdydx   = (dfdydxPX + dfdydxMX)/2.0;
+                    Realf dfdydx     = geoMean(dfdydxPX,dfdydxMX,Sparsity);
                         //average
-                    arrayDFdVXdVY[WID3*n+i+WID*j+WID*WID*k] = (dfdxdy + dfdydx)/2.0;
+                    //arrayDFdVXdVY[WID3*n+i+WID*j+WID*WID*k] = (dfdxdy + dfdydx)/2.0;
+                    arrayDFdVXdVY[WID3*n+i+WID*j+WID*WID*k] = geoMean(dfdxdy,dfdydx,Sparsity);
    
 
                     // d2f/dvxdvz
                         //dvx first
                     Realf dfdxPXPZ   = (CellValuePXPZ - CellValuePZ)/DV;
                     Realf dfdxMXPZ   = (CellValuePZ - CellValueMXPZ)/DV;
-                    Realf dfdxPZ     = (dfdxPXPZ + dfdxMXPZ)/2.0;
+                    //Realf dfdxPZ     = (dfdxPXPZ + dfdxMXPZ)/2.0;
+                    Realf dfdxPZ     = geoMean(dfdxPXPZ,dfdxMXPZ,Sparsity);
  
                     Realf dfdxPXMZ   = (CellValuePXMZ - CellValueMZ)/DV;
                     Realf dfdxMXMZ   = (CellValueMZ - CellValueMXMZ)/DV;
-                    Realf dfdxMZ     = (dfdxPXMZ + dfdxMXMZ)/2.0;
+                    //Realf dfdxMZ     = (dfdxPXMZ + dfdxMXMZ)/2.0;
+                    Realf dfdxMZ     = geoMean(dfdxPXMZ,dfdxMXMZ,Sparsity);
 
-                    Realf dfdxdzPZ = (dfdxPZ - dfdxCenter)/DV;
-                    Realf dfdxdzMZ = (dfdxCenter - dfdxMZ)/DV;
-                    Realf dfdxdz   = (dfdxdzPZ + dfdxdzMZ)/2.0;
+                    Realf dfdxdzPZ   = (dfdxPZ - dfdxCenter)/DV;
+                    Realf dfdxdzMZ   = (dfdxCenter - dfdxMZ)/DV;
+                    //Realf dfdxdz   = (dfdxdzPZ + dfdxdzMZ)/2.0;
+                    Realf dfdxdz     = geoMean(dfdxdzPZ,dfdxdzMZ,Sparsity);
                         //dvz first
                     Realf dfdzPXPZ   = (CellValuePXPZ - CellValuePX)/DV;
                     Realf dfdzPXMZ   = (CellValuePX - CellValuePXMZ)/DV;
-                    Realf dfdzPX     = (dfdzPXPZ + dfdzPXMZ)/2.0;
+                    //Realf dfdzPX     = (dfdzPXPZ + dfdzPXMZ)/2.0;
+                    Realf dfdzPX     = geoMean(dfdzPXPZ,dfdzPXMZ,Sparsity);
  
                     Realf dfdzMXPZ   = (CellValueMXPZ - CellValueMX)/DV;
                     Realf dfdzMXMZ   = (CellValueMX - CellValueMXMZ)/DV;
-                    Realf dfdzMX     = (dfdzMXPZ + dfdzMXMZ)/2.0;
+                    //Realf dfdzMX     = (dfdzMXPZ + dfdzMXMZ)/2.0;
+                    Realf dfdzMX     = geoMean(dfdzMXPZ,dfdzMXMZ,Sparsity);
 
-                    Realf dfdzdxPX = (dfdzPX - dfdzCenter)/DV;
-                    Realf dfdzdxMX = (dfdzCenter - dfdzMX)/DV;
-                    Realf dfdzdx   = (dfdzdxPX + dfdzdxMX)/2.0;
+                    Realf dfdzdxPX   = (dfdzPX - dfdzCenter)/DV;
+                    Realf dfdzdxMX   = (dfdzCenter - dfdzMX)/DV;
+                    //Realf dfdzdx   = (dfdzdxPX + dfdzdxMX)/2.0;
+                    Realf dfdzdx     = geoMean(dfdzdxPX,dfdzdxMX,Sparsity);
                         //average
-	            arrayDFdVXdVZ[WID3*n+i+WID*j+WID*WID*k] = (dfdxdz + dfdzdx)/2.0;
+	            //arrayDFdVXdVZ[WID3*n+i+WID*j+WID*WID*k] = (dfdxdz + dfdzdx)/2.0;
+	            arrayDFdVXdVZ[WID3*n+i+WID*j+WID*WID*k] = geoMean(dfdxdz,dfdzdx,Sparsity);
 
 
                     // d2f/dvydvz
                         //dvy first
                     Realf dfdyPYPZ   = (CellValuePYPZ - CellValuePZ)/DV;
                     Realf dfdyMYPZ   = (CellValuePZ - CellValueMYPZ)/DV;
-                    Realf dfdyPZ     = (dfdyPYPZ + dfdyMYPZ)/2.0;
+                    //Realf dfdyPZ     = (dfdyPYPZ + dfdyMYPZ)/2.0;
+                    Realf dfdyPZ     = geoMean(dfdyPYPZ,dfdyMYPZ,Sparsity);
  
                     Realf dfdyPYMZ   = (CellValuePYMZ - CellValueMZ)/DV;
                     Realf dfdyMYMZ   = (CellValueMZ - CellValueMYMZ)/DV;
-                    Realf dfdyMZ     = (dfdyPYMZ + dfdyMYMZ)/2.0;
+                    //Realf dfdyMZ     = (dfdyPYMZ + dfdyMYMZ)/2.0;
+                    Realf dfdyMZ     = geoMean(dfdyPYMZ,dfdyMYMZ,Sparsity);
 
-                    Realf dfdydzPZ = (dfdyPZ - dfdyCenter)/DV;
-                    Realf dfdydzMZ = (dfdyCenter - dfdyMZ)/DV;
-                    Realf dfdydz   = (dfdydzPZ + dfdydzMZ)/2.0;
+                    Realf dfdydzPZ   = (dfdyPZ - dfdyCenter)/DV;
+                    Realf dfdydzMZ   = (dfdyCenter - dfdyMZ)/DV;
+                    //Realf dfdydz   = (dfdydzPZ + dfdydzMZ)/2.0;
+                    Realf dfdydz     = geoMean(dfdydzPZ,dfdydzMZ,Sparsity);
                         //dvz first
                     Realf dfdzPYPZ   = (CellValuePYPZ - CellValuePY)/DV;
                     Realf dfdzPYMZ   = (CellValuePY - CellValuePYMZ)/DV;
-                    Realf dfdzPY     = (dfdzPYPZ + dfdzPYMZ)/2.0;
+                    //Realf dfdzPY     = (dfdzPYPZ + dfdzPYMZ)/2.0;
+                    Realf dfdzPY     = geoMean(dfdzPYPZ,dfdzPYMZ,Sparsity);
  
                     Realf dfdzMYPZ   = (CellValueMYPZ - CellValueMY)/DV;
                     Realf dfdzMYMZ   = (CellValueMY - CellValueMYMZ)/DV;
-                    Realf dfdzMY     = (dfdzMYPZ + dfdzMYMZ)/2.0;
+                    //Realf dfdzMY     = (dfdzMYPZ + dfdzMYMZ)/2.0;
+                    Realf dfdzMY     = geoMean(dfdzMYPZ,dfdzMYMZ,Sparsity);
 
-                    Realf dfdzdyPY = (dfdzPY - dfdzCenter)/DV;
-                    Realf dfdzdyMY = (dfdzCenter - dfdzMY)/DV;
-                    Realf dfdzdy   = (dfdzdyPY + dfdzdyMY)/2.0;
+                    Realf dfdzdyPY   = (dfdzPY - dfdzCenter)/DV;
+                    Realf dfdzdyMY   = (dfdzCenter - dfdzMY)/DV;
+                    //Realf dfdzdy   = (dfdzdyPY + dfdzdyMY)/2.0;
+                    Realf dfdzdy     = geoMean(dfdzdyPY,dfdzdyMY,Sparsity);
                         //average
-	            arrayDFdVYdVZ[WID3*n+i+WID*j+WID*WID*k] = (dfdydz + dfdzdy)/2.0;
+	            //arrayDFdVYdVZ[WID3*n+i+WID*j+WID*WID*k] = (dfdydz + dfdzdy)/2.0;
+	            arrayDFdVYdVZ[WID3*n+i+WID*j+WID*WID*k] = geoMean(dfdydz,dfdzdy,Sparsity);
 
                 } // End cell loop
 
@@ -336,18 +366,23 @@ void velocitySpaceDiffusion(
                      + (Vplasma[1]*Vplasma[1] + Vplasma[2]*Vplasma[2]) * arrayDFdcoordSecond[WID3*n+i+WID*j+WID*WID*k][0] + Vplasma[0]*Vplasma[0] * Vplasma[2]*Vplasma[2] / (Vplasma[2]*Vplasma[2] + Vplasma[1]*Vplasma[1]) * arrayDFdcoordSecond[WID3*n+i+WID*j+WID*WID*k][2] + Vplasma[0]*Vplasma[0] * Vplasma[1]*Vplasma[1] / (Vplasma[2]*Vplasma[2] + Vplasma[1]*Vplasma[1]) * arrayDFdcoordSecond[WID3*n+i+WID*j+WID*WID*k][1]);
                    // CFL condition
                    Realf CellValue = cell.get_value(VX,VY,VZ,popID);
-                   if (CellValue == 0.0) {CellValue = Sparsity;} //Set CellValue to sparsity Threshold for empty cells otherwise div by 0
-                   checkCFL[WID3*n+i+WID*j+WID*WID*k] = CellValue * Parameters::PADCFL * (1.0 / abs(dfdt[WID3*n+i+WID*j+WID*WID*k]));
+                   if (CellValue < Sparsity) {CellValue = Sparsity;} //Set CellValue to sparsity Threshold for empty cells otherwise div by 0
+                   if (abs(dfdt[WID3*n+i+WID*j+WID*WID*k]) > 0.0) {
+                   checkCFL[WID3*n+i+WID*j+WID*WID*k] = CellValue * Parameters::PADCFL * (1.0 / abs(dfdt[WID3*n+i+WID*j+WID*WID*k]));} else {
+                   checkCFL[WID3*n+i+WID*j+WID*WID*k] = std::numeric_limits<Realf>::max();}
+                   //checkCFL[WID3*n+i+WID*j+WID*WID*k] = 1.0e32;}
 
                 } // End cell loop
 
             } // End block and dfdt loop
 
-            //Calculate Diffusion time step based on min of CFL condition  
-            Realf mincheckCFL = *min_element(checkCFL.begin(),checkCFL.end());
-            Realf Ddt = mincheckCFL; // Diffusion time step
+            //Calculate Diffusion time step based on min of CFL condition
+            std::vector<Realf>::iterator mincheckCFL;
+            mincheckCFL = std::min_element(checkCFL.begin(),checkCFL.end());
+            if (mincheckCFL == checkCFL.end()) {break;}
+            Realf Ddt = *mincheckCFL; // Diffusion time step
             if (Ddt > RemainT) { Ddt = RemainT; }
-            std::cout << "Diffusion dt = " << Ddt << std::endl;
+            //std::cout << "Diffusion dt = " << Ddt << std::endl;
             dtTotalDiff = dtTotalDiff + Ddt;
 
             //Loop to check CFL and update cell
