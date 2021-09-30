@@ -34,7 +34,7 @@
 
 using namespace std;
 
-static bool isInside(Field& B, double R, double x, double y, double z) {
+static bool isInside(Field& B, double R, int x, int y, int z) {
    double R2 = 0;
    std::array<int, 3> xyz{x, y, z};
    for (int i = 0; i < 3; ++i) {
