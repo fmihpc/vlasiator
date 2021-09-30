@@ -2317,7 +2317,7 @@ namespace SBC {
         if(sP.T == 0) {
            // If th usr does *not* specify a temperature, it defaults to the ambient magnetospheric temperature
            // (compare the corresponding handling in projects/Magnetosphere/Magnetosphere.cpp)
-           Readparamters::Get(pop + "_Magntosphere.T", sP.T);
+           Readparameters::get(pop + "_Magntosphere.T", sP.T);
         }
 
         Readparameters::get(pop + "_Magnetosphere.nSpaceSamples", sP.nSpaceSamples);
