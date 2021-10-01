@@ -34,6 +34,7 @@
 #include <array>
 #include <algorithm>
 #include <limits>
+#include <initializer_list>
 
 #include "iowrite.h"
 #include "math.h"
@@ -940,6 +941,7 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       Real dx_rm, dx_rp, dy_rm, dy_rp, dz_rm, dz_rp;
       Real rsquare_minus,rsquare_plus;
       bool withinshell,stridecheck;
+      //#warning TODO: thread evaluation of cells due to trigonometrics in shells?
       for (uint i = 0; i < cells.size(); i++) {
          mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 0.0;
          // CellID stride selection
@@ -951,7 +953,7 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          }
          // Cell lines selection
          // Determine cellID's 3D indices
-	 
+
 	 // Loop over AMR levels
 	 uint startindex=1;
 	 uint endindex=1;
@@ -984,10 +986,12 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 		   ) {
 		  velSpaceCells.push_back(cells[i]);
 		  mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 1.0;
-                  continue; // Avoid double entries in case the cell also matches following conditions.
+                  break; // Avoid double entries in case the cell also matches following conditions.
 	       }
 	    }
 	 }
+         // Avoid double entries in case the cell also matches following conditions.
+         if (mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] > 0) continue;
 
          // Loop over spherical shells at defined distances
          for (uint ishell = 0; ishell < P::systemWriteDistributionWriteShellRadius.size(); ishell++) {
@@ -1012,60 +1016,58 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             withinshell = (rsquare_minus <= shellRadiusSquare && rsquare_plus > shellRadiusSquare &&
                                 P::systemWriteDistributionWriteShellStride[ishell] > 0);
             if (withinshell) {
-               if (P::xcells_ini!=1 && P::ycells_ini!=1 && P::zcells_ini!=1) {
-                  // 3D simulation, old stride from cellid
-                  // stridecheck = (cells[i] % P::systemWriteDistributionWriteShellStride[ishell] == 0);
-                  // Now: find dominant coordinate
-                  if (abs(cellX)>max(abs(cellY),abs(cellZ))) {
-                     // X-dominant, strides from Y and Z
-                     stridecheck = ((int)(abs(cellY)/DY) % P::systemWriteDistributionWriteShellStride[ishell] == 0)
-                        && ((int)(abs(cellZ)/DZ) % P::systemWriteDistributionWriteShellStride[ishell] == 0);
-                     if (abs(abs(cellY)-abs(cellZ))<DY) { // 45 degrees
-                        stridecheck = ((int)(abs(cellX)/DX) % P::systemWriteDistributionWriteShellStride[ishell] == 0);
-                     }
-                  } else if (abs(cellY)>max(abs(cellX),abs(cellZ))) {
-                     // Y-dominant, strides from X and Z
-                     stridecheck = ((int)(abs(cellX)/DX) % P::systemWriteDistributionWriteShellStride[ishell] == 0)
-                        && ((int)(abs(cellZ)/DZ) % P::systemWriteDistributionWriteShellStride[ishell] == 0);
-                     if (abs(abs(cellX)-abs(cellZ))<DX) { // 45 degrees
-                        stridecheck = ((int)(abs(cellY)/DY) % P::systemWriteDistributionWriteShellStride[ishell] == 0);
-                     }
-                  } else {
-                     // Z-dominant, strides from X and Y
-                     stridecheck = ((int)(abs(cellX)/DX) % P::systemWriteDistributionWriteShellStride[ishell] == 0)
-                        && ((int)(abs(cellY)/DY) % P::systemWriteDistributionWriteShellStride[ishell] == 0);
-                     if (abs(abs(cellX)-abs(cellY))<DX) { // 45 degrees
-                        stridecheck = ((int)(abs(cellZ)/DZ) % P::systemWriteDistributionWriteShellStride[ishell] == 0);
-                     }
-                  }
-               } else if (P::ycells_ini==1) {  // 2D meridional, limit based on polar stride
-                  if (abs(abs(cellX)-abs(cellZ))<DX) { // 45 degrees
-                     stridecheck = true;
-                  } else if (abs(cellX)>abs(cellZ)) { // closer to nose
-                     stridecheck = ((int)(abs(cellZ)/DZ) % P::systemWriteDistributionWriteShellStride[ishell] == 0);
-                  } else { // closer to poles
-                     stridecheck = ((int)(abs(cellX)/DX) % P::systemWriteDistributionWriteShellStride[ishell] == 0);
-                  }
-               } else if (P::zcells_ini==1) {  // 2D equatorial, limit based on nose stride
-                  if (abs(abs(cellX)-abs(cellY))<DX) { // 45 degrees
-                     stridecheck = true;
-                  } else if (abs(cellX)>abs(cellY)) { // closer to nose
-                     stridecheck = ((int)(abs(cellY)/DY) % P::systemWriteDistributionWriteShellStride[ishell] == 0);
-                  } else { // closer to dawn/dusk
-                     stridecheck = ((int)(abs(cellX)/DX) % P::systemWriteDistributionWriteShellStride[ishell] == 0);
-                  }
-               } else if (P::xcells_ini==1) { // X-Y plane run, limit based on polar stride
-                  if (abs(abs(cellY)-abs(cellZ))<DX) { // 45 degrees
-                     stridecheck = true;
-                  } else if (abs(cellY)>abs(cellZ)) { // closer to dawn/dusk
-                     stridecheck = ((int)(abs(cellZ)/DZ) % P::systemWriteDistributionWriteShellStride[ishell] == 0);
-                  } else { // closer to poles
-                     stridecheck = ((int)(abs(cellY)/DY) % P::systemWriteDistributionWriteShellStride[ishell] == 0);
-                  }
+               // sort centerpoints
+               std::array<Real, 3> s = {abs(cellX+0.5*DX),abs(cellY+0.5*DY),abs(cellZ+0.5*DZ)};
+               std::sort(s.begin(), s.end());
+               Real shellR = P::systemWriteDistributionWriteShellRadius[ishell];
+               int shellS = P::systemWriteDistributionWriteShellStride[ishell];
+               // After this, assumes DX==DY==DZ
+               // Dominant direction (+-x,+-y,+-z) is the one not directly used for strides.
+               Real D = s[2];
+               // Tangential direction
+               Real T;
+               // Clock angle distance for stride steps
+               Real clock;
+               if ((P::xcells_ini==1) || (P::ycells_ini==1) || (P::zcells_ini==1)) {
+                  // 1D or 2D simulation
+                  T = s[1];
+                  clock = 0;
+               } else { // 3D simulation
+                  T = sqrt(s[0]*s[0]+s[1]*s[1]);
+                  clock = T*atan(s[0]/s[1]);
                }
+               // Distance along shell along great circle away from dominant coordinate
+               Real dist =  shellR * atan(T/D);
+               // Now find the closest point(s) which fulfills the stride requirement
+               dist = DX * shellS * round(dist/DX/shellS);
+               clock = DX * shellS * round(clock/DX/shellS);
+
+               // Find Cartesian coordinates of this stridepoint
+               Real D2 = shellR * cos(dist/shellR);
+               Real T2 = shellR * sin(dist/shellR);
+
+               stridecheck = true;
+               // Now check if the stridepoint is exactly in this cell
+               if ((P::xcells_ini==1) || (P::ycells_ini==1) || (P::zcells_ini==1)) {
+                  // 1D or 2D
+                  if ( (abs(D2-D)>0.5*DX) || (abs(T2-T)>0.5*DX) ) stridecheck=false;
+                  // Special case for corners:
+                  if (abs(D-T)<0.5*DX) stridecheck=true;
+               } else {
+                  // 3D simulation, account for clock angle
+                  Real T2A = T2 * cos(clock/T2);
+                  Real T2B = T2 * sin(clock/T2);
+                  if ((abs(D2-D)>0.5*DX) || (abs(T2A-s[1])>0.5*DX) || (abs(T2B-s[0])>0.5*DX) ) stridecheck =false;
+                  // Special case for corners:
+                  if ( (abs(s[1]-s[0])<0.5*DX) && (abs(D2-D)<=0.5*DX) ) stridecheck=true;
+               }
+               // Only save 1 cell touching axes
+               if ( (cellX==-DX) || (cellY==-DY) || (cellZ==-DZ) ) stridecheck=false;
+
                if (stridecheck) {
                   velSpaceCells.push_back(cells[i]);
                   mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 1.0;
+                  break; // Avoid double entries in case the cell also matches following conditions.
                }
             }
          }
