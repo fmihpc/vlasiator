@@ -30,6 +30,7 @@
 #include <array>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <stdio.h>
 
 #include "ioread.h"
 #include "phiprof.hpp"
@@ -887,7 +888,11 @@ template<unsigned long int N> bool readFsGridVariable(
       targetGrid.computeDomainDecomposition(globalSize, numWritingRanks, fileDecomposition);
 
       // Iterate through tasks and find their overlap with our domain.
-      size_t fileOffset = 0;
+      uint64_t fileOffset = 0, offset=0;
+
+      file.startMultiread("VARIABLE", attribs);
+      std::vector<std::vector<Real>> vectorOfBuffers;
+
       for(int task = 0; task < numWritingRanks; task++) {
          std::array<int32_t,3> thatTasksSize;
          std::array<int32_t,3> thatTasksStart;
@@ -915,33 +920,88 @@ template<unsigned long int N> bool readFsGridVariable(
 
          // Read into buffer
          std::vector<Real> buffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
+         vectorOfBuffers.push_back(buffer);
 
-         phiprof::start("readArray");
+         phiprof::start("multiRead");
 
-         file.startMultiread("VARIABLE", attribs);
          // Read every source rank that we have an overlap with.
          if(overlapSize[0]*overlapSize[1]*overlapSize[2] > 0) {
-
-
             if(!convertFloatType) {
-               if(file.addMultireadUnit((char*)buffer.data(), thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2])==false) {
-                  logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
+               if(file.addMultireadUnit((char*)(vectorOfBuffers.at(task).data()), thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2], offset)==false) {
+                  logFile << "(RESTART)  ERROR: Failed to addMultireadUnit when reading fsgrid variable " << variableName << endl << write;
                   return false;
                }
-               file.endMultiread(fileOffset);
             } else {
-               std::vector<float> readBuffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
-               if(file.addMultireadUnit((char*)readBuffer.data(), thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2])==false) {
-                  logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
-                  return false;
-               }
-               file.endMultiread(fileOffset);
-
-               for(uint64_t i=0; i< thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N; i++) {
-                  buffer[i]=readBuffer[i];
-               }
+abort();
+//               std::vector<float> readBuffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
+//               if(file.addMultireadUnit((char*)readBuffer.data(), thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2])==false) {
+//                  logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
+//                  return false;
+//               }
+//               file.endMultiread(fileOffset);
+//
+//               for(uint64_t i=0; i< thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N; i++) {
+//                  buffer[i]=readBuffer[i];
+//               }
             }
 
+         } else {
+            // If we don't overlap, just perform a dummy read.
+            //file.addMultireadUnit((char*)vectorOfBuffers.back().data(),0,offset);
+         }
+//         printf("%d %d\n", myRank, offset);
+         offset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2] * N * sizeof(Real);
+         phiprof::stop("multiRead");
+      }
+      
+      if(file.endMultiread(fileOffset) == false) {
+         logFile << "(RESTART)  ERROR: Failed to endMultiread while reading fsgrid variable " << variableName << endl << write;
+         return false;
+      }
+      
+//if(myRank == 0) {
+//   int i=0;
+//   for(auto vector : vectorOfBuffers) {
+//      int j=0;
+//      for(auto entry : vector) {
+//         printf("%d %d %d %e\n", myRank, i, j, entry);
+//         j++;
+         //cerr << toto;
+//      }
+//      i++;
+//   }
+//}
+
+      for(int task = 0; task < numWritingRanks; task++) {
+         std::array<int32_t,3> thatTasksSize;
+         std::array<int32_t,3> thatTasksStart;
+         thatTasksSize[0] = targetGrid.calcLocalSize(globalSize[0], fileDecomposition[0], task/fileDecomposition[2]/fileDecomposition[1]);
+         thatTasksSize[1] = targetGrid.calcLocalSize(globalSize[1], fileDecomposition[1], (task/fileDecomposition[2])%fileDecomposition[1]);
+         thatTasksSize[2] = targetGrid.calcLocalSize(globalSize[2], fileDecomposition[2], task%fileDecomposition[2]);
+
+         thatTasksStart[0] = targetGrid.calcLocalStart(globalSize[0], fileDecomposition[0], task/fileDecomposition[2]/fileDecomposition[1]);
+         thatTasksStart[1] = targetGrid.calcLocalStart(globalSize[1], fileDecomposition[1], (task/fileDecomposition[2])%fileDecomposition[1]);
+         thatTasksStart[2] = targetGrid.calcLocalStart(globalSize[2], fileDecomposition[2], task%fileDecomposition[2]);
+
+         // Iterate through overlap area
+         std::array<int,3> overlapStart,overlapEnd,overlapSize;
+         overlapStart[0] = max(localStart[0],thatTasksStart[0]);
+         overlapStart[1] = max(localStart[1],thatTasksStart[1]);
+         overlapStart[2] = max(localStart[2],thatTasksStart[2]);
+
+         overlapEnd[0] = min(localStart[0]+localSize[0], thatTasksStart[0]+thatTasksSize[0]);
+         overlapEnd[1] = min(localStart[1]+localSize[1], thatTasksStart[1]+thatTasksSize[1]);
+         overlapEnd[2] = min(localStart[2]+localSize[2], thatTasksStart[2]+thatTasksSize[2]);
+
+         overlapSize[0] = max(overlapEnd[0]-overlapStart[0],0);
+         overlapSize[1] = max(overlapEnd[1]-overlapStart[1],0);
+         overlapSize[2] = max(overlapEnd[2]-overlapStart[2],0);
+
+         // Read into buffer
+         phiprof::start("memcpy");
+
+         // Read every source rank that we have an overlap with.
+         if(overlapSize[0]*overlapSize[1]*overlapSize[2] > 0) {
             // Copy continuous stripes in x direction.
             for(int z=overlapStart[2]; z<overlapEnd[2]; z++) {
                for(int y=overlapStart[1]; y<overlapEnd[1]; y++) {
@@ -950,15 +1010,12 @@ template<unsigned long int N> bool readFsGridVariable(
                         + (y - thatTasksStart[1]) * thatTasksSize[0]
                         + (x - thatTasksStart[0]);
 
-                     memcpy(targetGrid.get(x - localStart[0], y - localStart[1], z - localStart[2]), &buffer[index*N], N*sizeof(Real));
+                     memcpy(targetGrid.get(x - localStart[0], y - localStart[1], z - localStart[2]), &(vectorOfBuffers.at(task).at(index*N)), N*sizeof(Real));
                   }
                }
             }
-         } else {
-            // If we don't overlap, just perform a dummy read.
-            file.endMultiread(fileOffset);
          }
-         fileOffset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2];
+
          phiprof::stop("memcpy");
       }
    }
