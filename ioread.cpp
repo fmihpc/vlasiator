@@ -892,6 +892,7 @@ template<unsigned long int N> bool readFsGridVariable(
 
       file.startMultiread("VARIABLE", attribs);
       std::vector<std::vector<Real>> vectorOfBuffers;
+      std::vector<std::vector<float>> vectorOfFloatBuffers; // needed when convertFloatType is true
 
       for(int task = 0; task < numWritingRanks; task++) {
          std::array<int32_t,3> thatTasksSize;
@@ -919,37 +920,32 @@ template<unsigned long int N> bool readFsGridVariable(
          overlapSize[2] = max(overlapEnd[2]-overlapStart[2],0);
 
          // Read into buffer
-         std::vector<Real> buffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
-         vectorOfBuffers.push_back(buffer);
 
          phiprof::start("multiRead");
 
          // Read every source rank that we have an overlap with.
          if(overlapSize[0]*overlapSize[1]*overlapSize[2] > 0) {
+         std::vector<Real> buffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
+         vectorOfBuffers.push_back(buffer);
+
             if(!convertFloatType) {
-               if(file.addMultireadUnit((char*)(vectorOfBuffers.at(task).data()), thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2], offset)==false) {
+               if(file.addMultireadUnit((char*)vectorOfBuffers.at(task).data(), thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2], offset)==false) {
                   logFile << "(RESTART)  ERROR: Failed to addMultireadUnit when reading fsgrid variable " << variableName << endl << write;
                   return false;
                }
             } else {
-abort();
-//               std::vector<float> readBuffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
-//               if(file.addMultireadUnit((char*)readBuffer.data(), thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2])==false) {
-//                  logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
-//                  return false;
-//               }
-//               file.endMultiread(fileOffset);
-//
-//               for(uint64_t i=0; i< thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N; i++) {
-//                  buffer[i]=readBuffer[i];
-//               }
+               std::vector<float> floatBuffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
+               vectorOfFloatBuffers.push_back(floatBuffer);
+               if(file.addMultireadUnit((char*)vectorOfFloatBuffers.at(task).data(), thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2], offset)==false) {
+                  logFile << "(RESTART)  ERROR: Failed to addMultireadUnit when reading fsgrid variable " << variableName << endl << write;
+                  return false;
+               }
             }
-
          } else {
-            // If we don't overlap, just perform a dummy read.
-            //file.addMultireadUnit((char*)vectorOfBuffers.back().data(),0,offset);
+            std::vector<Real> buffer(1);
+            vectorOfBuffers.push_back(buffer);
          }
-//         printf("%d %d\n", myRank, offset);
+
          offset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2] * N * sizeof(Real);
          phiprof::stop("multiRead");
       }
@@ -959,19 +955,6 @@ abort();
          return false;
       }
       
-//if(myRank == 0) {
-//   int i=0;
-//   for(auto vector : vectorOfBuffers) {
-//      int j=0;
-//      for(auto entry : vector) {
-//         printf("%d %d %d %e\n", myRank, i, j, entry);
-//         j++;
-         //cerr << toto;
-//      }
-//      i++;
-//   }
-//}
-
       for(int task = 0; task < numWritingRanks; task++) {
          std::array<int32_t,3> thatTasksSize;
          std::array<int32_t,3> thatTasksStart;
@@ -1002,6 +985,12 @@ abort();
 
          // Read every source rank that we have an overlap with.
          if(overlapSize[0]*overlapSize[1]*overlapSize[2] > 0) {
+            if(convertFloatType) {
+               for(uint64_t i=0; i< thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N; i++) {
+                  vectorOfBuffers.at(task).at(i)=vectorOfFloatBuffers.at(task).at(i);
+               }
+            }
+
             // Copy continuous stripes in x direction.
             for(int z=overlapStart[2]; z<overlapEnd[2]; z++) {
                for(int y=overlapStart[1]; y<overlapEnd[1]; y++) {
