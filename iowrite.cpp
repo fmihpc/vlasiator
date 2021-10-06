@@ -1022,7 +1022,7 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
                Real shellR = P::systemWriteDistributionWriteShellRadius[ishell];
                int shellS = P::systemWriteDistributionWriteShellStride[ishell];
                // After this, assumes DX==DY==DZ
-               // Dominant direction (+-x,+-y,+-z) is the one not directly used for strides.
+               // Dominant direction (+-x,+-y,+-z) is used for concentric rings
                Real D = s[2];
                // Tangential direction
                Real T;
@@ -1031,38 +1031,57 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
                if ((P::xcells_ini==1) || (P::ycells_ini==1) || (P::zcells_ini==1)) {
                   // 1D or 2D simulation
                   T = s[1];
+                  s[0] = 0;
                   clock = 0;
                } else { // 3D simulation
                   T = sqrt(s[0]*s[0]+s[1]*s[1]);
                   clock = T*atan(s[0]/s[1]);
                }
-               // Distance along shell along great circle away from dominant coordinate
+               // Distance along great circle away from dominant coordinate
                Real dist =  shellR * atan(T/D);
                // Now find the closest point(s) which fulfills the stride requirement
-               dist = DX * shellS * round(dist/DX/shellS);
-               clock = DX * shellS * round(clock/DX/shellS);
+               Real dist2 = DX * shellS * round(dist/DX/shellS);
+               Real clock2 = DX * shellS * round(clock/DX/shellS);
 
                // Find Cartesian coordinates of this stridepoint
-               Real D2 = shellR * cos(dist/shellR);
-               Real T2 = shellR * sin(dist/shellR);
+               Real D2 = shellR * cos(dist2/shellR);
+               Real T2 = shellR * sin(dist2/shellR);
 
-               stridecheck = true;
+               stridecheck = false;
                // Now check if the stridepoint is exactly in this cell
                if ((P::xcells_ini==1) || (P::ycells_ini==1) || (P::zcells_ini==1)) {
                   // 1D or 2D
-                  if ( (abs(D2-D)>0.5*DX) || (abs(T2-T)>0.5*DX) ) stridecheck=false;
+                  if ( (D2 >= D-0.5*DX) && (D2 < D+0.5*DX) && (T2 >= T-0.5*DX) && (T2 < T+0.5*DX) ) stridecheck=true;
                   // Special case for corners:
-                  if (abs(D-T)<0.5*DX) stridecheck=true;
+                  if ( (abs(D-T)<0.5*DX) && (dist2>dist) ) stridecheck=true;
+
+                  // Only save 1 cell touching axes
+                  if ( (P::ycells_ini==1) && ( ( (cellX>-1.1*DX)&&(cellX<0) ) || ( (cellZ>-1.1*DZ)&&(cellZ<0) ) )) stridecheck=false;
+                  if ( (P::zcells_ini==1) && ( ( (cellX>-1.1*DX)&&(cellX<0) ) || ( (cellY>-1.1*DY)&&(cellY<0) ) )) stridecheck=false;
+
                } else {
                   // 3D simulation, account for clock angle
-                  Real T2A = T2 * cos(clock/T2);
-                  Real T2B = T2 * sin(clock/T2);
-                  if ((abs(D2-D)>0.5*DX) || (abs(T2A-s[1])>0.5*DX) || (abs(T2B-s[0])>0.5*DX) ) stridecheck =false;
-                  // Special case for corners:
-                  if ( (abs(s[1]-s[0])<0.5*DX) && (abs(D2-D)<=0.5*DX) ) stridecheck=true;
+                  Real T2A = T2 * cos(clock2/T2);
+                  Real T2B = T2 * sin(clock2/T2);
+                  // Rings at given stride from dominant direction
+                  bool ring = (D2 >= D-0.5*DX) && (D2 < D+0.5*DX) && (T2 >= T-0.5*DX) && (T2 < T+0.5*DX);
+                  // Special case for 45 degree ring:
+                  ring = ring || ((abs(D-T)<0.5*DX) && (dist2>dist));
+                  // Clock angle
+                  bool clockcheck = (T2A >= s[1]-0.5*DX) && (T2A < s[1]+0.5*DX) && (T2B >= s[0]-0.5*DX) && (T2B < s[0]+0.5*DX);
+                  // Special case for 45 degree clock angle
+                  clockcheck = clockcheck || ( (abs(s[1]-s[0])<0.5*DX) && (clock2>clock) );
+                  if ( ring && clockcheck ) stridecheck = true;
+
+                  // Ensure cells touching Cartesian axes are included
+                  if ( (s[1]<DX) && (s[0]<DX) && (D2 >= D-0.5*DX) && (D2 < D+0.5*DX) ) stridecheck=true;
+
+                  // Special corner-corner-case
+                  if ( (abs(s[2]-s[1])<DX) && (abs(s[1]-s[0])<DX) && (abs(s[2]-s[0])<DX) ) stridecheck=true;
+
+                  // Only save 1 cell touching axes (assumes origin is at corner intersection of 8 cells)
+                  if ( ( (cellX>-1.1*DX)&&(cellX<0) ) || ( (cellY>-1.1*DY)&&(cellY<0) ) || ( (cellZ>-1.1*DZ)&&(cellZ<0) ) ) stridecheck=false;
                }
-               // Only save 1 cell touching axes
-               if ( (cellX==-DX) || (cellY==-DY) || (cellZ==-DZ) ) stridecheck=false;
 
                if (stridecheck) {
                   velSpaceCells.push_back(cells[i]);
