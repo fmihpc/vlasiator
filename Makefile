@@ -67,9 +67,11 @@ COMPFLAGS += ${INC_JEMALLOC}
 
 #define precision
 COMPFLAGS += -D${FP_PRECISION}
+CUDAFLAGS += -D${FP_PRECISION}
 
 #define precision for the distribution function
 COMPFLAGS += -D${DISTRIBUTION_FP_PRECISION}
+CUDAFLAGS += -D${DISTRIBUTION_FP_PRECISION}
 
 #set vector class
 COMPFLAGS += -D${VECTORCLASS}

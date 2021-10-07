@@ -50,7 +50,7 @@ CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 CC = mpicc
 CXX = mpic++
 NVCC = nvcc
-CUDAFLAGS = -gencode arch=compute_80,code=sm_80 -std=c++11
+CUDAFLAGS += -gencode arch=compute_80,code=sm_80 -std=c++11
 CMP = mpic++
 LNK = mpic++
 
@@ -60,6 +60,7 @@ CC_BRAND_VERSION = 21.2
 CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -gpu=cc80 -Minfo=accel -acc -fopenmp
 #-Minfo=accel -ta=tesla:lineinfo,keepbin,keepgpu,keepptx -Manno -g -nomp
 testpackage: CXXFLAGS += -g -O2 -acc -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -Minfo=accel
+testpackage: CUDAFLAGS += -gencode arch=compute_80,code=sm_80 -std=c++11
 
 MATHFLAGS =
 LDFLAGS = -O2 -g  -ta=tesla:lineinfo,keepbin,keepgpu,keepptx -L/appl/spack/v016/install-tree/gcc-4.8.5/nvhpc-21.2-l6xyb4/Linux_x86_64/21.2/cuda/11.2/lib64
