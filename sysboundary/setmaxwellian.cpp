@@ -143,6 +143,9 @@ namespace SBC {
       
       const vmesh::LocalID* vblocks_ini = cell.get_velocity_grid_length(popID,refLevel);
 
+      const Real dvx=cell.get_velocity_grid_cell_size(popID,refLevel)[0];
+      const Real dvy=cell.get_velocity_grid_cell_size(popID,refLevel)[1];
+      const Real dvz=cell.get_velocity_grid_cell_size(popID,refLevel)[2];
       while (search) {
          #warning TODO: add SpatialCell::getVelocityBlockMinValue() in place of sparseMinValue?
          if (0.1 * getObjectWrapper().particleSpecies[popID].sparseMinValue > 
@@ -150,7 +153,7 @@ namespace SBC {
                                     popID,
                                     rho,
                                     T,
-                                    VX0 + counter*cell.get_velocity_grid_block_size(popID,refLevel)[0], VY0, VZ0
+                                    counter*cell.get_velocity_grid_block_size(popID,refLevel)[0] +0.5*dvx , 0.5*dvy, 0.5*dvz
                                    )
              ||
              counter > vblocks_ini[0]
