@@ -128,6 +128,13 @@ namespace SBC {
       (2.0 * physicalconstants::K_B * T));
    }
    
+   /*  Here the while loop iterates  from the centre of the maxwellian in blocksize (4*dvx) increments, 
+   *  and looks at the centre of the first velocity cell in the block (+0.5dvx), checking if the 
+   *  phase-space density there is large enough to be included due to sparsity threshold. 
+   *  That results in a "blocks radius"  vRadiusSquared from the centre of the maxwellianDistribution.
+   *  Then we iterate through the actual blocks and calculate their radius R2 based on their velocity coordinates
+   *  and the plasma bulk velocity. Blocks that fullfil R2<vRadiusSquared are included to blocksToInitialize.
+   */
    std::vector<vmesh::GlobalID> SetMaxwellian::findBlocksToInitialize(
       const uint popID,
       spatial_cell::SpatialCell& cell,
