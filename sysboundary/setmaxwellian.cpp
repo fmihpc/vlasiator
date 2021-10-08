@@ -37,41 +37,59 @@ namespace SBC {
    SetMaxwellian::~SetMaxwellian() { }
    
    void SetMaxwellian::addParameters() {
-      Readparameters::addComposing("maxwellian.face", "List of faces on which set Maxwellian boundary conditions are to be applied ([xyz][+-]).");
-      Readparameters::add("maxwellian.precedence", "Precedence value of the set Maxwellian system boundary condition (integer), the higher the stronger.", 3);
-      Readparameters::add("maxwellian.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
-
+      Readparameters::addComposing(
+          "maxwellian.face", "List of faces on which set Maxwellian boundary conditions are to be applied ([xyz][+-]).");
+      Readparameters::add("maxwellian.precedence",
+                          "Precedence value of the set Maxwellian boundary condition (integer), the higher the stronger.",
+                          3);
+      Readparameters::add("maxwellian.reapplyUponRestart",
+                          "If 0 (default), keep going with the state existing in the restart file. If 1, calls again "
+                          "applyInitialState. Can be used to change boundary condition behaviour during a run.",
+                          0);
+      Readparameters::add("maxwellian.t_interval", "Time interval in seconds for applying the varying inflow condition.",
+                          0.0);
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-        const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
 
-        Readparameters::add(pop + "_maxwellian.file_x+", "Input files for the set Maxwellian inflow parameters on face x+. Data format per line: time (s) density (p/m^3) Temperature (K) Vx Vy Vz (m/s) Bx By Bz (T).", "");
-        Readparameters::add(pop + "_maxwellian.file_x-", "Input files for the set Maxwellian inflow parameters on face x-. Data format per line: time (s) density (p/m^3) Temperature (K) Vx Vy Vz (m/s) Bx By Bz (T).", "");
-        Readparameters::add(pop + "_maxwellian.file_y+", "Input files for the set Maxwellian inflow parameters on face y+. Data format per line: time (s) density (p/m^3) Temperature (K) Vx Vy Vz (m/s) Bx By Bz (T).", "");
-        Readparameters::add(pop + "_maxwellian.file_y-", "Input files for the set Maxwellian inflow parameters on face y-. Data format per line: time (s) density (p/m^3) Temperature (K) Vx Vy Vz (m/s) Bx By Bz (T).", "");
-        Readparameters::add(pop + "_maxwellian.file_z+", "Input files for the set Maxwellian inflow parameters on face z+. Data format per line: time (s) density (p/m^3) Temperature (K) Vx Vy Vz (m/s) Bx By Bz (T).", "");
-        Readparameters::add(pop + "_maxwellian.file_z-", "Input files for the set Maxwellian inflow parameters on face z-. Data format per line: time (s) density (p/m^3) Temperature (K) Vx Vy Vz (m/s) Bx By Bz (T).", "");
-        Readparameters::add(pop + "_maxwellian.nVelocitySamples", "Number of sampling points per velocity dimension (template cells)", 5);
-        Readparameters::add(pop + "_maxwellian.dynamic", "Boolean value, is the set Maxwellian inflow dynamic in time or not.", 0);
+         Readparameters::add(pop + "_maxwellian.file_x+",
+                             "Input files for the set Maxwellian inflow parameters on face x+. Data format per line: time "
+                             "(s) density (p/m^3) Temperature (K) Vx Vy Vz (m/s) Bx By Bz (T).",
+                             "");
+         Readparameters::add(pop + "_maxwellian.file_x-",
+                             "Input files for the set Maxwellian inflow parameters on face x-. Data format per line: time "
+                             "(s) density (p/m^3) Temperature (K) Vx Vy Vz (m/s) Bx By Bz (T).",
+                             "");
+         Readparameters::add(pop + "_maxwellian.file_y+",
+                             "Input files for the set Maxwellian inflow parameters on face y+. Data format per line: time "
+                             "(s) density (p/m^3) Temperature (K) Vx Vy Vz (m/s) Bx By Bz (T).",
+                             "");
+         Readparameters::add(pop + "_maxwellian.file_y-",
+                             "Input files for the set Maxwellian inflow parameters on face y-. Data format per line: time "
+                             "(s) density (p/m^3) Temperature (K) Vx Vy Vz (m/s) Bx By Bz (T).",
+                             "");
+         Readparameters::add(pop + "_maxwellian.file_z+",
+                             "Input files for the set Maxwellian inflow parameters on face z+. Data format per line: time "
+                             "(s) density (p/m^3) Temperature (K) Vx Vy Vz (m/s) Bx By Bz (T).",
+                             "");
+         Readparameters::add(pop + "_maxwellian.file_z-",
+                             "Input files for the set Maxwellian inflow parameters on face z-. Data format per line: time "
+                             "(s) density (p/m^3) Temperature (K) Vx Vy Vz (m/s) Bx By Bz (T).",
+                             "");
+         Readparameters::add(pop + "_maxwellian.nVelocitySamples",
+                             "Number of sampling points per velocity dimension (template cells)", 5);
+         Readparameters::add(pop + "_maxwellian.dynamic",
+                             "Boolean value, is the set Maxwellian inflow dynamic in time or not.", 0);
       }
    }
    
    void SetMaxwellian::getParameters() {
-      int myRank;
-      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-      if(!Readparameters::get("maxwellian.face", faceList)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("maxwellian.precedence", precedence)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
+      Readparameters::get("maxwellian.face", faceList);
+      Readparameters::get("maxwellian.precedence", precedence);
+      
       uint reapply;
-      if(!Readparameters::get("maxwellian.reapplyUponRestart",reapply)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      };
+      Readparameters::get("maxwellian.reapplyUponRestart", reapply);
+
       this->applyUponRestart = false;
       if(reapply == 1) {
          this->applyUponRestart = true;
@@ -84,38 +102,14 @@ namespace SBC {
          UserSpeciesParameters sP;
          sP.nParams = 9;
 
-         if(!Readparameters::get(pop + "_maxwellian.dynamic", isThisDynamic)) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-            exit(1);
-         }
-         if(!Readparameters::get(pop + "_maxwellian.file_x+", sP.files[0])) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-            exit(1);
-         }
-         if(!Readparameters::get(pop + "_maxwellian.file_x-", sP.files[1])) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-            exit(1);
-         }
-         if(!Readparameters::get(pop + "_maxwellian.file_y+", sP.files[2])) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-            exit(1);
-         }
-         if(!Readparameters::get(pop + "_maxwellian.file_y-", sP.files[3])) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-            exit(1);
-         }
-         if(!Readparameters::get(pop + "_maxwellian.file_z+", sP.files[4])) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-            exit(1);
-         }
-         if(!Readparameters::get(pop + "_maxwellian.file_z-", sP.files[5])) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-            exit(1);
-         }
-         if(!Readparameters::get(pop + "_maxwellian.nVelocitySamples", sP.nVelocitySamples)) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-            exit(1);
-         }
+         Readparameters::get(pop + "_maxwellian.dynamic", isThisDynamic);
+         Readparameters::get(pop + "_maxwellian.file_x+", sP.files[0]);
+         Readparameters::get(pop + "_maxwellian.file_x-", sP.files[1]);
+         Readparameters::get(pop + "_maxwellian.file_y+", sP.files[2]);
+         Readparameters::get(pop + "_maxwellian.file_y-", sP.files[3]);
+         Readparameters::get(pop + "_maxwellian.file_z+", sP.files[4]);
+         Readparameters::get(pop + "_maxwellian.file_z-", sP.files[5]);
+         Readparameters::get(pop + "_maxwellian.nVelocitySamples", sP.nVelocitySamples);
 
          speciesParams.push_back(sP);
       }
@@ -134,6 +128,13 @@ namespace SBC {
       (2.0 * physicalconstants::K_B * T));
    }
    
+   /*  Here the while loop iterates  from the centre of the maxwellian in blocksize (4*dvx) increments, 
+   *  and looks at the centre of the first velocity cell in the block (+0.5dvx), checking if the 
+   *  phase-space density there is large enough to be included due to sparsity threshold. 
+   *  That results in a "blocks radius"  vRadiusSquared from the centre of the maxwellianDistribution.
+   *  Then we iterate through the actual blocks and calculate their radius R2 based on their velocity coordinates
+   *  and the plasma bulk velocity. Blocks that fullfil R2<vRadiusSquared are included to blocksToInitialize.
+   */
    std::vector<vmesh::GlobalID> SetMaxwellian::findBlocksToInitialize(
       const uint popID,
       spatial_cell::SpatialCell& cell,
@@ -149,6 +150,9 @@ namespace SBC {
       
       const vmesh::LocalID* vblocks_ini = cell.get_velocity_grid_length(popID,refLevel);
 
+      const Real dvx=cell.get_velocity_grid_cell_size(popID,refLevel)[0];
+      const Real dvy=cell.get_velocity_grid_cell_size(popID,refLevel)[1];
+      const Real dvz=cell.get_velocity_grid_cell_size(popID,refLevel)[2];
       while (search) {
          #warning TODO: add SpatialCell::getVelocityBlockMinValue() in place of sparseMinValue?
          if (0.1 * getObjectWrapper().particleSpecies[popID].sparseMinValue > 
@@ -156,7 +160,7 @@ namespace SBC {
                                     popID,
                                     rho,
                                     T,
-                                    VX0 + counter*cell.get_velocity_grid_block_size(popID,refLevel)[0], VY0, VZ0
+                                    counter*cell.get_velocity_grid_block_size(popID,refLevel)[0] +0.5*dvx , 0.5*dvy, 0.5*dvz
                                    )
              ||
              counter > vblocks_ini[0]
