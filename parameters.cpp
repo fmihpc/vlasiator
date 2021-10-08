@@ -707,5 +707,4 @@ void Parameters::getParameters() {
    for (size_t s=0; s<P::systemWriteName.size(); ++s) {
       P::systemWrites.push_back(0);
    }
-   return true;
 }
