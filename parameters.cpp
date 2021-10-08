@@ -154,8 +154,9 @@ vector<string> P::blurPassString;
 std::vector<int> P::numPasses;
 bool P::artificialPADiff;
 Realf P::PADcoefficient;
-string P::PADmode = string("");
 Realf P::PADCFL;
+int P::PADvbins;
+int P::PADmubins;
 
 bool Parameters::addParameters(){
    //the other default parameters we read through the add/get interface
@@ -320,10 +321,13 @@ bool Parameters::addParameters(){
    Readparameters::add("AMR.box_center_y","y coordinate of the center of the box that is refined (for testing)",0.0);
    Readparameters::add("AMR.box_center_z","z coordinate of the center of the box that is refined (for testing)",0.0);
    Readparameters::addComposing("AMR.filterpasses", std::string("AMR filter passes for each individual refinement level"));
+   
+   // Diffusion parameters
    Readparameters::add("PAD.enable","Enable Artificial pitch-angle diffusion",0);
    Readparameters::add("PAD.coefficient","Set artificial pitch-angle diffusion coefficient",0);
-   Readparameters::add("PAD.mode","Set diffusion method",string(""));
    Readparameters::add("PAD.CFL","Set CFL condition",0);
+   Readparameters::add("PAD.vbins","number of bins for velocity",0);
+   Readparameters::add("PAD.mubins","number of bins for mu",0);
    return true;
 }
 
@@ -638,8 +642,9 @@ bool Parameters::getParameters(){
  
    Readparameters::get("PAD.enable", P::artificialPADiff);   
    Readparameters::get("PAD.coefficient", P::PADcoefficient);
-   Readparameters::get("PAD.mode",P::PADmode);
    Readparameters::get("PAD.CFL",P::PADCFL);
+   Readparameters::get("PAD.vbins",P::PADvbins);
+   Readparameters::get("PAD.mubins",P::PADmubins);
 
    return true;
 
