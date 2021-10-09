@@ -27,8 +27,8 @@
 
 enum coordinate { X, Y, Z };
 
-typedef std::function<Real(Real)> T1DFunction;
-typedef std::function<Real(Real,Real)> T2DFunction;
-typedef std::function<Real(Real,Real,Real)> T3DFunction;
+typedef std::function<double(double)> T1DFunction;
+typedef std::function<double(double,double)> T2DFunction;
+typedef std::function<double(double,double,double)> T3DFunction;
 
 #endif
