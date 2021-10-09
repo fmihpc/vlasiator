@@ -41,7 +41,6 @@ double lineAverage(
    const double r1[3],
    double L
 ) {
-   using namespace std::placeholders;
    double value;
    //subroutines not threadsafe 
 #pragma omp critical
@@ -54,19 +53,19 @@ double lineAverage(
          switch (line) {
             case X:
             {
-               T1DFunction f=std::bind(f1,_1,r1[1],r1[2]);
+               T1DFunction f=std::bind(f1,std::placeholders::_1,r1[1],r1[2]);
                value= Romberg(f,a,b,acc)*norm;
             }
             break;
             case Y:
             {
-               T1DFunction f=std::bind(f1,r1[0],_1,r1[2]);
+               T1DFunction f=std::bind(f1,r1[0],std::placeholders::_1,r1[2]);
                value= Romberg(f,a,b,acc)*norm;
             }
             break;
             case Z: 
             {
-               T1DFunction f=std::bind(f1,r1[0],r1[1],_1);
+               T1DFunction f=std::bind(f1,r1[0],r1[1],std::placeholders::_1);
                value= Romberg(f,a,b,acc)*norm;
             }
             break;
@@ -87,7 +86,6 @@ double surfaceAverage(
    double L1,
    double L2
 ) {
-   using namespace std::placeholders;
    double value;
 #pragma omp critical
    {
@@ -96,19 +94,19 @@ double surfaceAverage(
       switch (face) {
          case X:
          {
-            T2DFunction f = std::bind(f1,r1[0],_1,_2);
+            T2DFunction f = std::bind(f1,r1[0],std::placeholders::_1,std::placeholders::_2);
             value = Romberg(f, r1[1],r1[1]+L1, r1[2],r1[2]+L2, acc)*norm;
          }
          break;
          case Y:
          {
-            T2DFunction f = std::bind(f1,_1,r1[1],_2);
+            T2DFunction f = std::bind(f1,std::placeholders::_1,r1[1],std::placeholders::_2);
             value = Romberg(f, r1[0],r1[0]+L1, r1[2],r1[2]+L2, acc)*norm; 
          }
          break;
          case Z:
          {
-            T2DFunction f = std::bind(f1,_1,_2,r1[2]);
+            T2DFunction f = std::bind(f1,std::placeholders::_1,std::placeholders::_2,r1[2]);
             value = Romberg(f, r1[0],r1[0]+L1, r1[1],r1[1]+L2, acc)*norm;
          }
          break;
