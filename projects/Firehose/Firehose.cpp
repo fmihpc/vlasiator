@@ -84,20 +84,20 @@ namespace projects {
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          FirehoseSpeciesParameters sP;
-         RP::get(pop + "_Firehose.rho1", sP.rho[1]);
-         RP::get(pop + "_Firehose.rho2", sP.rho[2]);
-         RP::get(pop + "_Firehose.Tx1", sP.Tx[1]);
-         RP::get(pop + "_Firehose.Tx2", sP.Tx[2]);
-         RP::get(pop + "_Firehose.Ty1", sP.Ty[1]);
-         RP::get(pop + "_Firehose.Ty2", sP.Ty[2]);
-         RP::get(pop + "_Firehose.Tz1", sP.Tz[1]);
-         RP::get(pop + "_Firehose.Tz2", sP.Tz[2]);
-         RP::get(pop + "_Firehose.Vx1", sP.Vx[1]);
-         RP::get(pop + "_Firehose.Vx2", sP.Vx[2]);
-         RP::get(pop + "_Firehose.Vy1", sP.Vy[1]);
-         RP::get(pop + "_Firehose.Vy2", sP.Vy[2]);
-         RP::get(pop + "_Firehose.Vz1", sP.Vz[1]);
-         RP::get(pop + "_Firehose.Vz2", sP.Vz[2]);
+         RP::get(pop + "_Firehose.rho1", sP.rho[0]);
+         RP::get(pop + "_Firehose.rho2", sP.rho[1]);
+         RP::get(pop + "_Firehose.Tx1", sP.Tx[0]);
+         RP::get(pop + "_Firehose.Tx2", sP.Tx[1]);
+         RP::get(pop + "_Firehose.Ty1", sP.Ty[0]);
+         RP::get(pop + "_Firehose.Ty2", sP.Ty[1]);
+         RP::get(pop + "_Firehose.Tz1", sP.Tz[0]);
+         RP::get(pop + "_Firehose.Tz2", sP.Tz[1]);
+         RP::get(pop + "_Firehose.Vx1", sP.Vx[0]);
+         RP::get(pop + "_Firehose.Vx2", sP.Vx[1]);
+         RP::get(pop + "_Firehose.Vy1", sP.Vy[0]);
+         RP::get(pop + "_Firehose.Vy2", sP.Vy[1]);
+         RP::get(pop + "_Firehose.Vz1", sP.Vz[0]);
+         RP::get(pop + "_Firehose.Vz2", sP.Vz[1]);
          RP::get(pop + "_Firehose.nSpaceSamples", sP.nSpaceSamples);
          RP::get(pop + "_Firehose.nVelocitySamples", sP.nVelocitySamples);
 
@@ -118,13 +118,13 @@ namespace projects {
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
       
-      Real Vx = profile(sP.Vx[1],sP.Vx[1], x);
+      Real Vx = profile(sP.Vx[0],sP.Vx[1], x);
       
       return
-      sP.rho[1] * pow(mass / (2.0 * M_PI * kb * sP.Tx[1]), 1.5) *
-      exp(- mass * (pow(vx - Vx, 2.0) / (2.0 * kb * sP.Tx[1]) +
-                  pow(vy - sP.Vy[1], 2.0) / (2.0 * kb * sP.Ty[1]) +
-               pow(vz - sP.Vz[1], 2.0) / (2.0 * kb * sP.Tz[1])));
+      sP.rho[0] * pow(mass / (2.0 * M_PI * kb * sP.Tx[0]), 1.5) *
+      exp(- mass * (pow(vx - Vx, 2.0) / (2.0 * kb * sP.Tx[0]) +
+                  pow(vy - sP.Vy[0], 2.0) / (2.0 * kb * sP.Ty[0]) +
+               pow(vz - sP.Vz[0], 2.0) / (2.0 * kb * sP.Tz[0])));
    //   this->rho[2] * pow(mass / (2.0 * M_PI * kb * this->Tx[2]), 1.5) *
    //   exp(- mass * (pow(vx - this->Vx[2], 2.0) / (2.0 * kb * this->Tx[2]) + 
    //                 pow(vy - this->Vy[2], 2.0) / (2.0 * kb * this->Ty[2]) + 
