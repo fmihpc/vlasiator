@@ -56,7 +56,7 @@ void velocitySpaceDiffusion(
 	const Real* parameters  = cell.get_block_parameters(popID);
         const vmesh::LocalID* nBlocks = cell.get_velocity_grid_length(popID);
         
-        Realf Sparsity    = cell.getVelocityBlockMinValue(popID);
+        Realf Sparsity    = 0.01 * cell.getVelocityBlockMinValue(popID);
 
         Realf dtTotalDiff = 0.0; // Diffusion time elapsed
 

@@ -53,7 +53,7 @@ void velocitySpaceDiffusion(
         const vmesh::LocalID* nBlocks = cell.get_velocity_grid_length(popID);
         const vmesh::MeshParameters& vMesh = getObjectWrapper().velocityMeshes[0];      
 
-        Realf Sparsity    = cell.getVelocityBlockMinValue(popID);
+        Realf Sparsity    = 0.01 * cell.getVelocityBlockMinValue(popID);
 
         Realf dtTotalDiff = 0.0; // Diffusion time elapsed
 
@@ -64,10 +64,9 @@ void velocitySpaceDiffusion(
         Realf mumax   = +1.0;
         Realf dmubins = (mumax - mumin)/nbins_mu;
 
-        Realf Vmin = vMesh.meshLimits[0];
-        Realf Vmax = vMesh.meshLimits[1]; 
-        std::cout << "Vmin, Vmax  = " << Vmin << ", " << Vmax << std::endl;
-        Realf dVbins = (Vmax - Vmin)/(4.0*(nbins_v));  
+        Realf Vmin = 0.0;
+        Realf Vmax = 2*sqrt(3)*vMesh.meshLimits[1]; 
+        Realf dVbins = (Vmax - Vmin)/nbins_v;  
         
         while (dtTotalDiff < Parameters::dt) {
 
@@ -130,27 +129,39 @@ void velocitySpaceDiffusion(
 
             for (int indv = 0; indv < nbins_v; indv++) { // Divide f by count 
                 for(int indmu = 0; indmu < nbins_mu; indmu++) {
-                    fmu[indv][indmu] = fmu[indv][indmu]/fcount[indv][indmu]; 
+                    if (fcount[indv][indmu] == 0) { fmu[indv][indmu] = 0.0;}
+                    else {fmu[indv][indmu] = fmu[indv][indmu] / fcount[indv][indmu];} 
                 }
             }
 
-            // Compute dfdmu
+            // Compute dfdmu (take first non-zero neighbours)
             for (int indv = 0; indv < nbins_v; indv++) { 
                 for(int indmu = 0; indmu < nbins_mu; indmu++) {
-                    if (indmu == 0) { dfdmu[indv][indmu] = (fmu[indv][indmu+1] - fmu[indv][indmu])/dmubins; }
-                    else if (indmu == nbins_mu-1) { dfdmu[indv][indmu] = (fmu[indv][indmu] - fmu[indv][indmu-1])/dmubins; }
-                    else { dfdmu[indv][indmu] = (fmu[indv][indmu+1] - fmu[indv][indmu-1])/(2.0*dmubins); } 
+                    int cLeft  = 1;
+                    int cRight = 1;
+                    while( (fmu[indv][indmu + cRight] = 0.0) && (indmu + cRight <= nbins_mu-1) ) { cRight += 1; }
+                    if( (fmu[indv][indmu + cRight] == 0.0) && (indmu + cRight == nbins_mu-1) ) { cRight = 0;}
+                    while( (fmu[indv][indmu - cLeft] = 0.0) && (indmu - cLeft >= 0) ) { cLeft += 1; }
+                    if( (fmu[indv][indmu - cLeft] == 0.0) && (indmu - cLeft == 0) ) { cLeft = 0;} 
+                    dfdmu[indv][indmu] = (fmu[indv][indmu + cRight] - fmu[indv][indmu - cLeft]) / ((cRight + cLeft) * dmubins);
                 }
             } 
 
-            // Compute dfdt_mu
+            // Compute dfdt_mu (take first non-zero neighbours)
             for (int indv = 0; indv < nbins_v; indv++) { 
                 for(int indmu = 0; indmu < nbins_mu; indmu++) {
-                    if (indmu == 0) { dfdt_mu[indv][indmu] = Parameters::PADcoefficient * ( (1.0 - (3.0/2.0*dmubins - 1.0)*(3.0/2.0*dmubins - 1.0)) * dfdmu[indv][indmu+1] - (1.0 - (dmubins/2.0 - 1.0)*(dmubins/2.0 - 1.0)) * dfdmu[indv][indmu])/dmubins; }
-                    else if (indmu == nbins_mu-1) { dfdt_mu[indv][indmu] = Parameters::PADcoefficient * ( (1.0 - (dmubins*(indmu+1.0/2.0)-1.0)*(dmubins*(indmu+1.0/2.0)-1.0)) * dfdmu[indv][indmu] - (1.0  - (dmubins*(indmu-1.0/2.0)-1.0)*(dmubins*(indmu-1.0/2.0)-1.0) * dfdmu[indv][indmu-1]) )/dmubins; }
-                    else { dfdt_mu[indv][indmu] = Parameters::PADcoefficient * ( (1.0 - (dmubins*(indmu+3.0/2.0)-1.0)*(dmubins*(indmu+3.0/2.0)-1.0)) * dfdmu[indv][indmu+1] - (1.0 - (dmubins*(indmu-1.0/2.0)-1.0)*(dmubins*(indmu-1.0/2.0)-1.0)) * dfdmu[indv][indmu-1] )/(2.0*dmubins); } 
+                    int cLeft  = 1;
+                    int cRight = 1;
+                    while( (dfdmu[indv][indmu + cRight] = 0.0) && (indmu + cRight <= nbins_mu-1) ) { cRight += 1; }
+                    if( (dfdmu[indv][indmu + cRight] == 0.0) && (indmu + cRight == nbins_mu-1) ) { cRight = 0;}
+                    while( (dfdmu[indv][indmu - cLeft] = 0.0) && (indmu - cLeft >= 0) ) { cLeft += 1; }
+                    if( (dfdmu[indv][indmu - cLeft] == 0.0) && (indmu - cLeft == 0) ) { cLeft = 0;}
+                    dfdt_mu[indv][indmu] = Parameters::PADcoefficient * (
+                                           (1.0 - (dmubins * (indmu + cRight + 1.0/2.0) - 1.0)*(dmubins * (indmu + cRight + 1.0/2.0) - 1.0)) * dfdmu[indv][indmu + cRight]
+                                           - (1.0 - (dmubins * (indmu - cLeft + 1.0/2.0) - 1.0)*(dmubins * (indmu - cLeft + 1.0/2.0) - 1.0)) * dfdmu[indv][indmu - cLeft] ) 
+                                           / ((cRight + cLeft) * dmubins);
                 }
-            }
+            } 
 
             // Compute dfdt
             for (vmesh::LocalID n=0; n<cell.get_number_of_velocity_blocks(popID); n++) { // Iterate through velocity blocks             
@@ -191,7 +202,8 @@ void velocitySpaceDiffusion(
                    int mucount = static_cast<int>(floor(mu+1.0 / dmubins));
 
                    Realf CellValue = cell.get_value(VX,VY,VZ,popID);
-                   dfdt[WID3*n+i+WID*j+WID*WID*k] = dfdt_mu[Vcount][mucount] * CellValue / fmu[Vcount][mucount];
+                   if (fmu[Vcount][mucount] == 0) { dfdt[WID3*n+i+WID*j+WID*WID*k] = 0.0; }
+                   else { dfdt[WID3*n+i+WID*j+WID*WID*k] = dfdt_mu[Vcount][mucount] * CellValue / fmu[Vcount][mucount]; }
 
                    if (CellValue < Sparsity) {CellValue = Sparsity;} //Set CellValue to sparsity Threshold for empty cells otherwise div by 0
                    if (abs(dfdt[WID3*n+i+WID*j+WID*WID*k]) > 0.0) {
@@ -209,7 +221,7 @@ void velocitySpaceDiffusion(
             //std::cout << "Diffusion dt = " << Ddt << std::endl;
             dtTotalDiff = dtTotalDiff + Ddt;
 
-            //Loop to check CFL and update cell
+            //Loop to update cell
             for (vmesh::LocalID n=0; n<cell.get_number_of_velocity_blocks(popID); n++) { //Iterate through velocity blocks
                 for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
                     const Real* parameters  = cell.get_block_parameters(popID);
@@ -219,7 +231,6 @@ void velocitySpaceDiffusion(
                     const Real VY = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] + (j + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
                     const Real VZ = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] + (k + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
 
-                    //Check CFL
                     Realf CellValue = cell.get_value(VX,VY,VZ,popID);
 
                     //Update cell
