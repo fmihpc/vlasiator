@@ -194,7 +194,8 @@ namespace projects {
    
    void Project::hook(
       cuint& stage,
-      const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
+      const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid
    ) const { }
 
    void Project::setupBeforeSetCell(const std::vector<CellID>& cells) {

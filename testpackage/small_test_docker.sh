@@ -22,6 +22,10 @@ run_command_tools="mpirun -n 1 --allow-run-as-root"
 # if 0 then we check the v1
 create_verification_files=0
 
+#Define where binaries are
+bin="../vlasiator"
+diffbin="../vlsvdiff_DP"
+
 #folder for all reference data 
 reference_dir="/home/vlasiator/testpackage/"
 #compare agains which revision. This can be a proper version string, or "current", which should be a symlink to the

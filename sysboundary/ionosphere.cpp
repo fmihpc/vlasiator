@@ -60,7 +60,7 @@ void Ionosphere::addParameters() {
                        "(circle, DEFAULT), 3: 2-norm cylinder aligned with y-axis, use with polar plane/line dipole.",
                        2);
    Readparameters::add("ionosphere.precedence",
-                       "Precedence value of the ionosphere boundary condition (integer), the higher the stronger.", 2);
+       "Precedence value of the ionosphere system boundary condition (integer), the higher the stronger.", 2);
    Readparameters::add("ionosphere.reapplyUponRestart",
                        "If 0 (default), keep going with the state existing in the restart file. If 1, calls again "
                        "applyInitialState. Can be used to change boundary condition behaviour during a run.",
@@ -68,12 +68,10 @@ void Ionosphere::addParameters() {
 
    // Per-population parameters
    for (uint i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
-      const std::string &pop = getObjectWrapper().particleSpecies[i].name;
+      const std::string& pop = getObjectWrapper().particleSpecies[i].name;
 
-      Readparameters::add(pop + "_ionosphere.taperRadius",
-                          "Width of the zone with a density tapering from the ionospheric value to the background (m)",
-                          0.0);
-      Readparameters::add(pop + "_ionosphere.rho", "Number density of the ionosphere (m^-3)", 1.0e6);
+      Readparameters::add(pop + "_ionosphere.rho", "Number density of the ionosphere (m^-3)", 0.0);
+      Readparameters::add(pop + "_ionosphere.T", "Temperature of the ionosphere (K)", 0.0);
       Readparameters::add(pop + "_ionosphere.VX0",
                           "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
       Readparameters::add(pop + "_ionosphere.VY0",
@@ -86,6 +84,7 @@ void Ionosphere::addParameters() {
                           0);
    }
 }
+
 
 void Ionosphere::getParameters() {
 
@@ -111,7 +110,7 @@ void Ionosphere::getParameters() {
       Readparameters::get(pop + "_ionosphere.VY0", sP.V0[1]);
       Readparameters::get(pop + "_ionosphere.VZ0", sP.V0[2]);
       Readparameters::get(pop + "_ionosphere.fluffiness", sP.fluffiness);
-      Readparameters::get(pop + "_Magnetosphere.T", sP.T);
+      Readparameters::get(pop + "_ionosphere.T", sP.T);
       Readparameters::get(pop + "_Magnetosphere.nSpaceSamples", sP.nSpaceSamples);
       Readparameters::get(pop + "_Magnetosphere.nVelocitySamples", sP.nVelocitySamples);
 
