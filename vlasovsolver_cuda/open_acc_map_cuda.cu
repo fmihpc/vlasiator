@@ -82,8 +82,8 @@ __global__ void acceleration_1
   int bdsw3
 )
 {
-  int index = threadIdx.x + blockIdx.x*blockDim.x;
-  if(index == 0)
+  //int index = threadIdx.x + blockIdx.x*blockDim.x;
+  //if(index == 0)
   {
     //printf("CUDA 1\n");
     for( uint column=0; column < totalColumns; column++)
@@ -354,6 +354,11 @@ Realf* acceleration_1_wrapper
     acc_semilag_flag = 2;
   #endif
 
+  cudaEvent_t start, stop;
+  cudaEventCreate(&start);
+  cudaEventCreate(&stop);
+  cudaEventRecord(start, 0);
+
   double *dev_blockData;
   HANDLE_ERROR( cudaMalloc((void**)&dev_blockData, bdsw3*sizeof(double)) );
   HANDLE_ERROR( cudaMemcpy(dev_blockData, blockData, bdsw3*sizeof(double), cudaMemcpyHostToDevice) );
@@ -388,9 +393,14 @@ Realf* acceleration_1_wrapper
         acc_semilag_flag,
         bdsw3
   );
-
   cudaDeviceSynchronize();
   HANDLE_ERROR( cudaMemcpy(blockData, dev_blockData, bdsw3*sizeof(double), cudaMemcpyDeviceToHost) );
+
+  cudaEventRecord(stop, 0);
+  cudaEventSynchronize(stop);
+  float elapsedTime;
+  cudaEventElapsedTime(&elapsedTime, start, stop);
+  printf("%.3f ms\n", elapsedTime);
 
   HANDLE_ERROR( cudaFree(dev_blockData) );
   HANDLE_ERROR( cudaFree(dev_cell_indices_to_id) );
