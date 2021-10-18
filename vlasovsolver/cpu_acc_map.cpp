@@ -325,7 +325,13 @@ bool map_1d(SpatialCell* spatial_cell,
             || lastBlockIndexK == Parameters::bailout_velocity_space_wall_margin
             || lastBlockIndexK == max_v_length - 1 - Parameters::bailout_velocity_space_wall_margin
          ) {
-            string message = "Some target blocks in acceleration are going to be less than " + std::to_string(Parameters::bailout_velocity_space_wall_margin) + " blocks away from the current velocity space walls for population " + getObjectWrapper().particleSpecies[popID].name + ". Consider expanding velocity space for that population.";
+            string message = "Some target blocks in acceleration are going to be less than ";
+            message += std::to_string(Parameters::bailout_velocity_space_wall_margin);
+            message += " blocks away from the current velocity space walls for population ";
+            message += getObjectWrapper().particleSpecies[popID].name;
+            message += " at CellID ";
+            message += std::to_string(spatial_cell->parameters[CellParams::CELLID]);
+            message += ". Consider expanding velocity space for that population.";
             bailout(true, message, __FILE__, __LINE__);
          }
          
