@@ -24,16 +24,314 @@
 #define VELOCITY_MESH_OLD_H
 
 #include <iostream>
+#include <algorithm>
 #include <sstream>
 #include <stdint.h>
 #include <vector>
 #include <unordered_map>
 #include <set>
 #include <cmath>
+#include <signal.h>
 
 #include "velocity_mesh_parameters.h"
 
 namespace vmesh {
+
+   // Open bucket power-of-two sized hash table with multiplicative fibonacci hashing
+   template<typename GID, typename LID, int maxBucketOverflow = 8> class OpenBucketHashtable {
+      private:
+         int sizePower; // Logarithm (base two) of the size of the table
+         size_t fill; // Number of filled buckets
+         std::vector<std::pair<GID,LID>> buckets;
+
+         // Fibonacci hash function for 32bit values
+         uint32_t hash(GID in) const {
+            in ^= in >> (32 - sizePower);
+            uint32_t retval = (uint32_t)(in * 2654435769ul) >> (32 - sizePower);
+            return retval;
+         }
+      public:
+         OpenBucketHashtable() : sizePower(4),fill(0),buckets(1<<sizePower, std::pair<GID,LID>(INVALID_GLOBALID,INVALID_LOCALID)) {};
+         OpenBucketHashtable(const OpenBucketHashtable<GID,LID>& other) : sizePower(other.sizePower),fill(other.fill),buckets(other.buckets) {};
+
+         // Resize the table to fit more things. This is automatically invoked once
+         // maxBucketOverflow has triggered.
+         void rehash(int newSizePower) {
+            if(newSizePower > 32) {
+               throw std::out_of_range("OpenBucketHashtable ran into rehashing catastrophe and exceeded 32bit buckets.");
+            }
+            std::vector<std::pair<GID,LID>> newBuckets(1<<newSizePower, std::pair<GID,LID>(INVALID_LOCALID,INVALID_GLOBALID));
+            sizePower = newSizePower;
+            int bitMask = (1 << sizePower) - 1; // For efficient modulo of the array size
+
+            // Iterate through all old elements and rehash them into the new array.
+            for(auto& e : buckets) {
+               // Skip empty buckets
+               if(e.first == INVALID_LOCALID) {
+                  continue;
+               }
+
+               uint32_t newHash = hash(e.first);
+               bool found = false;
+               for(int i=0; i<maxBucketOverflow; i++) {
+                  std::pair<GID, LID>& candidate = newBuckets[(newHash + i)&bitMask];
+                  if(candidate.first == INVALID_GLOBALID) {
+                     // Found an empty bucket, assign that one.
+                     candidate = e;
+                     found = true;
+                     break;
+                  }
+               }
+
+               if(!found) {
+                  // Having arrived here means that we unsuccessfully rehashed and
+                  // are *still* overflowing our buckets. So we need to try again with a bigger one.
+                  return rehash(newSizePower+1);
+               }
+            }
+
+            // Replace our buckets with the new ones
+            buckets = newBuckets;
+         }
+
+         // Element access (by reference). Nonexistent elements get created.
+         LID& at(const GID& key) {
+            int bitMask = (1 << sizePower) - 1; // For efficient modulo of the array size
+            uint32_t hashIndex = hash(key);
+
+            // Try to find the matching bucket.
+            for(int i=0; i<maxBucketOverflow; i++) {
+               std::pair<GID,LID>& candidate = buckets[(hashIndex+i)&bitMask];
+               if(candidate.first == key) {
+                  // Found a match, return that
+                  return candidate.second;
+               }
+               if(candidate.first == INVALID_GLOBALID) {
+                  // Found an empty bucket, assign and return that.
+                  candidate.first = key;
+                  fill++;
+                  return candidate.second;
+               }
+            }
+
+            // Not found, and we have no free slots to create a new one. So we need to rehash to a larger size.
+            rehash(sizePower+1);
+            return at(key); // Recursive tail call to try again with larger table.
+         }
+
+
+         // Typical array-like access with [] operator
+         LID& operator[](const GID& key) {
+            return at(key);
+         }
+
+         // For STL compatibility: size(), bucket_count(), count(GID), clear()
+         size_t size() const {
+            return fill;
+         }
+
+         size_t bucket_count() const {
+            return buckets.size();
+         }
+
+         size_t count(const GID& key) const {
+            if(find(key) != end()) {
+               return 1;
+            } else {
+               return 0;
+            } 
+         }
+
+         void clear() {
+            buckets = std::vector<std::pair<GID,LID>>(1<<sizePower, {INVALID_GLOBALID,INVALID_LOCALID});
+            fill = 0;
+         }
+
+         // Iterator type. Iterates through all non-empty buckets.
+         class iterator : public std::iterator<std::random_access_iterator_tag, std::pair<GID,LID>> {
+               OpenBucketHashtable<GID,LID>* hashtable;
+               size_t index;
+            public:
+               iterator(OpenBucketHashtable<GID,LID>& hashtable, size_t index): hashtable(&hashtable),index(index) { }
+
+               iterator& operator++() {
+                  do {
+                     index++;
+                  } while(hashtable->buckets[index].first == INVALID_GLOBALID && index < hashtable->buckets.size());
+                  return *this;
+               }
+
+               bool operator==(iterator other) const {
+                  return &hashtable->buckets[index] == &other.hashtable->buckets[other.index];
+               }
+               bool operator!=(iterator other) const {
+                  return &hashtable->buckets[index] != &other.hashtable->buckets[other.index];
+               }
+               std::pair<GID,LID>& operator*() const {
+                  return hashtable->buckets[index];
+               }
+               std::pair<GID,LID>* operator->() const {
+                  return &hashtable->buckets[index];
+               }
+               size_t getIndex() {
+                  return index;
+               }
+
+         };
+
+
+         // Const iterator.
+         class const_iterator : public std::iterator<std::random_access_iterator_tag, std::pair<GID,LID>> {
+               const OpenBucketHashtable<GID,LID>* hashtable;
+               size_t index;
+            public:
+               explicit const_iterator(const OpenBucketHashtable<GID,LID>& hashtable, size_t index): hashtable(&hashtable),index(index) { }
+
+               const_iterator& operator++() {
+                  do {
+                     index++;
+                  } while(hashtable->buckets[index].first == INVALID_GLOBALID && index < hashtable->buckets.size());
+                  return *this;
+               }
+
+               bool operator==(const_iterator other) const {
+                  return &hashtable->buckets[index] == &other.hashtable->buckets[other.index];
+               }
+               bool operator!=(const_iterator other) const {
+                  return &hashtable->buckets[index] != &other.hashtable->buckets[other.index];
+               }
+               const std::pair<GID,LID>& operator*() const {
+                  return hashtable->buckets[index];
+               }
+               const std::pair<GID,LID>* operator->() const {
+                  return &hashtable->buckets[index];
+               }
+               size_t getIndex() {
+                  return index;
+               }
+         };
+
+         iterator begin() {
+            for(size_t i=0; i<buckets.size(); i++) {
+               if(buckets[i].first != INVALID_GLOBALID) {
+                  return iterator(*this, i);
+               }
+            }
+            return end();
+         }
+         const_iterator begin() const {
+            for(size_t i=0; i<buckets.size(); i++) {
+               if(buckets[i].first != INVALID_GLOBALID) {
+                  return const_iterator(*this, i);
+               }
+            }
+            return end();
+         }
+
+         iterator end() {
+            return iterator(*this, buckets.size());
+         }
+         const_iterator end() const {
+            return const_iterator(*this, buckets.size());
+         }
+
+
+         // Element access by iterator
+         iterator find(GID key) {
+            int bitMask = (1 << sizePower) - 1; // For efficient modulo of the array size
+            uint32_t hashIndex = hash(key);
+
+            // Try to find the matching bucket.
+            for(int i=0; i<maxBucketOverflow; i++) {
+               const std::pair<GID,LID>& candidate = buckets[(hashIndex+i)&bitMask];
+               if(candidate.first == key) {
+                  // Found a match, return that
+                  return iterator(*this, (hashIndex+i)&bitMask);
+               }
+
+               if(candidate.first == INVALID_GLOBALID) {
+                  // Found an empty bucket. Return empty.
+                  return end();
+               }
+            }
+
+            // Not found
+            return end();
+         }
+
+         const const_iterator find(GID key) const {
+            int bitMask = (1 << sizePower) - 1; // For efficient modulo of the array size
+            uint32_t hashIndex = hash(key);
+
+            // Try to find the matching bucket.
+            for(int i=0; i<maxBucketOverflow; i++) {
+               const std::pair<GID,LID>& candidate = buckets[(hashIndex+i)&bitMask];
+               if(candidate.first == key) {
+                  // Found a match, return that
+                  return const_iterator(*this, (hashIndex+i)&bitMask);
+               }
+
+               if(candidate.first == INVALID_GLOBALID) {
+                  // Found an empty bucket. Return empty.
+                  return end();
+               }
+            }
+
+            // Not found
+            return end();
+
+         }
+
+         // More STL compatibility implementations
+         std::pair<iterator,bool> insert(std::pair<GID,LID> newEntry) {
+            bool found = find(newEntry.first) != end();
+            if(!found) {
+               at(newEntry.first) = newEntry.second;
+            }
+            return std::pair<iterator,bool>(find(newEntry.first),!found); 
+         }
+
+         // Remove one element from the hash table.
+         iterator erase(iterator keyPos) {
+            // Due to overflowing buckets, this might require moving quite a bit of stuff around.
+            size_t index = keyPos.getIndex();
+
+            if(buckets[index].first != INVALID_GLOBALID) {
+               // Decrease fill count if this spot wasn't empty already
+               fill--;
+            }
+            // Clear the element itself.
+            buckets[index]=std::pair<GID,LID>(INVALID_GLOBALID,INVALID_LOCALID);
+
+            int bitMask = (1 << sizePower) - 1; // For efficient modulo of the array size
+            GID nextBucket = buckets[(index+1) & bitMask].first;
+            if(nextBucket == INVALID_GLOBALID) {
+               // Easy case: if the next bucket is empty, we are done.
+               ++keyPos;
+               return keyPos;
+            } else {
+               // Othrwise, we need to renumber.
+               // TODO: This is potentially quite slow. Are there more
+               // efficient or elegant ways to resolve this?
+               rehash(sizePower);
+
+               // Find the next bucket member at its potentially new location.
+               return find(nextBucket);
+            }
+         }
+
+         void swap(OpenBucketHashtable<GID,LID>& other) {
+            buckets.swap(other.buckets);
+            int tempSizePower = sizePower;
+            sizePower = other.sizePower;
+            other.sizePower = tempSizePower;
+
+            size_t tempFill = fill;
+            fill = other.fill;
+            other.fill = tempFill;
+         }
+
+   };
 
    template<typename GID,typename LID>
    class VelocityMesh {
@@ -106,7 +404,8 @@ namespace vmesh {
       size_t meshID;
 
       std::vector<GID> localToGlobalMap;
-      std::unordered_map<GID,LID> globalToLocalMap;
+      OpenBucketHashtable<GID,LID> globalToLocalMap; //
+      //std::unordered_map<GID,LID> globalToLocalMap;
    };
 
    // ***** INITIALIZERS FOR STATIC MEMBER VARIABLES ***** //
@@ -140,7 +439,7 @@ namespace vmesh {
 
       for (size_t b=0; b<size(); ++b) {
          const LID globalID = localToGlobalMap[b];
-         typename std::unordered_map<GID,LID>::const_iterator it = globalToLocalMap.find(globalID);
+         auto it = globalToLocalMap.find(globalID);
          const GID localID = it->second;
          if (localID != b) {
             ok = false;
@@ -156,7 +455,7 @@ namespace vmesh {
    template<typename GID,typename LID> inline
    void VelocityMesh<GID,LID>::clear() {
       std::vector<GID>().swap(localToGlobalMap);
-      std::unordered_map<GID,LID>().swap(globalToLocalMap);
+      globalToLocalMap.clear();
    }
    
    template<typename GID,typename LID> inline
@@ -376,7 +675,7 @@ namespace vmesh {
 
    template<typename GID,typename LID> inline
    LID VelocityMesh<GID,LID>::getLocalID(const GID& globalID) const {
-      typename std::unordered_map<GID,LID>::const_iterator it = globalToLocalMap.find(globalID);
+      auto it = globalToLocalMap.find(globalID);
       if (it != globalToLocalMap.end()) return it->second;
       return invalidLocalID();
    }
@@ -448,11 +747,10 @@ namespace vmesh {
       getIndices(globalID,refLevel,i,j,k);
       
       // Return the requested neighbor if it exists:
-      typename std::unordered_map<GID,LID>::const_iterator nbr;
       GID nbrGlobalID = getGlobalID(0,i+i_off,j+j_off,k+k_off);
       if (nbrGlobalID == invalidGlobalID()) return;
 
-      nbr = globalToLocalMap.find(nbrGlobalID);
+      auto nbr = globalToLocalMap.find(nbrGlobalID);
       if (nbr != globalToLocalMap.end()) {
          neighborLocalIDs.push_back(nbr->second);
          refLevelDifference = 0;
@@ -581,7 +879,7 @@ namespace vmesh {
 
       const LID lastLID = size()-1;
       const GID lastGID = localToGlobalMap[lastLID];
-      typename std::unordered_map<GID,LID>::iterator last = globalToLocalMap.find(lastGID);
+      auto last = globalToLocalMap.find(lastGID);
 
       globalToLocalMap.erase(last);
       localToGlobalMap.pop_back();
@@ -592,7 +890,7 @@ namespace vmesh {
       if (size() >= meshParameters[meshID].max_velocity_blocks) return false;
       if (globalID == invalidGlobalID()) return false;
 
-      std::pair<typename std::unordered_map<GID,LID>::iterator,bool> position
+      auto position
         = globalToLocalMap.insert(std::make_pair(globalID,localToGlobalMap.size()));
 
       if (position.second == true) {
