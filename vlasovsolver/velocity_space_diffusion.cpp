@@ -68,6 +68,8 @@ void velocitySpaceDiffusion(
         Realf Vmax = 2*sqrt(3)*vMesh.meshLimits[1]; 
         Realf dVbins = (Vmax - Vmin)/nbins_v;  
         
+        int k = 0; // Counter for substeps, used to print out. To be removed.
+
         while (dtTotalDiff < Parameters::dt) {
 
             Realf RemainT = Parameters::dt - dtTotalDiff; //Remaining time before reaching simulation time step
@@ -78,6 +80,7 @@ void velocitySpaceDiffusion(
             int fcount[nbins_v][nbins_mu];    // Array to count number of f stored
             Realf fmu[nbins_v][nbins_mu];     // Array to store f(v,mu)
             Realf dfdmu[nbins_v][nbins_mu];   // Array to store dfdmu
+            Realf dfdmu2[nbins_v][nbins_mu];   // Array to store dfdmumu
             Realf dfdt_mu[nbins_v][nbins_mu]; // Array to store dfdt_mu
             
             // Build 2d array of f(v,mu)
@@ -117,7 +120,7 @@ void velocitySpaceDiffusion(
  
                    int Vcount = static_cast<int>(floor(normV / dVbins));                      
 
-                   int mucount = static_cast<int>(floor(mu+1.0 / dmubins));                      
+                   int mucount = static_cast<int>(floor( (mu+1.0) / dmubins));                      
 
                    fcount[Vcount][mucount] += 1;
 
@@ -133,42 +136,63 @@ void velocitySpaceDiffusion(
                     else {fmu[indv][indmu] = fmu[indv][indmu] / fcount[indv][indmu];} 
                 }
             }
+            
+            // Save muspace to text
+            std::string path_save = "/wrk/users/dubart/300_test/proc_tect/mu_diff/mu_files/";
+            std::ofstream muv_array(path_save + "muv_array_" + std::to_string(Parameters::dt) + "_" + std::to_string(k) + ".txt");
+            for (int indv = 0; indv < nbins_v; indv++) {
+                for(int indmu = 0; indmu < nbins_mu; indmu++) {
+                    muv_array << fmu[indv][indmu] << ' ';
+                }
+                muv_array << std::endl;
+            }
 
             int cRight;
             int cLeft;
 
-            // Compute dfdmu (take first non-zero neighbours)
+            // Compute dfdmu and dfdmu2 (take first non-zero neighbours)
             for (int indv = 0; indv < nbins_v; indv++) { 
-                for(int indmu = 1; indmu < nbins_mu-1; indmu++) {
-                    cLeft  = 1;
-                    cRight = 1;
-                    while( (fcount[indv][indmu + cRight] == 0.0) && (indmu + cRight <= nbins_mu-1) ) { cRight += 1; }
-                    if( (fcount[indv][indmu + cRight] == 0.0) && (indmu + cRight == nbins_mu-1) ) { cRight = 0;}
-                    while( (fcount[indv][indmu - cLeft] == 0.0) && (indmu - cLeft >= 0) ) { cLeft += 1; }
-                    if( (fcount[indv][indmu - cLeft] == 0.0) && (indmu - cLeft == 0) ) { cLeft = 0;} 
-                    dfdmu[indv][indmu] = (fmu[indv][indmu + cRight] - fmu[indv][indmu - cLeft]) / ((cRight + cLeft) * dmubins);
+                for(int indmu = 0; indmu < nbins_mu; indmu++) {
+                    if (indmu == 0) {
+                        cLeft  = 0;
+                        cRight = 1;
+                        while( (fcount[indv][indmu + cRight] == 0) && (indmu + cRight < nbins_mu-1) ) { cRight += 1; }
+                        if( (fcount[indv][indmu + cRight] == 0) && (indmu + cRight == nbins_mu-1) ) { cRight = 0;}
+                    } else if (indmu == nbins_mu-1) {
+                        cLeft  = 1;
+                        cRight = 0;
+                        while( (fcount[indv][indmu - cLeft] == 0) && (indmu - cLeft > 0) ) { cLeft += 1; }
+                        if( (fcount[indv][indmu - cLeft] == 0) && (indmu - cLeft == 0) ) { cLeft = 0;}
+                    } else {
+                        cLeft  = 1;
+                        cRight = 1;
+                        while( (fcount[indv][indmu + cRight] == 0) && (indmu + cRight < nbins_mu-1) ) { cRight += 1; }
+                        if( (fcount[indv][indmu + cRight] == 0) && (indmu + cRight == nbins_mu-1) ) { cRight = 0;}
+                        while( (fcount[indv][indmu - cLeft] == 0) && (indmu - cLeft > 0) ) { cLeft += 1; }
+                        if( (fcount[indv][indmu - cLeft] == 0) && (indmu - cLeft == 0) ) { cLeft = 0;} 
+                    }
+                
+                    dfdmu[indv][indmu]  = 0.5 * ( (fmu[indv][indmu + cRight] - fmu[indv][indmu])/(cRight*dmubins) + (fmu[indv][indmu] - fmu[indv][indmu-cLeft])/(cLeft*dmubins) );
+                    dfdmu2[indv][indmu] = ( (fmu[indv][indmu + cRight] - fmu[indv][indmu])/(cRight*dmubins) - (fmu[indv][indmu] - fmu[indv][indmu-cLeft])/(cLeft*dmubins) ) / (0.5 * dmubins * (cRight + cLeft)); 
                 }
-                dfdmu[indv][0]          = 0.0;
-                dfdmu[indv][nbins_mu-1] = 0.0;
             } 
 
-
-            // Compute dfdt_mu (take first non-zero neighbours)
+            // Save dfdmu to text
+            std::ofstream dfdmu_array(path_save + "dfdmu_array_" + std::to_string(Parameters::dt) + "_" + std::to_string(k) + ".txt");
+            for (int indv = 0; indv < nbins_v; indv++) {
+                for(int indmu = 0; indmu < nbins_mu; indmu++) {
+                    dfdmu_array << dfdmu[indv][indmu] << ' ';
+                }
+                dfdmu_array << std::endl;
+            }
+            
+            // Compute dfdt_mu
             for (int indv = 0; indv < nbins_v; indv++) { 
                 for(int indmu = 1; indmu < nbins_mu-1; indmu++) {
-                    cLeft  = 1;
-                    cRight = 1;
-                    while( (fcount[indv][indmu + cRight] == 0.0) && (indmu + cRight <= nbins_mu-1) ) { cRight += 1; }
-                    if( (fcount[indv][indmu + cRight] == 0.0) && (indmu + cRight == nbins_mu-1) ) { cRight = 0;}
-                    while( (fcount[indv][indmu - cLeft] == 0.0) && (indmu - cLeft >= 0) ) { cLeft += 1; }
-                    if( (fcount[indv][indmu - cLeft] == 0.0) && (indmu - cLeft == 0) ) { cLeft = 0;}
                     dfdt_mu[indv][indmu] = Parameters::PADcoefficient * (
-                                           (1.0 - (dmubins * (indmu + cRight + 1.0/2.0) - 1.0)*(dmubins * (indmu + cRight + 1.0/2.0) - 1.0)) * dfdmu[indv][indmu + cRight]
-                                           - (1.0 - (dmubins * (indmu - cLeft + 1.0/2.0) - 1.0)*(dmubins * (indmu - cLeft + 1.0/2.0) - 1.0)) * dfdmu[indv][indmu - cLeft] ) 
-                                           / ((cRight + cLeft) * dmubins);
+                                           - 2.0 * (dmubins * (indmu+0.5) - 1.0) * dfdmu[indv][indmu]
+                                           + (1.0 - (dmubins * (indmu+0.5) - 1.0)*(dmubins * (indmu+0.5) - 1.0)) * dfdmu2[indv][indmu] );
                 }
-                dfdt_mu[indv][0]          = 0.0;
-                dfdt_mu[indv][nbins_mu-1] = 0.0;
             } 
 
             // Compute dfdt
@@ -229,6 +253,29 @@ void velocitySpaceDiffusion(
             //std::cout << "Diffusion dt = " << Ddt << std::endl;
             dtTotalDiff = dtTotalDiff + Ddt;
 
+            // Save dfdt to text
+            std::ofstream dfdt_array(path_save + "dfdt_array_" + std::to_string(Parameters::dt) + "_" + std::to_string(k) + ".txt");
+            for (vmesh::LocalID n=0; n<cell.get_number_of_velocity_blocks(popID); n++) {
+                for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
+
+                   //Get velocity space coordinates                    
+                   const Real VX  
+                      =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+                      + (i + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+                   const Real VY  
+                      =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
+                      + (j + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+                   const Real VZ  
+                      =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD]
+                      + (k + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+
+                    std::vector<Realf> V = {VX,VY,VZ}; // Velocity in the cell, in the simulation frame
+
+                    dfdt_array << VX << " " << VY << " " << VZ << " " << dfdt[WID3*n+i+WID*j+WID*WID*k]*Ddt << std::endl;
+                }
+            }
+
+
             //Loop to update cell
             for (vmesh::LocalID n=0; n<cell.get_number_of_velocity_blocks(popID); n++) { //Iterate through velocity blocks
                 for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
@@ -249,6 +296,7 @@ void velocitySpaceDiffusion(
                }
            }
 
+        k += 1;
         } // End Time loop
 
     } // End spatial cell loop
