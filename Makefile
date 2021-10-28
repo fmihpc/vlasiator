@@ -515,7 +515,7 @@ vlsv_util.o: tools/vlsv_util.h tools/vlsv_util.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c tools/vlsv_util.cpp
 
 particles/particleparameters.o: ${DEPS_PARTICLES}  ${OBJS_VLSVREADERINTERFACE} particles/particleparameters.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c particles/particleparameters.cpp ${INC_VLSV} ${INC_VECTORCLASS} -I$(CURDIR) -Itools -o $@
+	${CMP} ${CXXFLAGS} ${FLAGS} -c particles/particleparameters.cpp ${INC_VLSV} ${INC_VECTORCLASS} ${INC_BOOST} -I$(CURDIR) -Itools -o $@
 
 particles/readfields.o: ${DEPS_PARTICLES}  ${OBJS_VLSVREADERINTERFACE} particles/readfields.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c particles/readfields.cpp ${INC_VLSV} ${INC_VECTORCLASS} ${INC_FSGRID} -I$(CURDIR) -Itools -o $@

@@ -8,6 +8,7 @@ reference_dir=$( readlink -f $reference_dir )
 run_dir=$( readlink -f $run_dir )_$( date +%Y.%m.%d_%H.%M.%S)
 
 bin=$( readlink -f $bin )
+diffbin=$( readlink -f $diffbin )
 test_dir=$( readlink -f $test_dir)
 
 # for run in ${run_tests[*]}
@@ -137,15 +138,15 @@ do
         do
             if [ "${variables[$i]}" == "fg_e" ] || [ "${variables[$i]}" == "fg_b" ]
             then
-                relativeValue=$($run_command_tools vlsvdiff_DP --meshname=fsgrid  ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The relative 0-distance between both datasets" |gawk '{print $8}'  )
-                absoluteValue=$($run_command_tools vlsvdiff_DP --meshname=fsgrid  ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The absolute 0-distance between both datasets" |gawk '{print $8}'  )
+                relativeValue=$($run_command_tools $diffbin --meshname=fsgrid  ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The relative 0-distance between both datasets" |gawk '{print $8}'  )
+                absoluteValue=$($run_command_tools $diffbin --meshname=fsgrid  ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The absolute 0-distance between both datasets" |gawk '{print $8}'  )
 #print the results      
                 echo "${variables[$i]}_${indices[$i]}                $absoluteValue                 $relativeValue    "
             
             elif [ ! "${variables[$i]}" == "proton" ]
             then
-                relativeValue=$($run_command_tools vlsvdiff_DP ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The relative 0-distance between both datasets" |gawk '{print $8}'  )
-                absoluteValue=$($run_command_tools vlsvdiff_DP ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The absolute 0-distance between both datasets" |gawk '{print $8}'  )
+                relativeValue=$($run_command_tools $diffbin ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The relative 0-distance between both datasets" |gawk '{print $8}'  )
+                absoluteValue=$($run_command_tools $diffbin ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The absolute 0-distance between both datasets" |gawk '{print $8}'  )
 #print the results      
                 echo "${variables[$i]}_${indices[$i]}                $absoluteValue                 $relativeValue    "
             elif [ "${variables[$i]}" == "proton" ]
@@ -153,7 +154,7 @@ do
                 echo "--------------------------------------------------------------------------------------------" 
                 echo "   Distribution function diff                                                               "
                 echo "--------------------------------------------------------------------------------------------" 
-                $run_command_tools vlsvdiff_DP ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} proton 0
+                $run_command_tools $diffbin ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} proton 0
             fi 
         done # loop over variables
 

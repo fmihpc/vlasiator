@@ -34,8 +34,10 @@
 #include <array>
 #include <algorithm>
 #include <limits>
+#include <initializer_list>
 
 #include "iowrite.h"
+#include "math.h"
 #include "grid.h"
 #include "phiprof.hpp"
 #include "parameters.h"
@@ -1039,6 +1041,8 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       Real cellX, cellY, cellZ, DX, DY, DZ;
       Real dx_rm, dx_rp, dy_rm, dy_rp, dz_rm, dz_rp;
       Real rsquare_minus,rsquare_plus;
+      bool withinshell,stridecheck;
+      //#warning TODO: thread evaluation of cells due to trigonometrics in shells?
       for (uint i = 0; i < cells.size(); i++) {
          mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 0.0;
          // CellID stride selection
@@ -1050,7 +1054,7 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          }
          // Cell lines selection
          // Determine cellID's 3D indices
-	 
+
 	 // Loop over AMR levels
 	 uint startindex=1;
 	 uint endindex=1;
@@ -1080,13 +1084,15 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 		    P::systemWriteDistributionWriteXlineStride[index] > 0 &&
 		    lineZ % P::systemWriteDistributionWriteZlineStride[index] == 0 &&
 		    lineX % P::systemWriteDistributionWriteXlineStride[index] == 0)
-         ) {
-             velSpaceCells.push_back(cells[i]);
-             mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 1.0;
-             continue; // Avoid double entries in case the cell also matches following conditions.
-          }
+		   ) {
+		  velSpaceCells.push_back(cells[i]);
+		  mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 1.0;
+                  break; // Avoid double entries in case the cell also matches following conditions.
+	       }
 	    }
 	 }
+         // Avoid double entries in case the cell also matches following conditions.
+         if (mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] > 0) continue;
 
          // Loop over spherical shells at defined distances
          for (uint ishell = 0; ishell < P::systemWriteDistributionWriteShellRadius.size(); ishell++) {
@@ -1106,12 +1112,83 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             dz_rp = cellZ < 0 ? 0 : DZ;
             rsquare_minus = (cellX + dx_rm) * (cellX + dx_rm) + (cellY + dy_rm) * (cellY + dy_rm) + (cellZ + dz_rm) * (cellZ + dz_rm);
             rsquare_plus  = (cellX + dx_rp) * (cellX + dx_rp) + (cellY + dy_rp) * (cellY + dy_rp) + (cellZ + dz_rp) * (cellZ + dz_rp);
-            if (rsquare_minus <= shellRadiusSquare && rsquare_plus > shellRadiusSquare &&
-                P::systemWriteDistributionWriteShellStride[ishell] > 0 && 
-                cells[i] % P::systemWriteDistributionWriteShellStride[ishell] == 0
-               ) {
-               velSpaceCells.push_back(cells[i]);
-               mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 1.0;
+            // Sometimes two face-neighboring cells can both intersect the sphere. In these cases, if the
+            // stride applied in that region is in a different direction than the neighborhood, both cells will be saved.
+            withinshell = (rsquare_minus <= shellRadiusSquare && rsquare_plus > shellRadiusSquare &&
+                                P::systemWriteDistributionWriteShellStride[ishell] > 0);
+            if (withinshell) {
+               // sort centerpoints
+               std::array<Real, 3> s = {abs(cellX+0.5*DX),abs(cellY+0.5*DY),abs(cellZ+0.5*DZ)};
+               std::sort(s.begin(), s.end());
+               Real shellR = P::systemWriteDistributionWriteShellRadius[ishell];
+               int shellS = P::systemWriteDistributionWriteShellStride[ishell];
+               // After this, assumes DX==DY==DZ
+               // Dominant direction (+-x,+-y,+-z) is used for concentric rings
+               Real D = s[2];
+               // Tangential direction
+               Real T;
+               // Clock angle distance for stride steps
+               Real clock;
+               if ((P::xcells_ini==1) || (P::ycells_ini==1) || (P::zcells_ini==1)) {
+                  // 1D or 2D simulation
+                  T = s[1];
+                  s[0] = 0;
+                  clock = 0;
+               } else { // 3D simulation
+                  T = sqrt(s[0]*s[0]+s[1]*s[1]);
+                  clock = T*atan(s[0]/s[1]);
+               }
+               // Distance along great circle away from dominant coordinate
+               Real dist =  shellR * atan(T/D);
+               // Now find the closest point(s) which fulfills the stride requirement
+               Real dist2 = DX * shellS * round(dist/DX/shellS);
+               Real clock2 = DX * shellS * round(clock/DX/shellS);
+
+               // Find Cartesian coordinates of this stridepoint
+               Real D2 = shellR * cos(dist2/shellR);
+               Real T2 = shellR * sin(dist2/shellR);
+
+               stridecheck = false;
+               // Now check if the stridepoint is exactly in this cell
+               if ((P::xcells_ini==1) || (P::ycells_ini==1) || (P::zcells_ini==1)) {
+                  // 1D or 2D
+                  if ( (D2 >= D-0.5*DX) && (D2 < D+0.5*DX) && (T2 >= T-0.5*DX) && (T2 < T+0.5*DX) ) stridecheck=true;
+                  // Special case for corners:
+                  if ( (abs(D-T)<0.5*DX) && (dist2>dist) ) stridecheck=true;
+
+                  // Only save 1 cell touching axes
+                  if ( (P::ycells_ini==1) && ( ( (cellX>-1.1*DX)&&(cellX<0) ) || ( (cellZ>-1.1*DZ)&&(cellZ<0) ) )) stridecheck=false;
+                  if ( (P::zcells_ini==1) && ( ( (cellX>-1.1*DX)&&(cellX<0) ) || ( (cellY>-1.1*DY)&&(cellY<0) ) )) stridecheck=false;
+
+               } else {
+                  // 3D simulation, account for clock angle
+                  Real T2A = T2 * cos(clock2/T2);
+                  Real T2B = T2 * sin(clock2/T2);
+                  // Rings at given stride from dominant direction
+                  bool ring = (D2 >= D-0.5*DX) && (D2 < D+0.5*DX) && (T2 >= T-0.5*DX) && (T2 < T+0.5*DX);
+                  // Special case for 45 degree ring:
+                  ring = ring || ((abs(D-T)<0.5*DX) && (dist2>dist));
+                  // Clock angle
+                  bool clockcheck = (T2A >= s[1]-0.5*DX) && (T2A < s[1]+0.5*DX) && (T2B >= s[0]-0.5*DX) && (T2B < s[0]+0.5*DX);
+                  // Special case for 45 degree clock angle
+                  clockcheck = clockcheck || ( (abs(s[1]-s[0])<0.5*DX) && (clock2>clock) );
+                  if ( ring && clockcheck ) stridecheck = true;
+
+                  // Ensure cells touching Cartesian axes are included
+                  if ( (s[1]<DX) && (s[0]<DX) && (D2 >= D-0.5*DX) && (D2 < D+0.5*DX) ) stridecheck=true;
+
+                  // Special corner-corner-case
+                  if ( (abs(s[2]-s[1])<DX) && (abs(s[1]-s[0])<DX) && (abs(s[2]-s[0])<DX) ) stridecheck=true;
+
+                  // Only save 1 cell touching axes (assumes origin is at corner intersection of 8 cells)
+                  if ( ( (cellX>-1.1*DX)&&(cellX<0) ) || ( (cellY>-1.1*DY)&&(cellY<0) ) || ( (cellZ>-1.1*DZ)&&(cellZ<0) ) ) stridecheck=false;
+               }
+
+               if (stridecheck) {
+                  velSpaceCells.push_back(cells[i]);
+                  mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 1.0;
+                  break; // Avoid double entries in case the cell also matches following conditions.
+               }
             }
          }
       }
