@@ -756,6 +756,7 @@ namespace SBC {
       for(uint n=0; n<nodes.size(); n++) {
          nodes[n].parameters[ionosphereParameters::SIGMAP] = 0;
          nodes[n].parameters[ionosphereParameters::SIGMAH] = 0;
+         nodes[n].parameters[ionosphereParameters::SIGMAPARALLEL] = 0;
          std::vector<Real> electronDensity(numAtmosphereLevels);
 
          // Note this loop counts from 1 (std::vector is zero-initialized, so electronDensity[0] = 0)
