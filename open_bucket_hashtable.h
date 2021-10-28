@@ -23,6 +23,7 @@
 
 #include <algorithm>
 #include <vector>
+#include "definitions.h"
 
 // Open bucket power-of-two sized hash table with multiplicative fibonacci hashing
 template <typename GID, typename LID, int maxBucketOverflow = 4> class OpenBucketHashtable {
@@ -40,7 +41,7 @@ private:
 
 public:
    OpenBucketHashtable()
-       : sizePower(4), fill(0), buckets(1 << sizePower, std::pair<GID, LID>(INVALID_GLOBALID, INVALID_LOCALID)){};
+       : sizePower(4), fill(0), buckets(1 << sizePower, std::pair<GID, LID>(vmesh::INVALID_GLOBALID, vmesh::INVALID_LOCALID)){};
    OpenBucketHashtable(const OpenBucketHashtable<GID, LID>& other)
        : sizePower(other.sizePower), fill(other.fill), buckets(other.buckets){};
 
@@ -51,14 +52,14 @@ public:
          throw std::out_of_range("OpenBucketHashtable ran into rehashing catastrophe and exceeded 32bit buckets.");
       }
       std::vector<std::pair<GID, LID>> newBuckets(1 << newSizePower,
-                                                  std::pair<GID, LID>(INVALID_LOCALID, INVALID_GLOBALID));
+                                                  std::pair<GID, LID>(vmesh::INVALID_LOCALID, vmesh::INVALID_GLOBALID));
       sizePower = newSizePower;
       int bitMask = (1 << sizePower) - 1; // For efficient modulo of the array size
 
       // Iterate through all old elements and rehash them into the new array.
       for (auto& e : buckets) {
          // Skip empty buckets
-         if (e.first == INVALID_LOCALID) {
+         if (e.first == vmesh::INVALID_LOCALID) {
             continue;
          }
 
@@ -66,7 +67,7 @@ public:
          bool found = false;
          for (int i = 0; i < maxBucketOverflow; i++) {
             std::pair<GID, LID>& candidate = newBuckets[(newHash + i) & bitMask];
-            if (candidate.first == INVALID_GLOBALID) {
+            if (candidate.first == vmesh::INVALID_GLOBALID) {
                // Found an empty bucket, assign that one.
                candidate = e;
                found = true;
@@ -97,7 +98,7 @@ public:
             // Found a match, return that
             return candidate.second;
          }
-         if (candidate.first == INVALID_GLOBALID) {
+         if (candidate.first == vmesh::INVALID_GLOBALID) {
             // Found an empty bucket, assign and return that.
             candidate.first = key;
             fill++;
@@ -127,7 +128,7 @@ public:
    }
 
    void clear() {
-      buckets = std::vector<std::pair<GID, LID>>(1 << sizePower, {INVALID_GLOBALID, INVALID_LOCALID});
+      buckets = std::vector<std::pair<GID, LID>>(1 << sizePower, {vmesh::INVALID_GLOBALID, vmesh::INVALID_LOCALID});
       fill = 0;
    }
 
@@ -142,7 +143,7 @@ public:
       iterator& operator++() {
          do {
             index++;
-         } while (hashtable->buckets[index].first == INVALID_GLOBALID && index < hashtable->buckets.size());
+         } while (hashtable->buckets[index].first == vmesh::INVALID_GLOBALID && index < hashtable->buckets.size());
          return *this;
       }
 
@@ -169,7 +170,7 @@ public:
       const_iterator& operator++() {
          do {
             index++;
-         } while (hashtable->buckets[index].first == INVALID_GLOBALID && index < hashtable->buckets.size());
+         } while (hashtable->buckets[index].first == vmesh::INVALID_GLOBALID && index < hashtable->buckets.size());
          return *this;
       }
 
@@ -186,7 +187,7 @@ public:
 
    iterator begin() {
       for (size_t i = 0; i < buckets.size(); i++) {
-         if (buckets[i].first != INVALID_GLOBALID) {
+         if (buckets[i].first != vmesh::INVALID_GLOBALID) {
             return iterator(*this, i);
          }
       }
@@ -194,7 +195,7 @@ public:
    }
    const_iterator begin() const {
       for (size_t i = 0; i < buckets.size(); i++) {
-         if (buckets[i].first != INVALID_GLOBALID) {
+         if (buckets[i].first != vmesh::INVALID_GLOBALID) {
             return const_iterator(*this, i);
          }
       }
@@ -217,7 +218,7 @@ public:
             return iterator(*this, (hashIndex + i) & bitMask);
          }
 
-         if (candidate.first == INVALID_GLOBALID) {
+         if (candidate.first == vmesh::INVALID_GLOBALID) {
             // Found an empty bucket. Return empty.
             return end();
          }
@@ -239,7 +240,7 @@ public:
             return const_iterator(*this, (hashIndex + i) & bitMask);
          }
 
-         if (candidate.first == INVALID_GLOBALID) {
+         if (candidate.first == vmesh::INVALID_GLOBALID) {
             // Found an empty bucket. Return empty.
             return end();
          }
@@ -263,16 +264,16 @@ public:
       // Due to overflowing buckets, this might require moving quite a bit of stuff around.
       size_t index = keyPos.getIndex();
 
-      if (buckets[index].first != INVALID_GLOBALID) {
+      if (buckets[index].first != vmesh::INVALID_GLOBALID) {
          // Decrease fill count if this spot wasn't empty already
          fill--;
       }
       // Clear the element itself.
-      buckets[index] = std::pair<GID, LID>(INVALID_GLOBALID, INVALID_LOCALID);
+      buckets[index] = std::pair<GID, LID>(vmesh::INVALID_GLOBALID, vmesh::INVALID_LOCALID);
 
       int bitMask = (1 << sizePower) - 1; // For efficient modulo of the array size
       GID nextBucket = buckets[(index + 1) & bitMask].first;
-      if (nextBucket == INVALID_GLOBALID) {
+      if (nextBucket == vmesh::INVALID_GLOBALID) {
          // Easy case: if the next bucket is empty, we are done.
          ++keyPos;
          return keyPos;
