@@ -2154,20 +2154,25 @@ namespace SBC {
        #pragma omp parallel for reduction(+:residualnorm)
        for(uint n=0; n<nodes.size(); n++) {
          Node& N=nodes[n];
-         // Calculate residual of the new solution. The faster way to do this would be
-         //
-         // iSolverReal newresid = N.parameters[ionosphereParameters::RESIDUAL] - ak * N.parameters[ionosphereParameters::ZPARAM];
-         // and
-         // N.parameters[ionosphereParameters::RRESIDUAL] -= ak * N.parameters[ionosphereParameters::ZZPARAM];
-         // 
-         // but doing so leads to numerical inaccuracy due to roundoff errors
-         // when iteration counts are high (because, for example, mesh node count is high and the matrix condition is bad).
-         // See https://en.wikipedia.org/wiki/Conjugate_gradient_method#Explicit_residual_calculation
-         iSolverReal newresid = N.parameters[ionosphereParameters::SOURCE] - Atimes(n, ionosphereParameters::SOLUTION);
-         N.parameters[ionosphereParameters::RESIDUAL] = newresid;
-         residualnorm += newresid * newresid;
-         
-         N.parameters[ionosphereParameters::RRESIDUAL] = N.parameters[ionosphereParameters::SOURCE] - Atimes(n, ionosphereParameters::SOLUTION, true);
+         if(gaugeFixing == Equator && fabs(N.x[2]) < Ionosphere::innerRadius / 10.) {
+            // Skip nodes that are not participating in the calculation.
+            N.parameters[ionosphereParameters::RRESIDUAL] = 0;
+         } else {
+            // Calculate residual of the new solution. The faster way to do this would be
+            //
+            // iSolverReal newresid = N.parameters[ionosphereParameters::RESIDUAL] - ak * N.parameters[ionosphereParameters::ZPARAM];
+            // and
+            // N.parameters[ionosphereParameters::RRESIDUAL] -= ak * N.parameters[ionosphereParameters::ZZPARAM];
+            // 
+            // but doing so leads to numerical inaccuracy due to roundoff errors
+            // when iteration counts are high (because, for example, mesh node count is high and the matrix condition is bad).
+            // See https://en.wikipedia.org/wiki/Conjugate_gradient_method#Explicit_residual_calculation
+            iSolverReal newresid = N.parameters[ionosphereParameters::SOURCE] - Atimes(n, ionosphereParameters::SOLUTION);
+            N.parameters[ionosphereParameters::RESIDUAL] = newresid;
+            residualnorm += newresid * newresid;
+
+            N.parameters[ionosphereParameters::RRESIDUAL] = N.parameters[ionosphereParameters::SOURCE] - Atimes(n, ionosphereParameters::SOLUTION, true);
+         }
        }
        for(uint n=0; n<nodes.size(); n++) {
          Node& N=nodes[n];

@@ -1306,7 +1306,8 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    phiprof::stop("readFsGrid");
    
    phiprof::start("readIonosphere");
-   if(success) { success = readIonosphereNodeVariable(file, "ig_fac", SBC::ionosphereGrid, ionosphereParameters::SOURCE); }
+   bool ionosphereSuccess=true;
+   ionosphereSuccess = readIonosphereNodeVariable(file, "tg_fac", SBC::ionosphereGrid, ionosphereParameters::SOURCE);
    // Reconstruct source term by multiplying the fac density with the element area
    for(uint i = 0; i<SBC::ionosphereGrid.nodes.size(); i++) {
       Real area = 0;
@@ -1315,9 +1316,12 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       }
       SBC::ionosphereGrid.nodes[i].parameters[ionosphereParameters::SOURCE] *= area;
    }
-   if(success) { success = readIonosphereNodeVariable(file, "ig_rhon", SBC::ionosphereGrid, ionosphereParameters::RHON); }
-   if(success) { success = readIonosphereNodeVariable(file, "ig_pressure", SBC::ionosphereGrid, ionosphereParameters::PRESSURE); }
-   if(success) { success = readIonosphereNodeVariable(file, "ig_potential", SBC::ionosphereGrid, ionosphereParameters::SOLUTION); }
+   ionosphereSuccess &= readIonosphereNodeVariable(file, "ig_rhon", SBC::ionosphereGrid, ionosphereParameters::RHON);
+   ionosphereSuccess &= readIonosphereNodeVariable(file, "ig_pressure", SBC::ionosphereGrid, ionosphereParameters::PRESSURE);
+   ionosphereSuccess &= readIonosphereNodeVariable(file, "ig_potential", SBC::ionosphereGrid, ionosphereParameters::SOLUTION);
+   if(!ionosphereSuccess) {
+	logFile << "(RESTART) Reading ionosphere variables failed. Continuing anyway. Variables will be zero, assuming this is an ionosphere cold start?" << std::endl;
+   }
    phiprof::stop("readIonosphere");
 
    success = file.close();
