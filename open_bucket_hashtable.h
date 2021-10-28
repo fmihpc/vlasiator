@@ -272,7 +272,7 @@ public:
       buckets[index] = std::pair<GID, LID>(vmesh::INVALID_GLOBALID, vmesh::INVALID_LOCALID);
 
       int bitMask = (1 << sizePower) - 1; // For efficient modulo of the array size
-
+      size_t offset=0;
       // Check up to maxBucketOverflow ahead to verify items are in correct places
       for (int i = 0; i < maxBucketOverflow; i++) {
          GID nextBucket = buckets[(index + 1 + i) & bitMask].first;
@@ -283,22 +283,19 @@ public:
          }
          // Found an entry: is it in the correct bucket?
          uint32_t hashIndex = hash(nextBucket);
-         if (hashIndex == index + 1 + i) {
-            // Yes, this entry is where it should be, keep searching further
-            continue;
-         } else {
+         if (hashIndex & bitMask != (index + 1 + i) & bitMask) {
             // This entry has overflown.
             // Copy this entry to the current newly empty bucket, then continue with deleting
-            // this overflown entry (recursively searches on from there)
-            buckets[index] = std::pair<GID, LID>(nextBucket,buckets[(index + 1 + i) & bitMask].second);
-            erase(iterator(*this, index + 1 + i));
-            break;
+            // this overflown entry and continue searching for overflown entries
+            buckets[(index+offset)&bitMask] = std::pair<GID, LID>(nextBucket,buckets[(index + 1 + i) & bitMask].second);
+            offset = 1+i;
+            buckets[(index+offset)&bitMask] = std::pair<GID, LID>(vmesh::INVALID_GLOBALID, vmesh::INVALID_LOCALID);
          }
       }
       // return the next valid bucket member
-      do {
-         ++keyPos;
-      } while (buckets[keyPos.getIndex()].first == vmesh::INVALID_GLOBALID && keyPos.getIndex() < buckets.size());
+      // do {
+      //    ++keyPos;
+      // } while (buckets[keyPos.getIndex()].first == vmesh::INVALID_GLOBALID && keyPos.getIndex() < buckets.size());
       return keyPos;
    }
 
