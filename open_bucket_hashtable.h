@@ -273,29 +273,33 @@ public:
 
       int bitMask = (1 << sizePower) - 1; // For efficient modulo of the array size
       size_t offset=0;
-      // Check up to maxBucketOverflow ahead to verify items are in correct places
-      for (int i = 0; i < maxBucketOverflow; i++) {
-         GID nextBucket = buckets[(index + 1 + i) & bitMask].first;
-
+      // Search ahead to verify items are in correct places (until empty bucket is found)
+      for (int i = 1; i < fill; i++) {
+         GID nextBucket = buckets[(index + i) & bitMask].first;
          if (nextBucket == vmesh::INVALID_GLOBALID) {
             // The next bucket is empty, we are done.
             break;
          }
          // Found an entry: is it in the correct bucket?
          uint32_t hashIndex = hash(nextBucket);
-         if (hashIndex & bitMask != (index + 1 + i) & bitMask) {
-            // This entry has overflown.
-            // Copy this entry to the current newly empty bucket, then continue with deleting
-            // this overflown entry and continue searching for overflown entries
-            buckets[(index+offset)&bitMask] = std::pair<GID, LID>(nextBucket,buckets[(index + 1 + i) & bitMask].second);
-            offset = 1+i;
-            buckets[(index+offset)&bitMask] = std::pair<GID, LID>(vmesh::INVALID_GLOBALID, vmesh::INVALID_LOCALID);
+         if ((hashIndex & bitMask) != ((index + i) & bitMask)) {
+            // This entry has overflown. Now check if it should be moved:
+            //size_t distance = (( hashIndex - (index+offset) + (1<<sizePower) )&bitMask);
+            size_t distance =  (((index + i) - hashIndex + (1<<sizePower) )&bitMask);
+            if ( (distance>0) && (distance <= maxBucketOverflow)) {
+               // Copy this entry to the current newly empty bucket, then continue with deleting
+               // this overflown entry and continue searching for overflown entries
+               buckets[(index + offset)&bitMask] = std::pair<GID, LID>(nextBucket,buckets[(index + i) & bitMask].second);
+               offset = i;
+               buckets[(index + i)&bitMask] = std::pair<GID, LID>(vmesh::INVALID_GLOBALID, vmesh::INVALID_LOCALID);
+            }
          }
       }
       // return the next valid bucket member
       // do {
       //    ++keyPos;
       // } while (buckets[keyPos.getIndex()].first == vmesh::INVALID_GLOBALID && keyPos.getIndex() < buckets.size());
+      ++keyPos;
       return keyPos;
    }
 
