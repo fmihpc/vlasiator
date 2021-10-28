@@ -272,20 +272,34 @@ public:
       buckets[index] = std::pair<GID, LID>(vmesh::INVALID_GLOBALID, vmesh::INVALID_LOCALID);
 
       int bitMask = (1 << sizePower) - 1; // For efficient modulo of the array size
-      GID nextBucket = buckets[(index + 1) & bitMask].first;
-      if (nextBucket == vmesh::INVALID_GLOBALID) {
-         // Easy case: if the next bucket is empty, we are done.
-         ++keyPos;
-         return keyPos;
-      } else {
-         // Othrwise, we need to renumber.
-         // TODO: This is potentially quite slow. Are there more
-         // efficient or elegant ways to resolve this?
-         rehash(sizePower);
 
-         // Find the next bucket member at its potentially new location.
-         return find(nextBucket);
+      // Check up to maxBucketOverflow ahead to verify items are in correct places
+      for (int i = 0; i < maxBucketOverflow; i++) {
+         GID nextBucket = buckets[(index + 1 + i) & bitMask].first;
+
+         if (nextBucket == vmesh::INVALID_GLOBALID) {
+            // The next bucket is empty, we are done.
+            break;
+         }
+         // Found an entry: is it in the correct bucket?
+         uint32_t hashIndex = hash(nextBucket);
+         if (hashIndex == index + 1 + i) {
+            // Yes, this entry is where it should be, keep searching further
+            continue;
+         } else {
+            // This entry has overflown.
+            // Copy this entry to the current newly empty bucket, then continue with deleting
+            // this overflown entry (recursively searches on from there)
+            buckets[index] = std::pair<GID, LID>(nextBucket,buckets[(index + 1 + i) & bitMask].second);
+            erase(iterator(*this, index + 1 + i));
+            break;
+         }
       }
+      // return the next valid bucket member
+      do {
+         ++keyPos;
+      } while (buckets[keyPos.getIndex()].first == vmesh::INVALID_GLOBALID && keyPos.getIndex() < buckets.size());
+      return keyPos;
    }
 
    void swap(OpenBucketHashtable<GID, LID>& other) {
