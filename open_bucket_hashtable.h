@@ -289,20 +289,14 @@ public:
                   // Copy this entry to the current newly empty bucket, then continue with deleting
                   // this overflown entry and continue searching for overflown entries
                   LID moveValue = buckets[(index+i)&bitMask].second;
-                  //std::cerr<<" fill "<<fill<<" index "<<index<<" targetPos "<<targetPos<<" i "<<i<<" distance "<<distance<<" hashIndex "<<hashIndex<<" sizePower "<<sizePower<<" maxBucketOverflow "<<maxBucketOverflow<<" nextBucket "<<nextBucket<<" moveValue "<<moveValue<<std::endl;
                   buckets[targetPos] = std::pair<GID, LID>(nextBucket,moveValue);
                   targetPos = ((index+i)&bitMask);
                   buckets[targetPos] = std::pair<GID, LID>(vmesh::INVALID_GLOBALID, vmesh::INVALID_LOCALID);
                }
             }
          }
-         //rehash(sizePower);
-         //return find(0);
       }
       // return the next valid bucket member
-      /* do { */
-      /*    ++keyPos; */
-      /* } while (buckets[keyPos.getIndex()].first == vmesh::INVALID_GLOBALID && keyPos.getIndex() < buckets.size()); */
       ++keyPos;
       return keyPos;
    }
