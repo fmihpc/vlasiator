@@ -138,20 +138,19 @@ void velocitySpaceDiffusion(
                 }
             }
             
-            // Save muspace to text
-            std::string path_save = "/wrk/users/dubart/300_test/proc_test/mu_files/";
-            std::ostringstream tmp;
-            std::ostringstream tmp2;
-            tmp << std::setw(7) << std::setfill('0') << P::tstep;
-            std::string tstepString = tmp.str();
-            tmp2 << std::setw(4) << std::setfill('0') << k;
-            std::string diffString = tmp2.str();
-            std::ofstream muv_array(path_save + "muv_array_" + tstepString + "_" + diffString + ".txt");
-            for (int indv = 0; indv < nbins_v; indv++) {
-                for(int indmu = 0; indmu < nbins_mu; indmu++) {
-                    muv_array << fmu[indv][indmu] << ' ';
+            if (k == 0) {
+                // Save muspace to text
+                std::string path_save = "/wrk/users/dubart/300_test/proc_test/mu_files/";
+                std::ostringstream tmp;
+                tmp << std::setw(7) << std::setfill('0') << P::tstep;
+                std::string tstepString = tmp.str();
+                std::ofstream muv_array(path_save + "muv_array_" + tstepString + ".txt");
+                for (int indv = 0; indv < nbins_v; indv++) {
+                    for(int indmu = 0; indmu < nbins_mu; indmu++) {
+                        muv_array << fmu[indv][indmu] << ' ';
+                    }
+                    muv_array << std::endl;
                 }
-                muv_array << std::endl;
             }
 
             int cRight;
@@ -194,13 +193,19 @@ void velocitySpaceDiffusion(
                 }
             } 
 
-            // Save dfdmu to text
-            std::ofstream dfdmu_array(path_save + "dfdmu_array_" + tstepString + "_" + diffString + ".txt");
-            for (int indv = 0; indv < nbins_v; indv++) {
-                for(int indmu = 0; indmu < nbins_mu; indmu++) {
-                    dfdmu_array << dfdmu[indv][indmu] << ' ';
+            if (k == 0) {
+                // Save dfdmu to text
+                std::string path_save = "/wrk/users/dubart/300_test/proc_test/mu_files/";
+                std::ostringstream tmp;
+                tmp << std::setw(7) << std::setfill('0') << P::tstep;
+                std::string tstepString = tmp.str();
+                std::ofstream dfdmu_array(path_save + "dfdmu_array_" + tstepString + ".txt");
+                for (int indv = 0; indv < nbins_v; indv++) {
+                    for(int indmu = 0; indmu < nbins_mu; indmu++) {
+                        dfdmu_array << dfdmu[indv][indmu] << ' ';
+                    }
+                    dfdmu_array << std::endl;
                 }
-                dfdmu_array << std::endl;
             }
             
             // Compute dfdt_mu
@@ -248,7 +253,7 @@ void velocitySpaceDiffusion(
 
                    int Vcount = static_cast<int>(floor(normV / dVbins));    
 
-                   int mucount = static_cast<int>(floor(mu+1.0 / dmubins));
+                   int mucount = static_cast<int>(floor((mu+1.0) / dmubins));
 
                    Realf CellValue = cell.get_value(VX,VY,VZ,popID);
                    if (fmu[Vcount][mucount] == 0.0) { dfdt[WID3*n+i+WID*j+WID*WID*k] = 0.0; }
@@ -270,28 +275,33 @@ void velocitySpaceDiffusion(
             //std::cout << "Diffusion dt = " << Ddt << std::endl;
             dtTotalDiff = dtTotalDiff + Ddt;
 
-            // Save dfdt to text
-            std::ofstream dfdt_array(path_save + "dfdt_array_" + tstepString + "_" + diffString + ".txt");
-            for (vmesh::LocalID n=0; n<cell.get_number_of_velocity_blocks(popID); n++) {
-                for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
+            if (k == 0) {
+                // Save dfdt to text
+                std::string path_save = "/wrk/users/dubart/300_test/proc_test/mu_files/";
+                std::ostringstream tmp;
+                tmp << std::setw(7) << std::setfill('0') << P::tstep;
+                std::string tstepString = tmp.str();
+                std::ofstream dfdt_array(path_save + "dfdt_array_" + tstepString + ".txt");
+                for (vmesh::LocalID n=0; n<cell.get_number_of_velocity_blocks(popID); n++) {
+                    for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
 
-                   //Get velocity space coordinates                    
-                   const Real VX  
-                      =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
-                      + (i + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
-                   const Real VY  
-                      =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
-                      + (j + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
-                   const Real VZ  
-                      =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD]
-                      + (k + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+                       //Get velocity space coordinates                    
+                       const Real VX  
+                          =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+                          + (i + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+                       const Real VY  
+                          =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
+                          + (j + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+                       const Real VZ  
+                          =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD]
+                          + (k + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
 
-                    std::vector<Realf> V = {VX,VY,VZ}; // Velocity in the cell, in the simulation frame
+                        std::vector<Realf> V = {VX,VY,VZ}; // Velocity in the cell, in the simulation frame
 
-                    dfdt_array << VX << " " << VY << " " << VZ << " " << dfdt[WID3*n+i+WID*j+WID*WID*k]*Ddt << std::endl;
+                        dfdt_array << VX << " " << VY << " " << VZ << " " << dfdt[WID3*n+i+WID*j+WID*WID*k]*Ddt << std::endl;
+                    }
                 }
             }
-
 
             //Loop to update cell
             for (vmesh::LocalID n=0; n<cell.get_number_of_velocity_blocks(popID); n++) { //Iterate through velocity blocks
