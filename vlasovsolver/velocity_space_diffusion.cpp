@@ -65,7 +65,8 @@ void velocitySpaceDiffusion(
         Realf dmubins = (mumax - mumin)/nbins_mu;
 
         Realf Vmin = 0.0;
-        Realf Vmax = 2*sqrt(3)*vMesh.meshLimits[1]; 
+        Realf Vmax = 2*sqrt(3)*vMesh.meshLimits[1];
+        std::cout << "Vmax = " << Vmax <<std::endl;
         Realf dVbins = (Vmax - Vmin)/nbins_v;  
         
         int k = 0; // Counter for substeps, used to print out. To be removed.
@@ -138,8 +139,14 @@ void velocitySpaceDiffusion(
             }
             
             // Save muspace to text
-            std::string path_save = "/wrk/users/dubart/300_test/proc_tect/mu_diff/mu_files/";
-            std::ofstream muv_array(path_save + "muv_array_" + std::to_string(Parameters::dt) + "_" + std::to_string(k) + ".txt");
+            std::string path_save = "/wrk/users/dubart/300_test/proc_test/mu_files/";
+            std::ostringstream tmp;
+            std::ostringstream tmp2;
+            tmp << std::setw(7) << std::setfill('0') << P::tstep;
+            std::string tstepString = tmp.str();
+            tmp2 << std::setw(4) << std::setfill('0') << k;
+            std::string diffString = tmp2.str();
+            std::ofstream muv_array(path_save + "muv_array_" + tstepString + "_" + diffString + ".txt");
             for (int indv = 0; indv < nbins_v; indv++) {
                 for(int indmu = 0; indmu < nbins_mu; indmu++) {
                     muv_array << fmu[indv][indmu] << ' ';
@@ -170,15 +177,25 @@ void velocitySpaceDiffusion(
                         if( (fcount[indv][indmu + cRight] == 0) && (indmu + cRight == nbins_mu-1) ) { cRight = 0;}
                         while( (fcount[indv][indmu - cLeft] == 0) && (indmu - cLeft > 0) ) { cLeft += 1; }
                         if( (fcount[indv][indmu - cLeft] == 0) && (indmu - cLeft == 0) ) { cLeft = 0;} 
+                    } 
+                    if( (cRight == 0) && (cLeft != 0) ) { 
+                        dfdmu[indv][indmu]  = (fmu[indv][indmu] - fmu[indv][indmu-cLeft])/(cLeft*dmubins);
+                        dfdmu2[indv][indmu] = 0.0;
+                    } else if( (cLeft == 0) && (cRight != 0) ) { 
+                        dfdmu[indv][indmu]  = (fmu[indv][indmu + cRight] - fmu[indv][indmu])/(cRight*dmubins);
+                        dfdmu2[indv][indmu] = 0.0;
+                    } else if( (cLeft == 0) && (cRight == 0) ) {
+                        dfdmu[indv][indmu]  = 0.0;
+                        dfdmu2[indv][indmu] = 0.0;
+                    } else {
+                        dfdmu[indv][indmu]  = 0.5 * ( (fmu[indv][indmu + cRight] - fmu[indv][indmu])/(cRight*dmubins) + (fmu[indv][indmu] - fmu[indv][indmu-cLeft])/(cLeft*dmubins) );
+                        dfdmu2[indv][indmu] = ( (fmu[indv][indmu + cRight] - fmu[indv][indmu])/(cRight*dmubins) - (fmu[indv][indmu] - fmu[indv][indmu-cLeft])/(cLeft*dmubins) ) / (0.5 * dmubins * (cRight + cLeft)); 
                     }
-                
-                    dfdmu[indv][indmu]  = 0.5 * ( (fmu[indv][indmu + cRight] - fmu[indv][indmu])/(cRight*dmubins) + (fmu[indv][indmu] - fmu[indv][indmu-cLeft])/(cLeft*dmubins) );
-                    dfdmu2[indv][indmu] = ( (fmu[indv][indmu + cRight] - fmu[indv][indmu])/(cRight*dmubins) - (fmu[indv][indmu] - fmu[indv][indmu-cLeft])/(cLeft*dmubins) ) / (0.5 * dmubins * (cRight + cLeft)); 
                 }
             } 
 
             // Save dfdmu to text
-            std::ofstream dfdmu_array(path_save + "dfdmu_array_" + std::to_string(Parameters::dt) + "_" + std::to_string(k) + ".txt");
+            std::ofstream dfdmu_array(path_save + "dfdmu_array_" + tstepString + "_" + diffString + ".txt");
             for (int indv = 0; indv < nbins_v; indv++) {
                 for(int indmu = 0; indmu < nbins_mu; indmu++) {
                     dfdmu_array << dfdmu[indv][indmu] << ' ';
@@ -254,7 +271,7 @@ void velocitySpaceDiffusion(
             dtTotalDiff = dtTotalDiff + Ddt;
 
             // Save dfdt to text
-            std::ofstream dfdt_array(path_save + "dfdt_array_" + std::to_string(Parameters::dt) + "_" + std::to_string(k) + ".txt");
+            std::ofstream dfdt_array(path_save + "dfdt_array_" + tstepString + "_" + diffString + ".txt");
             for (vmesh::LocalID n=0; n<cell.get_number_of_velocity_blocks(popID); n++) {
                 for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
 

@@ -60,6 +60,8 @@ void velocitySpaceDiffusion(
 
         Realf dtTotalDiff = 0.0; // Diffusion time elapsed
 
+        int k = 0;
+
         while (dtTotalDiff < Parameters::dt) {
 
             Realf RemainT = Parameters::dt - dtTotalDiff; //Remaining time before reaching simulation time step
@@ -370,7 +372,7 @@ void velocitySpaceDiffusion(
                    if (abs(dfdt[WID3*n+i+WID*j+WID*WID*k]) > 0.0) {
                    checkCFL[WID3*n+i+WID*j+WID*WID*k] = CellValue * Parameters::PADCFL * (1.0 / abs(dfdt[WID3*n+i+WID*j+WID*WID*k]));} else {
                    checkCFL[WID3*n+i+WID*j+WID*WID*k] = std::numeric_limits<Realf>::max();}
-                   //checkCFL[WID3*n+i+WID*j+WID*WID*k] = 1.0e32;}
+                   //checkCFL[WID3*n+i+WID*j+WID*WID*k] = 1.0e32;
 
                 } // End cell loop
 
@@ -385,6 +387,37 @@ void velocitySpaceDiffusion(
             //std::cout << "Diffusion dt = " << Ddt << std::endl;
             dtTotalDiff = dtTotalDiff + Ddt;
 
+
+            // Save dfdt to text
+            std::string path_save = "/wrk/users/dubart/300_test/proc_test/cart_files/";
+            std::ostringstream tmp;
+            std::ostringstream tmp2;
+            tmp << std::setw(7) << std::setfill('0') << P::tstep;
+            std::string tstepString = tmp.str();
+            tmp2 << std::setw(4) << std::setfill('0') << k;
+            std::string diffString = tmp2.str();
+            std::ofstream dfdt_array(path_save + "dfdt_array_" + tstepString + "_" + diffString + ".txt");
+            for (vmesh::LocalID n=0; n<cell.get_number_of_velocity_blocks(popID); n++) {
+                for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
+
+                   //Get velocity space coordinates                    
+                   const Real VX  
+                      =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+                      + (i + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+                   const Real VY  
+                      =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
+                      + (j + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+                   const Real VZ  
+                      =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD]
+                      + (k + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+
+                    std::vector<Realf> V = {VX,VY,VZ}; // Velocity in the cell, in the simulation frame
+
+                    dfdt_array << VX << " " << VY << " " << VZ << " " << dfdt[WID3*n+i+WID*j+WID*WID*k]*Ddt << std::endl;
+                }
+            }
+
+
             //Loop to check CFL and update cell
             for (vmesh::LocalID n=0; n<cell.get_number_of_velocity_blocks(popID); n++) { //Iterate through velocity blocks
                 for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
@@ -394,6 +427,7 @@ void velocitySpaceDiffusion(
                     const Real VX = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] + (i + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
                     const Real VY = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] + (j + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
                     const Real VZ = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] + (k + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+
 
                     //Check CFL
                     Realf CellValue = cell.get_value(VX,VY,VZ,popID);
@@ -408,7 +442,7 @@ void velocitySpaceDiffusion(
                 } // End cell loop
 
             } // End block loop
-
+        k += 1;
         } // End Time loop
 
     } // End spatial cell loop
