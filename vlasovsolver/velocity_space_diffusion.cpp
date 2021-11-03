@@ -66,7 +66,6 @@ void velocitySpaceDiffusion(
 
         Realf Vmin = 0.0;
         Realf Vmax = 2*sqrt(3)*vMesh.meshLimits[1];
-        std::cout << "Vmax = " << Vmax <<std::endl;
         Realf dVbins = (Vmax - Vmin)/nbins_v;  
         
         int k = 0; // Counter for substeps, used to print out. To be removed.
@@ -78,11 +77,11 @@ void velocitySpaceDiffusion(
             std::vector<Realf> dfdt(cell.get_number_of_velocity_blocks(popID)*WID3); // Array of vspace size to store dfdt
             std::vector<Realf> checkCFL(cell.get_number_of_velocity_blocks(popID)*WID3); // Array of vspace size to store checkCFl
 
-            int fcount[nbins_v][nbins_mu];    // Array to count number of f stored
-            Realf fmu[nbins_v][nbins_mu];     // Array to store f(v,mu)
-            Realf dfdmu[nbins_v][nbins_mu];   // Array to store dfdmu
-            Realf dfdmu2[nbins_v][nbins_mu];   // Array to store dfdmumu
-            Realf dfdt_mu[nbins_v][nbins_mu]; // Array to store dfdt_mu
+            int fcount[nbins_v][nbins_mu]    = {0};   // Array to count number of f stored
+            Realf fmu[nbins_v][nbins_mu]     = {0.0}; // Array to store f(v,mu)
+            Realf dfdmu[nbins_v][nbins_mu]   = {0.0}; // Array to store dfdmu
+            Realf dfdmu2[nbins_v][nbins_mu]  = {0.0}; // Array to store dfdmumu
+            Realf dfdt_mu[nbins_v][nbins_mu] = {0.0}; // Array to store dfdt_mu
             
             // Build 2d array of f(v,mu)
             for (vmesh::LocalID n=0; n<cell.get_number_of_velocity_blocks(popID); n++) { // Iterate through velocity blocks

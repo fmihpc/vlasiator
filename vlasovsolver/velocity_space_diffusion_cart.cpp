@@ -387,36 +387,33 @@ void velocitySpaceDiffusion(
             //std::cout << "Diffusion dt = " << Ddt << std::endl;
             dtTotalDiff = dtTotalDiff + Ddt;
 
+            if (k == 0) {
+                // Save dfdt to text
+                std::string path_save = "/wrk/users/dubart/300_test/proc_test/cart_files/";
+                std::ostringstream tmp;
+                tmp << std::setw(7) << std::setfill('0') << P::tstep;
+                std::string tstepString = tmp.str();
+                std::ofstream dfdt_array(path_save + "dfdt_array_" + tstepString + ".txt");
+                for (vmesh::LocalID n=0; n<cell.get_number_of_velocity_blocks(popID); n++) {
+                    for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
 
-            // Save dfdt to text
-            std::string path_save = "/wrk/users/dubart/300_test/proc_test/cart_files/";
-            std::ostringstream tmp;
-            std::ostringstream tmp2;
-            tmp << std::setw(7) << std::setfill('0') << P::tstep;
-            std::string tstepString = tmp.str();
-            tmp2 << std::setw(4) << std::setfill('0') << k;
-            std::string diffString = tmp2.str();
-            std::ofstream dfdt_array(path_save + "dfdt_array_" + tstepString + "_" + diffString + ".txt");
-            for (vmesh::LocalID n=0; n<cell.get_number_of_velocity_blocks(popID); n++) {
-                for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
+                       //Get velocity space coordinates                    
+                       const Real VX  
+                          =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+                          + (i + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+                       const Real VY  
+                          =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
+                          + (j + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+                       const Real VZ  
+                          =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD]
+                          + (k + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
 
-                   //Get velocity space coordinates                    
-                   const Real VX  
-                      =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
-                      + (i + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
-                   const Real VY  
-                      =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
-                      + (j + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
-                   const Real VZ  
-                      =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD]
-                      + (k + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+                        std::vector<Realf> V = {VX,VY,VZ}; // Velocity in the cell, in the simulation frame
 
-                    std::vector<Realf> V = {VX,VY,VZ}; // Velocity in the cell, in the simulation frame
-
-                    dfdt_array << VX << " " << VY << " " << VZ << " " << dfdt[WID3*n+i+WID*j+WID*WID*k]*Ddt << std::endl;
+                        dfdt_array << VX << " " << VY << " " << VZ << " " << dfdt[WID3*n+i+WID*j+WID*WID*k]*Ddt << std::endl;
+                    }
                 }
             }
-
 
             //Loop to check CFL and update cell
             for (vmesh::LocalID n=0; n<cell.get_number_of_velocity_blocks(popID); n++) { //Iterate through velocity blocks
