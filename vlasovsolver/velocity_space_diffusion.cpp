@@ -177,16 +177,14 @@ void velocitySpaceDiffusion(
                         if( (fcount[indv][indmu - cLeft] == 0) && (indmu - cLeft == 0) ) { cLeft = 0;} 
                     } 
                     if( (cRight == 0) && (cLeft != 0) ) { 
-                        dfdmu[indv][indmu]  = (fmu[indv][indmu] - fmu[indv][indmu-cLeft])/(cLeft*dmubins);
                         dfdmu2[indv][indmu] = 0.0;
                     } else if( (cLeft == 0) && (cRight != 0) ) { 
-                        dfdmu[indv][indmu]  = (fmu[indv][indmu + cRight] - fmu[indv][indmu])/(cRight*dmubins);
                         dfdmu2[indv][indmu] = 0.0;
                     } else if( (cLeft == 0) && (cRight == 0) ) {
                         dfdmu[indv][indmu]  = 0.0;
                         dfdmu2[indv][indmu] = 0.0;
                     } else {
-                        dfdmu[indv][indmu]  = 0.5 * ( (fmu[indv][indmu + cRight] - fmu[indv][indmu])/(cRight*dmubins) + (fmu[indv][indmu] - fmu[indv][indmu-cLeft])/(cLeft*dmubins) );
+                        dfdmu[indv][indmu]  = (fmu[indv][indmu + cRight] - fmu[indv][indmu-cLeft])/((cRight + cLeft)*dmubins) ;
                         dfdmu2[indv][indmu] = ( (fmu[indv][indmu + cRight] - fmu[indv][indmu])/(cRight*dmubins) - (fmu[indv][indmu] - fmu[indv][indmu-cLeft])/(cLeft*dmubins) ) / (0.5 * dmubins * (cRight + cLeft)); 
                     }
                 }
