@@ -64,7 +64,7 @@ void velocitySpaceDiffusion(
         Realf mumax   = +1.0;
         Realf dmubins = (mumax - mumin)/nbins_mu;
 
-        Realf Vmin = 0.0;
+        Realf Vmin = 30000.0;
         Realf Vmax = 2*sqrt(3)*vMesh.meshLimits[1];
         Realf dVbins = (Vmax - Vmin)/nbins_v;  
         
@@ -209,7 +209,7 @@ void velocitySpaceDiffusion(
             
             // Compute dfdt_mu
             for (int indv = 0; indv < nbins_v; indv++) { 
-                for(int indmu = 1; indmu < nbins_mu-1; indmu++) {
+                for(int indmu = 0; indmu < nbins_mu; indmu++) {
                     dfdt_mu[indv][indmu] = Parameters::PADcoefficient * (
                                            - 2.0 * (dmubins * (indmu+0.5) - 1.0) * dfdmu[indv][indmu]
                                            + (1.0 - (dmubins * (indmu+0.5) - 1.0)*(dmubins * (indmu+0.5) - 1.0)) * dfdmu2[indv][indmu] );
@@ -255,7 +255,7 @@ void velocitySpaceDiffusion(
                    int mucount = static_cast<int>(floor((mu+1.0) / dmubins));
 
                    Realf CellValue = cell.get_value(VX,VY,VZ,popID);
-                   if (fmu[Vcount][mucount] == 0.0) { dfdt[WID3*n+i+WID*j+WID*WID*k] = 0.0; }
+                   if (fmu[Vcount][mucount] == 0.0) { dfdt[WID3*n+i+WID*j+WID*WID*k] = dfdt_mu[Vcount][mucount]; }
                    else { dfdt[WID3*n+i+WID*j+WID*WID*k] = dfdt_mu[Vcount][mucount] * CellValue / fmu[Vcount][mucount]; }
                    
                    if (CellValue < Sparsity) {CellValue = Sparsity;} //Set CellValue to sparsity Threshold for empty cells otherwise div by 0
