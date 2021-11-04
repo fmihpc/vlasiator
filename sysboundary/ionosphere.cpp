@@ -535,7 +535,7 @@ namespace SBC {
    }
 
 
-   // TODO: Find a source for this
+   // Fractional energy dissipation rate for a isotropic beam, based on Rees (1963), figure 1
    static Real ReesIsotropicLambda(Real x) {
       static const Real P[7] = { -11.639, 32.1133, -30.8543, 14.6063, -6.3375, 0.6138, 1.4946};
       Real lambda = ((((P[0] * x + P[1])*x + P[3])*x + P[4])*x +P[5])* x+P[6];
@@ -582,7 +582,7 @@ namespace SBC {
             newLayer.altitude = altitude;
             newLayer.density = density;
             newLayer.depth = integratedDensity;
-            // TODO: Ugh, hardcoded constants. What is this?
+            // Ion-neutral scattering frequencies (from Schunck and Nagy, 2009, Table 4.5)
             newLayer.nui = 1e-16*(2*c1 + 3.8*c2 + 5*c3);
             atmosphere[altindex++] = newLayer;
          }
@@ -1778,8 +1778,8 @@ namespace SBC {
 
        // Special case: we are touching the middle of an edge
        if(j0 == -1) {
-         // TODO: Implement this? Gumics doesn't.
-         // How would the elementIntegral even work?
+          // This is not implemented. Instead, refinement interfaces are stitched, so these kinds
+          // of T-junctions never appear.
        } else {
 
          // Normal case.
