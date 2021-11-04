@@ -68,7 +68,7 @@ void velocitySpaceDiffusion(
         Realf Vmax = 2*sqrt(3)*vMesh.meshLimits[1];
         Realf dVbins = (Vmax - Vmin)/nbins_v;  
         
-        int k = 0; // Counter for substeps, used to print out. To be removed.
+        int subCount = 0; // Counter for substeps, used to print out. To be removed.
 
         while (dtTotalDiff < Parameters::dt) {
 
@@ -118,7 +118,9 @@ void velocitySpaceDiffusion(
                    Realf theta = atan2(Vperp,Vpara);
                    Realf mu    = cos(theta);
  
-                   int Vcount = static_cast<int>(floor(normV / dVbins));                      
+                   int Vcount;
+                   if (normV < Vmin) { continue; }
+                   else { Vcount = static_cast<int>(floor((normV-Vmin) / dVbins)); }                      
 
                    int mucount = static_cast<int>(floor( (mu+1.0) / dmubins));                      
 
@@ -137,7 +139,7 @@ void velocitySpaceDiffusion(
                 }
             }
             
-            if (k == 0) {
+            if (subCount == 0) {
                 // Save muspace to text
                 std::string path_save = "/wrk/users/dubart/300_test/proc_test/mu_files/";
                 std::ostringstream tmp;
@@ -177,8 +179,10 @@ void velocitySpaceDiffusion(
                         if( (fcount[indv][indmu - cLeft] == 0) && (indmu - cLeft == 0) ) { cLeft = 0;} 
                     } 
                     if( (cRight == 0) && (cLeft != 0) ) { 
+                        dfdmu[indv][indmu]  = (fmu[indv][indmu + cRight] - fmu[indv][indmu-cLeft])/((cRight + cLeft)*dmubins) ;
                         dfdmu2[indv][indmu] = 0.0;
                     } else if( (cLeft == 0) && (cRight != 0) ) { 
+                        dfdmu[indv][indmu]  = (fmu[indv][indmu + cRight] - fmu[indv][indmu-cLeft])/((cRight + cLeft)*dmubins) ;
                         dfdmu2[indv][indmu] = 0.0;
                     } else if( (cLeft == 0) && (cRight == 0) ) {
                         dfdmu[indv][indmu]  = 0.0;
@@ -190,7 +194,7 @@ void velocitySpaceDiffusion(
                 }
             } 
 
-            if (k == 0) {
+            if (subCount == 0) {
                 // Save dfdmu to text
                 std::string path_save = "/wrk/users/dubart/300_test/proc_test/mu_files/";
                 std::ostringstream tmp;
@@ -248,7 +252,9 @@ void velocitySpaceDiffusion(
                    Realf theta = atan2(Vperp,Vpara);
                    Realf mu    = cos(theta);
 
-                   int Vcount = static_cast<int>(floor(normV / dVbins));    
+                   int Vcount;
+                   if (normV < Vmin) { continue; }
+                   else { Vcount = static_cast<int>(floor((normV-Vmin) / dVbins)); }    
 
                    int mucount = static_cast<int>(floor((mu+1.0) / dmubins));
 
@@ -272,7 +278,7 @@ void velocitySpaceDiffusion(
             //std::cout << "Diffusion dt = " << Ddt << std::endl;
             dtTotalDiff = dtTotalDiff + Ddt;
 
-            if (k == 0) {
+            if (subCount == 0) {
                 // Save dfdt to text
                 std::string path_save = "/wrk/users/dubart/300_test/proc_test/mu_files/";
                 std::ostringstream tmp;
@@ -320,7 +326,7 @@ void velocitySpaceDiffusion(
                }
            }
 
-        k += 1;
+        subCount += 1;
         } // End Time loop
 
     } // End spatial cell loop

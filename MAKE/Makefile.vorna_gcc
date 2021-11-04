@@ -30,8 +30,8 @@ FLAGS =
 #GNU flags:
 CC_BRAND = gcc
 CC_BRAND_VERSION = 10.2.0
-CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -mavx
-testpackage: CXXFLAGS = -g -O2 -fopenmp -funroll-loops -std=c++17 -mavx
+CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -mavx -pipe
+testpackage: CXXFLAGS = -g -O2 -fopenmp -funroll-loops -std=c++17 -mavx -pipe
 
 MATHFLAGS = -ffast-math
 LDFLAGS = -lrt -lgfortran -std=c++17
