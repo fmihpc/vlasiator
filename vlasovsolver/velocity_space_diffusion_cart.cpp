@@ -410,7 +410,7 @@ void velocitySpaceDiffusion(
 
                         std::vector<Realf> V = {VX,VY,VZ}; // Velocity in the cell, in the simulation frame
 
-                        dfdt_array << VX << " " << VY << " " << VZ << " " << dfdt[WID3*n+i+WID*j+WID*WID*k]*Ddt << std::endl;
+                        dfdt_array << VX << " " << VY << " " << VZ << " " << dfdt[WID3*n+i+WID*j+WID*WID*k] << " " << Ddt << std::endl;
                     }
                 }
             }

@@ -75,8 +75,7 @@ void velocitySpaceDiffusion(
             Realf RemainT = Parameters::dt - dtTotalDiff; //Remaining time before reaching simulation time step
 
             std::vector<Realf> dfdt(cell.get_number_of_velocity_blocks(popID)*WID3); // Array of vspace size to store dfdt
-            std::vector<Realf> checkCFL(cell.get_number_of_velocity_blocks(popID)*WID3); // Array of vspace size to store checkCFl
-
+            std::vector<Realf> checkCFL(cell.get_number_of_velocity_blocks(popID)*WID3, std::numeric_limits<Realf>::max()); // Array of vspace size to store checkCFl
             int fcount[nbins_v][nbins_mu]    = {0};   // Array to count number of f stored
             Realf fmu[nbins_v][nbins_mu]     = {0.0}; // Array to store f(v,mu)
             Realf dfdmu[nbins_v][nbins_mu]   = {0.0}; // Array to store dfdmu
@@ -264,8 +263,7 @@ void velocitySpaceDiffusion(
                    
                    if (CellValue < Sparsity) {CellValue = Sparsity;} //Set CellValue to sparsity Threshold for empty cells otherwise div by 0
                    if (abs(dfdt[WID3*n+i+WID*j+WID*WID*k]) > 0.0) {
-                   checkCFL[WID3*n+i+WID*j+WID*WID*k] = CellValue * Parameters::PADCFL * (1.0 / abs(dfdt[WID3*n+i+WID*j+WID*WID*k]));} else {
-                   checkCFL[WID3*n+i+WID*j+WID*WID*k] = std::numeric_limits<Realf>::max();}
+                   checkCFL[WID3*n+i+WID*j+WID*WID*k] = CellValue * Parameters::PADCFL * (1.0 / abs(dfdt[WID3*n+i+WID*j+WID*WID*k]));}
                 }
             }
 
@@ -301,7 +299,7 @@ void velocitySpaceDiffusion(
 
                         std::vector<Realf> V = {VX,VY,VZ}; // Velocity in the cell, in the simulation frame
 
-                        dfdt_array << VX << " " << VY << " " << VZ << " " << dfdt[WID3*n+i+WID*j+WID*WID*k]*Ddt << std::endl;
+                        dfdt_array << VX << " " << VY << " " << VZ << " " << dfdt[WID3*n+i+WID*j+WID*WID*k] << " " << Ddt << std::endl;
                     }
                 }
             }
