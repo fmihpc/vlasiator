@@ -826,9 +826,12 @@ void calculateHallTermSimple(
    for (int k=0; k<gridDims[2]; k++) {
       for (int j=0; j<gridDims[1]; j++) {
          for (int i=0; i<gridDims[0]; i++) {
-            if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+            if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP1) {
+               // As intermediate perBDt2Grid isn't available, we also don't use momentsDt2Grid.
                calculateHallTerm(perBGrid, EHallGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid,sysBoundaries, i, j, k);
-            } else {
+            } else if (RKCase == RK_ORDER2_STEP1) {
+               calculateHallTerm(perBGrid, EHallGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid,sysBoundaries, i, j, k);
+            } else { // RKCase == RK_ORDER2_STEP2)
                calculateHallTerm(perBDt2Grid, EHallGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid,sysBoundaries, i, j, k);
             }
          }

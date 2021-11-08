@@ -367,9 +367,11 @@ void calculateDerivativesSimple(
       for (int j=0; j<gridDims[1]; j++) {
          for (int i=0; i<gridDims[0]; i++) {
             if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-            if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+            if (RKCase == RK_ORDER1) {
                calculateDerivatives(i,j,k, perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RKCase);
-            } else {
+            } else if (RKCase == RK_ORDER2_STEP1) {
+               calculateDerivatives(i,j,k, perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RKCase);
+            } else { //RKCase == RK_ORDER2_STEP2
                calculateDerivatives(i,j,k, perBDt2Grid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RKCase);
             }
          }

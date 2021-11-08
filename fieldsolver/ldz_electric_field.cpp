@@ -1685,7 +1685,7 @@ void calculateUpwindedElectricFieldSimple(
    for (int k=0; k<gridDims[2]; k++) {
       for (int j=0; j<gridDims[1]; j++) {
          for (int i=0; i<gridDims[0]; i++) {
-            if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+            if (RKCase == RK_ORDER1) {
                calculateElectricField(
                   perBGrid,
                   EGrid,
@@ -1702,10 +1702,29 @@ void calculateUpwindedElectricFieldSimple(
                   sysBoundaries,
                   RKCase
                );
-            } else { // RKCase == RK_ORDER2_STEP1
+            } else if (RKCase == RK_ORDER2_STEP1) {
+               // sources are at +0, target at +dt/2
+               calculateElectricField(
+                  perBGrid,
+                  EDt2Grid,
+                  EHallGrid,
+                  EGradPeGrid,
+                  momentsDt2Grid,
+                  dPerBGrid,
+                  dMomentsGrid,
+                  BgBGrid,
+                  technicalGrid,
+                  i,
+                  j,
+                  k,
+                  sysBoundaries,
+                  RKCase
+               );
+            } else { // RKCase == RK_ORDER2_STEP2
+               // sources are at +dt/2, target at +dt
                calculateElectricField(
                   perBDt2Grid,
-                  EDt2Grid,
+                  EGrid,
                   EHallGrid,
                   EGradPeGrid,
                   momentsDt2Grid,
