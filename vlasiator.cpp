@@ -572,6 +572,20 @@ int main(int argn,char* args[]) {
       phiprof::start("propagate-velocity-space-dt/2");
       if (P::propagateVlasovAcceleration) {
          calculateAcceleration(mpiGrid, 0.5*P::dt);
+         // Also update moments. They won't be transmitted to FSgrid until the field solver is called, though.
+         phiprof::start("Compute interp moments");
+         calculateInterpolatedVelocityMoments(
+            mpiGrid,
+            CellParams::RHOM,
+            CellParams::VX,
+            CellParams::VY,
+            CellParams::VZ,
+            CellParams::RHOQ,
+            CellParams::P_11,
+            CellParams::P_22,
+            CellParams::P_33
+            );
+         phiprof::stop("Compute interp moments");
       } else {
          //zero step to set up moments _v
          calculateAcceleration(mpiGrid, 0.0);
@@ -579,7 +593,7 @@ int main(int argn,char* args[]) {
       phiprof::stop("propagate-velocity-space-dt/2");
 
    }
-   
+
    phiprof::stop("Initialization");
 
    // ***********************************
