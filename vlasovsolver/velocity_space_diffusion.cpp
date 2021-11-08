@@ -258,8 +258,18 @@ void velocitySpaceDiffusion(
                    int mucount = static_cast<int>(floor((mu+1.0) / dmubins));
 
                    Realf CellValue = cell.get_value(VX,VY,VZ,popID);
-                   if (fmu[Vcount][mucount] == 0.0) { dfdt[WID3*n+i+WID*j+WID*WID*k] = dfdt_mu[Vcount][mucount]; }
-                   else { dfdt[WID3*n+i+WID*j+WID*WID*k] = dfdt_mu[Vcount][mucount] * CellValue / fmu[Vcount][mucount]; }
+                   Realf fmu_calc = 1.0; // fmu is of the order of CellValue so every element is smaller than 1
+                   if (CellValue == 0.0) {CellValue = Sparsity;}
+                   if (fmu[Vcount][mucount] == 0.0) { // Set to smallest non-zero fmu
+                       for (int indv = 0; indv < nbins_v; indv++) { 
+                           for(int indmu = 0; indmu < nbins_mu; indmu++) {
+                               if ((fmu[indv][indmu] < fmu_calc) && (fmu[indv][indmu] != 0.0)) { fmu_calc = fmu[indv][indmu];}
+                               else{continue;}
+                           }
+                       }
+                   } else { fmu_calc = fmu[Vcount][mucount];}
+
+                   dfdt[WID3*n+i+WID*j+WID*WID*k] = dfdt_mu[Vcount][mucount] * CellValue / fmu_calc;
                    
                    if (CellValue < Sparsity) {CellValue = Sparsity;} //Set CellValue to sparsity Threshold for empty cells otherwise div by 0
                    if (abs(dfdt[WID3*n+i+WID*j+WID*WID*k]) > 0.0) {
