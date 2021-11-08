@@ -253,12 +253,12 @@ bool propagateFields(
          // Result of the Summer of Debugging 2016, the behaviour in wave dispersion was much improved with this.
          propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, subcycleDt, RK_ORDER2_STEP1);
          
-         // We need to calculate derivatives of the moments at every substep, but they only
+         // We need to calculate derivatives of the moments at every substep, but the moments only
          // need to be communicated in the first one.
          calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1, (subcycleCount==0));
          if(P::ohmGradPeTerm > 0 && subcycleCount==0) {
             calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1);
-            hallTermCommunicateDerivatives = false;
+            hallTermCommunicateDerivatives = false; // To prevent repeated ghost update of derivatives
          }
          if(P::ohmHallTerm > 0) {
             calculateHallTermSimple(
@@ -295,12 +295,13 @@ bool propagateFields(
          
          propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, subcycleDt, RK_ORDER2_STEP2);
          
-         // We need to calculate derivatives of the moments at every substep, but they only
+         // We need to calculate derivatives of the moments at every substep, but the moments only
          // need to be communicated in the first one.
          calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2, (subcycleCount==0));
+         hallTermCommunicateDerivatives = true; // re-activate for newly calculated derivatives
          if(P::ohmGradPeTerm > 0 && subcycleCount==0) {
             calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2);
-            hallTermCommunicateDerivatives = false;
+            hallTermCommunicateDerivatives = false; // To prevent repeated ghost update of derivatives
          }
          if(P::ohmHallTerm > 0) {
             calculateHallTermSimple(

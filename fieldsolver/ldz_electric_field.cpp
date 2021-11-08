@@ -1709,7 +1709,7 @@ void calculateUpwindedElectricFieldSimple(
                   EDt2Grid,
                   EHallGrid,
                   EGradPeGrid,
-                  momentsDt2Grid,
+                  momentsGrid,
                   dPerBGrid,
                   dMomentsGrid,
                   BgBGrid,

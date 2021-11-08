@@ -334,15 +334,6 @@ void calculateDerivativesSimple(
        }
        break;
     case RK_ORDER2_STEP1:
-      // Exchange PERB*_DT2,RHO_DT2,V*_DT2 with neighbours The
-      // update of PERB[XYZ]_DT2 is needed after the system
-      // boundary update of propagateMagneticFieldSimple.
-       perBDt2Grid.updateGhostCells();
-       if(communicateMoments) {
-         momentsDt2Grid.updateGhostCells();
-       }
-       break;
-    case RK_ORDER2_STEP2:
       // Exchange PERB*,RHO,V* with neighbours The update of B
       // is needed after the system boundary update of
       // propagateMagneticFieldSimple.
@@ -351,6 +342,15 @@ void calculateDerivativesSimple(
          momentsGrid.updateGhostCells();
        }
       break;
+    case RK_ORDER2_STEP2:
+      // Exchange PERB*_DT2,RHO_DT2,V*_DT2 with neighbours The
+      // update of PERB[XYZ]_DT2 is needed after the system
+      // boundary update of propagateMagneticFieldSimple.
+       perBDt2Grid.updateGhostCells();
+       if(communicateMoments) {
+         momentsDt2Grid.updateGhostCells();
+       }
+       break;
     default:
       cerr << __FILE__ << ":" << __LINE__ << " Went through switch, this should not happen." << endl;
       abort();
