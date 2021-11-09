@@ -32,6 +32,7 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <iterator>
 
 using namespace spatial_cell;
 
@@ -64,7 +65,7 @@ void velocitySpaceDiffusion(
         Realf mumax   = +1.0;
         Realf dmubins = (mumax - mumin)/nbins_mu;
 
-        Realf Vmin = 30000.0;
+        Realf Vmin = 0.0;
         Realf Vmax = 2*sqrt(3)*vMesh.meshLimits[1];
         Realf dVbins = (Vmax - Vmin)/nbins_v;  
         
@@ -81,7 +82,8 @@ void velocitySpaceDiffusion(
             Realf dfdmu[nbins_v][nbins_mu]   = {0.0}; // Array to store dfdmu
             Realf dfdmu2[nbins_v][nbins_mu]  = {0.0}; // Array to store dfdmumu
             Realf dfdt_mu[nbins_v][nbins_mu] = {0.0}; // Array to store dfdt_mu
-            
+            std::vector<Realf> ratio(cell.get_number_of_velocity_blocks(popID)*WID3); // Array to store CellValue / fmu
+
             // Build 2d array of f(v,mu)
             for (vmesh::LocalID n=0; n<cell.get_number_of_velocity_blocks(popID); n++) { // Iterate through velocity blocks
                 for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
@@ -252,24 +254,32 @@ void velocitySpaceDiffusion(
                    Realf mu    = cos(theta);
 
                    int Vcount;
-                   if (normV < Vmin) { continue; }
+                   Realf VminApply = 2.0*DV;
+                   if (normV < VminApply) { continue; }
                    else { Vcount = static_cast<int>(floor((normV-Vmin) / dVbins)); }    
 
                    int mucount = static_cast<int>(floor((mu+1.0) / dmubins));
 
                    Realf CellValue = cell.get_value(VX,VY,VZ,popID);
-                   Realf fmu_calc = 1.0; // fmu is of the order of CellValue so every element is smaller than 1
-                   if (CellValue == 0.0) {CellValue = Sparsity;}
-                   if (fmu[Vcount][mucount] == 0.0) { // Set to smallest non-zero fmu
-                       for (int indv = 0; indv < nbins_v; indv++) { 
-                           for(int indmu = 0; indmu < nbins_mu; indmu++) {
-                               if ((fmu[indv][indmu] < fmu_calc) && (fmu[indv][indmu] != 0.0)) { fmu_calc = fmu[indv][indmu];}
-                               else{continue;}
-                           }
-                       }
-                   } else { fmu_calc = fmu[Vcount][mucount];}
+                   Realf CellCalc = 0.0;
+                   if ((CellValue == 0.0) && (dfdmu[Vcount][mucount] != 0.0)) {
+                       Realf CellValuePDX = cell.get_value(VX+DV,VY,VZ,popID); 
+                       Realf CellValueMDX = cell.get_value(VX-DV,VY,VZ,popID); 
+                       Realf CellValuePDY = cell.get_value(VX,VY+DV,VZ,popID); 
+                       Realf CellValueMDY = cell.get_value(VX,VY-DV,VZ,popID);  
+                       Realf CellValuePDZ = cell.get_value(VX,VY,VZ+DV,popID); 
+                       Realf CellValueMDZ = cell.get_value(VX,VY,VZ-DV,popID);
+                       std::array<Realf,6> Compare = {CellValuePDX,CellValueMDX,CellValuePDY,CellValueMDY,CellValuePDZ,CellValueMDZ};
+                       auto minPos = std::min_element(Compare.begin(),Compare.end());
+                       CellCalc = *minPos;
+                       if (CellCalc == 0.0) {continue;}
+                   } else if ((CellValue == 0.0) && (dfdmu[Vcount][mucount] == 0.0)) {continue;}
+                   else {CellCalc = CellValue;}                    
 
-                   dfdt[WID3*n+i+WID*j+WID*WID*k] = dfdt_mu[Vcount][mucount] * CellValue / fmu_calc;
+                   if (fmu[Vcount][mucount] == 0.0) { ratio[WID3*n+i+WID*j+WID*WID*k] = 1.0; }
+                   else { ratio[WID3*n+i+WID*j+WID*WID*k] = CellCalc / fmu[Vcount][mucount]; }                  
+
+                   dfdt[WID3*n+i+WID*j+WID*WID*k] = dfdt_mu[Vcount][mucount] * ratio[WID3*n+i+WID*j+WID*WID*k];
                    
                    if (CellValue < Sparsity) {CellValue = Sparsity;} //Set CellValue to sparsity Threshold for empty cells otherwise div by 0
                    if (abs(dfdt[WID3*n+i+WID*j+WID*WID*k]) > 0.0) {
@@ -293,6 +303,7 @@ void velocitySpaceDiffusion(
                 tmp << std::setw(7) << std::setfill('0') << P::tstep;
                 std::string tstepString = tmp.str();
                 std::ofstream dfdt_array(path_save + "dfdt_array_" + tstepString + ".txt");
+                std::ofstream checks(path_save + "checks_" + tstepString + ".txt");
                 for (vmesh::LocalID n=0; n<cell.get_number_of_velocity_blocks(popID); n++) {
                     for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
 
@@ -309,7 +320,8 @@ void velocitySpaceDiffusion(
 
                         std::vector<Realf> V = {VX,VY,VZ}; // Velocity in the cell, in the simulation frame
 
-                        dfdt_array << VX << " " << VY << " " << VZ << " " << dfdt[WID3*n+i+WID*j+WID*WID*k] << " " << Ddt << std::endl;
+                        dfdt_array << VX << " " << VY << " " << VZ << " " << dfdt[WID3*n+i+WID*j+WID*WID*k] << std::endl;
+                        checks << VX << " " << VY << " " << VZ << " " << ratio[WID3*n+i+WID*j+WID*WID*k] << " " << Ddt << std::endl;
                     }
                 }
             }
