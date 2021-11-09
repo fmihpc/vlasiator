@@ -539,7 +539,7 @@ namespace SBC {
    static Real ReesIsotropicLambda(Real x) {
       static const Real P[7] = { -11.639, 32.1133, -30.8543, 14.6063, -6.3375, 0.6138, 1.4946};
       Real lambda = ((((P[0] * x + P[1])*x + P[3])*x + P[4])*x +P[5])* x+P[6];
-      if(lambda < 0) {
+      if(x > 1. || lambda < 0) {
          return 0;
       }
       return lambda;
@@ -579,9 +579,9 @@ namespace SBC {
          // When we encounter one of our reference layers, record its values
          if(altitude >= alt[altindex]) {
             AtmosphericLayer newLayer;
-            newLayer.altitude = altitude;
-            newLayer.density = density;
-            newLayer.depth = integratedDensity;
+            newLayer.altitude = altitude; // in km
+            newLayer.density = density; // kg/m^3
+            newLayer.depth = integratedDensity; // kg/m^2
             // Ion-neutral scattering frequencies (from Schunck and Nagy, 2009, Table 4.5)
             newLayer.nui = 1e-16*(2*c1 + 3.8*c2 + 5*c3);
             atmosphere[altindex++] = newLayer;
@@ -619,13 +619,27 @@ namespace SBC {
       std::array< std::array< Real, numAtmosphereLevels >, productionNumParticleEnergies > scatteringRate;
       for(int e=0;e<productionNumParticleEnergies; e++) {
 
-         // TODO: Ugh, hardcoded constants. What are these?
-         // From Robinson et al 1987
+         // From Rees et al 1963, eq. 2
          const Real electronRange = 4.3e-6 + 5.36e-5 * pow(particle_energy[e], 1.67); // kg m^-2
+         Real rho_R=0.;
+         // Integrate downwards through the atmosphre to find density at depth=1
+         for(int h=numAtmosphereLevels-1; h>=0; h--) {
+            if(atmosphere[h].depth / electronRange > 1) {
+               //std::cerr << "For energy " << particle_energy[e] << ", electronRange = " << electronRange << " and it is reached at height " << atmosphere[h].altitude << " km, depth = " << atmosphere[h].depth << " kg/m^2 , density = " << atmosphere[h].density << " kg/m^3" << std::endl;
+               rho_R = atmosphere[h].density;
+               break;
+            }
+         }
+         if(rho_R == 0.) {
+            //std::cerr << "For energy " << particle_energy[e] << ", no height matches the electronRange of " << electronRange << " kg/m^2. Lowest level depth is " << atmosphere[0].depth << " kg/m^2" << std::endl;
+            rho_R = atmosphere[0].density;
+         }
+
          for(int h=0; h<numAtmosphereLevels; h++) {
             const Real lambda = ReesIsotropicLambda(atmosphere[h].depth/electronRange);
-            const Real prerate = (lambda * atmosphere[h].density * particle_energy[e]) / (electronRange * eps_ion_keV);
-            scatteringRate[h][e] = max(0., prerate); // m^-1
+            // Rees et al 1963, eq. 1
+            const Real rate = particle_energy[e] / (electronRange / rho_R) / eps_ion_keV *   lambda   *   atmosphere[h].density / integratedDensity; 
+            scatteringRate[h][e] = max(0., rate); // m^-1
          }
       }
 
