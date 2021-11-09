@@ -265,27 +265,40 @@ public:
       size_t index = keyPos.getIndex();
 
       if (buckets[index].first != vmesh::INVALID_GLOBALID) {
-         // Decrease fill count if this spot wasn't empty already
+         // Decrease fill count
          fill--;
-      }
-      // Clear the element itself.
-      buckets[index] = std::pair<GID, LID>(vmesh::INVALID_GLOBALID, vmesh::INVALID_LOCALID);
 
-      int bitMask = (1 << sizePower) - 1; // For efficient modulo of the array size
-      GID nextBucket = buckets[(index + 1) & bitMask].first;
-      if (nextBucket == vmesh::INVALID_GLOBALID) {
-         // Easy case: if the next bucket is empty, we are done.
-         ++keyPos;
-         return keyPos;
-      } else {
-         // Othrwise, we need to renumber.
-         // TODO: This is potentially quite slow. Are there more
-         // efficient or elegant ways to resolve this?
-         rehash(sizePower);
+         // Clear the element itself.
+         buckets[index] = std::pair<GID, LID>(vmesh::INVALID_GLOBALID, vmesh::INVALID_LOCALID);
 
-         // Find the next bucket member at its potentially new location.
-         return find(nextBucket);
+         int bitMask = (1 << sizePower) - 1; // For efficient modulo of the array size
+         size_t targetPos = index;
+         // Search ahead to verify items are in correct places (until empty bucket is found)
+         for (int i = 1; i < fill; i++) {
+            GID nextBucket = buckets[(index + i)&bitMask].first;
+            if (nextBucket == vmesh::INVALID_GLOBALID) {
+               // The next bucket is empty, we are done.
+               break;
+            }
+            // Found an entry: is it in the correct bucket?
+            uint32_t hashIndex = hash(nextBucket);
+            if ((hashIndex&bitMask) != ((index + i)&bitMask)) {
+               // This entry has overflown. Now check if it should be moved:
+               uint32_t distance =  ((targetPos - hashIndex + (1<<sizePower) )&bitMask);
+               if ( (distance>=0) && (distance < maxBucketOverflow)) {
+                  // Copy this entry to the current newly empty bucket, then continue with deleting
+                  // this overflown entry and continue searching for overflown entries
+                  LID moveValue = buckets[(index+i)&bitMask].second;
+                  buckets[targetPos] = std::pair<GID, LID>(nextBucket,moveValue);
+                  targetPos = ((index+i)&bitMask);
+                  buckets[targetPos] = std::pair<GID, LID>(vmesh::INVALID_GLOBALID, vmesh::INVALID_LOCALID);
+               }
+            }
+         }
       }
+      // return the next valid bucket member
+      ++keyPos;
+      return keyPos;
    }
 
    void swap(OpenBucketHashtable<GID, LID>& other) {
