@@ -600,7 +600,7 @@ namespace SBC {
       for(int h=0; h<numAtmosphereLevels; h++) {
          Real rho = atmosphere[h].nui / gyroFreq;
          atmosphere[h].pedersencoeff = (physicalconstants::CHARGE/Bval)*(rho/(1+rho*rho));
-         atmosphere[h].hallcoeff = rho * atmosphere[h].pedersencoeff;
+         atmosphere[h].hallcoeff = atmosphere[h].pedersencoeff / rho;
          atmosphere[h].parallelcoeff = physicalconstants::CHARGE*physicalconstants::CHARGE / ((31. * physicalconstants::MASS_PROTON)  * atmosphere[h].nui);
       }
 
