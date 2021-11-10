@@ -261,7 +261,7 @@ void velocitySpaceDiffusion(
                    int mucount = static_cast<int>(floor((mu+1.0) / dmubins));
 
                    Realf CellValue = cell.get_value(VX,VY,VZ,popID);
-                   Realf CellCalc = 0.0;
+                   Realf CellCalc  = 1.0; // f is always < 1.0
                    if ((CellValue == 0.0) && (dfdmu[Vcount][mucount] != 0.0)) {
                        Realf CellValuePDX = cell.get_value(VX+DV,VY,VZ,popID); 
                        Realf CellValueMDX = cell.get_value(VX-DV,VY,VZ,popID); 
@@ -270,11 +270,13 @@ void velocitySpaceDiffusion(
                        Realf CellValuePDZ = cell.get_value(VX,VY,VZ+DV,popID); 
                        Realf CellValueMDZ = cell.get_value(VX,VY,VZ-DV,popID);
                        std::array<Realf,6> Compare = {CellValuePDX,CellValueMDX,CellValuePDY,CellValueMDY,CellValuePDZ,CellValueMDZ};
-                       auto minPos = std::min_element(Compare.begin(),Compare.end());
-                       CellCalc = *minPos;
-                       if (CellCalc == 0.0) {continue;}
+                       for (int indx = 0; indx < Compare.size(); indx++) { 
+                           if ((Compare[indx] < CellCalc) && (Compare[indx] != 0.0)) {CellCalc = Compare[indx];}
+                           else { continue;}
+                       }
+                       if (CellCalc == 1.0) {continue;} // means all CellValues = 0.0
                    } else if ((CellValue == 0.0) && (dfdmu[Vcount][mucount] == 0.0)) {continue;}
-                   else {CellCalc = CellValue;}                    
+                   else {CellCalc = CellValue;}
 
                    if (fmu[Vcount][mucount] == 0.0) { ratio[WID3*n+i+WID*j+WID*WID*k] = 1.0; }
                    else { ratio[WID3*n+i+WID*j+WID*WID*k] = CellCalc / fmu[Vcount][mucount]; }                  
@@ -324,6 +326,8 @@ void velocitySpaceDiffusion(
                         checks << VX << " " << VY << " " << VZ << " " << ratio[WID3*n+i+WID*j+WID*WID*k] << " " << Ddt << std::endl;
                     }
                 }
+                std::ofstream DifftStep(path_save + "Ddt.txt", std::ios_base::app);
+                DifftStep << P::tstep << " " << Ddt << std::endl;           
             }
 
             //Loop to update cell
