@@ -23,6 +23,7 @@
 
 #include <algorithm>
 #include <vector>
+#include <stdexcept>
 #include "definitions.h"
 
 // Open bucket power-of-two sized hash table with multiplicative fibonacci hashing
@@ -110,6 +111,27 @@ public:
       rehash(sizePower + 1);
       return at(key); // Recursive tail call to try again with larger table.
    }
+      
+   const LID& at(const GID& key) const {
+      int bitMask = (1 << sizePower) - 1; // For efficient modulo of the array size
+      uint32_t hashIndex = hash(key);
+
+      // Try to find the matching bucket.
+      for (int i = 0; i < maxBucketOverflow; i++) {
+         const std::pair<GID, LID>& candidate = buckets[(hashIndex + i) & bitMask];
+         if (candidate.first == key) {
+            // Found a match, return that
+            return candidate.second;
+         }
+         if (candidate.first == EMPTYBUCKET) {
+            // Found an empty bucket, so error.
+            throw std::out_of_range("Element not found in OpenBucketHashtable.at");
+         }
+      }
+
+      // Not found, so error.
+      throw std::out_of_range("Element not found in OpenBucketHashtable.at");
+   }
 
    // Typical array-like access with [] operator
    LID& operator[](const GID& key) { return at(key); }
@@ -146,6 +168,11 @@ public:
          } while (hashtable->buckets[index].first == vmesh::INVALID_GLOBALID && index < hashtable->buckets.size());
          return *this;
       }
+      iterator operator++(int) { // Postfix version
+         iterator temp = *this;
+         ++(*this);
+         return temp;
+      }
 
       bool operator==(iterator other) const {
          return &hashtable->buckets[index] == &other.hashtable->buckets[other.index];
@@ -172,6 +199,11 @@ public:
             index++;
          } while (hashtable->buckets[index].first == vmesh::INVALID_GLOBALID && index < hashtable->buckets.size());
          return *this;
+      }
+      const_iterator operator++(int) { // Postfix version
+         const_iterator temp = *this;
+         ++(*this);
+         return temp;
       }
 
       bool operator==(const_iterator other) const {
@@ -299,6 +331,15 @@ public:
       // return the next valid bucket member
       ++keyPos;
       return keyPos;
+   }
+   size_t erase(const GID& key) {
+      iterator element = find(key);
+      if(element == end()) {
+         return 0;
+      } else {
+         erase(element);
+         return 1;
+      }
    }
 
    void swap(OpenBucketHashtable<GID, LID>& other) {
