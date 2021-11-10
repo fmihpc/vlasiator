@@ -605,7 +605,7 @@ namespace SBC {
          Real rho = atmosphere[h].nui / gyroFreq;
          atmosphere[h].pedersencoeff = sigma_i * (rho*rho/(1+rho*rho));
          atmosphere[h].hallcoeff = atmosphere[h].pedersencoeff / rho;
-         atmosphere[h].parallelcoeff = sigma_i;
+         atmosphere[h].parallelcoeff = sigma_e;
       }
 
 
