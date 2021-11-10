@@ -1307,7 +1307,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    
    phiprof::start("readIonosphere");
    bool ionosphereSuccess=true;
-   ionosphereSuccess = readIonosphereNodeVariable(file, "tg_fac", SBC::ionosphereGrid, ionosphereParameters::SOURCE);
+   ionosphereSuccess = readIonosphereNodeVariable(file, "ig_fac", SBC::ionosphereGrid, ionosphereParameters::SOURCE);
    // Reconstruct source term by multiplying the fac density with the element area
    for(uint i = 0; i<SBC::ionosphereGrid.nodes.size(); i++) {
       Real area = 0;
