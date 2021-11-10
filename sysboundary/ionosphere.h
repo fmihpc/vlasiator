@@ -118,6 +118,7 @@ namespace SBC {
       struct AtmosphericLayer {
          Real altitude;
          Real nui;
+         Real nue;
          Real density;
          Real depth; // integrated density from the top of the atmosphere
          Real pedersencoeff;

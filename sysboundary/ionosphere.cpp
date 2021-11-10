@@ -584,6 +584,8 @@ namespace SBC {
             newLayer.depth = integratedDensity; // kg/m^2
             // Ion-neutral scattering frequencies (from Schunck and Nagy, 2009, Table 4.5)
             newLayer.nui = 1e-16*(2*c1 + 3.8*c2 + 5*c3);
+            // Elctron-neutral scattering frequencies (Same source, Table 4.6)
+            newLayer.nue = 1e-17*(2.33*c1 + 18.2*c2 + 8.9*c3);
             atmosphere[altindex++] = newLayer;
          }
       }
@@ -598,10 +600,12 @@ namespace SBC {
       const Real Bval = 5e-5; // TODO: Hardcoded B strength here?
       const Real gyroFreq = physicalconstants::CHARGE * Bval / (31*physicalconstants::MASS_PROTON); // Oxygen gyration frequency
       for(int h=0; h<numAtmosphereLevels; h++) {
+         Real sigma_i = physicalconstants::CHARGE*physicalconstants::CHARGE / ((31. * physicalconstants::MASS_PROTON)  * atmosphere[h].nui);
+         Real sigma_e = physicalconstants::CHARGE*physicalconstants::CHARGE / (physicalconstants::MASS_ELECTRON  * atmosphere[h].nue);
          Real rho = atmosphere[h].nui / gyroFreq;
-         atmosphere[h].pedersencoeff = (physicalconstants::CHARGE/Bval)*(rho/(1+rho*rho));
+         atmosphere[h].pedersencoeff = sigma_i * (rho*rho/(1+rho*rho));
          atmosphere[h].hallcoeff = atmosphere[h].pedersencoeff / rho;
-         atmosphere[h].parallelcoeff = physicalconstants::CHARGE*physicalconstants::CHARGE / ((31. * physicalconstants::MASS_PROTON)  * atmosphere[h].nui);
+         atmosphere[h].parallelcoeff = sigma_i;
       }
 
 
