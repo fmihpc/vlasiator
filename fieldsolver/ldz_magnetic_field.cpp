@@ -84,6 +84,14 @@ void propagateMagneticField(
             EGrid0 = EGrid.get(i,j,k);
             EGrid1 = EGrid.get(i,j+1,k);
             EGrid2 = EGrid.get(i,j,k+1);
+            perBDt2Grid0->at(fsgrids::bfield::PERBX) = perBGrid0->at(fsgrids::bfield::PERBX) + 0.5*dt*(1.0/dz*(EGrid2->at(fsgrids::efield::EY) - EGrid0->at(fsgrids::efield::EY)) + 1.0/dy*(EGrid0->at(fsgrids::efield::EZ) - EGrid1->at(fsgrids::efield::EZ)));
+            break;
+
+         case RK_ORDER2_STEP1SS:
+            perBDt2Grid0 = perBDt2Grid.get(i,j,k);
+            EGrid0 = EGrid.get(i,j,k);
+            EGrid1 = EGrid.get(i,j+1,k);
+            EGrid2 = EGrid.get(i,j,k+1);
             perBDt2Grid0->at(fsgrids::bfield::PERBX) += dt/dz*(EGrid2->at(fsgrids::efield::EY) - EGrid0->at(fsgrids::efield::EY)) + dt/dy*(EGrid0->at(fsgrids::efield::EZ) - EGrid1->at(fsgrids::efield::EZ));
             break;
 
@@ -113,6 +121,13 @@ void propagateMagneticField(
             EGrid0 = EGrid.get(i,j,k);
             EGrid1 = EGrid.get(i,j,k+1);
             EGrid2 = EGrid.get(i+1,j,k);
+            perBDt2Grid0->at(fsgrids::bfield::PERBY) = perBGrid0->at(fsgrids::bfield::PERBY) + 0.5*dt*(1.0/dx*(EGrid2->at(fsgrids::efield::EZ) - EGrid0->at(fsgrids::efield::EZ)) + 1.0/dz*(EGrid0->at(fsgrids::efield::EX) - EGrid1->at(fsgrids::efield::EX)));
+            break;
+         case RK_ORDER2_STEP1SS:
+            perBDt2Grid0 = perBDt2Grid.get(i,j,k);
+            EGrid0 = EGrid.get(i,j,k);
+            EGrid1 = EGrid.get(i,j,k+1);
+            EGrid2 = EGrid.get(i+1,j,k);
             perBDt2Grid0->at(fsgrids::bfield::PERBY) += dt/dx*(EGrid2->at(fsgrids::efield::EZ) - EGrid0->at(fsgrids::efield::EZ)) + dt/dz*(EGrid0->at(fsgrids::efield::EX) - EGrid1->at(fsgrids::efield::EX));
             break;
          case RK_ORDER2_STEP2:
@@ -136,6 +151,13 @@ void propagateMagneticField(
             perBGrid0->at(fsgrids::bfield::PERBZ) += dt/dy*(EGrid2->at(fsgrids::efield::EX) - EGrid0->at(fsgrids::efield::EX)) + dt/dx*(EGrid0->at(fsgrids::efield::EY) - EGrid1->at(fsgrids::efield::EY));
             break;
          case RK_ORDER2_STEP1:
+            perBDt2Grid0 = perBDt2Grid.get(i,j,k);
+            EGrid0 = EGrid.get(i,j,k);
+            EGrid1 = EGrid.get(i+1,j,k);
+            EGrid2 = EGrid.get(i,j+1,k);
+            perBDt2Grid0->at(fsgrids::bfield::PERBZ) = perBGrid0->at(fsgrids::bfield::PERBZ) + 0.5*dt*(1.0/dy*(EGrid2->at(fsgrids::efield::EX) - EGrid0->at(fsgrids::efield::EX)) + 1.0/dx*(EGrid0->at(fsgrids::efield::EY) - EGrid1->at(fsgrids::efield::EY)));
+            break;
+         case RK_ORDER2_STEP1SS:
             perBDt2Grid0 = perBDt2Grid.get(i,j,k);
             EGrid0 = EGrid.get(i,j,k);
             EGrid1 = EGrid.get(i+1,j,k);
@@ -187,7 +209,7 @@ void propagateSysBoundaryMagneticField(
 ) {
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX + component) = sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondMagneticField(perBGrid, technicalGrid, i, j, k, dt, component);
-   } else {
+   } else { // RKCase == RK_ORDER2_STEP1 or RKCase == RK_ORDER2_STEP1SS
       perBDt2Grid.get(i,j,k)->at(fsgrids::bfield::PERBX + component) = sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondMagneticField(perBDt2Grid, technicalGrid, i, j, k, dt, component);
    }
 }
@@ -217,7 +239,7 @@ void SysBoundaryMagneticFieldProjection(
 ) {
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondMagneticFieldProjection(perBGrid, technicalGrid, i, j, k);
-   } else {
+   } else { // RKCase == RK_ORDER2_STEP1 or RKCase == RK_ORDER2_STEP1SS
       sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondMagneticFieldProjection(perBDt2Grid, technicalGrid, i, j, k);
    }
 }
@@ -278,7 +300,7 @@ void propagateMagneticFieldSimple(
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       // Exchange PERBX,PERBY,PERBZ with neighbours
       perBGrid.updateGhostCells();
-   } else { // RKCase == RK_ORDER2_STEP1
+   } else { // RKCase == RK_ORDER2_STEP1 or RK_ORDER2_STEP1SS
       // Exchange PERBX_DT2,PERBY_DT2,PERBZ_DT2 with neighbours
       perBDt2Grid.updateGhostCells();
    }
@@ -316,7 +338,7 @@ void propagateMagneticFieldSimple(
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       // Exchange PERBX,PERBY,PERBZ with neighbours
       perBGrid.updateGhostCells();
-   } else { // RKCase == RK_ORDER2_STEP1
+   } else { // RKCase == RK_ORDER2_STEP1 or RK_ORDER2_STEP1SS
       // Exchange PERBX_DT2,PERBY_DT2,PERBZ_DT2 with neighbours
       perBDt2Grid.updateGhostCells();
    }

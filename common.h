@@ -407,6 +407,7 @@ namespace compute {
 /*! Steps in Runge-Kutta methods */
 enum {RK_ORDER1,   /*!< First order method, one step (and initialisation) */
 RK_ORDER2_STEP1,   /*!< Two-step second order method, first step */
+RK_ORDER2_STEP1SS, /*!< Two-step second order method, first step, latter substeps */
 RK_ORDER2_STEP2    /*!< Two-step second order method, second step */
 };
 

@@ -251,8 +251,13 @@ bool propagateFields(
       while (subcycleCount < maxSubcycleCount ) {         
          // In case of subcycling, we decided to go for a blunt Runge-Kutta subcycling even though e.g. moments are not going along.
          // Result of the Summer of Debugging 2016, the behaviour in wave dispersion was much improved with this.
-         propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, subcycleDt, RK_ORDER2_STEP1);
-         
+         if (subcycleCount==0) {
+            // First substep, start from perBGrid
+            propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, subcycleDt, RK_ORDER2_STEP1, subcyclecount);
+         } else {
+            // Latter substeps, start from perBDt2Grid calculated on previous substep
+            propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, subcycleDt, RK_ORDER2_STEP1SS, subcyclecount);
+         }
          // We need to calculate derivatives of the moments at every substep, but the moments only
          // need to be communicated in the first one.
          calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1, (subcycleCount==0));
