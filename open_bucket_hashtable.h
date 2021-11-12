@@ -306,7 +306,7 @@ public:
          int bitMask = (1 << sizePower) - 1; // For efficient modulo of the array size
          size_t targetPos = index;
          // Search ahead to verify items are in correct places (until empty bucket is found)
-         for (int i = 1; i < fill; i++) {
+         for (unsigned int i = 1; i < fill; i++) {
             GID nextBucket = buckets[(index + i)&bitMask].first;
             if (nextBucket == EMPTYBUCKET) {
                // The next bucket is empty, we are done.
