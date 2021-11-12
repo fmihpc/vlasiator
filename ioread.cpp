@@ -964,11 +964,11 @@ template<unsigned long int N> bool readFsGridVariable(
             vectorOfBuffers.push_back(buffer);
          }
 
-	 if(!convertFloatType) {
-	   offset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2] * N * sizeof(double);
-	 } else {
-	   offset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2] * N * sizeof(float);
-	 }
+         if(!convertFloatType) {
+            offset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2] * N * sizeof(double);
+         } else {
+            offset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2] * N * sizeof(float);
+         }
          phiprof::stop("multiRead");
       }
       
