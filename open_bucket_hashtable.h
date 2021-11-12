@@ -27,7 +27,7 @@
 #include "definitions.h"
 
 // Open bucket power-of-two sized hash table with multiplicative fibonacci hashing
-template <typename GID, typename LID, int maxBucketOverflow = 4> class OpenBucketHashtable {
+template <typename GID, typename LID, int maxBucketOverflow = 4, GID EMPTYBUCKET = vmesh::INVALID_GLOBALID > class OpenBucketHashtable {
 private:
    int sizePower; // Logarithm (base two) of the size of the table
    size_t fill;   // Number of filled buckets
@@ -42,7 +42,7 @@ private:
 
 public:
    OpenBucketHashtable()
-       : sizePower(4), fill(0), buckets(1 << sizePower, std::pair<GID, LID>(vmesh::INVALID_GLOBALID, vmesh::INVALID_LOCALID)){};
+       : sizePower(4), fill(0), buckets(1 << sizePower, std::pair<GID, LID>(EMPTYBUCKET, LID())){};
    OpenBucketHashtable(const OpenBucketHashtable<GID, LID>& other)
        : sizePower(other.sizePower), fill(other.fill), buckets(other.buckets){};
 
@@ -53,14 +53,14 @@ public:
          throw std::out_of_range("OpenBucketHashtable ran into rehashing catastrophe and exceeded 32bit buckets.");
       }
       std::vector<std::pair<GID, LID>> newBuckets(1 << newSizePower,
-                                                  std::pair<GID, LID>(vmesh::INVALID_LOCALID, vmesh::INVALID_GLOBALID));
+                                                  std::pair<GID, LID>(EMPTYBUCKET, LID()));
       sizePower = newSizePower;
       int bitMask = (1 << sizePower) - 1; // For efficient modulo of the array size
 
       // Iterate through all old elements and rehash them into the new array.
       for (auto& e : buckets) {
          // Skip empty buckets
-         if (e.first == vmesh::INVALID_LOCALID) {
+         if (e.first == EMPTYBUCKET) {
             continue;
          }
 
@@ -68,7 +68,7 @@ public:
          bool found = false;
          for (int i = 0; i < maxBucketOverflow; i++) {
             std::pair<GID, LID>& candidate = newBuckets[(newHash + i) & bitMask];
-            if (candidate.first == vmesh::INVALID_GLOBALID) {
+            if (candidate.first == EMPTYBUCKET) {
                // Found an empty bucket, assign that one.
                candidate = e;
                found = true;
@@ -99,7 +99,7 @@ public:
             // Found a match, return that
             return candidate.second;
          }
-         if (candidate.first == vmesh::INVALID_GLOBALID) {
+         if (candidate.first == EMPTYBUCKET) {
             // Found an empty bucket, assign and return that.
             candidate.first = key;
             fill++;
@@ -150,7 +150,7 @@ public:
    }
 
    void clear() {
-      buckets = std::vector<std::pair<GID, LID>>(1 << sizePower, {vmesh::INVALID_GLOBALID, vmesh::INVALID_LOCALID});
+      buckets = std::vector<std::pair<GID, LID>>(1 << sizePower, {EMPTYBUCKET, LID()});
       fill = 0;
    }
 
@@ -165,7 +165,7 @@ public:
       iterator& operator++() {
          do {
             index++;
-         } while (hashtable->buckets[index].first == vmesh::INVALID_GLOBALID && index < hashtable->buckets.size());
+         } while (hashtable->buckets[index].first == EMPTYBUCKET && index < hashtable->buckets.size());
          return *this;
       }
       iterator operator++(int) { // Postfix version
@@ -197,7 +197,7 @@ public:
       const_iterator& operator++() {
          do {
             index++;
-         } while (hashtable->buckets[index].first == vmesh::INVALID_GLOBALID && index < hashtable->buckets.size());
+         } while (hashtable->buckets[index].first == EMPTYBUCKET && index < hashtable->buckets.size());
          return *this;
       }
       const_iterator operator++(int) { // Postfix version
@@ -219,7 +219,7 @@ public:
 
    iterator begin() {
       for (size_t i = 0; i < buckets.size(); i++) {
-         if (buckets[i].first != vmesh::INVALID_GLOBALID) {
+         if (buckets[i].first != EMPTYBUCKET) {
             return iterator(*this, i);
          }
       }
@@ -227,7 +227,7 @@ public:
    }
    const_iterator begin() const {
       for (size_t i = 0; i < buckets.size(); i++) {
-         if (buckets[i].first != vmesh::INVALID_GLOBALID) {
+         if (buckets[i].first != EMPTYBUCKET) {
             return const_iterator(*this, i);
          }
       }
@@ -250,7 +250,7 @@ public:
             return iterator(*this, (hashIndex + i) & bitMask);
          }
 
-         if (candidate.first == vmesh::INVALID_GLOBALID) {
+         if (candidate.first == EMPTYBUCKET) {
             // Found an empty bucket. Return empty.
             return end();
          }
@@ -272,7 +272,7 @@ public:
             return const_iterator(*this, (hashIndex + i) & bitMask);
          }
 
-         if (candidate.first == vmesh::INVALID_GLOBALID) {
+         if (candidate.first == EMPTYBUCKET) {
             // Found an empty bucket. Return empty.
             return end();
          }
@@ -296,19 +296,19 @@ public:
       // Due to overflowing buckets, this might require moving quite a bit of stuff around.
       size_t index = keyPos.getIndex();
 
-      if (buckets[index].first != vmesh::INVALID_GLOBALID) {
+      if (buckets[index].first != EMPTYBUCKET) {
          // Decrease fill count
          fill--;
 
          // Clear the element itself.
-         buckets[index] = std::pair<GID, LID>(vmesh::INVALID_GLOBALID, vmesh::INVALID_LOCALID);
+         buckets[index].first = EMPTYBUCKET;
 
          int bitMask = (1 << sizePower) - 1; // For efficient modulo of the array size
          size_t targetPos = index;
          // Search ahead to verify items are in correct places (until empty bucket is found)
          for (int i = 1; i < fill; i++) {
             GID nextBucket = buckets[(index + i)&bitMask].first;
-            if (nextBucket == vmesh::INVALID_GLOBALID) {
+            if (nextBucket == EMPTYBUCKET) {
                // The next bucket is empty, we are done.
                break;
             }
@@ -323,7 +323,7 @@ public:
                   LID moveValue = buckets[(index+i)&bitMask].second;
                   buckets[targetPos] = std::pair<GID, LID>(nextBucket,moveValue);
                   targetPos = ((index+i)&bitMask);
-                  buckets[targetPos] = std::pair<GID, LID>(vmesh::INVALID_GLOBALID, vmesh::INVALID_LOCALID);
+                  buckets[targetPos].first = EMPTYBUCKET;
                }
             }
          }
