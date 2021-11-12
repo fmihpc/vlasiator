@@ -801,6 +801,7 @@ template<unsigned long int N> bool readFsGridVariable(
    if(! (dataType == vlsv::datatype::type::FLOAT && byteSize == sizeof(Real))) {
       logFile << "(RESTART) Converting floating point format of fsgrid variable " << variableName << " from " << byteSize * 8 << " bits to " << sizeof(Real) * 8 << " bits." << endl << write;
       convertFloatType = true;
+      // Note: this implicitly assumes that Real is of type double, and we either read a double in directly, or read a float and convert it to double.
    }
    phiprof::stop("getArrayInfo");
 
@@ -963,7 +964,11 @@ template<unsigned long int N> bool readFsGridVariable(
             vectorOfBuffers.push_back(buffer);
          }
 
-         offset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2] * N * sizeof(Real);
+	 if(!convertFloatType) {
+	   offset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2] * N * sizeof(double);
+	 } else {
+	   offset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2] * N * sizeof(float);
+	 }
          phiprof::stop("multiRead");
       }
       
