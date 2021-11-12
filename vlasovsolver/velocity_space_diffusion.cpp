@@ -261,29 +261,29 @@ void velocitySpaceDiffusion(
                    int mucount = static_cast<int>(floor((mu+1.0) / dmubins));
 
                    Realf CellValue = cell.get_value(VX,VY,VZ,popID);
-                   Realf CellCalc  = 1.0; // f is always < 1.0
-                   if ((CellValue == 0.0) && (dfdmu[Vcount][mucount] != 0.0)) {
-                       Realf CellValuePDX = cell.get_value(VX+DV,VY,VZ,popID); 
-                       Realf CellValueMDX = cell.get_value(VX-DV,VY,VZ,popID); 
-                       Realf CellValuePDY = cell.get_value(VX,VY+DV,VZ,popID); 
-                       Realf CellValueMDY = cell.get_value(VX,VY-DV,VZ,popID);  
-                       Realf CellValuePDZ = cell.get_value(VX,VY,VZ+DV,popID); 
-                       Realf CellValueMDZ = cell.get_value(VX,VY,VZ-DV,popID);
-                       std::array<Realf,6> Compare = {CellValuePDX,CellValueMDX,CellValuePDY,CellValueMDY,CellValuePDZ,CellValueMDZ};
-                       for (int indx = 0; indx < Compare.size(); indx++) { 
-                           if ((Compare[indx] < CellCalc) && (Compare[indx] != 0.0)) {CellCalc = Compare[indx];}
-                           else { continue;}
-                       }
-                       if (CellCalc == 1.0) {continue;} // means all CellValues = 0.0
-                   } else if ((CellValue == 0.0) && (dfdmu[Vcount][mucount] == 0.0)) {continue;}
-                   else {CellCalc = CellValue;}
+                   if (CellValue < Sparsity) {CellValue = Sparsity;} //Set CellValue to sparsity Threshold for empty cells otherwise div by 0
+                   //Realf CellCalc  = 1.0; // f is always < 1.0
+                   //if ((CellValue == 0.0) && (dfdmu[Vcount][mucount] != 0.0)) {
+                   //    Realf CellValuePDX = cell.get_value(VX+DV,VY,VZ,popID); 
+                   //    Realf CellValueMDX = cell.get_value(VX-DV,VY,VZ,popID); 
+                   //    Realf CellValuePDY = cell.get_value(VX,VY+DV,VZ,popID); 
+                   //    Realf CellValueMDY = cell.get_value(VX,VY-DV,VZ,popID);  
+                   //    Realf CellValuePDZ = cell.get_value(VX,VY,VZ+DV,popID); 
+                   //    Realf CellValueMDZ = cell.get_value(VX,VY,VZ-DV,popID);
+                   //    std::array<Realf,6> Compare = {CellValuePDX,CellValueMDX,CellValuePDY,CellValueMDY,CellValuePDZ,CellValueMDZ};
+                   //    for (int indx = 0; indx < Compare.size(); indx++) { 
+                   //        if ((Compare[indx] < CellCalc) && (Compare[indx] != 0.0)) {CellCalc = Compare[indx];}
+                   //        else { continue;}
+                   //    }
+                   //    if (CellCalc == 1.0) {continue;} // means all CellValues = 0.0
+                   //} else if ((CellValue == 0.0) && (dfdmu[Vcount][mucount] == 0.0)) {continue;}
+                   //else {CellCalc = CellValue;}
 
                    if (fmu[Vcount][mucount] == 0.0) { ratio[WID3*n+i+WID*j+WID*WID*k] = 1.0; }
-                   else { ratio[WID3*n+i+WID*j+WID*WID*k] = CellCalc / fmu[Vcount][mucount]; }                  
+                   else { ratio[WID3*n+i+WID*j+WID*WID*k] = CellValue / fmu[Vcount][mucount]; }                  
 
                    dfdt[WID3*n+i+WID*j+WID*WID*k] = dfdt_mu[Vcount][mucount] * ratio[WID3*n+i+WID*j+WID*WID*k];
                    
-                   if (CellValue < Sparsity) {CellValue = Sparsity;} //Set CellValue to sparsity Threshold for empty cells otherwise div by 0
                    if (abs(dfdt[WID3*n+i+WID*j+WID*WID*k]) > 0.0) {
                    checkCFL[WID3*n+i+WID*j+WID*WID*k] = CellValue * Parameters::PADCFL * (1.0 / abs(dfdt[WID3*n+i+WID*j+WID*WID*k]));}
                 }
