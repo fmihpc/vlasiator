@@ -973,7 +973,8 @@ template<unsigned long int N> bool readFsGridVariable(
       }
       
       phiprof::start("endMultiread");
-      if(file.endMultiread(fileOffset) == false) {
+      // Pass boolean true to indicate we're reading fsgrid values and providin manual offsetsxs
+      if(file.endMultiread(fileOffset, true) == false) {
          logFile << "(RESTART)  ERROR: Failed to endMultiread while reading fsgrid variable " << variableName << endl << write;
          return false;
       }
