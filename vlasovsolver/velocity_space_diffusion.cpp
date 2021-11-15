@@ -261,29 +261,46 @@ void velocitySpaceDiffusion(
                    int mucount = static_cast<int>(floor((mu+1.0) / dmubins));
 
                    Realf CellValue = cell.get_value(VX,VY,VZ,popID);
-                   if (CellValue < Sparsity) {CellValue = Sparsity;} //Set CellValue to sparsity Threshold for empty cells otherwise div by 0
-                   //Realf CellCalc  = 1.0; // f is always < 1.0
-                   //if ((CellValue == 0.0) && (dfdmu[Vcount][mucount] != 0.0)) {
-                   //    Realf CellValuePDX = cell.get_value(VX+DV,VY,VZ,popID); 
-                   //    Realf CellValueMDX = cell.get_value(VX-DV,VY,VZ,popID); 
-                   //    Realf CellValuePDY = cell.get_value(VX,VY+DV,VZ,popID); 
-                   //    Realf CellValueMDY = cell.get_value(VX,VY-DV,VZ,popID);  
-                   //    Realf CellValuePDZ = cell.get_value(VX,VY,VZ+DV,popID); 
-                   //    Realf CellValueMDZ = cell.get_value(VX,VY,VZ-DV,popID);
-                   //    std::array<Realf,6> Compare = {CellValuePDX,CellValueMDX,CellValuePDY,CellValueMDY,CellValuePDZ,CellValueMDZ};
-                   //    for (int indx = 0; indx < Compare.size(); indx++) { 
-                   //        if ((Compare[indx] < CellCalc) && (Compare[indx] != 0.0)) {CellCalc = Compare[indx];}
-                   //        else { continue;}
-                   //    }
-                   //    if (CellCalc == 1.0) {continue;} // means all CellValues = 0.0
-                   //} else if ((CellValue == 0.0) && (dfdmu[Vcount][mucount] == 0.0)) {continue;}
-                   //else {CellCalc = CellValue;}
+                   ratio[WID3*n+i+WID*j+WID*WID*k] = 2.0; // ratio should be around 1.0
+                   if ((CellValue == 0.0) && (dfdt_mu[Vcount][mucount] != 0.0)) {
+                       Realf CellValuePDX = cell.get_value(VX+DV,VY   ,VZ   ,popID); 
+                       Realf CellValueMDX = cell.get_value(VX-DV,VY   ,VZ   ,popID); 
+                       Realf CellValuePDY = cell.get_value(VX   ,VY+DV,VZ   ,popID); 
+                       Realf CellValueMDY = cell.get_value(VX   ,VY-DV,VZ   ,popID);  
+                       Realf CellValuePDZ = cell.get_value(VX   ,VY   ,VZ+DV,popID); 
+                       Realf CellValueMDZ = cell.get_value(VX   ,VY   ,VZ-DV,popID);
+                       std::array<Realf,3> VPDX = {VX+DV-bulkV[0],VY-bulkV[1]   ,VZ-bulkV[2]};
+                       std::array<Realf,3> VMDX = {VX-DV-bulkV[0],VY-bulkV[1]   ,VZ-bulkV[2]};
+                       std::array<Realf,3> VPDY = {VX-bulkV[0]   ,VY+DV-bulkV[1],VZ-bulkV[2]};
+                       std::array<Realf,3> VMDY = {VX-bulkV[0]   ,VY-DV-bulkV[1],VZ-bulkV[2]};
+                       std::array<Realf,3> VPDZ = {VX-bulkV[0]   ,VY-bulkV[1]   ,VZ+DV-bulkV[2]};
+                       std::array<Realf,3> VMDZ = {VX-bulkV[0]   ,VY-bulkV[1]   ,VZ-DV-bulkV[2]};
+                       std::array<Realf,6> CompareCell = {CellValuePDX,CellValueMDX,CellValuePDY,CellValueMDY,CellValuePDZ,CellValueMDZ};
+                       std::array<std::array<Realf,3>,6> CompareV = {VPDX,VMDX,VPDY,VMDY,VPDZ,VMDZ};
+                       int checkZero = 0;
+                       for (int indx = 0; indx < CompareCell.size(); indx++) { 
+                           if (CompareCell[indx] == 0.0) {checkZero += 1; continue;}
+                           else {
+                               Realf normV_tmp = sqrt(CompareV[indx][0]*CompareV[indx][0] + CompareV[indx][1]*CompareV[indx][1] + CompareV[indx][2]*CompareV[indx][2]);
+                               Realf Vpara_tmp = CompareV[indx][0];
+                               Realf Vperp_tmp = sqrt(CompareV[indx][1]*CompareV[indx][1] + CompareV[indx][2]*CompareV[indx][2]);
+                               Realf theta_tmp = atan2(Vperp_tmp,Vpara_tmp);
+                               Realf mu_tmp    = cos(theta_tmp);
+                               int Vcount_tmp  = static_cast<int>(floor((normV_tmp-Vmin) / dVbins));
+                               int mucount_tmp = static_cast<int>(floor((mu_tmp+1.0) / dmubins));
 
-                   if (fmu[Vcount][mucount] == 0.0) { ratio[WID3*n+i+WID*j+WID*WID*k] = 1.0; }
+                               Realf ratio_tmp = CompareCell[indx] / fmu[Vcount_tmp][mucount_tmp];                       
+                               if (ratio_tmp < ratio[WID3*n+i+WID*j+WID*WID*k]) {ratio[WID3*n+i+WID*j+WID*WID*k] = ratio_tmp;}
+                               else{continue;}
+                           }
+                       } 
+                       if (checkZero == 6) { continue; } // All neighbour cells are 0
+                   } else if ((CellValue == 0.0) && (dfdt_mu[Vcount][mucount] == 0.0)) {continue;}
                    else { ratio[WID3*n+i+WID*j+WID*WID*k] = CellValue / fmu[Vcount][mucount]; }                  
 
                    dfdt[WID3*n+i+WID*j+WID*WID*k] = dfdt_mu[Vcount][mucount] * ratio[WID3*n+i+WID*j+WID*WID*k];
                    
+                   if (CellValue < Sparsity) {CellValue = Sparsity;} //Set CellValue to sparsity Threshold for empty cells otherwise div by 0
                    if (abs(dfdt[WID3*n+i+WID*j+WID*WID*k]) > 0.0) {
                    checkCFL[WID3*n+i+WID*j+WID*WID*k] = CellValue * Parameters::PADCFL * (1.0 / abs(dfdt[WID3*n+i+WID*j+WID*WID*k]));}
                 }
