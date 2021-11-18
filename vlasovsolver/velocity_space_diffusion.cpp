@@ -263,8 +263,25 @@ void velocitySpaceDiffusion(
                    int mucount = static_cast<int>(floor((mu+1.0) / dmubins));
 
                    Realf CellValue = cell.get_value(VX,VY,VZ,popID);
-                   if (CellValue == 0.0) {continue;}        
-                   else { ratio[WID3*n+i+WID*j+WID*WID*k] = CellValue / fmu[Vcount][mucount]; }                  
+                   Realf CellCalc = 1.0; //f always < 1.0
+                   if ((CellValue == 0.0) && (dfdt_mu[Vcount][mucount] != 0.0)) {
+                      Realf CellValuePDX = cell.get_value(VX+DV,VY,VZ,popID); 
+                      Realf CellValueMDX = cell.get_value(VX-DV,VY,VZ,popID); 
+                      Realf CellValuePDY = cell.get_value(VX,VY+DV,VZ,popID);
+                      Realf CellValueMDY = cell.get_value(VX,VY-DV,VZ,popID);
+                      Realf CellValuePDZ = cell.get_value(VX,VY,VZ+DV,popID); 
+                      Realf CellValueMDZ = cell.get_value(VX,VY,VZ-DV,popID);
+                      std::array<Realf,6> Compare = {CellValuePDX,CellValueMDX,CellValuePDY,CellValueMDY,CellValuePDZ,CellValueMDZ};
+                      for (int indx = 0; indx < Compare.size(); indx++) { 
+                          if ((Compare[indx] < CellCalc) && (Compare[indx] != 0.0)) {CellCalc = Compare[indx];}
+                      }
+                      if (CellCalc != 1.0) { //Otherwise all cells are 0.0
+                          dfdt[WID3*n+i+WID*j+WID*WID*k]  = 0.5 * CellCalc;
+                          ratio[WID3*n+i+WID*j+WID*WID*k] = -1; 
+                      } else { ratio[WID3*n+i+WID*j+WID*WID*k] = 0; continue;}
+                   } else if ((CellValue == 0.0) && (dfdt_mu[Vcount][mucount] == 0.0)) {continue;}
+                   //else { ratio[WID3*n+i+WID*j+WID*WID*k] = CellValue / fmu[Vcount][mucount]; }                  
+                   else { ratio[WID3*n+i+WID*j+WID*WID*k] = 1.0; }                  
 
                    dfdt[WID3*n+i+WID*j+WID*WID*k] = dfdt_mu[Vcount][mucount] * ratio[WID3*n+i+WID*j+WID*WID*k];
                    
@@ -329,23 +346,14 @@ void velocitySpaceDiffusion(
                       = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
 
                     Realf CellValue = cell.get_value(VX,VY,VZ,popID);
-                    Realf CellCalc = 1.0; //f always < 1.0
-                    if (CellValue == 0.0) {
-                       Realf CellValuePDX = cell.get_value(VX+DV,VY,VZ,popID); 
-                       Realf CellValueMDX = cell.get_value(VX-DV,VY,VZ,popID); 
-                       Realf CellValuePDY = cell.get_value(VX,VY+DV,VZ,popID);
-                       Realf CellValueMDY = cell.get_value(VX,VY-DV,VZ,popID);
-                       Realf CellValuePDZ = cell.get_value(VX,VY,VZ+DV,popID); 
-                       Realf CellValueMDZ = cell.get_value(VX,VY,VZ-DV,popID);
-                       std::array<Realf,6> Compare = {CellValuePDX,CellValueMDX,CellValuePDY,CellValueMDY,CellValuePDZ,CellValueMDZ};
-                       for (int indx = 0; indx < Compare.size(); indx++) { 
-                           if ((Compare[indx] < CellCalc) && (Compare[indx] != 0.0)) {CellCalc = Compare[indx];}
-                       }
-                       if (CellCalc != 1.0) { CellValue = CellCalc/2.0; } // Otherwise all neighbours are 0, then CellValue stays 0.0
-                    }
-
+                    
                     //Update cell
-                    Realf NewCellValue = CellValue + dfdt[WID3*n+i+WID*j+WID*WID*k] * Ddt;
+                    Realf NewCellValue;
+                    if (ratio[WID3*n+i+WID*j+WID*WID*k] < 0) {
+                        NewCellValue = dfdt[WID3*n+i+WID*j+WID*WID*k];
+                    } else {
+                        NewCellValue = CellValue + dfdt[WID3*n+i+WID*j+WID*WID*k] * Ddt;
+                    }
                     if (NewCellValue <= 0.0) { NewCellValue = 0.0;}
 
                     cell.set_value(VX,VY,VZ,NewCellValue,popID);
