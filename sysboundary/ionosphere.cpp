@@ -1144,7 +1144,7 @@ namespace SBC {
          MPI_Comm_size(communicator, &size);
          if(rank == 0) {
             writingRankInput = technicalGrid.getRank();
-            cerr << "(ionosphere) New Ionosphere subcommunicator has size " << size << ", rank 0 corresponds to global rank " << technicalGrid.getRank() << endl;
+            //cerr << "(ionosphere) New Ionosphere subcommunicator has size " << size << ", rank 0 corresponds to global rank " << technicalGrid.getRank() << endl;
          }
 
       } else {
