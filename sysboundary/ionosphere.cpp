@@ -2361,6 +2361,24 @@ namespace SBC {
       getParameters();
       isThisDynamic = false;
 
+      // Sanity check: the ionosphere only makes sense in 3D simulations
+      if(P::xcells_ini == 1 || P::ycells_ini == 1 || P::zcells_ini == 1) {
+         cerr << "*************************************************" << endl;
+         cerr << "* BIG FAT IONOSPHERE ERROR:                     *" << endl;
+         cerr << "*                                               *" << endl;
+         cerr << "* You are trying to run a 2D simulation with an *" << endl;
+         cerr << "* ionosphere inner boundary. This won't work.   *" << endl;
+         cerr << "*                                               *" << endl;
+         cerr << "* Most likely, your config file needs to be up- *" << endl;
+         cerr << "* dated, changing all mentions of \"ionosphere\"  *" << endl;
+         cerr << "* to \"conductingsphere\".                        *" << endl;
+         cerr << "*                                               *" << endl;
+         cerr << "* This simulation will now crash in the friend- *" << endl;
+         cerr << "* liest way possible.                           *" << endl;
+         cerr << "*************************************************" << endl;
+         abort();
+      }
+
       // Initialize ionosphere mesh base shape
       if(baseShape == "icosahedron") {
          ionosphereGrid.initializeIcosahedron();
