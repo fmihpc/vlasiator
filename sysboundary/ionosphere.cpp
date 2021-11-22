@@ -1104,7 +1104,7 @@ namespace SBC {
             bulirschStoerStep(x, v,stepsize,maxStepsize, outwards);
             break;
          default:
-            std::cerr<<"No Field Line Tracing method defined"<<std::endl;
+            std::cerr << "(ionosphere) Warning: No Field Line Tracing method defined. Ionosphere connectivity will be garbled."<<std::endl;
             break;
       }
    }//stepFieldLine
