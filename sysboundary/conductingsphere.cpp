@@ -72,8 +72,7 @@ namespace SBC {
    }
    
    void Conductingsphere::getParameters() {
-      int myRank;
-      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+
       Readparameters::get("conductingsphere.centerX", this->center[0]);
       Readparameters::get("conductingsphere.centerY", this->center[1]);
       Readparameters::get("conductingsphere.centerZ", this->center[2]);
@@ -96,7 +95,7 @@ namespace SBC {
         Readparameters::get(pop + "_conductingsphere.VY0", sP.V0[1]);
         Readparameters::get(pop + "_conductingsphere.VZ0", sP.V0[2]);
         Readparameters::get(pop + "_conductingsphere.fluffiness", sP.fluffiness);
-        Readparameters::get(pop + "_Magnetosphere.T", sP.T);
+        Readparameters::get(pop + "_conductingsphere.T", sP.T);
         Readparameters::get(pop + "_Magnetosphere.nSpaceSamples", sP.nSpaceSamples);
         Readparameters::get(pop + "_Magnetosphere.nVelocitySamples", sP.nVelocitySamples);
 
@@ -118,7 +117,7 @@ namespace SBC {
       return true;
    }
 
-   static Real getR(creal x,creal y,creal z, uint geometry, Real center[3]) {
+   Real getR(creal x,creal y,creal z, uint geometry, Real center[3]) {
 
       Real r;
       
@@ -148,8 +147,8 @@ namespace SBC {
    }
    
    bool Conductingsphere::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                      FsGrid< fsgrids::technical, 2> & technicalGrid) {
-      vector<CellID> cells = mpiGrid.get_cells();
+                                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
+      const vector<CellID>& cells = getLocalCells();
       for(uint i=0; i<cells.size(); i++) {
          if(mpiGrid[cells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
             continue;
@@ -194,10 +193,10 @@ namespace SBC {
 
    bool Conductingsphere::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
       Project &project
    ) {
-      vector<CellID> cells = mpiGrid.get_cells();
+      const vector<CellID>& cells = getLocalCells();
       #pragma omp parallel for
       for (uint i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
@@ -210,7 +209,7 @@ namespace SBC {
    }
 
    std::array<Real, 3> Conductingsphere::fieldSolverGetNormalDirection(
-      FsGrid< fsgrids::technical, 2> & technicalGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
       cint i,
       cint j,
       cint k
@@ -489,8 +488,8 @@ namespace SBC {
     * -- Retain only the normal components of perturbed face B
     */
    Real Conductingsphere::fieldSolverBoundaryCondMagneticField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & bGrid,
-      FsGrid< fsgrids::technical, 2> & technicalGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
       cint i,
       cint j,
       cint k,
@@ -698,7 +697,7 @@ namespace SBC {
    }
 
    void Conductingsphere::fieldSolverBoundaryCondElectricField(
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
+      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
       cint i,
       cint j,
       cint k,
@@ -708,7 +707,7 @@ namespace SBC {
    }
    
    void Conductingsphere::fieldSolverBoundaryCondHallElectricField(
-      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2> & EHallGrid,
+      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
       cint i,
       cint j,
       cint k,
@@ -740,7 +739,7 @@ namespace SBC {
    }
    
    void Conductingsphere::fieldSolverBoundaryCondGradPeElectricField(
-      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> & EGradPeGrid,
+      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
       cint i,
       cint j,
       cint k,
@@ -750,8 +749,8 @@ namespace SBC {
    }
    
    void Conductingsphere::fieldSolverBoundaryCondDerivatives(
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
-      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
+      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
       cint i,
       cint j,
       cint k,
