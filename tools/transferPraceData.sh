@@ -341,7 +341,7 @@ transferPraceData userserver path transfer_file local_storage_path
     Please run grid_proxy_init first when using the gridFTP backend.
    
     user             Username, option not used for gridftp or local-dd transfers (put arbitrary name)
-    server           One of: Hermit (gridftp), Hazelhen-r (rsync), Hazelhen-ds (dd|ssh), Abel (gridftp), Sisu-g (gridftp) Sisu-r (rsync) Sisu-ds (dd|ssh) localhost-dd (local-dd) localhost-rp (rsync with special port)
+    server           One of: Hermit (gridftp), Hazelhen-r (rsync), Hazelhen-ds (dd|ssh), Abel (gridftp), Sisu-g (gridftp) LUMI-r (rsync) LUMI-ds (dd|ssh) localhost-dd (local-dd) localhost-rp (rsync with special port)
     path             is a path on remote machine (e.g. /univ_1/ws1/ws/iprsalft-paper1-runs-0/2D/ecliptic/AAE)"
     transfer_file    is a file in the path on the remote machine created using ls -la *myfiles_to_transfer* > transfer_list.txt"       
     local_storage_path  is the folder where the files are ultimately copied after transfer, e.g., a tape drive. During transfer they go to the current folder. "." is also allowed.
@@ -376,13 +376,13 @@ elif [ $machine == "Sisu-g" ]
 then
     server=gsiftp://gridftp.csc.fi:2811
     method=gridftp
-elif [ $machine == "Sisu-r" ]
+elif [ $machine == "LUMI-r" ]
 then
-    server=sisu.csc.fi
+    server=lumi.csc.fi
     method=rsync
-elif [ $machine == "Sisu-ds" ]
+elif [ $machine == "LUMI-ds" ]
 then
-    server=sisu.csc.fi
+    server=lumi.csc.fi
     method=ddssh
 elif [ $machine == "localhost-dd" ]
 then
@@ -394,7 +394,7 @@ then
     method=rsync
     export RSYNC_RSH="ssh -p 1235"
 else
-    echo "Allowed server values are Hermit, Hazelhen-r, Hazelhen-ds, Abel, Sisu-g, Sisu-r, Sisu-ds, localhost-dd, localhost-rp"
+    echo "Allowed server values are Hermit, Hazelhen-r, Hazelhen-ds, Abel, Sisu-g, LUMI-r, LUMI-ds, localhost-dd, localhost-rp"
     exit 1
 fi
 
