@@ -1015,25 +1015,24 @@ namespace SBC {
    void SphericalTriGrid::bulirschStoerStep(std::array<Real, 3>& r, std::array<Real, 3>& b, Real& stepsize,Real maxStepsize, bool outwards){
       
       //Factors by which the stepsize is multiplied 
-      Real shrink = 0.92;
-      Real grow = 1.25; 
+      Real shrink = 0.95;
+      Real grow = 1.2; 
       //Max substeps for midpoint method
-      int kMax = 12;
-      //Optimal row to converge
+      int kMax = 8;
+      //Optimal row to converge at 
       int kOpt = 6;
+
       const int ndim = kMax*kMax*3;
       std::array<int,3>  dims={kMax,kMax,3};
       std::vector<Real>table(ndim);
       std::array<Real,3> rold,rnew,r1;
       Real error;
-      bool converged = false;
 
       //Get B field unit vector in case we don't converge yet
       getRadialBfieldDirection(r,outwards,b);
 
       //Let's start things up with 2 substeps
       int n =2;
-      int i;
       //Save old state
       rold = r;
       //Take a first Step
@@ -1044,9 +1043,10 @@ namespace SBC {
          table[ijk2Index(0,0,c,dims)] = r1[c];
       }
   
-      for(i=1; i<kMax; ++i){
+      for(int i=1; i<kMax; ++i){
+
          //Increment n. Each iteration doubles the number of substeps
-         n*=2;
+         n+=2;
          modifiedMidpointMethod(r,rnew,n,stepsize,outwards);
 
          //Save values in table
@@ -1054,35 +1054,30 @@ namespace SBC {
             table[ijk2Index(i,0,c,dims)] = rnew[c];
          }
 
-         //Now let's Extrapolate
+         //Now let's perform a Richardson extrapolatation
          richardsonExtrapolation(i,table,error,dims);
-         //Normalize error to eps
+
+         //Normalize error
          error/=Ionosphere::eps;
 
-         //If we are below eps good, let's exit
+         //If we are below eps good, let's return but also let's modify the stepSize accordingly 
          if (error<1.){
-            converged = true;
-            break;
+            if (i> kOpt) stepsize*=shrink;
+            if (i< kOpt) stepsize*=grow;
+            //Make sure stepsize does not exceed maxStepsize
+            stepsize= (stepsize<maxStepsize )?stepsize:maxStepsize;
+            //Keep our new position
+            r=rnew;
+            //Evaluate B here
+            getRadialBfieldDirection(r,outwards,b);
+            return;
          }
       }
 
-      //Step control
-      i = (converged) ? i:i-1;
-      if  (error>=1.  || i>kOpt){
-         stepsize*=shrink;
-       }else if (i<kOpt){
-         stepsize*=grow;
-         //Limit stepsize to maxStepsize which should be technicalGrid.DX/2
-         stepsize= (stepsize<maxStepsize )?stepsize:maxStepsize; 
-      }else{
-         //Save values in table
-         for(int c =0; c<3; ++c){
-            r[c]=table.at(ijk2Index(i,i,c,dims));
-         }
-         //And also save B unit vector here
-         getRadialBfieldDirection(r,outwards,b);
+      //If we end up  here it means our tracer did not converge so we need to reduce the stepSize all along and try again
+      stepsize*=shrink;
+      return;
 
-      }
    } //Bulirsch-Stoer Step 
 
    
@@ -1101,7 +1096,6 @@ namespace SBC {
    
    /*Take a step along the field line*/
    void SphericalTriGrid::stepFieldLine(std::array<Real, 3>& x, std::array<Real, 3>& v, Real& stepsize,Real maxStepsize, IonosphereCouplingMethod method, bool outwards){
-
       switch(method) {
          case Euler:
             eulerStep(x, v,stepsize, outwards);
@@ -1110,6 +1104,7 @@ namespace SBC {
             bulirschStoerStep(x, v,stepsize,maxStepsize, outwards);
             break;
          default:
+            std::cerr<<"No Field Line Tracing method defined"<<std::endl;
             break;
       }
    }//stepFieldLine
