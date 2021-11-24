@@ -521,6 +521,15 @@ bool map_1d(SpatialCell* spatial_cell,
                     printf("OpenACC a[1]: column = %d; j = %d; k = %d; a[%d] = %.12e\n", column, j, k, a_1, a[1][a_1]);
                 }
                 */
+                /*
+                if(j==0 && k==0)
+                {
+                  for(int a_1 = 0; a_1 < VECL; a_1++)
+                  {
+                    printf("OpenACC: a[0][%d] = %d; a[1][%d] = %d; a[2][%d] = %d;\n", a[0][a_1], a[1][a_1], a[2][a_1]);
+                  }
+                }
+                */
                // set the initial value for the integrand at the boundary at v = 0
                // (in reduced cell units), this will be shifted to target_density_1, see below.
                Vec target_density_r(0.0);
@@ -686,6 +695,8 @@ bool map_1d(SpatialCell* spatial_cell,
    } else {
 
       // CPU version
+      clock_t t;
+      t = clock();
       for( uint column=0; column < totalColumns; column++) {
 
          // i,j,k are relative to the order in which we copied data to the values array.
@@ -870,6 +881,9 @@ bool map_1d(SpatialCell* spatial_cell,
             } // for-loop over source blocks
          } //for loop over j index
       } //for loop over columns
+      t = clock() - t;
+      double time_taken = ((double)t)/CLOCKS_PER_SEC;
+      //printf("%.3f\n", time_taken);
    }
 
 

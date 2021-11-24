@@ -60,7 +60,7 @@ LIB_MPI = -lgomp -lgfortran
 
 MPT_VERSION = 7.5.1
 JEMALLOC_VERSION = 4.0.4
-LIBRARY_PREFIX = /home/talgat/libs
+LIBRARY_PREFIX = /home/mangla/libs
 
 
 #compiled libraries
