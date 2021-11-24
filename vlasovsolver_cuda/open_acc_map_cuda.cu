@@ -430,8 +430,8 @@ __global__ void acceleration_1
   int bdsw3
 )
 {
-  int index = threadIdx.x + blockIdx.x*blockDim.x;
-  if(index == 0)
+  //int index = threadIdx.x + blockIdx.x*blockDim.x;
+  //if(index == 0)
   {
     //printf("CUDA 1\n");
     for( uint column=0; column < totalColumns; column++)
@@ -734,14 +734,14 @@ Realf* acceleration_1_wrapper
         minValue,
         bdsw3
   );
+  cudaDeviceSynchronize();
+  HANDLE_ERROR( cudaMemcpy(blockData, dev_blockData, bdsw3*sizeof(double), cudaMemcpyDeviceToHost) );
 
   cudaEventRecord(stop, 0);
   cudaEventSynchronize(stop);
   float elapsedTime;
-  cudaEventElapsedTime (&elapsedTime, start, stop);
-  //printf("%.3f\n", elapsedTime);
-  cudaDeviceSynchronize();
-  HANDLE_ERROR( cudaMemcpy(blockData, dev_blockData, bdsw3*sizeof(double), cudaMemcpyDeviceToHost) );
+  cudaEventElapsedTime(&elapsedTime, start, stop);
+  //printf("%.3f ms\n", elapsedTime);
 
   HANDLE_ERROR( cudaFree(dev_blockData) );
   HANDLE_ERROR( cudaFree(dev_cell_indices_to_id) );
