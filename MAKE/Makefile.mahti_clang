@@ -53,11 +53,10 @@ NVCC = nvcc
 CC = g++
 #CC = mpicc
 NVCC = nvcc
-#CUDAFLAGS += -arch=sm_60
-
+CUDAFLAGS += -arch=sm_80
 CXX = mpic++
 #CUDAFLAGS += -arch=sm_60
-CUDAFLAGS = -gencode arch=compute_80,code=sm_80 -std=c++11
+#CUDAFLAGS = -gencode arch=compute_80,code=sm_80 -std=c++11
 
 CC_BRAND = pgi
 CC_BRAND_VERSION = 19.7
