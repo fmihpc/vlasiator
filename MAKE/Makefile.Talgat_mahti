@@ -75,7 +75,7 @@ LIB_MPI =
 
 MPT_VERSION = 7.5.1
 JEMALLOC_VERSION = 4.0.4
-LIBRARY_PREFIX = /home/mangla/libs
+LIBRARY_PREFIX = /home/manglaye/libs
 
 #compiled libraries
 INC_BOOST = -I/usr/include/boost/
