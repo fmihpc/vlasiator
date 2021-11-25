@@ -47,15 +47,17 @@ CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 #                         mpi.h in c++ on Cray
 
 #FLAGS =
-#CC = mpicc
-#CXX = mpic++
-#NVCC = nvcc
-#CUDAFLAGS = -gencode arch=compute_80,code=sm_80 -std=c++11
-#CMP = mpic++
-#LNK = mpic++
-CC = g++
+CMP = mpic++
+LNK = mpic++
 NVCC = nvcc
-CUDAFLAGS += -arch=sm_60
+CC = g++
+#CC = mpicc
+NVCC = nvcc
+#CUDAFLAGS += -arch=sm_60
+
+CXX = mpic++
+#CUDAFLAGS += -arch=sm_60
+CUDAFLAGS = -gencode arch=compute_80,code=sm_80 -std=c++11
 
 #GNU flags:
 CC_BRAND = nvhpc
