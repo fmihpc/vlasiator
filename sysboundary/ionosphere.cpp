@@ -1596,6 +1596,19 @@ namespace SBC {
               nodes[n].parameters[ionosphereParameters::PRESSURE] = (1.-a) * nodes[n].parameters[ionosphereParameters::PRESSURE] + a * pressureSum[n];
            }
         }
+
+        // Adjust densities by the loss-cone filling factor.
+        // This is an empirical smooothstep function that artificially reduces
+        // downmapped density below auroral latitudes.
+        Real theta = acos(nodes[n].x[2] / sqrt(nodes[n].x[0]*nodes[n].x[0] + nodes[n].x[1]*nodes[n].x[1] + nodes[n].x[2]*nodes[n].x[2])); // Latitude
+        if(theta > M_PI/2.) {
+           theta = M_PI - theta;
+        }
+        // Smoothstep with an edge at about 67 deg.
+        Real Chi0 = 0.01 + 0.99 * .5 * (1 + tanh((23. - theta * (180. / M_PI)) / 6));
+
+        nodes[n].parameters[ionosphereParameters::RHON] *= Chi0;
+
      }
 
      // Make sure FACs are balanced, so that the potential doesn't start to drift
