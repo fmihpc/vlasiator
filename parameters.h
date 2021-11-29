@@ -95,6 +95,8 @@ struct Parameters {
    static std::vector<int> systemWrites;        /*!< How many files have been written of each class*/
    static std::vector<std::pair<std::string, std::string>>
        systemWriteHints; /*!< Collection of MPI-IO hints passed for non-restart IO. Pairs of key-value strings. */
+   static std::vector<std::pair<std::string, std::string>>
+       restartWriteHints; /*!< Collection of MPI-IO hints passed for restart IO. Pairs of key-value strings. */
 
    static bool writeInitialState; /*!< If true, initial state is written. This is useful for debugging as the restarts
                                      are always written out after propagation of 0.5dt in real space.*/
