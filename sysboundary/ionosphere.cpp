@@ -632,13 +632,11 @@ namespace SBC {
          // Integrate downwards through the atmosphre to find density at depth=1
          for(int h=numAtmosphereLevels-1; h>=0; h--) {
             if(atmosphere[h].depth / electronRange > 1) {
-               //std::cerr << "For energy " << particle_energy[e] << ", electronRange = " << electronRange << " and it is reached at height " << atmosphere[h].altitude << " km, depth = " << atmosphere[h].depth << " kg/m^2 , density = " << atmosphere[h].density << " kg/m^3" << std::endl;
                rho_R = atmosphere[h].density;
                break;
             }
          }
          if(rho_R == 0.) {
-            //std::cerr << "For energy " << particle_energy[e] << ", no height matches the electronRange of " << electronRange << " kg/m^2. Lowest level depth is " << atmosphere[0].depth << " kg/m^2" << std::endl;
             rho_R = atmosphere[0].density;
          }
 
@@ -701,12 +699,10 @@ namespace SBC {
             normEnergy *= productionNumAccEnergies;
             int energyindex = int(float(normEnergy));
             if(energyindex < 0) {
-               //cerr << "(ionosphere) lookupProductionValue: energyIndex < 0: energy_keV = " << energy_keV << ", index = " << energyindex << endl;
                energyindex = 0;
                normEnergy = 0;
             }
             if(energyindex > productionNumAccEnergies - 2) {
-               //cerr << "(ionosphere) lookupProductionValue: energyIndex > " << (productionNumAccEnergies -2) << ": energy_keV = " << energy_keV << ", index = " << energyindex << endl;
                energyindex = productionNumAccEnergies - 2;
                normEnergy = 0;
             }
@@ -716,12 +712,10 @@ namespace SBC {
             int temperatureindex = int(float(normTemperature));
             float s = normTemperature - floor(normTemperature);
             if(temperatureindex < 0) {
-               //cerr << "(ionosphere) lookupProductionValue: temperatureIndex < 0: temperature_keV = " << temperature_keV << ", index = " << temperatureindex << endl;
                temperatureindex = 0;
                normTemperature = 0;
             }
             if(temperatureindex > productionNumTemperatures - 2) {
-               //cerr << "(ionosphere) lookupProductionValue: temperatureIndex > " << (productionNumTemperatures -2) << ": temperature_keV = " << temperature_keV << ", index = " << temperatureindex << endl;
                temperatureindex = productionNumTemperatures - 2;
                normTemperature = 0;
             }
@@ -1139,7 +1133,6 @@ namespace SBC {
          MPI_Comm_size(communicator, &size);
          if(rank == 0) {
             writingRankInput = technicalGrid.getRank();
-            //cerr << "(ionosphere) New Ionosphere subcommunicator has size " << size << ", rank 0 corresponds to global rank " << technicalGrid.getRank() << endl;
          }
 
       } else {
@@ -1883,20 +1876,6 @@ namespace SBC {
             uint ne = elements.size();
             elements.push_back(newElement);
             //Real newArea2 = elementArea(ne);
-
-            //if(newArea1/oldArea < 0.4 || newArea2/oldArea < 0.4) {
-            //   cerr << "(ionosphere) Warning: Splitting element " << nodes[n].touchingElements[t] << " badly (ratios " << newArea1/oldArea << " / " << newArea2/oldArea << ")" << endl;
-            //   Vec3d ab(nodes[A].x[0] - nodes[B].x[0], nodes[A].x[1] - nodes[B].x[1], nodes[A].x[2] - nodes[B].x[2]);
-            //   Vec3d an(nodes[A].x[0] - nodes[n].x[0], nodes[A].x[1] - nodes[n].x[1], nodes[A].x[2] - nodes[n].x[2]);
-            //   Vec3d ac(nodes[A].x[0] - nodes[C].x[0], nodes[A].x[1] - nodes[C].x[1], nodes[A].x[2] - nodes[C].x[2]);
-            //   Vec3d bc(nodes[B].x[0] - nodes[C].x[0], nodes[B].x[1] - nodes[C].x[1], nodes[B].x[2] - nodes[C].x[2]);
-            //   Vec3d bn(nodes[B].x[0] - nodes[n].x[0], nodes[B].x[1] - nodes[n].x[1], nodes[B].x[2] - nodes[n].x[2]);
-            //   cerr << "             Colinearities:" << endl;
-            //   cerr << "             ABC: " << fabs(dot_product(normalize_vector(ab), normalize_vector(ac))) << endl;
-            //   cerr << "             AnB: " << fabs(dot_product(normalize_vector(ab), normalize_vector(an))) << endl;
-            //   cerr << "             AnC: " << fabs(dot_product(normalize_vector(ac), normalize_vector(an))) << endl;
-            //   cerr << "             BnC: " << fabs(dot_product(normalize_vector(bc), normalize_vector(bn))) << endl;
-            //}
 
             // Fix touching element lists:
             // Far corner touches both elements
