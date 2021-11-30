@@ -51,6 +51,7 @@
 #include "fs_common.h"
 #include "derivatives.hpp"
 #include "fs_limiters.h"
+#include "fsgrid.hpp"
 #include "mpiconversion.h"
 
 /*! Re-initialize field propagator after rebalance. E, BGB, RHO, RHO_V,
@@ -248,8 +249,16 @@ bool propagateFields(
       uint maxSubcycleCount = std::numeric_limits<uint>::max();
       int myRank = perBGrid.getRank();
       
-      while (subcycleCount < maxSubcycleCount ) {         
-         // In case of subcycling, we decided to go for a blunt Runge-Kutta subcycling even though e.g. moments are not going along.
+      while (subcycleCount < maxSubcycleCount ) {
+	 // Interpolate moments. Numerator is 0.5*dt as that's where momentsDt2 is at.
+         Real interp1 = (subcycleT-P::t)/(0.5*dt);
+         Real interp2 = (subcycleT+0.5*subcycleDt-P::t)/(0.5*dt);
+         auto iMomentsGrid(momentsGrid);
+         auto iMomentsDt2Grid(momentsDt2Grid);
+         iMomentsGrid = lerp_t(momentsGrid,momentsDt2Grid, interp1);
+         iMomentsDt2Grid = lerp_t(momentsGrid,momentsDt2Grid, interp2);
+
+	 // In case of subcycling, we decided to go for a blunt Runge-Kutta subcycling even though e.g. moments are not going along.
          // Result of the Summer of Debugging 2016, the behaviour in wave dispersion was much improved with this.
          if (subcycleCount==0) {
             // First substep, start from perBGrid
@@ -260,9 +269,9 @@ bool propagateFields(
          }
          // We need to calculate derivatives of the moments at every substep, but the moments only
          // need to be communicated in the first one.
-         calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1, (subcycleCount==0));
+         calculateDerivativesSimple(perBGrid, perBDt2Grid, iMomentsGrid, iMomentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1, (subcycleCount==0));
          if(P::ohmGradPeTerm > 0 && subcycleCount==0) {
-            calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1);
+            calculateGradPeTermSimple(EGradPeGrid, iMomentsGrid, iMomentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1);
             hallTermCommunicateDerivatives = false; // To prevent repeated ghost update of derivatives
          }
          if(P::ohmHallTerm > 0) {
@@ -270,8 +279,8 @@ bool propagateFields(
                perBGrid,
                perBDt2Grid,
                EHallGrid,
-               momentsGrid,
-               momentsDt2Grid,
+               iMomentsGrid,
+               iMomentsDt2Grid,
                dPerBGrid,
                dMomentsGrid,
                BgBGrid,
@@ -288,8 +297,8 @@ bool propagateFields(
             EDt2Grid,
             EHallGrid,
             EGradPeGrid,
-            momentsGrid,
-            momentsDt2Grid,
+            iMomentsGrid,
+            iMomentsDt2Grid,
             dPerBGrid,
             dMomentsGrid,
             BgBGrid,
@@ -302,10 +311,10 @@ bool propagateFields(
          
          // We need to calculate derivatives of the moments at every substep, but the moments only
          // need to be communicated in the first one.
-         calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2, (subcycleCount==0));
+         calculateDerivativesSimple(perBGrid, perBDt2Grid, iMomentsGrid, iMomentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2, (subcycleCount==0));
          hallTermCommunicateDerivatives = true; // re-activate for newly calculated derivatives
          if(P::ohmGradPeTerm > 0 && subcycleCount==0) {
-            calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2);
+            calculateGradPeTermSimple(EGradPeGrid, iMomentsGrid, iMomentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2);
             hallTermCommunicateDerivatives = false; // To prevent repeated ghost update of derivatives
          }
          if(P::ohmHallTerm > 0) {
@@ -313,8 +322,8 @@ bool propagateFields(
                perBGrid,
                perBDt2Grid,
                EHallGrid,
-               momentsGrid,
-               momentsDt2Grid,
+               iMomentsGrid,
+               iMomentsDt2Grid,
                dPerBGrid,
                dMomentsGrid,
                BgBGrid,
@@ -331,8 +340,8 @@ bool propagateFields(
             EDt2Grid,
             EHallGrid,
             EGradPeGrid,
-            momentsGrid,
-            momentsDt2Grid,
+            iMomentsGrid,
+            iMomentsDt2Grid,
             dPerBGrid,
             dMomentsGrid,
             BgBGrid,
