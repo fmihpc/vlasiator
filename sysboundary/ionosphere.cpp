@@ -1161,6 +1161,8 @@ namespace SBC {
       // Pick an initial stepsize
       Real stepSize = min(100e3, technicalGrid.DX / 2.); 
 
+      std::vector<Real> nodeDistance(nodes.size(), std::numeric_limits<Real>::max());
+
       #pragma omp parallel firstprivate(stepSize)
       {
          // Trace node coordinates outwards until a non-sysboundary cell is encountered 
@@ -1187,6 +1189,8 @@ namespace SBC {
                }
                fsgridCell = technicalGrid.globalToLocal(fsgridCell[0], fsgridCell[1], fsgridCell[2]);
 
+               creal distance = sqrt((x[0]-no.x[0])*(x[0]-no.x[0])+(x[1]-no.x[1])*(x[1]-no.x[1])+(x[2]-no.x[2])*(x[2]-no.x[2]));
+
                // If the field line is no longer moving outwards but tangentially (88 degrees), abort.
                // (Note that v is normalized)
                // TODO: If we are inside the magnetospheric domain, but under the coupling radius, should thes *still* be taking along, just to have a
@@ -1212,6 +1216,7 @@ namespace SBC {
                   // Store the cells mapped coordinates and upmapped magnetic field
                   no.xMapped = x;
                   no.haveCouplingData = 1;
+                  nodeDistance[n] = distance;
                   for(int c=0; c<3; c++) {
                      no.fsgridCellCoupling[c] = (x[c] - technicalGrid.physicalGlobalStart[c]) / technicalGrid.DX;
                   }
@@ -1223,6 +1228,13 @@ namespace SBC {
                }
             }
          }
+      }
+      
+      std::vector<Real> reducedNodeDistance(nodes.size());
+      if(sizeof(Real) == sizeof(double)) {
+         MPI_Allreduce(nodeDistance.data(), reducedNodeDistance.data(), nodes.size(), MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+      } else {
+         MPI_Allreduce(nodeDistance.data(), reducedNodeDistance.data(), nodes.size(), MPI_FLOAT, MPI_MIN, MPI_COMM_WORLD);
       }
 
       // Reduce upmapped magnetic field to be consistent on all nodes
@@ -1236,6 +1248,17 @@ namespace SBC {
       std::vector<int> reducedCouplingNum(nodes.size());
       for(uint n=0; n<nodes.size(); n++) {
          Node& no = nodes[n];
+         // Discard false hits from cells that are further out from the node
+         if(nodeDistance[n] > reducedNodeDistance[n]) {
+            no.parameters[ionosphereParameters::UPMAPPED_BX] = 0;
+            no.parameters[ionosphereParameters::UPMAPPED_BY] = 0;
+            no.parameters[ionosphereParameters::UPMAPPED_BZ] = 0;
+            no.xMapped[0] = 0;
+            no.xMapped[1] = 0;
+            no.xMapped[2] = 0;
+            no.haveCouplingData = 0;
+         }
+
          sendUpmappedB[3*n] = no.parameters[ionosphereParameters::UPMAPPED_BX];
          sendUpmappedB[3*n+1] = no.parameters[ionosphereParameters::UPMAPPED_BY];
          sendUpmappedB[3*n+2] = no.parameters[ionosphereParameters::UPMAPPED_BZ];
