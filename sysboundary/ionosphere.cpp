@@ -1163,6 +1163,8 @@ namespace SBC {
       // Pick an initial stepsize
       Real stepSize = min(100e3, technicalGrid.DX / 2.); 
 
+      std::vector<Real> nodeDistance(nodes.size(), std::numeric_limits<Real>::max());
+
       #pragma omp parallel firstprivate(stepSize)
       {
          // Trace node coordinates outwards until a non-sysboundary cell is encountered 
@@ -1189,6 +1191,8 @@ namespace SBC {
                }
                fsgridCell = technicalGrid.globalToLocal(fsgridCell[0], fsgridCell[1], fsgridCell[2]);
 
+               creal distance = sqrt((x[0]-no.x[0])*(x[0]-no.x[0])+(x[1]-no.x[1])*(x[1]-no.x[1])+(x[2]-no.x[2])*(x[2]-no.x[2]));
+
                // If the field line is no longer moving outwards but tangentially (88 degrees), abort.
                // (Note that v is normalized)
                // TODO: If we are inside the magnetospheric domain, but under the coupling radius, should thes *still* be taking along, just to have a
@@ -1208,12 +1212,10 @@ namespace SBC {
                   && x[0]*x[0]+x[1]*x[1]+x[2]*x[2] > Ionosphere::downmapRadius*Ionosphere::downmapRadius*physicalconstants::R_E*physicalconstants::R_E
                ) {
 
-                  // Cell found, add association.
-                  isCouplingInwards = true;
-
                   // Store the cells mapped coordinates and upmapped magnetic field
                   no.xMapped = x;
                   no.haveCouplingData = 1;
+                  nodeDistance[n] = distance;
                   for(int c=0; c<3; c++) {
                      no.fsgridCellCoupling[c] = (x[c] - technicalGrid.physicalGlobalStart[c]) / technicalGrid.DX;
                   }
@@ -1225,6 +1227,13 @@ namespace SBC {
                }
             }
          }
+      }
+      
+      std::vector<Real> reducedNodeDistance(nodes.size());
+      if(sizeof(Real) == sizeof(double)) {
+         MPI_Allreduce(nodeDistance.data(), reducedNodeDistance.data(), nodes.size(), MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+      } else {
+         MPI_Allreduce(nodeDistance.data(), reducedNodeDistance.data(), nodes.size(), MPI_FLOAT, MPI_MIN, MPI_COMM_WORLD);
       }
 
       // Reduce upmapped magnetic field to be consistent on all nodes
@@ -1238,6 +1247,20 @@ namespace SBC {
       std::vector<int> reducedCouplingNum(nodes.size());
       for(uint n=0; n<nodes.size(); n++) {
          Node& no = nodes[n];
+         // Discard false hits from cells that are further out from the node
+         if(nodeDistance[n] > reducedNodeDistance[n]) {
+            no.haveCouplingData = 0;
+            for(int c=0; c<3; c++) {
+               no.parameters[ionosphereParameters::UPMAPPED_BX+c] = 0;
+               no.xMapped[c] = 0;
+               no.fsgridCellCoupling[c] = -1;
+            }
+         } else {
+            // Cell found, add association.
+            isCouplingInwards = true;
+         }
+
+
          sendUpmappedB[3*n] = no.parameters[ionosphereParameters::UPMAPPED_BX];
          sendUpmappedB[3*n+1] = no.parameters[ionosphereParameters::UPMAPPED_BY];
          sendUpmappedB[3*n+2] = no.parameters[ionosphereParameters::UPMAPPED_BZ];
@@ -1304,68 +1327,105 @@ namespace SBC {
          }
       }
 
-      uint32_t nearestNode;
-      for (uint toto=0; toto<2; toto++) {
-         // Determine the nearest ionosphere node to this point.
-         nearestNode = findNodeAtCoordinates(x);
-
+      // Determine the nearest ionosphere node to this point.
+      uint32_t nearestNode = findNodeAtCoordinates(x);
+      int32_t elementIndex = nodes[nearestNode].touchingElements[0];
+      int32_t oldElementIndex;
+      
+      std::unordered_set<int32_t> elementHistory;
+      bool override=false;
+      
+      for (uint toto=0; toto<15; toto++) {
+         Element& el = elements[elementIndex];
+         oldElementIndex = elementIndex;
          Vec3d r1,r2,r3;
-         // Which neighbouring element encloses our test point?
-         for(uint i=0; i< nodes[nearestNode].numTouchingElements; i++) {
-            Element& el = elements[nodes[nearestNode].touchingElements[i]];
+         
+         if(elementHistory.find(elementIndex) == elementHistory.end()) {
+            elementHistory.insert(elementIndex);
+         } else {
+            // This element was already seen, entering a loop, let's get out
+            // It happens when the projection rx is left seen from the right triangle and right seen from the left triangle.
+            cerr << "Entered a loop, taking the current element " << elementIndex << "." << endl;
+            override=true;
+         }
+         
+         // Calculate barycentric coordinates for x in this element.
+         r1.load(nodes[el.corners[0]].x.data());
+         r2.load(nodes[el.corners[1]].x.data());
+         r3.load(nodes[el.corners[2]].x.data());
 
-            // Calculate barycentric coordinates for x in this element.
-            r1.load(nodes[el.corners[0]].x.data());
-            r2.load(nodes[el.corners[1]].x.data());
-            r3.load(nodes[el.corners[2]].x.data());
+         Vec3d rx(x[0],x[1],x[2]);
+         
+         cint handedness = sign(dot_product(cross_product(r2-r1, r3-r1), r1));
+         
+         creal kappa1 = handedness*sign(dot_product(cross_product(r1, r2-r1), rx-r1));
+         creal kappa2 = handedness*sign(dot_product(cross_product(r2, r3-r2), rx-r2));
+         creal kappa3 = handedness*sign(dot_product(cross_product(r3, r1-r3), rx-r3));
 
-            // Project x into the plane of this triangle
-            Vec3d rx(x[0],x[1],x[2]);
-            Vec3d normal = normalize_vector(cross_product(r2-r1, r3-r1));
-            rx -= normal*dot_product(rx-r1, normal);
-
+         if(override || (kappa1 > 0 && kappa2 > 0 && kappa3 > 0)) {
             // Total area
             Real A = vector_length(cross_product(r2-r1,r3-r1));
-
+            
+            // Project x into the plane of this triangle
+            Vec3d normal = normalize_vector(cross_product(r2-r1, r3-r1));
+            rx -= normal*dot_product(rx-r1, normal);
+            
             // Area of the sub-triangles
             Real lambda1 = vector_length(cross_product(r2-rx, r3-rx)) / A;
             Real lambda2 = vector_length(cross_product(r1-rx, r3-rx)) / A;
             Real lambda3 = vector_length(cross_product(r1-rx, r2-rx)) / A;
-
-            // If any of the lambdas is out of range, this is not our enclosing element.
-            if(lambda1+lambda2+lambda3 > 1.01 || lambda1+lambda2+lambda3 < 0.99) {
-               continue;
-            }
-
+            
             coupling[0] = {el.corners[0], lambda1};
             coupling[1] = {el.corners[1], lambda2};
             coupling[2] = {el.corners[2], lambda3};
             phiprof::stop("ionosphere-VlasovGridCoupling");
             return coupling;
-
+         } else if (kappa1 > 0 && kappa2 > 0 && kappa3 < 0) {
+            elementIndex = findElementNeighbour(elementIndex,0,2);
+         } else if (kappa2 > 0 && kappa3 > 0 && kappa1 < 0) {
+            elementIndex = findElementNeighbour(elementIndex,0,1);
+         } else if (kappa3 > 0 && kappa1 > 0 && kappa2 < 0) {
+            elementIndex = findElementNeighbour(elementIndex,1,2);
+         } else if (kappa1 < 0 && kappa2 < 0 && kappa3 > 0) {
+            if (handedness > 0) {
+               elementIndex = findElementNeighbour(elementIndex,0,1);
+            } else {
+               elementIndex = findElementNeighbour(elementIndex,1,2);
+            }
+         } else if (kappa1 < 0 && kappa2 > 0 && kappa3 < 0) {
+            if (handedness > 0) {
+               elementIndex = findElementNeighbour(elementIndex,0,2);
+            } else {
+               elementIndex = findElementNeighbour(elementIndex,0,1);
+            }
+         } else if (kappa1 > 0 && kappa2 < 0 && kappa3 < 0) {
+            if (handedness > 0) {
+               elementIndex = findElementNeighbour(elementIndex,1,2);
+            } else {
+               elementIndex = findElementNeighbour(elementIndex,0,2);
+            }
+         }  else {
+            cerr << "This fell through, strange."
+                 << " kappas " << kappa1 << " " << kappa2 << " " << kappa3
+                 << " handedness " << handedness
+                 << " r1 " << r1[0] << " " << r1[1] << " " << r1[2]
+                 << " r2 " << r2[0] << " " << r2[1] << " " << r2[2]
+                 << " r3 " << r3[0] << " " << r3[1] << " " << r3[2]
+                 << " rx " << rx[0] << " " << rx[1] << " " << rx[2]
+                 << endl;
          }
-         
-         // If we get here, the 1st try failed. Let's try moving x away from the nearest node in the opposite direction as a likely case was now being closest but outside the element.
-         Vec3d oldNearest;
-         oldNearest.load(nodes[nearestNode].x.data());
-         Vec3d rx(x[0],x[1],x[2]);
-         Vec3d newRx = rx - (oldNearest - rx);
-         x[0] = newRx[0];
-         x[1] = newRx[1];
-         x[2] = newRx[2];
-         
+         if(elementIndex == -1) {
+            cerr << __FILE__ << ":" << __LINE__ << ": invalid elementIndex returned for coordinate "
+            << x[0] << " " << x[1] << " " << x[2] << " projected to rx " << rx[0] << " " << rx[1] << " " << rx[2]
+            << ". Last valid elementIndex: " << oldElementIndex << "." << endl;
+            return coupling;
+         }
       }
 
       // If we arrived here, we did not find an element to couple to (why?)
       // Return an empty coupling instead
       cerr << "(ionosphere) Failed to find an ionosphere element to couple to for coordinate " <<
-         x[0] << ", " << x[1] << ", " << x[2] << endl;
-      cerr << "    (checked " << nodes[nearestNode].numTouchingElements << " elements around node " << nearestNode << " at location ("
-         << nodes[nearestNode].x[0] << ", " << nodes[nearestNode].x[1] << ", " << nodes[nearestNode].x[2] << "): [";
-      for(uint i=0; i< nodes[nearestNode].numTouchingElements; i++) {
-         cerr << nodes[nearestNode].touchingElements[i] << ", ";
-      }
-      cerr << "]" << endl;
+         x[0] << " " << x[1] << " " << x[2] << endl;
       phiprof::stop("ionosphere-VlasovGridCoupling");
       return coupling;
    }
