@@ -53,6 +53,33 @@ VEC8F_AGNER
 */
 
 
+#ifdef VEC_FALLBACK_GENERIC_FLOAT
+// use portable vectorclass with specified vector length
+// if not specified in Makefile, equivalent to VEC8F
+#include "vectorclass_fallback.h"
+
+#define VPREC 4
+
+#ifndef VECL
+# define VECL 8
+#endif
+
+#ifndef VEC_PER_PLANE
+# define VEC_PER_PLANE 2
+#endif
+
+#ifndef VEC_PER_BLOCK
+# define VEC_PER_BLOCK 8
+#endif
+
+typedef VecSimple<float> Vec;
+typedef VecSimple<bool> Vecb;
+typedef VecSimple<int> Veci;
+typedef float Realv;
+#define to_realv(v) to_float(v)
+
+#endif
+
 
 
 #ifdef VEC4D_AGNER

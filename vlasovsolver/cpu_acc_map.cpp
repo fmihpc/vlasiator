@@ -413,6 +413,9 @@ bool map_1d(SpatialCell* spatial_cell,
                                         j + 1, j + 1, j + 1, j + 1,
                                         j + 2, j + 2, j + 2, j + 2,
                                         j + 3, j + 3, j + 3, j + 3);
+            #else
+            cerr << __FILE__ << ":" << __LINE__ << ": Missing implementation for VECL=" << VECL << "!" << endl;
+            abort();
             #endif
 
             const Veci  target_cell_index_common =

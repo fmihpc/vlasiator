@@ -74,6 +74,10 @@ COMPFLAGS += -D${DISTRIBUTION_FP_PRECISION}
 #set vector class
 COMPFLAGS += -D${VECTORCLASS}
 
+ifeq (${VECTORCLASS},VEC_FALLBACK_GENERIC_FLOAT)
+COMPFLAGS += -DVECL=8 -DVEC_PER_PLANE=2 -DVEC_PER_BLOCK=8
+endif
+
 # If adaptive mesh refinement is used, add a precompiler flag
 ifeq ($(MESH),AMR)
 COMPFLAGS += -DAMR
