@@ -538,7 +538,7 @@ namespace SBC {
    // Fractional energy dissipation rate for a isotropic beam, based on Rees (1963), figure 1
    static Real ReesIsotropicLambda(Real x) {
       static const Real P[7] = { -11.639, 32.1133, -30.8543, 14.6063, -6.3375, 0.6138, 1.4946};
-      Real lambda = ((((P[0] * x + P[1])*x + P[3])*x + P[4])*x +P[5])* x+P[6];
+      Real lambda = (((((P[0] * x + P[1])*x +P[2])*x+ P[3])*x + P[4])*x +P[5])* x+P[6];
       if(x > 1. || lambda < 0) {
          return 0;
       }
