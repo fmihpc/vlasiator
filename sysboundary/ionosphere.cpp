@@ -626,24 +626,26 @@ namespace SBC {
       std::array< std::array< Real, numAtmosphereLevels >, productionNumParticleEnergies > scatteringRate;
       for(int e=0;e<productionNumParticleEnergies; e++) {
 
-         // From Rees et al 1963, eq. 2
+         // From Rees, M. H. (1989), q 3.4.4
          const Real electronRange = 4.3e-6 + 5.36e-5 * pow(particle_energy[e], 1.67); // kg m^-2
-         Real rho_R=0.;
-         // Integrate downwards through the atmosphre to find density at depth=1
-         for(int h=numAtmosphereLevels-1; h>=0; h--) {
-            if(atmosphere[h].depth / electronRange > 1) {
-               rho_R = atmosphere[h].density;
-               break;
-            }
-         }
-         if(rho_R == 0.) {
-            rho_R = atmosphere[0].density;
-         }
+         //Real rho_R=0.;
+         //// Integrate downwards through the atmosphre to find density at depth=1
+         //for(int h=numAtmosphereLevels-1; h>=0; h--) {
+         //   if(atmosphere[h].depth / electronRange > 1) {
+         //      rho_R = atmosphere[h].density;
+         //      break;
+         //   }
+         //}
+         //if(rho_R == 0.) {
+         //   rho_R = atmosphere[0].density;
+         //}
 
          for(int h=0; h<numAtmosphereLevels; h++) {
             const Real lambda = ReesIsotropicLambda(atmosphere[h].depth/electronRange);
             // Rees et al 1963, eq. 1
-            const Real rate = particle_energy[e] / (electronRange / rho_R) / eps_ion_keV *   lambda   *   atmosphere[h].density / integratedDensity; 
+            //const Real rate = particle_energy[e] / (electronRange / rho_R) / eps_ion_keV *   lambda   *   atmosphere[h].density / integratedDensity; 
+            // Rees 1989, eq. 3.3.7 / 3.3.8
+            const Real rate = particle_energy[e] * lambda * atmosphere[h].density / electronRange / eps_ion_keV;
             scatteringRate[h][e] = max(0., rate); // m^-1
          }
       }
@@ -2245,7 +2247,7 @@ namespace SBC {
       Readparameters::addComposing("ionosphere.refineMinLatitude", "Refine the grid polewards of the given latitude. Multiple of these lines can be given for successive refinement, paired up with refineMaxLatitude lines.");
       Readparameters::addComposing("ionosphere.refineMaxLatitude", "Refine the grid equatorwards of the given latitude. Multiple of these lines can be given for successive refinement, paired up with refineMinLatitude lines.");
       Readparameters::add("ionosphere.atmosphericModelFile", "Filename to read the MSIS atmosphere data from (default: MSIS.dat)", std::string("MSIS.dat"));
-      Readparameters::add("ionosphere.recombAlpha", "Ionospheric recombination parameter (m^3/s)", 3e-13);
+      Readparameters::add("ionosphere.recombAlpha", "Ionospheric recombination parameter (m^3/s)", 2.4e-13); // Default value from Schunck & Nagy, Table 8.5
       Readparameters::add("ionosphere.F10_7", "Solar 10.7 cm radio flux (sfu = 10^{-22} W/m^2)", 100);
       Readparameters::add("ionosphere.backgroundIonisation", "Background ionoisation due to cosmic rays (mho)", 0.5);
       Readparameters::add("ionosphere.solverMaxIterations", "Maximum number of iterations for the conjugate gradient solver", 2000);
