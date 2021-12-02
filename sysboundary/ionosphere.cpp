@@ -1210,9 +1210,6 @@ namespace SBC {
                   && x[0]*x[0]+x[1]*x[1]+x[2]*x[2] > Ionosphere::downmapRadius*Ionosphere::downmapRadius*physicalconstants::R_E*physicalconstants::R_E
                ) {
 
-                  // Cell found, add association.
-                  isCouplingInwards = true;
-
                   // Store the cells mapped coordinates and upmapped magnetic field
                   no.xMapped = x;
                   no.haveCouplingData = 1;
@@ -1250,14 +1247,17 @@ namespace SBC {
          Node& no = nodes[n];
          // Discard false hits from cells that are further out from the node
          if(nodeDistance[n] > reducedNodeDistance[n]) {
-            no.parameters[ionosphereParameters::UPMAPPED_BX] = 0;
-            no.parameters[ionosphereParameters::UPMAPPED_BY] = 0;
-            no.parameters[ionosphereParameters::UPMAPPED_BZ] = 0;
-            no.xMapped[0] = 0;
-            no.xMapped[1] = 0;
-            no.xMapped[2] = 0;
             no.haveCouplingData = 0;
+            for(int c=0; c<3; c++) {
+               no.parameters[ionosphereParameters::UPMAPPED_BX+c] = 0;
+               no.xMapped[c] = 0;
+               no.fsgridCellCoupling[c] = -1;
+            }
+         } else {
+            // Cell found, add association.
+            isCouplingInwards = true;
          }
+
 
          sendUpmappedB[3*n] = no.parameters[ionosphereParameters::UPMAPPED_BX];
          sendUpmappedB[3*n+1] = no.parameters[ionosphereParameters::UPMAPPED_BY];
