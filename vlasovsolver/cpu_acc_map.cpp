@@ -316,14 +316,14 @@ bool map_1d(SpatialCell* spatial_cell,
          int lastBlockIndexK = lastBlock_gk/WID;
          
          //now enforce mesh limits for target column blocks
-         firstBlockIndexK = (firstBlockIndexK >= Parameters::bailout_velocity_space_wall_margin)            ? firstBlockIndexK : Parameters::bailout_velocity_space_wall_margin;
-         firstBlockIndexK = (firstBlockIndexK < max_v_length - Parameters::bailout_velocity_space_wall_margin ) ? firstBlockIndexK : max_v_length - 1 - Parameters::bailout_velocity_space_wall_margin;
-         lastBlockIndexK  = (lastBlockIndexK  >= Parameters::bailout_velocity_space_wall_margin)            ? lastBlockIndexK  : Parameters::bailout_velocity_space_wall_margin;
-         lastBlockIndexK  = (lastBlockIndexK  < max_v_length - Parameters::bailout_velocity_space_wall_margin ) ? lastBlockIndexK  : max_v_length - 1 - Parameters::bailout_velocity_space_wall_margin;
-         if(firstBlockIndexK == Parameters::bailout_velocity_space_wall_margin
-            || firstBlockIndexK == max_v_length - 1 - Parameters::bailout_velocity_space_wall_margin
-            || lastBlockIndexK == Parameters::bailout_velocity_space_wall_margin
-            || lastBlockIndexK == max_v_length - 1 - Parameters::bailout_velocity_space_wall_margin
+         firstBlockIndexK = (firstBlockIndexK >= 0)            ? firstBlockIndexK : 0;
+         firstBlockIndexK = (firstBlockIndexK < max_v_length ) ? firstBlockIndexK : max_v_length - 1;
+         lastBlockIndexK  = (lastBlockIndexK  >= 0)            ? lastBlockIndexK  : 0;
+         lastBlockIndexK  = (lastBlockIndexK  < max_v_length ) ? lastBlockIndexK  : max_v_length - 1;
+         if(firstBlockIndexK < Parameters::bailout_velocity_space_wall_margin
+            || firstBlockIndexK >= max_v_length - Parameters::bailout_velocity_space_wall_margin
+            || lastBlockIndexK < Parameters::bailout_velocity_space_wall_margin
+            || lastBlockIndexK >= max_v_length - Parameters::bailout_velocity_space_wall_margin
          ) {
             string message = "Some target blocks in acceleration are going to be less than ";
             message += std::to_string(Parameters::bailout_velocity_space_wall_margin);
