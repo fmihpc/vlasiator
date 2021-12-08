@@ -336,7 +336,7 @@ namespace projects {
             exit(1);
          }
 
-         const Real maxValue = setVelocityBlock(cell,blockLID,popID);
+         const Realf maxValue = setVelocityBlock(cell,blockLID,popID);
          if (maxValue < getObjectWrapper().particleSpecies[popID].sparseMinValue) removeList.push_back(blockGID);
       }
 
