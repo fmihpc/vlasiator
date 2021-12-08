@@ -365,7 +365,7 @@ bool P::addParameters() {
    RP::add("bailout.min_dt", "Minimum time step below which bailout occurs (s).", 1e-6);
    RP::add("bailout.max_memory", "Maximum amount of memory used per node (in GiB) over which bailout occurs.",
            1073741824.);
-   RP::add("bailout.velocity_space_wall_block_margin", "Distance from the velocity space limits in blocks, if the distribution function reaches that distance from the wall we bail out to avoid hitting the wall.", 0);
+   RP::add("bailout.velocity_space_wall_block_margin", "Distance from the velocity space limits in blocks, if the distribution function reaches that distance from the wall we bail out to avoid hitting the wall.", 1);
 
    // Refinement parameters
    RP::add("AMR.vel_refinement_criterion", "Name of the velocity refinement criterion", string(""));
