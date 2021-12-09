@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <vector>
 #include <stdexcept>
+#include <cassert>
 #include "definitions.h"
 
 // Open bucket power-of-two sized hash table with multiplicative fibonacci hashing
@@ -33,12 +34,32 @@ private:
    size_t fill;   // Number of filled buckets
    std::vector<std::pair<GID, LID>> buckets;
 
-   // Fibonacci hash function for 32bit values
-   uint32_t hash(GID in) const {
+   // Fibonacci hash function for 64bit values
+   uint32_t fibonacci_hash(GID in) const {
       in ^= in >> (32 - sizePower);
-      uint32_t retval = (uint32_t)(in * 2654435769ul) >> (32 - sizePower);
+      uint32_t retval = (uint64_t)(in * 2654435769ul) >> (32 - sizePower);
       return retval;
    }
+
+    //Hash a chunk of memory using fnv_1a
+    uint32_t fnv_1a(const void* chunk, size_t bytes)const{
+       assert(chunk);
+       uint32_t h = 2166136261ul;
+       const unsigned char* ptr = (const unsigned char*)chunk;
+       while (bytes--){
+          h = (h ^ *ptr++) * 16777619ul;
+       }
+       return h ;
+    }
+
+    // Generic h
+    uint32_t hash(GID in) const {
+      if constexpr (std::is_arithmetic_v<GID> && sizeof(GID) <= sizeof(uint32_t)) {
+         return fibonacci_hash(in);
+      } else {
+         return fnv_1a(&in, sizeof(GID));
+      }
+    }
 
 public:
    OpenBucketHashtable()
