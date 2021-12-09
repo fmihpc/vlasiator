@@ -434,7 +434,11 @@ __global__ void acceleration_1
   //if(index == 0)
   {
     //printf("CUDA 1\n");
-    for( uint column=0; column < totalColumns; column++)
+    //if(totalColumns > 256)
+    //  printf("totalColumns = %d;\n", totalColumns);
+    int column = threadIdx.x + blockIdx.x * blockDim.x;
+    if(column < totalColumns)
+    //for( uint column=0; column < totalColumns; column++)
     {
       //printf("CUDA 2\n");
       // i,j,k are relative to the order in which we copied data to the values array.
