@@ -34,7 +34,7 @@
 #include "cpu_1d_ppm.hpp"
 #include "cpu_1d_plm.hpp"
 #include "cpu_acc_map.hpp"
-#include "../vlasovsolver_cuda/open_acc_map_h.cuh"
+#include "cuda_acc_map_kernel.cuh"
 
 //#define DEBUG_ACC
 

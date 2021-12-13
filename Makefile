@@ -121,6 +121,7 @@ LIBS += ${LIB_PAPI}
 ifeq ($(USE_CUDA),1)
 	LIBS += ${LIB_CUDA}
 	CXXFLAGS += -DUSE_CUDA
+	CUDALINK += -lcudart
 endif
 
 # Define common dependencies
@@ -160,9 +161,7 @@ DEPS_PROJECTS =	projects/project.h projects/project.cpp \
 		projects/verificationLarmor/verificationLarmor.h projects/verificationLarmor/verificationLarmor.cpp \
 		projects/Shocktest/Shocktest.h projects/Shocktest/Shocktest.cpp ${DEPS_CELL}
 
-DEPS_GPU_VECTORCLASS_FALLBACK = vlasovsolver_cuda/cuda_header.cuh vlasovsolver/vectorclass_fallback.cuh
-
-DEPS_GPU_OPEN_ACC_MAP_CUDA = ${DEPS_GPU_VECTORCLASS_FALLBACK} vlasovsolver/vec.h vlasovsolver_cuda/cuda_header.cuh vlasovsolver_cuda/open_acc_map_h.cuh vlasovsolver_cuda/open_acc_map_cuda.cu
+DEPS_CUDA_ACC_MAP_KERNEL = vlasovsolver/vec.h vlasovsolver/cuda_header.cuh vlasovsolver/cuda_acc_map_kernel.cuh vlasovsolver/cuda_acc_map_kernel.cu vlasovsolver/vectorclass_fallback.cuh
 
 DEPS_CPU_ACC_INTERSECTS = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/cpu_acc_intersections.hpp vlasovsolver/cpu_acc_intersections.cpp
 
@@ -217,7 +216,7 @@ endif
 
 # If we are building a CUDA vrsion, we require its object files
 ifeq ($(USE_CUDA),1)
-	OBJS += open_acc_map_cuda.o link1.o link2.o
+	OBJS += cuda_acc_map_kernel.o cudalink1.o cudalink2.o
 endif
 
 # Add field solver objects
@@ -402,12 +401,12 @@ cpu_acc_intersections.o: ${DEPS_CPU_ACC_INTERSECTS}
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_intersections.cpp ${INC_EIGEN}
 
 ifeq ($(USE_CUDA),1)
-open_acc_map_cuda.o: ${DEPS_GPU_OPEN_ACC_MAP_CUDA}
-	${NVCC} ${CUDAFLAGS} -D${VECTORCLASS} -dc vlasovsolver_cuda/open_acc_map_cuda.cu
+cuda_acc_map_kernel.o: ${DEPS_CUDA_ACC_MAP_KERNEL}
+	${NVCC} ${CUDAFLAGS} -D${VECTORCLASS} -dc vlasovsolver/cuda_acc_map_kernel.cu
 endif
 
-cpu_acc_map.o: ${DEPS_CPU_ACC_MAP} ${DEPS_GPU_OPEN_ACC_MAP_CUDA} ${DEPS_GPU_VECTORCLASS_FALLBACK}
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_map.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE} ${INC_VECTORCLASS} ${LIB_CUDA}
+cpu_acc_map.o: ${DEPS_CPU_ACC_MAP} ${DEPS_CUDA_ACC_MAP_KERNEL}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_map.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_FSGRID} ${INC_PROFILE} ${INC_VECTORCLASS} ${LIB_CUDA}
 
 cpu_acc_semilag.o: ${DEPS_CPU_ACC_SEMILAG}
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_semilag.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE} ${INC_VECTORCLASS}
@@ -499,16 +498,16 @@ object_wrapper.o:  $(DEPS_COMMON)  object_wrapper.h object_wrapper.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c object_wrapper.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_FSGRID}
 
 ifeq ($(USE_CUDA),1)
-link1.o: cpu_acc_map.o
-	${NVCC} ${CUDAFLAGS} -dlink cpu_acc_map.o -o link1.o
+cudalink1.o: cpu_acc_map.o
+	${NVCC} ${CUDAFLAGS} -dlink cpu_acc_map.o -o cudalink1.o
 
-link2.o: open_acc_map_cuda.o
-	${NVCC} ${CUDAFLAGS} -dlink open_acc_map_cuda.o -o link2.o
+cudalink2.o: cuda_acc_map_kernel.o
+	${NVCC} ${CUDAFLAGS} -dlink cuda_acc_map_kernel.o -o cudalink2.o
 endif
 
 # Make executable
 vlasiator: $(OBJS) $(OBJS_FSOLVER)
-	$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) $(LIBS) $(OBJS_FSOLVER)
+	$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) $(LIBS) $(OBJS_FSOLVER) $(CUDALINK)
 
 #/// TOOLS section/////
 

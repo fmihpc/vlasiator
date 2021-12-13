@@ -1,4 +1,4 @@
-#include "../vlasovsolver/vec.h"
+#include "vec.h"
 #include "../common.h"
 
 struct Column
