@@ -71,9 +71,9 @@ public:
       }
    }
 
-   // The variadic-templated version of the above - not sure if this is the correct form, yet
-   // VecSimple<atype> newVew 
-   //VecSimple(T... ts) : val{ts...}
+   // The variadic-templated version of the above - this is a bit suspect with narrowing conversion warnings.
+   //template<typename... Ts>
+   //VecSimple(Ts... ts) : val{ts...}{}
    
    // Replicate VECL values across v.   
    VecSimple(T a,T b,T c,T d){
