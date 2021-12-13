@@ -46,6 +46,21 @@ struct setOfPencils {
       sumOfLengths = 0;
    }
 
+   void removeAllPencils() {
+
+      N = 0;
+      sumOfLengths = 0;
+      sumOfLengths = 0;
+      lengthOfPencils.clear();
+      idsStart.clear();
+      ids.clear();
+      x.clear();
+      y.clear();
+      periodic.clear();
+      path.clear();
+   }
+
+
    void addPencil(std::vector<CellID> idsIn, Real xIn, Real yIn, bool periodicIn, std::vector<uint> pathIn) {
 
       N++;
@@ -78,7 +93,7 @@ struct setOfPencils {
 
    std::vector<CellID> getIds(const uint pencilId) const {
       
-      if (pencilId > N) {
+      if (pencilId >= N) {
          std::vector<CellID> idsEmpty;
          return idsEmpty;
       }
@@ -100,7 +115,8 @@ struct setOfPencils {
       // Find paths that members of this pencil may have in other pencils (can happen)
       // so that we don't add duplicates.
       std::vector<int> existingSteps;
-      
+
+#pragma omp parallel for      
       for (uint theirPencilId = 0; theirPencilId < this->N; ++theirPencilId) {
          if(theirPencilId == myPencilId) continue;
          auto theirIds = this->getIds(theirPencilId);
@@ -119,7 +135,10 @@ struct setOfPencils {
 
                      if(samePath) {
                         uint theirStep = theirPath.at(myPath.size());
-                        existingSteps.push_back(theirStep);
+#pragma omp critical
+                        {
+                           existingSteps.push_back(theirStep);
+                        }
                      }
                   }
                }
@@ -176,12 +195,20 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                   const Realv dt,
                   const uint popID);
 
-
 void update_remote_mapping_contribution_amr(dccrg::Dccrg<spatial_cell::SpatialCell,
                                             dccrg::Cartesian_Geometry>& mpiGrid,
                                             const uint dimension,
                                             int direction,
                                             const uint popID);
 
+// grid.cpp calls this function to both find seed cells and build pencils
+void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                              const uint dimension);
+
+// pencils used for AMR translation
+static std::array<setOfPencils,3> DimensionPencils;
+
+void flagSpatialCellsForAmrCommunication(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                         const std::vector<CellID>& localPropagatedCells);
 
 #endif

@@ -106,9 +106,9 @@ namespace projects {
    }
    
    void test_fp::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
-      FsGrid< fsgrids::technical, 2>& technicalGrid
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
    ) {
       setBackgroundFieldToZero(BgBGrid);
       
@@ -314,7 +314,7 @@ namespace projects {
                   
       mpiGrid.balance_load();
 
-//       auto cells = mpiGrid.get_cells();           
+//       const vector<CellID>& cells = getLocalCells();
 //       if(cells.empty()) {
 //          std::cout << "Rank " << myRank << " has no cells!" << std::endl;
 //       } else {

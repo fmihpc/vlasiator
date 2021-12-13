@@ -25,6 +25,18 @@ else
 	VECTORCLASS = VEC4D_FALLBACK
 endif
 
+FLAGS = 
+
+#GNU flags:
+CC_BRAND = pgi
+CC_BRAND_VERSION = 19.7
+CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -Minfo=accel -ta=tesla:lineinfo,keepbin,keepgpu,keepptx -Manno -g -mp
+testpackage: CXXFLAGS += -g -O2 -acc -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -Minfo=accel
+
+MATHFLAGS =
+LDFLAGS = -O2 -g  -ta=tesla:lineinfo,keepbin,keepgpu,keepptx
+LIB_MPI = 
+
 #======== PAPI ==========
 #Add PAPI_MEM define to use papi to report memory consumption?
 CXXFLAGS +=  -DPAPI_MEM
@@ -34,6 +46,7 @@ CXXFLAGS += -DMAX_VECTOR_LENGTH=256
 #Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
 #Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
 #CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+#testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 
 #======= Compiler and compilation flags =========
@@ -49,16 +62,6 @@ CXXFLAGS += -DMAX_VECTOR_LENGTH=256
 #                         mpi.h in c++ on Cray
 
 FLAGS = 
-
-#GNU flags:
-CC_BRAND = pgi
-CC_BRAND_VERSION = 19.7
-CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -Minfo=accel -ta=tesla:lineinfo,keepbin,keepgpu,keepptx -Manno -g -mp
-testpackage: CXXFLAGS += -g -O2 -acc -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -Minfo=accel
-
-MATHFLAGS =
-LDFLAGS = -O2 -g  -ta=tesla:lineinfo,keepbin,keepgpu,keepptx
-LIB_MPI = 
 
 # BOOST_VERSION = current trilinos version
 # ZOLTAN_VERSION = current trilinos verson

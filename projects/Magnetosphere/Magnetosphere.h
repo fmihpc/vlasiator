@@ -34,7 +34,9 @@ namespace projects {
       Real V0[3];
       Real ionosphereV0[3];
       Real ionosphereRho;
-      Real ionosphereTaperRadius;
+      Real ionosphereT;
+      Real taperInnerRadius;
+      Real taperOuterRadius;
       uint nSpaceSamples;
       uint nVelocitySamples;
    };
@@ -48,9 +50,9 @@ namespace projects {
       static void addParameters(void);
       virtual void getParameters(void);
       virtual void setProjectBField(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
-         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
-         FsGrid< fsgrids::technical, 2>& technicalGrid
+         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
       );
       virtual Real calcPhaseSpaceDensity(
                                          creal& x, creal& y, creal& z,

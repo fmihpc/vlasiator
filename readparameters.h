@@ -22,57 +22,170 @@
 
 #ifndef READPARAMETERS_H
 #define READPARAMETERS_H
+
+#include <boost/lexical_cast.hpp>
+#include <boost/program_options.hpp>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
 #include <limits>
 #include <mpi.h>
 #include <stdint.h>
 #include <string>
+#include <typeinfo>
 #include <vector>
 
 #include "common.h"
+#include "version.h"
 
-struct Readparameters {
-    Readparameters(int argc, char* argv[],MPI_Comm comm);
-    static bool add(const std::string& name,const std::string& desc,const std::string& defValue);
-    static bool add(const std::string& name,const std::string& desc,const bool& defValue);
-    static bool add(const std::string& name,const std::string& desc,const int& defValue);
-    static bool add(const std::string& name,const std::string& desc,const unsigned int& defValue);
-    static bool add(const std::string& name,const std::string& desc,const float& defValue);
-    static bool add(const std::string& name,const std::string& desc,const double& defValue);
+class Readparameters {
+public:
+   Readparameters(int cmdargc, char* cmdargv[]);
+   ~Readparameters();
 
-    static bool get(const std::string& name,std::string& value);
-    static bool get(const std::string& name,bool& value);
-    static bool get(const std::string& name,int& value);
-    static bool get(const std::string& name,unsigned int& value);
-    static bool get(const std::string& name,unsigned long& value);
-    static bool get(const std::string& name,float& value);
-    static bool get(const std::string& name,double& value);
+   /** Add a new input parameter.
+    * Note that parse must be called in order for the input file(s) to be re-read.
+    * Only called by the root process.
+    * @param name The name of the parameter, as given in the input file(s).
+    * @param desc Description for the parameter.
+    * @param defValue Default value for variable.
+    */
+   static void add(const std::string& name, const std::string& desc, const std::string& defValue) {
+      int rank;
+      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+      if (rank == MASTER_RANK) {
+         options[name] = "";
+         isOptionParsed[name] = false;
+         descriptions->add_options()(
+             name.c_str(), boost::program_options::value<std::string>(&(options[name]))->default_value(defValue),
+             desc.c_str());
+      }
+   }
 
-//Functions for composing options (can be defined multiple times and are all returned as a vector)
-    static bool addComposing(const std::string& name,const std::string& desc);
-    static bool get(const std::string& name,std::vector<std::string>& value);
-    static bool get(const std::string& name,std::vector<int>& value);
-    static bool get(const std::string& name,std::vector<unsigned int>& value);
-    static bool get(const std::string& name,std::vector<float>& value);
-    static bool get(const std::string& name,std::vector<double>& value);
+   template <typename T> static void add(const std::string& name, const std::string& desc, const T& defValue) {
+      int rank;
+      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+      if (rank == MASTER_RANK) {
+         std::stringstream ss;
 
-    
-    static bool finalize();
-    static void helpMessage();
-    static bool versionMessage();
-    static bool isInitialized();
-    static bool parse(const bool needsRunConfig=true);
-   
+         static constexpr bool n = (std::is_floating_point<T>::value);
+         if (n) {
+            ss << std::setprecision(std::numeric_limits<double>::digits10 + 1) << defValue;
+         } else {
+            ss << defValue;
+         }
+         options[name] = "";
+         isOptionParsed[name] = false;
+         descriptions->add_options()(
+             name.c_str(), boost::program_options::value<std::string>(&(options[name]))->default_value(ss.str()),
+             desc.c_str());
+      }
+   }
+
+   /** Get the value of the given parameter added with add().
+    * This may be called after having called Parse, and it may be called by any process, in any order.
+    * @param name The name of the parameter.
+    * @param value A variable where the value of the parameter is written.
+    * @return If true, the given parameter was found and its value was written to value.
+    */
+   static void get(const std::string& name, std::string& value) {
+      if (options.find(name) != options.end()) { // check if it exists
+         value = options[name];
+      } else {
+         int rank;
+         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+         if (rank == MASTER_RANK) {
+            std::cerr << __FILE__ << ":" << __LINE__ << name + " not found in the configuration file!" << std::endl;
+            MPI_Abort(MPI_COMM_WORLD, 1);
+         }
+      }
+   }
+
+   static void get(const std::string& name, std::vector<std::string>& value) {
+      if (vectorOptions.find(name) != vectorOptions.end()) { // check if it exists
+         value = vectorOptions[name];
+      } else {
+         int rank;
+         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+         if (rank == MASTER_RANK) {
+            std::cerr << __FILE__ << ":" << __LINE__ << name + " not found in the configuration file!" << std::endl;
+            MPI_Abort(MPI_COMM_WORLD, 1);
+         }
+      }
+   }
+
+   template <typename T> static void get(const std::string& name, T& value) {
+      std::string sval;
+      get(name, sval);
+
+      try {
+         value = boost::lexical_cast<T>(sval);
+      } catch (...) {
+         int myRank;
+         MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+         if (myRank == MASTER_RANK) {
+            std::cerr << __FILE__ << ":" << __LINE__
+                      << std::string(" Problems casting ") + name + " " + sval + std::string(" to ") + typeid(T).name()
+                      << std::endl;
+
+            MPI_Abort(MPI_COMM_WORLD, 1);
+         }
+      }
+   }
+
+   /** Get the value of the given parameter added with addComposing().
+    * This may be called after having called Parse, and it may be called by any process, in any order.
+    * @param name The name of the parameter.
+    * @param value A variable where the value of the parameter is written.
+    */
+   template <typename T> static void get(const std::string& name, std::vector<T>& value) {
+      std::vector<std::string> stringValue;
+      get(name, stringValue);
+
+      for (std::vector<std::string>::iterator i = stringValue.begin(); i != stringValue.end(); ++i) {
+         try {
+            value.push_back(boost::lexical_cast<T>(*i));
+         } catch (...) {
+            int myRank;
+            MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+            if (myRank == MASTER_RANK) {
+               std::cerr << __FILE__ << ":" << __LINE__
+                         << std::string(" Problems casting ") + name + *i + std::string(" to ") + typeid(T).name()
+                         << std::endl;
+
+               MPI_Abort(MPI_COMM_WORLD, 1);
+            }
+         }
+      }
+   }
+
+   static void addComposing(const std::string& name, const std::string& desc);
+
+   static void helpMessage();
+
+   static bool versionMessage();
+
+   static bool parse(const bool needsRunConfig = true, const bool allowUnknown = true);
+
    static bool helpRequested;
-   
+
 private:
-    static int argc;                  /**< How many entries argv contains.*/
-    static char** argv;              /**< Pointer to char* array containing command line parameters.*/
-    static int rank;
-    static MPI_Comm comm;
-   
-    /** Private default constructor to prevent incorrect initialization.*/
-    Readparameters();
-    static bool addDefaultParameters();
+   static int argc;    /**< How many entries argv contains.*/
+   static char** argv; /**< Pointer to char* array containing command line parameters.*/
+
+   static boost::program_options::options_description* descriptions;
+   static boost::program_options::variables_map* variables;
+
+   static std::map<std::string, std::string> options;
+   static std::map<std::string, bool> isOptionParsed;
+   static std::map<std::string, std::vector<std::string>> vectorOptions;
+   static std::map<std::string, bool> isVectorOptionParsed;
+
+   static std::string global_config_file_name;
+   static std::string user_config_file_name;
+   static std::string run_config_file_name;
+
+   static void addDefaultParameters();
 };
 
 #endif
