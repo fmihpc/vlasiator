@@ -20,6 +20,7 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+
 #include <math.h>
 #include <algorithm>
 #include <utility>
@@ -81,7 +82,10 @@ vmesh::LocalID addVelocityBlock(const vmesh::GlobalID& blockGID,
 }
 
 
+
+
 void inline swapBlockIndices(velocity_block_indices_t &blockIndices, const uint dimension){
+
    uint temp;
    // Switch block indices according to dimensions, the algorithm has
    // been written for integrating along z.
@@ -151,18 +155,19 @@ void inline swapBlockIndices(velocity_block_indices_t &blockIndices, const uint 
 bool map_1d(SpatialCell* spatial_cell,
             const uint popID,
             Realv intersection, Realv intersection_di, Realv intersection_dj, Realv intersection_dk,
-            const uint dimension, const bool useAccelerator)
-  {
+            const uint dimension, const bool useAccelerator) {
    no_subnormals();
+
    Realv dv,v_min;
    Realv is_temp;
-   int max_v_length;
+   uint max_v_length;
    uint block_indices_to_id[3] = {0, 0, 0}; /*< used when computing id of target block, 0 for compiler */
    uint cell_indices_to_id[3] = {0, 0, 0}; /*< used when computing id of target cell in block, 0 for compiler */
+
    vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = spatial_cell->get_velocity_mesh(popID);
    vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks(popID);
 
-   double minValue = spatial_cell->getVelocityBlockMinValue(popID);
+   auto minValue = spatial_cell->getVelocityBlockMinValue(popID);
 
    //nothing to do if no blocks
    if(vmesh.size() == 0)
@@ -245,7 +250,7 @@ bool map_1d(SpatialCell* spatial_cell,
 
    // Calculate total sum of columns and total values size
    uint totalColumns = 0;
-   int valuesSizeRequired = 0;
+   uint valuesSizeRequired = 0;
 
    for(uint setIndex=0; setIndex< setColumnOffsets.size(); ++setIndex) {
       totalColumns += setNumColumns[setIndex];
@@ -255,13 +260,11 @@ bool map_1d(SpatialCell* spatial_cell,
    }
 
    // values array used to store column data. The actual columns index into this.
-   //Vec *values = new Vec[valuesSizeRequired];
    Vec values[valuesSizeRequired];
    Column *columns;
    columns = new Column[totalColumns];
-
    // Iterate through all identified columns and shovel them into the values array.
-   int valuesColumnOffset = 0; //offset to values array for data in a column in this set
+   uint valuesColumnOffset = 0; //offset to values array for data in a column in this set
    for( uint setIndex=0; setIndex< setColumnOffsets.size(); ++setIndex) {
 
       //Load data into values array (this also zeroes the original data)
@@ -274,7 +277,7 @@ bool map_1d(SpatialCell* spatial_cell,
          columns[columnIndex].nblocks = n_cblocks;
 
          if(valuesColumnOffset >= valuesSizeRequired) {
-            cerr << "ERROR: Overflowing the values array (" << valuesColumnOffset << "> " << valuesSizeRequired << ") with column " << columnIndex << std::endl;
+            cerr << "ERROR: Overflowing the values array (" << valuesColumnOffset << "> " << valuesSizeRequired << ") with column " << columnIndex << std::endl;
          }
          valuesColumnOffset += (n_cblocks + 2) * (WID3/VECL); // there are WID3/VECL elements of type Vec per block
       }
@@ -362,8 +365,8 @@ bool map_1d(SpatialCell* spatial_cell,
          const int firstBlock_gk = (int)((firstBlockMinV - max_intersectionMin)/intersection_dk);
          const int lastBlock_gk = (int)((lastBlockMaxV - min_intersectionMin)/intersection_dk);
 
-         int firstBlockIndexK = firstBlock_gk/WID;
-         int lastBlockIndexK = lastBlock_gk/WID;
+         uint firstBlockIndexK = firstBlock_gk/WID;
+         uint lastBlockIndexK = lastBlock_gk/WID;
 
          //now enforce mesh limits for target column blocks
          firstBlockIndexK = (firstBlockIndexK >= 0)            ? firstBlockIndexK : 0;
@@ -391,7 +394,7 @@ bool map_1d(SpatialCell* spatial_cell,
          }
 
          //store target blocks
-         for (int blockK = firstBlockIndexK; blockK <= lastBlockIndexK; blockK++){
+         for (uint blockK = firstBlockIndexK; blockK <= lastBlockIndexK; blockK++){
             isTargetBlock[blockK]=true;
          }
 
@@ -432,7 +435,7 @@ bool map_1d(SpatialCell* spatial_cell,
    // Create empty velocity space on the GPU and fill it with zeros
     Realf *blockData = blockContainer.getData();
     size_t blockDataSize = blockContainer.size();
-    int bdsw3 = blockDataSize * WID3;
+    uint bdsw3 = blockDataSize * WID3;
     if(useAccelerator)
     {
      for(uint cell=0; cell<bdsw3; cell++)
@@ -442,19 +445,16 @@ bool map_1d(SpatialCell* spatial_cell,
     }
 
    // Now we iterate through target columns again, identifying their block offsets
-   for( uint column=0; column < totalColumns; column++)
-   {
+   for( uint column=0; column < totalColumns; column++) {
       //cout << "Velocity pencil no. " << column << ": [";
-      for (int blockK = columns[column].minBlockK; blockK <= columns[column].maxBlockK; blockK++)
-      {
+      for (int blockK = columns[column].minBlockK; blockK <= columns[column].maxBlockK; blockK++) {
          const int targetBlock =
             columns[column].i * block_indices_to_id[0] +
             columns[column].j * block_indices_to_id[1] +
             blockK            * block_indices_to_id[2];
          const vmesh::LocalID tblockLID = vmesh.getLocalID(targetBlock);
          // Get pointer to target block data.
-         if(tblockLID >= blockContainer.size())
-         {
+         if(tblockLID >= blockContainer.size()) {
             cerr << "Error: block for index [ " << columns[column].i << ", " << columns[column].j << ", " << blockK << "] has invalid blockID " << tblockLID << std::endl;
          }
          columns[column].targetBlockOffsets[blockK] = tblockLID*WID3;
@@ -497,12 +497,13 @@ bool map_1d(SpatialCell* spatial_cell,
    else
    {
       // CPU version
-      for(uint column=0; column < totalColumns; column++)
-      {
+      for( uint column=0; column < totalColumns; column++) {
+
          // i,j,k are relative to the order in which we copied data to the values array.
          // After this point in the k,j,i loops there should be no branches based on dimensions
          //
          // Note that the i dimension is vectorized, and thus there are no loops over i
+
          // Iterate through the perpendicular directions of the column
          for (uint j = 0; j < WID; j += VECL/WID){
             const vmesh::LocalID nblocks = columns[column].nblocks;
@@ -607,6 +608,7 @@ bool map_1d(SpatialCell* spatial_cell,
                lagrangian_gk_r = truncate_to_int((v_r-intersection_min)/intersection_dk);
 
 #endif
+
                //limits in lagrangian k for target column. Also take into
                //account limits of target column
                int minGk = max(int(lagrangian_gk_l[minGkIndex]), int(columns[column].minBlockK * WID));
@@ -669,8 +671,7 @@ bool map_1d(SpatialCell* spatial_cell,
                      const Vec target_density = target_density_r - target_density_l;
    //#pragma ivdep
    //#pragma GCC ivdep
-                     for (int target_i=0; target_i < VECL; ++target_i)
-                     {
+                     for (int target_i=0; target_i < VECL; ++target_i) {
                         // do the conversion from Realv to Realf here, faster than doing it in accumulation
                         const Realf tval = target_density[target_i];
                         const uint tcell = target_cell[target_i];
@@ -682,6 +683,8 @@ bool map_1d(SpatialCell* spatial_cell,
          } //for loop over j index
       } //for loop over columns
    }
+
+
    delete [] blocks;
    delete [] columns;
    return true;
