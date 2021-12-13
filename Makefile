@@ -498,11 +498,13 @@ vlscommon.o:  $(DEPS_COMMON)  vlscommon.h vlscommon.cpp
 object_wrapper.o:  $(DEPS_COMMON)  object_wrapper.h object_wrapper.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c object_wrapper.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_FSGRID}
 
+ifeq ($(USE_CUDA),1)
 link1.o: cpu_acc_map.o
 	${NVCC} ${CUDAFLAGS} -dlink cpu_acc_map.o -o link1.o
 
 link2.o: open_acc_map_cuda.o
 	${NVCC} ${CUDAFLAGS} -dlink open_acc_map_cuda.o -o link2.o
+endif
 
 # Make executable
 vlasiator: $(OBJS) $(OBJS_FSOLVER)
