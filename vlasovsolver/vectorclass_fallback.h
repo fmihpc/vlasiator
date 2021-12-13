@@ -52,14 +52,22 @@ public:
 
    // Pass vector values as an initializer list instead of a bunch of arguments.
    // usage: VecSimple<atype> newVec = {a, b, c, d} (for VECL values, this is checked against)
-   //                                          || this here puts the initializer list to val!
-   VecSimple(std::initializer_list<T> list) : val(list){
+   // or   : Vec({a,b,c,d})
+   VecSimple(std::initializer_list<T> list){
+      // The rest of this is just sanity checking
       if(list.size() != VECL){
-	 std::cerr <<  __FILE__ << ":" << __LINE__ << "Constructing a vector with a number of elements not equal to VECL = " << VECL << " (you had initializer_list size = "<<list.size()<<")";
+	 std::cerr <<  __FILE__ << ":" << __LINE__ <<
+		 "Constructing a vector with a number of elements not equal to VECL = " << VECL <<
+		 " (you had initializer_list size = "<<list.size()<<")";
 	 abort();
       }
       else{
-	 return;
+	 uint i = 0;
+	 for(auto it = list.begin(); it != list.end(); ++it){
+            val[i] = *it;
+	    ++i;
+	 }
+	
       }
    }
 
