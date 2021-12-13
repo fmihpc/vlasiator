@@ -1,6 +1,6 @@
 #include "cuda_header.cuh"
-#include "open_acc_map_h.cuh"
-#include "../vlasovsolver/vec.h"
+#include "cuda_acc_map_kernel.cuh"
+#include "vec.h"
 #include "../definitions.h"
 //#include "../vlasovsolver/cpu_face_estimates.hpp"
 

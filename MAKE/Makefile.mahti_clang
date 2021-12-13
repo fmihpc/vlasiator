@@ -32,6 +32,7 @@ endif
 #Use jemalloc instead of system malloc to reduce memory fragmentation https://github.com/jemalloc/jemalloc
 #Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
 CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 
 #======= Compiler and compilation flags =========
@@ -46,33 +47,24 @@ CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 #                         errors that come up when using
 #                         mpi.h in c++ on Cray
 
-#FLAGS =
+USE_CUDA=1
 CMP = mpic++
 LNK = mpic++
 NVCC = nvcc
-CUDAFLAGS += -gencode arch=compute_80,code=sm_80 -std=c++11
-USE_CUDA=1
 CC = mpicc
 CXX = mpic++
 
-#CC_BRAND = pgi
-#CC_BRAND_VERSION = 19.7
-#CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -Minfo=accel -ta=tesla:lineinfo,keepbin,keepgpu,keepptx -Manno -g -nomp
-#testpackage: CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -Minfo=accel -ta=tesla:lineinfo,keepbin,keepgpu,keepptx -Manno -nomp
-
-#GNU flags:
 CC_BRAND = nvhpc
 CC_BRAND_VERSION = 21.2
-#CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -gpu=cc80 -Minfo=accel -acc -fopenmp -std=c++11
-CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -gpu=cc80 -Minfo=accel -acc -fopenmp -std=c++11
-testpackage: CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -Minfo=accel -ta=tesla:lineinfo,keepbin,keepgpu,keepptx -Manno -nomp
 
-#-Minfo=accel -ta=tesla:lineinfo,keepbin,keepgpu,keepptx -Manno -g -nomp
-testpackage: CXXFLAGS += -g -O2 -acc -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -Minfo=accel -std=c++11
+CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -gpu=cc80 -Minfo=accel -acc -fopenmp -std=c++11
+CUDAFLAGS += -gencode arch=compute_80,code=sm_80 -std=c++11
+
+testpackage: CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -gpu=cc80 -Minfo=accel -acc -fopenmp -std=c++11
 testpackage: CUDAFLAGS += -gencode arch=compute_80,code=sm_80 -std=c++11
 
-CUDAFLAGS += -D${FP_PRECISION}
-CUDAFLAGS += -D${DISTRIBUTION_FP_PRECISION}
+# include in CXXFLAGS?
+#-Minfo=accel -ta=tesla:lineinfo,keepbin,keepgpu,keepptx -Manno -g -nomp
 
 MATHFLAGS =
 LDFLAGS = -O2 -g  -ta=tesla:lineinfo,keepbin,keepgpu,keepptx -L/appl/spack/v016/install-tree/gcc-4.8.5/nvhpc-21.2-l6xyb4/Linux_x86_64/21.2/cuda/11.2/lib64

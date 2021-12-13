@@ -54,11 +54,12 @@ private:
 
     // Generic h
     uint32_t hash(GID in) const {
-      if constexpr (std::is_arithmetic_v<GID> && sizeof(GID) <= sizeof(uint32_t)) {
-         return fibonacci_hash(in);
-      } else {
-         return fnv_1a(&in, sizeof(GID));
-      }
+       static constexpr bool n = (std::is_arithmetic<GID>::value && sizeof(GID) <= sizeof(uint32_t));
+       if (n) {
+          return fibonacci_hash(in);
+       } else {
+          return fnv_1a(&in, sizeof(GID));
+       }
     }
 
 public:
@@ -338,7 +339,7 @@ public:
             if ((hashIndex&bitMask) != ((index + i)&bitMask)) {
                // This entry has overflown. Now check if it should be moved:
                uint32_t distance =  ((targetPos - hashIndex + (1<<sizePower) )&bitMask);
-               if ( (distance>=0) && (distance < maxBucketOverflow)) {
+               if (distance < maxBucketOverflow) {
                   // Copy this entry to the current newly empty bucket, then continue with deleting
                   // this overflown entry and continue searching for overflown entries
                   LID moveValue = buckets[(index+i)&bitMask].second;

@@ -35,6 +35,10 @@
    #include "openacc.h"
 #endif
 
+#ifdef USE_CUDA
+   #include "vlasovsolver/cuda_acc_map_kernel.cuh"
+#endif
+
 #include <fsgrid.hpp>
 
 #include "vlasovmover.h"
@@ -70,7 +74,6 @@ void fpehandler(int sig_num)
 #endif
 
 #include "phiprof.hpp"
-#include "vlasovsolver_cuda/open_acc_map_h.cuh"
 
 Logger logFile, diagnostic;
 static dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> mpiGrid;
