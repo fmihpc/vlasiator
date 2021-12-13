@@ -23,6 +23,7 @@
 #define VECTORCLASS_PORTABLE_H
 #include <math.h>
 #include <iostream>
+#include <initializer_list>
 
 /*! \file vectorclass_fallback.h
   \brief Simple class for implementing a vector with 4 real values
@@ -47,6 +48,18 @@ public:
    VecSimple(T x){
       for(unsigned int i=0;i<VECL;i++)
          val[i]=x;
+   }
+
+   // Pass vector values as an initializer list instead of a bunch of arguments.
+   //                                          || this here puts the initializer list to val!
+   VecSimple(std::initializer_list<T> list) : val(list){
+      if(list.size() != VECL){
+	 std::cerr <<  __FILE__ << ":" << __LINE__ << "Constructing a vector with a number of elements not equal to VECL = " << VECL << " (you had initializer_list size = "<<list.size()<<")";
+	 abort();
+      }
+      else{
+	 return;
+      }
    }
    
    // Replicate VECL values across v.   
