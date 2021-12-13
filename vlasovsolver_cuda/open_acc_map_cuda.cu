@@ -721,7 +721,9 @@ Realf* acceleration_1_wrapper
   HANDLE_ERROR( cudaMalloc((void**)&dev_values, valuesSizeRequired*sizeof(Vec)) );
   HANDLE_ERROR( cudaMemcpy(dev_values, values, valuesSizeRequired*sizeof(Vec), cudaMemcpyHostToDevice) );
 
-  acceleration_1<<<BLOCKS, THREADS>>>
+  int blocks = (totalColumns / THREADS) + 1;
+
+  acceleration_1<<<blocks, THREADS>>>
   (
     dev_blockData,
     dev_columns,
