@@ -51,6 +51,7 @@ CMP = mpic++
 LNK = mpic++
 NVCC = nvcc
 CUDAFLAGS += -gencode arch=compute_80,code=sm_80 -std=c++11
+USE_CUDA=1
 CC = mpicc
 CXX = mpic++
 

@@ -53,6 +53,7 @@ endif
 CC = g++
 NVCC = nvcc
 CUDAFLAGS += -arch=sm_60
+USE_CUDA=1
 
 #GNU flags:
 CC_BRAND = pgi
