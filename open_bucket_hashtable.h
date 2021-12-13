@@ -54,7 +54,7 @@ private:
 
     // Generic h
     uint32_t hash(GID in) const {
-      if constexpr (std::is_arithmetic_v<GID> && sizeof(GID) <= sizeof(uint32_t)) {
+      if constexpr (std::is_arithmetic<GID>::value && sizeof(GID) <= sizeof(uint32_t)) {
          return fibonacci_hash(in);
       } else {
          return fnv_1a(&in, sizeof(GID));
