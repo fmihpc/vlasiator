@@ -26,10 +26,6 @@
 #include <utility>
 #include <omp.h>
 
-//#include <stdio.h>
-//#include <stdlib.h>
-//#include <string.h>
-
 #include "../object_wrapper.h"
 #include "vec.h"
 #include "cpu_acc_sort_blocks.hpp"
@@ -39,6 +35,8 @@
 #include "cpu_1d_plm.hpp"
 #include "cpu_acc_map.hpp"
 #include "../vlasovsolver_cuda/open_acc_map_h.cuh"
+
+//#define DEBUG_ACC
 
 using namespace std;
 using namespace spatial_cell;
@@ -107,8 +105,8 @@ void inline swapBlockIndices(velocity_block_indices_t &blockIndices, const uint 
    }
 }
 
-  extern Realf* acceleration_1_wrapperCaller
-  (
+#ifdef USE_CUDA
+Realf* acceleration_1_wrapperCaller(
     Realf *blockData,
     Column *columns,
     Vec values[],
@@ -124,11 +122,9 @@ void inline swapBlockIndices(velocity_block_indices_t &blockIndices, const uint 
     Realv i_dv,
     Realv dv,
     Realv minValue
-  )
-  {
+  ) {
     //printf("STAGE 2\n");
-    Realf* returned_blockData = acceleration_1_wrapper
-    (
+    Realf* returned_blockData = acceleration_1_wrapper (
       blockData,
       columns,
       values,
@@ -147,6 +143,8 @@ void inline swapBlockIndices(velocity_block_indices_t &blockIndices, const uint 
     );
     return returned_blockData;
   }
+#endif // USE_CUDA
+
 /*
    Here we map from the current time step grid, to a target grid which
    is the lagrangian departure grid (so th grid at timestep +dt,
@@ -155,7 +153,7 @@ void inline swapBlockIndices(velocity_block_indices_t &blockIndices, const uint 
 bool map_1d(SpatialCell* spatial_cell,
             const uint popID,
             Realv intersection, Realv intersection_di, Realv intersection_dj, Realv intersection_dk,
-            const uint dimension, const bool useAccelerator) {
+            const uint dimension, bool useAccelerator) {
    no_subnormals();
 
    Realv dv,v_min;
@@ -168,6 +166,16 @@ bool map_1d(SpatialCell* spatial_cell,
    vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks(popID);
 
    auto minValue = spatial_cell->getVelocityBlockMinValue(popID);
+
+#ifndef USE_CUDA
+   useAccelerator = false;
+#endif // USE_CUDA
+
+   if(!useAccelerator) {
+      cerr << "Not using accelerator for cell." << endl;
+   } else {
+      cerr << "Using accelerator." << endl;
+   }
 
    //nothing to do if no blocks
    if(vmesh.size() == 0)
@@ -433,16 +441,14 @@ bool map_1d(SpatialCell* spatial_cell,
    // Velocity space has all extra blocks added and/or removed for the transform target
    // and will not change shape anymore.
    // Create empty velocity space on the GPU and fill it with zeros
-    Realf *blockData = blockContainer.getData();
-    size_t blockDataSize = blockContainer.size();
-    uint bdsw3 = blockDataSize * WID3;
-    if(useAccelerator)
-    {
-     for(uint cell=0; cell<bdsw3; cell++)
-     {
+   Realf *blockData = blockContainer.getData();
+   size_t blockDataSize = blockContainer.size();
+   size_t bdsw3 = blockDataSize * WID3;
+   if (useAccelerator) {
+     for (uint cell = 0; cell < bdsw3; cell++) {
        blockData[cell] = 0;
      }
-    }
+   }
 
    // Now we iterate through target columns again, identifying their block offsets
    for( uint column=0; column < totalColumns; column++) {
@@ -464,12 +470,14 @@ bool map_1d(SpatialCell* spatial_cell,
    }
 
    // loop over columns in set and do the mapping
-   if(useAccelerator)
-   {
+   if(useAccelerator) {
+#ifndef USE_CUDA
+      std::cerr << "Tried to use accelerator in non-CUDA build!" << std::endl;
+      abort();
+#else
      //CALL CUDA FUNCTION WRAPPER START
      //printf("STAGE 1\n");
-     blockData = acceleration_1_wrapperCaller
-     (
+     blockData = acceleration_1_wrapperCaller(
        blockData,
        columns,
        values,
@@ -493,9 +501,8 @@ bool map_1d(SpatialCell* spatial_cell,
        printf("blockData[cell] = %.2f\n", blockData[cell]);
      }
      */
-   }
-   else
-   {
+#endif //USE_CUDA
+   } else {
       // CPU version
       for( uint column=0; column < totalColumns; column++) {
 
