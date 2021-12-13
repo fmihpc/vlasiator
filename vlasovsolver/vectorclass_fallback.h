@@ -51,6 +51,7 @@ public:
    }
 
    // Pass vector values as an initializer list instead of a bunch of arguments.
+   // usage: VecSimple<atype> newVec = {a, b, c, d} (for VECL values, this is checked against)
    //                                          || this here puts the initializer list to val!
    VecSimple(std::initializer_list<T> list) : val(list){
       if(list.size() != VECL){
@@ -61,6 +62,10 @@ public:
 	 return;
       }
    }
+
+   // The variadic-templated version of the above - not sure if this is the correct form, yet
+   // VecSimple<atype> newVew 
+   //VecSimple(T... ts) : val{ts...}
    
    // Replicate VECL values across v.   
    VecSimple(T a,T b,T c,T d){
