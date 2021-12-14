@@ -45,16 +45,15 @@ class VecSimple
     CUDA_HOSTDEV VecSimple(T x);
     CUDA_HOSTDEV VecSimple(T a,T b,T c,T d);
     CUDA_HOSTDEV VecSimple(T a,T b,T c,T d, T e,T f,T g,T h);
-    CUDA_HOSTDEV VecSimple(T a,T b,T c,T d, T e,T f,T g,T h);
     CUDA_HOSTDEV VecSimple(T a,T b,T c,T d,T e,T f,T g,T h,T i,T j,T k,T l,T m,T n,T o,T p);
-    CUDA_HOSTDEV VecSimple(T a,T b,T c,T d,T e,T f,T g,T h,T i,T j,T k,T l,T m,T n,T o,T p,T q,T r,T s,T t,T u,T v,T w,T x,T y,T z,T aa,T bb,T cc,T dd,T ee,T ff)
+    CUDA_HOSTDEV VecSimple(T a,T b,T c,T d,T e,T f,T g,T h,T i,T j,T k,T l,T m,T n,T o,T p,T q,T r,T s,T t,T u,T v,T w,T x,T y,T z,T aa,T bb,T cc,T dd,T ee,T ff);
     CUDA_HOSTDEV VecSimple(VecSimple const &x);
     CUDA_HOSTDEV VecSimple<T> & load(T const * p);
     CUDA_HOSTDEV VecSimple<T> & load_a(T const * p);
     CUDA_HOSTDEV VecSimple<T> & insert(int i,T const &x);
     CUDA_HOSTDEV void store(T * p) const;
     CUDA_HOSTDEV void store_a(T * p) const;
-    CUDA_HOSTDEV VecSimple<T> & operator = (Vec4Simple<T> const & r);
+    CUDA_HOSTDEV VecSimple<T> & operator = (VecSimple<T> const & r);
     CUDA_HOSTDEV T operator [](int i) const;
     CUDA_HOSTDEV VecSimple<T> operator++ (int);
 
@@ -692,3 +691,6 @@ static CUDA_HOSTDEV inline VecSimple<float> to_float(VecSimple<T> const & a){
      temp.insert(i, (float)a.val[i]);
   return temp;
 }
+
+
+#endif

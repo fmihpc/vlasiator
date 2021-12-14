@@ -22,6 +22,7 @@
 #ifndef VECTORCLASS_INTERFACE_H
 #define VECTORCLASS_INTERFACE_H
 
+
 /*!
 
 \file vec.h
@@ -51,6 +52,7 @@ VEC8F_AGNER
 
 */
 
+
 #ifdef VEC_FALLBACK_GENERIC
 // use portable vectorclass with specified vector length
 // if not specified in Makefile, equivalent to VEC8F
@@ -70,6 +72,8 @@ typedef float Realv;
 #endif
 
 #endif
+
+
 
 #ifdef VEC4D_AGNER
 //user Agner's AVX2 optimized datatypes, double precision accuracy
@@ -150,15 +154,7 @@ typedef float Realv;
 
 #ifdef VEC4D_FALLBACK
 //user portable vectorclass
-/*
-#ifdef __CUDACC__
-*/
 #include "vectorclass_fallback.cuh"
-/*
-#else
-#include "vectorclass_fallback.h"
-#endif
-*/
 typedef Vec4Simple<double> Vec;
 typedef Vec4Simple<bool> Vecb;
 typedef Vec4Simple<int> Veci;
@@ -172,16 +168,7 @@ typedef double Realv;
 
 #ifdef VEC4F_FALLBACK
 //user portable vectorclass
-//user portable vectorclass
-/*
-#ifdef __CUDACC__
-*/
 #include "vectorclass_fallback.cuh"
-/*
-#else
-#include "vectorclass_fallback.h"
-#endif
-*/
 typedef Vec4Simple<float> Vec;
 typedef Vec4Simple<bool> Vecb;
 typedef Vec4Simple<int> Veci;
@@ -194,17 +181,8 @@ typedef float Realv;
 #endif
 
 #ifdef VEC8D_FALLBACK
-//user portable vecto rclass
 //user portable vectorclass
-/*
-#ifdef __CUDACC__
-*/
 #include "vectorclass_fallback.cuh"
-/*
-#else
-#include "vectorclass_fallback.h"
-#endif
-*/
 typedef Vec8Simple<double> Vec;
 typedef Vec8Simple<bool> Vecb;
 typedef Vec8Simple<int> Veci;
@@ -219,16 +197,7 @@ typedef double Realv;
 
 #ifdef VEC8F_FALLBACK
 //user portable vectorclass
-//user portable vectorclass
-/*
-#ifdef __CUDACC__
-*/
 #include "vectorclass_fallback.cuh"
-/*
-#else
-#include "vectorclass_fallback.h"
-#endif
-*/
 typedef Vec8Simple<float> Vec;
 typedef Vec8Simple<bool> Vecb;
 typedef Vec8Simple<int> Veci;
@@ -250,5 +219,8 @@ const Vec one_sixth(1.0/6.0);
 const Vec one_twelfth(1.0/12.0);
 const Vec seven_twelfth(7.0/12.0);
 const Vec one_third(1.0/3.0);
+
+
+
 
 #endif
