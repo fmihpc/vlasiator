@@ -29,7 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-
+#include <initializer_list>
 // Prefetching does nothing in the fallback vectorclass, if no system implementation
 // is available
 #ifndef _mm_prefetch
@@ -59,7 +59,7 @@ class VecSimple
 
     // Pass vector values as an initializer list instead of a bunch of arguments.
     // || this here puts the initializer list to val!
-    CUDA_HOSTDEV VecSimple<T>(VecSimple<T> list) : val(list)
+    CUDA_HOSTDEV VecSimple<T>(std::initializer_list<T> list) : val(list)
     {
       if(list.size() != VECL)
       {
@@ -75,7 +75,7 @@ class VecSimple
 static CUDA_HOSTDEV void no_subnormals(){};
 
 // Replicate VECL values across v.
-CUDA_HOSTDEV VecSimple<T>::VecSimple(T a,T b,T c,T d)
+CUDA_HOSTDEV VecSimple<T>::VecSimple<T>(T a,T b,T c,T d)
 {
    if(VECL != 4)
    {
@@ -89,7 +89,7 @@ CUDA_HOSTDEV VecSimple<T>::VecSimple(T a,T b,T c,T d)
 }
 
 // Replicate VECL values across v.
-CUDA_HOSTDEV VecSimple<T>::VecSimple(T a,T b,T c,T d,T e,T f,T g,T h)
+CUDA_HOSTDEV VecSimple<T>::VecSimple<T>(T a,T b,T c,T d,T e,T f,T g,T h)
 {
    if(VECL != 8)
    {
@@ -107,7 +107,7 @@ CUDA_HOSTDEV VecSimple<T>::VecSimple(T a,T b,T c,T d,T e,T f,T g,T h)
 }
 
 // Replicate VECL values across v.
-CUDA_HOSTDEV VecSimple<T>::VecSimple(T a,T b,T c,T d,T e,T f,T g,T h,T i,T j,T k,T l,T m,T n,T o,T p)
+CUDA_HOSTDEV VecSimple<T>::VecSimple<T>(T a,T b,T c,T d,T e,T f,T g,T h,T i,T j,T k,T l,T m,T n,T o,T p)
 {
    if(VECL != 16)
    {
@@ -133,7 +133,7 @@ CUDA_HOSTDEV VecSimple<T>::VecSimple(T a,T b,T c,T d,T e,T f,T g,T h,T i,T j,T k
 }
 
 // Replicate VECL values across v.
-CUDA_HOSTDEV VecSimple<T>::VecSimple(T a,T b,T c,T d,T e,T f,T g,T h,T i,T j,T k,T l,T m,T n,T o,T p,T q,T r,T s,T t,T u,T v,T w,T x,T y,T z,T aa,T bb,T cc,T dd,T ee,T ff)
+CUDA_HOSTDEV VecSimple<T>::VecSimple<T>(T a,T b,T c,T d,T e,T f,T g,T h,T i,T j,T k,T l,T m,T n,T o,T p,T q,T r,T s,T t,T u,T v,T w,T x,T y,T z,T aa,T bb,T cc,T dd,T ee,T ff)
 {
    if(VECL != 32)
    {
@@ -175,7 +175,7 @@ CUDA_HOSTDEV VecSimple<T>::VecSimple(T a,T b,T c,T d,T e,T f,T g,T h,T i,T j,T k
 }
 
 template <typename T>
-CUDA_HOSTDEV VecSimple<T>::VecSimple(VecSimple const &x)
+CUDA_HOSTDEV VecSimple<T>::VecSimple<T>(VecSimple const &x)
 {
    for(unsigned int i=0;i<VECL;i++)
       val[i]=x.val[i];
