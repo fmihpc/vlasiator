@@ -58,12 +58,16 @@ class VecSimple
     CUDA_HOSTDEV VecSimple<T> operator++ (int);
     // Pass vector values as an initializer list instead of a bunch of arguments.
     // || this here puts the initializer list to val!
+    /*
     CUDA_HOSTDEV VecSimple<T>(std::initializer_list<T> list)
     {
       if(list.size() != VECL)
       {
-    	   std::cerr <<  __FILE__ << ":" << __LINE__ << "Constructing a vector with a number of elements not equal to VECL = " << VECL << " (you had initializer_list size = "<<list.size()<<")";
-    	   abort();
+    	   //std::cerr <<  __FILE__ << ":" << __LINE__ << "Constructing a vector with a number of elements not equal to VECL = " << VECL << " (you had initializer_list size = "<<list.size()<<")";
+    	   //abort();
+         //__threadfence();
+         //asm("trap;");
+
       }
       else
       {
@@ -75,6 +79,7 @@ class VecSimple
         }
       }
     }
+    */
 };
 static CUDA_HOSTDEV void no_subnormals(){};
 
@@ -82,11 +87,13 @@ static CUDA_HOSTDEV void no_subnormals(){};
 template <typename T>
 CUDA_HOSTDEV VecSimple<T>::VecSimple(T a,T b,T c,T d)
 {
+    /*
    if(VECL != 4)
    {
       std::cerr << __FILE__ << ":" << __LINE__ << ": Wrong function call for VECL=" << VECL << ", this function is for VECL=4!";
       abort();
    }
+   */
    val[0]=a;
    val[1]=b;
    val[2]=c;
@@ -97,11 +104,13 @@ CUDA_HOSTDEV VecSimple<T>::VecSimple(T a,T b,T c,T d)
 template <typename T>
 CUDA_HOSTDEV VecSimple<T>::VecSimple(T a,T b,T c,T d,T e,T f,T g,T h)
 {
+  /*
    if(VECL != 8)
    {
       std::cerr << __FILE__ << ":" << __LINE__ << ": Wrong function call for VECL=" << VECL << ", this function is for VECL=8!";
       abort();
    }
+   */
    val[0]=a;
    val[1]=b;
    val[2]=c;
@@ -116,11 +125,13 @@ CUDA_HOSTDEV VecSimple<T>::VecSimple(T a,T b,T c,T d,T e,T f,T g,T h)
 template <typename T>
 CUDA_HOSTDEV VecSimple<T>::VecSimple(T a,T b,T c,T d,T e,T f,T g,T h,T i,T j,T k,T l,T m,T n,T o,T p)
 {
+   /*
    if(VECL != 16)
    {
       std::cerr << __FILE__ << ":" << __LINE__ << ": Wrong function call for VECL=" << VECL << ", this function is for VECL=16!";
       abort();
    }
+   */
    val[0]=a;
    val[1]=b;
    val[2]=c;
@@ -143,11 +154,13 @@ CUDA_HOSTDEV VecSimple<T>::VecSimple(T a,T b,T c,T d,T e,T f,T g,T h,T i,T j,T k
 template <typename T>
 CUDA_HOSTDEV VecSimple<T>::VecSimple(T a,T b,T c,T d,T e,T f,T g,T h,T i,T j,T k,T l,T m,T n,T o,T p,T q,T r,T s,T t,T u,T v,T w,T x,T y,T z,T aa,T bb,T cc,T dd,T ee,T ff)
 {
+  /*
    if(VECL != 32)
    {
       std::cerr << __FILE__ << ":" << __LINE__ << ": Wrong function call for VECL=" << VECL << ", this function is for VECL=32!";
       abort();
    }
+   */
    val[0]=a;
    val[1]=b;
    val[2]=c;
