@@ -56,10 +56,9 @@ class VecSimple
     CUDA_HOSTDEV VecSimple<T> & operator = (VecSimple<T> const & r);
     CUDA_HOSTDEV T operator [](int i) const;
     CUDA_HOSTDEV VecSimple<T> operator++ (int);
-
     // Pass vector values as an initializer list instead of a bunch of arguments.
     // || this here puts the initializer list to val!
-    CUDA_HOSTDEV VecSimple<T>(std::initializer_list<T> list) : val(list)
+    CUDA_HOSTDEV VecSimple<T>(std::initializer_list<T> list)
     {
       if(list.size() != VECL)
       {
@@ -68,7 +67,12 @@ class VecSimple
       }
       else
       {
-        return;
+        uint i = 0;
+        for(auto it = list.begin(); it != list.end(); ++it)
+        {
+          val[i] = *it;
+          ++i;
+        }
       }
     }
 };
