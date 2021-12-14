@@ -75,6 +75,7 @@ class VecSimple
 static CUDA_HOSTDEV void no_subnormals(){};
 
 // Replicate VECL values across v.
+template <typename T>
 CUDA_HOSTDEV VecSimple<T>::VecSimple<T>(T a,T b,T c,T d)
 {
    if(VECL != 4)
@@ -89,6 +90,7 @@ CUDA_HOSTDEV VecSimple<T>::VecSimple<T>(T a,T b,T c,T d)
 }
 
 // Replicate VECL values across v.
+template <typename T>
 CUDA_HOSTDEV VecSimple<T>::VecSimple<T>(T a,T b,T c,T d,T e,T f,T g,T h)
 {
    if(VECL != 8)
@@ -107,6 +109,7 @@ CUDA_HOSTDEV VecSimple<T>::VecSimple<T>(T a,T b,T c,T d,T e,T f,T g,T h)
 }
 
 // Replicate VECL values across v.
+template <typename T>
 CUDA_HOSTDEV VecSimple<T>::VecSimple<T>(T a,T b,T c,T d,T e,T f,T g,T h,T i,T j,T k,T l,T m,T n,T o,T p)
 {
    if(VECL != 16)
@@ -133,6 +136,7 @@ CUDA_HOSTDEV VecSimple<T>::VecSimple<T>(T a,T b,T c,T d,T e,T f,T g,T h,T i,T j,
 }
 
 // Replicate VECL values across v.
+template <typename T>
 CUDA_HOSTDEV VecSimple<T>::VecSimple<T>(T a,T b,T c,T d,T e,T f,T g,T h,T i,T j,T k,T l,T m,T n,T o,T p,T q,T r,T s,T t,T u,T v,T w,T x,T y,T z,T aa,T bb,T cc,T dd,T ee,T ff)
 {
    if(VECL != 32)
