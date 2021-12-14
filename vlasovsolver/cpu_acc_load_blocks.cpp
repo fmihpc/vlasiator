@@ -72,7 +72,8 @@ for wi, WID in enumerate(WIDs):
       cog.outl("      Realf* __restrict__ data = blockContainer.getData(vmesh.getLocalID(blocks[block_k]));")    
       init = True
       for vecl in [4, 8, 16, 32, 64]:
-            if WID2//vecl == 0 or vecl < WID:
+            # guard against WID2//vecl == 0 and more exotic truncations, and vecl < WID not supported
+            if vecl*(WID2//vecl) != WID2 or vecl < WID:
                   continue
             for accuracy in ["f", "d"]:
                   if init:

@@ -74,7 +74,7 @@ public:
    // The variadic-templated version of the above - this is a bit suspect with narrowing conversion warnings.
    //template<typename... Ts>
    //VecSimple(Ts... ts) : val{ts...}{}
-   
+   /*
    // Replicate VECL values across v.   
    VecSimple(T a,T b,T c,T d){
       if(VECL != 4) {
@@ -166,7 +166,7 @@ public:
       val[30]=ee;
       val[31]=ff;
    }
-
+*/
    // Copy vector v.
    VecSimple(VecSimple const &x){
       for(unsigned int i=0;i<VECL;i++)
