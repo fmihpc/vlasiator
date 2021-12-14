@@ -59,7 +59,7 @@ class VecSimple
 
     // Pass vector values as an initializer list instead of a bunch of arguments.
     // || this here puts the initializer list to val!
-    VecSimple(std::initializer_list<T> list) : val(list)
+    CUDA_HOSTDEV VecSimple<T>(VecSimple<T> list) : val(list)
     {
       if(list.size() != VECL)
       {
