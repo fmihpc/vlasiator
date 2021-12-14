@@ -410,7 +410,8 @@ RK_ORDER2_STEP1,   /*!< Two-step second order method, first step */
 RK_ORDER2_STEP2    /*!< Two-step second order method, second step */
 };
 
-const int WID = 4;         /*!< Number of cells per coordinate in a velocity block. Only a value of 4 supported by vectorized Leveque solver */
+#define WID (4)
+//const int WID = 4;         /*!< Number of cells per coordinate in a velocity block. Only a value of 4 supported by vectorized Leveque solver */
 const int WID2 = WID*WID;  /*!< Number of cells per 2D slab in a velocity block. */
 const int WID3 = WID2*WID; /*!< Number of cells in a velocity block. */
 

@@ -49,32 +49,27 @@ public:
       for(unsigned int i=0;i<VECL;i++)
          val[i]=x;
    }
-
    // Pass vector values as an initializer list instead of a bunch of arguments.
    // usage: VecSimple<atype> newVec = {a, b, c, d} (for VECL values, this is checked against)
    // or   : Vec({a,b,c,d})
+   
    VecSimple(std::initializer_list<T> list){
-      // The rest of this is just sanity checking
       if(list.size() != VECL){
-	 std::cerr <<  __FILE__ << ":" << __LINE__ <<
-		 "Constructing a vector with a number of elements not equal to VECL = " << VECL <<
-		 " (you had initializer_list size = "<<list.size()<<")";
-	 abort();
+         std::cerr <<  __FILE__ << ":" << __LINE__ <<
+         "Constructing a vector with a number of elements not equal to VECL = " << VECL <<
+         " (you had initializer_list size = "<<list.size()<<")";
+         abort();
       }
       else{
-	 uint i = 0;
-	 for(auto it = list.begin(); it != list.end(); ++it){
-            val[i] = *it;
-	    ++i;
-	 }
+   	   std::copy(list.begin(),list.end(), val);
+	   }
 	
-      }
    }
 
    // The variadic-templated version of the above - this is a bit suspect with narrowing conversion warnings.
    //template<typename... Ts>
    //VecSimple(Ts... ts) : val{ts...}{}
-   /*
+
    // Replicate VECL values across v.   
    VecSimple(T a,T b,T c,T d){
       if(VECL != 4) {
@@ -166,7 +161,7 @@ public:
       val[30]=ee;
       val[31]=ff;
    }
-*/
+
    // Copy vector v.
    VecSimple(VecSimple const &x){
       for(unsigned int i=0;i<VECL;i++)
