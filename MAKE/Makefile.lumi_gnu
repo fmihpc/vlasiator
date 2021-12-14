@@ -13,13 +13,13 @@ LNK = CC
 
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
 #Single-precision        
-	#INC_VECTORCLASS = -I/projappl/project_462000005/vlasiator_yann/vlasiator_vecl/vlasovsolver/vectorclass_fallback.h
-	VECTORCLASS = VEC4F_AGNER
+	INC_VECTORCLASS = -I/projappl/project_462000005/vlasiator_yann/vlasiator_vecl/vlasovsolver/vectorclass_fallback.h
+	VECTORCLASS = VEC_FALLBACK_GENERIC
 	COMPFLAGS += -DVECL=8 -DVEC_PER_PLANE=2 -DVEC_PER_BLOCK=8 -DVPREC=4
 else
 #Double-precision
-        #INC_VECTORCLASS = -I/projappl/project_462000005/vlasiator_yann/vlasiator_vecl/vlasovsolver/vectorclass_fallback.h
-        VECTORCLASS = VEC4D_AGNER
+        INC_VECTORCLASS = -I/projappl/project_462000005/vlasiator_yann/vlasiator_vecl/vlasovsolver/vectorclass_fallback.h
+        VECTORCLASS = VEC_FALLBACK_GENERIC
         COMPFLAGS += -DVECL=4 -DVEC_PER_PLANE=4 -DVEC_PER_BLOCK=16 -DVPREC=8
 endif
 
