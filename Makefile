@@ -15,10 +15,6 @@ endif
 
 include MAKE/Makefile.${ARCH}
 
-
-
-
-
 #set a default archive utility, can also be set in Makefile.arch
 AR ?= ar
 

@@ -51,8 +51,25 @@ VEC8F_AGNER
 
 */
 
+#ifdef VEC_FALLBACK_GENERIC
+// use portable vectorclass with specified vector length
+// if not specified in Makefile, equivalent to VEC8F
+#include "vectorclass_fallback.cuh"
 
+typedef VecSimple<bool> Vecb;
+typedef VecSimple<int> Veci;
 
+#ifdef DPF
+typedef VecSimple<double> Vec;
+typedef double Realv;
+#define to_realv(v) to_double(v)
+#else
+typedef VecSimple<float> Vec;
+typedef float Realv;
+#define to_realv(v) to_float(v)
+#endif
+
+#endif
 
 #ifdef VEC4D_AGNER
 //user Agner's AVX2 optimized datatypes, double precision accuracy
@@ -233,9 +250,5 @@ const Vec one_sixth(1.0/6.0);
 const Vec one_twelfth(1.0/12.0);
 const Vec seven_twelfth(7.0/12.0);
 const Vec one_third(1.0/3.0);
-
-
-
-
 
 #endif
