@@ -52,6 +52,7 @@ class Vec4Simple
     CUDA_HOSTDEV void store_a(T * p) const;
     CUDA_HOSTDEV Vec4Simple<T> & operator = (Vec4Simple<T> const & r);
     CUDA_HOSTDEV T operator [](int i) const;
+    CUDA_HOSTDEV T & operator [](int i);
     CUDA_HOSTDEV Vec4Simple<T> operator++ (int);
     static CUDA_HOSTDEV T getSquare(T b);
 };
@@ -662,6 +663,12 @@ CUDA_HOSTDEV T Vec4Simple<T>::operator [](int i) const
 }
 
 template <typename T>
+CUDA_HOSTDEV T & Vec4Simple<T>::operator [](int i)
+{
+   return val[i];
+}
+
+template <typename T>
 CUDA_HOSTDEV Vec4Simple<T> Vec4Simple<T>::operator++ (int)
 {
    Vec4Simple<T> temp (*this);
@@ -688,6 +695,7 @@ class Vec8Simple
     CUDA_HOSTDEV void store_a(T * p) const;
     CUDA_HOSTDEV Vec8Simple<T> & operator = (Vec8Simple<T> const & r);
     CUDA_HOSTDEV T operator [](int i) const;
+    CUDA_HOSTDEV T & operator [](int i);
     CUDA_HOSTDEV Vec8Simple<T> operator++ (int);
     static CUDA_HOSTDEV T getCube(T b);
 };
@@ -1507,6 +1515,11 @@ CUDA_HOSTDEV Vec8Simple<T> & Vec8Simple<T>:: operator = (Vec8Simple<T> const & r
 
 template <typename T>
 CUDA_HOSTDEV T Vec8Simple<T>::operator [](int i) const
+{
+   return val[i];
+}
+template <typename T>
+CUDA_HOSTDEV T & Vec8Simple<T>::operator [](int i)
 {
    return val[i];
 }
