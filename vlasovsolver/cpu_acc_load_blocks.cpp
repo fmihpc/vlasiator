@@ -75,12 +75,17 @@ for wi, WID in enumerate(WIDs):
             # guard against WID2//vecl == 0 and more exotic truncations, and vecl < WID not supported
             if vecl*(WID2//vecl) != WID2 or vecl < WID:
                   continue
+            # Agner supports up to 16elem f, 8elem d, so not going further than that!
             for accuracy in ["f", "d"]:
+                  if accuracy == "f" and vecl > 16:
+                        continue
+                  if accuracy == "d" and vecl > 8:
+                        continue
                   if init:
-                     cog.outl("#ifdef VEC%d%s_AGNER" % (vecl, accuracy.upper()))
+                     cog.outl("#if defined(VEC%d%s_AGNER) && VECL == %d" % (vecl, accuracy.upper(), vecl))
                      init = False
                   else:
-                     cog.outl("#elif VEC%d%s_AGNER" % (vecl, accuracy.upper()))
+                     cog.outl("#elif defined(VEC%d%s_AGNER) && VECL == %d" % (vecl, accuracy.upper(), vecl))
                   cell = 0
                   cog.outl("// WID %d, vecl %d" % (WID, vecl))
                   for k in range(0, WID):
@@ -129,7 +134,7 @@ cog.outl("#endif")
     if(dimension == 0 ) {
       for (vmesh::LocalID block_k=0; block_k<n_blocks; ++block_k) {
          Realf* __restrict__ data = blockContainer.getData(vmesh.getLocalID(blocks[block_k]));
-   #ifdef VEC4F_AGNER
+   #if defined(VEC4F_AGNER) && VECL == 4
    // WID 4, vecl 4
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = gather4f<0, 16, 32, 48>(data);
          values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = gather4f<4, 20, 36, 52>(data);
@@ -147,7 +152,7 @@ cog.outl("#endif")
          values[i_pcolumnv_b(1, 3, block_k, n_blocks)] = gather4f<7, 23, 39, 55>(data);
          values[i_pcolumnv_b(2, 3, block_k, n_blocks)] = gather4f<11, 27, 43, 59>(data);
          values[i_pcolumnv_b(3, 3, block_k, n_blocks)] = gather4f<15, 31, 47, 63>(data);
-   #elif VEC4D_AGNER
+   #elif defined(VEC4D_AGNER) && VECL == 4
    // WID 4, vecl 4
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = gather4d<0, 16, 32, 48>(data);
          values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = gather4d<4, 20, 36, 52>(data);
@@ -183,7 +188,7 @@ cog.outl("#endif")
          values[i_pcolumnv_b(1, 3, block_k, n_blocks)] = Vec({data[7], data[23], data[39], data[55]});
          values[i_pcolumnv_b(2, 3, block_k, n_blocks)] = Vec({data[11], data[27], data[43], data[59]});
          values[i_pcolumnv_b(3, 3, block_k, n_blocks)] = Vec({data[15], data[31], data[47], data[63]});
-   #elif VEC8F_AGNER
+   #elif defined(VEC8F_AGNER) && VECL == 8
    // WID 4, vecl 8
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = gather8f<0, 16, 32, 48, 4, 20, 36, 52>(data);
          values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = gather8f<8, 24, 40, 56, 12, 28, 44, 60>(data);
@@ -193,7 +198,7 @@ cog.outl("#endif")
          values[i_pcolumnv_b(1, 2, block_k, n_blocks)] = gather8f<10, 26, 42, 58, 14, 30, 46, 62>(data);
          values[i_pcolumnv_b(0, 3, block_k, n_blocks)] = gather8f<3, 19, 35, 51, 7, 23, 39, 55>(data);
          values[i_pcolumnv_b(1, 3, block_k, n_blocks)] = gather8f<11, 27, 43, 59, 15, 31, 47, 63>(data);
-   #elif VEC8D_AGNER
+   #elif defined(VEC8D_AGNER) && VECL == 8
    // WID 4, vecl 8
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = gather8d<0, 16, 32, 48, 4, 20, 36, 52>(data);
          values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = gather8d<8, 24, 40, 56, 12, 28, 44, 60>(data);
@@ -213,18 +218,12 @@ cog.outl("#endif")
          values[i_pcolumnv_b(1, 2, block_k, n_blocks)] = Vec({data[10], data[26], data[42], data[58], data[14], data[30], data[46], data[62]});
          values[i_pcolumnv_b(0, 3, block_k, n_blocks)] = Vec({data[3], data[19], data[35], data[51], data[7], data[23], data[39], data[55]});
          values[i_pcolumnv_b(1, 3, block_k, n_blocks)] = Vec({data[11], data[27], data[43], data[59], data[15], data[31], data[47], data[63]});
-   #elif VEC16F_AGNER
+   #elif defined(VEC16F_AGNER) && VECL == 16
    // WID 4, vecl 16
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = gather16f<0, 16, 32, 48, 4, 20, 36, 52, 8, 24, 40, 56, 12, 28, 44, 60>(data);
          values[i_pcolumnv_b(0, 1, block_k, n_blocks)] = gather16f<1, 17, 33, 49, 5, 21, 37, 53, 9, 25, 41, 57, 13, 29, 45, 61>(data);
          values[i_pcolumnv_b(0, 2, block_k, n_blocks)] = gather16f<2, 18, 34, 50, 6, 22, 38, 54, 10, 26, 42, 58, 14, 30, 46, 62>(data);
          values[i_pcolumnv_b(0, 3, block_k, n_blocks)] = gather16f<3, 19, 35, 51, 7, 23, 39, 55, 11, 27, 43, 59, 15, 31, 47, 63>(data);
-   #elif VEC16D_AGNER
-   // WID 4, vecl 16
-         values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = gather16d<0, 16, 32, 48, 4, 20, 36, 52, 8, 24, 40, 56, 12, 28, 44, 60>(data);
-         values[i_pcolumnv_b(0, 1, block_k, n_blocks)] = gather16d<1, 17, 33, 49, 5, 21, 37, 53, 9, 25, 41, 57, 13, 29, 45, 61>(data);
-         values[i_pcolumnv_b(0, 2, block_k, n_blocks)] = gather16d<2, 18, 34, 50, 6, 22, 38, 54, 10, 26, 42, 58, 14, 30, 46, 62>(data);
-         values[i_pcolumnv_b(0, 3, block_k, n_blocks)] = gather16d<3, 19, 35, 51, 7, 23, 39, 55, 11, 27, 43, 59, 15, 31, 47, 63>(data);
    #elif defined(VEC_FALLBACK_GENERIC) && VECL == 16 
    // WID 4, vecl 16
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = Vec({data[0], data[16], data[32], data[48], data[4], data[20], data[36], data[52], data[8], data[24], data[40], data[56], data[12], data[28], data[44], data[60]});
@@ -244,7 +243,7 @@ cog.outl("#endif")
     if(dimension == 1 ) {
       for (vmesh::LocalID block_k=0; block_k<n_blocks; ++block_k) {
          Realf* __restrict__ data = blockContainer.getData(vmesh.getLocalID(blocks[block_k]));
-   #ifdef VEC4F_AGNER
+   #if defined(VEC4F_AGNER) && VECL == 4
    // WID 4, vecl 4
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = gather4f<0, 1, 2, 3>(data);
          values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = gather4f<16, 17, 18, 19>(data);
@@ -262,7 +261,7 @@ cog.outl("#endif")
          values[i_pcolumnv_b(1, 3, block_k, n_blocks)] = gather4f<28, 29, 30, 31>(data);
          values[i_pcolumnv_b(2, 3, block_k, n_blocks)] = gather4f<44, 45, 46, 47>(data);
          values[i_pcolumnv_b(3, 3, block_k, n_blocks)] = gather4f<60, 61, 62, 63>(data);
-   #elif VEC4D_AGNER
+   #elif defined(VEC4D_AGNER) && VECL == 4
    // WID 4, vecl 4
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = gather4d<0, 1, 2, 3>(data);
          values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = gather4d<16, 17, 18, 19>(data);
@@ -298,7 +297,7 @@ cog.outl("#endif")
          values[i_pcolumnv_b(1, 3, block_k, n_blocks)] = Vec({data[28], data[29], data[30], data[31]});
          values[i_pcolumnv_b(2, 3, block_k, n_blocks)] = Vec({data[44], data[45], data[46], data[47]});
          values[i_pcolumnv_b(3, 3, block_k, n_blocks)] = Vec({data[60], data[61], data[62], data[63]});
-   #elif VEC8F_AGNER
+   #elif defined(VEC8F_AGNER) && VECL == 8
    // WID 4, vecl 8
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = gather8f<0, 1, 2, 3, 16, 17, 18, 19>(data);
          values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = gather8f<32, 33, 34, 35, 48, 49, 50, 51>(data);
@@ -308,7 +307,7 @@ cog.outl("#endif")
          values[i_pcolumnv_b(1, 2, block_k, n_blocks)] = gather8f<40, 41, 42, 43, 56, 57, 58, 59>(data);
          values[i_pcolumnv_b(0, 3, block_k, n_blocks)] = gather8f<12, 13, 14, 15, 28, 29, 30, 31>(data);
          values[i_pcolumnv_b(1, 3, block_k, n_blocks)] = gather8f<44, 45, 46, 47, 60, 61, 62, 63>(data);
-   #elif VEC8D_AGNER
+   #elif defined(VEC8D_AGNER) && VECL == 8
    // WID 4, vecl 8
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = gather8d<0, 1, 2, 3, 16, 17, 18, 19>(data);
          values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = gather8d<32, 33, 34, 35, 48, 49, 50, 51>(data);
@@ -328,18 +327,12 @@ cog.outl("#endif")
          values[i_pcolumnv_b(1, 2, block_k, n_blocks)] = Vec({data[40], data[41], data[42], data[43], data[56], data[57], data[58], data[59]});
          values[i_pcolumnv_b(0, 3, block_k, n_blocks)] = Vec({data[12], data[13], data[14], data[15], data[28], data[29], data[30], data[31]});
          values[i_pcolumnv_b(1, 3, block_k, n_blocks)] = Vec({data[44], data[45], data[46], data[47], data[60], data[61], data[62], data[63]});
-   #elif VEC16F_AGNER
+   #elif defined(VEC16F_AGNER) && VECL == 16
    // WID 4, vecl 16
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = gather16f<0, 1, 2, 3, 16, 17, 18, 19, 32, 33, 34, 35, 48, 49, 50, 51>(data);
          values[i_pcolumnv_b(0, 1, block_k, n_blocks)] = gather16f<4, 5, 6, 7, 20, 21, 22, 23, 36, 37, 38, 39, 52, 53, 54, 55>(data);
          values[i_pcolumnv_b(0, 2, block_k, n_blocks)] = gather16f<8, 9, 10, 11, 24, 25, 26, 27, 40, 41, 42, 43, 56, 57, 58, 59>(data);
          values[i_pcolumnv_b(0, 3, block_k, n_blocks)] = gather16f<12, 13, 14, 15, 28, 29, 30, 31, 44, 45, 46, 47, 60, 61, 62, 63>(data);
-   #elif VEC16D_AGNER
-   // WID 4, vecl 16
-         values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = gather16d<0, 1, 2, 3, 16, 17, 18, 19, 32, 33, 34, 35, 48, 49, 50, 51>(data);
-         values[i_pcolumnv_b(0, 1, block_k, n_blocks)] = gather16d<4, 5, 6, 7, 20, 21, 22, 23, 36, 37, 38, 39, 52, 53, 54, 55>(data);
-         values[i_pcolumnv_b(0, 2, block_k, n_blocks)] = gather16d<8, 9, 10, 11, 24, 25, 26, 27, 40, 41, 42, 43, 56, 57, 58, 59>(data);
-         values[i_pcolumnv_b(0, 3, block_k, n_blocks)] = gather16d<12, 13, 14, 15, 28, 29, 30, 31, 44, 45, 46, 47, 60, 61, 62, 63>(data);
    #elif defined(VEC_FALLBACK_GENERIC) && VECL == 16 
    // WID 4, vecl 16
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = Vec({data[0], data[1], data[2], data[3], data[16], data[17], data[18], data[19], data[32], data[33], data[34], data[35], data[48], data[49], data[50], data[51]});
@@ -360,7 +353,7 @@ cog.outl("#endif")
     if(dimension == 0 ) {
       for (vmesh::LocalID block_k=0; block_k<n_blocks; ++block_k) {
          Realf* __restrict__ data = blockContainer.getData(vmesh.getLocalID(blocks[block_k]));
-   #ifdef VEC8F_AGNER
+   #if defined(VEC8F_AGNER) && VECL == 8
    // WID 8, vecl 8
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = gather8f<0, 64, 128, 192, 256, 320, 384, 448>(data);
          values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = gather8f<8, 72, 136, 200, 264, 328, 392, 456>(data);
@@ -426,7 +419,7 @@ cog.outl("#endif")
          values[i_pcolumnv_b(5, 7, block_k, n_blocks)] = gather8f<47, 111, 175, 239, 303, 367, 431, 495>(data);
          values[i_pcolumnv_b(6, 7, block_k, n_blocks)] = gather8f<55, 119, 183, 247, 311, 375, 439, 503>(data);
          values[i_pcolumnv_b(7, 7, block_k, n_blocks)] = gather8f<63, 127, 191, 255, 319, 383, 447, 511>(data);
-   #elif VEC8D_AGNER
+   #elif defined(VEC8D_AGNER) && VECL == 8
    // WID 8, vecl 8
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = gather8d<0, 64, 128, 192, 256, 320, 384, 448>(data);
          values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = gather8d<8, 72, 136, 200, 264, 328, 392, 456>(data);
@@ -558,7 +551,7 @@ cog.outl("#endif")
          values[i_pcolumnv_b(5, 7, block_k, n_blocks)] = Vec({data[47], data[111], data[175], data[239], data[303], data[367], data[431], data[495]});
          values[i_pcolumnv_b(6, 7, block_k, n_blocks)] = Vec({data[55], data[119], data[183], data[247], data[311], data[375], data[439], data[503]});
          values[i_pcolumnv_b(7, 7, block_k, n_blocks)] = Vec({data[63], data[127], data[191], data[255], data[319], data[383], data[447], data[511]});
-   #elif VEC16F_AGNER
+   #elif defined(VEC16F_AGNER) && VECL == 16
    // WID 8, vecl 16
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = gather16f<0, 64, 128, 192, 256, 320, 384, 448, 8, 72, 136, 200, 264, 328, 392, 456>(data);
          values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = gather16f<16, 80, 144, 208, 272, 336, 400, 464, 24, 88, 152, 216, 280, 344, 408, 472>(data);
@@ -592,40 +585,6 @@ cog.outl("#endif")
          values[i_pcolumnv_b(1, 7, block_k, n_blocks)] = gather16f<23, 87, 151, 215, 279, 343, 407, 471, 31, 95, 159, 223, 287, 351, 415, 479>(data);
          values[i_pcolumnv_b(2, 7, block_k, n_blocks)] = gather16f<39, 103, 167, 231, 295, 359, 423, 487, 47, 111, 175, 239, 303, 367, 431, 495>(data);
          values[i_pcolumnv_b(3, 7, block_k, n_blocks)] = gather16f<55, 119, 183, 247, 311, 375, 439, 503, 63, 127, 191, 255, 319, 383, 447, 511>(data);
-   #elif VEC16D_AGNER
-   // WID 8, vecl 16
-         values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = gather16d<0, 64, 128, 192, 256, 320, 384, 448, 8, 72, 136, 200, 264, 328, 392, 456>(data);
-         values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = gather16d<16, 80, 144, 208, 272, 336, 400, 464, 24, 88, 152, 216, 280, 344, 408, 472>(data);
-         values[i_pcolumnv_b(2, 0, block_k, n_blocks)] = gather16d<32, 96, 160, 224, 288, 352, 416, 480, 40, 104, 168, 232, 296, 360, 424, 488>(data);
-         values[i_pcolumnv_b(3, 0, block_k, n_blocks)] = gather16d<48, 112, 176, 240, 304, 368, 432, 496, 56, 120, 184, 248, 312, 376, 440, 504>(data);
-         values[i_pcolumnv_b(0, 1, block_k, n_blocks)] = gather16d<1, 65, 129, 193, 257, 321, 385, 449, 9, 73, 137, 201, 265, 329, 393, 457>(data);
-         values[i_pcolumnv_b(1, 1, block_k, n_blocks)] = gather16d<17, 81, 145, 209, 273, 337, 401, 465, 25, 89, 153, 217, 281, 345, 409, 473>(data);
-         values[i_pcolumnv_b(2, 1, block_k, n_blocks)] = gather16d<33, 97, 161, 225, 289, 353, 417, 481, 41, 105, 169, 233, 297, 361, 425, 489>(data);
-         values[i_pcolumnv_b(3, 1, block_k, n_blocks)] = gather16d<49, 113, 177, 241, 305, 369, 433, 497, 57, 121, 185, 249, 313, 377, 441, 505>(data);
-         values[i_pcolumnv_b(0, 2, block_k, n_blocks)] = gather16d<2, 66, 130, 194, 258, 322, 386, 450, 10, 74, 138, 202, 266, 330, 394, 458>(data);
-         values[i_pcolumnv_b(1, 2, block_k, n_blocks)] = gather16d<18, 82, 146, 210, 274, 338, 402, 466, 26, 90, 154, 218, 282, 346, 410, 474>(data);
-         values[i_pcolumnv_b(2, 2, block_k, n_blocks)] = gather16d<34, 98, 162, 226, 290, 354, 418, 482, 42, 106, 170, 234, 298, 362, 426, 490>(data);
-         values[i_pcolumnv_b(3, 2, block_k, n_blocks)] = gather16d<50, 114, 178, 242, 306, 370, 434, 498, 58, 122, 186, 250, 314, 378, 442, 506>(data);
-         values[i_pcolumnv_b(0, 3, block_k, n_blocks)] = gather16d<3, 67, 131, 195, 259, 323, 387, 451, 11, 75, 139, 203, 267, 331, 395, 459>(data);
-         values[i_pcolumnv_b(1, 3, block_k, n_blocks)] = gather16d<19, 83, 147, 211, 275, 339, 403, 467, 27, 91, 155, 219, 283, 347, 411, 475>(data);
-         values[i_pcolumnv_b(2, 3, block_k, n_blocks)] = gather16d<35, 99, 163, 227, 291, 355, 419, 483, 43, 107, 171, 235, 299, 363, 427, 491>(data);
-         values[i_pcolumnv_b(3, 3, block_k, n_blocks)] = gather16d<51, 115, 179, 243, 307, 371, 435, 499, 59, 123, 187, 251, 315, 379, 443, 507>(data);
-         values[i_pcolumnv_b(0, 4, block_k, n_blocks)] = gather16d<4, 68, 132, 196, 260, 324, 388, 452, 12, 76, 140, 204, 268, 332, 396, 460>(data);
-         values[i_pcolumnv_b(1, 4, block_k, n_blocks)] = gather16d<20, 84, 148, 212, 276, 340, 404, 468, 28, 92, 156, 220, 284, 348, 412, 476>(data);
-         values[i_pcolumnv_b(2, 4, block_k, n_blocks)] = gather16d<36, 100, 164, 228, 292, 356, 420, 484, 44, 108, 172, 236, 300, 364, 428, 492>(data);
-         values[i_pcolumnv_b(3, 4, block_k, n_blocks)] = gather16d<52, 116, 180, 244, 308, 372, 436, 500, 60, 124, 188, 252, 316, 380, 444, 508>(data);
-         values[i_pcolumnv_b(0, 5, block_k, n_blocks)] = gather16d<5, 69, 133, 197, 261, 325, 389, 453, 13, 77, 141, 205, 269, 333, 397, 461>(data);
-         values[i_pcolumnv_b(1, 5, block_k, n_blocks)] = gather16d<21, 85, 149, 213, 277, 341, 405, 469, 29, 93, 157, 221, 285, 349, 413, 477>(data);
-         values[i_pcolumnv_b(2, 5, block_k, n_blocks)] = gather16d<37, 101, 165, 229, 293, 357, 421, 485, 45, 109, 173, 237, 301, 365, 429, 493>(data);
-         values[i_pcolumnv_b(3, 5, block_k, n_blocks)] = gather16d<53, 117, 181, 245, 309, 373, 437, 501, 61, 125, 189, 253, 317, 381, 445, 509>(data);
-         values[i_pcolumnv_b(0, 6, block_k, n_blocks)] = gather16d<6, 70, 134, 198, 262, 326, 390, 454, 14, 78, 142, 206, 270, 334, 398, 462>(data);
-         values[i_pcolumnv_b(1, 6, block_k, n_blocks)] = gather16d<22, 86, 150, 214, 278, 342, 406, 470, 30, 94, 158, 222, 286, 350, 414, 478>(data);
-         values[i_pcolumnv_b(2, 6, block_k, n_blocks)] = gather16d<38, 102, 166, 230, 294, 358, 422, 486, 46, 110, 174, 238, 302, 366, 430, 494>(data);
-         values[i_pcolumnv_b(3, 6, block_k, n_blocks)] = gather16d<54, 118, 182, 246, 310, 374, 438, 502, 62, 126, 190, 254, 318, 382, 446, 510>(data);
-         values[i_pcolumnv_b(0, 7, block_k, n_blocks)] = gather16d<7, 71, 135, 199, 263, 327, 391, 455, 15, 79, 143, 207, 271, 335, 399, 463>(data);
-         values[i_pcolumnv_b(1, 7, block_k, n_blocks)] = gather16d<23, 87, 151, 215, 279, 343, 407, 471, 31, 95, 159, 223, 287, 351, 415, 479>(data);
-         values[i_pcolumnv_b(2, 7, block_k, n_blocks)] = gather16d<39, 103, 167, 231, 295, 359, 423, 487, 47, 111, 175, 239, 303, 367, 431, 495>(data);
-         values[i_pcolumnv_b(3, 7, block_k, n_blocks)] = gather16d<55, 119, 183, 247, 311, 375, 439, 503, 63, 127, 191, 255, 319, 383, 447, 511>(data);
    #elif defined(VEC_FALLBACK_GENERIC) && VECL == 16 
    // WID 8, vecl 16
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = Vec({data[0], data[64], data[128], data[192], data[256], data[320], data[384], data[448], data[8], data[72], data[136], data[200], data[264], data[328], data[392], data[456]});
@@ -660,42 +619,6 @@ cog.outl("#endif")
          values[i_pcolumnv_b(1, 7, block_k, n_blocks)] = Vec({data[23], data[87], data[151], data[215], data[279], data[343], data[407], data[471], data[31], data[95], data[159], data[223], data[287], data[351], data[415], data[479]});
          values[i_pcolumnv_b(2, 7, block_k, n_blocks)] = Vec({data[39], data[103], data[167], data[231], data[295], data[359], data[423], data[487], data[47], data[111], data[175], data[239], data[303], data[367], data[431], data[495]});
          values[i_pcolumnv_b(3, 7, block_k, n_blocks)] = Vec({data[55], data[119], data[183], data[247], data[311], data[375], data[439], data[503], data[63], data[127], data[191], data[255], data[319], data[383], data[447], data[511]});
-   #elif VEC32F_AGNER
-   // WID 8, vecl 32
-         values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = gather32f<0, 64, 128, 192, 256, 320, 384, 448, 8, 72, 136, 200, 264, 328, 392, 456, 16, 80, 144, 208, 272, 336, 400, 464, 24, 88, 152, 216, 280, 344, 408, 472>(data);
-         values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = gather32f<32, 96, 160, 224, 288, 352, 416, 480, 40, 104, 168, 232, 296, 360, 424, 488, 48, 112, 176, 240, 304, 368, 432, 496, 56, 120, 184, 248, 312, 376, 440, 504>(data);
-         values[i_pcolumnv_b(0, 1, block_k, n_blocks)] = gather32f<1, 65, 129, 193, 257, 321, 385, 449, 9, 73, 137, 201, 265, 329, 393, 457, 17, 81, 145, 209, 273, 337, 401, 465, 25, 89, 153, 217, 281, 345, 409, 473>(data);
-         values[i_pcolumnv_b(1, 1, block_k, n_blocks)] = gather32f<33, 97, 161, 225, 289, 353, 417, 481, 41, 105, 169, 233, 297, 361, 425, 489, 49, 113, 177, 241, 305, 369, 433, 497, 57, 121, 185, 249, 313, 377, 441, 505>(data);
-         values[i_pcolumnv_b(0, 2, block_k, n_blocks)] = gather32f<2, 66, 130, 194, 258, 322, 386, 450, 10, 74, 138, 202, 266, 330, 394, 458, 18, 82, 146, 210, 274, 338, 402, 466, 26, 90, 154, 218, 282, 346, 410, 474>(data);
-         values[i_pcolumnv_b(1, 2, block_k, n_blocks)] = gather32f<34, 98, 162, 226, 290, 354, 418, 482, 42, 106, 170, 234, 298, 362, 426, 490, 50, 114, 178, 242, 306, 370, 434, 498, 58, 122, 186, 250, 314, 378, 442, 506>(data);
-         values[i_pcolumnv_b(0, 3, block_k, n_blocks)] = gather32f<3, 67, 131, 195, 259, 323, 387, 451, 11, 75, 139, 203, 267, 331, 395, 459, 19, 83, 147, 211, 275, 339, 403, 467, 27, 91, 155, 219, 283, 347, 411, 475>(data);
-         values[i_pcolumnv_b(1, 3, block_k, n_blocks)] = gather32f<35, 99, 163, 227, 291, 355, 419, 483, 43, 107, 171, 235, 299, 363, 427, 491, 51, 115, 179, 243, 307, 371, 435, 499, 59, 123, 187, 251, 315, 379, 443, 507>(data);
-         values[i_pcolumnv_b(0, 4, block_k, n_blocks)] = gather32f<4, 68, 132, 196, 260, 324, 388, 452, 12, 76, 140, 204, 268, 332, 396, 460, 20, 84, 148, 212, 276, 340, 404, 468, 28, 92, 156, 220, 284, 348, 412, 476>(data);
-         values[i_pcolumnv_b(1, 4, block_k, n_blocks)] = gather32f<36, 100, 164, 228, 292, 356, 420, 484, 44, 108, 172, 236, 300, 364, 428, 492, 52, 116, 180, 244, 308, 372, 436, 500, 60, 124, 188, 252, 316, 380, 444, 508>(data);
-         values[i_pcolumnv_b(0, 5, block_k, n_blocks)] = gather32f<5, 69, 133, 197, 261, 325, 389, 453, 13, 77, 141, 205, 269, 333, 397, 461, 21, 85, 149, 213, 277, 341, 405, 469, 29, 93, 157, 221, 285, 349, 413, 477>(data);
-         values[i_pcolumnv_b(1, 5, block_k, n_blocks)] = gather32f<37, 101, 165, 229, 293, 357, 421, 485, 45, 109, 173, 237, 301, 365, 429, 493, 53, 117, 181, 245, 309, 373, 437, 501, 61, 125, 189, 253, 317, 381, 445, 509>(data);
-         values[i_pcolumnv_b(0, 6, block_k, n_blocks)] = gather32f<6, 70, 134, 198, 262, 326, 390, 454, 14, 78, 142, 206, 270, 334, 398, 462, 22, 86, 150, 214, 278, 342, 406, 470, 30, 94, 158, 222, 286, 350, 414, 478>(data);
-         values[i_pcolumnv_b(1, 6, block_k, n_blocks)] = gather32f<38, 102, 166, 230, 294, 358, 422, 486, 46, 110, 174, 238, 302, 366, 430, 494, 54, 118, 182, 246, 310, 374, 438, 502, 62, 126, 190, 254, 318, 382, 446, 510>(data);
-         values[i_pcolumnv_b(0, 7, block_k, n_blocks)] = gather32f<7, 71, 135, 199, 263, 327, 391, 455, 15, 79, 143, 207, 271, 335, 399, 463, 23, 87, 151, 215, 279, 343, 407, 471, 31, 95, 159, 223, 287, 351, 415, 479>(data);
-         values[i_pcolumnv_b(1, 7, block_k, n_blocks)] = gather32f<39, 103, 167, 231, 295, 359, 423, 487, 47, 111, 175, 239, 303, 367, 431, 495, 55, 119, 183, 247, 311, 375, 439, 503, 63, 127, 191, 255, 319, 383, 447, 511>(data);
-   #elif VEC32D_AGNER
-   // WID 8, vecl 32
-         values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = gather32d<0, 64, 128, 192, 256, 320, 384, 448, 8, 72, 136, 200, 264, 328, 392, 456, 16, 80, 144, 208, 272, 336, 400, 464, 24, 88, 152, 216, 280, 344, 408, 472>(data);
-         values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = gather32d<32, 96, 160, 224, 288, 352, 416, 480, 40, 104, 168, 232, 296, 360, 424, 488, 48, 112, 176, 240, 304, 368, 432, 496, 56, 120, 184, 248, 312, 376, 440, 504>(data);
-         values[i_pcolumnv_b(0, 1, block_k, n_blocks)] = gather32d<1, 65, 129, 193, 257, 321, 385, 449, 9, 73, 137, 201, 265, 329, 393, 457, 17, 81, 145, 209, 273, 337, 401, 465, 25, 89, 153, 217, 281, 345, 409, 473>(data);
-         values[i_pcolumnv_b(1, 1, block_k, n_blocks)] = gather32d<33, 97, 161, 225, 289, 353, 417, 481, 41, 105, 169, 233, 297, 361, 425, 489, 49, 113, 177, 241, 305, 369, 433, 497, 57, 121, 185, 249, 313, 377, 441, 505>(data);
-         values[i_pcolumnv_b(0, 2, block_k, n_blocks)] = gather32d<2, 66, 130, 194, 258, 322, 386, 450, 10, 74, 138, 202, 266, 330, 394, 458, 18, 82, 146, 210, 274, 338, 402, 466, 26, 90, 154, 218, 282, 346, 410, 474>(data);
-         values[i_pcolumnv_b(1, 2, block_k, n_blocks)] = gather32d<34, 98, 162, 226, 290, 354, 418, 482, 42, 106, 170, 234, 298, 362, 426, 490, 50, 114, 178, 242, 306, 370, 434, 498, 58, 122, 186, 250, 314, 378, 442, 506>(data);
-         values[i_pcolumnv_b(0, 3, block_k, n_blocks)] = gather32d<3, 67, 131, 195, 259, 323, 387, 451, 11, 75, 139, 203, 267, 331, 395, 459, 19, 83, 147, 211, 275, 339, 403, 467, 27, 91, 155, 219, 283, 347, 411, 475>(data);
-         values[i_pcolumnv_b(1, 3, block_k, n_blocks)] = gather32d<35, 99, 163, 227, 291, 355, 419, 483, 43, 107, 171, 235, 299, 363, 427, 491, 51, 115, 179, 243, 307, 371, 435, 499, 59, 123, 187, 251, 315, 379, 443, 507>(data);
-         values[i_pcolumnv_b(0, 4, block_k, n_blocks)] = gather32d<4, 68, 132, 196, 260, 324, 388, 452, 12, 76, 140, 204, 268, 332, 396, 460, 20, 84, 148, 212, 276, 340, 404, 468, 28, 92, 156, 220, 284, 348, 412, 476>(data);
-         values[i_pcolumnv_b(1, 4, block_k, n_blocks)] = gather32d<36, 100, 164, 228, 292, 356, 420, 484, 44, 108, 172, 236, 300, 364, 428, 492, 52, 116, 180, 244, 308, 372, 436, 500, 60, 124, 188, 252, 316, 380, 444, 508>(data);
-         values[i_pcolumnv_b(0, 5, block_k, n_blocks)] = gather32d<5, 69, 133, 197, 261, 325, 389, 453, 13, 77, 141, 205, 269, 333, 397, 461, 21, 85, 149, 213, 277, 341, 405, 469, 29, 93, 157, 221, 285, 349, 413, 477>(data);
-         values[i_pcolumnv_b(1, 5, block_k, n_blocks)] = gather32d<37, 101, 165, 229, 293, 357, 421, 485, 45, 109, 173, 237, 301, 365, 429, 493, 53, 117, 181, 245, 309, 373, 437, 501, 61, 125, 189, 253, 317, 381, 445, 509>(data);
-         values[i_pcolumnv_b(0, 6, block_k, n_blocks)] = gather32d<6, 70, 134, 198, 262, 326, 390, 454, 14, 78, 142, 206, 270, 334, 398, 462, 22, 86, 150, 214, 278, 342, 406, 470, 30, 94, 158, 222, 286, 350, 414, 478>(data);
-         values[i_pcolumnv_b(1, 6, block_k, n_blocks)] = gather32d<38, 102, 166, 230, 294, 358, 422, 486, 46, 110, 174, 238, 302, 366, 430, 494, 54, 118, 182, 246, 310, 374, 438, 502, 62, 126, 190, 254, 318, 382, 446, 510>(data);
-         values[i_pcolumnv_b(0, 7, block_k, n_blocks)] = gather32d<7, 71, 135, 199, 263, 327, 391, 455, 15, 79, 143, 207, 271, 335, 399, 463, 23, 87, 151, 215, 279, 343, 407, 471, 31, 95, 159, 223, 287, 351, 415, 479>(data);
-         values[i_pcolumnv_b(1, 7, block_k, n_blocks)] = gather32d<39, 103, 167, 231, 295, 359, 423, 487, 47, 111, 175, 239, 303, 367, 431, 495, 55, 119, 183, 247, 311, 375, 439, 503, 63, 127, 191, 255, 319, 383, 447, 511>(data);
    #elif defined(VEC_FALLBACK_GENERIC) && VECL == 32 
    // WID 8, vecl 32
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = Vec({data[0], data[64], data[128], data[192], data[256], data[320], data[384], data[448], data[8], data[72], data[136], data[200], data[264], data[328], data[392], data[456], data[16], data[80], data[144], data[208], data[272], data[336], data[400], data[464], data[24], data[88], data[152], data[216], data[280], data[344], data[408], data[472]});
@@ -714,26 +637,6 @@ cog.outl("#endif")
          values[i_pcolumnv_b(1, 6, block_k, n_blocks)] = Vec({data[38], data[102], data[166], data[230], data[294], data[358], data[422], data[486], data[46], data[110], data[174], data[238], data[302], data[366], data[430], data[494], data[54], data[118], data[182], data[246], data[310], data[374], data[438], data[502], data[62], data[126], data[190], data[254], data[318], data[382], data[446], data[510]});
          values[i_pcolumnv_b(0, 7, block_k, n_blocks)] = Vec({data[7], data[71], data[135], data[199], data[263], data[327], data[391], data[455], data[15], data[79], data[143], data[207], data[271], data[335], data[399], data[463], data[23], data[87], data[151], data[215], data[279], data[343], data[407], data[471], data[31], data[95], data[159], data[223], data[287], data[351], data[415], data[479]});
          values[i_pcolumnv_b(1, 7, block_k, n_blocks)] = Vec({data[39], data[103], data[167], data[231], data[295], data[359], data[423], data[487], data[47], data[111], data[175], data[239], data[303], data[367], data[431], data[495], data[55], data[119], data[183], data[247], data[311], data[375], data[439], data[503], data[63], data[127], data[191], data[255], data[319], data[383], data[447], data[511]});
-   #elif VEC64F_AGNER
-   // WID 8, vecl 64
-         values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = gather64f<0, 64, 128, 192, 256, 320, 384, 448, 8, 72, 136, 200, 264, 328, 392, 456, 16, 80, 144, 208, 272, 336, 400, 464, 24, 88, 152, 216, 280, 344, 408, 472, 32, 96, 160, 224, 288, 352, 416, 480, 40, 104, 168, 232, 296, 360, 424, 488, 48, 112, 176, 240, 304, 368, 432, 496, 56, 120, 184, 248, 312, 376, 440, 504>(data);
-         values[i_pcolumnv_b(0, 1, block_k, n_blocks)] = gather64f<1, 65, 129, 193, 257, 321, 385, 449, 9, 73, 137, 201, 265, 329, 393, 457, 17, 81, 145, 209, 273, 337, 401, 465, 25, 89, 153, 217, 281, 345, 409, 473, 33, 97, 161, 225, 289, 353, 417, 481, 41, 105, 169, 233, 297, 361, 425, 489, 49, 113, 177, 241, 305, 369, 433, 497, 57, 121, 185, 249, 313, 377, 441, 505>(data);
-         values[i_pcolumnv_b(0, 2, block_k, n_blocks)] = gather64f<2, 66, 130, 194, 258, 322, 386, 450, 10, 74, 138, 202, 266, 330, 394, 458, 18, 82, 146, 210, 274, 338, 402, 466, 26, 90, 154, 218, 282, 346, 410, 474, 34, 98, 162, 226, 290, 354, 418, 482, 42, 106, 170, 234, 298, 362, 426, 490, 50, 114, 178, 242, 306, 370, 434, 498, 58, 122, 186, 250, 314, 378, 442, 506>(data);
-         values[i_pcolumnv_b(0, 3, block_k, n_blocks)] = gather64f<3, 67, 131, 195, 259, 323, 387, 451, 11, 75, 139, 203, 267, 331, 395, 459, 19, 83, 147, 211, 275, 339, 403, 467, 27, 91, 155, 219, 283, 347, 411, 475, 35, 99, 163, 227, 291, 355, 419, 483, 43, 107, 171, 235, 299, 363, 427, 491, 51, 115, 179, 243, 307, 371, 435, 499, 59, 123, 187, 251, 315, 379, 443, 507>(data);
-         values[i_pcolumnv_b(0, 4, block_k, n_blocks)] = gather64f<4, 68, 132, 196, 260, 324, 388, 452, 12, 76, 140, 204, 268, 332, 396, 460, 20, 84, 148, 212, 276, 340, 404, 468, 28, 92, 156, 220, 284, 348, 412, 476, 36, 100, 164, 228, 292, 356, 420, 484, 44, 108, 172, 236, 300, 364, 428, 492, 52, 116, 180, 244, 308, 372, 436, 500, 60, 124, 188, 252, 316, 380, 444, 508>(data);
-         values[i_pcolumnv_b(0, 5, block_k, n_blocks)] = gather64f<5, 69, 133, 197, 261, 325, 389, 453, 13, 77, 141, 205, 269, 333, 397, 461, 21, 85, 149, 213, 277, 341, 405, 469, 29, 93, 157, 221, 285, 349, 413, 477, 37, 101, 165, 229, 293, 357, 421, 485, 45, 109, 173, 237, 301, 365, 429, 493, 53, 117, 181, 245, 309, 373, 437, 501, 61, 125, 189, 253, 317, 381, 445, 509>(data);
-         values[i_pcolumnv_b(0, 6, block_k, n_blocks)] = gather64f<6, 70, 134, 198, 262, 326, 390, 454, 14, 78, 142, 206, 270, 334, 398, 462, 22, 86, 150, 214, 278, 342, 406, 470, 30, 94, 158, 222, 286, 350, 414, 478, 38, 102, 166, 230, 294, 358, 422, 486, 46, 110, 174, 238, 302, 366, 430, 494, 54, 118, 182, 246, 310, 374, 438, 502, 62, 126, 190, 254, 318, 382, 446, 510>(data);
-         values[i_pcolumnv_b(0, 7, block_k, n_blocks)] = gather64f<7, 71, 135, 199, 263, 327, 391, 455, 15, 79, 143, 207, 271, 335, 399, 463, 23, 87, 151, 215, 279, 343, 407, 471, 31, 95, 159, 223, 287, 351, 415, 479, 39, 103, 167, 231, 295, 359, 423, 487, 47, 111, 175, 239, 303, 367, 431, 495, 55, 119, 183, 247, 311, 375, 439, 503, 63, 127, 191, 255, 319, 383, 447, 511>(data);
-   #elif VEC64D_AGNER
-   // WID 8, vecl 64
-         values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = gather64d<0, 64, 128, 192, 256, 320, 384, 448, 8, 72, 136, 200, 264, 328, 392, 456, 16, 80, 144, 208, 272, 336, 400, 464, 24, 88, 152, 216, 280, 344, 408, 472, 32, 96, 160, 224, 288, 352, 416, 480, 40, 104, 168, 232, 296, 360, 424, 488, 48, 112, 176, 240, 304, 368, 432, 496, 56, 120, 184, 248, 312, 376, 440, 504>(data);
-         values[i_pcolumnv_b(0, 1, block_k, n_blocks)] = gather64d<1, 65, 129, 193, 257, 321, 385, 449, 9, 73, 137, 201, 265, 329, 393, 457, 17, 81, 145, 209, 273, 337, 401, 465, 25, 89, 153, 217, 281, 345, 409, 473, 33, 97, 161, 225, 289, 353, 417, 481, 41, 105, 169, 233, 297, 361, 425, 489, 49, 113, 177, 241, 305, 369, 433, 497, 57, 121, 185, 249, 313, 377, 441, 505>(data);
-         values[i_pcolumnv_b(0, 2, block_k, n_blocks)] = gather64d<2, 66, 130, 194, 258, 322, 386, 450, 10, 74, 138, 202, 266, 330, 394, 458, 18, 82, 146, 210, 274, 338, 402, 466, 26, 90, 154, 218, 282, 346, 410, 474, 34, 98, 162, 226, 290, 354, 418, 482, 42, 106, 170, 234, 298, 362, 426, 490, 50, 114, 178, 242, 306, 370, 434, 498, 58, 122, 186, 250, 314, 378, 442, 506>(data);
-         values[i_pcolumnv_b(0, 3, block_k, n_blocks)] = gather64d<3, 67, 131, 195, 259, 323, 387, 451, 11, 75, 139, 203, 267, 331, 395, 459, 19, 83, 147, 211, 275, 339, 403, 467, 27, 91, 155, 219, 283, 347, 411, 475, 35, 99, 163, 227, 291, 355, 419, 483, 43, 107, 171, 235, 299, 363, 427, 491, 51, 115, 179, 243, 307, 371, 435, 499, 59, 123, 187, 251, 315, 379, 443, 507>(data);
-         values[i_pcolumnv_b(0, 4, block_k, n_blocks)] = gather64d<4, 68, 132, 196, 260, 324, 388, 452, 12, 76, 140, 204, 268, 332, 396, 460, 20, 84, 148, 212, 276, 340, 404, 468, 28, 92, 156, 220, 284, 348, 412, 476, 36, 100, 164, 228, 292, 356, 420, 484, 44, 108, 172, 236, 300, 364, 428, 492, 52, 116, 180, 244, 308, 372, 436, 500, 60, 124, 188, 252, 316, 380, 444, 508>(data);
-         values[i_pcolumnv_b(0, 5, block_k, n_blocks)] = gather64d<5, 69, 133, 197, 261, 325, 389, 453, 13, 77, 141, 205, 269, 333, 397, 461, 21, 85, 149, 213, 277, 341, 405, 469, 29, 93, 157, 221, 285, 349, 413, 477, 37, 101, 165, 229, 293, 357, 421, 485, 45, 109, 173, 237, 301, 365, 429, 493, 53, 117, 181, 245, 309, 373, 437, 501, 61, 125, 189, 253, 317, 381, 445, 509>(data);
-         values[i_pcolumnv_b(0, 6, block_k, n_blocks)] = gather64d<6, 70, 134, 198, 262, 326, 390, 454, 14, 78, 142, 206, 270, 334, 398, 462, 22, 86, 150, 214, 278, 342, 406, 470, 30, 94, 158, 222, 286, 350, 414, 478, 38, 102, 166, 230, 294, 358, 422, 486, 46, 110, 174, 238, 302, 366, 430, 494, 54, 118, 182, 246, 310, 374, 438, 502, 62, 126, 190, 254, 318, 382, 446, 510>(data);
-         values[i_pcolumnv_b(0, 7, block_k, n_blocks)] = gather64d<7, 71, 135, 199, 263, 327, 391, 455, 15, 79, 143, 207, 271, 335, 399, 463, 23, 87, 151, 215, 279, 343, 407, 471, 31, 95, 159, 223, 287, 351, 415, 479, 39, 103, 167, 231, 295, 359, 423, 487, 47, 111, 175, 239, 303, 367, 431, 495, 55, 119, 183, 247, 311, 375, 439, 503, 63, 127, 191, 255, 319, 383, 447, 511>(data);
    #elif defined(VEC_FALLBACK_GENERIC) && VECL == 64 
    // WID 8, vecl 64
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = Vec({data[0], data[64], data[128], data[192], data[256], data[320], data[384], data[448], data[8], data[72], data[136], data[200], data[264], data[328], data[392], data[456], data[16], data[80], data[144], data[208], data[272], data[336], data[400], data[464], data[24], data[88], data[152], data[216], data[280], data[344], data[408], data[472], data[32], data[96], data[160], data[224], data[288], data[352], data[416], data[480], data[40], data[104], data[168], data[232], data[296], data[360], data[424], data[488], data[48], data[112], data[176], data[240], data[304], data[368], data[432], data[496], data[56], data[120], data[184], data[248], data[312], data[376], data[440], data[504]});
@@ -757,7 +660,7 @@ cog.outl("#endif")
     if(dimension == 1 ) {
       for (vmesh::LocalID block_k=0; block_k<n_blocks; ++block_k) {
          Realf* __restrict__ data = blockContainer.getData(vmesh.getLocalID(blocks[block_k]));
-   #ifdef VEC8F_AGNER
+   #if defined(VEC8F_AGNER) && VECL == 8
    // WID 8, vecl 8
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = gather8f<0, 1, 2, 3, 4, 5, 6, 7>(data);
          values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = gather8f<64, 65, 66, 67, 68, 69, 70, 71>(data);
@@ -823,7 +726,7 @@ cog.outl("#endif")
          values[i_pcolumnv_b(5, 7, block_k, n_blocks)] = gather8f<376, 377, 378, 379, 380, 381, 382, 383>(data);
          values[i_pcolumnv_b(6, 7, block_k, n_blocks)] = gather8f<440, 441, 442, 443, 444, 445, 446, 447>(data);
          values[i_pcolumnv_b(7, 7, block_k, n_blocks)] = gather8f<504, 505, 506, 507, 508, 509, 510, 511>(data);
-   #elif VEC8D_AGNER
+   #elif defined(VEC8D_AGNER) && VECL == 8
    // WID 8, vecl 8
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = gather8d<0, 1, 2, 3, 4, 5, 6, 7>(data);
          values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = gather8d<64, 65, 66, 67, 68, 69, 70, 71>(data);
@@ -955,7 +858,7 @@ cog.outl("#endif")
          values[i_pcolumnv_b(5, 7, block_k, n_blocks)] = Vec({data[376], data[377], data[378], data[379], data[380], data[381], data[382], data[383]});
          values[i_pcolumnv_b(6, 7, block_k, n_blocks)] = Vec({data[440], data[441], data[442], data[443], data[444], data[445], data[446], data[447]});
          values[i_pcolumnv_b(7, 7, block_k, n_blocks)] = Vec({data[504], data[505], data[506], data[507], data[508], data[509], data[510], data[511]});
-   #elif VEC16F_AGNER
+   #elif defined(VEC16F_AGNER) && VECL == 16
    // WID 8, vecl 16
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = gather16f<0, 1, 2, 3, 4, 5, 6, 7, 64, 65, 66, 67, 68, 69, 70, 71>(data);
          values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = gather16f<128, 129, 130, 131, 132, 133, 134, 135, 192, 193, 194, 195, 196, 197, 198, 199>(data);
@@ -989,40 +892,6 @@ cog.outl("#endif")
          values[i_pcolumnv_b(1, 7, block_k, n_blocks)] = gather16f<184, 185, 186, 187, 188, 189, 190, 191, 248, 249, 250, 251, 252, 253, 254, 255>(data);
          values[i_pcolumnv_b(2, 7, block_k, n_blocks)] = gather16f<312, 313, 314, 315, 316, 317, 318, 319, 376, 377, 378, 379, 380, 381, 382, 383>(data);
          values[i_pcolumnv_b(3, 7, block_k, n_blocks)] = gather16f<440, 441, 442, 443, 444, 445, 446, 447, 504, 505, 506, 507, 508, 509, 510, 511>(data);
-   #elif VEC16D_AGNER
-   // WID 8, vecl 16
-         values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = gather16d<0, 1, 2, 3, 4, 5, 6, 7, 64, 65, 66, 67, 68, 69, 70, 71>(data);
-         values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = gather16d<128, 129, 130, 131, 132, 133, 134, 135, 192, 193, 194, 195, 196, 197, 198, 199>(data);
-         values[i_pcolumnv_b(2, 0, block_k, n_blocks)] = gather16d<256, 257, 258, 259, 260, 261, 262, 263, 320, 321, 322, 323, 324, 325, 326, 327>(data);
-         values[i_pcolumnv_b(3, 0, block_k, n_blocks)] = gather16d<384, 385, 386, 387, 388, 389, 390, 391, 448, 449, 450, 451, 452, 453, 454, 455>(data);
-         values[i_pcolumnv_b(0, 1, block_k, n_blocks)] = gather16d<8, 9, 10, 11, 12, 13, 14, 15, 72, 73, 74, 75, 76, 77, 78, 79>(data);
-         values[i_pcolumnv_b(1, 1, block_k, n_blocks)] = gather16d<136, 137, 138, 139, 140, 141, 142, 143, 200, 201, 202, 203, 204, 205, 206, 207>(data);
-         values[i_pcolumnv_b(2, 1, block_k, n_blocks)] = gather16d<264, 265, 266, 267, 268, 269, 270, 271, 328, 329, 330, 331, 332, 333, 334, 335>(data);
-         values[i_pcolumnv_b(3, 1, block_k, n_blocks)] = gather16d<392, 393, 394, 395, 396, 397, 398, 399, 456, 457, 458, 459, 460, 461, 462, 463>(data);
-         values[i_pcolumnv_b(0, 2, block_k, n_blocks)] = gather16d<16, 17, 18, 19, 20, 21, 22, 23, 80, 81, 82, 83, 84, 85, 86, 87>(data);
-         values[i_pcolumnv_b(1, 2, block_k, n_blocks)] = gather16d<144, 145, 146, 147, 148, 149, 150, 151, 208, 209, 210, 211, 212, 213, 214, 215>(data);
-         values[i_pcolumnv_b(2, 2, block_k, n_blocks)] = gather16d<272, 273, 274, 275, 276, 277, 278, 279, 336, 337, 338, 339, 340, 341, 342, 343>(data);
-         values[i_pcolumnv_b(3, 2, block_k, n_blocks)] = gather16d<400, 401, 402, 403, 404, 405, 406, 407, 464, 465, 466, 467, 468, 469, 470, 471>(data);
-         values[i_pcolumnv_b(0, 3, block_k, n_blocks)] = gather16d<24, 25, 26, 27, 28, 29, 30, 31, 88, 89, 90, 91, 92, 93, 94, 95>(data);
-         values[i_pcolumnv_b(1, 3, block_k, n_blocks)] = gather16d<152, 153, 154, 155, 156, 157, 158, 159, 216, 217, 218, 219, 220, 221, 222, 223>(data);
-         values[i_pcolumnv_b(2, 3, block_k, n_blocks)] = gather16d<280, 281, 282, 283, 284, 285, 286, 287, 344, 345, 346, 347, 348, 349, 350, 351>(data);
-         values[i_pcolumnv_b(3, 3, block_k, n_blocks)] = gather16d<408, 409, 410, 411, 412, 413, 414, 415, 472, 473, 474, 475, 476, 477, 478, 479>(data);
-         values[i_pcolumnv_b(0, 4, block_k, n_blocks)] = gather16d<32, 33, 34, 35, 36, 37, 38, 39, 96, 97, 98, 99, 100, 101, 102, 103>(data);
-         values[i_pcolumnv_b(1, 4, block_k, n_blocks)] = gather16d<160, 161, 162, 163, 164, 165, 166, 167, 224, 225, 226, 227, 228, 229, 230, 231>(data);
-         values[i_pcolumnv_b(2, 4, block_k, n_blocks)] = gather16d<288, 289, 290, 291, 292, 293, 294, 295, 352, 353, 354, 355, 356, 357, 358, 359>(data);
-         values[i_pcolumnv_b(3, 4, block_k, n_blocks)] = gather16d<416, 417, 418, 419, 420, 421, 422, 423, 480, 481, 482, 483, 484, 485, 486, 487>(data);
-         values[i_pcolumnv_b(0, 5, block_k, n_blocks)] = gather16d<40, 41, 42, 43, 44, 45, 46, 47, 104, 105, 106, 107, 108, 109, 110, 111>(data);
-         values[i_pcolumnv_b(1, 5, block_k, n_blocks)] = gather16d<168, 169, 170, 171, 172, 173, 174, 175, 232, 233, 234, 235, 236, 237, 238, 239>(data);
-         values[i_pcolumnv_b(2, 5, block_k, n_blocks)] = gather16d<296, 297, 298, 299, 300, 301, 302, 303, 360, 361, 362, 363, 364, 365, 366, 367>(data);
-         values[i_pcolumnv_b(3, 5, block_k, n_blocks)] = gather16d<424, 425, 426, 427, 428, 429, 430, 431, 488, 489, 490, 491, 492, 493, 494, 495>(data);
-         values[i_pcolumnv_b(0, 6, block_k, n_blocks)] = gather16d<48, 49, 50, 51, 52, 53, 54, 55, 112, 113, 114, 115, 116, 117, 118, 119>(data);
-         values[i_pcolumnv_b(1, 6, block_k, n_blocks)] = gather16d<176, 177, 178, 179, 180, 181, 182, 183, 240, 241, 242, 243, 244, 245, 246, 247>(data);
-         values[i_pcolumnv_b(2, 6, block_k, n_blocks)] = gather16d<304, 305, 306, 307, 308, 309, 310, 311, 368, 369, 370, 371, 372, 373, 374, 375>(data);
-         values[i_pcolumnv_b(3, 6, block_k, n_blocks)] = gather16d<432, 433, 434, 435, 436, 437, 438, 439, 496, 497, 498, 499, 500, 501, 502, 503>(data);
-         values[i_pcolumnv_b(0, 7, block_k, n_blocks)] = gather16d<56, 57, 58, 59, 60, 61, 62, 63, 120, 121, 122, 123, 124, 125, 126, 127>(data);
-         values[i_pcolumnv_b(1, 7, block_k, n_blocks)] = gather16d<184, 185, 186, 187, 188, 189, 190, 191, 248, 249, 250, 251, 252, 253, 254, 255>(data);
-         values[i_pcolumnv_b(2, 7, block_k, n_blocks)] = gather16d<312, 313, 314, 315, 316, 317, 318, 319, 376, 377, 378, 379, 380, 381, 382, 383>(data);
-         values[i_pcolumnv_b(3, 7, block_k, n_blocks)] = gather16d<440, 441, 442, 443, 444, 445, 446, 447, 504, 505, 506, 507, 508, 509, 510, 511>(data);
    #elif defined(VEC_FALLBACK_GENERIC) && VECL == 16 
    // WID 8, vecl 16
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = Vec({data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[64], data[65], data[66], data[67], data[68], data[69], data[70], data[71]});
@@ -1057,42 +926,6 @@ cog.outl("#endif")
          values[i_pcolumnv_b(1, 7, block_k, n_blocks)] = Vec({data[184], data[185], data[186], data[187], data[188], data[189], data[190], data[191], data[248], data[249], data[250], data[251], data[252], data[253], data[254], data[255]});
          values[i_pcolumnv_b(2, 7, block_k, n_blocks)] = Vec({data[312], data[313], data[314], data[315], data[316], data[317], data[318], data[319], data[376], data[377], data[378], data[379], data[380], data[381], data[382], data[383]});
          values[i_pcolumnv_b(3, 7, block_k, n_blocks)] = Vec({data[440], data[441], data[442], data[443], data[444], data[445], data[446], data[447], data[504], data[505], data[506], data[507], data[508], data[509], data[510], data[511]});
-   #elif VEC32F_AGNER
-   // WID 8, vecl 32
-         values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = gather32f<0, 1, 2, 3, 4, 5, 6, 7, 64, 65, 66, 67, 68, 69, 70, 71, 128, 129, 130, 131, 132, 133, 134, 135, 192, 193, 194, 195, 196, 197, 198, 199>(data);
-         values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = gather32f<256, 257, 258, 259, 260, 261, 262, 263, 320, 321, 322, 323, 324, 325, 326, 327, 384, 385, 386, 387, 388, 389, 390, 391, 448, 449, 450, 451, 452, 453, 454, 455>(data);
-         values[i_pcolumnv_b(0, 1, block_k, n_blocks)] = gather32f<8, 9, 10, 11, 12, 13, 14, 15, 72, 73, 74, 75, 76, 77, 78, 79, 136, 137, 138, 139, 140, 141, 142, 143, 200, 201, 202, 203, 204, 205, 206, 207>(data);
-         values[i_pcolumnv_b(1, 1, block_k, n_blocks)] = gather32f<264, 265, 266, 267, 268, 269, 270, 271, 328, 329, 330, 331, 332, 333, 334, 335, 392, 393, 394, 395, 396, 397, 398, 399, 456, 457, 458, 459, 460, 461, 462, 463>(data);
-         values[i_pcolumnv_b(0, 2, block_k, n_blocks)] = gather32f<16, 17, 18, 19, 20, 21, 22, 23, 80, 81, 82, 83, 84, 85, 86, 87, 144, 145, 146, 147, 148, 149, 150, 151, 208, 209, 210, 211, 212, 213, 214, 215>(data);
-         values[i_pcolumnv_b(1, 2, block_k, n_blocks)] = gather32f<272, 273, 274, 275, 276, 277, 278, 279, 336, 337, 338, 339, 340, 341, 342, 343, 400, 401, 402, 403, 404, 405, 406, 407, 464, 465, 466, 467, 468, 469, 470, 471>(data);
-         values[i_pcolumnv_b(0, 3, block_k, n_blocks)] = gather32f<24, 25, 26, 27, 28, 29, 30, 31, 88, 89, 90, 91, 92, 93, 94, 95, 152, 153, 154, 155, 156, 157, 158, 159, 216, 217, 218, 219, 220, 221, 222, 223>(data);
-         values[i_pcolumnv_b(1, 3, block_k, n_blocks)] = gather32f<280, 281, 282, 283, 284, 285, 286, 287, 344, 345, 346, 347, 348, 349, 350, 351, 408, 409, 410, 411, 412, 413, 414, 415, 472, 473, 474, 475, 476, 477, 478, 479>(data);
-         values[i_pcolumnv_b(0, 4, block_k, n_blocks)] = gather32f<32, 33, 34, 35, 36, 37, 38, 39, 96, 97, 98, 99, 100, 101, 102, 103, 160, 161, 162, 163, 164, 165, 166, 167, 224, 225, 226, 227, 228, 229, 230, 231>(data);
-         values[i_pcolumnv_b(1, 4, block_k, n_blocks)] = gather32f<288, 289, 290, 291, 292, 293, 294, 295, 352, 353, 354, 355, 356, 357, 358, 359, 416, 417, 418, 419, 420, 421, 422, 423, 480, 481, 482, 483, 484, 485, 486, 487>(data);
-         values[i_pcolumnv_b(0, 5, block_k, n_blocks)] = gather32f<40, 41, 42, 43, 44, 45, 46, 47, 104, 105, 106, 107, 108, 109, 110, 111, 168, 169, 170, 171, 172, 173, 174, 175, 232, 233, 234, 235, 236, 237, 238, 239>(data);
-         values[i_pcolumnv_b(1, 5, block_k, n_blocks)] = gather32f<296, 297, 298, 299, 300, 301, 302, 303, 360, 361, 362, 363, 364, 365, 366, 367, 424, 425, 426, 427, 428, 429, 430, 431, 488, 489, 490, 491, 492, 493, 494, 495>(data);
-         values[i_pcolumnv_b(0, 6, block_k, n_blocks)] = gather32f<48, 49, 50, 51, 52, 53, 54, 55, 112, 113, 114, 115, 116, 117, 118, 119, 176, 177, 178, 179, 180, 181, 182, 183, 240, 241, 242, 243, 244, 245, 246, 247>(data);
-         values[i_pcolumnv_b(1, 6, block_k, n_blocks)] = gather32f<304, 305, 306, 307, 308, 309, 310, 311, 368, 369, 370, 371, 372, 373, 374, 375, 432, 433, 434, 435, 436, 437, 438, 439, 496, 497, 498, 499, 500, 501, 502, 503>(data);
-         values[i_pcolumnv_b(0, 7, block_k, n_blocks)] = gather32f<56, 57, 58, 59, 60, 61, 62, 63, 120, 121, 122, 123, 124, 125, 126, 127, 184, 185, 186, 187, 188, 189, 190, 191, 248, 249, 250, 251, 252, 253, 254, 255>(data);
-         values[i_pcolumnv_b(1, 7, block_k, n_blocks)] = gather32f<312, 313, 314, 315, 316, 317, 318, 319, 376, 377, 378, 379, 380, 381, 382, 383, 440, 441, 442, 443, 444, 445, 446, 447, 504, 505, 506, 507, 508, 509, 510, 511>(data);
-   #elif VEC32D_AGNER
-   // WID 8, vecl 32
-         values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = gather32d<0, 1, 2, 3, 4, 5, 6, 7, 64, 65, 66, 67, 68, 69, 70, 71, 128, 129, 130, 131, 132, 133, 134, 135, 192, 193, 194, 195, 196, 197, 198, 199>(data);
-         values[i_pcolumnv_b(1, 0, block_k, n_blocks)] = gather32d<256, 257, 258, 259, 260, 261, 262, 263, 320, 321, 322, 323, 324, 325, 326, 327, 384, 385, 386, 387, 388, 389, 390, 391, 448, 449, 450, 451, 452, 453, 454, 455>(data);
-         values[i_pcolumnv_b(0, 1, block_k, n_blocks)] = gather32d<8, 9, 10, 11, 12, 13, 14, 15, 72, 73, 74, 75, 76, 77, 78, 79, 136, 137, 138, 139, 140, 141, 142, 143, 200, 201, 202, 203, 204, 205, 206, 207>(data);
-         values[i_pcolumnv_b(1, 1, block_k, n_blocks)] = gather32d<264, 265, 266, 267, 268, 269, 270, 271, 328, 329, 330, 331, 332, 333, 334, 335, 392, 393, 394, 395, 396, 397, 398, 399, 456, 457, 458, 459, 460, 461, 462, 463>(data);
-         values[i_pcolumnv_b(0, 2, block_k, n_blocks)] = gather32d<16, 17, 18, 19, 20, 21, 22, 23, 80, 81, 82, 83, 84, 85, 86, 87, 144, 145, 146, 147, 148, 149, 150, 151, 208, 209, 210, 211, 212, 213, 214, 215>(data);
-         values[i_pcolumnv_b(1, 2, block_k, n_blocks)] = gather32d<272, 273, 274, 275, 276, 277, 278, 279, 336, 337, 338, 339, 340, 341, 342, 343, 400, 401, 402, 403, 404, 405, 406, 407, 464, 465, 466, 467, 468, 469, 470, 471>(data);
-         values[i_pcolumnv_b(0, 3, block_k, n_blocks)] = gather32d<24, 25, 26, 27, 28, 29, 30, 31, 88, 89, 90, 91, 92, 93, 94, 95, 152, 153, 154, 155, 156, 157, 158, 159, 216, 217, 218, 219, 220, 221, 222, 223>(data);
-         values[i_pcolumnv_b(1, 3, block_k, n_blocks)] = gather32d<280, 281, 282, 283, 284, 285, 286, 287, 344, 345, 346, 347, 348, 349, 350, 351, 408, 409, 410, 411, 412, 413, 414, 415, 472, 473, 474, 475, 476, 477, 478, 479>(data);
-         values[i_pcolumnv_b(0, 4, block_k, n_blocks)] = gather32d<32, 33, 34, 35, 36, 37, 38, 39, 96, 97, 98, 99, 100, 101, 102, 103, 160, 161, 162, 163, 164, 165, 166, 167, 224, 225, 226, 227, 228, 229, 230, 231>(data);
-         values[i_pcolumnv_b(1, 4, block_k, n_blocks)] = gather32d<288, 289, 290, 291, 292, 293, 294, 295, 352, 353, 354, 355, 356, 357, 358, 359, 416, 417, 418, 419, 420, 421, 422, 423, 480, 481, 482, 483, 484, 485, 486, 487>(data);
-         values[i_pcolumnv_b(0, 5, block_k, n_blocks)] = gather32d<40, 41, 42, 43, 44, 45, 46, 47, 104, 105, 106, 107, 108, 109, 110, 111, 168, 169, 170, 171, 172, 173, 174, 175, 232, 233, 234, 235, 236, 237, 238, 239>(data);
-         values[i_pcolumnv_b(1, 5, block_k, n_blocks)] = gather32d<296, 297, 298, 299, 300, 301, 302, 303, 360, 361, 362, 363, 364, 365, 366, 367, 424, 425, 426, 427, 428, 429, 430, 431, 488, 489, 490, 491, 492, 493, 494, 495>(data);
-         values[i_pcolumnv_b(0, 6, block_k, n_blocks)] = gather32d<48, 49, 50, 51, 52, 53, 54, 55, 112, 113, 114, 115, 116, 117, 118, 119, 176, 177, 178, 179, 180, 181, 182, 183, 240, 241, 242, 243, 244, 245, 246, 247>(data);
-         values[i_pcolumnv_b(1, 6, block_k, n_blocks)] = gather32d<304, 305, 306, 307, 308, 309, 310, 311, 368, 369, 370, 371, 372, 373, 374, 375, 432, 433, 434, 435, 436, 437, 438, 439, 496, 497, 498, 499, 500, 501, 502, 503>(data);
-         values[i_pcolumnv_b(0, 7, block_k, n_blocks)] = gather32d<56, 57, 58, 59, 60, 61, 62, 63, 120, 121, 122, 123, 124, 125, 126, 127, 184, 185, 186, 187, 188, 189, 190, 191, 248, 249, 250, 251, 252, 253, 254, 255>(data);
-         values[i_pcolumnv_b(1, 7, block_k, n_blocks)] = gather32d<312, 313, 314, 315, 316, 317, 318, 319, 376, 377, 378, 379, 380, 381, 382, 383, 440, 441, 442, 443, 444, 445, 446, 447, 504, 505, 506, 507, 508, 509, 510, 511>(data);
    #elif defined(VEC_FALLBACK_GENERIC) && VECL == 32 
    // WID 8, vecl 32
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = Vec({data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[64], data[65], data[66], data[67], data[68], data[69], data[70], data[71], data[128], data[129], data[130], data[131], data[132], data[133], data[134], data[135], data[192], data[193], data[194], data[195], data[196], data[197], data[198], data[199]});
@@ -1111,26 +944,6 @@ cog.outl("#endif")
          values[i_pcolumnv_b(1, 6, block_k, n_blocks)] = Vec({data[304], data[305], data[306], data[307], data[308], data[309], data[310], data[311], data[368], data[369], data[370], data[371], data[372], data[373], data[374], data[375], data[432], data[433], data[434], data[435], data[436], data[437], data[438], data[439], data[496], data[497], data[498], data[499], data[500], data[501], data[502], data[503]});
          values[i_pcolumnv_b(0, 7, block_k, n_blocks)] = Vec({data[56], data[57], data[58], data[59], data[60], data[61], data[62], data[63], data[120], data[121], data[122], data[123], data[124], data[125], data[126], data[127], data[184], data[185], data[186], data[187], data[188], data[189], data[190], data[191], data[248], data[249], data[250], data[251], data[252], data[253], data[254], data[255]});
          values[i_pcolumnv_b(1, 7, block_k, n_blocks)] = Vec({data[312], data[313], data[314], data[315], data[316], data[317], data[318], data[319], data[376], data[377], data[378], data[379], data[380], data[381], data[382], data[383], data[440], data[441], data[442], data[443], data[444], data[445], data[446], data[447], data[504], data[505], data[506], data[507], data[508], data[509], data[510], data[511]});
-   #elif VEC64F_AGNER
-   // WID 8, vecl 64
-         values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = gather64f<0, 1, 2, 3, 4, 5, 6, 7, 64, 65, 66, 67, 68, 69, 70, 71, 128, 129, 130, 131, 132, 133, 134, 135, 192, 193, 194, 195, 196, 197, 198, 199, 256, 257, 258, 259, 260, 261, 262, 263, 320, 321, 322, 323, 324, 325, 326, 327, 384, 385, 386, 387, 388, 389, 390, 391, 448, 449, 450, 451, 452, 453, 454, 455>(data);
-         values[i_pcolumnv_b(0, 1, block_k, n_blocks)] = gather64f<8, 9, 10, 11, 12, 13, 14, 15, 72, 73, 74, 75, 76, 77, 78, 79, 136, 137, 138, 139, 140, 141, 142, 143, 200, 201, 202, 203, 204, 205, 206, 207, 264, 265, 266, 267, 268, 269, 270, 271, 328, 329, 330, 331, 332, 333, 334, 335, 392, 393, 394, 395, 396, 397, 398, 399, 456, 457, 458, 459, 460, 461, 462, 463>(data);
-         values[i_pcolumnv_b(0, 2, block_k, n_blocks)] = gather64f<16, 17, 18, 19, 20, 21, 22, 23, 80, 81, 82, 83, 84, 85, 86, 87, 144, 145, 146, 147, 148, 149, 150, 151, 208, 209, 210, 211, 212, 213, 214, 215, 272, 273, 274, 275, 276, 277, 278, 279, 336, 337, 338, 339, 340, 341, 342, 343, 400, 401, 402, 403, 404, 405, 406, 407, 464, 465, 466, 467, 468, 469, 470, 471>(data);
-         values[i_pcolumnv_b(0, 3, block_k, n_blocks)] = gather64f<24, 25, 26, 27, 28, 29, 30, 31, 88, 89, 90, 91, 92, 93, 94, 95, 152, 153, 154, 155, 156, 157, 158, 159, 216, 217, 218, 219, 220, 221, 222, 223, 280, 281, 282, 283, 284, 285, 286, 287, 344, 345, 346, 347, 348, 349, 350, 351, 408, 409, 410, 411, 412, 413, 414, 415, 472, 473, 474, 475, 476, 477, 478, 479>(data);
-         values[i_pcolumnv_b(0, 4, block_k, n_blocks)] = gather64f<32, 33, 34, 35, 36, 37, 38, 39, 96, 97, 98, 99, 100, 101, 102, 103, 160, 161, 162, 163, 164, 165, 166, 167, 224, 225, 226, 227, 228, 229, 230, 231, 288, 289, 290, 291, 292, 293, 294, 295, 352, 353, 354, 355, 356, 357, 358, 359, 416, 417, 418, 419, 420, 421, 422, 423, 480, 481, 482, 483, 484, 485, 486, 487>(data);
-         values[i_pcolumnv_b(0, 5, block_k, n_blocks)] = gather64f<40, 41, 42, 43, 44, 45, 46, 47, 104, 105, 106, 107, 108, 109, 110, 111, 168, 169, 170, 171, 172, 173, 174, 175, 232, 233, 234, 235, 236, 237, 238, 239, 296, 297, 298, 299, 300, 301, 302, 303, 360, 361, 362, 363, 364, 365, 366, 367, 424, 425, 426, 427, 428, 429, 430, 431, 488, 489, 490, 491, 492, 493, 494, 495>(data);
-         values[i_pcolumnv_b(0, 6, block_k, n_blocks)] = gather64f<48, 49, 50, 51, 52, 53, 54, 55, 112, 113, 114, 115, 116, 117, 118, 119, 176, 177, 178, 179, 180, 181, 182, 183, 240, 241, 242, 243, 244, 245, 246, 247, 304, 305, 306, 307, 308, 309, 310, 311, 368, 369, 370, 371, 372, 373, 374, 375, 432, 433, 434, 435, 436, 437, 438, 439, 496, 497, 498, 499, 500, 501, 502, 503>(data);
-         values[i_pcolumnv_b(0, 7, block_k, n_blocks)] = gather64f<56, 57, 58, 59, 60, 61, 62, 63, 120, 121, 122, 123, 124, 125, 126, 127, 184, 185, 186, 187, 188, 189, 190, 191, 248, 249, 250, 251, 252, 253, 254, 255, 312, 313, 314, 315, 316, 317, 318, 319, 376, 377, 378, 379, 380, 381, 382, 383, 440, 441, 442, 443, 444, 445, 446, 447, 504, 505, 506, 507, 508, 509, 510, 511>(data);
-   #elif VEC64D_AGNER
-   // WID 8, vecl 64
-         values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = gather64d<0, 1, 2, 3, 4, 5, 6, 7, 64, 65, 66, 67, 68, 69, 70, 71, 128, 129, 130, 131, 132, 133, 134, 135, 192, 193, 194, 195, 196, 197, 198, 199, 256, 257, 258, 259, 260, 261, 262, 263, 320, 321, 322, 323, 324, 325, 326, 327, 384, 385, 386, 387, 388, 389, 390, 391, 448, 449, 450, 451, 452, 453, 454, 455>(data);
-         values[i_pcolumnv_b(0, 1, block_k, n_blocks)] = gather64d<8, 9, 10, 11, 12, 13, 14, 15, 72, 73, 74, 75, 76, 77, 78, 79, 136, 137, 138, 139, 140, 141, 142, 143, 200, 201, 202, 203, 204, 205, 206, 207, 264, 265, 266, 267, 268, 269, 270, 271, 328, 329, 330, 331, 332, 333, 334, 335, 392, 393, 394, 395, 396, 397, 398, 399, 456, 457, 458, 459, 460, 461, 462, 463>(data);
-         values[i_pcolumnv_b(0, 2, block_k, n_blocks)] = gather64d<16, 17, 18, 19, 20, 21, 22, 23, 80, 81, 82, 83, 84, 85, 86, 87, 144, 145, 146, 147, 148, 149, 150, 151, 208, 209, 210, 211, 212, 213, 214, 215, 272, 273, 274, 275, 276, 277, 278, 279, 336, 337, 338, 339, 340, 341, 342, 343, 400, 401, 402, 403, 404, 405, 406, 407, 464, 465, 466, 467, 468, 469, 470, 471>(data);
-         values[i_pcolumnv_b(0, 3, block_k, n_blocks)] = gather64d<24, 25, 26, 27, 28, 29, 30, 31, 88, 89, 90, 91, 92, 93, 94, 95, 152, 153, 154, 155, 156, 157, 158, 159, 216, 217, 218, 219, 220, 221, 222, 223, 280, 281, 282, 283, 284, 285, 286, 287, 344, 345, 346, 347, 348, 349, 350, 351, 408, 409, 410, 411, 412, 413, 414, 415, 472, 473, 474, 475, 476, 477, 478, 479>(data);
-         values[i_pcolumnv_b(0, 4, block_k, n_blocks)] = gather64d<32, 33, 34, 35, 36, 37, 38, 39, 96, 97, 98, 99, 100, 101, 102, 103, 160, 161, 162, 163, 164, 165, 166, 167, 224, 225, 226, 227, 228, 229, 230, 231, 288, 289, 290, 291, 292, 293, 294, 295, 352, 353, 354, 355, 356, 357, 358, 359, 416, 417, 418, 419, 420, 421, 422, 423, 480, 481, 482, 483, 484, 485, 486, 487>(data);
-         values[i_pcolumnv_b(0, 5, block_k, n_blocks)] = gather64d<40, 41, 42, 43, 44, 45, 46, 47, 104, 105, 106, 107, 108, 109, 110, 111, 168, 169, 170, 171, 172, 173, 174, 175, 232, 233, 234, 235, 236, 237, 238, 239, 296, 297, 298, 299, 300, 301, 302, 303, 360, 361, 362, 363, 364, 365, 366, 367, 424, 425, 426, 427, 428, 429, 430, 431, 488, 489, 490, 491, 492, 493, 494, 495>(data);
-         values[i_pcolumnv_b(0, 6, block_k, n_blocks)] = gather64d<48, 49, 50, 51, 52, 53, 54, 55, 112, 113, 114, 115, 116, 117, 118, 119, 176, 177, 178, 179, 180, 181, 182, 183, 240, 241, 242, 243, 244, 245, 246, 247, 304, 305, 306, 307, 308, 309, 310, 311, 368, 369, 370, 371, 372, 373, 374, 375, 432, 433, 434, 435, 436, 437, 438, 439, 496, 497, 498, 499, 500, 501, 502, 503>(data);
-         values[i_pcolumnv_b(0, 7, block_k, n_blocks)] = gather64d<56, 57, 58, 59, 60, 61, 62, 63, 120, 121, 122, 123, 124, 125, 126, 127, 184, 185, 186, 187, 188, 189, 190, 191, 248, 249, 250, 251, 252, 253, 254, 255, 312, 313, 314, 315, 316, 317, 318, 319, 376, 377, 378, 379, 380, 381, 382, 383, 440, 441, 442, 443, 444, 445, 446, 447, 504, 505, 506, 507, 508, 509, 510, 511>(data);
    #elif defined(VEC_FALLBACK_GENERIC) && VECL == 64 
    // WID 8, vecl 64
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = Vec({data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[64], data[65], data[66], data[67], data[68], data[69], data[70], data[71], data[128], data[129], data[130], data[131], data[132], data[133], data[134], data[135], data[192], data[193], data[194], data[195], data[196], data[197], data[198], data[199], data[256], data[257], data[258], data[259], data[260], data[261], data[262], data[263], data[320], data[321], data[322], data[323], data[324], data[325], data[326], data[327], data[384], data[385], data[386], data[387], data[388], data[389], data[390], data[391], data[448], data[449], data[450], data[451], data[452], data[453], data[454], data[455]});
