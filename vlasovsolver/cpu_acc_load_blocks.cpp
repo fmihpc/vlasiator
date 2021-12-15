@@ -66,7 +66,7 @@ for wi, WID in enumerate(WIDs):
                   for i in range(0,WID):
                     cellid_transpose.append(i * cell_indices_to_id[0] +  j * cell_indices_to_id[1] + k * cell_indices_to_id[2])
 
-      cog.outl(" if(dimension == %s) {" % dimension)
+      cog.outl("if(dimension == %s) {" % dimension)
       cog.outl("   for (vmesh::LocalID block_k=0; block_k<n_blocks; ++block_k) {")
       cog.outl("      Realf* __restrict__ data = blockContainer.getData(vmesh.getLocalID(blocks[block_k]));")    
       init = True
@@ -153,16 +153,16 @@ for wi, WID in enumerate(WIDs):
       cog.outl("         data[i]=0;")
       cog.outl("      }")
       cog.outl("   }")                
-      cog.outl(" }")
+      cog.outl("}")
 
 cog.outl("#else")
-cog.outl("  std::cerr << \"Undefined WID (\" <<WID<< \") encountered in \" << __FILE__ << \":\" << __LINE__ << std::endl;")
-cog.outl("  abort();")      
+cog.outl("   std::cerr << \"Undefined WID (\" <<WID<< \") encountered in \" << __FILE__ << \":\" << __LINE__ << std::endl;")
+cog.outl("   abort();")      
 cog.outl("#endif")          
 
     ]]]*/
    #if WID == 4 
-    if(dimension == 0) {
+   if(dimension == 0) {
       for (vmesh::LocalID block_k=0; block_k<n_blocks; ++block_k) {
          Realf* __restrict__ data = blockContainer.getData(vmesh.getLocalID(blocks[block_k]));
    #if (defined(VEC4D_AGNER) || defined(VEC4F_AGNER) || defined(VEC_FALLBACK_GENERIC)) && VECL == 4
@@ -208,8 +208,8 @@ cog.outl("#endif")
             data[i]=0;
          }
       }
-    }
-    if(dimension == 1) {
+   }
+   if(dimension == 1) {
       for (vmesh::LocalID block_k=0; block_k<n_blocks; ++block_k) {
          Realf* __restrict__ data = blockContainer.getData(vmesh.getLocalID(blocks[block_k]));
    #if (defined(VEC4D_AGNER) || defined(VEC4F_AGNER) || defined(VEC_FALLBACK_GENERIC)) && VECL == 4
@@ -255,9 +255,9 @@ cog.outl("#endif")
             data[i]=0;
          }
       }
-    }
+   }
    #elif WID == 8 
-    if(dimension == 0) {
+   if(dimension == 0) {
       for (vmesh::LocalID block_k=0; block_k<n_blocks; ++block_k) {
          Realf* __restrict__ data = blockContainer.getData(vmesh.getLocalID(blocks[block_k]));
    #if (defined(VEC8D_AGNER) || defined(VEC8F_AGNER) || defined(VEC_FALLBACK_GENERIC)) && VECL == 8
@@ -397,8 +397,8 @@ cog.outl("#endif")
             data[i]=0;
          }
       }
-    }
-    if(dimension == 1) {
+   }
+   if(dimension == 1) {
       for (vmesh::LocalID block_k=0; block_k<n_blocks; ++block_k) {
          Realf* __restrict__ data = blockContainer.getData(vmesh.getLocalID(blocks[block_k]));
    #if (defined(VEC8D_AGNER) || defined(VEC8F_AGNER) || defined(VEC_FALLBACK_GENERIC)) && VECL == 8
@@ -538,10 +538,10 @@ cog.outl("#endif")
             data[i]=0;
          }
       }
-    }
+   }
    #else
-     std::cerr << "Undefined WID (" <<WID<< ") encountered in " << __FILE__ << ":" << __LINE__ << std::endl;
-     abort();
+      std::cerr << "Undefined WID (" <<WID<< ") encountered in " << __FILE__ << ":" << __LINE__ << std::endl;
+      abort();
    #endif
 //[[[end]]]
 
