@@ -409,17 +409,21 @@ bool map_1d(SpatialCell* spatial_cell,
           
              Note that the i dimension is vectorized, and thus there are no loops over i
          */
+
          for (uint j = 0; j < WID; j += VECL/WID){ 
             // create vectors with the i and j indices in the vector position on the plane.
-            #if VECL == 4       
+            #if VECL == 4 && WID == 4
             const Veci i_indices = Veci(0, 1, 2, 3);
             const Veci j_indices = Veci(j, j, j, j);
-            #elif VECL == 8
+            #elif VECL == 8 && WID == 4
             const Veci i_indices = Veci(0, 1, 2, 3,
                                         0, 1, 2, 3);
             const Veci j_indices = Veci(j, j, j, j,
                                         j + 1, j + 1, j + 1, j + 1);
-            #elif VECL == 16
+            #elif VECL == 8 && WID == 8
+            const Veci i_indices = Veci(0, 1, 2, 3, 4, 5, 6, 7);
+            const Veci j_indices = Veci(j, j, j, j, j, j, j, j);
+            #elif VECL == 16 && WID == 4
             const Veci i_indices = Veci(0, 1, 2, 3,
                                         0, 1, 2, 3,
                                         0, 1, 2, 3,
@@ -428,8 +432,48 @@ bool map_1d(SpatialCell* spatial_cell,
                                         j + 1, j + 1, j + 1, j + 1,
                                         j + 2, j + 2, j + 2, j + 2,
                                         j + 3, j + 3, j + 3, j + 3);
+            #elif VECL == 16 && WID == 8
+            const Veci i_indices = Veci(0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7);
+            const Veci j_indices = Veci(j,   j,   j,   j,   j,   j,   j,   j,
+                                        j+1, j+1, j+1, j+1, j+1, j+1, j+1, j+1);
+            #elif VECL == 16 && WID == 16
+            const Veci i_indices = Veci(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
+            const Veci j_indices = Veci(j, j, j, j, j, j, j, j, j, j,  j,  j,  j,  j,  j,  j);
+            #elif VECL == 32 && WID == 4
+            cerr << __FILE__ << ":" << __LINE__ << ": VECL == 32 && WID == 4 cannot work, too long vector for one plane!" << endl;
+            abort();
+            #elif VECL == 32 && WID == 8
+            const Veci i_indices = Veci(0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7);
+            const Veci j_indices = Veci(j,   j,   j,   j,   j,   j,   j,   j,
+                                        j+1, j+1, j+1, j+1, j+1, j+1, j+1, j+1,
+                                        j+2, j+2, j+2, j+2, j+2, j+2, j+2, j+2,
+                                        j+3, j+3, j+3, j+3, j+3, j+3, j+3, j+3);
+            #elif VECL == 64 && WID == 4
+            cerr << __FILE__ << ":" << __LINE__ << ": VECL == 64 && WID == 4 cannot work, too long vector for one plane!" << endl;
+            abort();
+            #elif VECL == 64 && WID == 8
+            const Veci i_indices = Veci(0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7);
+            const Veci j_indices = Veci(j,   j,   j,   j,   j,   j,   j,   j,
+                                        j+1, j+1, j+1, j+1, j+1, j+1, j+1, j+1,
+                                        j+2, j+2, j+2, j+2, j+2, j+2, j+2, j+2,
+                                        j+3, j+3, j+3, j+3, j+3, j+3, j+3, j+3,
+                                        j+4, j+4, j+4, j+4, j+4, j+4, j+4, j+4,
+                                        j+5, j+5, j+5, j+5, j+5, j+5, j+5, j+5,
+                                        j+6, j+6, j+6, j+6, j+6, j+6, j+6, j+6,
+                                        j+7, j+7, j+7, j+7, j+7, j+7, j+7, j+7);
             #else
-            cerr << __FILE__ << ":" << __LINE__ << ": Missing implementation for VECL=" << VECL << "!" << endl;
+            cerr << __FILE__ << ":" << __LINE__ << ": Missing implementation for VECL=" << VECL << " and WID=" << WID << "!" << endl;
             abort();
             #endif
 

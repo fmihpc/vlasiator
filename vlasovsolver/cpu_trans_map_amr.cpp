@@ -744,7 +744,7 @@ void propagatePencil(
    }
    
    // Go from 0 to length here to propagate all the cells in the pencil
-   for (uint i = 0; i < lengthOfPencil; i++){
+   for (int i = 0; i < lengthOfPencil; i++){
       
       // The source array is padded by VLASOV_STENCIL_WIDTH on both sides.
       uint i_source   = i + VLASOV_STENCIL_WIDTH;
@@ -991,7 +991,7 @@ bool copy_trans_block_data_amr(
     const vmesh::GlobalID blockGID,
     int lengthOfPencil,
     Vec* values,
-    const unsigned char* const cellid_transpose,
+    const unsigned int* const cellid_transpose,
     const uint popID) { 
 
    // Allocate data pointer for all blocks in pencil. Pad on both ends by VLASOV_STENCIL_WIDTH
@@ -1403,7 +1403,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    phiprof::start("setup");
 
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
-   unsigned char  cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
+   unsigned int  cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
    // return if there's no cells to propagate
    if(localPropagatedCells.size() == 0) {
       cout << "Returning because of no cells" << endl;
