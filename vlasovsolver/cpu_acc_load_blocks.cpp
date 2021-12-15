@@ -200,7 +200,7 @@ cog.outl("#endif")
          values[i_pcolumnv_b(0, 2, block_k, n_blocks)] = Vec({data[2], data[18], data[34], data[50], data[6], data[22], data[38], data[54], data[10], data[26], data[42], data[58], data[14], data[30], data[46], data[62]});
          values[i_pcolumnv_b(0, 3, block_k, n_blocks)] = Vec({data[3], data[19], data[35], data[51], data[7], data[23], data[39], data[55], data[11], data[27], data[43], data[59], data[15], data[31], data[47], data[63]});
    #else // Fell through, never fall into this particular pit again
-         std::cerr << "Undefined VECTORCLASS flag or implementation missing in loadColumnBlockData() before " << __FILE__ << ":" << __LINE__ << std::endl;
+         std::cerr << "Undefined VECTORCLASS flag or implementation missing for WID=" << WID << " in loadColumnBlockData() before " << __FILE__ << ":" << __LINE__ << std::endl;
          abort();
    #endif
          //zero old output data
@@ -247,7 +247,7 @@ cog.outl("#endif")
          values[i_pcolumnv_b(0, 2, block_k, n_blocks)] = Vec({data[8], data[9], data[10], data[11], data[24], data[25], data[26], data[27], data[40], data[41], data[42], data[43], data[56], data[57], data[58], data[59]});
          values[i_pcolumnv_b(0, 3, block_k, n_blocks)] = Vec({data[12], data[13], data[14], data[15], data[28], data[29], data[30], data[31], data[44], data[45], data[46], data[47], data[60], data[61], data[62], data[63]});
    #else // Fell through, never fall into this particular pit again
-         std::cerr << "Undefined VECTORCLASS flag or implementation missing in loadColumnBlockData() before " << __FILE__ << ":" << __LINE__ << std::endl;
+         std::cerr << "Undefined VECTORCLASS flag or implementation missing for WID=" << WID << " in loadColumnBlockData() before " << __FILE__ << ":" << __LINE__ << std::endl;
          abort();
    #endif
          //zero old output data
