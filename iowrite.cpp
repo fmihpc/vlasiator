@@ -257,7 +257,7 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
    attribs["name"] = popName;      // Name of the velocity space distribution is written avgs
    const string datatype_avgs = "float";
    const uint64_t arraySize_avgs = totalBlocks;
-   const uint64_t vectorSize_avgs = WID3; // There are 64 elements in every velocity block
+   const uint64_t vectorSize_avgs = WID3; // There are 64 (WID=4) or 512 (WID=8) elements in every velocity block
 
    // Get the data size needed for writing in data
    uint64_t dataSize_avgs = sizeof(Realf);
