@@ -120,4 +120,94 @@ __device__ void slope_limiter(const Vec& l,const Vec& m, const Vec& r, Vec& slop
    slope_sign = select(slope > 0, Vec(1.0), Vec(-1.0));
 }
 
+
+/**** 
+      Define functions for Realf instead of Vec 
+***/
+
+__device__ Realf minmod(const Realf slope1, const Realf slope2)
+{
+  Realf slope = (abs(slope1) < abs(slope2)) ? slope1 : slope2;
+  return (slope1 * slope2 <= 0) ? 0 : slope;
+}
+__device__ Realf maxmod(const Realf slope1, const Realf slope2)
+{
+  Realf slope = (abs(slope1) > abs(slope2)) ? slope1 : slope2;
+  return (slope1 * slope2 <= 0) ? 0 : slope;
+}
+
+/*!
+  Superbee slope limiter
+*/
+
+__device__ Realf slope_limiter_sb(const Realf &l, const Realf &m, const Realf &r)
+{
+  Realf a = r-m;
+  Realf b = m-l;
+  const Realf slope1 = minmod(a, 2*b);
+  const Realf slope2 = minmod(2*a, b);
+  return maxmod(slope1, slope2);
+}
+
+/*!
+  Minmod slope limiter
+*/
+
+__device__ Realf slope_limiter_minmod(const Realf& l,const Realf& m, const Realf& r)
+{
+   Realf a=r-m;
+   Realf b=m-l;
+   return minmod(a,b);
+}
+
+/*!
+  MC slope limiter
+*/
+
+__device__ Realf slope_limiter_mc(const Realf& l,const Realf& m, const Realf& r)
+{
+  Realf a=r-m;
+  Realf b=m-l;
+  Realf minval=min(2*abs(a),2*abs(b));
+  minval=min(minval,0.5*abs(a+b));
+
+  //check for extrema
+  Realf output = (a*b < 0) ? 0 : minval;
+  //set sign
+  return (a + b < 0) ? -output : output;
+}
+
+__device__ Realf slope_limiter_minmod_amr(const Realf& l,const Realf& m, const Realf& r,const Realf& a,const Realf& b)
+{
+   Realf J = r-l;
+   Realf f = (m-l)/J;
+   f = min(1.0,f);
+   return min(f/(1+a),(1.-f)/(1+b))*2*J;
+}
+
+__device__ Realf slope_limiter(const Realf &l, const Realf &m, const Realf &r)
+{
+   return slope_limiter_sb(l,m,r);
+   //return slope_limiter_minmod(l,m,r);
+}
+
+/*
+ * @param a Cell size fraction dx[i-1]/dx[i] = 1/2, 1, or 2.
+ * @param b Cell size fraction dx[i+1]/dx[i] = 1/2, 1, or 2.
+ * @return Limited value of slope.*/
+__device__ Realf slope_limiter_amr(const Realf& l,const Realf& m, const Realf& r,const Realf& dx_left,const Realf& dx_rght)
+{
+   return slope_limiter_minmod_amr(l,m,r,dx_left,dx_rght);
+}
+
+/* Slope limiter with abs and sign separatelym, uses the currently active slope limiter*/
+__device__ void slope_limiter(const Realf& l,const Realf& m, const Realf& r, Realf& slope_abs, Realf& slope_sign)
+{
+   const Realf slope = slope_limiter(l,m,r);
+   slope_abs = abs(slope);
+   slope_sign = (slope > 0) ? 1 : -1.0;
+}
+
+
+
 #endif

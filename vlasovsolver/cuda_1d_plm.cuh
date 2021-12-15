@@ -51,4 +51,22 @@ __device__ void compute_plm_coeff(const Vec * const values, uint k, Vec a[2], co
   a[1] = d_cv * 0.5;
 }
 
+/**** 
+      Define functions for Realf instead of Vec 
+***/
+
+__device__ void compute_plm_coeff(const Realf* const values, uint k, Realf a[2], const Realv threshold)
+{
+  // scale values closer to 1 for more accurate slope limiter calculation
+  const Realv scale = 1./threshold;
+  //Vec v_1 = values[k - 1] * scale;
+  //Vec v_2 = values[k] * scale;
+  //Vec v_3 = values[k + 1] * scale;
+  //Vec d_cv = slope_limiter(v_1, v_2, v_3) * threshold;
+  const Realf d_cv = slope_limiter( values[k-VECL]*scale, values[k]*scale, values[k+VECL]*scale)*threshold;
+  a[0] = values[k] - d_cv * 0.5;
+  a[1] = d_cv * 0.5;
+}
+
+
 #endif
