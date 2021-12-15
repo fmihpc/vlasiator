@@ -83,178 +83,6 @@ class VecSimple
 };
 static CUDA_HOSTDEV void no_subnormals(){};
 
-// Replicate VECL values across v.
-template <typename T>
-CUDA_HOSTDEV VecSimple<T>::VecSimple(T a,T b,T c,T d)
-{
-    /*
-   if(VECL != 4)
-   {
-      std::cerr << __FILE__ << ":" << __LINE__ << ": Wrong function call for VECL=" << VECL << ", this function is for VECL=4!";
-      abort();
-   }
-   */
-   val[0]=a;
-   val[1]=b;
-   val[2]=c;
-   val[3]=d;
-}
-
-// Replicate VECL values across v.
-template <typename T>
-CUDA_HOSTDEV VecSimple<T>::VecSimple(T a,T b,T c,T d,T e,T f,T g,T h)
-{
-  /*
-   if(VECL != 8)
-   {
-      std::cerr << __FILE__ << ":" << __LINE__ << ": Wrong function call for VECL=" << VECL << ", this function is for VECL=8!";
-      abort();
-   }
-   */
-   val[0]=a;
-   val[1]=b;
-   val[2]=c;
-   val[3]=d;
-   val[4]=e;
-   val[5]=f;
-   val[6]=g;
-   val[7]=h;
-}
-
-// Replicate VECL values across v.
-template <typename T>
-CUDA_HOSTDEV VecSimple<T>::VecSimple(T a,T b,T c,T d,T e,T f,T g,T h,T i,T j,T k,T l,T m,T n,T o,T p)
-{
-   /*
-   if(VECL != 16)
-   {
-      std::cerr << __FILE__ << ":" << __LINE__ << ": Wrong function call for VECL=" << VECL << ", this function is for VECL=16!";
-      abort();
-   }
-   */
-   val[0]=a;
-   val[1]=b;
-   val[2]=c;
-   val[3]=d;
-   val[4]=e;
-   val[5]=f;
-   val[6]=g;
-   val[7]=h;
-   val[8]=i;
-   val[9]=j;
-   val[10]=k;
-   val[11]=l;
-   val[12]=m;
-   val[13]=n;
-   val[14]=o;
-   val[15]=p;
-}
-
-// Replicate VECL values across v.
-template <typename T>
-CUDA_HOSTDEV VecSimple<T>::VecSimple(T a,T b,T c,T d,T e,T f,T g,T h,T i,T j,T k,T l,T m,T n,T o,T p,T q,T r,T s,T t,T u,T v,T w,T x,T y,T z,T aa,T bb,T cc,T dd,T ee,T ff)
-{
-  /*
-   if(VECL != 32)
-   {
-      std::cerr << __FILE__ << ":" << __LINE__ << ": Wrong function call for VECL=" << VECL << ", this function is for VECL=32!";
-      abort();
-   }
-   */
-   val[0]=a;
-   val[1]=b;
-   val[2]=c;
-   val[3]=d;
-   val[4]=e;
-   val[5]=f;
-   val[6]=g;
-   val[7]=h;
-   val[8]=i;
-   val[9]=j;
-   val[10]=k;
-   val[11]=l;
-   val[12]=m;
-   val[13]=n;
-   val[14]=o;
-   val[15]=p;
-   val[16]=q;
-   val[17]=r;
-   val[18]=s;
-   val[19]=t;
-   val[20]=u;
-   val[21]=v;
-   val[22]=w;
-   val[23]=x;
-   val[24]=y;
-   val[25]=z;
-   val[26]=aa;
-   val[27]=bb;
-   val[28]=cc;
-   val[29]=dd;
-   val[30]=ee;
-   val[31]=ff;
-}
-
-template <typename T>
-CUDA_HOSTDEV VecSimple<T>::VecSimple(VecSimple const &x)
-{
-   for(unsigned int i=0;i<VECL;i++)
-      val[i]=x.val[i];
-}
-// Member function to load from array (unaligned)
-template <typename T>
-CUDA_HOSTDEV VecSimple<T> & VecSimple<T>::load(T const * p)
-{
-   for(unsigned int i=0;i<VECL;i++)
-      val[i]=p[i];
-   return *this;
-}
-// Member function to load from array, aligned by 32
-template <typename T>
-CUDA_HOSTDEV VecSimple<T> & VecSimple<T>::load_a(T const * p)
-{
-   return this->load(p);
-}
-template <typename T>
-CUDA_HOSTDEV VecSimple<T> & VecSimple<T>::insert(int i,T const &x)
-{
-   val[i]=x;
-   return *this;
-}
-// Member function to store into array (unaligned)
-template <typename T>
-CUDA_HOSTDEV void VecSimple<T>::store(T * p) const
-{
-   for(unsigned int i=0;i<VECL;i++)
-      p[i]=val[i];
-}
-// Member function to store into array, aligned by 32
-template <typename T>
-CUDA_HOSTDEV void VecSimple<T>::store_a(T * p) const
-{
-   this->store(p);
-}
-template <typename T>
-CUDA_HOSTDEV VecSimple<T> & VecSimple<T>::operator = (VecSimple<T> const & r)
-{
-   for(unsigned int i=0;i<VECL;i++)
-      val[i]=r.val[i];
-   return *this;
-}
-template <typename T>
-CUDA_HOSTDEV T VecSimple<T>::operator [](int i) const
-{
-   return val[i];
-}
-template <typename T>
-CUDA_HOSTDEV VecSimple<T> VecSimple<T>::operator++ (int)
-{
-   VecSimple<T> temp (*this);
-   for(unsigned int i=0;i<VECL;i++)
-      val[i]++;
-   return temp;
-}
-
 //HERE
 template <class T>
 static CUDA_HOSTDEV inline VecSimple<T> abs(const VecSimple<T> &l)
@@ -711,6 +539,188 @@ static CUDA_HOSTDEV inline VecSimple<float> to_float(VecSimple<T> const & a){
      temp.insert(i, (float)a.val[i]);
   return temp;
 }
+
+template <typename T>
+CUDA_HOSTDEV VecSimple<T>::VecSimple() { }
+
+template <typename T>
+CUDA_HOSTDEV VecSimple<T>::VecSimple(T x)
+{
+  for(unsigned int i=0;i<4;i++)
+    val[i]=x;
+}
+// Replicate VECL values across v.
+template <typename T>
+CUDA_HOSTDEV VecSimple<T>::VecSimple(T a,T b,T c,T d)
+{
+    /*
+   if(VECL != 4)
+   {
+      std::cerr << __FILE__ << ":" << __LINE__ << ": Wrong function call for VECL=" << VECL << ", this function is for VECL=4!";
+      abort();
+   }
+   */
+   val[0]=a;
+   val[1]=b;
+   val[2]=c;
+   val[3]=d;
+}
+
+// Replicate VECL values across v.
+template <typename T>
+CUDA_HOSTDEV VecSimple<T>::VecSimple(T a,T b,T c,T d,T e,T f,T g,T h)
+{
+  /*
+   if(VECL != 8)
+   {
+      std::cerr << __FILE__ << ":" << __LINE__ << ": Wrong function call for VECL=" << VECL << ", this function is for VECL=8!";
+      abort();
+   }
+   */
+   val[0]=a;
+   val[1]=b;
+   val[2]=c;
+   val[3]=d;
+   val[4]=e;
+   val[5]=f;
+   val[6]=g;
+   val[7]=h;
+}
+
+// Replicate VECL values across v.
+template <typename T>
+CUDA_HOSTDEV VecSimple<T>::VecSimple(T a,T b,T c,T d,T e,T f,T g,T h,T i,T j,T k,T l,T m,T n,T o,T p)
+{
+   /*
+   if(VECL != 16)
+   {
+      std::cerr << __FILE__ << ":" << __LINE__ << ": Wrong function call for VECL=" << VECL << ", this function is for VECL=16!";
+      abort();
+   }
+   */
+   val[0]=a;
+   val[1]=b;
+   val[2]=c;
+   val[3]=d;
+   val[4]=e;
+   val[5]=f;
+   val[6]=g;
+   val[7]=h;
+   val[8]=i;
+   val[9]=j;
+   val[10]=k;
+   val[11]=l;
+   val[12]=m;
+   val[13]=n;
+   val[14]=o;
+   val[15]=p;
+}
+
+// Replicate VECL values across v.
+template <typename T>
+CUDA_HOSTDEV VecSimple<T>::VecSimple(T a,T b,T c,T d,T e,T f,T g,T h,T i,T j,T k,T l,T m,T n,T o,T p,T q,T r,T s,T t,T u,T v,T w,T x,T y,T z,T aa,T bb,T cc,T dd,T ee,T ff)
+{
+  /*
+   if(VECL != 32)
+   {
+      std::cerr << __FILE__ << ":" << __LINE__ << ": Wrong function call for VECL=" << VECL << ", this function is for VECL=32!";
+      abort();
+   }
+   */
+   val[0]=a;
+   val[1]=b;
+   val[2]=c;
+   val[3]=d;
+   val[4]=e;
+   val[5]=f;
+   val[6]=g;
+   val[7]=h;
+   val[8]=i;
+   val[9]=j;
+   val[10]=k;
+   val[11]=l;
+   val[12]=m;
+   val[13]=n;
+   val[14]=o;
+   val[15]=p;
+   val[16]=q;
+   val[17]=r;
+   val[18]=s;
+   val[19]=t;
+   val[20]=u;
+   val[21]=v;
+   val[22]=w;
+   val[23]=x;
+   val[24]=y;
+   val[25]=z;
+   val[26]=aa;
+   val[27]=bb;
+   val[28]=cc;
+   val[29]=dd;
+   val[30]=ee;
+   val[31]=ff;
+}
+
+template <typename T>
+CUDA_HOSTDEV VecSimple<T>::VecSimple(VecSimple const &x)
+{
+  for(unsigned int i=0;i<VECL;i++)
+     val[i]=x.val[i];
+}
+// Member function to load from array (unaligned)
+template <typename T>
+CUDA_HOSTDEV VecSimple<T> & VecSimple<T>::load(T const * p)
+{
+  for(unsigned int i=0;i<VECL;i++)
+     val[i]=p[i];
+  return *this;
+}
+// Member function to load from array, aligned by 32
+template <typename T>
+CUDA_HOSTDEV VecSimple<T> & VecSimple<T>::load_a(T const * p)
+{
+   return this->load(p);
+}
+template <typename T>
+CUDA_HOSTDEV VecSimple<T> & VecSimple<T>::insert(int i,T const &x)
+{
+   val[i]=x;
+   return *this;
+}
+// Member function to store into array (unaligned)
+template <typename T>
+CUDA_HOSTDEV void VecSimple<T>::store(T * p) const
+{
+  for(unsigned int i=0;i<VECL;i++)
+       p[i]=val[i];
+}
+// Member function to store into array, aligned by 32
+template <typename T>
+CUDA_HOSTDEV void VecSimple<T>::store_a(T * p) const
+{
+   this->store(p);
+}
+template <typename T>
+CUDA_HOSTDEV VecSimple<T> & VecSimple<T>::operator = (VecSimple<T> const & r)
+{
+   for(unsigned int i=0;i<VECL;i++)
+      val[i]=r.val[i];
+   return *this;
+}
+template <typename T>
+CUDA_HOSTDEV T VecSimple<T>::operator [](int i) const
+{
+   return val[i];
+}
+template <typename T>
+CUDA_HOSTDEV VecSimple<T> VecSimple<T>::operator++ (int)
+{
+   VecSimple<T> temp (*this);
+   for(unsigned int i=0;i<VECL;i++)
+      val[i]++;
+   return temp;
+}
+
 
 template class VecSimple<int>;
 
