@@ -66,7 +66,7 @@ for wi, WID in enumerate(WIDs):
                   for i in range(0,WID):
                     cellid_transpose.append(i * cell_indices_to_id[0] +  j * cell_indices_to_id[1] + k * cell_indices_to_id[2])
 
-      cog.outl(" if(dimension == %s ) {" % dimension)
+      cog.outl(" if(dimension == %s) {" % dimension)
       cog.outl("   for (vmesh::LocalID block_k=0; block_k<n_blocks; ++block_k) {")
       cog.outl("      Realf* __restrict__ data = blockContainer.getData(vmesh.getLocalID(blocks[block_k]));")    
       init = True
@@ -142,8 +142,8 @@ for wi, WID in enumerate(WIDs):
                                 cog.outl("});")
 
       cog.outl("#else // Fell through, never fall into this particular pit again")
-      cog.outl("\tstd::cerr << \"Undefined VECTORCLASS flag or implementation missing in loadColumnBlockData() before \" << __FILE__ << \":\" << __LINE__ << std::endl;")
-      cog.outl("\tabort();")
+      cog.outl("      std::cerr << \"Undefined VECTORCLASS flag or implementation missing in loadColumnBlockData() before \" << __FILE__ << \":\" << __LINE__ << std::endl;")
+      cog.outl("      abort();")
       cog.outl("#endif")  
 
 
@@ -162,7 +162,7 @@ cog.outl("#endif")
 
     ]]]*/
    #if WID == 4 
-    if(dimension == 0 ) {
+    if(dimension == 0) {
       for (vmesh::LocalID block_k=0; block_k<n_blocks; ++block_k) {
          Realf* __restrict__ data = blockContainer.getData(vmesh.getLocalID(blocks[block_k]));
    #if (defined(VEC4D_AGNER) || defined(VEC4F_AGNER) || defined(VEC_FALLBACK_GENERIC)) && VECL == 4
@@ -200,8 +200,8 @@ cog.outl("#endif")
          values[i_pcolumnv_b(0, 2, block_k, n_blocks)] = Vec({data[2], data[18], data[34], data[50], data[6], data[22], data[38], data[54], data[10], data[26], data[42], data[58], data[14], data[30], data[46], data[62]});
          values[i_pcolumnv_b(0, 3, block_k, n_blocks)] = Vec({data[3], data[19], data[35], data[51], data[7], data[23], data[39], data[55], data[11], data[27], data[43], data[59], data[15], data[31], data[47], data[63]});
    #else // Fell through, never fall into this particular pit again
-   	std::cerr << "Undefined VECTORCLASS flag or implementation missing in loadColumnBlockData() before " << __FILE__ << ":" << __LINE__ << std::endl;
-   	abort();
+         std::cerr << "Undefined VECTORCLASS flag or implementation missing in loadColumnBlockData() before " << __FILE__ << ":" << __LINE__ << std::endl;
+         abort();
    #endif
          //zero old output data
          for (uint i=0; i<WID3; ++i) {
@@ -209,7 +209,7 @@ cog.outl("#endif")
          }
       }
     }
-    if(dimension == 1 ) {
+    if(dimension == 1) {
       for (vmesh::LocalID block_k=0; block_k<n_blocks; ++block_k) {
          Realf* __restrict__ data = blockContainer.getData(vmesh.getLocalID(blocks[block_k]));
    #if (defined(VEC4D_AGNER) || defined(VEC4F_AGNER) || defined(VEC_FALLBACK_GENERIC)) && VECL == 4
@@ -247,8 +247,8 @@ cog.outl("#endif")
          values[i_pcolumnv_b(0, 2, block_k, n_blocks)] = Vec({data[8], data[9], data[10], data[11], data[24], data[25], data[26], data[27], data[40], data[41], data[42], data[43], data[56], data[57], data[58], data[59]});
          values[i_pcolumnv_b(0, 3, block_k, n_blocks)] = Vec({data[12], data[13], data[14], data[15], data[28], data[29], data[30], data[31], data[44], data[45], data[46], data[47], data[60], data[61], data[62], data[63]});
    #else // Fell through, never fall into this particular pit again
-   	std::cerr << "Undefined VECTORCLASS flag or implementation missing in loadColumnBlockData() before " << __FILE__ << ":" << __LINE__ << std::endl;
-   	abort();
+         std::cerr << "Undefined VECTORCLASS flag or implementation missing in loadColumnBlockData() before " << __FILE__ << ":" << __LINE__ << std::endl;
+         abort();
    #endif
          //zero old output data
          for (uint i=0; i<WID3; ++i) {
@@ -257,7 +257,7 @@ cog.outl("#endif")
       }
     }
    #elif WID == 8 
-    if(dimension == 0 ) {
+    if(dimension == 0) {
       for (vmesh::LocalID block_k=0; block_k<n_blocks; ++block_k) {
          Realf* __restrict__ data = blockContainer.getData(vmesh.getLocalID(blocks[block_k]));
    #if (defined(VEC8D_AGNER) || defined(VEC8F_AGNER) || defined(VEC_FALLBACK_GENERIC)) && VECL == 8
@@ -389,8 +389,8 @@ cog.outl("#endif")
          values[i_pcolumnv_b(0, 6, block_k, n_blocks)] = Vec({data[6], data[70], data[134], data[198], data[262], data[326], data[390], data[454], data[14], data[78], data[142], data[206], data[270], data[334], data[398], data[462], data[22], data[86], data[150], data[214], data[278], data[342], data[406], data[470], data[30], data[94], data[158], data[222], data[286], data[350], data[414], data[478], data[38], data[102], data[166], data[230], data[294], data[358], data[422], data[486], data[46], data[110], data[174], data[238], data[302], data[366], data[430], data[494], data[54], data[118], data[182], data[246], data[310], data[374], data[438], data[502], data[62], data[126], data[190], data[254], data[318], data[382], data[446], data[510]});
          values[i_pcolumnv_b(0, 7, block_k, n_blocks)] = Vec({data[7], data[71], data[135], data[199], data[263], data[327], data[391], data[455], data[15], data[79], data[143], data[207], data[271], data[335], data[399], data[463], data[23], data[87], data[151], data[215], data[279], data[343], data[407], data[471], data[31], data[95], data[159], data[223], data[287], data[351], data[415], data[479], data[39], data[103], data[167], data[231], data[295], data[359], data[423], data[487], data[47], data[111], data[175], data[239], data[303], data[367], data[431], data[495], data[55], data[119], data[183], data[247], data[311], data[375], data[439], data[503], data[63], data[127], data[191], data[255], data[319], data[383], data[447], data[511]});
    #else // Fell through, never fall into this particular pit again
-   	std::cerr << "Undefined VECTORCLASS flag or implementation missing in loadColumnBlockData() before " << __FILE__ << ":" << __LINE__ << std::endl;
-   	abort();
+         std::cerr << "Undefined VECTORCLASS flag or implementation missing in loadColumnBlockData() before " << __FILE__ << ":" << __LINE__ << std::endl;
+         abort();
    #endif
          //zero old output data
          for (uint i=0; i<WID3; ++i) {
@@ -398,7 +398,7 @@ cog.outl("#endif")
          }
       }
     }
-    if(dimension == 1 ) {
+    if(dimension == 1) {
       for (vmesh::LocalID block_k=0; block_k<n_blocks; ++block_k) {
          Realf* __restrict__ data = blockContainer.getData(vmesh.getLocalID(blocks[block_k]));
    #if (defined(VEC8D_AGNER) || defined(VEC8F_AGNER) || defined(VEC_FALLBACK_GENERIC)) && VECL == 8
@@ -530,8 +530,8 @@ cog.outl("#endif")
          values[i_pcolumnv_b(0, 6, block_k, n_blocks)] = Vec({data[48], data[49], data[50], data[51], data[52], data[53], data[54], data[55], data[112], data[113], data[114], data[115], data[116], data[117], data[118], data[119], data[176], data[177], data[178], data[179], data[180], data[181], data[182], data[183], data[240], data[241], data[242], data[243], data[244], data[245], data[246], data[247], data[304], data[305], data[306], data[307], data[308], data[309], data[310], data[311], data[368], data[369], data[370], data[371], data[372], data[373], data[374], data[375], data[432], data[433], data[434], data[435], data[436], data[437], data[438], data[439], data[496], data[497], data[498], data[499], data[500], data[501], data[502], data[503]});
          values[i_pcolumnv_b(0, 7, block_k, n_blocks)] = Vec({data[56], data[57], data[58], data[59], data[60], data[61], data[62], data[63], data[120], data[121], data[122], data[123], data[124], data[125], data[126], data[127], data[184], data[185], data[186], data[187], data[188], data[189], data[190], data[191], data[248], data[249], data[250], data[251], data[252], data[253], data[254], data[255], data[312], data[313], data[314], data[315], data[316], data[317], data[318], data[319], data[376], data[377], data[378], data[379], data[380], data[381], data[382], data[383], data[440], data[441], data[442], data[443], data[444], data[445], data[446], data[447], data[504], data[505], data[506], data[507], data[508], data[509], data[510], data[511]});
    #else // Fell through, never fall into this particular pit again
-   	std::cerr << "Undefined VECTORCLASS flag or implementation missing in loadColumnBlockData() before " << __FILE__ << ":" << __LINE__ << std::endl;
-   	abort();
+         std::cerr << "Undefined VECTORCLASS flag or implementation missing in loadColumnBlockData() before " << __FILE__ << ":" << __LINE__ << std::endl;
+         abort();
    #endif
          //zero old output data
          for (uint i=0; i<WID3; ++i) {
