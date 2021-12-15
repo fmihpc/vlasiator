@@ -26,6 +26,7 @@
 #include <utility>
 
 #include "vec.h"
+#include "../object_wrapper.h"
 #include "cpu_acc_sort_blocks.hpp"
 #include "cpu_acc_load_blocks.hpp"
 #include "cpu_1d_pqm.hpp"
@@ -319,6 +320,20 @@ bool map_1d(SpatialCell* spatial_cell,
          firstBlockIndexK = (firstBlockIndexK < max_v_length ) ? firstBlockIndexK : max_v_length - 1;
          lastBlockIndexK  = (lastBlockIndexK  >= 0)            ? lastBlockIndexK  : 0;
          lastBlockIndexK  = (lastBlockIndexK  < max_v_length ) ? lastBlockIndexK  : max_v_length - 1;
+         if(firstBlockIndexK < Parameters::bailout_velocity_space_wall_margin
+            || firstBlockIndexK >= max_v_length - Parameters::bailout_velocity_space_wall_margin
+            || lastBlockIndexK < Parameters::bailout_velocity_space_wall_margin
+            || lastBlockIndexK >= max_v_length - Parameters::bailout_velocity_space_wall_margin
+         ) {
+            string message = "Some target blocks in acceleration are going to be less than ";
+            message += std::to_string(Parameters::bailout_velocity_space_wall_margin);
+            message += " blocks away from the current velocity space walls for population ";
+            message += getObjectWrapper().particleSpecies[popID].name;
+            message += " at CellID ";
+            message += std::to_string(spatial_cell->parameters[CellParams::CELLID]);
+            message += ". Consider expanding velocity space for that population.";
+            bailout(true, message, __FILE__, __LINE__);
+         }
          
          //store source blocks
          for (uint blockK = firstBlockIndices[2]; blockK <= lastBlockIndices[2]; blockK++){

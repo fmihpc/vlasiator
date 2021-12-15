@@ -140,6 +140,7 @@ Real P::hallMinimumRhoq = physicalconstants::CHARGE;
 bool P::bailout_write_restart = false;
 Real P::bailout_min_dt = NAN;
 Real P::bailout_max_memory = 1073741824.;
+uint P::bailout_velocity_space_wall_margin = 0;
 
 uint P::amrMaxVelocityRefLevel = 0;
 Realf P::amrRefineLimit = 1.0;
@@ -364,6 +365,7 @@ bool P::addParameters() {
    RP::add("bailout.min_dt", "Minimum time step below which bailout occurs (s).", 1e-6);
    RP::add("bailout.max_memory", "Maximum amount of memory used per node (in GiB) over which bailout occurs.",
            1073741824.);
+   RP::add("bailout.velocity_space_wall_block_margin", "Distance from the velocity space limits in blocks, if the distribution function reaches that distance from the wall we bail out to avoid hitting the wall.", 1);
 
    // Refinement parameters
    RP::add("AMR.vel_refinement_criterion", "Name of the velocity refinement criterion", string(""));
@@ -698,6 +700,11 @@ void Parameters::getParameters() {
    RP::get("bailout.write_restart", P::bailout_write_restart);
    RP::get("bailout.min_dt", P::bailout_min_dt);
    RP::get("bailout.max_memory", P::bailout_max_memory);
+   RP::get("bailout.velocity_space_wall_block_margin", P::bailout_velocity_space_wall_margin);
+   if(P::bailout_velocity_space_wall_margin > MAX_BLOCKS_PER_DIM / 2 && myRank == MASTER_RANK) {
+      std::cerr << "bailout.velocity_space_wall_block_margin is larger than 0.5 * MAX_BLOCKS_PER_DIM, aborting." << std::endl;
+      abort();
+   }
 
    for (size_t s = 0; s < P::systemWriteName.size(); ++s)
       P::systemWrites.push_back(0);
