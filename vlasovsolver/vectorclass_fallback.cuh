@@ -550,7 +550,7 @@ CUDA_HOSTDEV VecSimple<T>::VecSimple(T x)
   for(unsigned int i=0;i<4;i++)
     val[i]=x;
 }
-/*
+
 // Replicate VECL values across v.
 template <typename T>
 CUDA_HOSTDEV VecSimple<T>::VecSimple(T a,T b,T c,T d)
@@ -655,7 +655,7 @@ CUDA_HOSTDEV VecSimple<T>::VecSimple(T a,T b,T c,T d,T e,T f,T g,T h,T i,T j,T k
    val[30]=ee;
    val[31]=ff;
 }
-*/
+
 template <typename T>
 CUDA_HOSTDEV VecSimple<T>::VecSimple(VecSimple const &x)
 {
