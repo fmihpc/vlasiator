@@ -496,7 +496,7 @@ bool writeCommonGridData(
    if( vlsvWriter.writeParameter("xcells_ini", &P::xcells_ini) == false ) { return false; }
    if( vlsvWriter.writeParameter("ycells_ini", &P::ycells_ini) == false ) { return false; }
    if( vlsvWriter.writeParameter("zcells_ini", &P::zcells_ini) == false ) { return false; }
-   if( vlsvWriter.writeParameter("block_width", WID) == false ) { return false; }
+   if( vlsvWriter.writeParameter("velocity_block_width", WID) == false ) { return false; }
 
    //Mark the new version:
    float version = 3.00;
