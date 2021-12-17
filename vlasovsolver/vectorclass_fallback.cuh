@@ -43,10 +43,12 @@ class VecSimple
     T val[VECL] __attribute__((aligned(32)));
     CUDA_HOSTDEV VecSimple();
     CUDA_HOSTDEV VecSimple(T x);
+    /*
     CUDA_HOSTDEV VecSimple(T a,T b,T c,T d);
     CUDA_HOSTDEV VecSimple(T a,T b,T c,T d, T e,T f,T g,T h);
     CUDA_HOSTDEV VecSimple(T a,T b,T c,T d,T e,T f,T g,T h,T i,T j,T k,T l,T m,T n,T o,T p);
     CUDA_HOSTDEV VecSimple(T a,T b,T c,T d,T e,T f,T g,T h,T i,T j,T k,T l,T m,T n,T o,T p,T q,T r,T s,T t,T u,T v,T w,T x,T y,T z,T aa,T bb,T cc,T dd,T ee,T ff);
+    */
     CUDA_HOSTDEV VecSimple(VecSimple const &x);
     CUDA_HOSTDEV VecSimple<T> & load(T const * p);
     CUDA_HOSTDEV VecSimple<T> & load_a(T const * p);
@@ -551,6 +553,7 @@ CUDA_HOSTDEV VecSimple<T>::VecSimple(T x)
     val[i]=x;
 }
 
+/*
 // Replicate VECL values across v.
 template <typename T>
 CUDA_HOSTDEV VecSimple<T>::VecSimple(T a,T b,T c,T d)
@@ -655,7 +658,7 @@ CUDA_HOSTDEV VecSimple<T>::VecSimple(T a,T b,T c,T d,T e,T f,T g,T h,T i,T j,T k
    val[30]=ee;
    val[31]=ff;
 }
-
+*/
 template <typename T>
 CUDA_HOSTDEV VecSimple<T>::VecSimple(VecSimple const &x)
 {
