@@ -24,6 +24,7 @@
 #define VELOCITY_MESH_OLD_H
 
 #include <iostream>
+#include <algorithm>
 #include <sstream>
 #include <stdint.h>
 #include <vector>
@@ -31,6 +32,7 @@
 #include <set>
 #include <cmath>
 
+#include "open_bucket_hashtable.h"
 #include "velocity_mesh_parameters.h"
 
 namespace vmesh {
@@ -106,7 +108,8 @@ namespace vmesh {
       size_t meshID;
 
       std::vector<GID> localToGlobalMap;
-      std::unordered_map<GID,LID> globalToLocalMap;
+      OpenBucketHashtable<GID,LID> globalToLocalMap; //
+      //std::unordered_map<GID,LID> globalToLocalMap;
    };
 
    // ***** INITIALIZERS FOR STATIC MEMBER VARIABLES ***** //
@@ -140,7 +143,7 @@ namespace vmesh {
 
       for (size_t b=0; b<size(); ++b) {
          const LID globalID = localToGlobalMap[b];
-         typename std::unordered_map<GID,LID>::const_iterator it = globalToLocalMap.find(globalID);
+         auto it = globalToLocalMap.find(globalID);
          const GID localID = it->second;
          if (localID != b) {
             ok = false;
@@ -156,7 +159,7 @@ namespace vmesh {
    template<typename GID,typename LID> inline
    void VelocityMesh<GID,LID>::clear() {
       std::vector<GID>().swap(localToGlobalMap);
-      std::unordered_map<GID,LID>().swap(globalToLocalMap);
+      globalToLocalMap.clear();
    }
    
    template<typename GID,typename LID> inline
@@ -376,7 +379,7 @@ namespace vmesh {
 
    template<typename GID,typename LID> inline
    LID VelocityMesh<GID,LID>::getLocalID(const GID& globalID) const {
-      typename std::unordered_map<GID,LID>::const_iterator it = globalToLocalMap.find(globalID);
+      auto it = globalToLocalMap.find(globalID);
       if (it != globalToLocalMap.end()) return it->second;
       return invalidLocalID();
    }
@@ -448,11 +451,10 @@ namespace vmesh {
       getIndices(globalID,refLevel,i,j,k);
       
       // Return the requested neighbor if it exists:
-      typename std::unordered_map<GID,LID>::const_iterator nbr;
       GID nbrGlobalID = getGlobalID(0,i+i_off,j+j_off,k+k_off);
       if (nbrGlobalID == invalidGlobalID()) return;
 
-      nbr = globalToLocalMap.find(nbrGlobalID);
+      auto nbr = globalToLocalMap.find(nbrGlobalID);
       if (nbr != globalToLocalMap.end()) {
          neighborLocalIDs.push_back(nbr->second);
          refLevelDifference = 0;
@@ -581,7 +583,7 @@ namespace vmesh {
 
       const LID lastLID = size()-1;
       const GID lastGID = localToGlobalMap[lastLID];
-      typename std::unordered_map<GID,LID>::iterator last = globalToLocalMap.find(lastGID);
+      auto last = globalToLocalMap.find(lastGID);
 
       globalToLocalMap.erase(last);
       localToGlobalMap.pop_back();
@@ -592,7 +594,7 @@ namespace vmesh {
       if (size() >= meshParameters[meshID].max_velocity_blocks) return false;
       if (globalID == invalidGlobalID()) return false;
 
-      std::pair<typename std::unordered_map<GID,LID>::iterator,bool> position
+      auto position
         = globalToLocalMap.insert(std::make_pair(globalID,localToGlobalMap.size()));
 
       if (position.second == true) {

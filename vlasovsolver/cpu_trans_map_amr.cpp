@@ -833,7 +833,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
    // These neighborhoods now include the AMR addition beyond the regular vlasov stencil
    int neighborhood = getNeighborhood(dimension,VLASOV_STENCIL_WIDTH);
 
-#pragma parallel for
+#pragma omp parallel for
    for (uint i=0; i<localPropagatedCells.size(); i++) {
       CellID celli = localPropagatedCells[i];
 
