@@ -21,7 +21,7 @@
 #define NPP_MINABS_64F ( 2.2250738585072014e-308 )
 
 #define i_pcolumnv_cuda(j, k, k_block, num_k_blocks) ( ((j) / ( VECL / WID)) * WID * ( num_k_blocks + 2) + (k) + ( k_block + 1 ) * WID )
-#define i_pcolumnv_cuda_realf(j, k, k_block, num_k_blocks, index) ( (j) * ( num_k_blocks + 2) + (k) * VECL + (index) + ( k_block + 1 ) * WID * VECL )
+#define i_pcolumnv_cuda_realf(j, k, k_block, num_k_blocks, index) ( ((j) / ( VECL / WID)) * WID * ( num_k_blocks + 2) * VECL + (k) * VECL + ( k_block + 1 ) * WID * VECL + (index) )
 
 #define HANDLE_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ));
 static void HandleError( cudaError_t err, const char *file, int line )
@@ -61,7 +61,8 @@ __global__ void acceleration_1
 #ifdef CUDA_REALF
    printf("CUDA REALF\n");
 
-   // Optimal to re-distribute columns and blocks evenly?
+   // Optimization idea for future: reverse-sort columns based on
+   // block counts
    int index = threadIdx.x;
    int block = blockIdx.x;
    int nBlocks = gridDim.x;
@@ -168,8 +169,6 @@ __global__ void acceleration_1
    } //for loop over columns
 
 #else // NOT CUDA_REALF
-   Realv maxV = (sizeof(Realv) == 4) ? NPP_MINABS_32F : NPP_MINABS_64F;
-   Realv minV = (sizeof(Realv) == 4) ? NPP_MAXABS_32F : NPP_MAXABS_64F;
    printf("old CUDA\n");
    int column = threadIdx.x + blockIdx.x * blockDim.x;
    //for( uint column=0; column < totalColumns; column++)
@@ -246,6 +245,8 @@ __global__ void acceleration_1
 
          int minGkIndex=0, maxGkIndex=0; // 0 for compiler
          {
+            Realv maxV = (sizeof(Realv) == 4) ? NPP_MINABS_32F : NPP_MINABS_64F;
+            Realv minV = (sizeof(Realv) == 4) ? NPP_MAXABS_32F : NPP_MAXABS_64F;
             for(int i = 0; i < VECL; i++)
             {
                if (lagrangian_v_r0[i] > maxV)
@@ -390,8 +391,12 @@ Realf* acceleration_1_wrapper
   HANDLE_ERROR( cudaMalloc((void**)&dev_values, valuesSizeRequired*sizeof(Vec)) );
   HANDLE_ERROR( cudaMemcpy(dev_values, values, valuesSizeRequired*sizeof(Vec), cudaMemcpyHostToDevice) );
 
-  //int blocks = (totalColumns / THREADS) + 1;
-  int blocks = 64;
+#ifdef CUDA_REALF
+  int blocks = BLOCKS;
+  if (THREADS != VECL) printf("CUDA ERROR! VECL does not match thread count.\n");
+#else
+  int blocks = (totalColumns / THREADS) + 1;
+#endif
 
   acceleration_1<<<blocks, THREADS>>>
   (
