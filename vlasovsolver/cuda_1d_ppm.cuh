@@ -61,27 +61,27 @@ __device__ void compute_ppm_coeff(const Vec * const values, face_estimate_order 
       Define functions for Realf instead of Vec 
 ***/
 
-__device__ void compute_ppm_coeff(const Realf* const values, face_estimate_order order, uint k, Realf a[3], const Realv threshold)
+__device__ void compute_ppm_coeff(const Vec* const values, face_estimate_order order, uint k, Realf a[3], const Realv threshold, const int index)
 {
   Realf fv_l; //left face value
   Realf fv_r; //right face value
-  compute_filtered_face_values(values, k, order, fv_l, fv_r, threshold);
+  compute_filtered_face_values(values, k, order, fv_l, fv_r, threshold, index);
   //Coella et al, check for monotonicity
   const Realf one_sixth(1.0/6.0);
   Realf m_face = fv_l;
   Realf p_face = fv_r;
-  m_face = ((p_face - m_face) * (values[k] - 0.5 * (m_face + p_face)) >
+  m_face = ((p_face - m_face) * (values[k][index] - 0.5 * (m_face + p_face)) >
                   (p_face - m_face) * (p_face - m_face) * one_sixth) ?
-                  3 * values[k] - 2 * p_face : m_face;
+                  3 * values[k][index] - 2 * p_face : m_face;
   p_face = (-(p_face - m_face) * (p_face - m_face) * one_sixth >
-                  (p_face - m_face) * (values[k] - 0.5 * (m_face + p_face))) ?
-                  3 * values[k] - 2 * m_face : p_face;
+                  (p_face - m_face) * (values[k][index] - 0.5 * (m_face + p_face))) ?
+                  3 * values[k][index] - 2 * m_face : p_face;
   //Fit a second order polynomial for reconstruction see, e.g., White
   //2008 (PQM article) (note additional integration factors built in,
   //contrary to White (2008) eq. 4
   a[0] = m_face;
-  a[1] = 3.0 * values[k] - 2.0 * m_face - p_face;
-  a[2] = (m_face + p_face - 2.0 * values[k]);
+  a[1] = 3.0 * values[k][index] - 2.0 * m_face - p_face;
+  a[2] = (m_face + p_face - 2.0 * values[k][index]);
 }
 
 #endif

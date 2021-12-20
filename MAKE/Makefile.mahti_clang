@@ -48,7 +48,7 @@ testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 #                         mpi.h in c++ on Cray
 
 USE_CUDA=1
-#CUDA_REALF=1
+CUDA_REALF=1
 CMP = mpic++
 LNK = mpic++
 NVCC = nvcc

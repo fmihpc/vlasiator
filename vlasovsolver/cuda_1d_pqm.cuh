@@ -184,13 +184,13 @@ __device__ void compute_pqm_coeff(Vec *values, face_estimate_order order, uint k
 ***/
 
 /*make sure quartic polynomial is monotonic*/
-__device__ void filter_pqm_monotonicity(Realf *values, uint k, Realf &fv_l, Realf &fv_r, Realf &fd_l, Realf &fd_r) {
+__device__ void filter_pqm_monotonicity(Vec *values, uint k, Realf &fv_l, Realf &fv_r, Realf &fd_l, Realf &fd_r, const int index) {
    /*fixed values give to roots clearly outside [0,1], or nonexisting ones*/
    
    /*second derivative coefficients, eq 23 in white et al.*/
-   Realf b0 =   60.0 * values[k] - 24.0 * fv_r - 36.0 * fv_l + 3.0 * (fd_r - 3.0 * fd_l);
-   Realf b1 = -360.0 * values[k] + 36.0 * fd_l - 24.0 * fd_r + 168.0 * fv_r + 192.0 * fv_l;
-   Realf b2 =  360.0 * values[k] + 30.0 * (fd_r - fd_l) - 180.0 * (fv_l + fv_r);
+   Realf b0 =   60.0 * values[k][index] - 24.0 * fv_r - 36.0 * fv_l + 3.0 * (fd_r - 3.0 * fd_l);
+   Realf b1 = -360.0 * values[k][index] + 36.0 * fd_l - 24.0 * fd_r + 168.0 * fv_r + 192.0 * fv_l;
+   Realf b2 =  360.0 * values[k][index] + 30.0 * (fd_r - fd_l) - 180.0 * (fv_l + fv_r);
    /*let's compute sqrt value to be used for computing roots. If we
     take sqrt of negaitve numbers, then we instead set a value that
     will make the root to be +-100 which is well outside range
@@ -205,8 +205,8 @@ __device__ void filter_pqm_monotonicity(Realf *values, uint k, Realf &fv_l, Real
    const Realf root2 = (b2 != 0) ? (-b1 - sqrt_val) / (2 * b2) : 0;
 
    /*PLM slope, MC limiter*/
-   Realf plm_slope_l = 2.0 * (values[k] - values[k - VECL]);
-   Realf plm_slope_r = 2.0 * (values[k + VECL] - values[k]);
+   Realf plm_slope_l = 2.0 * (values[k][index] - values[k - 1][index]);
+   Realf plm_slope_r = 2.0 * (values[k + 1][index] - values[k][index]);
    Realf slope_sign = plm_slope_l + plm_slope_r; //it also has some magnitude, but we will only use its sign.
    /*first derivative coefficients*/
    const Realf c0 = fd_l;
@@ -226,7 +226,7 @@ __device__ void filter_pqm_monotonicity(Realf *values, uint k, Realf &fv_l, Real
    bool fixInflexion = root1_slope * slope_sign < 0.0 || root2_slope * slope_sign < 0.0;
 
    if(fixInflexion) {
-      Realv valuesa = values[k];
+      Realv valuesa = values[k][index];
       Realv fva_l = fv_l;
       Realv fva_r = fv_r;
       Realv fda_l = fd_l;
@@ -279,22 +279,22 @@ __device__ void filter_pqm_monotonicity(Realf *values, uint k, Realf &fv_l, Real
    }
 }
 
-__device__ void compute_pqm_coeff(Realf *values, face_estimate_order order, uint k, Realf a[5], const Realv threshold)
+__device__ void compute_pqm_coeff(Vec *values, face_estimate_order order, uint k, Realf a[5], const Realv threshold, const int index)
 {
    Realf fv_l; /*left face value*/
    Realf fv_r; /*right face value*/
    Realf fd_l; /*left face derivative*/
    Realf fd_r; /*right face derivative*/
-   compute_filtered_face_values_derivatives(values, k, order, fv_l, fv_r, fd_l, fd_r, threshold);
-   filter_pqm_monotonicity(values, k, fv_l, fv_r, fd_l, fd_r);
+   compute_filtered_face_values_derivatives(values, k, order, fv_l, fv_r, fd_l, fd_r, threshold, index);
+   filter_pqm_monotonicity(values, k, fv_l, fv_r, fd_l, fd_r, index);
    //Fit a second order polynomial for reconstruction see, e.g., White
    //2008 (PQM article) (note additional integration factors built in,
    //contrary to White (2008) eq. 4
    a[0] = fv_l;
    a[1] = fd_l/2.0;
-   a[2] =  10.0 * values[k] - 4.0 * fv_r - 6.0 * fv_l + 0.5 * (fd_r - 3 * fd_l);
-   a[3] = -15.0 * values[k]  + 1.5 * fd_l - fd_r + 7.0 * fv_r + 8 * fv_l;
-   a[4] =   6.0 * values[k] +  0.5 * (fd_r - fd_l) - 3.0 * (fv_l + fv_r);
+   a[2] =  10.0 * values[k][index] - 4.0 * fv_r - 6.0 * fv_l + 0.5 * (fd_r - 3 * fd_l);
+   a[3] = -15.0 * values[k][index]  + 1.5 * fd_l - fd_r + 7.0 * fv_r + 8 * fv_l;
+   a[4] =   6.0 * values[k][index] +  0.5 * (fd_r - fd_l) - 3.0 * (fv_l + fv_r);
 }
 
 

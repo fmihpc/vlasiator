@@ -69,7 +69,9 @@ __global__ void acceleration_1
    // How many columns max per block?
    int maxcolumns = (int)ceil((Realv)totalColumns / (Realv)nBlocks);
    
-   Realf * dev_values_realf = reinterpret_cast<Realf*>(dev_values);
+   //Realf * dev_values_realf = reinterpret_cast<Realf*>(dev_values);
+//   Realf * dev_values_realf = &dev_values[0][0];
+//   printf("Maxcolumns %d totalcolumns %d nblocks %d dev_values %d %d %f %f\n", maxcolumns, totalColumns, nBlocks, &dev_values[0][0], &dev_values_realf[0], dev_values[0][0], dev_values_realf[0]);
 
    for (uint blockC = 0; blockC < maxcolumns; ++blockC) {
       int column = blockC*nBlocks + block;
@@ -104,15 +106,18 @@ __global__ void acceleration_1
             // Compute reconstructions
 #ifdef ACC_SEMILAG_PLM
             Realv a[2];
-            compute_plm_coeff(dev_values_realf + dev_columns[column].valuesOffset * VECL + i_pcolumnv_cuda_realf(j, 0, -1, nblocks, index), (k + WID), a, minValue);
+            //compute_plm_coeff(dev_values_realf + dev_columns[column].valuesOffset * VECL + i_pcolumnv_cuda_realf(j, 0, -1, nblocks, index), (k + WID), a, minValue);
+            compute_plm_coeff(dev_values + dev_columns[column].valuesOffset + i_pcolumnv_cuda(j, 0, -1, nblocks), (k + WID), a, minValue, index);
 #endif
 #ifdef ACC_SEMILAG_PPM
             Realv a[3];
-            compute_ppm_coeff(dev_values_realf + dev_columns[column].valuesOffset * VECL + i_pcolumnv_cuda_realf(j, 0, -1, nblocks, index), h4, (k + WID), a, minValue);
+          //compute_ppm_coeff(dev_values_realf + dev_columns[column].valuesOffset * VECL + i_pcolumnv_cuda_realf(j, 0, -1, nblocks, index), h4, (k + WID), a, minValue);
+            compute_ppm_coeff(dev_values + dev_columns[column].valuesOffset + i_pcolumnv_cuda(j, 0, -1, nblocks), h4, (k + WID), a, minValue, index);
 #endif
 #ifdef ACC_SEMILAG_PQM
             Realv a[5];
-            compute_pqm_coeff(dev_values_realf + dev_columns[column].valuesOffset * VECL + i_pcolumnv_cuda_realf(j, 0, -1, nblocks, index), h8, (k + WID), a, minValue);
+          //compute_pqm_coeff(dev_values_realf + dev_columns[column].valuesOffset * VECL + i_pcolumnv_cuda_realf(j, 0, -1, nblocks, index), h8, (k + WID), a, minValue);
+            compute_pqm_coeff(dev_values + dev_columns[column].valuesOffset + i_pcolumnv_cuda(j, 0, -1, nblocks), h8, (k + WID), a, minValue, index);
 #endif
 
             // set the initial value for the integrand at the boundary at v = 0
