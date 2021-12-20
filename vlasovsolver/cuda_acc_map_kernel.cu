@@ -51,8 +51,6 @@ __global__ void acceleration_1
   int bdsw3
 )
 {
-   Realv maxV = (sizeof(Realv) == 4) ? NPP_MINABS_32F : NPP_MINABS_64F;
-   Realv minV = (sizeof(Realv) == 4) ? NPP_MAXABS_32F : NPP_MAXABS_64F;
    //int index = threadIdx.x + blockIdx.x*blockDim.x;
    //if(totalColumns > 256)
    //  printf("totalColumns = %d;\n", totalColumns);
@@ -61,15 +59,16 @@ __global__ void acceleration_1
    //for( uint column=0; column < totalColumns; column++)
 
 #ifdef CUDA_REALF
+   printf("CUDA REALF\n");
 
    // Optimal to re-distribute columns and blocks evenly?
    int index = threadIdx.x;
    int block = blockIdx.x;
    int nBlocks = gridDim.x;
    // How many columns max per block?
-   int maxcolumns = ceil(totalColumns / nBlocks);
+   int maxcolumns = (int)ceil((Realv)totalColumns / (Realv)nBlocks);
    
-   Realf * dev_values_realf = dev_values;
+   Realf * dev_values_realf = reinterpret_cast<Realf*>(dev_values);
 
    for (uint blockC = 0; blockC < maxcolumns; ++blockC) {
       int column = blockC*nBlocks + block;
@@ -119,21 +118,19 @@ __global__ void acceleration_1
             // (in reduced cell units), this will be shifted to target_density_1, see below.
             Realf target_density_r = 0.0;
 
-            Realv v_r = v_r0  + (k+1)* dv;
-            Realv v_l = v_r0  + k* dv;
-            int lagrangian_gk_l = trunc((v_l-intersection_min)/intersection_dk);
-            int lagrangian_gk_r = trunc((v_r-intersection_min)/intersection_dk);
+            const Realv v_r = v_r0  + (k+1)* dv;
+            const Realv v_l = v_r0  + k* dv;
+            const int lagrangian_gk_l = trunc((v_l-intersection_min)/intersection_dk);
+            const int lagrangian_gk_r = trunc((v_r-intersection_min)/intersection_dk);
             
             //limits in lagrangian k for target column. Also take into
             //account limits of target column
-            int minGk = max(lagrangian_gk_l, int(dev_columns[column].minBlockK * WID));
-            int maxGk = min(lagrangian_gk_r, int((dev_columns[column].maxBlockK + 1) * WID - 1));
+            const int minGk = max(lagrangian_gk_l, int(dev_columns[column].minBlockK * WID));
+            const int maxGk = min(lagrangian_gk_r, int((dev_columns[column].maxBlockK + 1) * WID - 1));
+            const int startGk = (dev_columns[column].minBlockK * WID < minGk) ? minGk : dev_columns[column].minBlockK * WID; 
+            const int endGk = (dev_columns[column].maxBlockK * WID > maxGk) ? minGk : dev_columns[column].maxBlockK * WID; 
             // Run along the column and perform the polynomial reconstruction
-            for(int gk = dev_columns[column].minBlockK * WID; gk <= dev_columns[column].maxBlockK * WID; gk++)
-            {
-               if(gk < minGk || gk > maxGk)
-               { continue; }
-
+            for(int gk = startGk; gk <= endGk; gk++) {
                const int blockK = gk/WID;
                const int gk_mod_WID = (gk - blockK * WID);
 
@@ -171,6 +168,9 @@ __global__ void acceleration_1
    } //for loop over columns
 
 #else // NOT CUDA_REALF
+   Realv maxV = (sizeof(Realv) == 4) ? NPP_MINABS_32F : NPP_MINABS_64F;
+   Realv minV = (sizeof(Realv) == 4) ? NPP_MAXABS_32F : NPP_MAXABS_64F;
+   printf("old CUDA\n");
    int column = threadIdx.x + blockIdx.x * blockDim.x;
    //for( uint column=0; column < totalColumns; column++)
    if (column < totalColumns) {

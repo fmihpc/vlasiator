@@ -124,6 +124,7 @@ ifeq ($(USE_CUDA),1)
 	CUDALINK += -lcudart
 ifeq ($(CUDA_REALF),1)
 	CXXFLAGS += -DCUDA_REALF
+	CUDAFLAGS += -DCUDA_REALF
 endif
 endif
 
