@@ -122,6 +122,9 @@ ifeq ($(USE_CUDA),1)
 	LIBS += ${LIB_CUDA}
 	CXXFLAGS += -DUSE_CUDA
 	CUDALINK += -lcudart
+ifeq ($(CUDA_REALF),1)
+	CXXFLAGS += -DCUDA_REALF
+endif
 endif
 
 # Define common dependencies

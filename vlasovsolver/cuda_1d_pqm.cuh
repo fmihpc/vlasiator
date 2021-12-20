@@ -35,7 +35,6 @@
 
 /*make sure quartic polynomial is monotonic*/
 __device__ void filter_pqm_monotonicity(Vec *values, uint k, Vec &fv_l, Vec &fv_r, Vec &fd_l, Vec &fd_r){
-   const Vec root_outside = Vec(100.0); //fixed values give to roots clearly outside [0,1], or nonexisting ones*/
    /*second derivative coefficients, eq 23 in white et al.*/
    Vec b0 =   60.0 * values[k] - 24.0 * fv_r - 36.0 * fv_l + 3.0 * (fd_r - 3.0 * fd_l);
    Vec b1 = -360.0 * values[k] + 36.0 * fd_l - 24.0 * fd_r + 168.0 * fv_r + 192.0 * fv_l;
@@ -186,7 +185,6 @@ __device__ void compute_pqm_coeff(Vec *values, face_estimate_order order, uint k
 
 /*make sure quartic polynomial is monotonic*/
 __device__ void filter_pqm_monotonicity(Realf *values, uint k, Realf &fv_l, Realf &fv_r, Realf &fd_l, Realf &fd_r) {
-   const Realf root_outside = 100.0; 
    /*fixed values give to roots clearly outside [0,1], or nonexisting ones*/
    
    /*second derivative coefficients, eq 23 in white et al.*/

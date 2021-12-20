@@ -171,11 +171,15 @@ bool map_1d(SpatialCell* spatial_cell,
    useAccelerator = false;
 #endif // USE_CUDA
 
-   if(!useAccelerator) {
-      cerr << "Not using accelerator for cell." << endl;
-   } else {
-      cerr << "Using accelerator." << endl;
+#ifdef CUDA_REALF
+   if(useAccelerator) {
+      cerr << "Using CUDA_REALF accelerator. " << endl;
    }
+#else
+   if(useAccelerator) {
+      cerr << "Using CUDA accelerator. " << endl;
+   }
+#endif
 
    //nothing to do if no blocks
    if(vmesh.size() == 0)
@@ -246,11 +250,11 @@ bool map_1d(SpatialCell* spatial_cell,
    const Realv i_dv=1.0/dv;
 
    // sort blocks according to dimension, and divide them into columns
-   vmesh::LocalID* blocks = new vmesh::LocalID[vmesh.size()];
-   std::vector<uint> columnBlockOffsets;
-   std::vector<uint> columnNumBlocks;
-   std::vector<uint> setColumnOffsets;
-   std::vector<uint> setNumColumns;
+   vmesh::LocalID* blocks = new vmesh::LocalID[vmesh.size()]; // GIDs in dimension-order (length nBlocks)
+   std::vector<uint> columnBlockOffsets; // indexes where columns start (in blocks, length totalColumns)
+   std::vector<uint> columnNumBlocks; // length of column (in blocks, length totalColumns)
+   std::vector<uint> setColumnOffsets; // index from columnBlockOffsets where new set of columns starts (length nColumnSets)
+   std::vector<uint> setNumColumns; // how many columns in set of columns (length nColumnSets) 
 
    sortBlocklistByDimension(vmesh, dimension, blocks,
                             columnBlockOffsets, columnNumBlocks,
