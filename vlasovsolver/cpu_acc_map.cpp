@@ -106,7 +106,7 @@ void inline swapBlockIndices(velocity_block_indices_t &blockIndices, const uint 
 }
 
 #ifdef USE_CUDA
-Realf* acceleration_1_wrapperCaller(
+void acceleration_1_wrapperCaller(
     Realf *blockData,
     Column *columns,
     Vec values[],
@@ -124,7 +124,7 @@ Realf* acceleration_1_wrapperCaller(
     Realv minValue
   ) {
     //printf("STAGE 2\n");
-    Realf* returned_blockData = acceleration_1_wrapper (
+    acceleration_1_wrapper (
       blockData,
       columns,
       values,
@@ -141,7 +141,7 @@ Realf* acceleration_1_wrapperCaller(
       dv,
       minValue
     );
-    return returned_blockData;
+    return;
   }
 #endif // USE_CUDA
 
@@ -367,8 +367,8 @@ bool map_1d(SpatialCell* spatial_cell,
           * edge in source grid.
            *lastBlockV is in z the maximum velocity value of the upper
           * edge in source grid. */
-         double firstBlockMinV = (WID * firstBlockIndices[2]) * dv + v_min;
-         double lastBlockMaxV = (WID * (lastBlockIndices[2] + 1)) * dv + v_min;
+         Realv firstBlockMinV = (WID * firstBlockIndices[2]) * dv + v_min;
+         Realv lastBlockMaxV = (WID * (lastBlockIndices[2] + 1)) * dv + v_min;
 
          /*gk is now the k value in terms of cells in target
          grid. This distance between max_intersectionMin (so lagrangian
@@ -481,7 +481,7 @@ bool map_1d(SpatialCell* spatial_cell,
 #else
      //CALL CUDA FUNCTION WRAPPER START
      //printf("STAGE 1\n");
-     blockData = acceleration_1_wrapperCaller(
+     acceleration_1_wrapperCaller(
        blockData,
        columns,
        values,

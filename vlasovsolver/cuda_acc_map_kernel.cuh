@@ -11,7 +11,7 @@ struct Column
    int i,j;                                       // Blocks' perpendicular coordinates
 };
 
-extern Realf* acceleration_1_wrapperCaller
+extern void acceleration_1_wrapperCaller
 (
   Realf *blockData,
   Column *columns,
@@ -29,7 +29,7 @@ extern Realf* acceleration_1_wrapperCaller
   Realv dv,
   Realv minValue
 );
-extern Realf* acceleration_1_wrapper
+extern void acceleration_1_wrapper
 (
   Realf *blockData,
   Column *columns,
@@ -50,5 +50,5 @@ extern Realf* acceleration_1_wrapper
 
 #define DIMS 1
 #define BLOCKS 64
-#define THREADS 64
+#define THREADS 32
 #define CUDASIZE 1

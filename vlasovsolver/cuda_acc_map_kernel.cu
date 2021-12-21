@@ -176,11 +176,10 @@ __global__ void acceleration_1
       // After this point in the k,j,i loops there should be no branches based on dimensions
       // Note that the i dimension is vectorized, and thus there are no loops over i
       // Iterate through the perpendicular directions of the column
-      for (uint j = 0; j < WID; j += VECL/WID) {
+      for (int j = 0; j < WID; j += VECL/WID) {
          const vmesh::LocalID nblocks = dev_columns[column].nblocks;
 
          // create vectors with the i and j indices in the vector position on the plane.
-         {
             #if VECL == 4
             const Veci i_indices = Veci({0, 1, 2, 3});
             const Veci j_indices = Veci({j, j, j, j});
@@ -245,10 +244,10 @@ __global__ void acceleration_1
             cerr << __FILE__ << ":" << __LINE__ << ": Missing implementation for VECL=" << VECL << " and WID=" << WID << "!" << endl;
             abort();
             #endif
-         }
+
          /* array for converting block indices to id using a dot product, 
             depends on Cartesian direction*/
-         const Veci  target_cell_index_common =
+         const Veci target_cell_index_common =
             i_indices * dev_cell_indices_to_id[0] +
             j_indices * dev_cell_indices_to_id[1];
          
@@ -381,7 +380,7 @@ __global__ void acceleration_1
 #endif // NOT CUDA_REALF
 }
 
-Realf* acceleration_1_wrapper
+void acceleration_1_wrapper
 (
   Realf *blockData,
   Column *columns,
@@ -405,9 +404,9 @@ Realf* acceleration_1_wrapper
   cudaEventCreate(&stop);
   cudaEventRecord(start, 0);
 
-  double *dev_blockData;
-  HANDLE_ERROR( cudaMalloc((void**)&dev_blockData, bdsw3*sizeof(double)) );
-  HANDLE_ERROR( cudaMemcpy(dev_blockData, blockData, bdsw3*sizeof(double), cudaMemcpyHostToDevice) );
+  Realf *dev_blockData;
+  HANDLE_ERROR( cudaMalloc((void**)&dev_blockData, bdsw3*sizeof(Realf)) );
+  HANDLE_ERROR( cudaMemcpy(dev_blockData, blockData, bdsw3*sizeof(Realf), cudaMemcpyHostToDevice) );
 
   Column *dev_columns;
   HANDLE_ERROR( cudaMalloc((void**)&dev_columns, totalColumns*sizeof(Column)) );
@@ -422,13 +421,14 @@ Realf* acceleration_1_wrapper
   HANDLE_ERROR( cudaMemcpy(dev_values, values, valuesSizeRequired*sizeof(Vec), cudaMemcpyHostToDevice) );
 
 #ifdef CUDA_REALF
-  int blocks = BLOCKS;
-  if (THREADS != VECL) printf("CUDA ERROR! VECL does not match thread count.\n");
+  int threads = VECL; // NVIDIA: 32 AMD: 64
+  int blocks = BLOCKS; // NVIDIA: a100 64 stream multiprocessors
 #else
   int blocks = (totalColumns / THREADS) + 1;
+  int threads = THREADS;
 #endif
 
-  acceleration_1<<<blocks, THREADS>>>
+  acceleration_1<<<blocks, threads>>>
   (
     dev_blockData,
     dev_columns,
@@ -446,7 +446,7 @@ Realf* acceleration_1_wrapper
         bdsw3
   );
   cudaDeviceSynchronize();
-  HANDLE_ERROR( cudaMemcpy(blockData, dev_blockData, bdsw3*sizeof(double), cudaMemcpyDeviceToHost) );
+  HANDLE_ERROR( cudaMemcpy(blockData, dev_blockData, bdsw3*sizeof(Realf), cudaMemcpyDeviceToHost) );
 
   cudaEventRecord(stop, 0);
   cudaEventSynchronize(stop);
@@ -459,5 +459,5 @@ Realf* acceleration_1_wrapper
   HANDLE_ERROR( cudaFree(dev_columns) );
   HANDLE_ERROR( cudaFree(dev_values) );
 
-  return blockData;
+  return;
 }
