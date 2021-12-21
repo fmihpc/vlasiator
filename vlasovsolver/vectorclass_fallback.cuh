@@ -27,14 +27,14 @@
 #include "cuda.h"
 #include "cuda_runtime.h"
 #include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
+//#include <stdlib.h>
+//#include <math.h>
 #include <initializer_list>
 // Prefetching does nothing in the fallback vectorclass, if no system implementation
 // is available
-#ifndef _mm_prefetch
-#define _mm_prefetch(...)
-#endif
+//#ifndef _mm_prefetch
+//#define _mm_prefetch(...)
+//#endif
 
 template <typename T>
 class VecSimple
@@ -69,8 +69,7 @@ class VecSimple
     	   //abort();
          //__threadfence();
          //asm("trap;");
-         printf("Constructing a vector with a number of elements not equal to VECL = %d;", VECL);
-         printf("Initializer_list size = %lu;",list.size());
+         printf("Constructing a vector with a number of elements not equal to VECL = %d \nInitializer_list size = %lu\n", VECL, list.size());
       }
       else
       {

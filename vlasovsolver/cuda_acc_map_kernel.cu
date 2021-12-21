@@ -21,7 +21,6 @@
 #define NPP_MINABS_64F ( 2.2250738585072014e-308 )
 
 #define i_pcolumnv_cuda(j, k, k_block, num_k_blocks) ( ((j) / ( VECL / WID)) * WID * ( num_k_blocks + 2) + (k) + ( k_block + 1 ) * WID )
-#define i_pcolumnv_cuda_realf(j, k, k_block, num_k_blocks, index) ( ((j) / ( VECL / WID)) * WID * ( num_k_blocks + 2) * VECL + (k) * VECL + ( k_block + 1 ) * WID * VECL + (index) )
 
 #define HANDLE_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ));
 static void HandleError( cudaError_t err, const char *file, int line )
@@ -64,13 +63,14 @@ __global__ void acceleration_1
    // block counts
    int index = threadIdx.x;
    int block = blockIdx.x;
+   int nThreads = blockDim.x;
    int nBlocks = gridDim.x;
    // How many columns max per block?
    int maxcolumns = (int)ceil((Realv)totalColumns / (Realv)nBlocks);
    
-   //Realf * dev_values_realf = reinterpret_cast<Realf*>(dev_values);
-//   Realf * dev_values_realf = &dev_values[0][0];
-//   printf("Maxcolumns %d totalcolumns %d nblocks %d dev_values %d %d %f %f\n", maxcolumns, totalColumns, nBlocks, &dev_values[0][0], &dev_values_realf[0], dev_values[0][0], dev_values_realf[0]);
+   if (nThreads != VECL) {
+      printf("Warning! VECL not matching thread count for CUDA code!\n");
+   }
 
    for (uint blockC = 0; blockC < maxcolumns; ++blockC) {
       int column = blockC*nBlocks + block;
@@ -105,17 +105,14 @@ __global__ void acceleration_1
             // Compute reconstructions
 #ifdef ACC_SEMILAG_PLM
             Realv a[2];
-            //compute_plm_coeff(dev_values_realf + dev_columns[column].valuesOffset * VECL + i_pcolumnv_cuda_realf(j, 0, -1, nblocks, index), (k + WID), a, minValue);
             compute_plm_coeff(dev_values + dev_columns[column].valuesOffset + i_pcolumnv_cuda(j, 0, -1, nblocks), (k + WID), a, minValue, index);
 #endif
 #ifdef ACC_SEMILAG_PPM
             Realv a[3];
-          //compute_ppm_coeff(dev_values_realf + dev_columns[column].valuesOffset * VECL + i_pcolumnv_cuda_realf(j, 0, -1, nblocks, index), h4, (k + WID), a, minValue);
             compute_ppm_coeff(dev_values + dev_columns[column].valuesOffset + i_pcolumnv_cuda(j, 0, -1, nblocks), h4, (k + WID), a, minValue, index);
 #endif
 #ifdef ACC_SEMILAG_PQM
             Realv a[5];
-          //compute_pqm_coeff(dev_values_realf + dev_columns[column].valuesOffset * VECL + i_pcolumnv_cuda_realf(j, 0, -1, nblocks, index), h8, (k + WID), a, minValue);
             compute_pqm_coeff(dev_values + dev_columns[column].valuesOffset + i_pcolumnv_cuda(j, 0, -1, nblocks), h8, (k + WID), a, minValue, index);
 #endif
 
@@ -183,41 +180,72 @@ __global__ void acceleration_1
          const vmesh::LocalID nblocks = dev_columns[column].nblocks;
 
          // create vectors with the i and j indices in the vector position on the plane.
-         #if VECL == 4
-            const Veci i_indices = Veci(0, 1, 2, 3);
-            const Veci j_indices = Veci(j, j, j, j);
-         #elif VECL == 8
-            const Veci i_indices = Veci(0, 1, 2, 3, 0, 1, 2, 3);
-            const Veci j_indices = Veci(j, j, j, j, j + 1, j + 1, j + 1, j + 1);
-         #elif VECL == 16
-            const Veci i_indices = Veci(0, 1, 2, 3,
+         {
+            #if VECL == 4
+            const Veci i_indices = Veci({0, 1, 2, 3});
+            const Veci j_indices = Veci({j, j, j, j});
+            #elif VECL == 8 && WID == 4
+            const Veci i_indices = Veci({0, 1, 2, 3,
+                                        0, 1, 2, 3});
+            const Veci j_indices = Veci({j, j, j, j,
+                                        j + 1, j + 1, j + 1, j + 1});
+            #elif VECL == 8 && WID == 8
+            const Veci i_indices = Veci({0, 1, 2, 3, 4, 5, 6, 7});
+            const Veci j_indices = Veci({j, j, j, j, j, j, j, j});
+            #elif VECL == 16 && WID == 4
+            const Veci i_indices = Veci({0, 1, 2, 3,
                                         0, 1, 2, 3,
                                         0, 1, 2, 3,
-                                        0, 1, 2, 3);
-            const Veci j_indices = Veci(j, j, j, j,
+                                        0, 1, 2, 3});
+            const Veci j_indices = Veci({j, j, j, j,
                                         j + 1, j + 1, j + 1, j + 1,
                                         j + 2, j + 2, j + 2, j + 2,
-                                        j + 3, j + 3, j + 3, j + 3);
-         #elif VECL == 64 // assumes WID=8
-            const Veci i_indices = Veci(0, 1, 2, 3, 4, 5, 6, 7,
+                                        j + 3, j + 3, j + 3, j + 3});
+            #elif VECL == 16 && WID == 8
+            const Veci i_indices = Veci({0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7});
+            const Veci j_indices = Veci({j,   j,   j,   j,   j,   j,   j,   j,
+                                        j+1, j+1, j+1, j+1, j+1, j+1, j+1, j+1});
+            #elif VECL == 16 && WID == 16
+            const Veci i_indices = Veci({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15});
+            const Veci j_indices = Veci({j, j, j, j, j, j, j, j, j, j,  j,  j,  j,  j,  j,  j});
+            #elif VECL == 32 && WID == 4
+            cerr << __FILE__ << ":" << __LINE__ << ": VECL == 32 && WID == 4 cannot work, too long vector for one plane!" << endl;
+            abort();
+            #elif VECL == 32 && WID == 8
+            const Veci i_indices = Veci({0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7});
+            const Veci j_indices = Veci({j,   j,   j,   j,   j,   j,   j,   j,
+                                        j+1, j+1, j+1, j+1, j+1, j+1, j+1, j+1,
+                                        j+2, j+2, j+2, j+2, j+2, j+2, j+2, j+2,
+                                        j+3, j+3, j+3, j+3, j+3, j+3, j+3, j+3});
+            #elif VECL == 64 && WID == 4
+            cerr << __FILE__ << ":" << __LINE__ << ": VECL == 64 && WID == 4 cannot work, too long vector for one plane!" << endl;
+            abort();
+            #elif VECL == 64 && WID == 8
+            const Veci i_indices = Veci({0, 1, 2, 3, 4, 5, 6, 7,
                                         0, 1, 2, 3, 4, 5, 6, 7,
                                         0, 1, 2, 3, 4, 5, 6, 7,
                                         0, 1, 2, 3, 4, 5, 6, 7,
                                         0, 1, 2, 3, 4, 5, 6, 7,
                                         0, 1, 2, 3, 4, 5, 6, 7,
                                         0, 1, 2, 3, 4, 5, 6, 7,
-                                        0, 1, 2, 3, 4, 5, 6, 7);
-            const Veci j_indices = Veci(j, j, j, j, j, j, j, j,
-                                        j + 1, j + 1, j + 1, j + 1, j + 1, j + 1, j + 1, j + 1,
-                                        j + 2, j + 2, j + 2, j + 2, j + 2, j + 2, j + 2, j + 2,
-                                        j + 3, j + 3, j + 3, j + 3, j + 3, j + 3, j + 3, j + 3, 
-                                        j + 4, j + 4, j + 4, j + 4, j + 4, j + 4, j + 4, j + 4, 
-                                        j + 5, j + 5, j + 5, j + 5, j + 5, j + 5, j + 5, j + 5, 
-                                        j + 6, j + 6, j + 6, j + 6, j + 6, j + 6, j + 6, j + 6, 
-                                        j + 7, j + 7, j + 7, j + 7, j + 7, j + 7, j + 7, j + 7, 
-);
-         #endif
-
+                                        0, 1, 2, 3, 4, 5, 6, 7});
+            const Veci j_indices = Veci({j,   j,   j,   j,   j,   j,   j,   j,
+                                        j+1, j+1, j+1, j+1, j+1, j+1, j+1, j+1,
+                                        j+2, j+2, j+2, j+2, j+2, j+2, j+2, j+2,
+                                        j+3, j+3, j+3, j+3, j+3, j+3, j+3, j+3,
+                                        j+4, j+4, j+4, j+4, j+4, j+4, j+4, j+4,
+                                        j+5, j+5, j+5, j+5, j+5, j+5, j+5, j+5,
+                                        j+6, j+6, j+6, j+6, j+6, j+6, j+6, j+6,
+                                        j+7, j+7, j+7, j+7, j+7, j+7, j+7, j+7});
+            #else
+            cerr << __FILE__ << ":" << __LINE__ << ": Missing implementation for VECL=" << VECL << " and WID=" << WID << "!" << endl;
+            abort();
+            #endif
+         }
          /* array for converting block indices to id using a dot product, 
             depends on Cartesian direction*/
          const Veci  target_cell_index_common =

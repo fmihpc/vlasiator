@@ -10,8 +10,8 @@
 
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
 #Single-precision        
-        INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/Codes/vectorclass/version1
-	VECTORCLASS = VEC4F_FALLBACK
+        INC_VECTORCLASS = -I/home/ykempf/Development/vlasiator/vlasovsolver/vectorclass_fallback.h
+	VECTORCLASS = VEC_FALLBACK_GENERIC_FLOAT
 else
 #Double-precision
         INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/Codes/vectorclass/version1
@@ -29,7 +29,7 @@ PAPI_FLAG =
 
 FLAGS =
 #CXXFLAGS = -I $(HOME)/include  -L $(HOME)/lib -g  -funroll-loops -std=c++0x -fopenmp -W -Wall -pedantic -Wno-unused -fabi-version=0 -mavx
-CXXFLAGS = -I $(HOME)/include  -L $(HOME)/lib -O3  -funroll-loops -std=c++0x -fopenmp -W -Wall -Wno-unused -fabi-version=0 -mavx
+CXXFLAGS = -I $(HOME)/include  -L $(HOME)/lib -O3  -funroll-loops -std=c++17 -fopenmp -W -Wall -Wno-unused -fabi-version=0 -mavx
 MATHFLAGS = -ffast-math
 LDFLAGS = -L $(HOME)/lib
 LIB_MPI = -lgomp 
@@ -58,7 +58,7 @@ INC_FSGRID = -I$(LIBRARY_PREFIX)/Development/fsgrid
 INC_JEMALLOC = -I$(LIBRARY_PREFIX)/include/jemalloc
 LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/lib -ljemalloc
 
-LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX)/phiprof/lib
 INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
 INC_TOPO =
 

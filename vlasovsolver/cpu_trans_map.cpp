@@ -246,8 +246,8 @@ void copy_trans_block_data(
     SpatialCell** source_neighbors,
     const vmesh::GlobalID blockGID,
     Vec* values,
-    const unsigned char* const cellid_transpose,
-    const uint popID) {
+    const unsigned int* const cellid_transpose,
+    const uint popID) { 
 
    /*load pointers to blocks and prefetch them to L1*/
    Realf* blockDatas[VLASOV_STENCIL_WIDTH * 2 + 1];
@@ -328,7 +328,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    // Contains a block, and its spatial neighbours in one dimension.
    Realv dz,z_min, dvz,vz_min;
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
-   unsigned char  cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
+   unsigned int  cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
 
    if(localPropagatedCells.size() == 0)
       return true;

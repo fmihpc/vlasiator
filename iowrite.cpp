@@ -257,7 +257,7 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
    attribs["name"] = popName;      // Name of the velocity space distribution is written avgs
    const string datatype_avgs = "float";
    const uint64_t arraySize_avgs = totalBlocks;
-   const uint64_t vectorSize_avgs = WID3; // There are 64 elements in every velocity block
+   const uint64_t vectorSize_avgs = WID3; // There are 64 (WID=4) or 512 (WID=8) elements in every velocity block
 
    // Get the data size needed for writing in data
    uint64_t dataSize_avgs = sizeof(Realf);
@@ -496,6 +496,8 @@ bool writeCommonGridData(
    if( vlsvWriter.writeParameter("xcells_ini", &P::xcells_ini) == false ) { return false; }
    if( vlsvWriter.writeParameter("ycells_ini", &P::ycells_ini) == false ) { return false; }
    if( vlsvWriter.writeParameter("zcells_ini", &P::zcells_ini) == false ) { return false; }
+   const int writewid = WID;
+   if( vlsvWriter.writeParameter("velocity_block_width", &writewid) == false ) { return false; }
 
    //Mark the new version:
    float version = 3.00;

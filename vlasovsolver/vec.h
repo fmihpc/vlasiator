@@ -52,6 +52,26 @@ VEC8F_AGNER
 */
 
 
+#ifdef VEC_FALLBACK_GENERIC
+// use portable vectorclass with specified vector length
+// if not specified in Makefile, equivalent to VEC8F
+#include "vectorclass_fallback.cuh"
+
+typedef VecSimple<bool> Vecb;
+typedef VecSimple<int> Veci;
+
+#ifdef DPF
+typedef VecSimple<double> Vec;
+typedef double Realv;
+#define to_realv(v) to_double(v)
+#else
+typedef VecSimple<float> Vec;
+typedef float Realv;
+#define to_realv(v) to_float(v)
+#endif
+
+#endif
+
 
 
 #ifdef VEC4D_AGNER

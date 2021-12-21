@@ -49,6 +49,6 @@ extern Realf* acceleration_1_wrapper
 );
 
 #define DIMS 1
-#define BLOCKS 256
-#define THREADS 4
+#define BLOCKS 64
+#define THREADS 64
 #define CUDASIZE 1
