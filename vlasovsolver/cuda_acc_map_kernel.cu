@@ -96,8 +96,8 @@ __global__ void acceleration_1
             j_indices * dev_cell_indices_to_id[1];
          const Realf intersection_min =
             intersection +
-            (dev_columns[column].i * WID + i_indices) * intersection_di +
-            (dev_columns[column].j * WID + j_indices) * intersection_dj;
+            (dev_columns[column].i * WID + (Realv)i_indices) * intersection_di +
+            (dev_columns[column].j * WID + (Realv)j_indices) * intersection_dj;
 
          Realf lagrangian_v_r0 = ((v_r0-intersection_min)/intersection_dk);
          // loop through all perpendicular slices in column and compute the mapping as integrals.
@@ -131,12 +131,11 @@ __global__ void acceleration_1
             
             //limits in lagrangian k for target column. Also take into
             //account limits of target column
+            // TODO: Would it be more efficient to force the same gk-loop for all indexes in the warp?
             const int minGk = max(lagrangian_gk_l, int(dev_columns[column].minBlockK * WID));
             const int maxGk = min(lagrangian_gk_r, int((dev_columns[column].maxBlockK + 1) * WID - 1));
-            const int startGk = (dev_columns[column].minBlockK * WID < minGk) ? minGk : dev_columns[column].minBlockK * WID; 
-            const int endGk = (dev_columns[column].maxBlockK * WID > maxGk) ? minGk : dev_columns[column].maxBlockK * WID; 
             // Run along the column and perform the polynomial reconstruction
-            for(int gk = startGk; gk <= endGk; gk++) {
+            for(int gk = minGk; gk <= maxGk; gk++) {
                const int blockK = gk/WID;
                const int gk_mod_WID = (gk - blockK * WID);
 
