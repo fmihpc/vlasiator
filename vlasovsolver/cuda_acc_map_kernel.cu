@@ -59,7 +59,6 @@ __global__ void acceleration_1
    //for( uint column=0; column < totalColumns; column++)
 
 #ifdef CUDA_REALF
-   printf("CUDA REALF\n");
 
    // Optimization idea for future: reverse-sort columns based on
    // block counts
@@ -173,7 +172,6 @@ __global__ void acceleration_1
    } //for loop over columns
 
 #else // NOT CUDA_REALF
-   printf("old CUDA\n");
    int column = threadIdx.x + blockIdx.x * blockDim.x;
    //for( uint column=0; column < totalColumns; column++)
    if (column < totalColumns) {

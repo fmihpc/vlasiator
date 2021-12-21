@@ -172,13 +172,13 @@ bool map_1d(SpatialCell* spatial_cell,
 #endif // USE_CUDA
 
 #ifdef CUDA_REALF
-   if(useAccelerator) {
-      cerr << "Using CUDA_REALF accelerator. " << endl;
-   }
+   // if(useAccelerator) {
+   //    cerr << "Using CUDA_REALF accelerator. " << endl;
+   // }
 #else
-   if(useAccelerator) {
-      cerr << "Using CUDA accelerator. " << endl;
-   }
+   // if(useAccelerator) {
+   //    cerr << "Using CUDA accelerator. " << endl;
+   // }
 #endif
 
    //nothing to do if no blocks
