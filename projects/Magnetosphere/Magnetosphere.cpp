@@ -93,10 +93,15 @@ namespace projects {
          RP::add(pop + "_Magnetosphere.VZ0", "Initial bulk velocity in z-direction", 0.0);
          RP::add(pop + "_Magnetosphere.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
          RP::add(pop + "_Magnetosphere.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
+         RP::add(pop + "_Magnetosphere.taperInnerRadius", "Inner radius of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
+         RP::add(pop + "_Magnetosphere.taperOuterRadius", "Outer radius of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
       }
    }
    
    void Magnetosphere::getParameters(){
+      int myRank;
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+
       Project::getParameters();
 
       Real dummy;
@@ -159,12 +164,52 @@ namespace projects {
          RP::get(pop + "_Magnetosphere.nVelocitySamples", sP.nVelocitySamples);
 
          RP::get(pop + "_ionosphere.rho", sP.ionosphereRho);
+         RP::get(pop + "_ionosphere.T", sP.ionosphereT);
          RP::get(pop + "_ionosphere.VX0", sP.ionosphereV0[0]);
          RP::get(pop + "_ionosphere.VY0", sP.ionosphereV0[1]);
          RP::get(pop + "_ionosphere.VZ0", sP.ionosphereV0[2]);
-         RP::get(pop + "_ionosphere.taperRadius", sP.ionosphereTaperRadius);
+         RP::get(pop + "_Magnetosphere.taperInnerRadius", sP.taperInnerRadius);
+         RP::get(pop + "_Magnetosphere.taperOuterRadius", sP.taperOuterRadius);
+         // Backward-compatibility: cfgs from before Sep 2021 setting pop_ionosphere.taperRadius will fail with the unknown option.
+         // Some fail-safety checks
+         if(sP.taperInnerRadius < 0 || sP.taperOuterRadius < 0) {
+            if(myRank == MASTER_RANK) {
+               cerr << "Error: " << pop << "_Magnetosphere.taperInnerRadius and tapeOuterRadius should be >= 0! Aborting." << endl;
+            }
+            abort();
+         }
+         if(sP.taperInnerRadius > sP.taperOuterRadius) {
+            if(myRank == MASTER_RANK) {
+               cerr << "Error: " << pop << "_Magnetosphere.taperInnerRadius should be <= taperOuterRadius! Aborting." << endl;
+            }
+            abort();
+         }
+         if(sP.taperOuterRadius > 0 && sP.taperOuterRadius <= this->ionosphereRadius) {
+            if(myRank == MASTER_RANK) {
+               cerr << "Error: " << pop << "_Magnetosphere.taperOuterRadius is non-zero yet smaller than ionosphere.radius! Aborting." << endl;
+            }
+            abort();
+         }
+         if(sP.taperInnerRadius == 0 && sP.taperOuterRadius > 0) {
+            if(myRank == MASTER_RANK) {
+               cerr << "Warning: " << pop << "_Magnetosphere.taperInnerRadius is zero (default), now setting this to the same value as ionosphere.radius, that is " << this->ionosphereRadius << ". Set/change " << pop << "_Magnetosphere.taperInnerRadius if this is not the expected behavior." << endl;
+            }
+            sP.taperInnerRadius = this->ionosphereRadius;
+         }
+         if(sP.ionosphereT == 0) {
+            if(myRank == MASTER_RANK) {
+               cerr << "Warning: " << pop << "_ionosphere.T is zero (default), now setting to the same value as " << pop << "_Magnetosphere.T, that is " << sP.T << ". Set/change " << pop << "_ionosphere.T if this is not the expected behavior." << endl;
+            }
+            sP.ionosphereT = sP.T;
+         }
+         if(sP.ionosphereRho == 0) {
+            if(myRank == MASTER_RANK) {
+               cerr << "Warning: " << pop << "_ionosphere.rho is zero (default), now setting to the same value as " << pop << "_Magnetosphere.rho, that is " << sP.rho << ". Set/change " << pop << "_ionosphere.rho if this is not the expected behavior." << endl;
+            }
+            sP.ionosphereRho = sP.rho;
+         }
 
-        speciesParams.push_back(sP);
+         speciesParams.push_back(sP);
       }
 
    }
@@ -377,6 +422,7 @@ namespace projects {
    {
       const MagnetosphereSpeciesParameters& sP = this->speciesParams[popID];
       Real initRho = sP.rho;
+      Real initT = sP.T;
       std::array<Real, 3> initV0 = this->getV0(x, y, z, popID)[0];
       
       Real radius;
@@ -403,22 +449,20 @@ namespace projects {
             abort();
       }
       
-      if(radius < sP.ionosphereTaperRadius) {
-         // linear tapering
-         //initRho = this->ionosphereRho - (ionosphereRho-tailRho)*(radius-this->ionosphereRadius) / (this->ionosphereTaperRadius-this->ionosphereRadius);
-         
+      if(radius < sP.taperOuterRadius) {
          // sine tapering
-         initRho = sP.rho - (sP.rho-sP.ionosphereRho)*0.5*(1.0+sin(M_PI*(radius-this->ionosphereRadius)/(sP.ionosphereTaperRadius-this->ionosphereRadius)+0.5*M_PI));
-         if(radius < this->ionosphereRadius) {
-            // Just to be safe, there are observed cases where this failed.
+         initRho = sP.rho - (sP.rho-sP.ionosphereRho)*0.5*(1.0+sin(M_PI*(radius-sP.taperInnerRadius)/(sP.taperOuterRadius-sP.taperInnerRadius)+0.5*M_PI));
+         initT = sP.T - (sP.T-sP.ionosphereT)*0.5*(1.0+sin(M_PI*(radius-sP.taperInnerRadius)/(sP.taperOuterRadius-sP.taperInnerRadius)+0.5*M_PI));
+         if(radius < sP.taperInnerRadius) {
             initRho = sP.ionosphereRho;
+            initT = sP.ionosphereT;
          }
       }
 
       Real mass = getObjectWrapper().particleSpecies[popID].mass;
 
-      return initRho * pow(mass / (2.0 * M_PI * physicalconstants::K_B * sP.T), 1.5) *
-      exp(- mass * ((vx-initV0[0])*(vx-initV0[0]) + (vy-initV0[1])*(vy-initV0[1]) + (vz-initV0[2])*(vz-initV0[2])) / (2.0 * physicalconstants::K_B * sP.T));
+      return initRho * pow(mass / (2.0 * M_PI * physicalconstants::K_B * initT), 1.5) *
+      exp(- mass * ((vx-initV0[0])*(vx-initV0[0]) + (vy-initV0[1])*(vy-initV0[1]) + (vz-initV0[2])*(vz-initV0[2])) / (2.0 * physicalconstants::K_B * initT));
    }
 
    vector<std::array<Real, 3> > Magnetosphere::getV0(
@@ -457,17 +501,13 @@ namespace projects {
             abort();
       }
       
-      if(radius < sP.ionosphereTaperRadius) {
-         // linear tapering
-         //initV0[i] *= (radius-this->ionosphereRadius) / (this->ionosphereTaperRadius-this->ionosphereRadius);
-         
+      if(radius < sP.taperOuterRadius) {
          // sine tapering
-         Real q=0.5*(1.0-sin(M_PI*(radius-this->ionosphereRadius)/(sP.ionosphereTaperRadius-this->ionosphereRadius)+0.5*M_PI));
+         Real q=0.5*(1.0-sin(M_PI*(radius-sP.taperInnerRadius)/(sP.taperOuterRadius-sP.taperInnerRadius)+0.5*M_PI));
          
          for(uint i=0; i<3; i++) {
             V0[i]=q*(V0[i]-ionosphereV0[i])+ionosphereV0[i];
-            if(radius < this->ionosphereRadius) {
-               // Just to be safe, there are observed cases where this failed.
+            if(radius < sP.taperInnerRadius) {
                V0[i] = ionosphereV0[i];
             }
          }
