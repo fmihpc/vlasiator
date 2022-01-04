@@ -448,11 +448,11 @@ bool map_1d(SpatialCell* spatial_cell,
    Realf *blockData = blockContainer.getData();
    size_t blockDataSize = blockContainer.size();
    size_t bdsw3 = blockDataSize * WID3;
-   if (useAccelerator) {
-     for (uint cell = 0; cell < bdsw3; cell++) {
-       blockData[cell] = 0;
-     }
-   }
+   // if (useAccelerator) { // Memset to zero on device
+   //   for (uint cell = 0; cell < bdsw3; cell++) {
+   //     blockData[cell] = 0;
+   //   }
+   // }
 
    // Now we iterate through target columns again, identifying their block offsets
    for( uint column=0; column < totalColumns; column++) {
@@ -519,9 +519,12 @@ bool map_1d(SpatialCell* spatial_cell,
          for (uint j = 0; j < WID; j += VECL/WID){
             const vmesh::LocalID nblocks = columns[column].nblocks;
             // create vectors with the i and j indices in the vector position on the plane.
-            #if VECL == 4
+            #if VECL == 4 && WID == 4
             const Veci i_indices = Veci({0, 1, 2, 3});
             const Veci j_indices = Veci({j, j, j, j});
+            #elif VECL == 4 && WID == 8
+            cerr << __FILE__ << ":" << __LINE__ << ": VECL == 4 && WID == 8 cannot work!" << endl;
+            abort();
             #elif VECL == 8 && WID == 4
             const Veci i_indices = Veci({0, 1, 2, 3,
                                         0, 1, 2, 3});

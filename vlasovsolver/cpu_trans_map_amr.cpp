@@ -1916,7 +1916,7 @@ void update_remote_mapping_contribution_amr(
                      // summed for the correct result.
                      
                      ccell->neighbor_block_data.at(sendIndex) =
-                        (Realf*) aligned_malloc(ccell->neighbor_number_of_blocks.at(sendIndex) * WID3 * sizeof(Realf), 64);
+                        (Realf*) aligned_malloc(ccell->neighbor_number_of_blocks.at(sendIndex) * WID3 * sizeof(Realf), WID3);
                      sendBuffers.push_back(ccell->neighbor_block_data.at(sendIndex));
                      for (uint j = 0; j < ccell->neighbor_number_of_blocks.at(sendIndex) * WID3; ++j) {
                         ccell->neighbor_block_data.at(sendIndex)[j] = 0.0;
@@ -1967,9 +1967,9 @@ void update_remote_mapping_contribution_amr(
 
                   ncell->neighbor_number_of_blocks.at(recvIndex) = ccell->get_number_of_velocity_blocks(popID);
                   ncell->neighbor_block_data.at(recvIndex) =
-                     (Realf*) aligned_malloc(ncell->neighbor_number_of_blocks.at(recvIndex) * WID3 * sizeof(Realf), 64);
+                     (Realf*) aligned_malloc(ncell->neighbor_number_of_blocks.at(recvIndex) * WID3 * sizeof(Realf), WID3);
                   receiveBuffers.push_back(ncell->neighbor_block_data.at(recvIndex));
-                  
+
                } else {
 
                   recvIndex = mySiblingIndex;
@@ -1994,7 +1994,7 @@ void update_remote_mapping_contribution_amr(
                         
                         ncell->neighbor_number_of_blocks.at(i_sib) = scell->get_number_of_velocity_blocks(popID);
                         ncell->neighbor_block_data.at(i_sib) =
-                           (Realf*) aligned_malloc(ncell->neighbor_number_of_blocks.at(i_sib) * WID3 * sizeof(Realf), 64);
+                           (Realf*) aligned_malloc(ncell->neighbor_number_of_blocks.at(i_sib) * WID3 * sizeof(Realf), WID3);
                         receiveBuffers.push_back(ncell->neighbor_block_data.at(i_sib));
                      }
                   }

@@ -102,17 +102,30 @@ __global__ void acceleration_1
          // loop through all perpendicular slices in column and compute the mapping as integrals.
          for (uint k=0; k < WID * nblocks; ++k)
          {
+            Realf zerocheck=0;
             // Compute reconstructions
 #ifdef ACC_SEMILAG_PLM
             Realv a[2];
+            for (int zi=-1; zi<2; ++zi) {
+               zerocheck += (dev_values + dev_columns[column].valuesOffset + i_pcolumnv_cuda(j, 0, -1, nblocks))[k+WID][index];
+            }
+            if (zerocheck <= 0) continue;
             compute_plm_coeff(dev_values + dev_columns[column].valuesOffset + i_pcolumnv_cuda(j, 0, -1, nblocks), (k + WID), a, minValue, index);
 #endif
 #ifdef ACC_SEMILAG_PPM
             Realv a[3];
-            compute_ppm_coeff(dev_values + dev_columns[column].valuesOffset + i_pcolumnv_cuda(j, 0, -1, nblocks), h4, (k + WID), a, minValue, index);
+            for (int zi=-2; zi<3; ++zi) {
+               zerocheck += dev_values + dev_columns[column].valuesOffset + i_pcolumnv_cuda(j, 0, -1, nblocks))[k+WID][index];
+            }
+            if (zerocheck <= 0) continue;
+            compute_ppm_coeff((dev_values + dev_columns[column].valuesOffset + i_pcolumnv_cuda(j, 0, -1, nblocks), h4, (k + WID), a, minValue, index);
 #endif
 #ifdef ACC_SEMILAG_PQM
             Realv a[5];
+            for (int zi=-4; zi<5; ++zi) {
+               zerocheck += (dev_values + dev_columns[column].valuesOffset + i_pcolumnv_cuda(j, 0, -1, nblocks))[k+WID][index];
+            }
+            if (zerocheck <= 0) continue;
             compute_pqm_coeff(dev_values + dev_columns[column].valuesOffset + i_pcolumnv_cuda(j, 0, -1, nblocks), h8, (k + WID), a, minValue, index);
 #endif
 
@@ -160,9 +173,11 @@ __global__ void acceleration_1
                    target_density_r = v_norm_r * ( a[0] + v_norm_r * ( a[1] + v_norm_r * ( a[2] + v_norm_r * ( a[3] + v_norm_r * a[4] ) ) ) );
                 #endif
 
-                //store values, one element at a time. All blocks have been created by now.
-                const Realf tval = target_density_r - target_density_l;
-                (&dev_blockData[dev_columns[column].targetBlockOffsets[blockK]])[tcell] += tval;
+                //store value
+                Realf tval = target_density_r - target_density_l;
+                if (isfinite(tval) && tval>0) {
+                   (&dev_blockData[dev_columns[column].targetBlockOffsets[blockK]])[tcell] += tval;
+                }
             } // for loop over target k-indices of current source block
          } // for-loop over source blocks
       } //for loop over j index
@@ -369,9 +384,9 @@ __global__ void acceleration_1
                   // do the conversion from Realv to Realf here, faster than doing it in accumulation
                   const Realf tval = target_density[target_i];
                   const uint tcell = target_cell[target_i];
-
-                  (&dev_blockData[dev_columns[column].targetBlockOffsets[blockK]])[tcell] += tval;
-
+                  if (isfinite(tval) && tval>0) {
+                     (&dev_blockData[dev_columns[column].targetBlockOffsets[blockK]])[tcell] += tval;
+                  }
                 }  // for-loop over vector elements
             } // for loop over target k-indices of current source block
          } // for-loop over source blocks
@@ -406,7 +421,9 @@ void acceleration_1_wrapper
 
   Realf *dev_blockData;
   HANDLE_ERROR( cudaMalloc((void**)&dev_blockData, bdsw3*sizeof(Realf)) );
-  HANDLE_ERROR( cudaMemcpy(dev_blockData, blockData, bdsw3*sizeof(Realf), cudaMemcpyHostToDevice) );
+  //HANDLE_ERROR( cudaMemcpy(dev_blockData, blockData, bdsw3*sizeof(Realf), cudaMemcpyHostToDevice) );
+  // This is initialized to zero
+  HANDLE_ERROR( cudaMemset(dev_blockData, 0, bdsw3*sizeof(Realf)) );
 
   Column *dev_columns;
   HANDLE_ERROR( cudaMalloc((void**)&dev_columns, totalColumns*sizeof(Column)) );

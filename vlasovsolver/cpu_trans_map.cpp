@@ -724,7 +724,7 @@ void update_remote_mapping_contribution(
          //data array, if 1) m is a valid source cell, 2) center cell is to be updated (normal cell) 3) m is remote
          //we will here allocate a receive buffer, since we need to aggregate values
          mcell->neighbor_number_of_blocks[0] = ccell->get_number_of_velocity_blocks(popID);
-         mcell->neighbor_block_data[0] = (Realf*) aligned_malloc(mcell->neighbor_number_of_blocks[0] * WID3 * sizeof(Realf), 64);
+         mcell->neighbor_block_data[0] = (Realf*) aligned_malloc(mcell->neighbor_number_of_blocks[0] * WID3 * sizeof(Realf), WID3);
 
          receive_cells.push_back(local_cells[c]);
          receiveBuffers.push_back(mcell->neighbor_block_data[0]);

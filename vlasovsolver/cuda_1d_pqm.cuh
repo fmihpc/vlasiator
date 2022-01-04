@@ -285,6 +285,7 @@ __device__ void compute_pqm_coeff(Vec *values, face_estimate_order order, uint k
    Realf fv_r; /*right face value*/
    Realf fd_l; /*left face derivative*/
    Realf fd_r; /*right face derivative*/
+
    compute_filtered_face_values_derivatives(values, k, order, fv_l, fv_r, fd_l, fd_r, threshold, index);
    filter_pqm_monotonicity(values, k, fv_l, fv_r, fd_l, fd_r, index);
    //Fit a second order polynomial for reconstruction see, e.g., White
