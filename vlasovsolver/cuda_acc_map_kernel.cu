@@ -98,7 +98,15 @@ __global__ void acceleration_1
             (dev_columns[column].i * WID + (Realv)i_indices) * intersection_di +
             (dev_columns[column].j * WID + (Realv)j_indices) * intersection_dj;
 
-         Realf lagrangian_v_r0 = ((v_r0-intersection_min)/intersection_dk);
+         const Realf gk_intersection_min =
+            intersection +
+            (dev_columns[column].i * WID + (Realv)( intersection_di > 0 ? 0 : WID-1 )) * intersection_di +
+            (dev_columns[column].j * WID + (Realv)( intersection_dj > 0 ? j : j+VECL/WID-1 )) * intersection_dj;
+         const Realf gk_intersection_max =
+            intersection +
+            (dev_columns[column].i * WID + (Realv)( intersection_di < 0 ? 0 : WID-1 )) * intersection_di +
+            (dev_columns[column].j * WID + (Realv)( intersection_dj < 0 ? j : j+VECL/WID-1 )) * intersection_dj;
+
          // loop through all perpendicular slices in column and compute the mapping as integrals.
          for (uint k=0; k < WID * nblocks; ++k)
          {
@@ -122,12 +130,12 @@ __global__ void acceleration_1
 
             const Realv v_r = v_r0  + (k+1)* dv;
             const Realv v_l = v_r0  + k* dv;
-            const int lagrangian_gk_l = trunc((v_l-intersection_min)/intersection_dk);
-            const int lagrangian_gk_r = trunc((v_r-intersection_min)/intersection_dk);
+            const int lagrangian_gk_l = trunc((v_l-gk_intersection_max)/intersection_dk);
+            const int lagrangian_gk_r = trunc((v_r-gk_intersection_min)/intersection_dk);
             
             //limits in lagrangian k for target column. Also take into
             //account limits of target column
-            // TODO: Would it be more efficient to force the same gk-loop for all indexes in the warp?
+            // Now all indexes in the warp should have the same gk loop extents
             const int minGk = max(lagrangian_gk_l, int(dev_columns[column].minBlockK * WID));
             const int maxGk = min(lagrangian_gk_r, int((dev_columns[column].maxBlockK + 1) * WID - 1));
             // Run along the column and perform the polynomial reconstruction
