@@ -20,23 +20,19 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#include <math.h>
+
+#include <cmath>
 #include <algorithm>
 #include <utility>
-#include <omp.h>
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #include "vec.h"
+#include "../object_wrapper.h"
 #include "cpu_acc_sort_blocks.hpp"
 #include "cpu_acc_load_blocks.hpp"
 #include "cpu_1d_pqm.hpp"
 #include "cpu_1d_ppm.hpp"
 #include "cpu_1d_plm.hpp"
 #include "cpu_acc_map.hpp"
-#include "../vlasovsolver_cuda/open_acc_map_h.cuh"
 
 using namespace std;
 using namespace spatial_cell;
@@ -80,7 +76,10 @@ vmesh::LocalID addVelocityBlock(const vmesh::GlobalID& blockGID,
 }
 
 
+
+
 void inline swapBlockIndices(velocity_block_indices_t &blockIndices, const uint dimension){
+
    uint temp;
    // Switch block indices according to dimensions, the algorithm has
    // been written for integrating along z.
@@ -102,74 +101,38 @@ void inline swapBlockIndices(velocity_block_indices_t &blockIndices, const uint 
    }
 }
 
-  extern Realf* acceleration_1_wrapperCaller
-  (
-    Realf *blockData,
-    Column *columns,
-    Vec values[],
-    uint cell_indices_to_id[3],
-    int totalColumns,
-    int valuesSizeRequired,
-    int bdsw3,
-    Realv intersection,
-    Realv intersection_di,
-    Realv intersection_dj,
-    Realv intersection_dk,
-    Realv v_min,
-    Realv i_dv,
-    Realv dv,
-    Realv minValue
-  )
-  {
-    //printf("STAGE 2\n");
-    Realf* returned_blockData = acceleration_1_wrapper
-    (
-      blockData,
-      columns,
-      values,
-      cell_indices_to_id,
-      totalColumns,
-      valuesSizeRequired,
-      bdsw3,
-      intersection,
-      intersection_di,
-      intersection_dj,
-      intersection_dk,
-      v_min,
-      i_dv,
-      dv,
-      minValue
-    );
-    return returned_blockData;
-  }
+
+
 /*
    Here we map from the current time step grid, to a target grid which
    is the lagrangian departure grid (so th grid at timestep +dt,
    tracked backwards by -dt)
+
+   TODO: parallelize with openMP over block-columns. If one also
+   pre-creates new blocks in a separate loop first (serial operation),
+   then the openmp parallization would scale well (better than over
+   spatial cells), and would not need synchronization.
+
 */
 bool map_1d(SpatialCell* spatial_cell,
             const uint popID,
-            Realv intersection, Realv intersection_di, Realv intersection_dj, Realv intersection_dk,
-            const uint dimension, const bool useAccelerator)
-  {
+            Realv intersection, Realv intersection_di, Realv intersection_dj,Realv intersection_dk,
+            const uint dimension) {
    no_subnormals();
+
    Realv dv,v_min;
    Realv is_temp;
-   int max_v_length;
+   uint max_v_length;
    uint block_indices_to_id[3] = {0, 0, 0}; /*< used when computing id of target block, 0 for compiler */
    uint cell_indices_to_id[3] = {0, 0, 0}; /*< used when computing id of target cell in block, 0 for compiler */
+
    vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = spatial_cell->get_velocity_mesh(popID);
    vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks(popID);
 
-   double minValue = spatial_cell->getVelocityBlockMinValue(popID);
-
    //nothing to do if no blocks
-   if(vmesh.size() == 0)
+   if(vmesh.size() == 0 )
       return true;
 
-   const int NUM_ASYNC_QUEUES=P::openaccQueueNum;
-   int openacc_async_queue_id = (int)(spatial_cell->parameters[CellParams::CELLID]) % NUM_ASYNC_QUEUES;
-   //openacc_async_queue_id += omp_get_thread_num() * NUM_ASYNC_QUEUES;
 
    // Velocity grid refinement level, has no effect but is
    // needed in some vmesh::VelocityMesh function calls.
@@ -237,61 +200,49 @@ bool map_1d(SpatialCell* spatial_cell,
    std::vector<uint> columnNumBlocks;
    std::vector<uint> setColumnOffsets;
    std::vector<uint> setNumColumns;
+   std::vector<int> columnMinBlockK;
+   std::vector<int> columnMaxBlockK;
 
    sortBlocklistByDimension(vmesh, dimension, blocks,
                             columnBlockOffsets, columnNumBlocks,
                             setColumnOffsets, setNumColumns);
 
-   // Calculate total sum of columns and total values size
-   uint totalColumns = 0;
-   int valuesSizeRequired = 0;
+   // loop over block column sets  (all columns along the dimension with the other dimensions being equal )
 
-   for(uint setIndex=0; setIndex< setColumnOffsets.size(); ++setIndex) {
-      totalColumns += setNumColumns[setIndex];
-      for(uint columnIndex = setColumnOffsets[setIndex]; columnIndex < setColumnOffsets[setIndex] + setNumColumns[setIndex] ; columnIndex ++){
-         valuesSizeRequired += (columnNumBlocks[columnIndex] + 2) * WID3 / VECL;
-      }
-   }
+/*
+     values array used to store column data The max size is the worst
+     case scenario with every second block having content, creating up
+     to ( MAX_BLOCKS_PER_DIM / 2 + 1) columns with each needing three
+     blocks (two for padding)
+*/
+   Vec values[(3 * ( MAX_BLOCKS_PER_DIM / 2 + 1)) * WID3 / VECL];
+   /*pointers to target block datas*/
+   Realf *blockIndexToBlockData[MAX_BLOCKS_PER_DIM];
+   bool isTargetBlock[MAX_BLOCKS_PER_DIM];
+   bool isSourceBlock[MAX_BLOCKS_PER_DIM];
 
-   // values array used to store column data. The actual columns index into this.
-   //Vec *values = new Vec[valuesSizeRequired];
-   Vec values[valuesSizeRequired];
-   Column *columns;
-   columns = new Column[totalColumns];
-
-   // Iterate through all identified columns and shovel them into the values array.
-   int valuesColumnOffset = 0; //offset to values array for data in a column in this set
    for( uint setIndex=0; setIndex< setColumnOffsets.size(); ++setIndex) {
+      uint8_t refLevel = 0;
+      //init
+      for (uint blockK = 0; blockK < MAX_BLOCKS_PER_DIM; blockK++){
+         blockIndexToBlockData[blockK] =  NULL;
+         isTargetBlock[blockK] = false;
+         isSourceBlock[blockK] = false;
+      }
 
       //Load data into values array (this also zeroes the original data)
+      uint valuesColumnOffset = 0; //offset to values array for data in a column in this set
       for(uint columnIndex = setColumnOffsets[setIndex]; columnIndex < setColumnOffsets[setIndex] + setNumColumns[setIndex] ; columnIndex ++){
          const vmesh::LocalID n_cblocks = columnNumBlocks[columnIndex];
          vmesh::GlobalID* cblocks = blocks + columnBlockOffsets[columnIndex]; //column blocks
          loadColumnBlockData(vmesh, blockContainer, cblocks, n_cblocks, dimension, values + valuesColumnOffset);
-
-         columns[columnIndex].valuesOffset = valuesColumnOffset;
-         columns[columnIndex].nblocks = n_cblocks;
-
-         if(valuesColumnOffset >= valuesSizeRequired) {
-            cerr << "ERROR: Overflowing the values array (" << valuesColumnOffset << "> " << valuesSizeRequired << ") with column " << columnIndex << std::endl;
-         }
          valuesColumnOffset += (n_cblocks + 2) * (WID3/VECL); // there are WID3/VECL elements of type Vec per block
       }
-   }
 
-   // Now the velocity space has been emptied and all data is lying in the value array
-   // (TODO: Double-check this for consistency?)
-
-   // Calculate target column extents
-   for( uint setIndex=0; setIndex< setColumnOffsets.size(); ++setIndex) {
-
-      bool isTargetBlock[MAX_BLOCKS_PER_DIM]= {false};
-      bool isSourceBlock[MAX_BLOCKS_PER_DIM]= {false};
 
       /*need x,y coordinate of this column set of blocks, take it from first
         block in first column*/
       velocity_block_indices_t setFirstBlockIndices;
-      uint8_t refLevel=0;
       vmesh.getIndices(blocks[columnBlockOffsets[setColumnOffsets[setIndex]]],
                        refLevel,
                        setFirstBlockIndices[0], setFirstBlockIndices[1], setFirstBlockIndices[2]);
@@ -350,7 +301,7 @@ bool map_1d(SpatialCell* spatial_cell,
          /*firstBlockV is in z the minimum velocity value of the lower
           * edge in source grid.
            *lastBlockV is in z the maximum velocity value of the upper
-          * edge in source grid. */
+          * edge in source grid. Added 1.01*dv to account for unexpected issues*/
          double firstBlockMinV = (WID * firstBlockIndices[2]) * dv + v_min;
          double lastBlockMaxV = (WID * (lastBlockIndices[2] + 1)) * dv + v_min;
 
@@ -369,6 +320,20 @@ bool map_1d(SpatialCell* spatial_cell,
          firstBlockIndexK = (firstBlockIndexK < max_v_length ) ? firstBlockIndexK : max_v_length - 1;
          lastBlockIndexK  = (lastBlockIndexK  >= 0)            ? lastBlockIndexK  : 0;
          lastBlockIndexK  = (lastBlockIndexK  < max_v_length ) ? lastBlockIndexK  : max_v_length - 1;
+         if(firstBlockIndexK < Parameters::bailout_velocity_space_wall_margin
+            || firstBlockIndexK >= max_v_length - Parameters::bailout_velocity_space_wall_margin
+            || lastBlockIndexK < Parameters::bailout_velocity_space_wall_margin
+            || lastBlockIndexK >= max_v_length - Parameters::bailout_velocity_space_wall_margin
+         ) {
+            string message = "Some target blocks in acceleration are going to be less than ";
+            message += std::to_string(Parameters::bailout_velocity_space_wall_margin);
+            message += " blocks away from the current velocity space walls for population ";
+            message += getObjectWrapper().particleSpecies[popID].name;
+            message += " at CellID ";
+            message += std::to_string(spatial_cell->parameters[CellParams::CELLID]);
+            message += ". Consider expanding velocity space for that population.";
+            bailout(true, message, __FILE__, __LINE__);
+         }
 
          //store source blocks
          for (uint blockK = firstBlockIndices[2]; blockK <= lastBlockIndices[2]; blockK++){
@@ -380,14 +345,9 @@ bool map_1d(SpatialCell* spatial_cell,
             isTargetBlock[blockK]=true;
          }
 
-         // Set columns' transverse coordinates
-         columns[columnIndex].i = setFirstBlockIndices[0];
-         columns[columnIndex].j = setFirstBlockIndices[1];
-         columns[columnIndex].kBegin = firstBlockIndices[2];
-
          //store also for each column firstBlockIndexK, and lastBlockIndexK
-         columns[columnIndex].minBlockK = firstBlockIndexK;
-         columns[columnIndex].maxBlockK = lastBlockIndexK;
+         columnMinBlockK.push_back(firstBlockIndexK);
+         columnMaxBlockK.push_back(lastBlockIndexK);
       }
 
       //now add target blocks that do not yet exist and remove source blocks
@@ -410,98 +370,60 @@ bool map_1d(SpatialCell* spatial_cell,
             spatial_cell->remove_velocity_block(targetBlock, popID);
          }
       }
-   }
 
-   // Velocity space has all extra blocks added and/or removed for the transform target
-   // and will not change shape anymore.
-   // Create empty velocity space on the GPU and fill it with zeros
-    Realf *blockData = blockContainer.getData();
-    size_t blockDataSize = blockContainer.size();
-    int bdsw3 = blockDataSize * WID3;
-    if(useAccelerator)
-    {
-     for(uint cell=0; cell<bdsw3; cell++)
-     {
-       blockData[cell] = 0;
-     }
-    }
-
-   // Now we iterate through target columns again, identifying their block offsets
-   for( uint column=0; column < totalColumns; column++)
-   {
-      //cout << "Velocity pencil no. " << column << ": [";
-      for (int blockK = columns[column].minBlockK; blockK <= columns[column].maxBlockK; blockK++)
-      {
-         const int targetBlock =
-            columns[column].i * block_indices_to_id[0] +
-            columns[column].j * block_indices_to_id[1] +
-            blockK            * block_indices_to_id[2];
-         const vmesh::LocalID tblockLID = vmesh.getLocalID(targetBlock);
-         // Get pointer to target block data.
-         if(tblockLID >= blockContainer.size())
-         {
-            cerr << "Error: block for index [ " << columns[column].i << ", " << columns[column].j << ", " << blockK << "] has invalid blockID " << tblockLID << std::endl;
+     /*now store pointer to blocks, cannot do it at the same time as adding
+      them since they might move due to re-allocations or migrated when
+      removing blocks*/
+      for (int blockK = 0; blockK < MAX_BLOCKS_PER_DIM; blockK++){
+         if(isTargetBlock[blockK])  {
+            const int targetBlock =
+               setFirstBlockIndices[0] * block_indices_to_id[0] +
+               setFirstBlockIndices[1] * block_indices_to_id[1] +
+               blockK                  * block_indices_to_id[2];
+            const vmesh::LocalID tblockLID = vmesh.getLocalID(targetBlock);
+            // Get pointer to target block data.
+            blockIndexToBlockData[blockK] = blockContainer.getData(tblockLID);
          }
-         columns[column].targetBlockOffsets[blockK] = tblockLID*WID3;
-         //cout << tblockLID*WID3 << " (" << columns[column].i << "," << columns[column].j << ", " << blockK << "), ";
       }
-      //cout << "]" << std::endl;
-   }
 
-   // loop over columns in set and do the mapping
-   if(useAccelerator)
-   {
-     //CALL CUDA FUNCTION WRAPPER START
-     //printf("STAGE 1\n");
-     //printf("VECL = %d;\n", VECL);
-     blockData = acceleration_1_wrapperCaller
-     (
-       blockData,
-       columns,
-       values,
-       cell_indices_to_id,
-       totalColumns,
-       valuesSizeRequired,
-       bdsw3,
-       intersection,
-       intersection_di,
-       intersection_dj,
-       intersection_dk,
-       v_min,
-       i_dv,
-       dv,
-       minValue
-     );
-     //CALL CUDA FUNCTION WRAPPER END
-     /*
-     for(uint cell=0; cell<bdsw3; cell++)
-     {
-       printf("blockData[cell] = %.2f\n", blockData[cell]);
-     }
-     */
-   }
-   else
-   {
-      // CPU version
-      for(uint column=0; column < totalColumns; column++)
-      {
-         // i,j,k are relative to the order in which we copied data to the values array.
-         // After this point in the k,j,i loops there should be no branches based on dimensions
-         //
-         // Note that the i dimension is vectorized, and thus there are no loops over i
-         // Iterate through the perpendicular directions of the column
+
+
+      // loop over columns in set and do the mapping
+      valuesColumnOffset = 0; //offset to values array for data in a column in this set
+      for(uint columnIndex = setColumnOffsets[setIndex]; columnIndex < setColumnOffsets[setIndex] + setNumColumns[setIndex] ; columnIndex ++){
+         const vmesh::LocalID n_cblocks = columnNumBlocks[columnIndex];
+         vmesh::GlobalID* cblocks = blocks + columnBlockOffsets[columnIndex]; //column blocks
+
+         // compute the common indices for this block column set
+         //First block in column
+         velocity_block_indices_t block_indices_begin;
+         uint8_t refLevel;
+         vmesh.getIndices(cblocks[0],refLevel,block_indices_begin[0],block_indices_begin[1],block_indices_begin[2]);
+
+         // Switch block indices according to dimensions, the algorithm has
+         // been written for integrating along z.
+         swapBlockIndices(block_indices_begin, dimension);
+
+         /*  i,j,k are now relative to the order in which we copied data to the values array.
+             After this point in the k,j,i loops there should be no branches based on dimensions
+
+             Note that the i dimension is vectorized, and thus there are no loops over i
+         */
+
          for (uint j = 0; j < WID; j += VECL/WID){
-            const vmesh::LocalID nblocks = columns[column].nblocks;
             // create vectors with the i and j indices in the vector position on the plane.
-            #if VECL == 4
+            #if VECL == 4 && WID == 4
             const Veci i_indices = Veci(0, 1, 2, 3);
             const Veci j_indices = Veci(j, j, j, j);
-            #elif VECL == 8
+            #elif VECL == 8 && WID == 4
             const Veci i_indices = Veci(0, 1, 2, 3,
                                         0, 1, 2, 3);
             const Veci j_indices = Veci(j, j, j, j,
                                         j + 1, j + 1, j + 1, j + 1);
-            #elif VECL == 16
+            #elif VECL == 8 && WID == 8
+            const Veci i_indices = Veci(0, 1, 2, 3, 4, 5, 6, 7);
+            const Veci j_indices = Veci(j, j, j, j, j, j, j, j);
+            #elif VECL == 16 && WID == 4
             const Veci i_indices = Veci(0, 1, 2, 3,
                                         0, 1, 2, 3,
                                         0, 1, 2, 3,
@@ -510,34 +432,85 @@ bool map_1d(SpatialCell* spatial_cell,
                                         j + 1, j + 1, j + 1, j + 1,
                                         j + 2, j + 2, j + 2, j + 2,
                                         j + 3, j + 3, j + 3, j + 3);
+            #elif VECL == 16 && WID == 8
+            const Veci i_indices = Veci(0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7);
+            const Veci j_indices = Veci(j,   j,   j,   j,   j,   j,   j,   j,
+                                        j+1, j+1, j+1, j+1, j+1, j+1, j+1, j+1);
+            #elif VECL == 16 && WID == 16
+            const Veci i_indices = Veci(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
+            const Veci j_indices = Veci(j, j, j, j, j, j, j, j, j, j,  j,  j,  j,  j,  j,  j);
+            #elif VECL == 32 && WID == 4
+            cerr << __FILE__ << ":" << __LINE__ << ": VECL == 32 && WID == 4 cannot work, too long vector for one plane!" << endl;
+            abort();
+            #elif VECL == 32 && WID == 8
+            const Veci i_indices = Veci(0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7);
+            const Veci j_indices = Veci(j,   j,   j,   j,   j,   j,   j,   j,
+                                        j+1, j+1, j+1, j+1, j+1, j+1, j+1, j+1,
+                                        j+2, j+2, j+2, j+2, j+2, j+2, j+2, j+2,
+                                        j+3, j+3, j+3, j+3, j+3, j+3, j+3, j+3);
+            #elif VECL == 64 && WID == 4
+            cerr << __FILE__ << ":" << __LINE__ << ": VECL == 64 && WID == 4 cannot work, too long vector for one plane!" << endl;
+            abort();
+            #elif VECL == 64 && WID == 8
+            const Veci i_indices = Veci(0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7);
+            const Veci j_indices = Veci(j,   j,   j,   j,   j,   j,   j,   j,
+                                        j+1, j+1, j+1, j+1, j+1, j+1, j+1, j+1,
+                                        j+2, j+2, j+2, j+2, j+2, j+2, j+2, j+2,
+                                        j+3, j+3, j+3, j+3, j+3, j+3, j+3, j+3,
+                                        j+4, j+4, j+4, j+4, j+4, j+4, j+4, j+4,
+                                        j+5, j+5, j+5, j+5, j+5, j+5, j+5, j+5,
+                                        j+6, j+6, j+6, j+6, j+6, j+6, j+6, j+6,
+                                        j+7, j+7, j+7, j+7, j+7, j+7, j+7, j+7);
+            #else
+            cerr << __FILE__ << ":" << __LINE__ << ": Missing implementation for VECL=" << VECL << " and WID=" << WID << "!" << endl;
+            abort();
             #endif
 
             const Veci  target_cell_index_common =
                i_indices * cell_indices_to_id[0] +
                j_indices * cell_indices_to_id[1];
 
-            //const int target_block_index_common =
-            //   columns[column].i * block_indices_to_id[0] +
-            //   columns[column].j * block_indices_to_id[1];
+            const int target_block_index_common =
+               block_indices_begin[0] * block_indices_to_id[0] +
+               block_indices_begin[1] * block_indices_to_id[1];
 
-            // intersection_min is the intersection z coordinate (z after
-            // swaps that is) of the lowest possible z plane for each i,j
-            // index (i in vector)
+            /*
+               intersection_min is the intersection z coordinate (z after
+               swaps that is) of the lowest possible z plane for each i,j
+               index (i in vector)
+            */
+
             const Vec intersection_min =
                intersection +
-               (columns[column].i * WID + to_realv(i_indices)) * intersection_di +
-               (columns[column].j * WID + to_realv(j_indices)) * intersection_dj;
+               (block_indices_begin[0] * WID + to_realv(i_indices)) * intersection_di +
+               (block_indices_begin[1] * WID + to_realv(j_indices)) * intersection_dj;
 
             /*compute some initial values, that are used to set up the
              * shifting of values as we go through all blocks in
              * order. See comments where they are shifted for
              * explanations of their meaning*/
-            Vec v_r0((WID * columns[column].kBegin) * dv + v_min);
-            Vec lagrangian_v_r0((v_r0-intersection_min)/intersection_dk);
+            Vec v_r((WID * block_indices_begin[2]) * dv + v_min);
+            Vec lagrangian_v_r((v_r-intersection_min)/intersection_dk);
+#if VECTORCLASS_H >= 20000
+            Veci lagrangian_gk_r=truncatei(lagrangian_v_r);
+#else
+            Veci lagrangian_gk_r=truncate_to_int(lagrangian_v_r);
+#endif
 
-            // compute location of min and max, this does not change for one
-            //  column (or even for this set of intersections, and can be used
-            //  to quickly compute max and min later on*/
+            /*compute location of min and max, this does not change for one
+             * column (or even for this set of intersections, and can be used
+             * to quickly compute max and min later on*/
             //TODO, these can be computed much earlier, since they are
             //identiacal for each set of intersections
             int minGkIndex=0, maxGkIndex=0; // 0 for compiler
@@ -545,70 +518,62 @@ bool map_1d(SpatialCell* spatial_cell,
                Realv maxV = std::numeric_limits<Realv>::min();
                Realv minV = std::numeric_limits<Realv>::max();
                for(int i = 0; i < VECL; i++) {
-                  if ( lagrangian_v_r0[i] > maxV) {
-                     maxV = lagrangian_v_r0[i];
+                  if ( lagrangian_v_r[i] > maxV) {
+                     maxV = lagrangian_v_r[i];
                      maxGkIndex = i;
                   }
-                  if ( lagrangian_v_r0[i] < minV) {
-                     minV = lagrangian_v_r0[i];
+                  if ( lagrangian_v_r[i] < minV) {
+                     minV = lagrangian_v_r[i];
                      minGkIndex = i;
                   }
                }
             }
 
+
             // loop through all blocks in column and compute the mapping as integrals.
-            for (uint k=0; k < WID * nblocks; ++k ){
+            for (uint k=0; k < WID * n_cblocks; ++k ){
                // Compute reconstructions
                // values + i_pcolumnv(n_cblocks, -1, j, 0) is the starting point of the column data for fixed j
                // k + WID is the index where we have stored k index, WID amount of padding.
-#ifdef ACC_SEMILAG_PLM
+               #ifdef ACC_SEMILAG_PLM
                Vec a[2];
-               compute_plm_coeff(values + columns[column].valuesOffset + i_pcolumnv(j, 0, -1, nblocks), k + WID , a, minValue);
-#endif
-#ifdef ACC_SEMILAG_PPM
+               compute_plm_coeff(values + valuesColumnOffset + i_pcolumnv(j, 0, -1, n_cblocks), k + WID , a, spatial_cell->getVelocityBlockMinValue(popID));
+               #endif
+               #ifdef ACC_SEMILAG_PPM
                Vec a[3];
-               compute_ppm_coeff(values + columns[column].valuesOffset  + i_pcolumnv(j, 0, -1, nblocks), h4, k + WID, a, minValue);
-#endif
-#ifdef ACC_SEMILAG_PQM
+               compute_ppm_coeff(values + valuesColumnOffset + i_pcolumnv(j, 0, -1, n_cblocks), h4, k + WID, a, spatial_cell->getVelocityBlockMinValue(popID));
+               #endif
+               #ifdef ACC_SEMILAG_PQM
                Vec a[5];
-               compute_pqm_coeff(values + columns[column].valuesOffset  + i_pcolumnv(j, 0, -1, nblocks), h8, k + WID, a, minValue);
-#endif
+               compute_pqm_coeff(values + valuesColumnOffset + i_pcolumnv(j, 0, -1, n_cblocks), h8, k + WID, a, spatial_cell->getVelocityBlockMinValue(popID));
+               #endif
 
                // set the initial value for the integrand at the boundary at v = 0
                // (in reduced cell units), this will be shifted to target_density_1, see below.
                Vec target_density_r(0.0);
-               // v_l, v_r are the left and right velocity coordinates of source cell.
-               Vec v_r = v_r0  + (k+1)* dv;
-               Vec v_l = v_r0  + k* dv;
+               // v_l, v_r are the left and right velocity coordinates of source cell. Left is the old right.
+               Vec v_l = v_r;
+               v_r += dv;
 
                // left(l) and right(r) k values (global index) in the target
                // Lagrangian grid, the intersecting cells. Again old right is new left.
-               Veci lagrangian_gk_l,lagrangian_gk_r;
-
+               const Veci lagrangian_gk_l = lagrangian_gk_r;
 #if VECTORCLASS_H >= 20000
-               lagrangian_gk_r = truncatei((v_l-intersection_min)/intersection_dk);
                lagrangian_gk_r = truncatei((v_r-intersection_min)/intersection_dk);
 #else
-               lagrangian_gk_l = truncate_to_int((v_l-intersection_min)/intersection_dk);
                lagrangian_gk_r = truncate_to_int((v_r-intersection_min)/intersection_dk);
-
 #endif
+
                //limits in lagrangian k for target column. Also take into
                //account limits of target column
-               int minGk = max(int(lagrangian_gk_l[minGkIndex]), int(columns[column].minBlockK * WID));
-               int maxGk = min(int(lagrangian_gk_r[maxGkIndex]), int((columns[column].maxBlockK + 1) * WID - 1));
+               int minGk = std::max(int(lagrangian_gk_l[minGkIndex]), int(columnMinBlockK[columnIndex] * WID));
+               int maxGk = std::min(int(lagrangian_gk_r[maxGkIndex]), int((columnMaxBlockK[columnIndex] + 1) * WID - 1));
 
-               // Run along the column and perform the polynomial reconstruction
-               //for(int gk = minGk; gk <= maxGk; gk++){
-               for(int gk = columns[column].minBlockK * WID; gk <= columns[column].maxBlockK * WID; gk++) {
-                  if(gk < minGk || gk > maxGk) {
-                     continue;
-                  }
-
+               for(int gk = minGk; gk <= maxGk; gk++){
                   const int blockK = gk/WID;
                   const int gk_mod_WID = (gk - blockK * WID);
                   //the block of the Lagrangian cell to which we map
-                  //const int target_block(target_block_index_common + blockK * block_indices_to_id[2]);
+                  const int target_block(target_block_index_common + blockK * block_indices_to_id[2]);
 
                   //cell indices in the target block  (TODO: to be replaced by
                   //compile time generated scatter write operation)
@@ -619,7 +584,7 @@ bool map_1d(SpatialCell* spatial_cell,
                   //then v_1,v_2 should be between v_l and v_r.
                   //v_1 and v_2 normalized to be between 0 and 1 in the cell.
                   //For vector elements where gk is already larger than needed (lagrangian_gk_r), v_2=v_1=v_r and thus the value is zero.
-                  const Vec v_norm_r = (  min(  max( (gk + 1) * intersection_dk + intersection_min, v_l), v_r) - v_l) * (1.0/dv);
+                  const Vec v_norm_r = (  min(  max( (gk + 1) * intersection_dk + intersection_min, v_l), v_r) - v_l) * i_dv;
                   /*shift, old right is new left*/
                   const Vec target_density_l = target_density_r;
 
@@ -643,32 +608,33 @@ bool map_1d(SpatialCell* spatial_cell,
                   //TODO replace by vector version & scatter & gather operation
 
 
-                  //if(dimension == 2) {
-                  //   Realf* targetDataPointer = blockData + columns[column].targetBlockOffsets[blockK] + j * cell_indices_to_id[1] + gk_mod_WID * cell_indices_to_id[2];
-                  //   Vec targetData;
-                  //   targetData.load_a(targetDataPointer);
-                  //   targetData += target_density_r - target_density_l;
-                  //   targetData.store_a(targetDataPointer);
-                  //}
-                  //else{
+                  if(dimension == 2) {
+                     Realf* targetDataPointer = blockIndexToBlockData[blockK] + j * cell_indices_to_id[1] + gk_mod_WID * cell_indices_to_id[2];
+                     Vec targetData;
+                     targetData.load_a(targetDataPointer);
+                     targetData += target_density_r - target_density_l;
+                     targetData.store_a(targetDataPointer);
+                  }
+                  else{
                      // total value of integrand
                      const Vec target_density = target_density_r - target_density_l;
-   //#pragma ivdep
-   //#pragma GCC ivdep
-                     for (int target_i=0; target_i < VECL; ++target_i)
-                     {
+#pragma ivdep
+#pragma GCC ivdep
+                     for (int target_i=0; target_i < VECL; ++target_i) {
                         // do the conversion from Realv to Realf here, faster than doing it in accumulation
                         const Realf tval = target_density[target_i];
                         const uint tcell = target_cell[target_i];
-                        (&blockData[columns[column].targetBlockOffsets[blockK]])[tcell] += tval;
+                        blockIndexToBlockData[blockK][tcell] += tval;
                      }  // for-loop over vector elements
-                  //}
+                  }
+
                } // for loop over target k-indices of current source block
             } // for-loop over source blocks
          } //for loop over j index
+         valuesColumnOffset += (n_cblocks + 2) * (WID3/VECL) ;// there are WID3/VECL elements of type Vec per block
       } //for loop over columns
+
    }
    delete [] blocks;
-   delete [] columns;
    return true;
 }

@@ -1,7 +1,3 @@
-#FLAGS =
-CC = g++
-NVCC = nvcc
-CUDAFLAGS += -arch=sm_60
 CMP = mpic++
 LNK = mpic++
 NVCC = nvcc
@@ -24,18 +20,10 @@ NVCC = nvcc
 
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
 #Single-precision
-	#VECTORCLASS = VEC8F_FALLBACK
-	INC_VECTORCLASS = -Ivlasovsolver/vectorclass_fallback.cuh
-	VECTORCLASS = VEC_FALLBACK_GENERIC
-	COMPFLAGS += -DVECL=8 -DVEC_PER_PLANE=2 -DVEC_PER_BLOCK=8 -DVPREC=4
-	CUDAFLAGS += -DVECL=8
+	VECTORCLASS = VEC8F_FALLBACK
 else
 #Double-precision
-	#VECTORCLASS = VEC4D_FALLBACK
-	INC_VECTORCLASS = -Ivlasovsolver/vectorclass_fallback.cuh
-	VECTORCLASS = VEC_FALLBACK_GENERIC
-	COMPFLAGS += -DVECL=4 -DVEC_PER_PLANE=4 -DVEC_PER_BLOCK=16 -DVPREC=8
-	CUDAFLAGS += -DVECL=4
+	VECTORCLASS = VEC4D_FALLBACK
 endif
 
 #======== PAPI ==========
@@ -61,12 +49,20 @@ endif
 #                         errors that come up when using
 #                         mpi.h in c++ on Cray
 
+#FLAGS =
+CC = g++
+NVCC = nvcc
+CUDAFLAGS += -arch=sm_60
+
 #GNU flags:
 CC_BRAND = pgi
 CC_BRAND_VERSION = 19.7
 CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -Minfo=accel -ta=tesla:lineinfo,keepbin,keepgpu,keepptx -Manno -g -nomp
 #testpackage: CXXFLAGS = -g -O2 -acc -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -Minfo=accel
 testpackage: CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -Minfo=accel -ta=tesla:lineinfo,keepbin,keepgpu,keepptx -Manno -nomp
+
+CUDAFLAGS += -D${FP_PRECISION}
+CUDAFLAGS += -D${DISTRIBUTION_FP_PRECISION}
 
 MATHFLAGS =
 LDFLAGS = -O2 -g  -ta=tesla:lineinfo,keepbin,keepgpu,keepptx
