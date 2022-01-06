@@ -60,7 +60,6 @@ using namespace std;
 extern Logger logFile;
 
 char projects::Project::rngStateBuffer[256];
-random_data projects::Project::rngDataBuffer;
 
 /** Struct for creating a new velocity mesh.
  * The values are read from the configuration file and 
