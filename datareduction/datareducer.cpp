@@ -986,7 +986,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       }
       if(lowercase == "vg_amr_db") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_db",CellParams::AMR_DB,1));
-         outputReducer->addMetadata(outputReducer->size()-1,"","","$\\frac{\\abs{\\Delta B_1}}{\\hat{B}_1}$","");
+         outputReducer->addMetadata(outputReducer->size()-1,"","","$\\frac{|\\Delta B_1|}{\\hat{B}_1}$","");
          continue;
       }
       if(lowercase == "vg_amr_alpha") {
