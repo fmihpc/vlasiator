@@ -510,12 +510,26 @@ static std::array<Real, 3> getE(SpatialCell* cell)
    return std::array<Real, 3> { {cell->parameters[CellParams::EXVOL], cell->parameters[CellParams::EYVOL], cell->parameters[CellParams::EZVOL]} };
 }
 
-/*! \brief Returns perturbated volumetric B of cell
+/*! \brief Returns perturbed volumetric B of cell
  *
  */
 static std::array<Real, 3> getPerB(SpatialCell* cell)
 {
    return std::array<Real, 3> { {cell->parameters[CellParams::PERBXVOL], cell->parameters[CellParams::PERBYVOL], cell->parameters[CellParams::PERBZVOL]} };
+}
+
+/*! \brief Returns volumetric B of cell
+ *
+ */
+static std::array<Real, 3> getB(SpatialCell* cell)
+{
+   return std::array<Real, 3> { 
+      {
+         cell->parameters[CellParams::BGBXVOL] + cell->parameters[CellParams::PERBXVOL], 
+         cell->parameters[CellParams::BGBYVOL] + cell->parameters[CellParams::PERBYVOL], 
+         cell->parameters[CellParams::BGBZVOL] + cell->parameters[CellParams::PERBZVOL]
+      } 
+   };
 }
 
 /*! \brief Calculates momentum density of cell
@@ -527,17 +541,14 @@ static std::array<Real, 3> getMomentumDensity(SpatialCell* cell)
    return std::array<Real, 3> { {rho * cell->parameters[CellParams::VX], rho * cell->parameters[CellParams::VY], rho * cell->parameters[CellParams::VZ]} };
 }
 
-/*! \brief Calculates EM field energy for spatial cell with only perturbated magnetic field
+/*! \brief Calculates energy density for spatial cell with only perturbated magnetic field
  *
  */
 static Real calculateU1(SpatialCell* cell)
 {
-   std::array<Real, 3> E = getE(cell);
+   std::array<Real, 3> p = getMomentumDensity(cell);
    std::array<Real, 3> B = getPerB(cell);
-   return 0.5 * (
-      physicalconstants::EPS_0 * (pow(E[0], 2) + pow(E[1], 2) + pow(E[2], 2)) + 
-      1.0/physicalconstants::MU_0 * (pow(B[0], 2) + pow(B[1], 2) + pow(B[2], 2))
-   );
+   return (pow(p[0], 2) + pow(p[1], 2) + pow(p[2], 2)) / (2.0 * cell->parameters[CellParams::RHOM]) + (pow(B[0], 2) + pow(B[1], 2) + pow(B[2], 2)) / (2.0 * physicalconstants::MU_0);
 }
 
 /*! \brief Low-level scaled gradients calculation
@@ -561,13 +572,11 @@ void calculateScaledDeltas(
    Real myU = calculateU1(cell);
    std::array<Real, 3> myP = getMomentumDensity(cell);
    std::array<Real, 3> myB = getPerB(cell);
-   std::array<Real, 3> myE = getE(cell);
    for (SpatialCell* neighbor : neighbors) {
       Real otherRho = neighbor->parameters[CellParams::RHOM];
       Real otherU = calculateU1(neighbor);
       std::array<Real, 3> otherP = getMomentumDensity(neighbor);
       std::array<Real, 3> otherB = getPerB(neighbor);
-      std::array<Real, 3> otherE = getE(neighbor);
       Real deltaBsq = pow(myB[0] - otherB[0], 2) + pow(myB[1] - otherB[1], 2) + pow(myB[2] - otherB[2], 2);
 
       // Assignment intentional
