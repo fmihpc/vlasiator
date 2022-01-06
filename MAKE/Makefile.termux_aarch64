@@ -1,3 +1,31 @@
+#
+# Makefile for Termux on Android (aarch64).
+#
+# To run this, install Termux:
+# - https://f-droid.org/en/packages/com.termux/
+#   or
+#   https://play.google.com/store/apps/details?id=com.termux
+# - In trmux, run
+#   pkg install build-essential binutils tsu openmpi
+# - Build Vlasiator according to the usual instructions from
+#   https://github.com/fmihpc/vlasiator/wiki/Installing-Vlasiator
+#
+#
+# Note:
+# o Zoltan's configure script requires a "--build=arm-linux-gnu" parameter
+# o Android's default /bin/sh is also too dumb to run Zoltan's configure script,
+#   replace the #! - Line at its start by your `which bash` output.
+# o Eigen headers fail to compile because the termux libstdc++ doesn't provide
+#   std::bind1st and std::bind2nd. Simply uncommenting those definitions fixed it for me.
+# o This requires https://github.com/fmihpc/vlasiator/pull/585 to run, as
+#   Android doesn't seem to have random_r
+# o It might need the phone to be rooted, because openmpi tries to memory-lock pages
+#   for MPI transfers. I worked around it by running as root (using the tsu sudo package).
+#   It might also be possible to configure openmpi variables to not do this.
+#
+# Tested on a rooted Motorola G30 running Android 11.
+#
+
 CMP = mpic++
 LNK = mpic++
 
