@@ -192,8 +192,6 @@ namespace projects {
     private:
       uint seed;
       static char rngStateBuffer[256];
-      static random_data rngDataBuffer;
-      #pragma omp threadprivate(rngStateBuffer,rngDataBuffer)
 
       bool baseClassInitialized;                      /**< If true, base class has been initialized.*/
    };
