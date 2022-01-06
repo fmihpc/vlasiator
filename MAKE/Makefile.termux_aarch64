@@ -1,0 +1,51 @@
+CMP = mpic++
+LNK = mpic++
+
+#======== Vectorization ==========
+#Set vector backend type for vlasov solvers, sets precision and length. 
+#Options: 
+# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VEC4D_FALLBACK, VEC4F_FALLBACK, VEC8F_FALLBACK
+
+ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
+#Single-precision        
+ 	VECTORCLASS = VEC8F_FALLBACK
+	INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/../vlasiator/vlasovsolver
+else
+#Double-precision
+#	VECTORCLASS = VEC4D_AGNER
+#	INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass
+	VECTORCLASS = VEC4D_FALLBACK
+	INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/../vlasiator/vlasovsolver
+endif
+
+FLAGS =
+# note: std was c++11
+# note: testpackage settings missing
+CXXFLAGS = -I$(HOME)/include -O2 -std=c++17 -W -Wall -pedantic -Wno-unused -Wno-unused-parameter -Wno-missing-braces  -fopenmp
+#CXXFLAGS = -I$(HOME)/include -L$(HOME)/lib -O0 -funroll-loops -std=c++17 -W -Wall -pedantic -Wno-unused -Wno-unused-parameter -Wno-missing-braces -g -fopenmp
+MATHFLAGS = -ffast-math
+LDFLAGS = -fopenmp
+LIB_MPI =
+# LIB_MPI = 
+
+LIBRARY_PREFIX = $(HOME)/vlasiator/libraries
+LIBRARY_PREFIX_B = $(HOME)
+
+INC_BOOST =
+LIB_BOOST = -L${HOME}/lib -lboost_program_options
+
+INC_ZOLTAN = -I${LIBRARY_PREFIX}/Zoltan/include
+LIB_ZOLTAN = -L${LIBRARY_PREFIX}/Zoltan/lib -lzoltan
+
+INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
+LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv
+
+INC_DCCRG = -I${LIBRARY_PREFIX}/dccrg -I${LIBRARY_PREFIX}/fsgrid
+
+LIB_PROFILE = -L${LIBRARY_PREFIX}/phiprof/lib -lphiprof -Wl,-rpath=${LIBRARY_PREFIX}/phiprof/lib 
+INC_PROFILE = -I${LIBRARY_PREFIX}/phiprof/include
+INC_TOPO =
+
+INC_EIGEN = -I${LIBRARY_PREFIX}/eigen
