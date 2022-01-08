@@ -539,6 +539,7 @@ namespace projects {
 
          // Keep the center a bit less refined, otherwise it's way too heavy
          // Ionosphere refinement hardcoded to max. 2 right now, consider parametrization
+         // Consider just using boundarytype here?
          for (int i = 0; i < P::amrMaxSpatialRefLevel && i < 2; ++i) {
             //#pragma omp parallel for
             for (int j = 0; j < cells.size(); ++j) {
@@ -572,7 +573,7 @@ namespace projects {
             Real radius2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
             bool inSphere = radius2 < refine_L1radius*refine_L1radius;
             bool inTail = xyz[0] < 0 && fabs(xyz[1]) < refine_L1radius && fabs(xyz[2]) < refine_L1tailthick;
-            if (canRefine(mpiGrid[id]) && (inSphere || inTail)) {
+            if (inSphere || (canRefine(mpiGrid[id]) && inTail)) {
                //#pragma omp critical
                mpiGrid.refine_completely(id);
             }
@@ -599,7 +600,7 @@ namespace projects {
             Real radius2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
             bool inSphere = radius2 < pow(refine_L2radius, 2);
             bool inTail = xyz[0] < 0 && fabs(xyz[1]) < refine_L2radius && fabs(xyz[2])<refine_L2tailthick;
-            if (canRefine(mpiGrid[id]) && (inSphere || inTail)) {
+            if (inSphere || (canRefine(mpiGrid[id]) && inTail)) {
                //#pragma omp critical
                mpiGrid.refine_completely(id);
             }
@@ -613,6 +614,7 @@ namespace projects {
             std::cout << "Rank " << myRank << " refined " << cells.size() << " cells to level 2" << std::endl;
          }
          #endif NDEBUG
+
       }
       
       // L3 refinement.
