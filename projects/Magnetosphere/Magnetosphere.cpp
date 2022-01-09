@@ -539,7 +539,7 @@ namespace projects {
 
          // Keep the center a bit less refined, otherwise it's way too heavy
          // Ionosphere refinement hardcoded to max. 2 right now, consider parametrization
-         // Consider just using boundarytype here?
+         // Consider just using boundarytype or L2 radius here?
          for (int i = 0; i < P::amrMaxSpatialRefLevel && i < 2; ++i) {
             //#pragma omp parallel for
             for (int j = 0; j < cells.size(); ++j) {
@@ -573,7 +573,7 @@ namespace projects {
             Real radius2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
             bool inSphere = radius2 < refine_L1radius*refine_L1radius;
             bool inTail = xyz[0] < 0 && fabs(xyz[1]) < refine_L1radius && fabs(xyz[2]) < refine_L1tailthick;
-            if (inSphere || (canRefine(mpiGrid[id]) && inTail)) {
+            if (inSphere || inTail) {
                //#pragma omp critical
                mpiGrid.refine_completely(id);
             }
@@ -600,7 +600,7 @@ namespace projects {
             Real radius2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
             bool inSphere = radius2 < pow(refine_L2radius, 2);
             bool inTail = xyz[0] < 0 && fabs(xyz[1]) < refine_L2radius && fabs(xyz[2])<refine_L2tailthick;
-            if (inSphere || (canRefine(mpiGrid[id]) && inTail)) {
+            if (inSphere || inTail) {
                //#pragma omp critical
                mpiGrid.refine_completely(id);
             }
@@ -627,7 +627,7 @@ namespace projects {
             Real radius2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
             bool inNoseCap = (xyz[0]>refine_L3nosexmin) && (radius2<refine_L3radius*refine_L3radius);
             bool inTail = (xyz[0]>refine_L3tailxmin) && (xyz[0]<refine_L3tailxmax) && (fabs(xyz[1])<refine_L3tailwidth) && (fabs(xyz[2])<refine_L3tailheight);
-            if (canRefine(mpiGrid[id]) && (inNoseCap || inTail)) {
+            if (inNoseCap || inTail) {
                //#pragma omp critical
                mpiGrid.refine_completely(id);			  
             }
