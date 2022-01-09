@@ -484,13 +484,12 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
    feedBoundaryIntoFsGrid(mpiGrid, cells, technicalGrid);
 
    // set distance 1 cells to boundary cells, that have neighbors which are normal cells
-   for (uint i = 0; i < cells.size(); i++) {
-
-      mpiGrid[cells[i]]->sysBoundaryLayer = 0; /*Initial value*/
+   for (CellID cell : cells) {
+      mpiGrid[cell]->sysBoundaryLayer = 0; /*Initial value*/
 
       bool onFace = false;
-      std::array<double, 3> dx = mpiGrid.geometry.get_length(cells[i]);
-      std::array<double, 3> x = mpiGrid.get_center(cells[i]);
+      std::array<double, 3> dx = mpiGrid.geometry.get_length(cell);
+      std::array<double, 3> x = mpiGrid.get_center(cell);
       if (!isPeriodic[0] && (x[0] > Parameters::xmax - dx[0] || x[0] < Parameters::xmin + dx[0])) {
          continue;
       } else if (!isPeriodic[1] && (x[1] > Parameters::ymax - dx[1] || x[1] < Parameters::ymin + dx[1])) {
@@ -499,13 +498,11 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
          continue;
       }
 
-      if (mpiGrid[cells[i]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
-         const auto* nbrs = mpiGrid.get_neighbors_of(cells[i], SYSBOUNDARIES_NEIGHBORHOOD_ID);
-         for (uint j = 0; j < (*nbrs).size(); j++) {
-            if ((*nbrs)[j].first != 0) {
-               if (mpiGrid[(*nbrs)[j].first]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                  mpiGrid[cells[i]]->sysBoundaryLayer = 1;
-               }
+      if (mpiGrid[cell]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+         for (auto i : *mpiGrid.get_neighbors_to(cell, SYSBOUNDARIES_NEIGHBORHOOD_ID)) {
+            CellID neighbor = i.first;
+            if (neighbor && mpiGrid[neighbor]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+               mpiGrid[cell]->sysBoundaryLayer = 1;
             }
          }
       }
@@ -520,18 +517,15 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
    /*Compute distances*/
    uint maxLayers = 3; // max(max(P::xcells_ini, P::ycells_ini), P::zcells_ini);
    for (uint layer = 1; layer < maxLayers; layer++) {
-      for (uint i = 0; i < cells.size(); i++) {
-         if (mpiGrid[cells[i]]->sysBoundaryLayer == 0) {
-            const auto* nbrs = mpiGrid.get_neighbors_of(cells[i], SYSBOUNDARIES_NEIGHBORHOOD_ID);
+      for (CellID cell : cells) {
+         if (mpiGrid[cell]->sysBoundaryLayer == 0) {
             // Note: this distance calculation will be non-plateau monotonic only assuming that
             // SysBoundary::checkRefinement has been applied correctly and there are no refinement
             // level changes within SYSBOUNDARIES_NEIGHBORHOOD_ID.
-            for (uint j = 0; j < (*nbrs).size(); j++) {
-               if ((*nbrs)[j].first != 0 && (*nbrs)[j].first != cells[i]) {
-                  if (mpiGrid[(*nbrs)[j].first]->sysBoundaryLayer == layer) {
-                     mpiGrid[cells[i]]->sysBoundaryLayer = layer + 1;
-                     break;
-                  }
+            for (auto i : *mpiGrid.get_neighbors_to(cell, SYSBOUNDARIES_NEIGHBORHOOD_ID)) {
+               CellID neighbor = i.first;
+               if (neighbor && mpiGrid[neighbor]->sysBoundaryLayer == layer) {
+                  mpiGrid[cell]->sysBoundaryLayer = layer + 1;
                }
             }
          }
