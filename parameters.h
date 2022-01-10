@@ -33,7 +33,7 @@
 const uint64_t INVALID_CELLID = 0;
 
 struct Parameters {
-   static int geometry; /**< Simulation geometry, one of the values defined in 
+   static int geometry; /**< Simulation geometry, one of the values defined in
                          * geometry::Setup. Defaults to geometry::XYZ6D.*/
    static Real xmin;  /*!< X-coordinate of the lower left corner of the spatial grid. */
    static Real xmax;  /*!< X-coordinate of the upper right corner of the spatial grid. */
@@ -48,7 +48,7 @@ struct Parameters {
    static uint xcells_ini; /*!< Initial number of spatial cells in x-direction. */
    static uint ycells_ini; /*!< Initial number of spatial cells in y-direction. */
    static uint zcells_ini; /*!< Initial number of spatial cells in z-direction. */
-   
+
    static Real t;                    /*!< Current simulation time. */
    static Real t_min;                    /*!< Initial simulation time. */
    static Real t_max;                    /*!< Maximum simulation time. */
@@ -78,21 +78,21 @@ struct Parameters {
    static std::vector<int> systemWriteDistributionWriteShellStride; /*!< Every this many cells for those on selected shells write out their velocity space in each class. */
    static std::vector<int> systemWrites; /*!< How many files have been written of each class*/
    static std::vector<std::pair<std::string,std::string>> systemWriteHints; /*!< Collection of MPI-IO hints passed for non-restart IO. Pairs of key-value strings. */
-   
+
    static bool writeInitialState;           /*!< If true, initial state is written. This is useful for debugging as the restarts are always written out after propagation of 0.5dt in real space.*/
    static Real saveRestartWalltimeInterval; /*!< Interval in walltime seconds for restart data*/
    static uint exitAfterRestarts;           /*!< Exit after this many restarts*/
    static uint64_t vlsvBufferSize;          /*!< Buffer size in bytes passed to VLSV writer. */
    static int restartStripeFactor;          /*!< stripe_factor for restart writing*/
    static std::string restartWritePath;          /*!< Path to the location where restart files should be written. Defaults to the local directory, also if the specified destination is not writeable. */
-   
+
    static uint transmit;
    /*!< Indicates the data that needs to be transmitted to remote nodes.
-    * This is created with bitwise or from the values defined in 
+    * This is created with bitwise or from the values defined in
     * namespace Transmit.*/
-   
+
    static bool recalculateStencils; /*!< If true, MPI stencils should be recalculated because of load balancing.*/
-   
+
    static bool propagateField;      /*!< If true, magnetic field is propagated during the simulation.*/
    static bool propagateVlasovAcceleration;     /*!< If true, distribution function is propagated in velocity space during the simulation.*/
    static bool propagateVlasovTranslation;      /*!< If true, distribution function is propagated in ordinary space during the simulation.*/
@@ -104,33 +104,34 @@ struct Parameters {
    static uint ohmGradPeTerm; /*!< Enable/choose spatial order of the electron pressure gradient term in Ohm's law. 0: off, 1: 1st spatial order. */
    static Real electronTemperature; /*!< Constant electron temperature to be used for the electron pressure gradient term (K). */
    static bool fieldSolverDiffusiveEterms; /*!< Enable resistive terms in the computation of E*/
-   
+
    static Real maxSlAccelerationRotation; /*!< Maximum rotation in acceleration for semilagrangian solver*/
    static int maxSlAccelerationSubcycles; /*!< Maximum number of subcycles in acceleration*/
-   
+
    static Real hallMinimumRhom;  /*!< Minimum mass density value used in the field solver.*/
    static Real hallMinimumRhoq;  /*!< Minimum charge density value used for the Hall and electron pressure gradient terms in the Lorentz force and in the field solver.*/
-   
+
    static std::string loadBalanceAlgorithm; /*!< Algorithm to be used for load balance.*/
-   static std::string loadBalanceTolerance; /*!< Load imbalance tolerance. */ 
+   static std::string loadBalanceTolerance; /*!< Load imbalance tolerance. */
    static uint rebalanceInterval; /*!< Load rebalance interval (steps). */
    static bool prepareForRebalance; /**< If true, propagators should measure their time consumption in preparation
                                      * for mesh repartitioning.*/
 
    static std::vector<std::string> outputVariableList; /*!< List of data reduction operators (DROs) to add to the grid file output.*/
    static std::vector<std::string> diagnosticVariableList; /*!< List of data reduction operators (DROs) to add to the diagnostic runtime output.*/
-   
+
    static std::string restartFileName; /*!< If defined, restart from this file*/
    static bool isRestart; /*!< true if this is a restart, false otherwise */
    static int writeAsFloat; /*!< true if writing into VLSV in floats instead of doubles, false otherwise */
    static bool dynamicTimestep; /*!< If true, timestep is set based on  CFL limit */
-   
+
    static std::string projectName; /*!< Project to be used in this run. */
-   
+
    static bool bailout_write_restart; /*!< If true, write a restart file on bailout. Gets reset when sending a STOP (true) or a KILL (false). */
    static Real bailout_min_dt; /*!< Minimum time step below which bailout occurs (s). */
    static Real bailout_max_memory; /*!< Maximum amount of memory used per node (in GiB) over which bailout occurs. */
-
+   static uint bailout_velocity_space_wall_margin; /*!< Safety margin in number of blocks off the v-space wall beyond which bailout occurs. */
+   
    static uint amrMaxVelocityRefLevel;    /**< Maximum velocity mesh refinement level, defaults to 0.*/
    static Realf amrCoarsenLimit;          /**< If the value of refinement criterion is below this value, block can be coarsened.
                                            * The value must be smaller than amrRefineLimit.*/
@@ -146,30 +147,30 @@ struct Parameters {
    static Realf amrBoxCenterZ;
 
    static int openaccQueueNum;
-   
+
     /*! \brief Add the global parameters.
-    * 
+    *
     * This function adds all the parameters that are loaded at a global level.
     * More are being loaded e.g. in the projects and in the system boundary conditions.
-    * 
+    *
     * Note that due to the large number of parameters added here, no code is added to check
     * for consistency when they are read later. Please make sure when coding new parameters
     * here that the options in getParameters match the ones added here.
-    * 
+    *
     * \sa getParameters
     */
    static bool addParameters();
-   
+
    /*! \brief Get the global parameters.
-    * 
+    *
     * This function gets all the parameters loaded at a global level.
     * More are being loaded e.g. in the projects and in the system boundary conditions.
-    * 
+    *
     * Note that due to the large number of parameters read here, no code is added to check
     * for consistency with the loaded options, or the code here would become much less
     * readable. Please make sure when coding new parameters here that the options in
     * addParameters match the ones read here.
-    * 
+    *
     * \param firstPass determines whether to only parse out particle populations (first pass),
     *                  to parse all other parameters.
     * \sa addParameters

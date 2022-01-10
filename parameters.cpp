@@ -171,7 +171,7 @@ bool Parameters::addParameters(){
    Readparameters::add("io.write_restart_stripe_factor","Stripe factor for restart writing.", -1);
    Readparameters::add("io.write_as_float","If true, write in floats instead of doubles", false);
    Readparameters::add("io.restart_write_path", "Path to the location where restart files should be written. Defaults to the local directory, also if the specified destination is not writeable.", string("./"));
-   
+
    Readparameters::add("propagate_field","Propagate magnetic field during the simulation",true);
    Readparameters::add("propagate_vlasov_acceleration","Propagate distribution functions during the simulation in velocity space. If false, it is propagated with zero length timesteps.",true);
    Readparameters::add("propagate_vlasov_translation","Propagate distribution functions during the simulation in ordinary space. If false, it is propagated with zero length timesteps.",true);
@@ -180,7 +180,7 @@ bool Parameters::addParameters(){
    Readparameters::add("project", "Specify the name of the project to use. Supported to date (20150610): Alfven Diffusion Dispersion Distributions Firehose Flowthrough Fluctuations Harris KHB Larmor Magnetosphere Multipeak Riemann1 Shock Shocktest Template test_fp testHall test_trans VelocityBox verificationLarmor", string(""));
 
    Readparameters::add("restart.filename","Restart from this vlsv file. No restart if empty file.",string(""));
-   
+
    Readparameters::add("gridbuilder.geometry","Simulation geometry XY4D,XZ4D,XY5D,XZ5D,XYZ6D",string("XYZ6D"));
    Readparameters::add("gridbuilder.x_min","Minimum value of the x-coordinate.","");
    Readparameters::add("gridbuilder.x_max","Minimum value of the x-coordinate.","");
@@ -191,12 +191,12 @@ bool Parameters::addParameters(){
    Readparameters::add("gridbuilder.x_length","Number of cells in x-direction in initial grid.","");
    Readparameters::add("gridbuilder.y_length","Number of cells in y-direction in initial grid.","");
    Readparameters::add("gridbuilder.z_length","Number of cells in z-direction in initial grid.","");
-   
+
    Readparameters::add("gridbuilder.dt","Initial timestep in seconds.",0.0);
 
    Readparameters::add("gridbuilder.t_max","Maximum simulation time, in seconds. If timestep_max limit is hit first this time will never be reached",LARGE_REAL);
    Readparameters::add("gridbuilder.timestep_max","Max. value for timesteps. If t_max limit is hit first, this step will never be reached",numeric_limits<uint>::max());
-   
+
    // Field solver parameters
    Readparameters::add("fieldsolver.maxWaveVelocity", "Maximum wave velocity allowed in the fastest velocity determination in m/s, default unlimited", LARGE_REAL);
    Readparameters::add("fieldsolver.maxSubcycles", "Maximum allowed field solver subcycles", 1);
@@ -218,7 +218,7 @@ bool Parameters::addParameters(){
    Readparameters::add("loadBalance.algorithm", "Load balancing algorithm to be used", string("RCB"));
    Readparameters::add("loadBalance.tolerance", "Load imbalance tolerance", string("1.05"));
    Readparameters::add("loadBalance.rebalanceInterval", "Load rebalance interval (steps)", 10);
-   
+
 // Output variable parameters
    // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
    Readparameters::addComposing("variables.output", std::string()+"List of data reduction operators (DROs) to add to the grid file output.  Each variable to be added has to be on a new line output = XXX. Names are case insensitive.  "+
@@ -284,6 +284,7 @@ bool Parameters::addParameters(){
    Readparameters::add("bailout.write_restart", "If 1, write a restart file on bailout. Gets reset when sending a STOP (1) or a KILL (0).", true);
    Readparameters::add("bailout.min_dt", "Minimum time step below which bailout occurs (s).", 1e-6);
    Readparameters::add("bailout.max_memory", "Maximum amount of memory used per node (in GiB) over which bailout occurs.", 1073741824.);
+   Readparameters::add("bailout.velocity_space_wall_block_margin", "Distance from the velocity space limits in blocks, if the distribution function reaches that distance from the wall we bail out to avoid hitting the wall.", 1);
 
    // Refinement parameters
    Readparameters::add("AMR.vel_refinement_criterion","Name of the velocity refinement criterion",string(""));
@@ -322,7 +323,7 @@ bool Parameters::getParameters(){
    Readparameters::get("io.write_restart_stripe_factor", P::restartStripeFactor);
    Readparameters::get("io.restart_write_path", P::restartWritePath);
    Readparameters::get("io.write_as_float", P::writeAsFloat);
-   
+
    // Checks for validity of io and restart parameters
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
@@ -404,11 +405,11 @@ bool Parameters::getParameters(){
          }
       }
    }
-   
+
    std::vector<std::string> mpiioKeys, mpiioValues;
    Readparameters::get("io.system_write_mpiio_hint_key", mpiioKeys);
    Readparameters::get("io.system_write_mpiio_hint_value", mpiioValues);
-   
+
    if ( mpiioKeys.size() != mpiioValues.size() ) {
       if(myRank == MASTER_RANK) {
          cerr << "WARNING the number of io.system_write_mpiio_hint_key and io.system_write_mpiio_hint_value do not match. Disregarding these options." << endl;
@@ -434,7 +435,7 @@ bool Parameters::getParameters(){
    if(Readparameters::helpRequested) {
       P::projectName = string("Magnetosphere");
    }
- 
+
    /*get numerical values, let Readparameters handle the conversions*/
    string geometryString;
    Readparameters::get("gridbuilder.geometry",geometryString);
@@ -469,7 +470,7 @@ bool Parameters::getParameters(){
    Readparameters::get("AMR.vel_refinement_criterion",P::amrVelRefCriterion);
    Readparameters::get("AMR.refine_limit",P::amrRefineLimit);
    Readparameters::get("AMR.coarsen_limit",P::amrCoarsenLimit);
-   
+
    if (geometryString == "XY4D") P::geometry = geometry::XY4D;
    else if (geometryString == "XZ4D") P::geometry = geometry::XZ4D;
    else if (geometryString == "XY5D") P::geometry = geometry::XY5D;
@@ -479,23 +480,23 @@ bool Parameters::getParameters(){
       cerr << "Unknown simulation geometry " << geometryString << " in " << __FILE__ << ":" << __LINE__ << endl;
       return false;
    }
-   
+
    if (P::amrCoarsenLimit >= P::amrRefineLimit) return false;
    if (P::xmax < P::xmin || (P::ymax < P::ymin || P::zmax < P::zmin)) return false;
-   
-   // Set some parameter values. 
+
+   // Set some parameter values.
    P::dx_ini = (P::xmax-P::xmin)/P::xcells_ini;
    P::dy_ini = (P::ymax-P::ymin)/P::ycells_ini;
    P::dz_ini = (P::zmax-P::zmin)/P::zcells_ini;
-   
+
    Readparameters::get("gridbuilder.dt",P::dt);
-   
+
    Readparameters::get("gridbuilder.t_max",P::t_max);
    Readparameters::get("gridbuilder.timestep_max",P::tstep_max);
-   
+
    if(P::dynamicTimestep)
-      P::dt=0.0; //if dynamic timestep then first dt is always 0 
-   
+      P::dt=0.0; //if dynamic timestep then first dt is always 0
+
    //if we are restarting, t,t_min, tstep, tstep_min will be overwritten in readGrid
    P::t_min=0;
    P::t = P::t_min;
@@ -518,12 +519,12 @@ bool Parameters::getParameters(){
    Readparameters::get("vlasovsolver.maxCFL",P::vlasovSolverMaxCFL);
    Readparameters::get("vlasovsolver.minCFL",P::vlasovSolverMinCFL);
 
-   
+
    // Get load balance parameters
    Readparameters::get("loadBalance.algorithm", P::loadBalanceAlgorithm);
    Readparameters::get("loadBalance.tolerance", P::loadBalanceTolerance);
    Readparameters::get("loadBalance.rebalanceInterval", P::rebalanceInterval);
-   
+
    // Get output variable parameters
    Readparameters::get("variables.output", P::outputVariableList);
    Readparameters::get("variables.diagnostic", P::diagnosticVariableList);
@@ -533,11 +534,11 @@ bool Parameters::getParameters(){
    P::outputVariableList.clear();
    P::outputVariableList.insert(P::outputVariableList.end(),dummy.begin(),dummy.end());
    dummy.clear();
-   
+
    dummy.insert(P::diagnosticVariableList.begin(),P::diagnosticVariableList.end());
    P::diagnosticVariableList.clear();
    P::diagnosticVariableList.insert(P::diagnosticVariableList.end(),dummy.begin(),dummy.end());
-   
+
    // Get parameters related to bailout
    Readparameters::get("bailout.write_restart", P::bailout_write_restart);
    Readparameters::get("bailout.min_dt", P::bailout_min_dt);
@@ -546,6 +547,6 @@ bool Parameters::getParameters(){
    Readparameters::get("openacc.queueNum",P::openaccQueueNum);
 
    for (size_t s=0; s<P::systemWriteName.size(); ++s) P::systemWrites.push_back(0);
-   
+
    return true;
 }
