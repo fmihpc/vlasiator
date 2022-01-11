@@ -38,6 +38,7 @@
 #include "sysboundary/sysboundary.h"
 #include "fieldsolver/fs_common.h"
 #include "fieldsolver/gridGlue.hpp"
+#include "fieldsolver/derivatives.hpp"
 #include "vlasovsolver/cpu_trans_map_amr.hpp"
 #include "projects/project.h"
 #include "iowrite.h"
@@ -231,7 +232,8 @@ void initializeGrids(
       phiprof::stop("Read restart");
 
       // For now, alpha is read from the restart file
-      if (P::adaptRefinement) {
+      //if (P::adaptRefinement) {
+      if (false) {
          phiprof::start("Restart refinement");
          for (int i = 0; i < P::amrMaxSpatialRefLevel; ++i) {
             adaptRefinement(mpiGrid, technicalGrid, sysBoundaries, project);
@@ -593,7 +595,8 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    recalculateLocalCellsCache();
    getObjectWrapper().meshData.reallocate();
    #pragma omp parallel for
-   for (uint i=0; i<cells.size(); ++i) mpiGrid[cells[i]]->set_mpi_transfer_enabled(true);
+   for (uint i=0; i<cells.size(); ++i) 
+      mpiGrid[cells[i]]->set_mpi_transfer_enabled(true);
 
    // flag transfers if AMR
    phiprof::start("compute_amr_transfer_flags");
@@ -1311,6 +1314,7 @@ void mapRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
 void adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, SysBoundary& sysBoundaries, Project& project) {
    phiprof::start("Re-refine spatial cells");
+   calculateScaledDeltasSimple(mpiGrid);
    project.adaptRefinement(mpiGrid);
 
    initSpatialCellCoordinates(mpiGrid);

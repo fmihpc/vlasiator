@@ -806,7 +806,12 @@ int main(int argn,char* args[]) {
       //TODO - add LB measure and do LB if it exceeds threshold
       if(((P::tstep % P::rebalanceInterval == 0 && P::tstep > P::tstep_min) || overrideRebalanceNow)) {
          logFile << "(LB): Start load balance, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
-         balanceLoad(mpiGrid, sysBoundaries);
+         // Refinement includes LB
+         if (P::adaptRefinement)  { 
+            adaptRefinement(mpiGrid, technicalGrid, sysBoundaries, *project);
+         } else {
+            balanceLoad(mpiGrid, sysBoundaries);
+         }
          addTimedBarrier("barrier-end-load-balance");
          phiprof::start("Shrink_to_fit");
          // * shrink to fit after LB * //
