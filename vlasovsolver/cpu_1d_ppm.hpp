@@ -49,12 +49,6 @@ inline void compute_ppm_coeff(const Vec * const values, face_estimate_order orde
    p_face = select(-(p_face - m_face) * (p_face - m_face) * one_sixth >
                    (p_face - m_face) * (values[k] - 0.5 * (m_face + p_face)),
                    3 * values[k] - 2 * m_face, p_face);
-   /*
-   for(int a_1 = 0; a_1 < VECL; a_1++)
-   {
-     printf("OpenACC: m_face[%d] = %d; p_face[%d] = %d;\n", m_face[a_1], p_face[a_1]);
-   }
-   */
    //Fit a second order polynomial for reconstruction see, e.g., White
    //2008 (PQM article) (note additional integration factors built in,
    //contrary to White (2008) eq. 4

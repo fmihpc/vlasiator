@@ -34,8 +34,9 @@ using namespace std;
 /*
   Compute parabolic reconstruction with an explicit scheme
 */
-__device__ void compute_ppm_coeff(const Vec * const values, face_estimate_order order, uint k, Vec a[3], const Realv threshold)
+__host__ __device__ void compute_ppm_coeff(const Vec * const values, face_estimate_order order, uint k, Vec a[3], const Realv threshold)
 {
+   printf("cuda_ppm_coeffA\n");
   Vec fv_l; //left face value
   Vec fv_r; //right face value
   compute_filtered_face_values(values, k, order, fv_l, fv_r, threshold);
