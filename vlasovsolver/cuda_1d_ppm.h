@@ -26,17 +26,18 @@
 #include "vec.h"
 #include "device_launch_parameters.h"
 #include "cuda.h"
+#include "cuda_header.h"
 #include "cuda_runtime.h"
-#include "cuda_slope_limiters.cuh"
+#include "cuda_slope_limiters.h"
+#include "cuda_face_estimates.h"
 
 using namespace std;
 
 /*
   Compute parabolic reconstruction with an explicit scheme
 */
-__host__ __device__ void compute_ppm_coeff(const Vec * const values, face_estimate_order order, uint k, Vec a[3], const Realv threshold)
+static CUDA_HOSTDEV inline void compute_ppm_coeff(const Vec * const values, face_estimate_order order, uint k, Vec a[3], const Realv threshold)
 {
-   printf("cuda_ppm_coeffA\n");
   Vec fv_l; //left face value
   Vec fv_r; //right face value
   compute_filtered_face_values(values, k, order, fv_l, fv_r, threshold);
@@ -62,7 +63,7 @@ __host__ __device__ void compute_ppm_coeff(const Vec * const values, face_estima
       Define functions for Realf instead of Vec 
 ***/
 
-__device__ void compute_ppm_coeff(const Vec* const values, face_estimate_order order, uint k, Realf a[3], const Realv threshold, const int index)
+static CUDA_DEV inline void compute_ppm_coeff(const Vec* const values, face_estimate_order order, uint k, Realf a[3], const Realv threshold, const int index)
 {
   Realf fv_l; //left face value
   Realf fv_r; //right face value

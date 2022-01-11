@@ -165,7 +165,7 @@ DEPS_PROJECTS =	projects/project.h projects/project.cpp \
 		projects/verificationLarmor/verificationLarmor.h projects/verificationLarmor/verificationLarmor.cpp \
 		projects/Shocktest/Shocktest.h projects/Shocktest/Shocktest.cpp ${DEPS_CELL}
 
-DEPS_CUDA_ACC_MAP_KERNEL = vlasovsolver/vec.h vlasovsolver/cuda_header.cuh vlasovsolver/cuda_acc_map_kernel.cuh vlasovsolver/cuda_acc_map_kernel.cu vlasovsolver/vectorclass_fallback.cuh
+DEPS_CUDA_ACC_MAP_KERNEL = vlasovsolver/vec.h vlasovsolver/cuda_header.h vlasovsolver/cuda_acc_map_kernel.cuh vlasovsolver/cuda_acc_map_kernel.cu vlasovsolver/vectorclass_fallback.h
 
 DEPS_CPU_ACC_INTERSECTS = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/cpu_acc_intersections.hpp vlasovsolver/cpu_acc_intersections.cpp
 

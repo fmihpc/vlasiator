@@ -1,11 +1,32 @@
-#include "cuda_header.cuh"
+/*
+ * This file is part of Vlasiator.
+ * Copyright 2010-2022 Finnish Meteorological Institute
+ *
+ * For details of usage, see the COPYING file and read the "Rules of the Road"
+ * at http://www.physics.helsinki.fi/vlasiator/
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
 #include "cuda_acc_map_kernel.cuh"
 #include "vec.h"
 #include "../definitions.h"
-#include "cuda_face_estimates.cuh"
-#include "cuda_1d_pqm.cuh"
-#include "cuda_1d_ppm.cuh"
-#include "cuda_1d_plm.cuh"
+#include "cuda_face_estimates.h"
+#include "cuda_1d_pqm.h"
+#include "cuda_1d_ppm.h"
+#include "cuda_1d_plm.h"
 
 #include "device_launch_parameters.h"
 #include "cuda.h"

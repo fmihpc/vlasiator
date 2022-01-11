@@ -26,8 +26,9 @@
 #include "vec.h"
 #include "device_launch_parameters.h"
 #include "cuda.h"
+#include "cuda_header.h"
 #include "cuda_runtime.h"
-#include "cuda_slope_limiters.cuh"
+#include "cuda_slope_limiters.h"
 
 using namespace std;
 
@@ -38,7 +39,7 @@ t=(v-v_{i-0.5})/dv where v_{i-0.5} is the left face of a cell
 The factor 2.0 is in the polynom to ease integration, then integral is a[0]*t + a[1]*t**2
 */
 
-__device__ void compute_plm_coeff(const Vec * const values, uint k, Vec a[2], const Realv threshold)
+static CUDA_HOSTDEV inline void compute_plm_coeff(const Vec * const values, uint k, Vec a[2], const Realv threshold)
 {
   // scale values closer to 1 for more accurate slope limiter calculation
   const Realv scale = 1./threshold;
@@ -55,7 +56,7 @@ __device__ void compute_plm_coeff(const Vec * const values, uint k, Vec a[2], co
       Define functions for Realf instead of Vec 
 ***/
 
-__device__ void compute_plm_coeff(const Vec* const values, uint k, Realf a[2], const Realv threshold, const int index)
+static CUDA_DEV inline void compute_plm_coeff(const Vec* const values, uint k, Realf a[2], const Realv threshold, const int index)
 {
   // scale values closer to 1 for more accurate slope limiter calculation
   const Realv scale = 1./threshold;

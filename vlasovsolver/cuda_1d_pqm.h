@@ -26,15 +26,16 @@
 #include "vec.h"
 #include "device_launch_parameters.h"
 #include "cuda.h"
+#include "cuda_header.h"
 #include "cuda_runtime.h"
-#include "cuda_slope_limiters.cuh"
-#include "cuda_face_estimates.cuh"
+#include "cuda_slope_limiters.h"
+#include "cuda_face_estimates.h"
 
 
 
 
 /*make sure quartic polynomial is monotonic*/
-__device__ void filter_pqm_monotonicity(Vec *values, uint k, Vec &fv_l, Vec &fv_r, Vec &fd_l, Vec &fd_r){
+static CUDA_HOSTDEV inline void filter_pqm_monotonicity(Vec *values, uint k, Vec &fv_l, Vec &fv_r, Vec &fd_l, Vec &fd_r){
    /*second derivative coefficients, eq 23 in white et al.*/
    Vec b0 =   60.0 * values[k] - 24.0 * fv_r - 36.0 * fv_l + 3.0 * (fd_r - 3.0 * fd_l);
    Vec b1 = -360.0 * values[k] + 36.0 * fd_l - 24.0 * fd_r + 168.0 * fv_r + 192.0 * fv_l;
@@ -160,7 +161,7 @@ __device__ void filter_pqm_monotonicity(Vec *values, uint k, Vec &fv_l, Vec &fv_
 //   White, Laurent, and Alistair Adcroft. “A High-Order Finite Volume Remapping Scheme for Nonuniform Grids: The Piecewise Quartic Method (PQM).” Journal of Computational Physics 227, no. 15 (July 2008): 7394–7422. doi:10.1016/j.jcp.2008.04.026.
 // */
 
-__device__ void compute_pqm_coeff(Vec *values, face_estimate_order order, uint k, Vec a[5], const Realv threshold)
+static CUDA_HOSTDEV inline void compute_pqm_coeff(Vec *values, face_estimate_order order, uint k, Vec a[5], const Realv threshold)
 {
    Vec fv_l; /*left face value*/
    Vec fv_r; /*right face value*/
@@ -184,7 +185,7 @@ __device__ void compute_pqm_coeff(Vec *values, face_estimate_order order, uint k
 ***/
 
 /*make sure quartic polynomial is monotonic*/
-__device__ void filter_pqm_monotonicity(Vec *values, uint k, Realf &fv_l, Realf &fv_r, Realf &fd_l, Realf &fd_r, const int index) {
+static CUDA_DEV inline void filter_pqm_monotonicity(Vec *values, uint k, Realf &fv_l, Realf &fv_r, Realf &fd_l, Realf &fd_r, const int index) {
    /*fixed values give to roots clearly outside [0,1], or nonexisting ones*/
    
    /*second derivative coefficients, eq 23 in white et al.*/
@@ -279,7 +280,7 @@ __device__ void filter_pqm_monotonicity(Vec *values, uint k, Realf &fv_l, Realf 
    }
 }
 
-__device__ void compute_pqm_coeff(Vec *values, face_estimate_order order, uint k, Realf a[5], const Realv threshold, const int index)
+static CUDA_DEV inline void compute_pqm_coeff(Vec *values, face_estimate_order order, uint k, Realf a[5], const Realv threshold, const int index)
 {
    Realf fv_l; /*left face value*/
    Realf fv_r; /*right face value*/
