@@ -160,11 +160,13 @@ void initializeGrids(
       if (P::amrMaxSpatialRefLevel > 0 && project.refineSpatialCells(mpiGrid)) {
          mpiGrid.balance_load();
          recalculateLocalCellsCache();
+         mapRefinement(mpiGrid, technicalGrid);
       }
    } else {
       if (readFileCells(mpiGrid, P::restartFileName)) {
          mpiGrid.balance_load();
          recalculateLocalCellsCache();
+         mapRefinement(mpiGrid, technicalGrid);
       }
    }
    phiprof::stop("Refine spatial cells");
@@ -207,6 +209,17 @@ void initializeGrids(
       cerr << "(Grid) Failed to initialize mesh data container in " << __FILE__ << ":" << __LINE__ << endl;
       exit(1);
    }
+
+   SpatialCell::set_mpi_transfer_type(Transfer::CELL_DIMENSIONS);
+   mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
+
+   // We want this before restart refinement
+   phiprof::start("Classify cells (sys boundary conditions)");
+   if(sysBoundaries.classifyCells(mpiGrid,technicalGrid) == false) {
+      cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
+      exit(1);
+   }
+   phiprof::stop("Classify cells (sys boundary conditions)");
    
    if (P::isRestart) {
       logFile << "Restart from "<< P::restartFileName << std::endl << writeVerbose;
@@ -219,61 +232,14 @@ void initializeGrids(
 
       // For now, alpha is read from the restart file
       if (P::adaptRefinement) {
-         phiprof::start("Re-refine spatial cells");
+         phiprof::start("Restart refinement");
          for (int i = 0; i < P::amrMaxSpatialRefLevel; ++i) {
-            if(sysBoundaries.classifyCells(mpiGrid,technicalGrid) == false) {
-               cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
-               exit(1);
-            }
-
-            project.adaptRefinement(mpiGrid);
-            initSpatialCellCoordinates(mpiGrid);
-
-            // balance load, update ghost cells
-            balanceLoad(mpiGrid, sysBoundaries);
-            SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
-            mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
-
-            if (P::shouldFilter) {
-               project.filterRefined(mpiGrid);
-            }
-
-            // Consider recalculating alphas here. Requires fs grid to be set up and grid glue
+            adaptRefinement(mpiGrid, technicalGrid, sysBoundaries, project);
          }
-
-         phiprof::stop("Re-refine spatial cells");
+         phiprof::stop("Restart refinement");
+         //balanceLoad(mpiGrid, sysBoundaries);
       }
-
-      phiprof::start("Map Refinement Level to FsGrid");
-      const int *localDims = &momentsGrid.getLocalSize()[0];
-
-      // #pragma omp parallel for collapse(3)
-      for (int k=0; k<localDims[2]; k++) {
-         for (int j=0; j<localDims[1]; j++) {
-            for (int i=0; i<localDims[0]; i++) {
-
-               const std::array<int, 3> mapIndices = momentsGrid.getGlobalIndices(i,j,k);
-               const dccrg::Types<3>::indices_t  indices = {{(uint64_t)mapIndices[0],(uint64_t)mapIndices[1],(uint64_t)mapIndices[2]}}; //cast to avoid warnings
-               CellID dccrgCellID2 = mpiGrid.get_existing_cell(indices, 0, mpiGrid.mapping.get_maximum_refinement_level());
-               int amrLevel= mpiGrid.get_refinement_level(dccrgCellID2);
-               technicalGrid.get(i, j, k)-> refLevel =amrLevel ;
-            }
-         }
-      }
-      phiprof::stop("Map Refinement Level to FsGrid");
-
    }
-
-   SpatialCell::set_mpi_transfer_type(Transfer::CELL_DIMENSIONS);
-   mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
-
-   // Initialise system boundary conditions (they need the initialised positions!!)
-   phiprof::start("Classify cells (sys boundary conditions)");
-   if(sysBoundaries.classifyCells(mpiGrid,technicalGrid) == false) {
-      cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
-      exit(1);
-   }
-   phiprof::stop("Classify cells (sys boundary conditions)");
 
 
    // Check refined cells do not touch boundary cells
@@ -293,28 +259,6 @@ void initializeGrids(
       }
       phiprof::stop("Apply system boundary conditions state");
    }
-
-  if (P::amrMaxSpatialRefLevel>0) {
-    // Map Refinement Level to FsGrid
-    phiprof::start("Map Refinement Level to FsGrid");
-    const int *localDims = &momentsGrid.getLocalSize()[0];
-
-    // #pragma omp parallel for collapse(3)
-    for (int k=0; k<localDims[2]; k++) {
-      for (int j=0; j<localDims[1]; j++) {
-        for (int i=0; i<localDims[0]; i++) {
-
-          const std::array<int, 3> mapIndices = momentsGrid.getGlobalIndices(i,j,k);
-          const dccrg::Types<3>::indices_t  indices = {{(uint64_t)mapIndices[0],(uint64_t)mapIndices[1],(uint64_t)mapIndices[2]}}; //cast to avoid warnings
-          CellID dccrgCellID2 = mpiGrid.get_existing_cell(indices, 0, mpiGrid.mapping.get_maximum_refinement_level());
-          int amrLevel= mpiGrid.get_refinement_level(dccrgCellID2);
-          technicalGrid.get(i, j, k)-> refLevel =amrLevel ;
-        }
-      }
-    }
-    phiprof::stop("Map Refinement Level to FsGrid");
-  }
-
 
    // Update technicalGrid
    technicalGrid.updateGhostCells(); // This needs to be done at some point
@@ -1343,4 +1287,54 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
    
    phiprof::stop("mesh validation (init)");
    return rvalue;
+}
+
+void mapRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
+   phiprof::start("Map Refinement Level to FsGrid");
+   const int *localDims = &technicalGrid.getLocalSize()[0];
+
+   // #pragma omp parallel for collapse(3)
+   for (int k=0; k<localDims[2]; k++) {
+      for (int j=0; j<localDims[1]; j++) {
+         for (int i=0; i<localDims[0]; i++) {
+
+            const std::array<int, 3> mapIndices = technicalGrid.getGlobalIndices(i,j,k);
+            const dccrg::Types<3>::indices_t  indices = {{(uint64_t)mapIndices[0],(uint64_t)mapIndices[1],(uint64_t)mapIndices[2]}}; //cast to avoid warnings
+            CellID dccrgCellID2 = mpiGrid.get_existing_cell(indices, 0, mpiGrid.mapping.get_maximum_refinement_level());
+            int amrLevel= mpiGrid.get_refinement_level(dccrgCellID2);
+            technicalGrid.get(i, j, k)-> refLevel =amrLevel ;
+         }
+      }
+   }
+   phiprof::stop("Map Refinement Level to FsGrid");
+}
+
+void adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, SysBoundary& sysBoundaries, Project& project) {
+   phiprof::start("Re-refine spatial cells");
+   project.adaptRefinement(mpiGrid);
+
+   initSpatialCellCoordinates(mpiGrid);
+
+   SpatialCell::set_mpi_transfer_type(Transfer::CELL_DIMENSIONS);
+   mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
+
+   mapRefinement(mpiGrid, technicalGrid);
+
+   // Removing this crashes on next load balance, no idea why
+   balanceLoad(mpiGrid, sysBoundaries);
+
+   // Initialise system boundary conditions (they need the initialised positions!!)
+   if(sysBoundaries.classifyCells(mpiGrid,technicalGrid) == false) {
+      cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
+      exit(1);
+   }
+
+   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
+   mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
+
+   if (P::shouldFilter) {
+      project.filterRefined(mpiGrid);
+   }
+
+   phiprof::stop("Re-refine spatial cells");
 }
