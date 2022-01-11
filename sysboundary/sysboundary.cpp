@@ -499,10 +499,15 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
       }
 
       if (mpiGrid[cell]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
-         for (auto i : *mpiGrid.get_neighbors_to(cell, SYSBOUNDARIES_NEIGHBORHOOD_ID)) {
+         // Cornerwise neighbor, i.e. cell must be in both neighbors_of and neighbors_to
+         for (auto i : *mpiGrid.get_neighbors_of(cell, SYSBOUNDARIES_NEIGHBORHOOD_ID)) {
             CellID neighbor = i.first;
             if (neighbor && mpiGrid[neighbor]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-               mpiGrid[cell]->sysBoundaryLayer = 1;
+               for (auto j : *mpiGrid.get_neighbors_to(cell, SYSBOUNDARIES_NEIGHBORHOOD_ID)) {
+                  if (j.first == neighbor) {
+                     mpiGrid[cell]->sysBoundaryLayer = 1;
+                  }
+               }
             }
          }
       }
@@ -522,10 +527,14 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
             // Note: this distance calculation will be non-plateau monotonic only assuming that
             // SysBoundary::checkRefinement has been applied correctly and there are no refinement
             // level changes within SYSBOUNDARIES_NEIGHBORHOOD_ID.
-            for (auto i : *mpiGrid.get_neighbors_to(cell, SYSBOUNDARIES_NEIGHBORHOOD_ID)) {
+            for (auto i : *mpiGrid.get_neighbors_of(cell, SYSBOUNDARIES_NEIGHBORHOOD_ID)) {
                CellID neighbor = i.first;
                if (neighbor && mpiGrid[neighbor]->sysBoundaryLayer == layer) {
-                  mpiGrid[cell]->sysBoundaryLayer = layer + 1;
+                  for (auto j : *mpiGrid.get_neighbors_to(cell, SYSBOUNDARIES_NEIGHBORHOOD_ID)) {
+                     if (j.first == neighbor) {
+                        mpiGrid[cell]->sysBoundaryLayer = layer + 1;
+                     }
+                  }
                }
             }
          }
