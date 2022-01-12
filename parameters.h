@@ -177,10 +177,11 @@ struct Parameters {
    static uint amrMaxSpatialRefLevel;
    static bool shouldRefine;
    static bool adaptRefinement;
+   static bool refineOnRestart;
    static bool shouldFilter;
    static Real refineTreshold;
    static Real unrefineTreshold;
-   static Real refineMultiplier;
+   static uint refineMultiplier;
    static uint amrBoxHalfWidthX;
    static uint amrBoxHalfWidthY;
    static uint amrBoxHalfWidthZ;

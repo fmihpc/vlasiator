@@ -807,7 +807,8 @@ int main(int argn,char* args[]) {
       if(((P::tstep % P::rebalanceInterval == 0 && P::tstep > P::tstep_min) || overrideRebalanceNow)) {
          logFile << "(LB): Start load balance, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          // Refinement includes LB
-         if (P::adaptRefinement)  { 
+         if (P::adaptRefinement && P::tstep % (P::rebalanceInterval * P::refineMultiplier) == 0)  { 
+            logFile << "(AMR): Adapting refinement!"  << endl << writeVerbose;
             adaptRefinement(mpiGrid, technicalGrid, sysBoundaries, *project);
          } else {
             balanceLoad(mpiGrid, sysBoundaries);

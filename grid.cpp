@@ -231,15 +231,12 @@ void initializeGrids(
       }
       phiprof::stop("Read restart");
 
-      // For now, alpha is read from the restart file
-      //if (P::adaptRefinement) {
-      if (false) {
+      if (P::refineOnRestart) {
          phiprof::start("Restart refinement");
          for (int i = 0; i < P::amrMaxSpatialRefLevel; ++i) {
             adaptRefinement(mpiGrid, technicalGrid, sysBoundaries, project);
          }
          phiprof::stop("Restart refinement");
-         //balanceLoad(mpiGrid, sysBoundaries);
       }
    }
 
