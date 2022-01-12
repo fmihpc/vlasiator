@@ -36,8 +36,6 @@
 #include "cpu_acc_map.hpp"
 #include "cuda_acc_map_kernel.cuh"
 
-//#define DEBUG_ACC
-
 using namespace std;
 using namespace spatial_cell;
 /** Attempt to add the given velocity block to the given velocity mesh.

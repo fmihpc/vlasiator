@@ -49,6 +49,6 @@ extern void acceleration_1_wrapper
 );
 
 #define DIMS 1
-#define BLOCKS 64
+#define BLOCKS 108
 #define THREADS 32
 #define CUDASIZE 1

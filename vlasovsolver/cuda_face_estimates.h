@@ -29,9 +29,11 @@
 //#include "cmath"
 #include "cuda_slope_limiters.h"
 
-#include "cuda.h"
 #include "cuda_header.h"
+#ifdef __CUDACC__
+#include "cuda.h"
 #include "cuda_runtime.h"
+#endif
 
 /*enum for setting face value and derivative estimates. Implicit ones
   not supported in the solver, so they are now not listed*/

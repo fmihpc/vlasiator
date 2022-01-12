@@ -24,10 +24,12 @@
 #define CUDA_SLOPE_LIMITERS_H
 
 #include "vec.h"
-#include "device_launch_parameters.h"
 #include "cuda_header.h"
+#ifdef __CUDACC__
 #include "cuda.h"
 #include "cuda_runtime.h"
+#include "device_launch_parameters.h"
+#endif
 
 using namespace std;
 
@@ -170,7 +172,7 @@ static CUDA_DEV inline Realf slope_limiter_mc(const Realf& l,const Realf& m, con
   Realf a=r-m;
   Realf b=m-l;
   Realf minval=min(2*abs(a),2*abs(b));
-  minval=min(minval,0.5*abs(a+b));
+  minval=min(minval,(Realf)0.5*abs(a+b));
 
   //check for extrema
   Realf output = (a*b < 0) ? 0 : minval;
@@ -182,8 +184,8 @@ static CUDA_DEV inline Realf slope_limiter_minmod_amr(const Realf& l,const Realf
 {
    Realf J = r-l;
    Realf f = (m-l)/J;
-   f = min(1.0,f);
-   return min(f/(1+a),(1.-f)/(1+b))*2*J;
+   f = min((Realf)1.0,f);
+   return min((Realf)f/(1+a),(Realf)(1.-f)/(1+b))*2*J;
 }
 
 static CUDA_DEV inline Realf slope_limiter(const Realf &l, const Realf &m, const Realf &r)

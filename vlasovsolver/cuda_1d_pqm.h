@@ -24,10 +24,12 @@
 #define CUDA_1D_PQM_H
 
 #include "vec.h"
+#include "cuda_header.h"
+#ifdef __CUDACC__
 #include "device_launch_parameters.h"
 #include "cuda.h"
-#include "cuda_header.h"
 #include "cuda_runtime.h"
+#endif
 #include "cuda_slope_limiters.h"
 #include "cuda_face_estimates.h"
 
