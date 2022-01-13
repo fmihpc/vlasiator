@@ -275,22 +275,7 @@ namespace projects {
          }
       }
 
-      cells = mpiGrid.stop_refining();
-      std::cout << cells.size() << std::endl;
-
-      //#pragma omp parallel for
-      for (int j = 0; j < cells.size(); ++j) {
-         CellID id = cells[j];
-         *mpiGrid[id] = *mpiGrid[mpiGrid.get_parent(id)];
-         mpiGrid[id]->parameters[CellParams::AMR_ALPHA] /= P::refineMultiplier;
-         mpiGrid[id]->parameters[CellParams::RECENTLY_REFINED] = 1;
-      }
-
-      if (myRank == MASTER_RANK) {
-         std::cout << "Finished re-refinement" << endl;
-      }
-
-      return !cells.empty();
+      return true;
    }
    
 

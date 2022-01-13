@@ -677,14 +677,12 @@ namespace projects {
    bool Magnetosphere::adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
       int myRank;       
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-      if(myRank == MASTER_RANK) {
+      if (myRank == MASTER_RANK)
          std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
-      }
 
       if (!P::adaptRefinement) {
-         if (myRank == MASTER_RANK)  {
+         if (myRank == MASTER_RANK)
             std::cout << "Skipping re-refinement!" << std::endl;
-         }
          return false;
       }
 
@@ -693,7 +691,7 @@ namespace projects {
       std::vector<CellID> cells = getLocalCells();
       Real refineTreshold = P::refineTreshold;
       Real unrefineTreshold = P::unrefineTreshold;
-      
+
       //#pragma omp parallel for
       for (int j = 0; j < cells.size(); ++j) {
          CellID id = cells[j];
@@ -703,34 +701,19 @@ namespace projects {
          Real r2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
 
          bool refine = false;
-         if (r2 < ibr2) {
+         if (r2 < ibr2 || !canRefine(mpiGrid[id])) {
             // Skip refining, we shouldn't touch borders when reading restart
             continue;
          } else if (cell->parameters[CellParams::AMR_ALPHA] > refineTreshold) {
-            if (canRefine(mpiGrid[id])) {
-               //#pragma omp critical
-               mpiGrid.refine_completely(id);
-            }
+            //#pragma omp critical
+            mpiGrid.refine_completely(id);
+         } else if (cell->parameters[CellParams::AMR_ALPHA] < unrefineTreshold) {
+            //#pragma omp critical
+            mpiGrid.unrefine_completely(id);
          }
       }
 
-      cells = mpiGrid.stop_refining();
-
-      //#pragma omp parallel for
-      for (int j = 0; j < cells.size(); ++j) {
-         CellID id = cells[j];
-         *mpiGrid[id] = *mpiGrid[mpiGrid.get_parent(id)];
-         // Irrelevant?
-         // mpiGrid[id]->parameters[CellParams::AMR_ALPHA] /= P::refineMultiplier;
-         mpiGrid[id]->parameters[CellParams::AMR_ALPHA] /= 2.0;
-         mpiGrid[id]->parameters[CellParams::RECENTLY_REFINED] = 1;
-      }
-
-      if (myRank == MASTER_RANK) {
-         std::cout << "Finished re-refinement" << endl;
-      }
-
-      return !cells.empty();
+      return true;
    }
    
 } // namespace projects

@@ -543,7 +543,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
          mpiGrid.continue_balance_load();
          SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE2);
          mpiGrid.continue_balance_load();
-      
+
          int receives = 0;
          for (unsigned int i=0; i<incoming_cells_list.size(); i++) {
             CellID cell_id=incoming_cells_list[i];
@@ -562,7 +562,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
             phiprof::start("Preparing receives");
             phiprof::stop("Preparing receives", 0, "Spatial cells");
          }
-         
+
          //do the actual transfer of data for the set of cells to be transferred
          phiprof::start("transfer_all_data");
          SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
@@ -1312,17 +1312,98 @@ void mapRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 void adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, SysBoundary& sysBoundaries, Project& project) {
    phiprof::start("Re-refine spatial cells");
    calculateScaledDeltasSimple(mpiGrid);
+
    project.adaptRefinement(mpiGrid);
 
+   // New cells created by refinement
+   auto newChildren = mpiGrid.start_refining();
+
+   std::vector<CellID> receives;
+
+   for (auto const& [key, val] : mpiGrid.get_cells_to_receive()) {
+      for (auto i : val) {
+         receives.push_back(i.first);
+      }
+   }
+
+   for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
+      // Set active population
+      SpatialCell::setCommunicatedSpecies(p);
+
+      //Transfer velocity block list
+      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE1);
+      mpiGrid.continue_refining();
+      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE2);
+      mpiGrid.continue_refining();
+   
+      for (CellID id : receives) {
+         phiprof::start("Preparing receives");
+         // reserve space for velocity block data in arriving remote cells
+         mpiGrid[id]->prepare_to_receive_blocks(p);
+         phiprof::stop("Preparing receives", 1, "Spatial cells");
+      }
+
+      if(receives.empty()) {
+         //empty phiprof timer, to avoid unneccessary divergence in unique
+         //profiles (keep order same)
+         phiprof::start("Preparing receives");
+         phiprof::stop("Preparing receives", 0, "Spatial cells");
+      }
+      
+      //do the actual transfer of data for the set of cells to be transferred
+      phiprof::start("transfer_all_data");
+      SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
+      mpiGrid.continue_refining();
+      phiprof::stop("transfer_all_data");
+   }
+
+   for (CellID id : newChildren) {
+      *mpiGrid[id] = *mpiGrid[mpiGrid.get_parent(id)];
+      // Irrelevant?
+      // mpiGrid[id]->parameters[CellParams::AMR_ALPHA] /= P::refineMultiplier;
+      mpiGrid[id]->parameters[CellParams::AMR_ALPHA] /= 2.0;
+      mpiGrid[id]->parameters[CellParams::RECENTLY_REFINED] = 1;
+   }
+
+   // Old cells removed by refinement
+   std::set<CellID> processed;
+   for (CellID id : mpiGrid.get_removed_cells()) {
+      CellID parent = mpiGrid.get_existing_cell(mpiGrid.get_center(id));
+      if (!processed.count(parent)) {
+         std::vector<CellID> children = mpiGrid.get_all_children(parent);
+         // Make sure cell contents aren't garbage
+         *mpiGrid[parent] = *mpiGrid[id];
+
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+            SBC::averageCellData(mpiGrid, children, mpiGrid[parent], popID);
+
+         // Averaging moments
+         // Not sure if this is necessary, but let's do it anyway
+         for (int param = CellParams::RHOM; param < CellParams::EXVOL; ++param) {
+            if (param == CellParams::BGBXVOL)
+               param = CellParams::RHOM_R;   // Skip FG stuff
+
+            mpiGrid[parent]->parameters[param] = 0.0;
+            for (CellID child : children)
+               mpiGrid[parent]->parameters[param] += mpiGrid[child]->parameters[param] / 8.0;
+         }
+
+         processed.insert(parent);
+      }
+   }
+
+   mpiGrid.finish_refining();
+
+   recalculateLocalCellsCache();
    initSpatialCellCoordinates(mpiGrid);
+
+   // Removing this crashes on next load balance, no idea why
+   balanceLoad(mpiGrid, sysBoundaries);
 
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_DIMENSIONS);
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
 
    mapRefinement(mpiGrid, technicalGrid);
-
-   // Removing this crashes on next load balance, no idea why
-   balanceLoad(mpiGrid, sysBoundaries);
 
    // Initialise system boundary conditions (they need the initialised positions!!)
    if(sysBoundaries.classifyCells(mpiGrid,technicalGrid) == false) {
@@ -1330,8 +1411,9 @@ void adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
       exit(1);
    }
 
-   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
-   mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
+   // Should be handled by LB
+   // SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
+   // mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
 
    if (P::shouldFilter) {
       project.filterRefined(mpiGrid);
