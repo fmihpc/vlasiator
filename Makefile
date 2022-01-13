@@ -121,7 +121,7 @@ LIBS += ${LIB_PAPI}
 ifeq ($(USE_CUDA),1)
 	LIBS += ${LIB_CUDA}
 	CXXFLAGS += -DUSE_CUDA
-	CUDALINK += -lcudart
+	CUDALIB += -lcudart
 ifeq ($(CUDA_REALF),1)
 	CXXFLAGS += -DCUDA_REALF
 	CUDAFLAGS += -DCUDA_REALF
@@ -503,15 +503,15 @@ object_wrapper.o:  $(DEPS_COMMON)  object_wrapper.h object_wrapper.cpp
 
 ifeq ($(USE_CUDA),1)
 cudalink1.o: cpu_acc_map.o
-	${NVCC} ${CUDAFLAGS} -dlink cpu_acc_map.o -o cudalink1.o
+	${NVCC} ${CUDALINK} ${CUDAFLAGS} -dlink cpu_acc_map.o -o cudalink1.o
 
 cudalink2.o: cuda_acc_map_kernel.o
-	${NVCC} ${CUDAFLAGS} -dlink cuda_acc_map_kernel.o -o cudalink2.o
+	${NVCC} ${CUDALINK} ${CUDAFLAGS} -dlink cuda_acc_map_kernel.o -o cudalink2.o
 endif
 
 # Make executable
 vlasiator: $(OBJS) $(OBJS_FSOLVER)
-	$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) $(LIBS) $(OBJS_FSOLVER) $(CUDALINK)
+	$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) $(LIBS) $(OBJS_FSOLVER) $(CUDALIB)
 
 #/// TOOLS section/////
 
