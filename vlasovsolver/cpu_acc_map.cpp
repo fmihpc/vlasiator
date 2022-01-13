@@ -120,8 +120,8 @@ void acceleration_1_wrapperCaller(
     Realv i_dv,
     Realv dv,
     Realv minValue
-  ) {
-    //printf("STAGE 2\n");
+   ) {
+   //printf("totalcolumns %d\n",totalColumns);
     acceleration_1_wrapper (
       blockData,
       columns,

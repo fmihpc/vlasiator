@@ -85,16 +85,16 @@ __global__ void acceleration_1
    int index = threadIdx.x;
    int block = blockIdx.x;
    int nThreads = blockDim.x;
-   int nBlocks = gridDim.x;
+   int cudaBlocks = gridDim.x;
    // How many columns max per block?
-   int maxcolumns = (int)ceil((Realv)totalColumns / (Realv)nBlocks);
-   
+   int maxcolumns = (int)ceil((Realv)totalColumns / (Realv)cudaBlocks);
+   //printf("totalcolumns %d blocks %d maxcolumns %d\n",totalColumns,cudaBlocks,maxcolumns);
    if (nThreads != VECL) {
       printf("Warning! VECL not matching thread count for CUDA code!\n");
    }
 
    for (uint blockC = 0; blockC < maxcolumns; ++blockC) {
-      int column = blockC*nBlocks + block;
+      int column = blockC*cudaBlocks + block;
       if (column >= totalColumns) continue;
       /* New threading with each warp/wavefront working on one vector */
       Realf v_r0 = ( (WID * dev_columns[column].kBegin) * dv + v_min);
