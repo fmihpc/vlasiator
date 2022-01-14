@@ -38,6 +38,7 @@
 #include <fsgrid.hpp>
 
 #include "vlasovmover.h"
+#include "vlasovsolver/vec.h"
 #include "definitions.h"
 #include "mpiconversion.h"
 #include "logger.h"
