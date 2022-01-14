@@ -17,21 +17,16 @@
 
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
 #Single-precision
-       	#VECTORCLASS = VEC8F_FALLBACK
         VECTORCLASS = VEC_FALLBACK_GENERIC
-#        COMPFLAGS += -DVECL=16 -DVEC_PER_PLANE=1 -DVEC_PER_BLOCK=4 -DVPREC=16
-#        CUDAFLAGS += -DVECL=16 -DVEC_PER_PLANE=1 -DVEC_PER_BLOCK=4 -DVPREC=16
-        COMPFLAGS += -DVECL=32 -DVEC_PER_PLANE=2 -DVEC_PER_BLOCK=16 -DVPREC=16 -DWID=8
-        CUDAFLAGS += -DVECL=32 -DVEC_PER_PLANE=2 -DVEC_PER_BLOCK=16 -DVPREC=16 -DWID=8
 else
 #Double-precision
-	#VECTORCLASS = VEC4D_FALLBACK
         VECTORCLASS = VEC_FALLBACK_GENERIC
-#testpackage:        COMPFLAGS += -DVECL=16 -DVEC_PER_PLANE=1 -DVEC_PER_BLOCK=4 -DVPREC=16
-#testpackage:        CUDAFLAGS += -DVECL=16 -DVEC_PER_PLANE=1 -DVEC_PER_BLOCK=4 -DVPREC=16
-testpackage:        COMPFLAGS += -DVECL=32 -DVEC_PER_PLANE=2 -DVEC_PER_BLOCK=16 -DVPREC=16 -DWID=8
-testpackage:        CUDAFLAGS += -DVECL=32 -DVEC_PER_PLANE=2 -DVEC_PER_BLOCK=16 -DVPREC=16 -DWID=8
 endif
+#===== Vector Lenghts ====
+WID=8
+VECL=32
+#WID=4
+#VECL=16
 
 #======== PAPI ==========
 #Add PAPI_MEM define to use papi to report memory consumption?
@@ -59,6 +54,7 @@ testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 USE_CUDA=1
 CUDA_REALF=1
+CUDABLOCKS=108
 CMP = mpic++
 LNK = mpic++
 NVCC = nvcc
@@ -72,7 +68,7 @@ CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -gpu=cc80 -Minfo=accel 
 CUDAFLAGS += -gencode arch=compute_80,code=sm_80 -std=c++11
 
 testpackage: CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -gpu=cc80 -Minfo=accel -acc -fopenmp -std=c++11
-testpackage: CUDAFLAGS += -gencode arch=compute_80,code=sm_80 -std=c++11
+testpackage: CUDAFLAGS += -gencode arch=compute_80,code=sm_80 -std=c++11 --prec-sqrt=true --prec-div=true --ftz=false --fmad=false
 
 # include in CXXFLAGS?
 #-Minfo=accel -ta=tesla:lineinfo,keepbin,keepgpu,keepptx -Manno -g -nomp

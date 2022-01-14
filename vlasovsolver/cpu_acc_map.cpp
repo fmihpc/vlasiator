@@ -103,46 +103,6 @@ void inline swapBlockIndices(velocity_block_indices_t &blockIndices, const uint 
    }
 }
 
-#ifdef USE_CUDA
-void acceleration_1_wrapperCaller(
-    Realf *blockData,
-    Column *columns,
-    Vec values[],
-    uint cell_indices_to_id[3],
-    int totalColumns,
-    int valuesSizeRequired,
-    int bdsw3,
-    Realv intersection,
-    Realv intersection_di,
-    Realv intersection_dj,
-    Realv intersection_dk,
-    Realv v_min,
-    Realv i_dv,
-    Realv dv,
-    Realv minValue
-   ) {
-   //printf("totalcolumns %d\n",totalColumns);
-    acceleration_1_wrapper (
-      blockData,
-      columns,
-      values,
-      cell_indices_to_id,
-      totalColumns,
-      valuesSizeRequired,
-      bdsw3,
-      intersection,
-      intersection_di,
-      intersection_dj,
-      intersection_dk,
-      v_min,
-      i_dv,
-      dv,
-      minValue
-    );
-    return;
-  }
-#endif // USE_CUDA
-
 /*
    Here we map from the current time step grid, to a target grid which
    is the lagrangian departure grid (so th grid at timestep +dt,
@@ -477,9 +437,8 @@ bool map_1d(SpatialCell* spatial_cell,
       std::cerr << "Tried to use accelerator in non-CUDA build!" << std::endl;
       abort();
 #else
-     //CALL CUDA FUNCTION WRAPPER START
-     //printf("STAGE 1\n");
-     acceleration_1_wrapperCaller(
+     //CALL CUDA FUNCTION WRAPPER/GLUE
+     acceleration_1_glue(
        blockData,
        columns,
        values,
@@ -496,13 +455,6 @@ bool map_1d(SpatialCell* spatial_cell,
        dv,
        minValue
      );
-     //CALL CUDA FUNCTION WRAPPER END
-     /*
-     for(uint cell=0; cell<bdsw3; cell++)
-     {
-       printf("blockData[cell] = %.2f\n", blockData[cell]);
-     }
-     */
 #endif //USE_CUDA
    } else {
       // CPU version

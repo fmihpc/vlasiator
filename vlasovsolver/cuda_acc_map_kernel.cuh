@@ -11,25 +11,7 @@ struct Column
    int i,j;                                       // Blocks' perpendicular coordinates
 };
 
-extern void acceleration_1_wrapperCaller
-(
-  Realf *blockData,
-  Column *columns,
-  Vec *values,
-  uint cell_indices_to_id[],
-  int totalColumns,
-  int valuesSizeRequired,
-  int bdsw3,
-  Realv intersection,
-  Realv intersection_di,
-  Realv intersection_dj,
-  Realv intersection_dk,
-  Realv v_min,
-  Realv i_dv,
-  Realv dv,
-  Realv minValue
-);
-extern void acceleration_1_wrapper
+extern void acceleration_1_glue
 (
   Realf *blockData,
   Column *columns,
@@ -49,6 +31,9 @@ extern void acceleration_1_wrapper
 );
 
 #define DIMS 1
-#define BLOCKS 108
-#define THREADS 32
-#define CUDASIZE 1
+#ifndef CUDABLOCKS
+#  define CUDABLOCKS (64)
+#endif
+#ifndef CUDATHREADS
+#  define CUDATHREADS (32) // NVIDIA: 32 AMD: 64
+#endif

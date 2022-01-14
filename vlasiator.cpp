@@ -366,6 +366,22 @@ int main(int argn,char* args[]) {
    sysBoundaries.getParameters();
    phiprof::stop("Read parameters");
 
+   // Check for correct application of vectorclass values:
+   if ( (VECL<WID) ||
+        (VECL*VEC_PER_PLANE != WID2) ||
+        (VECL*VEC_PER_BLOCK != WID3) ||
+        (VPREC > VECL) ||
+        (VECL != (int)VECL) ||
+        (VPREC != (int)VPREC) ||
+        (VEC_PER_PLANE != (int)VEC_PER_PLANE) ||
+        (VEC_PER_BLOCK != (int)VEC_PER_BLOCK) ) {
+      if (myRank == MASTER_RANK) {
+         cerr << "(MAIN) ERROR: Vectorclass definition mismatch!" << endl;
+         cerr << "VECL " << VECL <<" VEC_PER_PLANE " << VEC_PER_PLANE <<" WID " << WID <<" VEC_PER_BLOCK " << VEC_PER_BLOCK << " VPREC "<< VPREC<<endl;
+      }
+      exit(1);      
+   }
+
    // Init parallel logger:
    phiprof::start("open logFile & diagnostic");
    //if restarting we will append to logfiles

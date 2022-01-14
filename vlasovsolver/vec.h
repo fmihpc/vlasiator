@@ -19,6 +19,8 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+
+#include "../common.h"
 #ifndef VECTORCLASS_INTERFACE_H
 #define VECTORCLASS_INTERFACE_H
 
@@ -55,6 +57,19 @@ VEC8F_AGNER
 #ifdef VEC_FALLBACK_GENERIC
 // use portable vectorclass with specified vector length
 // if not specified in Makefile, equivalent to VEC8F
+#ifndef VECL
+#define VECL (8)
+#endif
+#ifndef VEC_PER_PLANE
+const int VEC_PER_PLANE = (WID*WID/VECL);
+#endif
+#ifndef VEC_PER_BLOCK
+const int VEC_PER_BLOCK = (WID*VEC_PER_PLANE);
+#endif
+#ifndef VPREC
+#define VPREC (8)
+#endif
+
 #include "vectorclass_fallback.h"
 
 typedef VecSimple<bool> Vecb;

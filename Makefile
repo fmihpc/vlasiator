@@ -118,6 +118,8 @@ LIBS += ${LIB_PROFILE}
 LIBS += ${LIB_VLSV}
 LIBS += ${LIB_JEMALLOC}
 LIBS += ${LIB_PAPI}
+
+# CUDA settings
 ifeq ($(USE_CUDA),1)
 	LIBS += ${LIB_CUDA}
 	CXXFLAGS += -DUSE_CUDA
@@ -126,6 +128,28 @@ ifeq ($(CUDA_REALF),1)
 	CXXFLAGS += -DCUDA_REALF
 	CUDAFLAGS += -DCUDA_REALF
 endif
+endif
+
+#Vectorclass settinsg
+ifdef WID
+	COMPFLAGS += -DWID=$(WID)
+	CUDAFLAGS += -DWID=$(WID)
+endif
+ifdef VECL
+	COMPFLAGS += -DVECL=$(VECL)
+	CUDAFLAGS += -DVECL=$(VECL)
+endif
+ifdef VEC_PER_PLANE
+	COMPFLAGS += -DVEC_PER_PLANE=$(VEC_PER_PLANE)
+	CUDAFLAGS += -DVEC_PER_PLANE=$(VEC_PER_PLANE)
+endif
+ifdef VEC_PER_BLOCK
+	COMPFLAGS += -DVEC_PER_BLOCK=$(VEC_PER_BLOCK)
+	CUDAFLAGS += -DVEC_PER_BLOCK=$(VEC_PER_BLOCK)
+endif
+ifdef VPREC
+	COMPFLAGS += -DVPREC=$(VPREC)
+	CUDAFLAGS += -DVPREC=$(VPREC)
 endif
 
 # Define common dependencies

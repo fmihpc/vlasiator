@@ -411,7 +411,7 @@ RK_ORDER2_STEP2    /*!< Two-step second order method, second step */
 };
 
 #ifndef WID
-#  define WID (4)              /*!< Number of cells per coordinate in a velocity block. Defaults to the historical 4. */
+#define WID (4)              /*!< Number of cells per coordinate in a velocity block. Defaults to the historical 4. */
 #endif
 const int WID2 = WID*WID;  /*!< Number of cells per 2D slab in a velocity block. */
 const int WID3 = WID2*WID; /*!< Number of cells in a velocity block. */

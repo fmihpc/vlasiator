@@ -53,7 +53,7 @@ static void HandleError( cudaError_t err, const char *file, int line )
     }
 }
 
-__global__ void acceleration_1
+__global__ void acceleration_kernel
 (
   Realf *dev_blockData,
   Column *dev_columns,
@@ -411,7 +411,7 @@ __global__ void acceleration_1
 #endif // NOT CUDA_REALF
 }
 
-void acceleration_1_wrapper
+void acceleration_1_glue
 (
   Realf *blockData,
   Column *columns,
@@ -454,14 +454,14 @@ void acceleration_1_wrapper
   HANDLE_ERROR( cudaMemcpy(dev_values, values, valuesSizeRequired*sizeof(Vec), cudaMemcpyHostToDevice) );
 
 #ifdef CUDA_REALF
-  int threads = VECL; // NVIDIA: 32 AMD: 64
-  int blocks = BLOCKS; // NVIDIA: a100 64 stream multiprocessors
+  int threads = VECL; // equal to CUDATHREADS; NVIDIA: 32 AMD: 64
+  int blocks = CUDABLOCKS; // NVIDIA: a100 64 stream multiprocessors?
 #else
-  int blocks = (totalColumns / THREADS) + 1;
-  int threads = THREADS;
+  int threads = CUDATHREADS;
+  int blocks = (totalColumns / CUDATHREADS) + 1;
 #endif
 
-  acceleration_1<<<blocks, threads>>>
+  acceleration_kernel<<<blocks, threads>>>
   (
     dev_blockData,
     dev_columns,
