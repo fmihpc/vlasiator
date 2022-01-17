@@ -585,11 +585,11 @@ void calculateScaledDeltas(
       }
       if (Real maxU = std::max(myU, otherU)) {
          dU = std::max(fabs(myU - otherU) / maxU, dU);
-         dPsq = std::max((pow(myP[0] - otherP[0], 2) + pow(myP[1] - otherP[1], 2) + pow(myP[2] - otherP[2], 2)) / (2 * myRho * maxU), dPsq);
-         dBsq = std::max(deltaBsq / (2 * physicalconstants::MU_0 * maxU), dBsq);
+         dPsq = std::max((pow(myP[0] - otherP[0], 2) + pow(myP[1] - otherP[1], 2) + pow(myP[2] - otherP[2], 2)) / (2 * myRho * maxU), dPsq) / 4.0;
+         dBsq = std::max(deltaBsq / (2 * physicalconstants::MU_0 * maxU), dBsq) / 4.0;
       }
       if(Real maxB = sqrt(std::max(pow(myB[0], 2) + pow(myB[1], 2) + pow(myB[2], 2), pow(otherB[0], 2) + pow(otherB[1], 2) + pow(otherB[2], 2)))) {
-         dB = std::max(sqrt(deltaBsq) / maxB, dB);
+         dB = std::max(sqrt(deltaBsq) / maxB, dB) / 2.0;
       }
    }
    
