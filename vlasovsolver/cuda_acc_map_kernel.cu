@@ -138,7 +138,7 @@ __global__ void acceleration_kernel
 #endif
 #ifdef ACC_SEMILAG_PPM
             Realv a[3];
-            compute_ppm_coeff((dev_values + dev_columns[column].valuesOffset + i_pcolumnv_cuda(j, 0, -1, nblocks), h4, (k + WID), a, minValue, index);
+            compute_ppm_coeff(dev_values + dev_columns[column].valuesOffset + i_pcolumnv_cuda(j, 0, -1, nblocks), h4, (k + WID), a, minValue, index);
 #endif
 #ifdef ACC_SEMILAG_PQM
             Realv a[5];
