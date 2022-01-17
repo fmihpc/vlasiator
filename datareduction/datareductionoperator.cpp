@@ -734,7 +734,6 @@ namespace DRO {
 
    //Calculates rho thermal or rho non-thermal
    static void rhoNonthermalCalculation( const SpatialCell * cell, const bool calculateNonthermal, cuint popID, Real & rho ) {
-      const Real HALF = 0.5;
       # pragma omp parallel
       {
          Real thread_n_sum = 0.0;
@@ -1250,7 +1249,7 @@ namespace DRO {
       const uint vectorSize = 3;
       //Input data into buffer
       const char* ptr = reinterpret_cast<const char*>(&PTensor);
-      for (uint i = 0; i < 3*sizeof(Real); ++i) buffer[i] = ptr[i];
+      for (uint i = 0; i < vectorSize*sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
    }
    
@@ -1290,7 +1289,7 @@ namespace DRO {
       const uint vectorSize = 3;
       //Input data into buffer
       const char* ptr = reinterpret_cast<const char*>(&PTensor);
-      for (uint i = 0; i < 3*sizeof(Real); ++i) buffer[i] = ptr[i];
+      for (uint i = 0; i < vectorSize*sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
    }
    
@@ -1384,7 +1383,7 @@ namespace DRO {
 
       // Unit B-field direction
       creal normB = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
-      std::array<Real,3> b_unit;
+      //std::array<Real,3> b_unit;
       for (uint i=0; i<3; i++){
          B[i] /= normB;
       }

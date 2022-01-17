@@ -229,7 +229,6 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       isChanged=true;
 
       //set new timestep to the lowest one of all interval-midpoints
-      const Real half = 0.5;
       newDt = meanVlasovCFL * dtMaxGlobal[0];
       newDt = min(newDt,meanVlasovCFL * dtMaxGlobal[1] * P::maxSlAccelerationSubcycles);
       newDt = min(newDt,meanFieldsCFL * dtMaxGlobal[2] * P::maxFieldSolverSubcycles);
@@ -290,7 +289,6 @@ void recalculateLocalCellsCache() {
 }
 
 int main(int argn,char* args[]) {
-   bool success = true;
    int myRank, doBailout;
    const creal DT_EPSILON=1e-12;
    typedef Parameters P;
@@ -890,7 +888,7 @@ int main(int argn,char* args[]) {
             logFile <<" dt changed to "<<P::dt <<"s, distribution function was half-stepped to real-time and back"<<endl<<writeVerbose;
             phiprof::stop("update-dt");
             continue; //
-            addTimedBarrier("barrier-new-dt-set");
+            //addTimedBarrier("barrier-new-dt-set");
          }
       }
 

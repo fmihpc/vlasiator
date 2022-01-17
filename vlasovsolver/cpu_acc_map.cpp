@@ -335,8 +335,8 @@ bool map_1d(SpatialCell* spatial_cell,
          const int firstBlock_gk = (int)((firstBlockMinV - max_intersectionMin)/intersection_dk);
          const int lastBlock_gk = (int)((lastBlockMaxV - min_intersectionMin)/intersection_dk);
 
-         uint firstBlockIndexK = firstBlock_gk/WID;
-         uint lastBlockIndexK = lastBlock_gk/WID;
+         int firstBlockIndexK = firstBlock_gk/WID;
+         int lastBlockIndexK = lastBlock_gk/WID;
 
          //now enforce mesh limits for target column blocks
          firstBlockIndexK = (firstBlockIndexK >= 0)            ? firstBlockIndexK : 0;
@@ -364,7 +364,7 @@ bool map_1d(SpatialCell* spatial_cell,
          }
 
          //store target blocks
-         for (uint blockK = firstBlockIndexK; blockK <= lastBlockIndexK; blockK++){
+         for (uint blockK = (uint)firstBlockIndexK; blockK <= (uint)lastBlockIndexK; blockK++){
             isTargetBlock[blockK]=true;
          }
 

@@ -1101,7 +1101,7 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
 
    phiprof::start("mesh validation (init)");
          
-   bool internallyValid = false;
+   //bool internallyValid = false;
       
    // First make sure that all cells local to this process have a valid mesh.
    // After the mesh is internally valid, we will update mesh structures 

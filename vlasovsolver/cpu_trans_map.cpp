@@ -335,7 +335,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
                   const uint popID) {
    // values used with an stencil in 1 dimension, initialized to 0.
    // Contains a block, and its spatial neighbours in one dimension.
-   Realv dz,z_min, dvz,vz_min;
+   Realv dz,dvz,vz_min; // z_min,
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
    unsigned int  cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
 
@@ -400,7 +400,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    switch (dimension) {
    case 0:
       dz = P::dx_ini;
-      z_min = P::xmin;
+      //z_min = P::xmin;
       // set values in array that is used to convert block indices
       // to global ID using a dot product.
       cell_indices_to_id[0]=WID2;
@@ -409,7 +409,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       break;
    case 1:
       dz = P::dy_ini;
-      z_min = P::ymin;
+      //z_min = P::ymin;
       // set values in array that is used to convert block indices
       // to global ID using a dot product
       cell_indices_to_id[0]=1;
@@ -418,7 +418,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       break;
    case 2:
       dz = P::dz_ini;
-      z_min = P::zmin;
+      //z_min = P::zmin;
       // set values in array that is used to convert block indices
       // to global id using a dot product.
       cell_indices_to_id[0]=1;
