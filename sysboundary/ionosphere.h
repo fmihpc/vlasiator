@@ -376,6 +376,7 @@ namespace SBC {
       static Real innerRadius; /*!< Radius of the ionosphere model */
       static int solverMaxIterations; /*!< Maximum iterations of CG solver per timestep */
       static bool solverPreconditioning; /*!< Preconditioning for the CG solver */
+      static Real shieldingLatitude; /*! Latitude (degree) below which the potential is zeroed in the equator gauge fixing scheme */
       static Real eps; // Tolerance for Bulirsch Stoer Method
       
       // TODO: Make these parameters of the IonosphereGrid
