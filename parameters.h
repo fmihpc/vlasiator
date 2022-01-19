@@ -182,6 +182,7 @@ struct Parameters {
    static Real refineTreshold;
    static Real unrefineTreshold;
    static uint refineMultiplier;
+   static uint refineAfter;
    static uint amrBoxHalfWidthX;
    static uint amrBoxHalfWidthY;
    static uint amrBoxHalfWidthZ;

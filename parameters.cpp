@@ -152,8 +152,9 @@ bool P::adaptRefinement = false;
 bool P::refineOnRestart = false;
 bool P::shouldFilter = false;
 Real P::refineTreshold = 1.0;
-Real P::unrefineTreshold = 0.1;
+Real P::unrefineTreshold = 0.0;
 uint P::refineMultiplier = 10;
+uint P::refineAfter = 1;
 uint P::amrBoxHalfWidthX = 1;
 uint P::amrBoxHalfWidthY = 1;
 uint P::amrBoxHalfWidthZ = 1;
@@ -391,6 +392,7 @@ bool P::addParameters() {
    Readparameters::add("AMR.refine_treshold","Determines the minimum value of the refinement parameter to refine cells", 1.0);
    Readparameters::add("AMR.unrefine_treshold","Determines the maximum value of the refinement parameter to unrefine cells", 0.1);
    Readparameters::add("AMR.refine_multiplier","Refine every nth load balance", 10);
+   Readparameters::add("AMR.refine_after","Start refinement after this many simulation seconds", 100);
    RP::add("AMR.box_half_width_x", "Half width of the box that is refined (for testing)", (uint)1);
    RP::add("AMR.box_half_width_y", "Half width of the box that is refined (for testing)", (uint)1);
    RP::add("AMR.box_half_width_z", "Half width of the box that is refined (for testing)", (uint)1);
@@ -564,6 +566,7 @@ void Parameters::getParameters() {
    RP::get("AMR.refine_treshold",P::refineTreshold);
    RP::get("AMR.unrefine_treshold",P::unrefineTreshold);
    RP::get("AMR.refine_multiplier",P::refineMultiplier);
+   RP::get("AMR.refine_after",P::refineAfter);
    RP::get("AMR.box_half_width_x", P::amrBoxHalfWidthX);
    RP::get("AMR.box_half_width_y", P::amrBoxHalfWidthY);
    RP::get("AMR.box_half_width_z", P::amrBoxHalfWidthZ);
