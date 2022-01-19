@@ -1141,6 +1141,17 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          continue;
       }
       if(lowercase == "ig_solverinternals") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_source", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+
+                     std::vector<Real> retval(grid.nodes.size());
+
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::SOURCE];
+                     }
+
+                     return retval;
+                     }));
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_residual", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
 
