@@ -83,121 +83,116 @@ __global__ void acceleration_kernel
    // Optimization idea for future: reverse-sort columns based on
    // block counts
    int index = threadIdx.x;
-   int block = blockIdx.x;
-   int nThreads = blockDim.x;
-   int cudaBlocks = gridDim.x;
-   // How many columns max per block?
-   int maxcolumns = (int)ceil((Realv)totalColumns / (Realv)cudaBlocks);
-   //printf("totalcolumns %d blocks %d maxcolumns %d\n",totalColumns,cudaBlocks,maxcolumns);
-   if (nThreads != VECL) {
-      printf("Warning! VECL not matching thread count for CUDA code!\n");
-   }
+   int column = blockIdx.x;
+   // int nThreads = blockDim.x;
+   // int cudaBlocks = gridDim.x; // = totalColums
+   // //printf("totalcolumns %d blocks %d maxcolumns %d\n",totalColumns,cudaBlocks,maxcolumns);
+   // if (nThreads != VECL) {
+   //    printf("Warning! VECL not matching thread count for CUDA code!\n");
+   // }
 
-   for (uint blockC = 0; blockC < maxcolumns; ++blockC) {
-      int column = blockC*cudaBlocks + block;
-      if (column >= totalColumns) continue;
-      /* New threading with each warp/wavefront working on one vector */
-      Realf v_r0 = ( (WID * dev_columns[column].kBegin) * dv + v_min);
+   if (column >= totalColumns) return;
+   /* New threading with each warp/wavefront working on one vector */
+   Realf v_r0 = ( (WID * dev_columns[column].kBegin) * dv + v_min);
 
-      // i,j,k are relative to the order in which we copied data to the values array.
-      // After this point in the k,j,i loops there should be no branches based on dimensions
-      // Note that the i dimension is vectorized, and thus there are no loops over i
-      // Iterate through the perpendicular directions of the column
-      for (uint j = 0; j < WID; j += VECL/WID) {
-         // If VECL=WID2 (WID=4, VECL=16, or WID=8, VECL=64, j==0)
-         // This loop is still needed for e.g. Warp=VECL=32, WID2=64
-         const vmesh::LocalID nblocks = dev_columns[column].nblocks;
+   // i,j,k are relative to the order in which we copied data to the values array.
+   // After this point in the k,j,i loops there should be no branches based on dimensions
+   // Note that the i dimension is vectorized, and thus there are no loops over i
+   // Iterate through the perpendicular directions of the column
+   for (uint j = 0; j < WID; j += VECL/WID) {
+      // If VECL=WID2 (WID=4, VECL=16, or WID=8, VECL=64, j==0)
+      // This loop is still needed for e.g. Warp=VECL=32, WID2=64
+      const vmesh::LocalID nblocks = dev_columns[column].nblocks;
 
-         uint i_indices = index % WID;
-         uint j_indices = j + index/WID;
+      uint i_indices = index % WID;
+      uint j_indices = j + index/WID;
 
-         int target_cell_index_common =
-            i_indices * dev_cell_indices_to_id[0] +
-            j_indices * dev_cell_indices_to_id[1];
-         const Realf intersection_min =
-            intersection +
-            (dev_columns[column].i * WID + (Realv)i_indices) * intersection_di +
-            (dev_columns[column].j * WID + (Realv)j_indices) * intersection_dj;
+      int target_cell_index_common =
+         i_indices * dev_cell_indices_to_id[0] +
+         j_indices * dev_cell_indices_to_id[1];
+      const Realf intersection_min =
+         intersection +
+         (dev_columns[column].i * WID + (Realv)i_indices) * intersection_di +
+         (dev_columns[column].j * WID + (Realv)j_indices) * intersection_dj;
 
-         const Realf gk_intersection_min =
-            intersection +
-            (dev_columns[column].i * WID + (Realv)( intersection_di > 0 ? 0 : WID-1 )) * intersection_di +
-            (dev_columns[column].j * WID + (Realv)( intersection_dj > 0 ? j : j+VECL/WID-1 )) * intersection_dj;
-         const Realf gk_intersection_max =
-            intersection +
-            (dev_columns[column].i * WID + (Realv)( intersection_di < 0 ? 0 : WID-1 )) * intersection_di +
-            (dev_columns[column].j * WID + (Realv)( intersection_dj < 0 ? j : j+VECL/WID-1 )) * intersection_dj;
+      const Realf gk_intersection_min =
+         intersection +
+         (dev_columns[column].i * WID + (Realv)( intersection_di > 0 ? 0 : WID-1 )) * intersection_di +
+         (dev_columns[column].j * WID + (Realv)( intersection_dj > 0 ? j : j+VECL/WID-1 )) * intersection_dj;
+      const Realf gk_intersection_max =
+         intersection +
+         (dev_columns[column].i * WID + (Realv)( intersection_di < 0 ? 0 : WID-1 )) * intersection_di +
+         (dev_columns[column].j * WID + (Realv)( intersection_dj < 0 ? j : j+VECL/WID-1 )) * intersection_dj;
 
-         // loop through all perpendicular slices in column and compute the mapping as integrals.
-         for (uint k=0; k < WID * nblocks; ++k)
-         {
-            // Compute reconstructions
+      // loop through all perpendicular slices in column and compute the mapping as integrals.
+      for (uint k=0; k < WID * nblocks; ++k)
+      {
+         // Compute reconstructions
 #ifdef ACC_SEMILAG_PLM
-            Realv a[2];
-            compute_plm_coeff(dev_values + dev_columns[column].valuesOffset + i_pcolumnv_cuda(j, 0, -1, nblocks), (k + WID), a, minValue, index);
+         Realv a[2];
+         compute_plm_coeff(dev_values + dev_columns[column].valuesOffset + i_pcolumnv_cuda(j, 0, -1, nblocks), (k + WID), a, minValue, index);
 #endif
 #ifdef ACC_SEMILAG_PPM
-            Realv a[3];
-            compute_ppm_coeff(dev_values + dev_columns[column].valuesOffset + i_pcolumnv_cuda(j, 0, -1, nblocks), h4, (k + WID), a, minValue, index);
+         Realv a[3];
+         compute_ppm_coeff(dev_values + dev_columns[column].valuesOffset + i_pcolumnv_cuda(j, 0, -1, nblocks), h4, (k + WID), a, minValue, index);
 #endif
 #ifdef ACC_SEMILAG_PQM
-            Realv a[5];
-            compute_pqm_coeff(dev_values + dev_columns[column].valuesOffset + i_pcolumnv_cuda(j, 0, -1, nblocks), h8, (k + WID), a, minValue, index);
+         Realv a[5];
+         compute_pqm_coeff(dev_values + dev_columns[column].valuesOffset + i_pcolumnv_cuda(j, 0, -1, nblocks), h8, (k + WID), a, minValue, index);
 #endif
 
-            // set the initial value for the integrand at the boundary at v = 0
-            // (in reduced cell units), this will be shifted to target_density_1, see below.
-            Realf target_density_r = 0.0;
+         // set the initial value for the integrand at the boundary at v = 0
+         // (in reduced cell units), this will be shifted to target_density_1, see below.
+         Realf target_density_r = 0.0;
 
-            const Realv v_r = v_r0  + (k+1)* dv;
-            const Realv v_l = v_r0  + k* dv;
-            const int lagrangian_gk_l = trunc((v_l-gk_intersection_max)/intersection_dk);
-            const int lagrangian_gk_r = trunc((v_r-gk_intersection_min)/intersection_dk);
+         const Realv v_r = v_r0  + (k+1)* dv;
+         const Realv v_l = v_r0  + k* dv;
+         const int lagrangian_gk_l = trunc((v_l-gk_intersection_max)/intersection_dk);
+         const int lagrangian_gk_r = trunc((v_r-gk_intersection_min)/intersection_dk);
             
-            //limits in lagrangian k for target column. Also take into
-            //account limits of target column
-            // Now all indexes in the warp should have the same gk loop extents
-            const int minGk = max(lagrangian_gk_l, int(dev_columns[column].minBlockK * WID));
-            const int maxGk = min(lagrangian_gk_r, int((dev_columns[column].maxBlockK + 1) * WID - 1));
-            // Run along the column and perform the polynomial reconstruction
-            for(int gk = minGk; gk <= maxGk; gk++) {
-               const int blockK = gk/WID;
-               const int gk_mod_WID = (gk - blockK * WID);
+         //limits in lagrangian k for target column. Also take into
+         //account limits of target column
+         // Now all indexes in the warp should have the same gk loop extents
+         const int minGk = max(lagrangian_gk_l, int(dev_columns[column].minBlockK * WID));
+         const int maxGk = min(lagrangian_gk_r, int((dev_columns[column].maxBlockK + 1) * WID - 1));
+         // Run along the column and perform the polynomial reconstruction
+         for(int gk = minGk; gk <= maxGk; gk++) {
+            const int blockK = gk/WID;
+            const int gk_mod_WID = (gk - blockK * WID);
 
-               //the block of the Lagrangian cell to which we map
-               //const int target_block(target_block_index_common + blockK * block_indices_to_id[2]);
-               // This already contains the value index via target_cell_index_commom
-               const int tcell(target_cell_index_common + gk_mod_WID * dev_cell_indices_to_id[2]);
-               //the velocity between which we will integrate to put mass
-               //in the targe cell. If both v_r and v_l are in same cell
-               //then v_1,v_2 should be between v_l and v_r.
-               //v_1 and v_2 normalized to be between 0 and 1 in the cell.
-               //For vector elements where gk is already larger than needed (lagrangian_gk_r), v_2=v_1=v_r and thus the value is zero.
-               const Realf v_norm_r = (  min(  max( (gk + 1) * intersection_dk + intersection_min, v_l), v_r) - v_l) * i_dv;
+            //the block of the Lagrangian cell to which we map
+            //const int target_block(target_block_index_common + blockK * block_indices_to_id[2]);
+            // This already contains the value index via target_cell_index_commom
+            const int tcell(target_cell_index_common + gk_mod_WID * dev_cell_indices_to_id[2]);
+            //the velocity between which we will integrate to put mass
+            //in the targe cell. If both v_r and v_l are in same cell
+            //then v_1,v_2 should be between v_l and v_r.
+            //v_1 and v_2 normalized to be between 0 and 1 in the cell.
+            //For vector elements where gk is already larger than needed (lagrangian_gk_r), v_2=v_1=v_r and thus the value is zero.
+            const Realf v_norm_r = (  min(  max( (gk + 1) * intersection_dk + intersection_min, v_l), v_r) - v_l) * i_dv;
 
-               /*shift, old right is new left*/
-               const Realf target_density_l = target_density_r;
+            /*shift, old right is new left*/
+            const Realf target_density_l = target_density_r;
 
-                // compute right integrand
-                #ifdef ACC_SEMILAG_PLM
-                   target_density_r = v_norm_r * ( a[0] + v_norm_r * a[1] );
-                #endif
-                #ifdef ACC_SEMILAG_PPM
-                   target_density_r = v_norm_r * ( a[0] + v_norm_r * ( a[1] + v_norm_r * a[2] ) );
-                #endif
-                #ifdef ACC_SEMILAG_PQM
-                   target_density_r = v_norm_r * ( a[0] + v_norm_r * ( a[1] + v_norm_r * ( a[2] + v_norm_r * ( a[3] + v_norm_r * a[4] ) ) ) );
-                #endif
+            // compute right integrand
+#ifdef ACC_SEMILAG_PLM
+            target_density_r = v_norm_r * ( a[0] + v_norm_r * a[1] );
+#endif
+#ifdef ACC_SEMILAG_PPM
+            target_density_r = v_norm_r * ( a[0] + v_norm_r * ( a[1] + v_norm_r * a[2] ) );
+#endif
+#ifdef ACC_SEMILAG_PQM
+            target_density_r = v_norm_r * ( a[0] + v_norm_r * ( a[1] + v_norm_r * ( a[2] + v_norm_r * ( a[3] + v_norm_r * a[4] ) ) ) );
+#endif
 
-                //store value
-                Realf tval = target_density_r - target_density_l;
-                if (isfinite(tval) && tval>0) {
-                   (&dev_blockData[dev_columns[column].targetBlockOffsets[blockK]])[tcell] += tval;
-                }
-            } // for loop over target k-indices of current source block
-         } // for-loop over source blocks
-      } //for loop over j index
-   } //for loop over columns
+            //store value
+            Realf tval = target_density_r - target_density_l;
+            if (isfinite(tval) && tval>0) {
+               (&dev_blockData[dev_columns[column].targetBlockOffsets[blockK]])[tcell] += tval;
+            }
+         } // for loop over target k-indices of current source block
+      } // for-loop over source blocks
+   } //for loop over j index
 
 #else // NOT CUDA_REALF
    int column = threadIdx.x + blockIdx.x * blockDim.x;
@@ -455,7 +450,8 @@ void acceleration_1_glue
 
 #ifdef CUDA_REALF
   int threads = VECL; // equal to CUDATHREADS; NVIDIA: 32 AMD: 64
-  int blocks = CUDABLOCKS; // NVIDIA: a100 64 stream multiprocessors?
+  int blocks = totalColumns; //CUDABLOCKS; 
+// NVIDIA: a100 64 stream multiprocessors? Blocks shouldbe larger than this value.
 #else
   int threads = CUDATHREADS;
   int blocks = (totalColumns / CUDATHREADS) + 1;
