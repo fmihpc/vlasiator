@@ -577,7 +577,7 @@ namespace SBC {
          prevDensity = density;
 
          // When we encounter one of our reference layers, record its values
-         if(altitude >= alt[altindex]) {
+         if(altitude >= alt[altindex] && altindex < numAtmosphereLevels) {
             AtmosphericLayer newLayer;
             newLayer.altitude = altitude; // in km
             newLayer.density = density; // kg/m^3
