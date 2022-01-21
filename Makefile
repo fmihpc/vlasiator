@@ -81,10 +81,45 @@ ifeq ($(MESH),AMR)
 COMPFLAGS += -DAMR
 endif
 
+# CUDA settings
+ifeq ($(USE_CUDA),1)
+	LIBS += ${LIB_CUDA}
+	COMPFLAGS += -DUSE_CUDA
+	CUDALIB += -lcudart
+ifeq ($(CUDA_REALF),1)
+	COMPFLAGS += -DCUDA_REALF
+	CUDAFLAGS += -DCUDA_REALF
+endif
+endif
+
+#Vectorclass settinsg
+ifdef WID
+	COMPFLAGS += -DWID=$(WID)
+	CUDAFLAGS += -DWID=$(WID)
+endif
+ifdef VECL
+	COMPFLAGS += -DVECL=$(VECL)
+	CUDAFLAGS += -DVECL=$(VECL)
+endif
+ifdef VEC_PER_PLANE
+	COMPFLAGS += -DVEC_PER_PLANE=$(VEC_PER_PLANE)
+	CUDAFLAGS += -DVEC_PER_PLANE=$(VEC_PER_PLANE)
+endif
+ifdef VEC_PER_BLOCK
+	COMPFLAGS += -DVEC_PER_BLOCK=$(VEC_PER_BLOCK)
+	CUDAFLAGS += -DVEC_PER_BLOCK=$(VEC_PER_BLOCK)
+endif
+ifdef VPREC
+	COMPFLAGS += -DVPREC=$(VPREC)
+	CUDAFLAGS += -DVPREC=$(VPREC)
+endif
+
 # Set compiler flags
 CXXFLAGS += ${COMPFLAGS}
+NVCCFLAGS += ${CUDAFLAGS}
 #also for testpackage (due to makefile order this needs to be done also separately for targets)
 testpackage: CXXFLAGS += ${COMPFLAGS}
+testpackage: NVCCFLAGS += ${CUDAFLAGS}
 CXXEXTRAFLAGS = ${CXXFLAGS} -DTOOL_NOT_PARALLEL
 
 default: vlasiator
@@ -118,39 +153,6 @@ LIBS += ${LIB_PROFILE}
 LIBS += ${LIB_VLSV}
 LIBS += ${LIB_JEMALLOC}
 LIBS += ${LIB_PAPI}
-
-# CUDA settings
-ifeq ($(USE_CUDA),1)
-	LIBS += ${LIB_CUDA}
-	CXXFLAGS += -DUSE_CUDA
-	CUDALIB += -lcudart
-ifeq ($(CUDA_REALF),1)
-	CXXFLAGS += -DCUDA_REALF
-	CUDAFLAGS += -DCUDA_REALF
-endif
-endif
-
-#Vectorclass settinsg
-ifdef WID
-	COMPFLAGS += -DWID=$(WID)
-	CUDAFLAGS += -DWID=$(WID)
-endif
-ifdef VECL
-	COMPFLAGS += -DVECL=$(VECL)
-	CUDAFLAGS += -DVECL=$(VECL)
-endif
-ifdef VEC_PER_PLANE
-	COMPFLAGS += -DVEC_PER_PLANE=$(VEC_PER_PLANE)
-	CUDAFLAGS += -DVEC_PER_PLANE=$(VEC_PER_PLANE)
-endif
-ifdef VEC_PER_BLOCK
-	COMPFLAGS += -DVEC_PER_BLOCK=$(VEC_PER_BLOCK)
-	CUDAFLAGS += -DVEC_PER_BLOCK=$(VEC_PER_BLOCK)
-endif
-ifdef VPREC
-	COMPFLAGS += -DVPREC=$(VPREC)
-	CUDAFLAGS += -DVPREC=$(VPREC)
-endif
 
 # Define common dependencies
 DEPS_COMMON = common.h common.cpp definitions.h mpiconversion.h logger.h object_wrapper.h
@@ -430,7 +432,7 @@ cpu_acc_intersections.o: ${DEPS_CPU_ACC_INTERSECTS}
 
 ifeq ($(USE_CUDA),1)
 cuda_acc_map_kernel.o: ${DEPS_CUDA_ACC_MAP_KERNEL}
-	${NVCC} ${CUDAFLAGS} -D${VECTORCLASS} -dc vlasovsolver/cuda_acc_map_kernel.cu
+	${NVCC} ${NVCCFLAGS} -D${VECTORCLASS} -dc vlasovsolver/cuda_acc_map_kernel.cu
 endif
 
 cpu_acc_map.o: ${DEPS_CPU_ACC_MAP} ${DEPS_CUDA_ACC_MAP_KERNEL}
@@ -527,10 +529,10 @@ object_wrapper.o:  $(DEPS_COMMON)  object_wrapper.h object_wrapper.cpp
 
 ifeq ($(USE_CUDA),1)
 cudalink1.o: cpu_acc_map.o
-	${NVCC} ${CUDALINK} ${CUDAFLAGS} -dlink cpu_acc_map.o -o cudalink1.o
+	${NVCC} ${CUDALINK} ${NVCCFLAGS} -dlink cpu_acc_map.o -o cudalink1.o
 
 cudalink2.o: cuda_acc_map_kernel.o
-	${NVCC} ${CUDALINK} ${CUDAFLAGS} -dlink cuda_acc_map_kernel.o -o cudalink2.o
+	${NVCC} ${CUDALINK} ${NVCCFLAGS} -dlink cuda_acc_map_kernel.o -o cudalink2.o
 endif
 
 # Make executable

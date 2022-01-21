@@ -23,6 +23,7 @@ else
         VECTORCLASS = VEC_FALLBACK_GENERIC
 endif
 #===== Vector Lenghts ====
+# Default for VEC_FALLBACK_GENERIC is WID=4, VECL=8 
 WID=8
 VECL=32
 #WID=4
@@ -31,8 +32,10 @@ VECL=32
 #======= Compiler and compilation flags =========
 # NOTES on compiler flags:
 # CXXFLAGS is for compiler flags, they are always used
+# NVCCFLAGS is for CUDA compiler flags.
 # MATHFLAGS are for special math etc. flags, these are only applied on solver functions
 # LDFLAGS flags for linker
+# Important note: Do not edit CUDAFLAGS or COMPFLAGS in this file!
 
 #-DNO_WRITE_AT_ALL:  Define to disable write at all to
 #                    avoid memleak (much slower IO)
@@ -53,13 +56,10 @@ CC_BRAND = nvhpc
 CC_BRAND_VERSION = 21.2
 
 CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -gpu=cc80 -Minfo=accel -acc -fopenmp -std=c++11
-CUDAFLAGS += -gencode arch=compute_80,code=sm_80 -std=c++11
+NVCCFLAGS += -gencode arch=compute_80,code=sm_80 -std=c++11
 
 testpackage: CXXFLAGS = -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -gpu=cc80 -Minfo=accel -acc -fopenmp -std=c++11
-testpackage: CUDAFLAGS = -gencode arch=compute_80,code=sm_80 -std=c++11 --prec-sqrt=true --prec-div=true --ftz=false --fmad=false
-
-# include in CXXFLAGS?
-#-Minfo=accel -ta=tesla:lineinfo,keepbin,keepgpu,keepptx -Manno -g -nomp
+testpackage: NVCCFLAGS = -gencode arch=compute_80,code=sm_80 -std=c++11 --prec-sqrt=true --prec-div=true --ftz=false --fmad=false
 
 MATHFLAGS =
 LDFLAGS = -O2 -g  -ta=tesla:lineinfo,keepbin,keepgpu,keepptx -L/appl/spack/v016/install-tree/gcc-4.8.5/nvhpc-21.2-l6xyb4/Linux_x86_64/21.2/cuda/11.2/lib64
