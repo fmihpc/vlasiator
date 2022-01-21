@@ -113,7 +113,7 @@ int main(int argc, char** argv) {
       ionosphereGrid.gaugeFixing = SphericalTriGrid::Integral;
    } else if (gaugeFixString == "equator") {
       ionosphereGrid.gaugeFixing = SphericalTriGrid::Equator;
-      Ionosphere::shieldingLatitude = 30.;
+      Ionosphere::shieldingLatitude = 10.;
    } else if (gaugeFixString == "none") {
       ionosphereGrid.gaugeFixing = SphericalTriGrid::None;
    } else {
@@ -172,13 +172,13 @@ int main(int argc, char** argv) {
       for(uint n=0; n<nodes.size(); n++) {
          double theta = acos(nodes[n].x[2] / sqrt(nodes[n].x[0]*nodes[n].x[0] + nodes[n].x[1]*nodes[n].x[1] + nodes[n].x[2]*nodes[n].x[2])); // Latitude
          double phi = atan2(nodes[n].x[0], nodes[n].x[1]); // Longitude
-         nodes[n].parameters[ionosphereParameters::SOURCE] = sph_legendre(1,0,theta) * sin(1*phi);
+         nodes[n].parameters[ionosphereParameters::SOURCE] = sph_legendre(1,0,theta) * cos(0*phi);
       }
    } else if(facString == "quadrupole") {
       for(uint n=0; n<nodes.size(); n++) {
          double theta = acos(nodes[n].x[2] / sqrt(nodes[n].x[0]*nodes[n].x[0] + nodes[n].x[1]*nodes[n].x[1] + nodes[n].x[2]*nodes[n].x[2])); // Latitude
          double phi = atan2(nodes[n].x[0], nodes[n].x[1]); // Longitude
-         nodes[n].parameters[ionosphereParameters::SOURCE] = sph_legendre(2,1,theta) * sin(1*phi);
+         nodes[n].parameters[ionosphereParameters::SOURCE] = sph_legendre(2,1,theta) * cos(1*phi);
       }
    } else {
       cerr << "FAC pattern " << sigmaString << " not implemented!" << endl;
