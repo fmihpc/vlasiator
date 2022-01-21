@@ -30,9 +30,9 @@
 #include "vec.h"
 #include "cpu_acc_sort_blocks.hpp"
 #include "cpu_acc_load_blocks.hpp"
-#include "hostdev_1d_pqm.h"
-#include "hostdev_1d_ppm.h"
-#include "hostdev_1d_plm.h"
+#include "hostdev_1d_pqm.hpp"
+#include "hostdev_1d_ppm.hpp"
+#include "hostdev_1d_plm.hpp"
 #include "cpu_acc_map.hpp"
 #include "cuda_acc_map_kernel.cuh"
 
