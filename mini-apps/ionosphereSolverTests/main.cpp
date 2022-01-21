@@ -54,6 +54,9 @@ int main(int argc, char** argv) {
    std::string gaugeFixString="pole";
    bool doRefine = false;
    bool doPrecondition = true;
+   if(argc ==1) {
+      cerr << "Running with default options. Run main --help to see available settings." << endl;
+   }
    for(int i=1; i<argc; i++) {
       if(!strcmp(argv[i], "-N")) {
          numNodes = atoi(argv[++i]);
@@ -265,5 +268,8 @@ int main(int argc, char** argv) {
    }
 
    outputFile.close();
+   cout << "--- OUTPUT WRITTEN TO output.vlsv ---" << endl;
 
+   cout << "--- DONE. ---" << endl;
+   return 0;
 }
