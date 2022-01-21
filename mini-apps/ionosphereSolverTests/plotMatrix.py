@@ -35,11 +35,11 @@ A = numpy.loadtxt(filename)
 fig=pt.figure()
 pt.title("Ionosphere solver matrix")
 ax = fig.add_subplot(121)
-ax.matshow(A, cmap="RdBu", vmin=-10, vmax=10)
+ax.matshow(A, cmap="RdBu", vmin=-5, vmax=5)
 for i in range(A.shape[1]):
     for j in range(A.shape[0]):
         c = A[j,i]
-        ax.text(i, j, "%1.1f"%(c), va='center', ha='center', size="x-small")
+        ax.text(i, j, "%1.1f"%(c), va='center', ha='center', size="1")
 #pt.colorbar()
 
 

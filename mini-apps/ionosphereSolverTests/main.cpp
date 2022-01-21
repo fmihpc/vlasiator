@@ -45,23 +45,6 @@ int main(int argc, char** argv) {
    bool doRefine = false;
    bool doPrecondition = true;
    for(int i=1; i<argc; i++) {
-      if(!strcmp(argv[i], "--help")) {
-         cerr << "Ionosphere test mini-app. Syntax:" << endl;
-         cerr << "main [-N num] [-r] [-sigma (identity|random|35|53)] [-fac (constant|dipole|quadrupole)] [-gaugeFix equator|pole|integral|none] [-np]" << endl;
-         cerr << "Paramters:" << endl;
-         cerr << " -N:        Number of ionosphere mesh nodes (default: 64)" << endl;
-         cerr << " -r:        Refine grid in the auroral regions (default: no)" << endl;
-         cerr << " -sigma:    Conductivity matrix contents (default: identity)" << endl;
-         cerr << "            options are:" << endl;
-         cerr << "            identity - identity matrix w/ conductivity 1" << endl;
-         cerr << "            random - randomly chosen conductivity values" << endl;
-         cerr << "            35 - Sigma_H = 3, Sigma_P = 5" << endl;
-         cerr << "            53 - Sigma_H = 5, Sigma_P = 3" << endl;
-         cerr << " -fac:      FAC pattern on the sphere (default: constant)" << endl;
-         cerr << " -gaugeFix: Solver gauge fixing method (default: pole)" << endl;
-         cerr << " -np:       DON'T use the matrix preconditioner (default: do)" << endl;
-         return 0;
-      }
       if(!strcmp(argv[i], "-N")) {
          numNodes = atoi(argv[++i]);
          continue;
@@ -87,6 +70,21 @@ int main(int argc, char** argv) {
          continue;
       }
       cerr << "Unknown command line option \"" << argv[i] << "\"" << endl;
+      cerr << endl;
+      cerr << "main [-N num] [-r] [-sigma (identity|random|35|53)] [-fac (constant|dipole|quadrupole)] [-gaugeFix equator|pole|integral|none] [-np]" << endl;
+      cerr << "Paramters:" << endl;
+      cerr << " -N:        Number of ionosphere mesh nodes (default: 64)" << endl;
+      cerr << " -r:        Refine grid in the auroral regions (default: no)" << endl;
+      cerr << " -sigma:    Conductivity matrix contents (default: identity)" << endl;
+      cerr << "            options are:" << endl;
+      cerr << "            identity - identity matrix w/ conductivity 1" << endl;
+      cerr << "            random - randomly chosen conductivity values" << endl;
+      cerr << "            35 - Sigma_H = 3, Sigma_P = 5" << endl;
+      cerr << "            53 - Sigma_H = 5, Sigma_P = 3" << endl;
+      cerr << " -fac:      FAC pattern on the sphere (default: constant)" << endl;
+      cerr << " -gaugeFix: Solver gauge fixing method (default: pole)" << endl;
+      cerr << " -np:       DON'T use the matrix preconditioner (default: do)" << endl;
+      
       return 1;
    }
 
@@ -154,6 +152,18 @@ int main(int argc, char** argv) {
    if(facString == "constant") {
       for(uint n=0; n<nodes.size(); n++) {
          nodes[n].parameters[ionosphereParameters::SOURCE] = 1;
+      }
+   } else if(facString == "dipole") {
+      for(uint n=0; n<nodes.size(); n++) {
+         double theta = acos(nodes[n].x[2] / sqrt(nodes[n].x[0]*nodes[n].x[0] + nodes[n].x[1]*nodes[n].x[1] + nodes[n].x[2]*nodes[n].x[2])); // Latitude
+         double phi = atan2(nodes[n].x[0], nodes[n].x[1]); // Longitude
+         nodes[n].parameters[ionosphereParameters::SOURCE] = sph_legendre(1,0,theta) * sin(1*phi);
+      }
+   } else if(facString == "quadrupole") {
+      for(uint n=0; n<nodes.size(); n++) {
+         double theta = acos(nodes[n].x[2] / sqrt(nodes[n].x[0]*nodes[n].x[0] + nodes[n].x[1]*nodes[n].x[1] + nodes[n].x[2]*nodes[n].x[2])); // Latitude
+         double phi = atan2(nodes[n].x[0], nodes[n].x[1]); // Longitude
+         nodes[n].parameters[ionosphereParameters::SOURCE] = sph_legendre(2,1,theta) * sin(1*phi);
       }
    } else {
       cerr << "FAC pattern " << sigmaString << " not implemented!" << endl;
