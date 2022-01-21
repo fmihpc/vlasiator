@@ -20,8 +20,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef HOSTDEV_1D_PPM_NU_H
-#define HOSTDEV_1D_PPM_NU_H
+#ifndef HOSTDEV_1D_PPM_H
+#define HOSTDEV_1D_PPM_H
 
 #include <iostream>
 #include "vec.h"
@@ -34,8 +34,8 @@
 #include "cuda.h"
 #include "cuda_runtime.h"
 #endif
-#include "hostdev_slope_limiters.hpp"
-#include "hostdev_face_estimates.hpp"
+#include "cpu_slope_limiters.hpp"
+#include "cpu_face_estimates.hpp"
 
 using namespace std;
 
@@ -45,7 +45,7 @@ using namespace std;
 CUDA_HOSTDEV inline void compute_ppm_coeff_nonuniform(const Vec * const dv, const Vec * const values, face_estimate_order order, uint k, Vec a[3], const Realv threshold){
    Vec fv_l; /*left face value*/
    Vec fv_r; /*right face value*/
-   compute_filtered_face_values_nonuniform(dv, values, k, order, fv_l, fv_r, threshold); 
+   compute_filtered_face_values_nonuniform_conserving(dv, values, k, order, fv_l, fv_r, threshold); 
    
    //Coella et al, check for monotonicity   
    Vec m_face = fv_l;
@@ -54,14 +54,14 @@ CUDA_HOSTDEV inline void compute_ppm_coeff_nonuniform(const Vec * const dv, cons
    //std::cout << "value = " << values[k][0] << ", m_face = " << m_face[0] << ", p_face = " << p_face[0] << "\n";
    //std::cout << values[k][0] - m_face[0] << ", " << values[k][0] - p_face[0] << "\n";
    
-   m_face = select((p_face - m_face) * (values[k] - 0.5 * (m_face + p_face)) >
-                   (p_face - m_face)*(p_face - m_face) * one_sixth,
-                   3 * values[k] - 2 * p_face,
-                   m_face);
-   p_face = select(-(p_face - m_face) * (p_face - m_face) * one_sixth >
-                   (p_face - m_face) * (values[k] - 0.5 * (m_face + p_face)),
-                   3 * values[k] - 2 * m_face,
-                   p_face);
+  //  m_face = select((p_face - m_face) * (values[k] - 0.5 * (m_face + p_face)) >
+  //                  (p_face - m_face)*(p_face - m_face) * one_sixth,
+  //                  3 * values[k] - 2 * p_face,
+  //                  m_face);
+  // p_face = select(-(p_face - m_face) * (p_face - m_face) * one_sixth >
+  //                  (p_face - m_face) * (values[k] - 0.5 * (m_face + p_face)),
+  //                 3 * values[k] - 2 * m_face,
+  //                 p_face);
    
    //Fit a second order polynomial for reconstruction see, e.g., White
    //2008 (PQM article) (note additional integration factors built in,
@@ -76,6 +76,7 @@ CUDA_HOSTDEV inline void compute_ppm_coeff_nonuniform(const Vec * const dv, cons
    //std::cout << values[k][0] << " " << m_face[0] << " " << p_face[0] << "\n";
 }
 
+
 /**** 
       Define functions for Realf instead of Vec 
 ***/
@@ -83,7 +84,7 @@ CUDA_HOSTDEV inline void compute_ppm_coeff_nonuniform(const Vec * const dv, cons
 CUDA_DEV inline void compute_ppm_coeff_nonuniform(const Vec * const dv, const Vec * const values, face_estimate_order order, uint k, Realf a[3], const Realv threshold, const int index){
    Realf fv_l; /*left face value*/
    Realf fv_r; /*right face value*/
-   compute_filtered_face_values_nonuniform(dv, values, k, order, fv_l, fv_r, threshold, index); 
+   compute_filtered_face_values_nonuniform_conserving(dv, values, k, order, fv_l, fv_r, threshold, index); 
    
    //Coella et al, check for monotonicity   
    Realf m_face = fv_l;
@@ -92,14 +93,14 @@ CUDA_DEV inline void compute_ppm_coeff_nonuniform(const Vec * const dv, const Ve
    //std::cout << "value = " << values[k][0] << ", m_face = " << m_face[0] << ", p_face = " << p_face[0] << "\n";
    //std::cout << values[k][0] - m_face[0] << ", " << values[k][0] - p_face[0] << "\n";
    
-   m_face = ((p_face - m_face) * (values[k][index] - 0.5 * (m_face + p_face)) >
-             (p_face - m_face)*(p_face - m_face) * (1./6.)) ? 
-             3 * values[k][index] - 2 * p_face :
-                   m_face;
-   p_face = (-(p_face - m_face) * (p_face - m_face) * (1./6.)) >
-                   (p_face - m_face) * (values[k][index] - 0.5 * (m_face + p_face)) ?
-                   3 * values[k][index] - 2 * m_face :
-                   p_face;
+  //  m_face = select((p_face - m_face) * (values[k] - 0.5 * (m_face + p_face)) >
+  //                  (p_face - m_face)*(p_face - m_face) * one_sixth,
+  //                  3 * values[k] - 2 * p_face,
+  //                  m_face);
+  // p_face = select(-(p_face - m_face) * (p_face - m_face) * one_sixth >
+  //                  (p_face - m_face) * (values[k] - 0.5 * (m_face + p_face)),
+  //                 3 * values[k] - 2 * m_face,
+  //                 p_face);
    
    //Fit a second order polynomial for reconstruction see, e.g., White
    //2008 (PQM article) (note additional integration factors built in,

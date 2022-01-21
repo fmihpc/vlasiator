@@ -30,8 +30,8 @@
 #include "cuda.h"
 #include "cuda_runtime.h"
 #endif
-#include "hostdev_slope_limiters.hpp"
-#include "hostdev_face_estimates.hpp"
+#include "cpu_slope_limiters.hpp"
+#include "cpu_face_estimates.hpp"
 
 using namespace std;
 

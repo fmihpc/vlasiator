@@ -30,7 +30,7 @@
 #include "cuda.h"
 #include "cuda_runtime.h"
 #endif
-#include "hostdev_slope_limiters.hpp"
+#include "cpu_slope_limiters.hpp"
 
 using namespace std;
 

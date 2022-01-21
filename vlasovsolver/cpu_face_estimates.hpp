@@ -27,7 +27,7 @@
 #include "vec.h"
 //#include "algorithm"
 //#include "cmath"
-#include "hostdev_slope_limiters.hpp"
+#include "cpu_slope_limiters.hpp"
 
 #include "cuda_header.h"
 #ifdef __CUDACC__
