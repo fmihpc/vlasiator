@@ -5,7 +5,7 @@
 #include "cpu_trans_map_amr.hpp"
 #include "cpu_trans_map.hpp"
 #include "vec.h"
-#include "cuda_1d_ppm_nonuniform.h"
+#include "hostdev_1d_ppm_nonuniform.h"
 
 // use DCCRG version Nov 8th 2018 01482cfba8
 

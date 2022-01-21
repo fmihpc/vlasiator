@@ -20,14 +20,14 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef CUDA_FACE_ESTIMATES_H
-#define CUDA_FACE_ESTIMATES_H
+#ifndef HOSTDEV_FACE_ESTIMATES_H
+#define HOSTDEV_FACE_ESTIMATES_H
 
 //#include <iostream>
 #include "vec.h"
 //#include "algorithm"
 //#include "cmath"
-#include "cuda_slope_limiters.h"
+#include "hostdev_slope_limiters.h"
 
 #include "cuda_header.h"
 #ifdef __CUDACC__

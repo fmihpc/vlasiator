@@ -20,8 +20,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef CUDA_SLOPE_LIMITERS_H
-#define CUDA_SLOPE_LIMITERS_H
+#ifndef HOSTDEV_SLOPE_LIMITERS_H
+#define HOSTDEV_SLOPE_LIMITERS_H
 
 #include "vec.h"
 #include "cuda_header.h"

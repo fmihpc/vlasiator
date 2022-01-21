@@ -31,10 +31,10 @@
 #include "../grid.h"
 #include "../object_wrapper.h"
 #include "vec.h"
-#include "cuda_1d_plm.h"
-#include "cuda_1d_ppm.h"
-#include "cuda_1d_ppm_nonuniform.h"
-#include "cuda_1d_pqm.h"
+#include "hostdev_1d_plm.h"
+#include "hostdev_1d_ppm.h"
+#include "hostdev_1d_ppm_nonuniform.h"
+#include "hostdev_1d_pqm.h"
 #include "cpu_trans_map.hpp"
 
 using namespace std;

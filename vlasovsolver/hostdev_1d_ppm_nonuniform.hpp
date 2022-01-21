@@ -20,8 +20,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef CUDA_1D_PPM_NU_H
-#define CUDA_1D_PPM_NU_H
+#ifndef HOSTDEV_1D_PPM_NU_H
+#define HOSTDEV_1D_PPM_NU_H
 
 #include <iostream>
 #include "vec.h"
@@ -34,8 +34,8 @@
 #include "cuda.h"
 #include "cuda_runtime.h"
 #endif
-#include "cuda_slope_limiters.h"
-#include "cuda_face_estimates.h"
+#include "hostdev_slope_limiters.h"
+#include "hostdev_face_estimates.h"
 
 using namespace std;
 
