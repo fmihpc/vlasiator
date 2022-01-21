@@ -61,6 +61,7 @@ class VecSimple
     CUDA_HOSTDEV void store_a(T * p) const;
     CUDA_HOSTDEV VecSimple<T> & operator = (VecSimple<T> const & r);
     CUDA_HOSTDEV T operator [](int i) const;
+    CUDA_HOSTDEV T & operator [](int i);
     CUDA_HOSTDEV VecSimple<T> operator++ (int);
     // Pass vector values as an initializer list instead of a bunch of arguments.
     // || this here puts the initializer list to val!
@@ -608,6 +609,11 @@ CUDA_HOSTDEV inline VecSimple<T> & VecSimple<T>::operator = (VecSimple<T> const 
 }
 template <typename T>
 CUDA_HOSTDEV inline T VecSimple<T>::operator [](int i) const
+{
+   return val[i];
+}
+template <typename T>
+CUDA_HOSTDEV inline T & VecSimple<T>::operator [](int i)
 {
    return val[i];
 }

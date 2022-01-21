@@ -128,6 +128,8 @@ __global__ void acceleration_kernel
       for (uint k=0; k < WID * nblocks; ++k)
       {
          // Compute reconstructions
+         // Checked on 21.01.2022: Realv a[length] goes on the register despite being an array. Explicitly declaring it
+         // as __shared__ had no impact on performance.
 #ifdef ACC_SEMILAG_PLM
          Realv a[2];
          compute_plm_coeff(dev_values + dev_columns[column].valuesOffset + i_pcolumnv_cuda(j, 0, -1, nblocks), (k + WID), a, minValue, index);
@@ -429,6 +431,7 @@ void acceleration_1_glue
   cudaEventCreate(&start);
   cudaEventCreate(&stop);
   cudaEventRecord(start, 0);
+  // Mallocs should be in increments of 256 bytes. WID3 is at least 64, and len(Realf) is at least 4, so this is true.
 
   Realf *dev_blockData;
   HANDLE_ERROR( cudaMalloc((void**)&dev_blockData, bdsw3*sizeof(Realf)) );
