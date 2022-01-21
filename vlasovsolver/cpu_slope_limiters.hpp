@@ -20,36 +20,42 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef CPU_SLOPE_LIMITERS_H
-#define CPU_SLOPE_LIMITERS_H
+#ifndef CUDA_SLOPE_LIMITERS_H
+#define CUDA_SLOPE_LIMITERS_H
 
 #include "vec.h"
+#include "cuda_header.h"
+#ifdef __CUDACC__
+#include "cuda.h"
+#include "cuda_runtime.h"
+#include "device_launch_parameters.h"
+#endif
 
 using namespace std;
 
-inline Vec minmod(const Vec slope1, const Vec slope2){
-   const Vec zero(0.0);
-   Vec slope=select(abs(slope1) < abs(slope2), slope1, slope2);
-   //check for extrema
-   return select(slope1 * slope2 <= 0, zero, slope);
+static CUDA_HOSTDEV inline Vec minmod(const Vec slope1, const Vec slope2)
+{
+  const Vec zero(0.0);
+  Vec slope = select(abs(slope1) < abs(slope2), slope1, slope2);
+  return select(slope1 * slope2 <= 0, zero, slope);
 }
-
-inline Vec maxmod(const Vec slope1, const Vec slope2){
-   const Vec zero(0.0);
-   Vec slope=select(abs(slope1) > abs(slope2), slope1, slope2);
-   //check for extrema
-   return select(slope1 * slope2 <= 0, zero, slope);
+static CUDA_HOSTDEV inline Vec maxmod(const Vec slope1, const Vec slope2)
+{
+  const Vec zero(0.0);
+  Vec slope = select(abs(slope1) > abs(slope2), slope1, slope2);
+  return select(slope1 * slope2 <= 0, zero, slope);
 }
 
 /*!
   Superbee slope limiter
 */
 
-inline Vec slope_limiter_sb(const Vec& l,const Vec& m, const Vec& r) {
-  Vec a=r-m;
-  Vec b=m-l;
-  const Vec slope1=minmod(a, 2*b);
-  const Vec slope2=minmod(2*a, b);
+static CUDA_HOSTDEV inline Vec slope_limiter_sb(const Vec &l, const Vec &m, const Vec &r)
+{
+  Vec a = r-m;
+  Vec b = m-l;
+  const Vec slope1 = minmod(a, 2*b);
+  const Vec slope2 = minmod(2*a, b);
   return maxmod(slope1, slope2);
 }
 
@@ -57,7 +63,8 @@ inline Vec slope_limiter_sb(const Vec& l,const Vec& m, const Vec& r) {
   Minmod slope limiter
 */
 
-inline Vec slope_limiter_minmod(const Vec& l,const Vec& m, const Vec& r) {
+static CUDA_HOSTDEV inline Vec slope_limiter_minmod(const Vec& l,const Vec& m, const Vec& r)
+{
    Vec sign;
    Vec a=r-m;
    Vec b=m-l;
@@ -68,7 +75,11 @@ inline Vec slope_limiter_minmod(const Vec& l,const Vec& m, const Vec& r) {
   MC slope limiter
 */
 
-inline Vec slope_limiter_mc(const Vec& l,const Vec& m, const Vec& r) {
+static CUDA_HOSTDEV inline Vec slope_limiter_mc(const Vec& l,const Vec& m, const Vec& r)
+{
+  const Vec zero(0.0);
+  const Vec two(2.0);
+  const Vec half(0.5);
   Vec sign;
   Vec a=r-m;
   Vec b=m-l;
@@ -81,14 +92,16 @@ inline Vec slope_limiter_mc(const Vec& l,const Vec& m, const Vec& r) {
   return select(a + b < 0,-output,output);
 }
 
-inline Vec slope_limiter_minmod_amr(const Vec& l,const Vec& m, const Vec& r,const Vec& a,const Vec& b) {
+static CUDA_HOSTDEV inline Vec slope_limiter_minmod_amr(const Vec& l,const Vec& m, const Vec& r,const Vec& a,const Vec& b)
+{
    Vec J = r-l;
    Vec f = (m-l)/J;
    f = min(Vec(1.0),f);
    return min(f/(1+a),(Vec(1.)-f)/(1+b))*2*J;
 }
 
-inline Vec slope_limiter(const Vec& l,const Vec& m, const Vec& r) {
+static CUDA_HOSTDEV inline Vec slope_limiter(const Vec &l, const Vec &m, const Vec &r)
+{
    return slope_limiter_sb(l,m,r);
    //return slope_limiter_minmod(l,m,r);
 }
@@ -97,15 +110,107 @@ inline Vec slope_limiter(const Vec& l,const Vec& m, const Vec& r) {
  * @param a Cell size fraction dx[i-1]/dx[i] = 1/2, 1, or 2.
  * @param b Cell size fraction dx[i+1]/dx[i] = 1/2, 1, or 2.
  * @return Limited value of slope.*/
-inline Vec slope_limiter_amr(const Vec& l,const Vec& m, const Vec& r,const Vec& dx_left,const Vec& dx_rght) {
+static CUDA_HOSTDEV inline Vec slope_limiter_amr(const Vec& l,const Vec& m, const Vec& r,const Vec& dx_left,const Vec& dx_rght)
+{
    return slope_limiter_minmod_amr(l,m,r,dx_left,dx_rght);
 }
 
 /* Slope limiter with abs and sign separatelym, uses the currently active slope limiter*/
-inline void slope_limiter(const Vec& l,const Vec& m, const Vec& r, Vec& slope_abs, Vec& slope_sign) {
-   const Vec slope=slope_limiter(l,m,r);
-   slope_abs=abs(slope);
-   slope_sign=select(slope > 0, Vec(1.0), Vec(-1.0));
+static CUDA_HOSTDEV inline void slope_limiter(const Vec& l,const Vec& m, const Vec& r, Vec& slope_abs, Vec& slope_sign)
+{
+   const Vec slope = slope_limiter(l,m,r);
+   slope_abs = abs(slope);
+   slope_sign = select(slope > 0, Vec(1.0), Vec(-1.0));
 }
+
+
+/**** 
+      Define functions for Realf instead of Vec 
+***/
+
+static CUDA_DEV inline Realf minmod(const Realf slope1, const Realf slope2)
+{
+  Realf slope = (abs(slope1) < abs(slope2)) ? slope1 : slope2;
+  return (slope1 * slope2 <= 0) ? 0 : slope;
+}
+static CUDA_DEV inline Realf maxmod(const Realf slope1, const Realf slope2)
+{
+  Realf slope = (abs(slope1) > abs(slope2)) ? slope1 : slope2;
+  return (slope1 * slope2 <= 0) ? 0 : slope;
+}
+
+/*!
+  Superbee slope limiter
+*/
+
+static CUDA_DEV inline Realf slope_limiter_sb(const Realf &l, const Realf &m, const Realf &r)
+{
+  Realf a = r-m;
+  Realf b = m-l;
+  const Realf slope1 = minmod(a, 2*b);
+  const Realf slope2 = minmod(2*a, b);
+  return maxmod(slope1, slope2);
+}
+
+/*!
+  Minmod slope limiter
+*/
+
+static CUDA_DEV inline Realf slope_limiter_minmod(const Realf& l,const Realf& m, const Realf& r)
+{
+   Realf a=r-m;
+   Realf b=m-l;
+   return minmod(a,b);
+}
+
+/*!
+  MC slope limiter
+*/
+
+static CUDA_DEV inline Realf slope_limiter_mc(const Realf& l,const Realf& m, const Realf& r)
+{
+  Realf a=r-m;
+  Realf b=m-l;
+  Realf minval=min(2*abs(a),2*abs(b));
+  minval=min(minval,(Realf)0.5*abs(a+b));
+
+  //check for extrema
+  Realf output = (a*b < 0) ? 0 : minval;
+  //set sign
+  return (a + b < 0) ? -output : output;
+}
+
+static CUDA_DEV inline Realf slope_limiter_minmod_amr(const Realf& l,const Realf& m, const Realf& r,const Realf& a,const Realf& b)
+{
+   Realf J = r-l;
+   Realf f = (m-l)/J;
+   f = min((Realf)1.0,f);
+   return min((Realf)f/(1+a),(Realf)(1.-f)/(1+b))*2*J;
+}
+
+static CUDA_DEV inline Realf slope_limiter(const Realf &l, const Realf &m, const Realf &r)
+{
+   return slope_limiter_sb(l,m,r);
+   //return slope_limiter_minmod(l,m,r);
+}
+
+/*
+ * @param a Cell size fraction dx[i-1]/dx[i] = 1/2, 1, or 2.
+ * @param b Cell size fraction dx[i+1]/dx[i] = 1/2, 1, or 2.
+ * @return Limited value of slope.*/
+static CUDA_DEV inline Realf slope_limiter_amr(const Realf& l,const Realf& m, const Realf& r,const Realf& dx_left,const Realf& dx_rght)
+{
+   return slope_limiter_minmod_amr(l,m,r,dx_left,dx_rght);
+}
+
+/* Slope limiter with abs and sign separatelym, uses the currently active slope limiter*/
+static CUDA_DEV inline void slope_limiter(const Realf& l,const Realf& m, const Realf& r, Realf& slope_abs, Realf& slope_sign)
+{
+   const Realf slope = slope_limiter(l,m,r);
+   slope_abs = abs(slope);
+   slope_sign = (slope > 0) ? 1 : -1.0;
+}
+
+
 
 #endif
