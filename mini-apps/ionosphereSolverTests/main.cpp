@@ -262,6 +262,16 @@ int main(int argc, char** argv) {
 
          return retval;
    }));
+   outputDROs.addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_residual", [](SBC::SphericalTriGrid& grid)->std::vector<Real> {
+
+         std::vector<Real> retval(grid.nodes.size());
+
+         for(uint i=0; i<grid.nodes.size(); i++) {
+            retval[i] = grid.nodes[i].parameters[ionosphereParameters::RESIDUAL];
+         }
+
+         return retval;
+   }));
 
    for(int i=0; i<outputDROs.size(); i++) {
       outputDROs.writeIonosphereGridData(ionosphereGrid, "ionosphere", i, outputFile);
