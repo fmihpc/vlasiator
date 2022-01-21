@@ -1,10 +1,16 @@
 #include <iostream>
 #include "../../sysboundary/ionosphere.h"
 #include "../../object_wrapper.h"
+#include "../../datareduction/datareductionoperator.h"
+#include "../../iowrite.h"
+#include "vlsv_writer.h"
 
 using namespace std;
 using namespace SBC;
+using namespace vlsv;
 
+Logger logFile,diagnostic;
+int globalflags::bailingOut=0;
 ObjectWrapper objectWrapper;
 ObjectWrapper& getObjectWrapper() {
    return objectWrapper;
@@ -21,6 +27,10 @@ Real divideIfNonZero( creal numerator, creal denominator) {
       return numerator / denominator;
    }
 }
+void deallocateRemoteCellBlocks(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry, std::tuple<>, std::tuple<> >&) {};
+void updateRemoteVelocityBlockLists(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry, std::tuple<>, std::tuple<> >&, unsigned int, unsigned int) {
+};
+
 
 int main(int argc, char** argv) {
 
@@ -78,10 +88,14 @@ int main(int argc, char** argv) {
       cerr << " -sigma:    Conductivity matrix contents (default: identity)" << endl;
       cerr << "            options are:" << endl;
       cerr << "            identity - identity matrix w/ conductivity 1" << endl;
-      cerr << "            random - randomly chosen conductivity values" << endl;
-      cerr << "            35 - Sigma_H = 3, Sigma_P = 5" << endl;
-      cerr << "            53 - Sigma_H = 5, Sigma_P = 3" << endl;
+      cerr << "            random -   randomly chosen conductivity values" << endl;
+      cerr << "            35 -       Sigma_H = 3, Sigma_P = 5" << endl;
+      cerr << "            53 -       Sigma_H = 5, Sigma_P = 3" << endl;
       cerr << " -fac:      FAC pattern on the sphere (default: constant)" << endl;
+      cerr << "            options are:" << endl;
+      cerr << "            constant   - Constant value of 1" << endl;
+      cerr << "            dipole     - north/south dipole" << endl;
+      cerr << "            quadrupole - east/west quadrupole" << endl;
       cerr << " -gaugeFix: Solver gauge fixing method (default: pole)" << endl;
       cerr << " -np:       DON'T use the matrix preconditioner (default: do)" << endl;
       
@@ -199,4 +213,47 @@ int main(int argc, char** argv) {
    Ionosphere::solverMaxIterations = 1000;
    Ionosphere::solverPreconditioning = doPrecondition;
    ionosphereGrid.solve();
+
+   // Write output
+   vlsv::Writer outputFile;
+   const int masterProcessID = 0;
+   outputFile.open("output.vlsv",MPI_COMM_WORLD,masterProcessID);
+   ionosphereGrid.communicator = MPI_COMM_WORLD;
+   ionosphereGrid.writingRank = 0;
+   P::systemWriteName = std::vector<std::string>({"potato potato"});
+   writeIonosphereGridMetadata(outputFile);
+
+   // Data reducers
+   DataReducer outputDROs;
+   outputDROs.addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_fac", [](SBC::SphericalTriGrid& grid) -> std::vector<Real> {
+         std::vector<Real> retval(grid.nodes.size());
+
+         for (uint i = 0; i < grid.nodes.size(); i++) {
+            Real area = 0;
+            for (uint e = 0; e < grid.nodes[i].numTouchingElements; e++) {
+               area += grid.elementArea(grid.nodes[i].touchingElements[e]);
+            }
+            area /= 3.; // As every element has 3 corners, don't double-count areas
+            retval[i] = grid.nodes[i].parameters[ionosphereParameters::SOURCE] / area;
+         }
+
+         return retval;
+   }));
+   outputDROs.addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_potential", [](SBC::SphericalTriGrid& grid)->std::vector<Real> {
+
+         std::vector<Real> retval(grid.nodes.size());
+
+         for(uint i=0; i<grid.nodes.size(); i++) {
+            retval[i] = grid.nodes[i].parameters[ionosphereParameters::SOLUTION];
+         }
+
+         return retval;
+   }));
+
+   for(int i=0; i<outputDROs.size(); i++) {
+      outputDROs.writeIonosphereGridData(ionosphereGrid, "ionosphere", i, outputFile);
+   }
+
+   outputFile.close();
+
 }
