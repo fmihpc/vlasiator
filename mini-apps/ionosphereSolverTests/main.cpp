@@ -43,10 +43,11 @@ int main(int argc, char** argv) {
    std::string facString="constant";
    std::string gaugeFixString="pole";
    bool doRefine = false;
+   bool doPrecondition = true;
    for(int i=1; i<argc; i++) {
       if(!strcmp(argv[i], "--help")) {
          cerr << "Ionosphere test mini-app. Syntax:" << endl;
-         cerr << "main [-N num] [-r] [-sigma (identity|random|35|53)] [-fac (constant|dipole|quadrupole)] [-gaugeFix equator|pole|integral|none]" << endl;
+         cerr << "main [-N num] [-r] [-sigma (identity|random|35|53)] [-fac (constant|dipole|quadrupole)] [-gaugeFix equator|pole|integral|none] [-np]" << endl;
          cerr << "Paramters:" << endl;
          cerr << " -N:        Number of ionosphere mesh nodes (default: 64)" << endl;
          cerr << " -r:        Refine grid in the auroral regions (default: no)" << endl;
@@ -58,6 +59,7 @@ int main(int argc, char** argv) {
          cerr << "            53 - Sigma_H = 5, Sigma_P = 3" << endl;
          cerr << " -fac:      FAC pattern on the sphere (default: constant)" << endl;
          cerr << " -gaugeFix: Solver gauge fixing method (default: pole)" << endl;
+         cerr << " -np:       DON'T use the matrix preconditioner (default: do)" << endl;
          return 0;
       }
       if(!strcmp(argv[i], "-N")) {
@@ -78,6 +80,10 @@ int main(int argc, char** argv) {
       }
       if(!strcmp(argv[i], "-gaugeFix")) {
          gaugeFixString = argv[++i];
+         continue;
+      }
+      if(!strcmp(argv[i], "-np")) {
+         doPrecondition = false;
          continue;
       }
       cerr << "Unknown command line option \"" << argv[i] << "\"" << endl;
@@ -164,7 +170,11 @@ int main(int argc, char** argv) {
          Real val=0;
          for(int d=0; d<nodes[n].numDepNodes; d++) {
             if(nodes[n].dependingNodes[d] == m) {
-               val=nodes[n].dependingCoeffs[d];
+               if(doPrecondition) {
+                  val=nodes[n].dependingCoeffs[d] / nodes[n].dependingCoeffs[0];
+               } else {
+                  val=nodes[n].dependingCoeffs[d];
+               }
             }
          }
 
@@ -177,5 +187,6 @@ int main(int argc, char** argv) {
    // Try to solve the system.
    ionosphereGrid.isCouplingInwards=true;
    Ionosphere::solverMaxIterations = 1000;
+   Ionosphere::solverPreconditioning = doPrecondition;
    ionosphereGrid.solve();
 }
