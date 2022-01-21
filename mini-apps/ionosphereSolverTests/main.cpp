@@ -113,6 +113,7 @@ int main(int argc, char** argv) {
       ionosphereGrid.gaugeFixing = SphericalTriGrid::Integral;
    } else if (gaugeFixString == "equator") {
       ionosphereGrid.gaugeFixing = SphericalTriGrid::Equator;
+      Ionosphere::shieldingLatitude = 30.;
    } else if (gaugeFixString == "none") {
       ionosphereGrid.gaugeFixing = SphericalTriGrid::None;
    } else {
@@ -139,8 +140,8 @@ int main(int argc, char** argv) {
    };
 
    if(doRefine) {
-      refineBetweenLatitudes(60,90);
-      refineBetweenLatitudes(70,80);
+      refineBetweenLatitudes(40,90);
+      refineBetweenLatitudes(50,80);
       ionosphereGrid.stitchRefinementInterfaces();
    }
 
