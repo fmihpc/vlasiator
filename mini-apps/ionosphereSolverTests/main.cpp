@@ -36,12 +36,71 @@ int main(int argc, char** argv) {
       exit(1);
    }
 
+
+   // Parse parameters
+   int numNodes = 64;
+   std::string sigmaString="identity";
+   std::string facString="constant";
+   std::string gaugeFixString="pole";
+   bool doRefine = false;
+   for(int i=1; i<argc; i++) {
+      if(!strcmp(argv[i], "--help")) {
+         cerr << "Ionosphere test mini-app. Syntax:" << endl;
+         cerr << "main [-N num] [-r] [-sigma (identity|random|35|53)] [-fac (constant|dipole|quadrupole)] [-gaugeFix equator|pole|integral|none]" << endl;
+         cerr << "Paramters:" << endl;
+         cerr << " -N:        Number of ionosphere mesh nodes (default: 64)" << endl;
+         cerr << " -r:        Refine grid in the auroral regions (default: no)" << endl;
+         cerr << " -sigma:    Conductivity matrix contents (default: identity)" << endl;
+         cerr << "            options are:" << endl;
+         cerr << "            identity - identity matrix w/ conductivity 1" << endl;
+         cerr << "            random - randomly chosen conductivity values" << endl;
+         cerr << "            35 - Sigma_H = 3, Sigma_P = 5" << endl;
+         cerr << "            53 - Sigma_H = 5, Sigma_P = 3" << endl;
+         cerr << " -fac:      FAC pattern on the sphere (default: constant)" << endl;
+         cerr << " -gaugeFix: Solver gauge fixing method (default: pole)" << endl;
+         return 0;
+      }
+      if(!strcmp(argv[i], "-N")) {
+         numNodes = atoi(argv[++i]);
+         continue;
+      }
+      if(!strcmp(argv[i], "-r")) {
+         doRefine = true;
+         continue;
+      }
+      if(!strcmp(argv[i], "-sigma")) {
+         sigmaString = argv[++i];
+         continue;
+      }
+      if(!strcmp(argv[i], "-fac")) {
+         facString = argv[++i];
+         continue;
+      }
+      if(!strcmp(argv[i], "-gaugeFix")) {
+         gaugeFixString = argv[++i];
+         continue;
+      }
+      cerr << "Unknown command line option \"" << argv[i] << "\"" << endl;
+      return 1;
+   }
+
    phiprof::initialize();
 
    // Initialize ionosphere grid
    Ionosphere::innerRadius =  physicalconstants::R_E + 100e3;
-   ionosphereGrid.initializeSphericalFibonacci(64);
-   ionosphereGrid.gaugeFixing = SphericalTriGrid::Pole;
+   ionosphereGrid.initializeSphericalFibonacci(numNodes);
+   if(gaugeFixString == "pole") {
+      ionosphereGrid.gaugeFixing = SphericalTriGrid::Pole;
+   } else if (gaugeFixString == "integral") {
+      ionosphereGrid.gaugeFixing = SphericalTriGrid::Integral;
+   } else if (gaugeFixString == "equator") {
+      ionosphereGrid.gaugeFixing = SphericalTriGrid::Equator;
+   } else if (gaugeFixString == "none") {
+      ionosphereGrid.gaugeFixing = SphericalTriGrid::None;
+   } else {
+      cerr << "Unknown gauge fixing method " << gaugeFixString << endl;
+      return 1;
+   }
    
    // Refine the base shape to acheive desired resolution
    auto refineBetweenLatitudes = [](Real phi1, Real phi2) -> void {
@@ -61,26 +120,38 @@ int main(int argc, char** argv) {
       }
    };
 
-   // Refine everything twice
-   //refineBetweenLatitudes(0,90);
-   //refineBetweenLatitudes(0,90);
-   ionosphereGrid.stitchRefinementInterfaces();
+   if(doRefine) {
+      refineBetweenLatitudes(60,90);
+      refineBetweenLatitudes(70,80);
+      ionosphereGrid.stitchRefinementInterfaces();
+   }
 
 
    std::vector<SphericalTriGrid::Node>& nodes = ionosphereGrid.nodes;
 
-   // Set conductivity tensors to unity.
-   for(uint n=0; n<nodes.size(); n++) {
-      for(int i=0; i<3; i++) {
-         for(int j=0; j<3; j++) {
-            nodes[n].parameters[ionosphereParameters::SIGMA + i*3 + j] = ((i==j)? 1. : 0.);
+   // Set conductivity tensors
+   if(sigmaString == "identity") {
+      for(uint n=0; n<nodes.size(); n++) {
+         for(int i=0; i<3; i++) {
+            for(int j=0; j<3; j++) {
+               nodes[n].parameters[ionosphereParameters::SIGMA + i*3 + j] = ((i==j)? 1. : 0.);
+            }
          }
       }
+   } else {
+      cerr << "Conductivity tensor " << sigmaString << " not implemented!" << endl;
+      return 1;
    }
 
-   // Set FACs to all zero
-   for(uint n=0; n<nodes.size(); n++) {
-      nodes[n].parameters[ionosphereParameters::SOURCE] = 0;
+
+   // Set FACs
+   if(facString == "constant") {
+      for(uint n=0; n<nodes.size(); n++) {
+         nodes[n].parameters[ionosphereParameters::SOURCE] = 1;
+      }
+   } else {
+      cerr << "FAC pattern " << sigmaString << " not implemented!" << endl;
+      return 1;
    }
 
    ionosphereGrid.initSolver(true);
@@ -102,4 +173,9 @@ int main(int argc, char** argv) {
       matrixOut << endl;
    }
    cout << "--- SOLVER DEPENDENCY MATRIX WRITTEN TO solverMatrix.txt ---" << endl;
+
+   // Try to solve the system.
+   ionosphereGrid.isCouplingInwards=true;
+   Ionosphere::solverMaxIterations = 1000;
+   ionosphereGrid.solve();
 }
