@@ -1772,6 +1772,27 @@ namespace SBC {
        return;
      }
 
+     // Special case handling for Gauge fixing. Gauge-fixed nodes only couple to themselves.
+     if(gaugeFixing == Pole) {
+       if( (!transposed && node1 == 0) ||
+           (transposed && node2 == 0)) {
+         if(node1 == node2) {
+            coeff = 1;
+         } else {
+            return;
+         }
+       }
+     } else if(gaugeFixing == Equator) {
+        if( (!transposed && fabs(nodes[node1].x[2]) < Ionosphere::innerRadius * sin(Ionosphere::shieldingLatitude * M_PI / 180.0)) ||
+            ( transposed && fabs(nodes[node2].x[2]) < Ionosphere::innerRadius * sin(Ionosphere::shieldingLatitude * M_PI / 180.0))) {
+           if(node1 == node2) {
+              coeff = 1;
+           } else {
+              return;
+           }
+        }
+     }
+
      Node& n = nodes[node1];
      // First check if the dependency already exists
      for(uint i=0; i<n.numDepNodes; i++) {
@@ -1834,20 +1855,6 @@ namespace SBC {
      nodes[nodeIndex].dependingNodes[0] = nodeIndex;
      nodes[nodeIndex].dependingCoeffs[0] = 0;
      nodes[nodeIndex].transposedCoeffs[0] = 0;
-
-     if(gaugeFixing == Pole && nodeIndex == 0) {
-       // If we are gauge fixing at the pole, node zero only couples to itself.
-       nodes[nodeIndex].dependingCoeffs[0] = 1;
-       nodes[nodeIndex].transposedCoeffs[0] = 1;
-       return;
-     }
-
-     if(gaugeFixing == Equator && fabs(nodes[nodeIndex].x[2]) < Ionosphere::innerRadius / 10.) {
-       // If we are gauge fixing at the equator, those nodes don't couple.
-       nodes[nodeIndex].dependingCoeffs[0] = 1;
-       nodes[nodeIndex].transposedCoeffs[0] = 1;
-       return;
-     }
 
      for(uint t=0; t<nodes[nodeIndex].numTouchingElements; t++) {
        int j0=-1;
@@ -2110,9 +2117,19 @@ namespace SBC {
 
      // Calculate sourcenorm and initial residual estimate
      iSolverReal sourcenorm = 0;
+     std::vector<iSolverReal> effectiveSource(nodes.size());
      for(uint n=0; n<nodes.size(); n++) {
        Node& N=nodes[n];
-       iSolverReal source = N.parameters[ionosphereParameters::SOURCE];
+       // Set gauge-pinned nodes to their fixed potential
+       if(gaugeFixing == Pole && n == 0) {
+          effectiveSource[n] = 0;
+       } else if(gaugeFixing == Equator && fabs(N.x[2]) < Ionosphere::innerRadius * sin(Ionosphere::shieldingLatitude * M_PI / 180.0)) {
+          effectiveSource[n] = 0;
+       }  else {
+          effectiveSource[n] = N.parameters[ionosphereParameters::SOURCE];
+       }
+
+       iSolverReal source = effectiveSource[n];
        sourcenorm += source*source;
        N.parameters[ionosphereParameters::RESIDUAL] = source - Atimes(n, ionosphereParameters::SOLUTION);
        N.parameters[ionosphereParameters::BEST_SOLUTION] = N.parameters[ionosphereParameters::SOLUTION];
@@ -2188,13 +2205,7 @@ namespace SBC {
 
        for(uint n=0; n<nodes.size(); n++) {
          Node& N=nodes[n];
-         if(gaugeFixing == Pole && n == 0) {
-            N.parameters[ionosphereParameters::SOLUTION] = 0;
-         } else if(gaugeFixing == Equator && fabs(N.x[2]) < Ionosphere::innerRadius / 10.) {
-            N.parameters[ionosphereParameters::SOLUTION] = 0;
-         } else {
-            N.parameters[ionosphereParameters::SOLUTION] += ak * N.parameters[ionosphereParameters::PPARAM];
-         }
+         N.parameters[ionosphereParameters::SOLUTION] += ak * N.parameters[ionosphereParameters::PPARAM];
        }
 
        // Rebalance the potential by calculating its area integral
@@ -2225,25 +2236,20 @@ namespace SBC {
        #pragma omp parallel for reduction(+:residualnorm)
        for(uint n=0; n<nodes.size(); n++) {
          Node& N=nodes[n];
-         if(gaugeFixing == Equator && fabs(N.x[2]) < Ionosphere::innerRadius / 10.) {
-            // Skip nodes that are not participating in the calculation.
-            N.parameters[ionosphereParameters::RRESIDUAL] = 0;
-         } else {
-            // Calculate residual of the new solution. The faster way to do this would be
-            //
-            // iSolverReal newresid = N.parameters[ionosphereParameters::RESIDUAL] - ak * N.parameters[ionosphereParameters::ZPARAM];
-            // and
-            // N.parameters[ionosphereParameters::RRESIDUAL] -= ak * N.parameters[ionosphereParameters::ZZPARAM];
-            // 
-            // but doing so leads to numerical inaccuracy due to roundoff errors
-            // when iteration counts are high (because, for example, mesh node count is high and the matrix condition is bad).
-            // See https://en.wikipedia.org/wiki/Conjugate_gradient_method#Explicit_residual_calculation
-            iSolverReal newresid = N.parameters[ionosphereParameters::SOURCE] - Atimes(n, ionosphereParameters::SOLUTION);
-            N.parameters[ionosphereParameters::RESIDUAL] = newresid;
-            residualnorm += newresid * newresid;
+         // Calculate residual of the new solution. The faster way to do this would be
+         //
+         // iSolverReal newresid = N.parameters[ionosphereParameters::RESIDUAL] - ak * N.parameters[ionosphereParameters::ZPARAM];
+         // and
+         // N.parameters[ionosphereParameters::RRESIDUAL] -= ak * N.parameters[ionosphereParameters::ZZPARAM];
+         // 
+         // but doing so leads to numerical inaccuracy due to roundoff errors
+         // when iteration counts are high (because, for example, mesh node count is high and the matrix condition is bad).
+         // See https://en.wikipedia.org/wiki/Conjugate_gradient_method#Explicit_residual_calculation
+         iSolverReal newresid = effectiveSource[n] - Atimes(n, ionosphereParameters::SOLUTION);
+         N.parameters[ionosphereParameters::RESIDUAL] = newresid;
+         residualnorm += newresid * newresid;
 
-            N.parameters[ionosphereParameters::RRESIDUAL] = N.parameters[ionosphereParameters::SOURCE] - Atimes(n, ionosphereParameters::SOLUTION, true);
-         }
+         N.parameters[ionosphereParameters::RRESIDUAL] = effectiveSource[n] - Atimes(n, ionosphereParameters::SOLUTION, true);
        }
        for(uint n=0; n<nodes.size(); n++) {
          Node& N=nodes[n];
