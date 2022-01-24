@@ -197,6 +197,7 @@ namespace SBC {
       iSolverReal Atimes(uint nodeIndex, int parameter, bool transpose=false); // Evaluate neighbour nodes' coupled parameter
       Real Asolve(uint nodeIndex, int parameter, bool transpose=false); // Evaluate own parameter value
       void solve();
+      Real solveInternal(int & iteration, int & nRestarts);
 
       // Map field-aligned currents, density and pressure
       // down from the simulation boundary onto this grid
@@ -375,6 +376,9 @@ namespace SBC {
       // Parameters of the ionosphere model
       static Real innerRadius; /*!< Radius of the ionosphere model */
       static int solverMaxIterations; /*!< Maximum iterations of CG solver per timestep */
+      static Real solverRelativeL2ConvergenceThreshold; /*! L2 metric relative convergence threshold */
+      static int solverMaxFailureCount;
+      static Real solverMaxErrorGrowthFactor;
       static bool solverPreconditioning; /*!< Preconditioning for the CG solver */
       static Real shieldingLatitude; /*! Latitude (degree) below which the potential is zeroed in the equator gauge fixing scheme */
       static Real eps; // Tolerance for Bulirsch Stoer Method
