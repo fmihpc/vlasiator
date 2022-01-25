@@ -1164,71 +1164,137 @@ namespace SBC {
       // Pick an initial stepsize
       Real stepSize = min(100e3, technicalGrid.DX / 2.); 
 
-      std::vector<Real> nodeDistance(nodes.size(), std::numeric_limits<Real>::max());
+      std::vector<Real> nodeDistance(nodes.size(), std::numeric_limits<Real>::max()); // For reduction of node coordinate in case of multiple hits
+      std::vector<int> nodeNeedsContinuedTracing(nodes.size(), 1);                    // Flag, whether tracing needs to continue on another task
+      std::vector<std::array<Real, 3>> nodeTracingCoordinates(nodes.size());          // In-flight node upmapping coordinates (for global reduction)
+      for(uint n=0; n<nodes.size(); n++) {
+         nodeTracingCoordinates[n] = nodes[n].x;
+      }
+      bool anyNodeNeedsTracing = false;
 
-      #pragma omp parallel firstprivate(stepSize)
-      {
-         // Trace node coordinates outwards until a non-sysboundary cell is encountered 
-         #pragma omp parallel for
-         for(uint n=0; n<nodes.size(); n++) {
 
-            Node& no = nodes[n];
 
-            std::array<Real, 3> x = no.x;
-            std::array<Real, 3> v({0,0,0});
-            //Real stepSize = min(100e3, technicalGrid.DX / 2.); 
-            
-            while( sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]) < 1.5*max(couplingRadius, Ionosphere::downmapRadius*physicalconstants::R_E) ) {
+      do {
 
-               // Make one step along the fieldline
-               stepFieldLine(x,v, stepSize,technicalGrid.DX/2,couplingMethod,true);
-
-               // Look up the fsgrid cell beloinging to these coordinates
-               std::array<int, 3> fsgridCell;
-               std::array<Real, 3> interpolationFactor;
-               for(int c=0; c<3; c++) {
-                  fsgridCell[c] = (x[c] - technicalGrid.physicalGlobalStart[c]) / technicalGrid.DX;
-                  interpolationFactor[c] = (x[c] - technicalGrid.physicalGlobalStart[c]) / technicalGrid.DX - fsgridCell[c];
-               }
-               fsgridCell = technicalGrid.globalToLocal(fsgridCell[0], fsgridCell[1], fsgridCell[2]);
-
-               creal distance = sqrt((x[0]-no.x[0])*(x[0]-no.x[0])+(x[1]-no.x[1])*(x[1]-no.x[1])+(x[2]-no.x[2])*(x[2]-no.x[2]));
-
-               // If the field line is no longer moving outwards but tangentially (88 degrees), abort.
-               // (Note that v is normalized)
-               // TODO: If we are inside the magnetospheric domain, but under the coupling radius, should thes *still* be taking along, just to have a
-               // better shot at the region 2 currents? Or is that simply opening the door to boundary artifact hell?
-               if(fabs(x[0]*v[0]+x[1]*v[1]+x[2]*v[2])/sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]) < cos(88. / 180. * M_PI)) {
-                  break;
-               }
-
-               // Not inside the local fsgrid domain, skip and continue.
-               if(fsgridCell[0] == -1) {
+         #pragma omp parallel firstprivate(stepSize)
+         {
+            // Trace node coordinates outwards until a non-sysboundary cell is encountered or the local fsgrid domain has been left.
+            #pragma omp parallel for
+            for(uint n=0; n<nodes.size(); n++) {
+   
+               if(!nodeNeedsContinuedTracing[n]) {
+                  // This node has already found its target, no need for us to do anything about it.
                   continue;
                }
-
-               if(
-                  technicalGrid.get( fsgridCell[0], fsgridCell[1], fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY
-                  && technicalGrid.getRank() == technicalGrid.getTaskForGlobalID(technicalGrid.GlobalIDForCoords(fsgridCell[0], fsgridCell[1], fsgridCell[2])).first // this returns a <rank, LocalID> pair
-                  && x[0]*x[0]+x[1]*x[1]+x[2]*x[2] > Ionosphere::downmapRadius*Ionosphere::downmapRadius*physicalconstants::R_E*physicalconstants::R_E
-               ) {
-
-                  // Store the cells mapped coordinates and upmapped magnetic field
-                  no.xMapped = x;
-                  no.haveCouplingData = 1;
-                  nodeDistance[n] = distance;
+               Node& no = nodes[n];
+   
+               std::array<Real, 3> x = nodeTracingCoordinates[n];
+               std::array<Real, 3> v({0,0,0});
+               //Real stepSize = min(100e3, technicalGrid.DX / 2.); 
+               
+               while( true ) {
+   
+                  // Check if the current coordinates (pre-step) are in our own domain.
+                  std::array<int, 3> fsgridCell;
                   for(int c=0; c<3; c++) {
-                     no.fsgridCellCoupling[c] = (x[c] - technicalGrid.physicalGlobalStart[c]) / technicalGrid.DX;
+                     fsgridCell[c] = (x[c] - technicalGrid.physicalGlobalStart[c]) / technicalGrid.DX;
                   }
-                  no.parameters[ionosphereParameters::UPMAPPED_BX]= dipoleField(x[0],x[1],x[2],X, 0, X);
-                  no.parameters[ionosphereParameters::UPMAPPED_BY]= dipoleField(x[0],x[1],x[2],Y, 0, Y);
-                  no.parameters[ionosphereParameters::UPMAPPED_BZ]= dipoleField(x[0],x[1],x[2],Z, 0, Z);
+                  fsgridCell = technicalGrid.globalToLocal(fsgridCell[0], fsgridCell[1], fsgridCell[2]);
+                  // If it is not in our domain, somebody else takes care of it.
+                  if(fsgridCell[0] == -1) {
+                     nodeNeedsContinuedTracing[n] = 0;
+                     nodeTracingCoordinates[n] = {0,0,0};
+                     break;
+                  }
 
-                  break;
+
+                  // Make one step along the fieldline
+                  stepFieldLine(x,v, stepSize,technicalGrid.DX/2,couplingMethod,true);
+   
+                  // Look up the fsgrid cell beloinging to these coordinates
+                  std::array<Real, 3> interpolationFactor;
+                  for(int c=0; c<3; c++) {
+                     fsgridCell[c] = (x[c] - technicalGrid.physicalGlobalStart[c]) / technicalGrid.DX;
+                     interpolationFactor[c] = (x[c] - technicalGrid.physicalGlobalStart[c]) / technicalGrid.DX - fsgridCell[c];
+                  }
+                  fsgridCell = technicalGrid.globalToLocal(fsgridCell[0], fsgridCell[1], fsgridCell[2]);
+   
+                  creal distance = sqrt((x[0]-no.x[0])*(x[0]-no.x[0])+(x[1]-no.x[1])*(x[1]-no.x[1])+(x[2]-no.x[2])*(x[2]-no.x[2]));
+   
+                  // If the field line is no longer moving outwards but tangentially (88 degrees), abort.
+                  // (Note that v is normalized)
+                  // TODO: If we are inside the magnetospheric domain, but under the coupling radius, should thes *still* be taking along, just to have a
+                  // better shot at the region 2 currents? Or is that simply opening the door to boundary artifact hell?
+                  if(fabs(x[0]*v[0]+x[1]*v[1]+x[2]*v[2])/sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]) < cos(88. / 180. * M_PI)) {
+                     nodeNeedsContinuedTracing[n] = 0;
+                     nodeTracingCoordinates[n] = {0,0,0};
+                     break;
+                  }
+
+                  // If we traced far outside of our couplingRadius (such as following a polar fieldline straight out), end tracing.
+                  if( sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]) >= 1.5*max(couplingRadius, Ionosphere::downmapRadius*physicalconstants::R_E) ) {
+                     nodeNeedsContinuedTracing[n] = 0;
+                     nodeTracingCoordinates[n] = {0,0,0};
+                     break;
+                  }
+   
+                  // Now, after stepping, if it is no longer in our domain, another MPI rank will pick up later.
+                  if(fsgridCell[0] == -1) {
+                     nodeNeedsContinuedTracing[n] = 1;
+                     nodeTracingCoordinates[n] = x;
+                     break;
+                  }
+   
+                  if(
+                     technicalGrid.get( fsgridCell[0], fsgridCell[1], fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY
+                     && technicalGrid.getRank() == technicalGrid.getTaskForGlobalID(technicalGrid.GlobalIDForCoords(fsgridCell[0], fsgridCell[1], fsgridCell[2])).first // this returns a <rank, LocalID> pair
+                     && x[0]*x[0]+x[1]*x[1]+x[2]*x[2] > Ionosphere::downmapRadius*Ionosphere::downmapRadius*physicalconstants::R_E*physicalconstants::R_E
+                  ) {
+   
+                     // Store the cells mapped coordinates and upmapped magnetic field
+                     no.xMapped = x;
+                     no.haveCouplingData = 1;
+                     nodeDistance[n] = distance;
+                     for(int c=0; c<3; c++) {
+                        no.fsgridCellCoupling[c] = (x[c] - technicalGrid.physicalGlobalStart[c]) / technicalGrid.DX;
+                     }
+                     no.parameters[ionosphereParameters::UPMAPPED_BX]= dipoleField(x[0],x[1],x[2],X, 0, X);
+                     no.parameters[ionosphereParameters::UPMAPPED_BY]= dipoleField(x[0],x[1],x[2],Y, 0, Y);
+                     no.parameters[ionosphereParameters::UPMAPPED_BZ]= dipoleField(x[0],x[1],x[2],Z, 0, Z);
+   
+                     nodeNeedsContinuedTracing[n] = 0;
+                     nodeTracingCoordinates[n] = {0,0,0};
+                     break;
+                  }
                }
             }
          }
-      }
+
+         // Globally reduce whether any node still needs to be picked up and traced onwards
+         std::vector<int> sumNodeNeedsContinuedTracing(nodes.size(), 0);
+         std::vector<std::array<Real, 3>> sumNodeTracingCoordinates(nodes.size());
+         MPI_Allreduce(nodeNeedsContinuedTracing.data(), sumNodeNeedsContinuedTracing.data(), nodes.size(), MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+         if(sizeof(Real) == sizeof(double)) {
+            MPI_Allreduce(nodeTracingCoordinates.data(), sumNodeTracingCoordinates.data(), nodes.size(), MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+         } else {
+            MPI_Allreduce(nodeTracingCoordinates.data(), sumNodeTracingCoordinates.data(), nodes.size(), MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
+         }
+         for(int n=0; n<nodes.size(); n++) {
+            if(sumNodeNeedsContinuedTracing[n] > 0) {
+               anyNodeNeedsTracing=true;
+
+               if(sumNodeNeedsContinuedTracing[n] > 1) {
+                  logFile << "(ionosphere) Warning: more than one task wants to continue tracing node " << n << endl << write;
+               }
+
+               // Update that nodes' tracing coordinates
+               nodeTracingCoordinates[n][0] = sumNodeTracingCoordinates[n][0] / sumNodeNeedsContinuedTracing[n];
+               nodeTracingCoordinates[n][1] = sumNodeTracingCoordinates[n][1] / sumNodeNeedsContinuedTracing[n];
+               nodeTracingCoordinates[n][2] = sumNodeTracingCoordinates[n][2] / sumNodeNeedsContinuedTracing[n];
+            }
+         }
+
+      } while(anyNodeNeedsTracing);
       
       std::vector<Real> reducedNodeDistance(nodes.size());
       if(sizeof(Real) == sizeof(double)) {
