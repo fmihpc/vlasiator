@@ -45,6 +45,9 @@ mesh_data_container.o: ../../mesh_data_container.h ../../mesh_data.h
 iowrite.o:  ../../parameters.h ../../iowrite.cpp ../../iowrite.h  
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c ../../iowrite.cpp ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV}
 
+ioread.o:  ../../parameters.h ../../ioread.cpp ../../ioread.h  
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c ../../ioread.cpp ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV}
+
 logger.o: ../../logger.h ../../logger.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c ../../logger.cpp ${INC_MPI}
 
@@ -63,6 +66,6 @@ grid.o:  ../../grid.cpp ../../grid.h  ../../sysboundary/sysboundary.h
 main.o: main.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ./main.cpp  ${INC_VLSV}
 
-main: main.o ionosphere.o sysboundarycondition.o parameters.o readparameters.o object_wrapper.o particle_species.o spatial_cell.o cpu_moments.o mesh_data_container.o iowrite.o logger.o datareducer.o datareductionoperator.o common.o
+main: main.o ionosphere.o sysboundarycondition.o parameters.o readparameters.o object_wrapper.o particle_species.o spatial_cell.o cpu_moments.o mesh_data_container.o iowrite.o logger.o datareducer.o datareductionoperator.o common.o ioread.o
 	${LNK} ${LDFLAGS} -o main $^ $(LIBS) -lgomp
 

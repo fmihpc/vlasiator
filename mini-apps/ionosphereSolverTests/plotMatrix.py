@@ -39,9 +39,17 @@ ax.matshow(A, cmap="RdBu", vmin=-5, vmax=5)
 for i in range(A.shape[1]):
     for j in range(A.shape[0]):
         c = A[j,i]
-        ax.text(i, j, "%1.1f"%(c), va='center', ha='center', size="1")
+        ax.text(i, j, "%1.1f"%(c), va='center', ha='center', size="2")
 #pt.colorbar()
 
+# Plot inverse matrix
+ax = fig.add_subplot(122)
+Ainv =  numpy.linalg.inv(A)
+ax.matshow(Ainv, cmap="RdBu", vmin=-5, vmax=5)
+for i in range(A.shape[1]):
+    for j in range(A.shape[0]):
+        c = Ainv[j,i]
+        ax.text(i, j, "%1.1f"%(c), va='center', ha='center', size="2")
 
 # Calc eigenvalues
 λ,ev=numpy.linalg.eig(0.5*(A + numpy.transpose(A)))
@@ -52,8 +60,8 @@ ev = ev[numpy.argsort(λ)]
 print("Eigenvalues: " + str(λ))
 print("Smallest Eigenvector: " + str(ev[0]))
 
-ax = fig.add_subplot(122, projection='3d')
-fibonacci_sphere(ax, ev[0].shape[0],ev[0])
+#ax = fig.add_subplot(122, projection='3d')
+#fibonacci_sphere(ax, ev[0].shape[0],ev[0])
 
 #pt.show();
 pt.savefig("matrix.png", dpi=300)

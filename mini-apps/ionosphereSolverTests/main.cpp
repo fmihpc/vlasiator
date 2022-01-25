@@ -1,9 +1,11 @@
 #include <iostream>
+#include "vlsv_writer.h"
+#include "vlsv_reader_parallel.h"
 #include "../../sysboundary/ionosphere.h"
 #include "../../object_wrapper.h"
 #include "../../datareduction/datareductionoperator.h"
 #include "../../iowrite.h"
-#include "vlsv_writer.h"
+#include "../../ioread.h"
 
 using namespace std;
 using namespace SBC;
@@ -11,6 +13,8 @@ using namespace vlsv;
 
 Logger logFile,diagnostic;
 int globalflags::bailingOut=0;
+bool globalflags::writeRestart=0;
+bool globalflags::balanceLoad=0;
 ObjectWrapper objectWrapper;
 ObjectWrapper& getObjectWrapper() {
    return objectWrapper;
@@ -30,6 +34,7 @@ Real divideIfNonZero( creal numerator, creal denominator) {
 void deallocateRemoteCellBlocks(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry, std::tuple<>, std::tuple<> >&) {};
 void updateRemoteVelocityBlockLists(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry, std::tuple<>, std::tuple<> >&, unsigned int, unsigned int) {
 };
+void recalculateLocalCellsCache() {}
 
 
 int main(int argc, char** argv) {
@@ -45,6 +50,7 @@ int main(int argc, char** argv) {
          cerr << "(MAIN): MPI_Init_thread failed! Got " << provided << ", need "<<required <<endl;
       exit(1);
    }
+   const int masterProcessID = 0;
 
 
    // Parse parameters
@@ -52,7 +58,8 @@ int main(int argc, char** argv) {
    std::string sigmaString="identity";
    std::string facString="constant";
    std::string gaugeFixString="pole";
-   bool doRefine = false;
+   std::string inputFile;
+   std::vector<std::pair<double, double>> refineExtents;
    bool doPrecondition = true;
    if(argc ==1) {
       cerr << "Running with default options. Run main --help to see available settings." << endl;
@@ -63,7 +70,7 @@ int main(int argc, char** argv) {
          continue;
       }
       if(!strcmp(argv[i], "-r")) {
-         doRefine = true;
+         refineExtents.push_back(std::pair<double,double>(atof(argv[++i]), atof(argv[++i])));
          continue;
       }
       if(!strcmp(argv[i], "-sigma")) {
@@ -82,23 +89,30 @@ int main(int argc, char** argv) {
          doPrecondition = false;
          continue;
       }
+      if(!strcmp(argv[i], "-infile")) {
+         inputFile = argv[++i];
+         continue;
+      }
       cerr << "Unknown command line option \"" << argv[i] << "\"" << endl;
       cerr << endl;
-      cerr << "main [-N num] [-r] [-sigma (identity|random|35|53)] [-fac (constant|dipole|quadrupole)] [-gaugeFix equator|pole|integral|none] [-np]" << endl;
+      cerr << "main [-N num] [-r <lat0> <lat1>] [-sigma (identity|random|35|53|file)] [-fac (constant|dipole|quadrupole|file)] [-facfile <filename>] [-gaugeFix equator|pole|integral|none] [-np]" << endl;
       cerr << "Paramters:" << endl;
       cerr << " -N:        Number of ionosphere mesh nodes (default: 64)" << endl;
-      cerr << " -r:        Refine grid in the auroral regions (default: no)" << endl;
+      cerr << " -r:        Refine grid between the given latitudes (can be specified multiple times)" << endl;
       cerr << " -sigma:    Conductivity matrix contents (default: identity)" << endl;
       cerr << "            options are:" << endl;
       cerr << "            identity - identity matrix w/ conductivity 1" << endl;
       cerr << "            random -   randomly chosen conductivity values" << endl;
       cerr << "            35 -       Sigma_H = 3, Sigma_P = 5" << endl;
       cerr << "            53 -       Sigma_H = 5, Sigma_P = 3" << endl;
+      cerr << "            file -     Read from vlsv input file " << endl;
       cerr << " -fac:      FAC pattern on the sphere (default: constant)" << endl;
       cerr << "            options are:" << endl;
       cerr << "            constant   - Constant value of 1" << endl;
       cerr << "            dipole     - north/south dipole" << endl;
       cerr << "            quadrupole - east/west quadrupole" << endl;
+      cerr << "            file       - read FAC distribution from vlsv input file" << endl;
+      cerr << " -infile:   Read FACs from this input file" << endl;
       cerr << " -gaugeFix: Solver gauge fixing method (default: pole)" << endl;
       cerr << " -np:       DON'T use the matrix preconditioner (default: do)" << endl;
       
@@ -142,9 +156,10 @@ int main(int argc, char** argv) {
       }
    };
 
-   if(doRefine) {
-      refineBetweenLatitudes(40,90);
-      refineBetweenLatitudes(50,80);
+   if(refineExtents.size() > 0) {
+      for(int i=0; i< refineExtents.size(); i++) {
+         refineBetweenLatitudes(refineExtents[i].first, refineExtents[i].second);
+      }
       ionosphereGrid.stitchRefinementInterfaces();
    }
 
@@ -160,6 +175,10 @@ int main(int argc, char** argv) {
             }
          }
       }
+   } else if(sigmaString == "file") {
+      vlsv::ParallelReader inVlsv;
+      inVlsv.open(inputFile,MPI_COMM_WORLD,masterProcessID);
+      readIonosphereNodeVariable(inVlsv, "ig_sigma", ionosphereGrid, ionosphereParameters::SIGMA);
    } else {
       cerr << "Conductivity tensor " << sigmaString << " not implemented!" << endl;
       return 1;
@@ -183,6 +202,10 @@ int main(int argc, char** argv) {
          double phi = atan2(nodes[n].x[0], nodes[n].x[1]); // Longitude
          nodes[n].parameters[ionosphereParameters::SOURCE] = sph_legendre(2,1,theta) * cos(1*phi);
       }
+   } else if(facString == "file") {
+      vlsv::ParallelReader inVlsv;
+      inVlsv.open(inputFile,MPI_COMM_WORLD,masterProcessID);
+      readIonosphereNodeVariable(inVlsv, "ig_fac", ionosphereGrid, ionosphereParameters::SOURCE);
    } else {
       cerr << "FAC pattern " << sigmaString << " not implemented!" << endl;
       return 1;
@@ -220,7 +243,6 @@ int main(int argc, char** argv) {
 
    // Write output
    vlsv::Writer outputFile;
-   const int masterProcessID = 0;
    outputFile.open("output.vlsv",MPI_COMM_WORLD,masterProcessID);
    ionosphereGrid.communicator = MPI_COMM_WORLD;
    ionosphereGrid.writingRank = 0;

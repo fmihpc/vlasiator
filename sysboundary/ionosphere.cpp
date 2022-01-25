@@ -2148,13 +2148,13 @@ namespace SBC {
       for(uint n=0; n<nodes.size(); n++) {
          Node& N=nodes[n];
          // Set gauge-pinned nodes to their fixed potential
-         if(gaugeFixing == Pole && n == 0) {
-            effectiveSource[n] = 0;
-         } else if(gaugeFixing == Equator && fabs(N.x[2]) < Ionosphere::innerRadius * sin(Ionosphere::shieldingLatitude * M_PI / 180.0)) {
-            effectiveSource[n] = 0;
-         }  else {
+         //if(gaugeFixing == Pole && n == 0) {
+         //   effectiveSource[n] = 0;
+         //} else if(gaugeFixing == Equator && fabs(N.x[2]) < Ionosphere::innerRadius * sin(Ionosphere::shieldingLatitude * M_PI / 180.0)) {
+         //   effectiveSource[n] = 0;
+         //}  else {
             effectiveSource[n] = N.parameters[ionosphereParameters::SOURCE];
-         }
+         //}
 
          iSolverReal source = effectiveSource[n];
          sourcenorm += source*source;
@@ -2235,6 +2235,11 @@ namespace SBC {
          for(uint n=0; n<nodes.size(); n++) {
             Node& N=nodes[n];
             N.parameters[ionosphereParameters::SOLUTION] += ak * N.parameters[ionosphereParameters::PPARAM];
+            if(gaugeFixing == Pole && n == 0) {
+               N.parameters[ionosphereParameters::SOLUTION] = 0;
+            } else if(gaugeFixing == Equator && fabs(N.x[2]) < Ionosphere::innerRadius * sin(Ionosphere::shieldingLatitude * M_PI / 180.0)) {
+               N.parameters[ionosphereParameters::SOLUTION] = 0;
+            } 
          }
 
          // Rebalance the potential by calculating its area integral
