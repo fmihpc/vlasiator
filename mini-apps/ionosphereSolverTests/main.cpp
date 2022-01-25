@@ -51,7 +51,7 @@ int main(int argc, char** argv) {
       exit(1);
    }
    const int masterProcessID = 0;
-
+   logFile.open(MPI_COMM_WORLD, masterProcessID, "logfile.txt");
 
    // Parse parameters
    int numNodes = 64;
@@ -70,7 +70,9 @@ int main(int argc, char** argv) {
          continue;
       }
       if(!strcmp(argv[i], "-r")) {
-         refineExtents.push_back(std::pair<double,double>(atof(argv[++i]), atof(argv[++i])));
+         double minLat = atof(argv[++i]);
+         double maxLat = atof(argv[++i]);
+         refineExtents.push_back(std::pair<double,double>(minLat, maxLat));
          continue;
       }
       if(!strcmp(argv[i], "-sigma")) {
@@ -157,7 +159,7 @@ int main(int argc, char** argv) {
    };
 
    if(refineExtents.size() > 0) {
-      for(int i=0; i< refineExtents.size(); i++) {
+      for(unsigned int i=0; i< refineExtents.size(); i++) {
          refineBetweenLatitudes(refineExtents[i].first, refineExtents[i].second);
       }
       ionosphereGrid.stitchRefinementInterfaces();
@@ -206,6 +208,14 @@ int main(int argc, char** argv) {
       vlsv::ParallelReader inVlsv;
       inVlsv.open(inputFile,MPI_COMM_WORLD,masterProcessID);
       readIonosphereNodeVariable(inVlsv, "ig_fac", ionosphereGrid, ionosphereParameters::SOURCE);
+      for(uint i=0; i<ionosphereGrid.nodes.size(); i++) {
+         Real area = 0;
+         for(uint e=0; e<ionosphereGrid.nodes[i].numTouchingElements; e++) {
+            area += ionosphereGrid.elementArea(ionosphereGrid.nodes[i].touchingElements[e]);
+         }
+         area /= 3.; // As every element has 3 corners, don't double-count areas
+         ionosphereGrid.nodes[i].parameters[ionosphereParameters::SOURCE] *= area;
+      }
    } else {
       cerr << "FAC pattern " << sigmaString << " not implemented!" << endl;
       return 1;
@@ -219,7 +229,7 @@ int main(int argc, char** argv) {
       for(uint m=0; m<nodes.size(); m++) {
 
          Real val=0;
-         for(int d=0; d<nodes[n].numDepNodes; d++) {
+         for(unsigned int d=0; d<nodes[n].numDepNodes; d++) {
             if(nodes[n].dependingNodes[d] == m) {
                if(doPrecondition) {
                   val=nodes[n].dependingCoeffs[d] / nodes[n].dependingCoeffs[0];
@@ -295,7 +305,7 @@ int main(int argc, char** argv) {
          return retval;
    }));
 
-   for(int i=0; i<outputDROs.size(); i++) {
+   for(unsigned int i=0; i<outputDROs.size(); i++) {
       outputDROs.writeIonosphereGridData(ionosphereGrid, "ionosphere", i, outputFile);
    }
 
