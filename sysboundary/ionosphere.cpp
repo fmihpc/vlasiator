@@ -1173,9 +1173,10 @@ namespace SBC {
          b[1] = this->dipoleField(r[0],r[1],r[2],Y,0,Y);
          b[2] = this->dipoleField(r[0],r[1],r[2],Z,0,Z);
 
-         uint i =  floor((r[0] - P::xmin) / technicalGrid.DX);
-         uint j =  floor((r[1] - P::ymin) / technicalGrid.DY);
-         uint k =  floor((r[2] - P::zmin) / technicalGrid.DZ);
+         std::array<int32_t, 3> localStart = technicalGrid.getLocalStart();
+         uint i =  floor((r[0] - P::xmin) / technicalGrid.DX) - localStart[0];
+         uint j =  floor((r[1] - P::ymin) / technicalGrid.DY) - localStart[1];
+         uint k =  floor((r[2] - P::zmin) / technicalGrid.DZ) - localStart[2];
 
          if(technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             const std::array<Real, 3> perB = interpolatePerturbedB(
