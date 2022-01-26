@@ -24,6 +24,7 @@
 #define IONOSPHERE_H
 
 #include <vector>
+#include <functional>
 #include "../definitions.h"
 #include "../readparameters.h"
 #include "../spatial_cell.hpp"
@@ -193,50 +194,19 @@ namespace SBC {
       ); // Find coupled ionosphere mesh node for given location
       //Field Line Tracing functions
       int ijk2Index(int i , int j ,int k ,std::array<int,3>dims); //3D to 1D indexing 
-      void getRadialBfieldDirection(
-         std::array<Real,3>& r,
-         bool outwards,
-         std::array<Real,3>& b,
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-         std::map< std::array<uint, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > & reconstructionCoefficientsCache
-      );
-      void getRadialBfieldDirection(
-         std::array<Real,3>& r,
-         bool outwards,
-         std::array<Real,3>& b
-      );
+      typedef std::function<void(std::array<Real,3>&, bool, std::array<Real, 3>&)> TracingFieldFunction;
       void bulirschStoerStep(
          std::array<Real, 3>& r,
          std::array<Real, 3>& b,
          Real& stepsize,Real maxStepsize,
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-         std::map< std::array<uint, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > & reconstructionCoefficientsCache,
-         bool outwards=true
-      ); //Bulrisch Stoer step
-      void bulirschStoerStep(
-         std::array<Real, 3>& r,
-         std::array<Real, 3>& b,
-         Real& stepsize,Real maxStepsize,
+         TracingFieldFunction& BFieldFunction,
          bool outwards=true
       ); //Bulrisch Stoer step
       void eulerStep(
          std::array<Real, 3>& x,
          std::array<Real, 3>& v,
          Real& stepsize,
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-         std::map< std::array<uint, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > & reconstructionCoefficientsCache,
-         bool outwards=true
-      ); //Euler step
-      void eulerStep(
-         std::array<Real, 3>& x,
-         std::array<Real, 3>& v,
-         Real& stepsize,
+         TracingFieldFunction& BFieldFunction,
          bool outwards=true
       ); //Euler step
       void modifiedMidpointMethod(
@@ -244,17 +214,7 @@ namespace SBC {
          std::array<Real,3>& r1,
          Real n,
          Real stepsize,
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-         std::map< std::array<uint, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > & reconstructionCoefficientsCache,
-         bool outwards=true
-      ); // Modified Midpoint Method used by BS step
-      void modifiedMidpointMethod(
-         std::array<Real,3> r,
-         std::array<Real,3>& r1,
-         Real n,
-         Real stepsize,
+         TracingFieldFunction& BFieldFunction,
          bool outwards=true
       ); // Modified Midpoint Method used by BS step
       void richardsonExtrapolation(int i, std::vector<Real>& table , Real& maxError,std::array<int,3>dims ); //Richardson extrapolation method used by BS step
@@ -264,18 +224,7 @@ namespace SBC {
          Real& stepsize,
          Real maxStepsize,
          IonosphereCouplingMethod method,
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-         std::map< std::array<uint, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > & reconstructionCoefficientsCache,
-         bool outwards=true
-      ); // Handler function for field line tracing
-      void stepFieldLine(
-         std::array<Real, 3>& x,
-         std::array<Real, 3>& v,
-         Real& stepsize,
-         Real maxStepsize,
-         IonosphereCouplingMethod method,
+         TracingFieldFunction& BFieldFunction,
          bool outwards=true
       ); // Handler function for field line tracing
       // Conjugate Gradient solver functions
