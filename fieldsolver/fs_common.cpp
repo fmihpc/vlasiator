@@ -205,7 +205,7 @@ void reconstructionCoefficients(
  *  doi:10.1016/j.jcp.2009.03.038
  *
  * \param perBGrid perturbed B fsGrid
- * \param dPerBGrid perturbed B derivatices fsGrid
+ * \param dPerBGrid perturbed B derivatives fsGrid
  * \param technicalGrid technical fsGrid
  * \param i local fsGrid x-index
  * \param j local fsGrid y-index

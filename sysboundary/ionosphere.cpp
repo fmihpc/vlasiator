@@ -914,11 +914,77 @@ namespace SBC {
       return i + j*dims[0] +k*dims[0]*dims[1];
    }
 
-   void SphericalTriGrid::getRadialBfieldDirection(std::array<Real,3>& r, bool outwards, std::array<Real,3>& b){
-
+   void SphericalTriGrid::getRadialBfieldDirection(
+      std::array<Real,3>& r,
+      bool outwards,
+      std::array<Real,3>& b,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      std::map< std::array<uint, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > & reconstructionCoefficientsCache
+   ) {
       assert(this->dipoleField);
 
-       // Get field direction
+      // Get field direction
+      b[0] = this->dipoleField(r[0],r[1],r[2],X,0,X);
+      b[1] = this->dipoleField(r[0],r[1],r[2],Y,0,Y);
+      b[2] = this->dipoleField(r[0],r[1],r[2],Z,0,Z);
+
+      uint i =  floor((r[0] - P::xmin) / technicalGrid.DX);
+      uint j =  floor((r[1] - P::ymin) / technicalGrid.DY);
+      uint k =  floor((r[2] - P::zmin) / technicalGrid.DZ);
+
+      if(technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+         const std::array<Real, 3> perB = interpolatePerturbedB(
+            perBGrid,
+            dPerBGrid,
+            technicalGrid,
+            reconstructionCoefficientsCache,
+            i,j,k,
+            r
+         );
+         b[0] += perB[0];
+         b[1] += perB[1];
+         b[2] += perB[2];
+      }
+
+      // Normalize
+      Real  norm = 1. / sqrt(b[0]*b[0] + b[1]*b[1] + b[2]*b[2]);
+      for(int c=0; c<3; c++) {
+         b[c] = b[c] * norm;
+      }
+
+      // Make sure motion is outwards. Flip b if dot(r,b) < 0
+      if(std::isnan(b[0]) || std::isnan(b[1]) || std::isnan(b[2])) {
+         cerr << "(ionosphere) Error: magnetic field is nan in getRadialBfieldDirection at location "
+            << r[0] << ", " << r[1] << ", " << r[2] << ", with B = " << b[0] << ", " << b[1] << ", " << b[2] << endl;
+         b[0] = 0;
+         b[1] = 0;
+         b[2] = 0;
+      }
+      if(outwards) {
+         if(b[0]*r[0] + b[1]*r[1] + b[2]*r[2] < 0) {
+            b[0]*=-1;
+            b[1]*=-1;
+            b[2]*=-1;
+         }
+      } else {
+         if(b[0]*r[0] + b[1]*r[1] + b[2]*r[2] > 0) {
+            b[0]*=-1;
+            b[1]*=-1;
+            b[2]*=-1;
+         }
+      }
+   }
+
+   void SphericalTriGrid::getRadialBfieldDirection(
+      std::array<Real,3>& r,
+      bool outwards,
+      std::array<Real,3>& b
+   ) {
+      assert(this->dipoleField);
+
+      // Get field direction
       b[0] = this->dipoleField(r[0],r[1],r[2],X,0,X);
       b[1] = this->dipoleField(r[0],r[1],r[2],Y,0,Y);
       b[2] = this->dipoleField(r[0],r[1],r[2],Z,0,Z);
@@ -978,8 +1044,51 @@ namespace SBC {
     * stepsize: big stepsize to use
     * z0,zmid,z2: intermediate approximations
     * */
-   void SphericalTriGrid::modifiedMidpointMethod(std::array<Real,3> r,std::array<Real,3>& r1, Real n, Real stepsize, bool outwards){
+   void SphericalTriGrid::modifiedMidpointMethod(
+      std::array<Real,3> r,
+      std::array<Real,3>& r1,
+      Real n,
+      Real stepsize,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      std::map< std::array<uint, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > & reconstructionCoefficientsCache,
+      bool outwards
+   ) {
+      //Allocate some memory.
+      std::array<Real,3> bunit,crd,z0,zmid,z1;
+      //Divide by number of sub steps      
+      Real h= stepsize/n;
+      Real norm;
+     
+      //First step 
+      getRadialBfieldDirection(r,outwards,bunit,perBGrid,dPerBGrid,technicalGrid,reconstructionCoefficientsCache);
+      z0=r;
+      z1={ r[0]+h*bunit[0], r[1]+h*bunit[1], r[2]+h*bunit[2]  };
+      getRadialBfieldDirection(z1,outwards,bunit,perBGrid,dPerBGrid,technicalGrid,reconstructionCoefficientsCache);
+
+      for (int m =0; m<=n; m++){
+         zmid= { z0[0]+2*h*bunit[0] , z0[1]+2*h*bunit[1], z0[2]+2*h*bunit[2] };
+         z0=z1;
+         z1=zmid;
+         crd = { r[0]+2.*m*h*bunit[0]  ,  r[1]+2.*m*h*bunit[1], r[2]+2.*m*h*bunit[2]};
+         getRadialBfieldDirection(crd,outwards,bunit,perBGrid,dPerBGrid,technicalGrid,reconstructionCoefficientsCache);
+      }
       
+      //These are now are new position
+      for (int c=0; c<3; c++){
+         r1[c] = 0.5*(z0[c]+z1[c]+h*bunit[c]);
+      }
+
+   }//modifiedMidpoint Method
+
+   void SphericalTriGrid::modifiedMidpointMethod(
+      std::array<Real,3> r,
+      std::array<Real,3>& r1,
+      Real n,
+      Real stepsize,
+      bool outwards
+   ) {
       //Allocate some memory.
       std::array<Real,3> bunit,crd,z0,zmid,z1;
       //Divide by number of sub steps      
@@ -1005,12 +1114,94 @@ namespace SBC {
          r1[c] = 0.5*(z0[c]+z1[c]+h*bunit[c]);
       }
 
-   }//modiefiedMidpoint Method
+   }//modifiedMidpoint Method
 
 
    /*Bulirsch-Stoer Mehtod to trace field line to next point along it*/
-   void SphericalTriGrid::bulirschStoerStep(std::array<Real, 3>& r, std::array<Real, 3>& b, Real& stepsize,Real maxStepsize, bool outwards){
-      
+   void SphericalTriGrid::bulirschStoerStep(
+      std::array<Real, 3>& r,
+      std::array<Real, 3>& b,
+      Real& stepsize,
+      Real maxStepsize,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      std::map< std::array<uint, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > & reconstructionCoefficientsCache,
+      bool outwards
+   ) {
+      //Factors by which the stepsize is multiplied 
+      Real shrink = 0.95;
+      Real grow = 1.2; 
+      //Max substeps for midpoint method
+      int kMax = 8;
+      //Optimal row to converge at 
+      int kOpt = 6;
+
+      const int ndim = kMax*kMax*3;
+      std::array<int,3>  dims={kMax,kMax,3};
+      std::vector<Real>table(ndim);
+      std::array<Real,3> rold,rnew,r1;
+      Real error;
+
+      //Get B field unit vector in case we don't converge yet
+      getRadialBfieldDirection(r,outwards,b,perBGrid,dPerBGrid,technicalGrid,reconstructionCoefficientsCache);
+
+      //Let's start things up with 2 substeps
+      int n =2;
+      //Save old state
+      rold = r;
+      //Take a first Step
+      modifiedMidpointMethod(r,r1,n,stepsize,perBGrid,dPerBGrid,technicalGrid,reconstructionCoefficientsCache,outwards);
+
+      //Save values in table
+      for(int c =0; c<3; ++c){
+         table[ijk2Index(0,0,c,dims)] = r1[c];
+      }
+  
+      for(int i=1; i<kMax; ++i){
+
+         //Increment n. Each iteration doubles the number of substeps
+         n+=2;
+         modifiedMidpointMethod(r,rnew,n,stepsize,perBGrid,dPerBGrid,technicalGrid,reconstructionCoefficientsCache,outwards);
+
+         //Save values in table
+         for(int c =0; c<3; ++c){
+            table[ijk2Index(i,0,c,dims)] = rnew[c];
+         }
+
+         //Now let's perform a Richardson extrapolatation
+         richardsonExtrapolation(i,table,error,dims);
+
+         //Normalize error
+         error/=Ionosphere::eps;
+
+         //If we are below eps good, let's return but also let's modify the stepSize accordingly 
+         if (error<1.){
+            if (i> kOpt) stepsize*=shrink;
+            if (i< kOpt) stepsize*=grow;
+            //Make sure stepsize does not exceed maxStepsize
+            stepsize= (stepsize<maxStepsize )?stepsize:maxStepsize;
+            //Keep our new position
+            r=rnew;
+            //Evaluate B here
+            getRadialBfieldDirection(r,outwards,b,perBGrid,dPerBGrid,technicalGrid,reconstructionCoefficientsCache);
+            return;
+         }
+      }
+
+      //If we end up  here it means our tracer did not converge so we need to reduce the stepSize all along and try again
+      stepsize*=shrink;
+      return;
+
+   } //Bulirsch-Stoer Step 
+
+   void SphericalTriGrid::bulirschStoerStep(
+      std::array<Real, 3>& r,
+      std::array<Real, 3>& b,
+      Real& stepsize,
+      Real maxStepsize,
+      bool outwards
+   ) {
       //Factors by which the stepsize is multiplied 
       Real shrink = 0.95;
       Real grow = 1.2; 
@@ -1079,8 +1270,31 @@ namespace SBC {
 
    
    /*Take an Euler step*/
-   void SphericalTriGrid::eulerStep(std::array<Real, 3>& x, std::array<Real, 3>& v, Real& stepsize, bool outwards){
+   void SphericalTriGrid::eulerStep(
+      std::array<Real, 3>& x,
+      std::array<Real, 3>& v,
+      Real& stepsize,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      std::map< std::array<uint, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > & reconstructionCoefficientsCache,
+      bool outwards
+   ) {
+      // Get field direction
+      getRadialBfieldDirection(x,outwards,v,perBGrid,dPerBGrid,technicalGrid,reconstructionCoefficientsCache);
 
+      for(int c=0; c<3; c++) {
+         x[c] += stepsize * v[c];
+      }
+   
+   }// Euler Step 
+
+   void SphericalTriGrid::eulerStep(
+      std::array<Real, 3>& x,
+      std::array<Real, 3>& v,
+      Real& stepsize,
+      bool outwards
+   ) {
       // Get field direction
       getRadialBfieldDirection(x,outwards,v);
 
@@ -1092,13 +1306,45 @@ namespace SBC {
    
    
    /*Take a step along the field line*/
-   void SphericalTriGrid::stepFieldLine(std::array<Real, 3>& x, std::array<Real, 3>& v, Real& stepsize,Real maxStepsize, IonosphereCouplingMethod method, bool outwards){
+   void SphericalTriGrid::stepFieldLine(
+      std::array<Real, 3>& x,
+      std::array<Real, 3>& v,
+      Real& stepsize,
+      Real maxStepsize,
+      IonosphereCouplingMethod method,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      std::map< std::array<uint, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > & reconstructionCoefficientsCache,
+      bool outwards
+   ) {
+      switch(method) {
+         case Euler:
+            eulerStep(x, v,stepsize, perBGrid, dPerBGrid, technicalGrid, reconstructionCoefficientsCache, outwards);
+            break;
+         case BS:
+            bulirschStoerStep(x, v,stepsize,maxStepsize, perBGrid,dPerBGrid,technicalGrid,reconstructionCoefficientsCache, outwards);
+            break;
+         default:
+            std::cerr << "(ionosphere) Warning: No Field Line Tracing method defined. Ionosphere connectivity will be garbled."<<std::endl;
+            break;
+      }
+   }//stepFieldLine
+
+   void SphericalTriGrid::stepFieldLine(
+      std::array<Real, 3>& x,
+      std::array<Real, 3>& v,
+      Real& stepsize,
+      Real maxStepsize,
+      IonosphereCouplingMethod method,
+      bool outwards
+   ) {
       switch(method) {
          case Euler:
             eulerStep(x, v,stepsize, outwards);
             break;
          case BS:
-            bulirschStoerStep(x, v,stepsize,maxStepsize, outwards);
+            bulirschStoerStep(x, v, stepsize, maxStepsize, outwards);
             break;
          default:
             std::cerr << "(ionosphere) Warning: No Field Line Tracing method defined. Ionosphere connectivity will be garbled."<<std::endl;
@@ -1153,7 +1399,11 @@ namespace SBC {
     * outwards until a non-boundary cell is encountered. Their proportional
     * coupling values are recorded in the grid nodes.
     */
-   void SphericalTriGrid::calculateFsgridCoupling(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, Real couplingRadius) {
+   void SphericalTriGrid::calculateFsgridCoupling(
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+      Real couplingRadius) {
 
       // we don't need to do anything if we have no nodes
       if(nodes.size() == 0) {
@@ -1172,7 +1422,7 @@ namespace SBC {
       }
       bool anyNodeNeedsTracing = false;
 
-
+      std::map< std::array<uint, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > reconstructionCoefficientsCache;
 
       do {
 
@@ -1209,7 +1459,7 @@ namespace SBC {
 
 
                   // Make one step along the fieldline
-                  stepFieldLine(x,v, stepSize,technicalGrid.DX/2,couplingMethod,true);
+                  stepFieldLine(x,v, stepSize,technicalGrid.DX/2,couplingMethod,perBGrid,dPerBGrid,technicalGrid,reconstructionCoefficientsCache,true);
    
                   // Look up the fsgrid cell beloinging to these coordinates
                   std::array<Real, 3> interpolationFactor;
@@ -1258,9 +1508,17 @@ namespace SBC {
                      for(int c=0; c<3; c++) {
                         no.fsgridCellCoupling[c] = (x[c] - technicalGrid.physicalGlobalStart[c]) / technicalGrid.DX;
                      }
-                     no.parameters[ionosphereParameters::UPMAPPED_BX]= dipoleField(x[0],x[1],x[2],X, 0, X);
-                     no.parameters[ionosphereParameters::UPMAPPED_BY]= dipoleField(x[0],x[1],x[2],Y, 0, Y);
-                     no.parameters[ionosphereParameters::UPMAPPED_BZ]= dipoleField(x[0],x[1],x[2],Z, 0, Z);
+                     const std::array<Real, 3> perB = interpolatePerturbedB(
+                        perBGrid,
+                        dPerBGrid,
+                        technicalGrid,
+                        reconstructionCoefficientsCache,
+                        fsgridCell[0], fsgridCell[1], fsgridCell[2],
+                        x
+                     );
+                     no.parameters[ionosphereParameters::UPMAPPED_BX]= perB[0];
+                     no.parameters[ionosphereParameters::UPMAPPED_BY]= perB[1];
+                     no.parameters[ionosphereParameters::UPMAPPED_BZ]= perB[2];
    
                      nodeNeedsContinuedTracing[n] = 0;
                      nodeTracingCoordinates[n] = {0,0,0};
@@ -1369,9 +1627,13 @@ namespace SBC {
    //
    // The return value is a pair of nodeID and coupling factor for the three
    // corners of the containing element.
-   std::array<std::pair<int, Real>, 3> SphericalTriGrid::calculateVlasovGridCoupling(std::array<Real,3> x, Real couplingRadius) {
+   std::array<std::pair<int, Real>, 3> SphericalTriGrid::calculateVlasovGridCoupling(
+      std::array<Real,3> x,
+      Real couplingRadius
+   ) {
 
       std::array<std::pair<int, Real>, 3> coupling;
+      std::map< std::array<uint, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > reconstructionCoefficientsCache;
 
       Real stepSize = 100e3;
       std::array<Real,3> v;
@@ -1499,7 +1761,9 @@ namespace SBC {
 
    // Calculate upmapped potential at the given coordinates,
    // by tracing down to the ionosphere and interpolating the appropriate element
-   Real SphericalTriGrid::interpolateUpmappedPotential(const std::array<Real, 3>& x) {
+   Real SphericalTriGrid::interpolateUpmappedPotential(
+      const std::array<Real, 3>& x
+   ) {
       
       if(!this->dipoleField) {
          // Timestep zero => apparently the dipole field is not initialized yet.
