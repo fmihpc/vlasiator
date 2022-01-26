@@ -54,7 +54,7 @@ Real divideIfNonZero(
 void reconstructionCoefficients(
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
    FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-   Real* perturbedResult,
+   std::array<Real, Rec::N_REC_COEFFICIENTS> & perturbedResult,
    cint i,
    cint j,
    cint k,
@@ -198,3 +198,79 @@ void reconstructionCoefficients(
    perturbedResult[Rec::c_0 ] = HALF*(cep_i1j1k2->at(fsgrids::bfield::PERBZ) + cep_i1j1k1->at(fsgrids::bfield::PERBZ)) - SIXTH*perturbedResult[Rec::c_zz];
 }
 
+/*! Interpolate perturbed B to arbitrary x,y,z in cell
+ *  Uses the reconstruction coefficients and equations from
+ *  Divergence-free reconstruction of magnetic fields and WENO schemes for magnetohydrodynamics
+ *  D.S. Balsara, J. Comp. Phys., 228, 2009
+ *  doi:10.1016/j.jcp.2009.03.038
+ *
+ * \param perBGrid perturbed B fsGrid
+ * \param dPerBGrid perturbed B derivatices fsGrid
+ * \param technicalGrid technical fsGrid
+ * \param i local fsGrid x-index
+ * \param j local fsGrid y-index
+ * \param k local fsGrid z-index
+ * \param x 3D global simulation x,y,z coordinates of point to interpolate to
+ */
+std::array<Real, 3> interpolatePerturbedB(
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+   std::map< std::array<uint, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > & reconstructionCoefficientsCache,
+   cuint i,
+   cuint j,
+   cuint k,
+   const std::array<Real, 3> x
+) {
+   cuint cellSysBoundaryFlag = technicalGrid.get(i,j,k)->sysBoundaryFlag;
+   if (cellSysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE) {
+      std::array<Real, 3> zero = {0,0,0};
+      return zero;
+   }
+
+   // Balsara reconstruction formulas: x,y,z are in [-1/2, 1/2] local coordinates
+   std::array<Real, 3> xLocal; 
+   std::array<double, 3> cellCorner = technicalGrid.getPhysicalCoords(i,j,k);
+   xLocal[0] = x[0] - cellCorner[0] + 0.5*technicalGrid.DX;
+   xLocal[1] = x[1] - cellCorner[1] + 0.5*technicalGrid.DY;
+   xLocal[2] = x[2] - cellCorner[2] + 0.5*technicalGrid.DZ;
+
+   if (fabs(xLocal[0]) > 0.5 || fabs(xLocal[1]) > 0.5 || fabs(xLocal[2]) > 0.5) {
+      cerr << __FILE__ << ":" << __LINE__ << ": Coordinate outside of this cell!" << endl;
+      abort();
+   }
+
+   std::array<uint, 3> cellIds = {i,j,k};
+
+   #pragma omp critical
+   if (reconstructionCoefficientsCache.find(cellIds) == reconstructionCoefficientsCache.end()) {
+      std::array<Real, Rec::N_REC_COEFFICIENTS> rc;
+
+      reconstructionCoefficients(
+         perBGrid,
+         dPerBGrid,
+         rc,
+         i,
+         j,
+         k,
+         2 // Reconstruction order of the fields after Balsara 2009, 2 used for general B, 3 used here for 2nd-order Hall term
+      );
+      
+      reconstructionCoefficientsCache.insert({cellIds, rc});
+   }
+   
+   std::array<Real, Rec::N_REC_COEFFICIENTS> rc = reconstructionCoefficientsCache.at(cellIds);
+   
+   std::array<Real, 3> interpolatedB;
+   // Eq. (7) Balsara 2009
+   interpolatedB[0] = rc[Rec::a_0] + rc[Rec::a_x]*x[0] + rc[Rec::a_y]*x[1] + rc[Rec::a_z]*x[2]
+                    + rc[Rec::a_xx] * (x[0]*x[0] - TWELWTH) + rc[Rec::a_xy]*x[0]*x[1] + rc[Rec::a_xz]*x[0]*x[2];
+   // Eq. (8) Balsara 2009
+   interpolatedB[1] = rc[Rec::b_0] + rc[Rec::b_x]*x[0] + rc[Rec::b_y]*x[1] + rc[Rec::b_z]*x[2]
+                    + rc[Rec::b_yy] * (x[1]*x[1] - TWELWTH) + rc[Rec::b_xy]*x[0]*x[1] + rc[Rec::b_yz]*x[1]*x[2];
+   // Eq. (9) Balsara 2009
+   interpolatedB[2] = rc[Rec::c_0] + rc[Rec::c_x]*x[0] + rc[Rec::c_y]*x[1] + rc[Rec::c_z]*x[2]
+                    + rc[Rec::c_zz] * (x[2]*x[2] - TWELWTH) + rc[Rec::c_xz]*x[0]*x[2] + rc[Rec::c_yz]*x[1]*x[2];
+
+   return interpolatedB;
+}
