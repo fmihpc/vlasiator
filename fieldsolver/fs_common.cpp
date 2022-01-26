@@ -216,14 +216,14 @@ std::array<Real, 3> interpolatePerturbedB(
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
    FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
    FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-   std::map< std::array<uint, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > & reconstructionCoefficientsCache,
-   cuint i,
-   cuint j,
-   cuint k,
+   std::map< std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > & reconstructionCoefficientsCache,
+   cint i,
+   cint j,
+   cint k,
    const std::array<Real, 3> x
 ) {
    cuint cellSysBoundaryFlag = technicalGrid.get(i,j,k)->sysBoundaryFlag;
-   if (cellSysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE) {
+   if (cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
       std::array<Real, 3> zero = {0,0,0};
       return zero;
    }
@@ -231,16 +231,16 @@ std::array<Real, 3> interpolatePerturbedB(
    // Balsara reconstruction formulas: x,y,z are in [-1/2, 1/2] local coordinates
    std::array<Real, 3> xLocal; 
    std::array<double, 3> cellCorner = technicalGrid.getPhysicalCoords(i,j,k);
-   xLocal[0] = x[0] - cellCorner[0] + 0.5*technicalGrid.DX;
-   xLocal[1] = x[1] - cellCorner[1] + 0.5*technicalGrid.DY;
-   xLocal[2] = x[2] - cellCorner[2] + 0.5*technicalGrid.DZ;
+   xLocal[0] = (x[0] - cellCorner[0] - 0.5*technicalGrid.DX) / technicalGrid.DX;
+   xLocal[1] = (x[1] - cellCorner[1] - 0.5*technicalGrid.DY) / technicalGrid.DY;
+   xLocal[2] = (x[2] - cellCorner[2] - 0.5*technicalGrid.DZ) / technicalGrid.DZ;
 
    if (fabs(xLocal[0]) > 0.5 || fabs(xLocal[1]) > 0.5 || fabs(xLocal[2]) > 0.5) {
-      cerr << __FILE__ << ":" << __LINE__ << ": Coordinate outside of this cell!" << endl;
+      cerr << __FILE__ << ":" << __LINE__ << ": Coordinate (" << xLocal[0] << "," << xLocal[1] << "," << xLocal[2] << ")  outside of this cell!" << endl;
       abort();
    }
 
-   std::array<uint, 3> cellIds = {i,j,k};
+   std::array<int, 3> cellIds = {i,j,k};
 
    #pragma omp critical
    if (reconstructionCoefficientsCache.find(cellIds) == reconstructionCoefficientsCache.end()) {
@@ -263,14 +263,13 @@ std::array<Real, 3> interpolatePerturbedB(
    
    std::array<Real, 3> interpolatedB;
    // Eq. (7) Balsara 2009
-   interpolatedB[0] = rc[Rec::a_0] + rc[Rec::a_x]*x[0] + rc[Rec::a_y]*x[1] + rc[Rec::a_z]*x[2]
-                    + rc[Rec::a_xx] * (x[0]*x[0] - TWELWTH) + rc[Rec::a_xy]*x[0]*x[1] + rc[Rec::a_xz]*x[0]*x[2];
+   interpolatedB[0] = rc[Rec::a_0] + rc[Rec::a_x]*xLocal[0] + rc[Rec::a_y]*xLocal[1] + rc[Rec::a_z]*xLocal[2]
+                    + rc[Rec::a_xx] * (xLocal[0]*xLocal[0] - TWELWTH) + rc[Rec::a_xy]*xLocal[0]*xLocal[1] + rc[Rec::a_xz]*xLocal[0]*xLocal[2];
    // Eq. (8) Balsara 2009
-   interpolatedB[1] = rc[Rec::b_0] + rc[Rec::b_x]*x[0] + rc[Rec::b_y]*x[1] + rc[Rec::b_z]*x[2]
-                    + rc[Rec::b_yy] * (x[1]*x[1] - TWELWTH) + rc[Rec::b_xy]*x[0]*x[1] + rc[Rec::b_yz]*x[1]*x[2];
+   interpolatedB[1] = rc[Rec::b_0] + rc[Rec::b_x]*xLocal[0] + rc[Rec::b_y]*xLocal[1] + rc[Rec::b_z]*xLocal[2]
+                    + rc[Rec::b_yy] * (xLocal[1]*xLocal[1] - TWELWTH) + rc[Rec::b_xy]*xLocal[0]*xLocal[1] + rc[Rec::b_yz]*xLocal[1]*xLocal[2];
    // Eq. (9) Balsara 2009
-   interpolatedB[2] = rc[Rec::c_0] + rc[Rec::c_x]*x[0] + rc[Rec::c_y]*x[1] + rc[Rec::c_z]*x[2]
-                    + rc[Rec::c_zz] * (x[2]*x[2] - TWELWTH) + rc[Rec::c_xz]*x[0]*x[2] + rc[Rec::c_yz]*x[1]*x[2];
-
+   interpolatedB[2] = rc[Rec::c_0] + rc[Rec::c_x]*xLocal[0] + rc[Rec::c_y]*xLocal[1] + rc[Rec::c_z]*xLocal[2]
+                    + rc[Rec::c_zz] * (xLocal[2]*xLocal[2] - TWELWTH) + rc[Rec::c_xz]*xLocal[0]*xLocal[2] + rc[Rec::c_yz]*xLocal[1]*xLocal[2];
    return interpolatedB;
 }

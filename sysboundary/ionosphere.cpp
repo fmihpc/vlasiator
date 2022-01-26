@@ -1161,9 +1161,9 @@ namespace SBC {
       for(uint n=0; n<nodes.size(); n++) {
          nodeTracingCoordinates[n] = nodes[n].x;
       }
-      bool anyNodeNeedsTracing = false;
+      bool anyNodeNeedsTracing;
 
-      std::map< std::array<uint, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > reconstructionCoefficientsCache;
+      std::map< std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > reconstructionCoefficientsCache;
 
       // Fieldline tracing function
       TracingFieldFunction tracingField = [this, &perBGrid, &dPerBGrid, &technicalGrid, &reconstructionCoefficientsCache](std::array<Real,3>& r, bool outwards, std::array<Real,3>& b)->void {
@@ -1221,6 +1221,7 @@ namespace SBC {
       };
 
       do {
+         anyNodeNeedsTracing = false;
 
          #pragma omp parallel firstprivate(stepSize)
          {
@@ -1429,7 +1430,7 @@ namespace SBC {
    ) {
 
       std::array<std::pair<int, Real>, 3> coupling;
-      std::map< std::array<uint, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > reconstructionCoefficientsCache;
+      std::map< std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > reconstructionCoefficientsCache;
 
       Real stepSize = 100e3;
       std::array<Real,3> v;
