@@ -1689,6 +1689,33 @@ namespace SBC {
                continue;
             }
 
+            // Calc curlB
+            const std::array<Real, 3> curlB = interpolateCurlB(
+               perBGrid,
+               dPerBGrid,
+               technicalGrid,
+               reconstructionCoefficientsCache,
+               lfsc[0],lfsc[1],lfsc[2],
+               nodes[n].xMapped
+            );
+
+            // Dot with normalized B, scale by area
+            FACinput[n] = upmappedArea * (nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]*curlB[0] + nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]*curlB[1] + nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]*curlB[2])
+               / (
+                  sqrt(
+                     nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]
+                     + nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]
+                     + nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]
+               ) * physicalconstants::MU_0
+            );
+
+            // By definition, a downwards current into the ionosphere has a positive FAC value,
+            // as it corresponds to positive divergence of horizontal current in the ionospheric plane.
+            // To make sure we match that, flip FAC sign on the southern hemisphere
+            if(nodes[n].x[2] < 0) {
+               FACinput[n] *= -1;
+            }
+
             for(int c=0; c<3; c++) {
                // Shift by half a cell, as we are sampling volume quantities that are logically located at cell centres.
                Real frac = cell[c] - floor(cell[c]);
@@ -1734,35 +1761,6 @@ namespace SBC {
             if(couplingSum > 0) {
                rhoInput[n] /= couplingSum;
                pressureInput[n] /= couplingSum;
-            }
-
-            // Calc curlB
-            cell = nodes[n].fsgridCellCoupling;
-            lfsc = technicalGrid.globalToLocal(cell[0],cell[1],cell[2]);
-            const std::array<Real, 3> curlB = interpolateCurlB(
-               perBGrid,
-               dPerBGrid,
-               technicalGrid,
-               reconstructionCoefficientsCache,
-               lfsc[0],lfsc[1],lfsc[2],
-               nodes[n].xMapped
-            );
-
-            // Dot with normalized B, scale by area
-            FACinput[n] = upmappedArea * (nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]*curlB[0] + nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]*curlB[1] + nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]*curlB[2])
-               / (
-                  sqrt(
-                     nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]
-                     + nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]
-                     + nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]
-               ) * physicalconstants::MU_0
-            );
-
-            // By definition, a downwards current into the ionosphere has a positive FAC value,
-            // as it corresponds to positive divergence of horizontal current in the ionospheric plane.
-            // To make sure we match that, flip FAC sign on the southern hemisphere
-            if(nodes[n].x[2] < 0) {
-               FACinput[n] *= -1;
             }
 
             // Scale density and pressure by area ratio
