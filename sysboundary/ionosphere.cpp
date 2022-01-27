@@ -1166,10 +1166,8 @@ namespace SBC {
       }
       bool anyNodeNeedsTracing;
 
-      std::map< std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > reconstructionCoefficientsCache;
-
       // Fieldline tracing function
-      TracingFieldFunction tracingField = [this, &perBGrid, &dPerBGrid, &technicalGrid, &reconstructionCoefficientsCache](std::array<Real,3>& r, bool outwards, std::array<Real,3>& b)->void {
+      TracingFieldFunction tracingField = [this, &perBGrid, &dPerBGrid, &technicalGrid](std::array<Real,3>& r, bool outwards, std::array<Real,3>& b)->void {
 
          // Get field direction
          b[0] = this->dipoleField(r[0],r[1],r[2],X,0,X);
@@ -1430,7 +1428,6 @@ namespace SBC {
    ) {
 
       std::array<std::pair<int, Real>, 3> coupling;
-      std::map< std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > reconstructionCoefficientsCache;
 
       Real stepSize = 100e3;
       std::array<Real,3> v;
@@ -1618,222 +1615,224 @@ namespace SBC {
 
    // Transport field-aligned currents down from the simulation cells to the ionosphere
    void SphericalTriGrid::mapDownBoundaryData(
-       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volgrid,
-       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+       FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
        FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
        FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
 
-     if(!isCouplingInwards && !isCouplingOutwards) {
-        return;
-     }
+      if(!isCouplingInwards && !isCouplingOutwards) {
+         return;
+      }
 
-     phiprof::start("ionosphere-mapDownMagnetosphere");
+      phiprof::start("ionosphere-mapDownMagnetosphere");
 
-     // Create zeroed-out input arrays
-     std::vector<double> FACinput(nodes.size());
-     std::vector<double> rhoInput(nodes.size());
-     std::vector<double> pressureInput(nodes.size());
+      // Create zeroed-out input arrays
+      std::vector<double> FACinput(nodes.size());
+      std::vector<double> rhoInput(nodes.size());
+      std::vector<double> pressureInput(nodes.size());
 
-     // Map all coupled nodes down into it
-     // Tasks that don't have anything to couple to can skip this step.
-     if(isCouplingInwards) {
-     #pragma omp parallel for
-        for(uint n=0; n<nodes.size(); n++) {
+      // Map all coupled nodes down into it
+      // Tasks that don't have anything to couple to can skip this step.
+      if(isCouplingInwards) {
+      #pragma omp parallel for
+         for(uint n=0; n<nodes.size(); n++) {
 
-           Real J = 0;
-           Real area = 0;
-           Real upmappedArea = 0;
-           std::array<int,3> fsc;
+            Real J = 0;
+            Real area = 0;
+            Real upmappedArea = 0;
+            std::array<int,3> fsc;
 
-           // Iterate through the elements touching that node
-           for(uint e=0; e<nodes[n].numTouchingElements; e++) {
-              const Element& el= elements[nodes[n].touchingElements[e]];
+            // Iterate through the elements touching that node
+            for(uint e=0; e<nodes[n].numTouchingElements; e++) {
+               const Element& el= elements[nodes[n].touchingElements[e]];
 
-              // This element has 3 corner nodes
-              // Get the B-values at the upmapped coordinates
-              std::array< std::array< Real, 3>, 3> B = {0};
-              for(int c=0; c <3 ;c++) {
+               // This element has 3 corner nodes
+               // Get the B-values at the upmapped coordinates
+               std::array< std::array< Real, 3>, 3> B = {0};
+               for(int c=0; c <3 ;c++) {
 
-                 const Node& corner = nodes[el.corners[c]];
+                  const Node& corner = nodes[el.corners[c]];
 
-                 B[c][0] = corner.parameters[ionosphereParameters::UPMAPPED_BX];
-                 B[c][1] = corner.parameters[ionosphereParameters::UPMAPPED_BY];
-                 B[c][2] = corner.parameters[ionosphereParameters::UPMAPPED_BZ];
-              }
+                  B[c][0] = corner.parameters[ionosphereParameters::UPMAPPED_BX];
+                  B[c][1] = corner.parameters[ionosphereParameters::UPMAPPED_BY];
+                  B[c][2] = corner.parameters[ionosphereParameters::UPMAPPED_BZ];
+               }
 
-              // Also sum up touching elements' areas and upmapped areas to compress
-              // density and pressure with them
-              // TODO: Precalculate this?
-              area += elementArea(nodes[n].touchingElements[e]);
+               // Also sum up touching elements' areas and upmapped areas to compress
+               // density and pressure with them
+               // TODO: Precalculate this?
+               area += elementArea(nodes[n].touchingElements[e]);
 
-              std::array<Real, 3> areaVector = mappedElementArea(nodes[n].touchingElements[e]);
-              std::array<Real, 3> avgB = {(B[0][0] + B[1][0] + B[2][0])/3.,
-                 (B[0][1] + B[1][1] + B[2][1]) / 3.,
-                 (B[0][2] + B[1][2] + B[2][2]) / 3.};
-              upmappedArea += fabs(areaVector[0] * avgB[0] + areaVector[1]*avgB[1] + areaVector[2]*avgB[2]) /
-                 sqrt(avgB[0]*avgB[0] + avgB[1]*avgB[1] + avgB[2]*avgB[2]);
-           }
+               std::array<Real, 3> areaVector = mappedElementArea(nodes[n].touchingElements[e]);
+               std::array<Real, 3> avgB = {(B[0][0] + B[1][0] + B[2][0])/3.,
+                  (B[0][1] + B[1][1] + B[2][1]) / 3.,
+                  (B[0][2] + B[1][2] + B[2][2]) / 3.};
+               upmappedArea += fabs(areaVector[0] * avgB[0] + areaVector[1]*avgB[1] + areaVector[2]*avgB[2]) /
+                  sqrt(avgB[0]*avgB[0] + avgB[1]*avgB[1] + avgB[2]*avgB[2]);
+            }
 
-           // Divide by 3, as every element will be counted from each of its
-           // corners.  Prevent areas from being multiply-counted
-           area /= 3.;
-           upmappedArea /= 3.;
+            // Divide by 3, as every element will be counted from each of its
+            // corners.  Prevent areas from being multiply-counted
+            area /= 3.;
+            upmappedArea /= 3.;
 
-           //// Map down FAC based on magnetosphere rotB
-           std::array<Real,3> cell = nodes[n].fsgridCellCoupling;
-           if(cell[0] == -1. || cell[1] == -1. || cell[2] == -1.) {
-              // Skip cells that couple nowhere
-              continue;
-           }
-           for(int c=0; c<3; c++) {
-              fsc[c] = floor(cell[c]);
-           }
+            //// Map down FAC based on magnetosphere rotB
+            std::array<Real,3> cell = nodes[n].fsgridCellCoupling;
+            if(cell[0] == -1. || cell[1] == -1. || cell[2] == -1.) {
+               // Skip cells that couple nowhere
+               continue;
+            }
+            for(int c=0; c<3; c++) {
+               fsc[c] = floor(cell[c]);
+            }
 
-           // Local cell
-           std::array<int,3> lfsc = technicalGrid.globalToLocal(fsc[0],fsc[1],fsc[2]);
-           if(lfsc[0] == -1 || lfsc[1] == -1 || lfsc[2] == -1) {
-              continue;
-           }
+            // Local cell
+            std::array<int,3> lfsc = technicalGrid.globalToLocal(fsc[0],fsc[1],fsc[2]);
+            if(lfsc[0] == -1 || lfsc[1] == -1 || lfsc[2] == -1) {
+               continue;
+            }
 
-           for(int c=0; c<3; c++) {
-              // Shift by half a cell, as we are sampling volume quantities that are logically located at cell centres.
-              Real frac = cell[c] - floor(cell[c]);
-              if(frac < 0.5) {
-                 lfsc[c] -= 1;
-                 fsc[c]-= 1;
-              }
-              cell[c] -= 0.5;
-           }
+            for(int c=0; c<3; c++) {
+               // Shift by half a cell, as we are sampling volume quantities that are logically located at cell centres.
+               Real frac = cell[c] - floor(cell[c]);
+               if(frac < 0.5) {
+                  lfsc[c] -= 1;
+                  fsc[c]-= 1;
+               }
+               cell[c] -= 0.5;
+            }
 
-           // Linearly interpolate neighbourhood
-           Real couplingSum = 0;
-           for(int xoffset : {0,1}) {
-              for(int yoffset : {0,1}) {
-                 for(int zoffset : {0,1}) {
+            // Linearly interpolate neighbourhood
+            Real couplingSum = 0;
+            for(int xoffset : {0,1}) {
+               for(int yoffset : {0,1}) {
+                  for(int zoffset : {0,1}) {
 
-                    Real coupling = abs(xoffset - (cell[0]-fsc[0])) * abs(yoffset - (cell[1]-fsc[1])) * abs(zoffset - (cell[2]-fsc[2]));
-                    if(coupling < 0. || coupling > 1.) {
-                       cerr << "Ionosphere warning: node << " << n << " has coupling value " << coupling <<
-                          ", which is outside [0,1] at line " << __LINE__ << "!" << endl;
-                    }
+                     Real coupling = abs(xoffset - (cell[0]-fsc[0])) * abs(yoffset - (cell[1]-fsc[1])) * abs(zoffset - (cell[2]-fsc[2]));
+                     if(coupling < 0. || coupling > 1.) {
+                        cerr << "Ionosphere warning: node << " << n << " has coupling value " << coupling <<
+                           ", which is outside [0,1] at line " << __LINE__ << "!" << endl;
+                     }
 
-                    // Only couple to actual simulation cells
-                    if(technicalGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                       couplingSum += coupling;
-                    } else {
-                       continue;
-                    }
-
-                    // Calc rotB
-                    std::array<Real, 3> rotB;
-                    rotB[0] = (volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBZVOLdy)
-                          - volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBYVOLdz)) / volgrid.DX;
-                    rotB[1] = (volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBXVOLdz)
-                          - volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBZVOLdx)) / volgrid.DX;
-                    rotB[2] = (volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBYVOLdx)
-                          - volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBXVOLdy)) / volgrid.DX;
-
-                    // Dot with background (dipole) B
-                    std::array<Real, 3> B({BgBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::BGBXVOL),
-                          BgBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::BGBYVOL),
-                          BgBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::BGBZVOL)});
-                    Real Bnorm = 1./sqrt(B[0]*B[0]+B[1]*B[1]+B[2]*B[2]);
-                    // Yielding the field-aligned current
-                    Real FAC = Bnorm * (B[0]*rotB[0] + B[1]*rotB[1] + B[2]*rotB[2]) / physicalconstants::MU_0;
-
-                    FACinput[n] += FAC * coupling * upmappedArea;
+                     // Only couple to actual simulation cells
+                     if(technicalGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+                        couplingSum += coupling;
+                     } else {
+                        continue;
+                     }
 
 
-                    // Map density and pressure down
-                    rhoInput[n] += coupling * momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::RHOQ) / physicalconstants::CHARGE;
-                    pressureInput[n] += coupling * 1./3. * (
+                     // Map density and pressure down
+                     rhoInput[n] += coupling * momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::RHOQ) / physicalconstants::CHARGE;
+                     pressureInput[n] += coupling * 1./3. * (
                           momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_11) +
                           momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_22) +
                           momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_33));
-                 }
-              }
-           }
+                  }
+               }
+            }
 
-           // The coupling values *would* have summed to 1 in free and open space, but since we are close to the inner
-           // boundary, some cells were skipped, as they are in the sysbondary. Renormalize values by dividing by the couplingSum.
-           if(couplingSum > 0) {
+            // The coupling values *would* have summed to 1 in free and open space, but since we are close to the inner
+            // boundary, some cells were skipped, as they are in the sysbondary. Renormalize values by dividing by the couplingSum.
+            if(couplingSum > 0) {
                rhoInput[n] /= couplingSum;
                pressureInput[n] /= couplingSum;
-               FACinput[n] /= couplingSum;
-           }
+            }
 
-           // By definition, a downwards current into the ionosphere has a positive FAC value,
-           // as it corresponds to positive divergence of horizontal current in the ionospheric plane.
-           // To make sure we match that, flip FAC sign on the southern hemisphere
-           if(nodes[n].x[2] < 0) {
-              FACinput[n] *= -1;
-           }
+            // Calc curlB
+            cell = nodes[n].fsgridCellCoupling;
+            lfsc = technicalGrid.globalToLocal(cell[0],cell[1],cell[2]);
+            const std::array<Real, 3> curlB = interpolateCurlB(
+               perBGrid,
+               dPerBGrid,
+               technicalGrid,
+               reconstructionCoefficientsCache,
+               lfsc[0],lfsc[1],lfsc[2],
+               nodes[n].xMapped
+            );
 
-           // Scale density and pressure by area ratio
-           rhoInput[n] *= upmappedArea / area;
-           //pressureInput[n] *= upmappedArea / area;
-        }
-     }
+            // Dot with normalized B, scale by area
+            FACinput[n] = upmappedArea * (nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]*curlB[0] + nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]*curlB[1] + nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]*curlB[2])
+               / (
+                  sqrt(
+                     nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]
+                     + nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]
+                     + nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]
+               ) * physicalconstants::MU_0
+            );
 
-     // Allreduce on the ionosphere communicator
-     std::vector<double> FACsum(nodes.size());
-     std::vector<double> rhoSum(nodes.size());
-     std::vector<double> pressureSum(nodes.size());
-     MPI_Allreduce(&FACinput[0], &FACsum[0], nodes.size(), MPI_DOUBLE, MPI_SUM, communicator);
-     MPI_Allreduce(&rhoInput[0], &rhoSum[0], nodes.size(), MPI_DOUBLE, MPI_SUM, communicator);
-     MPI_Allreduce(&pressureInput[0], &pressureSum[0], nodes.size(), MPI_DOUBLE, MPI_SUM, communicator);
+            // By definition, a downwards current into the ionosphere has a positive FAC value,
+            // as it corresponds to positive divergence of horizontal current in the ionospheric plane.
+            // To make sure we match that, flip FAC sign on the southern hemisphere
+            if(nodes[n].x[2] < 0) {
+               FACinput[n] *= -1;
+            }
 
-     for(uint n=0; n<nodes.size(); n++) {
+            // Scale density and pressure by area ratio
+            rhoInput[n] *= upmappedArea / area;
+            //pressureInput[n] *= upmappedArea / area;
+         }
+      }
 
-        if(rhoSum[n] == 0 || pressureSum[n] == 0) {
-           // Node couples nowhere. Assume some default values.
-           nodes[n].parameters[ionosphereParameters::SOURCE] = 0;
+      // Allreduce on the ionosphere communicator
+      std::vector<double> FACsum(nodes.size());
+      std::vector<double> rhoSum(nodes.size());
+      std::vector<double> pressureSum(nodes.size());
+      MPI_Allreduce(&FACinput[0], &FACsum[0], nodes.size(), MPI_DOUBLE, MPI_SUM, communicator);
+      MPI_Allreduce(&rhoInput[0], &rhoSum[0], nodes.size(), MPI_DOUBLE, MPI_SUM, communicator);
+      MPI_Allreduce(&pressureInput[0], &pressureSum[0], nodes.size(), MPI_DOUBLE, MPI_SUM, communicator);
 
-           // TODO: These are assuming that population 0 is protons. Should it
-           // rather be a sum over all positively charged populations?
-           nodes[n].parameters[ionosphereParameters::RHON] = Ionosphere::speciesParams[0].rho;
-           nodes[n].parameters[ionosphereParameters::PRESSURE] =
-              Ionosphere::speciesParams[0].rho * physicalconstants::K_B *
-              Ionosphere::speciesParams[0].T;
-        } else {
-           // Store as the node's parameter values.
-           if(Ionosphere::couplingTimescale == 0) {
-              // Immediate coupling
-              nodes[n].parameters[ionosphereParameters::SOURCE] = FACsum[n];
-              nodes[n].parameters[ionosphereParameters::RHON] = rhoSum[n];
-              nodes[n].parameters[ionosphereParameters::PRESSURE] = pressureSum[n];
-           } else {
+      for(uint n=0; n<nodes.size(); n++) {
 
-              // Slow coupling with a given timescale.
-              // See https://en.wikipedia.org/wiki/Exponential_smoothing#Time_constant
-              Real a = 1. - exp(- Parameters::dt / Ionosphere::couplingTimescale);
-              if(a>1) {
-                 a=1.;
-              }
+         if(rhoSum[n] == 0 || pressureSum[n] == 0) {
+            // Node couples nowhere. Assume some default values.
+            nodes[n].parameters[ionosphereParameters::SOURCE] = 0;
 
-              nodes[n].parameters[ionosphereParameters::SOURCE] = (1.-a) * nodes[n].parameters[ionosphereParameters::SOURCE] + a * FACsum[n];
-              nodes[n].parameters[ionosphereParameters::RHON] = (1.-a) * nodes[n].parameters[ionosphereParameters::RHON] + a * rhoSum[n];
-              nodes[n].parameters[ionosphereParameters::PRESSURE] = (1.-a) * nodes[n].parameters[ionosphereParameters::PRESSURE] + a * pressureSum[n];
-           }
-        }
+            // TODO: These are assuming that population 0 is protons. Should it
+            // rather be a sum over all positively charged populations?
+            nodes[n].parameters[ionosphereParameters::RHON] = Ionosphere::speciesParams[0].rho;
+            nodes[n].parameters[ionosphereParameters::PRESSURE] =
+               Ionosphere::speciesParams[0].rho * physicalconstants::K_B *
+               Ionosphere::speciesParams[0].T;
+         } else {
+            // Store as the node's parameter values.
+            if(Ionosphere::couplingTimescale == 0) {
+               // Immediate coupling
+               nodes[n].parameters[ionosphereParameters::SOURCE] = FACsum[n];
+               nodes[n].parameters[ionosphereParameters::RHON] = rhoSum[n];
+               nodes[n].parameters[ionosphereParameters::PRESSURE] = pressureSum[n];
+            } else {
 
-        // Adjust densities by the loss-cone filling factor.
-        // This is an empirical smooothstep function that artificially reduces
-        // downmapped density below auroral latitudes.
-        Real theta = acos(nodes[n].x[2] / sqrt(nodes[n].x[0]*nodes[n].x[0] + nodes[n].x[1]*nodes[n].x[1] + nodes[n].x[2]*nodes[n].x[2])); // Latitude
-        if(theta > M_PI/2.) {
-           theta = M_PI - theta;
-        }
-        // Smoothstep with an edge at about 67 deg.
-        Real Chi0 = 0.01 + 0.99 * .5 * (1 + tanh((23. - theta * (180. / M_PI)) / 6));
+               // Slow coupling with a given timescale.
+               // See https://en.wikipedia.org/wiki/Exponential_smoothing#Time_constant
+               Real a = 1. - exp(- Parameters::dt / Ionosphere::couplingTimescale);
+               if(a>1) {
+                  a=1.;
+               }
 
-        nodes[n].parameters[ionosphereParameters::RHON] *= Chi0;
+               nodes[n].parameters[ionosphereParameters::SOURCE] = (1.-a) * nodes[n].parameters[ionosphereParameters::SOURCE] + a * FACsum[n];
+               nodes[n].parameters[ionosphereParameters::RHON] = (1.-a) * nodes[n].parameters[ionosphereParameters::RHON] + a * rhoSum[n];
+               nodes[n].parameters[ionosphereParameters::PRESSURE] = (1.-a) * nodes[n].parameters[ionosphereParameters::PRESSURE] + a * pressureSum[n];
+            }
+         }
 
-     }
+         // Adjust densities by the loss-cone filling factor.
+         // This is an empirical smooothstep function that artificially reduces
+         // downmapped density below auroral latitudes.
+         Real theta = acos(nodes[n].x[2] / sqrt(nodes[n].x[0]*nodes[n].x[0] + nodes[n].x[1]*nodes[n].x[1] + nodes[n].x[2]*nodes[n].x[2])); // Latitude
+         if(theta > M_PI/2.) {
+            theta = M_PI - theta;
+         }
+         // Smoothstep with an edge at about 67 deg.
+         Real Chi0 = 0.01 + 0.99 * .5 * (1 + tanh((23. - theta * (180. / M_PI)) / 6));
 
-     // Make sure FACs are balanced, so that the potential doesn't start to drift
-     offset_FAC();
-     phiprof::stop("ionosphere-mapDownMagnetosphere");
+         nodes[n].parameters[ionosphereParameters::RHON] *= Chi0;
+
+      }
+
+      // Make sure FACs are balanced, so that the potential doesn't start to drift
+      offset_FAC();
+      phiprof::stop("ionosphere-mapDownMagnetosphere");
 
    }
 
