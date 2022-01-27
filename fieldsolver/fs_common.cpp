@@ -309,9 +309,10 @@ std::array<Real, 3> interpolateCurlB(
    // Balsara reconstruction formulas: x,y,z are in [-1/2, 1/2] local coordinates
    std::array<Real, 3> xLocal;
    std::array<double, 3> cellCorner = technicalGrid.getPhysicalCoords(i,j,k);
-   xLocal[0] = (x[0] - cellCorner[0] - 0.5*technicalGrid.DX) / technicalGrid.DX;
-   xLocal[1] = (x[1] - cellCorner[1] - 0.5*technicalGrid.DY) / technicalGrid.DY;
-   xLocal[2] = (x[2] - cellCorner[2] - 0.5*technicalGrid.DZ) / technicalGrid.DZ;
+   std::array<int32_t, 3> localStart = technicalGrid.getLocalStart();
+   xLocal[0] =  (x[0] - P::xmin) / technicalGrid.DX - localStart[0] - i -.5;
+   xLocal[1] =  (x[1] - P::ymin) / technicalGrid.DY - localStart[1] - j -.5;
+   xLocal[2] =  (x[2] - P::zmin) / technicalGrid.DZ - localStart[2] - k -.5;
 
    if (fabs(xLocal[0]) > 0.5 || fabs(xLocal[1]) > 0.5 || fabs(xLocal[2]) > 0.5) {
       cerr << __FILE__ << ":" << __LINE__ << ": Coordinate (" << xLocal[0] << "," << xLocal[1] << "," << xLocal[2] << ")  outside of this cell!" << endl;
