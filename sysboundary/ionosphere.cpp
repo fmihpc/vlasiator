@@ -1339,10 +1339,6 @@ namespace SBC {
             if(sumNodeNeedsContinuedTracing[n] > 0) {
                anyNodeNeedsTracing=true;
 
-               if(sumNodeNeedsContinuedTracing[n] > 1) {
-                  logFile << "(ionosphere) Warning: more than one task wants to continue tracing node " << n << endl << write;
-               }
-
                // Update that nodes' tracing coordinates
                nodeTracingCoordinates[n][0] = sumNodeTracingCoordinates[n][0] / sumNodeNeedsContinuedTracing[n];
                nodeTracingCoordinates[n][1] = sumNodeTracingCoordinates[n][1] / sumNodeNeedsContinuedTracing[n];
