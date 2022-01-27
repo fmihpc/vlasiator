@@ -369,7 +369,7 @@ int main(int argn,char* args[]) {
    if ( (VECL<WID) ||
         (VECL*VEC_PER_PLANE != WID2) ||
         (VECL*VEC_PER_BLOCK != WID3) ||
-        (VPREC > VECL) ||
+        //(VPREC > VECL) ||
         (VECL != (int)VECL) ||
         (VPREC != (int)VPREC) ||
         (VEC_PER_PLANE != (int)VEC_PER_PLANE) ||
