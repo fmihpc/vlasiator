@@ -99,4 +99,5 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 bool writeVelocityDistributionData(vlsv::Writer& vlsvWriter,dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                    const std::vector<uint64_t>& cells,MPI_Comm comm);
 
+bool writeIonosphereGridMetadata(vlsv::Writer& vlsvWriter);
 #endif
