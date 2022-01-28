@@ -1682,6 +1682,21 @@ namespace SBC {
             uint j =  floor((nodes[n].xMapped[1] - P::ymin) / technicalGrid.DY) - localStart[1];
             uint k =  floor((nodes[n].xMapped[2] - P::zmin) / technicalGrid.DZ) - localStart[2];
 
+            std::array<Real,3> cell = nodes[n].fsgridCellCoupling;
+            if(cell[0] == -1. || cell[1] == -1. || cell[2] == -1.) {
+               // Skip cells that couple nowhere
+               continue;
+            }
+            for(int c=0; c<3; c++) {
+               fsc[c] = floor(cell[c]);
+            }
+
+            // Local cell
+            std::array<int,3> lfsc = technicalGrid.globalToLocal(fsc[0],fsc[1],fsc[2]);
+            if(lfsc[0] == -1 || lfsc[1] == -1 || lfsc[2] == -1) {
+               continue;
+            }
+
             // Calc curlB
             const std::array<Real, 3> curlB = interpolateCurlB(
                perBGrid,
@@ -1707,21 +1722,6 @@ namespace SBC {
             // To make sure we match that, flip FAC sign on the southern hemisphere
             if(nodes[n].x[2] < 0) {
                FACinput[n] *= -1;
-            }
-
-            std::array<Real,3> cell = nodes[n].fsgridCellCoupling;
-            if(cell[0] == -1. || cell[1] == -1. || cell[2] == -1.) {
-               // Skip cells that couple nowhere
-               continue;
-            }
-            for(int c=0; c<3; c++) {
-               fsc[c] = floor(cell[c]);
-            }
-
-            // Local cell
-            std::array<int,3> lfsc = technicalGrid.globalToLocal(fsc[0],fsc[1],fsc[2]);
-            if(lfsc[0] == -1 || lfsc[1] == -1 || lfsc[2] == -1) {
-               continue;
             }
 
             for(int c=0; c<3; c++) {
