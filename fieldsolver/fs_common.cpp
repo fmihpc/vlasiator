@@ -306,9 +306,10 @@ std::array<Real, 3> interpolateCurlB(
       return zero;
    }
 
+#define BALSARA_CURLB_IMPLEMENTATION
+#ifdef BALSARA_CURLB_IMPLEMENTATION
    // Balsara reconstruction formulas: x,y,z are in [-1/2, 1/2] local coordinates
    std::array<Real, 3> xLocal;
-   std::array<double, 3> cellCorner = technicalGrid.getPhysicalCoords(i,j,k);
    std::array<int32_t, 3> localStart = technicalGrid.getLocalStart();
    xLocal[0] =  (x[0] - P::xmin) / technicalGrid.DX - localStart[0] - i -.5;
    xLocal[1] =  (x[1] - P::ymin) / technicalGrid.DY - localStart[1] - j -.5;
@@ -397,4 +398,72 @@ std::array<Real, 3> interpolateCurlB(
       +rc[Rec::a_xxy]
       )/12;
    return interpolatedCurlB;
+#else // Not BALSARA_CURLB_IMPLEMENTATION
+
+   // Alternative implementation using linear interpolation of volume fields for curlB lookup.
+   std::array<Real,3> cell;
+   std::array<int,3> fsc,lfsc;
+   // Convert physical coordinate to cell index
+   cell[0] =  (x[0] - P::xmin) / technicalGrid.DX;
+   cell[1] =  (x[1] - P::ymin) / technicalGrid.DY;
+   cell[2] =  (x[2] - P::zmin) / technicalGrid.DZ;
+   for(int c=0; c<3; c++) {
+      fsc[c] = floor(cell[c]);
+   }
+   // Local cell
+   lfsc = technicalGrid.globalToLocal(fsc[0],fsc[1],fsc[2]);
+   if(lfsc[0] == -1 || lfsc[1] == -1 || lfsc[2] == -1) {
+      cerr << "interpolateCurlB: Trying to access nonlocal cell at " << x[0] << ", " << x[1] << ", " << x[2] << ", which would be local coordinate "
+         << lfsc[0] << ", " << lfsc[1] << ", " << lfsc[2] << endl;
+      return {0,0,0};
+   }
+
+   for(int c=0; c<3; c++) {
+      // Shift by half a cell, as we are sampling volume quantities that are logically located at cell centres.
+      Real frac = cell[c] - floor(cell[c]);
+      if(frac < 0.5) {
+         lfsc[c] -= 1;
+         fsc[c]-= 1;
+      }
+      cell[c] -= 0.5;
+   }
+
+   Real couplingSum = 0;
+   std::array<Real, 3> rotB;
+   for (int xoffset : {0, 1}) {
+      for(int yoffset : {0,1}) {
+         for(int zoffset : {0,1}) {
+
+            Real coupling = abs(xoffset - (cell[0]-fsc[0])) * abs(yoffset - (cell[1]-fsc[1])) * abs(zoffset - (cell[2]-fsc[2]));
+
+            // Only couple to actual simulation cells
+            if(technicalGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+               couplingSum += coupling;
+            } else {
+               continue;
+            }
+
+            // Calc rotB
+            std::array<Real, 3> rotB;
+            rotB[0] += (volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBZVOLdy)
+                  - volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBYVOLdz)) / volgrid.DX;
+            rotB[1] += (volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBXVOLdz)
+                  - volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBZVOLdx)) / volgrid.DX;
+            rotB[2] += (volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBYVOLdx)
+                  - volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBXVOLdy)) / volgrid.DX;
+
+         }
+      }
+   }
+   if(couplingSum > 0) {
+      rotB[0] /= couplingSum;
+      rotB[1] /= couplingSum;
+      rotB[2] /= couplingSum;
+   } else {
+      rotB[0] = 0;
+      rotB[1] = 0;
+      rotB[2] = 0;
+   }
+   return rotB;
+#endif // Not BALSARA_CURLB_IMPLEMENTATION
 }
