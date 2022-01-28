@@ -1332,9 +1332,9 @@ namespace SBC {
          std::vector<std::array<Real, 3>> sumNodeTracingCoordinates(nodes.size());
          MPI_Allreduce(nodeNeedsContinuedTracing.data(), sumNodeNeedsContinuedTracing.data(), nodes.size(), MPI_INT, MPI_SUM, MPI_COMM_WORLD);
          if(sizeof(Real) == sizeof(double)) {
-            MPI_Allreduce(nodeTracingCoordinates.data(), sumNodeTracingCoordinates.data(), nodes.size(), MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(nodeTracingCoordinates.data(), sumNodeTracingCoordinates.data(), 3*nodes.size(), MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
          } else {
-            MPI_Allreduce(nodeTracingCoordinates.data(), sumNodeTracingCoordinates.data(), nodes.size(), MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(nodeTracingCoordinates.data(), sumNodeTracingCoordinates.data(), 3*nodes.size(), MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
          }
          for(uint n=0; n<nodes.size(); n++) {
             if(sumNodeNeedsContinuedTracing[n] > 0) {
