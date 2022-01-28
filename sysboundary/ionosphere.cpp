@@ -51,6 +51,34 @@
 #ifdef DEBUG_SYSBOUNDARY
    #define DEBUG_IONOSPHERE
 #endif
+      
+// Get the (integer valued) global fsgrid cell index (i,j,k) for the magnetic-field traced mapping point that node n is
+// associated with
+         
+template<class T> std::array<int32_t, 3> getGlobalFsGridCellIndexForCoord(T& grid,const std::array<Real, 3>& x) {
+   std::array<int32_t, 3> retval;
+   retval[0] = (x[0] - grid.physicalGlobalStart[0]) / grid.DX;
+   retval[1] = (x[1] - grid.physicalGlobalStart[1]) / grid.DY;
+   retval[2] = (x[2] - grid.physicalGlobalStart[2]) / grid.DZ;
+   return retval;
+}
+// Get the (integer valued) local fsgrid cell index (i,j,k) for the magnetic-field traced mapping point that node n is
+// associated with If the cell is not in our local domain, will return {-1,-1,-1}
+template<class T> std::array<int32_t, 3> getLocalFsGridCellIndexForCoord(T& grid, const std::array<Real, 3>& x) {
+   std::array<int32_t, 3> retval = getGlobalFsGridCellIndexForCoord(grid,x);
+   retval = grid.globalToLocal(retval[0], retval[1], retval[2]);
+   return retval;
+}
+// Get the fraction fsgrid cell index for the magnetic-field traced mapping point that node n is associated with.
+// Note that these are floating point values between 0 and 1
+template<class T> std::array<Real, 3> getFractionalFsGridCellForCoord(T& grid, const std::array<Real, 3>& x) {
+   std::array<Real, 3> retval;
+   std::array<int, 3> fsgridCell = getGlobalFsGridCellIndexForCoord(grid,x);
+   for (int c = 0; c < 3; c++) {
+      retval[c] = (x[1] - grid.physicalGlobalStart[1]) / grid.DY - fsgridCell[c];
+   }
+   return retval;
+}
 
 namespace SBC {
 
@@ -1174,18 +1202,14 @@ namespace SBC {
          b[1] = this->dipoleField(r[0],r[1],r[2],Y,0,Y);
          b[2] = this->dipoleField(r[0],r[1],r[2],Z,0,Z);
 
-         std::array<int32_t, 3> localStart = technicalGrid.getLocalStart();
-         uint i =  floor((r[0] - P::xmin) / technicalGrid.DX) - localStart[0];
-         uint j =  floor((r[1] - P::ymin) / technicalGrid.DY) - localStart[1];
-         uint k =  floor((r[2] - P::zmin) / technicalGrid.DZ) - localStart[2];
-
-         if(technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+         std::array<int32_t, 3> fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,r);
+         if(technicalGrid.get(fsgridCell[0],fsgridCell[1],fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             const std::array<Real, 3> perB = interpolatePerturbedB(
                perBGrid,
                dPerBGrid,
                technicalGrid,
                reconstructionCoefficientsCache,
-               i,j,k,
+               fsgridCell[0],fsgridCell[1],fsgridCell[2],
                r
             );
             b[0] += perB[0];
@@ -1244,11 +1268,7 @@ namespace SBC {
                while( true ) {
    
                   // Check if the current coordinates (pre-step) are in our own domain.
-                  std::array<int, 3> fsgridCell;
-                  for(int c=0; c<3; c++) {
-                     fsgridCell[c] = (x[c] - technicalGrid.physicalGlobalStart[c]) / technicalGrid.DX;
-                  }
-                  fsgridCell = technicalGrid.globalToLocal(fsgridCell[0], fsgridCell[1], fsgridCell[2]);
+                  std::array<int, 3> fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
                   // If it is not in our domain, somebody else takes care of it.
                   if(fsgridCell[0] == -1) {
                      nodeNeedsContinuedTracing[n] = 0;
@@ -1261,12 +1281,8 @@ namespace SBC {
                   stepFieldLine(x,v, stepSize,technicalGrid.DX/2,couplingMethod,tracingField,true);
    
                   // Look up the fsgrid cell beloinging to these coordinates
-                  std::array<Real, 3> interpolationFactor;
-                  for(int c=0; c<3; c++) {
-                     fsgridCell[c] = (x[c] - technicalGrid.physicalGlobalStart[c]) / technicalGrid.DX;
-                     interpolationFactor[c] = (x[c] - technicalGrid.physicalGlobalStart[c]) / technicalGrid.DX - fsgridCell[c];
-                  }
-                  fsgridCell = technicalGrid.globalToLocal(fsgridCell[0], fsgridCell[1], fsgridCell[2]);
+                  fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
+                  std::array<Real, 3> interpolationFactor=getFractionalFsGridCellForCoord(technicalGrid,x);
    
                   creal distance = sqrt((x[0]-no.x[0])*(x[0]-no.x[0])+(x[1]-no.x[1])*(x[1]-no.x[1])+(x[2]-no.x[2])*(x[2]-no.x[2]));
    
@@ -1304,9 +1320,6 @@ namespace SBC {
                      no.xMapped = x;
                      no.haveCouplingData = 1;
                      nodeDistance[n] = distance;
-                     for(int c=0; c<3; c++) {
-                        no.fsgridCellCoupling[c] = (x[c] - technicalGrid.physicalGlobalStart[c]) / technicalGrid.DX;
-                     }
                      const std::array<Real, 3> perB = interpolatePerturbedB(
                         perBGrid,
                         dPerBGrid,
@@ -1373,7 +1386,6 @@ namespace SBC {
             for(int c=0; c<3; c++) {
                no.parameters[ionosphereParameters::UPMAPPED_BX+c] = 0;
                no.xMapped[c] = 0;
-               no.fsgridCellCoupling[c] = -1;
             }
          } else {
             // Cell found, add association.
@@ -1677,22 +1689,13 @@ namespace SBC {
             upmappedArea /= 3.;
 
             //// Map down FAC based on magnetosphere rotB
-            std::array<int32_t, 3> localStart = technicalGrid.getLocalStart();
-            uint i =  floor((nodes[n].xMapped[0] - P::xmin) / technicalGrid.DX) - localStart[0];
-            uint j =  floor((nodes[n].xMapped[1] - P::ymin) / technicalGrid.DY) - localStart[1];
-            uint k =  floor((nodes[n].xMapped[2] - P::zmin) / technicalGrid.DZ) - localStart[2];
-
-            std::array<Real,3> cell = nodes[n].fsgridCellCoupling;
-            if(cell[0] == -1. || cell[1] == -1. || cell[2] == -1.) {
+            if(nodes[n].xMapped[0] == 0. && nodes[n].xMapped[1] == 0. && nodes[n].xMapped[2] == 0.) {
                // Skip cells that couple nowhere
                continue;
             }
-            for(int c=0; c<3; c++) {
-               fsc[c] = floor(cell[c]);
-            }
 
             // Local cell
-            std::array<int,3> lfsc = technicalGrid.globalToLocal(fsc[0],fsc[1],fsc[2]);
+            std::array<int,3> lfsc = getLocalFsGridCellIndexForCoord(technicalGrid,nodes[n].xMapped);
             if(lfsc[0] == -1 || lfsc[1] == -1 || lfsc[2] == -1) {
                continue;
             }
@@ -1703,7 +1706,7 @@ namespace SBC {
                dPerBGrid,
                technicalGrid,
                reconstructionCoefficientsCache,
-               i,j,k,
+               lfsc[0],lfsc[1],lfsc[2],
                nodes[n].xMapped
             );
 
@@ -1724,14 +1727,15 @@ namespace SBC {
                FACinput[n] *= -1;
             }
 
+            std::array<Real,3> frac = getFractionalFsGridCellForCoord(technicalGrid,nodes[n].xMapped);
             for(int c=0; c<3; c++) {
                // Shift by half a cell, as we are sampling volume quantities that are logically located at cell centres.
-               Real frac = cell[c] - floor(cell[c]);
-               if(frac < 0.5) {
+               if(frac[c] < 0.5) {
                   lfsc[c] -= 1;
-                  fsc[c]-= 1;
+                  frac[c] += 0.5;
+               } else {
+                  frac[c] -= 0.5;
                }
-               cell[c] -= 0.5;
             }
 
             // Linearly interpolate neighbourhood
@@ -1740,7 +1744,7 @@ namespace SBC {
                for(int yoffset : {0,1}) {
                   for(int zoffset : {0,1}) {
 
-                     Real coupling = abs(xoffset - (cell[0]-fsc[0])) * abs(yoffset - (cell[1]-fsc[1])) * abs(zoffset - (cell[2]-fsc[2]));
+                     Real coupling = (1. - abs(xoffset - frac[0])) * (1. - abs(yoffset - frac[1])) * (1. - abs(zoffset - frac[2]));
                      if(coupling < 0. || coupling > 1.) {
                         cerr << "Ionosphere warning: node << " << n << " has coupling value " << coupling <<
                            ", which is outside [0,1] at line " << __LINE__ << "!" << endl;
