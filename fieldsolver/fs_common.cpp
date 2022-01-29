@@ -198,6 +198,26 @@ void reconstructionCoefficients(
    perturbedResult[Rec::c_0 ] = HALF*(cep_i1j1k2->at(fsgrids::bfield::PERBZ) + cep_i1j1k1->at(fsgrids::bfield::PERBZ)) - SIXTH*perturbedResult[Rec::c_zz];
 }
 
+// Get the (integer valued) global fsgrid cell index (i,j,k) for the magnetic-field traced mapping point that node n is
+// associated with
+template<class T> std::array<int32_t, 3> getGlobalFsGridCellIndexForCoord(T& grid,const std::array<Real, 3>& x) {
+   std::array<int32_t, 3> retval;
+   retval[0] = (x[0] - grid.physicalGlobalStart[0]) / grid.DX;
+   retval[1] = (x[1] - grid.physicalGlobalStart[1]) / grid.DY;
+   retval[2] = (x[2] - grid.physicalGlobalStart[2]) / grid.DZ;
+   return retval;
+}
+// Get the fraction fsgrid cell index for the magnetic-field traced mapping point that node n is associated with.
+// Note that these are floating point values between 0 and 1
+template<class T> std::array<Real, 3> getFractionalFsGridCellForCoord(T& grid, const std::array<Real, 3>& x) {
+   std::array<Real, 3> retval;
+   std::array<int, 3> fsgridCell = getGlobalFsGridCellIndexForCoord(grid,x);
+   retval[0] = (x[0] - grid.physicalGlobalStart[0]) / grid.DX - fsgridCell[0];
+   retval[1] = (x[1] - grid.physicalGlobalStart[1]) / grid.DY - fsgridCell[1];
+   retval[2] = (x[2] - grid.physicalGlobalStart[2]) / grid.DZ - fsgridCell[2];
+   return retval;
+}
+
 /*! Interpolate perturbed B to arbitrary x,y,z in cell
  *  Uses the reconstruction coefficients and equations from
  *  Divergence-free reconstruction of magnetic fields and WENO schemes for magnetohydrodynamics
@@ -229,11 +249,10 @@ std::array<Real, 3> interpolatePerturbedB(
    }
 
    // Balsara reconstruction formulas: x,y,z are in [-1/2, 1/2] local coordinates
-   std::array<Real, 3> xLocal; 
-   std::array<int32_t, 3> localStart = technicalGrid.getLocalStart();
-   xLocal[0] =  (x[0] - P::xmin) / technicalGrid.DX - localStart[0] - i -.5;
-   xLocal[1] =  (x[1] - P::ymin) / technicalGrid.DY - localStart[1] - j -.5;
-   xLocal[2] =  (x[2] - P::zmin) / technicalGrid.DZ - localStart[2] - k -.5;
+   std::array<Real, 3> xLocal = getFractionalFsGridCellForCoord(technicalGrid, x);
+   xLocal[0] -= 0.5;
+   xLocal[1] -= 0.5;
+   xLocal[2] -= 0.5;
 
    if (fabs(xLocal[0]) > 0.5 || fabs(xLocal[1]) > 0.5 || fabs(xLocal[2]) > 0.5) {
       cerr << __FILE__ << ":" << __LINE__ << ": Coordinate (" << xLocal[0] << "," << xLocal[1] << "," << xLocal[2] << ")  outside of this cell!" << endl;
@@ -309,11 +328,10 @@ std::array<Real, 3> interpolateCurlB(
 #define BALSARA_CURLB_IMPLEMENTATION
 #ifdef BALSARA_CURLB_IMPLEMENTATION
    // Balsara reconstruction formulas: x,y,z are in [-1/2, 1/2] local coordinates
-   std::array<Real, 3> xLocal;
-   std::array<int32_t, 3> localStart = technicalGrid.getLocalStart();
-   xLocal[0] =  (x[0] - P::xmin) / technicalGrid.DX - localStart[0] - i -.5;
-   xLocal[1] =  (x[1] - P::ymin) / technicalGrid.DY - localStart[1] - j -.5;
-   xLocal[2] =  (x[2] - P::zmin) / technicalGrid.DZ - localStart[2] - k -.5;
+   std::array<Real, 3> xLocal = getFractionalFsGridCellForCoord(technicalGrid, x);
+   xLocal[0] -= 0.5;
+   xLocal[1] -= 0.5;
+   xLocal[2] -= 0.5;
 
    if (fabs(xLocal[0]) > 0.5 || fabs(xLocal[1]) > 0.5 || fabs(xLocal[2]) > 0.5) {
       cerr << __FILE__ << ":" << __LINE__ << ": Coordinate (" << xLocal[0] << "," << xLocal[1] << "," << xLocal[2] << ")  outside of this cell!" << endl;

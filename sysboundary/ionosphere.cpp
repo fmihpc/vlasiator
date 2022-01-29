@@ -54,7 +54,6 @@
       
 // Get the (integer valued) global fsgrid cell index (i,j,k) for the magnetic-field traced mapping point that node n is
 // associated with
-         
 template<class T> std::array<int32_t, 3> getGlobalFsGridCellIndexForCoord(T& grid,const std::array<Real, 3>& x) {
    std::array<int32_t, 3> retval;
    retval[0] = (x[0] - grid.physicalGlobalStart[0]) / grid.DX;
