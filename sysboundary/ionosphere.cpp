@@ -74,9 +74,9 @@ template<class T> std::array<int32_t, 3> getLocalFsGridCellIndexForCoord(T& grid
 template<class T> std::array<Real, 3> getFractionalFsGridCellForCoord(T& grid, const std::array<Real, 3>& x) {
    std::array<Real, 3> retval;
    std::array<int, 3> fsgridCell = getGlobalFsGridCellIndexForCoord(grid,x);
-   for (int c = 0; c < 3; c++) {
-      retval[c] = (x[1] - grid.physicalGlobalStart[1]) / grid.DY - fsgridCell[c];
-   }
+   retval[0] = (x[0] - grid.physicalGlobalStart[0]) / grid.DX - fsgridCell[0];
+   retval[1] = (x[1] - grid.physicalGlobalStart[1]) / grid.DY - fsgridCell[1];
+   retval[2] = (x[2] - grid.physicalGlobalStart[2]) / grid.DZ - fsgridCell[2];
    return retval;
 }
 
