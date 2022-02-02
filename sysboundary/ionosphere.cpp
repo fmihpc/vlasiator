@@ -1251,7 +1251,7 @@ namespace SBC {
          #pragma omp parallel firstprivate(stepSize)
          {
             // Trace node coordinates outwards until a non-sysboundary cell is encountered or the local fsgrid domain has been left.
-            #pragma omp parallel for
+            #pragma omp for
             for(uint n=0; n<nodes.size(); n++) {
    
                if(!nodeNeedsContinuedTracing[n]) {
