@@ -1295,13 +1295,6 @@ namespace SBC {
                      break;
                   }
 
-                  // If we traced far outside of our couplingRadius (such as following a polar fieldline straight out), end tracing.
-                  if( sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]) >= 1.5*max(couplingRadius, Ionosphere::downmapRadius*physicalconstants::R_E) ) {
-                     nodeNeedsContinuedTracing[n] = 0;
-                     nodeTracingCoordinates[n] = {0,0,0};
-                     break;
-                  }
-   
                   // Now, after stepping, if it is no longer in our domain, another MPI rank will pick up later.
                   if(fsgridCell[0] == -1) {
                      nodeNeedsContinuedTracing[n] = 1;
