@@ -56,9 +56,9 @@
 // associated with
 template<class T> std::array<int32_t, 3> getGlobalFsGridCellIndexForCoord(T& grid,const std::array<Real, 3>& x) {
    std::array<int32_t, 3> retval;
-   retval[0] = (x[0] - grid.physicalGlobalStart[0]) / grid.DX;
-   retval[1] = (x[1] - grid.physicalGlobalStart[1]) / grid.DY;
-   retval[2] = (x[2] - grid.physicalGlobalStart[2]) / grid.DZ;
+   retval[0] = floor((x[0] - grid.physicalGlobalStart[0]) / grid.DX);
+   retval[1] = floor((x[1] - grid.physicalGlobalStart[1]) / grid.DY);
+   retval[2] = floor((x[2] - grid.physicalGlobalStart[2]) / grid.DZ);
    return retval;
 }
 // Get the (integer valued) local fsgrid cell index (i,j,k) for the magnetic-field traced mapping point that node n is
