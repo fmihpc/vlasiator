@@ -1351,6 +1351,7 @@ namespace SBC {
          for(uint n=0; n<nodes.size(); n++) {
             if(sumNodeNeedsContinuedTracing[n] > 0) {
                anyNodeNeedsTracing=true;
+               nodeNeedsContinuedTracing[n] = 1;
 
                // Update that nodes' tracing coordinates
                nodeTracingCoordinates[n][0] = sumNodeTracingCoordinates[n][0] / sumNodeNeedsContinuedTracing[n];
