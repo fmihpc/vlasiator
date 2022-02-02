@@ -1693,7 +1693,7 @@ namespace SBC {
                continue;
             }
 
-            // Calc curlB
+            // Calc curlB, note division by DX one line down
             const std::array<Real, 3> curlB = interpolateCurlB(
                perBGrid,
                dPerBGrid,
@@ -1710,7 +1710,7 @@ namespace SBC {
                      nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]
                      + nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]
                      + nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]
-               ) * physicalconstants::MU_0
+               ) * physicalconstants::MU_0 * technicalGrid.DX
             );
 
             // By definition, a downwards current into the ionosphere has a positive FAC value,
