@@ -262,20 +262,22 @@ std::array<Real, 3> interpolatePerturbedB(
    std::array<int, 3> cellIds = {i,j,k};
 
    #pragma omp critical
-   if (reconstructionCoefficientsCache.find(cellIds) == reconstructionCoefficientsCache.end()) {
-      std::array<Real, Rec::N_REC_COEFFICIENTS> rc;
-
-      reconstructionCoefficients(
-         perBGrid,
-         dPerBGrid,
-         rc,
-         i,
-         j,
-         k,
-         3 // Reconstruction order of the fields after Balsara 2009, 2 used for general B, but 3 used here to allow for cache reuse, see interpolatePerturbedJ below
-      );
-      
-      reconstructionCoefficientsCache.insert({cellIds, rc});
+   {
+      if (reconstructionCoefficientsCache.find(cellIds) == reconstructionCoefficientsCache.end()) {
+         std::array<Real, Rec::N_REC_COEFFICIENTS> rc;
+         
+         reconstructionCoefficients(
+            perBGrid,
+            dPerBGrid,
+            rc,
+            i,
+            j,
+            k,
+            3 // Reconstruction order of the fields after Balsara 2009, 2 used for general B, but 3 used here to allow for cache reuse, see interpolatePerturbedJ below
+         );
+         
+         reconstructionCoefficientsCache.insert({cellIds, rc});
+      }
    }
    
    std::array<Real, Rec::N_REC_COEFFICIENTS> rc = reconstructionCoefficientsCache.at(cellIds);
@@ -341,20 +343,22 @@ std::array<Real, 3> interpolateCurlB(
    std::array<int, 3> cellIds = {i,j,k};
 
    #pragma omp critical
-   if (reconstructionCoefficientsCache.find(cellIds) == reconstructionCoefficientsCache.end()) {
-      std::array<Real, Rec::N_REC_COEFFICIENTS> rc;
-
-      reconstructionCoefficients(
-         perBGrid,
-         dPerBGrid,
-         rc,
-         i,
-         j,
-         k,
-         3 // // Reconstruction order of the fields after Balsara 2009, 3 used to obtain 2nd order curl(B) and allows for cache reuse, see interpolatePerturbedB above
-      );
-
-      reconstructionCoefficientsCache.insert({cellIds, rc});
+   {
+      if (reconstructionCoefficientsCache.find(cellIds) == reconstructionCoefficientsCache.end()) {
+         std::array<Real, Rec::N_REC_COEFFICIENTS> rc;
+         
+         reconstructionCoefficients(
+            perBGrid,
+            dPerBGrid,
+            rc,
+            i,
+            j,
+            k,
+            3 // // Reconstruction order of the fields after Balsara 2009, 3 used to obtain 2nd order curl(B) and allows for cache reuse, see interpolatePerturbedB above
+         );
+         
+         reconstructionCoefficientsCache.insert({cellIds, rc});
+      }
    }
 
    std::array<Real, Rec::N_REC_COEFFICIENTS> rc = reconstructionCoefficientsCache.at(cellIds);
