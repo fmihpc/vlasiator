@@ -1575,6 +1575,7 @@ namespace SBC {
             cerr << __FILE__ << ":" << __LINE__ << ": invalid elementIndex returned for coordinate "
             << x[0] << " " << x[1] << " " << x[2] << " projected to rx " << rx[0] << " " << rx[1] << " " << rx[2]
             << ". Last valid elementIndex: " << oldElementIndex << "." << endl;
+            phiprof::stop("ionosphere-VlasovGridCoupling");
             return coupling;
          }
       }
@@ -2321,7 +2322,6 @@ namespace SBC {
 
       // Abort if there is nothing to solve.
       if(sourcenorm == 0) {
-         phiprof::stop("ionosphere-solve");
          return 0;
       }
       sourcenorm = sqrt(sourcenorm);
