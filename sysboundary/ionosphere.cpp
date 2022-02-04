@@ -1636,7 +1636,7 @@ namespace SBC {
       // Create zeroed-out input arrays
       std::vector<double> FACinput(nodes.size());
       std::vector<double> rhoInput(nodes.size());
-      std::vector<double> pressureInput(nodes.size());
+      std::vector<double> temperatureInput(nodes.size());
 
       // Map all coupled nodes down into it
       // Tasks that don't have anything to couple to can skip this step.
@@ -1666,7 +1666,7 @@ namespace SBC {
                }
 
                // Also sum up touching elements' areas and upmapped areas to compress
-               // density and pressure with them
+               // density and temperature with them
                // TODO: Precalculate this?
                area += elementArea(nodes[n].touchingElements[e]);
 
@@ -1753,12 +1753,13 @@ namespace SBC {
                      }
 
 
-                     // Map density and pressure down
-                     rhoInput[n] += coupling * momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::RHOQ) / physicalconstants::CHARGE;
-                     pressureInput[n] += coupling * 1./3. * (
+                     // Map density and temperature down
+                     Real thisCellRho = coupling * momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::RHOQ) / physicalconstants::CHARGE;
+                     rhoInput[n] += thisCellRho;
+                     temperatureInput[n] += coupling * 1./3. * (
                           momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_11) +
                           momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_22) +
-                          momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_33));
+                          momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_33)) / (thisCellRho * physicalconstants::K_B * ion_electron_T_ratio);
                   }
                }
             }
@@ -1767,39 +1768,37 @@ namespace SBC {
             // boundary, some cells were skipped, as they are in the sysbondary. Renormalize values by dividing by the couplingSum.
             if(couplingSum > 0) {
                rhoInput[n] /= couplingSum;
-               pressureInput[n] /= couplingSum;
+               temperatureInput[n] /= couplingSum;
             }
 
-            // Scale density and pressure by area ratio
+            // Scale density by area ratio
             rhoInput[n] *= upmappedArea / area;
-            //pressureInput[n] *= upmappedArea / area;
          }
       }
 
       // Allreduce on the ionosphere communicator
       std::vector<double> FACsum(nodes.size());
       std::vector<double> rhoSum(nodes.size());
-      std::vector<double> pressureSum(nodes.size());
+      std::vector<double> temperatureSum(nodes.size());
       MPI_Allreduce(&FACinput[0], &FACsum[0], nodes.size(), MPI_DOUBLE, MPI_SUM, communicator);
       MPI_Allreduce(&rhoInput[0], &rhoSum[0], nodes.size(), MPI_DOUBLE, MPI_SUM, communicator);
-      MPI_Allreduce(&pressureInput[0], &pressureSum[0], nodes.size(), MPI_DOUBLE, MPI_SUM, communicator);
+      MPI_Allreduce(&temperatureInput[0], &temperatureSum[0], nodes.size(), MPI_DOUBLE, MPI_SUM, communicator); // TODO: Does it make sense to SUM the temperatures?
 
       for(uint n=0; n<nodes.size(); n++) {
 
-         if(rhoSum[n] == 0 || pressureSum[n] == 0) {
+         if(rhoSum[n] == 0 || temperatureSum[n] == 0) {
             // Node couples nowhere. Assume some default values.
             nodes[n].parameters[ionosphereParameters::SOURCE] = 0;
 
             nodes[n].parameters[ionosphereParameters::RHON] = Ionosphere::unmappedNodeRho;
-            nodes[n].parameters[ionosphereParameters::PRESSURE] =
-               Ionosphere::unmappedNodeRho * physicalconstants::K_B * Ionosphere::unmappedNodeTe * ion_electron_T_ratio;
+            nodes[n].parameters[ionosphereParameters::TEMPERATURE] = Ionosphere::unmappedNodeTe;
          } else {
             // Store as the node's parameter values.
             if(Ionosphere::couplingTimescale == 0) {
                // Immediate coupling
                nodes[n].parameters[ionosphereParameters::SOURCE] = FACsum[n];
                nodes[n].parameters[ionosphereParameters::RHON] = rhoSum[n];
-               nodes[n].parameters[ionosphereParameters::PRESSURE] = pressureSum[n];
+               nodes[n].parameters[ionosphereParameters::TEMPERATURE] = temperatureSum[n];
             } else {
 
                // Slow coupling with a given timescale.
@@ -1811,7 +1810,7 @@ namespace SBC {
 
                nodes[n].parameters[ionosphereParameters::SOURCE] = (1.-a) * nodes[n].parameters[ionosphereParameters::SOURCE] + a * FACsum[n];
                nodes[n].parameters[ionosphereParameters::RHON] = (1.-a) * nodes[n].parameters[ionosphereParameters::RHON] + a * rhoSum[n];
-               nodes[n].parameters[ionosphereParameters::PRESSURE] = (1.-a) * nodes[n].parameters[ionosphereParameters::PRESSURE] + a * pressureSum[n];
+               nodes[n].parameters[ionosphereParameters::TEMPERATURE] = (1.-a) * nodes[n].parameters[ionosphereParameters::TEMPERATURE] + a * temperatureSum[n];
             }
          }
 
@@ -1826,7 +1825,6 @@ namespace SBC {
          Real Chi0 = 0.01 + 0.99 * .5 * (1 + tanh((23. - theta * (180. / M_PI)) / 6));
 
          nodes[n].parameters[ionosphereParameters::RHON] *= Chi0;
-
       }
 
       // Make sure FACs are balanced, so that the potential doesn't start to drift

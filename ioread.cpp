@@ -1315,7 +1315,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       SBC::ionosphereGrid.nodes[i].parameters[ionosphereParameters::SOURCE] *= area;
    }
    ionosphereSuccess &= readIonosphereNodeVariable(file, "ig_rhon", SBC::ionosphereGrid, ionosphereParameters::RHON);
-   ionosphereSuccess &= readIonosphereNodeVariable(file, "ig_pressure", SBC::ionosphereGrid, ionosphereParameters::PRESSURE);
+   ionosphereSuccess &= readIonosphereNodeVariable(file, "ig_electrontemp", SBC::ionosphereGrid, ionosphereParameters::TEMPERATURE);
    ionosphereSuccess &= readIonosphereNodeVariable(file, "ig_potential", SBC::ionosphereGrid, ionosphereParameters::SOLUTION);
    if(!ionosphereSuccess) {
 	logFile << "(RESTART) Reading ionosphere variables failed. Continuing anyway. Variables will be zero, assuming this is an ionosphere cold start?" << std::endl;

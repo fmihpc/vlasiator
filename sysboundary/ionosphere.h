@@ -84,8 +84,7 @@ namespace SBC {
             return parameters[ionosphereParameters::RHON];
          }
          Real electronTemperature() { // Electron Temperature
-            return parameters[ionosphereParameters::PRESSURE] /
-               (ion_electron_T_ratio * physicalconstants::K_B * electronDensity());
+            return parameters[ionosphereParameters::TEMPERATURE];
          }
          Real deltaPhi() { // Field aligned potential drop between i'sphere and m'sphere
 
@@ -242,7 +241,7 @@ namespace SBC {
       void solve();
       Real solveInternal(int & iteration, int & nRestarts);
 
-      // Map field-aligned currents, density and pressure
+      // Map field-aligned currents, density and temperature
       // down from the simulation boundary onto this grid
       void mapDownBoundaryData(
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,                                                                                                                                                                                                                                

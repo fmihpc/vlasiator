@@ -392,7 +392,7 @@ enum ionosphereParameters {
   SIGMAPARALLEL, /*!< Scalar parallel conductivity */
   PRECIP,   /*!< Precipitation */
   RHON,     /*!< Downmapped magnetospheric plasma number density */
-  PRESSURE, /*!< Downmapped scalar pressure */
+  TEMPERATURE, /*!< Downmapped electron temperature */
   UPMAPPED_BX,UPMAPPED_BY,UPMAPPED_BZ, /*!< Magnetic field at the upper and of the mapping fieldline */
   SOLUTION, /*!< Currently considered solution potential */
   BEST_SOLUTION, /*!< Best solution found so far */

@@ -1635,12 +1635,12 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
       return retval;
    }));
-   restartReducer.addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_pressure", [](SBC::SphericalTriGrid& grid)->std::vector<Real> {
+   restartReducer.addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_electrontemp", [](SBC::SphericalTriGrid& grid)->std::vector<Real> {
 
       std::vector<Real> retval(grid.nodes.size());
 
       for(uint i=0; i<grid.nodes.size(); i++) {
-         retval[i] = grid.nodes[i].parameters[ionosphereParameters::PRESSURE];
+         retval[i] = grid.nodes[i].parameters[ionosphereParameters::TEMPERATURE];
       }
 
       return retval;
