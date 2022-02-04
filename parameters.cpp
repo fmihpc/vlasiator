@@ -65,6 +65,7 @@ Real P::t_max = LARGE_REAL;
 Real P::dt = NAN;
 Real P::vlasovSolverMaxCFL = NAN;
 Real P::vlasovSolverMinCFL = NAN;
+bool P::vlasovSolverLocalTranslate = false;
 Real P::fieldSolverMaxCFL = NAN;
 Real P::fieldSolverMinCFL = NAN;
 uint P::fieldSolverSubcycles = 1;
@@ -290,6 +291,7 @@ bool P::addParameters() {
            "The minimum CFL limit for vlasov propagation in ordinary space. Used to set timestep if dynamic_timestep "
            "is true.",
            0.8);
+   RP::add("vlasovsolver.LocalTranslate","Boolean for activating all-local translation",false);
 
    // Load balancing parameters
    RP::add("loadBalance.algorithm", "Load balancing algorithm to be used", string("RCB"));
@@ -676,6 +678,10 @@ void Parameters::getParameters() {
    RP::get("vlasovsolver.maxSlAccelerationSubcycles", P::maxSlAccelerationSubcycles);
    RP::get("vlasovsolver.maxCFL", P::vlasovSolverMaxCFL);
    RP::get("vlasovsolver.minCFL", P::vlasovSolverMinCFL);
+   RP::get("vlasovsolver.LocalTranslate",P::vlasovSolverLocalTranslate);
+   if ((myRank == MASTER_RANK)&&(P::vlasovSolverLocalTranslate==true)) {
+      printf("Performing all spatial translation locally using ghost cell information\n");
+   }
 
    // Get load balance parameters
    RP::get("loadBalance.algorithm", P::loadBalanceAlgorithm);

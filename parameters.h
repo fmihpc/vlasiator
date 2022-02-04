@@ -58,6 +58,7 @@ struct Parameters {
                                         timestep if useCFLlimit is true. */
    static Real vlasovSolverMinCFL;   /*!< The minimum CFL limit for propagation of distribution function. Used to set
                                         timestep if useCFLlimit is true. */
+   static bool vlasovSolverLocalTranslate;   /*!< Flag for activating all-local translation. */
    static Real fieldSolverMinCFL;    /*!< The minimum CFL limit for propagation of fields. Used to set timestep if
                                         useCFLlimit is true.*/
    static Real fieldSolverMaxCFL;    /*!< The maximum CFL limit for propagation of fields. Used to set timestep if

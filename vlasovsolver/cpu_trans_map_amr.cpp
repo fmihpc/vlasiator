@@ -7,10 +7,15 @@
 #include "cpu_trans_map_amr.hpp"
 #include "cpu_trans_map.hpp"
 
-// use DCCRG version Nov 8th 2018 01482cfba8
+// use DCCRG version Nov 8th 2018 01482cfba8 / branch vlasiator-version
 
 using namespace std;
 using namespace spatial_cell;
+
+// Cell lists for local translation
+std::unordered_set<CellID> LocalSet_x;
+std::unordered_set<CellID> LocalSet_y;
+std::unordered_set<CellID> LocalSet_z;
 
 // indices in padded source block, which is of type Vec with VECL
 // element sin each vector. b_k is the block index in z direction in
@@ -68,6 +73,26 @@ int getNeighborhood(const uint dimension, const uint stencil) {
    
    return neighborhood;
    
+}
+
+bool check_is_local(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, CellID cell, int dimension) {
+   if (P::vlasovSolverLocalTranslate) {
+      switch (dimension) {
+         case 0:
+            if (LocalSet_x.count(cell)) return true;
+            break;
+         case 1:
+            if (LocalSet_y.count(cell)) return true;
+            break;
+         case 2:
+            if (LocalSet_z.count(cell)) return true;
+            break;
+      }
+      return false;
+   } else {
+      if (mpiGrid.is_local(cell)) return true;
+      return false;
+   }
 }
 
 void flagSpatialCellsForAmrCommunication(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -175,6 +200,141 @@ void flagSpatialCellsForAmrCommunication(const dccrg::Dccrg<SpatialCell,dccrg::C
 
       } // end loop over local propagated cells
    } // end loop over dimensions
+   return;
+}
+
+void findNeighborhoodCells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                           const CellID startingCell,
+                           uint dimension,
+                           uint searchLength,
+                           std::vector<CellID>& foundCells) {
+
+   int neighborhood = getNeighborhood(dimension,searchLength);
+   foundCells.clear();
+
+   SpatialCell *ccell = mpiGrid[startingCell];
+   if (!ccell) return;
+
+   std::set< int > distancesplus;
+   std::set< int > distancesminus;
+   std::unordered_set<CellID> foundNeighbors;
+   std::unordered_set<CellID> foundSet;
+
+   const auto* NbrPairs = mpiGrid.get_neighbors_of(startingCell, neighborhood);
+
+   // Create list of unique distances
+   // Check for already found cells is required as one cell can be listed at several different distances
+   for (const auto nbrPair : *NbrPairs) {
+      if(nbrPair.second[dimension] > 0) {
+         if (foundNeighbors.find(nbrPair.first) == foundNeighbors.end()) {
+            distancesplus.insert(nbrPair.second[dimension]);
+            foundNeighbors.insert(nbrPair.first);
+         }
+      }
+      if(nbrPair.second[dimension] < 0) {
+         if (foundNeighbors.find(nbrPair.first) == foundNeighbors.end()) {
+            distancesminus.insert(-nbrPair.second[dimension]);
+            foundNeighbors.insert(nbrPair.first);
+         }
+      }
+   }
+
+   int iSrc = searchLength-1;
+   // Iterate through positive distances starting from the smallest distance.
+   for (auto it = distancesplus.begin(); it != distancesplus.end(); ++it) {
+      if (iSrc < 0) break; // found enough elements
+      // Check all neighbors at distance *it
+      for (const auto nbrPair : *NbrPairs) {
+         SpatialCell *ncell = mpiGrid[nbrPair.first];
+         if (!ncell) continue;
+         int distanceInRefinedCells = nbrPair.second[dimension];
+         if (distanceInRefinedCells == *it) {
+            foundSet.insert(nbrPair.first);
+         }
+      } // end loop over neighbors
+      iSrc--;
+   } // end loop over positive distances
+
+   iSrc = searchLength-1;
+   // Iterate through negtive distances starting from the smallest distance.
+   for (auto it = distancesminus.begin(); it != distancesminus.end(); ++it) {
+      if (iSrc < 0) break; // found enough elements
+      // Check all neighbors at distance *it
+      for (const auto nbrPair : *NbrPairs) {
+         SpatialCell *ncell = mpiGrid[nbrPair.first];
+         if (!ncell) continue;
+         int distanceInRefinedCells = -nbrPair.second[dimension];
+         if (distanceInRefinedCells == *it) {
+            foundSet.insert(nbrPair.first);
+         }
+      } // end loop over neighbors
+      iSrc--;
+   } // end loop over negative distances
+   foundCells.assign(foundSet.begin(), foundSet.end());
+}
+
+void prepareLocalTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                      const vector<CellID>& localPropagatedCells) {
+   // return if there's no cells to start with
+   if(localPropagatedCells.size() == 0) {
+      std::cerr<<"No cells!"<<std::endl;
+      return;
+   }
+
+   // Clear existing lists
+   LocalSet_x.clear();
+   LocalSet_y.clear();
+   LocalSet_z.clear();
+   std::vector<CellID> foundCells;
+
+   // For each dimension, simply adds the first remote face neighbours.
+   // Done only at LB so not threaded for now
+   for (uint i=0; i<localPropagatedCells.size(); i++) {
+
+      CellID c = localPropagatedCells[i];
+      SpatialCell *ccell = mpiGrid[c];
+      if (!ccell) continue;
+      // Sets the flag to true for all cells for now
+      ccell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_X] = true;
+
+      // Is the cell translated?
+      if (!do_translate_cell(ccell)) continue;
+
+      LocalSet_x.insert(c);
+      LocalSet_y.insert(c);
+      LocalSet_z.insert(c);
+
+      // x-translation
+      findNeighborhoodCells(mpiGrid, c, 0, 1, foundCells);
+      for (uint j=0; j<foundCells.size(); j++) {
+         CellID n = foundCells[j];
+         SpatialCell *ncell = mpiGrid[n];
+         if (!ncell) continue;
+         // Is the cell translated?
+         if (!do_translate_cell(ncell)) continue;
+         if (!mpiGrid.is_local(n)) LocalSet_x.insert(n);
+      }
+      // y-translation
+      findNeighborhoodCells(mpiGrid, c, 1, 1, foundCells);
+      for (uint j=0; j<foundCells.size(); j++) {
+         CellID n = foundCells[j];
+         SpatialCell *ncell = mpiGrid[n];
+         if (!ncell) continue;
+         // Is the cell translated?
+         if (!do_translate_cell(ncell)) continue;
+         if (!mpiGrid.is_local(n)) LocalSet_y.insert(n);
+      }
+      // z-translation
+      findNeighborhoodCells(mpiGrid, c, 2, 1, foundCells);
+      for (uint j=0; j<foundCells.size(); j++) {
+         CellID n = foundCells[j];
+         SpatialCell *ncell = mpiGrid[n];
+         if (!ncell) continue;
+         // Is the cell translated?
+         if (!do_translate_cell(ncell)) continue;
+         if (!mpiGrid.is_local(n)) LocalSet_z.insert(n);
+      }
+   } // end loop over local cells
    return;
 }
 
@@ -437,6 +597,7 @@ void computeSpatialTargetCellsForPencilsWithFaces(const dccrg::Dccrg<SpatialCell
 /* Select one nearest neighbor of a cell on the + side in a given dimension. If the neighbor
  * has a higher level of refinement, a path variable is needed to make the selection.
  * Returns INVALID_CELLID if the nearest neighbor is not local to this process.
+ * (or not included in the translation list for neighbour translation if active)
  * 
  * @param grid DCCRG grid object
  * @param id DCCRG cell id
@@ -471,8 +632,8 @@ CellID selectNeighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> 
       neighborIndex = path;
    }
    
-   if (grid.is_local(myNeighbors[neighborIndex])) {
-     neighbor = myNeighbors[neighborIndex];
+   if (check_is_local(grid, myNeighbors[neighborIndex], dimension)) {
+      neighbor = myNeighbors[neighborIndex];
    }
    
    return neighbor;
@@ -865,12 +1026,14 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
 	    // the distance in indices between this cell and its neighbor.
 	    auto nbrIndices = mpiGrid.mapping.get_indices(faceNbrPair.first);
 
-	    // If a neighbor is non-local, across a periodic boundary, or in non-periodic boundary layer 1
+	    // If a neighbor is non-local, across a periodic boundary,
+            // or in non-periodic boundary layer >1 (non-translated cell)
 	    // then we use this cell as a seed for pencils
 	    if ( abs ( (int64_t)(myIndices[dimension] - nbrIndices[dimension]) ) >
 		 pow(2,mpiGrid.get_maximum_refinement_level()) ||
-		 !mpiGrid.is_local(faceNbrPair.first) ||
-		 !do_translate_cell(mpiGrid[faceNbrPair.first]) ) {
+		 //!mpiGrid.is_local(faceNbrPair.first) ||
+                 !check_is_local(mpiGrid, faceNbrPair.first, dimension) ||
+                 !do_translate_cell(mpiGrid[faceNbrPair.first]) ) {
                addToSeedIds = true;
                break;
 	    }
@@ -1216,48 +1379,30 @@ bool checkPencils(
    const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const std::vector<CellID> &cells,
    const setOfPencils& pencils
-) {
-
+   ) {
    bool correct = true;
-
    for (auto id : cells) {
-
       if (mpiGrid[id]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY )  {
-      
          int myCount = std::count(pencils.ids.begin(), pencils.ids.end(), id);
-         
          if( myCount == 0) {
-            
             std::cerr << "ERROR: Cell ID " << id << " Appears in pencils " << myCount << " times!"<< std::endl;            
             correct = false;
          }
-
       }
-      
    }
-
    for (uint ipencil = 0; ipencil < pencils.N; ++ipencil) {
       cint nPencilsThroughThisCell = pow(pow(2,pencils.path[ipencil].size()),2);
       auto ids = pencils.getIds(ipencil);
-      
       for (auto id : ids) {
-
          cint myCount = std::count(pencils.ids.begin(), pencils.ids.end(), id);
-
          if (myCount > nPencilsThroughThisCell) {
-
             std::cerr << "ERROR: Cell ID " << id << " Appears in pencils " << myCount << " times!"<< std::endl;
             std::cerr << "       It should not appear more than " << nPencilsThroughThisCell << " times." << std::endl;
             correct = false;
-
          }
-
       }
-
    }
-
    return correct;
-   
 }
 
 /* Debugging function, prints the list of cells in each pencil
@@ -1266,39 +1411,76 @@ bool checkPencils(
  * @param dimension Spatial dimension
  * @param myRank MPI rank
  */
-void printPencilsFunc(const setOfPencils& pencils, const uint dimension, const int myRank) {
+void printPencilsFunc(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const setOfPencils& pencils, const uint dimension, const int myRank) {
    
-   // Print out ids of pencils (if needed for debugging)
-   uint ibeg = 0;
-   uint iend = 0;
-   std::cout << "I am rank " << myRank << ", I have " << pencils.N << " pencils along dimension " << dimension << ":\n";
-   MPI_Barrier(MPI_COMM_WORLD);
-   if(myRank == MASTER_RANK) {
-      std::cout << "t, N, mpirank, dimension (x, y): indices {path} " << std::endl;
-      std::cout << "-----------------------------------------------------------------" << std::endl;
-   }
-   MPI_Barrier(MPI_COMM_WORLD);
-   for (uint i = 0; i < pencils.N; i++) {
-      iend += pencils.lengthOfPencils[i];
-      std::cout << P::t << ", ";
-      std::cout << i << ", ";
-      std::cout << myRank << ", ";
-      std::cout << dimension << ", ";
-      std::cout << "(" << pencils.x[i] << ", " << pencils.y[i] << "): ";
-      for (auto j = pencils.ids.begin() + ibeg; j != pencils.ids.begin() + iend; ++j) {
-         std::cout << *j << " ";
+   int mpiProcs;
+   MPI_Comm_size(MPI_COMM_WORLD,&mpiProcs);
+   for (int iMpi=0; iMpi<mpiProcs; iMpi++) {
+      MPI_Barrier(MPI_COMM_WORLD);
+      if (myRank != iMpi) continue;
+      // Print out ids of pencils (if needed for debugging)
+      uint ibeg = 0;
+      uint iend = 0;
+      std::cout << "I am rank " << myRank << ", I have " << pencils.N << " pencils along dimension " << dimension << ":\n";
+      //MPI_Barrier(MPI_COMM_WORLD);
+      if(myRank == MASTER_RANK) {
+         std::cout << "t, N, mpirank, dimension (x, y): indices {path} " << std::endl;
+         std::cout << "-----------------------------------------------------------------" << std::endl;
       }
-      ibeg  = iend;
-      
-      std::cout << "{";         
-      for (auto step : pencils.path[i]) {
-         std::cout << step << ", ";
-      }
-      std::cout << "}";
-      
-      std::cout << std::endl;
-   }
+      //MPI_Barrier(MPI_COMM_WORLD);
+      for (uint i = 0; i < pencils.N; i++) {
+         iend += pencils.lengthOfPencils[i];
+         std::cout << P::t << ", ";
+         std::cout << i << ", ";
+         std::cout << myRank << ", ";
+         std::cout << dimension << ", ";
+         std::cout << "(" << pencils.x[i] << ", " << pencils.y[i] << "): ";
+         for (auto j = pencils.ids.begin() + ibeg; j != pencils.ids.begin() + iend; ++j) {
+            //if (check_is_local(mpiGrid, *j, dimension)) {
+            if (mpiGrid.is_local(*j)) {
+               std::cout<<"L"<< *j << " ";
+            } else {
+               std::cout<<"N"<< *j << " ";
+            }
+         }
+         ibeg  = iend;
+         std::cout << "{";
+         for (auto step : pencils.path[i]) {
+            std::cout << step << ", ";
+         }
+         std::cout << "}";
 
+         std::cout << std::endl;
+      }
+      std::cout<<std::flush;
+      // Print also cell lists?
+      if (false) {
+         if (P::vlasovSolverLocalTranslate) {
+            std::cout<<"Translated cells in dimension "<<dimension<<":"<<std::endl;
+            switch (dimension) {
+               case 0:
+                  for (CellID c : LocalSet_x) {
+                     std::cout<<c<<" ";
+                  }
+                  std::cout<<std::endl;
+                  break;
+               case 1:
+                  for (CellID c : LocalSet_y) {
+                     std::cout<<c<<" ";
+                  }
+                  std::cout<<std::endl;
+                  break;
+               case 2:
+                  for (CellID c : LocalSet_y) {
+                     std::cout<<c<<" ";
+                  }
+                  std::cout<<std::endl;
+                  break;
+            }
+         }
+      }
+      std::cout<<std::flush;
+   }
    MPI_Barrier(MPI_COMM_WORLD);
 }
 
@@ -1316,18 +1498,33 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    if(printPencils) MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
    const vector<CellID>& localCells = getLocalCells();
-   vector<CellID> localPropagatedCells;
+   vector<CellID> PropagatedCells;
    // Figure out which spatial cells are translated,
    // result independent of particle species.
-   for (size_t c=0; c<localCells.size(); ++c) {
-      if (do_translate_cell(mpiGrid[localCells[c]])) {
-         localPropagatedCells.push_back(localCells[c]);
+   if (P::vlasovSolverLocalTranslate) {
+      // Sets already include check for do_translate_cell 
+      switch (dimension) {
+         case 0:
+            PropagatedCells.assign(LocalSet_x.begin(), LocalSet_x.end());
+            break;
+         case 1:
+            PropagatedCells.assign(LocalSet_y.begin(), LocalSet_y.end());
+            break;
+         case 2:
+            PropagatedCells.assign(LocalSet_z.begin(), LocalSet_z.end());
+            break;
+      }
+   } else {
+      for (size_t c=0; c<localCells.size(); ++c) {
+         if (do_translate_cell(mpiGrid[localCells[c]])) {
+            PropagatedCells.push_back(localCells[c]);
+         }
       }
    }
 
    phiprof::start("getSeedIds");
    vector<CellID> seedIds;
-   getSeedIds(mpiGrid, localPropagatedCells, dimension, seedIds);
+   getSeedIds(mpiGrid, PropagatedCells, dimension, seedIds);
    phiprof::stop("getSeedIds");
 
    phiprof::start("buildPencils");
@@ -1376,7 +1573,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
 
    // ****************************************************************************
 
-   if(printPencils) printPencilsFunc(DimensionPencils[dimension],dimension,myRank);
+   if(printPencils) printPencilsFunc(mpiGrid, DimensionPencils[dimension],dimension,myRank);
    phiprof::stop("buildPencils");
 }
 
@@ -1387,14 +1584,12 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
  * @param [in] mpiGrid DCCRG grid object
  * @param [in] localPropagatedCells List of local cells that get propagated
  * ie. not boundary or DO_NOT_COMPUTE
- * @param [in] remoteTargetCells List of non-local target cells
  * @param [in] dimension Spatial dimension
  * @param [in] dt Time step
  * @param [in] popId Particle population ID
  */
 bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                       const vector<CellID>& localPropagatedCells,
-                      const vector<CellID>& remoteTargetCells,
                       std::vector<uint>& nPencils,
                       const uint dimension,
                       const Realv dt,
@@ -1410,17 +1605,13 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       return false;
    }
 
-   // Vector with all cell ids
-   vector<CellID> allCells(localPropagatedCells);
-   allCells.insert(allCells.end(), remoteTargetCells.begin(), remoteTargetCells.end());  
-
-   // Vectors of pointers to the cell structs
-   std::vector<SpatialCell*> allCellsPointer(allCells.size());  
+   // Vectors of pointers to the propagated cell structs
+   std::vector<SpatialCell*> propagatedCellsPointer(localPropagatedCells.size());
    
-   // Initialize allCellsPointer
-   #pragma omp parallel for
-   for(uint celli = 0; celli < allCells.size(); celli++){
-      allCellsPointer[celli] = mpiGrid[allCells[celli]];
+   // Initialize propagatedCellsPointer
+#pragma omp parallel for
+   for(uint celli = 0; celli < localPropagatedCells.size(); celli++){
+      propagatedCellsPointer[celli] = mpiGrid[localPropagatedCells[celli]];
    }
 
    // Fiddle indices x,y,z in VELOCITY SPACE
@@ -1454,9 +1645,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
            
    // ****************************************************************************
 
-   // compute pencils => set of pencils (shared datastructure)
-   // prepareSeedIdsAndPencils(mpiGrid,dimension); // moved to grid.cpp
-
    // init cellid_transpose (moved here to take advantage of the omp parallel region)
 #pragma omp parallel for collapse(3)
    for (uint k=0; k<WID; ++k) {
@@ -1486,7 +1674,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    }
    
    // Get a pointer to the velocity mesh of the first spatial cell
-   const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = allCellsPointer[0]->get_velocity_mesh(popID);
+   const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = propagatedCellsPointer[0]->get_velocity_mesh(popID);
    
    phiprof::start("buildBlockList");
    // Get a unique sorted list of blockids that are in any of the
@@ -1494,16 +1682,18 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    // be the most nice way to do this and in any case we could do it along
    // dimension for data locality reasons => copy acc map column code, TODO: FIXME
    // TODO: Do this separately for each pencil?
+   // Note: Now only considers local propagated cells, as there's no point in
+   // Propagating data which does not have an existing target block.
    std::vector<vmesh::GlobalID> unionOfBlocks;
    std::unordered_set<vmesh::GlobalID> unionOfBlocksSet;
 //   unionOfBlocks.reserve(unionOfBlocksSet.size());
 #pragma omp parallel
    {
       std::unordered_set<vmesh::GlobalID> thread_unionOfBlocksSet;
-      
+
 #pragma omp for
-      for(unsigned int i=0; i<allCellsPointer.size(); i++) {
-         auto cell = &allCellsPointer[i];
+      for(unsigned int i=0; i<propagatedCellsPointer.size(); i++) {
+         auto cell = &propagatedCellsPointer[i];
          vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& cvmesh = (*cell)->get_velocity_mesh(popID);
          for (vmesh::LocalID block_i=0; block_i< cvmesh.size(); ++block_i) {
             thread_unionOfBlocksSet.insert(cvmesh.getGlobalID(block_i));
@@ -1645,7 +1835,11 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
             for (auto *spatial_cell: targetCells) {
                // Check for null and system boundary
                if (spatial_cell && spatial_cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                  
+                  // In local propagation, do not write to non-local cells
+                  if (P::vlasovSolverLocalTranslate) {
+                     if (!mpiGrid.is_local(spatial_cell->parameters[CellParams::CELLID])) continue;
+                  }
+
                   // Get local velocity block id
                   const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blockGID, popID);
                   
@@ -1678,7 +1872,11 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                   SpatialCell* targetCell = targetCells[GID];
 
                   if(targetCell) { // this check also skips sysboundary cells
-                  
+                     // In local propagation, do not write to non-local cells
+                     if (P::vlasovSolverLocalTranslate) {
+                        if (!mpiGrid.is_local(targetCell->parameters[CellParams::CELLID])) continue;
+                     }
+
                      const vmesh::LocalID blockLID = targetCell->get_velocity_block_local_id(blockGID, popID);
 
                      // Check for invalid block id
