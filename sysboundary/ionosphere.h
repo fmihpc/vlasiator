@@ -432,6 +432,8 @@ namespace SBC {
       static Real F10_7; // Solar 10.7 Flux value (parameter)
       static Real backgroundIonisation; // Background ionisation due to stellar UV and cosmic rays
       static Real downmapRadius; // Radius from which FACs are downmapped (RE)
+      static Real unmappedNodeRho; // Electron density of ionosphere nodes that don't couple to the magnetosphere
+      static Real unmappedNodeTe; // Electron temperature of ionosphere nodes that don't couple to the magnetosphere
       static Real couplingTimescale; // Magnetosphere->Ionosphere coupling timescale (seconds)
       static enum IonosphereConductivityModel { // How should the conductivity tensor be assembled?
          GUMICS,   // Like GUMICS-5 does it? (Only SigmaH and SigmaP, B perp to surface)

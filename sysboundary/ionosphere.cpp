@@ -92,6 +92,8 @@ namespace SBC {
    Real Ionosphere::recombAlpha; // Recombination parameter, determining atmosphere ionizability (parameter)
    Real Ionosphere::F10_7; // Solar 10.7 Flux value (parameter)
    Real Ionosphere::downmapRadius; // Radius from which FACs are downmapped (RE)
+   Real Ionosphere::unmappedNodeRho; // Electron density of ionosphere nodes that don't couple to the magnetosphere
+   Real Ionosphere::unmappedNodeTe; // Electron temperature of ionosphere nodes that don't couple to the magnetosphere
    Real Ionosphere::couplingTimescale; // Magnetosphere->Ionosphere coupling timescale (seconds)
    Real Ionosphere::backgroundIonisation; // Background ionisation due to stellar UV and cosmic rays
    int  Ionosphere::solverMaxIterations;
@@ -1788,12 +1790,9 @@ namespace SBC {
             // Node couples nowhere. Assume some default values.
             nodes[n].parameters[ionosphereParameters::SOURCE] = 0;
 
-            // TODO: These are assuming that population 0 is protons. Should it
-            // rather be a sum over all positively charged populations?
-            nodes[n].parameters[ionosphereParameters::RHON] = Ionosphere::speciesParams[0].rho;
+            nodes[n].parameters[ionosphereParameters::RHON] = Ionosphere::unmappedNodeRho;
             nodes[n].parameters[ionosphereParameters::PRESSURE] =
-               Ionosphere::speciesParams[0].rho * physicalconstants::K_B *
-               Ionosphere::speciesParams[0].T;
+               Ionosphere::unmappedNodeRho * physicalconstants::K_B * Ionosphere::unmappedNodeTe;
          } else {
             // Store as the node's parameter values.
             if(Ionosphere::couplingTimescale == 0) {
@@ -2513,6 +2512,8 @@ namespace SBC {
       Readparameters::add("ionosphere.plasmapauseL", "L-shell at which the plasmapause resides (for corotation)", 5.);
       Readparameters::add("ionosphere.fieldLineTracer", "Field line tracing method to use for coupling ionosphere and magnetosphere (options are: Euler, BS)", std::string("Euler"));
       Readparameters::add("ionosphere.downmapRadius", "Radius (in RE) from which FACs are coupled down into the ionosphere. If -1: use inner boundary clls.", -1.);
+      Readparameters::add("ionosphere.unmappedNodeRho", "Electron density of ionosphere nodes that do not connect to the magnetosphere domain.", 1e7);
+      Readparameters::add("ionosphere.unmappedNodeTe", "Electron temperature of ionosphere nodes that do not connect to the magnetosphere domain.", 1e5);
       Readparameters::add("ionosphere.couplingTimescale", "Magnetosphere->Ionosphere coupling timescale (seconds, 0=immediate coupling", 1.);
       Readparameters::add("ionosphere.tracerTolerance", "Tolerance for the Bulirsch Stoer Method", 1000);
 
@@ -2566,6 +2567,8 @@ namespace SBC {
       Readparameters::get("ionosphere.fieldLineTracer", tracerString);
       Readparameters::get("ionosphere.couplingTimescale",couplingTimescale);
       Readparameters::get("ionosphere.downmapRadius",downmapRadius);
+      Readparameters::get("ionosphere.unmappedNodeRho", unmappedNodeRho);
+      Readparameters::get("ionosphere.unmappedNodeTe",  unmappedNodeTe);
       Readparameters::get("ionosphere.tracerTolerance", eps);
       Readparameters::get("ionosphere.innerRadius", innerRadius);
       Readparameters::get("ionosphere.refineMinLatitude",refineMinLatitudes);
