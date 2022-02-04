@@ -1792,7 +1792,7 @@ namespace SBC {
 
             nodes[n].parameters[ionosphereParameters::RHON] = Ionosphere::unmappedNodeRho;
             nodes[n].parameters[ionosphereParameters::PRESSURE] =
-               Ionosphere::unmappedNodeRho * physicalconstants::K_B * Ionosphere::unmappedNodeTe;
+               Ionosphere::unmappedNodeRho * physicalconstants::K_B * Ionosphere::unmappedNodeTe * ion_electron_T_ratio;
          } else {
             // Store as the node's parameter values.
             if(Ionosphere::couplingTimescale == 0) {
