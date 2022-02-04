@@ -572,6 +572,10 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    // flag transfers if AMR
    phiprof::start("compute_amr_transfer_flags");
    if (P::vlasovSolverLocalTranslate) {
+      // Update (face and other) neighbor information for remote cells on boundary
+      const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(FULL_NEIGHBORHOOD_ID);
+      mpiGrid.update_remote_cell_information(remote_cells);
+
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
       mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
       prepareLocalTranslationCellLists(mpiGrid,cells);
