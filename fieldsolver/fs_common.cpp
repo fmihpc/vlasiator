@@ -261,27 +261,38 @@ std::array<Real, 3> interpolatePerturbedB(
 
    std::array<int, 3> cellIds = {i,j,k};
 
-   #pragma omp critical
-   {
-      if (reconstructionCoefficientsCache.find(cellIds) == reconstructionCoefficientsCache.end()) {
-         std::array<Real, Rec::N_REC_COEFFICIENTS> rc;
-         
-         reconstructionCoefficients(
-            perBGrid,
-            dPerBGrid,
-            rc,
-            i,
-            j,
-            k,
-            3 // Reconstruction order of the fields after Balsara 2009, 2 used for general B, but 3 used here to allow for cache reuse, see interpolatePerturbedJ below
-         );
-         
-         reconstructionCoefficientsCache.insert({cellIds, rc});
-      }
-   }
-   
-   std::array<Real, Rec::N_REC_COEFFICIENTS> rc = reconstructionCoefficientsCache.at(cellIds);
-   
+   //#pragma omp critical
+   //{
+   //   if (reconstructionCoefficientsCache.find(cellIds) == reconstructionCoefficientsCache.end()) {
+   //      std::array<Real, Rec::N_REC_COEFFICIENTS> rc;
+   //      
+   //      reconstructionCoefficients(
+   //         perBGrid,
+   //         dPerBGrid,
+   //         rc,
+   //         i,
+   //         j,
+   //         k,
+   //         3 // Reconstruction order of the fields after Balsara 2009, 2 used for general B, but 3 used here to allow for cache reuse, see interpolatePerturbedJ below
+   //      );
+   //      
+   //      reconstructionCoefficientsCache.insert({cellIds, rc});
+   //   }
+   //}
+   //
+   //std::array<Real, Rec::N_REC_COEFFICIENTS> rc = reconstructionCoefficientsCache.at(cellIds);
+
+   std::array<Real, Rec::N_REC_COEFFICIENTS> rc;
+   reconstructionCoefficients(
+      perBGrid,
+      dPerBGrid,
+      rc,
+      i,
+      j,
+      k,
+      3 // // Reconstruction order of the fields after Balsara 2009, 3 used to obtain 2nd order curl(B) and allows for cache reuse, see interpolatePerturbedB above
+   );
+
    std::array<Real, 3> interpolatedB;
    // Eq. (7) Balsara 2009
    interpolatedB[0] = rc[Rec::a_0] + rc[Rec::a_x]*xLocal[0] + rc[Rec::a_y]*xLocal[1] + rc[Rec::a_z]*xLocal[2]
@@ -342,26 +353,37 @@ std::array<Real, 3> interpolateCurlB(
 
    std::array<int, 3> cellIds = {i,j,k};
 
-   #pragma omp critical
-   {
-      if (reconstructionCoefficientsCache.find(cellIds) == reconstructionCoefficientsCache.end()) {
-         std::array<Real, Rec::N_REC_COEFFICIENTS> rc;
-         
-         reconstructionCoefficients(
-            perBGrid,
-            dPerBGrid,
-            rc,
-            i,
-            j,
-            k,
-            3 // // Reconstruction order of the fields after Balsara 2009, 3 used to obtain 2nd order curl(B) and allows for cache reuse, see interpolatePerturbedB above
-         );
-         
-         reconstructionCoefficientsCache.insert({cellIds, rc});
-      }
-   }
+   //// Actual use of the coefficient cache has proven not to be thread safe. But it appears to be reasonably fast even without it.
+   //#pragma omp critical
+   //{
+   //   if (reconstructionCoefficientsCache.find(cellIds) == reconstructionCoefficientsCache.end()) {
+   //      std::array<Real, Rec::N_REC_COEFFICIENTS> rc;
+   //
+   //      reconstructionCoefficients(
+   //         perBGrid,
+   //         dPerBGrid,
+   //         rc,
+   //         i,
+   //         j,
+   //         k,
+   //         3 // // Reconstruction order of the fields after Balsara 2009, 3 used to obtain 2nd order curl(B) and allows for cache reuse, see interpolatePerturbedB above
+   //      );
+   //
+   //      reconstructionCoefficientsCache.insert({cellIds, rc});
+   //   }
+   //}
+   //std::array<Real, Rec::N_REC_COEFFICIENTS> rc = reconstructionCoefficientsCache.at(cellIds);
 
-   std::array<Real, Rec::N_REC_COEFFICIENTS> rc = reconstructionCoefficientsCache.at(cellIds);
+   std::array<Real, Rec::N_REC_COEFFICIENTS> rc;
+   reconstructionCoefficients(
+      perBGrid,
+      dPerBGrid,
+      rc,
+      i,
+      j,
+      k,
+      3 // // Reconstruction order of the fields after Balsara 2009, 3 used to obtain 2nd order curl(B) and allows for cache reuse, see interpolatePerturbedB above
+   );
 
    std::array<Real, 3> interpolatedCurlB;
    interpolatedCurlB[0] = (
