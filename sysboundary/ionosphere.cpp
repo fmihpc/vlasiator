@@ -51,6 +51,33 @@
 #ifdef DEBUG_SYSBOUNDARY
    #define DEBUG_IONOSPHERE
 #endif
+      
+// Get the (integer valued) global fsgrid cell index (i,j,k) for the magnetic-field traced mapping point that node n is
+// associated with
+template<class T> std::array<int32_t, 3> getGlobalFsGridCellIndexForCoord(T& grid,const std::array<Real, 3>& x) {
+   std::array<int32_t, 3> retval;
+   retval[0] = floor((x[0] - grid.physicalGlobalStart[0]) / grid.DX);
+   retval[1] = floor((x[1] - grid.physicalGlobalStart[1]) / grid.DY);
+   retval[2] = floor((x[2] - grid.physicalGlobalStart[2]) / grid.DZ);
+   return retval;
+}
+// Get the (integer valued) local fsgrid cell index (i,j,k) for the magnetic-field traced mapping point that node n is
+// associated with If the cell is not in our local domain, will return {-1,-1,-1}
+template<class T> std::array<int32_t, 3> getLocalFsGridCellIndexForCoord(T& grid, const std::array<Real, 3>& x) {
+   std::array<int32_t, 3> retval = getGlobalFsGridCellIndexForCoord(grid,x);
+   retval = grid.globalToLocal(retval[0], retval[1], retval[2]);
+   return retval;
+}
+// Get the fraction fsgrid cell index for the magnetic-field traced mapping point that node n is associated with.
+// Note that these are floating point values between 0 and 1
+template<class T> std::array<Real, 3> getFractionalFsGridCellForCoord(T& grid, const std::array<Real, 3>& x) {
+   std::array<Real, 3> retval;
+   std::array<int, 3> fsgridCell = getGlobalFsGridCellIndexForCoord(grid,x);
+   retval[0] = (x[0] - grid.physicalGlobalStart[0]) / grid.DX - fsgridCell[0];
+   retval[1] = (x[1] - grid.physicalGlobalStart[1]) / grid.DY - fsgridCell[1];
+   retval[2] = (x[2] - grid.physicalGlobalStart[2]) / grid.DZ - fsgridCell[2];
+   return retval;
+}
 
 namespace SBC {
 
@@ -65,6 +92,8 @@ namespace SBC {
    Real Ionosphere::recombAlpha; // Recombination parameter, determining atmosphere ionizability (parameter)
    Real Ionosphere::F10_7; // Solar 10.7 Flux value (parameter)
    Real Ionosphere::downmapRadius; // Radius from which FACs are downmapped (RE)
+   Real Ionosphere::unmappedNodeRho; // Electron density of ionosphere nodes that don't couple to the magnetosphere
+   Real Ionosphere::unmappedNodeTe; // Electron temperature of ionosphere nodes that don't couple to the magnetosphere
    Real Ionosphere::couplingTimescale; // Magnetosphere->Ionosphere coupling timescale (seconds)
    Real Ionosphere::backgroundIonisation; // Background ionisation due to stellar UV and cosmic rays
    int  Ionosphere::solverMaxIterations;
@@ -917,44 +946,6 @@ namespace SBC {
       return i + j*dims[0] +k*dims[0]*dims[1];
    }
 
-   void SphericalTriGrid::getRadialBfieldDirection(std::array<Real,3>& r, bool outwards, std::array<Real,3>& b){
-
-      assert(this->dipoleField);
-
-       // Get field direction
-      b[0] = this->dipoleField(r[0],r[1],r[2],X,0,X);
-      b[1] = this->dipoleField(r[0],r[1],r[2],Y,0,Y);
-      b[2] = this->dipoleField(r[0],r[1],r[2],Z,0,Z);
-
-      // Normalize
-      Real  norm = 1. / sqrt(b[0]*b[0] + b[1]*b[1] + b[2]*b[2]);
-      for(int c=0; c<3; c++) {
-         b[c] = b[c] * norm;
-      }
-
-      // Make sure motion is outwards. Flip b if dot(r,b) < 0
-      if(std::isnan(b[0]) || std::isnan(b[1]) || std::isnan(b[2])) {
-         cerr << "(ionosphere) Error: magnetic field is nan in getRadialBfieldDirection at location "
-            << r[0] << ", " << r[1] << ", " << r[2] << ", with B = " << b[0] << ", " << b[1] << ", " << b[2] << endl;
-         b[0] = 0;
-         b[1] = 0;
-         b[2] = 0;
-      }
-      if(outwards) {
-         if(b[0]*r[0] + b[1]*r[1] + b[2]*r[2] < 0) {
-            b[0]*=-1;
-            b[1]*=-1;
-            b[2]*=-1;
-         }
-      } else {
-         if(b[0]*r[0] + b[1]*r[1] + b[2]*r[2] > 0) {
-            b[0]*=-1;
-            b[1]*=-1;
-            b[2]*=-1;
-         }
-      }
-   }
-
    /*Richardson extrapolation using polynomial fitting used by the Bulirsch-Stoer Mehtod*/
    void SphericalTriGrid::richardsonExtrapolation(int i, std::vector<Real>&table , Real& maxError, std::array<int,3>dims ){
       int k;
@@ -981,8 +972,14 @@ namespace SBC {
     * stepsize: big stepsize to use
     * z0,zmid,z2: intermediate approximations
     * */
-   void SphericalTriGrid::modifiedMidpointMethod(std::array<Real,3> r,std::array<Real,3>& r1, Real n, Real stepsize, bool outwards){
-      
+   void SphericalTriGrid::modifiedMidpointMethod(
+      std::array<Real,3> r,
+      std::array<Real,3>& r1,
+      Real n,
+      Real stepsize,
+      TracingFieldFunction& BFieldFunction,
+      bool outwards
+   ) {
       //Allocate some memory.
       std::array<Real,3> bunit,crd,z0,zmid,z1;
       //Divide by number of sub steps      
@@ -990,17 +987,17 @@ namespace SBC {
       Real norm;
      
       //First step 
-      getRadialBfieldDirection(r,outwards,bunit);
+      BFieldFunction(r,outwards,bunit);
       z0=r;
       z1={ r[0]+h*bunit[0], r[1]+h*bunit[1], r[2]+h*bunit[2]  };
-      getRadialBfieldDirection(z1,outwards,bunit);
+      BFieldFunction(z1,outwards,bunit);
 
       for (int m =0; m<=n; m++){
          zmid= { z0[0]+2*h*bunit[0] , z0[1]+2*h*bunit[1], z0[2]+2*h*bunit[2] };
          z0=z1;
          z1=zmid;
          crd = { r[0]+2.*m*h*bunit[0]  ,  r[1]+2.*m*h*bunit[1], r[2]+2.*m*h*bunit[2]};
-         getRadialBfieldDirection(crd,outwards,bunit);
+         BFieldFunction(crd,outwards,bunit);
       }
       
       //These are now are new position
@@ -1008,12 +1005,18 @@ namespace SBC {
          r1[c] = 0.5*(z0[c]+z1[c]+h*bunit[c]);
       }
 
-   }//modiefiedMidpoint Method
+   }//modifiedMidpoint Method
 
 
    /*Bulirsch-Stoer Mehtod to trace field line to next point along it*/
-   void SphericalTriGrid::bulirschStoerStep(std::array<Real, 3>& r, std::array<Real, 3>& b, Real& stepsize,Real maxStepsize, bool outwards){
-      
+   void SphericalTriGrid::bulirschStoerStep(
+      std::array<Real, 3>& r,
+      std::array<Real, 3>& b,
+      Real& stepsize,
+      Real maxStepsize,
+      TracingFieldFunction& BFieldFunction,
+      bool outwards
+   ) {
       //Factors by which the stepsize is multiplied 
       Real shrink = 0.95;
       Real grow = 1.2; 
@@ -1029,14 +1032,14 @@ namespace SBC {
       Real error;
 
       //Get B field unit vector in case we don't converge yet
-      getRadialBfieldDirection(r,outwards,b);
+      BFieldFunction(r,outwards,b);
 
       //Let's start things up with 2 substeps
       int n =2;
       //Save old state
       rold = r;
       //Take a first Step
-      modifiedMidpointMethod(r,r1,n,stepsize,outwards);
+      modifiedMidpointMethod(r,r1,n,stepsize,BFieldFunction,outwards);
 
       //Save values in table
       for(int c =0; c<3; ++c){
@@ -1047,7 +1050,7 @@ namespace SBC {
 
          //Increment n. Each iteration doubles the number of substeps
          n+=2;
-         modifiedMidpointMethod(r,rnew,n,stepsize,outwards);
+         modifiedMidpointMethod(r,rnew,n,stepsize,BFieldFunction,outwards);
 
          //Save values in table
          for(int c =0; c<3; ++c){
@@ -1069,7 +1072,7 @@ namespace SBC {
             //Keep our new position
             r=rnew;
             //Evaluate B here
-            getRadialBfieldDirection(r,outwards,b);
+            BFieldFunction(r,outwards,b);
             return;
          }
       }
@@ -1082,10 +1085,15 @@ namespace SBC {
 
    
    /*Take an Euler step*/
-   void SphericalTriGrid::eulerStep(std::array<Real, 3>& x, std::array<Real, 3>& v, Real& stepsize, bool outwards){
-
+   void SphericalTriGrid::eulerStep(
+      std::array<Real, 3>& x,
+      std::array<Real, 3>& v,
+      Real& stepsize,
+      TracingFieldFunction& BFieldFunction,
+      bool outwards
+   ) {
       // Get field direction
-      getRadialBfieldDirection(x,outwards,v);
+      BFieldFunction(x,outwards,v);
 
       for(int c=0; c<3; c++) {
          x[c] += stepsize * v[c];
@@ -1095,13 +1103,21 @@ namespace SBC {
    
    
    /*Take a step along the field line*/
-   void SphericalTriGrid::stepFieldLine(std::array<Real, 3>& x, std::array<Real, 3>& v, Real& stepsize,Real maxStepsize, IonosphereCouplingMethod method, bool outwards){
+   void SphericalTriGrid::stepFieldLine(
+      std::array<Real, 3>& x,
+      std::array<Real, 3>& v,
+      Real& stepsize,
+      Real maxStepsize,
+      IonosphereCouplingMethod method,
+      TracingFieldFunction& BFieldFunction,
+      bool outwards
+   ) {
       switch(method) {
          case Euler:
-            eulerStep(x, v,stepsize, outwards);
+            eulerStep(x, v,stepsize, BFieldFunction, outwards);
             break;
          case BS:
-            bulirschStoerStep(x, v,stepsize,maxStepsize, outwards);
+            bulirschStoerStep(x, v, stepsize, maxStepsize, BFieldFunction, outwards);
             break;
          default:
             std::cerr << "(ionosphere) Warning: No Field Line Tracing method defined. Ionosphere connectivity will be garbled."<<std::endl;
@@ -1156,7 +1172,11 @@ namespace SBC {
     * outwards until a non-boundary cell is encountered. Their proportional
     * coupling values are recorded in the grid nodes.
     */
-   void SphericalTriGrid::calculateFsgridCoupling(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, Real couplingRadius) {
+   void SphericalTriGrid::calculateFsgridCoupling(
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+      Real couplingRadius) {
 
       // we don't need to do anything if we have no nodes
       if(nodes.size() == 0) {
@@ -1167,71 +1187,174 @@ namespace SBC {
       // Pick an initial stepsize
       Real stepSize = min(100e3, technicalGrid.DX / 2.); 
 
-      std::vector<Real> nodeDistance(nodes.size(), std::numeric_limits<Real>::max());
+      std::vector<Real> nodeDistance(nodes.size(), std::numeric_limits<Real>::max()); // For reduction of node coordinate in case of multiple hits
+      std::vector<int> nodeNeedsContinuedTracing(nodes.size(), 1);                    // Flag, whether tracing needs to continue on another task
+      std::vector<std::array<Real, 3>> nodeTracingCoordinates(nodes.size());          // In-flight node upmapping coordinates (for global reduction)
+      for(uint n=0; n<nodes.size(); n++) {
+         nodeTracingCoordinates[n] = nodes[n].x;
+      }
+      bool anyNodeNeedsTracing;
 
-      #pragma omp parallel firstprivate(stepSize)
-      {
-         // Trace node coordinates outwards until a non-sysboundary cell is encountered 
-         #pragma omp parallel for
-         for(uint n=0; n<nodes.size(); n++) {
+      // Fieldline tracing function
+      TracingFieldFunction tracingField = [this, &perBGrid, &dPerBGrid, &technicalGrid](std::array<Real,3>& r, bool outwards, std::array<Real,3>& b)->void {
 
-            Node& no = nodes[n];
+         // Get field direction
+         b[0] = this->dipoleField(r[0],r[1],r[2],X,0,X);
+         b[1] = this->dipoleField(r[0],r[1],r[2],Y,0,Y);
+         b[2] = this->dipoleField(r[0],r[1],r[2],Z,0,Z);
 
-            std::array<Real, 3> x = no.x;
-            std::array<Real, 3> v({0,0,0});
-            //Real stepSize = min(100e3, technicalGrid.DX / 2.); 
-            
-            while( sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]) < 1.5*max(couplingRadius, Ionosphere::downmapRadius*physicalconstants::R_E) ) {
+         std::array<int32_t, 3> fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,r);
+         if(technicalGrid.get(fsgridCell[0],fsgridCell[1],fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+            const std::array<Real, 3> perB = interpolatePerturbedB(
+               perBGrid,
+               dPerBGrid,
+               technicalGrid,
+               reconstructionCoefficientsCache,
+               fsgridCell[0],fsgridCell[1],fsgridCell[2],
+               r
+            );
+            b[0] += perB[0];
+            b[1] += perB[1];
+            b[2] += perB[2];
+         }
 
-               // Make one step along the fieldline
-               stepFieldLine(x,v, stepSize,technicalGrid.DX/2,couplingMethod,true);
+         // Normalize
+         Real  norm = 1. / sqrt(b[0]*b[0] + b[1]*b[1] + b[2]*b[2]);
+         for(int c=0; c<3; c++) {
+            b[c] = b[c] * norm;
+         }
 
-               // Look up the fsgrid cell beloinging to these coordinates
-               std::array<int, 3> fsgridCell;
-               std::array<Real, 3> interpolationFactor;
-               for(int c=0; c<3; c++) {
-                  fsgridCell[c] = (x[c] - technicalGrid.physicalGlobalStart[c]) / technicalGrid.DX;
-                  interpolationFactor[c] = (x[c] - technicalGrid.physicalGlobalStart[c]) / technicalGrid.DX - fsgridCell[c];
-               }
-               fsgridCell = technicalGrid.globalToLocal(fsgridCell[0], fsgridCell[1], fsgridCell[2]);
+         // Make sure motion is outwards. Flip b if dot(r,b) < 0
+         if(std::isnan(b[0]) || std::isnan(b[1]) || std::isnan(b[2])) {
+            cerr << "(ionosphere) Error: magnetic field is nan in getRadialBfieldDirection at location "
+               << r[0] << ", " << r[1] << ", " << r[2] << ", with B = " << b[0] << ", " << b[1] << ", " << b[2] << endl;
+            b[0] = 0;
+            b[1] = 0;
+            b[2] = 0;
+         }
+         if(outwards) {
+            if(b[0]*r[0] + b[1]*r[1] + b[2]*r[2] < 0) {
+               b[0]*=-1;
+               b[1]*=-1;
+               b[2]*=-1;
+            }
+         } else {
+            if(b[0]*r[0] + b[1]*r[1] + b[2]*r[2] > 0) {
+               b[0]*=-1;
+               b[1]*=-1;
+               b[2]*=-1;
+            }
+         }
+      };
 
-               creal distance = sqrt((x[0]-no.x[0])*(x[0]-no.x[0])+(x[1]-no.x[1])*(x[1]-no.x[1])+(x[2]-no.x[2])*(x[2]-no.x[2]));
+      do {
+         anyNodeNeedsTracing = false;
 
-               // If the field line is no longer moving outwards but tangentially (88 degrees), abort.
-               // (Note that v is normalized)
-               // TODO: If we are inside the magnetospheric domain, but under the coupling radius, should thes *still* be taking along, just to have a
-               // better shot at the region 2 currents? Or is that simply opening the door to boundary artifact hell?
-               if(fabs(x[0]*v[0]+x[1]*v[1]+x[2]*v[2])/sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]) < cos(88. / 180. * M_PI)) {
-                  break;
-               }
-
-               // Not inside the local fsgrid domain, skip and continue.
-               if(fsgridCell[0] == -1) {
+         #pragma omp parallel firstprivate(stepSize)
+         {
+            // Trace node coordinates outwards until a non-sysboundary cell is encountered or the local fsgrid domain has been left.
+            #pragma omp for
+            for(uint n=0; n<nodes.size(); n++) {
+   
+               if(!nodeNeedsContinuedTracing[n]) {
+                  // This node has already found its target, no need for us to do anything about it.
                   continue;
                }
-
-               if(
-                  technicalGrid.get( fsgridCell[0], fsgridCell[1], fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY
-                  && technicalGrid.getRank() == technicalGrid.getTaskForGlobalID(technicalGrid.GlobalIDForCoords(fsgridCell[0], fsgridCell[1], fsgridCell[2])).first // this returns a <rank, LocalID> pair
-                  && x[0]*x[0]+x[1]*x[1]+x[2]*x[2] > Ionosphere::downmapRadius*Ionosphere::downmapRadius*physicalconstants::R_E*physicalconstants::R_E
-               ) {
-
-                  // Store the cells mapped coordinates and upmapped magnetic field
-                  no.xMapped = x;
-                  no.haveCouplingData = 1;
-                  nodeDistance[n] = distance;
-                  for(int c=0; c<3; c++) {
-                     no.fsgridCellCoupling[c] = (x[c] - technicalGrid.physicalGlobalStart[c]) / technicalGrid.DX;
+               Node& no = nodes[n];
+   
+               std::array<Real, 3> x = nodeTracingCoordinates[n];
+               std::array<Real, 3> v({0,0,0});
+               //Real stepSize = min(100e3, technicalGrid.DX / 2.); 
+               
+               while( true ) {
+   
+                  // Check if the current coordinates (pre-step) are in our own domain.
+                  std::array<int, 3> fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
+                  // If it is not in our domain, somebody else takes care of it.
+                  if(fsgridCell[0] == -1) {
+                     nodeNeedsContinuedTracing[n] = 0;
+                     nodeTracingCoordinates[n] = {0,0,0};
+                     break;
                   }
-                  no.parameters[ionosphereParameters::UPMAPPED_BX]= dipoleField(x[0],x[1],x[2],X, 0, X);
-                  no.parameters[ionosphereParameters::UPMAPPED_BY]= dipoleField(x[0],x[1],x[2],Y, 0, Y);
-                  no.parameters[ionosphereParameters::UPMAPPED_BZ]= dipoleField(x[0],x[1],x[2],Z, 0, Z);
 
-                  break;
+
+                  // Make one step along the fieldline
+                  stepFieldLine(x,v, stepSize,technicalGrid.DX/2,couplingMethod,tracingField,true);
+   
+                  // Look up the fsgrid cell beloinging to these coordinates
+                  fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
+                  std::array<Real, 3> interpolationFactor=getFractionalFsGridCellForCoord(technicalGrid,x);
+   
+                  creal distance = sqrt((x[0]-no.x[0])*(x[0]-no.x[0])+(x[1]-no.x[1])*(x[1]-no.x[1])+(x[2]-no.x[2])*(x[2]-no.x[2]));
+   
+                  // If the field line is no longer moving outwards but tangentially (88 degrees), abort.
+                  // (Note that v is normalized)
+                  // TODO: If we are inside the magnetospheric domain, but under the coupling radius, should thes *still* be taking along, just to have a
+                  // better shot at the region 2 currents? Or is that simply opening the door to boundary artifact hell?
+                  if(fabs(x[0]*v[0]+x[1]*v[1]+x[2]*v[2])/sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]) < cos(88. / 180. * M_PI)) {
+                     nodeNeedsContinuedTracing[n] = 0;
+                     nodeTracingCoordinates[n] = {0,0,0};
+                     break;
+                  }
+
+                  // Now, after stepping, if it is no longer in our domain, another MPI rank will pick up later.
+                  if(fsgridCell[0] == -1) {
+                     nodeNeedsContinuedTracing[n] = 1;
+                     nodeTracingCoordinates[n] = x;
+                     break;
+                  }
+   
+                  if(
+                     technicalGrid.get( fsgridCell[0], fsgridCell[1], fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY
+                     && x[0]*x[0]+x[1]*x[1]+x[2]*x[2] > Ionosphere::downmapRadius*Ionosphere::downmapRadius*physicalconstants::R_E*physicalconstants::R_E
+                  ) {
+   
+                     // Store the cells mapped coordinates and upmapped magnetic field
+                     no.xMapped = x;
+                     no.haveCouplingData = 1;
+                     nodeDistance[n] = distance;
+                     const std::array<Real, 3> perB = interpolatePerturbedB(
+                        perBGrid,
+                        dPerBGrid,
+                        technicalGrid,
+                        reconstructionCoefficientsCache,
+                        fsgridCell[0], fsgridCell[1], fsgridCell[2],
+                        x
+                     );
+                     no.parameters[ionosphereParameters::UPMAPPED_BX] = this->dipoleField(x[0],x[1],x[2],X,0,X) + perB[0];
+                     no.parameters[ionosphereParameters::UPMAPPED_BY] = this->dipoleField(x[0],x[1],x[2],Y,0,Y) + perB[1];
+                     no.parameters[ionosphereParameters::UPMAPPED_BZ] = this->dipoleField(x[0],x[1],x[2],Z,0,Z) + perB[2];
+   
+                     nodeNeedsContinuedTracing[n] = 0;
+                     nodeTracingCoordinates[n] = {0,0,0};
+                     break;
+                  }
                }
             }
          }
-      }
+
+         // Globally reduce whether any node still needs to be picked up and traced onwards
+         std::vector<int> sumNodeNeedsContinuedTracing(nodes.size(), 0);
+         std::vector<std::array<Real, 3>> sumNodeTracingCoordinates(nodes.size());
+         MPI_Allreduce(nodeNeedsContinuedTracing.data(), sumNodeNeedsContinuedTracing.data(), nodes.size(), MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+         if(sizeof(Real) == sizeof(double)) {
+            MPI_Allreduce(nodeTracingCoordinates.data(), sumNodeTracingCoordinates.data(), 3*nodes.size(), MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+         } else {
+            MPI_Allreduce(nodeTracingCoordinates.data(), sumNodeTracingCoordinates.data(), 3*nodes.size(), MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
+         }
+         for(uint n=0; n<nodes.size(); n++) {
+            if(sumNodeNeedsContinuedTracing[n] > 0) {
+               anyNodeNeedsTracing=true;
+               nodeNeedsContinuedTracing[n] = 1;
+
+               // Update that nodes' tracing coordinates
+               nodeTracingCoordinates[n][0] = sumNodeTracingCoordinates[n][0] / sumNodeNeedsContinuedTracing[n];
+               nodeTracingCoordinates[n][1] = sumNodeTracingCoordinates[n][1] / sumNodeNeedsContinuedTracing[n];
+               nodeTracingCoordinates[n][2] = sumNodeTracingCoordinates[n][2] / sumNodeNeedsContinuedTracing[n];
+            }
+         }
+
+      } while(anyNodeNeedsTracing);
       
       std::vector<Real> reducedNodeDistance(nodes.size());
       if(sizeof(Real) == sizeof(double)) {
@@ -1257,7 +1380,6 @@ namespace SBC {
             for(int c=0; c<3; c++) {
                no.parameters[ionosphereParameters::UPMAPPED_BX+c] = 0;
                no.xMapped[c] = 0;
-               no.fsgridCellCoupling[c] = -1;
             }
          } else {
             // Cell found, add association.
@@ -1306,7 +1428,10 @@ namespace SBC {
    //
    // The return value is a pair of nodeID and coupling factor for the three
    // corners of the containing element.
-   std::array<std::pair<int, Real>, 3> SphericalTriGrid::calculateVlasovGridCoupling(std::array<Real,3> x, Real couplingRadius) {
+   std::array<std::pair<int, Real>, 3> SphericalTriGrid::calculateVlasovGridCoupling(
+      std::array<Real,3> x,
+      Real couplingRadius
+   ) {
 
       std::array<std::pair<int, Real>, 3> coupling;
 
@@ -1314,10 +1439,40 @@ namespace SBC {
       std::array<Real,3> v;
       phiprof::start("ionosphere-VlasovGridCoupling");
 
+      // For tracing towards the vlasov boundary, we only require the dipole field.
+      TracingFieldFunction dipoleFieldOnly = [this](std::array<Real,3>& r, bool outwards, std::array<Real,3>& b)->void {
+      
+         // Get field direction
+         b[0] = this->dipoleField(r[0],r[1],r[2],X,0,X);
+         b[1] = this->dipoleField(r[0],r[1],r[2],Y,0,Y);
+         b[2] = this->dipoleField(r[0],r[1],r[2],Z,0,Z);
+
+         // Normalize
+         Real  norm = 1. / sqrt(b[0]*b[0] + b[1]*b[1] + b[2]*b[2]);
+         for(int c=0; c<3; c++) {
+            b[c] = b[c] * norm;
+         }
+
+         // Make sure motion is outwards. Flip b if dot(r,b) < 0
+         if(outwards) {
+            if(b[0]*r[0] + b[1]*r[1] + b[2]*r[2] < 0) {
+               b[0]*=-1;
+               b[1]*=-1;
+               b[2]*=-1;
+            }
+         } else {
+            if(b[0]*r[0] + b[1]*r[1] + b[2]*r[2] > 0) {
+               b[0]*=-1;
+               b[1]*=-1;
+               b[2]*=-1;
+            }
+         }
+      };
+
       while(sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]) > Ionosphere::innerRadius) {
 
          // Make one step along the fieldline
-         stepFieldLine(x,v, stepSize,100e3,couplingMethod,false);
+         stepFieldLine(x,v, stepSize,100e3,couplingMethod,dipoleFieldOnly,false);
 
          // If the field lines is moving even further outwards, abort.
          // (this shouldn't happen under normal magnetospheric conditions, but who
@@ -1422,6 +1577,7 @@ namespace SBC {
             cerr << __FILE__ << ":" << __LINE__ << ": invalid elementIndex returned for coordinate "
             << x[0] << " " << x[1] << " " << x[2] << " projected to rx " << rx[0] << " " << rx[1] << " " << rx[2]
             << ". Last valid elementIndex: " << oldElementIndex << "." << endl;
+            phiprof::stop("ionosphere-VlasovGridCoupling");
             return coupling;
          }
       }
@@ -1436,7 +1592,9 @@ namespace SBC {
 
    // Calculate upmapped potential at the given coordinates,
    // by tracing down to the ionosphere and interpolating the appropriate element
-   Real SphericalTriGrid::interpolateUpmappedPotential(const std::array<Real, 3>& x) {
+   Real SphericalTriGrid::interpolateUpmappedPotential(
+      const std::array<Real, 3>& x
+   ) {
       
       if(!this->dipoleField) {
          // Timestep zero => apparently the dipole field is not initialized yet.
@@ -1464,222 +1622,214 @@ namespace SBC {
 
    // Transport field-aligned currents down from the simulation cells to the ionosphere
    void SphericalTriGrid::mapDownBoundaryData(
-       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volgrid,
-       FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+       FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
        FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
        FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
 
-     if(!isCouplingInwards && !isCouplingOutwards) {
-        return;
-     }
+      if(!isCouplingInwards && !isCouplingOutwards) {
+         return;
+      }
 
-     phiprof::start("ionosphere-mapDownMagnetosphere");
+      phiprof::start("ionosphere-mapDownMagnetosphere");
 
-     // Create zeroed-out input arrays
-     std::vector<double> FACinput(nodes.size());
-     std::vector<double> rhoInput(nodes.size());
-     std::vector<double> pressureInput(nodes.size());
+      // Create zeroed-out input arrays
+      std::vector<double> FACinput(nodes.size());
+      std::vector<double> rhoInput(nodes.size());
+      std::vector<double> temperatureInput(nodes.size());
 
-     // Map all coupled nodes down into it
-     // Tasks that don't have anything to couple to can skip this step.
-     if(isCouplingInwards) {
-     #pragma omp parallel for
-        for(uint n=0; n<nodes.size(); n++) {
+      // Map all coupled nodes down into it
+      // Tasks that don't have anything to couple to can skip this step.
+      if(isCouplingInwards) {
+      #pragma omp parallel for
+         for(uint n=0; n<nodes.size(); n++) {
 
-           Real J = 0;
-           Real area = 0;
-           Real upmappedArea = 0;
-           std::array<int,3> fsc;
+            Real J = 0;
+            Real area = 0;
+            Real upmappedArea = 0;
+            std::array<int,3> fsc;
 
-           // Iterate through the elements touching that node
-           for(uint e=0; e<nodes[n].numTouchingElements; e++) {
-              const Element& el= elements[nodes[n].touchingElements[e]];
+            // Iterate through the elements touching that node
+            for(uint e=0; e<nodes[n].numTouchingElements; e++) {
+               const Element& el= elements[nodes[n].touchingElements[e]];
 
-              // This element has 3 corner nodes
-              // Get the B-values at the upmapped coordinates
-              std::array< std::array< Real, 3>, 3> B = {0};
-              for(int c=0; c <3 ;c++) {
+               // This element has 3 corner nodes
+               // Get the B-values at the upmapped coordinates
+               std::array< std::array< Real, 3>, 3> B = {0};
+               for(int c=0; c <3 ;c++) {
 
-                 const Node& corner = nodes[el.corners[c]];
+                  const Node& corner = nodes[el.corners[c]];
 
-                 B[c][0] = corner.parameters[ionosphereParameters::UPMAPPED_BX];
-                 B[c][1] = corner.parameters[ionosphereParameters::UPMAPPED_BY];
-                 B[c][2] = corner.parameters[ionosphereParameters::UPMAPPED_BZ];
-              }
+                  B[c][0] = corner.parameters[ionosphereParameters::UPMAPPED_BX];
+                  B[c][1] = corner.parameters[ionosphereParameters::UPMAPPED_BY];
+                  B[c][2] = corner.parameters[ionosphereParameters::UPMAPPED_BZ];
+               }
 
-              // Also sum up touching elements' areas and upmapped areas to compress
-              // density and pressure with them
-              // TODO: Precalculate this?
-              area += elementArea(nodes[n].touchingElements[e]);
+               // Also sum up touching elements' areas and upmapped areas to compress
+               // density and temperature with them
+               // TODO: Precalculate this?
+               area += elementArea(nodes[n].touchingElements[e]);
 
-              std::array<Real, 3> areaVector = mappedElementArea(nodes[n].touchingElements[e]);
-              std::array<Real, 3> avgB = {(B[0][0] + B[1][0] + B[2][0])/3.,
-                 (B[0][1] + B[1][1] + B[2][1]) / 3.,
-                 (B[0][2] + B[1][2] + B[2][2]) / 3.};
-              upmappedArea += fabs(areaVector[0] * avgB[0] + areaVector[1]*avgB[1] + areaVector[2]*avgB[2]) /
-                 sqrt(avgB[0]*avgB[0] + avgB[1]*avgB[1] + avgB[2]*avgB[2]);
-           }
+               std::array<Real, 3> areaVector = mappedElementArea(nodes[n].touchingElements[e]);
+               std::array<Real, 3> avgB = {(B[0][0] + B[1][0] + B[2][0])/3.,
+                  (B[0][1] + B[1][1] + B[2][1]) / 3.,
+                  (B[0][2] + B[1][2] + B[2][2]) / 3.};
+               upmappedArea += fabs(areaVector[0] * avgB[0] + areaVector[1]*avgB[1] + areaVector[2]*avgB[2]) /
+                  sqrt(avgB[0]*avgB[0] + avgB[1]*avgB[1] + avgB[2]*avgB[2]);
+            }
 
-           // Divide by 3, as every element will be counted from each of its
-           // corners.  Prevent areas from being multiply-counted
-           area /= 3.;
-           upmappedArea /= 3.;
+            // Divide by 3, as every element will be counted from each of its
+            // corners.  Prevent areas from being multiply-counted
+            area /= 3.;
+            upmappedArea /= 3.;
 
-           //// Map down FAC based on magnetosphere rotB
-           std::array<Real,3> cell = nodes[n].fsgridCellCoupling;
-           if(cell[0] == -1. || cell[1] == -1. || cell[2] == -1.) {
-              // Skip cells that couple nowhere
-              continue;
-           }
-           for(int c=0; c<3; c++) {
-              fsc[c] = floor(cell[c]);
-           }
+            //// Map down FAC based on magnetosphere rotB
+            if(nodes[n].xMapped[0] == 0. && nodes[n].xMapped[1] == 0. && nodes[n].xMapped[2] == 0.) {
+               // Skip cells that couple nowhere
+               continue;
+            }
 
-           // Local cell
-           std::array<int,3> lfsc = technicalGrid.globalToLocal(fsc[0],fsc[1],fsc[2]);
-           if(lfsc[0] == -1 || lfsc[1] == -1 || lfsc[2] == -1) {
-              continue;
-           }
+            // Local cell
+            std::array<int,3> lfsc = getLocalFsGridCellIndexForCoord(technicalGrid,nodes[n].xMapped);
+            if(lfsc[0] == -1 || lfsc[1] == -1 || lfsc[2] == -1) {
+               continue;
+            }
 
-           for(int c=0; c<3; c++) {
-              // Shift by half a cell, as we are sampling volume quantities that are logically located at cell centres.
-              Real frac = cell[c] - floor(cell[c]);
-              if(frac < 0.5) {
-                 lfsc[c] -= 1;
-                 fsc[c]-= 1;
-              }
-              cell[c] -= 0.5;
-           }
+            // Calc curlB, note division by DX one line down
+            const std::array<Real, 3> curlB = interpolateCurlB(
+               perBGrid,
+               dPerBGrid,
+               technicalGrid,
+               reconstructionCoefficientsCache,
+               lfsc[0],lfsc[1],lfsc[2],
+               nodes[n].xMapped
+            );
 
-           // Linearly interpolate neighbourhood
-           Real couplingSum = 0;
-           for(int xoffset : {0,1}) {
-              for(int yoffset : {0,1}) {
-                 for(int zoffset : {0,1}) {
+            // Dot with normalized B, scale by area
+            FACinput[n] = upmappedArea * (nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]*curlB[0] + nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]*curlB[1] + nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]*curlB[2])
+               / (
+                  sqrt(
+                     nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]
+                     + nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]
+                     + nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]
+               ) * physicalconstants::MU_0 * technicalGrid.DX
+            );
 
-                    Real coupling = abs(xoffset - (cell[0]-fsc[0])) * abs(yoffset - (cell[1]-fsc[1])) * abs(zoffset - (cell[2]-fsc[2]));
-                    if(coupling < 0. || coupling > 1.) {
-                       cerr << "Ionosphere warning: node << " << n << " has coupling value " << coupling <<
-                          ", which is outside [0,1] at line " << __LINE__ << "!" << endl;
-                    }
+            // By definition, a downwards current into the ionosphere has a positive FAC value,
+            // as it corresponds to positive divergence of horizontal current in the ionospheric plane.
+            // To make sure we match that, flip FAC sign on the southern hemisphere
+            if(nodes[n].x[2] < 0) {
+               FACinput[n] *= -1;
+            }
 
-                    // Only couple to actual simulation cells
-                    if(technicalGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                       couplingSum += coupling;
-                    } else {
-                       continue;
-                    }
+            std::array<Real,3> frac = getFractionalFsGridCellForCoord(technicalGrid,nodes[n].xMapped);
+            for(int c=0; c<3; c++) {
+               // Shift by half a cell, as we are sampling volume quantities that are logically located at cell centres.
+               if(frac[c] < 0.5) {
+                  lfsc[c] -= 1;
+                  frac[c] += 0.5;
+               } else {
+                  frac[c] -= 0.5;
+               }
+            }
 
-                    // Calc rotB
-                    std::array<Real, 3> rotB;
-                    rotB[0] = (volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBZVOLdy)
-                          - volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBYVOLdz)) / volgrid.DX;
-                    rotB[1] = (volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBXVOLdz)
-                          - volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBZVOLdx)) / volgrid.DX;
-                    rotB[2] = (volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBYVOLdx)
-                          - volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBXVOLdy)) / volgrid.DX;
+            // Linearly interpolate neighbourhood
+            Real couplingSum = 0;
+            for(int xoffset : {0,1}) {
+               for(int yoffset : {0,1}) {
+                  for(int zoffset : {0,1}) {
 
-                    // Dot with background (dipole) B
-                    std::array<Real, 3> B({BgBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::BGBXVOL),
-                          BgBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::BGBYVOL),
-                          BgBGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::BGBZVOL)});
-                    Real Bnorm = 1./sqrt(B[0]*B[0]+B[1]*B[1]+B[2]*B[2]);
-                    // Yielding the field-aligned current
-                    Real FAC = Bnorm * (B[0]*rotB[0] + B[1]*rotB[1] + B[2]*rotB[2]) / physicalconstants::MU_0;
+                     Real coupling = (1. - abs(xoffset - frac[0])) * (1. - abs(yoffset - frac[1])) * (1. - abs(zoffset - frac[2]));
+                     if(coupling < 0. || coupling > 1.) {
+                        cerr << "Ionosphere warning: node << " << n << " has coupling value " << coupling <<
+                           ", which is outside [0,1] at line " << __LINE__ << "!" << endl;
+                     }
 
-                    FACinput[n] += FAC * coupling * upmappedArea;
+                     // Only couple to actual simulation cells
+                     if(technicalGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+                        couplingSum += coupling;
+                     } else {
+                        continue;
+                     }
 
 
-                    // Map density and pressure down
-                    rhoInput[n] += coupling * momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::RHOQ) / physicalconstants::CHARGE;
-                    pressureInput[n] += coupling * 1./3. * (
+                     // Map density and temperature down
+                     Real thisCellRho = coupling * momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::RHOQ) / physicalconstants::CHARGE;
+                     rhoInput[n] += thisCellRho;
+                     temperatureInput[n] += coupling * 1./3. * (
                           momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_11) +
                           momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_22) +
-                          momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_33));
-                 }
-              }
-           }
+                          momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_33)) / (thisCellRho * physicalconstants::K_B * ion_electron_T_ratio);
+                  }
+               }
+            }
 
-           // The coupling values *would* have summed to 1 in free and open space, but since we are close to the inner
-           // boundary, some cells were skipped, as they are in the sysbondary. Renormalize values by dividing by the couplingSum.
-           if(couplingSum > 0) {
+            // The coupling values *would* have summed to 1 in free and open space, but since we are close to the inner
+            // boundary, some cells were skipped, as they are in the sysbondary. Renormalize values by dividing by the couplingSum.
+            if(couplingSum > 0) {
                rhoInput[n] /= couplingSum;
-               pressureInput[n] /= couplingSum;
-               FACinput[n] /= couplingSum;
-           }
+               temperatureInput[n] /= couplingSum;
+            }
 
-           // By definition, a downwards current into the ionosphere has a positive FAC value,
-           // as it corresponds to positive divergence of horizontal current in the ionospheric plane.
-           // To make sure we match that, flip FAC sign on the southern hemisphere
-           if(nodes[n].x[2] < 0) {
-              FACinput[n] *= -1;
-           }
+            // Scale density by area ratio
+            rhoInput[n] *= upmappedArea / area;
+         }
+      }
 
-           // Scale density and pressure by area ratio
-           rhoInput[n] *= upmappedArea / area;
-           //pressureInput[n] *= upmappedArea / area;
-        }
-     }
+      // Allreduce on the ionosphere communicator
+      std::vector<double> FACsum(nodes.size());
+      std::vector<double> rhoSum(nodes.size());
+      std::vector<double> temperatureSum(nodes.size());
+      MPI_Allreduce(&FACinput[0], &FACsum[0], nodes.size(), MPI_DOUBLE, MPI_SUM, communicator);
+      MPI_Allreduce(&rhoInput[0], &rhoSum[0], nodes.size(), MPI_DOUBLE, MPI_SUM, communicator);
+      MPI_Allreduce(&temperatureInput[0], &temperatureSum[0], nodes.size(), MPI_DOUBLE, MPI_SUM, communicator); // TODO: Does it make sense to SUM the temperatures?
 
-     // Allreduce on the ionosphere communicator
-     std::vector<double> FACsum(nodes.size());
-     std::vector<double> rhoSum(nodes.size());
-     std::vector<double> pressureSum(nodes.size());
-     MPI_Allreduce(&FACinput[0], &FACsum[0], nodes.size(), MPI_DOUBLE, MPI_SUM, communicator);
-     MPI_Allreduce(&rhoInput[0], &rhoSum[0], nodes.size(), MPI_DOUBLE, MPI_SUM, communicator);
-     MPI_Allreduce(&pressureInput[0], &pressureSum[0], nodes.size(), MPI_DOUBLE, MPI_SUM, communicator);
+      for(uint n=0; n<nodes.size(); n++) {
 
-     for(uint n=0; n<nodes.size(); n++) {
+         if(rhoSum[n] == 0 || temperatureSum[n] == 0) {
+            // Node couples nowhere. Assume some default values.
+            nodes[n].parameters[ionosphereParameters::SOURCE] = 0;
 
-        if(rhoSum[n] == 0 || pressureSum[n] == 0) {
-           // Node couples nowhere. Assume some default values.
-           nodes[n].parameters[ionosphereParameters::SOURCE] = 0;
+            nodes[n].parameters[ionosphereParameters::RHON] = Ionosphere::unmappedNodeRho;
+            nodes[n].parameters[ionosphereParameters::TEMPERATURE] = Ionosphere::unmappedNodeTe;
+         } else {
+            // Store as the node's parameter values.
+            if(Ionosphere::couplingTimescale == 0) {
+               // Immediate coupling
+               nodes[n].parameters[ionosphereParameters::SOURCE] = FACsum[n];
+               nodes[n].parameters[ionosphereParameters::RHON] = rhoSum[n];
+               nodes[n].parameters[ionosphereParameters::TEMPERATURE] = temperatureSum[n];
+            } else {
 
-           // TODO: These are assuming that population 0 is protons. Should it
-           // rather be a sum over all positively charged populations?
-           nodes[n].parameters[ionosphereParameters::RHON] = Ionosphere::speciesParams[0].rho;
-           nodes[n].parameters[ionosphereParameters::PRESSURE] =
-              Ionosphere::speciesParams[0].rho * physicalconstants::K_B *
-              Ionosphere::speciesParams[0].T;
-        } else {
-           // Store as the node's parameter values.
-           if(Ionosphere::couplingTimescale == 0) {
-              // Immediate coupling
-              nodes[n].parameters[ionosphereParameters::SOURCE] = FACsum[n];
-              nodes[n].parameters[ionosphereParameters::RHON] = rhoSum[n];
-              nodes[n].parameters[ionosphereParameters::PRESSURE] = pressureSum[n];
-           } else {
+               // Slow coupling with a given timescale.
+               // See https://en.wikipedia.org/wiki/Exponential_smoothing#Time_constant
+               Real a = 1. - exp(- Parameters::dt / Ionosphere::couplingTimescale);
+               if(a>1) {
+                  a=1.;
+               }
 
-              // Slow coupling with a given timescale.
-              // See https://en.wikipedia.org/wiki/Exponential_smoothing#Time_constant
-              Real a = 1. - exp(- Parameters::dt / Ionosphere::couplingTimescale);
-              if(a>1) {
-                 a=1.;
-              }
+               nodes[n].parameters[ionosphereParameters::SOURCE] = (1.-a) * nodes[n].parameters[ionosphereParameters::SOURCE] + a * FACsum[n];
+               nodes[n].parameters[ionosphereParameters::RHON] = (1.-a) * nodes[n].parameters[ionosphereParameters::RHON] + a * rhoSum[n];
+               nodes[n].parameters[ionosphereParameters::TEMPERATURE] = (1.-a) * nodes[n].parameters[ionosphereParameters::TEMPERATURE] + a * temperatureSum[n];
+            }
+         }
 
-              nodes[n].parameters[ionosphereParameters::SOURCE] = (1.-a) * nodes[n].parameters[ionosphereParameters::SOURCE] + a * FACsum[n];
-              nodes[n].parameters[ionosphereParameters::RHON] = (1.-a) * nodes[n].parameters[ionosphereParameters::RHON] + a * rhoSum[n];
-              nodes[n].parameters[ionosphereParameters::PRESSURE] = (1.-a) * nodes[n].parameters[ionosphereParameters::PRESSURE] + a * pressureSum[n];
-           }
-        }
+         // Adjust densities by the loss-cone filling factor.
+         // This is an empirical smooothstep function that artificially reduces
+         // downmapped density below auroral latitudes.
+         Real theta = acos(nodes[n].x[2] / sqrt(nodes[n].x[0]*nodes[n].x[0] + nodes[n].x[1]*nodes[n].x[1] + nodes[n].x[2]*nodes[n].x[2])); // Latitude
+         if(theta > M_PI/2.) {
+            theta = M_PI - theta;
+         }
+         // Smoothstep with an edge at about 67 deg.
+         Real Chi0 = 0.01 + 0.99 * .5 * (1 + tanh((23. - theta * (180. / M_PI)) / 6));
 
-        // Adjust densities by the loss-cone filling factor.
-        // This is an empirical smooothstep function that artificially reduces
-        // downmapped density below auroral latitudes.
-        Real theta = acos(nodes[n].x[2] / sqrt(nodes[n].x[0]*nodes[n].x[0] + nodes[n].x[1]*nodes[n].x[1] + nodes[n].x[2]*nodes[n].x[2])); // Latitude
-        if(theta > M_PI/2.) {
-           theta = M_PI - theta;
-        }
-        // Smoothstep with an edge at about 67 deg.
-        Real Chi0 = 0.01 + 0.99 * .5 * (1 + tanh((23. - theta * (180. / M_PI)) / 6));
+         nodes[n].parameters[ionosphereParameters::RHON] *= Chi0;
+      }
 
-        nodes[n].parameters[ionosphereParameters::RHON] *= Chi0;
-
-     }
-
-     // Make sure FACs are balanced, so that the potential doesn't start to drift
-     offset_FAC();
-     phiprof::stop("ionosphere-mapDownMagnetosphere");
+      // Make sure FACs are balanced, so that the potential doesn't start to drift
+      offset_FAC();
+      phiprof::stop("ionosphere-mapDownMagnetosphere");
 
    }
 
@@ -2169,7 +2319,6 @@ namespace SBC {
 
       // Abort if there is nothing to solve.
       if(sourcenorm == 0) {
-         phiprof::stop("ionosphere-solve");
          return 0;
       }
       sourcenorm = sqrt(sourcenorm);
@@ -2361,6 +2510,8 @@ namespace SBC {
       Readparameters::add("ionosphere.plasmapauseL", "L-shell at which the plasmapause resides (for corotation)", 5.);
       Readparameters::add("ionosphere.fieldLineTracer", "Field line tracing method to use for coupling ionosphere and magnetosphere (options are: Euler, BS)", std::string("Euler"));
       Readparameters::add("ionosphere.downmapRadius", "Radius (in RE) from which FACs are coupled down into the ionosphere. If -1: use inner boundary clls.", -1.);
+      Readparameters::add("ionosphere.unmappedNodeRho", "Electron density of ionosphere nodes that do not connect to the magnetosphere domain.", 1e7);
+      Readparameters::add("ionosphere.unmappedNodeTe", "Electron temperature of ionosphere nodes that do not connect to the magnetosphere domain.", 1e5);
       Readparameters::add("ionosphere.couplingTimescale", "Magnetosphere->Ionosphere coupling timescale (seconds, 0=immediate coupling", 1.);
       Readparameters::add("ionosphere.tracerTolerance", "Tolerance for the Bulirsch Stoer Method", 1000);
 
@@ -2414,6 +2565,8 @@ namespace SBC {
       Readparameters::get("ionosphere.fieldLineTracer", tracerString);
       Readparameters::get("ionosphere.couplingTimescale",couplingTimescale);
       Readparameters::get("ionosphere.downmapRadius",downmapRadius);
+      Readparameters::get("ionosphere.unmappedNodeRho", unmappedNodeRho);
+      Readparameters::get("ionosphere.unmappedNodeTe",  unmappedNodeTe);
       Readparameters::get("ionosphere.tracerTolerance", eps);
       Readparameters::get("ionosphere.innerRadius", innerRadius);
       Readparameters::get("ionosphere.refineMinLatitude",refineMinLatitudes);
@@ -2441,7 +2594,7 @@ namespace SBC {
         if(sP.T == 0) {
            // If th usr does *not* specify a temperature, it defaults to the ambient magnetospheric temperature
            // (compare the corresponding handling in projects/Magnetosphere/Magnetosphere.cpp)
-           Readparameters::get(pop + "_Magntosphere.T", sP.T);
+           Readparameters::get(pop + "_Magnetosphere.T", sP.T);
         }
 
         Readparameters::get(pop + "_Magnetosphere.nSpaceSamples", sP.nSpaceSamples);

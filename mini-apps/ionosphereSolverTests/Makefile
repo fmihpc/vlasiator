@@ -60,12 +60,15 @@ datareducer.o: ../../datareduction/datareducer.h ../../datareduction/datareducti
 datareductionoperator.o:  ../../parameters.h ../../datareduction/datareductionoperator.h ../../datareduction/datareductionoperator.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ../../datareduction/datareductionoperator.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_EIGEN} ${INC_VLSV} ${INC_FSGRID}
 
+fs_common.o: ../../fieldsolver/fs_limiters.h ../../fieldsolver/fs_limiters.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ../../fieldsolver/fs_common.cpp -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_FSGRID} ${INC_PROFILE} ${INC_ZOLTAN}
+
 grid.o:  ../../grid.cpp ../../grid.h  ../../sysboundary/sysboundary.h
 	${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAG_OPENMP} ${FLAGS} -c ../../grid.cpp ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_PAPI} ${INC_VECTORCLASS}
 
 main.o: main.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ./main.cpp  ${INC_VLSV}
 
-main: main.o ionosphere.o sysboundarycondition.o parameters.o readparameters.o object_wrapper.o particle_species.o spatial_cell.o cpu_moments.o mesh_data_container.o iowrite.o logger.o datareducer.o datareductionoperator.o common.o ioread.o
+main: main.o ionosphere.o sysboundarycondition.o parameters.o readparameters.o object_wrapper.o particle_species.o spatial_cell.o cpu_moments.o mesh_data_container.o iowrite.o logger.o datareducer.o datareductionoperator.o common.o ioread.o fs_common.o
 	${LNK} ${LDFLAGS} -o main $^ $(LIBS) -lgomp
 

@@ -24,18 +24,35 @@ ObjectWrapper& getObjectWrapper() {
 bool printVersion() { return true; }
 std::vector<CellID> localCellDummy;
 const std::vector<CellID>& getLocalCells() { return localCellDummy; }
-Real divideIfNonZero( creal numerator, creal denominator) {
-   if(denominator <= 0.0) {
-      return 0.0;
-   } else {
-      return numerator / denominator;
-   }
-}
 void deallocateRemoteCellBlocks(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry, std::tuple<>, std::tuple<> >&) {};
 void updateRemoteVelocityBlockLists(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry, std::tuple<>, std::tuple<> >&, unsigned int, unsigned int) {
 };
 void recalculateLocalCellsCache() {}
 
+void assignConductivityTensor(std::vector<SphericalTriGrid::Node>& nodes, Real sigmaP, Real sigmaH) {
+   static const char epsilon[3][3][3] = {
+      {{0,0,0},{0,0,1},{0,-1,0}},
+      {{0,0,-1},{0,0,0},{1,0,0}},
+      {{0,1,0},{-1,0,0},{0,0,0}}
+   };
+
+   for(uint n=0; n<nodes.size(); n++) {
+      std::array<Real, 3> b = {nodes[n].x[0] / Ionosphere::innerRadius, nodes[n].x[1] / Ionosphere::innerRadius, nodes[n].x[2] / Ionosphere::innerRadius};
+      if(nodes[n].x[2] >= 0) {
+         b[0] *= -1;
+         b[1] *= -1;
+         b[2] *= -1;
+      }
+      for(int i=0; i<3; i++) {
+         for(int j=0; j<3; j++) {
+            nodes[n].parameters[ionosphereParameters::SIGMA + i*3 + j] = sigmaP * (((i==j)? 1. : 0.) - b[i]*b[j]);
+            for(int k=0; k<3; k++) {
+               nodes[n].parameters[ionosphereParameters::SIGMA + i*3 + j] -= sigmaH * epsilon[i][j][k]*b[k];
+            }
+         }
+      }
+   }
+}
 
 int main(int argc, char** argv) {
 
@@ -104,7 +121,7 @@ int main(int argc, char** argv) {
       cerr << " -sigma:    Conductivity matrix contents (default: identity)" << endl;
       cerr << "            options are:" << endl;
       cerr << "            identity - identity matrix w/ conductivity 1" << endl;
-      cerr << "            random -   randomly chosen conductivity values" << endl;
+      cerr << "            ponly    - Constant pedersen conductivitu"<< endl;
       cerr << "            35 -       Sigma_H = 3, Sigma_P = 5" << endl;
       cerr << "            53 -       Sigma_H = 5, Sigma_P = 3" << endl;
       cerr << "            file -     Read from vlsv input file " << endl;
@@ -181,6 +198,18 @@ int main(int argc, char** argv) {
       vlsv::ParallelReader inVlsv;
       inVlsv.open(inputFile,MPI_COMM_WORLD,masterProcessID);
       readIonosphereNodeVariable(inVlsv, "ig_sigma", ionosphereGrid, ionosphereParameters::SIGMA);
+   } else if(sigmaString == "ponly") {
+         Real sigmaP=3.;
+         Real sigmaH=0.;
+         assignConductivityTensor(nodes, sigmaP, sigmaH);
+   } else if(sigmaString == "35") {
+         Real sigmaP=3.;
+         Real sigmaH=5.;
+         assignConductivityTensor(nodes, sigmaP, sigmaH);
+   } else if(sigmaString == "53") {
+         Real sigmaP=5.;
+         Real sigmaH=3.;
+         assignConductivityTensor(nodes, sigmaP, sigmaH);
    } else {
       cerr << "Conductivity tensor " << sigmaString << " not implemented!" << endl;
       return 1;
@@ -249,6 +278,7 @@ int main(int argc, char** argv) {
    ionosphereGrid.isCouplingInwards=true;
    Ionosphere::solverMaxIterations = 1000;
    Ionosphere::solverPreconditioning = doPrecondition;
+   ionosphereGrid.rank = 0;
    ionosphereGrid.solve();
 
    // Write output

@@ -24,11 +24,13 @@
 #define IONOSPHERE_H
 
 #include <vector>
+#include <functional>
 #include "../definitions.h"
 #include "../readparameters.h"
 #include "../spatial_cell.hpp"
 #include "sysboundarycondition.h"
 #include "../backgroundfield/fieldfunction.hpp"
+#include "../fieldsolver/fs_common.h"
 
 using namespace projects;
 using namespace std;
@@ -75,17 +77,14 @@ namespace SBC {
          std::array<Real, 3> x = {0,0,0}; // Coordinates of the node
          std::array<Real, 3> xMapped = {0,0,0}; // Coordinates mapped along fieldlines into simulation domain
          int haveCouplingData = 0; // Does this rank carry coupling coordinate data for this node? (0 or 1)
-
          std::array<iSolverReal, N_IONOSPHERE_PARAMETERS> parameters = {0}; // Parameters carried by the node, see common.h
-         std::array<Real,3> fsgridCellCoupling = {-1.,-1.,-1.}; // Where (in fsgrid cell coordinate space) does this fieldline map?
 
          // Some calculation helpers
          Real electronDensity() { // Electron Density
             return parameters[ionosphereParameters::RHON];
          }
          Real electronTemperature() { // Electron Temperature
-            return parameters[ionosphereParameters::PRESSURE] /
-               (ion_electron_T_ratio * physicalconstants::K_B * electronDensity());
+            return parameters[ionosphereParameters::TEMPERATURE];
          }
          Real deltaPhi() { // Field aligned potential drop between i'sphere and m'sphere
 
@@ -112,6 +111,14 @@ namespace SBC {
       };
 
       std::vector<Node> nodes;
+
+      // cache for Balsara reconstruction coefficients
+      std::map< std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > reconstructionCoefficientsCache;
+      // function to empty it at a new time step
+      void resetReconstructionCoefficientsCache() {
+         reconstructionCoefficientsCache.clear();
+      }
+
 
       // Atmospheric height layers that are being integrated over
       constexpr static int numAtmosphereLevels = 20;
@@ -179,17 +186,52 @@ namespace SBC {
       void stitchRefinementInterfaces(); // Make sure there are no t-junctions in the mesh by splitting neighbours
       void calculatePrecipitation(); // Estimate precipitation flux
       void calculateConductivityTensor(const Real F10_7, const Real recombAlpha, const Real backgroundIonisation); // Update sigma tensor
-      void calculateFsgridCoupling(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, Real radius);     // Link each element to fsgrid cells for coupling
+      void calculateFsgridCoupling(
+         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+         FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+         Real radius
+      );     // Link each element to fsgrid cells for coupling
       Real interpolateUpmappedPotential(const std::array<Real, 3>& x); // Calculate upmapped potential at the given point
-      std::array<std::pair<int, Real>, 3> calculateVlasovGridCoupling(std::array<Real,3> x, Real couplingRadius); // Find coupled ionosphere mesh node for given location
+      std::array<std::pair<int, Real>, 3> calculateVlasovGridCoupling(
+         std::array<Real,3> x,
+         Real couplingRadius
+      ); // Find coupled ionosphere mesh node for given location
       //Field Line Tracing functions
       int ijk2Index(int i , int j ,int k ,std::array<int,3>dims); //3D to 1D indexing 
-      void getRadialBfieldDirection(std::array<Real,3>& r, bool outwards, std::array<Real,3>& b);
-      void bulirschStoerStep(std::array<Real, 3>& r, std::array<Real, 3>& b, Real& stepsize,Real maxStepsize, bool outwards=true); //Bulrisch Stoer step
-      void eulerStep(std::array<Real, 3>& x, std::array<Real, 3>& v, Real& stepsize, bool outwards=true); //Euler step
-      void modifiedMidpointMethod(std::array<Real,3> r,std::array<Real,3>& r1 , Real n , Real stepsize, bool outwards=true); // Modified Midpoint Method used by BS step
+      typedef std::function<void(std::array<Real,3>&, bool, std::array<Real, 3>&)> TracingFieldFunction;
+      void bulirschStoerStep(
+         std::array<Real, 3>& r,
+         std::array<Real, 3>& b,
+         Real& stepsize,Real maxStepsize,
+         TracingFieldFunction& BFieldFunction,
+         bool outwards=true
+      ); //Bulrisch Stoer step
+      void eulerStep(
+         std::array<Real, 3>& x,
+         std::array<Real, 3>& v,
+         Real& stepsize,
+         TracingFieldFunction& BFieldFunction,
+         bool outwards=true
+      ); //Euler step
+      void modifiedMidpointMethod(
+         std::array<Real,3> r,
+         std::array<Real,3>& r1,
+         Real n,
+         Real stepsize,
+         TracingFieldFunction& BFieldFunction,
+         bool outwards=true
+      ); // Modified Midpoint Method used by BS step
       void richardsonExtrapolation(int i, std::vector<Real>& table , Real& maxError,std::array<int,3>dims ); //Richardson extrapolation method used by BS step
-      void stepFieldLine(std::array<Real, 3>& x, std::array<Real, 3>& v, Real& stepsize, Real maxStepsize, IonosphereCouplingMethod method,bool outwards=true); // Handler function for field line tracing
+      void stepFieldLine(
+         std::array<Real, 3>& x,
+         std::array<Real, 3>& v,
+         Real& stepsize,
+         Real maxStepsize,
+         IonosphereCouplingMethod method,
+         TracingFieldFunction& BFieldFunction,
+         bool outwards=true
+      ); // Handler function for field line tracing
       // Conjugate Gradient solver functions
       void addMatrixDependency(uint node1, uint node2, Real coeff, bool transposed=false); // Add matrix value for the solver
       void addAllMatrixDependencies(uint nodeIndex);
@@ -199,13 +241,14 @@ namespace SBC {
       void solve();
       Real solveInternal(int & iteration, int & nRestarts);
 
-      // Map field-aligned currents, density and pressure
+      // Map field-aligned currents, density and temperature
       // down from the simulation boundary onto this grid
       void mapDownBoundaryData(
-          FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volgrid,
-          FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-          FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-          FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
+         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,                                                                                                                                                                                                                                
+         FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+         FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+      );
 
       // Returns the surface area of one element on the sphere
       Real elementArea(uint32_t elementIndex) {
@@ -388,6 +431,8 @@ namespace SBC {
       static Real F10_7; // Solar 10.7 Flux value (parameter)
       static Real backgroundIonisation; // Background ionisation due to stellar UV and cosmic rays
       static Real downmapRadius; // Radius from which FACs are downmapped (RE)
+      static Real unmappedNodeRho; // Electron density of ionosphere nodes that don't couple to the magnetosphere
+      static Real unmappedNodeTe; // Electron temperature of ionosphere nodes that don't couple to the magnetosphere
       static Real couplingTimescale; // Magnetosphere->Ionosphere coupling timescale (seconds)
       static enum IonosphereConductivityModel { // How should the conductivity tensor be assembled?
          GUMICS,   // Like GUMICS-5 does it? (Only SigmaH and SigmaP, B perp to surface)

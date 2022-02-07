@@ -507,6 +507,8 @@ int main(int argn,char* args[]) {
 
    // Build communicator for ionosphere solving
    SBC::ionosphereGrid.updateIonosphereCommunicator(mpiGrid, technicalGrid);
+   SBC::ionosphereGrid.calculateFsgridCoupling(technicalGrid, perBGrid, dPerBGrid, SBC::Ionosphere::radius);
+   SBC::ionosphereGrid.initSolver();   
 
    if (P::isRestart == false) {
       phiprof::start("compute-dt");
@@ -951,7 +953,10 @@ int main(int argn,char* args[]) {
       }
 
       // Map current data down into the ionosphere
-      SBC::ionosphereGrid.mapDownBoundaryData(volGrid, BgBGrid, momentsGrid, technicalGrid);
+      // TODO check: have we set perBGrid correctly here, or is it possibly perBDt2Grid in some cases??
+      SBC::ionosphereGrid.resetReconstructionCoefficientsCache();
+      SBC::ionosphereGrid.calculateFsgridCoupling(technicalGrid, perBGrid, dPerBGrid, SBC::Ionosphere::radius);
+      SBC::ionosphereGrid.mapDownBoundaryData(perBGrid, dPerBGrid, momentsGrid, technicalGrid);
       SBC::ionosphereGrid.calculateConductivityTensor(SBC::Ionosphere::F10_7, SBC::Ionosphere::recombAlpha, SBC::Ionosphere::backgroundIonisation);
 
       // Solve ionosphere
