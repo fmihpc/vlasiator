@@ -700,9 +700,11 @@ namespace SBC {
                Real energyparam = (particle_energy[p]-accenergy)/tempenergy;
 
                if(particle_energy[p] > accenergy) {
-                  differentialFlux[p] = sqrt(1. / (2. * M_PI * physicalconstants::MASS_ELECTRON)) * particle_energy[p]
-                     * (particle_energy[p+1] - particle_energy[p])* 1e3*physicalconstants::CHARGE  // dE in keV
-                     * exp(-energyparam);
+                  Real deltaE = (particle_energy[p+1] - particle_energy[p])* 1e3*physicalconstants::CHARGE;  // dE in keV
+
+                  differentialFlux[p] = sqrt(1. / (2. * M_PI * physicalconstants::MASS_ELECTRON))
+                    * particle_energy[p] / tempenergy / sqrt(tempenergy * 1e3 *physicalconstants::CHARGE)
+                    * deltaE * exp(-energyparam);
                } else {
                   differentialFlux[p] = 0;
                }
@@ -1772,7 +1774,7 @@ namespace SBC {
             }
 
             // Scale density by area ratio
-            rhoInput[n] *= upmappedArea / area;
+            //rhoInput[n] *= upmappedArea / area;
          }
       }
 
