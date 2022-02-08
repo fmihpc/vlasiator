@@ -2294,9 +2294,35 @@ namespace SBC {
       int & iteration,
       int & nRestarts
    ) {
-      // Calculate sourcenorm and initial residual estimate
-      iSolverReal sourcenorm = 0;
       std::vector<iSolverReal> effectiveSource(nodes.size());
+
+      // This we'll want to copy out
+      iSolverReal minerr;
+      
+      // for loop reduction variables, declared before omp parallel region
+      iSolverReal akden = 0;
+      iSolverReal bknum = 0;
+      iSolverReal potentialInt = 0;
+      iSolverReal sourcenorm = 0;
+      iSolverReal residualnorm = 0;
+
+//#pragma omp parallel shared(akden,bknum,potentialInt,sourcenorm,residualnorm)
+//{
+
+      // thread variables, initialised here
+      iSolverReal err = 0;
+      iSolverReal olderr = err;
+      iSolverReal thread_minerr = std::numeric_limits<iSolverReal>::max();
+      int thread_iteration = iteration;
+      int thread_nRestarts = nRestarts;
+
+      iSolverReal bkden = 1;
+      int failcount=0;
+      int counter = 0;
+
+      sourcenorm = 0;
+      // Calculate sourcenorm and initial residual estimate
+      #pragma omp parallel for reduction(+:sourcenorm)
       for(uint n=0; n<nodes.size(); n++) {
          Node& N=nodes[n];
          // Set gauge-pinned nodes to their fixed potential
@@ -2314,25 +2340,27 @@ namespace SBC {
          N.parameters[ionosphereParameters::BEST_SOLUTION] = N.parameters[ionosphereParameters::SOLUTION];
          N.parameters[ionosphereParameters::RRESIDUAL] = N.parameters[ionosphereParameters::RESIDUAL];
       }
+
+      
+      #pragma omp parallel for
       for(uint n=0; n<nodes.size(); n++) {
          Node& N=nodes[n];
          N.parameters[ionosphereParameters::ZPARAM] = Asolve(n,ionosphereParameters::RESIDUAL, false);
       }
 
+      bool skipSolve = false;
       // Abort if there is nothing to solve.
       if(sourcenorm == 0) {
-         return 0;
+         skipSolve = true;
       }
       sourcenorm = sqrt(sourcenorm);
 
-      iSolverReal err = 0;
-      iSolverReal olderr = err;
-      iSolverReal minerr = std::numeric_limits<iSolverReal>::max();
-      iSolverReal bkden = 1.;
-      int failcount=0;
-      int counter = 0;
-      while(iteration < Ionosphere::solverMaxIterations) {
-         iteration++;
+//string stringi = "tstep " + to_string(P::tstep) + " rank " + to_string(rank) + " thread " + to_string(omp_get_thread_num()) + " sourcenorm " + to_string(sourcenorm) + "\n";
+//cerr << stringi;
+
+
+      while(!skipSolve && thread_iteration < Ionosphere::solverMaxIterations) {
+         thread_iteration++;
          counter++;
 
          #pragma omp parallel for
@@ -2341,14 +2369,16 @@ namespace SBC {
             N.parameters[ionosphereParameters::ZZPARAM] = Asolve(n,ionosphereParameters::RRESIDUAL, true);
          }
 
-        // Calculate bk and gradient vector p
-        iSolverReal bknum = 0;
-        for(uint n=0; n<nodes.size(); n++) {
-           Node& N=nodes[n];
-           bknum += N.parameters[ionosphereParameters::ZPARAM] * N.parameters[ionosphereParameters::RRESIDUAL];
+         // Calculate bk and gradient vector p
+         bknum = 0;
+         #pragma omp parallel for reduction(+:bknum)
+         for(uint n=0; n<nodes.size(); n++) {
+            Node& N=nodes[n];
+            bknum += N.parameters[ionosphereParameters::ZPARAM] * N.parameters[ionosphereParameters::RRESIDUAL];
          }
          if(counter == 1) {
             // Just use the gradient vector as-is, starting from the best known solution
+            #pragma omp parallel for
             for(uint n=0; n<nodes.size(); n++) {
                Node& N=nodes[n];
                N.parameters[ionosphereParameters::PPARAM] = N.parameters[ionosphereParameters::ZPARAM];
@@ -2357,6 +2387,7 @@ namespace SBC {
          } else {
             // Perform gram-smith orthogonalization to get conjugate gradient
             iSolverReal bk = bknum / bkden;
+            #pragma omp parallel for
             for(uint n=0; n<nodes.size(); n++) {
                Node& N=nodes[n];
                N.parameters[ionosphereParameters::PPARAM] *= bk;
@@ -2372,7 +2403,7 @@ namespace SBC {
 
 
          // Calculate ak, new solution and new residual
-         iSolverReal akden = 0;
+         akden = 0;
          #pragma omp parallel for reduction(+:akden)
          for(uint n=0; n<nodes.size(); n++) {
             Node& N=nodes[n];
@@ -2383,6 +2414,7 @@ namespace SBC {
          }
          iSolverReal ak=bknum/akden;
 
+         #pragma omp parallel for
          for(uint n=0; n<nodes.size(); n++) {
             Node& N=nodes[n];
             N.parameters[ionosphereParameters::SOLUTION] += ak * N.parameters[ionosphereParameters::PPARAM];
@@ -2395,7 +2427,7 @@ namespace SBC {
 
          // Rebalance the potential by calculating its area integral
          if(gaugeFixing == Integral) {
-            Real potentialInt=0;
+            potentialInt = 0;
             #pragma omp parallel for reduction(+:potentialInt)
             for(uint e=0; e<elements.size(); e++) {
                Real area = elementArea(e);
@@ -2411,13 +2443,14 @@ namespace SBC {
             potentialInt /= 4. * M_PI * Ionosphere::innerRadius * Ionosphere::innerRadius;
 
             // Offset potentials to make it zero
+            #pragma omp parallel for
             for(uint n=0; n<nodes.size(); n++) {
                Node& N=nodes[n];
                N.parameters[ionosphereParameters::SOLUTION] -= potentialInt;
             }
          }
 
-         iSolverReal residualnorm = 0;
+         residualnorm = 0;
          #pragma omp parallel for reduction(+:residualnorm)
          for(uint n=0; n<nodes.size(); n++) {
             Node& N=nodes[n];
@@ -2436,24 +2469,32 @@ namespace SBC {
 
             N.parameters[ionosphereParameters::RRESIDUAL] = effectiveSource[n] - Atimes(n, ionosphereParameters::SOLUTION, true);
          }
+         #pragma omp parallel for
          for(uint n=0; n<nodes.size(); n++) {
             Node& N=nodes[n];
             N.parameters[ionosphereParameters::ZPARAM] = Asolve(n, ionosphereParameters::RESIDUAL, false);
          }
 
          // See if this solved the potential better than before
-         olderr = err; 
+         olderr = err;
          err = sqrt(residualnorm)/sourcenorm;
-         if(err < minerr) {
+
+//stringi = "tstep " + to_string(P::tstep) + " rank " + to_string(rank) + " thread " + to_string(omp_get_thread_num()) + " residualnorm " + to_string(residualnorm) + " sourcenorm " + to_string(sourcenorm) + "\n";
+//cerr << stringi;
+
+
+         if(err < thread_minerr) {
             // If yes, this is our new best solution
+            #pragma omp parallel for
             for(uint n=0; n<nodes.size(); n++) {
                Node& N=nodes[n];
                N.parameters[ionosphereParameters::BEST_SOLUTION] = N.parameters[ionosphereParameters::SOLUTION];
             }
-            minerr = err;
+            thread_minerr = err;
             failcount = 0;
          } else {
             // If no, keep going with the best one
+            #pragma omp parallel for
             for(uint n=0; n<nodes.size(); n++) {
                Node& N=nodes[n];
                N.parameters[ionosphereParameters::SOLUTION] = N.parameters[ionosphereParameters::BEST_SOLUTION];
@@ -2461,19 +2502,41 @@ namespace SBC {
             failcount++;
          }
 
-         if(minerr < Ionosphere::solverRelativeL2ConvergenceThreshold) {
+//stringi = "tstep " + to_string(P::tstep) + " rank " + to_string(rank) + " thread " + to_string(omp_get_thread_num()) + " thread_minerr " + to_string(thread_minerr) + "\n";
+//cerr << stringi;
+
+         if(thread_minerr < Ionosphere::solverRelativeL2ConvergenceThreshold) {
             break;
          }
-         if(failcount > Ionosphere::solverMaxFailureCount || err > Ionosphere::solverMaxErrorGrowthFactor*minerr) {
-            nRestarts++;
+         if(failcount > Ionosphere::solverMaxFailureCount || err > Ionosphere::solverMaxErrorGrowthFactor*thread_minerr) {
+            thread_nRestarts++;
             break;
          }
+      } // while
+
+//      cint threadID = omp_get_thread_num();
+      if(skipSolve /*&& threadID == 0*/) {
+         // sourcenorm was zero, we return zero; return is not allowed inside threaded region
+         minerr = 0;
+      } else {
+         #pragma omp parallel for
+         for(uint n=0; n<nodes.size(); n++) {
+            Node& N=nodes[n];
+            N.parameters[ionosphereParameters::SOLUTION] = N.parameters[ionosphereParameters::BEST_SOLUTION];
+         }
+         // Get out the ones we need before exiting the parallel region
+//         if(threadID == 0) {
+            minerr = thread_minerr;
+            iteration = thread_iteration;
+            nRestarts = thread_nRestarts;
+//         }
       }
 
-      for(uint n=0; n<nodes.size(); n++) {
-         Node& N=nodes[n];
-         N.parameters[ionosphereParameters::SOLUTION] = N.parameters[ionosphereParameters::BEST_SOLUTION];
-      }
+//} // #pragma omp parallel
+
+//stringi = "tstep " + to_string(P::tstep) + " rank " + to_string(rank) + " minerr " + to_string(minerr) + "\n";
+//cerr << stringi;
+
       return minerr;
    }
 
