@@ -72,3 +72,4 @@ main.o: main.cpp
 main: main.o ionosphere.o sysboundarycondition.o parameters.o readparameters.o object_wrapper.o particle_species.o spatial_cell.o cpu_moments.o mesh_data_container.o iowrite.o logger.o datareducer.o datareductionoperator.o common.o ioread.o fs_common.o
 	${LNK} ${LDFLAGS} -o main $^ $(LIBS) -lgomp
 
+differentialFlux: differentialFlux.cpp
