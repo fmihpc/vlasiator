@@ -647,7 +647,7 @@ namespace SBC {
 
       // Energies of particles that sample the production array
       // are logspace-distributed from 10^-1 to 10^2.3 keV
-      std::array< Real, productionNumParticleEnergies+1 > particle_energy;
+      std::array< Real, productionNumParticleEnergies+1 > particle_energy; // In KeV
       for(int e=0; e<productionNumParticleEnergies; e++) {
          // TODO: Hardcoded constants. Make parameter?
          particle_energy[e] = pow(10.0, -1.+e*(2.3+1.)/(productionNumParticleEnergies-1));
@@ -689,22 +689,22 @@ namespace SBC {
       for(int e=0; e<productionNumAccEnergies; e++) {
 
          const Real productionAccEnergyStep = (log10(productionMaxAccEnergy) - log10(productionMinAccEnergy)) / productionNumAccEnergies;
-         Real accenergy = pow(10., productionMinAccEnergy + e*(productionAccEnergyStep));
+         Real accenergy = pow(10., productionMinAccEnergy + e*(productionAccEnergyStep)); // In KeV
 
          for(int t=0; t<productionNumTemperatures; t++) {
             const Real productionTemperatureStep = (log10(productionMaxTemperature) - log10(productionMinTemperature)) / productionNumTemperatures;
-            Real tempenergy = pow(10, productionMinTemperature + t*productionTemperatureStep);
+            Real tempenergy = pow(10, productionMinTemperature + t*productionTemperatureStep); // In KeV
 
             for(int p=0; p<productionNumParticleEnergies; p++) {
                // TODO: Kappa distribution here? Now only going for maxwellian
-               Real energyparam = (particle_energy[p]-accenergy)/tempenergy;
+               Real energyparam = (particle_energy[p]-accenergy)/tempenergy; // = E_p / (kB T)
 
                if(particle_energy[p] > accenergy) {
-                  Real deltaE = (particle_energy[p+1] - particle_energy[p])* 1e3*physicalconstants::CHARGE;  // dE in keV
+                  Real deltaE = (particle_energy[p+1] - particle_energy[p])* 1e3*physicalconstants::CHARGE;  // dE in J
 
                   differentialFlux[p] = sqrt(1. / (2. * M_PI * physicalconstants::MASS_ELECTRON))
                     * particle_energy[p] / tempenergy / sqrt(tempenergy * 1e3 *physicalconstants::CHARGE)
-                    * deltaE * exp(-energyparam);
+                    * deltaE * exp(-energyparam); // m / s  ... multiplied with density, this yields a flux 1/m^2/s
                } else {
                   differentialFlux[p] = 0;
                }
@@ -809,7 +809,7 @@ namespace SBC {
          nodes[n].parameters[ionosphereParameters::SIGMAP] = 0;
          nodes[n].parameters[ionosphereParameters::SIGMAH] = 0;
          nodes[n].parameters[ionosphereParameters::SIGMAPARALLEL] = 0;
-         std::vector<Real> electronDensity(numAtmosphereLevels);
+         std::array<Real, numAtmosphereLevels> electronDensity;
 
          // Note this loop counts from 1 (std::vector is zero-initialized, so electronDensity[0] = 0)
          for(int h=1; h<numAtmosphereLevels; h++) { 
@@ -2512,8 +2512,8 @@ namespace SBC {
       Readparameters::add("ionosphere.plasmapauseL", "L-shell at which the plasmapause resides (for corotation)", 5.);
       Readparameters::add("ionosphere.fieldLineTracer", "Field line tracing method to use for coupling ionosphere and magnetosphere (options are: Euler, BS)", std::string("Euler"));
       Readparameters::add("ionosphere.downmapRadius", "Radius (in RE) from which FACs are coupled down into the ionosphere. If -1: use inner boundary clls.", -1.);
-      Readparameters::add("ionosphere.unmappedNodeRho", "Electron density of ionosphere nodes that do not connect to the magnetosphere domain.", 1e7);
-      Readparameters::add("ionosphere.unmappedNodeTe", "Electron temperature of ionosphere nodes that do not connect to the magnetosphere domain.", 1e5);
+      Readparameters::add("ionosphere.unmappedNodeRho", "Electron density of ionosphere nodes that do not connect to the magnetosphere domain.", 1e4);
+      Readparameters::add("ionosphere.unmappedNodeTe", "Electron temperature of ionosphere nodes that do not connect to the magnetosphere domain.", 1e6);
       Readparameters::add("ionosphere.couplingTimescale", "Magnetosphere->Ionosphere coupling timescale (seconds, 0=immediate coupling", 1.);
       Readparameters::add("ionosphere.tracerTolerance", "Tolerance for the Bulirsch Stoer Method", 1000);
 
