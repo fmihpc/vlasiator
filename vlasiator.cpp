@@ -955,13 +955,9 @@ int main(int argn,char* args[]) {
       // Map current data down into the ionosphere
       // TODO check: have we set perBGrid correctly here, or is it possibly perBDt2Grid in some cases??
 //      SBC::ionosphereGrid.resetReconstructionCoefficientsCache();
-      MPI_Barrier(MPI_COMM_WORLD);
       SBC::ionosphereGrid.calculateFsgridCoupling(technicalGrid, perBGrid, dPerBGrid, SBC::Ionosphere::radius);
-      MPI_Barrier(MPI_COMM_WORLD);
       SBC::ionosphereGrid.mapDownBoundaryData(perBGrid, dPerBGrid, momentsGrid, technicalGrid);
-      MPI_Barrier(MPI_COMM_WORLD);
       SBC::ionosphereGrid.calculateConductivityTensor(SBC::Ionosphere::F10_7, SBC::Ionosphere::recombAlpha, SBC::Ionosphere::backgroundIonisation);
-      MPI_Barrier(MPI_COMM_WORLD);
 
       // Solve ionosphere
       SBC::ionosphereGrid.solve();
