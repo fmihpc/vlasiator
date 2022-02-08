@@ -9,7 +9,7 @@ LIBS += ${LIB_PROFILE}
 LIBS += ${LIB_ZOLTAN}
 LIBS += ${LIB_VLSV}
 
-all: main
+all: main differentialFlux sigmaProfiles
 .PHONY: clean
 
 clean: 
@@ -73,3 +73,6 @@ main: main.o ionosphere.o sysboundarycondition.o parameters.o readparameters.o o
 	${LNK} ${LDFLAGS} -o main $^ $(LIBS) -lgomp
 
 differentialFlux: differentialFlux.cpp
+
+sigmaProfiles: sigmaProfiles.cpp
+
