@@ -198,7 +198,7 @@ int main(int argc, char** argv) {
    Real SigmaParallel=0;
 
 	for(int h=1; h < numAtmosphereLevels; h++) {
-		Real qref = productionTable[h];
+		Real qref = rhon*productionTable[h];
 
 		// Get equilibrium electron density
 		electronDensity[h] = sqrt(qref/recombAlpha);
@@ -217,8 +217,9 @@ int main(int argc, char** argv) {
       SigmaH += sigmah;
       sigmaParallel += sigmaParallel;
 
-		std::cout << atmosphere[h].altitude << "\t" << 0.5*(electronDensity[h]+electronDensity[h-1]) << "\t" << sigmap << "\t" << sigmah << "\t" << sigmaParallel << std::endl;
+		std::cout << atmosphere[h].altitude << "\t" << 0.5*(electronDensity[h]+electronDensity[h-1]) << "\t" << sigmap/(2.*halfdx) << "\t" << sigmah/(2.*halfdx) << "\t" << sigmaParallel/(2.*halfdx) << std::endl;
 	}
+   std::cerr << std::endl;
 
    std::cerr << "Height integrated conductivities:" << std::endl;
    std::cerr << "  SigmaH = " << SigmaH << std::endl;
