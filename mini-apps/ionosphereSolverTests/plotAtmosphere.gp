@@ -6,7 +6,7 @@
 # ./sigmaProfiles 1e6 1e7 > atmosphere.dat
 #
 
-set terminal pdfcairo size 6,4
+set terminal pdfcairo size 6,5
 set output "atmosphere.pdf"
 
 set multiplot
@@ -23,4 +23,4 @@ plot [1e-10:1e5] [0:300] 'atmosphere.dat' using 3:1 with lines title "Pedersen c
 set origin 0,.5
 set xlabel "Electron density (m^{-3})"
 
-plot [1e4:1e9] [0:300] 'atmosphere.dat' using 2:1 with lines title "Free electron density"
+plot [1e9:1e13] [0:300] 'atmosphere.dat' using 2:1 with lines title "Free electron density"
