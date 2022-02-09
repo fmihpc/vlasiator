@@ -164,7 +164,7 @@ public:
 
    static bool versionMessage();
 
-   static std::vector<std::string> versionInfo();
+   static std::string versionInfo();
 
    static bool parse(const bool needsRunConfig = true, const bool allowUnknown = true);
 

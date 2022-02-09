@@ -131,7 +131,7 @@ bool Readparameters::versionMessage() {
 
 
 
-std::vector<std::string> Readparameters::versionInfo() {
+std::string Readparameters::versionInfo() {
    int rank;
    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
    return getVersion(run_config_file_name.c_str());

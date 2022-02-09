@@ -88,39 +88,39 @@ EOF
 
 cat >> version.cpp <<EOF
 
-std::vector<std::string> getVersion(const char* filename) {
-  std::vector<std::string>  versionInfo;
+std::string getVersion(const char* filename) {
+  std::string  versionInfo;
 
 EOF
 
-echo "  versionInfo.push_back(\"----------- Compilation --------- \n\");" >>version.cpp
-echo "  versionInfo.push_back( \"date:       $(date)\n\");" >>version.cpp
-echo "  versionInfo.push_back(\"CMP:        $1 \n\");" >>version.cpp
-echo "  versionInfo.push_back(\"CXXFLAGS:   $2 \n\");" >>version.cpp
-echo "  versionInfo.push_back(\"FLAGS:      $3 \n\");" >>version.cpp
-echo "  versionInfo.push_back(\"INC_MPI:    $4 \n\");" >>version.cpp
-echo "  versionInfo.push_back(\"INC_DCCRG:  $5 \n\");" >>version.cpp
-echo "  versionInfo.push_back(\"INC_ZOLTAN: $6 \n\");" >>version.cpp
-echo "  versionInfo.push_back(\"INC_BOOST:  $7 \n\");" >>version.cpp
+echo "  versionInfo+=\"----------- Compilation --------- \n\";" >>version.cpp
+echo "  versionInfo+= \"date:       $(date)\n\";" >>version.cpp
+echo "  versionInfo+=\"CMP:        $1 \n\";" >>version.cpp
+echo "  versionInfo+=\"CXXFLAGS:   $2 \n\";" >>version.cpp
+echo "  versionInfo+=\"FLAGS:      $3 \n\";" >>version.cpp
+echo "  versionInfo+=\"INC_MPI:    $4 \n\";" >>version.cpp
+echo "  versionInfo+=\"INC_DCCRG:  $5 \n\";" >>version.cpp
+echo "  versionInfo+=\"INC_ZOLTAN: $6 \n\";" >>version.cpp
+echo "  versionInfo+=\"INC_BOOST:  $7 \n\";" >>version.cpp
 
 
-echo "     versionInfo.push_back( \"----------- git branch ---------n\");" >>version.cpp
-git branch  | sed 's/\"/\\"/g' | sed 's/\\\"/\\"/g' | gawk '{printf("%s\"%s""\"%s\n","  versionInfo.push_back(",$0"\\n"," );")}' >> version.cpp
+echo "     versionInfo+= \"----------- git branch ---------n\";" >>version.cpp
+git branch  | sed 's/\"/\\"/g' | sed 's/\\\"/\\"/g' | gawk '{printf("%s\"%s""\"%s\n","  versionInfo+=",$0"\\n"," ;")}' >> version.cpp
 
 
-echo "   versionInfo.push_back( \"----------- git log (last 10 commits) --------- \");" >>version.cpp
-git log --pretty=oneline | head | sed 's/\"/\\"/g' | sed 's/\\\"/\\"/g' | gawk '{printf("%s\"%s\"%s\n","     versionInfo.push_back( ",$0"\\n"," );")}' >> version.cpp
+echo "   versionInfo+= \"----------- git log (last 10 commits) --------- \";" >>version.cpp
+git log --pretty=oneline | head | sed 's/\"/\\"/g' | sed 's/\\\"/\\"/g' | gawk '{printf("%s\"%s\"%s\n","     versionInfo+= ",$0"\\n"," ;")}' >> version.cpp
 
 
-echo "     versionInfo.push_back(\"----------- module list --------- \");" >>version.cpp
-module list 2>&1 | gawk '{printf("%s\"%s\"%s\n","   versionInfo.push_back( ",$0"\\n"," );")}' >> version.cpp
+echo "     versionInfo+=\"----------- module list --------- \";" >>version.cpp
+module list 2>&1 | gawk '{printf("%s\"%s\"%s\n","   versionInfo+= ",$0"\\n"," ;")}' >> version.cpp
 
 
-echo "     versionInfo.push_back(\"----------- git status --------- \");" >>version.cpp
-git status | sed 's/\"/\\"/g' | sed 's/\\\"/\\"/g'  |gawk '{printf("%s\"%s\"%s\n","   versionInfo.push_back( ",$0"\\n"," );")}' >> version.cpp
+echo "     versionInfo+=\"----------- git status --------- \";" >>version.cpp
+git status | sed 's/\"/\\"/g' | sed 's/\\\"/\\"/g'  |gawk '{printf("%s\"%s\"%s\n","   versionInfo+= ",$0"\\n"," ;")}' >> version.cpp
 
 
-echo "   versionInfo.push_back(\"----------- git diff ---------- \");" >>version.cpp
+echo "   versionInfo+=\"----------- git diff ---------- \";" >>version.cpp
 
 echo "    const char diff_data[] = {" >> version.cpp
 DIFF=$(git diff `git diff --name-only |grep -v generate_version.sh` | xxd -i)
@@ -133,24 +133,24 @@ fi
 
 echo "std::string buffer;" >> version.cpp
 echo "buffer+=diff_data;" >> version.cpp
-echo "versionInfo.push_back(buffer);" >> version.cpp
+echo "versionInfo+=buffer;" >> version.cpp
 
 
 
 cat >> version.cpp <<EOF
-versionInfo.push_back("\n");
-versionInfo.push_back("\n");
-versionInfo.push_back("*------------Configuration File------------*\n");
-versionInfo.push_back("\n");
-versionInfo.push_back("\n");
+versionInfo+="\n";
+versionInfo+="\n";
+versionInfo+="*------------Configuration File------------*\n";
+versionInfo+="\n";
+versionInfo+="\n";
 
 
 std::ifstream file(filename);
 if (file.is_open()) {
   std::string line;
   while (std::getline(file, line)) {
-      versionInfo.push_back(line.c_str());
-      versionInfo.push_back("\n");
+      versionInfo+=line.c_str();
+      versionInfo+="\n";
 
     }
   }

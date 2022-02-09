@@ -350,10 +350,11 @@ int main(int argn,char* args[]) {
 
 
    //Get version info here
+   std::string version;
+   //Only master needs the info
    if (myRank==MASTER_RANK){
-      std::vector<std::string> version=readparameters.versionInfo();
+      version=readparameters.versionInfo();
    }
-   abort();
 
 
 
@@ -555,6 +556,7 @@ int main(int argn,char* args[]) {
             BgBGrid,
             volGrid,
             technicalGrid,
+            version,
             &outputReducer,P::systemWriteName.size()-1, P::restartStripeFactor, writeGhosts) == false ) {
          cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
       }
@@ -723,6 +725,7 @@ int main(int argn,char* args[]) {
                      BgBGrid,
                      volGrid,
                      technicalGrid,
+                     version,
                      &outputReducer, i, P::bulkStripeFactor, writeGhosts) == false ) {
                cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
             }
@@ -794,6 +797,7 @@ int main(int argn,char* args[]) {
                   BgBGrid,
                   volGrid,
                   technicalGrid,
+                  version,
                   outputReducer,"restart",(uint)P::t,P::restartStripeFactor) == false ) {
             logFile << "(IO): ERROR Failed to write restart!" << endl << writeVerbose;
             cerr << "FAILED TO WRITE RESTART" << endl;
