@@ -20,6 +20,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include "common.h"
 #include <cstdlib>
 #include <iostream>
 #include <cmath>
@@ -344,6 +345,17 @@ int main(int argn,char* args[]) {
    project->getParameters();
    sysBoundaries.getParameters();
    phiprof::stop("Read parameters");
+
+
+
+
+   //Get version info here
+   if (myRank==MASTER_RANK){
+      std::vector<std::string> version=readparameters.versionInfo();
+   }
+   abort();
+
+
 
    // Init parallel logger:
    phiprof::start("open logFile & diagnostic");

@@ -129,6 +129,15 @@ bool Readparameters::versionMessage() {
    return true;
 }
 
+
+
+std::vector<std::string> Readparameters::versionInfo() {
+   int rank;
+   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+   return getVersion(run_config_file_name.c_str());
+}
+
+
 /** Request Parameters to reparse input file(s). This function needs to be
  * called after new options have been added via Parameters:add functions.
  * Otherwise the values of the new options are not read. This is a collective

@@ -27,6 +27,9 @@ cd $curdir
 cat > version.cpp <<EOF
 #include <iostream>
 #include "mpi.h"
+#include "vector"
+#include <fstream>
+
 
 using namespace std;
 
@@ -38,7 +41,6 @@ bool printVersion() {
 EOF
 
 echo "    cout << endl << \"----------- Compilation --------- \"<<endl;" >>version.cpp
-echo "    cout <<  \"date:       $(date)\" <<endl;" >>version.cpp
 echo "    cout <<  \"folder:     $PWD \"<<endl;" >>version.cpp
 echo "    cout <<  \"CMP:        $1 \"<<endl;" >>version.cpp
 echo "    cout <<  \"CXXFLAGS:   $2 \"<<endl;" >>version.cpp
@@ -82,3 +84,84 @@ cat >> version.cpp <<EOF
 }
 EOF
 
+
+
+cat >> version.cpp <<EOF
+
+std::vector<std::string> getVersion(const char* filename) {
+  std::vector<std::string>  versionInfo;
+
+EOF
+
+echo "  versionInfo.push_back(\"----------- Compilation --------- \n\");" >>version.cpp
+echo "  versionInfo.push_back( \"date:       $(date)\n\");" >>version.cpp
+echo "  versionInfo.push_back(\"CMP:        $1 \n\");" >>version.cpp
+echo "  versionInfo.push_back(\"CXXFLAGS:   $2 \n\");" >>version.cpp
+echo "  versionInfo.push_back(\"FLAGS:      $3 \n\");" >>version.cpp
+echo "  versionInfo.push_back(\"INC_MPI:    $4 \n\");" >>version.cpp
+echo "  versionInfo.push_back(\"INC_DCCRG:  $5 \n\");" >>version.cpp
+echo "  versionInfo.push_back(\"INC_ZOLTAN: $6 \n\");" >>version.cpp
+echo "  versionInfo.push_back(\"INC_BOOST:  $7 \n\");" >>version.cpp
+
+
+echo "     versionInfo.push_back( \"----------- git branch ---------n\");" >>version.cpp
+git branch  | sed 's/\"/\\"/g' | sed 's/\\\"/\\"/g' | gawk '{printf("%s\"%s""\"%s\n","  versionInfo.push_back(",$0"\\n"," );")}' >> version.cpp
+
+
+echo "   versionInfo.push_back( \"----------- git log (last 10 commits) --------- \");" >>version.cpp
+git log --pretty=oneline | head | sed 's/\"/\\"/g' | sed 's/\\\"/\\"/g' | gawk '{printf("%s\"%s\"%s\n","     versionInfo.push_back( ",$0"\\n"," );")}' >> version.cpp
+
+
+echo "     versionInfo.push_back(\"----------- module list --------- \");" >>version.cpp
+module list 2>&1 | gawk '{printf("%s\"%s\"%s\n","   versionInfo.push_back( ",$0"\\n"," );")}' >> version.cpp
+
+
+echo "     versionInfo.push_back(\"----------- git status --------- \");" >>version.cpp
+git status | sed 's/\"/\\"/g' | sed 's/\\\"/\\"/g'  |gawk '{printf("%s\"%s\"%s\n","   versionInfo.push_back( ",$0"\\n"," );")}' >> version.cpp
+
+
+echo "   versionInfo.push_back(\"----------- git diff ---------- \");" >>version.cpp
+
+echo "    const char diff_data[] = {" >> version.cpp
+DIFF=$(git diff `git diff --name-only |grep -v generate_version.sh` | xxd -i)
+if [[ -n $DIFF ]]; then
+   echo -n $DIFF >> version.cpp
+   echo "    ,0 };" >> version.cpp
+else
+   echo "    0 };" >> version.cpp
+fi
+
+echo "std::string buffer;" >> version.cpp
+echo "buffer+=diff_data;" >> version.cpp
+echo "versionInfo.push_back(buffer);" >> version.cpp
+
+
+
+cat >> version.cpp <<EOF
+versionInfo.push_back("\n");
+versionInfo.push_back("\n");
+versionInfo.push_back("*------------Configuration File------------*\n");
+versionInfo.push_back("\n");
+versionInfo.push_back("\n");
+
+
+std::ifstream file(filename);
+if (file.is_open()) {
+  std::string line;
+  while (std::getline(file, line)) {
+      versionInfo.push_back(line.c_str());
+      versionInfo.push_back("\n");
+
+    }
+  }
+  file.close();
+
+EOF
+
+# echo " for (auto i:versionInfo) cout<<i;" >> version.cpp
+
+cat >> version.cpp <<EOF
+  
+  return versionInfo;
+}
+EOF
