@@ -415,11 +415,13 @@ void calculateSpatialTranslation(
       } else {
          //const double deltat = MPI_Wtime() - t1;
          for (size_t c=0; c<local_propagated_cells.size(); ++c) {
+            int accelerationsteps = 0; // Account for time spent in acceleration as well
+            if (mpiGrid[local_propagated_cells[c]]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) accelerationsteps = 3;
             Real counter = 0;
             for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
                counter += mpiGrid[local_propagated_cells[c]]->get_number_of_velocity_blocks(popID);
             }
-            mpiGrid[local_propagated_cells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += nPencils[c] * counter;
+            mpiGrid[local_propagated_cells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += (nPencils[c]+accelerationsteps) * counter;
             //mpiGrid[localCells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += time / localCells.size();
          }
       }

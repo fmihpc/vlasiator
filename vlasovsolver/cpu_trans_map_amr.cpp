@@ -287,7 +287,9 @@ void prepareLocalTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
    LocalSet_z.clear();
    std::vector<CellID> foundCells;
 
-   // For each dimension, simply adds the first remote face neighbours.
+   // Cell lists include:
+   // 1) Any local (translated) non-sysboundary cells
+   // 2) For 1), per-dimension, one layer of face neighbours, remote or local (including translated sysboundary cells)
    // Done only at LB so not threaded for now
    for (uint i=0; i<localPropagatedCells.size(); i++) {
 
@@ -299,6 +301,8 @@ void prepareLocalTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
 
       // Is the cell translated?
       if (!do_translate_cell(ccell)) continue;
+      // Is the cell a non-sysboundary cell?
+      if (ccell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) continue;
 
       LocalSet_x.insert(c);
       LocalSet_y.insert(c);
@@ -312,7 +316,7 @@ void prepareLocalTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
          if (!ncell) continue;
          // Is the cell translated?
          if (!do_translate_cell(ncell)) continue;
-         if (!mpiGrid.is_local(n)) LocalSet_x.insert(n);
+         LocalSet_x.insert(n);
       }
       // y-translation
       findNeighborhoodCells(mpiGrid, c, 1, 1, foundCells);
@@ -322,7 +326,7 @@ void prepareLocalTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
          if (!ncell) continue;
          // Is the cell translated?
          if (!do_translate_cell(ncell)) continue;
-         if (!mpiGrid.is_local(n)) LocalSet_y.insert(n);
+         LocalSet_y.insert(n);
       }
       // z-translation
       findNeighborhoodCells(mpiGrid, c, 2, 1, foundCells);
@@ -332,7 +336,7 @@ void prepareLocalTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
          if (!ncell) continue;
          // Is the cell translated?
          if (!do_translate_cell(ncell)) continue;
-         if (!mpiGrid.is_local(n)) LocalSet_z.insert(n);
+         LocalSet_z.insert(n);
       }
    } // end loop over local cells
    return;
@@ -1171,19 +1175,18 @@ bool copy_trans_block_data_amr(
          // Get data pointer
          blockDataPointer[b + VLASOV_STENCIL_WIDTH] = srcCell->get_data(blockLID,popID);
          nonEmptyBlocks++;
-         // //prefetch storage pointers to L1
-         // _mm_prefetch((char *)(blockDataPointer[b + VLASOV_STENCIL_WIDTH]), _MM_HINT_T0);
-         // _mm_prefetch((char *)(blockDataPointer[b + VLASOV_STENCIL_WIDTH]) + 64, _MM_HINT_T0);
-         // _mm_prefetch((char *)(blockDataPointer[b + VLASOV_STENCIL_WIDTH]) + 128, _MM_HINT_T0);
-         // _mm_prefetch((char *)(blockDataPointer[b + VLASOV_STENCIL_WIDTH]) + 192, _MM_HINT_T0);
-         // if(VPREC  == 8) {
-         //   //prefetch storage pointers to L1
-         //   _mm_prefetch((char *)(blockDataPointer[b + VLASOV_STENCIL_WIDTH]) + 256, _MM_HINT_T0);
-         //   _mm_prefetch((char *)(blockDataPointer[b + VLASOV_STENCIL_WIDTH]) + 320, _MM_HINT_T0);
-         //   _mm_prefetch((char *)(blockDataPointer[b + VLASOV_STENCIL_WIDTH]) + 384, _MM_HINT_T0);
-         //   _mm_prefetch((char *)(blockDataPointer[b + VLASOV_STENCIL_WIDTH]) + 448, _MM_HINT_T0);
-         // }
-         
+         //prefetch WID3 storage pointers to L1
+         _mm_prefetch((char *)(blockDataPointer[b + VLASOV_STENCIL_WIDTH]) + 0, _MM_HINT_T0);
+         _mm_prefetch((char *)(blockDataPointer[b + VLASOV_STENCIL_WIDTH]) + 64, _MM_HINT_T0);
+         _mm_prefetch((char *)(blockDataPointer[b + VLASOV_STENCIL_WIDTH]) + 128, _MM_HINT_T0);
+         _mm_prefetch((char *)(blockDataPointer[b + VLASOV_STENCIL_WIDTH]) + 192, _MM_HINT_T0);
+#ifdef DPF
+         //prefetch rest of WID3 storage pointers to L1 (if DPF)
+         _mm_prefetch((char *)(blockDataPointer[b + VLASOV_STENCIL_WIDTH]) + 256, _MM_HINT_T0);
+         _mm_prefetch((char *)(blockDataPointer[b + VLASOV_STENCIL_WIDTH]) + 320, _MM_HINT_T0);
+         _mm_prefetch((char *)(blockDataPointer[b + VLASOV_STENCIL_WIDTH]) + 384, _MM_HINT_T0);
+         _mm_prefetch((char *)(blockDataPointer[b + VLASOV_STENCIL_WIDTH]) + 448, _MM_HINT_T0);
+#endif
       } else {
          blockDataPointer[b + VLASOV_STENCIL_WIDTH] = NULL;
       }
