@@ -186,11 +186,15 @@ public:
       iterator(OpenBucketHashtable<GID, LID>& hashtable, size_t index) : hashtable(&hashtable), index(index) {}
 
       iterator& operator++() {
-         do {
+         while(index < hashtable->buckets.size()){
+            if (hashtable->buckets[index].first != EMPTYBUCKET){
+               break;
+            }
             index++;
-         } while (hashtable->buckets[index].first == EMPTYBUCKET && index < hashtable->buckets.size());
+         }
          return *this;
       }
+      
       iterator operator++(int) { // Postfix version
          iterator temp = *this;
          ++(*this);
