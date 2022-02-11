@@ -41,7 +41,7 @@ bool printVersion() {
 EOF
 
 echo "    cout << endl << \"----------- Compilation --------- \"<<endl;" >>version.cpp
-echo " cout << \"date: $(date)\" <<endl;" >>version.cpp
+echo "    cout <<  \"date:       $(date)\" <<endl;" >>version.cpp
 echo "    cout <<  \"folder:     $PWD \"<<endl;" >>version.cpp
 echo "    cout <<  \"CMP:        $1 \"<<endl;" >>version.cpp
 echo "    cout <<  \"CXXFLAGS:   $2 \"<<endl;" >>version.cpp
