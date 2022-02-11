@@ -862,7 +862,7 @@ bool writeConfigInfo(std::string config,vlsv::Writer& vlsvWriter,MPI_Comm comm){
    MPI_Comm_rank(comm, &myRank);
 
    std::map<std::string, std::string> xmlAttributes;
-   xmlAttributes["name"] ="version" ;
+   xmlAttributes["name"] ="config_file" ;
 
    bool retval;
    if( myRank == 0 ) {
