@@ -89,13 +89,13 @@ EOF
 
 cat >> version.cpp <<EOF
 
-std::string getVersion(const char* filename) {
+std::string getVersion() {
   std::string  versionInfo;
 
 EOF
 
 echo "  versionInfo+=\"----------- Compilation --------- \n\";" >>version.cpp
-echo "  versionInfo+= \"date:       $(date)\n\";" >>version.cpp
+echo "  versionInfo+=\"date:       $(date)\n\";" >>version.cpp
 echo "  versionInfo+=\"CMP:        $1 \n\";" >>version.cpp
 echo "  versionInfo+=\"CXXFLAGS:   $2 \n\";" >>version.cpp
 echo "  versionInfo+=\"FLAGS:      $3 \n\";" >>version.cpp
@@ -136,33 +136,38 @@ echo "std::string buffer;" >> version.cpp
 echo "buffer+=diff_data;" >> version.cpp
 echo "versionInfo+=buffer;" >> version.cpp
 
+cat >> version.cpp <<EOF
+  
+  return versionInfo;
+}
+EOF
+
 
 
 cat >> version.cpp <<EOF
-versionInfo+="\n";
-versionInfo+="\n";
-versionInfo+="*------------Configuration File------------*\n";
-versionInfo+="\n";
-versionInfo+="\n";
+
+std::string getConfig(const char* filename) {
+  std::string  configInfo;
+
+
+configInfo+="\n";
+configInfo+="*------------Configuration File------------*\n";
+configInfo+="\n";
+
 
 
 std::ifstream file(filename);
 if (file.is_open()) {
   std::string line;
   while (std::getline(file, line)) {
-      versionInfo+=line.c_str();
-      versionInfo+="\n";
+      configInfo+=line.c_str();
+      configInfo+="\n";
 
     }
   }
   file.close();
 
-EOF
 
-# echo " for (auto i:versionInfo) cout<<i;" >> version.cpp
-
-cat >> version.cpp <<EOF
-  
-  return versionInfo;
+  return configInfo;
 }
 EOF

@@ -1,2 +1,3 @@
 bool printVersion();
-std::string getVersion(const char* filename);
+std::string getVersion();
+std::string getConfig(const char* filename);

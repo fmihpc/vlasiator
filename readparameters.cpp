@@ -130,11 +130,18 @@ bool Readparameters::versionMessage() {
 }
 
 
-
+/** Helper wrapper function to get version info
+   @return std string with the version information
+ */
 std::string Readparameters::versionInfo() {
-   int rank;
-   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-   return getVersion(run_config_file_name.c_str());
+   return getVersion();
+}
+
+/** Helper wrapper function to get the config info
+   @return std string with the config information
+ */
+std::string Readparameters::configInfo() {
+   return getConfig(run_config_file_name.c_str());
 }
 
 
