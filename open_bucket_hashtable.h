@@ -186,6 +186,7 @@ public:
       iterator(OpenBucketHashtable<GID, LID>& hashtable, size_t index) : hashtable(&hashtable), index(index) {}
 
       iterator& operator++() {
+         index++;
          while(index < hashtable->buckets.size()){
             if (hashtable->buckets[index].first != EMPTYBUCKET){
                break;
