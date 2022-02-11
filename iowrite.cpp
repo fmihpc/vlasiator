@@ -827,7 +827,7 @@ bool writeMeshBoundingBox( Writer & vlsvWriter,
    return success;
 }
 
-/*Function to append version information to cyurrent output file
+/*Function to append version information to current output file
  \param vlsvWriter Some vlsv writer with a file open
  \param comm MPI comm
  \return Returns true if operation was successful
@@ -851,7 +851,7 @@ bool writeVersionInfo(std::string version,vlsv::Writer& vlsvWriter,MPI_Comm comm
 
 }
 
-/*Function to append config information to cyurrent output file
+/*Function to append config information to current output file
  \param vlsvWriter Some vlsv writer with a file open
  \param comm MPI comm
  \return Returns true if operation was successful
