@@ -70,6 +70,7 @@ Real P::fieldSolverMinCFL = NAN;
 uint P::fieldSolverSubcycles = 1;
 
 bool P::amrTransShortPencils = false;
+bool P::amrTransSplitPencilsOnlyForFace = false;
 
 uint P::tstep = 0;
 uint P::tstep_min = 0;
@@ -383,6 +384,7 @@ bool P::addParameters() {
    RP::add("AMR.box_center_y", "y coordinate of the center of the box that is refined (for testing)", 0.0);
    RP::add("AMR.box_center_z", "z coordinate of the center of the box that is refined (for testing)", 0.0);
    RP::add("AMR.transShortPencils", "if true, use one-cell pencils", false);
+   RP::add("AMR.transSplitPencilsOnlyForFace", "if true, only split AMR pencils for face neighour cell requirements", false);
    RP::addComposing("AMR.filterpasses", string("AMR filter passes for each individual refinement level"));
 
    return true;
@@ -553,6 +555,7 @@ void Parameters::getParameters() {
    RP::get("AMR.refine_limit", P::amrRefineLimit);
    RP::get("AMR.coarsen_limit", P::amrCoarsenLimit);
    RP::get("AMR.transShortPencils", P::amrTransShortPencils);
+   RP::get("AMR.transSplitPencilsOnlyForFace", P::amrTransSplitPencilsOnlyForFace);
 
    /*Read Blur Passes per Refinement Level*/
    RP::get("AMR.filterpasses", P::blurPassString);

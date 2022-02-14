@@ -181,7 +181,8 @@ struct Parameters {
    static Realf amrBoxCenterX;
    static Realf amrBoxCenterY;
    static Realf amrBoxCenterZ;
-   static bool amrTransShortPencils;        /*!< Use short or longpencils in AMR translation.*/
+   static bool amrTransShortPencils;        /*!< Use short or long pencils in AMR translation.*/
+   static bool amrTransSplitPencilsOnlyForFace;        /*!< Only split AMR pencils for face neighour cell requirements */
    static std::vector<std::string> blurPassString;
    static std::vector<int> numPasses;
 
