@@ -359,7 +359,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
                                         setOfPencils& pencils,
                                         const uint iPencil,
                                         const uint dimension,
-                                        SpatialCell **sourceCells){
+                                        CellID *sourceCells) {
 
    // L = length of the pencil iPencil
    int L = pencils.lengthOfPencils[iPencil];
@@ -370,7 +370,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
 
    // Get pointers for each cell id of the pencil
    for (int i = 0; i < L; ++i) {
-      sourceCells[i + VLASOV_STENCIL_WIDTH] = mpiGrid[ids[i]];
+      sourceCells[i + VLASOV_STENCIL_WIDTH] = ids[i];
    }
 
    // Insert pointers for neighbors of ids.front() and ids.back()
@@ -402,12 +402,14 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
       neighbors.erase(unique(neighbors.begin(), neighbors.end()), neighbors.end());
 
       int refLvl = mpiGrid.get_refinement_level(ids.front());
+      int pathPos = 0;
+      if (pencils.path[iPencil].size() > refLvl) pathPos = pencils.path[iPencil][refLvl];
       if (neighbors.size() == 1) {
-         if (sourceCells[iSrc+1] == mpiGrid[neighbors.at(0)]) continue; // already found this cell for different distance         
-         sourceCells[iSrc--] = mpiGrid[neighbors.at(0)];
-      } else if ( pencils.path[iPencil][refLvl] < neighbors.size() ) {
-         if (sourceCells[iSrc+1] == mpiGrid[neighbors.at(pencils.path[iPencil][refLvl])]) continue; // already found this cell for different distance (should not happen)
-         sourceCells[iSrc--] = mpiGrid[neighbors.at(pencils.path[iPencil][refLvl])];
+         if (sourceCells[iSrc+1] == neighbors.at(0)) continue; // already found this cell for different distance
+         sourceCells[iSrc--] = neighbors.at(0);
+      } else if ( pathPos < neighbors.size() ) {
+         if (sourceCells[iSrc+1] == neighbors.at(pathPos)) continue; // already found this cell for different distance (should not happen)
+         sourceCells[iSrc--] = neighbors.at(pathPos);
          // Code for alternate approach to verify that multiple neighbors are in correct ordering (z-y-x)
          // int ix=0,iy=0;
          // switch(dimension) {
@@ -476,29 +478,31 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
       neighbors.erase(unique(neighbors.begin(), neighbors.end()), neighbors.end());
 
       int refLvl = mpiGrid.get_refinement_level(ids.back());
+      int pathPos = 0;
+      if (pencils.path[iPencil].size() > refLvl) pathPos = pencils.path[iPencil][refLvl];
       if (neighbors.size() == 1) {
-         if (sourceCells[iSrc-1] == mpiGrid[neighbors.at(0)]) continue; // already found this cell for different distance
-         sourceCells[iSrc++] = mpiGrid[neighbors.at(0)];
-      } else if ( pencils.path[iPencil][refLvl] < neighbors.size() ) {
-         if (sourceCells[iSrc-1] == mpiGrid[neighbors.at(pencils.path[iPencil][refLvl])]) continue; // already found this cell for different distance (should not happen)
-         sourceCells[iSrc++] = mpiGrid[neighbors.at(pencils.path[iPencil][refLvl])];
+         if (sourceCells[iSrc-1] == neighbors.at(0)) continue; // already found this cell for different distance
+         sourceCells[iSrc++] = neighbors.at(0);
+      } else if ( pathPos < neighbors.size() ) {
+         if (sourceCells[iSrc-1] == neighbors.at(pathPos)) continue; // already found this cell for different distance (should not happen)
+         sourceCells[iSrc++] = neighbors.at(pathPos);
       } else {
          std::cerr<<"error too few neighbors for path!"<<std::endl;
       }
    }
 
    /*loop to negative side and replace all invalid cells with the closest good cell*/
-   SpatialCell* lastGoodCell = mpiGrid[ids.front()];
+   CellID lastGoodCell = ids.front();
    for(int i = VLASOV_STENCIL_WIDTH - 1; i >= 0 ;--i){
-      if(sourceCells[i] == NULL || sourceCells[i]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE)
+      if(mpiGrid[sourceCells[i]] == NULL || mpiGrid[sourceCells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE)
          sourceCells[i] = lastGoodCell;
       else
          lastGoodCell = sourceCells[i];
    }
    /*loop to positive side and replace all invalid cells with the closest good cell*/
-   lastGoodCell = mpiGrid[ids.back()];
+   lastGoodCell = ids.back();
    for(int i = VLASOV_STENCIL_WIDTH + L; i < (L + 2*VLASOV_STENCIL_WIDTH); ++i){
-      if(sourceCells[i] == NULL || sourceCells[i]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE)
+      if(mpiGrid[sourceCells[i]] == NULL || mpiGrid[sourceCells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE)
          sourceCells[i] = lastGoodCell;
       else
          lastGoodCell = sourceCells[i];
@@ -1020,6 +1024,17 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
          will be split (but won't cause A to split), and pencils from
          C will be able to remain again un-split. These checks need to be done
          only if we aren't already at the maximum refinement level.
+
+      OR  only splitting pencils for face neighbours: (P::amrTransSplitPencilsOnlyForFace)
+         -----------------------------------------
+         | A |   |   | B |_|_|_|_|   | C |   |   |
+         |   |   |   |   | | | | |   |   |   |   |
+         -----------------------------------------
+         For optimal pencil generation, we need seedids at A, B, and C.
+         A Is triggered in the first if-clause. Pencils starting from B
+         will be split (but won't cause A to split), and pencils from
+         C will be able to remain again un-split. These checks need to be done
+         only if we aren't already at the maximum refinement level.
       */
 
       // First check negative face neighbors (A)
@@ -1069,6 +1084,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
          second neighbour a higher one. Iterate through positive distances for VLASOV_STENCIL_WIDTH elements
          starting from the smallest distance. */
       int iSrc = VLASOV_STENCIL_WIDTH-1;
+      if (P::amrTransSplitPencilsOnlyForFace) iSrc=0;
       for (auto it = distancesplus.begin(); it != distancesplus.end(); ++it) {
          if (iSrc < 0) break; // found enough elements
          for (const auto nbrPair : *nbrPairs) {
@@ -1098,6 +1114,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
          third neighbour a higher one. Iterate through negative distances for VLASOV_STENCIL_WIDTH+1 elements
          starting from the smallest distance. */
       iSrc = VLASOV_STENCIL_WIDTH;
+      if (P::amrTransSplitPencilsOnlyForFace) iSrc = 1;
       for (auto it = distancesminus.begin(); it != distancesminus.end(); ++it) {
          if (iSrc < 0) break; // found enough elements
          for (const auto nbrPair : *nbrPairs) {
@@ -1133,9 +1150,6 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
    }   
 }
 
-
-
-
 /* Copy the data to the temporary values array, so that the
  * dimensions are correctly swapped. Also, copy the same block for
  * then neighboring spatial cells (in the dimension). neighbors
@@ -1154,77 +1168,104 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
  * @param popID ID of the particle species.
  */
 bool copy_trans_block_data_amr(
-    SpatialCell** source_neighbors,
-    const vmesh::GlobalID blockGID,
-    int lengthOfPencil,
-    Vec* values,
-    const unsigned char* const cellid_transpose,
-    const uint popID) { 
+   const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   CellID* source_neighbors,
+   const vmesh::GlobalID blockGID,
+   int lengthOfPencil,
+   Vec* values,
+   size_t pencilPathSize,
+   const unsigned char* const cellid_transpose,
+   uint dimension,
+   const uint popID) {
 
-   // Allocate data pointer for all blocks in pencil. Pad on both ends by VLASOV_STENCIL_WIDTH
-   Realf* blockDataPointer[lengthOfPencil + 2 * VLASOV_STENCIL_WIDTH];   
-
-   int nonEmptyBlocks = 0;
-
-   for (int b = -VLASOV_STENCIL_WIDTH; b < lengthOfPencil + VLASOV_STENCIL_WIDTH; b++) {
-      // Get cell pointer and local block id
-      SpatialCell* srcCell = source_neighbors[b + VLASOV_STENCIL_WIDTH];
-         
-      const vmesh::LocalID blockLID = srcCell->get_velocity_block_local_id(blockGID,popID);
-      if (blockLID != srcCell->invalid_local_id()) {
-         // Get data pointer
-         blockDataPointer[b + VLASOV_STENCIL_WIDTH] = srcCell->get_data(blockLID,popID);
-         nonEmptyBlocks++;
-         //prefetch WID3 storage pointers to L1
-         _mm_prefetch((char *)(blockDataPointer[b + VLASOV_STENCIL_WIDTH]) + 0, _MM_HINT_T0);
-         _mm_prefetch((char *)(blockDataPointer[b + VLASOV_STENCIL_WIDTH]) + 64, _MM_HINT_T0);
-         _mm_prefetch((char *)(blockDataPointer[b + VLASOV_STENCIL_WIDTH]) + 128, _MM_HINT_T0);
-         _mm_prefetch((char *)(blockDataPointer[b + VLASOV_STENCIL_WIDTH]) + 192, _MM_HINT_T0);
-#ifdef DPF
-         //prefetch rest of WID3 storage pointers to L1 (if DPF)
-         _mm_prefetch((char *)(blockDataPointer[b + VLASOV_STENCIL_WIDTH]) + 256, _MM_HINT_T0);
-         _mm_prefetch((char *)(blockDataPointer[b + VLASOV_STENCIL_WIDTH]) + 320, _MM_HINT_T0);
-         _mm_prefetch((char *)(blockDataPointer[b + VLASOV_STENCIL_WIDTH]) + 384, _MM_HINT_T0);
-         _mm_prefetch((char *)(blockDataPointer[b + VLASOV_STENCIL_WIDTH]) + 448, _MM_HINT_T0);
-#endif
-      } else {
-         blockDataPointer[b + VLASOV_STENCIL_WIDTH] = NULL;
-      }
-   }
-   
-   if(nonEmptyBlocks == 0) {
-      return false;
-   }
-   
+   // This loop does not incldue explicit prefetch calls
    //  Copy volume averages of this block from all spatial cells:
    for (int b = -VLASOV_STENCIL_WIDTH; b < lengthOfPencil + VLASOV_STENCIL_WIDTH; b++) {
-      if(blockDataPointer[b + VLASOV_STENCIL_WIDTH] != NULL) {
-         Realf blockValues[WID3];
-         const Realf* block_data = blockDataPointer[b + VLASOV_STENCIL_WIDTH];
-         // Copy data to a temporary array and transpose values so that mapping is along k direction.
-         // spatial source_neighbors already taken care of when
-         // creating source_neighbors table. If a normal spatial cell does not
-         // simply have the block, its value will be its null_block which
-         // is fine. This null_block has a value of zero in data, and that
-         // is thus the velocity space boundary
-         for (uint i=0; i<WID3; ++i) {
-            blockValues[i] = block_data[cellid_transpose[i]];
-         }
-         
-         // now load values into the actual values table..
-         uint offset =0;
-         for (uint k=0; k<WID; k++) {
-            for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
-               // store data, when reading data from data we swap dimensions 
-               // using precomputed plane_index_to_id and cell_indices_to_id
-               values[i_trans_ps_blockv_pencil(planeVector, k, b, lengthOfPencil)].load(blockValues + offset);
-               offset += VECL;
+      // Is the source cell at most at the ref level of the pencil?
+      if (pencilPathSize >= mpiGrid.get_refinement_level(source_neighbors[b + VLASOV_STENCIL_WIDTH])) {
+         // Get cell pointer and local block id
+         SpatialCell* srcCell = mpiGrid[source_neighbors[b + VLASOV_STENCIL_WIDTH]];
+         const vmesh::LocalID blockLID = srcCell->get_velocity_block_local_id(blockGID,popID);
+         if (blockLID != srcCell->invalid_local_id()) {
+            // Get data pointer
+            const Realf* block_data = srcCell->get_data(blockLID,popID);
+
+            Realf blockValues[WID3];
+            // Copy data to a temporary array and transpose values so that mapping is along k direction.
+            // spatial source_neighbors already taken care of when
+            // creating source_neighbors table. If a normal spatial cell does not
+            // simply have the block, its value will be its null_block which
+            // is fine. This null_block has a value of zero in data, and that
+            // is thus the velocity space boundary
+            for (uint i=0; i<WID3; ++i) {
+               blockValues[i] = block_data[cellid_transpose[i]];
+            }
+
+            // now load values into the actual values table..
+            uint offset =0;
+            for (uint k=0; k<WID; k++) {
+               for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
+                  // store data, when reading data from data we swap dimensions 
+                  // using precomputed plane_index_to_id and cell_indices_to_id
+                  values[i_trans_ps_blockv_pencil(planeVector, k, b, lengthOfPencil)].load(blockValues + offset);
+                  offset += VECL;
+               }
+            }
+         } else {
+            for (uint k=0; k<WID; ++k) {
+               for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++) {
+                  values[i_trans_ps_blockv_pencil(planeVector, k, b, lengthOfPencil)] = Vec(0);
+               }
             }
          }
       } else {
-         for (uint k=0; k<WID; ++k) {
-            for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++) {
-               values[i_trans_ps_blockv_pencil(planeVector, k, b, lengthOfPencil)] = Vec(0);
+         // Source cell can be at higher refinement level than pencil (P::amrTransSplitPencilsOnlyForFace==true)
+         Realf blockValues[WID3] = { 0.0 };
+         // Average source information over 4 sibling cells. Find siblings:
+         auto mySiblings = mpiGrid.get_all_children(mpiGrid.get_parent(source_neighbors[b + VLASOV_STENCIL_WIDTH]));
+         auto myIndices = mpiGrid.mapping.get_indices(source_neighbors[b + VLASOV_STENCIL_WIDTH]);
+         uint siblingCount=0;
+         for (uint i_sib = 0; i_sib < MAX_NEIGHBORS_PER_DIM; ++i_sib) {
+            auto sibling = mySiblings.at(i_sib);
+            auto sibIndices = mpiGrid.mapping.get_indices(sibling);
+
+            // Only use siblings at same position in pencil
+            if (myIndices.at(dimension) == sibIndices.at(dimension)) {
+               // Get cell pointer and local block id
+               SpatialCell* srcCell = mpiGrid[sibling];
+               const vmesh::LocalID blockLID = srcCell->get_velocity_block_local_id(blockGID,popID);
+               if (blockLID != srcCell->invalid_local_id()) {
+                  const Realf* block_data = srcCell->get_data(blockLID,popID);
+                  for (uint i=0; i<WID3; ++i) {
+                     blockValues[i] += block_data[cellid_transpose[i]];
+                  }
+                  siblingCount++;
+               }
+            }
+         }
+         if (siblingCount>0) {
+            // Rescale with sibling count (should be 4)
+            if (siblingCount>1) {
+               const Realf rescale = 1./siblingCount;
+               for (uint i=0; i<WID3; ++i) {
+                  blockValues[i] *= rescale;
+               }
+            }
+            // now load values into the actual values table..
+            uint offset =0;
+            for (uint k=0; k<WID; k++) {
+               for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
+                  // store data, when reading data from data we swap dimensions
+                  // using precomputed plane_index_to_id and cell_indices_to_id
+                  values[i_trans_ps_blockv_pencil(planeVector, k, b, lengthOfPencil)].load(blockValues + offset);
+                  offset += VECL;
+               }
+            }
+         } else {
+            for (uint k=0; k<WID; ++k) {
+               for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++) {
+                  values[i_trans_ps_blockv_pencil(planeVector, k, b, lengthOfPencil)] = Vec(0);
+               }
             }
          }
       }
@@ -1293,6 +1334,7 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
                continue;
             }
          }
+         if (P::amrTransSplitPencilsOnlyForFace && (foundcells >= 1)) break;
          if (foundcells >= VLASOV_STENCIL_WIDTH) break; // checked enough distances
       }
 
@@ -1316,6 +1358,7 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
                continue;
             }
          }
+         if (P::amrTransSplitPencilsOnlyForFace && (foundcells >= 1)) break;
          if (foundcells >= VLASOV_STENCIL_WIDTH) break; // checked enough distances
       }
 
@@ -1735,7 +1778,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    {
       // declarations for variables needed by the threads
       std::vector<Realf, aligned_allocator<Realf, WID3>> targetBlockData((DimensionPencils[dimension].sumOfLengths + 2 * nTargetNeighborsPerPencil * DimensionPencils[dimension].N) * WID3);
-      std::vector<std::vector<SpatialCell*>> pencilSourceCells;
+      //std::vector<std::vector<SpatialCell*>> pencilSourceCells;
+      std::vector<std::vector<CellID>> pencilSourceCells;
       
       // Allocate aligned vectors which are needed once per pencil to avoid reallocating once per block loop + pencil loop iteration
       std::vector<std::vector<Vec, aligned_allocator<Vec,WID3>>> pencilTargetValues;
@@ -1757,14 +1801,15 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
          // Compute spatial neighbors for the source cells of the pencil. In
          // source cells we have a wider stencil and take into account boundaries.
-         std::vector<SpatialCell*> sourceCells(sourceLength);
+         //std::vector<SpatialCell*> sourceCells(sourceLength);
+         std::vector<CellID> sourceCells(sourceLength);
          computeSpatialSourceCellsForPencil(mpiGrid, DimensionPencils[dimension], pencili, dimension, sourceCells.data());
          pencilSourceCells.push_back(sourceCells);
 
          // dz is the cell size in the direction of the pencil
          std::vector<Vec, aligned_allocator<Vec,WID3>> dz(sourceLength);
          for(uint i = 0; i < sourceCells.size(); ++i) {
-            dz[i] = sourceCells[i]->parameters[CellParams::DX+dimension];
+            dz[i] = mpiGrid[sourceCells[i]]->parameters[CellParams::DX+dimension];
          }
          pencildz.push_back(dz);
       }
@@ -1786,10 +1831,10 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                int L = DimensionPencils[dimension].lengthOfPencils[pencili];
                uint targetLength = L + 2 * nTargetNeighborsPerPencil;
                uint sourceLength = L + 2 * VLASOV_STENCIL_WIDTH;
-                              
+
                // load data(=> sourcedata) / (proper xy reconstruction in future)
-               bool pencil_has_data = copy_trans_block_data_amr(pencilSourceCells[pencili].data(), blockGID, L, pencilSourceVecData[pencili].data(),
-                                         cellid_transpose, popID);
+               bool pencil_has_data = copy_trans_block_data_amr(mpiGrid,pencilSourceCells[pencili].data(), blockGID, L, pencilSourceVecData[pencili].data(),
+                                                                DimensionPencils[dimension].path[pencili].size(), cellid_transpose, dimension, popID);
 
                if(!pencil_has_data) {
                   totalTargetLength += targetLength;
@@ -1798,7 +1843,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 
                // Dz and sourceVecData are both padded by VLASOV_STENCIL_WIDTH
                // Dz has 1 value/cell, sourceVecData has WID3 values/cell
-               propagatePencil(pencildz[pencili].data(), pencilSourceVecData[pencili].data(), pencilTargetValues[pencili].data(), dimension, blockGID, dt, vmesh, L, pencilSourceCells[pencili][0]->getVelocityBlockMinValue(popID));
+               propagatePencil(pencildz[pencili].data(), pencilSourceVecData[pencili].data(), pencilTargetValues[pencili].data(), dimension, blockGID, dt, vmesh, L, mpiGrid[pencilSourceCells[pencili][0]]->getVelocityBlockMinValue(popID));
 
                // sourceVecData => targetBlockData[this pencil])
 
