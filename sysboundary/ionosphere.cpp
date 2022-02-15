@@ -1788,18 +1788,28 @@ namespace SBC {
 
       for(uint n=0; n<nodes.size(); n++) {
 
+         // Adjust densities by the loss-cone filling factor.
+         // This is an empirical smooothstep function that artificially reduces
+         // downmapped density below auroral latitudes.
+         Real theta = acos(nodes[n].x[2] / sqrt(nodes[n].x[0]*nodes[n].x[0] + nodes[n].x[1]*nodes[n].x[1] + nodes[n].x[2]*nodes[n].x[2])); // Latitude
+         if(theta > M_PI/2.) {
+            theta = M_PI - theta;
+         }
+         // Smoothstep with an edge at about 67 deg.
+         Real Chi0 = 0.01 + 0.99 * .5 * (1 + tanh((23. - theta * (180. / M_PI)) / 6));
+
          if(rhoSum[n] == 0 || temperatureSum[n] == 0) {
             // Node couples nowhere. Assume some default values.
             nodes[n].parameters[ionosphereParameters::SOURCE] = 0;
 
-            nodes[n].parameters[ionosphereParameters::RHON] = Ionosphere::unmappedNodeRho;
+            nodes[n].parameters[ionosphereParameters::RHON] = Ionosphere::unmappedNodeRho * Chi0;
             nodes[n].parameters[ionosphereParameters::TEMPERATURE] = Ionosphere::unmappedNodeTe;
          } else {
             // Store as the node's parameter values.
             if(Ionosphere::couplingTimescale == 0) {
                // Immediate coupling
                nodes[n].parameters[ionosphereParameters::SOURCE] = FACsum[n];
-               nodes[n].parameters[ionosphereParameters::RHON] = rhoSum[n];
+               nodes[n].parameters[ionosphereParameters::RHON] = rhoSum[n] * Chi0;
                nodes[n].parameters[ionosphereParameters::TEMPERATURE] = temperatureSum[n];
             } else {
 
@@ -1811,22 +1821,11 @@ namespace SBC {
                }
 
                nodes[n].parameters[ionosphereParameters::SOURCE] = (1.-a) * nodes[n].parameters[ionosphereParameters::SOURCE] + a * FACsum[n];
-               nodes[n].parameters[ionosphereParameters::RHON] = (1.-a) * nodes[n].parameters[ionosphereParameters::RHON] + a * rhoSum[n];
+               nodes[n].parameters[ionosphereParameters::RHON] = (1.-a) * nodes[n].parameters[ionosphereParameters::RHON] + a * rhoSum[n] * Chi0;
                nodes[n].parameters[ionosphereParameters::TEMPERATURE] = (1.-a) * nodes[n].parameters[ionosphereParameters::TEMPERATURE] + a * temperatureSum[n];
             }
          }
 
-         // Adjust densities by the loss-cone filling factor.
-         // This is an empirical smooothstep function that artificially reduces
-         // downmapped density below auroral latitudes.
-         Real theta = acos(nodes[n].x[2] / sqrt(nodes[n].x[0]*nodes[n].x[0] + nodes[n].x[1]*nodes[n].x[1] + nodes[n].x[2]*nodes[n].x[2])); // Latitude
-         if(theta > M_PI/2.) {
-            theta = M_PI - theta;
-         }
-         // Smoothstep with an edge at about 67 deg.
-         Real Chi0 = 0.01 + 0.99 * .5 * (1 + tanh((23. - theta * (180. / M_PI)) / 6));
-
-         nodes[n].parameters[ionosphereParameters::RHON] *= Chi0;
       }
 
       // Make sure FACs are balanced, so that the potential doesn't start to drift
