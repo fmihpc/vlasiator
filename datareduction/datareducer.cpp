@@ -987,6 +987,27 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1, "Degrees", "$^\\circ$", "L", "");
          continue;
       }
+      if(lowercase == "ig_chi0") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_chi0", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+
+                     std::vector<Real> retval(grid.nodes.size());
+
+                     for(uint n=0; n<grid.nodes.size(); n++) {
+                        Real theta = acos(grid.nodes[n].x[2] / sqrt(grid.nodes[n].x[0]*grid.nodes[n].x[0] + grid.nodes[n].x[1]*grid.nodes[n].x[1] + grid.nodes[n].x[2]*grid.nodes[n].x[2])); // Latitude
+                        if(theta > M_PI/2.) {
+                           theta = M_PI - theta;
+                        }
+                        // Smoothstep with an edge at about 67 deg.
+                        Real Chi0 = 0.01 + 0.99 * .5 * (1 + tanh((23. - theta * (180. / M_PI)) / 6));
+                        retval[n] = Chi0;
+                     }
+
+                     return retval;
+                  }));
+         outputReducer->addMetadata(outputReducer->size()-1, "arb.unit.", "", "Chi0", "");
+         continue;
+      }
       if(lowercase == "ig_cellarea") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereElement("ig_cellarea", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
