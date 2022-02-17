@@ -27,7 +27,6 @@ cd $curdir
 cat > version.cpp <<EOF
 #include <iostream>
 #include "mpi.h"
-#include "vector"
 #include <fstream>
 
 
