@@ -176,6 +176,7 @@ int main(int argc, char** argv) {
    Real tempenergy = kB * T / CHARGE / 1000;
    Real accenergy = productionMinAccEnergy;
    std::cerr << "# Temperature of " << T << " K == Thermal energy of " << tempenergy << " keV" << std::endl;
+   Real integralFlux = 0;
 
    for(int p=0; p<productionNumParticleEnergies; p++) {
       // TODO: Kappa distribution here? Now only going for maxwellian
@@ -187,6 +188,7 @@ int main(int argc, char** argv) {
          differentialFlux[p] = sqrt(1. / (2. * M_PI * MASS_ELECTRON))
             * particle_energy[p] / tempenergy / sqrt(tempenergy * 1e3 *CHARGE)
             * deltaE * exp(-energyparam);
+         integralFlux += rhon * differentialFlux[p];
       } else {
          differentialFlux[p] = 0;
       }
@@ -201,7 +203,7 @@ int main(int argc, char** argv) {
    }
 
    // Calculate and output electron density and conductivities
-   std::cout << "# Altitude (m)\tn_e (1/m³)\tsigmaP (mho)\tsigmaH (mho)\tsigmaParallel (mho)" << std::endl;
+   std::cout << "# Altitude (m)\tn_e (1/m³)\tsigmaP (mho)\tsigmaH (mho)\tsigmaParallel (mho)\tProduction rate (m^-3 s^-1)" << std::endl;
    std::array<Real, numAtmosphereLevels> electronDensity;
    Real SigmaH=0;
    Real SigmaP=0;
@@ -225,12 +227,13 @@ int main(int argc, char** argv) {
 
       SigmaP += sigmap;
       SigmaH += sigmah;
-      sigmaParallel += sigmaParallel;
+      SigmaParallel += sigmaParallel;
 
-      std::cout << atmosphere[h].altitude << "\t" << 0.5*(electronDensity[h]+electronDensity[h-1]) << "\t" << sigmap/(2.*halfdx) << "\t" << sigmah/(2.*halfdx) << "\t" << sigmaParallel/(2.*halfdx) << std::endl;
+      std::cout << atmosphere[h].altitude << "\t" << 0.5*(electronDensity[h]+electronDensity[h-1]) << "\t" << sigmap/(2.*halfdx) << "\t" << sigmah/(2.*halfdx) << "\t" << sigmaParallel/(2.*halfdx) << "\t" << qref << std::endl;
    }
    std::cerr << std::endl;
 
+   std::cerr << "Integral energy flux: " << integralFlux << " J/m²/s" << std::endl;
    std::cerr << "Height integrated conductivities:" << std::endl;
    std::cerr << "  SigmaH = " << SigmaH << std::endl;
    std::cerr << "  SigmaP = " << SigmaP << std::endl;
