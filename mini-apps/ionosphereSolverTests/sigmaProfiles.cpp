@@ -51,6 +51,53 @@ static Real ReesIsotropicLambda(Real x) {
    return lambda;
 }
 
+struct SergienkoIvanovParameters {
+   Real E; // in eV
+   Real C1;
+   Real C2;
+   Real C3;
+   Real C4;
+};
+
+
+// Energy dissipasion function based on Sergienko & Ivanov (1993), eq. A2
+static Real SergienkoIvanovLambda(Real E0, Real Chi) {
+
+   const static SergienkoIvanovParameters SIparameters[] = {
+      {50,  0.0409,   1.072, -0.0641, -1.054},
+      {100, 0.0711,   0.899, -0.171,  -0.720},
+      {500, 0.130,    0.674, -0.271,  -0.319},
+      {1000,0.142,    0.657, -0.277,  -0.268}
+   };
+
+   Real C1=0;
+   Real C2=0;
+   Real C3=0;
+   Real C4=0;
+   if(E0 <= SIparameters[0].E) {
+      C1 = SIparameters[0].C1;
+      C2 = SIparameters[0].C2;
+      C3 = SIparameters[0].C3;
+      C4 = SIparameters[0].C4;
+   } else if (E0 >= SIparameters[3].E) {
+      C1 = SIparameters[3].C1;
+      C2 = SIparameters[3].C2;
+      C3 = SIparameters[3].C3;
+      C4 = SIparameters[3].C4;
+   } else {
+      for(int i=0; i<3; i++) {
+         if(SIparameters[i].E < E0 && SIparameters[i+1].E > E0) {
+            Real interp = (E0 - SIparameters[i].E) / (SIparameters[i+1].E - SIparameters[i].E);
+            C1 = (1.-interp) * SIparameters[i].C1 + interp * SIparameters[i+1].C1;
+            C2 = (1.-interp) * SIparameters[i].C2 + interp * SIparameters[i+1].C2;
+            C3 = (1.-interp) * SIparameters[i].C3 + interp * SIparameters[i+1].C3;
+            C4 = (1.-interp) * SIparameters[i].C4 + interp * SIparameters[i+1].C4;
+         }
+      }
+   }
+   return (C2 + C1*Chi)*exp(C4*Chi + C3*Chi*Chi);
+}
+
 
 int main(int argc, char** argv) {
 
@@ -148,6 +195,10 @@ int main(int argc, char** argv) {
 
       // From Rees, M. H. (1989), q 3.4.4
       const Real electronRange = 4.3e-6 + 5.36e-5 * pow(particle_energy[e], 1.67); // kg m^-2
+      // From  Rees 1963, eq 2
+      //const Real electronRange = 4.57e-5 * pow(particle_energy[e], 1.75); // kg m^-2
+      // From Sergienko & Ivanov, 1993, eq A3
+      //const Real electronRange = 1.64e-5 * pow(particle_energy[e], 1.67) * (1. + 9.48e-2 * pow(particle_energy[e], -1.57));
       Real rho_R=0.;
       // Integrate downwards through the atmosphre to find density at depth=1
       for(int h=numAtmosphereLevels-1; h>=0; h--) {
@@ -161,11 +212,15 @@ int main(int argc, char** argv) {
       }
 
       for(int h=0; h<numAtmosphereLevels; h++) {
-         const Real lambda = ReesIsotropicLambda(atmosphere[h].depth/electronRange);
          // Rees et al 1963, eq. 1
+         //const Real lambda = ReesIsotropicLambda(atmosphere[h].depth/electronRange);
          //const Real rate = particle_energy[e] / (electronRange / rho_R) / eps_ion_keV *   lambda   *   atmosphere[h].density / integratedDensity; 
          // Rees 1989, eq. 3.3.7 / 3.3.8
+         const Real lambda = ReesIsotropicLambda(atmosphere[h].depth/electronRange);
          const Real rate = particle_energy[e] * lambda * atmosphere[h].density / electronRange / eps_ion_keV;
+         // Sergienko & Ivanov 1993, eq A4
+         //const Real lambda = SergienkoIvanovLambda(particle_energy[e]*1000., atmosphere[h].depth/electronRange);
+         //const Real rate = atmosphere[h].density / eps_ion_keV * particle_energy[e] * lambda / electronRange; // TODO: Albedo flux?
          scatteringRate[e][h] = max(0., rate); // m^-1
       }
    }
