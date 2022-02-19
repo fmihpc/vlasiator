@@ -166,7 +166,7 @@ int main(int argc, char** argv) {
          //const Real rate = particle_energy[e] / (electronRange / rho_R) / eps_ion_keV *   lambda   *   atmosphere[h].density / integratedDensity; 
          // Rees 1989, eq. 3.3.7 / 3.3.8
          const Real rate = particle_energy[e] * lambda * atmosphere[h].density / electronRange / eps_ion_keV;
-         scatteringRate[h][e] = max(0., rate); // m^-1
+         scatteringRate[e][h] = max(0., rate); // m^-1
       }
    }
 
@@ -198,7 +198,7 @@ int main(int argc, char** argv) {
    for(int h=0; h < numAtmosphereLevels; h++) {
       productionTable[h] = 0;
       for(int p=0; p<productionNumParticleEnergies; p++) {
-         productionTable[h] += scatteringRate[h][p]*differentialFlux[p];
+         productionTable[h] += scatteringRate[p][h]*differentialFlux[p];
       }
    }
 
