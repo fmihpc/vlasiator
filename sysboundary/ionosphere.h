@@ -146,6 +146,13 @@ namespace SBC {
          Equator   // Fixing all nodes within +-10 dgrees to zero
       } gaugeFixing;
 
+      enum IonosphereIonizationModel { // Ionization production rate model
+         Rees1963, // Rees (1963)
+         Rees1989, // Rees (1989)
+         SergienkoIvanov, // Sergienko & Ivanov (1993)
+      } ionizationModel;
+
+
       // Hardcoded constants for calculating ion production table
       // TODO: Make these parameters?
       constexpr static int productionNumAccEnergies = 60;

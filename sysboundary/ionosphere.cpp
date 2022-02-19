@@ -578,6 +578,53 @@ namespace SBC {
       return lambda;
    }
 
+
+   // Energy dissipasion function based on Sergienko & Ivanov (1993), eq. A2
+   static Real SergienkoIvanovLambda(Real E0, Real Chi) {
+
+      struct SergienkoIvanovParameters {
+         Real E; // in eV
+         Real C1;
+         Real C2;
+         Real C3;
+         Real C4;
+      };
+
+      const static SergienkoIvanovParameters SIparameters[] = {
+         {50,  0.0409,   1.072, -0.0641, -1.054},
+         {100, 0.0711,   0.899, -0.171,  -0.720},
+         {500, 0.130,    0.674, -0.271,  -0.319},
+         {1000,0.142,    0.657, -0.277,  -0.268}
+      };
+
+      Real C1=0;
+      Real C2=0;
+      Real C3=0;
+      Real C4=0;
+      if(E0 <= SIparameters[0].E) {
+         C1 = SIparameters[0].C1;
+         C2 = SIparameters[0].C2;
+         C3 = SIparameters[0].C3;
+         C4 = SIparameters[0].C4;
+      } else if (E0 >= SIparameters[3].E) {
+         C1 = SIparameters[3].C1;
+         C2 = SIparameters[3].C2;
+         C3 = SIparameters[3].C3;
+         C4 = SIparameters[3].C4;
+      } else {
+         for(int i=0; i<3; i++) {
+            if(SIparameters[i].E < E0 && SIparameters[i+1].E > E0) {
+               Real interp = (E0 - SIparameters[i].E) / (SIparameters[i+1].E - SIparameters[i].E);
+               C1 = (1.-interp) * SIparameters[i].C1 + interp * SIparameters[i+1].C1;
+               C2 = (1.-interp) * SIparameters[i].C2 + interp * SIparameters[i+1].C2;
+               C3 = (1.-interp) * SIparameters[i].C3 + interp * SIparameters[i+1].C3;
+               C4 = (1.-interp) * SIparameters[i].C4 + interp * SIparameters[i+1].C4;
+            }
+         }
+      }
+      return (C2 + C1*Chi)*exp(C4*Chi + C3*Chi*Chi);
+   }
+
    /* Read atmospheric model file in MSIS format.
     * Based on the table data, precalculate and fill the ionisation production lookup table
     */
@@ -659,26 +706,53 @@ namespace SBC {
       std::array< std::array< Real, numAtmosphereLevels >, productionNumParticleEnergies > scatteringRate;
       for(int e=0;e<productionNumParticleEnergies; e++) {
 
-         // From Rees, M. H. (1989), q 3.4.4
-         const Real electronRange = 4.3e-6 + 5.36e-5 * pow(particle_energy[e], 1.67); // kg m^-2
-         //Real rho_R=0.;
-         //// Integrate downwards through the atmosphre to find density at depth=1
-         //for(int h=numAtmosphereLevels-1; h>=0; h--) {
-         //   if(atmosphere[h].depth / electronRange > 1) {
-         //      rho_R = atmosphere[h].density;
-         //      break;
-         //   }
-         //}
-         //if(rho_R == 0.) {
-         //   rho_R = atmosphere[0].density;
-         //}
+         Real electronRange=0.;
+         Real rho_R=0.;
+         switch(ionizationModel) {
+            case Rees1963:
+               electronRange = 4.57e-5 * pow(particle_energy[e], 1.75); // kg m^-2
+               // Integrate downwards through the atmosphere to find density at depth=1
+               for(int h=numAtmosphereLevels-1; h>=0; h--) {
+                  if(atmosphere[h].depth / electronRange > 1) {
+                     rho_R = atmosphere[h].density;
+                     break;
+                  }
+               }
+               if(rho_R == 0.) {
+                  rho_R = atmosphere[0].density;
+               }
+               break;
+            case Rees1989:
+               // From Rees, M. H. (1989), q 3.4.4
+               electronRange = 4.3e-6 + 5.36e-5 * pow(particle_energy[e], 1.67); // kg m^-2
+               break;
+            case SergienkoIvanov:
+               electronRange = 1.64e-5 * pow(particle_energy[e], 1.67) * (1. + 9.48e-2 * pow(particle_energy[e], -1.57));
+               break;
+            default:
+               cerr << "(IONOSPHERE) Invalid value for Ionization model." << endl;
+               abort();
+         }
 
          for(int h=0; h<numAtmosphereLevels; h++) {
-            const Real lambda = ReesIsotropicLambda(atmosphere[h].depth/electronRange);
-            // Rees et al 1963, eq. 1
-            //const Real rate = particle_energy[e] / (electronRange / rho_R) / eps_ion_keV *   lambda   *   atmosphere[h].density / integratedDensity; 
+            Real lambda;
+            Real rate=0;
+            switch(ionizationModel) {
+               case Rees1963:
+                  // Rees et al 1963, eq. 1
+                  lambda = ReesIsotropicLambda(atmosphere[h].depth/electronRange);
+                  rate = particle_energy[e] / (electronRange / rho_R) / eps_ion_keV *   lambda   *   atmosphere[h].density / integratedDensity; 
+                  break;
+               case Rees1989:
             // Rees 1989, eq. 3.3.7 / 3.3.8
-            const Real rate = particle_energy[e] * lambda * atmosphere[h].density / electronRange / eps_ion_keV;
+                  lambda = ReesIsotropicLambda(atmosphere[h].depth/electronRange);
+                  rate = particle_energy[e] * lambda * atmosphere[h].density / electronRange / eps_ion_keV;
+                  break;
+               case SergienkoIvanov:
+                  lambda = SergienkoIvanovLambda(particle_energy[e]*1000., atmosphere[h].depth/electronRange);
+                  rate = atmosphere[h].density / eps_ion_keV * particle_energy[e] * lambda / electronRange; // TODO: Albedo flux?
+                  break;
+            }
             scatteringRate[e][h] = max(0., rate); // m^-1
          }
       }
@@ -2569,6 +2643,7 @@ namespace SBC {
       Readparameters::addComposing("ionosphere.refineMaxLatitude", "Refine the grid equatorwards of the given latitude. Multiple of these lines can be given for successive refinement, paired up with refineMinLatitude lines.");
       Readparameters::add("ionosphere.atmosphericModelFile", "Filename to read the MSIS atmosphere data from (default: MSIS.dat)", std::string("MSIS.dat"));
       Readparameters::add("ionosphere.recombAlpha", "Ionospheric recombination parameter (m^3/s)", 2.4e-13); // Default value from Schunck & Nagy, Table 8.5
+      Readparameters::add("ionosphere.ionizationModel", "Ionospheric electron production rate model. Options are: Rees1963, Rees1989 (default), SergienkoIvanov.", std::string("Res1989"));
       Readparameters::add("ionosphere.F10_7", "Solar 10.7 cm radio flux (sfu = 10^{-22} W/m^2)", 100);
       Readparameters::add("ionosphere.backgroundIonisation", "Background ionoisation due to cosmic rays (mho)", 0.5);
       Readparameters::add("ionosphere.solverMaxIterations", "Maximum number of iterations for the conjugate gradient solver", 2000);
@@ -2645,6 +2720,18 @@ namespace SBC {
       Readparameters::get("ionosphere.refineMaxLatitude",refineMaxLatitudes);
       Readparameters::get("ionosphere.atmosphericModelFile",atmosphericModelFile);
       Readparameters::get("ionosphere.recombAlpha",recombAlpha);
+      std::string ionizationModelString;
+      Readparameters::get("ionosphere.ionizationModel", ionizationModelString);
+      if(ionizationModelString == "Rees1963") {
+         ionosphereGrid.ionizationModel = SphericalTriGrid::Rees1963;
+      } else if(ionizationModelString == "Rees1989") {
+         ionosphereGrid.ionizationModel = SphericalTriGrid::Rees1989;
+      } else if(ionizationModelString == "SergienkoIvanov") {
+         ionosphereGrid.ionizationModel = SphericalTriGrid::SergienkoIvanov;
+      } else {
+         cerr << "(IONOSPHERE) Unknown ionization production model \"" << ionizationModelString << "\". Aborting." << endl;
+         abort();
+      }
       Readparameters::get("ionosphere.F10_7",F10_7);
       Readparameters::get("ionosphere.backgroundIonisation",backgroundIonisation);
       this->applyUponRestart = false;
