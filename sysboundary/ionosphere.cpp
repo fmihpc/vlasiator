@@ -1375,9 +1375,18 @@ namespace SBC {
                   // (Note that v is normalized)
                   // TODO: If we are inside the magnetospheric domain, but under the coupling radius, should thes *still* be taking along, just to have a
                   // better shot at the region 2 currents? Or is that simply opening the door to boundary artifact hell?
-                  if(fabs(x[0]*v[0]+x[1]*v[1]+x[2]*v[2])/sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]) < cos(88. / 180. * M_PI)) {
-                     nodeNeedsContinuedTracing[n] = 0;
-                     nodeTracingCoordinates[n] = {0,0,0};
+                  if(fabs(x.at(0)*v.at(0)+x.at(1)*v.at(1)+x.at(2)*v.at(2))/sqrt(x.at(0)*x.at(0)+x.at(1)*x.at(1)+x.at(2)*x.at(2)) < cos(88. / 180. * M_PI)) {
+                     nodeNeedsContinuedTracing.at(n) = 0;
+                     nodeTracingCoordinates.at(n) = {0,0,0};
+                     break;
+                  }
+
+                  // If we somehow still map into the ionosphere, we missed the 88 degree criterion but shouldn't couple there.
+                  if(sqrt(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2)) < Ionosphere::innerRadius) {
+                     # TODO drop this warning if it never occurs? To be followed.
+                     cerr << "Triggered mapping back into Earth\n";
+                     nodeNeedsContinuedTracing.at(n) = 0;
+                     nodeTracingCoordinates.at(n) = {0,0,0};
                      break;
                   }
 
