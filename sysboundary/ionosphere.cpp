@@ -95,6 +95,7 @@ namespace SBC {
    Real Ionosphere::unmappedNodeRho; // Electron density of ionosphere nodes that don't couple to the magnetosphere
    Real Ionosphere::unmappedNodeTe; // Electron temperature of ionosphere nodes that don't couple to the magnetosphere
    Real Ionosphere::couplingTimescale; // Magnetosphere->Ionosphere coupling timescale (seconds)
+   Real Ionosphere::couplingInterval; // Ionosphere update interval
    Real Ionosphere::backgroundIonisation; // Background ionisation due to stellar UV and cosmic rays
    int  Ionosphere::solverMaxIterations;
    Real Ionosphere::solverRelativeL2ConvergenceThreshold;
@@ -2660,6 +2661,7 @@ namespace SBC {
       Readparameters::add("ionosphere.unmappedNodeRho", "Electron density of ionosphere nodes that do not connect to the magnetosphere domain.", 1e4);
       Readparameters::add("ionosphere.unmappedNodeTe", "Electron temperature of ionosphere nodes that do not connect to the magnetosphere domain.", 1e6);
       Readparameters::add("ionosphere.couplingTimescale", "Magnetosphere->Ionosphere coupling timescale (seconds, 0=immediate coupling", 1.);
+      Readparameters::add("ionosphere.couplingInterval", "Time interval at which the ionosphere is solved (seconds)", 0);
       Readparameters::add("ionosphere.tracerTolerance", "Tolerance for the Bulirsch Stoer Method", 1000);
 
       // Per-population parameters
@@ -2711,6 +2713,7 @@ namespace SBC {
       Readparameters::get("ionosphere.plasmapauseL", plasmapauseL);
       Readparameters::get("ionosphere.fieldLineTracer", tracerString);
       Readparameters::get("ionosphere.couplingTimescale",couplingTimescale);
+      Readparameters::get("ionosphere.couplingInterval", couplingInterval);
       Readparameters::get("ionosphere.downmapRadius",downmapRadius);
       Readparameters::get("ionosphere.unmappedNodeRho", unmappedNodeRho);
       Readparameters::get("ionosphere.unmappedNodeTe",  unmappedNodeTe);

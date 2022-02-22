@@ -508,7 +508,13 @@ int main(int argn,char* args[]) {
    // Build communicator for ionosphere solving
    SBC::ionosphereGrid.updateIonosphereCommunicator(mpiGrid, technicalGrid);
    SBC::ionosphereGrid.calculateFsgridCoupling(technicalGrid, perBGrid, dPerBGrid, SBC::Ionosphere::radius);
-   SBC::ionosphereGrid.initSolver();   
+   SBC::ionosphereGrid.initSolver();
+   int ionosphereSolvingCounts;
+   if(SBC::Ionosphere::couplingInterval > 0 && P::isRestart) {
+      ionosphereSolvingCounts = floor(P::t / SBC::Ionosphere::couplingInterval);
+   } else {
+      ionosphereSolvingCounts = 1;
+   }
 
    if (P::isRestart == false) {
       phiprof::start("compute-dt");
@@ -955,12 +961,15 @@ int main(int argn,char* args[]) {
       // Map current data down into the ionosphere
       // TODO check: have we set perBGrid correctly here, or is it possibly perBDt2Grid in some cases??
 //      SBC::ionosphereGrid.resetReconstructionCoefficientsCache();
-      SBC::ionosphereGrid.calculateFsgridCoupling(technicalGrid, perBGrid, dPerBGrid, SBC::Ionosphere::radius);
-      SBC::ionosphereGrid.mapDownBoundaryData(perBGrid, dPerBGrid, momentsGrid, technicalGrid);
-      SBC::ionosphereGrid.calculateConductivityTensor(SBC::Ionosphere::F10_7, SBC::Ionosphere::recombAlpha, SBC::Ionosphere::backgroundIonisation);
+      if((P::t > ionosphereSolvingCounts * SBC::Ionosphere::couplingInterval && SBC::Ionosphere::couplingInterval > 0) || SBC::Ionosphere::couplingInterval == 0) {
+         SBC::ionosphereGrid.calculateFsgridCoupling(technicalGrid, perBGrid, dPerBGrid, SBC::Ionosphere::radius);
+         SBC::ionosphereGrid.mapDownBoundaryData(perBGrid, dPerBGrid, momentsGrid, technicalGrid);
+         SBC::ionosphereGrid.calculateConductivityTensor(SBC::Ionosphere::F10_7, SBC::Ionosphere::recombAlpha, SBC::Ionosphere::backgroundIonisation);
 
-      // Solve ionosphere
-      SBC::ionosphereGrid.solve();
+         // Solve ionosphere
+         SBC::ionosphereGrid.solve();
+         ionosphereSolvingCounts++;
+      }
       
       phiprof::start("Velocity-space");
       if ( P::propagateVlasovAcceleration ) {
