@@ -1270,7 +1270,12 @@ namespace SBC {
       std::vector<int> nodeNeedsContinuedTracing(nodes.size(), 1);                    // Flag, whether tracing needs to continue on another task
       std::vector<std::array<Real, 3>> nodeTracingCoordinates(nodes.size());          // In-flight node upmapping coordinates (for global reduction)
       for(uint n=0; n<nodes.size(); n++) {
-         nodeTracingCoordinates[n] = nodes[n].x;
+         nodeTracingCoordinates.at(n) = nodes.at(n).x;
+         nodes.at(n).haveCouplingData = 0;
+         for (uint c=0; c<3; c++) {
+            nodes.at(n).xMapped.at(c) = 0;
+            nodes.at(n).parameters.at(ionosphereParameters::UPMAPPED_BX+c) = 0;
+         }
       }
       bool anyNodeNeedsTracing;
 
