@@ -101,7 +101,9 @@ namespace SBC {
    Real Ionosphere::solverRelativeL2ConvergenceThreshold;
    int Ionosphere::solverMaxFailureCount;
    Real Ionosphere::solverMaxErrorGrowthFactor;
-   bool  Ionosphere::solverPreconditioning;
+   bool Ionosphere::solverPreconditioning;
+   bool Ionosphere::solverUseMinimumResidualVariant;
+   bool Ionosphere::solverToggleMinimumResidualVariant;
    Real Ionosphere::shieldingLatitude;
    enum Ionosphere::IonosphereConductivityModel Ionosphere::conductivityModel;
    Real  Ionosphere::eps;
@@ -2351,6 +2353,9 @@ namespace SBC {
       
       do {
          err = solveInternal(iteration, nRestarts);
+         if(Ionosphere::solverToggleMinimumResidualVariant) {
+            Ionosphere::solverUseMinimumResidualVariant = !Ionosphere::solverUseMinimumResidualVariant;
+         }
       } while (err > Ionosphere::solverRelativeL2ConvergenceThreshold && iteration < Ionosphere::solverMaxIterations);
       
       if(iteration >= Ionosphere::solverMaxIterations && rank == 0) {
@@ -2412,9 +2417,13 @@ namespace SBC {
             effectiveSource[n] = source;
          //}
          sourcenorm += source*source;
-         N.parameters[ionosphereParameters::RESIDUAL] = source - Atimes(n, ionosphereParameters::SOLUTION);
-         N.parameters[ionosphereParameters::BEST_SOLUTION] = N.parameters[ionosphereParameters::SOLUTION];
-         N.parameters[ionosphereParameters::RRESIDUAL] = N.parameters[ionosphereParameters::RESIDUAL];
+         N.parameters.at(ionosphereParameters::RESIDUAL) = source - Atimes(n, ionosphereParameters::SOLUTION);
+         N.parameters.at(ionosphereParameters::BEST_SOLUTION) = N.parameters.at(ionosphereParameters::SOLUTION);
+         if(Ionosphere::solverUseMinimumResidualVariant) {
+            N.parameters.at(ionosphereParameters::RRESIDUAL) = Atimes(n, ionosphereParameters::RESIDUAL, false);
+         } else {
+            N.parameters.at(ionosphereParameters::RRESIDUAL) = N.parameters.at(ionosphereParameters::RESIDUAL);
+         }
       }
 
       #pragma omp for
@@ -2654,6 +2663,8 @@ namespace SBC {
       Readparameters::add("ionosphere.solverGaugeFixing", "Gauge fixing method of the ionosphere solver. Options are: pole, integral, equator", std::string("equator"));
       Readparameters::add("ionosphere.shieldingLatitude", "Latitude below which the potential is set to zero in the equator gauge fixing scheme (degree)", 70);
       Readparameters::add("ionosphere.solverPreconditioning", "Use preconditioning for the solver? (0/1)", 1);
+      Readparameters::add("ionosphere.solverUseMinimumResidualVariant", "Use minimum residual variant", 0);
+      Readparameters::add("ionosphere.solverToggleMinimumResidualVariant", "Toggle use of minimum residual variant at every solver restart", 0);
       Readparameters::add("ionosphere.earthAngularVelocity", "Angular velocity of inner boundary convection, in rad/s", 7.2921159e-5);
       Readparameters::add("ionosphere.plasmapauseL", "L-shell at which the plasmapause resides (for corotation)", 5.);
       Readparameters::add("ionosphere.fieldLineTracer", "Field line tracing method to use for coupling ionosphere and magnetosphere (options are: Euler, BS)", std::string("Euler"));
@@ -2709,6 +2720,8 @@ namespace SBC {
       }
       Readparameters::get("ionosphere.shieldingLatitude", shieldingLatitude);
       Readparameters::get("ionosphere.solverPreconditioning", solverPreconditioning);
+      Readparameters::get("ionosphere.solverUseMinimumResidualVariant", solverUseMinimumResidualVariant);
+      Readparameters::get("ionosphere.solverToggleMinimumResidualVariant", solverToggleMinimumResidualVariant);
       Readparameters::get("ionosphere.earthAngularVelocity", earthAngularVelocity);
       Readparameters::get("ionosphere.plasmapauseL", plasmapauseL);
       Readparameters::get("ionosphere.fieldLineTracer", tracerString);

@@ -430,6 +430,8 @@ namespace SBC {
       static int solverMaxFailureCount;
       static Real solverMaxErrorGrowthFactor;
       static bool solverPreconditioning; /*!< Preconditioning for the CG solver */
+      static bool solverUseMinimumResidualVariant; /*!< Use the minimum residual variant */
+      static bool solverToggleMinimumResidualVariant; /*!< Toggle use of the minimum residual variant between solver restarts */
       static Real shieldingLatitude; /*! Latitude (degree) below which the potential is zeroed in the equator gauge fixing scheme */
       static Real eps; // Tolerance for Bulirsch Stoer Method
       
