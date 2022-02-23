@@ -1383,7 +1383,7 @@ namespace SBC {
 
                   // If we somehow still map into the ionosphere, we missed the 88 degree criterion but shouldn't couple there.
                   if(sqrt(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2)) < Ionosphere::innerRadius) {
-                     # TODO drop this warning if it never occurs? To be followed.
+                     // TODO drop this warning if it never occurs? To be followed.
                      cerr << "Triggered mapping back into Earth\n";
                      nodeNeedsContinuedTracing.at(n) = 0;
                      nodeTracingCoordinates.at(n) = {0,0,0};
