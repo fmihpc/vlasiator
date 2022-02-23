@@ -3578,11 +3578,11 @@ namespace SBC {
          potentials[i] = ionosphereGrid.interpolateUpmappedPotential(tracepoints[i]);
       }
 
-      // Calculate E from potential differences
+      // Calculate E from potential differences as E = -grad(phi)
       Vec3d E({
-            (potentials[1] - potentials[0]) / cellParams[CellParams::DX],
-            (potentials[3] - potentials[2]) / cellParams[CellParams::DY],
-            (potentials[5] - potentials[4]) / cellParams[CellParams::DZ]});
+            (potentials.at(0) - potentials.at(1)) / cellParams[CellParams::DX],
+            (potentials.at(2) - potentials.at(3)) / cellParams[CellParams::DY],
+            (potentials.at(4) - potentials.at(5)) / cellParams[CellParams::DZ]});
       Vec3d B({
             cellParams[CellParams::BGBXVOL],
             cellParams[CellParams::BGBYVOL],
