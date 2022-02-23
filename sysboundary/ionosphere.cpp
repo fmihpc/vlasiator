@@ -3594,7 +3594,7 @@ namespace SBC {
       Vec3d vn = cross_product(Omega,r);
 
       Real radius = vector_length(r);
-      if(radius/Ionosphere::innerRadius <= Ionosphere::plasmapauseL * radius*radius/(r[0]*r[0] + r[1]*r[1])) {
+      if(radius/Ionosphere::innerRadius <= Ionosphere::plasmapauseL * (r[0]*r[0] + r[1]*r[1]) / (radius*radius)) {
          E += cross_product(vn, B);
       }
 
