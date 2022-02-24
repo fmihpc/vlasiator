@@ -364,6 +364,8 @@ bool propagateFields(
             // Make sure the phiprof group is closed when leaving the loop
             phiprof::stop("FS subcycle stuff");
 
+            iMomentsGrid.finalize();
+            iMomentsDt2Grid.finalize();
             break;
          }
 
