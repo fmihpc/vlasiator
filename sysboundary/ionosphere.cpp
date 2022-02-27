@@ -1399,7 +1399,7 @@ namespace SBC {
    
                   if(
                      technicalGrid.get( fsgridCell[0], fsgridCell[1], fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY
-                     && x[0]*x[0]+x[1]*x[1]+x[2]*x[2] > Ionosphere::downmapRadius*Ionosphere::downmapRadius*physicalconstants::R_E*physicalconstants::R_E
+                     && x[0]*x[0]+x[1]*x[1]+x[2]*x[2] > Ionosphere::downmapRadius*Ionosphere::downmapRadius
                   ) {
    
                      // Store the cells mapped coordinates and upmapped magnetic field
@@ -2655,7 +2655,7 @@ namespace SBC {
       Readparameters::add("ionosphere.centerX", "X coordinate of ionosphere center (m)", 0.0);
       Readparameters::add("ionosphere.centerY", "Y coordinate of ionosphere center (m)", 0.0);
       Readparameters::add("ionosphere.centerZ", "Z coordinate of ionosphere center (m)", 0.0);
-      Readparameters::add("ionosphere.radius", "Radius of the inner simulation boundary (m).", 1.0e7);
+      Readparameters::add("ionosphere.radius", "Radius of the inner simulation boundary (unit is assumed to be R_E if value < 1000, otherwise m).", 1.0e7);
       Readparameters::add("ionosphere.innerRadius", "Radius of the ionosphere model (m).", physicalconstants::R_E + 100e3);
       Readparameters::add("ionosphere.geometry", "Select the geometry of the ionosphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: 2-norm cylinder aligned with y-axis, use with polar plane/line dipole.", 2);
       Readparameters::add("ionosphere.precedence", "Precedence value of the ionosphere system boundary condition (integer), the higher the stronger.", 2);
@@ -2682,7 +2682,7 @@ namespace SBC {
       Readparameters::add("ionosphere.earthAngularVelocity", "Angular velocity of inner boundary convection, in rad/s", 7.2921159e-5);
       Readparameters::add("ionosphere.plasmapauseL", "L-shell at which the plasmapause resides (for corotation)", 5.);
       Readparameters::add("ionosphere.fieldLineTracer", "Field line tracing method to use for coupling ionosphere and magnetosphere (options are: Euler, BS)", std::string("Euler"));
-      Readparameters::add("ionosphere.downmapRadius", "Radius (in RE) from which FACs are coupled down into the ionosphere. If -1: use inner boundary clls.", -1.);
+      Readparameters::add("ionosphere.downmapRadius", "Radius from which FACs are coupled down into the ionosphere. Units are assumed to be RE if value < 1000, otherwise m. If -1: use inner boundary cells.", -1.);
       Readparameters::add("ionosphere.unmappedNodeRho", "Electron density of ionosphere nodes that do not connect to the magnetosphere domain.", 1e4);
       Readparameters::add("ionosphere.unmappedNodeTe", "Electron temperature of ionosphere nodes that do not connect to the magnetosphere domain.", 1e6);
       Readparameters::add("ionosphere.couplingTimescale", "Magnetosphere->Ionosphere coupling timescale (seconds, 0=immediate coupling", 1.);
@@ -2707,6 +2707,10 @@ namespace SBC {
       Readparameters::get("ionosphere.centerY", this->center[1]);
       Readparameters::get("ionosphere.centerZ", this->center[2]);
       Readparameters::get("ionosphere.radius", this->radius);
+      if(radius < 1000.) {
+         // If radii are < 1000, assume they are given in R_E.
+         radius *= physicalconstants::R_E;
+      }
       Readparameters::get("ionosphere.geometry", this->geometry);
       Readparameters::get("ionosphere.precedence", this->precedence);
       uint reapply;
@@ -2742,6 +2746,12 @@ namespace SBC {
       Readparameters::get("ionosphere.couplingTimescale",couplingTimescale);
       Readparameters::get("ionosphere.couplingInterval", couplingInterval);
       Readparameters::get("ionosphere.downmapRadius",downmapRadius);
+      if(downmapRadius < 1000.) {
+         downmapRadius *= physicalconstants::R_E;
+      }
+      if(downmapRadius < radius) {
+         downmapRadius = radius;
+      }
       Readparameters::get("ionosphere.unmappedNodeRho", unmappedNodeRho);
       Readparameters::get("ionosphere.unmappedNodeTe",  unmappedNodeTe);
       Readparameters::get("ionosphere.tracerTolerance", eps);

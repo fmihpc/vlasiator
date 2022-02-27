@@ -117,6 +117,10 @@ namespace projects {
 
       RP::get("Magnetosphere.dipoleType", this->dipoleType);
       RP::get("ionosphere.radius", this->ionosphereRadius);
+      if(ionosphereRadius < 1000.) {
+         // For really small ionospheric radius values, assume R_E units
+         ionosphereRadius *= physicalconstants::R_E;
+      }
       RP::get("ionosphere.centerX", this->center[0]);
       RP::get("ionosphere.centerY", this->center[1]);
       RP::get("ionosphere.centerZ", this->center[2]);
