@@ -2697,7 +2697,6 @@ namespace SBC {
          Readparameters::add(pop + "_ionosphere.VX0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
          Readparameters::add(pop + "_ionosphere.VY0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
          Readparameters::add(pop + "_ionosphere.VZ0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
-         Readparameters::add(pop + "_ionosphere.fluffiness", "Inertia of boundary smoothing when copying neighbour's moments and velocity distributions (0=completely constant boundaries, 1=neighbours are interpolated immediately).", 0);
       }
    }
 
@@ -2787,7 +2786,6 @@ namespace SBC {
         Readparameters::get(pop + "_ionosphere.VX0", sP.V0[0]);
         Readparameters::get(pop + "_ionosphere.VY0", sP.V0[1]);
         Readparameters::get(pop + "_ionosphere.VZ0", sP.V0[2]);
-        Readparameters::get(pop + "_ionosphere.fluffiness", sP.fluffiness);
         Readparameters::get(pop + "_ionosphere.T", sP.T);
 
         if(sP.T == 0) {
@@ -3649,8 +3647,6 @@ namespace SBC {
       // TODO: The moments can also be analytically calculated from ionosphere parameters.
       // Maybe that's faster?
       calculateCellMoments(mpiGrid[cellID], true, true);
-
-      //this->vlasovBoundaryFluffyCopyFromAllCloseNbrs(mpiGrid, cellID, popID, calculate_V_moments, this->speciesParams[popID].fluffiness);
 
       phiprof::stop("vlasovBoundaryCondition (Ionosphere)");
    }
