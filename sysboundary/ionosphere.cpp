@@ -3595,7 +3595,7 @@ namespace SBC {
 
       Real radius = vector_length(r);
       if(radius/physicalconstants::R_E <= Ionosphere::plasmapauseL * (r[0]*r[0] + r[1]*r[1]) / (radius*radius)) {
-         E += cross_product(vn, B);
+         E -= cross_product(vn, B);
       }
 
       const Real Bsqr = B[0]*B[0] + B[1]*B[1] + B[2]*B[2];
