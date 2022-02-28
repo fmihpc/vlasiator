@@ -1312,6 +1312,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       for(uint e=0; e< SBC::ionosphereGrid.nodes[i].numTouchingElements; e++) {
          area += SBC::ionosphereGrid.elementArea(SBC::ionosphereGrid.nodes[i].touchingElements[e]);
       }
+      area /= 3.; // As every element has 3 corners, don't double-count areas
       SBC::ionosphereGrid.nodes[i].parameters[ionosphereParameters::SOURCE] *= area;
    }
    ionosphereSuccess &= readIonosphereNodeVariable(file, "ig_rhon", SBC::ionosphereGrid, ionosphereParameters::RHON);
