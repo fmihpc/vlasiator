@@ -3,6 +3,7 @@
 #include <array>
 #include <string>
 #include <cstring>
+#include <vector>
 #include <cmath>
 #include <errno.h>
 
@@ -127,27 +128,39 @@ int main(int argc, char** argv) {
    Real integratedDensity = 0;
    Real prevDensity = 0;
    Real prevAltitude = 0;
-   while(in) {
-      Real altitude, density, c1, c2, c3, extra;
-      in >> altitude >>  c1 >> c2 >> c3 >> density >> extra;
+   std::vector<std::array<Real, 5>> MSISvalues;
+	while(in) {
+		Real altitude, density, c1, c2, c3, extra;
+		in >> altitude >>  c1 >> c2 >> c3 >> density >> extra;
 
-      integratedDensity += (altitude - prevAltitude) *1000 * 0.5 * (density + prevDensity);
-      prevAltitude = altitude;
-      prevDensity = density;
+		integratedDensity += (altitude - prevAltitude) *1000 * 0.5 * (density + prevDensity);
+		// Ion-neutral scattering frequencies (from Schunck and Nagy, 2009, Table 4.5)
+		Real nui = 1e-16*(2*c1 + 3.8*c2 + 5*c3);
+		// Elctron-neutral scattering frequencies (Same source, Table 4.6)
+		Real nue = 1e-17*(2.33*c1 + 18.2*c2 + 8.9*c3);
+		prevAltitude = altitude;
+		prevDensity = density;
+		MSISvalues.push_back({altitude, density, nui, nue, integratedDensity});
+	}
 
-      // When we encounter one of our reference layers, record its values
-      if(altitude >= alt[altindex] && altindex < numAtmosphereLevels) {
-         AtmosphericLayer newLayer;
-         newLayer.altitude = altitude; // in km
-         newLayer.density = density; // kg/m^3
-         newLayer.depth = integratedDensity; // kg/m^2
-         // Ion-neutral scattering frequencies (from Schunck and Nagy, 2009, Table 4.5)
-         newLayer.nui = 1e-16*(2*c1 + 3.8*c2 + 5*c3);
-         // Elctron-neutral scattering frequencies (Same source, Table 4.6)
-         newLayer.nue = 1e-17*(2.33*c1 + 18.2*c2 + 8.9*c3);
-         atmosphere[altindex++] = newLayer;
-      }
-   }
+	// Iterate through the read data and linearly interpolate
+	for(unsigned int i=1; i<MSISvalues.size(); i++) {
+		Real altitude = MSISvalues[i][0];
+
+		// When we encounter one of our reference layers, record its values
+		while(altitude >= alt[altindex] && altindex < numAtmosphereLevels) {
+			Real interpolationFactor = (alt[altindex] - MSISvalues[i-1][0]) / (MSISvalues[i][0] - MSISvalues[i-1][0]);
+
+			AtmosphericLayer newLayer;
+			newLayer.altitude = alt[altindex]; // in km
+			newLayer.density = fmax((1.-interpolationFactor) * MSISvalues[i-1][1] + interpolationFactor * MSISvalues[i][1], 0.); // kg/m^3
+			newLayer.depth = fmax((1.-interpolationFactor) * MSISvalues[i-1][4] + interpolationFactor * MSISvalues[i][4], 0.); // kg/m^2
+
+			newLayer.nui = fmax((1.-interpolationFactor) * MSISvalues[i-1][2] + interpolationFactor * MSISvalues[i][2], 0.); // m^-3 s^-1
+			newLayer.nue = fmax((1.-interpolationFactor) * MSISvalues[i-1][3] + interpolationFactor * MSISvalues[i][3], 0.); // m^-3 s^-1
+			atmosphere[altindex++] = newLayer;
+		}
+	}
 
    // Now we have integrated density from the bottom of the atmosphere in the depth field.
    // Flip it around.
