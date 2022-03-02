@@ -124,6 +124,7 @@ int main(int argc, char** argv) {
       cerr << "            ponly    - Constant pedersen conductivitu"<< endl;
       cerr << "            35 -       Sigma_H = 3, Sigma_P = 5" << endl;
       cerr << "            53 -       Sigma_H = 5, Sigma_P = 3" << endl;
+      cerr << "            100 -      Sigma_H = 100, Sigma_P=20" << endl;
       cerr << "            file -     Read from vlsv input file " << endl;
       cerr << " -fac:      FAC pattern on the sphere (default: constant)" << endl;
       cerr << "            options are:" << endl;
@@ -209,6 +210,10 @@ int main(int argc, char** argv) {
    } else if(sigmaString == "53") {
          Real sigmaP=5.;
          Real sigmaH=3.;
+         assignConductivityTensor(nodes, sigmaP, sigmaH);
+   } else if(sigmaString == "100") {
+         Real sigmaP=20.;
+         Real sigmaH=100.;
          assignConductivityTensor(nodes, sigmaP, sigmaH);
    } else {
       cerr << "Conductivity tensor " << sigmaString << " not implemented!" << endl;
