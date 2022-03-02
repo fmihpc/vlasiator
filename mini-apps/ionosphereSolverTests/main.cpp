@@ -77,6 +77,7 @@ int main(int argc, char** argv) {
    std::string gaugeFixString="pole";
    std::string inputFile;
    std::vector<std::pair<double, double>> refineExtents;
+   Ionosphere::solverMaxIterations = 1000;
    bool doPrecondition = true;
    if(argc ==1) {
       cerr << "Running with default options. Run main --help to see available settings." << endl;
@@ -112,6 +113,10 @@ int main(int argc, char** argv) {
          inputFile = argv[++i];
          continue;
       }
+      if(!strcmp(argv[i], "-maxIter")) {
+         Ionosphere::solverMaxIterations = atoi(argv[++i]);
+         continue;
+      }
       cerr << "Unknown command line option \"" << argv[i] << "\"" << endl;
       cerr << endl;
       cerr << "main [-N num] [-r <lat0> <lat1>] [-sigma (identity|random|35|53|file)] [-fac (constant|dipole|quadrupole|file)] [-facfile <filename>] [-gaugeFix equator|pole|integral|none] [-np]" << endl;
@@ -135,6 +140,7 @@ int main(int argc, char** argv) {
       cerr << " -infile:   Read FACs from this input file" << endl;
       cerr << " -gaugeFix: Solver gauge fixing method (default: pole)" << endl;
       cerr << " -np:       DON'T use the matrix preconditioner (default: do)" << endl;
+      cerr << " -maxIter:  Maximum number of solver iterations" << endl;
       
       return 1;
    }
@@ -281,7 +287,6 @@ int main(int argc, char** argv) {
 
    // Try to solve the system.
    ionosphereGrid.isCouplingInwards=true;
-   Ionosphere::solverMaxIterations = 1000;
    Ionosphere::solverPreconditioning = doPrecondition;
    ionosphereGrid.rank = 0;
    ionosphereGrid.solve();
