@@ -2589,10 +2589,15 @@ namespace SBC {
             // when iteration counts are high (because, for example, mesh node count is high and the matrix condition is bad).
             // See https://en.wikipedia.org/wiki/Conjugate_gradient_method#Explicit_residual_calculation
             iSolverReal newresid = effectiveSource[n] - Atimes(n, ionosphereParameters::SOLUTION);
-            N.parameters[ionosphereParameters::RESIDUAL] = newresid;
-            residualnorm += newresid * newresid;
-
-            N.parameters[ionosphereParameters::RRESIDUAL] = effectiveSource[n] - Atimes(n, ionosphereParameters::SOLUTION, true);
+            if( (gaugeFixing == Pole && n == 0) || (gaugeFixing == Equator && fabs(N.x[2]) < Ionosphere::innerRadius * sin(Ionosphere::shieldingLatitude * M_PI / 180.0))) {
+                  // Don't calculate residual for gauge-pinned nodes
+               N.parameters[ionosphereParameters::RESIDUAL] = 0;
+               N.parameters[ionosphereParameters::RRESIDUAL] = 0;
+            } else {
+               N.parameters[ionosphereParameters::RESIDUAL] = newresid;
+               N.parameters[ionosphereParameters::RRESIDUAL] = effectiveSource[n] - Atimes(n, ionosphereParameters::SOLUTION, true);
+               residualnorm += newresid * newresid;
+            }
          }
 
          #pragma omp for
