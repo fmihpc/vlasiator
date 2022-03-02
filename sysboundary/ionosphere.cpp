@@ -657,7 +657,7 @@ namespace SBC {
          in >> altitude >> Odensity >> N2density >> O2density >> massdensity >> neutralTemperature;
 
          integratedDensity += (altitude - prevAltitude) *1000 * 0.5 * (massdensity + prevDensity);
-         // Ion-neutral scattering frequencies (from Schunck and Nagy, 2009, Table 4.5)
+         // Ion-neutral scattering frequencies (from Schunk and Nagy, 2009, Table 4.5)
          Real nui = 1e-17*(3.67*Odensity + 5.14*N2density + 2.59*O2density);
          // Elctron-neutral scattering frequencies (Same source, Table 4.6)
          Real nue = 1e-17*(8.9*Odensity + 2.33*N2density + 18.2*O2density);
