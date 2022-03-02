@@ -157,6 +157,12 @@ int main(int argc, char** argv) {
    } else if (gaugeFixString == "equator") {
       ionosphereGrid.gaugeFixing = SphericalTriGrid::Equator;
       Ionosphere::shieldingLatitude = 10.;
+   } else if (gaugeFixString == "equator40") {
+      ionosphereGrid.gaugeFixing = SphericalTriGrid::Equator;
+      Ionosphere::shieldingLatitude = 40.;
+   } else if (gaugeFixString == "equator60") {
+      ionosphereGrid.gaugeFixing = SphericalTriGrid::Equator;
+      Ionosphere::shieldingLatitude = 60.;
    } else if (gaugeFixString == "none") {
       ionosphereGrid.gaugeFixing = SphericalTriGrid::None;
    } else {
