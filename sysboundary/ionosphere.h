@@ -433,6 +433,7 @@ namespace SBC {
       static bool solverUseMinimumResidualVariant; /*!< Use the minimum residual variant */
       static bool solverToggleMinimumResidualVariant; /*!< Toggle use of the minimum residual variant between solver restarts */
       static Real shieldingLatitude; /*! Latitude (degree) below which the potential is zeroed in the equator gauge fixing scheme */
+      static Real ridleyParallelConductivity; /*! Constant parallel conductivity */
       static Real eps; // Tolerance for Bulirsch Stoer Method
       
       // TODO: Make these parameters of the IonosphereGrid

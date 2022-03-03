@@ -94,6 +94,7 @@ namespace SBC {
    Real Ionosphere::downmapRadius; // Radius from which FACs are downmapped (RE)
    Real Ionosphere::unmappedNodeRho; // Electron density of ionosphere nodes that don't couple to the magnetosphere
    Real Ionosphere::unmappedNodeTe; // Electron temperature of ionosphere nodes that don't couple to the magnetosphere
+   Real Ionosphere::ridleyParallelConductivity; // Constant parallel conductivity in the Ridley conductivity model
    Real Ionosphere::couplingTimescale; // Magnetosphere->Ionosphere coupling timescale (seconds)
    Real Ionosphere::couplingInterval; // Ionosphere update interval
    Real Ionosphere::backgroundIonisation; // Background ionisation due to stellar UV and cosmic rays
@@ -986,7 +987,7 @@ namespace SBC {
             }
          } else if(Ionosphere::conductivityModel == Ionosphere::Ridley) {
 
-            sigmaParallel = 1000;
+            sigmaParallel = Ionosphere::ridleyParallelConductivity;
             std::array<Real, 3> b = {
                dipoleField(x[0],x[1],x[2],X,0,X),
                dipoleField(x[0],x[1],x[2],Y,0,Y),
@@ -2679,6 +2680,7 @@ namespace SBC {
       Readparameters::add("ionosphere.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
       Readparameters::add("ionosphere.baseShape", "Select the seed mesh geometry for the spherical ionosphere grid. Options are: sphericalFibonacci, tetrahedron, icosahedron.",std::string("sphericalFibonacci"));
       Readparameters::add("ionosphere.conductivityModel", "Select ionosphere conductivity tensor construction model. Options are: 0=GUMICS style (Vertical B, only SigmaH and SigmaP), 1=Ridley et al 2004 (1000 mho longitudinal conductivity), 2=Koskinen 2011 full conductivity tensor.", 0);
+      Readparameters::add("ionosphere.ridleyParallelConductivity", "Constant parallel conductivity value. 1000 mho is given without justification by Ridley et al 2004.", 1000);
       Readparameters::add("ionosphere.fibonacciNodeNum", "Number of nodes in the spherical fibonacci mesh.",256);
       Readparameters::addComposing("ionosphere.refineMinLatitude", "Refine the grid polewards of the given latitude. Multiple of these lines can be given for successive refinement, paired up with refineMaxLatitude lines.");
       Readparameters::addComposing("ionosphere.refineMaxLatitude", "Refine the grid equatorwards of the given latitude. Multiple of these lines can be given for successive refinement, paired up with refineMinLatitude lines.");
@@ -2733,6 +2735,7 @@ namespace SBC {
       Readparameters::get("ionosphere.reapplyUponRestart", reapply);
       Readparameters::get("ionosphere.baseShape",baseShape);
       Readparameters::get("ionosphere.conductivityModel", *(int*)(&conductivityModel));
+      Readparameters::get("ionosphere.ridleyParallelConductivity", ridleyParallelConductivity);
       Readparameters::get("ionosphere.fibonacciNodeNum",fibonacciNodeNum);
       Readparameters::get("ionosphere.solverMaxIterations", solverMaxIterations);
       Readparameters::get("ionosphere.solverRelativeL2ConvergenceThreshold", solverRelativeL2ConvergenceThreshold);
