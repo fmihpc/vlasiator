@@ -979,7 +979,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                         }
                         z /= 3.;
 
-                        retval[i] = acos(z/physicalconstants::R_E) / M_PI * 180.;
+                        retval[i] = acos(z/SBC::Ionosphere::innerRadius) / M_PI * 180.;
                      }
 
                      return retval;
