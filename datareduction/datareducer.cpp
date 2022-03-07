@@ -965,20 +965,15 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          continue;
       }
       if(lowercase == "ig_latitude") {
-         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereElement("ig_latitude", [](
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_latitude", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
                   
-                     std::vector<Real> retval(grid.elements.size());
+                     std::vector<Real> retval(grid.nodes.size());
 
-                     for(uint i=0; i<grid.elements.size(); i++) {
+                     for(uint i=0; i<grid.nodes.size(); i++) {
 
-                        Real z = 0;
                         // TODO: This is geographic latitude. Should it be magnetic?
-                        for(int corner=0; corner <3; corner++) {
-                           z+= grid.nodes[grid.elements[i].corners[corner]].x[2];
-                        }
-                        z /= 3.;
-
+                        Real z = grid.nodes[i].x[2];
                         retval[i] = acos(z/SBC::Ionosphere::innerRadius) / M_PI * 180.;
                      }
 
