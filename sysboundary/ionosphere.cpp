@@ -813,11 +813,11 @@ namespace SBC {
    /* Look up the free electron production rate in the ionosphere, given the atmospheric height index,
     * particle energy after the ionospheric potential drop and inflowing distribution temperature */
    Real SphericalTriGrid::lookupProductionValue(int heightindex, Real energy_keV, Real temperature_keV) {
-            Real normEnergy = log10(energy_keV) - log10(productionMinAccEnergy) / (log10(productionMaxAccEnergy) - log10(productionMinAccEnergy));
+            Real normEnergy = (log10(energy_keV) - log10(productionMinAccEnergy)) / (log10(productionMaxAccEnergy) - log10(productionMinAccEnergy));
             if(normEnergy < 0) {
                normEnergy = 0;
             }
-            Real normTemperature = log10(temperature_keV) - log10(productionMinTemperature) / (log(productionMaxTemperature) - log(productionMinTemperature));
+            Real normTemperature = (log10(temperature_keV) - log10(productionMinTemperature)) / (log(productionMaxTemperature) - log(productionMinTemperature));
             if(normTemperature < 0) {
                normTemperature = 0;
             }
