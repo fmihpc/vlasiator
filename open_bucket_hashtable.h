@@ -203,10 +203,10 @@ public:
       }
 
       bool operator==(iterator other) const {
-         return &hashtable->buckets[index] == &other.hashtable->buckets[other.index];
+         return hashtable->buckets.data()+index == other.hashtable->buckets.data()+other.index;
       }
       bool operator!=(iterator other) const {
-         return &hashtable->buckets[index] != &other.hashtable->buckets[other.index];
+         return !(*this==other);
       }
       std::pair<GID, LID>& operator*() const { return hashtable->buckets[index]; }
       std::pair<GID, LID>* operator->() const { return &hashtable->buckets[index]; }
@@ -239,10 +239,10 @@ public:
       }
 
       bool operator==(const_iterator other) const {
-         return &hashtable->buckets[index] == &other.hashtable->buckets[other.index];
+         return hashtable->buckets.data()+index == other.hashtable->buckets.data()+other.index;
       }
       bool operator!=(const_iterator other) const {
-         return &hashtable->buckets[index] != &other.hashtable->buckets[other.index];
+         return !(*this==other);
       }
       const std::pair<GID, LID>& operator*() const { return hashtable->buckets[index]; }
       const std::pair<GID, LID>* operator->() const { return &hashtable->buckets[index]; }
