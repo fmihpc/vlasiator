@@ -119,7 +119,7 @@ int main(int argc, char** argv) {
       }
       cerr << "Unknown command line option \"" << argv[i] << "\"" << endl;
       cerr << endl;
-      cerr << "main [-N num] [-r <lat0> <lat1>] [-sigma (identity|random|35|53|file)] [-fac (constant|dipole|quadrupole|file)] [-facfile <filename>] [-gaugeFix equator|pole|integral|none] [-np]" << endl;
+      cerr << "main [-N num] [-r <lat0> <lat1>] [-sigma (identity|random|35|53|file)] [-fac (constant|dipole|quadrupole|octopole|hexadecapole||file)] [-facfile <filename>] [-gaugeFix equator|pole|integral|none] [-np]" << endl;
       cerr << "Paramters:" << endl;
       cerr << " -N:        Number of ionosphere mesh nodes (default: 64)" << endl;
       cerr << " -r:        Refine grid between the given latitudes (can be specified multiple times)" << endl;
@@ -135,7 +135,9 @@ int main(int argc, char** argv) {
       cerr << "            options are:" << endl;
       cerr << "            constant   - Constant value of 1" << endl;
       cerr << "            dipole     - north/south dipole" << endl;
-      cerr << "            quadrupole - east/west quadrupole" << endl;
+      cerr << "            quadrupole - east/west quadrupole (L=2, m=1)" << endl;
+      cerr << "            octopole   - octopole (L=3, m=2)" << endl;
+      cerr << "            hexadecapole - hexadecapole (L=4, m=3)" << endl;
       cerr << "            file       - read FAC distribution from vlsv input file" << endl;
       cerr << " -infile:   Read FACs from this input file" << endl;
       cerr << " -gaugeFix: Solver gauge fixing method (default: pole)" << endl;
@@ -242,13 +244,53 @@ int main(int argc, char** argv) {
       for(uint n=0; n<nodes.size(); n++) {
          double theta = acos(nodes[n].x[2] / sqrt(nodes[n].x[0]*nodes[n].x[0] + nodes[n].x[1]*nodes[n].x[1] + nodes[n].x[2]*nodes[n].x[2])); // Latitude
          double phi = atan2(nodes[n].x[0], nodes[n].x[1]); // Longitude
-         nodes[n].parameters[ionosphereParameters::SOURCE] = sph_legendre(1,0,theta) * cos(0*phi);
+
+         Real area = 0;
+         for(uint e=0; e<ionosphereGrid.nodes[n].numTouchingElements; e++) {
+            area += ionosphereGrid.elementArea(ionosphereGrid.nodes[n].touchingElements[e]);
+         }
+         area /= 3.; // As every element has 3 corners, don't double-count areas
+
+         nodes[n].parameters[ionosphereParameters::SOURCE] = sph_legendre(1,0,theta) * cos(0*phi) * area;
       }
    } else if(facString == "quadrupole") {
       for(uint n=0; n<nodes.size(); n++) {
          double theta = acos(nodes[n].x[2] / sqrt(nodes[n].x[0]*nodes[n].x[0] + nodes[n].x[1]*nodes[n].x[1] + nodes[n].x[2]*nodes[n].x[2])); // Latitude
          double phi = atan2(nodes[n].x[0], nodes[n].x[1]); // Longitude
-         nodes[n].parameters[ionosphereParameters::SOURCE] = sph_legendre(2,1,theta) * cos(1*phi);
+
+         Real area = 0;
+         for(uint e=0; e<ionosphereGrid.nodes[n].numTouchingElements; e++) {
+            area += ionosphereGrid.elementArea(ionosphereGrid.nodes[n].touchingElements[e]);
+         }
+         area /= 3.; // As every element has 3 corners, don't double-count areas
+
+         nodes[n].parameters[ionosphereParameters::SOURCE] = sph_legendre(2,1,theta) * cos(1*phi) * area;
+      }
+   } else if(facString == "octopole") {
+      for(uint n=0; n<nodes.size(); n++) {
+         double theta = acos(nodes[n].x[2] / sqrt(nodes[n].x[0]*nodes[n].x[0] + nodes[n].x[1]*nodes[n].x[1] + nodes[n].x[2]*nodes[n].x[2])); // Latitude
+         double phi = atan2(nodes[n].x[0], nodes[n].x[1]); // Longitude
+
+         Real area = 0;
+         for(uint e=0; e<ionosphereGrid.nodes[n].numTouchingElements; e++) {
+            area += ionosphereGrid.elementArea(ionosphereGrid.nodes[n].touchingElements[e]);
+         }
+         area /= 3.; // As every element has 3 corners, don't double-count areas
+
+         nodes[n].parameters[ionosphereParameters::SOURCE] = sph_legendre(3,2,theta) * cos(2*phi) * area;
+      }
+   } else if(facString == "hexadecapole") {
+      for(uint n=0; n<nodes.size(); n++) {
+         double theta = acos(nodes[n].x[2] / sqrt(nodes[n].x[0]*nodes[n].x[0] + nodes[n].x[1]*nodes[n].x[1] + nodes[n].x[2]*nodes[n].x[2])); // Latitude
+         double phi = atan2(nodes[n].x[0], nodes[n].x[1]); // Longitude
+
+         Real area = 0;
+         for(uint e=0; e<ionosphereGrid.nodes[n].numTouchingElements; e++) {
+            area += ionosphereGrid.elementArea(ionosphereGrid.nodes[n].touchingElements[e]);
+         }
+         area /= 3.; // As every element has 3 corners, don't double-count areas
+
+         nodes[n].parameters[ionosphereParameters::SOURCE] = sph_legendre(4,3,theta) * cos(3*phi) * area;
       }
    } else if(facString == "file") {
       vlsv::ParallelReader inVlsv;
