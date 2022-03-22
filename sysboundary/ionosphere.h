@@ -139,7 +139,7 @@ namespace SBC {
          BS     // Bulirsch-Stoer Stepping
       } couplingMethod;
 
-      enum IonosphereSolverGaugeFixing { // Potenital solver gauge fixing method
+      enum IonosphereSolverGaugeFixing { // Potential solver gauge fixing method
          None,     // No gauge fixing, solver won't converge well
          Pole,     // Fixing north pole (node 0) potential to zero
          Integral, // Fixing integral of potential to zero (unstable?)
