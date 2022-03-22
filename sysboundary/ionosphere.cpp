@@ -2364,7 +2364,13 @@ namespace SBC {
    }
 
    // Solve the ionosphere potential using a conjugate gradient solver
-   void SphericalTriGrid::solve() {
+   void SphericalTriGrid::solve(
+      int &nIterations,
+      int &nRestarts,
+      Real &residual,
+      Real &minPotential,
+      Real &maxPotential
+   ) {
 
       // Ranks that don't participate in ionosphere solving skip this function outright
       if(!isCouplingInwards && !isCouplingOutwards) {
@@ -2374,45 +2380,38 @@ namespace SBC {
       
       initSolver(false);
       
-      Real err;
-      int iteration = 0;
-      int nRestarts = 0;
+      nIterations = 0;
+      nRestarts = 0;
       
       do {
-         err = solveInternal(iteration, nRestarts);
+         solveInternal(nIterations, nRestarts, residual, minPotential, maxPotential);
          if(Ionosphere::solverToggleMinimumResidualVariant) {
             Ionosphere::solverUseMinimumResidualVariant = !Ionosphere::solverUseMinimumResidualVariant;
          }
-      } while (err > Ionosphere::solverRelativeL2ConvergenceThreshold && iteration < Ionosphere::solverMaxIterations);
-      
-      if(iteration >= Ionosphere::solverMaxIterations && rank == 0) {
-         cerr << "(ionosphere) No convergence after " << iteration << " iterations, remaining error " << err << endl;
-      } else {
-         if (rank == 0) {
-            cerr << "Solved ionosphere potential after " << iteration << " iterations and " << nRestarts << " restarts." << endl;
-         }
-      }      
+      } while (residual > Ionosphere::solverRelativeL2ConvergenceThreshold && nIterations < Ionosphere::solverMaxIterations);   
       
       phiprof::stop("ionosphere-solve");
    }
 
-   Real SphericalTriGrid::solveInternal(
+   void SphericalTriGrid::solveInternal(
       int & iteration,
-      int & nRestarts
+      int & nRestarts,
+      Real & minerr,
+      Real & minPotential,
+      Real & maxPotential
    ) {
       std::vector<iSolverReal> effectiveSource(nodes.size());
 
-      // This we'll want to copy out
-      iSolverReal minerr;
-      
       // for loop reduction variables, declared before omp parallel region
       iSolverReal akden;
       iSolverReal bknum;
       iSolverReal potentialInt;
       iSolverReal sourcenorm;
-      iSolverReal residualnorm;
+      iSolverReal residualnorm;      
+      minPotential = std::numeric_limits<iSolverReal>::max();
+      maxPotential = std::numeric_limits<iSolverReal>::lowest();
 
-#pragma omp parallel shared(akden,bknum,potentialInt,sourcenorm,residualnorm,effectiveSource)
+#pragma omp parallel shared(akden,bknum,potentialInt,sourcenorm,residualnorm,effectiveSource,minPotential,maxPotential)
 {
 
       // thread variables, initialised here
@@ -2644,11 +2643,15 @@ namespace SBC {
       if(skipSolve && threadID == 0) {
          // sourcenorm was zero, we return zero; return is not allowed inside threaded region
          minerr = 0;
+         minPotential = 0;
+         maxPotential = 0;
       } else {
-         #pragma omp for
+         #pragma omp for reduction(max:maxPotential) reduction(min:minPotential)
          for(uint n=0; n<nodes.size(); n++) {
             Node& N=nodes[n];
             N.parameters[ionosphereParameters::SOLUTION] = N.parameters[ionosphereParameters::BEST_SOLUTION];
+            minPotential = min(minPotential, N.parameters.at(ionosphereParameters::SOLUTION));
+            maxPotential = max(maxPotential, N.parameters.at(ionosphereParameters::SOLUTION));
          }
          // Get out the ones we need before exiting the parallel region
          if(threadID == 0) {
@@ -2660,7 +2663,6 @@ namespace SBC {
 
 } // #pragma omp parallel
 
-      return minerr;
    }
 
    // Actual ionosphere object implementation

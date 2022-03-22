@@ -245,8 +245,8 @@ namespace SBC {
       void initSolver(bool zeroOut=true);  // Initialize the CG solver
       iSolverReal Atimes(uint nodeIndex, int parameter, bool transpose=false); // Evaluate neighbour nodes' coupled parameter
       Real Asolve(uint nodeIndex, int parameter, bool transpose=false); // Evaluate own parameter value
-      void solve();
-      Real solveInternal(int & iteration, int & nRestarts);
+      void solve(int & iteration, int & nRestarts, Real & residual, Real & minPotential, Real & maxPotential);
+      void solveInternal(int & iteration, int & nRestarts, Real & residual, Real & minPotential, Real & maxPotential);
 
       // Map field-aligned currents, density and temperature
       // down from the simulation boundary onto this grid

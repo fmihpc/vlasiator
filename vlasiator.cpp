@@ -967,7 +967,16 @@ int main(int argn,char* args[]) {
          SBC::ionosphereGrid.calculateConductivityTensor(SBC::Ionosphere::F10_7, SBC::Ionosphere::recombAlpha, SBC::Ionosphere::backgroundIonisation);
 
          // Solve ionosphere
-         SBC::ionosphereGrid.solve();
+         int nIterations, nRestarts;
+         Real residual, minPotential, maxPotential;
+         SBC::ionosphereGrid.solve(nIterations, nRestarts, residual, minPotential, maxPotential);
+         logFile << "Ionosphere: iterations " << nIterations
+         << " restarts " << nRestarts
+         << " residual " << std::scientific << residual << std::defaultfloat
+         << " potential min " << minPotential
+         << " max " << maxPotential
+         << " difference " << maxPotential - minPotential
+         << endl;
          ionosphereSolvingCounts++;
       }
       
