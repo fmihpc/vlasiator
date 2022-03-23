@@ -94,7 +94,7 @@ public:
          int rank;
          MPI_Comm_rank(MPI_COMM_WORLD, &rank);
          if (rank == MASTER_RANK) {
-            std::cerr << __FILE__ << ":" << __LINE__ << name + " not found in the configuration file!" << std::endl;
+            std::cerr << __FILE__ << ":" << __LINE__ << name + " not declared using the add() function!" << std::endl;
             MPI_Abort(MPI_COMM_WORLD, 1);
          }
       }
@@ -107,7 +107,7 @@ public:
          int rank;
          MPI_Comm_rank(MPI_COMM_WORLD, &rank);
          if (rank == MASTER_RANK) {
-            std::cerr << __FILE__ << ":" << __LINE__ << name + " not found in the configuration file!" << std::endl;
+            std::cerr << __FILE__ << ":" << __LINE__ << name + " not declared using the add() function!" << std::endl;
             MPI_Abort(MPI_COMM_WORLD, 1);
          }
       }
