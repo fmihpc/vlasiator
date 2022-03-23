@@ -83,9 +83,9 @@ public:
 
    /** Get the value of the given parameter added with add().
     * This may be called after having called Parse, and it may be called by any process, in any order.
+    * Aborts if given parameter was not found.
     * @param name The name of the parameter.
     * @param value A variable where the value of the parameter is written.
-    * Aborts if given parameter was not found.
     */
    static void get(const std::string& name, std::string& value) {
       if (options.find(name) != options.end()) { // check if it exists
@@ -134,9 +134,9 @@ public:
 
    /** Get the value of the given parameter added with addComposing().
     * This may be called after having called Parse, and it may be called by any process, in any order.
+    * Aborts on failed cast.
     * @param name The name of the parameter.
     * @param value A variable where the value of the parameter is written.
-    * Aborts if given parameter was not found.
     */
    template <typename T> static void get(const std::string& name, std::vector<T>& value) {
       std::vector<std::string> stringValue;
