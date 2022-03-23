@@ -85,7 +85,7 @@ public:
     * This may be called after having called Parse, and it may be called by any process, in any order.
     * @param name The name of the parameter.
     * @param value A variable where the value of the parameter is written.
-    * @return If true, the given parameter was found and its value was written to value.
+    * Aborts if given parameter was not found.
     */
    static void get(const std::string& name, std::string& value) {
       if (options.find(name) != options.end()) { // check if it exists
@@ -136,6 +136,7 @@ public:
     * This may be called after having called Parse, and it may be called by any process, in any order.
     * @param name The name of the parameter.
     * @param value A variable where the value of the parameter is written.
+    * Aborts if given parameter was not found.
     */
    template <typename T> static void get(const std::string& name, std::vector<T>& value) {
       std::vector<std::string> stringValue;
