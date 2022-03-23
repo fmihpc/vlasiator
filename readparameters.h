@@ -83,7 +83,7 @@ public:
 
    /** Get the value of the given parameter added with add().
     * This may be called after having called Parse, and it may be called by any process, in any order.
-    * Aborts if given parameter was not found.
+    * Aborts if given parameter was not found (a parameter passed to get() wasn't add()ed, defaults are ok).
     * @param name The name of the parameter.
     * @param value A variable where the value of the parameter is written.
     */
