@@ -337,7 +337,15 @@ int main(int argc, char** argv) {
    ionosphereGrid.isCouplingInwards=true;
    Ionosphere::solverPreconditioning = doPrecondition;
    ionosphereGrid.rank = 0;
-   ionosphereGrid.solve();
+   int iterations, nRestarts;
+   Real residual, minPotential, maxPotential;
+   ionosphereGrid.solve(iterations, nRestarts, residual, minPotential, maxPotential);
+   cout << "Ionosphere solver: iterations " << iterations << " restarts " << nRestarts
+      << " residual " << std::scientific << residual << std::defaultfloat
+      << " potential min " << minPotential
+      << " max " << maxPotential
+      << " difference " << maxPotential - minPotential
+      << endl;
 
    // Write output
    vlsv::Writer outputFile;
