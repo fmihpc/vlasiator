@@ -294,16 +294,17 @@ namespace projects {
             case 3:
                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
                setBackgroundField(bgFieldDipole, BgBGrid);
+               SBC::ionosphereGrid.setDipoleField(bgFieldDipole);
                //Append mirror dipole                
                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0, 0.0 );//mirror
                setBackgroundField(bgFieldDipole, BgBGrid, true);
-               SBC::ionosphereGrid.setDipoleField(bgFieldDipole);
                break; 
             case 4:  // Vector potential dipole, vanishes or optionally scales to static inflow value after a given x-coordinate
                // What we in fact do is we place the regular dipole in the background field, and the
                // corrective terms in the perturbed field. This maintains the BGB as curl-free.
                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
                setBackgroundField(bgFieldDipole, BgBGrid);
+               SBC::ionosphereGrid.setDipoleField(bgFieldDipole);
                // Difference into perBgrid, only if not restarting
                if (P::isRestart == false) {
                   bgFieldDipole.initialize(-8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );
@@ -311,7 +312,6 @@ namespace projects {
                   bgVectorDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi*M_PI/180., this->dipoleTiltTheta*M_PI/180., this->dipoleXFull, this->dipoleXZero, this->dipoleInflowB[0], this->dipoleInflowB[1], this->dipoleInflowB[2]);
                   setPerturbedField(bgVectorDipole, perBGrid, true);
                }
-               SBC::ionosphereGrid.setDipoleField(bgFieldDipole);
                break;
             default:
                setBackgroundFieldToZero(BgBGrid);
