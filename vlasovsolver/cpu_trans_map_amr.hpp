@@ -211,12 +211,6 @@ static std::array<setOfPencils,3> DimensionPencils;
 void flagSpatialCellsForAmrCommunication(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                          const std::vector<CellID>& localPropagatedCells);
 
-// declare sets used for storing cells participating in all-local translation
-// defined in cpu_trans_map_amr.cpp
-extern std::unordered_set<CellID> LocalSet_x;
-extern std::unordered_set<CellID> LocalSet_y;
-extern std::unordered_set<CellID> LocalSet_z;
-
 void prepareLocalTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                       const std::vector<CellID>& localPropagatedCells);
 

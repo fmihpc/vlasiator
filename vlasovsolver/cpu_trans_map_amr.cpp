@@ -54,6 +54,9 @@ int getNeighborhood(const uint dimension, const uint stencil) {
       case 2:
          neighborhood = VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID;
          break;
+      default:
+         cerr << __FILE__ << ":"<< __LINE__ << " Wrong dimension, abort"<<endl;
+         abort();
       }
    }
 
@@ -68,6 +71,9 @@ int getNeighborhood(const uint dimension, const uint stencil) {
       case 2:
          neighborhood = VLASOV_SOLVER_Z_NEIGHBORHOOD_ID;
          break;
+      default:
+         cerr << __FILE__ << ":"<< __LINE__ << " Wrong dimension, abort"<<endl;
+         abort();
       }
    }
    
@@ -79,14 +85,23 @@ bool check_is_local(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    if (P::vlasovSolverLocalTranslate) {
       switch (dimension) {
          case 0:
-            if (LocalSet_x.count(cell)) return true;
+            if (LocalSet_x.count(cell)) {
+               return true;
+            }
             break;
          case 1:
-            if (LocalSet_y.count(cell)) return true;
+            if (LocalSet_y.count(cell)) {
+               return true;
+            }
             break;
          case 2:
-            if (LocalSet_z.count(cell)) return true;
+            if (LocalSet_z.count(cell)) {
+               return true;
+            }
             break;
+         default:
+            cerr << __FILE__ << ":"<< __LINE__ << " Wrong dimension, abort"<<endl;
+            abort();
       }
       return false;
    } else {
@@ -204,7 +219,7 @@ void flagSpatialCellsForAmrCommunication(const dccrg::Dccrg<SpatialCell,dccrg::C
 }
 
 void findNeighborhoodCells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                           const CellID startingCell,
+                           const CellID startingCellID,
                            uint dimension,
                            uint searchLength,
                            std::vector<CellID>& foundCells) {
@@ -212,7 +227,7 @@ void findNeighborhoodCells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    int neighborhood = getNeighborhood(dimension,searchLength);
    foundCells.clear();
 
-   SpatialCell *ccell = mpiGrid[startingCell];
+   SpatialCell *ccell = mpiGrid[startingCellID];
    if (!ccell) return;
 
    std::set< int > distancesplus;
@@ -220,7 +235,7 @@ void findNeighborhoodCells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    std::unordered_set<CellID> foundNeighbors;
    std::unordered_set<CellID> foundSet;
 
-   const auto* NbrPairs = mpiGrid.get_neighbors_of(startingCell, neighborhood);
+   const auto* NbrPairs = mpiGrid.get_neighbors_of(startingCellID, neighborhood);
 
    // Create list of unique distances
    // Check for already found cells is required as one cell can be listed at several different distances
@@ -425,6 +440,9 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
          //       ix = 0;
          //       iy = 1;
          //       break;
+         //    default:
+         //       cerr << __FILE__ << ":"<< __LINE__ << " Wrong dimension, abort"<<endl;
+         //       abort();
          // }
          // bool accept = false;
          // std::array<double, 3> parentCoords = mpiGrid.get_center(ids.front());
@@ -714,7 +732,11 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
             ix = 0;
             iy = 1;
             break;
+         default:
+            cerr << __FILE__ << ":"<< __LINE__ << " Wrong dimension, abort"<<endl;
+            abort();
          }
+
          //int ix = (dimension + 1) % 3; // incorrect for DCCRG
          //int iy = (dimension + 2) % 3;
 
@@ -851,6 +873,9 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
       ix = 0;
       iy = 1;
       break;
+   default:
+      cerr << __FILE__ << ":"<< __LINE__ << " Wrong dimension, abort"<<endl;
+      abort();
    }
    //ix = (dimension + 1) % 3; // incorrect for DCCRG
    //iy = (dimension + 2) % 3;
@@ -1178,7 +1203,7 @@ bool copy_trans_block_data_amr(
    uint dimension,
    const uint popID) {
 
-   // This loop does not incldue explicit prefetch calls
+   // This loop does not include explicit prefetch calls
    //  Copy volume averages of this block from all spatial cells:
    for (int b = -VLASOV_STENCIL_WIDTH; b < lengthOfPencil + VLASOV_STENCIL_WIDTH; b++) {
       // Is the source cell at most at the ref level of the pencil?
@@ -1219,12 +1244,13 @@ bool copy_trans_block_data_amr(
             }
          }
       } else {
-         // Source cell can be at higher refinement level than pencil (P::amrTransSplitPencilsOnlyForFace==true)
+         // Source cell is at higher refinement level than pencil (P::amrTransSplitPencilsOnlyForFace==true)
          Realf blockValues[WID3] = { 0.0 };
          // Average source information over 4 sibling cells. Find siblings:
          auto mySiblings = mpiGrid.get_all_children(mpiGrid.get_parent(source_neighbors[b + VLASOV_STENCIL_WIDTH]));
          auto myIndices = mpiGrid.mapping.get_indices(source_neighbors[b + VLASOV_STENCIL_WIDTH]);
          uint siblingCount=0;
+         const Realf rescale = 0.25; // assumes 4 parallel siblings
          for (uint i_sib = 0; i_sib < MAX_NEIGHBORS_PER_DIM; ++i_sib) {
             auto sibling = mySiblings.at(i_sib);
             auto sibIndices = mpiGrid.mapping.get_indices(sibling);
@@ -1237,20 +1263,13 @@ bool copy_trans_block_data_amr(
                if (blockLID != srcCell->invalid_local_id()) {
                   const Realf* block_data = srcCell->get_data(blockLID,popID);
                   for (uint i=0; i<WID3; ++i) {
-                     blockValues[i] += block_data[cellid_transpose[i]];
+                     blockValues[i] += block_data[cellid_transpose[i]]*rescale;
                   }
                   siblingCount++;
                }
             }
          }
-         if (siblingCount>0) {
-            // Rescale with sibling count (should be 4)
-            if (siblingCount>1) {
-               const Realf rescale = 1./siblingCount;
-               for (uint i=0; i<WID3; ++i) {
-                  blockValues[i] *= rescale;
-               }
-            }
+         if (siblingCount==4) {
             // now load values into the actual values table..
             uint offset =0;
             for (uint k=0; k<WID; k++) {
@@ -1262,11 +1281,8 @@ bool copy_trans_block_data_amr(
                }
             }
          } else {
-            for (uint k=0; k<WID; ++k) {
-               for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++) {
-                  values[i_trans_ps_blockv_pencil(planeVector, k, b, lengthOfPencil)] = Vec(0);
-               }
-            }
+            cerr << __FILE__ << ":"<< __LINE__ << " Incorrect parallel sibling count, abort"<<endl;
+            abort();
          }
       }
    }
@@ -1407,6 +1423,9 @@ void check_ghost_cells(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
          dx = mpiGrid[ids[0]]->SpatialCell::parameters[CellParams::DX];
          dy = mpiGrid[ids[0]]->SpatialCell::parameters[CellParams::DY];
          break;
+      default:
+         cerr << __FILE__ << ":"<< __LINE__ << " Wrong dimension, abort"<<endl;
+         abort();
       }
 
 // WARNING threading inside this function
@@ -1522,6 +1541,9 @@ void printPencilsFunc(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                   }
                   std::cout<<std::endl;
                   break;
+               default:
+                  cerr << __FILE__ << ":"<< __LINE__ << " Wrong dimension, abort"<<endl;
+                  abort();
             }
          }
       }
@@ -1559,6 +1581,9 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
          case 2:
             PropagatedCells.assign(LocalSet_z.begin(), LocalSet_z.end());
             break;
+         default:
+            cerr << __FILE__ << ":"<< __LINE__ << " Wrong dimension, abort"<<endl;
+            abort();
       }
    } else {
       for (size_t c=0; c<localCells.size(); ++c) {
@@ -2040,6 +2065,9 @@ void update_remote_mapping_contribution_amr(
       case 2:
          neighborhood = SHIFT_P_Z_NEIGHBORHOOD_ID;
          break;
+      default:
+         cerr << __FILE__ << ":"<< __LINE__ << " Wrong dimension, abort"<<endl;
+         abort();
       }
    }
    if(direction < 0) {
@@ -2054,6 +2082,9 @@ void update_remote_mapping_contribution_amr(
       case 2:
          neighborhood = SHIFT_M_Z_NEIGHBORHOOD_ID;
          break;
+      default:
+         cerr << __FILE__ << ":"<< __LINE__ << " Wrong dimension, abort"<<endl;
+         abort();
       }
    }
 

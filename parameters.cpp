@@ -39,6 +39,7 @@ using namespace std;
 
 typedef Parameters P;
 
+extern Logger logFile;
 // Using numeric_limits<Real>::max() leads to FP exceptions inside boost programoptions, use a slightly smaller value to
 // avoid...
 
@@ -596,12 +597,13 @@ void Parameters::getParameters() {
             MPI_Abort(MPI_COMM_WORLD, 1);
          }
 
-         printf("Filtering is on with max number of Passes= \t%d\n", maxNumPassesInt);
+         logfile <<"AMR fsGrid filtering is on with max number of passes = "<<maxNumPassesInt<<" and the following levels: ";
          int lev = 0;
          for (auto& iter : P::numPasses) {
-            printf("Refinement Level %d-->%d Passes\n", lev, iter);
+            logFile<<"RefLvl "<<lev<<"-->"<<iter<<" passes, ";
             lev++;
          }
+         logFile<<endl;
       }
    } else {
       numPasses = {0};
@@ -616,9 +618,8 @@ void Parameters::getParameters() {
             MPI_Abort(MPI_COMM_WORLD, 1);
          }
 
-         printf("Filtering is off and max number of Passes is = \t %d\n",
-                *max_element(P::numPasses.begin(), P::numPasses.end()));
-      }
+         logfile <<"AMR fsGrid filtering is off."<<endl;
+         }
    }
 
    if (geometryString == "XY4D") {
@@ -683,7 +684,7 @@ void Parameters::getParameters() {
    RP::get("vlasovsolver.minCFL", P::vlasovSolverMinCFL);
    RP::get("vlasovsolver.LocalTranslate",P::vlasovSolverLocalTranslate);
    if ((myRank == MASTER_RANK)&&(P::vlasovSolverLocalTranslate==true)) {
-      printf("Performing all spatial translation locally using ghost cell information\n");
+      logFile<<"Performing all spatial translation locally using ghost cell information"<<endl;
    }
 
    // Get load balance parameters
