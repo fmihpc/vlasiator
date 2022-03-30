@@ -508,7 +508,7 @@ int main(int argn,char* args[]) {
    // Build communicator for ionosphere solving
    SBC::ionosphereGrid.updateIonosphereCommunicator(mpiGrid, technicalGrid);
    SBC::ionosphereGrid.calculateFsgridCoupling(technicalGrid, perBGrid, dPerBGrid, SBC::Ionosphere::radius);
-   SBC::ionosphereGrid.initSolver();
+   SBC::ionosphereGrid.initSolver(!P::isRestart); // If it is a restart we do not want to zero out everything
    int ionosphereSolvingCounts;
    if(SBC::Ionosphere::couplingInterval > 0 && P::isRestart) {
       ionosphereSolvingCounts = floor(P::t / SBC::Ionosphere::couplingInterval);
