@@ -247,25 +247,14 @@ bool readNBlocks(vlsv::ParallelReader& file,const std::string& meshName,
 
    uint64_t N_spatialCells = 0;
 
-   if(N_domains == 1) {
+	int64_t* domainInfo = NULL;
+	if (file.read("MESH_DOMAIN_SIZES",attribsIn,0,N_domains,domainInfo) == false) return false;
 
-      if (file.read("MESH_BBOX",attribsIn,0,6,bbox_ptr,false) == false) return false;
-      
-      // Resize the output vector and init to zero values
-      N_spatialCells = bbox[0]*bbox[1]*bbox[2];
+	for (uint i_domain = 0; i_domain < N_domains; ++i_domain) {
+		
+		N_spatialCells += domainInfo[2*i_domain];
 
-   } else {
-
-      int64_t* domainInfo = NULL;
-      if (file.read("MESH_DOMAIN_SIZES",attribsIn,0,N_domains,domainInfo) == false) return false;
-
-      for (uint i_domain = 0; i_domain < N_domains; ++i_domain) {
-         
-         N_spatialCells += domainInfo[2*i_domain];
-
-      }
-
-   }
+	}
 
    nBlocks.resize(N_spatialCells);
 
@@ -1159,7 +1148,9 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    phiprof::stop("readScalars");
 
    phiprof::start("readDatalayout");
-   if (success == true) success = readCellIds(file,fileCells,MASTER_RANK,MPI_COMM_WORLD);
+   if (success) {
+		success = readCellIds(file,fileCells,MASTER_RANK,MPI_COMM_WORLD);
+	}
 
    // Check that the cellID lists are identical in file and grid
    if (myRank==0){
