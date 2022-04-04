@@ -246,8 +246,8 @@ void copy_trans_block_data(
     SpatialCell** source_neighbors,
     const vmesh::GlobalID blockGID,
     Vec* values,
-    const unsigned char* const cellid_transpose,
-    const uint popID) {
+    const unsigned int* const cellid_transpose,
+    const uint popID) { 
 
    /*load pointers to blocks and prefetch them to L1*/
    Realf* blockDatas[VLASOV_STENCIL_WIDTH * 2 + 1];
@@ -261,13 +261,22 @@ void copy_trans_block_data(
          _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 64, _MM_HINT_T0);
          _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 128, _MM_HINT_T0);
          _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 192, _MM_HINT_T0);
-         if(VPREC  == 8) {
-            //prefetch storage pointers to L1
+         if ((VPREC  == 8) || (VPREC  == 16)) {
             _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 256, _MM_HINT_T0);
             _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 320, _MM_HINT_T0);
             _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 384, _MM_HINT_T0);
             _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 448, _MM_HINT_T0);
          }
+         if (VPREC  == 16) {
+            _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 512, _MM_HINT_T0);
+            _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 576, _MM_HINT_T0);
+            _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 640, _MM_HINT_T0);
+            _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 704, _MM_HINT_T0);
+            _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 768, _MM_HINT_T0);
+            _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 832, _MM_HINT_T0);
+            _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 896, _MM_HINT_T0);
+            _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 960, _MM_HINT_T0);
+            }
       }
       else{
          blockDatas[b + VLASOV_STENCIL_WIDTH] = NULL;
@@ -326,9 +335,9 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
                   const uint popID) {
    // values used with an stencil in 1 dimension, initialized to 0.
    // Contains a block, and its spatial neighbours in one dimension.
-   Realv dz,z_min, dvz,vz_min;
+   Realv dz,dvz,vz_min; // z_min,
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
-   unsigned char  cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
+   unsigned int  cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
 
    if(localPropagatedCells.size() == 0)
       return true;
@@ -341,13 +350,13 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    std::vector<SpatialCell*> sourceNeighbors(localPropagatedCells.size() * nSourceNeighborsPerCell);
    std::vector<SpatialCell*> targetNeighbors(3 * localPropagatedCells.size() );
 
-//#pragma omp parallel for
+#pragma omp parallel for
    for(uint celli = 0; celli < allCells.size(); celli++)
    {
       allCellsPointer[celli] = mpiGrid[allCells[celli]];
    }
 
-//#pragma omp parallel for
+#pragma omp parallel for
    for(uint celli = 0; celli < localPropagatedCells.size(); celli++){
          // compute spatial neighbors, separately for targets and source. In
          // source cells we have a wider stencil and take into account
@@ -391,7 +400,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    switch (dimension) {
    case 0:
       dz = P::dx_ini;
-      z_min = P::xmin;
+      //z_min = P::xmin;
       // set values in array that is used to convert block indices
       // to global ID using a dot product.
       cell_indices_to_id[0]=WID2;
@@ -400,7 +409,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       break;
    case 1:
       dz = P::dy_ini;
-      z_min = P::ymin;
+      //z_min = P::ymin;
       // set values in array that is used to convert block indices
       // to global ID using a dot product
       cell_indices_to_id[0]=1;
@@ -409,7 +418,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       break;
    case 2:
       dz = P::dz_ini;
-      z_min = P::zmin;
+      //z_min = P::zmin;
       // set values in array that is used to convert block indices
       // to global id using a dot product.
       cell_indices_to_id[0]=1;
@@ -440,8 +449,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    int t1 = phiprof::initializeTimer("mapping");
    int t2 = phiprof::initializeTimer("store");
 
-
-//#pragma omp parallel
+#pragma omp parallel
    {
       std::vector<Realf> targetBlockData(3 * localPropagatedCells.size() * WID3);
       std::vector<bool> targetsValid(localPropagatedCells.size());
@@ -449,7 +457,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
 
 
-//#pragma omp for schedule(guided)
+#pragma omp for schedule(guided)
       for(uint blocki = 0; blocki < unionOfBlocks.size(); blocki++){
          vmesh::GlobalID blockGID = unionOfBlocks[blocki];
          phiprof::start(t1);
@@ -559,8 +567,8 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
                for (uint k=0; k<WID; ++k) {
                   for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
                      targetVecValues[i_trans_pt_blockv(planeVector, k, b)].store(vector);
-//#pragma ivdep
-//#pragma GCC ivdep
+#pragma ivdep
+#pragma GCC ivdep
                      for(uint i = 0; i< VECL; i++){
                         // store data, when reading data from data we swap
                         // dimensions
@@ -724,7 +732,7 @@ void update_remote_mapping_contribution(
          //data array, if 1) m is a valid source cell, 2) center cell is to be updated (normal cell) 3) m is remote
          //we will here allocate a receive buffer, since we need to aggregate values
          mcell->neighbor_number_of_blocks[0] = ccell->get_number_of_velocity_blocks(popID);
-         mcell->neighbor_block_data[0] = (Realf*) aligned_malloc(mcell->neighbor_number_of_blocks[0] * WID3 * sizeof(Realf), 64);
+         mcell->neighbor_block_data[0] = (Realf*) aligned_malloc(mcell->neighbor_number_of_blocks[0] * WID3 * sizeof(Realf), WID3);
 
          receive_cells.push_back(local_cells[c]);
          receiveBuffers.push_back(mcell->neighbor_block_data[0]);
@@ -749,7 +757,7 @@ void update_remote_mapping_contribution(
       break;
    }
 
-//#pragma omp parallel
+#pragma omp parallel
    {
       //reduce data: sum received data in the data array to
       // the target grid in the temporary block container
@@ -757,7 +765,7 @@ void update_remote_mapping_contribution(
          SpatialCell* spatial_cell = mpiGrid[receive_cells[c]];
          Realf *blockData = spatial_cell->get_data(popID);
 
-//#pragma omp for
+#pragma omp for
          for(unsigned int cell = 0; cell<VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++cell) {
             blockData[cell] += receiveBuffers[c][cell];
          }
@@ -770,7 +778,7 @@ void update_remote_mapping_contribution(
          SpatialCell* spatial_cell = mpiGrid[send_cells[c]];
          Realf * blockData = spatial_cell->get_data(popID);
 
-//#pragma omp for nowait
+#pragma omp for nowait
          for(unsigned int cell = 0; cell< VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++cell) {
             // copy received target data to temporary array where target data is stored.
             blockData[cell] = 0;

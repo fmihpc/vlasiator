@@ -112,7 +112,6 @@ namespace vblock {
        default:
 	 std::cerr << "Unknown accumulation method in " << __FILE__ << ' ' << __LINE__ << std::endl;
 	 exit(1);
-	 break;
       }
    }
    
@@ -154,7 +153,6 @@ namespace vblock {
 	      const int k = static_cast<int>(pos[2]);
 	      return data[index(i,j,k)];
 	   }
-	 break;
        case interpmethod::CIC:
 	   {
 	      const int i = static_cast<int>(pos[0] - 0.5);
@@ -169,11 +167,9 @@ namespace vblock {
 		   + data[index(i+0,j+1,k)]*(1-W_x)*( W_y )
 		   + data[index(i+1,j+1,k)]*( W_x )*( W_y );
 	   }
-	 break;
        default:
 	 std::cerr << "Unknown interpolation method in " << __FILE__ << ' ' << __LINE__ << std::endl;
 	 exit(1);
-	 break;
       }
    }
    
@@ -187,7 +183,6 @@ namespace vblock {
 	      const int k = static_cast<int>(pos[2]);
 	      return data[index(i,j,k)];
 	   }
-	 break;
        case interpmethod::CIC:
 	   {
 	      const int i = static_cast<int>(pos[0] - 0.5);
@@ -202,11 +197,9 @@ namespace vblock {
 		   + data[index(i+0,j,k+1)]*(1-W_x)*( W_z )
 		   + data[index(i+1,j,k+1)]*( W_x )*( W_z );
 	   }
-	 break;
        default:
 	 std::cerr << "Unknown interpolation method in " << __FILE__ << ' ' << __LINE__ << std::endl;
 	 exit(1);
-	 break;
       }
    }
 
@@ -220,7 +213,6 @@ namespace vblock {
 	      const int k = static_cast<int>(pos[2]);
 	      return data[index(i,j,k)];
 	   }
-	 break;
        case interpmethod::CIC:
 	   {
 	      const int i = static_cast<int>(pos[0] - 0.5);
@@ -235,11 +227,9 @@ namespace vblock {
 		   + data[index(i,j+0,k+1)]*(1-W_y)*( W_z )
 		   + data[index(i,j+1,k+1)]*( W_y )*( W_z );
 	   }
-	 break;
        default:
 	 std::cerr << "Unknown interpolation method in " << __FILE__ << ' ' << __LINE__ << std::endl;
 	 exit(1);
-	 break;
       }
    }
    
@@ -253,11 +243,9 @@ namespace vblock {
 	      const int k = static_cast<int>(pos[2]);
 	      return data[index(i,j,k)];
 	   }
-	 break;
        default:
 	 std::cerr << "Unknown interpolation method in " << __FILE__ << ' ' << __LINE__ << std::endl;
 	 exit(1);
-	 break;
       }
    }
 

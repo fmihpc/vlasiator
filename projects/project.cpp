@@ -333,7 +333,7 @@ namespace projects {
             exit(1);
          }
 
-         const Real maxValue = setVelocityBlock(cell,blockLID,popID);
+         const Realf maxValue = setVelocityBlock(cell,blockLID,popID);
          #warning TODO: add SpatialCell::getVelocityBlockMinValue() in place of sparseMinValue
          if (maxValue < getObjectWrapper().particleSpecies[popID].sparseMinValue) removeList.push_back(blockGID);
       }

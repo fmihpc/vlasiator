@@ -47,14 +47,6 @@
 using namespace std;
 using namespace spatial_cell;
 
-creal ZERO    = 0.0;
-creal HALF    = 0.5;
-creal FOURTH  = 1.0/4.0;
-creal SIXTH   = 1.0/6.0;
-creal ONE     = 1.0;
-creal TWO     = 2.0;
-creal EPSILON = 1.0e-25;
-
 /** Propagates the distribution function in spatial space.
 
     Based on SLICE-3D algorithm: Zerroukat, M., and T. Allen. "A
@@ -78,7 +70,7 @@ void calculateSpatialTranslation(
 ) {
 
     int trans_timer;
-    bool localTargetGridGenerated = false;
+    //bool localTargetGridGenerated = false;
     bool AMRtranslationActive = false;
     //if (P::amrMaxSpatialRefLevel > 0) AMRtranslationActive = true;
 
@@ -414,9 +406,6 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
          cpu_accelerate_cell(mpiGrid[cellID],popID,map_order,order_step,subcycleDt,isThreadZero);
          phiprof::stop("cell-semilag-acc");
       }
-      // Wait for all of the async GPU stuff to be done before continuing
-      // TODO: switch CPU, GPU #ifdef #elif
-      #pragma acc wait
    }
 
    //global adjust after each subcycle to keep number of blocks managable. Even the ones not

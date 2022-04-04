@@ -38,6 +38,7 @@
 #include <fsgrid.hpp>
 
 #include "vlasovmover.h"
+#include "vlasovsolver/vec.h"
 #include "definitions.h"
 #include "mpiconversion.h"
 #include "logger.h"
@@ -228,7 +229,6 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       isChanged=true;
 
       //set new timestep to the lowest one of all interval-midpoints
-      const Real half = 0.5;
       newDt = meanVlasovCFL * dtMaxGlobal[0];
       newDt = min(newDt,meanVlasovCFL * dtMaxGlobal[1] * P::maxSlAccelerationSubcycles);
       newDt = min(newDt,meanFieldsCFL * dtMaxGlobal[2] * P::maxFieldSolverSubcycles);
@@ -289,7 +289,6 @@ void recalculateLocalCellsCache() {
 }
 
 int main(int argn,char* args[]) {
-   bool success = true;
    int myRank, doBailout;
    const creal DT_EPSILON=1e-12;
    typedef Parameters P;
@@ -365,6 +364,22 @@ int main(int argn,char* args[]) {
    project->getParameters();
    sysBoundaries.getParameters();
    phiprof::stop("Read parameters");
+
+   // Check for correct application of vectorclass values:
+   if ( (VECL<WID) ||
+        (VECL*VEC_PER_PLANE != WID2) ||
+        (VECL*VEC_PER_BLOCK != WID3) ||
+        //(VPREC > VECL) ||
+        (VECL != (int)VECL) ||
+        (VPREC != (int)VPREC) ||
+        (VEC_PER_PLANE != (int)VEC_PER_PLANE) ||
+        (VEC_PER_BLOCK != (int)VEC_PER_BLOCK) ) {
+      if (myRank == MASTER_RANK) {
+         cerr << "(MAIN) ERROR: Vectorclass definition mismatch!" << endl;
+         cerr << "VECL " << VECL <<" VEC_PER_PLANE " << VEC_PER_PLANE <<" WID " << WID <<" VEC_PER_BLOCK " << VEC_PER_BLOCK << " VPREC "<< VPREC<<endl;
+      }
+      exit(1);      
+   }
 
    // Init parallel logger:
    phiprof::start("open logFile & diagnostic");
@@ -873,7 +888,7 @@ int main(int argn,char* args[]) {
             logFile <<" dt changed to "<<P::dt <<"s, distribution function was half-stepped to real-time and back"<<endl<<writeVerbose;
             phiprof::stop("update-dt");
             continue; //
-            addTimedBarrier("barrier-new-dt-set");
+            //addTimedBarrier("barrier-new-dt-set");
          }
       }
 

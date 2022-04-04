@@ -295,7 +295,7 @@ namespace projects {
     Real mass = getObjectWrapper().particleSpecies[popID].mass;
     Real KB = physicalconstants::K_B;
     Real mu0 = physicalconstants::MU_0;
-    Real adiab = 5./3.;
+    //Real adiab = 5./3.;
     const IPShockSpeciesParameters& sP = this->speciesParams[popID];
 
     // Interpolate density between upstream and downstream
@@ -405,9 +405,9 @@ namespace projects {
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
                   
                   /* Maintain all values in BPERT for simplicity */
-                  Real KB = physicalconstants::K_B;
+                  //Real KB = physicalconstants::K_B;
                   Real mu0 = physicalconstants::MU_0;
-                  Real adiab = 5./3.;
+                  //Real adiab = 5./3.;
                   
                   // Interpolate density between upstream and downstream
                   // All other values are calculated from jump conditions

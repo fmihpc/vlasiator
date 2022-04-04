@@ -149,7 +149,6 @@ void calculateMoments_R(
         const bool& computeSecond) {
  
     phiprof::start("compute-moments-n");
-    creal HALF = 0.5;
 
     for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
        #pragma omp parallel for

@@ -19,6 +19,8 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+
+#include "../common.h"
 #ifndef VECTORCLASS_INTERFACE_H
 #define VECTORCLASS_INTERFACE_H
 
@@ -52,6 +54,39 @@ VEC8F_AGNER
 */
 
 
+#ifdef VEC_FALLBACK_GENERIC
+// use portable vectorclass with specified vector length
+// if not specified in Makefile, equivalent to VEC8F
+#ifndef VECL
+#define VECL (8)
+#endif
+#ifndef VEC_PER_PLANE
+const int VEC_PER_PLANE = (WID*WID/VECL);
+#endif
+#ifndef VEC_PER_BLOCK
+const int VEC_PER_BLOCK = (WID*VEC_PER_PLANE);
+#endif
+#ifndef VPREC
+#define VPREC (8)
+#endif
+
+#include "vectorclass_fallback.h"
+
+typedef VecSimple<bool> Vecb;
+typedef VecSimple<int> Veci;
+
+#ifdef DPF
+typedef VecSimple<double> Vec;
+typedef double Realv;
+#define to_realv(v) to_double(v)
+#else
+typedef VecSimple<float> Vec;
+typedef float Realv;
+#define to_realv(v) to_float(v)
+#endif
+
+#endif
+
 
 
 #ifdef VEC4D_AGNER
@@ -68,8 +103,12 @@ typedef double Realv;
 #define to_realv(v) to_double(v)
 #define VECL 4
 #define VPREC 8
-#define VEC_PER_PLANE 4 //vectors per plane in block
-#define VEC_PER_BLOCK 16
+#ifndef VEC_PER_PLANE
+const int VEC_PER_PLANE = (WID*WID/VECL);
+#endif
+#ifndef VEC_PER_BLOCK
+const int VEC_PER_BLOCK = (WID*VEC_PER_PLANE);
+#endif
 #endif
 
 #ifdef VEC8D_AGNER
@@ -82,8 +121,12 @@ typedef double Realv;
 #define to_realv(v) to_double(v)
 #define VECL 8
 #define VPREC 8
-#define VEC_PER_PLANE 2 //vectors per plane in block
-#define VEC_PER_BLOCK 8
+#ifndef VEC_PER_PLANE
+const int VEC_PER_PLANE = (WID*WID/VECL);
+#endif
+#ifndef VEC_PER_BLOCK
+const int VEC_PER_BLOCK = (WID*VEC_PER_PLANE);
+#endif
 #endif
 
 #ifdef VEC4F_AGNER
@@ -96,8 +139,12 @@ typedef float Realv;
 #define to_realv(v) to_float(v)
 #define VECL 4
 #define VPREC 4
-#define VEC_PER_PLANE 4 //vectors per plane in block
-#define VEC_PER_BLOCK 16
+#ifndef VEC_PER_PLANE
+const int VEC_PER_PLANE = (WID*WID/VECL);
+#endif
+#ifndef VEC_PER_BLOCK
+const int VEC_PER_BLOCK = (WID*VEC_PER_PLANE);
+#endif
 #endif
 
 #ifdef VEC8F_AGNER
@@ -110,8 +157,12 @@ typedef float Realv;
 #define to_realv(v) to_float(v)
 #define VECL 8
 #define VPREC 4
-#define VEC_PER_PLANE 2 //vectors per plane in block
-#define VEC_PER_BLOCK 8
+#ifndef VEC_PER_PLANE
+const int VEC_PER_PLANE = (WID*WID/VECL);
+#endif
+#ifndef VEC_PER_BLOCK
+const int VEC_PER_BLOCK = (WID*VEC_PER_PLANE);
+#endif
 #endif
 
 
@@ -125,102 +176,12 @@ typedef float Realv;
 #define to_realv(v) to_float(v)
 #define VECL 16
 #define VPREC 4
-#define VEC_PER_PLANE 1 //vectors per plane in block
-#define VEC_PER_BLOCK 4
+#ifndef VEC_PER_PLANE
+const int VEC_PER_PLANE = (WID*WID/VECL);
 #endif
-
-
-
-#ifdef VEC4D_FALLBACK
-//user portable vectorclass
-/*
-#ifdef __CUDACC__
-*/
-#include "vectorclass_fallback.cuh"
-/*
-#else
-#include "vectorclass_fallback.h"
+#ifndef VEC_PER_BLOCK
+const int VEC_PER_BLOCK = (WID*VEC_PER_PLANE);
 #endif
-*/
-typedef Vec4Simple<double> Vec;
-typedef Vec4Simple<bool> Vecb;
-typedef Vec4Simple<int> Veci;
-typedef double Realv;
-#define to_realv(v) to_double(v)
-#define VECL 4
-#define VPREC 8
-#define VEC_PER_PLANE 4 //vectors per plane in block
-#define VEC_PER_BLOCK 16
-#endif
-
-#ifdef VEC4F_FALLBACK
-//user portable vectorclass
-//user portable vectorclass
-/*
-#ifdef __CUDACC__
-*/
-#include "vectorclass_fallback.cuh"
-/*
-#else
-#include "vectorclass_fallback.h"
-#endif
-*/
-typedef Vec4Simple<float> Vec;
-typedef Vec4Simple<bool> Vecb;
-typedef Vec4Simple<int> Veci;
-typedef float Realv;
-#define to_realv(v) to_float(v)
-#define VECL 4
-#define VPREC 4
-#define VEC_PER_PLANE 4 //vectors per plane in block
-#define VEC_PER_BLOCK 16
-#endif
-
-#ifdef VEC8D_FALLBACK
-//user portable vecto rclass
-//user portable vectorclass
-/*
-#ifdef __CUDACC__
-*/
-#include "vectorclass_fallback.cuh"
-/*
-#else
-#include "vectorclass_fallback.h"
-#endif
-*/
-typedef Vec8Simple<double> Vec;
-typedef Vec8Simple<bool> Vecb;
-typedef Vec8Simple<int> Veci;
-typedef double Realv;
-#define to_realv(v) to_double(v)
-#define VECL 8
-#define VPREC 8
-#define VEC_PER_PLANE 2 //vectors per plane in block
-#define VEC_PER_BLOCK 8
-#endif
-
-
-#ifdef VEC8F_FALLBACK
-//user portable vectorclass
-//user portable vectorclass
-/*
-#ifdef __CUDACC__
-*/
-#include "vectorclass_fallback.cuh"
-/*
-#else
-#include "vectorclass_fallback.h"
-#endif
-*/
-typedef Vec8Simple<float> Vec;
-typedef Vec8Simple<bool> Vecb;
-typedef Vec8Simple<int> Veci;
-typedef float Realv;
-#define to_realv(v) to_float(v)
-#define VECL 8
-#define VPREC 4
-#define VEC_PER_PLANE 2 //vectors per plane in block
-#define VEC_PER_BLOCK 8
 #endif
 
 

@@ -46,8 +46,8 @@ COMPFLAGS += -DNDEBUG
 #  TRANS_SEMILAG_PLM 	2nd order
 #  TRANS_SEMILAG_PPM	3rd order (for production use, use unless testing)
 #  TRANS_SEMILAG_PQM	5th order (significantly slower due to larger stencil)
-COMPFLAGS += -DACC_SEMILAG_PQM -DTRANS_SEMILAG_PQM
-CUDAFLAGS += -DACC_SEMILAG_PQM
+COMPFLAGS += -DACC_SEMILAG_PQM -DTRANS_SEMILAG_PPM
+CUDAFLAGS += -DACC_SEMILAG_PQM -DTRANS_SEMILAG_PPM
 #Add -DCATCH_FPE to catch floating point exceptions and stop execution
 #May cause problems
 #COMPFLAGS += -DCATCH_FPE
@@ -81,10 +81,45 @@ ifeq ($(MESH),AMR)
 COMPFLAGS += -DAMR
 endif
 
+# CUDA settings
+ifeq ($(USE_CUDA),1)
+	LIBS += ${LIB_CUDA}
+	COMPFLAGS += -DUSE_CUDA
+	CUDALIB += -lcudart
+ifeq ($(CUDA_REALF),1)
+	COMPFLAGS += -DCUDA_REALF
+	CUDAFLAGS += -DCUDA_REALF
+endif
+endif
+
+#Vectorclass settinsg
+ifdef WID
+	COMPFLAGS += -DWID=$(WID)
+	CUDAFLAGS += -DWID=$(WID)
+endif
+ifdef VECL
+	COMPFLAGS += -DVECL=$(VECL)
+	CUDAFLAGS += -DVECL=$(VECL)
+endif
+ifdef VEC_PER_PLANE
+	COMPFLAGS += -DVEC_PER_PLANE=$(VEC_PER_PLANE)
+	CUDAFLAGS += -DVEC_PER_PLANE=$(VEC_PER_PLANE)
+endif
+ifdef VEC_PER_BLOCK
+	COMPFLAGS += -DVEC_PER_BLOCK=$(VEC_PER_BLOCK)
+	CUDAFLAGS += -DVEC_PER_BLOCK=$(VEC_PER_BLOCK)
+endif
+ifdef VPREC
+	COMPFLAGS += -DVPREC=$(VPREC)
+	CUDAFLAGS += -DVPREC=$(VPREC)
+endif
+
 # Set compiler flags
 CXXFLAGS += ${COMPFLAGS}
+NVCCFLAGS += ${CUDAFLAGS}
 #also for testpackage (due to makefile order this needs to be done also separately for targets)
 testpackage: CXXFLAGS += ${COMPFLAGS}
+testpackage: NVCCFLAGS += ${CUDAFLAGS}
 CXXEXTRAFLAGS = ${CXXFLAGS} -DTOOL_NOT_PARALLEL
 
 default: vlasiator
@@ -118,11 +153,6 @@ LIBS += ${LIB_PROFILE}
 LIBS += ${LIB_VLSV}
 LIBS += ${LIB_JEMALLOC}
 LIBS += ${LIB_PAPI}
-ifeq ($(USE_CUDA),1)
-	LIBS += ${LIB_CUDA}
-	CXXFLAGS += -DUSE_CUDA
-	CUDALINK += -lcudart
-endif
 
 # Define common dependencies
 DEPS_COMMON = common.h common.cpp definitions.h mpiconversion.h logger.h object_wrapper.h
@@ -161,7 +191,7 @@ DEPS_PROJECTS =	projects/project.h projects/project.cpp \
 		projects/verificationLarmor/verificationLarmor.h projects/verificationLarmor/verificationLarmor.cpp \
 		projects/Shocktest/Shocktest.h projects/Shocktest/Shocktest.cpp ${DEPS_CELL}
 
-DEPS_CUDA_ACC_MAP_KERNEL = vlasovsolver/vec.h vlasovsolver/cuda_header.cuh vlasovsolver/cuda_acc_map_kernel.cuh vlasovsolver/cuda_acc_map_kernel.cu vlasovsolver/vectorclass_fallback.cuh
+DEPS_CUDA_ACC_MAP_KERNEL = vlasovsolver/vec.h vlasovsolver/cuda_header.h vlasovsolver/cuda_acc_map_kernel.cuh vlasovsolver/cuda_acc_map_kernel.cu vlasovsolver/vectorclass_fallback.h
 
 DEPS_CPU_ACC_INTERSECTS = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/cpu_acc_intersections.hpp vlasovsolver/cpu_acc_intersections.cpp
 
@@ -360,7 +390,7 @@ Shock.o: ${DEPS_COMMON} projects/Shock/Shock.h projects/Shock/Shock.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/Shock/Shock.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_FSGRID}
 
 IPShock.o: ${DEPS_COMMON} projects/IPShock/IPShock.h projects/IPShock/IPShock.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/IPShock/IPShock.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_FSGRID} ${INC_VECTORCLASS}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/IPShock/IPShock.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_FSGRID}
 
 Template.o: ${DEPS_COMMON} projects/Template/Template.h projects/Template/Template.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/Template/Template.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_FSGRID}
@@ -402,7 +432,7 @@ cpu_acc_intersections.o: ${DEPS_CPU_ACC_INTERSECTS}
 
 ifeq ($(USE_CUDA),1)
 cuda_acc_map_kernel.o: ${DEPS_CUDA_ACC_MAP_KERNEL}
-	${NVCC} ${CUDAFLAGS} -D${VECTORCLASS} -dc vlasovsolver/cuda_acc_map_kernel.cu
+	${NVCC} ${NVCCFLAGS} -D${VECTORCLASS} -dc vlasovsolver/cuda_acc_map_kernel.cu
 endif
 
 cpu_acc_map.o: ${DEPS_CPU_ACC_MAP} ${DEPS_CUDA_ACC_MAP_KERNEL}
@@ -465,10 +495,10 @@ gridGlue.o: ${DEPS_FSOLVER} fieldsolver/gridGlue.hpp fieldsolver/gridGlue.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/gridGlue.cpp ${INC_BOOST} ${INC_FSGRID} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN}
 
 vlasiator.o: ${DEPS_COMMON} readparameters.h parameters.h ${DEPS_PROJECTS} grid.h vlasovmover.h ${DEPS_CELL} vlasiator.cpp iowrite.h fieldsolver/gridGlue.hpp
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c vlasiator.cpp ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c vlasiator.cpp ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_VECTORCLASS}
 
 grid.o:  ${DEPS_COMMON} parameters.h ${DEPS_PROJECTS} ${DEPS_CELL} grid.cpp grid.h  sysboundary/sysboundary.h
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c grid.cpp ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_PAPI}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c grid.cpp ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_PAPI} ${INC_VECTORCLASS}
 
 ioread.o:  ${DEPS_COMMON} parameters.h  ${DEPS_CELL} ioread.cpp ioread.h
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c ioread.cpp ${INC_MPI} ${INC_DCCRG} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_FSGRID}
@@ -499,15 +529,15 @@ object_wrapper.o:  $(DEPS_COMMON)  object_wrapper.h object_wrapper.cpp
 
 ifeq ($(USE_CUDA),1)
 cudalink1.o: cpu_acc_map.o
-	${NVCC} ${CUDAFLAGS} -dlink cpu_acc_map.o -o cudalink1.o
+	${NVCC} ${CUDALINK} ${NVCCFLAGS} -dlink cpu_acc_map.o -o cudalink1.o
 
 cudalink2.o: cuda_acc_map_kernel.o
-	${NVCC} ${CUDAFLAGS} -dlink cuda_acc_map_kernel.o -o cudalink2.o
+	${NVCC} ${CUDALINK} ${NVCCFLAGS} -dlink cuda_acc_map_kernel.o -o cudalink2.o
 endif
 
 # Make executable
 vlasiator: $(OBJS) $(OBJS_FSOLVER)
-	$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) $(LIBS) $(OBJS_FSOLVER) $(CUDALINK)
+	$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) $(LIBS) $(OBJS_FSOLVER) $(CUDALIB)
 
 #/// TOOLS section/////
 

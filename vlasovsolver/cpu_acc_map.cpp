@@ -36,8 +36,6 @@
 #include "cpu_acc_map.hpp"
 #include "cuda_acc_map_kernel.cuh"
 
-//#define DEBUG_ACC
-
 using namespace std;
 using namespace spatial_cell;
 /** Attempt to add the given velocity block to the given velocity mesh.
@@ -105,46 +103,6 @@ void inline swapBlockIndices(velocity_block_indices_t &blockIndices, const uint 
    }
 }
 
-#ifdef USE_CUDA
-Realf* acceleration_1_wrapperCaller(
-    Realf *blockData,
-    Column *columns,
-    Vec values[],
-    uint cell_indices_to_id[3],
-    int totalColumns,
-    int valuesSizeRequired,
-    int bdsw3,
-    Realv intersection,
-    Realv intersection_di,
-    Realv intersection_dj,
-    Realv intersection_dk,
-    Realv v_min,
-    Realv i_dv,
-    Realv dv,
-    Realv minValue
-  ) {
-    //printf("STAGE 2\n");
-    Realf* returned_blockData = acceleration_1_wrapper (
-      blockData,
-      columns,
-      values,
-      cell_indices_to_id,
-      totalColumns,
-      valuesSizeRequired,
-      bdsw3,
-      intersection,
-      intersection_di,
-      intersection_dj,
-      intersection_dk,
-      v_min,
-      i_dv,
-      dv,
-      minValue
-    );
-    return returned_blockData;
-  }
-#endif // USE_CUDA
-
 /*
    Here we map from the current time step grid, to a target grid which
    is the lagrangian departure grid (so th grid at timestep +dt,
@@ -171,11 +129,15 @@ bool map_1d(SpatialCell* spatial_cell,
    useAccelerator = false;
 #endif // USE_CUDA
 
-   if(!useAccelerator) {
-      cerr << "Not using accelerator for cell." << endl;
-   } else {
-      cerr << "Using accelerator." << endl;
-   }
+#ifdef CUDA_REALF
+   // if(useAccelerator) {
+   //    cerr << "Using CUDA_REALF accelerator. " << endl;
+   // }
+#else
+   // if(useAccelerator) {
+   //    cerr << "Using CUDA accelerator. " << endl;
+   // }
+#endif
 
    //nothing to do if no blocks
    if(vmesh.size() == 0)
@@ -246,11 +208,11 @@ bool map_1d(SpatialCell* spatial_cell,
    const Realv i_dv=1.0/dv;
 
    // sort blocks according to dimension, and divide them into columns
-   vmesh::LocalID* blocks = new vmesh::LocalID[vmesh.size()];
-   std::vector<uint> columnBlockOffsets;
-   std::vector<uint> columnNumBlocks;
-   std::vector<uint> setColumnOffsets;
-   std::vector<uint> setNumColumns;
+   vmesh::LocalID* blocks = new vmesh::LocalID[vmesh.size()]; // GIDs in dimension-order (length nBlocks)
+   std::vector<uint> columnBlockOffsets; // indexes where columns start (in blocks, length totalColumns)
+   std::vector<uint> columnNumBlocks; // length of column (in blocks, length totalColumns)
+   std::vector<uint> setColumnOffsets; // index from columnBlockOffsets where new set of columns starts (length nColumnSets)
+   std::vector<uint> setNumColumns; // how many columns in set of columns (length nColumnSets) 
 
    sortBlocklistByDimension(vmesh, dimension, blocks,
                             columnBlockOffsets, columnNumBlocks,
@@ -363,8 +325,8 @@ bool map_1d(SpatialCell* spatial_cell,
           * edge in source grid.
            *lastBlockV is in z the maximum velocity value of the upper
           * edge in source grid. */
-         double firstBlockMinV = (WID * firstBlockIndices[2]) * dv + v_min;
-         double lastBlockMaxV = (WID * (lastBlockIndices[2] + 1)) * dv + v_min;
+         Realv firstBlockMinV = (WID * firstBlockIndices[2]) * dv + v_min;
+         Realv lastBlockMaxV = (WID * (lastBlockIndices[2] + 1)) * dv + v_min;
 
          /*gk is now the k value in terms of cells in target
          grid. This distance between max_intersectionMin (so lagrangian
@@ -373,8 +335,8 @@ bool map_1d(SpatialCell* spatial_cell,
          const int firstBlock_gk = (int)((firstBlockMinV - max_intersectionMin)/intersection_dk);
          const int lastBlock_gk = (int)((lastBlockMaxV - min_intersectionMin)/intersection_dk);
 
-         uint firstBlockIndexK = firstBlock_gk/WID;
-         uint lastBlockIndexK = lastBlock_gk/WID;
+         int firstBlockIndexK = firstBlock_gk/WID;
+         int lastBlockIndexK = lastBlock_gk/WID;
 
          //now enforce mesh limits for target column blocks
          firstBlockIndexK = (firstBlockIndexK >= 0)            ? firstBlockIndexK : 0;
@@ -402,7 +364,7 @@ bool map_1d(SpatialCell* spatial_cell,
          }
 
          //store target blocks
-         for (uint blockK = firstBlockIndexK; blockK <= lastBlockIndexK; blockK++){
+         for (uint blockK = (uint)firstBlockIndexK; blockK <= (uint)lastBlockIndexK; blockK++){
             isTargetBlock[blockK]=true;
          }
 
@@ -444,11 +406,11 @@ bool map_1d(SpatialCell* spatial_cell,
    Realf *blockData = blockContainer.getData();
    size_t blockDataSize = blockContainer.size();
    size_t bdsw3 = blockDataSize * WID3;
-   if (useAccelerator) {
-     for (uint cell = 0; cell < bdsw3; cell++) {
-       blockData[cell] = 0;
-     }
-   }
+   // if (useAccelerator) { // Memset to zero on device
+   //   for (uint cell = 0; cell < bdsw3; cell++) {
+   //     blockData[cell] = 0;
+   //   }
+   // }
 
    // Now we iterate through target columns again, identifying their block offsets
    for( uint column=0; column < totalColumns; column++) {
@@ -475,9 +437,8 @@ bool map_1d(SpatialCell* spatial_cell,
       std::cerr << "Tried to use accelerator in non-CUDA build!" << std::endl;
       abort();
 #else
-     //CALL CUDA FUNCTION WRAPPER START
-     //printf("STAGE 1\n");
-     blockData = acceleration_1_wrapperCaller(
+     //CALL CUDA FUNCTION WRAPPER/GLUE
+     acceleration_1_glue(
        blockData,
        columns,
        values,
@@ -494,13 +455,6 @@ bool map_1d(SpatialCell* spatial_cell,
        dv,
        minValue
      );
-     //CALL CUDA FUNCTION WRAPPER END
-     /*
-     for(uint cell=0; cell<bdsw3; cell++)
-     {
-       printf("blockData[cell] = %.2f\n", blockData[cell]);
-     }
-     */
 #endif //USE_CUDA
    } else {
       // CPU version
@@ -515,23 +469,72 @@ bool map_1d(SpatialCell* spatial_cell,
          for (uint j = 0; j < WID; j += VECL/WID){
             const vmesh::LocalID nblocks = columns[column].nblocks;
             // create vectors with the i and j indices in the vector position on the plane.
-            #if VECL == 4
-            const Veci i_indices = Veci(0, 1, 2, 3);
-            const Veci j_indices = Veci(j, j, j, j);
-            #elif VECL == 8
-            const Veci i_indices = Veci(0, 1, 2, 3,
-                                        0, 1, 2, 3);
-            const Veci j_indices = Veci(j, j, j, j,
-                                        j + 1, j + 1, j + 1, j + 1);
-            #elif VECL == 16
-            const Veci i_indices = Veci(0, 1, 2, 3,
+            #if VECL == 4 && WID == 4
+            const Veci i_indices = Veci({0, 1, 2, 3});
+            const Veci j_indices = Veci({j, j, j, j});
+            #elif VECL == 4 && WID == 8
+            cerr << __FILE__ << ":" << __LINE__ << ": VECL == 4 && WID == 8 cannot work!" << endl;
+            abort();
+            #elif VECL == 8 && WID == 4
+            const Veci i_indices = Veci({0, 1, 2, 3,
+                                        0, 1, 2, 3});
+            const Veci j_indices = Veci({j, j, j, j,
+                                        j + 1, j + 1, j + 1, j + 1});
+            #elif VECL == 8 && WID == 8
+            const Veci i_indices = Veci({0, 1, 2, 3, 4, 5, 6, 7});
+            const Veci j_indices = Veci({j, j, j, j, j, j, j, j});
+            #elif VECL == 16 && WID == 4
+            const Veci i_indices = Veci({0, 1, 2, 3,
                                         0, 1, 2, 3,
                                         0, 1, 2, 3,
-                                        0, 1, 2, 3);
-            const Veci j_indices = Veci(j, j, j, j,
+                                        0, 1, 2, 3});
+            const Veci j_indices = Veci({j, j, j, j,
                                         j + 1, j + 1, j + 1, j + 1,
                                         j + 2, j + 2, j + 2, j + 2,
-                                        j + 3, j + 3, j + 3, j + 3);
+                                        j + 3, j + 3, j + 3, j + 3});
+            #elif VECL == 16 && WID == 8
+            const Veci i_indices = Veci({0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7});
+            const Veci j_indices = Veci({j,   j,   j,   j,   j,   j,   j,   j,
+                                        j+1, j+1, j+1, j+1, j+1, j+1, j+1, j+1});
+            #elif VECL == 16 && WID == 16
+            const Veci i_indices = Veci({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15});
+            const Veci j_indices = Veci({j, j, j, j, j, j, j, j, j, j,  j,  j,  j,  j,  j, j});
+            #elif VECL == 32 && WID == 4
+            cerr << __FILE__ << ":" << __LINE__ << ": VECL == 32 && WID == 4 cannot work, too long vector for one plane!" << endl;
+            abort();
+            #elif VECL == 32 && WID == 8
+            const Veci i_indices = Veci({0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7});
+            const Veci j_indices = Veci({j,   j,   j,   j,   j,   j,   j,   j,
+                                        j+1, j+1, j+1, j+1, j+1, j+1, j+1, j+1,
+                                        j+2, j+2, j+2, j+2, j+2, j+2, j+2, j+2,
+                                        j+3, j+3, j+3, j+3, j+3, j+3, j+3, j+3});
+            #elif VECL == 64 && WID == 4
+            cerr << __FILE__ << ":" << __LINE__ << ": VECL == 64 && WID == 4 cannot work, too long vector for one plane!" << endl;
+            abort();
+            #elif VECL == 64 && WID == 8
+            const Veci i_indices = Veci({0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7,
+                                        0, 1, 2, 3, 4, 5, 6, 7});
+            const Veci j_indices = Veci({j,   j,   j,   j,   j,   j,   j,   j,
+                                        j+1, j+1, j+1, j+1, j+1, j+1, j+1, j+1,
+                                        j+2, j+2, j+2, j+2, j+2, j+2, j+2, j+2,
+                                        j+3, j+3, j+3, j+3, j+3, j+3, j+3, j+3,
+                                        j+4, j+4, j+4, j+4, j+4, j+4, j+4, j+4,
+                                        j+5, j+5, j+5, j+5, j+5, j+5, j+5, j+5,
+                                        j+6, j+6, j+6, j+6, j+6, j+6, j+6, j+6,
+                                        j+7, j+7, j+7, j+7, j+7, j+7, j+7, j+7});
+            #else
+            cerr << __FILE__ << ":" << __LINE__ << ": Missing implementation for VECL=" << VECL << " and WID=" << WID << "!" << endl;
+            abort();
             #endif
 
             const Veci  target_cell_index_common =

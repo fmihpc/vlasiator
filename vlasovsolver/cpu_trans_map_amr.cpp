@@ -697,7 +697,7 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
 }
 
 bool check_skip_remapping(Vec* values) {
-   for (int index=-VLASOV_STENCIL_WIDTH; index<VLASOV_STENCIL_WIDTH+1; ++index) {
+   for (int index=0; index<2*VLASOV_STENCIL_WIDTH+1; ++index) {
       if (horizontal_or(values[index] > Vec(0))) return false;
    }
    return true;
@@ -744,7 +744,7 @@ void propagatePencil(
    }
    
    // Go from 0 to length here to propagate all the cells in the pencil
-   for (uint i = 0; i < lengthOfPencil; i++){
+   for (int i = 0; i < lengthOfPencil; i++){
       
       // The source array is padded by VLASOV_STENCIL_WIDTH on both sides.
       uint i_source   = i + VLASOV_STENCIL_WIDTH;
@@ -991,7 +991,7 @@ bool copy_trans_block_data_amr(
     const vmesh::GlobalID blockGID,
     int lengthOfPencil,
     Vec* values,
-    const unsigned char* const cellid_transpose,
+    const unsigned int* const cellid_transpose,
     const uint popID) { 
 
    // Allocate data pointer for all blocks in pencil. Pad on both ends by VLASOV_STENCIL_WIDTH
@@ -1403,7 +1403,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    phiprof::start("setup");
 
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
-   unsigned char  cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
+   unsigned int  cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
    // return if there's no cells to propagate
    if(localPropagatedCells.size() == 0) {
       cout << "Returning because of no cells" << endl;
@@ -1592,7 +1592,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                
                int L = DimensionPencils[dimension].lengthOfPencils[pencili];
                uint targetLength = L + 2 * nTargetNeighborsPerPencil;
-               uint sourceLength = L + 2 * VLASOV_STENCIL_WIDTH;
+               //uint sourceLength = L + 2 * VLASOV_STENCIL_WIDTH;
                               
                // load data(=> sourcedata) / (proper xy reconstruction in future)
                bool pencil_has_data = copy_trans_block_data_amr(pencilSourceCells[pencili].data(), blockGID, L, pencilSourceVecData[pencili].data(),
@@ -1726,7 +1726,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 int get_sibling_index(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const CellID& cellid) {
 
    const int NO_SIBLINGS = 0;
-   const int ERROR = -1;
+   //const int ERROR = -1;
    
    if(mpiGrid.get_refinement_level(cellid) == 0) {
       return NO_SIBLINGS;
@@ -1916,7 +1916,7 @@ void update_remote_mapping_contribution_amr(
                      // summed for the correct result.
                      
                      ccell->neighbor_block_data.at(sendIndex) =
-                        (Realf*) aligned_malloc(ccell->neighbor_number_of_blocks.at(sendIndex) * WID3 * sizeof(Realf), 64);
+                        (Realf*) aligned_malloc(ccell->neighbor_number_of_blocks.at(sendIndex) * WID3 * sizeof(Realf), WID3);
                      sendBuffers.push_back(ccell->neighbor_block_data.at(sendIndex));
                      for (uint j = 0; j < ccell->neighbor_number_of_blocks.at(sendIndex) * WID3; ++j) {
                         ccell->neighbor_block_data.at(sendIndex)[j] = 0.0;
@@ -1967,9 +1967,9 @@ void update_remote_mapping_contribution_amr(
 
                   ncell->neighbor_number_of_blocks.at(recvIndex) = ccell->get_number_of_velocity_blocks(popID);
                   ncell->neighbor_block_data.at(recvIndex) =
-                     (Realf*) aligned_malloc(ncell->neighbor_number_of_blocks.at(recvIndex) * WID3 * sizeof(Realf), 64);
+                     (Realf*) aligned_malloc(ncell->neighbor_number_of_blocks.at(recvIndex) * WID3 * sizeof(Realf), WID3);
                   receiveBuffers.push_back(ncell->neighbor_block_data.at(recvIndex));
-                  
+
                } else {
 
                   recvIndex = mySiblingIndex;
@@ -1994,7 +1994,7 @@ void update_remote_mapping_contribution_amr(
                         
                         ncell->neighbor_number_of_blocks.at(i_sib) = scell->get_number_of_velocity_blocks(popID);
                         ncell->neighbor_block_data.at(i_sib) =
-                           (Realf*) aligned_malloc(ncell->neighbor_number_of_blocks.at(i_sib) * WID3 * sizeof(Realf), 64);
+                           (Realf*) aligned_malloc(ncell->neighbor_number_of_blocks.at(i_sib) * WID3 * sizeof(Realf), WID3);
                         receiveBuffers.push_back(ncell->neighbor_block_data.at(i_sib));
                      }
                   }
