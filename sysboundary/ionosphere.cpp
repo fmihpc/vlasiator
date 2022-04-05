@@ -1731,6 +1731,7 @@ namespace SBC {
        FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
        FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
        FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+         FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
        FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
 
       if(!isCouplingInwards && !isCouplingOutwards) {
@@ -1743,6 +1744,7 @@ namespace SBC {
       std::vector<double> FACinput(nodes.size());
       std::vector<double> rhoInput(nodes.size());
       std::vector<double> temperatureInput(nodes.size());
+      std::vector<double> poyntingInput(nodes.size());
 
       // Map all coupled nodes down into it
       // Tasks that don't have anything to couple to can skip this step.
@@ -1859,13 +1861,23 @@ namespace SBC {
                      }
 
 
-                     // Map density and temperature down
+                     // Map density, temperature and Poynting flux down
                      Real thisCellRho = coupling * momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::RHOQ) / physicalconstants::CHARGE;
                      rhoInput[n] += thisCellRho;
                      temperatureInput[n] += coupling * 1./3. * (
                           momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_11) +
                           momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_22) +
                           momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_33)) / (thisCellRho * physicalconstants::K_B * ion_electron_T_ratio);
+                     Vec3d E(volGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::EXVOL),
+                           volGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::EYVOL),
+                           volGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::EZVOL));
+                     Vec3d B(nodes[n].parameters[ionosphereParameters::UPMAPPED_BX],
+                              nodes[n].parameters[ionosphereParameters::UPMAPPED_BY],
+                              nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]);
+                     Vec3d dipoleB(this->dipoleField(nodes[n].xMapped[0],nodes[n].xMapped[1],nodes[n].xMapped[2],X,0,X),
+                           this->dipoleField(nodes[n].xMapped[0],nodes[n].xMapped[1],nodes[n].xMapped[2],Y,0,Y),
+                           this->dipoleField(nodes[n].xMapped[0],nodes[n].xMapped[1],nodes[n].xMapped[2],Z,0,Z));
+                     poyntingInput[n] += coupling / physicalconstants::MU_0 * dot_product(cross_product(E,B),dipoleB) / sqrt(dot_product(dipoleB,dipoleB)) * upmappedArea / area;
                   }
                }
             }
@@ -1875,6 +1887,7 @@ namespace SBC {
             if(couplingSum > 0) {
                rhoInput[n] /= couplingSum;
                temperatureInput[n] /= couplingSum;
+               poyntingInput[n] /= couplingSum;
             }
 
             // Scale density by area ratio
@@ -1886,9 +1899,11 @@ namespace SBC {
       std::vector<double> FACsum(nodes.size());
       std::vector<double> rhoSum(nodes.size());
       std::vector<double> temperatureSum(nodes.size());
+      std::vector<double> poyntingSum(nodes.size());
       MPI_Allreduce(&FACinput[0], &FACsum[0], nodes.size(), MPI_DOUBLE, MPI_SUM, communicator);
       MPI_Allreduce(&rhoInput[0], &rhoSum[0], nodes.size(), MPI_DOUBLE, MPI_SUM, communicator);
       MPI_Allreduce(&temperatureInput[0], &temperatureSum[0], nodes.size(), MPI_DOUBLE, MPI_SUM, communicator); // TODO: Does it make sense to SUM the temperatures?
+      MPI_Allreduce(&poyntingInput[0], &poyntingSum[0], nodes.size(), MPI_DOUBLE, MPI_SUM, communicator);
 
       for(uint n=0; n<nodes.size(); n++) {
 
@@ -1908,6 +1923,7 @@ namespace SBC {
 
             nodes[n].parameters[ionosphereParameters::RHON] = Ionosphere::unmappedNodeRho * Chi0;
             nodes[n].parameters[ionosphereParameters::TEMPERATURE] = Ionosphere::unmappedNodeTe;
+            nodes[n].parameters[ionosphereParameters::POYNTINGFLUX] = 0;
          } else {
             // Store as the node's parameter values.
             if(Ionosphere::couplingTimescale == 0) {
@@ -1915,6 +1931,7 @@ namespace SBC {
                nodes[n].parameters[ionosphereParameters::SOURCE] = FACsum[n];
                nodes[n].parameters[ionosphereParameters::RHON] = rhoSum[n] * Chi0;
                nodes[n].parameters[ionosphereParameters::TEMPERATURE] = temperatureSum[n];
+               nodes[n].parameters[ionosphereParameters::POYNTINGFLUX] = poyntingSum[n];
             } else {
 
                // Slow coupling with a given timescale.
