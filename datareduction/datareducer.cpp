@@ -2592,6 +2592,46 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1, "m^2", "$\\mathrm{m}^2$", "$A_m$", "1.0");
          continue;
       }
+      if(lowercase == "ig_inplanecurrent") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereElement("ig_inplanecurrent", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+                  
+                     std::vector<Real> retval(grid.elements.size()*3);
+
+                     for(uint i=0; i<grid.elements.size(); i++) {
+                        // Get effective sigma tensor for this element
+                        std::array<Real, 9> sigma = grid.sigmaAverage(i);
+
+                        // Calculate E from element basis functions
+                        std::array<Real, 3> E({0,0,0});
+                        const std::array<Real, 3>& c1 = grid.nodes[grid.elements[i].corners[0]].x;
+                        const std::array<Real, 3>& c2 = grid.nodes[grid.elements[i].corners[1]].x;
+                        const std::array<Real, 3>& c3 = grid.nodes[grid.elements[i].corners[2]].x;
+
+                        std::array<std::array<Real,3>, 3> ET({grid.computeGradT(c2,c3,c2), grid.computeGradT(c3,c1,c2), grid.computeGradT(c1,c2,c3)});
+                        for(int n=0; n<3; n++) {
+                           ET[0][n] *= grid.nodes[grid.elements[i].corners[0]].parameters[ionosphereParameters::SOLUTION];
+                           ET[1][n] *= grid.nodes[grid.elements[i].corners[1]].parameters[ionosphereParameters::SOLUTION];
+                           ET[2][n] *= grid.nodes[grid.elements[i].corners[2]].parameters[ionosphereParameters::SOLUTION];
+                        }
+                        // Sum up element gradient functions to yield complete E inside this element.
+                        for(int n=0; n<3; n++) {
+                           E[n] = ET[0][n] + ET[1][n] + ET[2][n];
+                        }
+
+                        // Get J from Ohm's law (J = sigma * E)
+                        for(int n=0; n<3; n++) {
+                           for(int m=0; m<3; m++) {
+                              retval[3*i + n] += sigma[3*n+m] * E[m];
+                           }
+                        }
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addMetadata(outputReducer->size()-1, "A/m^2", "$\\mathrm{A/m}^2$", "$J$", "1.0");
+         continue;
+      }
       if(lowercase == "ig_upmappedarea") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereElement("ig_upmappedarea", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
