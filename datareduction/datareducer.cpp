@@ -2608,8 +2608,10 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                         const std::array<Real, 3>& c2 = grid.nodes[grid.elements[i].corners[1]].x;
                         const std::array<Real, 3>& c3 = grid.nodes[grid.elements[i].corners[2]].x;
 
-                        std::array<std::array<Real,3>, 3> ET({grid.computeGradT(c2,c3,c2), grid.computeGradT(c3,c1,c2), grid.computeGradT(c1,c2,c3)});
+                        // ET contains the test function gradient vectors (normalized to potential 1)
+                        std::array<std::array<Real,3>, 3> ET({grid.computeGradT(c2,c3,c1), grid.computeGradT(c3,c1,c2), grid.computeGradT(c1,c2,c3)});
                         for(int n=0; n<3; n++) {
+                           // Multiply with the corresponding node potentials to get E vector
                            ET[0][n] *= grid.nodes[grid.elements[i].corners[0]].parameters[ionosphereParameters::SOLUTION];
                            ET[1][n] *= grid.nodes[grid.elements[i].corners[1]].parameters[ionosphereParameters::SOLUTION];
                            ET[2][n] *= grid.nodes[grid.elements[i].corners[2]].parameters[ionosphereParameters::SOLUTION];
