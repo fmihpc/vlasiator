@@ -338,13 +338,13 @@ int main(int argc, char** argv) {
    Ionosphere::solverPreconditioning = doPrecondition;
    ionosphereGrid.rank = 0;
    int iterations, nRestarts;
-   Real residual, minPotential, maxPotential;
-   ionosphereGrid.solve(iterations, nRestarts, residual, minPotential, maxPotential);
+   Real residual, minPotentialN, minPotentialS, maxPotentialN, maxPotentialS;
+   ionosphereGrid.solve(iterations, nRestarts, residual, minPotentialN, maxPotentialN, minPotentialS, maxPotentialS);
    cout << "Ionosphere solver: iterations " << iterations << " restarts " << nRestarts
       << " residual " << std::scientific << residual << std::defaultfloat
-      << " potential min " << minPotential
-      << " max " << maxPotential
-      << " difference " << maxPotential - minPotential
+      << " potential min N = " << minPotentialN << " S = " << minPotentialS
+      << " max N = " << maxPotentialN << " S = " << maxPotentialS
+      << " difference N = " << maxPotentialN - minPotentialN << " S = " << maxPotentialS - minPotentialS
       << endl;
 
    // Write output

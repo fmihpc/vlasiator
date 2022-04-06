@@ -9,8 +9,8 @@ LIBS += ${LIB_PROFILE}
 LIBS += ${LIB_ZOLTAN}
 LIBS += ${LIB_VLSV}
 
-all: main differentialFlux sigmaProfiles
-.PHONY: clean
+all: main differentialFlux sigmaProfiles quadrupoleTests atmosphere.pdf
+.PHONY: clean quadrupoleTests
 
 clean: 
 	rm *.o main
@@ -76,3 +76,10 @@ differentialFlux: differentialFlux.cpp
 
 sigmaProfiles: sigmaProfiles.cpp
 
+atmosphere.pdf: sigmaProfiles plotAtmosphere.gp
+	./sigmaProfiles 1e6 1.16046e7 > atmosphere.dat
+	./plotAtmosphere.gp
+
+quadrupoleTests: main plot_ionosphere.py
+	./main -N 1024 -r 40 90 -r 50 80 -sigma 100 -fac hexadecapole -gaugeFix equator
+	./plot_ionosphere.py output.vlsv
