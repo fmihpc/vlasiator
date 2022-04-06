@@ -97,6 +97,7 @@ namespace SBC {
    Real Ionosphere::ridleyParallelConductivity; // Constant parallel conductivity in the Ridley conductivity model
    Real Ionosphere::couplingTimescale; // Magnetosphere->Ionosphere coupling timescale (seconds)
    Real Ionosphere::couplingInterval; // Ionosphere update interval
+   int Ionosphere::solveCount; // Counter of the number of solvings
    Real Ionosphere::backgroundIonisation; // Background ionisation due to stellar UV and cosmic rays
    int  Ionosphere::solverMaxIterations;
    Real Ionosphere::solverRelativeL2ConvergenceThreshold;
@@ -3606,109 +3607,118 @@ namespace SBC {
    ) {
       phiprof::start("vlasovBoundaryCondition (Ionosphere)");
 
-      // If we are to couple to the ionosphere grid, we better be part of its communicator.
-      assert(ionosphereGrid.communicator != MPI_COMM_NULL);
-      
-      // Get potential upmapped from six points 
-      // (Cell's face centres)
-      // inside the cell to calculate E
-      const std::array<Real, CellParams::N_SPATIAL_CELL_PARAMS>& cellParams = mpiGrid[cellID]->parameters;
-      const Real xmin = cellParams[CellParams::XCRD];
-      const Real ymin = cellParams[CellParams::YCRD];
-      const Real zmin = cellParams[CellParams::ZCRD];
-      const Real xmax = xmin + cellParams[CellParams::DX];
-      const Real ymax = ymin + cellParams[CellParams::DY];
-      const Real zmax = zmin + cellParams[CellParams::DZ];
-      const Real xcen = 0.5*(xmin+xmax);
-      const Real ycen = 0.5*(ymin+ymax);
-      const Real zcen = 0.5*(zmin+zmax);
-      std::array< std::array<Real, 3>, 6> tracepoints;
-      tracepoints[0] = {xmin, ycen, zcen};
-      tracepoints[1] = {xmax, ycen, zcen};
-      tracepoints[2] = {xcen, ymin, zcen};
-      tracepoints[3] = {xcen, ymax, zcen};
-      tracepoints[4] = {xcen, ycen, zmin};
-      tracepoints[5] = {xcen, ycen, zmax};
-      std::array<Real, 6> potentials;
+      // TODO Make this a more elegant solution
+      // Now it's hacky as the counter is incremented in vlasiator.cpp
+      if(  ((Parameters::t                > (SBC::Ionosphere::solveCount-1) * SBC::Ionosphere::couplingInterval)
+         && (Parameters::t-Parameters::dt < (SBC::Ionosphere::solveCount-1) * SBC::Ionosphere::couplingInterval)
+         && SBC::Ionosphere::couplingInterval > 0)
+         || SBC::Ionosphere::couplingInterval == 0
+      ) { // else we don't update this boundary
 
-      for(int i=0; i<6; i++) {
-         // Get potential at each of these 6 points
-         potentials[i] = ionosphereGrid.interpolateUpmappedPotential(tracepoints[i]);
-      }
-
-      // Calculate E from potential differences as E = -grad(phi)
-      Vec3d E({
-            (potentials.at(0) - potentials.at(1)) / cellParams[CellParams::DX],
-            (potentials.at(2) - potentials.at(3)) / cellParams[CellParams::DY],
-            (potentials.at(4) - potentials.at(5)) / cellParams[CellParams::DZ]});
-      Vec3d B({
-            cellParams[CellParams::BGBXVOL],
-            cellParams[CellParams::BGBYVOL],
-            cellParams[CellParams::BGBZVOL]});
-
-      // Add E from neutral wind convection for all cells with L <= 5
-      Vec3d Omega(0,0,Ionosphere::earthAngularVelocity); // Earth rotation vector
-      Vec3d r(xcen,ycen,zcen);
-      Vec3d vn = cross_product(Omega,r);
-
-      Real radius = vector_length(r);
-      if(radius/physicalconstants::R_E <= Ionosphere::plasmapauseL * (r[0]*r[0] + r[1]*r[1]) / (radius*radius)) {
-         E -= cross_product(vn, B);
-      }
-
-      const Real Bsqr = B[0]*B[0] + B[1]*B[1] + B[2]*B[2];
-
-      // Calculate cell bulk velocity as E x B / B^2
-      std::array<Real, 3> vDrift;
-      vDrift[0] = (E[1] * B[2] - E[2] * B[1])/Bsqr;
-      vDrift[1] = (E[2] * B[0] - E[0] * B[2])/Bsqr;
-      vDrift[2] = (E[0] * B[1] - E[1] * B[0])/Bsqr;
-
-      // Average density and temperature from the nearest cells
-      const vector<CellID> closestCells = getAllClosestNonsysboundaryCells(cellID);
-      Real density = 0, pressure = 0;
-      for (CellID celli : closestCells) {
-         density += mpiGrid[celli]->parameters[CellParams::RHOM];
-         pressure += mpiGrid[celli]->parameters[CellParams::P_11] + mpiGrid[celli]->parameters[CellParams::P_22] + mpiGrid[celli]->parameters[CellParams::P_33];
-      }
-      density /= closestCells.size()*physicalconstants::MASS_PROTON;
-      pressure /= 3.0*closestCells.size();
-      // TODO make this multipop
-      creal temperature = pressure / (density * physicalconstants::K_B);
-
-      // Fill velocity space with new maxwellian data
-      SpatialCell& cell = *mpiGrid[cellID];
-      cell.clear(popID); // Clear previous velocity space completely
-      const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(cell,density,temperature,vDrift,popID);
-      Realf* data = cell.get_data(popID);
-
-      for (size_t i = 0; i < blocksToInitialize.size(); i++) {
-         const vmesh::GlobalID blockGID = blocksToInitialize[i];
-         cell.add_velocity_block(blockGID,popID);
-         const vmesh::LocalID block = cell.get_velocity_block_local_id(blockGID,popID);
-         const Real* blockParameters = cell.get_block_parameters(block,popID);
-         creal vxBlock = blockParameters[BlockParams::VXCRD];
-         creal vyBlock = blockParameters[BlockParams::VYCRD];
-         creal vzBlock = blockParameters[BlockParams::VZCRD];
-         creal dvxCell = blockParameters[BlockParams::DVX];
-         creal dvyCell = blockParameters[BlockParams::DVY];
-         creal dvzCell = blockParameters[BlockParams::DVZ];
+         // If we are to couple to the ionosphere grid, we better be part of its communicator.
+         assert(ionosphereGrid.communicator != MPI_COMM_NULL);
          
-         // Iterate over cells within block
-         for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
-            creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell - vDrift[0];
-            creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell - vDrift[1];
-            creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell - vDrift[2];
+         // Get potential upmapped from six points 
+         // (Cell's face centres)
+         // inside the cell to calculate E
+         const std::array<Real, CellParams::N_SPATIAL_CELL_PARAMS>& cellParams = mpiGrid[cellID]->parameters;
+         const Real xmin = cellParams[CellParams::XCRD];
+         const Real ymin = cellParams[CellParams::YCRD];
+         const Real zmin = cellParams[CellParams::ZCRD];
+         const Real xmax = xmin + cellParams[CellParams::DX];
+         const Real ymax = ymin + cellParams[CellParams::DY];
+         const Real zmax = zmin + cellParams[CellParams::DZ];
+         const Real xcen = 0.5*(xmin+xmax);
+         const Real ycen = 0.5*(ymin+ymax);
+         const Real zcen = 0.5*(zmin+zmax);
+         std::array< std::array<Real, 3>, 6> tracepoints;
+         tracepoints[0] = {xmin, ycen, zcen};
+         tracepoints[1] = {xmax, ycen, zcen};
+         tracepoints[2] = {xcen, ymin, zcen};
+         tracepoints[3] = {xcen, ymax, zcen};
+         tracepoints[4] = {xcen, ycen, zmin};
+         tracepoints[5] = {xcen, ycen, zmax};
+         std::array<Real, 6> potentials;
 
-            data[block*WID3 + cellIndex(ic,jc,kc)] = shiftedMaxwellianDistribution(popID, density, temperature, vxCellCenter, vyCellCenter, vzCellCenter);
+         for(int i=0; i<6; i++) {
+            // Get potential at each of these 6 points
+            potentials[i] = ionosphereGrid.interpolateUpmappedPotential(tracepoints[i]);
          }
-      }
 
-      // Block adjust and recalculate moments
-      cell.adjustSingleCellVelocityBlocks(popID);
-      // TODO: The moments can also be analytically calculated from ionosphere parameters.
-      // Maybe that's faster?
-      calculateCellMoments(mpiGrid[cellID], true, true);
+         // Calculate E from potential differences as E = -grad(phi)
+         Vec3d E({
+               (potentials[0] - potentials[1]) / cellParams[CellParams::DX],
+               (potentials[2] - potentials[3]) / cellParams[CellParams::DY],
+               (potentials[4] - potentials[5]) / cellParams[CellParams::DZ]});
+         Vec3d B({
+               cellParams[CellParams::BGBXVOL],
+               cellParams[CellParams::BGBYVOL],
+               cellParams[CellParams::BGBZVOL]});
+
+         // Add E from neutral wind convection for all cells with L <= 5
+         Vec3d Omega(0,0,Ionosphere::earthAngularVelocity); // Earth rotation vector
+         Vec3d r(xcen,ycen,zcen);
+         Vec3d vn = cross_product(Omega,r);
+
+         Real radius = vector_length(r);
+         if(radius/physicalconstants::R_E <= Ionosphere::plasmapauseL * (r[0]*r[0] + r[1]*r[1]) / (radius*radius)) {
+            E -= cross_product(vn, B);
+         }
+
+         const Real Bsqr = B[0]*B[0] + B[1]*B[1] + B[2]*B[2];
+
+         // Calculate cell bulk velocity as E x B / B^2
+         std::array<Real, 3> vDrift;
+         vDrift[0] = (E[1] * B[2] - E[2] * B[1])/Bsqr;
+         vDrift[1] = (E[2] * B[0] - E[0] * B[2])/Bsqr;
+         vDrift[2] = (E[0] * B[1] - E[1] * B[0])/Bsqr;
+
+         // Average density and temperature from the nearest cells
+         const vector<CellID> closestCells = getAllClosestNonsysboundaryCells(cellID);
+         Real density = 0, pressure = 0;
+         for (CellID celli : closestCells) {
+            density += mpiGrid[celli]->parameters[CellParams::RHOM];
+            pressure += mpiGrid[celli]->parameters[CellParams::P_11] + mpiGrid[celli]->parameters[CellParams::P_22] + mpiGrid[celli]->parameters[CellParams::P_33];
+         }
+         density /= closestCells.size()*physicalconstants::MASS_PROTON;
+         pressure /= 3.0*closestCells.size();
+         // TODO make this multipop
+         creal temperature = pressure / (density * physicalconstants::K_B);
+
+         // Fill velocity space with new maxwellian data
+         SpatialCell& cell = *mpiGrid[cellID];
+         cell.clear(popID); // Clear previous velocity space completely
+         const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(cell,density,temperature,vDrift,popID);
+         Realf* data = cell.get_data(popID);
+
+         for (size_t i = 0; i < blocksToInitialize.size(); i++) {
+            const vmesh::GlobalID blockGID = blocksToInitialize[i];
+            cell.add_velocity_block(blockGID,popID);
+            const vmesh::LocalID block = cell.get_velocity_block_local_id(blockGID,popID);
+            const Real* blockParameters = cell.get_block_parameters(block,popID);
+            creal vxBlock = blockParameters[BlockParams::VXCRD];
+            creal vyBlock = blockParameters[BlockParams::VYCRD];
+            creal vzBlock = blockParameters[BlockParams::VZCRD];
+            creal dvxCell = blockParameters[BlockParams::DVX];
+            creal dvyCell = blockParameters[BlockParams::DVY];
+            creal dvzCell = blockParameters[BlockParams::DVZ];
+            
+            // Iterate over cells within block
+            for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
+               creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell - vDrift[0];
+               creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell - vDrift[1];
+               creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell - vDrift[2];
+
+               data[block*WID3 + cellIndex(ic,jc,kc)] = shiftedMaxwellianDistribution(popID, density, temperature, vxCellCenter, vyCellCenter, vzCellCenter);
+            }
+         }
+
+         // Block adjust and recalculate moments
+         cell.adjustSingleCellVelocityBlocks(popID);
+         // TODO: The moments can also be analytically calculated from ionosphere parameters.
+         // Maybe that's faster?
+         calculateCellMoments(mpiGrid[cellID], true, true);
+      } // End of if for coupling interval, we skip this altogether
 
       phiprof::stop("vlasovBoundaryCondition (Ionosphere)");
    }

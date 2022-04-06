@@ -462,6 +462,7 @@ namespace SBC {
       static Real unmappedNodeTe; // Electron temperature of ionosphere nodes that don't couple to the magnetosphere
       static Real couplingTimescale; // Magnetosphere->Ionosphere coupling timescale (seconds)
       static Real couplingInterval; // Ionosphere update interval
+      static int solveCount; // Counter for the number of ionosphere solvings
       static enum IonosphereConductivityModel { // How should the conductivity tensor be assembled?
          GUMICS,   // Like GUMICS-5 does it? (Only SigmaH and SigmaP, B perp to surface)
          Ridley,   // Or like the Ridley 2004 paper (with 1000 mho longitudinal conductivity)

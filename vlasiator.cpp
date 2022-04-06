@@ -509,11 +509,10 @@ int main(int argn,char* args[]) {
    SBC::ionosphereGrid.updateIonosphereCommunicator(mpiGrid, technicalGrid);
    SBC::ionosphereGrid.calculateFsgridCoupling(technicalGrid, perBGrid, dPerBGrid, SBC::Ionosphere::radius);
    SBC::ionosphereGrid.initSolver(!P::isRestart); // If it is a restart we do not want to zero out everything
-   int ionosphereSolvingCounts;
    if(SBC::Ionosphere::couplingInterval > 0 && P::isRestart) {
-      ionosphereSolvingCounts = floor(P::t / SBC::Ionosphere::couplingInterval);
+      SBC::Ionosphere::solveCount = floor(P::t / SBC::Ionosphere::couplingInterval);
    } else {
-      ionosphereSolvingCounts = 1;
+      SBC::Ionosphere::solveCount = 1;
    }
 
    if (P::isRestart == false) {
@@ -961,7 +960,7 @@ int main(int argn,char* args[]) {
       // Map current data down into the ionosphere
       // TODO check: have we set perBGrid correctly here, or is it possibly perBDt2Grid in some cases??
 //      SBC::ionosphereGrid.resetReconstructionCoefficientsCache();
-      if((P::t > ionosphereSolvingCounts * SBC::Ionosphere::couplingInterval && SBC::Ionosphere::couplingInterval > 0) || SBC::Ionosphere::couplingInterval == 0) {
+      if((P::t > SBC::Ionosphere::solveCount * SBC::Ionosphere::couplingInterval && SBC::Ionosphere::couplingInterval > 0) || SBC::Ionosphere::couplingInterval == 0) {
          SBC::ionosphereGrid.calculateFsgridCoupling(technicalGrid, perBGrid, dPerBGrid, SBC::Ionosphere::radius);
          SBC::ionosphereGrid.mapDownBoundaryData(perBGrid, dPerBGrid, momentsGrid, volGrid, technicalGrid);
          SBC::ionosphereGrid.calculateConductivityTensor(SBC::Ionosphere::F10_7, SBC::Ionosphere::recombAlpha, SBC::Ionosphere::backgroundIonisation);
@@ -982,7 +981,7 @@ int main(int argn,char* args[]) {
          << " max " << maxPotentialS
          << " difference " << maxPotentialS - minPotentialS
          << endl;
-         ionosphereSolvingCounts++;
+         SBC::Ionosphere::solveCount++;
       }
       
       phiprof::start("Velocity-space");
