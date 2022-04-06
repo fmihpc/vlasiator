@@ -510,7 +510,7 @@ int main(int argn,char* args[]) {
    SBC::ionosphereGrid.calculateFsgridCoupling(technicalGrid, perBGrid, dPerBGrid, SBC::Ionosphere::radius);
    SBC::ionosphereGrid.initSolver(!P::isRestart); // If it is a restart we do not want to zero out everything
    if(SBC::Ionosphere::couplingInterval > 0 && P::isRestart) {
-      SBC::Ionosphere::solveCount = floor(P::t / SBC::Ionosphere::couplingInterval);
+      SBC::Ionosphere::solveCount = floor(P::t / SBC::Ionosphere::couplingInterval)+1;
    } else {
       SBC::Ionosphere::solveCount = 1;
    }
