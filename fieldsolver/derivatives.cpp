@@ -84,7 +84,7 @@ void calculateDerivatives(
    std::array<Real, fsgrids::bfield::N_BFIELD>  * topRght = NULL;
    
    // Calculate x-derivatives (is not TVD for AMR mesh):
-   if ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1)) {
+   if ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) && (sysBoundaryLayer != 1) && (sysBoundaryLayer != 2)) {
       
       leftPerB = perBGrid.get(i-1,j,k);
       rghtPerB = perBGrid.get(i+1,j,k);
@@ -129,16 +129,16 @@ void calculateDerivatives(
       }
    } else {
       // Boundary conditions handle derivatives.
-      if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+//      if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
          SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 0);
-      } else {
-         sysBoundaries.getSysBoundary(sysBoundaryFlag)->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, 0);
-      }
+//      } else {
+//         sysBoundaries.getSysBoundary(sysBoundaryFlag)->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, 0);
+//      }
    }
 
    // Calculate y-derivatives (is not TVD for AMR mesh):
-   if ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1)) {
-      
+      if ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) && (sysBoundaryLayer != 1) && (sysBoundaryLayer != 2)) {
+    
       leftPerB = perBGrid.get(i,j-1,k);
       rghtPerB = perBGrid.get(i,j+1,k);
       leftMoments = momentsGrid.get(i,j-1,k);
@@ -169,15 +169,15 @@ void calculateDerivatives(
       
    } else {
       // Boundary conditions handle derivatives.
-      if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+//      if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
          SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 1);
-      } else {
-         sysBoundaries.getSysBoundary(sysBoundaryFlag)->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, 1);
-      }
+//      } else {
+//         sysBoundaries.getSysBoundary(sysBoundaryFlag)->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, 1);
+//      }
    }
    
    // Calculate z-derivatives (is not TVD for AMR mesh):
-   if ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1)) {
+   if ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) && (sysBoundaryLayer != 1) && (sysBoundaryLayer != 2)) {
       
       leftPerB = perBGrid.get(i,j,k-1);
       rghtPerB = perBGrid.get(i,j,k+1);
@@ -209,11 +209,11 @@ void calculateDerivatives(
       
    } else {
       // Boundary conditions handle derivatives.
-      if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+//      if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
          SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 2);
-      } else {
-         sysBoundaries.getSysBoundary(sysBoundaryFlag)->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, 2);
-      }
+//      } else {
+//         sysBoundaries.getSysBoundary(sysBoundaryFlag)->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, 2);
+//      }
    }
    
    if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
@@ -222,7 +222,7 @@ void calculateDerivatives(
       dPerB->at(fsgrids::dperb::dPERBzdxy) = 0.0;
    } else {
       // Calculate xy mixed derivatives:
-      if ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1)) {
+      if ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) && (sysBoundaryLayer != 1) && (sysBoundaryLayer != 2)) {
          
          botLeft = perBGrid.get(i-1,j-1,k);
          botRght = perBGrid.get(i+1,j-1,k);
@@ -233,15 +233,15 @@ void calculateDerivatives(
          
       } else {
          // Boundary conditions handle derivatives.
-         if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+//         if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 3);
-         } else {
-            sysBoundaries.getSysBoundary(sysBoundaryFlag)->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, 3);
-         }
+//         } else {
+//            sysBoundaries.getSysBoundary(sysBoundaryFlag)->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, 3);
+//         }
       }
       
       // Calculate xz mixed derivatives:
-      if ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1)) {
+      if ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) && (sysBoundaryLayer != 1) && (sysBoundaryLayer != 2)) {
          
          botLeft = perBGrid.get(i-1,j,k-1);
          botRght = perBGrid.get(i+1,j,k-1);
@@ -252,15 +252,15 @@ void calculateDerivatives(
          
       } else {
          // Boundary conditions handle derivatives.
-         if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+//         if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 4);
-         } else {
-            sysBoundaries.getSysBoundary(sysBoundaryFlag)->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, 4);
-         }
+//         } else {
+//            sysBoundaries.getSysBoundary(sysBoundaryFlag)->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, 4);
+//         }
       }
       
       // Calculate yz mixed derivatives:
-      if ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) || (sysBoundaryLayer == 1)) {
+      if ((sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) && (sysBoundaryLayer != 1) && (sysBoundaryLayer != 2)) {
          
          botLeft = perBGrid.get(i,j-1,k-1);
          botRght = perBGrid.get(i,j+1,k-1);
@@ -271,11 +271,11 @@ void calculateDerivatives(
          
       } else {
          // Boundary conditions handle derivatives.
-         if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+//         if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             SBC::SysBoundaryCondition::setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, 5);
-         } else {
-            sysBoundaries.getSysBoundary(sysBoundaryFlag)->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, 5);
-         }
+//         } else {
+//            sysBoundaries.getSysBoundary(sysBoundaryFlag)->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, 5);
+//         }
       }
    }
 }
@@ -407,48 +407,49 @@ void calculateBVOLDerivatives(
    std::array<Real, fsgrids::volfields::N_VOL> * rght = NULL;
    
    // Calculate x-derivatives (is not TVD for AMR mesh):
-   if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+   if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY && technicalGrid.get(i,j,k)->sysBoundaryLayer != 1 && technicalGrid.get(i,j,k)->sysBoundaryLayer != 2) {
+
       left = volGrid.get(i-1,j,k);
       rght = volGrid.get(i+1,j,k);
       
       array->at(fsgrids::volfields::dPERBYVOLdx) = limiter(left->at(fsgrids::volfields::PERBYVOL),array->at(fsgrids::volfields::PERBYVOL),rght->at(fsgrids::volfields::PERBYVOL));
       array->at(fsgrids::volfields::dPERBZVOLdx) = limiter(left->at(fsgrids::volfields::PERBZVOL),array->at(fsgrids::volfields::PERBZVOL),rght->at(fsgrids::volfields::PERBZVOL));
    } else {
-      if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+//      if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
          SBC::SysBoundaryCondition::setCellBVOLDerivativesToZero(volGrid, i, j, k, 0);
-      } else {
-         sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, 0);
-      }
+//      } else {
+//         sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, 0);
+//      }
    }
    
    // Calculate y-derivatives (is not TVD for AMR mesh):
-   if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+   if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY && technicalGrid.get(i,j,k)->sysBoundaryLayer != 1 && technicalGrid.get(i,j,k)->sysBoundaryLayer != 2) {
       left = volGrid.get(i,j-1,k);
       rght = volGrid.get(i,j+1,k);
       
       array->at(fsgrids::volfields::dPERBXVOLdy) = limiter(left->at(fsgrids::volfields::PERBXVOL),array->at(fsgrids::volfields::PERBXVOL),rght->at(fsgrids::volfields::PERBXVOL));
       array->at(fsgrids::volfields::dPERBZVOLdy) = limiter(left->at(fsgrids::volfields::PERBZVOL),array->at(fsgrids::volfields::PERBZVOL),rght->at(fsgrids::volfields::PERBZVOL));
    } else {
-      if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+//      if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
          SBC::SysBoundaryCondition::setCellBVOLDerivativesToZero(volGrid, i, j, k, 1);
-      } else {
-         sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, 1);
-      }
+//      } else {
+//         sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, 1);
+//      }
    }
    
    // Calculate z-derivatives (is not TVD for AMR mesh):
-   if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+   if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY && technicalGrid.get(i,j,k)->sysBoundaryLayer != 1 && technicalGrid.get(i,j,k)->sysBoundaryLayer != 2) {
       left = volGrid.get(i,j,k-1);
       rght = volGrid.get(i,j,k+1);
       
       array->at(fsgrids::volfields::dPERBXVOLdz) = limiter(left->at(fsgrids::volfields::PERBXVOL),array->at(fsgrids::volfields::PERBXVOL),rght->at(fsgrids::volfields::PERBXVOL));
       array->at(fsgrids::volfields::dPERBYVOLdz) = limiter(left->at(fsgrids::volfields::PERBYVOL),array->at(fsgrids::volfields::PERBYVOL),rght->at(fsgrids::volfields::PERBYVOL));
    } else {
-      if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+//      if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
          SBC::SysBoundaryCondition::setCellBVOLDerivativesToZero(volGrid, i, j, k, 2);
-      } else {
-         sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, 2);
-      }
+//      } else {
+//         sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, 2);
+//      }
    }
 }
 
