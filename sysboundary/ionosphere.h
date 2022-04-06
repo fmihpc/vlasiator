@@ -171,7 +171,7 @@ namespace SBC {
       int rank = -1;                      // Own rank in the ionosphere communicator
       int writingRank;                    // Rank in the MPI_COMM_WORLD communicator that does ionosphere I/O
       bool isCouplingInwards = false;     // True for any rank that actually couples fsgrid information into the ionosphere
-      bool isCouplingOutwards = true;    // True for any rank that actually couples ionosphere potential information out to the vlasov grid
+      bool isCouplingOutwards = true;     // True for any rank that actually couples ionosphere potential information out to the vlasov grid
       FieldFunction dipoleField;          // Simulation background field model to trace connections with
       std::map< std::array<Real, 3>, std::array<
          std::pair<int, Real>, 3> > vlasovGridCoupling; // Grid coupling information, caching how vlasovGrid coordinate couple to ionosphere data
@@ -245,8 +245,24 @@ namespace SBC {
       void initSolver(bool zeroOut=true);  // Initialize the CG solver
       iSolverReal Atimes(uint nodeIndex, int parameter, bool transpose=false); // Evaluate neighbour nodes' coupled parameter
       Real Asolve(uint nodeIndex, int parameter, bool transpose=false); // Evaluate own parameter value
-      void solve(int & iteration, int & nRestarts, Real & residual, Real & minPotential, Real & maxPotential);
-      void solveInternal(int & iteration, int & nRestarts, Real & residual, Real & minPotential, Real & maxPotential);
+      void solve(
+         int & iteration,
+         int & nRestarts,
+         Real & residual,
+         Real & minPotentialN,
+         Real & maxPotentialN,
+         Real & minPotentialS,
+         Real & maxPotentialS
+      );
+      void solveInternal(
+         int & iteration,
+         int & nRestarts,
+         Real & residual,
+         Real & minPotentialN,
+         Real & maxPotentialN,
+         Real & minPotentialS,
+         Real & maxPotentialS
+      );
 
       // Map field-aligned currents, density and temperature
       // down from the simulation boundary onto this grid
