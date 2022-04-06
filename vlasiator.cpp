@@ -968,14 +968,19 @@ int main(int argn,char* args[]) {
 
          // Solve ionosphere
          int nIterations, nRestarts;
-         Real residual, minPotential, maxPotential;
-         SBC::ionosphereGrid.solve(nIterations, nRestarts, residual, minPotential, maxPotential);
-         logFile << "Ionosphere: iterations " << nIterations
-         << " restarts " << nRestarts
-         << " residual " << std::scientific << residual << std::defaultfloat
-         << " potential min " << minPotential
-         << " max " << maxPotential
-         << " difference " << maxPotential - minPotential
+         Real residual, minPotentialN, maxPotentialN, minPotentialS, maxPotentialS;
+         SBC::ionosphereGrid.solve(nIterations, nRestarts, residual, minPotentialN, maxPotentialN, minPotentialS, maxPotentialS);
+         logFile << "tstep = " << P::tstep
+         << " t = " << P::t
+         << " ionosphere iterations = " << nIterations
+         << " restarts = " << nRestarts
+         << " residual = " << std::scientific << residual << std::defaultfloat
+         << " N potential min " << minPotentialN
+         << " max " << maxPotentialN
+         << " difference " << maxPotentialN - minPotentialN
+         << " S potential min " << minPotentialS
+         << " max " << maxPotentialS
+         << " difference " << maxPotentialS - minPotentialS
          << endl;
          ionosphereSolvingCounts++;
       }
