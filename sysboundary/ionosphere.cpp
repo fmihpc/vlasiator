@@ -3618,6 +3618,8 @@ namespace SBC {
          // If we are to couple to the ionosphere grid, we better be part of its communicator.
          assert(ionosphereGrid.communicator != MPI_COMM_NULL);
          
+         const IonosphereSpeciesParameters& sP = this->speciesParams[popID];
+
          // Get potential upmapped from six points 
          // (Cell's face centres)
          // inside the cell to calculate E
@@ -3673,19 +3675,30 @@ namespace SBC {
          vDrift[1] = (E[2] * B[0] - E[0] * B[2])/Bsqr;
          vDrift[2] = (E[0] * B[1] - E[1] * B[0])/Bsqr;
 
-         // Average density and temperature from the nearest cells
+         // Average density, bulk velocity and temperature from the nearest cells
+         // TODO: Should this be a mass-weighted averaging?
          const vector<CellID> closestCells = getAllClosestNonsysboundaryCells(cellID);
          Real density = 0, pressure = 0;
+         std::array<Real, 3> vNeighbours({0,0,0});
          for (CellID celli : closestCells) {
             density += mpiGrid[celli]->parameters[CellParams::RHOM];
+            vNeighbours[0] += mpiGrid[celli]->parameters[CellParams::VX];
+            vNeighbours[1] += mpiGrid[celli]->parameters[CellParams::VY];
+            vNeighbours[2] += mpiGrid[celli]->parameters[CellParams::VZ];
             pressure += mpiGrid[celli]->parameters[CellParams::P_11] + mpiGrid[celli]->parameters[CellParams::P_22] + mpiGrid[celli]->parameters[CellParams::P_33];
          }
          density /= closestCells.size()*physicalconstants::MASS_PROTON;
          pressure /= 3.0*closestCells.size();
+         vNeighbours[0] /= closestCells.size();
+         vNeighbours[1] /= closestCells.size();
+         vNeighbours[2] /= closestCells.size();
          // TODO make this multipop
          creal temperature = pressure / (density * physicalconstants::K_B);
 
-         // Fill velocity space with new maxwellian data
+         // Fill velocity space with new VDF data. This consists of three parts:
+         // 1. For the downwards-moving part of the VDF (dot(v,r) < 0), simply fill a maxwellian with the averaged density and pressure.
+         // 2. For upwards-moving velocity cells outside the loss cone, take the reflected value from point 1.
+         // 3. Add an ionospheric outflow maxwellian.
          SpatialCell& cell = *mpiGrid[cellID];
          cell.clear(popID); // Clear previous velocity space completely
          const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(cell,density,temperature,vDrift,popID);
@@ -3705,11 +3718,38 @@ namespace SBC {
             
             // Iterate over cells within block
             for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
-               creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell - vDrift[0];
-               creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell - vDrift[1];
-               creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell - vDrift[2];
+               creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell;
+               creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell;
+               creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell;
 
-               data[block*WID3 + cellIndex(ic,jc,kc)] = shiftedMaxwellianDistribution(popID, density, temperature, vxCellCenter, vyCellCenter, vzCellCenter);
+               // Calculate pitchangle cosine
+               Real mu = (vxCellCenter*B[0] + vyCellCenter*B[1] + vzCellCenter*B[2])/sqrt(Bsqr)/sqrt(vxCellCenter*vxCellCenter+vyCellCenter*vyCellCenter+vzCellCenter*vzCellCenter);
+               // Radial velocity component
+               Real rlength = sqrt(r[0]*r[0] + r[1]*r[1] + r[2]*r[2]);
+               std::array<Real, 3> rnorm({r[0] / rlength, r[1] / rlength, r[2] / rlength});
+               Real vdotr = (vxCellCenter*rnorm[0] + vyCellCenter*rnorm[1] * vzCellCenter*rnorm[2]);
+
+               if(vdotr < 0) {
+                  data[block * WID3 + cellIndex(ic, jc, kc)] =
+                     shiftedMaxwellianDistribution(popID, density, temperature, vxCellCenter - vNeighbours[0], vyCellCenter - vNeighbours[1], vzCellCenter - vNeighbours[2]);
+               } else {
+                  if(1-mu*mu < sqrt(Bsqr)/5e-5) {
+                     // outside the loss cone
+                     
+                     // v_r = -v_r = -r <v, r> (where r is normalized)
+                     // => v = v - 2*r <r,v>
+
+                     data[block * WID3 + cellIndex(ic, jc, kc)] =
+                        shiftedMaxwellianDistribution(popID, density, temperature, vxCellCenter - 2*rnorm[0]*vdotr - vNeighbours[0] , vyCellCenter - 2*rnorm[1]*vdotr - vNeighbours[1], vzCellCenter - 2*rnorm[2]*vdotr - vNeighbours[2]);
+                  } else {
+                     // Inside the loss cone
+                     data[block * WID3 + cellIndex(ic, jc, kc)] = 0;
+                  }
+               }
+
+               // Add ionospheric outflow maxwellian on top.
+               data[block * WID3 + cellIndex(ic, jc, kc)] =
+                     shiftedMaxwellianDistribution(popID, sP.rho, sP.T, vxCellCenter - vDrift[0], vyCellCenter - vDrift[1], vzCellCenter - vDrift[2]);
             }
          }
 
