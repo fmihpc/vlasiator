@@ -2592,6 +2592,37 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1, "m^2", "$\\mathrm{m}^2$", "$A_m$", "1.0");
          continue;
       }
+      if(lowercase == "ig_e") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereElement("ig_e", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+                  
+                     std::vector<Real> retval(grid.elements.size()*3);
+
+                     for(uint i=0; i<grid.elements.size(); i++) {
+                        // Calculate E from element basis functions
+                        const std::array<Real, 3>& c1 = grid.nodes[grid.elements[i].corners[0]].x;
+                        const std::array<Real, 3>& c2 = grid.nodes[grid.elements[i].corners[1]].x;
+                        const std::array<Real, 3>& c3 = grid.nodes[grid.elements[i].corners[2]].x;
+
+                        // ET contains the test function gradient vectors (normalized to potential 1)
+                        std::array<std::array<Real,3>, 3> ET({grid.computeGradT(c2,c3,c1), grid.computeGradT(c3,c1,c2), grid.computeGradT(c1,c2,c3)});
+                        for(int n=0; n<3; n++) {
+                           // Multiply with the corresponding node potentials to get E vector
+                           ET[0][n] *= -grid.nodes[grid.elements[i].corners[0]].parameters[ionosphereParameters::SOLUTION];
+                           ET[1][n] *= -grid.nodes[grid.elements[i].corners[1]].parameters[ionosphereParameters::SOLUTION];
+                           ET[2][n] *= -grid.nodes[grid.elements[i].corners[2]].parameters[ionosphereParameters::SOLUTION];
+                        }
+                        // Sum up element gradient functions to yield complete E inside this element.
+                        for(int n=0; n<3; n++) {
+                           retval[3*i + n] = ET[0][n] + ET[1][n] + ET[2][n];
+                        }
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addMetadata(outputReducer->size()-1, "V/m", "$\\mathrm{V/m}$", "$E$", "1.0");
+         continue;
+      }
       if(lowercase == "ig_inplanecurrent") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereElement("ig_inplanecurrent", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {

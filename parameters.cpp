@@ -317,6 +317,7 @@ bool P::addParameters() {
                         "vg_pressure fg_pressure populations_vg_ptensor " + "b_vol_derivatives " +
                         "ig_fac ig_latitude ig_cellarea ig_upmappedarea ig_sigmap ig_sigmah ig_rhom " +
                         "ig_electronTemp ig_potential ig_solverinternals ig_upmappedcodecoords ig_upmappedb ig_potential"+
+                        "ig_inplanecurrent ig_e"+
                         "vg_gridcoordinates fg_gridcoordinates meshdata");
 
    RP::addComposing(
