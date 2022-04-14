@@ -298,9 +298,10 @@ bool propagateFields(
          // We need to calculate derivatives of the moments at every substep, but they only
          // need to be communicated in the first one.
          calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2, (subcycleCount==0));
+         hallTermCommunicateDerivatives = true; // re-activate for newly calculated derivatives
          if(P::ohmGradPeTerm > 0 && subcycleCount==0) {
             calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2);
-            hallTermCommunicateDerivatives = false;
+            hallTermCommunicateDerivatives = false; // To prevent repeated ghost update of derivatives
          }
          if(P::ohmHallTerm > 0) {
             calculateHallTermSimple(
