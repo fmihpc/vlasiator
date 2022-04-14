@@ -174,6 +174,17 @@ void flagSpatialCellsForAmrCommunication(const dccrg::Dccrg<SpatialCell,dccrg::C
             iSrc--;
          } // end loop over negative distances
 
+         // Special case: if a non-translated cell was already communicated for an earlier dimension,
+         // we don't need to re-communicate it. (order z->x->y)
+         if (!do_translate_cell(ccell) && (dimension==2)) {
+            if (ccell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_X]) {
+               ccell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_X+1] = false;
+            }
+            if (ccell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_X+2]) {
+               ccell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_X+1] = false;
+               ccell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_X] = false;
+            }
+         }
       } // end loop over local propagated cells
    } // end loop over dimensions
    return;
