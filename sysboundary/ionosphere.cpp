@@ -2388,10 +2388,20 @@ namespace SBC {
       Real &maxPotentialS
    ) {
 
+      // Simulations without an ionosphere don't need to bother about this.
+      if(nodes.size() == 0) {
+         nIterations =0;
+         nRestarts = 0;
+         residual = 0.;
+         minPotentialN = maxPotentialN = minPotentialS = maxPotentialS = 0.;
+         return;
+      }
+
       // Ranks that don't participate in ionosphere solving skip this function outright
       if(!isCouplingInwards && !isCouplingOutwards) {
          return;
       }
+
       phiprof::start("ionosphere-solve");
       
       initSolver(false);
