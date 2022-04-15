@@ -116,15 +116,35 @@ namespace projects {
       RP::get("Magnetosphere.dipoleMirrorLocationX", this->dipoleMirrorLocationX);
 
       RP::get("Magnetosphere.dipoleType", this->dipoleType);
-      RP::get("ionosphere.radius", this->ionosphereRadius);
+      if(RP::isSet("conductingsphere.radius")) {
+         RP::get("conductingsphere.radius", this->ionosphereRadius);
+      } else {
+         RP::get("ionosphere.radius", this->ionosphereRadius);
+      }
       if(ionosphereRadius < 1000.) {
          // For really small ionospheric radius values, assume R_E units
          ionosphereRadius *= physicalconstants::R_E;
       }
-      RP::get("ionosphere.centerX", this->center[0]);
-      RP::get("ionosphere.centerY", this->center[1]);
-      RP::get("ionosphere.centerZ", this->center[2]);
-      RP::get("ionosphere.geometry", this->ionosphereGeometry);
+      if(RP::isSet("conductingsphere.centerX")) {
+         RP::get("conductingsphere.centerX", this->center[0]);
+      } else {
+         RP::get("ionosphere.centerX", this->center[0]);
+      }
+      if(RP::isSet("conductingsphere.centerY")) {
+         RP::get("conductingsphere.centerY", this->center[1]);
+      } else {
+         RP::get("ionosphere.centerY", this->center[1]);
+      }
+      if(RP::isSet("conductingsphere.centerZ")) {
+         RP::get("conductingsphere.centerZ", this->center[2]);
+      } else {
+         RP::get("ionosphere.centerZ", this->center[2]);
+      }
+      if(RP::isSet("conductingsphere.geometry")) {
+         RP::get("conductingsphere.geometry", this->ionosphereGeometry);
+      } else {
+         RP::get("ionosphere.geometry", this->ionosphereGeometry);
+      }
 
       RP::get("Magnetosphere.refine_L4radius", this->refine_L4radius);
       RP::get("Magnetosphere.refine_L4nosexmin", this->refine_L4nosexmin);
@@ -167,11 +187,31 @@ namespace projects {
          RP::get(pop + "_Magnetosphere.nSpaceSamples", sP.nSpaceSamples);
          RP::get(pop + "_Magnetosphere.nVelocitySamples", sP.nVelocitySamples);
 
-         RP::get(pop + "_ionosphere.rho", sP.ionosphereRho);
-         RP::get(pop + "_ionosphere.T", sP.ionosphereT);
-         RP::get(pop + "_ionosphere.VX0", sP.ionosphereV0[0]);
-         RP::get(pop + "_ionosphere.VY0", sP.ionosphereV0[1]);
-         RP::get(pop + "_ionosphere.VZ0", sP.ionosphereV0[2]);
+         if(RP::isSet(pop + "_conductingsphere.rho")) {
+            RP::get(pop + "_conductingsphere.rho", sP.ionosphereRho);
+         } else {
+            RP::get(pop + "_ionosphere.rho", sP.ionosphereRho);
+         }
+         if(RP::isSet(pop + "_conductingsphere.T")) {
+            RP::get(pop + "_conductingsphere.T", sP.ionosphereT);
+         } else {
+            RP::get(pop + "_ionosphere.T", sP.ionosphereT);
+         }
+         if(RP::isSet(pop + "_conductingsphere.VX0")) {
+            RP::get(pop + "_conductingsphere.VX0", sP.ionosphereV0[0]);
+         } else {
+            RP::get(pop + "_ionosphere.VX0", sP.ionosphereV0[0]);
+         }
+         if(RP::isSet(pop + "_conductingsphere.VY0")) {
+            RP::get(pop + "_conductingsphere.VY0", sP.ionosphereV0[1]);
+         } else {
+            RP::get(pop + "_ionosphere.VY0", sP.ionosphereV0[1]);
+         }
+         if(RP::isSet(pop + "_conductingsphere.VZ0")) {
+            RP::get(pop + "_conductingsphere.VZ0", sP.ionosphereV0[2]);
+         } else {
+            RP::get(pop + "_ionosphere.VZ0", sP.ionosphereV0[2]);
+         }
          RP::get(pop + "_Magnetosphere.taperInnerRadius", sP.taperInnerRadius);
          RP::get(pop + "_Magnetosphere.taperOuterRadius", sP.taperOuterRadius);
          // Backward-compatibility: cfgs from before Sep 2021 setting pop_ionosphere.taperRadius will fail with the unknown option.
@@ -190,13 +230,13 @@ namespace projects {
          }
          if(sP.taperOuterRadius > 0 && sP.taperOuterRadius <= this->ionosphereRadius) {
             if(myRank == MASTER_RANK) {
-               cerr << "Error: " << pop << "_Magnetosphere.taperOuterRadius is non-zero yet smaller than ionosphere.radius! Aborting." << endl;
+               cerr << "Error: " << pop << "_Magnetosphere.taperOuterRadius is non-zero yet smaller than ionosphere.radius / conductingsphere.radius! Aborting." << endl;
             }
             abort();
          }
          if(sP.taperInnerRadius == 0 && sP.taperOuterRadius > 0) {
             if(myRank == MASTER_RANK) {
-               cerr << "Warning: " << pop << "_Magnetosphere.taperInnerRadius is zero (default), now setting this to the same value as ionosphere.radius, that is " << this->ionosphereRadius << ". Set/change " << pop << "_Magnetosphere.taperInnerRadius if this is not the expected behavior." << endl;
+               cerr << "Warning: " << pop << "_Magnetosphere.taperInnerRadius is zero (default), now setting this to the same value as ionosphere.radius / conductingsphere.radius, that is " << this->ionosphereRadius << ". Set/change " << pop << "_Magnetosphere.taperInnerRadius if this is not the expected behavior." << endl;
             }
             sP.taperInnerRadius = this->ionosphereRadius;
          }

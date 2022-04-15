@@ -62,8 +62,9 @@ namespace SBC {
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          
-         Readparameters::add(pop + "_conductingsphere.taperRadius", "Width of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
+         Readparameters::add(pop + "_conductingsphere.taperRadius", "Width of the zone with a density tapering from the conducting sphere value to the background (m)", 0.0);
          Readparameters::add(pop + "_conductingsphere.rho", "Number density of the conductingsphere (m^-3)", 1.0e6);
+         Readparameters::add(pop + "_conductingsphere.T", "Temperature of the conductingsphere (K)", 0.0);
          Readparameters::add(pop + "_conductingsphere.VX0", "Bulk velocity of conductospheric distribution function in X direction (m/s)", 0.0);
          Readparameters::add(pop + "_conductingsphere.VY0", "Bulk velocity of conductospheric distribution function in X direction (m/s)", 0.0);
          Readparameters::add(pop + "_conductingsphere.VZ0", "Bulk velocity of conductospheric distribution function in X direction (m/s)", 0.0);
@@ -768,7 +769,7 @@ namespace SBC {
       cint k,
       cuint& component
    ) {
-      // FIXME This should be OK as the BVOL derivatives are only used for Lorentz force JXB, which is not applied on the ionosphere cells.
+      // FIXME This should be OK as the BVOL derivatives are only used for Lorentz force JXB, which is not applied on the conducting sphere cells.
       this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
    }
    

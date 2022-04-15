@@ -43,14 +43,16 @@ namespace SBC {
       uint nVelocitySamples;
    };
 
-   /*!\brief Conductingsphere is a class applying ionospheric boundary conditions.
+   /*!\brief Conductingsphere is a class applying an ionosphere-ish boundary conditions.
     * 
-    * Conductingsphere is a class handling cells tagged as sysboundarytype::IONOSPHERE by this system boundary condition. It applies ionospheric boundary conditions.
+    * Conductingsphere is a class handling cells tagged as sysboundarytype::CONDUCTINGSPHERE by this system boundary condition. It applies perfectly conducting boundary conditions.
     * 
     * These consist in:
     * - Do nothing for the distribution (keep the initial state constant in time);
     * - Keep only the normal perturbed B component and null out the other perturbed components (perfect conductor behavior);
     * - Null out the electric fields.
+    *
+    * For 3D magnetospheric simulations, you might be interesting in trying the ionosphere boundary instead!
     */
    class Conductingsphere: public SysBoundaryCondition {
    public:
@@ -151,9 +153,9 @@ namespace SBC {
          cint k
       );
       
-      Real center[3]; /*!< Coordinates of the centre of the ionosphere. */
-      Real radius; /*!< Radius of the ionosphere. */
-      uint geometry; /*!< Geometry of the ionosphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: polar-plane cylinder with line dipole. */
+      Real center[3]; /*!< Coordinates of the centre of the conducting sphere. */
+      Real radius; /*!< Radius of the conducting sphere. */
+      uint geometry; /*!< Geometry of the conducting sphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: polar-plane cylinder with line dipole. */
 
       std::vector<ConductingsphereSpeciesParameters> speciesParams;
       Real T;
