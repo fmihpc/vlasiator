@@ -166,6 +166,7 @@ struct Parameters {
                                          (true) or a KILL (false). */
    static Real bailout_min_dt;        /*!< Minimum time step below which bailout occurs (s). */
    static Real bailout_max_memory;    /*!< Maximum amount of memory used per node (in GiB) over which bailout occurs. */
+   static uint bailout_velocity_space_wall_margin; /*!< Safety margin in number of blocks off the v-space wall beyond which bailout occurs. */
 
    static uint amrMaxVelocityRefLevel; /**< Maximum velocity mesh refinement level, defaults to 0.*/
    static Realf amrCoarsenLimit; /**< If the value of refinement criterion is below this value, block can be coarsened.

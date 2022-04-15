@@ -697,7 +697,7 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
 }
 
 bool check_skip_remapping(Vec* values) {
-   for (int index=-VLASOV_STENCIL_WIDTH; index<VLASOV_STENCIL_WIDTH+1; ++index) {
+   for (int index=0; index<2*VLASOV_STENCIL_WIDTH+1; ++index) {
       if (horizontal_or(values[index] > Vec(0))) return false;
    }
    return true;
@@ -833,7 +833,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
    // These neighborhoods now include the AMR addition beyond the regular vlasov stencil
    int neighborhood = getNeighborhood(dimension,VLASOV_STENCIL_WIDTH);
 
-#pragma parallel for
+#pragma omp parallel for
    for (uint i=0; i<localPropagatedCells.size(); i++) {
       CellID celli = localPropagatedCells[i];
 
