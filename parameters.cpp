@@ -597,7 +597,7 @@ void Parameters::getParameters() {
             MPI_Abort(MPI_COMM_WORLD, 1);
          }
 
-         logfile <<"AMR fsGrid filtering is on with max number of passes = "<<maxNumPassesInt<<" and the following levels: ";
+         logFile <<"AMR fsGrid filtering is on with max number of passes = "<<maxNumPassesInt<<" and the following levels: ";
          int lev = 0;
          for (auto& iter : P::numPasses) {
             logFile<<"RefLvl "<<lev<<"-->"<<iter<<" passes, ";
@@ -618,7 +618,7 @@ void Parameters::getParameters() {
             MPI_Abort(MPI_COMM_WORLD, 1);
          }
 
-         logfile <<"AMR fsGrid filtering is off."<<endl;
+         logFile <<"AMR fsGrid filtering is off."<<endl;
          }
    }
 
