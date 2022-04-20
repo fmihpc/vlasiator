@@ -94,7 +94,7 @@ namespace spatial_cell {
     * velocity_block_with_no_content_list needs to be up to date in local cells.
     *         
     * update_velocity_block_with_content_lists() should have
-    * been called with the current distribution function values, and then the contetn list transferred.
+    * been called with the current distribution function values, and then the content list transferred.
     * 
     * Removes all velocity blocks from this spatial cell which don't
     * have content and don't have spatial or velocity neighbors with

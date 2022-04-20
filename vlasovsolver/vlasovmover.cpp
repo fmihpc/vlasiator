@@ -55,13 +55,13 @@ creal ONE     = 1.0;
 creal TWO     = 2.0;
 creal EPSILON = 1.0e-25;
 
-/** Propagates the distribution function in spatial space. 
-    
+/** Propagates the distribution function in spatial space.
+
     Based on SLICE-3D algorithm: Zerroukat, M., and T. Allen. "A
     three‐dimensional monotone and conservative semi‐Lagrangian scheme
     (SLICE‐3D) for transport problems." Quarterly Journal of the Royal
     Meteorological Society 138.667 (2012): 1640-1651.
-  
+
  */
 void calculateSpatialTranslation(
         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -80,14 +80,13 @@ void calculateSpatialTranslation(
     //if (P::amrMaxSpatialRefLevel > 0) AMRtranslationActive = true;
 
     double t1;
-    
     int myRank;
     MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    
-   // int bt=phiprof::initializeTimer("barrier-trans-pre-z","Barriers","MPI");
-   // phiprof::start(bt);
-   // MPI_Barrier(MPI_COMM_WORLD);
-   // phiprof::stop(bt);
+    // int bt=phiprof::initializeTimer("barrier-trans-pre-z","Barriers","MPI");
+    // phiprof::start(bt);
+    // MPI_Barrier(MPI_COMM_WORLD);
+    // phiprof::stop(bt);
  
     // ------------- SLICE - map dist function in Z --------------- //
    if(P::zcells_ini > 1){
@@ -270,10 +269,12 @@ void calculateSpatialLocalTranslation(
 
    trans_timer=phiprof::initializeTimer("transfer-stencil-data-all","MPI");
    phiprof::start(trans_timer);
-   // updateRemoteVelocityBlockLists(mpiGrid,popID,VLASOV_SOLVER_NEIGHBORHOOD_ID); // already done in ACC under adjustVelocityBlocks
+   //updateRemoteVelocityBlockLists(mpiGrid,popID,VLASOV_SOLVER_NEIGHBORHOOD_ID); // already done in ACC under adjustVelocityBlocks
    SpatialCell::set_mpi_transfer_direction(0); // Local translation uses just the X flag
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false,AMRtranslationActive);
-   mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_NEIGHBORHOOD_ID);
+   //mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_NEIGHBORHOOD_ID);
+   mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
+   //mpiGrid.update_copies_of_remote_neighbors(DIST_FUNC_NEIGHBORHOOD_ID);
    phiprof::stop(trans_timer);
    MPI_Barrier(MPI_COMM_WORLD);
 
@@ -337,11 +338,11 @@ void calculateSpatialTranslation(
    vector<CellID> local_propagated_cells;
    vector<uint> nPencils;
    Real time=0.0;
-   
+
    // If dt=0 we are either initializing or distribution functions are not translated. 
    // In both cases go to the end of this function and calculate the moments.
    if (dt == 0.0) goto momentCalculation;
-   
+
    phiprof::start("compute_cell_lists");
    if (!P::vlasovSolverLocalTranslate) {
       remoteTargetCellsx = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID);
@@ -357,7 +358,7 @@ void calculateSpatialTranslation(
          local_propagated_cells.push_back(localCells[c]);
       }
    }
-   
+
    if (P::prepareForRebalance == true && P::amrMaxSpatialRefLevel != 0) {
       // One more element to count the sums
       for (size_t c=0; c<local_propagated_cells.size()+1; c++) {
@@ -365,7 +366,7 @@ void calculateSpatialTranslation(
       }
    }
    phiprof::stop("compute_cell_lists");
-   
+
    // Translate all particle species
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       string profName = "translate "+getObjectWrapper().particleSpecies[popID].name;
@@ -402,7 +403,7 @@ void calculateSpatialTranslation(
       }
       phiprof::stop(profName);
    }
-   
+
    if (Parameters::prepareForRebalance == true) {
       if(P::amrMaxSpatialRefLevel == 0) {
          //const double deltat = (MPI_Wtime() - t1) / local_propagated_cells.size();

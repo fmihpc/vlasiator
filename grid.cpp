@@ -591,8 +591,9 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
 
    phiprof::start("update block lists");
    //new partition, re/initialize blocklists of remote cells.
-   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       updateRemoteVelocityBlockLists(mpiGrid,popID);
+   }
    phiprof::stop("update block lists");
 
    phiprof::start("update sysboundaries");
@@ -607,9 +608,9 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
          exit(1);
       }
    }
-   
+
    phiprof::stop("Init solvers");
-   
+
    // Record ranks of face neighbors
    if((P::amrMaxSpatialRefLevel > 0) && (!P::vlasovSolverLocalTranslate)) {
       phiprof::start("set face neighbor ranks");
@@ -875,16 +876,16 @@ EXTENDED_SYSBOUNDARIES (second nearest neighbor, also in diagonal)
   xxoxx
   xxxxx
   xxxxx
------------  
+-----------
 
 VLASOV
------------  
+-----------
     x
     x
   xxoxx
     x
     x
------------    
+-----------
 
 VLASOV_{XYZ}
 -----------
@@ -898,15 +899,14 @@ VLASOV_TARGET_{XYZ}
 -----------
 
 DIST_FUNC  (Includes all cells which should know about each others blocks and have space for them. VLASOV + SYSBOUNDARIES.
------------  
+-----------
     x
    xxx
   xxoxx
    xxx
     x
-    
------------    
 
+-----------
    
 FULL (Includes all possible communication, possible AMR extension)
 -----------
@@ -1000,7 +1000,7 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       neighborhood.push_back({{0, d, 0}});
       neighborhood.push_back({{0,-d, 0}});
       neighborhood.push_back({{0, 0, d}});
-      neighborhood.push_back({{0, 0,-d}});     
+      neighborhood.push_back({{0, 0,-d}});
    }
    /*all possible communication pairs*/
    mpiGrid.add_neighborhood(FULL_NEIGHBORHOOD_ID, neighborhood);
@@ -1024,64 +1024,60 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             if (x == 0 && y == 0 ) continue;
             if (x == 0 && z == 0 ) continue;
             if (y == 0 && z == 0 ) continue;
-            
             neigh_t offsets = {{x, y, z}};
             neighborhood.push_back(offsets);
          }
       }
    }
    mpiGrid.add_neighborhood(DIST_FUNC_NEIGHBORHOOD_ID, neighborhood);
-   
+
    neighborhood.clear();
    for (int d = -VLASOV_STENCIL_WIDTH-addStencilDepth; d <= VLASOV_STENCIL_WIDTH+addStencilDepth; d++) {
-     if (d != 0) {
-        neighborhood.push_back({{d, 0, 0}});
-     }
+      if (d != 0) {
+         neighborhood.push_back({{d, 0, 0}});
+      }
    }
    mpiGrid.add_neighborhood(VLASOV_SOLVER_X_NEIGHBORHOOD_ID, neighborhood);
 
-
    neighborhood.clear();
    for (int d = -VLASOV_STENCIL_WIDTH-addStencilDepth; d <= VLASOV_STENCIL_WIDTH+addStencilDepth; d++) {
-     if (d != 0) {
-        neighborhood.push_back({{0, d, 0}});
-     }
+      if (d != 0) {
+         neighborhood.push_back({{0, d, 0}});
+      }
    }
    mpiGrid.add_neighborhood(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID, neighborhood);
 
-   
    neighborhood.clear();
    for (int d = -VLASOV_STENCIL_WIDTH-addStencilDepth; d <= VLASOV_STENCIL_WIDTH+addStencilDepth; d++) {
-     if (d != 0) {
-        neighborhood.push_back({{0, 0, d}});
-     }
+      if (d != 0) {
+         neighborhood.push_back({{0, 0, d}});
+      }
    }
    mpiGrid.add_neighborhood(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID, neighborhood);
 
    neighborhood.clear();
    for (int d = -1; d <= 1; d++) {
-     if (d != 0) {
-        neighborhood.push_back({{d, 0, 0}});
-     }
+      if (d != 0) {
+         neighborhood.push_back({{d, 0, 0}});
+      }
    }
    mpiGrid.add_neighborhood(VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID, neighborhood);
 
    neighborhood.clear();
    for (int d = -1; d <= 1; d++) {
-     if (d != 0) {
-        neighborhood.push_back({{0, d, 0}});
-     }
+      if (d != 0) {
+         neighborhood.push_back({{0, d, 0}});
+      }
    }
    mpiGrid.add_neighborhood(VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID, neighborhood);
 
    neighborhood.clear();
    for (int d = -1; d <= 1; d++) {
-     if (d != 0) {
-        neighborhood.push_back({{0, 0, d}});
-     }
+      if (d != 0) {
+         neighborhood.push_back({{0, 0, d}});
+      }
    }
    mpiGrid.add_neighborhood(VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID, neighborhood);
-
 
    neighborhood.clear();
    neighborhood.push_back({{1, 0, 0}});
