@@ -334,7 +334,7 @@ void prepareLocalTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
    LocalSet_z.clear();
    std::vector<CellID> foundCells;
    std::vector<CellID> cellIDloop;
-   
+
    // Cell lists include:
    // 1) Any local (translated) non-sysboundary cells
    // 2) per-dimension, in translation order, one layer of face neighbours, remote or local (including translated sysboundary cells)
@@ -357,7 +357,7 @@ void prepareLocalTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
       // Is the cell a non-sysboundary cell?
       // (translated sysboundarycells are only included via the neighbourhood loop)
       if (ccell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) continue;
-      
+
       LocalSet_y.insert(c);
       // y-translation
       findNeighborhoodCells(mpiGrid, c, 1, 1, foundCells);
