@@ -175,6 +175,7 @@ struct Parameters {
                                   * refined.  The value must be larger than amrCoarsenLimit.*/
    static std::string amrVelRefCriterion; /**< Name of the velocity block refinement criterion function.*/
    static uint amrMaxSpatialRefLevel;
+   static int maxFilteringPasses;
    static uint amrBoxHalfWidthX;
    static uint amrBoxHalfWidthY;
    static uint amrBoxHalfWidthZ;
@@ -183,7 +184,7 @@ struct Parameters {
    static Realf amrBoxCenterZ;
    static bool amrTransShortPencils;        /*!< Use short or longpencils in AMR translation.*/
    static std::vector<std::string> blurPassString;
-   static std::vector<int> numPasses;
+   static std::map<int,int> numPasses;
 
    /*! \brief Add the global parameters.
     *
