@@ -588,7 +588,7 @@ void Parameters::getParameters() {
    RP::get("AMR.transShortPencils", P::amrTransShortPencils);
    RP::get("AMR.filterpasses", P::blurPassString);
 
-   // If we are in an AMR run we need to set up the filtering options.
+   // If we are in an AMR run we need to set up the filtering scheme.
    if (P::amrMaxSpatialRefLevel>0){
       bool isEmpty = blurPassString.size() == 0;
       if (!isEmpty){
@@ -612,7 +612,7 @@ void Parameters::getParameters() {
       }else{
          //here we will default to manually constructing the number of passes
          numPasses.clear();
-         int maxPasses=P::amrMaxSpatialRefLevel+1;
+         int maxPasses=P::amrMaxSpatialRefLevel;
          for (uint refLevel=0; refLevel<P::amrMaxSpatialRefLevel+1; refLevel++){
             numPasses[refLevel] =maxPasses;
             maxPasses/=2; 
@@ -621,12 +621,6 @@ void Parameters::getParameters() {
       //Overwrite 0 passes for the highest refLevel. We do not want to filter there.
       P::maxFilteringPasses = numPasses[0];
       numPasses[P::amrMaxSpatialRefLevel] = 0;
-      if (myRank == MASTER_RANK) {
-         for (const auto p:numPasses){
-            printf("Refinement Level %d-->%d Passes\n", p.first, p.second);
-         }
-         std::cout<<"Max Passes= "<<P::maxFilteringPasses<<std::endl;
-      }
    }
 
    if (geometryString == "XY4D") {
