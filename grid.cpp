@@ -380,7 +380,7 @@ void initializeGrids(
    phiprof::stop("Finish fsgrid setup");
 
    // Set this so CFL doesn't break
-   if(P::adaptRefinement) {
+   if(P::refineOnRestart) {
       // Half-step acceleration
       if( P::propagateVlasovAcceleration ) {
          calculateAcceleration(mpiGrid, -0.5*P::dt + 0.5*P::bailout_min_dt);
@@ -1378,15 +1378,15 @@ void adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
             SBC::averageCellData(mpiGrid, children, mpiGrid[parent], popID);
 
          // Averaging moments
-         // Not sure if this is necessary, but let's do it anyway
-         for (int param = CellParams::RHOM; param < CellParams::EXVOL; ++param) {
-            if (param == CellParams::BGBXVOL)
-               param = CellParams::RHOM_R;   // Skip FG stuff
+         calculateCellMoments(mpiGrid[parent], true);
+         //for (int param = CellParams::RHOM; param < CellParams::EXVOL; ++param) {
+         //   if (param == CellParams::BGBXVOL)
+         //      param = CellParams::RHOM_R;   // Skip FG stuff
 
-            mpiGrid[parent]->parameters[param] = 0.0;
-            for (CellID child : children)
-               mpiGrid[parent]->parameters[param] += mpiGrid[child]->parameters[param] / 8.0;
-         }
+         //   mpiGrid[parent]->parameters[param] = 0.0;
+         //   for (CellID child : children)
+         //      mpiGrid[parent]->parameters[param] += mpiGrid[child]->parameters[param] / 8.0;
+         //}
 
          processed.insert(parent);
       }
@@ -1397,19 +1397,20 @@ void adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    recalculateLocalCellsCache();
    initSpatialCellCoordinates(mpiGrid);
 
-   // Removing this crashes on next load balance, no idea why
-   balanceLoad(mpiGrid, sysBoundaries);
-
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_DIMENSIONS);
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
 
    mapRefinement(mpiGrid, technicalGrid);
 
    // Initialise system boundary conditions (they need the initialised positions!!)
+	// This needs to be done before LB
    if(sysBoundaries.classifyCells(mpiGrid,technicalGrid) == false) {
       cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
       exit(1);
    }
+
+   // Removing this crashes on next load balance, no idea why
+   balanceLoad(mpiGrid, sysBoundaries);
 
    // Should be handled by LB
    // SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
