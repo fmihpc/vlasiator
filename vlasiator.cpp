@@ -807,9 +807,14 @@ int main(int argn,char* args[]) {
       if(((P::tstep % P::rebalanceInterval == 0 && P::tstep > P::tstep_min) || overrideRebalanceNow)) {
          logFile << "(LB): Start load balance, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          // Refinement includes LB
-         if (P::adaptRefinement && P::tstep % (P::rebalanceInterval * P::refineMultiplier) == 0 && P::t > P::refineAfter)  { 
+         if (!dtIsChanged && P::adaptRefinement && P::tstep % (P::rebalanceInterval * P::refineMultiplier) == 0 && P::t > P::refineAfter)  { 
             logFile << "(AMR): Adapting refinement!"  << endl << writeVerbose;
             adaptRefinement(mpiGrid, technicalGrid, sysBoundaries, *project);
+            // Calculate new dt limits since we might break CFL when refining
+            phiprof::start("compute-dt");
+            calculateSpatialTranslation(mpiGrid,0.0);
+            calculateAcceleration(mpiGrid,0.0);      
+            phiprof::stop("compute-dt");
          } else {
             balanceLoad(mpiGrid, sysBoundaries);
          }
