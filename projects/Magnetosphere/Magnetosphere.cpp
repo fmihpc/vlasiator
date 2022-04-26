@@ -518,7 +518,8 @@ namespace projects {
    }
 
    bool Magnetosphere::canRefine(spatial_cell::SpatialCell* cell) const {
-      return cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY;
+      //return cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY;
+      return cell->sysBoundaryLayer == 0;
    }
 
    bool Magnetosphere::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
@@ -679,12 +680,6 @@ namespace projects {
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       if (myRank == MASTER_RANK)
          std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
-
-      if (!P::adaptRefinement) {
-         if (myRank == MASTER_RANK)
-            std::cout << "Skipping re-refinement!" << std::endl;
-         return false;
-      }
 
       Real ibr2 = pow(ionosphereRadius + 2*P::dx_ini, 2);
 
