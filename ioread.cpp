@@ -796,6 +796,7 @@ template<unsigned long int N> bool readFsGridVariable(
    phiprof::start("getArrayInfo");
    if (file.getArrayInfo("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
       logFile << "(RESTART)  ERROR: Failed to read " << endl << write;
+      phiprof::stop("getArrayInfo");
       return false;
    }
    if(! (dataType == vlsv::datatype::type::FLOAT && byteSize == sizeof(Real))) {
