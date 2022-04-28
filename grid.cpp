@@ -48,6 +48,10 @@
 #include "papi.h" 
 #endif 
 
+#ifdef USE_CUDA
+#include "vlasovsolver/cuda_acc_map_kernel.cuh"
+#endif
+
 #ifndef NDEBUG
    #ifdef AMR
       #define DEBUG_AMR_VALIDATE
@@ -616,6 +620,32 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
       }
       phiprof::stop("GetSeedIdsAndBuildPencils");
    }
+
+#ifdef USE_CUDA
+   phiprof::start("CUDA_malloc");
+   cudaMaxBlockCount = 0;
+   // Not parallelized
+   for (uint i=0; i<cells.size(); ++i) {
+      SpatialCell* SC = mpiGrid[cells[i]];
+      for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
+         const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = SC->get_velocity_mesh(p);
+         if (vmesh.size() > cudaMaxBlockCount) {
+            cudaMaxBlockCount = vmesh.size();
+         }
+      }
+   }
+   // Call CUDA routines for memory allocation
+   if (isCudaAllocated) {
+      for (uint i=0; i<omp_get_max_threads(); ++i) {
+         cuda_acc_deallocate_memory(i);
+      }
+   }
+   for (uint i=0; i<omp_get_max_threads(); ++i) {
+      cuda_acc_allocate_memory(i,cudaMaxBlockCount);
+   }
+   isCudaAllocated=true;
+   phiprof::stop("CUDA_malloc");
+#endif
    
    phiprof::stop("Balancing load");
 }

@@ -53,6 +53,61 @@ static void HandleError( cudaError_t err, const char *file, int line )
     }
 }
 
+#define MAXCPUTHREADS 64
+Realf *dev_blockData[MAXCPUTHREADS];
+Column *dev_columns[MAXCPUTHREADS];
+int *dev_cell_indices_to_id[MAXCPUTHREADS];
+Vec *dev_values[MAXCPUTHREADS];
+Column *host_columns[MAXCPUTHREADS];
+Vec *host_values[MAXCPUTHREADS];
+bool isCudaAllocated = false;
+float cudaAllocationMultiplier = 2.0; // This can be adjusted upwards in map_1d() based on what's needed
+uint cudaMaxBlockCount = 0;
+
+__host__ void cuda_acc_allocate_memory (
+   uint cpuThreadID,
+   uint maxBlockCount
+   ) {
+   // Mallocs should be in increments of 256 bytes. WID3 is at least 64, and len(Realf) is at least 4, so this is true.
+
+   // The worst case scenario is with every block having content but no neighbours, creating up
+   // to maxBlockCount columns with each needing three blocks (one value plus two for padding).
+   // We also need to pad extra (x1.5?) due to the VDF deforming between acceleration Cartesian directions.
+   // Here we make an 
+   const uint maxColumnsPerCell = std::pow(maxBlockCount, 0.667) * cudaAllocationMultiplier; 
+        // assumes symmetric smooth population2
+   const uint maxTargetBlocksPerCell = maxBlockCount * cudaAllocationMultiplier;
+   const uint maxSourceBlocksPerCell = maxBlockCount * cudaAllocationMultiplier;
+
+   // Old version without checked max block count
+   // const uint maxColumnsPerCell = ( MAX_BLOCKS_PER_DIM / 2 + 1) * MAX_BLOCKS_PER_DIM * MAX_BLOCKS_PER_DIM;
+   // const uint maxTargetBlocksPerColumn = 3 * ( MAX_BLOCKS_PER_DIM / 2 + 1);
+   // const uint maxTargetBlocksPerCell = maxTargetBlocksPerColumn * MAX_BLOCKS_PER_DIM * MAX_BLOCKS_PER_DIM;
+   // const uint maxSourceBlocksPerCell = MAX_BLOCKS_PER_DIM * MAX_BLOCKS_PER_DIM * MAX_BLOCKS_PER_DIM;
+
+   HANDLE_ERROR( cudaMalloc((void**)&dev_blockData[cpuThreadID], maxSourceBlocksPerCell * WID3 * sizeof(Realf) ) );
+   HANDLE_ERROR( cudaMalloc((void**)&dev_columns[cpuThreadID], maxColumnsPerCell*sizeof(Column)) );
+   HANDLE_ERROR( cudaMalloc((void**)&dev_cell_indices_to_id[cpuThreadID], 3*sizeof(int)) );
+   HANDLE_ERROR( cudaMalloc((void**)&dev_values[cpuThreadID], maxTargetBlocksPerCell * (WID3 / VECL) * sizeof(Vec)) );
+
+   // Also allocate and pin memory on host for faster transfers
+   HANDLE_ERROR( cudaHostAlloc((void**)&host_columns[cpuThreadID], maxColumnsPerCell*sizeof(Column), cudaHostAllocPortable) );
+   HANDLE_ERROR( cudaHostAlloc((void**)&host_values[cpuThreadID], maxTargetBlocksPerCell * (WID3 / VECL) * sizeof(Vec), cudaHostAllocPortable) );
+   // Blockdata is pinned inside map_1d() in cpu_acc_map.cpp
+}
+
+__host__ void cuda_acc_deallocate_memory (
+   uint cpuThreadID
+   ) {
+   HANDLE_ERROR( cudaFree(dev_blockData[cpuThreadID]) );
+   HANDLE_ERROR( cudaFree(dev_cell_indices_to_id[cpuThreadID]) );
+   HANDLE_ERROR( cudaFree(dev_columns[cpuThreadID]) );
+   HANDLE_ERROR( cudaFree(dev_values[cpuThreadID]) );
+   // Also de-allocate and unpin memory on host
+   HANDLE_ERROR( cudaFreeHost(host_columns[cpuThreadID]) );
+   HANDLE_ERROR( cudaFreeHost(host_values[cpuThreadID]) );
+}
+
 __global__ void acceleration_kernel
 (
   Realf *dev_blockData,
@@ -71,17 +126,6 @@ __global__ void acceleration_kernel
   int bdsw3
 )
 {
-   //int index = threadIdx.x + blockIdx.x*blockDim.x;
-   //if(totalColumns > 256)
-   //  printf("totalColumns = %d;\n", totalColumns);
-   //int column = threadIdx.x + blockIdx.x * blockDim.x;
-   //if(column < totalColumns)
-   //for( uint column=0; column < totalColumns; column++)
-
-#ifdef CUDA_REALF
-
-   // Optimization idea for future: reverse-sort columns based on
-   // block counts
    int index = threadIdx.x;
    int column = blockIdx.x;
    // int nThreads = blockDim.x;
@@ -195,217 +239,6 @@ __global__ void acceleration_kernel
          } // for loop over target k-indices of current source block
       } // for-loop over source blocks
    } //for loop over j index
-
-#else // NOT CUDA_REALF
-   int column = threadIdx.x + blockIdx.x * blockDim.x;
-   //for( uint column=0; column < totalColumns; column++)
-   if (column < totalColumns) {
-      // i,j,k are relative to the order in which we copied data to the values array.
-      // After this point in the k,j,i loops there should be no branches based on dimensions
-      // Note that the i dimension is vectorized, and thus there are no loops over i
-      // Iterate through the perpendicular directions of the column
-      for (int j = 0; j < WID; j += VECL/WID) {
-         const vmesh::LocalID nblocks = dev_columns[column].nblocks;
-
-         // create vectors with the i and j indices in the vector position on the plane.
-            #if VECL == 4
-            const Veci i_indices = Veci({0, 1, 2, 3});
-            const Veci j_indices = Veci({j, j, j, j});
-            #elif VECL == 8 && WID == 4
-            const Veci i_indices = Veci({0, 1, 2, 3,
-                                        0, 1, 2, 3});
-            const Veci j_indices = Veci({j, j, j, j,
-                                        j + 1, j + 1, j + 1, j + 1});
-            #elif VECL == 8 && WID == 8
-            const Veci i_indices = Veci({0, 1, 2, 3, 4, 5, 6, 7});
-            const Veci j_indices = Veci({j, j, j, j, j, j, j, j});
-            #elif VECL == 16 && WID == 4
-            const Veci i_indices = Veci({0, 1, 2, 3,
-                                        0, 1, 2, 3,
-                                        0, 1, 2, 3,
-                                        0, 1, 2, 3});
-            const Veci j_indices = Veci({j, j, j, j,
-                                        j + 1, j + 1, j + 1, j + 1,
-                                        j + 2, j + 2, j + 2, j + 2,
-                                        j + 3, j + 3, j + 3, j + 3});
-            #elif VECL == 16 && WID == 8
-            const Veci i_indices = Veci({0, 1, 2, 3, 4, 5, 6, 7,
-                                        0, 1, 2, 3, 4, 5, 6, 7});
-            const Veci j_indices = Veci({j,   j,   j,   j,   j,   j,   j,   j,
-                                        j+1, j+1, j+1, j+1, j+1, j+1, j+1, j+1});
-            #elif VECL == 16 && WID == 16
-            const Veci i_indices = Veci({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15});
-            const Veci j_indices = Veci({j, j, j, j, j, j, j, j, j, j,  j,  j,  j,  j,  j,  j});
-            #elif VECL == 32 && WID == 4
-            cerr << __FILE__ << ":" << __LINE__ << ": VECL == 32 && WID == 4 cannot work, too long vector for one plane!" << endl;
-            abort();
-            #elif VECL == 32 && WID == 8
-            const Veci i_indices = Veci({0, 1, 2, 3, 4, 5, 6, 7,
-                                        0, 1, 2, 3, 4, 5, 6, 7,
-                                        0, 1, 2, 3, 4, 5, 6, 7,
-                                        0, 1, 2, 3, 4, 5, 6, 7});
-            const Veci j_indices = Veci({j,   j,   j,   j,   j,   j,   j,   j,
-                                        j+1, j+1, j+1, j+1, j+1, j+1, j+1, j+1,
-                                        j+2, j+2, j+2, j+2, j+2, j+2, j+2, j+2,
-                                        j+3, j+3, j+3, j+3, j+3, j+3, j+3, j+3});
-            #elif VECL == 64 && WID == 4
-            cerr << __FILE__ << ":" << __LINE__ << ": VECL == 64 && WID == 4 cannot work, too long vector for one plane!" << endl;
-            abort();
-            #elif VECL == 64 && WID == 8
-            const Veci i_indices = Veci({0, 1, 2, 3, 4, 5, 6, 7,
-                                        0, 1, 2, 3, 4, 5, 6, 7,
-                                        0, 1, 2, 3, 4, 5, 6, 7,
-                                        0, 1, 2, 3, 4, 5, 6, 7,
-                                        0, 1, 2, 3, 4, 5, 6, 7,
-                                        0, 1, 2, 3, 4, 5, 6, 7,
-                                        0, 1, 2, 3, 4, 5, 6, 7,
-                                        0, 1, 2, 3, 4, 5, 6, 7});
-            const Veci j_indices = Veci({j,   j,   j,   j,   j,   j,   j,   j,
-                                        j+1, j+1, j+1, j+1, j+1, j+1, j+1, j+1,
-                                        j+2, j+2, j+2, j+2, j+2, j+2, j+2, j+2,
-                                        j+3, j+3, j+3, j+3, j+3, j+3, j+3, j+3,
-                                        j+4, j+4, j+4, j+4, j+4, j+4, j+4, j+4,
-                                        j+5, j+5, j+5, j+5, j+5, j+5, j+5, j+5,
-                                        j+6, j+6, j+6, j+6, j+6, j+6, j+6, j+6,
-                                        j+7, j+7, j+7, j+7, j+7, j+7, j+7, j+7});
-            #else
-            cerr << __FILE__ << ":" << __LINE__ << ": Missing implementation for VECL=" << VECL << " and WID=" << WID << "!" << endl;
-            abort();
-            #endif
-
-         /* array for converting block indices to id using a dot product, 
-            depends on Cartesian direction*/
-         const Veci target_cell_index_common =
-            i_indices * dev_cell_indices_to_id[0] +
-            j_indices * dev_cell_indices_to_id[1];
-         
-         // intersection_min is the intersection z coordinate (z after
-         // swaps that is) of the lowest possible z plane for each i,j
-         // index (i in vector)
-         const Vec intersection_min =
-            intersection +
-            (dev_columns[column].i * WID + to_realv(i_indices)) * intersection_di +
-            (dev_columns[column].j * WID + to_realv(j_indices)) * intersection_dj;
-         
-         /*compute some initial values, that are used to set up the
-          * shifting of values as we go through all blocks in
-          * order. See comments where they are shifted for
-          * explanations of their meaning*/
-         Vec v_r0( (WID * dev_columns[column].kBegin) * dv + v_min);
-         Vec lagrangian_v_r0((v_r0-intersection_min)/intersection_dk);
-
-         /* compute location of min and max, this does not change for one
-            column (or even for this set of intersections, and can be used
-            to quickly compute max and min later on*/
-         //TODO, these can be computed much earlier, since they are
-         //identiacal for each set of intersections
-
-         int minGkIndex=0, maxGkIndex=0; // 0 for compiler
-         {
-            Realv maxV = (sizeof(Realv) == 4) ? NPP_MINABS_32F : NPP_MINABS_64F;
-            Realv minV = (sizeof(Realv) == 4) ? NPP_MAXABS_32F : NPP_MAXABS_64F;
-            for(int i = 0; i < VECL; i++)
-            {
-               if (lagrangian_v_r0[i] > maxV)
-               {
-                  maxV = lagrangian_v_r0[i];
-                  maxGkIndex = i;
-               }
-               if (lagrangian_v_r0[i] < minV)
-               {
-                  minV = lagrangian_v_r0[i];
-                  minGkIndex = i;
-               }
-            }
-         }
-         // loop through all blocks in column and compute the mapping as integrals.
-         for (uint k=0; k < WID * nblocks; ++k)
-         {
-            // Compute reconstructions
-#ifdef ACC_SEMILAG_PLM
-            Vec a[2];
-            compute_plm_coeff(dev_values + dev_columns[column].valuesOffset + i_pcolumnv_cuda(j, 0, -1, nblocks), k + WID, a, minValue);
-#endif
-#ifdef ACC_SEMILAG_PPM
-            Vec a[3];
-            compute_ppm_coeff(dev_values + dev_columns[column].valuesOffset + i_pcolumnv_cuda(j, 0, -1, nblocks), h4, k + WID, a, minValue);
-#endif
-#ifdef ACC_SEMILAG_PQM
-            Vec a[5];
-            compute_pqm_coeff(dev_values + dev_columns[column].valuesOffset  + i_pcolumnv_cuda(j, 0, -1, nblocks), h8, k + WID, a, minValue);
-#endif
-
-            // set the initial value for the integrand at the boundary at v = 0
-            // (in reduced cell units), this will be shifted to target_density_1, see below.
-            Vec target_density_r(0.0);
-
-            // v_l, v_r are the left and right velocity coordinates of source cell.
-            Vec v_r = v_r0  + (k+1)* dv;
-            Vec v_l = v_r0  + k* dv;
-            // left(l) and right(r) k values (global index) in the target
-            // Lagrangian grid, the intersecting cells. Again old right is new left.
-
-            // I keep only this version with Fallback, because the version with Agner requires another call to CPU
-            Veci lagrangian_gk_l = truncate_to_int((v_l-intersection_min)/intersection_dk);
-            Veci lagrangian_gk_r = truncate_to_int((v_r-intersection_min)/intersection_dk);
-            //limits in lagrangian k for target column. Also take into
-            //account limits of target column
-            int minGk = max(int(lagrangian_gk_l[minGkIndex]), int(dev_columns[column].minBlockK * WID));
-            int maxGk = min(int(lagrangian_gk_r[maxGkIndex]), int((dev_columns[column].maxBlockK + 1) * WID - 1));
-            // Run along the column and perform the polynomial reconstruction
-            for(int gk = dev_columns[column].minBlockK * WID; gk <= dev_columns[column].maxBlockK * WID; gk++)
-            {
-               if(gk < minGk || gk > maxGk)
-               { continue; }
-
-               const int blockK = gk/WID;
-               const int gk_mod_WID = (gk - blockK * WID);
-
-               //the block of the Lagrangian cell to which we map
-               //const int target_block(target_block_index_common + blockK * block_indices_to_id[2]);
-               //cell indices in the target block  (TODO: to be replaced by
-               //compile time generated scatter write operation)
-               const Veci target_cell(target_cell_index_common + gk_mod_WID * dev_cell_indices_to_id[2]);
-               //the velocity between which we will integrate to put mass
-               //in the targe cell. If both v_r and v_l are in same cell
-               //then v_1,v_2 should be between v_l and v_r.
-               //v_1 and v_2 normalized to be between 0 and 1 in the cell.
-               //For vector elements where gk is already larger than needed (lagrangian_gk_r), v_2=v_1=v_r and thus the value is zero.
-               const Vec v_norm_r = (  min(  max( (gk + 1) * intersection_dk + intersection_min, v_l), v_r) - v_l) * i_dv;
-
-               /*shift, old right is new left*/
-               const Vec target_density_l = target_density_r;
-
-                // compute right integrand
-                #ifdef ACC_SEMILAG_PLM
-                  target_density_r = v_norm_r * ( a[0] + v_norm_r * a[1] );
-                  //printf("ACC_SEMILAG_PLM\n");
-                #endif
-                #ifdef ACC_SEMILAG_PPM
-                  target_density_r = v_norm_r * ( a[0] + v_norm_r * ( a[1] + v_norm_r * a[2] ) );
-                  //printf("ACC_SEMILAG_PPM\n");
-                #endif
-                #ifdef ACC_SEMILAG_PQM
-                  target_density_r = v_norm_r * ( a[0] + v_norm_r * ( a[1] + v_norm_r * ( a[2] + v_norm_r * ( a[3] + v_norm_r * a[4] ) ) ) );
-                #endif
-
-                //store values, one element at a time. All blocks have been created by now.
-                const Vec target_density = target_density_r - target_density_l;
-                for (int target_i=0; target_i < VECL; ++target_i)
-                {
-
-                  // do the conversion from Realv to Realf here, faster than doing it in accumulation
-                  const Realf tval = target_density[target_i];
-                  const uint tcell = target_cell[target_i];
-                  if (isfinite(tval) && tval>0) {
-                     (&dev_blockData[dev_columns[column].targetBlockOffsets[blockK]])[tcell] += tval;
-                  }
-                }  // for-loop over vector elements
-            } // for loop over target k-indices of current source block
-         } // for-loop over source blocks
-      } //for loop over j index
-   } //for loop over columns
-#endif // NOT CUDA_REALF
 }
 
 void acceleration_1_glue
@@ -424,72 +257,91 @@ void acceleration_1_glue
   Realv v_min,
   Realv i_dv,
   Realv dv,
-  Realv minValue
+  Realv minValue,
+  const uint cuda_async_queue_id
 )
 {
-  cudaEvent_t start, stop;
-  cudaEventCreate(&start);
-  cudaEventCreate(&stop);
-  cudaEventRecord(start, 0);
-  // Mallocs should be in increments of 256 bytes. WID3 is at least 64, and len(Realf) is at least 4, so this is true.
+   // cudaEvent_t start, stop;
+   // cudaEventCreate(&start);
+   // cudaEventCreate(&stop);
+   // cudaEventRecord(start, 0);
 
-  Realf *dev_blockData;
-  HANDLE_ERROR( cudaMalloc((void**)&dev_blockData, bdsw3*sizeof(Realf)) );
-  //HANDLE_ERROR( cudaMemcpy(dev_blockData, blockData, bdsw3*sizeof(Realf), cudaMemcpyHostToDevice) );
-  // This is initialized to zero
-  HANDLE_ERROR( cudaMemset(dev_blockData, 0, bdsw3*sizeof(Realf)) );
+   // Page lock (pin) host memory for faster async transfers
+   //cudaHostRegister(h_ptr,bytes,cudaHostRegisterDefault);
+   //cudaHostUnregister(h_ptr);
+   //cudaHostRegister(cell_indices_to_id,3*sizeof(int),cudaHostRegisterDefault);
+   // cudaHostRegister(columns,totalColumns*sizeof(Column),cudaHostRegisterDefault);
+   // cudaHostRegister(values,valuesSizeRequired*sizeof(Vec),cudaHostRegisterDefault);
+   // cudaHostRegister(blockData, bdsw3*sizeof(Realf),cudaHostRegisterDefault);
 
-  Column *dev_columns;
-  HANDLE_ERROR( cudaMalloc((void**)&dev_columns, totalColumns*sizeof(Column)) );
-  HANDLE_ERROR( cudaMemcpy(dev_columns, columns, totalColumns*sizeof(Column), cudaMemcpyHostToDevice) );
+   cudaStream_t stream; //, stream_columns, stream_memset;
+   cudaStreamCreate(&stream);
 
-  int *dev_cell_indices_to_id;
-  HANDLE_ERROR( cudaMalloc((void**)&dev_cell_indices_to_id, 3*sizeof(int)) );
-  HANDLE_ERROR( cudaMemcpy(dev_cell_indices_to_id, cell_indices_to_id, 3*sizeof(int), cudaMemcpyHostToDevice) );
+   // Now done in separate call:
+   // Realf *dev_blockData;
+   // Column *dev_columns;
+   // int *dev_cell_indices_to_id;
+   // Vec *dev_values;
+   // Mallocs should be in increments of 256 bytes. WID3 is at least 64, and len(Realf) is at least 4, so this is true.
+   // HANDLE_ERROR( cudaMalloc((void**)&dev_blockData, bdsw3*sizeof(Realf)) );
+   // HANDLE_ERROR( cudaMalloc((void**)&dev_columns, totalColumns*sizeof(Column)) );
+   // HANDLE_ERROR( cudaMalloc((void**)&dev_cell_indices_to_id, 3*sizeof(int)) );
+   // HANDLE_ERROR( cudaMalloc((void**)&dev_values, valuesSizeRequired*sizeof(Vec)) );
 
-  Vec *dev_values;
-  HANDLE_ERROR( cudaMalloc((void**)&dev_values, valuesSizeRequired*sizeof(Vec)) );
-  HANDLE_ERROR( cudaMemcpy(dev_values, values, valuesSizeRequired*sizeof(Vec), cudaMemcpyHostToDevice) );
+   //HANDLE_ERROR( cudaMemcpy(dev_blockData, blockData, bdsw3*sizeof(Realf), cudaMemcpyHostToDevice) );
+   // This target data is initialized to zero
+   HANDLE_ERROR( cudaMemsetAsync(dev_blockData[cuda_async_queue_id], 0, bdsw3*sizeof(Realf), stream) );
+   // Copy source data to device (async)
+   HANDLE_ERROR( cudaMemcpyAsync(dev_cell_indices_to_id[cuda_async_queue_id], cell_indices_to_id, 3*sizeof(int), cudaMemcpyHostToDevice, stream) );
+   HANDLE_ERROR( cudaMemcpyAsync(dev_columns[cuda_async_queue_id], columns, totalColumns*sizeof(Column), cudaMemcpyHostToDevice, stream) );
+   HANDLE_ERROR( cudaMemcpyAsync(dev_values[cuda_async_queue_id], values, valuesSizeRequired*sizeof(Vec), cudaMemcpyHostToDevice, stream) );
 
-#ifdef CUDA_REALF
-  int threads = VECL; // equal to CUDATHREADS; NVIDIA: 32 AMD: 64
-  int blocks = totalColumns; //CUDABLOCKS; 
-// NVIDIA: a100 64 stream multiprocessors? Blocks shouldbe larger than this value.
-#else
-  int threads = CUDATHREADS;
-  int blocks = (totalColumns / CUDATHREADS) + 1;
-#endif
+   int threads = VECL; // equal to CUDATHREADS; NVIDIA: 32 AMD: 64
+   int blocks = totalColumns; //CUDABLOCKS; 
+   // NVIDIA: a100 64 stream multiprocessors? Blocks should be larger than this value.
 
-  acceleration_kernel<<<blocks, threads>>>
-  (
-    dev_blockData,
-    dev_columns,
-    dev_values,
-    dev_cell_indices_to_id,
-        totalColumns,
-        intersection,
-        intersection_di,
-        intersection_dj,
-        intersection_dk,
-        v_min,
-        i_dv,
-        dv,
-        minValue,
-        bdsw3
-  );
-  cudaDeviceSynchronize();
-  HANDLE_ERROR( cudaMemcpy(blockData, dev_blockData, bdsw3*sizeof(Realf), cudaMemcpyDeviceToHost) );
+   // Launch acceleration kernels
+   acceleration_kernel<<<blocks, threads, 0, stream>>> (
+         dev_blockData[cuda_async_queue_id],
+         dev_columns[cuda_async_queue_id],
+         dev_values[cuda_async_queue_id],
+         dev_cell_indices_to_id[cuda_async_queue_id],
+         totalColumns,
+         intersection,
+         intersection_di,
+         intersection_dj,
+         intersection_dk,
+         v_min,
+         i_dv,
+         dv,
+         minValue,
+         bdsw3
+         );
 
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  float elapsedTime;
-  cudaEventElapsedTime(&elapsedTime, start, stop);
-  //printf("%.3f ms\n", elapsedTime);
+   // Copy data back to host
+   HANDLE_ERROR( cudaMemcpyAsync(blockData, dev_blockData[cuda_async_queue_id], bdsw3*sizeof(Realf), cudaMemcpyDeviceToHost, stream) );
 
-  HANDLE_ERROR( cudaFree(dev_blockData) );
-  HANDLE_ERROR( cudaFree(dev_cell_indices_to_id) );
-  HANDLE_ERROR( cudaFree(dev_columns) );
-  HANDLE_ERROR( cudaFree(dev_values) );
+   cudaStreamSynchronize(stream);
+   
+   // cudaEventRecord(stop, stream);
+   // cudaEventSynchronize(stop);
+   // float elapsedTime;
+   // cudaEventElapsedTime(&elapsedTime, start, stop);
+   //printf("%.3f ms\n", elapsedTime);
 
-  return;
+   // Now done in separate call:
+   // HANDLE_ERROR( cudaFree(dev_blockData) );
+   // HANDLE_ERROR( cudaFree(dev_cell_indices_to_id) );
+   // HANDLE_ERROR( cudaFree(dev_columns) );
+   // HANDLE_ERROR( cudaFree(dev_values) );
+
+   cudaStreamDestroy(stream);
+
+   // Free page locks on host memory
+   //cudaHostUnregister(cell_indices_to_id);
+   // cudaHostUnregister(columns);
+   // cudaHostUnregister(values);
+   // cudaHostUnregister(blockData);
+  
+   return;
 }

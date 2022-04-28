@@ -11,8 +11,7 @@ struct Column
    int i,j;                                       // Blocks' perpendicular coordinates
 };
 
-extern void acceleration_1_glue
-(
+extern void acceleration_1_glue(
   Realf *blockData,
   Column *columns,
   Vec *values,
@@ -27,7 +26,8 @@ extern void acceleration_1_glue
   Realv v_min,
   Realv i_dv,
   Realv dv,
-  Realv minValue
+  Realv minValue,
+  const uint cuda_async_queue_id
 );
 
 #define DIMS 1
@@ -37,3 +37,25 @@ extern void acceleration_1_glue
 #ifndef CUDATHREADS
 #  define CUDATHREADS (32) // NVIDIA: 32 AMD: 64
 #endif
+
+extern void cuda_acc_allocate_memory (
+   uint cpuThreadID,
+   uint maxBlockCount
+   );
+extern void cuda_acc_deallocate_memory (
+   uint cpuThreadID
+   );
+
+// Device data variables, to be allocated in good time. Made into a long array so that each thread has their own pointer.
+extern Realf *dev_blockData[];
+extern Column *dev_columns[];
+extern int *dev_cell_indices_to_id[];
+extern Vec *dev_values[];
+
+// Host data variables, to be allocated and pinned in good time. Made into a long array so that each thread has their own pointer.
+extern Column *host_columns[];
+extern Vec *host_values[];
+extern bool isCudaAllocated;
+extern uint cudaMaxBlockCount;
+extern float cudaAllocationMultiplier;
+
