@@ -334,15 +334,6 @@ void calculateDerivativesSimple(
        }
        break;
     case RK_ORDER2_STEP1:
-      // Exchange PERB*_DT2,RHO_DT2,V*_DT2 with neighbours The
-      // update of PERB[XYZ]_DT2 is needed after the system
-      // boundary update of propagateMagneticFieldSimple.
-       perBDt2Grid.updateGhostCells();
-       if(communicateMoments) {
-         momentsDt2Grid.updateGhostCells();
-       }
-       break;
-    case RK_ORDER2_STEP2:
       // Exchange PERB*,RHO,V* with neighbours The update of B
       // is needed after the system boundary update of
       // propagateMagneticFieldSimple.
@@ -351,6 +342,15 @@ void calculateDerivativesSimple(
          momentsGrid.updateGhostCells();
        }
       break;
+    case RK_ORDER2_STEP2:
+      // Exchange PERB*_DT2,RHO_DT2,V*_DT2 with neighbours The
+      // update of PERB[XYZ]_DT2 is needed after the system
+      // boundary update of propagateMagneticFieldSimple.
+       perBDt2Grid.updateGhostCells();
+       if(communicateMoments) {
+         momentsDt2Grid.updateGhostCells();
+       }
+       break;
     default:
       cerr << __FILE__ << ":" << __LINE__ << " Went through switch, this should not happen." << endl;
       abort();
@@ -367,9 +367,11 @@ void calculateDerivativesSimple(
       for (int j=0; j<gridDims[1]; j++) {
          for (int i=0; i<gridDims[0]; i++) {
             if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-            if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+            if (RKCase == RK_ORDER1) {
                calculateDerivatives(i,j,k, perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RKCase);
-            } else {
+            } else if (RKCase == RK_ORDER2_STEP1) {
+               calculateDerivatives(i,j,k, perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RKCase);
+            } else { //RKCase == RK_ORDER2_STEP2
                calculateDerivatives(i,j,k, perBDt2Grid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RKCase);
             }
          }
