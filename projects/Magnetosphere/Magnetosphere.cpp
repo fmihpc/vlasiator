@@ -518,8 +518,8 @@ namespace projects {
    }
 
    bool Magnetosphere::canRefine(spatial_cell::SpatialCell* cell) const {
-      //return cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY;
-      return cell->sysBoundaryLayer == 0;
+      return cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY;
+      //return cell->sysBoundaryLayer == 0;
    }
 
    bool Magnetosphere::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
@@ -696,9 +696,10 @@ namespace projects {
          Real r2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
 
          bool refine = false;
-         if (r2 < ibr2 || !canRefine(mpiGrid[id])) {
+         if (!canRefine(mpiGrid[id])) {
             // Skip refining, we shouldn't touch borders when reading restart
-            continue;
+		      mpiGrid.dont_refine(id);
+		      mpiGrid.dont_unrefine(id);
          } else if (cell->parameters[CellParams::AMR_ALPHA] > refineTreshold) {
             //#pragma omp critical
             mpiGrid.refine_completely(id);
