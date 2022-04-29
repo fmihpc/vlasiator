@@ -36,6 +36,11 @@
 #include "cpu_acc_map.hpp"
 #include "cuda_acc_map_kernel.cuh"
 
+#ifdef USE_CUDA
+#include "cuda.h"
+#include "cuda_runtime.h"
+#endif
+
 using namespace std;
 using namespace spatial_cell;
 /** Attempt to add the given velocity block to the given velocity mesh.
@@ -111,8 +116,9 @@ void inline swapBlockIndices(velocity_block_indices_t &blockIndices, const uint 
 bool map_1d(SpatialCell* spatial_cell,
             const uint popID,
             Realv intersection, Realv intersection_di, Realv intersection_dj, Realv intersection_dk,
-            const uint dimension, bool useAccelerator) {
-   no_subnormals();
+            const uint dimension) {
+
+   no_subnormals(); // Needed by Agner's vectorclass
 
    Realv dv,v_min;
    Realv is_temp;
@@ -125,27 +131,24 @@ bool map_1d(SpatialCell* spatial_cell,
 
    auto minValue = spatial_cell->getVelocityBlockMinValue(popID);
 
-#ifndef USE_CUDA
-   useAccelerator = false;
-#endif // USE_CUDA
-
-#ifdef CUDA_REALF
-   // if(useAccelerator) {
-   //    cerr << "Using CUDA_REALF accelerator. " << endl;
-   // }
-#else
-   // if(useAccelerator) {
-   //    cerr << "Using CUDA accelerator. " << endl;
-   // }
+   bool useAccelerator = false;
+#ifdef USE_CUDA
+   useAccelerator = true;
+   // Here should check which rank we have on the node, and activate the correct GPU
+   // cudaSetDevice(gpuid);
+   // The MPI standard does not have a common approach for providing this information though...
 #endif
 
    //nothing to do if no blocks
-   if(vmesh.size() == 0)
+   if(vmesh.size() == 0) {
       return true;
+   }
 
-   const int NUM_ASYNC_QUEUES=P::openaccQueueNum;
-   int openacc_async_queue_id = (int)(spatial_cell->parameters[CellParams::CELLID]) % NUM_ASYNC_QUEUES;
+   //const int NUM_ASYNC_QUEUES=P::openaccQueueNum;
+   //int openacc_async_queue_id = (int)(spatial_cell->parameters[CellParams::CELLID]) % NUM_ASYNC_QUEUES;
    //openacc_async_queue_id += omp_get_thread_num() * NUM_ASYNC_QUEUES;
+   const uint cuda_async_queue_id = omp_get_thread_num();
+   // Used for persistent device memory pointers
 
    // Velocity grid refinement level, has no effect but is
    // needed in some vmesh::VelocityMesh function calls.
@@ -230,9 +233,16 @@ bool map_1d(SpatialCell* spatial_cell,
    }
 
    // values array used to store column data. The actual columns index into this.
+#ifdef USE_CUDA
+   Vec *values = host_values[cuda_async_queue_id];
+   Column *columns = host_columns[cuda_async_queue_id];
+   columns = new Column[totalColumns];
+#else
    Vec values[valuesSizeRequired];
    Column *columns;
    columns = new Column[totalColumns];
+#endif
+
    // Iterate through all identified columns and shovel them into the values array.
    uint valuesColumnOffset = 0; //offset to values array for data in a column in this set
    for( uint setIndex=0; setIndex< setColumnOffsets.size(); ++setIndex) {
@@ -406,11 +416,27 @@ bool map_1d(SpatialCell* spatial_cell,
    Realf *blockData = blockContainer.getData();
    size_t blockDataSize = blockContainer.size();
    size_t bdsw3 = blockDataSize * WID3;
-   // if (useAccelerator) { // Memset to zero on device
-   //   for (uint cell = 0; cell < bdsw3; cell++) {
-   //     blockData[cell] = 0;
-   //   }
-   // }
+#ifdef USE_CUDA
+   cudaHostRegister(blockData, bdsw3*sizeof(Realf),cudaHostRegisterDefault);
+   // Update value of cudaAllocationMultiplier if necessary
+   float ratio1 = (blockDataSize / cudaMaxBlockCount);
+   float ratio2 = (totalColumns / std::pow(cudaMaxBlockCount, 0.667));
+   float ratio3 = ( (valuesSizeRequired*VECL/WID3) / cudaMaxBlockCount);
+   if ( (ratio1 > 0.75*cudaAllocationMultiplier)
+        || (ratio2 > 0.75*cudaAllocationMultiplier)
+        || (ratio3 > 0.75*cudaAllocationMultiplier) ) {
+      // Need to increase ratio
+      cudaAllocationMultiplier *= 1.25;
+      std::cerr<<"Increasing cudaAllocationMultiplier to "<<cudaAllocationMultiplier<<" with ratios "<<ratio1<<" "<<ratio2<<" "<<ratio3<<std::endl;
+   }
+   // if ( (ratio1 < 0.5*CudaAllocationMultiplier)
+   //      & (ratio2 < 0.5*CudaAllocationMultiplier)
+   //      & (ratio3 < 0.5*CudaAllocationMultiplier) ) {
+   //    // Safe to decrease ratio
+   //    CudaAllocationMultiplier *= 0.85;
+   //    std::cerr<<"Decreasing CudaAllocationMultiplier to "<<CudaAllocationMultiplier<<std::endl;
+   // } // This is problematic as some cells will have smaller v-spaces but we can't let them sabotage other cells
+#endif
 
    // Now we iterate through target columns again, identifying their block offsets
    for( uint column=0; column < totalColumns; column++) {
@@ -453,7 +479,8 @@ bool map_1d(SpatialCell* spatial_cell,
        v_min,
        i_dv,
        dv,
-       minValue
+       minValue,
+       cuda_async_queue_id
      );
 #endif //USE_CUDA
    } else {
@@ -695,7 +722,11 @@ bool map_1d(SpatialCell* spatial_cell,
    }
 
 
-   delete [] blocks;
+#ifdef USE_CUDA
+   cudaHostUnregister(blockData);
+#else
    delete [] columns;
+#endif
+   delete [] blocks;
    return true;
 }

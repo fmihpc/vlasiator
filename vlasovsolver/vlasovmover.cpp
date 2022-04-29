@@ -28,6 +28,7 @@
 #ifdef _OPENMP
    #include <omp.h>
 #endif
+
 #include <zoltan.h>
 #include <dccrg.hpp>
 #include <phiprof.hpp>
@@ -378,8 +379,10 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
 
    // Semi-Lagrangian acceleration for those cells which are subcycled,
    // dimension-by-dimension
-   for (int order_step=0; order_step<3; order_step++) {
-      #pragma omp parallel for schedule(dynamic,1)
+   #pragma omp parallel
+   {
+      // Start parallel acceleration region.
+      #pragma omp for schedule(dynamic,1)
       for (size_t c=0; c<propagatedCells.size(); ++c) {
          const CellID cellID = propagatedCells[c];
          const Real maxVdt = mpiGrid[cellID]->get_max_v_dt(popID);
@@ -392,22 +395,18 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
          //spatial block neighbors as much in sync as possible for
          //adjust blocks.
          Real subcycleDt;
-         if( (step + 1) * maxVdt > dt) {
-            subcycleDt = max(dt - step * maxVdt, 0.0);
+         if( (step + 1) * maxVdt > fabs(dt)) {
+            subcycleDt = max(fabs(dt) - step * maxVdt, 0.0);
          } else{
             subcycleDt = maxVdt;
          }
          if (dt<0) subcycleDt = -subcycleDt;
 
-         // If we are the "first" thread, we get to use the accelerator.
-         bool isThreadZero = omp_get_thread_num() == 0;
-         //bool isThreadZero = false;
          phiprof::start("cell-semilag-acc");
-         cpu_accelerate_cell(mpiGrid[cellID],popID,map_order,order_step,subcycleDt,isThreadZero);
+         cpu_accelerate_cell(mpiGrid[cellID],popID,map_order,subcycleDt);
          phiprof::stop("cell-semilag-acc");
       }
    }
-
    //global adjust after each subcycle to keep number of blocks managable. Even the ones not
    //accelerating anyore participate. It is important to keep
    //the spatial dimension to make sure that we do not loose
