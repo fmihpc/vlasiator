@@ -117,17 +117,17 @@ bool check_is_written_to(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometr
       // Order is z -> x -> y
       switch (dimension) {
          case 0: // Write into cells which are used in y-translation
-            if (LocalSet_y.count(cid) && (cell->sysBoundaryFlag==sysboundarytype::NOT_SYSBOUNDARY)) {
+            if (LocalSet_y.count(cid) && (cell)) {
                return true;
             }
             break;
          case 1: // Write only into local cells
-            if (mpiGrid.is_local(cid) && (cell->sysBoundaryFlag==sysboundarytype::NOT_SYSBOUNDARY)) {
+            if (mpiGrid.is_local(cid) && (cell)) {
                return true;
             }
             break;
          case 2: // Write into cells which are used in x-translation
-            if (LocalSet_x.count(cid) && (cell->sysBoundaryFlag==sysboundarytype::NOT_SYSBOUNDARY)) {
+            if (LocalSet_x.count(cid) && (cell)) {
                return true;
             }
             break;

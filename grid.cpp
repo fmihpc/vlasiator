@@ -592,7 +592,11 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    phiprof::start("update block lists");
    //new partition, re/initialize blocklists of remote cells.
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-      updateRemoteVelocityBlockLists(mpiGrid,popID);
+      if (P::vlasovSolverLocalTranslate) {
+         updateRemoteVelocityBlockLists(mpiGrid,popID,FULL_NEIGHBORHOOD_ID);
+      } else {
+         updateRemoteVelocityBlockLists(mpiGrid,popID);
+      }
    }
    phiprof::stop("update block lists");
 
@@ -708,7 +712,11 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    //Updated newly adjusted velocity block lists on remote cells, and
    //prepare to receive block data
    if (doPrepareToReceiveBlocks) {
-      updateRemoteVelocityBlockLists(mpiGrid,popID);
+      if (P::vlasovSolverLocalTranslate) {
+         updateRemoteVelocityBlockLists(mpiGrid,popID,VLASOV_SOLVER_NEIGHBORHOOD_ID);
+      } else {
+         updateRemoteVelocityBlockLists(mpiGrid,popID);
+      }
    }
    phiprof::stop("re-adjust blocks");
    return true;
