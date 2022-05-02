@@ -2435,11 +2435,12 @@ namespace SBC {
       iSolverReal bknum;
       iSolverReal potentialInt;
       iSolverReal sourcenorm;
-      iSolverReal residualnorm;      
+      iSolverReal residualnorm;
       minPotentialN = minPotentialS = std::numeric_limits<iSolverReal>::max();
       maxPotentialN = maxPotentialS = std::numeric_limits<iSolverReal>::lowest();
+      std::multiset<iSolverReal> set_neg, set_pos;
 
-#pragma omp parallel shared(akden,bknum,potentialInt,sourcenorm,residualnorm,effectiveSource,minPotentialN,maxPotentialN,minPotentialS,maxPotentialS)
+#pragma omp parallel shared(akden,bknum,potentialInt,sourcenorm,residualnorm,effectiveSource,minPotentialN,maxPotentialN,minPotentialS,maxPotentialS,set_neg,set_pos)
 {
 
       // thread variables, initialised here
@@ -2448,6 +2449,7 @@ namespace SBC {
       iSolverReal thread_minerr = std::numeric_limits<iSolverReal>::max();
       int thread_iteration = iteration;
       int thread_nRestarts = nRestarts;
+      std::multiset<iSolverReal> thread_set_neg, thread_set_pos;
 
       iSolverReal bkden = 1;
       int failcount=0;
@@ -2458,7 +2460,7 @@ namespace SBC {
          sourcenorm = 0;
       }
       // Calculate sourcenorm and initial residual estimate
-      #pragma omp for reduction(+:sourcenorm)
+      #pragma omp for
       for(uint n=0; n<nodes.size(); n++) {
          Node& N=nodes[n];
          // Set gauge-pinned nodes to their fixed potential
@@ -2470,7 +2472,9 @@ namespace SBC {
             iSolverReal source = N.parameters[ionosphereParameters::SOURCE];
             effectiveSource[n] = source;
          //}
-         sourcenorm += source*source;
+         if(source != 0) {
+            thread_set_pos.insert(source*source);
+         }
          N.parameters.at(ionosphereParameters::RESIDUAL) = source - Atimes(n, ionosphereParameters::SOLUTION);
          N.parameters.at(ionosphereParameters::BEST_SOLUTION) = N.parameters.at(ionosphereParameters::SOLUTION);
          if(Ionosphere::solverUseMinimumResidualVariant) {
@@ -2479,23 +2483,29 @@ namespace SBC {
             N.parameters.at(ionosphereParameters::RRESIDUAL) = N.parameters.at(ionosphereParameters::RESIDUAL);
          }
       }
-
-      #pragma omp for
-      for(uint n=0; n<nodes.size(); n++) {
-         Node& N=nodes[n];
-         N.parameters[ionosphereParameters::ZPARAM] = Asolve(n,ionosphereParameters::RESIDUAL, false);
+      #pragma omp critical
+      {
+         set_pos.insert(thread_set_pos.begin(), thread_set_pos.end());
       }
-
+      #pragma omp barrier
+      #pragma omp single
+      {
+         for(auto it = set_pos.crbegin(); it != set_pos.crend(); it++) {
+            sourcenorm += *it;
+         }
+         sourcenorm = sqrt(sourcenorm);
+      }
       bool skipSolve = false;
       // Abort if there is nothing to solve.
       if(sourcenorm == 0) {
          skipSolve = true;
       }
-      #pragma omp single
-      {
-         sourcenorm = sqrt(sourcenorm);
-      }
 
+      #pragma omp for
+      for(uint n=0; n<nodes.size(); n++) {
+         Node& N=nodes[n];
+         N.parameters.at(ionosphereParameters::ZPARAM) = Asolve(n,ionosphereParameters::RESIDUAL, false);
+      }
 
       while(!skipSolve && thread_iteration < Ionosphere::solverMaxIterations) {
          thread_iteration++;
@@ -2511,11 +2521,39 @@ namespace SBC {
          #pragma omp single
          {
             bknum = 0;
+            set_pos.clear();
+            set_neg.clear();
          }
-         #pragma omp for reduction(+:bknum)
+         thread_set_pos.clear();
+         thread_set_neg.clear();
+         #pragma omp for
          for(uint n=0; n<nodes.size(); n++) {
             Node& N=nodes[n];
-            bknum += N.parameters[ionosphereParameters::ZPARAM] * N.parameters[ionosphereParameters::RRESIDUAL];
+            const iSolverReal incr = N.parameters[ionosphereParameters::ZPARAM] * N.parameters[ionosphereParameters::RRESIDUAL];
+            if(incr < 0) {
+               thread_set_neg.insert(incr);
+            }
+            if(incr > 0) {
+               thread_set_pos.insert(incr);
+            }
+         }
+         #pragma omp critical
+         {
+            set_neg.insert(thread_set_neg.begin(), thread_set_neg.end());
+            set_pos.insert(thread_set_pos.begin(), thread_set_pos.end());
+         }
+         #pragma omp barrier
+         #pragma omp single
+         {
+            iSolverReal bknum_pos = 0;
+            iSolverReal bknum_neg = 0;
+            for(auto it = set_neg.cbegin(); it != set_neg.cend(); it++) {
+               bknum_neg += *it;
+            }
+            for(auto it = set_pos.crbegin(); it != set_pos.crend(); it++) {
+               bknum_pos += *it;
+            }
+            bknum = bknum_neg + bknum_pos;
          }
 
          if(counter == 1) {
@@ -2548,14 +2586,42 @@ namespace SBC {
          #pragma omp single
          {
             akden = 0;
+            set_neg.clear();
+            set_pos.clear();
          }
-         #pragma omp for reduction(+:akden)
+         thread_set_neg.clear();
+         thread_set_pos.clear();
+         #pragma omp for
          for(uint n=0; n<nodes.size(); n++) {
             Node& N=nodes[n];
             iSolverReal zparam = Atimes(n, ionosphereParameters::PPARAM, false);
             N.parameters[ionosphereParameters::ZPARAM] = zparam;
-            akden += zparam * N.parameters[ionosphereParameters::PPPARAM];
+            iSolverReal incr = zparam * N.parameters[ionosphereParameters::PPPARAM];
+            if(incr < 0) {
+               thread_set_neg.insert(incr);
+            }
+            if(incr > 0) {
+               thread_set_pos.insert(incr);
+            }
             N.parameters[ionosphereParameters::ZZPARAM] = Atimes(n,ionosphereParameters::PPPARAM, true);
+         }
+         #pragma omp critical
+         {
+            set_neg.insert(thread_set_neg.begin(), thread_set_neg.end());
+            set_pos.insert(thread_set_pos.begin(), thread_set_pos.end());
+         }
+         #pragma omp barrier
+         #pragma omp single
+         {
+            iSolverReal akden_pos = 0;
+            iSolverReal akden_neg = 0;
+            for(auto it = set_neg.cbegin(); it != set_neg.cend(); it++) {
+               akden_neg += *it;
+            }
+            for(auto it = set_pos.crbegin(); it != set_pos.crend(); it++) {
+               akden_pos += *it;
+            }
+            akden = akden_neg + akden_pos;
          }
          iSolverReal ak=bknum/akden;
 
@@ -2603,8 +2669,10 @@ namespace SBC {
          #pragma omp single
          {
             residualnorm = 0;
+            set_pos.clear();
          }
-         #pragma omp for reduction(+:residualnorm)
+         thread_set_pos.clear();
+         #pragma omp for
          for(uint n=0; n<nodes.size(); n++) {
             Node& N=nodes[n];
             // Calculate residual of the new solution. The faster way to do this would be
@@ -2618,16 +2686,26 @@ namespace SBC {
             // See https://en.wikipedia.org/wiki/Conjugate_gradient_method#Explicit_residual_calculation
             iSolverReal newresid = effectiveSource[n] - Atimes(n, ionosphereParameters::SOLUTION);
             if( (gaugeFixing == Pole && n == 0) || (gaugeFixing == Equator && fabs(N.x[2]) < Ionosphere::innerRadius * sin(Ionosphere::shieldingLatitude * M_PI / 180.0))) {
-                  // Don't calculate residual for gauge-pinned nodes
+               // Don't calculate residual for gauge-pinned nodes
                N.parameters[ionosphereParameters::RESIDUAL] = 0;
                N.parameters[ionosphereParameters::RRESIDUAL] = 0;
             } else {
                N.parameters[ionosphereParameters::RESIDUAL] = newresid;
                N.parameters[ionosphereParameters::RRESIDUAL] = effectiveSource[n] - Atimes(n, ionosphereParameters::SOLUTION, true);
-               residualnorm += newresid * newresid;
+               thread_set_pos.insert(newresid*newresid);
             }
          }
-
+         #pragma omp critical
+         {
+            set_pos.insert(thread_set_pos.begin(), thread_set_pos.end());
+         }
+         #pragma omp barrier
+         #pragma omp single
+         {
+            for(auto it = set_pos.crbegin(); it != set_pos.crend(); it++) {
+               residualnorm += *it;
+            }
+         }
          #pragma omp for
          for(uint n=0; n<nodes.size(); n++) {
             Node& N=nodes[n];
