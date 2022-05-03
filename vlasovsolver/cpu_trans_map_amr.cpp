@@ -348,8 +348,6 @@ void prepareLocalTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
       CellID c = localPropagatedCells[i];
       SpatialCell *ccell = mpiGrid[c];
       if (!ccell) continue;
-      // Sets the flag to true for all cells for now
-      ccell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_X] = true;
 
       // Is the cell translated?
       if (!do_translate_cell(ccell)) continue;
@@ -359,6 +357,7 @@ void prepareLocalTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
       if (ccell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) continue;
 
       LocalSet_y.insert(c);
+      ccell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_Y] = true;
       // y-translation
       findNeighborhoodCells(mpiGrid, c, 1, 1, foundCells);
       for (uint j=0; j<foundCells.size(); j++) {
@@ -368,6 +367,7 @@ void prepareLocalTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
          // Is the cell translated?
          if (!do_translate_cell(ncell)) continue;
          LocalSet_y.insert(n);
+         ncell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_Y] = true;
       }
    }
 
@@ -382,8 +382,6 @@ void prepareLocalTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
       //CellID c = (*it);
       SpatialCell *ccell = mpiGrid[c];
       if (!ccell) continue;
-      // Sets the flag to true for all cells for now
-      ccell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_X] = true;
 
       // Is the cell translated?
       if (!do_translate_cell(ccell)) continue;
@@ -393,6 +391,7 @@ void prepareLocalTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
       if (ccell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) continue;
 
       LocalSet_x.insert(c);
+      ccell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_X] = true;
       // x-translation
       findNeighborhoodCells(mpiGrid, c, 0, 1, foundCells);
       for (uint j=0; j<foundCells.size(); j++) {
@@ -402,6 +401,7 @@ void prepareLocalTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
          // Is the cell translated?
          if (!do_translate_cell(ncell)) continue;
          LocalSet_x.insert(n);
+         ncell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_X] = true;
       }
    }
 
@@ -416,8 +416,6 @@ void prepareLocalTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
       //CellID c = (*it);
       SpatialCell *ccell = mpiGrid[c];
       if (!ccell) continue;
-      // Sets the flag to true for all cells for now
-      ccell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_X] = true;
 
       // Is the cell translated?
       if (!do_translate_cell(ccell)) continue;
@@ -427,6 +425,8 @@ void prepareLocalTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
       if (ccell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) continue;
 
       LocalSet_z.insert(c);
+      ccell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_Z] = true;
+
       // z-translation
       findNeighborhoodCells(mpiGrid, c, 2, 1, foundCells);
       for (uint j=0; j<foundCells.size(); j++) {
@@ -436,6 +436,7 @@ void prepareLocalTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
          // Is the cell translated?
          if (!do_translate_cell(ncell)) continue;
          LocalSet_z.insert(n);
+         ncell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_Z] = true;
       }
    }
 
