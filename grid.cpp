@@ -713,7 +713,8 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    //prepare to receive block data
    if (doPrepareToReceiveBlocks) {
       if (P::vlasovSolverLocalTranslate) {
-         updateRemoteVelocityBlockLists(mpiGrid,popID,VLASOV_SOLVER_NEIGHBORHOOD_ID);
+         updateRemoteVelocityBlockLists(mpiGrid,popID,FULL_NEIGHBORHOOD_ID);
+         //updateRemoteVelocityBlockLists(mpiGrid,popID,VLASOV_SOLVER_NEIGHBORHOOD_ID);
       } else {
          updateRemoteVelocityBlockLists(mpiGrid,popID);
       }
