@@ -113,21 +113,23 @@ bool check_is_translated(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometr
 
 bool check_is_written_to(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, CellID cid, int dimension) {
    if (P::vlasovSolverLocalTranslate) {
+   //if (false) {
       SpatialCell *cell = mpiGrid[cid];
       // Order is z -> x -> y
       switch (dimension) {
+         // checks for (cell) && (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) are before call
          case 0: // Write into cells which are used in y-translation
-            if (LocalSet_y.count(cid) && (cell)) {
+            if (LocalSet_y.count(cid)) {
                return true;
             }
             break;
          case 1: // Write only into local cells
-            if (mpiGrid.is_local(cid) && (cell)) {
+            if (mpiGrid.is_local(cid)) {
                return true;
             }
             break;
          case 2: // Write into cells which are used in x-translation
-            if (LocalSet_x.count(cid) && (cell)) {
+            if (LocalSet_x.count(cid)) {
                return true;
             }
             break;
@@ -350,11 +352,11 @@ void prepareLocalTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
       if (!ccell) continue;
 
       // Is the cell translated?
-      if (!do_translate_cell(ccell)) continue;
+      //if (!do_translate_cell(ccell)) continue;
 
       // Is the cell a non-sysboundary cell?
       // (translated sysboundarycells are only included via the neighbourhood loop)
-      if (ccell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) continue;
+      //if (ccell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) continue;
 
       LocalSet_y.insert(c);
       ccell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_Y] = true;
@@ -365,7 +367,7 @@ void prepareLocalTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
          SpatialCell *ncell = mpiGrid[n];
          if (!ncell) continue;
          // Is the cell translated?
-         if (!do_translate_cell(ncell)) continue;
+         //if (!do_translate_cell(ncell)) continue;
          LocalSet_y.insert(n);
          ncell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_Y] = true;
       }
@@ -384,11 +386,11 @@ void prepareLocalTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
       if (!ccell) continue;
 
       // Is the cell translated?
-      if (!do_translate_cell(ccell)) continue;
+      //if (!do_translate_cell(ccell)) continue;
 
       // Is the cell a non-sysboundary cell?
       // (translated sysboundarycells are only included via the neighbourhood loop)
-      if (ccell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) continue;
+      //if (ccell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) continue;
 
       LocalSet_x.insert(c);
       ccell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_X] = true;
@@ -399,7 +401,7 @@ void prepareLocalTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
          SpatialCell *ncell = mpiGrid[n];
          if (!ncell) continue;
          // Is the cell translated?
-         if (!do_translate_cell(ncell)) continue;
+         //if (!do_translate_cell(ncell)) continue;
          LocalSet_x.insert(n);
          ncell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_X] = true;
       }
@@ -418,11 +420,11 @@ void prepareLocalTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
       if (!ccell) continue;
 
       // Is the cell translated?
-      if (!do_translate_cell(ccell)) continue;
+      //if (!do_translate_cell(ccell)) continue;
 
       // Is the cell a non-sysboundary cell?
       // (translated sysboundarycells are only included via the neighbourhood loop)
-      if (ccell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) continue;
+      //if (ccell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) continue;
 
       LocalSet_z.insert(c);
       ccell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_Z] = true;
@@ -434,14 +436,262 @@ void prepareLocalTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
          SpatialCell *ncell = mpiGrid[n];
          if (!ncell) continue;
          // Is the cell translated?
-         if (!do_translate_cell(ncell)) continue;
+         //if (!do_translate_cell(ncell)) continue;
          LocalSet_z.insert(n);
          ncell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_Z] = true;
       }
    }
 
+   int myRank;
+   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+   std::cerr<<"myRank"<<myRank<<"L"<<localPropagatedCells.size()<<"x"<<LocalSet_x.size()<<"y"<<LocalSet_y.size()<<"z"<<LocalSet_z.size()<<std::endl;
+   
    return;
 }
+
+
+void prepareLocalTranslationCellLists2(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                      const vector<CellID>& localPropagatedCells) {
+
+   // Also performs AMR communication flag setting
+   // NYI: now just sets flag to true
+
+   // return if there's no cells to start with
+   if(localPropagatedCells.size() == 0) {
+      std::cerr<<"No cells!"<<std::endl;
+      return;
+   }
+
+   // Clear existing lists
+   LocalSet_x.clear();
+   LocalSet_y.clear();
+   LocalSet_z.clear();
+
+   // Translation order (dimensions) is 1: z 2: x 3: y
+   // Prepare in reverse order
+
+   int dimension=1;
+   int neighborhood = getNeighborhood(dimension,VLASOV_STENCIL_WIDTH);
+   // Done only at LB so not threaded for now
+   for (uint i=0; i<localPropagatedCells.size(); i++) {
+      CellID c = localPropagatedCells[i];
+      SpatialCell *ccell = mpiGrid[c];
+      if (!ccell) continue;
+      // Is the cell translated?
+      //if (!do_translate_cell(ccell)) continue;
+      
+      // Just set the communication flag true for now
+      for (uint j=0; j<3; ++j) {
+         ccell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_X+j] = true;
+      }
+      LocalSet_y.insert(c);
+
+      //if (ccell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) continue;
+      std::set< int > distancesplus;
+      std::set< int > distancesminus;
+      std::set<CellID> foundNeighborsP;
+      std::set<CellID> foundNeighborsM;
+      
+      const auto* NbrPairs = mpiGrid.get_neighbors_of(c, neighborhood);
+      
+      // Create list of unique distances
+      for (const auto nbrPair : *NbrPairs) {
+         if(nbrPair.second[dimension] > 0) {
+            if (foundNeighborsP.find(nbrPair.first) == foundNeighborsP.end()) {
+               distancesplus.insert(nbrPair.second[dimension]);
+               foundNeighborsP.insert(nbrPair.first);
+            }
+         }
+         if(nbrPair.second[dimension] < 0) {
+            if (foundNeighborsM.find(nbrPair.first) == foundNeighborsM.end()) {
+               distancesminus.insert(-nbrPair.second[dimension]);
+               foundNeighborsM.insert(nbrPair.first);
+            }
+         }
+      }
+      foundNeighborsP.clear();
+      foundNeighborsM.clear();
+      
+      // Iterate through positive distances for 1 element starting from the smallest distance.
+      for (auto it = distancesplus.begin(); it != distancesplus.end(); ++it) {
+         // Check all neighbors at distance *it
+         for (const auto nbrPair : *NbrPairs) {
+            SpatialCell *ncell = mpiGrid[nbrPair.first];
+            if (!ncell) continue;
+            int distanceInRefinedCells = nbrPair.second[dimension];
+            if (distanceInRefinedCells == *it) {
+               LocalSet_y.insert(nbrPair.first);
+            }
+         } // end loop over neighbors
+         break;
+      } // end loop over positive distances
+      
+      // Iterate through negtive distances for 1 element starting from the smallest distance.
+      for (auto it = distancesminus.begin(); it != distancesminus.end(); ++it) {
+         // Check all neighbors at distance *it
+         for (const auto nbrPair : *NbrPairs) {
+            SpatialCell *ncell = mpiGrid[nbrPair.first];
+            if (!ncell) continue;
+            int distanceInRefinedCells = -nbrPair.second[dimension];
+            if (distanceInRefinedCells == *it) {
+               LocalSet_y.insert(nbrPair.first);
+            }
+         } // end loop over neighbors
+         break;
+      } // end loop over negative distances
+
+   } // end loop over local propagated cells
+
+   /** Now use y-translation source cells as starting points
+       and evaluate x-direction
+    */
+   dimension=0;
+   neighborhood = getNeighborhood(dimension,VLASOV_STENCIL_WIDTH);
+   for (auto it=LocalSet_y.begin(); it!=LocalSet_y.end(); ++it) {
+      CellID c = (*it);
+
+      SpatialCell *ccell = mpiGrid[c];
+      if (!ccell) continue;
+      // Is the cell translated?
+      //if (!do_translate_cell(ccell)) continue;
+      
+      LocalSet_x.insert(c);
+
+      //if (ccell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) continue;
+      std::set< int > distancesplus;
+      std::set< int > distancesminus;
+      std::set<CellID> foundNeighborsP;
+      std::set<CellID> foundNeighborsM;
+      
+      // In dimension, check iteratively if any neighbors up to VLASOV_STENCIL_WIDTH distance away are on a different process
+      const auto* NbrPairs = mpiGrid.get_neighbors_of(c, neighborhood);
+      
+      // Create list of unique distances
+      for (const auto nbrPair : *NbrPairs) {
+         if(nbrPair.second[dimension] > 0) {
+            if (foundNeighborsP.find(nbrPair.first) == foundNeighborsP.end()) {
+               distancesplus.insert(nbrPair.second[dimension]);
+               foundNeighborsP.insert(nbrPair.first);
+            }
+         }
+         if(nbrPair.second[dimension] < 0) {
+            if (foundNeighborsM.find(nbrPair.first) == foundNeighborsM.end()) {
+               distancesminus.insert(-nbrPair.second[dimension]);
+               foundNeighborsM.insert(nbrPair.first);
+            }
+         }
+      }
+      foundNeighborsP.clear();
+      foundNeighborsM.clear();
+      
+      // Iterate through positive distances for 1 element starting from the smallest distance.
+      for (auto it = distancesplus.begin(); it != distancesplus.end(); ++it) {
+         // Check all neighbors at distance *it
+         for (const auto nbrPair : *NbrPairs) {
+            SpatialCell *ncell = mpiGrid[nbrPair.first];
+            if (!ncell) continue;
+            int distanceInRefinedCells = nbrPair.second[dimension];
+            if (distanceInRefinedCells == *it) {
+               LocalSet_x.insert(nbrPair.first);
+            }
+         } // end loop over neighbors
+         break;
+      } // end loop over positive distances
+      
+      // Iterate through negtive distances for 1 element starting from the smallest distance.
+      for (auto it = distancesminus.begin(); it != distancesminus.end(); ++it) {
+         // Check all neighbors at distance *it
+         for (const auto nbrPair : *NbrPairs) {
+            SpatialCell *ncell = mpiGrid[nbrPair.first];
+            if (!ncell) continue;
+            int distanceInRefinedCells = -nbrPair.second[dimension];
+            if (distanceInRefinedCells == *it) {
+               LocalSet_x.insert(nbrPair.first);
+            }
+         } // end loop over neighbors
+         break;
+      } // end loop over negative distances
+   } // end loop over y-translation source cells
+
+   /** Now use x-translation source cells as starting points
+       and evaluate z-direction
+    */
+   dimension=2;
+   neighborhood = getNeighborhood(dimension,VLASOV_STENCIL_WIDTH);
+   // for (uint i=0; i<LocalTranslate_sources_x.size(); i++) {
+   //    CellID c = LocalTranslate_sources_x[i];
+   for (auto it=LocalSet_x.begin(); it!=LocalSet_x.end(); ++it) {
+      CellID c = (*it);
+      SpatialCell *ccell = mpiGrid[c];
+      if (!ccell) continue;
+      // Is the cell translated?
+      //if (!do_translate_cell(ccell)) continue;
+      
+      LocalSet_z.insert(c);
+
+      //if (ccell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) continue;
+      std::set< int > distancesplus;
+      std::set< int > distancesminus;
+      std::set<CellID> foundNeighborsP;
+      std::set<CellID> foundNeighborsM;
+      
+      // In dimension, check iteratively if any neighbors up to VLASOV_STENCIL_WIDTH distance away are on a different process
+      const auto* NbrPairs = mpiGrid.get_neighbors_of(c, neighborhood);
+      
+      // Create list of unique distances
+      for (const auto nbrPair : *NbrPairs) {
+         if(nbrPair.second[dimension] > 0) {
+            if (foundNeighborsP.find(nbrPair.first) == foundNeighborsP.end()) {
+               distancesplus.insert(nbrPair.second[dimension]);
+               foundNeighborsP.insert(nbrPair.first);
+            }
+         }
+         if(nbrPair.second[dimension] < 0) {
+            if (foundNeighborsM.find(nbrPair.first) == foundNeighborsM.end()) {
+               distancesminus.insert(-nbrPair.second[dimension]);
+               foundNeighborsM.insert(nbrPair.first);
+            }
+         }
+      }
+      foundNeighborsP.clear();
+      foundNeighborsM.clear();
+      
+      // Iterate through positive distances for 1 element starting from the smallest distance.
+      for (auto it = distancesplus.begin(); it != distancesplus.end(); ++it) {
+         // Check all neighbors at distance *it
+         for (const auto nbrPair : *NbrPairs) {
+            SpatialCell *ncell = mpiGrid[nbrPair.first];
+            if (!ncell) continue;
+            int distanceInRefinedCells = nbrPair.second[dimension];
+            if (distanceInRefinedCells == *it) {
+               LocalSet_z.insert(nbrPair.first);
+            }
+         } // end loop over neighbors
+         break;
+      } // end loop over positive distances
+      
+      // Iterate through negtive distances for 1 element starting from the smallest distance.
+      for (auto it = distancesminus.begin(); it != distancesminus.end(); ++it) {
+         // Check all neighbors at distance *it
+         for (const auto nbrPair : *NbrPairs) {
+            SpatialCell *ncell = mpiGrid[nbrPair.first];
+            if (!ncell) continue;
+            int distanceInRefinedCells = -nbrPair.second[dimension];
+            if (distanceInRefinedCells == *it) {
+               LocalSet_z.insert(nbrPair.first);
+            }
+         } // end loop over neighbors
+         break;
+      } // end loop over negative distances
+   } // end loop over x-translation source cells
+
+   int myRank;
+   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+   std::cerr<<"myRank"<<myRank<<"L"<<localPropagatedCells.size()<<"x"<<LocalSet_x.size()<<"y"<<LocalSet_y.size()<<"z"<<LocalSet_z.size()<<std::endl;
+   
+   return;
+}
+
 
 /* Get pointers to spatial cells that are considered source cells for a pencil.
  * Source cells are cells that the pencil reads data from to compute polynomial
@@ -1659,13 +1909,28 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
       // Sets already include check for do_translate_cell
       switch (dimension) {
          case 0:
-            PropagatedCells.assign(LocalSet_x.begin(), LocalSet_x.end());
+            for (CellID c : LocalSet_x) {
+               if (do_translate_cell(mpiGrid[c])) {
+                  PropagatedCells.push_back(c);
+               }
+            }
+            //PropagatedCells.assign(LocalSet_x.begin(), LocalSet_x.end());
             break;
          case 1:
-            PropagatedCells.assign(LocalSet_y.begin(), LocalSet_y.end());
+            for (CellID c : LocalSet_y) {
+               if (do_translate_cell(mpiGrid[c])) {
+                  PropagatedCells.push_back(c);
+               }
+            }
+            //PropagatedCells.assign(LocalSet_y.begin(), LocalSet_y.end());
             break;
          case 2:
-            PropagatedCells.assign(LocalSet_z.begin(), LocalSet_z.end());
+            for (CellID c : LocalSet_z) {
+               if (do_translate_cell(mpiGrid[c])) {
+                  PropagatedCells.push_back(c);
+               }
+            }
+            //PropagatedCells.assign(LocalSet_z.begin(), LocalSet_z.end());
             break;
          default:
             cerr << __FILE__ << ":"<< __LINE__ << " Wrong dimension, abort"<<endl;
@@ -1996,7 +2261,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                if (spatial_cell && spatial_cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
                   // Check if the blockdata in this cell should be updated or not
                   if (P::vlasovSolverLocalTranslate) {
-                     if (!check_is_written_to(mpiGrid, spatial_cell->parameters[CellParams::CELLID], dimension)) continue;
+                     //if (!check_is_written_to(mpiGrid, spatial_cell->SpatialCell::parameters[CellParams::CELLID], dimension)) continue;
+                     if (!mpiGrid.is_local(spatial_cell->SpatialCell::parameters[CellParams::CELLID])) continue;
                   }
 
                   // Get local velocity block id
@@ -2033,7 +2299,12 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                   if(targetCell) { // this check also skips sysboundary cells
                      // Check if the blockdata in this cell should be updated or not
                      if (P::vlasovSolverLocalTranslate) {
-                        if (!check_is_written_to(mpiGrid, targetCell->parameters[CellParams::CELLID], dimension)) continue;
+                        if (!check_is_written_to(mpiGrid, targetCell->SpatialCell::parameters[CellParams::CELLID], dimension)) continue;
+                        //if (!mpiGrid.is_local(targetCell->SpatialCell::parameters[CellParams::CELLID])) continue;
+                        if (targetCell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+                           std::cerr<<"sysboundary targetcell!"<<std::endl;
+                           abort();
+                        }
                      }
 
                      const vmesh::LocalID blockLID = targetCell->get_velocity_block_local_id(blockGID, popID);
@@ -2046,9 +2317,14 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                      Realf* blockData = targetCell->get_data(blockLID, popID);
                      
                      // areaRatio is the reatio of the cross-section of the spatial cell to the cross-section of the pencil.
-                     int diff = targetCell->SpatialCell::parameters[CellParams::REFINEMENT_LEVEL] - DimensionPencils[dimension].path[pencili].size();
+                     //int diff = targetCell->SpatialCell::parameters[CellParams::REFINEMENT_LEVEL] - DimensionPencils[dimension].path[pencili].size();
+                     int diff = mpiGrid.get_refinement_level(targetCell->SpatialCell::parameters[CellParams::CELLID]) - DimensionPencils[dimension].path[pencili].size();
                      int ratio;
                      Realf areaRatio;
+                     if(diff>0) {
+                        std::cerr<<"invalid pencil-to-cell ratio diff! "<<diff<<std::endl;
+                        abort();
+                     }
                      if(diff>=0) {
                         ratio = 1 << diff;
                         areaRatio = ratio*ratio;

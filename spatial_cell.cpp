@@ -787,7 +787,7 @@ namespace spatial_cell {
          MPI_Type_size(datatype,&mpiSize);
          MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
          cout << myRank << " get_mpi_datatype: " << cellID << " " << sender_rank << " " << receiver_rank << " " << mpiSize << ", Nblocks = " << populations[activePopID].N_blocks << ", nbr Nblocks =";
-         if (!P::vlasovSolverLocalTranslate) {
+//         if (!P::vlasovSolverLocalTranslate) {
             for (uint i = 0; i < MAX_NEIGHBORS_PER_DIM; ++i) {
                const set<int>& ranks = this->face_neighbor_ranks[neighborhood];
                if ( receiving || ranks.find(receiver_rank) != ranks.end()) {
@@ -796,7 +796,7 @@ namespace spatial_cell {
                   cout << " " << 0;
                }
             }
-         }
+            //        }
          cout << " face_neighbor_ranks =";
          for (const auto& rank : this->face_neighbor_ranks[neighborhood]) {
             cout << " " << rank;
