@@ -518,8 +518,7 @@ namespace projects {
    }
 
    bool Magnetosphere::canRefine(spatial_cell::SpatialCell* cell) const {
-      return cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY;
-      //return cell->sysBoundaryLayer == 0;
+      return cell->sysBoundaryLayer == 0;
    }
 
    bool Magnetosphere::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
