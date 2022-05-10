@@ -476,9 +476,11 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
        for (size_t c=0; c<cells.size(); ++c) {
           SpatialCell* SC = mpiGrid[cells[c]];
           const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = SC->get_velocity_mesh(popID);
-          // disregard boundary cells, in preparation for acceleration 
-          if (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ) {
-             if(vmesh.size() != 0){
+          // disregard boundary cells, in preparation for acceleration
+          if (  (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ||
+                // Include inflow-Maxwellian
+                (P::vlasovAccelerateMaxwellianBoundaries && (SC->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN)) ) {
+             if (vmesh.size() != 0){
                 //do not propagate spatial cells with no blocks
                 propagatedCells.push_back(cells[c]);
              }

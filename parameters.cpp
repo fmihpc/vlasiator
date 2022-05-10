@@ -133,6 +133,7 @@ vector<string> P::diagnosticVariableList;
 
 string P::projectName = string("");
 
+bool P::vlasovAccelerateMaxwellianBoundaries = false;
 Real P::maxSlAccelerationRotation = 10.0;
 Real P::hallMinimumRhom = physicalconstants::MASS_PROTON;
 Real P::hallMinimumRhoq = physicalconstants::CHARGE;
@@ -290,6 +291,9 @@ bool P::addParameters() {
            "The minimum CFL limit for vlasov propagation in ordinary space. Used to set timestep if dynamic_timestep "
            "is true.",
            0.8);
+   RP::add("vlasovsolver.accelerateMaxwellianBoundaries",
+           "Propagate maxwellian boundary cell contents in velocity space. Default false.",
+           false);
 
    // Load balancing parameters
    RP::add("loadBalance.algorithm", "Load balancing algorithm to be used", string("RCB"));
@@ -676,6 +680,7 @@ void Parameters::getParameters() {
    RP::get("vlasovsolver.maxSlAccelerationSubcycles", P::maxSlAccelerationSubcycles);
    RP::get("vlasovsolver.maxCFL", P::vlasovSolverMaxCFL);
    RP::get("vlasovsolver.minCFL", P::vlasovSolverMinCFL);
+   RP::get("vlasovsolver.accelerateMaxwellianBoundaries",  P::vlasovAccelerateMaxwellianBoundaries);
 
    // Get load balance parameters
    RP::get("loadBalance.algorithm", P::loadBalanceAlgorithm);
