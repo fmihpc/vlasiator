@@ -954,10 +954,12 @@ int main(int argn,char* args[]) {
       phiprof::stop("Velocity-space",computedCells,"Cells");
       addTimedBarrier("barrier-after-acceleration");
      
+      phiprof::start("Diffusion");
       if (P::artificialPADiff){
 
 	      velocitySpaceDiffusion(mpiGrid,0);
-      }      
+      }
+      phiprof::stop("Diffusion",computedCells,"Cells");
 
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
          phiprof::start("Update system boundaries (Vlasov post-acceleration)");

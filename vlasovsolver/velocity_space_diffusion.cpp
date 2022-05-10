@@ -49,8 +49,10 @@ void velocitySpaceDiffusion(
         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID){
 
     const auto LocalCells=getLocalCells(); 
-    for (auto & CellID: LocalCells) { //Iterate through spatial cell
+    //#pragma omp parallel for
+    for (int CellIdx = 0; CellIdx < LocalCells.size(); CellIdx++) { //Iterate through spatial cell
 
+        auto CellID = LocalCells[CellIdx];
         SpatialCell& cell = *mpiGrid[CellID];
 	const Real* parameters  = cell.get_block_parameters(popID);
         const vmesh::LocalID* nBlocks = cell.get_velocity_grid_length(popID);
@@ -86,7 +88,10 @@ void velocitySpaceDiffusion(
             Realf dfdt_mu[nbins_v][nbins_mu] = {0.0}; // Array to store dfdt_mu
             std::vector<Realf> ratio(cell.get_number_of_velocity_blocks(popID)*WID3); // Array to store CellValue / fmu
 
+    
+            phiprof::start("fmu building");
             // Build 2d array of f(v,mu)
+            #pragma omp parallel for 
             for (vmesh::LocalID n=0; n<cell.get_number_of_velocity_blocks(popID); n++) { // Iterate through velocity blocks
                 for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
 
@@ -119,7 +124,7 @@ void velocitySpaceDiffusion(
                    Realf Vperp = sqrt(Vplasma.at(1)*Vplasma.at(1) + Vplasma.at(2)*Vplasma.at(2));
 
                    Realf theta = atan2(Vperp,Vpara);
-                   Realf mu    = cos(theta);
+                   Realf mu    = Vpara/(normV+std::numeric_limits<Realf>::min());  //cos(theta);
  
                    int Vcount;
                    if (normV < Vmin) { continue; }
@@ -127,13 +132,16 @@ void velocitySpaceDiffusion(
 
                    int mucount = static_cast<int>(floor( (mu+1.0) / dmubins));                      
 
-                   fcount[Vcount][mucount] += 1;
+                   Realf Vmu = dVbins * (Vcount+0.5);
 
                    Realf CellValue      = cell.get_value(VX,VY,VZ,popID);
-                   fmu[Vcount][mucount] += CellValue;
-
+                   #pragma omp critical 
+                   {fmu[Vcount][mucount] += 2.0 * M_PI * Vmu*Vmu * CellValue;
+                   fcount[Vcount][mucount] += 1;}
+   
                 }
             } // End blocks
+            phiprof::stop("fmu building");
 
             for (int indv = 0; indv < nbins_v; indv++) { // Divide f by count 
                 for(int indmu = 0; indmu < nbins_mu; indmu++) {
@@ -144,7 +152,7 @@ void velocitySpaceDiffusion(
             
             //if (subCount == 0) {
             //    // Save muspace to text
-            //    std::string path_save = "/wrk/users/dubart/300_test/proc_test/mu_files/";
+            //    std::string path_save = "/wrk/users/dubart/diff_test/proc_test/mu_files/";
             //    std::ostringstream tmp;
             //    tmp << std::setw(7) << std::setfill('0') << P::tstep;
             //    std::string tstepString = tmp.str();
@@ -160,6 +168,7 @@ void velocitySpaceDiffusion(
             int cRight;
             int cLeft;
 
+            phiprof::start("spatial derivatives");
             // Compute dfdmu and dfdmu2 (take first non-zero neighbours)
             for (int indv = 0; indv < nbins_v; indv++) { 
                 for(int indmu = 0; indmu < nbins_mu; indmu++) {
@@ -195,23 +204,10 @@ void velocitySpaceDiffusion(
                         dfdmu2[indv][indmu] = ( (fmu[indv][indmu + cRight] - fmu[indv][indmu])/(cRight*dmubins) - (fmu[indv][indmu] - fmu[indv][indmu-cLeft])/(cLeft*dmubins) ) / (0.5 * dmubins * (cRight + cLeft)); 
                     }
                 }
-            } 
+            }
+            phiprof::stop("spatial derivatives");
 
-            //if (subCount == 0) {
-            //    // Save dfdmu to text
-            //    std::string path_save = "/wrk/users/dubart/300_test/proc_test/mu_files/";
-            //    std::ostringstream tmp;
-            //    tmp << std::setw(7) << std::setfill('0') << P::tstep;
-            //    std::string tstepString = tmp.str();
-            //    std::ofstream dfdmu_array(path_save + "dfdmu_array_" + tstepString + ".txt");
-            //    for (int indv = 0; indv < nbins_v; indv++) {
-            //        for(int indmu = 0; indmu < nbins_mu; indmu++) {
-            //            dfdmu_array << dfdmu[indv][indmu] << ' ';
-            //        }
-            //        dfdmu_array << std::endl;
-            //    }
-            //}
-            
+            phiprof::start("mu time derivatives");
             // Compute dfdt_mu
             for (int indv = 0; indv < nbins_v; indv++) { 
                 for(int indmu = 0; indmu < nbins_mu; indmu++) {
@@ -220,8 +216,25 @@ void velocitySpaceDiffusion(
                                            + (1.0 - (dmubins * (indmu+0.5) - 1.0)*(dmubins * (indmu+0.5) - 1.0)) * dfdmu2[indv][indmu] );
                 }
             } 
+            phiprof::stop("mu time derivatives");
 
+            //if (subCount == 0) {
+            //    // Save dfdt_mu to text
+            //    std::string path_save = "/wrk/users/dubart/diff_test/proc_test/mu_files/";
+            //    std::ostringstream tmp;
+            //    tmp << std::setw(7) << std::setfill('0') << P::tstep;
+            //    std::string tstepString = tmp.str();
+            //    std::ofstream dfdt_mu_array(path_save + "dfdt_mu_array_" + tstepString + ".txt");
+            //    for (int indv = 0; indv < nbins_v; indv++) {
+            //        for(int indmu = 0; indmu < nbins_mu; indmu++) {
+            //            dfdt_mu_array << dfdt_mu[indv][indmu] << ' ';
+            //        }
+            //        dfdt_mu_array << std::endl;
+            //    }
+            //}
+            phiprof::start("diffusion time derivative");
             // Compute dfdt
+            #pragma opm parallel for
             for (vmesh::LocalID n=0; n<cell.get_number_of_velocity_blocks(popID); n++) { // Iterate through velocity blocks             
                 for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
                 
@@ -253,45 +266,49 @@ void velocitySpaceDiffusion(
                    Realf Vperp = sqrt(Vplasma.at(1)*Vplasma.at(1) + Vplasma.at(2)*Vplasma.at(2));
   
                    Realf theta = atan2(Vperp,Vpara);
-                   Realf mu    = cos(theta);
+                   Realf mu    = Vpara/(normV+std::numeric_limits<Realf>::min()); //cos(theta);
 
                    int Vcount;
-                   Realf VminApply = 2.0*DV;
+                   Realf VminApply = 0.0; //2.0*DV;
                    if (normV < VminApply) { continue; }
                    else { Vcount = static_cast<int>(floor((normV-Vmin) / dVbins)); }    
 
                    int mucount = static_cast<int>(floor((mu+1.0) / dmubins));
 
                    Realf CellValue = cell.get_value(VX,VY,VZ,popID);
-                   Realf CellCalc = 1.0; //f always < 1.0
-                   if ((CellValue == 0.0) && (dfdt_mu[Vcount][mucount] != 0.0)) {
-                      Realf CellValuePDX = cell.get_value(VX+DV,VY,VZ,popID); 
-                      Realf CellValueMDX = cell.get_value(VX-DV,VY,VZ,popID); 
-                      Realf CellValuePDY = cell.get_value(VX,VY+DV,VZ,popID);
-                      Realf CellValueMDY = cell.get_value(VX,VY-DV,VZ,popID);
-                      Realf CellValuePDZ = cell.get_value(VX,VY,VZ+DV,popID); 
-                      Realf CellValueMDZ = cell.get_value(VX,VY,VZ-DV,popID);
-                      std::array<Realf,6> Compare = {CellValuePDX,CellValueMDX,CellValuePDY,CellValueMDY,CellValuePDZ,CellValueMDZ};
-                      for (int indx = 0; indx < Compare.size(); indx++) { 
-                          if ((Compare[indx] < CellCalc) && (Compare[indx] != 0.0)) {CellCalc = Compare[indx];}
-                      }
-                      if (CellCalc != 1.0) { //Otherwise all cells are 0.0
-                          dfdt[WID3*n+i+WID*j+WID*WID*k]  = 0.5 * CellCalc;
-                          ratio[WID3*n+i+WID*j+WID*WID*k] = -1;
-                          continue; //This lane wont affect CFL
-                      } else { ratio[WID3*n+i+WID*j+WID*WID*k] = 0; continue;}
-                   } else if ((CellValue == 0.0) && (dfdt_mu[Vcount][mucount] == 0.0)) {continue;}
-                   else { ratio[WID3*n+i+WID*j+WID*WID*k] = 1.0; }                  
+                   //Realf CellCalc = 1.0; //f always < 1.0
+                   //if ((CellValue == 0.0) && (dfdt_mu[Vcount][mucount] != 0.0)) {
+                   //   Realf CellValuePDX = cell.get_value(VX+DV,VY,VZ,popID); 
+                   //   Realf CellValueMDX = cell.get_value(VX-DV,VY,VZ,popID); 
+                   //   Realf CellValuePDY = cell.get_value(VX,VY+DV,VZ,popID);
+                   //   Realf CellValueMDY = cell.get_value(VX,VY-DV,VZ,popID);
+                   //   Realf CellValuePDZ = cell.get_value(VX,VY,VZ+DV,popID); 
+                   //   Realf CellValueMDZ = cell.get_value(VX,VY,VZ-DV,popID);
+                   //   std::array<Realf,6> Compare = {CellValuePDX,CellValueMDX,CellValuePDY,CellValueMDY,CellValuePDZ,CellValueMDZ};
+                   //   for (int indx = 0; indx < Compare.size(); indx++) { 
+                   //       if ((Compare[indx] < CellCalc) && (Compare[indx] != 0.0)) {CellCalc = Compare[indx];}
+                   //   }
+                   //   if (CellCalc != 1.0) { //Otherwise all cells are 0.0
+                   //       dfdt[WID3*n+i+WID*j+WID*WID*k]  = 0.5 * CellCalc;
+                   //       ratio[WID3*n+i+WID*j+WID*WID*k] = -1;
+                   //       continue; //This lane wont affect CFL
+                   //   } else { ratio[WID3*n+i+WID*j+WID*WID*k] = 0; continue;}
+                   //} else if ((CellValue == 0.0) && (dfdt_mu[Vcount][mucount] == 0.0)) {continue;}
+                   //else { ratio[WID3*n+i+WID*j+WID*WID*k] = 1.0; }                  
                    //else { ratio[WID3*n+i+WID*j+WID*WID*k] = sqrt(CellValue/fmu[Vcount][mucount]); }                  
 
-                   dfdt[WID3*n+i+WID*j+WID*WID*k] = dfdt_mu[Vcount][mucount] * ratio[WID3*n+i+WID*j+WID*WID*k];
+                   Realf Vmu = dVbins * (Vcount+0.5);
+
+                   dfdt[WID3*n+i+WID*j+WID*WID*k] = dfdt_mu[Vcount][mucount] / (2.0 * M_PI * Vmu*Vmu); // *ratio[WID3*n+i+WID*j+WID*WID*k]
                    
                    if (CellValue < Sparsity) {CellValue = Sparsity;} //Set CellValue to sparsity Threshold for empty cells otherwise div by 0
                    if (abs(dfdt[WID3*n+i+WID*j+WID*WID*k]) > 0.0) {
                    checkCFL[WID3*n+i+WID*j+WID*WID*k] = CellValue * Parameters::PADCFL * (1.0 / abs(dfdt[WID3*n+i+WID*j+WID*WID*k]));}
                 }
             }
+            phiprof::stop("diffusion time derivative");
 
+            phiprof::start("calculate CFL");
             //Calculate Diffusion time step based on min of CFL condition
             std::vector<Realf>::iterator mincheckCFL;
             mincheckCFL = std::min_element(checkCFL.begin(),checkCFL.end());
@@ -300,15 +317,15 @@ void velocitySpaceDiffusion(
             if (Ddt > RemainT) { Ddt = RemainT; }
             //std::cout << "Diffusion dt = " << Ddt << std::endl;
             dtTotalDiff = dtTotalDiff + Ddt;
+            phiprof::stop("calculate CFL");
 
             //if (subCount == 0) {
             //    // Save dfdt to text
-            //    std::string path_save = "/wrk/users/dubart/300_test/proc_test/mu_files/";
+            //    std::string path_save = "/wrk/users/dubart/diff_test/proc_test/mu_files/";
             //    std::ostringstream tmp;
             //    tmp << std::setw(7) << std::setfill('0') << P::tstep;
             //    std::string tstepString = tmp.str();
             //    std::ofstream dfdt_array(path_save + "dfdt_array_" + tstepString + ".txt");
-            //    std::ofstream checks(path_save + "checks_" + tstepString + ".txt");
             //    for (vmesh::LocalID n=0; n<cell.get_number_of_velocity_blocks(popID); n++) {
             //        for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
 
@@ -328,14 +345,13 @@ void velocitySpaceDiffusion(
             //            Realf CellValue = cell.get_value(VX,VY,VZ,popID);
 
             //            dfdt_array << VX << " " << VY << " " << VZ << " " << dfdt[WID3*n+i+WID*j+WID*WID*k] << " " << CellValue << std::endl;
-            //            checks << VX << " " << VY << " " << VZ << " " << ratio[WID3*n+i+WID*j+WID*WID*k] << " " << Ddt << std::endl;
             //        }
             //    }
-            //    std::ofstream DifftStep(path_save + "Ddt.txt", std::ios_base::app);
-            //    DifftStep << P::tstep << " " << Ddt << std::endl;           
             //}
-
+            
+            phiprof::start("update cell");
             //Loop to update cell
+            #pragma omp parallel for
             for (vmesh::LocalID n=0; n<cell.get_number_of_velocity_blocks(popID); n++) { //Iterate through velocity blocks
                 for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
                     const Real* parameters  = cell.get_block_parameters(popID);
@@ -362,6 +378,8 @@ void velocitySpaceDiffusion(
                     cell.set_value(VX,VY,VZ,NewCellValue,popID);
                }
            }
+           phiprof::stop("update cell");
+        
 
         subCount += 1;
         } // End Time loop
