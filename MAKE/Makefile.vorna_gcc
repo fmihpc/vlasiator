@@ -9,6 +9,7 @@
 # Remember to compile interactively, see the It4Science wiki or the Vorna guide
 # https://github.com/fmihpc/analysator/wiki/Vorna-guide
 # for the current best practice.
+# Run with srun --mpi=pmix or srun --mpi=pmix_v3
 
 CMP = mpic++
 LNK = mpic++
