@@ -1239,7 +1239,7 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          MPI_Info_set(MPIinfo, it->first.c_str(), it->second.c_str());
       }
    }
-   if (stripe == 0 || stripe < -1){
+   if (stripe < -1){
       cerr << "Error: trying to set an invalid lustre stripe count in bulk IO. Ignoring value." << endl;
    } else {
       if ( MPIinfo == MPI_INFO_NULL ) {
@@ -1444,7 +1444,7 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          MPI_Info_set(MPIinfo, it->first.c_str(), it->second.c_str());
       }
    }
-   if (stripe == 0 || stripe < -1){
+   if (stripe < -1){
       cerr << "Error: trying to set an invalid lustre stripe count in restart IO. Ignoring value." << endl;
    } else {
       if ( MPIinfo == MPI_INFO_NULL ) {
