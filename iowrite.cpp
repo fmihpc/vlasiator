@@ -1239,8 +1239,8 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          MPI_Info_set(MPIinfo, it->first.c_str(), it->second.c_str());
       }
    }
-   if (stripe == 0 || stripe < -1){
-      MPIinfo = MPI_INFO_NULL;
+   if (stripe < -1){
+      cerr << "Error: trying to set an invalid lustre stripe count in bulk IO. Ignoring value." << endl;
    } else {
       if ( MPIinfo == MPI_INFO_NULL ) {
          MPI_Info_create(&MPIinfo);
@@ -1432,10 +1432,24 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    Writer vlsvWriter;
    const int masterProcessId = 0;
    MPI_Info MPIinfo;
-   if (stripe == 0 || stripe < -1){
+   if (P::restartWriteHints.size() == 0) {
       MPIinfo = MPI_INFO_NULL;
    } else {
       MPI_Info_create(&MPIinfo);
+
+      for (std::vector<std::pair<std::string,std::string>>::const_iterator it = P::restartWriteHints.begin();
+           it != P::restartWriteHints.end();
+           it++)
+      {
+         MPI_Info_set(MPIinfo, it->first.c_str(), it->second.c_str());
+      }
+   }
+   if (stripe < -1){
+      cerr << "Error: trying to set an invalid lustre stripe count in restart IO. Ignoring value." << endl;
+   } else {
+      if ( MPIinfo == MPI_INFO_NULL ) {
+         MPI_Info_create(&MPIinfo);
+      }
       char stripeChar[6];
       sprintf(stripeChar,"%d",stripe);
       /* no. of I/O devices to be used for file striping */

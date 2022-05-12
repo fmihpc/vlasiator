@@ -92,12 +92,13 @@ vector<Real> P::systemWriteDistributionWriteShellRadius;
 vector<int> P::systemWriteDistributionWriteShellStride;
 vector<int> P::systemWrites;
 vector<pair<string, string>> P::systemWriteHints;
+vector<pair<string, string>> P::restartWriteHints;
 
 Real P::saveRestartWalltimeInterval = -1.0;
 uint P::exitAfterRestarts = numeric_limits<uint>::max();
 uint64_t P::vlsvBufferSize = 0;
-int P::restartStripeFactor = -1;
-int P::bulkStripeFactor = -1;
+int P::restartStripeFactor = 0;
+int P::systemStripeFactor = 0;
 string P::restartWritePath = string("");
 
 uint P::transmit = 0;
@@ -191,6 +192,12 @@ bool P::addParameters() {
    RP::addComposing(
        "io.system_write_mpiio_hint_value",
        "MPI-IO hint value passed to the non-restart IO. Has to be matched by io.system_write_mpiio_hint_key.");
+   RP::addComposing(
+       "io.restart_write_mpiio_hint_key",
+       "MPI-IO hint key passed to the restart IO. Has to be matched by io.restart_write_mpiio_hint_value.");
+   RP::addComposing(
+       "io.restart_write_mpiio_hint_value",
+       "MPI-IO hint value passed to the restart IO. Has to be matched by io.restart_write_mpiio_hint_key.");
 
    RP::add("io.write_initial_state",
            "Write initial state, not even the 0.5 dt propagation is done. Do not use for restarting. ", false);
@@ -201,8 +208,8 @@ bool P::addParameters() {
            numeric_limits<uint>::max());
    RP::add("io.vlsv_buffer_size",
            "Buffer size passed to VLSV writer (bytes, up to uint64_t), default 0 as this is sensible on sisu", 0);
-   RP::add("io.write_restart_stripe_factor", "Stripe factor for restart writing.", -1);
-   RP::add("io.write_bulk_stripe_factor", "Stripe factor for bulk file and initial grid writing.", -1);
+   RP::add("io.write_restart_stripe_factor", "Stripe factor for restart and initial grid writing. Default 0 to inherit.", 0);
+   RP::add("io.write_system_stripe_factor", "Stripe factor for bulk file writing. Default 0 to inherit.", 0);
    RP::add("io.write_as_float", "If true, write in floats instead of doubles", false);
    RP::add("io.restart_write_path",
            "Path to the location where restart files should be written. Defaults to the local directory, also if the "
@@ -410,7 +417,7 @@ void Parameters::getParameters() {
    RP::get("io.number_of_restarts", P::exitAfterRestarts);
    RP::get("io.vlsv_buffer_size", P::vlsvBufferSize);
    RP::get("io.write_restart_stripe_factor", P::restartStripeFactor);
-   RP::get("io.write_bulk_stripe_factor", P::bulkStripeFactor);
+   RP::get("io.write_system_stripe_factor", P::systemStripeFactor);
    RP::get("io.restart_write_path", P::restartWritePath);
    RP::get("io.write_as_float", P::writeAsFloat);
 
@@ -511,6 +518,23 @@ void Parameters::getParameters() {
    } else {
       for (uint i = 0; i < mpiioKeys.size(); i++) {
          P::systemWriteHints.push_back({mpiioKeys[i], mpiioValues[i]});
+      }
+   }
+
+   mpiioKeys.clear();
+   mpiioValues.clear();
+   RP::get("io.restart_write_mpiio_hint_key", mpiioKeys);
+   RP::get("io.restart_write_mpiio_hint_value", mpiioValues);
+   
+   if (mpiioKeys.size() != mpiioValues.size()) {
+      if (myRank == MASTER_RANK) {
+         cerr << "WARNING the number of io.restart_write_mpiio_hint_key and io.restart_write_mpiio_hint_value do not "
+                 "match. Disregarding these options."
+              << endl;
+      }
+   } else {
+      for (uint i = 0; i < mpiioKeys.size(); i++) {
+         P::restartWriteHints.push_back({mpiioKeys[i], mpiioValues[i]});
       }
    }
 

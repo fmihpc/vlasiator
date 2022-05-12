@@ -750,7 +750,7 @@ int main(int argn,char* args[]) {
                      technicalGrid,
                      version,
                      config,
-                     &outputReducer, i, P::bulkStripeFactor, writeGhosts) == false ) {
+                     &outputReducer, i, P::systemStripeFactor, writeGhosts) == false ) {
                cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
             }
             P::systemWrites[i]++;
