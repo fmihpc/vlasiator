@@ -92,8 +92,10 @@ void flagSpatialCellsForAmrCommunication(const dccrg::Dccrg<SpatialCell,dccrg::C
          CellID c = localPropagatedCells[i];
          SpatialCell *ccell = mpiGrid[c];
          if (!ccell) continue;
-         // Is the cell translated?
-         if (!do_translate_cell(ccell)) continue;
+
+         // Translated cells also need to be included in order to communicate boundary cell VDFs.
+         // Attempting to leave these out for the x or y dimensions also resulted in diffs.
+         // if (!do_translate_cell(ccell)) continue;
 
          // Start with false
          ccell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_X+dimension] = false;
@@ -172,7 +174,6 @@ void flagSpatialCellsForAmrCommunication(const dccrg::Dccrg<SpatialCell,dccrg::C
             } // end loop over neighbors
             iSrc--;
          } // end loop over negative distances
-
       } // end loop over local propagated cells
    } // end loop over dimensions
    return;
@@ -697,7 +698,7 @@ setOfPencils buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Ca
 }
 
 bool check_skip_remapping(Vec* values) {
-   for (int index=-VLASOV_STENCIL_WIDTH; index<VLASOV_STENCIL_WIDTH+1; ++index) {
+   for (int index=0; index<2*VLASOV_STENCIL_WIDTH+1; ++index) {
       if (horizontal_or(values[index] > Vec(0))) return false;
    }
    return true;
@@ -833,7 +834,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
    // These neighborhoods now include the AMR addition beyond the regular vlasov stencil
    int neighborhood = getNeighborhood(dimension,VLASOV_STENCIL_WIDTH);
 
-#pragma parallel for
+#pragma omp parallel for
    for (uint i=0; i<localPropagatedCells.size(); i++) {
       CellID celli = localPropagatedCells[i];
 

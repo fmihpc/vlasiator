@@ -137,6 +137,7 @@ struct Parameters {
 
    static Real maxSlAccelerationRotation; /*!< Maximum rotation in acceleration for semilagrangian solver*/
    static int maxSlAccelerationSubcycles; /*!< Maximum number of subcycles in acceleration*/
+   static bool vlasovAccelerateMaxwellianBoundaries; /*!< Accelerate also Maxwellian boundary cells*/
 
    static Real hallMinimumRhom; /*!< Minimum mass density value used in the field solver.*/
    static Real hallMinimumRhoq; /*!< Minimum charge density value used for the Hall and electron pressure gradient terms
@@ -166,6 +167,7 @@ struct Parameters {
                                          (true) or a KILL (false). */
    static Real bailout_min_dt;        /*!< Minimum time step below which bailout occurs (s). */
    static Real bailout_max_memory;    /*!< Maximum amount of memory used per node (in GiB) over which bailout occurs. */
+   static uint bailout_velocity_space_wall_margin; /*!< Safety margin in number of blocks off the v-space wall beyond which bailout occurs. */
 
    static uint amrMaxVelocityRefLevel; /**< Maximum velocity mesh refinement level, defaults to 0.*/
    static Realf amrCoarsenLimit; /**< If the value of refinement criterion is below this value, block can be coarsened.

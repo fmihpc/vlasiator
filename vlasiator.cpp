@@ -345,6 +345,20 @@ int main(int argn,char* args[]) {
    sysBoundaries.getParameters();
    phiprof::stop("Read parameters");
 
+
+
+
+   //Get version and config info here
+   std::string version;
+   std::string config;
+   //Only master needs the info
+   if (myRank==MASTER_RANK){
+      version=readparameters.versionInfo();
+      config=readparameters.configInfo();
+   }
+
+
+
    // Init parallel logger:
    phiprof::start("open logFile & diagnostic");
    //if restarting we will append to logfiles
@@ -543,6 +557,8 @@ int main(int argn,char* args[]) {
             BgBGrid,
             volGrid,
             technicalGrid,
+            version,
+            config,
             &outputReducer,P::systemWriteName.size()-1, P::restartStripeFactor, writeGhosts) == false ) {
          cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
       }
@@ -578,8 +594,29 @@ int main(int argn,char* args[]) {
       }
       phiprof::stop("propagate-velocity-space-dt/2");
 
+      // Apply boundary conditions
+      if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
+         phiprof::start("Update system boundaries (Vlasov post-acceleration)");
+         sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, 0.5*P::dt, true);
+         phiprof::stop("Update system boundaries (Vlasov post-acceleration)");
+         addTimedBarrier("barrier-boundary-conditions");
+      }
+      // Also update all moments. They won't be transmitted to FSgrid until the field solver is called, though.
+      phiprof::start("Compute interp moments");
+      calculateInterpolatedVelocityMoments(
+         mpiGrid,
+         CellParams::RHOM,
+         CellParams::VX,
+         CellParams::VY,
+         CellParams::VZ,
+         CellParams::RHOQ,
+         CellParams::P_11,
+         CellParams::P_22,
+         CellParams::P_33
+         );
+      phiprof::stop("Compute interp moments");
    }
-   
+
    phiprof::stop("Initialization");
 
    // ***********************************
@@ -711,6 +748,8 @@ int main(int argn,char* args[]) {
                      BgBGrid,
                      volGrid,
                      technicalGrid,
+                     version,
+                     config,
                      &outputReducer, i, P::bulkStripeFactor, writeGhosts) == false ) {
                cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
             }
@@ -782,6 +821,8 @@ int main(int argn,char* args[]) {
                   BgBGrid,
                   volGrid,
                   technicalGrid,
+                  version,
+                  config,
                   outputReducer,"restart",(uint)P::t,P::restartStripeFactor) == false ) {
             logFile << "(IO): ERROR Failed to write restart!" << endl << writeVerbose;
             cerr << "FAILED TO WRITE RESTART" << endl;
