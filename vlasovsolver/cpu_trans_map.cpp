@@ -257,26 +257,26 @@ void copy_trans_block_data(
       if (blockLID != srcCell->invalid_local_id()) {
          blockDatas[b + VLASOV_STENCIL_WIDTH] = srcCell->get_data(blockLID,popID);
          //prefetch storage pointers to L1
-         _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]), _MM_HINT_T0);
-         _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 64, _MM_HINT_T0);
-         _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 128, _MM_HINT_T0);
-         _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 192, _MM_HINT_T0);
-         if ((VPREC  == 8) || (VPREC  == 16)) {
-            _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 256, _MM_HINT_T0);
-            _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 320, _MM_HINT_T0);
-            _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 384, _MM_HINT_T0);
-            _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 448, _MM_HINT_T0);
-         }
-         if (VPREC  == 16) {
-            _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 512, _MM_HINT_T0);
-            _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 576, _MM_HINT_T0);
-            _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 640, _MM_HINT_T0);
-            _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 704, _MM_HINT_T0);
-            _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 768, _MM_HINT_T0);
-            _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 832, _MM_HINT_T0);
-            _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 896, _MM_HINT_T0);
-            _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 960, _MM_HINT_T0);
-            }
+         // _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]), _MM_HINT_T0);
+         // _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 64, _MM_HINT_T0);
+         // _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 128, _MM_HINT_T0);
+         // _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 192, _MM_HINT_T0);
+         // if ((VPREC  == 8) || (VPREC  == 16)) {
+         //    _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 256, _MM_HINT_T0);
+         //    _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 320, _MM_HINT_T0);
+         //    _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 384, _MM_HINT_T0);
+         //    _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 448, _MM_HINT_T0);
+         // }
+         // if (VPREC  == 16) {
+         //    _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 512, _MM_HINT_T0);
+         //    _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 576, _MM_HINT_T0);
+         //    _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 640, _MM_HINT_T0);
+         //    _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 704, _MM_HINT_T0);
+         //    _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 768, _MM_HINT_T0);
+         //    _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 832, _MM_HINT_T0);
+         //    _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 896, _MM_HINT_T0);
+         //    _mm_prefetch((char *)(blockDatas[b + VLASOV_STENCIL_WIDTH]) + 960, _MM_HINT_T0);
+         //    }
       }
       else{
          blockDatas[b + VLASOV_STENCIL_WIDTH] = NULL;
