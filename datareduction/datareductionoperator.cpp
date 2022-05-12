@@ -199,6 +199,12 @@ namespace DRO {
    bool DataReductionOperatorIonosphereElement::writeIonosphereData(SBC::SphericalTriGrid&
             grid, vlsv::Writer& vlsvWriter) {
 
+      // No point in trying to write anything if there is no ionosphere grid.
+      if(grid.elements.size() == 0) {
+         // Note this indicates success, since not writing an empty mesh is quite ok.
+         return true;
+      }
+
       std::map<std::string,std::string> attribs;
       attribs["mesh"]="ionosphere";
       attribs["name"]=variableName;
@@ -261,6 +267,12 @@ namespace DRO {
 
       // skip ionosphere for inital-grid as it breaks
       if(P::systemWriteName[P::systemWriteName.size() - 1] == "initial-grid") {
+         return true;
+      }
+
+      // No point in trying to write anything if there is no ionosphere grid.
+      if(grid.nodes.size() == 0) {
+         // Note this indicates success, since not writing an empty mesh is quite ok.
          return true;
       }
       std::map<std::string,std::string> attribs;
