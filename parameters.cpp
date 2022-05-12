@@ -97,8 +97,8 @@ vector<pair<string, string>> P::restartWriteHints;
 Real P::saveRestartWalltimeInterval = -1.0;
 uint P::exitAfterRestarts = numeric_limits<uint>::max();
 uint64_t P::vlsvBufferSize = 0;
-int P::restartStripeFactor = -1;
-int P::systemStripeFactor = -1;
+int P::restartStripeFactor = 0;
+int P::systemStripeFactor = 0;
 string P::restartWritePath = string("");
 
 uint P::transmit = 0;
