@@ -92,8 +92,10 @@ void flagSpatialCellsForAmrCommunication(const dccrg::Dccrg<SpatialCell,dccrg::C
          CellID c = localPropagatedCells[i];
          SpatialCell *ccell = mpiGrid[c];
          if (!ccell) continue;
-         // Is the cell translated?
-         if (!do_translate_cell(ccell)) continue;
+
+         // Translated cells also need to be included in order to communicate boundary cell VDFs.
+         // Attempting to leave these out for the x or y dimensions also resulted in diffs.
+         // if (!do_translate_cell(ccell)) continue;
 
          // Start with false
          ccell->SpatialCell::parameters[CellParams::AMR_TRANSLATE_COMM_X+dimension] = false;
@@ -172,7 +174,6 @@ void flagSpatialCellsForAmrCommunication(const dccrg::Dccrg<SpatialCell,dccrg::C
             } // end loop over neighbors
             iSrc--;
          } // end loop over negative distances
-
       } // end loop over local propagated cells
    } // end loop over dimensions
    return;

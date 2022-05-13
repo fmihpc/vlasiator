@@ -804,23 +804,22 @@ void calculateHallTermSimple(
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
    FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
    SysBoundary& sysBoundaries,
-   cint& RKCase,
-   const bool communicateMomentsDerivatives
+   cint& RKCase
 ) {
    int timer;
    //const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
    const int* gridDims = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
-   
+
    phiprof::start("Calculate Hall term");
    timer=phiprof::initializeTimer("MPI","MPI");
    phiprof::start(timer);
    dPerBGrid.updateGhostCells();
-   if(communicateMomentsDerivatives) {
+   if(P::ohmGradPeTerm == 0) {
       dMomentsGrid.updateGhostCells();
    }
    phiprof::stop(timer);
-   
+
    phiprof::start("Compute cells");
    #pragma omp parallel for collapse(3)
    for (int k=0; k<gridDims[2]; k++) {
@@ -835,6 +834,6 @@ void calculateHallTermSimple(
       }
    }
    phiprof::stop("Compute cells");
-   
+
    phiprof::stop("Calculate Hall term",N_cells,"Spatial Cells");
 }

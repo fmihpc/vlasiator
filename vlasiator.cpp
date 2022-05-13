@@ -604,8 +604,29 @@ int main(int argn,char* args[]) {
       }
       phiprof::stop("propagate-velocity-space-dt/2");
 
+      // Apply boundary conditions
+      if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
+         phiprof::start("Update system boundaries (Vlasov post-acceleration)");
+         sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, 0.5*P::dt, true);
+         phiprof::stop("Update system boundaries (Vlasov post-acceleration)");
+         addTimedBarrier("barrier-boundary-conditions");
+      }
+      // Also update all moments. They won't be transmitted to FSgrid until the field solver is called, though.
+      phiprof::start("Compute interp moments");
+      calculateInterpolatedVelocityMoments(
+         mpiGrid,
+         CellParams::RHOM,
+         CellParams::VX,
+         CellParams::VY,
+         CellParams::VZ,
+         CellParams::RHOQ,
+         CellParams::P_11,
+         CellParams::P_22,
+         CellParams::P_33
+         );
+      phiprof::stop("Compute interp moments");
    }
-   
+
    phiprof::stop("Initialization");
 
    // ***********************************
