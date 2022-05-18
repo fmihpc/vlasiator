@@ -45,6 +45,10 @@
 #include "cpu_trans_map.hpp"
 #include "cpu_trans_map_amr.hpp"
 
+#ifdef USE_CUDA
+#include "cuda_acc_semilag.hpp"
+#endif
+
 using namespace std;
 using namespace spatial_cell;
 
@@ -403,7 +407,11 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
          if (dt<0) subcycleDt = -subcycleDt;
 
          phiprof::start("cell-semilag-acc");
+#ifdef USE_CUDA
+         cuda_accelerate_cell(mpiGrid[cellID],popID,map_order,subcycleDt);
+#else
          cpu_accelerate_cell(mpiGrid[cellID],popID,map_order,subcycleDt);
+#endif
          phiprof::stop("cell-semilag-acc");
       }
    }
@@ -478,6 +486,8 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
        // Compute global maximum for number of subcycles
        MPI_Allreduce(&maxSubcycles, &globalMaxSubcycles, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+
+       // TODO: move subcycling to lower level call in order to optimize CUDA memory calls
 
        // substep global max times
        for(uint step=0; step<(uint)globalMaxSubcycles; ++step) {

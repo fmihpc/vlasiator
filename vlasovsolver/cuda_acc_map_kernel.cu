@@ -53,15 +53,24 @@ static void HandleError( cudaError_t err, const char *file, int line )
     }
 }
 
+// Allocate pointers for per-thread memory regions
 #define MAXCPUTHREADS 64
 Realf *dev_blockData[MAXCPUTHREADS];
+Realf *dev_blockDataOrdered[MAXCPUTHREADS];
 Column *dev_columns[MAXCPUTHREADS];
-int *dev_cell_indices_to_id[MAXCPUTHREADS];
-Vec *dev_values[MAXCPUTHREADS];
+uint *dev_cell_indices_to_id[MAXCPUTHREADS];
+//vmesh::GlobalID *dev_GIDlist[MAXCPUTHREADS];
+vmesh::LocalID *dev_LIDlist[MAXCPUTHREADS];
+
 Column *host_columns[MAXCPUTHREADS];
-Vec *host_values[MAXCPUTHREADS];
+vmesh::GlobalID *host_GIDlist[MAXCPUTHREADS];
+vmesh::LocalID *host_LIDlist[MAXCPUTHREADS];
+
+
+// Memory allocation flags and values.
+// The allocation multiplier can be adjusted upwards if necessary.
+float cudaAllocationMultiplier = 2.0;
 bool isCudaAllocated = false;
-float cudaAllocationMultiplier = 2.0; // This can be adjusted upwards in map_1d() based on what's needed
 uint cudaMaxBlockCount = 0;
 
 __host__ void cuda_acc_allocate_memory (
@@ -75,45 +84,88 @@ __host__ void cuda_acc_allocate_memory (
    // We also need to pad extra (x1.5?) due to the VDF deforming between acceleration Cartesian directions.
    // Here we make an 
    const uint maxColumnsPerCell = std::pow(maxBlockCount, 0.667) * cudaAllocationMultiplier; 
-        // assumes symmetric smooth population2
+   // assumes symmetric smooth population2
    const uint maxTargetBlocksPerCell = maxBlockCount * cudaAllocationMultiplier;
    const uint maxSourceBlocksPerCell = maxBlockCount * cudaAllocationMultiplier;
 
-   // Old version without checked max block count
+   // Old version without checked max block count (uses too much memory to be feasible)
    // const uint maxColumnsPerCell = ( MAX_BLOCKS_PER_DIM / 2 + 1) * MAX_BLOCKS_PER_DIM * MAX_BLOCKS_PER_DIM;
    // const uint maxTargetBlocksPerColumn = 3 * ( MAX_BLOCKS_PER_DIM / 2 + 1);
    // const uint maxTargetBlocksPerCell = maxTargetBlocksPerColumn * MAX_BLOCKS_PER_DIM * MAX_BLOCKS_PER_DIM;
    // const uint maxSourceBlocksPerCell = MAX_BLOCKS_PER_DIM * MAX_BLOCKS_PER_DIM * MAX_BLOCKS_PER_DIM;
 
-   HANDLE_ERROR( cudaMalloc((void**)&dev_blockData[cpuThreadID], maxSourceBlocksPerCell * WID3 * sizeof(Realf) ) );
+   HANDLE_ERROR( cudaMalloc((void**)&dev_cell_indices_to_id[cpuThreadID], 3*sizeof(uint)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_columns[cpuThreadID], maxColumnsPerCell*sizeof(Column)) );
-   HANDLE_ERROR( cudaMalloc((void**)&dev_cell_indices_to_id[cpuThreadID], 3*sizeof(int)) );
-   HANDLE_ERROR( cudaMalloc((void**)&dev_values[cpuThreadID], maxTargetBlocksPerCell * (WID3 / VECL) * sizeof(Vec)) );
+   HANDLE_ERROR( cudaMalloc((void**)&dev_blockData[cpuThreadID], maxSourceBlocksPerCell * WID3 * sizeof(Realf) ) );
+   HANDLE_ERROR( cudaMalloc((void**)&dev_blockDataOrdered[cpuThreadID], maxTargetBlocksPerCell * WID3 * sizeof(Realf)) );
+   //HANDLE_ERROR( cudaMalloc((void**)&dev_GIDlist[cpuThreadID], maxSourceBlocksPerCell*sizeof(vmesh::GlobalID)) );
+   HANDLE_ERROR( cudaMalloc((void**)&dev_LIDlist[cpuThreadID], maxSourceBlocksPerCell*sizeof(vmesh::LocalID)) );
 
    // Also allocate and pin memory on host for faster transfers
    HANDLE_ERROR( cudaHostAlloc((void**)&host_columns[cpuThreadID], maxColumnsPerCell*sizeof(Column), cudaHostAllocPortable) );
-   HANDLE_ERROR( cudaHostAlloc((void**)&host_values[cpuThreadID], maxTargetBlocksPerCell * (WID3 / VECL) * sizeof(Vec), cudaHostAllocPortable) );
-   // Blockdata is pinned inside map_1d() in cpu_acc_map.cpp
+   HANDLE_ERROR( cudaHostAlloc((void**)&host_GIDlist[cpuThreadID], maxSourceBlocksPerCell*sizeof(vmesh::LocalID), cudaHostAllocPortable) );
+   HANDLE_ERROR( cudaHostAlloc((void**)&host_LIDlist[cpuThreadID], maxSourceBlocksPerCell*sizeof(vmesh::LocalID), cudaHostAllocPortable) );
+   // Blockdata is pinned inside cuda_acc_map_1d() in cuda_acc_map.cu
 }
 
 __host__ void cuda_acc_deallocate_memory (
    uint cpuThreadID
    ) {
-   HANDLE_ERROR( cudaFree(dev_blockData[cpuThreadID]) );
    HANDLE_ERROR( cudaFree(dev_cell_indices_to_id[cpuThreadID]) );
    HANDLE_ERROR( cudaFree(dev_columns[cpuThreadID]) );
-   HANDLE_ERROR( cudaFree(dev_values[cpuThreadID]) );
+   HANDLE_ERROR( cudaFree(dev_blockData[cpuThreadID]) );
+   HANDLE_ERROR( cudaFree(dev_blockDataOrdered[cpuThreadID]) );
+   //HANDLE_ERROR( cudaFree(dev_GIDlist[cpuThreadID]) );
+   HANDLE_ERROR( cudaFree(dev_LIDlist[cpuThreadID]) );
+
    // Also de-allocate and unpin memory on host
    HANDLE_ERROR( cudaFreeHost(host_columns[cpuThreadID]) );
-   HANDLE_ERROR( cudaFreeHost(host_values[cpuThreadID]) );
+   HANDLE_ERROR( cudaFreeHost(host_GIDlist[cpuThreadID]) );
+   HANDLE_ERROR( cudaFreeHost(host_LIDlist[cpuThreadID]) );
 }
 
-__global__ void acceleration_kernel
-(
+
+__global__ void reorder_blocks_by_dimension_kernel(
+   Realf *dev_blockData,
+   Realf *dev_blockDataOrdered,
+   uint *dev_cell_indices_to_id,
+   size_t blockDataN,
+   vmesh::LocalID *dev_LIDlist
+) {
+   // Takes the contents of blockData, sorts it into blockDataOrdered, performing transposes as necessary
+   const int nThreads = blockDim.x; // should be equal to VECL
+   const int ti = threadIdx.x;
+   const int start = blockIdx.x;
+   const int cudaBlocks = gridDim.x;
+   // if (nThreads != VECL) {
+   //    printf("Warning! VECL not matching thread count for CUDA code!\n");
+   // }
+
+   for (uint blockIndex = start; blockIndex < blockDataN; blockIndex += cudaBlocks) {
+      // Each block can span multiple VECLs (equal to cudathreads per block)
+      for (uint j = 0; j < WID3; j += nThreads) {
+         int input = ti + j;
+         
+         int input_2 = input / WID2; // last (slowest) index
+         int input_1 = (input - input_2 * WID2) / WID;
+         int input_0 = input - input_2 * WID2 - input_1 * WID; // first (fastest) index
+         
+         dev_blockDataOrdered[ blockIndex * WID3
+                               + input_0 * dev_cell_indices_to_id[0]
+                               + input_1 * dev_cell_indices_to_id[1]
+                               + input_2 * dev_cell_indices_to_id[2] ]
+            = dev_blockData[ dev_LIDlist[blockIndex] * WID3 + ti ];
+      } // end loop j (vecs per block)
+   } // end loop blockIndex
+   // Note: this kernel does not memset blockData to zero.
+   // A separate memsetasync call is required for that.
+}
+
+__global__ void acceleration_kernel(
   Realf *dev_blockData,
+  Realf *dev_blockDataOrdered,
+  uint *dev_cell_indices_to_id,
   Column *dev_columns,
-  Vec *dev_values,
-  int *dev_cell_indices_to_id,
   int totalColumns,
   Realv intersection,
   Realv intersection_di,
@@ -124,10 +176,9 @@ __global__ void acceleration_kernel
   Realv dv,
   Realv minValue,
   int bdsw3
-)
-{
-   int index = threadIdx.x;
-   int column = blockIdx.x;
+) {
+   const int index = threadIdx.x;
+   const int column = blockIdx.x;
    // int nThreads = blockDim.x;
    // int cudaBlocks = gridDim.x; // = totalColums
    // //printf("totalcolumns %d blocks %d maxcolumns %d\n",totalColumns,cudaBlocks,maxcolumns);
@@ -176,15 +227,15 @@ __global__ void acceleration_kernel
          // as __shared__ had no impact on performance.
 #ifdef ACC_SEMILAG_PLM
          Realv a[2];
-         compute_plm_coeff(dev_values + dev_columns[column].valuesOffset + i_pcolumnv_cuda(j, 0, -1, nblocks), (k + WID), a, minValue, index);
+         compute_plm_coeff((Vec *)dev_blockDataOrdered + dev_columns[column].valuesOffset + i_pcolumnv_cuda(j, 0, -1, nblocks), (k + WID), a, minValue, index);
 #endif
 #ifdef ACC_SEMILAG_PPM
          Realv a[3];
-         compute_ppm_coeff(dev_values + dev_columns[column].valuesOffset + i_pcolumnv_cuda(j, 0, -1, nblocks), h4, (k + WID), a, minValue, index);
+         compute_ppm_coeff((Vec *)dev_blockDataOrdered + dev_columns[column].valuesOffset + i_pcolumnv_cuda(j, 0, -1, nblocks), h4, (k + WID), a, minValue, index);
 #endif
 #ifdef ACC_SEMILAG_PQM
          Realv a[5];
-         compute_pqm_coeff(dev_values + dev_columns[column].valuesOffset + i_pcolumnv_cuda(j, 0, -1, nblocks), h8, (k + WID), a, minValue, index);
+         compute_pqm_coeff((Vec *)dev_blockDataOrdered + dev_columns[column].valuesOffset + i_pcolumnv_cuda(j, 0, -1, nblocks), h8, (k + WID), a, minValue, index);
 #endif
 
          // set the initial value for the integrand at the boundary at v = 0
@@ -239,109 +290,66 @@ __global__ void acceleration_kernel
          } // for loop over target k-indices of current source block
       } // for-loop over source blocks
    } //for loop over j index
+
+} // end semilag acc kernel
+
+
+void acceleration_1_glue(
+   Realf* dev_blockData,
+   Realf* dev_blockDataOrdered,
+   uint dev_cell_indices_to_id[],
+   Column* dev_columns,
+   const int totalColumns,
+   const Realv intersection,
+   const Realv intersection_di,
+   const Realv intersection_dj,
+   const Realv intersection_dk,
+   const Realv v_min,
+   const Realv i_dv,
+   const Realv dv,
+   const Realv minValue,
+   const int bdsw3,
+   const int cudablocks,
+   const int cudathreads,
+   cudaStream_t stream
+) {
+   // NVIDIA: a100 64 stream multiprocessors? Blocks should be larger than this value.
+   // Launch acceleration kernels
+   acceleration_kernel<<<cudablocks, cudathreads, 0, stream>>> (
+      dev_blockData,
+      dev_blockDataOrdered,
+      dev_cell_indices_to_id,
+      dev_columns,
+      totalColumns,
+      intersection,
+      intersection_di,
+      intersection_dj,
+      intersection_dk,
+      v_min,
+      i_dv,
+      dv,
+      minValue,
+      bdsw3
+      );
+   return;
 }
 
-void acceleration_1_glue
-(
-  Realf *blockData,
-  Column *columns,
-  Vec *values,
-  uint cell_indices_to_id[],
-  int totalColumns,
-  int valuesSizeRequired,
-  int bdsw3,
-  Realv intersection,
-  Realv intersection_di,
-  Realv intersection_dj,
-  Realv intersection_dk,
-  Realv v_min,
-  Realv i_dv,
-  Realv dv,
-  Realv minValue,
-  const uint cuda_async_queue_id
-)
-{
-   // cudaEvent_t start, stop;
-   // cudaEventCreate(&start);
-   // cudaEventCreate(&stop);
-   // cudaEventRecord(start, 0);
-
-   // Page lock (pin) host memory for faster async transfers
-   //cudaHostRegister(h_ptr,bytes,cudaHostRegisterDefault);
-   //cudaHostUnregister(h_ptr);
-   //cudaHostRegister(cell_indices_to_id,3*sizeof(int),cudaHostRegisterDefault);
-   // cudaHostRegister(columns,totalColumns*sizeof(Column),cudaHostRegisterDefault);
-   // cudaHostRegister(values,valuesSizeRequired*sizeof(Vec),cudaHostRegisterDefault);
-   // cudaHostRegister(blockData, bdsw3*sizeof(Realf),cudaHostRegisterDefault);
-
-   cudaStream_t stream; //, stream_columns, stream_memset;
-   cudaStreamCreate(&stream);
-
-   // Now done in separate call:
-   // Realf *dev_blockData;
-   // Column *dev_columns;
-   // int *dev_cell_indices_to_id;
-   // Vec *dev_values;
-   // Mallocs should be in increments of 256 bytes. WID3 is at least 64, and len(Realf) is at least 4, so this is true.
-   // HANDLE_ERROR( cudaMalloc((void**)&dev_blockData, bdsw3*sizeof(Realf)) );
-   // HANDLE_ERROR( cudaMalloc((void**)&dev_columns, totalColumns*sizeof(Column)) );
-   // HANDLE_ERROR( cudaMalloc((void**)&dev_cell_indices_to_id, 3*sizeof(int)) );
-   // HANDLE_ERROR( cudaMalloc((void**)&dev_values, valuesSizeRequired*sizeof(Vec)) );
-
-   //HANDLE_ERROR( cudaMemcpy(dev_blockData, blockData, bdsw3*sizeof(Realf), cudaMemcpyHostToDevice) );
-   // This target data is initialized to zero
-   HANDLE_ERROR( cudaMemsetAsync(dev_blockData[cuda_async_queue_id], 0, bdsw3*sizeof(Realf), stream) );
-   // Copy source data to device (async)
-   HANDLE_ERROR( cudaMemcpyAsync(dev_cell_indices_to_id[cuda_async_queue_id], cell_indices_to_id, 3*sizeof(int), cudaMemcpyHostToDevice, stream) );
-   HANDLE_ERROR( cudaMemcpyAsync(dev_columns[cuda_async_queue_id], columns, totalColumns*sizeof(Column), cudaMemcpyHostToDevice, stream) );
-   HANDLE_ERROR( cudaMemcpyAsync(dev_values[cuda_async_queue_id], values, valuesSizeRequired*sizeof(Vec), cudaMemcpyHostToDevice, stream) );
-
-   int threads = VECL; // equal to CUDATHREADS; NVIDIA: 32 AMD: 64
-   int blocks = totalColumns; //CUDABLOCKS; 
-   // NVIDIA: a100 64 stream multiprocessors? Blocks should be larger than this value.
-
-   // Launch acceleration kernels
-   acceleration_kernel<<<blocks, threads, 0, stream>>> (
-         dev_blockData[cuda_async_queue_id],
-         dev_columns[cuda_async_queue_id],
-         dev_values[cuda_async_queue_id],
-         dev_cell_indices_to_id[cuda_async_queue_id],
-         totalColumns,
-         intersection,
-         intersection_di,
-         intersection_dj,
-         intersection_dk,
-         v_min,
-         i_dv,
-         dv,
-         minValue,
-         bdsw3
-         );
-
-   // Copy data back to host
-   HANDLE_ERROR( cudaMemcpyAsync(blockData, dev_blockData[cuda_async_queue_id], bdsw3*sizeof(Realf), cudaMemcpyDeviceToHost, stream) );
-
-   cudaStreamSynchronize(stream);
-   
-   // cudaEventRecord(stop, stream);
-   // cudaEventSynchronize(stop);
-   // float elapsedTime;
-   // cudaEventElapsedTime(&elapsedTime, start, stop);
-   //printf("%.3f ms\n", elapsedTime);
-
-   // Now done in separate call:
-   // HANDLE_ERROR( cudaFree(dev_blockData) );
-   // HANDLE_ERROR( cudaFree(dev_cell_indices_to_id) );
-   // HANDLE_ERROR( cudaFree(dev_columns) );
-   // HANDLE_ERROR( cudaFree(dev_values) );
-
-   cudaStreamDestroy(stream);
-
-   // Free page locks on host memory
-   //cudaHostUnregister(cell_indices_to_id);
-   // cudaHostUnregister(columns);
-   // cudaHostUnregister(values);
-   // cudaHostUnregister(blockData);
-  
+void reorder_blocks_by_dimension_glue(
+   Realf* dev_blockData,
+   Realf* dev_blockDataOrdered,
+   uint dev_cell_indices_to_id[],
+   const uint blockDataN,
+   uint* dev_LIDlist,
+   const int cudablocks, 
+   const int cudathreads,
+   cudaStream_t stream
+) {
+   reorder_blocks_by_dimension_kernel<<<cudablocks, cudathreads, 0, stream>>> (
+      dev_blockData,
+      dev_blockDataOrdered,
+      dev_cell_indices_to_id,
+      blockDataN,
+      dev_LIDlist
+      );
    return;
 }

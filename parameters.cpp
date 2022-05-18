@@ -156,8 +156,6 @@ Realf P::amrBoxCenterZ = 0.0;
 vector<string> P::blurPassString;
 vector<int> P::numPasses;
 
-int P::openaccQueueNum = 8;
-
 bool P::addParameters() {
    typedef Readparameters RP;
    // the other default parameters we read through the add/get interface
@@ -386,8 +384,6 @@ bool P::addParameters() {
    RP::add("AMR.box_center_z", "z coordinate of the center of the box that is refined (for testing)", 0.0);
    RP::add("AMR.transShortPencils", "if true, use one-cell pencils", false);
    RP::addComposing("AMR.filterpasses", string("AMR filter passes for each individual refinement level"));
-
-   RP::add("openacc.queueNum", "Number of openACC queues to spread async calculations over",8);
    return true;
 }
 
@@ -708,8 +704,6 @@ void Parameters::getParameters() {
       std::cerr << "bailout.velocity_space_wall_block_margin is larger than 0.5 * MAX_BLOCKS_PER_DIM, aborting." << std::endl;
       abort();
    }
-
-   Readparameters::get("openacc.queueNum",P::openaccQueueNum);
 
    for (size_t s=0; s<P::systemWriteName.size(); ++s) {
       P::systemWrites.push_back(0);

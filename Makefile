@@ -86,10 +86,6 @@ ifeq ($(USE_CUDA),1)
 	LIBS += ${LIB_CUDA}
 	COMPFLAGS += -DUSE_CUDA
 	CUDALIB += -lcudart
-ifeq ($(CUDA_REALF),1)
-	COMPFLAGS += -DCUDA_REALF
-	CUDAFLAGS += -DCUDA_REALF
-endif
 endif
 
 #Vectorclass settinsg
@@ -193,6 +189,13 @@ DEPS_PROJECTS =	projects/project.h projects/project.cpp \
 
 DEPS_CUDA_ACC_MAP_KERNEL = vlasovsolver/vec.h vlasovsolver/cuda_header.h vlasovsolver/cuda_acc_map_kernel.cuh vlasovsolver/cuda_acc_map_kernel.cu vlasovsolver/vectorclass_fallback.h
 
+DEPS_CUDA_ACC_MAP = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/vec.h vlasovsolver/cuda_acc_map.hpp vlasovsolver/cuda_acc_map.cpp
+
+DEPS_CUDA_ACC_SEMILAG = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/cpu_acc_intersections.hpp vlasovsolver/cpu_acc_transform.hpp \
+	vlasovsolver/cuda_acc_map.hpp vlasovsolver/cuda_acc_semilag.hpp vlasovsolver/cuda_acc_semilag.cpp
+
+DEPS_CUDA_ACC_SORT_BLOCKS = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/cuda_acc_sort_blocks.hpp vlasovsolver/cuda_acc_sort_blocks.cpp
+
 DEPS_CPU_ACC_INTERSECTS = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/cpu_acc_intersections.hpp vlasovsolver/cpu_acc_intersections.cpp
 
 DEPS_CPU_ACC_MAP = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/vec.h vlasovsolver/cpu_acc_map.hpp vlasovsolver/cpu_acc_map.cpp
@@ -246,7 +249,9 @@ endif
 
 # If we are building a CUDA vrsion, we require its object files
 ifeq ($(USE_CUDA),1)
-	OBJS += cuda_acc_map_kernel.o cudalink1.o cudalink2.o
+	OBJS += cuda_acc_map_kernel.o cuda_acc_map.o cuda_acc_semilag.o cuda_acc_sort_blocks.o \
+		cudalink_acc_map.o cudalink_kernel.o cudalink_acc_semilag.o
+	DEPS_VLSVMOVER += vlasovsolver/cuda_acc_map.hpp vlasovsolver/cuda_acc_semilag.hpp
 endif
 
 # Add field solver objects
@@ -424,7 +429,7 @@ spatial_cell.o: ${DEPS_CELL} spatial_cell.cpp
 
 ifeq ($(MESH),AMR)
 vlasovmover.o: ${DEPS_VLSVMOVER_AMR}
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -DMOVER_VLASOV_ORDER=2 -c vlasovsolver_amr/vlasovmover.cpp -I$(CURDIR) ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_PROFILE}  ${INC_VECTORCLASS} ${INC_EIGEN} ${INC_VLSV}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -DMOVER_VLASOV_ORDER=2 -c vlasovsolver_amr/vlasovmover.cpp -I$(CURDIR) ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VECTORCLASS} ${INC_EIGEN} ${INC_VLSV}
 else
 
 cpu_acc_intersections.o: ${DEPS_CPU_ACC_INTERSECTS}
@@ -433,10 +438,20 @@ cpu_acc_intersections.o: ${DEPS_CPU_ACC_INTERSECTS}
 ifeq ($(USE_CUDA),1)
 cuda_acc_map_kernel.o: ${DEPS_CUDA_ACC_MAP_KERNEL}
 	${NVCC} ${NVCCFLAGS} -D${VECTORCLASS} -dc vlasovsolver/cuda_acc_map_kernel.cu
+
+cuda_acc_map.o: ${DEPS_CUDA_ACC_MAP} ${DEPS_CUDA_ACC_MAP_KERNEL}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cuda_acc_map.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_FSGRID} ${INC_PROFILE} ${INC_VECTORCLASS} ${LIB_CUDA}
+
+cuda_acc_semilag.o: ${DEPS_CUDA_ACC_SEMILAG}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cuda_acc_semilag.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE} ${INC_VECTORCLASS}
+
+cuda_acc_sort_blocks.o: ${DEPS_CUDA_ACC_SORT_BLOCKS}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cuda_acc_sort_blocks.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE}
+
 endif
 
-cpu_acc_map.o: ${DEPS_CPU_ACC_MAP} ${DEPS_CUDA_ACC_MAP_KERNEL}
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_map.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_FSGRID} ${INC_PROFILE} ${INC_VECTORCLASS} ${LIB_CUDA}
+cpu_acc_map.o: ${DEPS_CPU_ACC_MAP}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_map.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_FSGRID} ${INC_PROFILE} ${INC_VECTORCLASS}
 
 cpu_acc_semilag.o: ${DEPS_CPU_ACC_SEMILAG}
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_semilag.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE} ${INC_VECTORCLASS}
@@ -528,11 +543,14 @@ object_wrapper.o:  $(DEPS_COMMON)  object_wrapper.h object_wrapper.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c object_wrapper.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_FSGRID}
 
 ifeq ($(USE_CUDA),1)
-cudalink1.o: cpu_acc_map.o
-	${NVCC} ${CUDALINK} ${NVCCFLAGS} -dlink cpu_acc_map.o -o cudalink1.o
+cudalink_acc_map.o: cuda_acc_map.o
+	${NVCC} ${CUDALINK} ${NVCCFLAGS} -dlink cuda_acc_map.o -o cudalink_acc_map.o
 
-cudalink2.o: cuda_acc_map_kernel.o
-	${NVCC} ${CUDALINK} ${NVCCFLAGS} -dlink cuda_acc_map_kernel.o -o cudalink2.o
+cudalink_acc_semilag.o: cuda_acc_semilag.o
+	${NVCC} ${CUDALINK} ${NVCCFLAGS} -dlink cuda_acc_semilag.o -o cudalink_acc_semilag.o
+
+cudalink_kernel.o: cuda_acc_map_kernel.o
+	${NVCC} ${CUDALINK} ${NVCCFLAGS} -dlink cuda_acc_map_kernel.o -o cudalink_kernel.o
 endif
 
 # Make executable
