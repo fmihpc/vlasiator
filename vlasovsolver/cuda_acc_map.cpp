@@ -122,6 +122,7 @@ __host__ void cuda_acc_copy_HtoD(spatial_cell::SpatialCell* spatial_cell,
    if(vmesh.size() == 0) {
       return;
    }
+   if (spatial_cell->parameters[CellParams::CELLID]==1) std::cerr<<"blockDataN1 "<<blockDataN<<" "<<vmesh.size()<<std::endl;
 
    // Page lock (pin) host memory for faster async transfers
    cudaHostRegister(blockData, blockDataN*WID3*sizeof(Realf),cudaHostRegisterDefault);
@@ -145,6 +146,7 @@ __host__ void cuda_acc_copy_DtoH(spatial_cell::SpatialCell* spatial_cell,
    if(vmesh.size() == 0) {
       return;
    }
+   if (spatial_cell->parameters[CellParams::CELLID]==1) std::cerr<<"blockDataN2 "<<blockDataN<<" "<<vmesh.size()<<std::endl;
 
    // Clear old pinning, vmesh size may have changed
    cudaHostUnregister(blockData);
@@ -184,6 +186,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    if(vmesh.size() == 0) {
       return true;
    }
+   if (spatial_cell->parameters[CellParams::CELLID]==1) std::cerr<<"blockDataSize1 "<<blockDataN<<" "<<vmesh.size()<<std::endl;
 
    // init GPU stream (now done in cuda_acc_semilag.cpp
    //cudaStream_t stream; //, stream_columns, stream_memset;
@@ -323,7 +326,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       cudathreads,
       stream);
    // Unregister blockdata so that CPU can edit v-space to match requirements
-   cudaHostUnregister(blockData);
+   //cudaHostUnregister(blockData);
 
    // pointer to columns in memory
    Column *columns = host_columns[cuda_async_queue_id];
@@ -494,9 +497,9 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    // Create empty velocity space on the GPU and fill it with zeros
    size_t blockDataSize = blockContainer.size();
    size_t bdsw3 = blockDataSize * WID3;
-
+   if (spatial_cell->parameters[CellParams::CELLID]==1) std::cerr<<"blockDataSize2 "<<blockDataSize<<" "<<vmesh.size()<<std::endl;
    // Page lock (pin) again host memory for faster async transfers after kernel has run
-   cudaHostRegister(blockData, bdsw3*sizeof(Realf),cudaHostRegisterDefault);
+   //cudaHostRegister(blockData, bdsw3*sizeof(Realf),cudaHostRegisterDefault);
    // Zero out target data on device
    cudaMemsetAsync(dev_blockData[cuda_async_queue_id], 0, bdsw3*sizeof(Realf), stream);
 

@@ -162,7 +162,7 @@ void cuda_accelerate_cell(SpatialCell* spatial_cell,
    }
 
    // Transfer data back, destroy stream
-   cuda_acc_copy_HtoD(spatial_cell, popID, cudathreadstream);
+   cuda_acc_copy_DtoH(spatial_cell, popID, cudathreadstream);
    cudaStreamDestroy(cudathreadstream);
 
 
