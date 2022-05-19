@@ -61,6 +61,8 @@ Column *dev_columns[MAXCPUTHREADS];
 uint *dev_cell_indices_to_id[MAXCPUTHREADS];
 //vmesh::GlobalID *dev_GIDlist[MAXCPUTHREADS];
 vmesh::LocalID *dev_LIDlist[MAXCPUTHREADS];
+uint *dev_columnNumBlocks[MAXCPUTHREADS];
+uint *dev_columnBlockOffsets[MAXCPUTHREADS];
 
 Column *host_columns[MAXCPUTHREADS];
 vmesh::GlobalID *host_GIDlist[MAXCPUTHREADS];
@@ -100,6 +102,8 @@ __host__ void cuda_acc_allocate_memory (
    HANDLE_ERROR( cudaMalloc((void**)&dev_blockDataOrdered[cpuThreadID], maxTargetBlocksPerCell * WID3 * sizeof(Realf)) );
    //HANDLE_ERROR( cudaMalloc((void**)&dev_GIDlist[cpuThreadID], maxSourceBlocksPerCell*sizeof(vmesh::GlobalID)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_LIDlist[cpuThreadID], maxSourceBlocksPerCell*sizeof(vmesh::LocalID)) );
+   HANDLE_ERROR( cudaMalloc((void**)&dev_columnNumBlocks[cpuThreadID], maxColumnsPerCell*sizeof(uint)) );
+   HANDLE_ERROR( cudaMalloc((void**)&dev_columnBlockOffsets[cpuThreadID], maxColumnsPerCell*sizeof(uint)) );
 
    // Also allocate and pin memory on host for faster transfers
    HANDLE_ERROR( cudaHostAlloc((void**)&host_columns[cpuThreadID], maxColumnsPerCell*sizeof(Column), cudaHostAllocPortable) );
@@ -117,6 +121,8 @@ __host__ void cuda_acc_deallocate_memory (
    HANDLE_ERROR( cudaFree(dev_blockDataOrdered[cpuThreadID]) );
    //HANDLE_ERROR( cudaFree(dev_GIDlist[cpuThreadID]) );
    HANDLE_ERROR( cudaFree(dev_LIDlist[cpuThreadID]) );
+   HANDLE_ERROR( cudaFree(dev_columnNumBlocks[cpuThreadID]) );
+   HANDLE_ERROR( cudaFree(dev_columnBlockOffsets[cpuThreadID]) );
 
    // Also de-allocate and unpin memory on host
    HANDLE_ERROR( cudaFreeHost(host_columns[cpuThreadID]) );
@@ -129,10 +135,14 @@ __global__ void reorder_blocks_by_dimension_kernel(
    Realf *dev_blockData,
    Realf *dev_blockDataOrdered,
    uint *dev_cell_indices_to_id,
-   size_t blockDataN,
-   vmesh::LocalID *dev_LIDlist
+   uint totalColumns,
+   vmesh::LocalID *dev_LIDlist,
+   uint *dev_columnNumBlocks,
+   uint *dev_columnBlockOffsets
 ) {
-   // Takes the contents of blockData, sorts it into blockDataOrdered, performing transposes as necessary
+   // Takes the contents of blockData, sorts it into blockDataOrdered,
+   // performing transposes as necessary
+   // Works column-per-column and adds the necessary one empty block at each end
    const int nThreads = blockDim.x; // should be equal to VECL
    const int ti = threadIdx.x;
    const int start = blockIdx.x;
@@ -141,23 +151,37 @@ __global__ void reorder_blocks_by_dimension_kernel(
    //    printf("Warning! VECL not matching thread count for CUDA code!\n");
    // }
 
-   for (uint blockIndex = start; blockIndex < blockDataN; blockIndex += cudaBlocks) {
-      // Each block can span multiple VECLs (equal to cudathreads per block)
+   // Loop over columns in steps of cudaBlocks. Each cudaBlock deals with one column.
+   for (uint iColumn = start; iColumn < totalColumns; iColumn += cudaBlocks) {
+      uint inputOffset = dev_columnBlockOffsets[iColumn];
+      uint outputOffset = inputOffset + 2 * iColumn;
+      uint columnLength = dev_columnNumBlocks[iColumn];
+
+      // Set first and last blocks to zero
       for (uint j = 0; j < WID3; j += nThreads) {
-         int input = ti + j;
-         
-         int input_2 = input / WID2; // last (slowest) index
-         int input_1 = (input - input_2 * WID2) / WID;
-         int input_0 = input - input_2 * WID2 - input_1 * WID; // first (fastest) index
-         
-         dev_blockDataOrdered[ blockIndex * WID3
-                               + input_0 * dev_cell_indices_to_id[0]
-                               + input_1 * dev_cell_indices_to_id[1]
-                               + input_2 * dev_cell_indices_to_id[2] ]
-            = dev_blockData[ dev_LIDlist[blockIndex] * WID3 + ti ];
-      } // end loop j (vecs per block)
-   } // end loop blockIndex
-   // Note: this kernel does not memset blockData to zero.
+         dev_blockDataOrdered[outputOffset * WID3 + j + ti] = 0;
+         dev_blockDataOrdered[(outputOffset + columnLength + 1) * WID3 + j + ti] = 0;
+      }
+      // Loop over column blocks
+      for (uint b = 0; b < columnLength; b++) {
+         // Each block can span multiple VECLs (equal to cudathreads per block)
+         for (uint j = 0; j < WID3; j += nThreads) {
+            int input = j + ti;
+
+            int input_2 = input / WID2; // last (slowest) index
+            int input_1 = (input - input_2 * WID2) / WID; // medium index
+            int input_0 = input - input_2 * WID2 - input_1 * WID; // first (fastest) index
+
+            dev_blockDataOrdered[ (outputOffset + 1 + b) * WID3
+                                  + input_0 * dev_cell_indices_to_id[0]
+                                  + input_1 * dev_cell_indices_to_id[1]
+                                  + input_2 * dev_cell_indices_to_id[2] ]
+               = dev_blockData[ dev_LIDlist[inputOffset + b] * WID3 + input ];
+         } // end loop j (vecs per block)
+      } // end loop b (blocks per column)
+   } // end loop iColumn
+
+   // Note: this kernel does not memset dev_blockData to zero.
    // A separate memsetasync call is required for that.
 }
 
@@ -338,8 +362,10 @@ void reorder_blocks_by_dimension_glue(
    Realf* dev_blockData,
    Realf* dev_blockDataOrdered,
    uint dev_cell_indices_to_id[],
-   const uint blockDataN,
+   const uint totalColumns,
    uint* dev_LIDlist,
+   uint* dev_columnNumBlocks,
+   uint* dev_columnBlockOffsets,
    const int cudablocks, 
    const int cudathreads,
    cudaStream_t stream
@@ -348,8 +374,10 @@ void reorder_blocks_by_dimension_glue(
       dev_blockData,
       dev_blockDataOrdered,
       dev_cell_indices_to_id,
-      blockDataN,
-      dev_LIDlist
+      totalColumns,
+      dev_LIDlist,
+      dev_columnNumBlocks,
+      dev_columnBlockOffsets
       );
    return;
 }

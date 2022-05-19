@@ -38,8 +38,10 @@ extern void reorder_blocks_by_dimension_glue(
    Realf* dev_blockData,
    Realf* dev_blockDataOrdered,
    uint dev_cell_indices_to_id[],
-   const uint blockDataN,
+   const uint totalColumns,
    uint* dev_LIDlist,
+   uint* dev_columnNumBlocks,
+   uint* dev_columnBlockOffsets,
    const int cudablocks, 
    const int cudathreads,
    cudaStream_t stream);
@@ -67,6 +69,8 @@ extern Column *dev_columns[];
 extern uint *dev_cell_indices_to_id[];
 //extern uint *dev_GIDlist[];
 extern uint *dev_LIDlist[];
+extern uint *dev_columnNumBlocks[];
+extern uint *dev_columnBlockOffsets[];
 
 // Host data variables, to be allocated and pinned in good time. Made into a long array so that each thread has their own pointer.
 extern Column *host_columns[];

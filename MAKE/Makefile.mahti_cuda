@@ -32,11 +32,11 @@ else
 endif
 #===== Vector Lenghts ====
 # Default for VEC_FALLBACK_GENERIC is WID=4, VECL=8 
-WID=8
+#WID=8
 #VECL=64 
-VECL=32
-#WID=4
-#VECL=16
+#VECL=32
+WID=4
+VECL=4
 
 #======= Compiler and compilation flags =========
 # NOTES on compiler flags:

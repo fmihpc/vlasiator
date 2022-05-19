@@ -187,7 +187,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       return true;
    }
    if (spatial_cell->parameters[CellParams::CELLID]==1) std::cerr<<"blockDataSize1 "<<blockDataN<<" "<<vmesh.size()<<std::endl;
-
+   if (dimension!=0) return true;
    // init GPU stream (now done in cuda_acc_semilag.cpp
    //cudaStream_t stream; //, stream_columns, stream_memset;
    //cudaStreamCreate(&stream);
@@ -289,7 +289,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    std::vector<uint> columnBlockOffsets; // indexes where columns start (in blocks, length totalColumns)
    std::vector<uint> columnNumBlocks; // length of column (in blocks, length totalColumns)
    std::vector<uint> setColumnOffsets; // index from columnBlockOffsets where new set of columns starts (length nColumnSets)
-   std::vector<uint> setNumColumns; // how many columns in set of columns (length nColumnSets) 
+   std::vector<uint> setNumColumns; // how many columns in set of columns (length nColumnSets)
 
    // CPU call for now (but dedicated CUDA version which also returns LIDlist)
    // This version actually could be run on the GPU as well as
@@ -314,15 +314,19 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    // memcopy LIDlist to device (GIDlist isn't needed here)
    //cudaMemcpyAsync(dev_GIDlist[cuda_async_queue_id], GIDlist, blockDataN*sizeof(vmesh::GlobalID), cudaMemcpyHostToDevice, stream);
    cudaMemcpyAsync(dev_LIDlist[cuda_async_queue_id], LIDlist, blockDataN*sizeof(vmesh::LocalID), cudaMemcpyHostToDevice, stream);
+   cudaMemcpyAsync(dev_columnNumBlocks[cuda_async_queue_id], columnNumBlocks.data(), totalColumns*sizeof(uint), cudaMemcpyHostToDevice, stream);
+   cudaMemcpyAsync(dev_columnBlockOffsets[cuda_async_queue_id], columnBlockOffsets.data(), totalColumns*sizeof(uint), cudaMemcpyHostToDevice, stream);
 
    // Launch kernels for transposing and ordering velocity space data into columns
    reorder_blocks_by_dimension_glue(
       dev_blockData[cuda_async_queue_id],
       dev_blockDataOrdered[cuda_async_queue_id],
       dev_cell_indices_to_id[cuda_async_queue_id],      
-      blockDataN,
+      totalColumns,
       dev_LIDlist[cuda_async_queue_id],
-      cudablocks, 
+      dev_columnNumBlocks[cuda_async_queue_id],
+      dev_columnBlockOffsets[cuda_async_queue_id],
+      cudablocks,
       cudathreads,
       stream);
    // Unregister blockdata so that CPU can edit v-space to match requirements
