@@ -580,14 +580,22 @@ void Parameters::getParameters() {
       }else{
          //here we will default to manually constructing the number of passes
          numPasses.clear();
-         int maxPasses=P::amrMaxSpatialRefLevel;
-         for (uint refLevel=0; refLevel<P::amrMaxSpatialRefLevel+1; refLevel++){
+         auto g_sequence=[](int size){
+            int retval=1;
+            while(size!=0){
+               retval*=2;
+               size-=1;
+            }
+            return retval;
+         };
+         int maxPasses=g_sequence(P::amrMaxSpatialRefLevel-1);
+         for (uint refLevel=0; refLevel<=P::amrMaxSpatialRefLevel; refLevel++){
             numPasses[refLevel] =maxPasses;
             maxPasses/=2; 
          }
       }
-      //Overwrite 0 passes for the highest refLevel. We do not want to filter there.
       P::maxFilteringPasses = numPasses[0];
+      //Overwrite 0 passes for the highest refLevel. We do not want to filter there.
       numPasses[P::amrMaxSpatialRefLevel] = 0;
    }
 
