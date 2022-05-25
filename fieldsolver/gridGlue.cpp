@@ -185,10 +185,7 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                for (int c=-kernelOffset; c<=kernelOffset; c++){
                   for (int b=-kernelOffset; b<=kernelOffset; b++){
                      for (int a=-kernelOffset; a<=kernelOffset; a++){
-
-                        swap = swapGrid.get(i,j,k);
                         cell = momentsGrid.get(i+a,j+b,k+c);
-
                         for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
                            swap->at(e)+=cell->at(e) *kernel[kernelOffset+a][kernelOffset+b][kernelOffset+c]/kernelSum;
                         } 
@@ -304,7 +301,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
   MPI_Waitall(sendRequests.size(), sendRequests.data(), MPI_STATUSES_IGNORE);
 
-   //Filter Moments
+   //Filter Moments if this is a 3D AMR run.
   if (P::amrMaxSpatialRefLevel>0) { 
       phiprof::start("AMR Filtering-Triangle-3D");
       filterMoments(mpiGrid,momentsGrid,technicalGrid);
