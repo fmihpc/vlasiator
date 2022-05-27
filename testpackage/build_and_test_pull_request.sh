@@ -136,7 +136,7 @@ else
 fi
 
 echo "\nFull testpackage run output is available in \``pwd`/testpackage_run_$HEAD.log\` on host \`$HOST\`" >> /tmp/githubcomment_$HEAD.txt
-echo "\"}" >> /tmp/githubcomment_$HEAD.txt
+echo -n "\"}" >> /tmp/githubcomment_$HEAD.txt
 
 # Upload to github.
 #echo "Github comment created at /tmp/githubcomment_$HEAD.txt"
