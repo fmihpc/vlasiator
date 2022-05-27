@@ -142,7 +142,7 @@ echo -n "\"}" >> /tmp/githubcomment_$HEAD.txt
 #echo "Github comment created at /tmp/githubcomment_$HEAD.txt"
 
 # The uploaded comment needs its newlines quoted
-sed -zi 's/\n/\\n/g' /tmp/githubcomment_$HEAD.txt
+sed -zi 's/\n/\\r\\n/g' /tmp/githubcomment_$HEAD.txt
 
 echo "--- Sending result to github ---"
 curl -s -u $GITHUB_USERNAME:`cat $SOURCEDIR/github_token` -X POST -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/fmihpc/vlasiator/issues/$PR/comments --data-binary "@/tmp/githubcomment_$HEAD.txt"
