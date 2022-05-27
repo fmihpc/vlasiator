@@ -36,7 +36,7 @@ echo "--- Determining pull request $PR's git HEAD ---"
 HEAD=$(curl -s -u $GITHUB_USERNAME:`cat github_token` -X GET https://api.github.com/repos/fmihpc/vlasiator/pulls/$PR  | jq -r .head.sha)
 echo ">>> It's $HEAD."
 
-echo -e "Automatic testpackage output for pull request #$PR.\n\nBased on commit $HEAD.\n"  > /tmp/githubcomment_$HEAD.txt
+echo -e "{\"body\": \"Automatic testpackage output for pull request #$PR.\n\nBased on commit $HEAD.\n"  > /tmp/githubcomment_$HEAD.txt
 echo -e "Process started by user \`\`\`$USER\`\`\` on host \`\`\`$HOST\`\`\` at `date --rfc-822`.\n" >> /tmp/githubcomment_$HEAD.txt
 
 git fetch origin -q
@@ -53,8 +53,8 @@ function cleanup {
    popd
 }
 
-make -s clean 
-srun -M vorna --job-name tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p test -o testpackage_build_$HEAD.log -t 0:10:0 make -s -j 16 testpackage tools
+#make -s clean 
+#srun -M vorna --job-name tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p test -o testpackage_build_$HEAD.log -t 0:10:0 make -s -j 16 testpackage tools
 
 WARNINGS=`grep -c warning: testpackage_build_$HEAD.log`
 ERRORS=`grep -c error: testpackage_build_$HEAD.log || true`
@@ -65,12 +65,13 @@ echo ">>> Compilation succeeded with $WARNINGS warnings."
 
 echo -e ":heavy_check_mark: Compilation succeeded with $WARNINGS warnings.\n" >> /tmp/githubcomment_$HEAD.txt
 
-cp vlasiator testpackage/
-cp vlsvdiff_DP testpackage/
-
 # Go back to testpackage dir
 git checkout -q $OLDBRANCH
 popd
+
+cp $SOURCEDIR/vlasiator .
+cp $SOURCEDIR/vlsvdiff_DP .
+
 
 function cleanup {
    echo "### Running testpackage failed. Cleaning up and aborting. ###"
@@ -81,7 +82,7 @@ function cleanup {
 
 # Run it actually.
 echo "--- Now running testpackage ---"
-sbatch -W -o ./testpackage_run_$HEAD.log ./small_test_vorna.sh
+#sbatch -W -o ./testpackage_run_$HEAD.log ./small_test_vorna.sh
 
 echo ">>> Testpackage run successfully!"
 echo -e ":heavy_check_mark: Testpackage ran successfully.\n" >> /tmp/githubcomment_$HEAD.txt
@@ -135,9 +136,13 @@ else
 fi
 
 echo "\nFull testpackage run output is available in \``pwd`/testpackage_run_$HEAD.log\` on host \`$HOST\`" >> /tmp/githubcomment_$HEAD.txt
+echo "\"}" >> /tmp/githubcomment_$HEAD.txt
 
 # Upload to github.
 #echo "Github comment created at /tmp/githubcomment_$HEAD.txt"
+
+# The uploaded comment needs its newlines quoted
+sed -zi 's/\n/\\n/g' /tmp/githubcomment_$HEAD.txt
 
 echo "--- Sending result to github ---"
 curl -s -u $GITHUB_USERNAME:`cat $SOURCEDIR/github_token` -X POST -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/fmihpc/vlasiator/issues/$PR/comments --data-binary "@/tmp/githubcomment_$HEAD.txt"
