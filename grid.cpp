@@ -50,6 +50,7 @@
 
 #ifdef USE_CUDA
 #include "vlasovsolver/cuda_acc_map_kernel.cuh"
+#include "cuda_context.cuh"
 #endif
 
 #ifndef NDEBUG
@@ -316,6 +317,10 @@ void initializeGrids(
 
    }
 
+#ifdef USE_CUDA
+   // Activate device, create context
+   cuda_set_device();
+#endif
 
    // Init mesh data container
    if (getObjectWrapper().meshData.initialize("SpatialGrid") == false) {
@@ -635,12 +640,10 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
       }
    }
    // Call CUDA routines for memory allocation
-   if (isCudaAllocated) {
-      for (uint i=0; i<omp_get_max_threads(); ++i) {
+   for (uint i=0; i<omp_get_max_threads(); ++i) {
+      if (isCudaAllocated) {
          cuda_acc_deallocate_memory(i);
       }
-   }
-   for (uint i=0; i<omp_get_max_threads(); ++i) {
       cuda_acc_allocate_memory(i,cudaMaxBlockCount);
    }
    isCudaAllocated=true;

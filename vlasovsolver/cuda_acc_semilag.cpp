@@ -36,6 +36,8 @@
 #include "cuda.h"
 #include "cuda_runtime.h"
 
+#include "../cuda_context.cuh"
+
 using namespace std;
 using namespace spatial_cell;
 using namespace Eigen;
@@ -72,6 +74,9 @@ void cuda_accelerate_cell(SpatialCell* spatial_cell,
 
    vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = spatial_cell->get_velocity_mesh(popID);
    vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks(popID);
+
+   // const uint cuda_async_queue_id = omp_get_thread_num();
+   //cuCtxSetCurrent(cuda_acc_context);
 
    // Launch cuda transfers
    cudaStream_t cudathreadstream;

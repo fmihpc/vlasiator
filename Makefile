@@ -85,7 +85,7 @@ endif
 ifeq ($(USE_CUDA),1)
 	LIBS += ${LIB_CUDA}
 	COMPFLAGS += -DUSE_CUDA
-	CUDALIB += -lcudart
+	CUDALIB += -lcudart #-lcuda
 endif
 
 #Vectorclass settinsg
@@ -191,6 +191,8 @@ DEPS_CUDA_ACC_MAP_KERNEL = vlasovsolver/vec.h vlasovsolver/cuda_header.h vlasovs
 
 DEPS_CUDA_ACC_MAP = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/vec.h vlasovsolver/cuda_acc_map.hpp vlasovsolver/cuda_acc_map.cpp
 
+DEPS_CUDA_CONTEXT = cuda_context.cpp cuda_context.cuh
+
 DEPS_CUDA_ACC_SEMILAG = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/cpu_acc_intersections.hpp vlasovsolver/cpu_acc_transform.hpp \
 	vlasovsolver/cuda_acc_map.hpp vlasovsolver/cuda_acc_semilag.hpp vlasovsolver/cuda_acc_semilag.cpp
 
@@ -250,8 +252,8 @@ endif
 # If we are building a CUDA vrsion, we require its object files
 ifeq ($(USE_CUDA),1)
 	OBJS += cuda_acc_map_kernel.o cuda_acc_map.o cuda_acc_semilag.o cuda_acc_sort_blocks.o \
-		cudalink_acc_map.o cudalink_kernel.o cudalink_acc_semilag.o
-	DEPS_VLSVMOVER += vlasovsolver/cuda_acc_map.hpp vlasovsolver/cuda_acc_semilag.hpp
+		cudalink_acc_map.o cudalink_kernel.o cudalink_acc_semilag.o cuda_context.o cudalink_context.o
+	DEPS_VLSVMOVER += vlasovsolver/cuda_acc_map.hpp vlasovsolver/cuda_acc_semilag.hpp cuda_context.cuh
 endif
 
 # Add field solver objects
@@ -448,6 +450,8 @@ cuda_acc_semilag.o: ${DEPS_CUDA_ACC_SEMILAG}
 cuda_acc_sort_blocks.o: ${DEPS_CUDA_ACC_SORT_BLOCKS}
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cuda_acc_sort_blocks.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE}
 
+cuda_context.o: ${DEPS_CUDA_CONTEXT}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c cuda_context.cpp
 endif
 
 cpu_acc_map.o: ${DEPS_CPU_ACC_MAP}
@@ -551,6 +555,9 @@ cudalink_acc_semilag.o: cuda_acc_semilag.o
 
 cudalink_kernel.o: cuda_acc_map_kernel.o
 	${NVCC} ${CUDALINK} ${NVCCFLAGS} -dlink cuda_acc_map_kernel.o -o cudalink_kernel.o
+
+cudalink_context.o: cuda_context.o
+	${NVCC} ${CUDALINK} ${NVCCFLAGS} -dlink cuda_context.o -o cudalink_context.o
 endif
 
 # Make executable

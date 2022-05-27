@@ -16,7 +16,7 @@ struct Column
 
 extern void acceleration_1_glue(
    Realf* dev_blockData,
-   Realf* dev_blockDataOrdered,
+   Vec* dev_blockDataOrdered,
    uint dev_cell_indices_to_id[],
    Column* dev_columns,
    const int totalColumns,
@@ -36,7 +36,7 @@ extern void acceleration_1_glue(
 
 extern void reorder_blocks_by_dimension_glue(
    Realf* dev_blockData,
-   Realf* dev_blockDataOrdered,
+   Vec* dev_blockDataOrdered,
    uint dev_cell_indices_to_id[],
    const uint totalColumns,
    uint* dev_LIDlist,
@@ -64,7 +64,7 @@ extern void cuda_acc_deallocate_memory (
 
 // Device data variables, to be allocated in good time. Made into an array so that each thread has their own pointer.
 extern Realf *dev_blockData[];
-extern Realf *dev_blockDataOrdered[];
+extern Vec *dev_blockDataOrdered[];
 extern Column *dev_columns[];
 extern uint *dev_cell_indices_to_id[];
 //extern uint *dev_GIDlist[];

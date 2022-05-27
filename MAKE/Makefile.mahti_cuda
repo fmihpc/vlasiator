@@ -64,12 +64,12 @@ CC_BRAND = nvhpc
 CC_BRAND_VERSION = 21.2
 
 #CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -gpu=cc80 -Minfo=accel -acc -fopenmp -std=c++11
-CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -fopenmp -std=c++11
-NVCCFLAGS += -gencode arch=compute_80,code=sm_80 -std=c++11
+CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -fopenmp -std=c++11 -rdynamic
+NVCCFLAGS += -g -gencode arch=compute_80,code=sm_80 -std=c++11 --generate-line-info -line-info
 
 #testpackage: CXXFLAGS = -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -gpu=cc80 -Minfo=accel -acc -fopenmp -std=c++11
 testpackage: CXXFLAGS = -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -fopenmp -std=c++11
-testpackage: NVCCFLAGS = -gencode arch=compute_80,code=sm_80 -std=c++11 --prec-sqrt=true --prec-div=true --ftz=false --fmad=false
+testpackage: NVCCFLAGS = -g -gencode arch=compute_80,code=sm_80 -std=c++11 --prec-sqrt=true --prec-div=true --ftz=false --fmad=false --generate-line-info
 
 MATHFLAGS =
 LDFLAGS = -O2 -g -L/appl/spack/v016/install-tree/gcc-4.8.5/nvhpc-21.2-l6xyb4/Linux_x86_64/21.2/cuda/11.2/lib64
