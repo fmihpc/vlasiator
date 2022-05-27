@@ -125,7 +125,7 @@ __host__ void cuda_acc_copy_HtoD(spatial_cell::SpatialCell* spatial_cell,
    if(vmesh.size() == 0) {
       return;
    }
-   if (spatial_cell->parameters[CellParams::CELLID]==1) std::cerr<<"blockDataN1 "<<blockDataN<<" "<<vmesh.size()<<std::endl;
+   if (spatial_cell->parameters[CellParams::CELLID]==1) std::cerr<<"blockData HtoD N "<<blockDataN<<" "<<vmesh.size()<<std::endl;
 
    // Page lock (pin) host memory for faster async transfers
    cudaHostRegister(blockData, blockDataN*WID3*sizeof(Realf),cudaHostRegisterDefault);
@@ -151,8 +151,8 @@ __host__ void cuda_acc_copy_DtoH(spatial_cell::SpatialCell* spatial_cell,
    if(vmesh.size() == 0) {
       return;
    }
-   if (spatial_cell->parameters[CellParams::CELLID]==1) std::cerr<<"blockDataN2 "<<blockDataN<<" "<<vmesh.size()<<std::endl;
-   memset(blockData,0,blockDataN*WID3*sizeof(Realf));
+   if (spatial_cell->parameters[CellParams::CELLID]==1) std::cerr<<"blockData DtoH 2 "<<blockDataN<<" "<<vmesh.size()<<std::endl;
+//   memset(blockData,0,blockDataN*WID3*sizeof(Realf));
 
    // Clear old pinning, vmesh size may have changed
    cudaHostUnregister(blockData);
@@ -191,7 +191,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    if(vmesh.size() == 0) {
       return true;
    }
-   if (spatial_cell->parameters[CellParams::CELLID]==1) std::cerr<<"blockDataSize1 "<<blockDataN<<" "<<vmesh.size()<<std::endl;
+   if (spatial_cell->parameters[CellParams::CELLID]==1) std::cerr<<"blockDataSize (start acc map) "<<blockDataN<<" "<<vmesh.size()<<std::endl;
    //cuCtxSetCurrent(cuda_acc_context);
 
    //if (dimension!=0) return true; // for debugging
@@ -510,7 +510,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    // Create empty velocity space on the GPU and fill it with zeros
    size_t blockDataSize = blockContainer.size();
    size_t bdsw3 = blockDataSize * WID3;
-   if (spatial_cell->parameters[CellParams::CELLID]==1) std::cerr<<"blockDataSize2 "<<blockDataSize<<" "<<vmesh.size()<<std::endl;
+   if (spatial_cell->parameters[CellParams::CELLID]==1) std::cerr<<"blockDataSize (with puff) "<<blockDataSize<<" "<<vmesh.size()<<std::endl;
    // Page lock (pin) again host memory for faster async transfers after kernel has run
    //cudaHostRegister(blockData, bdsw3*sizeof(Realf),cudaHostRegisterDefault);
    // Zero out target data on device
@@ -518,7 +518,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
 
    // Update value of cudaAllocationMultiplier if necessary
    float ratio1 = (blockDataSize / cudaMaxBlockCount);
-   float ratio2 = (totalColumns / std::pow(cudaMaxBlockCount, 0.667));
+   float ratio2 = (totalColumns / (2*std::pow(cudaMaxBlockCount, 0.667)));
    float ratio3 = ( (valuesSizeRequired*VECL/WID3) / cudaMaxBlockCount);
    if ( (ratio1 > 0.75*cudaAllocationMultiplier)
         || (ratio2 > 0.75*cudaAllocationMultiplier)

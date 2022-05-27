@@ -85,7 +85,8 @@ endif
 ifeq ($(USE_CUDA),1)
 	LIBS += ${LIB_CUDA}
 	COMPFLAGS += -DUSE_CUDA
-	CUDALIB += -lcudart #-lcuda
+	CUDALIB += -lcudart
+#-lcuda (Don't use CUDA device level library unless necessary)
 endif
 
 #Vectorclass settinsg

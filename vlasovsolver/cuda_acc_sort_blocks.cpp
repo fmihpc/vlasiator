@@ -135,7 +135,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
       
        //sorted lists
        blocksGID[i] = block_triplets[i].first.second;
-       blocksLID[i] = vmesh.getLocalID(block_triplets[i].second);
+       blocksLID[i] = vmesh.getLocalID(block_triplets[i].first.second);
        
        if ( i > 0 &&  ( column_id != prev_column_id || dimension_id != (prev_dimension_id + 1) )){
          //encountered new column! For i=0, we already entered the correct offset (0).
