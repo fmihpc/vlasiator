@@ -82,10 +82,8 @@ __host__ void cuda_acc_allocate_memory (
    uint cpuThreadID,
    uint maxBlockCount
    ) {
-   //cuCtxSetCurrent(cuda_thread_context[cpuThreadID]);
-
    // Mallocs should be in increments of 256 bytes. WID3 is at least 64, and len(Realf) is at least 4, so this is true.
-   printf("allocate %d %d\n",cpuThreadID,maxBlockCount);
+
    // The worst case scenario is with every block having content but no neighbours, creating up
    // to maxBlockCount columns with each needing three blocks (one value plus two for padding).
    // We also need to pad extra (x1.5?) due to the VDF deforming between acceleration Cartesian directions.
@@ -101,7 +99,6 @@ __host__ void cuda_acc_allocate_memory (
    // const uint maxTargetBlocksPerCell = maxTargetBlocksPerColumn * MAX_BLOCKS_PER_DIM * MAX_BLOCKS_PER_DIM;
    // const uint maxSourceBlocksPerCell = MAX_BLOCKS_PER_DIM * MAX_BLOCKS_PER_DIM * MAX_BLOCKS_PER_DIM;
 
-   //cuCtxSetCurrent(cuda_acc_context);
    HANDLE_ERROR( cudaMalloc((void**)&dev_cell_indices_to_id[cpuThreadID], 3*sizeof(uint)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_columns[cpuThreadID], maxColumnsPerCell*sizeof(Column)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_blockData[cpuThreadID], maxSourceBlocksPerCell * WID3 * sizeof(Realf) ) );
@@ -116,20 +113,13 @@ __host__ void cuda_acc_allocate_memory (
    HANDLE_ERROR( cudaHostAlloc((void**)&host_GIDlist[cpuThreadID], maxSourceBlocksPerCell*sizeof(vmesh::LocalID), cudaHostAllocPortable) );
    HANDLE_ERROR( cudaHostAlloc((void**)&host_LIDlist[cpuThreadID], maxSourceBlocksPerCell*sizeof(vmesh::LocalID), cudaHostAllocPortable) );
    // Blockdata is pinned inside cuda_acc_map_1d() in cuda_acc_map.cu
-   //printf("addrD %lu %lu %lu %lu\n",dev_cell_indices_to_id[cpuThreadID],dev_columns[cpuThreadID],dev_blockData[cpuThreadID],dev_blockDataOrdered[cpuThreadID]);
-   //printf("addrH %lu %lu %lu %lu\n",&dev_cell_indices_to_id[cpuThreadID],&dev_columns[cpuThreadID],&dev_blockData[cpuThreadID],&dev_blockDataOrdered[cpuThreadID]);
 }
 
 __host__ void cuda_acc_deallocate_memory (
    uint cpuThreadID
    ) {
-   //cuCtxSetCurrent(cuda_thread_context[cpuThreadID]);
-
-   printf("deallocate %d\n",cpuThreadID);
-   //printf("addrD %lu %lu %lu %lu\n",dev_cell_indices_to_id[cpuThreadID],dev_columns[cpuThreadID],dev_blockData[cpuThreadID],dev_blockDataOrdered[cpuThreadID]);
-   //printf("addrH %lu %lu %lu %lu\n",&dev_cell_indices_to_id[cpuThreadID],&dev_columns[cpuThreadID],&dev_blockData[cpuThreadID],&dev_blockDataOrdered[cpuThreadID]);
-
-   //cuCtxSetCurrent(cuda_acc_context);
+   cudaDeviceReset();
+   return;
    HANDLE_ERROR( cudaFree(dev_cell_indices_to_id[cpuThreadID]) );
    HANDLE_ERROR( cudaFree(dev_columns[cpuThreadID]) );
    HANDLE_ERROR( cudaFree(dev_blockData[cpuThreadID]) );
@@ -165,10 +155,6 @@ __global__ void reorder_blocks_by_dimension_kernel(
    // if (nThreads != VECL) {
    //    printf("Warning! VECL not matching thread count for CUDA code!\n");
    // }
-   // if ((start == 0)&&(ti==0)) {
-   //    printf("Reorder(0,%d) columns %d cudablocks %d\n",start,totalColumns, cudaBlocks);
-   //    printf("dev_blockdata %#024x ordered %#024x citi %#024x LIDlist %#024x numblocks  %#024x offsets %#024x \n",&dev_blockData,&dev_blockDataOrdered,&dev_cell_indices_to_id,&dev_LIDlist,&dev_columnNumBlocks,&dev_columnBlockOffsets);
-   // }
 
    // Loop over columns in steps of cudaBlocks. Each cudaBlock deals with one column.
    for (uint iColumn = start; iColumn < totalColumns; iColumn += cudaBlocks) {
@@ -177,9 +163,6 @@ __global__ void reorder_blocks_by_dimension_kernel(
       uint outputOffset = (inputOffset + 2 * iColumn) * (WID3/VECL);
       uint columnLength = dev_columnNumBlocks[iColumn];
 
-      // if ((start == 0)&&(ti==0)) {
-      //    printf("inputOffset %d outputOffset %d columnLength %d\n",inputOffset,outputOffset,columnLength);
-      // }
       // Loop over column blocks
       for (uint b = 0; b < columnLength; b++) {
          // Slices
@@ -202,10 +185,6 @@ __global__ void reorder_blocks_by_dimension_kernel(
                   = dev_blockData[ dev_LIDlist[inputOffset + b] * WID3
                                    + sourceindex ];
 
-               // if ((start == 0)) {
-               //    if (ti==0) printf("b %d k %d j %d i_pcolumnv %d LID %d\n",b,k,j,i_pcolumnv_cuda_b(jk, k, b, columnLength), dev_LIDlist[inputOffset + b]);
-               //    printf("jk %d k %d b %d columnLength %d ti %d sourceindex %d\n",jk,k,b,columnLength,ti,sourceindex);
-               // }
             } // end loop k (layers per block)
          } // end loop b (blocks per column)
       } // end loop j (vecs per layer)
@@ -213,8 +192,9 @@ __global__ void reorder_blocks_by_dimension_kernel(
       // Set first and last blocks to zero
       for (uint k=0; k<WID; ++k) {
          for (uint j = 0; j < WID; j += VECL/WID){
-            dev_blockDataOrdered[outputOffset + i_pcolumnv_cuda(j, k, -1, columnLength)][ti] = 0.0;
-            dev_blockDataOrdered[outputOffset + i_pcolumnv_cuda(j, k, columnLength, columnLength)][ti] = 0.0;
+               int jk = j / (VECL/WID);
+               dev_blockDataOrdered[outputOffset + i_pcolumnv_cuda_b(jk, k, -1, columnLength)][ti] = 0.0;
+               dev_blockDataOrdered[outputOffset + i_pcolumnv_cuda_b(jk, k, columnLength, columnLength)][ti] = 0.0;
          }
       }
 
@@ -244,14 +224,6 @@ __global__ void acceleration_kernel(
    const int column = blockIdx.x;
    // int nThreads = blockDim.x;
    // int cudaBlocks = gridDim.x; // = totalColums
-   // //printf("totalcolumns %d blocks %d maxcolumns %d\n",totalColumns,cudaBlocks,maxcolumns);
-   // if (nThreads != VECL) {
-   //    printf("Warning! VECL not matching thread count for CUDA code!\n");
-   // }
-   // if ((column == 540)&&(index==0)) {
-   //    printf("Inside(540,%d) columns %d bdsw3 %d\n",column,totalColumns, bdsw3);
-   //    printf("dev_blockdata %#024x ordered %#024x citi %#024x columns %#024x\n",&dev_blockData,&dev_blockDataOrdered,&dev_cell_indices_to_id,&dev_columns);
-   // }
    if (column >= totalColumns) return;
    /* New threading with each warp/wavefront working on one vector */
    Realf v_r0 = ( (WID * dev_columns[column].kBegin) * dv + v_min);
@@ -267,6 +239,7 @@ __global__ void acceleration_kernel(
 
       uint i_indices = index % WID;
       uint j_indices = j + index/WID;
+      //int jk = j / (VECL/WID);
 
       int target_cell_index_common =
          i_indices * dev_cell_indices_to_id[0] +
@@ -380,7 +353,6 @@ void acceleration_1_glue(
 ) {
    // NVIDIA: a100 64 stream multiprocessors? Blocks should be larger than this value.
    // Launch acceleration kernels
-   //printf("Call accelerate: Columns %d cudablocks %d bdsw3 %d\n",totalColumns,cudablocks,bdsw3);
    acceleration_kernel<<<cudablocks, cudathreads, 0, stream>>> (
       dev_blockData,
       dev_blockDataOrdered,
@@ -412,7 +384,6 @@ void reorder_blocks_by_dimension_glue(
    const int cudathreads,
    cudaStream_t stream
 ) {
-   //printf("Call reorder: Columns %d cudablocks %d \n",totalColumns,cudablocks);
    reorder_blocks_by_dimension_kernel<<<cudablocks, cudathreads, 0, stream>>> (
       dev_blockData,
       dev_blockDataOrdered,

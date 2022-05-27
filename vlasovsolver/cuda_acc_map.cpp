@@ -115,8 +115,6 @@ __host__ void cuda_acc_copy_HtoD(spatial_cell::SpatialCell* spatial_cell,
    ) {
    // Thread id used for persistent device memory pointers
    const uint cuda_async_queue_id = omp_get_thread_num();
-   // cuCtxSetCurrent(cuda_thread_context[cuda_async_queue_id]);
-   //cuCtxSetCurrent(cuda_acc_context);
    
    vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = spatial_cell->get_velocity_mesh(popID);
    vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks(popID);
@@ -125,7 +123,6 @@ __host__ void cuda_acc_copy_HtoD(spatial_cell::SpatialCell* spatial_cell,
    if(vmesh.size() == 0) {
       return;
    }
-   if (spatial_cell->parameters[CellParams::CELLID]==1) std::cerr<<"blockData HtoD N "<<blockDataN<<" "<<vmesh.size()<<std::endl;
 
    // Page lock (pin) host memory for faster async transfers
    cudaHostRegister(blockData, blockDataN*WID3*sizeof(Realf),cudaHostRegisterDefault);
@@ -141,8 +138,6 @@ __host__ void cuda_acc_copy_DtoH(spatial_cell::SpatialCell* spatial_cell,
    ) {
    // Thread id used for persistent device memory pointers
    const uint cuda_async_queue_id = omp_get_thread_num();
-   // cuCtxSetCurrent(cuda_thread_context[cuda_async_queue_id]);
-   //cuCtxSetCurrent(cuda_acc_context);
 
    vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = spatial_cell->get_velocity_mesh(popID);
    vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks(popID);
@@ -151,7 +146,6 @@ __host__ void cuda_acc_copy_DtoH(spatial_cell::SpatialCell* spatial_cell,
    if(vmesh.size() == 0) {
       return;
    }
-   if (spatial_cell->parameters[CellParams::CELLID]==1) std::cerr<<"blockData DtoH 2 "<<blockDataN<<" "<<vmesh.size()<<std::endl;
 //   memset(blockData,0,blockDataN*WID3*sizeof(Realf));
 
    // Clear old pinning, vmesh size may have changed
@@ -191,17 +185,6 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    if(vmesh.size() == 0) {
       return true;
    }
-   if (spatial_cell->parameters[CellParams::CELLID]==1) std::cerr<<"blockDataSize (start acc map) "<<blockDataN<<" "<<vmesh.size()<<std::endl;
-   //cuCtxSetCurrent(cuda_acc_context);
-
-   //if (dimension!=0) return true; // for debugging
-
-   // init GPU stream (now done in cuda_acc_semilag.cpp
-   //cudaStream_t stream; //, stream_columns, stream_memset;
-   //cudaStreamCreate(&stream);
-   // Here should check which rank we have on the node, and activate the correct GPU
-   // cudaSetDevice(gpuid);
-   // The MPI standard does not have a common standard for this information.
 
    // Thread id used for persistent device memory pointers
    const uint cuda_async_queue_id = omp_get_thread_num();
@@ -215,15 +198,6 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    uint cell_indices_to_id[3] = {0, 0, 0};
 
    // Block data copying now handled from inside cuda_acc_semilag.cpp
-
-   // // Page lock (pin) host memory for faster async transfers
-   // cudaHostRegister(blockData, blockDataN*WID3*sizeof(Realf),cudaHostRegisterDefault);
-   // // Launch async copy of velocity mesh contents to GPU
-   // cudaMemcpyAsync(dev_blockData[cuda_async_queue_id],
-   //                 blockData,
-   //                 blockDataN*WID3*sizeof(Realf),
-   //                 cudaMemcpyHostToDevice,
-   //                 stream);
 
    // Velocity grid refinement level, has no effect but is
    // needed in some vmesh::VelocityMesh function calls.
@@ -282,7 +256,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       cell_indices_to_id[2]=WID2;
       break;
    }
-   // Copy source data to device (async)
+   // Copy indexing information to device (async)
    cudaMemcpyAsync(dev_cell_indices_to_id[cuda_async_queue_id], cell_indices_to_id, 3*sizeof(uint), cudaMemcpyHostToDevice, stream);
 
    const Realv i_dv=1.0/dv;
@@ -326,7 +300,6 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    cudaMemcpyAsync(dev_columnBlockOffsets[cuda_async_queue_id], columnBlockOffsets.data(), totalColumns*sizeof(uint), cudaMemcpyHostToDevice, stream);
 
    // Launch kernels for transposing and ordering velocity space data into columns
-   //cuCtxSetCurrent(cuda_acc_context);
    reorder_blocks_by_dimension_glue(
       dev_blockData[cuda_async_queue_id],
       dev_blockDataOrdered[cuda_async_queue_id],
@@ -510,7 +483,6 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    // Create empty velocity space on the GPU and fill it with zeros
    size_t blockDataSize = blockContainer.size();
    size_t bdsw3 = blockDataSize * WID3;
-   if (spatial_cell->parameters[CellParams::CELLID]==1) std::cerr<<"blockDataSize (with puff) "<<blockDataSize<<" "<<vmesh.size()<<std::endl;
    // Page lock (pin) again host memory for faster async transfers after kernel has run
    //cudaHostRegister(blockData, bdsw3*sizeof(Realf),cudaHostRegisterDefault);
    // Zero out target data on device
@@ -558,7 +530,6 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    cudaMemcpyAsync(dev_columns[cuda_async_queue_id], columns, totalColumns*sizeof(Column), cudaMemcpyHostToDevice, stream);
 
    // CALL CUDA FUNCTION WRAPPER/GLUE
-   //cuCtxSetCurrent(cuda_acc_context);
    acceleration_1_glue(
       dev_blockData[cuda_async_queue_id],
       dev_blockDataOrdered[cuda_async_queue_id],
