@@ -53,8 +53,8 @@ function cleanup {
    popd
 }
 
-#make -s clean 
-#srun -M vorna --job-name tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p test -o testpackage_build_$HEAD.log -t 0:10:0 make -s -j 16 testpackage tools
+make -s clean 
+srun -M vorna --job-name tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p test -o testpackage_build_$HEAD.log -t 0:10:0 make -s -j 16 testpackage tools
 
 WARNINGS=`grep -c warning: testpackage_build_$HEAD.log`
 ERRORS=`grep -c error: testpackage_build_$HEAD.log || true`
@@ -82,7 +82,7 @@ function cleanup {
 
 # Run it actually.
 echo "--- Now running testpackage ---"
-#sbatch -W -o ./testpackage_run_$HEAD.log ./small_test_vorna.sh
+sbatch -W -o ./testpackage_run_$HEAD.log ./small_test_vorna.sh
 
 echo ">>> Testpackage run successfully!"
 echo -e ":heavy_check_mark: Testpackage ran successfully.\n" >> /tmp/githubcomment_$HEAD.txt
