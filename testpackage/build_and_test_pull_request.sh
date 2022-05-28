@@ -89,7 +89,9 @@ echo -e ":heavy_check_mark: Testpackage ran successfully.\n" >> /tmp/githubcomme
 
 echo "--- Parsing testpackage results ---"
 CURRENT_TEST=""
-MAXERR=0.
+MAXERR=0.  # Absolute error
+MAXREL=0.  # Relative error
+MAXVAR=""  # Variable with said error
 while read line; do
    echo "$line" >> /tmp/curtest.log
 
@@ -100,7 +102,7 @@ while read line; do
             echo -e ":red_circle: $CURRENT_TEST: Failed to run or died with an error."  >> /tmp/githubcomment_$HEAD.txt
          elif [ 1 -eq $(( $MAXERR > 0 )) ]; then
             echo -e "\e[33;1m>>> Nonzero diffs in test $CURRENT_TEST\e[0m"
-            echo -e ":large_orange_diamond: $CURRENT_TEST: Nonzero diffs or run failure."  >> /tmp/githubcomment_$HEAD.txt
+            echo -e ":large_orange_diamond: $CURRENT_TEST: Nonzero diffs: \`$MAXVAR\` has absolute error $MAXERR, relative error $MAXREL."  >> /tmp/githubcomment_$HEAD.txt
          else
             echo -e "\e[32m>>> Zero diffs in test $CURRENT_TEST\e[0m"
             echo -e ":heavy_check_mark: $CURRENT_TEST: Zero diffs." >> /tmp/githubcomment_$HEAD.txt 
@@ -118,10 +120,13 @@ while read line; do
 
       if [ 1 -eq $(( $ABS > $MAXERR )) ]; then
          MAXERR=$ABS
+         MAXVAR=$VAR
+         MAXREL=$REL
       fi
 
    elif echo "$line" | egrep -qi "aborted|segmentation|failed"; then
       MAXERR=9999
+      MAXVAR="Failure"
    fi
 done < testpackage_run_$HEAD.log
 if [ 1 -eq $(( $MAXERR == 9999 )) ]; then
@@ -129,7 +134,7 @@ if [ 1 -eq $(( $MAXERR == 9999 )) ]; then
    echo -e ":red_circle: $CURRENT_TEST: Failed to run or died with an error."  >> /tmp/githubcomment_$HEAD.txt
 elif [ 1 -eq $(( $MAXERR > 0 )) ]; then
    echo -e "\e[33;1m>>> Nonzero diffs in test $CURRENT_TEST\e[0m"
-   echo -e ":large_orange_diamond: $CURRENT_TEST: Nonzero diffs or run failure." >> /tmp/githubcomment_$HEAD.txt
+   echo -e ":large_orange_diamond: $CURRENT_TEST: Nonzero diffs: \`$MAXVAR\` has absolute error $MAXERR, relative error $MAXREL."  >> /tmp/githubcomment_$HEAD.txt
 else
    echo -e "\e[32m>>> Zero diffs in test $CURRENT_TEST\e[0m"
    echo -e ":x: $CURRENT_TEST: Zero diffs." >> /tmp/githubcomment_$HEAD.txt 
