@@ -105,8 +105,10 @@ namespace projects {
       Realf vpara = vx;
       Realf vperp = sqrt(vy*vy + vz*vz);
       Realf mu    = vpara / sqrt(vpara*vpara + vperp*vperp);
-      if (mu <= -0.5 or mu >= 0.5) {return 0.0;}
-      else {return exp((- mass / (2.0 * kb)) * ((vx*vx) / sP.TEMPERATUREX + (vy*vy) / sP.TEMPERATUREY + (vz*vz) / sP.TEMPERATUREZ));}
+      Realf theta = atan2(vperp,vpara);
+      //if (mu <= -0.5 or mu >= 0.5) {return 0.0;}
+      //else {return exp((- mass / (2.0 * kb)) * ((vx*vx) / sP.TEMPERATUREX + (vy*vy) / sP.TEMPERATUREY + (vz*vz) / sP.TEMPERATUREZ));}
+      return exp((- mass / (2.0 * kb)) * ((vx*vx) / sP.TEMPERATUREX + (vy*vy) / sP.TEMPERATUREY + (vz*vz) / sP.TEMPERATUREZ)) * sin(theta)*sin(theta);
    }
 
    Real LossCone::calcPhaseSpaceDensity(
