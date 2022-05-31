@@ -278,10 +278,12 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    // it does not depend on hashmap calls, just calculating new
    // indices, sorting them, and going through the list.
    // Probably won't parallelize very well, though?
+   phiprof::start("sortBlockList");
    sortBlocklistByDimension(vmesh, dimension, GIDlist, LIDlist,
                             columnBlockOffsets, columnNumBlocks,
                             setColumnOffsets, setNumColumns);
-   
+   phiprof::stop("sortBlockList");
+
    // Calculate total sum of columns and total values size
    uint totalColumns = 0;
    uint valuesSizeRequired = 0;
@@ -332,6 +334,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    }
    
    // Calculate target column extents
+   phiprof::start("columnExtents");
    for( uint setIndex=0; setIndex< setColumnOffsets.size(); ++setIndex) {
 
       bool isTargetBlock[MAX_BLOCKS_PER_DIM]= {false};
@@ -477,6 +480,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
          }
       }
    }
+   phiprof::stop("columnExtents");
 
    // Velocity space has all extra blocks added and/or removed for the transform target
    // and will not change shape anymore.

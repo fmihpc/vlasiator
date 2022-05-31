@@ -98,7 +98,6 @@ __host__ void cuda_acc_allocate_memory (
    // const uint maxTargetBlocksPerColumn = 3 * ( MAX_BLOCKS_PER_DIM / 2 + 1);
    // const uint maxTargetBlocksPerCell = maxTargetBlocksPerColumn * MAX_BLOCKS_PER_DIM * MAX_BLOCKS_PER_DIM;
    // const uint maxSourceBlocksPerCell = MAX_BLOCKS_PER_DIM * MAX_BLOCKS_PER_DIM * MAX_BLOCKS_PER_DIM;
-
    HANDLE_ERROR( cudaMalloc((void**)&dev_cell_indices_to_id[cpuThreadID], 3*sizeof(uint)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_columns[cpuThreadID], maxColumnsPerCell*sizeof(Column)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_blockData[cpuThreadID], maxSourceBlocksPerCell * WID3 * sizeof(Realf) ) );
@@ -118,8 +117,6 @@ __host__ void cuda_acc_allocate_memory (
 __host__ void cuda_acc_deallocate_memory (
    uint cpuThreadID
    ) {
-   cudaDeviceReset();
-   return;
    HANDLE_ERROR( cudaFree(dev_cell_indices_to_id[cpuThreadID]) );
    HANDLE_ERROR( cudaFree(dev_columns[cpuThreadID]) );
    HANDLE_ERROR( cudaFree(dev_blockData[cpuThreadID]) );

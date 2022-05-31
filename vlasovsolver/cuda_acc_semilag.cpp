@@ -79,9 +79,11 @@ void cuda_accelerate_cell(SpatialCell* spatial_cell,
    //cuCtxSetCurrent(cuda_acc_context);
 
    // Launch cuda transfers
+   phiprof::start("CUDA-HtoD");
    cudaStream_t cudaThreadStream;
    cudaStreamCreate(&cudaThreadStream);
    cuda_acc_copy_HtoD(spatial_cell, popID, cudaThreadStream);
+   phiprof::stop("CUDA-HtoD");
 
    // compute transform, forward in time and backward in time
    phiprof::start("compute-transform");
@@ -167,8 +169,10 @@ void cuda_accelerate_cell(SpatialCell* spatial_cell,
    }
 
    // Transfer data back, destroy stream
+   phiprof::start("CUDA-DtoH");
    cuda_acc_copy_DtoH(spatial_cell, popID, cudaThreadStream);
    cudaStreamDestroy(cudaThreadStream);
+   phiprof::stop("CUDA-DtoH");
 
 
 //   if (Parameters::prepareForRebalance == true) {
