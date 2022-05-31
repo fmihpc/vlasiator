@@ -112,11 +112,15 @@ __host__ void cuda_acc_allocate_memory (
    HANDLE_ERROR( cudaHostAlloc((void**)&host_GIDlist[cpuThreadID], maxSourceBlocksPerCell*sizeof(vmesh::LocalID), cudaHostAllocPortable) );
    HANDLE_ERROR( cudaHostAlloc((void**)&host_LIDlist[cpuThreadID], maxSourceBlocksPerCell*sizeof(vmesh::LocalID), cudaHostAllocPortable) );
    // Blockdata is pinned inside cuda_acc_map_1d() in cuda_acc_map.cu
-}
+   //printf("A addrD %d -- %lu %lu %lu %lu\n",cpuThreadID,dev_cell_indices_to_id[cpuThreadID],dev_columns[cpuThreadID],dev_blockData[cpuThreadID],dev_blockDataOrdered[cpuThreadID]);
+   //printf("A addrH %d -- %lu %lu %lu %lu\n",cpuThreadID,&dev_cell_indices_to_id[cpuThreadID],&dev_columns[cpuThreadID],&dev_blockData[cpuThreadID],&dev_blockDataOrdered[cpuThreadID]);
+ }
 
 __host__ void cuda_acc_deallocate_memory (
    uint cpuThreadID
    ) {
+   //printf("D addrD %d -- %lu %lu %lu %lu\n",cpuThreadID,dev_cell_indices_to_id[cpuThreadID],dev_columns[cpuThreadID],dev_blockData[cpuThreadID],dev_blockDataOrdered[cpuThreadID]);
+   //printf("D addrH %d -- %lu %lu %lu %lu\n",cpuThreadID,&dev_cell_indices_to_id[cpuThreadID],&dev_columns[cpuThreadID],&dev_blockData[cpuThreadID],&dev_blockDataOrdered[cpuThreadID]);
    HANDLE_ERROR( cudaFree(dev_cell_indices_to_id[cpuThreadID]) );
    HANDLE_ERROR( cudaFree(dev_columns[cpuThreadID]) );
    HANDLE_ERROR( cudaFree(dev_blockData[cpuThreadID]) );

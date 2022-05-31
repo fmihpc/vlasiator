@@ -627,7 +627,6 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    }
 
 #ifdef USE_CUDA
-   phiprof::start("CUDA_malloc");
    cudaMaxBlockCount = 0;
    // Not parallelized
    for (uint i=0; i<cells.size(); ++i) {
@@ -639,7 +638,12 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
          }
       }
    }
+   if (cudaMaxBlockCount==0) {
+      cerr << "Error in load balance: zero blocks" << std::endl;
+      abort();
+   }
    // Call CUDA routines for memory allocation
+   phiprof::start("CUDA_malloc");
    for (uint i=0; i<omp_get_max_threads(); ++i) {
       if (isCudaAllocated) {
          cuda_acc_deallocate_memory(i);
