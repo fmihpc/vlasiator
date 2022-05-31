@@ -42,7 +42,7 @@ namespace projects {
    LossCone::LossCone(): TriAxisSearch() { }
    LossCone::~LossCone() { }
    bool LossCone::initialize(void) {return Project::initialize();}
-   
+
    void LossCone::addParameters() {
       typedef Readparameters RP;
       RP::add("LossCone.BX0", "Background field value (T)", 1.0e-9);
@@ -65,6 +65,11 @@ namespace projects {
          RP::add(pop + "_LossCone.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
          RP::add(pop + "_LossCone.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
          RP::add(pop + "_LossCone.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
+
+         RP::add(pop + "_LossCone.monotonic_maxv", "Cutoff for the monotonic distribution (m s^-1)", 0);
+         RP::add(pop + "_LossCone.monotonic_amp", "Amplitude for the variation of the monotonic distribution (m^-6 s^3)", 1e-15);
+         RP::add(pop + "_LossCone.monotonic_base", "Base phase-space density for the monotonic distribution (m^-6 s^3)", 1e-15);
+         RP::add(pop + "_LossCone.monotonic_subtract", "Subtract monotonic distribution from loss-cone distribution?", false);
       }
    }
 
@@ -93,22 +98,49 @@ namespace projects {
          RP::get(pop + "_LossCone.nVelocitySamples", sP.nVelocitySamples);
          RP::get(pop + "_LossCone.maxwCutoff", sP.maxwCutoff);
 
+         RP::get(pop + "_LossCone.monotonic_maxv",sP.monotonic_maxv);
+         RP::get(pop + "_LossCone.monotonic_amp",sP.monotonic_amp);
+         RP::get(pop + "_LossCone.monotonic_base",sP.monotonic_base);
+         RP::get(pop + "_LossCone.monotonic_subtract",sP.monotonic_subtract);
          speciesParams.push_back(sP);
       }
    }
-   
+
    Real LossCone::getDistribValue(creal& vx,creal& vy, creal& vz, const uint popID) const {
       const LossConeSpeciesParameters& sP = speciesParams[popID];
 
+      Real vpara = vx;
+      Real vperp = sqrt(vy*vy + vz*vz);
+      Real modv = sqrt(vx*vx + vy*vy + vz*vz);
+      Real mu    = vpara / modv;
+
+      Real value = 0;
+      if (sP.monotonic_maxv > 0) {
+         // Calculating monotonic beaming population
+         Real value_monotonic = 0;
+         Real mux = mu;
+         if (modv<=sP.monotonic_maxv) {
+            // Allow flipping of distribution with _base<0
+            if (sP.monotonic_base < 0) {
+               mux = mux * -1;
+            }
+            value_monotonic = sP.monotonic_amp*(mux+1)*(mux+1.) + abs(sP.monotonic_base);
+         }
+         if (sP.monotonic_subtract) {
+            // subtract this monotonic distribution from the losscone distribution
+            value = -value_monotonic;
+         } else {
+            // Just return the monotonic distribution
+            return value_monotonic;
+         }
+      }
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
-      Realf vpara = vx;
-      Realf vperp = sqrt(vy*vy + vz*vz);
-      Realf mu    = vpara / sqrt(vpara*vpara + vperp*vperp);
-      Realf theta = atan2(vperp,vpara);
+      Real theta = atan2(vperp,vpara);
       //if (mu <= -0.5 or mu >= 0.5) {return 0.0;}
       //else {return exp((- mass / (2.0 * kb)) * ((vx*vx) / sP.TEMPERATUREX + (vy*vy) / sP.TEMPERATUREY + (vz*vz) / sP.TEMPERATUREZ));}
-      return exp((- mass / (2.0 * kb)) * ((vx*vx) / sP.TEMPERATUREX + (vy*vy) / sP.TEMPERATUREY + (vz*vz) / sP.TEMPERATUREZ)) * sin(theta)*sin(theta);
+
+      return value + exp((- mass / (2.0 * kb)) * ((vx*vx) / sP.TEMPERATUREX + (vy*vy) / sP.TEMPERATUREY + (vz*vz) / sP.TEMPERATUREZ)) * sin(theta)*sin(theta);
    }
 
    Real LossCone::calcPhaseSpaceDensity(
@@ -152,11 +184,13 @@ namespace projects {
          pow(mass / (2.0 * M_PI * kb ), 1.5) / ( sqrt(sP.TEMPERATUREX) * sqrt(sP.TEMPERATUREY) * sqrt(sP.TEMPERATUREZ) ) /
          (sP.nVelocitySamples*sP.nVelocitySamples*sP.nVelocitySamples );
       
-      if(result < sP.maxwCutoff) {
-         return 0.0;
-      } else {
-         return result;
-      }
+      // Switching off the cutoff check for now
+      // if(result < sP.maxwCutoff) {
+      //    return 0.0;
+      // } else {
+      //    return result;
+      // }
+      return result;
    }
    
    void LossCone::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
