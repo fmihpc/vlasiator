@@ -955,9 +955,10 @@ int main(int argn,char* args[]) {
       addTimedBarrier("barrier-after-acceleration");
      
       phiprof::start("Diffusion");
-      if (P::artificialPADiff){
-
-	      velocitySpaceDiffusion(mpiGrid,0);
+      if (P::artificialPADiff){  
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+	      velocitySpaceDiffusion(mpiGrid,popID);
+         }
       }
       phiprof::stop("Diffusion",computedCells,"Cells");
 
