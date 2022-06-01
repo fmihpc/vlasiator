@@ -40,6 +40,12 @@ namespace projects {
       Real maxwCutoff;
       uint nSpaceSamples;
       uint nVelocitySamples;
+
+      // Parameters for instead implementing monotonic population
+      Real monotonic_maxv;
+      Real monotonic_amp;
+      Real monotonic_base;
+      bool monotonic_subtract;
    };
 
    class LossCone: public TriAxisSearch {
