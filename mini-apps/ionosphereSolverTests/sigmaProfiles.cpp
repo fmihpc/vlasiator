@@ -285,6 +285,8 @@ int main(int argc, char** argv) {
 
       // Calculate conductivities
       Real halfdx = 1000 * 0.5 * (atmosphere[h].altitude -  atmosphere[h-1].altitude);
+
+      // Gumics-like integration
       Real halfCH = halfdx * 0.5 * (atmosphere[h-1].hallcoeff + atmosphere[h].hallcoeff);
       Real halfCP = halfdx * 0.5 * (atmosphere[h-1].pedersencoeff + atmosphere[h].pedersencoeff);
       Real halfCpara = halfdx * 0.5 * (atmosphere[h-1].parallelcoeff + atmosphere[h].parallelcoeff);
@@ -292,6 +294,11 @@ int main(int argc, char** argv) {
       Real sigmap = (electronDensity[h]+electronDensity[h-1]) * halfCP;
       Real sigmah = (electronDensity[h]+electronDensity[h-1]) * halfCH;
       Real sigmaParallel = (electronDensity[h]+electronDensity[h-1]) * halfCpara;
+
+      // Jonas-like integration
+      //Real sigmap = halfdx * 0.5 * (electronDensity.at(h)*atmosphere.at(h).pedersencoeff + electronDensity.at(h-1)*atmosphere.at(h-1).pedersencoeff);
+      //Real sigmah = halfdx * 0.5 * (electronDensity.at(h)*atmosphere.at(h).hallcoeff + electronDensity.at(h-1)*atmosphere.at(h-1).hallcoeff);
+      //Real sigmaParallel = halfdx * 0.5 * (electronDensity.at(h)*atmosphere.at(h).parallelcoeff + electronDensity.at(h-1)*atmosphere.at(h-1).parallelcoeff);
 
       SigmaP += sigmap;
       SigmaH += sigmah;
