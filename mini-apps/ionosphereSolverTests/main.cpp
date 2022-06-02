@@ -21,7 +21,6 @@ ObjectWrapper& getObjectWrapper() {
 }
 
 // Dummy implementations of some functions to make things compile
-bool printVersion() { return true; }
 std::vector<CellID> localCellDummy;
 const std::vector<CellID>& getLocalCells() { return localCellDummy; }
 void deallocateRemoteCellBlocks(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry, std::tuple<>, std::tuple<> >&) {};

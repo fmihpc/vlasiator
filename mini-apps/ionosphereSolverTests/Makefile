@@ -27,6 +27,9 @@ parameters.o: ../../parameters.h ../../parameters.cpp ../../readparameters.h
 readparameters.o: ../../readparameters.h ../../readparameters.cpp ../../version.h ../../version.cpp
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c ../../readparameters.cpp ${INC_BOOST} ${INC_EIGEN}
 
+version.o: ../../version.cpp
+	 ${CMP} ${CXXFLAGS} ${FLAGS} -c ../../version.cpp
+
 object_wrapper.o:  ../../object_wrapper.h ../../object_wrapper.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c ../../object_wrapper.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_FSGRID} ${INC_PROFILE} ${INC_JEMALLOC}
 
@@ -69,7 +72,7 @@ grid.o:  ../../grid.cpp ../../grid.h  ../../sysboundary/sysboundary.h
 main.o: main.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c ./main.cpp  ${INC_VLSV} ${INC_BOOST} ${INC_PROFILE} ${INC_JEMALLOC} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_FSGRID}
 
-main: main.o ionosphere.o sysboundarycondition.o parameters.o readparameters.o object_wrapper.o particle_species.o spatial_cell.o cpu_moments.o mesh_data_container.o iowrite.o logger.o datareducer.o datareductionoperator.o common.o ioread.o fs_common.o
+main: main.o ionosphere.o sysboundarycondition.o parameters.o readparameters.o object_wrapper.o particle_species.o spatial_cell.o cpu_moments.o mesh_data_container.o iowrite.o logger.o datareducer.o datareductionoperator.o common.o ioread.o fs_common.o version.o
 	${LNK} ${LDFLAGS} -o main $^ $(LIBS) -lgomp
 
 differentialFlux: differentialFlux.cpp
