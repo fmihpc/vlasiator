@@ -179,10 +179,11 @@ struct Parameters {
    static bool adaptRefinement;
    static bool refineOnRestart;
    static bool shouldFilter;
-   static Real refineTreshold;
-   static Real unrefineTreshold;
+   static Real refineThreshold;
+   static Real unrefineThreshold;
    static uint refineMultiplier;
    static Real refineAfter;
+   static Real refineRadius;
    static uint amrBoxHalfWidthX;
    static uint amrBoxHalfWidthY;
    static uint amrBoxHalfWidthZ;

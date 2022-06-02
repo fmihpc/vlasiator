@@ -292,17 +292,17 @@ namespace projects {
                setBackgroundField(bgFieldDipole, BgBGrid, true);
                break; 
             case 4:  // Vector potential dipole, vanishes or optionally scales to static inflow value after a given x-coordinate
-	       // What we in fact do is we place the regular dipole in the background field, and the
-	       // corrective terms in the perturbed field. This maintains the BGB as curl-free.
-	       bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
+          // What we in fact do is we place the regular dipole in the background field, and the
+          // corrective terms in the perturbed field. This maintains the BGB as curl-free.
+          bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
                setBackgroundField(bgFieldDipole, BgBGrid);
-	       // Difference into perBgrid, only if not restarting
-	       if (P::isRestart == false) {
-		  bgFieldDipole.initialize(-8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );
-		  setPerturbedField(bgFieldDipole, perBGrid);
-		  bgVectorDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi*M_PI/180., this->dipoleTiltTheta*M_PI/180., this->dipoleXFull, this->dipoleXZero, this->dipoleInflowB[0], this->dipoleInflowB[1], this->dipoleInflowB[2]);
-		  setPerturbedField(bgVectorDipole, perBGrid, true);
-	       }
+          // Difference into perBgrid, only if not restarting
+          if (P::isRestart == false) {
+        bgFieldDipole.initialize(-8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );
+        setPerturbedField(bgFieldDipole, perBGrid);
+        bgVectorDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi*M_PI/180., this->dipoleTiltTheta*M_PI/180., this->dipoleXFull, this->dipoleXZero, this->dipoleInflowB[0], this->dipoleInflowB[1], this->dipoleInflowB[2]);
+        setPerturbedField(bgVectorDipole, perBGrid, true);
+          }
                break;              
             default:
                setBackgroundFieldToZero(BgBGrid);
@@ -394,10 +394,10 @@ namespace projects {
                         for (int i = 0; i < fsgrids::bgbfield::N_BGB; ++i) {
                            BgBGrid.get(x,y,z)->at(i) = 0;
                         }
-			if ( (this->dipoleType==4) && (P::isRestart == false) ) {
-			   for (int i = 0; i < fsgrids::bfield::N_BFIELD; ++i) {
-			      perBGrid.get(x,y,z)->at(i) = 0;
-			   }
+         if ( (this->dipoleType==4) && (P::isRestart == false) ) {
+            for (int i = 0; i < fsgrids::bfield::N_BFIELD; ++i) {
+               perBGrid.get(x,y,z)->at(i) = 0;
+            }
                         }
                      }
                   }
@@ -683,8 +683,6 @@ namespace projects {
       Real ibr2 = pow(ionosphereRadius + 2*P::dx_ini, 2);
 
       std::vector<CellID> cells = getLocalCells();
-      Real refineTreshold = P::refineTreshold;
-      Real unrefineTreshold = P::unrefineTreshold;
 
       //#pragma omp parallel for
       for (int j = 0; j < cells.size(); ++j) {
@@ -696,15 +694,19 @@ namespace projects {
 
          bool refine = false;
          if (!canRefine(mpiGrid[id])) {
-            // Skip refining, we shouldn't touch borders when reading restart
-		      mpiGrid.dont_refine(id);
-		      mpiGrid.dont_unrefine(id);
-         } else if (cell->parameters[CellParams::AMR_ALPHA] > refineTreshold) {
-            //#pragma omp critical
-            mpiGrid.refine_completely(id);
-         } else if (cell->parameters[CellParams::AMR_ALPHA] < unrefineTreshold) {
-            //#pragma omp critical
-            mpiGrid.unrefine_completely(id);
+            // Skip refining, touching boundaries during runtime breaks everything
+            mpiGrid.dont_refine(id);
+            mpiGrid.dont_unrefine(id);
+         } else if (r2 < P::refineRadius) {
+            // We don't care about cells that are too far from the ionosphere
+            if (cell->parameters[CellParams::AMR_ALPHA] > P::refineThreshold) {
+               //#pragma omp critical
+               mpiGrid.refine_completely(id);
+            } else if (cell->parameters[CellParams::AMR_ALPHA] < P::unrefineThreshold) {
+               //#pragma omp critical
+               mpiGrid.unrefine_completely(id);
+            }
+            // TODO: consider dont_unrefine for any cell above unrefine threshold
          }
       }
 
