@@ -1727,6 +1727,46 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
   
         return retval;
      }));
+
+     // These following ones aren't really necessary to restart the ionosphere
+     // correctly, but we'll write them anyway as to not have dropouts in
+     // rendered animations:
+     restartReducer.addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_sigmap", [](SBC::SphericalTriGrid& grid)->std::vector<Real> {
+        std::vector<Real> retval(grid.nodes.size());
+
+        for (uint i = 0; i < grid.nodes.size(); i++) {
+           retval[i] = grid.nodes[i].parameters[ionosphereParameters::SIGMAP];
+        }
+
+        return retval;
+     }));
+     restartReducer.addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_sigmah", [](SBC::SphericalTriGrid& grid)->std::vector<Real> {
+        std::vector<Real> retval(grid.nodes.size());
+
+        for (uint i = 0; i < grid.nodes.size(); i++) {
+           retval[i] = grid.nodes[i].parameters[ionosphereParameters::SIGMAH];
+        }
+
+        return retval;
+     }));
+     restartReducer.addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_sigmaparallel", [](SBC::SphericalTriGrid& grid)->std::vector<Real> {
+        std::vector<Real> retval(grid.nodes.size());
+
+        for (uint i = 0; i < grid.nodes.size(); i++) {
+           retval[i] = grid.nodes[i].parameters[ionosphereParameters::SIGMAPARALLEL];
+        }
+
+        return retval;
+     }));
+     restartReducer.addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_precipitation", [](SBC::SphericalTriGrid& grid)->std::vector<Real> {
+        std::vector<Real> retval(grid.nodes.size());
+
+        for (uint i = 0; i < grid.nodes.size(); i++) {
+           retval[i] = grid.nodes[i].parameters[ionosphereParameters::PRECIP];
+        }
+
+        return retval;
+     }));
    }
 
    //Write necessary variables:

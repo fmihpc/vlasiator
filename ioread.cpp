@@ -1310,7 +1310,20 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    ionosphereSuccess &= readIonosphereNodeVariable(file, "ig_electrontemp", SBC::ionosphereGrid, ionosphereParameters::TEMPERATURE);
    ionosphereSuccess &= readIonosphereNodeVariable(file, "ig_potential", SBC::ionosphereGrid, ionosphereParameters::SOLUTION);
    if(!ionosphereSuccess) {
-	logFile << "(RESTART) Reading ionosphere variables failed. Continuing anyway. Variables will be zero, assuming this is an ionosphere cold start?" << std::endl;
+      logFile << "(RESTART) Reading ionosphere variables failed. Continuing anyway. Variables will be zero, assuming this is an ionosphere cold start?" << std::endl;
+   }
+
+   // Read additional variables that are not formally required for solving the
+   // ionosphere, but help making the first output consistent if ionosphere
+   // timestep is very large.
+   // If these are missing from the restart file, we are fine continuing with
+   // zeros.
+   bool ionosphereOptionalSuccess = readIonosphereNodeVariable(file, "ig_sigmah", SBC::ionosphereGrid, ionosphereParameters::SIGMAH);
+   ionosphereOptionalSuccess &= readIonosphereNodeVariable(file, "ig_sigmap", SBC::ionosphereGrid, ionosphereParameters::SIGMAP);
+   ionosphereOptionalSuccess &= readIonosphereNodeVariable(file, "ig_sigmaparallel", SBC::ionosphereGrid, ionosphereParameters::SIGMAPARALLEL);
+   ionosphereOptionalSuccess &= readIonosphereNodeVariable(file, "ig_sigmah", SBC::ionosphereGrid, ionosphereParameters::SIGMAH);
+   if(ionosphereSuccess && !ionosphereOptionalSuccess) {
+      logFile << "(RESTART) Restart file contains no ionosphere conductivity data. Ionosphere will run fine, but first output bulk file might have bogus conductivities." << std::endl;
    }
    phiprof::stop("readIonosphere");
 
