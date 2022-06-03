@@ -26,6 +26,7 @@
 #include "datareducer.h"
 #include "../common.h"
 #include "dro_populations.h"
+#include "../sysboundary/ionosphere.h"
 using namespace std;
 
 void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosticReducer)
@@ -2801,6 +2802,37 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      return retval;
                      }));
          outputReducer->addMetadata(outputReducer->size()-1, "W/m^2", "$\\mathrm{W m^{-2}}$", "$W_\\mathrm{precipitation}$", "1.0");
+         continue;
+      }
+      if(lowercase == "ig_precipnumflux") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_precipnumflux", [](SBC::SphericalTriGrid& grid)->std::vector<Real> {
+
+                     std::array< Real, grid.productionNumParticleEnergies+1 > particle_energy;
+                     // Precalculate effective energy bins
+                     // Make sure this stays in sync with sysboundary/ionosphere.cpp
+                     for(int e=0; e<grid.productionNumParticleEnergies; e++) {
+                     particle_energy[e] = pow(10.0, -1.+e*(2.3+1.)/(grid.productionNumParticleEnergies-1));
+                     }
+                     particle_energy[grid.productionNumParticleEnergies] = 2*particle_energy[grid.productionNumParticleEnergies-1] - particle_energy[grid.productionNumParticleEnergies-2];
+
+                     Real accenergy = grid.productionMinAccEnergy;
+
+                     std::vector<Real> retval(grid.nodes.size());
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        Real temp_keV = physicalconstants::K_B * grid.nodes[i].electronTemperature() / physicalconstants::CHARGE / 1000;
+
+                        for(int p=0; p<grid.productionNumParticleEnergies; p++) {
+                           Real energyparam = (particle_energy[p]-accenergy)/temp_keV; // = E_p / (kB T)
+                           Real deltaE = (particle_energy[p+1] - particle_energy[p])* 1e3*physicalconstants::CHARGE;  // dE in J
+                           retval[i] += grid.nodes[i].parameters[ionosphereParameters::RHON] * sqrt(1. / (2. * M_PI * physicalconstants::MASS_ELECTRON))
+                           * particle_energy[p] / temp_keV / sqrt(temp_keV * 1e3 *physicalconstants::CHARGE)
+                           * deltaE * exp(-energyparam); // Flux 1/m^2/s
+                        }
+                     }
+                     return retval;
+                     }));
+         outputReducer->addMetadata(outputReducer->size()-1, "1/m^2/s", "$m^{-2} s^{-1}$", "$\bar{F}_\mathrm{precip}$", "1.0");
+         //outputReducer->addMetadata(outputReducer->size()-1, "eV", "eV", "$\bar{E}_\mathrm{precip}$", "1.0");
          continue;
       }
       if(lowercase == "ig_potential") {
