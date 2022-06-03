@@ -683,6 +683,7 @@ namespace projects {
       Real ibr2 = pow(ionosphereRadius + 2*P::dx_ini, 2);
 
       std::vector<CellID> cells = getLocalCells();
+      Real r_max2 = pow(P::refineRadius, 2);
 
       //#pragma omp parallel for
       for (int j = 0; j < cells.size(); ++j) {
@@ -690,14 +691,14 @@ namespace projects {
          std::array<double,3> xyz = mpiGrid.get_center(id);
          SpatialCell* cell = mpiGrid[id];
          int refLevel = mpiGrid.get_refinement_level(id);
-         Real r = sqrt(pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2));
+         Real r2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
 
          bool refine = false;
          if (!canRefine(mpiGrid[id])) {
             // Skip refining, touching boundaries during runtime breaks everything
             mpiGrid.dont_refine(id);
             mpiGrid.dont_unrefine(id);
-         } else if (r < P::refineRadius) {
+         } else if (r2 < r_max2) {
             // We don't care about cells that are too far from the ionosphere
             if (cell->parameters[CellParams::AMR_ALPHA] > P::refineThreshold) {
                //#pragma omp critical
