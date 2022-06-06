@@ -64,9 +64,12 @@ void calculateVolumeAveragedFields(
             );
             
             // Calculate volume average of B:
-            volGrid0->at(fsgrids::volfields::PERBXVOL) = perturbedCoefficients[Rec::a_0];
-            volGrid0->at(fsgrids::volfields::PERBYVOL) = perturbedCoefficients[Rec::b_0];
-            volGrid0->at(fsgrids::volfields::PERBZVOL) = perturbedCoefficients[Rec::c_0];
+            volGrid0->at(fsgrids::volfields::PERBXVOL) = perturbedCoefficients[Rec::a_0]
+               -3.0/8.0 * (perturbedCoefficients[Rec::a_xx] + perturbedCoefficients[Rec::a_yy] + perturbedCoefficients[Rec::a_zz]);
+            volGrid0->at(fsgrids::volfields::PERBYVOL) = perturbedCoefficients[Rec::b_0]
+               -3.0/8.0 * (perturbedCoefficients[Rec::b_xx] + perturbedCoefficients[Rec::b_yy] + perturbedCoefficients[Rec::b_zz]);
+            volGrid0->at(fsgrids::volfields::PERBZVOL) = perturbedCoefficients[Rec::c_0]
+               -3.0/8.0 * (perturbedCoefficients[Rec::c_xx] + perturbedCoefficients[Rec::c_yy] + perturbedCoefficients[Rec::c_zz]);
 
             // Calculate volume average of E (FIXME NEEDS IMPROVEMENT):
             std::array<Real, fsgrids::efield::N_EFIELD> * EGrid_i1j1k1 = EGrid.get(i,j,k);
