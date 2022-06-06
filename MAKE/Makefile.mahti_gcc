@@ -2,7 +2,7 @@ CMP = mpic++
 LNK = mpic++
 
 # Modules loaded
-# module load gcc boost jemalloc papi openmpi zoltan
+# module load gcc boost jemalloc papi openmpi
 
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length. 
@@ -65,14 +65,16 @@ LIBRARY_PREFIX = /users/kempf/libraries_rhel8_openmpi/
 LIB_BOOST = -lboost_program_options
 
 INC_ZOLTAN = -I$(LIBRARY_PREFIX)/zoltan/include
-LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/lib -lzoltan
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX)/zoltan/lib
+
 
 LIB_JEMALLOC = -ljemalloc
 
 LIB_PAPI = -lpapi
 
-INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
-LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv
+INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv_multiread
+LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv_multiread -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)/vlsv_multiread
+
 
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -lgfortran -Wl,-rpath=$(LIBRARY_PREFIX)/phiprof/lib
 INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include 
