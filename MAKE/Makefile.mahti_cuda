@@ -72,7 +72,7 @@ testpackage: CXXFLAGS = -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -fopenmp -s
 testpackage: NVCCFLAGS = -gencode arch=compute_80,code=sm_80 -std=c++11 --prec-sqrt=true --prec-div=true --ftz=false --fmad=false
 
 MATHFLAGS =
-LDFLAGS = -O2 -g -L/appl/spack/v016/install-tree/gcc-4.8.5/nvhpc-21.2-l6xyb4/Linux_x86_64/21.2/cuda/11.2/lib64
+LDFLAGS = -O2 -g -L/appl/spack/v016/install-tree/gcc-4.8.5/nvhpc-21.2-l6xyb4/Linux_x86_64/21.2/cuda/11.2/lib64 -lnvToolsExt
 #LDFLAGS = -ta=tesla:lineinfo,keepbin,keepgpu,keepptx
 LIB_MPI = -lgomp
 #LIB_CUDA = -L/usr/local/cuda/lib64 -lcuda -lcudart
