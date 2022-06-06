@@ -25,6 +25,7 @@
 #include "particles.h"
 #include "particleparameters.h"
 #include "physconst.h"
+#include "field.h"
 
 /* virtual base of particle distributions */
 class Distribution
@@ -181,6 +182,16 @@ class Kappa2 : public Kappa
          }
 
       }
+};
+
+class TriMaxwellian : public Distribution {
+  public:
+        TriMaxwellian(std::default_random_engine& _rand);
+        virtual Particle next_particle();
+  private:
+      std::normal_distribution<Real> vParallel;
+      std::normal_distribution<Real> vPerp1;
+      std::normal_distribution<Real> vPerp2;
 };
 
 template<typename T> Distribution* createDistribution(std::default_random_engine& rand) {

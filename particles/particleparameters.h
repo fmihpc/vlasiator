@@ -40,6 +40,7 @@ struct ParticleParameters {
    static Real init_z; /*!< Particle starting point, z-coordinate */
 
    static Real dt; /*!< Particle pusher timestep */
+   static int propagation_direction; /*!< dt > 0 : positive direction +1; dt < 0 : negative direction -1. */
    static Real start_time; /*!< Simulation time at which the particles are injected */
    static Real end_time;  /*!< Simulation time at which the particle-simulation should be stopped */
    static Real input_dt; /*!< Time interval between input files */
@@ -52,6 +53,8 @@ struct ParticleParameters {
    static Boundary* boundary_behaviour_x; /*!< What to do with particles that reach the x boundary */
    static Boundary* boundary_behaviour_y; /*!< What to do with particles that reach the y boundary */
    static Boundary* boundary_behaviour_z; /*!< What to do with particles that reach the z boundary */
+
+   static Real inner_boundary_radius; /*!< Absorbing inner boundary radius, if any */
 
    static Real precip_inner_boundary; /*!< Distance of the inner boundary from the coordinate centre (meters) */
    static Real precip_start_x; /*!< X-Coordinate at which precipitation injection starts (meters) */
@@ -77,6 +80,13 @@ struct ParticleParameters {
    static Distribution* (*distribution)(std::default_random_engine&); /*!< Type of distribution from which to sample the particles */
    static Real temperature; /*!< Initial particle temperature (for distributions where a temperature is meaningful) */
    static Real particle_vel; /*!< Initial particle velocity (for distributions with a single initial velocity) */
+   static bool vel_BcrossVframe; /*!< Whether velocities should be initialized in a B,BxV,BxBxV frame */
+   static Real parallelTemperature; /*!< Initial particle temperature along the background field direction (for triMaxwellian) */
+   static Real perpTemperature1; /*!< Initial particle temperature in perp1 direction (for triMaxwellian) */
+   static Real perpTemperature2; /*!< Initial particle temperatuer in perp2 direction (for triMaxwellian) */
+   static Real parallelDriftVel;
+   static Real perpDriftVel1;
+   static Real perpDriftVel2;
 
    static Real mass; /*!< Mass of the test particles */
    static Real charge; /*!< Charge of the test particles */
