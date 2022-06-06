@@ -706,8 +706,10 @@ namespace projects {
             } else if (cell->parameters[CellParams::AMR_ALPHA] < P::unrefineThreshold) {
                //#pragma omp critical
                mpiGrid.unrefine_completely(id);
+            } else {
+               // Ensure no cells above unrefine_threshold are unrefined
+               mpiGrid.dont_unrefine(id);
             }
-            // TODO: consider dont_unrefine for any cell above unrefine threshold
          }
       }
 
