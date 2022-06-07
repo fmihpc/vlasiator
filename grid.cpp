@@ -628,12 +628,22 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
 
 #ifdef USE_CUDA
    cudaMaxBlockCount = 0;
+   vmesh::LocalID cudaBlockCount = 0;
    // Not parallelized
    for (uint i=0; i<cells.size(); ++i) {
       SpatialCell* SC = mpiGrid[cells[i]];
-      for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
-         const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = SC->get_velocity_mesh(p);
-         if (vmesh.size() > cudaMaxBlockCount) {
+      for (size_t popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = SC->get_velocity_mesh(popID);
+         vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = SC->get_velocity_blocks(popID);
+         cudaBlockCount = vmesh.size();
+         Realf* dev_blockDataPointer = blockContainer.dev_getData();
+         if (isCudaAllocated) {
+            // Deallocate per-cell per-pop memory pointer on device
+            cudaDeallocateBlockData(dev_blockDataPointer);
+         }
+         // Allocate per-cell per-pop memory pointer on device
+         cudaAllocateBlockData(dev_blockDataPointer,2*cudaBlockCount);
+         if (cudaBlockCount > cudaMaxBlockCount) {
             cudaMaxBlockCount = vmesh.size();
          }
       }
@@ -642,7 +652,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
       cerr << "Error in load balance: zero blocks" << std::endl;
       abort();
    }
-   // Call CUDA routines for memory allocation
+   // Call CUDA routines for per-thread memory allocation
    phiprof::start("CUDA_malloc");
    for (uint i=0; i<omp_get_max_threads(); ++i) {
       if (isCudaAllocated) {

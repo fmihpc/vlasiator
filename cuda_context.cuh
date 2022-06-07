@@ -26,8 +26,32 @@
 #include "device_launch_parameters.h"
 #include "cuda.h"
 #include "cuda_runtime.h"
+#include "definitions.h"
+
+#include <stdio.h>
+
+#define HANDLE_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ));
+static void HandleError( cudaError_t err, const char *file, int line )
+{
+    if (err != cudaSuccess)
+    {
+        printf( "%s in %s at line %d\n", cudaGetErrorString( err ), file, line );
+        exit( EXIT_FAILURE );
+    }
+}
+
 
 void cuda_set_device();
+
+void cudaAllocateBlockData(
+   Realf* dev_blockData,
+   vmesh::LocalID blockCount
+   );
+
+void cudaDeallocateBlockData(
+   Realf* dev_blockData
+   );
+
 
 #define MAXCPUTHREADS 64
 

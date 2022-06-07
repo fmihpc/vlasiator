@@ -45,17 +45,6 @@
 #define i_pcolumnv_cuda(j, k, k_block, num_k_blocks) ( ((j) / ( VECL / WID)) * WID * ( num_k_blocks + 2) + (k) + ( k_block + 1 ) * WID )
 #define i_pcolumnv_cuda_b(planeVectorIndex, k, k_block, num_k_blocks) ( planeVectorIndex * WID * ( num_k_blocks + 2) + (k) + ( k_block + 1 ) * WID )
 
-
-#define HANDLE_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ));
-static void HandleError( cudaError_t err, const char *file, int line )
-{
-    if (err != cudaSuccess)
-    {
-        printf( "%s in %s at line %d\n", cudaGetErrorString( err ), file, line );
-        exit( EXIT_FAILURE );
-    }
-}
-
 // Allocate pointers for per-thread memory regions
 //#define MAXCPUTHREADS 64 now in cuda_context.hpp
 Realf *dev_blockData[MAXCPUTHREADS];

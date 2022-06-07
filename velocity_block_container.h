@@ -50,6 +50,13 @@ namespace vmesh {
       const Realf* getData() const;
       Realf* getData(const LID& blockLID);
       const Realf* getData(const LID& blockLID) const;
+#ifdef USE_CUDA // for CUDA version
+      Realf* dev_getData();
+      const Realf* dev_getData() const;
+      Realf* dev_getData(const LID& blockLID);
+      const Realf* dev_getData(const LID& blockLID) const;
+      // Also add CUDA-capable version of vmesh when CUDA openhashmap is available
+#endif
       Realf* getNullData();
       Real* getParameters();
       const Real* getParameters() const;
@@ -75,6 +82,9 @@ namespace vmesh {
       void resize();
       
       std::vector<Realf,aligned_allocator<Realf,WID3> > block_data;
+#ifdef USE_CUDA
+      Realf *dev_block_data;
+#endif
       Realf null_block_data[WID3];
       LID currentCapacity;
       LID numberOfBlocks;
@@ -186,6 +196,36 @@ namespace vmesh {
       #endif
       return block_data.data() + blockLID*WID3;
    }
+
+#ifdef USE_CUDA
+   template<typename LID> inline
+   Realf* VelocityBlockContainer<LID>::dev_getData() {
+      return dev_block_data;
+   }
+
+   template<typename LID> inline
+   const Realf* VelocityBlockContainer<LID>::dev_getData() const {
+      return dev_block_data;
+   }
+
+   template<typename LID> inline
+   Realf* VelocityBlockContainer<LID>::dev_getData(const LID& blockLID) {
+      #ifdef DEBUG_VBC
+         if (blockLID >= numberOfBlocks) exitInvalidLocalID(blockLID,"getData");
+         if (blockLID >= block_data.size()/WID3) exitInvalidLocalID(blockLID,"const getData const");
+      #endif
+      return dev_block_data + blockLID*WID3;
+   }
+
+   template<typename LID> inline
+   const Realf* VelocityBlockContainer<LID>::dev_getData(const LID& blockLID) const {
+      #ifdef DEBUG_VBC
+         if (blockLID >= numberOfBlocks) exitInvalidLocalID(blockLID,"const getData const");
+         if (blockLID >= block_data.size()/WID3) exitInvalidLocalID(blockLID,"const getData const");
+      #endif
+      return dev_block_data + blockLID*WID3;
+   }
+#endif
 
    template<typename LID> inline
    Realf* VelocityBlockContainer<LID>::getNullData() {

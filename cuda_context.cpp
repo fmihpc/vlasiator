@@ -21,15 +21,18 @@
  */
 
 #include <omp.h>
+#include <stdio.h>
+//#include <stdlib.h>
+//#include <string.h>
+
+#include "common.h"
+
 #include "cuda_context.cuh"
 
 #include "device_launch_parameters.h"
 #include "cuda.h"
 #include "cuda_runtime.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-//#include <string.h>
 
 CUcontext cuda_acc_context;
 
@@ -53,8 +56,6 @@ __host__ void cuda_set_device() {
    // result = cuCtxCreate(&cuda_acc_context, 0,cuDevice);
    // printf("Created CUDA context %ld \n",cuda_acc_context);
 
-
-
 // Loop to create one CUDA context per thread
    // for (uint i=0; i<omp_get_max_threads(); ++i) {
    //    result = cuCtxCreate(&cuda_thread_context[i], 0,cuDevice);
@@ -72,4 +73,17 @@ __host__ void cuda_set_device() {
 
    // result = cuCtxCreate(&cuContext, CU_CTX_MAP_HOST|CU_CTX_BLOCKING_SYNC, cuDevice);
    // checkError(result);
+}
+
+__host__ void cudaAllocateBlockData(
+   Realf* dev_blockData,
+   vmesh::LocalID blockCount
+   ) {
+   HANDLE_ERROR( cudaMalloc((void**)&dev_blockData, blockCount*WID3*sizeof(Realf)) );
+}
+
+__host__ void cudaDeallocateBlockData(
+   Realf* dev_blockData
+   ) {
+   HANDLE_ERROR( cudaFree(dev_blockData) );
 }

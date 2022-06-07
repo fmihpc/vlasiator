@@ -63,7 +63,7 @@ extern void cuda_acc_deallocate_memory (
    );
 
 // Device data variables, to be allocated in good time. Made into an array so that each thread has their own pointer.
-extern Realf *dev_blockData[];
+extern Realf *dev_blockData[]; //soon inside velocity_block_container.h
 extern Vec *dev_blockDataOrdered[];
 extern Column *dev_columns[];
 extern uint *dev_cell_indices_to_id[];
