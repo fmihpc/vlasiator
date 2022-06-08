@@ -22,8 +22,6 @@
 
 #include <omp.h>
 #include <stdio.h>
-//#include <stdlib.h>
-//#include <string.h>
 
 #include "common.h"
 
@@ -48,42 +46,39 @@ __host__ void cuda_set_device() {
    }
    cudaSetDevice(gpuid);
 
+   // Using just a single context for whole MPI task
+
    // CUdevice cuDevice;
    // CUresult result;
    // result = cuDeviceGet(&cuDevice,gpuid);
    // printf("Active CUDA device %d\n",cuDevice);
-   
    // result = cuCtxCreate(&cuda_acc_context, 0,cuDevice);
    // printf("Created CUDA context %ld \n",cuda_acc_context);
 
-// Loop to create one CUDA context per thread
+   // Loop to create one CUDA context per thread
    // for (uint i=0; i<omp_get_max_threads(); ++i) {
    //    result = cuCtxCreate(&cuda_thread_context[i], 0,cuDevice);
    //    printf("Created CUDA context %d %d \n",i,cuda_thread_context[i]);
    // }
-
    // const uint cuda_async_queue_id = omp_get_thread_num();
    // CUcontext cuContext;
-
    //result = cuDeviceGet(&cuDevice,gpuid);
    //checkError(result);
-   
    //result = cuCtxCreate(&cuContext, 0,cuDevice);
    //checkError(result);
-
    // result = cuCtxCreate(&cuContext, CU_CTX_MAP_HOST|CU_CTX_BLOCKING_SYNC, cuDevice);
    // checkError(result);
 }
 
 __host__ void cudaAllocateBlockData(
-   Realf* dev_blockData,
+   Realf** dev_blockData,
    vmesh::LocalID blockCount
    ) {
-   HANDLE_ERROR( cudaMalloc((void**)&dev_blockData, blockCount*WID3*sizeof(Realf)) );
+   HANDLE_ERROR( cudaMalloc((void**)dev_blockData, blockCount*WID3*sizeof(Realf)) );
 }
 
 __host__ void cudaDeallocateBlockData(
-   Realf* dev_blockData
+   Realf** dev_blockData
    ) {
-   HANDLE_ERROR( cudaFree(dev_blockData) );
+   HANDLE_ERROR( cudaFree(*dev_blockData) );
 }

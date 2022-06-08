@@ -636,15 +636,10 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
          const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = SC->get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = SC->get_velocity_blocks(popID);
          cudaBlockCount = vmesh.size();
-         Realf* dev_blockDataPointer = blockContainer.dev_getData();
-         if (isCudaAllocated) {
-            // Deallocate per-cell per-pop memory pointer on device
-            cudaDeallocateBlockData(dev_blockDataPointer);
-         }
-         // Allocate per-cell per-pop memory pointer on device
-         cudaAllocateBlockData(dev_blockDataPointer,2*cudaBlockCount);
+         // dev_Allocate also performs deallocation first if necessary
+         blockContainer.dev_Allocate(cudaBlockCount);
          if (cudaBlockCount > cudaMaxBlockCount) {
-            cudaMaxBlockCount = vmesh.size();
+            cudaMaxBlockCount = cudaBlockCount;
          }
       }
    }
@@ -655,12 +650,12 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    // Call CUDA routines for per-thread memory allocation
    phiprof::start("CUDA_malloc");
    for (uint i=0; i<omp_get_max_threads(); ++i) {
-      if (isCudaAllocated) {
+      if (cuda_acc_isAllocated) {
          cuda_acc_deallocate_memory(i);
       }
       cuda_acc_allocate_memory(i,cudaMaxBlockCount);
    }
-   isCudaAllocated=true;
+   cuda_acc_isAllocated=true;
    phiprof::stop("CUDA_malloc");
 #endif
    

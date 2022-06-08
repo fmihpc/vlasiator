@@ -119,6 +119,7 @@ __host__ void cuda_acc_copy_HtoD(spatial_cell::SpatialCell* spatial_cell,
    vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = spatial_cell->get_velocity_mesh(popID);
    vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks(popID);
    Realf *blockData = blockContainer.getData();
+   Realf *dev_blockData = blockContainer.dev_getData();
    uint blockDataN = blockContainer.size();
    if(vmesh.size() == 0) {
       return;
@@ -127,7 +128,7 @@ __host__ void cuda_acc_copy_HtoD(spatial_cell::SpatialCell* spatial_cell,
    // Page lock (pin) host memory for faster async transfers
    cudaHostRegister(blockData, blockDataN*WID3*sizeof(Realf),cudaHostRegisterDefault);
    // Launch async copy of velocity mesh contents to GPU
-   cudaMemcpyAsync(dev_blockData[cuda_async_queue_id], blockData, blockDataN*WID3*sizeof(Realf), cudaMemcpyHostToDevice, stream);
+   cudaMemcpyAsync(dev_blockData, blockData, blockDataN*WID3*sizeof(Realf), cudaMemcpyHostToDevice, stream);
 
    return;
 }
@@ -142,6 +143,7 @@ __host__ void cuda_acc_copy_DtoH(spatial_cell::SpatialCell* spatial_cell,
    vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = spatial_cell->get_velocity_mesh(popID);
    vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks(popID);
    Realf *blockData = blockContainer.getData();
+   Realf *dev_blockData = blockContainer.dev_getData();
    uint blockDataN = blockContainer.size();
    if(vmesh.size() == 0) {
       return;
@@ -154,7 +156,7 @@ __host__ void cuda_acc_copy_DtoH(spatial_cell::SpatialCell* spatial_cell,
    cudaHostRegister(blockData, blockDataN*WID3*sizeof(Realf),cudaHostRegisterDefault);
 
    // Copy data back to host
-   cudaMemcpyAsync(blockData, dev_blockData[cuda_async_queue_id], blockDataN*WID3*sizeof(Realf), cudaMemcpyDeviceToHost, stream);
+   cudaMemcpyAsync(blockData, dev_blockData, blockDataN*WID3*sizeof(Realf), cudaMemcpyDeviceToHost, stream);
    // Free page locks on host memory
    cudaStreamSynchronize(stream);   
    cudaHostUnregister(blockData);
@@ -181,6 +183,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = spatial_cell->get_velocity_mesh(popID);
    vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks(popID);
    Realf *blockData = blockContainer.getData();
+   Realf *dev_blockData = blockContainer.dev_getData();
    uint blockDataN = blockContainer.size();
    if(vmesh.size() == 0) {
       return true;
@@ -303,7 +306,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
 
    // Launch kernels for transposing and ordering velocity space data into columns
    reorder_blocks_by_dimension_glue(
-      dev_blockData[cuda_async_queue_id],
+      dev_blockData,
       dev_blockDataOrdered[cuda_async_queue_id],
       dev_cell_indices_to_id[cuda_async_queue_id],      
       totalColumns,
@@ -490,7 +493,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    // Page lock (pin) again host memory for faster async transfers after kernel has run
    //cudaHostRegister(blockData, bdsw3*sizeof(Realf),cudaHostRegisterDefault);
    // Zero out target data on device
-   cudaMemsetAsync(dev_blockData[cuda_async_queue_id], 0, bdsw3*sizeof(Realf), stream);
+   cudaMemsetAsync(dev_blockData, 0, bdsw3*sizeof(Realf), stream);
 
    // Update value of cudaAllocationMultiplier if necessary
    float ratio1 = (blockDataSize / cudaMaxBlockCount);
@@ -535,7 +538,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
 
    // CALL CUDA FUNCTION WRAPPER/GLUE
    acceleration_1_glue(
-      dev_blockData[cuda_async_queue_id],
+      dev_blockData,
       dev_blockDataOrdered[cuda_async_queue_id],
       dev_cell_indices_to_id[cuda_async_queue_id],
       dev_columns[cuda_async_queue_id],

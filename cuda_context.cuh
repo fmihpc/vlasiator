@@ -44,12 +44,12 @@ static void HandleError( cudaError_t err, const char *file, int line )
 void cuda_set_device();
 
 void cudaAllocateBlockData(
-   Realf* dev_blockData,
+   Realf** dev_blockData,
    vmesh::LocalID blockCount
    );
 
 void cudaDeallocateBlockData(
-   Realf* dev_blockData
+   Realf** dev_blockData
    );
 
 

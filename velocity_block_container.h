@@ -24,6 +24,7 @@
 #define VELOCITY_BLOCK_CONTAINER_H
 
 #include <vector>
+#include <stdio.h>
 
 #include "common.h"
 #include "unistd.h"
@@ -32,9 +33,14 @@
    #include <sstream>
 #endif
 
+#ifdef USE_CUDA
+   #include "cuda_context.cuh"
+#endif
+
 namespace vmesh {
 
    static const double BLOCK_ALLOCATION_FACTOR = 1.1;
+   static const double CUDA_BLOCK_ALLOCATION_FACTOR = 2.0;
 
    template<typename LID>
    class VelocityBlockContainer {
@@ -55,6 +61,8 @@ namespace vmesh {
       const Realf* dev_getData() const;
       Realf* dev_getData(const LID& blockLID);
       const Realf* dev_getData(const LID& blockLID) const;
+      void dev_Deallocate();
+      void dev_Allocate(LID size);
       // Also add CUDA-capable version of vmesh when CUDA openhashmap is available
 #endif
       Realf* getNullData();
@@ -83,6 +91,7 @@ namespace vmesh {
       
       std::vector<Realf,aligned_allocator<Realf,WID3> > block_data;
 #ifdef USE_CUDA
+      bool dev_isAllocated;
       Realf *dev_block_data;
 #endif
       Realf null_block_data[WID3];
@@ -95,6 +104,10 @@ namespace vmesh {
    VelocityBlockContainer<LID>::VelocityBlockContainer() {
       currentCapacity = 0;
       numberOfBlocks = 0;
+#ifdef USE_CUDA
+      dev_isAllocated = false;
+      dev_block_data = new Realf();
+#endif
    }
    
    template<typename LID> inline
@@ -116,7 +129,9 @@ namespace vmesh {
       
       block_data.swap(dummy_data);
       parameters.swap(dummy_parameters);
-      
+#ifdef USE_CUDA
+      dev_Deallocate();
+#endif
       currentCapacity = 0;
       numberOfBlocks = 0;
    }
@@ -224,6 +239,21 @@ namespace vmesh {
          if (blockLID >= block_data.size()/WID3) exitInvalidLocalID(blockLID,"const getData const");
       #endif
       return dev_block_data + blockLID*WID3;
+   }
+
+   template<typename LID> inline
+   void VelocityBlockContainer<LID>::dev_Deallocate() {
+      if (dev_isAllocated) cudaDeallocateBlockData(&dev_block_data);
+      dev_isAllocated = false;
+      return;
+   }
+
+   template<typename LID> inline
+   void VelocityBlockContainer<LID>::dev_Allocate(LID size) {
+      if (dev_isAllocated) cudaDeallocateBlockData(&dev_block_data);
+      cudaAllocateBlockData(&dev_block_data,CUDA_BLOCK_ALLOCATION_FACTOR*size);
+      dev_isAllocated = true;
+      return;
    }
 #endif
 
@@ -365,6 +395,12 @@ namespace vmesh {
       dummy = numberOfBlocks;
       numberOfBlocks = vbc.numberOfBlocks;
       vbc.numberOfBlocks = dummy;
+
+#ifdef USE_CUDA
+      uint32_t dummy2 = *dev_block_data;
+      *dev_block_data = *vbc.dev_block_data;
+      *vbc.dev_block_data = dummy2;
+#endif
    }
    
    #ifdef DEBUG_VBC
