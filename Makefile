@@ -152,7 +152,9 @@ DEPS_PROJECTS =	projects/project.h projects/project.cpp \
 		projects/testHall/testHall.h projects/testHall/testHall.cpp \
 		projects/test_trans/test_trans.h projects/test_trans/test_trans.cpp \
 		projects/verificationLarmor/verificationLarmor.h projects/verificationLarmor/verificationLarmor.cpp \
-		projects/Shocktest/Shocktest.h projects/Shocktest/Shocktest.cpp ${DEPS_CELL}
+		projects/Shocktest/Shocktest.h projects/Shocktest/Shocktest.cpp \
+                projects/KH_instability/KH_instability.h projects/KH_instability/KH_instability.cpp ${DEPS_CELL}
+
 
 DEPS_CPU_ACC_INTERSECTS = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/cpu_acc_intersections.hpp vlasovsolver/cpu_acc_intersections.cpp
 
@@ -193,7 +195,7 @@ OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipo
 	Flowthrough.o Fluctuations.o Harris.o KHB.o Larmor.o Magnetosphere.o MultiPeak.o\
 	VelocityBox.o Riemann1.o Shock.o Template.o test_fp.o testAmr.o testHall.o test_trans.o\
 	IPShock.o object_wrapper.o\
-	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o vlasiator.o logger.o\
+	verificationLarmor.o Shocktest.o KH_instability.o grid.o ioread.o iowrite.o vlasiator.o logger.o\
 	common.o parameters.o readparameters.o spatial_cell.o mesh_data_container.o\
 	vlasovmover.o $(FIELDSOLVER).o fs_common.o fs_limiters.o gridGlue.o
 
@@ -368,6 +370,9 @@ verificationLarmor.o: ${DEPS_COMMON} projects/verificationLarmor/verificationLar
 
 Shocktest.o: ${DEPS_COMMON} projects/Shocktest/Shocktest.h projects/Shocktest/Shocktest.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/Shocktest/Shocktest.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_FSGRID}
+
+KH_instability.o: ${DEPS_COMMON} projects/KH_instability/KH_instability.h projects/KH_instability/KH_instability.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/KH_instability/KH_instability.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_FSGRID}
 
 project.o: ${DEPS_COMMON} $(DEPS_PROJECTS)
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/project.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_VECTORCLASS} ${INC_FSGRID}
