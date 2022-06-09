@@ -34,6 +34,8 @@ void setBackgroundField(
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
    bool append) {
    
+   using namespace std::placeholders;
+
    /*if we do not add a new background to the existing one we first put everything to zero*/
    if(append==false) {
       setBackgroundFieldToZero(BgBGrid);
@@ -153,6 +155,8 @@ void setPerturbedField(
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
    bool append) {
    
+   using namespace std::placeholders;
+
    /*if we do not add a new background to the existing one we first put everything to zero*/
    if(append==false) {
       setPerturbedFieldToZero(perBGrid);

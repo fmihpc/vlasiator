@@ -33,6 +33,7 @@
 #include "../../backgroundfield/linedipole.hpp"
 #include "../../backgroundfield/vectordipole.hpp"
 #include "../../object_wrapper.h"
+#include "../../sysboundary/ionosphere.h"
 
 #include "Magnetosphere.h"
 
@@ -115,11 +116,35 @@ namespace projects {
       RP::get("Magnetosphere.dipoleMirrorLocationX", this->dipoleMirrorLocationX);
 
       RP::get("Magnetosphere.dipoleType", this->dipoleType);
-      RP::get("ionosphere.radius", this->ionosphereRadius);
-      RP::get("ionosphere.centerX", this->center[0]);
-      RP::get("ionosphere.centerY", this->center[1]);
-      RP::get("ionosphere.centerZ", this->center[2]);
-      RP::get("ionosphere.geometry", this->ionosphereGeometry);
+      if(RP::isSet("conductingsphere.radius")) {
+         RP::get("conductingsphere.radius", this->ionosphereRadius);
+      } else {
+         RP::get("ionosphere.radius", this->ionosphereRadius);
+      }
+      if(ionosphereRadius < 1000.) {
+         // For really small ionospheric radius values, assume R_E units
+         ionosphereRadius *= physicalconstants::R_E;
+      }
+      if(RP::isSet("conductingsphere.centerX")) {
+         RP::get("conductingsphere.centerX", this->center[0]);
+      } else {
+         RP::get("ionosphere.centerX", this->center[0]);
+      }
+      if(RP::isSet("conductingsphere.centerY")) {
+         RP::get("conductingsphere.centerY", this->center[1]);
+      } else {
+         RP::get("ionosphere.centerY", this->center[1]);
+      }
+      if(RP::isSet("conductingsphere.centerZ")) {
+         RP::get("conductingsphere.centerZ", this->center[2]);
+      } else {
+         RP::get("ionosphere.centerZ", this->center[2]);
+      }
+      if(RP::isSet("conductingsphere.geometry")) {
+         RP::get("conductingsphere.geometry", this->ionosphereGeometry);
+      } else {
+         RP::get("ionosphere.geometry", this->ionosphereGeometry);
+      }
 
       RP::get("Magnetosphere.refine_L4radius", this->refine_L4radius);
       RP::get("Magnetosphere.refine_L4nosexmin", this->refine_L4nosexmin);
@@ -162,11 +187,31 @@ namespace projects {
          RP::get(pop + "_Magnetosphere.nSpaceSamples", sP.nSpaceSamples);
          RP::get(pop + "_Magnetosphere.nVelocitySamples", sP.nVelocitySamples);
 
-         RP::get(pop + "_ionosphere.rho", sP.ionosphereRho);
-         RP::get(pop + "_ionosphere.T", sP.ionosphereT);
-         RP::get(pop + "_ionosphere.VX0", sP.ionosphereV0[0]);
-         RP::get(pop + "_ionosphere.VY0", sP.ionosphereV0[1]);
-         RP::get(pop + "_ionosphere.VZ0", sP.ionosphereV0[2]);
+         if(RP::isSet(pop + "_conductingsphere.rho")) {
+            RP::get(pop + "_conductingsphere.rho", sP.ionosphereRho);
+         } else {
+            RP::get(pop + "_ionosphere.rho", sP.ionosphereRho);
+         }
+         if(RP::isSet(pop + "_conductingsphere.T")) {
+            RP::get(pop + "_conductingsphere.T", sP.ionosphereT);
+         } else {
+            RP::get(pop + "_ionosphere.T", sP.ionosphereT);
+         }
+         if(RP::isSet(pop + "_conductingsphere.VX0")) {
+            RP::get(pop + "_conductingsphere.VX0", sP.ionosphereV0[0]);
+         } else {
+            RP::get(pop + "_ionosphere.VX0", sP.ionosphereV0[0]);
+         }
+         if(RP::isSet(pop + "_conductingsphere.VY0")) {
+            RP::get(pop + "_conductingsphere.VY0", sP.ionosphereV0[1]);
+         } else {
+            RP::get(pop + "_ionosphere.VY0", sP.ionosphereV0[1]);
+         }
+         if(RP::isSet(pop + "_conductingsphere.VZ0")) {
+            RP::get(pop + "_conductingsphere.VZ0", sP.ionosphereV0[2]);
+         } else {
+            RP::get(pop + "_ionosphere.VZ0", sP.ionosphereV0[2]);
+         }
          RP::get(pop + "_Magnetosphere.taperInnerRadius", sP.taperInnerRadius);
          RP::get(pop + "_Magnetosphere.taperOuterRadius", sP.taperOuterRadius);
          // Backward-compatibility: cfgs from before Sep 2021 setting pop_ionosphere.taperRadius will fail with the unknown option.
@@ -185,13 +230,13 @@ namespace projects {
          }
          if(sP.taperOuterRadius > 0 && sP.taperOuterRadius <= this->ionosphereRadius) {
             if(myRank == MASTER_RANK) {
-               cerr << "Error: " << pop << "_Magnetosphere.taperOuterRadius is non-zero yet smaller than ionosphere.radius! Aborting." << endl;
+               cerr << "Error: " << pop << "_Magnetosphere.taperOuterRadius is non-zero yet smaller than ionosphere.radius / conductingsphere.radius! Aborting." << endl;
             }
             abort();
          }
          if(sP.taperInnerRadius == 0 && sP.taperOuterRadius > 0) {
             if(myRank == MASTER_RANK) {
-               cerr << "Warning: " << pop << "_Magnetosphere.taperInnerRadius is zero (default), now setting this to the same value as ionosphere.radius, that is " << this->ionosphereRadius << ". Set/change " << pop << "_Magnetosphere.taperInnerRadius if this is not the expected behavior." << endl;
+               cerr << "Warning: " << pop << "_Magnetosphere.taperInnerRadius is zero (default), now setting this to the same value as ionosphere.radius / conductingsphere.radius, that is " << this->ionosphereRadius << ". Set/change " << pop << "_Magnetosphere.taperInnerRadius if this is not the expected behavior." << endl;
             }
             sP.taperInnerRadius = this->ionosphereRadius;
          }
@@ -271,10 +316,12 @@ namespace projects {
             case 0:
                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
                setBackgroundField(bgFieldDipole, BgBGrid);
+               SBC::ionosphereGrid.setDipoleField(bgFieldDipole);
                break;
             case 1:
                bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0 );//set dipole moment     
                setBackgroundField(bgFieldLineDipole, BgBGrid);
+               SBC::ionosphereGrid.setDipoleField(bgFieldLineDipole);
                break;
             case 2:
                bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0 );//set dipole moment     
@@ -282,27 +329,30 @@ namespace projects {
                //Append mirror dipole
                bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0 );
                setBackgroundField(bgFieldLineDipole, BgBGrid, true);
+               SBC::ionosphereGrid.setDipoleField(bgFieldLineDipole);
                break;
             case 3:
                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
                setBackgroundField(bgFieldDipole, BgBGrid);
+               SBC::ionosphereGrid.setDipoleField(bgFieldDipole);
                //Append mirror dipole                
                bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0, 0.0 );//mirror
                setBackgroundField(bgFieldDipole, BgBGrid, true);
                break; 
             case 4:  // Vector potential dipole, vanishes or optionally scales to static inflow value after a given x-coordinate
-	       // What we in fact do is we place the regular dipole in the background field, and the
-	       // corrective terms in the perturbed field. This maintains the BGB as curl-free.
-	       bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
+               // What we in fact do is we place the regular dipole in the background field, and the
+               // corrective terms in the perturbed field. This maintains the BGB as curl-free.
+               bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
                setBackgroundField(bgFieldDipole, BgBGrid);
-	       // Difference into perBgrid, only if not restarting
-	       if (P::isRestart == false) {
-		  bgFieldDipole.initialize(-8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );
-		  setPerturbedField(bgFieldDipole, perBGrid);
-		  bgVectorDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi*M_PI/180., this->dipoleTiltTheta*M_PI/180., this->dipoleXFull, this->dipoleXZero, this->dipoleInflowB[0], this->dipoleInflowB[1], this->dipoleInflowB[2]);
-		  setPerturbedField(bgVectorDipole, perBGrid, true);
-	       }
-               break;              
+               SBC::ionosphereGrid.setDipoleField(bgFieldDipole);
+               // Difference into perBgrid, only if not restarting
+               if (P::isRestart == false) {
+                  bgFieldDipole.initialize(-8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );
+                  setPerturbedField(bgFieldDipole, perBGrid);
+                  bgVectorDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi*M_PI/180., this->dipoleTiltTheta*M_PI/180., this->dipoleXFull, this->dipoleXZero, this->dipoleInflowB[0], this->dipoleInflowB[1], this->dipoleInflowB[2]);
+                  setPerturbedField(bgVectorDipole, perBGrid, true);
+               }
+               break;
             default:
                setBackgroundFieldToZero(BgBGrid);
       }

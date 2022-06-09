@@ -44,6 +44,7 @@
 #include "logger.h"
 #include "vlasovmover.h"
 #include "object_wrapper.h"
+#include "sysboundary/ionosphere.h"
 
 using namespace std;
 using namespace phiprof;
@@ -435,6 +436,11 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       phiprof::start("writeFsGrid");
       success = dataReducer.writeFsGridData(perBGrid,EGrid,EHallGrid,EGradPeGrid,momentsGrid,dPerBGrid,dMomentsGrid,BgBGrid,volGrid, technicalGrid, "fsgrid", dataReducerIndex, vlsvWriter, writeAsFloat);
       phiprof::stop("writeFsGrid");
+
+      // Or maybe it will be writing ionosphere data?
+      phiprof::start("writeIonosphere");
+      success |= dataReducer.writeIonosphereGridData(SBC::ionosphereGrid, "ionosphere", dataReducerIndex, vlsvWriter);
+      phiprof::stop("writeIonosphere");
    }
    
    // Check if the DataReducer wants to write paramters to the output file
@@ -972,6 +978,106 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technic
   return true;
 }
 
+/** Writes the mesh metadata for Visit to read the Ionosphere grid and its variables.
+ */
+bool writeIonosphereGridMetadata(vlsv::Writer& vlsvWriter) {
+
+  // Don't even bother writing an ionosphere mesh, if the ionosphere datastructure has 0 mesh nodes
+  if(SBC::ionosphereGrid.nodes.size() == 0) {
+    return true;
+  }
+
+  std::map<std::string, std::string> xmlAttributes;
+  const std::string meshName="ionosphere";
+  xmlAttributes["mesh"] = meshName;
+  int rank;
+  if(SBC::ionosphereGrid.isCouplingInwards || SBC::ionosphereGrid.isCouplingOutwards) {
+    MPI_Comm_rank(SBC::ionosphereGrid.communicator, &rank);
+  } else {
+    rank = -1;
+  }
+
+  // the MESH_BBOX for unstructured meshes needs to be present, but isn't really being used.
+  std::array<int64_t, 6> boundaryBox({1, 1, 1,
+      1,1,1});
+
+  if(rank == 0) {
+    const unsigned int arraySize = 6;
+    const unsigned int vectorSize = 1;
+    vlsvWriter.writeArray("MESH_BBOX", xmlAttributes, arraySize, vectorSize, &boundaryBox[0]);
+  } else {
+    const unsigned int arraySize = 0;
+    const unsigned int vectorSize = 1;
+    vlsvWriter.writeArray("MESH_BBOX", xmlAttributes, arraySize, vectorSize, &boundaryBox[0]);
+  }
+  
+  // write DomainSizes
+  std::array<uint64_t,4> meshDomainSize({SBC::ionosphereGrid.elements.size(), 0, SBC::ionosphereGrid.nodes.size(), 0});
+  if(rank == 0) {
+    vlsvWriter.writeArray("MESH_DOMAIN_SIZES", xmlAttributes, 1, 4, &meshDomainSize[0]);
+  } else {
+    vlsvWriter.writeArray("MESH_DOMAIN_SIZES", xmlAttributes, 0, 4, &meshDomainSize[0]);
+  }
+
+  // write Offset arrays (no offset here, since we're writing only from a single task)
+  std::array<uint64_t, 2> meshOffsets({SBC::ionosphereGrid.elements.size()*5, SBC::ionosphereGrid.nodes.size()});
+  if(rank == 0) {
+    vlsvWriter.writeArray("MESH_OFFSETS", xmlAttributes, 1, 2, &meshOffsets[0]);
+  } else {
+    vlsvWriter.writeArray("MESH_OFFSETS", xmlAttributes, 0, 2, &meshOffsets[0]);
+  }
+
+
+  // Write node coordinates
+  std::vector<double> nodeCoordinates(3*SBC::ionosphereGrid.nodes.size());
+  for(uint64_t i=0; i<SBC::ionosphereGrid.nodes.size(); i++) {
+    nodeCoordinates[3*i] = SBC::ionosphereGrid.nodes[i].x[0];
+    nodeCoordinates[3*i+1] = SBC::ionosphereGrid.nodes[i].x[1];
+    nodeCoordinates[3*i+2] = SBC::ionosphereGrid.nodes[i].x[2];
+  }
+  if(rank == 0) {
+    // Write this data only on rank 0 
+    vlsvWriter.writeArray("MESH_NODE_CRDS", xmlAttributes, SBC::ionosphereGrid.nodes.size(), 3, nodeCoordinates.data());
+  } else {
+    // The others just write an empty dummy
+    vlsvWriter.writeArray("MESH_NODE_CRDS", xmlAttributes, 0, 3, nodeCoordinates.data());
+  }
+
+
+  // Write cell connectivity information - which elements touch which nodes.
+  //struct VlsvMeshData __attribute__((packed)) {
+  //   uint32_t cell_type = vlsv::celltype::TRIANGLE; // This cell is a triangle
+  //   uint32_t num_nodes = 3; // It has three corners.
+  //   std::array<uint32_t, 3> nodes; // The corner data
+  //};
+  std::vector<uint32_t> meshData;
+  for(uint i=0; i<SBC::ionosphereGrid.elements.size(); i++) {
+     meshData.push_back(vlsv::celltype::TRIANGLE);
+     meshData.push_back(3);
+     meshData.push_back(SBC::ionosphereGrid.elements[i].corners[0]);
+     meshData.push_back(SBC::ionosphereGrid.elements[i].corners[1]);
+     meshData.push_back(SBC::ionosphereGrid.elements[i].corners[2]);
+  }
+
+  // Finally, write mesh object itself.
+  xmlAttributes.clear();
+  xmlAttributes["name"] = meshName;
+  xmlAttributes["type"] = vlsv::mesh::STRING_UCD_GENERIC_MULTI;
+  xmlAttributes["domains"] = "1";
+  xmlAttributes["cells"] = std::to_string(SBC::ionosphereGrid.elements.size());
+  xmlAttributes["nodes"] = std::to_string(SBC::ionosphereGrid.nodes.size());
+
+  if(rank == 0) {
+    // Write this data only on rank 0 
+    vlsvWriter.writeArray("MESH", xmlAttributes, meshData.size(), 1, meshData.data());
+  } else {
+    vlsvWriter.writeArray("MESH", xmlAttributes, 0, 1, meshData.data());
+  }
+
+  return true;
+
+}
+
 /** This function writes the velocity space.
  * @param mpiGrid Vlasiator's grid.
  * @param vlsvWriter some vlsv writer with a file open.
@@ -1311,6 +1417,9 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
    //Write FSGrid metadata
    if( writeFsGridMetadata( technicalGrid, vlsvWriter ) == false ) return false;
+
+   //Write Ionosphere Grid
+   if( writeIonosphereGridMetadata( vlsvWriter ) == false ) return false;
    
    //Write Version Info 
    if( writeVersionInfo(versionInfo,vlsvWriter,MPI_COMM_WORLD) == false ) return false;
@@ -1506,6 +1615,9 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    if( writeConfigInfo(configInfo,vlsvWriter,MPI_COMM_WORLD) == false ) return false;
    
 
+   //Write Ionosphere Grid
+   if( writeIonosphereGridMetadata( vlsvWriter ) == false ) return false;
+
    phiprof::stop("metadataIO");
    phiprof::start("reduceddataIO");   
    //write out DROs we need for restarts
@@ -1580,7 +1692,97 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             return retval;
          }
    ));
-   
+
+   // Add ionosphere restart variables
+   // (To reconstruct state, we need the time-smoothed downmapped quantities: FACs, rhon and pressure.
+   // Also, to be immediately consistent after restart, write the potential)
+   if(SBC::ionosphereGrid.nodes.size() > 0) {
+     restartReducer.addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_fac", [](SBC::SphericalTriGrid& grid) -> std::vector<Real> {
+         std::vector<Real> retval(grid.nodes.size());
+  
+         for (uint i = 0; i < grid.nodes.size(); i++) {
+            Real area = 0;
+            for (uint e = 0; e < grid.nodes[i].numTouchingElements; e++) {
+               area += grid.elementArea(grid.nodes[i].touchingElements[e]);
+            }
+            area /= 3.; // As every element has 3 corners, don't double-count areas
+            retval[i] = grid.nodes[i].parameters[ionosphereParameters::SOURCE] / area;
+         }
+  
+         return retval;
+     }));
+     restartReducer.addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_rhon", [](SBC::SphericalTriGrid& grid)->std::vector<Real> {
+  
+        std::vector<Real> retval(grid.nodes.size());
+  
+        for (uint i = 0; i < grid.nodes.size(); i++) {
+           retval[i] = grid.nodes[i].parameters[ionosphereParameters::RHON];
+        }
+  
+        return retval;
+     }));
+     restartReducer.addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_electrontemp", [](SBC::SphericalTriGrid& grid)->std::vector<Real> {
+  
+        std::vector<Real> retval(grid.nodes.size());
+  
+        for(uint i=0; i<grid.nodes.size(); i++) {
+           retval[i] = grid.nodes[i].parameters[ionosphereParameters::TEMPERATURE];
+        }
+  
+        return retval;
+     }));
+     restartReducer.addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_potential", [](SBC::SphericalTriGrid& grid)->std::vector<Real> {
+  
+        std::vector<Real> retval(grid.nodes.size());
+  
+        for(uint i=0; i<grid.nodes.size(); i++) {
+           retval[i] = grid.nodes[i].parameters[ionosphereParameters::SOLUTION];
+        }
+  
+        return retval;
+     }));
+
+     // These following ones aren't really necessary to restart the ionosphere
+     // correctly, but we'll write them anyway as to not have dropouts in
+     // rendered animations:
+     restartReducer.addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_sigmap", [](SBC::SphericalTriGrid& grid)->std::vector<Real> {
+        std::vector<Real> retval(grid.nodes.size());
+
+        for (uint i = 0; i < grid.nodes.size(); i++) {
+           retval[i] = grid.nodes[i].parameters[ionosphereParameters::SIGMAP];
+        }
+
+        return retval;
+     }));
+     restartReducer.addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_sigmah", [](SBC::SphericalTriGrid& grid)->std::vector<Real> {
+        std::vector<Real> retval(grid.nodes.size());
+
+        for (uint i = 0; i < grid.nodes.size(); i++) {
+           retval[i] = grid.nodes[i].parameters[ionosphereParameters::SIGMAH];
+        }
+
+        return retval;
+     }));
+     restartReducer.addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_sigmaparallel", [](SBC::SphericalTriGrid& grid)->std::vector<Real> {
+        std::vector<Real> retval(grid.nodes.size());
+
+        for (uint i = 0; i < grid.nodes.size(); i++) {
+           retval[i] = grid.nodes[i].parameters[ionosphereParameters::SIGMAPARALLEL];
+        }
+
+        return retval;
+     }));
+     restartReducer.addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_precipitation", [](SBC::SphericalTriGrid& grid)->std::vector<Real> {
+        std::vector<Real> retval(grid.nodes.size());
+
+        for (uint i = 0; i < grid.nodes.size(); i++) {
+           retval[i] = grid.nodes[i].parameters[ionosphereParameters::PRECIP];
+        }
+
+        return retval;
+     }));
+   }
+
    //Write necessary variables:
    const bool writeAsFloat = P::writeRestartAsFloat;
    for (uint i=0; i<restartReducer.size(); ++i) {

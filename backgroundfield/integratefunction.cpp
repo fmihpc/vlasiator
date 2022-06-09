@@ -41,6 +41,7 @@ double lineAverage(
    const double r1[3],
    double L
 ) {
+   using namespace std::placeholders;
    double value;
    //subroutines not threadsafe 
 #pragma omp critical
@@ -86,6 +87,7 @@ double surfaceAverage(
    double L1,
    double L2
 ) {
+   using namespace std::placeholders;
    double value;
 #pragma omp critical
    {

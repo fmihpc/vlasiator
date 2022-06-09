@@ -33,6 +33,7 @@
 
 #include "donotcompute.h"
 #include "ionosphere.h"
+#include "conductingsphere.h"
 #include "outflow.h"
 #include "setmaxwellian.h"
 #include "sysboundary.h"
@@ -79,7 +80,7 @@ void SysBoundary::addParameters() {
    Readparameters::addComposing(
        "boundaries.boundary",
        "List of boundary condition (BC) types to be used. Each boundary condition to be used has to be on a new line "
-       "boundary = YYY. Available options are: Outflow, Ionosphere, Maxwellian, User.");
+       "boundary = YYY. Available options are: Outflow, Ionosphere, Conductingsphere, Maxwellian, User.");
    Readparameters::add("boundaries.periodic_x", "Set the grid periodicity in x-direction. 'yes'(default)/'no'.", "yes");
    Readparameters::add("boundaries.periodic_y", "Set the grid periodicity in y-direction. 'yes'(default)/'no'.", "yes");
    Readparameters::add("boundaries.periodic_z", "Set the grid periodicity in z-direction. 'yes'(default)/'no'.", "yes");
@@ -87,6 +88,7 @@ void SysBoundary::addParameters() {
    // call static addParameter functions in all bc's
    SBC::DoNotCompute::addParameters();
    SBC::Ionosphere::addParameters();
+   SBC::Conductingsphere::addParameters();
    SBC::Outflow::addParameters();
    SBC::SetMaxwellian::addParameters();
 }
@@ -259,6 +261,16 @@ bool SysBoundary::initSysBoundaries(Project& project, creal& t) {
             success = false;
          }
          isThisDynamic = isThisDynamic | this->getSysBoundary(sysboundarytype::IONOSPHERE)->isDynamic();
+      } else if(*it == "Conductingsphere") {
+         if(this->addSysBoundary(new SBC::Conductingsphere, project, t) == false) {
+            if(myRank == MASTER_RANK) cerr << "Error in adding Conductingsphere boundary." << endl;
+            success = false;
+         }
+         if(this->addSysBoundary(new SBC::DoNotCompute, project, t) == false) {
+            if(myRank == MASTER_RANK) cerr << "Error in adding DoNotCompute boundary (for Conductingsphere)." << endl;
+            success = false;
+         }
+         isThisDynamic = isThisDynamic | this->getSysBoundary(sysboundarytype::CONDUCTINGSPHERE)->isDynamic();
       } else if (*it == "Maxwellian") {
          if (!this->addSysBoundary(new SBC::SetMaxwellian, project, t)) {
             if (myRank == MASTER_RANK) {
@@ -346,7 +358,7 @@ bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg:
    for (auto cellId : local_cells) {
       SpatialCell* cell = mpiGrid[cellId];
       if (cell) {
-         if (cell->sysBoundaryFlag == sysboundarytype::IONOSPHERE) {
+         if (cell->sysBoundaryFlag == sysboundarytype::IONOSPHERE || cell->sysBoundaryFlag == sysboundarytype::CONDUCTINGSPHERE) {
             innerBoundaryCells.insert(cellId);
             innerBoundaryRefLvl = mpiGrid.get_refinement_level(cellId);
             if (cell->sysBoundaryLayer == 1) {
@@ -579,8 +591,9 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
    for (int x = 0; x < localSize[0]; ++x) {
       for (int y = 0; y < localSize[1]; ++y) {
          for (int z = 0; z < localSize[2]; ++z) {
-            if (technicalGrid.get(x, y, z)->sysBoundaryLayer == 0 &&
-                technicalGrid.get(x, y, z)->sysBoundaryFlag == sysboundarytype::IONOSPHERE) {
+            if (technicalGrid.get(x,y,z)->sysBoundaryLayer == 0 && (
+                technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::IONOSPHERE || 
+                technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::CONDUCTINGSPHERE)) {
                technicalGrid.get(x, y, z)->sysBoundaryFlag = sysboundarytype::DO_NOT_COMPUTE;
             }
          }

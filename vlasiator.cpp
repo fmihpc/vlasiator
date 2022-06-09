@@ -282,7 +282,7 @@ void recalculateLocalCellsCache() {
 
 int main(int argn,char* args[]) {
    bool success = true;
-   int myRank, doBailout;
+   int myRank, doBailout=0;
    const creal DT_EPSILON=1e-12;
    typedef Parameters P;
    Real newDt;
@@ -518,6 +518,16 @@ int main(int argn,char* args[]) {
    volGrid.updateGhostCells();
    getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
    phiprof::stop("getFieldsFromFsGrid");
+
+   // Build communicator for ionosphere solving
+   SBC::ionosphereGrid.updateIonosphereCommunicator(mpiGrid, technicalGrid);
+   SBC::ionosphereGrid.calculateFsgridCoupling(technicalGrid, perBGrid, dPerBGrid, SBC::Ionosphere::radius);
+   SBC::ionosphereGrid.initSolver(!P::isRestart); // If it is a restart we do not want to zero out everything
+   if(SBC::Ionosphere::couplingInterval > 0 && P::isRestart) {
+      SBC::Ionosphere::solveCount = floor(P::t / SBC::Ionosphere::couplingInterval)+1;
+   } else {
+      SBC::Ionosphere::solveCount = 1;
+   }
 
    if (P::isRestart == false) {
       phiprof::start("compute-dt");
@@ -857,6 +867,10 @@ int main(int argn,char* args[]) {
          P::prepareForRebalance = false;
 
          overrideRebalanceNow = false;
+
+         // Make sure the ionosphere communicator is up-to-date, in case inner boundary cells
+         // moved.
+         SBC::ionosphereGrid.updateIonosphereCommunicator(mpiGrid, technicalGrid);
       }
       
       //get local cells
@@ -982,6 +996,32 @@ int main(int argn,char* args[]) {
          phiprof::stop("getFieldsFromFsGrid");
          phiprof::stop("Propagate Fields",cells.size(),"SpatialCells");
          addTimedBarrier("barrier-after-field-solver");
+      }
+
+      // Map current data down into the ionosphere
+      // TODO check: have we set perBGrid correctly here, or is it possibly perBDt2Grid in some cases??
+      if(SBC::ionosphereGrid.nodes.size() > 0 && ((P::t > SBC::Ionosphere::solveCount * SBC::Ionosphere::couplingInterval && SBC::Ionosphere::couplingInterval > 0) || SBC::Ionosphere::couplingInterval == 0)) {
+         SBC::ionosphereGrid.calculateFsgridCoupling(technicalGrid, perBGrid, dPerBGrid, SBC::Ionosphere::radius);
+         SBC::ionosphereGrid.mapDownBoundaryData(perBGrid, dPerBGrid, momentsGrid, volGrid, technicalGrid);
+         SBC::ionosphereGrid.calculateConductivityTensor(SBC::Ionosphere::F10_7, SBC::Ionosphere::recombAlpha, SBC::Ionosphere::backgroundIonisation);
+
+         // Solve ionosphere
+         int nIterations, nRestarts;
+         Real residual, minPotentialN, maxPotentialN, minPotentialS, maxPotentialS;
+         SBC::ionosphereGrid.solve(nIterations, nRestarts, residual, minPotentialN, maxPotentialN, minPotentialS, maxPotentialS);
+         logFile << "tstep = " << P::tstep
+         << " t = " << P::t
+         << " ionosphere iterations = " << nIterations
+         << " restarts = " << nRestarts
+         << " residual = " << std::scientific << residual << std::defaultfloat
+         << " N potential min " << minPotentialN
+         << " max " << maxPotentialN
+         << " difference " << maxPotentialN - minPotentialN
+         << " S potential min " << minPotentialS
+         << " max " << maxPotentialS
+         << " difference " << maxPotentialS - minPotentialS
+         << endl;
+         SBC::Ionosphere::solveCount++;
       }
       
       phiprof::start("Velocity-space");

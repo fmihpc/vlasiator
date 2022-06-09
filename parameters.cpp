@@ -309,6 +309,7 @@ bool P::addParameters() {
 
    // Output variable parameters
    // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
+
    RP::addComposing("variables.output",
                     string() +
                         "List of data reduction operators (DROs) to add to the grid file output.  Each variable to be "
@@ -326,6 +327,9 @@ bool P::addParameters() {
                         "vg_e_vol fg_e_vol " +
                         "fg_e_hall vg_e_gradpe fg_b_vol vg_b_vol vg_b_background_vol vg_b_perturbed_vol " +
                         "vg_pressure fg_pressure populations_vg_ptensor " + "b_vol_derivatives " +
+                        "ig_fac ig_latitude ig_cellarea ig_upmappedarea ig_sigmap ig_sigmah ig_rhom " +
+                        "ig_electronTemp ig_potential ig_solverinternals ig_upmappedcodecoords ig_upmappedb ig_potential"+
+                        "ig_inplanecurrent ig_e"+
                         "vg_gridcoordinates fg_gridcoordinates meshdata");
 
    RP::addComposing(
