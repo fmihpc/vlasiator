@@ -318,7 +318,7 @@ void initializeGrids(
    }
 
 #ifdef USE_CUDA
-   // Activate device, create context
+   // Activate device, create streams
    cuda_set_device();
 #endif
 
@@ -627,7 +627,8 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    }
 
 #ifdef USE_CUDA
-   cudaMaxBlockCount = 0;
+   phiprof::start("CUDA_malloc");
+   uint cudaMaxBlockCount = 0;
    vmesh::LocalID cudaBlockCount = 0;
    // Not parallelized
    for (uint i=0; i<cells.size(); ++i) {
@@ -636,7 +637,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
          const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = SC->get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = SC->get_velocity_blocks(popID);
          cudaBlockCount = vmesh.size();
-         // dev_Allocate also performs deallocation first if necessary
+         // dev_Allocate checks if increased allocation is necessary, also performs deallocation first if necessary
          blockContainer.dev_Allocate(cudaBlockCount);
          if (cudaBlockCount > cudaMaxBlockCount) {
             cudaMaxBlockCount = cudaBlockCount;
@@ -647,15 +648,9 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
       cerr << "Error in load balance: zero blocks" << std::endl;
       abort();
    }
-   // Call CUDA routines for per-thread memory allocation
-   phiprof::start("CUDA_malloc");
-   for (uint i=0; i<omp_get_max_threads(); ++i) {
-      if (cuda_acc_isAllocated) {
-         cuda_acc_deallocate_memory(i);
-      }
-      cuda_acc_allocate_memory(i,cudaMaxBlockCount);
-   }
-   cuda_acc_isAllocated=true;
+   // Call CUDA routines for per-thread memory allocation for ACC
+   // deallocates first if necessary
+   cuda_acc_allocate(cudaMaxBlockCount);
    phiprof::stop("CUDA_malloc");
 #endif
    

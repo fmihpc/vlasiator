@@ -36,6 +36,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <omp.h>
 
 #define NPP_MAXABS_32F ( 3.402823466e+38f )
 #define NPP_MINABS_32F ( 1.175494351e-38f )
@@ -63,9 +64,27 @@ vmesh::LocalID *host_LIDlist[MAXCPUTHREADS];
 
 // Memory allocation flags and values.
 // The allocation multiplier can be adjusted upwards if necessary.
-float cudaAllocationMultiplier = 2.0;
-bool cuda_acc_isAllocated = false;
-uint cudaMaxBlockCount = 0;
+Real cudaAllocationMultiplier = 2.0;
+uint cuda_acc_allocatedSize = 0;
+uint cuda_acc_allocatedColumns = 0;
+
+__host__ void cuda_acc_allocate (
+   uint maxBlockCount
+   ) {
+   // Always prepare for at least 500 blocks
+   const uint maxBlocksPerCell = maxBlockCount > 500 ? maxBlockCount : 500;
+   // Check if we already have allocated enough memory?
+   if (cuda_acc_allocatedSize > maxBlocksPerCell * cudaAllocationMultiplier * CUDA_ACC_SAFECTY_FACTOR) {
+      return;
+   }
+   // Deallocate before allocating new memory
+   for (uint i=0; i<omp_get_max_threads(); ++i) {
+      if (cuda_acc_allocatedSize > 0) {
+         cuda_acc_deallocate_memory(i);
+      }
+      cuda_acc_allocate_memory(i, maxBlocksPerCell);
+   }
+}
 
 __host__ void cuda_acc_allocate_memory (
    uint cpuThreadID,
@@ -75,31 +94,31 @@ __host__ void cuda_acc_allocate_memory (
 
    // The worst case scenario is with every block having content but no neighbours, creating up
    // to maxBlockCount columns with each needing three blocks (one value plus two for padding).
-   // We also need to pad extra (x1.5?) due to the VDF deforming between acceleration Cartesian directions.
-   // Here we make an esimated guess.
-   const uint maxColumnsPerCell = 2 * std::pow(maxBlockCount, 0.667) * cudaAllocationMultiplier; 
-   // assumes up to two symmetric smooth populations
-   const uint maxTargetBlocksPerCell = maxBlockCount * cudaAllocationMultiplier;
-   const uint maxSourceBlocksPerCell = maxBlockCount * cudaAllocationMultiplier;
+   // Here we make an educated guess of  up to two symmetric smooth populations
+   const uint blockAllocationCount = maxBlockCount * cudaAllocationMultiplier;
+   const uint maxColumnsPerCell = 2 * std::pow(maxBlockCount, 0.667) * cudaAllocationMultiplier;
+   cuda_acc_allocatedSize = blockAllocationCount;
+   cuda_acc_allocatedColumns = maxColumnsPerCell;
+
+   HANDLE_ERROR( cudaMalloc((void**)&dev_cell_indices_to_id[cpuThreadID], 3*sizeof(uint)) );
+   HANDLE_ERROR( cudaMalloc((void**)&dev_columns[cpuThreadID], maxColumnsPerCell*sizeof(Column)) );
+   HANDLE_ERROR( cudaMalloc((void**)&dev_columnNumBlocks[cpuThreadID], maxColumnsPerCell*sizeof(uint)) );
+   HANDLE_ERROR( cudaMalloc((void**)&dev_columnBlockOffsets[cpuThreadID], maxColumnsPerCell*sizeof(uint)) );
+   HANDLE_ERROR( cudaMalloc((void**)&dev_blockDataOrdered[cpuThreadID], blockAllocationCount * (WID3 / VECL) * sizeof(Vec)) );
+   HANDLE_ERROR( cudaMalloc((void**)&dev_LIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID)) );
 
    // Old version without checked max block count (uses too much memory to be feasible)
    // const uint maxColumnsPerCell = ( MAX_BLOCKS_PER_DIM / 2 + 1) * MAX_BLOCKS_PER_DIM * MAX_BLOCKS_PER_DIM;
    // const uint maxTargetBlocksPerColumn = 3 * ( MAX_BLOCKS_PER_DIM / 2 + 1);
    // const uint maxTargetBlocksPerCell = maxTargetBlocksPerColumn * MAX_BLOCKS_PER_DIM * MAX_BLOCKS_PER_DIM;
    // const uint maxSourceBlocksPerCell = MAX_BLOCKS_PER_DIM * MAX_BLOCKS_PER_DIM * MAX_BLOCKS_PER_DIM;
-   HANDLE_ERROR( cudaMalloc((void**)&dev_cell_indices_to_id[cpuThreadID], 3*sizeof(uint)) );
-   HANDLE_ERROR( cudaMalloc((void**)&dev_columns[cpuThreadID], maxColumnsPerCell*sizeof(Column)) );
-   //HANDLE_ERROR( cudaMalloc((void**)&dev_blockData[cpuThreadID], maxSourceBlocksPerCell * WID3 * sizeof(Realf) ) );
-   HANDLE_ERROR( cudaMalloc((void**)&dev_blockDataOrdered[cpuThreadID], maxTargetBlocksPerCell * (WID3 / VECL) * sizeof(Vec)) );
-   //HANDLE_ERROR( cudaMalloc((void**)&dev_GIDlist[cpuThreadID], maxSourceBlocksPerCell*sizeof(vmesh::GlobalID)) );
-   HANDLE_ERROR( cudaMalloc((void**)&dev_LIDlist[cpuThreadID], maxSourceBlocksPerCell*sizeof(vmesh::LocalID)) );
-   HANDLE_ERROR( cudaMalloc((void**)&dev_columnNumBlocks[cpuThreadID], maxColumnsPerCell*sizeof(uint)) );
-   HANDLE_ERROR( cudaMalloc((void**)&dev_columnBlockOffsets[cpuThreadID], maxColumnsPerCell*sizeof(uint)) );
+   //HANDLE_ERROR( cudaMalloc((void**)&dev_blockData[cpuThreadID], blockAllocationCount * WID3 * sizeof(Realf) ) );
+   //HANDLE_ERROR( cudaMalloc((void**)&dev_GIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::GlobalID)) );
 
    // Also allocate and pin memory on host for faster transfers
    HANDLE_ERROR( cudaHostAlloc((void**)&host_columns[cpuThreadID], maxColumnsPerCell*sizeof(Column), cudaHostAllocPortable) );
-   HANDLE_ERROR( cudaHostAlloc((void**)&host_GIDlist[cpuThreadID], maxSourceBlocksPerCell*sizeof(vmesh::LocalID), cudaHostAllocPortable) );
-   HANDLE_ERROR( cudaHostAlloc((void**)&host_LIDlist[cpuThreadID], maxSourceBlocksPerCell*sizeof(vmesh::LocalID), cudaHostAllocPortable) );
+   HANDLE_ERROR( cudaHostAlloc((void**)&host_GIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID), cudaHostAllocPortable) );
+   HANDLE_ERROR( cudaHostAlloc((void**)&host_LIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID), cudaHostAllocPortable) );
    // Blockdata is pinned inside cuda_acc_map_1d() in cuda_acc_map.cu
    // printf("AA addrD %d -- %lu %lu %lu %lu\n",cpuThreadID,dev_cell_indices_to_id[cpuThreadID],dev_columns[cpuThreadID],dev_blockData[cpuThreadID],dev_blockDataOrdered[cpuThreadID]);
    // printf("AA addrH %d -- %lu %lu %lu %lu\n",cpuThreadID,&dev_cell_indices_to_id[cpuThreadID],&dev_columns[cpuThreadID],&dev_blockData[cpuThreadID],&dev_blockDataOrdered[cpuThreadID]);
@@ -123,6 +142,8 @@ __host__ void cuda_acc_deallocate_memory (
    HANDLE_ERROR( cudaFreeHost(host_columns[cpuThreadID]) );
    HANDLE_ERROR( cudaFreeHost(host_GIDlist[cpuThreadID]) );
    HANDLE_ERROR( cudaFreeHost(host_LIDlist[cpuThreadID]) );
+   cuda_acc_allocatedSize = 0;
+   cuda_acc_allocatedColumns = 0;
 }
 
 
@@ -274,7 +295,7 @@ __global__ void acceleration_kernel(
          const Realv v_l = v_r0  + k* dv;
          const int lagrangian_gk_l = trunc((v_l-gk_intersection_max)/intersection_dk);
          const int lagrangian_gk_r = trunc((v_r-gk_intersection_min)/intersection_dk);
-            
+
          //limits in lagrangian k for target column. Also take into
          //account limits of target column
          // Now all indexes in the warp should have the same gk loop extents
@@ -370,7 +391,7 @@ void reorder_blocks_by_dimension_glue(
    uint* dev_LIDlist,
    uint* dev_columnNumBlocks,
    uint* dev_columnBlockOffsets,
-   const int cudablocks, 
+   const int cudablocks,
    const int cudathreads,
    cudaStream_t stream
 ) {

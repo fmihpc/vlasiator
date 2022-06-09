@@ -43,18 +43,44 @@ static void HandleError( cudaError_t err, const char *file, int line )
 
 void cuda_set_device();
 
+void cuda_clear_device();
+
 void cudaAllocateBlockData(
    Realf** dev_blockData,
+   Real** dev_parameters,
    vmesh::LocalID blockCount
    );
 
 void cudaDeallocateBlockData(
-   Realf** dev_blockData
+   Realf** dev_blockData,
+   Real** dev_parameters
    );
 
+void cuda_HtoD_BlockData(
+   Realf* dev_blockData,
+   Realf* blockData,
+   Real* dev_parameters,
+   Real* parameters,
+   vmesh::LocalID blockCount
+   );
+
+void cuda_DtoH_BlockData(
+   Realf* dev_blockData,
+   Realf* blockData,
+   Real* dev_parameters,
+   Real* parameters,
+   vmesh::LocalID blockCount
+   );
+
+void cuda_unregister_BlockData(
+   Realf* blockData,
+   Real* parameters
+   );
 
 #define MAXCPUTHREADS 64
 
 //extern CUcontext cuda_acc_context;
+extern cudaStream_t cudaStreamList[];
+extern cudaStream_t cudaBaseStream;
 
 #endif

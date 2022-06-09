@@ -54,6 +54,9 @@ extern void reorder_blocks_by_dimension_glue(
 #  define CUDATHREADS (32) // NVIDIA: 32 AMD: 64
 #endif
 
+extern void cuda_acc_allocate (
+   uint maxBlockCount
+   );
 extern void cuda_acc_allocate_memory (
    uint cpuThreadID,
    uint maxBlockCount
@@ -77,8 +80,10 @@ extern Column *host_columns[];
 extern uint *host_GIDlist[];
 extern uint *host_LIDlist[];
 
-extern bool cuda_acc_isAllocated;
-extern uint cudaMaxBlockCount;
-extern float cudaAllocationMultiplier;
+static const double CUDA_ACC_SAFECTY_FACTOR = 0.75;
+
+extern uint cuda_acc_allocatedSize;
+extern uint cuda_acc_allocatedColumns;
+extern Real cudaAllocationMultiplier;
 
 

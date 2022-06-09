@@ -42,14 +42,4 @@ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
                      cudaStream_t stream
    );
 
-void cuda_acc_copy_HtoD(spatial_cell::SpatialCell* spatial_cell,
-                        const uint popID,
-                        cudaStream_t stream
-   );
-
-void cuda_acc_copy_DtoH(spatial_cell::SpatialCell* spatial_cell,
-                        const uint popID,
-                        cudaStream_t stream
-   );
-
 #endif

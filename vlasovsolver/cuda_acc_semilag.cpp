@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <cmath>
 #include <utility>
+#include <omp.h>
 
 #include <Eigen/Geometry>
 #include <Eigen/Core>
@@ -75,14 +76,15 @@ void cuda_accelerate_cell(SpatialCell* spatial_cell,
    vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = spatial_cell->get_velocity_mesh(popID);
    vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks(popID);
 
-   // const uint cuda_async_queue_id = omp_get_thread_num();
-   //cuCtxSetCurrent(cuda_acc_context);
-
    // Launch cuda transfers
    phiprof::start("CUDA-HtoD");
-   cudaStream_t cudaThreadStream;
-   cudaStreamCreate(&cudaThreadStream);
-   cuda_acc_copy_HtoD(spatial_cell, popID, cudaThreadStream);
+   // Check that enough memory is alocated
+   blockContainer.dev_Allocate(vmesh.size());
+   blockContainer.dev_syncToDevice();
+   const uint thread_id = omp_get_thread_num();
+   //cudaStream_t cudaThreadStream;
+   //cudaStreamCreate(&cudaThreadStream);
+   //cuda_acc_copy_HtoD(spatial_cell, popID, cudaStreamList[thread_id]);
    phiprof::stop("CUDA-HtoD");
 
    // compute transform, forward in time and backward in time
@@ -111,13 +113,13 @@ void cuda_accelerate_cell(SpatialCell* spatial_cell,
           phiprof::start("compute-mapping");
           cuda_acc_map_1d(spatial_cell, popID, 
                           intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,
-                          0, cudaThreadStream); // map along x
+                          0, cudaStreamList[thread_id]); // map along x
           cuda_acc_map_1d(spatial_cell, popID, 
                           intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,
-                          1, cudaThreadStream); // map along y
+                          1, cudaStreamList[thread_id]); // map along y
           cuda_acc_map_1d(spatial_cell, popID, 
                           intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,
-                          2, cudaThreadStream); // map along z
+                          2, cudaStreamList[thread_id]); // map along z
           phiprof::stop("compute-mapping");
           break;
           
@@ -134,13 +136,13 @@ void cuda_accelerate_cell(SpatialCell* spatial_cell,
           phiprof::start("compute-mapping");
           cuda_acc_map_1d(spatial_cell, popID, 
                           intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,
-                          1, cudaThreadStream); // map along y
+                          1, cudaStreamList[thread_id]); // map along y
           cuda_acc_map_1d(spatial_cell, popID, 
                           intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,
-                          2, cudaThreadStream); // map along z
+                          2, cudaStreamList[thread_id]); // map along z
           cuda_acc_map_1d(spatial_cell, popID, 
                           intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,
-                          0, cudaThreadStream); // map along x
+                          0, cudaStreamList[thread_id]); // map along x
           phiprof::stop("compute-mapping");
           break;
 
@@ -157,23 +159,26 @@ void cuda_accelerate_cell(SpatialCell* spatial_cell,
           phiprof::start("compute-mapping");
           cuda_acc_map_1d(spatial_cell, popID, 
                           intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,
-                          2, cudaThreadStream); // map along z
+                          2, cudaStreamList[thread_id]); // map along z
           cuda_acc_map_1d(spatial_cell, popID, 
                           intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,
-                          0, cudaThreadStream); // map along x
+                          0, cudaStreamList[thread_id]); // map along x
           cuda_acc_map_1d(spatial_cell, popID, 
                           intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,
-                          1, cudaThreadStream); // map along y
+                          1, cudaStreamList[thread_id]); // map along y
           phiprof::stop("compute-mapping");
           break;
    }
 
-   // Transfer data back, destroy stream
+   // Transfer data back
    phiprof::start("CUDA-DtoH");
-   cuda_acc_copy_DtoH(spatial_cell, popID, cudaThreadStream);
-   cudaStreamDestroy(cudaThreadStream);
+   blockContainer.dev_unpin();
+   blockContainer.dev_syncToHost();
+   //cuda_acc_copy_DtoH(spatial_cell, popID, cudaStreamList[thread_id]);
+   //cudaStreamDestroy(cudaThreadStream);
+   cudaStreamSynchronize(cudaStreamList[thread_id]);
+   blockContainer.dev_unpin();
    phiprof::stop("CUDA-DtoH");
-
 
 //   if (Parameters::prepareForRebalance == true) {
 //       spatial_cell->parameters[CellParams::LBWEIGHTCOUNTER] += (MPI_Wtime() - t1);

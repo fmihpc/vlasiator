@@ -102,68 +102,6 @@ __host__ void inline swapBlockIndices(std::array<uint32_t,3> &blockIndices, cons
    }
 }
 
-
-
-/* Helper functions for: 
-   Copying velocity block data from host to device
-   Copying velocity block data from device to host
-*/
-
-__host__ void cuda_acc_copy_HtoD(spatial_cell::SpatialCell* spatial_cell,
-                                 const uint popID,
-                                 cudaStream_t stream
-   ) {
-   // Thread id used for persistent device memory pointers
-   const uint cuda_async_queue_id = omp_get_thread_num();
-   
-   vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = spatial_cell->get_velocity_mesh(popID);
-   vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks(popID);
-   Realf *blockData = blockContainer.getData();
-   Realf *dev_blockData = blockContainer.dev_getData();
-   uint blockDataN = blockContainer.size();
-   if(vmesh.size() == 0) {
-      return;
-   }
-
-   // Page lock (pin) host memory for faster async transfers
-   cudaHostRegister(blockData, blockDataN*WID3*sizeof(Realf),cudaHostRegisterDefault);
-   // Launch async copy of velocity mesh contents to GPU
-   cudaMemcpyAsync(dev_blockData, blockData, blockDataN*WID3*sizeof(Realf), cudaMemcpyHostToDevice, stream);
-
-   return;
-}
-
-__host__ void cuda_acc_copy_DtoH(spatial_cell::SpatialCell* spatial_cell,
-                                 const uint popID,
-                                 cudaStream_t stream
-   ) {
-   // Thread id used for persistent device memory pointers
-   const uint cuda_async_queue_id = omp_get_thread_num();
-
-   vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = spatial_cell->get_velocity_mesh(popID);
-   vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks(popID);
-   Realf *blockData = blockContainer.getData();
-   Realf *dev_blockData = blockContainer.dev_getData();
-   uint blockDataN = blockContainer.size();
-   if(vmesh.size() == 0) {
-      return;
-   }
-//   memset(blockData,0,blockDataN*WID3*sizeof(Realf));
-
-   // Clear old pinning, vmesh size may have changed
-   cudaHostUnregister(blockData);
-   // Page lock (pin) host memory for faster async transfers
-   cudaHostRegister(blockData, blockDataN*WID3*sizeof(Realf),cudaHostRegisterDefault);
-
-   // Copy data back to host
-   cudaMemcpyAsync(blockData, dev_blockData, blockDataN*WID3*sizeof(Realf), cudaMemcpyDeviceToHost, stream);
-   // Free page locks on host memory
-   cudaStreamSynchronize(stream);   
-   cudaHostUnregister(blockData);
-
-   return;
-}
-
 /*
    Here we map from the current time step grid, to a target grid which
    is the lagrangian departure grid (so th grid at timestep +dt,
@@ -308,7 +246,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    reorder_blocks_by_dimension_glue(
       dev_blockData,
       dev_blockDataOrdered[cuda_async_queue_id],
-      dev_cell_indices_to_id[cuda_async_queue_id],      
+      dev_cell_indices_to_id[cuda_async_queue_id],
       totalColumns,
       dev_LIDlist[cuda_async_queue_id],
       dev_columnNumBlocks[cuda_async_queue_id],
@@ -335,7 +273,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
          valuesColumnOffset += (columnNumBlocks[columnIndex] + 2) * (WID3/VECL); // there are WID3/VECL elements of type Vec per block
       }
    }
-   
+
    // Calculate target column extents
    phiprof::start("columnExtents");
    for( uint setIndex=0; setIndex< setColumnOffsets.size(); ++setIndex) {
@@ -441,7 +379,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
             message += ". Consider expanding velocity space for that population.";
             bailout(true, message, __FILE__, __LINE__);
          }
-         
+
          //store source blocks
          for (uint blockK = firstBlockIndices[2]; blockK <= lastBlockIndices[2]; blockK++){
             isSourceBlock[blockK] = true;
@@ -496,18 +434,16 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    cudaMemsetAsync(dev_blockData, 0, bdsw3*sizeof(Realf), stream);
 
    // Update value of cudaAllocationMultiplier if necessary
-   float ratio1 = (blockDataSize / cudaMaxBlockCount);
-   float ratio2 = (totalColumns / (2*std::pow(cudaMaxBlockCount, 0.667)));
-   float ratio3 = ( (valuesSizeRequired*VECL/WID3) / cudaMaxBlockCount);
-   if ( (ratio1 > 0.75*cudaAllocationMultiplier)
-        || (ratio2 > 0.75*cudaAllocationMultiplier)
-        || (ratio3 > 0.75*cudaAllocationMultiplier) ) {
+   float ratio1 = (blockDataSize / cuda_acc_allocatedSize);
+   float ratio2 = (totalColumns / cuda_acc_allocatedColumns);
+   if ( (ratio1 > CUDA_ACC_SAFECTY_FACTOR)
+        || (ratio2 > CUDA_ACC_SAFECTY_FACTOR) ) {
       // Need to increase ratio
-      cudaAllocationMultiplier *= 1.25;
-      std::cerr<<"Increasing cudaAllocationMultiplier to "<<cudaAllocationMultiplier<<" with ratios "<<ratio1<<" "<<ratio2<<" "<<ratio3<<std::endl;
+      cudaAllocationMultiplier /= CUDA_ACC_SAFECTY_FACTOR;
+      std::cerr<<"Increasing cudaAllocationMultiplier to "<<cudaAllocationMultiplier<<" with ratios "<<ratio1<<" "<<ratio2<<std::endl;
    }
    // Decreasing the allocation multiplier is not safe unless we know the maximum value for bdsw3 over all local cells.
-   
+
    // Now we iterate through target columns again, identifying their block offsets
    for( uint column=0; column < totalColumns; column++) {
       //cout << "Velocity column no. " << column << ": [";
@@ -562,7 +498,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    //cudaMemcpyAsync(blockData, dev_blockData[cuda_async_queue_id], bdsw3*sizeof(Realf), cudaMemcpyDeviceToHost, stream);
 
    // Now done in cuda_acc_semilag.cpp
-   //cudaStreamSynchronize(stream);   
+   //cudaStreamSynchronize(stream);
    // cudaEventRecord(stop, stream);
    // cudaEventSynchronize(stop);
    // float elapsedTime;
