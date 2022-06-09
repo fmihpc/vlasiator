@@ -153,7 +153,7 @@ double VectorDipole::operator()( double x, double y, double z, coordinate compon
    IMFdS2cart[1] = 0;     //(r[1]/r1)*dS2dr;
    IMFdS2cart[2] = 0;     //(r[2]/r1)*dS2dr;      
 
-   if((derivative == 0) && (r1 > xlimit[0])) {
+   if(derivative == 0) {
      /* Within transition range (between xlimit[0] and xlimit[1]) we
         multiply the magnetic field with the S2 smootherstep function
         and add an additional corrective term to remove divergence. This
@@ -205,7 +205,7 @@ double VectorDipole::operator()( double x, double y, double z, coordinate compon
        return S2*B + delS2crossA[component] + IMFS2*IMFB + IMFdelS2crossA[component];
    }
 
-   else if((derivative == 1) && (r1 > xlimit[0])) {
+   else if(derivative == 1) {
        /* first derivatives of field calculated from diminishing vector potential
 
           del B'(r) = S2(s) del B(r) + B(r) del S2(s) + del (del S2(s) cross A(r))
