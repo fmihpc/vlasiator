@@ -3782,8 +3782,11 @@ namespace SBC {
          Real density = 0;
          switch(boundaryVDFmode) {
             case FixedMoments:
-            case AverageMoments:
-            case AverageAllMoments:
+               density = speciesParams[popID].rho;
+               temperature = speciesParams[popID].T;
+               break;
+            case AverageAllMoments:// Fall through (handled by if further down)
+            case AverageMoments: 
                // Maxwellian VDF boundary modes
                {
                   Real pressure = 0, vx = 0, vy = 0, vz = 0;
@@ -3809,12 +3812,20 @@ namespace SBC {
                      vDrift[1] += vy;
                      vDrift[2] += vz;
                   }
+               }
+               break;
+            case CopyAndLosscone:
+               // This is handled below
+               break;
+         }
 
-                  if(boundaryVDFmode == FixedMoments) {
-                     density = speciesParams[popID].rho;
-                     temperature = speciesParams[popID].T;
-                  }
 
+         // Fill velocity space
+         switch(boundaryVDFmode) {
+            case FixedMoments:
+            case AverageAllMoments:
+            case AverageMoments: 
+               {
                   // Fill velocity space with new maxwellian data
                   SpatialCell& cell = *mpiGrid[cellID];
                   cell.clear(popID); // Clear previous velocity space completely
