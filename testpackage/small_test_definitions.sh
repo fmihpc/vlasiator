@@ -1,8 +1,10 @@
 
 ## Define test and runs
-#vlasiator binary
 
-bin=vlasiator
+# Assume binaries are set in job script
+#bin=vlasiator
+#diffbin=vlsvdiff_DP
+
 if [ ! -f $bin ]
 then
    echo Executable $bin does not exist
@@ -144,3 +146,10 @@ comparison_vlsv[18]="bulk.0000001.vlsv"
 comparison_phiprof[18]="phiprof_0.txt"
 variable_names[18]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e"
 variable_components[18]="0 0 1 2 0 1 2 0 1 2"
+
+# Magnetosphere 3D with ionosphere
+test_name[19]="Ionosphere_small"
+comparison_vlsv[19]="bulk.0000001.vlsv"
+comparison_phiprof[19]="phiprof_0.txt"
+variable_names[19]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e ig_fac ig_potential"
+variable_components[19]="0 0 1 2 0 1 2 0 1 2 0 0"

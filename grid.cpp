@@ -38,6 +38,7 @@
 #include "sysboundary/sysboundary.h"
 #include "fieldsolver/fs_common.h"
 #include "fieldsolver/gridGlue.hpp"
+#include "vlasovsolver/cpu_trans_map_amr.hpp"
 #include "projects/project.h"
 #include "iowrite.h"
 #include "ioread.h"
@@ -165,7 +166,7 @@ void initializeGrids(
    mpiGrid.set_partitioning_option("IMBALANCE_TOL", P::loadBalanceTolerance);
    phiprof::start("Initial load-balancing");
    if (myRank == MASTER_RANK) logFile << "(INIT): Starting initial load balance." << endl << writeVerbose;
-   mpiGrid.balance_load();
+   mpiGrid.balance_load(); // Direct DCCRG call, recalculate cache afterwards
    recalculateLocalCellsCache();
 
    if(P::amrMaxSpatialRefLevel > 0) {
@@ -318,9 +319,10 @@ void initializeGrids(
       exit(1);
    }
    
-   //Balance load before we transfer all data below
+   // Balance load before we transfer all data below
    balanceLoad(mpiGrid, sysBoundaries);
-   
+   // Function includes re-calculation of local cells cache
+
    phiprof::initializeTimer("Fetch Neighbour data","MPI");
    phiprof::start("Fetch Neighbour data");
    // update complete cell spatial data for full stencil (
@@ -329,6 +331,18 @@ void initializeGrids(
    
    phiprof::stop("Fetch Neighbour data");
    
+   phiprof::start("setProjectBField");
+   project.setProjectBField(perBGrid, BgBGrid, technicalGrid);
+   perBGrid.updateGhostCells();
+   BgBGrid.updateGhostCells();
+   EGrid.updateGhostCells();
+
+   // This will only have the BGB set up properly at this stage but we need the BGBvol for the Vlasov boundaries below.
+   volGrid.updateGhostCells();
+   getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
+
+   phiprof::stop("setProjectBField");
+
    if (P::isRestart == false) {
       // Apply boundary conditions so that we get correct initial moments
       sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid,Parameters::t, true); // It doesn't matter here whether we put _R or _V moments
@@ -344,13 +358,6 @@ void initializeGrids(
       }
       phiprof::stop("Init moments");
    }
-   
-   phiprof::start("setProjectBField");
-   project.setProjectBField(perBGrid, BgBGrid, technicalGrid);
-   perBGrid.updateGhostCells();
-   BgBGrid.updateGhostCells();
-   EGrid.updateGhostCells();
-   phiprof::stop("setProjectBField");
    
    phiprof::start("Finish fsgrid setup");
    feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,technicalGrid, false);
@@ -399,7 +406,7 @@ Record for each cell which processes own one or more of its face neighbors
  */
 void setFaceNeighborRanks( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) {
 
-   const auto& cells = mpiGrid.get_cells();
+   const vector<CellID>& cells = getLocalCells();
    // TODO: Try a #pragma omp parallel for
    for (const auto& cellid : cells) {
       
@@ -460,7 +467,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
 
    phiprof::stop("deallocate boundary data");
    //set weights based on each cells LB weight counter
-   vector<CellID> cells = mpiGrid.get_cells();
+   const vector<CellID>& cells = getLocalCells();
    for (size_t i=0; i<cells.size(); ++i){
       //Set weight. If acceleration is enabled then we use the weight
       //counter which is updated in acceleration, otherwise we just
@@ -565,8 +572,13 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    //Make sure transfers are enabled for all cells
    recalculateLocalCellsCache();
    getObjectWrapper().meshData.reallocate();
-   cells = mpiGrid.get_cells();
+   #pragma omp parallel for
    for (uint i=0; i<cells.size(); ++i) mpiGrid[cells[i]]->set_mpi_transfer_enabled(true);
+
+   // flag transfers if AMR
+   phiprof::start("compute_amr_transfer_flags");
+   flagSpatialCellsForAmrCommunication(mpiGrid,cells);
+   phiprof::stop("compute_amr_transfer_flags");
 
    // Communicate all spatial data for FULL neighborhood, which
    // includes all data with the exception of dist function data
@@ -600,7 +612,15 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
       setFaceNeighborRanks( mpiGrid );
       phiprof::stop("set face neighbor ranks");
    }
-   
+
+   // Prepare cellIDs and pencils for AMR translation
+   if(P::amrMaxSpatialRefLevel > 0) {
+      phiprof::start("GetSeedIdsAndBuildPencils");
+      for (int dimension=0; dimension<3; dimension++) {
+         prepareSeedIdsAndPencils(mpiGrid,dimension);
+      }
+      phiprof::stop("GetSeedIdsAndBuildPencils");
+   }
    
    phiprof::stop("Balancing load");
 }

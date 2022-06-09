@@ -119,4 +119,3 @@ void debug_output(Field& F, const char* filename) {
       std::cerr << "Writing " << filename << " failed: " << strerror(errno) << std::endl;
    }
 }
-
