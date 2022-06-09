@@ -48,7 +48,7 @@ __host__ void cuda_set_device() {
    }
    cudaSetDevice(gpuid);
 
-   // Pre-gnerate streams
+   // Pre-generate streams
    for (uint i=0; i<maxThreads; ++i) {
       cudaStreamCreate(&(cudaStreamList[i]));
    }

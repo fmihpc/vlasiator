@@ -50,6 +50,7 @@
 
 #ifdef USE_CUDA
 #include "vlasovsolver/cuda_acc_map_kernel.cuh"
+#include "vlasovsolver/cuda_moments_kernel.cuh"
 #include "cuda_context.cuh"
 #endif
 
@@ -320,6 +321,7 @@ void initializeGrids(
 #ifdef USE_CUDA
    // Activate device, create streams
    cuda_set_device();
+   cuda_allocateMomentCalculations();
 #endif
 
    // Init mesh data container

@@ -199,6 +199,11 @@ DEPS_CUDA_ACC_SEMILAG = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/cpu_acc_interse
 
 DEPS_CUDA_ACC_SORT_BLOCKS = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/cuda_acc_sort_blocks.hpp vlasovsolver/cuda_acc_sort_blocks.cpp
 
+DEPS_CUDA_MOMENTS = ${DEPS_COMMON} ${DEPS_CELL} vlasovmover.h vlasovsolver/cuda_moments.h vlasovsolver/cuda_moments.cpp
+
+DEPS_CUDA_MOMENTS_KERNEL = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/cuda_header.h vlasovsolver/cuda_moments_kernel.cuh vlasovsolver/cuda_moments_kernel.cu
+
+
 DEPS_CPU_ACC_INTERSECTS = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/cpu_acc_intersections.hpp vlasovsolver/cpu_acc_intersections.cpp
 
 DEPS_CPU_ACC_MAP = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/vec.h vlasovsolver/cpu_acc_map.hpp vlasovsolver/cpu_acc_map.cpp
@@ -253,7 +258,8 @@ endif
 # If we are building a CUDA vrsion, we require its object files
 ifeq ($(USE_CUDA),1)
 	OBJS += cuda_acc_map_kernel.o cuda_acc_map.o cuda_acc_semilag.o cuda_acc_sort_blocks.o \
-		cudalink_acc_map.o cudalink_kernel.o cudalink_acc_semilag.o cuda_context.o cudalink_context.o
+		cudalink_acc_map.o cudalink_acc_kernel.o cudalink_acc_semilag.o cuda_context.o cudalink_context.o \
+		cudalink_moments.p cudalink_moments_kernel.o
 	DEPS_VLSVMOVER += vlasovsolver/cuda_acc_map.hpp vlasovsolver/cuda_acc_semilag.hpp cuda_context.cuh
 endif
 
@@ -453,6 +459,13 @@ cuda_acc_sort_blocks.o: ${DEPS_CUDA_ACC_SORT_BLOCKS}
 
 cuda_context.o: ${DEPS_CUDA_CONTEXT}
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c cuda_context.cpp
+
+cuda_moments_kernel.o: ${DEPS_CUDA_MOMENTS_KERNEL}
+	${NVCC} ${NVCCFLAGS} -D${VECTORCLASS} -dc vlasovsolver/cuda_moments_kernel.cu
+
+cuda_moments.o: ${DEPS_CUDA_MOMENTS} ${DEPS_CUDA_MOMENTS_KERNEL}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cuda_moments.cpp ${INC_DCCRG} ${INC_PROFILE} ${LIB_CUDA}
+
 endif
 
 cpu_acc_map.o: ${DEPS_CPU_ACC_MAP}
@@ -554,11 +567,17 @@ cudalink_acc_map.o: cuda_acc_map.o
 cudalink_acc_semilag.o: cuda_acc_semilag.o
 	${NVCC} ${CUDALINK} ${NVCCFLAGS} -dlink cuda_acc_semilag.o -o cudalink_acc_semilag.o
 
-cudalink_kernel.o: cuda_acc_map_kernel.o
-	${NVCC} ${CUDALINK} ${NVCCFLAGS} -dlink cuda_acc_map_kernel.o -o cudalink_kernel.o
+cudalink_acc_kernel.o: cuda_acc_map_kernel.o
+	${NVCC} ${CUDALINK} ${NVCCFLAGS} -dlink cuda_acc_map_kernel.o -o cudalink_acc_kernel.o
 
 cudalink_context.o: cuda_context.o
 	${NVCC} ${CUDALINK} ${NVCCFLAGS} -dlink cuda_context.o -o cudalink_context.o
+
+cudalink_moments.o: cuda_moments.o
+	${NVCC} ${CUDALINK} ${NVCCFLAGS} -dlink cuda_moments.o -o cudalink_moments.o
+
+cudalink_moments_kernel.o: cuda_moments_kernel.o
+	${NVCC} ${CUDALINK} ${NVCCFLAGS} -dlink cuda_moments_kernel.o -o cudalink_moments_kernel.o
 endif
 
 # Make executable

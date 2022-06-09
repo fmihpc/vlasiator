@@ -48,6 +48,7 @@
 #ifdef USE_CUDA
 #include "vlasovsolver/cuda_acc_map_kernel.cuh"
 #include "cuda_acc_semilag.hpp"
+#include "cuda_moments.hpp"
 #endif
 
 using namespace std;
@@ -376,11 +377,11 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
    // Calculate velocity moments, these are needed to
    // calculate the transforms used in the accelerations.
    // Calculated moments are stored in the "_V" variables.
-// #ifdef USE_CUDA
-//    cuda_calculateMoments_V(mpiGrid, propagatedCells, false);
-// #else
+#ifdef USE_CUDA
+   cuda_calculateMoments_V(mpiGrid, propagatedCells, false);
+#else
    calculateMoments_V(mpiGrid, propagatedCells, false);
-// #endif
+##endif
 
    //generate pseudo-random order which is always the same irrespective of parallelization, restarts, etc.
    std::size_t rndInt = std::hash<uint>()(P::tstep);
@@ -531,11 +532,11 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
    // Recalculate "_V" velocity moments
 momentCalculation:
-// #ifdef USE_CUDA
-//    cuda_calculateMoments_V(mpiGrid, cells, true);
-// #else
+#ifdef USE_CUDA
+   cuda_calculateMoments_V(mpiGrid, cells, true);
+#else
    calculateMoments_V(mpiGrid, cells, true);
-// #endif
+#endif
 
    // Set CellParams::MAXVDT to be the minimum dt of all per-species values
    #pragma omp parallel for
