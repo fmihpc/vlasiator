@@ -81,6 +81,8 @@ template<class T> std::array<Real, 3> getFractionalFsGridCellForCoord(T& grid, c
 
 namespace SBC {
 
+   IonosphereBoundaryVDFmode boundaryVDFmode = FixedMoments;
+
    // Ionosphere finite element grid
    SphericalTriGrid ionosphereGrid;
 
@@ -2806,6 +2808,7 @@ namespace SBC {
       Readparameters::add("ionosphere.atmosphericModelFile", "Filename to read the MSIS atmosphere data from (default: NRLMSIS.dat)", std::string("NRLMSIS.dat"));
       Readparameters::add("ionosphere.recombAlpha", "Ionospheric recombination parameter (m^3/s)", 2.4e-13); // Default value from Schunck & Nagy, Table 8.5
       Readparameters::add("ionosphere.ionizationModel", "Ionospheric electron production rate model. Options are: Rees1963, Rees1989, SergienkoIvanov (default).", std::string("SergienkoIvanov"));
+      Readparameters::add("ionosphere.innerBoundaryVDFmode", "Inner boundary VDF construction method. Options ar: FixedMoments, AverageMoments, AverageAllMoments, CopyAndLosscone.", std::string("FixedMoments"));
       Readparameters::add("ionosphere.F10_7", "Solar 10.7 cm radio flux (sfu = 10^{-22} W/m^2)", 100);
       Readparameters::add("ionosphere.backgroundIonisation", "Background ionoisation due to cosmic rays (mho)", 0.5);
       Readparameters::add("ionosphere.solverMaxIterations", "Maximum number of iterations for the conjugate gradient solver", 2000);
@@ -2854,6 +2857,20 @@ namespace SBC {
       Readparameters::get("ionosphere.reapplyUponRestart", reapply);
       Readparameters::get("ionosphere.baseShape",baseShape);
       Readparameters::get("ionosphere.conductivityModel", *(int*)(&conductivityModel));
+      std::string VDFmodeString;
+      Readparameters::get("ionosphere.innerBoundaryVDFmode", VDFmodeString);
+      if(VDFmodeString == "FixedMoments") {
+         boundaryVDFmode = FixedMoments;
+      } else if(VDFmodeString == "AveragMoments") {
+         boundaryVDFmode = AverageMoments;
+      } else if(VDFmodeString == "AveragAllMoments") {
+         boundaryVDFmode = AverageAllMoments;
+      } else if(VDFmodeString == "CopyAndLosscone") {
+         boundaryVDFmode = CopyAndLosscone;
+      } else {
+         cerr << "(IONOSPHERE) Unknown inner boundary VDF mode \"" << VDFmodeString << "\". Aborting." << endl;
+         abort();
+      }
       Readparameters::get("ionosphere.ridleyParallelConductivity", ridleyParallelConductivity);
       Readparameters::get("ionosphere.fibonacciNodeNum",fibonacciNodeNum);
       Readparameters::get("ionosphere.solverMaxIterations", solverMaxIterations);
@@ -3760,48 +3777,158 @@ namespace SBC {
          vDrift[1] = (E[2] * B[0] - E[0] * B[2])/Bsqr;
          vDrift[2] = (E[0] * B[1] - E[1] * B[0])/Bsqr;
 
-         // Average density and temperature from the nearest cells
-         const vector<CellID> closestCells = getAllClosestNonsysboundaryCells(cellID);
-         Real density = 0, pressure = 0;
-         for (CellID celli : closestCells) {
-            density += mpiGrid[celli]->parameters[CellParams::RHOM];
-            pressure += mpiGrid[celli]->parameters[CellParams::P_11] + mpiGrid[celli]->parameters[CellParams::P_22] + mpiGrid[celli]->parameters[CellParams::P_33];
-         }
-         density /= closestCells.size()*physicalconstants::MASS_PROTON;
-         pressure /= 3.0*closestCells.size();
-         // TODO make this multipop
-         creal temperature = pressure / (density * physicalconstants::K_B);
+         // Select representative moments for the VDFs
+         Real temperature = 0;
+         Real density = 0;
+         switch(boundaryVDFmode) {
+            case FixedMoments:
+            case AverageMoments:
+            case AverageAllMoments:
+               // Maxwellian VDF boundary modes
+               {
+                  Real pressure = 0, vx = 0, vy = 0, vz = 0;
+                  // Average density and temperature from the nearest cells
+                  const vector<CellID> closestCells = getAllClosestNonsysboundaryCells(cellID);
+                  for (CellID celli : closestCells) {
+                     density += mpiGrid[celli]->parameters[CellParams::RHOM];
+                     pressure += mpiGrid[celli]->parameters[CellParams::P_11] + mpiGrid[celli]->parameters[CellParams::P_22] + mpiGrid[celli]->parameters[CellParams::P_33];
+                     vx += mpiGrid[celli]->parameters[CellParams::VX];
+                     vy += mpiGrid[celli]->parameters[CellParams::VY];
+                     vz += mpiGrid[celli]->parameters[CellParams::VZ];
+                  }
+                  density /= closestCells.size()*physicalconstants::MASS_PROTON;
+                  vx /= closestCells.size();
+                  vy /= closestCells.size();
+                  vz /= closestCells.size();
+                  pressure /= 3.0*closestCells.size();
+                  // TODO make this multipop
+                  temperature = pressure / (density * physicalconstants::K_B);
 
-         // Fill velocity space with new maxwellian data
-         SpatialCell& cell = *mpiGrid[cellID];
-         cell.clear(popID); // Clear previous velocity space completely
-         const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(cell,density,temperature,vDrift,popID);
-         Realf* data = cell.get_data(popID);
+                  if(boundaryVDFmode == AverageAllMoments) {
+                     vDrift[0] += vx;
+                     vDrift[1] += vy;
+                     vDrift[2] += vz;
+                  }
 
-         for (size_t i = 0; i < blocksToInitialize.size(); i++) {
-            const vmesh::GlobalID blockGID = blocksToInitialize[i];
-            cell.add_velocity_block(blockGID,popID);
-            const vmesh::LocalID block = cell.get_velocity_block_local_id(blockGID,popID);
-            const Real* blockParameters = cell.get_block_parameters(block,popID);
-            creal vxBlock = blockParameters[BlockParams::VXCRD];
-            creal vyBlock = blockParameters[BlockParams::VYCRD];
-            creal vzBlock = blockParameters[BlockParams::VZCRD];
-            creal dvxCell = blockParameters[BlockParams::DVX];
-            creal dvyCell = blockParameters[BlockParams::DVY];
-            creal dvzCell = blockParameters[BlockParams::DVZ];
-            
-            // Iterate over cells within block
-            for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
-               creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell - vDrift[0];
-               creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell - vDrift[1];
-               creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell - vDrift[2];
+                  if(boundaryVDFmode == FixedMoments) {
+                     density = speciesParams[popID].rho;
+                     temperature = speciesParams[popID].T;
+                  }
 
-               data[block*WID3 + cellIndex(ic,jc,kc)] = shiftedMaxwellianDistribution(popID, density, temperature, vxCellCenter, vyCellCenter, vzCellCenter);
-            }
+                  // Fill velocity space with new maxwellian data
+                  SpatialCell& cell = *mpiGrid[cellID];
+                  cell.clear(popID); // Clear previous velocity space completely
+                  const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(cell,density,temperature,vDrift,popID);
+                  Realf* data = cell.get_data(popID);
+
+                  for (size_t i = 0; i < blocksToInitialize.size(); i++) {
+                     const vmesh::GlobalID blockGID = blocksToInitialize[i];
+                     cell.add_velocity_block(blockGID,popID);
+                     const vmesh::LocalID block = cell.get_velocity_block_local_id(blockGID,popID);
+                     const Real* blockParameters = cell.get_block_parameters(block,popID);
+                     creal vxBlock = blockParameters[BlockParams::VXCRD];
+                     creal vyBlock = blockParameters[BlockParams::VYCRD];
+                     creal vzBlock = blockParameters[BlockParams::VZCRD];
+                     creal dvxCell = blockParameters[BlockParams::DVX];
+                     creal dvyCell = blockParameters[BlockParams::DVY];
+                     creal dvzCell = blockParameters[BlockParams::DVZ];
+
+                     // Iterate over cells within block
+                     for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
+                        creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell - vDrift[0];
+                        creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell - vDrift[1];
+                        creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell - vDrift[2];
+
+                        data[block*WID3 + cellIndex(ic,jc,kc)] = shiftedMaxwellianDistribution(popID, density, temperature, vxCellCenter, vyCellCenter, vzCellCenter);
+                     }
+                  }
+               }
+               break;
+            case CopyAndLosscone:
+               {
+                  std::array<Real, 3> vNeighbours({0,0,0});
+                  Real pressure = 0;
+                  // Get moments from the nearest cells
+                  const vector<CellID> closestCells = getAllClosestNonsysboundaryCells(cellID);
+                  for (CellID celli : closestCells) {
+                     density += mpiGrid[celli]->parameters[CellParams::RHOM];
+                     pressure += mpiGrid[celli]->parameters[CellParams::P_11] + mpiGrid[celli]->parameters[CellParams::P_22] + mpiGrid[celli]->parameters[CellParams::P_33];
+                     vNeighbours[0] += mpiGrid[celli]->parameters[CellParams::VX];
+                     vNeighbours[1] += mpiGrid[celli]->parameters[CellParams::VY];
+                     vNeighbours[2] += mpiGrid[celli]->parameters[CellParams::VZ];
+                  }
+                  density /= closestCells.size()*physicalconstants::MASS_PROTON;
+                  pressure /= 3.0*closestCells.size();
+                  vNeighbours[0] /= closestCells.size();
+                  vNeighbours[1] /= closestCells.size();
+                  vNeighbours[2] /= closestCells.size();
+                  creal temperature = pressure / (density * physicalconstants::K_B);
+                  // Fill velocity space with new VDF data. This consists of three parts:
+                  // 1. For the downwards-moving part of the VDF (dot(v,r) < 0), simply fill a maxwellian with the averaged density and pressure.
+                  // 2. For upwards-moving velocity cells outside the loss cone, take the reflected value from point 1.
+                  // 3. Add an ionospheric outflow maxwellian.
+                  SpatialCell& cell = *mpiGrid[cellID];
+                  cell.clear(popID); // Clear previous velocity space completely
+                  const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(cell,density,temperature,vDrift,popID);
+                  Realf* data = cell.get_data(popID);
+                  for (size_t i = 0; i < blocksToInitialize.size(); i++) {
+                     const vmesh::GlobalID blockGID = blocksToInitialize[i];
+                     cell.add_velocity_block(blockGID,popID);
+                     const vmesh::LocalID block = cell.get_velocity_block_local_id(blockGID,popID);
+                     const Real* blockParameters = cell.get_block_parameters(block,popID);
+                     creal vxBlock = blockParameters[BlockParams::VXCRD];
+                     creal vyBlock = blockParameters[BlockParams::VYCRD];
+                     creal vzBlock = blockParameters[BlockParams::VZCRD];
+                     creal dvxCell = blockParameters[BlockParams::DVX];
+                     creal dvyCell = blockParameters[BlockParams::DVY];
+                     creal dvzCell = blockParameters[BlockParams::DVZ];
+
+                     // Iterate over cells within block
+                     for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
+                        creal vxCellCenter = vxBlock + (ic+convert<Real>(0.5))*dvxCell;
+                        creal vyCellCenter = vyBlock + (jc+convert<Real>(0.5))*dvyCell;
+                        creal vzCellCenter = vzBlock + (kc+convert<Real>(0.5))*dvzCell;
+
+                        // Calculate pitchangle cosine
+                        Real mu = (vxCellCenter*B[0] + vyCellCenter*B[1] + vzCellCenter*B[2])/sqrt(Bsqr)/sqrt(vxCellCenter*vxCellCenter+vyCellCenter*vyCellCenter+vzCellCenter*vzCellCenter);
+                        // Radial velocity component
+                        Real rlength = sqrt(r[0]*r[0] + r[1]*r[1] + r[2]*r[2]);
+                        std::array<Real, 3> rnorm({r[0] / rlength, r[1] / rlength, r[2] / rlength});
+                        Real vdotr = (vxCellCenter*rnorm[0] + vyCellCenter*rnorm[1] * vzCellCenter*rnorm[2]);
+
+                        // v_r = -v_r = -r <v, r> (where r is normalized)
+                        // => v = v - 2*r <r,v>
+                        Real vNeighboursdotr = (vNeighbours[0] * rnorm[0] + vNeighbours[1] * rnorm[1] + vNeighbours[2] * rnorm[2]);
+                        std::array<Real, 3> vNeighboursMirrored({vNeighbours[0] - 2*rnorm[0]*vNeighboursdotr,
+                              vNeighbours[1] - 2*rnorm[1]*vNeighboursdotr,
+                              vNeighbours[2] - 2*rnorm[2]*vNeighboursdotr});
+
+                        if(vdotr < 0) {
+                           data[block * WID3 + cellIndex(ic, jc, kc)] =
+                              shiftedMaxwellianDistribution(popID, density, temperature, vxCellCenter - vNeighbours[0], vyCellCenter - vNeighbours[1], vzCellCenter - vNeighbours[2]);
+                        } else {
+                           if(1-mu*mu < sqrt(Bsqr)/5e-5) {
+                              // outside the loss cone
+                              data[block * WID3 + cellIndex(ic, jc, kc)] =
+                                 shiftedMaxwellianDistribution(popID, density, temperature, vxCellCenter - 2*rnorm[0]*vdotr - vNeighboursMirrored[0] , vyCellCenter - 2*rnorm[1]*vdotr - vNeighboursMirrored[1], vzCellCenter +- 2*rnorm[2]*vdotr - vNeighboursMirrored[2]);
+                           } else {
+                              // Inside the loss cone
+                              data[block * WID3 + cellIndex(ic, jc, kc)] = 0;
+                           }
+                        }
+
+                        // Add ionospheric outflow maxwellian on top.
+                        data[block * WID3 + cellIndex(ic, jc, kc)] +=
+                           shiftedMaxwellianDistribution(popID, speciesParams[popID].rho, speciesParams[popID].T, vxCellCenter - vDrift[0], vyCellCenter - vDrift[1], vzCellCenter - vDrift[2]);
+                     }
+                  }
+               }
+               break;
+               
          }
 
          // Block adjust and recalculate moments
-         cell.adjustSingleCellVelocityBlocks(popID);
+         mpiGrid[cellID]->adjustSingleCellVelocityBlocks(popID);
          // TODO: The moments can also be analytically calculated from ionosphere parameters.
          // Maybe that's faster?
          calculateCellMoments(mpiGrid[cellID], true, true);

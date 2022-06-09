@@ -46,6 +46,15 @@ namespace SBC {
       uint nVelocitySamples;
    };
 
+   enum IonosphereBoundaryVDFmode { // How are inner boundary VDFs constructed from the ionosphere
+      FixedMoments,      // Predefine temperature, density and V = 0 on the inner boundary.
+      AverageMoments,    // Copy averaged density and temperature from nearest cells, V = 0 
+      AverageAllMoments, // Same as above, but also copy V
+      CopyAndLosscone
+   };
+   extern IonosphereBoundaryVDFmode boundaryVDFmode;
+
+
    static const int MAX_TOUCHING_ELEMENTS = 12; // Maximum number of elements touching one node
    static const int MAX_DEPENDING_NODES = 22;   // Maximum number of depending nodes
 
