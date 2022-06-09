@@ -617,15 +617,15 @@ namespace projects {
       int myRank;       
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
-      std::vector<CellID> cells = getLocalCells();
-      std::map<CellID, SpatialCell*> cellsMap;
+      auto cells = getLocalCells();
+      std::map<CellID, SpatialCell> cellsMap;
       for (CellID id : cells) {
          if (mpiGrid[id]->parameters[CellParams::RECENTLY_REFINED]) {
-            cellsMap[id] = new SpatialCell(*mpiGrid[id]);
+            cellsMap.insert({id, *mpiGrid[id]});
          }
       }
 
-      for (std::pair<CellID, SpatialCell*> cellPair : cellsMap) {
+      for (auto cellPair : cellsMap) {
          CellID id = cellPair.first;
          const std::vector<std::pair<CellID, std::array<int, 4>>>* neighbours = mpiGrid.get_neighbors_of(id, NEAREST_NEIGHBORHOOD_ID);
 
@@ -645,7 +645,7 @@ namespace projects {
          // In boxcar filter, we take the average of each of the neighbours and the cell itself. For each missing neighbour, add the cell one more time
          Real fluffiness = (Real) refinedNeighbours.size() / 27.0;
          for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-            SBC::averageCellData(mpiGrid, refinedNeighbours, cellPair.second, popID, fluffiness);
+            SBC::averageCellData(mpiGrid, refinedNeighbours, &cellPair.second, popID, fluffiness);
          }
 
          // Averaging moments
@@ -654,19 +654,16 @@ namespace projects {
             if (param == CellParams::BGBXVOL) {
                param = CellParams::RHOM_R;   // Skip FG stuff
             }
-            cellPair.second->parameters[param] *= (1.0 - fluffiness);
+            cellPair.second.parameters[param] *= (1.0 - fluffiness);
             for (CellID id : refinedNeighbours) {
-               cellPair.second->parameters[param] += mpiGrid[id]->parameters[param] / 27.0;
+               cellPair.second.parameters[param] += mpiGrid[id]->parameters[param] / 27.0;
             }
          }
       }
 
-      for (std::pair<CellID, SpatialCell*> cellPair : cellsMap) {
-         *mpiGrid[cellPair.first] = *cellPair.second;
+      for (auto cellPair : cellsMap) {
+         *mpiGrid[cellPair.first] = cellPair.second;
          mpiGrid[cellPair.first]->parameters[CellParams::RECENTLY_REFINED] = 0;
-         
-         delete cellPair.second;
-         cellPair.second = nullptr;
       }
 
       if (myRank == MASTER_RANK) {
