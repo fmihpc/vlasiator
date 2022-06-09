@@ -80,7 +80,8 @@ void cuda_accelerate_cell(SpatialCell* spatial_cell,
    phiprof::start("CUDA-HtoD");
    // Check that enough memory is alocated
    blockContainer.dev_Allocate(vmesh.size());
-   blockContainer.dev_syncToDevice();
+   blockContainer.dev_pinBlocks();
+   blockContainer.dev_syncBlocksToDevice();
    const uint thread_id = omp_get_thread_num();
    //cudaStream_t cudaThreadStream;
    //cudaStreamCreate(&cudaThreadStream);
@@ -172,12 +173,12 @@ void cuda_accelerate_cell(SpatialCell* spatial_cell,
 
    // Transfer data back
    phiprof::start("CUDA-DtoH");
-   blockContainer.dev_unpin();
-   blockContainer.dev_syncToHost();
+   //blockContainer.dev_unpin();
+   blockContainer.dev_syncBlocksToHost();
    //cuda_acc_copy_DtoH(spatial_cell, popID, cudaStreamList[thread_id]);
    //cudaStreamDestroy(cudaThreadStream);
-   cudaStreamSynchronize(cudaStreamList[thread_id]);
-   blockContainer.dev_unpin();
+   //cudaStreamSynchronize(cudaStreamList[thread_id]);
+   //blockContainer.dev_unpin();
    phiprof::stop("CUDA-DtoH");
 
 //   if (Parameters::prepareForRebalance == true) {

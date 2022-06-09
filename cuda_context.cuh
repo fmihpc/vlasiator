@@ -59,21 +59,36 @@ void cudaDeallocateBlockData(
 void cuda_HtoD_BlockData(
    Realf* dev_blockData,
    Realf* blockData,
-   Real* dev_parameters,
-   Real* parameters,
    vmesh::LocalID blockCount
    );
-
 void cuda_DtoH_BlockData(
    Realf* dev_blockData,
    Realf* blockData,
+   vmesh::LocalID blockCount
+   );
+void cuda_HtoD_BlockParameters(
+   Real* dev_parameters,
+   Real* parameters,
+   vmesh::LocalID blockCount
+   );
+void cuda_DtoH_BlockParameters(
    Real* dev_parameters,
    Real* parameters,
    vmesh::LocalID blockCount
    );
 
-void cuda_unregister_BlockData(
+void cuda_register_BlockData(
    Realf* blockData,
+   uint blockCount
+   );
+void cuda_unregister_BlockData(
+   Realf* blockData
+   );
+void cuda_register_BlockParameters(
+   Real* parameters,
+   uint blockCount
+   );
+void cuda_unregister_BlockParameters(
    Real* parameters
    );
 

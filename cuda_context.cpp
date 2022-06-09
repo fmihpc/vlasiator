@@ -102,43 +102,66 @@ __host__ void cudaDeallocateBlockData(
    HANDLE_ERROR( cudaFree(*dev_parameters) );
 }
 
-/** In the following functions we do not yet copy over blockparameters as they are only edited / used on the host for now.
- **/
-
 __host__ void cuda_HtoD_BlockData(
    Realf* dev_blockData,
    Realf* blockData,
-   Real* dev_parameters,
-   Real* parameters,
    vmesh::LocalID blockCount
    ) {
    const uint thread_id = omp_get_thread_num();
-   cudaHostRegister(blockData, blockCount*WID3*sizeof(Realf),cudaHostRegisterDefault);
-   //cudaHostRegister(parameters, blockCount*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Realf),cudaHostRegisterDefault);
 
    cudaMemcpyAsync(dev_blockData, blockData, blockCount*WID3*sizeof(Realf), cudaMemcpyHostToDevice, cudaStreamList[thread_id]);
-   //cudaMemcpyAsync(dev_parameters, parameters, blockCount*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Realf), cudaMemcpyHostToDevice, cudaStreamList[thread_id]);
 }
 
 __host__ void cuda_DtoH_BlockData(
    Realf* dev_blockData,
    Realf* blockData,
+   vmesh::LocalID blockCount
+   ) {
+   const uint thread_id = omp_get_thread_num();
+
+   cudaMemcpyAsync(blockData, dev_blockData, blockCount*WID3*sizeof(Realf), cudaMemcpyDeviceToHost, cudaStreamList[thread_id]);
+}
+
+__host__ void cuda_HtoD_BlockParameters(
    Real* dev_parameters,
    Real* parameters,
    vmesh::LocalID blockCount
    ) {
    const uint thread_id = omp_get_thread_num();
-   cudaHostRegister(blockData, blockCount*WID3*sizeof(Realf),cudaHostRegisterDefault);
-   //cudaHostRegister(parameters, blockCount*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Realf),cudaHostRegisterDefault);
 
-   cudaMemcpyAsync(blockData, dev_blockData, blockCount*WID3*sizeof(Realf), cudaMemcpyDeviceToHost, cudaStreamList[thread_id]);
-   //cudaMemcpyAsync(parameters, dev_parameters, blockCount*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Realf), cudaMemcpyDeviceToHost, cudaStreamList[thread_id]);
+   cudaMemcpyAsync(dev_parameters, parameters, blockCount*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Realf), cudaMemcpyHostToDevice, cudaStreamList[thread_id]);
+}
+
+__host__ void cuda_DtoH_BlockParameters(
+   Real* dev_parameters,
+   Real* parameters,
+   vmesh::LocalID blockCount
+   ) {
+   const uint thread_id = omp_get_thread_num();
+
+   cudaMemcpyAsync(parameters, dev_parameters, blockCount*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Realf), cudaMemcpyDeviceToHost, cudaStreamList[thread_id]);
+}
+
+__host__ void cuda_register_BlockData(
+   Realf* blockData,
+   uint blockCount
+   ) {
+   cudaHostRegister(blockData, blockCount*WID3*sizeof(Realf),cudaHostRegisterDefault);
+}
+__host__ void cuda_register_BlockParameters(
+   Real* parameters,
+   uint blockCount
+   ) {
+   cudaHostRegister(parameters, blockCount*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Realf),cudaHostRegisterDefault);
 }
 
 __host__ void cuda_unregister_BlockData(
-   Realf* blockData,
-   Real* parameters
+   Realf* blockData
    ) {
    cudaHostUnregister(blockData);
+}
+__host__ void cuda_unregister_BlockParameters(
+   Real* parameters
+   ) {
    cudaHostUnregister(parameters);
 }

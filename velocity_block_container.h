@@ -85,9 +85,14 @@ namespace vmesh {
       void dev_Deallocate();
       void dev_Allocate(LID size);
       void dev_Allocate();
-      void dev_syncToHost();
-      void dev_syncToDevice();
-      void dev_unpin();
+      void dev_syncBlocksToHost();
+      void dev_syncBlocksToDevice();
+      void dev_syncParametersToHost();
+      void dev_syncParametersToDevice();
+      void dev_pinBlocks();
+      void dev_unpinBlocks();
+      void dev_pinParameters();
+      void dev_unpinParameters();
       // Also add CUDA-capable version of vmesh when CUDA openhashmap is available
 #endif
 
@@ -132,6 +137,8 @@ namespace vmesh {
       dev_Deallocate();
       delete[] dev_block_data;
       delete[] dev_parameters;
+      dev_unpinBlocks();
+      dev_unpinParameters();
    }
 #endif
 
@@ -156,6 +163,8 @@ namespace vmesh {
       parameters.swap(dummy_parameters);
 #ifdef USE_CUDA
       dev_Deallocate();
+      dev_unpinBlocks();
+      dev_unpinParameters();
 #endif
       currentCapacity = 0;
       numberOfBlocks = 0;
@@ -337,30 +346,72 @@ namespace vmesh {
    }
 
    template<typename LID> inline
-   void VelocityBlockContainer<LID>::dev_syncToHost() {
+   void VelocityBlockContainer<LID>::dev_syncBlocksToHost() {
       if (numberOfBlocks==0) return;
       if (dev_allocatedSize == 0) {
          std::cerr<<"Error in "<<__FILE__<<" line "<<__LINE__<<": attempting to syncToHost without allocated GPU memory"<<std::endl;
          abort();
       }
-      cuda_DtoH_BlockData(dev_block_data, block_data.data(), dev_parameters, parameters.data(), numberOfBlocks);
+      cuda_DtoH_BlockData(dev_block_data, block_data.data(), numberOfBlocks);
       return;
    }
 
    template<typename LID> inline
-   void VelocityBlockContainer<LID>::dev_syncToDevice() {
+   void VelocityBlockContainer<LID>::dev_syncBlocksToDevice() {
       if (numberOfBlocks==0) return;
       if (dev_allocatedSize == 0) {
          std::cerr<<"Error in "<<__FILE__<<" line "<<__LINE__<<": attempting to syncToDevice without allocated GPU memory"<<std::endl;
          abort();
       }
-      cuda_HtoD_BlockData(dev_block_data, block_data.data(), dev_parameters, parameters.data(), numberOfBlocks);
+      cuda_HtoD_BlockData(dev_block_data, block_data.data(), numberOfBlocks);
       return;
    }
 
    template<typename LID> inline
-   void VelocityBlockContainer<LID>::dev_unpin() {
-      cuda_unregister_BlockData(block_data.data(), parameters.data());
+   void VelocityBlockContainer<LID>::dev_syncParametersToHost() {
+      if (numberOfBlocks==0) return;
+      if (dev_allocatedSize == 0) {
+         std::cerr<<"Error in "<<__FILE__<<" line "<<__LINE__<<": attempting to syncToHost without allocated GPU memory"<<std::endl;
+         abort();
+      }
+      cuda_DtoH_BlockParameters(dev_parameters, parameters.data(), numberOfBlocks);
+      return;
+   }
+
+   template<typename LID> inline
+   void VelocityBlockContainer<LID>::dev_syncParametersToDevice() {
+      if (numberOfBlocks==0) return;
+      if (dev_allocatedSize == 0) {
+         std::cerr<<"Error in "<<__FILE__<<" line "<<__LINE__<<": attempting to syncToDevice without allocated GPU memory"<<std::endl;
+         abort();
+      }
+      cuda_HtoD_BlockParameters(dev_parameters, parameters.data(), numberOfBlocks);
+      return;
+   }
+
+   template<typename LID> inline
+   void VelocityBlockContainer<LID>::dev_pinBlocks() {
+      //cuda_register_BlockData(block_data.data(), numberOfBlocks);
+      cuda_register_BlockData(block_data.data(), currentCapacity);
+   return;
+   }
+
+   template<typename LID> inline
+   void VelocityBlockContainer<LID>::dev_unpinBlocks() {
+      cuda_unregister_BlockData(block_data.data());
+      return;
+   }
+
+   template<typename LID> inline
+   void VelocityBlockContainer<LID>::dev_pinParameters() {
+      //cuda_register_BlockParameters(parameters.data(), numberOfBlocks);
+      cuda_register_BlockParameters(parameters.data(), currentCapacity);
+      return;
+   }
+
+   template<typename LID> inline
+   void VelocityBlockContainer<LID>::dev_unpinParameters() {
+      cuda_unregister_BlockParameters(parameters.data());
       return;
    }
 
@@ -447,6 +498,10 @@ namespace vmesh {
    template<typename LID> inline
    bool VelocityBlockContainer<LID>::recapacitate(const LID& newCapacity) {
       if (newCapacity < numberOfBlocks) return false;
+#ifdef USE_CUDA
+      dev_unpinBlocks();
+      dev_unpinParameters();
+#endif
       {
          std::vector<Realf,aligned_allocator<Realf,WID3> > dummy_data(newCapacity*WID3);
          for (size_t i=0; i<numberOfBlocks*WID3; ++i) dummy_data[i] = block_data[i];
@@ -458,7 +513,11 @@ namespace vmesh {
          dummy_parameters.swap(parameters);
       }
       currentCapacity = newCapacity;
-      return true;
+#ifdef USE_CUDA
+      dev_pinBlocks();
+      dev_pinParameters();
+#endif
+   return true;
    }
 
    template<typename LID> inline
@@ -467,9 +526,17 @@ namespace vmesh {
          // Resize so that free space is block_allocation_chunk blocks,
          // and at least two in case of having zero blocks.
          // The order of velocity blocks is unaltered.
+#ifdef USE_CUDA
+         dev_unpinBlocks();
+         dev_unpinParameters();
+#endif
          currentCapacity = 2 + numberOfBlocks * BLOCK_ALLOCATION_FACTOR;
          block_data.resize(currentCapacity*WID3);
          parameters.resize(currentCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS);
+#ifdef USE_CUDA
+         dev_pinBlocks();
+         dev_pinParameters();
+#endif
       }
    }
 
@@ -494,6 +561,10 @@ namespace vmesh {
 
    template<typename LID> inline
    void VelocityBlockContainer<LID>::swap(VelocityBlockContainer& vbc) {
+#ifdef USE_CUDA
+      dev_unpinBlocks();
+      dev_unpinParameters();
+#endif
       block_data.swap(vbc.block_data);
       parameters.swap(vbc.parameters);
 
@@ -509,6 +580,13 @@ namespace vmesh {
       uint32_t dummy2 = *dev_block_data;
       *dev_block_data = *vbc.dev_block_data;
       *vbc.dev_block_data = dummy2;
+
+      dummy2 = *dev_parameters;
+      *dev_parameters = *vbc.dev_parameters;
+      *vbc.dev_parameters = dummy2;
+
+      dev_pinBlocks();
+      dev_pinParameters();
 #endif
    }
 
