@@ -94,6 +94,9 @@ namespace vmesh {
       void dev_pinParameters();
       void dev_unpinParameters();
       // Also add CUDA-capable version of vmesh when CUDA openhashmap is available
+
+      bool dev_needsUpdatingBlocks;
+      bool dev_needsUpdatingParameters;
 #endif
 
       #ifdef DEBUG_VBC
@@ -116,6 +119,8 @@ namespace vmesh {
       LID dev_allocatedSize;
       Realf *dev_block_data;
       Real *dev_parameters;
+      bool pinnedBlocks;
+      bool pinnedParameters;
 #endif
 
    };
@@ -128,6 +133,10 @@ namespace vmesh {
       dev_allocatedSize = 0;
       dev_block_data = new Realf();
       dev_parameters = new Real();
+      pinnedBlocks = false;
+      pinnedParameters = false;
+      dev_needsUpdatingBlocks = true;
+      dev_needsUpdatingParameters = true;
 #endif
    }
 
@@ -359,11 +368,13 @@ namespace vmesh {
    template<typename LID> inline
    void VelocityBlockContainer<LID>::dev_syncBlocksToDevice() {
       if (numberOfBlocks==0) return;
+      if (!dev_needsUpdatingBlocks) return;
       if (dev_allocatedSize == 0) {
          std::cerr<<"Error in "<<__FILE__<<" line "<<__LINE__<<": attempting to syncToDevice without allocated GPU memory"<<std::endl;
          abort();
       }
       cuda_HtoD_BlockData(dev_block_data, block_data.data(), numberOfBlocks);
+      dev_needsUpdatingBlocks = false;
       return;
    }
 
@@ -381,37 +392,53 @@ namespace vmesh {
    template<typename LID> inline
    void VelocityBlockContainer<LID>::dev_syncParametersToDevice() {
       if (numberOfBlocks==0) return;
+      if (!dev_needsUpdatingParameters) return;
       if (dev_allocatedSize == 0) {
          std::cerr<<"Error in "<<__FILE__<<" line "<<__LINE__<<": attempting to syncToDevice without allocated GPU memory"<<std::endl;
          abort();
       }
       cuda_HtoD_BlockParameters(dev_parameters, parameters.data(), numberOfBlocks);
+      dev_needsUpdatingParameters = false;
       return;
    }
 
    template<typename LID> inline
    void VelocityBlockContainer<LID>::dev_pinBlocks() {
       //cuda_register_BlockData(block_data.data(), numberOfBlocks);
+      if (pinnedBlocks) {
+         cuda_unregister_BlockData(block_data.data());
+      }
       cuda_register_BlockData(block_data.data(), currentCapacity);
+      pinnedBlocks = true;
    return;
    }
 
    template<typename LID> inline
    void VelocityBlockContainer<LID>::dev_unpinBlocks() {
-      cuda_unregister_BlockData(block_data.data());
+      if (pinnedBlocks) {
+         cuda_unregister_BlockData(block_data.data());
+      }
+      pinnedBlocks = false;
       return;
    }
 
    template<typename LID> inline
    void VelocityBlockContainer<LID>::dev_pinParameters() {
       //cuda_register_BlockParameters(parameters.data(), numberOfBlocks);
+      if (pinnedParameters) {
+         cuda_unregister_BlockParameters(parameters.data());
+      }
       cuda_register_BlockParameters(parameters.data(), currentCapacity);
+      pinnedParameters = true;
       return;
    }
 
    template<typename LID> inline
    void VelocityBlockContainer<LID>::dev_unpinParameters() {
-      cuda_unregister_BlockParameters(parameters.data());
+      if (pinnedParameters) {
+         cuda_unregister_BlockParameters(parameters.data());
+      }
+      pinnedParameters = false;
       return;
    }
 

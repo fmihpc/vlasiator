@@ -701,7 +701,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
       Real density_post_adjust=0.0;
       CellID cell_id=cellsToAdjust[i];
       SpatialCell* cell = mpiGrid[cell_id];
-      
+
       // gather spatial neighbor list and create vector with pointers to neighbor spatial cells
       const auto* neighbors = mpiGrid.get_neighbors_of(cell_id, NEAREST_NEIGHBORHOOD_ID);
       // Note: at AMR refinement boundaries this can cause blocks to propagate further than absolutely required
@@ -732,6 +732,12 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
             }
          }
       }
+#ifdef USE_CUDA
+      // Flag cell data as updated on host
+      vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
+      blockContainer.dev_needsUpdatingBlocks = true;
+      blockContainer.dev_needsUpdatingParameters = true;
+#endif
    }
    phiprof::stop("Adjusting blocks");
 

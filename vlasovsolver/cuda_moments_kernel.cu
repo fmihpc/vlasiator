@@ -104,6 +104,7 @@ __global__ void moments_first_kernel(
       const Real DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
 
       for (uint blockLID=blocki; blockLID<nBlocks; blockLID += cudaBlocks) {
+         if (blockLID >= nBlocks) break;
          Real* blockParams = dev_momentInfos[popID].parameterPointer + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
          Realf* avgs = dev_momentInfos[popID].meshDataPointer +blockLID*WID3;
          const Real VX = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
@@ -167,9 +168,9 @@ __global__ void moments_second_kernel(
 
    const uint offset = blocki*nMoments2*(nPopulations+1);
    if (ti==0) {
-      dev_momentArrays2[offset + nPopulations*nMoments2 + 5] = 0;
-      dev_momentArrays2[offset + nPopulations*nMoments2 + 6] = 0;
-      dev_momentArrays2[offset + nPopulations*nMoments2 + 7] = 0;
+      dev_momentArrays2[offset + nPopulations*nMoments2 + 0] = 0;
+      dev_momentArrays2[offset + nPopulations*nMoments2 + 1] = 0;
+      dev_momentArrays2[offset + nPopulations*nMoments2 + 2] = 0;
    }
 
    for (uint popID=0; popID<nPopulations; ++popID) {
@@ -184,6 +185,7 @@ __global__ void moments_second_kernel(
       const Real DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
 
       for (uint blockLID=blocki; blockLID<nBlocks; blockLID += cudaBlocks) {
+         if (blockLID >= nBlocks) break;
          Real* blockParams = dev_momentInfos[popID].parameterPointer + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
          Realf* avgs = dev_momentInfos[popID].meshDataPointer +blockLID*WID3;
          const Real VX = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
@@ -206,14 +208,14 @@ __global__ void moments_second_kernel(
          __syncthreads();
       }
       if (ti==0) {
-         dev_momentArrays2[offset + popID*nMoments2 + 5] = nvx2_sum[0] * DV3 * mass;
-         dev_momentArrays2[offset + popID*nMoments2 + 6] = nvy2_sum[0] * DV3 * mass;
-         dev_momentArrays2[offset + popID*nMoments2 + 7] = nvz2_sum[0] * DV3 * mass;
+         dev_momentArrays2[offset + popID*nMoments2 + 0] = nvx2_sum[0] * DV3 * mass;
+         dev_momentArrays2[offset + popID*nMoments2 + 1] = nvy2_sum[0] * DV3 * mass;
+         dev_momentArrays2[offset + popID*nMoments2 + 2] = nvz2_sum[0] * DV3 * mass;
 
          // Sum over all populations
-         dev_momentArrays2[offset + nPopulations*nMoments2 + 5] += nvx2_sum[0] * DV3 * mass;
-         dev_momentArrays2[offset + nPopulations*nMoments2 + 6] += nvy2_sum[0] * DV3 * mass;
-         dev_momentArrays2[offset + nPopulations*nMoments2 + 7] += nvz2_sum[0] * DV3 * mass;
+         dev_momentArrays2[offset + nPopulations*nMoments2 + 0] += nvx2_sum[0] * DV3 * mass;
+         dev_momentArrays2[offset + nPopulations*nMoments2 + 1] += nvy2_sum[0] * DV3 * mass;
+         dev_momentArrays2[offset + nPopulations*nMoments2 + 2] += nvz2_sum[0] * DV3 * mass;
       }
    }
    return;
@@ -227,7 +229,7 @@ void calculate_firstMoments_glue(
    cudaStream_t stream
    ) {
    dim3 block(WID,WID,WID);
-   moments_first_kernel<<<CUDABLOCKS, block, 0, stream>>> (
+   moments_first_kernel<<<CUDABLOCKS, block, 4*WID3*sizeof(Real), stream>>> (
       dev_momentInfos,
       dev_momentArrays1,
       nPopulations);
@@ -243,7 +245,7 @@ void calculate_secondMoments_glue(
    cudaStream_t stream
    ) {
    dim3 block(WID,WID,WID);
-   moments_second_kernel<<<CUDABLOCKS, block, 0, stream>>> (
+   moments_second_kernel<<<CUDABLOCKS, block, 3*WID3*sizeof(Real), stream>>> (
       dev_momentInfos,
       dev_momentArrays2,
       nPopulations,
