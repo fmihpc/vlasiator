@@ -27,35 +27,47 @@
 #include "cuda.h"
 #include "cuda_runtime.h"
 
-#define nMoments 8;
+#define nMoments (8)
+#define MaxPopulations (10)
 
-extern void cuda_allocateMomentCalculations();
+struct MomentInfo
+{
+   Realf* meshDataPointer;
+   Real* parameterPointer;
+   Real mass;
+   Real charge;
+   uint blockCount;
+};
+
+extern void cuda_allocateMomentCalculations(
+   const uint nPopulations,
+   const uint maxThreads
+   );
+
+inline __host__ __device__ Real divideIfNonZero(
+   Real numerator,
+   Real denominator
+) {
+   if(denominator == 0.0) {
+      return 0.0;
+   } else {
+      return numerator / denominator;
+   }
+}
 
 void calculate_moments_glue(
-   Realf* dev_meshDataPointers,
-   Real* dev_parameterPointers,
-   uint* dev_blockCounts,
-   Real* dev_masses,
-   Real* dev_charges,
+   MomentInfo *dev_momentInfos,
    Real* dev_momentArrays,
    const int nPopulations,
    const bool computeSecond,
    cudaStream_t stream
    );
 
-extern Realf *dev_meshDataPointers[];
-extern Real *dev_parameterPointers[];
-extern Real *dev_masses[];
-extern Real *dev_charges[];
-extern uint *dev_blockCounts[];
-extern Real *dev_momentArrays[];
+extern MomentInfo *dev_momentInfos[];
+extern MomentInfo *host_momentInfos[];
 
-extern std::vector<Realf*> *meshDataPointers[];
-extern std::vector<Real*> *parameterPointers[];
-extern std::vector<Real> *masses[];
-extern std::vector<Real> *charges[];
-extern std::vector<uint> *blockCounts[];
-extern std::vector<std::array<Real,nMoments> > *momentArrays[];
+extern Real *dev_momentArrays[];
+extern Real *host_momentArrays[];
 
 extern bool isCudaMomentsAllocated;
 

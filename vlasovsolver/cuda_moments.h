@@ -39,5 +39,10 @@ void cuda_calculateMoments_V(
         const std::vector<CellID>& cells,
         const bool& computeSecond);
 
+void cuda_calculateMoments_R(
+        dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+        const std::vector<CellID>& cells,
+        const bool& computeSecond);
+
 
 #endif

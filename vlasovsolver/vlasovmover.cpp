@@ -46,9 +46,9 @@
 #include "cpu_trans_map_amr.hpp"
 
 #ifdef USE_CUDA
-#include "vlasovsolver/cuda_acc_map_kernel.cuh"
+#include "cuda_acc_map_kernel.cuh"
 #include "cuda_acc_semilag.hpp"
-#include "cuda_moments.hpp"
+#include "cuda_moments.h"
 #endif
 
 using namespace std;
@@ -348,7 +348,11 @@ void calculateSpatialTranslation(
 
    // Mapping complete, update moments and maximum dt limits //
 momentCalculation:
-   calculateMoments_R(mpiGrid,localCells,true);
+#ifdef USE_CUDA
+   cuda_calculateMoments_R(mpiGrid, localCells, true);
+#else
+   calculateMoments_R(mpiGrid, localCells, true);
+#endif
 
    phiprof::stop("semilag-trans");
 }
@@ -381,7 +385,7 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
    cuda_calculateMoments_V(mpiGrid, propagatedCells, false);
 #else
    calculateMoments_V(mpiGrid, propagatedCells, false);
-##endif
+#endif
 
    //generate pseudo-random order which is always the same irrespective of parallelization, restarts, etc.
    std::size_t rndInt = std::hash<uint>()(P::tstep);

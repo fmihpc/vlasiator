@@ -154,6 +154,7 @@ LIBS += ${LIB_PAPI}
 # Define common dependencies
 DEPS_COMMON = common.h common.cpp definitions.h mpiconversion.h logger.h object_wrapper.h
 DEPS_CELL   = spatial_cell.hpp velocity_mesh_old.h velocity_mesh_amr.h velocity_block_container.h open_bucket_hashtable.h
+DEPS_GRID   = sysboundary/sysboundary.h
 
 # Define common system boundary condition dependencies
 DEPS_SYSBOUND = ${DEPS_COMMON} ${DEPS_CELL} sysboundary/sysboundarycondition.h sysboundary/sysboundarycondition.cpp
@@ -259,8 +260,10 @@ endif
 ifeq ($(USE_CUDA),1)
 	OBJS += cuda_acc_map_kernel.o cuda_acc_map.o cuda_acc_semilag.o cuda_acc_sort_blocks.o \
 		cudalink_acc_map.o cudalink_acc_kernel.o cudalink_acc_semilag.o cuda_context.o cudalink_context.o \
-		cudalink_moments.p cudalink_moments_kernel.o
-	DEPS_VLSVMOVER += vlasovsolver/cuda_acc_map.hpp vlasovsolver/cuda_acc_semilag.hpp cuda_context.cuh
+		cuda_moments.o cudalink_moments.o cuda_moments_kernel.o cudalink_moments_kernel.o
+	DEPS_VLSVMOVER += vlasovsolver/cuda_acc_map.hpp vlasovsolver/cuda_acc_semilag.hpp cuda_context.cuh \
+		vlasovsolver/cuda_moments.h
+	DEPS_GRID += vlasovsolver/cuda_moments_kernel.cuh
 endif
 
 # Add field solver objects
@@ -461,10 +464,10 @@ cuda_context.o: ${DEPS_CUDA_CONTEXT}
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c cuda_context.cpp
 
 cuda_moments_kernel.o: ${DEPS_CUDA_MOMENTS_KERNEL}
-	${NVCC} ${NVCCFLAGS} -D${VECTORCLASS} -dc vlasovsolver/cuda_moments_kernel.cu
+	${NVCC} ${NVCCFLAGS} -D${VECTORCLASS} -dc vlasovsolver/cuda_moments_kernel.cu ${INC_FSGRID}
 
 cuda_moments.o: ${DEPS_CUDA_MOMENTS} ${DEPS_CUDA_MOMENTS_KERNEL}
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cuda_moments.cpp ${INC_DCCRG} ${INC_PROFILE} ${LIB_CUDA}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cuda_moments.cpp ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_FSGRID} ${LIB_CUDA}
 
 endif
 
@@ -530,7 +533,7 @@ gridGlue.o: ${DEPS_FSOLVER} fieldsolver/gridGlue.hpp fieldsolver/gridGlue.cpp
 vlasiator.o: ${DEPS_COMMON} readparameters.h parameters.h ${DEPS_PROJECTS} grid.h vlasovmover.h ${DEPS_CELL} vlasiator.cpp iowrite.h fieldsolver/gridGlue.hpp
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c vlasiator.cpp ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_VECTORCLASS}
 
-grid.o:  ${DEPS_COMMON} parameters.h ${DEPS_PROJECTS} ${DEPS_CELL} grid.cpp grid.h  sysboundary/sysboundary.h
+grid.o:  ${DEPS_COMMON} parameters.h ${DEPS_PROJECTS} ${DEPS_CELL} ${DEPS_GRID} grid.cpp grid.h
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c grid.cpp ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_PAPI} ${INC_VECTORCLASS}
 
 ioread.o:  ${DEPS_COMMON} parameters.h  ${DEPS_CELL} ioread.cpp ioread.h
