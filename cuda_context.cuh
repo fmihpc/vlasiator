@@ -40,6 +40,13 @@ static void HandleError( cudaError_t err, const char *file, int line )
     }
 }
 
+#define DIMS 1
+#ifndef CUDABLOCKS
+#  define CUDABLOCKS (64)
+#endif
+#ifndef CUDATHREADS
+#  define CUDATHREADS (32) // NVIDIA: 32 AMD: 64
+#endif
 
 void cuda_set_device();
 

@@ -46,14 +46,6 @@ extern void reorder_blocks_by_dimension_glue(
    const int cudathreads,
    cudaStream_t stream);
 
-#define DIMS 1
-#ifndef CUDABLOCKS
-#  define CUDABLOCKS (64)
-#endif
-#ifndef CUDATHREADS
-#  define CUDATHREADS (32) // NVIDIA: 32 AMD: 64
-#endif
-
 extern void cuda_acc_allocate (
    uint maxBlockCount
    );

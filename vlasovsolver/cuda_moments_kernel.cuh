@@ -27,7 +27,8 @@
 #include "cuda.h"
 #include "cuda_runtime.h"
 
-#define nMoments (8)
+#define nMoments1 (5)
+#define nMoments2 (3)
 #define MaxPopulations (10)
 
 struct MomentInfo
@@ -55,19 +56,30 @@ inline __host__ __device__ Real divideIfNonZero(
    }
 }
 
-void calculate_moments_glue(
+void calculate_firstMoments_glue(
    MomentInfo *dev_momentInfos,
-   Real* dev_momentArrays,
+   Real* dev_momentArrays1,
    const int nPopulations,
-   const bool computeSecond,
+   cudaStream_t stream
+   );
+
+void calculate_secondMoments_glue(
+   MomentInfo *dev_momentInfos,
+   Real* dev_momentArrays2,
+   const int nPopulations,
+   const Real bulkVX,
+   const Real bulkVY,
+   const Real bulkVZ,
    cudaStream_t stream
    );
 
 extern MomentInfo *dev_momentInfos[];
 extern MomentInfo *host_momentInfos[];
 
-extern Real *dev_momentArrays[];
-extern Real *host_momentArrays[];
+extern Real *dev_momentArrays1[];
+extern Real *host_momentArrays1[];
+extern Real *dev_momentArrays2[];
+extern Real *host_momentArrays2[];
 
 extern bool isCudaMomentsAllocated;
 
