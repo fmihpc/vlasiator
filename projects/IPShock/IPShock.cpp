@@ -517,7 +517,7 @@ namespace projects {
    }
 
 
-   bool IPShock::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+   bool IPShock::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
  
      int myRank;       
      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);

@@ -196,7 +196,7 @@ OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipo
 	IPShock.o object_wrapper.o\
 	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o vlasiator.o logger.o\
 	common.o parameters.o readparameters.o spatial_cell.o mesh_data_container.o\
-	vlasovmover.o $(FIELDSOLVER).o fs_common.o fs_limiters.o gridGlue.o
+	vlasovmover.o $(FIELDSOLVER).o fs_common.o fs_limiters.o gridGlue.o vlsvreaderinterface.o
 
 # Add Vlasov solver objects (depend on mesh: AMR or non-AMR)
 ifeq ($(MESH),AMR)

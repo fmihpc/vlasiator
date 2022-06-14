@@ -46,7 +46,7 @@ namespace projects {
    protected:
       Real sign(creal value) const;
       Real getDistribValue(creal& vx, creal& vy, creal& vz);
-      bool refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
+      bool refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
       virtual Real calcPhaseSpaceDensity(
          creal& x, creal& y, creal& z,

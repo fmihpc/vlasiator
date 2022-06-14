@@ -98,9 +98,15 @@ namespace projects {
       std::vector<ElVentanaSpeciesParameters> speciesParams;
       vlsv::ParallelReader vlsvParaReader;
       vlsv::Reader vlsvSerialReader;
-      uint64_t vecsizeperturbed_B, vecsizebackground_B, vecsizeE, vecsizemoments, vecsizebulkv, vecsizepressure; 
-      CellID findCellID(spatial_cell::SpatialCell *cell) const;
+      uint64_t vecsizepressure;
       CellID findCellIDXYZ(creal x, creal y, creal z) const;
+
+      Real* readVar(std::string varname, CellID fileOffset, uint64_t &vecsize);
+      std::string pickVarName(const std::string &grid, const std::list<std::string> &varNames);
+      bool readGridSize(std::array<double, 3> &fileMin, std::array<double, 3> &fileMax, std::array<uint64_t, 3> &fileCells, std::array<double, 3> &fileDx);
+      template<unsigned long int N> bool readFsGridVariable(const std::string& variableName, FsGrid<std::array<Real, N>,2>& targetGrid);
+      CellID getOldCellID(CellID newID, dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, std::array<CellID, 3> fileCells, std::array<double, 3> &fileMin, std::array<double, 3> fileD);
+      bool refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 
       //bool includeIonosphere;
       Real ionosphereRadius;
@@ -108,6 +114,9 @@ namespace projects {
       Real center[3];
       Real dipoleScalingFactor;
       uint dipoleType;
+      bool perBSet = false;
+      bool totalBRead = false;
+
    }; // class ElVentana
 } // namespace projects
 

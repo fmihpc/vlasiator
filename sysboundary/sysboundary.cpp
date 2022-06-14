@@ -38,6 +38,7 @@
 #include "static.h"
 #include "staticionosphere.h"
 #include "setmaxwellian.h"
+#include "../fieldsolver/gridGlue.hpp"
 
 using namespace std;
 using namespace spatial_cell;
@@ -366,8 +367,10 @@ bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::
 
    for (auto cellId : innerBoundaryCells) {
       if (cellId != INVALID_CELLID && mpiGrid.get_refinement_level(cellId) != innerBoundaryRefLvl) {
+         std::array<double,3> xyz = mpiGrid.get_center(cellId);      
          cout << "Failed refinement check (innerBoundary) , cellId = " << cellId << 
-         " at (" << mpiGrid[cellId]->parameters[CellParams::XCRD] << ", " << mpiGrid[cellId]->parameters[CellParams::YCRD] << ", " << mpiGrid[cellId]->parameters[CellParams::ZCRD] <<
+         //" at (" << mpiGrid[cellId]->parameters[CellParams::XCRD] << ", " << mpiGrid[cellId]->parameters[CellParams::YCRD] << ", " << mpiGrid[cellId]->parameters[CellParams::ZCRD] <<
+         " at (" << xyz[0] << ", " << xyz[1] << ", " << xyz[2] <<
          "). Cell level = " << mpiGrid.get_refinement_level(cellId) <<
          ", boundary level = " << innerBoundaryRefLvl << endl;
          return false;
@@ -376,8 +379,10 @@ bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::
 
    for (auto cellId : outerBoundaryCells) {
       if (cellId != INVALID_CELLID && mpiGrid.get_refinement_level(cellId) != outerBoundaryRefLvl) {
+         std::array<double,3> xyz = mpiGrid.get_center(cellId);      
          cout << "Failed refinement check (outerBoundary), cellId = " << cellId << 
-         " at (" << mpiGrid[cellId]->parameters[CellParams::XCRD] << ", " << mpiGrid[cellId]->parameters[CellParams::YCRD] << ", " << mpiGrid[cellId]->parameters[CellParams::ZCRD] <<
+         //" at (" << mpiGrid[cellId]->parameters[CellParams::XCRD] << ", " << mpiGrid[cellId]->parameters[CellParams::YCRD] << ", " << mpiGrid[cellId]->parameters[CellParams::ZCRD] <<
+         " at (" << xyz[0] << ", " << xyz[1] << ", " << xyz[2] <<
          "). Cell level = " << mpiGrid.get_refinement_level(cellId) <<
          ", boundary level = " << outerBoundaryRefLvl << endl;
          return false;
@@ -462,15 +467,28 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
       success = success && (*it)->assignSysBoundary(mpiGrid,technicalGrid);
    }
    
-
    // communicate boundary assignments (sysBoundaryFlag and
    // sysBoundaryLayer communicated)
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
 
+   feedBoundaryIntoFsGrid(mpiGrid, cells, technicalGrid);
+
    // set distance 1 cells to boundary cells, that have neighbors which are normal cells
    for(uint i=0; i<cells.size(); i++) {
       mpiGrid[cells[i]]->sysBoundaryLayer=0; /*Initial value*/
+
+      bool onFace = false;
+      std::array<double, 3> dx = mpiGrid.geometry.get_length(cells[i]);
+      std::array<double, 3> x = mpiGrid.get_center(cells[i]);
+      if (!isPeriodic[0] && (x[0] > Parameters::xmax - dx[0] || x[0] < Parameters::xmin + dx[0])) {
+         continue;
+      } else if (!isPeriodic[1] && (x[1] > Parameters::ymax - dx[1] || x[1] < Parameters::ymin + dx[1])) {
+         continue;
+      } else if (!isPeriodic[2] && (x[2] > Parameters::zmax - dx[2] || x[2] < Parameters::zmin + dx[2])) {
+         continue;
+      }
+
       if(mpiGrid[cells[i]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY ) {
          const auto* nbrs = mpiGrid.get_neighbors_of(cells[i],SYSBOUNDARIES_NEIGHBORHOOD_ID);
          for(uint j=0; j<(*nbrs).size(); j++) {

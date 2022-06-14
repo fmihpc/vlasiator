@@ -123,59 +123,33 @@ namespace SBC {
       vector<CellID> cells = mpiGrid.get_cells();
       for(const auto& dccrgId : cells) {
          if(mpiGrid[dccrgId]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-         creal* const cellParams = &(mpiGrid[dccrgId]->parameters[0]);
-         creal dx = cellParams[CellParams::DX];
-         creal dy = cellParams[CellParams::DY];
-         creal dz = cellParams[CellParams::DZ];
-         creal x = cellParams[CellParams::XCRD] + 0.5*dx;
-         creal y = cellParams[CellParams::YCRD] + 0.5*dy;
-         creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
+         std::array<double, 3> dx = mpiGrid.geometry.get_length(dccrgId);
+         std::array<double, 3> x = mpiGrid.get_center(dccrgId);
          
          isThisCellOnAFace.fill(false);
-         determineFace(isThisCellOnAFace.data(), x, y, z, dx, dy, dz);
+         determineFace(isThisCellOnAFace.data(), x[0], x[1], x[2], dx[0]/2, dx[1]/2, dx[2]/2);
          
          // Comparison of the array defining which faces to use and the array telling on which faces this cell is
          doAssign = false;
-         for(int j=0; j<6; j++) doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
-         if(doAssign) {
-            mpiGrid[dccrgId]->sysBoundaryFlag = this->getIndex();
-         }         
-      }
-      
-      // Assign boundary flags to local fsgrid cells
-      const std::array<int, 3> gridDims(technicalGrid.getLocalSize());  
-      for (int k=0; k<gridDims[2]; k++) {
-         for (int j=0; j<gridDims[1]; j++) {
-            for (int i=0; i<gridDims[0]; i++) {
-               const auto& coords = technicalGrid.getPhysicalCoords(i,j,k);
+         for (int j=0; j<6; j++) 
+            doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
 
-               // Shift to the center of the fsgrid cell
-               auto cellCenterCoords = coords;
-               cellCenterCoords[0] += 0.5 * technicalGrid.DX;
-               cellCenterCoords[1] += 0.5 * technicalGrid.DY;
-               cellCenterCoords[2] += 0.5 * technicalGrid.DZ;
-               const auto refLvl = mpiGrid.get_refinement_level(mpiGrid.get_existing_cell(cellCenterCoords));
-
-               if(refLvl == -1) {
-                  cerr << "Error, could not get refinement level of remote DCCRG cell " << __FILE__ << " " << __LINE__ << endl;
-               }
-               
-               creal dx = P::dx_ini * pow(2,-refLvl);
-               creal dy = P::dy_ini * pow(2,-refLvl);
-               creal dz = P::dz_ini * pow(2,-refLvl);
-
+         const auto nbrs = mpiGrid.get_face_neighbors_of(dccrgId);
+         for (uint j=0; j<nbrs.size(); j++) {
+            CellID neighbor = nbrs[j].first;
+            if (neighbor) {
+               std::array<double, 3> dx = mpiGrid.geometry.get_length(neighbor);
+               std::array<double, 3> x = mpiGrid.get_center(neighbor);
                isThisCellOnAFace.fill(false);
-               doAssign = false;
-
-               determineFace(isThisCellOnAFace.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx, dy, dz);
-               for(int iface=0; iface<6; iface++) doAssign = doAssign || (facesToProcess[iface] && isThisCellOnAFace[iface]);
-               if(doAssign) {
-                  technicalGrid.get(i,j,k)->sysBoundaryFlag = this->getIndex();
-               }
+               determineFace(isThisCellOnAFace.data(), x[0], x[1], x[2], dx[0]/2, dx[1]/2, dx[2]/2);
+               for (int j=0; j<6; j++) 
+                  doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
             }
          }
+
+         if (doAssign)
+            mpiGrid[dccrgId]->sysBoundaryFlag = this->getIndex();
       }
-      
       return true;
    }
    

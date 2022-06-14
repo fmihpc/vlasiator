@@ -523,7 +523,7 @@ namespace projects {
      Refine cells of mpiGrid. Each project that wants refinement shoudl implement this function. 
      Base class function prints a warning and does nothing.
     */
-   bool Project::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+   bool Project::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       if (myRank == MASTER_RANK) {
