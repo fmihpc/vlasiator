@@ -187,7 +187,7 @@ struct Parameters {
    static Realf amrBoxCenterZ;
    static bool amrTransShortPencils;        /*!< Use short or longpencils in AMR translation.*/
    static std::vector<std::string> blurPassString;
-   static std::map<int,int> numPasses;
+   static std::vector<int> numPasses;
 
    /*! \brief Add the global parameters.
     *
