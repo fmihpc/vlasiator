@@ -589,10 +589,10 @@ void Parameters::getParameters() {
             numPasses.push_back(maxPasses);
             maxPasses/=2; 
          }
-         P::maxFilteringPasses = numPasses[0];
          //Overwrite passes for the highest refLevel. We do not want to filter there.
          numPasses[P::amrMaxSpatialRefLevel] = 0;
       }
+         P::maxFilteringPasses = numPasses[0];
    }
 
    if (geometryString == "XY4D") {
