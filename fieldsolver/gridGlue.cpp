@@ -186,11 +186,15 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                      for (int a=-kernelOffset; a<=kernelOffset; a++){
                         cell = momentsGrid.get(i+a,j+b,k+c);
                         for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
-                           swap->at(e)+=cell->at(e) *kernel[kernelOffset+a][kernelOffset+b][kernelOffset+c]/kernelSum;
+                           swap->at(e)+=cell->at(e) *kernel[kernelOffset+a][kernelOffset+b][kernelOffset+c];
                         } 
                      }
                   }
                }//inner filtering loop
+               //divide by the total kernel sum
+               for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
+                  swap->at(e)/=kernelSum;
+               }
             }
          }
       } //spatial loops
