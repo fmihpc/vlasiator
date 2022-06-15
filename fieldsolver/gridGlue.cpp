@@ -107,7 +107,7 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const int stencilWidth = 5;   // dimension size of a 3D kernel
    const int kernelOffset = 2;   // offset of 5 pointstencil 3D kernel => (floor(stencilWidth/2);)
    const Real kernelSum=729.0;
-   const Real kernel[5][5][5] ={
+   const static Real kernel[5][5][5] ={
                                  {{ 1,  2,  3,  2,  1},
                                  { 2,  4,  6,  4,  2},
                                  { 3,  6,  9,  6,  3},
@@ -160,12 +160,11 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                //  Get refLevel level
                int refLevel = technicalGrid.get(i, j, k)->refLevel;
 
-               //  Get refLevel level
                // Skip pass
-               if (blurPass >= P::numPasses[refLevel] ||
+               if (blurPass >= P::numPasses.at(refLevel) ||
                   technicalGrid.get(i, j, k)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
                   (technicalGrid.get(i, j, k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
-                  technicalGrid.get(i, j, k)->sysBoundaryLayer == 2)
+                  technicalGrid.get(i, j, k)->sysBoundaryLayer >= 2)
                )
                {
                   continue;

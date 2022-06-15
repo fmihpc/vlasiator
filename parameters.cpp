@@ -155,7 +155,7 @@ Realf P::amrBoxCenterX = 0.0;
 Realf P::amrBoxCenterY = 0.0;
 Realf P::amrBoxCenterZ = 0.0;
 vector<string> P::blurPassString;
-std::map<int,int> P::numPasses; //reflevel,numpasses
+std::vector<int> P::numPasses; //numpasses
 
 bool P::addParameters() {
    typedef Readparameters RP;
@@ -568,15 +568,11 @@ void Parameters::getParameters() {
          }
          //sort the filtering passes per refLevel
          numPasses.clear();
-         std::sort(blurPassString.begin(), blurPassString.end(),
-                  [](const std::string& lhs, const std::string& rhs)->bool 
-                  { return (lhs.size() < rhs.size()) || (lhs.size() == rhs.size() && lhs < rhs);});
-
-         int maxPasses=stoi(blurPassString.back());
-         std::vector<std::string>::const_iterator it = blurPassString.end();
-         for (uint refLevel=0; refLevel<P::amrMaxSpatialRefLevel+1; refLevel++){
-            numPasses[refLevel] =stoi(*(--it));
+         //Parse to a vector of ints
+         for (auto pass : blurPassString){
+            P::numPasses.push_back(stoi(pass));
          }
+         sort(numPasses.begin(),numPasses.end(),greater<int>());
       }else{
          //here we will default to manually constructing the number of passes
          numPasses.clear();
@@ -590,13 +586,13 @@ void Parameters::getParameters() {
          };
          int maxPasses=g_sequence(P::amrMaxSpatialRefLevel-1);
          for (uint refLevel=0; refLevel<=P::amrMaxSpatialRefLevel; refLevel++){
-            numPasses[refLevel] =maxPasses;
+            numPasses.push_back(maxPasses);
             maxPasses/=2; 
          }
+         P::maxFilteringPasses = numPasses[0];
+         //Overwrite passes for the highest refLevel. We do not want to filter there.
+         numPasses[P::amrMaxSpatialRefLevel] = 0;
       }
-      P::maxFilteringPasses = numPasses[0];
-      //Overwrite 0 passes for the highest refLevel. We do not want to filter there.
-      numPasses[P::amrMaxSpatialRefLevel] = 0;
    }
 
    if (geometryString == "XY4D") {
