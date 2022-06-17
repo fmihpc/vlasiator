@@ -2,34 +2,30 @@ CMP = mpic++
 LNK = mpic++
 
 # Modules loaded
-# module load gcc boost jemalloc papi openmpi zoltan
+# module load gcc openmpi boost jemalloc papi
+# also load cuda/11.5.0 for nvtx support
 
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length.
 #Options:
-# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX:      VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
 # AVX512:   VEC8D_AGNER, VEC16F_AGNER
-# Fallback: VECTORCLASS = VEC_FALLBACK_GENERIC (Defaults to VECL8)
+# Fallback: VEC4D_FALLBACK, VEC4F_FALLBACK, VEC8F_FALLBACK
 
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
 #Single-precision
-#	VECTORCLASS = VEC8F_AGNER
-	VECTORCLASS = VEC16F_AGNER
-#        VECTORCLASS = VEC_FALLBACK_GENERIC
+        VECTORCLASS = VEC8F_AGNER
 else
 #Double-precision
-#	VECTORCLASS = VEC4D_AGNER
-	VECTORCLASS = VEC8D_AGNER
-#        VECTORCLASS = VEC_FALLBACK_GENERIC
+        VECTORCLASS = VEC4D_AGNER
 endif
-#===== Vector Lenghts ====
-# Default for VEC_FALLBACK_GENERIC is WID=4, VECL=8 
-#WID=8
-#VECL=32
-#WID=4
-#VECL=16
 
-FLAGS = 
+FLAGS =
+
+WID=8
+#WID=4
+#VECL=4
+VECL=8
 
 #GNU flags:
 CC_BRAND = gcc
@@ -38,8 +34,8 @@ CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -fabi
 testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0 -mfma
 
 MATHFLAGS = -ffast-math
-LDFLAGS = -lrt
-LIB_MPI = -lgomp 
+LDFLAGS = -lrt  -lnvToolsExt
+LIB_MPI = -lgomp
 
 #======== PAPI ==========
 #Add PAPI_MEM define to use papi to report memory consumption?
@@ -57,9 +53,8 @@ testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 # CXXFLAGS is for compiler flags, they are always used
 # MATHFLAGS are for special math etc. flags, these are only applied on solver functions
 # LDFLAGS flags for linker
-# Important note: Do not edit CUDAFLAGS or COMPFLAGS in this file!
 
-#-DNO_WRITE_AT_ALL:  Define to disable write at all to 
+#-DNO_WRITE_AT_ALL:  Define to disable write at all to
 #                    avoid memleak (much slower IO)
 
 # BOOST_VERSION = current trilinos version
@@ -69,28 +64,35 @@ testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 MPT_VERSION = 4.0.3
 JEMALLOC_VERSION = 5.2.1
-LIBRARY_PREFIX = /users/kempf/libraries
+LIBRARY_PREFIX = /users/kempf/libraries_rhel8_openmpi/
+LIBRARY_PREFIX2 = /projappl/project_2000203/libraries_rhel8_gcccuda/
+#LIBRARY_PREFIX2 = /projappl/project_2000203/libraries_rhel8_gcc/
 
 
 #compiled libraries
 LIB_BOOST = -lboost_program_options
 
-LIB_ZOLTAN = -lzoltan
+INC_ZOLTAN = -I$(LIBRARY_PREFIX)/zoltan/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX)/zoltan/lib
+
 
 LIB_JEMALLOC = -ljemalloc
 
 LIB_PAPI = -lpapi
 
 INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
-LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv
+LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)/vlsv
 
-LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -lgfortran -Wl,-rpath=$(LIBRARY_PREFIX)/phiprof/lib
-INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include 
+
+LIB_PROFILE = -L$(LIBRARY_PREFIX2)/phiprof/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX2)/phiprof/lib
+INC_PROFILE = -I$(LIBRARY_PREFIX2)/phiprof/include
+# LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -lgfortran -Wl,-rpath=$(LIBRARY_PREFIX)/phiprof/lib
+# INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
 
 
 #header libraries
 
-INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid/
-INC_EIGEN = -I$(LIBRARY_PREFIX)/eigen/
-INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg/
-INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass/
+INC_FSGRID = -I$(LIBRARY_PREFIX)../libraries/fsgrid/
+INC_EIGEN = -I$(LIBRARY_PREFIX)/../libraries/eigen/
+INC_DCCRG = -I$(LIBRARY_PREFIX)/../libraries/dccrg/
+INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/../libraries/vectorclass/

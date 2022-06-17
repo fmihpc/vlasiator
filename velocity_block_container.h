@@ -48,7 +48,9 @@ namespace vmesh {
     public:
 
       VelocityBlockContainer();
+#ifdef USE_CUDA
       ~VelocityBlockContainer();
+#endif
       LID capacity() const;
       size_t capacityInBytes() const;
       void clear();
