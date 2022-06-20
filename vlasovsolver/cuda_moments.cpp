@@ -145,7 +145,6 @@ void cuda_calculateMoments_V(
       cell->parameters[CellParams::VZ] = divideIfNonZero(cell->parameters[CellParams::VZ], cell->parameters[CellParams::RHOM]);
 
       if (!computeSecond) {
-         phiprof::stop("CUDA Compute _V moments");
          continue;
       }
 
@@ -307,7 +306,6 @@ void cuda_calculateMoments_R(
       cell->parameters[CellParams::VZ] = divideIfNonZero(cell->parameters[CellParams::VZ], cell->parameters[CellParams::RHOM]);
 
       if (!computeSecond) {
-         phiprof::stop("CUDA Compute _R moments");
          continue;
       }
 

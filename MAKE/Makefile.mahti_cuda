@@ -40,6 +40,7 @@ VECL=64
 #WID=4
 #VECL=4
 #VECL=8
+#VECL=16
 
 #======= Compiler and compilation flags =========
 # NOTES on compiler flags:
@@ -83,8 +84,8 @@ LIB_MPI = -lgomp
 
 #======== PAPI ==========
 #Add PAPI_MEM define to use papi to report memory consumption?
-#CXXFLAGS += -DPAPI_MEM
-#testpackage: CXXFLAGS += -DPAPI_MEM
+CXXFLAGS += -DPAPI_MEM
+testpackage: CXXFLAGS += -DPAPI_MEM
 
 #======== Allocator =========
 #Use jemalloc instead of system malloc to reduce memory fragmentation https://github.com/jemalloc/jemalloc
