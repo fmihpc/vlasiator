@@ -1409,16 +1409,26 @@ void adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
       exit(1);
    }
 
+   //SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
+   SpatialCell::set_mpi_transfer_type(Transfer::CELL_PARAMETERS);
+   mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
+
+   // Is this needed?
+   technicalGrid.updateGhostCells(); // This needs to be done at some point
+   for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
+      updateRemoteVelocityBlockLists(mpiGrid, p, NEAREST_NEIGHBORHOOD_ID);
+   }
+
+   if (P::shouldFilter) {
+      project.filterRefined(mpiGrid);
+   }
+
    // Removing this crashes on next load balance, no idea why
    balanceLoad(mpiGrid, sysBoundaries);
 
    // Should be handled by LB
    // SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
    // mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
-
-   if (P::shouldFilter) {
-      project.filterRefined(mpiGrid);
-   }
 
    phiprof::stop("Re-refine spatial cells");
 }
