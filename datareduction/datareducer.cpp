@@ -2572,6 +2572,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(lowercase == "vg_amr_reflevel") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_reflevel",CellParams::REFINEMENT_LEVEL,1));
          outputReducer->addMetadata(outputReducer->size()-1,"","","ref","");
+         continue;
       }
       if(lowercase == "ig_latitude") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_latitude", [](
