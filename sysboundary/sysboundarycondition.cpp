@@ -917,29 +917,6 @@ namespace SBC {
    /*! Get a bool telling whether to call again applyInitialState upon restarting the simulation. */
    bool SysBoundaryCondition::doApplyUponRestart() const {return this->applyUponRestart;}
 
-   //bool OuterBoundaryCondition::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   //                                FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
-   //   std::cerr << "Assigning boundary " << this->getIndex() << std::endl;
-   //   bool doAssign = false;
-   //   array<bool,6> isThisCellOnAFace;
-   //   
-   //   // Assign boundary flags to local DCCRG cells
-   //   const vector<CellID>& cells = getLocalCells();
-   //   for(const auto& dccrgId : cells) {
-   //      SpatialCell* cell = mpiGrid[dccrgId];
-   //      if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) 
-   //         continue;
-
-   //      determineFace(isThisCellOnAFace, cell);
-   //      for(int j=0; j<6; j++) 
-   //         doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
-   //      if (doAssign)
-   //         mpiGrid[dccrgId]->sysBoundaryFlag = this->getIndex();
-   //   }
-   //   
-   //   return true;
-   //}
-
    bool OuterBoundaryCondition::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                  FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
 
