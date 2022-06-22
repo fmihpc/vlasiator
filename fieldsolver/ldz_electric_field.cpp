@@ -1666,16 +1666,20 @@ void calculateUpwindedElectricFieldSimple(
    
    timer=phiprof::initializeTimer("MPI","MPI");
    phiprof::start(timer);
+   // Update ghosts if necessary, unless previous terms have already updated them
    if(P::ohmHallTerm > 0) {
       EHallGrid.updateGhostCells();
    }
    if(P::ohmGradPeTerm > 0) {
       EGradPeGrid.updateGhostCells();
    }
-   if(P::ohmHallTerm == 0 && P::ohmGradPeTerm == 0) {
+   if(P::ohmHallTerm == 0) {
       dPerBGrid.updateGhostCells();
+   }
+   if(P::ohmHallTerm == 0 && P::ohmGradPeTerm == 0) {
       dMomentsGrid.updateGhostCells();
    }
+   
    phiprof::stop(timer);
    
    // Calculate upwinded electric field on inner cells

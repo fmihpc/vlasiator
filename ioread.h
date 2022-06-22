@@ -26,6 +26,7 @@
 #include <dccrg_cartesian_geometry.hpp>
 #include <string>
 
+#include "vlsv_reader_parallel.h"
 #include "definitions.h"
 #include "spatial_cell.hpp"
 #include "datareduction/datareducer.h"
@@ -56,5 +57,7 @@ bool readFileCells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
  */
 void checkExternalCommands();
 
+bool readIonosphereNodeVariable(
+   vlsv::ParallelReader& file, const string& variableName, SBC::SphericalTriGrid& grid, ionosphereParameters index);
 
 #endif

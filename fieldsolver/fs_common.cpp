@@ -54,7 +54,7 @@ Real divideIfNonZero(
 void reconstructionCoefficients(
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
    FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-   Real* perturbedResult,
+   std::array<Real, Rec::N_REC_COEFFICIENTS> & perturbedResult,
    cint i,
    cint j,
    cint k,
@@ -198,3 +198,316 @@ void reconstructionCoefficients(
    perturbedResult[Rec::c_0 ] = HALF*(cep_i1j1k2->at(fsgrids::bfield::PERBZ) + cep_i1j1k1->at(fsgrids::bfield::PERBZ)) - SIXTH*perturbedResult[Rec::c_zz];
 }
 
+// Get the (integer valued) global fsgrid cell index (i,j,k) for the magnetic-field traced mapping point that node n is
+// associated with
+template<class T> std::array<int32_t, 3> getGlobalFsGridCellIndexForCoord(T& grid,const std::array<Real, 3>& x) {
+   std::array<int32_t, 3> retval;
+   retval[0] = (x[0] - grid.physicalGlobalStart[0]) / grid.DX;
+   retval[1] = (x[1] - grid.physicalGlobalStart[1]) / grid.DY;
+   retval[2] = (x[2] - grid.physicalGlobalStart[2]) / grid.DZ;
+   return retval;
+}
+// Get the fraction fsgrid cell index for the magnetic-field traced mapping point that node n is associated with.
+// Note that these are floating point values between 0 and 1
+template<class T> std::array<Real, 3> getFractionalFsGridCellForCoord(T& grid, const std::array<Real, 3>& x) {
+   std::array<Real, 3> retval;
+   std::array<int, 3> fsgridCell = getGlobalFsGridCellIndexForCoord(grid,x);
+   retval[0] = (x[0] - grid.physicalGlobalStart[0]) / grid.DX - fsgridCell[0];
+   retval[1] = (x[1] - grid.physicalGlobalStart[1]) / grid.DY - fsgridCell[1];
+   retval[2] = (x[2] - grid.physicalGlobalStart[2]) / grid.DZ - fsgridCell[2];
+   return retval;
+}
+
+/*! Interpolate perturbed B to arbitrary x,y,z in cell
+ *  Uses the reconstruction coefficients and equations from
+ *  Divergence-free reconstruction of magnetic fields and WENO schemes for magnetohydrodynamics
+ *  D.S. Balsara, J. Comp. Phys., 228, 2009
+ *  doi:10.1016/j.jcp.2009.03.038
+ *
+ * \param perBGrid perturbed B fsGrid
+ * \param dPerBGrid perturbed B derivatives fsGrid
+ * \param technicalGrid technical fsGrid
+ * \param i local fsGrid x-index
+ * \param j local fsGrid y-index
+ * \param k local fsGrid z-index
+ * \param x 3D global simulation x,y,z coordinates of point to interpolate to
+ */
+std::array<Real, 3> interpolatePerturbedB(
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+   std::map< std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > & reconstructionCoefficientsCache,
+   cint i,
+   cint j,
+   cint k,
+   const std::array<Real, 3> x
+) {
+   cuint cellSysBoundaryFlag = technicalGrid.get(i,j,k)->sysBoundaryFlag;
+   if (cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+      std::array<Real, 3> zero = {0,0,0};
+      return zero;
+   }
+
+   // Balsara reconstruction formulas: x,y,z are in [-1/2, 1/2] local coordinates
+   std::array<Real, 3> xLocal = getFractionalFsGridCellForCoord(technicalGrid, x);
+   xLocal[0] -= 0.5;
+   xLocal[1] -= 0.5;
+   xLocal[2] -= 0.5;
+
+   if (fabs(xLocal[0]) > 0.5 || fabs(xLocal[1]) > 0.5 || fabs(xLocal[2]) > 0.5) {
+      cerr << __FILE__ << ":" << __LINE__ << ": Coordinate (" << xLocal[0] << "," << xLocal[1] << "," << xLocal[2] << ")  outside of this cell!" << endl;
+      abort();
+   }
+
+   std::array<int, 3> cellIds = {i,j,k};
+
+   //#pragma omp critical
+   //{
+   //   if (reconstructionCoefficientsCache.find(cellIds) == reconstructionCoefficientsCache.end()) {
+   //      std::array<Real, Rec::N_REC_COEFFICIENTS> rc;
+   //      
+   //      reconstructionCoefficients(
+   //         perBGrid,
+   //         dPerBGrid,
+   //         rc,
+   //         i,
+   //         j,
+   //         k,
+   //         3 // Reconstruction order of the fields after Balsara 2009, 2 used for general B, but 3 used here to allow for cache reuse, see interpolatePerturbedJ below
+   //      );
+   //      
+   //      reconstructionCoefficientsCache.insert({cellIds, rc});
+   //   }
+   //}
+   //
+   //std::array<Real, Rec::N_REC_COEFFICIENTS> rc = reconstructionCoefficientsCache.at(cellIds);
+
+   std::array<Real, Rec::N_REC_COEFFICIENTS> rc;
+   reconstructionCoefficients(
+      perBGrid,
+      dPerBGrid,
+      rc,
+      i,
+      j,
+      k,
+      3 // // Reconstruction order of the fields after Balsara 2009, 3 used to obtain 2nd order curl(B) and allows for cache reuse, see interpolatePerturbedB above
+   );
+
+   std::array<Real, 3> interpolatedB;
+   // Eq. (7) Balsara 2009
+   interpolatedB[0] = rc[Rec::a_0] + rc[Rec::a_x]*xLocal[0] + rc[Rec::a_y]*xLocal[1] + rc[Rec::a_z]*xLocal[2]
+                    + rc[Rec::a_xx] * (xLocal[0]*xLocal[0] - TWELWTH) + rc[Rec::a_xy]*xLocal[0]*xLocal[1] + rc[Rec::a_xz]*xLocal[0]*xLocal[2];
+   // Eq. (8) Balsara 2009
+   interpolatedB[1] = rc[Rec::b_0] + rc[Rec::b_x]*xLocal[0] + rc[Rec::b_y]*xLocal[1] + rc[Rec::b_z]*xLocal[2]
+                    + rc[Rec::b_yy] * (xLocal[1]*xLocal[1] - TWELWTH) + rc[Rec::b_xy]*xLocal[0]*xLocal[1] + rc[Rec::b_yz]*xLocal[1]*xLocal[2];
+   // Eq. (9) Balsara 2009
+   interpolatedB[2] = rc[Rec::c_0] + rc[Rec::c_x]*xLocal[0] + rc[Rec::c_y]*xLocal[1] + rc[Rec::c_z]*xLocal[2]
+                    + rc[Rec::c_zz] * (xLocal[2]*xLocal[2] - TWELWTH) + rc[Rec::c_xz]*xLocal[0]*xLocal[2] + rc[Rec::c_yz]*xLocal[1]*xLocal[2];
+   return interpolatedB;
+}
+
+/*! Interpolate curl(perturbed B) to arbitrary x,y,z in cell
+ *  Uses the reconstruction coefficients and equations from
+ *  Divergence-free reconstruction of magnetic fields and WENO schemes for magnetohydrodynamics
+ *  D.S. Balsara, J. Comp. Phys., 228, 2009
+ *  doi:10.1016/j.jcp.2009.03.038
+ *  and the wxMaxima file at
+ *  doc/fieldsolver/Balsara_curlB_at_arbitrary_xyz.wxmx
+ *
+ * \param perBGrid perturbed B fsGrid
+ * \param dPerBGrid perturbed B derivatives fsGrid
+ * \param technicalGrid technical fsGrid
+ * \param i local fsGrid x-index
+ * \param j local fsGrid y-index
+ * \param k local fsGrid z-index
+ * \param x 3D global simulation x,y,z coordinates of point to interpolate to
+ */
+std::array<Real, 3> interpolateCurlB(
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+   std::map< std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > & reconstructionCoefficientsCache,
+   cint i,
+   cint j,
+   cint k,
+   const std::array<Real, 3> x
+) {
+   cuint cellSysBoundaryFlag = technicalGrid.get(i,j,k)->sysBoundaryFlag;
+   if (cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+      std::array<Real, 3> zero = {0,0,0};
+      return zero;
+   }
+
+#define BALSARA_CURLB_IMPLEMENTATION
+#ifdef BALSARA_CURLB_IMPLEMENTATION
+   // Balsara reconstruction formulas: x,y,z are in [-1/2, 1/2] local coordinates
+   std::array<Real, 3> xLocal = getFractionalFsGridCellForCoord(technicalGrid, x);
+   xLocal[0] -= 0.5;
+   xLocal[1] -= 0.5;
+   xLocal[2] -= 0.5;
+
+   if (fabs(xLocal[0]) > 0.5 || fabs(xLocal[1]) > 0.5 || fabs(xLocal[2]) > 0.5) {
+      cerr << __FILE__ << ":" << __LINE__ << ": Coordinate (" << xLocal[0] << "," << xLocal[1] << "," << xLocal[2] << ")  outside of this cell!" << endl;
+      abort();
+   }
+
+   std::array<int, 3> cellIds = {i,j,k};
+
+   //// Actual use of the coefficient cache has proven not to be thread safe. But it appears to be reasonably fast even without it.
+   //#pragma omp critical
+   //{
+   //   if (reconstructionCoefficientsCache.find(cellIds) == reconstructionCoefficientsCache.end()) {
+   //      std::array<Real, Rec::N_REC_COEFFICIENTS> rc;
+   //
+   //      reconstructionCoefficients(
+   //         perBGrid,
+   //         dPerBGrid,
+   //         rc,
+   //         i,
+   //         j,
+   //         k,
+   //         3 // // Reconstruction order of the fields after Balsara 2009, 3 used to obtain 2nd order curl(B) and allows for cache reuse, see interpolatePerturbedB above
+   //      );
+   //
+   //      reconstructionCoefficientsCache.insert({cellIds, rc});
+   //   }
+   //}
+   //std::array<Real, Rec::N_REC_COEFFICIENTS> rc = reconstructionCoefficientsCache.at(cellIds);
+
+   std::array<Real, Rec::N_REC_COEFFICIENTS> rc;
+   reconstructionCoefficients(
+      perBGrid,
+      dPerBGrid,
+      rc,
+      i,
+      j,
+      k,
+      3 // // Reconstruction order of the fields after Balsara 2009, 3 used to obtain 2nd order curl(B) and allows for cache reuse, see interpolatePerturbedB above
+   );
+
+   std::array<Real, 3> interpolatedCurlB;
+   interpolatedCurlB[0] = (
+       12*rc[Rec::c_yzz]*xLocal[2]*xLocal[2]
+      +24*rc[Rec::c_yyz]*xLocal[1]*xLocal[2]
+      -24*rc[Rec::b_yzz]*xLocal[1]*xLocal[2]
+      +12*rc[Rec::c_xyz]*xLocal[0]*xLocal[2]
+      +12*rc[Rec::c_yz]*xLocal[2]
+      -24*rc[Rec::b_zz]*xLocal[2]
+      -12*rc[Rec::b_yyz]*xLocal[1]*xLocal[1]
+      -12*rc[Rec::b_xyz]*xLocal[0]*xLocal[1]
+      +24*rc[Rec::c_yy]*xLocal[1]
+      -12*rc[Rec::b_yz]*xLocal[1]
+      +12*rc[Rec::c_xy]*xLocal[0]
+      -12*rc[Rec::b_xz]*xLocal[0]
+      -rc[Rec::c_yzz]
+      +12*rc[Rec::c_y]
+      -12*rc[Rec::b_z]
+      +rc[Rec::b_yyz]
+      )/12;
+   // See that minus if you ever copy again from wxMaxima!
+   interpolatedCurlB[1] = -(
+       12*rc[Rec::c_xzz]*xLocal[2]*xLocal[2]
+      +12*rc[Rec::c_xyz]*xLocal[1]*xLocal[2]
+      +24*rc[Rec::c_xxz]*xLocal[0]*xLocal[2]
+      -24*rc[Rec::a_xzz]*xLocal[0]*xLocal[2]
+      +12*rc[Rec::c_xz]*xLocal[2]
+      -24*rc[Rec::a_zz]*xLocal[2]
+      -12*rc[Rec::a_xyz]*xLocal[0]*xLocal[1]
+      +12*rc[Rec::c_xy]*xLocal[1]
+      -12*rc[Rec::a_yz]*xLocal[1]
+      -12*rc[Rec::a_xxz]*xLocal[0]*xLocal[0]
+      +24*rc[Rec::c_xx]*xLocal[0]
+      -12*rc[Rec::a_xz]*xLocal[0]
+      -rc[Rec::c_xzz]
+      +12*rc[Rec::c_x]
+      -12*rc[Rec::a_z]
+      +rc[Rec::a_xxz]
+      )/12;
+   interpolatedCurlB[2] = (
+       12*rc[Rec::b_xyz]*xLocal[1]*xLocal[2]
+      -12*rc[Rec::a_xyz]*xLocal[0]*xLocal[2]
+      +12*rc[Rec::b_xz]*xLocal[2]
+      -12*rc[Rec::a_yz]*xLocal[2]
+      +12*rc[Rec::b_xyy]*xLocal[1]*xLocal[1]
+      +24*rc[Rec::b_xxy]*xLocal[0]*xLocal[1]
+      -24*rc[Rec::a_xyy]*xLocal[0]*xLocal[1]
+      +12*rc[Rec::b_xy]*xLocal[1]
+      -24*rc[Rec::a_yy]*xLocal[1]
+      -12*rc[Rec::a_xxy]*xLocal[0]*xLocal[0]
+      +24*rc[Rec::b_xx]*xLocal[0]
+      -12*rc[Rec::a_xy]*xLocal[0]
+      -rc[Rec::b_xyy]
+      +12*rc[Rec::b_x]
+      -12*rc[Rec::a_y]
+      +rc[Rec::a_xxy]
+      )/12;
+   return interpolatedCurlB;
+#else // Not BALSARA_CURLB_IMPLEMENTATION
+
+   // Alternative implementation using linear interpolation of volume fields for curlB lookup.
+   std::array<Real,3> cell;
+   std::array<int,3> fsc,lfsc;
+   // Convert physical coordinate to cell index
+   cell[0] =  (x[0] - P::xmin) / technicalGrid.DX;
+   cell[1] =  (x[1] - P::ymin) / technicalGrid.DY;
+   cell[2] =  (x[2] - P::zmin) / technicalGrid.DZ;
+   for(int c=0; c<3; c++) {
+      fsc[c] = floor(cell[c]);
+   }
+   // Local cell
+   lfsc = technicalGrid.globalToLocal(fsc[0],fsc[1],fsc[2]);
+   if(lfsc[0] == -1 || lfsc[1] == -1 || lfsc[2] == -1) {
+      cerr << "interpolateCurlB: Trying to access nonlocal cell at " << x[0] << ", " << x[1] << ", " << x[2] << ", which would be local coordinate "
+         << lfsc[0] << ", " << lfsc[1] << ", " << lfsc[2] << endl;
+      return {0,0,0};
+   }
+
+   for(int c=0; c<3; c++) {
+      // Shift by half a cell, as we are sampling volume quantities that are logically located at cell centres.
+      Real frac = cell[c] - floor(cell[c]);
+      if(frac < 0.5) {
+         lfsc[c] -= 1;
+         fsc[c]-= 1;
+      }
+      cell[c] -= 0.5;
+   }
+
+   Real couplingSum = 0;
+   std::array<Real, 3> rotB;
+   for (int xoffset : {0, 1}) {
+      for(int yoffset : {0,1}) {
+         for(int zoffset : {0,1}) {
+
+            Real coupling = abs(xoffset - (cell[0]-fsc[0])) * abs(yoffset - (cell[1]-fsc[1])) * abs(zoffset - (cell[2]-fsc[2]));
+
+            // Only couple to actual simulation cells
+            if(technicalGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+               couplingSum += coupling;
+            } else {
+               continue;
+            }
+
+            // Calc rotB
+            std::array<Real, 3> rotB;
+            rotB[0] += (volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBZVOLdy)
+                  - volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBYVOLdz)) / volgrid.DX;
+            rotB[1] += (volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBXVOLdz)
+                  - volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBZVOLdx)) / volgrid.DX;
+            rotB[2] += (volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBYVOLdx)
+                  - volgrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::dPERBXVOLdy)) / volgrid.DX;
+
+         }
+      }
+   }
+   if(couplingSum > 0) {
+      rotB[0] /= couplingSum;
+      rotB[1] /= couplingSum;
+      rotB[2] /= couplingSum;
+   } else {
+      rotB[0] = 0;
+      rotB[1] = 0;
+      rotB[2] = 0;
+   }
+   return rotB;
+#endif // Not BALSARA_CURLB_IMPLEMENTATION
+}

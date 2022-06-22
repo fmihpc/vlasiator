@@ -26,6 +26,7 @@
 #include "datareducer.h"
 #include "../common.h"
 #include "dro_populations.h"
+#include "../sysboundary/ionosphere.h"
 using namespace std;
 
 void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosticReducer)
@@ -789,7 +790,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          continue;
       }
-      if(lowercase == "bvolderivs" || lowercase == "b_vol_derivs" || lowercase == "b_vol_derivatives" || lowercase == "vg_b_vol_derivatives" || lowercase == "derivs" ) {
+      if(lowercase == "bvolderivs" || lowercase == "b_vol_derivs" || lowercase == "b_vol_derivatives" || lowercase == "vg_b_vol_derivatives" || lowercase == "derivs") {
          // Volume-averaged derivatives
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_dperbxvoldy",bvolderivatives::dPERBXVOLdy,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_dperbxvoldz",bvolderivatives::dPERBXVOLdz,1));
@@ -805,6 +806,1580 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 	 outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{Z,\\mathrm{per,vol,vg}} (\\Delta Y)^{-1}$","1.0");
          continue;
       }
+
+
+
+      if(lowercase == "fg_derivs") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dperbxdy",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dPerBGrid.get(x,y,z)->at(fsgrids::dperb::dPERBxdy);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dperbxdz",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dPerBGrid.get(x,y,z)->at(fsgrids::dperb::dPERBxdz);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dperbydx",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dPerBGrid.get(x,y,z)->at(fsgrids::dperb::dPERBydx);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dperbydz",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dPerBGrid.get(x,y,z)->at(fsgrids::dperb::dPERBydz);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dperbzdx",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dPerBGrid.get(x,y,z)->at(fsgrids::dperb::dPERBzdx);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dperbzdy",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dPerBGrid.get(x,y,z)->at(fsgrids::dperb::dPERBzdy);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dperbxdyy",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dPerBGrid.get(x,y,z)->at(fsgrids::dperb::dPERBxdyy);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dperbxdzz",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dPerBGrid.get(x,y,z)->at(fsgrids::dperb::dPERBxdzz);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dperbxdyz",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dPerBGrid.get(x,y,z)->at(fsgrids::dperb::dPERBxdyz);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dperbydxx",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dPerBGrid.get(x,y,z)->at(fsgrids::dperb::dPERBydxx);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dperbydzz",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dPerBGrid.get(x,y,z)->at(fsgrids::dperb::dPERBydzz);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dperbydxz",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dPerBGrid.get(x,y,z)->at(fsgrids::dperb::dPERBydxz);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dperbzdxx",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dPerBGrid.get(x,y,z)->at(fsgrids::dperb::dPERBzdxx);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dperbzdyy",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dPerBGrid.get(x,y,z)->at(fsgrids::dperb::dPERBzdyy);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dperbzdxy",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dPerBGrid.get(x,y,z)->at(fsgrids::dperb::dPERBzdxy);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+
+
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_drhomdx",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dMomentsGrid.get(x,y,z)->at(fsgrids::dmoments::drhomdx);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_drhomdy",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dMomentsGrid.get(x,y,z)->at(fsgrids::dmoments::drhomdy);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_drhomdz",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dMomentsGrid.get(x,y,z)->at(fsgrids::dmoments::drhomdz);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_drhoqdx",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dMomentsGrid.get(x,y,z)->at(fsgrids::dmoments::drhoqdx);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_drhoqdy",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dMomentsGrid.get(x,y,z)->at(fsgrids::dmoments::drhoqdy);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_drhoqdz",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dMomentsGrid.get(x,y,z)->at(fsgrids::dmoments::drhoqdz);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dp11dx",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dMomentsGrid.get(x,y,z)->at(fsgrids::dmoments::dp11dx);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dp11dy",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dMomentsGrid.get(x,y,z)->at(fsgrids::dmoments::dp11dy);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dp11dz",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dMomentsGrid.get(x,y,z)->at(fsgrids::dmoments::dp11dz);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dp22dx",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dMomentsGrid.get(x,y,z)->at(fsgrids::dmoments::dp22dx);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dp22dy",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dMomentsGrid.get(x,y,z)->at(fsgrids::dmoments::dp22dy);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dp22dz",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dMomentsGrid.get(x,y,z)->at(fsgrids::dmoments::dp22dz);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dp33dx",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dMomentsGrid.get(x,y,z)->at(fsgrids::dmoments::dp33dx);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dp33dy",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dMomentsGrid.get(x,y,z)->at(fsgrids::dmoments::dp33dy);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dp33dz",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dMomentsGrid.get(x,y,z)->at(fsgrids::dmoments::dp33dz);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dvxdx",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dMomentsGrid.get(x,y,z)->at(fsgrids::dmoments::dVxdx);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dvxdy",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dMomentsGrid.get(x,y,z)->at(fsgrids::dmoments::dVxdy);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dvxdz",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dMomentsGrid.get(x,y,z)->at(fsgrids::dmoments::dVxdz);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dvydx",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dMomentsGrid.get(x,y,z)->at(fsgrids::dmoments::dVydx);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dvydy",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dMomentsGrid.get(x,y,z)->at(fsgrids::dmoments::dVydy);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dvydz",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dMomentsGrid.get(x,y,z)->at(fsgrids::dmoments::dVydz);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dvzdx",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dMomentsGrid.get(x,y,z)->at(fsgrids::dmoments::dVzdx);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dvzdy",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dMomentsGrid.get(x,y,z)->at(fsgrids::dmoments::dVzdy);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dvzdz",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dMomentsGrid.get(x,y,z)->at(fsgrids::dmoments::dVzdz);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dpedx",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dMomentsGrid.get(x,y,z)->at(fsgrids::dmoments::dPedx);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dpedy",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dMomentsGrid.get(x,y,z)->at(fsgrids::dmoments::dPedy);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dpedz",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = dMomentsGrid.get(x,y,z)->at(fsgrids::dmoments::dPedz);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+
+
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dbgbxdy",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::dBGBxdy);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dbgbxdz",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::dBGBxdz);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dbgbydx",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::dBGBydx);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dbgbydz",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::dBGBydz);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dbgbzdx",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::dBGBzdx);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dbgbzdy",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::dBGBzdy);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dbgbxvoldy",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::dBGBXVOLdy);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dbgbxvoldz",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::dBGBXVOLdz);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dbgbyvoldx",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::dBGBYVOLdx);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dbgbyvoldz",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::dBGBYVOLdz);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dbgbzvoldx",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::dBGBZVOLdx);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dbgbzvoldy",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::dBGBZVOLdy);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+
+
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dperbxvoldy",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = volGrid.get(x,y,z)->at(fsgrids::volfields::dPERBXVOLdy);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dperbxvoldz",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = volGrid.get(x,y,z)->at(fsgrids::volfields::dPERBXVOLdz);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dperbyvoldx",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = volGrid.get(x,y,z)->at(fsgrids::volfields::dPERBYVOLdx);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dperbyvoldz",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = volGrid.get(x,y,z)->at(fsgrids::volfields::dPERBYVOLdz);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dperbzvoldx",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = volGrid.get(x,y,z)->at(fsgrids::volfields::dPERBZVOLdx);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dperbzvoldy",[](
+                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]);
+
+               // Iterate through fsgrid cells and extract boundary flag
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[gridSize[1]*gridSize[0]*z + gridSize[0]*y + x] = volGrid.get(x,y,z)->at(fsgrids::volfields::dPERBZVOLdy);
+                     }
+                  }
+               }
+               return retval;
+         }
+         ));
+
+         continue;
+      }
+
       if(lowercase == "vg_gridcoordinates") {
          // Spatial coordinates for each cell
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_x",CellParams::XCRD,1));
@@ -997,6 +2572,510 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(lowercase == "vg_amr_reflevel") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_reflevel",CellParams::REFINEMENT_LEVEL,1));
          outputReducer->addMetadata(outputReducer->size()-1,"","","ref","");
+      }
+      if(lowercase == "ig_latitude") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_latitude", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+                  
+                     std::vector<Real> retval(grid.nodes.size());
+
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+
+                        // TODO: This is geographic latitude. Should it be magnetic?
+                        Real z = grid.nodes[i].x[2];
+                        retval[i] = acos(z/SBC::Ionosphere::innerRadius) / M_PI * 180.;
+                     }
+
+                     return retval;
+                  }));
+         outputReducer->addMetadata(outputReducer->size()-1, "Degrees", "$^\\circ$", "L", "");
+         continue;
+      }
+      if(lowercase == "ig_chi0") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_chi0", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+
+                     std::vector<Real> retval(grid.nodes.size());
+
+                     for(uint n=0; n<grid.nodes.size(); n++) {
+                        Real theta = acos(grid.nodes[n].x[2] / sqrt(grid.nodes[n].x[0]*grid.nodes[n].x[0] + grid.nodes[n].x[1]*grid.nodes[n].x[1] + grid.nodes[n].x[2]*grid.nodes[n].x[2])); // Latitude
+                        if(theta > M_PI/2.) {
+                           theta = M_PI - theta;
+                        }
+                        // Smoothstep with an edge at about 67 deg.
+                        Real Chi0 = 0.01 + 0.99 * .5 * (1 + tanh((23. - theta * (180. / M_PI)) / 6));
+                        retval[n] = Chi0;
+                     }
+
+                     return retval;
+                  }));
+         outputReducer->addMetadata(outputReducer->size()-1, "arb.unit.", "", "Chi0", "");
+         continue;
+      }
+      if(lowercase == "ig_cellarea") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereElement("ig_cellarea", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+                  
+                     std::vector<Real> retval(grid.elements.size());
+
+                     for(uint i=0; i<grid.elements.size(); i++) {
+                        retval[i] = grid.elementArea(i);
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addMetadata(outputReducer->size()-1, "m^2", "$\\mathrm{m}^2$", "$A_m$", "1.0");
+         continue;
+      }
+      if(lowercase == "ig_e") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereElement("ig_e", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+                  
+                     std::vector<Real> retval(grid.elements.size()*3);
+
+                     for(uint i=0; i<grid.elements.size(); i++) {
+                        // Calculate E from element basis functions
+                        const std::array<Real, 3>& c1 = grid.nodes[grid.elements[i].corners[0]].x;
+                        const std::array<Real, 3>& c2 = grid.nodes[grid.elements[i].corners[1]].x;
+                        const std::array<Real, 3>& c3 = grid.nodes[grid.elements[i].corners[2]].x;
+
+                        // ET contains the test function gradient vectors (normalized to potential 1)
+                        std::array<std::array<Real,3>, 3> ET({grid.computeGradT(c2,c3,c1), grid.computeGradT(c3,c1,c2), grid.computeGradT(c1,c2,c3)});
+                        for(int n=0; n<3; n++) {
+                           // Multiply with the corresponding node potentials to get E vector
+                           ET[0][n] *= -grid.nodes[grid.elements[i].corners[0]].parameters[ionosphereParameters::SOLUTION];
+                           ET[1][n] *= -grid.nodes[grid.elements[i].corners[1]].parameters[ionosphereParameters::SOLUTION];
+                           ET[2][n] *= -grid.nodes[grid.elements[i].corners[2]].parameters[ionosphereParameters::SOLUTION];
+                        }
+                        // Sum up element gradient functions to yield complete E inside this element.
+                        for(int n=0; n<3; n++) {
+                           retval[3*i + n] = ET[0][n] + ET[1][n] + ET[2][n];
+                        }
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addMetadata(outputReducer->size()-1, "V/m", "$\\mathrm{V/m}$", "$E$", "1.0");
+         continue;
+      }
+      if(lowercase == "ig_inplanecurrent") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereElement("ig_inplanecurrent", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+                  
+                     std::vector<Real> retval(grid.elements.size()*3);
+
+                     for(uint i=0; i<grid.elements.size(); i++) {
+                        // Get effective sigma tensor for this element
+                        std::array<Real, 9> sigma = grid.sigmaAverage(i);
+
+                        // Calculate E from element basis functions
+                        std::array<Real, 3> E({0,0,0});
+                        const std::array<Real, 3>& c1 = grid.nodes[grid.elements[i].corners[0]].x;
+                        const std::array<Real, 3>& c2 = grid.nodes[grid.elements[i].corners[1]].x;
+                        const std::array<Real, 3>& c3 = grid.nodes[grid.elements[i].corners[2]].x;
+
+                        // ET contains the test function gradient vectors (normalized to potential 1)
+                        std::array<std::array<Real,3>, 3> ET({grid.computeGradT(c2,c3,c1), grid.computeGradT(c3,c1,c2), grid.computeGradT(c1,c2,c3)});
+                        for(int n=0; n<3; n++) {
+                           // Multiply with the corresponding node potentials to get E vector
+                           ET[0][n] *= -grid.nodes[grid.elements[i].corners[0]].parameters[ionosphereParameters::SOLUTION];
+                           ET[1][n] *= -grid.nodes[grid.elements[i].corners[1]].parameters[ionosphereParameters::SOLUTION];
+                           ET[2][n] *= -grid.nodes[grid.elements[i].corners[2]].parameters[ionosphereParameters::SOLUTION];
+                        }
+                        // Sum up element gradient functions to yield complete E inside this element.
+                        for(int n=0; n<3; n++) {
+                           E[n] = ET[0][n] + ET[1][n] + ET[2][n];
+                        }
+
+                        // Get J from Ohm's law (J = sigma * E)
+                        for(int n=0; n<3; n++) {
+                           for(int m=0; m<3; m++) {
+                              retval[3*i + n] += sigma[3*n+m] * E[m];
+                           }
+                        }
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addMetadata(outputReducer->size()-1, "A/m^2", "$\\mathrm{A/m}^2$", "$J$", "1.0");
+         continue;
+      }
+      if(lowercase == "ig_upmappedarea") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereElement("ig_upmappedarea", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+                  
+                     std::vector<Real> retval(grid.elements.size()*3);
+
+                     for(uint i=0; i<grid.elements.size(); i++) {
+                        std::array<Real, 3> area = grid.mappedElementArea(i);
+                        retval[3*i] = area[0]; 
+                        retval[3*i+1] = area[1]; 
+                        retval[3*i+2] = area[2]; 
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addMetadata(outputReducer->size()-1, "m^2", "$\\mathrm{m}^2$", "$A_m$", "1.0");
+         continue;
+      }
+      if(lowercase == "ig_sigmap") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_sigmap", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+
+                     std::vector<Real> retval(grid.nodes.size());
+
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::SIGMAP];
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addMetadata(outputReducer->size()-1, "mho", "$\\mathrm{\\Omega^{-1}}$", "$\\Sigma_P$", "1.0");
+         continue;
+      }
+      if(lowercase == "ig_sigmah") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_sigmah", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+
+                     std::vector<Real> retval(grid.nodes.size());
+
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::SIGMAH];
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addMetadata(outputReducer->size()-1, "mho", "$\\mathrm{\\Omega^{-1}}$", "$\\Sigma_H$", "1.0");
+         continue;
+      }
+      if(lowercase == "ig_sigmaparallel") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_sigmaparallel", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+
+                     std::vector<Real> retval(grid.nodes.size());
+
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::SIGMAPARALLEL];
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addMetadata(outputReducer->size()-1, "mho", "$\\mathrm{\\Omega^{-1}}$", "$\\Sigma_\\parallel$", "1.0");
+         continue;
+      }
+      if(lowercase == "ig_rhon") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_rhon", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+
+                     std::vector<Real> retval(grid.nodes.size());
+
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::RHON];
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addMetadata(outputReducer->size()-1, "kg m^-3", "$\\mathrm{kg m^{-3}}$", "$\\rho_m$", "1.0");
+         continue;
+      }
+      if(lowercase == "ig_electrontemp") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_electrontemp", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+
+                     std::vector<Real> retval(grid.nodes.size());
+
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        retval[i] = grid.nodes[i].electronTemperature();
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addMetadata(outputReducer->size()-1, "K", "$\\mathrm{K}$", "$T_e$", "1.0");
+         continue;
+      }
+      if(lowercase == "ig_poyntingflux") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_poyntingflux", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+
+                     std::vector<Real> retval(grid.nodes.size());
+
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::POYNTINGFLUX];
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addMetadata(outputReducer->size()-1, "W/m^2", "$\\mathrm{W/m^2}$", "$S$", "1.0");
+         continue;
+      }
+      if(lowercase == "ig_deltaphi") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_deltaphi", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+
+                     std::vector<Real> retval(grid.nodes.size());
+
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        retval[i] = grid.nodes[i].deltaPhi();
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addMetadata(outputReducer->size()-1, "eV", "$\\mathrm{eV}$", "$\\Delta\\Phi$", "1.0");
+         continue;
+      }
+      if(lowercase == "ig_precipitation") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_precipitation", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+
+                     std::vector<Real> retval(grid.nodes.size());
+
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::PRECIP];
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addMetadata(outputReducer->size()-1, "W/m^2", "$\\mathrm{W m^{-2}}$", "$W_\\mathrm{precipitation}$", "1.0");
+         continue;
+      }
+      if(lowercase == "ig_precipnumflux") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_precipnumflux", [](SBC::SphericalTriGrid& grid)->std::vector<Real> {
+
+                     std::array< Real, grid.productionNumParticleEnergies+1 > particle_energy;
+                     // Precalculate effective energy bins
+                     // Make sure this stays in sync with sysboundary/ionosphere.cpp
+                     for(int e=0; e<grid.productionNumParticleEnergies; e++) {
+                     particle_energy[e] = pow(10.0, -1.+e*(2.3+1.)/(grid.productionNumParticleEnergies-1));
+                     }
+                     particle_energy[grid.productionNumParticleEnergies] = 2*particle_energy[grid.productionNumParticleEnergies-1] - particle_energy[grid.productionNumParticleEnergies-2];
+
+                     Real accenergy = grid.productionMinAccEnergy;
+
+                     std::vector<Real> retval(grid.nodes.size());
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        Real temp_keV = physicalconstants::K_B * grid.nodes[i].electronTemperature() / physicalconstants::CHARGE / 1000;
+
+                        for(int p=0; p<grid.productionNumParticleEnergies; p++) {
+                           Real energyparam = (particle_energy[p]-accenergy)/temp_keV; // = E_p / (kB T)
+                           Real deltaE = (particle_energy[p+1] - particle_energy[p])* 1e3*physicalconstants::CHARGE;  // dE in J
+                           retval[i] += grid.nodes[i].parameters[ionosphereParameters::RHON] * sqrt(1. / (2. * M_PI * physicalconstants::MASS_ELECTRON))
+                           * particle_energy[p] / temp_keV / sqrt(temp_keV * 1e3 *physicalconstants::CHARGE)
+                           * deltaE * exp(-energyparam); // Flux 1/m^2/s
+                        }
+                     }
+                     return retval;
+                     }));
+         outputReducer->addMetadata(outputReducer->size()-1, "1/m^2/s", "$m^{-2} s^{-1}$", "$\bar{F}_\mathrm{precip}$", "1.0");
+         continue;
+      }
+      if(lowercase == "ig_precipavgenergy") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_precipavgenergy", [](SBC::SphericalTriGrid& grid)->std::vector<Real> {
+
+                     std::array< Real, grid.productionNumParticleEnergies+1 > particle_energy;
+                     // Precalculate effective energy bins
+                     // Make sure this stays in sync with sysboundary/ionosphere.cpp
+                     for(int e=0; e<grid.productionNumParticleEnergies; e++) {
+                     particle_energy[e] = pow(10.0, -1.+e*(2.3+1.)/(grid.productionNumParticleEnergies-1));
+                     }
+                     particle_energy[grid.productionNumParticleEnergies] = 2*particle_energy[grid.productionNumParticleEnergies-1] - particle_energy[grid.productionNumParticleEnergies-2];
+
+                     Real accenergy = grid.productionMinAccEnergy;
+
+                     std::vector<Real> retval(grid.nodes.size());
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        Real numberFlux = 0;
+
+                        // Calculate precipitating number flux at this node
+                        // (TODO: this is completely copy'n'pasted from the
+                        // ig_precipnumflux reducer above. Share code?)
+                        Real temp_keV = physicalconstants::K_B * grid.nodes[i].electronTemperature() / physicalconstants::CHARGE / 1000;
+
+                        for(int p=0; p<grid.productionNumParticleEnergies; p++) {
+                           Real energyparam = (particle_energy[p]-accenergy)/temp_keV; // = E_p / (kB T)
+                           Real deltaE = (particle_energy[p+1] - particle_energy[p])* 1e3*physicalconstants::CHARGE;  // dE in J
+                           numberFlux += grid.nodes[i].parameters[ionosphereParameters::RHON] * sqrt(1. / (2. * M_PI * physicalconstants::MASS_ELECTRON))
+                           * particle_energy[p] / temp_keV / sqrt(temp_keV * 1e3 *physicalconstants::CHARGE)
+                           * deltaE * exp(-energyparam); // Flux 1/m^2/s
+                        }
+
+                        // Average precipitating energy = energyFlux / numberFlux (in eV)
+                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::PRECIP] / numberFlux / physicalconstants::CHARGE;
+                     }
+                     return retval;
+                     }));
+         outputReducer->addMetadata(outputReducer->size()-1, "eV", "eV", "$\\bar{E}_\mathrm{precip}$", "1.0");
+         continue;
+      }
+      if(lowercase == "ig_potential") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_potential", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+                  
+                     std::vector<Real> retval(grid.nodes.size());
+
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::SOLUTION];
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addMetadata(outputReducer->size()-1, "V", "$\\mathrm{V}$", "$\\phi_I$", "1.0");
+         continue;
+      }
+      if(lowercase == "ig_solverinternals") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_source", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+
+                     std::vector<Real> retval(grid.nodes.size());
+
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::SOURCE];
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_residual", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+
+                     std::vector<Real> retval(grid.nodes.size());
+
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::RESIDUAL];
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_p", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+                  
+                     std::vector<Real> retval(grid.nodes.size());
+
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::PPARAM];
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_pp", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+                  
+                     std::vector<Real> retval(grid.nodes.size());
+
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::PPPARAM];
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_z", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+                  
+                     std::vector<Real> retval(grid.nodes.size());
+
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::ZPARAM];
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_zz", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+                  
+                     std::vector<Real> retval(grid.nodes.size());
+
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::ZZPARAM];
+                     }
+
+                     return retval;
+                     }));
+
+         continue;
+      }
+      if(lowercase == "ig_upmappednodecoords") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_upmappednodecoords", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+                  
+                     std::vector<Real> retval(grid.nodes.size()*3);
+
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        retval[3*i] = grid.nodes[i].xMapped[0];
+                        retval[3*i+1] = grid.nodes[i].xMapped[1];
+                        retval[3*i+2] = grid.nodes[i].xMapped[2];
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addMetadata(outputReducer->size()-1, "m", "m", "$x_\\mathrm{mapped}$", "1.0");
+         continue;
+      }
+      if(lowercase == "ig_upmappedb") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_upmappedb", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+                  
+                     std::vector<Real> retval(grid.nodes.size()*3);
+
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        retval[3*i] = grid.nodes[i].parameters[ionosphereParameters::UPMAPPED_BX];
+                        retval[3*i+1] = grid.nodes[i].parameters[ionosphereParameters::UPMAPPED_BY];
+                        retval[3*i+2] = grid.nodes[i].parameters[ionosphereParameters::UPMAPPED_BZ];
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addMetadata(outputReducer->size()-1, "T", "T", "$B_\\mathrm{mapped}$", "1.0");
+         continue;
+      }
+      if(lowercase == "ig_fac") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_fac", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+                  
+                     std::vector<Real> retval(grid.nodes.size());
+
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        Real area = 0;
+                        for(uint e=0; e<grid.nodes[i].numTouchingElements; e++) {
+                           area += grid.elementArea(grid.nodes[i].touchingElements[e]);
+                        }
+                        area /= 3.; // As every element has 3 corners, don't double-count areas
+                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::SOURCE]/area;
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addMetadata(outputReducer->size()-1, "A/m^2", "$\\mathrm{A m}^{-2}$", "$I_\\mathrm{FAC}$", "1.0");
+         continue;
+      }
+      if(lowercase == "vg_ionospherecoupling") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorMPIGridCell("vg_ionospherecoupling", 3, [](
+                     const SpatialCell* cell)->std::vector<Real> {
+
+                  std::vector<Real> retval(3);
+
+                  // Just return a 0,0,0 vector for non-ionosphere cells
+                  if(cell->sysBoundaryFlag != sysboundarytype::IONOSPHERE) {
+                     retval[0]=0;
+                     retval[1]=0;
+                     retval[2]=0;
+                     return retval;
+                  }
+
+                  std::array<Real, 3> x;
+                  x[0] = cell->parameters[CellParams::XCRD] + cell->parameters[CellParams::DX];
+                  x[1] = cell->parameters[CellParams::YCRD] + cell->parameters[CellParams::DY];
+                  x[2] = cell->parameters[CellParams::ZCRD] + cell->parameters[CellParams::DZ];
+
+                  std::array<std::pair<int, Real>, 3> coupling = SBC::ionosphereGrid.calculateVlasovGridCoupling(x, SBC::Ionosphere::radius);
+                  for(int i=0; i<3; i++) {
+                     uint coupledNode = coupling[i].first;
+                     Real a = coupling[i].second;
+                     retval[0] += a*SBC::ionosphereGrid.nodes[coupledNode].x[0] - (cell->parameters[CellParams::XCRD] + 0.5*cell->parameters[CellParams::DX]);
+                     retval[1] = a*SBC::ionosphereGrid.nodes[coupledNode].x[1] - (cell->parameters[CellParams::YCRD] + 0.5*cell->parameters[CellParams::DY]);
+                     retval[2] = a*SBC::ionosphereGrid.nodes[coupledNode].x[2] - (cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ]);
+                  }
+
+                  return retval;
+			}));
+         outputReducer->addMetadata(outputReducer->size()-1, "m", "m", "$x_\\mathrm{coupled}$", "1.0");
          continue;
       }
       // After all the continue; statements one should never land here.
@@ -1281,4 +3360,21 @@ bool DataReducer::writeFsGridData(
    } else {
       return DROf->writeFsGridData(perBGrid, EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, volGrid, technicalGrid, meshName, vlsvWriter, writeAsFloat);
    }
+}
+
+bool DataReducer::writeIonosphereGridData(
+                     SBC::SphericalTriGrid& grid, const std::string& meshName,
+                     const unsigned int operatorID, vlsv::Writer& vlsvWriter) {
+
+   if (operatorID >= operators.size()) return false;
+   DRO::DataReductionOperatorIonosphereElement* DROe = dynamic_cast<DRO::DataReductionOperatorIonosphereElement*>(operators[operatorID]);
+   DRO::DataReductionOperatorIonosphereNode* DROn = dynamic_cast<DRO::DataReductionOperatorIonosphereNode*>(operators[operatorID]);
+   if(DROe) {
+      return DROe->writeIonosphereData(grid, vlsvWriter);
+   } else if(DROn) {
+      return DROn->writeIonosphereData(grid, vlsvWriter);
+   } else {
+      return false;
+   }
+   
 }

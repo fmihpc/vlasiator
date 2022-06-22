@@ -81,9 +81,9 @@ namespace spatial_cell {
      velocity_block_with_no_content_list(other.velocity_block_with_no_content_list),
      initialized(other.initialized),
      mpiTransferEnabled(other.mpiTransferEnabled),
-     populations(other.populations),
-     parameters(other.parameters),
      derivativesBVOL(other.derivativesBVOL),
+     parameters(other.parameters),
+     populations(other.populations),
      null_block_data(std::array<Realf,WID3> {}) {
    }
 

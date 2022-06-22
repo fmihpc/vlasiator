@@ -344,6 +344,18 @@ void initializeGrids(
    
    phiprof::stop("Fetch Neighbour data");
    
+   phiprof::start("setProjectBField");
+   project.setProjectBField(perBGrid, BgBGrid, technicalGrid);
+   perBGrid.updateGhostCells();
+   BgBGrid.updateGhostCells();
+   EGrid.updateGhostCells();
+
+   // This will only have the BGB set up properly at this stage but we need the BGBvol for the Vlasov boundaries below.
+   volGrid.updateGhostCells();
+   getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
+
+   phiprof::stop("setProjectBField");
+
    if (P::isRestart == false) {
       // Apply boundary conditions so that we get correct initial moments
       sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid,Parameters::t, true); // It doesn't matter here whether we put _R or _V moments
@@ -359,13 +371,6 @@ void initializeGrids(
       }
       phiprof::stop("Init moments");
    }
-   
-   phiprof::start("setProjectBField");
-   project.setProjectBField(perBGrid, BgBGrid, technicalGrid);
-   perBGrid.updateGhostCells();
-   BgBGrid.updateGhostCells();
-   EGrid.updateGhostCells();
-   phiprof::stop("setProjectBField");
    
    phiprof::start("Finish fsgrid setup");
    feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,technicalGrid, false);
@@ -597,7 +602,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
 
    // flag transfers if AMR
    phiprof::start("compute_amr_transfer_flags");
-   //flagSpatialCellsForAmrCommunication(mpiGrid,cells);
+   flagSpatialCellsForAmrCommunication(mpiGrid,cells);
    phiprof::stop("compute_amr_transfer_flags");
 
    // Communicate all spatial data for FULL neighborhood, which

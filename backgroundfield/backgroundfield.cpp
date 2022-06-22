@@ -30,10 +30,12 @@
 
 //FieldFunction should be initialized
 void setBackgroundField(
-   FieldFunction& bgFunction,
+   const FieldFunction& bgFunction,
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
    bool append) {
    
+   using namespace std::placeholders;
+
    /*if we do not add a new background to the existing one we first put everything to zero*/
    if(append==false) {
       setBackgroundFieldToZero(BgBGrid);
@@ -59,7 +61,7 @@ void setBackgroundField(
    
    auto localSize = BgBGrid.getLocalSize();
    
-   // Do not thread this blindly, the bgFunction.set* calls below are not thread-safe at the moment.
+   // TODO: These can be threaded now that the dipole field is threadsafe
    for (int x = 0; x < localSize[0]; ++x) {
       for (int y = 0; y < localSize[1]; ++y) {
          for (int z = 0; z < localSize[2]; ++z) {
@@ -78,10 +80,9 @@ void setBackgroundField(
             
             //Face averages
             for(uint fComponent=0; fComponent<3; fComponent++){
-               bgFunction.setDerivative(0);
-               bgFunction.setComponent((coordinate)fComponent);
+               T3DFunction valueFunction = std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, (coordinate)fComponent, 0, (coordinate)0);
                BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::BGBX+fComponent) += 
-                  surfaceAverage(bgFunction,
+                  surfaceAverage(valueFunction,
                      (coordinate)fComponent,
                                  accuracy,
                                  start,
@@ -90,21 +91,21 @@ void setBackgroundField(
                                 );
                
                //Compute derivatives. Note that we scale by dx[] as the arrays are assumed to contain differences, not true derivatives!
-               bgFunction.setDerivative(1);
-               bgFunction.setDerivComponent((coordinate)faceCoord1[fComponent]);
+               T3DFunction derivFunction1 = std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, (coordinate)fComponent, 1, (coordinate)faceCoord1[fComponent]);
                BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::dBGBxdy+2*fComponent) +=
                   dx[faceCoord1[fComponent]] * 
-                  surfaceAverage(bgFunction, 
+                  surfaceAverage(derivFunction1,
                      (coordinate)fComponent,
                                  accuracy,
                                  start,
                                  dx[faceCoord1[fComponent]],
                                  dx[faceCoord2[fComponent]]
                                 );
-               bgFunction.setDerivComponent((coordinate)faceCoord2[fComponent]);
+
+               T3DFunction derivFunction2 = std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, (coordinate)fComponent, 1, (coordinate)faceCoord2[fComponent]);
                BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::dBGBxdy+1+2*fComponent) +=
                   dx[faceCoord2[fComponent]] *
-                  surfaceAverage(bgFunction,
+                  surfaceAverage(derivFunction2,
                      (coordinate)fComponent,
                                  accuracy,
                                  start,
@@ -115,16 +116,14 @@ void setBackgroundField(
             
             //Volume averages
             for(unsigned int fComponent=0;fComponent<3;fComponent++){
-               bgFunction.setDerivative(0);
-               bgFunction.setComponent((coordinate)fComponent);
-               BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::BGBXVOL+fComponent) += volumeAverage(bgFunction,accuracy,start,end);
+               T3DFunction valueFunction = std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, (coordinate)fComponent, 0, (coordinate)0);
+               BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::BGBXVOL+fComponent) += volumeAverage(valueFunction,accuracy,start,end);
                
                //Compute derivatives. Note that we scale by dx[] as the arrays are assumed to contain differences, not true derivatives!      
-               bgFunction.setDerivative(1);
-               bgFunction.setDerivComponent((coordinate)faceCoord1[fComponent]);
-               BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::dBGBXVOLdy+2*fComponent) += dx[faceCoord1[fComponent]] * volumeAverage(bgFunction,accuracy,start,end);
-               bgFunction.setDerivComponent((coordinate)faceCoord2[fComponent]);
-               BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::dBGBXVOLdy+1+2*fComponent) += dx[faceCoord2[fComponent]] * volumeAverage(bgFunction,accuracy,start,end);
+               T3DFunction derivFunction = std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, (coordinate)fComponent, 1, (coordinate)faceCoord1[fComponent]);
+               BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::dBGBXVOLdy+2*fComponent) += dx[faceCoord1[fComponent]] * volumeAverage(derivFunction,accuracy,start,end);
+               derivFunction = std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, (coordinate)fComponent, 1, (coordinate)faceCoord2[fComponent]);
+               BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::dBGBXVOLdy+1+2*fComponent) += dx[faceCoord2[fComponent]] * volumeAverage(derivFunction,accuracy,start,end);
             }
          }
       }
@@ -152,10 +151,12 @@ void setBackgroundFieldToZero(
 
 
 void setPerturbedField(
-   FieldFunction& bfFunction,
+   const FieldFunction& bfFunction,
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
    bool append) {
    
+   using namespace std::placeholders;
+
    /*if we do not add a new background to the existing one we first put everything to zero*/
    if(append==false) {
       setPerturbedFieldToZero(perBGrid);
@@ -200,10 +201,9 @@ void setPerturbedField(
             
             //Face averages
             for(uint fComponent=0; fComponent<3; fComponent++){
-               bfFunction.setDerivative(0);
-               bfFunction.setComponent((coordinate)fComponent);
+               T3DFunction valueFunction = std::bind(bfFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, (coordinate)fComponent, 0, (coordinate)0);
                perBGrid.get(x,y,z)->at(fsgrids::bfield::PERBX+fComponent) += 
-                  surfaceAverage(bfFunction,
+                  surfaceAverage(valueFunction,
                      (coordinate)fComponent,
                                  accuracy,
                                  start,

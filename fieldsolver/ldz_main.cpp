@@ -107,8 +107,6 @@ bool propagateFields(
       exit(1);
    }
    
-   bool hallTermCommunicateDerivatives = true;
-   
    const int* gridDims = &technicalGrid.getLocalSize()[0];
    
    #pragma omp parallel for collapse(3)
@@ -127,7 +125,6 @@ bool propagateFields(
       calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1, true);
       if(P::ohmGradPeTerm > 0){
          calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1);
-         hallTermCommunicateDerivatives = false;
       }
       if(P::ohmHallTerm > 0) {
          calculateHallTermSimple(
@@ -141,8 +138,7 @@ bool propagateFields(
             BgBGrid,
             technicalGrid,
             sysBoundaries,
-            RK_ORDER1,
-            hallTermCommunicateDerivatives
+            RK_ORDER1
          );
       }
       calculateUpwindedElectricFieldSimple(
@@ -166,7 +162,6 @@ bool propagateFields(
       calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1, true);
       if(P::ohmGradPeTerm > 0) {
          calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1);
-         hallTermCommunicateDerivatives = false;
       }
       if(P::ohmHallTerm > 0) {
          calculateHallTermSimple(
@@ -180,8 +175,7 @@ bool propagateFields(
             BgBGrid,
             technicalGrid,
             sysBoundaries,
-            RK_ORDER2_STEP1,
-            hallTermCommunicateDerivatives
+            RK_ORDER2_STEP1
          );
       }
       calculateUpwindedElectricFieldSimple(
@@ -205,7 +199,6 @@ bool propagateFields(
       calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2, true);
       if(P::ohmGradPeTerm > 0) {
          calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2);
-         hallTermCommunicateDerivatives = false;
       }
       if(P::ohmHallTerm > 0) {
          calculateHallTermSimple(
@@ -219,8 +212,7 @@ bool propagateFields(
             BgBGrid,
             technicalGrid,
             sysBoundaries,
-            RK_ORDER2_STEP2,
-            hallTermCommunicateDerivatives
+            RK_ORDER2_STEP2
          );
       }
       calculateUpwindedElectricFieldSimple(
@@ -247,18 +239,17 @@ bool propagateFields(
       uint subcycleCount = 0;
       uint maxSubcycleCount = std::numeric_limits<uint>::max();
       int myRank = perBGrid.getRank();
-      
-      while (subcycleCount < maxSubcycleCount ) {         
+
+      while (subcycleCount < maxSubcycleCount ) {
          // In case of subcycling, we decided to go for a blunt Runge-Kutta subcycling even though e.g. moments are not going along.
          // Result of the Summer of Debugging 2016, the behaviour in wave dispersion was much improved with this.
          propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, subcycleDt, RK_ORDER2_STEP1);
-         
-         // We need to calculate derivatives of the moments at every substep, but they only
+
+         // We need to calculate derivatives of the moments at every substep, but the moments only
          // need to be communicated in the first one.
          calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1, (subcycleCount==0));
          if(P::ohmGradPeTerm > 0 && subcycleCount==0) {
             calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1);
-            hallTermCommunicateDerivatives = false;
          }
          if(P::ohmHallTerm > 0) {
             calculateHallTermSimple(
@@ -272,8 +263,7 @@ bool propagateFields(
                BgBGrid,
                technicalGrid,
                sysBoundaries,
-               RK_ORDER2_STEP1,
-               hallTermCommunicateDerivatives
+               RK_ORDER2_STEP1
             );
          }
          calculateUpwindedElectricFieldSimple(
@@ -295,12 +285,11 @@ bool propagateFields(
          
          propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, subcycleDt, RK_ORDER2_STEP2);
          
-         // We need to calculate derivatives of the moments at every substep, but they only
+         // We need to calculate derivatives of the moments at every substep, but the moments only
          // need to be communicated in the first one.
          calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2, (subcycleCount==0));
          if(P::ohmGradPeTerm > 0 && subcycleCount==0) {
             calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2);
-            hallTermCommunicateDerivatives = false;
          }
          if(P::ohmHallTerm > 0) {
             calculateHallTermSimple(
@@ -314,8 +303,7 @@ bool propagateFields(
                BgBGrid,
                technicalGrid,
                sysBoundaries,
-               RK_ORDER2_STEP2,
-               hallTermCommunicateDerivatives
+               RK_ORDER2_STEP2
             );
          }
          calculateUpwindedElectricFieldSimple(
