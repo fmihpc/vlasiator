@@ -254,7 +254,7 @@ void velocitySpaceDiffusion(
 
             phiprof::start("diffusion time derivative");
             // Compute dfdt
-            //#pragma opm parallel for
+            //#pragma omp parallel for
             for (vmesh::LocalID n=0; n<cell.get_number_of_velocity_blocks(popID); n++) { // Iterate through velocity blocks             
                 for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
                 
