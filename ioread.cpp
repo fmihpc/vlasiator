@@ -247,25 +247,14 @@ bool readNBlocks(vlsv::ParallelReader& file,const std::string& meshName,
 
    uint64_t N_spatialCells = 0;
 
-   if(N_domains == 1) {
+	int64_t* domainInfo = NULL;
+	if (file.read("MESH_DOMAIN_SIZES",attribsIn,0,N_domains,domainInfo) == false) return false;
 
-      if (file.read("MESH_BBOX",attribsIn,0,6,bbox_ptr,false) == false) return false;
-      
-      // Resize the output vector and init to zero values
-      N_spatialCells = bbox[0]*bbox[1]*bbox[2];
+	for (uint i_domain = 0; i_domain < N_domains; ++i_domain) {
+		
+		N_spatialCells += domainInfo[2*i_domain];
 
-   } else {
-
-      int64_t* domainInfo = NULL;
-      if (file.read("MESH_DOMAIN_SIZES",attribsIn,0,N_domains,domainInfo) == false) return false;
-
-      for (uint i_domain = 0; i_domain < N_domains; ++i_domain) {
-         
-         N_spatialCells += domainInfo[2*i_domain];
-
-      }
-
-   }
+	}
 
    nBlocks.resize(N_spatialCells);
 
@@ -777,8 +766,14 @@ bool readCellParamsVariable(
    return false;
 }
 
+/*! Read a fsgrid variable (consinting of N real values) from the given vlsv file.
+ * \param file VLSV parallel reader with a file open.
+ * \param variableName Name of the variable in the file
+ * \param numWritingRanks Number of mpi ranks that were used to write this file (used for reconstruction of the spatial order)
+ * \param targetGrid target location where the data will be stored.
+ */
 template<unsigned long int N> bool readFsGridVariable(
-   vlsv::ParallelReader& file, const string& variableName, int numWritingRanks, FsGrid<std::array<Real, N>,2>& targetGrid) {
+   vlsv::ParallelReader& file, const string& variableName, int numWritingRanks, FsGrid<std::array<Real, N>,FS_STENCIL_WIDTH> & targetGrid) {
 
    uint64_t arraySize;
    uint64_t vectorSize;
@@ -845,7 +840,7 @@ template<unsigned long int N> bool readFsGridVariable(
             return false;
          }
 
-         for(int i=0; i<storageSize*N; i++) {
+         for(uint64_t i=0; i<storageSize*N; i++) {
             buffer[i] = readBuffer[i];
          }
       }
@@ -916,29 +911,29 @@ template<unsigned long int N> bool readFsGridVariable(
          // Read into buffer
          std::vector<Real> buffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
 
-         phiprof::start("readArray");
-         if(!convertFloatType) {
-            // TODO: Should these be multireads instead? And/or can this be parallelized?
-            if(file.readArray("VARIABLE",attribs, fileOffset, thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2], (char*)buffer.data()) == false) {
-               logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
-               return false;
-            }
-         } else {
-            std::vector<float> readBuffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
-            if(file.readArray("VARIABLE",attribs, fileOffset, thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2], (char*)readBuffer.data()) == false) {
-               logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
-               return false;
-            }
-
-            for(int i=0; i< thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N; i++) {
-               buffer[i]=readBuffer[i];
-            }
-         }
-         phiprof::stop("readArray");
-
-         phiprof::start("memcpy");
+         file.startMultiread("VARIABLE", attribs);
          // Read every source rank that we have an overlap with.
          if(overlapSize[0]*overlapSize[1]*overlapSize[2] > 0) {
+
+
+            if(!convertFloatType) {
+               if(file.addMultireadUnit((char*)buffer.data(), thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2])==false) {
+                  logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
+                  return false;
+               }
+               file.endMultiread(fileOffset);
+            } else {
+               std::vector<float> readBuffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
+               if(file.addMultireadUnit((char*)readBuffer.data(), thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2])==false) {
+                  logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
+                  return false;
+               }
+               file.endMultiread(fileOffset);
+
+               for(uint64_t i=0; i< thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N; i++) {
+                  buffer[i]=readBuffer[i];
+               }
+            }
 
             // Copy continuous stripes in x direction.
             for(int z=overlapStart[2]; z<overlapEnd[2]; z++) {
@@ -952,14 +947,86 @@ template<unsigned long int N> bool readFsGridVariable(
                   }
                }
             }
-         } 
+         } else {
+            // If we don't overlap, just perform a dummy read.
+            file.endMultiread(fileOffset);
+         }
          fileOffset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2];
-         phiprof::stop("memcpy");
       }
    }
    phiprof::start("updateGhostCells");
    targetGrid.updateGhostCells();
    phiprof::stop("updateGhostCells");
+   return true;
+}
+
+/*! Read an ionosphere variable from the given vlsv file.
+ * Note that only singular floating point values (no vectors) can be read at this time.
+ * \param file VLSV parallel reader with a file open.
+ * \param variableName Name of the variable in the file
+ * \param grid the ionosphere grid that data will be deposited into
+ * \param index index into the nodes' parameters array, where the data will end up.
+ */
+bool readIonosphereNodeVariable(
+   vlsv::ParallelReader& file, const string& variableName, SBC::SphericalTriGrid& grid, ionosphereParameters index) {
+
+   uint64_t arraySize;
+   uint64_t vectorSize;
+   vlsv::datatype::type dataType;
+   uint64_t byteSize;
+   list<pair<string,string> > attribs;
+   bool convertFloatType = false;
+   
+   attribs.push_back(make_pair("name",variableName));
+   attribs.push_back(make_pair("mesh","ionosphere"));
+
+   // If we don't have an ionosphere (zero nodes), we simply skip trying to read any restart data for this.
+   if(grid.nodes.size() == 0) {
+      return true;
+   }
+
+   if (file.getArrayInfo("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
+      logFile << "(RESTART)  ERROR: Failed to read array info for " << variableName << endl << write;
+      return false;
+   }
+
+   if(! (dataType == vlsv::datatype::type::FLOAT && byteSize == sizeof(Real))) {
+      logFile << "(RESTART) Converting floating point format of ionosphere variable " << variableName << " from " << byteSize * 8 << " bits to " << sizeof(Real) * 8 << " bits." << endl << write;
+      convertFloatType = true;
+   }
+
+   // Verify that this is a scalar variable
+   if(vectorSize != 1) {
+      logFile << "(RESTART) ERROR: Trying to read vector valued (" << vectorSize << " components) ionosphere parameter from restart file. Only scalars are supported." << endl << write;
+      return false;
+   }
+
+   // Verify that the size matches our constructed ionosphere object
+   if(grid.nodes.size() != arraySize) {
+      logFile << "(RESTART) ERROR: Ionosphere restart size mismatch: trying to read variable " << variableName << " with " << arraySize << " values into a ionosphere grid with " << grid.nodes.size() << " nodes!" << endl << write;
+      return false;
+   }
+
+   if(!convertFloatType) {
+      std::vector<Real> buffer(arraySize);
+      if(file.readArray("VARIABLE", attribs, 0, arraySize, (char*)buffer.data()) == false) {
+         logFile << "(RESTART) ERROR: Failed to read ionosphere variable " << variableName << endl << write;
+      }
+
+      for(uint i=0; i<grid.nodes.size(); i++) {
+         grid.nodes[i].parameters[index] = buffer[i];
+      }
+   } else {
+      std::vector<float> buffer(arraySize);
+      if(file.readArray("VARIABLE", attribs, 0, arraySize, (char*)buffer.data()) == false) {
+         logFile << "(RESTART) ERROR: Failed to read ionosphere variable " << variableName << endl << write;
+      }
+
+      for(uint i=0; i<grid.nodes.size(); i++) {
+         grid.nodes[i].parameters[index] = buffer[i];
+      }
+   }
+
    return true;
 }
 
@@ -1014,9 +1081,9 @@ bool checkScalarParameter(vlsv::ParallelReader& file,const string& name,T correc
  \sa readGrid
  */
 bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
-      FsGrid< fsgrids::technical, 2>& technicalGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
                    const std::string& name) {
    vector<CellID> fileCells; /*< CellIds for all cells in file*/
    vector<size_t> nBlocks;/*< Number of blocks for all cells in file*/
@@ -1081,7 +1148,9 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    phiprof::stop("readScalars");
 
    phiprof::start("readDatalayout");
-   if (success == true) success = readCellIds(file,fileCells,MASTER_RANK,MPI_COMM_WORLD);
+   if (success) {
+		success = readCellIds(file,fileCells,MASTER_RANK,MPI_COMM_WORLD);
+	}
 
    // Check that the cellID lists are identical in file and grid
    if (myRank==0){
@@ -1200,7 +1269,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_v_dt",CellParams::MAXVDT,1,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_r_dt",CellParams::MAXRDT,1,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_fields_dt",CellParams::MAXFDT,1,mpiGrid); }
-// Backround B has to be set, there are also the derivatives that should be written/read if we wanted to only read in background field
+   // Backround B has to be set, there are also the derivatives that should be written/read if we wanted to only read in background field
    phiprof::stop("readCellParameters");
 
    phiprof::start("readBlockData");
@@ -1225,6 +1294,39 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    exitOnError(success,"(RESTART) Failure reading fsgrid restart variables",MPI_COMM_WORLD);
    phiprof::stop("readFsGrid");
    
+   phiprof::start("readIonosphere");
+   bool ionosphereSuccess=true;
+   ionosphereSuccess = readIonosphereNodeVariable(file, "ig_fac", SBC::ionosphereGrid, ionosphereParameters::SOURCE);
+   // Reconstruct source term by multiplying the fac density with the element area
+   for(uint i = 0; i<SBC::ionosphereGrid.nodes.size(); i++) {
+      Real area = 0;
+      for(uint e=0; e< SBC::ionosphereGrid.nodes[i].numTouchingElements; e++) {
+         area += SBC::ionosphereGrid.elementArea(SBC::ionosphereGrid.nodes[i].touchingElements[e]);
+      }
+      area /= 3.; // As every element has 3 corners, don't double-count areas
+      SBC::ionosphereGrid.nodes[i].parameters[ionosphereParameters::SOURCE] *= area;
+   }
+   ionosphereSuccess &= readIonosphereNodeVariable(file, "ig_rhon", SBC::ionosphereGrid, ionosphereParameters::RHON);
+   ionosphereSuccess &= readIonosphereNodeVariable(file, "ig_electrontemp", SBC::ionosphereGrid, ionosphereParameters::TEMPERATURE);
+   ionosphereSuccess &= readIonosphereNodeVariable(file, "ig_potential", SBC::ionosphereGrid, ionosphereParameters::SOLUTION);
+   if(!ionosphereSuccess) {
+      logFile << "(RESTART) Reading ionosphere variables failed. Continuing anyway. Variables will be zero, assuming this is an ionosphere cold start?" << std::endl;
+   }
+
+   // Read additional variables that are not formally required for solving the
+   // ionosphere, but help making the first output consistent if ionosphere
+   // timestep is very large.
+   // If these are missing from the restart file, we are fine continuing with
+   // zeros.
+   bool ionosphereOptionalSuccess = readIonosphereNodeVariable(file, "ig_sigmah", SBC::ionosphereGrid, ionosphereParameters::SIGMAH);
+   ionosphereOptionalSuccess &= readIonosphereNodeVariable(file, "ig_sigmap", SBC::ionosphereGrid, ionosphereParameters::SIGMAP);
+   ionosphereOptionalSuccess &= readIonosphereNodeVariable(file, "ig_sigmaparallel", SBC::ionosphereGrid, ionosphereParameters::SIGMAPARALLEL);
+   ionosphereOptionalSuccess &= readIonosphereNodeVariable(file, "ig_precipitation", SBC::ionosphereGrid, ionosphereParameters::PRECIP);
+   if(ionosphereSuccess && !ionosphereOptionalSuccess) {
+      logFile << "(RESTART) Restart file contains no ionosphere conductivity data. Ionosphere will run fine, but first output bulk file might have bogus conductivities." << std::endl;
+   }
+   phiprof::stop("readIonosphere");
+
    success = file.close();
    phiprof::stop("readGrid");
 
@@ -1239,9 +1341,9 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 \param name Name of the restart file e.g. "restart.00052.vlsv"
 */
 bool readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid,
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2>& EGrid,
-      FsGrid< fsgrids::technical, 2>& technicalGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
               const std::string& name){
    //Check the vlsv version from the file:
    return exec_readGrid(mpiGrid,perBGrid,EGrid,technicalGrid,name);

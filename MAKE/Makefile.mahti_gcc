@@ -2,8 +2,7 @@ CMP = mpic++
 LNK = mpic++
 
 # Modules loaded
-# module load gcc boost jemalloc papi openmpi zoltan
-
+# module load gcc boost jemalloc papi openmpi
 
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length. 
@@ -20,16 +19,6 @@ else
 	VECTORCLASS = VEC4D_AGNER
 endif
 
-
-#======= Compiler and compilation flags =========
-# NOTES on compiler flags:
-# CXXFLAGS is for compiler flags, they are always used
-# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
-# LDFLAGS flags for linker
-
-#-DNO_WRITE_AT_ALL:  Define to disable write at all to 
-#                    avoid memleak (much slower IO)
-
 FLAGS = 
 
 #GNU flags:
@@ -42,6 +31,26 @@ MATHFLAGS = -ffast-math
 LDFLAGS = -lrt
 LIB_MPI = -lgomp 
 
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+CXXFLAGS +=  -DPAPI_MEM
+testpackage: CXXFLAGS +=  -DPAPI_MEM
+
+#======== Allocator =========
+#Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
+#Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
+CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+
+#======= Compiler and compilation flags =========
+# NOTES on compiler flags:
+# CXXFLAGS is for compiler flags, they are always used
+# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
+# LDFLAGS flags for linker
+
+#-DNO_WRITE_AT_ALL:  Define to disable write at all to 
+#                    avoid memleak (much slower IO)
+
 # BOOST_VERSION = current trilinos version
 # ZOLTAN_VERSION = current trilinos verson
 #
@@ -49,30 +58,23 @@ LIB_MPI = -lgomp
 
 MPT_VERSION = 4.0.3
 JEMALLOC_VERSION = 5.2.1
-LIBRARY_PREFIX = /users/kempf/libraries
-
-#======== PAPI ==========
-#Add PAPI_MEM define to use papi to report memory consumption?
-CXXFLAGS +=  -DPAPI_MEM
-
-
-#======== Allocator =========
-#Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
-#Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
-CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+LIBRARY_PREFIX = /users/kempf/libraries_rhel8_openmpi/
 
 
 #compiled libraries
 LIB_BOOST = -lboost_program_options
 
-LIB_ZOLTAN = -lzoltan
+INC_ZOLTAN = -I$(LIBRARY_PREFIX)/zoltan/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX)/zoltan/lib
+
 
 LIB_JEMALLOC = -ljemalloc
 
 LIB_PAPI = -lpapi
 
-INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
-LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv
+INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv_multiread
+LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv_multiread -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)/vlsv_multiread
+
 
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -lgfortran -Wl,-rpath=$(LIBRARY_PREFIX)/phiprof/lib
 INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include 
@@ -80,7 +82,7 @@ INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
 
 #header libraries
 
-INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid/
-INC_EIGEN = -I$(LIBRARY_PREFIX)/eigen/
-INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg/
-INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass/
+INC_FSGRID = -I$(LIBRARY_PREFIX)../libraries/fsgrid/
+INC_EIGEN = -I$(LIBRARY_PREFIX)/../libraries/eigen/
+INC_DCCRG = -I$(LIBRARY_PREFIX)/../libraries/dccrg/
+INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/../libraries/vectorclass/

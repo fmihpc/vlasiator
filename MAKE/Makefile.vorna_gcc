@@ -6,6 +6,10 @@
 # module load OpenMPI/4.0.5-GCC-10.2.0
 # Same in one line to past on the command line:
 # module purge ; module load GCC/10.2.0 ; module load OpenMPI/4.0.5-GCC-10.2.0
+# Remember to compile interactively, see the It4Science wiki or the Vorna guide
+# https://github.com/fmihpc/analysator/wiki/Vorna-guide
+# for the current best practice.
+# Run with srun --mpi=pmix or srun --mpi=pmix_v3
 
 CMP = mpic++
 LNK = mpic++
@@ -30,8 +34,8 @@ FLAGS =
 #GNU flags:
 CC_BRAND = gcc
 CC_BRAND_VERSION = 10.2.0
-CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -mavx -pipe
-testpackage: CXXFLAGS = -g -O2 -fopenmp -funroll-loops -std=c++17 -mavx -pipe
+CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -mavx
+testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -mavx
 
 MATHFLAGS = -ffast-math
 LDFLAGS = -lrt -lgfortran -std=c++17
@@ -85,10 +89,10 @@ LIB_PAPI = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MP
 INC_PAPI = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/vorna/papi/include
 
 #header libraries
-INC_FSGRID = -I/proj/group/spacephysics/libraries/fsgrid/
-INC_DCCRG = -I/proj/group/spacephysics/libraries/dccrg/
-INC_VECTORCLASS = -I/proj/group/spacephysics/libraries/vectorclass/
-INC_EIGEN = -I/proj/group/spacephysics/libraries/ -I/proj/group/spacephysics/libraries/Eigen
+INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid/
+INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg/
+INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass/
+INC_EIGEN = -I$(LIBRARY_PREFIX)/ -I$(LIBRARY_PREFIX)/Eigen
 
 
 

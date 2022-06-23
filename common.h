@@ -186,6 +186,9 @@ namespace CellParams {
       FSGRID_BOUNDARYTYPE, /*!< Boundary type of this cell, as stored in the fsGrid */
       CELLID, /*! < DCCRG cell index */
       REFINEMENT_LEVEL, /*! < Refinement level */
+      AMR_TRANSLATE_COMM_X, /*! < Flag to include this cell in AMR pre-translate communication  */
+      AMR_TRANSLATE_COMM_Y, /*! < Flag to include this cell in AMR pre-translate communication  */
+      AMR_TRANSLATE_COMM_Z, /*! < Flag to include this cell in AMR pre-translate communication  */
       N_SPATIAL_CELL_PARAMS
    };
 }
@@ -206,19 +209,19 @@ namespace bvolderivatives {
    };
 }
 
-// FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
-// FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBDt2Grid,
-// FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EGrid,
-// FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, 2> & EDt2Grid,
-// FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, 2> & EHallGrid,
-// FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, 2> & EGradPeGrid,
-// FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsGrid,
-// FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, 2> & momentsDt2Grid,
-// FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, 2> & dPerBGrid,
-// FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, 2> & dMomentsGrid,
-// FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2> & BgBGrid,
-// FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
-// FsGrid< fsgrids::technical, 2> & technicalGrid,
+// FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+// FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBDt2Grid,
+// FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+// FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EDt2Grid,
+// FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+// FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+// FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+// FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsDt2Grid,
+// FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+// FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+// FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+// FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+// FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
 
 /*! Namespace containing enums and structs for the various field solver grid instances
  * 
@@ -377,6 +380,30 @@ namespace fsgrids {
    
 }
 
+// Ionosphere node parameters
+enum ionosphereParameters {
+  SOURCE,    /*!< Field aligned current source term (Ampere). Note: this is current, *not* density. */
+  SIGMA,   SIGMA12, SIGMA13, 
+  SIGMA21, SIGMA22, SIGMA23, /*!< Overall conductivity tensor */
+  SIGMA31, SIGMA32, SIGMA33,
+
+  SIGMAP,   /*!< Scalar Pedersen conductivity */
+  SIGMAH,   /*!< Scalar Hall conductivity */
+  SIGMAPARALLEL, /*!< Scalar parallel conductivity */
+  PRECIP,   /*!< Precipitation */
+  RHON,     /*!< Downmapped magnetospheric plasma number density */
+  TEMPERATURE, /*!< Downmapped electron temperature */
+  POYNTINGFLUX, /*!< Downwards poynting flux from the magnetosphre into the ionosphere */
+  UPMAPPED_BX,UPMAPPED_BY,UPMAPPED_BZ, /*!< Magnetic field at the upper and of the mapping fieldline */
+  SOLUTION, /*!< Currently considered solution potential */
+  BEST_SOLUTION, /*!< Best solution found so far */
+  RESIDUAL, /*!< Residual of the current solution */
+  RRESIDUAL,
+  ZPARAM, ZZPARAM,
+  PPPARAM, PPARAM,
+  N_IONOSPHERE_PARAMETERS
+};
+
 /*! The namespace sysboundarytype contains the identification index of the boundary condition types applied to a cell,
  * it is stored in SpatialCell::sysBoundaryFlag and used by the BoundaryCondition class' functions to determine what type of BC to apply to a cell.
  * At least for the workings of vlasovmover_leveque.cpp the order of the first two entries should not be changed.
@@ -385,9 +412,10 @@ namespace sysboundarytype {
    enum {
       DO_NOT_COMPUTE,   /*!< E.g. cells within the ionospheric outer radius should not be computed at all. */
       NOT_SYSBOUNDARY,  /*!< Cells within the simulation domain are not boundary cells. */
-      IONOSPHERE,       /*!< Initially a perfectly conducting sphere. */
+      IONOSPHERE,       /*!< Ionospheric current model */
       OUTFLOW,          /*!< No fixed conditions on the fields and distribution function. */
       SET_MAXWELLIAN,   /*!< Set Maxwellian boundary condition, i.e. set fields and distribution function. */
+      CONDUCTINGSPHERE, /*!< A perfectly conducting sphere as the simple inner boundary */
       N_SYSBOUNDARY_CONDITIONS
    };
 }

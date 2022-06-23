@@ -5,17 +5,25 @@
 #   See the It4Science wiki or the Vorna guide
 #   https://github.com/fmihpc/analysator/wiki/Vorna-guide
 #   for the current best practice.
-# * Load the modules in the job script too;
-# * Use the full command to run:
-# ** mpirun -mca pml ucx --mca btl ^vader,tcp,openib -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global $executable --run_config $configfile
+# * Use mpirun to run (no need for the long command below it seems)
+# * (this was used previously, kept for documentation purposes) mpirun -mca pml ucx --mca btl ^vader,tcp,openib -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global $executable --run_config $configfile
 #
 # Required modules:
 #
-# module load gnu9/9.3.0
-# module load openmpi4/4.0.5
+# module load gnu9/9.4.0
+# module load openmpi4/4.1.1
 # module load pmix/3.1.4
 # Oneliner for command line:
-# module purge ; module load gnu9/9.3.0 ; module load openmpi4/4.0.5 ; module load pmix/3.1.4
+# module purge ; module load gnu9/9.4.0 ; module load openmpi4/4.1.1 ; module load pmix/3.1.4
+#
+# NOTE in the job script, you have to load
+#
+# module purge
+# module load GCC/10.2.0
+# module load OpenMPI/4.0.5-GCC-10.2.0
+#
+# otherwise the VLSV output is broken.
+#
 
 CMP = mpicxx
 LNK = mpicxx
@@ -53,9 +61,9 @@ FLAGS =
 
 #GNU flags:
 CC_BRAND = gcc
-CC_BRAND_VERSION = 9.3.0
-CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -mavx -march=znver2 -pipe#-flto
-testpackage: CXXFLAGS = -g -O2 -fopenmp -funroll-loops -std=c++17 -mavx -march=znver2 -pipe
+CC_BRAND_VERSION = 9.4.0
+CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -mavx -march=znver2 #-flto
+testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -mavx -march=znver2
 
 MATHFLAGS = -ffast-math
 LDFLAGS = -lrt -lgfortran -std=c++17 -lgomp
@@ -79,7 +87,7 @@ testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 #======== Libraries ===========
 
 MPT_BRAND = OpenMPI
-MPT_VERSION = 4.0.5
+MPT_VERSION = 4.1.1
 
 JEMALLOC_VERSION = 5.2.1
 LIBRARY_PREFIX = /proj/group/spacephysics/libraries
