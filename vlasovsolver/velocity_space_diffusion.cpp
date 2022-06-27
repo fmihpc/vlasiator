@@ -33,8 +33,9 @@
 #include <fstream>
 #include <iomanip>
 #include <iterator>
+#include "vectorclass.h"
 
-// TODO: CLEAN UP THIS FUCKING MESS
+// TODO: FIX if WID is not 4
 
 using namespace spatial_cell;
 
@@ -97,6 +98,8 @@ void velocitySpaceDiffusion(
             Vcount_array.assign(cell.get_number_of_velocity_blocks(popID)*WID3,0);  // Array to store vcount per cell
             mucount_array.assign(cell.get_number_of_velocity_blocks(popID)*WID3,0); // Array to store mucount per cell
 
+            std::array<Realf,3> bulkV = {cell.parameters[CellParams::VX], cell.parameters[CellParams::VY], cell.parameters[CellParams::VZ]};
+
             for (int i=0; i<nbins_v; i++) {
                 for (int j=0; j<nbins_mu; j++) {
                     fcount[i][j]  = 0;
@@ -111,52 +114,63 @@ void velocitySpaceDiffusion(
             // Build 2d array of f(v,mu)
             //#pragma omp parallel for 
             for (vmesh::LocalID n=0; n<cell.get_number_of_velocity_blocks(popID); n++) { // Iterate through velocity blocks
-                for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
+                for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) {  //for (uint i = 0; i < WID; ++i) {
 
                    //Get velocity space coordinates                    
-	           const Real VX 
-                      =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
-                      + (i + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
-                   const Real VY 
-                      =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
-                      + (j + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
-                   const Real VZ 
-                      =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD]
-                      + (k + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+	           const Vec4d VX(parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD]
+                                  + (0*0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX],
+                                  parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD]
+                                  + (1*0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX],
+                                  parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD]
+                                  + (2*0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX],
+                                  parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD]
+                                  + (3*0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]);
+
+                   const Vec4d VY(parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
+                                  + (j + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY]);
+
+                   const Vec4d VZ(parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD]
+                                  + (k + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ]);
                    
-                   std::array<Realf,3> V = {VX,VY,VZ}; // Velocity in the cell, in the simulation frame
+                   std::array<Vec4d,3> V = {VX,VY,VZ}; // Velocity in the cell, in the simulation frame
                                    
-                   const Real DV 
-                      = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
-  
-                   std::array<Realf,3> bulkV = {cell.parameters[CellParams::VX], cell.parameters[CellParams::VY], cell.parameters[CellParams::VZ]};
-                   std::array<Realf,3> Vplasma;            // Velocity in the cell, in the plasma frame
+                   std::array<Vec4d,3> Vplasma;            // Velocity in the cell, in the plasma frame
                    for (int indx = 0; indx < 3; indx++) {
-                       Vplasma[indx] = (V[indx] - bulkV[indx]);
+                       Vplasma[indx] = ( V[indx] - Vec4d(bulkV[indx]) );
                    }
               
-                   Realf normV = sqrt(Vplasma.at(0)*Vplasma.at(0) + Vplasma.at(1)*Vplasma.at(1) + Vplasma.at(2)*Vplasma.at(2));
+                   Vec4d normV = sqrt(Vplasma.at(0)*Vplasma.at(0) + Vplasma.at(1)*Vplasma.at(1) + Vplasma.at(2)*Vplasma.at(2));
 
-                   Realf Vpara = Vplasma.at(0);
+                   Vec4d Vpara = Vplasma.at(0);
 
                    //Realf theta = atan2(Vperp,Vpara);
-                   Realf mu = Vpara/(normV+std::numeric_limits<Realf>::min());  //cos(theta);
+                   Vec4d mu = Vpara/(normV+std::numeric_limits<Realf>::min());  //cos(theta);
  
-                   int Vcount;
-                   if (normV < Vmin) { continue; }
-                   else { Vcount = static_cast<int>(floor((normV-Vmin) / dVbins)); }                      
+                   Vec4i Vcount;
+                   Vec4db Voutrange = normV < Vec4d(Vmin);
 
-                   int mucount = static_cast<int>(floor( (mu+1.0) / dmubins));                      
+                   Vcount = round_to_int(floor((normV - Vmin) / dVbins));
 
-                   Realf Vmu = dVbins * (Vcount+0.5);
+                   Vec4i mucount;
+                   mucount = round_to_int(floor((mu + 1.0) / dmubins));                      
 
-                   Realf CellValue  = cell.get_data(n,popID)[i+WID*j+WID*WID*k];
+                   Vec4d Vmu = dVbins * (to_double(Vcount)+0.5);
+
+                   #ifdef DPF
+                   Vec4d CellValue;
+                   #else
+                   Vec4f CellValue;
+                   #endif
+                   CellValue.load(&cell.get_data(n,popID)[WID*j+WID*WID*k]);
                    //#pragma omp critical
                    //{ 
-                   Vcount_array[WID3*n+i+WID*j+WID*WID*k]  = Vcount;
-                   mucount_array[WID3*n+i+WID*j+WID*WID*k] = mucount;
-                   fmu[Vcount][mucount] += 2.0 * M_PI * Vmu*Vmu * CellValue;
-                   fcount[Vcount][mucount] += 1;
+                   Vcount.store(&Vcount_array[WID3*n+WID*j+WID*WID*k]);
+                   mucount.store(&mucount_array[WID3*n+WID*j+WID*WID*k]);
+
+                   for (uint i = 0; i < WID; ++i) {
+                       fmu[Vcount[i]][mucount[i]] += 2.0 * M_PI * Vmu[i]*Vmu[i] * CellValue[i];
+                       fcount[Vcount[i]][mucount[i]] += 1;
+                   }
                    //}
                 }
             } // End blocks
@@ -257,39 +271,46 @@ void velocitySpaceDiffusion(
             //#pragma omp parallel for
             for (vmesh::LocalID n=0; n<cell.get_number_of_velocity_blocks(popID); n++) { // Iterate through velocity blocks             
                 for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
-                
-                   Realf CellValue = cell.get_data(n,popID)[i+WID*j+WID*WID*k];
-                   //Realf CellCalc = 1.0; //f always < 1.0
-                   //if ((CellValue == 0.0) && (dfdt_mu[Vcount][mucount] != 0.0)) {
-                   //   Realf CellValuePDX = cell.get_value(VX+DV,VY,VZ,popID); 
-                   //   Realf CellValueMDX = cell.get_value(VX-DV,VY,VZ,popID); 
-                   //   Realf CellValuePDY = cell.get_value(VX,VY+DV,VZ,popID);
-                   //   Realf CellValueMDY = cell.get_value(VX,VY-DV,VZ,popID);
-                   //   Realf CellValuePDZ = cell.get_value(VX,VY,VZ+DV,popID); 
-                   //   Realf CellValueMDZ = cell.get_value(VX,VY,VZ-DV,popID);
-                   //   std::array<Realf,6> Compare = {CellValuePDX,CellValueMDX,CellValuePDY,CellValueMDY,CellValuePDZ,CellValueMDZ};
-                   //   for (int indx = 0; indx < Compare.size(); indx++) { 
-                   //       if ((Compare[indx] < CellCalc) && (Compare[indx] != 0.0)) {CellCalc = Compare[indx];}
-                   //   }
-                   //   if (CellCalc != 1.0) { //Otherwise all cells are 0.0
-                   //       dfdt[WID3*n+i+WID*j+WID*WID*k]  = 0.5 * CellCalc;
-                   //       ratio[WID3*n+i+WID*j+WID*WID*k] = -1;
-                   //       continue; //This lane wont affect CFL
-                   //   } else { ratio[WID3*n+i+WID*j+WID*WID*k] = 0; continue;}
-                   //} else if ((CellValue == 0.0) && (dfdt_mu[Vcount][mucount] == 0.0)) {continue;}
-                   //else { ratio[WID3*n+i+WID*j+WID*WID*k] = 1.0; }                  
-                   //else { ratio[WID3*n+i+WID*j+WID*WID*k] = sqrt(CellValue/fmu[Vcount][mucount]); }                  
 
-                   int Vcount  = Vcount_array[WID3*n+i+WID*j+WID*WID*k];
-                   int mucount = mucount_array[WID3*n+i+WID*j+WID*WID*k];
+                    Realf CellValue = cell.get_data(n,popID)[i+WID*j+WID*WID*k];
+                    int Vcount  = Vcount_array[WID3*n+i+WID*j+WID*WID*k];
+                    int mucount = mucount_array[WID3*n+i+WID*j+WID*WID*k];
 
-                   Realf Vmu = dVbins * (Vcount+0.5);
+                    Realf Vmu = dVbins * (Vcount+0.5);
 
-                   dfdt[WID3*n+i+WID*j+WID*WID*k] = dfdt_mu[Vcount][mucount] / (2.0 * M_PI * Vmu*Vmu); // *ratio[WID3*n+i+WID*j+WID*WID*k]
-                   
-                   if (CellValue < Sparsity) {CellValue = Sparsity;} //Set CellValue to sparsity Threshold for empty cells otherwise div by 0
-                   if (abs(dfdt[WID3*n+i+WID*j+WID*WID*k]) > 0.0) {
-                   checkCFL[WID3*n+i+WID*j+WID*WID*k] = CellValue * Parameters::PADCFL * (1.0 / abs(dfdt[WID3*n+i+WID*j+WID*WID*k]));}
+                    dfdt[WID3*n+i+WID*j+WID*WID*k] = dfdt_mu[Vcount][mucount] / (2.0 * M_PI * Vmu*Vmu); // *ratio[WID3*n+i+WID*j+WID*WID*k]
+                    
+                    if (CellValue < Sparsity) {CellValue = Sparsity;} //Set CellValue to sparsity Threshold for empty cells otherwise div by 0
+                    if (abs(dfdt[WID3*n+i+WID*j+WID*WID*k]) > 0.0) {
+                    checkCFL[WID3*n+i+WID*j+WID*WID*k] = CellValue * Parameters::PADCFL * (1.0 / abs(dfdt[WID3*n+i+WID*j+WID*WID*k]));}
+
+//                   #ifdef DPF
+//                   Vec4d CellValue;
+//                   #else
+//                   Vec4f CellValue;
+//                   #endif
+//                   CellValue.load(&cell.get_data(n,popID)[WID*j+WID*WID*k]);
+//               
+//                   Vec4db lessSpars = CellValue < Sparsity;
+//                   CellValue = select(lessSpars, Sparsity, CellValue);
+//                   
+//                   Vec4i Vcount;
+//                   Vec4i mucount;
+// 
+//                   Vcount.load(&Vcount_array[WID3*n+WID*j+WID*WID*k]);
+//                   mucount.load(&mucount_array[WID3*n+WID*j+WID*WID*k]);
+//
+//                   Vec4i Vmu = dVbins * (Vcount+0.5);
+//
+//                   for (uint i = 0; i < WID; ++i) {
+//
+//                       dfdt[WID3*n+i+WID*j+WID*WID*k] = dfdt_mu[Vcount[i]][mucount[i]] / (2.0 * M_PI * Vmu[i]*Vmu[i]); // *ratio[WID3*n+i+WID*j+WID*WID*k]
+//                
+//                       if (abs(dfdt[WID3*n+i+WID*j+WID*WID*k]) > 0.0) {
+//                           checkCFL[WID3*n+i+WID*j+WID*WID*k] = CellValue[i] * Parameters::PADCFL * (1.0 / abs(dfdt[WID3*n+i+WID*j+WID*WID*k]));
+//                       }
+//
+//                   }
                 }
             }
             phiprof::stop("diffusion time derivative");
