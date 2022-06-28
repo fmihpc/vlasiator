@@ -527,11 +527,6 @@ namespace projects {
       
       if(myRank == MASTER_RANK) std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
 
-      if (!P::shouldRefine) {
-         std::cout << "Skipping refinement!";
-         return true;
-      }
-      
       std::vector<bool> refineSuccess;
       
       for (uint i = 0; i < 2 * P::amrBoxHalfWidthX; ++i) {

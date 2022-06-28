@@ -583,36 +583,6 @@ namespace projects {
       std::vector<CellID> cells = getLocalCells();
       Real ibr2 = pow(ionosphereRadius + 2*P::dx_ini, 2);
 
-      if (!P::shouldRefine) {
-         if (myRank == MASTER_RANK) 
-            std::cout << "Refinement disabled, only refining ionosphere!" << std::endl;
-
-         // Keep the center a bit less refined, otherwise it's way too heavy
-         // Ionosphere refinement hardcoded to max. 2 right now, consider parametrization
-         // Consider just using boundarytype or L2 radius here?
-         for (int i = 0; i < P::amrMaxSpatialRefLevel && i < 2; ++i) {
-            //#pragma omp parallel for
-            for (int j = 0; j < cells.size(); ++j) {
-               CellID id = cells[j];
-               std::array<double,3> xyz = mpiGrid.get_center(id);
-               SpatialCell* cell = mpiGrid[id];
-               Real r2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
-               if (r2 < ibr2) {
-                  //#pragma omp critical
-                  mpiGrid.refine_completely(id);
-               }
-            }
-
-            cells = mpiGrid.stop_refining();
-            #ifndef NDEBUG
-            if (cells.size() > 0)
-               std::cout << "Rank " << myRank << " refined " << cells.size() << " cells to level " << i + 1 << std::endl;
-            #endif
-         }
-
-         return true;
-      }
-
       // L1 refinement.
       if (P::amrMaxSpatialRefLevel > 0) {
          //#pragma omp parallel for
@@ -762,8 +732,8 @@ namespace projects {
                mpiGrid.dont_unrefine(id);
             }
 
-            if (useJPerB) {
-               Real alpha {std::log2(P::refineThreshold * cell->parameters[CellParams::AMR_JPERB] * cell->parameters[CellParams::DX])};
+            if (P::useJPerB) {
+               Real alpha {std::log2(P::JPerBMultiplier * cell->parameters[CellParams::AMR_JPERB] * cell->parameters[CellParams::DX])};
                if (alpha > 0.5)
                   mpiGrid.refine_completely(id);
                else if (alpha < -0.5)

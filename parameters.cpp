@@ -596,7 +596,6 @@ void Parameters::getParameters() {
 
    RP::get("AMR.max_velocity_level", P::amrMaxVelocityRefLevel);
    RP::get("AMR.max_spatial_level", P::amrMaxSpatialRefLevel);
-   RP::get("AMR.should_refine",P::shouldRefine);
    RP::get("AMR.adapt_refinement",P::adaptRefinement);
    RP::get("AMR.refine_on_restart",P::refineOnRestart);
    RP::get("AMR.should_filter",P::shouldFilter);

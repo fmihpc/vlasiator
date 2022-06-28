@@ -178,7 +178,6 @@ struct Parameters {
                                   * refined.  The value must be larger than amrCoarsenLimit.*/
    static std::string amrVelRefCriterion; /**< Name of the velocity block refinement criterion function.*/
    static uint amrMaxSpatialRefLevel;
-   static bool shouldRefine;
    static bool adaptRefinement;
    static bool refineOnRestart;
    static bool shouldFilter;
@@ -187,6 +186,8 @@ struct Parameters {
    static uint refineMultiplier;
    static Real refineAfter;
    static Real refineRadius;
+   static bool useJPerB;
+   static Real JPerBMultiplier;
    static uint amrBoxHalfWidthX;
    static uint amrBoxHalfWidthY;
    static uint amrBoxHalfWidthZ;
