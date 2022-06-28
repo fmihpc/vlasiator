@@ -2574,6 +2574,11 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"","","ref","");
          continue;
       }
+      if(lowercase == "vg_amr_jperb") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_jperb",CellParams::AMR_JPERB,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"","","jperb","");
+         continue;
+      }
       if(lowercase == "ig_latitude") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_latitude", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {

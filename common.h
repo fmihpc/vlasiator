@@ -196,6 +196,7 @@ namespace CellParams {
       AMR_DB,
       AMR_ALPHA,
       RECENTLY_REFINED,
+      AMR_JPERB,
       N_SPATIAL_CELL_PARAMS
    };
 }

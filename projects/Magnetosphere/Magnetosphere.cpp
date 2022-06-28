@@ -730,18 +730,18 @@ namespace projects {
       if (myRank == MASTER_RANK)
          std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
 
-      Real ibr2 = pow(ionosphereRadius + 2*P::dx_ini, 2);
+      Real ibr2 {pow(ionosphereRadius + 2*P::dx_ini, 2)};
 
-      std::vector<CellID> cells = getLocalCells();
-      Real r_max2 = pow(P::refineRadius, 2);
+      std::vector<CellID> cells {getLocalCells()};
+      Real r_max2 {pow(P::refineRadius, 2)};
 
       //#pragma omp parallel for
       for (int j = 0; j < cells.size(); ++j) {
-         CellID id = cells[j];
-         std::array<double,3> xyz = mpiGrid.get_center(id);
-         SpatialCell* cell = mpiGrid[id];
-         int refLevel = mpiGrid.get_refinement_level(id);
-         Real r2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
+         CellID id {cells[j]};
+         std::array<double,3> xyz {mpiGrid.get_center(id)};
+         SpatialCell* cell {mpiGrid[id]};
+         int refLevel {mpiGrid.get_refinement_level(id)};
+         Real r2 {pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2)};
 
          bool refine = false;
          if (!canRefine(mpiGrid[id])) {
@@ -750,6 +750,7 @@ namespace projects {
             mpiGrid.dont_unrefine(id);
          } else if (r2 < r_max2) {
             // We don't care about cells that are too far from the ionosphere
+
             if (cell->parameters[CellParams::AMR_ALPHA] > P::refineThreshold) {
                //#pragma omp critical
                mpiGrid.refine_completely(id);
@@ -759,6 +760,16 @@ namespace projects {
             } else {
                // Ensure no cells above unrefine_threshold are unrefined
                mpiGrid.dont_unrefine(id);
+            }
+
+            if (useJPerB) {
+               Real alpha {std::log2(P::refineThreshold * cell->parameters[CellParams::AMR_JPERB] * cell->parameters[CellParams::DX])};
+               if (alpha > 0.5)
+                  mpiGrid.refine_completely(id);
+               else if (alpha < -0.5)
+                  mpiGrid.unrefine_completely(id);
+               else
+                  mpiGrid.dont_unrefine(id);
             }
          }
       }

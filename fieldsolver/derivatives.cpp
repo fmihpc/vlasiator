@@ -563,14 +563,14 @@ void calculateScaledDeltas(
    SpatialCell* cell,
    std::vector<SpatialCell*>& neighbors)
 {
-   Real dRho = 0;
-   Real dU = 0;
-   Real dPsq = 0;
-   Real dBsq = 0;
-   Real dB = 0;
+   Real dRho {0};
+   Real dU {0};
+   Real dPsq {0};
+   Real dBsq {0};
+   Real dB {0};
 
-   Real myRho = cell->parameters[CellParams::RHOM];
-   Real myU = calculateU1(cell);
+   Real myRho {cell->parameters[CellParams::RHOM]};
+   Real myU {calculateU1(cell)};
    std::array<Real, 3> myP = getMomentumDensity(cell);
    std::array<Real, 3> myB = getPerB(cell);
    for (SpatialCell* neighbor : neighbors) {
@@ -607,12 +607,38 @@ void calculateScaledDeltas(
    if (dB > alpha) {
       alpha = dB;
    }
+
+   Real dBXdy {cell->derivativesBVOL[bvolderivatives::dPERBXVOLdy]};
+   Real dBXdz {cell->derivativesBVOL[bvolderivatives::dPERBXVOLdz]};
+   Real dBYdx {cell->derivativesBVOL[bvolderivatives::dPERBYVOLdx]};
+   Real dBYdz {cell->derivativesBVOL[bvolderivatives::dPERBYVOLdz]};
+   Real dBZdx {cell->derivativesBVOL[bvolderivatives::dPERBZVOLdx]};
+   Real dBZdy {cell->derivativesBVOL[bvolderivatives::dPERBZVOLdy]};
+
+   std::array<Real, 3> myJ = {dBZdy - dBYdz, dBXdz - dBZdx, dBYdx - dBXdy};
+   Real BdotJ {0.0};
+   Real Bsq {0.0};
+   for (int i = 0; i < 3; ++i) {
+      BdotJ += myB[i] * myJ[i];
+      Bsq += myB[i] * myB[i];
+   }
+
+   Real Bperp {0.0};
+   Real J {0.0};
+   for (int i = 0; i < 3; ++i) {
+      Bperp += std::pow(myB[i] * (1 - BdotJ / Bsq), 2);
+      J += myJ[i] * myJ[i];
+   }
+   Bperp = std::sqrt(Bperp);
+   J = std::sqrt(J);
+
    cell->parameters[CellParams::AMR_DRHO] = dRho;
    cell->parameters[CellParams::AMR_DU] = dU;
    cell->parameters[CellParams::AMR_DPSQ] = dPsq;
    cell->parameters[CellParams::AMR_DBSQ] = dBsq;
    cell->parameters[CellParams::AMR_DB] = dB;
    cell->parameters[CellParams::AMR_ALPHA] = alpha;
+   cell->parameters[CellParams::AMR_JPERB] = J / Bperp;
 }
 
 /*! \brief High-level scaled gradient calculation wrapper function.
