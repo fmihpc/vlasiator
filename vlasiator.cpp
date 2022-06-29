@@ -52,6 +52,7 @@
 
 #include "object_wrapper.h"
 #include "fieldsolver/gridGlue.hpp"
+#include "fieldsolver/derivatives.hpp"
 
 #ifdef CATCH_FPE
 #include <fenv.h>
