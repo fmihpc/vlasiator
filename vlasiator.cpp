@@ -743,6 +743,9 @@ int main(int argn,char* args[]) {
                if (index2>P::systemWrites[i]) P::systemWrites[i]=index2;
                continue;
             }
+
+            // Calculate these so refinement parameters can be tuned based on the vlsv
+            calculateScaledDeltasSimple(mpiGrid);
             
             phiprof::start("write-system");
             logFile << "(IO): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
