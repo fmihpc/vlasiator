@@ -1202,8 +1202,8 @@ namespace SBC {
          dormandPrinceStep(r, b, step, maxStepsize, BFieldFunction, outwards);
       }else{
          //Need to also evaluate b here. But b_unit right?
-         r[0]=xf;r[1]=yf;r[2]=zf;
          BFieldFunction(r,outwards,b);
+         r[0]=xf;r[1]=yf;r[2]=zf;
          return;
       } 
    }//Dormand Prince Step
