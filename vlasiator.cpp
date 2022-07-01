@@ -540,6 +540,8 @@ int main(int argn,char* args[]) {
 
    // Save restart data
    if (P::writeInitialState) {
+      SBC::ionosphereGrid.reduceData(technicalGrid, perBGrid, dPerBGrid, mpiGrid); /*!< Call the reductions (e.g. field tracing) */
+      
       phiprof::start("write-initial-state");
       
       if (myRank == MASTER_RANK)
@@ -743,6 +745,8 @@ int main(int argn,char* args[]) {
                if (index2>P::systemWrites[i]) P::systemWrites[i]=index2;
                continue;
             }
+            
+            SBC::ionosphereGrid.reduceData(technicalGrid, perBGrid, dPerBGrid, mpiGrid); /*!< Call the reductions (e.g. field tracing) */
             
             phiprof::start("write-system");
             logFile << "(IO): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;

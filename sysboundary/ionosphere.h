@@ -88,6 +88,8 @@ namespace SBC {
          int haveCouplingData = 0; // Does this rank carry coupling coordinate data for this node? (0 or 1)
          std::array<iSolverReal, N_IONOSPHERE_PARAMETERS> parameters = {0}; // Parameters carried by the node, see common.h
 
+         int openFieldLine; /*!< 0 if undetermined, 1 if this node is connected to the IMF: open, 2 if it is connected to the ionosphere: closed. */
+         
          // Some calculation helpers
          Real electronDensity() { // Electron Density
             return parameters[ionosphereParameters::RHON];
@@ -233,7 +235,7 @@ namespace SBC {
       void modifiedMidpointMethod(
          std::array<Real,3> r,
          std::array<Real,3>& r1,
-         Real n,
+         int n,
          Real stepsize,
          TracingFieldFunction& BFieldFunction,
          bool outwards=true
@@ -281,6 +283,20 @@ namespace SBC {
          FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
          FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
          FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+      );
+
+      bool doTraceOpenClosed = false;
+      /*! Compute whether a node is connected to the ionosphere or the IMF. */
+      void traceOpenClosedConnection(
+         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+         FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid
+      );
+      void reduceData(
+         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+         FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
       );
 
       // Returns the surface area of one element on the sphere
