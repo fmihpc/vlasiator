@@ -189,6 +189,9 @@ namespace CellParams {
       AMR_TRANSLATE_COMM_X, /*! < Flag to include this cell in AMR pre-translate communication  */
       AMR_TRANSLATE_COMM_Y, /*! < Flag to include this cell in AMR pre-translate communication  */
       AMR_TRANSLATE_COMM_Z, /*! < Flag to include this cell in AMR pre-translate communication  */
+      CONNECTION, /*!< Magnetic connection. */
+      FWCONNECTION, /*!< Magnetic connection. */ // REMOVE BEFORE MERGING !!
+      BWCONNECTION, /*!< Magnetic connection. */ // REMOVE BEFORE MERGING !!
       N_SPATIAL_CELL_PARAMS
    };
 }

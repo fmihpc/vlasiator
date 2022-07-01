@@ -3059,6 +3059,13 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1, "m", "m", "$x_\\mathrm{coupled}$", "1.0");
          continue;
       }
+      if(lowercase == "vg_connection") {
+         SBC::ionosphereGrid.doTraceFullBox = true;
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_connection",CellParams::CONNECTION,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_connection_fw",CellParams::FWCONNECTION,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_connection_bw",CellParams::BWCONNECTION,1));
+         continue;
+      }
       // After all the continue; statements one should never land here.
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);

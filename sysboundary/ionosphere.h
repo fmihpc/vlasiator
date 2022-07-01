@@ -286,11 +286,19 @@ namespace SBC {
       );
 
       bool doTraceOpenClosed = false;
+      bool doTraceFullBox = false;
       /*! Compute whether a node is connected to the ionosphere or the IMF. */
       void traceOpenClosedConnection(
          FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
          FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid
+      );
+      /*! Compute the forward and backward connection of all DCCRG cells, tracing done on fsgrid. */
+      void traceFullBoxConnection(
+         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+         FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
       );
       void reduceData(
          FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
