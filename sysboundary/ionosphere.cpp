@@ -1195,7 +1195,7 @@ namespace SBC {
       Real s=pow((Ionosphere::eps/(2*err)),1./5.);
       step=step*s;
       if (step>maxStepsize){
-         std::cerr<<"Stepsize in DM method exceeded the max Stepsize. Defaulting to maxStepsize"<<std::endl;
+         std::cerr<<"Stepsize in Dormand Prince method exceeded the max Stepsize. Defaulting to maxStepsize"<<std::endl;
          step=maxStepsize;
       }
       if (err>Ionosphere::eps){
@@ -1320,7 +1320,7 @@ namespace SBC {
          case BS:
             bulirschStoerStep(x, v, stepsize, maxStepsize, BFieldFunction, outwards);
             break;
-         case DM:
+         case DPrince:
             dormandPrinceStep(x, v, stepsize, maxStepsize, BFieldFunction, outwards);
             break;
          default:
@@ -3106,8 +3106,8 @@ namespace SBC {
          ionosphereGrid.couplingMethod = SphericalTriGrid::Euler;
       } else if (tracerString == "BS") {
          ionosphereGrid.couplingMethod = SphericalTriGrid::BS;
-      } else if (tracerString == "DM") {
-         ionosphereGrid.couplingMethod = SphericalTriGrid::DM;
+      } else if (tracerString == "DP") {
+         ionosphereGrid.couplingMethod = SphericalTriGrid::DPrince;
       }else{
          cerr << __FILE__ << ":" << __LINE__ << " ERROR: Unknown value for ionosphere.fieldLineTracer: " << tracerString << endl;
          abort();

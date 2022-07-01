@@ -146,7 +146,7 @@ namespace SBC {
       enum IonosphereCouplingMethod { // Field line integrator for Magnetosphere<->Ionosphere coupling
          Euler, // Euler stepping
          BS,     // Bulirsch-Stoer Stepping
-         DM      // Dormand-Prince Stepping 
+         DPrince      // Dormand-Prince Stepping 
       } couplingMethod;
 
       enum IonosphereSolverGaugeFixing { // Potential solver gauge fixing method
