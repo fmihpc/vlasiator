@@ -24,6 +24,7 @@
  * \brief Implementation of the class SysBoundaryCondition::Ionosphere to handle cells classified as sysboundarytype::IONOSPHERE.
  */
 
+#include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <iomanip>
@@ -110,7 +111,8 @@ namespace SBC {
    bool Ionosphere::solverToggleMinimumResidualVariant;
    Real Ionosphere::shieldingLatitude;
    enum Ionosphere::IonosphereConductivityModel Ionosphere::conductivityModel;
-   Real  Ionosphere::eps;
+   Real  Ionosphere::max_allowed_error;
+   uint32_t  Ionosphere::max_dormand_prince_attempts;
 
    // Offset field aligned currents so their sum is 0
    void SphericalTriGrid::offset_FAC() {
@@ -1041,7 +1043,7 @@ namespace SBC {
       return i + j*dims[0] +k*dims[0]*dims[1];
    }
 
-   /*Richardson extrapolation using polynomial fitting used by the Bulirsch-Stoer Mehtod*/
+   /*Richardson extrapolation using polynomial fitting used by the Bulirsch-Stoer Method*/
    void SphericalTriGrid::richardsonExtrapolation(int i, std::vector<Real>&table , Real& maxError, std::array<int,3>dims ){
       int k;
       maxError = 0;
@@ -1102,7 +1104,7 @@ namespace SBC {
 
    }//modifiedMidpoint Method
 
-   void SphericalTriGrid::dormandPrinceStep( 
+   bool SphericalTriGrid::dormandPrinceStep( 
       std::array<Real, 3>& r,
       std::array<Real, 3>& b,
       Real& step,
@@ -1112,7 +1114,6 @@ namespace SBC {
     ){
 
       std::array<Real,7> kx,ky,kz;
-      assert(step>0 && "Erroneus stepsize ");
       std::array<Real,3> b_unit;
       std::array<Real,3> _r{0,0,0};
       
@@ -1190,24 +1191,24 @@ namespace SBC {
       Real err=std::max( std::max(error_xyz[0], error_xyz[1]), error_xyz[2]);
 
       //Estimate proper stepsize
-      Real s=pow((Ionosphere::eps/(2*err)),1./5.);
+      Real s=pow((Ionosphere::max_allowed_error/(2*err)),1./5.);
       step=step*s;
       if (step>maxStepsize){
          std::cerr<<"Stepsize in Dormand Prince method exceeded the max Stepsize. Defaulting to maxStepsize"<<std::endl;
          step=maxStepsize;
       }
-      if (err>Ionosphere::eps){
-         dormandPrinceStep(r, b, step, maxStepsize, BFieldFunction, outwards);
+      if (err>Ionosphere::max_allowed_error){
+         return false;
       }else{
-         //Need to also evaluate b here. But b_unit right?
+         //Evaluate B at the final stepping point to get the b vector of the fieldline
          BFieldFunction(r,outwards,b);
          r=rf;
-         return;
+         return true;
       } 
    }//Dormand Prince Step
 
 
-   /*Bulirsch-Stoer Mehtod to trace field line to next point along it*/
+   /*Bulirsch-Stoer Method to trace field line to next point along it*/
    void SphericalTriGrid::bulirschStoerStep(
       std::array<Real, 3>& r,
       std::array<Real, 3>& b,
@@ -1260,7 +1261,7 @@ namespace SBC {
          richardsonExtrapolation(i,table,error,dims);
 
          //Normalize error
-         error/=Ionosphere::eps;
+         error/=Ionosphere::max_allowed_error;
 
          //If we are below eps good, let's return but also let's modify the stepSize accordingly 
          if (error<1.){
@@ -1311,6 +1312,8 @@ namespace SBC {
       TracingFieldFunction& BFieldFunction,
       bool outwards
    ) {
+      bool reTrace;
+      uint32_t attempts=0;
       switch(method) {
          case Euler:
             eulerStep(x, v,stepsize, BFieldFunction, outwards);
@@ -1319,7 +1322,10 @@ namespace SBC {
             bulirschStoerStep(x, v, stepsize, maxStepsize, BFieldFunction, outwards);
             break;
          case DPrince:
-            dormandPrinceStep(x, v, stepsize, maxStepsize, BFieldFunction, outwards);
+            do{
+               reTrace=!dormandPrinceStep(x, v, stepsize, maxStepsize, BFieldFunction, outwards);
+               attempts+=1;
+            }while(reTrace && attempts<= Ionosphere::max_dormand_prince_attempts);
             break;
          default:
             std::cerr << "(ionosphere) Warning: No Field Line Tracing method defined. Ionosphere connectivity will be garbled."<<std::endl;
@@ -2935,7 +2941,8 @@ namespace SBC {
       Readparameters::add("ionosphere.unmappedNodeTe", "Electron temperature of ionosphere nodes that do not connect to the magnetosphere domain.", 1e6);
       Readparameters::add("ionosphere.couplingTimescale", "Magnetosphere->Ionosphere coupling timescale (seconds, 0=immediate coupling", 1.);
       Readparameters::add("ionosphere.couplingInterval", "Time interval at which the ionosphere is solved (seconds)", 0);
-      Readparameters::add("ionosphere.tracerTolerance", "Tolerance for the Bulirsch Stoer Method", 1000);
+      Readparameters::add("ionosphere.tracer_max_allowed_error", "Maximum allowed error for the adaptive field line tracers ", 1000);
+      Readparameters::add("ionosphere.dp_max_attempts", "Maximum allowed attempts for the Dormand Prince Field Line Tracer", 100);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
@@ -3016,7 +3023,8 @@ namespace SBC {
       }
       Readparameters::get("ionosphere.unmappedNodeRho", unmappedNodeRho);
       Readparameters::get("ionosphere.unmappedNodeTe",  unmappedNodeTe);
-      Readparameters::get("ionosphere.tracerTolerance", eps);
+      Readparameters::get("ionosphere.tracer_max_allowed_error", max_allowed_error);
+      Readparameters::get("ionosphere.dp_max_attempts", max_dormand_prince_attempts);
       Readparameters::get("ionosphere.innerRadius", innerRadius);
       Readparameters::get("ionosphere.refineMinLatitude",refineMinLatitudes);
       Readparameters::get("ionosphere.refineMaxLatitude",refineMaxLatitudes);

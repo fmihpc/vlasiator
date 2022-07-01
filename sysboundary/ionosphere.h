@@ -23,6 +23,7 @@
 #ifndef IONOSPHERE_H
 #define IONOSPHERE_H
 
+#include <cstdint>
 #include <vector>
 #include <functional>
 #include "../definitions.h"
@@ -224,7 +225,7 @@ namespace SBC {
          TracingFieldFunction& BFieldFunction,
          bool outwards=true
       ); //Bulrisch Stoer step
-      void dormandPrinceStep(
+      bool dormandPrinceStep(
          std::array<Real, 3>& r,
          std::array<Real, 3>& b,
          Real& stepsize,Real maxStepsize,
@@ -468,7 +469,8 @@ namespace SBC {
       static bool solverToggleMinimumResidualVariant; /*!< Toggle use of the minimum residual variant between solver restarts */
       static Real shieldingLatitude; /*! Latitude (degree) below which the potential is zeroed in the equator gauge fixing scheme */
       static Real ridleyParallelConductivity; /*! Constant parallel conductivity */
-      static Real eps; // Tolerance for Bulirsch Stoer Method
+      static Real max_allowed_error; // Maximum alowed error for the adaptive field line tracing methods
+      static uint32_t max_dormand_prince_attempts; // Max allowed attempts for the Dormand Prince tracer
       
       // TODO: Make these parameters of the IonosphereGrid
       static Real recombAlpha; // Recombination parameter, determining atmosphere ionizability (parameter)
