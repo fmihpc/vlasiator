@@ -147,7 +147,8 @@ namespace SBC {
 
       enum IonosphereCouplingMethod { // Field line integrator for Magnetosphere<->Ionosphere coupling
          Euler, // Euler stepping
-         BS     // Bulirsch-Stoer Stepping
+         BS,     // Bulirsch-Stoer Stepping
+         DM      // Dormand-Prince Stepping 
       } couplingMethod;
 
       enum IonosphereSolverGaugeFixing { // Potential solver gauge fixing method
@@ -225,6 +226,13 @@ namespace SBC {
          TracingFieldFunction& BFieldFunction,
          bool outwards=true
       ); //Bulrisch Stoer step
+      void dormandPrinceStep(
+         std::array<Real, 3>& r,
+         std::array<Real, 3>& b,
+         Real& stepsize,Real maxStepsize,
+         TracingFieldFunction& BFieldFunction,
+         bool outwards=true
+      ); //Dormand Prince step
       void eulerStep(
          std::array<Real, 3>& x,
          std::array<Real, 3>& v,
