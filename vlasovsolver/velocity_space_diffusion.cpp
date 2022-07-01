@@ -66,6 +66,8 @@ void velocitySpaceDiffusion(
         int nbins_v  = Parameters::PADvbins;
         int nbins_mu = Parameters::PADmubins;
 
+        const int max_mu_size = 256 * 256; // Compile time constant for vector instructions
+
         Realf mumin   = -1.0;
         Realf mumax   = +1.0;
         Realf dmubins = (mumax - mumin)/nbins_mu;
@@ -167,6 +169,17 @@ void velocitySpaceDiffusion(
                    Vcount.store(&Vcount_array[WID3*n+WID*j+WID*WID*k]);
                    mucount.store(&mucount_array[WID3*n+WID*j+WID*WID*k]);
 
+                   //TODO: Can we do this if cells write to the same place? 
+                   //Vec4q mu_space_indx = Vcount * dmubins + mu_count;         // Converts mu_space coords into memory offset
+      
+                   //Vec4d fmu_values = lookup<max_mu_size>(mu_space_indx,fmu); // Gather fmu values for all vectors             
+                   //fmu_values += 2.0 * M_PI * Vmu*Vmu * CellValue;            // Update
+                   //scatter(mu_space_indx, max_mu_size, fmu_values, fmu);      // Write values back into fmu
+
+                   //Vec4i fcount_values = lookup<max_mu_size>(mu_space_indx,fcount);
+                   //fcount_values += 1;
+                   //scatter(mu_space_indx, max_mu_size, fcount_values, fcount);
+                   
                    for (uint i = 0; i < WID; ++i) {
                        fmu[Vcount[i]][mucount[i]] += 2.0 * M_PI * Vmu[i]*Vmu[i] * CellValue[i];
                        fcount[Vcount[i]][mucount[i]] += 1;
@@ -288,17 +301,17 @@ void velocitySpaceDiffusion(
                    Vcount.load(&Vcount_array[WID3*n+WID*j+WID*WID*k]);
                    mucount.load(&mucount_array[WID3*n+WID*j+WID*WID*k]);
 
-                   Vec4i Vmu = dVbins * (Vcount+0.5);
+                   Vec4d Vmu = dVbins * (to_double(Vcount)+0.5);
 
-                   for (uint i = 0; i < WID; ++i) {
+                   Vec4q mu_space_indx = extend_low(Vec8i(Vcount * dmubins + mucount,0)); // Converts mu_space coords into memory offset
+      
+                   Vec4d dfdt_values = lookup<max_mu_size>(mu_space_indx,(double const*) dfdt_mu) / (2.0 * M_PI * Vmu*Vmu);
+                   dfdt_values.store(&dfdt[WID3*n+WID*j+WID*WID*k]);                   
 
-                       dfdt[WID3*n+i+WID*j+WID*WID*k] = dfdt_mu[Vcount[i]][mucount[i]] / (2.0 * M_PI * Vmu[i]*Vmu[i]); // *ratio[WID3*n+i+WID*j+WID*WID*k]
-                
-                       if (abs(dfdt[WID3*n+i+WID*j+WID*WID*k]) > 0.0) {
-                           checkCFL[WID3*n+i+WID*j+WID*WID*k] = CellValue[i] * Parameters::PADCFL * (1.0 / abs(dfdt[WID3*n+i+WID*j+WID*WID*k]));
-                       }
+                   Vec4db dfdt_pos = abs(dfdt_values) > 0.0;
+                   Vec4d CFL_values = select(dfdt_pos, CellValue * Parameters::PADCFL * (1.0 / abs(dfdt_values)), 0.0); 
+                   CFL_values.store(&checkCFL[WID3*n+WID*j+WID*WID*k]); 
 
-                   }
                 }
             }
             phiprof::stop("diffusion time derivative");
