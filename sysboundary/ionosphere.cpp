@@ -1114,101 +1114,85 @@ namespace SBC {
     ){
 
       std::array<Real,7> kx,ky,kz;
-      std::array<Real,7> c;
       std::array<Real,3> b_unit;
       std::array<Real,3> _r{0,0,0};
-      
-      c[0]=0.0;
-      c[1]=1.0/5.0;
-      c[2]=3.0/10.0;
-      c[3]=4.0/5.0;
-      c[4]=8.0/9.0;
-      c[5]=1.0;
-      c[6]=1.0;
-      
 
       //K1 slope
       BFieldFunction(r,outwards,b_unit);
-      kx[0]=b_unit[0];
-      ky[0]=b_unit[1];
-      kz[0]=b_unit[2];
+      kx[0]=step*b_unit[0];
+      ky[0]=step*b_unit[1];
+      kz[0]=step*b_unit[2];
       
       //K2 slope
-      _r[0]=r[0]+c[1]*step*(1./5.)*kx[0];
-      _r[1]=r[1]+c[1]*step*(1./5.)*ky[0];
-      _r[2]=r[2]+c[1]*step*(1./5.)*kz[0];
+      _r[0]=r[0]+(1./5.)*kx[0];
+      _r[1]=r[1]+(1./5.)*ky[0];
+      _r[2]=r[2]+(1./5.)*kz[0];
       BFieldFunction(_r,outwards,b_unit);
-      kx[1]=b_unit[0];
-      ky[1]=b_unit[1];
-      kz[1]=b_unit[2];
-
-      //K3 slope
-      _r[0]=r[0]+c[2]*step*( (3./40.)*kx[0] +(9./40.)*kx[1] ); 
-      _r[1]=r[1]+c[2]*step*( (3./40.)*ky[0] +(9./40.)*ky[1] ); 
-      _r[2]=r[2]+c[2]*step*( (3./40.)*kz[0] +(9./40.)*kz[1] ); 
-      BFieldFunction(_r,outwards,b_unit);
-      kx[2]=b_unit[0];
-      ky[2]=b_unit[1];
-      kz[2]=b_unit[2];
+      kx[1]=step*b_unit[0];
+      ky[1]=step*b_unit[1];
+      kz[1]=step*b_unit[2];
    
-      //K4 slope
-      _r[0]=r[0]+c[3]*step*( (44./45.)*kx[0] -(56./15.)*kx[1] + (32./9.)*kx[2] ); 
-      _r[1]=r[1]+c[3]*step*( (44./45.)*ky[0] -(56./15.)*ky[1] + (32./9.)*ky[2] ); 
-      _r[2]=r[2]+c[3]*step*( (44./45.)*kz[0] -(56./15.)*kz[1] + (32./9.)*kz[2] ); 
+      //K3 slope  
+      _r[0]=r[0]+( (3./40.)*kx[0] +(9./40.)*kx[1] ); 
+      _r[1]=r[1]+( (3./40.)*ky[0] +(9./40.)*ky[1] ); 
+      _r[2]=r[2]+( (3./40.)*kz[0] +(9./40.)*kz[1] ); 
       BFieldFunction(_r,outwards,b_unit);
-      kx[3]=b_unit[0];
-      ky[3]=b_unit[1];
-      kz[3]=b_unit[2];
-         
-      //K5 slope
-      _r[0]=r[0]+c[4]*step*( (19372./6561.)*kx[0] -(25360./2187.)*kx[1] + (64448./6561.)*kx[2] - (212./729.)*kx[3] );  
-      _r[1]=r[1]+c[4]*step*( (19372./6561.)*ky[0] -(25360./2187.)*ky[1] + (64448./6561.)*ky[2] - (212./729.)*ky[3] );  
-      _r[2]=r[2]+c[4]*step*( (19372./6561.)*kz[0] -(25360./2187.)*kz[1] + (64448./6561.)*kz[2] - (212./729.)*kz[3] );  
-      BFieldFunction(_r,outwards,b_unit); 
-      kx[4]=b_unit[0];
-      ky[4]=b_unit[1];
-      kz[4]=b_unit[2];
-         
-      //K6 slope
-      _r[0]=r[0]+c[5]*step*( (9017./3168.)*kx[0] -(355./33.)*kx[1] - (46732./5247.)*kx[2] + (49./176.)*kx[3]-(5103./18656.)*kx[4] ); 
-      _r[1]=r[1]+c[5]*step*( (9017./3168.)*ky[0] -(355./33.)*ky[1] - (46732./5247.)*ky[2] + (49./176.)*ky[3]-(5103./18656.)*ky[4] ); 
-      _r[2]=r[2]+c[5]*step*( (9017./3168.)*kz[0] -(355./33.)*kz[1] - (46732./5247.)*kz[2] + (49./176.)*kz[3]-(5103./18656.)*kz[4] ); 
-      BFieldFunction(_r,outwards,b_unit);
-      kx[5]=b_unit[0];
-      ky[5]=b_unit[1];
-      kz[5]=b_unit[2];
-   
-      //K7 slope
-      _r[0]=r[0]+c[6]*step*( (35./384.)*kx[0] + (500./1113.)*kx[2] + (125./192.)*kx[3]-(2187./6784.)*kx[4] +(11./84.)*kx[5] ); 
-      _r[1]=r[1]+c[6]*step*( (35./384.)*ky[0] + (500./1113.)*ky[2] + (125./192.)*ky[3]-(2187./6784.)*ky[4] +(11./84.)*ky[5] ); 
-      _r[2]=r[2]+c[6]*step*( (35./384.)*kz[0] + (500./1113.)*kz[2] + (125./192.)*kz[3]-(2187./6784.)*kz[4] +(11./84.)*kz[5] ); 
-      BFieldFunction(_r,outwards,b_unit);
-      kx[6]=b_unit[0];
-      ky[6]=b_unit[1];
-      kz[6]=b_unit[2];
-
-
-      //Error calculation
-      std::array<Real,3>rf,rf_2;
-      std::array<Real,3>error_xyz;
-      rf[0]=r[0] + step*( (35./384.)*kx[0] + (500./1113.)*kx[2] + (125./192.)*kx[3] - (2187./6784.)*kx[4] +(11./84.)*kx[5] );
-      rf[1]=r[1] + step*( (35./384.)*ky[0] + (500./1113.)*ky[2] + (125./192.)*ky[3] - (2187./6784.)*ky[4] +(11./84.)*ky[5] );
-      rf[2]=r[2] + step*( (35./384.)*kz[0] + (500./1113.)*kz[2] + (125./192.)*kz[3] - (2187./6784.)*kz[4] +(11./84.)*kz[5] );
+      kx[2]=step*b_unit[0];
+      ky[2]=step*b_unit[1];
+      kz[2]=step*b_unit[2];
       
-
-      rf_2[0]=r[0] + step*( (5179./57600.)*kx[0] + (7571./16695.)*kx[2] + (393./640.)*kx[3] - (92097./339200.)*kx[4]+ (187.0/2100.)*kx[5] +(1./40.)*kx[6]) ;
-      rf_2[1]=r[1] + step*( (5179./57600.)*ky[0] + (7571./16695.)*ky[2] + (393./640.)*ky[3] - (92097./339200.)*ky[4]+ (187.0/2100.)*ky[5] +(1./40.)*ky[6]) ;
-      rf_2[2]=r[2] + step*( (5179./57600.)*kz[0] + (7571./16695.)*kz[2] + (393./640.)*kz[3] - (92097./339200.)*kz[4]+ (187.0/2100.)*kz[5] +(1./40.)*kz[6]) ;
-
-      error_xyz[0]=fabs(rf[0]-rf_2[0]);  
-      error_xyz[1]=fabs(rf[1]-rf_2[1]);
-      error_xyz[2]=fabs(rf[2]-rf_2[2]);
+      //K4 slope
+      _r[0]=r[0]+(44./45.)*kx[0] -(56./15.)*kx[1] + (32./9.)*kx[2];  
+      _r[1]=r[1]+(44./45.)*ky[0] -(56./15.)*ky[1] + (32./9.)*ky[2];  
+      _r[2]=r[2]+(44./45.)*kz[0] -(56./15.)*kz[1] + (32./9.)*kz[2];  
+      BFieldFunction(_r,outwards,b_unit);
+      kx[3]=step*b_unit[0];
+      ky[3]=step*b_unit[1];
+      kz[3]=step*b_unit[2];
+            
+      //K5 slope  
+      _r[0]=r[0]+(19372./6561.)*kx[0] -(25360./2187.)*kx[1] + (64448./6561.)*kx[2] - (212./729.)*kx[3];   
+      _r[1]=r[1]+(19372./6561.)*ky[0] -(25360./2187.)*ky[1] + (64448./6561.)*ky[2] - (212./729.)*ky[3];   
+      _r[2]=r[2]+(19372./6561.)*kz[0] -(25360./2187.)*kz[1] + (64448./6561.)*kz[2] - (212./729.)*kz[3];   
+      BFieldFunction(_r,outwards,b_unit); 
+      kx[4]=step*b_unit[0];
+      ky[4]=step*b_unit[1];
+      kz[4]=step*b_unit[2];
+            
+      //K6 slope
+      _r[0]=r[0]+(9017./3168.)*kx[0] -(355./33.)*kx[1] - (46732./5247.)*kx[2] + (49./176.)*kx[3]-(5103./18656.)*kx[4];  
+      _r[1]=r[1]+(9017./3168.)*ky[0] -(355./33.)*ky[1] - (46732./5247.)*ky[2] + (49./176.)*ky[3]-(5103./18656.)*ky[4];  
+      _r[2]=r[2]+(9017./3168.)*kz[0] -(355./33.)*kz[1] - (46732./5247.)*kz[2] + (49./176.)*kz[3]-(5103./18656.)*kz[4];  
+      BFieldFunction(_r,outwards,b_unit);
+      kx[5]=step*b_unit[0];
+      ky[5]=step*b_unit[1];
+      kz[5]=step*b_unit[2];
+      
+      //K7 slope 
+      _r[0]=r[0]+(35./384.)*kx[0] + (500./1113.)*kx[2] + (125./192.)*kx[3]-(2187./6784.)*kx[4] +(11./84.)*kx[5];  
+      _r[1]=r[1]+(35./384.)*ky[0] + (500./1113.)*ky[2] + (125./192.)*ky[3]-(2187./6784.)*ky[4] +(11./84.)*ky[5];  
+      _r[2]=r[2]+(35./384.)*kz[0] + (500./1113.)*kz[2] + (125./192.)*kz[3]-(2187./6784.)*kz[4] +(11./84.)*kz[5];  
+      BFieldFunction(_r,outwards,b_unit);
+      kx[6]=step*b_unit[0];
+      ky[6]=step*b_unit[1];
+      kz[6]=step*b_unit[2];
    
    
+      //Error calculation
+      std::array<Real,3>rf;
+      std::array<Real,3>error_xyz;
+      rf[0]=r[0] +(35./384.)*kx[0] + (500./1113.)*kx[2] + (125./192.)*kx[3] - (2187./6784.)*kx[4] +(11./84.)*kx[5];
+      rf[1]=r[1] +(35./384.)*ky[0] + (500./1113.)*ky[2] + (125./192.)*ky[3] - (2187./6784.)*ky[4] +(11./84.)*ky[5];
+      rf[2]=r[2] +(35./384.)*kz[0] + (500./1113.)*kz[2] + (125./192.)*kz[3] - (2187./6784.)*kz[4] +(11./84.)*kz[5];
+      
+      error_xyz[0]=abs((71./57600.)*kx[0] -(71./16695.)*kx[2] + (71./1920.)*kx[3] -(17253./339200.)*kx[4]+(22./525.)*kx[5] -(1./40.)*kx[6] );
+      error_xyz[1]=abs((71./57600.)*ky[0] -(71./16695.)*ky[2] + (71./1920.)*ky[3] -(17253./339200.)*ky[4]+(22./525.)*ky[5] -(1./40.)*ky[6] );
+      error_xyz[2]=abs((71./57600.)*kz[0] -(71./16695.)*kz[2] + (71./1920.)*kz[3] -(17253./339200.)*kz[4]+(22./525.)*kz[5] -(1./40.)*kz[6] );
+
       //Estimate proper stepsize
       Real err=std::max( std::max(error_xyz[0], error_xyz[1]), error_xyz[2]);
-      Real rerr=sqrt(  pow(err/Ionosphere::max_allowed_error,2) );
-      step=0.2*step*pow(1.0/rerr,0.2);
+      Real s=pow((Ionosphere::max_allowed_error/(2*err)),1./5.);
+      step=step*s;
 
       if (step>maxStepsize){
          std::cerr<<"Stepsize in Dormand Prince method exceeded the max Stepsize. Defaulting to maxStepsize"<<std::endl;
@@ -1223,6 +1207,53 @@ namespace SBC {
          return true;
       } 
    }//Dormand Prince Step
+
+
+   bool SphericalTriGrid::adaptiveEulerStep( 
+      std::array<Real, 3>& r,
+      std::array<Real, 3>& b,
+      Real& step,
+      Real maxStepsize,
+      TracingFieldFunction& BFieldFunction,
+      bool outwards
+    ){
+      
+      //Firt evaluation
+      std::array<Real, 3> r1;
+      BFieldFunction(r,outwards,b);
+
+      for(int c=0; c<3; c++) {
+         r1[c] = r[c]+ step * b[c];
+      }
+
+      //Second more accurate evaluation
+      std::array<Real, 3> r2,b2;
+      for(int c=0; c<3; c++) {
+         r2[c] = r[c]+ 0.5*step * b[c];
+      }
+
+      BFieldFunction(r2,outwards,b2);
+      for(int c=0; c<3; c++) {
+         r2[c] = r2[c]+ 0.5*step * b2[c];
+      }
+
+      //Local error estimate
+      std::array<Real,3> error_xyz{  fabs(r2[0]-r1[0]),
+                                     fabs(r2[1]-r1[1]),
+                                     fabs(r2[2]-r1[2])};
+      //Max Error and step adjustment
+      Real err=std::max( std::max(error_xyz[0], error_xyz[1]), error_xyz[2]);
+      step=step*sqrt(Ionosphere::max_allowed_error/err);
+      if (step>maxStepsize){step=maxStepsize;}
+
+      if (err<=Ionosphere::max_allowed_error){
+         /* Note: B at r has been evaluated above so no need to do it here*/
+         r=r2;
+         return true;
+      }else{
+         return false;
+      }
+   }//Adaptive Euler  Step
 
 
    /*Bulirsch-Stoer Method to trace field line to next point along it*/
@@ -1335,6 +1366,15 @@ namespace SBC {
          case Euler:
             eulerStep(x, v,stepsize, BFieldFunction, outwards);
             break;
+         case ADPT_Euler:
+            do{
+               reTrace=!adaptiveEulerStep(x, v, stepsize, maxStepsize, BFieldFunction, outwards);
+               attempts+=1;
+            }while(reTrace && attempts<= Ionosphere::max_dormand_prince_attempts);
+            if (reTrace){
+               std::cerr<<"Adaptive Euler field line tracer exhausted all available attempts and still did not converge..."<<std::endl;
+            }
+            break;
          case BS:
             bulirschStoerStep(x, v, stepsize, maxStepsize, BFieldFunction, outwards);
             break;
@@ -1343,6 +1383,9 @@ namespace SBC {
                reTrace=!dormandPrinceStep(x, v, stepsize, maxStepsize, BFieldFunction, outwards);
                attempts+=1;
             }while(reTrace && attempts<= Ionosphere::max_dormand_prince_attempts);
+            if (reTrace){
+               std::cerr<<"Dormand Prince field line tracer exhausted all available attempts and still did not converge..."<<std::endl;
+            }
             break;
          default:
             std::cerr << "(ionosphere) Warning: No Field Line Tracing method defined. Ionosphere connectivity will be garbled."<<std::endl;
@@ -3127,6 +3170,8 @@ namespace SBC {
 
       if(tracerString == "Euler") {
          ionosphereGrid.couplingMethod = SphericalTriGrid::Euler;
+      } else if (tracerString == "ADPT_Euler") {
+         ionosphereGrid.couplingMethod = SphericalTriGrid::ADPT_Euler;
       } else if (tracerString == "BS") {
          ionosphereGrid.couplingMethod = SphericalTriGrid::BS;
       } else if (tracerString == "DP") {

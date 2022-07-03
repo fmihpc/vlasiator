@@ -145,9 +145,10 @@ namespace SBC {
       std::array<AtmosphericLayer, numAtmosphereLevels> atmosphere;
 
       enum IonosphereCouplingMethod { // Field line integrator for Magnetosphere<->Ionosphere coupling
-         Euler, // Euler stepping
-         BS,     // Bulirsch-Stoer Stepping
-         DPrince      // Dormand-Prince Stepping 
+         Euler,        // Euler stepping (constant stepsize)
+         ADPT_Euler,   // Adaptive Euler stepping (adaptive stepsize)
+         BS,           // Bulirsch-Stoer Stepping (adaptive stepsize)
+         DPrince       // Dormand-Prince Stepping (adaptive stepsize) 
       } couplingMethod;
 
       enum IonosphereSolverGaugeFixing { // Potential solver gauge fixing method
@@ -232,6 +233,13 @@ namespace SBC {
          TracingFieldFunction& BFieldFunction,
          bool outwards=true
       ); //Dormand Prince step
+      bool adaptiveEulerStep(
+         std::array<Real, 3>& r,
+         std::array<Real, 3>& b,
+         Real& stepsize,Real maxStepsize,
+         TracingFieldFunction& BFieldFunction,
+         bool outwards=true
+      ); //Adaptive Euler step
       void eulerStep(
          std::array<Real, 3>& x,
          std::array<Real, 3>& v,
