@@ -758,7 +758,7 @@ namespace projects {
       for (CellID id : getLocalCells()) {
          std::array<double,3> xyz {mpiGrid.get_center(id)};
          Real radius2 {pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2)};
-         int refLevel {mpiGrid.get_maximum_refinement_level(id)};
+         int refLevel {mpiGrid.get_refinement_level(id)};
          int refineTarget {0};
 
          if (P::amrMaxSpatialRefLevel > 0) {
@@ -785,12 +785,16 @@ namespace projects {
                ++refineTarget;
          }
 
-         if (refLevel > refineTarget)
-            mpiGrid.refine_completely(id);
-         else if (refLevel < refineTarget)
-            mpiGrid.unrefine_completely(id);
-         else
+         if (!canRefine(mpiGrid[id])) {
+            mpiGrid.dont_refine(id);
             mpiGrid.dont_unrefine(id);
+         } else if (refLevel > refineTarget) {
+            mpiGrid.refine_completely(id);
+         } else if (refLevel < refineTarget) {
+            mpiGrid.unrefine_completely(id);
+         } else {
+            mpiGrid.dont_unrefine(id);
+         }
       }
 
       return true;
