@@ -234,9 +234,13 @@ void initializeGrids(
       if (P::refineOnRestart) {
          phiprof::start("Restart refinement");
          for (int i = 0; i < P::amrMaxSpatialRefLevel; ++i) {
-            adaptRefinement(mpiGrid, technicalGrid, sysBoundaries, project);
+            adaptRefinement(mpiGrid, technicalGrid, sysBoundaries, project, true);
          }
          phiprof::stop("Restart refinement");
+      } else if (false) {
+         for (int i = 0; i < P::amrMaxSpatialRefLevel; ++i) {
+            adaptRefinement(mpiGrid, technicalGrid, sysBoundaries, project, true);
+         }
       }
    }
 
@@ -1314,11 +1318,14 @@ void mapRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    phiprof::stop("Map Refinement Level to FsGrid");
 }
 
-void adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, SysBoundary& sysBoundaries, Project& project) {
+void adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, SysBoundary& sysBoundaries, Project& project, bool useStatic) {
    phiprof::start("Re-refine spatial cells");
    calculateScaledDeltasSimple(mpiGrid);
 
-   project.adaptRefinement(mpiGrid);
+   if (useStatic)
+      project.enforceRefinement(mpiGrid);
+   else
+      project.adaptRefinement(mpiGrid);
 
    // New cells created by refinement
    auto newChildren = mpiGrid.start_refining();

@@ -581,7 +581,6 @@ namespace projects {
       }
 
       std::vector<CellID> cells = getLocalCells();
-      Real ibr2 = pow(ionosphereRadius + 2*P::dx_ini, 2);
 
       // L1 refinement.
       if (P::amrMaxSpatialRefLevel > 0) {
@@ -593,7 +592,7 @@ namespace projects {
             Real radius2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
             bool inSphere = radius2 < refine_L1radius*refine_L1radius;
             bool inTail = xyz[0] < 0 && fabs(xyz[1]) < refine_L1radius && fabs(xyz[2]) < refine_L1tailthick;
-            if (inSphere || inTail) {
+            if (inSphere || (inTail && canRefine(mpiGrid[id]))) {
                //#pragma omp critical
                mpiGrid.refine_completely(id);
             }
@@ -620,7 +619,7 @@ namespace projects {
             Real radius2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
             bool inSphere = radius2 < pow(refine_L2radius, 2);
             bool inTail = xyz[0] < 0 && fabs(xyz[1]) < refine_L2radius && fabs(xyz[2])<refine_L2tailthick;
-            if (inSphere || inTail) {
+            if (inSphere || (inTail && canRefine(mpiGrid[id]))) {
                //#pragma omp critical
                mpiGrid.refine_completely(id);
             }
@@ -742,6 +741,56 @@ namespace projects {
                   mpiGrid.dont_unrefine(id);
             }
          }
+      }
+
+      return true;
+   }
+
+   bool Magnetosphere::enforceRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+   
+      int myRank;       
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+
+      if(myRank == MASTER_RANK) {
+         std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
+      }
+
+      for (CellID id : getLocalCells()) {
+         std::array<double,3> xyz {mpiGrid.get_center(id)};
+         Real radius2 {pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2)};
+         int refLevel {mpiGrid.get_maximum_refinement_level(id)};
+         int refineTarget {0};
+
+         if (P::amrMaxSpatialRefLevel > 0) {
+            bool inSphere = radius2 < refine_L1radius*refine_L1radius;
+            bool inTail = xyz[0] < 0 && fabs(xyz[1]) < refine_L1radius && fabs(xyz[2]) < refine_L1tailthick;
+            if (inSphere || (inTail && canRefine(mpiGrid[id])))
+               ++refineTarget;
+         }
+         if (P::amrMaxSpatialRefLevel > 1) {
+            bool inSphere = radius2 < pow(refine_L2radius, 2);
+            bool inTail = xyz[0] < 0 && fabs(xyz[1]) < refine_L2radius && fabs(xyz[2])<refine_L2tailthick;
+            if (inSphere || (inTail && canRefine(mpiGrid[id])))
+               ++refineTarget;
+         }
+         if (P::amrMaxSpatialRefLevel > 2) {
+            bool inNoseCap = (xyz[0]>refine_L3nosexmin) && (radius2<refine_L3radius*refine_L3radius);
+            bool inTail = (xyz[0]>refine_L3tailxmin) && (xyz[0]<refine_L3tailxmax) && (fabs(xyz[1])<refine_L3tailwidth) && (fabs(xyz[2])<refine_L3tailheight);
+            if (inNoseCap || inTail)
+               ++refineTarget;
+         }
+         if (P::amrMaxSpatialRefLevel > 3) {
+            bool inNose = refine_L4nosexmin && radius2<refine_L4radius*refine_L4radius;
+            if (inNose)
+               ++refineTarget;
+         }
+
+         if (refLevel > refineTarget)
+            mpiGrid.refine_completely(id);
+         else if (refLevel < refineTarget)
+            mpiGrid.unrefine_completely(id);
+         else
+            mpiGrid.dont_unrefine(id);
       }
 
       return true;
