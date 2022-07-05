@@ -1455,7 +1455,8 @@ namespace SBC {
 
       phiprof::start("ionosphere-fsgridCoupling");
       // Pick an initial stepsize
-      Real stepSize = min(100e3, technicalGrid.DX / 2.); 
+      creal stepSize = min(100e3, technicalGrid.DX / 2.);
+      std::vector<Real> nodeTracingStepSize(nodes.size(), stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
 
       std::vector<Real> nodeDistance(nodes.size(), std::numeric_limits<Real>::max()); // For reduction of node coordinate in case of multiple hits
       std::vector<int> nodeNeedsContinuedTracing(nodes.size(), 1);                    // Flag, whether tracing needs to continue on another task
@@ -1536,7 +1537,7 @@ namespace SBC {
       do {
          anyNodeNeedsTracing = false;
 
-         #pragma omp parallel firstprivate(stepSize)
+         #pragma omp parallel
          {
             // Trace node coordinates outwards until a non-sysboundary cell is encountered or the local fsgrid domain has been left.
             #pragma omp for
@@ -1564,7 +1565,7 @@ namespace SBC {
 
 
                   // Make one step along the fieldline
-                  stepFieldLine(x,v, stepSize,technicalGrid.DX/2,couplingMethod,tracingField,(no.x[2] < 0));
+                  stepFieldLine(x,v, nodeTracingStepSize[n],technicalGrid.DX/2,couplingMethod,tracingField,(no.x[2] < 0));
    
                   // Look up the fsgrid cell belonging to these coordinates
                   fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
@@ -1650,10 +1651,13 @@ namespace SBC {
       } while(anyNodeNeedsTracing);
       
       std::vector<Real> reducedNodeDistance(nodes.size());
+      std::vector<Real> reducedNodeTracingStepSize(nodes.size());
       if(sizeof(Real) == sizeof(double)) {
          MPI_Allreduce(nodeDistance.data(), reducedNodeDistance.data(), nodes.size(), MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+         MPI_Allreduce(nodeTracingStepSize.data(), reducedNodeTracingStepSize.data(), nodes.size(), MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
       } else {
          MPI_Allreduce(nodeDistance.data(), reducedNodeDistance.data(), nodes.size(), MPI_FLOAT, MPI_MIN, MPI_COMM_WORLD);
+         MPI_Allreduce(nodeTracingStepSize.data(), reducedNodeTracingStepSize.data(), nodes.size(), MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
       }
 
       // Reduce upmapped magnetic field to be consistent on all nodes
@@ -1687,6 +1691,8 @@ namespace SBC {
          sendxMapped[3*n+1] = no.xMapped[1];
          sendxMapped[3*n+2] = no.xMapped[2];
          sendCouplingNum[n] = no.haveCouplingData;
+         
+         nodeTracingStepSize[n] = reducedNodeTracingStepSize[n];
       }
       if(sizeof(Real) == sizeof(double)) { 
          MPI_Allreduce(sendUpmappedB.data(), reducedUpmappedB.data(), 3*nodes.size(), MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
