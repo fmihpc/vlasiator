@@ -1525,18 +1525,10 @@ namespace SBC {
             b[1] = 0;
             b[2] = 0;
          }
-         if(outwards) {
-            if(b[0]*r[0] + b[1]*r[1] + b[2]*r[2] < 0) {
-               b[0]*=-1;
-               b[1]*=-1;
-               b[2]*=-1;
-            }
-         } else {
-            if(b[0]*r[0] + b[1]*r[1] + b[2]*r[2] > 0) {
-               b[0]*=-1;
-               b[1]*=-1;
-               b[2]*=-1;
-            }
+         if(!alongB) { // In this function, outwards indicates whether we trace along (true) or against (false) the field direction
+            b[0] *= -1;
+            b[1] *= -1;
+            b[2] *= -1;
          }
          return success;
       };
@@ -1572,19 +1564,18 @@ namespace SBC {
 
 
                   // Make one step along the fieldline
-                  stepFieldLine(x,v, stepSize,technicalGrid.DX/2,couplingMethod,tracingField,true);
+                  stepFieldLine(x,v, stepSize,technicalGrid.DX/2,couplingMethod,tracingField,(no.x[2] < 0));
    
-                  // Look up the fsgrid cell beloinging to these coordinates
+                  // Look up the fsgrid cell belonging to these coordinates
                   fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
                   std::array<Real, 3> interpolationFactor=getFractionalFsGridCellForCoord(technicalGrid,x);
    
                   creal distance = sqrt((x[0]-no.x[0])*(x[0]-no.x[0])+(x[1]-no.x[1])*(x[1]-no.x[1])+(x[2]-no.x[2])*(x[2]-no.x[2]));
    
-                  // If the field line is no longer moving outwards but tangentially (88 degrees), abort.
-                  // (Note that v is normalized)
-                  // TODO: If we are inside the magnetospheric domain, but under the coupling radius, should thes *still* be taking along, just to have a
-                  // better shot at the region 2 currents? Or is that simply opening the door to boundary artifact hell?
-                  if(fabs(x.at(0)*v.at(0)+x.at(1)*v.at(1)+x.at(2)*v.at(2))/sqrt(x.at(0)*x.at(0)+x.at(1)*x.at(1)+x.at(2)*x.at(2)) < cos(88. / 180. * M_PI)) {
+                  // TODO I simplified by just looking when we change hemispheres now.
+                  // This WILL fail as soon as there is a dipole tilt.
+                  // But do we need it beyond debugging? Tracing back for closed/non-mapping lines is perfectly legit (once the tracer is debugged).
+                  if(sign(x[2]) != sign(no.x[2])) {
                      nodeNeedsContinuedTracing.at(n) = 0;
                      nodeTracingCoordinates.at(n) = {0,0,0};
                      break;
@@ -2038,13 +2029,12 @@ namespace SBC {
                   }
                   
                   // If we map out of the box, this node is on an open field line.
-                  if(
-                        x[0] > P::xmax - 2*P::dx_ini
-                     || x[0] < P::xmin + 2*P::dx_ini
-                     || x[1] > P::ymax - 2*P::dy_ini
-                     || x[1] < P::ymin + 2*P::dy_ini
-                     || x[2] > P::zmax - 2*P::dz_ini
-                     || x[2] < P::zmin + 2*P::dz_ini
+                  if(   x[0] > P::xmax - 4*P::dx_ini
+                     || x[0] < P::xmin + 4*P::dx_ini
+                     || x[1] > P::ymax - 4*P::dy_ini
+                     || x[1] < P::ymin + 4*P::dy_ini
+                     || x[2] > P::zmax - 4*P::dz_ini
+                     || x[2] < P::zmin + 4*P::dz_ini
                   ) {
                      nodeNeedsContinuedTracing[n] = 0;
                      nodeTracingCoordinates[n] = {0,0,0};
@@ -2160,7 +2150,14 @@ namespace SBC {
          cellBWTracingCoordinates.at(n) = cellFWTracingCoordinates.at(n);
          
          if(mpiGrid.is_local(id)) {
-            if(mpiGrid[id]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+            if((mpiGrid[id]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)
+               || cellFWTracingCoordinates[n][0] > P::xmax - 4*P::dx_ini
+               || cellFWTracingCoordinates[n][0] < P::xmin + 4*P::dx_ini
+               || cellFWTracingCoordinates[n][1] > P::ymax - 4*P::dy_ini
+               || cellFWTracingCoordinates[n][1] < P::ymin + 4*P::dy_ini
+               || cellFWTracingCoordinates[n][2] > P::zmax - 4*P::dz_ini
+               || cellFWTracingCoordinates[n][2] < P::zmin + 4*P::dz_ini
+            ) {
                cellNeedsContinuedFWTracing[n] = 0;
                cellNeedsContinuedBWTracing[n] = 0;
                cellFWTracingCoordinates[n] = {0,0,0};
