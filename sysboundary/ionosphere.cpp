@@ -1089,11 +1089,13 @@ namespace SBC {
       z1={ r[0]+h*bunit[0], r[1]+h*bunit[1], r[2]+h*bunit[2]  };
       BFieldFunction(z1,outwards,bunit);
 
+      crd = { r[0]+h*bunit[0], r[1]+h*bunit[1], r[2]+h*bunit[2] };
+      
       for (int m =0; m<=n; m++){
-         zmid= { z0[0]+2*h*bunit[0] , z0[1]+2*h*bunit[1], z0[2]+2*h*bunit[2] };
+         zmid= { z0[0]+2*h*bunit[0], z0[1]+2*h*bunit[1], z0[2]+2*h*bunit[2] };
          z0=z1;
          z1=zmid;
-         crd = { r[0]+2.*m*h*bunit[0]  ,  r[1]+2.*m*h*bunit[1], r[2]+2.*m*h*bunit[2]};
+         crd = { crd[0]+h*bunit[0], crd[1]+h*bunit[1], crd[2]+h*bunit[2] };
          BFieldFunction(crd,outwards,bunit);
       }
       
@@ -1117,7 +1119,7 @@ namespace SBC {
       std::array<Real,7> kx,ky,kz;
       std::array<Real,3> b_unit;
       std::array<Real,3> _r{0,0,0};
-
+      
       //K1 slope
       BFieldFunction(r,outwards,b_unit);
       kx[0]=step*b_unit[0];
@@ -1177,7 +1179,6 @@ namespace SBC {
       kx[6]=step*b_unit[0];
       ky[6]=step*b_unit[1];
       kz[6]=step*b_unit[2];
-   
    
       //Error calculation
       std::array<Real,3>rf;
@@ -1297,7 +1298,7 @@ namespace SBC {
   
       for(int i=1; i<kMax; ++i){
 
-         //Increment n. Each iteration doubles the number of substeps
+         //Increment n by 2 at every iteration.
          n+=2;
          modifiedMidpointMethod(r,rnew,n,stepsize,BFieldFunction,outwards);
 
@@ -1470,14 +1471,16 @@ namespace SBC {
       bool anyNodeNeedsTracing;
 
       // Fieldline tracing function
-      TracingFieldFunction tracingField = [this, &perBGrid, &dPerBGrid, &technicalGrid](std::array<Real,3>& r, bool outwards, std::array<Real,3>& b)->void {
+      TracingFieldFunction tracingField = [this, &perBGrid, &dPerBGrid, &technicalGrid](std::array<Real,3>& r, bool alongB, std::array<Real,3>& b)->bool{
 
+         bool success = true;
+         
          // Get field direction
          b[0] = this->dipoleField(r[0],r[1],r[2],X,0,X);
          b[1] = this->dipoleField(r[0],r[1],r[2],Y,0,Y);
          b[2] = this->dipoleField(r[0],r[1],r[2],Z,0,Z);
 
-                  std::array<int32_t, 3> fsgridCell = getGlobalFsGridCellIndexForCoord(technicalGrid,r);
+         std::array<int32_t, 3> fsgridCell = getGlobalFsGridCellIndexForCoord(technicalGrid,r);
          const std::array<int32_t, 3> localStart = technicalGrid.getLocalStart();
          const std::array<int32_t, 3> localSize = technicalGrid.getLocalSize();
          // Make the global index a local one, bypass the fsgrid function that yields (-1,-1,-1) also for ghost cells.
@@ -1550,7 +1553,6 @@ namespace SBC {
    
                std::array<Real, 3> x = nodeTracingCoordinates[n];
                std::array<Real, 3> v({0,0,0});
-               //Real stepSize = min(100e3, technicalGrid.DX / 2.); 
                
                while( true ) {
    
@@ -2089,7 +2091,6 @@ namespace SBC {
                nodeStepCounter[n] = maxNodeStepCounter[n];
             }
          }
-
       } while(anyNodeNeedsTracing);
       
       bool redWarning = false;
@@ -2191,6 +2192,7 @@ namespace SBC {
          
          
          std::array<int32_t, 3> fsgridCell = getGlobalFsGridCellIndexForCoord(technicalGrid,r);
+         
          const std::array<int32_t, 3> localStart = technicalGrid.getLocalStart();
          const std::array<int32_t, 3> localSize = technicalGrid.getLocalSize();
          // Make the global index a local one, bypass the fsgrid function that yields (-1,-1,-1) also for ghost cells.
