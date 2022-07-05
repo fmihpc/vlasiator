@@ -2531,12 +2531,12 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                return retval;
          }
          ));
-	 outputReducer->addMetadata(outputReducer->size()-1,"m","$\\mathrm{m}$","$\\delta Z_\\mathrm{fg}$","1.0");
+         outputReducer->addMetadata(outputReducer->size()-1,"m","$\\mathrm{m}$","$\\delta Z_\\mathrm{fg}$","1.0");
          continue;
       }
       if(lowercase == "meshdata") {
          outputReducer->addOperator(new DRO::VariableMeshData);
-	 outputReducer->addMetadata(outputReducer->size()-1,"","","\\mathrm{Mesh data}$","");
+         outputReducer->addMetadata(outputReducer->size()-1,"","","\\mathrm{Mesh data}$","");
          continue;
       }
       if(lowercase == "ig_latitude") {
@@ -2991,6 +2991,21 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1, "T", "T", "$B_\\mathrm{mapped}$", "1.0");
          continue;
       }
+      if(lowercase == "ig_openclosed") {
+         SBC::ionosphereGrid.doTraceOpenClosed = true;
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_openclosed", [](
+            SBC::SphericalTriGrid& grid)->std::vector<Real> {
+               
+               std::vector<Real> retval(grid.nodes.size());
+               
+               for(uint i=0; i<grid.nodes.size(); i++) {
+                  retval[i] = (Real)grid.nodes[i].openFieldLine;
+               }
+               
+               return retval;
+            }));
+         continue;
+      }
       if(lowercase == "ig_fac") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_fac", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
@@ -3042,6 +3057,13 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                   return retval;
 			}));
          outputReducer->addMetadata(outputReducer->size()-1, "m", "m", "$x_\\mathrm{coupled}$", "1.0");
+         continue;
+      }
+      if(lowercase == "vg_connection") {
+         SBC::ionosphereGrid.doTraceFullBox = true;
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_connection",CellParams::CONNECTION,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_connection_fw",CellParams::FWCONNECTION,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_connection_bw",CellParams::BWCONNECTION,1));
          continue;
       }
       // After all the continue; statements one should never land here.
