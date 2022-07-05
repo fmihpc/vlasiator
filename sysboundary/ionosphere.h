@@ -220,7 +220,7 @@ namespace SBC {
       ); // Find coupled ionosphere mesh node for given location
       //Field Line Tracing functions
       int ijk2Index(int i , int j ,int k ,std::array<int,3>dims); //3D to 1D indexing 
-      typedef std::function<void(std::array<Real,3>&, bool, std::array<Real, 3>&)> TracingFieldFunction;
+      typedef std::function<bool(std::array<Real,3>&, bool, std::array<Real, 3>&)> TracingFieldFunction;
       void bulirschStoerStep(
          std::array<Real, 3>& r,
          std::array<Real, 3>& b,
