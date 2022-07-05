@@ -91,7 +91,10 @@ namespace projects {
        */
       virtual bool adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
 
-      virtual bool enforceRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
+      /*!\brief Refine/unrefine spatial cells one level closer to the static criteria in the config
+       * \param mpiGrid grid to refine
+       */
+      virtual bool forceRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
 
       /*!\brief Boxcar filters spatial cells that were recently refined
        * \param mpiGrid grid to filter

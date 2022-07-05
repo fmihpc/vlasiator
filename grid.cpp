@@ -231,16 +231,18 @@ void initializeGrids(
       }
       phiprof::stop("Read restart");
 
-      if (P::refineOnRestart) {
+      if (P::forceRefinement) {
          phiprof::start("Restart refinement");
          for (int i = 0; i < P::amrMaxSpatialRefLevel; ++i) {
             adaptRefinement(mpiGrid, technicalGrid, sysBoundaries, project, true);
          }
          phiprof::stop("Restart refinement");
-      } else if (false) {
+      } else if (P::refineOnRestart) {
+         phiprof::start("Restart refinement");
          for (int i = 0; i < P::amrMaxSpatialRefLevel; ++i) {
-            adaptRefinement(mpiGrid, technicalGrid, sysBoundaries, project, true);
+            adaptRefinement(mpiGrid, technicalGrid, sysBoundaries, project);
          }
+         phiprof::stop("Restart refinement");
       }
    }
 
@@ -1323,7 +1325,7 @@ void adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    calculateScaledDeltasSimple(mpiGrid);
 
    if (useStatic)
-      project.enforceRefinement(mpiGrid);
+      project.forceRefinement(mpiGrid);
    else
       project.adaptRefinement(mpiGrid);
 

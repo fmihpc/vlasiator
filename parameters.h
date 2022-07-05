@@ -180,6 +180,7 @@ struct Parameters {
    static uint amrMaxSpatialRefLevel;
    static bool adaptRefinement;
    static bool refineOnRestart;
+   static bool forceRefinement;
    static bool shouldFilter;
    static Real refineThreshold;
    static Real unrefineThreshold;

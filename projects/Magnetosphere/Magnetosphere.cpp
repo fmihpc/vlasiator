@@ -746,7 +746,7 @@ namespace projects {
       return true;
    }
 
-   bool Magnetosphere::enforceRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+   bool Magnetosphere::forceRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
    
       int myRank;       
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);

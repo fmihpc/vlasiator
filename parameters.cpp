@@ -151,6 +151,7 @@ string P::amrVelRefCriterion = string("");
 uint P::amrMaxSpatialRefLevel = 0;
 bool P::adaptRefinement = false;
 bool P::refineOnRestart = false;
+bool P::forceRefinement = false;
 bool P::shouldFilter = false;
 Real P::refineThreshold = 1.0;
 Real P::unrefineThreshold = 0.0;
@@ -405,6 +406,7 @@ bool P::addParameters() {
    RP::add("AMR.should_refine","If false, do not refine Vlasov grid regardless of max spatial level",true);
    RP::add("AMR.adapt_refinement","If true, re-refine vlasov grid every refine_multiplier load balance", false);
    RP::add("AMR.refine_on_restart","If true, re-refine vlasov grid on restart", false);
+   RP::add("AMR.force_refinement","If true, refine/unrefine the vlasov grid to match the config on restart", false);
    RP::add("AMR.should_filter","If true, filter vlasov grid with boxcar filter on restart",false);
    RP::add("AMR.refine_threshold","Determines the minimum value of the refinement parameter to refine cells", 1.0);
    RP::add("AMR.unrefine_threshold","Determines the maximum value of the refinement parameter to unrefine cells", 0.0);
@@ -598,6 +600,7 @@ void Parameters::getParameters() {
    RP::get("AMR.max_spatial_level", P::amrMaxSpatialRefLevel);
    RP::get("AMR.adapt_refinement",P::adaptRefinement);
    RP::get("AMR.refine_on_restart",P::refineOnRestart);
+   RP::get("AMR.force_refinement",P::forceRefinement);
    RP::get("AMR.should_filter",P::shouldFilter);
    RP::get("AMR.refine_threshold",P::refineThreshold);
    RP::get("AMR.unrefine_threshold",P::unrefineThreshold);
