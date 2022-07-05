@@ -788,9 +788,9 @@ namespace projects {
          if (!canRefine(mpiGrid[id])) {
             mpiGrid.dont_refine(id);
             mpiGrid.dont_unrefine(id);
-         } else if (refLevel > refineTarget) {
-            mpiGrid.refine_completely(id);
          } else if (refLevel < refineTarget) {
+            mpiGrid.refine_completely(id);
+         } else if (refLevel > refineTarget) {
             mpiGrid.unrefine_completely(id);
          } else {
             mpiGrid.dont_unrefine(id);
