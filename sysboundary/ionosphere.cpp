@@ -1197,7 +1197,7 @@ namespace SBC {
       step=step*s;
 
       if (step>maxStepsize){
-         std::cerr<<"Stepsize in Dormand Prince method exceeded the max Stepsize. Defaulting to maxStepsize"<<std::endl;
+//          std::cerr<<"Stepsize in Dormand Prince method exceeded the max Stepsize. Defaulting to maxStepsize"<<std::endl;
          step=maxStepsize;
       }
       if (err>Ionosphere::max_allowed_error){
@@ -1488,7 +1488,7 @@ namespace SBC {
          fsgridCell[1] -= localStart[1];
          fsgridCell[2] -= localStart[2];
          
-         if(fsgridCell[0] > localSize[0]+1 || fsgridCell[1] > localSize[1]+1 || fsgridCell[2] > localSize[2]+1
+         if(fsgridCell[0] > localSize[0] || fsgridCell[1] > localSize[1] || fsgridCell[2] > localSize[2]
             || fsgridCell[0] < -1 || fsgridCell[1] < -1 || fsgridCell[2] < -1) {
             cerr << (string)("Oops! fsgrid coupling trying to access local ID " + to_string(fsgridCell[0]) + " " + to_string(fsgridCell[1]) + " " + to_string(fsgridCell[2])
             + " for local domain size " + to_string(localSize[0]) + " " + to_string(localSize[1]) + " " + to_string(localSize[2])
@@ -1929,7 +1929,7 @@ namespace SBC {
          fsgridCell[1] -= localStart[1];
          fsgridCell[2] -= localStart[2];
          
-         if(fsgridCell[0] > localSize[0]+1 || fsgridCell[1] > localSize[1]+1 || fsgridCell[2] > localSize[2]+1
+         if(fsgridCell[0] > localSize[0] || fsgridCell[1] > localSize[1] || fsgridCell[2] > localSize[2]
             || fsgridCell[0] < -1 || fsgridCell[1] < -1 || fsgridCell[2] < -1) {
             cerr << (string)("Oops! Open-closed mapping trying to access local ID " + to_string(fsgridCell[0]) + " " + to_string(fsgridCell[1]) + " " + to_string(fsgridCell[2])
             + " for local domain size " + to_string(localSize[0]) + " " + to_string(localSize[1]) + " " + to_string(localSize[2]) + "\n");
@@ -2192,7 +2192,7 @@ namespace SBC {
          fsgridCell[1] -= localStart[1];
          fsgridCell[2] -= localStart[2];
          
-         if(fsgridCell[0] > localSize[0]+1 || fsgridCell[1] > localSize[1]+1 || fsgridCell[2] > localSize[2]+1
+         if(fsgridCell[0] > localSize[0] || fsgridCell[1] > localSize[1] || fsgridCell[2] > localSize[2]
             || fsgridCell[0] < -1 || fsgridCell[1] < -1 || fsgridCell[2] < -1) {
             cerr << (string)("Oops! Full mapping trying to access local ID " + to_string(fsgridCell[0]) + " " + to_string(fsgridCell[1]) + " " + to_string(fsgridCell[2])
             + " for local domain size " + to_string(localSize[0]) + " " + to_string(localSize[1]) + " " + to_string(localSize[2]) + "\n");
