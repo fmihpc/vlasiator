@@ -1490,7 +1490,11 @@ namespace SBC {
          
          if(fsgridCell[0] > localSize[0]+1 || fsgridCell[1] > localSize[1]+1 || fsgridCell[2] > localSize[2]+1
             || fsgridCell[0] < -1 || fsgridCell[1] < -1 || fsgridCell[2] < -1) {
-            cerr << "Oops!\n";
+            cerr << (string)("Oops! fsgrid coupling trying to access local ID " + to_string(fsgridCell[0]) + " " + to_string(fsgridCell[1]) + " " + to_string(fsgridCell[2])
+            + " for local domain size " + to_string(localSize[0]) + " " + to_string(localSize[1]) + " " + to_string(localSize[2])
+            + " at position " + to_string(r[0]) + " " + to_string(r[1]) + " " + to_string(r[2]) + " radius " + to_string(sqrt(r[0]*r[0]+r[1]*r[1]+r[2]*r[2]))
+            + "\n");
+            success = false;
          } else {
             if(technicalGrid.get(fsgridCell[0],fsgridCell[1],fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
                const std::array<Real, 3> perB = interpolatePerturbedB(
@@ -1534,6 +1538,7 @@ namespace SBC {
                b[2]*=-1;
             }
          }
+         return success;
       };
 
       do {
@@ -1588,7 +1593,7 @@ namespace SBC {
                   // If we somehow still map into the ionosphere, we missed the 88 degree criterion but shouldn't couple there.
                   if(sqrt(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2)) < Ionosphere::innerRadius) {
                      // TODO drop this warning if it never occurs? To be followed.
-                     cerr << "Triggered mapping back into Earth\n";
+                     cerr << (string)("Triggered mapping back into Earth from node " + to_string(n) + " at z " + to_string(no.x[2]) + "\n");
                      nodeNeedsContinuedTracing.at(n) = 0;
                      nodeTracingCoordinates.at(n) = {0,0,0};
                      break;
@@ -1737,7 +1742,7 @@ namespace SBC {
       phiprof::start("ionosphere-VlasovGridCoupling");
 
       // For tracing towards the vlasov boundary, we only require the dipole field.
-      TracingFieldFunction dipoleFieldOnly = [this](std::array<Real,3>& r, bool outwards, std::array<Real,3>& b)->void {
+      TracingFieldFunction dipoleFieldOnly = [this](std::array<Real,3>& r, bool outwards, std::array<Real,3>& b)->bool {
       
          // Get field direction
          b[0] = this->dipoleField(r[0],r[1],r[2],X,0,X);
@@ -1764,6 +1769,7 @@ namespace SBC {
                b[2]*=-1;
             }
          }
+         return true;
       };
 
       while(sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]) > Ionosphere::innerRadius) {
@@ -1916,20 +1922,15 @@ namespace SBC {
       bool anyNodeNeedsTracing;
 
       // Fieldline tracing function
-      TracingFieldFunction tracingFullField = [this, &perBGrid, &dPerBGrid, &technicalGrid](std::array<Real,3>& r, bool alongB, std::array<Real,3>& b)->void {
-
-//          if(r[0] < P::xmin || r[0] > P::xmax || r[1] < P::ymin || r[1] > P::ymax || r[2] < P::zmin || r[2] > P::zmax || sqrt(r[0]*r[0] + r[1]+r[1] + r[2]*r[2]) < 6e6) {
-//             cerr << (std::string)("Problem! " + to_string(r[0]) + " " + to_string(r[1]) + " " + to_string(r[2]) + " " + to_string(sqrt(r[0]*r[0] + r[1]+r[1] + r[2]*r[2])));
-//             abort();
-//          }
+      TracingFieldFunction tracingFullField = [this, &perBGrid, &dPerBGrid, &technicalGrid](std::array<Real,3>& r, bool alongB, std::array<Real,3>& b)->bool {
          
          // Get field direction
          b[0] = this->dipoleField(r[0],r[1],r[2],X,0,X);
          b[1] = this->dipoleField(r[0],r[1],r[2],Y,0,Y);
          b[2] = this->dipoleField(r[0],r[1],r[2],Z,0,Z);
          
-         
          std::array<int32_t, 3> fsgridCell = getGlobalFsGridCellIndexForCoord(technicalGrid,r);
+         
          const std::array<int32_t, 3> localStart = technicalGrid.getLocalStart();
          const std::array<int32_t, 3> localSize = technicalGrid.getLocalSize();
          // Make the global index a local one, bypass the fsgrid function that yields (-1,-1,-1) also for ghost cells.
@@ -1939,7 +1940,8 @@ namespace SBC {
          
          if(fsgridCell[0] > localSize[0]+1 || fsgridCell[1] > localSize[1]+1 || fsgridCell[2] > localSize[2]+1
             || fsgridCell[0] < -1 || fsgridCell[1] < -1 || fsgridCell[2] < -1) {
-            cerr << "Oops!\n";
+            cerr << (string)("Oops! Open-closed mapping trying to access local ID " + to_string(fsgridCell[0]) + " " + to_string(fsgridCell[1]) + " " + to_string(fsgridCell[2])
+            + " for local domain size " + to_string(localSize[0]) + " " + to_string(localSize[1]) + " " + to_string(localSize[2]) + "\n");
          } else {
             if(technicalGrid.get(fsgridCell[0],fsgridCell[1],fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
                const std::array<Real, 3> perB = interpolatePerturbedB(
@@ -1974,6 +1976,7 @@ namespace SBC {
             b[1] *= -1;
             b[2] *= -1;
          }
+         return true;
       };
 
       bool warnMaxStepsExceeded = false;
@@ -2021,13 +2024,8 @@ namespace SBC {
                   // Make one step along the fieldline
                   // If the node is in the North, trace along -B (false for last argument), in the South, trace along B
                   stepFieldLine(x,v, stepSize,technicalGrid.DX/2,couplingMethod,tracingFullField,(no.x[2] < 0));
-   
-//                   if(!(n % 200)) {
-//                      string stringi = to_string(P::tstep) + " " + to_string(n) + " " + to_string(x[0]) + " " + to_string(x[1]) + " " + to_string(x[2]) + " " + to_string(sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2])) + " " + to_string(nodeStepCounter[n]) + "\n"; 
-//                      cerr << stringi;
-//                   }
                   
-                  // Look up the fsgrid cell beloinging to these coordinates
+                  // Look up the fsgrid cell belonging to these coordinates
                   fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
                   std::array<Real, 3> interpolationFactor=getFractionalFsGridCellForCoord(technicalGrid,x);
       
@@ -2063,9 +2061,6 @@ namespace SBC {
                }
 } // pragma omp parallel
          }
-
-//          string stringi = to_string(rank) + " arrived at " + (string)(__FILE__) + ":" + to_string(__LINE__) + "\n";
-//          cerr << stringi;
          
          // Globally reduce whether any node still needs to be picked up and traced onwards
          std::vector<int> sumNodeNeedsContinuedTracing(nodes.size(), 0);
@@ -2183,7 +2178,7 @@ namespace SBC {
       bool anyCellNeedsTracing;
       
       // Fieldline tracing function
-      TracingFieldFunction tracingFullField = [this, &perBGrid, &dPerBGrid, &technicalGrid](std::array<Real,3>& r, bool alongB, std::array<Real,3>& b)->void {
+      TracingFieldFunction tracingFullField = [this, &perBGrid, &dPerBGrid, &technicalGrid](std::array<Real,3>& r, bool alongB, std::array<Real,3>& b)->bool {
          
          // Get field direction
          b[0] = this->dipoleField(r[0],r[1],r[2],X,0,X);
@@ -2202,7 +2197,8 @@ namespace SBC {
          
          if(fsgridCell[0] > localSize[0]+1 || fsgridCell[1] > localSize[1]+1 || fsgridCell[2] > localSize[2]+1
             || fsgridCell[0] < -1 || fsgridCell[1] < -1 || fsgridCell[2] < -1) {
-            cerr << "Oops!\n";
+            cerr << (string)("Oops! Full mapping trying to access local ID " + to_string(fsgridCell[0]) + " " + to_string(fsgridCell[1]) + " " + to_string(fsgridCell[2])
+            + " for local domain size " + to_string(localSize[0]) + " " + to_string(localSize[1]) + " " + to_string(localSize[2]) + "\n");
             } else {
                if(technicalGrid.get(fsgridCell[0],fsgridCell[1],fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
                   const std::array<Real, 3> perB = interpolatePerturbedB(
@@ -2237,6 +2233,7 @@ namespace SBC {
                b[1] *= -1;
                b[2] *= -1;
             }
+            return true;
       };
       
       bool warnMaxStepsExceeded = false;
