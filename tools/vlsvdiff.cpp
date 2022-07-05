@@ -711,8 +711,8 @@ bool shiftAverage(const map<uint, Real>* const orderedData1,
 bool pDistance(const map<uint, Real>& orderedData1,
                const map<uint, Real>& orderedData2,
                creal p,
-               Real * absolute,
-               Real * relative,
+               Real& absolute,
+               Real& relative,
                const bool doShiftAverage,
                const unordered_map<size_t,size_t>& cellOrder,
                vlsv::Writer& outputFile,
@@ -728,8 +728,8 @@ bool pDistance(const map<uint, Real>& orderedData1,
    }
 
    // Reset old values
-   *absolute = 0.0;
-   *relative = 0.0;
+   absolute = 0.0;
+   relative = 0.0;
 
    vector<Real> array(orderedData1.size());
    for (size_t i=0; i<array.size(); ++i) array[i] = -1.0;
@@ -741,7 +741,7 @@ bool pDistance(const map<uint, Real>& orderedData1,
          Real value = 0.0;
          if (it2 != data2->end()) {
             value = abs(it1->second - it2->second);
-            *absolute = max(*absolute, value);
+            absolute = max(absolute, value);
             length    = max(length, abs(it1->second));
          
             }
@@ -758,7 +758,7 @@ bool pDistance(const map<uint, Real>& orderedData1,
          Real value = 0.0;
          if (it2 != data2->end()) {
             value = abs(it1->second - it2->second);
-            *absolute += value;
+            absolute += value;
             length    += abs(it1->second);
          
             }
@@ -774,7 +774,7 @@ bool pDistance(const map<uint, Real>& orderedData1,
          Real value = 0.0;
          if (it2 != data2->end()) {
             value = pow(abs(it1->second - it2->second), p);
-            *absolute += value;
+            absolute += value;
             length    += pow(abs(it1->second), p);
          
             }
@@ -784,14 +784,14 @@ bool pDistance(const map<uint, Real>& orderedData1,
             array[it1->first]=pow(value,1.0/p);
             }  
       }
-      *absolute = pow(*absolute, 1.0 / p);
+      absolute = pow(absolute, 1.0 / p);
       length = pow(length, 1.0 / p);
    }
 
-   if (length != 0.0) *relative = *absolute / length;
+   if (length != 0.0) relative = absolute / length;
    else {
       cout << "WARNING (pDistance) : length of reference is 0.0, cannot divide to give relative distance." << endl;
-      *relative = -1;
+      relative = -1;
    }
 
    // Write out the difference (if requested):
@@ -820,8 +820,8 @@ bool pDistance(const map<uint, Real>& orderedData1,
  * \sa shiftAverage pDistance
  */
 bool outputDistance(const Real p,
-                    const Real * absolute,
-                    const Real * relative,
+                    const Real& absolute,
+                    const Real& relative,
                     const bool shiftedAverage,
                     const bool verboseOutput,
                     const bool lastCall
@@ -829,11 +829,11 @@ bool outputDistance(const Real p,
 {
    if(verboseOutput == true) {
       if(shiftedAverage == false) {
-         cout << "The absolute " << p << "-distance between both datasets is " << *absolute  << endl;
-         cout << "The relative " << p << "-distance between both datasets is " << *relative  << endl;
+         cout << "The absolute " << p << "-distance between both datasets is " << absolute  << endl;
+         cout << "The relative " << p << "-distance between both datasets is " << relative  << endl;
       } else {
-         cout << "The average-shifted absolute " << p << "-distance between both datasets is " << *absolute  << endl;
-         cout << "The average-shifted relative " << p << "-distance between both datasets is " << *relative  << endl;
+         cout << "The average-shifted absolute " << p << "-distance between both datasets is " << absolute  << endl;
+         cout << "The average-shifted relative " << p << "-distance between both datasets is " << relative  << endl;
       }
    } else {
       static vector<Real> fileOutputData;
@@ -848,8 +848,8 @@ bool outputDistance(const Real p,
          return 0;
       }
       
-      fileOutputData.push_back(*absolute);
-      fileOutputData.push_back(*relative);
+      fileOutputData.push_back(absolute);
+      fileOutputData.push_back(relative);
    }
    return 0;
 }
@@ -992,7 +992,7 @@ bool printNonVerboseData()
    // Data
    // last argument (lastCall) is true to get the output of the whole stored dataset
    outputStats(NULL, NULL, NULL, NULL, NULL, false, true);
-   outputDistance(0, NULL, NULL, false, false, true);
+   outputDistance(0, 0., 0., false, false, true);
    
    return 0;
 }
@@ -1590,20 +1590,20 @@ bool process2Files(const string fileName1,
       singleStatistics(&orderedData2, &size, &mini, &maxi, &avg, &stdev);
       outputStats(&size, &mini, &maxi, &avg, &stdev, verboseOutput, false);
 
-      pDistance(orderedData1, orderedData2, 0, &absolute, &relative, false, cellOrder,outputFile,attributes["--meshname"],"d0_"+varName);
-      outputDistance(0, &absolute, &relative, false, verboseOutput, false);
-      pDistance(orderedData1, orderedData2, 0, &absolute, &relative, true, cellOrder,outputFile,attributes["--meshname"],"d0_sft_"+varName);
-      outputDistance(0, &absolute, &relative, true, verboseOutput, false);
+      pDistance(orderedData1, orderedData2, 0, absolute, relative, false, cellOrder,outputFile,attributes["--meshname"],"d0_"+varName);
+      outputDistance(0, absolute, relative, false, verboseOutput, false);
+      pDistance(orderedData1, orderedData2, 0, absolute, relative, true, cellOrder,outputFile,attributes["--meshname"],"d0_sft_"+varName);
+      outputDistance(0, absolute, relative, true, verboseOutput, false);
 
-      pDistance(orderedData1, orderedData2, 1, &absolute, &relative, false, cellOrder,outputFile,attributes["--meshname"],"d1_"+varName);
-      outputDistance(1, &absolute, &relative, false, verboseOutput, false);
-      pDistance(orderedData1, orderedData2, 1, &absolute, &relative, true, cellOrder,outputFile,attributes["--meshname"],"d1_sft_"+varName);
-      outputDistance(1, &absolute, &relative, true, verboseOutput, false);
+      pDistance(orderedData1, orderedData2, 1, absolute, relative, false, cellOrder,outputFile,attributes["--meshname"],"d1_"+varName);
+      outputDistance(1, absolute, relative, false, verboseOutput, false);
+      pDistance(orderedData1, orderedData2, 1, absolute, relative, true, cellOrder,outputFile,attributes["--meshname"],"d1_sft_"+varName);
+      outputDistance(1, absolute, relative, true, verboseOutput, false);
 
-      pDistance(orderedData1, orderedData2, 2, &absolute, &relative, false, cellOrder,outputFile,attributes["--meshname"],"d2_"+varName);
-      outputDistance(2, &absolute, &relative, false, verboseOutput, false);
-      pDistance(orderedData1, orderedData2, 2, &absolute, &relative, true, cellOrder,outputFile,attributes["--meshname"],"d2_sft_"+varName);
-      outputDistance(2, &absolute, &relative, true, verboseOutput, false);
+      pDistance(orderedData1, orderedData2, 2, absolute, relative, false, cellOrder,outputFile,attributes["--meshname"],"d2_"+varName);
+      outputDistance(2, absolute, relative, false, verboseOutput, false);
+      pDistance(orderedData1, orderedData2, 2, absolute, relative, true, cellOrder,outputFile,attributes["--meshname"],"d2_sft_"+varName);
+      outputDistance(2, absolute, relative, true, verboseOutput, false);
 
       outputFile.close();
    }
