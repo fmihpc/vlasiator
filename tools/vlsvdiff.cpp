@@ -731,8 +731,7 @@ bool pDistance(const map<uint, Real>& orderedData1,
    absolute = 0.0;
    relative = 0.0;
 
-   vector<Real> array(orderedData1.size());
-   for (size_t i=0; i<array.size(); ++i) array[i] = -1.0;
+   vector<Real> array(orderedData1.size(),-1.);
 
    Real length = 0.0;
    if (p == 0) {
@@ -742,15 +741,13 @@ bool pDistance(const map<uint, Real>& orderedData1,
          if (it2 != data2->end()) {
             value = abs(it1->second - it2->second);
             absolute = max(absolute, value);
-            length    = max(length, abs(it1->second));
-         
-            }
-         if (gridType==GridType::SpatialGrid){  
+            length   = max(length, abs(it1->second));
+         }
+         if (gridType == GridType::SpatialGrid || gridType == GridType::velgrid) {
             array[cellOrder.at(it1->first)] = value;
-         }else if (gridType==GridType::fsgrid) {   
-
-            array.at(it1->first)=value;
-            }  
+         } else if (gridType == GridType::fsgrid) {
+            array.at(it1->first) = value;
+         }
       }
    } else if (p == 1) {
       for (map<uint,Real>::const_iterator it1=orderedData1.begin(); it1!=orderedData1.end(); ++it1) {
@@ -759,14 +756,13 @@ bool pDistance(const map<uint, Real>& orderedData1,
          if (it2 != data2->end()) {
             value = abs(it1->second - it2->second);
             absolute += value;
-            length    += abs(it1->second);
-         
-            }
-         if (gridType==GridType::SpatialGrid){  
+            length   += abs(it1->second);
+         }
+         if (gridType == GridType::SpatialGrid || gridType == GridType::velgrid) {
             array[cellOrder.at(it1->first)] = value;
-         }else if (gridType==GridType::fsgrid){   
+         } else if (gridType==GridType::fsgrid) {
             array[it1->first]=value;
-            }  
+         }  
       }
    } else {
       for (map<uint,Real>::const_iterator it1=orderedData1.begin(); it1!=orderedData1.end(); ++it1) {
@@ -775,21 +771,21 @@ bool pDistance(const map<uint, Real>& orderedData1,
          if (it2 != data2->end()) {
             value = pow(abs(it1->second - it2->second), p);
             absolute += value;
-            length    += pow(abs(it1->second), p);
-         
-            }
-         if (gridType==GridType::SpatialGrid){  
+            length   += pow(abs(it1->second), p);
+         }
+         if (gridType == GridType::SpatialGrid || gridType == GridType::velgrid) {
             array[cellOrder.at(it1->first)] = pow(value,1.0/p);
-         }else if (gridType==GridType::fsgrid){   
+         } else if (gridType==GridType::fsgrid) {
             array[it1->first]=pow(value,1.0/p);
-            }  
+         }  
       }
       absolute = pow(absolute, 1.0 / p);
       length = pow(length, 1.0 / p);
    }
 
-   if (length != 0.0) relative = absolute / length;
-   else {
+   if (length != 0.0) {
+      relative = absolute / length;
+   } else {
       cout << "WARNING (pDistance) : length of reference is 0.0, cannot divide to give relative distance." << endl;
       relative = -1;
    }
@@ -1551,6 +1547,11 @@ bool process2Files(const string fileName1,
                }
                if(orderedData2.count(id) == 0) {
                   orderedData2.emplace(std::make_pair(id,0.));
+               }
+
+               // Also make sure that the cellOrder array has a place for them
+               if(cellOrder.count(id) == 0) {
+                  cellOrder.emplace(std::make_pair(id,cellOrder.size()));
                }
             }
          }
