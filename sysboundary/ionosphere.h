@@ -23,6 +23,7 @@
 #ifndef IONOSPHERE_H
 #define IONOSPHERE_H
 
+#include <cstdint>
 #include <vector>
 #include <functional>
 #include "../definitions.h"
@@ -146,9 +147,10 @@ namespace SBC {
       std::array<AtmosphericLayer, numAtmosphereLevels> atmosphere;
 
       enum IonosphereCouplingMethod { // Field line integrator for Magnetosphere<->Ionosphere coupling
-         Euler, // Euler stepping
-         BS,     // Bulirsch-Stoer Stepping
-         DM      // Dormand-Prince Stepping 
+         Euler,        // Euler stepping (constant stepsize)
+         ADPT_Euler,   // Adaptive Euler stepping (adaptive stepsize)
+         BS,           // Bulirsch-Stoer Stepping (adaptive stepsize)
+         DPrince       // Dormand-Prince Stepping (adaptive stepsize) 
       } couplingMethod;
 
       enum IonosphereSolverGaugeFixing { // Potential solver gauge fixing method
@@ -226,13 +228,20 @@ namespace SBC {
          TracingFieldFunction& BFieldFunction,
          bool outwards=true
       ); //Bulrisch Stoer step
-      void dormandPrinceStep(
+      bool dormandPrinceStep(
          std::array<Real, 3>& r,
          std::array<Real, 3>& b,
          Real& stepsize,Real maxStepsize,
          TracingFieldFunction& BFieldFunction,
          bool outwards=true
       ); //Dormand Prince step
+      bool adaptiveEulerStep(
+         std::array<Real, 3>& r,
+         std::array<Real, 3>& b,
+         Real& stepsize,Real maxStepsize,
+         TracingFieldFunction& BFieldFunction,
+         bool outwards=true
+      ); //Adaptive Euler step
       void eulerStep(
          std::array<Real, 3>& x,
          std::array<Real, 3>& v,
@@ -492,7 +501,8 @@ namespace SBC {
       static bool solverToggleMinimumResidualVariant; /*!< Toggle use of the minimum residual variant between solver restarts */
       static Real shieldingLatitude; /*! Latitude (degree) below which the potential is zeroed in the equator gauge fixing scheme */
       static Real ridleyParallelConductivity; /*! Constant parallel conductivity */
-      static Real eps; // Tolerance for Bulirsch Stoer Method
+      static Real max_allowed_error; // Maximum alowed error for the adaptive field line tracing methods
+      static uint32_t max_dormand_prince_attempts; // Max allowed attempts for the Dormand Prince tracer
       
       // TODO: Make these parameters of the IonosphereGrid
       static Real recombAlpha; // Recombination parameter, determining atmosphere ionizability (parameter)
