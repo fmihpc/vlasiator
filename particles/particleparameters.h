@@ -40,11 +40,13 @@ struct ParticleParameters {
    static Real init_z; /*!< Particle starting point, z-coordinate */
 
    static Real dt; /*!< Particle pusher timestep */
+   static int propagation_direction; /*!< dt > 0 : positive direction +1; dt < 0 : negative direction -1. */
    static Real start_time; /*!< Simulation time at which the particles are injected */
    static Real end_time;  /*!< Simulation time at which the particle-simulation should be stopped */
    static Real input_dt; /*!< Time interval between input files */
 
    static uint64_t num_particles; /*!< Number of particles to generate */
+   static bool staticfields; /*!< Flag for using static fields from first time step */
    static std::string V_field_name; /*!< Name of the Velocity data set to read */
    static std::string rho_field_name; /*!< Name of the Density data set to read */
    static bool divide_rhov_by_rho; /*!< Does the file store rho_v and rho separately? */
@@ -52,6 +54,8 @@ struct ParticleParameters {
    static Boundary* boundary_behaviour_x; /*!< What to do with particles that reach the x boundary */
    static Boundary* boundary_behaviour_y; /*!< What to do with particles that reach the y boundary */
    static Boundary* boundary_behaviour_z; /*!< What to do with particles that reach the z boundary */
+
+   static Real inner_boundary_radius; /*!< Absorbing inner boundary radius, if any */
 
    static Real precip_inner_boundary; /*!< Distance of the inner boundary from the coordinate centre (meters) */
    static Real precip_start_x; /*!< X-Coordinate at which precipitation injection starts (meters) */
@@ -73,10 +77,48 @@ struct ParticleParameters {
    static Real ipshock_transmit;  /*!< X-Coordinate for particle transmission (downstream) (meters) */
    static Real ipshock_reflect;   /*!< X-Coordinate for particle reflection (upstream) (meters) */
 
+/*    static Real injection_r0;           /\*!< injection scenario: Bow shock fit standoff distance in metres *\/ */
+/*    static Real injection_alpha;        /\*!< injection scenario: Bow shock fit tail flare parameter alpha  *\/ */
+/*    static Real injection_ecc;          /\*!< injection scenario: Bow shock fit eccentricity parameter ecc*\/ */
+   static Real injection_bs_p0;        /*!< injection scenario: Bow shock fit p0 (at start) */
+   static Real injection_bs_p1;        /*!< injection scenario: Bow shock fit p1 (at start) */
+   static Real injection_bs_p2;        /*!< injection scenario: Bow shock fit p2 (at start) */
+   static Real injection_bs_p3;        /*!< injection scenario: Bow shock fit p3 (at start) */
+   static Real injection_bs_p4;        /*!< injection scenario: Bow shock fit p4 (at start) */
+   static Real injection_bs2_p0;        /*!< injection scenario: Bow shock fit p0 (at end) */
+   static Real injection_bs2_p1;        /*!< injection scenario: Bow shock fit p1 (at end) */
+   static Real injection_bs2_p2;        /*!< injection scenario: Bow shock fit p2 (at end) */
+   static Real injection_bs2_p3;        /*!< injection scenario: Bow shock fit p3 (at end) */
+   static Real injection_bs2_p4;        /*!< injection scenario: Bow shock fit p4 (at end) */
+
+   static Real injection_rho_meet;     /*!< injection scenario: Number density value to assume particle meets shock */
+   static Real injection_TNBS_meet;    /*!< injection scenario: Non-backstreaming temperature value to assume particle meets shock */
+   static Real injection_Mms_meet;     /*!< injection scenario: Magnetosonic Mach number to assume particle meets shock */
+   static Real injection_tbn_meet;     /*!< injection scenario: Shock-normal angle value to assume particle meets shock */
+   // No parameter required for flipmu calculation
+
+   static Real injection_end_time;     /*!< Time at which initialisation of particles should end */
+   static Real injection_r_bound_ds;   /*!< injection scenario: Downstream transmission boundary radial distance in metres */
+   static Real injection_r_bound_us;   /*!< injection scenario: Upstream reflection boundary radial distance in metres */
+   static Real injection_x_bound_ds;   /*!< injection scenario: discard boundary X-coordinate in metres */
+   static Real injection_start_deg0;   /*!< injection scenario: initialisation arc start angle in degrees */
+   static Real injection_start_deg1;   /*!< injection scenario: initialisation arc finish angle in degrees */
+   static Real injection_start_rplus;  /*!< injection scenario: initialisation arc distance from shock in metres */
+   static Real injection_init_vx;        /*!< injection scenario: V_x for initialisation solar wind */
+   static Real injection_init_vy;        /*!< injection scenario: V_y for initialisation solar wind */
+   static Real injection_init_vz;        /*!< injection scenario: V_z for initialisation solar wind */
+
    static std::default_random_engine::result_type random_seed; /*!< Random seed for particle creation */
    static Distribution* (*distribution)(std::default_random_engine&); /*!< Type of distribution from which to sample the particles */
    static Real temperature; /*!< Initial particle temperature (for distributions where a temperature is meaningful) */
    static Real particle_vel; /*!< Initial particle velocity (for distributions with a single initial velocity) */
+   static bool vel_BcrossVframe; /*!< Whether velocities should be initialized in a B,BxV,BxBxV frame */
+   static Real parallelTemperature; /*!< Initial particle temperature along the background field direction (for triMaxwellian) */
+   static Real perpTemperature1; /*!< Initial particle temperature in perp1 direction (for triMaxwellian) */
+   static Real perpTemperature2; /*!< Initial particle temperatuer in perp2 direction (for triMaxwellian) */
+   static Real parallelDriftVel;
+   static Real perpDriftVel1;
+   static Real perpDriftVel2;
 
    static Real mass; /*!< Mass of the test particles */
    static Real charge; /*!< Charge of the test particles */

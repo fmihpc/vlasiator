@@ -31,7 +31,17 @@ struct Particle {
       Vec3d v;
       Real m;
       Real q;
-      char padding[128-sizeof(Vec3d)*2-sizeof(Real)*2];
+
+      Real org_mu;
+
+      Real minx_t;
+      Real minx_mu;
+      Vec3d minx_x;
+      Vec3d minx_v;
+      Vec3d minx_E;
+      Vec3d minx_B;
+
+      Real boost_vsq;
 
       Particle(Real mass, Real charge, const Vec3d& _x, const Vec3d& _v) :
          x(_x),v(_v),m(mass),q(charge) {}

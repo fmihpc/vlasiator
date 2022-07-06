@@ -52,9 +52,10 @@ void writeParticles(ParticleContainer& p,const char* filename) {
    /* First, store particle positions */
    uint writable_particles=0;
    for(unsigned int i=0; i < p.size(); i++) {
-      if(vector_length(p[i].x) == 0) {
-        continue;
-      }
+      // Keep writing also inactive particles so particle tracing can be done
+      // if(vector_length(p[i].x) == 0) {
+      //   continue;
+      // }
 
       p[i].x.store(&(writebuf[3*writable_particles]));
       writable_particles++;
@@ -70,9 +71,10 @@ void writeParticles(ParticleContainer& p,const char* filename) {
    /* Then, velocities */
    writable_particles=0;
    for(unsigned int i=0; i < p.size(); i++) {
-      if(vector_length(p[i].x) == 0) {
-        continue;
-      }
+      // Keep writing also inactive particles so particle tracing can be done
+      // if(vector_length(p[i].x) == 0) {
+      //   continue;
+      // }
       p[i].v.store(&(writebuf[3*writable_particles]));
       writable_particles++;
    }

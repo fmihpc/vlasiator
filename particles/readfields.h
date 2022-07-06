@@ -33,75 +33,8 @@
 
 #define DEBUG
 
-extern std::string B_field_name;
-extern std::string E_field_name;
-extern std::string V_field_name;
-extern bool do_divide_by_rho;
-
 /* Read the cellIDs into an array */
 std::vector<uint64_t> readCellIds(vlsvinterface::Reader& r);
-
-template <class Reader>
-static void detect_field_names(Reader& r) {
-
-#ifdef DEBUG
-   std::cerr << "Checking for volume-averaged fields... " << std::endl;
-#endif
-   std::list<std::string> variableNames;
-   std::string gridname("SpatialGrid");
-
-   r.getVariableNames(gridname,variableNames);
-   if (find(variableNames.begin(), variableNames.end(), std::string("fg_b"))!=variableNames.end()) {
-      #ifdef DEBUG
-      #endif
-      B_field_name = "fg_b";
-   } else if (find(variableNames.begin(), variableNames.end(), std::string("B"))!=variableNames.end()) {
-      #ifdef DEBUG
-      #endif
-      B_field_name = "B";
-   } else if (find(variableNames.begin(), variableNames.end(), std::string("fg_b_background")) != variableNames.end() && 
-              find(variableNames.begin(), variableNames.end(), std::string("fg_b_perturbed")) != variableNames.end()) {
-      B_field_name = "fg_b_background";
-   } else if (find(variableNames.begin(), variableNames.end(), std::string("B_vol"))!=variableNames.end()) {
-      #ifdef DEBUG
-      #endif
-      B_field_name = "B_vol";
-   } else if (find(variableNames.begin(), variableNames.end(), std::string("vg_b_vol"))!=variableNames.end()) {
-      #ifdef DEBUG
-      #endif
-      B_field_name = "vg_b_vol";
-   } else if (find(variableNames.begin(), variableNames.end(), std::string("vg_b_background_vol")) != variableNames.end() && 
-              find(variableNames.begin(), variableNames.end(), std::string("vg_b_perturbed_vol")) != variableNames.end()) {
-      B_field_name = "vg_b_background_vol";
-   } else {
-      std::cerr << "No B-fields found! Strange file format?" << std::endl;
-      exit(1);
-   }
-   
-   if (find(variableNames.begin(), variableNames.end(), std::string("fg_e"))!=variableNames.end()) {
-      #ifdef DEBUG
-      #endif
-      E_field_name = "fg_e";
-   } else if (find(variableNames.begin(), variableNames.end(), std::string("E"))!=variableNames.end()) {
-      #ifdef DEBUG
-      #endif
-      E_field_name = "E";
-   } else if (find(variableNames.begin(), variableNames.end(), std::string("E_vol"))!=variableNames.end()) {
-      #ifdef DEBUG
-      #endif
-      E_field_name = "E_vol";
-   } else if (find(variableNames.begin(), variableNames.end(), std::string("vg_e_vol"))!=variableNames.end()) {
-      #ifdef DEBUG
-      #endif
-      E_field_name = "vg_e_vol";
-   } else {
-      std::cerr << "No E-fields found! Strange file format?" << std::endl;
-      exit(1);
-   }
-
-   std::cerr << B_field_name << std::endl;
-   std::cerr << E_field_name << std::endl;
-}
 
 /* Read the "raw" field data in file order */
 template <class Reader>
@@ -128,7 +61,7 @@ std::vector<double> readFieldData(Reader& r, std::string& name, unsigned int num
    std::vector<double> buffer(arraySize*vectorSize);
 
    if( r.readArray("VARIABLE",attribs,0,arraySize,(char*) buffer.data()) == false) {
-      std::cerr << "readArray faied when trying to read VARIABLE \"" << name << "\"." << std::endl;
+      std::cerr << "readArray failed when trying to read VARIABLE \"" << name << "\"." << std::endl;
       exit(1);
    }
 
@@ -255,14 +188,14 @@ std::vector<double> readFsGridData(Reader& r, std::string& name, unsigned int nu
  * TODO: might need some DRY
  */
 template <class Reader>
-bool readNextTimestep(const std::string& filename_pattern, double t, int step, Field& E0, Field& E1,
-      Field& B0, Field& B1, Field& V, bool doV, int& input_file_counter) {
+bool readNextTimestep(const std::string& filename_pattern, double t, int direction, Field& E0, Field& E1,
+		      Field& B0, Field& B1, Field& V0, Field& V1, Field& R0, Field& R1, bool doV, bool doRho, int& input_file_counter) {
 
    char filename_buffer[256];
    bool retval = false;
 
-   while(t < E0.time || t>= E1.time) {
-      input_file_counter += step;
+   while ( t*direction < E0.time*direction || t*direction >= E1.time*direction ) {
+      input_file_counter += direction;
 
       E0=E1;
       B0=B1;
@@ -271,17 +204,17 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
       /* Open next file */
       Reader r;
       r.open(filename_buffer);
-      double t;
-      if(!r.readParameter("time",t)) {
-         if(!r.readParameter("t",t)) {
+      double t_file;
+      if(!r.readParameter("time",t_file)) {
+         if(!r.readParameter("t",t_file)) {
             std::cerr << "Time parameter in file " << filename_buffer << " is neither 't' nor 'time'. Bad file format?"
                << std::endl;
             exit(1);
          }
       }
 
-      E1.time = t;
-      B1.time = t;
+      E1.time = t_file;
+      B1.time = t_file;
 
       uint64_t cells[3];
       r.readParameter("xcells_ini",cells[0]);
@@ -290,37 +223,43 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
 
       /* Read CellIDs and Field data */
       std::vector<uint64_t> cellIds = readCellIds(r);
-      std::string name(B_field_name);
+      std::string name(ParticleParameters::B_field_name);
       std::vector<double> Bbuffer;
       std::vector<double> Ebuffer;
-      if (B_field_name == "fg_b" || B_field_name == "fg_b_background") {
+      if (name == "fg_b" || name == "fg_b_background") {
          Bbuffer = readFsGridData(r,name,3u);
-         if (B_field_name == "fg_b_background") {
+         if (name == "fg_b_background") {
             name = "fg_b_perturbed";
             std::vector<double> perturbedBbuffer = readFsGridData(r,name,3u);
             for (int i = 0; i < Bbuffer.size(); ++i) {
                Bbuffer[i] += perturbedBbuffer[i];
             }
          }
-         name = E_field_name;
+         name = ParticleParameters::E_field_name;
          Ebuffer = readFsGridData(r,name,3u);
          for (int i = 0; i < cellIds.size(); ++i) {
             cellIds[i] = i+1;
          }
       } else {
          Bbuffer = readFieldData(r,name,3u);
-         if (B_field_name == "vg_b_background_vol") {
+         if (name == "vg_b_background_vol") {
             name = "vg_b_perturbed_vol";
             std::vector<double> perturbedBbuffer = readFieldData(r,name,3u);
             for (int i = 0; i < Bbuffer.size(); ++i) {
                Bbuffer[i] += perturbedBbuffer[i];
             }
          }
-         name = E_field_name;
+         name = ParticleParameters::E_field_name;
          Ebuffer = readFieldData(r,name,3u);
       }
       std::vector<double> Vbuffer;
+      std::vector<double> Rhobuffer;
+      std::vector<double> TNBSbuffer;
+      std::vector<double> vmsbuffer;
+
       if(doV) {
+	V0=V1;
+	V1.time = t;
         name = ParticleParameters::V_field_name;
         std::vector<double> rho_v_buffer = readFieldData(r,name,3u);
         if(ParticleParameters::divide_rhov_by_rho) {
@@ -334,31 +273,64 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
         }
       }
 
+      if(doRho) {
+	R0=R1;
+	R1.time = t;
+
+	Rhobuffer = readFieldData(r,rho_name,1u);
+
+	/* Calculate non-backstreaming temperature */
+	std::string rhonbs_name("RhoNonBackstream");
+	std::string ptdnbs_name("PTensorNonBackstreamDiagonal");
+	std::vector<double> ptdnbs_buffer = readFieldData(r,ptdnbs_name,3u);
+	std::vector<double> rhonbs_buffer = readFieldData(r,rhonbs_name,1u);
+	for(unsigned int i=0; i<rhonbs_buffer.size(); i++) {
+	  // Pressure-nonbackstreaming = (ptdnbs_buffer[3*i]+ptdnbs_buffer[3*i+1]+ptdnbs_buffer[3*i+2])*(1./3.)
+	  TNBSbuffer.push_back( ((ptdnbs_buffer[3*i]+ptdnbs_buffer[3*i+1]+ptdnbs_buffer[3*i+2])*(1./3.)) / ((1.+rhonbs_buffer[i])*1.38065e-23));
+	}
+
+	/* Calculate Magnetosonic velocity */
+	std::string pressure_name("PTensorDiagonal");
+	std::vector<double> pressure_buffer = readFieldData(r,pressure_name,3u);
+	for(unsigned int i=0; i<Rhobuffer.size(); i++) {	  
+	  Real Bmag2 = std::pow(Bbuffer[3*i],2) + std::pow(Bbuffer[3*i+1],2) + std::pow(Bbuffer[3*i+2],2);
+	  Real va2 = Bmag2/(1.25663706144e-6 * 1.672622e-27 * Rhobuffer[i]);
+	  Real pressure = (1./3.)*(pressure_buffer[3*i]+pressure_buffer[3*i+1]+pressure_buffer[3*i+2]);
+	  Real vs2 = (pressure * (5./3.))/( 1.672622e-27 * Rhobuffer[i] );
+	  vmsbuffer.push_back( sqrt(va2 + vs2) );
+	}
+
+      }
       /* Assign them, without sanity checking */
       /* TODO: Is this actually a good idea? */
       for(uint i=0; i< cellIds.size(); i++) {
-         uint64_t c = cellIds[i];
-         int64_t x = c % cells[0];
-         int64_t y = (c /cells[0]) % cells[1];
-         int64_t z = c /(cells[0]*cells[1]);
+	uint64_t c = cellIds[i];
+	int64_t x = c % cells[0];
+	int64_t y = (c /cells[0]) % cells[1];
+	int64_t z = c /(cells[0]*cells[1]);
 
-         double* Etgt = E1.getCellRef(x,y,z);
-         double* Btgt = B1.getCellRef(x,y,z);
-         Etgt[0] = Ebuffer[3*i];
-         Etgt[1] = Ebuffer[3*i+1];
-         Etgt[2] = Ebuffer[3*i+2];
-         Btgt[0] = Bbuffer[3*i];
-         Btgt[1] = Bbuffer[3*i+1];
-         Btgt[2] = Bbuffer[3*i+2];
+	double* Etgt = E1.getCellRef(x,y,z);
+	double* Btgt = B1.getCellRef(x,y,z);
+	Etgt[0] = Ebuffer[3*i];
+	Etgt[1] = Ebuffer[3*i+1];
+	Etgt[2] = Ebuffer[3*i+2];
+	Btgt[0] = Bbuffer[3*i];
+	Btgt[1] = Bbuffer[3*i+1];
+	Btgt[2] = Bbuffer[3*i+2];
 
-         if(doV) {
-           double* Vtgt = V.getCellRef(x,y,z);
-           Vtgt[0] = Vbuffer[3*i];
-           Vtgt[1] = Vbuffer[3*i+1];
-           Vtgt[2] = Vbuffer[3*i+2];
-         }
+	if(doV) {
+	  double* Vtgt = V1.getCellRef(x,y,z);
+	  Vtgt[0] = Vbuffer[3*i];
+	  Vtgt[1] = Vbuffer[3*i+1];
+	  Vtgt[2] = Vbuffer[3*i+2];
+	}
+	if(doRho) {
+	  double* Rtgt = R1.getCellRef(x,y,z);
+	  Rtgt[0] = Rhobuffer[i];
+	  Rtgt[1] = TNBSbuffer[i];
+	  Rtgt[2] = vmsbuffer[i]; // Magnetosonic speed
+	}
       }
-
       r.close();
       retval = true;
    }
@@ -368,18 +340,18 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int step, F
 
 /* Non-template version, autodetecting the reader type */
 static bool readNextTimestep(const std::string& filename_pattern, double t, int step, Field& E0, Field& E1,
-      Field& B0, Field& B1, Field& V, bool doV, int& input_file_counter) {
+      Field& B0, Field& B1, Field& V0, Field& V1, Field& R0, Field& R1, bool doV, bool doRho, int& input_file_counter) {
 
    char filename_buffer[256];
    snprintf(filename_buffer,256,filename_pattern.c_str(),input_file_counter);
 
    return readNextTimestep<vlsvinterface::Reader>(filename_pattern, t,
-         step,E0,E1,B0,B1,V,doV,input_file_counter);
+						  step,E0,E1,B0,B1,V0,V1,R0,R1,doV,doRho,input_file_counter);
 }
 
 /* Read E- and B-Fields as well as velocity field from a vlsv file */
 template <class Reader>
-void readfields(const char* filename, Field& E, Field& B, Field& V, bool doV=true) {
+void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bool doV=true, bool doRho=true) {
    Reader r;
 
 #ifdef DEBUG
@@ -390,50 +362,63 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, bool doV=tru
    std::cerr <<"ok." << std::endl;
 #endif
 
-   /* Check whethere we got volume-centered fields */
-   detect_field_names<Reader>(r);
-
    /* Read the MESH, yielding the CellIDs */
    std::vector<uint64_t> cellIds = readCellIds(r);
 
    /* Also read the raw field data */
    std::vector<double> Bbuffer;
    std::vector<double> Ebuffer;
-   std::string name = B_field_name;
-   if (B_field_name == "fg_b" || B_field_name == "fg_b_background") {
+   std::string name(ParticleParameters::B_field_name);
+   if (name == "fg_b" || name == "fg_b_background") {
       Bbuffer = readFsGridData(r,name,3u);
-      if (B_field_name == "fg_b_background") {
+      if (name == "fg_b_background") {
          name = "fg_b_perturbed";
          std::vector<double> perturbedBbuffer = readFsGridData(r,name,3u);
          for (int i = 0; i < Bbuffer.size(); ++i) {
             Bbuffer[i] += perturbedBbuffer[i];
          }
       }
-      name = E_field_name;
+      name = ParticleParameters::E_field_name;
       Ebuffer = readFsGridData(r,name,3u);
       for (int i = 0; i < cellIds.size(); ++i) {
          cellIds[i] = i+1;
       }
    } else {
       Bbuffer = readFieldData(r,name,3u);
-      if (B_field_name == "vg_b_background_vol") {
+      if (name == "vg_b_background_vol") {
          name = "vg_b_perturbed_vol";
          std::vector<double> perturbedBbuffer = readFieldData(r,name,3u);
          for (int i = 0; i < Bbuffer.size(); ++i) {
             Bbuffer[i] += perturbedBbuffer[i];
          }
       }
-      name = E_field_name;
+      name = ParticleParameters::E_field_name;
       Ebuffer = readFieldData(r,name,3u);
    }
    std::vector<double> rho_v_buffer,rho_buffer;
+
+   std::vector<double> ptdnbs_buffer;
+   std::vector<double> rhonbs_buffer;
+   std::vector<double> pressure_buffer;
+
+   std::string rhonbs_name("RhoNonBackstream");
+   std::string ptdnbs_name("PTensorNonBackstreamDiagonal");
+   std::string pressure_name("PTensorDiagonal");
+
    if(doV) {
      name = ParticleParameters::V_field_name;
+
      rho_v_buffer = readFieldData(r,name,3u);
      if(ParticleParameters::divide_rhov_by_rho) {
        name = ParticleParameters::rho_field_name;
        rho_buffer = readFieldData(r,name,1u);
      }
+   }
+   if(doRho) {
+     rho_buffer = readFieldData(r,rho_name,1u);
+     ptdnbs_buffer = readFieldData(r,ptdnbs_name,3u);
+     rhonbs_buffer = readFieldData(r,rhonbs_name,1u);   
+     pressure_buffer = readFieldData(r,pressure_name,3u);
    }
 
    /* Coordinate Boundaries */
@@ -452,6 +437,10 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, bool doV=tru
       r.readParameter("time",time);
    }
 
+   std::cout <<"cells "<<cells[0]<<" "<<cells[1]<<" "<<cells[2]<< std::endl;
+   std::cout <<" min "<<min[0]<<" "<<min[1]<<" "<<min[2]<<" "<< std::endl;
+   std::cout <<" max "<<max[0]<<" "<<max[1]<<" "<<max[2]<<" "<< std::endl;
+
    //std::cerr << "Grid is " << cells[0] << " x " << cells[1] << " x " << cells[2] << " Cells, " << std::endl
    //          << " with dx = " << ((max[0]-min[0])/cells[0]) << ", dy = " << ((max[1]-min[1])/cells[1])
    //          << ", dz = " << ((max[2]-min[2])/cells[2]) << "." << std::endl;
@@ -461,6 +450,9 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, bool doV=tru
    B.data.resize(4*cells[0]*cells[1]*cells[2]);
    if(doV) {
      V.data.resize(4*cells[0]*cells[1]*cells[2]);
+   }
+   if(doRho) {
+     R.data.resize(4*cells[0]*cells[1]*cells[2]);
    }
 
    /* Sanity-check stored data sizes */
@@ -476,34 +468,46 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, bool doV=tru
    }
    if(doV) {
      if(3*cellIds.size() != rho_v_buffer.size()) {
-        std::cerr << "3 * cellIDs.size (" << cellIds.size() << ") != rho_v_buffer.size (" << Ebuffer.size() << ")!"
+        std::cerr << "3 * cellIDs.size (" << cellIds.size() << ") != rho_v_buffer.size (" << rho_v_buffer.size() << ")!"
+           << std::endl;
+        exit(1);
+     }
+     if(cellIds.size() != rho_buffer.size()) {
+        std::cerr << "cellIDs.size (" << cellIds.size() << ") != rho_buffer.size (" << rho_buffer.size() << ")!"
            << std::endl;
         exit(1);
      }
      if(ParticleParameters::divide_rhov_by_rho && cellIds.size() != rho_buffer.size()) {
-        std::cerr << "cellIDs.size (" << cellIds.size() << ") != rho_buffer.size (" << Ebuffer.size() << ")!"
+        std::cerr << "cellIDs.size (" << cellIds.size() << ") != rho_buffer.size (" << rho_buffer.size() << ")!"
            << std::endl;
         exit(1);
+     }
+   }
+   if(doRho) {
+     if(cellIds.size() != rho_buffer.size()) {
+       std::cerr << "cellIDs.size (" << cellIds.size() << ") != rho_buffer.size (" << rho_buffer.size() << ")!"
+		 << std::endl;
+       exit(1);
      }
    }
 
    // Make sure the target fields have boundary data.
    if(E.dimension[0] == nullptr || E.dimension[1] == nullptr || E.dimension[2] == nullptr) {
       std::cerr << "Warning: Field boundary pointers uninitialized!" << std::endl;
-      E.dimension[0] = B.dimension[0] = V.dimension[0] = createBoundary<OpenBoundary>(0);
-      E.dimension[1] = B.dimension[1] = V.dimension[1] = createBoundary<OpenBoundary>(1);
-      E.dimension[2] = B.dimension[2] = V.dimension[2] = createBoundary<OpenBoundary>(2);
+      E.dimension[0] = B.dimension[0] = V.dimension[0] = R.dimension[0] = createBoundary<OpenBoundary>(0);
+      E.dimension[1] = B.dimension[1] = V.dimension[1] = R.dimension[1] = createBoundary<OpenBoundary>(1);
+      E.dimension[2] = B.dimension[2] = V.dimension[2] = R.dimension[2] = createBoundary<OpenBoundary>(2);
    }
    /* Set field sizes */
    for(int i=0; i<3;i++) {
       /* Volume-centered values -> shift by half a cell in all directions*/
-      E.dx[i] = B.dx[i] = V.dx[i] = (max[i]-min[i])/cells[i];
+      E.dx[i] = B.dx[i] = V.dx[i] = R.dx[i]= (max[i]-min[i])/cells[i];
       double shift = E.dx[i]/2;
-      E.dimension[i]->min = B.dimension[i]->min = V.dimension[i]->min = min[i]+shift;
-      E.dimension[i]->max = B.dimension[i]->max = V.dimension[i]->max = max[i]+shift;
-      E.dimension[i]->cells = B.dimension[i]->cells = V.dimension[i]->cells = cells[i];
+      E.dimension[i]->min = B.dimension[i]->min = V.dimension[i]->min = R.dimension[i]->min = min[i]+shift;
+      E.dimension[i]->max = B.dimension[i]->max = V.dimension[i]->max = R.dimension[i]->max = max[i]+shift;
+      E.dimension[i]->cells = B.dimension[i]->cells = V.dimension[i]->cells = R.dimension[i]->cells = cells[i];
    }
-   E.time = B.time = V.time = time;
+   E.time = B.time = V.time = R.time = time;
 
    /* So, now we've got the cellIDs, the mesh size and the field values,
     * we can sort them into place */
@@ -534,14 +538,26 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, bool doV=tru
           Vtgt[2] = rho_v_buffer[3*i+2];
         }
       }
+      if(doRho) {
+        double* Rtgt = R.getCellRef(x,y,z);
+        Rtgt[0] = rho_buffer[i];	
+	// Pressure-nonbackstreaming = (ptdnbs_buffer[3*i]+ptdnbs_buffer[3*i+1]+ptdnbs_buffer[3*i+2])*(1./3.)
+	Rtgt[1] = ((ptdnbs_buffer[3*i]+ptdnbs_buffer[3*i+1]+ptdnbs_buffer[3*i+2])*(1./3.)) / ((1.+rhonbs_buffer[i])*1.38065e-23);
+	// Magnetosonic speed
+	Real Bmag2 = std::pow(Bbuffer[3*i],2) + std::pow(Bbuffer[3*i+1],2) + std::pow(Bbuffer[3*i+2],2);
+	Real va2 = Bmag2/(1.25663706144e-6 * 1.672622e-27 * rho_buffer[i]);
+	Real pressure = (1./3.)*(pressure_buffer[3*i]+pressure_buffer[3*i+1]+pressure_buffer[3*i+2]);	
+	Real vs2 = (pressure * (5./3.))/( 1.672622e-27 * rho_buffer[i] );
+        Rtgt[2] = sqrt(va2 + vs2);
+      }
    }
 
    r.close();
 }
 
 /* Non-template version, autodetecting the reader type */
-static void readfields(const char* filename, Field& E, Field& B, Field& V, bool doV=true) {
-  readfields<vlsvinterface::Reader>(filename,E,B,V,doV);
+static void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bool doV=true, bool doRho=true) {
+  readfields<vlsvinterface::Reader>(filename,E,B,V,R,doV,doRho);
 }
 
 /* For debugging purposes - dump a field into a png file */

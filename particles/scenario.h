@@ -36,25 +36,26 @@ struct Scenario {
 
 	// Fill in the initial particles, given electromagnetic- and velocity fields
   // Further parameters, depending on the scenario, are given by the parameter object
-	virtual ParticleContainer initialParticles(Field& E, Field& B, Field& V) {return ParticleContainer();};
+	virtual ParticleContainer initialParticles(Field& E, Field& B, Field& V, Field& R) {return ParticleContainer();};
 
   // Do something when a new input timestep has been opened
-  virtual void newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles, Field& E,
-        Field& B, Field& V) {};
+  virtual void newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles, Interpolated_Field& E,
+        Interpolated_Field& B, Interpolated_Field& V, Interpolated_Field& R) {};
 
   // Modify or analyze particle behaviour before they are moved by the particle pusher.
-  virtual void beforePush(ParticleContainer& particles, Field& E, Field& B, Field& V) {};
+  virtual void beforePush(ParticleContainer& particles, Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V, Interpolated_Field& R) {};
 
   // Modify or analzye particle behaviour after they are moved by the particle pusher
-  virtual void afterPush(int step, double time, ParticleContainer& particles, Field& E, Field& B, Field& V) {};
+  virtual void afterPush(int step, double time, ParticleContainer& particles, Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V, Interpolated_Field& R) {};
 
   // Analyze the final state and / or write output
-  virtual void finalize(ParticleContainer& particles, Field& E, Field& B, Field& V) {};
+  virtual void finalize(ParticleContainer& particles, Field& E, Field& B, Field& V, Field& R) {};
 
   // Flags specifying which fields are required for this scenario
   bool needV; // Velocity field (it's always available for initialization)
+  bool needRho; // mass density, for e.g. finding a shock position
 
-  Scenario() : needV(false) {};
+Scenario() : needV(false), needRho(false) {};
 };
 
 
@@ -65,37 +66,37 @@ struct Scenario {
 
 // Trace a single particle, it's initial position and velocity given in the parameter file
 struct singleParticleScenario : Scenario {
-  ParticleContainer initialParticles(Field& E, Field& B, Field& V);
-  virtual void afterPush(int step, double time, ParticleContainer& particles, Field& E, Field& B, Field& V);
+  ParticleContainer initialParticles(Field& E, Field& B, Field& V, Field& R);
+  virtual void afterPush(int step, double time, ParticleContainer& particles, Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V, Interpolated_Field& R);
 
-  singleParticleScenario() {needV = false;};
+  singleParticleScenario() {needV = false; needRho = false;};
 };
 
 // Sample a bunch of particles from a distribution, create them at a given point, then trace them
 struct distributionScenario : Scenario {
-  ParticleContainer initialParticles(Field& E, Field& B, Field& V);
-  void newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles, Field& E, Field& B,
-        Field& V);
-  void finalize(ParticleContainer& particles, Field& E, Field& B, Field& V);
+  ParticleContainer initialParticles(Field& E, Field& B, Field& V, Field& R);
+  void newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles, Interpolated_Field& E, Interpolated_Field& B,
+        Interpolated_Field& V, Interpolated_Field& R);
+  void finalize(ParticleContainer& particles, Field& E, Field& B, Field& V, Field& R);
 
-  distributionScenario() {needV = false;};
+  distributionScenario() {needV = false; needRho = false;};
 };
 
 // Inject particles in the tail continuously, see where they precipitate
 struct precipitationScenario : Scenario {
-  void newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles, Field& E, Field& B,
-        Field& V);
-  void afterPush(int step, double time, ParticleContainer& particles, Field& E, Field& B, Field& V);
+  void newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles, Interpolated_Field& E, Interpolated_Field& B,
+        Interpolated_Field& V, Interpolated_Field& R);
+  void afterPush(int step, double time, ParticleContainer& particles, Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V, Interpolated_Field& R);
 
-  precipitationScenario() {needV = true;};
+  precipitationScenario() {needV = true; needRho = false;};
 };
 
 // For interactive usage from analysator: read positions and velocities from stdin, push those particles.
 struct analysatorScenario : Scenario {
-  ParticleContainer initialParticles(Field& E, Field& B, Field& V);
-  void newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles, Field& E, Field& B,
-        Field& V);
-  analysatorScenario() {needV = false;};
+  ParticleContainer initialParticles(Field& E, Field& B, Field& V, Field& R);
+  void newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles, Interpolated_Field& E, Interpolated_Field& B,
+        Interpolated_Field& V, Interpolated_Field& R);
+  analysatorScenario() {needV = false; needRho = false;};
 };
 
 // Analyzation of shock reflectivity in radial IMF runs
@@ -104,10 +105,10 @@ struct shockReflectivityScenario : Scenario {
   LinearHistogram2D transmitted;
   LinearHistogram2D reflected;
 
-  void newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles, Field& E, Field& B,
-        Field& V);
-  void afterPush(int step, double time, ParticleContainer& particles, Field& E, Field& B, Field& V);
-  void finalize(ParticleContainer& particles, Field& E, Field& B, Field& V);
+  void newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles, Interpolated_Field& E, Interpolated_Field& B,
+        Interpolated_Field& V, Interpolated_Field& R);
+  void afterPush(int step, double time, ParticleContainer& particles, Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V, Interpolated_Field& R);
+  void finalize(ParticleContainer& particles, Field& E, Field& B, Field& V, Field& R);
 
   shockReflectivityScenario() :
       transmitted(200,300, Vec2d(ParticleParameters::reflect_start_y,ParticleParameters::start_time),
@@ -123,13 +124,46 @@ struct ipShockScenario : Scenario {
   FILE * traFile;
   FILE * refFile;
 
-  ParticleContainer initialParticles(Field& E, Field& B, Field& V);
-  void newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles, Field& E, Field& B,
-        Field& V);
-  void afterPush(int step, double time, ParticleContainer& particles, Field& E, Field& B, Field& V);
-  void finalize(ParticleContainer& particles, Field& E, Field& B, Field& V);
+  ParticleContainer initialParticles(Field& E, Field& B, Field& V, Field& R);
+  void newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles, Interpolated_Field& E, Interpolated_Field& B,
+        Interpolated_Field& V, Interpolated_Field& R);
+  void afterPush(int step, double time, ParticleContainer& particles, Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V, Interpolated_Field& R);
+  void finalize(ParticleContainer& particles, Field& E, Field& B, Field& V, Field& R);
 
-  ipShockScenario() {needV = true;};
+  ipShockScenario() {needV = true; needRho = false;};
+};
+
+// Initialize particles at a given distance away from the fitted bow shock shape, track their precipitation upstream or downstream
+struct InjectionScenario : Scenario {
+  FILE * initFile;
+  FILE * traFile;
+  FILE * refFile;
+  FILE * lostFile;
+
+  FILE * meet_rho_File;
+  FILE * meet_TNBS_File;
+  FILE * meet_Mms_File;
+  FILE * meet_tbn_File;
+  FILE * meet_flipmu_File;
+  FILE * minxFile;
+  FILE * boostFile;
+
+  bool * fs_hasmet_rho;
+  bool * fs_hasmet_TNBS;
+  bool * fs_hasmet_Mms;
+  bool * fs_hasmet_tbn;
+  bool * fs_hasmet_flipmu;
+
+  int particlespertimestep;
+
+  ParticleContainer initialParticles(Field& E, Field& B, Field& V, Field& R);
+  void beforePush(ParticleContainer& particles, Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V, Interpolated_Field& R);
+  void newTimestep(int input_file_counter, int step, double time, ParticleContainer& particles, Interpolated_Field& E, Interpolated_Field& B,
+        Interpolated_Field& V, Interpolated_Field& R);
+  void afterPush(int step, double time, ParticleContainer& particles, Interpolated_Field& E, Interpolated_Field& B, Interpolated_Field& V, Interpolated_Field& R);
+  void finalize(ParticleContainer& particles, Field& E, Field& B, Field& V, Field& R);
+
+  InjectionScenario() {needV = true; needRho = true;};
 };
 
 template<typename T> Scenario* createScenario() {
