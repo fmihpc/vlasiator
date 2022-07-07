@@ -1475,6 +1475,8 @@ namespace SBC {
       // Pick an initial stepsize
       creal stepSize = min(100e3, technicalGrid.DX / 2.);
       std::vector<Real> nodeTracingStepSize(nodes.size(), stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
+      std::vector<Real> reducedNodeTracingStepSize(nodes.size());
+      
 
       std::vector<Real> nodeDistance(nodes.size(), std::numeric_limits<Real>::max()); // For reduction of node coordinate in case of multiple hits
       std::vector<int> nodeNeedsContinuedTracing(nodes.size(), 1);                    // Flag, whether tracing needs to continue on another task
@@ -1670,7 +1672,6 @@ namespace SBC {
       } while(anyNodeNeedsTracing);
       
       std::vector<Real> reducedNodeDistance(nodes.size());
-      std::vector<Real> reducedNodeTracingStepSize(nodes.size());
       if(sizeof(Real) == sizeof(double)) {
          MPI_Allreduce(nodeDistance.data(), reducedNodeDistance.data(), nodes.size(), MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
          MPI_Allreduce(nodeTracingStepSize.data(), reducedNodeTracingStepSize.data(), nodes.size(), MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
@@ -1926,6 +1927,7 @@ namespace SBC {
       // Pick an initial stepsize
       creal stepSize = min(1000e3, technicalGrid.DX / 2.);
       std::vector<Real> nodeTracingStepSize(nodes.size(), stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
+      std::vector<Real> reducedNodeTracingStepSize(nodes.size());
       std::array<int, 3> gridSize = technicalGrid.getGlobalSize();
       uint64_t maxTracingSteps = 4 * (gridSize[0] * technicalGrid.DX + gridSize[1] * technicalGrid.DY + gridSize[2] * technicalGrid.DZ) / stepSize;
 
@@ -2093,7 +2095,6 @@ namespace SBC {
          std::vector<int> sumNodeNeedsContinuedTracing(nodes.size(), 0);
          std::vector<std::array<Real, 3>> sumNodeTracingCoordinates(nodes.size());
          std::vector<uint64_t> maxNodeStepCounter(nodes.size(), 0);
-         std::vector<Real> reducedNodeTracingStepSize(nodes.size());
          MPI_Allreduce(nodeNeedsContinuedTracing.data(), sumNodeNeedsContinuedTracing.data(), nodes.size(), MPI_INT, MPI_SUM, MPI_COMM_WORLD);
          MPI_Allreduce(nodeStepCounter.data(), maxNodeStepCounter.data(), nodes.size(), MPI_UINT64_T, MPI_MAX, MPI_COMM_WORLD);
          if(sizeof(Real) == sizeof(double)) {
@@ -2179,8 +2180,8 @@ namespace SBC {
       std::vector<std::array<Real, 3>> cellBWTracingCoordinates(globalDccrgSize);          /*!< In-flight node upmapping coordinates (for global reduction) */
       
       // These guys are needed in the reductions at the bottom of the tracing loop.
-      std::vector<int> sumCellNeedsContinuedFWTracing(globalDccrgSize, 0);
-      std::vector<int> sumCellNeedsContinuedBWTracing(globalDccrgSize, 0);
+      std::vector<int> reducedCellNeedsContinuedFWTracing(globalDccrgSize, 0);
+      std::vector<int> reducedCellNeedsContinuedBWTracing(globalDccrgSize, 0);
       std::vector<std::array<Real, 3>> sumCellFWTracingCoordinates(globalDccrgSize);
       std::vector<std::array<Real, 3>> sumCellBWTracingCoordinates(globalDccrgSize);
       std::vector<uint64_t> maxCellFWStepCounter(globalDccrgSize, 0);
@@ -2213,23 +2214,19 @@ namespace SBC {
          }
       }
       phiprof::stop("first-loop");
-      std::vector<int> minCellNeedsContinuedFWTracing(globalDccrgSize);
-      std::vector<int> minCellNeedsContinuedBWTracing(globalDccrgSize);
-      std::vector<Real> minCellFWTracingStepSize(globalDccrgSize); // TODO use only one reduction array
-      std::vector<Real> minCellBWTracingStepSize(globalDccrgSize);
-      MPI_Allreduce(cellNeedsContinuedFWTracing.data(), minCellNeedsContinuedFWTracing.data(), globalDccrgSize, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
-      MPI_Allreduce(cellNeedsContinuedBWTracing.data(), minCellNeedsContinuedBWTracing.data(), globalDccrgSize, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
+      MPI_Allreduce(cellNeedsContinuedFWTracing.data(), reducedCellNeedsContinuedFWTracing.data(), globalDccrgSize, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
+      MPI_Allreduce(cellNeedsContinuedBWTracing.data(), reducedCellNeedsContinuedBWTracing.data(), globalDccrgSize, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
       if(sizeof(Real) == sizeof(double)) {
-         MPI_Allreduce(cellFWTracingStepSize.data(), minCellFWTracingStepSize.data(), globalDccrgSize, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-         MPI_Allreduce(cellBWTracingStepSize.data(), minCellBWTracingStepSize.data(), globalDccrgSize, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+         MPI_Allreduce(cellFWTracingStepSize.data(), reducedCellFWTracingStepSize.data(), globalDccrgSize, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+         MPI_Allreduce(cellBWTracingStepSize.data(), reducedCellBWTracingStepSize.data(), globalDccrgSize, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
       } else {
-         MPI_Allreduce(cellFWTracingStepSize.data(), minCellFWTracingStepSize.data(), globalDccrgSize, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-         MPI_Allreduce(cellBWTracingStepSize.data(), minCellBWTracingStepSize.data(), globalDccrgSize, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+         MPI_Allreduce(cellFWTracingStepSize.data(), reducedCellFWTracingStepSize.data(), globalDccrgSize, MPI_FLOAT, MPI_MIN, MPI_COMM_WORLD);
+         MPI_Allreduce(cellBWTracingStepSize.data(), reducedCellBWTracingStepSize.data(), globalDccrgSize, MPI_FLOAT, MPI_MIN, MPI_COMM_WORLD);
       }
-      cellNeedsContinuedFWTracing = minCellNeedsContinuedFWTracing;
-      cellNeedsContinuedBWTracing = minCellNeedsContinuedBWTracing;
-      cellFWTracingStepSize = minCellFWTracingStepSize;
-      cellBWTracingStepSize = minCellBWTracingStepSize;
+      cellNeedsContinuedFWTracing = reducedCellNeedsContinuedFWTracing;
+      cellNeedsContinuedBWTracing = reducedCellNeedsContinuedBWTracing;
+      cellFWTracingStepSize = reducedCellFWTracingStepSize;
+      cellBWTracingStepSize = reducedCellBWTracingStepSize;
       bool anyCellNeedsTracing;
       
       // Fieldline tracing function
@@ -2458,8 +2455,8 @@ namespace SBC {
          #pragma omp barrier
          #pragma omp master
          {
-            MPI_Allreduce(cellNeedsContinuedFWTracing.data(), sumCellNeedsContinuedFWTracing.data(), globalDccrgSize, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-            MPI_Allreduce(cellNeedsContinuedBWTracing.data(), sumCellNeedsContinuedBWTracing.data(), globalDccrgSize, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(cellNeedsContinuedFWTracing.data(), reducedCellNeedsContinuedFWTracing.data(), globalDccrgSize, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(cellNeedsContinuedBWTracing.data(), reducedCellNeedsContinuedBWTracing.data(), globalDccrgSize, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
             MPI_Allreduce(cellFWStepCounter.data(), maxCellFWStepCounter.data(), globalDccrgSize, MPI_UINT64_T, MPI_MAX, MPI_COMM_WORLD);
             MPI_Allreduce(cellBWStepCounter.data(), maxCellBWStepCounter.data(), globalDccrgSize, MPI_UINT64_T, MPI_MAX, MPI_COMM_WORLD);
             if(sizeof(Real) == sizeof(double)) {
@@ -2480,25 +2477,25 @@ namespace SBC {
          
          #pragma omp for schedule(dynamic) reduction(||:anyCellNeedsTracing)
          for(int n=0; n<globalDccrgSize; n++) {
-            if(sumCellNeedsContinuedFWTracing[n] > 0) {
+            if(reducedCellNeedsContinuedFWTracing[n] > 0) {
                anyCellNeedsTracing=true;
                cellNeedsContinuedFWTracing[n] = 1;
                
                // Update that nodes' tracing coordinates
-               cellFWTracingCoordinates[n][0] = sumCellFWTracingCoordinates[n][0] / sumCellNeedsContinuedFWTracing[n];
-               cellFWTracingCoordinates[n][1] = sumCellFWTracingCoordinates[n][1] / sumCellNeedsContinuedFWTracing[n];
-               cellFWTracingCoordinates[n][2] = sumCellFWTracingCoordinates[n][2] / sumCellNeedsContinuedFWTracing[n];
+               cellFWTracingCoordinates[n][0] = sumCellFWTracingCoordinates[n][0] / reducedCellNeedsContinuedFWTracing[n];
+               cellFWTracingCoordinates[n][1] = sumCellFWTracingCoordinates[n][1] / reducedCellNeedsContinuedFWTracing[n];
+               cellFWTracingCoordinates[n][2] = sumCellFWTracingCoordinates[n][2] / reducedCellNeedsContinuedFWTracing[n];
                
                cellFWStepCounter[n] = maxCellFWStepCounter[n];
             }
-            if(sumCellNeedsContinuedBWTracing[n] > 0) {
+            if(reducedCellNeedsContinuedBWTracing[n] > 0) {
                anyCellNeedsTracing=true;
                cellNeedsContinuedBWTracing[n] = 1;
                
                // Update that nodes' tracing coordinates
-               cellBWTracingCoordinates[n][0] = sumCellBWTracingCoordinates[n][0] / sumCellNeedsContinuedBWTracing[n];
-               cellBWTracingCoordinates[n][1] = sumCellBWTracingCoordinates[n][1] / sumCellNeedsContinuedBWTracing[n];
-               cellBWTracingCoordinates[n][2] = sumCellBWTracingCoordinates[n][2] / sumCellNeedsContinuedBWTracing[n];
+               cellBWTracingCoordinates[n][0] = sumCellBWTracingCoordinates[n][0] / reducedCellNeedsContinuedBWTracing[n];
+               cellBWTracingCoordinates[n][1] = sumCellBWTracingCoordinates[n][1] / reducedCellNeedsContinuedBWTracing[n];
+               cellBWTracingCoordinates[n][2] = sumCellBWTracingCoordinates[n][2] / reducedCellNeedsContinuedBWTracing[n];
                
                cellBWStepCounter[n] = maxCellBWStepCounter[n];
             }
