@@ -1113,7 +1113,7 @@ namespace SBC {
       Real& step,
       Real maxStepsize,
       TracingFieldFunction& BFieldFunction,
-      bool outwards
+      const bool outwards
     ){
 
       std::array<Real,7> kx,ky,kz;
