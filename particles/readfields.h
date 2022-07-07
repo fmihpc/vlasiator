@@ -110,8 +110,8 @@ std::vector<double> readFsGridData(Reader& r, std::string& name, unsigned int nu
    std::vector<Real> buffer(storageSize*numcomponents);
    std::vector<Real> readBuffer(storageSize*numcomponents);
 
-   if(r.readArray("VARIABLE",attribs,0,arraySize,(char*) readBuffer.data()) == false) {
-      std::cerr << "readArray faied when trying to read VARIABLE \"" << name << "\"." << std::endl;
+   if(r.readArray("VARIABLE",attribs,0,arraySize, readBuffer.data()) == false) {
+      std::cerr << "readFsGridData failed when trying to read VARIABLE \"" << name << "\"." << std::endl;
       exit(1);
    }
 
@@ -226,6 +226,9 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int directi
       std::string name(ParticleParameters::B_field_name);
       std::vector<double> Bbuffer;
       std::vector<double> Ebuffer;
+      std::vector<double> Vbuffer;
+      std::vector<double> Rhobuffer;
+
       if (name == "fg_b" || name == "fg_b_background") {
          Bbuffer = readFsGridData(r,name,3u);
          if (name == "fg_b_background") {
@@ -240,6 +243,22 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int directi
          for (int i = 0; i < cellIds.size(); ++i) {
             cellIds[i] = i+1;
          }
+
+         if(doV) {
+            V0=V1;
+            V1.time = t;
+            name = ParticleParameters::V_field_name;
+            std::vector<double> rho_v_buffer = readFsGridData(r,name,3u);
+            if(ParticleParameters::divide_rhov_by_rho) {
+               name = ParticleParameters::rho_field_name;
+               std::vector<double> rho_buffer = readFsGridData(r,name,1u);
+               for(unsigned int i=0; i<rho_buffer.size(); i++) {
+                  Vbuffer.push_back(rho_v_buffer[3*i] / rho_buffer[i]);
+                  Vbuffer.push_back(rho_v_buffer[3*i+1] / rho_buffer[i]);
+                  Vbuffer.push_back(rho_v_buffer[3*i+2] / rho_buffer[i]);
+               }
+            }
+         }
       } else {
          Bbuffer = readFieldData(r,name,3u);
          if (name == "vg_b_background_vol") {
@@ -251,85 +270,99 @@ bool readNextTimestep(const std::string& filename_pattern, double t, int directi
          }
          name = ParticleParameters::E_field_name;
          Ebuffer = readFieldData(r,name,3u);
+
+         if(doV) {
+            V0=V1;
+            V1.time = t;
+            name = ParticleParameters::V_field_name;
+            std::vector<double> rho_v_buffer = readFieldData(r,name,3u);
+            if(ParticleParameters::divide_rhov_by_rho) {
+               name = ParticleParameters::rho_field_name;
+               std::vector<double> rho_buffer = readFieldData(r,name,1u);
+               for(unsigned int i=0; i<rho_buffer.size(); i++) {
+                  Vbuffer.push_back(rho_v_buffer[3*i] / rho_buffer[i]);
+                  Vbuffer.push_back(rho_v_buffer[3*i+1] / rho_buffer[i]);
+                  Vbuffer.push_back(rho_v_buffer[3*i+2] / rho_buffer[i]);
+               }
+            }
+         }
       }
-      std::vector<double> Vbuffer;
-      std::vector<double> Rhobuffer;
       std::vector<double> TNBSbuffer;
       std::vector<double> vmsbuffer;
 
       if(doV) {
-	V0=V1;
-	V1.time = t;
-        name = ParticleParameters::V_field_name;
-        std::vector<double> rho_v_buffer = readFieldData(r,name,3u);
-        if(ParticleParameters::divide_rhov_by_rho) {
-          name = ParticleParameters::rho_field_name;
-          std::vector<double> rho_buffer = readFieldData(r,name,1u);
-          for(unsigned int i=0; i<rho_buffer.size(); i++) {
-            Vbuffer.push_back(rho_v_buffer[3*i] / rho_buffer[i]);
-            Vbuffer.push_back(rho_v_buffer[3*i+1] / rho_buffer[i]);
-            Vbuffer.push_back(rho_v_buffer[3*i+2] / rho_buffer[i]);
-          }
-        }
+         V0=V1;
+         V1.time = t;
+         name = ParticleParameters::V_field_name;
+         std::vector<double> rho_v_buffer = readFieldData(r,name,3u);
+         if(ParticleParameters::divide_rhov_by_rho) {
+            name = ParticleParameters::rho_field_name;
+            std::vector<double> rho_buffer = readFieldData(r,name,1u);
+            for(unsigned int i=0; i<rho_buffer.size(); i++) {
+               Vbuffer.push_back(rho_v_buffer[3*i] / rho_buffer[i]);
+               Vbuffer.push_back(rho_v_buffer[3*i+1] / rho_buffer[i]);
+               Vbuffer.push_back(rho_v_buffer[3*i+2] / rho_buffer[i]);
+            }
+         }
       }
 
       if(doRho) {
-	R0=R1;
-	R1.time = t;
+         R0=R1;
+         R1.time = t;
 
-	Rhobuffer = readFieldData(r,rho_name,1u);
+         Rhobuffer = readFieldData(r,ParticleParameters::rho_field_name,1u);
 
-	/* Calculate non-backstreaming temperature */
-	std::string rhonbs_name("RhoNonBackstream");
-	std::string ptdnbs_name("PTensorNonBackstreamDiagonal");
-	std::vector<double> ptdnbs_buffer = readFieldData(r,ptdnbs_name,3u);
-	std::vector<double> rhonbs_buffer = readFieldData(r,rhonbs_name,1u);
-	for(unsigned int i=0; i<rhonbs_buffer.size(); i++) {
-	  // Pressure-nonbackstreaming = (ptdnbs_buffer[3*i]+ptdnbs_buffer[3*i+1]+ptdnbs_buffer[3*i+2])*(1./3.)
-	  TNBSbuffer.push_back( ((ptdnbs_buffer[3*i]+ptdnbs_buffer[3*i+1]+ptdnbs_buffer[3*i+2])*(1./3.)) / ((1.+rhonbs_buffer[i])*1.38065e-23));
-	}
+         /* Calculate non-backstreaming temperature */
+         std::string rhonbs_name("RhoNonBackstream");
+         std::string ptdnbs_name("PTensorNonBackstreamDiagonal");
+         std::vector<double> ptdnbs_buffer = readFieldData(r,ptdnbs_name,3u);
+         std::vector<double> rhonbs_buffer = readFieldData(r,rhonbs_name,1u);
+         for(unsigned int i=0; i<rhonbs_buffer.size(); i++) {
+            // Pressure-nonbackstreaming = (ptdnbs_buffer[3*i]+ptdnbs_buffer[3*i+1]+ptdnbs_buffer[3*i+2])*(1./3.)
+            TNBSbuffer.push_back( ((ptdnbs_buffer[3*i]+ptdnbs_buffer[3*i+1]+ptdnbs_buffer[3*i+2])*(1./3.)) / ((1.+rhonbs_buffer[i])*1.38065e-23));
+         }
 
-	/* Calculate Magnetosonic velocity */
-	std::string pressure_name("PTensorDiagonal");
-	std::vector<double> pressure_buffer = readFieldData(r,pressure_name,3u);
-	for(unsigned int i=0; i<Rhobuffer.size(); i++) {	  
-	  Real Bmag2 = std::pow(Bbuffer[3*i],2) + std::pow(Bbuffer[3*i+1],2) + std::pow(Bbuffer[3*i+2],2);
-	  Real va2 = Bmag2/(1.25663706144e-6 * 1.672622e-27 * Rhobuffer[i]);
-	  Real pressure = (1./3.)*(pressure_buffer[3*i]+pressure_buffer[3*i+1]+pressure_buffer[3*i+2]);
-	  Real vs2 = (pressure * (5./3.))/( 1.672622e-27 * Rhobuffer[i] );
-	  vmsbuffer.push_back( sqrt(va2 + vs2) );
-	}
+         /* Calculate Magnetosonic velocity */
+         std::string pressure_name("PTensorDiagonal");
+         std::vector<double> pressure_buffer = readFieldData(r,pressure_name,3u);
+         for(unsigned int i=0; i<Rhobuffer.size(); i++) {	  
+            Real Bmag2 = std::pow(Bbuffer[3*i],2) + std::pow(Bbuffer[3*i+1],2) + std::pow(Bbuffer[3*i+2],2);
+            Real va2 = Bmag2/(1.25663706144e-6 * 1.672622e-27 * Rhobuffer[i]);
+            Real pressure = (1./3.)*(pressure_buffer[3*i]+pressure_buffer[3*i+1]+pressure_buffer[3*i+2]);
+            Real vs2 = (pressure * (5./3.))/( 1.672622e-27 * Rhobuffer[i] );
+            vmsbuffer.push_back( sqrt(va2 + vs2) );
+         }
 
       }
       /* Assign them, without sanity checking */
       /* TODO: Is this actually a good idea? */
       for(uint i=0; i< cellIds.size(); i++) {
-	uint64_t c = cellIds[i];
-	int64_t x = c % cells[0];
-	int64_t y = (c /cells[0]) % cells[1];
-	int64_t z = c /(cells[0]*cells[1]);
+         uint64_t c = cellIds[i];
+         int64_t x = c % cells[0];
+         int64_t y = (c /cells[0]) % cells[1];
+         int64_t z = c /(cells[0]*cells[1]);
 
-	double* Etgt = E1.getCellRef(x,y,z);
-	double* Btgt = B1.getCellRef(x,y,z);
-	Etgt[0] = Ebuffer[3*i];
-	Etgt[1] = Ebuffer[3*i+1];
-	Etgt[2] = Ebuffer[3*i+2];
-	Btgt[0] = Bbuffer[3*i];
-	Btgt[1] = Bbuffer[3*i+1];
-	Btgt[2] = Bbuffer[3*i+2];
+         double* Etgt = E1.getCellRef(x,y,z);
+         double* Btgt = B1.getCellRef(x,y,z);
+         Etgt[0] = Ebuffer[3*i];
+         Etgt[1] = Ebuffer[3*i+1];
+         Etgt[2] = Ebuffer[3*i+2];
+         Btgt[0] = Bbuffer[3*i];
+         Btgt[1] = Bbuffer[3*i+1];
+         Btgt[2] = Bbuffer[3*i+2];
 
-	if(doV) {
-	  double* Vtgt = V1.getCellRef(x,y,z);
-	  Vtgt[0] = Vbuffer[3*i];
-	  Vtgt[1] = Vbuffer[3*i+1];
-	  Vtgt[2] = Vbuffer[3*i+2];
-	}
-	if(doRho) {
-	  double* Rtgt = R1.getCellRef(x,y,z);
-	  Rtgt[0] = Rhobuffer[i];
-	  Rtgt[1] = TNBSbuffer[i];
-	  Rtgt[2] = vmsbuffer[i]; // Magnetosonic speed
-	}
+         if(doV) {
+            double* Vtgt = V1.getCellRef(x,y,z);
+            Vtgt[0] = Vbuffer[3*i];
+            Vtgt[1] = Vbuffer[3*i+1];
+            Vtgt[2] = Vbuffer[3*i+2];
+         }
+         if(doRho) {
+            double* Rtgt = R1.getCellRef(x,y,z);
+            Rtgt[0] = Rhobuffer[i];
+            Rtgt[1] = TNBSbuffer[i];
+            Rtgt[2] = vmsbuffer[i]; // Magnetosonic speed
+         }
       }
       r.close();
       retval = true;
@@ -368,6 +401,7 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
    /* Also read the raw field data */
    std::vector<double> Bbuffer;
    std::vector<double> Ebuffer;
+   std::vector<double> rho_v_buffer,rho_buffer;
    std::string name(ParticleParameters::B_field_name);
    if (name == "fg_b" || name == "fg_b_background") {
       Bbuffer = readFsGridData(r,name,3u);
@@ -383,6 +417,16 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
       for (int i = 0; i < cellIds.size(); ++i) {
          cellIds[i] = i+1;
       }
+
+      if(doV) {
+         name = ParticleParameters::V_field_name;
+
+         rho_v_buffer = readFsGridData(r,name,3u);
+         if(ParticleParameters::divide_rhov_by_rho) {
+            name = ParticleParameters::rho_field_name;
+            rho_buffer = readFsGridData(r,name,1u);
+         }
+      }
    } else {
       Bbuffer = readFieldData(r,name,3u);
       if (name == "vg_b_background_vol") {
@@ -394,8 +438,17 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
       }
       name = ParticleParameters::E_field_name;
       Ebuffer = readFieldData(r,name,3u);
+
+      if(doV) {
+         name = ParticleParameters::V_field_name;
+
+         rho_v_buffer = readFieldData(r,name,3u);
+         if(ParticleParameters::divide_rhov_by_rho) {
+            name = ParticleParameters::rho_field_name;
+            rho_buffer = readFieldData(r,name,1u);
+         }
+      }
    }
-   std::vector<double> rho_v_buffer,rho_buffer;
 
    std::vector<double> ptdnbs_buffer;
    std::vector<double> rhonbs_buffer;
@@ -405,20 +458,11 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
    std::string ptdnbs_name("PTensorNonBackstreamDiagonal");
    std::string pressure_name("PTensorDiagonal");
 
-   if(doV) {
-     name = ParticleParameters::V_field_name;
-
-     rho_v_buffer = readFieldData(r,name,3u);
-     if(ParticleParameters::divide_rhov_by_rho) {
-       name = ParticleParameters::rho_field_name;
-       rho_buffer = readFieldData(r,name,1u);
-     }
-   }
    if(doRho) {
-     rho_buffer = readFieldData(r,rho_name,1u);
-     ptdnbs_buffer = readFieldData(r,ptdnbs_name,3u);
-     rhonbs_buffer = readFieldData(r,rhonbs_name,1u);   
-     pressure_buffer = readFieldData(r,pressure_name,3u);
+      rho_buffer = readFieldData(r,ParticleParameters::rho_field_name,1u);
+      ptdnbs_buffer = readFieldData(r,ptdnbs_name,3u);
+      rhonbs_buffer = readFieldData(r,rhonbs_name,1u);   
+      pressure_buffer = readFieldData(r,pressure_name,3u);
    }
 
    /* Coordinate Boundaries */
@@ -527,28 +571,28 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
       Btgt[2] = Bbuffer[3*i+2];
 
       if(doV) {
-        double* Vtgt = V.getCellRef(x,y,z);
-        if(ParticleParameters::divide_rhov_by_rho) {
-          Vtgt[0] = rho_v_buffer[3*i] / rho_buffer[i];
-          Vtgt[1] = rho_v_buffer[3*i+1] / rho_buffer[i];
-          Vtgt[2] = rho_v_buffer[3*i+2] / rho_buffer[i];
-        } else {
-          Vtgt[0] = rho_v_buffer[3*i];
-          Vtgt[1] = rho_v_buffer[3*i+1];
-          Vtgt[2] = rho_v_buffer[3*i+2];
-        }
+         double* Vtgt = V.getCellRef(x,y,z);
+         if(ParticleParameters::divide_rhov_by_rho) {
+            Vtgt[0] = rho_v_buffer[3*i] / rho_buffer[i];
+            Vtgt[1] = rho_v_buffer[3*i+1] / rho_buffer[i];
+            Vtgt[2] = rho_v_buffer[3*i+2] / rho_buffer[i];
+         } else {
+            Vtgt[0] = rho_v_buffer[3*i];
+            Vtgt[1] = rho_v_buffer[3*i+1];
+            Vtgt[2] = rho_v_buffer[3*i+2];
+         }
       }
       if(doRho) {
-        double* Rtgt = R.getCellRef(x,y,z);
-        Rtgt[0] = rho_buffer[i];	
-	// Pressure-nonbackstreaming = (ptdnbs_buffer[3*i]+ptdnbs_buffer[3*i+1]+ptdnbs_buffer[3*i+2])*(1./3.)
-	Rtgt[1] = ((ptdnbs_buffer[3*i]+ptdnbs_buffer[3*i+1]+ptdnbs_buffer[3*i+2])*(1./3.)) / ((1.+rhonbs_buffer[i])*1.38065e-23);
-	// Magnetosonic speed
-	Real Bmag2 = std::pow(Bbuffer[3*i],2) + std::pow(Bbuffer[3*i+1],2) + std::pow(Bbuffer[3*i+2],2);
-	Real va2 = Bmag2/(1.25663706144e-6 * 1.672622e-27 * rho_buffer[i]);
-	Real pressure = (1./3.)*(pressure_buffer[3*i]+pressure_buffer[3*i+1]+pressure_buffer[3*i+2]);	
-	Real vs2 = (pressure * (5./3.))/( 1.672622e-27 * rho_buffer[i] );
-        Rtgt[2] = sqrt(va2 + vs2);
+         double* Rtgt = R.getCellRef(x,y,z);
+         Rtgt[0] = rho_buffer[i];	
+         // Pressure-nonbackstreaming = (ptdnbs_buffer[3*i]+ptdnbs_buffer[3*i+1]+ptdnbs_buffer[3*i+2])*(1./3.)
+         Rtgt[1] = ((ptdnbs_buffer[3*i]+ptdnbs_buffer[3*i+1]+ptdnbs_buffer[3*i+2])*(1./3.)) / ((1.+rhonbs_buffer[i])*1.38065e-23);
+         // Magnetosonic speed
+         Real Bmag2 = std::pow(Bbuffer[3*i],2) + std::pow(Bbuffer[3*i+1],2) + std::pow(Bbuffer[3*i+2],2);
+         Real va2 = Bmag2/(1.25663706144e-6 * 1.672622e-27 * rho_buffer[i]);
+         Real pressure = (1./3.)*(pressure_buffer[3*i]+pressure_buffer[3*i+1]+pressure_buffer[3*i+2]);	
+         Real vs2 = (pressure * (5./3.))/( 1.672622e-27 * rho_buffer[i] );
+         Rtgt[2] = sqrt(va2 + vs2);
       }
    }
 

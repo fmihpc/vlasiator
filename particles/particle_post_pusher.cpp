@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
    MPI_Init(&argc, &argv);
 
    /* Parse commandline and config*/
-   Readparameters parameters(argc, argv, MPI_COMM_WORLD);
+   Readparameters parameters(argc, argv);
    ParticleParameters::addParameters();
    parameters.parse(false);  // Parse parameters and don't require run_config
    parameters.helpMessage();

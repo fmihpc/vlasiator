@@ -41,9 +41,9 @@ Real P::input_dt = 1;
 Real P::start_time = 0;
 Real P::end_time = 0;
 uint64_t P::num_particles = 0;
-std::string P::V_field_name = "fg_v";
 std::string P::B_field_name = "fg_b";
 std::string P::E_field_name = "fg_e";
+std::string P::V_field_name = "fg_v";
 std::string P::rho_field_name = "fg_rhom";
 bool P::divide_rhov_by_rho = false;
 

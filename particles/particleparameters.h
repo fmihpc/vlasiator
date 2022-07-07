@@ -47,6 +47,8 @@ struct ParticleParameters {
 
    static uint64_t num_particles; /*!< Number of particles to generate */
    static bool staticfields; /*!< Flag for using static fields from first time step */
+   static std::string B_field_name; /*!< Name of the magnetic field data set to read */
+   static std::string E_field_name; /*!< Name of the electric field data set to read */
    static std::string V_field_name; /*!< Name of the Velocity data set to read */
    static std::string rho_field_name; /*!< Name of the Density data set to read */
    static bool divide_rhov_by_rho; /*!< Does the file store rho_v and rho separately? */
