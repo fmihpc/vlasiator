@@ -1075,7 +1075,7 @@ namespace SBC {
       int n,
       Real stepsize,
       TracingFieldFunction& BFieldFunction,
-      bool outwards
+      const bool outwards
    ) {
       //Allocate some memory.
       std::array<Real,3> bunit,crd,z0,zmid,z1;
@@ -1217,7 +1217,7 @@ namespace SBC {
       Real& step,
       Real maxStepsize,
       TracingFieldFunction& BFieldFunction,
-      bool outwards
+      const bool outwards
     ){
       
       //Firt evaluation
@@ -1265,7 +1265,7 @@ namespace SBC {
       Real& stepsize,
       Real maxStepsize,
       TracingFieldFunction& BFieldFunction,
-      bool outwards
+      const bool outwards
    ) {
       //Factors by which the stepsize is multiplied 
       Real shrink = 0.95;
@@ -1340,7 +1340,7 @@ namespace SBC {
       std::array<Real, 3>& v,
       Real& stepsize,
       TracingFieldFunction& BFieldFunction,
-      bool outwards
+      const bool outwards
    ) {
       // Get field direction
       BFieldFunction(x,outwards,v);
@@ -1360,7 +1360,7 @@ namespace SBC {
       Real maxStepsize,
       IonosphereCouplingMethod method,
       TracingFieldFunction& BFieldFunction,
-      bool outwards
+      const bool outwards
    ) {
       bool reTrace;
       uint32_t attempts=0;
@@ -1472,7 +1472,7 @@ namespace SBC {
       bool anyNodeNeedsTracing;
 
       // Fieldline tracing function
-      TracingFieldFunction tracingField = [this, &perBGrid, &dPerBGrid, &technicalGrid](std::array<Real,3>& r, bool alongB, std::array<Real,3>& b)->bool{
+      TracingFieldFunction tracingField = [this, &perBGrid, &dPerBGrid, &technicalGrid](std::array<Real,3>& r, const bool alongB, std::array<Real,3>& b)->bool{
 
          bool success = true;
          
@@ -1739,7 +1739,7 @@ namespace SBC {
       phiprof::start("ionosphere-VlasovGridCoupling");
 
       // For tracing towards the vlasov boundary, we only require the dipole field.
-      TracingFieldFunction dipoleFieldOnly = [this](std::array<Real,3>& r, bool outwards, std::array<Real,3>& b)->bool {
+      TracingFieldFunction dipoleFieldOnly = [this](std::array<Real,3>& r, const bool outwards, std::array<Real,3>& b)->bool {
       
          // Get field direction
          b[0] = this->dipoleField(r[0],r[1],r[2],X,0,X);
@@ -1919,7 +1919,7 @@ namespace SBC {
       bool anyNodeNeedsTracing;
 
       // Fieldline tracing function
-      TracingFieldFunction tracingFullField = [this, &perBGrid, &dPerBGrid, &technicalGrid](std::array<Real,3>& r, bool alongB, std::array<Real,3>& b)->bool {
+      TracingFieldFunction tracingFullField = [this, &perBGrid, &dPerBGrid, &technicalGrid](std::array<Real,3>& r, const bool alongB, std::array<Real,3>& b)->bool {
          
          // Get field direction
          b[0] = this->dipoleField(r[0],r[1],r[2],X,0,X);

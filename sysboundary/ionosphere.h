@@ -220,34 +220,34 @@ namespace SBC {
       ); // Find coupled ionosphere mesh node for given location
       //Field Line Tracing functions
       int ijk2Index(int i , int j ,int k ,std::array<int,3>dims); //3D to 1D indexing 
-      typedef std::function<bool(std::array<Real,3>&, bool, std::array<Real, 3>&)> TracingFieldFunction;
+      typedef std::function<bool(std::array<Real,3>&, const bool, std::array<Real, 3>&)> TracingFieldFunction;
       void bulirschStoerStep(
          std::array<Real, 3>& r,
          std::array<Real, 3>& b,
          Real& stepsize,Real maxStepsize,
          TracingFieldFunction& BFieldFunction,
-         bool outwards=true
+         const bool outwards=true
       ); //Bulrisch Stoer step
       bool dormandPrinceStep(
          std::array<Real, 3>& r,
          std::array<Real, 3>& b,
          Real& stepsize,Real maxStepsize,
          TracingFieldFunction& BFieldFunction,
-         bool outwards=true
+         const bool outwards=true
       ); //Dormand Prince step
       bool adaptiveEulerStep(
          std::array<Real, 3>& r,
          std::array<Real, 3>& b,
          Real& stepsize,Real maxStepsize,
          TracingFieldFunction& BFieldFunction,
-         bool outwards=true
+         const bool outwards=true
       ); //Adaptive Euler step
       void eulerStep(
          std::array<Real, 3>& x,
          std::array<Real, 3>& v,
          Real& stepsize,
          TracingFieldFunction& BFieldFunction,
-         bool outwards=true
+         const bool outwards=true
       ); //Euler step
       void modifiedMidpointMethod(
          std::array<Real,3> r,
@@ -255,7 +255,7 @@ namespace SBC {
          int n,
          Real stepsize,
          TracingFieldFunction& BFieldFunction,
-         bool outwards=true
+         const bool outwards=true
       ); // Modified Midpoint Method used by BS step
       void richardsonExtrapolation(int i, std::vector<Real>& table , Real& maxError,std::array<int,3>dims ); //Richardson extrapolation method used by BS step
       void stepFieldLine(
@@ -265,7 +265,7 @@ namespace SBC {
          Real maxStepsize,
          IonosphereCouplingMethod method,
          TracingFieldFunction& BFieldFunction,
-         bool outwards=true
+         const bool outwards=true
       ); // Handler function for field line tracing
       // Conjugate Gradient solver functions
       void addMatrixDependency(uint node1, uint node2, Real coeff, bool transposed=false); // Add matrix value for the solver
