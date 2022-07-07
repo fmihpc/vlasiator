@@ -36,6 +36,29 @@
 /* Read the cellIDs into an array */
 std::vector<uint64_t> readCellIds(vlsvinterface::Reader& r);
 
+template <class Reader>
+bool isFsGrid(Reader& r, std::string& name, unsigned int numcomponents) {
+
+   uint64_t arraySize=0;
+   uint64_t vectorSize=0;
+   uint64_t byteSize=0;
+   vlsv::datatype::type dataType;
+   std::list<std::pair<std::string,std::string> > attribs;
+   attribs.push_back(std::pair<std::string,std::string>("name",name));
+   if( r.getArrayInfo("VARIABLE",attribs, arraySize,vectorSize,dataType,byteSize) == false ) {
+      std::cerr << "getArrayInfo returned false when trying to read VARIABLE \""
+         << name << "\"." << std::endl;
+      exit(1);
+   }
+
+   for (auto attrib : attribs)
+      if (attrib.first == "mesh")
+         if (attrib.second == "fsgrid")
+            return true;
+
+   return false;
+}
+
 /* Read the "raw" field data in file order */
 template <class Reader>
 std::vector<double> readFieldData(Reader& r, std::string& name, unsigned int numcomponents) {
@@ -180,206 +203,6 @@ std::vector<double> readFsGridData(Reader& r, std::string& name, unsigned int nu
       fileOffset += overlapSize[0] * overlapSize[1] * overlapSize[2];
    }
    return buffer;
-}
-
-/* Read the next logical input file. Depending on sign of dt,
- * this may be a numerically larger or smaller file.
- * Return value: true if a new file was read, otherwise false.
- * TODO: might need some DRY
- */
-template <class Reader>
-bool readNextTimestep(const std::string& filename_pattern, double t, int direction, Field& E0, Field& E1,
-		      Field& B0, Field& B1, Field& V0, Field& V1, Field& R0, Field& R1, bool doV, bool doRho, int& input_file_counter) {
-
-   char filename_buffer[256];
-   bool retval = false;
-
-   while ( t*direction < E0.time*direction || t*direction >= E1.time*direction ) {
-      input_file_counter += direction;
-
-      E0=E1;
-      B0=B1;
-      snprintf(filename_buffer,256,filename_pattern.c_str(),input_file_counter);
-
-      /* Open next file */
-      Reader r;
-      r.open(filename_buffer);
-      double t_file;
-      if(!r.readParameter("time",t_file)) {
-         if(!r.readParameter("t",t_file)) {
-            std::cerr << "Time parameter in file " << filename_buffer << " is neither 't' nor 'time'. Bad file format?"
-               << std::endl;
-            exit(1);
-         }
-      }
-
-      E1.time = t_file;
-      B1.time = t_file;
-
-      uint64_t cells[3];
-      r.readParameter("xcells_ini",cells[0]);
-      r.readParameter("ycells_ini",cells[1]);
-      r.readParameter("zcells_ini",cells[2]);
-
-      /* Read CellIDs and Field data */
-      std::vector<uint64_t> cellIds = readCellIds(r);
-      std::string name(ParticleParameters::B_field_name);
-      std::vector<double> Bbuffer;
-      std::vector<double> Ebuffer;
-      std::vector<double> Vbuffer;
-      std::vector<double> Rhobuffer;
-
-      if (name == "fg_b" || name == "fg_b_background") {
-         Bbuffer = readFsGridData(r,name,3u);
-         if (name == "fg_b_background") {
-            name = "fg_b_perturbed";
-            std::vector<double> perturbedBbuffer = readFsGridData(r,name,3u);
-            for (int i = 0; i < Bbuffer.size(); ++i) {
-               Bbuffer[i] += perturbedBbuffer[i];
-            }
-         }
-         name = ParticleParameters::E_field_name;
-         Ebuffer = readFsGridData(r,name,3u);
-         for (int i = 0; i < cellIds.size(); ++i) {
-            cellIds[i] = i+1;
-         }
-
-         if(doV) {
-            V0=V1;
-            V1.time = t;
-            name = ParticleParameters::V_field_name;
-            std::vector<double> rho_v_buffer = readFsGridData(r,name,3u);
-            if(ParticleParameters::divide_rhov_by_rho) {
-               name = ParticleParameters::rho_field_name;
-               std::vector<double> rho_buffer = readFsGridData(r,name,1u);
-               for(unsigned int i=0; i<rho_buffer.size(); i++) {
-                  Vbuffer.push_back(rho_v_buffer[3*i] / rho_buffer[i]);
-                  Vbuffer.push_back(rho_v_buffer[3*i+1] / rho_buffer[i]);
-                  Vbuffer.push_back(rho_v_buffer[3*i+2] / rho_buffer[i]);
-               }
-            }
-         }
-      } else {
-         Bbuffer = readFieldData(r,name,3u);
-         if (name == "vg_b_background_vol") {
-            name = "vg_b_perturbed_vol";
-            std::vector<double> perturbedBbuffer = readFieldData(r,name,3u);
-            for (int i = 0; i < Bbuffer.size(); ++i) {
-               Bbuffer[i] += perturbedBbuffer[i];
-            }
-         }
-         name = ParticleParameters::E_field_name;
-         Ebuffer = readFieldData(r,name,3u);
-
-         if(doV) {
-            V0=V1;
-            V1.time = t;
-            name = ParticleParameters::V_field_name;
-            std::vector<double> rho_v_buffer = readFieldData(r,name,3u);
-            if(ParticleParameters::divide_rhov_by_rho) {
-               name = ParticleParameters::rho_field_name;
-               std::vector<double> rho_buffer = readFieldData(r,name,1u);
-               for(unsigned int i=0; i<rho_buffer.size(); i++) {
-                  Vbuffer.push_back(rho_v_buffer[3*i] / rho_buffer[i]);
-                  Vbuffer.push_back(rho_v_buffer[3*i+1] / rho_buffer[i]);
-                  Vbuffer.push_back(rho_v_buffer[3*i+2] / rho_buffer[i]);
-               }
-            }
-         }
-      }
-      std::vector<double> TNBSbuffer;
-      std::vector<double> vmsbuffer;
-
-      if(doV) {
-         V0=V1;
-         V1.time = t;
-         name = ParticleParameters::V_field_name;
-         std::vector<double> rho_v_buffer = readFieldData(r,name,3u);
-         if(ParticleParameters::divide_rhov_by_rho) {
-            name = ParticleParameters::rho_field_name;
-            std::vector<double> rho_buffer = readFieldData(r,name,1u);
-            for(unsigned int i=0; i<rho_buffer.size(); i++) {
-               Vbuffer.push_back(rho_v_buffer[3*i] / rho_buffer[i]);
-               Vbuffer.push_back(rho_v_buffer[3*i+1] / rho_buffer[i]);
-               Vbuffer.push_back(rho_v_buffer[3*i+2] / rho_buffer[i]);
-            }
-         }
-      }
-
-      if(doRho) {
-         R0=R1;
-         R1.time = t;
-
-         Rhobuffer = readFieldData(r,ParticleParameters::rho_field_name,1u);
-
-         /* Calculate non-backstreaming temperature */
-         std::string rhonbs_name("RhoNonBackstream");
-         std::string ptdnbs_name("PTensorNonBackstreamDiagonal");
-         std::vector<double> ptdnbs_buffer = readFieldData(r,ptdnbs_name,3u);
-         std::vector<double> rhonbs_buffer = readFieldData(r,rhonbs_name,1u);
-         for(unsigned int i=0; i<rhonbs_buffer.size(); i++) {
-            // Pressure-nonbackstreaming = (ptdnbs_buffer[3*i]+ptdnbs_buffer[3*i+1]+ptdnbs_buffer[3*i+2])*(1./3.)
-            TNBSbuffer.push_back( ((ptdnbs_buffer[3*i]+ptdnbs_buffer[3*i+1]+ptdnbs_buffer[3*i+2])*(1./3.)) / ((1.+rhonbs_buffer[i])*1.38065e-23));
-         }
-
-         /* Calculate Magnetosonic velocity */
-         std::string pressure_name("PTensorDiagonal");
-         std::vector<double> pressure_buffer = readFieldData(r,pressure_name,3u);
-         for(unsigned int i=0; i<Rhobuffer.size(); i++) {	  
-            Real Bmag2 = std::pow(Bbuffer[3*i],2) + std::pow(Bbuffer[3*i+1],2) + std::pow(Bbuffer[3*i+2],2);
-            Real va2 = Bmag2/(1.25663706144e-6 * 1.672622e-27 * Rhobuffer[i]);
-            Real pressure = (1./3.)*(pressure_buffer[3*i]+pressure_buffer[3*i+1]+pressure_buffer[3*i+2]);
-            Real vs2 = (pressure * (5./3.))/( 1.672622e-27 * Rhobuffer[i] );
-            vmsbuffer.push_back( sqrt(va2 + vs2) );
-         }
-
-      }
-      /* Assign them, without sanity checking */
-      /* TODO: Is this actually a good idea? */
-      for(uint i=0; i< cellIds.size(); i++) {
-         uint64_t c = cellIds[i];
-         int64_t x = c % cells[0];
-         int64_t y = (c /cells[0]) % cells[1];
-         int64_t z = c /(cells[0]*cells[1]);
-
-         double* Etgt = E1.getCellRef(x,y,z);
-         double* Btgt = B1.getCellRef(x,y,z);
-         Etgt[0] = Ebuffer[3*i];
-         Etgt[1] = Ebuffer[3*i+1];
-         Etgt[2] = Ebuffer[3*i+2];
-         Btgt[0] = Bbuffer[3*i];
-         Btgt[1] = Bbuffer[3*i+1];
-         Btgt[2] = Bbuffer[3*i+2];
-
-         if(doV) {
-            double* Vtgt = V1.getCellRef(x,y,z);
-            Vtgt[0] = Vbuffer[3*i];
-            Vtgt[1] = Vbuffer[3*i+1];
-            Vtgt[2] = Vbuffer[3*i+2];
-         }
-         if(doRho) {
-            double* Rtgt = R1.getCellRef(x,y,z);
-            Rtgt[0] = Rhobuffer[i];
-            Rtgt[1] = TNBSbuffer[i];
-            Rtgt[2] = vmsbuffer[i]; // Magnetosonic speed
-         }
-      }
-      r.close();
-      retval = true;
-   }
-
-   return retval;
-}
-
-/* Non-template version, autodetecting the reader type */
-static bool readNextTimestep(const std::string& filename_pattern, double t, int step, Field& E0, Field& E1,
-      Field& B0, Field& B1, Field& V0, Field& V1, Field& R0, Field& R1, bool doV, bool doRho, int& input_file_counter) {
-
-   char filename_buffer[256];
-   snprintf(filename_buffer,256,filename_pattern.c_str(),input_file_counter);
-
-   return readNextTimestep<vlsvinterface::Reader>(filename_pattern, t,
-						  step,E0,E1,B0,B1,V0,V1,R0,R1,doV,doRho,input_file_counter);
 }
 
 /* Read E- and B-Fields as well as velocity field from a vlsv file */
@@ -602,6 +425,42 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
 /* Non-template version, autodetecting the reader type */
 static void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bool doV=true, bool doRho=true) {
   readfields<vlsvinterface::Reader>(filename,E,B,V,R,doV,doRho);
+}
+
+/* Read the next logical input file. Depending on sign of dt,
+ * this may be a numerically larger or smaller file.
+ * Return value: true if a new file was read, otherwise false.
+ */
+template <class Reader>
+bool readNextTimestep(const std::string& filename_pattern, double t, int direction, Field& E0, Field& E1,
+		      Field& B0, Field& B1, Field& V0, Field& V1, Field& R0, Field& R1, bool doV, bool doRho, int& input_file_counter) {
+
+   char filename_buffer[256];
+   bool retval = false;
+
+   while ( t*direction < E0.time*direction || t*direction >= E1.time*direction ) {
+      input_file_counter += direction;
+
+      E0=E1;
+      B0=B1;
+      snprintf(filename_buffer,256,filename_pattern.c_str(),input_file_counter);
+
+      // Open next file
+      readfields<Reader>(filename_buffer, E1, B1, V1, R1, doV, doRho);
+   }
+
+   return true;
+}
+
+/* Non-template version, autodetecting the reader type */
+static bool readNextTimestep(const std::string& filename_pattern, double t, int step, Field& E0, Field& E1,
+      Field& B0, Field& B1, Field& V0, Field& V1, Field& R0, Field& R1, bool doV, bool doRho, int& input_file_counter) {
+
+   char filename_buffer[256];
+   snprintf(filename_buffer,256,filename_pattern.c_str(),input_file_counter);
+
+   return readNextTimestep<vlsvinterface::Reader>(filename_pattern, t,
+						  step,E0,E1,B0,B1,V0,V1,R0,R1,doV,doRho,input_file_counter);
 }
 
 /* For debugging purposes - dump a field into a png file */
