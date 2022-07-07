@@ -1560,6 +1560,7 @@ namespace SBC {
                   if(fsgridCell[0] == -1) {
                      nodeNeedsContinuedTracing[n] = 0;
                      nodeTracingCoordinates[n] = {0,0,0};
+                     nodeTracingStepSize[n]=0;
                      break;
                   }
 
@@ -1657,7 +1658,7 @@ namespace SBC {
          MPI_Allreduce(nodeTracingStepSize.data(), reducedNodeTracingStepSize.data(), nodes.size(), MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
       } else {
          MPI_Allreduce(nodeDistance.data(), reducedNodeDistance.data(), nodes.size(), MPI_FLOAT, MPI_MIN, MPI_COMM_WORLD);
-         MPI_Allreduce(nodeTracingStepSize.data(), reducedNodeTracingStepSize.data(), nodes.size(), MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+         MPI_Allreduce(nodeTracingStepSize.data(), reducedNodeTracingStepSize.data(), nodes.size(), MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
       }
 
       // Reduce upmapped magnetic field to be consistent on all nodes
@@ -1905,7 +1906,8 @@ namespace SBC {
 
       phiprof::start("ionosphere-openclosedTracing");
       // Pick an initial stepsize
-      Real stepSize = min(1000e3, technicalGrid.DX / 2.);
+      creal stepSize = min(1000e3, technicalGrid.DX / 2.);
+      std::vector<Real> nodeTracingStepSize(nodes.size(), stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
       std::array<int, 3> gridSize = technicalGrid.getGlobalSize();
       uint64_t maxTracingSteps = 4 * (gridSize[0] * technicalGrid.DX + gridSize[1] * technicalGrid.DY + gridSize[2] * technicalGrid.DZ) / stepSize;
 
@@ -1994,7 +1996,6 @@ namespace SBC {
    
                std::array<Real, 3> x = nodeTracingCoordinates[n];
                std::array<Real, 3> v({0,0,0});
-               //Real stepSize = min(100e3, technicalGrid.DX / 2.); 
                
                while( true ) {
                   nodeStepCounter[n]++;
@@ -2005,6 +2006,7 @@ namespace SBC {
                   if(fsgridCell[0] == -1) {
                      nodeNeedsContinuedTracing[n] = 0;
                      nodeTracingCoordinates[n] = {0,0,0};
+                     nodeTracingStepSize[n]=0;
                      break;
                   }
                   
@@ -2020,7 +2022,7 @@ namespace SBC {
 
                   // Make one step along the fieldline
                   // If the node is in the North, trace along -B (false for last argument), in the South, trace along B
-                  stepFieldLine(x,v, stepSize,technicalGrid.DX/2,couplingMethod,tracingFullField,(no.x[2] < 0));
+                  stepFieldLine(x,v, nodeTracingStepSize[n],technicalGrid.DX/2,couplingMethod,tracingFullField,(no.x[2] < 0));
                   
                   // Look up the fsgrid cell belonging to these coordinates
                   fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
@@ -2062,12 +2064,15 @@ namespace SBC {
          std::vector<int> sumNodeNeedsContinuedTracing(nodes.size(), 0);
          std::vector<std::array<Real, 3>> sumNodeTracingCoordinates(nodes.size());
          std::vector<uint64_t> maxNodeStepCounter(nodes.size(), 0);
+         std::vector<Real> reducedNodeTracingStepSize(nodes.size());
          MPI_Allreduce(nodeNeedsContinuedTracing.data(), sumNodeNeedsContinuedTracing.data(), nodes.size(), MPI_INT, MPI_SUM, MPI_COMM_WORLD);
          MPI_Allreduce(nodeStepCounter.data(), maxNodeStepCounter.data(), nodes.size(), MPI_UINT64_T, MPI_MAX, MPI_COMM_WORLD);
          if(sizeof(Real) == sizeof(double)) {
             MPI_Allreduce(nodeTracingCoordinates.data(), sumNodeTracingCoordinates.data(), 3*nodes.size(), MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(nodeTracingStepSize.data(), reducedNodeTracingStepSize.data(), nodes.size(), MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
          } else {
             MPI_Allreduce(nodeTracingCoordinates.data(), sumNodeTracingCoordinates.data(), 3*nodes.size(), MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(nodeTracingStepSize.data(), reducedNodeTracingStepSize.data(), nodes.size(), MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
          }
          for(uint n=0; n<nodes.size(); n++) {
             if(sumNodeNeedsContinuedTracing[n] > 0) {
@@ -2081,6 +2086,7 @@ namespace SBC {
                
                nodeStepCounter[n] = maxNodeStepCounter[n];
             }
+            nodeTracingStepSize[n] = reducedNodeTracingStepSize[n];
          }
       } while(anyNodeNeedsTracing);
       
@@ -2127,9 +2133,11 @@ namespace SBC {
       MPI_Allgatherv(localDccrgCells.data(), localDccrgSize, MPI_UINT64_T, allDccrgCells.data(), amounts.data(), displacements.data(), MPI_UINT64_T, MPI_COMM_WORLD);
       
       // Pick an initial stepsize
-      Real stepSize = min(1000e3, technicalGrid.DX / 2.);
+      creal stepSize = min(1000e3, technicalGrid.DX / 2.);
+      std::vector<Real> cellFWTracingStepSize(globalDccrgSize, stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
+      std::vector<Real> cellBWTracingStepSize(globalDccrgSize, stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
       std::array<int, 3> gridSize = technicalGrid.getGlobalSize();
-      uint64_t maxTracingSteps = 16 * (gridSize[0] * technicalGrid.DX + gridSize[1] * technicalGrid.DY + gridSize[2] * technicalGrid.DZ) / stepSize;
+      uint64_t maxTracingSteps = 4 * (gridSize[0] * technicalGrid.DX + gridSize[1] * technicalGrid.DY + gridSize[2] * technicalGrid.DZ) / stepSize;
       
       std::vector<int> cellConnection(globalDccrgSize, 0);                                 /*!< For reduction of node coupling */
       std::vector<int> cellFWConnection(globalDccrgSize, 3);                                 /*!< For reduction of node coupling */
@@ -2148,6 +2156,8 @@ namespace SBC {
       std::vector<std::array<Real, 3>> sumCellBWTracingCoordinates(globalDccrgSize);
       std::vector<uint64_t> maxCellFWStepCounter(globalDccrgSize, 0);
       std::vector<uint64_t> maxCellBWStepCounter(globalDccrgSize, 0);
+      std::vector<Real> reducedCellFWTracingStepSize(globalDccrgSize);
+      std::vector<Real> reducedCellBWTracingStepSize(globalDccrgSize);
       
       phiprof::start("first-loop");
       for(int n=0; n<globalDccrgSize; n++) {
@@ -2168,20 +2178,33 @@ namespace SBC {
                cellNeedsContinuedBWTracing[n] = 0;
                cellFWTracingCoordinates[n] = {0,0,0};
                cellBWTracingCoordinates[n] = {0,0,0};
+               cellFWTracingStepSize[n] = 0;
+               cellBWTracingStepSize[n] = 0;
             }
          }
       }
       phiprof::stop("first-loop");
-      std::vector<int> minCellNeedsContinuedFWTracing(globalDccrgSize, 0);
-      std::vector<int> minCellNeedsContinuedBWTracing(globalDccrgSize, 0);
+      std::vector<int> minCellNeedsContinuedFWTracing(globalDccrgSize);
+      std::vector<int> minCellNeedsContinuedBWTracing(globalDccrgSize);
+      std::vector<Real> minCellFWTracingStepSize(globalDccrgSize); // TODO use only one reduction array
+      std::vector<Real> minCellBWTracingStepSize(globalDccrgSize);
       MPI_Allreduce(cellNeedsContinuedFWTracing.data(), minCellNeedsContinuedFWTracing.data(), globalDccrgSize, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
       MPI_Allreduce(cellNeedsContinuedBWTracing.data(), minCellNeedsContinuedBWTracing.data(), globalDccrgSize, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
+      if(sizeof(Real) == sizeof(double)) {
+         MPI_Allreduce(cellFWTracingStepSize.data(), minCellFWTracingStepSize.data(), globalDccrgSize, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+         MPI_Allreduce(cellBWTracingStepSize.data(), minCellBWTracingStepSize.data(), globalDccrgSize, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+      } else {
+         MPI_Allreduce(cellFWTracingStepSize.data(), minCellFWTracingStepSize.data(), globalDccrgSize, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+         MPI_Allreduce(cellBWTracingStepSize.data(), minCellBWTracingStepSize.data(), globalDccrgSize, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+      }
       cellNeedsContinuedFWTracing = minCellNeedsContinuedFWTracing;
       cellNeedsContinuedBWTracing = minCellNeedsContinuedBWTracing;
+      cellFWTracingStepSize = minCellFWTracingStepSize;
+      cellBWTracingStepSize = minCellBWTracingStepSize;
       bool anyCellNeedsTracing;
       
       // Fieldline tracing function
-      TracingFieldFunction tracingFullField = [this, &perBGrid, &dPerBGrid, &technicalGrid](std::array<Real,3>& r, bool alongB, std::array<Real,3>& b)->bool {
+      TracingFieldFunction tracingFullField = [this, &perBGrid, &dPerBGrid, &technicalGrid](std::array<Real,3>& r, const bool alongB, std::array<Real,3>& b)->bool {
          
          // Get field direction
          b[0] = this->dipoleField(r[0],r[1],r[2],X,0,X);
@@ -2260,7 +2283,8 @@ namespace SBC {
                   if(fsgridCell[0] == -1) {
                      cellNeedsContinuedFWTracing[n] = 0;
                      cellFWTracingCoordinates[n] = {0,0,0};
-                   break;
+                     cellFWTracingStepSize[n]=0;
+                     break;
                   }
                   
                   if(cellFWStepCounter[n] > maxTracingSteps) {
@@ -2278,7 +2302,7 @@ namespace SBC {
                   
                   // Make one step along the fieldline
                   // Forward tracing means true for last argument
-                  stepFieldLine(x,v, stepSize,technicalGrid.DX/2,couplingMethod,tracingFullField,true);
+                  stepFieldLine(x,v, cellFWTracingStepSize[n],technicalGrid.DX/2,couplingMethod,tracingFullField,true);
                   
                   // Look up the fsgrid cell belonging to these coordinates
                   fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
@@ -2327,6 +2351,7 @@ namespace SBC {
                   if(fsgridCell[0] == -1) {
                      cellNeedsContinuedBWTracing[n] = 0;
                      cellBWTracingCoordinates[n] = {0,0,0};
+                     cellBWTracingStepSize[n]=0;
                      break;
                   }
                   
@@ -2345,7 +2370,7 @@ namespace SBC {
                   
                   // Make one step along the fieldline
                   // Backward tracing means false for last argument
-                  stepFieldLine(x,v, stepSize,technicalGrid.DX/2,couplingMethod,tracingFullField,false);
+                  stepFieldLine(x,v, cellBWTracingStepSize[n],technicalGrid.DX/2,couplingMethod,tracingFullField,false);
                   
                   // Look up the fsgrid cell belonging to these coordinates
                   fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
@@ -2399,9 +2424,13 @@ namespace SBC {
             if(sizeof(Real) == sizeof(double)) {
                MPI_Allreduce(cellFWTracingCoordinates.data(), sumCellFWTracingCoordinates.data(), 3*globalDccrgSize, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
                MPI_Allreduce(cellBWTracingCoordinates.data(), sumCellBWTracingCoordinates.data(), 3*globalDccrgSize, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(cellFWTracingStepSize.data(), reducedCellFWTracingStepSize.data(), globalDccrgSize, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+               MPI_Allreduce(cellBWTracingStepSize.data(), reducedCellBWTracingStepSize.data(), globalDccrgSize, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
             } else {
                MPI_Allreduce(cellFWTracingCoordinates.data(), sumCellFWTracingCoordinates.data(), 3*globalDccrgSize, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
                MPI_Allreduce(cellBWTracingCoordinates.data(), sumCellBWTracingCoordinates.data(), 3*globalDccrgSize, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(cellFWTracingStepSize.data(), reducedCellFWTracingStepSize.data(), globalDccrgSize, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
+               MPI_Allreduce(cellBWTracingStepSize.data(), reducedCellBWTracingStepSize.data(), globalDccrgSize, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
             }
             anyCellNeedsTracing = false;
          }
@@ -2432,6 +2461,8 @@ namespace SBC {
                
                cellBWStepCounter[n] = maxCellBWStepCounter[n];
             }
+            cellFWTracingStepSize[n] = reducedCellFWTracingStepSize[n];
+            cellBWTracingStepSize[n] = reducedCellBWTracingStepSize[n];
          }
          
       } while(anyCellNeedsTracing);
