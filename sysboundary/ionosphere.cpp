@@ -1540,7 +1540,7 @@ namespace SBC {
          #pragma omp parallel
          {
             // Trace node coordinates outwards until a non-sysboundary cell is encountered or the local fsgrid domain has been left.
-            #pragma omp for
+            #pragma omp for schedule(dynamic)
             for(uint n=0; n<nodes.size(); n++) {
    
                if(!nodeNeedsContinuedTracing[n]) {
@@ -1980,10 +1980,10 @@ namespace SBC {
       do {
          anyNodeNeedsTracing = false;
 
-#pragma omp parallel firstprivate(stepSize)
+#pragma omp parallel
 {
             // Trace node coordinates outwards until a non-sysboundary cell is encountered or the local fsgrid domain has been left.
-            #pragma omp for
+            #pragma omp for schedule(dynamic)
             for(uint n=0; n<nodes.size(); n++) {
    
                if(!nodeNeedsContinuedTracing[n]) {
@@ -2241,7 +2241,7 @@ namespace SBC {
       
       bool warnMaxStepsExceeded = false;
       phiprof::start("loop");
-#pragma omp parallel firstprivate(stepSize) shared(anyCellNeedsTracing)
+#pragma omp parallel
 {
       do { // while(anyCellNeedsTracing)
          // Trace node coordinates forward and backwards until a non-sysboundary cell is encountered or the local fsgrid domain has been left.
@@ -3553,7 +3553,10 @@ namespace SBC {
          }
       } // while
 
-      cint threadID = omp_get_thread_num();
+      int threadID = 0;
+#ifdef _OPENMP
+      threadID = omp_get_thread_num();
+#endif
       if(skipSolve && threadID == 0) {
          // sourcenorm was zero, we return zero; return is not allowed inside threaded region
          minerr = 0;
