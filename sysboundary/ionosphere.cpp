@@ -1115,13 +1115,14 @@ namespace SBC {
       TracingFieldFunction& BFieldFunction,
       const bool outwards
     ){
-
+      // BFieldFunction can return false if it steps out of the "comfort zone"
+      bool proceed = true;
       std::array<Real,7> kx,ky,kz;
       std::array<Real,3> b_unit;
       std::array<Real,3> _r{0,0,0};
       
       //K1 slope
-      BFieldFunction(r,outwards,b_unit);
+      proceed = BFieldFunction(r,outwards,b_unit);
       kx[0]=step*b_unit[0];
       ky[0]=step*b_unit[1];
       kz[0]=step*b_unit[2];
@@ -1130,7 +1131,9 @@ namespace SBC {
       _r[0]=r[0]+(1./5.)*kx[0];
       _r[1]=r[1]+(1./5.)*ky[0];
       _r[2]=r[2]+(1./5.)*kz[0];
-      BFieldFunction(_r,outwards,b_unit);
+      if (proceed) {
+         proceed = BFieldFunction(_r,outwards,b_unit);
+      }
       kx[1]=step*b_unit[0];
       ky[1]=step*b_unit[1];
       kz[1]=step*b_unit[2];
@@ -1139,7 +1142,9 @@ namespace SBC {
       _r[0]=r[0]+( (3./40.)*kx[0] +(9./40.)*kx[1] ); 
       _r[1]=r[1]+( (3./40.)*ky[0] +(9./40.)*ky[1] ); 
       _r[2]=r[2]+( (3./40.)*kz[0] +(9./40.)*kz[1] ); 
-      BFieldFunction(_r,outwards,b_unit);
+      if (proceed) {
+         proceed = BFieldFunction(_r,outwards,b_unit);
+      }
       kx[2]=step*b_unit[0];
       ky[2]=step*b_unit[1];
       kz[2]=step*b_unit[2];
@@ -1148,7 +1153,9 @@ namespace SBC {
       _r[0]=r[0]+(44./45.)*kx[0] -(56./15.)*kx[1] + (32./9.)*kx[2];  
       _r[1]=r[1]+(44./45.)*ky[0] -(56./15.)*ky[1] + (32./9.)*ky[2];  
       _r[2]=r[2]+(44./45.)*kz[0] -(56./15.)*kz[1] + (32./9.)*kz[2];  
-      BFieldFunction(_r,outwards,b_unit);
+      if (proceed) {
+         proceed = BFieldFunction(_r,outwards,b_unit);
+      }
       kx[3]=step*b_unit[0];
       ky[3]=step*b_unit[1];
       kz[3]=step*b_unit[2];
@@ -1157,7 +1164,9 @@ namespace SBC {
       _r[0]=r[0]+(19372./6561.)*kx[0] -(25360./2187.)*kx[1] + (64448./6561.)*kx[2] - (212./729.)*kx[3];   
       _r[1]=r[1]+(19372./6561.)*ky[0] -(25360./2187.)*ky[1] + (64448./6561.)*ky[2] - (212./729.)*ky[3];   
       _r[2]=r[2]+(19372./6561.)*kz[0] -(25360./2187.)*kz[1] + (64448./6561.)*kz[2] - (212./729.)*kz[3];   
-      BFieldFunction(_r,outwards,b_unit); 
+      if (proceed) {
+         proceed = BFieldFunction(_r,outwards,b_unit);
+      }
       kx[4]=step*b_unit[0];
       ky[4]=step*b_unit[1];
       kz[4]=step*b_unit[2];
@@ -1166,7 +1175,9 @@ namespace SBC {
       _r[0]=r[0]+(9017./3168.)*kx[0] -(355./33.)*kx[1] + (46732./5247.)*kx[2] + (49./176.)*kx[3]-(5103./18656.)*kx[4];  
       _r[1]=r[1]+(9017./3168.)*ky[0] -(355./33.)*ky[1] + (46732./5247.)*ky[2] + (49./176.)*ky[3]-(5103./18656.)*ky[4];  
       _r[2]=r[2]+(9017./3168.)*kz[0] -(355./33.)*kz[1] + (46732./5247.)*kz[2] + (49./176.)*kz[3]-(5103./18656.)*kz[4];  
-      BFieldFunction(_r,outwards,b_unit);
+      if (proceed) {
+         proceed = BFieldFunction(_r,outwards,b_unit);
+      }
       kx[5]=step*b_unit[0];
       ky[5]=step*b_unit[1];
       kz[5]=step*b_unit[2];
@@ -1175,32 +1186,39 @@ namespace SBC {
       _r[0]=r[0]+(35./384.)*kx[0] + (500./1113.)*kx[2] + (125./192.)*kx[3]-(2187./6784.)*kx[4] +(11./84.)*kx[5];  
       _r[1]=r[1]+(35./384.)*ky[0] + (500./1113.)*ky[2] + (125./192.)*ky[3]-(2187./6784.)*ky[4] +(11./84.)*ky[5];  
       _r[2]=r[2]+(35./384.)*kz[0] + (500./1113.)*kz[2] + (125./192.)*kz[3]-(2187./6784.)*kz[4] +(11./84.)*kz[5];  
-      BFieldFunction(_r,outwards,b_unit);
+      if (proceed) {
+         proceed = BFieldFunction(_r,outwards,b_unit);
+      }
       kx[6]=step*b_unit[0];
       ky[6]=step*b_unit[1];
       kz[6]=step*b_unit[2];
-   
-      //Error calculation
-      std::array<Real,3>rf;
-      std::array<Real,3>error_xyz;
-      rf[0]=r[0] +(35./384.)*kx[0] + (500./1113.)*kx[2] + (125./192.)*kx[3] - (2187./6784.)*kx[4] +(11./84.)*kx[5];
-      rf[1]=r[1] +(35./384.)*ky[0] + (500./1113.)*ky[2] + (125./192.)*ky[3] - (2187./6784.)*ky[4] +(11./84.)*ky[5];
-      rf[2]=r[2] +(35./384.)*kz[0] + (500./1113.)*kz[2] + (125./192.)*kz[3] - (2187./6784.)*kz[4] +(11./84.)*kz[5];
       
-      error_xyz[0]=abs((71./57600.)*kx[0] -(71./16695.)*kx[2] + (71./1920.)*kx[3] -(17253./339200.)*kx[4]+(22./525.)*kx[5] -(1./40.)*kx[6] );
-      error_xyz[1]=abs((71./57600.)*ky[0] -(71./16695.)*ky[2] + (71./1920.)*ky[3] -(17253./339200.)*ky[4]+(22./525.)*ky[5] -(1./40.)*ky[6] );
-      error_xyz[2]=abs((71./57600.)*kz[0] -(71./16695.)*kz[2] + (71./1920.)*kz[3] -(17253./339200.)*kz[4]+(22./525.)*kz[5] -(1./40.)*kz[6] );
-
-      //Estimate proper stepsize
-      Real err=std::max( std::max(error_xyz[0], error_xyz[1]), error_xyz[2]);
-      Real s=pow((Ionosphere::max_allowed_error/(2*err)),1./5.);
-      step=step*s;
+      Real err=0;
+      std::array<Real,3>rf;
+      if (proceed) {
+         //Error calculation
+         std::array<Real,3>error_xyz;
+         rf[0]=r[0] +(35./384.)*kx[0] + (500./1113.)*kx[2] + (125./192.)*kx[3] - (2187./6784.)*kx[4] +(11./84.)*kx[5];
+         rf[1]=r[1] +(35./384.)*ky[0] + (500./1113.)*ky[2] + (125./192.)*ky[3] - (2187./6784.)*ky[4] +(11./84.)*ky[5];
+         rf[2]=r[2] +(35./384.)*kz[0] + (500./1113.)*kz[2] + (125./192.)*kz[3] - (2187./6784.)*kz[4] +(11./84.)*kz[5];
+         
+         error_xyz[0]=abs((71./57600.)*kx[0] -(71./16695.)*kx[2] + (71./1920.)*kx[3] -(17253./339200.)*kx[4]+(22./525.)*kx[5] -(1./40.)*kx[6] );
+         error_xyz[1]=abs((71./57600.)*ky[0] -(71./16695.)*ky[2] + (71./1920.)*ky[3] -(17253./339200.)*ky[4]+(22./525.)*ky[5] -(1./40.)*ky[6] );
+         error_xyz[2]=abs((71./57600.)*kz[0] -(71./16695.)*kz[2] + (71./1920.)*kz[3] -(17253./339200.)*kz[4]+(22./525.)*kz[5] -(1./40.)*kz[6] );
+         
+         //Estimate proper stepsize
+         err=std::max( std::max(error_xyz[0], error_xyz[1]), error_xyz[2]);
+         Real s=pow((Ionosphere::max_allowed_error/(2*err)),1./5.);
+         step=step*s;
+      } else { // proceed is false, we probably stepped too far
+         step /= 2;
+      }
 
       if (step>maxStepsize){
 //          std::cerr<<"Stepsize in Dormand Prince method exceeded the max Stepsize. Defaulting to maxStepsize"<<std::endl;
          step=maxStepsize;
       }
-      if (err>Ionosphere::max_allowed_error){
+      if (err>Ionosphere::max_allowed_error || !proceed){
          return false;
       }else{
          //Evaluate B at the final stepping point to get the b vector of the fieldline
@@ -1220,7 +1238,7 @@ namespace SBC {
       const bool outwards
     ){
       
-      //Firt evaluation
+      //First evaluation
       std::array<Real, 3> r1;
       BFieldFunction(r,outwards,b);
 
@@ -1922,6 +1940,16 @@ namespace SBC {
 
       // Fieldline tracing function
       TracingFieldFunction tracingFullField = [this, &perBGrid, &dPerBGrid, &technicalGrid](std::array<Real,3>& r, const bool alongB, std::array<Real,3>& b)->bool {
+         if(   r[0] > P::xmax - 2*P::dx_ini
+            || r[0] < P::xmin + 2*P::dx_ini
+            || r[1] > P::ymax - 2*P::dy_ini
+            || r[1] < P::ymin + 2*P::dy_ini
+            || r[2] > P::zmax - 2*P::dz_ini
+            || r[2] < P::zmin + 2*P::dz_ini
+         ) {
+            cerr << (string)("Oops! Full mapping trying to step outside of the global domain?\n");
+            return false;
+         }
          
          // Get field direction
          b[0] = this->dipoleField(r[0],r[1],r[2],X,0,X);
@@ -1941,6 +1969,7 @@ namespace SBC {
             || fsgridCell[0] < -1 || fsgridCell[1] < -1 || fsgridCell[2] < -1) {
             cerr << (string)("Oops! Open-closed mapping trying to access local ID " + to_string(fsgridCell[0]) + " " + to_string(fsgridCell[1]) + " " + to_string(fsgridCell[2])
             + " for local domain size " + to_string(localSize[0]) + " " + to_string(localSize[1]) + " " + to_string(localSize[2]) + "\n");
+         return false;
          } else {
             if(technicalGrid.get(fsgridCell[0],fsgridCell[1],fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
                const std::array<Real, 3> perB = interpolatePerturbedB(
@@ -2205,6 +2234,16 @@ namespace SBC {
       
       // Fieldline tracing function
       TracingFieldFunction tracingFullField = [this, &perBGrid, &dPerBGrid, &technicalGrid](std::array<Real,3>& r, const bool alongB, std::array<Real,3>& b)->bool {
+         if(   r[0] > P::xmax - 2*P::dx_ini
+            || r[0] < P::xmin + 2*P::dx_ini
+            || r[1] > P::ymax - 2*P::dy_ini
+            || r[1] < P::ymin + 2*P::dy_ini
+            || r[2] > P::zmax - 2*P::dz_ini
+            || r[2] < P::zmin + 2*P::dz_ini
+         ) {
+            cerr << (string)("Oops! Full mapping trying to step outside of the global domain?\n");
+            return false;
+         }
          
          // Get field direction
          b[0] = this->dipoleField(r[0],r[1],r[2],X,0,X);
@@ -2224,42 +2263,44 @@ namespace SBC {
          if(fsgridCell[0] > localSize[0] || fsgridCell[1] > localSize[1] || fsgridCell[2] > localSize[2]
             || fsgridCell[0] < -1 || fsgridCell[1] < -1 || fsgridCell[2] < -1) {
             cerr << (string)("Oops! Full mapping trying to access local ID " + to_string(fsgridCell[0]) + " " + to_string(fsgridCell[1]) + " " + to_string(fsgridCell[2])
-            + " for local domain size " + to_string(localSize[0]) + " " + to_string(localSize[1]) + " " + to_string(localSize[2]) + "\n");
-            } else {
-               if(technicalGrid.get(fsgridCell[0],fsgridCell[1],fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                  const std::array<Real, 3> perB = interpolatePerturbedB(
-                     perBGrid,
-                     dPerBGrid,
-                     technicalGrid,
-                     reconstructionCoefficientsCache,
-                     fsgridCell[0],fsgridCell[1],fsgridCell[2],
-                     r
-                  );
-                  b[0] += perB[0];
-                  b[1] += perB[1];
-                  b[2] += perB[2];
-               }
+            + " for local domain size " + to_string(localSize[0]) + " " + to_string(localSize[1]) + " " + to_string(localSize[2])
+            + "\n");
+            return false;
+         } else {
+            if(technicalGrid.get(fsgridCell[0],fsgridCell[1],fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+               const std::array<Real, 3> perB = interpolatePerturbedB(
+                  perBGrid,
+                  dPerBGrid,
+                  technicalGrid,
+                  reconstructionCoefficientsCache,
+                  fsgridCell[0],fsgridCell[1],fsgridCell[2],
+                  r
+               );
+               b[0] += perB[0];
+               b[1] += perB[1];
+               b[2] += perB[2];
             }
+         }
             
-            // Normalize
-            Real  norm = 1. / sqrt(b[0]*b[0] + b[1]*b[1] + b[2]*b[2]);
-            for(int c=0; c<3; c++) {
-               b[c] = b[c] * norm;
-            }
-            
-            if(std::isnan(b[0]) || std::isnan(b[1]) || std::isnan(b[2])) {
-               cerr << "(ionosphere) Error: magnetic field is nan in getRadialBfieldDirection at location "
-               << r[0] << ", " << r[1] << ", " << r[2] << ", with B = " << b[0] << ", " << b[1] << ", " << b[2] << endl;
-               b[0] = 0;
-               b[1] = 0;
-               b[2] = 0;
-            }
-            if(!alongB) { // In this function, outwards indicates whether we trace along (true) or against (false) the field direction
-               b[0] *= -1;
-               b[1] *= -1;
-               b[2] *= -1;
-            }
-            return true;
+         // Normalize
+         Real  norm = 1. / sqrt(b[0]*b[0] + b[1]*b[1] + b[2]*b[2]);
+         for(int c=0; c<3; c++) {
+            b[c] = b[c] * norm;
+         }
+         
+         if(std::isnan(b[0]) || std::isnan(b[1]) || std::isnan(b[2])) {
+            cerr << "(ionosphere) Error: magnetic field is nan in getRadialBfieldDirection at location "
+            << r[0] << ", " << r[1] << ", " << r[2] << ", with B = " << b[0] << ", " << b[1] << ", " << b[2] << endl;
+            b[0] = 0;
+            b[1] = 0;
+            b[2] = 0;
+         }
+         if(!alongB) { // In this function, outwards indicates whether we trace along (true) or against (false) the field direction
+            b[0] *= -1;
+            b[1] *= -1;
+            b[2] *= -1;
+         }
+         return true;
       };
       
       bool warnMaxStepsExceeded = false;
