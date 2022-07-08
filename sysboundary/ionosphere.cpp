@@ -1267,7 +1267,7 @@ namespace SBC {
       if (step>maxStepsize){step=maxStepsize;}
 
       if (err<=Ionosphere::max_allowed_error){
-         /* Note: B at r has been evaluated above so no need to do it here*/
+         /* Note: B at r has been evaluated above so no need to do it here and we're not returning it anyway as it's not needed. */
          r=r2;
          return true;
       }else{
