@@ -1654,9 +1654,9 @@ namespace SBC {
                      nodeTracingCoordinates[n] = {0,0,0};
                      break;
                   }
-               }
-            }
-         }
+               } // while(true)
+            } // for
+         } // pragma omp parallel
 
          // Globally reduce whether any node still needs to be picked up and traced onwards
          std::vector<int> sumNodeNeedsContinuedTracing(nodes.size(), 0);
@@ -1664,8 +1664,10 @@ namespace SBC {
          MPI_Allreduce(nodeNeedsContinuedTracing.data(), sumNodeNeedsContinuedTracing.data(), nodes.size(), MPI_INT, MPI_SUM, MPI_COMM_WORLD);
          if(sizeof(Real) == sizeof(double)) {
             MPI_Allreduce(nodeTracingCoordinates.data(), sumNodeTracingCoordinates.data(), 3*nodes.size(), MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(nodeTracingStepSize.data(), reducedNodeTracingStepSize.data(), nodes.size(), MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
          } else {
             MPI_Allreduce(nodeTracingCoordinates.data(), sumNodeTracingCoordinates.data(), 3*nodes.size(), MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(nodeTracingStepSize.data(), reducedNodeTracingStepSize.data(), nodes.size(), MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
          }
          for(uint n=0; n<nodes.size(); n++) {
             if(sumNodeNeedsContinuedTracing[n] > 0) {
@@ -1677,6 +1679,7 @@ namespace SBC {
                nodeTracingCoordinates[n][1] = sumNodeTracingCoordinates[n][1] / sumNodeNeedsContinuedTracing[n];
                nodeTracingCoordinates[n][2] = sumNodeTracingCoordinates[n][2] / sumNodeNeedsContinuedTracing[n];
             }
+            nodeTracingStepSize[n] = reducedNodeTracingStepSize[n];
          }
 
       } while(anyNodeNeedsTracing);
@@ -1684,10 +1687,8 @@ namespace SBC {
       std::vector<Real> reducedNodeDistance(nodes.size());
       if(sizeof(Real) == sizeof(double)) {
          MPI_Allreduce(nodeDistance.data(), reducedNodeDistance.data(), nodes.size(), MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-         MPI_Allreduce(nodeTracingStepSize.data(), reducedNodeTracingStepSize.data(), nodes.size(), MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
       } else {
          MPI_Allreduce(nodeDistance.data(), reducedNodeDistance.data(), nodes.size(), MPI_FLOAT, MPI_MIN, MPI_COMM_WORLD);
-         MPI_Allreduce(nodeTracingStepSize.data(), reducedNodeTracingStepSize.data(), nodes.size(), MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
       }
 
       // Reduce upmapped magnetic field to be consistent on all nodes
@@ -1721,8 +1722,6 @@ namespace SBC {
          sendxMapped[3*n+1] = no.xMapped[1];
          sendxMapped[3*n+2] = no.xMapped[2];
          sendCouplingNum[n] = no.haveCouplingData;
-         
-         nodeTracingStepSize[n] = reducedNodeTracingStepSize[n];
       }
       if(sizeof(Real) == sizeof(double)) { 
          MPI_Allreduce(sendUpmappedB.data(), reducedUpmappedB.data(), 3*nodes.size(), MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
