@@ -1493,6 +1493,16 @@ namespace SBC {
 
       // Fieldline tracing function
       TracingFieldFunction tracingField = [this, &perBGrid, &dPerBGrid, &technicalGrid](std::array<Real,3>& r, const bool alongB, std::array<Real,3>& b)->bool{
+         if(   r[0] > P::xmax - 2*P::dx_ini
+            || r[0] < P::xmin + 2*P::dx_ini
+            || r[1] > P::ymax - 2*P::dy_ini
+            || r[1] < P::ymin + 2*P::dy_ini
+            || r[2] > P::zmax - 2*P::dz_ini
+            || r[2] < P::zmin + 2*P::dz_ini
+         ) {
+            cerr << (string)("Oops! fsgrid coupling trying to step outside of the global domain?\n");
+            return false;
+         }
 
          bool success = true;
          
@@ -1515,7 +1525,7 @@ namespace SBC {
             + " for local domain size " + to_string(localSize[0]) + " " + to_string(localSize[1]) + " " + to_string(localSize[2])
             + " at position " + to_string(r[0]) + " " + to_string(r[1]) + " " + to_string(r[2]) + " radius " + to_string(sqrt(r[0]*r[0]+r[1]*r[1]+r[2]*r[2]))
             + "\n");
-            success = false;
+            return false;
          } else {
             if(technicalGrid.get(fsgridCell[0],fsgridCell[1],fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
                const std::array<Real, 3> perB = interpolatePerturbedB(
