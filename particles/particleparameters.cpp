@@ -287,6 +287,8 @@ bool ParticleParameters::getParameters() {
       return false;
    }
    propagation_direction = (dt < 0) ? -1 : 1;
+   Readparameters::get("particles.B_field_name",P::B_field_name);
+   Readparameters::get("particles.E_field_name",P::E_field_name);
    Readparameters::get("particles.V_field_name",P::V_field_name);
    Readparameters::get("particles.rho_field_name",P::rho_field_name);
    Readparameters::get("particles.divide_rhov_by_rho",P::divide_rhov_by_rho);

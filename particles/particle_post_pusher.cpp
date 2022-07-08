@@ -71,7 +71,9 @@ int main(int argc, char** argv) {
    E[0].dimension[1] = E[1].dimension[1] = B[0].dimension[1] = B[1].dimension[1] = V[0].dimension[1] = V[1].dimension[1] = R[0].dimension[1] = R[1].dimension[1] = ParticleParameters::boundary_behaviour_y;
    E[0].dimension[2] = E[1].dimension[2] = B[0].dimension[2] = B[1].dimension[2] = V[0].dimension[2] = V[1].dimension[2] = R[0].dimension[2] = R[1].dimension[2] = ParticleParameters::boundary_behaviour_z;
 
-   readfields(filename_buffer,E[1],B[1],V[1], R[1]);
+   Scenario* scenario = createScenario(ParticleParameters::mode);
+   // We always need bulk velocity, but not necessarily rho
+   readfields(filename_buffer,E[1],B[1],V[1], R[1], true, scenario->needRho);
    E[0]=E[1]; B[0]=B[1]; V[0]=V[1];  R[0]=R[1];
 
    // Set boundary conditions based on sizes
@@ -102,7 +104,6 @@ int main(int argc, char** argv) {
    int maxsteps = (ParticleParameters::end_time - ParticleParameters::start_time)/dt;
    Real filetime = ParticleParameters::start_time;    /* for use in static fields */
 
-   Scenario* scenario = createScenario(ParticleParameters::mode);
    ParticleContainer particles = scenario->initialParticles(E[0],B[0],V[0],R[0]);
 
    std::cerr << "Pushing " << particles.size() << " particles for " << maxsteps << " steps..." << std::endl;
