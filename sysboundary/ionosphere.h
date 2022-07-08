@@ -222,31 +222,37 @@ namespace SBC {
       //Field Line Tracing functions
       int ijk2Index(int i , int j ,int k ,std::array<int,3>dims); //3D to 1D indexing 
       typedef std::function<bool(std::array<Real,3>&, const bool, std::array<Real, 3>&)> TracingFieldFunction;
-      void bulirschStoerStep(
+      bool bulirschStoerStep(
          std::array<Real, 3>& r,
          std::array<Real, 3>& b,
-         Real& stepsize,Real maxStepsize,
+         Real& stepSize,
+         creal minStepSize,
+         creal maxStepSize,
          TracingFieldFunction& BFieldFunction,
          const bool outwards=true
       ); //Bulrisch Stoer step
       bool dormandPrinceStep(
          std::array<Real, 3>& r,
          std::array<Real, 3>& b,
-         Real& stepsize,Real maxStepsize,
+         Real& stepSize,
+         creal minStepSize,
+         creal maxStepSize,
          TracingFieldFunction& BFieldFunction,
          const bool outwards=true
       ); //Dormand Prince step
       bool adaptiveEulerStep(
          std::array<Real, 3>& r,
          std::array<Real, 3>& b,
-         Real& stepsize,Real maxStepsize,
+         Real& stepSize,
+         creal minStepSize,
+         creal maxStepSize,
          TracingFieldFunction& BFieldFunction,
          const bool outwards=true
       ); //Adaptive Euler step
       void eulerStep(
          std::array<Real, 3>& x,
          std::array<Real, 3>& v,
-         Real& stepsize,
+         Real& stepSize,
          TracingFieldFunction& BFieldFunction,
          const bool outwards=true
       ); //Euler step
@@ -254,7 +260,7 @@ namespace SBC {
          std::array<Real,3> r,
          std::array<Real,3>& r1,
          int n,
-         Real stepsize,
+         Real stepSize,
          TracingFieldFunction& BFieldFunction,
          const bool outwards=true
       ); // Modified Midpoint Method used by BS step
@@ -262,8 +268,9 @@ namespace SBC {
       void stepFieldLine(
          std::array<Real, 3>& x,
          std::array<Real, 3>& v,
-         Real& stepsize,
-         Real maxStepsize,
+         Real& stepSize,
+         creal minStepSize,
+         creal maxStepSize,
          IonosphereCouplingMethod method,
          TracingFieldFunction& BFieldFunction,
          const bool outwards=true
@@ -500,10 +507,11 @@ namespace SBC {
       static bool solverPreconditioning; /*!< Preconditioning for the CG solver */
       static bool solverUseMinimumResidualVariant; /*!< Use the minimum residual variant */
       static bool solverToggleMinimumResidualVariant; /*!< Toggle use of the minimum residual variant between solver restarts */
-      static Real shieldingLatitude; /*! Latitude (degree) below which the potential is zeroed in the equator gauge fixing scheme */
-      static Real ridleyParallelConductivity; /*! Constant parallel conductivity */
-      static Real max_allowed_error; // Maximum alowed error for the adaptive field line tracing methods
-      static uint32_t max_dormand_prince_attempts; // Max allowed attempts for the Dormand Prince tracer
+      static Real shieldingLatitude; /*!< Latitude (degree) below which the potential is zeroed in the equator gauge fixing scheme */
+      static Real ridleyParallelConductivity; /*!< Constant parallel conductivity */
+      static Real max_allowed_error; /*!< Maximum alowed error for the adaptive field line tracing methods */
+      static uint32_t max_field_tracer_attempts; /*!< Max allowed attempts for the iterative field tracers */
+      static Real min_tracer_dx; /*!< Min allowed tracer dx to avoid getting bogged down in the archipelago */
       
       // TODO: Make these parameters of the IonosphereGrid
       static Real recombAlpha; // Recombination parameter, determining atmosphere ionizability (parameter)

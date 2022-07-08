@@ -112,7 +112,8 @@ namespace SBC {
    Real Ionosphere::shieldingLatitude;
    enum Ionosphere::IonosphereConductivityModel Ionosphere::conductivityModel;
    Real  Ionosphere::max_allowed_error;
-   uint32_t  Ionosphere::max_dormand_prince_attempts;
+   uint32_t  Ionosphere::max_field_tracer_attempts;
+   Real Ionosphere::min_tracer_dx;
 
    // Offset field aligned currents so their sum is 0
    void SphericalTriGrid::offset_FAC() {
@@ -1110,8 +1111,9 @@ namespace SBC {
    bool SphericalTriGrid::dormandPrinceStep( 
       std::array<Real, 3>& r,
       std::array<Real, 3>& b,
-      Real& step,
-      Real maxStepsize,
+      Real& stepSize,
+      creal minStepSize,
+      creal maxStepSize,
       TracingFieldFunction& BFieldFunction,
       const bool outwards
     ){
@@ -1123,9 +1125,9 @@ namespace SBC {
       
       //K1 slope
       proceed = BFieldFunction(r,outwards,b_unit);
-      kx[0]=step*b_unit[0];
-      ky[0]=step*b_unit[1];
-      kz[0]=step*b_unit[2];
+      kx[0]=stepSize*b_unit[0];
+      ky[0]=stepSize*b_unit[1];
+      kz[0]=stepSize*b_unit[2];
       
       //K2 slope
       _r[0]=r[0]+(1./5.)*kx[0];
@@ -1134,9 +1136,9 @@ namespace SBC {
       if (proceed) {
          proceed = BFieldFunction(_r,outwards,b_unit);
       }
-      kx[1]=step*b_unit[0];
-      ky[1]=step*b_unit[1];
-      kz[1]=step*b_unit[2];
+      kx[1]=stepSize*b_unit[0];
+      ky[1]=stepSize*b_unit[1];
+      kz[1]=stepSize*b_unit[2];
    
       //K3 slope  
       _r[0]=r[0]+ (3./10.)*kx[1]; 
@@ -1145,9 +1147,9 @@ namespace SBC {
       if (proceed) {
          proceed = BFieldFunction(_r,outwards,b_unit);
       }
-      kx[2]=step*b_unit[0];
-      ky[2]=step*b_unit[1];
-      kz[2]=step*b_unit[2];
+      kx[2]=stepSize*b_unit[0];
+      ky[2]=stepSize*b_unit[1];
+      kz[2]=stepSize*b_unit[2];
       
       //K4 slope
       _r[0]=r[0]+(4./5.)*kx[2];  
@@ -1156,9 +1158,9 @@ namespace SBC {
       if (proceed) {
          proceed = BFieldFunction(_r,outwards,b_unit);
       }
-      kx[3]=step*b_unit[0];
-      ky[3]=step*b_unit[1];
-      kz[3]=step*b_unit[2];
+      kx[3]=stepSize*b_unit[0];
+      ky[3]=stepSize*b_unit[1];
+      kz[3]=stepSize*b_unit[2];
             
       //K5 slope  
       _r[0]=r[0]+(8./9.)*kx[3];   
@@ -1167,9 +1169,9 @@ namespace SBC {
       if (proceed) {
          proceed = BFieldFunction(_r,outwards,b_unit);
       }
-      kx[4]=step*b_unit[0];
-      ky[4]=step*b_unit[1];
-      kz[4]=step*b_unit[2];
+      kx[4]=stepSize*b_unit[0];
+      ky[4]=stepSize*b_unit[1];
+      kz[4]=stepSize*b_unit[2];
             
       //K6 slope
       _r[0]=r[0]+kx[4];  
@@ -1178,9 +1180,9 @@ namespace SBC {
       if (proceed) {
          proceed = BFieldFunction(_r,outwards,b_unit);
       }
-      kx[5]=step*b_unit[0];
-      ky[5]=step*b_unit[1];
-      kz[5]=step*b_unit[2];
+      kx[5]=stepSize*b_unit[0];
+      ky[5]=stepSize*b_unit[1];
+      kz[5]=stepSize*b_unit[2];
       
       //K7 slope 
       _r[0]=r[0]+ kx[5];  
@@ -1189,9 +1191,9 @@ namespace SBC {
       if (proceed) {
          proceed = BFieldFunction(_r,outwards,b_unit);
       }
-      kx[6]=step*b_unit[0];
-      ky[6]=step*b_unit[1];
-      kz[6]=step*b_unit[2];
+      kx[6]=stepSize*b_unit[0];
+      ky[6]=stepSize*b_unit[1];
+      kz[6]=stepSize*b_unit[2];
       
       Real err=0;
       std::array<Real,3>rf;
@@ -1209,16 +1211,14 @@ namespace SBC {
          //Estimate proper stepsize
          err=std::max( std::max(error_xyz[0], error_xyz[1]), error_xyz[2]);
          Real s=pow((Ionosphere::max_allowed_error/(2*err)),1./5.);
-         step=step*s;
+         stepSize=stepSize*s;
       } else { // proceed is false, we probably stepped too far
-         step /= 2;
+         stepSize /= 2;
       }
 
-      if (step>maxStepsize){
-//          std::cerr<<"Stepsize in Dormand Prince method exceeded the max Stepsize. Defaulting to maxStepsize"<<std::endl;
-         step=maxStepsize;
-      }
-      if (err>Ionosphere::max_allowed_error || !proceed){
+      stepSize = stepSize > maxStepSize ? maxStepSize : stepSize;
+      stepSize = stepSize < minStepSize ? minStepSize : stepSize;
+      if ((err>Ionosphere::max_allowed_error && stepSize > minStepSize) || !proceed){
          return false;
       }else{
          //Evaluate B at the final stepping point to get the b vector of the fieldline
@@ -1232,8 +1232,9 @@ namespace SBC {
    bool SphericalTriGrid::adaptiveEulerStep( 
       std::array<Real, 3>& r,
       std::array<Real, 3>& b,
-      Real& step,
-      Real maxStepsize,
+      Real& stepSize,
+      creal minStepSize,
+      creal maxStepSize,
       TracingFieldFunction& BFieldFunction,
       const bool outwards
     ){
@@ -1243,18 +1244,18 @@ namespace SBC {
       BFieldFunction(r,outwards,b);
 
       for(int c=0; c<3; c++) {
-         r1[c] = r[c]+ step * b[c];
+         r1[c] = r[c]+ stepSize * b[c];
       }
 
       //Second more accurate evaluation
       std::array<Real, 3> r2,b2;
       for(int c=0; c<3; c++) {
-         r2[c] = r[c]+ 0.5*step * b[c];
+         r2[c] = r[c]+ 0.5*stepSize * b[c];
       }
 
       BFieldFunction(r2,outwards,b2);
       for(int c=0; c<3; c++) {
-         r2[c] = r2[c]+ 0.5*step * b2[c];
+         r2[c] = r2[c]+ 0.5*stepSize * b2[c];
       }
 
       //Local error estimate
@@ -1262,26 +1263,29 @@ namespace SBC {
                                      fabs(r2[1]-r1[1]),
                                      fabs(r2[2]-r1[2])};
       //Max Error and step adjustment
-      Real err=std::max( std::max(error_xyz[0], error_xyz[1]), error_xyz[2]);
-      step=step*sqrt(Ionosphere::max_allowed_error/err);
-      if (step>maxStepsize){step=maxStepsize;}
-
-      if (err<=Ionosphere::max_allowed_error){
-         /* Note: B at r has been evaluated above so no need to do it here and we're not returning it anyway as it's not needed. */
+      creal err=std::max( std::max(error_xyz[0], error_xyz[1]), error_xyz[2]);
+      stepSize=stepSize*sqrt(Ionosphere::max_allowed_error/err);
+      stepSize = stepSize > maxStepSize ? maxStepSize : stepSize;
+      stepSize = stepSize < minStepSize ? minStepSize : stepSize;
+      
+      if (err<=Ionosphere::max_allowed_error || stepSize == minStepSize){
+         // Note: B at r has been evaluated above so no need to do it here and we're not returning it anyway as it's not needed.
          r=r2;
          return true;
       }else{
+         stepSize *= 0.9; // This is to avoid asymptotic convergence when the ratio above is very close to 1.
          return false;
       }
    }//Adaptive Euler  Step
 
 
    /*Bulirsch-Stoer Method to trace field line to next point along it*/
-   void SphericalTriGrid::bulirschStoerStep(
+   bool SphericalTriGrid::bulirschStoerStep(
       std::array<Real, 3>& r,
       std::array<Real, 3>& b,
-      Real& stepsize,
-      Real maxStepsize,
+      Real& stepSize,
+      creal minStepSize,
+      creal maxStepSize,
       TracingFieldFunction& BFieldFunction,
       const bool outwards
    ) {
@@ -1307,7 +1311,7 @@ namespace SBC {
       //Save old state
       rold = r;
       //Take a first Step
-      modifiedMidpointMethod(r,r1,n,stepsize,BFieldFunction,outwards);
+      modifiedMidpointMethod(r,r1,n,stepSize,BFieldFunction,outwards);
 
       //Save values in table
       for(int c =0; c<3; ++c){
@@ -1318,7 +1322,7 @@ namespace SBC {
 
          //Increment n by 2 at every iteration.
          n+=2;
-         modifiedMidpointMethod(r,rnew,n,stepsize,BFieldFunction,outwards);
+         modifiedMidpointMethod(r,rnew,n,stepSize,BFieldFunction,outwards);
 
          //Save values in table
          for(int c =0; c<3; ++c){
@@ -1332,22 +1336,24 @@ namespace SBC {
          error/=Ionosphere::max_allowed_error;
 
          //If we are below eps good, let's return but also let's modify the stepSize accordingly 
-         if (error<1.){
-            if (i> kOpt) stepsize*=shrink;
-            if (i< kOpt) stepsize*=grow;
+         if (error<1. || stepSize == minStepSize){
+            if (i> kOpt) stepSize*=shrink;
+            if (i< kOpt) stepSize*=grow;
             //Make sure stepsize does not exceed maxStepsize
-            stepsize= (stepsize<maxStepsize )?stepsize:maxStepsize;
+            stepSize = stepSize > maxStepSize ? maxStepSize : stepSize;
+            stepSize = stepSize < minStepSize ? minStepSize : stepSize;
             //Keep our new position
             r=rnew;
             //Evaluate B here
             BFieldFunction(r,outwards,b);
-            return;
+            return true;
          }
       }
 
       //If we end up  here it means our tracer did not converge so we need to reduce the stepSize all along and try again
-      stepsize*=shrink;
-      return;
+      stepSize*=shrink;
+      stepSize = stepSize < minStepSize ? minStepSize : stepSize;
+      return false;
 
    } //Bulirsch-Stoer Step 
 
@@ -1375,7 +1381,8 @@ namespace SBC {
       std::array<Real, 3>& x,
       std::array<Real, 3>& v,
       Real& stepsize,
-      Real maxStepsize,
+      creal minStepSize,
+      creal maxStepSize,
       IonosphereCouplingMethod method,
       TracingFieldFunction& BFieldFunction,
       const bool outwards
@@ -1387,22 +1394,25 @@ namespace SBC {
             eulerStep(x, v,stepsize, BFieldFunction, outwards);
             break;
          case ADPT_Euler:
-            do{
-               reTrace=!adaptiveEulerStep(x, v, stepsize, maxStepsize, BFieldFunction, outwards);
-               attempts+=1;
-            }while(reTrace && attempts<= Ionosphere::max_dormand_prince_attempts);
+            do {
+               reTrace=!adaptiveEulerStep(x, v, stepsize, minStepSize, maxStepSize, BFieldFunction, outwards);
+               attempts++;
+            } while (reTrace && attempts<= Ionosphere::max_field_tracer_attempts);
             if (reTrace){
                std::cerr<<"Adaptive Euler field line tracer exhausted all available attempts and still did not converge..."<<std::endl;
             }
             break;
          case BS:
-            bulirschStoerStep(x, v, stepsize, maxStepsize, BFieldFunction, outwards);
+            do{
+               reTrace=!bulirschStoerStep(x, v, stepsize, minStepSize, maxStepSize, BFieldFunction, outwards);
+               attempts++;
+            } while (reTrace && attempts<= Ionosphere::max_field_tracer_attempts);
             break;
          case DPrince:
-            do{
-               reTrace=!dormandPrinceStep(x, v, stepsize, maxStepsize, BFieldFunction, outwards);
-               attempts+=1;
-            }while(reTrace && attempts<= Ionosphere::max_dormand_prince_attempts);
+            do {
+               reTrace=!dormandPrinceStep(x, v, stepsize, minStepSize, maxStepSize, BFieldFunction, outwards);
+               attempts++;
+            } while (reTrace && attempts<= Ionosphere::max_field_tracer_attempts);
             if (reTrace){
                std::cerr<<"Dormand Prince field line tracer exhausted all available attempts and still did not converge..."<<std::endl;
             }
@@ -1597,8 +1607,8 @@ namespace SBC {
 
 
                   // Make one step along the fieldline
-                  stepFieldLine(x,v, nodeTracingStepSize[n],technicalGrid.DX/2,couplingMethod,tracingField,(no.x[2] < 0));
-   
+                  stepFieldLine(x,v, nodeTracingStepSize[n],Ionosphere::min_tracer_dx,technicalGrid.DX/2,couplingMethod,tracingField,(no.x[2] < 0));
+                  
                   // Look up the fsgrid cell belonging to these coordinates
                   fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
                   std::array<Real, 3> interpolationFactor=getFractionalFsGridCellForCoord(technicalGrid,x);
@@ -1806,7 +1816,7 @@ namespace SBC {
       while(sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]) > Ionosphere::innerRadius) {
 
          // Make one step along the fieldline
-         stepFieldLine(x,v, stepSize,100e3,couplingMethod,dipoleFieldOnly,false);
+         stepFieldLine(x,v, stepSize,50e3,100e3,couplingMethod,dipoleFieldOnly,false);
 
          // If the field lines is moving even further outwards, abort.
          // (this shouldn't happen under normal magnetospheric conditions, but who
@@ -2072,7 +2082,7 @@ namespace SBC {
 
                   // Make one step along the fieldline
                   // If the node is in the North, trace along -B (false for last argument), in the South, trace along B
-                  stepFieldLine(x,v, nodeTracingStepSize[n],technicalGrid.DX/2,couplingMethod,tracingFullField,(no.x[2] < 0));
+                  stepFieldLine(x,v, nodeTracingStepSize[n],Ionosphere::min_tracer_dx,technicalGrid.DX/2,couplingMethod,tracingFullField,(no.x[2] < 0));
                   nodeTracingStepCount[n]++;
                   
                   // Look up the fsgrid cell belonging to these coordinates
@@ -2372,7 +2382,7 @@ namespace SBC {
                   
                   // Make one step along the fieldline
                   // Forward tracing means true for last argument
-                  stepFieldLine(x,v, cellFWTracingStepSize[n],technicalGrid.DX/2,couplingMethod,tracingFullField,true);
+                  stepFieldLine(x,v, cellFWTracingStepSize[n],100e3,technicalGrid.DX/2,couplingMethod,tracingFullField,true);
                   
                   // Look up the fsgrid cell belonging to these coordinates
                   fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
@@ -2440,7 +2450,7 @@ namespace SBC {
                   
                   // Make one step along the fieldline
                   // Backward tracing means false for last argument
-                  stepFieldLine(x,v, cellBWTracingStepSize[n],technicalGrid.DX/2,couplingMethod,tracingFullField,false);
+                  stepFieldLine(x,v, cellBWTracingStepSize[n],Ionosphere::min_tracer_dx,technicalGrid.DX/2,couplingMethod,tracingFullField,false);
                   
                   // Look up the fsgrid cell belonging to these coordinates
                   fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
@@ -3755,7 +3765,8 @@ namespace SBC {
       Readparameters::add("ionosphere.couplingTimescale", "Magnetosphere->Ionosphere coupling timescale (seconds, 0=immediate coupling", 1.);
       Readparameters::add("ionosphere.couplingInterval", "Time interval at which the ionosphere is solved (seconds)", 0);
       Readparameters::add("ionosphere.tracer_max_allowed_error", "Maximum allowed error for the adaptive field line tracers ", 1000);
-      Readparameters::add("ionosphere.dp_max_attempts", "Maximum allowed attempts for the Dormand Prince Field Line Tracer", 100);
+      Readparameters::add("ionosphere.tracer_max_attempts", "Maximum allowed attempts for the adaptive field line tracers", 100);
+      Readparameters::add("ionosphere.tracer_min_dx", "Minimum allowed field line tracer step length for the adaptive field line tracers (m)", 100e3);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
@@ -3837,7 +3848,8 @@ namespace SBC {
       Readparameters::get("ionosphere.unmappedNodeRho", unmappedNodeRho);
       Readparameters::get("ionosphere.unmappedNodeTe",  unmappedNodeTe);
       Readparameters::get("ionosphere.tracer_max_allowed_error", max_allowed_error);
-      Readparameters::get("ionosphere.dp_max_attempts", max_dormand_prince_attempts);
+      Readparameters::get("ionosphere.tracer_max_attempts", max_field_tracer_attempts);
+      Readparameters::get("ionosphere.tracer_min_dx", min_tracer_dx);
       Readparameters::get("ionosphere.innerRadius", innerRadius);
       Readparameters::get("ionosphere.refineMinLatitude",refineMinLatitudes);
       Readparameters::get("ionosphere.refineMaxLatitude",refineMaxLatitudes);
