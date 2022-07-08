@@ -37,7 +37,7 @@
 std::vector<uint64_t> readCellIds(vlsvinterface::Reader& r);
 
 template <class Reader>
-bool isFsGrid(Reader& r, std::string& name, unsigned int numcomponents) {
+bool isFsGrid(Reader& r, std::string& name) {
 
    uint64_t arraySize=0;
    uint64_t vectorSize=0;
@@ -222,53 +222,46 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
    std::vector<uint64_t> cellIds = readCellIds(r);
 
    /* Also read the raw field data */
-   std::vector<double> Bbuffer;
-   std::vector<double> Ebuffer;
-   std::vector<double> rho_v_buffer,rho_buffer;
-   std::string name(ParticleParameters::B_field_name);
-   if (name == "fg_b" || name == "fg_b_background") {
-      Bbuffer = readFsGridData(r,name,3u);
-      if (name == "fg_b_background") {
-         name = "fg_b_perturbed";
-         std::vector<double> perturbedBbuffer = readFsGridData(r,name,3u);
-         for (int i = 0; i < Bbuffer.size(); ++i) {
-            Bbuffer[i] += perturbedBbuffer[i];
+   std::vector<Field*> fields {&E, &B};
+   std::vector<std::string> names {ParticleParameters::B_field_name, ParticleParameters::E_field_name};
+   if (doV) {
+      fields.push_back(&V);
+      names.push_back(ParticleParameters::V_field_name);
+   }
+
+   // Rho is an exception
+
+   std::vector<bool> onFsGrid;
+   std::vector<std::vector<double>> buffers;
+   std::vector<double> rho_buffer;
+
+   for (int i = 0; i < fields.size(); ++i) {
+      onFsGrid.push_back(isFsGrid(r, names[i]));
+      buffers.push_back(onFsGrid[i] ? readFsGridData(r, names[i], 3u) : readFieldData(r, names[i], 3u));
+
+      // Special cases for background B
+      if (i == 0) {
+         if (names[i] == "fg_b_background") {
+            std::string name{"fg_b_perturbed"};
+            std::vector<double> perturbedBBuffer = readFsGridData(r, name, 3u);
+            for (int j = 0; j < buffers[i].size(); ++j)
+               buffers[i][j] += perturbedBBuffer[j];
+         } else if (names[i] == "vg_b_background_vol") {
+            std::string name{"vg_b_perturbed_vol"};
+            std::vector<double> perturbedBBuffer = readFieldData(r, name, 3u);
+            for (int j = 0; j < buffers[i].size(); ++j)
+               buffers[i][j] += perturbedBBuffer[j];
          }
       }
-      name = ParticleParameters::E_field_name;
-      Ebuffer = readFsGridData(r,name,3u);
-      for (int i = 0; i < cellIds.size(); ++i) {
-         cellIds[i] = i+1;
-      }
 
-      if(doV) {
-         name = ParticleParameters::V_field_name;
+      // Take rho to be on same grid as V
+      if (i == 2 && ParticleParameters::divide_rhov_by_rho) {
+         rho_buffer = onFsGrid[i] ? readFsGridData(r, ParticleParameters::rho_field_name, 1u) : readFieldData(r, ParticleParameters::rho_field_name, 1u);
 
-         rho_v_buffer = readFsGridData(r,name,3u);
-         if(ParticleParameters::divide_rhov_by_rho) {
-            name = ParticleParameters::rho_field_name;
-            rho_buffer = readFsGridData(r,name,1u);
-         }
-      }
-   } else {
-      Bbuffer = readFieldData(r,name,3u);
-      if (name == "vg_b_background_vol") {
-         name = "vg_b_perturbed_vol";
-         std::vector<double> perturbedBbuffer = readFieldData(r,name,3u);
-         for (int i = 0; i < Bbuffer.size(); ++i) {
-            Bbuffer[i] += perturbedBbuffer[i];
-         }
-      }
-      name = ParticleParameters::E_field_name;
-      Ebuffer = readFieldData(r,name,3u);
-
-      if(doV) {
-         name = ParticleParameters::V_field_name;
-
-         rho_v_buffer = readFieldData(r,name,3u);
-         if(ParticleParameters::divide_rhov_by_rho) {
-            name = ParticleParameters::rho_field_name;
-            rho_buffer = readFieldData(r,name,1u);
+         for (int j = 0; j < rho_buffer.size(); ++j) {
+            buffers[i][3*j] /= rho_buffer[j];
+            buffers[i][3*j+1] /= rho_buffer[j];
+            buffers[i][3*j+2] /= rho_buffer[j];
          }
       }
    }
@@ -276,13 +269,13 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
    std::vector<double> ptdnbs_buffer;
    std::vector<double> rhonbs_buffer;
    std::vector<double> pressure_buffer;
-
    std::string rhonbs_name("RhoNonBackstream");
    std::string ptdnbs_name("PTensorNonBackstreamDiagonal");
    std::string pressure_name("PTensorDiagonal");
 
    if(doRho) {
-      rho_buffer = readFieldData(r,ParticleParameters::rho_field_name,1u);
+      if (!(doV && ParticleParameters::divide_rhov_by_rho))
+         rho_buffer = isFsGrid(r, ParticleParameters::rho_field_name) ? readFsGridData(r, ParticleParameters::rho_field_name, 1u) : readFieldData(r, ParticleParameters::rho_field_name, 1u);
       ptdnbs_buffer = readFieldData(r,ptdnbs_name,3u);
       rhonbs_buffer = readFieldData(r,rhonbs_name,1u);   
       pressure_buffer = readFieldData(r,pressure_name,3u);
@@ -321,41 +314,19 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
    if(doRho) {
      R.data.resize(4*cells[0]*cells[1]*cells[2]);
    }
-
+ 
    /* Sanity-check stored data sizes */
-   if(3*cellIds.size() != Bbuffer.size()) {
-      std::cerr << "3 * cellIDs.size (" << cellIds.size() << ") != Bbuffer.size (" << Bbuffer.size() << ")!"
-         << std::endl;
-      exit(1);
+   for (int i = 0; i < buffers.size(); ++i) {
+      if(3*cellIds.size() != buffers[i].size()) {
+         std::cerr << "3 * cellIDs.size (" << cellIds.size() << ") != buffers[" << i << "].size (" << buffers[i].size() << ")!" << std::endl;
+         exit(1);
+      }
    }
-   if(3*cellIds.size() != Ebuffer.size()) {
-      std::cerr << "3 * cellIDs.size (" << cellIds.size() << ") != Ebuffer.size (" << Ebuffer.size() << ")!"
-         << std::endl;
-      exit(1);
-   }
-   if(doV) {
-     if(3*cellIds.size() != rho_v_buffer.size()) {
-        std::cerr << "3 * cellIDs.size (" << cellIds.size() << ") != rho_v_buffer.size (" << rho_v_buffer.size() << ")!"
-           << std::endl;
-        exit(1);
-     }
-     if(cellIds.size() != rho_buffer.size()) {
-        std::cerr << "cellIDs.size (" << cellIds.size() << ") != rho_buffer.size (" << rho_buffer.size() << ")!"
-           << std::endl;
-        exit(1);
-     }
-     if(ParticleParameters::divide_rhov_by_rho && cellIds.size() != rho_buffer.size()) {
-        std::cerr << "cellIDs.size (" << cellIds.size() << ") != rho_buffer.size (" << rho_buffer.size() << ")!"
-           << std::endl;
-        exit(1);
-     }
-   }
-   if(doRho) {
-     if(cellIds.size() != rho_buffer.size()) {
-       std::cerr << "cellIDs.size (" << cellIds.size() << ") != rho_buffer.size (" << rho_buffer.size() << ")!"
-		 << std::endl;
-       exit(1);
-     }
+   if(doRho || (doV && ParticleParameters::divide_rhov_by_rho)) {
+      if(cellIds.size() != rho_buffer.size()) {
+         std::cerr << "cellIDs.size (" << cellIds.size() << ") != rho_buffer.size (" << rho_buffer.size() << ")!" << std::endl;
+         exit(1);
+      }
    }
 
    // Make sure the target fields have boundary data.
@@ -383,35 +354,24 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
       int64_t x = c % cells[0];
       int64_t y = (c /cells[0]) % cells[1];
       int64_t z = c /(cells[0]*cells[1]);
+      int64_t x_fg = i % cells[0];
+      int64_t y_fg = (i /cells[0]) % cells[1];
+      int64_t z_fg = i /(cells[0]*cells[1]);
 
-      double* Etgt = E.getCellRef(x,y,z);
-      double* Btgt = B.getCellRef(x,y,z);
-      Etgt[0] = Ebuffer[3*i];
-      Etgt[1] = Ebuffer[3*i+1];
-      Etgt[2] = Ebuffer[3*i+2];
-      Btgt[0] = Bbuffer[3*i];
-      Btgt[1] = Bbuffer[3*i+1];
-      Btgt[2] = Bbuffer[3*i+2];
-
-      if(doV) {
-         double* Vtgt = V.getCellRef(x,y,z);
-         if(ParticleParameters::divide_rhov_by_rho) {
-            Vtgt[0] = rho_v_buffer[3*i] / rho_buffer[i];
-            Vtgt[1] = rho_v_buffer[3*i+1] / rho_buffer[i];
-            Vtgt[2] = rho_v_buffer[3*i+2] / rho_buffer[i];
-         } else {
-            Vtgt[0] = rho_v_buffer[3*i];
-            Vtgt[1] = rho_v_buffer[3*i+1];
-            Vtgt[2] = rho_v_buffer[3*i+2];
-         }
+      for (int j = 0; j < fields.size(); ++j) {
+         double* tgt = onFsGrid[j] ? fields[j]->getCellRef(x_fg, y_fg, z_fg) : fields[j]->getCellRef(x, y, z);
+         tgt[0] = buffers[j][3 * i];
+         tgt[1] = buffers[j][3 * i + 1];
+         tgt[2] = buffers[j][3 * i + 2];
       }
+
       if(doRho) {
          double* Rtgt = R.getCellRef(x,y,z);
          Rtgt[0] = rho_buffer[i];	
          // Pressure-nonbackstreaming = (ptdnbs_buffer[3*i]+ptdnbs_buffer[3*i+1]+ptdnbs_buffer[3*i+2])*(1./3.)
          Rtgt[1] = ((ptdnbs_buffer[3*i]+ptdnbs_buffer[3*i+1]+ptdnbs_buffer[3*i+2])*(1./3.)) / ((1.+rhonbs_buffer[i])*1.38065e-23);
          // Magnetosonic speed
-         Real Bmag2 = std::pow(Bbuffer[3*i],2) + std::pow(Bbuffer[3*i+1],2) + std::pow(Bbuffer[3*i+2],2);
+         Real Bmag2 = std::pow(buffers[0][3*i],2) + std::pow(buffers[0][3*i+1],2) + std::pow(buffers[0][3*i+2],2);
          Real va2 = Bmag2/(1.25663706144e-6 * 1.672622e-27 * rho_buffer[i]);
          Real pressure = (1./3.)*(pressure_buffer[3*i]+pressure_buffer[3*i+1]+pressure_buffer[3*i+2]);	
          Real vs2 = (pressure * (5./3.))/( 1.672622e-27 * rho_buffer[i] );
