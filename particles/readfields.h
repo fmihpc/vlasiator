@@ -223,7 +223,7 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
 
    /* Also read the raw field data */
    std::vector<Field*> fields {&E, &B};
-   std::vector<std::string> names {ParticleParameters::B_field_name, ParticleParameters::E_field_name};
+   std::vector<std::string> names {ParticleParameters::E_field_name, ParticleParameters::B_field_name};
    if (doV) {
       fields.push_back(&V);
       names.push_back(ParticleParameters::V_field_name);
@@ -240,7 +240,7 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
       buffers.push_back(onFsGrid[i] ? readFsGridData(r, names[i], 3u) : readFieldData(r, names[i], 3u));
 
       // Special cases for background B
-      if (i == 0) {
+      if (i == 1) {
          if (names[i] == "fg_b_background") {
             std::string name{"fg_b_perturbed"};
             std::vector<double> perturbedBBuffer = readFsGridData(r, name, 3u);
