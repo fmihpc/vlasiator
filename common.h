@@ -192,6 +192,8 @@ namespace CellParams {
       CONNECTION, /*!< Magnetic connection. */
       FWCONNECTION, /*!< Magnetic connection. */ // REMOVE BEFORE MERGING !!
       BWCONNECTION, /*!< Magnetic connection. */ // REMOVE BEFORE MERGING !!
+      FWTRACINGSTEPCOUNT,  // REMOVE BEFORE MERGING !!
+      BWTRACINGSTEPCOUNT,  // REMOVE BEFORE MERGING !!
       N_SPATIAL_CELL_PARAMS
    };
 }

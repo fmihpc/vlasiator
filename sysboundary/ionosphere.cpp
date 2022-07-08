@@ -1477,7 +1477,6 @@ namespace SBC {
       std::vector<Real> nodeTracingStepSize(nodes.size(), stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
       std::vector<Real> reducedNodeTracingStepSize(nodes.size());
       
-
       std::vector<Real> nodeDistance(nodes.size(), std::numeric_limits<Real>::max()); // For reduction of node coordinate in case of multiple hits
       std::vector<int> nodeNeedsContinuedTracing(nodes.size(), 1);                    // Flag, whether tracing needs to continue on another task
       std::vector<std::array<Real, 3>> nodeTracingCoordinates(nodes.size());          // In-flight node upmapping coordinates (for global reduction)
@@ -1564,7 +1563,9 @@ namespace SBC {
          return success;
       };
 
+      int toto = 0;
       do {
+         toto++;
          anyNodeNeedsTracing = false;
 
          #pragma omp parallel
@@ -1684,13 +1685,15 @@ namespace SBC {
 
       } while(anyNodeNeedsTracing);
       
+      logFile << "fsgrid coupling traced in " << toto << " iterations of the tracing loop." << endl;
+      
       std::vector<Real> reducedNodeDistance(nodes.size());
       if(sizeof(Real) == sizeof(double)) {
          MPI_Allreduce(nodeDistance.data(), reducedNodeDistance.data(), nodes.size(), MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
       } else {
          MPI_Allreduce(nodeDistance.data(), reducedNodeDistance.data(), nodes.size(), MPI_FLOAT, MPI_MIN, MPI_COMM_WORLD);
       }
-
+      
       // Reduce upmapped magnetic field to be consistent on all nodes
       std::vector<Real> sendUpmappedB(3 * nodes.size());
       std::vector<Real> reducedUpmappedB(3 * nodes.size());
@@ -1700,6 +1703,7 @@ namespace SBC {
       // And coupling rank number
       std::vector<int> sendCouplingNum(nodes.size());
       std::vector<int> reducedCouplingNum(nodes.size());
+            
       for(uint n=0; n<nodes.size(); n++) {
          Node& no = nodes[n];
          // Discard false hits from cells that are further out from the node
@@ -1731,9 +1735,10 @@ namespace SBC {
          MPI_Allreduce(sendxMapped.data(), reducedxMapped.data(), 3*nodes.size(), MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
       }
       MPI_Allreduce(sendCouplingNum.data(), reducedCouplingNum.data(), nodes.size(), MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+      
       for(uint n=0; n<nodes.size(); n++) {
          Node& no = nodes[n];
-
+         
          // We don't even care about nodes that couple nowhere.
          if(reducedCouplingNum[n] == 0) {
             continue;
@@ -1944,6 +1949,9 @@ namespace SBC {
       std::vector<uint64_t> nodeStepCounter(nodes.size(), 0);                                 /*!< Count number of field line tracing steps */
       std::vector<int> nodeNeedsContinuedTracing(nodes.size(), 1);                    /*!< Flag, whether tracing needs to continue on another task */
       std::vector<std::array<Real, 3>> nodeTracingCoordinates(nodes.size());          /*!< In-flight node upmapping coordinates (for global reduction) */
+      
+      std::vector<int> nodeTracingStepCount(nodes.size());
+      
       for(uint n=0; n<nodes.size(); n++) {
          nodeTracingCoordinates.at(n) = nodes.at(n).x;
       }
@@ -2018,9 +2026,11 @@ namespace SBC {
          return true;
       };
 
+      int toto=0;
       bool warnMaxStepsExceeded = false;
       do {
          anyNodeNeedsTracing = false;
+         toto++;
 
 #pragma omp parallel
 {
@@ -2063,6 +2073,7 @@ namespace SBC {
                   // Make one step along the fieldline
                   // If the node is in the North, trace along -B (false for last argument), in the South, trace along B
                   stepFieldLine(x,v, nodeTracingStepSize[n],technicalGrid.DX/2,couplingMethod,tracingFullField,(no.x[2] < 0));
+                  nodeTracingStepCount[n]++;
                   
                   // Look up the fsgrid cell belonging to these coordinates
                   fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
@@ -2129,6 +2140,8 @@ namespace SBC {
          }
       } while(anyNodeNeedsTracing);
       
+      logFile << "open-closed tracing traced in " << toto << " iterations of the tracing loop." << endl;
+      
       bool redWarning = false;
       MPI_Allreduce(&warnMaxStepsExceeded, &redWarning, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
       
@@ -2137,10 +2150,13 @@ namespace SBC {
       }
       
       std::vector<int> reducedNodeMapping(nodes.size());
+      std::vector<int> reducedNodeTracingStepCount(nodes.size());
       MPI_Allreduce(nodeMapping.data(), reducedNodeMapping.data(), nodes.size(), MPI_INT, MPI_MAX, MPI_COMM_WORLD);
-
+      MPI_Allreduce(nodeTracingStepCount.data(), reducedNodeTracingStepCount.data(), nodes.size(), MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+      
       for(uint n=0; n<nodes.size(); n++) {
          nodes[n].openFieldLine = reducedNodeMapping.at(n);
+         nodes[n].tracingStepCount = reducedNodeTracingStepCount[n];
       }
 
       phiprof::stop("ionosphere-openclosedTracing");
@@ -2187,6 +2203,8 @@ namespace SBC {
       std::vector<int> cellNeedsContinuedBWTracing(globalDccrgSize, 1);                    /*!< Flag, whether tracing needs to continue on another task */
       std::vector<std::array<Real, 3>> cellFWTracingCoordinates(globalDccrgSize);          /*!< In-flight node upmapping coordinates (for global reduction) */
       std::vector<std::array<Real, 3>> cellBWTracingCoordinates(globalDccrgSize);          /*!< In-flight node upmapping coordinates (for global reduction) */
+      std::vector<int> cellFWTracingStepCount(globalDccrgSize, 0);
+      std::vector<int> cellBWTracingStepCount(globalDccrgSize, 0);
       
       // These guys are needed in the reductions at the bottom of the tracing loop.
       std::vector<int> reducedCellNeedsContinuedFWTracing(globalDccrgSize, 0);
@@ -2309,11 +2327,16 @@ namespace SBC {
          return true;
       };
       
+      int toto = 0;
       bool warnMaxStepsExceeded = false;
       phiprof::start("loop");
 #pragma omp parallel
 {
       do { // while(anyCellNeedsTracing)
+#pragma omp master
+         {
+            toto++;
+         }
          // Trace node coordinates forward and backwards until a non-sysboundary cell is encountered or the local fsgrid domain has been left.
          #pragma omp for schedule(dynamic)
          for(int n=0; n<globalDccrgSize; n++) {
@@ -2460,8 +2483,8 @@ namespace SBC {
          //          cerr << stringi;
          
          // Globally reduce whether any node still needs to be picked up and traced onwards
-         phiprof::start("MPI-loop");
          #pragma omp barrier
+         phiprof::start("MPI-loop");
          #pragma omp master
          {
             MPI_Allreduce(cellNeedsContinuedFWTracing.data(), reducedCellNeedsContinuedFWTracing.data(), globalDccrgSize, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
@@ -2516,6 +2539,8 @@ namespace SBC {
 } // pragma omp parallel
       phiprof::stop("loop");
       
+      logFile << "full box tracing traced in " << toto << " iterations of the tracing loop." << endl;
+      
       bool redWarning = false;
       MPI_Allreduce(&warnMaxStepsExceeded, &redWarning, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
       
@@ -2545,6 +2570,8 @@ namespace SBC {
             mpiGrid[id]->parameters[CellParams::CONNECTION] = 9; // unprocessed
             mpiGrid[id]->parameters[CellParams::FWCONNECTION] = reducedCellFWConnection[n];
             mpiGrid[id]->parameters[CellParams::BWCONNECTION] = reducedCellBWConnection[n];
+            mpiGrid[id]->parameters[CellParams::FWTRACINGSTEPCOUNT] = maxCellFWStepCounter[n];
+            mpiGrid[id]->parameters[CellParams::BWTRACINGSTEPCOUNT] = maxCellBWStepCounter[n];
             if (reducedCellFWConnection[n] == 2 && reducedCellBWConnection[n] == 2) {
                mpiGrid[id]->parameters[CellParams::CONNECTION] = 0; // closed-closed
             }
