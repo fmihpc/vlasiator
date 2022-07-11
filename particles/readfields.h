@@ -43,20 +43,20 @@ bool isFsGrid(Reader& r, std::string& name) {
    uint64_t vectorSize=0;
    uint64_t byteSize=0;
    vlsv::datatype::type dataType;
-   std::list<std::pair<std::string,std::string> > attribs;
-   attribs.push_back(std::pair<std::string,std::string>("name",name));
-   if( r.getArrayInfo("VARIABLE",attribs, arraySize,vectorSize,dataType,byteSize) == false ) {
-      std::cerr << "getArrayInfo returned false when trying to read VARIABLE \""
+   std::list<std::pair<std::string,std::string>> attribsIn;
+   std::map<std::string, std::string> attribsOut;
+
+   attribsIn.push_back(std::pair<std::string,std::string>("name",name));
+   if (!r.getArrayAttributes("VARIABLE",attribsIn, attribsOut)) {
+      std::cerr << "getArrayAttributes returned false when trying to read VARIABLE \""
          << name << "\"." << std::endl;
       exit(1);
    }
 
-   for (auto attrib : attribs)
-      if (attrib.first == "mesh")
-         if (attrib.second == "fsgrid")
-            return true;
-
-   return false;
+   if (attribsOut.count("mesh"))
+      return attribsOut["mesh"] == "fsgrid";
+   else
+      return false;
 }
 
 /* Read the "raw" field data in file order */
@@ -297,9 +297,9 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
       r.readParameter("time",time);
    }
 
-   std::cout <<"cells "<<cells[0]<<" "<<cells[1]<<" "<<cells[2]<< std::endl;
-   std::cout <<" min "<<min[0]<<" "<<min[1]<<" "<<min[2]<<" "<< std::endl;
-   std::cout <<" max "<<max[0]<<" "<<max[1]<<" "<<max[2]<<" "<< std::endl;
+   std::cerr <<"cells "<<cells[0]<<" "<<cells[1]<<" "<<cells[2]<< std::endl;
+   std::cerr <<" min "<<min[0]<<" "<<min[1]<<" "<<min[2]<<" "<< std::endl;
+   std::cerr <<" max "<<max[0]<<" "<<max[1]<<" "<<max[2]<<" "<< std::endl;
 
    //std::cerr << "Grid is " << cells[0] << " x " << cells[1] << " x " << cells[2] << " Cells, " << std::endl
    //          << " with dx = " << ((max[0]-min[0])/cells[0]) << ", dy = " << ((max[1]-min[1])/cells[1])
