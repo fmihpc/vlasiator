@@ -122,16 +122,19 @@ std::vector<double> readFsGridData(Reader& r, std::string& name, unsigned int nu
    }
 
    // Are we restarting from the same number of tasks, or a different number?
+   attribs.clear();
+   attribs.push_back({"mesh", "fsgrid"});
    std::array<int, 3> size;
-   r.readParameter("xcells_ini",size[0]);
-   r.readParameter("ycells_ini",size[1]);
+   int* size_buf = size.data();
+   if (r.read("MESH_BBOX", attribs, 0, 3, size_buf, false) == false) {
+      std::cerr << "Failed to read fsgrid bbox" << std::endl;
+      exit(1);
+   }
+
    r.readParameter("zcells_ini",size[2]);
-
-
    // Determine our tasks storage size
-   size_t storageSize = size[0]*size[1]*size[2];
-   std::vector<Real> buffer(storageSize*numcomponents);
-   std::vector<Real> readBuffer(storageSize*numcomponents);
+   std::vector<Real> buffer(arraySize * vectorSize);
+   std::vector<Real> readBuffer(arraySize * vectorSize);
 
    if(r.readArray("VARIABLE",attribs,0,arraySize, readBuffer.data()) == false) {
       std::cerr << "readFsGridData failed when trying to read VARIABLE \"" << name << "\"." << std::endl;
@@ -297,7 +300,16 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
       r.readParameter("time",time);
    }
 
+   std::list<std::pair<std::string, std::string> > attribs;
+   attribs.push_back({"mesh", "fsgrid"});
+   std::array<int, 3> cells_fg {};
+   int* size_buf = cells_fg.data();
+   if (r.read("MESH_BBOX", attribs, 0, 3, size_buf, false) == false) {
+      std::cerr << "Failed to read fsgrid bbox" << std::endl;
+   }
+
    std::cerr <<"cells "<<cells[0]<<" "<<cells[1]<<" "<<cells[2]<< std::endl;
+   std::cerr <<"cells_fg "<<cells_fg[0]<<" "<<cells_fg[1]<<" "<<cells_fg[2]<< std::endl;
    std::cerr <<" min "<<min[0]<<" "<<min[1]<<" "<<min[2]<<" "<< std::endl;
    std::cerr <<" max "<<max[0]<<" "<<max[1]<<" "<<max[2]<<" "<< std::endl;
 
@@ -305,19 +317,15 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
    //          << " with dx = " << ((max[0]-min[0])/cells[0]) << ", dy = " << ((max[1]-min[1])/cells[1])
    //          << ", dz = " << ((max[2]-min[2])/cells[2]) << "." << std::endl;
 
-   /* Allocate space for the actual field structures */
-   E.data.resize(4*cells[0]*cells[1]*cells[2]);
-   B.data.resize(4*cells[0]*cells[1]*cells[2]);
-   if(doV) {
-     V.data.resize(4*cells[0]*cells[1]*cells[2]);
-   }
-   if(doRho) {
-     R.data.resize(4*cells[0]*cells[1]*cells[2]);
-   }
+   // Allocate space for the actual field structures
+   for (int i = 0; i < fields.size(); ++i)
+      fields[i]->data.resize(4 * buffers[i].size() / 3);
+   if(doRho)
+      R.data.resize(4 * cellIds.size());
  
-   /* Sanity-check stored data sizes */
+   // Sanity-check stored data sizes
    for (int i = 0; i < buffers.size(); ++i) {
-      if(3*cellIds.size() != buffers[i].size()) {
+      if(onFsGrid[i] ? 3 * cells_fg[0] * cells_fg[1] * cells_fg[2] != buffers[i].size() : 3 * cellIds.size() != buffers[i].size()) {
          std::cerr << "3 * cellIDs.size (" << cellIds.size() << ") != buffers[" << i << "].size (" << buffers[i].size() << ")!" << std::endl;
          exit(1);
       }
@@ -336,46 +344,80 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
       E.dimension[1] = B.dimension[1] = V.dimension[1] = R.dimension[1] = createBoundary<OpenBoundary>(1);
       E.dimension[2] = B.dimension[2] = V.dimension[2] = R.dimension[2] = createBoundary<OpenBoundary>(2);
    }
-   /* Set field sizes */
-   for(int i=0; i<3;i++) {
-      /* Volume-centered values -> shift by half a cell in all directions*/
-      E.dx[i] = B.dx[i] = V.dx[i] = R.dx[i]= (max[i]-min[i])/cells[i];
-      double shift = E.dx[i]/2;
-      E.dimension[i]->min = B.dimension[i]->min = V.dimension[i]->min = R.dimension[i]->min = min[i]+shift;
-      E.dimension[i]->max = B.dimension[i]->max = V.dimension[i]->max = R.dimension[i]->max = max[i]+shift;
-      E.dimension[i]->cells = B.dimension[i]->cells = V.dimension[i]->cells = R.dimension[i]->cells = cells[i];
+
+   // Set field sizes
+   for (int idx = 0; idx < fields.size(); ++idx) {
+      for (int i = 0; i < 3; i++) {
+         int dim_cells {onFsGrid[idx] ? cells_fg[i] : cells[i]};
+         fields[idx]->dx[i] = (max[i]-min[i]) / dim_cells;
+
+         // Volume-centered values -> shift by half a cell in all directions
+         // TODO: Is this true for all possible input fields?
+         double shift = fields[idx]->dx[i] / 2;
+         fields[idx]->dimension[i]->min = min[i] + shift;
+         fields[idx]->dimension[i]->max = max[i] + shift;
+         fields[idx]->dimension[i]->cells = dim_cells;
+      }
    }
+
+   for (int i = 0; i < 3; ++i) {
+      R.dx[i] = (max[i] - min[i]) / cells[i];
+      double shift = R.dx[i] / 2;
+      R.dimension[i]->min = min[i] + shift;
+      R.dimension[i]->max = max[i] + shift;
+      R.dimension[i]->cells = cells[i];
+   }
+
    E.time = B.time = V.time = R.time = time;
 
-   /* So, now we've got the cellIDs, the mesh size and the field values,
-    * we can sort them into place */
-   for(uint i=0; i< cellIds.size(); i++) {
-      uint64_t c = cellIds[i]-1;
-      int64_t x = c % cells[0];
-      int64_t y = (c /cells[0]) % cells[1];
-      int64_t z = c /(cells[0]*cells[1]);
-      int64_t x_fg = i % cells[0];
-      int64_t y_fg = (i /cells[0]) % cells[1];
-      int64_t z_fg = i /(cells[0]*cells[1]);
+   // So, now we've got the cellIDs, the mesh size and the field values,
+   // we can sort them into place
+   // TODO: move this to field.h
+   for (int idx = 0; idx < fields.size(); ++idx) {
+      if (onFsGrid[idx]) {
+         for (int i = 0; i < buffers[idx].size() / 3; ++i) {
+            int64_t x = i % cells_fg[0];
+            int64_t y = (i /cells_fg[0]) % cells_fg[1];
+            int64_t z = i /(cells_fg[0]*cells_fg[1]);
+            double* tgt = fields[idx]->getCellRef(x, y, z);
 
-      for (int j = 0; j < fields.size(); ++j) {
-         double* tgt = onFsGrid[j] ? fields[j]->getCellRef(x_fg, y_fg, z_fg) : fields[j]->getCellRef(x, y, z);
-         tgt[0] = buffers[j][3 * i];
-         tgt[1] = buffers[j][3 * i + 1];
-         tgt[2] = buffers[j][3 * i + 2];
+            for (int j = 0; j < 3; ++j)
+               tgt[j] = buffers[idx][3 * i + j];
+         }
+      } else {
+         for (int i = 0; i < cellIds.size(); ++i) {
+            uint64_t c = cellIds[i]-1;
+            int64_t x = c % cells[0];
+            int64_t y = (c /cells[0]) % cells[1];
+            int64_t z = c /(cells[0]*cells[1]);
+            double* tgt = fields[idx]->getCellRef(x, y, z);
+
+            for (int j = 0; j < 3; ++j)
+               tgt[j] = buffers[idx][3 * i + j];
+         }
       }
+   }
 
-      if(doRho) {
-         double* Rtgt = R.getCellRef(x,y,z);
-         Rtgt[0] = rho_buffer[i];	
-         // Pressure-nonbackstreaming = (ptdnbs_buffer[3*i]+ptdnbs_buffer[3*i+1]+ptdnbs_buffer[3*i+2])*(1./3.)
-         Rtgt[1] = ((ptdnbs_buffer[3*i]+ptdnbs_buffer[3*i+1]+ptdnbs_buffer[3*i+2])*(1./3.)) / ((1.+rhonbs_buffer[i])*1.38065e-23);
-         // Magnetosonic speed
-         Real Bmag2 = std::pow(buffers[0][3*i],2) + std::pow(buffers[0][3*i+1],2) + std::pow(buffers[0][3*i+2],2);
-         Real va2 = Bmag2/(1.25663706144e-6 * 1.672622e-27 * rho_buffer[i]);
-         Real pressure = (1./3.)*(pressure_buffer[3*i]+pressure_buffer[3*i+1]+pressure_buffer[3*i+2]);	
-         Real vs2 = (pressure * (5./3.))/( 1.672622e-27 * rho_buffer[i] );
-         Rtgt[2] = sqrt(va2 + vs2);
+   if (doRho) {
+      // Never on fsgrid right now
+      for(uint i=0; i< cellIds.size(); i++) {
+         uint64_t c = cellIds[i]-1;
+         int64_t x = c % cells[0];
+         int64_t y = (c /cells[0]) % cells[1];
+         int64_t z = c /(cells[0]*cells[1]);
+
+         if(doRho) {
+            double* Rtgt = R.getCellRef(x,y,z);
+            Rtgt[0] = rho_buffer[i];	
+            // Pressure-nonbackstreaming = (ptdnbs_buffer[3*i]+ptdnbs_buffer[3*i+1]+ptdnbs_buffer[3*i+2])*(1./3.)
+            Rtgt[1] = ((ptdnbs_buffer[3*i]+ptdnbs_buffer[3*i+1]+ptdnbs_buffer[3*i+2])*(1./3.)) / ((1.+rhonbs_buffer[i])*1.38065e-23);
+            // Magnetosonic speed
+            Real Bmag2 = std::pow(buffers[0][3*i],2) + std::pow(buffers[0][3*i+1],2) + std::pow(buffers[0][3*i+2],2);
+            Real va2 = Bmag2/(1.25663706144e-6 * 1.672622e-27 * rho_buffer[i]);
+            Real pressure = (1./3.)*(pressure_buffer[3*i]+pressure_buffer[3*i+1]+pressure_buffer[3*i+2]);	
+            Real vs2 = (pressure * (5./3.))/( 1.672622e-27 * rho_buffer[i] );
+            Rtgt[2] = sqrt(va2 + vs2);
+         }
       }
    }
 

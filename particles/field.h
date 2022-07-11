@@ -58,7 +58,7 @@ struct Field
          return &(data[4*(y*dimension[0]->cells+x)]);
       } else {
          // General 3d case
-         return &(data[4*(z*dimension[0]->cells*dimension[1]->cells + y*dimension[0]->cells + x)]);
+         return &(data[4*(z * dimension[0]->cells * dimension[1]->cells + y * dimension[0]->cells + x)]);
       }
    }
 
