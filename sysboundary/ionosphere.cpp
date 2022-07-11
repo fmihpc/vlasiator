@@ -1516,9 +1516,9 @@ namespace SBC {
          bool success = true;
          
          // Get field direction
-         b[0] = this->dipoleField(r[0],r[1],r[2],X,0,X);
-         b[1] = this->dipoleField(r[0],r[1],r[2],Y,0,Y);
-         b[2] = this->dipoleField(r[0],r[1],r[2],Z,0,Z);
+         b[0] = this->dipoleField(r[0],r[1],r[2],X,0,X) + BGB[0];
+         b[1] = this->dipoleField(r[0],r[1],r[2],Y,0,Y) + BGB[1];
+         b[2] = this->dipoleField(r[0],r[1],r[2],Z,0,Z) + BGB[2];
 
          std::array<int32_t, 3> fsgridCell = getGlobalFsGridCellIndexForCoord(technicalGrid,r);
          const std::array<int32_t, 3> localStart = technicalGrid.getLocalStart();
@@ -1786,9 +1786,9 @@ namespace SBC {
       TracingFieldFunction dipoleFieldOnly = [this](std::array<Real,3>& r, const bool outwards, std::array<Real,3>& b)->bool {
       
          // Get field direction
-         b[0] = this->dipoleField(r[0],r[1],r[2],X,0,X);
-         b[1] = this->dipoleField(r[0],r[1],r[2],Y,0,Y);
-         b[2] = this->dipoleField(r[0],r[1],r[2],Z,0,Z);
+         b[0] = this->dipoleField(r[0],r[1],r[2],X,0,X) + BGB[0];
+         b[1] = this->dipoleField(r[0],r[1],r[2],Y,0,Y) + BGB[1];
+         b[2] = this->dipoleField(r[0],r[1],r[2],Z,0,Z) + BGB[2];
 
          // Normalize
          Real  norm = 1. / sqrt(b[0]*b[0] + b[1]*b[1] + b[2]*b[2]);
@@ -1976,14 +1976,14 @@ namespace SBC {
             || r[2] > P::zmax - 2*P::dz_ini
             || r[2] < P::zmin + 2*P::dz_ini
          ) {
-            cerr << (string)("Oops! Full mapping trying to step outside of the global domain?\n");
+            cerr << (string)("Oops! Open-closed mapping trying to step outside of the global domain?\n");
             return false;
          }
          
          // Get field direction
-         b[0] = this->dipoleField(r[0],r[1],r[2],X,0,X);
-         b[1] = this->dipoleField(r[0],r[1],r[2],Y,0,Y);
-         b[2] = this->dipoleField(r[0],r[1],r[2],Z,0,Z);
+         b[0] = this->dipoleField(r[0],r[1],r[2],X,0,X) + BGB[0];
+         b[1] = this->dipoleField(r[0],r[1],r[2],Y,0,Y) + BGB[1];
+         b[2] = this->dipoleField(r[0],r[1],r[2],Z,0,Z) + BGB[2];
          
          std::array<int32_t, 3> fsgridCell = getGlobalFsGridCellIndexForCoord(technicalGrid,r);
          
@@ -2280,9 +2280,9 @@ namespace SBC {
          }
          
          // Get field direction
-         b[0] = this->dipoleField(r[0],r[1],r[2],X,0,X);
-         b[1] = this->dipoleField(r[0],r[1],r[2],Y,0,Y);
-         b[2] = this->dipoleField(r[0],r[1],r[2],Z,0,Z);
+         b[0] = this->dipoleField(r[0],r[1],r[2],X,0,X) + BGB[0];
+         b[1] = this->dipoleField(r[0],r[1],r[2],Y,0,Y) + BGB[1];
+         b[2] = this->dipoleField(r[0],r[1],r[2],Z,0,Z) + BGB[2];
          
          
          std::array<int32_t, 3> fsgridCell = getGlobalFsGridCellIndexForCoord(technicalGrid,r);
