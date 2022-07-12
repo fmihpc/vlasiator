@@ -99,11 +99,26 @@ std::vector<double> readFsGridData(Reader& r, std::string& name, unsigned int nu
    uint64_t vectorSize;
    vlsv::datatype::type dataType;
    uint64_t byteSize;
-   std::list<std::pair<std::string,std::string> > attribs;
-   
-   attribs.push_back(std::make_pair("name",name));
-   attribs.push_back(std::make_pair("mesh","fsgrid"));
 
+   // Are we restarting from the same number of tasks, or a different number?
+   int numWritingRanks=0;
+   if(r.readParameter("numWritingRanks",numWritingRanks) == false) {
+      std::cerr << "FSGrid writing rank number not found";
+      exit(1);
+   }
+   
+   // Read in fsgrid size
+   std::list<std::pair<std::string,std::string> > attribs;
+   attribs.push_back({"mesh", "fsgrid"});
+   std::array<int, 3> size;
+   int* size_buf = size.data();
+   if (r.read("MESH_BBOX", attribs, 0, 3, size_buf, false) == false) {
+      std::cerr << "Failed to read fsgrid bbox" << std::endl;
+      exit(1);
+   }
+
+   // Variable info
+   attribs.push_back({"name", name});
    if (r.getArrayInfo("VARIABLE",attribs,arraySize,vectorSize,dataType,byteSize) == false) {
       std::cerr << "getArrayInfo returned false when trying to read VARIABLE \""
          << name << "\"." << std::endl;
@@ -115,32 +130,14 @@ std::vector<double> readFsGridData(Reader& r, std::string& name, unsigned int nu
       exit(1);
    }
 
-   int numWritingRanks=0;
-   if(r.readParameter("numWritingRanks",numWritingRanks) == false) {
-      std::cerr << "FSGrid writing rank number not found";
-      exit(1);
-   }
-
-   // Are we restarting from the same number of tasks, or a different number?
-   attribs.clear();
-   attribs.push_back({"mesh", "fsgrid"});
-   std::array<int, 3> size;
-   int* size_buf = size.data();
-   if (r.read("MESH_BBOX", attribs, 0, 3, size_buf, false) == false) {
-      std::cerr << "Failed to read fsgrid bbox" << std::endl;
-      exit(1);
-   }
-
-   r.readParameter("zcells_ini",size[2]);
    // Determine our tasks storage size
    std::vector<Real> buffer(arraySize * vectorSize);
    std::vector<Real> readBuffer(arraySize * vectorSize);
 
-   if(r.readArray("VARIABLE",attribs,0,arraySize, readBuffer.data()) == false) {
+   if(r.readArray("VARIABLE", attribs, 0, arraySize, readBuffer.data()) == false) {
       std::cerr << "readFsGridData failed when trying to read VARIABLE \"" << name << "\"." << std::endl;
       exit(1);
    }
-
 
    // More difficult case: different number of tasks.
    // In this case, our own fsgrid domain overlaps (potentially many) domains in the file.
@@ -375,15 +372,9 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
    // TODO: move this to field.h
    for (int idx = 0; idx < fields.size(); ++idx) {
       if (onFsGrid[idx]) {
-         for (int i = 0; i < buffers[idx].size() / 3; ++i) {
-            int64_t x = i % cells_fg[0];
-            int64_t y = (i /cells_fg[0]) % cells_fg[1];
-            int64_t z = i /(cells_fg[0]*cells_fg[1]);
-            double* tgt = fields[idx]->getCellRef(x, y, z);
-
-            for (int j = 0; j < 3; ++j)
-               tgt[j] = buffers[idx][3 * i + j];
-         }
+         // Vec3D has a single dummy value at the end of each 3d vector
+         for (int i = 0; i < buffers[idx].size(); ++i)
+            fields[idx]->data[i + i/3] = buffers[idx][i];  
       } else {
          for (int i = 0; i < cellIds.size(); ++i) {
             uint64_t c = cellIds[i]-1;
