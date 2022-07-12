@@ -78,7 +78,7 @@ namespace projects {
                                                       const uint popID
                                                      ) const;
       
-      Real constBgB[3];
+      std::array<Real, 3> constBgB;
       bool noDipoleInSW;
       Real ionosphereRadius;
       uint ionosphereGeometry;
