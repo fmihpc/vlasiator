@@ -54,6 +54,39 @@ namespace SBC {
       CopyAndLosscone
    };
    extern IonosphereBoundaryVDFmode boundaryVDFmode;
+   
+   /*! Type of field line ending, used to classify the ionospheric nodes and the forward and backward field lines in full.box tracing.
+    * CLOSED: ends in the ionosphere
+    * OPEN: exits the simulation domain
+    * LOOP: has not exited, might keep looping or would exit given enough time/steps
+    * UNPROCESSED: cells inside the ionosphere or outside the outer limits that weren't even processed in the first place
+    */
+   enum TracingLineEndType {
+      CLOSED,
+      OPEN,
+      LOOP,
+      UNPROCESSED // Keep last for the reductions to work!
+   };
+   
+   /*! Type of connection for a point traced forward and backward.
+    * The first is for the forward end, the second for the backward end.
+    * Used for full-box tracing.
+    * See TracingLineEndTypes for explanation of types.
+    * INVALID used for UNPROCESSED or other unparsed values ==> bug?
+    * \sa TracingLineEndTypes
+    */
+   enum TracingPointConnectionType {
+      CLOSED_CLOSED,
+      CLOSED_OPEN,
+      OPEN_CLOSED,
+      OPEN_OPEN,
+      CLOSED_LOOP,
+      LOOP_CLOSED,
+      OPEN_LOOP,
+      LOOP_OPEN,
+      LOOP_LOOP,
+      INVALID // Keep last for the reductions to work!
+   };
 
 
    static const int MAX_TOUCHING_ELEMENTS = 12; // Maximum number of elements touching one node
@@ -166,8 +199,8 @@ namespace SBC {
          Rees1989, // Rees (1989)
          SergienkoIvanov, // Sergienko & Ivanov (1993)
       } ionizationModel;
-
-
+      
+      
       // Hardcoded constants for calculating ion production table
       // TODO: Make these parameters?
       constexpr static int productionNumAccEnergies = 60;

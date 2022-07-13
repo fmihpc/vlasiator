@@ -1953,9 +1953,9 @@ namespace SBC {
       std::vector<Real> nodeTracingStepSize(nodes.size(), stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
       std::vector<Real> reducedNodeTracingStepSize(nodes.size());
       std::array<int, 3> gridSize = technicalGrid.getGlobalSize();
-      uint64_t maxTracingSteps = 4 * (gridSize[0] * technicalGrid.DX + gridSize[1] * technicalGrid.DY + gridSize[2] * technicalGrid.DZ) / stepSize;
+      uint64_t maxTracingSteps = 8 * (gridSize[0] * technicalGrid.DX + gridSize[1] * technicalGrid.DY + gridSize[2] * technicalGrid.DZ) / stepSize;
 
-      std::vector<int> nodeMapping(nodes.size(), 0);                                 /*!< For reduction of node coupling */
+      std::vector<int> nodeMapping(nodes.size(), TracingLineEndType::UNPROCESSED);                                 /*!< For reduction of node coupling */
       std::vector<uint64_t> nodeStepCounter(nodes.size(), 0);                                 /*!< Count number of field line tracing steps */
       std::vector<int> nodeNeedsContinuedTracing(nodes.size(), 1);                    /*!< Flag, whether tracing needs to continue on another task */
       std::vector<std::array<Real, 3>> nodeTracingCoordinates(nodes.size());          /*!< In-flight node upmapping coordinates (for global reduction) */
@@ -2093,7 +2093,7 @@ namespace SBC {
                   if(sqrt(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2)) < Ionosphere::innerRadius) {
                      nodeNeedsContinuedTracing[n] = 0;
                      nodeTracingCoordinates[n] = {0,0,0};
-                     nodeMapping[n] = 2;
+                     nodeMapping[n] = TracingLineEndType::CLOSED;
                      break;
                   }
                   
@@ -2107,7 +2107,7 @@ namespace SBC {
                   ) {
                      nodeNeedsContinuedTracing[n] = 0;
                      nodeTracingCoordinates[n] = {0,0,0};
-                     nodeMapping[n] = 1;
+                     nodeMapping[n] = TracingLineEndType::OPEN;
                      break;
                   }
 
@@ -2161,7 +2161,7 @@ namespace SBC {
       
       std::vector<int> reducedNodeMapping(nodes.size());
       std::vector<int> reducedNodeTracingStepCount(nodes.size());
-      MPI_Allreduce(nodeMapping.data(), reducedNodeMapping.data(), nodes.size(), MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+      MPI_Allreduce(nodeMapping.data(), reducedNodeMapping.data(), nodes.size(), MPI_INT, MPI_MIN, MPI_COMM_WORLD);
       MPI_Allreduce(nodeTracingStepCount.data(), reducedNodeTracingStepCount.data(), nodes.size(), MPI_INT, MPI_SUM, MPI_COMM_WORLD);
       
       for(uint n=0; n<nodes.size(); n++) {
@@ -2205,8 +2205,8 @@ namespace SBC {
       uint64_t maxTracingSteps = 4 * (gridSize[0] * technicalGrid.DX + gridSize[1] * technicalGrid.DY + gridSize[2] * technicalGrid.DZ) / stepSize;
       
       std::vector<int> cellConnection(globalDccrgSize, 0);                                 /*!< For reduction of node coupling */
-      std::vector<int> cellFWConnection(globalDccrgSize, 3);                                 /*!< For reduction of node coupling */
-      std::vector<int> cellBWConnection(globalDccrgSize, 3);                                 /*!< For reduction of node coupling */
+      std::vector<int> cellFWConnection(globalDccrgSize, TracingLineEndType::UNPROCESSED);                                 /*!< For reduction of node coupling */
+      std::vector<int> cellBWConnection(globalDccrgSize, TracingLineEndType::UNPROCESSED);                                 /*!< For reduction of node coupling */
       std::vector<uint64_t> cellFWStepCounter(globalDccrgSize, 0);                                 /*!< Count number of field line tracing steps */
       std::vector<uint64_t> cellBWStepCounter(globalDccrgSize, 0);                                 /*!< Count number of field line tracing steps */
       std::vector<int> cellNeedsContinuedFWTracing(globalDccrgSize, 1);                    /*!< Flag, whether tracing needs to continue on another task */
@@ -2343,7 +2343,7 @@ namespace SBC {
 #pragma omp parallel
 {
       do { // while(anyCellNeedsTracing)
-#pragma omp master
+#pragma omp single
          {
             toto++;
          }
@@ -2370,7 +2370,7 @@ namespace SBC {
                   if(cellFWStepCounter[n] > maxTracingSteps) {
                      cellNeedsContinuedFWTracing[n] = 0;
                      cellFWTracingCoordinates[n] = {0,0,0};
-                     cellFWConnection[n] = 0;
+                     cellFWConnection[n] = TracingLineEndType::LOOP;
                      #pragma omp critical
                      {
                         warnMaxStepsExceeded = true;
@@ -2392,7 +2392,7 @@ namespace SBC {
                   if(sqrt(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2)) < Ionosphere::innerRadius) {
                      cellNeedsContinuedFWTracing[n] = 0;
                      cellFWTracingCoordinates[n] = {0,0,0};
-                     cellFWConnection[n] = 2;
+                     cellFWConnection[n] = TracingLineEndType::CLOSED;
                      break;
                   }
                   
@@ -2407,7 +2407,7 @@ namespace SBC {
                   ) {
                      cellNeedsContinuedFWTracing[n] = 0;
                      cellFWTracingCoordinates[n] = {0,0,0};
-                     cellFWConnection[n] = 1;
+                     cellFWConnection[n] = TracingLineEndType::OPEN;
                      break;
                   }
                
@@ -2438,7 +2438,7 @@ namespace SBC {
                   if(cellBWStepCounter[n] > maxTracingSteps) {
                      cellNeedsContinuedBWTracing[n] = 0;
                      cellBWTracingCoordinates[n] = {0,0,0};
-                     cellBWConnection[n] = 0;
+                     cellBWConnection[n] = TracingLineEndType::LOOP;
                      #pragma omp critical
                      {
                         warnMaxStepsExceeded = true;
@@ -2460,7 +2460,7 @@ namespace SBC {
                   if(sqrt(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2)) < Ionosphere::innerRadius) {
                      cellNeedsContinuedBWTracing[n] = 0;
                      cellBWTracingCoordinates[n] = {0,0,0};
-                     cellBWConnection[n] = 2;
+                     cellBWConnection[n] = TracingLineEndType::CLOSED;
                      break;
                   }
                   
@@ -2475,7 +2475,7 @@ namespace SBC {
                   ) {
                      cellNeedsContinuedBWTracing[n] = 0;
                      cellBWTracingCoordinates[n] = {0,0,0};
-                     cellBWConnection[n] = 1;
+                     cellBWConnection[n] = TracingLineEndType::OPEN;
                      break;
                   }
                   
@@ -2562,52 +2562,41 @@ namespace SBC {
       std::vector<int> reducedCellBWConnection(globalDccrgSize);
       MPI_Allreduce(cellFWConnection.data(), reducedCellFWConnection.data(), globalDccrgSize, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
       MPI_Allreduce(cellBWConnection.data(), reducedCellBWConnection.data(), globalDccrgSize, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
-      // Tracing: 0 not completed, 1 out of the box, 2 ionosphere
-      // 0: closed
-      // 1: closed-open
-      // 2: open-closed   
-      // 3: open-open
-      // 4: closed-loop
-      // 5: loop-closed
-      // 6: open-loop
-      // 7: loop-open
-      // 8: loop-loop
-      // 9: invalid
       phiprof::start("final-loop");
       for(int n=0; n<globalDccrgSize; n++) {
          const CellID id = allDccrgCells.at(n);
          if(mpiGrid.is_local(id)) {
-            mpiGrid[id]->parameters[CellParams::CONNECTION] = 9; // unprocessed
+            mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::INVALID;
             mpiGrid[id]->parameters[CellParams::FWCONNECTION] = reducedCellFWConnection[n];
             mpiGrid[id]->parameters[CellParams::BWCONNECTION] = reducedCellBWConnection[n];
             mpiGrid[id]->parameters[CellParams::FWTRACINGSTEPCOUNT] = maxCellFWStepCounter[n];
             mpiGrid[id]->parameters[CellParams::BWTRACINGSTEPCOUNT] = maxCellBWStepCounter[n];
-            if (reducedCellFWConnection[n] == 2 && reducedCellBWConnection[n] == 2) {
-               mpiGrid[id]->parameters[CellParams::CONNECTION] = 0; // closed-closed
+            if (reducedCellFWConnection[n] == TracingLineEndType::CLOSED && reducedCellBWConnection[n] == TracingLineEndType::CLOSED) {
+               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::CLOSED_CLOSED;
             }
-            if (reducedCellFWConnection[n] == 2 && reducedCellBWConnection[n] == 1) {
-               mpiGrid[id]->parameters[CellParams::CONNECTION] = 1; // closed-open
+            if (reducedCellFWConnection[n] == TracingLineEndType::CLOSED && reducedCellBWConnection[n] == TracingLineEndType::OPEN) {
+               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::CLOSED_OPEN;
             }
-            if (reducedCellFWConnection[n] == 1 && reducedCellBWConnection[n] == 2) {
-               mpiGrid[id]->parameters[CellParams::CONNECTION] = 2; // open-closed
+            if (reducedCellFWConnection[n] == TracingLineEndType::OPEN && reducedCellBWConnection[n] == TracingLineEndType::CLOSED) {
+               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::OPEN_CLOSED;
             }
-            if (reducedCellFWConnection[n] == 1 && reducedCellBWConnection[n] == 1) {
-               mpiGrid[id]->parameters[CellParams::CONNECTION] = 3; // open-open
+            if (reducedCellFWConnection[n] == TracingLineEndType::OPEN && reducedCellBWConnection[n] == TracingLineEndType::OPEN) {
+               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::OPEN_OPEN;
             }
-            if (reducedCellFWConnection[n] == 2 && reducedCellBWConnection[n] == 0) {
-               mpiGrid[id]->parameters[CellParams::CONNECTION] = 4; // closed-loop
+            if (reducedCellFWConnection[n] == TracingLineEndType::CLOSED && reducedCellBWConnection[n] == TracingLineEndType::LOOP) {
+               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::CLOSED_LOOP;
             }
-            if (reducedCellFWConnection[n] == 0 && reducedCellBWConnection[n] == 2) {
-               mpiGrid[id]->parameters[CellParams::CONNECTION] = 5; // loop-closed
+            if (reducedCellFWConnection[n] == TracingLineEndType::LOOP && reducedCellBWConnection[n] == TracingLineEndType::CLOSED) {
+               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::LOOP_CLOSED;
             }
-            if (reducedCellFWConnection[n] == 1 && reducedCellBWConnection[n] == 0) {
-               mpiGrid[id]->parameters[CellParams::CONNECTION] = 6; // open-loop
+            if (reducedCellFWConnection[n] == TracingLineEndType::OPEN && reducedCellBWConnection[n] == TracingLineEndType::LOOP) {
+               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::OPEN_LOOP;
             }
-            if (reducedCellFWConnection[n] == 0 && reducedCellBWConnection[n] == 1) {
-               mpiGrid[id]->parameters[CellParams::CONNECTION] = 7; // loop-open
+            if (reducedCellFWConnection[n] == TracingLineEndType::LOOP && reducedCellBWConnection[n] == TracingLineEndType::OPEN) {
+               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::LOOP_OPEN;
             }
-            if (reducedCellFWConnection[n] == 0 && reducedCellBWConnection[n] == 0) {
-               mpiGrid[id]->parameters[CellParams::CONNECTION] = 8; // loop-loop
+            if (reducedCellFWConnection[n] == TracingLineEndType::LOOP && reducedCellBWConnection[n] == TracingLineEndType::LOOP) {
+               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::LOOP_LOOP;
             }
          }
       }
