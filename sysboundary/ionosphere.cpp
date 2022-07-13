@@ -114,6 +114,7 @@ namespace SBC {
    Real  Ionosphere::max_allowed_error;
    uint32_t  Ionosphere::max_field_tracer_attempts;
    Real Ionosphere::min_tracer_dx;
+   Real Ionosphere::max_incomplete_lines_fullbox;
 
    // Offset field aligned currents so their sum is 0
    void SphericalTriGrid::offset_FAC() {
@@ -2339,8 +2340,9 @@ namespace SBC {
       
       int toto = 0;
       bool warnMaxStepsExceeded = false;
+      int cellsToDo;
       phiprof::start("loop");
-#pragma omp parallel
+#pragma omp parallel shared(cellsToDo)
 {
       do { // while(anyCellNeedsTracing)
 #pragma omp single
@@ -2516,12 +2518,16 @@ namespace SBC {
          }
          #pragma omp barrier
          phiprof::stop("MPI-loop");
-         
-         #pragma omp for schedule(dynamic) reduction(||:anyCellNeedsTracing)
+         #pragma omp single
+         {
+            cellsToDo = 0;
+         }
+         #pragma omp for schedule(dynamic) reduction(||:anyCellNeedsTracing) reduction(+:cellsToDo)
          for(int n=0; n<globalDccrgSize; n++) {
             if(reducedCellNeedsContinuedFWTracing[n] > 0) {
                anyCellNeedsTracing=true;
                cellNeedsContinuedFWTracing[n] = 1;
+               cellsToDo++;
                
                // Update that nodes' tracing coordinates
                cellFWTracingCoordinates[n][0] = sumCellFWTracingCoordinates[n][0] / reducedCellNeedsContinuedFWTracing[n];
@@ -2533,6 +2539,7 @@ namespace SBC {
             if(reducedCellNeedsContinuedBWTracing[n] > 0) {
                anyCellNeedsTracing=true;
                cellNeedsContinuedBWTracing[n] = 1;
+               cellsToDo++;
                
                // Update that nodes' tracing coordinates
                cellBWTracingCoordinates[n][0] = sumCellBWTracingCoordinates[n][0] / reducedCellNeedsContinuedBWTracing[n];
@@ -2544,12 +2551,23 @@ namespace SBC {
             cellFWTracingStepSize[n] = reducedCellFWTracingStepSize[n];
             cellBWTracingStepSize[n] = reducedCellBWTracingStepSize[n];
          }
-         
-      } while(anyCellNeedsTracing);
+         #pragma omp barrier
+      } while(anyCellNeedsTracing && (cellsToDo >= Ionosphere::max_incomplete_lines_fullbox * 2 * globalDccrgSize));
+      
+      // Last pass to sort cells that would still continue but won't as we exited as TracingLineEndType::LOOP instead of UNPROCESSED.
+      #pragma omp for schedule(dynamic)
+      for(int n=0; n<globalDccrgSize; n++) {
+         if(cellNeedsContinuedFWTracing[n] == 1) {
+            cellFWConnection[n] = TracingLineEndType::LOOP;
+         }
+         if(cellNeedsContinuedBWTracing[n] == 1) {
+            cellBWConnection[n] = TracingLineEndType::LOOP;
+         }
+      }
 } // pragma omp parallel
       phiprof::stop("loop");
       
-      logFile << "full box tracing traced in " << toto << " iterations of the tracing loop." << endl;
+      logFile << "full box tracing traced in " << toto << " iterations of the tracing loop with " << cellsToDo << " remaining incomplete field lines (total spatial cells " << globalDccrgSize <<  ")." << endl;
       
       bool redWarning = false;
       MPI_Allreduce(&warnMaxStepsExceeded, &redWarning, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
@@ -3756,6 +3774,7 @@ namespace SBC {
       Readparameters::add("ionosphere.tracer_max_allowed_error", "Maximum allowed error for the adaptive field line tracers ", 1000);
       Readparameters::add("ionosphere.tracer_max_attempts", "Maximum allowed attempts for the adaptive field line tracers", 100);
       Readparameters::add("ionosphere.tracer_min_dx", "Minimum allowed field line tracer step length for the adaptive field line tracers (m)", 100e3);
+      Readparameters::add("ionosphere.tracer_max_incomplete_fieldlines_fullbox", "Maximum fraction of field lines left incomplete when stopping tracing loop. Defaults to zero to process all, can be slow at scale!", 0);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
@@ -3839,6 +3858,7 @@ namespace SBC {
       Readparameters::get("ionosphere.tracer_max_allowed_error", max_allowed_error);
       Readparameters::get("ionosphere.tracer_max_attempts", max_field_tracer_attempts);
       Readparameters::get("ionosphere.tracer_min_dx", min_tracer_dx);
+      Readparameters::get("ionosphere.tracer_max_incomplete_fieldlines_fullbox", max_incomplete_lines_fullbox);
       Readparameters::get("ionosphere.innerRadius", innerRadius);
       Readparameters::get("ionosphere.refineMinLatitude",refineMinLatitudes);
       Readparameters::get("ionosphere.refineMaxLatitude",refineMaxLatitudes);

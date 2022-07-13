@@ -550,6 +550,7 @@ namespace SBC {
       static Real max_allowed_error; /*!< Maximum alowed error for the adaptive field line tracing methods */
       static uint32_t max_field_tracer_attempts; /*!< Max allowed attempts for the iterative field tracers */
       static Real min_tracer_dx; /*!< Min allowed tracer dx to avoid getting bogged down in the archipelago */
+      static Real max_incomplete_lines_fullbox; /*! Max allowed fraction of field lines left unfinished before exiting tracing loop */
       
       // TODO: Make these parameters of the IonosphereGrid
       static Real recombAlpha; // Recombination parameter, determining atmosphere ionizability (parameter)
