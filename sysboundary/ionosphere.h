@@ -122,7 +122,7 @@ namespace SBC {
          int haveCouplingData = 0; // Does this rank carry coupling coordinate data for this node? (0 or 1)
          std::array<iSolverReal, N_IONOSPHERE_PARAMETERS> parameters = {0}; // Parameters carried by the node, see common.h
 
-         int openFieldLine; /*!< 0 if undetermined, 1 if this node is connected to the IMF: open, 2 if it is connected to the ionosphere: closed. */
+         int openFieldLine; /*!< See TracingLineEndType for the types assigned. */
          int tracingStepCount;
          
          // Some calculation helpers
