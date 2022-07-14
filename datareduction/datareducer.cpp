@@ -27,6 +27,8 @@
 #include "../common.h"
 #include "dro_populations.h"
 #include "../sysboundary/ionosphere.h"
+#include "../fieldtracing/fieldtracing.h"
+
 using namespace std;
 
 void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosticReducer)
@@ -2992,7 +2994,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          continue;
       }
       if(lowercase == "ig_openclosed") {
-         SBC::ionosphereGrid.doTraceOpenClosed = true;
+         FieldTracing::fieldTracingParameters.doTraceOpenClosed = true;
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_openclosed", [](
             SBC::SphericalTriGrid& grid)->std::vector<Real> {
                
@@ -3056,7 +3058,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                   x[1] = cell->parameters[CellParams::YCRD] + cell->parameters[CellParams::DY];
                   x[2] = cell->parameters[CellParams::ZCRD] + cell->parameters[CellParams::DZ];
 
-                  std::array<std::pair<int, Real>, 3> coupling = SBC::ionosphereGrid.calculateVlasovGridCoupling(x, SBC::Ionosphere::radius);
+                  std::array<std::pair<int, Real>, 3> coupling = FieldTracing::calculateVlasovGridCoupling(x, SBC::ionosphereGrid.nodes, SBC::Ionosphere::radius);
                   for(int i=0; i<3; i++) {
                      uint coupledNode = coupling[i].first;
                      Real a = coupling[i].second;
@@ -3071,7 +3073,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          continue;
       }
       if(lowercase == "vg_connection") {
-         SBC::ionosphereGrid.doTraceFullBox = true;
+         FieldTracing::fieldTracingParameters.doTraceFullBox = true;
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_connection",CellParams::CONNECTION,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_connection_fw",CellParams::FWCONNECTION,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_connection_bw",CellParams::BWCONNECTION,1));

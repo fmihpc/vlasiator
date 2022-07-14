@@ -453,6 +453,12 @@ template<typename INT> inline INT cellIndex(const INT& i,const INT& j,const INT&
 
 const int SIZE_VELBLOCK    = WID3; /*!< Number of cells in a velocity block. */
 
+template<typename T> inline int sign(const T& value) {
+   const T ZERO = 0.0;
+   if (value < ZERO) return -1;
+   return 1;
+}
+
 /*!
  * Name space for flags needed globally, such as the bailout flag.
  */

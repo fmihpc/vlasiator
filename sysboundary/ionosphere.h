@@ -55,40 +55,6 @@ namespace SBC {
    };
    extern IonosphereBoundaryVDFmode boundaryVDFmode;
    
-   /*! Type of field line ending, used to classify the ionospheric nodes and the forward and backward field lines in full.box tracing.
-    * CLOSED: ends in the ionosphere
-    * OPEN: exits the simulation domain
-    * LOOP: has not exited, might keep looping or would exit given enough time/steps
-    * UNPROCESSED: cells inside the ionosphere or outside the outer limits that weren't even processed in the first place
-    */
-   enum TracingLineEndType {
-      CLOSED,
-      OPEN,
-      LOOP,
-      UNPROCESSED // Keep last for the reductions to work!
-   };
-   
-   /*! Type of connection for a point traced forward and backward.
-    * The first is for the forward end, the second for the backward end.
-    * Used for full-box tracing.
-    * See TracingLineEndTypes for explanation of types.
-    * INVALID used for UNPROCESSED or other unparsed values ==> bug?
-    * \sa TracingLineEndTypes
-    */
-   enum TracingPointConnectionType {
-      CLOSED_CLOSED,
-      CLOSED_OPEN,
-      OPEN_CLOSED,
-      OPEN_OPEN,
-      CLOSED_LOOP,
-      LOOP_CLOSED,
-      OPEN_LOOP,
-      LOOP_OPEN,
-      LOOP_LOOP,
-      INVALID // Keep last for the reductions to work!
-   };
-
-
    static const int MAX_TOUCHING_ELEMENTS = 12; // Maximum number of elements touching one node
    static const int MAX_DEPENDING_NODES = 22;   // Maximum number of depending nodes
 
@@ -153,19 +119,11 @@ namespace SBC {
             //}
             //return retval;
          }
-
+         
       };
-
+      
       std::vector<Node> nodes;
-
-      // cache for Balsara reconstruction coefficients
-      std::map< std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > reconstructionCoefficientsCache;
-      // function to empty it at a new time step
-      void resetReconstructionCoefficientsCache() {
-         reconstructionCoefficientsCache.clear();
-      }
-
-
+      
       // Atmospheric height layers that are being integrated over
       constexpr static int numAtmosphereLevels = 20;
       struct AtmosphericLayer {
@@ -179,13 +137,6 @@ namespace SBC {
          Real parallelcoeff;
       };
       std::array<AtmosphericLayer, numAtmosphereLevels> atmosphere;
-
-      enum IonosphereCouplingMethod { // Field line integrator for Magnetosphere<->Ionosphere coupling
-         Euler,        // Euler stepping (constant stepsize)
-         ADPT_Euler,   // Adaptive Euler stepping (adaptive stepsize)
-         BS,           // Bulirsch-Stoer Stepping (adaptive stepsize)
-         DPrince       // Dormand-Prince Stepping (adaptive stepsize) 
-      } couplingMethod;
 
       enum IonosphereSolverGaugeFixing { // Potential solver gauge fixing method
          None,     // No gauge fixing, solver won't converge well
@@ -246,73 +197,8 @@ namespace SBC {
       void stitchRefinementInterfaces(); // Make sure there are no t-junctions in the mesh by splitting neighbours
       void calculatePrecipitation(); // Estimate precipitation flux
       void calculateConductivityTensor(const Real F10_7, const Real recombAlpha, const Real backgroundIonisation); // Update sigma tensor
-      void calculateFsgridCoupling(
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-         Real radius
-      );     // Link each element to fsgrid cells for coupling
       Real interpolateUpmappedPotential(const std::array<Real, 3>& x); // Calculate upmapped potential at the given point
-      std::array<std::pair<int, Real>, 3> calculateVlasovGridCoupling(
-         std::array<Real,3> x,
-         Real couplingRadius
-      ); // Find coupled ionosphere mesh node for given location
-      //Field Line Tracing functions
-      int ijk2Index(int i , int j ,int k ,std::array<int,3>dims); //3D to 1D indexing 
-      typedef std::function<bool(std::array<Real,3>&, const bool, std::array<Real, 3>&)> TracingFieldFunction;
-      bool bulirschStoerStep(
-         std::array<Real, 3>& r,
-         std::array<Real, 3>& b,
-         Real& stepSize,
-         creal minStepSize,
-         creal maxStepSize,
-         TracingFieldFunction& BFieldFunction,
-         const bool outwards=true
-      ); //Bulrisch Stoer step
-      bool dormandPrinceStep(
-         std::array<Real, 3>& r,
-         std::array<Real, 3>& b,
-         Real& stepSize,
-         creal minStepSize,
-         creal maxStepSize,
-         TracingFieldFunction& BFieldFunction,
-         const bool outwards=true
-      ); //Dormand Prince step
-      bool adaptiveEulerStep(
-         std::array<Real, 3>& r,
-         std::array<Real, 3>& b,
-         Real& stepSize,
-         creal minStepSize,
-         creal maxStepSize,
-         TracingFieldFunction& BFieldFunction,
-         const bool outwards=true
-      ); //Adaptive Euler step
-      void eulerStep(
-         std::array<Real, 3>& x,
-         std::array<Real, 3>& v,
-         Real& stepSize,
-         TracingFieldFunction& BFieldFunction,
-         const bool outwards=true
-      ); //Euler step
-      void modifiedMidpointMethod(
-         std::array<Real,3> r,
-         std::array<Real,3>& r1,
-         int n,
-         Real stepSize,
-         TracingFieldFunction& BFieldFunction,
-         const bool outwards=true
-      ); // Modified Midpoint Method used by BS step
-      void richardsonExtrapolation(int i, std::vector<Real>& table , Real& maxError,std::array<int,3>dims ); //Richardson extrapolation method used by BS step
-      void stepFieldLine(
-         std::array<Real, 3>& x,
-         std::array<Real, 3>& v,
-         Real& stepSize,
-         creal minStepSize,
-         creal maxStepSize,
-         IonosphereCouplingMethod method,
-         TracingFieldFunction& BFieldFunction,
-         const bool outwards=true
-      ); // Handler function for field line tracing
+      
       // Conjugate Gradient solver functions
       void addMatrixDependency(uint node1, uint node2, Real coeff, bool transposed=false); // Add matrix value for the solver
       void addAllMatrixDependencies(uint nodeIndex);
@@ -347,29 +233,7 @@ namespace SBC {
          FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
          FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
       );
-
-      bool doTraceOpenClosed = false;
-      bool doTraceFullBox = false;
-      /*! Compute whether a node is connected to the ionosphere or the IMF. */
-      void traceOpenClosedConnection(
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid
-      );
-      /*! Compute the forward and backward connection of all DCCRG cells, tracing done on fsgrid. */
-      void traceFullBoxConnection(
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
-      );
-      void reduceData(
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
-      );
-
+      
       // Returns the surface area of one element on the sphere
       Real elementArea(uint32_t elementIndex) {
          const std::array<Real, 3>& a = nodes[elements[elementIndex].corners[0]].x;
@@ -547,10 +411,6 @@ namespace SBC {
       static bool solverToggleMinimumResidualVariant; /*!< Toggle use of the minimum residual variant between solver restarts */
       static Real shieldingLatitude; /*!< Latitude (degree) below which the potential is zeroed in the equator gauge fixing scheme */
       static Real ridleyParallelConductivity; /*!< Constant parallel conductivity */
-      static Real max_allowed_error; /*!< Maximum alowed error for the adaptive field line tracing methods */
-      static uint32_t max_field_tracer_attempts; /*!< Max allowed attempts for the iterative field tracers */
-      static Real min_tracer_dx; /*!< Min allowed tracer dx to avoid getting bogged down in the archipelago */
-      static Real max_incomplete_lines_fullbox; /*! Max allowed fraction of field lines left unfinished before exiting tracing loop */
       
       // TODO: Make these parameters of the IonosphereGrid
       static Real recombAlpha; // Recombination parameter, determining atmosphere ionizability (parameter)
