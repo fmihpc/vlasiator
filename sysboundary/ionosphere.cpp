@@ -2211,6 +2211,7 @@ namespace SBC {
       Readparameters::add("fieldtracing.tracer_max_attempts", "Maximum allowed attempts for the adaptive field line tracers", 100);
       Readparameters::add("fieldtracing.tracer_min_dx", "Minimum allowed field line tracer step length for the adaptive field line tracers (m)", 100e3);
       Readparameters::add("fieldtracing.tracer_max_incomplete_fieldlines_fullbox", "Maximum fraction of field lines left incomplete when stopping tracing loop. Defaults to zero to process all, can be slow at scale!", 0);
+      Readparameters::add("fieldtracing.use_reconstruction_cache", "Use the cache to store reconstruction coefficients. (0: don't, 1: use)", 0);
    }
 
    void Ionosphere::getParameters() {
@@ -2330,6 +2331,7 @@ namespace SBC {
       Readparameters::get("fieldtracing.tracer_max_attempts", FieldTracing::fieldTracingParameters.max_field_tracer_attempts);
       Readparameters::get("fieldtracing.tracer_min_dx", FieldTracing::fieldTracingParameters.min_tracer_dx);
       Readparameters::get("fieldtracing.tracer_max_incomplete_fieldlines_fullbox", FieldTracing::fieldTracingParameters.max_incomplete_lines_fullbox);
+      Readparameters::get("fieldtracing.use_reconstruction_cache", FieldTracing::fieldTracingParameters.useCache);
    }
 
    bool Ionosphere::initSysBoundary(

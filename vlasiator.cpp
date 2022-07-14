@@ -1013,6 +1013,10 @@ int main(int argn,char* args[]) {
          phiprof::stop("Propagate Fields",cells.size(),"SpatialCells");
          addTimedBarrier("barrier-after-field-solver");
       }
+      
+      if(FieldTracing::fieldTracingParameters.useCache) {
+         FieldTracing::resetReconstructionCoefficientsCache();
+      }
 
       // Map current data down into the ionosphere
       // TODO check: have we set perBGrid correctly here, or is it possibly perBDt2Grid in some cases??

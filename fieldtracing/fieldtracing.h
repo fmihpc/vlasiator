@@ -70,6 +70,7 @@ namespace FieldTracing {
    struct FieldTracingParameters {
       bool doTraceOpenClosed=false;
       bool doTraceFullBox=false;
+      bool useCache=false;
       TracingMethod tracingMethod;
       Real max_allowed_error; /*!< Maximum alowed error for the adaptive field line tracing methods */
       uint32_t max_field_tracer_attempts; /*!< Max allowed attempts for the iterative field tracers */
