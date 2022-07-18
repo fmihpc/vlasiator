@@ -740,6 +740,18 @@ namespace projects {
                else
                   mpiGrid.dont_unrefine(id);
             }
+
+            // Finally, check neighbors
+            int refined_neighbors {0};
+            for (auto i : mpiGrid.get_face_neighbors_of(id)) {
+               if (mpiGrid.get_refinement_level(i.first) > refLevel) {
+                  ++refined_neighbors;
+               }
+            }
+            
+            if (refined_neighbors > 3) {
+               mpiGrid.refine_completely(id);
+            }
          }
       }
 
