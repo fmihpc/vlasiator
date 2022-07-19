@@ -3006,17 +3006,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                
                return retval;
             }));
-         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_tracingstepcount", [](
-            SBC::SphericalTriGrid& grid)->std::vector<Real> {
-               
-               std::vector<Real> retval(grid.nodes.size());
-               
-               for(uint i=0; i<grid.nodes.size(); i++) {
-                  retval[i] = (Real)grid.nodes[i].tracingStepCount;
-               }
-               
-               return retval;
-            }));
          continue;
       }
       if(lowercase == "ig_fac") {
@@ -3075,10 +3064,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(lowercase == "vg_connection") {
          FieldTracing::fieldTracingParameters.doTraceFullBox = true;
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_connection",CellParams::CONNECTION,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_connection_fw",CellParams::FWCONNECTION,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_connection_bw",CellParams::BWCONNECTION,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_tracingstepcount_fw",CellParams::FWTRACINGSTEPCOUNT,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_tracingstepcount_bw",CellParams::BWTRACINGSTEPCOUNT,1));
          continue;
       }
       if(lowercase == "vg_fluxrope" || lowercase == "vg_curvature") {

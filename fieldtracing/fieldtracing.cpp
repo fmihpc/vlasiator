@@ -819,7 +819,6 @@ namespace FieldTracing {
       
       for(uint n=0; n<nodes.size(); n++) {
          nodes[n].openFieldLine = reducedNodeMapping.at(n);
-         nodes[n].tracingStepCount = reducedNodeTracingStepCount[n];
       }
       
       phiprof::stop("ionosphere-openclosedTracing");
@@ -857,7 +856,6 @@ namespace FieldTracing {
       std::array<int, 3> gridSize = technicalGrid.getGlobalSize();
       uint64_t maxTracingSteps = 4 * (gridSize[0] * technicalGrid.DX + gridSize[1] * technicalGrid.DY + gridSize[2] * technicalGrid.DZ) / stepSize;
       
-      std::vector<int> cellConnection(globalDccrgSize, 0);                                 /*!< For reduction of node coupling */
       std::vector<int> cellFWConnection(globalDccrgSize, TracingLineEndType::UNPROCESSED);                                 /*!< For reduction of node coupling */
       std::vector<int> cellBWConnection(globalDccrgSize, TracingLineEndType::UNPROCESSED);                                 /*!< For reduction of node coupling */
       std::vector<uint64_t> cellFWStepCounter(globalDccrgSize, 0);                                 /*!< Count number of field line tracing steps */
@@ -866,8 +864,6 @@ namespace FieldTracing {
       std::vector<int> cellNeedsContinuedBWTracing(globalDccrgSize, 1);                    /*!< Flag, whether tracing needs to continue on another task */
       std::vector<std::array<Real, 3>> cellFWTracingCoordinates(globalDccrgSize);          /*!< In-flight node upmapping coordinates (for global reduction) */
       std::vector<std::array<Real, 3>> cellBWTracingCoordinates(globalDccrgSize);          /*!< In-flight node upmapping coordinates (for global reduction) */
-      std::vector<int> cellFWTracingStepCount(globalDccrgSize, 0);
-      std::vector<int> cellBWTracingStepCount(globalDccrgSize, 0);
       
       // These guys are needed in the reductions at the bottom of the tracing loop.
       std::vector<int> reducedCellNeedsContinuedFWTracing(globalDccrgSize, 0);
@@ -1040,7 +1036,6 @@ namespace FieldTracing {
                      
                      // Look up the fsgrid cell belonging to these coordinates
                      fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
-                     std::array<Real, 3> interpolationFactor=getFractionalFsGridCellForCoord(technicalGrid,x);
                      
                      // If we map into the ionosphere, this node is on a closed field line.
                      if(sqrt(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2)) < SBC::Ionosphere::innerRadius) {
@@ -1108,7 +1103,6 @@ namespace FieldTracing {
                      
                      // Look up the fsgrid cell belonging to these coordinates
                      fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
-                     std::array<Real, 3> interpolationFactor=getFractionalFsGridCellForCoord(technicalGrid,x);
                      
                      // If we map into the ionosphere, this node is on a closed field line.
                      if(sqrt(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2)) < SBC::Ionosphere::innerRadius) {
@@ -1238,10 +1232,6 @@ namespace FieldTracing {
          const CellID id = allDccrgCells.at(n);
          if(mpiGrid.is_local(id)) {
             mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::INVALID;
-            mpiGrid[id]->parameters[CellParams::FWCONNECTION] = reducedCellFWConnection[n];
-            mpiGrid[id]->parameters[CellParams::BWCONNECTION] = reducedCellBWConnection[n];
-            mpiGrid[id]->parameters[CellParams::FWTRACINGSTEPCOUNT] = maxCellFWStepCounter[n];
-            mpiGrid[id]->parameters[CellParams::BWTRACINGSTEPCOUNT] = maxCellBWStepCounter[n];
             if (reducedCellFWConnection[n] == TracingLineEndType::CLOSED && reducedCellBWConnection[n] == TracingLineEndType::CLOSED) {
                mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::CLOSED_CLOSED;
             }

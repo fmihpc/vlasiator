@@ -89,7 +89,6 @@ namespace SBC {
          std::array<iSolverReal, N_IONOSPHERE_PARAMETERS> parameters = {0}; // Parameters carried by the node, see common.h
 
          int openFieldLine; /*!< See TracingLineEndType for the types assigned. */
-         int tracingStepCount;
          
          // Some calculation helpers
          Real electronDensity() { // Electron Density
