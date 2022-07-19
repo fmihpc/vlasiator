@@ -25,6 +25,7 @@
 #include "vlsvreaderinterface.h"
 #include "field.h"
 #include <fsgrid.hpp>
+#include <dccrg_mapping.hpp>
 #include <algorithm>
 #include <vector>
 #include <string>
@@ -283,7 +284,7 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
 
    /* Coordinate Boundaries */
    double min[3], max[3], time;
-   uint64_t cells[3];
+   std::array<CellID, 3> cells {};
    r.readParameter("xmin",min[0]);
    r.readParameter("ymin",min[1]);
    r.readParameter("zmin",min[2]);
@@ -297,12 +298,17 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
       r.readParameter("time",time);
    }
 
+   dccrg::Mapping gridMapping(cells);
+
    std::list<std::pair<std::string, std::string> > attribs;
    attribs.push_back({"mesh", "fsgrid"});
    std::array<int, 3> cells_fg {};
    int* size_buf = cells_fg.data();
-   if (r.read("MESH_BBOX", attribs, 0, 3, size_buf, false) == false) {
+   if (!r.read("MESH_BBOX", attribs, 0, 3, size_buf, false)) {
       std::cerr << "Failed to read fsgrid bbox" << std::endl;
+      for (int i = 0; i < 3; ++i) {
+         cells_fg[i] = cells[i];
+      }
    }
 
    std::cerr <<"cells "<<cells[0]<<" "<<cells[1]<<" "<<cells[2]<< std::endl;
@@ -310,9 +316,7 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
    std::cerr <<" min "<<min[0]<<" "<<min[1]<<" "<<min[2]<<" "<< std::endl;
    std::cerr <<" max "<<max[0]<<" "<<max[1]<<" "<<max[2]<<" "<< std::endl;
 
-   //std::cerr << "Grid is " << cells[0] << " x " << cells[1] << " x " << cells[2] << " Cells, " << std::endl
-   //          << " with dx = " << ((max[0]-min[0])/cells[0]) << ", dy = " << ((max[1]-min[1])/cells[1])
-   //          << ", dz = " << ((max[2]-min[2])/cells[2]) << "." << std::endl;
+   gridMapping.set_maximum_refinement_level(static_cast<int>(std::log2(cells_fg[0] / cells[0])));
 
    // Allocate space for the actual field structures
    for (int i = 0; i < fields.size(); ++i)
@@ -345,7 +349,7 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
    // Set field sizes
    for (int idx = 0; idx < fields.size(); ++idx) {
       for (int i = 0; i < 3; i++) {
-         int dim_cells {onFsGrid[idx] ? cells_fg[i] : cells[i]};
+         int dim_cells {cells_fg[i]};
          fields[idx]->dx[i] = (max[i]-min[i]) / dim_cells;
 
          // Volume-centered values -> shift by half a cell in all directions
@@ -357,12 +361,15 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
       }
    }
 
+   // TODO: Why does changing dx here break other stuff?
    for (int i = 0; i < 3; ++i) {
       R.dx[i] = (max[i] - min[i]) / cells[i];
+      //R.dx[i] = (max[i] - min[i]) / cells_fg[i];
       double shift = R.dx[i] / 2;
       R.dimension[i]->min = min[i] + shift;
       R.dimension[i]->max = max[i] + shift;
       R.dimension[i]->cells = cells[i];
+      //R.dimension[i]->cells = cells_fg[i];
    }
 
    E.time = B.time = V.time = R.time = time;
@@ -372,19 +379,32 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
    // TODO: move this to field.h
    for (int idx = 0; idx < fields.size(); ++idx) {
       if (onFsGrid[idx]) {
+         std::cerr << idx << " on FsGrid!" << std::endl;
          // Vec3D has a single dummy value at the end of each 3d vector
          for (int i = 0; i < buffers[idx].size(); ++i)
             fields[idx]->data[i + i/3] = buffers[idx][i];  
       } else {
+         std::cerr << idx << " on MPIGrid!" << std::endl;
          for (int i = 0; i < cellIds.size(); ++i) {
-            uint64_t c = cellIds[i]-1;
-            int64_t x = c % cells[0];
-            int64_t y = (c /cells[0]) % cells[1];
-            int64_t z = c /(cells[0]*cells[1]);
-            double* tgt = fields[idx]->getCellRef(x, y, z);
+            std::vector<CellID> targetCells {cellIds[i]};
+            int refLevel {gridMapping.get_refinement_level(cellIds[i])};
+            std::vector<CellID> oldChildren {};
+            for (int refLevel {gridMapping.get_refinement_level(cellIds[i])}; refLevel < gridMapping.get_maximum_refinement_level(); ++refLevel) {
+               oldChildren = targetCells;
+               targetCells.empty();
+               for (CellID j : oldChildren) {
+                  for (CellID k : gridMapping.get_all_children(j)) {
+                     targetCells.push_back(k);
+                  }
+               }
+            }
 
-            for (int j = 0; j < 3; ++j)
-               tgt[j] = buffers[idx][3 * i + j];
+            for (CellID id : targetCells) {
+               auto xyz {gridMapping.get_indices(id)};
+               double* tgt = fields[idx]->getCellRef(xyz[0], xyz[1], xyz[2]);
+               for (int j = 0; j < 3; ++j)
+                  tgt[j] = buffers[idx][3 * i + j];
+            }
          }
       }
    }
