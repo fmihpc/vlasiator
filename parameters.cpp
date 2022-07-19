@@ -31,6 +31,8 @@
 #include <set>
 #include <unistd.h>
 
+#include "fieldtracing/fieldtracing.h"
+
 #ifndef NAN
 #define NAN 0
 #endif
@@ -158,6 +160,9 @@ Realf P::amrBoxCenterY = 0.0;
 Realf P::amrBoxCenterZ = 0.0;
 vector<string> P::blurPassString;
 std::vector<int> P::numPasses; //numpasses
+
+std::string tracerString; /*!< Fieldline tracer to use for coupling ionosphere and magnetosphere */
+bool P::computeCurvature;
 
 bool P::addParameters() {
    typedef Readparameters RP;
@@ -400,6 +405,16 @@ bool P::addParameters() {
    RP::add("AMR.box_center_z", "z coordinate of the center of the box that is refined (for testing)", 0.0);
    RP::add("AMR.transShortPencils", "if true, use one-cell pencils", false);
    RP::addComposing("AMR.filterpasses", string("AMR filter passes for each individual refinement level"));
+   
+   Readparameters::add("fieldtracing.fieldLineTracer", "Field line tracing method to use for coupling ionosphere and magnetosphere (options are: Euler, BS)", std::string("Euler"));
+   Readparameters::add("fieldtracing.tracer_max_allowed_error", "Maximum allowed error for the adaptive field line tracers ", 1000);
+   Readparameters::add("fieldtracing.tracer_max_attempts", "Maximum allowed attempts for the adaptive field line tracers", 100);
+   Readparameters::add("fieldtracing.tracer_min_dx", "Minimum allowed field line tracer step length for the adaptive field line tracers (m)", 100e3);
+   Readparameters::add("fieldtracing.tracer_max_incomplete_fieldlines_fullbox", "Maximum fraction of field lines left incomplete when stopping tracing loop. Defaults to zero to process all, can be slow at scale!", 0);
+   Readparameters::add("fieldtracing.use_reconstruction_cache", "Use the cache to store reconstruction coefficients. (0: don't, 1: use)", 0);
+   Readparameters::add("fieldtracing.fluxrope_max_curvature_radii_to_trace", "Maximum number of seedpoint curvature radii to trace forward and backward from each DCCRG cell to find flux ropes", 10);
+   Readparameters::add("fieldtracing.fluxrope_max_curvature_radii_extent", "Maximum extent in seedpoint curvature radii from the seed a field line is allowed to extend to be counted as a flux rope", 2);
+   Readparameters::add("fieldtracing.fluxrope_max_m_to_trace", "Maximum distance to trace forward and backward from each DCCRG cell to find flux ropes, safeguard for areas with very large curvature radii (m)", 1e8);
 
    return true;
 }
@@ -718,6 +733,30 @@ void Parameters::getParameters() {
       abort();
    }
 
-   for (size_t s = 0; s < P::systemWriteName.size(); ++s)
+   for (size_t s = 0; s < P::systemWriteName.size(); ++s) {
       P::systemWrites.push_back(0);
+   }
+   
+   Readparameters::get("fieldtracing.fieldLineTracer", tracerString);
+   Readparameters::get("fieldtracing.tracer_max_allowed_error", FieldTracing::fieldTracingParameters.max_allowed_error);
+   Readparameters::get("fieldtracing.tracer_max_attempts", FieldTracing::fieldTracingParameters.max_field_tracer_attempts);
+   Readparameters::get("fieldtracing.tracer_min_dx", FieldTracing::fieldTracingParameters.min_tracer_dx);
+   Readparameters::get("fieldtracing.tracer_max_incomplete_fieldlines_fullbox", FieldTracing::fieldTracingParameters.max_incomplete_lines_fullbox);
+   Readparameters::get("fieldtracing.use_reconstruction_cache", FieldTracing::fieldTracingParameters.useCache);
+   Readparameters::get("fieldtracing.fluxrope_max_curvature_radii_to_trace", FieldTracing::fieldTracingParameters.fte_max_curvature_radii_to_trace);
+   Readparameters::get("fieldtracing.fluxrope_max_curvature_radii_extent", FieldTracing::fieldTracingParameters.fte_max_curvature_radii_extent);
+   Readparameters::get("fieldtracing.fluxrope_max_m_to_trace", FieldTracing::fieldTracingParameters.fte_max_m_to_trace);
+   
+   if(tracerString == "Euler") {
+      FieldTracing::fieldTracingParameters.tracingMethod = FieldTracing::Euler;
+   } else if (tracerString == "ADPT_Euler") {
+      FieldTracing::fieldTracingParameters.tracingMethod = FieldTracing::ADPT_Euler;
+   } else if (tracerString == "BS") {
+      FieldTracing::fieldTracingParameters.tracingMethod = FieldTracing::BS;
+   } else if (tracerString == "DP") {
+      FieldTracing::fieldTracingParameters.tracingMethod = FieldTracing::DPrince;
+   } else {
+      cerr << __FILE__ << ":" << __LINE__ << " ERROR: Unknown value for fieldtracing.fieldLineTracer: " << tracerString << endl;
+      abort();
+   }
 }
