@@ -4,6 +4,28 @@
 #include <vector>
 #include <array>
 
+enum FieldsToCommunicate {
+   PERBXVOL,
+   PERBYVOL,
+   PERBZVOL,
+   dPERBXVOLdy,
+   dPERBXVOLdz,
+   dPERBYVOLdx,
+   dPERBYVOLdz,
+   dPERBZVOLdx,
+   dPERBZVOLdy,
+   BGBXVOL,
+   BGBYVOL,
+   BGBZVOL,
+   EXGRADPE,
+   EYGRADPE,
+   EZGRADPE,
+   EXVOL,
+   EYVOL,
+   EZVOL,
+   N_FIELDSTOCOMMUNICATE
+};
+
 std::vector<CellID> mapDccrgIdToFsGridGlobalID(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 					       CellID dccrgID);
 
