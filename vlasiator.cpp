@@ -541,7 +541,7 @@ int main(int argn,char* args[]) {
 
    // Save restart data
    if (P::writeInitialState) {
-      FieldTracing::reduceData(technicalGrid, perBGrid, dPerBGrid, mpiGrid, SBC::ionosphereGrid.nodes); /*!< Call the reductions (e.g. field tracing) */
+      FieldTracing::reduceData(technicalGrid, perBGrid, dPerBGrid, volGrid, BgBGrid, mpiGrid, SBC::ionosphereGrid.nodes, sysBoundaries); /*!< Call the reductions (e.g. field tracing) */
       
       phiprof::start("write-initial-state");
       
@@ -758,7 +758,7 @@ int main(int argn,char* args[]) {
                continue;
             }
             
-            FieldTracing::reduceData(technicalGrid, perBGrid, dPerBGrid, mpiGrid, SBC::ionosphereGrid.nodes); /*!< Call the reductions (e.g. field tracing) */
+            FieldTracing::reduceData(technicalGrid, perBGrid, dPerBGrid, volGrid, BgBGrid, mpiGrid, SBC::ionosphereGrid.nodes, sysBoundaries); /*!< Call the reductions (e.g. field tracing) */
             
             phiprof::start("write-system");
             logFile << "(IO): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;

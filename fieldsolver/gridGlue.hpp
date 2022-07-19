@@ -23,6 +23,9 @@ enum FieldsToCommunicate {
    EXVOL,
    EYVOL,
    EZVOL,
+   CURVATUREX,
+   CURVATUREY,
+   CURVATUREZ,
    N_FIELDSTOCOMMUNICATE
 };
 

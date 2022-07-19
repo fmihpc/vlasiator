@@ -28,6 +28,7 @@
 #include <array>
 #include "../common.h"
 #include "../fieldsolver/fs_common.h"
+#include "../fieldsolver/derivatives.hpp"
 #include "../sysboundary/ionosphere.h"
 
 // Get the (integer valued) global fsgrid cell index (i,j,k) for the magnetic-field traced mapping point that node n is
@@ -70,6 +71,7 @@ namespace FieldTracing {
    struct FieldTracingParameters {
       bool doTraceOpenClosed=false;
       bool doTraceFullBox=false;
+      bool doTraceFluxRopes = false;
       bool useCache=false;
       TracingMethod tracingMethod;
       Real max_allowed_error; /*!< Maximum alowed error for the adaptive field line tracing methods */
@@ -77,6 +79,9 @@ namespace FieldTracing {
       Real min_tracer_dx; /*!< Min allowed tracer dx to avoid getting bogged down in the archipelago */
       Real max_incomplete_lines_fullbox; /*!< Max allowed fraction of field lines left unfinished before exiting tracing loop */
       std::map< std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > reconstructionCoefficientsCache; /*!< cache for Balsara reconstruction coefficients */
+      Real fte_max_curvature_radii_to_trace;
+      Real fte_max_curvature_radii_extent;
+      Real fte_max_m_to_trace;
    };
    
    extern FieldTracingParameters fieldTracingParameters;
@@ -174,13 +179,24 @@ namespace FieldTracing {
       FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
    );
+   
+   /*! Compute whether DCCRG cells are near flux ropes, tracing done on fsgrid. */
+   void traceFluxRopes(
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
+   );
 
    void reduceData(
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
       FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      std::vector<SBC::SphericalTriGrid::Node> & nodes
+      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & bgbGrid,
+      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> & mpiGrid,
+      std::vector<SBC::SphericalTriGrid::Node> & nodes,
+      SysBoundary& sysBoundaries
    );
 
 } // namespace FieldTracing

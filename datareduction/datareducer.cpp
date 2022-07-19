@@ -3081,6 +3081,47 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_tracingstepcount_bw",CellParams::BWTRACINGSTEPCOUNT,1));
          continue;
       }
+      if(lowercase == "vg_fluxrope" || lowercase == "vg_curvature") {
+         Parameters::computeCurvature = true;
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_curvature",CellParams::CURVATUREX,3));
+         if(lowercase == "vg_fluxrope") {
+            FieldTracing::fieldTracingParameters.doTraceFluxRopes = true;
+            outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_fluxrope",CellParams::FLUXROPE,1));
+         }
+         continue;
+      }
+      if(lowercase == "fg_curvature") {
+         Parameters::computeCurvature = true;
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_curvature",[](
+            FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+            FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+            FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+            FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+            FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+            FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+            FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+            FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+            FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+            FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+               
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
+               
+               // Iterate through fsgrid cells and extract EVOL
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x)] =     (*volGrid.get(x,y,z))[fsgrids::volfields::CURVATUREX];
+                        retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x) + 1] = (*volGrid.get(x,y,z))[fsgrids::volfields::CURVATUREY];
+                        retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x) + 2] = (*volGrid.get(x,y,z))[fsgrids::volfields::CURVATUREZ];
+                     }
+                  }
+               }
+               return retval;
+            }
+         ));
+         continue;
+      }
       // After all the continue; statements one should never land here.
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);

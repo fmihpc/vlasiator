@@ -419,6 +419,9 @@ void getFieldsFromFsGrid(
             sendBuffer[ii].sums[FieldsToCommunicate::EXVOL] += volcell->at(fsgrids::volfields::EXVOL);
             sendBuffer[ii].sums[FieldsToCommunicate::EYVOL] += volcell->at(fsgrids::volfields::EYVOL);
             sendBuffer[ii].sums[FieldsToCommunicate::EZVOL] += volcell->at(fsgrids::volfields::EZVOL);
+            sendBuffer[ii].sums[FieldsToCommunicate::CURVATUREX] += volcell->at(fsgrids::volfields::CURVATUREX);
+            sendBuffer[ii].sums[FieldsToCommunicate::CURVATUREY] += volcell->at(fsgrids::volfields::CURVATUREY);
+            sendBuffer[ii].sums[FieldsToCommunicate::CURVATUREZ] += volcell->at(fsgrids::volfields::CURVATUREZ);
             sendBuffer[ii].cells++;
          }
          ii++;
@@ -472,6 +475,9 @@ void getFieldsFromFsGrid(
       cellParams[CellParams::EXVOL] = cellAggregate.second.sums[FieldsToCommunicate::EXVOL] / cellAggregate.second.cells;
       cellParams[CellParams::EYVOL] = cellAggregate.second.sums[FieldsToCommunicate::EYVOL] / cellAggregate.second.cells;
       cellParams[CellParams::EZVOL] = cellAggregate.second.sums[FieldsToCommunicate::EZVOL] / cellAggregate.second.cells;
+      cellParams[CellParams::CURVATUREX] = cellAggregate.second.sums[FieldsToCommunicate::CURVATUREX] / cellAggregate.second.cells;
+      cellParams[CellParams::CURVATUREY] = cellAggregate.second.sums[FieldsToCommunicate::CURVATUREY] / cellAggregate.second.cells;
+      cellParams[CellParams::CURVATUREZ] = cellAggregate.second.sums[FieldsToCommunicate::CURVATUREZ] / cellAggregate.second.cells;
     }
     else{
       // This could happpen if all fsgrid cells are do not compute
@@ -493,6 +499,9 @@ void getFieldsFromFsGrid(
       cellParams[CellParams::EXVOL] = 0;
       cellParams[CellParams::EYVOL] = 0;
       cellParams[CellParams::EZVOL] = 0;
+      cellParams[CellParams::CURVATUREX] = 0;
+      cellParams[CellParams::CURVATUREY] = 0;
+      cellParams[CellParams::CURVATUREZ] = 0;
     }
   }
   

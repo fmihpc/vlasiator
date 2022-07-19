@@ -2212,6 +2212,9 @@ namespace SBC {
       Readparameters::add("fieldtracing.tracer_min_dx", "Minimum allowed field line tracer step length for the adaptive field line tracers (m)", 100e3);
       Readparameters::add("fieldtracing.tracer_max_incomplete_fieldlines_fullbox", "Maximum fraction of field lines left incomplete when stopping tracing loop. Defaults to zero to process all, can be slow at scale!", 0);
       Readparameters::add("fieldtracing.use_reconstruction_cache", "Use the cache to store reconstruction coefficients. (0: don't, 1: use)", 0);
+      Readparameters::add("fieldtracing.fluxrope_max_curvature_radii_to_trace", "Maximum number of seedpoint curvature radii to trace forward and backward from each DCCRG cell to find flux ropes", 10);
+      Readparameters::add("fieldtracing.fluxrope_max_curvature_radii_extent", "Maximum extent in seedpoint curvature radii from the seed a field line is allowed to extend to be counted as a flux rope", 2);
+      Readparameters::add("fieldtracing.fluxrope_max_m_to_trace", "Maximum distance to trace forward and backward from each DCCRG cell to find flux ropes, safeguard for areas with very large curvature radii (m)", 1e8);
    }
 
    void Ionosphere::getParameters() {
@@ -2332,6 +2335,9 @@ namespace SBC {
       Readparameters::get("fieldtracing.tracer_min_dx", FieldTracing::fieldTracingParameters.min_tracer_dx);
       Readparameters::get("fieldtracing.tracer_max_incomplete_fieldlines_fullbox", FieldTracing::fieldTracingParameters.max_incomplete_lines_fullbox);
       Readparameters::get("fieldtracing.use_reconstruction_cache", FieldTracing::fieldTracingParameters.useCache);
+      Readparameters::get("fieldtracing.fluxrope_max_curvature_radii_to_trace", FieldTracing::fieldTracingParameters.fte_max_curvature_radii_to_trace);
+      Readparameters::get("fieldtracing.fluxrope_max_curvature_radii_extent", FieldTracing::fieldTracingParameters.fte_max_curvature_radii_extent);
+      Readparameters::get("fieldtracing.fluxrope_max_m_to_trace", FieldTracing::fieldTracingParameters.fte_max_m_to_trace);
    }
 
    bool Ionosphere::initSysBoundary(
