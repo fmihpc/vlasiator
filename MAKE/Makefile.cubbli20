@@ -28,8 +28,8 @@ INC_BOOST = -I/usr/include/boost/
 LIB_BOOST = -L/usr/lib/x86_64-linux-gnu/ -lboost_program_options
 
 
-# In case of there is need for optional libs Silo and Jmalloc
-# you can install them manually and add path here 
+# In case of there is need for optional Jmalloc
+# you can install manually and add path here 
 
 # Optional
 INC_JEMALLOC = #-I$(LIBRARY_PREFIX)/include/jemalloc
