@@ -29,7 +29,7 @@ LIB_BOOST = -L/usr/lib/x86_64-linux-gnu/ -lboost_program_options
 
 
 # In case of there is need for optional Jmalloc
-# you can install manually and add path here 
+# you can install it manually and add paths here 
 
 # Optional
 INC_JEMALLOC = #-I$(LIBRARY_PREFIX)/include/jemalloc
