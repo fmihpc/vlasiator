@@ -11,7 +11,7 @@ mkdir -p $MAKE_FOLDER/../$NAME_OF_EXTERNAL_LIBS_FOLDER
 
 EXTERNAL_LIBS_FOLDER=$( cd $(dirname ${MAKE_FOLDER}); cd $MAKE_FOLDER/../$NAME_OF_EXTERNAL_LIBS_FOLDER; pwd -P )
 
-# Libs are installid in idfferent subshells
+# Libs are installed in different subshells
 
     # Zoltan
 (
