@@ -70,3 +70,4 @@ EXTERNAL_LIBS_FOLDER=$( cd $(dirname ${MAKE_FOLDER}); cd $MAKE_FOLDER/../$NAME_O
     cp add-on/vector3d/vector3d.h version1
     rm -rf add-on
 )
+
