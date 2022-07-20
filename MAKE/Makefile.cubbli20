@@ -32,10 +32,6 @@ LIB_BOOST = -L/usr/lib/x86_64-linux-gnu/ -lboost_program_options
 # you can install them manually and add path here 
 
 # Optional
-INC_SILO = #-I$(LIBRARY_PREFIX)/include
-LIB_SILO = #-L$(LIBRARY_PREFIX)/lib -lsilo
-
-# Optional
 INC_JEMALLOC = #-I$(LIBRARY_PREFIX)/include/jemalloc
 LIB_JEMALLOC = #-L$(LIBRARY_PREFIX)/lib -ljemalloc
 
