@@ -749,7 +749,8 @@ namespace projects {
                }
             }
             
-            if (refined_neighbors > 3) {
+            //if (refined_neighbors > 3) {
+            if (refined_neighbors > 12) {
                mpiGrid.refine_completely(id);
             }
          }
