@@ -24,7 +24,7 @@
 #define VELOCITY_MESH_OLD_H
 // Prevent warning spam since this is deprecated anyway
 #pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wall"
+#pragma GCC diagnostic ignored "-Wdeprecated-copy"
 
 #include <iostream>
 #include <algorithm>
