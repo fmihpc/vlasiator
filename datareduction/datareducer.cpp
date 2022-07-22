@@ -2831,7 +2831,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      }
                      return retval;
                      }));
-         outputReducer->addMetadata(outputReducer->size()-1, "1/m^2/s", "$m^{-2} s^{-1}$", "$\bar{F}_\mathrm{precip}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size()-1, "1/m^2/s", "$m^{-2} s^{-1}$", "$\\bar{F}_\\mathrm{precip}$", "1.0");
          continue;
       }
       if(lowercase == "ig_precipavgenergy") {
@@ -2869,7 +2869,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      }
                      return retval;
                      }));
-         outputReducer->addMetadata(outputReducer->size()-1, "eV", "eV", "$\\bar{E}_\mathrm{precip}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size()-1, "eV", "eV", "$\\bar{E}_\\mathrm{precip}$", "1.0");
          continue;
       }
       if(lowercase == "ig_potential") {
