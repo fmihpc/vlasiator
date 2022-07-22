@@ -2853,10 +2853,20 @@ namespace SBC {
       }
       Readparameters::get("ionosphere.geometry", this->geometry);
       Readparameters::get("ionosphere.precedence", this->precedence);
+
       uint reapply;
       Readparameters::get("ionosphere.reapplyUponRestart", reapply);
+      this->applyUponRestart = false;
+      if(reapply == 1) {
+         this->applyUponRestart = true;
+      }
+
       Readparameters::get("ionosphere.baseShape",baseShape);
-      Readparameters::get("ionosphere.conductivityModel", *(int*)(&conductivityModel));
+
+      int cm;
+      Readparameters::get("ionosphere.conductivityModel", cm);
+      conductivityModel = static_cast<Ionosphere::IonosphereConductivityModel>(cm);
+
       std::string VDFmodeString;
       Readparameters::get("ionosphere.innerBoundaryVDFmode", VDFmodeString);
       if(VDFmodeString == "FixedMoments") {
@@ -2929,10 +2939,6 @@ namespace SBC {
       }
       Readparameters::get("ionosphere.F10_7",F10_7);
       Readparameters::get("ionosphere.backgroundIonisation",backgroundIonisation);
-      this->applyUponRestart = false;
-      if(reapply == 1) {
-         this->applyUponRestart = true;
-      }
 
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
