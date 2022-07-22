@@ -378,6 +378,9 @@ namespace SBC {
       return true;
    }
    
+// Suppress fscanf warnings since we check type
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat"
    /*! Load user-set boundary data from given file.
     * The first entry of each line is assumed to be the time.
     * The number of entries per line is given by nParams which is defined as a parameter
@@ -412,12 +415,15 @@ namespace SBC {
          Real readParam;
          ret = 0;
          if ( typeid( readParam ) == typeid(double) ) {
-            for(uint i=0; i<nParams; i++) ret += fscanf(fp, "%lf", &readParam);
+            for(uint i=0; i<nParams; i++) {
+               ret += fscanf(fp, "%lf", &readParam);
+            }
          } else if( typeid( readParam ) == typeid(float) ) {
-            for(uint i=0; i<nParams; i++) ret += fscanf(fp, "%f", &readParam);
+            for(uint i=0; i<nParams; i++) {
+               ret += fscanf(fp, "%f", &readParam);
+            }
          } else {
             assert( typeid( readParam ) == typeid(float) || typeid( readParam ) == typeid(double) );
-            
          }
          nlines++;
       }
@@ -465,6 +471,7 @@ namespace SBC {
       
       return dataset;
    }
+#pragma GCC diagnostic pop
    
    /*! Loops through the array of template cells and generates the ones needed. The function
     * generateTemplateCell is defined in the inheriting class such as to have the specific
