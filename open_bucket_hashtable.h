@@ -66,8 +66,6 @@ private:
 public:
    OpenBucketHashtable()
        : sizePower(4), fill(0), buckets(1 << sizePower, std::pair<GID, LID>(EMPTYBUCKET, LID())){};
-   OpenBucketHashtable(const OpenBucketHashtable<GID, LID>& other)
-       : sizePower(other.sizePower), fill(other.fill), buckets(other.buckets){};
 
    // Resize the table to fit more things. This is automatically invoked once
    // maxBucketOverflow has triggered.

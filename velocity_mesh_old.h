@@ -20,6 +20,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+// Actually current, and not old :)
+
 #ifndef VELOCITY_MESH_OLD_H
 #define VELOCITY_MESH_OLD_H
 
