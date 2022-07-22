@@ -22,6 +22,9 @@
 
 #ifndef VELOCITY_MESH_OLD_H
 #define VELOCITY_MESH_OLD_H
+// Prevent warning spam since this is deprecated anyway
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wall"
 
 #include <iostream>
 #include <algorithm>
@@ -675,4 +678,5 @@ namespace vmesh {
    
 } // namespace vmesh
 
+#pragma GCC diagnostic pop
 #endif
