@@ -122,7 +122,7 @@ bool map_1d(SpatialCell* spatial_cell,
 
    Realv dv,v_min;
    Realv is_temp;
-   uint max_v_length;
+   int max_v_length;
    uint block_indices_to_id[3] = {0, 0, 0}; /*< used when computing id of target block, 0 for compiler */
    uint cell_indices_to_id[3] = {0, 0, 0}; /*< used when computing id of target cell in block, 0 for compiler */
 
@@ -140,7 +140,7 @@ bool map_1d(SpatialCell* spatial_cell,
 
    dv            = vmesh.getCellSize(REFLEVEL)[dimension];
    v_min         = vmesh.getMeshMinLimits()[dimension];
-   max_v_length  = vmesh.getGridLength(REFLEVEL)[dimension];
+   max_v_length  = static_cast<int>(vmesh.getGridLength(REFLEVEL)[dimension]);
 
    switch (dimension) {
     case 0:
