@@ -174,7 +174,8 @@ namespace spatial_cell {
    class SpatialCell {
    public:
       SpatialCell();
-      SpatialCell(const SpatialCell& other);
+      // SpatialCell(const SpatialCell& other);
+      // const SpatialCell& operator=(const SpatialCell& other);
 
       // Following functions return velocity grid metadata //
       template<int PAD> void fetch_data(const vmesh::GlobalID& blockGID,const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
