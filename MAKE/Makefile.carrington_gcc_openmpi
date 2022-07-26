@@ -99,7 +99,7 @@ LIB_PROFILE = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$
 INC_PROFILE = -isystem $(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/phiprof/include
 
 LIB_VLSV = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/vlsv
-INC_VLSV = -isystem $(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/vlsv
+INC_VLSV = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/vlsv
 
 LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/jemalloc/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/jemalloc/lib
 INC_JEMALLOC = -isystem $(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/jemalloc/include
@@ -115,9 +115,9 @@ INC_PAPI = -isystem $(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAN
 
 
 #header libraries
-INC_EIGEN = -isystem $(LIBRARY_PREFIX)/ -I$(LIBRARY_PREFIX)/Eigen/
-INC_FSGRID = -isystem $(LIBRARY_PREFIX)/fsgrid/
-INC_DCCRG = -isystem $(LIBRARY_PREFIX)/dccrg/
+INC_EIGEN = -isystem $(LIBRARY_PREFIX)/ -isystem $(LIBRARY_PREFIX)/Eigen/
+INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid/
+INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg/
 INC_VECTORCLASS = -isystem $(LIBRARY_PREFIX)/vectorclass/
 
 
