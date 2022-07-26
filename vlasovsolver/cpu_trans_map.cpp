@@ -690,9 +690,7 @@ void update_remote_mapping_contribution(
       CellID p_ngbr = INVALID_CELLID;
       CellID m_ngbr = INVALID_CELLID;
 
-      const auto faceNbrs = mpiGrid.get_face_neighbors_of(local_cells[c]);
-      
-      for (const auto nbr : faceNbrs) {
+      for (const auto& nbr : mpiGrid.get_face_neighbors_of(local_cells[c])) {
          if(nbr.second == ((int)dimension + 1) * direction) {
             p_ngbr = nbr.first;
          }
