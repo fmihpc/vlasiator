@@ -181,7 +181,7 @@ public:
       size_t index;
 
    public:
-      iterator(OpenBucketHashtable<GID, LID>& hashtable, size_t index) : hashtable(&hashtable), index(index) {}
+      iterator(OpenBucketHashtable<GID, LID>* hashtable, size_t index) : hashtable(hashtable), index(index) {}
 
       iterator& operator++() {
          index++;
@@ -201,10 +201,12 @@ public:
       }
 
       bool operator==(iterator other) const {
-         return &hashtable->buckets[index] == &other.hashtable->buckets[other.index];
+         // comparison of iterators between two different hashtables undefined
+         assert(hashtable == other.hashtable);
+         return index == other.index;  
       }
       bool operator!=(iterator other) const {
-         return &hashtable->buckets[index] != &other.hashtable->buckets[other.index];
+         return !(*this == other);
       }
       std::pair<GID, LID>& operator*() const { return hashtable->buckets[index]; }
       std::pair<GID, LID>* operator->() const { return &hashtable->buckets[index]; }
@@ -217,8 +219,7 @@ public:
       size_t index;
 
    public:
-      explicit const_iterator(const OpenBucketHashtable<GID, LID>& hashtable, size_t index)
-          : hashtable(&hashtable), index(index) {}
+      explicit const_iterator(const OpenBucketHashtable<GID, LID>* hashtable, size_t index) : hashtable(hashtable), index(index) {}
 
       const_iterator& operator++() {
          index++;
@@ -237,10 +238,12 @@ public:
       }
 
       bool operator==(const_iterator other) const {
-         return &hashtable->buckets[index] == &other.hashtable->buckets[other.index];
+         // comparison of iterators between two different hashtables undefined
+         assert(hashtable == other.hashtable);
+         return index == other.index;  
       }
       bool operator!=(const_iterator other) const {
-         return &hashtable->buckets[index] != &other.hashtable->buckets[other.index];
+         return !(*this == other);
       }
       const std::pair<GID, LID>& operator*() const { return hashtable->buckets[index]; }
       const std::pair<GID, LID>* operator->() const { return &hashtable->buckets[index]; }
@@ -250,7 +253,7 @@ public:
    iterator begin() {
       for (size_t i = 0; i < buckets.size(); i++) {
          if (buckets[i].first != EMPTYBUCKET) {
-            return iterator(*this, i);
+            return iterator(this, i);
          }
       }
       return end();
@@ -258,14 +261,14 @@ public:
    const_iterator begin() const {
       for (size_t i = 0; i < buckets.size(); i++) {
          if (buckets[i].first != EMPTYBUCKET) {
-            return const_iterator(*this, i);
+            return const_iterator(this, i);
          }
       }
       return end();
    }
 
-   iterator end() { return iterator(*this, buckets.size()); }
-   const_iterator end() const { return const_iterator(*this, buckets.size()); }
+   iterator end() { return iterator(this, buckets.size()); }
+   const_iterator end() const { return const_iterator(this, buckets.size()); }
 
    // Element access by iterator
    iterator find(GID key) {
@@ -277,7 +280,7 @@ public:
          const std::pair<GID, LID>& candidate = buckets[(hashIndex + i) & bitMask];
          if (candidate.first == key) {
             // Found a match, return that
-            return iterator(*this, (hashIndex + i) & bitMask);
+            return iterator(this, (hashIndex + i) & bitMask);
          }
 
          if (candidate.first == EMPTYBUCKET) {
@@ -299,7 +302,7 @@ public:
          const std::pair<GID, LID>& candidate = buckets[(hashIndex + i) & bitMask];
          if (candidate.first == key) {
             // Found a match, return that
-            return const_iterator(*this, (hashIndex + i) & bitMask);
+            return const_iterator(this, (hashIndex + i) & bitMask);
          }
 
          if (candidate.first == EMPTYBUCKET) {
