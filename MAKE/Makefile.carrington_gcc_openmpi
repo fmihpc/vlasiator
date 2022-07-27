@@ -63,9 +63,9 @@ FLAGS =
 CC_BRAND = gcc
 CC_BRAND_VERSION = 9.4.0
 CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++17 -mavx -march=znver2 #-flto
+testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -mavx -march=znver2
 CXXFLAGS += -Wall -Wextra -Wno-unused
 CXXFLAGS += -D OMPI_SKIP_MPICXX
-testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -mavx -march=znver2
 
 MATHFLAGS = -ffast-math
 LDFLAGS = -lrt -lgfortran -std=c++17 -lgomp
