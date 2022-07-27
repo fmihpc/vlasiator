@@ -122,7 +122,7 @@ bool map_1d(SpatialCell* spatial_cell,
 
    Realv dv,v_min;
    Realv is_temp;
-   int max_v_length;
+   uint max_v_length;
    uint block_indices_to_id[3] = {0, 0, 0}; /*< used when computing id of target block, 0 for compiler */
    uint cell_indices_to_id[3] = {0, 0, 0}; /*< used when computing id of target cell in block, 0 for compiler */
 
@@ -140,7 +140,7 @@ bool map_1d(SpatialCell* spatial_cell,
 
    dv            = vmesh.getCellSize(REFLEVEL)[dimension];
    v_min         = vmesh.getMeshMinLimits()[dimension];
-   max_v_length  = static_cast<int>(vmesh.getGridLength(REFLEVEL)[dimension]);
+   max_v_length  = vmesh.getGridLength(REFLEVEL)[dimension];
 
    switch (dimension) {
     case 0:
@@ -312,18 +312,18 @@ bool map_1d(SpatialCell* spatial_cell,
          const int firstBlock_gk = (int)((firstBlockMinV - max_intersectionMin)/intersection_dk);
          const int lastBlock_gk = (int)((lastBlockMaxV - min_intersectionMin)/intersection_dk);
 
-         int firstBlockIndexK = firstBlock_gk/WID;         
-         int lastBlockIndexK = lastBlock_gk/WID;
+         uint firstBlockIndexK = firstBlock_gk/WID;         
+         uint lastBlockIndexK = lastBlock_gk/WID;
          
          //now enforce mesh limits for target column blocks
          firstBlockIndexK = (firstBlockIndexK >= 0)            ? firstBlockIndexK : 0;
          firstBlockIndexK = (firstBlockIndexK < max_v_length ) ? firstBlockIndexK : max_v_length - 1;
          lastBlockIndexK  = (lastBlockIndexK  >= 0)            ? lastBlockIndexK  : 0;
          lastBlockIndexK  = (lastBlockIndexK  < max_v_length ) ? lastBlockIndexK  : max_v_length - 1;
-         if(firstBlockIndexK < static_cast<int>(Parameters::bailout_velocity_space_wall_margin)
-            || firstBlockIndexK >= max_v_length - static_cast<int>(Parameters::bailout_velocity_space_wall_margin)
-            || lastBlockIndexK < static_cast<int>(Parameters::bailout_velocity_space_wall_margin)
-            || lastBlockIndexK >= max_v_length - static_cast<int>(Parameters::bailout_velocity_space_wall_margin)
+         if(firstBlockIndexK < Parameters::bailout_velocity_space_wall_margin
+            || firstBlockIndexK >= max_v_length - Parameters::bailout_velocity_space_wall_margin
+            || lastBlockIndexK < Parameters::bailout_velocity_space_wall_margin
+            || lastBlockIndexK >= max_v_length - Parameters::bailout_velocity_space_wall_margin
          ) {
             string message = "Some target blocks in acceleration are going to be less than ";
             message += std::to_string(Parameters::bailout_velocity_space_wall_margin);
@@ -341,7 +341,7 @@ bool map_1d(SpatialCell* spatial_cell,
          }
          
          //store target blocks
-         for (int blockK = firstBlockIndexK; blockK <= lastBlockIndexK; blockK++){
+         for (uint blockK = firstBlockIndexK; blockK <= lastBlockIndexK; blockK++){
             isTargetBlock[blockK]=true;
          }
 
