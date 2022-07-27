@@ -74,32 +74,6 @@ namespace spatial_cell {
       }
    }
 
-   // SpatialCell::SpatialCell(const SpatialCell& other):
-   //    derivativesBVOL(other.derivativesBVOL),
-   //    parameters(other.parameters),
-   //    null_block_data(std::array<Realf,WID3> {}),
-   //    sysBoundaryFlag(other.sysBoundaryFlag),
-   //    sysBoundaryLayer(other.sysBoundaryLayer),
-   //    velocity_block_with_content_list(other.velocity_block_with_content_list),
-   //    velocity_block_with_no_content_list(other.velocity_block_with_no_content_list),
-   //    initialized(other.initialized),
-   //    mpiTransferEnabled(other.mpiTransferEnabled),
-   //    populations(other.populations) { }
-
-   // const SpatialCell& SpatialCell::operator=(const SpatialCell& other) {
-   //    derivativesBVOL = other.derivativesBVOL;
-   //    parameters = other.parameters;
-   //    // Leave null_block_data alone
-   //    sysBoundaryFlag = other.sysBoundaryFlag;
-   //    sysBoundaryLayer = other.sysBoundaryLayer;
-   //    velocity_block_with_content_list = other.velocity_block_with_content_list;
-   //    velocity_block_with_no_content_list = other.velocity_block_with_no_content_list;
-   //    initialized = other.initialized;
-   //    mpiTransferEnabled = other.mpiTransferEnabled;
-   //    populations = other.populations;
-   //    return *this;
-   // }
-
    /** Adds "important" and removes "unimportant" velocity blocks
     * to/from this cell.
     * 

@@ -1900,29 +1900,6 @@ namespace spatial_cell {
       return populations[popID].vmesh.hasGrandParent(blockGID);
    }
 
-   // inline SpatialCell& SpatialCell::operator=(const SpatialCell& other) {
-   //    this->sysBoundaryFlag = other.sysBoundaryFlag;
-   //    this->sysBoundaryLayer = other.sysBoundaryLayer;
-   //    this->sysBoundaryLayerNew = other.sysBoundaryLayerNew;
-   //    this->velocity_block_with_content_list = other.velocity_block_with_content_list;
-   //    this->velocity_block_with_no_content_list = other.velocity_block_with_no_content_list;
-   //    this->initialized = other.initialized;
-   //    this->mpiTransferEnabled = other.mpiTransferEnabled;      
-   //    this->parameters = other.parameters;
-   //    this->derivatives = other.derivatives;
-   //    this->derivativesBVOL = other.derivativesBVOL;      
-   //    this->null_block_data = other.null_block_data;
-   //    this->populations = other.populations;
-   //    this->face_neighbor_ranks = other.face_neighbor_ranks;
-   
-   //    return *this;
-   // }
-   
-   // inline SpatialCell& SpatialCell::operator=(const SpatialCell&) { 
-   //    return *this;
-   // }
-
-   
 } // namespaces
 
 #endif
