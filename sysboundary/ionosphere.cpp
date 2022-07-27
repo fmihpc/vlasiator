@@ -2856,10 +2856,7 @@ namespace SBC {
 
       uint reapply;
       Readparameters::get("ionosphere.reapplyUponRestart", reapply);
-      this->applyUponRestart = false;
-      if(reapply == 1) {
-         this->applyUponRestart = true;
-      }
+      this->applyUponRestart = (reapply == 1);
 
       Readparameters::get("ionosphere.baseShape",baseShape);
 
