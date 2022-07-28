@@ -177,26 +177,28 @@ namespace SBC {
    // Initialize base grid as a tetrahedron
    void SphericalTriGrid::initializeTetrahedron() {
       const static std::array<uint32_t, 3> seedElements[4] = {
-         {1,2,3},{1,3,4},{1,4,2},{2,4,3}};
+         {1,2,3}, {1,3,4}, {1,4,2}, {2,4,3}
+      };
       const static std::array<Real, 3> nodeCoords[4] = {
          {0,0,1.73205},
          {0,1.63299,-0.57735},
          {-1.41421,-0.816497,-0.57735},
-         {1.41421,-0.816497,-0.57735}};
+         {1.41421,-0.816497,-0.57735}
+      };
 
       // Create nodes
       // Additional nodes from table
-      for(int n=0; n<4; n++) {
+      for(auto& coords : nodeCoords) {
          Node newNode;
-         newNode.x = nodeCoords[n];
-         normalizeRadius(newNode,Ionosphere::innerRadius);
+         newNode.x = coords;
+         normalizeRadius(newNode, Ionosphere::innerRadius);
          nodes.push_back(newNode);
       }
 
       // Create elements
-      for(int i=0; i<4; i++) {
+      for(auto& seed : seedElements) {
          Element newElement;
-         newElement.corners = seedElements[i];
+         newElement.corners = seed;
          elements.push_back(newElement);
       }
 
@@ -211,28 +213,30 @@ namespace SBC {
         { 0, 1, 5}, { 1, 2, 6}, { 2, 3, 7}, { 3, 4, 8},
         { 4, 5,9}, { 5, 1,10}, { 6, 2, 7}, { 7, 3, 8},
         { 8, 4,9}, {9, 5,10}, {10, 1, 6}, { 6, 7,11},
-        { 7, 8,11}, { 8,9,11}, {9,10,11}, {10, 6,11}};
+        { 7, 8,11}, { 8,9,11}, {9,10,11}, {10, 6,11}
+      };
       const static std::array<Real, 3> nodeCoords[12] = {
         {        0,        0,  1.17557}, {  1.05146,        0, 0.525731},
         {  0.32492,      1.0, 0.525731}, {-0.850651, 0.618034, 0.525731},
         {-0.850651,-0.618034, 0.525731}, {  0.32492,     -1.0, 0.525731},
         { 0.850651, 0.618034,-0.525731}, { -0.32492,      1.0,-0.525731},
         { -1.05146,        0,-0.525731}, { -0.32492,     -1.0,-0.525731},
-        { 0.850651,-0.618034,-0.525731}, {        0,        0, -1.17557}};
+        { 0.850651,-0.618034,-0.525731}, {        0,        0, -1.17557}
+      };
 
       // Create nodes
       // Additional nodes from table
-      for(int n=0; n<12; n++) {
+      for(auto& coords : nodeCoords) {
          Node newNode;
-         newNode.x = nodeCoords[n];
+         newNode.x = coords;
          normalizeRadius(newNode, Ionosphere::innerRadius);
          nodes.push_back(newNode);
       }
 
       // Create elements
-      for(int i=0; i<20; i++) {
+      for(auto& seed : seedElements) {
          Element newElement;
-         newElement.corners = seedElements[i];
+         newElement.corners = seed;
          elements.push_back(newElement);
       }
 
@@ -4087,10 +4091,10 @@ namespace SBC {
       const vmesh::LocalID* vblocks_ini = cell.get_velocity_grid_length(popID,refLevel);
 
       while (search) {
-         #warning TODO: add SpatialCell::getVelocityBlockMinValue() in place of sparseMinValue ? (if applicable)
-         if (0.1 * getObjectWrapper().particleSpecies.at(popID).sparseMinValue >
+         if (0.1 * cell.getVelocityBlockMinValue(popID) >
             shiftedMaxwellianDistribution(popID,density,temperature,counter*cell.get_velocity_grid_block_size(popID,refLevel)[0] - vDrift[0], 0.0 - vDrift[1], 0.0 - vDrift[2])
-            || counter > vblocks_ini[0]) {
+            || counter > vblocks_ini[0]) 
+         {
             search = false;
          }
          ++counter;
