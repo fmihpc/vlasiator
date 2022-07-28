@@ -154,17 +154,7 @@ namespace SBC {
       const Real dvy=cell.get_velocity_grid_cell_size(popID,refLevel)[1];
       const Real dvz=cell.get_velocity_grid_cell_size(popID,refLevel)[2];
       while (search) {
-         #warning TODO: add SpatialCell::getVelocityBlockMinValue() in place of sparseMinValue?
-         if (0.1 * getObjectWrapper().particleSpecies[popID].sparseMinValue > 
-             maxwellianDistribution(
-                                    popID,
-                                    rho,
-                                    T,
-                                    counter*cell.get_velocity_grid_block_size(popID,refLevel)[0] +0.5*dvx , 0.5*dvy, 0.5*dvz
-                                   )
-             ||
-             counter > vblocks_ini[0]
-            ) {
+         if (0.1 * cell.getVelocityBlockMinValue(popID) > maxwellianDistribution(popID, rho, T, counter*cell.get_velocity_grid_block_size(popID,refLevel)[0] +0.5*dvx , 0.5*dvy, 0.5*dvz) || counter > vblocks_ini[0]) {
             search = false;
          }
          counter++;
