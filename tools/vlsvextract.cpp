@@ -958,7 +958,7 @@ bool createCellIdList( T & vlsvReader, unordered_set<uint64_t> & cellIdList ) {
    if (vlsvReader.readArray(tagName, attributes, beginningPoint, arraySize, buffer) == false) {
       cerr << "Failed to read block metadata for mesh '" << meshName << "' at: ";
       cerr << __FILE__ << " " << __LINE__ << endl;
-      delete buffer;
+      delete[] buffer;
       exit(1);
       return false;
    }
