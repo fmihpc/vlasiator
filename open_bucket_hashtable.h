@@ -42,10 +42,10 @@ private:
    }
 
     //Hash a chunk of memory using fnv_1a
-    uint32_t fnv_1a(const void* chunk, size_t bytes)const{
+    static uint32_t fnv_1a(const void* chunk, size_t bytes) {
        assert(chunk);
        uint32_t h = 2166136261ul;
-       const unsigned char* ptr = (const unsigned char*)chunk;
+       const unsigned char* ptr = static_cast<const unsigned char*>(chunk);
        while (bytes--){
           h = (h ^ *ptr++) * 16777619ul;
        }
@@ -64,19 +64,17 @@ private:
     }
 
 public:
-   OpenBucketHashtable()
-       : sizePower(4), fill(0), buckets(1 << sizePower, std::pair<GID, LID>(EMPTYBUCKET, LID())){};
+   OpenBucketHashtable() : sizePower(4), fill(0), buckets(1 << sizePower, std::pair<GID, LID>(EMPTYBUCKET, LID())) {};
 
    // Resize the table to fit more things. This is automatically invoked once
    // maxBucketOverflow has triggered.
    void rehash(int newSizePower) {
-      if (newSizePower > 32) {
+      if (newSizePower > 31) {
          throw std::out_of_range("OpenBucketHashtable ran into rehashing catastrophe and exceeded 32bit buckets.");
       }
-      std::vector<std::pair<GID, LID>> newBuckets(1 << newSizePower,
-                                                  std::pair<GID, LID>(EMPTYBUCKET, LID()));
+      std::vector<std::pair<GID, LID>> newBuckets(1u << newSizePower, std::pair<GID, LID>(EMPTYBUCKET, LID()));
       sizePower = newSizePower;
-      int bitMask = (1 << sizePower) - 1; // For efficient modulo of the array size
+      int bitMask = (1u << sizePower) - 1; // For efficient modulo of the array size
 
       // Iterate through all old elements and rehash them into the new array.
       for (auto& e : buckets) {
