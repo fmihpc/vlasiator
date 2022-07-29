@@ -1146,7 +1146,7 @@ namespace DRO {
          if (dataName.size() == 0) continue;
          
          size_t dataSize = getObjectWrapper().meshData.getDataSize(i);
-         const std::string dataType = getObjectWrapper().meshData.getDataType(i);
+         const std::string& dataType = getObjectWrapper().meshData.getDataType(i);
          size_t vectorSize = getObjectWrapper().meshData.getVectorSize(i);
          size_t arraySize = getObjectWrapper().meshData.getMeshSize();
          char* pointer = getObjectWrapper().meshData.getData<char>(i);

@@ -3798,7 +3798,7 @@ namespace SBC {
                {
                   Real pressure = 0, vx = 0, vy = 0, vz = 0;
                   // Average density and temperature from the nearest cells
-                  const vector<CellID> closestCells = getAllClosestNonsysboundaryCells(cellID);
+                  const vector<CellID>& closestCells = getAllClosestNonsysboundaryCells(cellID);
                   for (CellID celli : closestCells) {
                      density += mpiGrid[celli]->parameters[CellParams::RHOM];
                      pressure += mpiGrid[celli]->parameters[CellParams::P_11] + mpiGrid[celli]->parameters[CellParams::P_22] + mpiGrid[celli]->parameters[CellParams::P_33];
@@ -3867,7 +3867,7 @@ namespace SBC {
                   std::array<Real, 3> vNeighbours({0,0,0});
                   Real pressure = 0;
                   // Get moments from the nearest cells
-                  const vector<CellID> closestCells = getAllClosestNonsysboundaryCells(cellID);
+                  const vector<CellID>& closestCells = getAllClosestNonsysboundaryCells(cellID);
                   for (CellID celli : closestCells) {
                      density += mpiGrid[celli]->parameters[CellParams::RHOM];
                      pressure += mpiGrid[celli]->parameters[CellParams::P_11] + mpiGrid[celli]->parameters[CellParams::P_22] + mpiGrid[celli]->parameters[CellParams::P_33];
