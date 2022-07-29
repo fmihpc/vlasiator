@@ -95,7 +95,7 @@ bool updateLocalIds(  dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
  \param comm The MPI comm
  \return Returns true if all of the processes running this function had success value of true, false otherwise
  */
-bool globalSuccess(bool success,string errorMessage,MPI_Comm comm){
+bool globalSuccess(bool success, const string& errorMessage, MPI_Comm comm){
    int successInt;
    int globalSuccessInt;
    if(success)
@@ -1259,7 +1259,7 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
  \param local_cells List of local cells within this process
  \param ghost_cells List of ghost cells within this process (cells on the process boundary)
  */
-bool checkForSameMembers( const vector<uint64_t> local_cells, const vector<uint64_t> ghost_cells ) {
+bool checkForSameMembers(const vector<uint64_t>& local_cells, const vector<uint64_t>& ghost_cells ) {
    //NOTE: VECTORS MUST BE SORTED
    //Make sure ghost cells and local cells don't have same members in them:
    vector<uint64_t>::const_iterator i = local_cells.begin();
@@ -1289,23 +1289,25 @@ bool checkForSameMembers( const vector<uint64_t> local_cells, const vector<uint6
 \param index       Index to call the correct member of the various parameter vectors
 \param writeGhosts If true, writes out ghost cells (cells that exist on the process boundary so other process' cells)
 */
-bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      std::string versionInfo,
-      std::string configInfo,
-               DataReducer* dataReducer,
-               const uint& index,
-               const int& stripe,
-               const bool writeGhosts) {
+bool writeGrid(
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+   const std::string& versionInfo,
+   const std::string& configInfo,
+   DataReducer* dataReducer,
+   const uint& index,
+   const int& stripe,
+   const bool writeGhosts) 
+{
    double allStart = MPI_Wtime();
    bool success = true;
    int myRank;
@@ -1482,23 +1484,25 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 \param name       File name prefix, file will be called "name.index.vlsv"
 \param fileIndex  File index, file will be called "name.index.vlsv"
 */
-bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      std::string versionInfo,
-      std::string configInfo,
-                  DataReducer& dataReducer,
-                  const string& name,
-                  const uint& fileIndex,
-                  const int& stripe) {
+bool writeRestart(
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+   const std::string& versionInfo,
+   const std::string& configInfo,
+   DataReducer& dataReducer,
+   const string& name,
+   const uint& fileIndex,
+   const int& stripe) 
+{
    // Writes a restart
    double allStart = MPI_Wtime();
    bool success = true;

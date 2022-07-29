@@ -113,7 +113,7 @@ void checkExternalCommands() {
   \param comm MPI comm
   \return Returns true if the operation was successful
 */
-bool exitOnError(bool success,string message,MPI_Comm comm) {
+bool exitOnError(bool success, const string& message, MPI_Comm comm) {
    int successInt;
    int globalSuccessInt;
    if(success)
