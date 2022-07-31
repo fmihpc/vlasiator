@@ -26,15 +26,25 @@
 #include <stdexcept>
 #include <cassert>
 #include "definitions.h"
+#include "splitvec.h"
+
 
 // Open bucket power-of-two sized hash table with multiplicative fibonacci hashing
-template <typename GID, typename LID, int maxBucketOverflow = 4, GID EMPTYBUCKET = vmesh::INVALID_GLOBALID > class OpenBucketHashtable {
+template <typename GID, typename LID, int maxBucketOverflow = 8, GID EMPTYBUCKET = vmesh::INVALID_GLOBALID > 
+class OpenBucketHashtable {
 private:
+   int* d_sizePower;
+   int* d_maxBucketOverflow;
+   int postDevice_maxBucketOverflow;
+   size_t* d_fill;
+
    int sizePower; // Logarithm (base two) of the size of the table
+   int cpu_maxBucketOverflow;
    size_t fill;   // Number of filled buckets
-   std::vector<std::pair<GID, LID>> buckets;
+   split::SplitVector<std::pair<GID, LID>> buckets;
 
    // Fibonacci hash function for 64bit values
+   __host__ __device__
    uint32_t fibonacci_hash(GID in) const {
       in ^= in >> (32 - sizePower);
       uint32_t retval = (uint64_t)(in * 2654435769ul) >> (32 - sizePower);
@@ -42,7 +52,8 @@ private:
    }
 
     //Hash a chunk of memory using fnv_1a
-    uint32_t fnv_1a(const void* chunk, size_t bytes)const{
+   __host__ __device__
+   uint32_t fnv_1a(const void* chunk, size_t bytes)const{
        assert(chunk);
        uint32_t h = 2166136261ul;
        const unsigned char* ptr = (const unsigned char*)chunk;
@@ -53,8 +64,10 @@ private:
     }
 
     // Generic h
-    uint32_t hash(GID in) const {
+   __host__ __device__
+   uint32_t hash(GID in) const {
        static constexpr bool n = (std::is_arithmetic<GID>::value && sizeof(GID) <= sizeof(uint32_t));
+
        if (n) {
           return fibonacci_hash(in);
        } else {
@@ -71,10 +84,13 @@ public:
    // Resize the table to fit more things. This is automatically invoked once
    // maxBucketOverflow has triggered.
    void rehash(int newSizePower) {
+#ifdef DEBUG
+      std::cout<<"Rehashing to "<<( 1<<newSizePower )<<std::endl;
+#endif
       if (newSizePower > 32) {
          throw std::out_of_range("OpenBucketHashtable ran into rehashing catastrophe and exceeded 32bit buckets.");
       }
-      std::vector<std::pair<GID, LID>> newBuckets(1 << newSizePower,
+      split::SplitVector<std::pair<GID, LID>> newBuckets(1 << newSizePower,
                                                   std::pair<GID, LID>(EMPTYBUCKET, LID()));
       sizePower = newSizePower;
       int bitMask = (1 << sizePower) - 1; // For efficient modulo of the array size
@@ -162,6 +178,8 @@ public:
    size_t size() const { return fill; }
 
    size_t bucket_count() const { return buckets.size(); }
+   
+   float load_factor() const {return (float)size()/bucket_count();}
 
    size_t count(const GID& key) const {
       if (find(key) != end()) {
@@ -172,9 +190,392 @@ public:
    }
 
    void clear() {
-      buckets = std::vector<std::pair<GID, LID>>(1 << sizePower, {EMPTYBUCKET, LID()});
+      buckets = split::SplitVector<std::pair<GID, LID>>(1 << sizePower, {EMPTYBUCKET, LID()});
       fill = 0;
    }
+
+
+   /************************Device Methods*********************************/
+   __host__
+   void resize_to_lf(float targetLF=0.5){
+      
+      while (load_factor() > targetLF){
+         rehash(sizePower+1);
+      }
+   }
+
+   __host__
+   void resize(int newSizePower){
+      rehash(newSizePower);     
+   }
+
+   __host__
+   OpenBucketHashtable* upload(){
+      cpu_maxBucketOverflow=maxBucketOverflow;
+      this->buckets.optimizeGPU();
+      OpenBucketHashtable* device_map;
+      cudaMalloc((void **)&d_sizePower, sizeof(int));
+      cudaMemcpy(d_sizePower, &sizePower, sizeof(int),cudaMemcpyHostToDevice);
+      cudaMalloc((void **)&d_maxBucketOverflow, sizeof(int));
+      cudaMemcpy(d_maxBucketOverflow,&cpu_maxBucketOverflow, sizeof(int),cudaMemcpyHostToDevice);
+      cudaMalloc((void **)&d_fill, sizeof(size_t));
+      cudaMemcpy(d_fill, &fill, sizeof(size_t),cudaMemcpyHostToDevice);
+      cudaMalloc((void **)&device_map, sizeof(OpenBucketHashtable));
+      cudaMemcpy(device_map, this, sizeof(OpenBucketHashtable),cudaMemcpyHostToDevice);
+      return device_map;
+   }
+
+   __host__
+   void clean_up_after_device(OpenBucketHashtable* device_map ){
+      
+      //Copy over fill as it might have changed
+      cudaMemcpy(&fill, d_fill, sizeof(size_t),cudaMemcpyDeviceToHost);
+      
+      cudaMemcpy(&postDevice_maxBucketOverflow, d_maxBucketOverflow, sizeof(int),cudaMemcpyDeviceToHost);
+      //TODO
+      //Here postDevice_maxBucketOverflow is the new overflowing that took place while running on device
+      //We need to handle this and clean up by rehashing to a larger container.
+      std::cout<<"Overflow Limits Dev/Host "<<maxBucketOverflow<<"--> "<<postDevice_maxBucketOverflow<<std::endl;
+      std::cout<<"Fill after device = "<<fill<<std::endl;
+      this->buckets.optimizeCPU();
+      if (postDevice_maxBucketOverflow!=maxBucketOverflow){
+         rehash(sizePower+1);
+      }
+     
+      cudaFree(device_map);
+      cudaFree(d_sizePower);
+      cudaFree(d_maxBucketOverflow);
+      cudaFree(d_fill);
+   }
+
+   __host__
+   void print_all(){
+      std::cout<<">>>>*********************************"<<std::endl;
+      std::cout<<"Map contains "<<bucket_count()<<" buckets"<<std::endl;
+      std::cout<<"Map fill is "<<fill<<std::endl;
+      std::cout<<"Map size is "<<size()<<std::endl;
+      std::cout<<"Map LF is "<<load_factor()<<std::endl;
+      std::cout<<"Map Overflow Limit after DEVICE is "<<postDevice_maxBucketOverflow<<std::endl;
+      std::cout<<"<<<<*********************************"<<std::endl;
+   }
+
+   void print_kvals(){
+      for (auto it=begin(); it!=end();it++){
+         std::cout<<it->first<<" "<<it->second<<std::endl;
+      }
+   }
+
+   
+   // Device code for element access (by reference). Nonexistent elements get created.
+   __device__
+   bool retrieve_w(const GID& key, size_t &thread_overflowLookup,LID* &retval) {
+      int bitMask = (1 << *d_sizePower) - 1; // For efficient modulo of the array size
+      uint32_t hashIndex = hash(key);
+
+      // Try to find the matching bucket.
+      for (int i = 0; i < thread_overflowLookup; i++) {
+         uint32_t vecindex=(hashIndex + i) & bitMask;
+         std::pair<GID, LID>& candidate = buckets[vecindex];
+         if (candidate.first == key) {
+            // Found a match, return that
+            retval = &candidate.second;
+            return true;
+         }
+         if (candidate.first == EMPTYBUCKET) {
+            // Found an empty bucket, assign and return that.
+            candidate.first = key;
+            //compute capability 6.* and higher
+            atomicAdd((unsigned long long  int*)d_fill, 1);
+            assert(*d_fill < buckets.size() && "No free buckets left on device memory. Exiting!");
+            retval = &candidate.second;
+            return true;
+         }
+      }
+
+      return false;
+   }
+
+
+   __device__
+   LID* dev_at(const GID& key){
+      size_t thread_overflowLookup=*d_maxBucketOverflow;
+      LID* candidate=nullptr;
+      bool found=false;
+      while(!found){
+         found = retrieve_w(key,thread_overflowLookup,candidate);
+         if (!found){
+            thread_overflowLookup+=1;
+         }
+         assert(thread_overflowLookup < buckets.size() && "Buckets are completely overflown. This is a catastrophic failure...Consider .resize_to_lf()");
+      }
+      /*Now the local overflow might have changed for a thread. 
+      We need to update the global one here.
+      compute capability 3.5 and higher*/
+      atomicMax(d_maxBucketOverflow,thread_overflowLookup);
+      assert(candidate && "NULL pointer");
+      return candidate;
+   }
+
+
+   __device__
+   void set_element(const GID& key,LID val){
+      LID* candidate= dev_at(key);
+      static constexpr bool n = (std::is_arithmetic<LID>::value && sizeof(LID) <= sizeof(uint32_t));
+      if(n){
+         atomicExch((unsigned int*)candidate,(unsigned int)val);
+      }else{
+         atomicExch((unsigned long long int*)candidate,(unsigned long long int)val);
+      }
+   }
+
+     __device__
+   const LID& read_element(const GID& key) const {
+      int bitMask = (1 << sizePower) - 1; // For efficient modulo of the array size
+      uint32_t hashIndex = hash(key);
+
+      // Try to find the matching bucket.
+      for (int i = 0; i < *d_maxBucketOverflow; i++) {
+         uint32_t vecindex=(hashIndex + i) & bitMask;
+         const std::pair<GID, LID>& candidate = buckets[vecindex];
+         if (candidate.first == key) {
+            // Found a match, return that
+            return candidate.second;
+         }
+         if (candidate.first == EMPTYBUCKET) {
+            // Found an empty bucket, so error.
+             assert(false && "Key does not exist");
+         }
+      }
+       assert(false && "Key does not exist");
+   }
+   
+     
+   // Device Iterator type. Iterates through all non-empty buckets.
+   class d_iterator  {
+   private:
+      size_t index;
+      OpenBucketHashtable<GID, LID>* hashtable;
+   public:
+      __device__
+      d_iterator(OpenBucketHashtable<GID, LID>& hashtable, size_t index) : hashtable(&hashtable), index(index) {}
+      
+      __device__
+      size_t getIndex() { return index; }
+     
+      __device__
+      d_iterator& operator++() {
+         index++;
+         while(index < hashtable->buckets.size()){
+            if (hashtable->buckets[index].first != EMPTYBUCKET){
+               break;
+            }
+            index++;
+         }
+         return *this;
+      }
+      
+      __device__
+      d_iterator operator++(int){
+         d_iterator temp = *this;
+         ++(*this);
+         return temp;
+      }
+      
+      __device__
+      bool operator==(d_iterator other) const {
+         return &hashtable->buckets[index] == &other.hashtable->buckets[other.index];
+      }
+      __device__
+      bool operator!=(d_iterator other) const {
+         return &hashtable->buckets[index] != &other.hashtable->buckets[other.index];
+      }
+      
+      __device__
+      std::pair<GID, LID>& operator*() const { return hashtable->buckets[index]; }
+      __device__
+      std::pair<GID, LID>* operator->() const { return &hashtable->buckets[index]; }
+
+   };
+
+
+
+   class d_const_iterator  {
+   private:
+      size_t index;
+      const OpenBucketHashtable<GID, LID>* hashtable;
+   public:
+      __device__
+      explicit d_const_iterator(const OpenBucketHashtable<GID, LID>& hashtable, size_t index) : hashtable(&hashtable), index(index) {}
+      
+      __device__
+      size_t getIndex() { return index; }
+     
+      __device__
+      d_const_iterator& operator++() {
+         index++;
+         while(index < hashtable->buckets.size()){
+            if (hashtable->buckets[index].first != EMPTYBUCKET){
+               break;
+            }
+            index++;
+         }
+         return *this;
+      }
+      
+      __device__
+      d_const_iterator operator++(int){
+         d_const_iterator temp = *this;
+         ++(*this);
+         return temp;
+      }
+      
+      __device__
+      bool operator==(d_const_iterator other) const {
+         return &hashtable->buckets[index] == &other.hashtable->buckets[other.index];
+      }
+      __device__
+      bool operator!=(d_const_iterator other) const {
+         return &hashtable->buckets[index] != &other.hashtable->buckets[other.index];
+      }
+      
+      __device__
+      const std::pair<GID, LID>& operator*() const { return hashtable->buckets[index]; }
+      __device__
+      const std::pair<GID, LID>* operator->() const { return &hashtable->buckets[index]; }
+   };
+
+
+
+   __device__
+   d_iterator d_end() { return d_iterator(*this, buckets.size()); }
+
+   __device__
+   d_const_iterator d_end()const  { return d_const_iterator(*this, buckets.size()); }
+
+   __device__
+   d_iterator d_begin() {
+      for (size_t i = 0; i < buckets.size(); i++) {
+         if (buckets[i].first != EMPTYBUCKET) {
+            return d_iterator(*this, i);
+         }
+      }
+      return d_end();
+   }
+    
+   // Element access by iterator
+   __device__ 
+   d_iterator d_find(GID key) {
+      int bitMask = (1 << sizePower) - 1; // For efficient modulo of the array size
+      uint32_t hashIndex = hash(key);
+
+      // Try to find the matching bucket.
+      for (int i = 0; i < *d_maxBucketOverflow; i++) {
+         const std::pair<GID, LID>& candidate = buckets[(hashIndex + i) & bitMask];
+         if (candidate.first == key) {
+            // Found a match, return that
+            return d_iterator(*this, (hashIndex + i) & bitMask);
+         }
+
+         if (candidate.first == EMPTYBUCKET) {
+            // Found an empty bucket. Return empty.
+            return d_end();
+         }
+      }
+
+      // Not found
+      return d_end();
+   }
+
+   __device__ 
+   const d_const_iterator d_find(GID key)const {
+      int bitMask = (1 << sizePower) - 1; // For efficient modulo of the array size
+      uint32_t hashIndex = hash(key);
+
+      // Try to find the matching bucket.
+      for (int i = 0; i < *d_maxBucketOverflow; i++) {
+         const std::pair<GID, LID>& candidate = buckets[(hashIndex + i) & bitMask];
+         if (candidate.first == key) {
+            // Found a match, return that
+            return d_const_iterator(*this, (hashIndex + i) & bitMask);
+         }
+
+         if (candidate.first == EMPTYBUCKET) {
+            // Found an empty bucket. Return empty.
+            return d_end();
+         }
+      }
+
+      // Not found
+      return d_end();
+   }
+
+   // Remove one element from the hash table.
+   __device__
+   d_iterator d_erase(d_iterator keyPos) {
+      // Due to overflowing buckets, this might require moving quite a bit of stuff around.
+      size_t index = keyPos.getIndex();
+
+      if (buckets[index].first != EMPTYBUCKET) {
+         // Decrease fill count
+         atomicAdd((unsigned long long int*)d_fill, -1);
+
+         // Clear the element itself.
+         static constexpr bool n = (std::is_arithmetic<GID>::value && sizeof(GID) <= sizeof(uint32_t));
+         if(n){
+            atomicExch((unsigned int*)&buckets[index].first,(unsigned int)EMPTYBUCKET);
+         }else{
+            atomicExch((unsigned long long int*)&buckets[index].first,(unsigned long long int)EMPTYBUCKET);
+         }
+
+         int bitMask = (1 << *d_sizePower) - 1; // For efficient modulo of the array size
+         size_t targetPos = index;
+         // Search ahead to verify items are in correct places (until empty bucket is found)
+         for (unsigned int i = 1; i < fill; i++) {
+            GID nextBucket = buckets[(index + i)&bitMask].first;
+            if (nextBucket == EMPTYBUCKET) {
+               // The next bucket is empty, we are done.
+               break;
+            }
+            // Found an entry: is it in the correct bucket?
+            uint32_t hashIndex = hash(nextBucket);
+            if ((hashIndex&bitMask) != ((index + i)&bitMask)) {
+               //// This entry has overflown. Now check if it should be moved:
+               uint32_t distance =  ((targetPos - hashIndex + (1<<*d_sizePower) )&bitMask);
+               if (distance < *d_maxBucketOverflow) {
+                  //// Copy this entry to the current newly empty bucket, then continue with deleting
+                  //// this overflown entry and continue searching for overflown entries
+                  LID moveValue = buckets[(index+i)&bitMask].second;
+                  if (n){
+                     atomicExch((unsigned int*)&buckets[targetPos].first,(unsigned int)nextBucket);
+                     atomicExch((unsigned int*)&buckets[targetPos].second,(unsigned int)moveValue);
+                     targetPos = ((index+i)&bitMask);
+                     atomicExch((unsigned int*)&buckets[targetPos].first,(unsigned int)EMPTYBUCKET);
+                  }else{
+                     atomicExch((unsigned long long int*)&buckets[targetPos].first,(unsigned long long int)nextBucket);
+                     atomicExch((unsigned long long int*)&buckets[targetPos].second,(unsigned long long int)moveValue);
+                     targetPos = ((index+i)&bitMask);
+                     atomicExch((unsigned long long int*)&buckets[targetPos].first,(unsigned long long int)EMPTYBUCKET);
+                  }
+               }
+            }
+         }
+      }
+      // return the next valid bucket member
+      ++keyPos;
+      return keyPos;
+   }
+
+   __device__
+   size_t d_erase(const GID& key) {
+      d_iterator element = d_find(key);
+      if(element == d_end()) {
+         return 0;
+      } else {
+         d_erase(element);
+         return 1;
+      }
+   }
+   /**************************device code*************************************************/
 
    // Iterator type. Iterates through all non-empty buckets.
    class iterator : public std::iterator<std::random_access_iterator_tag, std::pair<GID, LID>> {
@@ -185,11 +586,16 @@ public:
       iterator(OpenBucketHashtable<GID, LID>& hashtable, size_t index) : hashtable(&hashtable), index(index) {}
 
       iterator& operator++() {
-         do {
+         index++;
+         while(index < hashtable->buckets.size()){
+            if (hashtable->buckets[index].first != EMPTYBUCKET){
+               break;
+            }
             index++;
-         } while (hashtable->buckets[index].first == EMPTYBUCKET && index < hashtable->buckets.size());
+         }
          return *this;
       }
+      
       iterator operator++(int) { // Postfix version
          iterator temp = *this;
          ++(*this);
@@ -217,9 +623,13 @@ public:
           : hashtable(&hashtable), index(index) {}
 
       const_iterator& operator++() {
-         do {
+         index++;
+         while(index < hashtable->buckets.size()){
+            if (hashtable->buckets[index].first != EMPTYBUCKET){
+               break;
+            }
             index++;
-         } while (hashtable->buckets[index].first == EMPTYBUCKET && index < hashtable->buckets.size());
+         }
          return *this;
       }
       const_iterator operator++(int) { // Postfix version
