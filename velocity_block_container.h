@@ -82,10 +82,7 @@ namespace vmesh {
    };
    
    template<typename LID> inline
-   VelocityBlockContainer<LID>::VelocityBlockContainer() {
-      currentCapacity = 0;
-      numberOfBlocks = 0;
-   }
+   VelocityBlockContainer<LID>::VelocityBlockContainer() : currentCapacity {0}, numberOfBlocks {0} {}
    
    template<typename LID> inline
    LID VelocityBlockContainer<LID>::capacity() const {

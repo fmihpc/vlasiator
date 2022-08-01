@@ -28,10 +28,9 @@ Distribution::Distribution(std::default_random_engine& _rand) : rand(_rand) {
    mass = ParticleParameters::mass;
    charge = ParticleParameters::charge;
 }
-Maxwell_Boltzmann::Maxwell_Boltzmann(std::default_random_engine& _rand) : Distribution(_rand) {
-   Real kT = ParticleParameters::temperature * PhysicalConstantsSI::k;
-   velocity_distribution=std::normal_distribution<Real>(0.,sqrt(kT/mass));
-}
+Maxwell_Boltzmann::Maxwell_Boltzmann(std::default_random_engine& _rand) : 
+   Distribution(_rand), velocity_distribution {std::normal_distribution<Real>(0., sqrt(ParticleParameters::temperature * PhysicalConstantsSI::k / mass))} {}
+
 Monoenergetic::Monoenergetic(std::default_random_engine& _rand) : Distribution(_rand) {
    vel = ParticleParameters::particle_vel;
 }
