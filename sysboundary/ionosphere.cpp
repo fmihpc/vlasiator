@@ -1082,7 +1082,7 @@ namespace SBC {
          if(vlasovGridCoupling.find(x) == vlasovGridCoupling.end()) {
 
             // If not, create one.
-            vlasovGridCoupling[x] = FieldTracing::calculateVlasovGridCoupling(x, nodes, Ionosphere::radius);
+            vlasovGridCoupling[x] = FieldTracing::calculateIonosphereVlasovGridCoupling(x, nodes, Ionosphere::radius);
          }
 
          const std::array<std::pair<int, Real>, 3>& coupling = vlasovGridCoupling[x];

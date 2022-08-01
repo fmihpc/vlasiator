@@ -149,7 +149,7 @@ namespace FieldTracing {
    }
    
    /*! Link each ionospheric node to fsgrid cells for coupling */
-   void calculateFsgridCoupling(
+   void calculateIonosphereFsgridCoupling(
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
       FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
@@ -158,7 +158,7 @@ namespace FieldTracing {
    );
 
    /*! Find coupled ionosphere mesh node for given location */
-   std::array<std::pair<int, Real>, 3> calculateVlasovGridCoupling(
+   std::array<std::pair<int, Real>, 3> calculateIonosphereVlasovGridCoupling(
       std::array<Real,3> x,
       std::vector<SBC::SphericalTriGrid::Node> & nodes,
       creal couplingRadius

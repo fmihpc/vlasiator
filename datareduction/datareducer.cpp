@@ -3047,7 +3047,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                   x[1] = cell->parameters[CellParams::YCRD] + cell->parameters[CellParams::DY];
                   x[2] = cell->parameters[CellParams::ZCRD] + cell->parameters[CellParams::DZ];
 
-                  std::array<std::pair<int, Real>, 3> coupling = FieldTracing::calculateVlasovGridCoupling(x, SBC::ionosphereGrid.nodes, SBC::Ionosphere::radius);
+                  std::array<std::pair<int, Real>, 3> coupling = FieldTracing::calculateIonosphereVlasovGridCoupling(x, SBC::ionosphereGrid.nodes, SBC::Ionosphere::radius);
                   for(int i=0; i<3; i++) {
                      uint coupledNode = coupling[i].first;
                      Real a = coupling[i].second;

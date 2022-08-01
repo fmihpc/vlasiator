@@ -87,7 +87,7 @@ namespace FieldTracing {
                attempts++;
             } while (reTrace && attempts<= fieldTracingParameters.max_field_tracer_attempts);
             if (reTrace) {
-               std::cerr<<"Adaptive Euler field line tracer exhausted all available attempts and still did not converge..."<<std::endl;
+               logFile << "(fieldtracing) Warning: Adaptive Euler field line tracer exhausted all available attempts and still did not converge." << std::endl;
             }
             break;
          case BS:
@@ -102,11 +102,12 @@ namespace FieldTracing {
                attempts++;
             } while (reTrace && attempts<= fieldTracingParameters.max_field_tracer_attempts);
             if (reTrace) {
-               std::cerr<<"Dormand Prince field line tracer exhausted all available attempts and still did not converge..."<<std::endl;
+               logFile << "(fieldtracing) Warning: Dormand Prince field line tracer exhausted all available attempts and still did not converge..." << std::endl;
             }
             break;
          default:
-            std::cerr << "(ionosphere) Warning: No Field Line Tracing method defined. Ionosphere connectivity will be garbled."<<std::endl;
+            std::cerr << "(fieldtracing) Error: No field line tracing method defined."<<std::endl;
+            abort();
             break;
       }
    }//stepFieldLine
@@ -117,7 +118,7 @@ namespace FieldTracing {
    * outwards until a non-boundary cell is encountered. Their proportional
    * coupling values are recorded in the grid nodes.
    */
-   void calculateFsgridCoupling(
+   void calculateIonosphereFsgridCoupling(
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
       FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
@@ -130,7 +131,7 @@ namespace FieldTracing {
          return;
       }
       
-      phiprof::start("ionosphere-fsgridCoupling");
+      phiprof::start("fieldtracing-ionosphere-fsgridCoupling");
       // Pick an initial stepsize
       creal stepSize = min(100e3, technicalGrid.DX / 2.);
       std::vector<Real> nodeTracingStepSize(nodes.size(), stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
@@ -158,7 +159,7 @@ namespace FieldTracing {
             || r[2] > P::zmax - 2*P::dz_ini
             || r[2] < P::zmin + 2*P::dz_ini
          ) {
-            cerr << (string)("Oops! fsgrid coupling trying to step outside of the global domain?\n");
+            cerr << (string)("(fieldtracing) Error: fsgrid coupling trying to step outside of the global domain?\n");
             return false;
          }
          
@@ -179,7 +180,7 @@ namespace FieldTracing {
          
          if(fsgridCell[0] > localSize[0] || fsgridCell[1] > localSize[1] || fsgridCell[2] > localSize[2]
             || fsgridCell[0] < -1 || fsgridCell[1] < -1 || fsgridCell[2] < -1) {
-            cerr << (string)("Oops! fsgrid coupling trying to access local ID " + to_string(fsgridCell[0]) + " " + to_string(fsgridCell[1]) + " " + to_string(fsgridCell[2])
+            cerr << (string)("(fieldtracing) Error: fsgrid coupling trying to access local ID " + to_string(fsgridCell[0]) + " " + to_string(fsgridCell[1]) + " " + to_string(fsgridCell[2])
             + " for local domain size " + to_string(localSize[0]) + " " + to_string(localSize[1]) + " " + to_string(localSize[2])
             + " at position " + to_string(r[0]) + " " + to_string(r[1]) + " " + to_string(r[2]) + " radius " + to_string(sqrt(r[0]*r[0]+r[1]*r[1]+r[2]*r[2]))
             + "\n");
@@ -208,7 +209,7 @@ namespace FieldTracing {
             
             // Make sure motion is outwards. Flip b if dot(r,b) < 0
             if(std::isnan(b[0]) || std::isnan(b[1]) || std::isnan(b[2])) {
-               cerr << "(ionosphere) Error: magnetic field is nan in getRadialBfieldDirection at location "
+               cerr << "(fieldtracing) Error: magnetic field is nan in getRadialBfieldDirection at location "
                << r[0] << ", " << r[1] << ", " << r[2] << ", with B = " << b[0] << ", " << b[1] << ", " << b[2] << endl;
                b[0] = 0;
                b[1] = 0;
@@ -222,9 +223,9 @@ namespace FieldTracing {
             return success;
       };
       
-      int toto = 0;
+      int itCount = 0;
       do {
-         toto++;
+         itCount++;
          anyNodeNeedsTracing = false;
          
          #pragma omp parallel
@@ -276,7 +277,7 @@ namespace FieldTracing {
                   // If we somehow still map into the ionosphere, we missed the 88 degree criterion but shouldn't couple there.
                   if(sqrt(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2)) < SBC::Ionosphere::innerRadius) {
                      // TODO drop this warning if it never occurs? To be followed.
-                     cerr << (string)("Triggered mapping back into Earth from node " + to_string(n) + " at z " + to_string(no.x[2]) + "\n");
+                     cerr << (string)("(fieldtracing) Warning: Triggered mapping back into Earth from node " + to_string(n) + " at z " + to_string(no.x[2]) + "\n");
                      nodeNeedsContinuedTracing.at(n) = 0;
                      nodeTracingCoordinates.at(n) = {0,0,0};
                      break;
@@ -344,7 +345,7 @@ namespace FieldTracing {
          
       } while(anyNodeNeedsTracing);
       
-      logFile << "fsgrid coupling traced in " << toto << " iterations of the tracing loop." << endl;
+      logFile << "(fieldtracing) fsgrid coupling traced in " << itCount << " iterations of the tracing loop." << endl;
       
       std::vector<Real> reducedNodeDistance(nodes.size());
       if(sizeof(Real) == sizeof(double)) {
@@ -410,7 +411,7 @@ namespace FieldTracing {
          no.xMapped[2] = reducedxMapped[3*n+2] / reducedCouplingNum[n];
       }
       
-      phiprof::stop("ionosphere-fsgridCoupling");
+      phiprof::stop("fieldtracing-ionosphere-fsgridCoupling");
    }
 
    /*! Calculate mapping between ionospheric nodes and Vlasov grid cells.
@@ -421,7 +422,7 @@ namespace FieldTracing {
    * The return value is a pair of nodeID and coupling factor for the three
    * corners of the containing element.
    */
-   std::array<std::pair<int, Real>, 3> calculateVlasovGridCoupling(
+   std::array<std::pair<int, Real>, 3> calculateIonosphereVlasovGridCoupling(
       std::array<Real,3> x,
       std::vector<SBC::SphericalTriGrid::Node> & nodes,
       creal couplingRadius
@@ -431,7 +432,7 @@ namespace FieldTracing {
       
       Real stepSize = 100e3;
       std::array<Real,3> v;
-      phiprof::start("ionosphere-VlasovGridCoupling");
+      phiprof::start("fieldtracing-ionosphere-VlasovGridCoupling");
       
       // For tracing towards the vlasov boundary, we only require the dipole field.
       TracingFieldFunction dipoleFieldOnly = [](std::array<Real,3>& r, const bool outwards, std::array<Real,3>& b)->bool {
@@ -473,10 +474,10 @@ namespace FieldTracing {
          // (this shouldn't happen under normal magnetospheric conditions, but who
          // knows what crazy driving this will be run with)
          if(sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]) > 1.5*couplingRadius) {
-            cerr << "(ionosphere) Warning: coupling of Vlasov grid cell failed due to weird magnetic field topology." << endl;
+            cerr << "(fieldtracing) Warning: coupling of Vlasov grid cell failed due to weird magnetic field topology." << endl;
             
             // Return a coupling that has 0 value and results in zero potential
-            phiprof::stop("ionosphere-VlasovGridCoupling");
+            phiprof::stop("fieldtracing-ionosphere-VlasovGridCoupling");
             return coupling;
          }
       }
@@ -532,7 +533,7 @@ namespace FieldTracing {
             coupling[0] = {el.corners[0], lambda1};
             coupling[1] = {el.corners[1], lambda2};
             coupling[2] = {el.corners[2], lambda3};
-            phiprof::stop("ionosphere-VlasovGridCoupling");
+            phiprof::stop("fieldtracing-ionosphere-VlasovGridCoupling");
             return coupling;
          } else if (kappa1 > 0 && kappa2 > 0 && kappa3 < 0) {
             elementIndex = SBC::ionosphereGrid.findElementNeighbour(elementIndex,0,2);
@@ -579,9 +580,9 @@ namespace FieldTracing {
       
       // If we arrived here, we did not find an element to couple to (why?)
       // Return an empty coupling instead
-      cerr << "(ionosphere) Failed to find an ionosphere element to couple to for coordinate " <<
+      cerr << "(fieldtracing) Failed to find an ionosphere element to couple to for coordinate " <<
       x[0] << " " << x[1] << " " << x[2] << endl;
-      phiprof::stop("ionosphere-VlasovGridCoupling");
+      phiprof::stop("fieldtracing-ionosphere-VlasovGridCoupling");
       return coupling;
    }
 
@@ -599,7 +600,7 @@ namespace FieldTracing {
          return;
       }
       
-      phiprof::start("ionosphere-openclosedTracing");
+      phiprof::start("fieldtracing-ionosphere-openclosedTracing");
       // Pick an initial stepsize
       creal stepSize = min(1000e3, technicalGrid.DX / 2.);
       std::vector<Real> nodeTracingStepSize(nodes.size(), stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
@@ -628,7 +629,7 @@ namespace FieldTracing {
             || r[2] > P::zmax - 2*P::dz_ini
             || r[2] < P::zmin + 2*P::dz_ini
          ) {
-            cerr << (string)("Oops! Open-closed mapping trying to step outside of the global domain?\n");
+            cerr << (string)("(fieldtracing) Error: Open-closed mapping trying to step outside of the global domain?\n");
             return false;
          }
          
@@ -648,7 +649,7 @@ namespace FieldTracing {
          
          if(fsgridCell[0] > localSize[0] || fsgridCell[1] > localSize[1] || fsgridCell[2] > localSize[2]
             || fsgridCell[0] < -1 || fsgridCell[1] < -1 || fsgridCell[2] < -1) {
-            cerr << (string)("Oops! Open-closed mapping trying to access local ID " + to_string(fsgridCell[0]) + " " + to_string(fsgridCell[1]) + " " + to_string(fsgridCell[2])
+            cerr << (string)("(fieldtracing) Error: Open-closed mapping trying to access local ID " + to_string(fsgridCell[0]) + " " + to_string(fsgridCell[1]) + " " + to_string(fsgridCell[2])
             + " for local domain size " + to_string(localSize[0]) + " " + to_string(localSize[1]) + " " + to_string(localSize[2]) + "\n");
          return false;
             } else {
@@ -674,7 +675,7 @@ namespace FieldTracing {
             }
             
             if(std::isnan(b[0]) || std::isnan(b[1]) || std::isnan(b[2])) {
-               cerr << "(ionosphere) Error: magnetic field is nan in getRadialBfieldDirection at location "
+               cerr << "(fieldtracing) Error: magnetic field is nan in getRadialBfieldDirection at location "
                << r[0] << ", " << r[1] << ", " << r[2] << ", with B = " << b[0] << ", " << b[1] << ", " << b[2] << endl;
                b[0] = 0;
                b[1] = 0;
@@ -688,11 +689,11 @@ namespace FieldTracing {
             return true;
       };
       
-      int toto=0;
+      int itCount=0;
       bool warnMaxStepsExceeded = false;
       do {
          anyNodeNeedsTracing = false;
-         toto++;
+         itCount++;
          
          #pragma omp parallel
          {
@@ -802,14 +803,14 @@ namespace FieldTracing {
          }
       } while(anyNodeNeedsTracing);
       
-      logFile << "open-closed tracing traced in " << toto << " iterations of the tracing loop." << endl;
+      logFile << "(fieldtracing) open-closed tracing traced in " << itCount << " iterations of the tracing loop." << endl;
       
       bool redWarning = false;
       MPI_Allreduce(&warnMaxStepsExceeded, &redWarning, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
       int rank;
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
       if(redWarning && rank == MASTER_RANK) {
-         logFile << "Warning: reached the maximum number of tracing steps " << maxTracingSteps << " allowed for open-closed ionosphere tracing." << endl;
+         logFile << "(fieldtracing) Warning: reached the maximum number of tracing steps " << maxTracingSteps << " allowed for open-closed ionosphere tracing." << endl;
       }
       
       std::vector<int> reducedNodeMapping(nodes.size());
@@ -821,7 +822,7 @@ namespace FieldTracing {
          nodes[n].openFieldLine = reducedNodeMapping.at(n);
       }
       
-      phiprof::stop("ionosphere-openclosedTracing");
+      phiprof::stop("fieldtracing-ionosphere-openclosedTracing");
    }
 
    /*! Trace magnetic field lines forward and backward from each DCCRG cell to record the connectivity.
@@ -832,7 +833,7 @@ namespace FieldTracing {
       FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
    ) {
-      phiprof::start("ionosphere-fullTracing");
+      phiprof::start("fieldtracing-fullTracing");
       
       std::vector<CellID> localDccrgCells = getLocalCells();
       int localDccrgSize = localDccrgCells.size();
@@ -924,7 +925,7 @@ namespace FieldTracing {
             || r[2] > P::zmax - 2*P::dz_ini
             || r[2] < P::zmin + 2*P::dz_ini
          ) {
-            cerr << (string)("Oops! Full mapping trying to step outside of the global domain?\n");
+            cerr << (string)("(fieldtracing) Error: Full mapping trying to step outside of the global domain?\n");
             return false;
          }
          
@@ -945,7 +946,7 @@ namespace FieldTracing {
          
          if(fsgridCell[0] > localSize[0] || fsgridCell[1] > localSize[1] || fsgridCell[2] > localSize[2]
             || fsgridCell[0] < -1 || fsgridCell[1] < -1 || fsgridCell[2] < -1) {
-            cerr << (string)("Oops! Full mapping trying to access local ID " + to_string(fsgridCell[0]) + " " + to_string(fsgridCell[1]) + " " + to_string(fsgridCell[2])
+            cerr << (string)("(fieldtracing) Error: Full mapping trying to access local ID " + to_string(fsgridCell[0]) + " " + to_string(fsgridCell[1]) + " " + to_string(fsgridCell[2])
             + " for local domain size " + to_string(localSize[0]) + " " + to_string(localSize[1]) + " " + to_string(localSize[2])
             + "\n");
          return false;
@@ -972,7 +973,7 @@ namespace FieldTracing {
             }
             
             if(std::isnan(b[0]) || std::isnan(b[1]) || std::isnan(b[2])) {
-               cerr << "(ionosphere) Error: magnetic field is nan in getRadialBfieldDirection at location "
+               cerr << "(fieldtracing) Error: magnetic field is nan in getRadialBfieldDirection at location "
                << r[0] << ", " << r[1] << ", " << r[2] << ", with B = " << b[0] << ", " << b[1] << ", " << b[2] << endl;
                b[0] = 0;
                b[1] = 0;
@@ -986,7 +987,7 @@ namespace FieldTracing {
             return true;
       };
       
-      int toto = 0;
+      int itCount = 0;
       bool warnMaxStepsExceeded = false;
       int cellsToDo;
       phiprof::start("loop");
@@ -995,7 +996,7 @@ namespace FieldTracing {
          do { // while(anyCellNeedsTracing)
             #pragma omp single
             {
-               toto++;
+               itCount++;
             }
             // Trace node coordinates forward and backwards until a non-sysboundary cell is encountered or the local fsgrid domain has been left.
             #pragma omp for schedule(dynamic)
@@ -1213,14 +1214,14 @@ namespace FieldTracing {
       } // pragma omp parallel
       phiprof::stop("loop");
       
-      logFile << "full box tracing traced in " << toto << " iterations of the tracing loop with " << cellsToDo << " remaining incomplete field lines (total spatial cells " << globalDccrgSize <<  ")." << endl;
+      logFile << "(fieldtracing) full box tracing traced in " << itCount << " iterations of the tracing loop with " << cellsToDo << " remaining incomplete field lines (total spatial cells " << globalDccrgSize <<  ")." << endl;
       
       bool redWarning = false;
       MPI_Allreduce(&warnMaxStepsExceeded, &redWarning, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
       int rank;
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
       if(redWarning && rank == MASTER_RANK) {
-         logFile << "Warning: reached the maximum number of tracing steps " << maxTracingSteps << " allowed for full-box ionosphere tracing." << endl;
+         logFile << "(fieldtracing) Warning: reached the maximum number of tracing steps " << maxTracingSteps << " allowed for full-box ionosphere tracing." << endl;
       }
       
       std::vector<int> reducedCellFWConnection(globalDccrgSize);
@@ -1263,7 +1264,7 @@ namespace FieldTracing {
       }
       phiprof::stop("final-loop");
       
-      phiprof::stop("ionosphere-fullTracing");
+      phiprof::stop("fieldtracing-fullTracing");
    }
    
    
@@ -1275,7 +1276,7 @@ namespace FieldTracing {
       FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
    ) {
-      phiprof::start("ionosphere-fluxropeTracing");
+      phiprof::start("fieldtracing-fluxropeTracing");
       
       std::vector<CellID> localDccrgCells = getLocalCells();
       int localDccrgSize = localDccrgCells.size();
@@ -1382,7 +1383,7 @@ namespace FieldTracing {
             || r[2] > P::zmax - 2*P::dz_ini
             || r[2] < P::zmin + 2*P::dz_ini
          ) {
-            cerr << (string)("Oops! Flux rope mapping trying to step outside of the global domain?\n");
+            cerr << (string)("(fieldtracing) Error: Flux rope mapping trying to step outside of the global domain?\n");
             return false;
          }
          
@@ -1403,7 +1404,7 @@ namespace FieldTracing {
          
          if(fsgridCell[0] > localSize[0] || fsgridCell[1] > localSize[1] || fsgridCell[2] > localSize[2]
             || fsgridCell[0] < -1 || fsgridCell[1] < -1 || fsgridCell[2] < -1) {
-            cerr << (string)("Oops! Flux rope mapping trying to access local ID " + to_string(fsgridCell[0]) + " " + to_string(fsgridCell[1]) + " " + to_string(fsgridCell[2])
+            cerr << (string)("(fieldtracing) Error: Flux rope mapping trying to access local ID " + to_string(fsgridCell[0]) + " " + to_string(fsgridCell[1]) + " " + to_string(fsgridCell[2])
             + " for local domain size " + to_string(localSize[0]) + " " + to_string(localSize[1]) + " " + to_string(localSize[2])
             + "\n");
          return false;
@@ -1430,7 +1431,7 @@ namespace FieldTracing {
             }
             
             if(std::isnan(b[0]) || std::isnan(b[1]) || std::isnan(b[2])) {
-               cerr << "(ionosphere) Error: magnetic field is nan in getRadialBfieldDirection at location "
+               cerr << "(fieldtracing) Error: magnetic field is nan in getRadialBfieldDirection at location "
                << r[0] << ", " << r[1] << ", " << r[2] << ", with B = " << b[0] << ", " << b[1] << ", " << b[2] << endl;
                b[0] = 0;
                b[1] = 0;
@@ -1444,14 +1445,14 @@ namespace FieldTracing {
             return true;
       };
       
-      int toto = 0;
+      int itCount = 0;
       phiprof::start("loop");
       #pragma omp parallel
       {
          do { // while(anyCellNeedsTracing)
             #pragma omp single
             {
-               toto++;
+               itCount++;
             }
             // Trace node coordinates forward and backwards until a non-sysboundary cell is encountered or the local fsgrid domain has been left.
             #pragma omp for schedule(dynamic)
@@ -1679,7 +1680,7 @@ namespace FieldTracing {
       } // pragma omp parallel
       phiprof::stop("loop");
       
-      logFile << "flux rope tracing traced in " << toto << " iterations of the tracing loop." << endl;
+      logFile << "(fieldtracing) flux rope tracing traced in " << itCount << " iterations of the tracing loop." << endl;
       
       phiprof::start("final-loop");
       for(int n=0; n<globalDccrgSize; n++) {
@@ -1695,7 +1696,7 @@ namespace FieldTracing {
       }
       phiprof::stop("final-loop");
       
-      phiprof::stop("ionosphere-fluxropeTracing");
+      phiprof::stop("fieldtracing-fluxropeTracing");
    }
    
 } // namespace FieldTracing
