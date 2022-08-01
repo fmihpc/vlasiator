@@ -4,6 +4,7 @@
 *.o
 vscode/
 .vscode/
+cppcheck/
 version.cpp
 \#*\#
 *~
