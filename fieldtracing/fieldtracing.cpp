@@ -111,8 +111,84 @@ namespace FieldTracing {
             break;
       }
    }//stepFieldLine
-
-
+   
+   bool traceFullFieldFunction(
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      std::array<Real,3>& r,
+      const bool alongB,
+      std::array<Real,3>& b
+   ) {
+      if(   r[0] > P::xmax - 2*P::dx_ini
+         || r[0] < P::xmin + 2*P::dx_ini
+         || r[1] > P::ymax - 2*P::dy_ini
+         || r[1] < P::ymin + 2*P::dy_ini
+         || r[2] > P::zmax - 2*P::dz_ini
+         || r[2] < P::zmin + 2*P::dz_ini
+      ) {
+         cerr << (string)("(fieldtracing) Error: fsgrid coupling trying to step outside of the global domain?\n");
+         return false;
+      }
+      
+      // Get field direction
+      b[0] = SBC::ionosphereGrid.dipoleField(r[0],r[1],r[2],X,0,X) + SBC::ionosphereGrid.BGB[0];
+      b[1] = SBC::ionosphereGrid.dipoleField(r[0],r[1],r[2],Y,0,Y) + SBC::ionosphereGrid.BGB[1];
+      b[2] = SBC::ionosphereGrid.dipoleField(r[0],r[1],r[2],Z,0,Z) + SBC::ionosphereGrid.BGB[2];
+      
+      std::array<int32_t, 3> fsgridCell = getGlobalFsGridCellIndexForCoord(technicalGrid,r);
+      const std::array<int32_t, 3> localStart = technicalGrid.getLocalStart();
+      const std::array<int32_t, 3> localSize = technicalGrid.getLocalSize();
+      // Make the global index a local one, bypass the fsgrid function that yields (-1,-1,-1) also for ghost cells.
+      fsgridCell[0] -= localStart[0];
+      fsgridCell[1] -= localStart[1];
+      fsgridCell[2] -= localStart[2];
+      
+      if(fsgridCell[0] > localSize[0] || fsgridCell[1] > localSize[1] || fsgridCell[2] > localSize[2]
+         || fsgridCell[0] < -1 || fsgridCell[1] < -1 || fsgridCell[2] < -1) {
+         cerr << (string)("(fieldtracing) Error: fsgrid coupling trying to access local ID " + to_string(fsgridCell[0]) + " " + to_string(fsgridCell[1]) + " " + to_string(fsgridCell[2])
+         + " for local domain size " + to_string(localSize[0]) + " " + to_string(localSize[1]) + " " + to_string(localSize[2])
+         + " at position " + to_string(r[0]) + " " + to_string(r[1]) + " " + to_string(r[2]) + " radius " + to_string(sqrt(r[0]*r[0]+r[1]*r[1]+r[2]*r[2]))
+         + "\n");
+         return false;
+      } else {
+         if(technicalGrid.get(fsgridCell[0],fsgridCell[1],fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+            const std::array<Real, 3> perB = interpolatePerturbedB(
+               perBGrid,
+               dPerBGrid,
+               technicalGrid,
+               fieldTracingParameters.reconstructionCoefficientsCache,
+               fsgridCell[0],fsgridCell[1],fsgridCell[2],
+               r
+            );
+            b[0] += perB[0];
+            b[1] += perB[1];
+            b[2] += perB[2];
+         }
+      }
+      
+      // Normalize
+      Real  norm = 1. / sqrt(b[0]*b[0] + b[1]*b[1] + b[2]*b[2]);
+      for(int c=0; c<3; c++) {
+         b[c] = b[c] * norm;
+      }
+      
+      // Make sure motion is outwards. Flip b if dot(r,b) < 0
+      if(std::isnan(b[0]) || std::isnan(b[1]) || std::isnan(b[2])) {
+         cerr << "(fieldtracing) Error: magnetic field is nan in getRadialBfieldDirection at location "
+         << r[0] << ", " << r[1] << ", " << r[2] << ", with B = " << b[0] << ", " << b[1] << ", " << b[2] << endl;
+         b[0] = 0;
+         b[1] = 0;
+         b[2] = 0;
+      }
+      if(!alongB) { // In this function, outwards indicates whether we trace along (true) or against (false) the field direction
+         b[0] *= -1;
+         b[1] *= -1;
+         b[2] *= -1;
+      }
+      return true;
+   }
+   
    /*! Calculate mapping between ionospheric nodes and fsGrid cells.
    * To do so, the magnetic field lines are traced from all mesh nodes
    * outwards until a non-boundary cell is encountered. Their proportional
@@ -150,77 +226,8 @@ namespace FieldTracing {
       }
       bool anyNodeNeedsTracing;
       
-      // Fieldline tracing function
-      TracingFieldFunction tracingField = [&perBGrid, &dPerBGrid, &technicalGrid](std::array<Real,3>& r, const bool alongB, std::array<Real,3>& b)->bool{
-         if(   r[0] > P::xmax - 2*P::dx_ini
-            || r[0] < P::xmin + 2*P::dx_ini
-            || r[1] > P::ymax - 2*P::dy_ini
-            || r[1] < P::ymin + 2*P::dy_ini
-            || r[2] > P::zmax - 2*P::dz_ini
-            || r[2] < P::zmin + 2*P::dz_ini
-         ) {
-            cerr << (string)("(fieldtracing) Error: fsgrid coupling trying to step outside of the global domain?\n");
-            return false;
-         }
-         
-         bool success = true;
-         
-         // Get field direction
-         b[0] = SBC::ionosphereGrid.dipoleField(r[0],r[1],r[2],X,0,X) + SBC::ionosphereGrid.BGB[0];
-         b[1] = SBC::ionosphereGrid.dipoleField(r[0],r[1],r[2],Y,0,Y) + SBC::ionosphereGrid.BGB[1];
-         b[2] = SBC::ionosphereGrid.dipoleField(r[0],r[1],r[2],Z,0,Z) + SBC::ionosphereGrid.BGB[2];
-         
-         std::array<int32_t, 3> fsgridCell = getGlobalFsGridCellIndexForCoord(technicalGrid,r);
-         const std::array<int32_t, 3> localStart = technicalGrid.getLocalStart();
-         const std::array<int32_t, 3> localSize = technicalGrid.getLocalSize();
-         // Make the global index a local one, bypass the fsgrid function that yields (-1,-1,-1) also for ghost cells.
-         fsgridCell[0] -= localStart[0];
-         fsgridCell[1] -= localStart[1];
-         fsgridCell[2] -= localStart[2];
-         
-         if(fsgridCell[0] > localSize[0] || fsgridCell[1] > localSize[1] || fsgridCell[2] > localSize[2]
-            || fsgridCell[0] < -1 || fsgridCell[1] < -1 || fsgridCell[2] < -1) {
-            cerr << (string)("(fieldtracing) Error: fsgrid coupling trying to access local ID " + to_string(fsgridCell[0]) + " " + to_string(fsgridCell[1]) + " " + to_string(fsgridCell[2])
-            + " for local domain size " + to_string(localSize[0]) + " " + to_string(localSize[1]) + " " + to_string(localSize[2])
-            + " at position " + to_string(r[0]) + " " + to_string(r[1]) + " " + to_string(r[2]) + " radius " + to_string(sqrt(r[0]*r[0]+r[1]*r[1]+r[2]*r[2]))
-            + "\n");
-         return false;
-            } else {
-               if(technicalGrid.get(fsgridCell[0],fsgridCell[1],fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                  const std::array<Real, 3> perB = interpolatePerturbedB(
-                     perBGrid,
-                     dPerBGrid,
-                     technicalGrid,
-                     fieldTracingParameters.reconstructionCoefficientsCache,
-                     fsgridCell[0],fsgridCell[1],fsgridCell[2],
-                     r
-                  );
-                  b[0] += perB[0];
-                  b[1] += perB[1];
-                  b[2] += perB[2];
-               }
-            }
-            
-            // Normalize
-            Real  norm = 1. / sqrt(b[0]*b[0] + b[1]*b[1] + b[2]*b[2]);
-            for(int c=0; c<3; c++) {
-               b[c] = b[c] * norm;
-            }
-            
-            // Make sure motion is outwards. Flip b if dot(r,b) < 0
-            if(std::isnan(b[0]) || std::isnan(b[1]) || std::isnan(b[2])) {
-               cerr << "(fieldtracing) Error: magnetic field is nan in getRadialBfieldDirection at location "
-               << r[0] << ", " << r[1] << ", " << r[2] << ", with B = " << b[0] << ", " << b[1] << ", " << b[2] << endl;
-               b[0] = 0;
-               b[1] = 0;
-               b[2] = 0;
-            }
-            if(!alongB) { // In this function, outwards indicates whether we trace along (true) or against (false) the field direction
-               b[0] *= -1;
-               b[1] *= -1;
-               b[2] *= -1;
-            }
-            return success;
+      TracingFieldFunction tracingFullField = [&perBGrid, &dPerBGrid, &technicalGrid](std::array<Real,3>& r, const bool alongB, std::array<Real,3>& b)->bool{
+         return traceFullFieldFunction(perBGrid, dPerBGrid, technicalGrid, r, alongB, b);
       };
       
       int itCount = 0;
@@ -257,7 +264,7 @@ namespace FieldTracing {
                   
                   
                   // Make one step along the fieldline
-                  stepFieldLine(x,v, nodeTracingStepSize[n],fieldTracingParameters.min_tracer_dx,technicalGrid.DX/2,fieldTracingParameters.tracingMethod,tracingField,(no.x[2] < 0));
+                  stepFieldLine(x,v, nodeTracingStepSize[n],fieldTracingParameters.min_tracer_dx,technicalGrid.DX/2,fieldTracingParameters.tracingMethod,tracingFullField,(no.x[2] < 0));
                   
                   // Look up the fsgrid cell belonging to these coordinates
                   fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
@@ -620,73 +627,8 @@ namespace FieldTracing {
       }
       bool anyNodeNeedsTracing;
       
-      // Fieldline tracing function
-      TracingFieldFunction tracingFullField = [&perBGrid, &dPerBGrid, &technicalGrid](std::array<Real,3>& r, const bool alongB, std::array<Real,3>& b)->bool {
-         if(   r[0] > P::xmax - 2*P::dx_ini
-            || r[0] < P::xmin + 2*P::dx_ini
-            || r[1] > P::ymax - 2*P::dy_ini
-            || r[1] < P::ymin + 2*P::dy_ini
-            || r[2] > P::zmax - 2*P::dz_ini
-            || r[2] < P::zmin + 2*P::dz_ini
-         ) {
-            cerr << (string)("(fieldtracing) Error: Open-closed mapping trying to step outside of the global domain?\n");
-            return false;
-         }
-         
-         // Get field direction
-         b[0] = SBC::ionosphereGrid.dipoleField(r[0],r[1],r[2],X,0,X) + SBC::ionosphereGrid.BGB[0];
-         b[1] = SBC::ionosphereGrid.dipoleField(r[0],r[1],r[2],Y,0,Y) + SBC::ionosphereGrid.BGB[1];
-         b[2] = SBC::ionosphereGrid.dipoleField(r[0],r[1],r[2],Z,0,Z) + SBC::ionosphereGrid.BGB[2];
-         
-         std::array<int32_t, 3> fsgridCell = getGlobalFsGridCellIndexForCoord(technicalGrid,r);
-         
-         const std::array<int32_t, 3> localStart = technicalGrid.getLocalStart();
-         const std::array<int32_t, 3> localSize = technicalGrid.getLocalSize();
-         // Make the global index a local one, bypass the fsgrid function that yields (-1,-1,-1) also for ghost cells.
-         fsgridCell[0] -= localStart[0];
-         fsgridCell[1] -= localStart[1];
-         fsgridCell[2] -= localStart[2];
-         
-         if(fsgridCell[0] > localSize[0] || fsgridCell[1] > localSize[1] || fsgridCell[2] > localSize[2]
-            || fsgridCell[0] < -1 || fsgridCell[1] < -1 || fsgridCell[2] < -1) {
-            cerr << (string)("(fieldtracing) Error: Open-closed mapping trying to access local ID " + to_string(fsgridCell[0]) + " " + to_string(fsgridCell[1]) + " " + to_string(fsgridCell[2])
-            + " for local domain size " + to_string(localSize[0]) + " " + to_string(localSize[1]) + " " + to_string(localSize[2]) + "\n");
-         return false;
-            } else {
-               if(technicalGrid.get(fsgridCell[0],fsgridCell[1],fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                  const std::array<Real, 3> perB = interpolatePerturbedB(
-                     perBGrid,
-                     dPerBGrid,
-                     technicalGrid,
-                     fieldTracingParameters.reconstructionCoefficientsCache,
-                     fsgridCell[0],fsgridCell[1],fsgridCell[2],
-                     r
-                  );
-                  b[0] += perB[0];
-                  b[1] += perB[1];
-                  b[2] += perB[2];
-               }
-            }
-            
-            // Normalize
-            Real  norm = 1. / sqrt(b[0]*b[0] + b[1]*b[1] + b[2]*b[2]);
-            for(int c=0; c<3; c++) {
-               b[c] = b[c] * norm;
-            }
-            
-            if(std::isnan(b[0]) || std::isnan(b[1]) || std::isnan(b[2])) {
-               cerr << "(fieldtracing) Error: magnetic field is nan in getRadialBfieldDirection at location "
-               << r[0] << ", " << r[1] << ", " << r[2] << ", with B = " << b[0] << ", " << b[1] << ", " << b[2] << endl;
-               b[0] = 0;
-               b[1] = 0;
-               b[2] = 0;
-            }
-            if(!alongB) { // In this function, outwards indicates whether we trace along (true) or against (false) the field direction
-               b[0] *= -1;
-               b[1] *= -1;
-               b[2] *= -1;
-            }
-            return true;
+      TracingFieldFunction tracingFullField = [&perBGrid, &dPerBGrid, &technicalGrid](std::array<Real,3>& r, const bool alongB, std::array<Real,3>& b)->bool{
+         return traceFullFieldFunction(perBGrid, dPerBGrid, technicalGrid, r, alongB, b);
       };
       
       int itCount=0;
@@ -916,75 +858,8 @@ namespace FieldTracing {
       cellBWTracingStepSize = reducedCellBWTracingStepSize;
       bool anyCellNeedsTracing;
       
-      // Fieldline tracing function
-      TracingFieldFunction tracingFullField = [&perBGrid, &dPerBGrid, &technicalGrid](std::array<Real,3>& r, const bool alongB, std::array<Real,3>& b)->bool {
-         if(   r[0] > P::xmax - 2*P::dx_ini
-            || r[0] < P::xmin + 2*P::dx_ini
-            || r[1] > P::ymax - 2*P::dy_ini
-            || r[1] < P::ymin + 2*P::dy_ini
-            || r[2] > P::zmax - 2*P::dz_ini
-            || r[2] < P::zmin + 2*P::dz_ini
-         ) {
-            cerr << (string)("(fieldtracing) Error: Full mapping trying to step outside of the global domain?\n");
-            return false;
-         }
-         
-         // Get field direction
-         b[0] = SBC::ionosphereGrid.dipoleField(r[0],r[1],r[2],X,0,X) + SBC::ionosphereGrid.BGB[0];
-         b[1] = SBC::ionosphereGrid.dipoleField(r[0],r[1],r[2],Y,0,Y) + SBC::ionosphereGrid.BGB[1];
-         b[2] = SBC::ionosphereGrid.dipoleField(r[0],r[1],r[2],Z,0,Z) + SBC::ionosphereGrid.BGB[2];
-         
-         
-         std::array<int32_t, 3> fsgridCell = getGlobalFsGridCellIndexForCoord(technicalGrid,r);
-         
-         const std::array<int32_t, 3> localStart = technicalGrid.getLocalStart();
-         const std::array<int32_t, 3> localSize = technicalGrid.getLocalSize();
-         // Make the global index a local one, bypass the fsgrid function that yields (-1,-1,-1) also for ghost cells.
-         fsgridCell[0] -= localStart[0];
-         fsgridCell[1] -= localStart[1];
-         fsgridCell[2] -= localStart[2];
-         
-         if(fsgridCell[0] > localSize[0] || fsgridCell[1] > localSize[1] || fsgridCell[2] > localSize[2]
-            || fsgridCell[0] < -1 || fsgridCell[1] < -1 || fsgridCell[2] < -1) {
-            cerr << (string)("(fieldtracing) Error: Full mapping trying to access local ID " + to_string(fsgridCell[0]) + " " + to_string(fsgridCell[1]) + " " + to_string(fsgridCell[2])
-            + " for local domain size " + to_string(localSize[0]) + " " + to_string(localSize[1]) + " " + to_string(localSize[2])
-            + "\n");
-         return false;
-            } else {
-               if(technicalGrid.get(fsgridCell[0],fsgridCell[1],fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                  const std::array<Real, 3> perB = interpolatePerturbedB(
-                     perBGrid,
-                     dPerBGrid,
-                     technicalGrid,
-                     fieldTracingParameters.reconstructionCoefficientsCache,
-                     fsgridCell[0],fsgridCell[1],fsgridCell[2],
-                     r
-                  );
-                  b[0] += perB[0];
-                  b[1] += perB[1];
-                  b[2] += perB[2];
-               }
-            }
-            
-            // Normalize
-            Real  norm = 1. / sqrt(b[0]*b[0] + b[1]*b[1] + b[2]*b[2]);
-            for(int c=0; c<3; c++) {
-               b[c] = b[c] * norm;
-            }
-            
-            if(std::isnan(b[0]) || std::isnan(b[1]) || std::isnan(b[2])) {
-               cerr << "(fieldtracing) Error: magnetic field is nan in getRadialBfieldDirection at location "
-               << r[0] << ", " << r[1] << ", " << r[2] << ", with B = " << b[0] << ", " << b[1] << ", " << b[2] << endl;
-               b[0] = 0;
-               b[1] = 0;
-               b[2] = 0;
-            }
-            if(!alongB) { // In this function, outwards indicates whether we trace along (true) or against (false) the field direction
-               b[0] *= -1;
-               b[1] *= -1;
-               b[2] *= -1;
-            }
-            return true;
+      TracingFieldFunction tracingFullField = [&perBGrid, &dPerBGrid, &technicalGrid](std::array<Real,3>& r, const bool alongB, std::array<Real,3>& b)->bool{
+         return traceFullFieldFunction(perBGrid, dPerBGrid, technicalGrid, r, alongB, b);
       };
       
       int itCount = 0;
@@ -1374,75 +1249,8 @@ namespace FieldTracing {
       cellBWTracingStepSize = reducedCellBWTracingStepSize;
       bool anyCellNeedsTracing;
       
-      // Fieldline tracing function
-      TracingFieldFunction tracingFullField = [&perBGrid, &dPerBGrid, &technicalGrid](std::array<Real,3>& r, const bool alongB, std::array<Real,3>& b)->bool {
-         if(   r[0] > P::xmax - 2*P::dx_ini
-            || r[0] < P::xmin + 2*P::dx_ini
-            || r[1] > P::ymax - 2*P::dy_ini
-            || r[1] < P::ymin + 2*P::dy_ini
-            || r[2] > P::zmax - 2*P::dz_ini
-            || r[2] < P::zmin + 2*P::dz_ini
-         ) {
-            cerr << (string)("(fieldtracing) Error: Flux rope mapping trying to step outside of the global domain?\n");
-            return false;
-         }
-         
-         // Get field direction
-         b[0] = SBC::ionosphereGrid.dipoleField(r[0],r[1],r[2],X,0,X) + SBC::ionosphereGrid.BGB[0];
-         b[1] = SBC::ionosphereGrid.dipoleField(r[0],r[1],r[2],Y,0,Y) + SBC::ionosphereGrid.BGB[1];
-         b[2] = SBC::ionosphereGrid.dipoleField(r[0],r[1],r[2],Z,0,Z) + SBC::ionosphereGrid.BGB[2];
-         
-         
-         std::array<int32_t, 3> fsgridCell = getGlobalFsGridCellIndexForCoord(technicalGrid,r);
-         
-         const std::array<int32_t, 3> localStart = technicalGrid.getLocalStart();
-         const std::array<int32_t, 3> localSize = technicalGrid.getLocalSize();
-         // Make the global index a local one, bypass the fsgrid function that yields (-1,-1,-1) also for ghost cells.
-         fsgridCell[0] -= localStart[0];
-         fsgridCell[1] -= localStart[1];
-         fsgridCell[2] -= localStart[2];
-         
-         if(fsgridCell[0] > localSize[0] || fsgridCell[1] > localSize[1] || fsgridCell[2] > localSize[2]
-            || fsgridCell[0] < -1 || fsgridCell[1] < -1 || fsgridCell[2] < -1) {
-            cerr << (string)("(fieldtracing) Error: Flux rope mapping trying to access local ID " + to_string(fsgridCell[0]) + " " + to_string(fsgridCell[1]) + " " + to_string(fsgridCell[2])
-            + " for local domain size " + to_string(localSize[0]) + " " + to_string(localSize[1]) + " " + to_string(localSize[2])
-            + "\n");
-         return false;
-            } else {
-               if(technicalGrid.get(fsgridCell[0],fsgridCell[1],fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                  const std::array<Real, 3> perB = interpolatePerturbedB(
-                     perBGrid,
-                     dPerBGrid,
-                     technicalGrid,
-                     fieldTracingParameters.reconstructionCoefficientsCache,
-                     fsgridCell[0],fsgridCell[1],fsgridCell[2],
-                     r
-                  );
-                  b[0] += perB[0];
-                  b[1] += perB[1];
-                  b[2] += perB[2];
-               }
-            }
-            
-            // Normalize
-            Real  norm = 1. / sqrt(b[0]*b[0] + b[1]*b[1] + b[2]*b[2]);
-            for(int c=0; c<3; c++) {
-               b[c] = b[c] * norm;
-            }
-            
-            if(std::isnan(b[0]) || std::isnan(b[1]) || std::isnan(b[2])) {
-               cerr << "(fieldtracing) Error: magnetic field is nan in getRadialBfieldDirection at location "
-               << r[0] << ", " << r[1] << ", " << r[2] << ", with B = " << b[0] << ", " << b[1] << ", " << b[2] << endl;
-               b[0] = 0;
-               b[1] = 0;
-               b[2] = 0;
-            }
-            if(!alongB) { // In this function, outwards indicates whether we trace along (true) or against (false) the field direction
-               b[0] *= -1;
-               b[1] *= -1;
-               b[2] *= -1;
-            }
-            return true;
+      TracingFieldFunction tracingFullField = [&perBGrid, &dPerBGrid, &technicalGrid](std::array<Real,3>& r, const bool alongB, std::array<Real,3>& b)->bool{
+         return traceFullFieldFunction(perBGrid, dPerBGrid, technicalGrid, r, alongB, b);
       };
       
       int itCount = 0;
