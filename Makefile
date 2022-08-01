@@ -562,6 +562,7 @@ INCLUDES += ${INC_DCCRG}
 INCLUDES += ${INC_VECTOCLASS}
 
 check:
+	mkdir -p cppcheck
 	cppcheck ${DEFINES} --cppcheck-build-dir=cppcheck --template=gcc --enable=all --inconclusive .
 
 # DO NOT DELETE
