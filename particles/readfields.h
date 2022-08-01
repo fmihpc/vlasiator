@@ -354,7 +354,7 @@ void readfields(const char* filename, Field& E, Field& B, Field& V, Field& R, bo
 
          // Volume-centered values -> shift by half a cell in all directions
          // TODO: Is this true for all possible input fields?
-         double shift = fields[idx]->dx[i] / 2;
+         double shift = onFsGrid ? 0 : fields[idx]->dx[i] / 2;
          fields[idx]->dimension[i]->min = min[i] + shift;
          fields[idx]->dimension[i]->max = max[i] + shift;
          fields[idx]->dimension[i]->cells = dim_cells;
