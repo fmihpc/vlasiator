@@ -71,7 +71,7 @@ namespace DRO {
    }
 
    DataReductionOperatorCellParams::DataReductionOperatorCellParams(const std::string& name,const unsigned int parameterIndex,const unsigned int _vectorSize) :
-      DataReductionOperator(), vectorSize {_vectorSize}, variableName {name}, _parameterIndex {parameterIndex} {}
+      DataReductionOperator(), _parameterIndex {parameterIndex}, vectorSize {_vectorSize}, variableName {name} {}
    DataReductionOperatorCellParams::~DataReductionOperatorCellParams() { }
    
    bool DataReductionOperatorCellParams::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& _vectorSize) const {
