@@ -190,26 +190,25 @@ namespace CellParams {
       AMR_TRANSLATE_COMM_Y, /*! < Flag to include this cell in AMR pre-translate communication  */
       AMR_TRANSLATE_COMM_Z, /*! < Flag to include this cell in AMR pre-translate communication  */
       CONNECTION, /*!< Magnetic connection. See TracingPointConnectionType for assigned values. */
-      CURVATUREX,
-      CURVATUREY,
-      CURVATUREZ,
-      FLUXROPE,
+      CURVATUREX, /*!< Magnetic field curvature vector x component */
+      CURVATUREY, /*!< Magnetic field curvature vector y component */
+      CURVATUREZ, /*!< Magnetic field curvature vector z component */
+      FLUXROPE,   /*!< 0 for regular cells, 1 for cells considered to be in a flux rope */
       N_SPATIAL_CELL_PARAMS
    };
 }
 
 /*! The namespace bvolderivatives contains the indices to an array which stores the spatial
  * derivatives of the volume-averaged magnetic field, needed for Lorentz force. 
- * TODO: Vol values may be removed if background field is curlfree
  */
 namespace bvolderivatives {
    enum {
-      dPERBXVOLdy,
-      dPERBXVOLdz,
-      dPERBYVOLdx,
-      dPERBYVOLdz,
-      dPERBZVOLdx,
-      dPERBZVOLdy,
+      dPERBXVOLdy, /*!< Derivative of perturbed volume-averaged Bx in y-direction. */
+      dPERBXVOLdz, /*!< Derivative of perturbed volume-averaged Bx in z-direction. */
+      dPERBYVOLdx, /*!< Derivative of perturbed volume-averaged By in x-direction. */
+      dPERBYVOLdz, /*!< Derivative of perturbed volume-averaged By in z-direction. */
+      dPERBZVOLdx, /*!< Derivative of perturbed volume-averaged Bz in x-direction. */
+      dPERBZVOLdy, /*!< Derivative of perturbed volume-averaged Bz in y-direction. */
       N_BVOL_DERIVATIVES
    };
 }
@@ -337,23 +336,23 @@ namespace fsgrids {
    // NOTE This contains the BGB derivatives as they do not change either
    enum bgbfield {
       BGBX,   /*!< Background magnetic field x-component, averaged over cell x-face.*/
-      BGBY,   /*!< Background magnetic field x-component, averaged over cell x-face.*/
-      BGBZ,   /*!< Background magnetic field x-component, averaged over cell x-face.*/
-      BGBXVOL,   /*!< background magnetic field averaged over spatial cell.*/
-      BGBYVOL,   /*!< background magnetic field averaged over spatial cell.*/
-      BGBZVOL,   /*!< background magnetic field averaged over spatial cell.*/
-      dBGBxdy,     /*!< Derivative of face-averaged Bx to y-direction. */
-      dBGBxdz,     /*!< Derivative of face-averaged Bx to z-direction. */
-      dBGBydx,     /*!< Derivative of face-averaged By to x-direction. */
-      dBGBydz,     /*!< Derivative of face-averaged By to z-direction. */
-      dBGBzdx,     /*!< Derivative of face-averaged Bz to x-direction. */
-      dBGBzdy,     /*!< Derivative of face-averaged Bz to y-direction. */
-      dBGBXVOLdy,
-      dBGBXVOLdz,
-      dBGBYVOLdx,
-      dBGBYVOLdz,
-      dBGBZVOLdx,
-      dBGBZVOLdy,
+      BGBY,   /*!< Background magnetic field y-component, averaged over cell y-face.*/
+      BGBZ,   /*!< Background magnetic field z-component, averaged over cell z-face.*/
+      BGBXVOL,   /*!< background magnetic field x-component averaged over spatial cell.*/
+      BGBYVOL,   /*!< background magnetic field y-component averaged over spatial cell.*/
+      BGBZVOL,   /*!< background magnetic field z-component averaged over spatial cell.*/
+      dBGBxdy,     /*!< Derivative of background face-averaged Bx in y-direction. */
+      dBGBxdz,     /*!< Derivative of background face-averaged Bx in z-direction. */
+      dBGBydx,     /*!< Derivative of background face-averaged By in x-direction. */
+      dBGBydz,     /*!< Derivative of background face-averaged By in z-direction. */
+      dBGBzdx,     /*!< Derivative of background face-averaged Bz in x-direction. */
+      dBGBzdy,     /*!< Derivative of background face-averaged Bz in y-direction. */
+      dBGBXVOLdy,  /*!< Derivative of background volume-averaged Bx in y-direction. */
+      dBGBXVOLdz,  /*!< Derivative of background volume-averaged Bx in z-direction. */
+      dBGBYVOLdx,  /*!< Derivative of background volume-averaged By in x-direction. */
+      dBGBYVOLdz,  /*!< Derivative of background volume-averaged By in z-direction. */
+      dBGBZVOLdx,  /*!< Derivative of background volume-averaged Bz in x-direction. */
+      dBGBZVOLdy,  /*!< Derivative of background volume-averaged Bz in y-direction. */
       N_BGB
    };
    
@@ -362,18 +361,18 @@ namespace fsgrids {
       PERBXVOL,  /*!< perturbed magnetic field  PERBX averaged over spatial cell.*/
       PERBYVOL,  /*!< perturbed magnetic field  PERBY averaged over spatial cell.*/
       PERBZVOL,  /*!< perturbed magnetic field  PERBZ averaged over spatial cell.*/
-      dPERBXVOLdy,
-      dPERBXVOLdz,
-      dPERBYVOLdx,
-      dPERBYVOLdz,
-      dPERBZVOLdx,
-      dPERBZVOLdy,
+      dPERBXVOLdy, /*!< Derivative of perturbed volume-averaged Bx in y-direction. */
+      dPERBXVOLdz, /*!< Derivative of perturbed volume-averaged Bx in z-direction. */
+      dPERBYVOLdx, /*!< Derivative of perturbed volume-averaged By in x-direction. */
+      dPERBYVOLdz, /*!< Derivative of perturbed volume-averaged By in z-direction. */
+      dPERBZVOLdx, /*!< Derivative of perturbed volume-averaged Bz in x-direction. */
+      dPERBZVOLdy, /*!< Derivative of perturbed volume-averaged Bz in y-direction. */
       EXVOL,   /*!< volume-averaged electric field x component */
       EYVOL,   /*!< volume-averaged electric field y component */
       EZVOL,   /*!< volume-averaged electric field z component */
-      CURVATUREX,
-      CURVATUREY,
-      CURVATUREZ,
+      CURVATUREX, /*!< Magnetic field curvature vector x component, grid-glued to DCCRG */
+      CURVATUREY, /*!< Magnetic field curvature vector y component, grid-glued to DCCRG */
+      CURVATUREZ, /*!< Magnetic field curvature vector z component, grid-glued to DCCRG */
       N_VOL
    };
    
