@@ -679,7 +679,7 @@ namespace SBC {
          Real altitude = MSISvalues[i][0];
 
          // When we encounter one of our reference layers, record its values
-         while(altitude >= alt[altindex] && altindex < numAtmosphereLevels) {
+         while(altindex < numAtmosphereLevels && altitude >= alt[altindex]) {
             Real interpolationFactor = (alt[altindex] - MSISvalues[i-1][0]) / (MSISvalues[i][0] - MSISvalues[i-1][0]);
 
             AtmosphericLayer newLayer;
