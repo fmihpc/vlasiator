@@ -54,65 +54,95 @@ typedef Parameters P;
  * If a file DOLB was written and is readable, then a new load balancing is initiated.
  * If a file CMD0 was written and is readable, run its contents with system() on rank 0
  * To avoid bailing out upfront on a new run the files are renamed with the date to keep a trace.
- * The function should only be called by MASTER_RANK. This ensures that resetting P::bailout_write_restart works.
  */
 void checkExternalCommands() {
    struct stat tempStat;
-   if (stat("STOP", &tempStat) == 0) {
-      bailout(true, "Received an external STOP command. Setting bailout.write_restart to true.");
-      P::bailout_write_restart = true;
-      char newName[80];
-      // Get the current time.
-      const time_t rawTime = time(NULL);
-      const struct tm * timeInfo = localtime(&rawTime);
-      strftime(newName, 80, "STOP_%F_%H-%M-%S", timeInfo);
-      rename("STOP", newName);
-      return;
+   int rank;
+   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+   // Most of this function only runs on MASTER_RANK. This ensures that resetting P::bailout_write_restart works.
+   if(rank == MASTER_RANK) {
+      if (stat("STOP", &tempStat) == 0) {
+         bailout(true, "Received an external STOP command. Setting bailout.write_restart to true.");
+         P::bailout_write_restart = true;
+         char newName[80];
+         // Get the current time.
+         const time_t rawTime = time(NULL);
+         const struct tm * timeInfo = localtime(&rawTime);
+         strftime(newName, 80, "STOP_%F_%H-%M-%S", timeInfo);
+         rename("STOP", newName);
+         return;
+      }
+      if(stat("KILL", &tempStat) == 0) {
+         bailout(true, "Received an external KILL command. Setting bailout.write_restart to false.");
+         P::bailout_write_restart = false;
+         char newName[80];
+         // Get the current time.
+         const time_t rawTime = time(NULL);
+         const struct tm * timeInfo = localtime(&rawTime);
+         strftime(newName, 80, "KILL_%F_%H-%M-%S", timeInfo);
+         rename("KILL", newName);
+         return;
+      }
+      if(stat("SAVE", &tempStat) == 0) {
+         cerr << "Received an external SAVE command. Writing a restart file." << endl;
+         globalflags::writeRestart = true;
+         char newName[80];
+         // Get the current time.
+         const time_t rawTime = time(NULL);
+         const struct tm * timeInfo = localtime(&rawTime);
+         strftime(newName, 80, "SAVE_%F_%H-%M-%S", timeInfo);
+         rename("SAVE", newName);
+         return;
+      }
+      if(stat("DOLB", &tempStat) == 0) {
+         cerr << "Received an external DOLB command. Balancing load." << endl;
+         globalflags::balanceLoad = true;
+         char newName[80];
+         // Get the current time.
+         const time_t rawTime = time(NULL);
+         const struct tm * timeInfo = localtime(&rawTime);
+         strftime(newName, 80, "DOLB_%F_%H-%M-%S", timeInfo);
+         rename("DOLB", newName);
+         return;
+      }
+      if(stat("CMD0", &tempStat) == 0) {
+         cerr << "Received an externa CMD0 command. Executing it." << endl;
+         system(". ./CMD0 2>&1 > CMD0.out");
+         // Get the current time.
+         const time_t rawTime = time(NULL);
+         const struct tm * timeInfo = localtime(&rawTime);
+         char newName[80];
+         strftime(newName, 80, "CMD0_%F_%H-%M-%S", timeInfo);
+         rename("CMD0", newName);
+         strftime(newName, 80, "CMD0_%F_%H-%M-%S.out", timeInfo);
+         rename("CMD0.out", newName);
+         return;
+      }
    }
-   if(stat("KILL", &tempStat) == 0) {
-      bailout(true, "Received an external KILL command. Setting bailout.write_restart to false.");
-      P::bailout_write_restart = false;
-      char newName[80];
+   
+   // Running on all ranks: CMDALL
+   if(stat("CMDALL", &tempStat) == 0) {
+      if(rank == MASTER_RANK) {
+         cerr << "Received an externa CMDALL command. Executing it." << endl;
+      }
       // Get the current time.
       const time_t rawTime = time(NULL);
       const struct tm * timeInfo = localtime(&rawTime);
-      strftime(newName, 80, "KILL_%F_%H-%M-%S", timeInfo);
-      rename("KILL", newName);
-      return;
-   }
-   if(stat("SAVE", &tempStat) == 0) {
-      cerr << "Received an external SAVE command. Writing a restart file." << endl;
-      globalflags::writeRestart = true;
-      char newName[80];
-      // Get the current time.
-      const time_t rawTime = time(NULL);
-      const struct tm * timeInfo = localtime(&rawTime);
-      strftime(newName, 80, "SAVE_%F_%H-%M-%S", timeInfo);
-      rename("SAVE", newName);
-      return;
-   }
-   if(stat("DOLB", &tempStat) == 0) {
-      cerr << "Received an external DOLB command. Balancing load." << endl;
-      globalflags::balanceLoad = true;
-      char newName[80];
-      // Get the current time.
-      const time_t rawTime = time(NULL);
-      const struct tm * timeInfo = localtime(&rawTime);
-      strftime(newName, 80, "DOLB_%F_%H-%M-%S", timeInfo);
-      rename("DOLB", newName);
-      return;
-   }
-   if(stat("CMD0", &tempStat) == 0) {
-      cerr << "Received an externa CMD0 command. Executing it." << endl;
-      system("./CMD0 2>&1 > CMD0.out");
-      // Get the current time.
-      const time_t rawTime = time(NULL);
-      const struct tm * timeInfo = localtime(&rawTime);
-      char newName[80];
-      strftime(newName, 80, "CMD0_%F_%H-%M-%S", timeInfo);
-      rename("CMD0", newName);
-      strftime(newName, 80, "CMD0_%F_%H-%M-%S.out", timeInfo);
-      rename("CMD0.out", newName);
+      char timestring[80];
+      strftime(timestring, 80, "%F_%H-%M-%S", timeInfo);
+
+      std::string outfile = "CMDALL_rank" + std::to_string(rank) + "_" + timestring + ".out";
+      std::string command = ". ./CMDALL 2>&1 > " + outfile;
+      system(command.c_str());
+
+      // Wait until all tasks have completed their command before renaming the file away.
+      MPI_Barrier(MPI_COMM_WORLD);
+
+      if(rank == MASTER_RANK) {
+         // Only master rank renames the trigger file
+         std::string newName = std::string("CMDALL_") + timestring;
+         rename("CMDALL", newName.c_str());
+      }
       return;
    }
 }
