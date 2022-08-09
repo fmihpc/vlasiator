@@ -52,6 +52,7 @@ typedef Parameters P;
  * If a file KILL was written and is readable, then a bailout without a restart is initiated.
  * If a file SAVE was written and is readable, then restart writing without a bailout is initiated.
  * If a file DOLB was written and is readable, then a new load balancing is initiated.
+ * If a file CMD0 was written and is readable, run its contents with system() on rank 0
  * To avoid bailing out upfront on a new run the files are renamed with the date to keep a trace.
  * The function should only be called by MASTER_RANK. This ensures that resetting P::bailout_write_restart works.
  */
@@ -99,6 +100,19 @@ void checkExternalCommands() {
       const struct tm * timeInfo = localtime(&rawTime);
       strftime(newName, 80, "DOLB_%F_%H-%M-%S", timeInfo);
       rename("DOLB", newName);
+      return;
+   }
+   if(stat("CMD0", &tempStat) == 0) {
+      cerr << "Received an externa CMD0 command. Executing it." << endl;
+      system("./CMD0 2>&1 > CMD0.out");
+      // Get the current time.
+      const time_t rawTime = time(NULL);
+      const struct tm * timeInfo = localtime(&rawTime);
+      char newName[80];
+      strftime(newName, 80, "CMD0_%F_%H-%M-%S", timeInfo);
+      rename("CMD0", newName);
+      strftime(newName, 80, "CMD0_%F_%H-%M-%S.out", timeInfo);
+      rename("CMD0.out", newName);
       return;
    }
 }
