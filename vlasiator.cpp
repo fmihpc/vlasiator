@@ -137,11 +137,11 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
                    blockParams[blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] +
                    (i + HALF) * blockParams[blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ] + EPS;
 
-               const Real dt_max_cell = min(dx / fabs(Vx), min(dy / fabs(Vy), dz / fabs(Vz)));
-               cell->parameters[CellParams::MAXRDT] = min(dt_max_cell, cell->parameters[CellParams::MAXRDT]);
+               const Real dt_max_cell = min({dx / fabs(Vx), dy / fabs(Vy), dz / fabs(Vz)});
                cell->set_max_r_dt(popID, min(dt_max_cell, cell->get_max_r_dt(popID)));
             }
          }
+         cell->parameters[CellParams::MAXRDT] = min(cell->get_max_r_dt(popID), cell->parameters[CellParams::MAXRDT]);
       }
 
       if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
@@ -150,7 +150,9 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
          dtMaxLocal[0] = min(dtMaxLocal[0], cell->parameters[CellParams::MAXRDT]);
       }
 
-      if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY && cell->parameters[CellParams::MAXVDT] != 0) {
+      if (cell->parameters[CellParams::MAXVDT] != 0 &&
+          (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
+           (P::vlasovAccelerateMaxwellianBoundaries && cell->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN))) {
          // acceleration only done on non-boundary cells
          dtMaxLocal[1] = min(dtMaxLocal[1], cell->parameters[CellParams::MAXVDT]);
       }
