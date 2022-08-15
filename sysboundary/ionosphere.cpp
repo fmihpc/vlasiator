@@ -188,7 +188,7 @@ namespace SBC {
 
       // Create nodes
       // Additional nodes from table
-      for(auto& coords : nodeCoords) {
+      for(const auto& coords : nodeCoords) {
          Node newNode;
          newNode.x = coords;
          normalizeRadius(newNode, Ionosphere::innerRadius);
@@ -196,7 +196,7 @@ namespace SBC {
       }
 
       // Create elements
-      for(auto& seed : seedElements) {
+      for(const auto& seed : seedElements) {
          Element newElement;
          newElement.corners = seed;
          elements.push_back(newElement);
@@ -226,7 +226,7 @@ namespace SBC {
 
       // Create nodes
       // Additional nodes from table
-      for(auto& coords : nodeCoords) {
+      for(const auto& coords : nodeCoords) {
          Node newNode;
          newNode.x = coords;
          normalizeRadius(newNode, Ionosphere::innerRadius);
@@ -234,7 +234,7 @@ namespace SBC {
       }
 
       // Create elements
-      for(auto& seed : seedElements) {
+      for(const auto& seed : seedElements) {
          Element newElement;
          newElement.corners = seed;
          elements.push_back(newElement);
