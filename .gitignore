@@ -1,5 +1,7 @@
 *.dat
-*.txt
+logfile.txt
+phiprof*.txt
+diagnostic.txt
 *.vlsv
 *.silo
 *.o
