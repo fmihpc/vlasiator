@@ -28,7 +28,8 @@ FIELDSOLVER ?= londrillo_delzanna
 # COMPFLAGS += -DFS_1ST_ORDER_SPACE
 # COMPFLAGS += -DFS_1ST_ORDER_TIME
 
-
+#Skip deprecated C++ bindings from OpenMPI
+COMPFLAGS += -D OMPI_SKIP_MPICXX
 
 #is profiling on?
 COMPFLAGS += -DPROFILE
@@ -545,16 +546,7 @@ fluxfunction.o:  tools/fluxfunction.cpp
 fluxfunction: fluxfunction.o ${OBJS_VLSVREADERINTERFACE} particles/readfields.o particles/particleparameters.o readparameters.o version.o particles/physconst.o particles/distribution.o
 	${LNK} -o $@ fluxfunction.o particles/readfields.o particles/particleparameters.o readparameters.o version.o particles/physconst.o particles/distribution.o ${OBJS_VLSVREADERINTERFACE} ${LIBS} ${LDFLAGS}
 
-DEFINES =
-DEFINES += -DPROFILE
-DEFINES += -DNDEBUG
-DEFINES += -DACC_SEMILAG_PQM -DTRANS_SEMILAG_PPM 
-DEFINES += -D${FP_PRECISION} 
-DEFINES += -D${DISTRIBUTION_FP_PRECISION}
-DEFINES += -D${VECTORCLASS}
-DEFINES += -DPAPI_MEM
-
-# Doesn't seem to work correctly with compiled libraries
+# Doesn't seem to work correctly
 INCLUDES =
 INCLUDES += ${INC_EIGEN}
 INCLUDES += ${INC_FSGRID}
@@ -563,6 +555,6 @@ INCLUDES += ${INC_VECTOCLASS}
 
 check:
 	mkdir -p cppcheck
-	cppcheck ${DEFINES} --cppcheck-build-dir=cppcheck --template=gcc --enable=all --inconclusive .
+	cppcheck ${COMPFLAGS} --cppcheck-build-dir=cppcheck --template=gcc --enable=all --inconclusive .
 
 # DO NOT DELETE

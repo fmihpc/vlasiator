@@ -37,7 +37,6 @@ CC_BRAND_VERSION = 10.2.0
 CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -mavx
 testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -mavx
 CXXFLAGS += -Wall -Wextra -Wno-unused
-CXXFLAGS += -D OMPI_SKIP_MPICXX
 
 MATHFLAGS = -ffast-math
 LDFLAGS = -lrt -lgfortran -std=c++17
