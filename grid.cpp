@@ -1329,17 +1329,20 @@ void adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    else
       project.adaptRefinement(mpiGrid);
 
+   phiprof::start("dccrg refinement");
    // New cells created by refinement
+   phiprof::start("start refining");
    auto newChildren = mpiGrid.start_refining();
+   phiprof::stop("start refining");
 
    std::vector<CellID> receives;
-
    for (auto const& [key, val] : mpiGrid.get_cells_to_receive()) {
       for (auto i : val) {
          receives.push_back(i.first);
       }
    }
 
+   phiprof::start("transfers");
    for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
       // Set active population
       SpatialCell::setCommunicatedSpecies(p);
@@ -1370,7 +1373,9 @@ void adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
       mpiGrid.continue_refining();
       phiprof::stop("transfer_all_data");
    }
+   phiprof::stop("transfers");
 
+   phiprof::start("copy to children");
    for (CellID id : newChildren) {
       *mpiGrid[id] = *mpiGrid[mpiGrid.get_parent(id)];
       // Irrelevant?
@@ -1378,8 +1383,10 @@ void adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
       mpiGrid[id]->parameters[CellParams::AMR_ALPHA] /= 2.0;
       mpiGrid[id]->parameters[CellParams::RECENTLY_REFINED] = 1;
    }
+   phiprof::stop("copy to children");
 
    // Old cells removed by refinement
+   phiprof::start("copy to parents");
    std::set<CellID> processed;
    for (CellID id : mpiGrid.get_removed_cells()) {
       CellID parent = mpiGrid.get_existing_cell(mpiGrid.get_center(id));
@@ -1405,8 +1412,12 @@ void adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
          processed.insert(parent);
       }
    }
+   phiprof::stop("copy to parents");
 
+   phiprof::start("finish refining");
    mpiGrid.finish_refining();
+   phiprof::stop("finish refining");
+   phiprof::stop("dccrg refinement");
 
    recalculateLocalCellsCache();
    initSpatialCellCoordinates(mpiGrid);
