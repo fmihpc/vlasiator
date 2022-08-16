@@ -633,12 +633,10 @@ namespace projects {
 
       for (auto cellPair : cellsMap) {
          CellID id = cellPair.first;
-         const std::vector<std::pair<CellID, std::array<int, 4>>>* neighbours = mpiGrid.get_neighbors_of(id, NEAREST_NEIGHBORHOOD_ID);
-
          // To preserve the mean, we must only consider refined cells
          int refLevel = mpiGrid.get_refinement_level(id);
          std::vector<CellID> refinedNeighbours;
-         for (std::pair<CellID, std::array<int, 4>> neighbour : *neighbours) {
+         for (auto& neighbour : *mpiGrid.get_neighbors_of(id, NEAREST_NEIGHBORHOOD_ID)) {
             if (mpiGrid[neighbour.first]->parameters[CellParams::RECENTLY_REFINED] && mpiGrid.get_refinement_level(neighbour.first) == refLevel) {
                refinedNeighbours.push_back(neighbour.first);
             }
@@ -654,17 +652,7 @@ namespace projects {
             SBC::averageCellData(mpiGrid, refinedNeighbours, &cellPair.second, popID, fluffiness);
          }
 
-         // Averaging moments
-         // Not sure if this is necessary, but let's do it anyway
-         for (int param = CellParams::RHOM; param < CellParams::EXVOL; ++param) {
-            if (param == CellParams::BGBXVOL) {
-               param = CellParams::RHOM_R;   // Skip FG stuff
-            }
-            cellPair.second.parameters[param] *= (1.0 - fluffiness);
-            for (CellID id : refinedNeighbours) {
-               cellPair.second.parameters[param] += mpiGrid[id]->parameters[param] / 27.0;
-            }
-         }
+         calculateCellMoments(&cellPair.second, true);
       }
 
       for (auto cellPair : cellsMap) {
