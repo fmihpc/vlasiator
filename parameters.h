@@ -188,7 +188,7 @@ struct Parameters {
    static Real refineAfter;
    static Real refineRadius;
    static bool useJPerB;
-   static Real JPerBMultiplier;
+   static Real JPerBModifier;
    static uint amrBoxHalfWidthX;
    static uint amrBoxHalfWidthY;
    static uint amrBoxHalfWidthZ;

@@ -694,6 +694,7 @@ namespace projects {
    }
 
    bool Magnetosphere::adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+      phiprof::start("Set refines");
       int myRank;       
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       if (myRank == MASTER_RANK)
@@ -732,7 +733,7 @@ namespace projects {
             }
 
             if (P::useJPerB) {
-               Real alpha {std::log2(P::JPerBMultiplier * cell->parameters[CellParams::AMR_JPERB] * cell->parameters[CellParams::DX])};
+               Real alpha {cell->parameters[CellParams::AMR_JPERB] - refLevel};
                if (alpha > 0.5)
                   mpiGrid.refine_completely(id);
                else if (alpha < -0.5)
@@ -756,6 +757,7 @@ namespace projects {
          }
       }
 
+      phiprof::stop("Set refines");
       return true;
    }
 
