@@ -453,6 +453,16 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          continue;
       }
+      if(lowercase == "populations_heatflux" || lowercase == "populations_vg_heatflux") {
+         // Per-population dimensionless non-maxwellianity parameter
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            species::Species& species=getObjectWrapper().particleSpecies[i];
+            const std::string& pop = species.name;
+            outputReducer->addOperator(new DRO::VariableHeatFluxVector(i));
+            outputReducer->addMetadata(outputReducer->size()-1,"W/m^2","$\\mathrm{W}\\,\\mathrm{m}^{-2}$","$q_\\mathrm{"+pop+"}$","1.0");
+         }
+         continue;
+      }
       if(lowercase == "maxfieldsdt" || lowercase == "fg_maxfieldsdt" || lowercase == "fg_maxdt_fieldsolver") {
          // Maximum timestep constraint as calculated by the fieldsolver
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_maxdt_fieldsolver",[](

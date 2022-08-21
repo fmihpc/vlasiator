@@ -325,6 +325,7 @@ bool P::addParameters() {
                         "populations_vg_moments_thermal populations_vg_moments_nonthermal " +
                         "populations_vg_effectivesparsitythreshold populations_vg_rho_loss_adjust " +
                         "populations_vg_energydensity populations_vg_precipitationdifferentialflux " +
+                        "populations_vg_heatflux" +  
                         "vg_maxdt_acceleration vg_maxdt_translation populations_vg_maxdt_acceleration "
                         "populations_vg_maxdt_translation " +
                         "fg_maxdt_fieldsolver " + "vg_rank fg_rank fg_amr_level vg_loadbalance_weight " +

@@ -623,6 +623,25 @@ namespace DRO {
       Real lossConeAngle;
       std::vector<Real> channels, dataDiffFlux;
    };
+
+   // Heat flux vector
+   class VariableHeatFluxVector: public VariableHeatFluxVector {
+   public:
+      VariableHeatFluxVector(cuint popID);
+      virtual ~VariableHeatFluxVector();
+
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual std::string getName() const;
+      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool setSpatialCell(const SpatialCell* cell);
+      
+   protected:
+      Real averageVX, averageVY, averageVZ;
+      Real HeatFlux[3];
+      uint popID;
+      std::string popName;
+   }
+
 } // namespace DRO
 
 #endif
