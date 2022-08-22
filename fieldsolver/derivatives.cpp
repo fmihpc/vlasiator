@@ -615,6 +615,7 @@ void calculateScaledDeltas(
    Real dBZdx {cell->derivativesBVOL[bvolderivatives::dPERBZVOLdx]};
    Real dBZdy {cell->derivativesBVOL[bvolderivatives::dPERBZVOLdy]};
 
+   // Note missing factor of mu_0, since we want B and J in same units later
    std::array<Real, 3> myJ = {dBZdy - dBYdz, dBXdz - dBZdx, dBYdx - dBXdy};
    Real BdotJ {0.0};
    Real Bsq {0.0};
@@ -638,7 +639,7 @@ void calculateScaledDeltas(
    cell->parameters[CellParams::AMR_DBSQ] = dBsq;
    cell->parameters[CellParams::AMR_DB] = dB;
    cell->parameters[CellParams::AMR_ALPHA] = alpha;
-   cell->parameters[CellParams::AMR_JPERB] = std::log2(J / Bperp * P::dx_ini) + P::JPerBModifier;
+   cell->parameters[CellParams::AMR_JPERB] = std::log2(J / Bperp * P::dx_ini);
 }
 
 /*! \brief High-level scaled gradient calculation wrapper function.

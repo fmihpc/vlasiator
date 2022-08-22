@@ -733,7 +733,7 @@ namespace projects {
             }
 
             if (P::useJPerB) {
-               Real alpha {cell->parameters[CellParams::AMR_JPERB] - refLevel};
+               Real alpha {cell->parameters[CellParams::AMR_JPERB] - refLevel + P::JPerBModifier};
                if (alpha > 0.5)
                   mpiGrid.refine_completely(id);
                else if (alpha < -0.5)
