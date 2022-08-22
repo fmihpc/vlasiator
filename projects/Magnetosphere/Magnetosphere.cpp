@@ -297,11 +297,9 @@ namespace projects {
    void Magnetosphere::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
 
    /* set 0-centered dipole */
-   void Magnetosphere::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-   ) {
+   void Magnetosphere::setProjectBField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+                                        FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                                        FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
       Dipole bgFieldDipole;
       LineDipole bgFieldLineDipole;
       VectorDipole bgVectorDipole;
@@ -310,141 +308,147 @@ namespace projects {
       // from Daldorff et al (2014), see
       // https://github.com/fmihpc/vlasiator/issues/20 for a derivation of the
       // values used here.
-      switch(this->dipoleType) {
-            case 0:
-               bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
-               setBackgroundField(bgFieldDipole, BgBGrid);
-               SBC::ionosphereGrid.setDipoleField(bgFieldDipole);
-               break;
-            case 1:
-               bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0 );//set dipole moment     
-               setBackgroundField(bgFieldLineDipole, BgBGrid);
-               SBC::ionosphereGrid.setDipoleField(bgFieldLineDipole);
-               break;
-            case 2:
-               bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, 0.0, 0.0, 0.0 );//set dipole moment     
-               setBackgroundField(bgFieldLineDipole, BgBGrid);
-               //Append mirror dipole
-               bgFieldLineDipole.initialize(126.2e6 *this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0 );
-               setBackgroundField(bgFieldLineDipole, BgBGrid, true);
-               SBC::ionosphereGrid.setDipoleField(bgFieldLineDipole);
-               break;
-            case 3:
-               bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
-               setBackgroundField(bgFieldDipole, BgBGrid);
-               SBC::ionosphereGrid.setDipoleField(bgFieldDipole);
-               //Append mirror dipole                
-               bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0, 0.0 );//mirror
-               setBackgroundField(bgFieldDipole, BgBGrid, true);
-               break; 
-            case 4:  // Vector potential dipole, vanishes or optionally scales to static inflow value after a given x-coordinate
-               // What we in fact do is we place the regular dipole in the background field, and the
-               // corrective terms in the perturbed field. This maintains the BGB as curl-free.
-               bgFieldDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );//set dipole moment
-               setBackgroundField(bgFieldDipole, BgBGrid);
-               SBC::ionosphereGrid.setDipoleField(bgFieldDipole);
-               // Difference into perBgrid, only if not restarting
-               if (P::isRestart == false) {
-                  bgFieldDipole.initialize(-8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0 );
-                  setPerturbedField(bgFieldDipole, perBGrid);
-                  bgVectorDipole.initialize(8e15 *this->dipoleScalingFactor, 0.0, 0.0, 0.0, this->dipoleTiltPhi*M_PI/180., this->dipoleTiltTheta*M_PI/180., this->dipoleXFull, this->dipoleXZero, this->dipoleInflowB[0], this->dipoleInflowB[1], this->dipoleInflowB[2]);
-                  setPerturbedField(bgVectorDipole, perBGrid, true);
-               }
-               break;
-            default:
-               setBackgroundFieldToZero(BgBGrid);
+      switch (this->dipoleType) {
+      case 0:
+         bgFieldDipole.initialize(8e15 * this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0); // set dipole moment
+         setBackgroundField(bgFieldDipole, BgBGrid);
+         SBC::ionosphereGrid.setDipoleField(bgFieldDipole);
+         break;
+      case 1:
+         bgFieldLineDipole.initialize(126.2e6 * this->dipoleScalingFactor, 0.0, 0.0, 0.0); // set dipole moment
+         setBackgroundField(bgFieldLineDipole, BgBGrid);
+         SBC::ionosphereGrid.setDipoleField(bgFieldLineDipole);
+         break;
+      case 2:
+         bgFieldLineDipole.initialize(126.2e6 * this->dipoleScalingFactor, 0.0, 0.0, 0.0); // set dipole moment
+         setBackgroundField(bgFieldLineDipole, BgBGrid);
+         // Append mirror dipole
+         bgFieldLineDipole.initialize(126.2e6 * this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0);
+         setBackgroundField(bgFieldLineDipole, BgBGrid, true);
+         SBC::ionosphereGrid.setDipoleField(bgFieldLineDipole);
+         break;
+      case 3:
+         bgFieldDipole.initialize(8e15 * this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0); // set dipole moment
+         setBackgroundField(bgFieldDipole, BgBGrid);
+         SBC::ionosphereGrid.setDipoleField(bgFieldDipole);
+         // Append mirror dipole
+         bgFieldDipole.initialize(8e15 * this->dipoleScalingFactor, this->dipoleMirrorLocationX, 0.0, 0.0,
+                                  0.0); // mirror
+         setBackgroundField(bgFieldDipole, BgBGrid, true);
+         break;
+      case 4: // Vector potential dipole, vanishes or optionally scales to static inflow value after a given
+              // x-coordinate
+         // What we in fact do is we place the regular dipole in the background field, and the
+         // corrective terms in the perturbed field. This maintains the BGB as curl-free.
+         bgFieldDipole.initialize(8e15 * this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0); // set dipole moment
+         setBackgroundField(bgFieldDipole, BgBGrid);
+         SBC::ionosphereGrid.setDipoleField(bgFieldDipole);
+         // Difference into perBgrid, only if not restarting
+         if (P::isRestart == false) {
+            bgFieldDipole.initialize(-8e15 * this->dipoleScalingFactor, 0.0, 0.0, 0.0, 0.0);
+            setPerturbedField(bgFieldDipole, perBGrid);
+            bgVectorDipole.initialize(8e15 * this->dipoleScalingFactor, 0.0, 0.0, 0.0,
+                                      this->dipoleTiltPhi * M_PI / 180., this->dipoleTiltTheta * M_PI / 180.,
+                                      this->dipoleXFull, this->dipoleXZero, this->dipoleInflowB[0],
+                                      this->dipoleInflowB[1], this->dipoleInflowB[2]);
+            setPerturbedField(bgVectorDipole, perBGrid, true);
+         }
+         break;
+      default:
+         setBackgroundFieldToZero(BgBGrid);
       }
-      
+
       const auto localSize = BgBGrid.getLocalSize().data();
-      
+
 #pragma omp parallel
       {
          bool doZeroOut;
-         //Force field to zero in the perpendicular direction for 2D (1D) simulations. Otherwise we have unphysical components.
-         doZeroOut = P::xcells_ini ==1 && this->zeroOutComponents[0]==1;
-      
-         if(doZeroOut) {
-#pragma omp for collapse(3)
-            for (int x = 0; x < localSize[0]; ++x) {
-               for (int y = 0; y < localSize[1]; ++y) {
-                  for (int z = 0; z < localSize[2]; ++z) {
-                     std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
-                     cell->at(fsgrids::bgbfield::BGBX)=0;
-                     cell->at(fsgrids::bgbfield::BGBXVOL)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBydx)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBzdx)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBxdy)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBxdz)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBYVOLdx)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBZVOLdx)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBXVOLdy)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBXVOLdz)=0.0;
-                  }
-               }
-            }
-         }
-            
-          doZeroOut = P::ycells_ini ==1 && this->zeroOutComponents[1]==1;
-          if(doZeroOut) {
-             /*2D simulation in x and z. Set By and derivatives along Y, and derivatives of By to zero*/
- #pragma omp for collapse(3)
-             for (int x = 0; x < localSize[0]; ++x) {
-                for (int y = 0; y < localSize[1]; ++y) {
-                   for (int z = 0; z < localSize[2]; ++z) {
-                      std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
-                      cell->at(fsgrids::bgbfield::BGBY)=0.0;
-                      cell->at(fsgrids::bgbfield::BGBYVOL)=0.0;
-                      cell->at(fsgrids::bgbfield::dBGBxdy)=0.0;
-                      cell->at(fsgrids::bgbfield::dBGBzdy)=0.0;
-                      cell->at(fsgrids::bgbfield::dBGBydx)=0.0;
-                      cell->at(fsgrids::bgbfield::dBGBydz)=0.0;
-                      cell->at(fsgrids::bgbfield::dBGBXVOLdy)=0.0;
-                      cell->at(fsgrids::bgbfield::dBGBZVOLdy)=0.0;
-                      cell->at(fsgrids::bgbfield::dBGBYVOLdx)=0.0;
-                      cell->at(fsgrids::bgbfield::dBGBYVOLdz)=0.0;
-                   }
-                }
-             }
-          }
+         // Force field to zero in the perpendicular direction for 2D (1D) simulations. Otherwise we have unphysical
+         // components.
+         doZeroOut = P::xcells_ini == 1 && this->zeroOutComponents[0] == 1;
 
-         doZeroOut = P::zcells_ini ==1 && this->zeroOutComponents[2]==1;
-         if(doZeroOut) {
+         if (doZeroOut) {
 #pragma omp for collapse(3)
             for (int x = 0; x < localSize[0]; ++x) {
                for (int y = 0; y < localSize[1]; ++y) {
                   for (int z = 0; z < localSize[2]; ++z) {
                      std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
-                     cell->at(fsgrids::bgbfield::BGBX)=0;
-                     cell->at(fsgrids::bgbfield::BGBY)=0;
-                     cell->at(fsgrids::bgbfield::BGBYVOL)=0.0;
-                     cell->at(fsgrids::bgbfield::BGBXVOL)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBxdy)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBxdz)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBydx)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBydz)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBXVOLdy)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBXVOLdz)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBYVOLdx)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBYVOLdz)=0.0;
+                     cell->at(fsgrids::bgbfield::BGBX) = 0;
+                     cell->at(fsgrids::bgbfield::BGBXVOL) = 0.0;
+                     cell->at(fsgrids::bgbfield::dBGBydx) = 0.0;
+                     cell->at(fsgrids::bgbfield::dBGBzdx) = 0.0;
+                     cell->at(fsgrids::bgbfield::dBGBxdy) = 0.0;
+                     cell->at(fsgrids::bgbfield::dBGBxdz) = 0.0;
+                     cell->at(fsgrids::bgbfield::dBGBYVOLdx) = 0.0;
+                     cell->at(fsgrids::bgbfield::dBGBZVOLdx) = 0.0;
+                     cell->at(fsgrids::bgbfield::dBGBXVOLdy) = 0.0;
+                     cell->at(fsgrids::bgbfield::dBGBXVOLdz) = 0.0;
                   }
                }
             }
          }
-         
-         // Remove dipole from inflow cells if this is requested
-         if(this->noDipoleInSW) {
+
+         doZeroOut = P::ycells_ini == 1 && this->zeroOutComponents[1] == 1;
+         if (doZeroOut) {
+            /*2D simulation in x and z. Set By and derivatives along Y, and derivatives of By to zero*/
 #pragma omp for collapse(3)
             for (int x = 0; x < localSize[0]; ++x) {
                for (int y = 0; y < localSize[1]; ++y) {
                   for (int z = 0; z < localSize[2]; ++z) {
-                     if(technicalGrid.get(x, y, z)->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN ) {
+                     std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
+                     cell->at(fsgrids::bgbfield::BGBY) = 0.0;
+                     cell->at(fsgrids::bgbfield::BGBYVOL) = 0.0;
+                     cell->at(fsgrids::bgbfield::dBGBxdy) = 0.0;
+                     cell->at(fsgrids::bgbfield::dBGBzdy) = 0.0;
+                     cell->at(fsgrids::bgbfield::dBGBydx) = 0.0;
+                     cell->at(fsgrids::bgbfield::dBGBydz) = 0.0;
+                     cell->at(fsgrids::bgbfield::dBGBXVOLdy) = 0.0;
+                     cell->at(fsgrids::bgbfield::dBGBZVOLdy) = 0.0;
+                     cell->at(fsgrids::bgbfield::dBGBYVOLdx) = 0.0;
+                     cell->at(fsgrids::bgbfield::dBGBYVOLdz) = 0.0;
+                  }
+               }
+            }
+         }
+
+         doZeroOut = P::zcells_ini == 1 && this->zeroOutComponents[2] == 1;
+         if (doZeroOut) {
+#pragma omp for collapse(3)
+            for (int x = 0; x < localSize[0]; ++x) {
+               for (int y = 0; y < localSize[1]; ++y) {
+                  for (int z = 0; z < localSize[2]; ++z) {
+                     std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
+                     cell->at(fsgrids::bgbfield::BGBX) = 0;
+                     cell->at(fsgrids::bgbfield::BGBY) = 0;
+                     cell->at(fsgrids::bgbfield::BGBYVOL) = 0.0;
+                     cell->at(fsgrids::bgbfield::BGBXVOL) = 0.0;
+                     cell->at(fsgrids::bgbfield::dBGBxdy) = 0.0;
+                     cell->at(fsgrids::bgbfield::dBGBxdz) = 0.0;
+                     cell->at(fsgrids::bgbfield::dBGBydx) = 0.0;
+                     cell->at(fsgrids::bgbfield::dBGBydz) = 0.0;
+                     cell->at(fsgrids::bgbfield::dBGBXVOLdy) = 0.0;
+                     cell->at(fsgrids::bgbfield::dBGBXVOLdz) = 0.0;
+                     cell->at(fsgrids::bgbfield::dBGBYVOLdx) = 0.0;
+                     cell->at(fsgrids::bgbfield::dBGBYVOLdz) = 0.0;
+                  }
+               }
+            }
+         }
+
+         // Remove dipole from inflow cells if this is requested
+         if (this->noDipoleInSW) {
+#pragma omp for collapse(3)
+            for (int x = 0; x < localSize[0]; ++x) {
+               for (int y = 0; y < localSize[1]; ++y) {
+                  for (int z = 0; z < localSize[2]; ++z) {
+                     if (technicalGrid.get(x, y, z)->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN) {
                         for (int i = 0; i < fsgrids::bgbfield::N_BGB; ++i) {
-                           BgBGrid.get(x,y,z)->at(i) = 0;
+                           BgBGrid.get(x, y, z)->at(i) = 0;
                         }
-			if ( (this->dipoleType==4) && (P::isRestart == false) ) {
-			   for (int i = 0; i < fsgrids::bfield::N_BFIELD; ++i) {
-			      perBGrid.get(x,y,z)->at(i) = 0;
-			   }
+                        if ((this->dipoleType == 4) && (P::isRestart == false)) {
+                           for (int i = 0; i < fsgrids::bfield::N_BFIELD; ++i) {
+                              perBGrid.get(x, y, z)->at(i) = 0;
+                           }
                         }
                      }
                   }
@@ -453,14 +457,13 @@ namespace projects {
          }
       } // end of omp parallel region
       // Superimpose constant background field if needed
-      if(this->constBgB[0] != 0.0 || this->constBgB[1] != 0.0 || this->constBgB[2] != 0.0) {
+      if (this->constBgB[0] != 0.0 || this->constBgB[1] != 0.0 || this->constBgB[2] != 0.0) {
          ConstantField bgConstantField;
          bgConstantField.initialize(this->constBgB[0], this->constBgB[1], this->constBgB[2]);
          setBackgroundField(bgConstantField, BgBGrid, true);
       }
    }
-   
-   
+
    Real Magnetosphere::getDistribValue(
            creal& x,creal& y,creal& z,
            creal& vx,creal& vy,creal& vz,

@@ -113,16 +113,13 @@ namespace projects {
 
    void verificationLarmor::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
 
-   void verificationLarmor::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-   ) {
+   void
+   verificationLarmor::setProjectBField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+                                        FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                                        FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
       ConstantField bgField;
-      bgField.initialize(this->BX0,
-                         this->BY0,
-                         this->BZ0);
-      
+      bgField.initialize(this->BX0, this->BY0, this->BZ0);
+
       setBackgroundField(bgField, BgBGrid);
    }
 

@@ -188,38 +188,36 @@ namespace projects {
     * of the state of the simulation, you can read it from Parameters.
     */
    void Shocktest::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
-   
-   void Shocktest::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-   ) {
+
+   void Shocktest::setProjectBField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+                                    FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                                    FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
       setBackgroundFieldToZero(BgBGrid);
-      
-      if(!P::isRestart) {
+
+      if (!P::isRestart) {
          auto localSize = perBGrid.getLocalSize().data();
-         
-         #pragma omp parallel for collapse(3)
+
+#pragma omp parallel for collapse(3)
          for (int x = 0; x < localSize[0]; ++x) {
             for (int y = 0; y < localSize[1]; ++y) {
                for (int z = 0; z < localSize[2]; ++z) {
                   const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
-                  
+
                   Real Bxavg, Byavg, Bzavg;
                   Bxavg = Byavg = Bzavg = 0.0;
-                  if(this->nSpaceSamples > 1) {
+                  if (this->nSpaceSamples > 1) {
                      Real d_x = perBGrid.DX / (this->nSpaceSamples - 1);
                      Real d_z = perBGrid.DZ / (this->nSpaceSamples - 1);
-                     for (uint i=0; i<this->nSpaceSamples; ++i) {
-                        for (uint k=0; k<this->nSpaceSamples; ++k) {
+                     for (uint i = 0; i < this->nSpaceSamples; ++i) {
+                        for (uint k = 0; k < this->nSpaceSamples; ++k) {
                            Bxavg += ((xyz[0] + i * d_x) < 0.0) ? this->Bx[this->LEFT] : this->Bx[this->RIGHT];
                            Byavg += ((xyz[0] + i * d_x) < 0.0) ? this->By[this->LEFT] : this->By[this->RIGHT];
                            Bzavg += ((xyz[0] + i * d_x) < 0.0) ? this->Bz[this->LEFT] : this->Bz[this->RIGHT];
                         }
                      }
                      cuint nPts = pow(this->nSpaceSamples, 3.0);
-                     
+
                      cell->at(fsgrids::bfield::PERBX) = Bxavg / nPts;
                      cell->at(fsgrids::bfield::PERBY) = Byavg / nPts;
                      cell->at(fsgrids::bfield::PERBZ) = Bzavg / nPts;

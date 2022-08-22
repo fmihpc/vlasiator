@@ -229,36 +229,33 @@ namespace projects {
       this->rndVel[1]=getRandomNumber();
       this->rndVel[2]=getRandomNumber();
    }
-   
-   void Dispersion::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-   ) {
+
+   void Dispersion::setProjectBField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+                                     FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                                     FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
       ConstantField bgField;
       bgField.initialize(this->B0 * cos(this->angleXY) * cos(this->angleXZ),
-                         this->B0 * sin(this->angleXY) * cos(this->angleXZ),
-                         this->B0 * sin(this->angleXZ));
-                         
+                         this->B0 * sin(this->angleXY) * cos(this->angleXZ), this->B0 * sin(this->angleXZ));
+
       setBackgroundField(bgField, BgBGrid);
-      
-      if(!P::isRestart) {
+
+      if (!P::isRestart) {
          const auto localSize = BgBGrid.getLocalSize().data();
-         
+
 #pragma omp parallel for collapse(3)
          for (int x = 0; x < localSize[0]; ++x) {
             for (int y = 0; y < localSize[1]; ++y) {
                for (int z = 0; z < localSize[2]; ++z) {
                   std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
                   const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
-                  
+
                   setRandomSeed(cellid);
-                  
+
                   Real rndBuffer[3];
-                  rndBuffer[0]=getRandomNumber();
-                  rndBuffer[1]=getRandomNumber();
-                  rndBuffer[2]=getRandomNumber();
-                  
+                  rndBuffer[0] = getRandomNumber();
+                  rndBuffer[1] = getRandomNumber();
+                  rndBuffer[2] = getRandomNumber();
+
                   cell->at(fsgrids::bfield::PERBX) = this->magXPertAbsAmp * (0.5 - rndBuffer[0]);
                   cell->at(fsgrids::bfield::PERBY) = this->magYPertAbsAmp * (0.5 - rndBuffer[1]);
                   cell->at(fsgrids::bfield::PERBZ) = this->magZPertAbsAmp * (0.5 - rndBuffer[2]);

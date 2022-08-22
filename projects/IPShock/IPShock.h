@@ -58,15 +58,13 @@ namespace projects {
          IPShock();
          ~IPShock() override;
 
-         static void addParameters(void);
-         virtual void getParameters(void);
+         static void addParameters();
+         virtual void getParameters();
          void initialize() override;
 
-         virtual void setProjectBField(
-            FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-            FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-            FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-         );
+         void setProjectBField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+                               FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                               FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) override;
          virtual Real calcPhaseSpaceDensity(
                creal& x, creal& y, creal& z,
                creal& dx, creal& dy, creal& dz,
@@ -74,8 +72,6 @@ namespace projects {
                creal& dvx, creal& dvy, creal& dvz,
                const uint popID
                ) const;
-
-
 
       protected:
          Real getDistribValue(

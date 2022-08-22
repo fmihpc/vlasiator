@@ -33,15 +33,14 @@ namespace projects {
       Distributions();
       ~Distributions() override;
 
-      static void addParameters(void);
-      virtual void getParameters(void);
+      static void addParameters();
+      virtual void getParameters();
       void initialize() override;
-      virtual void setProjectBField(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-      );
-    protected:
+      void setProjectBField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+                            FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                            FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) override;
+
+   protected:
       Real getDistribValue(
                            creal& x,creal& y, creal& z,
                            creal& vx, creal& vy, creal& vz,

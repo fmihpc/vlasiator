@@ -36,9 +36,9 @@ namespace projects {
       Shocktest();
       ~Shocktest() override;
 
-      static void addParameters(void);
-      virtual void getParameters(void);
-      void initialize(void) override;
+      static void addParameters();
+      virtual void getParameters();
+      void initialize() override;
 
     protected:
       enum {
@@ -62,12 +62,10 @@ namespace projects {
                            creal& dvx, creal& dvy, creal& dvz,
                            const uint popID
                           ) const;
-      virtual void setProjectBField(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-      );
-      
+      void setProjectBField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+                            FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                            FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) override;
+
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
       virtual Real calcPhaseSpaceDensity(
                                          creal& x, creal& y, creal& z,

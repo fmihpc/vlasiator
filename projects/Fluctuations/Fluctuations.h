@@ -46,13 +46,11 @@ namespace projects {
       ~Fluctuations() override;
       
       void initialize() override;
-      static void addParameters(void);
-      virtual void getParameters(void);
-      virtual void setProjectBField(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-      );
+      static void addParameters();
+      virtual void getParameters();
+      void setProjectBField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+                            FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+                            FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) override;
       virtual std::vector<std::array<Real, 3> > getV0(
          creal x,
          creal y,

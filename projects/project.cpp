@@ -101,7 +101,7 @@ namespace projects {
 
    void Project::addParameters() {
       typedef Readparameters RP;
-      // TODO add all projects' static addParameters() functions here.
+      // Add all projects' static addParameters() functions here.
       projects::Alfven::addParameters();
       projects::Diffusion::addParameters();
       projects::Dispersion::addParameters();
@@ -126,7 +126,6 @@ namespace projects {
       projects::verificationLarmor::addParameters();
       projects::Shocktest::addParameters();
       RP::add("Project_common.seed", "Seed for the RNG", 42);
-      
    }
 
    void Project::getParameters() {
@@ -136,21 +135,7 @@ namespace projects {
 
    /** Check if the project class has been initialized.
     * @return If true, the project class was successfully initialized.*/
-   bool Project::isInitialized() {return initialized;}
-
-   /*! Print a warning message to stderr and abort, one should not use the base class functions. */
-   void Project::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
-   ) {
-      int rank;
-      MPI_Comm_rank(MPI_COMM_WORLD,&rank);
-      if (rank == MASTER_RANK) {
-         cerr << "(Project.cpp) WARNING: Base class 'setCellBackgroundField' in " << __FILE__ << ":" << __LINE__ << " called." << endl;
-      }
-      exit(1);
-   }
+   bool Project::isInitialized() { return initialized; }
    
    void Project::hook(
       cuint& stage,
