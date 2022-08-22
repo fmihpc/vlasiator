@@ -1741,7 +1741,6 @@ namespace DRO {
       return true;
    }
 
-   // ---=== TODO TODO TODO ===---
    VariableHeatFluxVector::VariableHeatFluxVector(cuint _popID): DataReductionOperator(),popID(_popID) {
       popName = getObjectWrapper().particleSpecies[popID].name;
    }
