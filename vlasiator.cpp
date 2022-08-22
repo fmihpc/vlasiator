@@ -288,8 +288,6 @@ int main(int argn,char* args[]) {
    signal(SIGFPE, fpehandler);
    #endif
 
-
-
    phiprof::start("main");
    phiprof::start("Initialization");
    phiprof::start("Read parameters");
@@ -317,9 +315,6 @@ int main(int argn,char* args[]) {
    sysBoundaries.getParameters();
    phiprof::stop("Read parameters");
 
-
-
-
    //Get version and config info here
    std::string version;
    std::string config;
@@ -328,8 +323,6 @@ int main(int argn,char* args[]) {
       version=readparameters.versionInfo();
       config=readparameters.configInfo();
    }
-
-
 
    // Init parallel logger:
    phiprof::start("open logFile & diagnostic");
@@ -363,7 +356,7 @@ int main(int argn,char* args[]) {
    if (!project->isInitialized()) {
       if (myRank == MASTER_RANK) {
          cerr << "(MAIN): Project class was not initialized!" << endl;
-         exit(1);
+         MPI_Abort(MPI_COMM_WORLD, 1);
       }
    }
    phiprof::stop("Init project");
