@@ -66,7 +66,7 @@ namespace projects {
       exp(- physicalconstants::MASS_PROTON * ((vx-Vx0)*(vx-Vx0) + (vy-Vy0)*(vy-Vy0) + (vz-Vz0)*(vz-Vz0)) / (2.0 * physicalconstants::K_B * T));
    }
 
-   void Template::setProjectBField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+   void Template::setInitialBField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
                                    FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
                                    FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
       Dipole bgField;

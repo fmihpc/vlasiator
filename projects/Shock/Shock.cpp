@@ -144,7 +144,7 @@ namespace projects {
 
    void Shock::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
 
-   void Shock::setProjectBField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+   void Shock::setInitialBField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
                                 FsGrid<std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
                                 FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
       setBackgroundFieldToZero(BgBGrid);
