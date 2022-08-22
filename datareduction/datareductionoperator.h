@@ -623,6 +623,14 @@ namespace DRO {
       Real lossConeAngle;
       std::vector<Real> channels, dataDiffFlux;
    };
+
+   class JPerBModifier: public DataReductionOperatorHasParameters {
+   public:
+      virtual std::string getName() const {return "j_per_b_modifier";}
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual bool setSpatialCell(const SpatialCell* cell) {return true;}
+      virtual bool writeParameters(vlsv::Writer& vlsvWriter);
+   };
 } // namespace DRO
 
 #endif
