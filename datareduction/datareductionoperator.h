@@ -625,7 +625,7 @@ namespace DRO {
    };
 
    // Heat flux vector
-   class VariableHeatFluxVector: public VariableHeatFluxVector {
+   class VariableHeatFluxVector: public DataReductionOperator {
    public:
       VariableHeatFluxVector(cuint popID);
       virtual ~VariableHeatFluxVector();
@@ -640,7 +640,7 @@ namespace DRO {
       Real HeatFlux[3];
       uint popID;
       std::string popName;
-   }
+   };
 
 } // namespace DRO
 
