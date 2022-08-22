@@ -331,8 +331,8 @@ void initializeGrids(
    
    phiprof::stop("Fetch Neighbour data");
    
-   phiprof::start("setProjectBField");
-   project.setProjectBField(perBGrid, BgBGrid, technicalGrid);
+   phiprof::start("setInitialBField");
+   project.setInitialBField(perBGrid, BgBGrid, technicalGrid);
    perBGrid.updateGhostCells();
    BgBGrid.updateGhostCells();
    EGrid.updateGhostCells();
@@ -341,7 +341,7 @@ void initializeGrids(
    volGrid.updateGhostCells();
    getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
 
-   phiprof::stop("setProjectBField");
+   phiprof::stop("setInitialBField");
 
    if (P::isRestart == false) {
       // Apply boundary conditions so that we get correct initial moments

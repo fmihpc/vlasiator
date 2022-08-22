@@ -58,7 +58,8 @@ namespace projects {
       /** Set the background and perturbed magnetic fields for this project.
        * \param perBGrid Grid on which values of the perturbed field can be set if needed.
        * \param BgBGrid Grid on which values for the background field can be set if needed, e.g. using the background
-       * field functions. \param technicalGrid Technical fsgrid, available if some of its data is necessary.
+       * field functions.
+       * \param technicalGrid Technical fsgrid, available if some of its data is necessary.
        *
        * \sa setBackgroundField, setBackgroundFieldToZero
        */
