@@ -545,85 +545,61 @@ namespace projects {
    
 Project* createProject() {
    Project* rvalue = NULL;
-   if(Parameters::projectName == "") {
-      cerr << "No project specified! Please set 'project' parameter!" << endl;
-      abort();
-   }
-   if(Parameters::projectName == "Alfven") {
+
+   if (Parameters::projectName == "Alfven") {
       rvalue = new projects::Alfven;
-   }
-   if(Parameters::projectName == "Diffusion") {
+   } else if (Parameters::projectName == "Diffusion") {
       rvalue = new projects::Diffusion;
-   }
-   if(Parameters::projectName == "Dispersion") {
+   } else if (Parameters::projectName == "Dispersion") {
       rvalue = new projects::Dispersion;
-   }
-   if(Parameters::projectName == "Distributions") {
+   } else if (Parameters::projectName == "Distributions") {
       rvalue = new projects::Distributions;
-   }
-   if(Parameters::projectName == "Firehose") {
+   } else if (Parameters::projectName == "Firehose") {
       rvalue = new projects::Firehose;
-   }
-   if(Parameters::projectName == "Flowthrough") {
+   } else if (Parameters::projectName == "Flowthrough") {
       rvalue = new projects::Flowthrough;
-   }
-   if(Parameters::projectName == "Fluctuations") {
+   } else if (Parameters::projectName == "Fluctuations") {
       rvalue = new projects::Fluctuations;
-   }
-   if(Parameters::projectName == "Harris") {
+   } else if (Parameters::projectName == "Harris") {
       rvalue = new projects::Harris;
-   }
-   if(Parameters::projectName == "KHB") {
+   } else if (Parameters::projectName == "KHB") {
       rvalue = new projects::KHB;
-   }
-   if(Parameters::projectName == "Larmor") {
+   } else if (Parameters::projectName == "Larmor") {
       rvalue = new projects::Larmor;
-   }
-   if(Parameters::projectName == "Magnetosphere") {
+   } else if (Parameters::projectName == "Magnetosphere") {
       rvalue = new projects::Magnetosphere;
-   }
-   if(Parameters::projectName == "MultiPeak") {
+   } else if (Parameters::projectName == "MultiPeak") {
       rvalue = new projects::MultiPeak;
-   } 
-   if(Parameters::projectName == "VelocityBox") {
+   } else if (Parameters::projectName == "VelocityBox") {
       rvalue = new projects::VelocityBox;
-   } 
-   if(Parameters::projectName == "Riemann1") {
+   } else if (Parameters::projectName == "Riemann1") {
       rvalue = new projects::Riemann1;
-   }
-   if(Parameters::projectName == "Shock") {
+   } else if (Parameters::projectName == "Shock") {
       rvalue = new projects::Shock;
-   }
-   if(Parameters::projectName == "IPShock") {
+   } else if (Parameters::projectName == "IPShock") {
       rvalue = new projects::IPShock;
-   }
-   if(Parameters::projectName == "Template") {
+   } else if (Parameters::projectName == "Template") {
       rvalue = new projects::Template;
-   }
-   if(Parameters::projectName == "test_fp") {
+   } else if (Parameters::projectName == "test_fp") {
       rvalue = new projects::test_fp;
-   }
-   if(Parameters::projectName == "testAmr") {
+   } else if (Parameters::projectName == "testAmr") {
       rvalue = new projects::testAmr;
-   }
-   if(Parameters::projectName == "testHall") {
+   } else if (Parameters::projectName == "testHall") {
       rvalue = new projects::TestHall;
-   }
-   if(Parameters::projectName == "test_trans") {
+   } else if (Parameters::projectName == "test_trans") {
       rvalue = new projects::test_trans;
-   }
-   if(Parameters::projectName == "verificationLarmor") {
+   } else if (Parameters::projectName == "verificationLarmor") {
       rvalue = new projects::verificationLarmor;
-   }
-   if(Parameters::projectName == "Shocktest") {
+   } else if (Parameters::projectName == "Shocktest") {
       rvalue = new projects::Shocktest;
-   }
-   if (rvalue == NULL) {
+   } else if (Parameters::projectName == "") {
+      cerr << "No project specified! Please set 'project' parameter!" << endl;
+      MPI_Abort(MPI_COMM_WORLD, 1);
+   } else {
       cerr << "Unknown project name!" << endl;
-      abort();
+      MPI_Abort(MPI_COMM_WORLD, 1);
    }
 
-   getObjectWrapper().project = rvalue;
    return rvalue;
 }
 
