@@ -52,10 +52,6 @@ static DensityModel densityModel;
 namespace projects {
    Flowthrough::Flowthrough(): TriAxisSearch() { }
    Flowthrough::~Flowthrough() { }
-   
-   bool Flowthrough::initialize(void) {
-      return Project::initialize();
-   }
 
    void Flowthrough::addParameters(){
       typedef Readparameters RP;
@@ -120,6 +116,8 @@ namespace projects {
          speciesParams.push_back(sP);
       }
    }
+
+   void Flowthrough::initialize() { initialized = true; }
 
    Real Flowthrough::getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
 

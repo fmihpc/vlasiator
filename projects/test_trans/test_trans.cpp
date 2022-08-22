@@ -39,12 +39,6 @@ using namespace spatial_cell;
 namespace projects {
    test_trans::test_trans(): Project() { }
    test_trans::~test_trans() { }
-      
-  // Real this->cellPosition = 0;
-
-   bool test_trans::initialize(void) {
-      return Project::initialize();
-   }
 
    void test_trans::addParameters(){
       typedef Readparameters RP;
@@ -65,6 +59,7 @@ namespace projects {
       RP::get("test_trans.peakValue" ,peakValue);
    }
 
+   void test_trans::initialize() { initialized = true; }
 
    Real test_trans::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
                                           creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,creal& dvz,

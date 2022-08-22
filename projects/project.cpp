@@ -96,12 +96,9 @@ struct VelocityMeshParams {
 static VelocityMeshParams* velMeshParams = NULL;
 
 namespace projects {
-   Project::Project() { 
-      baseClassInitialized = false;
-   }
-   
-   Project::~Project() { }
-   
+   Project::Project() {}
+   Project::~Project() {}
+
    void Project::addParameters() {
       typedef Readparameters RP;
       // TODO add all projects' static addParameters() functions here.
@@ -135,48 +132,11 @@ namespace projects {
    void Project::getParameters() {
       typedef Readparameters RP;
       RP::get("Project_common.seed", this->seed);
-
-
-      // Note that configuration files need to be re-parsed after this.
-
-      //RP::get("ParticlePopulation.charge",popCharges);
-      //RP::get("ParticlePopulation.mass_units",popMassUnits);
-      //RP::get("ParticlePopulation.mass",popMasses);
-      //RP::get("ParticlePopulation.sparse_min_value",popSparseMinValue);
-      //RP::get("ParticlePopulation.mesh",popMeshNames);
-
-      //if (velMeshParams == NULL) velMeshParams = new VelocityMeshParams();
-      //RP::get("velocitymesh.name",velMeshParams->name);
-      //RP::get("velocitymesh.vx_min",velMeshParams->vx_min);
-      //RP::get("velocitymesh.vy_min",velMeshParams->vy_min);
-      //RP::get("velocitymesh.vz_min",velMeshParams->vz_min);
-      //RP::get("velocitymesh.vx_max",velMeshParams->vx_max);
-      //RP::get("velocitymesh.vy_max",velMeshParams->vy_max);
-      //RP::get("velocitymesh.vz_max",velMeshParams->vz_max);
-      //RP::get("velocitymesh.vx_length",velMeshParams->vx_length);
-      //RP::get("velocitymesh.vy_length",velMeshParams->vy_length);
-      //RP::get("velocitymesh.vz_length",velMeshParams->vz_length);
-      //RP::get("velocitymesh.max_refinement_level",velMeshParams->maxRefLevels);
    }
 
-   /** Initialize the Project. Velocity mesh and particle population 
-    * parameters are read from the configuration file, and corresponding internal 
-    * variables are created here.
-    * NOTE: Each project must call this function!
-    * @return If true, particle species and velocity meshes were created successfully.*/
-   bool Project::initialize() {
-      typedef Readparameters RP;
-      
-      // Basic error checking
-      bool success = true;
-
-      baseClassInitialized = success;
-      return success;
-   }
-   
-   /** Check if base class has been initialized.
-    * @return If true, base class was successfully initialized.*/
-   bool Project::initialized() {return baseClassInitialized;}
+   /** Check if the project class has been initialized.
+    * @return If true, the project class was successfully initialized.*/
+   bool Project::isInitialized() {return initialized;}
 
    /*! Print a warning message to stderr and abort, one should not use the base class functions. */
    void Project::setProjectBField(

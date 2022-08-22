@@ -43,8 +43,8 @@ namespace projects {
       /*! Get the value that was read in. */
       virtual void getParameters();
       
-      /*! Initialize project. Can be used, e.g., to read in parameters from the input file. */
-      virtual bool initialize();
+      /*! Initialize project after reading in parameters. */
+      virtual void initialize() = 0;
       
       /*! Perform some operation at each time step in the main program loop. */
       virtual void hook(
@@ -53,7 +53,7 @@ namespace projects {
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid
       ) const;
       
-      bool initialized();
+      bool isInitialized();
       
       /** Set the background and perturbed magnetic fields for this project.
        * \param perBGrid Grid on which values of the perturbed field can be set if needed.
@@ -87,6 +87,8 @@ namespace projects {
       virtual bool refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
       
     protected:
+      bool initialized = false; /**< If true, the class has been initialized.*/
+
       /*! \brief Returns a list of blocks to loop through when initialising.
        * 
        * The base class version just returns all blocks, which amounts to looping through the whole velocity space.
@@ -171,8 +173,6 @@ namespace projects {
       static char rngStateBuffer[256];
       static random_data rngDataBuffer;
       #pragma omp threadprivate(rngStateBuffer,rngDataBuffer)
-
-      bool baseClassInitialized;                      /**< If true, base class has been initialized.*/
    };
    
    Project* createProject();

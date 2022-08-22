@@ -45,11 +45,7 @@ using namespace spatial_cell;
 namespace projects {
   IPShock::IPShock(): TriAxisSearch() { }
   IPShock::~IPShock() { }
-  
-  bool IPShock::initialize() {
-    return Project::initialize();
-  }
-  
+
   void IPShock::addParameters() {
     typedef Readparameters RP;
     // Common (field / etc.) parameters
@@ -250,6 +246,7 @@ namespace projects {
     
   }
 
+  void IPShock::initialize() { initialized = true; }
 
   std::vector<std::array<Real, 3>> IPShock::getV0(creal x, creal y, creal z, const uint popID) const {
     Real mass = getObjectWrapper().particleSpecies[popID].mass;

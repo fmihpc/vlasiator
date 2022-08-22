@@ -35,9 +35,7 @@ namespace projects {
    using namespace std;
    KHB::KHB(): Project() { }
    KHB::~KHB() { }
-   
-   bool KHB::initialize(void) {return Project::initialize();}
-   
+
    void KHB::addParameters() {
       typedef Readparameters RP;
       RP::add("KHB.rho1", "Number density, this->TOP state (m^-3)", 0.0);
@@ -96,8 +94,9 @@ namespace projects {
       RP::get("KHB.nSpaceSamples", this->nSpaceSamples);
       RP::get("KHB.nVelocitySamples", this->nVelocitySamples);
    }
-   
-   
+
+   void KHB::initialize() { initialized = true; }
+
    Real KHB::profile(creal top, creal bottom, creal x, creal z) const {
       if(top == bottom) {
          return top;

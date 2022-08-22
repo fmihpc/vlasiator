@@ -38,8 +38,6 @@ namespace projects {
    Riemann1::Riemann1(): Project() { }
    Riemann1::~Riemann1() { }
 
-   bool Riemann1::initialize(void) {return Project::initialize();}
-
    void Riemann1::addParameters(){
       typedef Readparameters RP;
       RP::add("Riemann.rho1", "Number density, left state (m^-3)", 0.0);
@@ -89,6 +87,8 @@ namespace projects {
       RP::get("Riemann.nSpaceSamples", this->nSpaceSamples);
       RP::get("Riemann.nVelocitySamples", this->nVelocitySamples);
    }
+
+   void Riemann1::initialize() { initialized = true; }
 
    Real Riemann1::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
       cint side = (x < 0.0) ? this->LEFT : this->RIGHT;

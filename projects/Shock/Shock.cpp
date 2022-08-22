@@ -36,8 +36,6 @@ namespace projects {
    Shock::Shock(): Project() { }
    Shock::~Shock() { }
 
-   bool Shock::initialize(void) {return Project::initialize();}
-
    void Shock::addParameters() {
       typedef Readparameters RP;
       RP::add("Shock.BX0", "Background field value (T)", 1.0e-9);
@@ -87,6 +85,8 @@ namespace projects {
       RP::get("Shock.Scale_y", this->SCA_Y);
       RP::get("Shock.Sharp_Y", this->Sharp_Y);
    }
+
+   void Shock::initialize() { initialized = true; }
 
    Real Shock::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, const uint popID) const {
       creal kb = physicalconstants::K_B;

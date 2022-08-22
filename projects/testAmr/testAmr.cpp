@@ -40,12 +40,7 @@ Real projects::testAmr::rhoRnd;
 
 namespace projects {
    testAmr::testAmr(): TriAxisSearch() { }
-   
    testAmr::~testAmr() { }
-
-   bool testAmr::initialize(void) {
-      return Project::initialize();
-   }
 
    void testAmr::addParameters(){
       typedef Readparameters RP;
@@ -126,6 +121,8 @@ namespace projects {
       if (densModelString == "uniform") densityModel = Uniform;
       else if (densModelString == "testcase") densityModel = TestCase;
    }
+
+   void testAmr::initialize() { initialized = true; }
 
    Real testAmr::getDistribValue(creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
       const testAmrSpeciesParameters& sP = speciesParams[popID];

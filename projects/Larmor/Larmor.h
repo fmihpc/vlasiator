@@ -33,11 +33,11 @@ namespace projects {
    class Larmor: public Project {
     public:
       Larmor();
-      virtual ~Larmor();
-      
-      virtual bool initialize(void);
+      ~Larmor() override;
+
       static void addParameters(void);
       virtual void getParameters(void);
+      void initialize() override;
       virtual void setProjectBField(
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
          FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,

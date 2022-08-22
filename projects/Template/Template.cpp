@@ -50,9 +50,9 @@ namespace projects {
       RP::get("Template.param", this->param);
    }
    
-   bool Template::initialize() {
+   void Template::initialize() {
       this->param += 1.0;
-      return Project::initialize();
+      initialized = true;
    }
 
    Real Template::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {

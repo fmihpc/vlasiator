@@ -40,11 +40,11 @@ namespace projects {
    class Diffusion: public Project {
     public:
       Diffusion();
-      virtual ~Diffusion();
-      
-      virtual bool initialize(void);
+      ~Diffusion() override;
+
       static void addParameters(void);
       virtual void getParameters(void);
+      void initialize() override;
       /*! set background field, should set it for all cells */
       virtual void setProjectBField(
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,

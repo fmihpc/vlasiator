@@ -40,9 +40,6 @@ namespace projects {
     Larmor::Larmor(): Project() { }
     Larmor::~Larmor() { }
 
-
-   bool Larmor::initialize(void) {return Project::initialize();}
-
     void Larmor::addParameters() {
       typedef Readparameters RP;
       RP::add("Larmor.BX0", "Background field value (T)", 0.0);
@@ -83,6 +80,8 @@ namespace projects {
       RP::get("Larmor.Scale_x", this->SCA_X);
       RP::get("Larmor.Scale_y", this->SCA_Y);
     }
+
+   void Larmor::initialize() { initialized = true; }
 
     Real Larmor::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, const uint popID) const {
       creal kb = physicalconstants::K_B;

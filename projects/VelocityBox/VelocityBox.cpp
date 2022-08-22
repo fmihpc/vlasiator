@@ -40,9 +40,6 @@ namespace projects {
    VelocityBox::VelocityBox(): Project() { }
    VelocityBox::~VelocityBox() { }
 
-
-   bool VelocityBox::initialize(void) {return Project::initialize();}
-
    void VelocityBox::addParameters(){
       typedef Readparameters RP;
       RP::add("VelocityBox.rho", "Number density in full 6 dimensions (m^-6 s^3)", 0.0);
@@ -77,16 +74,16 @@ namespace projects {
       RP::get("VelocityBox.Bz", this->Bz);
    }
 
-  Real VelocityBox::getDistribValue(creal& vx, creal& vy, creal& vz, const uint popID) const {
-     if (vx >= this->Vx[0] && vx <= this->Vx[1] &&
-         vy >= this->Vy[0] && vy <= this->Vy[1] &&
-         vz >= this->Vz[0] && vz <= this->Vz[1])
-       return this->rho;
-     else
-       return 0.0;
+   void VelocityBox::initialize() { initialized = true; }
+
+   Real VelocityBox::getDistribValue(creal& vx, creal& vy, creal& vz, const uint popID) const {
+      if (vx >= this->Vx[0] && vx <= this->Vx[1] &&
+          vy >= this->Vy[0] && vy <= this->Vy[1] &&
+          vz >= this->Vz[0] && vz <= this->Vz[1])
+         return this->rho;
+      else
+         return 0.0;
    }
-
-
 
   Real VelocityBox::calcPhaseSpaceDensity(
      creal& x, creal& y, creal& z,

@@ -359,14 +359,10 @@ int main(int argn,char* args[]) {
    
    // Init project
    phiprof::start("Init project");
-   if (project->initialize() == false) {
-      if(myRank == MASTER_RANK) cerr << "(MAIN): Project did not initialize correctly!" << endl;
-      exit(1);
-   }
-   if (project->initialized() == false) {
+   project->initialize();
+   if (!project->isInitialized()) {
       if (myRank == MASTER_RANK) {
-         cerr << "(MAIN): Project base class was not initialized!" << endl;
-         cerr << "\t Call Project::initialize() in your project's initialize()-function." << endl;
+         cerr << "(MAIN): Project class was not initialized!" << endl;
          exit(1);
       }
    }

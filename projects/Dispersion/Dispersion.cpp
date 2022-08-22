@@ -41,9 +41,7 @@ using namespace spatial_cell;
 namespace projects {
    Dispersion::Dispersion(): Project() { }
    Dispersion::~Dispersion() { }
-   
-   bool Dispersion::initialize(void) {return Project::initialize();}
-   
+
    void Dispersion::addParameters() {
       typedef Readparameters RP;
       RP::add("Dispersion.B0", "Guide magnetic field strength (T)", 1.0e-9);
@@ -98,7 +96,9 @@ namespace projects {
          speciesParams.push_back(sP);
       }
    }
-   
+
+   void Dispersion::initialize() { initialized = true; }
+
    void Dispersion::hook(
       cuint& stage,
       const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,

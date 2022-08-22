@@ -32,11 +32,11 @@ namespace projects {
    class KHB: public Project {
     public:
       KHB();
-      virtual ~KHB();
+      ~KHB() override;
       
-      virtual bool initialize(void);
       static void addParameters(void);
       virtual void getParameters(void);
+      void initialize() override;
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
       virtual Real calcPhaseSpaceDensity(
                                          creal& x, creal& y, creal& z,

@@ -41,8 +41,7 @@ Real projects::Fluctuations::rndRho, projects::Fluctuations::rndVel[3];
 namespace projects {
    Fluctuations::Fluctuations(): TriAxisSearch() { }
    Fluctuations::~Fluctuations() { }
-   bool Fluctuations::initialize(void) {return Project::initialize();}
-   
+
    void Fluctuations::addParameters() {
       typedef Readparameters RP;
       RP::add("Fluctuations.BX0", "Background field value (T)", 1.0e-9);
@@ -92,7 +91,9 @@ namespace projects {
          speciesParams.push_back(sP);
       }
    }
-   
+
+   void Fluctuations::initialize() { initialized = true; }
+
    Real Fluctuations::getDistribValue(creal& vx,creal& vy, creal& vz, const uint popID) const {
       const FluctuationsSpeciesParameters& sP = speciesParams[popID];
 

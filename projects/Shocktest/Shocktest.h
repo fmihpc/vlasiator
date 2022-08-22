@@ -33,13 +33,13 @@
 namespace projects {
    class Shocktest: public TriAxisSearch {
     public:
-      Shocktest(); // Constructor
-      virtual ~Shocktest(); // Destructor
-      
-      virtual bool initialize(void);
+      Shocktest();
+      ~Shocktest() override;
+
       static void addParameters(void);
       virtual void getParameters(void);
-      
+      void initialize(void) override;
+
     protected:
       enum {
          LEFT,

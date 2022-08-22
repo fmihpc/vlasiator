@@ -35,20 +35,16 @@
 using namespace std;
 
 namespace projects {
-   TestHall::TestHall(): Project() { }
-   TestHall::~TestHall() { }
-   
-   bool TestHall::initialize(void) {
-      bool success = Project::initialize();
+   TestHall::TestHall(){
       this->constBgB[0] = 0.0;
       this->constBgB[1] = 0.0;
       this->constBgB[2] = 0.0;
       this->dipoleScalingFactor = 1.0;
       this->dipoleTilt = 0.0;
       this->noDipoleInSW = 0;
-      return success;
    }
-   
+   TestHall::~TestHall() { }
+
    void TestHall::addParameters(){
       typedef Readparameters RP;
       RP::add("TestHall.BX0", "Magnetic field x (T)", 1.0e-9);
@@ -78,7 +74,9 @@ namespace projects {
       RP::get("TestHall.Temperature", this->TEMPERATURE);
       RP::get("TestHall.rho", this->DENSITY);
    }
-   
+
+   void TestHall::initialize() { initialized = true; }
+
    Real TestHall::calcPhaseSpaceDensity(
       creal& x,creal& y,creal& z,
       creal& dx,creal& dy,creal& dz,

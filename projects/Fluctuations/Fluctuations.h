@@ -43,9 +43,9 @@ namespace projects {
    class Fluctuations: public TriAxisSearch {
    public:
       Fluctuations();
-      virtual ~Fluctuations();
+      ~Fluctuations() override;
       
-      virtual bool initialize(void);
+      void initialize() override;
       static void addParameters(void);
       virtual void getParameters(void);
       virtual void setProjectBField(

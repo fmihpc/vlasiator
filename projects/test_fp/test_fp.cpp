@@ -36,24 +36,10 @@ enum cases {BXCASE,BYCASE,BZCASE,BALLCASE};
 using namespace std;
 
 namespace projects {
-   test_fp::test_fp(): TriAxisSearch() { }
-   test_fp::~test_fp() { }
-
-
-   /*typedef test_fpParameters tfP;
-   Real this->B0 = NAN;
-   Real this->DENSITY = NAN;
-   Real this->TEMPERATURE = NAN;
-   Real this->ALPHA = NAN;
-   int  this->CASE = 5;
-   bool this->shear = false;
-   */
-
-   bool test_fp::initialize(void) {
-      Project::initialize();
+   test_fp::test_fp(){
       this->ALPHA *= M_PI / 4.0;
-      return true;
    }
+   test_fp::~test_fp() { }
 
    void test_fp::addParameters(void){
       typedef Readparameters RP;
@@ -82,6 +68,8 @@ namespace projects {
       RP::get("test_fp.Bdirection", this->CASE);
       RP::get("test_fp.shear", this->shear);
    }
+
+   void test_fp::initialize() { initialized = true; }
 
    Real test_fp::sign(creal value) const {
       if (abs(value) < 1e-5) return 0.0;

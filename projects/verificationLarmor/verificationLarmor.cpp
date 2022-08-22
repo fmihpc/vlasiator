@@ -38,7 +38,6 @@ using namespace spatial_cell;
 namespace projects {
    verificationLarmor::verificationLarmor(): Project() { }
    verificationLarmor::~verificationLarmor() { }
-   bool verificationLarmor::initialize(void) {return Project::initialize();}
 
    void verificationLarmor::addParameters() {
       typedef Readparameters RP;
@@ -73,6 +72,8 @@ namespace projects {
       RP::get("VerificationLarmor.Z0", this->Z0);
       RP::get("VerificationLarmor.rho", this->DENSITY);
    }
+
+   void verificationLarmor::initialize() { initialized = true; }
 
    Real verificationLarmor::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz,
            creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {

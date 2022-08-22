@@ -40,9 +40,6 @@ namespace projects {
    Distributions::Distributions(): TriAxisSearch() { }
    Distributions::~Distributions() { }
 
-
-   bool Distributions::initialize(void) {return Project::initialize();}
-
    void Distributions::addParameters(){
       typedef Readparameters RP;
       RP::add("Distributions.rho1", "Number density, first peak (m^-3)", 0.0);
@@ -144,6 +141,8 @@ namespace projects {
       
       return value;
    }
+
+   void Distributions::initialize() { initialized = true; }
 
    Real Distributions::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {   
       return getDistribValue(x+0.5*dx, y+0.5*dy,z+0.5*dz,vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, popID);

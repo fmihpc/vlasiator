@@ -39,13 +39,9 @@ using namespace std;
 using namespace spatial_cell;
 
 namespace projects {
-
    Shocktest::Shocktest() : TriAxisSearch() {} // Constructor
    Shocktest::~Shocktest() {} // Destructor
 
-   
-   bool Shocktest::initialize(void) { return Project::initialize(); }
-   
    void Shocktest::addParameters(){
       typedef Readparameters RP;
       RP::add("Shocktest.rho1", "Number density, left state (m^-3)", 0.0);
@@ -114,7 +110,9 @@ namespace projects {
       RP::get("Shocktest.nSpaceSamples", this->nSpaceSamples);
       RP::get("Shocktest.nVelocitySamples", this->nVelocitySamples);
    }
-   
+
+   void Shocktest::initialize() { initialized = true; }
+
    Real Shocktest::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
       creal mass = physicalconstants::MASS_PROTON;
       creal kb = physicalconstants::K_B;

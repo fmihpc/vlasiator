@@ -38,11 +38,7 @@ using namespace spatial_cell;
 namespace projects {
    Diffusion::Diffusion(): Project() { }
    Diffusion::~Diffusion() { }
-   
-   bool Diffusion::initialize(void) {
-      return Project::initialize();
-   }
-   
+
    void Diffusion::addParameters() {
       typedef Readparameters RP;
       RP::add("Diffusion.B0", "Background field value (T)", 1.0e-9);
@@ -81,6 +77,8 @@ namespace projects {
         speciesParams.push_back(sP);
       }
    }
+
+   void Diffusion::initialize() { initialized = true; }
 
    Real Diffusion::getDistribValue(
       creal& x,creal& y,creal& z,

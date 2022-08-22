@@ -37,9 +37,7 @@ using namespace spatial_cell;
 namespace projects {
    Harris::Harris(): TriAxisSearch() { }
    Harris::~Harris() { }
-   
-   bool Harris::initialize(void) {return Project::initialize();}
-   
+
    void Harris::addParameters(){
       typedef Readparameters RP;
       RP::add("Harris.Scale_size", "Harris sheet scale size (m)", 150000.0);
@@ -80,7 +78,9 @@ namespace projects {
          speciesParams.push_back(sP);
       }
    }
-   
+
+   void Harris::initialize() { initialized = true; }
+
    Real Harris::getDistribValue(
       creal& x,creal& y, creal& z,
       creal& vx, creal& vy, creal& vz,

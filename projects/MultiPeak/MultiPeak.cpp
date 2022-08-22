@@ -42,12 +42,7 @@ Real projects::MultiPeak::rhoRnd;
 
 namespace projects {
    MultiPeak::MultiPeak(): TriAxisSearch() { }
-   
    MultiPeak::~MultiPeak() { }
-
-   bool MultiPeak::initialize(void) {
-      return Project::initialize();
-   }
 
    void MultiPeak::addParameters(){
       typedef Readparameters RP;
@@ -125,6 +120,8 @@ namespace projects {
       if (densModelString == "uniform") densityModel = Uniform;
       else if (densModelString == "testcase") densityModel = TestCase;
    }
+
+   void MultiPeak::initialize() { initialized = true; }
 
    Real MultiPeak::getDistribValue(creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
       const MultiPeakSpeciesParameters& sP = speciesParams[popID];

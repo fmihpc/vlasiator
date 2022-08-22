@@ -37,8 +37,6 @@ using namespace std;
 namespace projects {
    Firehose::Firehose(): Project() { }
    Firehose::~Firehose() { }
-   
-   bool Firehose::initialize(void) {return Project::initialize();}
 
    void Firehose::addParameters(){
       typedef Readparameters RP;
@@ -104,6 +102,8 @@ namespace projects {
          speciesParams.push_back(sP);
       }
    }
+
+   void Firehose::initialize() { initialized = true; }
 
    Real Firehose::profile(creal top, creal bottom, creal x) const {
       return top * (1.0 + this->amp*cos(2.0*M_PI*x/this->lambda));

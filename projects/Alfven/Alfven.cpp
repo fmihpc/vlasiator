@@ -36,18 +36,6 @@ using namespace std;
 namespace projects {
    Alfven::Alfven(): Project() { }
    Alfven::~Alfven() { }
-   
-   bool Alfven::initialize(void) {
-      bool success = Project::initialize();
-
-      Real norm = sqrt(this->Bx_guiding*this->Bx_guiding + this->By_guiding*this->By_guiding + this->Bz_guiding*this->Bz_guiding);
-      this->Bx_guiding /= norm;
-      this->By_guiding /= norm;
-      this->By_guiding /= norm;
-      this->ALPHA = atan(this->By_guiding/this->Bx_guiding);
-      
-      return success;
-   } 
 
    void Alfven::addParameters() {
       typedef Readparameters RP;
@@ -96,6 +84,18 @@ namespace projects {
 
          speciesParams.push_back(sP);
       }
+   }
+
+   void Alfven::initialize() {
+      Real norm = sqrt(this->Bx_guiding * this->Bx_guiding +
+                       this->By_guiding * this->By_guiding +
+                       this->Bz_guiding * this->Bz_guiding);
+      this->Bx_guiding /= norm;
+      this->By_guiding /= norm;
+      this->By_guiding /= norm;
+      this->ALPHA = atan(this->By_guiding / this->Bx_guiding);
+
+      initialized = true;
    }
 
    /*Real calcPhaseSpaceDensity(creal& z,creal& x,creal& y,creal& dz,creal& dx,creal& dy,

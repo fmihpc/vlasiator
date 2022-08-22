@@ -258,9 +258,7 @@ namespace projects {
 
    }
    
-   bool Magnetosphere::initialize() {
-      return Project::initialize();
-   }
+   void Magnetosphere::initialize() { initialized = true; }
 
    Real Magnetosphere::calcPhaseSpaceDensity(creal& x,creal& y,creal& z,creal& dx,creal& dy,creal& dz,
                                              creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,
