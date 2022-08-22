@@ -870,9 +870,8 @@ int main(int argn,char* args[]) {
             calculateSpatialTranslation(mpiGrid,0.0);
             calculateAcceleration(mpiGrid,0.0);      
             phiprof::stop("compute-dt");
-         } else {
-            balanceLoad(mpiGrid, sysBoundaries);
          }
+         balanceLoad(mpiGrid, sysBoundaries);
          addTimedBarrier("barrier-end-load-balance");
          phiprof::start("Shrink_to_fit");
          // * shrink to fit after LB * //

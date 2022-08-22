@@ -235,12 +235,14 @@ void initializeGrids(
          phiprof::start("Restart refinement");
          for (int i = 0; i < P::amrMaxSpatialRefLevel; ++i) {
             adaptRefinement(mpiGrid, technicalGrid, sysBoundaries, project, true);
+            balanceLoad(mpiGrid, sysBoundaries);
          }
          phiprof::stop("Restart refinement");
       } else if (P::refineOnRestart) {
          phiprof::start("Restart refinement");
          for (int i = 0; i < P::amrMaxSpatialRefLevel; ++i) {
             adaptRefinement(mpiGrid, technicalGrid, sysBoundaries, project);
+            balanceLoad(mpiGrid, sysBoundaries);
          }
          phiprof::stop("Restart refinement");
       }
@@ -1447,13 +1449,6 @@ void adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    if (P::shouldFilter) {
       project.filterRefined(mpiGrid);
    }
-
-   // Removing this crashes on next load balance, no idea why
-   balanceLoad(mpiGrid, sysBoundaries);
-
-   // Should be handled by LB
-   // SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
-   // mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
 
    phiprof::stop("Re-refine spatial cells");
 }
