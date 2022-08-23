@@ -48,8 +48,8 @@ namespace projects {
       RP::add("Diffusion.B0", "Background field value (T)", 1.0e-9);
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+      for(uint i=0; i< objectWrapper.particleSpecies.size(); i++) {
+         const std::string& pop = objectWrapper.particleSpecies[i].name;
 
          RP::add(pop + "_Diffusion.rho", "Number density (m^-3)", 1.0e7);
          RP::add(pop + "_Diffusion.Temperature", "Temperature (K)", 2.0e6);
@@ -67,8 +67,8 @@ namespace projects {
       RP::get("Diffusion.B0", this->B0);
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-        const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+      for(uint i=0; i< objectWrapper.particleSpecies.size(); i++) {
+        const std::string& pop = objectWrapper.particleSpecies[i].name;
         DiffusionSpeciesParameters sP;
 
         RP::get(pop + "_Diffusion.rho", sP.DENSITY);
@@ -88,7 +88,7 @@ namespace projects {
       const uint popID
    ) const {
       const DiffusionSpeciesParameters& sP = speciesParams[popID];
-      creal mass = getObjectWrapper().particleSpecies[popID].mass;
+      creal mass = objectWrapper.particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
       
       return sP.DENSITY * pow(mass / (2.0 * M_PI * kb * sP.TEMPERATURE), 1.5) * (

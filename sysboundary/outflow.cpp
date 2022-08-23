@@ -54,8 +54,8 @@ namespace SBC {
       Readparameters::add("outflow.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-        const string& pop = getObjectWrapper().particleSpecies[i].name;
+      for(uint i=0; i< objectWrapper.particleSpecies.size(); i++) {
+        const string& pop = objectWrapper.particleSpecies[i].name;
 
         Readparameters::addComposing(pop + "_outflow.reapplyFaceUponRestart", "List of faces on which outflow boundary conditions are to be reapplied upon restart ([xyz][+-]).");
         Readparameters::addComposing(pop + "_outflow.face", "List of faces on which outflow boundary conditions are to be applied ([xyz][+-]).");
@@ -83,8 +83,8 @@ namespace SBC {
       }
 
       // Per-species parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-        const string& pop = getObjectWrapper().particleSpecies[i].name;
+      for(uint i=0; i< objectWrapper.particleSpecies.size(); i++) {
+        const string& pop = objectWrapper.particleSpecies[i].name;
         OutflowSpeciesParameters sP;
 
         // Unless we find out otherwise, we assume that this species will not be treated at any boundary
@@ -162,7 +162,7 @@ namespace SBC {
          if(*it == "z-") facesToSkipFields[5] = true;
       }
 
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+      for(uint i=0; i< objectWrapper.particleSpecies.size(); i++) {
          OutflowSpeciesParameters& sP = this->speciesParams[i];
          for (it = sP.faceToReapplyUponRestartList.begin();
               it != sP.faceToReapplyUponRestartList.end();
@@ -273,7 +273,7 @@ namespace SBC {
             
             doApply=false;
             // Comparison of the array defining which faces to use and the array telling on which faces this cell is
-            for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+            for(uint i=0; i< objectWrapper.particleSpecies.size(); i++) {
                for(uint j=0; j<6; j++) {
                   doApply = doApply || (facesToReapply[j] && isThisCellOnAFace[j]);
                }

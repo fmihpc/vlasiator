@@ -67,8 +67,8 @@ namespace projects {
       RP::add("Flowthrough.Bz", "Magnetic field z component (T)", 0.0);
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+      for(uint i=0; i< objectWrapper.particleSpecies.size(); i++) {
+         const std::string& pop = objectWrapper.particleSpecies[i].name;
          RP::add(pop + "_Flowthrough.rho", "Number density (m^-3)", 0.0);
          RP::add(pop + "_Flowthrough.rhoBase", "Background number density (m^-3)", 0.0);
          RP::add(pop + "_Flowthrough.T", "Temperature (K)", 0.0);
@@ -104,8 +104,8 @@ namespace projects {
       RP::get("Flowthrough.densityWidth",this->densityWidth);
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+      for(uint i=0; i< objectWrapper.particleSpecies.size(); i++) {
+         const std::string& pop = objectWrapper.particleSpecies[i].name;
          FlowthroughSpeciesParameters sP;
 
          RP::get(pop + "_Flowthrough.rho", sP.rho);
@@ -123,7 +123,7 @@ namespace projects {
 
    Real Flowthrough::getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
 
-      Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      Real mass = objectWrapper.particleSpecies[popID].mass;
       const FlowthroughSpeciesParameters& sP = speciesParams[popID];
 
       Real rvalue = 0;

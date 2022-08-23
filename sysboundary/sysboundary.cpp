@@ -720,7 +720,7 @@ void SysBoundary::applySysBoundaryVlasovConditions(
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
 
    // Loop over existing particle species
-   for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
+   for (uint popID = 0; popID < objectWrapper.particleSpecies.size(); ++popID) {
       SpatialCell::setCommunicatedSpecies(popID);
       // update lists in larger neighborhood
       updateRemoteVelocityBlockLists(mpiGrid, popID, SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);

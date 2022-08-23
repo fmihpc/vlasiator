@@ -53,8 +53,8 @@ namespace projects {
       RP::add("Fluctuations.magZPertAbsAmp", "Amplitude of the magnetic perturbation along z", 1.0e-9);
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+      for(uint i=0; i< objectWrapper.particleSpecies.size(); i++) {
+         const std::string& pop = objectWrapper.particleSpecies[i].name;
 
          RP::add(pop + "_Fluctuations.rho", "Number density (m^-3)", 1.0e7);
          RP::add(pop + "_Fluctuations.Temperature", "Temperature (K)", 2.0e6);
@@ -78,8 +78,8 @@ namespace projects {
       RP::get("Fluctuations.magZPertAbsAmp", this->magZPertAbsAmp);
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+      for(uint i=0; i< objectWrapper.particleSpecies.size(); i++) {
+         const std::string& pop = objectWrapper.particleSpecies[i].name;
          FluctuationsSpeciesParameters sP;
          RP::get(pop + "_Fluctuations.rho", sP.DENSITY);
          RP::get(pop + "_Fluctuations.Temperature", sP.TEMPERATURE);
@@ -96,7 +96,7 @@ namespace projects {
    Real Fluctuations::getDistribValue(creal& vx,creal& vy, creal& vz, const uint popID) const {
       const FluctuationsSpeciesParameters& sP = speciesParams[popID];
 
-      creal mass = getObjectWrapper().particleSpecies[popID].mass;
+      creal mass = objectWrapper.particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
       return exp(- mass * (vx*vx + vy*vy + vz*vz) / (2.0 * kb * sP.TEMPERATURE));
    }
@@ -108,8 +108,8 @@ namespace projects {
       creal& dvx, creal& dvy, creal& dvz,const uint popID
    ) const {
       const FluctuationsSpeciesParameters& sP = speciesParams[popID];
-      const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
-      vmesh::MeshParameters& meshParams = getObjectWrapper().velocityMeshes[meshID];
+      const size_t meshID = objectWrapper.particleSpecies[popID].velocityMesh;
+      vmesh::MeshParameters& meshParams = objectWrapper.velocityMeshes[meshID];
       if (vx < meshParams.meshMinLimits[0] + 0.5*dvx ||
           vy < meshParams.meshMinLimits[1] + 0.5*dvy ||
           vz < meshParams.meshMinLimits[2] + 0.5*dvz ||
@@ -119,7 +119,7 @@ namespace projects {
          return 0.0;
       }
       
-      creal mass = getObjectWrapper().particleSpecies[popID].mass;
+      creal mass = objectWrapper.particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
       
       creal d_vx = dvx / (sP.nVelocitySamples-1);

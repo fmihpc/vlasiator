@@ -84,7 +84,7 @@ namespace projects {
       typedef Readparameters RP;
       Project::getParameters();
 
-      if(getObjectWrapper().particleSpecies.size() > 1) {
+      if(objectWrapper.particleSpecies.size() > 1) {
          std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
          abort();
       }

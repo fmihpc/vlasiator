@@ -46,8 +46,8 @@ void updateAccelerationMaxdt(
    const Real Bz = spatial_cell->parameters[CellParams::BGBZVOL]+spatial_cell->parameters[CellParams::PERBZVOL];
    const Eigen::Matrix<Real,3,1> B(Bx,By,Bz);
    const Real B_mag = B.norm() + 1e-30;      
-   const Real gyro_period = 2 * M_PI * getObjectWrapper().particleSpecies[popID].mass
-      / (getObjectWrapper().particleSpecies[popID].charge * B_mag);
+   const Real gyro_period = 2 * M_PI * objectWrapper.particleSpecies[popID].mass
+      / (objectWrapper.particleSpecies[popID].charge * B_mag);
 
    // Set maximum timestep limit for this cell, based on a maximum allowed rotation angle
    spatial_cell->set_max_v_dt(popID,fabs(gyro_period)*(P::maxSlAccelerationRotation/360.0));
@@ -96,8 +96,8 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    }
 
    const Real gyro_period
-     = 2 * M_PI * getObjectWrapper().particleSpecies[popID].mass
-     / (getObjectWrapper().particleSpecies[popID].charge * B_mag);
+     = 2 * M_PI * objectWrapper.particleSpecies[popID].mass
+     / (objectWrapper.particleSpecies[popID].charge * B_mag);
 
    // scale rho for hall term, if user requests
    const Real EPSILON = 1e10 * numeric_limits<Real>::min();
@@ -142,7 +142,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 
       // Electron pressure gradient term
       if(Parameters::ohmGradPeTerm > 0) {
-         total_transform=Translation<Real,3>( (fabs(getObjectWrapper().particleSpecies[popID].charge)/getObjectWrapper().particleSpecies[popID].mass) * EgradPe * substeps_dt) * total_transform;
+         total_transform=Translation<Real,3>( (fabs(objectWrapper.particleSpecies[popID].charge)/objectWrapper.particleSpecies[popID].mass) * EgradPe * substeps_dt) * total_transform;
       }
    }
 

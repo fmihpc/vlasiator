@@ -58,7 +58,7 @@ namespace projects {
       Project::getParameters();
       typedef Readparameters RP;
 
-      if(getObjectWrapper().particleSpecies.size() > 1) {
+      if(objectWrapper.particleSpecies.size() > 1) {
          std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
          abort();
       }
@@ -81,8 +81,8 @@ namespace projects {
       //static variables should be threadprivate
    #pragma omp threadprivate(isSet)
 
-      const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
-      const vmesh::MeshParameters& meshParams = getObjectWrapper().velocityMeshes[meshID];
+      const size_t meshID = objectWrapper.particleSpecies[popID].velocityMesh;
+      const vmesh::MeshParameters& meshParams = objectWrapper.velocityMeshes[meshID];
       if (vx < meshParams.meshMinLimits[0] + 0.5*dvx ||
           vy < meshParams.meshMinLimits[1] + 0.5*dvy ||
           vz < meshParams.meshMinLimits[2] + 0.5*dvz ||

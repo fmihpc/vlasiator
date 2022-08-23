@@ -458,7 +458,7 @@ namespace DRO {
    
    // Blocks
    Blocks::Blocks(cuint _popID): DataReductionOperator(),popID(_popID) {
-      popName=getObjectWrapper().particleSpecies[popID].name;
+      popName=objectWrapper.particleSpecies[popID].name;
    }
    Blocks::~Blocks() { }
    
@@ -518,7 +518,7 @@ namespace DRO {
    // Split into VariablePTensorDiagonal (11, 22, 33)
    // and VariablePTensorOffDiagonal (23, 13, 12)
    VariablePTensorDiagonal::VariablePTensorDiagonal(cuint _popID): DataReductionOperator(),popID(_popID) {
-      popName = getObjectWrapper().particleSpecies[popID].name;
+      popName = objectWrapper.particleSpecies[popID].name;
    }
    VariablePTensorDiagonal::~VariablePTensorDiagonal() { }
    
@@ -564,9 +564,9 @@ namespace DRO {
 	       thread_nvzvz_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
             }
          }
-         thread_nvxvx_sum *= getObjectWrapper().particleSpecies[popID].mass;
-         thread_nvyvy_sum *= getObjectWrapper().particleSpecies[popID].mass;
-         thread_nvzvz_sum *= getObjectWrapper().particleSpecies[popID].mass;
+         thread_nvxvx_sum *= objectWrapper.particleSpecies[popID].mass;
+         thread_nvyvy_sum *= objectWrapper.particleSpecies[popID].mass;
+         thread_nvzvz_sum *= objectWrapper.particleSpecies[popID].mass;
 
          // Accumulate contributions coming from this velocity block to the 
          // spatial cell velocity moments. If multithreading / OpenMP is used, 
@@ -592,7 +592,7 @@ namespace DRO {
    }
    
    VariablePTensorOffDiagonal::VariablePTensorOffDiagonal(cuint _popID): DataReductionOperator(),popID(_popID) {
-      popName = getObjectWrapper().particleSpecies[popID].name;
+      popName = objectWrapper.particleSpecies[popID].name;
    }
    VariablePTensorOffDiagonal::~VariablePTensorOffDiagonal() { }
    
@@ -638,9 +638,9 @@ namespace DRO {
 	       thread_nvyvz_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * (VY - averageVY) * (VZ - averageVZ) * DV3;
             }
          }
-         thread_nvxvy_sum *= getObjectWrapper().particleSpecies[popID].mass;
-         thread_nvzvx_sum *= getObjectWrapper().particleSpecies[popID].mass;
-         thread_nvyvz_sum *= getObjectWrapper().particleSpecies[popID].mass;
+         thread_nvxvy_sum *= objectWrapper.particleSpecies[popID].mass;
+         thread_nvzvx_sum *= objectWrapper.particleSpecies[popID].mass;
+         thread_nvyvz_sum *= objectWrapper.particleSpecies[popID].mass;
          
          // Accumulate contributions coming from this velocity block to the 
          // spatial cell velocity moments. If multithreading / OpenMP is used, 
@@ -667,7 +667,7 @@ namespace DRO {
    
    // YK maximum value of the distribution function (diagnostic)
    MaxDistributionFunction::MaxDistributionFunction(cuint _popID): DataReductionOperator(),popID(_popID) {
-     popName=getObjectWrapper().particleSpecies[popID].name;
+     popName=objectWrapper.particleSpecies[popID].name;
    }
    MaxDistributionFunction::~MaxDistributionFunction() { }
    
@@ -721,7 +721,7 @@ namespace DRO {
    
    // YK minimum value of the distribution function (diagnostic)
    MinDistributionFunction::MinDistributionFunction(cuint _popID): DataReductionOperator(),popID(_popID) {
-     popName=getObjectWrapper().particleSpecies[popID].name;
+     popName=objectWrapper.particleSpecies[popID].name;
    }
    MinDistributionFunction::~MinDistributionFunction() { }
    
@@ -786,8 +786,8 @@ namespace DRO {
       cuint popID
    ) {
       creal HALF = 0.5;
-      const std::array<Real, 3> thermalV = getObjectWrapper().particleSpecies[popID].thermalV;
-      creal thermalRadius = getObjectWrapper().particleSpecies[popID].thermalRadius;
+      const std::array<Real, 3> thermalV = objectWrapper.particleSpecies[popID].thermalV;
+      creal thermalRadius = objectWrapper.particleSpecies[popID].thermalRadius;
       // Go through every velocity cell (i, j, k are indices)
       for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
          // Get the vx, vy, vz coordinates of the velocity cell
@@ -812,8 +812,8 @@ namespace DRO {
       cuint popID
    ) {
       creal HALF = 0.5;
-      const std::array<Real, 3> thermalV = getObjectWrapper().particleSpecies[popID].thermalV;
-      creal thermalRadius = getObjectWrapper().particleSpecies[popID].thermalRadius;
+      const std::array<Real, 3> thermalV = objectWrapper.particleSpecies[popID].thermalV;
+      creal thermalRadius = objectWrapper.particleSpecies[popID].thermalRadius;
       for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
          const Real VX = block_parameters[BlockParams::VXCRD] + (i + HALF) * block_parameters[BlockParams::DVX];
          const Real VY = block_parameters[BlockParams::VYCRD] + (j + HALF) * block_parameters[BlockParams::DVY];
@@ -835,8 +835,8 @@ namespace DRO {
       cuint popID
    ) {
       creal HALF = 0.5;
-      const std::array<Real, 3> thermalV = getObjectWrapper().particleSpecies[popID].thermalV;
-      creal thermalRadius = getObjectWrapper().particleSpecies[popID].thermalRadius;
+      const std::array<Real, 3> thermalV = objectWrapper.particleSpecies[popID].thermalV;
+      creal thermalRadius = objectWrapper.particleSpecies[popID].thermalRadius;
       // Go through a block's every velocity cell
       for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
          // Get the coordinates of the velocity cell (e.g. VX = block_vx_min_coordinates + (velocity_cell_indice_x+0.5)*length_of_velocity_cell_in_x_direction
@@ -862,8 +862,8 @@ namespace DRO {
       cuint popID
    ) {
       creal HALF = 0.5;
-      const std::array<Real, 3> thermalV = getObjectWrapper().particleSpecies[popID].thermalV;
-      creal thermalRadius = getObjectWrapper().particleSpecies[popID].thermalRadius;
+      const std::array<Real, 3> thermalV = objectWrapper.particleSpecies[popID].thermalV;
+      creal thermalRadius = objectWrapper.particleSpecies[popID].thermalRadius;
       // Go through a block's every velocity cell
       for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
          // Get the coordinates of the velocity cell (e.g. VX = block_vx_min_coordinates + (velocity_cell_indice_x+0.5)*length_of_velocity_cell_in_x_direction
@@ -1043,9 +1043,9 @@ namespace DRO {
                thread_nvzvz_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
             }
          }
-         thread_nvxvx_sum *= getObjectWrapper().particleSpecies[popID].mass;
-         thread_nvyvy_sum *= getObjectWrapper().particleSpecies[popID].mass;
-         thread_nvzvz_sum *= getObjectWrapper().particleSpecies[popID].mass;
+         thread_nvxvx_sum *= objectWrapper.particleSpecies[popID].mass;
+         thread_nvyvy_sum *= objectWrapper.particleSpecies[popID].mass;
+         thread_nvzvz_sum *= objectWrapper.particleSpecies[popID].mass;
 
          // Accumulate contributions coming from this velocity block to the 
          // spatial cell velocity moments. If multithreading / OpenMP is used, 
@@ -1103,9 +1103,9 @@ namespace DRO {
                thread_nvyvz_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * (VY - averageVY) * (VZ - averageVZ) * DV3;
             }
          }
-         thread_nvxvy_sum *= getObjectWrapper().particleSpecies[popID].mass;
-         thread_nvzvx_sum *= getObjectWrapper().particleSpecies[popID].mass;
-         thread_nvyvz_sum *= getObjectWrapper().particleSpecies[popID].mass;
+         thread_nvxvy_sum *= objectWrapper.particleSpecies[popID].mass;
+         thread_nvzvx_sum *= objectWrapper.particleSpecies[popID].mass;
+         thread_nvyvz_sum *= objectWrapper.particleSpecies[popID].mass;
          
          // Accumulate contributions coming from this velocity block to the 
          // spatial cell velocity moments. If multithreading / OpenMP is used, 
@@ -1139,17 +1139,17 @@ namespace DRO {
                                     const std::vector<CellID>& cells,const std::string& meshName,
                                     vlsv::Writer& vlsvWriter) {
       bool success = true;
-      for (size_t i = 0; i < getObjectWrapper().meshData.size(); ++i) {
-         const string dataName = getObjectWrapper().meshData.getName(i);
+      for (size_t i = 0; i < objectWrapper.meshData.size(); ++i) {
+         const string dataName = objectWrapper.meshData.getName(i);
          
          // If dataName equals "" then something is wrong, skip array
          if (dataName.size() == 0) continue;
          
-         size_t dataSize = getObjectWrapper().meshData.getDataSize(i);
-         const std::string dataType = getObjectWrapper().meshData.getDataType(i);
-         size_t vectorSize = getObjectWrapper().meshData.getVectorSize(i);
-         size_t arraySize = getObjectWrapper().meshData.getMeshSize();
-         char* pointer = getObjectWrapper().meshData.getData<char>(i);
+         size_t dataSize = objectWrapper.meshData.getDataSize(i);
+         const std::string dataType = objectWrapper.meshData.getDataType(i);
+         size_t vectorSize = objectWrapper.meshData.getVectorSize(i);
+         size_t arraySize = objectWrapper.meshData.getMeshSize();
+         char* pointer = objectWrapper.meshData.getData<char>(i);
 
          if (vectorSize == 0 || vectorSize > 3) continue;
          
@@ -1167,8 +1167,8 @@ namespace DRO {
    
    // Rho nonthermal:
    VariableRhoNonthermal::VariableRhoNonthermal(cuint _popID): DataReductionOperator(),popID(_popID) {
-      popName = getObjectWrapper().particleSpecies[popID].name;
-      doSkip = (getObjectWrapper().particleSpecies[popID].thermalRadius == 0.0) ? true : false;
+      popName = objectWrapper.particleSpecies[popID].name;
+      doSkip = (objectWrapper.particleSpecies[popID].thermalRadius == 0.0) ? true : false;
    }
    VariableRhoNonthermal::~VariableRhoNonthermal() { }
    
@@ -1196,8 +1196,8 @@ namespace DRO {
 
    // Rho thermal:
    VariableRhoThermal::VariableRhoThermal(cuint _popID): DataReductionOperator(),popID(_popID) {
-      popName = getObjectWrapper().particleSpecies[popID].name;
-      doSkip = (getObjectWrapper().particleSpecies[popID].thermalRadius == 0.0) ? true : false;
+      popName = objectWrapper.particleSpecies[popID].name;
+      doSkip = (objectWrapper.particleSpecies[popID].thermalRadius == 0.0) ? true : false;
    }
    VariableRhoThermal::~VariableRhoThermal() { }
    
@@ -1225,8 +1225,8 @@ namespace DRO {
 
    // v nonthermal:
    VariableVNonthermal::VariableVNonthermal(cuint _popID): DataReductionOperator(),popID(_popID) {
-      popName = getObjectWrapper().particleSpecies[popID].name;
-      doSkip = (getObjectWrapper().particleSpecies[popID].thermalRadius == 0.0) ? true : false;
+      popName = objectWrapper.particleSpecies[popID].name;
+      doSkip = (objectWrapper.particleSpecies[popID].thermalRadius == 0.0) ? true : false;
    }
    VariableVNonthermal::~VariableVNonthermal() { }
    
@@ -1259,8 +1259,8 @@ namespace DRO {
 
    //v thermal:
    VariableVThermal::VariableVThermal(cuint _popID): DataReductionOperator(),popID(_popID) {
-      popName = getObjectWrapper().particleSpecies[popID].name;
-      doSkip = (getObjectWrapper().particleSpecies[popID].thermalRadius == 0.0) ? true : false;
+      popName = objectWrapper.particleSpecies[popID].name;
+      doSkip = (objectWrapper.particleSpecies[popID].thermalRadius == 0.0) ? true : false;
    }
    VariableVThermal::~VariableVThermal() { }
    
@@ -1298,8 +1298,8 @@ namespace DRO {
    // Split into VariablePTensorNonthermalDiagonal (11, 22, 33)
    // and VariablePTensorNonthermalOffDiagonal (23, 13, 12)
    VariablePTensorNonthermalDiagonal::VariablePTensorNonthermalDiagonal(cuint _popID): DataReductionOperator(),popID(_popID) {
-      popName = getObjectWrapper().particleSpecies[popID].name;
-      doSkip = (getObjectWrapper().particleSpecies[popID].thermalRadius == 0.0) ? true : false;
+      popName = objectWrapper.particleSpecies[popID].name;
+      doSkip = (objectWrapper.particleSpecies[popID].thermalRadius == 0.0) ? true : false;
    }
    VariablePTensorNonthermalDiagonal::~VariablePTensorNonthermalDiagonal() { }
    
@@ -1344,8 +1344,8 @@ namespace DRO {
    // Split into VariablePTensorThermalDiagonal (11, 22, 33)
    // and VariablePTensorThermalOffDiagonal (23, 13, 12)
    VariablePTensorThermalDiagonal::VariablePTensorThermalDiagonal(cuint _popID): DataReductionOperator(),popID(_popID) {
-      popName = getObjectWrapper().particleSpecies[popID].name;
-      doSkip = (getObjectWrapper().particleSpecies[popID].thermalRadius == 0.0) ? true : false;
+      popName = objectWrapper.particleSpecies[popID].name;
+      doSkip = (objectWrapper.particleSpecies[popID].thermalRadius == 0.0) ? true : false;
    }
    VariablePTensorThermalDiagonal::~VariablePTensorThermalDiagonal() { }
    
@@ -1384,8 +1384,8 @@ namespace DRO {
    }
 
    VariablePTensorNonthermalOffDiagonal::VariablePTensorNonthermalOffDiagonal(cuint _popID): DataReductionOperator(),popID(_popID) {
-      popName = getObjectWrapper().particleSpecies[popID].name;
-      doSkip = (getObjectWrapper().particleSpecies[popID].thermalRadius == 0.0) ? true : false;
+      popName = objectWrapper.particleSpecies[popID].name;
+      doSkip = (objectWrapper.particleSpecies[popID].thermalRadius == 0.0) ? true : false;
    }
    VariablePTensorNonthermalOffDiagonal::~VariablePTensorNonthermalOffDiagonal() { }
    
@@ -1424,8 +1424,8 @@ namespace DRO {
    }
 
    VariablePTensorThermalOffDiagonal::VariablePTensorThermalOffDiagonal(cuint _popID): DataReductionOperator(),popID(_popID) {
-      popName = getObjectWrapper().particleSpecies[popID].name;
-      doSkip = (getObjectWrapper().particleSpecies[popID].thermalRadius == 0.0) ? true : false;
+      popName = objectWrapper.particleSpecies[popID].name;
+      doSkip = (objectWrapper.particleSpecies[popID].thermalRadius == 0.0) ? true : false;
    }
    VariablePTensorThermalOffDiagonal::~VariablePTensorThermalOffDiagonal() { }
    
@@ -1465,7 +1465,7 @@ namespace DRO {
 
 
    VariableEffectiveSparsityThreshold::VariableEffectiveSparsityThreshold(cuint _popID): DataReductionOperator(),popID(_popID) { 
-     popName=getObjectWrapper().particleSpecies[popID].name;
+     popName=objectWrapper.particleSpecies[popID].name;
    }
    VariableEffectiveSparsityThreshold::~VariableEffectiveSparsityThreshold() { }
 
@@ -1505,11 +1505,11 @@ namespace DRO {
     * The energy channels are saved in bulk files as PrecipitationCentreEnergy{channel_number}.
     */
    VariablePrecipitationDiffFlux::VariablePrecipitationDiffFlux(cuint _popID): DataReductionOperatorHasParameters(),popID(_popID) {
-      popName = getObjectWrapper().particleSpecies[popID].name;
-      lossConeAngle = getObjectWrapper().particleSpecies[popID].precipitationLossConeAngle; // deg
-      emin = getObjectWrapper().particleSpecies[popID].precipitationEmin;    // already converted to SI
-      emax = getObjectWrapper().particleSpecies[popID].precipitationEmax;    // already converted to SI
-      nChannels = getObjectWrapper().particleSpecies[popID].precipitationNChannels; // number of energy channels, logarithmically spaced between emin and emax
+      popName = objectWrapper.particleSpecies[popID].name;
+      lossConeAngle = objectWrapper.particleSpecies[popID].precipitationLossConeAngle; // deg
+      emin = objectWrapper.particleSpecies[popID].precipitationEmin;    // already converted to SI
+      emax = objectWrapper.particleSpecies[popID].precipitationEmax;    // already converted to SI
+      nChannels = objectWrapper.particleSpecies[popID].precipitationNChannels; // number of energy channels, logarithmically spaced between emin and emax
       for (int i=0; i<nChannels; i++){
          channels.push_back(emin * pow(emax/emin,(Real)i/(nChannels-1)));
       }
@@ -1582,7 +1582,7 @@ namespace DRO {
                const Real VdotB_norm = (B[0]*VX + B[1]*VY + B[2]*VZ)/normV;
                Real countAndGate = floor(VdotB_norm/cosAngle);  // gate function: 0 outside loss cone, 1 inside
                countAndGate = max(0.,countAndGate);
-               const Real energy = 0.5 * getObjectWrapper().particleSpecies[popID].mass * normV*normV; // in SI
+               const Real energy = 0.5 * objectWrapper.particleSpecies[popID].mass * normV*normV; // in SI
 
                // Find the correct energy bin number to update
                int binNumber = round((log(energy) - log(emin)) / log(emax/emin) * (nChannels-1));
@@ -1609,7 +1609,7 @@ namespace DRO {
       // Averaging within each bin and conversion to unit of part. cm-2 s-1 sr-1 ev-1
       for (int i=0; i<nChannels; i++) {
          if (sumWeights[i] != 0) {
-            dataDiffFlux[i] *= 1.0 / (getObjectWrapper().particleSpecies[popID].mass * sumWeights[i]) * physicalconstants::CHARGE * 1.0e-4;
+            dataDiffFlux[i] *= 1.0 / (objectWrapper.particleSpecies[popID].mass * sumWeights[i]) * physicalconstants::CHARGE * 1.0e-4;
          }
       }
 
@@ -1645,11 +1645,11 @@ namespace DRO {
     *    - EnergyDensityELimit2 (as scalar multiplier of EnergyDensityESW).
     */
    VariableEnergyDensity::VariableEnergyDensity(cuint _popID): DataReductionOperatorHasParameters(),popID(_popID) {
-      popName = getObjectWrapper().particleSpecies[popID].name;
+      popName = objectWrapper.particleSpecies[popID].name;
       // Store internally in SI units
-      solarwindenergy = getObjectWrapper().particleSpecies[popID].SolarWindEnergy;
-      E1limit = solarwindenergy * getObjectWrapper().particleSpecies[popID].EnergyDensityLimit1;
-      E2limit = solarwindenergy * getObjectWrapper().particleSpecies[popID].EnergyDensityLimit2;
+      solarwindenergy = objectWrapper.particleSpecies[popID].SolarWindEnergy;
+      E1limit = solarwindenergy * objectWrapper.particleSpecies[popID].EnergyDensityLimit1;
+      E2limit = solarwindenergy * objectWrapper.particleSpecies[popID].EnergyDensityLimit2;
    }
    VariableEnergyDensity::~VariableEnergyDensity() { }
    
@@ -1696,7 +1696,7 @@ namespace DRO {
                   =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] 
                   + (k + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
                      
-               const Real ENERGY = (VX*VX + VY*VY + VZ*VZ) * HALF * getObjectWrapper().particleSpecies[popID].mass;
+               const Real ENERGY = (VX*VX + VY*VY + VZ*VZ) * HALF * objectWrapper.particleSpecies[popID].mass;
                thread_E0_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * ENERGY * DV3;
                if (ENERGY > E1limit) thread_E1_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * ENERGY * DV3;
                if (ENERGY > E2limit) thread_E2_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * ENERGY * DV3;
@@ -1732,8 +1732,8 @@ namespace DRO {
       // Output solar wind energy in eV
       Real swe = solarwindenergy/physicalconstants::CHARGE;
       // Output other bin limits as multipliers
-      Real e1l = getObjectWrapper().particleSpecies[popID].EnergyDensityLimit1;
-      Real e2l = getObjectWrapper().particleSpecies[popID].EnergyDensityLimit2;
+      Real e1l = objectWrapper.particleSpecies[popID].EnergyDensityLimit1;
+      Real e2l = objectWrapper.particleSpecies[popID].EnergyDensityLimit2;
 
       if( vlsvWriter.writeParameter(popName+"_EnergyDensityESW", &swe) == false ) { return false; }
       if( vlsvWriter.writeParameter(popName+"_EnergyDensityELimit1", &e1l) == false ) { return false; }

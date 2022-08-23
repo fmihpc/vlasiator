@@ -66,8 +66,8 @@ namespace projects {
       RP::add("MultiPeak.densityModel","Which spatial density model is used?",string("uniform"));
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+      for(uint i=0; i< objectWrapper.particleSpecies.size(); i++) {
+         const std::string& pop = objectWrapper.particleSpecies[i].name;
          RP::add(pop+"_MultiPeak.n", "Number of peaks to create", 0);
          RP::addComposing(pop+"_MultiPeak.rho", "Number density (m^-3)");
          RP::addComposing(pop+"_MultiPeak.Tx", "Temperature (K)");
@@ -97,8 +97,8 @@ namespace projects {
       RP::get("MultiPeak.nVelocitySamples", this->nVelocitySamples);
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+      for(uint i=0; i< objectWrapper.particleSpecies.size(); i++) {
+         const std::string& pop = objectWrapper.particleSpecies[i].name;
 
          MultiPeakSpeciesParameters sP;
          RP::get(pop + "_MultiPeak.n", sP.numberOfPeaks);
@@ -128,7 +128,7 @@ namespace projects {
 
    Real MultiPeak::getDistribValue(creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
       const MultiPeakSpeciesParameters& sP = speciesParams[popID];
-      creal mass = getObjectWrapper().particleSpecies[popID].mass;
+      creal mass = objectWrapper.particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
 
       Real value = 0.0;
@@ -157,8 +157,8 @@ namespace projects {
 
       const MultiPeakSpeciesParameters& sP = speciesParams[popID];
                                             
-      #warning TODO: Replace getObjectWrapper().particleSpecies[popID].sparseMinValue with SpatialCell::getVelocityBlockMinValue(popID)
-      const Real avgLimit = 0.01*getObjectWrapper().particleSpecies[popID].sparseMinValue;
+      #warning TODO: Replace objectWrapper.particleSpecies[popID].sparseMinValue with SpatialCell::getVelocityBlockMinValue(popID)
+      const Real avgLimit = 0.01*objectWrapper.particleSpecies[popID].sparseMinValue;
       do {
          Real avg = 0.0;        // Volume average obtained during this sampling
          creal DVX = dvx / N; 

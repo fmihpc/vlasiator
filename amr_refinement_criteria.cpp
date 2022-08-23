@@ -55,7 +55,7 @@ namespace amr_ref_criteria {
          Realf f_cen = array[vblock::padIndex<PAD>(ic+1,jc+1,kc+1)];
          
          #warning In here should we use SpatialCell::getVeloctyBlockMinValue()?
-         if (fabs(f_cen) < getObjectWrapper().particleSpecies[popID].sparseMinValue) continue;
+         if (fabs(f_cen) < objectWrapper.particleSpecies[popID].sparseMinValue) continue;
 
          Realf f_lft = array[vblock::padIndex<PAD>(ic  ,jc+1,kc+1)];
          Realf f_rgt = array[vblock::padIndex<PAD>(ic+2,jc+1,kc+1)];
@@ -82,7 +82,7 @@ namespace amr_ref_criteria {
       for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
          Realf f_cen = array[vblock::padIndex<PAD>(ic+1,jc+1,kc+1)];
          #warning In here should we use SpatialCell::getVeloctyBlockMinValue()?
-         if (fabs(f_cen) < getObjectWrapper().particleSpecies[popID].sparseMinValue) {
+         if (fabs(f_cen) < objectWrapper.particleSpecies[popID].sparseMinValue) {
             result[vblock::index(ic,jc,kc)] = 0;
             continue;
          }
@@ -117,7 +117,7 @@ namespace amr_ref_criteria {
    }
 
    void addRefinementCriteria() {
-      getObjectWrapper().amrVelRefCriteria.add("relative_difference",relDiffMaker);
+      objectWrapper.amrVelRefCriteria.add("relative_difference",relDiffMaker);
    }
 }
 

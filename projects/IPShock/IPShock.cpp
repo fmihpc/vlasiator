@@ -67,8 +67,8 @@ namespace projects {
     RP::add("IPShock.AMR_L4width", "L4 AMR region width (m)", 0);
 
     // Per-population parameters
-    for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-       const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+    for(uint i=0; i< objectWrapper.particleSpecies.size(); i++) {
+       const std::string& pop = objectWrapper.particleSpecies[i].name;
        RP::add(pop + "_IPShock.VX0u", "Upstream Bulk velocity in x", 0.0);
        RP::add(pop + "_IPShock.VY0u", "Upstream Bulk velocity in y", 0.0);
        RP::add(pop + "_IPShock.VZ0u", "Upstream Bulk velocuty in z", 0.0);
@@ -106,8 +106,8 @@ namespace projects {
     RP::get("IPShock.AMR_L4width", this->AMR_L4width);
 
     // Per-population parameters
-    for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-       const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+    for(uint i=0; i< objectWrapper.particleSpecies.size(); i++) {
+       const std::string& pop = objectWrapper.particleSpecies[i].name;
        IPShockSpeciesParameters sP;
 
        RP::get(pop + "_IPShock.VX0u", sP.V0u[0]);
@@ -252,7 +252,7 @@ namespace projects {
 
 
   std::vector<std::array<Real, 3>> IPShock::getV0(creal x, creal y, creal z, const uint popID) const {
-    Real mass = getObjectWrapper().particleSpecies[popID].mass;
+    Real mass = objectWrapper.particleSpecies[popID].mass;
     Real mu0 = physicalconstants::MU_0;
     const IPShockSpeciesParameters& sP = this->speciesParams[popID];
 
@@ -292,7 +292,7 @@ namespace projects {
 				creal& dvx, creal& dvy, creal& dvz,
         const uint popID) const {
 
-    Real mass = getObjectWrapper().particleSpecies[popID].mass;
+    Real mass = objectWrapper.particleSpecies[popID].mass;
     Real KB = physicalconstants::K_B;
     Real mu0 = physicalconstants::MU_0;
     Real adiab = 5./3.;
@@ -414,9 +414,9 @@ namespace projects {
                   Real MassDensity = 0.;
                   Real MassDensityU = 0.;
                   Real EffectiveVu0 = 0.;
-                  for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
+                  for(uint i=0; i< objectWrapper.particleSpecies.size(); i++) {
                      const IPShockSpeciesParameters& sP = speciesParams[i];
-                     Real mass = getObjectWrapper().particleSpecies[i].mass;
+                     Real mass = objectWrapper.particleSpecies[i].mass;
                      
                      MassDensity += mass * interpolate(sP.DENSITYu,sP.DENSITYd, xyz[0]);
                      MassDensityU += mass * sP.DENSITYu;

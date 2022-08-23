@@ -304,8 +304,8 @@ void calculateSpatialTranslation(
    phiprof::stop("compute_cell_lists");
    
    // Translate all particle species
-   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-      string profName = "translate "+getObjectWrapper().particleSpecies[popID].name;
+   for (uint popID=0; popID<objectWrapper.particleSpecies.size(); ++popID) {
+      string profName = "translate "+objectWrapper.particleSpecies[popID].name;
       phiprof::start(profName);
       SpatialCell::setCommunicatedSpecies(popID);
       //      std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
@@ -330,7 +330,7 @@ void calculateSpatialTranslation(
 //          const double deltat = (MPI_Wtime() - t1) / local_propagated_cells.size();
          for (size_t c=0; c<localCells.size(); ++c) {
 //            mpiGrid[localCells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += time / localCells.size();
-            for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+            for (uint popID=0; popID<objectWrapper.particleSpecies.size(); ++popID) {
                mpiGrid[localCells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += mpiGrid[localCells[c]]->get_number_of_velocity_blocks(popID);
             }
          }
@@ -338,7 +338,7 @@ void calculateSpatialTranslation(
 //          const double deltat = MPI_Wtime() - t1;
          for (size_t c=0; c<local_propagated_cells.size(); ++c) {
             Real counter = 0;
-            for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+            for (uint popID=0; popID<objectWrapper.particleSpecies.size(); ++popID) {
                counter += mpiGrid[local_propagated_cells[c]]->get_number_of_velocity_blocks(popID);
             }
             mpiGrid[local_propagated_cells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += nPencils[c] * counter;
@@ -453,7 +453,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
       // Even if acceleration is turned off we need to adjust velocity blocks 
       // because the boundary conditions may have altered the velocity space, 
       // and to update changes in no-content blocks during translation.
-      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      for (uint popID=0; popID<objectWrapper.particleSpecies.size(); ++popID) {
          adjustVelocityBlocks(mpiGrid, cells, true, popID);
       }
 
@@ -462,7 +462,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    phiprof::start("semilag-acc");
     
    // Accelerate all particle species
-    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+    for (uint popID=0; popID<objectWrapper.particleSpecies.size(); ++popID) {
        int maxSubcycles=0;
        int globalMaxSubcycles;
 
@@ -530,7 +530,7 @@ momentCalculation:
    for (size_t c=0; c<cells.size(); ++c) {
       SpatialCell* cell = mpiGrid[cells[c]];
       cell->parameters[CellParams::MAXVDT] = numeric_limits<Real>::max();
-      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      for (uint popID=0; popID<objectWrapper.particleSpecies.size(); ++popID) {
          cell->parameters[CellParams::MAXVDT]
            = min(cell->get_max_v_dt(popID), cell->parameters[CellParams::MAXVDT]);
       }
@@ -568,7 +568,7 @@ void calculateInterpolatedVelocityMoments(
       SC->parameters[cp_p22]   = 0.5* ( SC->parameters[CellParams::P_22_R] + SC->parameters[CellParams::P_22_V] );
       SC->parameters[cp_p33]   = 0.5* ( SC->parameters[CellParams::P_33_R] + SC->parameters[CellParams::P_33_V] );
 
-      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      for (uint popID=0; popID<objectWrapper.particleSpecies.size(); ++popID) {
          spatial_cell::Population& pop = SC->get_population(popID);
          pop.RHO = 0.5 * ( pop.RHO_R + pop.RHO_V );
          for(int i=0; i<3; i++) {

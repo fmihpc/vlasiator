@@ -49,8 +49,8 @@ namespace SBC {
       Readparameters::add("maxwellian.t_interval", "Time interval in seconds for applying the varying inflow condition.",
                           0.0);
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+      for(uint i=0; i< objectWrapper.particleSpecies.size(); i++) {
+         const std::string& pop = objectWrapper.particleSpecies[i].name;
 
          Readparameters::add(pop + "_maxwellian.file_x+",
                              "Input files for the set Maxwellian inflow parameters on face x+. Data format per line: time "
@@ -96,8 +96,8 @@ namespace SBC {
       }
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+      for(uint i=0; i< objectWrapper.particleSpecies.size(); i++) {
+         const std::string& pop = objectWrapper.particleSpecies[i].name;
 
          UserSpeciesParameters sP;
          sP.nParams = 9;
@@ -121,7 +121,7 @@ namespace SBC {
             creal& T,
             creal& vx, creal& vy, creal& vz
    ) {
-      const Real MASS = getObjectWrapper().particleSpecies[popID].mass;
+      const Real MASS = objectWrapper.particleSpecies[popID].mass;
       return rho * pow(MASS /
       (2.0 * M_PI * physicalconstants::K_B * T), 1.5) *
       exp(-MASS * (vx*vx + vy*vy + vz*vz) /
@@ -155,7 +155,7 @@ namespace SBC {
       const Real dvz=cell.get_velocity_grid_cell_size(popID,refLevel)[2];
       while (search) {
          #warning TODO: add SpatialCell::getVelocityBlockMinValue() in place of sparseMinValue?
-         if (0.1 * getObjectWrapper().particleSpecies[popID].sparseMinValue > 
+         if (0.1 * objectWrapper.particleSpecies[popID].sparseMinValue > 
              maxwellianDistribution(
                                     popID,
                                     rho,
@@ -232,7 +232,7 @@ namespace SBC {
       templateCell.parameters[CellParams::DZ] = 1;
       
       // Init all particle species
-      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      for (uint popID=0; popID<objectWrapper.particleSpecies.size(); ++popID) {
          interpolate(inputDataIndex, popID, t, &buffer[0]);
          rho = buffer[0];
          T = buffer[1];

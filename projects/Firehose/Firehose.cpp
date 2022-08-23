@@ -50,8 +50,8 @@ namespace projects {
       RP::add("Firehose.amp", "Initial perturbation amplitude (m)", 0.0);
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+      for(uint i=0; i< objectWrapper.particleSpecies.size(); i++) {
+         const std::string& pop = objectWrapper.particleSpecies[i].name;
          RP::add(pop + "_Firehose.rho1", "Number density, first peak (m^-3)", 0.0);
          RP::add(pop + "_Firehose.rho2", "Number density, second peak (m^-3)", 0.0);
          RP::add(pop + "_Firehose.Tx1", "Temperature x, first peak (K)", 0.0);
@@ -81,8 +81,8 @@ namespace projects {
       RP::get("Firehose.amp", this->amp);
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+      for(uint i=0; i< objectWrapper.particleSpecies.size(); i++) {
+         const std::string& pop = objectWrapper.particleSpecies[i].name;
          FirehoseSpeciesParameters sP;
          RP::get(pop + "_Firehose.rho1", sP.rho[0]);
          RP::get(pop + "_Firehose.rho2", sP.rho[1]);
@@ -115,7 +115,7 @@ namespace projects {
       creal& dvx, creal& dvy, creal& dvz,
       const uint popID) const  {
       const FirehoseSpeciesParameters& sP = speciesParams[popID];
-      creal mass = getObjectWrapper().particleSpecies[popID].mass;
+      creal mass = objectWrapper.particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
       
       Real Vx = profile(sP.Vx[0],sP.Vx[1], x);

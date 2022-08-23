@@ -325,7 +325,7 @@ bool _readBlockData(
    uint64_t byteSize;
    list<pair<string,string> > avgAttribs;
    bool success=true;
-   const string popName = getObjectWrapper().particleSpecies[popID].name;
+   const string popName = objectWrapper.particleSpecies[popID].name;
    const string tagName = "BLOCKIDS";
    
    avgAttribs.push_back(make_pair("mesh",spatMeshName));
@@ -429,8 +429,8 @@ bool readBlockData(
    uint64_t byteSize;
    uint64_t* offsetArray = new uint64_t[N_processes];
 
-   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-      const string& popName = getObjectWrapper().particleSpecies[popID].name;
+   for (uint popID=0; popID<objectWrapper.particleSpecies.size(); ++popID) {
+      const string& popName = objectWrapper.particleSpecies[popID].name;
 
       // Create a cellID remapping lambda that can renumber our velocity space, should it's size have changed.
       // By default, this is a no-op that keeps the blockIDs untouched.
@@ -446,8 +446,8 @@ bool readBlockData(
          success = false;
       }
 
-      const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
-      const vmesh::MeshParameters& ourMeshParams = getObjectWrapper().velocityMeshes[meshID];
+      const size_t meshID = objectWrapper.particleSpecies[popID].velocityMesh;
+      const vmesh::MeshParameters& ourMeshParams = objectWrapper.velocityMeshes[meshID];
       if(fileMeshBBox[0] != ourMeshParams.gridLength[0] ||
             fileMeshBBox[1] != ourMeshParams.gridLength[1] ||
             fileMeshBBox[2] != ourMeshParams.gridLength[2]) {
@@ -485,34 +485,34 @@ bool readBlockData(
             success = false;
          }
 
-         const Real dVx = getObjectWrapper().velocityMeshes[meshID].cellSize[0];
+         const Real dVx = objectWrapper.velocityMeshes[meshID].cellSize[0];
          for(const auto& c : fileVelCoordsX) {
-            Real cellindex = (c - getObjectWrapper().velocityMeshes[meshID].meshMinLimits[0]) / dVx;
+            Real cellindex = (c - objectWrapper.velocityMeshes[meshID].meshMinLimits[0]) / dVx;
             if(fabs(nearbyint(cellindex) - cellindex) > 1./10000.) {
                logFile << "(RESTART) ERROR: Can't resize velocity space as cell coordinates don't match." << endl
-                  << "          (X coordinate " << c << " = " << cellindex <<" * " << dVx << " + " << getObjectWrapper().velocityMeshes[meshID].meshMinLimits[0] << endl
+                  << "          (X coordinate " << c << " = " << cellindex <<" * " << dVx << " + " << objectWrapper.velocityMeshes[meshID].meshMinLimits[0] << endl
                   << "           coordinate  = cellindex *   dV  +  meshMinLimits)" << endl << write;
                abort();
             }
          }
 
-         const Real dVy = getObjectWrapper().velocityMeshes[meshID].cellSize[1];
+         const Real dVy = objectWrapper.velocityMeshes[meshID].cellSize[1];
          for(const auto& c : fileVelCoordsY) {
-            Real cellindex = (c - getObjectWrapper().velocityMeshes[meshID].meshMinLimits[1]) / dVy;
+            Real cellindex = (c - objectWrapper.velocityMeshes[meshID].meshMinLimits[1]) / dVy;
             if(fabs(nearbyint(cellindex) - cellindex) > 1./10000.) {
                logFile << "(RESTART) ERROR: Can't resize velocity space as cell coordinates don't match." << endl
-                  << "           (Y coordinate " << c << " = " << cellindex <<" * " << dVy << " + " << getObjectWrapper().velocityMeshes[meshID].meshMinLimits[1] << endl
+                  << "           (Y coordinate " << c << " = " << cellindex <<" * " << dVy << " + " << objectWrapper.velocityMeshes[meshID].meshMinLimits[1] << endl
                   << "           coordinate  = cellindex *   dV  +  meshMinLimits)" << endl << write;
                abort();
             }
          }
 
-         const Real dVz = getObjectWrapper().velocityMeshes[meshID].cellSize[2];
+         const Real dVz = objectWrapper.velocityMeshes[meshID].cellSize[2];
          for(const auto& c : fileVelCoordsY) {
-            Real cellindex = (c - getObjectWrapper().velocityMeshes[meshID].meshMinLimits[2]) / dVz;
+            Real cellindex = (c - objectWrapper.velocityMeshes[meshID].meshMinLimits[2]) / dVz;
             if(fabs(nearbyint(cellindex) - cellindex) > 1./10000.) {
                logFile << "(RESTART) ERROR: Can't resize velocity space as cell coordinates don't match." << endl
-                  << "           (Z coordinate " << c << " = " << cellindex <<" * " << dVz << " + " << getObjectWrapper().velocityMeshes[meshID].meshMinLimits[2] << endl
+                  << "           (Z coordinate " << c << " = " << cellindex <<" * " << dVz << " + " << objectWrapper.velocityMeshes[meshID].meshMinLimits[2] << endl
                   << "           coordinate  = cellindex *   dV  +  meshMinLimits)" << endl << write;
                abort();
             }
@@ -521,9 +521,9 @@ bool readBlockData(
          // If we haven't aborted above, we can apparently renumber our
          // cellIDs. Build an approprita blockIDremapper lambda for this purpose.
          std::array<int, 3> velGridOffset;
-         velGridOffset[0] = (fileVelCoordsX[0] - getObjectWrapper().velocityMeshes[meshID].meshMinLimits[0]) / dVx;
-         velGridOffset[1] = (fileVelCoordsY[0] - getObjectWrapper().velocityMeshes[meshID].meshMinLimits[1]) / dVy;
-         velGridOffset[2] = (fileVelCoordsZ[0] - getObjectWrapper().velocityMeshes[meshID].meshMinLimits[2]) / dVz;
+         velGridOffset[0] = (fileVelCoordsX[0] - objectWrapper.velocityMeshes[meshID].meshMinLimits[0]) / dVx;
+         velGridOffset[1] = (fileVelCoordsY[0] - objectWrapper.velocityMeshes[meshID].meshMinLimits[1]) / dVy;
+         velGridOffset[2] = (fileVelCoordsZ[0] - objectWrapper.velocityMeshes[meshID].meshMinLimits[2]) / dVz;
 
          if((velGridOffset[0] % ourMeshParams.blockLength[0] != 0) ||
                (velGridOffset[1] % ourMeshParams.blockLength[1] != 0) ||
@@ -1173,7 +1173,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
      {
         const vector<CellID>& gridCells = getLocalCells();
         for (size_t i=0; i<gridCells.size(); i++) {
-           for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+           for (uint popID=0; popID<objectWrapper.particleSpecies.size(); ++popID)
              mpiGrid[gridCells[i]]->clear(popID);
         }
      }

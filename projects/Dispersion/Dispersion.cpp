@@ -55,8 +55,8 @@ namespace projects {
       RP::add("Dispersion.angleXZ", "Orientation of the guide magnetic field with respect to the x-axis in x-z plane (rad)", 0.001);
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-        const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+      for(uint i=0; i< objectWrapper.particleSpecies.size(); i++) {
+        const std::string& pop = objectWrapper.particleSpecies[i].name;
         RP::add(pop + "_Dispersion.VX0", "Bulk velocity (m/s)", 0.0);
         RP::add(pop + "_Dispersion.VY0", "Bulk velocity (m/s)", 0.0);
         RP::add(pop + "_Dispersion.VZ0", "Bulk velocity (m/s)", 0.0);
@@ -82,8 +82,8 @@ namespace projects {
       RP::get("Dispersion.angleXZ", this->angleXZ);
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-        const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+      for(uint i=0; i< objectWrapper.particleSpecies.size(); i++) {
+        const std::string& pop = objectWrapper.particleSpecies[i].name;
         DispersionSpeciesParameters sP;
         RP::get(pop + "_Dispersion.VX0", sP.VX0);
         RP::get(pop + "_Dispersion.VY0", sP.VY0);
@@ -158,14 +158,14 @@ namespace projects {
    
    Real Dispersion::getDistribValue(creal& vx,creal& vy, creal& vz, const uint popID) const {
       const DispersionSpeciesParameters& sP = speciesParams[popID];
-      creal mass = getObjectWrapper().particleSpecies[popID].mass;
+      creal mass = objectWrapper.particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
       return exp(- mass * ((vx-sP.VX0)*(vx-sP.VX0) + (vy-sP.VY0)*(vy-sP.VY0) + (vz-sP.VZ0)*(vz-sP.VZ0)) / (2.0 * kb * sP.TEMPERATURE));
    }
    
    Real Dispersion::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
-      const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
-      const vmesh::MeshParameters& meshParams = getObjectWrapper().velocityMeshes[meshID];
+      const size_t meshID = objectWrapper.particleSpecies[popID].velocityMesh;
+      const vmesh::MeshParameters& meshParams = objectWrapper.velocityMeshes[meshID];
       if (vx < meshParams.meshMinLimits[0] + 0.5*dvx ||
           vy < meshParams.meshMinLimits[1] + 0.5*dvy ||
           vz < meshParams.meshMinLimits[2] + 0.5*dvz ||
@@ -176,7 +176,7 @@ namespace projects {
       }
 
       const DispersionSpeciesParameters& sP = speciesParams[popID];
-      creal mass = getObjectWrapper().particleSpecies[popID].mass;
+      creal mass = objectWrapper.particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
       
       creal d_vx = dvx / (sP.nVelocitySamples-1);

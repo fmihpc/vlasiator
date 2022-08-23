@@ -124,7 +124,7 @@ bool writeVelocityDistributionData(Writer& vlsvWriter,
                                    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                    const vector<CellID>& cells,MPI_Comm comm) {
    bool success = true;
-   for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
+   for (size_t p=0; p<objectWrapper.particleSpecies.size(); ++p) {
       if (writeVelocityDistributionData(p,vlsvWriter,mpiGrid,cells,comm) == false) success = false;
    }
    return success;
@@ -143,7 +143,7 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
    // In restart we just write velocity grids for all cells.
    // First write global Ids of those cells which write velocity blocks (here: all cells):
    map<string,string> attribs;
-   const string popName      = getObjectWrapper().particleSpecies[popID].name;
+   const string popName      = objectWrapper.particleSpecies[popID].name;
    const string spatMeshName = "SpatialGrid";
    attribs["name"] = popName;
    bool success=true;
@@ -172,21 +172,21 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
    // in blocks and cells. Note that this is not the physical extent of that
    // space, but a purely numerical bounding box.
    uint64_t bbox[6];
-   const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
-   bbox[0] = getObjectWrapper().velocityMeshes[meshID].gridLength[0];
-   bbox[1] = getObjectWrapper().velocityMeshes[meshID].gridLength[1];
-   bbox[2] = getObjectWrapper().velocityMeshes[meshID].gridLength[2];
-   bbox[3] = getObjectWrapper().velocityMeshes[meshID].blockLength[0];
-   bbox[4] = getObjectWrapper().velocityMeshes[meshID].blockLength[1];
-   bbox[5] = getObjectWrapper().velocityMeshes[meshID].blockLength[2];
+   const size_t meshID = objectWrapper.particleSpecies[popID].velocityMesh;
+   bbox[0] = objectWrapper.velocityMeshes[meshID].gridLength[0];
+   bbox[1] = objectWrapper.velocityMeshes[meshID].gridLength[1];
+   bbox[2] = objectWrapper.velocityMeshes[meshID].gridLength[2];
+   bbox[3] = objectWrapper.velocityMeshes[meshID].blockLength[0];
+   bbox[4] = objectWrapper.velocityMeshes[meshID].blockLength[1];
+   bbox[5] = objectWrapper.velocityMeshes[meshID].blockLength[2];
 
    attribs.clear();
-   attribs["mesh"] = getObjectWrapper().particleSpecies[popID].name;
+   attribs["mesh"] = objectWrapper.particleSpecies[popID].name;
    attribs["type"] = vlsv::mesh::STRING_UCD_AMR;
 
    // stringstream is necessary here to correctly convert refLevelMaxAllowed into a string 
    stringstream ss;
-   ss << static_cast<unsigned int>(getObjectWrapper().velocityMeshes[meshID].refLevelMaxAllowed);
+   ss << static_cast<unsigned int>(objectWrapper.velocityMeshes[meshID].refLevelMaxAllowed);
    attribs["max_velocity_ref_level"] = ss.str();
    
    if (mpiGrid.get_rank() == MASTER_RANK) {
@@ -195,10 +195,10 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
       for (int crd=0; crd<3; ++crd) {
          const size_t N_nodes = bbox[crd]*bbox[crd+3]+1;
          Real* crds = new Real[N_nodes];
-         const Real dV = getObjectWrapper().velocityMeshes[meshID].cellSize[crd];
+         const Real dV = objectWrapper.velocityMeshes[meshID].cellSize[crd];
 
          for (size_t i=0; i<N_nodes; ++i) {
-            crds[i] = getObjectWrapper().velocityMeshes[meshID].meshMinLimits[crd] + i*dV;
+            crds[i] = objectWrapper.velocityMeshes[meshID].meshMinLimits[crd] + i*dV;
          }
 
          if (crd == 0) {
@@ -1806,7 +1806,7 @@ bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    phiprof::start("updateRemoteBlocks");
    //Updated newly adjusted velocity block lists on remote cells, and
    //prepare to receive block data
-   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+   for (uint popID=0; popID<objectWrapper.particleSpecies.size(); ++popID)
       updateRemoteVelocityBlockLists(mpiGrid,popID);
    phiprof::stop("updateRemoteBlocks");
 

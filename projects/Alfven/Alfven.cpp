@@ -59,8 +59,8 @@ namespace projects {
       RP::add("Alfven.A_mag", "Amplitude of the magnetic perturbation", 0.1);
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+      for(uint i=0; i< objectWrapper.particleSpecies.size(); i++) {
+         const std::string& pop = objectWrapper.particleSpecies[i].name;
 
          RP::add(pop + "_Alfven.rho", "Number density (m^-3)", 1.0e8);
          RP::add(pop + "_Alfven.Temperature", "Temperature (K)", 0.86456498092);
@@ -84,8 +84,8 @@ namespace projects {
       RP::get("Alfven.nSpaceSamples", this->nSpaceSamples);
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+      for(uint i=0; i< objectWrapper.particleSpecies.size(); i++) {
+         const std::string& pop = objectWrapper.particleSpecies[i].name;
 
          AlfvenSpeciesParameters sP;
 
@@ -102,7 +102,7 @@ namespace projects {
                creal& vz,creal& vx,creal& vy,creal& dvz,creal& dvx,creal& dvy) {*/
    Real Alfven::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
       const AlfvenSpeciesParameters& sP = speciesParams[popID];
-      creal mass = getObjectWrapper().particleSpecies[popID].mass;
+      creal mass = objectWrapper.particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
       creal mu0 = physicalconstants::MU_0;
       creal ALFVEN_VEL = this->B0 / sqrt(mu0 * sP.rho * mass);

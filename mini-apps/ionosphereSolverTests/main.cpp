@@ -16,9 +16,6 @@ int globalflags::bailingOut=0;
 bool globalflags::writeRestart=0;
 bool globalflags::balanceLoad=0;
 ObjectWrapper objectWrapper;
-ObjectWrapper& getObjectWrapper() {
-   return objectWrapper;
-}
 
 // Dummy implementations of some functions to make things compile
 std::vector<CellID> localCellDummy;

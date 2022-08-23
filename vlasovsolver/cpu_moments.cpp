@@ -59,14 +59,14 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
 
     // Loop over all particle species
     if (skipMoments == false) {
-       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+       for (uint popID=0; popID<objectWrapper.particleSpecies.size(); ++popID) {
           vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
           if (blockContainer.size() == 0) continue;
           
           const Realf* data       = blockContainer.getData();
           const Real* blockParams = blockContainer.getParameters();
-          const Real mass = getObjectWrapper().particleSpecies[popID].mass;
-          const Real charge = getObjectWrapper().particleSpecies[popID].charge;
+          const Real mass = objectWrapper.particleSpecies[popID].mass;
+          const Real charge = objectWrapper.particleSpecies[popID].charge;
           
           // Temporary array for storing moments
           Real array[4];
@@ -102,13 +102,13 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
     if (computeSecond == false) return;
             
     // Loop over all particle species
-    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+    for (uint popID=0; popID<objectWrapper.particleSpecies.size(); ++popID) {
        vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
        if (blockContainer.size() == 0) continue;
        
        const Realf* data       = blockContainer.getData();
        const Real* blockParams = blockContainer.getParameters();
-       const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+       const Real mass = objectWrapper.particleSpecies[popID].mass;
        
        // Temporary array for storing moments
        Real array[3];
@@ -151,7 +151,7 @@ void calculateMoments_R(
     phiprof::start("compute-moments-n");
     creal HALF = 0.5;
 
-    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+    for (uint popID=0; popID<objectWrapper.particleSpecies.size(); ++popID) {
        #pragma omp parallel for
        for (size_t c=0; c<cells.size(); ++c) {
           SpatialCell* cell = mpiGrid[cells[c]];
@@ -180,8 +180,8 @@ void calculateMoments_R(
           if (blockContainer.size() == 0) continue;
           const Realf* data       = blockContainer.getData();
           const Real* blockParams = blockContainer.getParameters();
-          const Real mass = getObjectWrapper().particleSpecies[popID].mass;
-          const Real charge = getObjectWrapper().particleSpecies[popID].charge;
+          const Real mass = objectWrapper.particleSpecies[popID].mass;
+          const Real charge = objectWrapper.particleSpecies[popID].charge;
 
           #ifdef DEBUG_MOMENTS
           bool ok = true;
@@ -240,7 +240,7 @@ void calculateMoments_R(
       return;
    }
 
-   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+   for (uint popID=0; popID<objectWrapper.particleSpecies.size(); ++popID) {
       #pragma omp parallel for
       for (size_t c=0; c<cells.size(); ++c) {
          SpatialCell* cell = mpiGrid[cells[c]];
@@ -253,7 +253,7 @@ void calculateMoments_R(
          if (blockContainer.size() == 0) continue;
          const Realf* data       = blockContainer.getData();
          const Real* blockParams = blockContainer.getParameters();
-         const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+         const Real mass = objectWrapper.particleSpecies[popID].mass;
 
          // Temporary array where species' contribution to 2nd moments is accumulated
          Real array[3];
@@ -300,7 +300,7 @@ void calculateMoments_V(
    phiprof::start("Compute _V moments");
    
    // Loop over all particle species
-   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+   for (uint popID=0; popID<objectWrapper.particleSpecies.size(); ++popID) {
       #pragma omp parallel for
       for (size_t c=0; c<cells.size(); ++c) {
          SpatialCell* cell = mpiGrid[cells[c]];
@@ -325,8 +325,8 @@ void calculateMoments_V(
          if (blockContainer.size() == 0) continue;
          const Realf* data       = blockContainer.getData();
          const Real* blockParams = blockContainer.getParameters();
-         const Real mass = getObjectWrapper().particleSpecies[popID].mass;
-         const Real charge = getObjectWrapper().particleSpecies[popID].charge;
+         const Real mass = objectWrapper.particleSpecies[popID].mass;
+         const Real charge = objectWrapper.particleSpecies[popID].charge;
 
          // Temporary array for storing moments
          Real array[4];
@@ -371,7 +371,7 @@ void calculateMoments_V(
       return;
    }
 
-   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+   for (uint popID=0; popID<objectWrapper.particleSpecies.size(); ++popID) {
       #pragma omp parallel for
       for (size_t c=0; c<cells.size(); ++c) {
          SpatialCell* cell = mpiGrid[cells[c]];
@@ -384,7 +384,7 @@ void calculateMoments_V(
          if (blockContainer.size() == 0) continue;
          const Realf* data       = blockContainer.getData();
          const Real* blockParams = blockContainer.getParameters();
-         const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+         const Real mass = objectWrapper.particleSpecies[popID].mass;
 
          // Temporary array where moments are stored
          Real array[3];

@@ -83,8 +83,8 @@ namespace projects {
       RP::add("Magnetosphere.zeroOutDerivativesZ","Zero Out Perpendicular components", 1.0);
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+      for(uint i=0; i< objectWrapper.particleSpecies.size(); i++) {
+         const std::string& pop = objectWrapper.particleSpecies[i].name;
 
          RP::add(pop + "_Magnetosphere.rho", "Tail region number density (m^-3)", 0.0);
          RP::add(pop + "_Magnetosphere.T", "Temperature (K)", 0.0);
@@ -174,8 +174,8 @@ namespace projects {
       RP::get("Magnetosphere.zeroOutDerivativesZ", this->zeroOutComponents[2]);
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+      for(uint i=0; i< objectWrapper.particleSpecies.size(); i++) {
+         const std::string& pop = objectWrapper.particleSpecies[i].name;
          MagnetosphereSpeciesParameters sP;
 
          RP::get(pop + "_Magnetosphere.rho", sP.rho);
@@ -508,7 +508,7 @@ namespace projects {
          }
       }
 
-      Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      Real mass = objectWrapper.particleSpecies[popID].mass;
 
       return initRho * pow(mass / (2.0 * M_PI * physicalconstants::K_B * initT), 1.5) *
       exp(- mass * ((vx-initV0[0])*(vx-initV0[0]) + (vy-initV0[1])*(vy-initV0[1]) + (vz-initV0[2])*(vz-initV0[2])) / (2.0 * physicalconstants::K_B * initT));

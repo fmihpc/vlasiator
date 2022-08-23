@@ -2831,8 +2831,8 @@ namespace SBC {
       Readparameters::add("ionosphere.tracerTolerance", "Tolerance for the Bulirsch Stoer Method", 1000);
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+      for(uint i=0; i< objectWrapper.particleSpecies.size(); i++) {
+         const std::string& pop = objectWrapper.particleSpecies[i].name;
          Readparameters::add(pop + "_ionosphere.rho", "Number density of the ionosphere (m^-3)", 0.0);
          Readparameters::add(pop + "_ionosphere.T", "Temperature of the ionosphere (K)", 0.0);
          Readparameters::add(pop + "_ionosphere.VX0", "Bulk velocity of ionospheric distribution function in X direction (m/s)", 0.0);
@@ -2934,8 +2934,8 @@ namespace SBC {
          this->applyUponRestart = true;
       }
 
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-        const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+      for(uint i=0; i< objectWrapper.particleSpecies.size(); i++) {
+        const std::string& pop = objectWrapper.particleSpecies[i].name;
         IonosphereSpeciesParameters sP;
 
         Readparameters::get(pop + "_ionosphere.rho", sP.rho);
@@ -3133,7 +3133,7 @@ namespace SBC {
          SpatialCell* cell = mpiGrid[cells[i]];
          if (cell->sysBoundaryFlag != this->getIndex()) continue;
 
-         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+         for (uint popID=0; popID<objectWrapper.particleSpecies.size(); ++popID)
             setCellFromTemplate(cell,popID);
       }
       return true;
@@ -3964,7 +3964,7 @@ namespace SBC {
       templateCell.parameters[CellParams::DZ] = 1;
 
       // Loop over particle species
-      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      for (uint popID=0; popID<objectWrapper.particleSpecies.size(); ++popID) {
          const IonosphereSpeciesParameters& sP = this->speciesParams[popID];
          const std::array<Real, 3> vDrift = {0,0,0};
          const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(templateCell,sP.rho,sP.T,vDrift,popID);
@@ -4060,7 +4060,7 @@ namespace SBC {
       creal& vx, creal& vy, creal& vz
    ) {
 
-      const Real MASS = getObjectWrapper().particleSpecies[popID].mass;
+      const Real MASS = objectWrapper.particleSpecies[popID].mass;
       const IonosphereSpeciesParameters& sP = this->speciesParams[popID];
 
       return density * pow(MASS /
@@ -4085,7 +4085,7 @@ namespace SBC {
 
       while (search) {
          #warning TODO: add SpatialCell::getVelocityBlockMinValue() in place of sparseMinValue ? (if applicable)
-         if (0.1 * getObjectWrapper().particleSpecies.at(popID).sparseMinValue >
+         if (0.1 * objectWrapper.particleSpecies.at(popID).sparseMinValue >
             shiftedMaxwellianDistribution(popID,density,temperature,counter*cell.get_velocity_grid_block_size(popID,refLevel)[0] - vDrift[0], 0.0 - vDrift[1], 0.0 - vDrift[2])
             || counter > vblocks_ini[0]) {
             search = false;

@@ -207,7 +207,7 @@ namespace projects {
       // Set up cell parameters:
       calcCellParameters(cell,0.0);
       
-      for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
+      for (size_t p=0; p<objectWrapper.particleSpecies.size(); ++p) {
          this->setVelocitySpace(p,cell);
       }
 
@@ -245,14 +245,14 @@ namespace projects {
    void Project::printPopulations() {
       logFile << "(PROJECT): Loaded particle populations are:" << endl;
       
-      for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
-         const species::Species& spec = getObjectWrapper().particleSpecies[p];
+      for (size_t p=0; p<objectWrapper.particleSpecies.size(); ++p) {
+         const species::Species& spec = objectWrapper.particleSpecies[p];
          logFile << "Population #" << p << endl;
          logFile << "\t name             : '" << spec.name << "'" << endl;
          logFile << "\t charge           : '" << spec.charge << "'" << endl;
          logFile << "\t mass             : '" << spec.mass << "'" << endl;
          logFile << "\t sparse threshold : '" << spec.sparseMinValue << "'" << endl;
-         logFile << "\t velocity mesh    : '" << getObjectWrapper().velocityMeshes[spec.velocityMesh].name << "'" << endl;
+         logFile << "\t velocity mesh    : '" << objectWrapper.velocityMeshes[spec.velocityMesh].name << "'" << endl;
          logFile << endl;
       }
       logFile << write;
@@ -337,11 +337,11 @@ namespace projects {
          }
 
          const Real maxValue = setVelocityBlock(cell,blockLID,popID);
-         if (maxValue < getObjectWrapper().particleSpecies[popID].sparseMinValue) removeList.push_back(blockGID);
+         if (maxValue < objectWrapper.particleSpecies[popID].sparseMinValue) removeList.push_back(blockGID);
       }
 
       // Get AMR refinement criterion and use it to test which blocks should be refined
-      amr_ref_criteria::Base* refCriterion = getObjectWrapper().amrVelRefCriteria.create(Parameters::amrVelRefCriterion);
+      amr_ref_criteria::Base* refCriterion = objectWrapper.amrVelRefCriteria.create(Parameters::amrVelRefCriterion);
       if (refCriterion == NULL) {
          if (rescalesDensity(popID) == true) rescaleDensity(cell,popID);
          return;
@@ -392,7 +392,7 @@ namespace projects {
             const vmesh::GlobalID blockGID = it->first;
             const vmesh::LocalID blockLID = it->second;
             const Real maxValue = setVelocityBlock(cell,blockLID,popID);
-            if (maxValue <= getObjectWrapper().particleSpecies[popID].sparseMinValue) 
+            if (maxValue <= objectWrapper.particleSpecies[popID].sparseMinValue) 
               removeList.push_back(it->first);
          }
 
@@ -678,7 +678,7 @@ Project* createProject() {
       abort();
    }
 
-   getObjectWrapper().project = rvalue;
+   objectWrapper.project = rvalue;
    return rvalue;
 }
 

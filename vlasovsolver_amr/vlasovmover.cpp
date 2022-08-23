@@ -396,7 +396,7 @@ void calculateCellVelocityMoments(SpatialCell* SC,
    cellParams[CellParams::P_33 ] = 0.0;
 
    // Calculate first moments
-   for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+   for (int popID=0; popID<objectWrapper.particleSpecies.size(); ++popID) {
       // Temporary array for storing this species' contribution
       Real array[4];
       for (int i=0; i<4; ++i) array[i] = 0;
@@ -415,7 +415,7 @@ void calculateCellVelocityMoments(SpatialCell* SC,
          blockParams += BlockParams::N_VELOCITY_BLOCK_PARAMS;
       }
       
-      const Real massRatio = getObjectWrapper().particleSpecies[popID].mass / physicalconstants::MASS_PROTON;
+      const Real massRatio = objectWrapper.particleSpecies[popID].mass / physicalconstants::MASS_PROTON;
       cellParams[CellParams::RHO  ] += array[0]*massRatio;
       cellParams[CellParams::VX] += array[1]*massRatio;
       cellParams[CellParams::VY] += array[2]*massRatio;
@@ -423,7 +423,7 @@ void calculateCellVelocityMoments(SpatialCell* SC,
    } // for-loop over particle species
 
    // Second iteration needed as rho has to be already computed when computing pressure
-   for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+   for (int popID=0; popID<objectWrapper.particleSpecies.size(); ++popID) {
       // Temporary array for storing this species' contribution
       Real array[3];
       for (int i=0; i<3; ++i) array[i] = 0;
@@ -446,9 +446,9 @@ void calculateCellVelocityMoments(SpatialCell* SC,
          blockParams += BlockParams::N_VELOCITY_BLOCK_PARAMS;
       }
       
-      cellParams[CellParams::P_11] += array[0]*getObjectWrapper().particleSpecies[popID].mass;
-      cellParams[CellParams::P_22] += array[1]*getObjectWrapper().particleSpecies[popID].mass;
-      cellParams[CellParams::P_33] += array[2]*getObjectWrapper().particleSpecies[popID].mass;
+      cellParams[CellParams::P_11] += array[0]*objectWrapper.particleSpecies[popID].mass;
+      cellParams[CellParams::P_22] += array[1]*objectWrapper.particleSpecies[popID].mass;
+      cellParams[CellParams::P_33] += array[2]*objectWrapper.particleSpecies[popID].mass;
    } // for-loop over particle species
     */
 }

@@ -149,7 +149,7 @@ namespace SBC {
       Project &project
    ) {
       bool success = true;
-      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      for (uint popID=0; popID<objectWrapper.particleSpecies.size(); ++popID) {
          if (!setCellsFromTemplate(mpiGrid, popID)) success = false;
       }
       if (!setBFromTemplate(mpiGrid, perBGrid)) success = false;

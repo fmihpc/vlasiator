@@ -68,7 +68,7 @@ namespace projects {
       Project::getParameters();
       typedef Readparameters RP;
 
-      if(getObjectWrapper().particleSpecies.size() > 1) {
+      if(objectWrapper.particleSpecies.size() > 1) {
          std::cerr << "The selected project does not support multiple particle populations! Aborting in " << __FILE__ << " line " << __LINE__ << std::endl;
          abort();
       }
@@ -134,7 +134,7 @@ namespace projects {
       uint samples=0;
 
       Real middleValue=getDistribValue(x+0.5*dx, z+0.5*dz, vx+0.5*dvx, vy+0.5*dvy, vz+0.5*dvz, popID);
-      if (middleValue < 0.000001*getObjectWrapper().particleSpecies[popID].sparseMinValue) {
+      if (middleValue < 0.000001*objectWrapper.particleSpecies[popID].sparseMinValue) {
          return middleValue; //abort, this will not be accepted anyway
       }
       

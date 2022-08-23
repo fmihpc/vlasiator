@@ -284,7 +284,7 @@ void initializeGrids(
          mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
       }
 
-      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      for (uint popID=0; popID<objectWrapper.particleSpecies.size(); ++popID) {
          adjustVelocityBlocks(mpiGrid,cells,true,popID);
          #ifdef DEBUG_AMR_VALIDATE
             writeVelMesh(mpiGrid);
@@ -314,7 +314,7 @@ void initializeGrids(
 
 
    // Init mesh data container
-   if (getObjectWrapper().meshData.initialize("SpatialGrid") == false) {
+   if (objectWrapper.meshData.initialize("SpatialGrid") == false) {
       cerr << "(Grid) Failed to initialize mesh data container in " << __FILE__ << ":" << __LINE__ << endl;
       exit(1);
    }
@@ -515,7 +515,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
          }
       }
 
-      for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
+      for (size_t p=0; p<objectWrapper.particleSpecies.size(); ++p) {
          // Set active population
          SpatialCell::setCommunicatedSpecies(p);
 
@@ -571,7 +571,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
 
    //Make sure transfers are enabled for all cells
    recalculateLocalCellsCache();
-   getObjectWrapper().meshData.reallocate();
+   objectWrapper.meshData.reallocate();
    #pragma omp parallel for
    for (uint i=0; i<cells.size(); ++i) mpiGrid[cells[i]]->set_mpi_transfer_enabled(true);
 
@@ -587,7 +587,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
 
    phiprof::start("update block lists");
    //new partition, re/initialize blocklists of remote cells.
-   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+   for (uint popID=0; popID<objectWrapper.particleSpecies.size(); ++popID)
       updateRemoteVelocityBlockLists(mpiGrid,popID);
    phiprof::stop("update block lists");
 
@@ -678,14 +678,14 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
          }
          neighbor_ptrs.push_back(mpiGrid[neighbor_id]);
       }
-      if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
+      if (objectWrapper.particleSpecies[popID].sparse_conserve_mass) {
          for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
             density_pre_adjust += cell->get_data(popID)[i];
          }
       }
       cell->adjust_velocity_blocks(neighbor_ptrs,popID);
 
-      if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
+      if (objectWrapper.particleSpecies[popID].sparse_conserve_mass) {
          for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
             density_post_adjust += cell->get_data(popID)[i];
          }
@@ -790,7 +790,7 @@ void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       uint64_t cell_id=incoming_cells[i];
       SpatialCell* cell = mpiGrid[cell_id];
       if (cell != NULL) {
-         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+         for (uint popID=0; popID<objectWrapper.particleSpecies.size(); ++popID)
             cell->clear(popID);
       }
    }
@@ -1216,7 +1216,7 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
             // min value, add the block to remove list
             #pragma omp for
             for (size_t b=0; b<newBlocks[c].size(); ++b) {
-               if (getObjectWrapper().project->setVelocityBlock(cell,newBlocks[c][b].second,popID) <= cell->getVelocityBlockMinValue(popID)) {
+               if (objectWrapper.project->setVelocityBlock(cell,newBlocks[c][b].second,popID) <= cell->getVelocityBlockMinValue(popID)) {
                   threadRemBlocks[tid].push_back(newBlocks[c][b].first);
                   ++counter[tid];
                }

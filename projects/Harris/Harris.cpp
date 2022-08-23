@@ -48,8 +48,8 @@ namespace projects {
       RP::add("Harris.BZ0", "Magnetic field at infinity (T)", 8.33061003094e-8);
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+      for(uint i=0; i< objectWrapper.particleSpecies.size(); i++) {
+         const std::string& pop = objectWrapper.particleSpecies[i].name;
 
          RP::add(pop + "_Harris.Temperature", "Temperature (K)", 2.0e6);
          RP::add(pop + "_Harris.rho", "Number density at infinity (m^-3)", 1.0e7);
@@ -68,8 +68,8 @@ namespace projects {
 
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+      for(uint i=0; i< objectWrapper.particleSpecies.size(); i++) {
+         const std::string& pop = objectWrapper.particleSpecies[i].name;
          HarrisSpeciesParameters sP;
 
          RP::get(pop + "_Harris.Temperature", sP.TEMPERATURE);
@@ -89,7 +89,7 @@ namespace projects {
    ) const {
 
       const HarrisSpeciesParameters& sP = speciesParams[popID];
-      Real mass = getObjectWrapper().particleSpecies[popID].mass;
+      Real mass = objectWrapper.particleSpecies[popID].mass;
 
       return sP.DENSITY * pow(mass / (2.0 * M_PI * physicalconstants::K_B * sP.TEMPERATURE), 1.5) * (
          5.0 / pow(cosh(x / (this->SCA_LAMBDA)), 2.0) * exp(- mass * (pow(vx, 2.0) + pow(vy, 2.0) + pow(vz, 2.0)) / (2.0 * physicalconstants::K_B * sP.TEMPERATURE))

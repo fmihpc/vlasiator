@@ -120,7 +120,7 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
       cell->parameters[CellParams::MAXRDT] = numeric_limits<Real>::max();
 
-      for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
+      for (uint popID = 0; popID < objectWrapper.particleSpecies.size(); ++popID) {
          cell->set_max_r_dt(popID, numeric_limits<Real>::max());
          vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
          const Real* blockParams = blockContainer.getParameters();
@@ -232,10 +232,6 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    phiprof::stop("compute-timestep");
 }
 
-ObjectWrapper& getObjectWrapper() {
-   return objectWrapper;
-}
-
 /** Get local cell IDs. This function creates a cached copy of the 
  * cell ID lists to significantly improve performance. The cell ID 
  * cache is recalculated every time the mesh partitioning changes.
@@ -298,21 +294,21 @@ int main(int argn,char* args[]) {
 
    P::addParameters();
 
-   getObjectWrapper().addParameters();
+   objectWrapper.addParameters();
 
    readparameters.parse();
 
    P::getParameters();
 
-   getObjectWrapper().addPopulationParameters();
+   objectWrapper.addPopulationParameters();
    sysBoundaries.addParameters();
    projects::Project::addParameters();
 
    Project* project = projects::createProject();
-   getObjectWrapper().project = project;
+   objectWrapper.project = project;
    readparameters.parse(true, false); // 2nd parsing for specific population parameters
    readparameters.helpMessage(); // Call after last parse, exits after printing help if help requested
-   getObjectWrapper().getParameters();
+   objectWrapper.getParameters();
    project->getParameters();
    sysBoundaries.getParameters();
    phiprof::stop("Read parameters");
@@ -866,7 +862,7 @@ int main(int argn,char* args[]) {
       //compute how many spatial cells we solve for this step
       computedCells=0;
       for(size_t i=0; i<cells.size(); i++) {
-         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+         for (uint popID=0; popID<objectWrapper.particleSpecies.size(); ++popID)
             computedCells += mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID)*WID3;
       }
       computedTotalCells+=computedCells;

@@ -123,7 +123,7 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell, uint map_order, const Real d
    // BEGIN TEST
    if (counter % 2 != 0) {
       phiprof::start("mesh coarsening");
-      amr_ref_criteria::Base* refCriterion = getObjectWrapper().amrVelRefCriteria.create(Parameters::amrVelRefCriterion);
+      amr_ref_criteria::Base* refCriterion = objectWrapper.amrVelRefCriteria.create(Parameters::amrVelRefCriterion);
       if (refCriterion != NULL) {
          refCriterion->initialize("");
          spatial_cell->coarsen_blocks(refCriterion);

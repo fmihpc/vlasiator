@@ -59,8 +59,8 @@ namespace SBC {
       Readparameters::add("conductingsphere.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
 
       // Per-population parameters
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+      for(uint i=0; i< objectWrapper.particleSpecies.size(); i++) {
+         const std::string& pop = objectWrapper.particleSpecies[i].name;
          
          Readparameters::add(pop + "_conductingsphere.taperRadius", "Width of the zone with a density tapering from the conducting sphere value to the background (m)", 0.0);
          Readparameters::add(pop + "_conductingsphere.rho", "Number density of the conductingsphere (m^-3)", 1.0e6);
@@ -87,8 +87,8 @@ namespace SBC {
          this->applyUponRestart = true;
       }
 
-      for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
-        const std::string& pop = getObjectWrapper().particleSpecies[i].name;
+      for(uint i=0; i< objectWrapper.particleSpecies.size(); i++) {
+        const std::string& pop = objectWrapper.particleSpecies[i].name;
         ConductingsphereSpeciesParameters sP;
 
         Readparameters::get(pop + "_conductingsphere.rho", sP.rho);
@@ -203,7 +203,7 @@ namespace SBC {
          SpatialCell* cell = mpiGrid[cells[i]];
          if (cell->sysBoundaryFlag != this->getIndex()) continue;
          
-         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+         for (uint popID=0; popID<objectWrapper.particleSpecies.size(); ++popID)
             setCellFromTemplate(cell,popID);
       }
       return true;
@@ -800,7 +800,7 @@ namespace SBC {
       templateCell.parameters[CellParams::DZ] = 1;
       
       // Loop over particle species
-      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      for (uint popID=0; popID<objectWrapper.particleSpecies.size(); ++popID) {
          const ConductingsphereSpeciesParameters& sP = this->speciesParams[popID];
          const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(templateCell,popID);
          Realf* data = templateCell.get_data(popID);
@@ -889,7 +889,7 @@ namespace SBC {
       creal& vx, creal& vy, creal& vz
    ) {
       
-      const Real MASS = getObjectWrapper().particleSpecies[popID].mass;
+      const Real MASS = objectWrapper.particleSpecies[popID].mass;
       const ConductingsphereSpeciesParameters& sP = this->speciesParams[popID];
 
       return sP.rho * pow(MASS /
@@ -908,7 +908,7 @@ namespace SBC {
 
       while (search) {
          #warning TODO: add SpatialCell::getVelocityBlockMinValue() in place of sparseMinValue ? (if applicable)
-         if (0.1 * getObjectWrapper().particleSpecies[popID].sparseMinValue > 
+         if (0.1 * objectWrapper.particleSpecies[popID].sparseMinValue > 
             shiftedMaxwellianDistribution(popID,counter*cell.get_velocity_grid_block_size(popID,refLevel)[0], 0.0, 0.0)
             || counter > vblocks_ini[0]) {
             search = false;

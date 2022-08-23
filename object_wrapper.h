@@ -52,7 +52,6 @@ struct ObjectWrapper {
    ObjectWrapper& operator=(const ObjectWrapper& ow);
 };
 
-// Currently defined in vlasiator.cpp
-ObjectWrapper& getObjectWrapper();
+extern ObjectWrapper objectWrapper;
 
 #endif

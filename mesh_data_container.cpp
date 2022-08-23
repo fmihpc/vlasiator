@@ -52,9 +52,9 @@ namespace mesh {
       meshParams.blockLength[2] = 1;
       meshParams.refLevelMaxAllowed = 0;
       
-      meshID = getObjectWrapper().velocityMeshes.size();
-      getObjectWrapper().velocityMeshes.push_back(meshParams);
-      mesh.initialize(meshID,getObjectWrapper().velocityMeshes);
+      meshID = objectWrapper.velocityMeshes.size();
+      objectWrapper.velocityMeshes.push_back(meshParams);
+      mesh.initialize(meshID,objectWrapper.velocityMeshes);
       initialized = true;
       return initialized;
    }

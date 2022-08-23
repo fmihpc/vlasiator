@@ -63,11 +63,11 @@ namespace spatial_cell {
       this->mpiTransferEnabled=true;
       
       // Set correct number of populations
-      populations.resize(getObjectWrapper().particleSpecies.size());
+      populations.resize(objectWrapper.particleSpecies.size());
       
       // Set velocity meshes
       for (uint popID=0; popID<populations.size(); ++popID) {
-         const species::Species& spec = getObjectWrapper().particleSpecies[popID];
+         const species::Species& spec = objectWrapper.particleSpecies[popID];
          populations[popID].vmesh.initialize(spec.velocityMesh);
          populations[popID].velocityBlockMinValue = spec.sparseMinValue;
          populations[popID].N_blocks = 0;
@@ -137,7 +137,7 @@ namespace spatial_cell {
          const velocity_block_indices_t indices = SpatialCell::get_velocity_block_indices(popID,block);
          neighbors_have_content.insert(block); //also add the cell itself
 
-         int addWidthV = getObjectWrapper().particleSpecies[popID].sparseBlockAddWidthV;
+         int addWidthV = objectWrapper.particleSpecies[popID].sparseBlockAddWidthV;
          for (int offset_vx=-addWidthV;offset_vx<=addWidthV;offset_vx++) {
             for (int offset_vy=-addWidthV;offset_vy<=addWidthV;offset_vy++) {
                for (int offset_vz=-addWidthV;offset_vz<=addWidthV;offset_vz++) {
@@ -1336,8 +1336,8 @@ namespace spatial_cell {
     * @return If true, the new species is in use.*/
    bool SpatialCell::setCommunicatedSpecies(const uint popID) {
       #ifdef DEBUG_SPATIAL_CELL
-      if (popID >= getObjectWrapper().particleSpecies.size()) {
-         std::cerr << "ERROR, popID " << popID << " exceeds species.size() " << getObjectWrapper().particleSpecies.size() << " in ";
+      if (popID >= objectWrapper.particleSpecies.size()) {
+         std::cerr << "ERROR, popID " << popID << " exceeds species.size() " << objectWrapper.particleSpecies.size() << " in ";
          std::cerr << __FILE__ << ":" << __LINE__ << std::endl;             
          exit(1);
       }
@@ -1441,9 +1441,9 @@ namespace spatial_cell {
     * @param maxRefLevel Maximum allowed mesh refinement level.*/
    bool SpatialCell::initialize_mesh() {
       bool success = true;
-      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         const species::Species& spec = getObjectWrapper().particleSpecies[popID];
-         if (populations[popID].vmesh.initialize(spec.velocityMesh,getObjectWrapper().velocityMeshes) == false) {
+      for (uint popID=0; popID<objectWrapper.particleSpecies.size(); ++popID) {
+         const species::Species& spec = objectWrapper.particleSpecies[popID];
+         if (populations[popID].vmesh.initialize(spec.velocityMesh,objectWrapper.velocityMeshes) == false) {
             success = false;
          }
       }
@@ -1455,7 +1455,7 @@ namespace spatial_cell {
     * @param popID ID of the particle species.*/
    void SpatialCell::updateSparseMinValue(const uint popID) {
 
-      species::Species& population = getObjectWrapper().particleSpecies[popID];
+      species::Species& population = objectWrapper.particleSpecies[popID];
 
       if ( population.sparseDynamicAlgorithm == 1 || population.sparseDynamicAlgorithm == 2 ) {
          // Linear algorithm for the minValue: y=kx+b
@@ -1477,7 +1477,7 @@ namespace spatial_cell {
          }
          return;
       } else {
-         populations[popID].velocityBlockMinValue = getObjectWrapper().particleSpecies[popID].sparseMinValue;
+         populations[popID].velocityBlockMinValue = objectWrapper.particleSpecies[popID].sparseMinValue;
          return;
       }
       return;

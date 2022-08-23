@@ -34,10 +34,10 @@ bool ObjectWrapper::addPopulationParameters() {
      // Originally, there was support for species and velocity meshes to be separate.
      // This was abandoned, since there wasn't really any use for it.
      newSpecies.name = newVMesh.name = pop;
-     newSpecies.velocityMesh = getObjectWrapper().velocityMeshes.size();
+     newSpecies.velocityMesh = objectWrapper.velocityMeshes.size();
 
-     getObjectWrapper().particleSpecies.push_back(newSpecies);
-     getObjectWrapper().velocityMeshes.push_back(newVMesh);
+     objectWrapper.particleSpecies.push_back(newSpecies);
+     objectWrapper.velocityMeshes.push_back(newVMesh);
 
      RP::add(pop + "_properties.charge", "Particle charge, in units of elementary charges (int)", 1);
      RP::add(pop + "_properties.mass_units", "Units in which particle mass is given, either 'PROTON' or 'ELECTRON' (string)", std::string("PROTON"));
@@ -94,10 +94,10 @@ bool ObjectWrapper::getParameters() {
    // Particle population parameters
    unsigned int popCounter=0;
 
-   for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+   for(unsigned int i =0; i < objectWrapper.particleSpecies.size(); i++) {
 
-      species::Species& species=getObjectWrapper().particleSpecies[i];
-      vmesh::MeshParameters& vMesh=getObjectWrapper().velocityMeshes[i];
+      species::Species& species=objectWrapper.particleSpecies[i];
+      vmesh::MeshParameters& vMesh=objectWrapper.velocityMeshes[i];
 
       const std::string& pop = species.name;
 
