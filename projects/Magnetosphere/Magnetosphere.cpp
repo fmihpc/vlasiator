@@ -592,7 +592,7 @@ namespace projects {
             Real radius2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
             bool inSphere = radius2 < refine_L1radius*refine_L1radius;
             bool inTail = xyz[0] < 0 && fabs(xyz[1]) < refine_L1radius && fabs(xyz[2]) < refine_L1tailthick;
-            if (inSphere || (inTail && canRefine(mpiGrid[id]))) {
+            if ((inSphere || inTail) && radius2 < P::refineRadius * P::refineRadius) {
                //#pragma omp critical
                mpiGrid.refine_completely(id);
             }
@@ -619,7 +619,7 @@ namespace projects {
             Real radius2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
             bool inSphere = radius2 < pow(refine_L2radius, 2);
             bool inTail = xyz[0] < 0 && fabs(xyz[1]) < refine_L2radius && fabs(xyz[2])<refine_L2tailthick;
-            if (inSphere || (inTail && canRefine(mpiGrid[id]))) {
+            if ((inSphere || inTail) && radius2 < P::refineRadius * P ::refineRadius) {
                //#pragma omp critical
                mpiGrid.refine_completely(id);
             }
@@ -646,7 +646,7 @@ namespace projects {
             Real radius2 = pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2);
             bool inNoseCap = (xyz[0]>refine_L3nosexmin) && (radius2<refine_L3radius*refine_L3radius);
             bool inTail = (xyz[0]>refine_L3tailxmin) && (xyz[0]<refine_L3tailxmax) && (fabs(xyz[1])<refine_L3tailwidth) && (fabs(xyz[2])<refine_L3tailheight);
-            if (inNoseCap || inTail) {
+            if ((inNoseCap || inTail) && radius2 < P::refineRadius * P::refineRadius) {
                //#pragma omp critical
                mpiGrid.refine_completely(id);			  
             }
@@ -673,7 +673,7 @@ namespace projects {
 
             // Check if cell is within the nose cap
             bool inNose = refine_L4nosexmin && radius2<refine_L4radius*refine_L4radius;
-            if (inNose) {
+            if (inNose && radius2 < P::refineRadius * P::refineRadius) {
                //#pragma omp critical
                mpiGrid.refine_completely(id);			  
             }
