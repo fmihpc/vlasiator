@@ -1741,6 +1741,8 @@ namespace DRO {
       return true;
    }
 
+   // Heat flux density vector
+   // q_i = m/2 * integral((v - <V>)^2 (v - <V>)_i * f(r,v) dV)
    VariableHeatFluxVector::VariableHeatFluxVector(cuint _popID): DataReductionOperator(),popID(_popID) {
       popName = getObjectWrapper().particleSpecies[popID].name;
    }
