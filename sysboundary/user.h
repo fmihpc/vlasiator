@@ -20,8 +20,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef CONDUCTINGSPHERE_H
-#define CONDUCTINGSPHERE_H
+#ifndef USER_H
+#define USER_H
 
 #include <vector>
 #include "../definitions.h"
@@ -29,36 +29,15 @@
 #include "../spatial_cell.hpp"
 #include "sysboundarycondition.h"
 
-using namespace projects;
-
 namespace SBC {
 
-struct ConductingsphereSpeciesParameters {
-   Real rho;
-   Real V0[3];
-   Real T;
-   Real fluffiness;
-   uint nSpaceSamples;
-   uint nVelocitySamples;
-};
-
-/*!\brief Conductingsphere is a class applying an ionosphere-ish boundary conditions.
- *
- * Conductingsphere is a class handling cells tagged as sysboundarytype::CONDUCTINGSPHERE by
- * this boundary condition. It applies perfectly conducting boundary conditions.
- *
- * These consist in:
- * - Do nothing for the distribution (keep the initial state constant in time);
- * - Keep only the normal perturbed B component and null out the other perturbed
- * components (perfect conductor behavior);
- * - Null out the electric fields.
- *
- * For 3D magnetospheric simulations, you might be interesting in trying the ionosphere boundary instead!
+/*!\brief Class for boundary conditions with user-set settings.
+ * To be implemented by the user.
  */
-class Conductingsphere : public SysBoundaryCondition {
+class User : public SysBoundaryCondition {
 public:
-   Conductingsphere();
-   ~Conductingsphere() override;
+   User();
+   ~User() override;
 
    static void addParameters();
    void getParameters() override;
@@ -70,7 +49,7 @@ public:
                           FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid,
                           Project &project) override;
    void updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
-                    FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2> &perBGrid, creal t) override;
+                    FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid, creal t) override;
    Real
    fieldSolverBoundaryCondMagneticField(FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &bGrid,
                                         FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid, cint i, cint j,
@@ -98,38 +77,10 @@ public:
                                 const CellID &cellID, const uint popID, const bool doCalcMomentsV) override;
 
    void getFaces(bool *faces) override;
+
    std::string getName() const override;
    uint getIndex() const override;
-
-protected:
-   void generateTemplateCell(Project &project);
-   void setCellFromTemplate(SpatialCell *cell, const uint popID);
-
-   Real shiftedMaxwellianDistribution(const uint popID, creal &vx, creal &vy, creal &vz);
-
-   vector<vmesh::GlobalID> findBlocksToInitialize(SpatialCell &cell, const uint popID);
-
-   std::array<Real, 3> fieldSolverGetNormalDirection(FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> &technicalGrid,
-                                                     cint i, cint j, cint k);
-
-   Real center[3]; /*!< Coordinates of the centre of the conducting sphere. */
-   Real radius;    /*!< Radius of the conducting sphere. */
-   uint geometry;  /*!< Geometry of the conducting sphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle,
-                      DEFAULT), 3: polar-plane cylinder with line dipole. */
-
-   std::vector<ConductingsphereSpeciesParameters> speciesParams;
-   Real T;
-   Real rho;
-   Real VX0;
-   Real VY0;
-   Real VZ0;
-
-   uint nSpaceSamples;
-   uint nVelocitySamples;
-
-   spatial_cell::SpatialCell templateCell;
 };
-
 } // namespace SBC
 
 #endif

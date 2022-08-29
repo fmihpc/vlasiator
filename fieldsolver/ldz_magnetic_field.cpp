@@ -186,9 +186,9 @@ void propagateSysBoundaryMagneticField(
    cuint component
 ) {
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX + component) = sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondMagneticField(perBGrid, technicalGrid, i, j, k, dt, component);
+      perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX + component) = sysBoundaries.getBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondMagneticField(perBGrid, technicalGrid, i, j, k, dt, component);
    } else {
-      perBDt2Grid.get(i,j,k)->at(fsgrids::bfield::PERBX + component) = sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondMagneticField(perBDt2Grid, technicalGrid, i, j, k, dt, component);
+      perBDt2Grid.get(i,j,k)->at(fsgrids::bfield::PERBX + component) = sysBoundaries.getBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondMagneticField(perBDt2Grid, technicalGrid, i, j, k, dt, component);
    }
 }
 
@@ -216,9 +216,9 @@ void SysBoundaryMagneticFieldProjection(
    cint& RKCase
 ) {
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondMagneticFieldProjection(perBGrid, technicalGrid, i, j, k);
+      sysBoundaries.getBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondMagneticFieldProjection(perBGrid, technicalGrid, i, j, k);
    } else {
-      sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondMagneticFieldProjection(perBDt2Grid, technicalGrid, i, j, k);
+      sysBoundaries.getBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondMagneticFieldProjection(perBDt2Grid, technicalGrid, i, j, k);
    }
 }
 

@@ -412,10 +412,11 @@ namespace sysboundarytype {
    enum {
       DO_NOT_COMPUTE,   /*!< E.g. cells within the ionospheric outer radius should not be computed at all. */
       NOT_SYSBOUNDARY,  /*!< Cells within the simulation domain are not boundary cells. */
-      IONOSPHERE,       /*!< Ionospheric current model */
+      IONOSPHERE,       /*!< Ionospheric current model. */
+      CONDUCTINGSPHERE, /*!< A perfectly conducting sphere as a simple inner boundary. */
       OUTFLOW,          /*!< No fixed conditions on the fields and distribution function. */
-      SET_MAXWELLIAN,   /*!< Set Maxwellian boundary condition, i.e. set fields and distribution function. */
-      CONDUCTINGSPHERE, /*!< A perfectly conducting sphere as the simple inner boundary */
+      MAXWELLIAN,       /*!< Set Maxwellian boundary condition, i.e. set fields and distribution function. */
+      USER,             /*!< User-defined boundary condition. */
       N_SYSBOUNDARY_CONDITIONS
    };
 }

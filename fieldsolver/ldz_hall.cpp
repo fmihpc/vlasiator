@@ -763,9 +763,9 @@ void calculateHallTerm(
    );
 
    if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) && (cellSysBoundaryLayer != 1)) {
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 0);
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 1);
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 2);
+      sysBoundaries.getBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 0);
+      sysBoundaries.getBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 1);
+      sysBoundaries.getBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 2);
    } else {
       calculateEdgeHallTermXComponents(perBGrid, EHallGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, perturbedCoefficients, i, j, k);
       calculateEdgeHallTermYComponents(perBGrid, EHallGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, perturbedCoefficients, i, j, k);

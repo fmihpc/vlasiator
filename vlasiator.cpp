@@ -152,7 +152,7 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
       if (cell->parameters[CellParams::MAXVDT] != 0 &&
           (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
-           (P::vlasovAccelerateMaxwellianBoundaries && cell->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN))) {
+           (P::vlasovAccelerateMaxwellianBoundaries && cell->sysBoundaryFlag == sysboundarytype::MAXWELLIAN))) {
          // acceleration only done on non-boundary cells
          dtMaxLocal[1] = min(dtMaxLocal[1], cell->parameters[CellParams::MAXVDT]);
       }
@@ -383,9 +383,9 @@ int main(int argn,char* args[]) {
 							    convert<int>(P::ycells_ini * pow(2,P::amrMaxSpatialRefLevel)),
 							    convert<int>(P::zcells_ini * pow(2,P::amrMaxSpatialRefLevel))};
 
-   std::array<bool,3> periodicity{sysBoundaries.isBoundaryPeriodic(0),
-                                  sysBoundaries.isBoundaryPeriodic(1),
-                                  sysBoundaries.isBoundaryPeriodic(2)};
+   std::array<bool,3> periodicity{sysBoundaries.isPeriodic(0),
+                                  sysBoundaries.isPeriodic(1),
+                                  sysBoundaries.isPeriodic(2)};
 
    FsGridCouplingInformation gridCoupling;
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBGrid(fsGridDimensions, comm, periodicity,gridCoupling);
@@ -583,7 +583,7 @@ int main(int argn,char* args[]) {
       // Apply boundary conditions
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
          phiprof::start("Update system boundaries (Vlasov post-acceleration)");
-         sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, 0.5*P::dt, true);
+         sysBoundaries.applyBoundaryVlasovConditions(mpiGrid, 0.5*P::dt, true);
          phiprof::stop("Update system boundaries (Vlasov post-acceleration)");
          addTimedBarrier("barrier-boundary-conditions");
       }
@@ -921,11 +921,15 @@ int main(int argn,char* args[]) {
          calculateSpatialTranslation(mpiGrid,0.0);
       }
       phiprof::stop("Spatial-space",computedCells,"Cells");
-      
+
+      phiprof::start("Update dynamic boundary cells");
+      sysBoundaries.updateState(mpiGrid, perBGrid, P::t + 0.5 * P::dt);
+      phiprof::stop("Update dynamic boundary cells");
+
       // Apply boundary conditions
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
          phiprof::start("Update system boundaries (Vlasov post-translation)");
-         sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt, false);
+         sysBoundaries.applyBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt, false);
          phiprof::stop("Update system boundaries (Vlasov post-translation)");
          addTimedBarrier("barrier-boundary-conditions");
       }
@@ -1024,7 +1028,7 @@ int main(int argn,char* args[]) {
       
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
          phiprof::start("Update system boundaries (Vlasov post-acceleration)");
-         sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt, true);
+         sysBoundaries.applyBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt, true);
          phiprof::stop("Update system boundaries (Vlasov post-acceleration)");
          addTimedBarrier("barrier-boundary-conditions");
       }
