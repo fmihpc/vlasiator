@@ -150,6 +150,9 @@ namespace vmesh {
       delete[] dev_parameters;
       dev_unpinBlocks();
       dev_unpinParameters();
+
+      block_data.~vector();
+      parameters.~vector();
    }
 #endif
 

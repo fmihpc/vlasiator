@@ -509,5 +509,9 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    // Free page locks on host memory
    //cudaHostUnregister(blockData);
 
+   delete[] GIDlist;
+   delete[] LIDlist;
+   delete[] columns;
+
    return true;
 }
