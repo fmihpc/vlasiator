@@ -25,8 +25,8 @@ endif
 #===== Vector Lenghts ====
 # Default for VEC_FALLBACK_GENERIC is WID=4, VECL=8 
 WID=8
-#VECL=64 
-VECL=32
+VECL=64 
+#VECL=32
 #WID=4
 #VECL=16
 
@@ -57,11 +57,12 @@ CXX = mpic++
 CC_BRAND = gcc
 CC_BRAND_VERSION = 9.1.0
 
-CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -gpu=cc80 -Minfo=accel -acc -fopenmp -std=c++11
+#CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -gpu=cc80 -Minfo=accel -acc -fopenmp -std=c++11
+CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -fopenmp -std=c++11
 NVCCFLAGS += -gencode arch=compute_80,code=sm_80 -std=c++11
 
-#testpackage: CXXFLAGS = -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -gpu=cc80 -Minfo=accel -acc -fopenmp -std=c++11
-testpackage: CXXFLAGS = -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -fopenmp -std=c++11
+testpackage: CXXFLAGS = -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -gpu=cc80 -Minfo=accel -acc -fopenmp -std=c++11
+#testpackage: CXXFLAGS = -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -fopenmp -std=c++11
 testpackage: NVCCFLAGS = -gencode arch=compute_80,code=sm_80 -std=c++11 --prec-sqrt=true --prec-div=true --ftz=false --fmad=false
 
 MATHFLAGS =

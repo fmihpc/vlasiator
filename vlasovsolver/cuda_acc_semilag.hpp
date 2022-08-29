@@ -1,7 +1,6 @@
 /*
  * This file is part of Vlasiator.
- * Copyright 2010-2016 Finnish Meteorological Institute,
- * 2016-2022 University of Helsinki, Finland
+ * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
  * at http://www.physics.helsinki.fi/vlasiator/
@@ -21,14 +20,17 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifdef __CUDACC__
-#define CUDA_HOSTDEV __host__ __device__
-#else
-#define CUDA_HOSTDEV
+#ifndef CUDA_ACC_SEMILAG_H
+#define CUDA_ACC_SEMILAG_H
+
+#include "../common.h"
+#include "../spatial_cell.hpp"
+
+void cuda_accelerate_cell(
+        spatial_cell::SpatialCell* spatial_cell,
+        const uint popID,
+        const uint map_order,
+        const Real& dt);
+
 #endif
 
-#ifdef __CUDACC__
-#define CUDA_DEV __device__
-#else
-#define CUDA_DEV
-#endif

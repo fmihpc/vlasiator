@@ -1,7 +1,6 @@
 /*
  * This file is part of Vlasiator.
- * Copyright 2010-2016 Finnish Meteorological Institute,
- * 2016-2022 University of Helsinki, Finland
+ * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
  * at http://www.physics.helsinki.fi/vlasiator/
@@ -21,14 +20,23 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifdef __CUDACC__
-#define CUDA_HOSTDEV __host__ __device__
-#else
-#define CUDA_HOSTDEV
-#endif
 
-#ifdef __CUDACC__
-#define CUDA_DEV __device__
-#else
-#define CUDA_DEV
+#ifndef CUDA_SORT_BLOCKS_FOR_ACC_H
+#define CUDA_SORT_BLOCKS_FOR_ACC_H
+
+#include <vector>
+
+#include "../common.h"
+#include "../spatial_cell.hpp"
+
+void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell, 
+                               const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
+                               const uint dimension,
+                               uint* blocksGID,
+                               uint* blocksLID,
+                               std::vector<uint> & columnBlockOffsets,
+                               std::vector<uint> & columnNumBlocks,
+                               std::vector<uint> & setColumnOffsets,
+                               std::vector<uint> & setNumColumns);
+
 #endif

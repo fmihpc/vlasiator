@@ -50,6 +50,9 @@
 
 #ifdef USE_CUDA
 #include "vlasovsolver/cuda_acc_map_kernel.cuh"
+#include "vlasovsolver/cuda_moments_kernel.cuh"
+//#include "vlasovsolver/cuda_moments.h"
+#include "cuda_context.cuh"
 #endif
 
 #ifndef NDEBUG
@@ -316,6 +319,13 @@ void initializeGrids(
 
    }
 
+#ifdef USE_CUDA
+   // Activate device, create streams
+   cuda_set_device();
+   const uint nPopulations = getObjectWrapper().particleSpecies.size();
+   const uint maxThreads = omp_get_max_threads();
+   cuda_allocateMomentCalculations(nPopulations,maxThreads);
+#endif
 
    // Init mesh data container
    if (getObjectWrapper().meshData.initialize("SpatialGrid") == false) {
@@ -623,27 +633,29 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
 
 #ifdef USE_CUDA
    phiprof::start("CUDA_malloc");
-   cudaMaxBlockCount = 0;
+   uint cudaMaxBlockCount = 0;
+   vmesh::LocalID cudaBlockCount = 0;
    // Not parallelized
    for (uint i=0; i<cells.size(); ++i) {
       SpatialCell* SC = mpiGrid[cells[i]];
-      for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
-         const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = SC->get_velocity_mesh(p);
-         if (vmesh.size() > cudaMaxBlockCount) {
-            cudaMaxBlockCount = vmesh.size();
+      for (size_t popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = SC->get_velocity_mesh(popID);
+         vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = SC->get_velocity_blocks(popID);
+         cudaBlockCount = vmesh.size();
+         // dev_Allocate checks if increased allocation is necessary, also performs deallocation first if necessary
+         blockContainer.dev_Allocate(cudaBlockCount);
+         if (cudaBlockCount > cudaMaxBlockCount) {
+            cudaMaxBlockCount = cudaBlockCount;
          }
       }
    }
-   // Call CUDA routines for memory allocation
-   if (isCudaAllocated) {
-      for (uint i=0; i<omp_get_max_threads(); ++i) {
-         cuda_acc_deallocate_memory(i);
-      }
+   if (cudaMaxBlockCount==0) {
+      cerr << "Error in load balance: zero blocks" << std::endl;
+      abort();
    }
-   for (uint i=0; i<omp_get_max_threads(); ++i) {
-      cuda_acc_allocate_memory(i,cudaMaxBlockCount);
-   }
-   isCudaAllocated=true;
+   // Call CUDA routines for per-thread memory allocation for ACC
+   // deallocates first if necessary
+   cuda_acc_allocate(cudaMaxBlockCount);
    phiprof::stop("CUDA_malloc");
 #endif
    
@@ -689,7 +701,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
       Real density_post_adjust=0.0;
       CellID cell_id=cellsToAdjust[i];
       SpatialCell* cell = mpiGrid[cell_id];
-      
+
       // gather spatial neighbor list and create vector with pointers to neighbor spatial cells
       const auto* neighbors = mpiGrid.get_neighbors_of(cell_id, NEAREST_NEIGHBORHOOD_ID);
       // Note: at AMR refinement boundaries this can cause blocks to propagate further than absolutely required
@@ -720,6 +732,12 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
             }
          }
       }
+#ifdef USE_CUDA
+      // Flag cell data as updated on host
+      vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
+      blockContainer.dev_needsUpdatingBlocks = true;
+      blockContainer.dev_needsUpdatingParameters = true;
+#endif
    }
    phiprof::stop("Adjusting blocks");
 

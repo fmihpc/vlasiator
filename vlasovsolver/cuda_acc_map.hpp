@@ -1,7 +1,6 @@
 /*
  * This file is part of Vlasiator.
- * Copyright 2010-2016 Finnish Meteorological Institute,
- * 2016-2022 University of Helsinki, Finland
+ * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
  * at http://www.physics.helsinki.fi/vlasiator/
@@ -20,15 +19,27 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#ifndef CUDA_ACC_MAP_H
+#define CUDA_ACC_MAP_H
 
-#ifdef __CUDACC__
-#define CUDA_HOSTDEV __host__ __device__
-#else
-#define CUDA_HOSTDEV
-#endif
+#include "../spatial_cell.hpp"
+#include "vec.h"
+#include "../common.h"
 
-#ifdef __CUDACC__
-#define CUDA_DEV __device__
-#else
-#define CUDA_DEV
+#include "device_launch_parameters.h"
+#include "cuda.h"
+#include "cuda_runtime.h"
+
+//using namespace spatial_cell;
+
+bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
+                     const uint popID,
+                     Realv intersection,
+                     Realv intersection_di,
+                     Realv intersection_dj,
+                     Realv intersection_dk,
+                     const uint dimension,
+                     cudaStream_t stream
+   );
+
 #endif

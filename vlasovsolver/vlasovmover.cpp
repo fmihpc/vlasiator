@@ -45,6 +45,12 @@
 #include "cpu_trans_map.hpp"
 #include "cpu_trans_map_amr.hpp"
 
+#ifdef USE_CUDA
+#include "cuda_acc_map_kernel.cuh"
+#include "cuda_acc_semilag.hpp"
+#include "cuda_moments.h"
+#endif
+
 using namespace std;
 using namespace spatial_cell;
 
@@ -342,7 +348,11 @@ void calculateSpatialTranslation(
 
    // Mapping complete, update moments and maximum dt limits //
 momentCalculation:
-   calculateMoments_R(mpiGrid,localCells,true);
+#ifdef USE_CUDA
+   cuda_calculateMoments_R(mpiGrid, localCells, true);
+#else
+   calculateMoments_R(mpiGrid, localCells, true);
+#endif
 
    phiprof::stop("semilag-trans");
 }
@@ -371,7 +381,11 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
    // Calculate velocity moments, these are needed to
    // calculate the transforms used in the accelerations.
    // Calculated moments are stored in the "_V" variables.
+#ifdef USE_CUDA
+   cuda_calculateMoments_V(mpiGrid, propagatedCells, false);
+#else
    calculateMoments_V(mpiGrid, propagatedCells, false);
+#endif
 
    //generate pseudo-random order which is always the same irrespective of parallelization, restarts, etc.
    std::size_t rndInt = std::hash<uint>()(P::tstep);
@@ -403,7 +417,11 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
          if (dt<0) subcycleDt = -subcycleDt;
 
          phiprof::start("cell-semilag-acc");
+#ifdef USE_CUDA
+         cuda_accelerate_cell(mpiGrid[cellID],popID,map_order,subcycleDt);
+#else
          cpu_accelerate_cell(mpiGrid[cellID],popID,map_order,subcycleDt);
+#endif
          phiprof::stop("cell-semilag-acc");
       }
    }
@@ -446,6 +464,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
    // Accelerate all particle species
     for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+       uint cudaMaxBlockCount = 0; // would be better to be over all populations
        int maxSubcycles=0;
        int globalMaxSubcycles;
 
@@ -473,11 +492,24 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
              maxSubcycles = max((int)getAccelerationSubcycles(SC, dt, popID), maxSubcycles);
              spatial_cell::Population& pop = SC->get_population(popID);
              pop.ACCSUBCYCLES = getAccelerationSubcycles(SC, dt, popID);
+#ifdef USE_CUDA
+             uint cudaBlockCount = vmesh.size();
+             if (cudaBlockCount > cudaMaxBlockCount) {
+                cudaMaxBlockCount = cudaBlockCount;
+             }
+#endif
           }
        }
 
+#ifdef USE_CUDA
+       // Ensure accelerator has enough temporary memory allocated
+       cuda_acc_allocate(cudaMaxBlockCount);
+#endif
+
        // Compute global maximum for number of subcycles
        MPI_Allreduce(&maxSubcycles, &globalMaxSubcycles, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+
+       // TODO: move subcycling to lower level call in order to optimize CUDA memory calls
 
        // substep global max times
        for(uint step=0; step<(uint)globalMaxSubcycles; ++step) {
@@ -504,7 +536,11 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
    // Recalculate "_V" velocity moments
 momentCalculation:
-   calculateMoments_V(mpiGrid,cells,true);
+#ifdef USE_CUDA
+   cuda_calculateMoments_V(mpiGrid, cells, true);
+#else
+   calculateMoments_V(mpiGrid, cells, true);
+#endif
 
    // Set CellParams::MAXVDT to be the minimum dt of all per-species values
    #pragma omp parallel for

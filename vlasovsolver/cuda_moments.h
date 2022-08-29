@@ -1,7 +1,6 @@
 /*
  * This file is part of Vlasiator.
- * Copyright 2010-2016 Finnish Meteorological Institute,
- * 2016-2022 University of Helsinki, Finland
+ * Copyright 2010-2016 Finnish Meteorological Institute
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
  * at http://www.physics.helsinki.fi/vlasiator/
@@ -21,14 +20,29 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifdef __CUDACC__
-#define CUDA_HOSTDEV __host__ __device__
-#else
-#define CUDA_HOSTDEV
-#endif
+#ifndef CUDA_MOMENTS_H
+#define CUDA_MOMENTS_H
 
-#ifdef __CUDACC__
-#define CUDA_DEV __device__
-#else
-#define CUDA_DEV
+#include <vector>
+#include <limits>
+#include <dccrg.hpp>
+#include <dccrg_cartesian_geometry.hpp>
+
+#include "../definitions.h"
+#include "../common.h"
+#include "../spatial_cell.hpp"
+
+using namespace spatial_cell;
+
+void cuda_calculateMoments_V(
+        dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+        const std::vector<CellID>& cells,
+        const bool& computeSecond);
+
+void cuda_calculateMoments_R(
+        dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+        const std::vector<CellID>& cells,
+        const bool& computeSecond);
+
+
 #endif

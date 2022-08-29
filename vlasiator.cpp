@@ -31,10 +31,6 @@
    #include <omp.h>
 #endif
 
-#ifdef _OPENACC
-   #include "openacc.h"
-#endif
-
 #include <fsgrid.hpp>
 
 #include "vlasovmover.h"
@@ -57,10 +53,9 @@
 #include "object_wrapper.h"
 #include "fieldsolver/gridGlue.hpp"
 
-#ifdef USE_CUDA
-   #include "vlasovsolver/cuda_acc_map_kernel.cuh"
-#endif
-
+// #ifdef USE_CUDA
+//    #include "vlasovsolver/cuda_acc_map_kernel.cuh"
+// #endif
 
 #ifdef CATCH_FPE
 #include <fenv.h>

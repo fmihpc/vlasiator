@@ -1,5 +1,8 @@
 #include "vec.h"
 #include "../common.h"
+#include "device_launch_parameters.h"
+#include "cuda.h"
+#include "cuda_runtime.h"
 
 struct Column
 {
@@ -12,32 +15,40 @@ struct Column
 };
 
 extern void acceleration_1_glue(
-  Realf *blockData,
-  Column *columns,
-  Vec *values,
-  uint cell_indices_to_id[],
-  int totalColumns,
-  int valuesSizeRequired,
-  int bdsw3,
-  Realv intersection,
-  Realv intersection_di,
-  Realv intersection_dj,
-  Realv intersection_dk,
-  Realv v_min,
-  Realv i_dv,
-  Realv dv,
-  Realv minValue,
-  const uint cuda_async_queue_id
+   Realf* dev_blockData,
+   Vec* dev_blockDataOrdered,
+   uint dev_cell_indices_to_id[],
+   Column* dev_columns,
+   const int totalColumns,
+   const Realv intersection,
+   const Realv intersection_di,
+   const Realv intersection_dj,
+   const Realv intersection_dk,
+   const Realv v_min,
+   const Realv i_dv,
+   const Realv dv,
+   const Realv minValue,
+   const int bdsw3,
+   const int cudablocks,
+   const int cudathreads,
+   cudaStream_t stream
 );
 
-#define DIMS 1
-#ifndef CUDABLOCKS
-#  define CUDABLOCKS (64)
-#endif
-#ifndef CUDATHREADS
-#  define CUDATHREADS (32) // NVIDIA: 32 AMD: 64
-#endif
+extern void reorder_blocks_by_dimension_glue(
+   Realf* dev_blockData,
+   Vec* dev_blockDataOrdered,
+   uint dev_cell_indices_to_id[],
+   const uint totalColumns,
+   uint* dev_LIDlist,
+   uint* dev_columnNumBlocks,
+   uint* dev_columnBlockOffsets,
+   const int cudablocks, 
+   const int cudathreads,
+   cudaStream_t stream);
 
+extern void cuda_acc_allocate (
+   uint maxBlockCount
+   );
 extern void cuda_acc_allocate_memory (
    uint cpuThreadID,
    uint maxBlockCount
@@ -46,16 +57,25 @@ extern void cuda_acc_deallocate_memory (
    uint cpuThreadID
    );
 
-// Device data variables, to be allocated in good time. Made into a long array so that each thread has their own pointer.
-extern Realf *dev_blockData[];
+// Device data variables, to be allocated in good time. Made into an array so that each thread has their own pointer.
+//extern Realf *dev_blockData[]; //now inside velocity_block_container.h
+extern Vec *dev_blockDataOrdered[];
 extern Column *dev_columns[];
-extern int *dev_cell_indices_to_id[];
-extern Vec *dev_values[];
+extern uint *dev_cell_indices_to_id[];
+//extern uint *dev_GIDlist[];
+extern uint *dev_LIDlist[];
+extern uint *dev_columnNumBlocks[];
+extern uint *dev_columnBlockOffsets[];
 
 // Host data variables, to be allocated and pinned in good time. Made into a long array so that each thread has their own pointer.
 extern Column *host_columns[];
-extern Vec *host_values[];
-extern bool isCudaAllocated;
-extern uint cudaMaxBlockCount;
-extern float cudaAllocationMultiplier;
+extern uint *host_GIDlist[];
+extern uint *host_LIDlist[];
+
+static const double CUDA_ACC_SAFECTY_FACTOR = 0.75;
+
+extern uint cuda_acc_allocatedSize;
+extern uint cuda_acc_allocatedColumns;
+extern Real cudaAllocationMultiplier;
+
 
