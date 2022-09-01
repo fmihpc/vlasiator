@@ -137,10 +137,10 @@ namespace projects {
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;
       Real theta = atan2(vperp,vpara);
-      //if (mu <= -0.5 or mu >= 0.5) {return 0.0;}
-      //else {return exp((- mass / (2.0 * kb)) * ((vx*vx) / sP.TEMPERATUREX + (vy*vy) / sP.TEMPERATUREY + (vz*vz) / sP.TEMPERATUREZ));}
+      if (mu <= -0.5 or mu >= 0.5) {return 0.0;}
+      else {return exp((- mass / (2.0 * kb)) * ((vx*vx) / sP.TEMPERATUREX + (vy*vy) / sP.TEMPERATUREY + (vz*vz) / sP.TEMPERATUREZ));}
 
-      return value + exp((- mass / (2.0 * kb)) * ((vx*vx) / sP.TEMPERATUREX + (vy*vy) / sP.TEMPERATUREY + (vz*vz) / sP.TEMPERATUREZ)) * sin(theta)*sin(theta);
+      //return value + exp((- mass / (2.0 * kb)) * ((vx*vx) / sP.TEMPERATUREX + (vy*vy) / sP.TEMPERATUREY + (vz*vz) / sP.TEMPERATUREZ)) * sin(theta)*sin(theta);
    }
 
    Real LossCone::calcPhaseSpaceDensity(
