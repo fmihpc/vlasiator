@@ -48,7 +48,8 @@ static bool checkExistingNeighbour(SpatialCell* cell, Realf VX, Realf VY, Realf 
 void velocitySpaceDiffusion(
         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID){
 
-    const auto LocalCells=getLocalCells(); 
+    const auto LocalCells=getLocalCells();
+    #pragma omp parallel for
     for (int CellIdx = 0; CellIdx < LocalCells.size(); CellIdx++) { //Iterate through spatial cell
 
         auto CellID                        = LocalCells[CellIdx];
@@ -217,7 +218,6 @@ void velocitySpaceDiffusion(
 
             phiprof::start("diffusion time derivative");
             // Compute dfdt
-            //#pragma opm parallel for
             for (vmesh::LocalID n=0; n<cell.get_number_of_velocity_blocks(popID); n++) { // Iterate through velocity blocks             
                 for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
                 
@@ -248,7 +248,6 @@ void velocitySpaceDiffusion(
 
             phiprof::start("update cell");
             //Loop to update cell
-            //#pragma omp parallel for
             for (vmesh::LocalID n=0; n<cell.get_number_of_velocity_blocks(popID); n++) { //Iterate through velocity blocks
                 for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
                     const Real* parameters  = cell.get_block_parameters(popID);
