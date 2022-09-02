@@ -158,8 +158,8 @@ void velocitySpaceDiffusion(
                    #endif
                    CellValue.load(&cell.get_data(n,popID)[WID*j+WID*WID*k]);
 
-                   Vcount .store(&Vcount_array .at(WID*j+WID*WID*k));
-                   mucount.store(&mucount_array.at(WID*j+WID*WID*k));
+                   Vcount .store(&Vcount_array .at(WID3*n+WID*j+WID*WID*k));
+                   mucount.store(&mucount_array.at(WID3*n+WID*j+WID*WID*k));
 
                    for (uint i = 0; i<WID; i++) {
                        fmu   .at(Vcount[i]).at(mucount[i]) += 2.0 * M_PI * Vmu[i]*Vmu[i] * CellValue[i];
