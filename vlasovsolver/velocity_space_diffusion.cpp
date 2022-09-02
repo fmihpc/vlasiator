@@ -233,19 +233,33 @@ void velocitySpaceDiffusion(
             phiprof::start("diffusion time derivative");
             // Compute dfdt
             for (vmesh::LocalID n=0; n<cell.get_number_of_velocity_blocks(popID); n++) { // Iterate through velocity blocks             
-                for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
+                for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) {
                 
-                   Realf CellValue = cell.get_data(n,popID)[i+WID*j+WID*WID*k];
+                   #ifdef DPF
+                   Vec4d CellValue;
+                   #else 
+                   Vec4f CellValue;
+                   #endif
+                   CellValue.load(&cell.get_data(n,popID)[WID*j+WID*WID*k]);
 
-                   int Vcount  = Vcount_array .at(WID3*n+i+WID*j+WID*WID*k);
-                   int mucount = mucount_array.at(WID3*n+i+WID*j+WID*WID*k);
+                   Vec4db lessSpars = CellValue < Sparsity;
+                   CellValue = select(lessSpars, Sparsity, CellValue);
 
-                   Realf Vmu = dVbins * (Vcount+0.5);
+                   Vec4i Vcount;
+                   Vec4i mucount;
 
-                   dfdt.at(WID3*n+i+WID*j+WID*WID*k) = dfdt_mu.at(Vcount).at(mucount) / (2.0 * M_PI * Vmu*Vmu);
+                   Vcount .load(&Vcount_array .at(WID3*n+WID*j+WID*WID*k));
+                   mucount.load(&mucount_array.at(WID3*n+WID*j+WID*WID*k));                   
+
+                   Vec4i Vmu = dVbins * (Vcount+0.5);
+
+                   for (uint i = 0; i < WID; i++) {
+ 
+                       dfdt.at(WID3*n+i+WID*j+WID*WID*k) = dfdt_mu.at(Vcount[i]).at(mucount[i]) / (2.0 * M_PI * Vmu[i]*Vmu[i]);
                    
-                   if (CellValue < Sparsity) {CellValue = Sparsity;} // Set CellValue to sparsity Threshold for empty cells otherwise div by 0
-                   if (abs(dfdt.at(WID3*n+i+WID*j+WID*WID*k)) > 0.0) { checkCFL.at(WID3*n+i+WID*j+WID*WID*k) = CellValue * Parameters::PADCFL * (1.0 / abs(dfdt.at(WID3*n+i+WID*j+WID*WID*k))); }
+                   if (abs(dfdt.at(WID3*n+i+WID*j+WID*WID*k)) > 0.0) { checkCFL.at(WID3*n+i+WID*j+WID*WID*k) = CellValue[i] * Parameters::PADCFL * (1.0 / abs(dfdt.at(WID3*n+i+WID*j+WID*WID*k))); }
+                   }
+
                 } // End coordinates 
             } // End Blocks
             phiprof::stop("diffusion time derivative");
