@@ -33,8 +33,9 @@
 #include <fstream>
 #include <iomanip>
 #include <iterator>
+#include "vectorclass.h"
 
-// TODO: CLEAN UP THIS FUCKING MESS
+// TODO: FIX if WID is not 4
 
 using namespace spatial_cell;
 
@@ -83,6 +84,7 @@ void velocitySpaceDiffusion(
         std::vector<std::vector<Realf>> dfdmu2 (nbins_v,std::vector<Realf>(nbins_mu));  // Array to store dfdmumu
         std::vector<std::vector<Realf>> dfdt_mu(nbins_v,std::vector<Realf>(nbins_mu));  // Array to store dfdt_mu
 
+        std::array<Realf,3> bulkV = {cell.parameters[CellParams::VX], cell.parameters[CellParams::VY], cell.parameters[CellParams::VZ]};
 
         while (dtTotalDiff < Parameters::dt) { // Substep loop
 
@@ -107,50 +109,62 @@ void velocitySpaceDiffusion(
             phiprof::start("fmu building");
             // Build 2d array of f(v,mu)
             for (vmesh::LocalID n=0; n<cell.get_number_of_velocity_blocks(popID); n++) { // Iterate through velocity blocks
-                for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) { // Iterate through coordinates (z,y,x)
+                for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) { // Iterate through coordinates (z,y)
 
                    //Get velocity space coordinates                    
-	           const Real VX 
-                      =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
-                      + (i + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
-                   const Real VY 
-                      =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
-                      + (j + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
-                   const Real VZ 
-                      =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD]
-                      + (k + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+	           const Vec4d VX(parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+                                  + (0 + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX],
+                                  parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+                                  + (1 + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX],
+                                  parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+                                  + (2 + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX],
+                                  parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+                                  + (3 + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]);
+
+                   const Vec4d VY(parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
+                                  + (j + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY]);
+
+                   const Vec4d VZ(parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD]
+                                  + (k + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ]);
                    
-                   std::array<Realf,3> V = {VX,VY,VZ}; // Velocity in the cell, in the simulation frame
+                   std::array<Vec4d,3> V = {VX,VY,VZ}; // Velocity in the cell, in the simulation frame
                                    
-                   const Real DV 
-                      = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
-  
-                   std::array<Realf,3> bulkV = {cell.parameters[CellParams::VX], cell.parameters[CellParams::VY], cell.parameters[CellParams::VZ]};
-                   std::array<Realf,3> Vplasma; // Velocity in the cell, in the plasma frame
+                   std::array<Vec4d,3> Vplasma; // Velocity in the cell, in the plasma frame
 
-                   for (int indx = 0; indx < 3; indx++) { Vplasma.at(indx) = (V.at(indx) - bulkV.at(indx)); }
+                   for (int indx = 0; indx < 3; indx++) { Vplasma.at(indx) = (V.at(indx) - Vec4d(bulkV.at(indx))); }
               
-                   Realf normV = sqrt(Vplasma.at(0)*Vplasma.at(0) + Vplasma.at(1)*Vplasma.at(1) + Vplasma.at(2)*Vplasma.at(2));
+                   Vec4d normV = sqrt(Vplasma.at(0)*Vplasma.at(0) + Vplasma.at(1)*Vplasma.at(1) + Vplasma.at(2)*Vplasma.at(2));
 
-                   Realf Vpara = Vplasma.at(0);
+                   Vec4d Vpara = Vplasma.at(0);
 
-                   Realf mu = Vpara/(normV+std::numeric_limits<Realf>::min()); // + min value to avoid division by 0
+                   Vec4d mu = Vpara/(normV+std::numeric_limits<Realf>::min()); // + min value to avoid division by 0
  
-                   int Vcount;
-                   if (normV < Vmin) { continue; } // To avoid center cells if needed
-                   else { Vcount = static_cast<int>(floor((normV-Vmin) / dVbins)); }                      
+                   Vec4i Vcount;
+                   Vcount = round_to_int(floor((normV-Vmin) / dVbins));
 
-                   int mucount = static_cast<int>(floor( (mu+1.0) / dmubins));                      
+                   // Dont know how to handble that with vectors
+                   // if (normV < Vmin) { continue; } // To avoid center cells if needed
+                   // else { Vcount = round_to_int(floor((normV-Vmin) / dVbins)); }                      
 
-                   Realf Vmu = dVbins * (Vcount+0.5); // Take value at the center of the mu cell
+                   Vec4i mucount;
+                   mucount = round_to_int(floor((mu+1.0) / dmubins));                      
 
-                   Realf CellValue  = cell.get_data(n,popID)[i+WID*j+WID*WID*k];
+                   Vec4d Vmu = dVbins * (to_double(Vcount)+0.5); // Take value at the center of the mu cell
 
-                   Vcount_array .at(WID3*n+i+WID*j+WID*WID*k) = Vcount;
-                   mucount_array.at(WID3*n+i+WID*j+WID*WID*k) = mucount;
+                   #ifdef DPF
+                   Vec4d CellValue;
+                   #else
+                   Vec4f CellValue;
+                   #endif
+                   CellValue.load(&cell.get_data(n,popID)[WID*j+WID*WID*k]);
 
-                   fmu   .at(Vcount).at(mucount) += 2.0 * M_PI * Vmu*Vmu * CellValue;
-                   fcount.at(Vcount).at(mucount) += 1;
+                   Vcount .store(&Vcount_array .at(WID*j+WID*WID*k));
+                   mucount.store(&mucount_array.at(WID*j+WID*WID*k));
+
+                   for (uint i = 0; i<WID; i++) {
+                       fmu   .at(Vcount[i]).at(mucount[i]) += 2.0 * M_PI * Vmu[i]*Vmu[i] * CellValue[i];
+                       fcount.at(Vcount[i]).at(mucount[i]) += 1;
+                   }
                    
                 } // End coordinates
             } // End blocks
