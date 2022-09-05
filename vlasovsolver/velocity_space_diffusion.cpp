@@ -88,6 +88,7 @@ void velocitySpaceDiffusion(
 
         while (dtTotalDiff < Parameters::dt) { // Substep loop
 
+            phiprof::start("Zeroing");
             Realf RemainT = Parameters::dt - dtTotalDiff; //Remaining time before reaching simulation time step
 
             dfdt.assign(cell.get_number_of_velocity_blocks(popID)*WID3,0.0);                                    // Array of vspace size to store dfdt
@@ -105,6 +106,7 @@ void velocitySpaceDiffusion(
                     dfdt_mu.at(i).at(j) = 0.0;
                 }
             }
+            phiprof::stop("Zeroing");
 
             phiprof::start("fmu building");
             // Build 2d array of f(v,mu)
