@@ -251,13 +251,13 @@ void velocitySpaceDiffusion(
                    Vcount .load(&Vcount_array .at(WID3*n+WID*j+WID*WID*k));
                    mucount.load(&mucount_array.at(WID3*n+WID*j+WID*WID*k));                   
 
-                   Vec4i Vmu = dVbins * (Vcount+0.5);
+                   Vec4d Vmu = dVbins * (to_double(Vcount)+0.5);
 
                    for (uint i = 0; i < WID; i++) {
  
                        dfdt.at(WID3*n+i+WID*j+WID*WID*k) = dfdt_mu.at(Vcount[i]).at(mucount[i]) / (2.0 * M_PI * Vmu[i]*Vmu[i]);
                    
-                   if (abs(dfdt.at(WID3*n+i+WID*j+WID*WID*k)) > 0.0) { checkCFL.at(WID3*n+i+WID*j+WID*WID*k) = CellValue[i] * Parameters::PADCFL * (1.0 / abs(dfdt.at(WID3*n+i+WID*j+WID*WID*k))); }
+                       if (abs(dfdt.at(WID3*n+i+WID*j+WID*WID*k)) > 0.0) { checkCFL.at(WID3*n+i+WID*j+WID*WID*k) = CellValue[i] * Parameters::PADCFL * (1.0 / abs(dfdt.at(WID3*n+i+WID*j+WID*WID*k))); }
                    }
 
                 } // End coordinates 
