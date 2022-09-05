@@ -25,6 +25,10 @@
 #include <iostream>
 #include <limits>
 #include <array>
+
+#include "cuda.h"
+#include "cuda_runtime.h"
+#include "cub/cub.cuh"
 #include "datareductionoperator.h"
 #include "../object_wrapper.h"
 
@@ -978,35 +982,35 @@ namespace DRO {
    
    bool VariableMeshData::setSpatialCell(const SpatialCell* cell) {return true;}
    
-   bool VariableMeshData::writeData(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                    const std::vector<CellID>& cells,const std::string& meshName,
-                                    vlsv::Writer& vlsvWriter) {
-      bool success = true;
-      for (size_t i = 0; i < getObjectWrapper().meshData.size(); ++i) {
-         const string dataName = getObjectWrapper().meshData.getName(i);
+   // bool VariableMeshData::writeData(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   //                                  const std::vector<CellID>& cells,const std::string& meshName,
+   //                                  vlsv::Writer& vlsvWriter) {
+   //    bool success = true;
+   //    for (size_t i = 0; i < getObjectWrapper().meshData.size(); ++i) {
+   //       const string dataName = getObjectWrapper().meshData.getName(i);
          
-         // If dataName equals "" then something is wrong, skip array
-         if (dataName.size() == 0) continue;
+   //       // If dataName equals "" then something is wrong, skip array
+   //       if (dataName.size() == 0) continue;
          
-         size_t dataSize = getObjectWrapper().meshData.getDataSize(i);
-         const std::string dataType = getObjectWrapper().meshData.getDataType(i);
-         size_t vectorSize = getObjectWrapper().meshData.getVectorSize(i);
-         size_t arraySize = getObjectWrapper().meshData.getMeshSize();
-         char* pointer = getObjectWrapper().meshData.getData<char>(i);
+   //       size_t dataSize = getObjectWrapper().meshData.getDataSize(i);
+   //       const std::string dataType = getObjectWrapper().meshData.getDataType(i);
+   //       size_t vectorSize = getObjectWrapper().meshData.getVectorSize(i);
+   //       size_t arraySize = getObjectWrapper().meshData.getMeshSize();
+   //       char* pointer = getObjectWrapper().meshData.getData<char>(i);
 
-         if (vectorSize == 0 || vectorSize > 3) continue;
+   //       if (vectorSize == 0 || vectorSize > 3) continue;
          
-         map<string,string> attribs;
-         attribs["mesh"] = meshName;
-         attribs["name"] = dataName;
+   //       map<string,string> attribs;
+   //       attribs["mesh"] = meshName;
+   //       attribs["name"] = dataName;
          
-         if (vlsvWriter.writeArray("VARIABLE",attribs,dataType,arraySize,vectorSize,dataSize,pointer) == false) {
-            cerr << "write failed!" << endl;
-            success = false;
-         }
-      }
-      return success;
-   }
+   //       if (vlsvWriter.writeArray("VARIABLE",attribs,dataType,arraySize,vectorSize,dataSize,pointer) == false) {
+   //          cerr << "write failed!" << endl;
+   //          success = false;
+   //       }
+   //    }
+   //    return success;
+   // }
    
    // Rho nonthermal:
    VariableRhoNonthermal::VariableRhoNonthermal(cuint _popID): DataReductionOperator(),popID(_popID) {

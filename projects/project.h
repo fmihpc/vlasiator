@@ -26,8 +26,10 @@
 #include <random>
 #include "../definitions.h"
 #include "../spatial_cell.hpp"
+#ifndef __CUDACC__
 #include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
+#endif
 #include "fsgrid.hpp"
 
 namespace projects {
@@ -47,13 +49,15 @@ namespace projects {
       /*! Initialize project. Can be used, e.g., to read in parameters from the input file. */
       virtual bool initialize();
       
+#ifndef __CUDACC__
       /*! Perform some operation at each time step in the main program loop. */
       virtual void hook(
          cuint& stage,
          const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid
       ) const;
-      
+#endif
+
       bool initialized();
       
       /** Set the background and perturbed magnetic fields for this project.
@@ -85,8 +89,10 @@ namespace projects {
          
       Real setVelocityBlock(spatial_cell::SpatialCell* cell,const vmesh::LocalID& blockLID,const uint popID) const;
 
+#ifndef __CUDACC__
       virtual bool refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
-      
+#endif      
+
     protected:
       /*! \brief Returns a list of blocks to loop through when initialising.
        * 

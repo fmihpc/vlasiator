@@ -68,7 +68,7 @@ CC_BRAND = nvhpc
 CC_BRAND_VERSION = 21.2
 
 #CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -gpu=cc80 -Minfo=accel -acc -fopenmp -std=c++11
-CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -fopenmp -std=c++11 -rdynamic
+CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -std=c++11
 NVCCFLAGS += -g -gencode arch=compute_80,code=sm_80 -std=c++11 --generate-line-info -line-info
 
 #testpackage: CXXFLAGS = -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -gpu=cc80 -Minfo=accel -acc -fopenmp -std=c++11
@@ -96,8 +96,8 @@ testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 #======== Libraries ===========
 
-LIBRARY_PREFIX = /projappl/project_2002873/libraries/nvhpc/21.2
-LIBRARY_PREFIX2 = /projappl/project_2000203/libraries_rhel8_gcccuda
+LIBRARY_PREFIX = /users/jarohokk/pdir/vlasiator/libs
+LIBRARY_PREFIX2 = /users/jarohokk/pdir/vlasiator/libs
 
 #======== Compiled Libraries ===========
 
@@ -107,8 +107,8 @@ LIB_BOOST = -L/$(LIBRARY_PREFIX2)/boost/lib -lboost_program_options
 LIB_PAPI = -I/$(LIBRARY_PREFIX2)/papi/include -lpapi
 INC_PAPI = -L/$(LIBRARY_PREFIX2)/papi/lib
 
-INC_ZOLTAN = -I/$(LIBRARY_PREFIX2)/zoltan/include
-LIB_ZOLTAN = -L/$(LIBRARY_PREFIX2)/zoltan/lib -lzoltan
+INC_ZOLTAN = -I/$(LIBRARY_PREFIX2)/include
+LIB_ZOLTAN = -L/$(LIBRARY_PREFIX2)/lib -lzoltan
 
 INC_JEMALLOC = -I/$(LIBRARY_PREFIX2)/jemalloc/include
 LIB_JEMALLOC = -L/$(LIBRARY_PREFIX2)/jemalloc/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX2)/jemalloc/lib
