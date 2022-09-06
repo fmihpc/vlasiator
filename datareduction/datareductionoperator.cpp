@@ -396,7 +396,7 @@ namespace DRO {
 
          int loopLimits[4] = {WID, WID, WID, (int)cell->get_number_of_velocity_blocks(popID)};
 
-         parallel_reduce(loopLimits, [=]CUDA_HOSTDEV (const int (&idx)[4], Real (&lsum)[3] ) { 
+         devices::parallel_reduce(loopLimits, [=]CUDA_HOSTDEV (const int (&idx)[4], Real (&lsum)[3] ) { 
              int i = idx[0]; int j = idx[1]; int k = idx[2]; int n = idx[3];
 	          const Real VX 
 		       =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
@@ -476,7 +476,7 @@ namespace DRO {
 
          int loopLimits[4] = {WID, WID, WID, (int)cell->get_number_of_velocity_blocks(popID)};
 
-         parallel_reduce(loopLimits, [=]CUDA_HOSTDEV (const int (&idx)[4], Real (&lsum)[3] ) { 
+         devices::parallel_reduce(loopLimits, [=]CUDA_HOSTDEV (const int (&idx)[4], Real (&lsum)[3] ) { 
             int i = idx[0]; int j = idx[1]; int k = idx[2]; int n = idx[3];
 
             const Real VX 

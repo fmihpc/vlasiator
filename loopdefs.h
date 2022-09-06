@@ -1,8 +1,10 @@
 
-#ifndef USE_CUDAFFFFFFFFFF
+namespace devices{
+
+#ifndef USE_CUDA
 #define CUDA_HOSTDEV
 template <typename Lambda, typename T, int nDim, int nReductions>
-void parallel_reduce(int (&size)[nDim], Lambda loop_body, T (&sum)[nReductions]) {
+inline void parallel_reduce(int (&size)[nDim], Lambda loop_body, T (&sum)[nReductions]) {
 
   int idx[4];
          
@@ -43,7 +45,7 @@ struct Reduction
 template <int nDim, int nReductions, typename LambdaFun, typename T>
 __global__ static void 
 __launch_bounds__(BLOCKSIZE_R)
-DotKernel(LambdaFun loop_fun, T * __restrict__ rslt, Reduction<nDim> lims)
+reduction_kernel(LambdaFun loop_fun, T * __restrict__ rslt, Reduction<nDim> lims)
 {
     // Specialize BlockReduce for a 1D block of BLOCKSIZE_R * 1 * 1 threads on type T
 #ifdef __CUDA_ARCH__
@@ -92,7 +94,7 @@ DotKernel(LambdaFun loop_fun, T * __restrict__ rslt, Reduction<nDim> lims)
 
 
 template <typename Lambda, typename T, int nDim, int nReductions>
-void parallel_reduce(int (&size)[nDim], Lambda loop_body, T (&sum)[nReductions]) {
+__forceinline__ static void parallel_reduce(int (&size)[nDim], Lambda loop_body, T (&sum)[nReductions]) {
 
   Reduction<nDim> lims;
   for(int i = 0; i < nDim; i++){
@@ -107,10 +109,11 @@ void parallel_reduce(int (&size)[nDim], Lambda loop_body, T (&sum)[nReductions])
   CUDA_ERR(cudaMalloc(&buf, nReductions*sizeof(T)));
   CUDA_ERR(cudaMemcpy(buf, sum, nReductions*sizeof(T), cudaMemcpyHostToDevice));
 
-  DotKernel<nDim,nReductions><<<gridsize, blocksize>>>(loop_body, buf, lims);
+  reduction_kernel<nDim,nReductions><<<gridsize, blocksize>>>(loop_body, buf, lims);
   
   CUDA_ERR(cudaStreamSynchronize(0));
   CUDA_ERR(cudaMemcpy(sum, buf, nReductions*sizeof(T), cudaMemcpyDeviceToHost));
   CUDA_ERR(cudaFree(buf));
 }
 #endif
+}
