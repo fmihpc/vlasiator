@@ -53,6 +53,7 @@ void velocitySpaceDiffusion(
     #pragma omp parallel for
     for (int CellIdx = 0; CellIdx < LocalCells.size(); CellIdx++) { //Iterate through spatial cell
 
+        phiprof::start("Initialisation");
         auto CellID                        = LocalCells[CellIdx];
         SpatialCell& cell                  = *mpiGrid[CellID];
 	const Real* parameters             = cell.get_block_parameters(popID);
@@ -85,6 +86,7 @@ void velocitySpaceDiffusion(
         std::vector<std::vector<Realf>> dfdt_mu(nbins_v,std::vector<Realf>(nbins_mu));  // Array to store dfdt_mu
 
         std::array<Realf,3> bulkV = {cell.parameters[CellParams::VX], cell.parameters[CellParams::VY], cell.parameters[CellParams::VZ]};
+        phiprof::stop("Initialisation");
 
         while (dtTotalDiff < Parameters::dt) { // Substep loop
 
