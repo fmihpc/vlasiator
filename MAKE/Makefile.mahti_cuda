@@ -11,6 +11,8 @@
 # one-liner:
 # module purge; module load StdEnv; module load gcc/9.4.0; module load cuda/11.5.0; module load openmpi/4.1.2-cuda; module load jemalloc; module load papi
 
+# module purge; module load StdEnv gcc/11.2.0 cuda/11.5.0 openmpi/4.1.2 jemalloc papi boost
+
 #  Also, add this to your job script!
 #export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/projappl/project_2000203/libraries_rhel8_gcccuda/boost/lib
 
