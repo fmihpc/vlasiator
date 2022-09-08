@@ -42,26 +42,46 @@ __host__ void cuda_set_device() {
    cudaGetDeviceCount(&deviceCount);
    printf("CUDA device count %d with %d threads/streams\n",deviceCount,maxThreads);
 
-   // /* Create communicator with one rank per compute node */
-   // #if MPI_VERSION >= 3
-   // MPI_Comm_split_type(amps_CommWorld, MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL, &amps_CommNode);
-   // #else
-   // /* Split the node level communicator based on Adler32 hash keys of processor name */
-   // char processor_name[MPI_MAX_PROCESSOR_NAME];
-   // int namelen;
-   // MPI_Get_processor_name(processor_name, &namelen);
-   // uint32_t checkSum = Adler32((unsigned char*)processor_name, namelen);
-   // /* Comm split only accepts non-negative numbers */
-   // /* Not super great for hashing purposes but hoping MPI-3 code will be used on most cases */
-   // checkSum &= INT_MAX;
-   // MPI_Comm_split(amps_CommWorld, checkSum, amps_rank, &amps_CommNode);
-   // #endif
-   
-   int gpuid = 0;
-   if (gpuid >= deviceCount) {
-      printf("Error, attempting to use CUDA device beyond available count!\n");
+   /* Create communicator with one rank per compute node to identify which GPU to use */
+   int amps_size;
+   int amps_rank;
+   int amps_node_rank;
+   int amps_node_size;
+   int amps_write_rank;
+   int amps_write_size;
+   MPI_Comm amps_CommWorld = MPI_COMM_NULL;
+   MPI_Comm amps_CommNode = MPI_COMM_NULL;
+
+   MPI_Comm_dup(MPI_COMM_WORLD, &amps_CommWorld);
+   MPI_Comm_size(amps_CommWorld, &amps_size);
+   MPI_Comm_rank(amps_CommWorld, &amps_rank);
+
+   /* Create communicator with one rank per compute node */
+#if MPI_VERSION >= 3
+   MPI_Comm_split_type(amps_CommWorld, MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL, &amps_CommNode);
+#else
+   /* Split the node level communicator based on Adler32 hash keys of processor name */
+   char processor_name[MPI_MAX_PROCESSOR_NAME];
+   int namelen;
+   MPI_Get_processor_name(processor_name, &namelen);
+   uint32_t checkSum = Adler32((unsigned char*)processor_name, namelen);
+   /* Comm split only accepts non-negative numbers */
+   /* Not super great for hashing purposes but hoping MPI-3 code will be used on most cases */
+   checkSum &= INT_MAX;
+   MPI_Comm_split(amps_CommWorld, checkSum, amps_rank, &amps_CommNode);
+#endif
+
+   MPI_Comm_rank(amps_CommNode, &amps_node_rank);
+   MPI_Comm_size(amps_CommNode, &amps_node_size);
+   //cerr << "(Grid) rank " << amps_rank << " is noderank "<< amps_node_rank << " of "<< amps_node_size << endl;
+
+   if (amps_node_rank >= deviceCount) {
+      abort("Error, attempting to use CUDA device beyond available count!\n");
    }
-   cudaSetDevice(gpuid);
+   if (amps_node_size > deviceCount) {
+      abort("Error, MPI tasks per node exceeds available CUDA device count!\n");
+   }
+   cudaSetDevice(amps_node_rank);
 
    // Pre-generate streams
    for (uint i=0; i<maxThreads; ++i) {
