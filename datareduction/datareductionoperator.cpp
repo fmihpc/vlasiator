@@ -1741,4 +1741,84 @@ namespace DRO {
       return true;
    }
 
+   // Heat flux density vector
+   // q_i = m/2 * integral((v - <V>)^2 (v - <V>)_i * f(r,v) dV)
+   VariableHeatFluxVector::VariableHeatFluxVector(cuint _popID): DataReductionOperator(),popID(_popID) {
+      popName = getObjectWrapper().particleSpecies[popID].name;
+   }
+   VariableHeatFluxVector::~VariableHeatFluxVector() { }
+   
+   std::string VariableHeatFluxVector::getName() const {return popName + "/vg_heatflux";}
+
+   bool VariableHeatFluxVector::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = 3;
+      return true;
+   }
+
+   bool VariableHeatFluxVector::reduceData(const SpatialCell* cell,char* buffer) {
+      const Real HALF = 0.5;
+      # pragma omp parallel
+      {
+         Real thread_nvxvx_sum = 0.0;
+         Real thread_nvyvy_sum = 0.0;
+         Real thread_nvzvz_sum = 0.0;
+         
+         const Real* parameters  = cell->get_block_parameters(popID);
+         const Realf* block_data = cell->get_data(popID);
+         
+         # pragma omp for
+         for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); n++) {
+	    for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
+	       const Real VX 
+		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+		 + (i + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+	       const Real VY 
+		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
+		 + (j + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+	       const Real VZ 
+		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] 
+		 + (k + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+	       const Real DV3 
+		 = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
+		 * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] 
+		 * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+           const Real VSQ
+         = (VX - averageVX) * (VX - averageVX) 
+         + (VY - averageVY) * (VY - averageVY) 
+         + (VZ - averageVZ) * (VZ - averageVZ);
+                     
+	       thread_nvxvx_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * VSQ * (VX - averageVX) * DV3;
+	       thread_nvyvy_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * VSQ * (VY - averageVY) * DV3;
+	       thread_nvzvz_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * VSQ * (VZ - averageVZ) * DV3;
+            }
+         }
+         thread_nvxvx_sum *= HALF * getObjectWrapper().particleSpecies[popID].mass;
+         thread_nvyvy_sum *= HALF * getObjectWrapper().particleSpecies[popID].mass;
+         thread_nvzvz_sum *= HALF * getObjectWrapper().particleSpecies[popID].mass;
+
+         // Accumulate contributions coming from this velocity block to the 
+         // spatial cell velocity moments. If multithreading / OpenMP is used, 
+         // these updates need to be atomic:
+         # pragma omp critical
+         {
+            HeatFlux[0] += thread_nvxvx_sum;
+            HeatFlux[1] += thread_nvyvy_sum;
+            HeatFlux[2] += thread_nvzvz_sum;
+         }
+      }
+      const char* ptr = reinterpret_cast<const char*>(&HeatFlux);
+      for (uint i = 0; i < 3*sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+
+   bool VariableHeatFluxVector::setSpatialCell(const SpatialCell* cell) {
+      averageVX = cell-> parameters[CellParams::VX];
+      averageVY = cell-> parameters[CellParams::VY];
+      averageVZ = cell-> parameters[CellParams::VZ];
+      for(int i = 0; i < 3; i++) HeatFlux[i] = 0.0;
+      return true;
+   }
+
 } // namespace DRO
