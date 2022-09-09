@@ -454,7 +454,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          continue;
       }
       if(lowercase == "populations_heatflux" || lowercase == "populations_vg_heatflux") {
-         // Per-population dimensionless non-maxwellianity parameter
+         // Per-population heat flux vector
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
