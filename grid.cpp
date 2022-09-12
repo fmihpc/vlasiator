@@ -1332,10 +1332,27 @@ void adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
       project.adaptRefinement(mpiGrid);
 
    phiprof::start("dccrg refinement");
+
+   phiprof::start("initialize refines");
+   mpiGrid.initialize_refines();
+   double newBytes{0};
+   phiprof::stop("initialize refines");
+
+   phiprof::start("Estimate memory usage");
+   for (auto id : mpiGrid.get_local_cells_to_refine())
+      newBytes += 8 * mpiGrid[id]->get_cell_memory_capacity();
+   
+   // Rougher estimate than above
+   for (auto id : mpiGrid.get_local_cells_to_refine())
+      newBytes += mpiGrid[id]->get_cell_memory_capacity() / 8.0;
+   
+   report_process_memory_consumption(newBytes);
+   phiprof::stop("Estimate memory usage");
+
    // New cells created by refinement
-   phiprof::start("start refining");
-   auto newChildren = mpiGrid.start_refining();
-   phiprof::stop("start refining");
+   phiprof::start("execute refines");
+   auto newChildren = mpiGrid.execute_refines();
+   phiprof::stop("execute refines");
 
    std::vector<CellID> receives;
    for (auto const& [key, val] : mpiGrid.get_cells_to_receive()) {
@@ -1402,14 +1419,6 @@ void adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
 
          // Averaging moments
          calculateCellMoments(mpiGrid[parent], true);
-         //for (int param = CellParams::RHOM; param < CellParams::EXVOL; ++param) {
-         //   if (param == CellParams::BGBXVOL)
-         //      param = CellParams::RHOM_R;   // Skip FG stuff
-
-         //   mpiGrid[parent]->parameters[param] = 0.0;
-         //   for (CellID child : children)
-         //      mpiGrid[parent]->parameters[param] += mpiGrid[child]->parameters[param] / 8.0;
-         //}
 
          processed.insert(parent);
       }
