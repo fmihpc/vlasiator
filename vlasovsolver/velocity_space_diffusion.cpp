@@ -66,6 +66,7 @@ void velocitySpaceDiffusion(
 
         int nbins_v  = Parameters::PADvbins;
         int nbins_mu = Parameters::PADmubins;
+ 
 
         Realf mumin   = -1.0;
         Realf mumax   = +1.0;
@@ -74,15 +75,15 @@ void velocitySpaceDiffusion(
         Realf Vmin   = 0.0; // In case we need to avoid center cells
         Realf Vmax   = 2*sqrt(3)*vMesh.meshLimits[1];
         Realf dVbins = (Vmax - Vmin)/nbins_v;  
-        
-        Realf dfdt       [cell.get_number_of_velocity_blocks(popID)*WID3]; // Array of vspace size to store dfdt
-        int Vcount_array [cell.get_number_of_velocity_blocks(popID)*WID3]; // Array to store vcount per cell
-        int mucount_array[cell.get_number_of_velocity_blocks(popID)*WID3]; // Array to store mucount per cell
-        int fcount   [nbins_v][nbins_mu];                                  // Array to count number of f stored
-        Realf fmu    [nbins_v][nbins_mu];                                  // Array to store f(v,mu)
-        Realf dfdmu  [nbins_v][nbins_mu];                                  // Array to store dfdmu
-        Realf dfdmu2 [nbins_v][nbins_mu];                                  // Array to store dfdmumu
-        Realf dfdt_mu[nbins_v][nbins_mu];                                  // Array to store dfdt_mu
+
+        std::vector<Realf> dfdt       (cell.get_number_of_velocity_blocks(popID) * WID3); // Array of vspace size to store dfdt
+        std::vector<int> Vcount_array (cell.get_number_of_velocity_blocks(popID) * WID3); // Array to store vcount per cell
+        std::vector<int> mucount_array(cell.get_number_of_velocity_blocks(popID) * WID3); // Array to store mucount per cell
+        int fcount   [nbins_v][nbins_mu];                                                 // Array to count number of f stored
+        Realf fmu    [nbins_v][nbins_mu];                                                 // Array to store f(v,mu)
+        Realf dfdmu  [nbins_v][nbins_mu];                                                 // Array to store dfdmu
+        Realf dfdmu2 [nbins_v][nbins_mu];                                                 // Array to store dfdmumu
+        Realf dfdt_mu[nbins_v][nbins_mu];                                                 // Array to store dfdt_mu
         
         std::vector<Realf> checkCFL (cell.get_number_of_velocity_blocks(popID)*WID3); // Array of vspace size to store checkCFL (This one hates me)
         
@@ -95,14 +96,8 @@ void velocitySpaceDiffusion(
             Realf RemainT = Parameters::dt - dtTotalDiff; //Remaining time before reaching simulation time step
  
             // Initialised back to zero at each substep
-            memset(dfdt         , 0.0, sizeof(dfdt));
             memset(fmu          , 0.0, sizeof(fmu));
-            memset(dfdmu        , 0.0, sizeof(dfdmu));
-            memset(dfdmu2       , 0.0, sizeof(dfdmu2));
-            memset(dfdt_mu      , 0.0, sizeof(dfdt_mu));
-            memset(Vcount_array , 0  , sizeof(Vcount_array));
-            memset(mucount_array, 0  , sizeof(mucount_array));
-            memset(fcount       , 0  , sizeof(fcount));
+            memset(fcount       , 0.0, sizeof(fcount));
 
             checkCFL.assign(cell.get_number_of_velocity_blocks(popID)*WID3, std::numeric_limits<Realf>::max()); // Initialized with max value to not mess up checkCFL for empty cells
             phiprof::stop("Zeroing");
