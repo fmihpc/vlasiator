@@ -40,7 +40,9 @@ struct Field
    Boundary* dimension[3];
 
    // The actual field data
-   std::vector<double> data;
+   //std::vector<double> data;
+   //typedef std::vector<Particle, aligned_allocator<Particle, 32>> ParticleContainer;
+   std::vector<double, aligned_allocator<double, 261280000>> data;
 
    // Constructor (primarily here to make sure boundaries are properly initialized as zero)
    Field() {
@@ -56,7 +58,7 @@ struct Field
          return &(data[4*(y*dimension[0]->cells+x)]);
       } else {
          // General 3d case
-         return &(data[4*(z*dimension[0]->cells*dimension[1]->cells + y*dimension[0]->cells + x)]);
+         return &(data[4*(z * dimension[0]->cells * dimension[1]->cells + y * dimension[0]->cells + x)]);
       }
    }
 
@@ -148,6 +150,12 @@ struct Interpolated_Field : Field{
     * and the current time.
     */
    Interpolated_Field(Field& _a, Field& _b, float _t) : a(_a),b(_b),t(_t) {
+   }
+
+   void setfields(Field& _a, Field& _b, float _t) {
+     a=_a;
+     b=_b;
+     t=_t;
    }
 
    virtual Vec3d operator()(Vec3d v) {

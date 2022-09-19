@@ -29,6 +29,8 @@
 #include <errno.h>
 #include <string.h>
 #include "common.h"
+#include "readparameters.h"
+#include "particles/particleparameters.h"
 #include "particles/field.h"
 #include "particles/readfields.h"
 
@@ -365,7 +367,7 @@ double nanMean(std::vector<double> &v) {
 
 int main(int argc, char** argv) {
 
-   // MPI::Init(argc, argv);
+   MPI_Init(&argc, &argv);
 
    if(argc < 3) {
       cerr << "Syntax: fluxfunction input.vlsv output.bin" << endl;
@@ -376,9 +378,20 @@ int main(int argc, char** argv) {
    string inFile(argv[1]);
    string outFile(argv[2]);
 
+   /* Parse commandline and config*/
+   Readparameters parameters(argc, argv);
+   ParticleParameters::addParameters();
+   parameters.parse(false);  // Parse parameters and don't require run_config
+   parameters.helpMessage();
+   
+   if(!ParticleParameters::getParameters()) {
+      std::cerr << "Parsing parameters failed, using default fsgrid field names." << std::endl;
+      std::cerr << "Did you add a --run_config=file.cfg parameter?" << std::endl;
+   }
+
    // TODO: Don't uselessly read E, we really only care about B.
-   Field E,B,V;
-   readfields(inFile.c_str(),E,B,V,false);
+   Field E,B,V,R;
+   readfields(inFile.c_str(),E, B, V, R, false, false);
 
    // Make sure we are working with a 2D simulation here.
    if(B.dimension[0]->cells > 1 && B.dimension[1]->cells > 1 && B.dimension[2]->cells > 1) {
