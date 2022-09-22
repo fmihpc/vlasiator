@@ -1322,7 +1322,7 @@ void mapRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    phiprof::stop("Map Refinement Level to FsGrid");
 }
 
-void adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, SysBoundary& sysBoundaries, Project& project, bool useStatic) {
+bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, SysBoundary& sysBoundaries, Project& project, bool useStatic) {
    phiprof::start("Re-refine spatial cells");
    calculateScaledDeltasSimple(mpiGrid);
 
@@ -1343,11 +1343,21 @@ void adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
       newBytes += 8 * mpiGrid[id]->get_cell_memory_capacity();
    
    // Rougher estimate than above
-   for (auto id : mpiGrid.get_local_cells_to_refine())
+   for (auto id : mpiGrid.get_local_cells_to_unrefine())
       newBytes += mpiGrid[id]->get_cell_memory_capacity() / 8.0;
    
    report_process_memory_consumption(newBytes);
    phiprof::stop("Estimate memory usage");
+
+   // Bailout from estimate
+   // clunky...
+   int bailout {0};
+   phiprof::start("Bailout-allreduce");
+   MPI_Allreduce(&(globalflags::bailingOut), &bailout, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+   phiprof::stop("Bailout-allreduce");
+
+   if (bailout)
+      return false;
 
    // New cells created by refinement
    phiprof::start("execute refines");
@@ -1460,4 +1470,5 @@ void adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    }
 
    phiprof::stop("Re-refine spatial cells");
+   return true;
 }
