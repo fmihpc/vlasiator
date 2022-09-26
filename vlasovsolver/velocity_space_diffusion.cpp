@@ -85,7 +85,7 @@ void velocitySpaceDiffusion(
         Realf dfdmu2 [nbins_v][nbins_mu];                                                 // Array to store dfdmumu
         Realf dfdt_mu[nbins_v][nbins_mu];                                                 // Array to store dfdt_mu
         
-        std::vector<Realf> checkCFL (cell.get_number_of_velocity_blocks(popID)*WID3); // Array of vspace size to store checkCFL (This one hates me)
+        std::vector<Realf> checkCFL (cell.get_number_of_velocity_blocks(popID)*WID3, std::numeric_limits<Realf>::max()); // Array of vspace size to store checkCFL (This one hates me)
         
         std::array<Realf,3> bulkV = {cell.parameters[CellParams::VX], cell.parameters[CellParams::VY], cell.parameters[CellParams::VZ]};
         phiprof::stop("Initialisation");
@@ -99,7 +99,6 @@ void velocitySpaceDiffusion(
             memset(fmu          , 0.0, sizeof(fmu));
             memset(fcount       , 0.0, sizeof(fcount));
 
-            checkCFL.assign(cell.get_number_of_velocity_blocks(popID)*WID3, std::numeric_limits<Realf>::max()); // Initialized with max value to not mess up checkCFL for empty cells
             phiprof::stop("Zeroing");
 
             phiprof::start("fmu building");
@@ -249,13 +248,18 @@ void velocitySpaceDiffusion(
 
                    Vec4d Vmu = dVbins * (to_double(Vcount)+0.5);
 
-                   for (uint i = 0; i < WID; i++) {
- 
-                       dfdt[WID3*n+i+WID*j+WID*WID*k] = dfdt_mu[Vcount[i]][mucount[i]] / (2.0 * M_PI * Vmu[i]*Vmu[i]);
+                   for (uint i = 0; i < WID; i++) {dfdt[WID3*n+i+WID*j+WID*WID*k] = dfdt_mu[Vcount[i]][mucount[i]] / (2.0 * M_PI * Vmu[i]*Vmu[i]);}
                    
-                       if (abs(dfdt[WID3*n+i+WID*j+WID*WID*k]) > 0.0) { checkCFL[WID3*n+i+WID*j+WID*WID*k] = CellValue[i] * Parameters::PADCFL * (1.0 / abs(dfdt[WID3*n+i+WID*j+WID*WID*k])); }
-                   }
+                   Vec4d dfdtCheck;
+                   dfdtCheck.load(&dfdt[WID3*n+WID*j+WID*WID*k]);
 
+                   Vec4d checkCFLTemp;                   
+
+                   Vec4db dfdtABS = abs(dfdtCheck) > 0.0;
+                   
+                   checkCFLTemp = select(dfdtABS, CellValue * Parameters::PADCFL * (1.0 / abs(dfdtCheck)), std::numeric_limits<Realf>::max());
+                   checkCFLTemp.store(&checkCFL[WID3*n+WID*j+WID*WID*k]);
+                   
                 } // End coordinates 
             } // End Blocks
             phiprof::stop("diffusion time derivative");
@@ -273,17 +277,26 @@ void velocitySpaceDiffusion(
             phiprof::start("update cell");
             //Loop to update cell
             for (vmesh::LocalID n=0; n<cell.get_number_of_velocity_blocks(popID); n++) { //Iterate through velocity blocks
-                for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
+                for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) { 
                     const Real* parameters  = cell.get_block_parameters(popID);
+ 
+                    #ifdef DPF
+                    Vec4d CellValue;
+                    Vec4d NewCellValue;
+                    #else
+                    Vec4f CellValue;
+                    Vec4f NewCellValue;
+                    #endif
+                    CellValue.load(&cell.get_data(n,popID)[WID*j+WID*WID*k]);
 
-                    Realf CellValue = cell.get_data(n,popID)[i+WID*j+WID*WID*k];
-                    
+                    Vec4d dfdtUpdate;
+                    dfdtUpdate.load(&dfdt[WID3*n+WID*j+WID*WID*k]);
+
                     //Update cell
-                    Realf NewCellValue;
-                    NewCellValue = CellValue + dfdt[WID3*n+i+WID*j+WID*WID*k] * Ddt;
-                    if (NewCellValue <= 0.0) { NewCellValue = 0.0;}
-
-                    cell.get_data(n,popID)[i+WID*j+WID*WID*k] = NewCellValue;
+                    NewCellValue    = CellValue + dfdtUpdate * Ddt;
+                    Vec4db lessZero = NewCellValue < 0.0;
+                    NewCellValue    = select(lessZero,0.0,NewCellValue);
+                    NewCellValue.store(&cell.get_data(n,popID)[WID*j+WID*WID*k]);
                } // End coordinates
            } // End block
            phiprof::stop("update cell");

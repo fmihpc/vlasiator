@@ -38,6 +38,7 @@ namespace projects {
       Real densityPertRelAmp;
       Real velocityPertAbsAmp;
       Real maxwCutoff;
+      Real V0[3];
       uint nSpaceSamples;
       uint nVelocitySamples;
 

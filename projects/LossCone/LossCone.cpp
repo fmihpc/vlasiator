@@ -61,6 +61,9 @@ namespace projects {
          RP::add(pop + "_LossCone.TemperatureY", "Temperature (K)", 2.0e6);
          RP::add(pop + "_LossCone.TemperatureZ", "Temperature (K)", 2.0e6);
          RP::add(pop + "_LossCone.densityPertRelAmp", "Amplitude factor of the density perturbation", 0.1);
+         RP::add(pop + "_LossCone.VX0", "Initial bulk velocity in x-direction", 0.0);
+         RP::add(pop + "_LossCone.VY0", "Initial bulk velocity in y-direction", 0.0);
+         RP::add(pop + "_LossCone.VZ0", "Initial bulk velocity in z-direction", 0.0);
          RP::add(pop + "_LossCone.velocityPertAbsAmp", "Amplitude of the velocity perturbation", 1.0e6);
          RP::add(pop + "_LossCone.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
          RP::add(pop + "_LossCone.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
@@ -89,6 +92,9 @@ namespace projects {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          LossConeSpeciesParameters sP;
          RP::get(pop + "_LossCone.rho", sP.DENSITY);
+         RP::get(pop + "_LossCone.VX0", sP.V0[0]);
+         RP::get(pop + "_LossCone.VY0", sP.V0[1]);
+         RP::get(pop + "_LossCone.VZ0", sP.V0[2]);
          RP::get(pop + "_LossCone.TemperatureX", sP.TEMPERATUREX);
          RP::get(pop + "_LossCone.TemperatureY", sP.TEMPERATUREY);
          RP::get(pop + "_LossCone.TemperatureZ", sP.TEMPERATUREZ);
@@ -138,7 +144,7 @@ namespace projects {
       creal kb = physicalconstants::K_B;
       Real theta = atan2(vperp,vpara);
       if (mu <= -0.5 or mu >= 0.5) {return 0.0;}
-      else {return exp((- mass / (2.0 * kb)) * ((vx*vx) / sP.TEMPERATUREX + (vy*vy) / sP.TEMPERATUREY + (vz*vz) / sP.TEMPERATUREZ));}
+      else {return exp((- mass / (2.0 * kb)) * ( ((vx-sP.V0[0])*(vx-sP.V0[0]))  / sP.TEMPERATUREX + ((vy-sP.V0[1])*(vy-sP.V0[1])) / sP.TEMPERATUREY + ((vz-sP.V0[2])*(vz-sP.V0[2])) / sP.TEMPERATUREZ));}
 
       //return value + exp((- mass / (2.0 * kb)) * ((vx*vx) / sP.TEMPERATUREX + (vy*vy) / sP.TEMPERATUREY + (vz*vz) / sP.TEMPERATUREZ)) * sin(theta)*sin(theta);
    }
