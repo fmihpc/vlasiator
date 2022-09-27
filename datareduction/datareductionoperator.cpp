@@ -394,10 +394,14 @@ namespace DRO {
          
          Real averageVX = this->averageVX, averageVY = this->averageVY, averageVZ = this->averageVZ;
 
-         int loopLimits[4] = {WID, WID, WID, (int)cell->get_number_of_velocity_blocks(popID)};
+         uint loopLimits[4] = {WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)};
 
-         devices::parallel_reduce(loopLimits, [=]CUDA_HOSTDEV (const int (&idx)[4], Real (&lsum)[3] ) { 
-             int i = idx[0]; int j = idx[1]; int k = idx[2]; int n = idx[3];
+         devices::parallel_reduce(loopLimits, [=]CUDA_HOSTDEV (const uint (&idx)[4], Real (&lsum)[3] ) { 
+            const uint i = idx[0]; 
+            const uint j = idx[1]; 
+            const uint k = idx[2]; 
+            const uint n = idx[3];
+
 	          const Real VX 
 		       =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
 		       + (i + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
@@ -474,10 +478,13 @@ namespace DRO {
          
          Real averageVX = this->averageVX, averageVY = this->averageVY, averageVZ = this->averageVZ;
 
-         int loopLimits[4] = {WID, WID, WID, (int)cell->get_number_of_velocity_blocks(popID)};
+         uint loopLimits[4] = {WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)};
 
-         devices::parallel_reduce(loopLimits, [=]CUDA_HOSTDEV (const int (&idx)[4], Real (&lsum)[3] ) { 
-            int i = idx[0]; int j = idx[1]; int k = idx[2]; int n = idx[3];
+         devices::parallel_reduce(loopLimits, [=]CUDA_HOSTDEV (const uint (&idx)[4], Real (&lsum)[3] ) { 
+            const uint i = idx[0]; 
+            const uint j = idx[1]; 
+            const uint k = idx[2]; 
+            const uint n = idx[3];
 
             const Real VX 
 		      =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
