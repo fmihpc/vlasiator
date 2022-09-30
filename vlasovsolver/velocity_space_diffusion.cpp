@@ -49,8 +49,22 @@ static bool checkExistingNeighbour(SpatialCell* cell, Realf VX, Realf VY, Realf 
 void velocitySpaceDiffusion(
         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID){
 
+    int nbins_v  = Parameters::PADvbins;
+    int nbins_mu = Parameters::PADmubins;
+ 
+    Realf mumin   = -1.0;
+    Realf mumax   = +1.0;
+    Realf dmubins = (mumax - mumin)/nbins_mu;
+
+    int fcount   [nbins_v][nbins_mu]; // Array to count number of f stored
+    Realf fmu    [nbins_v][nbins_mu]; // Array to store f(v,mu)
+    Realf dfdmu  [nbins_v][nbins_mu]; // Array to store dfdmu
+    Realf dfdmu2 [nbins_v][nbins_mu]; // Array to store dfdmumu
+    Realf dfdt_mu[nbins_v][nbins_mu]; // Array to store dfdt_mu
+    
+
     const auto LocalCells=getLocalCells();
-    #pragma omp parallel for
+    #pragma omp parallel for private(fcount,fmu,dfdmu,dfdmu2,dfdt_mu)
     for (int CellIdx = 0; CellIdx < LocalCells.size(); CellIdx++) { //Iterate through spatial cell
 
         phiprof::start("Initialisation");
@@ -64,37 +78,24 @@ void velocitySpaceDiffusion(
 
         Realf dtTotalDiff = 0.0; // Diffusion time elapsed
 
-        int nbins_v  = Parameters::PADvbins;
-        int nbins_mu = Parameters::PADmubins;
- 
-
-        Realf mumin   = -1.0;
-        Realf mumax   = +1.0;
-        Realf dmubins = (mumax - mumin)/nbins_mu;
-
         Realf Vmin   = 0.0; // In case we need to avoid center cells
         Realf Vmax   = 2*sqrt(3)*vMesh.meshLimits[1];
         Realf dVbins = (Vmax - Vmin)/nbins_v;  
+    
+        Realf* dfdt        = reinterpret_cast<Realf*>(malloc(sizeof(Realf)*(cell.get_number_of_velocity_blocks(popID) * WID3))); 
+        int* Vcount_array  = reinterpret_cast<int*>  (malloc(sizeof(int)  *(cell.get_number_of_velocity_blocks(popID) * WID3)));
+        int* mucount_array = reinterpret_cast<int*>  (malloc(sizeof(int)  *(cell.get_number_of_velocity_blocks(popID) * WID3)));
 
-        std::vector<Realf> dfdt       (cell.get_number_of_velocity_blocks(popID) * WID3); // Array of vspace size to store dfdt
-        std::vector<int> Vcount_array (cell.get_number_of_velocity_blocks(popID) * WID3); // Array to store vcount per cell
-        std::vector<int> mucount_array(cell.get_number_of_velocity_blocks(popID) * WID3); // Array to store mucount per cell
-        int fcount   [nbins_v][nbins_mu];                                                 // Array to count number of f stored
-        Realf fmu    [nbins_v][nbins_mu];                                                 // Array to store f(v,mu)
-        Realf dfdmu  [nbins_v][nbins_mu];                                                 // Array to store dfdmu
-        Realf dfdmu2 [nbins_v][nbins_mu];                                                 // Array to store dfdmumu
-        Realf dfdt_mu[nbins_v][nbins_mu];                                                 // Array to store dfdt_mu
-        
-        std::vector<Realf> checkCFL (cell.get_number_of_velocity_blocks(popID)*WID3, std::numeric_limits<Realf>::max()); // Array of vspace size to store checkCFL (This one hates me)
-        
         std::array<Realf,3> bulkV = {cell.parameters[CellParams::VX], cell.parameters[CellParams::VY], cell.parameters[CellParams::VZ]};
         phiprof::stop("Initialisation");
-
+        
+        phiprof::start("Subloop");
         while (dtTotalDiff < Parameters::dt) { // Substep loop
 
             phiprof::start("Zeroing");
-            Realf RemainT = Parameters::dt - dtTotalDiff; //Remaining time before reaching simulation time step
- 
+            Realf RemainT  = Parameters::dt - dtTotalDiff; //Remaining time before reaching simulation time step
+            Vec4d checkCFL = std::numeric_limits<Realf>::max();
+
             // Initialised back to zero at each substep
             memset(fmu          , 0.0, sizeof(fmu));
             memset(fcount       , 0.0, sizeof(fcount));
@@ -163,7 +164,6 @@ void velocitySpaceDiffusion(
                    
                 } // End coordinates
             } // End blocks
-            phiprof::stop("fmu building");
 
             for (int indv = 0; indv < nbins_v; indv++) { // Divide f by count 
                 for(int indmu = 0; indmu < nbins_mu; indmu++) {
@@ -171,11 +171,12 @@ void velocitySpaceDiffusion(
                     else {fmu[indv][indmu] = fmu[indv][indmu] / fcount[indv][indmu];} 
                 }
             }
-            
+            phiprof::stop("fmu building");
+
+            phiprof::start("spatial derivatives");
             int cRight;
             int cLeft;
 
-            phiprof::start("spatial derivatives");
             // Compute dfdmu and dfdmu2 (take first non-zero neighbours)
             for (int indv = 0; indv < nbins_v; indv++) { 
                 for(int indmu = 0; indmu < nbins_mu; indmu++) {
@@ -249,7 +250,6 @@ void velocitySpaceDiffusion(
                    Vec4d Vmu = dVbins * (to_double(Vcount)+0.5);
 
                    for (uint i = 0; i < WID; i++) {dfdt[WID3*n+i+WID*j+WID*WID*k] = dfdt_mu[Vcount[i]][mucount[i]] / (2.0 * M_PI * Vmu[i]*Vmu[i]);}
-                   
                    Vec4d dfdtCheck;
                    dfdtCheck.load(&dfdt[WID3*n+WID*j+WID*WID*k]);
 
@@ -258,18 +258,17 @@ void velocitySpaceDiffusion(
                    Vec4db dfdtABS = abs(dfdtCheck) > 0.0;
                    
                    checkCFLTemp = select(dfdtABS, CellValue * Parameters::PADCFL * (1.0 / abs(dfdtCheck)), std::numeric_limits<Realf>::max());
-                   checkCFLTemp.store(&checkCFL[WID3*n+WID*j+WID*WID*k]);
-                   
-                } // End coordinates 
+                   checkCFL = min(checkCFLTemp,checkCFL);
+
+                   } // End coordinates 
             } // End Blocks
             phiprof::stop("diffusion time derivative");
 
             phiprof::start("calculate CFL");
             //Calculate Diffusion time step based on min of CFL condition
-            std::vector<Realf>::iterator mincheckCFL;
-            mincheckCFL = std::min_element(checkCFL.begin(),checkCFL.end());
-            if (mincheckCFL == checkCFL.end()) {break;}
-            Realf Ddt = *mincheckCFL; // Diffusion time step
+            Realf DdtTemp = std::numeric_limits<Realf>::max();
+            for (int i = 0; i<4; i++) { if (checkCFL[i] < DdtTemp) {DdtTemp = checkCFL[i];} }
+            Realf Ddt = DdtTemp; // Diffusion time step
             if (Ddt > RemainT) { Ddt = RemainT; }
             dtTotalDiff = dtTotalDiff + Ddt;
             phiprof::stop("calculate CFL");
@@ -302,7 +301,7 @@ void velocitySpaceDiffusion(
            phiprof::stop("update cell");
         
         } // End Time loop
-
+        phiprof::stop("Subloop");
     } // End spatial cell loop
 
 } // End function
