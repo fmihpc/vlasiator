@@ -61,7 +61,6 @@ void velocitySpaceDiffusion(
     Realf dfdmu  [nbins_v][nbins_mu]; // Array to store dfdmu
     Realf dfdmu2 [nbins_v][nbins_mu]; // Array to store dfdmumu
     Realf dfdt_mu[nbins_v][nbins_mu]; // Array to store dfdt_mu
-    
 
     const auto LocalCells=getLocalCells();
     #pragma omp parallel for private(fcount,fmu,dfdmu,dfdmu2,dfdt_mu)
@@ -83,8 +82,8 @@ void velocitySpaceDiffusion(
         Realf dVbins = (Vmax - Vmin)/nbins_v;  
     
         Realf* dfdt        = reinterpret_cast<Realf*>(malloc(sizeof(Realf)*(cell.get_number_of_velocity_blocks(popID) * WID3))); 
-        int* Vcount_array  = reinterpret_cast<int*>  (malloc(sizeof(int)  *(cell.get_number_of_velocity_blocks(popID) * WID3)));
-        int* mucount_array = reinterpret_cast<int*>  (malloc(sizeof(int)  *(cell.get_number_of_velocity_blocks(popID) * WID3)));
+        int* Vindex_array  = reinterpret_cast<int*>  (malloc(sizeof(int)  *(cell.get_number_of_velocity_blocks(popID) * WID3)));
+        int* muindex_array = reinterpret_cast<int*>  (malloc(sizeof(int)  *(cell.get_number_of_velocity_blocks(popID) * WID3)));
 
         std::array<Realf,3> bulkV = {cell.parameters[CellParams::VX], cell.parameters[CellParams::VY], cell.parameters[CellParams::VZ]};
         phiprof::stop("Initialisation");
@@ -154,8 +153,8 @@ void velocitySpaceDiffusion(
                    #endif
                    CellValue.load(&cell.get_data(n,popID)[WID*j+WID*WID*k]);
 
-                   Vcount .store(&Vcount_array [WID3*n+WID*j+WID*WID*k]);
-                   mucount.store(&mucount_array[WID3*n+WID*j+WID*WID*k]);
+                   Vcount .store(&Vindex_array [WID3*n+WID*j+WID*WID*k]);
+                   mucount.store(&muindex_array[WID3*n+WID*j+WID*WID*k]);
 
                    for (uint i = 0; i<WID; i++) {
                        fmu   [Vcount[i]][mucount[i]] += 2.0 * M_PI * Vmu[i]*Vmu[i] * CellValue[i];
@@ -244,8 +243,8 @@ void velocitySpaceDiffusion(
                    Vec4i Vcount;
                    Vec4i mucount;
 
-                   Vcount .load(&Vcount_array [WID3*n+WID*j+WID*WID*k]);
-                   mucount.load(&mucount_array[WID3*n+WID*j+WID*WID*k]);                   
+                   Vcount .load(&Vindex_array [WID3*n+WID*j+WID*WID*k]);
+                   mucount.load(&muindex_array[WID3*n+WID*j+WID*WID*k]);                   
 
                    Vec4d Vmu = dVbins * (to_double(Vcount)+0.5);
 
@@ -302,6 +301,11 @@ void velocitySpaceDiffusion(
         
         } // End Time loop
         phiprof::stop("Subloop");
+
+        free(dfdt);
+        free(Vindex_array);
+        free(muindex_array);
+
     } // End spatial cell loop
 
 } // End function
