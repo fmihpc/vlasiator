@@ -82,8 +82,7 @@ void velocitySpaceDiffusion(
         Realf dVbins = (Vmax - Vmin)/nbins_v;  
     
         Realf* dfdt        = reinterpret_cast<Realf*>(malloc(sizeof(Realf)*(cell.get_number_of_velocity_blocks(popID) * WID3))); 
-        int* Vindex_array  = reinterpret_cast<int*>  (malloc(sizeof(int)  *(cell.get_number_of_velocity_blocks(popID) * WID3)));
-        int* muindex_array = reinterpret_cast<int*>  (malloc(sizeof(int)  *(cell.get_number_of_velocity_blocks(popID) * WID3)));
+        int* Index_array   = reinterpret_cast<int*>  (malloc(sizeof(int)  *(cell.get_number_of_velocity_blocks(popID) * WID3)));
 
         std::array<Realf,3> bulkV = {cell.parameters[CellParams::VX], cell.parameters[CellParams::VY], cell.parameters[CellParams::VZ]};
         phiprof::stop("Initialisation");
@@ -134,17 +133,20 @@ void velocitySpaceDiffusion(
 
                    Vec4d mu = Vpara/(normV+std::numeric_limits<Realf>::min()); // + min value to avoid division by 0
  
-                   Vec4i Vcount;
-                   Vcount = round_to_int(floor((normV-Vmin) / dVbins));
+                   Vec4i Vindex;
+                   Vindex = round_to_int(floor((normV-Vmin) / dVbins));
 
                    // Dont know how to handble that with vectors
                    // if (normV < Vmin) { continue; } // To avoid center cells if needed
                    // else { Vcount = round_to_int(floor((normV-Vmin) / dVbins)); }                      
 
-                   Vec4i mucount;
-                   mucount = round_to_int(floor((mu+1.0) / dmubins));                      
+                   Vec4i muindex;
+                   muindex = round_to_int(floor((mu+1.0) / dmubins));                      
 
-                   Vec4d Vmu = dVbins * (to_double(Vcount)+0.5); // Take value at the center of the mu cell
+                   Vec4i muspaceIndex;
+                   muspaceIndex = Vindex * nbins_mu + muindex;
+
+                   Vec4d Vmu = dVbins * (to_double(Vindex)+0.5); // Take value at the center of the mu cell
 
                    #ifdef DPF
                    Vec4d CellValue;
@@ -153,12 +155,11 @@ void velocitySpaceDiffusion(
                    #endif
                    CellValue.load(&cell.get_data(n,popID)[WID*j+WID*WID*k]);
 
-                   Vcount .store(&Vindex_array [WID3*n+WID*j+WID*WID*k]);
-                   mucount.store(&muindex_array[WID3*n+WID*j+WID*WID*k]);
+                   muspaceIndex.store(&Index_array[WID3*n+WID*j+WID*WID*k]);
 
                    for (uint i = 0; i<WID; i++) {
-                       fmu   [Vcount[i]][mucount[i]] += 2.0 * M_PI * Vmu[i]*Vmu[i] * CellValue[i];
-                       fcount[Vcount[i]][mucount[i]] += 1;
+                       fmu   [Vindex[i]][muindex[i]] += 2.0 * M_PI * Vmu[i]*Vmu[i] * CellValue[i];
+                       fcount[Vindex[i]][muindex[i]] += 1;
                    }
                    
                 } // End coordinates
@@ -240,15 +241,18 @@ void velocitySpaceDiffusion(
                    Vec4db lessSpars = CellValue < Sparsity;
                    CellValue = select(lessSpars, Sparsity, CellValue);
 
-                   Vec4i Vcount;
-                   Vec4i mucount;
+                   Vec4i muspaceIndex;
+                   muspaceIndex.load(&Index_array[WID3*n+WID*j+WID*WID*k]);
 
-                   Vcount .load(&Vindex_array [WID3*n+WID*j+WID*WID*k]);
-                   mucount.load(&muindex_array[WID3*n+WID*j+WID*WID*k]);                   
+                   Vec4i Vindex;
+                   Vec4i muindex;
 
-                   Vec4d Vmu = dVbins * (to_double(Vcount)+0.5);
+                   Vindex  = muspaceIndex / nbins_mu;
+                   muindex = muspaceIndex - Vindex*nbins_mu;               
 
-                   for (uint i = 0; i < WID; i++) {dfdt[WID3*n+i+WID*j+WID*WID*k] = dfdt_mu[Vcount[i]][mucount[i]] / (2.0 * M_PI * Vmu[i]*Vmu[i]);}
+                   Vec4d Vmu = dVbins * (to_double(Vindex)+0.5);
+
+                   for (uint i = 0; i < WID; i++) {dfdt[WID3*n+i+WID*j+WID*WID*k] = dfdt_mu[Vindex[i]][muindex[i]] / (2.0 * M_PI * Vmu[i]*Vmu[i]);}
                    Vec4d dfdtCheck;
                    dfdtCheck.load(&dfdt[WID3*n+WID*j+WID*WID*k]);
 
@@ -303,8 +307,7 @@ void velocitySpaceDiffusion(
         phiprof::stop("Subloop");
 
         free(dfdt);
-        free(Vindex_array);
-        free(muindex_array);
+        free(Index_array);
 
     } // End spatial cell loop
 
