@@ -384,24 +384,14 @@ namespace DRO {
       const Real HALF = 0.5;
       # pragma omp parallel
       {
-         Real sum[3];
-         sum[0] = 0.0;
-         sum[1] = 0.0;
-         sum[2] = 0.0;
-
          const Real* parameters  = cell->get_block_parameters(popID);
          const Realf* block_data = cell->get_data(popID);
-         
+
+         Real sum[3] = {0.0, 0.0, 0.0};
          Real averageVX = this->averageVX, averageVY = this->averageVY, averageVZ = this->averageVZ;
 
-         uint loopLimits[4] = {WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)};
-
-         devices::parallel_reduce(loopLimits, [=]CUDA_HOSTDEV (const uint (&idx)[4], Real (&lsum)[3] ) { 
-            const uint i = idx[0]; 
-            const uint j = idx[1]; 
-            const uint k = idx[2]; 
-            const uint n = idx[3];
-
+         arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)}, [=]CUDA_HOSTDEV (const uint i, const uint j, const uint k, const uint n, Real (&lsum)[3] ) { 
+            
 	          const Real VX 
 		       =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
 		       + (i + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
@@ -467,24 +457,13 @@ namespace DRO {
       const Real HALF = 0.5;
       # pragma omp parallel
       {
-
-         Real sum[3];
-         sum[0] = 0.0;
-         sum[1] = 0.0;
-         sum[2] = 0.0;
-         
          const Real* parameters = cell->get_block_parameters(popID);
          const Realf* block_data = cell->get_data(popID);
          
+         Real sum[3] = {0.0, 0.0, 0.0};
          Real averageVX = this->averageVX, averageVY = this->averageVY, averageVZ = this->averageVZ;
 
-         uint loopLimits[4] = {WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)};
-
-         devices::parallel_reduce(loopLimits, [=]CUDA_HOSTDEV (const uint (&idx)[4], Real (&lsum)[3] ) { 
-            const uint i = idx[0]; 
-            const uint j = idx[1]; 
-            const uint k = idx[2]; 
-            const uint n = idx[3];
+         arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)}, [=]CUDA_HOSTDEV (const uint i, const uint j, const uint k, const uint n, Real (&lsum)[3] ) { 
 
             const Real VX 
 		      =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
@@ -557,12 +536,9 @@ namespace DRO {
          
          const Realf* block_data = cell->get_data(popID);
          
-         #pragma omp for
-         for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); ++n) {
-	    for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
-	       threadMax = max((Real)(block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)]), threadMax);
-            }
-         }
+         arch::parallel_reduce<arch::max>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)}, [=]CUDA_HOSTDEV (const uint i, const uint j, const uint k, const uint n, Real (&lthreadMax)[1]) { 
+           lthreadMax[0] = max((Real)(block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)]), lthreadMax[0]);
+         }, threadMax);
 
          #pragma omp critical
          {
