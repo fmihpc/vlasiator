@@ -1,4 +1,3 @@
-
 #ifdef __CUDACC__
 #define CUDA_HOSTDEV __host__ __device__
 #else
@@ -9,17 +8,17 @@ namespace arch{
 
 enum reduceOp { max, min, sum, prod };
 
-template <int nReductions, typename Lambda, typename T>
-CUDA_HOSTDEV inline static void lambda_eval(const uint (&idx)[1], T (&thread_data)[nReductions], Lambda loop_body) { loop_body(idx[0], thread_data); }
+template <typename Lambda, typename T>
+CUDA_HOSTDEV inline static void lambda_eval(const uint (&idx)[1], T *thread_data, Lambda loop_body) { loop_body(idx[0], thread_data); }
 
-template <int nReductions, typename Lambda, typename T>
-CUDA_HOSTDEV inline static void lambda_eval(const uint (&idx)[2], T (&thread_data)[nReductions], Lambda loop_body) { loop_body(idx[0], idx[1], thread_data); }
+template <typename Lambda, typename T>
+CUDA_HOSTDEV inline static void lambda_eval(const uint (&idx)[2], T *thread_data, Lambda loop_body) { loop_body(idx[0], idx[1], thread_data); }
 
-template <int nReductions, typename Lambda, typename T>
-CUDA_HOSTDEV inline static void lambda_eval(const uint (&idx)[3], T (&thread_data)[nReductions], Lambda loop_body) { loop_body(idx[0], idx[1], idx[2], thread_data); }
+template <typename Lambda, typename T>
+CUDA_HOSTDEV inline static void lambda_eval(const uint (&idx)[3], T *thread_data, Lambda loop_body) { loop_body(idx[0], idx[1], idx[2], thread_data); }
 
-template <int nReductions, typename Lambda, typename T>
-CUDA_HOSTDEV inline static void lambda_eval(const uint (&idx)[4], T (&thread_data)[nReductions], Lambda loop_body) { loop_body(idx[0], idx[1], idx[2], idx[3], thread_data); }
+template <typename Lambda, typename T>
+CUDA_HOSTDEV inline static void lambda_eval(const uint (&idx)[4], T *thread_data, Lambda loop_body) { loop_body(idx[0], idx[1], idx[2], idx[3], thread_data); }
 
 #ifndef USE_CUDA
 template <reduceOp op, uint nDim, uint nReductions, typename Lambda, typename T>
@@ -132,7 +131,7 @@ reduction_kernel(Lambda loop_body, const T * __restrict__ init_val, T * __restri
       thread_data[i] = init_val[i];
 
     // Evaluate the loop body
-    lambda_eval(idx, thread_data, loop_body);
+    lambda_eval(idx, &thread_data[0], loop_body);
 
     // Perform reductions
     T aggregate[nReductions];
@@ -206,7 +205,13 @@ __forceinline__ static void parallel_reduce(const uint (&limits)[nDim], Lambda l
 
 template <reduceOp op, uint nDim, typename Lambda, typename T>
 __forceinline__ static void parallel_reduce(const uint (&limits)[nDim], Lambda loop_body, T &sum) {
-  T sum_array[1] = { sum };;
+  T sum_array[1] = { sum };
+  arch::parallel_reduce<op>(limits, loop_body, sum_array);
+}
+
+template <reduceOp op, uint nDim, typename Lambda, typename T>
+__forceinline__ static void parallel_reduce(const uint (&limits)[nDim], Lambda loop_body, std::unique_ptr<T[]> &sum) {
+  T sum_array[1] = { sum };
   arch::parallel_reduce<op>(limits, loop_body, sum_array);
 }
 
