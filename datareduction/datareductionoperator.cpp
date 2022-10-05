@@ -1397,9 +1397,10 @@ namespace DRO {
       {
          // std::vector<Real> thread_lossCone_sum(nChannels,0.0);
          // std::vector<Real> thread_count(nChannels,0.0);
-         std::unique_ptr<Real[]> sum(new double[2 * nChannels]());
-         auto thread_lossCone_sum = &sum[0];
-         auto thread_count = &sum[nChannels];
+         std::vector<Real> sum(2 * nChannels,0.0);
+         // std::unique_ptr<Real[]> sum(new double[2 * nChannels]());
+         // auto thread_lossCone_sum = &sum[0];
+         // auto thread_count = &sum[nChannels];
          
          const Real* parameters  = cell->get_block_parameters(popID);
          const Realf* block_data = cell->get_data(popID);
@@ -1408,10 +1409,11 @@ namespace DRO {
 
          // }, sum);
 
-         # pragma omp for
-         for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); n++) {
-            for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
-         // arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)}, [=]CUDA_HOSTDEV (const uint i, const uint j, const uint k, const uint n, Real *lsum ) { 
+         // # pragma omp for
+         // for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); n++) {
+            // for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
+         arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)}, 
+           [=]CUDA_HOSTDEV (const uint i, const uint j, const uint k, const uint n, Real *lsum ) { 
 
                const Real VX 
                   =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
@@ -1439,10 +1441,10 @@ namespace DRO {
                binNumber = max(binNumber,0); // anything < emin goes to the lowest channel
                binNumber = min(binNumber,nChannels-1); // anything > emax goes to the highest channel
 
-               // lsum[binNumber] += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * countAndGate * normV*normV * DV3;
-               // lsum[nChannels + binNumber] += countAndGate * DV3;
-         // }, sum);
-            }}
+               lsum[binNumber] += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * countAndGate * normV*normV * DV3;
+               lsum[nChannels + binNumber] += countAndGate * DV3;
+         }, sum);
+            // }}
 
          // Accumulate contributions coming from this velocity block to the 
          // spatial cell velocity moments. If multithreading / OpenMP is used, 
@@ -1450,8 +1452,8 @@ namespace DRO {
          # pragma omp critical
          {
             for (int i=0; i<nChannels; i++) {
-               dataDiffFlux[i] += thread_lossCone_sum[i];
-               sumWeights[i] += thread_count[i];
+               dataDiffFlux[i] += sum[i];
+               sumWeights[i] += sum[nChannels + i];
             }
          }
       }
