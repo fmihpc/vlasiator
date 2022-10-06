@@ -27,9 +27,6 @@
 #include <array>
 #include <memory>
 
-#include "cuda.h"
-#include "cuda_runtime.h"
-#include "cub/cub.cuh"
 #include "datareductionoperator.h"
 #include "../object_wrapper.h"
 #include "../loopdefs.h"
@@ -461,8 +458,8 @@ namespace DRO {
          const Real* parameters = cell->get_block_parameters(popID);
          const Realf* block_data = cell->get_data(popID);
          
-         // Real sum[3] = {0.0, 0.0, 0.0};
-                  std::vector<Real> sum(3, 0.0);
+         Real sum[3] = {0.0, 0.0, 0.0};
+         // std::vector<Real> sum(3, 0.0);
 
          Real averageVX = this->averageVX, averageVY = this->averageVY, averageVZ = this->averageVZ;
 
@@ -590,7 +587,7 @@ namespace DRO {
          
          const Realf* block_data = cell->get_data(popID);
 
-         arch::parallel_reduce<arch::max>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)}, [=]CUDA_HOSTDEV (const uint i, const uint j, const uint k, const uint n, Real *lthreadMin) { 
+         arch::parallel_reduce<arch::min>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)}, [=]CUDA_HOSTDEV (const uint i, const uint j, const uint k, const uint n, Real *lthreadMin) { 
            lthreadMin[0] = min((Real)(block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)]), lthreadMin[0]);
          }, threadMin);
          
@@ -1400,20 +1397,10 @@ namespace DRO {
          // std::vector<Real> thread_lossCone_sum(nChannels,0.0);
          // std::vector<Real> thread_count(nChannels,0.0);
          std::vector<Real> sum(2 * nChannels,0.0);
-         // std::unique_ptr<Real[]> sum(new double[2 * nChannels]());
-         // auto thread_lossCone_sum = &sum[0];
-         // auto thread_count = &sum[nChannels];
          
          const Real* parameters  = cell->get_block_parameters(popID);
          const Realf* block_data = cell->get_data(popID);
          
-         // arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)}, [=]CUDA_HOSTDEV (const uint i, const uint j, const uint k, const uint n, Real (&lsum)[3] ) { 
-
-         // }, sum);
-
-         // # pragma omp for
-         // for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); n++) {
-            // for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
          arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)}, 
            [=]CUDA_HOSTDEV (const uint i, const uint j, const uint k, const uint n, Real *lsum ) { 
 

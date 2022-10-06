@@ -1,7 +1,10 @@
 #ifdef __CUDACC__
-#define CUDA_HOSTDEV __host__ __device__
+  #include "cuda.h"
+  #include "cuda_runtime.h"
+  #include "cub/cub.cuh"
+  #define CUDA_HOSTDEV __host__ __device__
 #else
-#define CUDA_HOSTDEV
+  #define CUDA_HOSTDEV
 #endif
 
 namespace arch{
@@ -9,59 +12,71 @@ namespace arch{
 enum reduceOp { max, min, sum, prod };
 
 template <typename Lambda, typename T>
-CUDA_HOSTDEV inline static void lambda_eval(const uint (&idx)[1], T * __restrict__ thread_data, Lambda loop_body) { loop_body(idx[0], thread_data); }
+CUDA_HOSTDEV inline static void lambda_eval(const uint (&idx)[1], T *thread_data, Lambda loop_body) { loop_body(idx[0], thread_data); }
 
 template <typename Lambda, typename T>
-CUDA_HOSTDEV inline static void lambda_eval(const uint (&idx)[2], T * __restrict__ thread_data, Lambda loop_body) { loop_body(idx[0], idx[1], thread_data); }
+CUDA_HOSTDEV inline static void lambda_eval(const uint (&idx)[2], T *thread_data, Lambda loop_body) { loop_body(idx[0], idx[1], thread_data); }
 
 template <typename Lambda, typename T>
-CUDA_HOSTDEV inline static void lambda_eval(const uint (&idx)[3], T * __restrict__ thread_data, Lambda loop_body) { loop_body(idx[0], idx[1], idx[2], thread_data); }
+CUDA_HOSTDEV inline static void lambda_eval(const uint (&idx)[3], T *thread_data, Lambda loop_body) { loop_body(idx[0], idx[1], idx[2], thread_data); }
 
 template <typename Lambda, typename T>
-CUDA_HOSTDEV inline static void lambda_eval(const uint (&idx)[4], T * __restrict__ thread_data, Lambda loop_body) { loop_body(idx[0], idx[1], idx[2], idx[3], thread_data); }
+CUDA_HOSTDEV inline static void lambda_eval(const uint (&idx)[4], T *thread_data, Lambda loop_body) { loop_body(idx[0], idx[1], idx[2], idx[3], thread_data); }
 
 #ifndef USE_CUDA
-template <reduceOp op, uint nDim, uint nReductions, typename Lambda, typename T>
-inline void parallel_reduce(const uint (&limits)[nDim], Lambda loop_body, T (&sum)[nReductions]) {
 
-  if(nDim == 1){
-    uint idx[1];
-           
-    # pragma omp for
+template <reduceOp op, uint nReductions, uint nDim, typename Lambda, typename T>
+inline static void parallel_reduce_driver(const uint (&limits)[1], Lambda loop_body, T *sum, const uint nReduDynamic) {
+
+  uint idx[1];
+         
+  #pragma omp for
+  for (idx[0] = 0; idx[0] < limits[0]; ++idx[0])
+    lambda_eval(idx, sum, loop_body);
+
+  (void) nReduDynamic;
+}
+
+template <reduceOp op, uint nReductions, uint nDim, typename Lambda, typename T>
+inline static void parallel_reduce_driver(const uint (&limits)[2], Lambda loop_body, T *sum, const uint nReduDynamic) {
+
+  uint idx[2];
+         
+  #pragma omp for collapse(2)
+  for (idx[1] = 0; idx[1] < limits[1]; ++idx[1]) 
     for (idx[0] = 0; idx[0] < limits[0]; ++idx[0])
       lambda_eval(idx, sum, loop_body);
-  }
-  else if(nDim == 2){
-    uint idx[2];
-           
-    # pragma omp for collapse(2)
+
+  (void) nReduDynamic;
+}
+
+template <reduceOp op, uint nReductions, uint nDim, typename Lambda, typename T>
+inline static void parallel_reduce_driver(const uint (&limits)[3], Lambda loop_body, T *sum, const uint nReduDynamic) {
+
+  uint idx[3];
+         
+  #pragma omp for collapse(3)
+  for (idx[2] = 0; idx[2] < limits[2]; ++idx[2]) 
     for (idx[1] = 0; idx[1] < limits[1]; ++idx[1]) 
       for (idx[0] = 0; idx[0] < limits[0]; ++idx[0])
         lambda_eval(idx, sum, loop_body);
-  }
-  else if(nDim == 3){
-    uint idx[3];
-           
-    # pragma omp for collapse(3)
+
+  (void) nReduDynamic;
+}
+
+template <reduceOp op, uint nReductions, uint nDim, typename Lambda, typename T>
+inline static void parallel_reduce_driver(const uint (&limits)[4], Lambda loop_body, T *sum, const uint nReduDynamic) {
+
+  uint idx[4];
+         
+  #pragma omp for collapse(4)
+  for (idx[3] = 0; idx[3] < limits[3]; ++idx[3]) 
     for (idx[2] = 0; idx[2] < limits[2]; ++idx[2]) 
       for (idx[1] = 0; idx[1] < limits[1]; ++idx[1]) 
         for (idx[0] = 0; idx[0] < limits[0]; ++idx[0])
           lambda_eval(idx, sum, loop_body);
-  }
-  else if(nDim == 4){
-    uint idx[4];
-           
-    # pragma omp for collapse(4)
-    for (idx[3] = 0; idx[3] < limits[3]; ++idx[3]) 
-      for (idx[2] = 0; idx[2] < limits[2]; ++idx[2]) 
-        for (idx[1] = 0; idx[1] < limits[1]; ++idx[1]) 
-          for (idx[0] = 0; idx[0] < limits[0]; ++idx[0])
-            lambda_eval(idx, sum, loop_body);
-  }
-  else{
-    printf("ERROR in %s at line %d: This loop nest dimension is not supported!\n", __FILE__, __LINE__);
-    exit(1);
-  }
+
+  (void) nReduDynamic;
 }
 
 #else
@@ -75,6 +90,17 @@ inline void parallel_reduce(const uint (&limits)[nDim], Lambda loop_body, T (&su
   		printf("\n\n%s in %s at line %d\n", cudaGetErrorString(err), file, line);
   		// exit(1);
   	}
+}
+
+__host__ __forceinline__ static void deviceMempoolCheck(uint64_t thresholdNew) {
+  int device_id;
+  CUDA_ERR(cudaGetDevice(&device_id));
+  cudaMemPool_t mempool;
+  CUDA_ERR(cudaDeviceGetDefaultMemPool(&mempool, device_id));
+  uint64_t thresholdOld;
+  CUDA_ERR(cudaMemPoolGetAttribute(mempool, cudaMemPoolAttrReleaseThreshold, &thresholdOld));
+  if(thresholdNew != thresholdOld)
+    CUDA_ERR(cudaMemPoolSetAttribute(mempool, cudaMemPoolAttrReleaseThreshold, &thresholdNew));
 }
 
 __device__ __forceinline__ static void atomicMax(double *address, double val2) {
@@ -164,7 +190,7 @@ reduction_kernel(Lambda loop_body, const T * __restrict__ init_val, T * __restri
 }
 
 template <reduceOp op, uint nReduStatic, uint nDim, typename Lambda, typename T>
-__forceinline__ static void parallel_reduce(const uint (&limits)[nDim], Lambda loop_body, T *sum, const uint nReduDynamic) {
+__forceinline__ static void parallel_reduce_driver(const uint (&limits)[nDim], Lambda loop_body, T *sum, const uint nReduDynamic) {
 
   const uint nReductions = nReduStatic ? nReduStatic : nReduDynamic;  
 
@@ -174,6 +200,8 @@ __forceinline__ static void parallel_reduce(const uint (&limits)[nDim], Lambda l
 
   const uint blocksize = 64;
   const uint gridsize = (n_total - 1 + blocksize) / blocksize;
+
+  deviceMempoolCheck(UINT64_MAX);
 
   T* d_buf;
   CUDA_ERR(cudaMallocAsync(&d_buf, nReductions*sizeof(T), 0));
@@ -213,19 +241,19 @@ __forceinline__ static void parallel_reduce(const uint (&limits)[nDim], Lambda l
 #endif
 
 template <reduceOp op, uint nDim, typename Lambda, typename T>
-__forceinline__ static void parallel_reduce(const uint (&limits)[nDim], Lambda loop_body, T &sum) {
+inline static void parallel_reduce(const uint (&limits)[nDim], Lambda loop_body, T &sum) {
   constexpr uint nReductions = 1;
-  arch::parallel_reduce<op, nReductions>(limits, loop_body, &sum, nReductions);
+  arch::parallel_reduce_driver<op, nReductions, nDim>(limits, loop_body, &sum, nReductions);
 }
 
 template <reduceOp op, uint nDim, uint nReductions, typename Lambda, typename T>
-__forceinline__ static void parallel_reduce(const uint (&limits)[nDim], Lambda loop_body, T (&sum)[nReductions]) { 
-  arch::parallel_reduce<op, nReductions>(limits, loop_body, &sum[0], nReductions);
+inline static void parallel_reduce(const uint (&limits)[nDim], Lambda loop_body, T (&sum)[nReductions]) { 
+  arch::parallel_reduce_driver<op, nReductions, nDim>(limits, loop_body, &sum[0], nReductions);
 }
 
 template <reduceOp op, uint nDim, typename Lambda, typename T>
-__forceinline__ static void parallel_reduce(const uint (&limits)[nDim], Lambda loop_body, std::vector<T> &sum) {
-  arch::parallel_reduce<op, 0>(limits, loop_body, sum.data(), sum.size());
+inline static void parallel_reduce(const uint (&limits)[nDim], Lambda loop_body, std::vector<T> &sum) {
+  arch::parallel_reduce_driver<op, 0, nDim>(limits, loop_body, sum.data(), sum.size());
 }
 
 }
