@@ -9,16 +9,16 @@ namespace arch{
 enum reduceOp { max, min, sum, prod };
 
 template <typename Lambda, typename T>
-CUDA_HOSTDEV inline static void lambda_eval(const uint (&idx)[1], T *thread_data, Lambda loop_body) { loop_body(idx[0], thread_data); }
+CUDA_HOSTDEV inline static void lambda_eval(const uint (&idx)[1], T * __restrict__ thread_data, Lambda loop_body) { loop_body(idx[0], thread_data); }
 
 template <typename Lambda, typename T>
-CUDA_HOSTDEV inline static void lambda_eval(const uint (&idx)[2], T *thread_data, Lambda loop_body) { loop_body(idx[0], idx[1], thread_data); }
+CUDA_HOSTDEV inline static void lambda_eval(const uint (&idx)[2], T * __restrict__ thread_data, Lambda loop_body) { loop_body(idx[0], idx[1], thread_data); }
 
 template <typename Lambda, typename T>
-CUDA_HOSTDEV inline static void lambda_eval(const uint (&idx)[3], T *thread_data, Lambda loop_body) { loop_body(idx[0], idx[1], idx[2], thread_data); }
+CUDA_HOSTDEV inline static void lambda_eval(const uint (&idx)[3], T * __restrict__ thread_data, Lambda loop_body) { loop_body(idx[0], idx[1], idx[2], thread_data); }
 
 template <typename Lambda, typename T>
-CUDA_HOSTDEV inline static void lambda_eval(const uint (&idx)[4], T *thread_data, Lambda loop_body) { loop_body(idx[0], idx[1], idx[2], idx[3], thread_data); }
+CUDA_HOSTDEV inline static void lambda_eval(const uint (&idx)[4], T * __restrict__ thread_data, Lambda loop_body) { loop_body(idx[0], idx[1], idx[2], idx[3], thread_data); }
 
 #ifndef USE_CUDA
 template <reduceOp op, uint nDim, uint nReductions, typename Lambda, typename T>
@@ -95,106 +95,78 @@ __device__ __forceinline__ static void atomicMin(double *address, double val2) {
   }
 }
 
+template <uint nDim, typename Lambda, typename T>
+__device__ __forceinline__ static void loop_eval(const uint idxGlob, const uint * __restrict__ lims, T * __restrict__ thread_data, Lambda loop_body) { 
+  uint idx[nDim];
+  switch (nDim)
+  {
+    case 4:
+      idx[3] = (idxGlob / (lims[0] * lims[1] * lims[2])) % lims[3];
+    case 3:
+      idx[2] = (idxGlob / (lims[0] * lims[1])) % lims[2];
+    case 2:
+      idx[1] = (idxGlob / lims[0]) % lims[1];
+    case 1:
+      idx[0] = idxGlob % lims[0];  
+  }
+  lambda_eval(idx, thread_data, loop_body);
+}
+
 template <reduceOp op, uint nDim, uint nReduStatic, typename Lambda, typename T>
-__global__ static void 
-__launch_bounds__(BLOCKSIZE_R)
-reduction_kernel(Lambda loop_body, const T * __restrict__ init_val, T * __restrict__ rslt, const uint * __restrict__ lims, const uint n_total, const uint nReduDynamic)
+__global__ static void __launch_bounds__(BLOCKSIZE_R)
+reduction_kernel(Lambda loop_body, const T * __restrict__ init_val, T * __restrict__ rslt, const uint * __restrict__ lims, const uint n_total, const uint nReduDynamic, T *thread_data_dynamic)
 {
-    typedef cub::BlockReduce<T, BLOCKSIZE_R, cub::BLOCK_REDUCE_RAKING_COMMUTATIVE_ONLY, 1, 1> BlockReduce;
+  typedef cub::BlockReduce<T, BLOCKSIZE_R, cub::BLOCK_REDUCE_RAKING_COMMUTATIVE_ONLY, 1, 1> BlockReduce;
 
-    extern __shared__ typename BlockReduce::TempStorage temp_storage_dynamic[];
-    __shared__ typename BlockReduce::TempStorage temp_storage_static[nReduStatic ? 2 * nReduStatic : 1];
+  constexpr uint size = nReduStatic ? nReduStatic : 1;
 
-    const uint idxGlob = ((blockIdx.x*blockDim.x)+threadIdx.x);
-    if (idxGlob >= n_total) return;
+  extern __shared__ typename BlockReduce::TempStorage temp_storage_dynamic[];
+  __shared__ typename BlockReduce::TempStorage temp_storage_static[size];
+  typename BlockReduce::TempStorage *temp_storage = nReduStatic ? temp_storage_static : temp_storage_dynamic;
 
-    uint idx[nDim];
-    switch (nDim)
-    {
-      case 4:
-        idx[3] = (idxGlob / (lims[0] * lims[1] * lims[2])) % lims[3];
-      case 3:
-        idx[2] = (idxGlob / (lims[0] * lims[1])) % lims[2];
-      case 2:
-        idx[1] = (idxGlob / lims[0]) % lims[1];
-      case 1:
-        idx[0] = idxGlob % lims[0];  
-    }
+  const uint idxGlob = ((blockIdx.x*blockDim.x)+threadIdx.x);
 
-    T data_static[nReduStatic ? 2 * nReduStatic : 1];
-    T *aggregate_static = &data_static[0];
+  if (idxGlob < n_total) {
 
-    T *aggregate_ptr;
-    T *thread_data_ptr;
-
-    typename BlockReduce::TempStorage *temp_storage_ptr;
-
-    uint nReductions;
-
-    if(nReduStatic == 0){
-      aggregate_ptr = (T*)malloc((2 * nReduDynamic - 1) * sizeof(T));
-      thread_data_ptr = &thread_data_ptr[nReduDynamic - 1];
-      temp_storage_ptr = &temp_storage_dynamic[0];
-      nReductions = nReduDynamic;
-    }
-    else{
-      thread_data_ptr = &data_static[nReduDynamic - 1];
-      aggregate_ptr = &aggregate_static[1];
-      temp_storage_ptr = &temp_storage_static[1];
-      nReductions = nReduStatic;
-    }
-
+    T thread_data_static[size];
+    T *thread_data = nReduStatic ? thread_data_static : &thread_data_dynamic[nReduDynamic * idxGlob];
+  
+    const uint nReductions = nReduStatic ? nReduStatic : nReduDynamic;  
     for(uint i = 0; i < nReductions; i++)
-      thread_data_ptr[i] = init_val[i];
-
+      thread_data[i] = init_val[i];
+  
     // Evaluate the loop body
-    lambda_eval(idx, &thread_data_ptr[0], loop_body);
-
-    auto cub_call = [] __device__ (T &aggregate, typename BlockReduce::TempStorage &temp_storage, T &thread_data ) { 
-      if(op == reduceOp::sum)
-        aggregate = BlockReduce(temp_storage).Sum(thread_data); 
-      else if(op == reduceOp::max)
-        aggregate = BlockReduce(temp_storage).Reduce(thread_data, cub::Max()); 
-      else if(op == reduceOp::min)
-        aggregate = BlockReduce(temp_storage).Reduce(thread_data, cub::Min()); 
-      else {}
-    };
-
-    auto store_call = [] __device__ (T &aggregate, T &rslt) { 
-      if(op == reduceOp::sum)
-        atomicAdd(&rslt, aggregate);
-      else if(op == reduceOp::max)
-        atomicMax(&rslt, aggregate);
-      else if(op == reduceOp::min)
-        atomicMin(&rslt, aggregate); 
+    loop_eval<nDim>(idxGlob, lims, thread_data, loop_body);
+  
+    /* Perform reductions */
+    for(uint i = 0; i < nReductions; i++){
+      /* Compute the block-wide sum for thread0 which stores it */
+      if(op == reduceOp::sum){
+        T aggregate = BlockReduce(temp_storage[i]).Sum(thread_data[i]);
+        if(threadIdx.x == 0) 
+          atomicAdd(&rslt[i], aggregate);
+      }
+      else if(op == reduceOp::max){
+        T aggregate = BlockReduce(temp_storage[i]).Reduce(thread_data[i], cub::Max()); 
+        if(threadIdx.x == 0) 
+          atomicMax(&rslt[i], aggregate);
+      }
+      else if(op == reduceOp::min){
+        T aggregate = BlockReduce(temp_storage[i]).Reduce(thread_data[i], cub::Min());
+        if(threadIdx.x == 0) 
+          atomicMin(&rslt[i], aggregate);
+      }
       else
-        printf("ERROR at %s:%d: Invalid reduction identifier \"op\".", __FILE__, __LINE__);
-    };
-
-    // Perform reductions
-    // Compute the block-wide sum for thread0
-    cub_call(aggregate_static[0], temp_storage_static[0], thread_data_ptr[0]);
-    for(uint i = 0; i < nReductions - 1; i++)
-      cub_call(aggregate_ptr[i], temp_storage_ptr[i], thread_data_ptr[i + 1]);
-
-    // Store aggregate
-    if(threadIdx.x == 0) 
-      store_call(aggregate_static[0], rslt[0]);
-      for(uint i = 0; i < nReductions - 1; i++)
-        store_call(aggregate_ptr[i], rslt[i + 1]);
-    
-    if(nReduStatic == 0)
-      free(aggregate_ptr);
+        if(threadIdx.x == 0) 
+          printf("ERROR at %s:%d: Invalid reduction identifier \"op\".", __FILE__, __LINE__);
+    }
+  }
 }
 
 template <reduceOp op, uint nReduStatic, uint nDim, typename Lambda, typename T>
 __forceinline__ static void parallel_reduce(const uint (&limits)[nDim], Lambda loop_body, T *sum, const uint nReduDynamic) {
 
-  uint nReductions;
-  if(nReduStatic == 0)
-    nReductions = nReduDynamic;
-  else
-    nReductions = nReduStatic;
+  const uint nReductions = nReduStatic ? nReduStatic : nReduDynamic;  
 
   uint n_total = 1;
   for(uint i = 0; i < nDim; i++)
@@ -204,32 +176,38 @@ __forceinline__ static void parallel_reduce(const uint (&limits)[nDim], Lambda l
   const uint gridsize = (n_total - 1 + blocksize) / blocksize;
 
   T* d_buf;
-  CUDA_ERR(cudaMalloc(&d_buf, nReductions*sizeof(T)));
+  CUDA_ERR(cudaMallocAsync(&d_buf, nReductions*sizeof(T), 0));
   CUDA_ERR(cudaMemcpy(d_buf, sum, nReductions*sizeof(T), cudaMemcpyHostToDevice));
   
   T* d_const_buf;
-  CUDA_ERR(cudaMalloc(&d_const_buf, nReductions*sizeof(T)));
+  CUDA_ERR(cudaMallocAsync(&d_const_buf, nReductions*sizeof(T), 0));
   CUDA_ERR(cudaMemcpy(d_const_buf, d_buf, nReductions*sizeof(T), cudaMemcpyDeviceToDevice));
 
   uint* d_limits;
-  CUDA_ERR(cudaMalloc(&d_limits, nDim*sizeof(uint)));
+  CUDA_ERR(cudaMallocAsync(&d_limits, nDim*sizeof(uint), 0));
   CUDA_ERR(cudaMemcpy(d_limits, limits, nDim*sizeof(uint), cudaMemcpyHostToDevice));
 
-
+  T* d_thread_data_dynamic;
   if(nReduStatic == 0) {
-    uint cubTempStorageTypeSize = sizeof(cub::BlockReduce<T, BLOCKSIZE_R,cub::BLOCK_REDUCE_RAKING_COMMUTATIVE_ONLY, 1, 1>);
+    constexpr auto cubTempStorageTypeSize = sizeof(typename cub::BlockReduce<T, BLOCKSIZE_R, cub::BLOCK_REDUCE_RAKING_COMMUTATIVE_ONLY, 1, 1>::TempStorage);
+    
+    CUDA_ERR(cudaMallocAsync(&d_thread_data_dynamic, nReductions * n_total * sizeof(T), 0));
 
-    reduction_kernel<op, nDim, 0><<<gridsize, blocksize, (nReductions - 1) * cubTempStorageTypeSize>>>(loop_body, d_const_buf, d_buf, d_limits, n_total, nReductions);
+    reduction_kernel<op, nDim, 0><<<gridsize, blocksize, nReductions * cubTempStorageTypeSize>>>(loop_body, d_const_buf, d_buf, d_limits, n_total, nReductions, d_thread_data_dynamic);
+
+    CUDA_ERR(cudaStreamSynchronize(0));
+    CUDA_ERR(cudaFreeAsync(d_thread_data_dynamic, 0));
   }
   else{
-    reduction_kernel<op, nDim, nReduStatic><<<gridsize, blocksize>>>(loop_body, d_const_buf, d_buf, d_limits, n_total, nReductions);
+    reduction_kernel<op, nDim, nReduStatic><<<gridsize, blocksize>>>(loop_body, d_const_buf, d_buf, d_limits, n_total, nReductions, d_thread_data_dynamic);
+
+    CUDA_ERR(cudaStreamSynchronize(0));
   }
   
-  CUDA_ERR(cudaStreamSynchronize(0));
   CUDA_ERR(cudaMemcpy(sum, d_buf, nReductions*sizeof(T), cudaMemcpyDeviceToHost));
-  CUDA_ERR(cudaFree(d_buf));
-  CUDA_ERR(cudaFree(d_const_buf));
-  CUDA_ERR(cudaFree(d_limits));
+  CUDA_ERR(cudaFreeAsync(d_buf, 0));
+  CUDA_ERR(cudaFreeAsync(d_const_buf, 0));
+  CUDA_ERR(cudaFreeAsync(d_limits, 0));
 }
 
 #endif

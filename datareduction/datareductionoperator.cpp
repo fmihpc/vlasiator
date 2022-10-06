@@ -461,7 +461,9 @@ namespace DRO {
          const Real* parameters = cell->get_block_parameters(popID);
          const Realf* block_data = cell->get_data(popID);
          
-         Real sum[3] = {0.0, 0.0, 0.0};
+         // Real sum[3] = {0.0, 0.0, 0.0};
+                  std::vector<Real> sum(3, 0.0);
+
          Real averageVX = this->averageVX, averageVY = this->averageVY, averageVZ = this->averageVZ;
 
          arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)}, [=]CUDA_HOSTDEV (const uint i, const uint j, const uint k, const uint n, Real *lsum ) { 
