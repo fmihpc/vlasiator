@@ -9,6 +9,12 @@ LIBS += ${LIB_PROFILE}
 LIBS += ${LIB_ZOLTAN}
 LIBS += ${LIB_VLSV}
 
+ifdef IONO_GPU
+LIBS += ../../ionosphere_gpu_solver/ionosphere_gpu_solver.a
+LIBS += -lcudart
+CXXFLAGS += -DIONOSPHERE_GPU_ON
+endif
+
 all: main differentialFlux sigmaProfiles quadrupoleTests atmosphere.pdf
 .PHONY: clean quadrupoleTests
 

@@ -41,6 +41,10 @@
 #include "vectorclass.h"
 #include "vector3d.h"
 
+#ifdef IONOSPHERE_GPU_ON 
+#include "../ionosphere_gpu_solver/ionosphere_solver.hpp"
+#endif
+
 #if VECTORCLASS_H >= 200
 #define Vec3d Vec3Dd
 #endif
@@ -2416,7 +2420,20 @@ namespace SBC {
       nRestarts = 0;
       
       do {
+#ifdef IONOSPHERE_GPU_ON 
+        const auto M  = std::vector<double>{ 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+        const auto v = std::vector<double> { 1, 2, 3 };
+        
+        const auto Mv = ionogpu::MatrixVectorProduct(M, v);
+        
+        for (const auto x : Mv) {
+            std::cout << x << " ";
+        }
+        std::cout << "\n"; 
+#else
          solveInternal(nIterations, nRestarts, residual, minPotentialN, maxPotentialN, minPotentialS, maxPotentialS);
+#endif
+
          if(Ionosphere::solverToggleMinimumResidualVariant) {
             Ionosphere::solverUseMinimumResidualVariant = !Ionosphere::solverUseMinimumResidualVariant;
          }
