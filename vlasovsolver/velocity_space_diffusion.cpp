@@ -62,6 +62,13 @@ void velocitySpaceDiffusion(
     Realf dfdmu2 [nbins_v][nbins_mu]; // Array to store dfdmumu
     Realf dfdt_mu[nbins_v][nbins_mu]; // Array to store dfdt_mu
 
+    //TODO: to be deleted
+    std::string path_save = "/wrk-vakka/users/dubart/diff_test/speedtest/900_subCount/CFL0.1/subCount/";
+    std::ostringstream tmp;
+    tmp << std::setw(7) << std::setfill('0') << P::tstep;
+    std::string tstepString = tmp.str();
+    std::ofstream subCountFile(path_save + "subCount_" + tstepString + ".txt", std::ofstream::out | std::ofstream::app);
+
     const auto LocalCells=getLocalCells();
     #pragma omp parallel for private(fcount,fmu,dfdmu,dfdmu2,dfdt_mu)
     for (int CellIdx = 0; CellIdx < LocalCells.size(); CellIdx++) { //Iterate through spatial cell
@@ -82,11 +89,19 @@ void velocitySpaceDiffusion(
         Realf dVbins = (Vmax - Vmin)/nbins_v;  
     
         Realf* dfdt        = reinterpret_cast<Realf*>(malloc(sizeof(Realf)*(cell.get_number_of_velocity_blocks(popID) * WID3))); 
-        //int* Index_array   = reinterpret_cast<int*>  (malloc(sizeof(int)  *(cell.get_number_of_velocity_blocks(popID) * WID3)));
 
         std::array<Realf,3> bulkV = {cell.parameters[CellParams::VX], cell.parameters[CellParams::VY], cell.parameters[CellParams::VZ]};
         phiprof::stop("Initialisation");
+
+        std::array<Realf,3> B = {cell.parameters[CellParams::PERBXVOL] +  cell.parameters[CellParams::BGBXVOL],
+                                 cell.parameters[CellParams::PERBYVOL] +  cell.parameters[CellParams::BGBYVOL],
+	                         cell.parameters[CellParams::PERBZVOL] +  cell.parameters[CellParams::BGBZVOL]};
+
+        Realf Bnorm           = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
+        std::array<Realf,3> b = {B[0]/Bnorm, B[1]/Bnorm, B[2]/Bnorm};
         
+        int subCount = 0; //TODO: to be deleted
+
         phiprof::start("Subloop");
         while (dtTotalDiff < Parameters::dt) { // Substep loop
 
@@ -120,7 +135,7 @@ void velocitySpaceDiffusion(
 
                    const Vec4d VZ(parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD]
                                   + (k + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ]);
-                   
+
                    std::array<Vec4d,3> V = {VX,VY,VZ}; // Velocity in the cell, in the simulation frame
                                    
                    std::array<Vec4d,3> Vplasma; // Velocity in the cell, in the plasma frame
@@ -129,22 +144,15 @@ void velocitySpaceDiffusion(
               
                    Vec4d normV = sqrt(Vplasma[0]*Vplasma[0] + Vplasma[1]*Vplasma[1] + Vplasma[2]*Vplasma[2]);
 
-                   Vec4d Vpara = Vplasma[0];
+                   Vec4d Vpara = Vplasma[0]*b[0] + Vplasma[1]*b[1] + Vplasma[2]*b[2];
 
                    Vec4d mu = Vpara/(normV+std::numeric_limits<Realf>::min()); // + min value to avoid division by 0
  
                    Vec4i Vindex;
                    Vindex = round_to_int(floor((normV-Vmin) / dVbins));
 
-                   // Dont know how to handble that with vectors
-                   // if (normV < Vmin) { continue; } // To avoid center cells if needed
-                   // else { Vcount = round_to_int(floor((normV-Vmin) / dVbins)); }                      
-
                    Vec4i muindex;
                    muindex = round_to_int(floor((mu+1.0) / dmubins));                      
-
-                   //Vec4i muspaceIndex;
-                   //muspaceIndex = Vindex * nbins_mu + muindex;
 
                    Vec4d Vmu = dVbins * (to_double(Vindex)+0.5); // Take value at the center of the mu cell
 
@@ -154,8 +162,6 @@ void velocitySpaceDiffusion(
                    Vec4f CellValue;
                    #endif
                    CellValue.load(&cell.get_data(n,popID)[WID*j+WID*WID*k]);
-
-                   //muspaceIndex.store(&Index_array[WID3*n+WID*j+WID*WID*k]);
 
                    for (uint i = 0; i<WID; i++) {
                        fmu   [Vindex[i]][muindex[i]] += 2.0 * M_PI * Vmu[i]*Vmu[i] * CellValue[i];
@@ -269,16 +275,10 @@ void velocitySpaceDiffusion(
                    Vec4db lessSpars = CellValue < Sparsity;
                    CellValue = select(lessSpars, Sparsity, CellValue);
 
-                   //Vec4i muspaceIndex;
-                   //muspaceIndex.load(&Index_array[WID3*n+WID*j+WID*WID*k]);
-
                    Vec4i Vindex;
                    Vindex = round_to_int(floor((normV-Vmin) / dVbins));
                    Vec4i muindex;
                    muindex = round_to_int(floor((mu+1.0) / dmubins));
-
-                   //Vindex  = muspaceIndex / nbins_mu;
-                   //muindex = muspaceIndex - Vindex*nbins_mu;               
 
                    Vec4d Vmu = dVbins * (to_double(Vindex)+0.5);
 
@@ -332,12 +332,17 @@ void velocitySpaceDiffusion(
                } // End coordinates
            } // End block
            phiprof::stop("update cell");
-        
+           subCount += 1; //TODO: to be deleted
         } // End Time loop
         phiprof::stop("Subloop");
 
+        //TODO: to be deleted
+        std::ostringstream tmpText; 
+        tmpText << CellID << " " << subCount << std::endl;
+        std::string tmpString = tmpText.str();
+        subCountFile << tmpString;
+
         free(dfdt);
-        //free(Index_array);
 
     } // End spatial cell loop
 
