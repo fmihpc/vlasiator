@@ -3,12 +3,18 @@
   #include "cuda_runtime.h"
   #include "cub/cub.cuh"
   #define ARCH_LOOP_LAMBDA [=] __host__ __device__
-  #define ARCH_INNER_LAMBDA(i, j, k, n, lsum)
+  #define ARCH_INNER_BODY2(i, j, lsum)
+  #define ARCH_INNER_BODY3(i, j, k, lsum)
+  #define ARCH_INNER_BODY4(i, j, k, n, lsum)
 #else
   #define ARCH_LOOP_LAMBDA [=]
-  #define ARCH_INNER_LAMBDA(i, j, k, n, lsum) return [=](i, j, k, n, lsum)
-
+  #define ARCH_INNER_BODY2(i, j, lsum) return [=](const uint i, const uint j, Real *lsum)
+  #define ARCH_INNER_BODY3(i, j, k, lsum) return [=](const uint i, const uint j, const uint k, Real *lsum)
+  #define ARCH_INNER_BODY4(i, j, k, n, lsum) return [=](const uint i, const uint j, const uint k, const uint n, Real *lsum)
 #endif
+
+#define GET_MACRO(_1,_2,_3,_4,_5,NAME,...) NAME
+#define ARCH_INNER_BODY(...) GET_MACRO(__VA_ARGS__, ARCH_INNER_BODY4, ARCH_INNER_BODY3, ARCH_INNER_BODY2)(__VA_ARGS__)
 
 namespace arch{
 

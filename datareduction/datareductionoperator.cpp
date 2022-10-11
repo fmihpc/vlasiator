@@ -1529,7 +1529,7 @@ namespace DRO {
                * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] 
                * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
 
-             ARCH_INNER_LAMBDA(const uint i, const uint j, const uint k, const uint n,Real *lsum ){ 
+             ARCH_INNER_BODY(i, j, k, n, lsum) { 
                const Real VX 
                    =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
                    + (i + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
