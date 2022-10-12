@@ -386,9 +386,6 @@ bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg:
       }
    }
 
-   // For debugging
-   bool success = true;
-
    for (auto cellId : innerBoundaryCells) {
       if (cellId != INVALID_CELLID && mpiGrid.get_refinement_level(cellId) != innerBoundaryRefLvl) {
          cout << "Failed refinement check (innerBoundary) , cellId = " << cellId << " at ("
@@ -411,7 +408,7 @@ bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg:
       }
    }
 
-   return success;
+   return true;
 }
 
 bool belongsToLayer(const int layer, const int x, const int y, const int z,
