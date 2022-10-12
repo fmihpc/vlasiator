@@ -669,7 +669,7 @@ namespace spatial_cell {
             block_lengths.push_back(sizeof(Real) * CellParams::N_SPATIAL_CELL_PARAMS);
          }
          
-         // send  spatial cell dimensions
+         // send spatial cell dimensions and coordinates
          if ((SpatialCell::mpi_transfer_type & Transfer::CELL_DIMENSIONS)!=0){
             displacements.push_back((uint8_t*) &(this->parameters[CellParams::XCRD]) - (uint8_t*) this);
             block_lengths.push_back(sizeof(Real) * 6);

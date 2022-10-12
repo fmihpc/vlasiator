@@ -101,7 +101,10 @@ uint64_t get_node_free_memory(){
    return mem_proc_free;
 }
 
-/*! Measures memory consumption and writes it into logfile. Collective operation on MPI_COMM_WORLD
+/*! Measures memory consumption and writes it into logfile. 
+ *  Collective operation on MPI_COMM_WORLD
+ *  extra_bytes is used for additional buffer for the high water mark, 
+ *  for example when estimating refinement memory usage
  */
 void report_process_memory_consumption(double extra_bytes){
    /*Report memory consumption into logfile*/
