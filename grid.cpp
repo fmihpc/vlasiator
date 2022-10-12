@@ -605,8 +605,9 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    recalculateLocalCellsCache();
    getObjectWrapper().meshData.reallocate();
    #pragma omp parallel for
-   for (uint i=0; i<cells.size(); ++i) 
+   for (uint i=0; i<cells.size(); ++i) {
       mpiGrid[cells[i]]->set_mpi_transfer_enabled(true);
+   }
 
    // flag transfers if AMR
    phiprof::start("compute_amr_transfer_flags");
@@ -1326,10 +1327,11 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    phiprof::start("Re-refine spatial cells");
    calculateScaledDeltasSimple(mpiGrid);
 
-   if (useStatic)
+   if (useStatic) {
       project.forceRefinement(mpiGrid);
-   else
+   } else {
       project.adaptRefinement(mpiGrid);
+   }
 
    phiprof::start("dccrg refinement");
 
@@ -1339,12 +1341,14 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    phiprof::stop("initialize refines");
 
    phiprof::start("Estimate memory usage");
-   for (auto id : mpiGrid.get_local_cells_to_refine())
+   for (auto id : mpiGrid.get_local_cells_to_refine()) {
       newBytes += 8 * mpiGrid[id]->get_cell_memory_capacity();
+   }
    
    // Rougher estimate than above
-   for (auto id : mpiGrid.get_local_cells_to_unrefine())
+   for (auto id : mpiGrid.get_local_cells_to_unrefine()) {
       newBytes += mpiGrid[id]->get_cell_memory_capacity() / 8.0;
+   }
    
    report_process_memory_consumption(newBytes);
    phiprof::stop("Estimate memory usage");
@@ -1356,8 +1360,9 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    MPI_Allreduce(&(globalflags::bailingOut), &bailout, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
    phiprof::stop("Bailout-allreduce");
 
-   if (bailout)
+   if (bailout) {
       return false;
+   }
 
    // New cells created by refinement
    phiprof::start("execute refines");
@@ -1424,8 +1429,9 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
          // Make sure cell contents aren't garbage
          *mpiGrid[parent] = *mpiGrid[id];
 
-         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
             SBC::averageCellData(mpiGrid, children, mpiGrid[parent], popID);
+         }
 
          // Averaging moments
          calculateCellMoments(mpiGrid[parent], true);

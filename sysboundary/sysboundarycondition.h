@@ -300,15 +300,13 @@ namespace SBC {
          bool applyUponRestart;
    };
 
-	class OuterBoundaryCondition: public SysBoundaryCondition {
-		public:
-			virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell,
-														dccrg::Cartesian_Geometry>& mpiGrid,
-														FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
-		protected:
-			/*! Array of bool telling which faces are going to be processed by the system boundary condition.*/
-			bool facesToProcess[6];
-	};
+   class OuterBoundaryCondition: public SysBoundaryCondition {
+      public:
+         virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
+      protected:
+         /*! Array of bool telling which faces are going to be processed by the system boundary condition.*/
+         bool facesToProcess[6];
+   };
    
    // Moved outside the class since it's a helper function that doesn't require member access
    void averageCellData (

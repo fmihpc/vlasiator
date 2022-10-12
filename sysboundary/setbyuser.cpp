@@ -120,8 +120,9 @@ namespace SBC {
       int refLevel = technicalGrid.get(i, j, k)->refLevel;
 
       // if refLevel isn't 0, assume neighbour might be on a lower refinement level
-      if (refLevel > 0)
+      if (refLevel > 0) {
          --refLevel;
+      }
 
       creal dx = Parameters::dx_ini * pow(2, -refLevel);
       creal dy = Parameters::dy_ini * pow(2, -refLevel);

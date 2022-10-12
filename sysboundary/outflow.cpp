@@ -188,8 +188,9 @@ namespace SBC {
       #pragma omp parallel for
       for (uint i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
-         if (cell->sysBoundaryFlag != this->getIndex()) 
+         if (cell->sysBoundaryFlag != this->getIndex()) {
             continue;
+         }
          
          bool doApply = true;
          
@@ -203,7 +204,6 @@ namespace SBC {
                doApply = doApply || (facesToReapply[j] && isThisCellOnAFace[j]);
             }
 
-            // God
             if (!doApply) {
                const auto nbrs = mpiGrid.get_face_neighbors_of(cells[i]);
                for (uint j=0; j < nbrs.size(); ++j) {
