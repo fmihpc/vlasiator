@@ -55,7 +55,6 @@
 #include "../backgroundfield/constantfield.hpp"
 #include "Shocktest/Shocktest.h"
 #include "../sysboundary/sysboundarycondition.h"
-#include "KH_instability/KH_instability.h"
 
 using namespace std;
 
