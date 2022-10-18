@@ -1,37 +1,51 @@
 # Template from https://github.com/clemedon/Makefile_tutor
 # @author   clemedon (Clément Vidon)
-####################################### BEG_4 ####
-NAME        := libionosphere_gpu_solver.a
+####################################### BEG_5 ####
+
+NAME        := ionosphere_gpu_testing
 
 #------------------------------------------------#
 #   INGREDIENTS                                  #
 #------------------------------------------------#
-# SRC_DIR   source directory
-# SRCS      source files
+# LIBS        libraries to be used
+# LIBS_TARGET libraries to be built
 #
-# BUILD_DIR object directory
-# OBJS      object files
-# DEPS      dependency files
+# INCS        header file locations
 #
-# CC        compiler
-# CFLAGS    compiler flags
-# CPPFLAGS  preprocessor flags
+# SRC_DIR     source directory
+# SRCS        source files
+#
+# BUILD_DIR   build directory
+# OBJS        object files
+# DEPS        dependency files
+#
+# CC          compiler
+# CFLAGS      compiler flags
+# CPPFLAGS    preprocessor flags
+# LDFLAGS     linker flags
+# LDLIBS      libraries name
 
-SRC_SUFFIX  := cu
+LIBS        := ionosphere_gpu_solver 
+LIBS_TARGET := ../libionosphere_gpu_solver.a
+
+INCS        := include    \
+	../include
+
+SRC_SUFFIX  := cpp
 
 SRC_DIR     := src
-SRCS        := ionosphere_gpu_solver.$(SRC_SUFFIX)
+SRCS        := main.cpp
 SRCS        := $(SRCS:%=$(SRC_DIR)/%)
 
 BUILD_DIR   := .build
 OBJS        := $(SRCS:$(SRC_DIR)/%.$(SRC_SUFFIX)=$(BUILD_DIR)/%.o)
 DEPS        := $(OBJS:.o=.d)
 
-CC          := nvcc
-CFLAGS      := -Werror all-warnings
-CPPFLAGS    := -MMD -MP -I include
-AR          := ar
-ARFLAGS     := -r -c -s
+CC          := g++ 
+CFLAGS      := -Wall -Wextra -Werror -pedantic-errors
+CPPFLAGS    := $(addprefix -I,$(INCS)) -MMD -MP 
+LDFLAGS     := $(addprefix -L,$(dir $(LIBS_TARGET))) -lcudart
+LDLIBS      := $(addprefix -l,$(LIBS))
 
 #------------------------------------------------#
 #   UTENSILS                                     #
@@ -41,24 +55,30 @@ ARFLAGS     := -r -c -s
 # DIR_DUP   duplicate directory tree
 
 RM          := rm -f
-MAKEFLAGS   += --no-print-directory
+MAKEFLAGS   += --silent --no-print-directory
 DIR_DUP     = mkdir -p $(@D)
 
 #------------------------------------------------#
 #   RECIPES                                      #
 #------------------------------------------------#
 # all       default goal
-# $(NAME)   link .o -> library
+# $(NAME)   link .o -> archive
+# $(LIBS)   build libraries
 # %.o       compilation .$(SRC_SUFFIX) -> .o
 # clean     remove .o
 # fclean    remove .o + binary
 # re        remake default goal
+# run       run the program
+# info      print the default goal recipe
 
 all: $(NAME)
 
-$(NAME): $(OBJS)
-	$(AR) $(ARFLAGS) $(NAME) $(OBJS)
+$(NAME): $(OBJS) $(LIBS_TARGET)
+	$(CC) $(LDFLAGS) $(OBJS) $(LDLIBS) -o $(NAME)
 	$(info CREATED $(NAME))
+
+$(LIBS_TARGET):
+	$(MAKE) -C $(@D)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.$(SRC_SUFFIX)
 	$(DIR_DUP)
@@ -68,14 +88,19 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.$(SRC_SUFFIX)
 -include $(DEPS)
 
 clean:
+	for f in $(dir $(LIBS_TARGET)); do $(MAKE) -C $$f clean; done
 	$(RM) $(OBJS) $(DEPS)
 
 fclean: clean
+	for f in $(dir $(LIBS_TARGET)); do $(MAKE) -C $$f fclean; done
 	$(RM) $(NAME)
 
 re:
 	$(MAKE) fclean
 	$(MAKE) all
+
+info-%:
+	$(MAKE) --dry-run --always-make $* | grep -v "info"
 
 #------------------------------------------------#
 #   SPEC                                         #
@@ -84,4 +109,4 @@ re:
 .PHONY: clean fclean re
 .SILENT:
 
-####################################### END_4 ####
+####################################### END_5 ####

@@ -1,4 +1,4 @@
-#include "include/ionosphere_gpu_solver.hpp"
+#include "../../include/ionosphere_gpu_solver.hpp"
 #include <vector>
 #include <iostream>
 int main() {

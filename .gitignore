@@ -2,6 +2,9 @@
 *.vlsv
 *.silo
 *.o
+*.swp
+*.d
+*.a
 vscode/
 .vscode/
 version.cpp
