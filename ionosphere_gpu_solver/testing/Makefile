@@ -42,7 +42,7 @@ OBJS        := $(SRCS:$(SRC_DIR)/%.$(SRC_SUFFIX)=$(BUILD_DIR)/%.o)
 DEPS        := $(OBJS:.o=.d)
 
 CC          := g++ 
-CFLAGS      := -Wall -Wextra -Werror -pedantic-errors
+CFLAGS      := -Wall -Wextra -Werror -pedantic-errors -O3 -std=c++20
 CPPFLAGS    := $(addprefix -I,$(INCS)) -MMD -MP 
 LDFLAGS     := $(addprefix -L,$(dir $(LIBS_TARGET))) -lcudart
 LDLIBS      := $(addprefix -l,$(LIBS))

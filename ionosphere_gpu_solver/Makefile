@@ -28,7 +28,7 @@ OBJS        := $(SRCS:$(SRC_DIR)/%.$(SRC_SUFFIX)=$(BUILD_DIR)/%.o)
 DEPS        := $(OBJS:.o=.d)
 
 CC          := nvcc
-CFLAGS      := -Werror all-warnings
+CFLAGS      := -Werror all-warnings -O3
 CPPFLAGS    := -MMD -MP -I include
 AR          := ar
 ARFLAGS     := -r -c -s
