@@ -675,7 +675,7 @@ int main(int argn,char* args[]) {
 
    unsigned int wallTimeRestartCounter=1;
 
-   int doNow[2]; // 0: writeRestartNow, 1: balanceLoadNow ; declared outside main loop
+   int doNow[2] = {0}; // 0: writeRestartNow, 1: balanceLoadNow ; declared outside main loop
    int writeRestartNow; // declared outside main loop
    bool overrideRebalanceNow = false; // declared outside main loop
    
