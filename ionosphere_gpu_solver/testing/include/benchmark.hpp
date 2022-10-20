@@ -7,6 +7,8 @@
 #include <utility>
 #include <chrono> 
 #include <algorithm>
+#include <ranges>
+#include <cmath>
 namespace iono_gpu {
 namespace testing {
 
@@ -34,6 +36,33 @@ void benchmark_functions_with_parameters(
         std::cout << name << ": " << average_runtime.count() << " "
             << min_runtime.count() << " " << max_runtime.count() <<  "\n";
     }
+}
+/**
+ *  Intermediate values are stored in doubles.
+ */
+template <std::ranges::range R>
+void calculate_numerical_error_of_range(const R& v, const R& v_correct) {
+    auto total_absolute_error = double{ 0.0 };
+    auto total_relative_error = double{ 0.0 };
+    
+    if (v.size() != v_correct.size()) {
+        std::cout << "v (" << v.size() << ") and v_correct ("<< v_correct.size() << ") contain different amount of elements!";
+        return;
+    }
+    
+    // Should be as follow in c++23  
+    //for (const auto [x, x_correct] : std::ranges::views::zip(v, v_correct)) {
+    for (size_t i = 0; i < v.size(); ++i) {
+        const auto absolute_error = static_cast<double>(std::fabs(v[i] - v_correct[i]));
+        const auto relative_error = absolute_error / static_cast<double>(v_correct[i]);
+
+        total_absolute_error += absolute_error;
+        total_relative_error += relative_error;
+    }
+
+    const auto average_relative_error = total_relative_error / static_cast<double>(v.size());
+    
+    std::cout << "Total absolute error: " << total_absolute_error << " Average relative error per element: " << average_relative_error << "\n";
 }
 
 

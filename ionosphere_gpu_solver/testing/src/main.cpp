@@ -3,27 +3,20 @@
 #include <iostream>
 #include "benchmark.hpp"
 
-int foo_A(int a, int b) {
-    return a + b;
-}
-
-int foo_B(int a, int b) {
-    return a * b;
-}
-
-int foo_C(int a, int b) {
-    return a + b + 231;
-}
 int main() {
-    iono_gpu::testing::benchmark_functions_with_parameters<int, int>
-        (10, {std::pair{&foo_A, "A"}, std::pair{&foo_B, "B"}, std::pair{&foo_C, "C"}}, 2, 3);
+    // iono_gpu::testing::benchmark_functions_with_parameters<std::vector<double>, std::vector<double>(
+           //  100,
+        //     {   std::pair{&Matri, "A"}, 
+     //        },
+    //        2, 3);
+   
+   
     const auto M = std::vector<double>{ 1, 2, 3, 4, 5, 6, 7, 8, 9 };
     const auto v = std::vector<double>{ 1, 2, 3 }; 
 
     const auto Mv = ionogpu::MatrixVectorProduct<double>(M, v);
+    const auto Mv_correct = std::vector<double>{14.0, 32.0, 50.0}; 
 
-    for (const auto x : Mv) {
-        std::cout << x << " ";
-    }
-    std::cout << "\n";
+    iono_gpu::testing::calculate_numerical_error_of_range(Mv, Mv_correct);
+            
 }
