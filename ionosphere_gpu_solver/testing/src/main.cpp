@@ -16,7 +16,7 @@ int foo_C(int a, int b) {
 }
 int main() {
     iono_gpu::testing::benchmark_functions_with_parameters<int, int>
-        ({&foo_A, &foo_B, &foo_C}, 2, 3);
+        (10, {std::pair{&foo_A, "A"}, std::pair{&foo_B, "B"}, std::pair{&foo_C, "C"}}, 2, 3);
     const auto M = std::vector<double>{ 1, 2, 3, 4, 5, 6, 7, 8, 9 };
     const auto v = std::vector<double>{ 1, 2, 3 }; 
 
