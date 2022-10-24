@@ -66,6 +66,7 @@ int main(int argc, char** argv) {
          cerr << "(MAIN): MPI_Init_thread failed! Got " << provided << ", need "<<required <<endl;
       exit(1);
    }
+   cout << myRank << "\n";
    const int masterProcessID = 0;
    logFile.open(MPI_COMM_WORLD, masterProcessID, "logfile.txt");
 
@@ -408,5 +409,7 @@ int main(int argc, char** argv) {
    cout << "--- OUTPUT WRITTEN TO output.vlsv ---" << endl;
 
    cout << "--- DONE. ---" << endl;
+   cout << myRank << "\n";
+   MPI_Finalize();
    return 0;
 }
