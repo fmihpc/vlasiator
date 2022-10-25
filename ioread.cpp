@@ -1064,7 +1064,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       P::fieldSolverSubcycles = 1.0;
       cout << " No P::fieldSolverSubcycles found in restart, setting 1." << endl;
    }
-   MPI_Bcast(&(P::fieldSolverSubcycles),1,MPI_Type<Real>(),MASTER_RANK,MPI_COMM_WORLD);
+   MPI_Bcast(&(P::fieldSolverSubcycles),1,MPI_Type<uint>(),MASTER_RANK,MPI_COMM_WORLD);
    
 
 
