@@ -113,7 +113,7 @@ void checkExternalCommands() {
   \param comm MPI comm
   \return Returns true if the operation was successful
 */
-bool exitOnError(bool success,string message,MPI_Comm comm) {
+bool exitOnError(bool success, const string& message, MPI_Comm comm) {
    int successInt;
    int globalSuccessInt;
    if(success)
@@ -679,7 +679,7 @@ static bool _readCellParamsVariable(
    }
    
    buffer=new fileReal[vectorSize*localCells];
-   if(file.readArray("VARIABLE",attribs,localCellStartOffset,localCells,(char *)buffer) == false ) {
+   if(file.readArray("VARIABLE", attribs, localCellStartOffset, localCells, (char*) buffer) == false ) {
       logFile << "(RESTART)  ERROR: Failed to read " << variableName << endl << write;
       return false;
    }
@@ -825,24 +825,9 @@ template<unsigned long int N> bool readFsGridVariable(
       // Read into buffer
       std::vector<Real> buffer(storageSize*N);
 
-      if(!convertFloatType) {
-         if(file.readArray("VARIABLE",attribs, localStartOffset, storageSize, (char*)buffer.data()) == false) {
-            logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
-            return false;
-         }
-      } else {
-
-         // Read to temporary float buffer
-         std::vector<float> readBuffer(storageSize*N);
-
-         if(file.readArray("VARIABLE",attribs, localStartOffset, storageSize, (char*)readBuffer.data()) == false) {
-            logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
-            return false;
-         }
-
-         for(uint64_t i=0; i<storageSize*N; i++) {
-            buffer[i] = readBuffer[i];
-         }
+      if(file.readArray("VARIABLE",attribs, localStartOffset, storageSize, buffer.data()) == false) {
+         logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
+         return false;
       }
       
       // Assign buffer into fsgrid
@@ -975,7 +960,6 @@ bool readIonosphereNodeVariable(
    vlsv::datatype::type dataType;
    uint64_t byteSize;
    list<pair<string,string> > attribs;
-   bool convertFloatType = false;
    
    attribs.push_back(make_pair("name",variableName));
    attribs.push_back(make_pair("mesh","ionosphere"));
@@ -990,11 +974,6 @@ bool readIonosphereNodeVariable(
       return false;
    }
 
-   if(! (dataType == vlsv::datatype::type::FLOAT && byteSize == sizeof(Real))) {
-      logFile << "(RESTART) Converting floating point format of ionosphere variable " << variableName << " from " << byteSize * 8 << " bits to " << sizeof(Real) * 8 << " bits." << endl << write;
-      convertFloatType = true;
-   }
-
    // Verify that this is a scalar variable
    if(vectorSize != 1) {
       logFile << "(RESTART) ERROR: Trying to read vector valued (" << vectorSize << " components) ionosphere parameter from restart file. Only scalars are supported." << endl << write;
@@ -1007,24 +986,13 @@ bool readIonosphereNodeVariable(
       return false;
    }
 
-   if(!convertFloatType) {
-      std::vector<Real> buffer(arraySize);
-      if(file.readArray("VARIABLE", attribs, 0, arraySize, (char*)buffer.data()) == false) {
-         logFile << "(RESTART) ERROR: Failed to read ionosphere variable " << variableName << endl << write;
-      }
+   std::vector<Real> buffer(arraySize);
+   if(file.readArray("VARIABLE", attribs, 0, arraySize, buffer.data()) == false) {
+      logFile << "(RESTART) ERROR: Failed to read ionosphere variable " << variableName << endl << write;
+   }
 
-      for(uint i=0; i<grid.nodes.size(); i++) {
-         grid.nodes[i].parameters[index] = buffer[i];
-      }
-   } else {
-      std::vector<float> buffer(arraySize);
-      if(file.readArray("VARIABLE", attribs, 0, arraySize, (char*)buffer.data()) == false) {
-         logFile << "(RESTART) ERROR: Failed to read ionosphere variable " << variableName << endl << write;
-      }
-
-      for(uint i=0; i<grid.nodes.size(); i++) {
-         grid.nodes[i].parameters[index] = buffer[i];
-      }
+   for(uint i=0; i<grid.nodes.size(); i++) {
+      grid.nodes[i].parameters[index] = buffer[i];
    }
 
    return true;

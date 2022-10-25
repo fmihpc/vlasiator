@@ -50,6 +50,7 @@ void *operator new(size_t size)
    return p;
 }
 
+// TODO: sized deallocation to resolve -Wsized-deallocation
 // Global delete using jemalloc
 void operator delete(void *p)
 {
@@ -69,6 +70,7 @@ void *operator new[](size_t size)
    return p;
 }
 
+// TODO: sized deallocation to resolve -Wsized-deallocation
 // Global delete[] using jemalloc
 void operator delete[](void *p)
 {

@@ -70,12 +70,8 @@ namespace DRO {
       return false;
    }
 
-   DataReductionOperatorCellParams::DataReductionOperatorCellParams(const std::string& name,const unsigned int parameterIndex,const unsigned int _vectorSize):
-   DataReductionOperator() {
-      vectorSize=_vectorSize;
-      variableName=name;
-      _parameterIndex=parameterIndex;
-   }
+   DataReductionOperatorCellParams::DataReductionOperatorCellParams(const std::string& name,const unsigned int parameterIndex,const unsigned int _vectorSize) :
+      DataReductionOperator(), _parameterIndex {parameterIndex}, vectorSize {_vectorSize}, variableName {name} {}
    DataReductionOperatorCellParams::~DataReductionOperatorCellParams() { }
    
    bool DataReductionOperatorCellParams::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& _vectorSize) const {
@@ -1146,7 +1142,7 @@ namespace DRO {
          if (dataName.size() == 0) continue;
          
          size_t dataSize = getObjectWrapper().meshData.getDataSize(i);
-         const std::string dataType = getObjectWrapper().meshData.getDataType(i);
+         const std::string& dataType = getObjectWrapper().meshData.getDataType(i);
          size_t vectorSize = getObjectWrapper().meshData.getVectorSize(i);
          size_t arraySize = getObjectWrapper().meshData.getMeshSize();
          char* pointer = getObjectWrapper().meshData.getData<char>(i);

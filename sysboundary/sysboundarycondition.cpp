@@ -244,7 +244,7 @@ namespace SBC {
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,const uint popID, const bool calculate_V_moments
    ) {
-      const vector<CellID> closestCells = getAllClosestNonsysboundaryCells(cellID);
+      const vector<CellID>& closestCells = getAllClosestNonsysboundaryCells(cellID);
       
       if(closestCells[0] == INVALID_CELLID) {
          cerr << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
@@ -261,7 +261,7 @@ namespace SBC {
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,const uint popID,const bool calculate_V_moments, creal fluffiness
    ) {
-      const vector<CellID> closeCells = getAllCloseNonsysboundaryCells(cellID);
+      const vector<CellID>& closeCells = getAllCloseNonsysboundaryCells(cellID);
       
       if(closeCells[0] == INVALID_CELLID) {
          cerr << __FILE__ << ":" << __LINE__ << ": No close cell found!" << endl;
@@ -288,7 +288,7 @@ namespace SBC {
          abort();
       }
       
-      const array<SpatialCell*,27> flowtoCells = getFlowtoCells(cellID);
+      const array<SpatialCell*,27>& flowtoCells = getFlowtoCells(cellID);
       //Do not allow block adjustment, the block structure when calling vlasovBoundaryCondition should be static
       //just copy data to existing blocks, no modification of to blocks allowed
       for (vmesh::LocalID blockLID=0; blockLID<to->get_number_of_velocity_blocks(popID); ++blockLID) {
@@ -471,7 +471,7 @@ namespace SBC {
          const uint popID
    ) {
       SpatialCell * cell = mpiGrid[cellID];
-      const vector<CellID> cellList = this->getAllClosestNonsysboundaryCells(cellID);
+      const vector<CellID>& cellList = this->getAllClosestNonsysboundaryCells(cellID);
       const size_t numberOfCells = cellList.size();
 
       creal factor = 1.0 / convert<Real>(numberOfCells);
@@ -540,7 +540,7 @@ namespace SBC {
       const uint popID
    ) {
       SpatialCell* cell = mpiGrid[cellID];
-      const vector<CellID> cellList = this->getAllClosestNonsysboundaryCells(cellID);
+      const vector<CellID>& cellList = this->getAllClosestNonsysboundaryCells(cellID);
       const size_t numberOfCells = cellList.size();
 
       creal factor = 1.0 / convert<Real>(numberOfCells);

@@ -312,8 +312,8 @@ bool map_1d(SpatialCell* spatial_cell,
          const int firstBlock_gk = (int)((firstBlockMinV - max_intersectionMin)/intersection_dk);
          const int lastBlock_gk = (int)((lastBlockMaxV - min_intersectionMin)/intersection_dk);
 
-         int firstBlockIndexK = firstBlock_gk/WID;         
-         int lastBlockIndexK = lastBlock_gk/WID;
+         uint firstBlockIndexK = firstBlock_gk/WID;         
+         uint lastBlockIndexK = lastBlock_gk/WID;
          
          //now enforce mesh limits for target column blocks
          firstBlockIndexK = (firstBlockIndexK >= 0)            ? firstBlockIndexK : 0;
@@ -341,7 +341,7 @@ bool map_1d(SpatialCell* spatial_cell,
          }
          
          //store target blocks
-         for (int blockK = firstBlockIndexK; blockK <= lastBlockIndexK; blockK++){
+         for (uint blockK = firstBlockIndexK; blockK <= lastBlockIndexK; blockK++){
             isTargetBlock[blockK]=true;
          }
 
@@ -571,7 +571,10 @@ bool map_1d(SpatialCell* spatial_cell,
                   else{
                      // total value of integrand
                      const Vec target_density = target_density_r - target_density_l;                  
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunknown-pragmas"
 #pragma ivdep
+#pragma GCC diagnostic pop
 #pragma GCC ivdep                     
                      for (int target_i=0; target_i < VECL; ++target_i) {
                         // do the conversion from Realv to Realf here, faster than doing it in accumulation
