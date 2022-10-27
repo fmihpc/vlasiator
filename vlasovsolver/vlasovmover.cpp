@@ -82,12 +82,12 @@ void calculateSpatialTranslation(
     double t1;
     int myRank;
     MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-   
-    // int bt=phiprof::initializeTimer("barrier-trans-pre-z","Barriers","MPI");
+    int bt;
+    // bt=phiprof::initializeTimer("barrier-trans-pre-z","Barriers","MPI");
     // phiprof::start(bt);
     // MPI_Barrier(MPI_COMM_WORLD);
     // phiprof::stop(bt);
- 
+
     // ------------- SLICE - map dist function in Z --------------- //
    if(P::zcells_ini > 1){
 
