@@ -28,30 +28,8 @@ Background magnetic field class of Vlasiator.
 #include "functions.hpp"
 #include <iostream>
 #include <cstdlib>
+#include <functional>
 
-class FieldFunction: public T3DFunction {
-private:
-protected:
-   coordinate _fComponent;
-   coordinate _dComponent;
-   unsigned int _derivative;
-public:
-   FieldFunction(){
-      //set sane initial values (x component of field)
-      setComponent(X);
-      setDerivComponent(X);
-      setDerivative(0);
-   }
-   inline void setComponent(coordinate fComponent){ _fComponent=fComponent; }
-   inline void setDerivComponent(coordinate dComponent){ _dComponent=dComponent; }
-   inline void setDerivative(unsigned int derivative){
-      _derivative=derivative;
-
-      if( !(derivative==0 || derivative==1) ) {
-         std::cerr<< "Only first derivatives supported!! "<< derivative<< std::endl;
-         std::exit(1);
-      } 
-   }
-};
+typedef std::function<double(double x, double y, double z, coordinate component, unsigned int derivative, coordinate dcomponent)> FieldFunction;
 #endif
 

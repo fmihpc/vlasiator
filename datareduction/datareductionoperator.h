@@ -33,6 +33,7 @@
 #include "../definitions.h"
 #include "../spatial_cell.hpp"
 #include "../parameters.h"
+#include "../sysboundary/ionosphere.h"
 using namespace spatial_cell;
 
 namespace DRO {
@@ -119,11 +120,11 @@ namespace DRO {
 
       public:
          DataReductionOperatorFsGrid(const std::string& name, ReductionLambda l) : DataReductionOperator(),lambda(l),variableName(name) {};
-	 virtual std::string getName() const;
-	 virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
-	 virtual bool setSpatialCell(const SpatialCell* cell);
-	 virtual bool reduceData(const SpatialCell* cell,char* buffer);
-	 virtual bool reduceDiagnostic(const SpatialCell* cell,Real * result);
+         virtual std::string getName() const;
+         virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+         virtual bool setSpatialCell(const SpatialCell* cell);
+         virtual bool reduceData(const SpatialCell* cell,char* buffer);
+         virtual bool reduceDiagnostic(const SpatialCell* cell,Real * result);
          virtual bool writeFsGridData(
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
@@ -137,6 +138,60 @@ namespace DRO {
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
                       const std::string& meshName, vlsv::Writer& vlsvWriter,
                       const bool writeAsFloat=false);
+   };
+
+   // Generic (lambda-based) datareducer for ionosphere grid element-centered data
+   class DataReductionOperatorIonosphereElement : public DataReductionOperator {
+      public:
+         typedef std::function<std::vector<Real>(SBC::SphericalTriGrid& grid)> ReductionLambda;
+      private:
+         ReductionLambda lambda;
+         std::string variableName;
+
+      public:
+         DataReductionOperatorIonosphereElement(const std::string& name, ReductionLambda l): DataReductionOperator(), lambda(l),variableName(name) {};
+         virtual std::string getName() const;
+         virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+         virtual bool setSpatialCell(const SpatialCell* cell);
+         virtual bool reduceData(const SpatialCell* cell,char* buffer);
+         virtual bool reduceDiagnostic(const SpatialCell* cell,Real * result);
+         virtual bool writeIonosphereData(SBC::SphericalTriGrid& grid, vlsv::Writer& vlsvWriter);
+   };
+   
+   // Generic (lambda-based) datareducer for ionosphere grid node-centered data
+   class DataReductionOperatorIonosphereNode : public DataReductionOperator {
+      public:
+         typedef std::function<std::vector<Real>(SBC::SphericalTriGrid& grid)> ReductionLambda;
+      private:
+         ReductionLambda lambda;
+         std::string variableName;
+
+      public:
+         DataReductionOperatorIonosphereNode(const std::string& name, ReductionLambda l): DataReductionOperator(), lambda(l),variableName(name) {};
+         virtual std::string getName() const;
+         virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+         virtual bool setSpatialCell(const SpatialCell* cell);
+         virtual bool reduceData(const SpatialCell* cell,char* buffer);
+         virtual bool reduceDiagnostic(const SpatialCell* cell,Real * result);
+         virtual bool writeIonosphereData(SBC::SphericalTriGrid& grid, vlsv::Writer& vlsvWriter);
+   };
+
+   // Generic (lambda-based) datareducer for vlasov grid data
+   class DataReductionOperatorMPIGridCell : public DataReductionOperator{
+      public:
+         typedef std::function<std::vector<Real>(const SpatialCell* cell)> ReductionLambda;
+      private:
+         ReductionLambda lambda;
+         int numFloats;
+         std::string variableName;
+
+      public:
+         DataReductionOperatorMPIGridCell(const std::string& name, int numFloats, ReductionLambda l): DataReductionOperator(),lambda(l),numFloats(numFloats),variableName(name) {};
+         virtual std::string getName() const;
+         virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+         virtual bool setSpatialCell(const SpatialCell* cell) {return true;};
+         virtual bool reduceData(const SpatialCell* cell,char* buffer);
+         virtual bool reduceDiagnostic(const SpatialCell* cell,Real * result) {return false;};
    };
 
    class DataReductionOperatorCellParams: public DataReductionOperator {
@@ -568,6 +623,25 @@ namespace DRO {
       Real lossConeAngle;
       std::vector<Real> channels, dataDiffFlux;
    };
+
+   // Heat flux vector
+   class VariableHeatFluxVector: public DataReductionOperator {
+   public:
+      VariableHeatFluxVector(cuint popID);
+      virtual ~VariableHeatFluxVector();
+
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual std::string getName() const;
+      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool setSpatialCell(const SpatialCell* cell);
+      
+   protected:
+      Real averageVX, averageVY, averageVZ;
+      Real HeatFlux[3];
+      uint popID;
+      std::string popName;
+   };
+
 } // namespace DRO
 
 #endif

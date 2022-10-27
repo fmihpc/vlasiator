@@ -43,8 +43,8 @@ FLAGS =
 
 #GNU flags:
 CC_BRAND = gcc
-CC_BRAND_VERSION = 9.2.0
-CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -fabi-version=0 -Wall -Wpedantic -mfma -march=native -mavx2
+CC_BRAND_VERSION = 9.2.0_bis
+CXXFLAGS += -g -fopenmp -O3 -funroll-loops -std=c++17 -W -Wall -Wno-unused -fabi-version=0 -Wall -Wpedantic -mfma -march=native -mavx2
 #CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -fabi-version=0 -mavx
 not_parallel_tools: CXXFLAGS += -march=native -mno-avx2 -mavx 
 testpackage: CXXFLAGS = -g -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0 
@@ -88,6 +88,8 @@ LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_
 
 INC_VLSV = -I$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/vlsv
 LIB_VLSV = -L$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/vlsv -lvlsv
+#INC_VLSV = -I/zhome/academic/HLRS/pri/ipryakem/vlsv
+#LIB_VLSV = -L/zhome/academic/HLRS/pri/ipryakem/vlsv -lvlsv
 
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/lib -lphiprof
 INC_PROFILE = -I$(LIBRARY_PREFIX)/$(MPI_BRAND)/$(MPI_VERSION)/$(CC_BRAND)/$(CC_BRAND_VERSION)/phiprof/include

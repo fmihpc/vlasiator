@@ -77,7 +77,7 @@ void calculateSpatialTranslation(
 
     int trans_timer;
     bool AMRtranslationActive = false;
-    //if (P::amrMaxSpatialRefLevel > 0) AMRtranslationActive = true;
+    if (P::amrMaxSpatialRefLevel > 0) AMRtranslationActive = true;
 
     double t1;
     int myRank;
@@ -114,10 +114,10 @@ void calculateSpatialTranslation(
       phiprof::stop("compute-mapping-z");
       time += MPI_Wtime() - t1;
 
-      // bt=phiprof::initializeTimer("barrier-trans-pre-update_remote-z","Barriers","MPI");
-      // phiprof::start(bt);
-      // MPI_Barrier(MPI_COMM_WORLD);
-      // phiprof::stop(bt);
+      bt=phiprof::initializeTimer("barrier-trans-pre-update_remote-z","Barriers","MPI");
+      phiprof::start(bt);
+      MPI_Barrier(MPI_COMM_WORLD);
+      phiprof::stop(bt);
 
       trans_timer=phiprof::initializeTimer("update_remote-z","MPI");
       phiprof::start("update_remote-z");
@@ -132,10 +132,10 @@ void calculateSpatialTranslation(
 
    }
 
-   // bt=phiprof::initializeTimer("barrier-trans-pre-x","Barriers","MPI");
-   // phiprof::start(bt);
-   // MPI_Barrier(MPI_COMM_WORLD);
-   // phiprof::stop(bt);
+   bt=phiprof::initializeTimer("barrier-trans-pre-x","Barriers","MPI");
+   phiprof::start(bt);
+   MPI_Barrier(MPI_COMM_WORLD);
+   phiprof::stop(bt);
    
    // ------------- SLICE - map dist function in X --------------- //
    if(P::xcells_ini > 1){
@@ -163,10 +163,10 @@ void calculateSpatialTranslation(
       phiprof::stop("compute-mapping-x");
       time += MPI_Wtime() - t1;
 
-      // bt=phiprof::initializeTimer("barrier-trans-pre-update_remote-x","Barriers","MPI");
-      // phiprof::start(bt);
-      // MPI_Barrier(MPI_COMM_WORLD);
-      // phiprof::stop(bt);
+      bt=phiprof::initializeTimer("barrier-trans-pre-update_remote-x","Barriers","MPI");
+      phiprof::start(bt);
+      MPI_Barrier(MPI_COMM_WORLD);
+      phiprof::stop(bt);
 
       trans_timer=phiprof::initializeTimer("update_remote-x","MPI");
       phiprof::start("update_remote-x");
@@ -181,10 +181,10 @@ void calculateSpatialTranslation(
 
    }
 
-   // bt=phiprof::initializeTimer("barrier-trans-pre-y","Barriers","MPI");
-   // phiprof::start(bt);
-   // MPI_Barrier(MPI_COMM_WORLD);
-   // phiprof::stop(bt);
+   bt=phiprof::initializeTimer("barrier-trans-pre-y","Barriers","MPI");
+   phiprof::start(bt);
+   MPI_Barrier(MPI_COMM_WORLD);
+   phiprof::stop(bt);
 
    // ------------- SLICE - map dist function in Y --------------- //
    if(P::ycells_ini > 1) {
@@ -212,10 +212,10 @@ void calculateSpatialTranslation(
       phiprof::stop("compute-mapping-y");
       time += MPI_Wtime() - t1;
       
-      // bt=phiprof::initializeTimer("barrier-trans-pre-update_remote-y","Barriers","MPI");
-      // phiprof::start(bt);
-      // MPI_Barrier(MPI_COMM_WORLD);
-      // phiprof::stop(bt);
+      bt=phiprof::initializeTimer("barrier-trans-pre-update_remote-y","Barriers","MPI");
+      phiprof::start(bt);
+      MPI_Barrier(MPI_COMM_WORLD);
+      phiprof::stop(bt);
 
       trans_timer=phiprof::initializeTimer("update_remote-y","MPI");
       phiprof::start("update_remote-y");
@@ -230,10 +230,10 @@ void calculateSpatialTranslation(
      
    }
 
-   // bt=phiprof::initializeTimer("barrier-trans-post-trans","Barriers","MPI");
-   // phiprof::start(bt);
-   // MPI_Barrier(MPI_COMM_WORLD);
-   // phiprof::stop(bt);
+   bt=phiprof::initializeTimer("barrier-trans-post-trans","Barriers","MPI");
+   phiprof::start(bt);
+   MPI_Barrier(MPI_COMM_WORLD);
+   phiprof::stop(bt);
 
    // MPI_Barrier(MPI_COMM_WORLD);
    // bailout(true, "", __FILE__, __LINE__);
@@ -569,9 +569,11 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
        for (size_t c=0; c<cells.size(); ++c) {
           SpatialCell* SC = mpiGrid[cells[c]];
           const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = SC->get_velocity_mesh(popID);
-          // disregard boundary cells, in preparation for acceleration 
-          if (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ) {
-             if(vmesh.size() != 0){
+          // disregard boundary cells, in preparation for acceleration
+          if (  (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ||
+                // Include inflow-Maxwellian
+                (P::vlasovAccelerateMaxwellianBoundaries && (SC->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN)) ) {
+             if (vmesh.size() != 0){
                 //do not propagate spatial cells with no blocks
                 propagatedCells.push_back(cells[c]);
              }

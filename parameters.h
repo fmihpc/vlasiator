@@ -96,6 +96,8 @@ struct Parameters {
    static std::vector<int> systemWrites;        /*!< How many files have been written of each class*/
    static std::vector<std::pair<std::string, std::string>>
        systemWriteHints; /*!< Collection of MPI-IO hints passed for non-restart IO. Pairs of key-value strings. */
+   static std::vector<std::pair<std::string, std::string>>
+       restartWriteHints; /*!< Collection of MPI-IO hints passed for restart IO. Pairs of key-value strings. */
 
    static bool writeInitialState; /*!< If true, initial state is written. This is useful for debugging as the restarts
                                      are always written out after propagation of 0.5dt in real space.*/
@@ -103,7 +105,7 @@ struct Parameters {
    static uint exitAfterRestarts;           /*!< Exit after this many restarts*/
    static uint64_t vlsvBufferSize;          /*!< Buffer size in bytes passed to VLSV writer. */
    static int restartStripeFactor;          /*!< stripe_factor for restart writing*/
-   static int bulkStripeFactor;             /*!< stripe_factor for bulk and initial grid writing*/
+   static int systemStripeFactor;             /*!< stripe_factor for bulk and initial grid writing*/
    static std::string restartWritePath; /*!< Path to the location where restart files should be written. Defaults to the
                                            local directory, also if the specified destination is not writeable. */
 
@@ -138,6 +140,7 @@ struct Parameters {
 
    static Real maxSlAccelerationRotation; /*!< Maximum rotation in acceleration for semilagrangian solver*/
    static int maxSlAccelerationSubcycles; /*!< Maximum number of subcycles in acceleration*/
+   static bool vlasovAccelerateMaxwellianBoundaries; /*!< Accelerate also Maxwellian boundary cells*/
 
    static Real hallMinimumRhom; /*!< Minimum mass density value used in the field solver.*/
    static Real hallMinimumRhoq; /*!< Minimum charge density value used for the Hall and electron pressure gradient terms
@@ -175,7 +178,8 @@ struct Parameters {
    static Realf amrRefineLimit;  /**< If the value of refinement criterion is larger than this value, block should be
                                   * refined.  The value must be larger than amrCoarsenLimit.*/
    static std::string amrVelRefCriterion; /**< Name of the velocity block refinement criterion function.*/
-   static uint amrMaxSpatialRefLevel;
+   static int amrMaxSpatialRefLevel;
+   static int maxFilteringPasses;
    static uint amrBoxHalfWidthX;
    static uint amrBoxHalfWidthY;
    static uint amrBoxHalfWidthZ;

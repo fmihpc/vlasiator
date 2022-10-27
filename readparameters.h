@@ -159,6 +159,11 @@ public:
       }
    }
 
+   // Determine whether a given variable has been set.
+   static bool isSet(const std::string& name) {
+      return(options.find(name) != options.end());
+   }
+
    static void addComposing(const std::string& name, const std::string& desc);
 
    static void helpMessage();
