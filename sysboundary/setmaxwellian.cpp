@@ -21,7 +21,7 @@
  */
 
 /*!\file setmaxwellian.cpp
- * \brief Implementation of the class SysBoundaryCondition::SetMaxwellian to handle cells classified as sysboundarytype::MAXWELLIAN.
+ * \brief Implementation of the class SysBoundaryCondition::Maxwellian to handle cells classified as sysboundarytype::MAXWELLIAN.
  */
 
 #include <cstdlib>
@@ -32,11 +32,11 @@
 #include "../object_wrapper.h"
 
 namespace SBC {
-   SetMaxwellian::SetMaxwellian(): SetByUser() {
+   Maxwellian::Maxwellian(): SetByUser() {
    }
-   SetMaxwellian::~SetMaxwellian() { }
+   Maxwellian::~Maxwellian() { }
    
-   void SetMaxwellian::addParameters() {
+   void Maxwellian::addParameters() {
       Readparameters::addComposing(
           "maxwellian.face", "List of faces on which set Maxwellian boundary conditions are to be applied ([xyz][+-]).");
       Readparameters::add("maxwellian.precedence",
@@ -82,8 +82,8 @@ namespace SBC {
                              "Boolean value, is the set Maxwellian inflow dynamic in time or not.", 0);
       }
    }
-   
-   void SetMaxwellian::getParameters() {
+
+   void Maxwellian::getParameters() {
       Readparameters::get("maxwellian.face", faceList);
       Readparameters::get("maxwellian.precedence", precedence);
       
@@ -115,7 +115,7 @@ namespace SBC {
       }
    }
    
-   Real SetMaxwellian::maxwellianDistribution(
+   Real Maxwellian::maxwellianDistribution(
             const uint popID,
             creal& rho,
             creal& T,
@@ -135,7 +135,7 @@ namespace SBC {
    *  Then we iterate through the actual blocks and calculate their radius R2 based on their velocity coordinates
    *  and the plasma bulk velocity. Blocks that fullfil R2<vRadiusSquared are included to blocksToInitialize.
    */
-   std::vector<vmesh::GlobalID> SetMaxwellian::findBlocksToInitialize(
+   std::vector<vmesh::GlobalID> Maxwellian::findBlocksToInitialize(
       const uint popID,
       spatial_cell::SpatialCell& cell,
       creal& rho,
@@ -202,7 +202,7 @@ namespace SBC {
     * \param inputDataIndex Index used for the location of the input data.
     * \param t Current simulation time.
     */
-   void SetMaxwellian::generateTemplateCell(
+   void Maxwellian::generateTemplateCell(
       spatial_cell::SpatialCell& templateCell,
       Real B[3],
       int inputDataIndex,
@@ -329,8 +329,8 @@ namespace SBC {
       }
 
    }
-   
-   string SetMaxwellian::getName() const {return "SetMaxwellian";}
-   uint SetMaxwellian::getIndex() const {return sysboundarytype::SET_MAXWELLIAN;}
-   
+
+   std::string Maxwellian::getName() const { return "Maxwellian"; }
+   uint Maxwellian::getIndex() const { return sysboundarytype::MAXWELLIAN; }
+
 } // namespace SBC

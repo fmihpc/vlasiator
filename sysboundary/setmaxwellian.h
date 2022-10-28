@@ -33,12 +33,11 @@
 using namespace std;
 
 namespace SBC {
-   /*!\brief SetMaxwellian is a class applying fixed Maxwellian conditions according to parameters read from an input file.
-    * 
-    * Maxwellian is a class handling cells tagged as sysboundarytype::MAXWELLIAN by this
-    * system boundary condition.
-    * 
-    * It applies fixed Maxwellian settings to the system boundary cells, the parameters of
+   /*!\brief Maxwellian is a class applying fixed Maxwellian conditions according to parameters read from an input file.
+    *
+    * Maxwellian is a class handling cells tagged as sysboundarytype::MAXWELLIAN by this boundary condition.
+    *
+    * It applies fixed Maxwellian settings to the inflow boundary cells, the parameters of
     * which are being read from an input file.
     * 
     * The class inherits most of its machinery from
@@ -47,11 +46,11 @@ namespace SBC {
     * specific prefix which is needed if several inheriting classes are needed.
     * 
     */
-   class SetMaxwellian: public SetByUser {
+   class Maxwellian : public SetByUser {
    public:
-      SetMaxwellian();
-      virtual ~SetMaxwellian();
-      
+      Maxwellian();
+      virtual ~Maxwellian();
+
       static void addParameters();
       virtual void getParameters();
       

@@ -478,7 +478,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
           // disregard boundary cells, in preparation for acceleration
           if (  (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ||
                 // Include inflow-Maxwellian
-                (P::vlasovAccelerateMaxwellianBoundaries && (SC->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN)) ) {
+                (P::vlasovAccelerateMaxwellianBoundaries && (SC->sysBoundaryFlag == sysboundarytype::MAXWELLIAN)) ) {
              if (vmesh.size() != 0){
                 //do not propagate spatial cells with no blocks
                 propagatedCells.push_back(cells[c]);

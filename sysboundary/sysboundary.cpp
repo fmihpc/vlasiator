@@ -91,7 +91,7 @@ void SysBoundary::addParameters() {
    SBC::Ionosphere::addParameters();
    SBC::Copysphere::addParameters();
    SBC::Outflow::addParameters();
-   SBC::SetMaxwellian::addParameters();
+   SBC::Maxwellian::addParameters();
 }
 
 /*!\brief Get this class' parameters.
@@ -208,10 +208,10 @@ void SysBoundary::initSysBoundaries(Project& project, creal& t) {
          this->addSysBoundary(new SBC::DoNotCompute, project, t);
          isThisDynamic = isThisDynamic | this->getSysBoundary(sysboundarytype::COPYSPHERE)->isDynamic();
       } else if (*it == "Maxwellian") {
-         this->addSysBoundary(new SBC::SetMaxwellian, project, t);
-         isThisDynamic = isThisDynamic | this->getSysBoundary(sysboundarytype::SET_MAXWELLIAN)->isDynamic();
+         this->addSysBoundary(new SBC::Maxwellian, project, t);
+         isThisDynamic = isThisDynamic | this->getSysBoundary(sysboundarytype::MAXWELLIAN)->isDynamic();
          bool faces[6];
-         this->getSysBoundary(sysboundarytype::SET_MAXWELLIAN)->getFaces(&faces[0]);
+         this->getSysBoundary(sysboundarytype::MAXWELLIAN)->getFaces(&faces[0]);
          if ((faces[0] || faces[1]) && isPeriodic[0]) {
             abort_mpi("Conflict: x boundaries set to periodic but found Maxwellian also!");
          }
