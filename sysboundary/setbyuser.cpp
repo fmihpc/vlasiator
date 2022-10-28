@@ -47,7 +47,7 @@ namespace SBC {
    SetByUser::SetByUser(): OuterBoundaryCondition() { }
    SetByUser::~SetByUser() { }
    
-   bool SetByUser::initSysBoundary(
+   void SetByUser::initSysBoundary(
       creal& t,
       Project &project
    ) {
@@ -75,10 +75,73 @@ namespace SBC {
       }
       success = success & generateTemplateCells(t);
       
-      return success;
    }
    
-   bool SetByUser::applyInitialState(
+   void SetByUser::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                     FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
+      bool doAssign;
+      array<bool,6> isThisCellOnAFace;
+
+      const vector<CellID>& cells = getLocalCells();
+      for(uint i = 0; i < cells.size(); i++) {
+         if(mpiGrid[cells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+         creal* const cellParams = &(mpiGrid[cells[i]]->parameters[0]);
+         creal dx = cellParams[CellParams::DX];
+         creal dy = cellParams[CellParams::DY];
+         creal dz = cellParams[CellParams::DZ];
+         creal x = cellParams[CellParams::XCRD] + 0.5*dx;
+         creal y = cellParams[CellParams::YCRD] + 0.5*dy;
+         creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
+         
+         isThisCellOnAFace.fill(false);
+         determineFace(isThisCellOnAFace.data(), x, y, z, dx, dy, dz);
+         // Comparison of the array defining which faces to use and the array telling on which faces this cell is
+         doAssign = false;
+         for(int j=0; j<6; j++) doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
+         if(doAssign) {
+            mpiGrid[cells[i]]->sysBoundaryFlag = this->getIndex();
+         }
+      }
+      
+      // Assign boundary flags to local fsgrid cells
+      const array<int, 3> gridDims(technicalGrid.getLocalSize());
+      for (int k=0; k<gridDims[2]; k++) {
+         for (int j=0; j<gridDims[1]; j++) {
+            for (int i=0; i<gridDims[0]; i++) {
+               const auto coords = technicalGrid.getPhysicalCoords(i,j,k);
+
+               
+               // Shift to the center of the fsgrid cell
+               auto cellCenterCoords = coords;
+               cellCenterCoords[0] += 0.5 * technicalGrid.DX;
+               cellCenterCoords[1] += 0.5 * technicalGrid.DY;
+               cellCenterCoords[2] += 0.5 * technicalGrid.DZ;
+               const auto refLvl = mpiGrid.get_refinement_level(mpiGrid.get_existing_cell(cellCenterCoords));
+
+               if(refLvl == -1) {
+                  cerr << "Error, could not get refinement level of remote DCCRG cell " << __FILE__ << " " << __LINE__ << endl;
+                  MPI_Abort(MPI_COMM_WORLD, 1);
+               }
+
+               creal dx = P::dx_ini / pow(2, refLvl);
+               creal dy = P::dy_ini / pow(2, refLvl);
+               creal dz = P::dz_ini / pow(2, refLvl);
+               
+               isThisCellOnAFace.fill(false);
+               doAssign = false;
+
+               determineFace(isThisCellOnAFace.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx, dy, dz);
+               for(int iface=0; iface<6; iface++) doAssign = doAssign || (facesToProcess[iface] && isThisCellOnAFace[iface]);
+               if(doAssign) {
+                  technicalGrid.get(i,j,k)->sysBoundaryFlag = this->getIndex();
+               }
+            }
+         }
+      }
+
+   }
+   
+   void SetByUser::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
       FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -90,7 +153,6 @@ namespace SBC {
       }
       if (!setBFromTemplate(technicalGrid, perBGrid)) success = false;
       
-      return success;
    }
    
    Real SetByUser::fieldSolverBoundaryCondMagneticField(

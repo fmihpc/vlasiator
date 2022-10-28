@@ -39,21 +39,20 @@ namespace SBC {
    void DoNotCompute::addParameters() { }
    void DoNotCompute::getParameters() { }
    
-   bool DoNotCompute::initSysBoundary(
+   void DoNotCompute::initSysBoundary(
       creal& t,
       Project &project
    ) {
       precedence = 0;
       isThisDynamic = false;
-      return true;
    }
    
-   bool DoNotCompute::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&,
+   void DoNotCompute::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>&,
                                         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
-      return true;
+      // Does nothing.
    }
    
-   bool DoNotCompute::applyInitialState(
+   void DoNotCompute::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
       FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -82,8 +81,6 @@ namespace SBC {
          for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
             cell->adjustSingleCellVelocityBlocks(popID);
       }
-      
-      return true;
    }
    
    string DoNotCompute::getName() const {return "DoNotCompute";}

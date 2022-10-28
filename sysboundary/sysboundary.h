@@ -59,20 +59,20 @@ class SysBoundary {
    void addParameters();
    void getParameters();
       
-   bool addSysBoundary(
+   void addSysBoundary(
                        SBC::SysBoundaryCondition* sbc,
                        Project& project,
                        creal& t
                       );
-   bool initSysBoundaries(
+   void initSysBoundaries(
                           Project& project,
                           creal& t
                          );
    bool existSysBoundary(std::string name);
-   bool checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
-   bool classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   void checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+   void classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
-   bool applyInitialState(
+   void applyInitialState(
                           dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                           FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
                           FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -83,7 +83,7 @@ class SysBoundary {
    SBC::SysBoundaryCondition* getSysBoundary(cuint sysBoundaryType) const;
    bool isDynamic() const;
    bool isBoundaryPeriodic(uint direction) const;
-   bool updateSysBoundariesAfterLoadBalance(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+   void updateSysBoundariesAfterLoadBalance(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid);
 
    private:
       /*! Private copy-constructor to prevent copying the class. */
@@ -112,7 +112,7 @@ bool precedenceSort(const SBC::SysBoundaryCondition* first,
 /*
    Input a vector of cellIDs (cellList) and compute a new vector with only those cells which are on a sysboundary and are to be computed
 */
-bool getBoundaryCellList(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+void getBoundaryCellList(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                          const std::vector<CellID>& cellList,
                          std::vector<CellID>& boundaryCellList);
 

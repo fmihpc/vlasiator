@@ -61,14 +61,14 @@ namespace SBC {
          static void addParameters();
          virtual void getParameters()=0;
          
-         virtual bool initSysBoundary(
+         virtual void initSysBoundary(
             creal& t,
             Project &project
          )=0;
-         virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell,
+         virtual void assignSysBoundary(dccrg::Dccrg<SpatialCell,
                                         dccrg::Cartesian_Geometry>& mpiGrid,
                                         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)=0;
-         virtual bool applyInitialState(
+         virtual void applyInitialState(
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
             FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -300,7 +300,7 @@ namespace SBC {
 
    class OuterBoundaryCondition: public SysBoundaryCondition {
       public:
-         virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
+         virtual void assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
       protected:
          /*! Array of bool telling which faces are going to be processed by the system boundary condition.*/
          bool facesToProcess[6];

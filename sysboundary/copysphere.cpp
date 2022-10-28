@@ -115,7 +115,7 @@ namespace SBC {
       }
    }
    
-   bool Copysphere::initSysBoundary(
+   void Copysphere::initSysBoundary(
       creal& t,
       Project &project
    ) {
@@ -125,8 +125,6 @@ namespace SBC {
       // iniSysBoundary is only called once, generateTemplateCell must 
       // init all particle species
       generateTemplateCell(project);
-      
-      return true;
    }
 
    Real getR(creal x,creal y,creal z, uint geometry, Real center[3]) {
@@ -157,7 +155,7 @@ namespace SBC {
       return r;
    }
    
-   bool Copysphere::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   void Copysphere::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
       const vector<CellID>& cells = getLocalCells();
       for(uint i=0; i<cells.size(); i++) {
@@ -178,10 +176,9 @@ namespace SBC {
          }
       }
 
-      return true;
    }
 
-   bool Copysphere::applyInitialState(
+   void Copysphere::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -196,7 +193,6 @@ namespace SBC {
          for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
             setCellFromTemplate(cell,popID);
       }
-      return true;
    }
 
    std::array<Real, 3> Copysphere::fieldSolverGetNormalDirection(
