@@ -189,7 +189,6 @@ struct setOfPencils {
 
 bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                   const std::vector<CellID>& localPropagatedCells,
-                  const std::vector<CellID>& remoteTargetCells,
                   std::vector<uint>& nPencils,
                   const uint dimension,
                   const Realv dt,
@@ -208,7 +207,12 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
 // pencils used for AMR translation
 static std::array<setOfPencils,3> DimensionPencils;
 
+// Only communicate required cells
 void flagSpatialCellsForAmrCommunication(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                          const std::vector<CellID>& localPropagatedCells);
+
+// Local translation cell lists (no interim comms)
+void prepareLocalTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                                      const std::vector<CellID>& localPropagatedCells);
 
 #endif

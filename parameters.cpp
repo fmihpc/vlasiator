@@ -39,6 +39,7 @@ using namespace std;
 
 typedef Parameters P;
 
+extern Logger logFile;
 // Using numeric_limits<Real>::max() leads to FP exceptions inside boost programoptions, use a slightly smaller value to
 // avoid...
 
@@ -65,11 +66,13 @@ Real P::t_max = LARGE_REAL;
 Real P::dt = NAN;
 Real P::vlasovSolverMaxCFL = NAN;
 Real P::vlasovSolverMinCFL = NAN;
+bool P::vlasovSolverLocalTranslate = false;
 Real P::fieldSolverMaxCFL = NAN;
 Real P::fieldSolverMinCFL = NAN;
 uint P::fieldSolverSubcycles = 1;
 
 bool P::amrTransShortPencils = false;
+bool P::amrTransSplitPencilsOnlyForFace = false;
 
 uint P::tstep = 0;
 uint P::tstep_min = 0;
@@ -302,6 +305,7 @@ bool P::addParameters() {
    RP::add("vlasovsolver.accelerateMaxwellianBoundaries",
            "Propagate maxwellian boundary cell contents in velocity space. Default false.",
            false);
+   RP::add("vlasovsolver.LocalTranslate","Boolean for activating all-local translation",false);
 
    // Load balancing parameters
    RP::add("loadBalance.algorithm", "Load balancing algorithm to be used", string("RCB"));
@@ -322,7 +326,7 @@ bool P::addParameters() {
                         "populations_vg_energydensity populations_vg_precipitationdifferentialflux " +
                         "populations_vg_heatflux" +  
                         "vg_maxdt_acceleration vg_maxdt_translation populations_vg_maxdt_acceleration "
-                        "populations_vg_maxdt_translation " +
+                        "populations_vg_maxdt_translation vg_amr_translate_comm " +
                         "fg_maxdt_fieldsolver " + "vg_rank fg_rank fg_amr_level vg_loadbalance_weight " +
                         "vg_boundarytype fg_boundarytype vg_boundarylayer fg_boundarylayer " +
                         "populations_vg_blocks vg_f_saved " + "populations_vg_acceleration_subcycles " +
@@ -400,6 +404,7 @@ bool P::addParameters() {
    RP::add("AMR.box_center_y", "y coordinate of the center of the box that is refined (for testing)", 0.0);
    RP::add("AMR.box_center_z", "z coordinate of the center of the box that is refined (for testing)", 0.0);
    RP::add("AMR.transShortPencils", "if true, use one-cell pencils", false);
+   RP::add("AMR.transSplitPencilsOnlyForFace", "if true, only split AMR pencils for face neighour cell requirements", false);
    RP::addComposing("AMR.filterpasses", string("AMR filter passes for each individual refinement level"));
 
    return true;
@@ -587,6 +592,9 @@ void Parameters::getParameters() {
    RP::get("AMR.refine_limit", P::amrRefineLimit);
    RP::get("AMR.coarsen_limit", P::amrCoarsenLimit);
    RP::get("AMR.transShortPencils", P::amrTransShortPencils);
+   RP::get("AMR.transSplitPencilsOnlyForFace", P::amrTransSplitPencilsOnlyForFace);
+
+   /*Read Blur Passes per Refinement Level*/
    RP::get("AMR.filterpasses", P::blurPassString);
 
    // If we are in an AMR run we need to set up the filtering scheme.
@@ -688,7 +696,11 @@ void Parameters::getParameters() {
    RP::get("vlasovsolver.maxSlAccelerationSubcycles", P::maxSlAccelerationSubcycles);
    RP::get("vlasovsolver.maxCFL", P::vlasovSolverMaxCFL);
    RP::get("vlasovsolver.minCFL", P::vlasovSolverMinCFL);
+   RP::get("vlasovsolver.LocalTranslate",P::vlasovSolverLocalTranslate);
    RP::get("vlasovsolver.accelerateMaxwellianBoundaries",  P::vlasovAccelerateMaxwellianBoundaries);
+   if ((myRank == MASTER_RANK)&&(P::vlasovSolverLocalTranslate==true)) {
+      logFile<<"Performing all spatial translation locally using ghost cell information"<<endl;
+   }
 
    // Get load balance parameters
    RP::get("loadBalance.algorithm", P::loadBalanceAlgorithm);

@@ -91,9 +91,10 @@ INC_PAPI = -isystem $(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAN
 
 #header libraries
 INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid/
-INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg/
+#INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg/
+INC_DCCRG = -I/proj/markusb/libraries/dccrg/
 INC_VECTORCLASS = -isystem $(LIBRARY_PREFIX)/vectorclass/
-INC_EIGEN = -isystem $(LIBRARY_PREFIX)/ -I$(LIBRARY_PREFIX)/Eigen
+INC_EIGEN = -isystem $(LIBRARY_PREFIX)/ -isystem $(LIBRARY_PREFIX)/Eigen
 
 
 

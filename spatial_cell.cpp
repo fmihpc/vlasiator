@@ -81,7 +81,7 @@ namespace spatial_cell {
     * velocity_block_with_no_content_list needs to be up to date in local cells.
     *         
     * update_velocity_block_with_content_lists() should have
-    * been called with the current distribution function values, and then the contetn list transferred.
+    * been called with the current distribution function values, and then the content list transferred.
     * 
     * Removes all velocity blocks from this spatial cell which don't
     * have content and don't have spatial or velocity neighbors with
@@ -774,12 +774,14 @@ namespace spatial_cell {
          MPI_Type_size(datatype,&mpiSize);
          MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
          cout << myRank << " get_mpi_datatype: " << cellID << " " << sender_rank << " " << receiver_rank << " " << mpiSize << ", Nblocks = " << populations[activePopID].N_blocks << ", nbr Nblocks =";
-         for (uint i = 0; i < MAX_NEIGHBORS_PER_DIM; ++i) {
-            const set<int>& ranks = this->face_neighbor_ranks[neighborhood];
-            if ( receiving || ranks.find(receiver_rank) != ranks.end()) {
-               cout << " " << this->neighbor_number_of_blocks[i];
-            } else {
-               cout << " " << 0;
+         if (!P::vlasovSolverLocalTranslate) {
+            for (uint i = 0; i < MAX_NEIGHBORS_PER_DIM; ++i) {
+               const set<int>& ranks = this->face_neighbor_ranks[neighborhood];
+               if ( receiving || ranks.find(receiver_rank) != ranks.end()) {
+                  cout << " " << this->neighbor_number_of_blocks[i];
+               } else {
+                  cout << " " << 0;
+               }
             }
          }
          cout << " face_neighbor_ranks =";
