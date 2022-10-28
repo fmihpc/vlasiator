@@ -98,7 +98,7 @@ void velocitySpaceDiffusion(
 
             phiprof::start("Zeroing");
             Realf RemainT  = Parameters::dt - dtTotalDiff; //Remaining time before reaching simulation time step
-            Vec4d checkCFL = std::numeric_limits<Realf>::max();
+            Realf checkCFL = std::numeric_limits<Realf>::max();
 
             // Initialised back to zero at each substep
             memset(fmu          , 0.0, sizeof(fmu));
@@ -263,9 +263,6 @@ void velocitySpaceDiffusion(
                    #endif
                    CellValue.load(&cell.get_data(n,popID)[WID*j+WID*WID*k]);
 
-                   Vec4db lessSpars = CellValue < Sparsity;
-                   CellValue = select(lessSpars, Sparsity, CellValue);
-
                    Vec4i Vindex;
                    Vindex = round_to_int(floor((normV-Vmin) / dVbins));
                    Vec4i muindex;
@@ -273,25 +270,20 @@ void velocitySpaceDiffusion(
 
                    Vec4d Vmu = dVbins * (to_double(Vindex)+0.5);
 
-                   for (uint i = 0; i < WID; i++) {dfdt[WID3*n+i+WID*j+WID*WID*k] = dfdt_mu[Vindex[i]][muindex[i]] / (2.0 * M_PI * Vmu[i]*Vmu[i]);}
-                   Vec4d dfdtCheck;
-                   dfdtCheck.load(&dfdt[WID3*n+WID*j+WID*WID*k]);
+                   for (uint i = 0; i < WID; i++) {
+                       dfdt[WID3*n+i+WID*j+WID*WID*k] = dfdt_mu[Vindex[i]][muindex[i]] / (2.0 * M_PI * Vmu[i]*Vmu[i]);
+                       Realf checkCFLtmp = std::numeric_limits<Realf>::max();
+		       if (fmu[Vindex[i]][muindex[i]] > Sparsity*(2.0 * M_PI * Vmu[i]*Vmu[i]) && abs(dfdt_mu[Vindex[i]][muindex[i]]) > 0.0) { checkCFLtmp = fmu[Vindex[i]][muindex[i]] * Parameters::PADCFL * (1.0 / abs(dfdt_mu[Vindex[i]][muindex[i]])); }
+                       if (checkCFLtmp < checkCFL) { checkCFL = checkCFLtmp; }
+                   }
 
-                   Vec4db boolCond = (CellValue > Sparsity) && (abs(dfdtCheck) > 0.0);
-                   Vec4d checkCFLTemp;
-
-                   checkCFLTemp = select(boolCond, CellValue * Parameters::PADCFL * (1.0 / abs(dfdtCheck)), std::numeric_limits<Realf>::max());
-                   checkCFL = min(checkCFLTemp,checkCFL);
-
-                   } // End coordinates 
+                } // End coordinates 
             } // End Blocks
             phiprof::stop("diffusion time derivative");
 
             phiprof::start("calculate CFL");
             //Calculate Diffusion time step based on min of CFL condition
-            Realf DdtTemp = std::numeric_limits<Realf>::max();
-            for (int i = 0; i<4; i++) { if (checkCFL[i] < DdtTemp) {DdtTemp = checkCFL[i];} }
-            Realf Ddt = DdtTemp; // Diffusion time step
+            Realf Ddt = checkCFL; // Diffusion time step
             if (Ddt > RemainT) { Ddt = RemainT; }
             dtTotalDiff = dtTotalDiff + Ddt;
             phiprof::stop("calculate CFL");
