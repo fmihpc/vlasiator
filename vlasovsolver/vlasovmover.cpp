@@ -58,8 +58,8 @@ creal EPSILON = 1.0e-25;
 /** Propagates the distribution function in spatial space.
 
     Based on SLICE-3D algorithm: Zerroukat, M., and T. Allen. "A
-    three‐dimensional monotone and conservative semi‐Lagrangian scheme
-    (SLICE‐3D) for transport problems." Quarterly Journal of the Royal
+    three-dimensional monotone and conservative semi-Lagrangian scheme
+    (SLICE-3D) for transport problems." Quarterly Journal of the Royal
     Meteorological Society 138.667 (2012): 1640-1651.
 
  */
@@ -243,17 +243,14 @@ void calculateSpatialTranslation(
     Now does extra calculations locally without interim MPI communication.
 
     Based on SLICE-3D algorithm: Zerroukat, M., and T. Allen. "A
-    three‐dimensional monotone and conservative semi‐Lagrangian scheme
-    (SLICE‐3D) for transport problems." Quarterly Journal of the Royal
+    three-dimensional monotone and conservative semi-Lagrangian scheme
+    (SLICE-3D) for transport problems." Quarterly Journal of the Royal
     Meteorological Society 138.667 (2012): 1640-1651.
 
  */
 void calculateSpatialLocalTranslation(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const vector<CellID>& local_propagated_cells, // Used for loadbalancing, not selecting active cells
-   const vector<CellID>& remoteTargetCellsx, // Not necessary, passed for compatibility
-   const vector<CellID>& remoteTargetCellsy, // Not necessary, passed for compatibility
-   const vector<CellID>& remoteTargetCellsz, // Not necessary, passed for compatibility
    vector<uint>& nPencils,
    creal dt,
    const uint popID,
@@ -261,25 +258,21 @@ void calculateSpatialLocalTranslation(
    ) {
 
    int trans_timer;
-   bool AMRtranslationActive = false;
-   //if (P::amrMaxSpatialRefLevel > 0) AMRtranslationActive = true;
-   // int myRank;
-   // MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-   //double t1;
+   // Local translation, need all cell information, not just for a single direction
+   bool AMRtranslationActive = false; 
 
    trans_timer=phiprof::initializeTimer("transfer-stencil-data-all","MPI");
    phiprof::start(trans_timer);
    //updateRemoteVelocityBlockLists(mpiGrid,popID,VLASOV_SOLVER_NEIGHBORHOOD_ID); // already done in ACC under adjustVelocityBlocks
-   updateRemoteVelocityBlockLists(mpiGrid,popID,FULL_NEIGHBORHOOD_ID); // already done in ACC under adjustVelocityBlocks
    SpatialCell::set_mpi_transfer_direction(0); // Local translation uses just the X flag
-   //SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false,AMRtranslationActive);
-   SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA,false,AMRtranslationActive);
-   //mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_NEIGHBORHOOD_ID);
-   mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
-   //mpiGrid.update_copies_of_remote_neighbors(DIST_FUNC_NEIGHBORHOOD_ID);
+   SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false,AMRtranslationActive);
+   //SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA,false,AMRtranslationActive);
+   mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_NEIGHBORHOOD_ID);
+   //mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
    phiprof::stop(trans_timer);
    MPI_Barrier(MPI_COMM_WORLD);
 
+#warning TODO: Implement also 2D / non-AMR local translation
    // ------------- SLICE - map dist function in Z --------------- //
    if(P::zcells_ini > 1){
       phiprof::start("compute-mapping-z");
@@ -312,15 +305,15 @@ void calculateSpatialLocalTranslation(
       }
       phiprof::stop("compute-mapping-y");
    }
-   phiprof::start(trans_timer);
-   updateRemoteVelocityBlockLists(mpiGrid,popID,FULL_NEIGHBORHOOD_ID); // already done in ACC under adjustVelocityBlocks
-   SpatialCell::set_mpi_transfer_direction(0); // Local translation uses just the X flag
+   //phiprof::start(trans_timer);
+   //updateRemoteVelocityBlockLists(mpiGrid,popID,FULL_NEIGHBORHOOD_ID); // already done in ACC under adjustVelocityBlocks
+   //SpatialCell::set_mpi_transfer_direction(0); // Local translation uses just the X flag
    //SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false,AMRtranslationActive);
-   SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA,false,AMRtranslationActive);
+   //SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA,false,AMRtranslationActive);
    //mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_NEIGHBORHOOD_ID);
-   mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
+   //mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
    //mpiGrid.update_copies_of_remote_neighbors(DIST_FUNC_NEIGHBORHOOD_ID);
-   phiprof::stop(trans_timer);
+   //phiprof::stop(trans_timer);
 
 }
 
@@ -391,9 +384,6 @@ void calculateSpatialTranslation(
          calculateSpatialLocalTranslation(
             mpiGrid,
             local_propagated_cells, // Used for LB
-            remoteTargetCellsx, // Not necessary, passed for compatibility
-            remoteTargetCellsy, // Not necessary, passed for compatibility
-            remoteTargetCellsz, // Not necessary, passed for compatibility
             nPencils,
             dt,
             popID,

@@ -584,9 +584,8 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
       SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
       mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
       prepareLocalTranslationCellLists(mpiGrid,cells);
-      //prepareLocalTranslationCellLists2(mpiGrid,cells);
    } else {
-      //flagSpatialCellsForAmrCommunication(mpiGrid,cells);
+      flagSpatialCellsForAmrCommunication(mpiGrid,cells);
    }
    phiprof::stop("compute_amr_transfer_flags");
 
@@ -599,7 +598,6 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    //new partition, re/initialize blocklists of remote cells.
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       if (P::vlasovSolverLocalTranslate) {
-         updateRemoteVelocityBlockLists(mpiGrid,popID,FULL_NEIGHBORHOOD_ID);
          updateRemoteVelocityBlockLists(mpiGrid,popID,VLASOV_SOLVER_NEIGHBORHOOD_ID);
       } else {
          updateRemoteVelocityBlockLists(mpiGrid,popID);
@@ -720,7 +718,6 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    //prepare to receive block data
    if (doPrepareToReceiveBlocks) {
       if (P::vlasovSolverLocalTranslate) {
-         updateRemoteVelocityBlockLists(mpiGrid,popID,FULL_NEIGHBORHOOD_ID);
          updateRemoteVelocityBlockLists(mpiGrid,popID,VLASOV_SOLVER_NEIGHBORHOOD_ID);
       } else {
          updateRemoteVelocityBlockLists(mpiGrid,popID);
@@ -808,8 +805,7 @@ void report_grid_memory_consumption(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
  */
 void deallocateRemoteCellBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
    const std::vector<uint64_t> incoming_cells
-//      = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_NEIGHBORHOOD_ID);
-            = mpiGrid.get_remote_cells_on_process_boundary(FULL_NEIGHBORHOOD_ID);
+      = mpiGrid.get_remote_cells_on_process_boundary(FULL_NEIGHBORHOOD_ID);
    for(unsigned int i=0;i<incoming_cells.size();i++){
       uint64_t cell_id=incoming_cells[i];
       SpatialCell* cell = mpiGrid[cell_id];
