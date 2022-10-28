@@ -428,7 +428,7 @@ void prepareLocalTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cart
    //cellIDloop.assign(LocalSet_x.begin(), LocalSet_x.end());
    for (auto it=LocalSet_x.begin(); it!=LocalSet_x.end(); ++it) {
    //for (uint i=0; i<localPropagatedCells.size(); i++) {
-   for (uint i=0; i<cellIDloop.size(); i++) {
+   //for (uint i=0; i<cellIDloop.size(); i++) {
       //CellID c = cellIDloop[i];
       //CellID c = localPropagatedCells[i];
       CellID c = (*it);
