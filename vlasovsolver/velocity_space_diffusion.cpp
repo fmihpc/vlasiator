@@ -164,7 +164,7 @@ void velocitySpaceDiffusion(
 
             for (int indv = 0; indv < nbins_v; indv++) { // Divide f by count 
                 for(int indmu = 0; indmu < nbins_mu; indmu++) {
-                    if (fcount[indv][indmu] == 0) { fmu[indv][indmu] = 0.0;}
+                    if (fcount[indv][indmu] == 0 || fmu[indv][indmu] <= 0.0) { fmu[indv][indmu] = std::numeric_limits<Realf>::min();}
                     else {fmu[indv][indmu] = fmu[indv][indmu] / fcount[indv][indmu];} 
                 }
             }
@@ -252,7 +252,7 @@ void velocitySpaceDiffusion(
               
                    Vec4d normV = sqrt(Vplasma[0]*Vplasma[0] + Vplasma[1]*Vplasma[1] + Vplasma[2]*Vplasma[2]);
 
-                   Vec4d Vpara = Vplasma[0];
+                   Vec4d Vpara = Vplasma[0]*b[0] + Vplasma[1]*b[1] + Vplasma[2]*b[2];
 
                    Vec4d mu = Vpara/(normV+std::numeric_limits<Realf>::min()); // + min value to avoid division by 0
 
@@ -277,11 +277,10 @@ void velocitySpaceDiffusion(
                    Vec4d dfdtCheck;
                    dfdtCheck.load(&dfdt[WID3*n+WID*j+WID*WID*k]);
 
-                   Vec4d checkCFLTemp;                   
+                   Vec4db boolCond = (CellValue > Sparsity) && (abs(dfdtCheck) > 0.0);
+                   Vec4d checkCFLTemp;
 
-                   Vec4db dfdtABS = abs(dfdtCheck) > 0.0;
-                   
-                   checkCFLTemp = select(dfdtABS, CellValue * Parameters::PADCFL * (1.0 / abs(dfdtCheck)), std::numeric_limits<Realf>::max());
+                   checkCFLTemp = select(boolCond, CellValue * Parameters::PADCFL * (1.0 / abs(dfdtCheck)), std::numeric_limits<Realf>::max());
                    checkCFL = min(checkCFLTemp,checkCFL);
 
                    } // End coordinates 
