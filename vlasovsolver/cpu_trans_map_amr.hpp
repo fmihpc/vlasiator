@@ -211,9 +211,8 @@ static std::array<setOfPencils,3> DimensionPencils;
 void flagSpatialCellsForAmrCommunication(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                          const std::vector<CellID>& localPropagatedCells);
 
+// Local translation cell lists (no interim comms)
 void prepareLocalTranslationCellLists(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                      const std::vector<CellID>& localPropagatedCells);
-void prepareLocalTranslationCellLists2(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                       const std::vector<CellID>& localPropagatedCells);
 
 #endif
