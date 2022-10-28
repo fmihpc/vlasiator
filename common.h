@@ -54,6 +54,8 @@ void bailout(
    const int line
 );
 
+[[ noreturn ]] void abort_mpi(const std::string str, const int err_type = 0);
+
 #define sqr(x) ((x)*(x))
 #define pow2(x) sqr(x)
 #define pow3(x) ((x)*(x)*(x))

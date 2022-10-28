@@ -151,8 +151,7 @@ namespace SBC {
          r = sqrt((x-center[0])*(x-center[0]) + (z-center[2])*(z-center[2]));
          break;
       default:
-         std::cerr << __FILE__ << ":" << __LINE__ << ":" << "copysphere.geometry has to be 0, 1 or 2." << std::endl;
-         abort();
+         abort_mpi("copysphere.geometry has to be 0, 1 or 2.", 1);
       }
 
       return r;
@@ -229,8 +228,7 @@ namespace SBC {
          if (Parameters::ycells_ini == 1) {
             if (Parameters::zcells_ini == 1) {
                // X,Y,Z
-               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "What do you expect to do with a single-cell simulation of copysphere boundary type? Stop kidding." << std::endl;
-               abort();
+               abort_mpi("What do you expect to do with a single-cell simulation of copysphere boundary type? Stop kidding.", 1);
                // end of X,Y,Z
             } else {
                // X,Y
@@ -365,8 +363,7 @@ namespace SBC {
                normalDirection[1] = y / length;
                break;
             default:
-               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "copysphere.geometry has to be 0, 1 or 2 with this grid shape." << std::endl;
-               abort();
+               abort_mpi("copysphere.geometry has to be 0, 1 or 2 with this grid shape.", 1);
          }
          // end of Z
       } else {
@@ -463,8 +460,7 @@ namespace SBC {
                normalDirection[2] = z / length;
                break;
             default:
-               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "copysphere.geometry has to be 0, 1, 2 or 3 with this grid shape." << std::endl;
-               abort();
+               abort_mpi("copysphere.geometry has to be 0, 1, 2 or 3 with this grid shape.", 1);
          }
          // end of 3D
       }

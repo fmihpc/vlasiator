@@ -121,8 +121,7 @@ namespace SBC {
            } else if(vlasovSysBoundarySchemeName[j] == "Limit") {
               sP.faceVlasovScheme[j] = vlasovscheme::LIMIT;
            } else {
-              if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: " << vlasovSysBoundarySchemeName[j] << " is an invalid Outflow Vlasov scheme!" << endl;
-              exit(1);
+              abort_mpi("ERROR: " + vlasovSysBoundarySchemeName[j] + " is an invalid Outflow Vlasov scheme!");
            }
         }
 
@@ -354,9 +353,7 @@ namespace SBC {
                   vlasovBoundaryCopyFromTheClosestNbrAndLimit(mpiGrid,cellID,popID);
                   break;
                default:
-                  cerr << __FILE__ << ":" << __LINE__ << "ERROR: invalid Outflow Vlasov scheme!" << endl;
-                  exit(1);
-                  break;
+                  abort_mpi("ERROR: invalid Outflow Vlasov scheme", 1);
             }
          }
       }

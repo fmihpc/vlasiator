@@ -170,25 +170,13 @@ bool SysBoundary::initSysBoundaries(Project& project, creal& t) {
 
    if (sysBoundaryCondList.size() == 0) {
       if (!isPeriodic[0] && !Readparameters::helpRequested) {
-         if (myRank == MASTER_RANK) {
-            cerr << "You set boundaries.periodic_x = no but you didn't load any system boundary condition using the "
-                    "option boundaries.boundary, are you sure this is correct?"
-                 << endl;
-         }
+         abort_mpi("Non-periodic in x but no boundary condtion loaded!");
       }
       if (!isPeriodic[1] && !Readparameters::helpRequested) {
-         if (myRank == MASTER_RANK) {
-            cerr << "You set boundaries.periodic_y = no but you didn't load any system boundary condition using the "
-                    "option boundaries.boundary, are you sure this is correct?"
-                 << endl;
-         }
+         abort_mpi("Non-periodic in y but no boundary condtion loaded!");
       }
       if (!isPeriodic[2] && !Readparameters::helpRequested) {
-         if (myRank == MASTER_RANK) {
-            cerr << "You set boundaries.periodic_z = no but you didn't load any system boundary condition using the "
-                    "option boundaries.boundary, are you sure this is correct?"
-                 << endl;
-         }
+         abort_mpi("Non-periodic in z but no boundary condtion loaded!");
       }
    }
 
@@ -204,50 +192,23 @@ bool SysBoundary::initSysBoundaries(Project& project, creal& t) {
          bool faces[6];
          this->getSysBoundary(sysboundarytype::OUTFLOW)->getFaces(&faces[0]);
          if ((faces[0] || faces[1]) && isPeriodic[0]) {
-            if (myRank == MASTER_RANK) {
-               cerr << "You set boundaries.periodic_x = yes and load Outflow system boundary conditions on the x+ or "
-                       "x- face, are you sure this is correct?"
-                    << endl;
-            }
+            abort_mpi("Conflict: x boundaries set to periodic but found Outflow conditions!");
          }
          if ((faces[2] || faces[3]) && isPeriodic[1]) {
-            if (myRank == MASTER_RANK) {
-               cerr << "You set boundaries.periodic_y = yes and load Outflow system boundary conditions on the y+ or "
-                       "y- face, are you sure this is correct?"
-                    << endl;
-            }
+            abort_mpi("Conflict: y boundaries set to periodic but found Outflow conditions!");
          }
          if ((faces[4] || faces[5]) && isPeriodic[2]) {
-            if (myRank == MASTER_RANK) {
-               cerr << "You set boundaries.periodic_z = yes and load Outflow system boundary conditions on the z+ or "
-                       "z- face, are you sure this is correct?"
-                    << endl;
-            }
+            abort_mpi("Conflict: z boundaries set to periodic but found Outflow conditions!");
          }
          if ((faces[0] || faces[1]) && P::xcells_ini < 5) {
-            if (myRank == MASTER_RANK) {
-               cerr << "You load Outflow system boundary conditions on the x+ or x- face but there is not enough cells "
-                       "in that direction to make sense."
-                    << endl;
-            }
-            exit(1);
+            abort_mpi("Outflow condition loaded on x- or x+ face but not enough cells in x!");
          }
          if ((faces[2] || faces[3]) && P::ycells_ini < 5) {
-            if (myRank == MASTER_RANK) {
-               cerr << "You load Outflow system boundary conditions on the y+ or y- face but there is not enough cells "
-                       "in that direction to make sense."
-                    << endl;
-            }
-            exit(1);
+            abort_mpi("Outflow condition loaded on y- or y+ face but not enough cells in y!");
          }
-         if ((faces[4] || faces[5]) && P::zcells_ini < 5) {
-            if (myRank == MASTER_RANK) {
-               cerr << "You load Outflow system boundary conditions on the z+ or z- face but there is not enough cells "
-                       "in that direction to make sense."
-                    << endl;
-            }
-            exit(1);
-         }
+
+         if ((faces[4] || faces[5]) && P::zcells_ini < 5)
+            abort_mpi("Outflow condition loaded on z- or z+ face but not enough cells in z!");
       } else if (*it == "Ionosphere") {
          if (!this->addSysBoundary(new SBC::Ionosphere, project, t)) {
             if (myRank == MASTER_RANK) {
@@ -283,55 +244,27 @@ bool SysBoundary::initSysBoundaries(Project& project, creal& t) {
          bool faces[6];
          this->getSysBoundary(sysboundarytype::SET_MAXWELLIAN)->getFaces(&faces[0]);
          if ((faces[0] || faces[1]) && isPeriodic[0]) {
-            if (myRank == MASTER_RANK) {
-               cerr << "You set boundaries.periodic_x = yes and load Maxwellian system boundary conditions on the x+ "
-                       "or x- face, are you sure this is correct?"
-                    << endl;
-            }
+            abort_mpi("Conflict: x boundaries set to periodic but found Maxwellian also!");
          }
          if ((faces[2] || faces[3]) && isPeriodic[1]) {
-            if (myRank == MASTER_RANK) {
-               cerr << "You set boundaries.periodic_y = yes and load Maxwellian system boundary conditions on the y+ "
-                       "or y- face, are you sure this is correct?"
-                    << endl;
-            }
+            abort_mpi("Conflict: y boundaries set to periodic but found Maxwellian also!");
          }
          if ((faces[4] || faces[5]) && isPeriodic[2]) {
-            if (myRank == MASTER_RANK) {
-               cerr << "You set boundaries.periodic_z = yes and load Maxwellian system boundary conditions on the z+ "
-                       "or z- face, are you sure this is correct?"
-                    << endl;
-            }
+            abort_mpi("Conflict: z boundaries set to periodic but found Maxwellian also!");
          }
          if ((faces[0] || faces[1]) && P::xcells_ini < 5) {
-            if (myRank == MASTER_RANK) {
-               cerr << "You load Maxwellian system boundary conditions on the x+ or x- face but there is not enough "
-                       "cells in that direction to make sense."
-                    << endl;
-            }
-            exit(1);
+            abort_mpi("Maxwellian condition loaded on x- or x+ face but not enough cells in x!");
          }
          if ((faces[2] || faces[3]) && P::ycells_ini < 5) {
-            if (myRank == MASTER_RANK) {
-               cerr << "You load Maxwellian system boundary conditions on the y+ or y- face but there is not enough "
-                       "cells in that direction to make sense."
-                    << endl;
-            }
-            exit(1);
+            abort_mpi("Maxwellian condition loaded on y- or y+ face but not enough cells in y!");
          }
          if ((faces[4] || faces[5]) && P::zcells_ini < 5) {
-            if (myRank == MASTER_RANK) {
-               cerr << "You load Maxwellian system boundary conditions on the z+ or z- face but there is not enough "
-                       "cells in that direction to make sense."
-                    << endl;
-            }
-            exit(1);
+            abort_mpi("Maxwellian condition loaded on z- or z+ face but not enough cells in z!");
          }
       } else {
-         if (myRank == MASTER_RANK) {
-            cerr << "Unknown type of boundary read: " << *it << endl;
-         }
-         MPI_Abort(MPI_COMM_WORLD, 1);
+         std::ostringstream msg;
+         msg << "Unknown type of boundary read: " << *it;
+         abort_mpi(msg.str());
       }
    }
 
@@ -406,25 +339,13 @@ bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg:
    }
 
    for (auto cellId : innerBoundaryCells) {
-      if (cellId != INVALID_CELLID && mpiGrid.get_refinement_level(cellId) != innerBoundaryRefLvl) {
-         cout << "Failed refinement check (innerBoundary) , cellId = " << cellId << " at ("
-              << mpiGrid[cellId]->parameters[CellParams::XCRD] << ", " << mpiGrid[cellId]->parameters[CellParams::YCRD]
-              << ", " << mpiGrid[cellId]->parameters[CellParams::ZCRD]
-              << "). Cell level = " << mpiGrid.get_refinement_level(cellId)
-              << ", boundary level = " << innerBoundaryRefLvl << endl;
-         return false;
-      }
+      if (cellId != INVALID_CELLID && mpiGrid.get_refinement_level(cellId) != innerBoundaryRefLvl)
+         abort_mpi("ERROR: inner boundary cells must have identical refinement level!");
    }
 
    for (auto cellId : outerBoundaryCells) {
-      if (cellId != INVALID_CELLID && mpiGrid.get_refinement_level(cellId) != outerBoundaryRefLvl) {
-         cout << "Failed refinement check (outerBoundary), cellId = " << cellId << " at ("
-              << mpiGrid[cellId]->parameters[CellParams::XCRD] << ", " << mpiGrid[cellId]->parameters[CellParams::YCRD]
-              << ", " << mpiGrid[cellId]->parameters[CellParams::ZCRD]
-              << "). Cell level = " << mpiGrid.get_refinement_level(cellId)
-              << ", boundary level = " << outerBoundaryRefLvl << endl;
-         return false;
-      }
+      if (cellId != INVALID_CELLID && mpiGrid.get_refinement_level(cellId) != outerBoundaryRefLvl)
+         abort_mpi("ERROR: outer boundary cells must have identical refinement level!");
    }
 
    return true;
@@ -855,8 +776,7 @@ SBC::SysBoundaryCondition* SysBoundary::getSysBoundary(cuint sysBoundaryType) co
    if (it != indexToSysBoundary.end()) {
       return it->second;
    } else {
-      cerr << "System boundary " << sysBoundaryType << " is invalid  " << __FILE__ << ":" << __LINE__ << endl;
-      return NULL;
+      abort_mpi("ERROR: Boundary " + to_string(sysBoundaryType) + " is invalid", 1);
    }
 }
 
