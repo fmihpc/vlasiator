@@ -74,6 +74,11 @@ namespace SBC {
             FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
             Project &project
          )=0;
+         virtual void updateState(
+            const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+            FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid,
+            creal t
+         )=0;
          virtual Real fieldSolverBoundaryCondMagneticField(
             FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
             FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,

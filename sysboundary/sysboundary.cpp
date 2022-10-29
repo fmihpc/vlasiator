@@ -631,7 +631,20 @@ void SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_G
       }
       (*it)->applyInitialState(mpiGrid, technicalGrid, perBGrid, project);
    }
+}
 
+void SysBoundary::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                              FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
+                              creal t) {
+   if (isDynamic()) {
+      for(auto& b : sysBoundaries) {
+         // Skip when not restarting or not requested.
+         if (Parameters::isRestart && !b->doApplyUponRestart())
+            continue;
+         if (b->isDynamic())
+            b->updateState(mpiGrid, perBGrid, t);
+      }
+   }
 }
 
 /*!\brief Apply the Vlasov system boundary conditions to all system boundary cells at time t.

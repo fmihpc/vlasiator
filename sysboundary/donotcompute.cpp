@@ -83,6 +83,9 @@ namespace SBC {
       }
    }
    
+   void DoNotCompute::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid,
+                               FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> &perBGrid, creal t) {}
+
    string DoNotCompute::getName() const {return "DoNotCompute";}
    
    uint DoNotCompute::getIndex() const {return sysboundarytype::DO_NOT_COMPUTE;}
