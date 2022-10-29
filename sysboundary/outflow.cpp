@@ -147,7 +147,7 @@ namespace SBC {
       
       this->getParameters();
       
-      isThisDynamic = false;
+      dynamic = false;
       
       vector<string>::const_iterator it;
       for (it = faceNoFieldsList.begin();

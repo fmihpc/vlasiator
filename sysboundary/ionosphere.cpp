@@ -2368,7 +2368,7 @@ namespace SBC {
       Project &project
    ) {
       getParameters();
-      isThisDynamic = false;
+      dynamic = false;
 
       // Sanity check: the ionosphere only makes sense in 3D simulations
       if(P::xcells_ini == 1 || P::ycells_ini == 1 || P::zcells_ini == 1) {

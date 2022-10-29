@@ -289,9 +289,9 @@ namespace SBC {
          /*! Precedence value of the system boundary condition. */
          uint precedence;
          /*! Is the boundary condition dynamic in time or not. */
-         bool isThisDynamic;
+         bool dynamic;
          /*! Array of bool telling whether the system is periodic in any direction. */
-         bool isPeriodic[3];
+         bool periodic[3];
          /*! Map of closest nonsysboundarycells. Used in getAllClosestNonsysboundaryCells. */
          std::unordered_map<CellID, std::vector<CellID>> allClosestNonsysboundaryCells;
          /*! Map of close nonsysboundarycells. Used in getAllCloseNonsysboundaryCells. */

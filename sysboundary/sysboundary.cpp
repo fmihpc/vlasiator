@@ -109,18 +109,9 @@ void SysBoundary::getParameters() {
    Readparameters::get("boundaries.periodic_y", periodic_y);
    Readparameters::get("boundaries.periodic_z", periodic_z);
 
-   isPeriodic[0] = false;
-   isPeriodic[1] = false;
-   isPeriodic[2] = false;
-   if (periodic_x == "yes") {
-      isPeriodic[0] = true;
-   }
-   if (periodic_y == "yes") {
-      isPeriodic[1] = true;
-   }
-   if (periodic_z == "yes") {
-      isPeriodic[2] = true;
-   }
+   periodic[0] = (periodic_x == "yes");
+   periodic[1] = (periodic_y == "yes");
+   periodic[2] = (periodic_z == "yes");
 }
 
 /*! Add a new SBC::SysBoundaryCondition which has been created with new sysBoundary.
@@ -148,7 +139,7 @@ void SysBoundary::addSysBoundary(SBC::SysBoundaryCondition* bc, Project& project
  *
  * This function loops through the list of system boundary conditions listed as to be used
  * in the configuration file/command line arguments. For each of these it adds the
- * corresponding instance and updates the member isThisDynamic to determine whether any
+ * corresponding instance and updates the member isDynamic to determine whether any
  * SysBoundaryCondition is dynamic in time.
  *
  * \param project Project object
@@ -163,13 +154,13 @@ void SysBoundary::initSysBoundaries(Project& project, creal& t) {
    vector<string>::const_iterator it;
 
    if (sysBoundaryCondList.size() == 0) {
-      if (!isPeriodic[0] && !Readparameters::helpRequested) {
+      if (!periodic[0] && !Readparameters::helpRequested) {
          abort_mpi("Non-periodic in x but no boundary condtion loaded!");
       }
-      if (!isPeriodic[1] && !Readparameters::helpRequested) {
+      if (!periodic[1] && !Readparameters::helpRequested) {
          abort_mpi("Non-periodic in y but no boundary condtion loaded!");
       }
-      if (!isPeriodic[2] && !Readparameters::helpRequested) {
+      if (!periodic[2] && !Readparameters::helpRequested) {
          abort_mpi("Non-periodic in z but no boundary condtion loaded!");
       }
    }
@@ -178,16 +169,19 @@ void SysBoundary::initSysBoundaries(Project& project, creal& t) {
       if (*it == "Outflow") {
          this->addSysBoundary(new SBC::Outflow, project, t);
 
-         isThisDynamic = isThisDynamic | this->getSysBoundary(sysboundarytype::OUTFLOW)->isDynamic();
+         anyDynamic = anyDynamic | this->getSysBoundary(sysboundarytype::OUTFLOW)->isDynamic();
          bool faces[6];
          this->getSysBoundary(sysboundarytype::OUTFLOW)->getFaces(&faces[0]);
-         if ((faces[0] || faces[1]) && isPeriodic[0]) {
+
+         if ((faces[0] || faces[1]) && periodic[0]) {
             abort_mpi("Conflict: x boundaries set to periodic but found Outflow conditions!");
          }
-         if ((faces[2] || faces[3]) && isPeriodic[1]) {
+
+         if ((faces[2] || faces[3]) && periodic[1]) {
             abort_mpi("Conflict: y boundaries set to periodic but found Outflow conditions!");
          }
-         if ((faces[4] || faces[5]) && isPeriodic[2]) {
+
+         if ((faces[4] || faces[5]) && periodic[2]) {
             abort_mpi("Conflict: z boundaries set to periodic but found Outflow conditions!");
          }
          if ((faces[0] || faces[1]) && P::xcells_ini < 5) {
@@ -202,23 +196,23 @@ void SysBoundary::initSysBoundaries(Project& project, creal& t) {
       } else if (*it == "Ionosphere") {
          this->addSysBoundary(new SBC::Ionosphere, project, t);
          this->addSysBoundary(new SBC::DoNotCompute, project, t);
-         isThisDynamic = isThisDynamic | this->getSysBoundary(sysboundarytype::IONOSPHERE)->isDynamic();
+         anyDynamic = anyDynamic | this->getSysBoundary(sysboundarytype::IONOSPHERE)->isDynamic();
       } else if(*it == "Copysphere") {
          this->addSysBoundary(new SBC::Copysphere, project, t);
          this->addSysBoundary(new SBC::DoNotCompute, project, t);
-         isThisDynamic = isThisDynamic | this->getSysBoundary(sysboundarytype::COPYSPHERE)->isDynamic();
+         anyDynamic = anyDynamic | this->getSysBoundary(sysboundarytype::COPYSPHERE)->isDynamic();
       } else if (*it == "Maxwellian") {
          this->addSysBoundary(new SBC::Maxwellian, project, t);
-         isThisDynamic = isThisDynamic | this->getSysBoundary(sysboundarytype::MAXWELLIAN)->isDynamic();
+         anyDynamic = anyDynamic | this->getSysBoundary(sysboundarytype::MAXWELLIAN)->isDynamic();
          bool faces[6];
          this->getSysBoundary(sysboundarytype::MAXWELLIAN)->getFaces(&faces[0]);
-         if ((faces[0] || faces[1]) && isPeriodic[0]) {
+         if ((faces[0] || faces[1]) && periodic[0]) {
             abort_mpi("Conflict: x boundaries set to periodic but found Maxwellian also!");
          }
-         if ((faces[2] || faces[3]) && isPeriodic[1]) {
+         if ((faces[2] || faces[3]) && periodic[1]) {
             abort_mpi("Conflict: y boundaries set to periodic but found Maxwellian also!");
          }
-         if ((faces[4] || faces[5]) && isPeriodic[2]) {
+         if ((faces[4] || faces[5]) && periodic[2]) {
             abort_mpi("Conflict: z boundaries set to periodic but found Maxwellian also!");
          }
          if ((faces[0] || faces[1]) && P::xcells_ini < 5) {
@@ -237,9 +231,8 @@ void SysBoundary::initSysBoundaries(Project& project, creal& t) {
       }
    }
 
-   list<SBC::SysBoundaryCondition*>::iterator it2;
-   for (it2 = sysBoundaries.begin(); it2 != sysBoundaries.end(); it2++) {
-      (*it2)->setPeriodicity(isPeriodic);
+   for (auto& b : sysBoundaries)  {
+      b->setPeriodicity(periodic);
    }
 }
 
@@ -404,11 +397,11 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
 
       std::array<double, 3> dx = mpiGrid.geometry.get_length(cell);
       std::array<double, 3> x = mpiGrid.get_center(cell);
-      if (!isPeriodic[0] && (x[0] > Parameters::xmax - dx[0] || x[0] < Parameters::xmin + dx[0])) {
+      if (!isPeriodic(0) && (x[0] > Parameters::xmax - dx[0] || x[0] < Parameters::xmin + dx[0])) {
          continue;
-      } else if (!isPeriodic[1] && (x[1] > Parameters::ymax - dx[1] || x[1] < Parameters::ymin + dx[1])) {
+      } else if (!isPeriodic(1) && (x[1] > Parameters::ymax - dx[1] || x[1] < Parameters::ymin + dx[1])) {
          continue;
-      } else if (!isPeriodic[2] && (x[2] > Parameters::zmax - dx[2] || x[2] < Parameters::zmin + dx[2])) {
+      } else if (!isPeriodic(2) && (x[2] > Parameters::zmax - dx[2] || x[2] < Parameters::zmin + dx[2])) {
          continue;
       }
 
@@ -562,11 +555,11 @@ void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
             array<int32_t, 3> globalIndices = technicalGrid.getGlobalIndices(x, y, z);
 
             if (((globalIndices[0] == 0 || globalIndices[0] == fsGridDimensions[0] - 1) &&
-                 !this->isBoundaryPeriodic(0)) ||
+                 !this->isPeriodic(0)) ||
                 ((globalIndices[1] == 0 || globalIndices[1] == fsGridDimensions[1] - 1) &&
-                 !this->isBoundaryPeriodic(1)) ||
+                 !this->isPeriodic(1)) ||
                 ((globalIndices[2] == 0 || globalIndices[2] == fsGridDimensions[2] - 1) &&
-                 !this->isBoundaryPeriodic(2))) {
+                 !this->isPeriodic(2))) {
                continue;
             }
             if (technicalGrid.get(x, y, z)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
@@ -755,15 +748,15 @@ SBC::SysBoundaryCondition* SysBoundary::getSysBoundary(cuint sysBoundaryType) co
 unsigned int SysBoundary::size() const { return sysBoundaries.size(); }
 
 /*! Get a bool telling whether any system boundary condition is dynamic in time (and thus needs updating).
- * \retval isThisDynamic Is any system boundary condition dynamic in time.
+ * \retval isDynamic Is any system boundary condition dynamic in time.
  */
-bool SysBoundary::isDynamic() const { return isThisDynamic; }
+bool SysBoundary::isDynamic() const { return anyDynamic; }
 
 /*! Get a bool telling whether the system is periodic in the queried direction.
  * \param direction 0: x, 1: y, 2: z.
- * \retval isPeriodic Is the system periodic in the queried direction.
+ * \retval periodic Is the system periodic in the queried direction.
  */
-bool SysBoundary::isBoundaryPeriodic(uint direction) const { return isPeriodic[direction]; }
+bool SysBoundary::isPeriodic(uint direction) const { return periodic[direction]; }
 
 /*! Get a vector containing the cellID of all cells which are not DO_NOT_COMPUTE or NOT_SYSBOUNDARY in the vector of
  * cellIDs passed to the function.

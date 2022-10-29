@@ -84,7 +84,7 @@ class SysBoundary {
    unsigned int size() const;
    SBC::SysBoundaryCondition* getSysBoundary(cuint sysBoundaryType) const;
    bool isDynamic() const;
-   bool isBoundaryPeriodic(uint direction) const;
+   bool isPeriodic(uint direction) const;
    void updateSysBoundariesAfterLoadBalance(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry> &mpiGrid);
 
    private:
@@ -100,10 +100,10 @@ class SysBoundary {
       /*! List of system boundary conditions (SBC) to be used. */
       std::vector<std::string> sysBoundaryCondList;
       /*! bool telling whether any system boundary condition is dynamic in time (and thus needs updating). */
-      bool isThisDynamic;
+      bool anyDynamic;
 
       /*! Array of bool telling whether the system is periodic in any direction. */
-      bool isPeriodic[3];
+      bool periodic[3];
 };
 
 bool precedenceSort(const SBC::SysBoundaryCondition* first, 

@@ -120,7 +120,7 @@ namespace SBC {
       Project &project
    ) {
       getParameters();
-      isThisDynamic = false;
+      dynamic = false;
 
       // iniSysBoundary is only called once, generateTemplateCell must 
       // init all particle species

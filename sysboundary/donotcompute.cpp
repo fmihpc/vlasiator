@@ -44,7 +44,7 @@ namespace SBC {
       Project &project
    ) {
       precedence = 0;
-      isThisDynamic = false;
+      dynamic = false;
    }
    
    void DoNotCompute::assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>&,

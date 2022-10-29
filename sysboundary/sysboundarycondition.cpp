@@ -85,15 +85,15 @@ namespace SBC {
          isThisCellOnAFace[5] = true;
       }
       if(excludeSlicesAndPeriodicDimensions == true) {
-         if(Parameters::xcells_ini == 1 || this->isPeriodic[0]) {
+         if (Parameters::xcells_ini == 1 || this->periodic[0]) {
             isThisCellOnAFace[0] = false;
             isThisCellOnAFace[1] = false;
          }
-         if(Parameters::ycells_ini == 1 || this->isPeriodic[1]) {
+         if (Parameters::ycells_ini == 1 || this->periodic[1]) {
             isThisCellOnAFace[2] = false;
             isThisCellOnAFace[3] = false;
          }
-         if(Parameters::zcells_ini == 1 || this->isPeriodic[2]) {
+         if (Parameters::zcells_ini == 1 || this->periodic[2]) {
             isThisCellOnAFace[4] = false;
             isThisCellOnAFace[5] = false;
          }
@@ -154,15 +154,15 @@ namespace SBC {
       }
 
       if(excludeSlicesAndPeriodicDimensions == true) {
-         if(Parameters::xcells_ini == 1 || this->isPeriodic[0]) {
+         if(Parameters::xcells_ini == 1 || this->periodic[0]) {
             isThisCellOnAFace[0] = false;
             isThisCellOnAFace[1] = false;
          }
-         if(Parameters::ycells_ini == 1 || this->isPeriodic[1]) {
+         if(Parameters::ycells_ini == 1 || this->periodic[1]) {
             isThisCellOnAFace[2] = false;
             isThisCellOnAFace[3] = false;
          }
-         if(Parameters::zcells_ini == 1 || this->isPeriodic[2]) {
+         if(Parameters::zcells_ini == 1 || this->periodic[2]) {
             isThisCellOnAFace[4] = false;
             isThisCellOnAFace[5] = false;
          }
@@ -948,13 +948,13 @@ namespace SBC {
    /*! Returns whether the boundary condition is dynamic in time.
     * \return Boolean value.
     */
-   bool SysBoundaryCondition::isDynamic() const {return isThisDynamic;}
+   bool SysBoundaryCondition::isDynamic() const { return dynamic; }
    
    void SysBoundaryCondition::setPeriodicity(
       bool isFacePeriodic[3]
    ) {
       for (uint i=0; i<3; i++) {
-         this->isPeriodic[i] = isFacePeriodic[i];
+         this->periodic[i] = isFacePeriodic[i];
       }
    }
    
