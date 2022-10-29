@@ -158,7 +158,11 @@ namespace SBC {
             const bool calculate_V_moments
         )=0;
 
-         virtual void getFaces(bool* faces);
+         /*! Function used to know which faces the boundary condition is applied to.
+          * @param faces Pointer to array of 6 bool in which the values are returned whether the corresponding face is of that
+          * type. Order: 0 x+; 1 x-; 2 y+; 3 y-; 4 z+; 5 z-
+          */
+         virtual void getFaces(bool *faces) = 0;
          virtual std::string getName() const=0;
          virtual uint getIndex() const=0;
          uint getPrecedence() const;

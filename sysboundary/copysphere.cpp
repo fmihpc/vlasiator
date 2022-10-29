@@ -903,6 +903,7 @@ namespace SBC {
    }
 
    std::string Copysphere::getName() const {return "Copysphere";}
+   void Copysphere::getFaces(bool *faces) {}
    
    void Copysphere::updateState(const dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                               FsGrid<std::array<Real, fsgrids::bfield::N_BFIELD>, 2>& perBGrid, creal t) {}

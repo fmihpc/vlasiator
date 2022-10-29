@@ -132,6 +132,7 @@ namespace SBC {
          const bool calculate_V_moments
       );
       
+      void getFaces(bool *faces) override;
       virtual std::string getName() const;
       virtual uint getIndex() const;
       
