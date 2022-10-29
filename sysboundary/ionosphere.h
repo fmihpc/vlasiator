@@ -344,8 +344,8 @@ namespace SBC {
          cint i,
          cint j,
          cint k,
-         creal& dt,
-         cuint& component
+         creal dt,
+         cuint component
       );
       virtual void fieldSolverBoundaryCondElectricField(
          FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
@@ -374,15 +374,15 @@ namespace SBC {
          cint i,
          cint j,
          cint k,
-         cuint& RKCase,
-         cuint& component
+         cuint RKCase,
+         cuint component
       );
       virtual void fieldSolverBoundaryCondBVOLDerivatives(
          FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
          cint i,
          cint j,
          cint k,
-         cuint& component
+         cuint component
       );
       // Compute and store the EXB drift into the cell's BULKV_FORCING_X/Y/Z fields and set counter to 1
       virtual void mapCellPotentialAndGetEXBDrift(
