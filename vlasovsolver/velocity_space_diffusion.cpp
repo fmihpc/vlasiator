@@ -164,22 +164,24 @@ void velocitySpaceDiffusion(
                    
                 } // End coordinates
             } // End blocks
+            phiprof::stop("fmu building");
 
-            for (int indv = 0; indv < nbins_v; indv++) { // Divide f by count 
-                for(int indmu = 0; indmu < nbins_mu; indmu++) {
+            phiprof::start("space/time derivatives, CFL, Ddt");
+            int cRight;
+            int cLeft;
+            Realf checkCFLtmp = std::numeric_limits<Realf>::max();
+
+            // Compute space/time derivatives (take first non-zero neighbours) & CFL & Ddt
+            for (int indv = 0; indv < nbins_v; indv++) { 
+    
+                // Divide f by count (independent of v but needs to be computed for all mu before derivatives)
+                for(int indmu = 0; indmu < nbins_mu; indmu++) { 
                     if (fcount[indv][indmu] == 0 || fmu[indv][indmu] <= 0.0) { fmu[indv][indmu] = std::numeric_limits<Realf>::min();}
                     else {fmu[indv][indmu] = fmu[indv][indmu] / fcount[indv][indmu];} 
                 }
-            }
-            phiprof::stop("fmu building");
 
-            phiprof::start("spatial derivatives");
-            int cRight;
-            int cLeft;
-
-            // Compute dfdmu and dfdmu2 (take first non-zero neighbours)
-            for (int indv = 0; indv < nbins_v; indv++) { 
                 for(int indmu = 0; indmu < nbins_mu; indmu++) {
+                    // Compute spatial derivatives
                     if (indmu == 0) {
                         cLeft  = 0;
                         cRight = 1;
@@ -211,22 +213,27 @@ void velocitySpaceDiffusion(
                         dfdmu [indv][indmu] = (  fmu[indv][indmu + cRight] - fmu[indv][indmu-cLeft])/((cRight + cLeft)*dmubins) ;
                         dfdmu2[indv][indmu] = ( (fmu[indv][indmu + cRight] - fmu[indv][indmu])/(cRight*dmubins) - (fmu[indv][indmu] - fmu[indv][indmu-cLeft])/(cLeft*dmubins) ) / (0.5 * dmubins * (cRight + cLeft)); 
                     }
-                } // End mu loop
-            } // End v loop
-            phiprof::stop("spatial derivatives");
 
-            phiprof::start("mu time derivatives");
-            // Compute dfdt_mu
-            for (int indv = 0; indv < nbins_v; indv++) { 
-                for(int indmu = 0; indmu < nbins_mu; indmu++) {
+                    // Compute time derivative                  
                     dfdt_mu[indv][indmu] = Parameters::PADcoefficient * (
                                            - 2.0 * (dmubins * (indmu+0.5) - 1.0) * dfdmu[indv][indmu]
                                            + (1.0 - (dmubins * (indmu+0.5) - 1.0)*(dmubins * (indmu+0.5) - 1.0)) * dfdmu2[indv][indmu] );
-                }
-            } 
-            phiprof::stop("mu time derivatives");
 
-            phiprof::start("diffusion time derivative");
+                    // Compute CFL
+                    Realf Vmu = dVbins * (float(indv)+0.5);
+                    if (fmu[indv][indmu] > Sparsity*(2.0 * M_PI * Vmu*Vmu) && abs(dfdt_mu[indv][indmu]) > 0.0) { checkCFLtmp = fmu[indv][indmu] * Parameters::PADCFL * (1.0/abs(dfdt_mu[indv][indmu])); }
+                    if (checkCFLtmp < checkCFL) { checkCFL = checkCFLtmp; }
+
+                } // End mu loop
+            } // End v loop
+
+            // Compute Ddt
+            Realf Ddt = checkCFL;
+            if (Ddt > RemainT) { Ddt = RemainT; }
+            dtTotalDiff = dtTotalDiff + Ddt;
+            phiprof::stop("space/time derivatives, CFL, Ddt");
+
+            phiprof::start("diffusion time derivative & update cell");
             // Compute dfdt
             for (vmesh::LocalID n=0; n<cell.get_number_of_velocity_blocks(popID); n++) { // Iterate through velocity blocks             
                 for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) {
@@ -261,8 +268,10 @@ void velocitySpaceDiffusion(
 
                    #ifdef DPF
                    Vec4d CellValue;
+                   Vec4d NewCellValue;
                    #else 
                    Vec4f CellValue;
+                   Vec4f NewCellValue;
                    #endif
                    CellValue.load(&cell.get_data(n,popID)[WID*j+WID*WID*k]);
 
@@ -273,50 +282,22 @@ void velocitySpaceDiffusion(
 
                    Vec4d Vmu = dVbins * (to_double(Vindex)+0.5);
 
-                   for (uint i = 0; i < WID; i++) {
+                   for (uint i = 0; i < WID; i++) { 
                        dfdt[WID3*n+i+WID*j+WID*WID*k] = dfdt_mu[Vindex[i]][muindex[i]] / (2.0 * M_PI * Vmu[i]*Vmu[i]);
-                       Realf checkCFLtmp = std::numeric_limits<Realf>::max();
-		       if (fmu[Vindex[i]][muindex[i]] > Sparsity*(2.0 * M_PI * Vmu[i]*Vmu[i]) && abs(dfdt_mu[Vindex[i]][muindex[i]]) > 0.0) { checkCFLtmp = fmu[Vindex[i]][muindex[i]] * Parameters::PADCFL * (1.0 / abs(dfdt_mu[Vindex[i]][muindex[i]])); }
-                       if (checkCFLtmp < checkCFL) { checkCFL = checkCFLtmp; }
                    }
+
+                   //Update cell
+                   Vec4d dfdtUpdate;
+                   dfdtUpdate.load(&dfdt[WID3*n+WID*j+WID*WID*k]);
+                   NewCellValue    = CellValue + dfdtUpdate * Ddt;
+                   Vec4db lessZero = NewCellValue < 0.0;
+                   NewCellValue    = select(lessZero,0.0,NewCellValue);
+                   NewCellValue.store(&cell.get_data(n,popID)[WID*j+WID*WID*k]);
 
                 } // End coordinates 
             } // End Blocks
-            phiprof::stop("diffusion time derivative");
+            phiprof::stop("diffusion time derivative & update cell");
 
-            phiprof::start("calculate CFL");
-            //Calculate Diffusion time step based on min of CFL condition
-            Realf Ddt = checkCFL; // Diffusion time step
-            if (Ddt > RemainT) { Ddt = RemainT; }
-            dtTotalDiff = dtTotalDiff + Ddt;
-            phiprof::stop("calculate CFL");
-
-            phiprof::start("update cell");
-            //Loop to update cell
-            for (vmesh::LocalID n=0; n<cell.get_number_of_velocity_blocks(popID); n++) { //Iterate through velocity blocks
-                for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) { 
-                    const Real* parameters  = cell.get_block_parameters(popID);
- 
-                    #ifdef DPF
-                    Vec4d CellValue;
-                    Vec4d NewCellValue;
-                    #else
-                    Vec4f CellValue;
-                    Vec4f NewCellValue;
-                    #endif
-                    CellValue.load(&cell.get_data(n,popID)[WID*j+WID*WID*k]);
-
-                    Vec4d dfdtUpdate;
-                    dfdtUpdate.load(&dfdt[WID3*n+WID*j+WID*WID*k]);
-
-                    //Update cell
-                    NewCellValue    = CellValue + dfdtUpdate * Ddt;
-                    Vec4db lessZero = NewCellValue < 0.0;
-                    NewCellValue    = select(lessZero,0.0,NewCellValue);
-                    NewCellValue.store(&cell.get_data(n,popID)[WID*j+WID*WID*k]);
-               } // End coordinates
-           } // End block
-           phiprof::stop("update cell");
            //subCount += 1; //TODO: delete
         } // End Time loop
         phiprof::stop("Subloop");
