@@ -93,6 +93,9 @@ void velocitySpaceDiffusion(
         Realf Bnorm           = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
         std::array<Realf,3> b = {B[0]/Bnorm, B[1]/Bnorm, B[2]/Bnorm};
         
+        //TODO: delete
+        //int subCount = 0;
+
         phiprof::start("Subloop");
         while (dtTotalDiff < Parameters::dt) { // Substep loop
 
@@ -314,8 +317,15 @@ void velocitySpaceDiffusion(
                } // End coordinates
            } // End block
            phiprof::stop("update cell");
+           //subCount += 1; //TODO: delete
         } // End Time loop
         phiprof::stop("Subloop");
+
+        //TODO: to be deleted
+        //std::ostringstream tmpText; 
+        //tmpText << P::tstep << " " << CellID << " " << subCount << std::endl;
+        //std::string tmpString = tmpText.str();
+        //std::cerr << tmpString;
 
         free(dfdt);
 
