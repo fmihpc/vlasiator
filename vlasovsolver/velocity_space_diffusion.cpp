@@ -81,7 +81,7 @@ void velocitySpaceDiffusion(
         Realf Vmax   = 2*sqrt(3)*vMesh.meshLimits[1];
         Realf dVbins = (Vmax - Vmin)/nbins_v;  
     
-        Realf* dfdt        = reinterpret_cast<Realf*>(malloc(sizeof(Realf)*(cell.get_number_of_velocity_blocks(popID) * WID3))); 
+        std::array<Realf,4> dfdt;
 
         std::array<Realf,3> bulkV = {cell.parameters[CellParams::VX], cell.parameters[CellParams::VY], cell.parameters[CellParams::VZ]};
         phiprof::stop("Initialisation");
@@ -283,12 +283,12 @@ void velocitySpaceDiffusion(
                    Vec4d Vmu = dVbins * (to_double(Vindex)+0.5);
 
                    for (uint i = 0; i < WID; i++) { 
-                       dfdt[WID3*n+i+WID*j+WID*WID*k] = dfdt_mu[Vindex[i]][muindex[i]] / (2.0 * M_PI * Vmu[i]*Vmu[i]);
+                       dfdt[i] = dfdt_mu[Vindex[i]][muindex[i]] / (2.0 * M_PI * Vmu[i]*Vmu[i]);
                    }
 
                    //Update cell
                    Vec4d dfdtUpdate;
-                   dfdtUpdate.load(&dfdt[WID3*n+WID*j+WID*WID*k]);
+                   dfdtUpdate.load(&dfdt[0]);
                    NewCellValue    = CellValue + dfdtUpdate * Ddt;
                    Vec4db lessZero = NewCellValue < 0.0;
                    NewCellValue    = select(lessZero,0.0,NewCellValue);
@@ -307,8 +307,6 @@ void velocitySpaceDiffusion(
         //tmpText << P::tstep << " " << CellID << " " << subCount << std::endl;
         //std::string tmpString = tmpText.str();
         //std::cerr << tmpString;
-
-        free(dfdt);
 
     } // End spatial cell loop
 
