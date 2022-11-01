@@ -175,6 +175,24 @@ namespace DRO {
          virtual bool reduceDiagnostic(const SpatialCell* cell,Real * result);
          virtual bool writeIonosphereData(SBC::SphericalTriGrid& grid, vlsv::Writer& vlsvWriter);
    };
+   
+   // Generic (lambda-based) datareducer for ionosphere grid node-centered int data
+   class DataReductionOperatorIonosphereNodeInt : public DataReductionOperator {
+   public:
+      typedef std::function<std::vector<int>(SBC::SphericalTriGrid& grid)> ReductionLambda;
+   private:
+      ReductionLambda lambda;
+      std::string variableName;
+      
+   public:
+      DataReductionOperatorIonosphereNodeInt(const std::string& name, ReductionLambda l): DataReductionOperator(), lambda(l),variableName(name) {};
+      virtual std::string getName() const;
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual bool setSpatialCell(const SpatialCell* cell);
+      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool reduceDiagnostic(const SpatialCell* cell,int * result);
+      virtual bool writeIonosphereData(SBC::SphericalTriGrid& grid, vlsv::Writer& vlsvWriter);
+   };
 
    // Generic (lambda-based) datareducer for vlasov grid data
    class DataReductionOperatorMPIGridCell : public DataReductionOperator{

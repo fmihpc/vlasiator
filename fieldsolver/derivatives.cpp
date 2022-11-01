@@ -502,3 +502,148 @@ void calculateBVOLDerivativesSimple(
 
    phiprof::stop("Calculate volume derivatives",N_cells,"Spatial Cells");
 }
+
+
+/*! \brief Low-level curvature calculation.
+ * 
+ * 
+ * \param volGrid fsGrid holding the volume averaged fields
+ * \param bgbGrid fsGrid holding the background fields
+ * \param technicalGrid fsGrid holding technical information (such as boundary types)
+ * \param i,j,k fsGrid cell coordinates for the current cell
+ * \param sysBoundaries System boundary conditions existing
+ *
+ * http://fusionwiki.ciemat.es/wiki/Magnetic_curvature
+ * 
+ * \sa calculateDerivatives calculateBVOLDerivativesSimple calculateDerivativesSimple
+ */
+
+void calculateCurvature(
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & bgbGrid,
+   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+   cint i,
+   cint j,
+   cint k,
+   SysBoundary& sysBoundaries
+) {
+   if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY && technicalGrid.get(i,j,k)->sysBoundaryLayer != 1 && technicalGrid.get(i,j,k)->sysBoundaryLayer != 2) {
+      std::array<Real, fsgrids::volfields::N_VOL> * array = volGrid.get(i,j,k);
+      
+      std::array<Real, fsgrids::volfields::N_VOL> * left_x = volGrid.get(i-1,j,k);
+      std::array<Real, fsgrids::volfields::N_VOL> * rght_x = volGrid.get(i+1,j,k);
+      std::array<Real, fsgrids::volfields::N_VOL> * left_y = volGrid.get(i,j-1,k);
+      std::array<Real, fsgrids::volfields::N_VOL> * rght_y = volGrid.get(i,j+1,k);
+      std::array<Real, fsgrids::volfields::N_VOL> * left_z = volGrid.get(i,j,k-1);
+      std::array<Real, fsgrids::volfields::N_VOL> * rght_z = volGrid.get(i,j,k+1);
+      
+      Real bx = array->at(fsgrids::bgbfield::BGBXVOL) + array->at(fsgrids::volfields::PERBXVOL);
+      Real by = array->at(fsgrids::bgbfield::BGBYVOL) + array->at(fsgrids::volfields::PERBYVOL);
+      Real bz = array->at(fsgrids::bgbfield::BGBZVOL) + array->at(fsgrids::volfields::PERBZVOL);
+      creal bnorm = sqrt(bx*bx + by*by + bz*bz);
+      bx /= bnorm;
+      by /= bnorm;
+      bz /= bnorm;
+      
+      Real left_x_bx = left_x->at(fsgrids::bgbfield::BGBXVOL) + left_x->at(fsgrids::volfields::PERBXVOL);
+      Real left_x_by = left_x->at(fsgrids::bgbfield::BGBYVOL) + left_x->at(fsgrids::volfields::PERBYVOL);
+      Real left_x_bz = left_x->at(fsgrids::bgbfield::BGBZVOL) + left_x->at(fsgrids::volfields::PERBZVOL);
+      creal left_x_bnorm = sqrt(left_x_bx*left_x_bx + left_x_by*left_x_by + left_x_bz*left_x_bz);
+      left_x_bx /= left_x_bnorm;
+      left_x_by /= left_x_bnorm;
+      left_x_bz /= left_x_bnorm;
+      
+      Real rght_x_bx = rght_x->at(fsgrids::bgbfield::BGBXVOL) + rght_x->at(fsgrids::volfields::PERBXVOL);
+      Real rght_x_by = rght_x->at(fsgrids::bgbfield::BGBYVOL) + rght_x->at(fsgrids::volfields::PERBYVOL);
+      Real rght_x_bz = rght_x->at(fsgrids::bgbfield::BGBZVOL) + rght_x->at(fsgrids::volfields::PERBZVOL);
+      creal rght_x_bnorm = sqrt(rght_x_bx*rght_x_bx + rght_x_by*rght_x_by + rght_x_bz*rght_x_bz);
+      rght_x_bx /= rght_x_bnorm;
+      rght_x_by /= rght_x_bnorm;
+      rght_x_bz /= rght_x_bnorm;
+      
+      Real left_y_bx = left_y->at(fsgrids::bgbfield::BGBXVOL) + left_y->at(fsgrids::volfields::PERBXVOL);
+      Real left_y_by = left_y->at(fsgrids::bgbfield::BGBYVOL) + left_y->at(fsgrids::volfields::PERBYVOL);
+      Real left_y_bz = left_y->at(fsgrids::bgbfield::BGBZVOL) + left_y->at(fsgrids::volfields::PERBZVOL);
+      creal left_y_bnorm = sqrt(left_y_bx*left_y_bx + left_y_by*left_y_by + left_y_bz*left_y_bz);
+      left_y_bx /= left_y_bnorm;
+      left_y_by /= left_y_bnorm;
+      left_y_bz /= left_y_bnorm;
+      
+      Real rght_y_bx = rght_y->at(fsgrids::bgbfield::BGBXVOL) + rght_y->at(fsgrids::volfields::PERBXVOL);
+      Real rght_y_by = rght_y->at(fsgrids::bgbfield::BGBYVOL) + rght_y->at(fsgrids::volfields::PERBYVOL);
+      Real rght_y_bz = rght_y->at(fsgrids::bgbfield::BGBZVOL) + rght_y->at(fsgrids::volfields::PERBZVOL);
+      creal rght_y_bnorm = sqrt(rght_y_bx*rght_y_bx + rght_y_by*rght_y_by + rght_y_bz*rght_y_bz);
+      rght_y_bx /= rght_y_bnorm;
+      rght_y_by /= rght_y_bnorm;
+      rght_y_bz /= rght_y_bnorm;
+      
+      Real left_z_bx = left_z->at(fsgrids::bgbfield::BGBXVOL) + left_z->at(fsgrids::volfields::PERBXVOL);
+      Real left_z_by = left_z->at(fsgrids::bgbfield::BGBYVOL) + left_z->at(fsgrids::volfields::PERBYVOL);
+      Real left_z_bz = left_z->at(fsgrids::bgbfield::BGBZVOL) + left_z->at(fsgrids::volfields::PERBZVOL);
+      creal left_z_bnorm = sqrt(left_z_bx*left_z_bx + left_z_by*left_z_by + left_z_bz*left_z_bz);
+      left_z_bx /= left_z_bnorm;
+      left_z_by /= left_z_bnorm;
+      left_z_bz /= left_z_bnorm;
+      
+      Real rght_z_bx = rght_z->at(fsgrids::bgbfield::BGBXVOL) + rght_z->at(fsgrids::volfields::PERBXVOL);
+      Real rght_z_by = rght_z->at(fsgrids::bgbfield::BGBYVOL) + rght_z->at(fsgrids::volfields::PERBYVOL);
+      Real rght_z_bz = rght_z->at(fsgrids::bgbfield::BGBZVOL) + rght_z->at(fsgrids::volfields::PERBZVOL);
+      creal rght_z_bnorm = sqrt(rght_z_bx*rght_z_bx + rght_z_by*rght_z_by + rght_z_bz*rght_z_bz);
+      rght_z_bx /= rght_z_bnorm;
+      rght_z_by /= rght_z_bnorm;
+      rght_z_bz /= rght_z_bnorm;
+      
+      array->at(fsgrids::volfields::CURVATUREX) = bx * limiter(left_x_bx,bx,rght_x_bx) / technicalGrid.DX + by * limiter(left_y_bx,bx,rght_y_bx) / technicalGrid.DY + bz * limiter(left_z_bx,bx,rght_z_bx) / technicalGrid.DZ;
+      array->at(fsgrids::volfields::CURVATUREY) = bx * limiter(left_x_by,by,rght_x_by) / technicalGrid.DX + by * limiter(left_y_by,by,rght_y_by) / technicalGrid.DY + bz * limiter(left_z_by,by,rght_z_by) / technicalGrid.DZ;
+      array->at(fsgrids::volfields::CURVATUREZ) = bx * limiter(left_x_bz,bz,rght_x_bz) / technicalGrid.DX + by * limiter(left_y_bz,bz,rght_y_bz) / technicalGrid.DY + bz * limiter(left_z_bz,bz,rght_z_bz) / technicalGrid.DZ;
+   }
+}
+
+/*! \brief High-level curvature calculation wrapper function.
+ * 
+ * \param volGrid fsGrid holding the volume averaged fields
+ * \param bgbGrid fsGrid holding the background fields
+ * \param technicalGrid fsGrid holding technical information (such as boundary types)
+ * \param sysBoundaries System boundary conditions existing
+ * 
+ * \sa calculateDerivatives calculateBVOLDerivatives calculateDerivativesSimple
+ */
+void calculateCurvatureSimple(
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & bgbGrid,
+   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+   SysBoundary& sysBoundaries
+) {
+   int timer;
+   //const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
+   const int* gridDims = &technicalGrid.getLocalSize()[0];
+   const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
+   
+   phiprof::start("Calculate volume derivatives");
+   
+   timer=phiprof::initializeTimer("Start comm","MPI");
+   phiprof::start(timer);
+   volGrid.updateGhostCells();
+   
+   phiprof::stop(timer,N_cells,"Spatial Cells");
+   
+   
+   // Calculate derivatives
+   timer=phiprof::initializeTimer("Compute cells");
+   phiprof::start(timer);
+   
+   #pragma omp parallel for collapse(3)
+   for (int k=0; k<gridDims[2]; k++) {
+      for (int j=0; j<gridDims[1]; j++) {
+         for (int i=0; i<gridDims[0]; i++) {
+            if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+            
+            calculateCurvature(volGrid,bgbGrid,technicalGrid,i,j,k,sysBoundaries);
+         }
+      }
+   }
+   
+   phiprof::stop(timer,N_cells,"Spatial Cells");
+   
+   phiprof::stop("Calculate volume derivatives",N_cells,"Spatial Cells");
+}

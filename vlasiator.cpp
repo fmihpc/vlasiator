@@ -43,6 +43,7 @@
 #include "spatial_cell.hpp"
 #include "datareduction/datareducer.h"
 #include "sysboundary/sysboundary.h"
+#include "fieldtracing/fieldtracing.h"
 
 #include "fieldsolver/fs_common.h"
 #include "projects/project.h"
@@ -497,7 +498,7 @@ int main(int argn,char* args[]) {
 
    // Build communicator for ionosphere solving
    SBC::ionosphereGrid.updateIonosphereCommunicator(mpiGrid, technicalGrid);
-   SBC::ionosphereGrid.calculateFsgridCoupling(technicalGrid, perBGrid, dPerBGrid, SBC::Ionosphere::radius);
+   FieldTracing::calculateIonosphereFsgridCoupling(technicalGrid, perBGrid, dPerBGrid, SBC::ionosphereGrid.nodes, SBC::Ionosphere::radius);
    SBC::ionosphereGrid.initSolver(!P::isRestart); // If it is a restart we do not want to zero out everything
    if(SBC::Ionosphere::couplingInterval > 0 && P::isRestart) {
       SBC::Ionosphere::solveCount = floor(P::t / SBC::Ionosphere::couplingInterval)+1;
@@ -516,6 +517,8 @@ int main(int argn,char* args[]) {
 
    // Save restart data
    if (P::writeInitialState) {
+      FieldTracing::reduceData(technicalGrid, perBGrid, dPerBGrid, volGrid, BgBGrid, mpiGrid, SBC::ionosphereGrid.nodes, sysBoundaries); /*!< Call the reductions (e.g. field tracing) */
+      
       phiprof::start("write-initial-state");
       
       if (myRank == MASTER_RANK)
@@ -730,6 +733,8 @@ int main(int argn,char* args[]) {
                if (index2>P::systemWrites[i]) P::systemWrites[i]=index2;
                continue;
             }
+            
+            FieldTracing::reduceData(technicalGrid, perBGrid, dPerBGrid, volGrid, BgBGrid, mpiGrid, SBC::ionosphereGrid.nodes, sysBoundaries); /*!< Call the reductions (e.g. field tracing) */
             
             phiprof::start("write-system");
             logFile << "(IO): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
@@ -984,11 +989,15 @@ int main(int argn,char* args[]) {
          phiprof::stop("Propagate Fields",cells.size(),"SpatialCells");
          addTimedBarrier("barrier-after-field-solver");
       }
+      
+      if(FieldTracing::fieldTracingParameters.useCache) {
+         FieldTracing::resetReconstructionCoefficientsCache();
+      }
 
       // Map current data down into the ionosphere
       // TODO check: have we set perBGrid correctly here, or is it possibly perBDt2Grid in some cases??
       if(SBC::ionosphereGrid.nodes.size() > 0 && ((P::t > SBC::Ionosphere::solveCount * SBC::Ionosphere::couplingInterval && SBC::Ionosphere::couplingInterval > 0) || SBC::Ionosphere::couplingInterval == 0)) {
-         SBC::ionosphereGrid.calculateFsgridCoupling(technicalGrid, perBGrid, dPerBGrid, SBC::Ionosphere::radius);
+         FieldTracing::calculateIonosphereFsgridCoupling(technicalGrid, perBGrid, dPerBGrid, SBC::ionosphereGrid.nodes, SBC::Ionosphere::radius);
          SBC::ionosphereGrid.mapDownBoundaryData(perBGrid, dPerBGrid, momentsGrid, volGrid, technicalGrid);
          SBC::ionosphereGrid.calculateConductivityTensor(SBC::Ionosphere::F10_7, SBC::Ionosphere::recombAlpha, SBC::Ionosphere::backgroundIonisation);
 
