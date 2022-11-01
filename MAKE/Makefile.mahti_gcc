@@ -57,7 +57,8 @@ testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 MPT_VERSION = 4.0.3
 JEMALLOC_VERSION = 5.2.1
-LIBRARY_PREFIX = /users/kempf/libraries_rhel8_openmpi/
+LIBRARY_PREFIX = /users/kempf/libraries_rhel8_openmpi
+LIBRARY_PREFIX_940 = /users/kempf/libraries_gcc9.4.0
 
 
 #compiled libraries
@@ -75,8 +76,8 @@ INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
 LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)/vlsv
 
 
-LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -lgfortran -Wl,-rpath=$(LIBRARY_PREFIX)/phiprof/lib
-INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
+LIB_PROFILE = -L$(LIBRARY_PREFIX_940)/phiprof/lib -lphiprof -lgfortran -Wl,-rpath=$(LIBRARY_PREFIX_940)/phiprof/lib
+INC_PROFILE = -I$(LIBRARY_PREFIX_940)/phiprof/include
 
 
 #header libraries
