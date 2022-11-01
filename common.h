@@ -203,12 +203,15 @@ namespace CellParams {
  */
 namespace bvolderivatives {
    enum {
+      dPERBXVOLdx, /*!< Derivative of perturbed volume-averaged Bx in x-direction. */
       dPERBXVOLdy, /*!< Derivative of perturbed volume-averaged Bx in y-direction. */
       dPERBXVOLdz, /*!< Derivative of perturbed volume-averaged Bx in z-direction. */
       dPERBYVOLdx, /*!< Derivative of perturbed volume-averaged By in x-direction. */
+      dPERBYVOLdy, /*!< Derivative of perturbed volume-averaged By in y-direction. */
       dPERBYVOLdz, /*!< Derivative of perturbed volume-averaged By in z-direction. */
       dPERBZVOLdx, /*!< Derivative of perturbed volume-averaged Bz in x-direction. */
       dPERBZVOLdy, /*!< Derivative of perturbed volume-averaged Bz in y-direction. */
+      dPERBZVOLdz, /*!< Derivative of perturbed volume-averaged Bz in z-direction. */
       N_BVOL_DERIVATIVES
    };
 }
