@@ -421,6 +421,16 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          continue;
       }
+      if(lowercase == "populations_heatflux" || lowercase == "populations_vg_heatflux") {
+         // Per-population heat flux vector
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            species::Species& species=getObjectWrapper().particleSpecies[i];
+            const std::string& pop = species.name;
+            outputReducer->addOperator(new DRO::VariableHeatFluxVector(i));
+            outputReducer->addMetadata(outputReducer->size()-1,"W/m^2","$\\mathrm{W}\\,\\mathrm{m}^{-2}$","$q_\\mathrm{"+pop+"}$","1.0");
+         }
+         continue;
+      }
       if(lowercase == "maxfieldsdt" || lowercase == "fg_maxfieldsdt" || lowercase == "fg_maxdt_fieldsolver") {
          // Maximum timestep constraint as calculated by the fieldsolver
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_maxdt_fieldsolver",[](
@@ -2872,7 +2882,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      }
                      return retval;
                      }));
-         outputReducer->addMetadata(outputReducer->size()-1, "1/m^2/s", "$m^{-2} s^{-1}$", "$\bar{F}_\mathrm{precip}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size()-1, "1/m^2/s", "$m^{-2} s^{-1}$", "$\\bar{F}_\\mathrm{precip}$", "1.0");
          continue;
       }
       if(lowercase == "ig_precipavgenergy") {
@@ -2910,7 +2920,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      }
                      return retval;
                      }));
-         outputReducer->addMetadata(outputReducer->size()-1, "eV", "eV", "$\\bar{E}_\mathrm{precip}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size()-1, "eV", "eV", "$\\bar{E}_\\mathrm{precip}$", "1.0");
          continue;
       }
       if(lowercase == "ig_potential") {

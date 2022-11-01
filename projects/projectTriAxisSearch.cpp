@@ -60,23 +60,14 @@ namespace projects {
          // VX search
          search = true;
          counter = 0;
-         #warning TODO: add SpatialCell::getVelocityBlockMinValue() in place of sparseMinValue
          while (search) {
-            if (0.1 * getObjectWrapper().particleSpecies[popID].sparseMinValue >
-                calcPhaseSpaceDensity(x,
-                                      y,
-                                      z,
-                                      dx,
-                                      dy,
-                                      dz,
-                                      it->at(0) + counter*dvxBlock, it->at(1), it->at(2),
-                                      dvxCell, dvyCell, dvzCell, popID
-                                     )
-               ) {
+            if (0.1 * cell->getVelocityBlockMinValue(popID) > calcPhaseSpaceDensity(x, y, z, dx, dy, dz, it->at(0) + counter*dvxBlock, it->at(1), it->at(2), dvxCell, dvyCell, dvzCell, popID)) {
                search = false;
             }
             ++counter;
-            if (counter >= cell->get_velocity_grid_length(popID,refLevel)[0]) search = false;
+            if (counter >= cell->get_velocity_grid_length(popID,refLevel)[0]) {
+               search = false;
+            }
          }
          counter+=2;
          Real vRadiusSquared = (Real)counter*(Real)counter*dvxBlock*dvxBlock;

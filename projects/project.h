@@ -77,7 +77,6 @@ namespace projects {
 
       /*!\brief Set the perturbed fields and distribution of a cell according to the default simulation settings.
        * This is used for the NOT_SYSBOUNDARY cells and some other system boundary conditions (e.g. Outflow).
-       * NOTE: This function is called inside parallel region so it must be declared as const.
        * \param cell Pointer to the cell to set.
        */
       void setCell(spatial_cell::SpatialCell* cell);

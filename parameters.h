@@ -189,6 +189,7 @@ struct Parameters {
    static Real refineRadius;
    static bool useJPerB;
    static Real JPerBModifier;
+   static int maxFilteringPasses;
    static uint amrBoxHalfWidthX;
    static uint amrBoxHalfWidthY;
    static uint amrBoxHalfWidthZ;
