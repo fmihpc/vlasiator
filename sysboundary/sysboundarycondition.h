@@ -179,7 +179,8 @@ namespace SBC {
          );
          void determineFace(
             std::array<bool, 6> &isThisCellOnAFace,
-            SpatialCell *cell,
+            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+            CellID id,
             const bool excludeSlicesAndPeriodicDimensions = false
          );
          void copyCellData(

@@ -129,7 +129,7 @@ namespace SBC {
       creal dz = Parameters::dz_ini * pow(2, -refLevel);
       
       bool isThisCellOnAFace[6];
-      determineFace(&isThisCellOnAFace[0], x, y, z, dx*2, dy*2, dz*2, true);
+      determineFace(isThisCellOnAFace, x, y, z, dx, dy, dz, true);
 
       for (uint i=0; i<6; i++) {
          if (isThisCellOnAFace[i]) {
@@ -260,7 +260,7 @@ namespace SBC {
                
                isThisCellOnAFace.fill(false);
 
-               determineFace(isThisCellOnAFace.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx*2, dy*2, dz*2);
+               determineFace(isThisCellOnAFace.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx, dy, dz);
 
                for(uint iface=0; iface < 6; iface++) {
                   if(facesToProcess[iface] && isThisCellOnAFace[iface]) {
@@ -278,16 +278,15 @@ namespace SBC {
 
 
    bool SetByUser::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID) {
-      const vector<CellID>& cells = getLocalCells();
 
       //#pragma omp parallel for
-      for (size_t c=0; c<cells.size(); c++) {
-         SpatialCell* cell = mpiGrid[cells[c]];
+      for (const auto& id : getLocalCells()) {
+         SpatialCell* cell = mpiGrid[id];
          if(cell->sysBoundaryFlag != this->getIndex()) 
             continue;
          
          std::array<bool, 6> isThisCellOnAFace;
-         determineFace(isThisCellOnAFace, cell, true);
+         determineFace(isThisCellOnAFace, mpiGrid, id);
 
          int max = 6;
          for (uint i=0; i < max; i++) {
@@ -295,22 +294,6 @@ namespace SBC {
                copyCellData(&templateCells[i], cell ,false,popID,true); // copy also vdf, _V
                copyCellData(&templateCells[i], cell ,true,popID,false); // don't copy vdf again but copy _R now
                max = i; // This effectively sets the precedence of faces through the order of faces.
-            }
-         }
-
-         // Repeat process for neighbors
-         const auto nbrs = mpiGrid.get_face_neighbors_of(cells[c]);
-         for (uint j=0; j<nbrs.size(); j++) {
-            CellID neighbor = nbrs[j].first;
-            if (neighbor) {
-               determineFace(isThisCellOnAFace, mpiGrid[neighbor], true);
-               for (uint i=0; i < max; i++) {
-                  if (facesToProcess[i] && isThisCellOnAFace[i]) {
-                     copyCellData(&templateCells[i], cell ,false,popID,true); // copy also vdf, _V
-                     copyCellData(&templateCells[i], cell ,true,popID,false); // don't copy vdf again but copy _R now
-                     max = i; // This effectively sets the precedence of faces through the order of faces.
-                  }
-               }
             }
          }
       }

@@ -66,22 +66,22 @@ namespace SBC {
       for(uint i=0; i<6; i++) {
          isThisCellOnAFace[i] = false;
       }
-      if(x > Parameters::xmax - dx) {
+      if(x > Parameters::xmax - dx * 2) {
          isThisCellOnAFace[0] = true;
       }
-      if(x < Parameters::xmin + dx) {
+      if(x < Parameters::xmin + dx * 2) {
          isThisCellOnAFace[1] = true;
       }
-      if(y > Parameters::ymax - dy) {
+      if(y > Parameters::ymax - dy * 2) {
          isThisCellOnAFace[2] = true;
       }
-      if(y < Parameters::ymin + dy) {
+      if(y < Parameters::ymin + dy * 2) {
          isThisCellOnAFace[3] = true;
       }
-      if(z > Parameters::zmax - dz) {
+      if(z > Parameters::zmax - dz * 2) {
          isThisCellOnAFace[4] = true;
       }
-      if(z < Parameters::zmin + dz) {
+      if(z < Parameters::zmin + dz * 2) {
          isThisCellOnAFace[5] = true;
       }
       if(excludeSlicesAndPeriodicDimensions == true) {
@@ -100,27 +100,73 @@ namespace SBC {
       }
    }
 
-   // Wrapper for previous funciton, using std::array and SpatialCell. Additionally returns true if any element is true.
+   /*!\brief Function used to determine on which face(s) if any the cell with the given MPI id is on
+    * 
+    * This function is used by some of the classes inheriting from this base class.
+    * 
+    * Depth is hard-coded to be 2 as other parts of the code (field solver especially) rely on that.
+    * So if a cell has less than two unique neighbors in some direction, it is considered to be on that face.
+    * 
+    * \param isThisCellOnAFace Referemce to an std::array of 6 bool returning of each face whether the cell is on that face. Order: 0 x+; 1 x-; 2 y+; 3 y-; 4 z+; 5 z-
+    * \param mpiGrid Reference to grid
+    * \param id ID of cell to check
+    * \param excludeSlicesAndPeriodicDimensions If true, do not consider a cell to be part of the face if that face has a depth of 1 only (single-cell thick slices/columns) or if that direciton is periodic..
+    */
    void SysBoundaryCondition::determineFace(
       std::array<bool, 6> &isThisCellOnAFace,
-      SpatialCell *cell,
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      CellID id,
       const bool excludeSlicesAndPeriodicDimensions //=false (default)
    ) {
-      creal* const cellParams = &(cell->parameters[0]);
-      creal dx = cellParams[CellParams::DX];
-      creal dy = cellParams[CellParams::DY];
-      creal dz = cellParams[CellParams::DZ];
-      creal x = cellParams[CellParams::XCRD] + 0.5*dx;
-      creal y = cellParams[CellParams::YCRD] + 0.5*dy;
-      creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
+      isThisCellOnAFace.fill(false);
 
-      if (cellParams[CellParams::DX] == 0) {
-         std::cerr << "Warning, cell coordinates not initialized in " << __FILE__ << ":" << __LINE__ << std::endl;
+      std::array<std::set<CellID>, 6> dirNeighbors;
+      auto* p = mpiGrid.get_neighbors_of(id, VLASOV_SOLVER_NEIGHBORHOOD_ID);
+      if (!p) {
+         std::cerr << "No neighbors found for " << id << std::endl;
+         return;
+      }
+      int nbrs {0};
+      for (auto pair : *p) {
+         if (!pair.first) {
+            continue;   // Error cells should obviously not be counted
+         } else if (pair.second[0] > 0) {
+            dirNeighbors[0].insert(pair.first);
+         } else if (pair.second[0] < 0) {
+            dirNeighbors[1].insert(pair.first);
+         } else if (pair.second[1] > 0) {
+            dirNeighbors[2].insert(pair.first);
+         } else if (pair.second[1] < 0) {
+            dirNeighbors[3].insert(pair.first);
+         } else if (pair.second[2] > 0) {
+            dirNeighbors[4].insert(pair.first);
+         } else if (pair.second[2] < 0) {
+            dirNeighbors[5].insert(pair.first);
+         }
+         ++nbrs;
+         //std::cerr << pair.second[0] << " " << pair.second[1] << " " << pair.second[2] << std::endl;
       }
 
+      for (int i = 0; i < 6; ++i) {
+         if(dirNeighbors[i].size() < 2) {
+            isThisCellOnAFace[i] = true;
+         }
+      }
 
-      isThisCellOnAFace.fill(false);
-      determineFace(isThisCellOnAFace.data(), x, y, z, dx, dy, dz, excludeSlicesAndPeriodicDimensions);
+      if(excludeSlicesAndPeriodicDimensions == true) {
+         if(Parameters::xcells_ini == 1 || this->isPeriodic[0]) {
+            isThisCellOnAFace[0] = false;
+            isThisCellOnAFace[1] = false;
+         }
+         if(Parameters::ycells_ini == 1 || this->isPeriodic[1]) {
+            isThisCellOnAFace[2] = false;
+            isThisCellOnAFace[3] = false;
+         }
+         if(Parameters::zcells_ini == 1 || this->isPeriodic[2]) {
+            isThisCellOnAFace[4] = false;
+            isThisCellOnAFace[5] = false;
+         }
+      }
       return;
    }
    
@@ -917,36 +963,20 @@ namespace SBC {
    /*! Get a bool telling whether to call again applyInitialState upon restarting the simulation. */
    bool SysBoundaryCondition::doApplyUponRestart() const {return this->applyUponRestart;}
 
-   bool OuterBoundaryCondition::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                 FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
-
-      bool doAssign;
+   bool OuterBoundaryCondition::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
       array<bool,6> isThisCellOnAFace;
       
       // Assign boundary flags to local DCCRG cells
-      const vector<CellID>& cells = getLocalCells();
-      for(const auto& dccrgId : cells) {
-         SpatialCell* cell = mpiGrid[dccrgId];
-         if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) 
+      for(const auto& id : getLocalCells()) {
+         if (mpiGrid[id]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) 
             continue;
-         determineFace(isThisCellOnAFace, cell);
-         
-         // Comparison of the array defining which faces to use and the array telling on which faces this cell is
-         doAssign = false;
-         for (int j=0; j<6; j++) 
-            doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
-         const auto nbrs = mpiGrid.get_face_neighbors_of(dccrgId);
-         for (uint j = 0; j < nbrs.size(); j++) {
-            CellID neighbor = nbrs[j].first;
-            if (neighbor) {
-               determineFace(isThisCellOnAFace, mpiGrid[neighbor]);
-               for (int j=0; j<6; j++) 
-                  doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
+
+         determineFace(isThisCellOnAFace, mpiGrid, id);
+         for (int i = 0; i < 6; ++i) {
+            if(facesToProcess[i] && isThisCellOnAFace[i]) {
+               mpiGrid[id]->sysBoundaryFlag = this->getIndex();
             }
          }
-         if(doAssign) {
-            mpiGrid[dccrgId]->sysBoundaryFlag = this->getIndex();
-         }         
       }
       
       return true;
