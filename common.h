@@ -357,12 +357,15 @@ namespace fsgrids {
       PERBXVOL,  /*!< perturbed magnetic field  PERBX averaged over spatial cell.*/
       PERBYVOL,  /*!< perturbed magnetic field  PERBY averaged over spatial cell.*/
       PERBZVOL,  /*!< perturbed magnetic field  PERBZ averaged over spatial cell.*/
-      dPERBXVOLdy,
-      dPERBXVOLdz,
-      dPERBYVOLdx,
-      dPERBYVOLdz,
-      dPERBZVOLdx,
-      dPERBZVOLdy,
+      dPERBXVOLdx, /*!< Derivative of perturbed volume-averaged Bx in x-direction. */
+      dPERBXVOLdy, /*!< Derivative of perturbed volume-averaged Bx in y-direction. */
+      dPERBXVOLdz, /*!< Derivative of perturbed volume-averaged Bx in z-direction. */
+      dPERBYVOLdx, /*!< Derivative of perturbed volume-averaged By in x-direction. */
+      dPERBYVOLdy, /*!< Derivative of perturbed volume-averaged By in y-direction. */
+      dPERBYVOLdz, /*!< Derivative of perturbed volume-averaged By in z-direction. */
+      dPERBZVOLdx, /*!< Derivative of perturbed volume-averaged Bz in x-direction. */
+      dPERBZVOLdy, /*!< Derivative of perturbed volume-averaged Bz in y-direction. */
+      dPERBZVOLdz, /*!< Derivative of perturbed volume-averaged Bz in z-direction. */
       EXVOL,   /*!< volume-averaged electric field x component */
       EYVOL,   /*!< volume-averaged electric field y component */
       EZVOL,   /*!< volume-averaged electric field z component */
