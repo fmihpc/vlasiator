@@ -1759,27 +1759,24 @@ namespace SBC {
       #pragma omp parallel for
          for(uint n=0; n<nodes.size(); n++) {
 
-            Real J = 0;
             Real area = 0;
             Real upmappedArea = 0;
             std::array<int,3> fsc;
 
+            // Map down FAC based on magnetosphere rotB
+            if(nodes[n].xMapped[0] == 0. && nodes[n].xMapped[1] == 0. && nodes[n].xMapped[2] == 0.) {
+               // Skip cells that couple nowhere
+               continue;
+            }
+
+            // Local cell
+            std::array<int,3> lfsc = getLocalFsGridCellIndexForCoord(technicalGrid,nodes[n].xMapped);
+            if(lfsc[0] == -1 || lfsc[1] == -1 || lfsc[2] == -1) {
+               continue;
+            }
+
             // Iterate through the elements touching that node
             for(uint e=0; e<nodes[n].numTouchingElements; e++) {
-               const Element& el= elements[nodes[n].touchingElements[e]];
-
-               // This element has 3 corner nodes
-               // Get the B-values at the upmapped coordinates
-               std::array< std::array< Real, 3>, 3> B = {0};
-               for(int c=0; c <3 ;c++) {
-
-                  const Node& corner = nodes[el.corners[c]];
-
-                  B[c][0] = corner.parameters[ionosphereParameters::UPMAPPED_BX];
-                  B[c][1] = corner.parameters[ionosphereParameters::UPMAPPED_BY];
-                  B[c][2] = corner.parameters[ionosphereParameters::UPMAPPED_BZ];
-               }
-
                // Also sum up touching elements' areas and upmapped areas to compress
                // density and temperature with them
                // TODO: Precalculate this?
@@ -1798,18 +1795,6 @@ namespace SBC {
             area /= 3.;
             upmappedArea /= 3.;
 
-            //// Map down FAC based on magnetosphere rotB
-            if(nodes[n].xMapped[0] == 0. && nodes[n].xMapped[1] == 0. && nodes[n].xMapped[2] == 0.) {
-               // Skip cells that couple nowhere
-               continue;
-            }
-
-            // Local cell
-            std::array<int,3> lfsc = getLocalFsGridCellIndexForCoord(technicalGrid,nodes[n].xMapped);
-            if(lfsc[0] == -1 || lfsc[1] == -1 || lfsc[2] == -1) {
-               continue;
-            }
-
             // Calc curlB, note division by DX one line down
             const std::array<Real, 3> curlB = interpolateCurlB(
                perBGrid,
@@ -1821,13 +1806,15 @@ namespace SBC {
             );
 
             // Dot with normalized B, scale by area
-            FACinput[n] = upmappedArea * (nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]*curlB[0] + nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]*curlB[1] + nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]*curlB[2])
-               / (
-                  sqrt(
-                     nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]
-                     + nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]
-                     + nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]
-               ) * physicalconstants::MU_0 * technicalGrid.DX
+            FACinput[n] = area * (nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]*curlB[0] + nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]*curlB[1] + nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]*curlB[2])
+               * sqrt((nodes[n].parameters[ionosphereParameters::NODE_BX]*nodes[n].parameters[ionosphereParameters::NODE_BX]
+                  + nodes[n].parameters[ionosphereParameters::NODE_BY]*nodes[n].parameters[ionosphereParameters::NODE_BY]
+                  + nodes[n].parameters[ionosphereParameters::NODE_BZ]*nodes[n].parameters[ionosphereParameters::NODE_BZ])
+               )
+               / ((nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]
+                  + nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]
+                  + nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ])
+               * physicalconstants::MU_0 * technicalGrid.DX
             );
 
             // By definition, a downwards current into the ionosphere has a positive FAC value,
