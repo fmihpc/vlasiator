@@ -817,6 +817,15 @@ namespace SBC {
       phiprof::stop("ionosphere-readAtmosphericModelFile");
    }
 
+   /*!< Store the value of the magnetic field at the node.*/
+   void SphericalTriGrid::storeNodeB() {
+      for(int n=0; n<nodes.size(); n++) {
+         nodes[n].parameters[NODE_BX] = /*SBC::ionosphereGrid.*/dipoleField(nodes[n].x[0],nodes[n].x[1],nodes[n].x[2],X,0,X) + /*SBC::ionosphereGrid.*/BGB[0];
+         nodes[n].parameters[NODE_BY] = /*SBC::ionosphereGrid.*/dipoleField(nodes[n].x[0],nodes[n].x[1],nodes[n].x[2],Y,0,Y) + /*SBC::ionosphereGrid.*/BGB[1];
+         nodes[n].parameters[NODE_BZ] = /*SBC::ionosphereGrid.*/dipoleField(nodes[n].x[0],nodes[n].x[1],nodes[n].x[2],Z,0,Z) + /*SBC::ionosphereGrid.*/BGB[2];
+      }
+   }
+
    /* Look up the free electron production rate in the ionosphere, given the atmospheric height index,
     * particle energy after the ionospheric potential drop and inflowing distribution temperature */
    Real SphericalTriGrid::lookupProductionValue(int heightindex, Real energy_keV, Real temperature_keV) {
@@ -1783,11 +1792,13 @@ namespace SBC {
                area += elementArea(nodes[n].touchingElements[e]);
 
                std::array<Real, 3> areaVector = mappedElementArea(nodes[n].touchingElements[e]);
-               std::array<Real, 3> avgB = {(B[0][0] + B[1][0] + B[2][0])/3.,
-                  (B[0][1] + B[1][1] + B[2][1]) / 3.,
-                  (B[0][2] + B[1][2] + B[2][2]) / 3.};
-               upmappedArea += fabs(areaVector[0] * avgB[0] + areaVector[1]*avgB[1] + areaVector[2]*avgB[2]) /
-                  sqrt(avgB[0]*avgB[0] + avgB[1]*avgB[1] + avgB[2]*avgB[2]);
+//               std::array<Real, 3> avgB = {(B[0][0] + B[1][0] + B[2][0])/3.,
+//                  (B[0][1] + B[1][1] + B[2][1]) / 3.,
+//                  (B[0][2] + B[1][2] + B[2][2]) / 3.};
+//               upmappedArea += fabs(areaVector[0] * avgB[0] + areaVector[1]*avgB[1] + areaVector[2]*avgB[2]) /
+//                  sqrt(avgB[0]*avgB[0] + avgB[1]*avgB[1] + avgB[2]*avgB[2]);
+               upmappedArea += sqrt(areaVector[0]*areaVector[0] + areaVector[1]*areaVector[1] + areaVector[2]*areaVector[2]);
+
             }
 
             // Divide by 3, as every element will be counted from each of its
