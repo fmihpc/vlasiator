@@ -242,13 +242,13 @@ namespace projects {
          }
          if(sP.ionosphereT == 0) {
             if(myRank == MASTER_RANK) {
-               cerr << "Warning: " << pop << "_ionosphere.T is zero (default), now setting to the same value as " << pop << "_Magnetosphere.T, that is " << sP.T << ". Set/change " << pop << "_ionosphere.T if this is not the expected behavior." << endl;
+               cerr << "Warning: " << pop << "_(iono/conducting)sphere.T is zero (default), now setting to the same value as " << pop << "_Magnetosphere.T, that is " << sP.T << ". Set/change " << pop << "_(iono/conducting)sphere.T if this is not the expected behavior." << endl;
             }
             sP.ionosphereT = sP.T;
          }
          if(sP.ionosphereRho == 0) {
             if(myRank == MASTER_RANK) {
-               cerr << "Warning: " << pop << "_ionosphere.rho is zero (default), now setting to the same value as " << pop << "_Magnetosphere.rho, that is " << sP.rho << ". Set/change " << pop << "_ionosphere.rho if this is not the expected behavior." << endl;
+               cerr << "Warning: " << pop << "_(iono/conducting)sphere.rho is zero (default), now setting to the same value as " << pop << "_Magnetosphere.rho, that is " << sP.rho << ". Set/change " << pop << "_(iono/conducting)sphere.rho if this is not the expected behavior." << endl;
             }
             sP.ionosphereRho = sP.rho;
          }
