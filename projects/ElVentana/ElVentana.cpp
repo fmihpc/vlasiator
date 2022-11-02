@@ -1039,9 +1039,10 @@ namespace projects {
          // Read into buffer
          std::vector<Real> buffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
 
+         int overlapExists = overlapSize[0]*overlapSize[1]*overlapSize[2] > 0 ? 1 : 0;
          phiprof::start("readArray");
          // TODO: Should these be multireads instead? And/or can this be parallelized?
-         if(this->vlsvParaReader.readArray("VARIABLE",attribs, fileOffset, thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2], buffer.data()) == false) {
+         if(this->vlsvParaReader.readArray("VARIABLE",attribs, fileOffset, thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*overlapExists, buffer.data()) == false) {
             logFile << "(START)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
             return false;
          }
