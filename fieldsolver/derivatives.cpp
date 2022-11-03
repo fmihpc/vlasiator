@@ -669,7 +669,7 @@ void calculateScaledDeltasSimple(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    phiprof::start(timer);
    
    #pragma omp parallel for
-   for (int i = 0; i < cells.size(); ++i) {
+   for (uint i = 0; i < cells.size(); ++i) {
    //for (CellID id : cells) {
       CellID id = cells[i];
       SpatialCell* cell = mpiGrid[id];

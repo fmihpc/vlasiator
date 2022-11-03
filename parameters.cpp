@@ -628,7 +628,7 @@ void Parameters::getParameters() {
       bool isEmpty = blurPassString.size() == 0;
       if (!isEmpty){
          //sanity check=> user should define a pass for every level
-         if (static_cast<int>(blurPassString.size()) != P::amrMaxSpatialRefLevel + 1) {
+         if (blurPassString.size() != P::amrMaxSpatialRefLevel + 1) {
             cerr << "Filter Passes=" << blurPassString.size() << "\t" << "AMR Levels=" << P::amrMaxSpatialRefLevel + 1 << endl;
             cerr << "FilterPasses do not match AMR levels. \t" << " in " << __FILE__ << ":" << __LINE__ << endl;
             MPI_Abort(MPI_COMM_WORLD, 1);
@@ -652,7 +652,7 @@ void Parameters::getParameters() {
             return retval;
          };
          int maxPasses=g_sequence(P::amrMaxSpatialRefLevel-1);
-         for (int refLevel=0; refLevel<=P::amrMaxSpatialRefLevel; refLevel++){
+         for (uint refLevel=0; refLevel<=P::amrMaxSpatialRefLevel; refLevel++){
             numPasses.push_back(maxPasses);
             maxPasses/=2; 
          }
