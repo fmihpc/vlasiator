@@ -103,9 +103,12 @@ uint64_t get_node_free_memory(){
    return mem_proc_free;
 }
 
-/*! Measures memory consumption and writes it into logfile. Collective operation on MPI_COMM_WORLD
+/*! Measures memory consumption and writes it into logfile. 
+ *  Collective operation on MPI_COMM_WORLD
+ *  extra_bytes is used for additional buffer for the high water mark, 
+ *  for example when estimating refinement memory usage
  */
-void report_process_memory_consumption(){
+void report_process_memory_consumption(double extra_bytes){
    /*Report memory consumption into logfile*/
 
    char nodename[MPI_MAX_PROCESSOR_NAME]; 
@@ -140,22 +143,25 @@ void report_process_memory_consumption(){
    if (PAPI_library_init(PAPI_VER_CURRENT) == PAPI_VER_CURRENT) {
       PAPI_dmem_info_t dmem;  
       PAPI_get_dmem_info(&dmem);
-      double mem_papi[2] = {};
-      double node_mem_papi[2] = {};
-      double sum_mem_papi[2];
-      double min_mem_papi[2];
-      double max_mem_papi[2];
+      double mem_papi[3] = {};
+      double node_mem_papi[3] = {};
+      double sum_mem_papi[3];
+      double min_mem_papi[3];
+      double max_mem_papi[3];
       /*PAPI returns memory in KB units, transform to bytes*/
-      mem_papi[0] = dmem.high_water_mark * 1024;
+      mem_papi[0] = dmem.high_water_mark * 1024 + extra_bytes;
       mem_papi[1] = dmem.resident * 1024;
+      mem_papi[2] = extra_bytes;
       //sum node mem
-      MPI_Reduce(mem_papi, node_mem_papi, 2, MPI_DOUBLE, MPI_SUM, 0, nodeComm);
+      MPI_Reduce(mem_papi, node_mem_papi, 3, MPI_DOUBLE, MPI_SUM, 0, nodeComm);
       
       //rank 0 on all nodes do total reduces
       if(nodeRank == 0) {
-         MPI_Reduce(node_mem_papi, sum_mem_papi, 2, MPI_DOUBLE, MPI_SUM, 0, interComm);
-         MPI_Reduce(node_mem_papi, min_mem_papi, 2, MPI_DOUBLE, MPI_MIN, 0, interComm);
-         MPI_Reduce(node_mem_papi, max_mem_papi, 2, MPI_DOUBLE, MPI_MAX, 0, interComm);
+         MPI_Reduce(node_mem_papi, sum_mem_papi, 3, MPI_DOUBLE, MPI_SUM, 0, interComm);
+         MPI_Reduce(node_mem_papi, min_mem_papi, 3, MPI_DOUBLE, MPI_MIN, 0, interComm);
+         MPI_Reduce(node_mem_papi, max_mem_papi, 3, MPI_DOUBLE, MPI_MAX, 0, interComm);
+         if (max_mem_papi[2] != 0.0)
+            logFile << "(MEM) Estimating increased high water mark from refinement" << endl;
          logFile << "(MEM) Resident per node (avg, min, max): " << sum_mem_papi[1]/nNodes/GiB << " " << min_mem_papi[1]/GiB << " "  << max_mem_papi[1]/GiB << endl;
          logFile << "(MEM) High water mark per node (GiB) avg: " << sum_mem_papi[0]/nNodes/GiB << " min: " << min_mem_papi[0]/GiB << " max: "  << max_mem_papi[0]/GiB <<
             " sum (TiB): " << sum_mem_papi[0]/TiB << " on "<< nNodes << " nodes" << endl;

@@ -148,7 +148,18 @@ uint P::amrMaxVelocityRefLevel = 0;
 Realf P::amrRefineLimit = 1.0;
 Realf P::amrCoarsenLimit = 0.5;
 string P::amrVelRefCriterion = string("");
-int P::amrMaxSpatialRefLevel = 0;
+uint P::amrMaxSpatialRefLevel = 0;
+bool P::adaptRefinement = false;
+bool P::refineOnRestart = false;
+bool P::forceRefinement = false;
+bool P::shouldFilter = false;
+Real P::refineThreshold = 1.0;
+Real P::unrefineThreshold = 0.0;
+uint P::refineMultiplier = 10;
+Real P::refineAfter = 0.0;
+Real P::refineRadius = LARGE_REAL;
+bool P::useJPerB = true;
+Real P::JPerBModifier = 0.0;
 int P::maxFilteringPasses = 0;
 uint P::amrBoxHalfWidthX = 1;
 uint P::amrBoxHalfWidthY = 1;
@@ -332,6 +343,7 @@ bool P::addParameters() {
                         "ig_fac ig_latitude ig_cellarea ig_upmappedarea ig_sigmap ig_sigmah ig_rhom " +
                         "ig_electronTemp ig_potential ig_solverinternals ig_upmappedcodecoords ig_upmappedb ig_potential"+
                         "ig_inplanecurrent ig_e"+
+                        "vg_amr_drho vg_amr_du vg_amr_dpsq vg_amr_dbsq vg_amr_db vg_amr_alpha vg_amr_reflevel vg_amr_bperj"+
                         "vg_gridcoordinates fg_gridcoordinates meshdata");
 
    RP::addComposing(
@@ -393,6 +405,18 @@ bool P::addParameters() {
            "If the refinement criterion function returns a smaller value than this, block can be coarsened",
            (Realf)0.5);
    RP::add("AMR.max_spatial_level", "Maximum spatial mesh refinement level", (uint)0);
+   RP::add("AMR.should_refine","If false, do not refine Vlasov grid regardless of max spatial level",true);
+   RP::add("AMR.adapt_refinement","If true, re-refine vlasov grid every refine_multiplier load balance", false);
+   RP::add("AMR.refine_on_restart","If true, re-refine vlasov grid on restart", false);
+   RP::add("AMR.force_refinement","If true, refine/unrefine the vlasov grid to match the config on restart", false);
+   RP::add("AMR.should_filter","If true, filter vlasov grid with boxcar filter on restart",false);
+   RP::add("AMR.refine_threshold","Determines the minimum value of the refinement parameter to refine cells", 1.0);
+   RP::add("AMR.unrefine_threshold","Determines the maximum value of the refinement parameter to unrefine cells", 0.0);
+   RP::add("AMR.refine_multiplier","Refine every nth load balance", 10);
+   RP::add("AMR.refine_after","Start refinement after this many simulation seconds", 0.0);
+   RP::add("AMR.refine_radius","Maximum distance from Earth to refine", LARGE_REAL);
+   RP::add("AMR.use_J_per_B","Use J/B_perp as an additional refinement parameter", false);
+   RP::add("AMR.J_per_B_modifier","Factor to add to log2(J / B_perp) in refinement.", 0.0);
    RP::add("AMR.box_half_width_x", "Half width of the box that is refined (for testing)", (uint)1);
    RP::add("AMR.box_half_width_y", "Half width of the box that is refined (for testing)", (uint)1);
    RP::add("AMR.box_half_width_z", "Half width of the box that is refined (for testing)", (uint)1);
@@ -401,7 +425,6 @@ bool P::addParameters() {
    RP::add("AMR.box_center_z", "z coordinate of the center of the box that is refined (for testing)", 0.0);
    RP::add("AMR.transShortPencils", "if true, use one-cell pencils", false);
    RP::addComposing("AMR.filterpasses", string("AMR filter passes for each individual refinement level"));
-
    return true;
 }
 
@@ -577,6 +600,17 @@ void Parameters::getParameters() {
 
    RP::get("AMR.max_velocity_level", P::amrMaxVelocityRefLevel);
    RP::get("AMR.max_spatial_level", P::amrMaxSpatialRefLevel);
+   RP::get("AMR.adapt_refinement",P::adaptRefinement);
+   RP::get("AMR.refine_on_restart",P::refineOnRestart);
+   RP::get("AMR.force_refinement",P::forceRefinement);
+   RP::get("AMR.should_filter",P::shouldFilter);
+   RP::get("AMR.refine_threshold",P::refineThreshold);
+   RP::get("AMR.unrefine_threshold",P::unrefineThreshold);
+   RP::get("AMR.refine_multiplier",P::refineMultiplier);
+   RP::get("AMR.refine_after",P::refineAfter);
+   RP::get("AMR.refine_radius",P::refineRadius);
+   RP::get("AMR.use_J_per_B",P::useJPerB);
+   RP::get("AMR.J_per_B_modifier",P::JPerBModifier);
    RP::get("AMR.box_half_width_x", P::amrBoxHalfWidthX);
    RP::get("AMR.box_half_width_y", P::amrBoxHalfWidthY);
    RP::get("AMR.box_half_width_z", P::amrBoxHalfWidthZ);
