@@ -2478,7 +2478,11 @@ namespace SBC {
          sourcenorm = 0;
       }
       // Calculate sourcenorm and initial residual estimate
+#ifdef IONOSPHERE_SORTED_SUMS
       #pragma omp for
+#else
+      #pragma omp for reduction(+:sourcenorm)
+#endif
       for(uint n=0; n<nodes.size(); n++) {
          Node& N=nodes[n];
          // Set gauge-pinned nodes to their fixed potential
@@ -2555,8 +2559,10 @@ namespace SBC {
 #ifdef IONOSPHERE_SORTED_SUMS
          thread_set_pos.clear();
          thread_set_neg.clear();
-#endif
          #pragma omp for
+#else
+         #pragma omp for reduction(+:bknum)
+#endif
          for(uint n=0; n<nodes.size(); n++) {
             Node& N=nodes[n];
             const iSolverReal incr = N.parameters[ionosphereParameters::ZPARAM] * N.parameters[ionosphereParameters::RRESIDUAL];
@@ -2631,9 +2637,10 @@ namespace SBC {
 #ifdef IONOSPHERE_SORTED_SUMS
          thread_set_neg.clear();
          thread_set_pos.clear();
-#endif
-
          #pragma omp for
+#else
+         #pragma omp for reduction(+:akden)
+#endif
          for(uint n=0; n<nodes.size(); n++) {
             Node& N=nodes[n];
             iSolverReal zparam = Atimes(n, ionosphereParameters::PPARAM, false);
@@ -2723,8 +2730,10 @@ namespace SBC {
          }
 #ifdef IONOSPHERE_SORTED_SUMS
          thread_set_pos.clear();
-#endif
          #pragma omp for
+#else
+         #pragma omp for reduction(+:residualnorm)
+#endif
          for(uint n=0; n<nodes.size(); n++) {
             Node& N=nodes[n];
             // Calculate residual of the new solution. The faster way to do this would be
