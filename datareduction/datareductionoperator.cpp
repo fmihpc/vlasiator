@@ -1721,7 +1721,7 @@ namespace DRO {
                yGateCrit = (BnormV[1] - (VY - 0.5*BlockParams::DVY)) * (BnormV[1] - (VY + 0.5*BlockParams::DVY)) <= 0;
                zGateCrit = (BnormV[2] - (VZ - 0.5*BlockParams::DVZ)) * (BnormV[2] - (VZ + 0.5*BlockParams::DVZ)) <= 0;
                bool xyzGateCrit = xGateCrit && yGateCrit && zGateCrit;  // gate function: 1 if the line goes through the v-cell, else 0.
-               countAndGate = (Real) xyzGateCrit;
+               Real countAndGate = (Real) xyzGateCrit;
                const Real energy = 0.5 * getObjectWrapper().particleSpecies[popID].mass * normV*normV; // in SI
 
                // Find the correct energy bin number to update
