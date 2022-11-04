@@ -288,7 +288,7 @@ namespace SBC {
          std::array<bool, 6> isThisCellOnAFace;
          determineFace(isThisCellOnAFace, mpiGrid, id);
 
-         for (uint i=6; i < max; i++) {
+         for (uint i=0; i < 6; i++) {
             if (facesToProcess[i] && isThisCellOnAFace[i]) {
                copyCellData(&templateCells[i], cell ,false,popID,true); // copy also vdf, _V
                copyCellData(&templateCells[i], cell ,true,popID,false); // don't copy vdf again but copy _R now
