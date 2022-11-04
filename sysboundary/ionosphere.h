@@ -62,7 +62,8 @@ namespace SBC {
       FixedMoments,      // Predefine temperature, density and V = 0 on the inner boundary.
       AverageMoments,    // Copy averaged density and temperature from nearest cells, V = 0 
       AverageAllMoments, // Same as above, but also copy V
-      CopyAndLosscone
+      CopyAndLosscone,
+      ForceL2EXB
    };
    extern IonosphereBoundaryVDFmode boundaryVDFmode;
 

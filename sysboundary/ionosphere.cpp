@@ -3798,6 +3798,18 @@ namespace SBC {
          Real temperature = 0;
          Real density = 0;
          switch(boundaryVDFmode) {
+            case ForceL2EXB:
+               {
+               // EXB forcing is assigned to the L2 Neighbour cells here, so they can update their VDFs in acceleration
+               const vector<CellID>& closestCells = getAllClosestNonsysboundaryCells(cellID);
+               for (CellID celli : closestCells) {
+                  mpiGrid[celli]->parameters[CellParams::BULKV_FORCING_X] += vDrift[0];
+                  mpiGrid[celli]->parameters[CellParams::BULKV_FORCING_Y] += vDrift[1];
+                  mpiGrid[celli]->parameters[CellParams::BULKV_FORCING_Z] += vDrift[2];
+                  mpiGrid[celli]->parameters[CellParams::FORCING_CELL_NUM]+=1;
+               }
+               // Fall through, to handle L1 in the same way as fixed moments
+               }
             case FixedMoments:
                density = speciesParams[popID].rho;
                temperature = speciesParams[popID].T;
@@ -3842,6 +3854,7 @@ namespace SBC {
             case FixedMoments:
             case AverageAllMoments:
             case AverageMoments: 
+            case ForceL2EXB:
                {
                   // Fill velocity space with new maxwellian data
                   SpatialCell& cell = *mpiGrid[cellID];
