@@ -585,7 +585,7 @@ namespace projects {
       // L1 refinement.
       if (P::amrMaxSpatialRefLevel > 0) {
          //#pragma omp parallel for
-         for (int i = 0; i < cells.size(); ++i) {
+         for (uint i = 0; i < cells.size(); ++i) {
             CellID id = cells[i];
             std::array<double,3> xyz = mpiGrid.get_center(id);
                      
@@ -606,13 +606,13 @@ namespace projects {
          if (cells.size() > 0) {
             std::cout << "Rank " << myRank << " refined " << cells.size() << " cells to level 1" << std::endl;
          }
-         #endif NDEBUG
+         #endif //NDEBUG
       }
       
       // L2 refinement.
       if (P::amrMaxSpatialRefLevel > 1) {
          //#pragma omp parallel for
-         for (int i = 0; i < cells.size(); ++i) {
+         for (uint i = 0; i < cells.size(); ++i) {
             CellID id = cells[i];
             std::array<double,3> xyz = mpiGrid.get_center(id);
                      
@@ -632,14 +632,14 @@ namespace projects {
          if (cells.size() > 0) {
             std::cout << "Rank " << myRank << " refined " << cells.size() << " cells to level 2" << std::endl;
          }
-         #endif NDEBUG
+         #endif //NDEBUG
 
       }
       
       // L3 refinement.
       if (P::amrMaxSpatialRefLevel > 2) {
          //#pragma omp parallel for
-         for (int i = 0; i < cells.size(); ++i) {
+         for (uint i = 0; i < cells.size(); ++i) {
             CellID id = cells[i];
             std::array<double,3> xyz = mpiGrid.get_center(id);
                      
@@ -659,13 +659,13 @@ namespace projects {
          if (cells.size() > 0) {
             std::cout << "Rank " << myRank << " refined " << cells.size() << " cells to level 3" << std::endl;
          }
-         #endif NDEBUG
+         #endif //NDEBUG
       }
 
       // L4 refinement.
       if (P::amrMaxSpatialRefLevel > 3) {
          //#pragma omp parallel for
-         for (int i = 0; i < cells.size(); ++i) {
+         for (uint i = 0; i < cells.size(); ++i) {
             CellID id = cells[i];
             std::array<double,3> xyz = mpiGrid.get_center(id);
                      
@@ -687,7 +687,7 @@ namespace projects {
          if (cells.size() > 0) {
             std::cout << "Rank " << myRank << " refined " << cells.size() << " cells to level 4" << std::endl;
          }
-         #endif NDEBUG
+         #endif //NDEBUG
       }
 
       return true;
@@ -706,7 +706,7 @@ namespace projects {
       Real r_max2 {pow(P::refineRadius, 2)};
 
       //#pragma omp parallel for
-      for (int j = 0; j < cells.size(); ++j) {
+      for (uint j = 0; j < cells.size(); ++j) {
          CellID id {cells[j]};
          std::array<double,3> xyz {mpiGrid.get_center(id)};
          SpatialCell* cell {mpiGrid[id]};
