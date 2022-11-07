@@ -29,7 +29,7 @@ PAPI_FLAG =
 
 FLAGS =
 #CXXFLAGS = -I $(HOME)/include  -L $(HOME)/lib -g  -funroll-loops -std=c++0x -fopenmp -W -Wall -pedantic -Wno-unused -fabi-version=0 -mavx
-CXXFLAGS = -I $(HOME)/include  -L $(HOME)/lib -O3  -funroll-loops -std=c++0x -fopenmp -W -Wall -Wno-unused -fabi-version=0 -mavx
+CXXFLAGS = -I $(HOME)/include  -L $(HOME)/lib -O3  -funroll-loops -std=c++17 -fopenmp -W -Wall -Wno-unused -fabi-version=0 -mavx
 MATHFLAGS = -ffast-math
 LDFLAGS = -L $(HOME)/lib
 LIB_MPI = -lgomp 

@@ -2866,7 +2866,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      }
                      particle_energy[SBC::productionNumParticleEnergies] = 2*particle_energy[SBC::productionNumParticleEnergies-1] - particle_energy[SBC::productionNumParticleEnergies-2];
 
-                     Real accenergy = grid.productionMinAccEnergy;
+                     Real accenergy = SBC::productionMinAccEnergy;
 
                      std::vector<Real> retval(grid.nodes.size());
                      for(uint i=0; i<grid.nodes.size(); i++) {
@@ -2896,7 +2896,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      }
                      particle_energy[SBC::productionNumParticleEnergies] = 2*particle_energy[SBC::productionNumParticleEnergies-1] - particle_energy[SBC::productionNumParticleEnergies-2];
 
-                     Real accenergy = grid.productionMinAccEnergy;
+                     Real accenergy = SBC::productionMinAccEnergy;
 
                      std::vector<Real> retval(grid.nodes.size());
                      for(uint i=0; i<grid.nodes.size(); i++) {

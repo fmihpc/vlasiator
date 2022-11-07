@@ -37,7 +37,18 @@ using namespace std;
 
 namespace SBC {
 
+   // Hardcoded constants for calculating ion production table
+   // TODO: Make these parameters?
+   constexpr static int productionNumAccEnergies = 60;
+   constexpr static int productionNumTemperatures = 60;
    constexpr static int productionNumParticleEnergies = 100;
+   constexpr static Real productionMinAccEnergy = 0.1; // keV
+   constexpr static Real productionMaxAccEnergy = 100.; // keV
+   constexpr static Real productionMinTemperature = 0.1; // keV
+   constexpr static Real productionMaxTemperature = 100.; // keV
+   constexpr static Real ion_electron_T_ratio = 4.; // TODO: Make this a parameter (and/or find value from kinetics)
+
+
    struct IonosphereSpeciesParameters {
       Real rho;
       Real V0[3];
@@ -162,18 +173,7 @@ namespace SBC {
          SergienkoIvanov, // Sergienko & Ivanov (1993)
       } ionizationModel;
 
-
-      // Hardcoded constants for calculating ion production table
-      // TODO: Make these parameters?
-      constexpr static int productionNumAccEnergies = 60;
-      constexpr static int productionNumTemperatures = 60;
-      //constexpr static int productionNumParticleEnergies = 100;
-      constexpr static Real productionMinAccEnergy = 0.1; // keV
-      constexpr static Real productionMaxAccEnergy = 100.; // keV
-      constexpr static Real productionMinTemperature = 0.1; // keV
-      constexpr static Real productionMaxTemperature = 100.; // keV
-      constexpr static Real ion_electron_T_ratio = 4.; // TODO: Make this a parameter (and/or find value from kinetics)
-      // Ionoisation production table
+      // Ionisation production table
       std::array< std::array< std::array< Real, productionNumTemperatures >, productionNumAccEnergies >, numAtmosphereLevels > productionTable;
       Real lookupProductionValue(int heightindex, Real energy_keV, Real temperature_keV);
 
