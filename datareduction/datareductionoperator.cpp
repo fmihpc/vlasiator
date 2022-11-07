@@ -1717,9 +1717,12 @@ namespace DRO {
 
                // We will use a gate function based on criteria that Vi-0.5*DVi <= BnormV[i] <= Vi+0.5*DVi (for i=x,y,z or 0,1,2)
                bool xGateCrit, yGateCrit, zGateCrit;
-               xGateCrit = (BnormV[0] - (VX - 0.5*BlockParams::DVX)) * (BnormV[0] - (VX + 0.5*BlockParams::DVX)) <= 0;
-               yGateCrit = (BnormV[1] - (VY - 0.5*BlockParams::DVY)) * (BnormV[1] - (VY + 0.5*BlockParams::DVY)) <= 0;
-               zGateCrit = (BnormV[2] - (VZ - 0.5*BlockParams::DVZ)) * (BnormV[2] - (VZ + 0.5*BlockParams::DVZ)) <= 0;
+	       const Real _DVX= parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+               const Real _DVY= parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+               const Real _DVZ= parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+               xGateCrit = (BnormV[0] - (VX - 0.5*_DVX)) * (BnormV[0] - (VX + 0.5*_DVX)) <= 0;
+               yGateCrit = (BnormV[1] - (VY - 0.5*_DVY)) * (BnormV[1] - (VY + 0.5*_DVY)) <= 0;
+               zGateCrit = (BnormV[2] - (VZ - 0.5*_DVZ)) * (BnormV[2] - (VZ + 0.5*_DVZ)) <= 0;
                bool xyzGateCrit = xGateCrit && yGateCrit && zGateCrit;  // gate function: 1 if the line goes through the v-cell, else 0.
                Real countAndGate = (Real) xyzGateCrit;
                const Real energy = 0.5 * getObjectWrapper().particleSpecies[popID].mass * normV*normV; // in SI
