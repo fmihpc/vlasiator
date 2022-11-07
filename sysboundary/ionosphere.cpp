@@ -717,17 +717,17 @@ namespace SBC {
 
       // Energies of particles that sample the production array
       // are logspace-distributed from 10^-1 to 10^2.3 keV
-      std::array< Real, productionNumParticleEnergies+1 > particle_energy; // In KeV
-      for(int e=0; e<productionNumParticleEnergies; e++) {
+      std::array< Real, SBC::productionNumParticleEnergies+1 > particle_energy; // In KeV
+      for(int e=0; e<SBC::productionNumParticleEnergies; e++) {
          // TODO: Hardcoded constants. Make parameter?
-         particle_energy[e] = pow(10.0, -1.+e*(2.3+1.)/(productionNumParticleEnergies-1));
+         particle_energy[e] = pow(10.0, -1.+e*(2.3+1.)/(SBC::productionNumParticleEnergies-1));
       }
-      particle_energy[productionNumParticleEnergies] = 2*particle_energy[productionNumParticleEnergies-1] - particle_energy[productionNumParticleEnergies-2];
+      particle_energy[SBC::productionNumParticleEnergies] = 2*particle_energy[SBC::productionNumParticleEnergies-1] - particle_energy[SBC::productionNumParticleEnergies-2];
 
       // Precalculate scattering rates
       const Real eps_ion_keV = 0.035; // Energy required to create one ion
-      std::array< std::array< Real, numAtmosphereLevels >, productionNumParticleEnergies > scatteringRate;
-      for(int e=0;e<productionNumParticleEnergies; e++) {
+      std::array< std::array< Real, numAtmosphereLevels >, SBC::productionNumParticleEnergies > scatteringRate;
+      for(int e=0;e<SBC::productionNumParticleEnergies; e++) {
 
          Real electronRange=0.;
          Real rho_R=0.;
@@ -781,7 +781,7 @@ namespace SBC {
       }
 
       // Fill ionisation production table
-      std::array< Real, productionNumParticleEnergies > differentialFlux; // Differential flux
+      std::array< Real, SBC::productionNumParticleEnergies > differentialFlux; // Differential flux
 
       for(int e=0; e<productionNumAccEnergies; e++) {
 
@@ -792,7 +792,7 @@ namespace SBC {
             const Real productionTemperatureStep = (log10(productionMaxTemperature) - log10(productionMinTemperature)) / productionNumTemperatures;
             Real tempenergy = pow(10, productionMinTemperature + t*productionTemperatureStep); // In KeV
 
-            for(int p=0; p<productionNumParticleEnergies; p++) {
+            for(int p=0; p<SBC::productionNumParticleEnergies; p++) {
                // TODO: Kappa distribution here? Now only going for maxwellian
                Real energyparam = (particle_energy[p]-accenergy)/tempenergy; // = E_p / (kB T)
 
@@ -808,7 +808,7 @@ namespace SBC {
             }
             for(int h=0; h < numAtmosphereLevels; h++) {
                productionTable[h][e][t] = 0;
-               for(int p=0; p<productionNumParticleEnergies; p++) {
+               for(int p=0; p<SBC::productionNumParticleEnergies; p++) {
                   productionTable[h][e][t] += scatteringRate[p][h]*differentialFlux[p];
                }
             }

@@ -37,6 +37,7 @@ using namespace std;
 
 namespace SBC {
 
+   constexpr static int productionNumParticleEnergies = 100;
    struct IonosphereSpeciesParameters {
       Real rho;
       Real V0[3];
@@ -166,7 +167,7 @@ namespace SBC {
       // TODO: Make these parameters?
       constexpr static int productionNumAccEnergies = 60;
       constexpr static int productionNumTemperatures = 60;
-      constexpr static int productionNumParticleEnergies = 100;
+      //constexpr static int productionNumParticleEnergies = 100;
       constexpr static Real productionMinAccEnergy = 0.1; // keV
       constexpr static Real productionMaxAccEnergy = 100.; // keV
       constexpr static Real productionMinTemperature = 0.1; // keV
