@@ -2887,13 +2887,13 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(lowercase == "ig_precipnumflux") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_precipnumflux", [](SBC::SphericalTriGrid& grid)->std::vector<Real> {
 
-                     std::array< Real, grid.productionNumParticleEnergies+1 > particle_energy;
+                     std::array< Real, SBC::productionNumParticleEnergies+1 > particle_energy;
                      // Precalculate effective energy bins
                      // Make sure this stays in sync with sysboundary/ionosphere.cpp
-                     for(int e=0; e<grid.productionNumParticleEnergies; e++) {
-                     particle_energy[e] = pow(10.0, -1.+e*(2.3+1.)/(grid.productionNumParticleEnergies-1));
+                     for(int e=0; e<SBC::productionNumParticleEnergies; e++) {
+                     particle_energy[e] = pow(10.0, -1.+e*(2.3+1.)/(SBC::productionNumParticleEnergies-1));
                      }
-                     particle_energy[grid.productionNumParticleEnergies] = 2*particle_energy[grid.productionNumParticleEnergies-1] - particle_energy[grid.productionNumParticleEnergies-2];
+                     particle_energy[SBC::productionNumParticleEnergies] = 2*particle_energy[SBC::productionNumParticleEnergies-1] - particle_energy[SBC::productionNumParticleEnergies-2];
 
                      Real accenergy = grid.productionMinAccEnergy;
 
@@ -2901,7 +2901,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      for(uint i=0; i<grid.nodes.size(); i++) {
                         Real temp_keV = physicalconstants::K_B * grid.nodes[i].electronTemperature() / physicalconstants::CHARGE / 1000;
 
-                        for(int p=0; p<grid.productionNumParticleEnergies; p++) {
+                        for(int p=0; p<SBC::productionNumParticleEnergies; p++) {
                            Real energyparam = (particle_energy[p]-accenergy)/temp_keV; // = E_p / (kB T)
                            Real deltaE = (particle_energy[p+1] - particle_energy[p])* 1e3*physicalconstants::CHARGE;  // dE in J
                            retval[i] += grid.nodes[i].parameters[ionosphereParameters::RHON] * sqrt(1. / (2. * M_PI * physicalconstants::MASS_ELECTRON))
@@ -2917,13 +2917,13 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(lowercase == "ig_precipavgenergy") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_precipavgenergy", [](SBC::SphericalTriGrid& grid)->std::vector<Real> {
 
-                     std::array< Real, grid.productionNumParticleEnergies+1 > particle_energy;
+                     std::array< Real, SBC::productionNumParticleEnergies+1 > particle_energy;
                      // Precalculate effective energy bins
                      // Make sure this stays in sync with sysboundary/ionosphere.cpp
-                     for(int e=0; e<grid.productionNumParticleEnergies; e++) {
-                     particle_energy[e] = pow(10.0, -1.+e*(2.3+1.)/(grid.productionNumParticleEnergies-1));
+                     for(int e=0; e<SBC::productionNumParticleEnergies; e++) {
+                     particle_energy[e] = pow(10.0, -1.+e*(2.3+1.)/(SBC::productionNumParticleEnergies-1));
                      }
-                     particle_energy[grid.productionNumParticleEnergies] = 2*particle_energy[grid.productionNumParticleEnergies-1] - particle_energy[grid.productionNumParticleEnergies-2];
+                     particle_energy[SBC::productionNumParticleEnergies] = 2*particle_energy[SBC::productionNumParticleEnergies-1] - particle_energy[SBC::productionNumParticleEnergies-2];
 
                      Real accenergy = grid.productionMinAccEnergy;
 
@@ -2936,7 +2936,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                         // ig_precipnumflux reducer above. Share code?)
                         Real temp_keV = physicalconstants::K_B * grid.nodes[i].electronTemperature() / physicalconstants::CHARGE / 1000;
 
-                        for(int p=0; p<grid.productionNumParticleEnergies; p++) {
+                        for(int p=0; p<SBC::productionNumParticleEnergies; p++) {
                            Real energyparam = (particle_energy[p]-accenergy)/temp_keV; // = E_p / (kB T)
                            Real deltaE = (particle_energy[p+1] - particle_energy[p])* 1e3*physicalconstants::CHARGE;  // dE in J
                            numberFlux += grid.nodes[i].parameters[ionosphereParameters::RHON] * sqrt(1. / (2. * M_PI * physicalconstants::MASS_ELECTRON))
