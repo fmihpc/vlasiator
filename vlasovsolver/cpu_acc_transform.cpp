@@ -123,26 +123,6 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       spatial_cell->parameters[CellParams::EYGRADPE],
       spatial_cell->parameters[CellParams::EZGRADPE]);
 
-   // If a bulk velocity is being forced here, perform that first, and let everything below continue in the new frame.
-   if(spatial_cell->parameters[CellParams::FORCING_CELL_NUM] > 0) {
-      Eigen::Matrix<Real,3,1> forced_bulkv(spatial_cell->parameters[CellParams::BULKV_FORCING_X],
-                                           spatial_cell->parameters[CellParams::BULKV_FORCING_Y],
-                                           spatial_cell->parameters[CellParams::BULKV_FORCING_Z]);
-      forced_bulkv /= spatial_cell->parameters[CellParams::FORCING_CELL_NUM];
-
-      Eigen::Matrix<Real,3,1> bulkDeltaV = forced_bulkv - bulk_velocity;
-      total_transform=Translation<Real,3>(bulkDeltaV) * total_transform;
-
-      // New bulk velocity is the force done
-      bulk_velocity = forced_bulkv;
-
-      // Reset forcing number and values to zero
-      spatial_cell->parameters[CellParams::FORCING_CELL_NUM] = 0;
-      spatial_cell->parameters[CellParams::BULKV_FORCING_X] = 0;
-      spatial_cell->parameters[CellParams::BULKV_FORCING_Y] = 0;
-      spatial_cell->parameters[CellParams::BULKV_FORCING_Z] = 0;
-   }
-
    for (uint i=0; i<bulk_velocity_substeps; ++i) {
       // rotation origin is the point through which we place our rotation axis (direction of which is unitB).
       // first add bulk velocity (using the total transform computed this far.
@@ -166,6 +146,25 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       }
    }
 
+   // If a bulk velocity is being forced here, perform that last, after things were gyrated in the Hall frame
+   if(spatial_cell->parameters[CellParams::FORCING_CELL_NUM] > 0) {
+      Eigen::Matrix<Real,3,1> forced_bulkv(spatial_cell->parameters[CellParams::BULKV_FORCING_X],
+                                           spatial_cell->parameters[CellParams::BULKV_FORCING_Y],
+                                           spatial_cell->parameters[CellParams::BULKV_FORCING_Z]);
+      forced_bulkv /= spatial_cell->parameters[CellParams::FORCING_CELL_NUM];
+
+      Eigen::Matrix<Real,3,1> bulkDeltaV = forced_bulkv - bulk_velocity;
+      total_transform=Translation<Real,3>(bulkDeltaV) * total_transform;
+
+      // New bulk velocity is the force done
+      bulk_velocity = forced_bulkv;
+
+      // Reset forcing number and values to zero
+      spatial_cell->parameters[CellParams::FORCING_CELL_NUM] = 0;
+      spatial_cell->parameters[CellParams::BULKV_FORCING_X] = 0;
+      spatial_cell->parameters[CellParams::BULKV_FORCING_Y] = 0;
+      spatial_cell->parameters[CellParams::BULKV_FORCING_Z] = 0;
+   }
 
    return total_transform;
 }
