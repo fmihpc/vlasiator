@@ -146,5 +146,25 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       }
    }
 
+   // If a bulk velocity is being forced here, perform that last, after things were gyrated in the Hall frame
+   if(spatial_cell->parameters[CellParams::FORCING_CELL_NUM] > 0) {
+      Eigen::Matrix<Real,3,1> forced_bulkv(spatial_cell->parameters[CellParams::BULKV_FORCING_X],
+                                           spatial_cell->parameters[CellParams::BULKV_FORCING_Y],
+                                           spatial_cell->parameters[CellParams::BULKV_FORCING_Z]);
+      forced_bulkv /= spatial_cell->parameters[CellParams::FORCING_CELL_NUM];
+
+      Eigen::Matrix<Real,3,1> bulkDeltaV = forced_bulkv - bulk_velocity;
+      total_transform=Translation<Real,3>(bulkDeltaV) * total_transform;
+
+      // New bulk velocity is the force done
+      bulk_velocity = forced_bulkv;
+
+      // Reset forcing number and values to zero
+      spatial_cell->parameters[CellParams::FORCING_CELL_NUM] = 0;
+      spatial_cell->parameters[CellParams::BULKV_FORCING_X] = 0;
+      spatial_cell->parameters[CellParams::BULKV_FORCING_Y] = 0;
+      spatial_cell->parameters[CellParams::BULKV_FORCING_Z] = 0;
+   }
+
    return total_transform;
 }
