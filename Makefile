@@ -139,7 +139,7 @@ DEPS_VLSVMOVER_VAMR = vlasovsolver_amr/vlasovmover.cpp vlasovsolver_amr/cpu_acc_
 
 OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipole.o vectordipole.o constantfield.o integratefunction.o \
 	datareducer.o datareductionoperator.o dro_populations.o vamr_refinement_criteria.o\
-	donotcompute.o ionosphere.o copysphere.o outflow.o setbyuser.o setmaxwellian.o\
+	donotcompute.o ionosphere.o copysphere.o outflow.o inflow.o setbyuser.o setmaxwellian.o\
 	fieldtracing.o \
 	sysboundary.o sysboundarycondition.o particle_species.o\
 	project.o projectTriAxisSearch.o read_gaussian_population.o\
@@ -193,7 +193,6 @@ cleantools:
 version.cpp: FORCE
 	@echo "[GENERATE] version.cpp"
 	$(SILENT)./generate_version.sh "${CMP}" "${CXXFLAGS}" "${FLAGS}" "${INC_MPI}" "${INC_DCCRG}" "${INC_FSGRID}" "${INC_ZOLTAN}" "${INC_BOOST}"
-
 
 # Generic rules:
 # for all files in the main source dir

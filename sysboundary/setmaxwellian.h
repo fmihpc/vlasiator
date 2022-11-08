@@ -27,8 +27,8 @@
 #include "../definitions.h"
 #include "../readparameters.h"
 #include "../spatial_cell.hpp"
+#include "inflow.h"
 #include "sysboundarycondition.h"
-#include "setbyuser.h"
 
 using namespace std;
 
@@ -39,14 +39,9 @@ namespace SBC {
     *
     * It applies fixed Maxwellian settings to the inflow boundary cells, the parameters of
     * which are being read from an input file.
-    * 
-    * The class inherits most of its machinery from
-    * SysBoundaryCondition::SetByUser. The parameters are more general than for Maxwellian
-    * and could be put in SysBoundaryCondition::SetByUser but this way they can have a
-    * specific prefix which is needed if several inheriting classes are needed.
-    * 
+    *
     */
-   class Maxwellian : public SetByUser {
+   class Maxwellian : public Inflow {
    public:
       Maxwellian();
       virtual ~Maxwellian();
@@ -58,7 +53,7 @@ namespace SBC {
       virtual uint getIndex() const;
       
    protected:
-      void generateTemplateCell(spatial_cell::SpatialCell& templateCell, Real B[3], int inputDataIndex, creal& t);
+      void generateTemplateCell(spatial_cell::SpatialCell& templateCell, Real (&B)[3], int inputDataIndex, creal t);
       
       Real maxwellianDistribution(const uint popID,
          creal& rho, creal& T, creal& vx, creal& vy, creal& vz

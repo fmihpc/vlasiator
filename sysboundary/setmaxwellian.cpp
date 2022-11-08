@@ -32,10 +32,9 @@
 #include "../object_wrapper.h"
 
 namespace SBC {
-   Maxwellian::Maxwellian(): SetByUser() {
-   }
-   Maxwellian::~Maxwellian() { }
-   
+   Maxwellian::Maxwellian() : Inflow() {}
+   Maxwellian::~Maxwellian() {}
+
    void Maxwellian::addParameters() {
       Readparameters::addComposing(
           "maxwellian.face", "List of faces on which set Maxwellian boundary conditions are to be applied ([xyz][+-]).");
@@ -89,7 +88,7 @@ namespace SBC {
       
       uint reapply;
       Readparameters::get("maxwellian.reapplyUponRestart", reapply);
-
+      Readparameters::get("maxwellian.t_interval", tInterval);
       this->applyUponRestart = false;
       if(reapply == 1) {
          this->applyUponRestart = true;
@@ -99,7 +98,7 @@ namespace SBC {
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
 
-         UserSpeciesParameters sP;
+         InflowSpeciesParameters sP;
          sP.nParams = 9;
 
          Readparameters::get(pop + "_maxwellian.dynamic", dynamic);
@@ -199,28 +198,17 @@ namespace SBC {
     * This function generates a spatial cell which is to be used as a template for the
     * system boundary condition.
     * \param templateCell Address of the template cell to be generated.
+    * \param B Address of the magnetic field to be used as template.
     * \param inputDataIndex Index used for the location of the input data.
     * \param t Current simulation time.
     */
-   void Maxwellian::generateTemplateCell(
-      spatial_cell::SpatialCell& templateCell,
-      Real B[3],
-      int inputDataIndex,
-      creal& t
-   ) {
-      Real rho, T, Vx, Vy, Vz, Bx=0.0, By=0.0, Bz=0.0, buffer[8];
-      
-      
+   void Maxwellian::generateTemplateCell(spatial_cell::SpatialCell& templateCell, Real (&B)[3], int inputDataIndex,
+                                         creal t) {
+      Real rho, T, Vx, Vy, Vz, Bx, By, Bz, buffer[8];
+
       templateCell.sysBoundaryFlag = this->getIndex();
       templateCell.sysBoundaryLayer = 1;
-      
-      templateCell.parameters[CellParams::XCRD] = 0.0;
-      templateCell.parameters[CellParams::YCRD] = 0.0;
-      templateCell.parameters[CellParams::ZCRD] = 0.0;
-      templateCell.parameters[CellParams::DX] = 1;
-      templateCell.parameters[CellParams::DY] = 1;
-      templateCell.parameters[CellParams::DZ] = 1;
-      
+
       // Init all particle species
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          interpolate(inputDataIndex, popID, t, &buffer[0]);
@@ -305,29 +293,22 @@ namespace SBC {
       
       calculateCellMoments(&templateCell,true,false,true);
       
-      if(!this->dynamic) {
-         // WARNING Time-independence assumed here.
-         templateCell.parameters[CellParams::RHOM_R] = templateCell.parameters[CellParams::RHOM];
-         templateCell.parameters[CellParams::VX_R] = templateCell.parameters[CellParams::VX];
-         templateCell.parameters[CellParams::VY_R] = templateCell.parameters[CellParams::VY];
-         templateCell.parameters[CellParams::VZ_R] = templateCell.parameters[CellParams::VZ];
-         templateCell.parameters[CellParams::RHOQ_R] = templateCell.parameters[CellParams::RHOQ];
-         templateCell.parameters[CellParams::P_11_R] = templateCell.parameters[CellParams::P_11];
-         templateCell.parameters[CellParams::P_22_R] = templateCell.parameters[CellParams::P_22];
-         templateCell.parameters[CellParams::P_33_R] = templateCell.parameters[CellParams::P_33];
-         templateCell.parameters[CellParams::RHOM_V] = templateCell.parameters[CellParams::RHOM];
-         templateCell.parameters[CellParams::VX_V] = templateCell.parameters[CellParams::VX];
-         templateCell.parameters[CellParams::VY_V] = templateCell.parameters[CellParams::VY];
-         templateCell.parameters[CellParams::VZ_V] = templateCell.parameters[CellParams::VZ];
-         templateCell.parameters[CellParams::RHOQ_V] = templateCell.parameters[CellParams::RHOQ];
-         templateCell.parameters[CellParams::P_11_V] = templateCell.parameters[CellParams::P_11];
-         templateCell.parameters[CellParams::P_22_V] = templateCell.parameters[CellParams::P_22];
-         templateCell.parameters[CellParams::P_33_V] = templateCell.parameters[CellParams::P_33];
-      } else {
-         cerr << "ERROR: this is not dynamic in time, please code it!" << endl;
-         abort();
-      }
-
+      templateCell.parameters[CellParams::RHOM_R] = templateCell.parameters[CellParams::RHOM];
+      templateCell.parameters[CellParams::VX_R] = templateCell.parameters[CellParams::VX];
+      templateCell.parameters[CellParams::VY_R] = templateCell.parameters[CellParams::VY];
+      templateCell.parameters[CellParams::VZ_R] = templateCell.parameters[CellParams::VZ];
+      templateCell.parameters[CellParams::RHOQ_R] = templateCell.parameters[CellParams::RHOQ];
+      templateCell.parameters[CellParams::P_11_R] = templateCell.parameters[CellParams::P_11];
+      templateCell.parameters[CellParams::P_22_R] = templateCell.parameters[CellParams::P_22];
+      templateCell.parameters[CellParams::P_33_R] = templateCell.parameters[CellParams::P_33];
+      templateCell.parameters[CellParams::RHOM_V] = templateCell.parameters[CellParams::RHOM];
+      templateCell.parameters[CellParams::VX_V] = templateCell.parameters[CellParams::VX];
+      templateCell.parameters[CellParams::VY_V] = templateCell.parameters[CellParams::VY];
+      templateCell.parameters[CellParams::VZ_V] = templateCell.parameters[CellParams::VZ];
+      templateCell.parameters[CellParams::RHOQ_V] = templateCell.parameters[CellParams::RHOQ];
+      templateCell.parameters[CellParams::P_11_V] = templateCell.parameters[CellParams::P_11];
+      templateCell.parameters[CellParams::P_22_V] = templateCell.parameters[CellParams::P_22];
+      templateCell.parameters[CellParams::P_33_V] = templateCell.parameters[CellParams::P_33];
    }
 
    std::string Maxwellian::getName() const { return "Maxwellian"; }

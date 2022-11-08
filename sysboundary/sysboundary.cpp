@@ -38,6 +38,7 @@
 #include "setmaxwellian.h"
 #include "sysboundary.h"
 #include "../fieldsolver/gridGlue.hpp"
+#include "setbyuser.h"
 
 using namespace std;
 using namespace spatial_cell;
@@ -54,8 +55,7 @@ bool precedenceSort(const SBC::SysBoundaryCondition* first, const SBC::SysBounda
 // ***** DEFINITIONS FOR BOUNDARY CLASS *****
 // ************************************************************
 
-/*! Constructor for class SysBoundary.*/
-SysBoundary::SysBoundary() {}
+SysBoundary::SysBoundary() : anyDynamic(false) {}
 
 /*!\brief Destructor for class SysBoundary.
  *
