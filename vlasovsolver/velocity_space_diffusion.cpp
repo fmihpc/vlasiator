@@ -150,12 +150,7 @@ void velocitySpaceDiffusion(
 
                    Vec4d Vmu = dVbins * (to_double(Vindex)+0.5); // Take value at the center of the mu cell
 
-                   #ifdef DPF
-                   Vec4d CellValue;
-                   #else
-                   Vec4f CellValue;
-                   #endif
-                   CellValue.load(&cell.get_data(n,popID)[WID*j+WID*WID*k]);
+                   Realf* CellValue = &cell.get_data(n,popID)[WID*j+WID*WID*k];
 
                    for (uint i = 0; i<WID; i++) {
                        fmu   [Vindex[i]][muindex[i]] += 2.0 * M_PI * Vmu[i]*Vmu[i] * CellValue[i];
@@ -282,8 +277,22 @@ void velocitySpaceDiffusion(
 
                    Vec4d Vmu = dVbins * (to_double(Vindex)+0.5);
 
-                   for (uint i = 0; i < WID; i++) { 
+                   //Realf* CellValue = &cell.get_data(n,popID)[WID*j+WID*WID*k];
+                   //int Vindex;
+                   //int muindex;   
+                   //Realf Vmu;
+                   //Realf NewCellValue;
+                   //Realf dfdt;
+
+                   for (uint i = 0; i < WID; i++) {
+                       //Vindex       = static_cast<int>(floor((normV[i] - Vmin) / dVbins));
+                       //muindex      = static_cast<int>(floor((mu[i]+1.0) / dmubins));
+                       //Vmu          = dVbins * (Vindex+0.5);               
                        dfdt[i] = dfdt_mu[Vindex[i]][muindex[i]] / (2.0 * M_PI * Vmu[i]*Vmu[i]);
+                       //dfdt         = dfdt_mu[Vindex][muindex] / (2.0 * M_PI * Vmu*Vmu);
+                       //NewCellValue = CellValue[i] + dfdt * Ddt;
+                       //if (NewCellValue < 0.0) {NewCellValue = 0.0;}
+                       //cell.get_data(n,popID)[i+WID*j+WID*WID*k] = NewCellValue;
                    }
 
                    //Update cell
