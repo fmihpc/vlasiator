@@ -28,7 +28,7 @@ CC_BRAND = intel
 CC_BRAND_VERSION = 19.1.0
 # note: std was not updated to c++17
 CXXFLAGS += -traceback -g -O3 -qopenmp -std=c++14 -W -Wall -Wno-unused -march=core-avx2 -qopt-zmm-usage=high
-testpackage: CXXFLAGS = -g -traceback -O2 -qopenmp -std=c++14 -W -Wno-unused -march=core-avx2
+testpackage: CXXFLAGS = -g -traceback -O2 -qopenmp -std=c++14 -W -Wno-unused -march=core-avx2 -DIONOSPHERE_SORTED_SUMS
 not_parallel_tools: CXXFLAGS += -march=native -mno-avx2 -mavx 
 not_parallel_tools: CC_BRAND_VERSION = 4.9.2-noavx2
 
