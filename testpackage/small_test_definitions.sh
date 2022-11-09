@@ -18,7 +18,7 @@ run_dir="run"
 test_dir="tests"
 
 # choose tests to run
-run_tests=( 1 2 3 4 5 6 7 8 9 10 11 12 13 14 17 18 19)
+run_tests=( 1 2 3 4 5 6 7 8 9 10 11 12 13 14 20 17 18 19)
 
 # acceleration test
 test_name[1]="acctest_2_maxw_500k_100k_20kms_10deg"
@@ -153,3 +153,10 @@ comparison_vlsv[19]="bulk.0000001.vlsv"
 comparison_phiprof[19]="phiprof_0.txt"
 variable_names[19]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e ig_upmappedarea ig_fac ig_rhon ig_potential"
 variable_components[19]="0 0 1 2 0 1 2 0 1 2 0 0 0 0"
+
+# Flowthrough with timevarying inflow
+test_name[20]="Flowthrough_1D_timevarying"
+comparison_vlsv[20]="bulk.0000001.vlsv"
+comparison_phiprof[20]="phiprof_0.txt"
+variable_names[20]="proton/vg_rho proton/vg_v proton/vg_v proton/vg_v fg_b fg_b fg_b fg_e fg_e fg_e"
+variable_components[20]="0 0 1 2 0 1 2 0 1 2 0 0"
