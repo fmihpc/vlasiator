@@ -150,7 +150,6 @@ void SysBoundary::addSysBoundary(SBC::SysBoundaryCondition* bc, Project& project
 void SysBoundary::initSysBoundaries(Project& project, creal& t) {
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-   bool success = true;
    vector<string>::const_iterator it;
 
    if (sysBoundaryCondList.size() == 0) {
@@ -351,7 +350,6 @@ bool belongsToLayer(const int layer, const int x, const int y, const int z,
  */
 void SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
                                 FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid) {
-   bool success = true;
    const vector<CellID>& cells = getLocalCells();
    auto localSize = technicalGrid.getLocalSize().data();
 

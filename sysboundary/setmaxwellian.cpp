@@ -204,7 +204,7 @@ namespace SBC {
     */
    void Maxwellian::generateTemplateCell(spatial_cell::SpatialCell& templateCell, Real (&B)[3], int inputDataIndex,
                                          creal t) {
-      Real rho, T, Vx, Vy, Vz, Bx, By, Bz, buffer[8];
+      Real rho, T, Vx, Vy, Vz, Bx = 0, By = 0, Bz = 0, buffer[8];
 
       templateCell.sysBoundaryFlag = this->getIndex();
       templateCell.sysBoundaryLayer = 1;
