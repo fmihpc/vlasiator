@@ -31,7 +31,7 @@ CC_BRAND = gcc
 CC_BRAND_VERSION = 6.2.0
 CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -fabi-version=0 -mavx2
 #CXXFLAGS += -ggdb -O0 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -fabi-version=0 -mavx2
-testpackage: CXXFLAGS = -g -ggdb -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0  -mno-avx -mno-fma -fno-unsafe-math-optimizations
+testpackage: CXXFLAGS = -g -ggdb -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0  -mno-avx -mno-fma -fno-unsafe-math-optimizations -DIONOSPHERE_SORTED_SUMS
 
 MATHFLAGS = -ffast-math
 testpackage: MATHFLAGS =  -fno-unsafe-math-optimizations

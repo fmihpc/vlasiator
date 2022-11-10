@@ -1723,7 +1723,7 @@ namespace DRO {
    bool VariableEnergyDensity::setSpatialCell(const SpatialCell* cell) {
       return true;
    }
-   
+
    bool VariableEnergyDensity::writeParameters(vlsv::Writer& vlsvWriter) {
       // Output solar wind energy in eV
       Real swe = solarwindenergy/physicalconstants::CHARGE;
@@ -1735,6 +1735,17 @@ namespace DRO {
       if( vlsvWriter.writeParameter(popName+"_EnergyDensityELimit1", &e1l) == false ) { return false; }
       if( vlsvWriter.writeParameter(popName+"_EnergyDensityELimit2", &e2l) == false ) { return false; }
       return true;
+   }
+
+   bool JPerBModifier::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = 1; // This is not components, but rather total energy density, density over E1, and density over E2
+      return true;
+   }
+   
+   bool JPerBModifier::writeParameters(vlsv::Writer& vlsvWriter) {
+      return vlsvWriter.writeParameter("j_per_b_modifier", &P::JPerBModifier);
    }
 
    // Heat flux density vector
