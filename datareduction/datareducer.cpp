@@ -2658,7 +2658,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 
                      return retval;
                      }));
-         outputReducer->addMetadata(outputReducer->size()-1, "V", "$\\mathrm{V}$", "$\\phi_I$", "1.0");
+         outputReducer->addMetadata(outputReducer->size()-1, "T", "$\\mathrm{T}$", "$B$", "1.0");
          continue;
       }
 
