@@ -393,7 +393,6 @@ enum ionosphereParameters {
   PRECIP,   /*!< Precipitation */
   RHON,     /*!< Downmapped magnetospheric plasma number density */
   TEMPERATURE, /*!< Downmapped electron temperature */
-  POYNTINGFLUX, /*!< Downwards poynting flux from the magnetosphere into the ionosphere */
   NODE_BX,NODE_BY,NODE_BZ, /*!< Magnetic field at the node */
   UPMAPPED_BX,UPMAPPED_BY,UPMAPPED_BZ, /*!< Magnetic field at the upper and of the mapping fieldline */
   SOLUTION, /*!< Currently considered solution potential */

@@ -2769,21 +2769,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1, "K", "$\\mathrm{K}$", "$T_e$", "1.0");
          continue;
       }
-      if(lowercase == "ig_poyntingflux") {
-         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_poyntingflux", [](
-                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
-
-                     std::vector<Real> retval(grid.nodes.size());
-
-                     for(uint i=0; i<grid.nodes.size(); i++) {
-                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::POYNTINGFLUX];
-                     }
-
-                     return retval;
-                     }));
-         outputReducer->addMetadata(outputReducer->size()-1, "W/m^2", "$\\mathrm{W/m^2}$", "$S$", "1.0");
-         continue;
-      }
       if(lowercase == "ig_deltaphi") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_deltaphi", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
