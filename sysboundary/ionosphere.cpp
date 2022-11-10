@@ -817,6 +817,15 @@ namespace SBC {
       phiprof::stop("ionosphere-readAtmosphericModelFile");
    }
 
+   /*!< Store the value of the magnetic field at the node.*/
+   void SphericalTriGrid::storeNodeB() {
+      for(int n=0; n<nodes.size(); n++) {
+         nodes[n].parameters[NODE_BX] = /*SBC::ionosphereGrid.*/dipoleField(nodes[n].x[0],nodes[n].x[1],nodes[n].x[2],X,0,X) + /*SBC::ionosphereGrid.*/BGB[0];
+         nodes[n].parameters[NODE_BY] = /*SBC::ionosphereGrid.*/dipoleField(nodes[n].x[0],nodes[n].x[1],nodes[n].x[2],Y,0,Y) + /*SBC::ionosphereGrid.*/BGB[1];
+         nodes[n].parameters[NODE_BZ] = /*SBC::ionosphereGrid.*/dipoleField(nodes[n].x[0],nodes[n].x[1],nodes[n].x[2],Z,0,Z) + /*SBC::ionosphereGrid.*/BGB[2];
+      }
+   }
+
    /* Look up the free electron production rate in the ionosphere, given the atmospheric height index,
     * particle energy after the ionospheric potential drop and inflowing distribution temperature */
    Real SphericalTriGrid::lookupProductionValue(int heightindex, Real energy_keV, Real temperature_keV) {
@@ -1751,7 +1760,6 @@ namespace SBC {
       std::vector<double> FACinput(nodes.size());
       std::vector<double> rhoInput(nodes.size());
       std::vector<double> temperatureInput(nodes.size());
-      std::vector<double> poyntingInput(nodes.size());
 
       // Map all coupled nodes down into it
       // Tasks that don't have anything to couple to can skip this step.
@@ -1759,46 +1767,10 @@ namespace SBC {
       #pragma omp parallel for
          for(uint n=0; n<nodes.size(); n++) {
 
-            Real J = 0;
-            Real area = 0;
-            Real upmappedArea = 0;
+            Real nodeAreaGeometric = 0;
             std::array<int,3> fsc;
 
-            // Iterate through the elements touching that node
-            for(uint e=0; e<nodes[n].numTouchingElements; e++) {
-               const Element& el= elements[nodes[n].touchingElements[e]];
-
-               // This element has 3 corner nodes
-               // Get the B-values at the upmapped coordinates
-               std::array< std::array< Real, 3>, 3> B = {0};
-               for(int c=0; c <3 ;c++) {
-
-                  const Node& corner = nodes[el.corners[c]];
-
-                  B[c][0] = corner.parameters[ionosphereParameters::UPMAPPED_BX];
-                  B[c][1] = corner.parameters[ionosphereParameters::UPMAPPED_BY];
-                  B[c][2] = corner.parameters[ionosphereParameters::UPMAPPED_BZ];
-               }
-
-               // Also sum up touching elements' areas and upmapped areas to compress
-               // density and temperature with them
-               // TODO: Precalculate this?
-               area += elementArea(nodes[n].touchingElements[e]);
-
-               std::array<Real, 3> areaVector = mappedElementArea(nodes[n].touchingElements[e]);
-               std::array<Real, 3> avgB = {(B[0][0] + B[1][0] + B[2][0])/3.,
-                  (B[0][1] + B[1][1] + B[2][1]) / 3.,
-                  (B[0][2] + B[1][2] + B[2][2]) / 3.};
-               upmappedArea += fabs(areaVector[0] * avgB[0] + areaVector[1]*avgB[1] + areaVector[2]*avgB[2]) /
-                  sqrt(avgB[0]*avgB[0] + avgB[1]*avgB[1] + avgB[2]*avgB[2]);
-            }
-
-            // Divide by 3, as every element will be counted from each of its
-            // corners.  Prevent areas from being multiply-counted
-            area /= 3.;
-            upmappedArea /= 3.;
-
-            //// Map down FAC based on magnetosphere rotB
+            // Map down FAC based on magnetosphere rotB
             if(nodes[n].xMapped[0] == 0. && nodes[n].xMapped[1] == 0. && nodes[n].xMapped[2] == 0.) {
                // Skip cells that couple nowhere
                continue;
@@ -1810,6 +1782,18 @@ namespace SBC {
                continue;
             }
 
+            // Iterate through the elements touching that node
+            for(uint e=0; e<nodes[n].numTouchingElements; e++) {
+               // Also sum up touching elements' areas and upmapped areas to compress
+               // density and temperature with them
+               // TODO: Precalculate this?
+               nodeAreaGeometric += elementArea(nodes[n].touchingElements[e]);
+            }
+
+            // Divide by 3, as every element will be counted from each of its
+            // corners.  Prevent areas from being multiply-counted
+            nodeAreaGeometric /= 3.;
+
             // Calc curlB, note division by DX one line down
             const std::array<Real, 3> curlB = interpolateCurlB(
                perBGrid,
@@ -1820,14 +1804,16 @@ namespace SBC {
                nodes[n].xMapped
             );
 
-            // Dot with normalized B, scale by area
-            FACinput[n] = upmappedArea * (nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]*curlB[0] + nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]*curlB[1] + nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]*curlB[2])
-               / (
-                  sqrt(
-                     nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]
-                     + nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]
-                     + nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]
-               ) * physicalconstants::MU_0 * technicalGrid.DX
+            // Dot curl(B) with normalized B, scale by ratio of B(ionosphere)/B(upmapped), multiply by geometric area around ionosphere node to obtain current from density
+            FACinput[n] = nodeAreaGeometric * (nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]*curlB[0] + nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]*curlB[1] + nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]*curlB[2])
+               * sqrt((nodes[n].parameters[ionosphereParameters::NODE_BX]*nodes[n].parameters[ionosphereParameters::NODE_BX]
+                  + nodes[n].parameters[ionosphereParameters::NODE_BY]*nodes[n].parameters[ionosphereParameters::NODE_BY]
+                  + nodes[n].parameters[ionosphereParameters::NODE_BZ]*nodes[n].parameters[ionosphereParameters::NODE_BZ])
+               )
+               / ((nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]
+                  + nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]
+                  + nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ])
+               * physicalconstants::MU_0 * technicalGrid.DX
             );
 
             // By definition, a downwards current into the ionosphere has a positive FAC value,
@@ -1868,23 +1854,13 @@ namespace SBC {
                      }
 
 
-                     // Map density, temperature and Poynting flux down
+                     // Map density, temperature down
                      Real thisCellRho = momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::RHOQ) / physicalconstants::CHARGE;
                      rhoInput[n] += coupling * thisCellRho;
                      temperatureInput[n] += coupling * 1./3. * (
-                          momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_11) +
-                          momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_22) +
-                          momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_33)) / (thisCellRho * physicalconstants::K_B * ion_electron_T_ratio);
-                     Vec3d E(volGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::EXVOL),
-                           volGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::EYVOL),
-                           volGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::EZVOL));
-                     Vec3d B(nodes[n].parameters[ionosphereParameters::UPMAPPED_BX],
-                              nodes[n].parameters[ionosphereParameters::UPMAPPED_BY],
-                              nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]);
-                     Vec3d dipoleB(this->dipoleField(nodes[n].xMapped[0],nodes[n].xMapped[1],nodes[n].xMapped[2],X,0,X),
-                           this->dipoleField(nodes[n].xMapped[0],nodes[n].xMapped[1],nodes[n].xMapped[2],Y,0,Y),
-                           this->dipoleField(nodes[n].xMapped[0],nodes[n].xMapped[1],nodes[n].xMapped[2],Z,0,Z));
-                     poyntingInput[n] += coupling / physicalconstants::MU_0 * dot_product(cross_product(E,B),dipoleB) / sqrt(dot_product(dipoleB,dipoleB)) * upmappedArea / area;
+                        momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_11) +
+                        momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_22) +
+                        momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_33)) / (thisCellRho * physicalconstants::K_B * ion_electron_T_ratio);
                   }
                }
             }
@@ -1894,11 +1870,7 @@ namespace SBC {
             if(couplingSum > 0) {
                rhoInput[n] /= couplingSum;
                temperatureInput[n] /= couplingSum;
-               poyntingInput[n] /= couplingSum;
             }
-
-            // Scale density by area ratio
-            //rhoInput[n] *= upmappedArea / area;
          }
       }
 
@@ -1906,11 +1878,9 @@ namespace SBC {
       std::vector<double> FACsum(nodes.size());
       std::vector<double> rhoSum(nodes.size());
       std::vector<double> temperatureSum(nodes.size());
-      std::vector<double> poyntingSum(nodes.size());
       MPI_Allreduce(&FACinput[0], &FACsum[0], nodes.size(), MPI_DOUBLE, MPI_SUM, communicator);
       MPI_Allreduce(&rhoInput[0], &rhoSum[0], nodes.size(), MPI_DOUBLE, MPI_SUM, communicator);
       MPI_Allreduce(&temperatureInput[0], &temperatureSum[0], nodes.size(), MPI_DOUBLE, MPI_SUM, communicator); // TODO: Does it make sense to SUM the temperatures?
-      MPI_Allreduce(&poyntingInput[0], &poyntingSum[0], nodes.size(), MPI_DOUBLE, MPI_SUM, communicator);
 
       for(uint n=0; n<nodes.size(); n++) {
 
@@ -1930,7 +1900,6 @@ namespace SBC {
 
             nodes[n].parameters[ionosphereParameters::RHON] = Ionosphere::unmappedNodeRho * Chi0;
             nodes[n].parameters[ionosphereParameters::TEMPERATURE] = Ionosphere::unmappedNodeTe;
-            nodes[n].parameters[ionosphereParameters::POYNTINGFLUX] = 0;
          } else {
             // Store as the node's parameter values.
             if(Ionosphere::couplingTimescale == 0) {
@@ -1938,7 +1907,6 @@ namespace SBC {
                nodes[n].parameters[ionosphereParameters::SOURCE] = FACsum[n];
                nodes[n].parameters[ionosphereParameters::RHON] = rhoSum[n] * Chi0;
                nodes[n].parameters[ionosphereParameters::TEMPERATURE] = temperatureSum[n];
-               nodes[n].parameters[ionosphereParameters::POYNTINGFLUX] = poyntingSum[n];
             } else {
 
                // Slow coupling with a given timescale.

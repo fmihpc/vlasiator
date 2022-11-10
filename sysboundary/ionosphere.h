@@ -183,13 +183,19 @@ namespace SBC {
       bool isCouplingInwards = false;     // True for any rank that actually couples fsgrid information into the ionosphere
       bool isCouplingOutwards = true;     // True for any rank that actually couples ionosphere potential information out to the vlasov grid
       FieldFunction dipoleField;          // Simulation background field model to trace connections with
+      std::array<Real, 3> BGB; /*!< Uniform background field */
+
       std::map< std::array<Real, 3>, std::array<
          std::pair<int, Real>, 3> > vlasovGridCoupling; // Grid coupling information, caching how vlasovGrid coordinate couple to ionosphere data
 
       void setDipoleField(const FieldFunction& dipole) {
          dipoleField = dipole;
       };
+      void setConstantBackgroundField(const std::array<Real, 3> B) {
+         BGB = B;
+      }
       void readAtmosphericModelFile(const char* filename);
+      void storeNodeB();
       void offset_FAC();                  // Offset field aligned currents to get overall zero current
       void normalizeRadius(Node& n, Real R); // Scale all coordinates onto sphere with radius R
       void updateConnectivity();          // Re-link elements and nodes
