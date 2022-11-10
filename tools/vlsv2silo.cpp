@@ -331,7 +331,7 @@ bool convertMeshVariable(T & vlsvReader,const string& meshName,const string& var
    if (vlsvReader.readArray("VARIABLE", xmlAttributes, startingIndex, arraySize, buffer ) == false) success = false;
    if (success == false) {
       cerr << "FAILED TO READ VARIABLE AT " << __FILE__ << " " << __LINE__ << endl;
-      delete buffer;
+      delete[] buffer;
       return success;
    }
    

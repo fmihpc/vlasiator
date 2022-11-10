@@ -16,14 +16,20 @@
 # Oneliner for command line:
 # module purge ; module load gnu9/9.4.0 ; module load openmpi4/4.1.1 ; module load pmix/3.1.4
 #
-# NOTE in the job script, you have to load
-#
-# module purge
-# module load GCC/10.2.0
-# module load OpenMPI/4.0.5-GCC-10.2.0
-#
-# otherwise the VLSV output is broken.
-#
+#################################################################################																				
+# Important:																	#			
+# 																				#
+# There is a bug in OpenMPI 4 which breaks the VLSV output files. 				#
+# 																				#
+# To fix this you have to have environment variable OMPI_MCA_io set to ^ompio   #																
+# before running Vlasiator. Otherwise the VLSV output is broken.				#																
+#																				#
+# For copy paste: 		export OMPI_MCA_io=^ompio								#												
+#																				#
+# There might be some libefa errors but they are benign.						#														
+# (Benign = pleasant and kind; not harmful or severe. dictionary.cambridge.org)	#																			
+#################################################################################
+
 
 CMP = mpicxx
 LNK = mpicxx
@@ -62,8 +68,9 @@ FLAGS =
 #GNU flags:
 CC_BRAND = gcc
 CC_BRAND_VERSION = 9.4.0
-CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -mavx -march=znver2 #-flto
-testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -mavx -march=znver2
+CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++17 -mavx -march=znver2 #-flto
+testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -mavx -march=znver2 -DIONOSPHERE_SORTED_SUMS
+CXXFLAGS += -Wall -Wextra -Wno-unused
 
 MATHFLAGS = -ffast-math
 LDFLAGS = -lrt -lgfortran -std=c++17 -lgomp
@@ -94,30 +101,27 @@ LIBRARY_PREFIX = /proj/group/spacephysics/libraries
 
 #compiled libraries mostly in modules
 LIB_PROFILE = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/phiprof/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/phiprof/lib
-INC_PROFILE = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/phiprof/include
+INC_PROFILE = -I $(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/phiprof/include
 
 LIB_VLSV = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/vlsv
 INC_VLSV = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/vlsv
 
 LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/jemalloc/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/jemalloc/lib
-INC_JEMALLOC = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/jemalloc/include
+INC_JEMALLOC = -isystem $(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/jemalloc/include
 
 LIB_BOOST = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/boost/lib -lboost_program_options -Wl,-rpath=$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/boost/lib
-INC_BOOST = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/boost/include
+INC_BOOST = -isystem $(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/boost/include
 
 LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/zoltan/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/zoltan/lib
-INC_ZOLTAN = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/zoltan/include
+INC_ZOLTAN = -isystem $(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/zoltan/include
 
 LIB_PAPI = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/papi/lib -lpapi -Wl,-rpath=$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/papi/lib
-INC_PAPI = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/papi/include
+INC_PAPI = -isystem $(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/papi/include
 
 
 #header libraries
-INC_EIGEN = -I$(LIBRARY_PREFIX)/ -I$(LIBRARY_PREFIX)/Eigen/
+INC_EIGEN = -isystem $(LIBRARY_PREFIX)/ -isystem $(LIBRARY_PREFIX)/Eigen/
 INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid/
 INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg/
-INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass/
-
-
-
+INC_VECTORCLASS = -isystem $(LIBRARY_PREFIX)/vectorclass/
 

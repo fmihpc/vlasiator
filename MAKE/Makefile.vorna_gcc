@@ -34,8 +34,9 @@ FLAGS =
 #GNU flags:
 CC_BRAND = gcc
 CC_BRAND_VERSION = 10.2.0
-CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -mavx
-testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -mavx
+CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -mavx
+testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -mavx -DIONOSPHERE_SORTED_SUMS
+CXXFLAGS += -Wall -Wextra -Wno-unused
 
 MATHFLAGS = -ffast-math
 LDFLAGS = -lrt -lgfortran -std=c++17
@@ -70,13 +71,13 @@ LIBRARY_PREFIX = /proj/group/spacephysics/libraries
 
 
 #compiled libraries
-INC_BOOST = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/vorna/boost/include
+INC_BOOST = -isystem $(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/vorna/boost/include
 LIB_BOOST = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/vorna/boost/lib -lboost_program_options -Wl,-rpath=$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/vorna/boost/lib
 
-INC_ZOLTAN = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/vorna/zoltan/include
+INC_ZOLTAN = -isystem $(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/vorna/zoltan/include
 LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/vorna/zoltan/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/vorna/zoltan/lib
 
-INC_JEMALLOC = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/vorna/jemalloc/include
+INC_JEMALLOC = -isystem $(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/vorna/jemalloc/include
 LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/vorna/jemalloc/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/vorna/jemalloc/lib
 
 INC_VLSV = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/vorna/vlsv
@@ -86,13 +87,13 @@ LIB_PROFILE = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$
 INC_PROFILE = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/vorna/phiprof/include 
 
 LIB_PAPI = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/vorna/papi/lib -lpapi -Wl,-rpath=$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/vorna/papi/lib
-INC_PAPI = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/vorna/papi/include
+INC_PAPI = -isystem $(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/vorna/papi/include
 
 #header libraries
 INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid/
 INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg/
-INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass/
-INC_EIGEN = -I$(LIBRARY_PREFIX)/ -I$(LIBRARY_PREFIX)/Eigen
+INC_VECTORCLASS = -isystem $(LIBRARY_PREFIX)/vectorclass/
+INC_EIGEN = -isystem $(LIBRARY_PREFIX)/ -I$(LIBRARY_PREFIX)/Eigen
 
 
 

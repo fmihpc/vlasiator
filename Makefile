@@ -28,13 +28,15 @@ FIELDSOLVER ?= londrillo_delzanna
 # COMPFLAGS += -DFS_1ST_ORDER_SPACE
 # COMPFLAGS += -DFS_1ST_ORDER_TIME
 
-
+#Skip deprecated C++ bindings from OpenMPI
+COMPFLAGS += -D OMPI_SKIP_MPICXX
 
 #is profiling on?
 COMPFLAGS += -DPROFILE
 
 #Add -DNDEBUG to turn debugging off. If debugging is enabled performance will degrade significantly
 COMPFLAGS += -DNDEBUG
+# CXXFLAGS += -DIONOSPHERE_SORTED_SUMS
 # CXXFLAGS += -DDEBUG_SOLVERS
 # CXXFLAGS += -DDEBUG_IONOSPHERE
 
@@ -563,5 +565,16 @@ fluxfunction.o:  tools/fluxfunction.cpp
 
 fluxfunction: fluxfunction.o ${OBJS_VLSVREADERINTERFACE} particles/readfields.o particles/particleparameters.o readparameters.o version.o particles/physconst.o particles/distribution.o
 	${LNK} -o $@ fluxfunction.o particles/readfields.o particles/particleparameters.o readparameters.o version.o particles/physconst.o particles/distribution.o ${OBJS_VLSVREADERINTERFACE} ${LIBS} ${LDFLAGS}
+
+# Doesn't seem to work correctly
+INCLUDES =
+INCLUDES += ${INC_EIGEN}
+INCLUDES += ${INC_FSGRID}
+INCLUDES += ${INC_DCCRG}
+INCLUDES += ${INC_VECTOCLASS}
+
+check:
+	mkdir -p cppcheck
+	cppcheck ${COMPFLAGS} --cppcheck-build-dir=cppcheck --template=gcc --enable=all --inconclusive .
 
 # DO NOT DELETE

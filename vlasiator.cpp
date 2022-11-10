@@ -53,6 +53,7 @@
 
 #include "object_wrapper.h"
 #include "fieldsolver/gridGlue.hpp"
+#include "fieldsolver/derivatives.hpp"
 
 #ifdef CATCH_FPE
 #include <fenv.h>
@@ -92,14 +93,13 @@ void addTimedBarrier(string name){
    phiprof::stop(bt);
 }
 
-bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 			FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, Real &newDt, bool &isChanged) {
-   
-   phiprof::start("compute-timestep");
-   //compute maximum time-step, this cannot be done at the first
-   //step as the solvers compute the limits for each cell
 
-   isChanged=false;
+   phiprof::start("compute-timestep");
+   // Compute maximum time step. This cannot be done at the first step as the solvers compute the limits for each cell.
+
+   isChanged = false;
 
    const vector<CellID>& cells = getLocalCells();
    /* Arrays for storing local (per process) and global max dt
@@ -109,156 +109,129 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    */
    Real dtMaxLocal[3];
    Real dtMaxGlobal[3];
-   
-   dtMaxLocal[0]=numeric_limits<Real>::max();
-   dtMaxLocal[1]=numeric_limits<Real>::max();
-   dtMaxLocal[2]=numeric_limits<Real>::max();
 
-   for (vector<CellID>::const_iterator cell_id=cells.begin(); cell_id!=cells.end(); ++cell_id) {
+   dtMaxLocal[0] = numeric_limits<Real>::max();
+   dtMaxLocal[1] = numeric_limits<Real>::max();
+   dtMaxLocal[2] = numeric_limits<Real>::max();
+
+   for (vector<CellID>::const_iterator cell_id = cells.begin(); cell_id != cells.end(); ++cell_id) {
       SpatialCell* cell = mpiGrid[*cell_id];
       const Real dx = cell->parameters[CellParams::DX];
       const Real dy = cell->parameters[CellParams::DY];
       const Real dz = cell->parameters[CellParams::DZ];
-      
+
       cell->parameters[CellParams::MAXRDT] = numeric_limits<Real>::max();
-      
-      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         cell->set_max_r_dt(popID,numeric_limits<Real>::max());
+
+      for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
+         cell->set_max_r_dt(popID, numeric_limits<Real>::max());
          vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
          const Real* blockParams = blockContainer.getParameters();
-         const Real EPS = numeric_limits<Real>::min()*1000;
-         for (vmesh::LocalID blockLID=0; blockLID<blockContainer.size(); ++blockLID) {
-            for (unsigned int i=0; i<WID;i+=WID-1) {
-                const Real Vx 
-                  = blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::VXCRD] 
-                  + (i+HALF)*blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVX]
-                  + EPS;
-                const Real Vy 
-                  = blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::VYCRD] 
-                  + (i+HALF)*blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVY]
-                  + EPS;
-                const Real Vz 
-                  = blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::VZCRD]
-                  + (i+HALF)*blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::DVZ]
-                  + EPS;
+         const Real EPS = numeric_limits<Real>::min() * 1000;
+         for (vmesh::LocalID blockLID = 0; blockLID < blockContainer.size(); ++blockLID) {
+            for (unsigned int i = 0; i < WID; i += WID - 1) {
+               const Real Vx =
+                   blockParams[blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] +
+                   (i + HALF) * blockParams[blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX] + EPS;
+               const Real Vy =
+                   blockParams[blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] +
+                   (i + HALF) * blockParams[blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] + EPS;
+               const Real Vz =
+                   blockParams[blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] +
+                   (i + HALF) * blockParams[blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ] + EPS;
 
-                const Real dt_max_cell = min(dx/fabs(Vx),min(dy/fabs(Vy),dz/fabs(Vz)));
-                cell->parameters[CellParams::MAXRDT] = min(dt_max_cell,cell->parameters[CellParams::MAXRDT]);
-                cell->set_max_r_dt(popID,min(dt_max_cell,cell->get_max_r_dt(popID)));
-             }
+               const Real dt_max_cell = min({dx / fabs(Vx), dy / fabs(Vy), dz / fabs(Vz)});
+               cell->set_max_r_dt(popID, min(dt_max_cell, cell->get_max_r_dt(popID)));
+            }
          }
-      }
-      
-      
-      if ( cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
-           (cell->sysBoundaryLayer == 1 && cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY )) {
-         //spatial fluxes computed also for boundary cells
-         dtMaxLocal[0]=min(dtMaxLocal[0], cell->parameters[CellParams::MAXRDT]);
+         cell->parameters[CellParams::MAXRDT] = min(cell->get_max_r_dt(popID), cell->parameters[CellParams::MAXRDT]);
       }
 
-      if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY && cell->parameters[CellParams::MAXVDT] != 0) {
-         //Acceleration only done on non-boundary cells
-         dtMaxLocal[1]=min(dtMaxLocal[1], cell->parameters[CellParams::MAXVDT]);
+      if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
+          (cell->sysBoundaryLayer == 1 && cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)) {
+         // spatial fluxes computed also for boundary cells
+         dtMaxLocal[0] = min(dtMaxLocal[0], cell->parameters[CellParams::MAXRDT]);
+      }
+
+      if (cell->parameters[CellParams::MAXVDT] != 0 &&
+          (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
+           (P::vlasovAccelerateMaxwellianBoundaries && cell->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN))) {
+         // acceleration only done on non-boundary cells
+         dtMaxLocal[1] = min(dtMaxLocal[1], cell->parameters[CellParams::MAXVDT]);
       }
    }
-   
-   //compute max dt for fieldsolver
+
+   // compute max dt for fieldsolver
    const std::array<int, 3> gridDims(technicalGrid.getLocalSize());
-   for (int k=0; k<gridDims[2]; k++) {
-      for (int j=0; j<gridDims[1]; j++) {
-         for (int i=0; i<gridDims[0]; i++) {
-            fsgrids::technical* cell = technicalGrid.get(i,j,k);
-            if ( cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
-                (cell->sysBoundaryLayer == 1 && cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY )) {
-               dtMaxLocal[2]=min(dtMaxLocal[2], cell->maxFsDt);
+   for (int k = 0; k < gridDims[2]; k++) {
+      for (int j = 0; j < gridDims[1]; j++) {
+         for (int i = 0; i < gridDims[0]; i++) {
+            fsgrids::technical* cell = technicalGrid.get(i, j, k);
+            if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
+               (cell->sysBoundaryLayer == 1 && cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)) {
+               dtMaxLocal[2] = min(dtMaxLocal[2], cell->maxFsDt);
             }
          }
       }
    }
 
-
-   
    MPI_Allreduce(&(dtMaxLocal[0]), &(dtMaxGlobal[0]), 3, MPI_Type<Real>(), MPI_MIN, MPI_COMM_WORLD);
-   
-   //If any of the solvers are disabled there should be no limits in timespace from it
-   if (P::propagateVlasovTranslation == false)
-      dtMaxGlobal[0]=numeric_limits<Real>::max();
-   if (P::propagateVlasovAcceleration == false)
-      dtMaxGlobal[1]=numeric_limits<Real>::max();
-   if (P::propagateField == false)
-      dtMaxGlobal[2]=numeric_limits<Real>::max();
-   
-   creal meanVlasovCFL = 0.5*(P::vlasovSolverMaxCFL+ P::vlasovSolverMinCFL);
-   creal meanFieldsCFL = 0.5*(P::fieldSolverMaxCFL+ P::fieldSolverMinCFL);
+
+   // If any of the solvers are disabled there should be no limits in timespace from it
+   if (!P::propagateVlasovTranslation)
+      dtMaxGlobal[0] = numeric_limits<Real>::max();
+   if (!P::propagateVlasovAcceleration)
+      dtMaxGlobal[1] = numeric_limits<Real>::max();
+   if (!P::propagateField)
+      dtMaxGlobal[2] = numeric_limits<Real>::max();
+
+   creal meanVlasovCFL = 0.5 * (P::vlasovSolverMaxCFL + P::vlasovSolverMinCFL);
+   creal meanFieldsCFL = 0.5 * (P::fieldSolverMaxCFL + P::fieldSolverMinCFL);
    Real subcycleDt;
 
-   // cout << dtMaxGlobal[0];
-   // cout << " ";
-   // cout << dtMaxGlobal[1];
-   // cout << " ";
-   // cout << dtMaxGlobal[2];
-   // cout << " ";
-   // cout << P::vlasovSolverMaxCFL;
-   // cout << " ";
-   // cout << P::vlasovSolverMinCFL;
-   // cout << " ";
-   // cout << P::fieldSolverMaxCFL;
-   // cout << " ";
-   // cout << P::fieldSolverMinCFL;
-   // cout << endl;
-   
-   
-   //reduce dt if it is too high for any of the three propagators, or too low for all propagators
-   if(( P::dt > dtMaxGlobal[0] * P::vlasovSolverMaxCFL ||
+   // reduce/increase dt if it is too high for any of the three propagators or too low for all propagators
+   if ((P::dt > dtMaxGlobal[0] * P::vlasovSolverMaxCFL ||
         P::dt > dtMaxGlobal[1] * P::vlasovSolverMaxCFL * P::maxSlAccelerationSubcycles ||
-        P::dt > dtMaxGlobal[2] * P::fieldSolverMaxCFL * P::maxFieldSolverSubcycles ) ||
-      ( P::dt < dtMaxGlobal[0] * P::vlasovSolverMinCFL && 
+        P::dt > dtMaxGlobal[2] * P::fieldSolverMaxCFL * P::maxFieldSolverSubcycles) ||
+       (P::dt < dtMaxGlobal[0] * P::vlasovSolverMinCFL &&
         P::dt < dtMaxGlobal[1] * P::vlasovSolverMinCFL * P::maxSlAccelerationSubcycles &&
-        P::dt < dtMaxGlobal[2] * P::fieldSolverMinCFL * P::maxFieldSolverSubcycles )
-      ) {
+        P::dt < dtMaxGlobal[2] * P::fieldSolverMinCFL * P::maxFieldSolverSubcycles)) {
 
-      //new dt computed
-      isChanged=true;
+      // new dt computed
+      isChanged = true;
 
-      //set new timestep to the lowest one of all interval-midpoints
+      // set new timestep to the lowest one of all interval-midpoints
       const Real half = 0.5;
       newDt = meanVlasovCFL * dtMaxGlobal[0];
-      newDt = min(newDt,meanVlasovCFL * dtMaxGlobal[1] * P::maxSlAccelerationSubcycles);
-      newDt = min(newDt,meanFieldsCFL * dtMaxGlobal[2] * P::maxFieldSolverSubcycles);
-   
-      logFile <<"(TIMESTEP) New dt = " << newDt << " computed on step "<<  P::tstep <<" at " <<P::t << 
-         "s   Maximum possible dt (not including  vlasovsolver CFL "<< 
-         P::vlasovSolverMinCFL <<"-"<<P::vlasovSolverMaxCFL<<
-         " or fieldsolver CFL "<< 
-         P::fieldSolverMinCFL <<"-"<<P::fieldSolverMaxCFL<<
-         ") in {r, v, BE} was " <<
-         dtMaxGlobal[0] << " " <<
-         dtMaxGlobal[1] << " " <<
-         dtMaxGlobal[2] << " " <<
-         " Including subcycling { v, BE}  was " <<
-         dtMaxGlobal[1] * P::maxSlAccelerationSubcycles << " " <<
-         dtMaxGlobal[2] * P::maxFieldSolverSubcycles<< " " <<
-         endl << writeVerbose;
+      newDt = min(newDt, meanVlasovCFL * dtMaxGlobal[1] * P::maxSlAccelerationSubcycles);
+      newDt = min(newDt, meanFieldsCFL * dtMaxGlobal[2] * P::maxFieldSolverSubcycles);
 
-      if(P::dynamicTimestep == true) {
+      logFile << "(TIMESTEP) New dt = " << newDt << " computed on step " << P::tstep << " at " << P::t
+              << "s   Maximum possible dt (not including  vlasovsolver CFL " << P::vlasovSolverMinCFL << "-"
+              << P::vlasovSolverMaxCFL << " or fieldsolver CFL " << P::fieldSolverMinCFL << "-" << P::fieldSolverMaxCFL
+              << ") in {r, v, BE} was " << dtMaxGlobal[0] << " " << dtMaxGlobal[1] << " " << dtMaxGlobal[2] << " "
+              << " Including subcycling { v, BE}  was " << dtMaxGlobal[1] * P::maxSlAccelerationSubcycles << " "
+              << dtMaxGlobal[2] * P::maxFieldSolverSubcycles << " " << endl
+              << writeVerbose;
+
+      if (P::dynamicTimestep) {
          subcycleDt = newDt;
       } else {
-         logFile <<"(TIMESTEP) However, fixed timestep in config overrides dt = " << P::dt << endl << writeVerbose;
+         logFile << "(TIMESTEP) However, fixed timestep in config overrides dt = " << P::dt << endl << writeVerbose;
          subcycleDt = P::dt;
       }
    } else {
       subcycleDt = P::dt;
    }
-   
+
    // Subcycle if field solver dt < global dt (including CFL) (new or old dt hence the hassle with subcycleDt
-   if (meanFieldsCFL*dtMaxGlobal[2] < subcycleDt && P::propagateField) {
-      P::fieldSolverSubcycles = min(convert<uint>(ceil(subcycleDt / (meanFieldsCFL*dtMaxGlobal[2]))), P::maxFieldSolverSubcycles);
+   if (meanFieldsCFL * dtMaxGlobal[2] < subcycleDt && P::propagateField) {
+      P::fieldSolverSubcycles =
+          min(convert<uint>(ceil(subcycleDt / (meanFieldsCFL * dtMaxGlobal[2]))), P::maxFieldSolverSubcycles);
    } else {
       P::fieldSolverSubcycles = 1;
    }
-   
+
    phiprof::stop("compute-timestep");
-   return true;
 }
 
 ObjectWrapper& getObjectWrapper() {
@@ -451,10 +424,14 @@ int main(int argn,char* args[]) {
       = {P::xmin, P::ymin, P::zmin};
 
    // Checking that spatial cells are cubic, otherwise field solver is incorrect (cf. derivatives in E, Hall term)
-   if((abs((technicalGrid.DX-technicalGrid.DY)/technicalGrid.DX) > 0.001) ||
-      (abs((technicalGrid.DX-technicalGrid.DZ)/technicalGrid.DX) > 0.001) ||
-      (abs((technicalGrid.DY-technicalGrid.DZ)/technicalGrid.DY) > 0.001)) {
-     std::cerr << "WARNING: Your spatial cells seem not to be cubic. However the field solver is assuming them to be. Use at your own risk and responsibility!" << std::endl;
+   if ((abs((technicalGrid.DX - technicalGrid.DY) / technicalGrid.DX) > 0.001) ||
+       (abs((technicalGrid.DX - technicalGrid.DZ) / technicalGrid.DX) > 0.001) ||
+       (abs((technicalGrid.DY - technicalGrid.DZ) / technicalGrid.DY) > 0.001)) {
+      if (myRank == MASTER_RANK) {
+         std::cerr << "WARNING: Your spatial cells seem not to be cubic. However the field solver is assuming them to "
+                      "be. Use at your own risk and responsibility!"
+                   << std::endl;
+      }
    }
    phiprof::stop("Init fieldsolver grids");
 
@@ -678,7 +655,7 @@ int main(int argn,char* args[]) {
 
    unsigned int wallTimeRestartCounter=1;
 
-   int doNow[2]; // 0: writeRestartNow, 1: balanceLoadNow ; declared outside main loop
+   int doNow[2] = {0}; // 0: writeRestartNow, 1: balanceLoadNow ; declared outside main loop
    int writeRestartNow; // declared outside main loop
    bool overrideRebalanceNow = false; // declared outside main loop
    
@@ -757,6 +734,9 @@ int main(int argn,char* args[]) {
                if (index2>P::systemWrites[i]) P::systemWrites[i]=index2;
                continue;
             }
+
+            // Calculate these so refinement parameters can be tuned based on the vlsv
+            calculateScaledDeltasSimple(mpiGrid);
             
             FieldTracing::reduceData(technicalGrid, perBGrid, dPerBGrid, volGrid, BgBGrid, mpiGrid, SBC::ionosphereGrid.nodes, sysBoundaries); /*!< Call the reductions (e.g. field tracing) */
             
@@ -873,6 +853,18 @@ int main(int argn,char* args[]) {
       //TODO - add LB measure and do LB if it exceeds threshold
       if(((P::tstep % P::rebalanceInterval == 0 && P::tstep > P::tstep_min) || overrideRebalanceNow)) {
          logFile << "(LB): Start load balance, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
+         // Refinement includes LB
+         if (!dtIsChanged && P::adaptRefinement && P::tstep % (P::rebalanceInterval * P::refineMultiplier) == 0 && P::t > P::refineAfter) { 
+            logFile << "(AMR): Adapting refinement!"  << endl << writeVerbose;
+            if (!adaptRefinement(mpiGrid, technicalGrid, sysBoundaries, *project))
+               continue;   // Refinement failed and we're bailing out
+
+            // Calculate new dt limits since we might break CFL when refining
+            phiprof::start("compute-dt");
+            calculateSpatialTranslation(mpiGrid,0.0);
+            calculateAcceleration(mpiGrid,0.0);      
+            phiprof::stop("compute-dt");
+         }
          balanceLoad(mpiGrid, sysBoundaries);
          addTimedBarrier("barrier-end-load-balance");
          phiprof::start("Shrink_to_fit");

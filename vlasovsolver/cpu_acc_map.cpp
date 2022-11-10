@@ -130,9 +130,9 @@ bool map_1d(SpatialCell* spatial_cell,
    vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks(popID);
 
    //nothing to do if no blocks
-   if(vmesh.size() == 0 )
+   if(vmesh.size() == 0)
       return true;
-   
+
 
    // Velocity grid refinement level, has no effect but is 
    // needed in some vmesh::VelocityMesh function calls.
@@ -221,7 +221,7 @@ bool map_1d(SpatialCell* spatial_cell,
    bool isTargetBlock[MAX_BLOCKS_PER_DIM];
    bool isSourceBlock[MAX_BLOCKS_PER_DIM];
 
-   for( uint setIndex=0; setIndex< setColumnOffsets.size(); ++setIndex) {
+   for(uint setIndex=0; setIndex< setColumnOffsets.size(); ++setIndex) {
       uint8_t refLevel = 0;
       //init 
       for (uint blockK = 0; blockK < MAX_BLOCKS_PER_DIM; blockK++){
@@ -249,7 +249,7 @@ bool map_1d(SpatialCell* spatial_cell,
       swapBlockIndices(setFirstBlockIndices, dimension);
       /*compute the maximum starting point of the lagrangian (target) grid
         (base level) within the 4 corner cells in this
-        block. Needed for computig maximum extent of target column*/
+        block. Needed for computing maximum extent of target column*/
       
       Realv max_intersectionMin = intersection +
                                       (setFirstBlockIndices[0] * WID + 0) * intersection_di +
@@ -312,8 +312,8 @@ bool map_1d(SpatialCell* spatial_cell,
          const int firstBlock_gk = (int)((firstBlockMinV - max_intersectionMin)/intersection_dk);
          const int lastBlock_gk = (int)((lastBlockMaxV - min_intersectionMin)/intersection_dk);
 
-         int firstBlockIndexK = firstBlock_gk/WID;         
-         int lastBlockIndexK = lastBlock_gk/WID;
+         uint firstBlockIndexK = firstBlock_gk/WID;         
+         uint lastBlockIndexK = lastBlock_gk/WID;
          
          //now enforce mesh limits for target column blocks
          firstBlockIndexK = (firstBlockIndexK >= 0)            ? firstBlockIndexK : 0;
@@ -330,7 +330,7 @@ bool map_1d(SpatialCell* spatial_cell,
             message += " blocks away from the current velocity space walls for population ";
             message += getObjectWrapper().particleSpecies[popID].name;
             message += " at CellID ";
-            message += std::to_string(spatial_cell->parameters[CellParams::CELLID]);
+            message += std::to_string(static_cast<int>(spatial_cell->parameters[CellParams::CELLID]));
             message += ". Consider expanding velocity space for that population.";
             bailout(true, message, __FILE__, __LINE__);
          }
@@ -341,7 +341,7 @@ bool map_1d(SpatialCell* spatial_cell,
          }
          
          //store target blocks
-         for (int blockK = firstBlockIndexK; blockK <= lastBlockIndexK; blockK++){
+         for (uint blockK = firstBlockIndexK; blockK <= lastBlockIndexK; blockK++){
             isTargetBlock[blockK]=true;
          }
 
@@ -571,7 +571,10 @@ bool map_1d(SpatialCell* spatial_cell,
                   else{
                      // total value of integrand
                      const Vec target_density = target_density_r - target_density_l;                  
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunknown-pragmas"
 #pragma ivdep
+#pragma GCC diagnostic pop
 #pragma GCC ivdep                     
                      for (int target_i=0; target_i < VECL; ++target_i) {
                         // do the conversion from Realv to Realf here, faster than doing it in accumulation

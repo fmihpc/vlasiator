@@ -21,6 +21,7 @@
 #define DERIVATIVES_HPP
 
 #include <vector>
+#include <array>
 
 #include "../definitions.h"
 #include "../spatial_cell.hpp"
@@ -40,7 +41,6 @@ void calculateDerivativesSimple(
    cint& RKCase,
    const bool communicateMoments);
 
-
 void calculateBVOLDerivativesSimple(
    FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
    FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
@@ -54,5 +54,6 @@ void calculateCurvatureSimple(
    SysBoundary& sysBoundaries
 );
 
+void calculateScaledDeltasSimple(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 
 #endif
