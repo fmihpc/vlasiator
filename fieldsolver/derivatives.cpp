@@ -502,3 +502,185 @@ void calculateBVOLDerivativesSimple(
 
    phiprof::stop("Calculate volume derivatives",N_cells,"Spatial Cells");
 }
+
+/*! \brief Returns volumetric E of cell
+ *
+ */
+static std::array<Real, 3> getE(SpatialCell* cell)
+{
+   return std::array<Real, 3> { {cell->parameters[CellParams::EXVOL], cell->parameters[CellParams::EYVOL], cell->parameters[CellParams::EZVOL]} };
+}
+
+/*! \brief Returns perturbed volumetric B of cell
+ *
+ */
+static std::array<Real, 3> getPerB(SpatialCell* cell)
+{
+   return std::array<Real, 3> { {cell->parameters[CellParams::PERBXVOL], cell->parameters[CellParams::PERBYVOL], cell->parameters[CellParams::PERBZVOL]} };
+}
+
+/*! \brief Returns volumetric B of cell
+ *
+ */
+static std::array<Real, 3> getB(SpatialCell* cell)
+{
+   return std::array<Real, 3> { 
+      {
+         cell->parameters[CellParams::BGBXVOL] + cell->parameters[CellParams::PERBXVOL], 
+         cell->parameters[CellParams::BGBYVOL] + cell->parameters[CellParams::PERBYVOL], 
+         cell->parameters[CellParams::BGBZVOL] + cell->parameters[CellParams::PERBZVOL]
+      } 
+   };
+}
+
+/*! \brief Calculates momentum density of cell
+ *
+ */
+static std::array<Real, 3> getMomentumDensity(SpatialCell* cell)
+{
+   Real rho = cell->parameters[CellParams::RHOM];
+   return std::array<Real, 3> { {rho * cell->parameters[CellParams::VX], rho * cell->parameters[CellParams::VY], rho * cell->parameters[CellParams::VZ]} };
+}
+
+/*! \brief Calculates energy density for spatial cell with only perturbated magnetic field
+ *
+ */
+static Real calculateU1(SpatialCell* cell)
+{
+   std::array<Real, 3> p = getMomentumDensity(cell);
+   std::array<Real, 3> B = getPerB(cell);
+   return (pow(p[0], 2) + pow(p[1], 2) + pow(p[2], 2)) / (2.0 * cell->parameters[CellParams::RHOM]) + (pow(B[0], 2) + pow(B[1], 2) + pow(B[2], 2)) / (2.0 * physicalconstants::MU_0);
+}
+
+/*! \brief Low-level scaled gradients calculation
+ * 
+ * For the SpatialCell* cell and its neighbors, calculate scaled gradients and their maximum alpha
+ * The gradients are the same as in the GUMICS simulation, see
+ * Janhunen, P., Palmroth, M., Laitinen, T., Honkonen, I., Juusola, L., Facsko, G., & Pulkkinen, T. I. (2012). The GUMICS-4 global MHD magnetosphere-ionosphere coupling simulation. Journal of Atmospheric and Solar - Terrestrial Physics, 80, 48-59. https://doi.org/10.1016/j.jastp.2012.03.006
+ *
+ */
+void calculateScaledDeltas(
+   SpatialCell* cell,
+   std::vector<SpatialCell*>& neighbors)
+{
+   Real dRho {0};
+   Real dU {0};
+   Real dPsq {0};
+   Real dBsq {0};
+   Real dB {0};
+
+   Real myRho {cell->parameters[CellParams::RHOM]};
+   Real myU {calculateU1(cell)};
+   std::array<Real, 3> myP = getMomentumDensity(cell);
+   std::array<Real, 3> myB = getPerB(cell);
+   for (SpatialCell* neighbor : neighbors) {
+      Real otherRho = neighbor->parameters[CellParams::RHOM];
+      Real otherU = calculateU1(neighbor);
+      std::array<Real, 3> otherP = getMomentumDensity(neighbor);
+      std::array<Real, 3> otherB = getPerB(neighbor);
+      Real deltaBsq = pow(myB[0] - otherB[0], 2) + pow(myB[1] - otherB[1], 2) + pow(myB[2] - otherB[2], 2);
+
+      // Assignment intentional
+      if (Real maxRho = std::max(myRho, otherRho)) {
+         dRho = std::max(fabs(myRho - otherRho) / maxRho, dRho);
+      }
+      if (Real maxU = std::max(myU, otherU)) {
+         dU = std::max(fabs(myU - otherU) / maxU, dU);
+         dPsq = std::max((pow(myP[0] - otherP[0], 2) + pow(myP[1] - otherP[1], 2) + pow(myP[2] - otherP[2], 2)) / (2 * myRho * maxU), dPsq) / 4.0;
+         dBsq = std::max(deltaBsq / (2 * physicalconstants::MU_0 * maxU), dBsq) / 4.0;
+      }
+      if(Real maxB = sqrt(std::max(pow(myB[0], 2) + pow(myB[1], 2) + pow(myB[2], 2), pow(otherB[0], 2) + pow(otherB[1], 2) + pow(otherB[2], 2)))) {
+         dB = std::max(sqrt(deltaBsq) / maxB, dB) / 2.0;
+      }
+   }
+   
+   Real alpha = dRho;
+   if (dU > alpha) {
+      alpha = dU;
+   }
+   if (dPsq > alpha) {
+      alpha = dPsq;
+   }
+   if (dBsq > alpha) {
+      alpha = dBsq;
+   }
+   if (dB > alpha) {
+      alpha = dB;
+   }
+
+   Real dBXdy {cell->derivativesBVOL[bvolderivatives::dPERBXVOLdy]};
+   Real dBXdz {cell->derivativesBVOL[bvolderivatives::dPERBXVOLdz]};
+   Real dBYdx {cell->derivativesBVOL[bvolderivatives::dPERBYVOLdx]};
+   Real dBYdz {cell->derivativesBVOL[bvolderivatives::dPERBYVOLdz]};
+   Real dBZdx {cell->derivativesBVOL[bvolderivatives::dPERBZVOLdx]};
+   Real dBZdy {cell->derivativesBVOL[bvolderivatives::dPERBZVOLdy]};
+
+   // Note missing factor of mu_0, since we want B and J in same units later
+   std::array<Real, 3> myJ = {dBZdy - dBYdz, dBXdz - dBZdx, dBYdx - dBXdy};
+   Real BdotJ {0.0};
+   Real Bsq {0.0};
+   for (int i = 0; i < 3; ++i) {
+      BdotJ += myB[i] * myJ[i];
+      Bsq += myB[i] * myB[i];
+   }
+
+   Real Bperp {0.0};
+   Real J {0.0};
+   for (int i = 0; i < 3; ++i) {
+      Bperp += std::pow(myB[i] * (1 - BdotJ / Bsq), 2);
+      J += myJ[i] * myJ[i];
+   }
+   Bperp = std::sqrt(Bperp);
+   J = std::sqrt(J);
+
+   cell->parameters[CellParams::AMR_DRHO] = dRho;
+   cell->parameters[CellParams::AMR_DU] = dU;
+   cell->parameters[CellParams::AMR_DPSQ] = dPsq;
+   cell->parameters[CellParams::AMR_DBSQ] = dBsq;
+   cell->parameters[CellParams::AMR_DB] = dB;
+   cell->parameters[CellParams::AMR_ALPHA] = alpha;
+   cell->parameters[CellParams::AMR_JPERB] = J / Bperp;
+}
+
+/*! \brief High-level scaled gradient calculation wrapper function.
+ * 
+ * Calculates gradients needed for alpha everywhere in the grid
+ * 
+ */
+
+void calculateScaledDeltasSimple(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid)
+{
+   const vector<CellID>& cells = getLocalCells();
+   int N_cells = cells.size();
+   int timer;
+   phiprof::start("Calculate volume gradients");
+   
+   timer=phiprof::initializeTimer("Start comm","MPI");
+   phiprof::start(timer);
+
+   // We only need nearest neighbourhood and spatial data here
+   SpatialCell::set_mpi_transfer_type(Transfer::ALL_SPATIAL_DATA);
+   mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
+   
+   phiprof::stop(timer,N_cells,"Spatial Cells");
+   
+   // Calculate derivatives
+   timer=phiprof::initializeTimer("Compute cells");
+   phiprof::start(timer);
+   
+   #pragma omp parallel for
+   for (uint i = 0; i < cells.size(); ++i) {
+   //for (CellID id : cells) {
+      CellID id = cells[i];
+      SpatialCell* cell = mpiGrid[id];
+      std::vector<SpatialCell*> neighbors;
+      for (auto neighPair : mpiGrid.get_face_neighbors_of(id)) {
+         neighbors.push_back(mpiGrid[neighPair.first]);
+      }
+      calculateScaledDeltas(cell, neighbors);
+   }
+
+   phiprof::stop(timer,N_cells,"Spatial Cells");
+
+   phiprof::stop("Calculate volume gradients",N_cells,"Spatial Cells");
+}

@@ -66,6 +66,10 @@ void getDerivativesFromFsGrid(
 int getNumberOfCellsOnMaxRefLvl(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                 const std::vector<CellID>& cells);
 
+void feedBoundaryIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+			const std::vector<CellID>& cells,
+			FsGrid< fsgrids::technical, 2> & technicalGrid);
+
 
 /*! Transfer field data from an FsGrid back into the appropriate CellParams slot in DCCRG 
  * \param sourceGrid Fieldsolver grid for these quantities
