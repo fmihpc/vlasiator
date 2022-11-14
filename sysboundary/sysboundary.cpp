@@ -342,6 +342,22 @@ bool SysBoundary::initSysBoundaries(Project& project, creal& t) {
    return success;
 }
 
+/*!\brief Boolean check if queried sysboundarycondition exists
+ *
+ * \param string name
+ * \retval success if queried boundary exists
+ * \sa addSysBoundary
+ */
+bool SysBoundary::existSysBoundary(std::string name) {
+   list<SBC::SysBoundaryCondition*>::iterator it;
+   for (it = sysBoundaries.begin(); it != sysBoundaries.end(); it++) {
+      if ((*it)->getName() == name) {
+         return true;
+      }
+   }
+   return false;
+}
+
 bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) {
    // Verifies that all cells within FULL_NEIGHBORHOOD_ID of L1 boundary cells are on the same refinement
    // level (one group for inner boundary, another for outer boundary)

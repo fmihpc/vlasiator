@@ -63,7 +63,7 @@ namespace SBC {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          
          Readparameters::add(pop + "_conductingsphere.taperRadius", "Width of the zone with a density tapering from the conducting sphere value to the background (m)", 0.0);
-         Readparameters::add(pop + "_conductingsphere.rho", "Number density of the conductingsphere (m^-3)", 1.0e6);
+         Readparameters::add(pop + "_conductingsphere.rho", "Number density of the conductingsphere (m^-3)", 0.0);
          Readparameters::add(pop + "_conductingsphere.T", "Temperature of the conductingsphere (K)", 0.0);
          Readparameters::add(pop + "_conductingsphere.VX0", "Bulk velocity of conductospheric distribution function in X direction (m/s)", 0.0);
          Readparameters::add(pop + "_conductingsphere.VY0", "Bulk velocity of conductospheric distribution function in X direction (m/s)", 0.0);

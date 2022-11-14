@@ -25,6 +25,7 @@
 
 #include "../../definitions.h"
 #include "../projectTriAxisSearch.h"
+#include "../../sysboundary/sysboundary.h"
 
 namespace projects {
 
@@ -112,6 +113,8 @@ namespace projects {
       std::vector<MagnetosphereSpeciesParameters> speciesParams;
    }; // class Magnetosphere
 } // namespace projects
+
+extern SysBoundary sysBoundaryWrapper;
 
 #endif
 

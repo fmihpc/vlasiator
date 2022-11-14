@@ -36,7 +36,6 @@
 #include "../../sysboundary/ionosphere.h"
 
 #include "Magnetosphere.h"
-
 using namespace std;
 using namespace spatial_cell;
 
@@ -116,34 +115,24 @@ namespace projects {
       RP::get("Magnetosphere.dipoleMirrorLocationX", this->dipoleMirrorLocationX);
 
       RP::get("Magnetosphere.dipoleType", this->dipoleType);
-      if(RP::isSet("conductingsphere.radius")) {
+
+      /** Read inner boundary parameters from either ionospheric or conductingsphere sysboundary condition */
+      if (sysBoundaryWrapper.existSysBoundary("Conductingsphere")) {
          RP::get("conductingsphere.radius", this->ionosphereRadius);
-      } else {
+         RP::get("conductingsphere.centerX", this->center[0]);
+         RP::get("conductingsphere.centerY", this->center[1]);
+         RP::get("conductingsphere.centerZ", this->center[2]);
+         RP::get("conductingsphere.geometry", this->ionosphereGeometry);
+      } else if (sysBoundaryWrapper.existSysBoundary("Ionosphere")) {
          RP::get("ionosphere.radius", this->ionosphereRadius);
+         RP::get("ionosphere.centerX", this->center[0]);
+         RP::get("ionosphere.centerY", this->center[1]);
+         RP::get("ionosphere.centerZ", this->center[2]);
+         RP::get("ionosphere.geometry", this->ionosphereGeometry);
       }
       if(ionosphereRadius < 1000.) {
          // For really small ionospheric radius values, assume R_E units
          ionosphereRadius *= physicalconstants::R_E;
-      }
-      if(RP::isSet("conductingsphere.centerX")) {
-         RP::get("conductingsphere.centerX", this->center[0]);
-      } else {
-         RP::get("ionosphere.centerX", this->center[0]);
-      }
-      if(RP::isSet("conductingsphere.centerY")) {
-         RP::get("conductingsphere.centerY", this->center[1]);
-      } else {
-         RP::get("ionosphere.centerY", this->center[1]);
-      }
-      if(RP::isSet("conductingsphere.centerZ")) {
-         RP::get("conductingsphere.centerZ", this->center[2]);
-      } else {
-         RP::get("ionosphere.centerZ", this->center[2]);
-      }
-      if(RP::isSet("conductingsphere.geometry")) {
-         RP::get("conductingsphere.geometry", this->ionosphereGeometry);
-      } else {
-         RP::get("ionosphere.geometry", this->ionosphereGeometry);
       }
 
       RP::get("Magnetosphere.refine_L4radius", this->refine_L4radius);
@@ -187,29 +176,18 @@ namespace projects {
          RP::get(pop + "_Magnetosphere.nSpaceSamples", sP.nSpaceSamples);
          RP::get(pop + "_Magnetosphere.nVelocitySamples", sP.nVelocitySamples);
 
-         if(RP::isSet(pop + "_conductingsphere.rho")) {
+         /** Read inner boundary parameters from either ionospheric or conductingsphere sysboundary condition */
+         if (sysBoundaryWrapper.existSysBoundary("Conductingsphere")) {
             RP::get(pop + "_conductingsphere.rho", sP.ionosphereRho);
-         } else {
-            RP::get(pop + "_ionosphere.rho", sP.ionosphereRho);
-         }
-         if(RP::isSet(pop + "_conductingsphere.T")) {
             RP::get(pop + "_conductingsphere.T", sP.ionosphereT);
-         } else {
-            RP::get(pop + "_ionosphere.T", sP.ionosphereT);
-         }
-         if(RP::isSet(pop + "_conductingsphere.VX0")) {
             RP::get(pop + "_conductingsphere.VX0", sP.ionosphereV0[0]);
-         } else {
-            RP::get(pop + "_ionosphere.VX0", sP.ionosphereV0[0]);
-         }
-         if(RP::isSet(pop + "_conductingsphere.VY0")) {
             RP::get(pop + "_conductingsphere.VY0", sP.ionosphereV0[1]);
-         } else {
-            RP::get(pop + "_ionosphere.VY0", sP.ionosphereV0[1]);
-         }
-         if(RP::isSet(pop + "_conductingsphere.VZ0")) {
             RP::get(pop + "_conductingsphere.VZ0", sP.ionosphereV0[2]);
-         } else {
+         } else if (sysBoundaryWrapper.existSysBoundary("Ionosphere")) {
+            RP::get(pop + "_ionosphere.rho", sP.ionosphereRho);
+            RP::get(pop + "_ionosphere.T", sP.ionosphereT);
+            RP::get(pop + "_ionosphere.VX0", sP.ionosphereV0[0]);
+            RP::get(pop + "_ionosphere.VY0", sP.ionosphereV0[1]);
             RP::get(pop + "_ionosphere.VZ0", sP.ionosphereV0[2]);
          }
          RP::get(pop + "_Magnetosphere.taperInnerRadius", sP.taperInnerRadius);
