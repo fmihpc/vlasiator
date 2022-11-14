@@ -130,6 +130,10 @@ namespace projects {
          RP::get("ionosphere.centerY", this->center[1]);
          RP::get("ionosphere.centerZ", this->center[2]);
          RP::get("ionosphere.geometry", this->ionosphereGeometry);
+      } else {
+         if(myRank == MASTER_RANK) {
+            std::cerr<<"Warning in initializing Magnetosphere: Could not find inner boundary geometry!"<<std::endl;
+         }
       }
       if(ionosphereRadius < 1000.) {
          // For really small ionospheric radius values, assume R_E units

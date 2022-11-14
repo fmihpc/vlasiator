@@ -314,8 +314,8 @@ int main(int argn,char* args[]) {
    readparameters.parse(true, false); // 2nd parsing for specific population parameters
    readparameters.helpMessage(); // Call after last parse, exits after printing help if help requested
    getObjectWrapper().getParameters();
-   project->getParameters();
    sysBoundaryWrapper.getParameters();
+   project->getParameters();
    phiprof::stop("Read parameters");
 
 

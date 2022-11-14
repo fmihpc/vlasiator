@@ -136,10 +136,17 @@ do
 	indices=(${variable_components[$run]// / })
         for i in ${!variables[*]}
         do
-            if [ "${variables[$i]}" == "fg_e" ] || [ "${variables[$i]}" == "fg_b" ]
+            if [[ "${variables[$i]}" == "fg_"* ]]
             then
                 relativeValue=$($run_command_tools $diffbin --meshname=fsgrid  ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The relative 0-distance between both datasets" |gawk '{print $8}'  )
                 absoluteValue=$($run_command_tools $diffbin --meshname=fsgrid  ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The absolute 0-distance between both datasets" |gawk '{print $8}'  )
+#print the results      
+                echo "${variables[$i]}_${indices[$i]}                $absoluteValue                 $relativeValue    "
+                
+            elif [[ "${variables[$i]}" == "ig_"* ]]
+            then
+                relativeValue=$($run_command_tools $diffbin --meshname=ionosphere  ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The relative 0-distance between both datasets" |gawk '{print $8}'  )
+                absoluteValue=$($run_command_tools $diffbin --meshname=ionosphere  ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The absolute 0-distance between both datasets" |gawk '{print $8}'  )
 #print the results      
                 echo "${variables[$i]}_${indices[$i]}                $absoluteValue                 $relativeValue    "
             

@@ -344,15 +344,18 @@ bool SysBoundary::initSysBoundaries(Project& project, creal& t) {
 }
 
 /*!\brief Boolean check if queried sysboundarycondition exists
+ * Note: this queries against the parsed list of names, not against the actual existing boundaries. 
+ * This is so that the project configuration (which is handled before grid and boundary initialization)
+ * can use this call.
  *
  * \param string name
  * \retval success if queried boundary exists
  * \sa addSysBoundary
  */
 bool SysBoundary::existSysBoundary(std::string name) {
-   list<SBC::SysBoundaryCondition*>::iterator it;
-   for (it = sysBoundaries.begin(); it != sysBoundaries.end(); it++) {
-      if ((*it)->getName() == name) {
+   vector<string>::const_iterator it;
+   for (it = sysBoundaryCondList.begin(); it != sysBoundaryCondList.end(); it++) {
+      if ((*it) == name) {
          return true;
       }
    }
