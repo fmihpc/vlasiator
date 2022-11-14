@@ -326,7 +326,7 @@ integratefunction.o: ${DEPS_COMMON} backgroundfield/integratefunction.cpp backgr
 datareducer.o: ${DEPS_COMMON} spatial_cell.hpp datareduction/datareducer.h datareduction/datareductionoperator.h datareduction/datareducer.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c datareduction/datareducer.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_EIGEN} ${INC_VLSV} ${INC_FSGRID}
 
-datareductionoperator.o: ${DEPS_COMMON} ${DEPS_CELL} arch_device_api.h arch_device_cuda.h parameters.h datareduction/datareductionoperator.h datareduction/datareductionoperator.cpp
+datareductionoperator.o: ${DEPS_COMMON} ${DEPS_CELL} arch/arch_device_api.h arch/arch_device_host.h arch/arch_device_cuda.h parameters.h datareduction/datareductionoperator.h datareduction/datareductionoperator.cpp
 	nvcc -x cu --extended-lambda -gencode arch=compute_80,code=sm_80 ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c datareduction/datareductionoperator.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_EIGEN} ${INC_VLSV} ${INC_FSGRID}
 
 dro_populations.o: ${DEPS_COMMON} ${DEPS_CELL} parameters.h datareduction/datareductionoperator.h datareduction/datareductionoperator.cpp datareduction/dro_populations.h datareduction/dro_populations.cpp

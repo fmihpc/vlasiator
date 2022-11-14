@@ -29,7 +29,7 @@
 
 #include "datareductionoperator.h"
 #include "../object_wrapper.h"
-#include "../arch_device_api.h"
+#include "../arch/arch_device_api.h"
 
 using namespace std;
 
