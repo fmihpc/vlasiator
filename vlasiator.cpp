@@ -851,7 +851,7 @@ int main(int argn,char* args[]) {
          // Refinement includes LB
          if (!dtIsChanged && P::adaptRefinement && P::tstep % (P::rebalanceInterval * P::refineMultiplier) == 0 && P::t > P::refineAfter) { 
             logFile << "(AMR): Adapting refinement!"  << endl << writeVerbose;
-            if (!adaptRefinement(mpiGrid, technicalGrid, sysBoundaries, *project))
+            if (!adaptRefinement(mpiGrid, technicalGrid, sysBoundaryWrapper, *project))
                continue;   // Refinement failed and we're bailing out
 
             // Calculate new dt limits since we might break CFL when refining
