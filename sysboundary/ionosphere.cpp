@@ -717,17 +717,17 @@ namespace SBC {
 
       // Energies of particles that sample the production array
       // are logspace-distributed from 10^-1 to 10^2.3 keV
-      std::array< Real, productionNumParticleEnergies+1 > particle_energy; // In KeV
-      for(int e=0; e<productionNumParticleEnergies; e++) {
+      std::array< Real, SBC::productionNumParticleEnergies+1 > particle_energy; // In KeV
+      for(int e=0; e<SBC::productionNumParticleEnergies; e++) {
          // TODO: Hardcoded constants. Make parameter?
-         particle_energy[e] = pow(10.0, -1.+e*(2.3+1.)/(productionNumParticleEnergies-1));
+         particle_energy[e] = pow(10.0, -1.+e*(2.3+1.)/(SBC::productionNumParticleEnergies-1));
       }
-      particle_energy[productionNumParticleEnergies] = 2*particle_energy[productionNumParticleEnergies-1] - particle_energy[productionNumParticleEnergies-2];
+      particle_energy[SBC::productionNumParticleEnergies] = 2*particle_energy[SBC::productionNumParticleEnergies-1] - particle_energy[SBC::productionNumParticleEnergies-2];
 
       // Precalculate scattering rates
       const Real eps_ion_keV = 0.035; // Energy required to create one ion
-      std::array< std::array< Real, numAtmosphereLevels >, productionNumParticleEnergies > scatteringRate;
-      for(int e=0;e<productionNumParticleEnergies; e++) {
+      std::array< std::array< Real, numAtmosphereLevels >, SBC::productionNumParticleEnergies > scatteringRate;
+      for(int e=0;e<SBC::productionNumParticleEnergies; e++) {
 
          Real electronRange=0.;
          Real rho_R=0.;
@@ -781,7 +781,7 @@ namespace SBC {
       }
 
       // Fill ionisation production table
-      std::array< Real, productionNumParticleEnergies > differentialFlux; // Differential flux
+      std::array< Real, SBC::productionNumParticleEnergies > differentialFlux; // Differential flux
 
       for(int e=0; e<productionNumAccEnergies; e++) {
 
@@ -792,7 +792,7 @@ namespace SBC {
             const Real productionTemperatureStep = (log10(productionMaxTemperature) - log10(productionMinTemperature)) / productionNumTemperatures;
             Real tempenergy = pow(10, productionMinTemperature + t*productionTemperatureStep); // In KeV
 
-            for(int p=0; p<productionNumParticleEnergies; p++) {
+            for(int p=0; p<SBC::productionNumParticleEnergies; p++) {
                // TODO: Kappa distribution here? Now only going for maxwellian
                Real energyparam = (particle_energy[p]-accenergy)/tempenergy; // = E_p / (kB T)
 
@@ -808,13 +808,22 @@ namespace SBC {
             }
             for(int h=0; h < numAtmosphereLevels; h++) {
                productionTable[h][e][t] = 0;
-               for(int p=0; p<productionNumParticleEnergies; p++) {
+               for(int p=0; p<SBC::productionNumParticleEnergies; p++) {
                   productionTable[h][e][t] += scatteringRate[p][h]*differentialFlux[p];
                }
             }
          }
       }
       phiprof::stop("ionosphere-readAtmosphericModelFile");
+   }
+
+   /*!< Store the value of the magnetic field at the node.*/
+   void SphericalTriGrid::storeNodeB() {
+      for(int n=0; n<nodes.size(); n++) {
+         nodes[n].parameters[NODE_BX] = /*SBC::ionosphereGrid.*/dipoleField(nodes[n].x[0],nodes[n].x[1],nodes[n].x[2],X,0,X) + /*SBC::ionosphereGrid.*/BGB[0];
+         nodes[n].parameters[NODE_BY] = /*SBC::ionosphereGrid.*/dipoleField(nodes[n].x[0],nodes[n].x[1],nodes[n].x[2],Y,0,Y) + /*SBC::ionosphereGrid.*/BGB[1];
+         nodes[n].parameters[NODE_BZ] = /*SBC::ionosphereGrid.*/dipoleField(nodes[n].x[0],nodes[n].x[1],nodes[n].x[2],Z,0,Z) + /*SBC::ionosphereGrid.*/BGB[2];
+      }
    }
 
    /* Look up the free electron production rate in the ionosphere, given the atmospheric height index,
@@ -1751,7 +1760,6 @@ namespace SBC {
       std::vector<double> FACinput(nodes.size());
       std::vector<double> rhoInput(nodes.size());
       std::vector<double> temperatureInput(nodes.size());
-      std::vector<double> poyntingInput(nodes.size());
 
       // Map all coupled nodes down into it
       // Tasks that don't have anything to couple to can skip this step.
@@ -1759,46 +1767,10 @@ namespace SBC {
       #pragma omp parallel for
          for(uint n=0; n<nodes.size(); n++) {
 
-            Real J = 0;
-            Real area = 0;
-            Real upmappedArea = 0;
+            Real nodeAreaGeometric = 0;
             std::array<int,3> fsc;
 
-            // Iterate through the elements touching that node
-            for(uint e=0; e<nodes[n].numTouchingElements; e++) {
-               const Element& el= elements[nodes[n].touchingElements[e]];
-
-               // This element has 3 corner nodes
-               // Get the B-values at the upmapped coordinates
-               std::array< std::array< Real, 3>, 3> B = {0};
-               for(int c=0; c <3 ;c++) {
-
-                  const Node& corner = nodes[el.corners[c]];
-
-                  B[c][0] = corner.parameters[ionosphereParameters::UPMAPPED_BX];
-                  B[c][1] = corner.parameters[ionosphereParameters::UPMAPPED_BY];
-                  B[c][2] = corner.parameters[ionosphereParameters::UPMAPPED_BZ];
-               }
-
-               // Also sum up touching elements' areas and upmapped areas to compress
-               // density and temperature with them
-               // TODO: Precalculate this?
-               area += elementArea(nodes[n].touchingElements[e]);
-
-               std::array<Real, 3> areaVector = mappedElementArea(nodes[n].touchingElements[e]);
-               std::array<Real, 3> avgB = {(B[0][0] + B[1][0] + B[2][0])/3.,
-                  (B[0][1] + B[1][1] + B[2][1]) / 3.,
-                  (B[0][2] + B[1][2] + B[2][2]) / 3.};
-               upmappedArea += fabs(areaVector[0] * avgB[0] + areaVector[1]*avgB[1] + areaVector[2]*avgB[2]) /
-                  sqrt(avgB[0]*avgB[0] + avgB[1]*avgB[1] + avgB[2]*avgB[2]);
-            }
-
-            // Divide by 3, as every element will be counted from each of its
-            // corners.  Prevent areas from being multiply-counted
-            area /= 3.;
-            upmappedArea /= 3.;
-
-            //// Map down FAC based on magnetosphere rotB
+            // Map down FAC based on magnetosphere rotB
             if(nodes[n].xMapped[0] == 0. && nodes[n].xMapped[1] == 0. && nodes[n].xMapped[2] == 0.) {
                // Skip cells that couple nowhere
                continue;
@@ -1810,6 +1782,18 @@ namespace SBC {
                continue;
             }
 
+            // Iterate through the elements touching that node
+            for(uint e=0; e<nodes[n].numTouchingElements; e++) {
+               // Also sum up touching elements' areas and upmapped areas to compress
+               // density and temperature with them
+               // TODO: Precalculate this?
+               nodeAreaGeometric += elementArea(nodes[n].touchingElements[e]);
+            }
+
+            // Divide by 3, as every element will be counted from each of its
+            // corners.  Prevent areas from being multiply-counted
+            nodeAreaGeometric /= 3.;
+
             // Calc curlB, note division by DX one line down
             const std::array<Real, 3> curlB = interpolateCurlB(
                perBGrid,
@@ -1820,14 +1804,16 @@ namespace SBC {
                nodes[n].xMapped
             );
 
-            // Dot with normalized B, scale by area
-            FACinput[n] = upmappedArea * (nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]*curlB[0] + nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]*curlB[1] + nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]*curlB[2])
-               / (
-                  sqrt(
-                     nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]
-                     + nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]
-                     + nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]
-               ) * physicalconstants::MU_0 * technicalGrid.DX
+            // Dot curl(B) with normalized B, scale by ratio of B(ionosphere)/B(upmapped), multiply by geometric area around ionosphere node to obtain current from density
+            FACinput[n] = nodeAreaGeometric * (nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]*curlB[0] + nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]*curlB[1] + nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]*curlB[2])
+               * sqrt((nodes[n].parameters[ionosphereParameters::NODE_BX]*nodes[n].parameters[ionosphereParameters::NODE_BX]
+                  + nodes[n].parameters[ionosphereParameters::NODE_BY]*nodes[n].parameters[ionosphereParameters::NODE_BY]
+                  + nodes[n].parameters[ionosphereParameters::NODE_BZ]*nodes[n].parameters[ionosphereParameters::NODE_BZ])
+               )
+               / ((nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]
+                  + nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]
+                  + nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ])
+               * physicalconstants::MU_0 * technicalGrid.DX
             );
 
             // By definition, a downwards current into the ionosphere has a positive FAC value,
@@ -1868,23 +1854,13 @@ namespace SBC {
                      }
 
 
-                     // Map density, temperature and Poynting flux down
+                     // Map density, temperature down
                      Real thisCellRho = momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::RHOQ) / physicalconstants::CHARGE;
                      rhoInput[n] += coupling * thisCellRho;
                      temperatureInput[n] += coupling * 1./3. * (
-                          momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_11) +
-                          momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_22) +
-                          momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_33)) / (thisCellRho * physicalconstants::K_B * ion_electron_T_ratio);
-                     Vec3d E(volGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::EXVOL),
-                           volGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::EYVOL),
-                           volGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::EZVOL));
-                     Vec3d B(nodes[n].parameters[ionosphereParameters::UPMAPPED_BX],
-                              nodes[n].parameters[ionosphereParameters::UPMAPPED_BY],
-                              nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]);
-                     Vec3d dipoleB(this->dipoleField(nodes[n].xMapped[0],nodes[n].xMapped[1],nodes[n].xMapped[2],X,0,X),
-                           this->dipoleField(nodes[n].xMapped[0],nodes[n].xMapped[1],nodes[n].xMapped[2],Y,0,Y),
-                           this->dipoleField(nodes[n].xMapped[0],nodes[n].xMapped[1],nodes[n].xMapped[2],Z,0,Z));
-                     poyntingInput[n] += coupling / physicalconstants::MU_0 * dot_product(cross_product(E,B),dipoleB) / sqrt(dot_product(dipoleB,dipoleB)) * upmappedArea / area;
+                        momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_11) +
+                        momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_22) +
+                        momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_33)) / (thisCellRho * physicalconstants::K_B * ion_electron_T_ratio);
                   }
                }
             }
@@ -1894,11 +1870,7 @@ namespace SBC {
             if(couplingSum > 0) {
                rhoInput[n] /= couplingSum;
                temperatureInput[n] /= couplingSum;
-               poyntingInput[n] /= couplingSum;
             }
-
-            // Scale density by area ratio
-            //rhoInput[n] *= upmappedArea / area;
          }
       }
 
@@ -1906,11 +1878,9 @@ namespace SBC {
       std::vector<double> FACsum(nodes.size());
       std::vector<double> rhoSum(nodes.size());
       std::vector<double> temperatureSum(nodes.size());
-      std::vector<double> poyntingSum(nodes.size());
       MPI_Allreduce(&FACinput[0], &FACsum[0], nodes.size(), MPI_DOUBLE, MPI_SUM, communicator);
       MPI_Allreduce(&rhoInput[0], &rhoSum[0], nodes.size(), MPI_DOUBLE, MPI_SUM, communicator);
       MPI_Allreduce(&temperatureInput[0], &temperatureSum[0], nodes.size(), MPI_DOUBLE, MPI_SUM, communicator); // TODO: Does it make sense to SUM the temperatures?
-      MPI_Allreduce(&poyntingInput[0], &poyntingSum[0], nodes.size(), MPI_DOUBLE, MPI_SUM, communicator);
 
       for(uint n=0; n<nodes.size(); n++) {
 
@@ -1930,7 +1900,6 @@ namespace SBC {
 
             nodes[n].parameters[ionosphereParameters::RHON] = Ionosphere::unmappedNodeRho * Chi0;
             nodes[n].parameters[ionosphereParameters::TEMPERATURE] = Ionosphere::unmappedNodeTe;
-            nodes[n].parameters[ionosphereParameters::POYNTINGFLUX] = 0;
          } else {
             // Store as the node's parameter values.
             if(Ionosphere::couplingTimescale == 0) {
@@ -1938,7 +1907,6 @@ namespace SBC {
                nodes[n].parameters[ionosphereParameters::SOURCE] = FACsum[n];
                nodes[n].parameters[ionosphereParameters::RHON] = rhoSum[n] * Chi0;
                nodes[n].parameters[ionosphereParameters::TEMPERATURE] = temperatureSum[n];
-               nodes[n].parameters[ionosphereParameters::POYNTINGFLUX] = poyntingSum[n];
             } else {
 
                // Slow coupling with a given timescale.
@@ -2448,9 +2416,15 @@ namespace SBC {
       iSolverReal residualnorm;
       minPotentialN = minPotentialS = std::numeric_limits<iSolverReal>::max();
       maxPotentialN = maxPotentialS = std::numeric_limits<iSolverReal>::lowest();
+#ifdef IONOSPHERE_SORTED_SUMS
       std::multiset<iSolverReal> set_neg, set_pos;
+#endif
 
+#ifdef IONOSPHERE_SORTED_SUMS
 #pragma omp parallel shared(akden,bknum,potentialInt,sourcenorm,residualnorm,effectiveSource,minPotentialN,maxPotentialN,minPotentialS,maxPotentialS,set_neg,set_pos)
+#else
+#pragma omp parallel shared(akden,bknum,potentialInt,sourcenorm,residualnorm,effectiveSource,minPotentialN,maxPotentialN,minPotentialS,maxPotentialS)
+#endif
 {
 
       // thread variables, initialised here
@@ -2459,7 +2433,9 @@ namespace SBC {
       iSolverReal thread_minerr = std::numeric_limits<iSolverReal>::max();
       int thread_iteration = iteration;
       int thread_nRestarts = nRestarts;
+#ifdef IONOSPHERE_SORTED_SUMS
       std::multiset<iSolverReal> thread_set_neg, thread_set_pos;
+#endif
 
       iSolverReal bkden = 1;
       int failcount=0;
@@ -2470,7 +2446,11 @@ namespace SBC {
          sourcenorm = 0;
       }
       // Calculate sourcenorm and initial residual estimate
+#ifdef IONOSPHERE_SORTED_SUMS
       #pragma omp for
+#else
+      #pragma omp for reduction(+:sourcenorm)
+#endif
       for(uint n=0; n<nodes.size(); n++) {
          Node& N=nodes[n];
          // Set gauge-pinned nodes to their fixed potential
@@ -2483,7 +2463,11 @@ namespace SBC {
             effectiveSource[n] = source;
          //}
          if(source != 0) {
+#ifdef IONOSPHERE_SORTED_SUMS
             thread_set_pos.insert(source*source);
+#else
+            sourcenorm += source*source;
+#endif
          }
          N.parameters.at(ionosphereParameters::RESIDUAL) = source - Atimes(n, ionosphereParameters::SOLUTION);
          N.parameters.at(ionosphereParameters::BEST_SOLUTION) = N.parameters.at(ionosphereParameters::SOLUTION);
@@ -2493,16 +2477,20 @@ namespace SBC {
             N.parameters.at(ionosphereParameters::RRESIDUAL) = N.parameters.at(ionosphereParameters::RESIDUAL);
          }
       }
+#ifdef IONOSPHERE_SORTED_SUMS
       #pragma omp critical
       {
          set_pos.insert(thread_set_pos.begin(), thread_set_pos.end());
       }
+#endif
       #pragma omp barrier
       #pragma omp single
       {
+#ifdef IONOSPHERE_SORTED_SUMS
          for(auto it = set_pos.crbegin(); it != set_pos.crend(); it++) {
             sourcenorm += *it;
          }
+#endif
          sourcenorm = sqrt(sourcenorm);
       }
       bool skipSolve = false;
@@ -2531,22 +2519,34 @@ namespace SBC {
          #pragma omp single
          {
             bknum = 0;
+#ifdef IONOSPHERE_SORTED_SUMS
             set_pos.clear();
             set_neg.clear();
+#endif
          }
+#ifdef IONOSPHERE_SORTED_SUMS
          thread_set_pos.clear();
          thread_set_neg.clear();
          #pragma omp for
+#else
+         #pragma omp for reduction(+:bknum)
+#endif
          for(uint n=0; n<nodes.size(); n++) {
             Node& N=nodes[n];
             const iSolverReal incr = N.parameters[ionosphereParameters::ZPARAM] * N.parameters[ionosphereParameters::RRESIDUAL];
+#ifdef IONOSPHERE_SORTED_SUMS
             if(incr < 0) {
                thread_set_neg.insert(incr);
             }
             if(incr > 0) {
                thread_set_pos.insert(incr);
             }
+#else
+            bknum += incr;
+#endif
          }
+
+#ifdef IONOSPHERE_SORTED_SUMS
          #pragma omp critical
          {
             set_neg.insert(thread_set_neg.begin(), thread_set_neg.end());
@@ -2565,6 +2565,7 @@ namespace SBC {
             }
             bknum = bknum_neg + bknum_pos;
          }
+#endif
 
          if(counter == 1) {
             // Just use the gradient vector as-is, starting from the best known solution
@@ -2596,25 +2597,36 @@ namespace SBC {
          #pragma omp single
          {
             akden = 0;
+#ifdef IONOSPHERE_SORTED_SUMS
             set_neg.clear();
             set_pos.clear();
+#endif
          }
+#ifdef IONOSPHERE_SORTED_SUMS
          thread_set_neg.clear();
          thread_set_pos.clear();
          #pragma omp for
+#else
+         #pragma omp for reduction(+:akden)
+#endif
          for(uint n=0; n<nodes.size(); n++) {
             Node& N=nodes[n];
             iSolverReal zparam = Atimes(n, ionosphereParameters::PPARAM, false);
             N.parameters[ionosphereParameters::ZPARAM] = zparam;
             iSolverReal incr = zparam * N.parameters[ionosphereParameters::PPPARAM];
+#ifdef IONOSPHERE_SORTED_SUMS
             if(incr < 0) {
                thread_set_neg.insert(incr);
             }
             if(incr > 0) {
                thread_set_pos.insert(incr);
             }
+#else
+            akden += incr;
+#endif
             N.parameters[ionosphereParameters::ZZPARAM] = Atimes(n,ionosphereParameters::PPPARAM, true);
          }
+#ifdef IONOSPHERE_SORTED_SUMS
          #pragma omp critical
          {
             set_neg.insert(thread_set_neg.begin(), thread_set_neg.end());
@@ -2633,6 +2645,7 @@ namespace SBC {
             }
             akden = akden_neg + akden_pos;
          }
+#endif
          iSolverReal ak=bknum/akden;
 
          #pragma omp for
@@ -2643,7 +2656,7 @@ namespace SBC {
                N.parameters[ionosphereParameters::SOLUTION] = 0;
             } else if(gaugeFixing == Equator && fabs(N.x[2]) < Ionosphere::innerRadius * sin(Ionosphere::shieldingLatitude * M_PI / 180.0)) {
                N.parameters[ionosphereParameters::SOLUTION] = 0;
-            } 
+            }
          }
 
          // Rebalance the potential by calculating its area integral
@@ -2679,10 +2692,16 @@ namespace SBC {
          #pragma omp single
          {
             residualnorm = 0;
+#ifdef IONOSPHERE_SORTED_SUMS
             set_pos.clear();
+#endif
          }
+#ifdef IONOSPHERE_SORTED_SUMS
          thread_set_pos.clear();
          #pragma omp for
+#else
+         #pragma omp for reduction(+:residualnorm)
+#endif
          for(uint n=0; n<nodes.size(); n++) {
             Node& N=nodes[n];
             // Calculate residual of the new solution. The faster way to do this would be
@@ -2702,9 +2721,15 @@ namespace SBC {
             } else {
                N.parameters[ionosphereParameters::RESIDUAL] = newresid;
                N.parameters[ionosphereParameters::RRESIDUAL] = effectiveSource[n] - Atimes(n, ionosphereParameters::SOLUTION, true);
+#ifdef IONOSPHERE_SORTED_SUMS
                thread_set_pos.insert(newresid*newresid);
+#else
+               residualnorm += newresid*newresid;
+#endif
             }
          }
+
+#ifdef IONOSPHERE_SORTED_SUMS
          #pragma omp critical
          {
             set_pos.insert(thread_set_pos.begin(), thread_set_pos.end());
@@ -2716,6 +2741,8 @@ namespace SBC {
                residualnorm += *it;
             }
          }
+#endif
+
          #pragma omp for
          for(uint n=0; n<nodes.size(); n++) {
             Node& N=nodes[n];
@@ -3105,32 +3132,12 @@ namespace SBC {
          }
       }
 
-      // Assign boundary flags to local fsgrid cells
-      const std::array<int, 3> gridDims(technicalGrid.getLocalSize());
-      for (int k=0; k<gridDims[2]; k++) {
-         for (int j=0; j<gridDims[1]; j++) {
-            for (int i=0; i<gridDims[0]; i++) {
-               const auto& coords = technicalGrid.getPhysicalCoords(i,j,k);
-
-               // Shift to the center of the fsgrid cell
-               auto cellCenterCoords = coords;
-               cellCenterCoords[0] += 0.5 * technicalGrid.DX;
-               cellCenterCoords[1] += 0.5 * technicalGrid.DY;
-               cellCenterCoords[2] += 0.5 * technicalGrid.DZ;
-
-               if(getR(cellCenterCoords[0],cellCenterCoords[1],cellCenterCoords[2],this->geometry,this->center) < this->radius) {
-                  technicalGrid.get(i,j,k)->sysBoundaryFlag = this->getIndex();
-               }
-
-            }
-         }
-      }
-
       return true;
    }
 
    bool Ionosphere::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
       Project &project
    ) {

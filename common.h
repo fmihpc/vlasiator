@@ -189,6 +189,14 @@ namespace CellParams {
       AMR_TRANSLATE_COMM_X, /*! < Flag to include this cell in AMR pre-translate communication  */
       AMR_TRANSLATE_COMM_Y, /*! < Flag to include this cell in AMR pre-translate communication  */
       AMR_TRANSLATE_COMM_Z, /*! < Flag to include this cell in AMR pre-translate communication  */
+      AMR_DRHO,
+      AMR_DU,
+      AMR_DPSQ,
+      AMR_DBSQ,
+      AMR_DB,
+      AMR_ALPHA,
+      RECENTLY_REFINED,
+      AMR_JPERB,
       N_SPATIAL_CELL_PARAMS
    };
 }
@@ -357,12 +365,12 @@ namespace fsgrids {
       PERBXVOL,  /*!< perturbed magnetic field  PERBX averaged over spatial cell.*/
       PERBYVOL,  /*!< perturbed magnetic field  PERBY averaged over spatial cell.*/
       PERBZVOL,  /*!< perturbed magnetic field  PERBZ averaged over spatial cell.*/
-      dPERBXVOLdy,
-      dPERBXVOLdz,
-      dPERBYVOLdx,
-      dPERBYVOLdz,
-      dPERBZVOLdx,
-      dPERBZVOLdy,
+      dPERBXVOLdy, /*!< Derivative of perturbed volume-averaged Bx in y-direction. */
+      dPERBXVOLdz, /*!< Derivative of perturbed volume-averaged Bx in z-direction. */
+      dPERBYVOLdx, /*!< Derivative of perturbed volume-averaged By in x-direction. */
+      dPERBYVOLdz, /*!< Derivative of perturbed volume-averaged By in z-direction. */
+      dPERBZVOLdx, /*!< Derivative of perturbed volume-averaged Bz in x-direction. */
+      dPERBZVOLdy, /*!< Derivative of perturbed volume-averaged Bz in y-direction. */
       EXVOL,   /*!< volume-averaged electric field x component */
       EYVOL,   /*!< volume-averaged electric field y component */
       EZVOL,   /*!< volume-averaged electric field z component */
@@ -370,7 +378,7 @@ namespace fsgrids {
    };
    
    struct technical {
-      int sysBoundaryFlag;  /*!< System boundary flags. */
+      uint sysBoundaryFlag;  /*!< System boundary flags. */
       int sysBoundaryLayer; /*!< System boundary layer index. */
       Real maxFsDt;         /*!< maximum timestep allowed in ordinary space by fieldsolver for this cell**/
       int fsGridRank;       /*!< Rank in the fsGrids cartesian coordinator */
@@ -393,7 +401,7 @@ enum ionosphereParameters {
   PRECIP,   /*!< Precipitation */
   RHON,     /*!< Downmapped magnetospheric plasma number density */
   TEMPERATURE, /*!< Downmapped electron temperature */
-  POYNTINGFLUX, /*!< Downwards poynting flux from the magnetosphre into the ionosphere */
+  NODE_BX,NODE_BY,NODE_BZ, /*!< Magnetic field at the node */
   UPMAPPED_BX,UPMAPPED_BY,UPMAPPED_BZ, /*!< Magnetic field at the upper and of the mapping fieldline */
   SOLUTION, /*!< Currently considered solution potential */
   BEST_SOLUTION, /*!< Best solution found so far */

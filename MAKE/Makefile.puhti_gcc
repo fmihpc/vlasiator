@@ -22,7 +22,7 @@ FLAGS =
 CC_BRAND = gcc
 CC_BRAND_VERSION = 9.1.0
 CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -fabi-version=0 -march=native -mfma -mavx512f
-testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0 -mfma
+testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0 -mfma -DIONOSPHERE_SORTED_SUMS
 
 MATHFLAGS = -ffast-math
 LDFLAGS = -lrt

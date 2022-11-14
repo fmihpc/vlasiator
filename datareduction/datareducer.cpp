@@ -180,7 +180,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       }
       if(lowercase == "vg_rhom" || lowercase == "rhom") { // Overall mass density (summed over all populations)
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_rhom",CellParams::RHOM,1));
-	 outputReducer->addMetadata(outputReducer->size()-1,"kg/m^3","$\\mathrm{kg}\\,\\mathrm{m}^{-3}$","$\\rho_\\mathrm{m}$","1.0");
+         outputReducer->addMetadata(outputReducer->size()-1,"kg/m^3","$\\mathrm{kg}\\,\\mathrm{m}^{-3}$","$\\rho_\\mathrm{m}$","1.0");
          continue;
       }
       if(lowercase == "vg_amr_translate_comm") { // Flag for AMR translation communication
@@ -2549,6 +2549,47 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 	 outputReducer->addMetadata(outputReducer->size()-1,"","","\\mathrm{Mesh data}$","");
          continue;
       }
+      if(lowercase == "vg_amr_drho") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_drho",CellParams::AMR_DRHO,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"","","$\\frac{\\Delta \\rho}{\\hat{rho}}$","");
+         continue;
+      }
+      if(lowercase == "vg_amr_du") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_du",CellParams::AMR_DU,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"","","$\\frac{\\Delta U_1}{\\hat{U}_1}$","");
+         continue;
+      }
+      if(lowercase == "vg_amr_dpsq") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_dpsq",CellParams::AMR_DPSQ,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"","","$\\frac{(\\Delta P)^2}{2 \\rho \\hat{U}_1}$","");
+         continue;
+      }
+      if(lowercase == "vg_amr_dbsq") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_dbsq",CellParams::AMR_DBSQ,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"","","$\\frac{(\\Delta B_1)^2}{2 \\mu_0 \\hat{U}_1}$","");
+         continue;
+      }
+      if(lowercase == "vg_amr_db") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_db",CellParams::AMR_DB,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"","","$\\frac{|\\Delta B_1|}{\\hat{B}_1}$","");
+         continue;
+      }
+      if(lowercase == "vg_amr_alpha") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_alpha",CellParams::AMR_ALPHA,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"","","$\\alpha$","");
+         continue;
+      }
+      if(lowercase == "vg_amr_reflevel") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_reflevel",CellParams::REFINEMENT_LEVEL,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"","","ref","");
+         continue;
+      }
+      if(lowercase == "vg_amr_jperb") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_jperb",CellParams::AMR_JPERB,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"1/m","m^{-1}","J/B_{\\perp}","");
+         outputReducer->addOperator(new DRO::JPerBModifier());
+         continue;
+      }
       if(lowercase == "ig_latitude") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_latitude", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
@@ -2603,6 +2644,24 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1, "m^2", "$\\mathrm{m}^2$", "$A_m$", "1.0");
          continue;
       }
+      if(lowercase == "ig_b") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_b", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+                  
+                     std::vector<Real> retval(grid.nodes.size()*3);
+
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        retval[3*i] = grid.nodes[i].parameters[ionosphereParameters::NODE_BX];
+                        retval[3*i+1] = grid.nodes[i].parameters[ionosphereParameters::NODE_BY];
+                        retval[3*i+2] = grid.nodes[i].parameters[ionosphereParameters::NODE_BZ];
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addMetadata(outputReducer->size()-1, "T", "$\\mathrm{T}$", "$B$", "1.0");
+         continue;
+      }
+
       if(lowercase == "ig_e") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereElement("ig_e", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
@@ -2769,21 +2828,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1, "K", "$\\mathrm{K}$", "$T_e$", "1.0");
          continue;
       }
-      if(lowercase == "ig_poyntingflux") {
-         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_poyntingflux", [](
-                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
-
-                     std::vector<Real> retval(grid.nodes.size());
-
-                     for(uint i=0; i<grid.nodes.size(); i++) {
-                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::POYNTINGFLUX];
-                     }
-
-                     return retval;
-                     }));
-         outputReducer->addMetadata(outputReducer->size()-1, "W/m^2", "$\\mathrm{W/m^2}$", "$S$", "1.0");
-         continue;
-      }
       if(lowercase == "ig_deltaphi") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_deltaphi", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
@@ -2817,21 +2861,21 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(lowercase == "ig_precipnumflux") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_precipnumflux", [](SBC::SphericalTriGrid& grid)->std::vector<Real> {
 
-                     std::array< Real, grid.productionNumParticleEnergies+1 > particle_energy;
+                     std::array< Real, SBC::productionNumParticleEnergies+1 > particle_energy;
                      // Precalculate effective energy bins
                      // Make sure this stays in sync with sysboundary/ionosphere.cpp
-                     for(int e=0; e<grid.productionNumParticleEnergies; e++) {
-                     particle_energy[e] = pow(10.0, -1.+e*(2.3+1.)/(grid.productionNumParticleEnergies-1));
+                     for(int e=0; e<SBC::productionNumParticleEnergies; e++) {
+                     particle_energy[e] = pow(10.0, -1.+e*(2.3+1.)/(SBC::productionNumParticleEnergies-1));
                      }
-                     particle_energy[grid.productionNumParticleEnergies] = 2*particle_energy[grid.productionNumParticleEnergies-1] - particle_energy[grid.productionNumParticleEnergies-2];
+                     particle_energy[SBC::productionNumParticleEnergies] = 2*particle_energy[SBC::productionNumParticleEnergies-1] - particle_energy[SBC::productionNumParticleEnergies-2];
 
-                     Real accenergy = grid.productionMinAccEnergy;
+                     Real accenergy = SBC::productionMinAccEnergy;
 
                      std::vector<Real> retval(grid.nodes.size());
                      for(uint i=0; i<grid.nodes.size(); i++) {
                         Real temp_keV = physicalconstants::K_B * grid.nodes[i].electronTemperature() / physicalconstants::CHARGE / 1000;
 
-                        for(int p=0; p<grid.productionNumParticleEnergies; p++) {
+                        for(int p=0; p<SBC::productionNumParticleEnergies; p++) {
                            Real energyparam = (particle_energy[p]-accenergy)/temp_keV; // = E_p / (kB T)
                            Real deltaE = (particle_energy[p+1] - particle_energy[p])* 1e3*physicalconstants::CHARGE;  // dE in J
                            retval[i] += grid.nodes[i].parameters[ionosphereParameters::RHON] * sqrt(1. / (2. * M_PI * physicalconstants::MASS_ELECTRON))
@@ -2847,15 +2891,15 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(lowercase == "ig_precipavgenergy") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_precipavgenergy", [](SBC::SphericalTriGrid& grid)->std::vector<Real> {
 
-                     std::array< Real, grid.productionNumParticleEnergies+1 > particle_energy;
+                     std::array< Real, SBC::productionNumParticleEnergies+1 > particle_energy;
                      // Precalculate effective energy bins
                      // Make sure this stays in sync with sysboundary/ionosphere.cpp
-                     for(int e=0; e<grid.productionNumParticleEnergies; e++) {
-                     particle_energy[e] = pow(10.0, -1.+e*(2.3+1.)/(grid.productionNumParticleEnergies-1));
+                     for(int e=0; e<SBC::productionNumParticleEnergies; e++) {
+                     particle_energy[e] = pow(10.0, -1.+e*(2.3+1.)/(SBC::productionNumParticleEnergies-1));
                      }
-                     particle_energy[grid.productionNumParticleEnergies] = 2*particle_energy[grid.productionNumParticleEnergies-1] - particle_energy[grid.productionNumParticleEnergies-2];
+                     particle_energy[SBC::productionNumParticleEnergies] = 2*particle_energy[SBC::productionNumParticleEnergies-1] - particle_energy[SBC::productionNumParticleEnergies-2];
 
-                     Real accenergy = grid.productionMinAccEnergy;
+                     Real accenergy = SBC::productionMinAccEnergy;
 
                      std::vector<Real> retval(grid.nodes.size());
                      for(uint i=0; i<grid.nodes.size(); i++) {
@@ -2866,7 +2910,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                         // ig_precipnumflux reducer above. Share code?)
                         Real temp_keV = physicalconstants::K_B * grid.nodes[i].electronTemperature() / physicalconstants::CHARGE / 1000;
 
-                        for(int p=0; p<grid.productionNumParticleEnergies; p++) {
+                        for(int p=0; p<SBC::productionNumParticleEnergies; p++) {
                            Real energyparam = (particle_energy[p]-accenergy)/temp_keV; // = E_p / (kB T)
                            Real deltaE = (particle_energy[p+1] - particle_energy[p])* 1e3*physicalconstants::CHARGE;  // dE in J
                            numberFlux += grid.nodes[i].parameters[ionosphereParameters::RHON] * sqrt(1. / (2. * M_PI * physicalconstants::MASS_ELECTRON))

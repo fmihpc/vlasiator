@@ -52,6 +52,7 @@
 
 #include "object_wrapper.h"
 #include "fieldsolver/gridGlue.hpp"
+#include "fieldsolver/derivatives.hpp"
 
 #ifdef CATCH_FPE
 #include <fenv.h>
@@ -615,7 +616,7 @@ int main(int argn,char* args[]) {
       //report filtering if we are in an AMR run 
       if (P::amrMaxSpatialRefLevel>0){
          logFile<<"Filtering Report: "<<endl;
-         for (int refLevel=0 ; refLevel<= P::amrMaxSpatialRefLevel; refLevel++){
+         for (uint refLevel=0 ; refLevel<= P::amrMaxSpatialRefLevel; refLevel++){
             logFile<<"\tRefinement Level " <<refLevel<<"==> Passes "<<P::numPasses.at(refLevel)<<endl;
          }
             logFile<<endl;
@@ -730,6 +731,9 @@ int main(int argn,char* args[]) {
                if (index2>P::systemWrites[i]) P::systemWrites[i]=index2;
                continue;
             }
+
+            // Calculate these so refinement parameters can be tuned based on the vlsv
+            calculateScaledDeltasSimple(mpiGrid);
             
             phiprof::start("write-system");
             logFile << "(IO): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
@@ -844,6 +848,18 @@ int main(int argn,char* args[]) {
       //TODO - add LB measure and do LB if it exceeds threshold
       if(((P::tstep % P::rebalanceInterval == 0 && P::tstep > P::tstep_min) || overrideRebalanceNow)) {
          logFile << "(LB): Start load balance, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
+         // Refinement includes LB
+         if (!dtIsChanged && P::adaptRefinement && P::tstep % (P::rebalanceInterval * P::refineMultiplier) == 0 && P::t > P::refineAfter) { 
+            logFile << "(AMR): Adapting refinement!"  << endl << writeVerbose;
+            if (!adaptRefinement(mpiGrid, technicalGrid, sysBoundaries, *project))
+               continue;   // Refinement failed and we're bailing out
+
+            // Calculate new dt limits since we might break CFL when refining
+            phiprof::start("compute-dt");
+            calculateSpatialTranslation(mpiGrid,0.0);
+            calculateAcceleration(mpiGrid,0.0);      
+            phiprof::stop("compute-dt");
+         }
          balanceLoad(mpiGrid, sysBoundaryWrapper);
          addTimedBarrier("barrier-end-load-balance");
          phiprof::start("Shrink_to_fit");
