@@ -225,13 +225,21 @@ namespace projects {
          }
          if(sP.ionosphereT == 0) {
             if(myRank == MASTER_RANK) {
-               cerr << "Warning: " << pop << "_(iono/conducting)sphere.T is zero (default), now setting to the same value as " << pop << "_Magnetosphere.T, that is " << sP.T << ". Set/change " << pop << "_(iono/conducting)sphere.T if this is not the expected behavior." << endl;
+               if (sysBoundaryWrapper.existSysBoundary("Conductingsphere")) {
+                  cerr << "Warning: " << pop << "_conductingsphere.T is zero (default), now setting to the same value as " << pop << "_Magnetosphere.T, that is " << sP.T << ". Set/change " << pop << "_conductingsphere.T if this is not the expected behavior." << endl;
+               } else if (sysBoundaryWrapper.existSysBoundary("Ionosphere")) {
+                  cerr << "Warning: " << pop << "_ionosphere.T is zero (default), now setting to the same value as " << pop << "_Magnetosphere.T, that is " << sP.T << ". Set/change " << pop << "_ionosphere.T if this is not the expected behavior." << endl;
+               }
             }
             sP.ionosphereT = sP.T;
          }
          if(sP.ionosphereRho == 0) {
             if(myRank == MASTER_RANK) {
-               cerr << "Warning: " << pop << "_(iono/conducting)sphere.rho is zero (default), now setting to the same value as " << pop << "_Magnetosphere.rho, that is " << sP.rho << ". Set/change " << pop << "_(iono/conducting)sphere.rho if this is not the expected behavior." << endl;
+               if (sysBoundaryWrapper.existSysBoundary("Conductingsphere")) {
+                  cerr << "Warning: " << pop << "_conductingsphere.rho is zero (default), now setting to the same value as " << pop << "_Magnetosphere.rho, that is " << sP.rho << ". Set/change " << pop << "_conductingsphere.rho if this is not the expected behavior." << endl;
+               } else if (sysBoundaryWrapper.existSysBoundary("Ionosphere")) {
+                  cerr << "Warning: " << pop << "_ionosphere.rho is zero (default), now setting to the same value as " << pop << "_Magnetosphere.rho, that is " << sP.rho << ". Set/change " << pop << "_ionosphere.rho if this is not the expected behavior." << endl;
+               }
             }
             sP.ionosphereRho = sP.rho;
          }
@@ -487,7 +495,7 @@ namespace projects {
          // sine tapering
          initRho = sP.rho - (sP.rho-sP.ionosphereRho)*0.5*(1.0+sin(M_PI*(radius-sP.taperInnerRadius)/(sP.taperOuterRadius-sP.taperInnerRadius)+0.5*M_PI));
          initT = sP.T - (sP.T-sP.ionosphereT)*0.5*(1.0+sin(M_PI*(radius-sP.taperInnerRadius)/(sP.taperOuterRadius-sP.taperInnerRadius)+0.5*M_PI));
-         if(radius < sP.taperInnerRadius) {
+         if(radius <= sP.taperInnerRadius) {
             initRho = sP.ionosphereRho;
             initT = sP.ionosphereT;
          }
@@ -541,7 +549,7 @@ namespace projects {
          
          for(uint i=0; i<3; i++) {
             V0[i]=q*(V0[i]-ionosphereV0[i])+ionosphereV0[i];
-            if(radius < sP.taperInnerRadius) {
+            if(radius <= sP.taperInnerRadius) {
                V0[i] = ionosphereV0[i];
             }
          }

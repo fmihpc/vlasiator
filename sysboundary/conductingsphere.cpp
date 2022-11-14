@@ -100,7 +100,16 @@ namespace SBC {
         Readparameters::get(pop + "_Magnetosphere.nSpaceSamples", sP.nSpaceSamples);
         Readparameters::get(pop + "_Magnetosphere.nVelocitySamples", sP.nVelocitySamples);
 
-        speciesParams.push_back(sP);
+        // Failsafe, if density or temperature is zero, read from Magnetosphere
+        // (compare the corresponding verbose handling in projects/Magnetosphere/Magnetosphere.cpp)
+        if(sP.T == 0) {
+            Readparameters::get(pop + "_Magnetosphere.T", sP.T);
+         }
+         if(sP.rho == 0) {
+            Readparameters::get(pop + "_Magnetosphere.rho", sP.rho);
+         }
+
+         speciesParams.push_back(sP);
       }
    }
    

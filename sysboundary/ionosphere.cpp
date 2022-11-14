@@ -2978,10 +2978,13 @@ namespace SBC {
         Readparameters::get(pop + "_ionosphere.VZ0", sP.V0[2]);
         Readparameters::get(pop + "_ionosphere.T", sP.T);
 
+        // Failsafe, if density or temperature is zero, read from Magnetosphere
+        // (compare the corresponding verbose handling in projects/Magnetosphere/Magnetosphere.cpp)
         if(sP.T == 0) {
-           // If the user does *not* specify a temperature, it defaults to the ambient magnetospheric temperature
-           // (compare the corresponding handling in projects/Magnetosphere/Magnetosphere.cpp)
            Readparameters::get(pop + "_Magnetosphere.T", sP.T);
+        }
+        if(sP.rho == 0) {
+           Readparameters::get(pop + "_Magnetosphere.rho", sP.rho);
         }
         Readparameters::get(pop + "_Magnetosphere.nSpaceSamples", sP.nSpaceSamples);
         Readparameters::get(pop + "_Magnetosphere.nVelocitySamples", sP.nVelocitySamples);
