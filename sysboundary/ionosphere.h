@@ -62,7 +62,8 @@ namespace SBC {
       FixedMoments,      // Predefine temperature, density and V = 0 on the inner boundary.
       AverageMoments,    // Copy averaged density and temperature from nearest cells, V = 0 
       AverageAllMoments, // Same as above, but also copy V
-      CopyAndLosscone
+      CopyAndLosscone,
+      ForceL2EXB
    };
    extern IonosphereBoundaryVDFmode boundaryVDFmode;
 
@@ -444,6 +445,10 @@ namespace SBC {
          cint j,
          cint k,
          cuint& component
+      );
+      // Compute and store the EXB drift into the cell's BULKV_FORCING_X/Y/Z fields and set counter to 1
+      void mapCellPotentialAndGetEXBDrift(
+         std::array<Real, CellParams::N_SPATIAL_CELL_PARAMS>& cellParams
       );
       virtual void vlasovBoundaryCondition(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
