@@ -484,7 +484,7 @@ void calculateBVOLDerivatives(
    }
    
    // Calculate z-derivatives (is not TVD for AMR mesh):
-   if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY || technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) {
+   if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY || sysBoundaryLayer == 1) {
       left = volGrid.get(i,j,k-1);
       rght = volGrid.get(i,j,k+1);
       
