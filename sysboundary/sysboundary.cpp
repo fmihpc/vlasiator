@@ -343,6 +343,25 @@ bool SysBoundary::initSysBoundaries(Project& project, creal& t) {
    return success;
 }
 
+/*!\brief Boolean check if queried sysboundarycondition exists
+ * Note: this queries against the parsed list of names, not against the actual existing boundaries. 
+ * This is so that the project configuration (which is handled before grid and boundary initialization)
+ * can use this call.
+ *
+ * \param string name
+ * \retval success if queried boundary exists
+ * \sa addSysBoundary
+ */
+bool SysBoundary::existSysBoundary(std::string name) {
+   vector<string>::const_iterator it;
+   for (it = sysBoundaryCondList.begin(); it != sysBoundaryCondList.end(); it++) {
+      if ((*it) == name) {
+         return true;
+      }
+   }
+   return false;
+}
+
 bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) {
    // Verifies that all cells within FULL_NEIGHBORHOOD_ID of L1 boundary cells are on the same refinement
    // level (one group for inner boundary, another for outer boundary)
@@ -364,7 +383,7 @@ bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg:
             innerBoundaryRefLvl = mpiGrid.get_refinement_level(cellId);
             if (cell->sysBoundaryLayer == 1) {
                // Add all stencil neighbors of layer 1 cells
-               auto* nbrPairVector = mpiGrid.get_neighbors_of(cellId, SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
+               auto* nbrPairVector = mpiGrid.get_neighbors_of(cellId, SYSBOUNDARIES_NEIGHBORHOOD_ID);
                for (auto nbrPair : *nbrPairVector) {
                   if (nbrPair.first != INVALID_CELLID) {
                      innerBoundaryCells.insert(nbrPair.first);
@@ -376,7 +395,7 @@ bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg:
             outerBoundaryCells.insert(cellId);
             outerBoundaryRefLvl = mpiGrid.get_refinement_level(cellId);
             // Add all stencil neighbors of outer boundary cells
-            auto* nbrPairVector = mpiGrid.get_neighbors_of(cellId, SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
+            auto* nbrPairVector = mpiGrid.get_neighbors_of(cellId, SYSBOUNDARIES_NEIGHBORHOOD_ID);
             for (auto nbrPair : *nbrPairVector) {
                if (nbrPair.first != INVALID_CELLID) {
                   outerBoundaryCells.insert(nbrPair.first);

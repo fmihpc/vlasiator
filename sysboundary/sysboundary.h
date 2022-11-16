@@ -68,6 +68,7 @@ class SysBoundary {
                           Project& project,
                           creal& t
                          );
+   bool existSysBoundary(std::string name);
    bool checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
    bool classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
@@ -114,8 +115,5 @@ bool precedenceSort(const SBC::SysBoundaryCondition* first,
 bool getBoundaryCellList(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                          const std::vector<CellID>& cellList,
                          std::vector<CellID>& boundaryCellList);
-
-
-
 
 #endif
