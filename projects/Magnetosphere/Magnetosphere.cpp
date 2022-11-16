@@ -34,8 +34,9 @@
 #include "../../backgroundfield/vectordipole.hpp"
 #include "../../object_wrapper.h"
 #include "../../sysboundary/ionosphere.h"
-#include "../../fieldsolver/derivatives.hpp"
+
 #include "Magnetosphere.h"
+#include "../../fieldsolver/derivatives.hpp"
 
 using namespace std;
 using namespace spatial_cell;
@@ -103,6 +104,7 @@ namespace projects {
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
       Project::getParameters();
+      SysBoundary& sysBoundaryContainer = getObjectWrapper().sysBoundaryContainer;
 
       Real dummy;
       typedef Readparameters RP;
@@ -118,13 +120,13 @@ namespace projects {
       RP::get("Magnetosphere.dipoleType", this->dipoleType);
 
       /** Read inner boundary parameters from either ionospheric or conductingsphere sysboundary condition */
-      if (sysBoundaryWrapper.existSysBoundary("Conductingsphere")) {
+      if (sysBoundaryContainer.existSysBoundary("Conductingsphere")) {
          RP::get("conductingsphere.radius", this->ionosphereRadius);
          RP::get("conductingsphere.centerX", this->center[0]);
          RP::get("conductingsphere.centerY", this->center[1]);
          RP::get("conductingsphere.centerZ", this->center[2]);
          RP::get("conductingsphere.geometry", this->ionosphereGeometry);
-      } else if (sysBoundaryWrapper.existSysBoundary("Ionosphere")) {
+      } else if (sysBoundaryContainer.existSysBoundary("Ionosphere")) {
          RP::get("ionosphere.radius", this->ionosphereRadius);
          RP::get("ionosphere.centerX", this->center[0]);
          RP::get("ionosphere.centerY", this->center[1]);
@@ -182,13 +184,13 @@ namespace projects {
          RP::get(pop + "_Magnetosphere.nVelocitySamples", sP.nVelocitySamples);
 
          /** Read inner boundary parameters from either ionospheric or conductingsphere sysboundary condition */
-         if (sysBoundaryWrapper.existSysBoundary("Conductingsphere")) {
+         if (sysBoundaryContainer.existSysBoundary("Conductingsphere")) {
             RP::get(pop + "_conductingsphere.rho", sP.ionosphereRho);
             RP::get(pop + "_conductingsphere.T", sP.ionosphereT);
             RP::get(pop + "_conductingsphere.VX0", sP.ionosphereV0[0]);
             RP::get(pop + "_conductingsphere.VY0", sP.ionosphereV0[1]);
             RP::get(pop + "_conductingsphere.VZ0", sP.ionosphereV0[2]);
-         } else if (sysBoundaryWrapper.existSysBoundary("Ionosphere")) {
+         } else if (sysBoundaryContainer.existSysBoundary("Ionosphere")) {
             RP::get(pop + "_ionosphere.rho", sP.ionosphereRho);
             RP::get(pop + "_ionosphere.T", sP.ionosphereT);
             RP::get(pop + "_ionosphere.VX0", sP.ionosphereV0[0]);
@@ -225,9 +227,9 @@ namespace projects {
          }
          if(sP.ionosphereT == 0) {
             if(myRank == MASTER_RANK) {
-               if (sysBoundaryWrapper.existSysBoundary("Conductingsphere")) {
+               if (sysBoundaryContainer.existSysBoundary("Conductingsphere")) {
                   cerr << "Warning: " << pop << "_conductingsphere.T is zero (default), now setting to the same value as " << pop << "_Magnetosphere.T, that is " << sP.T << ". Set/change " << pop << "_conductingsphere.T if this is not the expected behavior." << endl;
-               } else if (sysBoundaryWrapper.existSysBoundary("Ionosphere")) {
+               } else if (sysBoundaryContainer.existSysBoundary("Ionosphere")) {
                   cerr << "Warning: " << pop << "_ionosphere.T is zero (default), now setting to the same value as " << pop << "_Magnetosphere.T, that is " << sP.T << ". Set/change " << pop << "_ionosphere.T if this is not the expected behavior." << endl;
                }
             }
@@ -235,9 +237,9 @@ namespace projects {
          }
          if(sP.ionosphereRho == 0) {
             if(myRank == MASTER_RANK) {
-               if (sysBoundaryWrapper.existSysBoundary("Conductingsphere")) {
+               if (sysBoundaryContainer.existSysBoundary("Conductingsphere")) {
                   cerr << "Warning: " << pop << "_conductingsphere.rho is zero (default), now setting to the same value as " << pop << "_Magnetosphere.rho, that is " << sP.rho << ". Set/change " << pop << "_conductingsphere.rho if this is not the expected behavior." << endl;
-               } else if (sysBoundaryWrapper.existSysBoundary("Ionosphere")) {
+               } else if (sysBoundaryContainer.existSysBoundary("Ionosphere")) {
                   cerr << "Warning: " << pop << "_ionosphere.rho is zero (default), now setting to the same value as " << pop << "_Magnetosphere.rho, that is " << sP.rho << ". Set/change " << pop << "_ionosphere.rho if this is not the expected behavior." << endl;
                }
             }

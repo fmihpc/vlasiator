@@ -118,7 +118,5 @@ namespace projects {
    }; // class Magnetosphere
 } // namespace projects
 
-extern SysBoundary sysBoundaryWrapper;
-
 #endif
 

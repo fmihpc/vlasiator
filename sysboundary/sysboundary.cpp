@@ -383,7 +383,7 @@ bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg:
             innerBoundaryRefLvl = mpiGrid.get_refinement_level(cellId);
             if (cell->sysBoundaryLayer == 1) {
                // Add all stencil neighbors of layer 1 cells
-               auto* nbrPairVector = mpiGrid.get_neighbors_of(cellId, SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
+               auto* nbrPairVector = mpiGrid.get_neighbors_of(cellId, SYSBOUNDARIES_NEIGHBORHOOD_ID);
                for (auto nbrPair : *nbrPairVector) {
                   if (nbrPair.first != INVALID_CELLID) {
                      innerBoundaryCells.insert(nbrPair.first);
@@ -395,7 +395,7 @@ bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg:
             outerBoundaryCells.insert(cellId);
             outerBoundaryRefLvl = mpiGrid.get_refinement_level(cellId);
             // Add all stencil neighbors of outer boundary cells
-            auto* nbrPairVector = mpiGrid.get_neighbors_of(cellId, SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
+            auto* nbrPairVector = mpiGrid.get_neighbors_of(cellId, SYSBOUNDARIES_NEIGHBORHOOD_ID);
             for (auto nbrPair : *nbrPairVector) {
                if (nbrPair.first != INVALID_CELLID) {
                   outerBoundaryCells.insert(nbrPair.first);
