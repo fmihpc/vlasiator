@@ -75,6 +75,10 @@ namespace SBC {
          creal& VZ
       );
       
+      virtual void mapCellPotentialAndGetEXBDrift(
+         std::array<Real, CellParams::N_SPATIAL_CELL_PARAMS>& cellParams
+      ) { std::cerr << "Error: SetMaxwellian::mapCellPotentialAndGetEXBDrift called!\n"; }
+
    };
 }
 

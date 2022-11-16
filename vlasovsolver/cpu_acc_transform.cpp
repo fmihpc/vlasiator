@@ -21,6 +21,8 @@
  */
 
 #include "../object_wrapper.h"
+#include "../sysboundary/sysboundary.h"
+
 #include "cpu_moments.h"
 #include "cpu_acc_transform.hpp"
 
@@ -147,7 +149,11 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
    }
 
    // If a bulk velocity is being forced here, perform that last, after things were gyrated in the Hall frame
-   if(spatial_cell->parameters[CellParams::FORCING_CELL_NUM] > 0) {
+   // If a cell is a remote L2 and was not caught in the loop over neighbours of L1 cells, compute its forcing here
+   if(spatial_cell->parameters[CellParams::FORCING_CELL_NUM] == 0) {
+      getObjectWrapper().sysBoundaryContainer.getSysBoundary(sysboundarytype::IONOSPHERE)->mapCellPotentialAndGetEXBDrift(spatial_cell->parameters); // This sets the FORCING_CELL_NUM to 1
+   }
+   if(spatial_cell->parameters[CellParams::FORCING_CELL_NUM] == 1) {
       Eigen::Matrix<Real,3,1> forced_bulkv(spatial_cell->parameters[CellParams::BULKV_FORCING_X],
                                            spatial_cell->parameters[CellParams::BULKV_FORCING_Y],
                                            spatial_cell->parameters[CellParams::BULKV_FORCING_Z]);

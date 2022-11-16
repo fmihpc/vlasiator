@@ -169,6 +169,11 @@ namespace SBC {
       uint nVelocitySamples;
       
       spatial_cell::SpatialCell templateCell;
+
+      virtual void mapCellPotentialAndGetEXBDrift(
+         std::array<Real, CellParams::N_SPATIAL_CELL_PARAMS>& cellParams
+      ) { std::cerr << "Error: Conductingsphere::mapCellPotentialAndGetEXBDrift called!\n"; }
+
    };
 }
 

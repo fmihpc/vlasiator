@@ -119,6 +119,9 @@ namespace SBC {
           const uint popID,
           const bool calculate_V_moments
       ) { std::cerr << "ERROR: DoNotCompute::vlasovBoundaryCondition called!" << std::endl;}
+      virtual void mapCellPotentialAndGetEXBDrift(
+         std::array<Real, CellParams::N_SPATIAL_CELL_PARAMS>& cellParams
+      ) { std::cerr << "Error: DoNotCompute::mapCellPotentialAndGetEXBDrift called!\n"; }
    };
 }
 
