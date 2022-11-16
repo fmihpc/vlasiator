@@ -134,7 +134,7 @@ namespace projects {
          RP::get("ionosphere.geometry", this->ionosphereGeometry);
       } else {
          if(myRank == MASTER_RANK) {
-            std::cerr<<"Warning in initializing Magnetosphere: Could not find inner boundary geometry!"<<std::endl;
+            std::cerr<<"Warning in initializing Magnetosphere: Could not find inner boundary (ionosphere or conductingsphere)!"<<std::endl;
          }
       }
       if(ionosphereRadius < 1000.) {
