@@ -144,7 +144,7 @@ std::vector<T> matrixVectorProduct(const std::vector<T>& M, const std::vector<T>
 
 
 template <typename T>
-__global__ void sparseMatrixVectorProduct(
+__global__ void preSparseMatrixVectorProduct(
     const size_t m,
     T const * const sparse_M,
     T const * const pre_b,
@@ -158,7 +158,7 @@ __global__ void sparseMatrixVectorProduct(
 }
 
 template<typename T>
-std::vector<T> sparseMatrixVectorProduct(
+std::vector<T> preSparseMatrixVectorProduct(
     const size_t n, const size_t m,    
     const std::vector<T>& sparse_M,
     const std::vector<size_t>& indecies,
@@ -177,18 +177,18 @@ std::vector<T> sparseMatrixVectorProduct(
     }();
 
 
-    auto sparse_A_pre_b_and_x_on_device = CudaArray<double>(height * m + height * m + height);
-    const T* sparse_A_device_p = sparse_A_pre_b_and_x_on_device.copy_vector_to_device_p(sparse_M, 0);
-    sparse_A_pre_b_and_x_on_device.zeroOutMemory(sparse_M.size(), n * height - sparse_M.size());
-    const T* pre_b_device_p = sparse_A_pre_b_and_x_on_device.copy_vector_to_device_p(pre_b, height * m);
-    sparse_A_pre_b_and_x_on_device.zeroOutMemory(height * m + height * m, n);
+    auto sparse_M_pre_b_and_x_on_device = CudaArray<double>(height * m + height * m + height);
+    const T* sparse_A_device_p = sparse_M_pre_b_and_x_on_device.copy_vector_to_device_p(sparse_M, 0);
+    sparse_M_pre_b_and_x_on_device.zeroOutMemory(sparse_M.size(), n * height - sparse_M.size());
+    const T* pre_b_device_p = sparse_M_pre_b_and_x_on_device.copy_vector_to_device_p(pre_b, height * m);
+    sparse_M_pre_b_and_x_on_device.zeroOutMemory(height * m + height * m, n);
     auto x_device_p = const_cast<T*>(pre_b_device_p + height * m);
 
     const auto blocks = height / 32;
     const auto threads_per_block = 32;
 
-    sparseMatrixVectorProduct<double><<<blocks, threads_per_block>>>(m, sparse_A_device_p, pre_b_device_p, x_device_p);
-    return sparse_A_pre_b_and_x_on_device.copy_data_to_host_vector(height * m + height * m, n);
+    preSparseMatrixVectorProduct<double><<<blocks, threads_per_block>>>(m, sparse_A_device_p, pre_b_device_p, x_device_p);
+    return sparse_M_pre_b_and_x_on_device.copy_data_to_host_vector(height * m + height * m, n);
 };
 /* 
 std::vector<double> Atimes(

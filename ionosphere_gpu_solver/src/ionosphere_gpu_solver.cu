@@ -6,7 +6,7 @@ template
 std::vector<double> ionogpu::matrixVectorProduct<double>(const std::vector<double>& M, const std::vector<double>& v);
 
 template
-std::vector<double> ionogpu::sparseMatrixVectorProduct<double>(
+std::vector<double> ionogpu::preSparseMatrixVectorProduct<double>(
     const size_t n, const size_t m,    
     const std::vector<double>& A,
     const std::vector<size_t>& indecies,

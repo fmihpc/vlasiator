@@ -135,7 +135,7 @@ auto main() -> int {
     const auto max_number_of_nonzero_elements_on_each_row = 32;
     const auto [indecies, sparse_M] = ionogpu::testing::create_sparse_matrix_from_dense_matrix(M, n, max_number_of_nonzero_elements_on_each_row);
     
-    const auto Mx = ionogpu::sparseMatrixVectorProduct<test_type>(n, max_number_of_nonzero_elements_on_each_row, sparse_M, indecies, x);
+    const auto Mx = ionogpu::preSparseMatrixVectorProduct<test_type>(n, max_number_of_nonzero_elements_on_each_row, sparse_M, indecies, x);
 
     const auto [absolute_error, relative_error] = ionogpu::testing::calculate_absolute_and_relative_error_of_range(Mx, Mx_correct);
     

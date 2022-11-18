@@ -19,7 +19,7 @@ namespace ionogpu {
       const std::vector<double>& b);
 
    template<typename T>
-   std::vector<T> sparseMatrixVectorProduct(
+   std::vector<T> preSparseMatrixVectorProduct(
     const size_t n, const size_t m,    
     const std::vector<T>& A,
     const std::vector<size_t>& indecies,
