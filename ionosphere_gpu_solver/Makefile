@@ -20,8 +20,9 @@ NAME        := libionosphere_gpu_solver.a
 SRC_SUFFIX  := cu
 
 SRC_DIR     := src
-SRCS        := ionosphere_gpu_solver.$(SRC_SUFFIX)
-SRCS        := $(SRCS:%=$(SRC_DIR)/%)
+SRCS        := ionosphere_gpu_solver
+# Add suffixes
+SRCS        := $(SRCS:%=$(SRC_DIR)/%.$(SRC_SUFFIX))
 
 BUILD_DIR   := .build
 OBJS        := $(SRCS:$(SRC_DIR)/%.$(SRC_SUFFIX)=$(BUILD_DIR)/%.o)

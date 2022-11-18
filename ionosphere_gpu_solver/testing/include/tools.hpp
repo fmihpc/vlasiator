@@ -9,7 +9,9 @@
 #include <algorithm>
 #include <ranges>
 #include <cmath>
-namespace iono_gpu {
+#include <cassert>
+#include <tuple>
+namespace ionogpu {
 namespace testing {
 
 template <typename... Args, std::invocable<Args...> F>
@@ -39,22 +41,27 @@ void benchmark_functions_with_parameters(
 }
 /**
  *  Intermediate values are stored in doubles.
+ *  Returns tuple of absolute and relative error
  */
 template <std::ranges::range R>
-void calculate_numerical_error_of_range(const R& v, const R& v_correct) {
+std::tuple<double, double> calculate_absolute_and_relative_error_of_range(const R& v, const R& v_correct) {
     auto total_absolute_error = double{ 0.0 };
     auto total_relative_error = double{ 0.0 };
     
-    if (v.size() != v_correct.size()) {
-        std::cout << "v (" << v.size() << ") and v_correct ("<< v_correct.size() << ") contain different amount of elements!";
-        return;
-    }
+    assert(v.size() == v_correct.size());
+    
     
     // Should be as follow in c++23  
     //for (const auto [x, x_correct] : std::ranges::views::zip(v, v_correct)) {
     for (size_t i = 0; i < v.size(); ++i) {
         const auto absolute_error = static_cast<double>(std::fabs(v[i] - v_correct[i]));
-        const auto relative_error = absolute_error / static_cast<double>(v_correct[i]);
+        const auto relative_error = [=]() -> double{
+            if (v_correct[i] == 0) {
+                return static_cast<bool>(v[i]);
+            } else {
+                return absolute_error / static_cast<double>(v_correct[i]);
+            }
+        }();
 
         total_absolute_error += absolute_error;
         total_relative_error += relative_error;
@@ -62,9 +69,29 @@ void calculate_numerical_error_of_range(const R& v, const R& v_correct) {
 
     const auto average_relative_error = total_relative_error / static_cast<double>(v.size());
     
-    std::cout << "Total absolute error: " << total_absolute_error << " Average relative error per element: " << average_relative_error << "\n";
+    return std::tuple{total_absolute_error, average_relative_error};
 }
 
+template <typename T>
+auto create_sparse_matrix_from_dense_matrix(
+    const std::vector<T>& M,
+    const size_t n,
+    const size_t max_num_of_nonzero_elements_on_each_row
+) -> std::tuple<std::vector<size_t>, std::vector<T>> {
+    auto sparse_M = std::vector<T>(n * max_num_of_nonzero_elements_on_each_row, 0);
+    auto indecies = std::vector<size_t>(n * max_num_of_nonzero_elements_on_each_row, 0);
+    for (size_t i = 0; i < n; ++i) {
+        auto nonzero_elements_on_this_row { 0 };
+        for (size_t j = 0; j < n; ++j) {
+            if (M[i * n + j] != 0) {
+                sparse_M[i * max_num_of_nonzero_elements_on_each_row + nonzero_elements_on_this_row] = M[i * n + j];
+                indecies[i * max_num_of_nonzero_elements_on_each_row + nonzero_elements_on_this_row] = j;
+                ++nonzero_elements_on_this_row;
+            }
+        }
+    }
+    return std::tuple {std::move(indecies), std::move(sparse_M)};
+}
 
 }
 }
