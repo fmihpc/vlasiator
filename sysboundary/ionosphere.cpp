@@ -42,7 +42,7 @@
 #include "vector3d.h"
 
 #ifdef IONOSPHERE_GPU_ON 
-#include "../ionosphere_gpu_solver/ionosphere_solver.hpp"
+#include "../ionosphere_gpu_solver/include/ionosphere_gpu_solver.hpp"
 #endif
 
 #if VECTORCLASS_H >= 200
@@ -82,6 +82,7 @@ template<class T> std::array<Real, 3> getFractionalFsGridCellForCoord(T& grid, c
    retval[2] = (x[2] - grid.physicalGlobalStart[2]) / grid.DZ - fsgridCell[2];
    return retval;
 }
+
 
 namespace SBC {
 
@@ -2419,17 +2420,49 @@ namespace SBC {
       nIterations = 0;
       nRestarts = 0;
       
+#ifdef IONOSPHERE_GPU_ON
+      auto gatherDependingMatrix = [&] () {
+         const auto n = nodes.size();
+         auto A = ionogpu::SparseMatrix<decltype(Node::dependingCoeffs)::value_type, decltype(Node::dependingNodes)::value_type, MAX_DEPENDING_NODES>(n);
+         for (size_t i = 0; i < n; ++i) {
+            A.rows[i] = nodes[i].dependingCoeffs; 
+            A.indecies[i] = nodes[i].dependingNodes; 
+            A.elements_on_each_row[i] = nodes[i].numDepNodes;
+
+         }
+         return A;
+      };
+
+      auto gatherSource = [&] () {
+         const auto n = nodes.size();
+         std::vector<double> b(n);
+         for (size_t i = 0; i < n; ++i) {
+            b[n] = nodes[i].parameters[ionosphereParameters::SOURCE];
+         }
+         return b;
+      };
+
+      const auto A = gatherDependingMatrix();
+      const auto b = gatherSource();
+      for (const auto & n : nodes) {
+         for (const auto x : n.dependingNodes) {
+            std::cout << x << " ";
+         }
+         std::cout << "A\n";
+      }
+
+      for (const auto ind : A.indecies) {
+         for (const auto x : ind) {
+            std::cout << x << " ";
+         }
+         std::cout << "B\n";
+      }
+      solveIonospherePotentialGPU(A, b, 10, 10);
+#endif 
+
+     
       do {
 #ifdef IONOSPHERE_GPU_ON 
-        const auto M  = std::vector<double>{ 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-        const auto v = std::vector<double> { 1, 2, 3 };
-        
-        const auto Mv = ionogpu::MatrixVectorProduct(M, v);
-        
-        for (const auto x : Mv) {
-            std::cout << x << " ";
-        }
-        std::cout << "\n"; 
 #else
          solveInternal(nIterations, nRestarts, residual, minPotentialN, maxPotentialN, minPotentialS, maxPotentialS);
 #endif

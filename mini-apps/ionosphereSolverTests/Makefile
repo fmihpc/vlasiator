@@ -10,8 +10,7 @@ LIBS += ${LIB_ZOLTAN}
 LIBS += ${LIB_VLSV}
 
 ifdef IONO_GPU
-LIBS += ../../ionosphere_gpu_solver/ionosphere_gpu_solver.a
-LIBS += -lcudart
+LIBS += -lcudart -L../../ionosphere_gpu_solver -lionosphere_gpu_solver 
 CXXFLAGS += -DIONOSPHERE_GPU_ON
 endif
 
