@@ -12,6 +12,13 @@ std::vector<double> ionogpu::preSparseMatrixVectorProduct<double>(
     const std::vector<size_t>& indecies,
     const std::vector<double>& b);
 
+template
+std::vector<double> ionogpu::sparseMatrixVectorProduct<double>(
+    const size_t n, const size_t m,    
+    const std::vector<double>& A,
+    const std::vector<size_t>& indecies,
+    const std::vector<double>& b);
+
 
 std::vector<double> ionogpu::sparsebcgCUDA(
         const size_t n, const size_t m,    

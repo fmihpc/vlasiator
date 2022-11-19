@@ -10,7 +10,8 @@ tests += {
     'create_sparse_matrix_1' : [files('create_sparse_matrix_1.cpp')],
     'create_sparse_matrix_2' : [files('create_sparse_matrix_2.cpp')],
     'matrix_vector_product_cuda_1' : [files('matrix_vector_product_cuda_1.cpp')],
-    'sparse_matrix_vector_product_cuda_1' : [files('sparse_matrix_vector_product_cuda_1.cpp')]
+    'sparse_matrix_vector_product_cuda_1' : [files('sparse_matrix_vector_product_cuda_1.cpp')],
+    'sparse_matrix_vector_product_cuda_2' : [files('sparse_matrix_vector_product_cuda_2.cpp')]
 }
 
 test_names_and_exes = {}

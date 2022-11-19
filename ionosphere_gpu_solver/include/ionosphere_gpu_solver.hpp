@@ -24,6 +24,13 @@ namespace ionogpu {
     const std::vector<T>& A,
     const std::vector<size_t>& indecies,
     const std::vector<T>& b);
+   template<typename T>
+
+   std::vector<T> sparseMatrixVectorProduct(
+    const size_t n, const size_t m,    
+    const std::vector<T>& A,
+    const std::vector<size_t>& indecies,
+    const std::vector<T>& b);
 
    template <typename F, typename I, size_t MAX_WIDTH> 
    struct SparseMatrix {

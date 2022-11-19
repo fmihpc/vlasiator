@@ -3,12 +3,15 @@
 #include <cuda.h>
 #include <vector>
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <iostream>
+#include <initializer_list>
+#include <numeric>
 #include "ionosphere_gpu_solver.hpp"
 namespace ionogpu {
     
-template <typename T>
+template <typename T, size_t N = 0>
 class CudaArray {
     size_t size_;
     T* data_;
@@ -16,10 +19,48 @@ class CudaArray {
     size_t size_in_bytes_() const {
         return sizeof(T) * size_;
     }
-    public:
+
+    std::array<T*, N> pointers_to_data_;
+    
+public:
+
+    struct PaddedVec {
+        const std::vector<T>& vec;
+        size_t minimun_size;        
+        bool zero_out_rest = false;
+
+        size_t size() const noexcept {
+            return std::max(vec.size(), minimun_size);
+        }
+    };
+
     CudaArray(const size_t size) : size_{size} {
         cudaMalloc((void**)&data_, size_in_bytes_());
     }
+
+    CudaArray(std::initializer_list<PaddedVec> padded_vecs)
+     : size_ {std::accumulate(padded_vecs.begin(), padded_vecs.end(), size_t{ 0 },
+        [] (const auto s, const auto& padded_vec) noexcept -> size_t {
+            return s + padded_vec.size();
+        }
+        )} {
+
+        cudaMalloc((void**)&data_, size_in_bytes_());
+        auto pointers_to_data = std::vector<T*> {};
+        size_t current_place = 0;
+        for (const auto& padded_vec : padded_vecs) {
+            pointers_to_data.push_back(copy_vector_to_device_p(padded_vec.vec, current_place));
+            if (padded_vec.zero_out_rest) {
+                zeroOutMemory(current_place + padded_vec.vec.size(), padded_vec.size() - padded_vec.vec.size());
+            }
+            current_place += std::max(padded_vec.vec.size(), padded_vec.minimun_size);
+        }
+
+        assert(N == padded_vecs.size());
+        std::copy(pointers_to_data.begin(), pointers_to_data.end(), pointers_to_data_.begin());
+        
+    }
+
     ~CudaArray() {
         cudaFree(data_);
     }
@@ -94,6 +135,12 @@ class CudaArray {
         cudaMemcpy(temp_vector.data(), data_ + offset_in_elements, size_in_elements * sizeof(T), cudaMemcpyDeviceToHost);
         return temp_vector;
     }
+    std::vector<T> copy_data_to_host_vector(const T* place, const size_t size_in_elements) const {
+        return copy_data_to_host_vector(static_cast<size_t>(place - data_), size_in_elements);
+    }
+    std::array<T*, N> get_pointers_to_data() const noexcept {
+        return pointers_to_data_;
+    }
 
     /**
     * Constructor to create CudaArray from vector and order/multiply elements based on SparseMatrix indecies
@@ -124,21 +171,19 @@ std::vector<T> matrixVectorProduct(const std::vector<T>& M, const std::vector<T>
     const auto height = ((v.size() / 32) + 1) * 32;
     const auto width = v.size();
 
-    auto M_v_and_Mv_on_device = CudaArray<T>(height * width + width + height);
-    
-    M_v_and_Mv_on_device.copy_data_to_device(M.data(), 0, M.size());
-    M_v_and_Mv_on_device.copy_data_to_device(v.data(), width * height, v.size());
-    // We zero out Mv but also the badded part of v
-    M_v_and_Mv_on_device.zeroOutMemory(width * height + width, height);
-   
+    const auto M_v_and_Mv_on_device = CudaArray<T, 3> {
+        {M, width * height},
+        {v, width, true},
+        {{}, height, true}
+    };
+
+    const auto [M_device_p, v_device_p, Mv_device_p] = M_v_and_Mv_on_device.get_pointers_to_data();
+
     const auto blocks = height / 32; 
     const auto threads_per_block = 32;
-    
-    auto M_device_p = M_v_and_Mv_on_device.data();
-    auto v_device_p = M_device_p + width * height;
-    auto Mv_device_p = v_device_p + width;
+ 
     matrixVectorProduct<double><<<blocks, threads_per_block>>>(M_device_p, v_device_p, Mv_device_p, width); 
-    return M_v_and_Mv_on_device.copy_data_to_host_vector(width * height + width, v.size());  
+    return M_v_and_Mv_on_device.copy_data_to_host_vector(Mv_device_p, v.size());  
     
 }
 
@@ -170,32 +215,79 @@ std::vector<T> preSparseMatrixVectorProduct(
 
     const auto height = ((n / 32) + 1) * 32;
 
-    const auto pre_b = [&] () {
+    const auto pre_b = [=, &b] {
         auto temp  = std::vector<T>(n * m);
-        std::transform(indecies.begin(), indecies.end(), temp.begin(), [&](const auto i) noexcept {return b[i];});
+        std::transform(indecies.begin(), indecies.end(), temp.begin(), [&b](const auto i) noexcept {return b[i];});
         return temp;
     }();
 
+    
+    const auto sparse_M_pre_b_and_x_on_device = CudaArray<double, 3> {
+        {sparse_M, height * m, true},
+        {pre_b, height * m},
+        {{}, n, true}
+    };
 
-    auto sparse_M_pre_b_and_x_on_device = CudaArray<double>(height * m + height * m + height);
-    const T* sparse_A_device_p = sparse_M_pre_b_and_x_on_device.copy_vector_to_device_p(sparse_M, 0);
-    sparse_M_pre_b_and_x_on_device.zeroOutMemory(sparse_M.size(), n * height - sparse_M.size());
-    const T* pre_b_device_p = sparse_M_pre_b_and_x_on_device.copy_vector_to_device_p(pre_b, height * m);
-    sparse_M_pre_b_and_x_on_device.zeroOutMemory(height * m + height * m, n);
-    auto x_device_p = const_cast<T*>(pre_b_device_p + height * m);
+    const auto [sparse_A_device_p, pre_b_device_p, x_device_p] = sparse_M_pre_b_and_x_on_device.get_pointers_to_data();
 
     const auto blocks = height / 32;
     const auto threads_per_block = 32;
 
     preSparseMatrixVectorProduct<double><<<blocks, threads_per_block>>>(m, sparse_A_device_p, pre_b_device_p, x_device_p);
-    return sparse_M_pre_b_and_x_on_device.copy_data_to_host_vector(height * m + height * m, n);
+    return sparse_M_pre_b_and_x_on_device.copy_data_to_host_vector(x_device_p, n);
 };
-/* 
-std::vector<double> Atimes(
+
+
+template <typename T>
+__global__ void sparseMatrixVectorProduct(
+    const size_t m,
+    T const * const sparse_M,
+    size_t const * const indecies,
+    T const * const b,
+    T* x
+) {
+    const auto i = blockDim.x * blockIdx.x + threadIdx.x;
+
+    for (size_t j = 0; j < m; ++j) {
+        x[i] += sparse_M[i * m + j] * b[indecies[i * m + j]];
+    }
+}
+
+template<typename T>
+std::vector<T> sparseMatrixVectorProduct(
     const size_t n, const size_t m,    
-    const std::vector<double>& A,
+    const std::vector<T>& sparse_M,
     const std::vector<size_t>& indecies,
-    const std::vector<double>& b
-);
- */
+    const std::vector<T>& b
+) {
+    assert(sparse_M.size() == n * m);
+    assert(indecies.size() == n * m);
+    assert(b.size() == n);
+
+    const auto height = ((n / 32) + 1) * 32;
+
+
+    const auto sparse_M_b_and_x_on_device = CudaArray<double, 3> {
+        {sparse_M, height * m, true},
+        {b, height},
+        {{}, height}
+    };
+
+    const auto [sparse_A_device_p, b_device_p, x_device_p] = sparse_M_b_and_x_on_device.get_pointers_to_data();
+
+    const auto indecies_on_device = CudaArray<size_t, 1> {
+        {indecies, height * m}
+    };
+
+    const auto [indecies_device_p] = indecies_on_device.get_pointers_to_data();
+
+    const auto blocks = height / 32;
+    const auto threads_per_block = 32;
+
+    sparseMatrixVectorProduct<double><<<blocks, threads_per_block>>>(m, sparse_A_device_p, indecies_device_p, b_device_p, x_device_p);
+    return sparse_M_b_and_x_on_device.copy_data_to_host_vector(x_device_p, n);
+};
+
+
+ 
 }
