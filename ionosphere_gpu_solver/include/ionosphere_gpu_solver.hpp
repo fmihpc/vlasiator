@@ -49,7 +49,7 @@ namespace ionogpu {
 
    /** 
     *  This function will be called in ionosphere.cpp
-    *  We use SparseMatrix as interface function to ionogpu library
+    *  We use SparseMatrix as interface object to ionogpu library
     *  This might change later.
     */
 
