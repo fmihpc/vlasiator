@@ -80,8 +80,8 @@ typename std::enable_if<I == 1, std::tuple<bool, double, double>>::type test(){
   constexpr uint n_redu = 5;
   volatile uint size = 1e6;
   const uint ni = size, nj = size;
-  uint sum_arch[n_redu] = {};
-  uint sum_host[n_redu] = {};
+  uint sum_arch[n_redu] = {1, 3, 5, 7, 9};
+  uint sum_host[n_redu] = {1, 3, 5, 7, 9};
 
   clock_t arch_start = clock();
   arch::parallel_reduce<arch::sum>({ni, nj}, 
@@ -111,8 +111,8 @@ typename std::enable_if<I == 2, std::tuple<bool, double, double>>::type test(){
   constexpr uint n_redu = 5;
   volatile uint size = 1e6;
   const uint ni = size, nj = size;
-  uint sum_arch[n_redu] = {};
-  uint sum_host[n_redu] = {};
+  uint sum_arch[n_redu] = {11, 22, 33, 44, 55};
+  uint sum_host[n_redu] = {11, 22, 33, 44, 55};
   
   clock_t arch_start = clock();
   arch::parallel_reduce<arch::sum>({ni, nj}, 

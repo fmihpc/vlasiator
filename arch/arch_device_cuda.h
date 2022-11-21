@@ -124,49 +124,54 @@ reduction_kernel(Lambda loop_body, const T * __restrict__ init_val, T * __restri
   /* Get the global 1D thread index*/
   const uint idx_glob = blockIdx.x * blockDim.x + threadIdx.x;
 
-  /* Check the loop limits*/
-  if (idx_glob < n_total) {
-
-    /* Static thread data declaration */
-    T thread_data_static[size];
-
-    /* Assign a pointer to the thread data (dynamic or static case)*/
-    T *thread_data = NReduStatic ? thread_data_static : &thread_data_dynamic[n_redu_dynamic * idx_glob];
+  /* Static thread data declaration */
+  T thread_data_static[size];
   
-    /* Get the number of reductions (may be known at compile time or not) */
-    const uint n_reductions = NReduStatic ? NReduStatic : n_redu_dynamic;  
-    for(uint i = 0; i < n_reductions; i++)
+  /* Assign a pointer to the thread data (dynamic or static case)*/
+  T *thread_data = NReduStatic ? thread_data_static : &thread_data_dynamic[n_redu_dynamic * idx_glob];
+
+  /* Get the number of reductions (may be known at compile time or not) */
+  const uint n_reductions = NReduStatic ? NReduStatic : n_redu_dynamic;  
+  
+  /* Set initial values */
+  for(uint i = 0; i < n_reductions; i++){
+    if (Op == reduce_op::sum)
+      thread_data[i] = 0;
+    else
       thread_data[i] = init_val[i];
-  
-    /* Evaluate the loop body */
+  }
+
+  /* Check the loop limits and evaluate the loop body */
+  if (idx_glob < n_total)
     loop_eval<NDim>(idx_glob, lims, thread_data, loop_body);
   
-    /* Perform reductions */
-    for(uint i = 0; i < n_reductions; i++){
-      /* Compute the block-wide sum for thread 0 which stores it */
-      if(Op == reduce_op::sum){
-        T aggregate = BlockReduce(temp_storage[i]).Sum(thread_data[i]);
-        /* The first thread of each block stores the block-wide aggregate atomically */
-        if(threadIdx.x == 0) 
-          atomicAdd(&rslt[i], aggregate);
-      }
-      else if(Op == reduce_op::max){
-        T aggregate = BlockReduce(temp_storage[i]).Reduce(thread_data[i], cub::Max()); 
-        if(threadIdx.x == 0) 
-          atomicMax(&rslt[i], aggregate);
-      }
-      else if(Op == reduce_op::min){
-        T aggregate = BlockReduce(temp_storage[i]).Reduce(thread_data[i], cub::Min());
-        if(threadIdx.x == 0) 
-          atomicMin(&rslt[i], aggregate);
-      }
-      else
-        /* Other reduction operations are not supported - print an error message */
-        if(threadIdx.x == 0) 
-          printf("ERROR at %s:%d: Invalid reduction identifier \"Op\".", __FILE__, __LINE__);
+  /* Perform reductions */
+  for(uint i = 0; i < n_reductions; i++){
+    /* Compute the block-wide sum for thread 0 which stores it */
+    if(Op == reduce_op::sum){
+      T aggregate = BlockReduce(temp_storage[i]).Sum(thread_data[i]);
+      /* The first thread of each block stores the block-wide aggregate atomically */
+      if(threadIdx.x == 0) 
+        atomicAdd(&rslt[i], aggregate);
     }
+    else if(Op == reduce_op::max){
+      T aggregate = BlockReduce(temp_storage[i]).Reduce(thread_data[i], cub::Max()); 
+      if(threadIdx.x == 0) 
+        atomicMax(&rslt[i], aggregate);
+    }
+    else if(Op == reduce_op::min){
+      T aggregate = BlockReduce(temp_storage[i]).Reduce(thread_data[i], cub::Min());
+      if(threadIdx.x == 0) 
+        atomicMin(&rslt[i], aggregate);
+    }
+    else
+      /* Other reduction operations are not supported - print an error message */
+      if(threadIdx.x == 0) 
+        printf("ERROR at %s:%d: Invalid reduction identifier \"Op\".", __FILE__, __LINE__);
   }
 }
+  
+
 
 /* Parallel reduce driver function for the CUDA reductions */
 template <reduce_op Op, uint NReduStatic, uint NDim, typename Lambda, typename T>
@@ -210,7 +215,7 @@ __forceinline__ static void parallel_reduce_driver(const uint (&limits)[NDim], L
     /* Get the cub temp storage size for the dynamic shared memory kernel argument */
     constexpr auto cub_temp_storage_type_size = sizeof(typename cub::BlockReduce<T, ARCH_BLOCKSIZE_R, cub::BLOCK_REDUCE_RAKING_COMMUTATIVE_ONLY, 1, 1>::TempStorage);
     /* Allocate memory for the thread data values */
-    CUDA_ERR(cudaMallocAsync(&d_thread_data_dynamic, n_reductions * n_total * sizeof(T), 0));
+    CUDA_ERR(cudaMallocAsync(&d_thread_data_dynamic, n_reductions * blocksize * gridsize * sizeof(T), 0));
     /* Call the kernel (the number of reductions not known at compile time) */
     reduction_kernel<Op, NDim, 0><<<gridsize, blocksize, n_reductions * cub_temp_storage_type_size>>>(loop_body, d_const_buf, d_buf, d_limits, n_total, n_reductions, d_thread_data_dynamic);
     /* Synchronize and free the thread data allocation */
