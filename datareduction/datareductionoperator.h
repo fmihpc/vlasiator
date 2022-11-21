@@ -624,6 +624,27 @@ namespace DRO {
       std::vector<Real> channels, dataDiffFlux;
    };
 
+   // Precipitation directional differential number flux, with cut Cells for higher effective resolution
+   class VariablePrecipitationDiffFluxCutCells: public DataReductionOperatorHasParameters {
+   public:
+      VariablePrecipitationDiffFluxCutCells(cuint popID);
+      virtual ~VariablePrecipitationDiffFluxCutCells();
+      
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual std::string getName() const;
+      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool setSpatialCell(const SpatialCell* cell);
+      virtual bool writeParameters(vlsv::Writer& vlsvWriter);
+      
+   protected:
+      uint popID;
+      std::string popName;
+      int nChannels;
+      Real emin, emax;
+      Real lossConeAngle;
+      std::vector<Real> channels, dataDiffFlux;
+   };
+
    class JPerBModifier: public DataReductionOperatorHasParameters {
    public:
       virtual bool reduceData(const SpatialCell* cell,char* buffer) {return true;}

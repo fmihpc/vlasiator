@@ -1627,6 +1627,228 @@ namespace DRO {
       return true;
    }
 
+   /*! \brief Precipitation directional differential number flux with cut cells
+    * Evaluation of the precipitating differential flux (per population).
+    * In a selected number (default: 16) of logarithmically spaced energy bins, the average of
+    *      V*V/mass
+    * is calculated within the loss cone of fixed angular opening (default: 10 deg).
+    * The differential flux is converted in part. / cm^2 / s / sr / eV (unit used by observers).
+    * Parameters that can be set in cfg file under [{species}_precipitation]: nChannels, emin [eV], emax [eV], lossConeAngle [deg]
+    * The energy channels are saved in bulk files as PrecipitationCentreEnergy{channel_number}.
+    *
+    * Note that the only difference between this and VariablePrecipitationDiffFlux above is how
+    * cells that are partially intersected by the loss cone are counted: the above version simply
+    * excludes them from the count, where as this version octree-subdivides them and measures the
+    * partial coverage amount.
+    */
+   VariablePrecipitationDiffFluxCutCells::VariablePrecipitationDiffFluxCutCells(cuint _popID): DataReductionOperatorHasParameters(),popID(_popID) {
+      popName = getObjectWrapper().particleSpecies[popID].name;
+      lossConeAngle = getObjectWrapper().particleSpecies[popID].precipitationLossConeAngle; // deg
+      emin = getObjectWrapper().particleSpecies[popID].precipitationEmin;    // already converted to SI
+      emax = getObjectWrapper().particleSpecies[popID].precipitationEmax;    // already converted to SI
+      nChannels = getObjectWrapper().particleSpecies[popID].precipitationNChannels; // number of energy channels, logarithmically spaced between emin and emax
+      for (int i=0; i<nChannels; i++){
+         channels.push_back(emin * pow(emax/emin,(Real)i/(nChannels-1)));
+      }
+   }
+   VariablePrecipitationDiffFluxCutCells::~VariablePrecipitationDiffFluxCutCells() { }
+   
+   std::string VariablePrecipitationDiffFluxCutCells::getName() const {return popName + "/vg_precipitationdifferentialflux_cutcells";}
+   
+   bool VariablePrecipitationDiffFluxCutCells::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = nChannels; //Number of energy channels
+      return true;
+   }
+   
+   bool VariablePrecipitationDiffFluxCutCells::reduceData(const SpatialCell* cell,char* buffer) {
+
+      dataDiffFlux.assign(nChannels,0.0);
+
+      std::vector<Real> sumWeights(nChannels,0.0);
+
+      std::array<Real,3> B;
+      B[0] = cell->parameters[CellParams::PERBXVOL] +  cell->parameters[CellParams::BGBXVOL];
+      B[1] = cell->parameters[CellParams::PERBYVOL] +  cell->parameters[CellParams::BGBYVOL];
+      B[2] = cell->parameters[CellParams::PERBZVOL] +  cell->parameters[CellParams::BGBZVOL];
+
+      Real cosAngle = cos(lossConeAngle*M_PI/180.0); // cosine of fixed loss cone angle
+
+      // Unit B-field direction
+      creal normB = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
+      std::array<Real,3> b_unit;
+      for (uint i=0; i<3; i++){
+         B[i] /= normB;
+      }
+
+      // If southern hemisphere, loss cone is around -B
+      if (cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ] < 0.0){
+         for (uint i=0; i<3; i++){
+            B[i] = -B[i];
+         }
+      }
+
+      // Signed distance function of the loss cone.
+      // Adapted from https://mercury.sexy/hg_sdf/
+      // Returns distance from the point p to the cone surface.
+      // Positive values: outside of the cone
+      // Negative values: inside of the cone
+      std::function<Real(std::array<Real,3>)> coneSDF = [&B,cosAngle](std::array<Real,3> p) -> Real {
+
+         Real pDotB = B[0]*p[0] + B[1]*p[1] + B[2]*p[2];
+         Real pCrossB = sqrt(p[0]*p[0] + p[1]*p[1] + p[2]*p[2] - pDotB*pDotB);
+
+         // Go to 2D coordinate system, where y is along cone direction and tip is at 0,0
+         std::array<Real,2> q = {pCrossB, pDotB};
+         std::array<Real,2> mantleDir = {sqrt(1 - cosAngle*cosAngle), cosAngle};
+
+         // Are we in front of, or behind the tip?
+         Real projected = q[0]*mantleDir[1] + q[1]*-mantleDir[0];
+
+         // Distance to mantle
+         Real distance = q[0]*mantleDir[0] + q[1] * mantleDir[1];
+         // Distance to tip
+         if(q[1] < 0 && projected < 0) {
+            distance = std::max(distance, sqrt(q[0]*q[0]+q[1]*q[1]));
+         }
+
+         return distance;
+      };
+
+      // Determine how much the (sub) cell at centre point v with extents dv
+      // is overlapped by the loss cone, by recursive (octree) subdivision.
+      std::function<Real(std::array<Real,3>, Real, int)> coneCoverage = [&coneSDF,&coneCoverage](std::array<Real,3> v, Real dv, int maxIteration) -> Real {
+         Real lossconeDistance = coneSDF(v);
+         // Square of spatial diagonal of half a cell.
+         Real diagonalSqr = 0.25*(3*dv*dv); 
+
+         // If we are more than one cell diagonal distance away from the loss cone boundary,
+         // we are either fully outside or fully inside
+         if(lossconeDistance*lossconeDistance > diagonalSqr) {
+            if(lossconeDistance > 0) {
+               return 0.;
+            } else {
+               return 1.;
+            }
+         }
+
+         // If our iterations are exhausted, return coverage approximation from the SDF distance.
+         if(maxIteration==0) {
+            Real diagonalLength = sqrt(diagonalSqr);
+            // Percentage of the equivalent sphere that is covered by the cone
+            // (if distance = 0, => 50% cover.
+            //  if distance = diagonal, 0% cover.
+            //  if distance = -diagonal, 100% cover)
+            Real cover = 0.5 * (diagonalLength - lossconeDistance) / diagonalLength;
+            cover = std::max(0.,cover);
+            cover = std::min(1.,cover);
+            return cover;
+         }
+
+         // Otherwise, split the cell and continue recursively.
+         Real result = 0.;
+         std::array<Real, 3> newV = v;
+         Real newDv=0.5 * dv;
+         newV[0]+= 0.25*dv;
+         newV[1]+= 0.25*dv;
+         newV[2]+= 0.25*dv;
+         result += coneCoverage(newV, newDv, maxIteration-1) / 8;
+         newV[0]-= 0.5*dv;
+         result += coneCoverage(newV, newDv, maxIteration-1) / 8;
+         newV[1]-= 0.5*dv;
+         result += coneCoverage(newV, newDv, maxIteration-1) / 8;
+         newV[0]+= 0.5*dv;
+         result += coneCoverage(newV, newDv, maxIteration-1) / 8;
+         newV[2]-= 0.5*dv;
+         result += coneCoverage(newV, newDv, maxIteration-1) / 8;
+         newV[0]-= 0.5*dv;
+         result += coneCoverage(newV, newDv, maxIteration-1) / 8;
+         newV[1]+= 0.5*dv;
+         result += coneCoverage(newV, newDv, maxIteration-1) / 8;
+         newV[0]+= 0.5*dv;
+         result += coneCoverage(newV, newDv, maxIteration-1) / 8;
+         return result;
+      };
+
+
+      # pragma omp parallel
+      {
+         std::vector<Real> thread_lossCone_sum(nChannels,0.0);
+         std::vector<Real> thread_count(nChannels,0.0);
+         
+         const Real* parameters  = cell->get_block_parameters(popID);
+         const Realf* block_data = cell->get_data(popID);
+         
+         # pragma omp for
+         for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); n++) {
+            for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
+               const Real VX 
+                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+                  + (i + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+               const Real VY 
+                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
+                  + (j + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+               const Real VZ 
+                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] 
+                  + (k + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+
+               const Real DV3 
+                  = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
+                  * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] 
+                  * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+
+               const Real normV = sqrt(VX*VX + VY*VY + VZ*VZ);
+               Real countAndGate = coneCoverage({VX,VY,VZ}, parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX], 6);
+               const Real energy = 0.5 * getObjectWrapper().particleSpecies[popID].mass * normV*normV; // in SI
+
+               // Find the correct energy bin number to update
+               int binNumber = round((log(energy) - log(emin)) / log(emax/emin) * (nChannels-1));
+               binNumber = max(binNumber,0); // anything < emin goes to the lowest channel
+               binNumber = min(binNumber,nChannels-1); // anything > emax goes to the highest channel
+
+               thread_lossCone_sum[binNumber] += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * countAndGate * normV*normV * DV3;
+               thread_count[binNumber] += countAndGate * DV3;
+            }
+         }
+
+         // Accumulate contributions coming from this velocity block to the 
+         // spatial cell velocity moments. If multithreading / OpenMP is used, 
+         // these updates need to be atomic:
+         # pragma omp critical
+         {
+            for (int i=0; i<nChannels; i++) {
+               dataDiffFlux[i] += thread_lossCone_sum[i];
+               sumWeights[i] += thread_count[i];
+            }
+         }
+      }
+
+      // Averaging within each bin and conversion to unit of part. cm-2 s-1 sr-1 ev-1
+      for (int i=0; i<nChannels; i++) {
+         if (sumWeights[i] != 0) {
+            dataDiffFlux[i] *= 1.0 / (getObjectWrapper().particleSpecies[popID].mass * sumWeights[i]) * physicalconstants::CHARGE * 1.0e-4;
+         }
+      }
+
+      const char* ptr = reinterpret_cast<const char*>(dataDiffFlux.data());
+      for (uint i = 0; i < nChannels*sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
+   bool VariablePrecipitationDiffFluxCutCells::setSpatialCell(const SpatialCell* cell) {
+      return true;
+   }
+
+   bool VariablePrecipitationDiffFluxCutCells::writeParameters(vlsv::Writer& vlsvWriter) {
+      for (int i=0; i<nChannels; i++) {
+         const Real channelev = channels[i]/physicalconstants::CHARGE; // in eV
+         if( vlsvWriter.writeParameter(popName+"_PrecipitationCentreEnergyCutCells"+std::to_string(i), &channelev) == false ) { return false; }
+      }
+      if( vlsvWriter.writeParameter(popName+"_LossConeAngleCutCells", &lossConeAngle) == false ) { return false; }
+      return true;
+   }
+
    /*! \brief Energy density
     * Calculates the energy density of particles in three bins: total energy density, above E1limit*solar wind energy, and above E2limit*solar wind energy
     * Energy densities are given in eV/cm^3.

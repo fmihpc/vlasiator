@@ -421,6 +421,18 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          continue;
       }
+      if(lowercase == "populations_precipitationfluxcutcells" || lowercase == "populations_vg_precipitationdifferentialfluxcutcells" || lowercase == "populations_precipitationdifferentialfluxcutcells") {
+         // Per-population precipitation differential flux
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            species::Species& species=getObjectWrapper().particleSpecies[i];
+            const std::string& pop = species.name;
+            outputReducer->addOperator(new DRO::VariablePrecipitationDiffFluxCutCells(i));
+	    std::stringstream conversion;
+	    conversion << (1.0e-4)*physicalconstants::CHARGE;
+	    outputReducer->addMetadata(outputReducer->size()-1,"1/(cm^2 sr s eV)","$\\mathrm{cm}^{-2}\\,\\mathrm{sr}^{-1}\\,\\mathrm{s}^{-1}\\,\\mathrm{eV}^{-1}$","$\\mathcal{F}_\\mathrm{"+pop+"}$",conversion.str());
+         }
+         continue;
+      }
       if(lowercase == "populations_heatflux" || lowercase == "populations_vg_heatflux") {
          // Per-population heat flux vector
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
