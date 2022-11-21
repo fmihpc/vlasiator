@@ -430,9 +430,13 @@ void calculateDerivativesSimple(
 }
 
 /*! \brief Low-level spatial derivatives calculation.
- * 
- * For the cell with ID cellID calculate the spatial derivatives of BVOL or apply the derivative boundary conditions defined in project.h.
- * 
+ *
+ * Calculate the spatial derivatives of BVOL or set them to zero.
+ *
+ * For sysBoundaryLayer 1 or 2, we are near a boundary, and we wish to use regular centered differences instead of slope limiter-adjusted values.
+ * This is to minimize oscillations as a smooth behaviour is required near artificial boundaries,
+ * unlike at boundaries and shocks inside the simulation domain.
+ *
  * \param volGrid fsGrid holding the volume averaged fields
  * \param technicalGrid fsGrid holding technical information (such as boundary types)
  * \param i,j,k fsGrid cell coordinates for the current cell
