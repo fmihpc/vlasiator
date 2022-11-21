@@ -363,26 +363,40 @@ __global__ void reduce6(T const * const g_idata, T * const g_odata, const unsign
     if (tid == 0) g_odata[blockIdx.x] = sdata[0];
 }
 
-
 template<typename T>
-T vectorNorm(const std::vector<T>& v) {
+T vectorNorm(T const * const v_device_p, const size_t n) {
     constexpr auto threads_per_block = size_t{ 128 };
-    const auto blocks = ((v.size() / threads_per_block) + 1);
+    const auto blocks = ((n / threads_per_block) + 1);
     const auto padded_size = blocks * threads_per_block;
-
-    const auto data_device = CudaArray<T, 2> {
-        {v, padded_size, true},
+    
+    const auto data_device = CudaArray<T, 1> {
         {{}, blocks}
     };
 
-    const auto [v_device_p, r_device_p] = data_device.get_pointers_to_data();
+    const auto [r_device_p] = data_device.get_pointers_to_data();
 
     reduce6<T, threads_per_block><<<blocks, threads_per_block, sizeof(T) * threads_per_block>>>(v_device_p, r_device_p, padded_size);
-
     const auto partial_sums = data_device.copy_data_to_host_vector(r_device_p, blocks);
 
     return std::sqrt(std::accumulate(partial_sums.begin(), partial_sums.end(), 0));
 }
+
+template<typename T>
+T vectorNorm(const std::vector<T>& v) {
+    // THIS HAS TO BE SAME AS in vectorNorm(T const * const v_device_p, const size_t n);
+    constexpr auto threads_per_block = size_t{ 128 }; 
+    const auto blocks = ((v.size() / threads_per_block) + 1);
+    const auto padded_size = blocks * threads_per_block;
+
+    const auto data_device = CudaArray<T, 1> {
+        {v, padded_size, true}
+    };
+
+    const auto [v_device_p] = data_device.get_pointers_to_data();
+
+    return vectorNorm<T>(v_device_p, v.size());
+}
+
 
 
 template <typename T>
