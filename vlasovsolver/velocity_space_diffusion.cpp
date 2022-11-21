@@ -52,9 +52,10 @@ void velocitySpaceDiffusion(
     int nbins_v  = Parameters::PADvbins;
     int nbins_mu = Parameters::PADmubins;
  
-    Realf mumin   = -1.0;
-    Realf mumax   = +1.0;
-    Realf dmubins = (mumax - mumin)/nbins_mu;
+    Realf dmubins = 2.0/nbins_mu;
+
+    Realf epsilon = 0.0;
+    Realf nu0     = 0.3;
 
     int fcount   [nbins_v][nbins_mu]; // Array to count number of f stored
     Realf fmu    [nbins_v][nbins_mu]; // Array to store f(v,mu)
@@ -93,9 +94,6 @@ void velocitySpaceDiffusion(
         Realf Bnorm           = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
         std::array<Realf,3> b = {B[0]/Bnorm, B[1]/Bnorm, B[2]/Bnorm};
         
-        //TODO: delete
-        //int subCount = 0;
-
         phiprof::start("Subloop");
         while (dtTotalDiff < Parameters::dt) { // Substep loop
 
@@ -209,10 +207,11 @@ void velocitySpaceDiffusion(
                         dfdmu2[indv][indmu] = ( (fmu[indv][indmu + cRight] - fmu[indv][indmu])/(cRight*dmubins) - (fmu[indv][indmu] - fmu[indv][indmu-cLeft])/(cLeft*dmubins) ) / (0.5 * dmubins * (cRight + cLeft)); 
                     }
 
-                    // Compute time derivative                  
-                    dfdt_mu[indv][indmu] = Parameters::PADcoefficient * (
-                                           - 2.0 * (dmubins * (indmu+0.5) - 1.0) * dfdmu[indv][indmu]
-                                           + (1.0 - (dmubins * (indmu+0.5) - 1.0)*(dmubins * (indmu+0.5) - 1.0)) * dfdmu2[indv][indmu] );
+                    // Compute time derivative
+                    Realf mu    = (indmu+0.5)*dmubins - 1.0;
+                    Realf Dmumu = nu0/2.0 * ( abs(mu)/(1.0 + abs(mu)) + epsilon ) * (1.0 - mu*mu);
+                    Realf dDmu  = nu0/2.0 * ( (1.0 - mu*mu)/((1.0 + abs(mu))*(1.0 + abs(mu))) - 2.0*mu*( abs(mu)/(1.0 + abs(mu)) + epsilon));
+                    dfdt_mu[indv][indmu] = dDmu * dfdmu[indv][indmu] + Dmumu * dfdmu2[indv][indmu];
 
                     // Compute CFL
                     Realf Vmu = dVbins * (float(indv)+0.5);
@@ -277,22 +276,8 @@ void velocitySpaceDiffusion(
 
                    Vec4d Vmu = dVbins * (to_double(Vindex)+0.5);
 
-                   //Realf* CellValue = &cell.get_data(n,popID)[WID*j+WID*WID*k];
-                   //int Vindex;
-                   //int muindex;   
-                   //Realf Vmu;
-                   //Realf NewCellValue;
-                   //Realf dfdt;
-
                    for (uint i = 0; i < WID; i++) {
-                       //Vindex       = static_cast<int>(floor((normV[i] - Vmin) / dVbins));
-                       //muindex      = static_cast<int>(floor((mu[i]+1.0) / dmubins));
-                       //Vmu          = dVbins * (Vindex+0.5);               
                        dfdt[i] = dfdt_mu[Vindex[i]][muindex[i]] / (2.0 * M_PI * Vmu[i]*Vmu[i]);
-                       //dfdt         = dfdt_mu[Vindex][muindex] / (2.0 * M_PI * Vmu*Vmu);
-                       //NewCellValue = CellValue[i] + dfdt * Ddt;
-                       //if (NewCellValue < 0.0) {NewCellValue = 0.0;}
-                       //cell.get_data(n,popID)[i+WID*j+WID*WID*k] = NewCellValue;
                    }
 
                    //Update cell
@@ -307,15 +292,8 @@ void velocitySpaceDiffusion(
             } // End Blocks
             phiprof::stop("diffusion time derivative & update cell");
 
-           //subCount += 1; //TODO: delete
         } // End Time loop
         phiprof::stop("Subloop");
-
-        //TODO: to be deleted
-        //std::ostringstream tmpText; 
-        //tmpText << P::tstep << " " << CellID << " " << subCount << std::endl;
-        //std::string tmpString = tmpText.str();
-        //std::cerr << tmpString;
 
     } // End spatial cell loop
 
