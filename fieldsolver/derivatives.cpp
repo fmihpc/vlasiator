@@ -27,8 +27,15 @@
 #include "fs_limiters.h"
 
 /*! \brief Low-level spatial derivatives calculation.
- * 
- * For the cell with ID cellID calculate the spatial derivatives or apply the derivative boundary conditions defined in project.h. Uses RHO, V[XYZ] and B[XYZ] in the first-order time accuracy method and in the second step of the second-order method, and RHO_DT2, V[XYZ]1 and B[XYZ]1 in the first step of the second-order method.
+ *
+ * For the cell with ID cellID calculate the spatial derivatives or apply the derivative boundary conditions defined in project.h.
+ * Uses RHO, V[XYZ] and B[XYZ] in the first-order time accuracy method and in the second step of the second-order method,
+ * and RHO_DT2, V[XYZ]1 and B[XYZ]1 in the first step of the second-order method.
+ *
+ * For sysBoundaryLayer 1 or 2, we are near a boundary, and we wish to use regular centered differences instead of slope limiter-adjusted values.
+ * This is to minimize oscillations as a smooth behaviour is required near artificial boundaries,
+ * unlike at boundaries and shocks inside the simulation domain.
+ *
  * \param i,j,k fsGrid cell coordinates for the current cell
  * \param perBGrid fsGrid holding the perturbed B quantities
  * \param momentsGrid fsGrid holding the moment quantities
