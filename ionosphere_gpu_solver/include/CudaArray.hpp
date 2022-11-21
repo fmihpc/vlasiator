@@ -10,6 +10,8 @@
 #include <numeric>
 #include "ionosphere_gpu_solver.hpp"
 namespace ionogpu {
+
+constexpr size_t warp_size = 32;
     
 template <typename T, size_t N = 0>
 class CudaArray {
@@ -168,7 +170,7 @@ __global__ void matrixVectorProduct(T const * const  M, T const * const v, T* co
 template <typename T>
 std::vector<T> matrixVectorProduct(const std::vector<T>& M, const std::vector<T>& v) { 
     assert(M.size() == v.size() * v.size());
-    const auto height = ((v.size() / 32) + 1) * 32;
+    const auto height = ((v.size() / warp_size) + 1) * warp_size;
     const auto width = v.size();
 
     const auto M_v_and_Mv_on_device = CudaArray<T, 3> {
@@ -179,10 +181,10 @@ std::vector<T> matrixVectorProduct(const std::vector<T>& M, const std::vector<T>
 
     const auto [M_device_p, v_device_p, Mv_device_p] = M_v_and_Mv_on_device.get_pointers_to_data();
 
-    const auto blocks = height / 32; 
-    const auto threads_per_block = 32;
+    const auto blocks = height / warp_size; 
+    const auto threads_per_block = warp_size;
  
-    matrixVectorProduct<double><<<blocks, threads_per_block>>>(M_device_p, v_device_p, Mv_device_p, width); 
+    matrixVectorProduct<T><<<blocks, threads_per_block>>>(M_device_p, v_device_p, Mv_device_p, width); 
     return M_v_and_Mv_on_device.copy_data_to_host_vector(Mv_device_p, v.size());  
     
 }
@@ -213,7 +215,7 @@ std::vector<T> preSparseMatrixVectorProduct(
     assert(indecies.size() == n * m);
     assert(b.size() == n);
 
-    const auto height = ((n / 32) + 1) * 32;
+    const auto height = ((n / warp_size) + 1) * warp_size;
 
     const auto pre_b = [=, &b] {
         auto temp  = std::vector<T>(n * m);
@@ -222,7 +224,7 @@ std::vector<T> preSparseMatrixVectorProduct(
     }();
 
     
-    const auto sparse_M_pre_b_and_x_on_device = CudaArray<double, 3> {
+    const auto sparse_M_pre_b_and_x_on_device = CudaArray<T, 3> {
         {sparse_M, height * m, true},
         {pre_b, height * m},
         {{}, n, true}
@@ -230,10 +232,10 @@ std::vector<T> preSparseMatrixVectorProduct(
 
     const auto [sparse_A_device_p, pre_b_device_p, x_device_p] = sparse_M_pre_b_and_x_on_device.get_pointers_to_data();
 
-    const auto blocks = height / 32;
-    const auto threads_per_block = 32;
+    const auto blocks = height / warp_size;
+    const auto threads_per_block = warp_size;
 
-    preSparseMatrixVectorProduct<double><<<blocks, threads_per_block>>>(m, sparse_A_device_p, pre_b_device_p, x_device_p);
+    preSparseMatrixVectorProduct<T><<<blocks, threads_per_block>>>(m, sparse_A_device_p, pre_b_device_p, x_device_p);
     return sparse_M_pre_b_and_x_on_device.copy_data_to_host_vector(x_device_p, n);
 };
 
@@ -264,10 +266,10 @@ std::vector<T> sparseMatrixVectorProduct(
     assert(indecies.size() == n * m);
     assert(b.size() == n);
 
-    const auto height = ((n / 32) + 1) * 32;
+    const auto height = ((n / warp_size) + 1) * warp_size;
 
 
-    const auto sparse_M_b_and_x_on_device = CudaArray<double, 3> {
+    const auto sparse_M_b_and_x_on_device = CudaArray<T, 3> {
         {sparse_M, height * m, true},
         {b, height},
         {{}, height}
@@ -281,13 +283,103 @@ std::vector<T> sparseMatrixVectorProduct(
 
     const auto [indecies_device_p] = indecies_on_device.get_pointers_to_data();
 
-    const auto blocks = height / 32;
-    const auto threads_per_block = 32;
+    const auto blocks = height / warp_size;
+    const auto threads_per_block = warp_size;
 
-    sparseMatrixVectorProduct<double><<<blocks, threads_per_block>>>(m, sparse_A_device_p, indecies_device_p, b_device_p, x_device_p);
+    sparseMatrixVectorProduct<T><<<blocks, threads_per_block>>>(m, sparse_A_device_p, indecies_device_p, b_device_p, x_device_p);
     return sparse_M_b_and_x_on_device.copy_data_to_host_vector(x_device_p, n);
 };
 
 
+template<typename T>
+void __global__ vectorAddition(T const * const a, T const * const b, T * const result) {
+    const auto i = blockDim.x * blockIdx.x + threadIdx.x;
+    result[i] = a[i] + b[i];
+}
+
+template<typename T>
+void __global__ vectorSubtraction(T const * const a, T const * const b, T * const result) {
+    const auto i = blockDim.x * blockIdx.x + threadIdx.x;
+    result[i] = a[i] - b[i];
+}
+
+template<typename T>
+std::vector<T> vectorAddition(const std::vector<T>& a, const std::vector<T>& b) {
+    assert(a.size() == b.size());
+    const auto height = ((a.size() / warp_size) + 1) * warp_size;
+    const auto data_on_device = CudaArray<T, 3> {
+        {a, height},
+        {b, height},
+        {{}, height}
+    };
+    const auto [a_device_p, b_device_p, result_device_p] = data_on_device.get_pointers_to_data();
+    vectorAddition<<<height, warp_size>>>(a_device_p, b_device_p, result_device_p);
+    return data_on_device.copy_data_to_host_vector(result_device_p, a.size());
+}
+
+template<typename T>
+std::vector<T> vectorSubtraction(const std::vector<T>& a, const std::vector<T>& b) {
+    assert(a.size() == b.size());
+    const auto height = ((a.size() / warp_size) + 1) * warp_size;
+    const auto data_on_device = CudaArray<T, 3> {
+        {a, height},
+        {b, height},
+        {{}, height}
+    };
+    const auto [a_device_p, b_device_p, result_device_p] = data_on_device.get_pointers_to_data();
+    vectorSubtraction<<<height, warp_size>>>(a_device_p, b_device_p, result_device_p);
+    return data_on_device.copy_data_to_host_vector(result_device_p, a.size());
+}
+
+
+template <typename T>
+std::vector<T> sparseBiCGCUDA(
+        const size_t n, const size_t m,    
+        const std::vector<T>& sparse_A,
+        const std::vector<T>& sparse_A_transposed,
+        const std::vector<size_t>& indecies,
+        const std::vector<T>& b) {
+
+    assert(sparse_A.size() == n * m);
+    assert(sparse_A_transposed.size() == n * m);
+    assert(indecies.size() == n * m);
+    assert(b.size() == n);
+
+    const auto height = ((n / warp_size) + 1) * warp_size;
+
+    const auto indecies_on_device = CudaArray<size_t, 1> {
+        {indecies, height * m}
+    };
+    const auto [indecies_device_p] = indecies_on_device.get_pointers_to_data();
+
+
+    const auto data_on_device = CudaArray<T, 5> {
+        {sparse_A, height * m, true},
+        {sparse_A_transposed, height * m, true},
+        {b, height},
+        {{}, height, true}, // Initial guess of x is zero
+        {{}, height}  
+    };
+    
+    const auto [
+        sparse_A_device_p,
+        sparse_A_transposed_device_p,
+        b_device_p,
+        x_device_p,
+        r_device_p
+
+    ] = data_on_device.get_pointers_to_data();
+
+    const auto blocks_for_matrix_vector_product = height / warp_size;
+    
+    sparseMatrixVectorProduct<T><<<blocks_for_matrix_vector_product, warp_size>>>(
+        m, sparse_A_device_p, indecies_device_p, x_device_p, r_device_p
+    );
+
+
+
+    return {};
+    
+};
  
 }

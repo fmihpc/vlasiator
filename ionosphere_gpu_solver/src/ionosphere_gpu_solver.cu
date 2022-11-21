@@ -19,15 +19,17 @@ std::vector<double> ionogpu::sparseMatrixVectorProduct<double>(
     const std::vector<size_t>& indecies,
     const std::vector<double>& b);
 
-
-std::vector<double> ionogpu::sparsebcgCUDA(
+template 
+std::vector<double> ionogpu::sparseBiCGCUDA<double>(
         const size_t n, const size_t m,    
-        const std::vector<double>& A,
+        const std::vector<double>& sparse_A,
+        const std::vector<double>& sparse_A_trasposed,
         const std::vector<size_t>& indecies,
-        const std::vector<double>& b) {
-    
-            
-    
-    return {};
-};
+        const std::vector<double>& b);
  
+
+template
+std::vector<double> ionogpu::vectorAddition<double>(const std::vector<double>& a, const std::vector<double>& b);
+
+template
+std::vector<double> ionogpu::vectorSubtraction<double>(const std::vector<double>& a, const std::vector<double>& b);
