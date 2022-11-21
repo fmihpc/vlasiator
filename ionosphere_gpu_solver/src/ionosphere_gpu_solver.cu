@@ -25,7 +25,8 @@ std::vector<double> ionogpu::sparseBiCGCUDA<double>(
         const std::vector<double>& sparse_A,
         const std::vector<double>& sparse_A_trasposed,
         const std::vector<size_t>& indecies,
-        const std::vector<double>& b);
+        const std::vector<double>& b,
+        const ConfigurationForSparsebcgCUDA<double>& config);
  
 
 template
@@ -33,3 +34,6 @@ std::vector<double> ionogpu::vectorAddition<double>(const std::vector<double>& a
 
 template
 std::vector<double> ionogpu::vectorSubtraction<double>(const std::vector<double>& a, const std::vector<double>& b);
+
+template
+double ionogpu::vectorNorm<double>(const std::vector<double>& v);

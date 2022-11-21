@@ -15,13 +15,27 @@ namespace ionogpu {
    template<typename T>
    std::vector<T> matrixVectorProduct(const std::vector<T>& M, const std::vector<T>& v);
 
+   enum class Precondition {
+      none,
+      diagonal
+   };
+
+   template<typename T>
+   struct ConfigurationForSparsebcgCUDA {
+      size_t max_iterations;
+      T residual_treshold;
+      Precondition precondition;
+      bool use_minimum_residual_variant;
+   };
+
    template<typename T>
    std::vector<T> sparsebcgCUDA(
       const size_t n, const size_t m,
       const std::vector<T>& sparse_A,
       const std::vector<T>& sparse_A_transposed,
       const std::vector<size_t>& indecies,
-      const std::vector<T>& b);
+      const std::vector<T>& b,
+      const ConfigurationForSparsebcgCUDA<T>& config);
 
    template<typename T>
    std::vector<T> preSparseMatrixVectorProduct(
@@ -43,7 +57,8 @@ namespace ionogpu {
    template<typename T>
    std::vector<T> vectorSubtraction(const std::vector<T>& a, const std::vector<T>& b);
 
-
+   template<typename T>
+   T vectorNorm(const std::vector<T>& v);
 
    template <typename F, typename I, size_t MAX_WIDTH> 
    struct SparseMatrix {
