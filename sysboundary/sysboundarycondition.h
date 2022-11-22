@@ -143,9 +143,9 @@ namespace SBC {
             cuint& component
          );
         
-         virtual void mapCellPotentialAndGetEXBDrift(
+         void mapCellPotentialAndGetEXBDrift(
             std::array<Real, CellParams::N_SPATIAL_CELL_PARAMS>& cellParams
-         )=0;
+         );
 
          /** This function computes the Vlasov (distribution function) 
           * boundary condition for the given particle species only. 

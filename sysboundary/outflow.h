@@ -153,11 +153,6 @@ namespace SBC {
          LIMIT,
          N_SCHEMES
       };
-      
-      virtual void mapCellPotentialAndGetEXBDrift(
-         std::array<Real, CellParams::N_SPATIAL_CELL_PARAMS>& cellParams
-      ) { std::cerr << "Error: Outflow::mapCellPotentialAndGetEXBDrift called!\n"; }
-
    }; // class Outflow
 } // namespace SBC
 
