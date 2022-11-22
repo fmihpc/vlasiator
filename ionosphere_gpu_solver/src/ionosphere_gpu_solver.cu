@@ -36,4 +36,4 @@ template
 std::vector<double> ionogpu::vectorSubtraction<double>(const std::vector<double>& a, const std::vector<double>& b);
 
 template
-double ionogpu::vectorNorm<double>(const std::vector<double>& v);
+double ionogpu::vectorNormSquared<double>(const std::vector<double>& v);

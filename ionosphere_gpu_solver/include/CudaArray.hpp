@@ -112,7 +112,7 @@ public:
         cudaMemcpy(data_ + offset_in_elements, data, size_in_elements * sizeof(T), cudaMemcpyHostToDevice); 
     }
 
-    void copy_data_to_device(T* data, const T* place, const size_t size_in_elements) {
+    void copy_data_to_device(T const * const data, T* const place, const size_t size_in_elements) {
         copy_data_to_device(data, static_cast<size_t>(place - data_), size_in_elements);
     }
 
@@ -337,6 +337,7 @@ std::vector<T> vectorSubtraction(const std::vector<T>& a, const std::vector<T>& 
 }
 
 // https://developer.download.nvidia.com/assets/cuda/files/reduction.pdf
+// Modified to calculate norm of vector
 template <typename T, unsigned int blockSize>
 __device__ void warpReduce(volatile T *sdata, unsigned int tid) {
     if constexpr (blockSize >= 64) sdata[tid] += sdata[tid + 32];
@@ -351,21 +352,25 @@ template <typename T, unsigned int blockSize>
 __global__ void reduce6(T const * const g_idata, T * const g_odata, const unsigned int n) {
     extern __shared__ T sdata[];
     const auto tid = threadIdx.x;
-    auto i = blockIdx.x*(blockSize*2) + tid;
-    const auto gridSize = blockSize*2*gridDim.x;
+    auto i = blockIdx.x * (2 * blockSize) + tid;
+    const auto gridSize = 2 * blockSize * gridDim.x;
     sdata[tid] = 0;
-    while (i < n) { sdata[tid] += g_idata[i] + g_idata[i+blockSize]; i += gridSize; }
+    while (i < n) { sdata[tid] += g_idata[i] * g_idata[i] + g_idata[i+blockSize] * g_idata[i+blockSize]; i += gridSize; }
     __syncthreads();
     if constexpr (blockSize >= 512) { if (tid < 256) { sdata[tid] += sdata[tid + 256]; } __syncthreads(); }
     if constexpr (blockSize >= 256) { if (tid < 128) { sdata[tid] += sdata[tid + 128]; } __syncthreads(); }
     if constexpr (blockSize >= 128) { if (tid < 64) { sdata[tid] += sdata[tid + 64]; } __syncthreads(); }
+    // At this point we don't have to sync threads beacause last 32 threads are from same warp so they are already synced
     if (tid < 32) warpReduce<T, blockSize>(sdata, tid);
     if (tid == 0) g_odata[blockIdx.x] = sdata[0];
 }
 
+namespace vectorNormSquaredConfig {
+    constexpr auto threads_per_block = 128;
+}
 template<typename T>
-T vectorNorm(T const * const v_device_p, const size_t n) {
-    constexpr auto threads_per_block = size_t{ 128 };
+T vectorNormSquared(T const * const v_device_p, const size_t n) {
+    constexpr auto threads_per_block = vectorNormSquaredConfig::threads_per_block;
     const auto blocks = ((n / threads_per_block) + 1);
     const auto padded_size = blocks * threads_per_block;
     
@@ -378,13 +383,12 @@ T vectorNorm(T const * const v_device_p, const size_t n) {
     reduce6<T, threads_per_block><<<blocks, threads_per_block, sizeof(T) * threads_per_block>>>(v_device_p, r_device_p, padded_size);
     const auto partial_sums = data_device.copy_data_to_host_vector(r_device_p, blocks);
 
-    return std::sqrt(std::accumulate(partial_sums.begin(), partial_sums.end(), 0));
+    return std::accumulate(partial_sums.begin(), partial_sums.end(), 0);
 }
 
 template<typename T>
-T vectorNorm(const std::vector<T>& v) {
-    // THIS HAS TO BE SAME AS in vectorNorm(T const * const v_device_p, const size_t n);
-    constexpr auto threads_per_block = size_t{ 128 }; 
+T vectorNormSquared(const std::vector<T>& v) {
+    constexpr auto threads_per_block = vectorNormSquaredConfig::threads_per_block; 
     const auto blocks = ((v.size() / threads_per_block) + 1);
     const auto padded_size = blocks * threads_per_block;
 
@@ -394,10 +398,12 @@ T vectorNorm(const std::vector<T>& v) {
 
     const auto [v_device_p] = data_device.get_pointers_to_data();
 
-    return vectorNorm<T>(v_device_p, v.size());
+    return vectorNormSquared<T>(v_device_p, v.size());
 }
-
-
+/* 
+template <typename T>
+__global__ void Asolve(T const * const A, )
+ */
 
 template <typename T>
 std::vector<T> sparseBiCGCUDA(
@@ -421,7 +427,7 @@ std::vector<T> sparseBiCGCUDA(
     const auto [indecies_device_p] = indecies_on_device.get_pointers_to_data();
 
 
-    const auto data_on_device = CudaArray<T, 6> {
+    auto data_on_device = CudaArray<T, 6> {
         {sparse_A, height * m, true},
         {sparse_A_transposed, height * m, true},
         {b, height},
@@ -453,7 +459,7 @@ std::vector<T> sparseBiCGCUDA(
 
     if (!config.use_minimum_residual_variant) {
         // rr[j]=r[j];
-//        data_on_device.copy_data_to_device(r_device_p, rr_device_p, n);
+        data_on_device.copy_data_to_device(r_device_p, rr_device_p, n);
     } else {
         // atimes(n,r,rr,0);
         sparseMatrixVectorProduct<T><<<blocks_for_matrix_vector_product, warp_size>>>(
@@ -462,6 +468,10 @@ std::vector<T> sparseBiCGCUDA(
     }
 
     // Asumed we use itol == 1 convergence test
+    // bnrm=snrm(n,b,itol);
+    const auto b_norm = vectorNormSquared(b_device_p, n);
+
+    // asolve(n,r,z,0);
 
 
 

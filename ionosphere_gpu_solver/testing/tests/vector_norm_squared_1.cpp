@@ -19,10 +19,11 @@ auto main() -> int {
     1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
     }; 
 
-    const auto norm_correct = std::sqrt(std::accumulate(v.begin(), v.end(), 0));
+    const auto norm_correct = std::accumulate(v.begin(), v.end(), 0.0, [](const auto s, const auto x) { return s + x * x; });
 
-    const auto norm = ionogpu::vectorNorm<test_type>(v);
+    const auto norm = ionogpu::vectorNormSquared<test_type>(v);
     
+    // This is jank but works 
     const auto [absolute_error, relative_error] = ionogpu::testing::calculate_absolute_and_relative_error_of_range(
         std::array<test_type, 1>{ norm }, std::array<test_type, 1> { norm_correct }
     );

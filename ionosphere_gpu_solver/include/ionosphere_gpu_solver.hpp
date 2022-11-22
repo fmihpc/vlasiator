@@ -58,7 +58,7 @@ namespace ionogpu {
    std::vector<T> vectorSubtraction(const std::vector<T>& a, const std::vector<T>& b);
 
    template<typename T>
-   T vectorNorm(const std::vector<T>& v);
+   T vectorNormSquared(const std::vector<T>& v);
 
    template <typename F, typename I, size_t MAX_WIDTH> 
    struct SparseMatrix {

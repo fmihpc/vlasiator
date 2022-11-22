@@ -22,7 +22,7 @@ auto main() -> int {
 
     const auto [absolute_error, relative_error] = ionogpu::testing::calculate_absolute_and_relative_error_of_range(vpw, vpw_correct);
     
-    assert(absolute_error == 0 );
+    assert(absolute_error == 0);
     assert(relative_error == 0);
 
     return 0;
