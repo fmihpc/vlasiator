@@ -22,7 +22,7 @@ FLAGS =
 CC_BRAND = pgi
 CC_BRAND_VERSION = 19.7
 CXXFLAGS += -g -O3 -acc -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -Minfo=accel
-testpackage: CXXFLAGS = -g -O2 -acc -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -Minfo=accel -DIONOSPHERE_SORTED_SUMS
+testpackage: CXXFLAGS = -g -O2 -acc -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -Minfo=accel
 
 MATHFLAGS =
 LDFLAGS = -O3 -acc -g

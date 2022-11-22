@@ -10,6 +10,7 @@ ifneq (,$(findstring testpackage,$(MAKECMDGOALS)))
 	MATHFLAGS =
 	FP_PRECISION = DP
 	DISTRIBUTION_FP_PRECISION = DPF
+        CXXFLAGS += -DIONOSPHERE_SORTED_SUMS
 endif
 
 
