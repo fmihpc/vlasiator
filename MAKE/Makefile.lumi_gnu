@@ -2,7 +2,7 @@ CMP = CC
 LNK = CC
 
 # Modules loaded
-# module swap PrgEnv-cray PrgEnv-gnu ; module swap perftools-base/21.05.0 papi 
+# module --force purge ; module load LUMI/22.08 ; module load cpeGNU ; module load papi
 
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length. 
