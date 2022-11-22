@@ -10,11 +10,12 @@
 #
 # Required modules:
 #
-# module load gnu9/9.4.0
-# module load openmpi4/4.1.1
-# module load pmix/3.1.4
+# module load GCC/11.2.0
+# module load OpenMPI/4.1.1-GCC-11.2.0
+# module load PMIx/4.1.0-GCCcore-11.2.0
+# module load PAPI/6.0.0.1-GCCcore-11.2.0
 # Oneliner for command line:
-# module purge ; module load gnu9/9.4.0 ; module load openmpi4/4.1.1 ; module load pmix/3.1.4
+# module purge; module load GCC/11.2.0; module load OpenMPI/4.1.1-GCC-11.2.0 ; module load PMIx/4.1.0-GCCcore-11.2.0; module load PAPI/6.0.0.1-GCCcore-11.2.0
 #
 #################################################################################																				
 # Important:																	#			
@@ -29,6 +30,7 @@
 # There might be some libefa errors but they are benign.						#														
 # (Benign = pleasant and kind; not harmful or severe. dictionary.cambridge.org)	#																			
 #################################################################################
+
 
 CMP = mpicxx
 LNK = mpicxx
@@ -66,7 +68,7 @@ FLAGS =
 
 #GNU flags:
 CC_BRAND = gcc
-CC_BRAND_VERSION = 9.4.0
+CC_BRAND_VERSION = 11.2.0
 CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -mavx -march=znver2 #-flto
 testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -mavx -march=znver2 -DIONOSPHERE_SORTED_SUMS
 
@@ -113,12 +115,12 @@ INC_BOOST = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(M
 LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/ukko/zoltan/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/ukko/zoltan/lib
 INC_ZOLTAN = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/ukko/zoltan/include
 
-LIB_PAPI = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/ukko/papi/lib -lpapi -Wl,-rpath=$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/ukko/papi/lib
-INC_PAPI = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/ukko/papi/include
-
+#LIB_PAPI = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/ukko/papi/lib -lpapi -Wl,-rpath=$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/papi/lib
+#INC_PAPI = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/ukko/papi/include
+LIB_PAPI = -lpapi
 
 #header libraries
 INC_EIGEN = -I$(LIBRARY_PREFIX)/ -I$(LIBRARY_PREFIX)/Eigen/
 INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid/
-INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg/
+INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg_dAMR/
 INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass/
