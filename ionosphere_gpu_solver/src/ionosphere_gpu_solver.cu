@@ -37,3 +37,9 @@ std::vector<double> ionogpu::vectorSubtraction<double>(const std::vector<double>
 
 template
 double ionogpu::vectorNormSquared<double>(const std::vector<double>& v);
+
+template
+std::vector<double> ionogpu::vectorElementwiseMultiplication<double>(const std::vector<double>& a, const std::vector<double>& b);
+
+template
+std::vector<double> ionogpu::vectorElementwiseDivision<double>(const std::vector<double>& a, const std::vector<double>& b);

@@ -58,6 +58,13 @@ namespace ionogpu {
    std::vector<T> vectorSubtraction(const std::vector<T>& a, const std::vector<T>& b);
 
    template<typename T>
+   std::vector<T> vectorElementwiseMultiplication(const std::vector<T>& a, const std::vector<T>& b);
+
+   template<typename T>
+   std::vector<T> vectorElementwiseDivision(const std::vector<T>& a, const std::vector<T>& b);
+
+
+   template<typename T>
    T vectorNormSquared(const std::vector<T>& v);
 
    template <typename F, typename I, size_t MAX_WIDTH> 

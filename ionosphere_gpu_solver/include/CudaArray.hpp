@@ -307,6 +307,17 @@ __global__ void vectorSubtraction(T const * const a, T const * const b, T * cons
     const auto i = blockDim.x * blockIdx.x + threadIdx.x;
     result[i] = a[i] - b[i];
 }
+template<typename T>
+__global__ void vectorElementwiseMultiplication(T const * const a, T const * const b, T * const result) {
+    const auto i = blockDim.x * blockIdx.x + threadIdx.x;
+    result[i] = a[i] * b[i];
+}
+
+template<typename T>
+__global__ void vectorElementwiseDivision(T const * const a, T const * const b, T * const result) {
+    const auto i = blockDim.x * blockIdx.x + threadIdx.x;
+    result[i] = a[i] / b[i];
+}
 
 template<typename T>
 std::vector<T> vectorAddition(const std::vector<T>& a, const std::vector<T>& b) {
@@ -333,6 +344,34 @@ std::vector<T> vectorSubtraction(const std::vector<T>& a, const std::vector<T>& 
     };
     const auto [a_device_p, b_device_p, result_device_p] = data_on_device.get_pointers_to_data();
     vectorSubtraction<<<height, warp_size>>>(a_device_p, b_device_p, result_device_p);
+    return data_on_device.copy_data_to_host_vector(result_device_p, a.size());
+}
+
+template<typename T>
+std::vector<T> vectorElementwiseMultiplication(const std::vector<T>& a, const std::vector<T>& b) {
+    assert(a.size() == b.size());
+    const auto height = ((a.size() / warp_size) + 1) * warp_size;
+    const auto data_on_device = CudaArray<T, 3> {
+        {a, height},
+        {b, height},
+        {{}, height}
+    };
+    const auto [a_device_p, b_device_p, result_device_p] = data_on_device.get_pointers_to_data();
+    vectorElementwiseMultiplication<<<height, warp_size>>>(a_device_p, b_device_p, result_device_p);
+    return data_on_device.copy_data_to_host_vector(result_device_p, a.size());
+}
+
+template<typename T>
+std::vector<T> vectorElementwiseDivision(const std::vector<T>& a, const std::vector<T>& b) {
+    assert(a.size() == b.size());
+    const auto height = ((a.size() / warp_size) + 1) * warp_size;
+    const auto data_on_device = CudaArray<T, 3> {
+        {a, height},
+        {b, height},
+        {{}, height}
+    };
+    const auto [a_device_p, b_device_p, result_device_p] = data_on_device.get_pointers_to_data();
+    vectorElementwiseDivision<<<height, warp_size>>>(a_device_p, b_device_p, result_device_p);
     return data_on_device.copy_data_to_host_vector(result_device_p, a.size());
 }
 
@@ -400,10 +439,16 @@ T vectorNormSquared(const std::vector<T>& v) {
 
     return vectorNormSquared<T>(v_device_p, v.size());
 }
-/* 
-template <typename T>
-__global__ void Asolve(T const * const A, )
- */
+
+// Modified Asolve from page 86 (110 pdf) of
+// https://www.grad.hr/nastava/gs/prg/NumericalRecipesinC.pdf
+// We assume that element (i, i) of sparse_A is stored at sparse_A[i * m]
+template<typename T>
+__global__ void Asolve_diagonal(size_t m, T const * const sparse_A, T const * const b, T * const x) {
+    const auto i = blockDim.x * blockIdx.x + threadIdx.x;
+
+    x[i] = b[i] / sparse_A[i * m];
+}
 
 template <typename T>
 std::vector<T> sparseBiCGCUDA(
@@ -427,13 +472,15 @@ std::vector<T> sparseBiCGCUDA(
     const auto [indecies_device_p] = indecies_on_device.get_pointers_to_data();
 
 
-    auto data_on_device = CudaArray<T, 6> {
+    auto data_on_device = CudaArray<T, 8> {
         {sparse_A, height * m, true},
         {sparse_A_transposed, height * m, true},
         {b, height},
         {/* x */{}, height, true}, // Initial guess of x is zero
         {/* r */{}, height},
-        {/* rr */{}, height}
+        {/* rr */{}, height},
+        {/* z */{}, height},
+        {/* zz */{}, height}
     };
     
     const auto [
@@ -442,39 +489,62 @@ std::vector<T> sparseBiCGCUDA(
         b_device_p,
         x_device_p,
         r_device_p,
-        rr_device_p 
-
+        rr_device_p,
+        z_device_p,
+        zz_device_p
     ] = data_on_device.get_pointers_to_data();
-
-    const auto blocks_for_matrix_vector_product = height / warp_size;
     
     // From this point onwards comments will refere numecial recipies in C
     // Atime(n, x, r, 0);
-    sparseMatrixVectorProduct<T><<<blocks_for_matrix_vector_product, warp_size>>>(
+    sparseMatrixVectorProduct<T><<<height / warp_size, warp_size>>>(
         m, sparse_A_device_p, indecies_device_p, x_device_p, r_device_p
     );
 
     // r[j]=b[j]-r[j];
-    vectorSubtraction<<<height, warp_size>>>(b_device_p, r_device_p, r_device_p);
+    vectorSubtraction<T><<<height / warp_size, warp_size>>>(b_device_p, r_device_p, r_device_p);
 
     if (!config.use_minimum_residual_variant) {
         // rr[j]=r[j];
         data_on_device.copy_data_to_device(r_device_p, rr_device_p, n);
     } else {
         // atimes(n,r,rr,0);
-        sparseMatrixVectorProduct<T><<<blocks_for_matrix_vector_product, warp_size>>>(
+        sparseMatrixVectorProduct<T><<<height / warp_size, warp_size>>>(
             m, sparse_A_device_p, indecies_device_p, r_device_p, rr_device_p
         );
     }
 
     // Asumed we use itol == 1 convergence test
-    // bnrm=snrm(n,b,itol);
-    const auto b_norm = vectorNormSquared(b_device_p, n);
+    // if (itol == 1) {
+    //    bnrm=snrm(n,b,itol);
+    const auto b_norm = std::sqrt(vectorNormSquared(b_device_p, n));
 
-    // asolve(n,r,z,0);
+    auto Asolve = [&, sparse_A_device_p = sparse_A_device_p, m]
+    (T const * const b_device_p, T * const x_device_p, [[maybe_unused]] const bool transposed = false) -> void {
+        switch (config.precondition) {
+            case Precondition::none: {
+                data_on_device.copy_data_to_device(b_device_p, x_device_p, n);
+            } break;
+            case Precondition::diagonal: {
+                Asolve_diagonal<T><<<height / warp_size, warp_size>>>(m, sparse_A_device_p, b_device_p, x_device_p);
+            }
+        }
+    };
+
+    //    asolve(n,r,z,0);
+    Asolve(r_device_p, z_device_p);
 
 
+    // }
+    // else if ...
 
+    // while (*iter <= itmax) {
+    // (*iter == 1)
+    for (size_t iteration = 0; iteration < config.max_iterations; ++iteration) {
+        //asolve(n,rr,zz,1);
+        Asolve(rr_device_p, zz_device_p, true);
+        
+
+    }
 
     return {};
     

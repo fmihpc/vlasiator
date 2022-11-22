@@ -10,6 +10,8 @@ tests += {
     'vector_norm_squared_1' : [files('vector_norm_squared_1.cpp')],
     'vector_addition_1' : [files('vector_addition_1.cpp')],
     'vector_subtraction_1' : [files('vector_subtraction_1.cpp')],
+    'vector_elementwise_multiplication_1' : [files('vector_elementwise_multiplication_1.cpp')],
+    'vector_elementwise_division_1' : [files('vector_elementwise_division_1.cpp')],
     'create_sparse_matrix_1' : [files('create_sparse_matrix_1.cpp')],
     'create_sparse_matrix_2' : [files('create_sparse_matrix_2.cpp')],
     'matrix_vector_product_cuda_1' : [files('matrix_vector_product_cuda_1.cpp')],
