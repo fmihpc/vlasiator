@@ -43,3 +43,7 @@ std::vector<double> ionogpu::vectorElementwiseMultiplication<double>(const std::
 
 template
 std::vector<double> ionogpu::vectorElementwiseDivision<double>(const std::vector<double>& a, const std::vector<double>& b);
+
+
+template
+double ionogpu::dotProduct<double>(const std::vector<double>& v, const std::vector<double>& w);

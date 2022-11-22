@@ -376,7 +376,7 @@ std::vector<T> vectorElementwiseDivision(const std::vector<T>& a, const std::vec
 }
 
 // https://developer.download.nvidia.com/assets/cuda/files/reduction.pdf
-// Modified to calculate norm of vector
+// Modified to calculate dotproduct
 template <typename T, unsigned int blockSize>
 __device__ void warpReduce(volatile T *sdata, unsigned int tid) {
     if constexpr (blockSize >= 64) sdata[tid] += sdata[tid + 32];
@@ -388,13 +388,13 @@ __device__ void warpReduce(volatile T *sdata, unsigned int tid) {
 }
 
 template <typename T, unsigned int blockSize>
-__global__ void reduce6(T const * const g_idata, T * const g_odata, const unsigned int n) {
+__global__ void reduce6(T const * const g_idata1, T const * const g_idata2, T * const g_odata, const unsigned int n) {
     extern __shared__ T sdata[];
     const auto tid = threadIdx.x;
     auto i = blockIdx.x * (2 * blockSize) + tid;
     const auto gridSize = 2 * blockSize * gridDim.x;
     sdata[tid] = 0;
-    while (i < n) { sdata[tid] += g_idata[i] * g_idata[i] + g_idata[i+blockSize] * g_idata[i+blockSize]; i += gridSize; }
+    while (i < n) { sdata[tid] += g_idata1[i] * g_idata2[i] + g_idata1[i+blockSize] * g_idata2[i+blockSize]; i += gridSize; }
     __syncthreads();
     if constexpr (blockSize >= 512) { if (tid < 256) { sdata[tid] += sdata[tid + 256]; } __syncthreads(); }
     if constexpr (blockSize >= 256) { if (tid < 128) { sdata[tid] += sdata[tid + 128]; } __syncthreads(); }
@@ -404,12 +404,14 @@ __global__ void reduce6(T const * const g_idata, T * const g_odata, const unsign
     if (tid == 0) g_odata[blockIdx.x] = sdata[0];
 }
 
-namespace vectorNormSquaredConfig {
+namespace dotProductConfig {
     constexpr auto threads_per_block = 128;
 }
+
+// when this function it is assumed that v_device_p and w_device_p have zero padding after n elements until padded_size
 template<typename T>
-T vectorNormSquared(T const * const v_device_p, const size_t n) {
-    constexpr auto threads_per_block = vectorNormSquaredConfig::threads_per_block;
+T dotProduct(T const * const v_device_p, T const * const w_device_p, const size_t n) {
+    constexpr auto threads_per_block = dotProductConfig::threads_per_block;
     const auto blocks = ((n / threads_per_block) + 1);
     const auto padded_size = blocks * threads_per_block;
     
@@ -419,15 +421,39 @@ T vectorNormSquared(T const * const v_device_p, const size_t n) {
 
     const auto [r_device_p] = data_device.get_pointers_to_data();
 
-    reduce6<T, threads_per_block><<<blocks, threads_per_block, sizeof(T) * threads_per_block>>>(v_device_p, r_device_p, padded_size);
+    reduce6<T, threads_per_block><<<blocks, threads_per_block, sizeof(T) * threads_per_block>>>(v_device_p, w_device_p, r_device_p, padded_size);
     const auto partial_sums = data_device.copy_data_to_host_vector(r_device_p, blocks);
 
     return std::accumulate(partial_sums.begin(), partial_sums.end(), 0);
 }
 
 template<typename T>
+T dotProduct(const std::vector<T>& v, const std::vector<T>& w) {
+    assert(v.size() == w.size());
+    constexpr auto threads_per_block = dotProductConfig::threads_per_block; 
+    const auto blocks = ((v.size() / threads_per_block) + 1);
+    const auto padded_size = blocks * threads_per_block;
+
+    const auto data_device = CudaArray<T, 2> {
+        {v, padded_size, true},
+        {w, padded_size, true}
+    };
+
+    const auto [v_device_p, w_device_p] = data_device.get_pointers_to_data();
+
+    return dotProduct<T>(v_device_p, w_device_p, v.size());
+}
+
+// when this function it is assumed that v_device_p and w_device_p have zero padding after n elements until padded_size
+// Look at dotProduct()
+template<typename T>
+T vectorNormSquared(T const * const v_device_p, const size_t n) {
+    return dotProduct(v_device_p, v_device_p, n);
+}
+
+template<typename T>
 T vectorNormSquared(const std::vector<T>& v) {
-    constexpr auto threads_per_block = vectorNormSquaredConfig::threads_per_block; 
+    constexpr auto threads_per_block = dotProductConfig::threads_per_block; 
     const auto blocks = ((v.size() / threads_per_block) + 1);
     const auto padded_size = blocks * threads_per_block;
 
@@ -437,7 +463,7 @@ T vectorNormSquared(const std::vector<T>& v) {
 
     const auto [v_device_p] = data_device.get_pointers_to_data();
 
-    return vectorNormSquared<T>(v_device_p, v.size());
+    return dotProduct<T>(v_device_p, v_device_p, v.size());
 }
 
 // Modified Asolve from page 86 (110 pdf) of
@@ -516,7 +542,7 @@ std::vector<T> sparseBiCGCUDA(
     // Asumed we use itol == 1 convergence test
     // if (itol == 1) {
     //    bnrm=snrm(n,b,itol);
-    const auto b_norm = std::sqrt(vectorNormSquared(b_device_p, n));
+    const auto b_norm = std::sqrt(vectorNormSquared<double>(b_device_p, n));
 
     auto Asolve = [&, sparse_A_device_p = sparse_A_device_p, m]
     (T const * const b_device_p, T * const x_device_p, [[maybe_unused]] const bool transposed = false) -> void {

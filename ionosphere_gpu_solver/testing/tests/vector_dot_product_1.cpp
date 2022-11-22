@@ -1,0 +1,32 @@
+#include "ionosphere_gpu_solver.hpp"
+#include "tools.hpp"
+#include <cassert>
+#include <array>
+#include <vector>
+#include <numeric>
+
+using test_type = double;
+
+auto main() -> int {
+    
+    const auto v = std::vector<test_type>{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}; 
+    const auto w = std::vector<test_type>{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}; 
+    assert(v.size() == w.size());
+    const auto vpw = ionogpu::dotProduct<test_type>(v, w);
+    const auto vpw_correct = [&] {
+        auto temp = std::vector<test_type>(v.size());
+        for (size_t i = 0; i < v.size(); ++i) {
+            temp[i] = v[i] * w[i];
+        }
+        return std::accumulate(temp.begin(), temp.end(), test_type{ 0 });
+    }();
+
+
+    const auto [absolute_error, relative_error] = ionogpu::testing::calculate_absolute_and_relative_error_of_range(
+        std::array<test_type, 1> { vpw }, std::array<test_type, 1> { vpw_correct } );
+    
+    assert(absolute_error == 0);
+    assert(relative_error == 0);
+
+    return 0;
+}

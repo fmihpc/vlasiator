@@ -65,6 +65,10 @@ namespace ionogpu {
 
 
    template<typename T>
+   T dotProduct(const std::vector<T>& v, const std::vector<T>& w);
+
+
+   template<typename T>
    T vectorNormSquared(const std::vector<T>& v);
 
    template <typename F, typename I, size_t MAX_WIDTH> 
