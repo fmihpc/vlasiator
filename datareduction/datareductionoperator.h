@@ -603,7 +603,7 @@ namespace DRO {
       Real E2limit;
    };
    
-   // Precipitation directional differential number flux
+   // Precipitation directional differential number flux (within loss cone)
    class VariablePrecipitationDiffFlux: public DataReductionOperatorHasParameters {
    public:
       VariablePrecipitationDiffFlux(cuint popID);
@@ -622,6 +622,26 @@ namespace DRO {
       Real emin, emax;
       Real lossConeAngle;
       std::vector<Real> channels, dataDiffFlux;
+   };
+
+   // Precipitation directional differential number flux (along line)
+   class VariablePrecipitationLineDiffFlux: public DataReductionOperatorHasParameters {
+   public:
+      VariablePrecipitationLineDiffFlux(cuint popID);
+      virtual ~VariablePrecipitationLineDiffFlux();
+      
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual std::string getName() const;
+      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool setSpatialCell(const SpatialCell* cell);
+      virtual bool writeParameters(vlsv::Writer& vlsvWriter);
+      
+   protected:
+      uint popID;
+      std::string popName;
+      int nChannels;
+      Real emin, emax;
+      std::vector<Real> channels, dataLineDiffFlux;
    };
 
    class JPerBModifier: public DataReductionOperatorHasParameters {
