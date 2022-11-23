@@ -5,7 +5,7 @@
 #SBATCH -M carrington
 # test short medium 20min1d 3d
 #SBATCH -p short
-#SBATCH --exclusive
+##SBATCH --exclusive
 #SBATCH --nodes=1
 #SBATCH -c 4                 # CPU cores per task
 #SBATCH -n 16                  # number of tasks
@@ -31,9 +31,16 @@ reference_revision="current"
 # threads per job (equal to -c )
 t=4
 module purge
-module load gnu9/9.3.0
-module load openmpi4/4.0.5
-module load pmix/3.1.4
+#module load gnu9/9.3.0
+#module load openmpi4/4.0.5
+#module load pmix/3.1.4
+
+module purge
+module load GCC/11.2.0
+module load OpenMPI/4.1.1-GCC-11.2.0
+module load PMIx/4.1.0-GCCcore-11.2.0
+module load PAPI/6.0.0.1-GCCcore-11.2.0
+export OMPI_MCA_io=^ompio
 
 #--------------------------------------------------------------------
 #---------------------DO NOT TOUCH-----------------------------------
@@ -51,9 +58,10 @@ export OMP_NUM_THREADS=$t
 
 #command for running stuff
 #run_command="mpirun -n $tasks -N $nodes "
-run_command="mpirun "
-small_run_command="mpirun -n 1 "
-run_command_tools="mpirun -n 1"
+#run_command="mpirun "
+run_command="srun --mpi=pmix_v3 -c $t -n $tasks -N $nodes "
+small_run_command="srun --mpi=pmix_v3 -n 1 "
+run_command_tools="srun --mpi=pmix_v3 -n 1 "
 
 umask 007
 # Launch the OpenMP job to the allocated compute node
@@ -64,5 +72,5 @@ source small_test_definitions.sh
 wait
 # Run tests
 source run_tests.sh
-wait 20
+wait 
 
