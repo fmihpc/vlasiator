@@ -25,8 +25,13 @@
 #include "../vlasovmover.h"
 #include "../object_wrapper.h"
 #include "../fieldsolver/fs_common.h" // divideIfNonZero()
+#define PHIPP 1
+
+#include "../arch/arch_device_api.h"
 
 using namespace std;
+
+
 
 /** Calculate zeroth, first, and (possibly) second bulk velocity moments for the 
  * given spatial cell. The calculated moments include contributions from 
@@ -297,6 +302,12 @@ void calculateMoments_V(
         const bool& computeSecond) {
  
    phiprof::start("Compute _V moments");
+
+         Realf* data;
+         Real* blockParams;
+         int alloced = 0;
+
+
    
    // Loop over all particle species
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
@@ -322,21 +333,55 @@ void calculateMoments_V(
 
          vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
          if (blockContainer.size() == 0) continue;
-         const Realf* data       = blockContainer.getData();
-         const Real* blockParams = blockContainer.getParameters();
+         const Realf* h_data       = blockContainer.getData();
+         const Real* h_blockParams = blockContainer.getParameters();
          const Real mass = getObjectWrapper().particleSpecies[popID].mass;
          const Real charge = getObjectWrapper().particleSpecies[popID].charge;
+
+if(alloced == 0){
+         /* Check the CUDA default mempool settings and correct if wrong */
+         arch::device_mempool_check(UINT64_MAX);
+       
+         /* Create a device buffer for the reduction results */
+         // Realf* data;
+         CUDA_ERR(cudaMallocAsync(&data, blockContainer.size()*WID3*sizeof(Realf), 0));
+         CUDA_ERR(cudaMemcpy(data, h_data, blockContainer.size()*WID3*sizeof(Realf), cudaMemcpyHostToDevice));
+         
+         // Real* blockParams;
+         CUDA_ERR(cudaMallocAsync(&blockParams, blockContainer.size()*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real), 0));
+         CUDA_ERR(cudaMemcpy(blockParams, h_blockParams, blockContainer.size()*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real), cudaMemcpyHostToDevice));
+         alloced =0;
+}
+         //cudaMemPrefetchAsync (data, blockContainer.size()*WID3*sizeof(Realf), 0, 0 ) ;
+         //cudaMemPrefetchAsync (blockParams, blockContainer.size()*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Realf), 0, 0 ) ;
 
          // Temporary array for storing moments
          Real array[4];
          for (int i=0; i<4; ++i) array[i] = 0.0;
 
          // Calculate species' contribution to first velocity moments
-         for (vmesh::LocalID blockLID=0; blockLID<blockContainer.size(); ++blockLID) {
-            blockVelocityFirstMoments(data+blockLID*WID3,
-                                      blockParams+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS,
-                                      array);
-         }
+         //for (vmesh::LocalID blockLID=0; blockLID<blockContainer.size(); ++blockLID) {
+         //   blockVelocityFirstMoments(data+blockLID*WID3,
+         //                             blockParams+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS,
+         //                             array);
+         //}
+
+         arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint) blockContainer.size()}, 
+           ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint blockLID, Real *lsum ) { 
+             const Realf* avgs = data+blockLID*WID3;
+             const Real* blockParamsZ = blockParams+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
+             const Real DV3 = blockParamsZ[BlockParams::DVX]*blockParamsZ[BlockParams::DVY]*blockParamsZ[BlockParams::DVZ]; 
+             const Real HALF = 0.5;
+             ARCH_INNER_BODY(i, j, k, blockLID, lsum) { 
+               const Real VX = blockParamsZ[BlockParams::VXCRD] + (i+HALF)*blockParamsZ[BlockParams::DVX];
+               const Real VY = blockParamsZ[BlockParams::VYCRD] + (j+HALF)*blockParamsZ[BlockParams::DVY];
+               const Real VZ = blockParamsZ[BlockParams::VZCRD] + (k+HALF)*blockParamsZ[BlockParams::DVZ];  
+               lsum[0] += avgs[cellIndex(i,j,k)] * DV3;
+               lsum[1] += avgs[cellIndex(i,j,k)]*VX * DV3;
+               lsum[2] += avgs[cellIndex(i,j,k)]*VY * DV3;
+               lsum[3] += avgs[cellIndex(i,j,k)]*VZ * DV3;
+             };
+           }, array);
          
          // Store species' contribution to bulk velocity moments
          Population & pop = cell->get_population(popID);
@@ -381,8 +426,8 @@ void calculateMoments_V(
 
          vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
          if (blockContainer.size() == 0) continue;
-         const Realf* data       = blockContainer.getData();
-         const Real* blockParams = blockContainer.getParameters();
+         const Realf* h_data       = blockContainer.getData();
+         const Real* h_blockParams = blockContainer.getParameters();
          const Real mass = getObjectWrapper().particleSpecies[popID].mass;
 
          // Temporary array where moments are stored
@@ -391,15 +436,35 @@ void calculateMoments_V(
 
          // Calculate species' contribution to second velocity moments
          Population & pop = cell->get_population(popID);
-         for (vmesh::LocalID blockLID=0; blockLID<blockContainer.size(); ++blockLID) {
-            blockVelocitySecondMoments(
-                                       data+blockLID*WID3,
-                                       blockParams+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS,
-                                       cell->parameters[CellParams::VX_V],
-                                       cell->parameters[CellParams::VY_V],
-                                       cell->parameters[CellParams::VZ_V],
-                                       array);
-         } // for-loop over velocity blocks
+         //for (vmesh::LocalID blockLID=0; blockLID<blockContainer.size(); ++blockLID) {
+         //   blockVelocitySecondMoments(
+         //                              data+blockLID*WID3,
+         //                              blockParams+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS,
+         //                              cell->parameters[CellParams::VX_V],
+         //                              cell->parameters[CellParams::VY_V],
+         //                              cell->parameters[CellParams::VZ_V],
+         //                              array);
+         //} // for-loop over velocity blocks
+
+        const Real averageVX = cell->parameters[CellParams::VX_V];
+        const Real averageVY = cell->parameters[CellParams::VY_V];
+        const Real averageVZ = cell->parameters[CellParams::VZ_V];
+
+         arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint) blockContainer.size()}, 
+           ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint blockLID, Real *lsum ) { 
+             const Realf* avgs = data+blockLID*WID3;
+             const Real* blockParamsZ = blockParams+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
+             const Real DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
+             const Real HALF = 0.5;
+             ARCH_INNER_BODY(i, j, k, blockLID, lsum) { 
+               const Real VX = blockParamsZ[BlockParams::VXCRD] + (i+HALF)*blockParamsZ[BlockParams::DVX];
+               const Real VY = blockParamsZ[BlockParams::VYCRD] + (j+HALF)*blockParamsZ[BlockParams::DVY];
+               const Real VZ = blockParamsZ[BlockParams::VZCRD] + (k+HALF)*blockParamsZ[BlockParams::DVZ];  
+               lsum[0] += avgs[cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX);
+               lsum[1] += avgs[cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY);
+               lsum[2] += avgs[cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ);
+             };
+           }, array);
          
          // Store species' contribution to 2nd bulk velocity moments
          pop.P_V[0] = mass*array[0];

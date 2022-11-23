@@ -14,7 +14,7 @@
 #define ARCH_INNER_BODY4(i, j, k, l, aggregate)
 
 /* Set CUDA blocksize used for reductions */
-#define ARCH_BLOCKSIZE_R 256
+#define ARCH_BLOCKSIZE_R 512
 
 /* Define the CUDA error checking macro */
 #define CUDA_ERR(err) (cuda_error(err, __FILE__, __LINE__))
@@ -192,20 +192,25 @@ __forceinline__ static void parallel_reduce_driver(const uint (&limits)[NDim], L
   /* Check the CUDA default mempool settings and correct if wrong */
   device_mempool_check(UINT64_MAX);
 
+cudaStream_t stream;
+
+cudaStreamCreate(&stream);
+
+
   /* Create a device buffer for the reduction results */
   T* d_buf;
-  CUDA_ERR(cudaMallocAsync(&d_buf, n_reductions*sizeof(T), 0));
-  CUDA_ERR(cudaMemcpy(d_buf, sum, n_reductions*sizeof(T), cudaMemcpyHostToDevice));
+  CUDA_ERR(cudaMallocAsync(&d_buf, n_reductions*sizeof(T), stream));
+  CUDA_ERR(cudaMemcpyAsync(d_buf, sum, n_reductions*sizeof(T), cudaMemcpyHostToDevice,stream));
   
   /* Create a device buffer to transfer the initial values to device */
   T* d_const_buf;
-  CUDA_ERR(cudaMallocAsync(&d_const_buf, n_reductions*sizeof(T), 0));
-  CUDA_ERR(cudaMemcpy(d_const_buf, d_buf, n_reductions*sizeof(T), cudaMemcpyDeviceToDevice));
+  CUDA_ERR(cudaMallocAsync(&d_const_buf, n_reductions*sizeof(T), stream));
+  CUDA_ERR(cudaMemcpyAsync(d_const_buf, d_buf, n_reductions*sizeof(T), cudaMemcpyDeviceToDevice,stream));
 
   /* Create a device buffer to transfer the loop limits of each dimension to device */
   uint* d_limits;
-  CUDA_ERR(cudaMallocAsync(&d_limits, NDim*sizeof(uint), 0));
-  CUDA_ERR(cudaMemcpy(d_limits, limits, NDim*sizeof(uint), cudaMemcpyHostToDevice));
+  CUDA_ERR(cudaMallocAsync(&d_limits, NDim*sizeof(uint), stream));
+  CUDA_ERR(cudaMemcpyAsync(d_limits, limits, NDim*sizeof(uint), cudaMemcpyHostToDevice,stream));
 
   /* Call the reduction kernel with different arguments depending 
    * on if the number of reductions is known at the compile time 
@@ -215,24 +220,33 @@ __forceinline__ static void parallel_reduce_driver(const uint (&limits)[NDim], L
     /* Get the cub temp storage size for the dynamic shared memory kernel argument */
     constexpr auto cub_temp_storage_type_size = sizeof(typename cub::BlockReduce<T, ARCH_BLOCKSIZE_R, cub::BLOCK_REDUCE_RAKING_COMMUTATIVE_ONLY, 1, 1>::TempStorage);
     /* Allocate memory for the thread data values */
-    CUDA_ERR(cudaMallocAsync(&d_thread_data_dynamic, n_reductions * blocksize * gridsize * sizeof(T), 0));
+    CUDA_ERR(cudaMallocAsync(&d_thread_data_dynamic, n_reductions * blocksize * gridsize * sizeof(T), stream));
     /* Call the kernel (the number of reductions not known at compile time) */
-    reduction_kernel<Op, NDim, 0><<<gridsize, blocksize, n_reductions * cub_temp_storage_type_size>>>(loop_body, d_const_buf, d_buf, d_limits, n_total, n_reductions, d_thread_data_dynamic);
+    reduction_kernel<Op, NDim, 0><<<gridsize, blocksize, n_reductions * cub_temp_storage_type_size,stream>>>(loop_body, d_const_buf, d_buf, d_limits, n_total, n_reductions, d_thread_data_dynamic);
     /* Synchronize and free the thread data allocation */
-    CUDA_ERR(cudaStreamSynchronize(0));
-    CUDA_ERR(cudaFreeAsync(d_thread_data_dynamic, 0));
+    CUDA_ERR(cudaStreamSynchronize(stream));
+    CUDA_ERR(cudaFreeAsync(d_thread_data_dynamic, stream));
   }
   else{
+   #ifdef PHIPP
+    phiprof::start("CUDA Compute _V moments");
+    #endif
     /* Call the kernel (the number of reductions known at compile time) */
-    reduction_kernel<Op, NDim, NReduStatic><<<gridsize, blocksize>>>(loop_body, d_const_buf, d_buf, d_limits, n_total, n_reductions, d_thread_data_dynamic);
+    reduction_kernel<Op, NDim, NReduStatic><<<gridsize, blocksize,0,stream>>>(loop_body, d_const_buf, d_buf, d_limits, n_total, n_reductions, d_thread_data_dynamic);
     /* Synchronize after kernel call */
-    CUDA_ERR(cudaStreamSynchronize(0));
+    CUDA_ERR(cudaStreamSynchronize(stream));
+    #ifdef PHIPP
+    phiprof::stop("CUDA Compute _V moments");
+    #endif
   }
   /* Copy the results back to host and free the allocated memory back to pool*/
-  CUDA_ERR(cudaMemcpy(sum, d_buf, n_reductions*sizeof(T), cudaMemcpyDeviceToHost));
-  CUDA_ERR(cudaFreeAsync(d_buf, 0));
-  CUDA_ERR(cudaFreeAsync(d_const_buf, 0));
-  CUDA_ERR(cudaFreeAsync(d_limits, 0));
+  CUDA_ERR(cudaMemcpyAsync(sum, d_buf, n_reductions*sizeof(T), cudaMemcpyDeviceToHost,stream));
+  CUDA_ERR(cudaFreeAsync(d_buf, stream));
+  CUDA_ERR(cudaFreeAsync(d_const_buf, stream));
+  CUDA_ERR(cudaFreeAsync(d_limits, stream));
+
+ cudaStreamDestroy(stream);
+
 }
 }
 #endif // !ARCH_DEVICE_CUDA_H

@@ -381,7 +381,7 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
    // Calculate velocity moments, these are needed to
    // calculate the transforms used in the accelerations.
    // Calculated moments are stored in the "_V" variables.
-#ifdef USE_CUDA
+#ifdef USE_CUDA1111111111111111111111111111111
    cuda_calculateMoments_V(mpiGrid, propagatedCells, false);
 #else
    calculateMoments_V(mpiGrid, propagatedCells, false);
@@ -536,7 +536,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
    // Recalculate "_V" velocity moments
 momentCalculation:
-#ifdef USE_CUDA
+#ifdef USE_CUDA111111111111111111111111111111111
    cuda_calculateMoments_V(mpiGrid, cells, true);
 #else
    calculateMoments_V(mpiGrid, cells, true);
