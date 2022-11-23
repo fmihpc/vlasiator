@@ -143,7 +143,7 @@ namespace SBC {
             cuint& component
          );
         
-         void mapCellPotentialAndGetEXBDrift(
+         virtual void mapCellPotentialAndGetEXBDrift(
             std::array<Real, CellParams::N_SPATIAL_CELL_PARAMS>& cellParams
          );
 
