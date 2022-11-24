@@ -47,11 +47,8 @@ namespace FieldTracing {
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
       FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & bgbGrid,
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> & mpiGrid,
-      std::vector<SBC::SphericalTriGrid::Node> & nodes,
-      SysBoundary& sysBoundaries
+      std::vector<SBC::SphericalTriGrid::Node> & nodes
    ) {
       if(fieldTracingParameters.doTraceOpenClosed) {
          traceOpenClosedConnection(technicalGrid, perBGrid, dPerBGrid, nodes);
