@@ -5,8 +5,8 @@
 #   See the It4Science wiki or the Vorna guide
 #   https://github.com/fmihpc/analysator/wiki/Vorna-guide
 #   for the current best practice.
-# * Use mpirun to run (no need for the long command below it seems)
-# * (this was used previously, kept for documentation purposes) mpirun -mca pml ucx --mca btl ^vader,tcp,openib -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global $executable --run_config $configfile
+# * Use mpirun to run, with the following (rather long) command line:
+#   mpirun -mca pml ucx --mca btl ^vader,tcp,openib -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global $executable --run_config $configfile
 #
 # Required modules:
 #
