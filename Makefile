@@ -10,7 +10,7 @@ ifneq (,$(findstring testpackage,$(MAKECMDGOALS)))
 	MATHFLAGS =
 	FP_PRECISION = DP
 	DISTRIBUTION_FP_PRECISION = DPF
-        CXXFLAGS += -DIONOSPHERE_SORTED_SUMS
+        COMPFLAGS += -DIONOSPHERE_SORTED_SUMS
 endif
 
 
@@ -37,9 +37,9 @@ COMPFLAGS += -DPROFILE
 
 #Add -DNDEBUG to turn debugging off. If debugging is enabled performance will degrade significantly
 COMPFLAGS += -DNDEBUG
-# CXXFLAGS += -DIONOSPHERE_SORTED_SUMS
-# CXXFLAGS += -DDEBUG_SOLVERS
-# CXXFLAGS += -DDEBUG_IONOSPHERE
+# COMPFLAGS += -DIONOSPHERE_SORTED_SUMS
+# COMPFLAGS += -DDEBUG_SOLVERS
+# COMPFLAGS += -DDEBUG_IONOSPHERE
 
 #Set order of semilag solver in velocity space acceleration
 #  ACC_SEMILAG_PLM 	2nd order	
