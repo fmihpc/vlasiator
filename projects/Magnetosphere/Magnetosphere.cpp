@@ -104,6 +104,7 @@ namespace projects {
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
       Project::getParameters();
+      SysBoundary& sysBoundaryContainer = getObjectWrapper().sysBoundaryContainer;
 
       Real dummy;
       typedef Readparameters RP;
@@ -117,34 +118,28 @@ namespace projects {
       RP::get("Magnetosphere.dipoleMirrorLocationX", this->dipoleMirrorLocationX);
 
       RP::get("Magnetosphere.dipoleType", this->dipoleType);
-      if(RP::isSet("conductingsphere.radius")) {
+
+      /** Read inner boundary parameters from either ionospheric or conductingsphere sysboundary condition */
+      if (sysBoundaryContainer.existSysBoundary("Conductingsphere")) {
          RP::get("conductingsphere.radius", this->ionosphereRadius);
-      } else {
+         RP::get("conductingsphere.centerX", this->center[0]);
+         RP::get("conductingsphere.centerY", this->center[1]);
+         RP::get("conductingsphere.centerZ", this->center[2]);
+         RP::get("conductingsphere.geometry", this->ionosphereGeometry);
+      } else if (sysBoundaryContainer.existSysBoundary("Ionosphere")) {
          RP::get("ionosphere.radius", this->ionosphereRadius);
+         RP::get("ionosphere.centerX", this->center[0]);
+         RP::get("ionosphere.centerY", this->center[1]);
+         RP::get("ionosphere.centerZ", this->center[2]);
+         RP::get("ionosphere.geometry", this->ionosphereGeometry);
+      } else {
+         if(myRank == MASTER_RANK) {
+            std::cerr<<"Warning in initializing Magnetosphere: Could not find inner boundary (ionosphere or conductingsphere)!"<<std::endl;
+         }
       }
       if(ionosphereRadius < 1000.) {
          // For really small ionospheric radius values, assume R_E units
          ionosphereRadius *= physicalconstants::R_E;
-      }
-      if(RP::isSet("conductingsphere.centerX")) {
-         RP::get("conductingsphere.centerX", this->center[0]);
-      } else {
-         RP::get("ionosphere.centerX", this->center[0]);
-      }
-      if(RP::isSet("conductingsphere.centerY")) {
-         RP::get("conductingsphere.centerY", this->center[1]);
-      } else {
-         RP::get("ionosphere.centerY", this->center[1]);
-      }
-      if(RP::isSet("conductingsphere.centerZ")) {
-         RP::get("conductingsphere.centerZ", this->center[2]);
-      } else {
-         RP::get("ionosphere.centerZ", this->center[2]);
-      }
-      if(RP::isSet("conductingsphere.geometry")) {
-         RP::get("conductingsphere.geometry", this->ionosphereGeometry);
-      } else {
-         RP::get("ionosphere.geometry", this->ionosphereGeometry);
       }
 
       RP::get("Magnetosphere.refine_L4radius", this->refine_L4radius);
@@ -188,29 +183,18 @@ namespace projects {
          RP::get(pop + "_Magnetosphere.nSpaceSamples", sP.nSpaceSamples);
          RP::get(pop + "_Magnetosphere.nVelocitySamples", sP.nVelocitySamples);
 
-         if(RP::isSet(pop + "_conductingsphere.rho")) {
+         /** Read inner boundary parameters from either ionospheric or conductingsphere sysboundary condition */
+         if (sysBoundaryContainer.existSysBoundary("Conductingsphere")) {
             RP::get(pop + "_conductingsphere.rho", sP.ionosphereRho);
-         } else {
-            RP::get(pop + "_ionosphere.rho", sP.ionosphereRho);
-         }
-         if(RP::isSet(pop + "_conductingsphere.T")) {
             RP::get(pop + "_conductingsphere.T", sP.ionosphereT);
-         } else {
-            RP::get(pop + "_ionosphere.T", sP.ionosphereT);
-         }
-         if(RP::isSet(pop + "_conductingsphere.VX0")) {
             RP::get(pop + "_conductingsphere.VX0", sP.ionosphereV0[0]);
-         } else {
-            RP::get(pop + "_ionosphere.VX0", sP.ionosphereV0[0]);
-         }
-         if(RP::isSet(pop + "_conductingsphere.VY0")) {
             RP::get(pop + "_conductingsphere.VY0", sP.ionosphereV0[1]);
-         } else {
-            RP::get(pop + "_ionosphere.VY0", sP.ionosphereV0[1]);
-         }
-         if(RP::isSet(pop + "_conductingsphere.VZ0")) {
             RP::get(pop + "_conductingsphere.VZ0", sP.ionosphereV0[2]);
-         } else {
+         } else if (sysBoundaryContainer.existSysBoundary("Ionosphere")) {
+            RP::get(pop + "_ionosphere.rho", sP.ionosphereRho);
+            RP::get(pop + "_ionosphere.T", sP.ionosphereT);
+            RP::get(pop + "_ionosphere.VX0", sP.ionosphereV0[0]);
+            RP::get(pop + "_ionosphere.VY0", sP.ionosphereV0[1]);
             RP::get(pop + "_ionosphere.VZ0", sP.ionosphereV0[2]);
          }
          RP::get(pop + "_Magnetosphere.taperInnerRadius", sP.taperInnerRadius);
@@ -243,13 +227,21 @@ namespace projects {
          }
          if(sP.ionosphereT == 0) {
             if(myRank == MASTER_RANK) {
-               cerr << "Warning: " << pop << "_(iono/conducting)sphere.T is zero (default), now setting to the same value as " << pop << "_Magnetosphere.T, that is " << sP.T << ". Set/change " << pop << "_(iono/conducting)sphere.T if this is not the expected behavior." << endl;
+               if (sysBoundaryContainer.existSysBoundary("Conductingsphere")) {
+                  cerr << "Warning: " << pop << "_conductingsphere.T is zero (default), now setting to the same value as " << pop << "_Magnetosphere.T, that is " << sP.T << ". Set/change " << pop << "_conductingsphere.T if this is not the expected behavior." << endl;
+               } else if (sysBoundaryContainer.existSysBoundary("Ionosphere")) {
+                  cerr << "Warning: " << pop << "_ionosphere.T is zero (default), now setting to the same value as " << pop << "_Magnetosphere.T, that is " << sP.T << ". Set/change " << pop << "_ionosphere.T if this is not the expected behavior." << endl;
+               }
             }
             sP.ionosphereT = sP.T;
          }
          if(sP.ionosphereRho == 0) {
             if(myRank == MASTER_RANK) {
-               cerr << "Warning: " << pop << "_(iono/conducting)sphere.rho is zero (default), now setting to the same value as " << pop << "_Magnetosphere.rho, that is " << sP.rho << ". Set/change " << pop << "_(iono/conducting)sphere.rho if this is not the expected behavior." << endl;
+               if (sysBoundaryContainer.existSysBoundary("Conductingsphere")) {
+                  cerr << "Warning: " << pop << "_conductingsphere.rho is zero (default), now setting to the same value as " << pop << "_Magnetosphere.rho, that is " << sP.rho << ". Set/change " << pop << "_conductingsphere.rho if this is not the expected behavior." << endl;
+               } else if (sysBoundaryContainer.existSysBoundary("Ionosphere")) {
+                  cerr << "Warning: " << pop << "_ionosphere.rho is zero (default), now setting to the same value as " << pop << "_Magnetosphere.rho, that is " << sP.rho << ". Set/change " << pop << "_ionosphere.rho if this is not the expected behavior." << endl;
+               }
             }
             sP.ionosphereRho = sP.rho;
          }
@@ -505,7 +497,7 @@ namespace projects {
          // sine tapering
          initRho = sP.rho - (sP.rho-sP.ionosphereRho)*0.5*(1.0+sin(M_PI*(radius-sP.taperInnerRadius)/(sP.taperOuterRadius-sP.taperInnerRadius)+0.5*M_PI));
          initT = sP.T - (sP.T-sP.ionosphereT)*0.5*(1.0+sin(M_PI*(radius-sP.taperInnerRadius)/(sP.taperOuterRadius-sP.taperInnerRadius)+0.5*M_PI));
-         if(radius < sP.taperInnerRadius) {
+         if(radius <= sP.taperInnerRadius) {
             initRho = sP.ionosphereRho;
             initT = sP.ionosphereT;
          }
@@ -559,7 +551,7 @@ namespace projects {
          
          for(uint i=0; i<3; i++) {
             V0[i]=q*(V0[i]-ionosphereV0[i])+ionosphereV0[i];
-            if(radius < sP.taperInnerRadius) {
+            if(radius <= sP.taperInnerRadius) {
                V0[i] = ionosphereV0[i];
             }
          }

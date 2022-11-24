@@ -161,12 +161,7 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                int refLevel = technicalGrid.get(i, j, k)->refLevel;
 
                // Skip pass
-               if (blurPass >= P::numPasses.at(refLevel) ||
-                  technicalGrid.get(i, j, k)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-                  (technicalGrid.get(i, j, k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
-                  technicalGrid.get(i, j, k)->sysBoundaryLayer >= 2)
-               )
-               {
+               if (blurPass >= P::numPasses.at(refLevel) || technicalGrid.get(i, j, k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
                   continue;
                }
 

@@ -276,10 +276,9 @@ int main(int argn,char* args[]) {
    phiprof::initialize();
    
    double initialWtime =  MPI_Wtime();
-   
+   SysBoundary& sysBoundaryContainer = getObjectWrapper().sysBoundaryContainer;
    MPI_Comm comm = MPI_COMM_WORLD;
    MPI_Comm_rank(comm,&myRank);
-   SysBoundary sysBoundaries;
    bool isSysBoundaryCondDynamic;
    
    #ifdef CATCH_FPE
@@ -307,7 +306,7 @@ int main(int argn,char* args[]) {
    P::getParameters();
 
    getObjectWrapper().addPopulationParameters();
-   sysBoundaries.addParameters();
+   sysBoundaryContainer.addParameters();
    projects::Project::addParameters();
 
    Project* project = projects::createProject();
@@ -315,8 +314,8 @@ int main(int argn,char* args[]) {
    readparameters.parse(true, false); // 2nd parsing for specific population parameters
    readparameters.helpMessage(); // Call after last parse, exits after printing help if help requested
    getObjectWrapper().getParameters();
+   sysBoundaryContainer.getParameters();
    project->getParameters();
-   sysBoundaries.getParameters();
    phiprof::stop("Read parameters");
 
 
@@ -385,9 +384,9 @@ int main(int argn,char* args[]) {
 							    convert<int>(P::ycells_ini * pow(2,P::amrMaxSpatialRefLevel)),
 							    convert<int>(P::zcells_ini * pow(2,P::amrMaxSpatialRefLevel))};
 
-   std::array<bool,3> periodicity{sysBoundaries.isBoundaryPeriodic(0),
-                                  sysBoundaries.isBoundaryPeriodic(1),
-                                  sysBoundaries.isBoundaryPeriodic(2)};
+   std::array<bool,3> periodicity{sysBoundaryContainer.isBoundaryPeriodic(0),
+                                  sysBoundaryContainer.isBoundaryPeriodic(1),
+                                  sysBoundaryContainer.isBoundaryPeriodic(2)};
 
    FsGridCouplingInformation gridCoupling;
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBGrid(fsGridDimensions, comm, periodicity,gridCoupling);
@@ -454,10 +453,10 @@ int main(int argn,char* args[]) {
       EGradPeGrid,
       volGrid,
       technicalGrid,
-      sysBoundaries,
+      sysBoundaryContainer,
       *project
    );
-   isSysBoundaryCondDynamic = sysBoundaries.isDynamic();
+   isSysBoundaryCondDynamic = sysBoundaryContainer.isDynamic();
    
    const std::vector<CellID>& cells = getLocalCells();
    
@@ -489,7 +488,7 @@ int main(int argn,char* args[]) {
 		   BgBGrid,
 		   volGrid,
 		   technicalGrid,
-		   sysBoundaries, 0.0, 1.0
+		   sysBoundaryContainer, 0.0, 1.0
 		   );
 
    phiprof::start("getFieldsFromFsGrid");
@@ -587,7 +586,7 @@ int main(int argn,char* args[]) {
       // Apply boundary conditions
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
          phiprof::start("Update system boundaries (Vlasov post-acceleration)");
-         sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, 0.5*P::dt, true);
+         sysBoundaryContainer.applySysBoundaryVlasovConditions(mpiGrid, 0.5*P::dt, true);
          phiprof::stop("Update system boundaries (Vlasov post-acceleration)");
          addTimedBarrier("barrier-boundary-conditions");
       }
@@ -856,7 +855,7 @@ int main(int argn,char* args[]) {
          // Refinement includes LB
          if (!dtIsChanged && P::adaptRefinement && P::tstep % (P::rebalanceInterval * P::refineMultiplier) == 0 && P::t > P::refineAfter) { 
             logFile << "(AMR): Adapting refinement!"  << endl << writeVerbose;
-            if (!adaptRefinement(mpiGrid, technicalGrid, sysBoundaries, *project))
+            if (!adaptRefinement(mpiGrid, technicalGrid, sysBoundaryContainer, *project))
                continue;   // Refinement failed and we're bailing out
 
             // Calculate new dt limits since we might break CFL when refining
@@ -865,7 +864,7 @@ int main(int argn,char* args[]) {
             calculateAcceleration(mpiGrid,0.0);      
             phiprof::stop("compute-dt");
          }
-         balanceLoad(mpiGrid, sysBoundaries);
+         balanceLoad(mpiGrid, sysBoundaryContainer);
          addTimedBarrier("barrier-end-load-balance");
          phiprof::start("Shrink_to_fit");
          // * shrink to fit after LB * //
@@ -946,7 +945,7 @@ int main(int argn,char* args[]) {
       // Apply boundary conditions
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
          phiprof::start("Update system boundaries (Vlasov post-translation)");
-         sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt, false);
+         sysBoundaryContainer.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt, false);
          phiprof::stop("Update system boundaries (Vlasov post-translation)");
          addTimedBarrier("barrier-boundary-conditions");
       }
@@ -991,7 +990,7 @@ int main(int argn,char* args[]) {
             BgBGrid,
             volGrid,
             technicalGrid,
-            sysBoundaries,
+            sysBoundaryContainer,
             P::dt,
             P::fieldSolverSubcycles
          );
@@ -1049,7 +1048,7 @@ int main(int argn,char* args[]) {
       
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
          phiprof::start("Update system boundaries (Vlasov post-acceleration)");
-         sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt, true);
+         sysBoundaryContainer.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt, true);
          phiprof::stop("Update system boundaries (Vlasov post-acceleration)");
          addTimedBarrier("barrier-boundary-conditions");
       }

@@ -412,7 +412,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          continue;
       }
       if(lowercase == "populations_precipitationflux" || lowercase == "populations_vg_precipitationdifferentialflux" || lowercase == "populations_precipitationdifferentialflux") {
-         // Per-population precipitation differential flux
+         // Per-population precipitation differential flux (within loss cone)
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
@@ -420,6 +420,18 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 	    std::stringstream conversion;
 	    conversion << (1.0e-4)*physicalconstants::CHARGE;
 	    outputReducer->addMetadata(outputReducer->size()-1,"1/(cm^2 sr s eV)","$\\mathrm{cm}^{-2}\\,\\mathrm{sr}^{-1}\\,\\mathrm{s}^{-1}\\,\\mathrm{eV}^{-1}$","$\\mathcal{F}_\\mathrm{"+pop+"}$",conversion.str());
+         }
+         continue;
+      }
+      if(lowercase == "populations_precipitationlineflux" || lowercase == "populations_vg_precipitationlinedifferentialflux" || lowercase == "populations_precipitationlinedifferentialflux") {
+         // Per-population precipitation differential flux (along line)
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            species::Species& species=getObjectWrapper().particleSpecies[i];
+            const std::string& pop = species.name;
+            outputReducer->addOperator(new DRO::VariablePrecipitationLineDiffFlux(i));
+            std::stringstream conversion;
+            conversion << (1.0e-4)*physicalconstants::CHARGE;
+            outputReducer->addMetadata(outputReducer->size()-1,"1/(cm^2 sr s eV)","$\\mathrm{cm}^{-2}\\,\\mathrm{sr}^{-1}\\,\\mathrm{s}^{-1}\\,\\mathrm{eV}^{-1}$","$\\mathcal{F}_\\mathrm{"+pop+"}$",conversion.str());
          }
          continue;
       }
@@ -2652,6 +2664,24 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1, "m^2", "$\\mathrm{m}^2$", "$A_m$", "1.0");
          continue;
       }
+      if(lowercase == "ig_b") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_b", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+                  
+                     std::vector<Real> retval(grid.nodes.size()*3);
+
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        retval[3*i] = grid.nodes[i].parameters[ionosphereParameters::NODE_BX];
+                        retval[3*i+1] = grid.nodes[i].parameters[ionosphereParameters::NODE_BY];
+                        retval[3*i+2] = grid.nodes[i].parameters[ionosphereParameters::NODE_BZ];
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addMetadata(outputReducer->size()-1, "T", "$\\mathrm{T}$", "$B$", "1.0");
+         continue;
+      }
+
       if(lowercase == "ig_e") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereElement("ig_e", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
