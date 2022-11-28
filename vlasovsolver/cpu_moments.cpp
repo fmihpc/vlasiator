@@ -303,9 +303,9 @@ void calculateMoments_V(
    phiprof::start("Compute _V moments");
 
    // Create vectors for device buffers
-   std::vector<arch::buf<Realf>> v_data;
+   std::vector<arch::buf<Realf>*> v_data;
    v_data.reserve(getObjectWrapper().particleSpecies.size() * cells.size()); 
-   std::vector<arch::buf<Real>> v_blockParams;
+   std::vector<arch::buf<Real>*> v_blockParams;
    v_blockParams.reserve(getObjectWrapper().particleSpecies.size() * cells.size());
  
    // Loop over all particle species
@@ -338,12 +338,12 @@ void calculateMoments_V(
          const Real charge = getObjectWrapper().particleSpecies[popID].charge;
 
          // Create temporary buffers for the GPU data and push back to vector
-         v_data[cells.size() * popID + c] = arch::buf<Realf>(h_data, (uint)(blockContainer.size()*WID3*sizeof(Realf))); 
-         v_blockParams[cells.size() * popID + c] = arch::buf<Real>(h_blockParams, (uint)(blockContainer.size()*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real))); 
+         v_data[cells.size() * popID + c] = new arch::buf<Realf>(h_data, (uint)(blockContainer.size()*WID3*sizeof(Realf))); 
+         v_blockParams[cells.size() * popID + c] = new arch::buf<Real>(h_blockParams, (uint)(blockContainer.size()*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real))); 
 
          // Get pointers for easy access in the loop
-         arch::buf<Realf> data = v_data[cells.size() * popID + c]; 
-         arch::buf<Real> blockParams = v_blockParams[cells.size() * popID + c]; 
+         arch::buf<Realf> data = *v_data[cells.size() * popID + c]; 
+         arch::buf<Real> blockParams = *v_blockParams[cells.size() * popID + c]; 
 
          // Temporary array for storing moments
          Real array[4] = {0};
@@ -414,8 +414,8 @@ void calculateMoments_V(
          const Real mass = getObjectWrapper().particleSpecies[popID].mass;
 
          // Get pointers for easy access in the loop
-         arch::buf<Realf> data = v_data[cells.size() * popID + c]; 
-         arch::buf<Real> blockParams = v_blockParams[cells.size() * popID + c]; 
+         arch::buf<Realf> data = *v_data[cells.size() * popID + c]; 
+         arch::buf<Real> blockParams = *v_blockParams[cells.size() * popID + c]; 
 
          // Temporary array where moments are stored
          Real array[3] = {0};
@@ -455,6 +455,12 @@ void calculateMoments_V(
          
       } // for-loop over spatial cells
    } // for-loop over particle species
+
+   // Delete temporary device buffers
+   for(auto buf_data : v_data)
+     delete buf_data;
+   for(auto buf_blockParams : v_blockParams)
+     delete buf_blockParams;
 
    phiprof::stop("Compute _V moments");
 }

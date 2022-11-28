@@ -51,7 +51,7 @@ namespace arch{
   /* Buffer class for making data available on device */
   template <typename T> 
   class buf {
-    private:  
+    public:  
     T *ptr; 
     T *d_ptr;
     uint bytes;
