@@ -13,6 +13,7 @@ tests += {
     'vector_elementwise_multiplication_1' : [files('vector_elementwise_multiplication_1.cpp')],
     'vector_elementwise_division_1' : [files('vector_elementwise_division_1.cpp')],
     'vector_dot_product_1' : [files('vector_dot_product_1.cpp')],
+    'muliply_vector_with_scalar_and_add_it_to_another_vector_1' : [files('muliply_vector_with_scalar_and_add_it_to_another_vector_1.cpp')],
     'create_sparse_matrix_1' : [files('create_sparse_matrix_1.cpp')],
     'create_sparse_matrix_2' : [files('create_sparse_matrix_2.cpp')],
     'matrix_vector_product_cuda_1' : [files('matrix_vector_product_cuda_1.cpp')],

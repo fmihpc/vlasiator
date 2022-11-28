@@ -466,6 +466,33 @@ T vectorNormSquared(const std::vector<T>& v) {
     return dotProduct<T>(v_device_p, v_device_p, v.size());
 }
 
+// scalar * v + w
+template<typename T>
+__global__ void multiplyVectorWithScalarAndAddItToAnotherVector(const T scalar, T const * const v_device_p, T const * const w_device_p, T * const result_device_p) {
+    const auto i = blockDim.x * blockIdx.x + threadIdx.x;
+    result_device_p[i] = scalar * v_device_p[i] + w_device_p[i];
+}
+
+// scalar * v + w
+template<typename T>
+std::vector<T> multiplyVectorWithScalarAndAddItToAnotherVector(const T scalar, const std::vector<T>& v, const std::vector<T>& w) {
+    assert(v.size() == w.size());
+    const auto padded_size = (((v.size() / warp_size) + 1) * warp_size);
+
+    const auto data_device = CudaArray<T, 3> {
+        {v, padded_size},
+        {w, padded_size},
+        {{}, padded_size}
+    };
+
+    const auto [v_device_p, w_device_p, result_device_p] = data_device.get_pointers_to_data();
+
+    const auto blocks = ((padded_size / warp_size) + 1);
+
+    multiplyVectorWithScalarAndAddItToAnotherVector<<<blocks, warp_size>>>(scalar, v_device_p, w_device_p, result_device_p);
+    return data_device.copy_data_to_host_vector(result_device_p, v.size());
+}
+
 // Modified Asolve from page 86 (110 pdf) of
 // https://www.grad.hr/nastava/gs/prg/NumericalRecipesinC.pdf
 // We assume that element (i, i) of sparse_A is stored at sparse_A[i * m]
@@ -498,7 +525,7 @@ std::vector<T> sparseBiCGCUDA(
     const auto [indecies_device_p] = indecies_on_device.get_pointers_to_data();
 
 
-    auto data_on_device = CudaArray<T, 8> {
+    auto data_on_device = CudaArray<T, 10> {
         {sparse_A, height * m, true},
         {sparse_A_transposed, height * m, true},
         {b, height},
@@ -506,7 +533,9 @@ std::vector<T> sparseBiCGCUDA(
         {/* r */{}, height},
         {/* rr */{}, height},
         {/* z */{}, height},
-        {/* zz */{}, height}
+        {/* zz */{}, height},
+        {/* p */{}, height},
+        {/* pp */{}, height}
     };
     
     const auto [
@@ -517,7 +546,9 @@ std::vector<T> sparseBiCGCUDA(
         r_device_p,
         rr_device_p,
         z_device_p,
-        zz_device_p
+        zz_device_p,
+        p_device_p,
+        pp_device_p
     ] = data_on_device.get_pointers_to_data();
     
     // From this point onwards comments will refere numecial recipies in C
@@ -565,11 +596,29 @@ std::vector<T> sparseBiCGCUDA(
 
     // while (*iter <= itmax) {
     // (*iter == 1)
+
+
+    
+
+    T bkden;
     for (size_t iteration = 0; iteration < config.max_iterations; ++iteration) {
-        //asolve(n,rr,zz,1);
+        // asolve(n,rr,zz,1);
         Asolve(rr_device_p, zz_device_p, true);
         
+        // for (bknum=0.0,j=1;j<=n;j++) bknum += z[j]*rr[j];
+        const auto bknum = dotProduct(z_device_p, rr_device_p, n);
 
+        if (iteration == 0) {
+            // p[j]=z[j];
+            data_on_device.copy_data_to_device(z_device_p, p_device_p, height);
+            // pp[j]=zz[j];
+            data_on_device.copy_data_to_device(zz_device_p, pp_device_p, height);
+        } else {
+            const auto bk = bknum / bkden;
+            // p[j]=bk*p[j]+z[j];
+            // pp[j]=bk*pp[j]+zz[j];
+
+        }
     }
 
     return {};

@@ -67,6 +67,11 @@ namespace ionogpu {
    template<typename T>
    T dotProduct(const std::vector<T>& v, const std::vector<T>& w);
 
+   // scalar * v + w
+   template<typename T>
+   std::vector<T> multiplyVectorWithScalarAndAddItToAnotherVector(const T scalar, const std::vector<T>& v, const std::vector<T>& w);
+
+
 
    template<typename T>
    T vectorNormSquared(const std::vector<T>& v);

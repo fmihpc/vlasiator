@@ -47,3 +47,7 @@ std::vector<double> ionogpu::vectorElementwiseDivision<double>(const std::vector
 
 template
 double ionogpu::dotProduct<double>(const std::vector<double>& v, const std::vector<double>& w);
+
+// scalar * v + w
+template
+std::vector<double> ionogpu::multiplyVectorWithScalarAndAddItToAnotherVector<double>(const double scalar, const std::vector<double>& v, const std::vector<double>& w);
