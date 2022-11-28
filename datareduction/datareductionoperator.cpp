@@ -1406,6 +1406,7 @@ namespace DRO {
          
          const Real* parameters  = cell->get_block_parameters(popID);
          const Realf* block_data = cell->get_data(popID);
+         const Real mass = getObjectWrapper().particleSpecies[popID].mass;
          
          arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)}, 
            ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint n, Real *lsum )-> void { 
@@ -1429,7 +1430,7 @@ namespace DRO {
              const Real VdotB_norm = (B[0]*VX + B[1]*VY + B[2]*VZ)/normV;
              Real countAndGate = floor(VdotB_norm/cosAngle);  // gate function: 0 outside loss cone, 1 inside
              countAndGate = max(0.,countAndGate);
-             const Real energy = 0.5 * getObjectWrapper().particleSpecies[popID].mass * normV*normV; // in SI
+             const Real energy = 0.5 * mass * normV*normV; // in SI
              
              // Find the correct energy bin number to update
              int binNumber = round((log(energy) - log(emin)) / log(emax/emin) * (nChannels-1));
@@ -1521,6 +1522,7 @@ namespace DRO {
          
          const Real* parameters  = cell->get_block_parameters(popID);
          const Realf* block_data = cell->get_data(popID);
+         const Real mass = getObjectWrapper().particleSpecies[popID].mass;
         
          arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)}, 
            ARCH_LOOP_LAMBDA (const uint n, const uint i, const uint j, const uint k,Real *lsum ) { 
@@ -1540,7 +1542,7 @@ namespace DRO {
                    =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] 
                    + (k + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
                      
-               const Real ENERGY = (VX*VX + VY*VY + VZ*VZ) * HALF * getObjectWrapper().particleSpecies[popID].mass;
+               const Real ENERGY = (VX*VX + VY*VY + VZ*VZ) * HALF * mass;
                lsum[0] += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * ENERGY * DV3;
                if (ENERGY > E1limit) lsum[1] += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * ENERGY * DV3;
                if (ENERGY > E2limit) lsum[2] += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * ENERGY * DV3;
