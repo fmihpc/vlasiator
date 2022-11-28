@@ -48,6 +48,50 @@ __device__ __forceinline__ static void atomicMin(double *address, double val2) {
 /* Namespace for architecture-specific functions */
 namespace arch{
 
+  template <typename T> 
+  class buf {
+
+    private:
+    
+    T *ptr; 
+    T *d_ptr;
+    uint bytes;
+    uint is_copy = 0;
+  
+    public:   
+  
+    __forceinline__ void syncDeviceData(void){
+      CUDA_ERR(cudaMemcpy(d_ptr, ptr, bytes, cudaMemcpyHostToDevice));
+    }
+  
+    __forceinline__ void syncHostData(void){
+      CUDA_ERR(cudaMemcpy(ptr, d_ptr, bytes, cudaMemcpyDeviceToHost));
+    }
+  
+    buf(T *_ptr, uint _bytes) : ptr(_ptr), bytes(_bytes) {
+      CUDA_ERR(cudaMallocAsync(&d_ptr, bytes, 0));
+      syncDeviceData();
+    }
+    
+    __host__ __device__ buf(const buf& u) : 
+      ptr(u.ptr), d_ptr(u.d_ptr), bytes(u.bytes), is_copy(1) {}
+  
+    __host__ __device__ ~buf(void){
+      if(!is_copy){
+        // syncHostData();
+        cudaFreeAsync(d_ptr, 0);
+      }
+    }
+  
+    __forceinline__ __host__ __device__ T &operator [] (uint i) const {
+     #ifdef __CUDA_ARCH__
+        return d_ptr[i];
+     #else
+        return ptr[i];
+     #endif
+    }
+  };
+
 /* Device function for memory allocation */
 __host__ __forceinline__ static void* allocate(size_t bytes) {
   void* ptr;

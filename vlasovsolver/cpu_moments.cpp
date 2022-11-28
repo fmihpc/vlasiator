@@ -302,12 +302,6 @@ void calculateMoments_V(
         const bool& computeSecond) {
  
    phiprof::start("Compute _V moments");
-
-         Realf* data;
-         Real* blockParams;
-         int alloced = 0;
-
-
    
    // Loop over all particle species
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
@@ -333,27 +327,30 @@ void calculateMoments_V(
 
          vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
          if (blockContainer.size() == 0) continue;
-         const Realf* h_data       = blockContainer.getData();
-         const Real* h_blockParams = blockContainer.getParameters();
+         Realf* const h_data       = blockContainer.getData();
+         Real* const h_blockParams = blockContainer.getParameters();
          const Real mass = getObjectWrapper().particleSpecies[popID].mass;
          const Real charge = getObjectWrapper().particleSpecies[popID].charge;
 
-if(alloced == 0){
-         /* Check the CUDA default mempool settings and correct if wrong */
-         arch::device_mempool_check(UINT64_MAX);
+// if(alloced == 0){
+//          /* Check the CUDA default mempool settings and correct if wrong */
+//          arch::device_mempool_check(UINT64_MAX);
        
-         /* Create a device buffer for the reduction results */
-         // Realf* data;
-         CUDA_ERR(cudaMallocAsync(&data, blockContainer.size()*WID3*sizeof(Realf), 0));
-         CUDA_ERR(cudaMemcpy(data, h_data, blockContainer.size()*WID3*sizeof(Realf), cudaMemcpyHostToDevice));
+//          /* Create a device buffer for the reduction results */
+//          // Realf* data;
+//          CUDA_ERR(cudaMallocAsync(&data, blockContainer.size()*WID3*sizeof(Realf), 0));
+//          CUDA_ERR(cudaMemcpy(data, h_data, blockContainer.size()*WID3*sizeof(Realf), cudaMemcpyHostToDevice));
          
-         // Real* blockParams;
-         CUDA_ERR(cudaMallocAsync(&blockParams, blockContainer.size()*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real), 0));
-         CUDA_ERR(cudaMemcpy(blockParams, h_blockParams, blockContainer.size()*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real), cudaMemcpyHostToDevice));
-         alloced =0;
-}
+//          // Real* blockParams;
+//          CUDA_ERR(cudaMallocAsync(&blockParams, blockContainer.size()*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real), 0));
+//          CUDA_ERR(cudaMemcpy(blockParams, h_blockParams, blockContainer.size()*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real), cudaMemcpyHostToDevice));
+//          alloced =0;
+// }
          //cudaMemPrefetchAsync (data, blockContainer.size()*WID3*sizeof(Realf), 0, 0 ) ;
          //cudaMemPrefetchAsync (blockParams, blockContainer.size()*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Realf), 0, 0 ) ;
+
+         arch::buf<Realf> data(h_data, (uint)(blockContainer.size()*WID3*sizeof(Realf))); 
+         arch::buf<Real> blockParams(h_blockParams, (uint)(blockContainer.size()*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real))); 
 
          // Temporary array for storing moments
          Real array[4];
@@ -368,8 +365,8 @@ if(alloced == 0){
 
          arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint) blockContainer.size()}, 
            ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint blockLID, Real *lsum ) { 
-             const Realf* avgs = data+blockLID*WID3;
-             const Real* blockParamsZ = blockParams+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
+             const Realf* avgs = &data[blockLID*WID3];
+             const Real* blockParamsZ = &blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS];
              const Real DV3 = blockParamsZ[BlockParams::DVX]*blockParamsZ[BlockParams::DVY]*blockParamsZ[BlockParams::DVZ]; 
              const Real HALF = 0.5;
              ARCH_INNER_BODY(i, j, k, blockLID, lsum) { 
@@ -426,9 +423,13 @@ if(alloced == 0){
 
          vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
          if (blockContainer.size() == 0) continue;
-         const Realf* h_data       = blockContainer.getData();
-         const Real* h_blockParams = blockContainer.getParameters();
+         Realf* const h_data       = blockContainer.getData();
+         Real* const h_blockParams = blockContainer.getParameters();
          const Real mass = getObjectWrapper().particleSpecies[popID].mass;
+
+                  arch::buf<Realf> data(h_data, (uint)(blockContainer.size()*WID3*sizeof(Realf))); 
+         arch::buf<Real> blockParams(h_blockParams, (uint)(blockContainer.size()*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real))); 
+
 
          // Temporary array where moments are stored
          Real array[3];
@@ -452,8 +453,9 @@ if(alloced == 0){
 
          arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint) blockContainer.size()}, 
            ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint blockLID, Real *lsum ) { 
-             const Realf* avgs = data+blockLID*WID3;
-             const Real* blockParamsZ = blockParams+blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
+                         const Realf* avgs = &data[blockLID*WID3];
+             const Real* blockParamsZ = &blockParams[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS];
+
              const Real DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
              const Real HALF = 0.5;
              ARCH_INNER_BODY(i, j, k, blockLID, lsum) { 
