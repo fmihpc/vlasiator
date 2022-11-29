@@ -379,16 +379,18 @@ namespace DRO {
    }
    
    bool VariablePTensorDiagonal::reduceData(const SpatialCell* cell,char* buffer) {
+      
+      // Make parameters and block data available on device using a buffer
+      arch::buf<Realf> block_data((Realf*)cell->get_data(popID), (uint)(cell->get_number_of_velocity_blocks(popID)*WID3*sizeof(Realf))); 
+      
+      arch::buf<Real> parameters((Real*)cell->get_block_parameters(popID), (uint)(cell->get_number_of_velocity_blocks(popID)*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real))); 
+
       const Real HALF = 0.5;
+      
       # pragma omp parallel
       {
-         const Real* parameters  = cell->get_block_parameters(popID);
-         const Realf* block_data = cell->get_data(popID);
-
          Real sum[3] = {0.0, 0.0, 0.0};
          Real averageVX = this->averageVX, averageVY = this->averageVY, averageVZ = this->averageVZ;
-
-         //arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)}, [=]CUDA_HOSTDEV (const uint i, const uint j, const uint k, const uint n, Real *lsum ) -> void{ 
 
          arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)}, 
            ARCH_LOOP_LAMBDA(const uint i, const uint j, const uint k, const uint n, Real *lsum ){ 
@@ -455,15 +457,17 @@ namespace DRO {
    }
 
    bool VariablePTensorOffDiagonal::reduceData(const SpatialCell* cell,char* buffer) {
-      const Real HALF = 0.5;
-      # pragma omp parallel
-      {
-         const Real* parameters = cell->get_block_parameters(popID);
-         const Realf* block_data = cell->get_data(popID);
-         
-         Real sum[3] = {0.0, 0.0, 0.0};
-         // std::vector<Real> sum(3, 0.0);
 
+      // Make parameters and block data available on device using a buffer
+      arch::buf<Realf> block_data((Realf*)cell->get_data(popID), (uint)(cell->get_number_of_velocity_blocks(popID)*WID3*sizeof(Realf))); 
+      
+      arch::buf<Real> parameters((Real*)cell->get_block_parameters(popID), (uint)(cell->get_number_of_velocity_blocks(popID)*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real))); 
+
+      const Real HALF = 0.5;
+
+      # pragma omp parallel
+      {  
+         Real sum[3] = {0.0, 0.0, 0.0};
          Real averageVX = this->averageVX, averageVY = this->averageVY, averageVZ = this->averageVZ;
 
          arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)}, 
@@ -532,13 +536,14 @@ namespace DRO {
    }   
    
    bool MaxDistributionFunction::reduceDiagnostic(const SpatialCell* cell,Real* buffer) {
+      // Make parameters and block data available on device using a buffer
+      arch::buf<Realf> block_data((Realf*)cell->get_data(popID), (uint)(cell->get_number_of_velocity_blocks(popID)*WID3*sizeof(Realf))); 
+      
       maxF = std::numeric_limits<Real>::min();
       
       #pragma omp parallel 
       {
          Real threadMax = std::numeric_limits<Real>::min();
-         
-         const Realf* block_data = cell->get_data(popID);
          
          arch::parallel_reduce<arch::max>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)}, 
            ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint n, Real *lthreadMax)-> void { 
@@ -584,13 +589,14 @@ namespace DRO {
    }   
    
    bool MinDistributionFunction::reduceDiagnostic(const SpatialCell* cell,Real* buffer) {
+      // Make parameters and block data available on device using a buffer
+      arch::buf<Realf> block_data((Realf*)cell->get_data(popID), (uint)(cell->get_number_of_velocity_blocks(popID)*WID3*sizeof(Realf))); 
+
       minF =  std::numeric_limits<Real>::max();
 
       #pragma omp parallel 
       {
          Real threadMin = std::numeric_limits<Real>::max();
-         
-         const Realf* block_data = cell->get_data(popID);
 
          arch::parallel_reduce<arch::min>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)}, 
            ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint n, Real *lthreadMin) -> void{ 
@@ -1398,14 +1404,15 @@ namespace DRO {
          }
       }
 
+      // Make parameters and block data available on device using a buffer
+      arch::buf<Realf> block_data((Realf*)cell->get_data(popID), (uint)(cell->get_number_of_velocity_blocks(popID)*WID3*sizeof(Realf))); 
+      
+      arch::buf<Real> parameters((Real*)cell->get_block_parameters(popID), (uint)(cell->get_number_of_velocity_blocks(popID)*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real))); 
+
       # pragma omp parallel
       {
-         // std::vector<Real> thread_lossCone_sum(nChannels,0.0);
-         // std::vector<Real> thread_count(nChannels,0.0);
          std::vector<Real> sum(2 * nChannels,0.0);
          
-         const Real* parameters  = cell->get_block_parameters(popID);
-         const Realf* block_data = cell->get_data(popID);
          const Real mass = getObjectWrapper().particleSpecies[popID].mass;
          
          arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)}, 
@@ -1516,12 +1523,15 @@ namespace DRO {
          EDensity[i] = 0.0;
       }
 
+      // Make parameters and block data available on device using a buffer
+      arch::buf<Realf> block_data((Realf*)cell->get_data(popID), (uint)(cell->get_number_of_velocity_blocks(popID)*WID3*sizeof(Realf))); 
+      
+      arch::buf<Real> parameters((Real*)cell->get_block_parameters(popID), (uint)(cell->get_number_of_velocity_blocks(popID)*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real))); 
+
       # pragma omp parallel
       {
          Real sum[3] = {0.0, 0.0, 0.0};
          
-         const Real* parameters  = cell->get_block_parameters(popID);
-         const Realf* block_data = cell->get_data(popID);
          const Real mass = getObjectWrapper().particleSpecies[popID].mass;
         
          arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)}, 
