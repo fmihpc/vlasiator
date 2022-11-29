@@ -21,7 +21,7 @@
   inline static void cuda_error(cudaError_t err, const char *file, int line) {
   	if (err != cudaSuccess) {
   		printf("\n\n%s in %s at line %d\n", cudaGetErrorString(err), file, line);
-  		//exit(1);
+  		exit(1);
   	}
 }
 

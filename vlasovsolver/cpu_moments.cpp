@@ -70,27 +70,24 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
        for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
           vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
           if (blockContainer.size() == 0) continue;
-
-                    const Realf* data       = blockContainer.getData();
-          const Real* blockParams = blockContainer.getParameters();
           
           const Real mass = getObjectWrapper().particleSpecies[popID].mass;
           const Real charge = getObjectWrapper().particleSpecies[popID].charge;
 
           // Create temporary buffers for the GPU data and push back to vector
-         // v_data[popID] = new arch::buf<Realf>((Realf*)blockContainer.getData(), (uint)(blockContainer.size()*WID3*sizeof(Realf))); 
+          v_data[popID] = new arch::buf<Realf>((Realf*)blockContainer.getData(), (uint)(blockContainer.size()*WID3*sizeof(Realf))); 
           
-         // v_blockParams[popID] = new arch::buf<Real>((Real*)blockContainer.getParameters(), (uint)(blockContainer.size()*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real))); 
+          v_blockParams[popID] = new arch::buf<Real>((Real*)blockContainer.getParameters(), (uint)(blockContainer.size()*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real))); 
  
           // Get pointers for easy access in the loop
-        //  arch::buf<Realf> data = *v_data[popID]; 
-        //  arch::buf<Real> blockParams = *v_blockParams[popID]; 
+          arch::buf<Realf> data = *v_data[popID]; 
+          arch::buf<Real> blockParams = *v_blockParams[popID]; 
           
           // Temporary array for storing moments
           Real array[4] = {0};
 
           // Calculate species' contribution to first velocity moments
-          blockVelocityFirstMomentsO(data,
+          blockVelocityFirstMoments(data,
                                     blockParams,
                                     array,
                                     (uint)blockContainer.size());
@@ -124,18 +121,15 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
        
        const Real mass = getObjectWrapper().particleSpecies[popID].mass;
 
-
-                    const Realf* data       = blockContainer.getData();
-          const Real* blockParams = blockContainer.getParameters();
        // Get pointers for easy access in the loop
-       //arch::buf<Realf> data = *v_data[popID]; 
-       //arch::buf<Real> blockParams = *v_blockParams[popID]; 
+       arch::buf<Realf> data = *v_data[popID]; 
+       arch::buf<Real> blockParams = *v_blockParams[popID]; 
        
        // Temporary array for storing moments
        Real array[3] = {0};
        
        // Calculate species' contribution to second velocity moments
-       blockVelocitySecondMomentsO(data,
+       blockVelocitySecondMoments(data,
                                   blockParams,
                                   cell->parameters[CellParams::VX_R],
                                   cell->parameters[CellParams::VY_R],

@@ -167,7 +167,7 @@ __host__ void cuda_register_BlockParameters(
    Real* parameters,
    uint blockCount
    ) {
-   cudaHostRegister(parameters, blockCount*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Realf),cudaHostRegisterDefault);
+   cudaHostRegister(parameters, blockCount*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real),cudaHostRegisterDefault);
 }
 
 __host__ void cuda_unregister_BlockData(

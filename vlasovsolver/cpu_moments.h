@@ -101,42 +101,6 @@ void blockVelocityFirstMoments(
      }, array);
 }
 
-template<typename REAL> inline
-void blockVelocityFirstMomentsO(
-        const Realf* data,
-        const Real* blockParameters,
-        REAL* array,
-        uint nBlocks) {
-
-         for (uint blockLID=0; blockLID<WID; ++blockLID){
-          const Realf* avgs = &data[blockLID*WID3];
-       const Real* blockParams = &blockParameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS];
-
-   const Real HALF = 0.5;
-
-   Real n_sum = 0.0;
-   Real nvx_sum = 0.0;
-   Real nvy_sum = 0.0;
-   Real nvz_sum = 0.0;
-   for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) {
-      const REAL VX = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
-      const REAL VY = blockParams[BlockParams::VYCRD] + (j+HALF)*blockParams[BlockParams::DVY];
-      const REAL VZ = blockParams[BlockParams::VZCRD] + (k+HALF)*blockParams[BlockParams::DVZ];
-      
-      n_sum   += avgs[cellIndex(i,j,k)];
-      nvx_sum += avgs[cellIndex(i,j,k)]*VX;
-      nvy_sum += avgs[cellIndex(i,j,k)]*VY;
-      nvz_sum += avgs[cellIndex(i,j,k)]*VZ;
-   }
-   
-   const Real DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
-   array[0] += n_sum   * DV3;
-   array[1] += nvx_sum * DV3;
-   array[2] += nvy_sum * DV3;
-   array[3] += nvz_sum * DV3;
-}
-        }
-
 /** Calculate the second velocity moments for the velocity blocks, and add 
  * results to 'array', which must have at least size three. After this function 
  * returns, the contents of 'array' are as follows: array[0]=n(Vx-Vx0); 
@@ -176,41 +140,6 @@ void blockVelocitySecondMoments(
          lsum[2] += avgs[cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
        };
      }, array);
-}
-
-template<typename REAL> inline
-void blockVelocitySecondMomentsO(
-        const Realf* data,
-        const Real* blockParameters,
-        const REAL averageVX,
-        const REAL averageVY,
-        const REAL averageVZ,
-        REAL* array,
-        uint nBlocks) {
-
-for (uint blockLID=0; blockLID<WID; ++blockLID){
-          const Realf* avgs = &data[blockLID*WID3];
-       const Real* blockParams = &blockParameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS];
-   const Real HALF = 0.5;
-
-   Real nvx2_sum = 0.0;
-   Real nvy2_sum = 0.0;
-   Real nvz2_sum = 0.0;
-   for (uint k=0; k<WID; ++k) for (uint j=0; j<WID; ++j) for (uint i=0; i<WID; ++i) {
-      const Real VX = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
-      const Real VY = blockParams[BlockParams::VYCRD] + (j+HALF)*blockParams[BlockParams::DVY];
-      const Real VZ = blockParams[BlockParams::VZCRD] + (k+HALF)*blockParams[BlockParams::DVZ];
-      
-      nvx2_sum += avgs[cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX);
-      nvy2_sum += avgs[cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY);
-      nvz2_sum += avgs[cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ);
-   }
-   
-   const Real DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
-   array[0] += nvx2_sum * DV3;
-   array[1] += nvy2_sum * DV3;
-   array[2] += nvz2_sum * DV3;
-}
 }
 
 #endif
