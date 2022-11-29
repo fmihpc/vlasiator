@@ -26,11 +26,6 @@
 #include <cstddef>
 #include <stdexcept>
 
-#ifdef USE_CUDA
-#include "cuda.h"
-#include "cuda_runtime.h"
-#endif
-
 #ifdef USE_JEMALLOC
 #include "jemalloc/jemalloc.h"
 #endif
@@ -52,15 +47,11 @@ inline void * aligned_malloc(size_t size,std::size_t align) {
     * malloc(), or je_malloc().
     */
    void *ptr;
-#ifdef USE_CUDA
-   void *p;
-   cudaMallocManaged((void**)&p, size + align - 1 + sizeof(void*));
-#else
+
 #ifdef USE_JEMALLOC
    void *p = je_malloc(size + align - 1 + sizeof(void*));
 #else
    void *p = malloc(size + align - 1 + sizeof(void*));
-#endif
 #endif
    
    if (p != NULL) {
@@ -85,15 +76,13 @@ inline void aligned_free(void *p) {
     * of the one below.
     */
    void *ptr = *((void**)((unsigned long)p - sizeof(void*)));
-#ifdef USE_CUDA
-   cudaFree(ptr);
-#else
+
 #ifdef USE_JEMALLOC
    je_free(ptr);
 #else
    free(ptr);
 #endif
-#endif
+
    return;
 }
 

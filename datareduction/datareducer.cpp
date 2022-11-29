@@ -1207,8 +1207,8 @@ bool DataReducer::writeData(const unsigned int& operatorID,
    if(writingOperator == nullptr) {
       return false;
    }
-      printf("Trying to call a disabled function in datareducer.cpp:1211\n");
-   return false; // writingOperator->writeData(mpiGrid,cells,meshName,vlsvWriter);
+
+   return writingOperator->writeData(mpiGrid,cells,meshName,vlsvWriter);
 }
 
 /** Write parameters related to given DataReductionOperator to the output file.

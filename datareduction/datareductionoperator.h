@@ -26,8 +26,8 @@
 #include <vector>
 
 #include <vlsv_writer.h>
-// #include <dccrg.hpp>
-// #include <dccrg_cartesian_geometry.hpp>
+#include <dccrg.hpp>
+#include <dccrg_cartesian_geometry.hpp>
 
 #include "fsgrid.hpp"
 #include "../definitions.h"
@@ -88,9 +88,9 @@ namespace DRO {
    class DataReductionOperatorHandlesWriting: public DataReductionOperator {
    public:
       DataReductionOperatorHandlesWriting() : DataReductionOperator() {};
-      // virtual bool writeData(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                           //   const std::vector<CellID>& cells,const std::string& meshName,
-                           //   vlsv::Writer& vlsvWriter) = 0;
+      virtual bool writeData(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                             const std::vector<CellID>& cells,const std::string& meshName,
+                             vlsv::Writer& vlsvWriter) = 0;
    };
 
    class DataReductionOperatorHasParameters: public DataReductionOperator {
@@ -364,9 +364,9 @@ namespace DRO {
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
       virtual std::string getName() const;
       virtual bool setSpatialCell(const SpatialCell* cell);
-      // virtual bool writeData(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                           //   const std::vector<CellID>& cells,const std::string& meshName,
-                           //   vlsv::Writer& vlsvWriter);
+      virtual bool writeData(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                             const std::vector<CellID>& cells,const std::string& meshName,
+                             vlsv::Writer& vlsvWriter);
       
    private:
       
