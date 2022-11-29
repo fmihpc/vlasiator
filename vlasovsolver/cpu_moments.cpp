@@ -438,9 +438,9 @@ void calculateMoments_V(
                const Real VX = blockParamsZ[BlockParams::VXCRD] + (i+HALF)*blockParamsZ[BlockParams::DVX];
                const Real VY = blockParamsZ[BlockParams::VYCRD] + (j+HALF)*blockParamsZ[BlockParams::DVY];
                const Real VZ = blockParamsZ[BlockParams::VZCRD] + (k+HALF)*blockParamsZ[BlockParams::DVZ];  
-               lsum[0] += avgs[cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX);
-               lsum[1] += avgs[cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY);
-               lsum[2] += avgs[cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ);
+               lsum[0] += avgs[cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX) * DV3;
+               lsum[1] += avgs[cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY) * DV3;
+               lsum[2] += avgs[cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
              };
            }, array);
          
