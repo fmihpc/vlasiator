@@ -348,7 +348,7 @@ void calculateSpatialTranslation(
 
    // Mapping complete, update moments and maximum dt limits //
 momentCalculation:
-#ifdef USE_CUDA
+#ifdef USE_CUDA1111111111111111111111111
    cuda_calculateMoments_R(mpiGrid, localCells, true);
 #else
    calculateMoments_R(mpiGrid, localCells, true);

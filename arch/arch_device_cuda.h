@@ -60,9 +60,7 @@ class buf {
   public:   
 
   void syncDeviceData(void){
-    printf("11\n");
     CUDA_ERR(cudaMemcpyAsync(d_ptr, ptr, bytes, cudaMemcpyHostToDevice, 0));
-    printf("22\n");
   }
 
   void syncHostData(void){

@@ -76,7 +76,7 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
           
           const Real mass = getObjectWrapper().particleSpecies[popID].mass;
           const Real charge = getObjectWrapper().particleSpecies[popID].charge;
-printf("1\n");
+
           // Create temporary buffers for the GPU data and push back to vector
          // v_data[popID] = new arch::buf<Realf>((Realf*)blockContainer.getData(), (uint)(blockContainer.size()*WID3*sizeof(Realf))); 
           
@@ -210,7 +210,7 @@ void calculateMoments_R(
           if (blockContainer.size() == 0) continue;
           const Real mass = getObjectWrapper().particleSpecies[popID].mass;
           const Real charge = getObjectWrapper().particleSpecies[popID].charge;
-printf("2\n");
+
           // Create temporary buffers for the GPU data and push back to vector
           v_data[cells.size() * popID + c] = new arch::buf<Realf>((Realf*)blockContainer.getData(), (uint)(blockContainer.size()*WID3*sizeof(Realf))); 
           v_blockParams[cells.size() * popID + c] = new arch::buf<Real>((Real*)blockContainer.getParameters(), (uint)(blockContainer.size()*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real))); 
@@ -372,7 +372,7 @@ void calculateMoments_V(
 
          const Real mass = getObjectWrapper().particleSpecies[popID].mass;
          const Real charge = getObjectWrapper().particleSpecies[popID].charge;
-printf("3\n");
+
          // Create temporary buffers for the GPU data and push back to vector
          v_data[cells.size() * popID + c] = new arch::buf<Realf>((Realf*)blockContainer.getData(), (uint)(blockContainer.size()*WID3*sizeof(Realf))); 
          v_blockParams[cells.size() * popID + c] = new arch::buf<Real>((Real*)blockContainer.getParameters(), (uint)(blockContainer.size()*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real))); 
