@@ -13,7 +13,7 @@ enum reduce_op { max, min, sum, prod };
 }
 
 /* Select the compiled architecture */
-#ifdef USE_CUDA
+#if defined(USE_CUDA) && defined(__CUDACC__) 
   #include "arch_device_cuda.h"
 #else
   #include "arch_device_host.h"

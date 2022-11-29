@@ -10,6 +10,31 @@
 /* Namespace for architecture-specific functions */
 namespace arch{
 
+/* Buffer class for host compulation units */
+template <typename T> 
+class buf {
+  private:  
+  T *ptr; 
+  T *d_ptr;
+  uint bytes;
+  uint is_copy = 0;
+
+  public:   
+
+  void syncDeviceData(void){}
+
+  void syncHostData(void){}
+  
+  buf(T * const _ptr, uint _bytes) : ptr(_ptr), bytes(_bytes) {}
+  
+  buf(const buf& u) : 
+    ptr(u.ptr), d_ptr(u.d_ptr), bytes(u.bytes), is_copy(1) {}
+
+  T &operator [] (uint i) const {
+    return ptr[i];
+  }
+};
+
 /* Host function for memory allocation */
 inline static void* allocate(size_t bytes) {
   return malloc(bytes);
