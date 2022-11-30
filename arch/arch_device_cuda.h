@@ -6,6 +6,7 @@
 #include "cuda.h"
 #include "cuda_runtime.h"
 #include "cub/cub.cuh"
+#include <omp.h>
 
 /* Define architecture-specific macros */
 #define ARCH_LOOP_LAMBDA [=] __host__ __device__
@@ -16,8 +17,22 @@
 /* Set CUDA blocksize used for reductions */
 #define ARCH_BLOCKSIZE_R 512
 
+#ifdef ARCH_MAIN
+  cudaStream_t stream[64];
+#else
+  extern cudaStream_t stream[];
+#endif
+
+#ifdef __CUDACC__
+  #define CUDA_HOSTDEV __host__ __device__
+  #define CUDA_DEV __device__
+#else
+  #define CUDA_HOSTDEV
+  #define CUDA_DEV
+#endif
+
 /* Define the CUDA error checking macro */
-#define CUDA_ERR(err) (cuda_error(err, __FILE__, __LINE__))
+#define CHK_ERR(err) (cuda_error(err, __FILE__, __LINE__))
   inline static void cuda_error(cudaError_t err, const char *file, int line) {
   	if (err != cudaSuccess) {
   		printf("\n\n%s in %s at line %d\n", cudaGetErrorString(err), file, line);
@@ -56,29 +71,33 @@ class buf {
   T *d_ptr;
   uint bytes;
   uint is_copy = 0;
+  uint thread_id = 0;
 
   public:   
 
   void syncDeviceData(void){
-    CUDA_ERR(cudaMemcpyAsync(d_ptr, ptr, bytes, cudaMemcpyHostToDevice, 0));
+    CHK_ERR(cudaMemcpyAsync(d_ptr, ptr, bytes, cudaMemcpyHostToDevice, stream[thread_id]));
   }
 
   void syncHostData(void){
-    CUDA_ERR(cudaMemcpyAsync(ptr, d_ptr, bytes, cudaMemcpyDeviceToHost, 0));
+    CHK_ERR(cudaMemcpyAsync(ptr, d_ptr, bytes, cudaMemcpyDeviceToHost, stream[thread_id]));
   }
   
   buf(T * const _ptr, uint _bytes) : ptr(_ptr), bytes(_bytes) {
-    CUDA_ERR(cudaMallocAsync(&d_ptr, bytes, 0));
+    thread_id = omp_get_thread_num();
+    CHK_ERR(cudaMallocAsync(&d_ptr, bytes, stream[thread_id]));
     syncDeviceData();
   }
   
   __host__ __device__ buf(const buf& u) : 
-    ptr(u.ptr), d_ptr(u.d_ptr), bytes(u.bytes), is_copy(1) {}
+    ptr(u.ptr), d_ptr(u.d_ptr), bytes(u.bytes), is_copy(1), thread_id(u.thread_id) {}
 
   __host__ __device__ ~buf(void){
     if(!is_copy){
       // syncHostData();
-      cudaFreeAsync(d_ptr, 0);
+      #ifdef __CUDA_ARCH__
+        cudaFreeAsync(d_ptr, stream[thread_id]);
+      #endif
     }
   }
 
@@ -91,28 +110,77 @@ class buf {
   }
 };
 
-/* Device function for memory allocation */
-__host__ __forceinline__ static void* allocate(size_t bytes) {
-  void* ptr;
-  CUDA_ERR(cudaMallocManaged(&ptr, bytes));
-  return ptr;
+/* Device backend initialization */
+__host__ __forceinline__ static void init(int node_rank) {
+  const uint max_threads = omp_get_max_threads();
+  int num_devices = 0;
+  CHK_ERR(cudaGetDeviceCount(&num_devices));
+  CHK_ERR(cudaSetDevice(node_rank % num_devices));
+   
+  // Create streams
+  for (uint i = 0; i < max_threads; ++i)
+    cudaStreamCreate(&(stream[i]));
+
+  printf("GPU count is %d with %d streams for each omp thread\n", num_devices, max_threads);
 }
 
-/* Device function for memory deallocation */
-__host__ __forceinline__ static void free(void* ptr) {
-  CUDA_ERR(cudaFree(ptr));
+/* Device backend finalization */
+__host__ __forceinline__ static void finalize(int rank) {
+  const uint max_threads = omp_get_max_threads();
+  // Destroy streams
+  for (uint i = 0; i < max_threads; ++i)
+    cudaStreamDestroy(stream[i]);
+
+  printf("Rank %d, CUDA finalized.\n", rank);
 }
 
 /* A function to check and set the device mempool settings */
 __host__ __forceinline__ static void device_mempool_check(uint64_t threshold_new) {
   int device_id;
-  CUDA_ERR(cudaGetDevice(&device_id));
+  CHK_ERR(cudaGetDevice(&device_id));
   cudaMemPool_t mempool;
-  CUDA_ERR(cudaDeviceGetDefaultMemPool(&mempool, device_id));
+  CHK_ERR(cudaDeviceGetDefaultMemPool(&mempool, device_id));
   uint64_t threshold_old;
-  CUDA_ERR(cudaMemPoolGetAttribute(mempool, cudaMemPoolAttrReleaseThreshold, &threshold_old));
+  CHK_ERR(cudaMemPoolGetAttribute(mempool, cudaMemPoolAttrReleaseThreshold, &threshold_old));
   if(threshold_new != threshold_old)
-    CUDA_ERR(cudaMemPoolSetAttribute(mempool, cudaMemPoolAttrReleaseThreshold, &threshold_new));
+    CHK_ERR(cudaMemPoolSetAttribute(mempool, cudaMemPoolAttrReleaseThreshold, &threshold_new));
+}
+
+/* Device function for memory allocation */
+__host__ __forceinline__ static void* allocate(size_t bytes) {
+  void* ptr;
+  const uint thread_id = omp_get_thread_num();
+  device_mempool_check(UINT64_MAX);
+  CHK_ERR(cudaMallocAsync(&ptr, bytes, stream[thread_id]));
+  return ptr;
+}
+
+/* Device function for memory deallocation */
+__host__ __forceinline__ static void free(void* ptr) {
+  const uint thread_id = omp_get_thread_num();
+  CHK_ERR(cudaFreeAsync(ptr, stream[thread_id]));
+}
+
+/* Host-to-device memory copy */
+__forceinline__ static void memcpy_h2d(void* dst, void* src, size_t bytes){
+  const uint thread_id = omp_get_thread_num();
+  CHK_ERR(cudaMemcpyAsync(dst, src, bytes, cudaMemcpyHostToDevice, stream[thread_id]));
+}
+
+/* Device-to-host memory copy */
+__forceinline__ static void memcpy_d2h(void* dst, void* src, size_t bytes){
+  const uint thread_id = omp_get_thread_num();
+  CHK_ERR(cudaMemcpyAsync(dst, src, bytes, cudaMemcpyDeviceToHost, stream[thread_id]));
+}
+
+/* Register, ie, page-lock existing host allocations */
+__forceinline__ static void host_register(void* ptr, size_t bytes){
+  CHK_ERR(cudaHostRegister(ptr, bytes, cudaHostRegisterDefault));
+}
+
+/* Unregister page-locked host allocations */
+__forceinline__ static void host_unregister(void* ptr){
+  CHK_ERR(cudaHostUnregister(ptr));
 }
 
 /* Specializations for lambda calls depending on the templated dimension */
@@ -235,20 +303,23 @@ __forceinline__ static void parallel_reduce_driver(const uint (&limits)[NDim], L
   /* Check the CUDA default mempool settings and correct if wrong */
   device_mempool_check(UINT64_MAX);
 
+  /* Get the CPU thread id */
+  const uint thread_id = omp_get_thread_num();
+
   /* Create a device buffer for the reduction results */
   T* d_buf;
-  CUDA_ERR(cudaMallocAsync(&d_buf, n_reductions*sizeof(T), 0));
-  CUDA_ERR(cudaMemcpyAsync(d_buf, sum, n_reductions*sizeof(T), cudaMemcpyHostToDevice,0));
+  CHK_ERR(cudaMallocAsync(&d_buf, n_reductions*sizeof(T), stream[thread_id]));
+  CHK_ERR(cudaMemcpyAsync(d_buf, sum, n_reductions*sizeof(T), cudaMemcpyHostToDevice, stream[thread_id]));
   
   /* Create a device buffer to transfer the initial values to device */
   T* d_const_buf;
-  CUDA_ERR(cudaMallocAsync(&d_const_buf, n_reductions*sizeof(T), 0));
-  CUDA_ERR(cudaMemcpyAsync(d_const_buf, d_buf, n_reductions*sizeof(T), cudaMemcpyDeviceToDevice,0));
+  CHK_ERR(cudaMallocAsync(&d_const_buf, n_reductions*sizeof(T), stream[thread_id]));
+  CHK_ERR(cudaMemcpyAsync(d_const_buf, d_buf, n_reductions*sizeof(T), cudaMemcpyDeviceToDevice, stream[thread_id]));
 
   /* Create a device buffer to transfer the loop limits of each dimension to device */
   uint* d_limits;
-  CUDA_ERR(cudaMallocAsync(&d_limits, NDim*sizeof(uint), 0));
-  CUDA_ERR(cudaMemcpyAsync(d_limits, limits, NDim*sizeof(uint), cudaMemcpyHostToDevice,0));
+  CHK_ERR(cudaMallocAsync(&d_limits, NDim*sizeof(uint), stream[thread_id]));
+  CHK_ERR(cudaMemcpyAsync(d_limits, limits, NDim*sizeof(uint), cudaMemcpyHostToDevice,stream[thread_id]));
 
   /* Call the reduction kernel with different arguments depending 
    * on if the number of reductions is known at the compile time 
@@ -258,24 +329,24 @@ __forceinline__ static void parallel_reduce_driver(const uint (&limits)[NDim], L
     /* Get the cub temp storage size for the dynamic shared memory kernel argument */
     constexpr auto cub_temp_storage_type_size = sizeof(typename cub::BlockReduce<T, ARCH_BLOCKSIZE_R, cub::BLOCK_REDUCE_RAKING_COMMUTATIVE_ONLY, 1, 1>::TempStorage);
     /* Allocate memory for the thread data values */
-    CUDA_ERR(cudaMallocAsync(&d_thread_data_dynamic, n_reductions * blocksize * gridsize * sizeof(T), 0));
+    CHK_ERR(cudaMallocAsync(&d_thread_data_dynamic, n_reductions * blocksize * gridsize * sizeof(T), stream[thread_id]));
     /* Call the kernel (the number of reductions not known at compile time) */
-    reduction_kernel<Op, NDim, 0><<<gridsize, blocksize, n_reductions * cub_temp_storage_type_size,0>>>(loop_body, d_const_buf, d_buf, d_limits, n_total, n_reductions, d_thread_data_dynamic);
+    reduction_kernel<Op, NDim, 0><<<gridsize, blocksize, n_reductions * cub_temp_storage_type_size, stream[thread_id]>>>(loop_body, d_const_buf, d_buf, d_limits, n_total, n_reductions, d_thread_data_dynamic);
     /* Synchronize and free the thread data allocation */
-    CUDA_ERR(cudaStreamSynchronize(0));
-    CUDA_ERR(cudaFreeAsync(d_thread_data_dynamic, 0));
+    CHK_ERR(cudaStreamSynchronize(stream[thread_id]));
+    CHK_ERR(cudaFreeAsync(d_thread_data_dynamic, stream[thread_id]));
   }
   else{
     /* Call the kernel (the number of reductions known at compile time) */
-    reduction_kernel<Op, NDim, NReduStatic><<<gridsize, blocksize,0,0>>>(loop_body, d_const_buf, d_buf, d_limits, n_total, n_reductions, d_thread_data_dynamic);
+    reduction_kernel<Op, NDim, NReduStatic><<<gridsize, blocksize, 0, stream[thread_id]>>>(loop_body, d_const_buf, d_buf, d_limits, n_total, n_reductions, d_thread_data_dynamic);
     /* Synchronize after kernel call */
-    CUDA_ERR(cudaStreamSynchronize(0));
+    CHK_ERR(cudaStreamSynchronize(stream[thread_id]));
   }
   /* Copy the results back to host and free the allocated memory back to pool*/
-  CUDA_ERR(cudaMemcpyAsync(sum, d_buf, n_reductions*sizeof(T), cudaMemcpyDeviceToHost,0));
-  CUDA_ERR(cudaFreeAsync(d_buf, 0));
-  CUDA_ERR(cudaFreeAsync(d_const_buf, 0));
-  CUDA_ERR(cudaFreeAsync(d_limits, 0));
+  CHK_ERR(cudaMemcpyAsync(sum, d_buf, n_reductions*sizeof(T), cudaMemcpyDeviceToHost, stream[thread_id]));
+  CHK_ERR(cudaFreeAsync(d_buf, stream[thread_id]));
+  CHK_ERR(cudaFreeAsync(d_const_buf, stream[thread_id]));
+  CHK_ERR(cudaFreeAsync(d_limits, stream[thread_id]));
 }
 }
 #endif // !ARCH_DEVICE_CUDA_H

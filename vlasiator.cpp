@@ -19,6 +19,8 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#define ARCH_MAIN 1
+
 #include <cstdlib>
 #include <iostream>
 #include <cmath>
@@ -52,10 +54,6 @@
 
 #include "object_wrapper.h"
 #include "fieldsolver/gridGlue.hpp"
-
-// #ifdef USE_CUDA
-//    #include "vlasovsolver/cuda_acc_map_kernel.cuh"
-// #endif
 
 #ifdef CATCH_FPE
 #include <fenv.h>
@@ -308,16 +306,14 @@ int main(int argn,char* args[]) {
    MPI_Comm comm = MPI_COMM_WORLD;
    MPI_Comm_rank(comm,&myRank);
 
-#ifdef _OPENACC
-   // Sharing GPUs:
-   // Requires "nvidia-cuda-mps-control -d" before and "echo quit | nvidia-cuda-mps-control" after the srun command.
+#ifdef USE_CUDA
+   // Set the correct GPU device 
    MPI_Comm shared;
    int localRank, localSize, nGpus;
    MPI_Comm_split_type(comm, MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL, &shared);
    MPI_Comm_size(shared, &localSize);
    MPI_Comm_rank(shared, &localRank);
-   nGpus = acc_get_num_devices(acc_device_nvidia);
-   acc_set_device_num(localRank % nGpus, acc_get_device_type());
+   arch::init(localRank);
 #endif
 
    SysBoundary sysBoundaries;

@@ -193,17 +193,10 @@ DEPS_CUDA_ACC_MAP_KERNEL = vlasovsolver/vec.h vlasovsolver/cuda_header.h vlasovs
 
 DEPS_CUDA_ACC_MAP = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/vec.h vlasovsolver/cuda_acc_map.hpp vlasovsolver/cuda_acc_map.cpp
 
-DEPS_CUDA_CONTEXT = cuda_context.cpp cuda_context.cuh
-
 DEPS_CUDA_ACC_SEMILAG = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/cpu_acc_intersections.hpp vlasovsolver/cpu_acc_transform.hpp \
 	vlasovsolver/cuda_acc_map.hpp vlasovsolver/cuda_acc_semilag.hpp vlasovsolver/cuda_acc_semilag.cpp
 
 DEPS_CUDA_ACC_SORT_BLOCKS = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/cuda_acc_sort_blocks.hpp vlasovsolver/cuda_acc_sort_blocks.cpp
-
-DEPS_CUDA_MOMENTS = ${DEPS_COMMON} ${DEPS_CELL} vlasovmover.h vlasovsolver/cuda_moments.h vlasovsolver/cuda_moments.cpp
-
-DEPS_CUDA_MOMENTS_KERNEL = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/cuda_header.h vlasovsolver/cuda_moments_kernel.cuh vlasovsolver/cuda_moments_kernel.cu
-
 
 DEPS_CPU_ACC_INTERSECTS = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/cpu_acc_intersections.hpp vlasovsolver/cpu_acc_intersections.cpp
 
@@ -258,12 +251,8 @@ endif
 
 # If we are building a CUDA vrsion, we require its object files
 ifeq ($(USE_CUDA),1)
-	OBJS += cuda_acc_map_kernel.o cuda_acc_map.o cuda_acc_semilag.o cuda_acc_sort_blocks.o \
-		cudalink_acc_map.o cudalink_acc_kernel.o cudalink_acc_semilag.o cuda_context.o cudalink_context.o \
-		cuda_moments.o cudalink_moments.o cuda_moments_kernel.o cudalink_moments_kernel.o
-	DEPS_VLSVMOVER += vlasovsolver/cuda_acc_map.hpp vlasovsolver/cuda_acc_semilag.hpp cuda_context.cuh \
-		vlasovsolver/cuda_moments.h
-	DEPS_GRID += vlasovsolver/cuda_moments_kernel.cuh
+	OBJS += cuda_acc_map_kernel.o cuda_acc_map.o cuda_acc_semilag.o cuda_acc_sort_blocks.o
+	DEPS_VLSVMOVER += vlasovsolver/cuda_acc_map.hpp vlasovsolver/cuda_acc_semilag.hpp
 endif
 
 # Add field solver objects
@@ -327,7 +316,7 @@ datareducer.o: ${DEPS_COMMON} spatial_cell.hpp datareduction/datareducer.h datar
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c datareduction/datareducer.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_EIGEN} ${INC_VLSV} ${INC_FSGRID}
 
 datareductionoperator.o: ${DEPS_COMMON} ${DEPS_CELL} arch/arch_device_api.h arch/arch_device_host.h arch/arch_device_cuda.h parameters.h datareduction/datareductionoperator.h datareduction/datareductionoperator.cpp
-	nvcc -x cu --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c datareduction/datareductionoperator.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_EIGEN} ${INC_VLSV} ${INC_FSGRID}
+	 ${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c datareduction/datareductionoperator.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_EIGEN} ${INC_VLSV} ${INC_FSGRID}
 
 dro_populations.o: ${DEPS_COMMON} ${DEPS_CELL} parameters.h datareduction/datareductionoperator.h datareduction/datareductionoperator.cpp datareduction/dro_populations.h datareduction/dro_populations.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c datareduction/dro_populations.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_EIGEN} ${INC_VLSV}
@@ -449,7 +438,7 @@ cpu_acc_intersections.o: ${DEPS_CPU_ACC_INTERSECTS}
 
 ifeq ($(USE_CUDA),1)
 cuda_acc_map_kernel.o: ${DEPS_CUDA_ACC_MAP_KERNEL}
-	${NVCC} ${NVCCFLAGS} -D${VECTORCLASS} -dc vlasovsolver/cuda_acc_map_kernel.cu
+	${NVCC} ${NVCCFLAGS} -D${VECTORCLASS} -c vlasovsolver/cuda_acc_map_kernel.cu
 
 cuda_acc_map.o: ${DEPS_CUDA_ACC_MAP} ${DEPS_CUDA_ACC_MAP_KERNEL}
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cuda_acc_map.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_FSGRID} ${INC_PROFILE} ${INC_VECTORCLASS} ${LIB_CUDA}
@@ -459,15 +448,6 @@ cuda_acc_semilag.o: ${DEPS_CUDA_ACC_SEMILAG}
 
 cuda_acc_sort_blocks.o: ${DEPS_CUDA_ACC_SORT_BLOCKS}
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cuda_acc_sort_blocks.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE}
-
-cuda_context.o: ${DEPS_CUDA_CONTEXT}
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c cuda_context.cpp
-
-cuda_moments_kernel.o: ${DEPS_CUDA_MOMENTS_KERNEL}
-	${NVCC} ${NVCCFLAGS} -D${VECTORCLASS} -dc vlasovsolver/cuda_moments_kernel.cu ${INC_FSGRID}
-
-cuda_moments.o: ${DEPS_CUDA_MOMENTS} ${DEPS_CUDA_MOMENTS_KERNEL}
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cuda_moments.cpp ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_FSGRID} ${LIB_CUDA}
 
 endif
 
@@ -497,7 +477,7 @@ vlasovmover.o: ${DEPS_VLSVMOVER}
 endif
 
 cpu_moments.o: ${DEPS_CPU_MOMENTS} arch/arch_device_api.h arch/arch_device_host.h arch/arch_device_cuda.h
-	nvcc -x cu --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_moments.cpp ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_FSGRID}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_moments.cpp ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_FSGRID}
 
 derivatives.o: ${DEPS_FSOLVER} fieldsolver/fs_limiters.h fieldsolver/fs_limiters.cpp fieldsolver/derivatives.hpp fieldsolver/derivatives.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/derivatives.cpp -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_FSGRID} ${INC_PROFILE} ${INC_ZOLTAN}
@@ -562,26 +542,6 @@ vlscommon.o:  $(DEPS_COMMON)  vlscommon.h vlscommon.cpp
 
 object_wrapper.o:  $(DEPS_COMMON)  object_wrapper.h object_wrapper.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c object_wrapper.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_FSGRID}
-
-ifeq ($(USE_CUDA),1)
-cudalink_acc_map.o: cuda_acc_map.o
-	${NVCC} ${CUDALINK} ${NVCCFLAGS} -dlink cuda_acc_map.o -o cudalink_acc_map.o
-
-cudalink_acc_semilag.o: cuda_acc_semilag.o
-	${NVCC} ${CUDALINK} ${NVCCFLAGS} -dlink cuda_acc_semilag.o -o cudalink_acc_semilag.o
-
-cudalink_acc_kernel.o: cuda_acc_map_kernel.o
-	${NVCC} ${CUDALINK} ${NVCCFLAGS} -dlink cuda_acc_map_kernel.o -o cudalink_acc_kernel.o
-
-cudalink_context.o: cuda_context.o
-	${NVCC} ${CUDALINK} ${NVCCFLAGS} -dlink cuda_context.o -o cudalink_context.o
-
-cudalink_moments.o: cuda_moments.o
-	${NVCC} ${CUDALINK} ${NVCCFLAGS} -dlink cuda_moments.o -o cudalink_moments.o
-
-cudalink_moments_kernel.o: cuda_moments_kernel.o
-	${NVCC} ${CUDALINK} ${NVCCFLAGS} -dlink cuda_moments_kernel.o -o cudalink_moments_kernel.o
-endif
 
 # Make executable
 vlasiator: $(OBJS) $(OBJS_FSOLVER)

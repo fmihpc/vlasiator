@@ -33,11 +33,9 @@
 #include "cuda_acc_semilag.hpp"
 #include "cuda_acc_map.hpp"
 
-#include "device_launch_parameters.h"
 #include "cuda.h"
 #include "cuda_runtime.h"
 
-#include "../cuda_context.cuh"
 
 using namespace std;
 using namespace spatial_cell;

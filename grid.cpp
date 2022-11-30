@@ -48,13 +48,6 @@
 #include "papi.h" 
 #endif 
 
-#ifdef USE_CUDA
-#include "vlasovsolver/cuda_acc_map_kernel.cuh"
-#include "vlasovsolver/cuda_moments_kernel.cuh"
-//#include "vlasovsolver/cuda_moments.h"
-#include "cuda_context.cuh"
-#endif
-
 #ifndef NDEBUG
    #ifdef AMR
       #define DEBUG_AMR_VALIDATE
@@ -318,14 +311,6 @@ void initializeGrids(
       */
 
    }
-
-#ifdef USE_CUDA
-   // Activate device, create streams
-   cuda_set_device();
-   const uint nPopulations = getObjectWrapper().particleSpecies.size();
-   const uint maxThreads = omp_get_max_threads();
-   cuda_allocateMomentCalculations(nPopulations,maxThreads);
-#endif
 
    // Init mesh data container
    if (getObjectWrapper().meshData.initialize("SpatialGrid") == false) {
