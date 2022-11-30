@@ -32,8 +32,6 @@
 #include "../common.h"
 #include "../spatial_cell.hpp"
 
-#include "../arch/arch_device_api.h"
-
 using namespace spatial_cell;
 
 // ***** FUNCTION DECLARATIONS ***** //

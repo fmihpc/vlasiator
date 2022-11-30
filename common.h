@@ -28,6 +28,9 @@
 #include <vector>
 #include "definitions.h"
 
+// Include architecture specific definitions
+#include "arch/arch_device_api.h"
+
 #ifdef DEBUG_SOLVERS
 #define CHECK_FLOAT(x) \
    if ((x) != (x)) {\

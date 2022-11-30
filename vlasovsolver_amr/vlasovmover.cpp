@@ -375,7 +375,7 @@ void calculateInterpolatedVelocityMoments(
 void calculateCellVelocityMoments(SpatialCell* SC,
                                   bool doNotSkip // default: false
                                  ) {
-   /*
+/*
    // if doNotSkip == true then the first clause is false and we will never return, i.e. always compute
    // otherwise we skip DO_NOT_COMPUTE cells
    // or boundary cells of layer larger than 1
@@ -395,25 +395,31 @@ void calculateCellVelocityMoments(SpatialCell* SC,
    cellParams[CellParams::P_22 ] = 0.0;
    cellParams[CellParams::P_33 ] = 0.0;
 
+   // Create vectors for device buffers
+   std::vector<arch::buf<Realf>*> v_data;
+   v_data.reserve(getObjectWrapper().particleSpecies.size()); 
+   std::vector<arch::buf<Real>*> v_blockParams;
+   v_blockParams.reserve(getObjectWrapper().particleSpecies.size());
+
    // Calculate first moments
    for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       // Temporary array for storing this species' contribution
-      Real array[4];
-      for (int i=0; i<4; ++i) array[i] = 0;
+      Real array[4] = {0};
       
-      // Pointers to this species' data
-      const Realf* data = SC->get_data(popID);
-      const Real* blockParams = SC->get_block_parameters(popID);
+      // Create temporary buffers for the species' data on the GPU 
+      v_data[popID] = new arch::buf<Realf>((Realf*)SC->get_data(popID), (uint)(SC->get_number_of_velocity_blocks(popID)*WID3*sizeof(Realf))); 
+      v_blockParams[popID] = new arch::buf<Real>((Real*)SC->get_block_parameters(popID), (uint)(SC->get_number_of_velocity_blocks(popID)*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real))); 
       
-      for (vmesh::LocalID blockLID=0; blockLID<SC->get_number_of_velocity_blocks(popID); ++blockLID) {
-         blockVelocityFirstMoments(
-                  data,
-                  blockParams,
-                  array
-         );
-         data += SIZE_VELBLOCK;
-         blockParams += BlockParams::N_VELOCITY_BLOCK_PARAMS;
-      }
+      // Get pointers for easy access in the loop
+      arch::buf<Realf> data = *v_data[popID]; 
+      arch::buf<Real> blockParams = *v_blockParams[popID]; 
+      
+      blockVelocityFirstMoments(
+               data,
+               blockParams,
+               array,
+               SC->get_number_of_velocity_blocks(popID)
+      );
       
       const Real massRatio = getObjectWrapper().particleSpecies[popID].mass / physicalconstants::MASS_PROTON;
       cellParams[CellParams::RHO  ] += array[0]*massRatio;
@@ -425,32 +431,34 @@ void calculateCellVelocityMoments(SpatialCell* SC,
    // Second iteration needed as rho has to be already computed when computing pressure
    for (int popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       // Temporary array for storing this species' contribution
-      Real array[3];
-      for (int i=0; i<3; ++i) array[i] = 0;
+      Real array[3] = {0};
+
+      // Get pointers for easy access in the loop
+      arch::buf<Realf> data = *v_data[popID]; 
+      arch::buf<Real> blockParams = *v_blockParams[popID]; 
       
-      // Pointers to this species' data
-      const Realf* data = SC->get_data(popID);
-      const Real* blockParams = SC->get_block_parameters(popID);
-      
-      for (vmesh::LocalID blockLID=0; blockLID<SC->get_number_of_velocity_blocks(popID); ++blockLID) {
-         blockVelocitySecondMoments(
-                  data,
-                  blockParams,
-                  cellParams,
-                  CellParams::VX,
-                  CellParams::VY,
-                  CellParams::VZ,
-                  array
-         );
-         data += SIZE_VELBLOCK;
-         blockParams += BlockParams::N_VELOCITY_BLOCK_PARAMS;
-      }
+      blockVelocitySecondMoments(
+               data,
+               blockParams,
+               cellParams,
+               CellParams::VX,
+               CellParams::VY,
+               CellParams::VZ,
+               array,
+               SC->get_number_of_velocity_blocks(popID)
+      );
       
       cellParams[CellParams::P_11] += array[0]*getObjectWrapper().particleSpecies[popID].mass;
       cellParams[CellParams::P_22] += array[1]*getObjectWrapper().particleSpecies[popID].mass;
       cellParams[CellParams::P_33] += array[2]*getObjectWrapper().particleSpecies[popID].mass;
    } // for-loop over particle species
-    */
+   
+   // Delete temporary device buffers
+   for(auto buf_data : v_data)
+     delete buf_data;
+   for(auto buf_blockParams : v_blockParams)
+     delete buf_blockParams;
+*/     
 }
 
 void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
