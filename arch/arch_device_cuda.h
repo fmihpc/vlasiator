@@ -23,14 +23,6 @@
   extern cudaStream_t stream[];
 #endif
 
-#ifdef __CUDACC__
-  #define CUDA_HOSTDEV __host__ __device__
-  #define CUDA_DEV __device__
-#else
-  #define CUDA_HOSTDEV
-  #define CUDA_DEV
-#endif
-
 /* Define the CUDA error checking macro */
 #define CHK_ERR(err) (cuda_error(err, __FILE__, __LINE__))
   inline static void cuda_error(cudaError_t err, const char *file, int line) {
@@ -92,7 +84,7 @@ class buf {
   __host__ __device__ buf(const buf& u) : 
     ptr(u.ptr), d_ptr(u.d_ptr), bytes(u.bytes), is_copy(1), thread_id(u.thread_id) {}
 
-  __host__ __device__ ~buf(void){
+  __host__ ~buf(void){
     if(!is_copy){
       // syncHostData();
       #ifdef __CUDA_ARCH__
@@ -156,30 +148,35 @@ __host__ __forceinline__ static void* allocate(size_t bytes) {
 }
 
 /* Device function for memory deallocation */
-__host__ __forceinline__ static void free(void* ptr) {
+template <typename T>
+__host__ __forceinline__ static void free(T* ptr) {
   const uint thread_id = omp_get_thread_num();
   CHK_ERR(cudaFreeAsync(ptr, stream[thread_id]));
 }
 
 /* Host-to-device memory copy */
-__forceinline__ static void memcpy_h2d(void* dst, void* src, size_t bytes){
+template <typename T>
+__forceinline__ static void memcpy_h2d(T* dst, T* src, size_t bytes){
   const uint thread_id = omp_get_thread_num();
   CHK_ERR(cudaMemcpyAsync(dst, src, bytes, cudaMemcpyHostToDevice, stream[thread_id]));
 }
 
 /* Device-to-host memory copy */
-__forceinline__ static void memcpy_d2h(void* dst, void* src, size_t bytes){
+template <typename T>
+__forceinline__ static void memcpy_d2h(T* dst, T* src, size_t bytes){
   const uint thread_id = omp_get_thread_num();
   CHK_ERR(cudaMemcpyAsync(dst, src, bytes, cudaMemcpyDeviceToHost, stream[thread_id]));
 }
 
 /* Register, ie, page-lock existing host allocations */
-__forceinline__ static void host_register(void* ptr, size_t bytes){
+template <typename T>
+__forceinline__ static void host_register(T* ptr, size_t bytes){
   CHK_ERR(cudaHostRegister(ptr, bytes, cudaHostRegisterDefault));
 }
 
 /* Unregister page-locked host allocations */
-__forceinline__ static void host_unregister(void* ptr){
+template <typename T>
+__forceinline__ static void host_unregister(T* ptr){
   CHK_ERR(cudaHostUnregister(ptr));
 }
 

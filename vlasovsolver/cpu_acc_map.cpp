@@ -409,7 +409,7 @@ bool map_1d(SpatialCell* spatial_cell,
           
              Note that the i dimension is vectorized, and thus there are no loops over i
          */
-         for (uint j = 0; j < WID; j += VECL/WID){ 
+         for (int j = 0; j < WID; j += VECL/WID){ 
             // create vectors with the i and j indices in the vector position on the plane.
             #if VECL == 4 && WID == 4
             const Veci i_indices = Veci({0, 1, 2, 3});

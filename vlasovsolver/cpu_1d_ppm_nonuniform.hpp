@@ -28,12 +28,6 @@
 #include "algorithm"
 #include "cmath"
 
-#include "cuda_header.h"
-#ifdef __CUDACC__
-#include "device_launch_parameters.h"
-#include "cuda.h"
-#include "cuda_runtime.h"
-#endif
 #include "cpu_slope_limiters.hpp"
 #include "cpu_face_estimates.hpp"
 
@@ -53,7 +47,7 @@ CUDA_HOSTDEV inline void compute_ppm_coeff_nonuniform(const Vec * const dv, cons
 
    //std::cout << "value = " << values[k][0] << ", m_face = " << m_face[0] << ", p_face = " << p_face[0] << "\n";
    //std::cout << values[k][0] - m_face[0] << ", " << values[k][0] - p_face[0] << "\n";
-   
+
    m_face = select((p_face - m_face) * (values[k] - 0.5 * (m_face + p_face)) >
                    (p_face - m_face)*(p_face - m_face) * one_sixth,
                    3 * values[k] - 2 * p_face,

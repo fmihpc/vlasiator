@@ -341,8 +341,8 @@ namespace vmesh {
       if (numberOfBlocks > CUDA_BLOCK_SAFECTY_FACTOR * CUDA_BLOCK_ALLOCATION_FACTOR * size) {
          std::cerr<<"Warning in "<<__FILE__<<" line "<<__LINE__<<": attempting to allocate less than safety margins"<<std::endl;
       }
-      dev_block_data = arch::allocate(CUDA_BLOCK_ALLOCATION_FACTOR*size*WID3*sizeof(Realf));
-      dev_parameters = arch::allocate(CUDA_BLOCK_ALLOCATION_FACTOR*size*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real));
+      dev_block_data = (Realf*)arch::allocate(CUDA_BLOCK_ALLOCATION_FACTOR*size*WID3*sizeof(Realf));
+      dev_parameters = (Real*)arch::allocate(CUDA_BLOCK_ALLOCATION_FACTOR*size*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real));
       dev_allocatedSize = CUDA_BLOCK_ALLOCATION_FACTOR*size;
       return;
    }
@@ -356,8 +356,8 @@ namespace vmesh {
          arch::free(dev_block_data);
          arch::free(dev_parameters);
       }
-      dev_block_data = arch::allocate(CUDA_BLOCK_ALLOCATION_FACTOR*numberOfBlocks*WID3*sizeof(Realf));
-      dev_parameters = arch::allocate(CUDA_BLOCK_ALLOCATION_FACTOR*numberOfBlocks*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real));
+      dev_block_data = (Realf*)arch::allocate(CUDA_BLOCK_ALLOCATION_FACTOR*numberOfBlocks*WID3*sizeof(Realf));
+      dev_parameters = (Real*)arch::allocate(CUDA_BLOCK_ALLOCATION_FACTOR*numberOfBlocks*BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real));
       dev_allocatedSize = CUDA_BLOCK_ALLOCATION_FACTOR*numberOfBlocks;
       return;
    }

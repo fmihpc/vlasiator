@@ -44,8 +44,17 @@
 #define i_pcolumnv_cuda(j, k, k_block, num_k_blocks) ( ((j) / ( VECL / WID)) * WID * ( num_k_blocks + 2) + (k) + ( k_block + 1 ) * WID )
 #define i_pcolumnv_cuda_b(planeVectorIndex, k, k_block, num_k_blocks) ( planeVectorIndex * WID * ( num_k_blocks + 2) + (k) + ( k_block + 1 ) * WID )
 
+/* Define the CUDA error checking macro */
+#define CHK_ERR(err) (cuda_error(err, __FILE__, __LINE__))
+  inline static void cuda_error(cudaError_t err, const char *file, int line) {
+  	if (err != cudaSuccess) {
+  		printf("\n\n%s in %s at line %d\n", cudaGetErrorString(err), file, line);
+  		exit(1);
+  	}
+}
+
 // Allocate pointers for per-thread memory regions
-//#define MAXCPUTHREADS 64 now in cuda_context.hpp
+#define MAXCPUTHREADS 64
 //Realf *dev_blockData[MAXCPUTHREADS];
 Vec *dev_blockDataOrdered[MAXCPUTHREADS];
 Column *dev_columns[MAXCPUTHREADS];

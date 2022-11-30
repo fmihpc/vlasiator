@@ -24,12 +24,7 @@
 #define HOSTDEV_1D_PPM_H
 
 #include "vec.h"
-#include "cuda_header.h"
-#ifdef __CUDACC__
-#include "device_launch_parameters.h"
-#include "cuda.h"
-#include "cuda_runtime.h"
-#endif
+
 #include "cpu_slope_limiters.hpp"
 #include "cpu_face_estimates.hpp"
 

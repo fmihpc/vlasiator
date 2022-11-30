@@ -71,7 +71,9 @@ CC_BRAND_VERSION = 21.2
 
 #CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -gpu=cc80 -Minfo=accel -acc -fopenmp -std=c++11
 CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -std=c++14
-NVCCFLAGS += -g -gencode arch=compute_80,code=sm_80 -std=c++14 --generate-line-info -line-info
+NVCCFLAGS += -g -x cu --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 -std=c++14 --generate-line-info -line-info
+
+###CMP = OMPI_CXXFLAGS='' OMPI_CXX='nvcc -x cu --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80' mpic++
 
 #testpackage: CXXFLAGS = -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -gpu=cc80 -Minfo=accel -acc -fopenmp -std=c++11
 testpackage: CXXFLAGS = -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -fopenmp -std=c++11
@@ -92,8 +94,8 @@ testpackage: CXXFLAGS += -DPAPI_MEM
 #======== Allocator =========
 #Use jemalloc instead of system malloc to reduce memory fragmentation https://github.com/jemalloc/jemalloc
 #Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
-CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
-testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+###CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+###testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 
 #======== Libraries ===========

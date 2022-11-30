@@ -45,6 +45,22 @@ inline static void free(void* ptr) {
   ::free(ptr);
 }
 
+/* Host-to-device memory copy */
+template <typename T>
+inline static void memcpy_h2d(T* dst, T* src, size_t bytes){}
+
+/* Device-to-host memory copy */
+template <typename T>
+inline static void memcpy_d2h(T* dst, T* src, size_t bytes){}
+
+/* Register, ie, page-lock existing host allocations */
+template <typename T>
+inline static void host_register(T* ptr, size_t bytes){}
+
+/* Unregister page-locked host allocations */
+template <typename T>
+inline static void host_unregister(T* ptr){}
+
 /* Parallel reduce driver function - specialization for 1D case */
 template <reduce_op Op, uint NReductions, uint NDim, typename Lambda, typename T>
 inline static void parallel_reduce_driver(const uint (&limits)[1], Lambda loop_body, T *sum, const uint n_redu_dynamic) {

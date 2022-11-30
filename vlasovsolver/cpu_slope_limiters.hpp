@@ -24,12 +24,6 @@
 #define HOSTDEV_SLOPE_LIMITERS_H
 
 #include "vec.h"
-#include "cuda_header.h"
-#ifdef __CUDACC__
-#include "cuda.h"
-#include "cuda_runtime.h"
-#include "device_launch_parameters.h"
-#endif
 
 using namespace std;
 

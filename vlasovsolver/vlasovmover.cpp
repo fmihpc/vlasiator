@@ -48,7 +48,6 @@
 #ifdef USE_CUDA
 #include "cuda_acc_map_kernel.cuh"
 #include "cuda_acc_semilag.hpp"
-#include "cuda_moments.h"
 #endif
 
 using namespace std;

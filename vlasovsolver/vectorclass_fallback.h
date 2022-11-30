@@ -22,14 +22,6 @@
 #ifndef VECTORCLASS_PORTABLE_H
 #define VECTORCLASS_PORTABLE_H
 
-#include "cuda_header.h" // For CUDA_HOSTDEV and CUDA_DEV
-
-#ifdef __CUDACC__
-#include "device_launch_parameters.h"
-#include "cuda.h"
-#include "cuda_runtime.h"
-#endif
-
 #include <stdio.h>
 //#include <stdlib.h>
 //#include <math.h>
