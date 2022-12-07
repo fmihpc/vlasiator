@@ -22,7 +22,7 @@ FLAGS =
 CC_BRAND = intel
 CC_BRAND_VERSION = 19.0.4
 CXXFLAGS += -traceback -g -O3 -qopenmp -std=c++17 -W -Wall -Wno-unused -xHost -ipo -qopt-zmm-usage=high 
-testpackage: CXXFLAGS = -g -traceback -O2 -qopenmp -std=c++17 -W -Wno-unused -xHost -ipo -DIONOSPHERE_SORTED_SUMS
+testpackage: CXXFLAGS = -g -traceback -O2 -qopenmp -std=c++17 -W -Wno-unused -xHost -ipo
 
 MATHFLAGS = -ffast-math
 LDFLAGS = -qopenmp -lifcore -ipo

@@ -35,7 +35,7 @@ FLAGS =
 CC_BRAND = gcc
 CC_BRAND_VERSION = 10.2.0
 CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -mavx
-testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -mavx -DIONOSPHERE_SORTED_SUMS
+testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -mavx
 CXXFLAGS += -Wall -Wextra -Wno-unused
 
 MATHFLAGS = -ffast-math
