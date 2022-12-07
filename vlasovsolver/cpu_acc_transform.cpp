@@ -150,13 +150,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 
    // If a bulk velocity is being forced here, perform that last, after things were gyrated in the Hall frame
    // If a cell is a remote L2 and was not caught in the loop over neighbours of L1 cells, compute its forcing here
-   // (same in sysboundary/ionosphere.cpp, regarding the time check:)
-   // TODO Make this a more elegant solution
-   // Now it's hacky as the counter is incremented in vlasiator.cpp
-   if( (((Parameters::t                > (SBC::Ionosphere::solveCount-1) * SBC::Ionosphere::couplingInterval)
-      && (Parameters::t-Parameters::dt < (SBC::Ionosphere::solveCount-1) * SBC::Ionosphere::couplingInterval)
-      && SBC::Ionosphere::couplingInterval > 0)
-      || SBC::Ionosphere::couplingInterval == 0)
+   if(globalflags::ionosphereJustSolved
       && spatial_cell->parameters[CellParams::FORCING_CELL_NUM] == 0
       && SBC::boundaryVDFmode == SBC::ForceL2EXB
    ) {

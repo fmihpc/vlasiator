@@ -78,6 +78,7 @@ using namespace phiprof;
 int globalflags::bailingOut = 0;
 bool globalflags::writeRestart = 0;
 bool globalflags::balanceLoad = 0;
+bool globalflags::ionosphereJustSolved = false;
 
 ObjectWrapper objectWrapper;
 
@@ -1024,6 +1025,7 @@ int main(int argn,char* args[]) {
          << " difference " << maxPotentialS - minPotentialS
          << endl;
          SBC::Ionosphere::solveCount++;
+         globalflags::ionosphereJustSolved = true;
       }
       
       phiprof::start("Velocity-space");
@@ -1074,6 +1076,7 @@ int main(int argn,char* args[]) {
       }
       //Move forward in time
       P::meshRepartitioned = false;
+      globalflags::ionosphereJustSolved = false;
       ++P::tstep;
       P::t += P::dt;
 
