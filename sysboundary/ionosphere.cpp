@@ -1911,7 +1911,12 @@ namespace SBC {
 
                // Slow coupling with a given timescale.
                // See https://en.wikipedia.org/wiki/Exponential_smoothing#Time_constant
-               Real a = 1. - exp(- Parameters::dt / Ionosphere::couplingTimescale);
+               // P::dt valid for shorter coupling periods or Ionosphere::couplingInterval == 0 meaning every step
+               Real timeInterval = Parameters::dt;
+               if(Ionosphere::couplingInterval > Parameters::dt) {
+                  timeInterval = Ionosphere::couplingInterval;
+               }
+               Real a = 1. - exp(- timeInterval / Ionosphere::couplingTimescale);
                if(a>1) {
                   a=1.;
                }
