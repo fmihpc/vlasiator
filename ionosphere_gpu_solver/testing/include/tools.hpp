@@ -93,5 +93,23 @@ auto create_sparse_matrix_from_dense_matrix(
     return std::tuple {std::move(indecies), std::move(sparse_M)};
 }
 
+template <typename T>
+auto transpose_matrix(
+    const std::vector<T>& M,
+    const size_t n
+) {
+    assert(M.size() == n * n);
+    
+    auto M_T = std::vector<T>(M.size());
+
+    for (size_t i = 0; i < n; ++i) {
+        for (size_t j = 0; j < n; ++j) {
+            M_T[i * n + j] = M[j * n + i];
+        }
+    }
+
+    return M_T;
+}
+
 }
 }

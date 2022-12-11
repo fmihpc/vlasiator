@@ -30,6 +30,10 @@ DEPS        := $(OBJS:.o=.d)
 
 CC          := nvcc
 CFLAGS      := -Werror all-warnings -O3
+ifeq ($(IONO_GPU_BENCHMARK), 1)
+CFLAGS += -D IONO_GPU_BENCHMARK=1
+endif
+
 CPPFLAGS    := -MMD -MP -I include
 AR          := ar
 ARFLAGS     := -r -c -s

@@ -20,13 +20,23 @@ std::vector<double> ionogpu::sparseMatrixVectorProduct<double>(
     const std::vector<double>& b);
 
 template 
-std::vector<double> ionogpu::sparseBiCGCUDA<double>(
+ionogpu::ReturnOfSparseBiCGCUDA<double> ionogpu::sparseBiCGCUDA<double>(
         const size_t n, const size_t m,    
         const std::vector<double>& sparse_A,
         const std::vector<double>& sparse_A_trasposed,
         const std::vector<size_t>& indecies,
         const std::vector<double>& b,
-        const ConfigurationForSparsebcgCUDA<double>& config);
+        const ionogpu::ConfigurationForIonosphereGPUSolver<double>& config);
+
+template 
+ionogpu::ReturnOfSparseBiCGCUDA<double> ionogpu::sparseBiCGSTABCUDA<double>(
+        const size_t n, const size_t m,    
+        const std::vector<double>& sparse_A,
+        const std::vector<size_t>& indecies,
+        const std::vector<double>& b,
+        const ionogpu::ConfigurationForIonosphereGPUSolver<double>& config);
+
+        
  
 
 template

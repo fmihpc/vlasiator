@@ -20,22 +20,47 @@ namespace ionogpu {
       diagonal
    };
 
-   template<typename T>
-   struct ConfigurationForSparsebcgCUDA {
-      size_t max_iterations;
-      T residual_treshold;
-      Precondition precondition;
-      bool use_minimum_residual_variant;
+   enum class Gauge {
+      none,
+      pole
+
    };
 
    template<typename T>
-   std::vector<T> sparsebcgCUDA(
+   struct ConfigurationForIonosphereGPUSolver {
+      int max_iterations;
+      int max_failure_count;
+      T max_error_growth_factor;
+      T relative_L2_convergence_threshold;
+      Precondition precondition;
+      bool use_minimum_residual_variant;
+      Gauge gauge;
+   };
+
+   template<typename T>
+   struct ReturnOfSparseBiCGCUDA {
+      int number_of_iterations;
+      int number_of_restarts;
+      T min_error;
+      std::vector<T> x;
+   };
+
+   template<typename T>
+   ReturnOfSparseBiCGCUDA<T> sparseBiCGCUDA(
       const size_t n, const size_t m,
       const std::vector<T>& sparse_A,
       const std::vector<T>& sparse_A_transposed,
       const std::vector<size_t>& indecies,
       const std::vector<T>& b,
-      const ConfigurationForSparsebcgCUDA<T>& config);
+      const ConfigurationForIonosphereGPUSolver<T>& config);
+
+   template<typename T>
+   ReturnOfSparseBiCGCUDA<T> sparseBiCGSTABCUDA(
+      const size_t n, const size_t m,
+      const std::vector<T>& sparse_A,
+      const std::vector<size_t>& indecies,
+      const std::vector<T>& b,
+      const ConfigurationForIonosphereGPUSolver<T>& config);
 
    template<typename T>
    std::vector<T> preSparseMatrixVectorProduct(
@@ -99,8 +124,8 @@ namespace ionogpu {
     *  This might change later.
     *
     *  We assume that
-    *     I &nIterations,
-    *     I &nRestarts,
+    *     I &nIterations, This is not actually used for anything other than setting to zero in original solver
+    *     I &nRestarts, 
     *     F &residual,
     *     F &minPotentialN,
     *     F &maxPotentialN,
@@ -113,20 +138,13 @@ namespace ionogpu {
     */
 
    template <typename SM, typename I, typename F>
-   SM solveIonospherePotentialGPU(
+   std::vector<F> solveIonospherePotentialGPU(
       SM& A,
-      const std::vector<double>& b,
-      const I maxIterations,
-      const F residualTreshold,
-      const bool usePrecondition,
-      const bool useMinimumResidualVariant,
+      const std::vector<F>& b,
+      const ConfigurationForIonosphereGPUSolver<F>& config, 
       I &nIterations,
       I &nRestarts,
-      F &residual,
-      F &minPotentialN,
-      F &maxPotentialN,
-      F &minPotentialS,
-      F &maxPotentialS
+      F &residual
    ) {
       const auto n = A.rows.size();
       // We assume that we have at least one element in first row
@@ -137,7 +155,9 @@ namespace ionogpu {
          std::vector<double> A_vec_temp(n * m, 0);
          std::vector<double> A_transposed_vec_temp(n * m);
          std::vector<size_t> indecies_vec_temp(n * m, 0);
-
+         #if defined(_OPENMP)
+             #pragma omp for
+         #endif
          for (size_t i = 0; i < n; ++i) {
             for (size_t j = 0; j < A.elements_on_each_row[i]; ++j) {
                A_vec_temp[i * m + j] = static_cast<double>((*A.rows[i])[j]);
@@ -145,10 +165,30 @@ namespace ionogpu {
                indecies_vec_temp[i * m + j] = (*(A.indecies[i]))[j];
             }
          }
-         return {std::move(A_vec_temp), std::move(A_transposed_vec_temp), std::move(indecies_vec_temp)};
+         return std::tuple{std::move(A_vec_temp), std::move(A_transposed_vec_temp), std::move(indecies_vec_temp)};
       }();
 
-      const auto a = sparseBiCGCUDA(n, m, A_vec, A_trasposed_vec, indecies_vec, b);
-      return SM(10);
+   
+      auto [number_of_iterations, number_of_restarts, min_error, x_vec] = 
+         sparseBiCGSTABCUDA(
+            n, m,
+            A_vec,
+            indecies_vec,
+            b,
+            config
+         );
+      
+
+      nIterations = number_of_iterations;
+      nRestarts = number_of_restarts;
+      residual = min_error;
+
+      return x_vec;
    }
-}
+};
+
+
+/* 
+TODO
+Other gauges
+ */
