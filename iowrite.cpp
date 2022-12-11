@@ -95,7 +95,7 @@ bool updateLocalIds(  dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
  \param comm The MPI comm
  \return Returns true if all of the processes running this function had success value of true, false otherwise
  */
-bool globalSuccess(bool success,string errorMessage,MPI_Comm comm){
+bool globalSuccess(bool success, const string& errorMessage, MPI_Comm comm){
    int successInt;
    int globalSuccessInt;
    if(success)
@@ -1087,182 +1087,179 @@ bool writeIonosphereGridMetadata(vlsv::Writer& vlsvWriter) {
  * @sa writeVelocityDistributionData. */
 bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                         Writer& vlsvWriter,int index,const vector<uint64_t>& cells) {
-      //Compute which cells will write out their velocity space
-      vector<uint64_t> velSpaceCells;
-      int lineX, lineY, lineZ;
-      Real shellRadiusSquare;
-      Real cellX, cellY, cellZ, DX, DY, DZ;
-      Real dx_rm, dx_rp, dy_rm, dy_rp, dz_rm, dz_rp;
-      Real rsquare_minus,rsquare_plus;
-      bool withinshell,stridecheck;
-      //#warning TODO: thread evaluation of cells due to trigonometrics in shells?
-      for (uint i = 0; i < cells.size(); i++) {
-         mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 0.0;
-         // CellID stride selection
-         if (P::systemWriteDistributionWriteStride[index] > 0 &&
-             cells[i] % P::systemWriteDistributionWriteStride[index] == 0) {
-            velSpaceCells.push_back(cells[i]);
-            mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 1.0;
-            continue; // Avoid double entries in case the cell also matches following conditions.
-         }
-         // Cell lines selection
-         // Determine cellID's 3D indices
+   //Compute which cells will write out their velocity space
+   vector<uint64_t> velSpaceCells;
+   int lineX, lineY, lineZ;
+   Real shellRadiusSquare;
+   Real cellX, cellY, cellZ, DX, DY, DZ;
+   Real dx_rm, dx_rp, dy_rm, dy_rp, dz_rm, dz_rp;
+   Real rsquare_minus,rsquare_plus;
+   bool withinshell,stridecheck;
+   //#warning TODO: thread evaluation of cells due to trigonometrics in shells?
+   for (uint i = 0; i < cells.size(); i++) {
+      mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 0.0;
+      // CellID stride selection
+      if (P::systemWriteDistributionWriteStride[index] > 0 &&
+         cells[i] % P::systemWriteDistributionWriteStride[index] == 0) {
+         velSpaceCells.push_back(cells[i]);
+         mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 1.0;
+         continue; // Avoid double entries in case the cell also matches following conditions.
+      }
+      // Cell lines selection
+      // Determine cellID's 3D indices
 
-	 // Loop over AMR levels
-	 uint startindex=1;
-	 uint endindex=1;
-	 for (int AMR = 0; AMR <= P::amrMaxSpatialRefLevel; AMR++) {
-	    uint AMRm = std::floor(std::pow(2,AMR));
-	    uint cellsthislevel = (AMRm*P::xcells_ini)*(AMRm*P::ycells_ini)*(AMRm*P::zcells_ini);
-	    startindex = endindex;
-	    endindex = endindex + cellsthislevel;
-	  
-	    // If cell belongs to this AMR level, find indices
-	    if ((cells[i]>=startindex)&&(cells[i]<endindex)) {
-	       lineX =  (cells[i]-startindex) % (AMRm*P::xcells_ini);
-	       lineY = ((cells[i]-startindex) / (AMRm*P::xcells_ini)) % (AMRm*P::ycells_ini);
-	       lineZ = ((cells[i]-startindex) /((AMRm*P::xcells_ini) *  (AMRm*P::ycells_ini))) % (AMRm*P::zcells_ini);
-	       // Check that indices are in correct intersection at least in one plane
-	       if ((P::systemWriteDistributionWriteXlineStride[index] > 0 &&
-		    P::systemWriteDistributionWriteYlineStride[index] > 0 &&
-		    lineX % P::systemWriteDistributionWriteXlineStride[index] == 0 &&
-		    lineY % P::systemWriteDistributionWriteYlineStride[index] == 0)
-		   &&
-		   (P::systemWriteDistributionWriteYlineStride[index] > 0 &&
-		    P::systemWriteDistributionWriteZlineStride[index] > 0 &&
-		    lineY % P::systemWriteDistributionWriteYlineStride[index] == 0 &&
-		    lineZ % P::systemWriteDistributionWriteZlineStride[index] == 0)
-		   &&
-		   (P::systemWriteDistributionWriteZlineStride[index] > 0 &&
-		    P::systemWriteDistributionWriteXlineStride[index] > 0 &&
-		    lineZ % P::systemWriteDistributionWriteZlineStride[index] == 0 &&
-		    lineX % P::systemWriteDistributionWriteXlineStride[index] == 0)
-		   ) {
-		  velSpaceCells.push_back(cells[i]);
-		  mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 1.0;
-                  break; // Avoid double entries in case the cell also matches following conditions.
-	       }
-	    }
-	 }
-         // Avoid double entries in case the cell also matches following conditions.
-         if (mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] > 0) continue;
-
-         // Loop over spherical shells at defined distances
-         for (uint ishell = 0; ishell < P::systemWriteDistributionWriteShellRadius.size(); ishell++) {
-            shellRadiusSquare = P::systemWriteDistributionWriteShellRadius[ishell] * P::systemWriteDistributionWriteShellRadius[ishell];
-            cellX = mpiGrid[cells[i]]->parameters[CellParams::XCRD];
-            cellY = mpiGrid[cells[i]]->parameters[CellParams::YCRD];
-            cellZ = mpiGrid[cells[i]]->parameters[CellParams::ZCRD];
-            DX = mpiGrid[cells[i]]->parameters[CellParams::DX];
-            DY = mpiGrid[cells[i]]->parameters[CellParams::DY];
-            DZ = mpiGrid[cells[i]]->parameters[CellParams::DZ];
-
-            dx_rm = cellX < 0 ? DX : 0;
-            dx_rp = cellX < 0 ? 0 : DX;
-            dy_rm = cellY < 0 ? DY : 0;
-            dy_rp = cellY < 0 ? 0 : DY;
-            dz_rm = cellZ < 0 ? DZ : 0;
-            dz_rp = cellZ < 0 ? 0 : DZ;
-            rsquare_minus = (cellX + dx_rm) * (cellX + dx_rm) + (cellY + dy_rm) * (cellY + dy_rm) + (cellZ + dz_rm) * (cellZ + dz_rm);
-            rsquare_plus  = (cellX + dx_rp) * (cellX + dx_rp) + (cellY + dy_rp) * (cellY + dy_rp) + (cellZ + dz_rp) * (cellZ + dz_rp);
-            // Sometimes two face-neighboring cells can both intersect the sphere. In these cases, if the
-            // stride applied in that region is in a different direction than the neighborhood, both cells will be saved.
-            withinshell = (rsquare_minus <= shellRadiusSquare && rsquare_plus > shellRadiusSquare &&
-                                P::systemWriteDistributionWriteShellStride[ishell] > 0);
-            if (withinshell) {
-               // sort centerpoints
-               std::array<Real, 3> s = {abs(cellX+0.5*DX),abs(cellY+0.5*DY),abs(cellZ+0.5*DZ)};
-               std::sort(s.begin(), s.end());
-               Real shellR = P::systemWriteDistributionWriteShellRadius[ishell];
-               int shellS = P::systemWriteDistributionWriteShellStride[ishell];
-               // After this, assumes DX==DY==DZ
-               // Dominant direction (+-x,+-y,+-z) is used for concentric rings
-               Real D = s[2];
-               // Tangential direction
-               Real T;
-               // Clock angle distance for stride steps
-               Real clock;
-               if ((P::xcells_ini==1) || (P::ycells_ini==1) || (P::zcells_ini==1)) {
-                  // 1D or 2D simulation
-                  T = s[1];
-                  s[0] = 0;
-                  clock = 0;
-               } else { // 3D simulation
-                  T = sqrt(s[0]*s[0]+s[1]*s[1]);
-                  clock = T*atan(s[0]/s[1]);
-               }
-               // Distance along great circle away from dominant coordinate
-               Real dist =  shellR * atan(T/D);
-               // Now find the closest point(s) which fulfills the stride requirement
-               Real dist2 = DX * shellS * round(dist/DX/shellS);
-               Real clock2 = DX * shellS * round(clock/DX/shellS);
-
-               // Find Cartesian coordinates of this stridepoint
-               Real D2 = shellR * cos(dist2/shellR);
-               Real T2 = shellR * sin(dist2/shellR);
-
-               stridecheck = false;
-               // Now check if the stridepoint is exactly in this cell
-               if ((P::xcells_ini==1) || (P::ycells_ini==1) || (P::zcells_ini==1)) {
-                  // 1D or 2D
-                  if ( (D2 >= D-0.5*DX) && (D2 < D+0.5*DX) && (T2 >= T-0.5*DX) && (T2 < T+0.5*DX) ) stridecheck=true;
-                  // Special case for corners:
-                  if ( (abs(D-T)<0.5*DX) && (dist2>dist) ) stridecheck=true;
-
-                  // Only save 1 cell touching axes
-                  if ( (P::ycells_ini==1) && ( ( (cellX>-1.1*DX)&&(cellX<0) ) || ( (cellZ>-1.1*DZ)&&(cellZ<0) ) )) stridecheck=false;
-                  if ( (P::zcells_ini==1) && ( ( (cellX>-1.1*DX)&&(cellX<0) ) || ( (cellY>-1.1*DY)&&(cellY<0) ) )) stridecheck=false;
-
-               } else {
-                  // 3D simulation, account for clock angle
-                  Real T2A = T2 * cos(clock2/T2);
-                  Real T2B = T2 * sin(clock2/T2);
-                  // Rings at given stride from dominant direction
-                  bool ring = (D2 >= D-0.5*DX) && (D2 < D+0.5*DX) && (T2 >= T-0.5*DX) && (T2 < T+0.5*DX);
-                  // Special case for 45 degree ring:
-                  ring = ring || ((abs(D-T)<0.5*DX) && (dist2>dist));
-                  // Clock angle
-                  bool clockcheck = (T2A >= s[1]-0.5*DX) && (T2A < s[1]+0.5*DX) && (T2B >= s[0]-0.5*DX) && (T2B < s[0]+0.5*DX);
-                  // Special case for 45 degree clock angle
-                  clockcheck = clockcheck || ( (abs(s[1]-s[0])<0.5*DX) && (clock2>clock) );
-                  if ( ring && clockcheck ) stridecheck = true;
-
-                  // Ensure cells touching Cartesian axes are included
-                  if ( (s[1]<DX) && (s[0]<DX) && (D2 >= D-0.5*DX) && (D2 < D+0.5*DX) ) stridecheck=true;
-
-                  // Special corner-corner-case
-                  if ( (abs(s[2]-s[1])<DX) && (abs(s[1]-s[0])<DX) && (abs(s[2]-s[0])<DX) ) stridecheck=true;
-
-                  // Only save 1 cell touching axes (assumes origin is at corner intersection of 8 cells)
-                  if ( ( (cellX>-1.1*DX)&&(cellX<0) ) || ( (cellY>-1.1*DY)&&(cellY<0) ) || ( (cellZ>-1.1*DZ)&&(cellZ<0) ) ) stridecheck=false;
-               }
-
-               if (stridecheck) {
-                  velSpaceCells.push_back(cells[i]);
-                  mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 1.0;
-                  break; // Avoid double entries in case the cell also matches following conditions.
-               }
+      // Loop over AMR levels
+      uint startindex=1;
+      uint endindex=1;
+      for (uint AMR = 0; AMR <= P::amrMaxSpatialRefLevel; AMR++) {
+         int AMRm = 1u << AMR;
+         uint cellsthislevel = (AMRm * P::xcells_ini) * (AMRm*P::ycells_ini) * (AMRm * P::zcells_ini);
+         startindex = endindex;
+         endindex = endindex + cellsthislevel;
+      
+         // If cell belongs to this AMR level, find indices
+         if ((cells[i]>=startindex)&&(cells[i]<endindex)) {
+            lineX =  (cells[i]-startindex) % (AMRm*P::xcells_ini);
+            lineY = ((cells[i]-startindex) / (AMRm*P::xcells_ini)) % (AMRm*P::ycells_ini);
+            lineZ = ((cells[i]-startindex) /((AMRm*P::xcells_ini) *  (AMRm*P::ycells_ini))) % (AMRm*P::zcells_ini);
+            // Check that indices are in correct intersection at least in one plane
+            if ((P::systemWriteDistributionWriteXlineStride[index] > 0 &&
+                  P::systemWriteDistributionWriteYlineStride[index] > 0 &&
+                  lineX % P::systemWriteDistributionWriteXlineStride[index] == 0 &&
+                  lineY % P::systemWriteDistributionWriteYlineStride[index] == 0
+               ) && (P::systemWriteDistributionWriteYlineStride[index] > 0 &&
+                  P::systemWriteDistributionWriteZlineStride[index] > 0 &&
+                  lineY % P::systemWriteDistributionWriteYlineStride[index] == 0 &&
+                  lineZ % P::systemWriteDistributionWriteZlineStride[index] == 0
+               ) && (P::systemWriteDistributionWriteZlineStride[index] > 0 &&
+                  P::systemWriteDistributionWriteXlineStride[index] > 0 &&
+                  lineZ % P::systemWriteDistributionWriteZlineStride[index] == 0 &&
+                  lineX % P::systemWriteDistributionWriteXlineStride[index] == 0)) 
+            {
+               velSpaceCells.push_back(cells[i]);
+               mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 1.0;
+               break; // Avoid double entries in case the cell also matches following conditions.
             }
          }
       }
+      // Avoid double entries in case the cell also matches following conditions.
+      if (mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] > 0) continue;
 
-      uint64_t numVelSpaceCells;
-      uint64_t localNumVelSpaceCells;
-      localNumVelSpaceCells=velSpaceCells.size();
-      MPI_Allreduce(&localNumVelSpaceCells,&numVelSpaceCells,1,MPI_UINT64_T,MPI_SUM,MPI_COMM_WORLD);
-      //write out velocity space data NOTE: There is mpi communication in writeVelocityDistributionData
-      if (writeVelocityDistributionData(vlsvWriter, mpiGrid, velSpaceCells, MPI_COMM_WORLD ) == false ) {
-         cerr << "ERROR, FAILED TO WRITE VELOCITY DISTRIBUTION DATA AT " << __FILE__ << " " << __LINE__ << endl;
-         logFile << "(MAIN) writeGrid: ERROR FAILED TO WRITE VELOCITY DISTRIBUTION DATA AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
+      // Loop over spherical shells at defined distances
+      for (uint ishell = 0; ishell < P::systemWriteDistributionWriteShellRadius.size(); ishell++) {
+         shellRadiusSquare = P::systemWriteDistributionWriteShellRadius[ishell] * P::systemWriteDistributionWriteShellRadius[ishell];
+         cellX = mpiGrid[cells[i]]->parameters[CellParams::XCRD];
+         cellY = mpiGrid[cells[i]]->parameters[CellParams::YCRD];
+         cellZ = mpiGrid[cells[i]]->parameters[CellParams::ZCRD];
+         DX = mpiGrid[cells[i]]->parameters[CellParams::DX];
+         DY = mpiGrid[cells[i]]->parameters[CellParams::DY];
+         DZ = mpiGrid[cells[i]]->parameters[CellParams::DZ];
+
+         dx_rm = cellX < 0 ? DX : 0;
+         dx_rp = cellX < 0 ? 0 : DX;
+         dy_rm = cellY < 0 ? DY : 0;
+         dy_rp = cellY < 0 ? 0 : DY;
+         dz_rm = cellZ < 0 ? DZ : 0;
+         dz_rp = cellZ < 0 ? 0 : DZ;
+         rsquare_minus = (cellX + dx_rm) * (cellX + dx_rm) + (cellY + dy_rm) * (cellY + dy_rm) + (cellZ + dz_rm) * (cellZ + dz_rm);
+         rsquare_plus  = (cellX + dx_rp) * (cellX + dx_rp) + (cellY + dy_rp) * (cellY + dy_rp) + (cellZ + dz_rp) * (cellZ + dz_rp);
+         // Sometimes two face-neighboring cells can both intersect the sphere. In these cases, if the
+         // stride applied in that region is in a different direction than the neighborhood, both cells will be saved.
+         withinshell = (rsquare_minus <= shellRadiusSquare && rsquare_plus > shellRadiusSquare && P::systemWriteDistributionWriteShellStride[ishell] > 0);
+         if (withinshell) {
+            // sort centerpoints
+            std::array<Real, 3> s = {abs(cellX+0.5*DX),abs(cellY+0.5*DY),abs(cellZ+0.5*DZ)};
+            std::sort(s.begin(), s.end());
+            Real shellR = P::systemWriteDistributionWriteShellRadius[ishell];
+            int shellS = P::systemWriteDistributionWriteShellStride[ishell];
+            // After this, assumes DX==DY==DZ
+            // Dominant direction (+-x,+-y,+-z) is used for concentric rings
+            Real D = s[2];
+            // Tangential direction
+            Real T;
+            // Clock angle distance for stride steps
+            Real clock;
+            if ((P::xcells_ini==1) || (P::ycells_ini==1) || (P::zcells_ini==1)) {
+               // 1D or 2D simulation
+               T = s[1];
+               s[0] = 0;
+               clock = 0;
+            } else { // 3D simulation
+               T = sqrt(s[0]*s[0]+s[1]*s[1]);
+               clock = T*atan(s[0]/s[1]);
+            }
+            // Distance along great circle away from dominant coordinate
+            Real dist =  shellR * atan(T/D);
+            // Now find the closest point(s) which fulfills the stride requirement
+            Real dist2 = DX * shellS * round(dist/DX/shellS);
+            Real clock2 = DX * shellS * round(clock/DX/shellS);
+
+            // Find Cartesian coordinates of this stridepoint
+            Real D2 = shellR * cos(dist2/shellR);
+            Real T2 = shellR * sin(dist2/shellR);
+
+            stridecheck = false;
+            // Now check if the stridepoint is exactly in this cell
+            if ((P::xcells_ini==1) || (P::ycells_ini==1) || (P::zcells_ini==1)) {
+               // 1D or 2D
+               if ( (D2 >= D-0.5*DX) && (D2 < D+0.5*DX) && (T2 >= T-0.5*DX) && (T2 < T+0.5*DX) ) stridecheck=true;
+               // Special case for corners:
+               if ( (abs(D-T)<0.5*DX) && (dist2>dist) ) stridecheck=true;
+
+               // Only save 1 cell touching axes
+               if ( (P::ycells_ini==1) && ( ( (cellX>-1.1*DX)&&(cellX<0) ) || ( (cellZ>-1.1*DZ)&&(cellZ<0) ) )) stridecheck=false;
+               if ( (P::zcells_ini==1) && ( ( (cellX>-1.1*DX)&&(cellX<0) ) || ( (cellY>-1.1*DY)&&(cellY<0) ) )) stridecheck=false;
+
+            } else {
+               // 3D simulation, account for clock angle
+               Real T2A = T2 * cos(clock2/T2);
+               Real T2B = T2 * sin(clock2/T2);
+               // Rings at given stride from dominant direction
+               bool ring = (D2 >= D-0.5*DX) && (D2 < D+0.5*DX) && (T2 >= T-0.5*DX) && (T2 < T+0.5*DX);
+               // Special case for 45 degree ring:
+               ring = ring || ((abs(D-T)<0.5*DX) && (dist2>dist));
+               // Clock angle
+               bool clockcheck = (T2A >= s[1]-0.5*DX) && (T2A < s[1]+0.5*DX) && (T2B >= s[0]-0.5*DX) && (T2B < s[0]+0.5*DX);
+               // Special case for 45 degree clock angle
+               clockcheck = clockcheck || ( (abs(s[1]-s[0])<0.5*DX) && (clock2>clock) );
+               if ( ring && clockcheck ) stridecheck = true;
+
+               // Ensure cells touching Cartesian axes are included
+               if ( (s[1]<DX) && (s[0]<DX) && (D2 >= D-0.5*DX) && (D2 < D+0.5*DX) ) stridecheck=true;
+
+               // Special corner-corner-case
+               if ( (abs(s[2]-s[1])<DX) && (abs(s[1]-s[0])<DX) && (abs(s[2]-s[0])<DX) ) stridecheck=true;
+
+               // Only save 1 cell touching axes (assumes origin is at corner intersection of 8 cells)
+               if ( ( (cellX>-1.1*DX)&&(cellX<0) ) || ( (cellY>-1.1*DY)&&(cellY<0) ) || ( (cellZ>-1.1*DZ)&&(cellZ<0) ) ) stridecheck=false;
+            }
+
+            if (stridecheck) {
+               velSpaceCells.push_back(cells[i]);
+               mpiGrid[cells[i]]->parameters[CellParams::ISCELLSAVINGF] = 1.0;
+               break; // Avoid double entries in case the cell also matches following conditions.
+            }
+         }
       }
-      return true;
+   }
+
+   uint64_t numVelSpaceCells;
+   uint64_t localNumVelSpaceCells;
+   localNumVelSpaceCells=velSpaceCells.size();
+   MPI_Allreduce(&localNumVelSpaceCells,&numVelSpaceCells,1,MPI_UINT64_T,MPI_SUM,MPI_COMM_WORLD);
+   //write out velocity space data NOTE: There is mpi communication in writeVelocityDistributionData
+   if (writeVelocityDistributionData(vlsvWriter, mpiGrid, velSpaceCells, MPI_COMM_WORLD ) == false ) {
+      cerr << "ERROR, FAILED TO WRITE VELOCITY DISTRIBUTION DATA AT " << __FILE__ << " " << __LINE__ << endl;
+      logFile << "(MAIN) writeGrid: ERROR FAILED TO WRITE VELOCITY DISTRIBUTION DATA AT: " << __FILE__ << " " << __LINE__ << endl << writeVerbose;
+   }
+   return true;
 }
 
 /*! This function makes sure that local cells and ghost cells do not have any identical members (used for error checking)
  \param local_cells List of local cells within this process
  \param ghost_cells List of ghost cells within this process (cells on the process boundary)
  */
-bool checkForSameMembers( const vector<uint64_t> local_cells, const vector<uint64_t> ghost_cells ) {
+bool checkForSameMembers(const vector<uint64_t>& local_cells, const vector<uint64_t>& ghost_cells ) {
    //NOTE: VECTORS MUST BE SORTED
    //Make sure ghost cells and local cells don't have same members in them:
    vector<uint64_t>::const_iterator i = local_cells.begin();
@@ -1292,23 +1289,25 @@ bool checkForSameMembers( const vector<uint64_t> local_cells, const vector<uint6
 \param index       Index to call the correct member of the various parameter vectors
 \param writeGhosts If true, writes out ghost cells (cells that exist on the process boundary so other process' cells)
 */
-bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      std::string versionInfo,
-      std::string configInfo,
-               DataReducer* dataReducer,
-               const uint& index,
-               const int& stripe,
-               const bool writeGhosts) {
+bool writeGrid(
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+   const std::string& versionInfo,
+   const std::string& configInfo,
+   DataReducer* dataReducer,
+   const uint& index,
+   const int& stripe,
+   const bool writeGhosts) 
+{
    double allStart = MPI_Wtime();
    bool success = true;
    int myRank;
@@ -1485,23 +1484,25 @@ bool writeGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 \param name       File name prefix, file will be called "name.index.vlsv"
 \param fileIndex  File index, file will be called "name.index.vlsv"
 */
-bool writeRestart(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      std::string versionInfo,
-      std::string configInfo,
-                  DataReducer& dataReducer,
-                  const string& name,
-                  const uint& fileIndex,
-                  const int& stripe) {
+bool writeRestart(
+   dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+   const std::string& versionInfo,
+   const std::string& configInfo,
+   DataReducer& dataReducer,
+   const string& name,
+   const uint& fileIndex,
+   const int& stripe) 
+{
    // Writes a restart
    double allStart = MPI_Wtime();
    bool success = true;

@@ -20,6 +20,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+// Non-AMR implementation of the velocity space, still in use despite the filename
+
 #ifndef VELOCITY_MESH_OLD_H
 #define VELOCITY_MESH_OLD_H
 

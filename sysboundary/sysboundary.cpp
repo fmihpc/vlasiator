@@ -37,6 +37,7 @@
 #include "outflow.h"
 #include "setmaxwellian.h"
 #include "sysboundary.h"
+#include "../fieldsolver/gridGlue.hpp"
 
 using namespace std;
 using namespace spatial_cell;
@@ -342,6 +343,25 @@ bool SysBoundary::initSysBoundaries(Project& project, creal& t) {
    return success;
 }
 
+/*!\brief Boolean check if queried sysboundarycondition exists
+ * Note: this queries against the parsed list of names, not against the actual existing boundaries. 
+ * This is so that the project configuration (which is handled before grid and boundary initialization)
+ * can use this call.
+ *
+ * \param string name
+ * \retval success if queried boundary exists
+ * \sa addSysBoundary
+ */
+bool SysBoundary::existSysBoundary(std::string name) {
+   vector<string>::const_iterator it;
+   for (it = sysBoundaryCondList.begin(); it != sysBoundaryCondList.end(); it++) {
+      if ((*it) == name) {
+         return true;
+      }
+   }
+   return false;
+}
+
 bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) {
    // Verifies that all cells within FULL_NEIGHBORHOOD_ID of L1 boundary cells are on the same refinement
    // level (one group for inner boundary, another for outer boundary)
@@ -363,7 +383,7 @@ bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg:
             innerBoundaryRefLvl = mpiGrid.get_refinement_level(cellId);
             if (cell->sysBoundaryLayer == 1) {
                // Add all stencil neighbors of layer 1 cells
-               auto* nbrPairVector = mpiGrid.get_neighbors_of(cellId, SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
+               auto* nbrPairVector = mpiGrid.get_neighbors_of(cellId, SYSBOUNDARIES_NEIGHBORHOOD_ID);
                for (auto nbrPair : *nbrPairVector) {
                   if (nbrPair.first != INVALID_CELLID) {
                      innerBoundaryCells.insert(nbrPair.first);
@@ -375,7 +395,7 @@ bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg:
             outerBoundaryCells.insert(cellId);
             outerBoundaryRefLvl = mpiGrid.get_refinement_level(cellId);
             // Add all stencil neighbors of outer boundary cells
-            auto* nbrPairVector = mpiGrid.get_neighbors_of(cellId, SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
+            auto* nbrPairVector = mpiGrid.get_neighbors_of(cellId, SYSBOUNDARIES_NEIGHBORHOOD_ID);
             for (auto nbrPair : *nbrPairVector) {
                if (nbrPair.first != INVALID_CELLID) {
                   outerBoundaryCells.insert(nbrPair.first);
@@ -464,7 +484,9 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
    for (int x = 0; x < localSize[0]; ++x) {
       for (int y = 0; y < localSize[1]; ++y) {
          for (int z = 0; z < localSize[2]; ++z) {
-            technicalGrid.get(x, y, z)->sysBoundaryFlag = sysboundarytype::NOT_SYSBOUNDARY;
+            //technicalGrid.get(x, y, z)->sysBoundaryFlag = sysboundarytype::NOT_SYSBOUNDARY;
+            // Here for debugging since boundarytype should be fed from MPIGrid
+            technicalGrid.get(x, y, z)->sysBoundaryFlag = sysboundarytype::N_SYSBOUNDARY_CONDITIONS;
             technicalGrid.get(x, y, z)->sysBoundaryLayer = 0;
             technicalGrid.get(x, y, z)->maxFsDt = numeric_limits<Real>::max();
             // Set the fsgrid rank in the technical grid
@@ -484,20 +506,35 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
       success = success && (*it)->assignSysBoundary(mpiGrid, technicalGrid);
    }
 
-   // communicate boundary assignments (sysBoundaryFlag and
-   // sysBoundaryLayer communicated)
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
 
+   feedBoundaryIntoFsGrid(mpiGrid, cells, technicalGrid);
+
    // set distance 1 cells to boundary cells, that have neighbors which are normal cells
-   for (uint i = 0; i < cells.size(); i++) {
-      mpiGrid[cells[i]]->sysBoundaryLayer = 0; /*Initial value*/
-      if (mpiGrid[cells[i]]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
-         const auto* nbrs = mpiGrid.get_neighbors_of(cells[i], SYSBOUNDARIES_NEIGHBORHOOD_ID);
-         for (uint j = 0; j < (*nbrs).size(); j++) {
-            if ((*nbrs)[j].first != 0) {
-               if (mpiGrid[(*nbrs)[j].first]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-                  mpiGrid[cells[i]]->sysBoundaryLayer = 1;
+   for (CellID cell : cells) {
+      mpiGrid[cell]->sysBoundaryLayer = 0; /*Initial value*/
+
+      bool onFace = false;
+      std::array<double, 3> dx = mpiGrid.geometry.get_length(cell);
+      std::array<double, 3> x = mpiGrid.get_center(cell);
+      if (!isPeriodic[0] && (x[0] > Parameters::xmax - dx[0] || x[0] < Parameters::xmin + dx[0])) {
+         continue;
+      } else if (!isPeriodic[1] && (x[1] > Parameters::ymax - dx[1] || x[1] < Parameters::ymin + dx[1])) {
+         continue;
+      } else if (!isPeriodic[2] && (x[2] > Parameters::zmax - dx[2] || x[2] < Parameters::zmin + dx[2])) {
+         continue;
+      }
+
+      if (mpiGrid[cell]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+         // Cornerwise neighbor, i.e. cell must be in both neighbors_of and neighbors_to
+         for (auto i : *mpiGrid.get_neighbors_of(cell, SYSBOUNDARIES_NEIGHBORHOOD_ID)) {
+            CellID neighbor = i.first;
+            if (neighbor && mpiGrid[neighbor]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+               for (auto j : *mpiGrid.get_neighbors_to(cell, SYSBOUNDARIES_NEIGHBORHOOD_ID)) {
+                  if (j.first == neighbor) {
+                     mpiGrid[cell]->sysBoundaryLayer = 1;
+                  }
                }
             }
          }
@@ -513,17 +550,18 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
    /*Compute distances*/
    uint maxLayers = 3; // max(max(P::xcells_ini, P::ycells_ini), P::zcells_ini);
    for (uint layer = 1; layer < maxLayers; layer++) {
-      for (uint i = 0; i < cells.size(); i++) {
-         if (mpiGrid[cells[i]]->sysBoundaryLayer == 0) {
-            const auto* nbrs = mpiGrid.get_neighbors_of(cells[i], SYSBOUNDARIES_NEIGHBORHOOD_ID);
+      for (CellID cell : cells) {
+         if (mpiGrid[cell]->sysBoundaryLayer == 0) {
             // Note: this distance calculation will be non-plateau monotonic only assuming that
             // SysBoundary::checkRefinement has been applied correctly and there are no refinement
             // level changes within SYSBOUNDARIES_NEIGHBORHOOD_ID.
-            for (uint j = 0; j < (*nbrs).size(); j++) {
-               if ((*nbrs)[j].first != 0 && (*nbrs)[j].first != cells[i]) {
-                  if (mpiGrid[(*nbrs)[j].first]->sysBoundaryLayer == layer) {
-                     mpiGrid[cells[i]]->sysBoundaryLayer = layer + 1;
-                     break;
+            for (auto i : *mpiGrid.get_neighbors_of(cell, SYSBOUNDARIES_NEIGHBORHOOD_ID)) {
+               CellID neighbor = i.first;
+               if (neighbor && mpiGrid[neighbor]->sysBoundaryLayer == layer) {
+                  for (auto j : *mpiGrid.get_neighbors_to(cell, SYSBOUNDARIES_NEIGHBORHOOD_ID)) {
+                     if (j.first == neighbor) {
+                        mpiGrid[cell]->sysBoundaryLayer = layer + 1;
+                     }
                   }
                }
             }
@@ -602,9 +640,9 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
 
    technicalGrid.updateGhostCells();
 
-   const array<int, 3> fsGridDimensions = technicalGrid.getGlobalSize();
+   const array<int,3> fsGridDimensions = technicalGrid.getGlobalSize();
 
-// One pass to setup the bit field to know which components the field solver should propagate.
+   // One pass to setup the bit field to know which components the field solver should propagate.
 #pragma omp parallel for collapse(3)
    for (int x = 0; x < localSize[0]; ++x) {
       for (int y = 0; y < localSize[1]; ++y) {
@@ -671,6 +709,7 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
  * \retval success If true, the application of all system boundary states succeeded.
  */
 bool SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid,
+                                    FsGrid<fsgrids::technical, FS_STENCIL_WIDTH>&technicalGrid,
                                     FsGrid<array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>& perBGrid,
                                     Project& project) {
    bool success = true;
@@ -683,10 +722,11 @@ bool SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_G
       ) {
          continue;
       }
-      if (!(*it)->applyInitialState(mpiGrid, perBGrid, project)) {
+      if (!(*it)->applyInitialState(mpiGrid, technicalGrid, perBGrid, project)) {
          cerr << "ERROR: " << (*it)->getName() << " system boundary condition initial state not applied correctly." << endl;
          success = false;
       }
+
    }
 
    return success;

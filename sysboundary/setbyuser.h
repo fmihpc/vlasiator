@@ -57,7 +57,7 @@ namespace SBC {
     * The daughter classes have then to handle parameters and generate the template cells as
     * wished from the data returned.
     */
-   class SetByUser: public SysBoundaryCondition {
+   class SetByUser: public OuterBoundaryCondition {
    public:
       SetByUser();
       virtual ~SetByUser();
@@ -68,10 +68,9 @@ namespace SBC {
          creal& t,
          Project &project
       );
-      virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                     FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
       virtual bool applyInitialState(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
          Project &project
       );
@@ -148,11 +147,8 @@ namespace SBC {
       bool generateTemplateCells(creal& t);
       virtual void generateTemplateCell(spatial_cell::SpatialCell& templateCell, Real B[3], int inputDataIndex, creal& t) = 0;
       bool setCellsFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID);
-      bool setBFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                            FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid);
+      bool setBFromTemplate(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid);
       
-      /*! Array of bool telling which faces are going to be processed by the system boundary condition.*/
-      bool facesToProcess[6];
       /*! Array of template spatial cells replicated over the corresponding simulation volume face. Only the template for an active face is actually being touched at all by the code. */
       spatial_cell::SpatialCell templateCells[6];
       Real templateB[6][3];

@@ -37,6 +37,18 @@ using namespace std;
 
 namespace SBC {
 
+   // Hardcoded constants for calculating ion production table
+   // TODO: Make these parameters?
+   constexpr static int productionNumAccEnergies = 60;
+   constexpr static int productionNumTemperatures = 60;
+   constexpr static int productionNumParticleEnergies = 100;
+   constexpr static Real productionMinAccEnergy = 0.1; // keV
+   constexpr static Real productionMaxAccEnergy = 100.; // keV
+   constexpr static Real productionMinTemperature = 0.1; // keV
+   constexpr static Real productionMaxTemperature = 100.; // keV
+   constexpr static Real ion_electron_T_ratio = 4.; // TODO: Make this a parameter (and/or find value from kinetics)
+
+
    struct IonosphereSpeciesParameters {
       Real rho;
       Real V0[3];
@@ -161,18 +173,7 @@ namespace SBC {
          SergienkoIvanov, // Sergienko & Ivanov (1993)
       } ionizationModel;
 
-
-      // Hardcoded constants for calculating ion production table
-      // TODO: Make these parameters?
-      constexpr static int productionNumAccEnergies = 60;
-      constexpr static int productionNumTemperatures = 60;
-      constexpr static int productionNumParticleEnergies = 100;
-      constexpr static Real productionMinAccEnergy = 0.1; // keV
-      constexpr static Real productionMaxAccEnergy = 100.; // keV
-      constexpr static Real productionMinTemperature = 0.1; // keV
-      constexpr static Real productionMaxTemperature = 100.; // keV
-      constexpr static Real ion_electron_T_ratio = 4.; // TODO: Make this a parameter (and/or find value from kinetics)
-      // Ionoisation production table
+      // Ionisation production table
       std::array< std::array< std::array< Real, productionNumTemperatures >, productionNumAccEnergies >, numAtmosphereLevels > productionTable;
       Real lookupProductionValue(int heightindex, Real energy_keV, Real temperature_keV);
 
@@ -182,13 +183,19 @@ namespace SBC {
       bool isCouplingInwards = false;     // True for any rank that actually couples fsgrid information into the ionosphere
       bool isCouplingOutwards = true;     // True for any rank that actually couples ionosphere potential information out to the vlasov grid
       FieldFunction dipoleField;          // Simulation background field model to trace connections with
+      std::array<Real, 3> BGB; /*!< Uniform background field */
+
       std::map< std::array<Real, 3>, std::array<
          std::pair<int, Real>, 3> > vlasovGridCoupling; // Grid coupling information, caching how vlasovGrid coordinate couple to ionosphere data
 
       void setDipoleField(const FieldFunction& dipole) {
          dipoleField = dipole;
       };
+      void setConstantBackgroundField(const std::array<Real, 3> B) {
+         BGB = B;
+      }
       void readAtmosphericModelFile(const char* filename);
+      void storeNodeB();
       void offset_FAC();                  // Offset field aligned currents to get overall zero current
       void normalizeRadius(Node& n, Real R); // Scale all coordinates onto sphere with radius R
       void updateConnectivity();          // Re-link elements and nodes
@@ -381,6 +388,7 @@ namespace SBC {
                                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
       virtual bool applyInitialState(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
          Project &project
       );

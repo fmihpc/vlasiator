@@ -25,6 +25,7 @@
 
 #include "../../definitions.h"
 #include "../projectTriAxisSearch.h"
+#include "../../sysboundary/sysboundary.h"
 
 namespace projects {
 
@@ -70,6 +71,8 @@ namespace projects {
                            const uint popID
                           ) const;
       bool refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
+      bool adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
+      bool forceRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
       virtual void calcCellParameters(spatial_cell::SpatialCell* cell,creal& t);
       virtual std::vector<std::array<Real, 3> > getV0(
                                                       creal x,
@@ -78,7 +81,9 @@ namespace projects {
                                                       const uint popID
                                                      ) const;
       
-      Real constBgB[3];
+      bool canRefine(spatial_cell::SpatialCell* cell) const;
+      
+      std::array<Real, 3> constBgB;
       bool noDipoleInSW;
       Real ionosphereRadius;
       uint ionosphereGeometry;
