@@ -70,6 +70,7 @@ namespace SBC {
                                         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)=0;
          virtual bool applyInitialState(
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+            FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
             FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
             Project &project
          )=0;
@@ -165,15 +166,21 @@ namespace SBC {
             dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const std::vector<CellID> & local_cells_on_boundary
          );
-      bool doApplyUponRestart() const;
-      void setPeriodicity(
-         bool isFacePeriodic[3]
-      );
+         bool doApplyUponRestart() const;
+         void setPeriodicity(
+            bool isFacePeriodic[3]
+         );
       protected:
          void determineFace(
             bool* isThisCellOnAFace,
             creal x, creal y, creal z,
             creal dx, creal dy, creal dz,
+            const bool excludeSlicesAndPeriodicDimensions = false
+         );
+         void determineFace(
+            std::array<bool, 6> &isThisCellOnAFace,
+            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+            CellID id,
             const bool excludeSlicesAndPeriodicDimensions = false
          );
          void copyCellData(
@@ -182,14 +189,6 @@ namespace SBC {
             const bool copyMomentsOnly,
             const uint popID,
             const bool calculate_V_moments
-         );
-         void averageCellData(
-            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-            std::vector<CellID> cellList,
-            SpatialCell *to,
-            const uint popID,
-            const bool calculate_V_moments,
-            creal fluffiness = 0
          );
          std::array<SpatialCell*,27> & getFlowtoCells(
                const CellID& cellID
@@ -301,8 +300,23 @@ namespace SBC {
          /*! bool telling whether to call again applyInitialState upon restarting the simulation. */
          bool applyUponRestart;
    };
-   
 
+   class OuterBoundaryCondition: public SysBoundaryCondition {
+      public:
+         virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
+      protected:
+         /*! Array of bool telling which faces are going to be processed by the system boundary condition.*/
+         bool facesToProcess[6];
+   };
+   
+   // Moved outside the class since it's a helper function that doesn't require member access
+   void averageCellData (
+      const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      std::vector<CellID> cellList,
+      SpatialCell *to,
+      const uint popID,
+      creal fluffiness = 0
+   );
 
 } // namespace SBC
 

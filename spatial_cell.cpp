@@ -74,19 +74,6 @@ namespace spatial_cell {
       }
    }
 
-   SpatialCell::SpatialCell(const SpatialCell& other):
-     sysBoundaryFlag(other.sysBoundaryFlag),
-     sysBoundaryLayer(other.sysBoundaryLayer),
-     velocity_block_with_content_list(other.velocity_block_with_content_list),
-     velocity_block_with_no_content_list(other.velocity_block_with_no_content_list),
-     initialized(other.initialized),
-     mpiTransferEnabled(other.mpiTransferEnabled),
-     derivativesBVOL(other.derivativesBVOL),
-     parameters(other.parameters),
-     populations(other.populations),
-     null_block_data(std::array<Realf,WID3> {}) {
-   }
-
    /** Adds "important" and removes "unimportant" velocity blocks
     * to/from this cell.
     * 
@@ -669,10 +656,10 @@ namespace spatial_cell {
             block_lengths.push_back(sizeof(Real) * CellParams::N_SPATIAL_CELL_PARAMS);
          }
          
-         // send  spatial cell dimensions
+         // send spatial cell dimensions and coordinates
          if ((SpatialCell::mpi_transfer_type & Transfer::CELL_DIMENSIONS)!=0){
-            displacements.push_back((uint8_t*) &(this->parameters[CellParams::DX]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Real) * 3);
+            displacements.push_back((uint8_t*) &(this->parameters[CellParams::XCRD]) - (uint8_t*) this);
+            block_lengths.push_back(sizeof(Real) * 6);
          }
                   
          // send  BGBXVOL BGBYVOL BGBZVOL PERBXVOL PERBYVOL PERBZVOL

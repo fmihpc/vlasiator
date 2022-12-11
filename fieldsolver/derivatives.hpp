@@ -21,6 +21,7 @@
 #define DERIVATIVES_HPP
 
 #include <vector>
+#include <array>
 
 #include "../definitions.h"
 #include "../spatial_cell.hpp"
@@ -47,5 +48,6 @@ void calculateBVOLDerivativesSimple(
    SysBoundary& sysBoundaries
 );
 
+void calculateScaledDeltasSimple(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 
 #endif

@@ -63,7 +63,7 @@ namespace SBC {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          
          Readparameters::add(pop + "_conductingsphere.taperRadius", "Width of the zone with a density tapering from the conducting sphere value to the background (m)", 0.0);
-         Readparameters::add(pop + "_conductingsphere.rho", "Number density of the conductingsphere (m^-3)", 1.0e6);
+         Readparameters::add(pop + "_conductingsphere.rho", "Number density of the conductingsphere (m^-3)", 0.0);
          Readparameters::add(pop + "_conductingsphere.T", "Temperature of the conductingsphere (K)", 0.0);
          Readparameters::add(pop + "_conductingsphere.VX0", "Bulk velocity of conductospheric distribution function in X direction (m/s)", 0.0);
          Readparameters::add(pop + "_conductingsphere.VY0", "Bulk velocity of conductospheric distribution function in X direction (m/s)", 0.0);
@@ -100,7 +100,16 @@ namespace SBC {
         Readparameters::get(pop + "_Magnetosphere.nSpaceSamples", sP.nSpaceSamples);
         Readparameters::get(pop + "_Magnetosphere.nVelocitySamples", sP.nVelocitySamples);
 
-        speciesParams.push_back(sP);
+        // Failsafe, if density or temperature is zero, read from Magnetosphere
+        // (compare the corresponding verbose handling in projects/Magnetosphere/Magnetosphere.cpp)
+        if(sP.T == 0) {
+            Readparameters::get(pop + "_Magnetosphere.T", sP.T);
+         }
+         if(sP.rho == 0) {
+            Readparameters::get(pop + "_Magnetosphere.rho", sP.rho);
+         }
+
+         speciesParams.push_back(sP);
       }
    }
    
@@ -168,32 +177,12 @@ namespace SBC {
          }
       }
 
-      // Assign boundary flags to local fsgrid cells
-      const std::array<int, 3> gridDims(technicalGrid.getLocalSize());  
-      for (int k=0; k<gridDims[2]; k++) {
-         for (int j=0; j<gridDims[1]; j++) {
-            for (int i=0; i<gridDims[0]; i++) {
-               const auto& coords = technicalGrid.getPhysicalCoords(i,j,k);
-               
-               // Shift to the center of the fsgrid cell
-               auto cellCenterCoords = coords;
-               cellCenterCoords[0] += 0.5 * technicalGrid.DX;
-               cellCenterCoords[1] += 0.5 * technicalGrid.DY;
-               cellCenterCoords[2] += 0.5 * technicalGrid.DZ;
-
-               if(getR(cellCenterCoords[0],cellCenterCoords[1],cellCenterCoords[2],this->geometry,this->center) < this->radius) {
-                  technicalGrid.get(i,j,k)->sysBoundaryFlag = this->getIndex();
-               }
-
-            }
-         }
-      }
-
       return true;
    }
 
    bool Conductingsphere::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
       Project &project
    ) {
@@ -907,10 +896,7 @@ namespace SBC {
       const vmesh::LocalID* vblocks_ini = cell.get_velocity_grid_length(popID,refLevel);
 
       while (search) {
-         #warning TODO: add SpatialCell::getVelocityBlockMinValue() in place of sparseMinValue ? (if applicable)
-         if (0.1 * getObjectWrapper().particleSpecies[popID].sparseMinValue > 
-            shiftedMaxwellianDistribution(popID,counter*cell.get_velocity_grid_block_size(popID,refLevel)[0], 0.0, 0.0)
-            || counter > vblocks_ini[0]) {
+         if (0.1 * cell.getVelocityBlockMinValue(popID) > shiftedMaxwellianDistribution(popID,counter*cell.get_velocity_grid_block_size(popID,refLevel)[0], 0.0, 0.0) || counter > vblocks_ini[0]) {
             search = false;
          }
          ++counter;
