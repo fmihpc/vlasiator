@@ -30,7 +30,7 @@ namespace timer {
 
  */
 
-constexpr bool enable_benchmark = 1;
+constexpr bool enable_benchmark = 0;
 namespace timer_internal {
     
     using TimePoint = std::chrono::time_point<std::chrono::steady_clock>;
