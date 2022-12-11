@@ -128,7 +128,7 @@ auto main() -> int {
         return m;
     }();
 
-    const auto [absolute_error_2, relative_error_2] = ionogpu::testing::calculate_absolute_and_relative_error_of_range(Mx_correct_2, Mx_correct);
+    [[maybe_unused]] const auto [absolute_error_2, relative_error_2] = ionogpu::testing::calculate_absolute_and_relative_error_of_range(Mx_correct_2, Mx_correct);
     assert(absolute_error_2 < 0.001);
     assert(relative_error_2 < 0.001);
  
@@ -137,7 +137,7 @@ auto main() -> int {
     
     const auto Mx = ionogpu::sparseMatrixVectorProduct<test_type>(n, max_number_of_nonzero_elements_on_each_row, sparse_M, indecies, x);
 
-    const auto [absolute_error, relative_error] = ionogpu::testing::calculate_absolute_and_relative_error_of_range(Mx, Mx_correct);
+    [[maybe_unused]] const auto [absolute_error, relative_error] = ionogpu::testing::calculate_absolute_and_relative_error_of_range(Mx, Mx_correct);
     
     assert(absolute_error < 0.0001);
     assert(relative_error < 0.0001);

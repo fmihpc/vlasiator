@@ -27,7 +27,7 @@ auto main() -> int {
 
     const auto scalar_times_a_plus_b = ionogpu::multiplyVectorWithScalarAndAddItToAnotherVector(scalar, a, b);
 
-    const auto [absolute_error, relative_error] = 
+    [[maybe_unused]] const auto [absolute_error, relative_error] = 
         ionogpu::testing::calculate_absolute_and_relative_error_of_range(scalar_times_a_plus_b, scalar_times_a_plus_b_correct);
 
     assert(absolute_error < 0.00001);

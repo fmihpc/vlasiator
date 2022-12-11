@@ -52,9 +52,9 @@ auto main() -> int {
     const auto [indecies, sparse_M] = 
         ionogpu::testing::create_sparse_matrix_from_dense_matrix(M, n, max_num_of_nonzero_elements_on_each_row);
     
-    const auto [indecies_absolute_error, indecies_relative_error] = 
+    [[maybe_unused]] const auto [indecies_absolute_error, indecies_relative_error] = 
         ionogpu::testing::calculate_absolute_and_relative_error_of_range(indecies, indecies_correct);
-    const auto [sparse_M_absolute_error, sparse_M_relative_error] = 
+    [[maybe_unused]] const auto [sparse_M_absolute_error, sparse_M_relative_error] = 
         ionogpu::testing::calculate_absolute_and_relative_error_of_range(sparse_M, sparse_M_correct);
     
     assert(indecies_absolute_error == 0);

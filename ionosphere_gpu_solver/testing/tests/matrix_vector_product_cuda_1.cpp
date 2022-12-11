@@ -12,7 +12,7 @@ auto main() -> int {
     const auto Mv = ionogpu::matrixVectorProduct<double>(M, v);
     const auto Mv_correct = std::vector<double>{14.0, 32.0, 50.0}; 
 
-    const auto [absolute_error, relative_error] = ionogpu::testing::calculate_absolute_and_relative_error_of_range(Mv, Mv_correct);
+    [[maybe_unused]] const auto [absolute_error, relative_error] = ionogpu::testing::calculate_absolute_and_relative_error_of_range(Mv, Mv_correct);
     
     assert(absolute_error < 0.00001);
     assert(relative_error < 0.0001);

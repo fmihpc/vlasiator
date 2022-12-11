@@ -24,7 +24,7 @@ auto main() -> int {
     const auto norm = ionogpu::vectorNormSquared<test_type>(v);
     
     // This is jank but works 
-    const auto [absolute_error, relative_error] = ionogpu::testing::calculate_absolute_and_relative_error_of_range(
+    [[maybe_unused]] const auto [absolute_error, relative_error] = ionogpu::testing::calculate_absolute_and_relative_error_of_range(
         std::array<test_type, 1>{ norm }, std::array<test_type, 1> { norm_correct }
     );
     
