@@ -166,9 +166,6 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 
       // New bulk velocity is the forced one
       bulk_velocity = forced_bulkv;
-
-      // Reset forcing number and values to zero
-      spatial_cell->parameters[CellParams::FORCING_CELL_NUM] = 0;
    }
 
    return total_transform;
