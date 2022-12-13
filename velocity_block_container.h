@@ -129,8 +129,6 @@ namespace vmesh {
       numberOfBlocks = 0;
 #ifdef USE_CUDA
       dev_allocatedSize = 0;
-      dev_block_data = new Realf();
-      dev_parameters = new Real();
       pinnedBlocks = false;
       pinnedParameters = false;
       dev_needsUpdatingBlocks = true;
@@ -142,8 +140,6 @@ namespace vmesh {
    template<typename LID> inline
    VelocityBlockContainer<LID>::~VelocityBlockContainer() {
       dev_Deallocate();
-      delete[] dev_block_data;
-      delete[] dev_parameters;
       dev_unpinBlocks();
       dev_unpinParameters();
 
