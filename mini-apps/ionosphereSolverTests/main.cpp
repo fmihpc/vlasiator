@@ -78,6 +78,7 @@ int main(int argc, char** argv) {
    std::vector<std::pair<double, double>> refineExtents;
    Ionosphere::solverMaxIterations = 1000;
    bool doPrecondition = true;
+   bool writeDependencyMatrix = false;
    if(argc ==1) {
       cerr << "Running with default options. Run main --help to see available settings." << endl;
    }
@@ -116,6 +117,9 @@ int main(int argc, char** argv) {
          Ionosphere::solverMaxIterations = atoi(argv[++i]);
          continue;
       }
+      if(!strcmp(argv[i], "-writeDependencyMatrix")) {
+         writeDependencyMatrix = true;
+      }
       cerr << "Unknown command line option \"" << argv[i] << "\"" << endl;
       cerr << endl;
       cerr << "main [-N num] [-r <lat0> <lat1>] [-sigma (identity|random|35|53|file)] [-fac (constant|dipole|quadrupole|octopole|hexadecapole||file)] [-facfile <filename>] [-gaugeFix equator|pole|integral|none] [-np]" << endl;
@@ -142,6 +146,7 @@ int main(int argc, char** argv) {
       cerr << " -gaugeFix: Solver gauge fixing method (default: pole)" << endl;
       cerr << " -np:       DON'T use the matrix preconditioner (default: do)" << endl;
       cerr << " -maxIter:  Maximum number of solver iterations" << endl;
+      cerr << " -writeDependencyMatrix" << endl;
       
       return 1;
    }
@@ -310,28 +315,29 @@ int main(int argc, char** argv) {
 
    ionosphereGrid.initSolver(true);
 
-   // Write solver dependency matrix to stdout.
-   ofstream matrixOut("solverMatrix.txt");
-   for(uint n=0; n<nodes.size(); n++) {
-      for(uint m=0; m<nodes.size(); m++) {
+   if (writeDependencyMatrix) {
+      // Write solver dependency matrix to stdout.
+      ofstream matrixOut("solverMatrix.txt");
+      for(uint n=0; n<nodes.size(); n++) {
+         for(uint m=0; m<nodes.size(); m++) {
 
-         Real val=0;
-         for(unsigned int d=0; d<nodes[n].numDepNodes; d++) {
-            if(nodes[n].dependingNodes[d] == m) {
-               if(doPrecondition) {
-                  val=nodes[n].dependingCoeffs[d] / nodes[n].dependingCoeffs[0];
-               } else {
-                  val=nodes[n].dependingCoeffs[d];
+            Real val=0;
+            for(unsigned int d=0; d<nodes[n].numDepNodes; d++) {
+               if(nodes[n].dependingNodes[d] == m) {
+                  if(doPrecondition) {
+                     val=nodes[n].dependingCoeffs[d] / nodes[n].dependingCoeffs[0];
+                  } else {
+                     val=nodes[n].dependingCoeffs[d];
+                  }
                }
             }
+
+            matrixOut << val << "\t";
          }
-
-         matrixOut << val << "\t";
+         matrixOut << endl;
       }
-      matrixOut << endl;
+      cout << "--- SOLVER DEPENDENCY MATRIX WRITTEN TO solverMatrix.txt ---" << endl;
    }
-   cout << "--- SOLVER DEPENDENCY MATRIX WRITTEN TO solverMatrix.txt ---" << endl;
-
    // Try to solve the system.
    ionosphereGrid.isCouplingInwards=true;
    Ionosphere::solverPreconditioning = doPrecondition;
