@@ -6,15 +6,15 @@
 
 using test_type = double;
 
-constexpr size_t n = 20000;
+constexpr size_t n = 10000;
 static const auto M = [] {
     auto temp = std::vector<test_type>(n * n, 0);
     for (size_t i = 0; i < n; ++i) {
-        temp[i * n + i] = 1;
-        temp[(i * n - 7 + i) % n * n] = 2;
-        temp[(i * n - 9 + i) % n * n] = 3;
-        temp[(i * n + 7 + i) % n * n] = 2;
-        temp[(i * n + 9 + i) % n * n] = 3;
+        temp[i * n + i] = 30;
+        temp[(i * n - 7 + i) % n * n] = 2 * 20;
+        temp[(i * n - 9 + i) % n * n] = 3 * 20;
+        temp[(i * n + 7 + i) % n * n] = 2 * 20;
+        temp[(i * n + 9 + i) % n * n] = 3 * 20;
     }
     return temp;
 }(); 
@@ -48,7 +48,7 @@ auto main() -> int {
     }();
 
     const auto config = ionogpu::ConfigurationForIonosphereGPUSolver<test_type> {
-            .max_iterations = 10000,
+            .max_iterations = 1000,
             .max_failure_count = 20,
             .max_error_growth_factor = 100,
             .relative_L2_convergence_threshold = 0.000001,
