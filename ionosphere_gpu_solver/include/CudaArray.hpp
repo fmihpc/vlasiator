@@ -438,7 +438,7 @@ namespace dotProductConfig {
 // when this function it is assumed that v_device_p and w_device_p have zero padding after n elements until padded_size
 // [partial_sums_device_p, partial_sums_device_p + blocks] must be allocated
 template<typename T>
-T dotProduct(T const * const v_device_p, T const * const w_device_p, const size_t n, T * partial_sums_device_p) {
+T dotProduct(T const * const v_device_p, T const * const w_device_p, const size_t n, T * const partial_sums_device_p) {
     const auto blocks = (n / dotProductConfig::elements_per_block) + 1;
     
     reduce6<T, dotProductConfig::threads_per_block>
@@ -537,7 +537,7 @@ __global__ void Asolve_diagonal(size_t n, size_t m, T const * const sparse_A, T 
 
 
 template<typename T>
-__global__ void copy_data(T const * const source_device_p, T * const destination_device_p) {
+__global__ void copyData(T const * const source_device_p, T * const destination_device_p) {
     const auto i = blockDim.x * blockIdx.x + threadIdx.x;
     destination_device_p[i] = source_device_p[i];
 }
@@ -614,14 +614,14 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGCUDA(
         );
 
         // This is from original solver implementation where we store the best solution
-        copy_data<<<height / warp_size, warp_size>>>(x_device_p, best_solution_device_p);
+        copyData<<<height / warp_size, warp_size>>>(x_device_p, best_solution_device_p);
 
         // r[j]=b[j]-r[j];
         vectorSubtraction<T><<<height / warp_size, warp_size>>>(b_device_p, r_device_p, r_device_p);
 
         if (!config.use_minimum_residual_variant) {
             // rr[j]=r[j];
-            copy_data<<<height / warp_size, warp_size>>>(r_device_p, rr_device_p);
+            copyData<<<height / warp_size, warp_size>>>(r_device_p, rr_device_p);
         } else {
             // atimes(n,r,rr,0);
             sparseMatrixVectorProduct<T><<<height / warp_size, warp_size>>>(
@@ -638,7 +638,7 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGCUDA(
         (T const * const local_b_device_p, T * const local_x_device_p, [[maybe_unused]] const bool transposed = false) -> void {
             switch (config.precondition) {
                 case Precondition::none: {
-                    copy_data<<<height / warp_size, warp_size>>>(local_b_device_p, local_x_device_p);
+                    copyData<<<height / warp_size, warp_size>>>(local_b_device_p, local_x_device_p);
                 } break;
                 case Precondition::diagonal: {
                     Asolve_diagonal<T><<<height / warp_size, warp_size>>>(n, m, sparse_A_device_p, local_b_device_p, local_x_device_p);
@@ -669,9 +669,9 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGCUDA(
 
             if (iteration == 1) {
                 // p[j]=z[j];
-                copy_data<<<height / warp_size, warp_size>>>(z_device_p, p_device_p);
+                copyData<<<height / warp_size, warp_size>>>(z_device_p, p_device_p);
                 // pp[j]=zz[j];
-                copy_data<<<height / warp_size, warp_size>>>(zz_device_p, pp_device_p);
+                copyData<<<height / warp_size, warp_size>>>(zz_device_p, pp_device_p);
             } else {
                 const auto bk = bknum / bkden;
                 // p[j]=bk*p[j]+z[j];
@@ -718,11 +718,11 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGCUDA(
             const auto error = std::sqrt(vectorNormSquared<T>(r_device_p, n, partial_sums_for_dot_product_device_p)) / bnrm;
             
             if (error < min_error) {
-                copy_data<<<height / warp_size, warp_size>>>(x_device_p, best_solution_device_p);
+                copyData<<<height / warp_size, warp_size>>>(x_device_p, best_solution_device_p);
                 min_error = error;
                 failcount = 0;
             } else {
-                copy_data<<<height / warp_size, warp_size>>>(best_solution_device_p, x_device_p);
+                copyData<<<height / warp_size, warp_size>>>(best_solution_device_p, x_device_p);
                 ++failcount;
             }
 
@@ -759,9 +759,10 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGSTABCUDA(
 
     timer::time("sparseBiCGSTABCUDA::init");
     const auto height = ((n / warp_size) + 1) * warp_size;
+    assert(height % warp_size == 0);
 
     const auto indecies_on_device = CudaArray<size_t, 1> {
-        {indecies, height * m}
+        {indecies, height * m, true}
     };
     const auto [indecies_device_p] = indecies_on_device.get_pointers_to_data();
 
@@ -774,7 +775,7 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGSTABCUDA(
     auto data_on_device = CudaArray<T, 15> {
         {sparse_A, height * m, true},
         {b, padded_size_for_dot_product, true},
-        {/* x */{}, padded_size_for_dot_product, true}, // Initial guess of x is zero
+        {/* x */{}, padded_size_for_dot_product},
         {/* r */{}, padded_size_for_dot_product, true},
         {/* r_hat */{}, padded_size_for_dot_product, true},
         {/* p */{}, height, true},
@@ -782,10 +783,10 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGSTABCUDA(
         {/* y */{}, height},
         {/* h */{}, height},
         {/* s */{}, padded_size_for_dot_product, true},
-        {/* z */{}, height},
+        {/* z */{}, padded_size_for_dot_product, true},
         {/* t */{}, padded_size_for_dot_product, true},
         {/* temp */{}, padded_size_for_dot_product},
-        {/* best_solution */{}, n, true},
+        {/* best_solution */std::vector<T>(n, 10.0), height, true},
         {/* partial sums for dot product */{}, blocks_for_dot_product}
     };
 
@@ -820,7 +821,7 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGSTABCUDA(
         // *******************************************************************************
         // 1*
         timer::time("sparseBiCGSTABCUDA::1*");
-        copy_data<<<height / warp_size, warp_size>>>(best_solution_device_p, x_device_p);
+        copyData<T><<<height / warp_size, warp_size>>>(best_solution_device_p, x_device_p);
         sparseMatrixVectorProduct<T><<<height / warp_size, warp_size>>>(
             m, sparse_A_device_p, indecies_device_p, x_device_p, temp_device_p
         );
@@ -830,7 +831,7 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGSTABCUDA(
 
 
         // 2*
-        copy_data<<<height / warp_size, warp_size>>>(r_device_p, r_hat_device_p);
+        copyData<<<height / warp_size, warp_size>>>(r_device_p, r_hat_device_p);
 
         timer::time("sparseBiCGSTABCUDA::2*", "sparseBiCGSTABCUDA::3*");
         // 3*
@@ -862,7 +863,7 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGSTABCUDA(
             T rho_i = dotProduct(r_hat_device_p, r_device_p, n, partial_sums_for_dot_product_device_p);
             timer::time("sparseBiCGSTABCUDA::1**", "sparseBiCGSTABCUDA::2**");
             // 2**
-            T beta = (rho_i / rho_im1) * (alpha / omega);
+            T beta = (rho_i * rho_im1) / (alpha * omega);
 
             // Above is last use of rho_im1 so we can store current rho for next iteration
             rho_im1 = rho_i;
@@ -875,46 +876,30 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGSTABCUDA(
 
             timer::time("sparseBiCGSTABCUDA::3**", "sparseBiCGSTABCUDA::4**");
             // 4**
-            auto Asolve = [&, sparse_A_device_p = sparse_A_device_p, m]
-            (T const * const local_b_device_p, T * const local_x_device_p) -> void {
-                switch (config.precondition) {
-                    case Precondition::none: {
-                        copy_data<<<height / warp_size, warp_size>>>(local_b_device_p, local_x_device_p);
-                    } break;
-                    case Precondition::diagonal: {
-                        Asolve_diagonal<T><<<height / warp_size, warp_size>>>(n, m, sparse_A_device_p, local_b_device_p, local_x_device_p);
-                    } break;
-                }
-            };
-            Asolve(p_device_p, y_device_p);
+
+            sparseMatrixVectorProduct<T><<<height / warp_size, warp_size>>>(
+                m, sparse_A_device_p, indecies_device_p, p_device_p, v_device_p
+            );
 
             timer::time("sparseBiCGSTABCUDA::4**", "sparseBiCGSTABCUDA::5**");
             // 5**
-            sparseMatrixVectorProduct<T><<<height / warp_size, warp_size>>>(
-                m, sparse_A_device_p, indecies_device_p, y_device_p, v_device_p
-            );
+            alpha = rho_i / dotProduct(r_hat_device_p, v_device_p, n, partial_sums_for_dot_product_device_p);
 
             timer::time("sparseBiCGSTABCUDA::5**", "sparseBiCGSTABCUDA::6**");
             // 6**
-            alpha = rho_i / dotProduct(r_hat_device_p, v_device_p, n, partial_sums_for_dot_product_device_p);
+            multiplyVectorWithScalarAndAddItToAnotherVector<T><<<height / warp_size, warp_size>>>(alpha, p_device_p, x_device_p, h_device_p);
     
             timer::time("sparseBiCGSTABCUDA::6**", "sparseBiCGSTABCUDA::7**");
             // 7**
-            multiplyVectorWithScalarAndAddItToAnotherVector<T><<<height / warp_size, warp_size>>>(alpha, y_device_p, x_device_p, h_device_p);
-
-            timer::time("sparseBiCGSTABCUDA::7**", "sparseBiCGSTABCUDA::8**");
-            // 8** 
             sparseMatrixVectorProduct<T><<<height / warp_size, warp_size>>>(
                 m, sparse_A_device_p, indecies_device_p, h_device_p, temp_device_p  
             );
             // residue in temp
             vectorSubtraction<T><<<height / warp_size, warp_size>>>(b_device_p, temp_device_p, temp_device_p);
-
-            //zeroOutData<<<(size_of_padding_for_dot_product / warp_size) + 1, warp_size>>>(temp_device_p + n, size_of_padding_for_dot_product);
             const auto error_of_h = std::sqrt(vectorNormSquared<T>(temp_device_p, n, partial_sums_for_dot_product_device_p)) / b_norm;
 
             if (error_of_h < min_error) {
-                copy_data<<<height / warp_size, warp_size>>>(h_device_p, best_solution_device_p);
+                copyData<<<height / warp_size, warp_size>>>(h_device_p, best_solution_device_p);
                 min_error = error_of_h;
                 failcount = 0;
             }
@@ -922,31 +907,28 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGSTABCUDA(
                 break;
             }
 
+            timer::time("sparseBiCGSTABCUDA::7**", "sparseBiCGSTABCUDA::8**");
+            // 8** 
+
+            multiplyVectorWithScalarAndAddItToAnotherVector<T><<<height / warp_size, warp_size>>>(-alpha, v_device_p, r_device_p, s_device_p);
+
             timer::time("sparseBiCGSTABCUDA::8**", "sparseBiCGSTABCUDA::9**");
             // 9**
-            multiplyVectorWithScalarAndAddItToAnotherVector<T><<<height / warp_size, warp_size>>>(-alpha, v_device_p, r_device_p, s_device_p);
+            sparseMatrixVectorProduct<T><<<height / warp_size, warp_size>>>(
+                m, sparse_A_device_p, indecies_device_p, s_device_p, t_device_p
+            );
 
             timer::time("sparseBiCGSTABCUDA::9**", "sparseBiCGSTABCUDA::10**");
             // 10**
-            Asolve(s_device_p, z_device_p);
+            omega = dotProduct(t_device_p, s_device_p, n, partial_sums_for_dot_product_device_p) / vectorNormSquared(t_device_p, n, partial_sums_for_dot_product_device_p);
 
             timer::time("sparseBiCGSTABCUDA::10**", "sparseBiCGSTABCUDA::11**");
             // 11**
-            sparseMatrixVectorProduct<T><<<height / warp_size, warp_size>>>(
-                m, sparse_A_device_p, indecies_device_p, z_device_p, t_device_p
-            );
 
+            multiplyVectorWithScalarAndAddItToAnotherVector<T><<<height / warp_size, warp_size>>>(omega, s_device_p, h_device_p, x_device_p);
 
             timer::time("sparseBiCGSTABCUDA::11**", "sparseBiCGSTABCUDA::12**");
-            // 12** because we only support K_2 = I and K_1 = diag(A) or I
-            // we can assume that z = K_1^(-1)s and we will  store K_1^(-1)t to temp
-            Asolve(t_device_p, temp_device_p);
-            //zeroOutData<<<(size_of_padding_for_dot_product / warp_size) + 1, warp_size>>>(temp_device_p + n, size_of_padding_for_dot_product);
-            omega = dotProduct(z_device_p, temp_device_p, n, partial_sums_for_dot_product_device_p) / vectorNormSquared(temp_device_p, n, partial_sums_for_dot_product_device_p);
-
-            timer::time("sparseBiCGSTABCUDA::12**", "sparseBiCGSTABCUDA::13**");
-            // 13**
-            multiplyVectorWithScalarAndAddItToAnotherVector<T><<<height / warp_size, warp_size>>>(omega, z_device_p, h_device_p, x_device_p);
+            // 12** 
             /* 
             // We only support pole gauge at the moment:
             if (config.gauge == Gauge::pole) {
@@ -954,22 +936,19 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGSTABCUDA(
             } */
     
 
-            timer::time("sparseBiCGSTABCUDA::13**", "sparseBiCGSTABCUDA::14**");
-            // 14**
             sparseMatrixVectorProduct<T><<<height / warp_size, warp_size>>>(
                 m, sparse_A_device_p, indecies_device_p, x_device_p, temp_device_p
             );
             vectorSubtraction<T><<<height / warp_size, warp_size>>>(b_device_p, temp_device_p, temp_device_p);
 
-            //zeroOutData<<<(size_of_padding_for_dot_product / warp_size) + 1, warp_size>>>(temp_device_p + n, size_of_padding_for_dot_product);
             const auto error = std::sqrt(vectorNormSquared<T>(temp_device_p, n, partial_sums_for_dot_product_device_p)) / b_norm;
             
             if (error < min_error) {
-                copy_data<<<height / warp_size, warp_size>>>(x_device_p, best_solution_device_p);
+                copyData<<<height / warp_size, warp_size>>>(x_device_p, best_solution_device_p);
                 min_error = error;
                 failcount = 0;
             } else {
-                copy_data<<<height / warp_size, warp_size>>>(best_solution_device_p, x_device_p);
+                copyData<<<height / warp_size, warp_size>>>(best_solution_device_p, x_device_p);
                 ++failcount;
             }
 
@@ -980,10 +959,11 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGSTABCUDA(
                 ++number_of_restarts;
                 break;
             }
-            timer::time("sparseBiCGSTABCUDA::14**", "sparseBiCGSTABCUDA::15**");
-            // 15**
+            timer::time("sparseBiCGSTABCUDA::12**", "sparseBiCGSTABCUDA::13**");
+            // 13**
             multiplyVectorWithScalarAndAddItToAnotherVector<T><<<height / warp_size, warp_size>>>(-omega, t_device_p, s_device_p, r_device_p);
-            timer::time("sparseBiCGSTABCUDA::15**");
+
+            timer::time("sparseBiCGSTABCUDA::13**");
 
         }
         timer::time("sparseBiCGSTABCUDA::5*");
