@@ -46,7 +46,7 @@
 #include "cpu_trans_map_amr.hpp"
 
 #ifdef USE_CUDA
-#include "cuda_acc_map_kernel.cuh"
+#include "cuda_acc_map_kernel.h"
 #include "cuda_acc_semilag.hpp"
 #endif
 
@@ -347,11 +347,7 @@ void calculateSpatialTranslation(
 
    // Mapping complete, update moments and maximum dt limits //
 momentCalculation:
-#ifdef USE_CUDA1111111111111111111111111
-   cuda_calculateMoments_R(mpiGrid, localCells, true);
-#else
    calculateMoments_R(mpiGrid, localCells, true);
-#endif
 
    phiprof::stop("semilag-trans");
 }
@@ -380,11 +376,7 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
    // Calculate velocity moments, these are needed to
    // calculate the transforms used in the accelerations.
    // Calculated moments are stored in the "_V" variables.
-#ifdef USE_CUDA1111111111111111111111111111111
-   cuda_calculateMoments_V(mpiGrid, propagatedCells, false);
-#else
    calculateMoments_V(mpiGrid, propagatedCells, false);
-#endif
 
    //generate pseudo-random order which is always the same irrespective of parallelization, restarts, etc.
    std::size_t rndInt = std::hash<uint>()(P::tstep);
@@ -535,11 +527,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
    // Recalculate "_V" velocity moments
 momentCalculation:
-#ifdef USE_CUDA111111111111111111111111111111111
-   cuda_calculateMoments_V(mpiGrid, cells, true);
-#else
    calculateMoments_V(mpiGrid, cells, true);
-#endif
 
    // Set CellParams::MAXVDT to be the minimum dt of all per-species values
    #pragma omp parallel for

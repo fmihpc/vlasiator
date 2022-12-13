@@ -25,7 +25,7 @@
 #include <string.h>
 
 #include "cuda_acc_map.hpp"
-#include "cuda_acc_map_kernel.cuh"
+#include "cuda_acc_map_kernel.h"
 #include "vec.h"
 #include "../definitions.h"
 #include "../object_wrapper.h"

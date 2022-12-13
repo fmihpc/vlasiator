@@ -45,7 +45,7 @@
 #include "object_wrapper.h"
 
 #ifdef USE_CUDA
-  #include "vlasovsolver/cuda_acc_map_kernel.cuh"
+  #include "vlasovsolver/cuda_acc_map_kernel.h"
 #endif
 
 #ifdef PAPI_MEM
