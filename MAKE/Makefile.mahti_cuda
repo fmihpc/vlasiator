@@ -58,7 +58,7 @@ VECL=64
 #                         errors that come up when using
 #                         mpi.h in c++ on Cray
 
-USE_CUDA=1
+USE_CUDA=0
 CUDABLOCKS=108
 CMP = mpic++
 LNK = mpic++
@@ -70,7 +70,12 @@ CC_BRAND_VERSION = 21.2
 
 #CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -gpu=cc80 -Minfo=accel -acc -fopenmp -std=c++11
 CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -std=c++14
-CMPGPU = OMPI_CXXFLAGS='' OMPI_CXX='nvcc -g -O2 -x cu -std=c++14 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80' mpic++
+
+ifeq ($(USE_CUDA),1)
+  CMPGPU = OMPI_CXXFLAGS='' OMPI_CXX='nvcc -g -O2 -x cu -std=c++14 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80' mpic++
+else
+  CMPGPU = ${CMP}
+endif
 
 #testpackage: CXXFLAGS = -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -gpu=cc80 -Minfo=accel -acc -fopenmp -std=c++11
 testpackage: CXXFLAGS = -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -fopenmp -std=c++11
