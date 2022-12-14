@@ -124,8 +124,11 @@ LIBS += ${LIB_PAPI}
 DEPS_COMMON = common.h common.cpp definitions.h mpiconversion.h logger.h object_wrapper.h
 DEPS_CELL   = spatial_cell.hpp velocity_mesh_old.h velocity_mesh_amr.h velocity_block_container.h open_bucket_hashtable.h
 
+# Define common field tracing dependencies
+DEPS_TRACING = ${DEPS_COMMON} ${DEPS_CELL} fieldtracing/fieldtracing.h fieldtracing/fieldtracing.cpp
+
 # Define common system boundary condition dependencies
-DEPS_SYSBOUND = ${DEPS_COMMON} ${DEPS_CELL} sysboundary/sysboundarycondition.h sysboundary/sysboundarycondition.cpp
+DEPS_SYSBOUND = ${DEPS_COMMON} ${DEPS_CELL} ${DEPS_TRACING} sysboundary/sysboundarycondition.h sysboundary/sysboundarycondition.cpp
 
 # Define common field solver dependencies
 DEPS_FSOLVER = ${DEPS_COMMON} ${DEPS_CELL} fieldsolver/fs_common.h fieldsolver/fs_common.cpp
@@ -190,6 +193,7 @@ DEPS_VLSVMOVER_AMR = ${DEPS_CELL} vlasovsolver_amr/vlasovmover.cpp vlasovsolver_
 OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipole.o vectordipole.o constantfield.o integratefunction.o \
 	datareducer.o datareductionoperator.o dro_populations.o amr_refinement_criteria.o\
 	donotcompute.o ionosphere.o conductingsphere.o outflow.o setbyuser.o setmaxwellian.o\
+	bulirschStoer.o dormandPrince.o euler.o eulerAdaptive.o fieldtracing.o \
 	sysboundary.o sysboundarycondition.o particle_species.o\
 	project.o projectTriAxisSearch.o read_gaussian_population.o\
 	Alfven.o Diffusion.o Dispersion.o Distributions.o Firehose.o\
@@ -265,7 +269,7 @@ backgroundfield.o: ${DEPS_COMMON} backgroundfield/backgroundfield.cpp background
 integratefunction.o: ${DEPS_COMMON} backgroundfield/integratefunction.cpp backgroundfield/integratefunction.hpp backgroundfield/functions.hpp  backgroundfield/quadr.cpp backgroundfield/quadr.hpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/integratefunction.cpp
 
-datareducer.o: ${DEPS_COMMON} spatial_cell.hpp datareduction/datareducer.h datareduction/datareductionoperator.h datareduction/datareducer.cpp
+datareducer.o: ${DEPS_COMMON} spatial_cell.hpp datareduction/datareducer.h datareduction/datareductionoperator.h datareduction/datareducer.cpp fieldtracing/fieldtracing.h fieldtracing/fieldtracing.cpp sysboundary/ionosphere.h sysboundary/ionosphere.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c datareduction/datareducer.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_EIGEN} ${INC_VLSV} ${INC_FSGRID}
 
 datareductionoperator.o: ${DEPS_COMMON} ${DEPS_CELL} parameters.h datareduction/datareductionoperator.h datareduction/datareductionoperator.cpp
@@ -282,6 +286,21 @@ ionosphere.o: ${DEPS_SYSBOUND} sysboundary/ionosphere.h sysboundary/ionosphere.c
 
 conductingsphere.o: ${DEPS_SYSBOUND} sysboundary/conductingsphere.h sysboundary/conductingsphere.cpp backgroundfield/backgroundfield.cpp backgroundfield/backgroundfield.h projects/project.h projects/project.cpp fieldsolver/fs_limiters.h
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c sysboundary/conductingsphere.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+
+bulirschStoer.o: ${DEPS_TRACING} fieldtracing/bulirschStoer.h fieldtracing/bulirschStoer.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c fieldtracing/bulirschStoer.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_ZOLTAN}
+
+dormandPrince.o: ${DEPS_TRACING} fieldtracing/dormandPrince.h fieldtracing/dormandPrince.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c fieldtracing/dormandPrince.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_ZOLTAN}
+
+euler.o: ${DEPS_TRACING} fieldtracing/euler.h fieldtracing/euler.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c fieldtracing/euler.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_ZOLTAN}
+
+eulerAdaptive.o: ${DEPS_TRACING} fieldtracing/eulerAdaptive.h fieldtracing/eulerAdaptive.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c fieldtracing/eulerAdaptive.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_ZOLTAN}
+
+fieldtracing.o: ${DEPS_TRACING}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c fieldtracing/fieldtracing.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_ZOLTAN} ${INC_VECTORCLASS}
 
 mesh_data_container.o: ${DEPS_COMMON} mesh_data_container.h mesh_data.h
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c mesh_data_container.cpp ${INC_VLSV} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_FSGRID}

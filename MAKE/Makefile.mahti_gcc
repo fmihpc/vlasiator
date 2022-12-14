@@ -24,11 +24,12 @@ FLAGS =
 CC_BRAND = gcc
 CC_BRAND_VERSION = 9.3.0
 CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -fabi-version=0 -march=native -mfma -mavx2
-testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0 -mfma
+testpackage: CXXFLAGS = -g -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0 -mfma
+
 
 MATHFLAGS = -ffast-math
 LDFLAGS = -lrt
-LIB_MPI = -lgomp 
+LIB_MPI = -lgomp
 
 #======== PAPI ==========
 #Add PAPI_MEM define to use papi to report memory consumption?
