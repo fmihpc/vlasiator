@@ -35,12 +35,6 @@
 #include <algorithm>
 #include <limits>
 
-template<typename T> inline int sign(const T& value) {
-   const T ZERO = 0.0;
-   if (value < ZERO) return -1;
-   return 1;
-}
-
 template<typename T> inline T minmod(const T& a,const T& b) {
    const T ZERO = 0.0;
    

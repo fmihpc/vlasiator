@@ -307,7 +307,6 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    }   
 }
 
-
 void getFieldsFromFsGrid(
    FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volumeFieldsGrid,
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
@@ -316,110 +315,115 @@ void getFieldsFromFsGrid(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const std::vector<CellID>& cells
 ) {
-  // TODO: solver only needs bgb + PERB, we could combine them
+   // TODO: solver only needs bgb + PERB, we could combine them
   
-  const int fieldsToCommunicate = 21;
-  struct Average {
-    Real sums[fieldsToCommunicate];
-    int cells;
-    Average()  {
-      cells = 0;
-      for(int i = 0; i < fieldsToCommunicate; i++){
-         sums[i] = 0;
+   struct Average {
+      Real sums[N_FIELDSTOCOMMUNICATE];
+      int cells;
+      Average()  {
+         cells = 0;
+         for(int i = 0; i < N_FIELDSTOCOMMUNICATE; i++){
+            sums[i] = 0;
+         }
       }
-    }
-    Average operator+=(const Average& rhs) {
-      this->cells += rhs.cells;
-      for(int i = 0; i < fieldsToCommunicate; i++){
-         this->sums[i] += rhs.sums[i];
+      Average operator+=(const Average& rhs) {
+         this->cells += rhs.cells;
+         for(int i = 0; i < N_FIELDSTOCOMMUNICATE; i++){
+            this->sums[i] += rhs.sums[i];
+         }
+         return *this;
       }
-    return *this;
-    }
-  };
+   };
+   
+   
+   int ii;
+   //sorted list of dccrg cells. cells is typicall already sorted, but just to make sure....
+   std::vector<CellID> dccrgCells = cells;
+   std::sort(dccrgCells.begin(), dccrgCells.end());
+   
+   //Datastructure for coupling
+   std::map<int, std::set<CellID> > onDccrgMapRemoteProcess; 
+   std::map<int, std::set<CellID> > onFsgridMapRemoteProcess; 
+   std::map<CellID, std::vector<int64_t> >  onFsgridMapCells;
+   
+   // map receive process => receive buffers 
+   std::map<int, std::vector<Average> > receivedData; 
+   
+   // send buffers  to each process
+   std::map<int, std::vector<Average> > sendData;
+   
+   // map where we finally aggregate result for each local dccrg cell
+   std::map<CellID, Average> aggregatedResult;
+   
+   //list of requests
+   std::vector<MPI_Request> sendRequests;
+   std::vector<MPI_Request> receiveRequests;
+   
+   
+   //computeCoupling
+   computeCoupling(mpiGrid, cells, volumeFieldsGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
+   
+   //post receives
+   ii=0;
+   receiveRequests.resize(onDccrgMapRemoteProcess.size());
+   for (auto const &rcv : onDccrgMapRemoteProcess){
+      int remoteRank = rcv.first; 
+      int count = rcv.second.size();
+      auto& receiveBuffer=receivedData[remoteRank];
+      
+      receiveBuffer.resize(count);
+      MPI_Irecv(receiveBuffer.data(), count * sizeof(Average),
+      MPI_BYTE, remoteRank, 1, MPI_COMM_WORLD,&(receiveRequests[ii++]));
+   }
 
-    
-  int ii;
-  //sorted list of dccrg cells. cells is typicall already sorted, but just to make sure....
-  std::vector<CellID> dccrgCells = cells;
-  std::sort(dccrgCells.begin(), dccrgCells.end());
-
-  //Datastructure for coupling
-  std::map<int, std::set<CellID> > onDccrgMapRemoteProcess; 
-  std::map<int, std::set<CellID> > onFsgridMapRemoteProcess; 
-  std::map<CellID, std::vector<int64_t> >  onFsgridMapCells;
-    
-  // map receive process => receive buffers 
-  std::map<int, std::vector<Average> > receivedData; 
-
-  // send buffers  to each process
-  std::map<int, std::vector<Average> > sendData;
-
-  // map where we finally aggregate result for each local dccrg cell
-  std::map<CellID, Average> aggregatedResult;
-
-  //list of requests
-  std::vector<MPI_Request> sendRequests;
-  std::vector<MPI_Request> receiveRequests;
-
-  
-  //computeCoupling
-  computeCoupling(mpiGrid, cells, volumeFieldsGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
-
-  //post receives
-  ii=0;
-  receiveRequests.resize(onDccrgMapRemoteProcess.size());
-  for (auto const &rcv : onDccrgMapRemoteProcess){
-    int remoteRank = rcv.first; 
-    int count = rcv.second.size();
-    auto& receiveBuffer=receivedData[remoteRank];
-    
-    receiveBuffer.resize(count);
-    MPI_Irecv(receiveBuffer.data(), count * sizeof(Average),
-		 MPI_BYTE, remoteRank, 1, MPI_COMM_WORLD,&(receiveRequests[ii++]));
-  }
-
-  //compute average and weight for each field that we want to send to dccrg grid
-  for(auto const &snd: onFsgridMapRemoteProcess){
-    int remoteRank = snd.first;
-    int count = snd.second.size();
-    auto& sendBuffer = sendData[remoteRank];
-    sendBuffer.resize(count);
-    
-    ii=0;
-    for(auto const dccrgCell: snd.second){
-      //loop over dccrg cells to which we shall send data for this remoteRank
-      auto const &fsgridCells = onFsgridMapCells[dccrgCell];
-      for (auto const fsgridCell: fsgridCells){
-        //loop over fsgrid cells for which we compute the average that is sent to dccrgCell on rank remoteRank
+   //compute average and weight for each field that we want to send to dccrg grid
+   for(auto const &snd: onFsgridMapRemoteProcess){
+      int remoteRank = snd.first;
+      int count = snd.second.size();
+      auto& sendBuffer = sendData[remoteRank];
+      sendBuffer.resize(count);
+      
+      ii=0;
+      for(auto const dccrgCell: snd.second){
+         //loop over dccrg cells to which we shall send data for this remoteRank
+         auto const &fsgridCells = onFsgridMapCells[dccrgCell];
+         for (auto const fsgridCell: fsgridCells){
+         //loop over fsgrid cells for which we compute the average that is sent to dccrgCell on rank remoteRank
 //        if(technicalGrid.get(fsgridCell)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
 //           continue;
 //        }
-        std::array<Real, fsgrids::volfields::N_VOL> * volcell = volumeFieldsGrid.get(fsgridCell);
-	std::array<Real, fsgrids::bgbfield::N_BGB> * bgcell = BgBGrid.get(fsgridCell);
-	std::array<Real, fsgrids::egradpe::N_EGRADPE> * egradpecell = EGradPeGrid.get(fsgridCell);	
-	
-        sendBuffer[ii].sums[0 ] += volcell->at(fsgrids::volfields::PERBXVOL);
-        sendBuffer[ii].sums[1 ] += volcell->at(fsgrids::volfields::PERBYVOL);
-        sendBuffer[ii].sums[2 ] += volcell->at(fsgrids::volfields::PERBZVOL);
-        sendBuffer[ii].sums[6 ] += volcell->at(fsgrids::volfields::dPERBXVOLdy) / technicalGrid.DY;
-        sendBuffer[ii].sums[7 ] += volcell->at(fsgrids::volfields::dPERBXVOLdz) / technicalGrid.DZ;
-        sendBuffer[ii].sums[8 ] += volcell->at(fsgrids::volfields::dPERBYVOLdx) / technicalGrid.DX;
-        sendBuffer[ii].sums[9 ] += volcell->at(fsgrids::volfields::dPERBYVOLdz) / technicalGrid.DZ;
-        sendBuffer[ii].sums[10] += volcell->at(fsgrids::volfields::dPERBZVOLdx) / technicalGrid.DX;
-        sendBuffer[ii].sums[11] += volcell->at(fsgrids::volfields::dPERBZVOLdy) / technicalGrid.DY;
-        sendBuffer[ii].sums[12] += bgcell->at(fsgrids::bgbfield::BGBXVOL);
-        sendBuffer[ii].sums[13] += bgcell->at(fsgrids::bgbfield::BGBYVOL);
-        sendBuffer[ii].sums[14] += bgcell->at(fsgrids::bgbfield::BGBZVOL);
-        sendBuffer[ii].sums[15] += egradpecell->at(fsgrids::egradpe::EXGRADPE);
-        sendBuffer[ii].sums[16] += egradpecell->at(fsgrids::egradpe::EYGRADPE);
-        sendBuffer[ii].sums[17] += egradpecell->at(fsgrids::egradpe::EZGRADPE);
-	sendBuffer[ii].sums[18] += volcell->at(fsgrids::volfields::EXVOL);
-	sendBuffer[ii].sums[19] += volcell->at(fsgrids::volfields::EYVOL);
-	sendBuffer[ii].sums[20] += volcell->at(fsgrids::volfields::EZVOL);
-        sendBuffer[ii].cells++;
+            std::array<Real, fsgrids::volfields::N_VOL> * volcell = volumeFieldsGrid.get(fsgridCell);
+            std::array<Real, fsgrids::bgbfield::N_BGB> * bgcell = BgBGrid.get(fsgridCell);
+            std::array<Real, fsgrids::egradpe::N_EGRADPE> * egradpecell = EGradPeGrid.get(fsgridCell);	
+            
+            sendBuffer[ii].sums[FieldsToCommunicate::PERBXVOL] += volcell->at(fsgrids::volfields::PERBXVOL);
+            sendBuffer[ii].sums[FieldsToCommunicate::PERBYVOL] += volcell->at(fsgrids::volfields::PERBYVOL);
+            sendBuffer[ii].sums[FieldsToCommunicate::PERBZVOL] += volcell->at(fsgrids::volfields::PERBZVOL);
+            sendBuffer[ii].sums[FieldsToCommunicate::dPERBXVOLdx] += volcell->at(fsgrids::volfields::dPERBXVOLdx) / technicalGrid.DX;
+            sendBuffer[ii].sums[FieldsToCommunicate::dPERBXVOLdy] += volcell->at(fsgrids::volfields::dPERBXVOLdy) / technicalGrid.DY;
+            sendBuffer[ii].sums[FieldsToCommunicate::dPERBXVOLdz] += volcell->at(fsgrids::volfields::dPERBXVOLdz) / technicalGrid.DZ;
+            sendBuffer[ii].sums[FieldsToCommunicate::dPERBYVOLdx] += volcell->at(fsgrids::volfields::dPERBYVOLdx) / technicalGrid.DX;
+            sendBuffer[ii].sums[FieldsToCommunicate::dPERBYVOLdy] += volcell->at(fsgrids::volfields::dPERBYVOLdy) / technicalGrid.DY;
+            sendBuffer[ii].sums[FieldsToCommunicate::dPERBYVOLdz] += volcell->at(fsgrids::volfields::dPERBYVOLdz) / technicalGrid.DZ;
+            sendBuffer[ii].sums[FieldsToCommunicate::dPERBZVOLdx] += volcell->at(fsgrids::volfields::dPERBZVOLdx) / technicalGrid.DX;
+            sendBuffer[ii].sums[FieldsToCommunicate::dPERBZVOLdy] += volcell->at(fsgrids::volfields::dPERBZVOLdy) / technicalGrid.DY;
+            sendBuffer[ii].sums[FieldsToCommunicate::dPERBZVOLdz] += volcell->at(fsgrids::volfields::dPERBZVOLdz) / technicalGrid.DZ;
+            sendBuffer[ii].sums[FieldsToCommunicate::BGBXVOL] += bgcell->at(fsgrids::bgbfield::BGBXVOL);
+            sendBuffer[ii].sums[FieldsToCommunicate::BGBYVOL] += bgcell->at(fsgrids::bgbfield::BGBYVOL);
+            sendBuffer[ii].sums[FieldsToCommunicate::BGBZVOL] += bgcell->at(fsgrids::bgbfield::BGBZVOL);
+            sendBuffer[ii].sums[FieldsToCommunicate::EXGRADPE] += egradpecell->at(fsgrids::egradpe::EXGRADPE);
+            sendBuffer[ii].sums[FieldsToCommunicate::EYGRADPE] += egradpecell->at(fsgrids::egradpe::EYGRADPE);
+            sendBuffer[ii].sums[FieldsToCommunicate::EZGRADPE] += egradpecell->at(fsgrids::egradpe::EZGRADPE);
+            sendBuffer[ii].sums[FieldsToCommunicate::EXVOL] += volcell->at(fsgrids::volfields::EXVOL);
+            sendBuffer[ii].sums[FieldsToCommunicate::EYVOL] += volcell->at(fsgrids::volfields::EYVOL);
+            sendBuffer[ii].sums[FieldsToCommunicate::EZVOL] += volcell->at(fsgrids::volfields::EZVOL);
+            sendBuffer[ii].sums[FieldsToCommunicate::CURVATUREX] += volcell->at(fsgrids::volfields::CURVATUREX);
+            sendBuffer[ii].sums[FieldsToCommunicate::CURVATUREY] += volcell->at(fsgrids::volfields::CURVATUREY);
+            sendBuffer[ii].sums[FieldsToCommunicate::CURVATUREZ] += volcell->at(fsgrids::volfields::CURVATUREZ);
+            sendBuffer[ii].cells++;
+         }
+         ii++;
       }
-      ii++;
-    }
   }
   
   //post sends
@@ -451,36 +455,45 @@ void getFieldsFromFsGrid(
   for (auto const &cellAggregate : aggregatedResult) {
     auto cellParams = mpiGrid[cellAggregate.first]->get_cell_parameters();
     if ( cellAggregate.second.cells > 0) {
-      cellParams[CellParams::PERBXVOL] = cellAggregate.second.sums[0] / cellAggregate.second.cells;
-      cellParams[CellParams::PERBYVOL] = cellAggregate.second.sums[1] / cellAggregate.second.cells;
-      cellParams[CellParams::PERBZVOL] = cellAggregate.second.sums[2] / cellAggregate.second.cells;
-      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBXVOLdy] = cellAggregate.second.sums[6] / cellAggregate.second.cells;
-      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBXVOLdz] = cellAggregate.second.sums[7] / cellAggregate.second.cells;
-      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBYVOLdx] = cellAggregate.second.sums[8] / cellAggregate.second.cells;
-      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBYVOLdz] = cellAggregate.second.sums[9] / cellAggregate.second.cells;
-      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBZVOLdx] = cellAggregate.second.sums[10] / cellAggregate.second.cells;
-      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBZVOLdy] = cellAggregate.second.sums[11] / cellAggregate.second.cells;
-      cellParams[CellParams::BGBXVOL]  = cellAggregate.second.sums[12] / cellAggregate.second.cells;
-      cellParams[CellParams::BGBYVOL]  = cellAggregate.second.sums[13] / cellAggregate.second.cells;
-      cellParams[CellParams::BGBZVOL]  = cellAggregate.second.sums[14] / cellAggregate.second.cells;
-      cellParams[CellParams::EXGRADPE] = cellAggregate.second.sums[15] / cellAggregate.second.cells;
-      cellParams[CellParams::EYGRADPE] = cellAggregate.second.sums[16] / cellAggregate.second.cells;
-      cellParams[CellParams::EZGRADPE] = cellAggregate.second.sums[17] / cellAggregate.second.cells;
-      cellParams[CellParams::EXVOL] = cellAggregate.second.sums[18] / cellAggregate.second.cells;
-      cellParams[CellParams::EYVOL] = cellAggregate.second.sums[19] / cellAggregate.second.cells;
-      cellParams[CellParams::EZVOL] = cellAggregate.second.sums[20] / cellAggregate.second.cells;
+      cellParams[CellParams::PERBXVOL] = cellAggregate.second.sums[FieldsToCommunicate::PERBXVOL] / cellAggregate.second.cells;
+      cellParams[CellParams::PERBYVOL] = cellAggregate.second.sums[FieldsToCommunicate::PERBYVOL] / cellAggregate.second.cells;
+      cellParams[CellParams::PERBZVOL] = cellAggregate.second.sums[FieldsToCommunicate::PERBZVOL] / cellAggregate.second.cells;
+      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBXVOLdx] = cellAggregate.second.sums[FieldsToCommunicate::dPERBXVOLdx] / cellAggregate.second.cells;
+      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBXVOLdy] = cellAggregate.second.sums[FieldsToCommunicate::dPERBXVOLdy] / cellAggregate.second.cells;
+      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBXVOLdz] = cellAggregate.second.sums[FieldsToCommunicate::dPERBXVOLdz] / cellAggregate.second.cells;
+      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBYVOLdx] = cellAggregate.second.sums[FieldsToCommunicate::dPERBYVOLdx] / cellAggregate.second.cells;
+      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBYVOLdy] = cellAggregate.second.sums[FieldsToCommunicate::dPERBYVOLdy] / cellAggregate.second.cells;
+      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBYVOLdz] = cellAggregate.second.sums[FieldsToCommunicate::dPERBYVOLdz] / cellAggregate.second.cells;
+      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBZVOLdx] = cellAggregate.second.sums[FieldsToCommunicate::dPERBZVOLdx] / cellAggregate.second.cells;
+      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBZVOLdy] = cellAggregate.second.sums[FieldsToCommunicate::dPERBZVOLdy] / cellAggregate.second.cells;
+      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBZVOLdz] = cellAggregate.second.sums[FieldsToCommunicate::dPERBZVOLdz] / cellAggregate.second.cells;
+      cellParams[CellParams::BGBXVOL]  = cellAggregate.second.sums[FieldsToCommunicate::BGBXVOL] / cellAggregate.second.cells;
+      cellParams[CellParams::BGBYVOL]  = cellAggregate.second.sums[FieldsToCommunicate::BGBYVOL] / cellAggregate.second.cells;
+      cellParams[CellParams::BGBZVOL]  = cellAggregate.second.sums[FieldsToCommunicate::BGBZVOL] / cellAggregate.second.cells;
+      cellParams[CellParams::EXGRADPE] = cellAggregate.second.sums[FieldsToCommunicate::EXGRADPE] / cellAggregate.second.cells;
+      cellParams[CellParams::EYGRADPE] = cellAggregate.second.sums[FieldsToCommunicate::EYGRADPE] / cellAggregate.second.cells;
+      cellParams[CellParams::EZGRADPE] = cellAggregate.second.sums[FieldsToCommunicate::EZGRADPE] / cellAggregate.second.cells;
+      cellParams[CellParams::EXVOL] = cellAggregate.second.sums[FieldsToCommunicate::EXVOL] / cellAggregate.second.cells;
+      cellParams[CellParams::EYVOL] = cellAggregate.second.sums[FieldsToCommunicate::EYVOL] / cellAggregate.second.cells;
+      cellParams[CellParams::EZVOL] = cellAggregate.second.sums[FieldsToCommunicate::EZVOL] / cellAggregate.second.cells;
+      cellParams[CellParams::CURVATUREX] = cellAggregate.second.sums[FieldsToCommunicate::CURVATUREX] / cellAggregate.second.cells;
+      cellParams[CellParams::CURVATUREY] = cellAggregate.second.sums[FieldsToCommunicate::CURVATUREY] / cellAggregate.second.cells;
+      cellParams[CellParams::CURVATUREZ] = cellAggregate.second.sums[FieldsToCommunicate::CURVATUREZ] / cellAggregate.second.cells;
     }
     else{
       // This could happpen if all fsgrid cells are do not compute
       cellParams[CellParams::PERBXVOL] = 0;
       cellParams[CellParams::PERBYVOL] = 0;
       cellParams[CellParams::PERBZVOL] = 0;
+      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBXVOLdx] = 0;
       mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBXVOLdy] = 0;
       mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBXVOLdz] = 0;
       mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBYVOLdx] = 0;
+      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBYVOLdy] = 0;
       mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBYVOLdz] = 0;
       mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBZVOLdx] = 0;
       mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBZVOLdy] = 0;
+      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBZVOLdz] = 0;
       cellParams[CellParams::BGBXVOL]  = 0;
       cellParams[CellParams::BGBYVOL]  = 0;
       cellParams[CellParams::BGBZVOL]  = 0;
@@ -490,6 +503,9 @@ void getFieldsFromFsGrid(
       cellParams[CellParams::EXVOL] = 0;
       cellParams[CellParams::EYVOL] = 0;
       cellParams[CellParams::EZVOL] = 0;
+      cellParams[CellParams::CURVATUREX] = 0;
+      cellParams[CellParams::CURVATUREY] = 0;
+      cellParams[CellParams::CURVATUREZ] = 0;
     }
   }
   

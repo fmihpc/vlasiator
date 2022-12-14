@@ -268,16 +268,19 @@ namespace SBC {
       array<Real, fsgrids::volfields::N_VOL> * volGrid0 = volGrid.get(i,j,k);
       switch(component) {
          case 0:
+            volGrid0->at(fsgrids::volfields::dPERBXVOLdx) = 0.0;
             volGrid0->at(fsgrids::volfields::dPERBYVOLdx) = 0.0;
             volGrid0->at(fsgrids::volfields::dPERBZVOLdx) = 0.0;
             break;
          case 1:
             volGrid0->at(fsgrids::volfields::dPERBXVOLdy) = 0.0;
+            volGrid0->at(fsgrids::volfields::dPERBYVOLdy) = 0.0;
             volGrid0->at(fsgrids::volfields::dPERBZVOLdy) = 0.0;
             break;
          case 2:
             volGrid0->at(fsgrids::volfields::dPERBXVOLdz) = 0.0;
             volGrid0->at(fsgrids::volfields::dPERBYVOLdz) = 0.0;
+            volGrid0->at(fsgrids::volfields::dPERBZVOLdz) = 0.0;
             break;
          default:
             cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;

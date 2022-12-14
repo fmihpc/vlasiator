@@ -24,6 +24,7 @@
  * \brief Implementation of the class SysBoundaryCondition::Ionosphere to handle cells classified as sysboundarytype::IONOSPHERE.
  */
 
+#include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <iomanip>
@@ -34,12 +35,13 @@
 #include "../projects/projects_common.h"
 #include "../vlasovmover.h"
 #include "../fieldsolver/fs_common.h"
-#include "../fieldsolver/fs_limiters.h"
 #include "../fieldsolver/ldz_magnetic_field.hpp"
 #include "../common.h"
 #include "../object_wrapper.h"
 #include "vectorclass.h"
 #include "vector3d.h"
+
+#include "../fieldtracing/fieldtracing.h"
 
 #if VECTORCLASS_H >= 200
 #define Vec3d Vec3Dd
@@ -51,33 +53,6 @@
 #ifdef DEBUG_SYSBOUNDARY
    #define DEBUG_IONOSPHERE
 #endif
-      
-// Get the (integer valued) global fsgrid cell index (i,j,k) for the magnetic-field traced mapping point that node n is
-// associated with
-template<class T> std::array<int32_t, 3> getGlobalFsGridCellIndexForCoord(T& grid,const std::array<Real, 3>& x) {
-   std::array<int32_t, 3> retval;
-   retval[0] = floor((x[0] - grid.physicalGlobalStart[0]) / grid.DX);
-   retval[1] = floor((x[1] - grid.physicalGlobalStart[1]) / grid.DY);
-   retval[2] = floor((x[2] - grid.physicalGlobalStart[2]) / grid.DZ);
-   return retval;
-}
-// Get the (integer valued) local fsgrid cell index (i,j,k) for the magnetic-field traced mapping point that node n is
-// associated with If the cell is not in our local domain, will return {-1,-1,-1}
-template<class T> std::array<int32_t, 3> getLocalFsGridCellIndexForCoord(T& grid, const std::array<Real, 3>& x) {
-   std::array<int32_t, 3> retval = getGlobalFsGridCellIndexForCoord(grid,x);
-   retval = grid.globalToLocal(retval[0], retval[1], retval[2]);
-   return retval;
-}
-// Get the fraction fsgrid cell index for the magnetic-field traced mapping point that node n is associated with.
-// Note that these are floating point values between 0 and 1
-template<class T> std::array<Real, 3> getFractionalFsGridCellForCoord(T& grid, const std::array<Real, 3>& x) {
-   std::array<Real, 3> retval;
-   std::array<int, 3> fsgridCell = getGlobalFsGridCellIndexForCoord(grid,x);
-   retval[0] = (x[0] - grid.physicalGlobalStart[0]) / grid.DX - fsgridCell[0];
-   retval[1] = (x[1] - grid.physicalGlobalStart[1]) / grid.DY - fsgridCell[1];
-   retval[2] = (x[2] - grid.physicalGlobalStart[2]) / grid.DZ - fsgridCell[2];
-   return retval;
-}
 
 namespace SBC {
 
@@ -110,7 +85,6 @@ namespace SBC {
    bool Ionosphere::solverToggleMinimumResidualVariant;
    Real Ionosphere::shieldingLatitude;
    enum Ionosphere::IonosphereConductivityModel Ionosphere::conductivityModel;
-   Real  Ionosphere::eps;
 
    // Offset field aligned currents so their sum is 0
    void SphericalTriGrid::offset_FAC() {
@@ -1048,190 +1022,14 @@ namespace SBC {
       }
       phiprof::stop("ionosphere-calculateConductivityTensor");
    }
-    
-   /*Simple method to tranlate 3D to 1D indeces*/
-   int SphericalTriGrid::ijk2Index(int i , int j ,int k ,std::array<int,3>dims){
-      return i + j*dims[0] +k*dims[0]*dims[1];
-   }
+   
 
-   /*Richardson extrapolation using polynomial fitting used by the Bulirsch-Stoer Mehtod*/
-   void SphericalTriGrid::richardsonExtrapolation(int i, std::vector<Real>&table , Real& maxError, std::array<int,3>dims ){
-      int k;
-      maxError = 0;
-      for (int dim=0; dim<3; dim++){
-         for(k =1; k<i+1; k++){
-            
-            table.at(ijk2Index(i,k,dim,dims)) = table.at(ijk2Index(i,k-1,dim,dims))  +(table.at(ijk2Index(i,k-1,dim,dims)) -table.at(ijk2Index(i-1,k-1,dim,dims)))/(std::pow(4,i) -1);
-
-         }
-         
-         Real thisError = fabs(table.at(ijk2Index(k-1,k-1,dim,dims))   -  table.at(ijk2Index(k-2,k-2,dim,dims)));
-         if(thisError > maxError) {
-            maxError = thisError;
-         }
-      }
-   }
-  
-   /*Modified Midpoint Method used by the Bulirsch Stoer integrations
-    * stepsize: initial step  size
-    * r: initial position 
-    * r1: new position
-    * n: number of substeps
-    * stepsize: big stepsize to use
-    * z0,zmid,z2: intermediate approximations
-    * */
-   void SphericalTriGrid::modifiedMidpointMethod(
-      std::array<Real,3> r,
-      std::array<Real,3>& r1,
-      Real n,
-      Real stepsize,
-      TracingFieldFunction& BFieldFunction,
-      bool outwards
-   ) {
-      //Allocate some memory.
-      std::array<Real,3> bunit,crd,z0,zmid,z1;
-      //Divide by number of sub steps      
-      Real h= stepsize/n;
-      Real norm;
-     
-      //First step 
-      BFieldFunction(r,outwards,bunit);
-      z0=r;
-      z1={ r[0]+h*bunit[0], r[1]+h*bunit[1], r[2]+h*bunit[2]  };
-      BFieldFunction(z1,outwards,bunit);
-
-      for (int m =0; m<=n; m++){
-         zmid= { z0[0]+2*h*bunit[0] , z0[1]+2*h*bunit[1], z0[2]+2*h*bunit[2] };
-         z0=z1;
-         z1=zmid;
-         crd = { r[0]+2.*m*h*bunit[0]  ,  r[1]+2.*m*h*bunit[1], r[2]+2.*m*h*bunit[2]};
-         BFieldFunction(crd,outwards,bunit);
-      }
-      
-      //These are now are new position
-      for (int c=0; c<3; c++){
-         r1[c] = 0.5*(z0[c]+z1[c]+h*bunit[c]);
-      }
-
-   }//modifiedMidpoint Method
-
-
-   /*Bulirsch-Stoer Mehtod to trace field line to next point along it*/
-   void SphericalTriGrid::bulirschStoerStep(
-      std::array<Real, 3>& r,
-      std::array<Real, 3>& b,
-      Real& stepsize,
-      Real maxStepsize,
-      TracingFieldFunction& BFieldFunction,
-      bool outwards
-   ) {
-      //Factors by which the stepsize is multiplied 
-      Real shrink = 0.95;
-      Real grow = 1.2; 
-      //Max substeps for midpoint method
-      int kMax = 8;
-      //Optimal row to converge at 
-      int kOpt = 6;
-
-      const int ndim = kMax*kMax*3;
-      std::array<int,3>  dims={kMax,kMax,3};
-      std::vector<Real>table(ndim);
-      std::array<Real,3> rold,rnew,r1;
-      Real error;
-
-      //Get B field unit vector in case we don't converge yet
-      BFieldFunction(r,outwards,b);
-
-      //Let's start things up with 2 substeps
-      int n =2;
-      //Save old state
-      rold = r;
-      //Take a first Step
-      modifiedMidpointMethod(r,r1,n,stepsize,BFieldFunction,outwards);
-
-      //Save values in table
-      for(int c =0; c<3; ++c){
-         table[ijk2Index(0,0,c,dims)] = r1[c];
-      }
-  
-      for(int i=1; i<kMax; ++i){
-
-         //Increment n. Each iteration doubles the number of substeps
-         n+=2;
-         modifiedMidpointMethod(r,rnew,n,stepsize,BFieldFunction,outwards);
-
-         //Save values in table
-         for(int c =0; c<3; ++c){
-            table[ijk2Index(i,0,c,dims)] = rnew[c];
-         }
-
-         //Now let's perform a Richardson extrapolatation
-         richardsonExtrapolation(i,table,error,dims);
-
-         //Normalize error
-         error/=Ionosphere::eps;
-
-         //If we are below eps good, let's return but also let's modify the stepSize accordingly 
-         if (error<1.){
-            if (i> kOpt) stepsize*=shrink;
-            if (i< kOpt) stepsize*=grow;
-            //Make sure stepsize does not exceed maxStepsize
-            stepsize= (stepsize<maxStepsize )?stepsize:maxStepsize;
-            //Keep our new position
-            r=rnew;
-            //Evaluate B here
-            BFieldFunction(r,outwards,b);
-            return;
-         }
-      }
-
-      //If we end up  here it means our tracer did not converge so we need to reduce the stepSize all along and try again
-      stepsize*=shrink;
-      return;
-
-   } //Bulirsch-Stoer Step 
 
    
-   /*Take an Euler step*/
-   void SphericalTriGrid::eulerStep(
-      std::array<Real, 3>& x,
-      std::array<Real, 3>& v,
-      Real& stepsize,
-      TracingFieldFunction& BFieldFunction,
-      bool outwards
-   ) {
-      // Get field direction
-      BFieldFunction(x,outwards,v);
 
-      for(int c=0; c<3; c++) {
-         x[c] += stepsize * v[c];
-      }
-   
-   }// Euler Step 
    
    
-   /*Take a step along the field line*/
-   void SphericalTriGrid::stepFieldLine(
-      std::array<Real, 3>& x,
-      std::array<Real, 3>& v,
-      Real& stepsize,
-      Real maxStepsize,
-      IonosphereCouplingMethod method,
-      TracingFieldFunction& BFieldFunction,
-      bool outwards
-   ) {
-      switch(method) {
-         case Euler:
-            eulerStep(x, v,stepsize, BFieldFunction, outwards);
-            break;
-         case BS:
-            bulirschStoerStep(x, v, stepsize, maxStepsize, BFieldFunction, outwards);
-            break;
-         default:
-            std::cerr << "(ionosphere) Warning: No Field Line Tracing method defined. Ionosphere connectivity will be garbled."<<std::endl;
-            break;
-      }
-   }//stepFieldLine
+
 
    // (Re-)create the subcommunicator for ionosphere-internal communication
    // This needs to be rerun after Vlasov grid load balancing to ensure that
@@ -1275,443 +1073,10 @@ namespace SBC {
       phiprof::stop("ionosphere-updateIonosphereCommunicator");
    }
 
-   /* Calculate mapping between ionospheric nodes and fsGrid cells.
-    * To do so, the magnetic field lines are traced from all mesh nodes
-    * outwards until a non-boundary cell is encountered. Their proportional
-    * coupling values are recorded in the grid nodes.
-    */
-   void SphericalTriGrid::calculateFsgridCoupling(
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-      Real couplingRadius) {
 
-      // we don't need to do anything if we have no nodes
-      if(nodes.size() == 0) {
-         return;
-      }
 
-      phiprof::start("ionosphere-fsgridCoupling");
-      // Pick an initial stepsize
-      Real stepSize = min(100e3, technicalGrid.DX / 2.); 
 
-      std::vector<Real> nodeDistance(nodes.size(), std::numeric_limits<Real>::max()); // For reduction of node coordinate in case of multiple hits
-      std::vector<int> nodeNeedsContinuedTracing(nodes.size(), 1);                    // Flag, whether tracing needs to continue on another task
-      std::vector<std::array<Real, 3>> nodeTracingCoordinates(nodes.size());          // In-flight node upmapping coordinates (for global reduction)
-      for(uint n=0; n<nodes.size(); n++) {
-         nodeTracingCoordinates.at(n) = nodes.at(n).x;
-         nodes.at(n).haveCouplingData = 0;
-         for (uint c=0; c<3; c++) {
-            nodes.at(n).xMapped.at(c) = 0;
-            nodes.at(n).parameters.at(ionosphereParameters::UPMAPPED_BX+c) = 0;
-         }
-      }
-      bool anyNodeNeedsTracing;
-
-      // Fieldline tracing function
-      TracingFieldFunction tracingField = [this, &perBGrid, &dPerBGrid, &technicalGrid](std::array<Real,3>& r, bool outwards, std::array<Real,3>& b)->void {
-
-         // Get field direction
-         b[0] = this->dipoleField(r[0],r[1],r[2],X,0,X);
-         b[1] = this->dipoleField(r[0],r[1],r[2],Y,0,Y);
-         b[2] = this->dipoleField(r[0],r[1],r[2],Z,0,Z);
-
-         std::array<int32_t, 3> fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,r);
-         if(technicalGrid.get(fsgridCell[0],fsgridCell[1],fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-            const std::array<Real, 3> perB = interpolatePerturbedB(
-               perBGrid,
-               dPerBGrid,
-               technicalGrid,
-               reconstructionCoefficientsCache,
-               fsgridCell[0],fsgridCell[1],fsgridCell[2],
-               r
-            );
-            b[0] += perB[0];
-            b[1] += perB[1];
-            b[2] += perB[2];
-         }
-
-         // Normalize
-         Real  norm = 1. / sqrt(b[0]*b[0] + b[1]*b[1] + b[2]*b[2]);
-         for(int c=0; c<3; c++) {
-            b[c] = b[c] * norm;
-         }
-
-         // Make sure motion is outwards. Flip b if dot(r,b) < 0
-         if(std::isnan(b[0]) || std::isnan(b[1]) || std::isnan(b[2])) {
-            cerr << "(ionosphere) Error: magnetic field is nan in getRadialBfieldDirection at location "
-               << r[0] << ", " << r[1] << ", " << r[2] << ", with B = " << b[0] << ", " << b[1] << ", " << b[2] << endl;
-            b[0] = 0;
-            b[1] = 0;
-            b[2] = 0;
-         }
-         if(outwards) {
-            if(b[0]*r[0] + b[1]*r[1] + b[2]*r[2] < 0) {
-               b[0]*=-1;
-               b[1]*=-1;
-               b[2]*=-1;
-            }
-         } else {
-            if(b[0]*r[0] + b[1]*r[1] + b[2]*r[2] > 0) {
-               b[0]*=-1;
-               b[1]*=-1;
-               b[2]*=-1;
-            }
-         }
-      };
-
-      do {
-         anyNodeNeedsTracing = false;
-
-         #pragma omp parallel firstprivate(stepSize)
-         {
-            // Trace node coordinates outwards until a non-sysboundary cell is encountered or the local fsgrid domain has been left.
-            #pragma omp for
-            for(uint n=0; n<nodes.size(); n++) {
    
-               if(!nodeNeedsContinuedTracing[n]) {
-                  // This node has already found its target, no need for us to do anything about it.
-                  continue;
-               }
-               Node& no = nodes[n];
-   
-               std::array<Real, 3> x = nodeTracingCoordinates[n];
-               std::array<Real, 3> v({0,0,0});
-               //Real stepSize = min(100e3, technicalGrid.DX / 2.); 
-               
-               while( true ) {
-   
-                  // Check if the current coordinates (pre-step) are in our own domain.
-                  std::array<int, 3> fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
-                  // If it is not in our domain, somebody else takes care of it.
-                  if(fsgridCell[0] == -1) {
-                     nodeNeedsContinuedTracing[n] = 0;
-                     nodeTracingCoordinates[n] = {0,0,0};
-                     break;
-                  }
-
-
-                  // Make one step along the fieldline
-                  stepFieldLine(x,v, stepSize,technicalGrid.DX/2,couplingMethod,tracingField,true);
-   
-                  // Look up the fsgrid cell beloinging to these coordinates
-                  fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
-                  std::array<Real, 3> interpolationFactor=getFractionalFsGridCellForCoord(technicalGrid,x);
-   
-                  creal distance = sqrt((x[0]-no.x[0])*(x[0]-no.x[0])+(x[1]-no.x[1])*(x[1]-no.x[1])+(x[2]-no.x[2])*(x[2]-no.x[2]));
-   
-                  // If the field line is no longer moving outwards but tangentially (88 degrees), abort.
-                  // (Note that v is normalized)
-                  // TODO: If we are inside the magnetospheric domain, but under the coupling radius, should thes *still* be taking along, just to have a
-                  // better shot at the region 2 currents? Or is that simply opening the door to boundary artifact hell?
-                  if(fabs(x.at(0)*v.at(0)+x.at(1)*v.at(1)+x.at(2)*v.at(2))/sqrt(x.at(0)*x.at(0)+x.at(1)*x.at(1)+x.at(2)*x.at(2)) < cos(88. / 180. * M_PI)) {
-                     nodeNeedsContinuedTracing.at(n) = 0;
-                     nodeTracingCoordinates.at(n) = {0,0,0};
-                     break;
-                  }
-
-                  // If we somehow still map into the ionosphere, we missed the 88 degree criterion but shouldn't couple there.
-                  if(sqrt(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2)) < Ionosphere::innerRadius) {
-                     // TODO drop this warning if it never occurs? To be followed.
-                     cerr << "Triggered mapping back into Earth\n";
-                     nodeNeedsContinuedTracing.at(n) = 0;
-                     nodeTracingCoordinates.at(n) = {0,0,0};
-                     break;
-                  }
-
-                  // Now, after stepping, if it is no longer in our domain, another MPI rank will pick up later.
-                  if(fsgridCell[0] == -1) {
-                     nodeNeedsContinuedTracing[n] = 1;
-                     nodeTracingCoordinates[n] = x;
-                     break;
-                  }
-   
-                  if(
-                     technicalGrid.get( fsgridCell[0], fsgridCell[1], fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY
-                     && x[0]*x[0]+x[1]*x[1]+x[2]*x[2] > Ionosphere::downmapRadius*Ionosphere::downmapRadius
-                  ) {
-   
-                     // Store the cells mapped coordinates and upmapped magnetic field
-                     no.xMapped = x;
-                     no.haveCouplingData = 1;
-                     nodeDistance[n] = distance;
-                     const std::array<Real, 3> perB = interpolatePerturbedB(
-                        perBGrid,
-                        dPerBGrid,
-                        technicalGrid,
-                        reconstructionCoefficientsCache,
-                        fsgridCell[0], fsgridCell[1], fsgridCell[2],
-                        x
-                     );
-                     no.parameters[ionosphereParameters::UPMAPPED_BX] = this->dipoleField(x[0],x[1],x[2],X,0,X) + perB[0];
-                     no.parameters[ionosphereParameters::UPMAPPED_BY] = this->dipoleField(x[0],x[1],x[2],Y,0,Y) + perB[1];
-                     no.parameters[ionosphereParameters::UPMAPPED_BZ] = this->dipoleField(x[0],x[1],x[2],Z,0,Z) + perB[2];
-   
-                     nodeNeedsContinuedTracing[n] = 0;
-                     nodeTracingCoordinates[n] = {0,0,0};
-                     break;
-                  }
-               }
-            }
-         }
-
-         // Globally reduce whether any node still needs to be picked up and traced onwards
-         std::vector<int> sumNodeNeedsContinuedTracing(nodes.size(), 0);
-         std::vector<std::array<Real, 3>> sumNodeTracingCoordinates(nodes.size());
-         MPI_Allreduce(nodeNeedsContinuedTracing.data(), sumNodeNeedsContinuedTracing.data(), nodes.size(), MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-         if(sizeof(Real) == sizeof(double)) {
-            MPI_Allreduce(nodeTracingCoordinates.data(), sumNodeTracingCoordinates.data(), 3*nodes.size(), MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-         } else {
-            MPI_Allreduce(nodeTracingCoordinates.data(), sumNodeTracingCoordinates.data(), 3*nodes.size(), MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
-         }
-         for(uint n=0; n<nodes.size(); n++) {
-            if(sumNodeNeedsContinuedTracing[n] > 0) {
-               anyNodeNeedsTracing=true;
-               nodeNeedsContinuedTracing[n] = 1;
-
-               // Update that nodes' tracing coordinates
-               nodeTracingCoordinates[n][0] = sumNodeTracingCoordinates[n][0] / sumNodeNeedsContinuedTracing[n];
-               nodeTracingCoordinates[n][1] = sumNodeTracingCoordinates[n][1] / sumNodeNeedsContinuedTracing[n];
-               nodeTracingCoordinates[n][2] = sumNodeTracingCoordinates[n][2] / sumNodeNeedsContinuedTracing[n];
-            }
-         }
-
-      } while(anyNodeNeedsTracing);
-      
-      std::vector<Real> reducedNodeDistance(nodes.size());
-      if(sizeof(Real) == sizeof(double)) {
-         MPI_Allreduce(nodeDistance.data(), reducedNodeDistance.data(), nodes.size(), MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-      } else {
-         MPI_Allreduce(nodeDistance.data(), reducedNodeDistance.data(), nodes.size(), MPI_FLOAT, MPI_MIN, MPI_COMM_WORLD);
-      }
-
-      // Reduce upmapped magnetic field to be consistent on all nodes
-      std::vector<Real> sendUpmappedB(3 * nodes.size());
-      std::vector<Real> reducedUpmappedB(3 * nodes.size());
-      // Likewise, reduce upmapped coordinates
-      std::vector<Real> sendxMapped(3 * nodes.size());
-      std::vector<Real> reducedxMapped(3 * nodes.size());
-      // And coupling rank number
-      std::vector<int> sendCouplingNum(nodes.size());
-      std::vector<int> reducedCouplingNum(nodes.size());
-      for(uint n=0; n<nodes.size(); n++) {
-         Node& no = nodes[n];
-         // Discard false hits from cells that are further out from the node
-         if(nodeDistance[n] > reducedNodeDistance[n]) {
-            no.haveCouplingData = 0;
-            for(int c=0; c<3; c++) {
-               no.parameters[ionosphereParameters::UPMAPPED_BX+c] = 0;
-               no.xMapped[c] = 0;
-            }
-         } else {
-            // Cell found, add association.
-            isCouplingInwards = true;
-         }
-
-
-         sendUpmappedB[3*n] = no.parameters[ionosphereParameters::UPMAPPED_BX];
-         sendUpmappedB[3*n+1] = no.parameters[ionosphereParameters::UPMAPPED_BY];
-         sendUpmappedB[3*n+2] = no.parameters[ionosphereParameters::UPMAPPED_BZ];
-         sendxMapped[3*n] = no.xMapped[0];
-         sendxMapped[3*n+1] = no.xMapped[1];
-         sendxMapped[3*n+2] = no.xMapped[2];
-         sendCouplingNum[n] = no.haveCouplingData;
-      }
-      if(sizeof(Real) == sizeof(double)) { 
-         MPI_Allreduce(sendUpmappedB.data(), reducedUpmappedB.data(), 3*nodes.size(), MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-         MPI_Allreduce(sendxMapped.data(), reducedxMapped.data(), 3*nodes.size(), MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-      } else {
-         MPI_Allreduce(sendUpmappedB.data(), reducedUpmappedB.data(), 3*nodes.size(), MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
-         MPI_Allreduce(sendxMapped.data(), reducedxMapped.data(), 3*nodes.size(), MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
-      }
-      MPI_Allreduce(sendCouplingNum.data(), reducedCouplingNum.data(), nodes.size(), MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-      for(uint n=0; n<nodes.size(); n++) {
-         Node& no = nodes[n];
-
-         // We don't even care about nodes that couple nowhere.
-         if(reducedCouplingNum[n] == 0) {
-            continue;
-         }
-         no.parameters[ionosphereParameters::UPMAPPED_BX] = reducedUpmappedB[3*n] / reducedCouplingNum[n];
-         no.parameters[ionosphereParameters::UPMAPPED_BY] = reducedUpmappedB[3*n+1] / reducedCouplingNum[n];
-         no.parameters[ionosphereParameters::UPMAPPED_BZ] = reducedUpmappedB[3*n+2] / reducedCouplingNum[n];
-         no.xMapped[0] = reducedxMapped[3*n] / reducedCouplingNum[n];
-         no.xMapped[1] = reducedxMapped[3*n+1] / reducedCouplingNum[n];
-         no.xMapped[2] = reducedxMapped[3*n+2] / reducedCouplingNum[n];
-      }
-
-      phiprof::stop("ionosphere-fsgridCoupling");
-   }
-
-   // Calculate mapping between ionospheric nodes and Vlasov grid cells.
-   // Input is the cell coordinate of the vlasov grid cell.
-   // To do so, magnetic field lines are traced inwords from the Vlasov grid
-   // IONOSPHERE boundary cells to the ionosphere shell.
-   //
-   // The return value is a pair of nodeID and coupling factor for the three
-   // corners of the containing element.
-   std::array<std::pair<int, Real>, 3> SphericalTriGrid::calculateVlasovGridCoupling(
-      std::array<Real,3> x,
-      Real couplingRadius
-   ) {
-
-      std::array<std::pair<int, Real>, 3> coupling;
-
-      Real stepSize = 100e3;
-      std::array<Real,3> v;
-      phiprof::start("ionosphere-VlasovGridCoupling");
-
-      // For tracing towards the vlasov boundary, we only require the dipole field.
-      TracingFieldFunction dipoleFieldOnly = [this](std::array<Real,3>& r, bool outwards, std::array<Real,3>& b)->void {
-      
-         // Get field direction
-         b[0] = this->dipoleField(r[0],r[1],r[2],X,0,X);
-         b[1] = this->dipoleField(r[0],r[1],r[2],Y,0,Y);
-         b[2] = this->dipoleField(r[0],r[1],r[2],Z,0,Z);
-
-         // Normalize
-         Real  norm = 1. / sqrt(b[0]*b[0] + b[1]*b[1] + b[2]*b[2]);
-         for(int c=0; c<3; c++) {
-            b[c] = b[c] * norm;
-         }
-
-         // Make sure motion is outwards. Flip b if dot(r,b) < 0
-         if(outwards) {
-            if(b[0]*r[0] + b[1]*r[1] + b[2]*r[2] < 0) {
-               b[0]*=-1;
-               b[1]*=-1;
-               b[2]*=-1;
-            }
-         } else {
-            if(b[0]*r[0] + b[1]*r[1] + b[2]*r[2] > 0) {
-               b[0]*=-1;
-               b[1]*=-1;
-               b[2]*=-1;
-            }
-         }
-      };
-
-      while(sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]) > Ionosphere::innerRadius) {
-
-         // Make one step along the fieldline
-         stepFieldLine(x,v, stepSize,100e3,couplingMethod,dipoleFieldOnly,false);
-
-         // If the field lines is moving even further outwards, abort.
-         // (this shouldn't happen under normal magnetospheric conditions, but who
-         // knows what crazy driving this will be run with)
-         if(sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]) > 1.5*couplingRadius) {
-            cerr << "(ionosphere) Warning: coupling of Vlasov grid cell failed due to weird magnetic field topology." << endl;
-
-            // Return a coupling that has 0 value and results in zero potential
-            phiprof::stop("ionosphere-VlasovGridCoupling");
-            return coupling;
-         }
-      }
-
-      // Determine the nearest ionosphere node to this point.
-      uint32_t nearestNode = findNodeAtCoordinates(x);
-      int32_t elementIndex = nodes[nearestNode].touchingElements[0];
-      int32_t oldElementIndex;
-      
-      std::unordered_set<int32_t> elementHistory;
-      bool override=false;
-      
-      for (uint toto=0; toto<15; toto++) {
-         Element& el = elements[elementIndex];
-         oldElementIndex = elementIndex;
-         Vec3d r1,r2,r3;
-         
-         if(elementHistory.find(elementIndex) == elementHistory.end()) {
-            elementHistory.insert(elementIndex);
-         } else {
-            // This element was already seen, entering a loop, let's get out
-            // It happens when the projection rx is left seen from the right triangle and right seen from the left triangle.
-            cerr << "Entered a loop, taking the current element " << elementIndex << "." << endl;
-            override=true;
-         }
-         
-         // Calculate barycentric coordinates for x in this element.
-         r1.load(nodes[el.corners[0]].x.data());
-         r2.load(nodes[el.corners[1]].x.data());
-         r3.load(nodes[el.corners[2]].x.data());
-
-         Vec3d rx(x[0],x[1],x[2]);
-         
-         cint handedness = sign(dot_product(cross_product(r2-r1, r3-r1), r1));
-         
-         creal kappa1 = handedness*sign(dot_product(cross_product(r1, r2-r1), rx-r1));
-         creal kappa2 = handedness*sign(dot_product(cross_product(r2, r3-r2), rx-r2));
-         creal kappa3 = handedness*sign(dot_product(cross_product(r3, r1-r3), rx-r3));
-
-         if(override || (kappa1 > 0 && kappa2 > 0 && kappa3 > 0)) {
-            // Total area
-            Real A = vector_length(cross_product(r2-r1,r3-r1));
-            
-            // Project x into the plane of this triangle
-            Vec3d normal = normalize_vector(cross_product(r2-r1, r3-r1));
-            rx -= normal*dot_product(rx-r1, normal);
-            
-            // Area of the sub-triangles
-            Real lambda1 = vector_length(cross_product(r2-rx, r3-rx)) / A;
-            Real lambda2 = vector_length(cross_product(r1-rx, r3-rx)) / A;
-            Real lambda3 = vector_length(cross_product(r1-rx, r2-rx)) / A;
-            
-            coupling[0] = {el.corners[0], lambda1};
-            coupling[1] = {el.corners[1], lambda2};
-            coupling[2] = {el.corners[2], lambda3};
-            phiprof::stop("ionosphere-VlasovGridCoupling");
-            return coupling;
-         } else if (kappa1 > 0 && kappa2 > 0 && kappa3 < 0) {
-            elementIndex = findElementNeighbour(elementIndex,0,2);
-         } else if (kappa2 > 0 && kappa3 > 0 && kappa1 < 0) {
-            elementIndex = findElementNeighbour(elementIndex,0,1);
-         } else if (kappa3 > 0 && kappa1 > 0 && kappa2 < 0) {
-            elementIndex = findElementNeighbour(elementIndex,1,2);
-         } else if (kappa1 < 0 && kappa2 < 0 && kappa3 > 0) {
-            if (handedness > 0) {
-               elementIndex = findElementNeighbour(elementIndex,0,1);
-            } else {
-               elementIndex = findElementNeighbour(elementIndex,1,2);
-            }
-         } else if (kappa1 < 0 && kappa2 > 0 && kappa3 < 0) {
-            if (handedness > 0) {
-               elementIndex = findElementNeighbour(elementIndex,0,2);
-            } else {
-               elementIndex = findElementNeighbour(elementIndex,0,1);
-            }
-         } else if (kappa1 > 0 && kappa2 < 0 && kappa3 < 0) {
-            if (handedness > 0) {
-               elementIndex = findElementNeighbour(elementIndex,1,2);
-            } else {
-               elementIndex = findElementNeighbour(elementIndex,0,2);
-            }
-         }  else {
-            cerr << "This fell through, strange."
-                 << " kappas " << kappa1 << " " << kappa2 << " " << kappa3
-                 << " handedness " << handedness
-                 << " r1 " << r1[0] << " " << r1[1] << " " << r1[2]
-                 << " r2 " << r2[0] << " " << r2[1] << " " << r2[2]
-                 << " r3 " << r3[0] << " " << r3[1] << " " << r3[2]
-                 << " rx " << rx[0] << " " << rx[1] << " " << rx[2]
-                 << endl;
-         }
-         if(elementIndex == -1) {
-            cerr << __FILE__ << ":" << __LINE__ << ": invalid elementIndex returned for coordinate "
-            << x[0] << " " << x[1] << " " << x[2] << " projected to rx " << rx[0] << " " << rx[1] << " " << rx[2]
-            << ". Last valid elementIndex: " << oldElementIndex << "." << endl;
-            phiprof::stop("ionosphere-VlasovGridCoupling");
-            return coupling;
-         }
-      }
-
-      // If we arrived here, we did not find an element to couple to (why?)
-      // Return an empty coupling instead
-      cerr << "(ionosphere) Failed to find an ionosphere element to couple to for coordinate " <<
-         x[0] << " " << x[1] << " " << x[2] << endl;
-      phiprof::stop("ionosphere-VlasovGridCoupling");
-      return coupling;
-   }
-
    // Calculate upmapped potential at the given coordinates,
    // by tracing down to the ionosphere and interpolating the appropriate element
    Real SphericalTriGrid::interpolateUpmappedPotential(
@@ -1730,7 +1095,7 @@ namespace SBC {
          if(vlasovGridCoupling.find(x) == vlasovGridCoupling.end()) {
 
             // If not, create one.
-            vlasovGridCoupling[x] = calculateVlasovGridCoupling(x, Ionosphere::radius);
+            vlasovGridCoupling[x] = FieldTracing::calculateIonosphereVlasovGridCoupling(x, nodes, Ionosphere::radius);
          }
 
          const std::array<std::pair<int, Real>, 3>& coupling = vlasovGridCoupling[x];
@@ -1799,7 +1164,7 @@ namespace SBC {
                perBGrid,
                dPerBGrid,
                technicalGrid,
-               reconstructionCoefficientsCache,
+               FieldTracing::fieldTracingParameters.reconstructionCoefficientsCache,
                lfsc[0],lfsc[1],lfsc[2],
                nodes[n].xMapped
             );
@@ -2782,7 +2147,10 @@ namespace SBC {
          }
       } // while
 
-      cint threadID = omp_get_thread_num();
+      int threadID = 0;
+#ifdef _OPENMP
+      threadID = omp_get_thread_num();
+#endif
       if(skipSolve && threadID == 0) {
          // sourcenorm was zero, we return zero; return is not allowed inside threaded region
          minerr = 0;
@@ -2814,7 +2182,7 @@ namespace SBC {
 } // #pragma omp parallel
 
    }
-
+   
    // Actual ionosphere object implementation
 
    Ionosphere::Ionosphere(): SysBoundaryCondition() { }
@@ -2853,13 +2221,11 @@ namespace SBC {
       Readparameters::add("ionosphere.solverToggleMinimumResidualVariant", "Toggle use of minimum residual variant at every solver restart", 0);
       Readparameters::add("ionosphere.earthAngularVelocity", "Angular velocity of inner boundary convection, in rad/s", 7.2921159e-5);
       Readparameters::add("ionosphere.plasmapauseL", "L-shell at which the plasmapause resides (for corotation)", 5.);
-      Readparameters::add("ionosphere.fieldLineTracer", "Field line tracing method to use for coupling ionosphere and magnetosphere (options are: Euler, BS)", std::string("Euler"));
       Readparameters::add("ionosphere.downmapRadius", "Radius from which FACs are coupled down into the ionosphere. Units are assumed to be RE if value < 1000, otherwise m. If -1: use inner boundary cells.", -1.);
       Readparameters::add("ionosphere.unmappedNodeRho", "Electron density of ionosphere nodes that do not connect to the magnetosphere domain.", 1e4);
       Readparameters::add("ionosphere.unmappedNodeTe", "Electron temperature of ionosphere nodes that do not connect to the magnetosphere domain.", 1e6);
       Readparameters::add("ionosphere.couplingTimescale", "Magnetosphere->Ionosphere coupling timescale (seconds, 0=immediate coupling", 1.);
       Readparameters::add("ionosphere.couplingInterval", "Time interval at which the ionosphere is solved (seconds)", 0);
-      Readparameters::add("ionosphere.tracerTolerance", "Tolerance for the Bulirsch Stoer Method", 1000);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
@@ -2935,7 +2301,6 @@ namespace SBC {
       Readparameters::get("ionosphere.solverToggleMinimumResidualVariant", solverToggleMinimumResidualVariant);
       Readparameters::get("ionosphere.earthAngularVelocity", earthAngularVelocity);
       Readparameters::get("ionosphere.plasmapauseL", plasmapauseL);
-      Readparameters::get("ionosphere.fieldLineTracer", tracerString);
       Readparameters::get("ionosphere.couplingTimescale",couplingTimescale);
       Readparameters::get("ionosphere.couplingInterval", couplingInterval);
       Readparameters::get("ionosphere.downmapRadius",downmapRadius);
@@ -2947,7 +2312,6 @@ namespace SBC {
       }
       Readparameters::get("ionosphere.unmappedNodeRho", unmappedNodeRho);
       Readparameters::get("ionosphere.unmappedNodeTe",  unmappedNodeTe);
-      Readparameters::get("ionosphere.tracerTolerance", eps);
       Readparameters::get("ionosphere.innerRadius", innerRadius);
       Readparameters::get("ionosphere.refineMinLatitude",refineMinLatitudes);
       Readparameters::get("ionosphere.refineMaxLatitude",refineMaxLatitudes);
@@ -3027,15 +2391,6 @@ namespace SBC {
          ionosphereGrid.initializeSphericalFibonacci(fibonacciNodeNum);
       } else {
          cerr << "(IONOSPHERE) Unknown mesh base shape \"" << baseShape << "\". Aborting." << endl;
-         abort();
-      }
-
-      if(tracerString == "Euler") {
-         ionosphereGrid.couplingMethod = SphericalTriGrid::Euler;
-      } else if (tracerString == "BS") {
-         ionosphereGrid.couplingMethod = SphericalTriGrid::BS;
-      } else {
-         cerr << __FILE__ << ":" << __LINE__ << " ERROR: Unknown value for ionosphere.fieldLineTracer: " << tracerString << endl;
          abort();
       }
 
