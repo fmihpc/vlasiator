@@ -10,7 +10,6 @@
 #include <limits>
 #include <numeric>
 #include <cmath>
-#include "ionosphere_gpu_solver.hpp"
 #include "timer.hpp"
 namespace ionogpu {
 
