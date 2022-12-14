@@ -3806,7 +3806,6 @@ namespace SBC {
             mpiGrid[cellID]->parameters[CellParams::BULKV_FORCING_Z]
          };
 
-
          // Select representative moments for the VDFs
          Real temperature = 0;
          Real density = 0;
