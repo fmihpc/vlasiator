@@ -474,22 +474,25 @@ int main(int argn,char* args[]) {
 
    // Run the field solver once with zero dt. This will initialize
    // Fieldsolver dt limits, and also calculate volumetric B-fields.
-   propagateFields(
-		   perBGrid,
-		   perBDt2Grid,
-		   EGrid,
-		   EDt2Grid,
-		   EHallGrid,
-		   EGradPeGrid,
-		   momentsGrid,
-		   momentsDt2Grid,
-		   dPerBGrid,
-		   dMomentsGrid,
-		   BgBGrid,
-		   volGrid,
-		   technicalGrid,
-		   sysBoundaryContainer, 0.0, 1.0
-		   );
+   // At restart, all we need at this stage has been read from the restart, the rest will be recomputed in due time.
+   if(P::isRestart == false) {
+      propagateFields(
+         perBGrid,
+         perBDt2Grid,
+         EGrid,
+         EDt2Grid,
+         EHallGrid,
+         EGradPeGrid,
+         momentsGrid,
+         momentsDt2Grid,
+         dPerBGrid,
+         dMomentsGrid,
+         BgBGrid,
+         volGrid,
+         technicalGrid,
+         sysBoundaryContainer, 0.0, 1.0
+      );
+   }
 
    phiprof::start("getFieldsFromFsGrid");
    volGrid.updateGhostCells();
