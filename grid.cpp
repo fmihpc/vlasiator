@@ -248,7 +248,6 @@ void initializeGrids(
       }
    }
 
-
    // Check refined cells do not touch boundary cells
    phiprof::start("Check boundary refinement");
    if(!sysBoundaries.checkRefinement(mpiGrid)) {
@@ -375,7 +374,7 @@ void initializeGrids(
    } else {
       phiprof::start("Init moments");
       for (size_t i=0; i<cells.size(); ++i) {
-         calculateCellMoments(mpiGrid[cells[i]], true);
+         calculateCellMoments(mpiGrid[cells[i]], true, true);
       }
       phiprof::stop("Init moments");
    }
@@ -1434,7 +1433,7 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
          }
 
          // Averaging moments
-         calculateCellMoments(mpiGrid[parent], true);
+         calculateCellMoments(mpiGrid[parent], true, false);
 
          processed.insert(parent);
       }

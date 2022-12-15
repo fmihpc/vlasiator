@@ -3998,7 +3998,7 @@ namespace SBC {
          mpiGrid[cellID]->adjustSingleCellVelocityBlocks(popID);
          // TODO: The moments can also be analytically calculated from ionosphere parameters.
          // Maybe that's faster?
-         calculateCellMoments(mpiGrid[cellID], true, true);
+         calculateCellMoments(mpiGrid[cellID], true, false, true);
       } // End of if for coupling interval, we skip this altogether
 
       phiprof::stop("vlasovBoundaryCondition (Ionosphere)");
@@ -4088,7 +4088,7 @@ namespace SBC {
          templateCell.adjustSingleCellVelocityBlocks(popID);
       } // for-loop over particle species
 
-      calculateCellMoments(&templateCell,true,true);
+      calculateCellMoments(&templateCell,true,false,true);
 
       // WARNING Time-independence assumed here. Normal moments computed in setProjectCell
       templateCell.parameters[CellParams::RHOM_R] = templateCell.parameters[CellParams::RHOM];
