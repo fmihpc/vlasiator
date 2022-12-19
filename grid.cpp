@@ -205,12 +205,6 @@ void initializeGrids(
    }
    phiprof::stop("Initialize system boundary conditions");
    
-   // Init mesh data container
-   if (getObjectWrapper().meshData.initialize("SpatialGrid") == false) {
-      cerr << "(Grid) Failed to initialize mesh data container in " << __FILE__ << ":" << __LINE__ << endl;
-      exit(1);
-   }
-
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_DIMENSIONS);
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
 
@@ -333,13 +327,6 @@ void initializeGrids(
 
    }
 
-
-   // Init mesh data container
-   if (getObjectWrapper().meshData.initialize("SpatialGrid") == false) {
-      cerr << "(Grid) Failed to initialize mesh data container in " << __FILE__ << ":" << __LINE__ << endl;
-      exit(1);
-   }
-   
    // Balance load before we transfer all data below
    balanceLoad(mpiGrid, sysBoundaries);
    // Function includes re-calculation of local cells cache
@@ -603,7 +590,6 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
 
    //Make sure transfers are enabled for all cells
    recalculateLocalCellsCache();
-   getObjectWrapper().meshData.reallocate();
    #pragma omp parallel for
    for (uint i=0; i<cells.size(); ++i) {
       mpiGrid[cells[i]]->set_mpi_transfer_enabled(true);

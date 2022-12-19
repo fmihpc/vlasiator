@@ -2564,11 +2564,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"m","$\\mathrm{m}$","$\\delta Z_\\mathrm{fg}$","1.0");
          continue;
       }
-      if(lowercase == "meshdata") {
-         outputReducer->addOperator(new DRO::VariableMeshData);
-         outputReducer->addMetadata(outputReducer->size()-1,"","","\\mathrm{Mesh data}$","");
-         continue;
-      }
       if(lowercase == "vg_amr_drho") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_drho",CellParams::AMR_DRHO,1));
          outputReducer->addMetadata(outputReducer->size()-1,"","","$\\frac{\\Delta \\rho}{\\hat{rho}}$","");

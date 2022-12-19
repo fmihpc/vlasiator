@@ -349,7 +349,7 @@ bool P::addParameters() {
                         "ig_electronTemp ig_potential ig_solverinternals ig_upmappedcodecoords ig_upmappedb ig_potential"+
                         "ig_inplanecurrent ig_e"+
                         "vg_amr_drho vg_amr_du vg_amr_dpsq vg_amr_dbsq vg_amr_db vg_amr_alpha vg_amr_reflevel vg_amr_bperj"+
-                        "vg_gridcoordinates fg_gridcoordinates meshdata");
+                        "vg_gridcoordinates fg_gridcoordinates ");
 
    RP::addComposing(
        "variables_deprecated.output",

@@ -39,7 +39,6 @@ struct ObjectWrapper {
    ObjectWrapper() { }
 
    ObjectFactory<amr_ref_criteria::Base> amrVelRefCriteria; /**< Factory for all known AMR refinement criteria.*/
-   mesh::MeshDataContainer meshData;                        /**< Container for user-defined mesh data.*/
    std::vector<species::Species> particleSpecies;           /**< Parameters for all particle species.*/
    projects::Project*                    project;           /**< Simulated project.*/
    std::vector<vmesh::MeshParameters> velocityMeshes;       /**< Parameters for velocity mesh(es).*/
