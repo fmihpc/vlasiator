@@ -329,14 +329,6 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    variableName = dataReducer.getName(dataReducerIndex);
    phiprof::start("DRO_"+variableName);
 
-   // If the DataReducer can write its data directly to the output file, do it here.
-   // Otherwise the output data is buffered and written below.
-   if (dataReducer.handlesWriting(dataReducerIndex) == true) {
-      success = dataReducer.writeData(dataReducerIndex,mpiGrid,cells,meshName,vlsvWriter);
-      phiprof::stop("DRO_"+variableName);
-      return success;
-   }
-
    //Get basic data on a variable:
    uint dataSize,vectorSize;
    attribs["mesh"] = meshName;

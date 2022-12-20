@@ -26,8 +26,6 @@
 #include <vector>
 
 #include <vlsv_writer.h>
-#include <dccrg.hpp>
-#include <dccrg_cartesian_geometry.hpp>
 
 #include "fsgrid.hpp"
 #include "../definitions.h"
@@ -84,14 +82,6 @@ namespace DRO {
       std::string variableLaTeX;
       std::string unitConversion;
       
-   };
-
-   class DataReductionOperatorHandlesWriting: public DataReductionOperator {
-   public:
-      DataReductionOperatorHandlesWriting() : DataReductionOperator() {};
-      virtual bool writeData(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                             const std::vector<CellID>& cells,const std::string& meshName,
-                             vlsv::Writer& vlsvWriter) = 0;
    };
 
    class DataReductionOperatorHasParameters: public DataReductionOperator {
