@@ -181,7 +181,7 @@ namespace SBC {
       MPI_Comm communicator = MPI_COMM_NULL; // The communicator internally used to solve the ionosphere potenital
       int rank = -1;                      // Own rank in the ionosphere communicator
       int writingRank;                    // Rank in the MPI_COMM_WORLD communicator that does ionosphere I/O
-      bool isCouplingInwards = false;     // True for any rank that actually couples fsgrid information into the ionosphere
+      bool isCouplingInwards = true;     // True for any rank that actually couples fsgrid information into the ionosphere
       bool isCouplingOutwards = true;     // True for any rank that actually couples ionosphere potential information out to the vlasov grid
       FieldFunction dipoleField;          // Simulation background field model to trace connections with
       std::array<Real, 3> BGB; /*!< Uniform background field */
