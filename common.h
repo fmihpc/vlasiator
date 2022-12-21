@@ -202,6 +202,10 @@ namespace CellParams {
       AMR_ALPHA,
       RECENTLY_REFINED,
       AMR_JPERB,
+      BULKV_FORCING_X, /*! Externally forced drift velocity (ex. from the ionosphere) */
+      BULKV_FORCING_Y, /*! Externally forced drift velocity (ex. from the ionosphere) */
+      BULKV_FORCING_Z, /*! Externally forced drift velocity (ex. from the ionosphere) */
+      FORCING_CELL_NUM, /*! Number of boundary cells that have forced a bulkv here */
       N_SPATIAL_CELL_PARAMS
    };
 }
@@ -483,6 +487,7 @@ struct globalflags {
    static bool writeRestart; /*!< Global flag raised to true if a restart writing is needed (without bailout). NOTE: used only by MASTER_RANK in vlasiator.cpp. */
    static bool balanceLoad; /*!< Global flag raised to true if a load balancing is needed. NOTE: used only by MASTER_RANK in vlasiator.cpp. */
    static int AMRstencilWidth; /*!< Global variable used for the extended AMR stencil width */
+   static bool ionosphereJustSolved; /*!< Flag used to notify that the ionosphere has been freshly solved, used to check whether the Vlasov boundary/bulk forcing need updating. */
 };
 
 /*!

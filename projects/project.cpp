@@ -217,7 +217,7 @@ namespace projects {
 
       // Passing true for the doNotSkip argument as we want to calculate 
       // the moment no matter what when this function is called.
-      calculateCellMoments(cell,true,true);
+      calculateCellMoments(cell,true,false,true);
    }
 
    std::vector<vmesh::GlobalID> Project::findBlocksToInitialize(spatial_cell::SpatialCell* cell,const uint popID) const {
@@ -652,7 +652,7 @@ namespace projects {
             SBC::averageCellData(mpiGrid, refinedNeighbours, &cellPair.second, popID, fluffiness);
          }
 
-         calculateCellMoments(&cellPair.second, true);
+         calculateCellMoments(&cellPair.second, true, false);
       }
 
       for (auto cellPair : cellsMap) {
