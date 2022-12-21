@@ -432,7 +432,7 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
    variableAttributes.push_back( make_pair("name", _varToExtract) );
    //Read in array size, vector size, data type and data size of the array "VARIABLE" in the vlsv file (Needed in reading the array)
    if (vlsvReader.getArrayInfo("VARIABLE", variableAttributes, variableArraySize, variableVectorSize, variableDataType, variableDataSize) == false) {
-      cerr << "ERROR, failed to get array info for '" << _varToExtract << "' at " << __FILE__ << " " << __LINE__ << endl;
+      cerr << "ERROR, failed to get array info for '" << _varToExtract << "' on mesh '" << meshName << "' at " << __FILE__ << " " << __LINE__ << endl;
       return false;
    }
 
