@@ -331,12 +331,12 @@ bool P::addParameters() {
                     string() +
                         "List of data reduction operators (DROs) to add to the grid file output.  Each variable to be "
                         "added has to be on a new line output = XXX. Names are case insensitive.  " +
-                        "Available (20210125): " + "fg_b fg_b_background fg_b_perturbed fg_e " +
+                        "Available (20221221): " + "fg_b fg_b_background fg_b_perturbed fg_e " +
                         "vg_rhom vg_rhoq populations_vg_rho " + "fg_rhom fg_rhoq " + "vg_v fg_v populations_vg_v " +
                         "populations_vg_moments_thermal populations_vg_moments_nonthermal " +
                         "populations_vg_effectivesparsitythreshold populations_vg_rho_loss_adjust " +
                         "populations_vg_energydensity populations_vg_precipitationdifferentialflux " +
-                        "populations_vg_heatflux" +  
+                        "populations_vg_heatflux " +  
                         "vg_maxdt_acceleration vg_maxdt_translation populations_vg_maxdt_acceleration "
                         "populations_vg_maxdt_translation " +
                         "fg_maxdt_fieldsolver " + "vg_rank fg_rank fg_amr_level vg_loadbalance_weight " +
@@ -344,12 +344,13 @@ bool P::addParameters() {
                         "populations_vg_blocks vg_f_saved " + "populations_vg_acceleration_subcycles " +
                         "vg_e_vol fg_e_vol " +
                         "fg_e_hall vg_e_gradpe fg_b_vol vg_b_vol vg_b_background_vol vg_b_perturbed_vol " +
-                        "vg_pressure fg_pressure populations_vg_ptensor " + "b_vol_derivatives " +
-                        "ig_fac ig_latitude ig_cellarea ig_upmappedarea ig_sigmap ig_sigmah ig_rhom " +
-                        "ig_electronTemp ig_potential ig_solverinternals ig_upmappedcodecoords ig_upmappedb ig_potential"+
-                        "ig_inplanecurrent ig_e"+
-                        "vg_amr_drho vg_amr_du vg_amr_dpsq vg_amr_dbsq vg_amr_db vg_amr_alpha vg_amr_reflevel vg_amr_bperj"+
-                        "vg_gridcoordinates fg_gridcoordinates meshdata");
+                        "vg_pressure fg_pressure populations_vg_ptensor " + "vg_b_vol_derivatives fg_derivs " +
+                        "ig_fac ig_latitude ig_chi0 ig_cellarea ig_upmappedarea ig_sigmap ig_sigmah ig_sigmaparallel ig_rhon " +
+                        "ig_electrontemp ig_solverinternals ig_upmappednodecoords ig_upmappedb ig_openclosed ig_potential "+
+                        "ig_precipitation ig_deltaphi "+
+                        "ig_inplanecurrent ig_b ig_e vg_drift vg_ionospherecoupling vg_connection vg_fluxrope fg_curvature "+
+                        "vg_amr_drho vg_amr_du vg_amr_dpsq vg_amr_dbsq vg_amr_db vg_amr_alpha vg_amr_reflevel vg_amr_jperb "+
+                        "vg_amr_translate_comm vg_gridcoordinates fg_gridcoordinates meshdata");
 
    RP::addComposing(
        "variables_deprecated.output",
@@ -366,7 +367,7 @@ bool P::addParameters() {
            "MPIrank FsGridRank " + "FsGridBoundaryType BoundaryType FsGridBoundaryLayer BoundaryLayer " +
            "populations_Blocks fSaved vg_fsaved" + "populations_accSubcycles populations_acceleration_subcycles" +
            "VolE vg_VolE Evol E_vol fg_VolE fg_Evol " +
-           "HallE fg_HallE GradPeE e_gradpe VolB vg_VolB fg_VolB B_vol Bvol vg_Bvol fg_volB fg_Bvol" +
+           "HallE fg_HallE GradPeE e_gradpe VolB vg_VolB fg_VolB B_vol Bvol vg_Bvol fg_volB fg_Bvol " +
            "BackgroundVolB PerturbedVolB " + "Pressure vg_Pressure fg_Pressure populations_PTensor " +
            "BVOLderivs b_vol_derivs");
 
@@ -375,7 +376,7 @@ bool P::addParameters() {
                     string() +
                         "List of data reduction operators (DROs) to add to the diagnostic runtime output. Each "
                         "variable to be added has to be on a new line diagnostic = XXX. Names are case insensitive. " +
-                        "Available (20201111): " + "populations_vg_blocks " +
+                        "Available (20221221): " + "populations_vg_blocks " +
                         "vg_rhom populations_vg_rho_loss_adjust " + "vg_loadbalance_weight " +
                         "vg_maxdt_acceleration vg_maxdt_translation " + "fg_maxdt_fieldsolver " +
                         "populations_vg_maxdt_acceleration populations_vg_maxdt_translation " +
