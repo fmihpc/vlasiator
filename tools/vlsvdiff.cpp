@@ -309,8 +309,8 @@ bool cloneMesh(const string& inputFileName,vlsv::Writer& output,const string& me
    if (copyArray(input,output,"MESH_GHOST_DOMAINS",inputAttribs, meshName == "ionosphere") == false) success = false;
    
    //Only do this if we diff SpatialGrid data
-   if (gridName==gridType::SpatialGrid){
-      if (copyArray(input,output,"MESH_DOMAIN_SIZES",inputAttribs) == false) success = false;
+   if (gridName==gridType::SpatialGrid || gridName==gridType::ionosphere){
+      if (copyArray(input,output,"MESH_DOMAIN_SIZES",inputAttribs, meshName == "ionosphere") == false) success = false;
 
       inputAttribs.clear();
       inputAttribs.push_back(make_pair("name",meshName));
