@@ -69,8 +69,8 @@ LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX
 INC_JEMALLOC = -I$(LIBRARY_PREFIX)/jemalloc/include
 LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/jemalloc/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/jemalloc/lib
 
-#INC_PAPI = -I$(LIBRARY_PREFIX)/papi/include
-#LIB_PAPI = -L$(LIBRARY_PREFIX)/papi/lib -lpapi -Wl,-rpath=$(LIBRARY_PREFIX)/papi/lib
+INC_PAPI =
+LIB_PAPI = -lpapi
 
 INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
 LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)/vlsv
