@@ -24,7 +24,7 @@ FLAGS =
 #GNU flags:
 CC_BRAND = gcc
 CC_BRAND_VERSION = 9.3.0
-CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -mno-fma -mno-avx2
+CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -mfma -mavx2
 testpackage: CXXFLAGS = -g -O2 -fopenmp -funroll-loops -std=c++20 -mno-fma -mno-avx2 -mno-avx
 
 MATHFLAGS = -ffast-math
@@ -75,7 +75,7 @@ LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/jemalloc/lib -ljemalloc -Wl,-rpath=$(LIBRARY_
 INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
 LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)/vlsv
 
-LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lnophiprof -lgfortran -Wl,-rpath=$(LIBRARY_PREFIX)/phiprof/lib
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -lgfortran -Wl,-rpath=$(LIBRARY_PREFIX)/phiprof/lib
 INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include 
 
 
