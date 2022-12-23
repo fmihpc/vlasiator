@@ -1,4 +1,5 @@
 #include <iostream>
+#include <chrono>
 #include "vlsv_writer.h"
 #include "vlsv_reader_parallel.h"
 #include "../../sysboundary/ionosphere.h"
@@ -77,6 +78,8 @@ int main(int argc, char** argv) {
    std::string inputFile;
    std::vector<std::pair<double, double>> refineExtents;
    Ionosphere::solverMaxIterations = 1000;
+   Ionosphere::solverRelativeL2ConvergenceThreshold = 1e-6;
+   Ionosphere::solverMaxErrorGrowthFactor = 100;
    bool doPrecondition = true;
    bool writeDependencyMatrix = false;
    if(argc ==1) {
@@ -119,6 +122,15 @@ int main(int argc, char** argv) {
       }
       if(!strcmp(argv[i], "-writeDependencyMatrix")) {
          writeDependencyMatrix = true;
+         continue;
+      }
+      if(!strcmp(argv[i], "-solverRelativeL2ConvergenceThreshold")) {
+         Ionosphere::solverRelativeL2ConvergenceThreshold = atoi(argv[++i]);
+         continue;
+      }
+      if(!strcmp(argv[i], "-solverRelativeL2ConvergenceThreshold")) {
+         Ionosphere::solverMaxErrorGrowthFactor = atoi(argv[++i]);
+         continue;
       }
       cerr << "Unknown command line option \"" << argv[i] << "\"" << endl;
       cerr << endl;
@@ -147,7 +159,8 @@ int main(int argc, char** argv) {
       cerr << " -np:       DON'T use the matrix preconditioner (default: do)" << endl;
       cerr << " -maxIter:  Maximum number of solver iterations" << endl;
       cerr << " -writeDependencyMatrix" << endl;
-      
+      cerr << " -L2tresh   Solver relative L2 convergence threshold (default: 1e-6)" << endl;      
+      cerr << " -errGrowth Solver max error growth factor (default: 100)" << endl;      
       return 1;
    }
 
@@ -344,7 +357,44 @@ int main(int argc, char** argv) {
    ionosphereGrid.rank = 0;
    int iterations, nRestarts;
    Real residual, minPotentialN, minPotentialS, maxPotentialN, maxPotentialS;
+   const auto time1 = std::chrono::steady_clock::now();
    ionosphereGrid.solve(iterations, nRestarts, residual, minPotentialN, maxPotentialN, minPotentialS, maxPotentialS);
+   const auto time2 = std::chrono::steady_clock::now();
+   std::cout << "Time1: " << std::chrono::duration_cast<std::chrono::milliseconds>(time2 - time1).count() << "\n";
+
+   auto norm = [] (const std::vector<double>& v) {
+      double temp = 0;
+      for (const auto x : v) {
+         temp += x * x;
+      }
+      return std::sqrt(temp);
+   };
+
+   // M * x = b
+   auto calculate_residual = [&] {
+      auto b = std::vector<double>(nodes.size());
+      auto Mx = std::vector<double>(nodes.size(), 0.0);
+      auto bmMx = std::vector<double>(nodes.size(), 0.0);
+      for (size_t i = 0; i < nodes.size(); ++i) {
+         b[i] = nodes[i].parameters[ionosphereParameters::SOURCE];
+         for (size_t j = 0; j < nodes[i].numDepNodes; ++j) {
+            Mx[i] += nodes[i].dependingCoeffs[j] * nodes[nodes[i].dependingNodes[j]].parameters[ionosphereParameters::SOLUTION];
+         }
+         bmMx[i] = nodes[i].parameters[ionosphereParameters::SOURCE] - Mx[i];
+         //std::cout << "Mx: " << nodes[i].parameters[ionosphereParameters::SOLUTION] << "\n";
+      }
+      const auto A = norm(bmMx);
+      const auto B = norm(b);
+      return A / B;
+   };
+
+   std::cout << "Reduntant_residual: " << calculate_residual() << "\n";
+
+ /*   const auto time3 = std::chrono::steady_clock::now();
+   ionosphereGrid.solve(iterations, nRestarts, residual, minPotentialN, maxPotentialN, minPotentialS, maxPotentialS);
+   const auto time4 = std::chrono::steady_clock::now();
+   std::cout << "Time2: " << std::chrono::duration_cast<std::chrono::milliseconds>(time4 - time3).count() << "\n";
+     */
    cout << "Ionosphere solver: iterations " << iterations << " restarts " << nRestarts
       << " residual " << std::scientific << residual << std::defaultfloat
       << " potential min N = " << minPotentialN << " S = " << minPotentialS

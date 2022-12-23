@@ -2424,19 +2424,19 @@ namespace SBC {
       const auto A = gatherDependingMatrix();
       const auto b = gatherSource();
 
-      const auto config_for_gpu_solver = ionogpu::ConfigurationForIonosphereGPUSolver <Real>{
-         Ionosphere::solverMaxIterations,
-         Ionosphere::solverMaxFailureCount,
+      const auto config_for_gpu_solver = ionogpu::ConfigurationForIonosphereGPUSolver<Real>{
+         static_cast<size_t>(Ionosphere::solverMaxIterations),
+         static_cast<size_t>(Ionosphere::solverMaxFailureCount),
          Ionosphere::solverMaxErrorGrowthFactor,
          Ionosphere::solverRelativeL2ConvergenceThreshold,
-         ionogpu::Precondition::diagonal,
+         (Ionosphere::solverPreconditioning) ? ionogpu::Precondition::diagonal : ionogpu::Precondition::none,
          true,
          ionogpu::Gauge::pole // This has to be changed
       };
 
 
       // Here we will pass out the responsibility of constructing the arguments forward
-      const auto x = solveIonospherePotentialGPU(
+      const auto x = ionogpu::solveIonospherePotentialGPU(
          A,
          b,
          config_for_gpu_solver,
