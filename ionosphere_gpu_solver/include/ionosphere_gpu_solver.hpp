@@ -29,8 +29,8 @@ namespace ionogpu {
 
    template<typename T>
    struct ConfigurationForIonosphereGPUSolver {
-      size_t max_iterations;
-      size_t max_failure_count;
+      int max_iterations;
+      int max_failure_count;
       T max_error_growth_factor;
       T relative_L2_convergence_threshold;
       Precondition precondition;
