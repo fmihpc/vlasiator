@@ -998,7 +998,6 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGSTABCUDA(
         timer::time("sparseBiCGSTABCUDA::5*");
     // Restart mechanism
     } while (min_error > config.relative_L2_convergence_threshold && iteration < config.max_iterations);
-    
 
     return ReturnOfSparseBiCGCUDA<T>{
         iteration,

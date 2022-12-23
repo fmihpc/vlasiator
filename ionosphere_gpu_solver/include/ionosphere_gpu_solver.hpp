@@ -3,6 +3,7 @@
 #include <array>
 #include <cassert>
 #include <iostream>
+#include <type_traits>
 #include <tuple>
 namespace ionogpu {
 
@@ -28,8 +29,8 @@ namespace ionogpu {
 
    template<typename T>
    struct ConfigurationForIonosphereGPUSolver {
-      int max_iterations;
-      int max_failure_count;
+      size_t max_iterations;
+      size_t max_failure_count;
       T max_error_growth_factor;
       T relative_L2_convergence_threshold;
       Precondition precondition;
@@ -103,10 +104,12 @@ namespace ionogpu {
 
    template <typename F, typename I, size_t MAX_WIDTH> 
    struct SparseMatrix {
-      using Row = std::array<F, MAX_WIDTH>*;
+      using float_t = F;
+      using integer_t = I;
+      using Row = std::array<float_t, MAX_WIDTH>*;
       std::vector<Row> rows;
       std::vector<Row> rows_after_transposition;
-      using Row_i = std::array<I, MAX_WIDTH>*;
+      using Row_i = std::array<integer_t, MAX_WIDTH>*;
       std::vector<Row_i> indecies;
       std::vector<size_t> elements_on_each_row;
 
@@ -137,14 +140,18 @@ namespace ionogpu {
     *  Precondition matrix is assumed to be diagonal part of A
     */
 
-   template <typename SM, typename I, typename F>
-   std::vector<F> solveIonospherePotentialGPU(
-      SM& A,
-      const std::vector<F>& b,
-      const ConfigurationForIonosphereGPUSolver<F>& config, 
+   template <
+      typename SM,
+      typename I,
+      typename = std::enable_if_t<std::is_same_v<typename SM::float_t, float> || std::is_same_v<typename SM::float_t, double>>
+   >
+   std::vector<typename SM::float_t> solveIonospherePotentialGPU(
+      const SM& A,
+      const std::vector<typename SM::float_t>& b,
+      const ConfigurationForIonosphereGPUSolver<typename SM::float_t>& config, 
       I &nIterations,
       I &nRestarts,
-      F &residual
+      typename SM::float_t &residual
    ) {
       const auto n = A.rows.size();
       // We assume that we have at least one element in first row
@@ -173,6 +180,7 @@ namespace ionogpu {
          sparseBiCGSTABCUDA(
             n, m,
             A_vec,
+            //A_trasposed_vec,
             indecies_vec,
             b,
             config
@@ -186,9 +194,3 @@ namespace ionogpu {
       return x_vec;
    }
 };
-
-
-/* 
-TODO
-Other gauges
- */
