@@ -880,6 +880,9 @@ bool pDistance(const map<uint, Real>& orderedData1,
       map<string,string> attributes;
       attributes["mesh"] = meshName;
       attributes["name"] = varName;
+      if(meshName == "ionosphere") {
+         attributes["centering"] = "node";
+      }
 
 
       if (outputFile.writeArray("VARIABLE",attributes,array.size(),1,&(array[0])) == false) {
