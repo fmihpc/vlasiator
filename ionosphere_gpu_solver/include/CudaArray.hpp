@@ -561,7 +561,7 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGCUDA(
     const auto height = ((n / warp_size) + 1) * warp_size;
 
     const auto indecies_on_device = CudaArray<size_t, 1> {
-        {indecies, height * m}
+        {indecies, height * m, true}
     };
     const auto [indecies_device_p] = indecies_on_device.get_pointers_to_data();
 
@@ -573,7 +573,7 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGCUDA(
         {sparse_A, height * m, true},
         {sparse_A_transposed, height * m, true},
         {b, padded_size_for_dot_product, true},
-        {/* x */std::vector<T>(n, 1), height, true}, // Initial guess of x is zero
+        {/* x */{}, height, true}, // Initial guess of x is zero
         {/* r */{}, padded_size_for_dot_product, true},
         {/* rr */{}, padded_size_for_dot_product, true},
         {/* z */{}, padded_size_for_dot_product, true},
@@ -621,14 +621,14 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGCUDA(
         // r[j]=b[j]-r[j];
         vectorSubtraction<T><<<height / warp_size, warp_size>>>(b_device_p, r_device_p, r_device_p);
 
-        if (!config.use_minimum_residual_variant) {
-            // rr[j]=r[j];
-            copyData<<<height / warp_size, warp_size>>>(r_device_p, rr_device_p);
-        } else {
+        if (config.use_minimum_residual_variant) {
             // atimes(n,r,rr,0);
             sparseMatrixVectorProduct<T><<<height / warp_size, warp_size>>>(
                 m, sparse_A_device_p, indecies_device_p, r_device_p, rr_device_p
             );
+        } else {
+            // rr[j]=r[j];
+            copyData<<<height / warp_size, warp_size>>>(r_device_p, rr_device_p);
         }
 
         // Asumed we use itol == 1 convergence test
@@ -659,6 +659,7 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGCUDA(
         // This gets initialized in the loop. (First loop should get refactored out)
         T bkden;
         auto failcount = int{ 0 };
+        auto first_iteration = true;
         for (;iteration < config.max_iterations;) {
             // somehow iteration can not be in above for statement when linkin this with mpicc
             iteration += 1;
@@ -668,7 +669,8 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGCUDA(
             // for (bknum=0.0,j=1;j<=n;j++) bknum += z[j]*rr[j];
             const auto bknum = dotProduct<T>(z_device_p, rr_device_p, n, partial_sums_for_dot_product_device_p);
 
-            if (iteration == 1) {
+            if (first_iteration) {
+                first_iteration = false;
                 // p[j]=z[j];
                 copyData<<<height / warp_size, warp_size>>>(z_device_p, p_device_p);
                 // pp[j]=zz[j];
