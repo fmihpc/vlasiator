@@ -361,7 +361,7 @@ eulerAdaptive.o: ${DEPS_TRACING} fieldtracing/eulerAdaptive.h fieldtracing/euler
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c fieldtracing/eulerAdaptive.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_ZOLTAN}
 
 fieldtracing.o: ${DEPS_TRACING}
-	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c fieldtracing/fieldtracing.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_ZOLTAN} ${INC_VECTORCLASS}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c fieldtracing/fieldtracing.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_EIGEN}
 
 outflow.o: ${DEPS_COMMON} sysboundary/outflow.h sysboundary/outflow.cpp projects/project.h projects/project.cpp fieldsolver/ldz_magnetic_field.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c sysboundary/outflow.cpp ${INC_FSGRID} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
