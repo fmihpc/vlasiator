@@ -56,56 +56,58 @@ void VectorDipole::initialize(const double moment,const double center_x, const d
 
 
 
-double VectorDipole::call( double x, double y, double z) const
-{
+double VectorDipole::operator()( double x, double y, double z, coordinate component, unsigned int derivative, coordinate dcomponent) const {
    const double minimumR=1e-3*physicalconstants::R_E; //The dipole field is defined to be outside of Earth, and units are in meters     
    if(this->initialized==false)
       return 0.0;
    double r[3];
-   
+
    r[0]= x-center[0];
    r[1]= y-center[1];
    r[2]= z-center[2];
-   
+
    double r2 = r[0]*r[0]+r[1]*r[1]+r[2]*r[2];
-   
+
    if(r2<minimumR*minimumR)
       //  r2=minimumR*minimumR;
       return 0.0; //set zero field inside dipole
    
    if(r[0]>=xlimit[1]){
       //set zero or IMF field and derivatives outside "zero x limit"
-      if(_derivative == 0)
-	 return IMF[_fComponent]; 
-      else
-	 return 0.0;
+      if(derivative == 0) {
+         return IMF[component]; 
+      } else {
+         return 0.0;
+      }
    }
    /* This function is called from within other calls, one component at a time.
-      The component in question is defined using the _fComponent index. If a derivative
-      is requested, the direction of the derivative is defined using _dComponent. */
+      The component in question is defined using the component index. If a derivative
+      is requested, the direction of the derivative is defined using dcomponent. */
 
    const double r1 = sqrt(r2);
    const double r5 = (r2*r2*r1);
    const double rdotq=q[0]*r[0] + q[1]*r[1] +q[2]*r[2];   
-   const double B=( 3*r[_fComponent]*rdotq-q[_fComponent]*r2)/r5;
+   const double B=( 3*r[component]*rdotq-q[component]*r2)/r5;
 
-   if((_derivative == 0) && (r[0] <= xlimit[0]))
+   if((derivative == 0) && (r[0] <= xlimit[0])) {
       // Full dipole field within full xlimit
       return B;
+   }
 
-   if((_derivative == 1) && (r[0] <= xlimit[0])){
+   if((derivative == 1) && (r[0] <= xlimit[0])){
       //first derivatives of full field
       unsigned int sameComponent;
-      if(_dComponent==_fComponent)
+      if(dcomponent==component) {
          sameComponent=1;
-      else
+      } else {
          sameComponent=0;
+      }
       
       /* Confirmed Battarbee 26.04.2019: This is the correct
 	 3D dipole derivative.  */
-      return -5*B*r[_dComponent]/r2+
-         (3*q[_dComponent]*r[_fComponent] -
-          2*q[_fComponent]*r[_dComponent] +
+      return -5*B*r[dcomponent]/r2+
+         (3*q[dcomponent]*r[component] -
+          2*q[component]*r[dcomponent] +
           3*rdotq*sameComponent)/r5;
    }
 
@@ -123,7 +125,7 @@ double VectorDipole::call( double x, double y, double z) const
    IMFA[0] = 0.5*(IMF[1]*r[2] - IMF[2]*r[1]);
    IMFA[1] = 0.5*(IMF[2]*r[0] - IMF[0]*r[2]);
    IMFA[2] = 0.5*(IMF[0]*r[1] - IMF[1]*r[0]);
-   const double IMFB = IMF[_fComponent];
+   const double IMFB = IMF[component];
    
    // Coordinate within smootherstep function (x-coordinate only)
    const double s = -(r[0]-xlimit[1])/(xlimit[1]-xlimit[0]);
@@ -151,35 +153,35 @@ double VectorDipole::call( double x, double y, double z) const
    IMFdS2cart[1] = 0;     //(r[1]/r1)*dS2dr;
    IMFdS2cart[2] = 0;     //(r[2]/r1)*dS2dr;      
 
-   if((_derivative == 0) && (r1 > xlimit[0])) {
+   if(derivative == 0) {
      /* Within transition range (between xlimit[0] and xlimit[1]) we
-	multiply the magnetic field with the S2 smootherstep function
-	and add an additional corrective term to remove divergence. This
-	is based on using the dipole field vector potential and scaling
-	it using the smootherstep function S2.
+        multiply the magnetic field with the S2 smootherstep function
+        and add an additional corrective term to remove divergence. This
+        is based on using the dipole field vector potential and scaling
+        it using the smootherstep function S2.
 
-	Notation:
-	 q = dipole moment (vector)
- 	 r = position vector
-	 x = x-coordinate r[0]
-	 R = position distance
+        Notation:
+        q = dipole moment (vector)
+        r = position vector
+        x = x-coordinate r[0]
+        R = position distance
 
-	The regular dipole field vector potential
-	A(r) = (mu0/4 pi R^3) * (q cross r)
+        The regular dipole field vector potential
+        A(r) = (mu0/4 pi R^3) * (q cross r)
 
-	The smootherstep function
-	        ( 0,                  s<=0
-	S2(s) = ( 6s^5 -15s^4 +10s^3, 0<=s<=1
+        The smootherstep function
+                ( 0,                  s<=0
+        S2(s) = ( 6s^5 -15s^4 +10s^3, 0<=s<=1
                 ( 1,                  s>=1
 
-	Radial distance scaling for S2
+        Radial distance scaling for S2
         s = -(x-xlimit[1])/(xlimit[1]-xlimit[0])
-	ds = -dx/(xlimit[1]-xlimit[0])
+        ds = -dx/(xlimit[1]-xlimit[0])
 
-	The scaled vector potential is A'(r) = A(r)*S2(s)
+        The scaled vector potential is A'(r) = A(r)*S2(s)
 
-	The scaled magnetic field is
-	B'(r) = del cross A'(r)
+        The scaled magnetic field is
+        B'(r) = del cross A'(r)
               =(NRL)= S2(s) del cross A(r) + del S2(s) cross A(r)
                     = S2(s) B(r)           + del S2(s) cross A(r)
 
@@ -199,45 +201,46 @@ double VectorDipole::call( double x, double y, double z) const
        IMFdelS2crossA[1] = -IMFdS2cart[0]*IMFA[2];
        IMFdelS2crossA[2] = IMFdS2cart[0]*IMFA[1];
 
-       //return S2*B + delS2crossA[_fComponent];
-       return S2*B + delS2crossA[_fComponent] + IMFS2*IMFB + IMFdelS2crossA[_fComponent];
+       //return S2*B + delS2crossA[component];
+       return S2*B + delS2crossA[component] + IMFS2*IMFB + IMFdelS2crossA[component];
    }
 
-   else if((_derivative == 1) && (r1 > xlimit[0])) {
+   else if(derivative == 1) {
        /* first derivatives of field calculated from diminishing vector potential
 
-	  del B'(r) = S2(s) del B(r) + B(r) del S2(s) + del (del S2(s) cross A(r))
-	  
-	  component-wise:
+          del B'(r) = S2(s) del B(r) + B(r) del S2(s) + del (del S2(s) cross A(r))
 
-	  del Bx = S2(s) del Bx + del S2(s) Bx + del(del S2(s) cross A)@i=x
-	  del By = S2(s) del By + del S2(s) By + del(del S2(s) cross A)@i=y
-	  del Bz = S2(s) del Bz + del S2(s) Bz + del(del S2(s) cross A)@i=z
+          component-wise:
 
-	  where
+          del Bx = S2(s) del Bx + del S2(s) Bx + del(del S2(s) cross A)@i=x
+          del By = S2(s) del By + del S2(s) By + del(del S2(s) cross A)@i=y
+          del Bz = S2(s) del Bz + del S2(s) Bz + del(del S2(s) cross A)@i=z
 
-	  del(del S2(s) cross A)@i=x = del (dS2/dy Az - dS2/dz Ay)
-	         = del(dS2/dy) Az + dS2/dy del Az - del(DS/dz) Ay - dS2/dz del Ay
+          where
 
-	  del(del S2(s) cross A)@i=y = del (dS2/dz Ax - dS2/dx Az)
-	         = del(dS2/dz) Ax + dS2/dz del Ax - del(DS/dx) Az - dS2/dx del Az
+          del(del S2(s) cross A)@i=x = del (dS2/dy Az - dS2/dz Ay)
+             = del(dS2/dy) Az + dS2/dy del Az - del(DS/dz) Ay - dS2/dz del Ay
 
-	  del(del S2(s) cross A)@i=z = del (dS2/dx Ay - dS2/dy Ax)
-	         = del(dS2/dx) Ay + dS2/dx del Ay - del(DS/dy) Ax - dS2/dy del Ax
+          del(del S2(s) cross A)@i=y = del (dS2/dz Ax - dS2/dx Az)
+             = del(dS2/dz) Ax + dS2/dz del Ax - del(DS/dx) Az - dS2/dx del Az
 
-	  note that dS2/dy == dS2/dz == 0
-       **********/
+          del(del S2(s) cross A)@i=z = del (dS2/dx Ay - dS2/dy Ax)
+             = del(dS2/dx) Ay + dS2/dx del Ay - del(DS/dy) Ax - dS2/dy del Ax
+
+          note that dS2/dy == dS2/dz == 0
+        **********/
 
       unsigned int sameComponent;
-      if(_dComponent==_fComponent)
+      if(dcomponent==component) {
          sameComponent=1;
-      else
+      } else {
          sameComponent=0;
+      }
 
       // Regular derivative of B
-      const double delB = -5*B*r[_dComponent]/r2+
-         (3*q[_dComponent]*r[_fComponent] -
-          2*q[_fComponent]*r[_dComponent] +
+      const double delB = -5*B*r[dcomponent]/r2+
+         (3*q[dcomponent]*r[component] -
+          2*q[component]*r[dcomponent] +
           3*rdotq*sameComponent)/r5;
 
       // IMF field is constant
@@ -341,10 +344,10 @@ double VectorDipole::call( double x, double y, double z) const
       IMFddS2crossA[2][0] = deldS2dx[0]*IMFA[1] + IMFdS2cart[0]*IMFdelAy[0];
       IMFddS2crossA[2][1] = deldS2dx[1]*IMFA[1] + IMFdS2cart[0]*IMFdelAy[1];
       IMFddS2crossA[2][2] = deldS2dx[2]*IMFA[1] + IMFdS2cart[0]*IMFdelAy[2];
-      
-      //return S2*delB + dS2cart[_dComponent]*B + ddS2crossA[_fComponent][_dComponent];
-      return S2*delB + dS2cart[_dComponent]*B + ddS2crossA[_fComponent][_dComponent] + 
-	 IMFS2*IMFdelB + IMFdS2cart[_dComponent]*IMFB + IMFddS2crossA[_fComponent][_dComponent];
+
+      //return S2*delB + dS2cart[dcomponent]*B + ddS2crossA[component][dcomponent];
+      return S2*delB + dS2cart[dcomponent]*B + ddS2crossA[component][dcomponent] + 
+         IMFS2*IMFdelB + IMFdS2cart[dcomponent]*IMFB + IMFddS2crossA[component][dcomponent];
    }
 
    return 0; // dummy, but prevents gcc from yelling

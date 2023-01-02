@@ -20,15 +20,15 @@ test_dir=$( readlink -f $test_dir)
 if [[ ! $small_run_command ]]; then
 	echo "No small_run_command provided in machine config, please update it!"
 	exit
-fi 
- 
+fi
+
 flags=$(  $run_command $bin  --version |grep CXXFLAGS)
 solveropts=$(echo $flags|sed 's/[-+]//g' | gawk '{for(i = 1;i<=NF;i++) { if( $i=="DDP" || $i=="DFP" || index($i,"PF")|| index($i,"DVEC") || index($i,"SEMILAG") ) printf "__%s", $(i) }}')
 revision=$( $run_command $bin --version |gawk '{if(flag==1) {print $1;flag=0}if ($3=="log") flag=1;}' )
 
 if [ $create_verification_files == 1 ]
 then
-    #if we create the references, then lets simply run in the reference dir and turn off tests below. Revision is 
+    #if we create the references, then lets simply run in the reference dir and turn off tests below. Revision is
     #automatically obtained from the --version output
     reference_revision=${revision}${solveropts}
     echo "Computing reference results into ${reference_dir}/${reference_revision}"
@@ -40,7 +40,7 @@ then
     echo $run_dir exists?
     exit
 fi
-mkdir -p $run_dir 
+mkdir -p $run_dir
 
 # loop over different test cases
 for run in ${run_tests[*]}
@@ -49,18 +49,18 @@ do
 # directory for test results
     vlsv_dir=${run_dir}/${test_name[$run]}
     cfg_dir=${test_dir}/${test_name[$run]}
-    
+
 # Check if folder for new run exists, if not create them, otherwise delete old results
     if [ ! -d ${vlsv_dir} ]; then
         mkdir -p ${vlsv_dir}
     else
         rm -f ${vlsv_dir}/*
     fi
-    
+
 # change to run directory of the test case, e.g. test_Fluctuations
     cd ${vlsv_dir}
     cp ${cfg_dir}/* .
-    
+
     export OMP_NUM_THREADS=$t
     export MPICH_MAX_THREAD_SAFETY=funneled
 
@@ -91,7 +91,7 @@ do
         fi
 
         mkdir -p $result_dir
-        cp * $result_dir      
+        cp * $result_dir
     fi
 
     cd $base_dir
@@ -102,9 +102,9 @@ do
     if [ ! $create_verification_files == 1 ]
     then
 ##Compare test case with right solutions
-        echo "--------------------------------------------------------------------------------------------" 
-        echo "${test_name[$run]}  -  Verifying ${revision}_$solveropts against $reference_revision"    
-        echo "--------------------------------------------------------------------------------------------" 
+        echo "--------------------------------------------------------------------------------------------"
+        echo "${test_name[$run]}  -  Verifying ${revision}_$solveropts against $reference_revision"
+        echo "--------------------------------------------------------------------------------------------"
         result_dir=${reference_dir}/${reference_revision}/${test_name[$run]}
 
      #print header
@@ -113,13 +113,13 @@ do
         echo "------------------------------------------------------------"
         echo " ref-time     |   new-time       |  speedup                |"
         echo "------------------------------------------------------------"
-	if [ -e  ${result_dir}/${comparison_phiprof[$run]} ] 
+	if [ -e  ${result_dir}/${comparison_phiprof[$run]} ]
 	then
             refPerf=$(grep "Propagate   " ${result_dir}/${comparison_phiprof[$run]} |gawk  '(NR==1){print $11}')
 	else
 	    refPerf="NA"
 	fi
-	if [ -e ${vlsv_dir}/${comparison_phiprof[$run]} ] 
+	if [ -e ${vlsv_dir}/${comparison_phiprof[$run]} ]
 	then
             newPerf=$(grep "Propagate   " ${vlsv_dir}/${comparison_phiprof[$run]}  |gawk  '(NR==1){print $11}')
 	else
@@ -136,31 +136,35 @@ do
 	indices=(${variable_components[$run]// / })
         for i in ${!variables[*]}
         do
-            if [ "${variables[$i]}" == "fg_e" ] || [ "${variables[$i]}" == "fg_b" ]
+            if [[ "${variables[$i]}" == "fg_"* ]]
             then
                 relativeValue=$($run_command_tools $diffbin --meshname=fsgrid  ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The relative 0-distance between both datasets" |gawk '{print $8}'  )
                 absoluteValue=$($run_command_tools $diffbin --meshname=fsgrid  ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The absolute 0-distance between both datasets" |gawk '{print $8}'  )
-#print the results      
+#print the results
                 echo "${variables[$i]}_${indices[$i]}                $absoluteValue                 $relativeValue    "
-            
+
+            elif [[ "${variables[$i]}" == "ig_"* ]]
+            then
+                relativeValue=$($run_command_tools $diffbin --meshname=ionosphere  ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The relative 0-distance between both datasets" |gawk '{print $8}'  )
+                absoluteValue=$($run_command_tools $diffbin --meshname=ionosphere  ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The absolute 0-distance between both datasets" |gawk '{print $8}'  )
+#print the results
+                echo "${variables[$i]}_${indices[$i]}                $absoluteValue                 $relativeValue    "
+
             elif [ ! "${variables[$i]}" == "proton" ]
             then
                 relativeValue=$($run_command_tools $diffbin ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The relative 0-distance between both datasets" |gawk '{print $8}'  )
                 absoluteValue=$($run_command_tools $diffbin ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} ${variables[$i]} ${indices[$i]} |grep "The absolute 0-distance between both datasets" |gawk '{print $8}'  )
-#print the results      
+#print the results
                 echo "${variables[$i]}_${indices[$i]}                $absoluteValue                 $relativeValue    "
             elif [ "${variables[$i]}" == "proton" ]
             then
-                echo "--------------------------------------------------------------------------------------------" 
+                echo "--------------------------------------------------------------------------------------------"
                 echo "   Distribution function diff                                                               "
-                echo "--------------------------------------------------------------------------------------------" 
+                echo "--------------------------------------------------------------------------------------------"
                 $run_command_tools $diffbin ${result_dir}/${comparison_vlsv[$run]} ${vlsv_dir}/${comparison_vlsv[$run]} proton 0
-            fi 
+            fi
         done # loop over variables
 
-        echo "--------------------------------------------------------------------------------------------" 
+        echo "--------------------------------------------------------------------------------------------"
     fi
 done # loop over tests
-
-
-

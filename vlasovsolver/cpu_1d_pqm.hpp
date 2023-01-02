@@ -100,11 +100,15 @@ static CUDA_HOSTDEV inline void filter_pqm_monotonicity(Vec *values, uint k, Vec
       fd_r.store(fda_r);
       slope_sign.store(slope_signa);
       //todo store and then load data to avoid inserts (is it beneficial...?)
-      //serialized the handling of inflexion points, these do not happen for smooth regions
-      for(uint i = 0;i < VECL; i++)
-      {
-         if(fixInflexion[i])
-         {
+      
+//serialized the handling of inflexion points, these do not happen for smooth regions
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunknown-pragmas"
+#pragma ivdep
+#pragma GCC diagnostic pop
+#pragma GCC ivdep                     
+      for(uint i = 0;i < VECL; i++) {
+         if(fixInflexion[i]){
             //need to collapse, at least one inflexion point has wrong
             //sign.
             if(fabs(plm_slope_l[i]) <= fabs(plm_slope_r[i]))

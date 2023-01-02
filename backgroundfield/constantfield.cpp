@@ -38,17 +38,14 @@ void ConstantField::initialize(const double Bx,const double By, const double Bz)
 
 
 
-double ConstantField::call( double , double , double ) const
-{
-   if(_derivative == 0) {
+double ConstantField::operator()( double x, double y, double z, coordinate component, unsigned int derivative, coordinate dcomponent) const {
+   if(derivative == 0) {
       //Value of B
-      return _B[_fComponent];
-   }
-   else if(_derivative > 0) {
+      return _B[component];
+   } else {
       //all derivatives are zero
       return 0.0;
    }
-   return 0; // dummy, but prevents gcc from yelling
 }
 
 

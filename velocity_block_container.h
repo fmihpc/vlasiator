@@ -128,9 +128,7 @@ namespace vmesh {
    };
 
    template<typename LID> inline
-   VelocityBlockContainer<LID>::VelocityBlockContainer() {
-      currentCapacity = 0;
-      numberOfBlocks = 0;
+   VelocityBlockContainer<LID>::VelocityBlockContainer() : currentCapacity {0}, numberOfBlocks {0} {
 #ifdef USE_CUDA
       dev_allocatedSize = 0;
       dev_block_data = new Realf();
