@@ -282,7 +282,7 @@ donotcompute.o: ${DEPS_SYSBOUND} sysboundary/donotcompute.h sysboundary/donotcom
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c sysboundary/donotcompute.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 ionosphere.o: ${DEPS_SYSBOUND} sysboundary/ionosphere.h sysboundary/ionosphere.cpp backgroundfield/backgroundfield.cpp backgroundfield/backgroundfield.h projects/project.h projects/project.cpp fieldsolver/fs_limiters.h
-	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c sysboundary/ionosphere.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_VECTORCLASS} -Wno-comment
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c sysboundary/ionosphere.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} -Wno-comment
 
 conductingsphere.o: ${DEPS_SYSBOUND} sysboundary/conductingsphere.h sysboundary/conductingsphere.cpp backgroundfield/backgroundfield.cpp backgroundfield/backgroundfield.h projects/project.h projects/project.cpp fieldsolver/fs_limiters.h
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c sysboundary/conductingsphere.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
@@ -300,7 +300,7 @@ eulerAdaptive.o: ${DEPS_TRACING} fieldtracing/eulerAdaptive.h fieldtracing/euler
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c fieldtracing/eulerAdaptive.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_ZOLTAN}
 
 fieldtracing.o: ${DEPS_TRACING}
-	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c fieldtracing/fieldtracing.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_ZOLTAN} ${INC_VECTORCLASS}
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c fieldtracing/fieldtracing.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_ZOLTAN} ${INC_EIGEN}
 
 mesh_data_container.o: ${DEPS_COMMON} mesh_data_container.h mesh_data.h
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c mesh_data_container.cpp ${INC_VLSV} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_FSGRID}
