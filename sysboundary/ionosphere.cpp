@@ -38,14 +38,16 @@
 #include "../fieldsolver/ldz_magnetic_field.hpp"
 #include "../common.h"
 #include "../object_wrapper.h"
-#include "vectorclass.h"
-#include "vector3d.h"
 
 #include "../fieldtracing/fieldtracing.h"
 
-#if VECTORCLASS_H >= 200
-#define Vec3d Vec3Dd
-#endif
+#include <Eigen/Dense>
+
+#define Vec3d Eigen::Vector3d
+#define cross_product(av,bv) (av).cross(bv)
+#define dot_product(av,bv) (av).dot(bv)
+#define vector_length(v) (v).norm()
+#define normalize_vector(v) (v).normalized()
 
 #ifndef NDEBUG
    #define DEBUG_IONOSPHERE
