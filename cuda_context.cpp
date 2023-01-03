@@ -22,8 +22,10 @@
 
 #include <omp.h>
 #include <stdio.h>
+#include <iostream>
 
 #include "common.h"
+#include "mpi.h"
 
 #include "cuda_context.cuh"
 
@@ -76,10 +78,12 @@ __host__ void cuda_set_device() {
    //cerr << "(Grid) rank " << amps_rank << " is noderank "<< amps_node_rank << " of "<< amps_node_size << endl;
 
    if (amps_node_rank >= deviceCount) {
-      abort("Error, attempting to use CUDA device beyond available count!\n");
+      std::cerr<<"Error, attempting to use CUDA device beyond available count!"<<std::endl;
+      abort();
    }
    if (amps_node_size > deviceCount) {
-      abort("Error, MPI tasks per node exceeds available CUDA device count!\n");
+      std::cerr<<"Error, MPI tasks per node exceeds available CUDA device count!"<<std::endl;
+      abort();
    }
    cudaSetDevice(amps_node_rank);
 

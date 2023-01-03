@@ -320,7 +320,6 @@ bool _readBlockData(
 ) {   
    uint64_t arraySize;
    uint64_t avgVectorSize;
-   //uint64_t cellParamsVectorSize;
    vlsv::datatype::type dataType;
    uint64_t byteSize;
    list<pair<string,string> > avgAttribs;

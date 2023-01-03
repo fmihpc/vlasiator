@@ -40,6 +40,9 @@
 #include "euler.h"
 #include "eulerAdaptive.h"
 
+#include "../logger.h"
+extern Logger logFile;
+
 namespace FieldTracing {
    FieldTracingParameters fieldTracingParameters;
 

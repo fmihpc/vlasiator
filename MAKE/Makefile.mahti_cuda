@@ -56,7 +56,7 @@ VECL=64
 #                         errors that come up when using
 #                         mpi.h in c++ on Cray
 
-USE_CUDA=1
+#USE_CUDA=1
 CUDABLOCKS=108
 CMP = mpic++
 LNK = mpic++

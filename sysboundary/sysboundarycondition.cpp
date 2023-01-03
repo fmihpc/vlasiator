@@ -369,7 +369,7 @@ namespace SBC {
 //          const Realf* fromBlock_data = from->get_data(from->get_velocity_block_local_id(blockGID) );
          Realf* toBlock_data = to->get_data(blockLID,popID);
          if (from->get_velocity_block_local_id(blockGID,popID) == from->invalid_local_id()) {
-            for (unsigned int i = 0; i < VELOCITY_BLOCK_LENGTH; i++) {
+            for (unsigned int i = 0; i < WID3; i++) {
                toBlock_data[i] = 0.0; //block did not exist in from cell, fill with zeros.
             }
          } else {

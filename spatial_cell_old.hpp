@@ -23,8 +23,8 @@
 Spatial cell class for Vlasiator that supports a variable number of velocity blocks.
 */
 
-#ifndef VLASIATOR_SPATIAL_CELL_HPP
-#define VLASIATOR_SPATIAL_CELL_HPP
+#ifndef VLASIATOR_SPATIAL_CELL_OLD_HPP
+#define VLASIATOR_SPATIAL_CELL_OLD_HPP
 
 #include <algorithm>
 #include <cmath>
@@ -56,22 +56,11 @@ Spatial cell class for Vlasiator that supports a variable number of velocity blo
 #include "velocity_blocks.h"
 #include "velocity_block_container.h"
 
-#include "logger.h"
-extern Logger logFile;
-
 #ifndef NDEBUG
    #define DEBUG_SPATIAL_CELL
 #endif
 
-typedef Parameters P;
-
-// size of velocity blocks in velocity cells
-#define block_vx_length WID
-#define block_vy_length WID
-#define block_vz_length WID
-//this is also defined in common.h as SIZE_VELBLOCK, we should remove either one
-#define VELOCITY_BLOCK_LENGTH WID3
-//#define N_NEIGHBOR_VELOCITY_BLOCKS 28
+typedef Parameters P; // Heeded in numerous files which include this one
 
 /*!
 Used as an error from functions returning velocity cells or
@@ -84,6 +73,12 @@ Used as an error from functions returning velocity cell indices or
 as an index that would be outside of the velocity block
 */
 #define error_velocity_cell_index 0xFFFFFFFFu
+
+// size of velocity blocks in velocity cells
+#define block_vx_length WID
+#define block_vy_length WID
+#define block_vz_length WID
+//#define N_NEIGHBOR_VELOCITY_BLOCKS 28
 
 namespace spatial_cell {
 
@@ -1125,7 +1120,7 @@ namespace spatial_cell {
    inline velocity_cell_indices_t SpatialCell::get_velocity_cell_indices(const unsigned int cell) const {
       velocity_cell_indices_t indices;
       
-      if (cell >= VELOCITY_BLOCK_LENGTH) {
+      if (cell >= WID3) {
          indices[0] = indices[1] = indices[2] = error_velocity_cell_index;
       } else {
          indices[0] = cell % block_vx_length;

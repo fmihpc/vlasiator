@@ -769,7 +769,7 @@ void update_remote_mapping_contribution(
          Realf *blockData = spatial_cell->get_data(popID);
 
 #pragma omp for
-         for(unsigned int cell = 0; cell<VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++cell) {
+         for(unsigned int cell = 0; cell<WID3 * spatial_cell->get_number_of_velocity_blocks(popID); ++cell) {
             blockData[cell] += receiveBuffers[c][cell];
          }
       }
@@ -782,7 +782,7 @@ void update_remote_mapping_contribution(
          Realf * blockData = spatial_cell->get_data(popID);
 
 #pragma omp for nowait
-         for(unsigned int cell = 0; cell< VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++cell) {
+         for(unsigned int cell = 0; cell< WID3 * spatial_cell->get_number_of_velocity_blocks(popID); ++cell) {
             // copy received target data to temporary array where target data is stored.
             blockData[cell] = 0;
          }

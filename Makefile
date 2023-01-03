@@ -88,11 +88,15 @@ endif
 ifeq ($(USE_CUDA),1)
 	LIBS += ${LIB_CUDA}
 	COMPFLAGS += -DUSE_CUDA
+	CUDAFLAGS += -DUSE_CUDA
 	CUDALIB += -lcudart
+# Use CUDA-compatible hashmap
+	COMPFLAGS += ${INC_HASHINATOR}
+	CUDAFLAGS += ${INC_HASHINATOR}
 #-lcuda (Don't use CUDA device level library unless necessary)
 endif
 
-#Vectorclass settinsg
+#Vectorclass settings
 ifdef WID
 	COMPFLAGS += -DWID=$(WID)
 	CUDAFLAGS += -DWID=$(WID)
@@ -156,7 +160,7 @@ LIBS += ${LIB_PAPI}
 
 # Define common dependencies
 DEPS_COMMON = common.h common.cpp definitions.h mpiconversion.h logger.h object_wrapper.h
-DEPS_CELL   = spatial_cell.hpp velocity_mesh_old.h velocity_mesh_amr.h velocity_block_container.h open_bucket_hashtable.h
+DEPS_CELL   = spatial_cell.hpp spatial_cell_old.hpp velocity_mesh_old.h velocity_mesh_amr.h velocity_block_container.h open_bucket_hashtable.h
 DEPS_GRID   = sysboundary/sysboundary.h
 
 # Define common field tracing dependencies
@@ -263,7 +267,7 @@ OBJS += cpu_acc_intersections.o cpu_acc_map.o cpu_acc_sort_blocks.o cpu_acc_load
 	cpu_moments.o cpu_trans_map.o cpu_trans_map_amr.o
 endif
 
-# If we are building a CUDA vrsion, we require its object files
+# If we are building a CUDA version, we require its object files
 ifeq ($(USE_CUDA),1)
 	OBJS += cuda_acc_map_kernel.o cuda_acc_map.o cuda_acc_semilag.o cuda_acc_sort_blocks.o \
 		cudalink_acc_map.o cudalink_acc_kernel.o cudalink_acc_semilag.o cuda_context.o cudalink_context.o \
@@ -271,6 +275,7 @@ ifeq ($(USE_CUDA),1)
 	DEPS_VLSVMOVER += vlasovsolver/cuda_acc_map.hpp vlasovsolver/cuda_acc_semilag.hpp cuda_context.cuh \
 		vlasovsolver/cuda_moments.h
 	DEPS_GRID += vlasovsolver/cuda_moments_kernel.cuh
+	DEPS_CELL += spatial_cell_cuda.hpp velocity_mesh_cuda.h
 endif
 
 # Add field solver objects
@@ -457,8 +462,13 @@ project.o: ${DEPS_COMMON} $(DEPS_PROJECTS)
 projectTriAxisSearch.o: ${DEPS_COMMON} $(DEPS_PROJECTS) projects/projectTriAxisSearch.h projects/projectTriAxisSearch.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/projectTriAxisSearch.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_FSGRID}
 
-spatial_cell.o: ${DEPS_CELL} spatial_cell.cpp
-	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c spatial_cell.cpp $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID}
+ifeq ($(USE_CUDA),1)
+spatial_cell.o: ${DEPS_CELL} spatial_cell_cuda.cpp
+	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c spatial_cell_cuda.cpp -o spatial_cell.o $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID}
+else
+spatial_cell.o: ${DEPS_CELL} spatial_cell_old.cpp
+	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c spatial_cell_old.cpp -o spatial_cell.o $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID}
+endif
 
 ifeq ($(MESH),AMR)
 vlasovmover.o: ${DEPS_VLSVMOVER_AMR}

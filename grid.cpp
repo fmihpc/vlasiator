@@ -710,6 +710,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    }
    phiprof::stop("Compute with_content_list");
    
+   // Note: We could try not updating remote lists unless explicitly wanting to keep remote contributions?
    phiprof::initializeTimer("Transfer with_content_list","MPI");
    phiprof::start("Transfer with_content_list");
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_WITH_CONTENT_STAGE1 );
@@ -741,6 +742,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
          }
          neighbor_ptrs.push_back(mpiGrid[neighbor_id]);
       }
+      // TODO: Vectorize / GPUify
       if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
          for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
             density_pre_adjust += cell->get_data(popID)[i];
@@ -1171,12 +1173,10 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
    bool rvalue = true;
    #ifndef AMR
       return rvalue;
-   #endif
+   #else
 
    phiprof::start("mesh validation (init)");
          
-   //bool internallyValid = false;
-      
    // First make sure that all cells local to this process have a valid mesh.
    // After the mesh is internally valid, we will update mesh structures 
    // with remote neighbors for as many times as needed.
@@ -1336,6 +1336,7 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
    
    phiprof::stop("mesh validation (init)");
    return rvalue;
+   #endif
 }
 
 void mapRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {

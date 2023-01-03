@@ -2035,7 +2035,7 @@ void update_remote_mapping_contribution_amr(
          Realf *neighborData = origin_cell->neighbor_block_data[receive_origin_index[c]];
 
          //#pragma omp for 
-         for(uint vCell = 0; vCell < VELOCITY_BLOCK_LENGTH * receive_cell->get_number_of_velocity_blocks(popID); ++vCell) {
+         for(uint vCell = 0; vCell < WID3 * receive_cell->get_number_of_velocity_blocks(popID); ++vCell) {
             blockData[vCell] += neighborData[vCell];
          }
       }
@@ -2046,7 +2046,7 @@ void update_remote_mapping_contribution_amr(
          SpatialCell* spatial_cell = mpiGrid[c];
          Realf * blockData = spatial_cell->get_data(popID);
          //#pragma omp for nowait
-         for(unsigned int vCell = 0; vCell < VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++vCell) {
+         for(unsigned int vCell = 0; vCell < WID3 * spatial_cell->get_number_of_velocity_blocks(popID); ++vCell) {
             // copy received target data to temporary array where target data is stored.
             blockData[vCell] = 0;
          }

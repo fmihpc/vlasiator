@@ -55,10 +55,6 @@
 #include "fieldsolver/gridGlue.hpp"
 #include "fieldsolver/derivatives.hpp"
 
-// #ifdef USE_CUDA
-//    #include "vlasovsolver/cuda_acc_map_kernel.cuh"
-// #endif
-
 #ifdef CATCH_FPE
 #include <fenv.h>
 #include <signal.h>

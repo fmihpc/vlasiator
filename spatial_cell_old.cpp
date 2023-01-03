@@ -518,7 +518,7 @@ namespace spatial_cell {
       bool has_content = false;
       const Real velocity_block_min_value = getVelocityBlockMinValue(popID);
       const Realf* block_data = populations[popID].blockContainer.getData(blockLID);
-      for (unsigned int i=0; i<VELOCITY_BLOCK_LENGTH; ++i) {
+      for (unsigned int i=0; i<WID3; ++i) {
          if (block_data[i] >= velocity_block_min_value) {
             has_content = true;
             break;
@@ -628,7 +628,7 @@ namespace spatial_cell {
 
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_DATA) !=0) {
             displacements.push_back((uint8_t*) get_data(activePopID) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH * populations[activePopID].blockContainer.size());
+            block_lengths.push_back(sizeof(Realf) * WID3 * populations[activePopID].blockContainer.size());
          }
 
          if ((SpatialCell::mpi_transfer_type & Transfer::NEIGHBOR_VEL_BLOCK_DATA) != 0) {
@@ -644,7 +644,7 @@ namespace spatial_cell {
                
                for ( int i = 0; i < MAX_NEIGHBORS_PER_DIM; ++i) {
                   displacements.push_back((uint8_t*) this->neighbor_block_data[i] - (uint8_t*) this);
-                  block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH * this->neighbor_number_of_blocks[i]);
+                  block_lengths.push_back(sizeof(Realf) * WID3 * this->neighbor_number_of_blocks[i]);
                }
                
             }
