@@ -23,6 +23,7 @@ tests += {
     'sparse_matrix_vector_product_cuda_1' : [files('sparse_matrix_vector_product_cuda_1.cpp')],
     'sparse_matrix_vector_product_cuda_2' : [files('sparse_matrix_vector_product_cuda_2.cpp')],
     'sparse_BiGC_1' : [files('sparse_BiGC_1.cpp')],
+    'sparse_BiGC_2' : [files('sparse_BiGC_2.cpp')],
     'sparse_BiGCSTAB_1' : [files('sparse_BiGCSTAB_1.cpp')],
     'sparse_BiGCSTAB_2' : [files('sparse_BiGCSTAB_2.cpp')]
 }
