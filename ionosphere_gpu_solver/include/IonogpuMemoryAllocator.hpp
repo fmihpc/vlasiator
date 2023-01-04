@@ -16,7 +16,7 @@ namespace ionogpu {
 constexpr size_t warp_size = 32;
     
 template <typename T, size_t N = 0>
-class CudaArray {
+class IonogpuMemoryAllocator {
     size_t size_;
     T* data_;
 
@@ -38,11 +38,11 @@ public:
         }
     };
 
-    CudaArray(const size_t size) : size_{size} {
+    IonogpuMemoryAllocator(const size_t size) : size_{size} {
         cudaMalloc((void**)&data_, size_in_bytes_());
     }
 
-    CudaArray(std::initializer_list<PaddedVec> padded_vecs)
+    IonogpuMemoryAllocator(std::initializer_list<PaddedVec> padded_vecs)
      : size_ {std::accumulate(padded_vecs.begin(), padded_vecs.end(), size_t{ 0 },
         [] (const auto s, const auto& padded_vec) noexcept -> size_t {
             return s + padded_vec.size();
@@ -65,7 +65,7 @@ public:
         
     }
 
-    ~CudaArray() {
+    ~IonogpuMemoryAllocator() {
         if (data_) {
             cudaFree(data_);
         }
@@ -73,12 +73,12 @@ public:
 
     // We want copying to be explicit
     // Copy constructor
-    CudaArray(const CudaArray<T>& other) = delete;
+    IonogpuMemoryAllocator(const IonogpuMemoryAllocator<T>& other) = delete;
     // Copy assignment
-    CudaArray& operator=(const CudaArray<T>& other) = delete;
+    IonogpuMemoryAllocator& operator=(const IonogpuMemoryAllocator<T>& other) = delete;
     
     // Move constructor
-    CudaArray(CudaArray<T>&& other) noexcept {
+    IonogpuMemoryAllocator(IonogpuMemoryAllocator<T>&& other) noexcept {
         size_ = other.size_; 
         data_ = other.data_;
         other.data_ = nullptr;
@@ -86,7 +86,7 @@ public:
         
     }
     // Move assignment
-    CudaArray& operator=(CudaArray&& other) noexcept {
+    IonogpuMemoryAllocator& operator=(IonogpuMemoryAllocator&& other) noexcept {
         size_ = other.size_; 
         data_ = other.data_;
         other.data_ = nullptr;
@@ -162,8 +162,8 @@ public:
     }
 
     /**
-    * Constructor to create CudaArray from vector and order/multiply elements based on SparseMatrix indecies
-    * So if we would calculate A * x we would get CudaArray with elements:
+    * Constructor to create IonogpuMemoryAllocator from vector and order/multiply elements based on SparseMatrix indecies
+    * So if we would calculate A * x we would get IonogpuMemoryAllocator with elements:
     * flatten({
     *    {"elements of x for multiplying first row of A"},
     *    {"elements of x for multiplying second row of A"},
@@ -190,7 +190,7 @@ std::vector<T> matrixVectorProduct(const std::vector<T>& M, const std::vector<T>
     const auto height = ((v.size() / warp_size) + 1) * warp_size;
     const auto width = v.size();
 
-    const auto M_v_and_Mv_on_device = CudaArray<T, 3> {
+    const auto M_v_and_Mv_on_device = IonogpuMemoryAllocator<T, 3> {
         {M, width * height},
         {v, width, true},
         {{}, height, true}
@@ -241,7 +241,7 @@ std::vector<T> preSparseMatrixVectorProduct(
     }();
 
     
-    const auto sparse_M_pre_b_and_x_on_device = CudaArray<T, 3> {
+    const auto sparse_M_pre_b_and_x_on_device = IonogpuMemoryAllocator<T, 3> {
         {sparse_M, height * m, true},
         {pre_b, height * m},
         {{}, height, true}
@@ -286,7 +286,7 @@ std::vector<T> sparseMatrixVectorProduct(
     const auto height = ((n / warp_size) + 1) * warp_size;
 
 
-    const auto sparse_M_b_and_x_on_device = CudaArray<T, 3> {
+    const auto sparse_M_b_and_x_on_device = IonogpuMemoryAllocator<T, 3> {
         {sparse_M, height * m, true},
         {b, height},
         {{}, height}
@@ -294,7 +294,7 @@ std::vector<T> sparseMatrixVectorProduct(
 
     const auto [sparse_A_device_p, b_device_p, x_device_p] = sparse_M_b_and_x_on_device.get_pointers_to_data();
 
-    const auto indecies_on_device = CudaArray<size_t, 1> {
+    const auto indecies_on_device = IonogpuMemoryAllocator<size_t, 1> {
         {indecies, height * m}
     };
 
@@ -334,7 +334,7 @@ template<typename T>
 std::vector<T> vectorAddition(const std::vector<T>& a, const std::vector<T>& b) {
     assert(a.size() == b.size());
     const auto height = ((a.size() / warp_size) + 1) * warp_size;
-    const auto data_on_device = CudaArray<T, 3> {
+    const auto data_on_device = IonogpuMemoryAllocator<T, 3> {
         {a, height},
         {b, height},
         {{}, height}
@@ -348,7 +348,7 @@ template<typename T>
 std::vector<T> vectorSubtraction(const std::vector<T>& a, const std::vector<T>& b) {
     assert(a.size() == b.size());
     const auto height = ((a.size() / warp_size) + 1) * warp_size;
-    const auto data_on_device = CudaArray<T, 3> {
+    const auto data_on_device = IonogpuMemoryAllocator<T, 3> {
         {a, height},
         {b, height},
         {{}, height}
@@ -362,7 +362,7 @@ template<typename T>
 std::vector<T> vectorElementwiseMultiplication(const std::vector<T>& a, const std::vector<T>& b) {
     assert(a.size() == b.size());
     const auto height = ((a.size() / warp_size) + 1) * warp_size;
-    const auto data_on_device = CudaArray<T, 3> {
+    const auto data_on_device = IonogpuMemoryAllocator<T, 3> {
         {a, height},
         {b, height},
         {{}, height}
@@ -376,7 +376,7 @@ template<typename T>
 std::vector<T> vectorElementwiseDivision(const std::vector<T>& a, const std::vector<T>& b) {
     assert(a.size() == b.size());
     const auto height = ((a.size() / warp_size) + 1) * warp_size;
-    const auto data_on_device = CudaArray<T, 3> {
+    const auto data_on_device = IonogpuMemoryAllocator<T, 3> {
         {a, height},
         {b, height},
         {{}, height}
@@ -460,7 +460,7 @@ T dotProduct(const std::vector<T>& v, const std::vector<T>& w) {
     const auto blocks = ((v.size() / elements_per_block) + 1);
     const auto padded_size = blocks * elements_per_block;
 
-    const auto data_device = CudaArray<T, 3> {
+    const auto data_device = IonogpuMemoryAllocator<T, 3> {
         {v, padded_size, true},
         {w, padded_size, true},
         {{}, blocks}
@@ -484,7 +484,7 @@ T vectorNormSquared(const std::vector<T>& v) {
     const auto blocks = ((v.size() / elements_per_block) + 1);
     const auto padded_size = blocks * elements_per_block;
 
-    const auto data_device = CudaArray<T, 2> {
+    const auto data_device = IonogpuMemoryAllocator<T, 2> {
         {v, padded_size, true},
         {{}, blocks}
     };
@@ -507,7 +507,7 @@ std::vector<T> multiplyVectorWithScalarAndAddItToAnotherVector(const T scalar, c
     assert(v.size() == w.size());
     const auto padded_size = (((v.size() / warp_size) + 1) * warp_size);
 
-    const auto data_device = CudaArray<T, 3> {
+    const auto data_device = IonogpuMemoryAllocator<T, 3> {
         {v, padded_size},
         {w, padded_size},
         {{}, padded_size}
@@ -560,7 +560,7 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGCUDA(
 
     const auto height = ((n / warp_size) + 1) * warp_size;
 
-    const auto indecies_on_device = CudaArray<size_t, 1> {
+    const auto indecies_on_device = IonogpuMemoryAllocator<size_t, 1> {
         {indecies, height * m, true}
     };
     const auto [indecies_device_p] = indecies_on_device.get_pointers_to_data();
@@ -569,7 +569,7 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGCUDA(
     // Dot product needs more padding
     [[maybe_unused]] const auto padded_size_for_dot_product = blocks_for_dot_product * dotProductConfig::elements_per_block;
     
-    auto data_on_device = CudaArray<T, 13> {
+    auto data_on_device = IonogpuMemoryAllocator<T, 13> {
         {sparse_A, height * m, true},
         {sparse_A_transposed, height * m, true},
         {b, padded_size_for_dot_product, true},
@@ -776,7 +776,7 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGSTABCUDA(
     const auto height = ((n / warp_size) + 1) * warp_size;
     assert(height % warp_size == 0);
 
-    const auto indecies_on_device = CudaArray<size_t, 1> {
+    const auto indecies_on_device = IonogpuMemoryAllocator<size_t, 1> {
         {indecies, height * m, true}
     };
     const auto [indecies_device_p] = indecies_on_device.get_pointers_to_data();
@@ -787,7 +787,7 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGSTABCUDA(
     
     //const auto size_of_padding_for_dot_product = padded_size_for_dot_product - n;
 
-    auto data_on_device = CudaArray<T, 15> {
+    auto data_on_device = IonogpuMemoryAllocator<T, 15> {
         {sparse_A, height * m, true},
         {b, padded_size_for_dot_product, true},
         {/* x */{}, padded_size_for_dot_product},

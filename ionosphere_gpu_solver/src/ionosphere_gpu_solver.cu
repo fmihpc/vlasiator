@@ -1,5 +1,5 @@
 #include "../include/ionosphere_gpu_solver.hpp"
-#include "../include/CudaArray.hpp"
+#include "../include/IonogpuMemoryAllocator.hpp"
 
 template
 std::vector<double> ionogpu::matrixVectorProduct<double>(const std::vector<double>& M, const std::vector<double>& v);

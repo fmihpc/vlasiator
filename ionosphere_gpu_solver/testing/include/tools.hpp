@@ -72,6 +72,12 @@ std::tuple<double, double> calculate_absolute_and_relative_error_of_range(const 
     return std::tuple{total_absolute_error, average_relative_error};
 }
 
+/**
+ * Creates a sparse matrix where the diagonal elements are on the first index 
+ *
+ *
+ *
+ */
 template <typename T>
 auto create_sparse_matrix_from_dense_matrix(
     const std::vector<T>& M,
@@ -86,6 +92,10 @@ auto create_sparse_matrix_from_dense_matrix(
             if (M[i * n + j] != 0) {
                 sparse_M[i * max_num_of_nonzero_elements_on_each_row + nonzero_elements_on_this_row] = M[i * n + j];
                 indecies[i * max_num_of_nonzero_elements_on_each_row + nonzero_elements_on_this_row] = j;
+                if (i == j) {
+                    std::swap(sparse_M[i * max_num_of_nonzero_elements_on_each_row], sparse_M[i * max_num_of_nonzero_elements_on_each_row + nonzero_elements_on_this_row]);
+                    std::swap(indecies[i * max_num_of_nonzero_elements_on_each_row], indecies[i * max_num_of_nonzero_elements_on_each_row + nonzero_elements_on_this_row]);
+                }
                 ++nonzero_elements_on_this_row;
             }
         }

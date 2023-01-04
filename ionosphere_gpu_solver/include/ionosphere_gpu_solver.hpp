@@ -8,8 +8,8 @@
 namespace ionogpu {
 
    /* 
-      These are forward declarations of tempaltes which gets specializations in CudaArray.hpp
-      and definitions in CudaArray.hpp
+      These are forward declarations of tempaltes which gets specializations in ionosphere_gpu_solver.cu
+      and definitions in IonogpuMemoryAllocator.hpp
       This way we can compile ionogpu stuff with nvcc but then just include this header and link with
       -lcudart when compiling with any other compiler
     */
@@ -175,12 +175,14 @@ namespace ionogpu {
          return std::tuple{std::move(A_vec_temp), std::move(A_transposed_vec_temp), std::move(indecies_vec_temp)};
       }();
 
+      auto c = config;
+      c.precondition = Precondition::none;
    
       auto [number_of_iterations, number_of_restarts, min_error, x_vec] = 
-         sparseBiCGSTABCUDA(
+         sparseBiCGCUDA(
             n, m,
             A_vec,
-            //A_trasposed_vec,
+            A_trasposed_vec,
             indecies_vec,
             b,
             config
