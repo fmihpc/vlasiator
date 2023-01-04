@@ -33,7 +33,7 @@ else
 #        VECTORCLASS = VEC4D_AGNER
 endif
 #===== Vector Lenghts ====
-# Default for VEC_FALLBACK_GENERIC is WID=4, VECL=8 
+# Default for VEC_FALLBACK_GENERIC is WID=4, VECL=8
 WID=8
 VECL=64
 #VECL=32
@@ -48,7 +48,7 @@ VECL=64
 # NVCCFLAGS is for CUDA compiler flags.
 # MATHFLAGS are for special math etc. flags, these are only applied on solver functions
 # LDFLAGS flags for linker
-# Important note: Do not edit CUDAFLAGS or COMPFLAGS in this file!
+# Important note: Do not edit COMPFLAGS in this file!
 
 #-DNO_WRITE_AT_ALL:  Define to disable write at all to
 #                    avoid memleak (much slower IO)
@@ -60,24 +60,23 @@ VECL=64
 CUDABLOCKS=108
 CMP = mpic++
 LNK = mpic++
-NVCC = nvcc
-CC = mpicc
-CXX = mpic++
 
-CC_BRAND = nvhpc
-CC_BRAND_VERSION = 21.2
-
-#CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -gpu=cc80 -Minfo=accel -acc -fopenmp -std=c++11
 CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -fopenmp -std=c++11 -rdynamic
-NVCCFLAGS += -g -gencode arch=compute_80,code=sm_80 -std=c++11 --generate-line-info -line-info
+CMPGPUFLAGS = -g -O2 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 -Xcompiler -fopenmp --generate-line-info -line-info
 
-#testpackage: CXXFLAGS = -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -gpu=cc80 -Minfo=accel -acc -fopenmp -std=c++11
 testpackage: CXXFLAGS = -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -fopenmp -std=c++11
-testpackage: NVCCFLAGS = -g -gencode arch=compute_80,code=sm_80 -std=c++11 --prec-sqrt=true --prec-div=true --ftz=false --fmad=false --generate-line-info
+testpackage: CMPGPUFLAGS = -g -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 -Xcompiler -fopenmp --prec-sqrt=true --prec-div=true --ftz=false --fmad=false --generate-line-info -line-info
+
+ifeq ($(USE_CUDA),1)
+   #CMPGPU = OMPI_CXXFLAGS='' OMPI_CXX='nvcc -g -O2 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 -Xcompiler -fopenmp --generate-line-info -line-info' mpic++
+   CMPGPU = OMPI_CXX='nvcc' OMPI_CXXFLAGS='' mpic++
+else
+   CMPGPUFLAGS = ${CXXFLAGS}
+   CMPGPU = ${CMP}
+endif
 
 MATHFLAGS =
 LDFLAGS = -O2 -g -L/appl/spack/v016/install-tree/gcc-4.8.5/nvhpc-21.2-l6xyb4/Linux_x86_64/21.2/cuda/11.2/lib64 -lnvToolsExt
-#LDFLAGS = -ta=tesla:lineinfo,keepbin,keepgpu,keepptx
 LIB_MPI = -lgomp
 #LIB_CUDA = -L/usr/local/cuda/lib64 -lcuda -lcudart
 
