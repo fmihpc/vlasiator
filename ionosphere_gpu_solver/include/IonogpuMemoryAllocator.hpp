@@ -801,7 +801,7 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGSTABCUDA(
         {/* y */{}, padded_size_for_dot_product, true},
         {/* z */{}, padded_size_for_dot_product, true},
         {/* temp */{}, padded_size_for_dot_product},
-        {/* best_solution */{}, height, true},
+        {/* best_solution */std::vector<T>(n, 1.0), height, true},
         {/* partial sums for dot product */{}, blocks_for_dot_product}
     };
 
@@ -825,10 +825,8 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGSTABCUDA(
 
     
     timer::time("sparseBiCGSTABCUDA::init");
-    //zeroOutData<<<(size_of_padding_for_dot_product / warp_size) + 1, warp_size>>>(b_device_p + n, size_of_padding_for_dot_product);
     const auto b_norm = std::sqrt(vectorNormSquared<T>(b_device_p, n, partial_sums_for_dot_product_device_p));
-    
-    
+
     auto number_of_restarts = int { 0 };
     auto min_error = std::numeric_limits<T>::max();
     auto iteration = int { 0 };
