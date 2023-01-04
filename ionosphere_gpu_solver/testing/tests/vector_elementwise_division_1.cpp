@@ -2,7 +2,7 @@
 #include "tools.hpp"
 #include <cassert>
 #include <vector>
-
+#include <iostream>
 using test_type = double;
 
 auto main() -> int {

@@ -18,6 +18,7 @@ tests += {
     'transpose_matrix_1' : [files('transpose_matrix_1.cpp')],
     'create_sparse_matrix_1' : [files('create_sparse_matrix_1.cpp')],
     'create_sparse_matrix_2' : [files('create_sparse_matrix_2.cpp')],
+    'create_sparse_matrix_3' : [files('create_sparse_matrix_3.cpp')],
     'matrix_vector_product_cuda_1' : [files('matrix_vector_product_cuda_1.cpp')],
     'sparse_matrix_vector_product_cuda_1' : [files('sparse_matrix_vector_product_cuda_1.cpp')],
     'sparse_matrix_vector_product_cuda_2' : [files('sparse_matrix_vector_product_cuda_2.cpp')],
@@ -42,5 +43,5 @@ endforeach
 ####################################################################################################
 
 foreach test_name, test_exe : test_names_and_exes
-    test(test_name, test_exe)
+    test(test_name, test_exe, is_parallel: false)
 endforeach

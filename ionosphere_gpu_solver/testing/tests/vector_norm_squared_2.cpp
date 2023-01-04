@@ -3,6 +3,7 @@
 #include <cassert>
 #include <numeric>
 #include <cmath>
+#include <iostream>
 #include <vector>
 #include <array>
 
@@ -220,6 +221,8 @@ auto main() -> int {
     [[maybe_unused]] const auto [absolute_error, relative_error] = ionogpu::testing::calculate_absolute_and_relative_error_of_range(
         std::array<test_type, 1>{ norm }, std::array<test_type, 1> { norm_correct }
     );
+
+    std::cout << norm << " " << norm_correct << " \n";
     
     assert(absolute_error < 0.0001);
     assert(relative_error < 0.0001);

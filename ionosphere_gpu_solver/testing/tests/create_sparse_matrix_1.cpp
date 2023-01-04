@@ -31,7 +31,7 @@ static const auto sparse_M_correct = std::vector<test_type> {
     0, 0,
     1, 0,
     2, 0, 
-    3, 1
+    1, 3
 };
 
 static const auto indecies_correct = std::vector<size_t> {
@@ -44,7 +44,7 @@ static const auto indecies_correct = std::vector<size_t> {
     0, 0,
     8, 0,
     7, 0,
-    7, 9
+    9, 7
     
 };
 

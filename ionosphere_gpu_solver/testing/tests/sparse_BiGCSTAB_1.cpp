@@ -111,21 +111,7 @@ static const auto M = std::vector<test_type> {
                 };
 static const auto Mx_correct = std::vector<test_type>(n, 1.0);
 
-/* [] {
-    auto temp = std::vector<test_type>(n);
-    for (size_t i = 0; i < temp.size(); i += 1) {
-        temp[i] = 10 + 5 * (i % 4) + 6 * (i % 2) + 2 * (i % 13);
-    }
-    return temp;
-}(); */
-/* 
-static const auto x_correct = std::vector<test_type>{
-                0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99
-            }; */
-/* 
-static const auto Mx_correct = std::vector<test_type>{
-                0, 342, 384, 426, 468, 150, 452, 394, 536, 478, 200, 362, 504, 546, 588, 50, 472, 414, 456, 398, 200, 482, 324, 266, 508, 150, 492, 634, 576, 318, 100, 602, 544, 486, 428, 250, 412, 454, 396, 638, 200, 522, 564, 306, 348, 150, 332, 574, 416, 558, 50, 442, 584, 426, 668, 250, 652, 694, 436, 478, 200, 362, 604, 546, 588, 150, 572, 514, 456, 398, 300, 682, 424, 366, 508, 150, 492, 734, 676, 518, 200, 602, 544, 586, 528, 350, 412, 454, 496, 638, 200, 522, 464, 606, 548, 250, 532, 574, 616, 658
-            }; */
+
 auto main() -> int {
 
     const auto max_number_of_nonzero_elements_on_each_row = 32;
@@ -135,12 +121,35 @@ auto main() -> int {
         assert(M[i * n + i] != 0);
         assert(sparse_M[max_number_of_nonzero_elements_on_each_row * i] != 0);
     }
-
+    {
     const auto config = ionogpu::ConfigurationForIonosphereGPUSolver<test_type> {
             .max_iterations = 10000,
-            .max_failure_count = 20,
+            .max_failure_count = 5,
             .max_error_growth_factor = 100,
-            .relative_L2_convergence_threshold = 0.000001,
+            .relative_L2_convergence_threshold = 1e-6,
+            .precondition = ionogpu::Precondition::none,
+            .use_minimum_residual_variant = false,
+            .gauge = ionogpu::Gauge::none
+    };
+
+    const auto [number_of_iterations, number_of_restarts, min_error, x] = ionogpu::sparseBiCGSTABCUDA(
+        n, max_number_of_nonzero_elements_on_each_row,
+        sparse_M,
+        indecies,
+        Mx_correct,
+        config
+    );
+ 
+
+    assert(number_of_iterations <= config.max_iterations);
+    assert(min_error < config.relative_L2_convergence_threshold); 
+    }
+    {
+    const auto config = ionogpu::ConfigurationForIonosphereGPUSolver<test_type> {
+            .max_iterations = 10000,
+            .max_failure_count = 5,
+            .max_error_growth_factor = 100,
+            .relative_L2_convergence_threshold = 1e-6,
             .precondition = ionogpu::Precondition::diagonal,
             .use_minimum_residual_variant = false,
             .gauge = ionogpu::Gauge::none
@@ -153,34 +162,11 @@ auto main() -> int {
         Mx_correct,
         config
     );
-    std::cout << "Number of iterations: " << number_of_iterations << "\nNumber of restarts: " << number_of_restarts << "\n"; 
-    std::cout << "Min error: " << min_error << "\nSolved x:\n";
-    for (const auto e : x) {
-        std::cout << e << " ";
-    }
-    std::cout << "\n\nMx_gpu:\n";
-
-    const auto Mx_gpu = [&] {
-        auto temp = std::vector<test_type>(n, 0);
-        for (size_t i = 0; i < n; ++i) {
-            for (size_t j = 0; j < n; ++j) {
-                temp[i] += M[i * n + j] * x[j];
-            }
-        }
-        return temp;
-    }();
-    for (const auto e : Mx_gpu) {
-        std::cout << e << " ";
-    }
-    std::cout << "\n\n Mx_correct:\n";
-
-    for (const auto e : Mx_correct) {
-        std::cout << e << " ";
-    }
-    std::cout << "\n";
+ 
 
     assert(number_of_iterations <= config.max_iterations);
-    assert(min_error < 0.001);
+    assert(min_error < config.relative_L2_convergence_threshold); 
+    }
     return 0;
 
 }
