@@ -30,7 +30,7 @@ using namespace std;
 
 /** Calculate zeroth, first, and (possibly) second bulk velocity moments for the 
  * given spatial cell. The calculated moments include contributions from 
- * all existing particle populations. This function is AMR safe.
+ * all existing particle populations. This function is VAMR safe.
  * @param cell Spatial cell.
  * @param computeSecond If true, second velocity moments are calculated.
  * @param computePopulationMomentsOnly Do not update the combined moments in CellParams if true
@@ -146,7 +146,7 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
 /** Calculate zeroth, first, and (possibly) second bulk velocity moments for the 
  * given spatial cell. The calculated moments include 
  * contributions from all existing particle populations. The calculated moments 
- * are stored to SpatialCell::parameters in _R variables. This function is AMR safe.
+ * are stored to SpatialCell::parameters in _R variables. This function is VAMR safe.
  * @param mpiGrid Parallel grid library.
  * @param cells Vector containing the spatial cells to be calculated.
  * @param computeSecond If true, second velocity moments are calculated.*/
@@ -295,7 +295,7 @@ void calculateMoments_R(
  * given spatial cell. Additionally, for each species, calculate the maximum 
  * spatial time step so that CFL(spatial)=1. The calculated moments include 
  * contributions from all existing particle populations. The calculated moments 
- * are stored to SpatialCell::parameters in _V variables. This function is AMR safe.
+ * are stored to SpatialCell::parameters in _V variables. This function is VAMR safe.
  * @param mpiGrid Parallel grid library.
  * @param cells Vector containing the spatial cells to be calculated.
  * @param computeSecond If true, second velocity moments are calculated.*/

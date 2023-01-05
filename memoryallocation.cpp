@@ -50,13 +50,6 @@ void *operator new(size_t size)
    return p;
 }
 
-// TODO: sized deallocation to resolve -Wsized-deallocation
-// Global delete using jemalloc
-void operator delete(void *p)
-{
-   je_free(p);
-}
-
 // Global new[] using jemalloc
 void *operator new[](size_t size)
 {
@@ -70,12 +63,26 @@ void *operator new[](size_t size)
    return p;
 }
 
-// TODO: sized deallocation to resolve -Wsized-deallocation
+// Global delete using jemalloc
+void operator delete(void *p)
+{
+   je_free(p);
+}
+
 // Global delete[] using jemalloc
 void operator delete[](void *p)
 {
    je_free(p);
 }
+
+#if __cpp_sized_deallocation >= 201309
+void operator delete(void *ptr, std::size_t size) noexcept {
+   je_sdallocx(ptr, size, /*flags=*/0);
+}
+void operator delete[](void *ptr, std::size_t size) noexcept {
+   je_sdallocx(ptr, size, /*flags=*/0);
+}
+#endif  // __cpp_sized_deallocation
 
 #endif 
 

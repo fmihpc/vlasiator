@@ -192,7 +192,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       }
       if(lowercase == "vg_amr_translate_comm") { // Flag for AMR translation communication
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_translate_comm",CellParams::AMR_TRANSLATE_COMM_X,3));
-	 //outputReducer->addMetadata(outputReducer->size()-1,"","AMR-translate","1.0");
+	 outputReducer->addMetadata(outputReducer->size()-1,"","","AMRtranslate","1.0");
          continue;
       }
       if(lowercase == "fg_rhom") { // Overall mass density (summed over all populations)

@@ -35,7 +35,7 @@
 
 #include "mesh_data.h"
 
-#ifndef AMR
+#ifndef VAMR
    #include "velocity_mesh_old.h"
 #else
    #include "velocity_mesh_amr.h"
