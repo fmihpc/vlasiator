@@ -127,6 +127,10 @@ public:
         copy_data_to_device(v.data(), offset_in_elements, v.size());
     }
 
+    void copy_vector_to_device(const std::vector<T>& v, T* const place) {
+        copy_data_to_device(v.data(),  static_cast<size_t>(place - data_), v.size());
+    }
+
     T* copy_vector_to_device_p(const std::vector<T>& v, const size_t offset_in_elements) {
         return copy_data_to_device_p(v.data(), offset_in_elements, v.size());
     }
@@ -266,10 +270,11 @@ __global__ void sparseMatrixVectorProduct(
     T* x
 ) {
     const auto i = blockDim.x * blockIdx.x + threadIdx.x;
-    x[i] = T{ 0 };
+    T sum = T{ 0 };
     for (size_t j = 0; j < m; ++j) {
-        x[i] += sparse_M[i * m + j] * b[indecies[i * m + j]];
+        sum += sparse_M[i * m + j] * b[indecies[i * m + j]];
     }
+    x[i] = sum;
 }
 
 template<typename T>
@@ -419,6 +424,13 @@ __global__ void reduce6([[maybe_unused]]T const * const g_idata1, [[maybe_unused
 }
 
 template <typename T>
+__global__ void naive_sum(T * const p_device, const size_t length) {
+    for (size_t i = 1; i < length; ++i) {
+        p_device[0] += p_device[i];
+    }
+}
+
+template <typename T>
 __global__ void zeroOutData(T * const data, const int n) {
     const auto i = blockDim.x * blockIdx.x + threadIdx.x;
     if (i < n) {
@@ -443,14 +455,16 @@ T dotProduct(T const * const v_device_p, T const * const w_device_p, const size_
     reduce6<T, dotProductConfig::threads_per_block>
         <<<blocks, dotProductConfig::threads_per_block, sizeof(T) * dotProductConfig::threads_per_block>>>(v_device_p, w_device_p, partial_sums_device_p);
     
-
+/* 
     const auto partial_sums = [&] {
         auto temp = std::vector<T>(blocks);
         cudaMemcpy(temp.data(), partial_sums_device_p, blocks * sizeof(T), cudaMemcpyDeviceToHost);
         return temp;
-    }();
-
-    return std::accumulate(partial_sums.begin(), partial_sums.end(), T{ 0 });
+    }(); */
+    naive_sum<T><<<1, 1>>>(partial_sums_device_p, blocks);
+    T sum;
+    cudaMemcpy(&sum, partial_sums_device_p, sizeof(T), cudaMemcpyDeviceToHost);
+    return sum;
 }
 
 template<typename T>
@@ -560,6 +574,9 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGCUDA(
 
     const auto height = ((n / warp_size) + 1) * warp_size;
 
+    #ifdef IONOGPU_STATIC_MEMORY_ALLOCATION
+    static
+    #endif
     const auto indecies_on_device = IonogpuMemoryAllocator<size_t, 1> {
         {indecies, height * m, true}
     };
@@ -569,7 +586,12 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGCUDA(
     // Dot product needs more padding
     [[maybe_unused]] const auto padded_size_for_dot_product = blocks_for_dot_product * dotProductConfig::elements_per_block;
     
-    auto data_on_device = IonogpuMemoryAllocator<T, 13> {
+    const auto space_for_mask_gauge = (config.gauge == ionogpu::Gauge::mask) ? height : 0;
+
+    #ifdef IONOGPU_STATIC_MEMORY_ALLOCATION
+    static
+    #endif
+    auto data_on_device = IonogpuMemoryAllocator<T, 14> {
         {sparse_A, height * m, true},
         {sparse_A_transposed, height * m, true},
         {b, padded_size_for_dot_product, true},
@@ -582,9 +604,10 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGCUDA(
         {/* pp */{}, padded_size_for_dot_product, true},
         {/* best_solution */{}, height},
         {/* partial sums for dot product */{}, blocks_for_dot_product},
-        {/* temp */{}, height}
+        {/* temp */{}, height},
+        {/* mask_gauge */config.mask_gauge, space_for_mask_gauge, true}
     };
-    
+
     const auto [
         sparse_A_device_p,
         sparse_A_transposed_device_p,
@@ -598,15 +621,29 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGCUDA(
         pp_device_p,
         best_solution_device_p,
         partial_sums_for_dot_product_device_p,
-        temp_device_p
+        temp_device_p,
+        mask_gauge_device_p
     ] = data_on_device.get_pointers_to_data();
+
     
+    #ifdef IONOSPHERE_GPU_STATIC_MEMORY_ALLOCATION
+    static bool initialized = false;
+    if (initialized) {
+        indices_on_device.zero_out_memory();
+        data_on_device.zero_out_memory();
+        indices_on_device.copy_vector_to_device(indecies, indecies_device_p);
+        data_on_device.copy_vector_to_device(sparse_A, sparse_A_device_p);
+        data_on_device.copy_vector_to_device(sparse_A_transposed, sparse_A_transposed_device_p);
+        data_on_device.copy_vector_to_device(b, b_device_p);
+    }
+    #endif
     
     auto number_of_restarts = int { 0 };
     auto min_error = std::numeric_limits<T>::max();
     auto iteration = int { 0 };
     // This is part of the restart mechanism
-   const auto bnrm = std::sqrt(vectorNormSquared<T>(b_device_p, n, partial_sums_for_dot_product_device_p));
+    const auto bnrm = std::sqrt(vectorNormSquared<T>(b_device_p, n, partial_sums_for_dot_product_device_p));
+
     do {
         copyData<<<height / warp_size, warp_size>>>(best_solution_device_p, x_device_p);
 
@@ -700,6 +737,10 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGCUDA(
             //     rr[j] -= ak*zz[j];
             // }   
             multiplyVectorWithScalarAndAddItToAnotherVector<T><<<height / warp_size, warp_size>>>(ak, p_device_p, x_device_p, x_device_p);
+
+            if (config.gauge == ionogpu::Gauge::mask) {
+                vectorElementwiseMultiplication<T><<<height / warp_size, warp_size>>>(x_device_p, mask_gauge_device_p, x_device_p);
+            }
             // *******************************************************************************
             // From this point onwards comments will not refere numecial recipies in C anymore
             // *******************************************************************************
@@ -718,7 +759,13 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGCUDA(
                 m, sparse_A_transposed_device_p, indecies_device_p, x_device_p, temp_device_p
             );
 
-            vectorSubtraction<T><<<height / warp_size, warp_size>>>(b_device_p, temp_device_p, rr_device_p); 
+            vectorSubtraction<T><<<height / warp_size, warp_size>>>(b_device_p, temp_device_p, rr_device_p);
+
+            if (config.gauge == ionogpu::Gauge::mask) {
+                vectorElementwiseMultiplication<T><<<height / warp_size, warp_size>>>(r_device_p, mask_gauge_device_p, r_device_p);
+                vectorElementwiseMultiplication<T><<<height / warp_size, warp_size>>>(rr_device_p, mask_gauge_device_p, rr_device_p);
+            }
+
             // We only support pole gauge at the moment:
             // if (config.gauge == Gauge::pole) {
             //     data_on_device.zero_out_memory(x_device_p, 1);

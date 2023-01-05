@@ -33,6 +33,9 @@ CFLAGS      := -Werror all-warnings -O3
 ifeq ($(IONO_GPU_BENCHMARK), 1)
 CFLAGS += -D IONO_GPU_BENCHMARK=1
 endif
+ifeq ($(IONOGPU_STATIC_MEMORY_ALLOCATION), 1)
+cflags += -D IONOGPU_STATIC_MEMORY_ALLOCATION
+endif
 
 CPPFLAGS    := -MMD -MP -I include
 AR          := ar
