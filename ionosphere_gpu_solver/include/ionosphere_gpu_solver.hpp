@@ -23,8 +23,7 @@ namespace ionogpu {
 
    enum class Gauge {
       none,
-      pole
-
+      mask
    };
 
    template<typename T>
@@ -36,6 +35,7 @@ namespace ionogpu {
       Precondition precondition;
       bool use_minimum_residual_variant;
       Gauge gauge;
+      std::vector<T> mask_gauge = {};
    };
 
    template<typename T>
