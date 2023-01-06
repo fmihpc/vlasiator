@@ -2394,7 +2394,6 @@ namespace SBC {
       
       nIterations = 0;
       nRestarts = 0;
-      
 #ifdef IONOSPHERE_GPU_ON
 
       auto gatherDependingMatrix = [&] () {
@@ -2424,14 +2423,48 @@ namespace SBC {
       const auto A = gatherDependingMatrix();
       const auto b = gatherSource();
 
+
+      auto choose_gauge = [&]() noexcept {
+         if (gaugeFixing == None) {
+            return ionogpu::Gauge::none;
+         } else if (gaugeFixing == Pole || gaugeFixing == Equator) {
+            return ionogpu::Gauge::mask;
+         } else {
+            std::cout << "Ionosphere gauge unimplemented on GPU\nAborting...\n";
+            abort();
+         }
+      };
+
+      auto generate_gauge_mask = [&]() -> std::vector<Real> {
+         if (gaugeFixing == Pole) {
+            auto mask = std::vector<Real>(nodes.size(), 1);
+            mask.front() = 0;
+            return mask;
+         } else if (gaugeFixing == Equator) {
+            auto mask = std::vector<Real>(nodes.size(), 1);
+               
+            #pragma omp for
+            for(size_t i = 0; i < nodes.size(); ++i) {
+               Node& N = nodes[i];
+               if(fabs(N.x[2]) < Ionosphere::innerRadius * sin(Ionosphere::shieldingLatitude * M_PI / 180.0)) {
+                  mask[i] = 0;
+               }
+            }
+            return mask;
+         } else {
+            return {};
+         }
+      };
+
       const auto config_for_gpu_solver = ionogpu::ConfigurationForIonosphereGPUSolver<Real>{
-         static_cast<size_t>(Ionosphere::solverMaxIterations),
-         static_cast<size_t>(Ionosphere::solverMaxFailureCount),
-         Ionosphere::solverMaxErrorGrowthFactor,
-         Ionosphere::solverRelativeL2ConvergenceThreshold,
-         (Ionosphere::solverPreconditioning) ? ionogpu::Precondition::diagonal : ionogpu::Precondition::none,
-         true,
-         ionogpu::Gauge::pole // This has to be changed
+            Ionosphere::solverMaxIterations,
+            Ionosphere::solverMaxFailureCount,
+            Ionosphere::solverMaxErrorGrowthFactor,
+            Ionosphere::solverRelativeL2ConvergenceThreshold,
+            Ionosphere::solverPreconditioning ? ionogpu::Precondition::diagonal : ionogpu::Precondition::none,
+            true,
+            choose_gauge(),
+            generate_gauge_mask()
       };
 
 
@@ -2442,7 +2475,8 @@ namespace SBC {
          config_for_gpu_solver,
          nIterations,
          nRestarts,
-         residual);
+         residual
+      );
 
 
       maxPotentialN = std::numeric_limits<std::decay_t<decltype(maxPotentialN)>>::min();
