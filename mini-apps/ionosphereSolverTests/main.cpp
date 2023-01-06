@@ -8,6 +8,8 @@
 #include "../../iowrite.h"
 #include "../../ioread.h"
 
+#include "../../ionosphere_gpu_solver/include/ionosphere_gpu_solver.hpp"
+
 using namespace std;
 using namespace SBC;
 using namespace vlsv;
@@ -82,6 +84,7 @@ int main(int argc, char** argv) {
    Ionosphere::solverMaxErrorGrowthFactor = 100;
    bool doPrecondition = true;
    bool writeDependencyMatrix = false;
+   bool solveTwice = false;
    if(argc ==1) {
       cerr << "Running with default options. Run main --help to see available settings." << endl;
    }
@@ -132,6 +135,10 @@ int main(int argc, char** argv) {
          Ionosphere::solverMaxErrorGrowthFactor = atoi(argv[++i]);
          continue;
       }
+      if(!strcmp(argv[i], "-solveTwice")) {
+         solveTwice = true;
+         continue;
+      }
       cerr << "Unknown command line option \"" << argv[i] << "\"" << endl;
       cerr << endl;
       cerr << "main [-N num] [-r <lat0> <lat1>] [-sigma (identity|random|35|53|file)] [-fac (constant|dipole|quadrupole|octopole|hexadecapole||file)] [-facfile <filename>] [-gaugeFix equator|pole|integral|none] [-np]" << endl;
@@ -160,7 +167,8 @@ int main(int argc, char** argv) {
       cerr << " -maxIter:  Maximum number of solver iterations" << endl;
       cerr << " -writeDependencyMatrix" << endl;
       cerr << " -L2tresh   Solver relative L2 convergence threshold (default: 1e-6)" << endl;      
-      cerr << " -errGrowth Solver max error growth factor (default: 100)" << endl;      
+      cerr << " -errGrowth Solver max error growth factor (default: 100)" << endl;    
+      cerr << " -solveTwice" << endl;  
       return 1;
    }
 
@@ -357,6 +365,12 @@ int main(int argc, char** argv) {
    ionosphereGrid.rank = 0;
    int iterations, nRestarts;
    Real residual, minPotentialN, minPotentialS, maxPotentialN, maxPotentialS;
+
+   // This is to initialize cuda context
+#ifdef IONOSPHERE_GPU_ON
+   ionogpu::vectorAddition(std::vector<double>{1}, std::vector<double>{1});
+#endif
+
    const auto time1 = std::chrono::steady_clock::now();
    ionosphereGrid.solve(iterations, nRestarts, residual, minPotentialN, maxPotentialN, minPotentialS, maxPotentialS);
    const auto time2 = std::chrono::steady_clock::now();
@@ -389,12 +403,13 @@ int main(int argc, char** argv) {
    };
 
    std::cout << "Reduntant_residual: " << calculate_residual() << "\n";
+   if (solveTwice) {
+      const auto time3 = std::chrono::steady_clock::now();
+      ionosphereGrid.solve(iterations, nRestarts, residual, minPotentialN, maxPotentialN, minPotentialS, maxPotentialS);
+      const auto time4 = std::chrono::steady_clock::now();
+      std::cout << "Time2: " << std::chrono::duration_cast<std::chrono::milliseconds>(time4 - time3).count() << "\n";
+   }
 
- /*   const auto time3 = std::chrono::steady_clock::now();
-   ionosphereGrid.solve(iterations, nRestarts, residual, minPotentialN, maxPotentialN, minPotentialS, maxPotentialS);
-   const auto time4 = std::chrono::steady_clock::now();
-   std::cout << "Time2: " << std::chrono::duration_cast<std::chrono::milliseconds>(time4 - time3).count() << "\n";
-     */
    cout << "Ionosphere solver: iterations " << iterations << " restarts " << nRestarts
       << " residual " << std::scientific << residual << std::defaultfloat
       << " potential min N = " << minPotentialN << " S = " << minPotentialS
