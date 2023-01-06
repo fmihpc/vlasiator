@@ -635,6 +635,9 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGCUDA(
         data_on_device.copy_vector_to_device(sparse_A, sparse_A_device_p);
         data_on_device.copy_vector_to_device(sparse_A_transposed, sparse_A_transposed_device_p);
         data_on_device.copy_vector_to_device(b, b_device_p);
+        data_on_device.copy_vector_to_device(config.mask_gauge, mask_gauge_device_p);
+    } else  {
+        initialized = true;
     }
     #endif
     
@@ -833,8 +836,12 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGSTABCUDA(
     [[maybe_unused]] const auto padded_size_for_dot_product = blocks_for_dot_product * dotProductConfig::elements_per_block;
     
     //const auto size_of_padding_for_dot_product = padded_size_for_dot_product - n;
-
-    auto data_on_device = IonogpuMemoryAllocator<T, 15> {
+    
+    const auto space_for_mask_gauge = (config.gauge == ionogpu::Gauge::mask) ? height : 0;
+    #ifdef IONOGPU_STATIC_MEMORY_ALLOCATION
+    static
+    #endif
+    auto data_on_device = IonogpuMemoryAllocator<T, 16> {
         {sparse_A, height * m, true},
         {b, padded_size_for_dot_product, true},
         {/* x */{}, padded_size_for_dot_product},
@@ -848,8 +855,9 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGSTABCUDA(
         {/* y */{}, padded_size_for_dot_product, true},
         {/* z */{}, padded_size_for_dot_product, true},
         {/* temp */{}, padded_size_for_dot_product},
-        {/* best_solution */std::vector<T>(n, 1.0), height, true},
-        {/* partial sums for dot product */{}, blocks_for_dot_product}
+        {/* best_solution */{}, height, true},
+        {/* partial sums for dot product */{}, blocks_for_dot_product},
+        {/* mask_gauge */config.mask_gauge, space_for_mask_gauge, true}
     };
 
     const auto [
@@ -867,10 +875,29 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGSTABCUDA(
         z_device_p,
         temp_device_p,
         best_solution_device_p,
-        partial_sums_for_dot_product_device_p
+        partial_sums_for_dot_product_device_p,
+        mask_gauge_device_p
     ] = data_on_device.get_pointers_to_data();
 
-    
+    #ifdef IONOSPHERE_GPU_STATIC_MEMORY_ALLOCATION
+    static bool initialized = false;
+    if (initialized) {
+        indices_on_device.zero_out_memory();
+        data_on_device.zero_out_memory();
+        indices_on_device.copy_vector_to_device(indecies, indecies_device_p);
+        data_on_device.copy_vector_to_device(sparse_A, sparse_A_device_p);
+        data_on_device.copy_vector_to_device(b, b_device_p);
+        data_on_device.copy_vector_to_device(config.mask_gauge, mask_gauge_device_p);
+    } else  {
+        initialized = true;
+    }
+    #endif
+
+    if (config.gauge != ionogpu::Gauge::none) {
+        std::cout << "Gauge not implemented in BiCGSTAB! Aborting...\n";
+        abort();
+    }
+
     timer::time("sparseBiCGSTABCUDA::init");
     const auto b_norm = std::sqrt(vectorNormSquared<T>(b_device_p, n, partial_sums_for_dot_product_device_p));
 
