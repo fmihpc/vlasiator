@@ -1627,6 +1627,8 @@ bool writeRestart(
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_v_dt",CellParams::MAXVDT,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_r_dt",CellParams::MAXRDT,1));
    restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("max_fields_dt",CellParams::MAXFDT,1));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_drift",CellParams::BULKV_FORCING_X,3));
+   restartReducer.addOperator(new DRO::DataReductionOperatorCellParams("vg_bulk_forcing_flag",CellParams::FORCING_CELL_NUM,1));
    restartReducer.addOperator(new DRO::VariableBVol);
    restartReducer.addMetadata(restartReducer.size()-1,"T","$\\mathrm{T}$","$B_\\mathrm{vol,vg}$","1.0");
    restartReducer.addOperator(new DRO::MPIrank);

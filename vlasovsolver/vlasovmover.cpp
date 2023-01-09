@@ -588,7 +588,7 @@ void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_G
    for (size_t c=0; c<cells.size(); ++c) {
       const CellID cellID = cells[c];
       SpatialCell* SC = mpiGrid[cellID];
-      calculateCellMoments(SC,true);
+      calculateCellMoments(SC,true,false);
 
       // WARNING the following is sane as this function is only called by initializeGrid.
       // We need initialized _DT2 values for the dt=0 field propagation done in the beginning.
