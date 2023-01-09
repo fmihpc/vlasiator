@@ -36,6 +36,7 @@
 #ifdef USE_CUDA
    #include "cuda_context.cuh"
 #endif
+#include "src/splitvector/splitvec.h"
 
 namespace vmesh {
 
@@ -111,7 +112,9 @@ namespace vmesh {
       void exitInvalidLocalID(const LID& localID,const std::string& funcName) const;
       void resize();
 
-      std::vector<Realf,aligned_allocator<Realf,WID3> > block_data;
+      //std::vector<Realf,aligned_allocator<Realf,WID3> > block_data;
+      split::SplitVector<Realf> block_data;
+
       Realf null_block_data[WID3];
       LID currentCapacity;
       LID numberOfBlocks;
@@ -149,7 +152,8 @@ namespace vmesh {
       dev_unpinBlocks();
       dev_unpinParameters();
 
-      block_data.~vector();
+      //block_data.~vector();
+      block_data.~SplitVector();
       parameters.~vector();
    }
 #endif
@@ -168,7 +172,8 @@ namespace vmesh {
     * reserved for velocity blocks.*/
    template<typename LID> inline
    void VelocityBlockContainer<LID>::clear() {
-      std::vector<Realf,aligned_allocator<Realf,WID3> > dummy_data;
+      //std::vector<Realf,aligned_allocator<Realf,WID3> > dummy_data;
+      split::SplitVector<Realf> dummy_data;
       std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS> > dummy_parameters;
 
       block_data.swap(dummy_data);
@@ -533,7 +538,8 @@ namespace vmesh {
       dev_unpinParameters();
 #endif
       {
-         std::vector<Realf,aligned_allocator<Realf,WID3> > dummy_data(newCapacity*WID3);
+         //std::vector<Realf,aligned_allocator<Realf,WID3> > dummy_data(newCapacity*WID3);
+         split::SplitVector<Realf> dummy_data(newCapacity*WID3);
          for (size_t i=0; i<numberOfBlocks*WID3; ++i) dummy_data[i] = block_data[i];
          dummy_data.swap(block_data);
       }

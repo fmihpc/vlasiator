@@ -50,6 +50,7 @@ CUDA_HOSTDEV inline void compute_ppm_coeff_nonuniform(const Vec * const dv, cons
    //Coella et al, check for monotonicity   
    Vec m_face = fv_l;
    Vec p_face = fv_r;
+   const Vec one_sixth(1.0/6.0);
 
    //std::cout << "value = " << values[k][0] << ", m_face = " << m_face[0] << ", p_face = " << p_face[0] << "\n";
    //std::cout << values[k][0] - m_face[0] << ", " << values[k][0] - p_face[0] << "\n";
