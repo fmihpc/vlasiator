@@ -825,8 +825,9 @@ namespace spatial_cell {
       vector<vmesh::GlobalID> childrenGIDs;
       populations[popID].vmesh.getChildren(blockGID,childrenGIDs);
 
-      #warning FIXME activePopID is not correct here (AMR, hence TBD)
-      
+#ifdef VAMR
+#warning FIXME activePopID is not correct here (AMR, hence TBD)
+#endif
       // Check if any of block's children exist:
       bool hasChildren = false;
       for (size_t c=0; c<childrenGIDs.size(); ++c) {

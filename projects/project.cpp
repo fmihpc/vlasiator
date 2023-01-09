@@ -335,8 +335,9 @@ namespace projects {
          }
 
          const Realf maxValue = setVelocityBlock(cell,blockLID,popID);
-         #warning TODO: add SpatialCell::getVelocityBlockMinValue() in place of sparseMinValue
-         if (maxValue < getObjectWrapper().particleSpecies[popID].sparseMinValue) removeList.push_back(blockGID);
+         if (maxValue < cell->getVelocityBlockMinValue(popID)) {
+            removeList.push_back(blockGID);
+         }
       }
 
       // Get AMR refinement criterion and use it to test which blocks should be refined
@@ -392,9 +393,9 @@ namespace projects {
             const vmesh::GlobalID blockGID = it->first;
             const vmesh::LocalID blockLID = it->second;
             const Real maxValue = setVelocityBlock(cell,blockLID,popID);
-            #warning TODO: add SpatialCell::getVelocityBlockMinValue() in place of sparseMinValue
-            if (maxValue <= getObjectWrapper().particleSpecies[popID].sparseMinValue) 
-              removeList.push_back(it->first);
+            if (maxValue <= cell->getVelocityBlockMinValue(popID)) {
+               removeList.push_back(it->first);
+            }
          }
 
          // Remove blocks with f below sparse min value

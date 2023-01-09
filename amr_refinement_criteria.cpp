@@ -54,7 +54,9 @@ namespace amr_ref_criteria {
       for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
          Realf f_cen = array[vblock::padIndex<PAD>(ic+1,jc+1,kc+1)];
          
-         #warning In here should we use SpatialCell::getVeloctyBlockMinValue()?
+#ifdef VAMR
+#warning SpatialCell::getVeloctyBlockMinValue() or dynamic algorithm not available without spatial cell data
+#endif
          if (fabs(f_cen) < getObjectWrapper().particleSpecies[popID].sparseMinValue) continue;
 
          Realf f_lft = array[vblock::padIndex<PAD>(ic  ,jc+1,kc+1)];
@@ -81,7 +83,9 @@ namespace amr_ref_criteria {
       const int PAD=1;
       for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
          Realf f_cen = array[vblock::padIndex<PAD>(ic+1,jc+1,kc+1)];
-         #warning In here should we use SpatialCell::getVeloctyBlockMinValue()?
+#ifdef VAMR
+#warning SpatialCell::getVeloctyBlockMinValue() or dynamic algorithm not available without spatial cell data
+#endif
          if (fabs(f_cen) < getObjectWrapper().particleSpecies[popID].sparseMinValue) {
             result[vblock::index(ic,jc,kc)] = 0;
             continue;
