@@ -3167,6 +3167,8 @@ namespace SBC {
          Real temperature = 0;
          Real density = 0;
          switch(boundaryVDFmode) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
             case ForceL2EXB:
                {
                // EXB forcing is assigned to the L2 Neighbour cells here, so they can update their VDFs in acceleration
@@ -3218,7 +3220,7 @@ namespace SBC {
                // This is handled below
                break;
          }
-
+#pragma GCC diagnostic pop
 
          // Fill velocity space
          switch(boundaryVDFmode) {

@@ -50,8 +50,8 @@
 #endif 
 
 #ifndef NDEBUG
-   #ifdef AMR
-      #define DEBUG_AMR_VALIDATE
+   #ifdef VAMR
+      #define DEBUG_VAMR_VALIDATE
    #endif
 #endif
 
@@ -306,7 +306,7 @@ void initializeGrids(
 
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          adjustVelocityBlocks(mpiGrid,cells,true,popID);
-         #ifdef DEBUG_AMR_VALIDATE
+         #ifdef DEBUG_VAMR_VALIDATE
             writeVelMesh(mpiGrid);
             validateMesh(mpiGrid,popID);
          #endif
@@ -1133,9 +1133,9 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
 bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID) {
    bool rvalue = true;
-   #ifndef AMR
+   #ifndef VAMR
       return rvalue;
-   #endif
+   #else
 
    phiprof::start("mesh validation (init)");
          
@@ -1152,7 +1152,7 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
    int iter=0;
        
    do {
-      #ifdef DEBUG_AMR_VALIDATE
+      #ifdef DEBUG_VAMR_VALIDATE
       if (iter == 0) {
          writeVelMesh(mpiGrid);
       }
@@ -1178,7 +1178,7 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
          // Get all spatial neighbors
          //const vector<CellID>* neighbors = mpiGrid.get_neighbors_of(cells[c],NEAREST_NEIGHBORHOOD_ID);
          const auto* neighbors = mpiGrid.get_neighbors_of(cells[c], NEAREST_NEIGHBORHOOD_ID);
-	 //#warning TODO should vAMR grandparents be checked only for face neighbors instead of NEAREST_NEIGHBORHOOD_ID?
+	 //#warning TODO should VAMR grandparents be checked only for face neighbors instead of NEAREST_NEIGHBORHOOD_ID?
 
          // Iterate over all spatial neighbors
          // for (size_t n=0; n<neighbors->size(); ++n) {
@@ -1285,7 +1285,7 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
       }
       phiprof::stop("recalculate distrib. functions");
        
-      #ifdef DEBUG_AMR_VALIDATE
+      #ifdef DEBUG_VAMR_VALIDATE
          writeVelMesh(mpiGrid);
       #endif
       ++iter;
@@ -1300,6 +1300,7 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
    
    phiprof::stop("mesh validation (init)");
    return rvalue;
+   #endif
 }
 
 void mapRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {

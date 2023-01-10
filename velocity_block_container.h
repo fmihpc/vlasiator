@@ -28,9 +28,9 @@
 #include "common.h"
 #include "unistd.h"
 
-#ifdef DEBUG_VBC
-   #include <sstream>
-#endif
+//#ifdef DEBUG_VBC
+#include <sstream>
+//#endif
 
 namespace vmesh {
 
