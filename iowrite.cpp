@@ -329,14 +329,6 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    variableName = dataReducer.getName(dataReducerIndex);
    phiprof::start("DRO_"+variableName);
 
-   // If the DataReducer can write its data directly to the output file, do it here.
-   // Otherwise the output data is buffered and written below.
-   if (dataReducer.handlesWriting(dataReducerIndex) == true) {
-      success = dataReducer.writeData(dataReducerIndex,mpiGrid,cells,meshName,vlsvWriter);
-      phiprof::stop("DRO_"+variableName);
-      return success;
-   }
-
    //Get basic data on a variable:
    uint dataSize,vectorSize;
    attribs["mesh"] = meshName;
@@ -1050,13 +1042,13 @@ bool writeIonosphereGridMetadata(vlsv::Writer& vlsvWriter) {
   //   uint32_t num_nodes = 3; // It has three corners.
   //   std::array<uint32_t, 3> nodes; // The corner data
   //};
-  std::vector<uint32_t> meshData;
+  std::vector<uint32_t> ionosphereGridElementsAndCorners;
   for(uint i=0; i<SBC::ionosphereGrid.elements.size(); i++) {
-     meshData.push_back(vlsv::celltype::TRIANGLE);
-     meshData.push_back(3);
-     meshData.push_back(SBC::ionosphereGrid.elements[i].corners[0]);
-     meshData.push_back(SBC::ionosphereGrid.elements[i].corners[1]);
-     meshData.push_back(SBC::ionosphereGrid.elements[i].corners[2]);
+     ionosphereGridElementsAndCorners.push_back(vlsv::celltype::TRIANGLE);
+     ionosphereGridElementsAndCorners.push_back(3);
+     ionosphereGridElementsAndCorners.push_back(SBC::ionosphereGrid.elements[i].corners[0]);
+     ionosphereGridElementsAndCorners.push_back(SBC::ionosphereGrid.elements[i].corners[1]);
+     ionosphereGridElementsAndCorners.push_back(SBC::ionosphereGrid.elements[i].corners[2]);
   }
 
   // Finally, write mesh object itself.
@@ -1069,9 +1061,9 @@ bool writeIonosphereGridMetadata(vlsv::Writer& vlsvWriter) {
 
   if(rank == 0) {
     // Write this data only on rank 0 
-    vlsvWriter.writeArray("MESH", xmlAttributes, meshData.size(), 1, meshData.data());
+    vlsvWriter.writeArray("MESH", xmlAttributes, ionosphereGridElementsAndCorners.size(), 1, ionosphereGridElementsAndCorners.data());
   } else {
-    vlsvWriter.writeArray("MESH", xmlAttributes, 0, 1, meshData.data());
+    vlsvWriter.writeArray("MESH", xmlAttributes, 0, 1, ionosphereGridElementsAndCorners.data());
   }
 
   return true;

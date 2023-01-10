@@ -201,7 +201,7 @@ OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipo
 	VelocityBox.o Riemann1.o Shock.o Template.o test_fp.o testAmr.o testHall.o test_trans.o\
 	IPShock.o object_wrapper.o\
 	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o vlasiator.o logger.o\
-	common.o parameters.o readparameters.o spatial_cell.o mesh_data_container.o\
+	common.o parameters.o readparameters.o spatial_cell.o\
 	vlasovmover.o $(FIELDSOLVER).o fs_common.o fs_limiters.o gridGlue.o
 
 # Add Vlasov solver objects (depend on mesh: VAMR or non-VAMR)
@@ -301,9 +301,6 @@ eulerAdaptive.o: ${DEPS_TRACING} fieldtracing/eulerAdaptive.h fieldtracing/euler
 
 fieldtracing.o: ${DEPS_TRACING}
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c fieldtracing/fieldtracing.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_ZOLTAN} ${INC_EIGEN}
-
-mesh_data_container.o: ${DEPS_COMMON} mesh_data_container.h mesh_data.h
-	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c mesh_data_container.cpp ${INC_VLSV} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_FSGRID}
 
 outflow.o: ${DEPS_COMMON} sysboundary/outflow.h sysboundary/outflow.cpp projects/project.h projects/project.cpp fieldsolver/ldz_magnetic_field.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c sysboundary/outflow.cpp ${INC_FSGRID} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}

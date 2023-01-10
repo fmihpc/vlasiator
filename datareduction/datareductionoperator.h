@@ -26,8 +26,6 @@
 #include <vector>
 
 #include <vlsv_writer.h>
-#include <dccrg.hpp>
-#include <dccrg_cartesian_geometry.hpp>
 
 #include "fsgrid.hpp"
 #include "../definitions.h"
@@ -84,14 +82,6 @@ namespace DRO {
       std::string variableLaTeX;
       std::string unitConversion;
       
-   };
-
-   class DataReductionOperatorHandlesWriting: public DataReductionOperator {
-   public:
-      DataReductionOperatorHandlesWriting() : DataReductionOperator() {};
-      virtual bool writeData(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                             const std::vector<CellID>& cells,const std::string& meshName,
-                             vlsv::Writer& vlsvWriter) = 0;
    };
 
    class DataReductionOperatorHasParameters: public DataReductionOperator {
@@ -427,24 +417,6 @@ namespace DRO {
       std::string popName;
    };
 
-   /** This class writes all scalar and two- or three-component vector data 
-    * that is stored to MeshDataContainer to output file.*/
-   class VariableMeshData: public DataReductionOperatorHandlesWriting {
-   public:
-      VariableMeshData();
-      virtual ~VariableMeshData();
-      
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
-      virtual std::string getName() const;
-      virtual bool setSpatialCell(const SpatialCell* cell);
-      virtual bool writeData(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                             const std::vector<CellID>& cells,const std::string& meshName,
-                             vlsv::Writer& vlsvWriter);
-      
-   private:
-      
-   };
-   
    class VariableRhoThermal: public DataReductionOperator {
    public:
       VariableRhoThermal(cuint popID);

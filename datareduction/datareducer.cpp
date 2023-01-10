@@ -2569,11 +2569,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"m","$\\mathrm{m}$","$\\delta Z_\\mathrm{fg}$","1.0");
          continue;
       }
-      if(lowercase == "meshdata") {
-         outputReducer->addOperator(new DRO::VariableMeshData);
-         outputReducer->addMetadata(outputReducer->size()-1,"","","\\mathrm{Mesh data}$","");
-         continue;
-      }
       if(lowercase == "vg_amr_drho") {
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_drho",CellParams::AMR_DRHO,1));
          outputReducer->addMetadata(outputReducer->size()-1,"","","$\\frac{\\Delta \\rho}{\\hat{rho}}$","");
@@ -3358,15 +3353,6 @@ bool DataReducer::getMetadata(const unsigned int& operatorID,std::string& unit,s
    return operators[operatorID]->getUnitMetadata(unit, unitLaTeX, variableLaTeX, unitConversion);
 }
 
-/** Ask a DataReductionOperator if it wants to take care of writing the data 
- * to output file instead of letting be handled in iowrite.cpp. 
- * @param operatorID ID number of the DataReductionOperator.
- * @return If true, then VLSVWriter should be passed to the DataReductionOperator.*/
-bool DataReducer::handlesWriting(const unsigned int& operatorID) const {
-   if (operatorID >= operators.size()) return false;
-   return dynamic_cast<DRO::DataReductionOperatorHandlesWriting*>(operators[operatorID]) != nullptr;
-}
-
 /** Ask a DataReductionOperator if it wants to write parameters to the vlsv file header
  * @param operatorID ID number of the DataReductionOperator.
  * @return If true, then VLSVWriter should be passed to the DataReductionOperator.*/
@@ -3409,25 +3395,6 @@ bool DataReducer::reduceDiagnostic(const SpatialCell* cell,const unsigned int& o
  * @return Number of DataReductionOperators stored in DataReducer.
  */
 unsigned int DataReducer::size() const {return operators.size();}
-
-/** Write all data from given DataReductionOperator to the output file.
- * @param operatorID ID number of the selected DataReductionOperator.
- * @param mpiGrid Parallel grid library.
- * @param cells Vector containing spatial cell IDs.
- * @param meshName Name of the spatial mesh in the output file.
- * @param vlsvWriter VLSV file writer that has output file open.
- * @return If true, DataReductionOperator wrote its data successfully.*/
-bool DataReducer::writeData(const unsigned int& operatorID,
-                  const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                  const std::vector<CellID>& cells,const std::string& meshName,
-                  vlsv::Writer& vlsvWriter) {
-   if (operatorID >= operators.size()) return false;
-   DRO::DataReductionOperatorHandlesWriting* writingOperator = dynamic_cast<DRO::DataReductionOperatorHandlesWriting*>(operators[operatorID]);
-   if(writingOperator == nullptr) {
-      return false;
-   }
-   return writingOperator->writeData(mpiGrid,cells,meshName,vlsvWriter);
-}
 
 /** Write parameters related to given DataReductionOperator to the output file.
  * @param operatorID ID number of the selected DataReductionOperator.
