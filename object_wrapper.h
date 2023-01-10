@@ -26,8 +26,11 @@
 #include <vector>
 
 #include "definitions.h"
-#include "item_storage.h"
+//#include "item_storage.h"
+#ifndef USE_CUDA
 #include "object_factory.h"
+#endif
+
 #include "vamr_refinement_criteria.h"
 #include "particle_species.h"
 #include "projects/project.h"
@@ -37,7 +40,9 @@
 struct ObjectWrapper {
    ObjectWrapper() { }
 
+#ifndef USE_CUDA
    ObjectFactory<vamr_ref_criteria::Base> vamrVelRefCriteria; /**< Factory for all known VAMR refinement criteria.*/
+#endif
    std::vector<species::Species> particleSpecies;           /**< Parameters for all particle species.*/
    projects::Project*                    project;           /**< Simulated project.*/
    std::vector<vmesh::MeshParameters> velocityMeshes;       /**< Parameters for velocity mesh(es).*/

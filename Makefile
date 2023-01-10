@@ -236,7 +236,7 @@ DEPS_VLSVMOVER_VAMR = ${DEPS_CELL} vlasovsolver_amr/vlasovmover.cpp vlasovsolver
 #all objects for vlasiator
 
 OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipole.o vectordipole.o constantfield.o integratefunction.o \
-	datareducer.o datareductionoperator.o dro_populations.o vamr_refinement_criteria.o\
+	datareducer.o datareductionoperator.o dro_populations.o \
 	donotcompute.o ionosphere.o conductingsphere.o outflow.o setbyuser.o setmaxwellian.o\
 	bulirschStoer.o dormandPrince.o euler.o eulerAdaptive.o fieldtracing.o \
 	sysboundary.o sysboundarycondition.o particle_species.o\
@@ -265,6 +265,8 @@ ifeq ($(USE_CUDA),1)
 		vlasovsolver/cuda_moments.h
 	DEPS_GRID += vlasovsolver/cuda_moments_kernel.cuh
 	DEPS_CELL += spatial_cell_cuda.hpp velocity_mesh_cuda.h
+else
+	OBJS += vamr_refinement_criteria.o
 endif
 
 # Add field solver objects

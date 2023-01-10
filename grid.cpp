@@ -760,10 +760,8 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
          }
       }
 #ifdef USE_CUDA
-      // Flag cell data as updated on host
       vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
-      blockContainer.dev_needsUpdatingBlocks = true;
-      blockContainer.dev_needsUpdatingParameters = true;
+      blockContainer.dev_prefetchDevice();
 #endif
    }
    phiprof::stop("Adjusting blocks");

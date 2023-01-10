@@ -340,10 +340,18 @@ namespace projects {
          }
       }
 
+#ifndef VAMR
+      if (rescalesDensity(popID) == true) {
+         rescaleDensity(cell,popID);
+      }
+      return;
+#else
       // Get VAMR refinement criterion and use it to test which blocks should be refined
       vamr_ref_criteria::Base* refCriterion = getObjectWrapper().vamrVelRefCriteria.create(Parameters::vamrVelRefCriterion);
       if (refCriterion == NULL) {
-         if (rescalesDensity(popID) == true) rescaleDensity(cell,popID);
+         if (rescalesDensity(popID) == true) {
+            rescaleDensity(cell,popID);
+         }
          return;
       }
       refCriterion->initialize("");
@@ -351,7 +359,6 @@ namespace projects {
       // Remove blocks with f below sparse min value
       for (size_t b=0; b<removeList.size(); ++b) cell->remove_velocity_block(removeList[b],popID);
 
-#ifdef AMR
       // Loop over blocks in the spatial cell until we reach the maximum
       // refinement level, or until there are no more blocks left to refine
       bool refine = true;

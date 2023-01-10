@@ -385,7 +385,9 @@ int main(int argn,char* args[]) {
    phiprof::stop("Init project");
 
    // Add VAMR refinement criterias:
+#ifdef VAMR
    vamr_ref_criteria::addRefinementCriteria();
+#endif
 
    // Initialize simplified Fieldsolver grids.
    // Needs to be done here already ad the background field will be set right away, before going to initializeGrid even

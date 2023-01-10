@@ -76,14 +76,9 @@ namespace vmesh {
 
       void dev_Allocate(LID size);
       void dev_Allocate();
-      void dev_syncBlocksToHost();
-      void dev_syncBlocksToDevice();
-      void dev_syncParametersToHost();
-      void dev_syncParametersToDevice();
+      void dev_prefetchHost();
+      void dev_prefetchDevice();
       // Also add CUDA-capable version of vmesh when CUDA openhashmap is available
-
-      bool dev_needsUpdatingBlocks;
-      bool dev_needsUpdatingParameters;
 #endif
 
       #ifdef DEBUG_VBC
@@ -110,12 +105,7 @@ namespace vmesh {
    };
 
    template<typename LID> inline
-   VelocityBlockContainer<LID>::VelocityBlockContainer() : currentCapacity {0}, numberOfBlocks {0} {
-#ifdef USE_CUDA
-      dev_needsUpdatingBlocks = true;
-      dev_needsUpdatingParameters = true;
-#endif
-   }
+   VelocityBlockContainer<LID>::VelocityBlockContainer() : currentCapacity {0}, numberOfBlocks {0} { }
 
    template<typename LID> inline
    LID VelocityBlockContainer<LID>::capacity() const {
@@ -251,34 +241,18 @@ namespace vmesh {
    }
 
    template<typename LID> inline
-   void VelocityBlockContainer<LID>::dev_syncBlocksToHost() {
+   void VelocityBlockContainer<LID>::dev_prefetchHost() {
       if (numberOfBlocks==0) return;
       block_data.optimizeCPU(cuda_getStream());
-      return;
-   }
-
-   template<typename LID> inline
-   void VelocityBlockContainer<LID>::dev_syncBlocksToDevice() {
-      if (numberOfBlocks==0) return;
-      if (!dev_needsUpdatingBlocks) return;
-      block_data.optimizeGPU(cuda_getStream());
-      dev_needsUpdatingBlocks = false;
-      return;
-   }
-
-   template<typename LID> inline
-   void VelocityBlockContainer<LID>::dev_syncParametersToHost() {
-      if (numberOfBlocks==0) return;
       parameters.optimizeCPU(cuda_getStream());
       return;
    }
 
    template<typename LID> inline
-   void VelocityBlockContainer<LID>::dev_syncParametersToDevice() {
+   void VelocityBlockContainer<LID>::dev_prefetchDevice() {
       if (numberOfBlocks==0) return;
-      if (!dev_needsUpdatingParameters) return;
+      block_data.optimizeGPU(cuda_getStream());
       parameters.optimizeGPU(cuda_getStream());
-      dev_needsUpdatingParameters = false;
       return;
    }
 #endif

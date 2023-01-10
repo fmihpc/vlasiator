@@ -48,7 +48,7 @@ Spatial cell class for Vlasiator that supports a variable number of velocity blo
 
 #include "velocity_mesh_cuda.h"
 
-#include "velocity_blocks.h"
+//#include "velocity_blocks.h" // not needed in semilag
 #include "velocity_block_container.h"
 
 #ifndef NDEBUG

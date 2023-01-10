@@ -23,7 +23,7 @@
 #include <unordered_set>
 
 #include "spatial_cell_cuda.hpp"
-#include "velocity_blocks.h"
+//#include "velocity_blocks.h" // not needed in semilag
 #include "object_wrapper.h"
 
 #ifndef NDEBUG

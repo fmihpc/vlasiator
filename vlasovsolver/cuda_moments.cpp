@@ -85,9 +85,7 @@ void cuda_calculateMoments_V(
          // For now: Launch cuda transfers as data isn't yet fully resident
          phiprof::start("CUDA-HtoD");
          blockContainer.dev_Allocate(vmesh.size());
-         blockContainer.dev_syncBlocksToDevice();
-         // Also sync blockparams
-         blockContainer.dev_syncParametersToDevice();
+         blockContainer.dev_prefetchDevice();
          phiprof::stop("CUDA-HtoD");
       }
 
@@ -246,9 +244,7 @@ void cuda_calculateMoments_R(
          // For now: Launch cuda transfers as data isn't yet fully resident
          phiprof::start("CUDA-HtoD");
          blockContainer.dev_Allocate(vmesh.size());
-         blockContainer.dev_syncBlocksToDevice();
-         // Also sync blockparams
-         blockContainer.dev_syncParametersToDevice();
+         blockContainer.dev_prefetchDevice();
          phiprof::stop("CUDA-HtoD");
       }
 
