@@ -124,6 +124,11 @@ __host__ void cuda_clear_device() {
    }
 }
 
+__host__ cudaStream_t cuda_getStream() {
+   const uint thread_id = omp_get_thread_num();
+   return cudaStreamList[thread_id];
+}
+
 __host__ void cudaAllocateBlockData(
    Realf** dev_blockData,
    Real** dev_parameters,
@@ -204,3 +209,24 @@ __host__ void cuda_unregister_BlockParameters(
    ) {
    cudaHostUnregister(parameters);
 }
+
+template<typename T>
+__host__ void cuda_optimizeCPU(
+   split::SplitVector<T>& vector
+   ) {
+   const uint thread_id = omp_get_thread_num();
+   vector.optimizeCPU(cudaStreamList[thread_id]);
+}
+template<typename T>
+__host__ void cuda_optimizeGPU(
+   split::SplitVector<T>& vector
+   ) {
+   const uint thread_id = omp_get_thread_num();
+   vector.optimizeGPU(cudaStreamList[thread_id]);
+}
+
+// Explicitly declare use of these versions
+template void cuda_optimizeGPU(split::SplitVector<Real>& vector);
+template void cuda_optimizeGPU(split::SplitVector<Realf>& vector);
+template void cuda_optimizeCPU(split::SplitVector<Real>& vector);
+template void cuda_optimizeCPU(split::SplitVector<Realf>& vector);

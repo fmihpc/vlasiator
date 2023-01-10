@@ -1,7 +1,4 @@
 /*
- * This file is part of Vlasiator.
- * Copyright 2010-2016 Finnish Meteorological Institute
- *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
  * at http://www.physics.helsinki.fi/vlasiator/
  *
@@ -35,23 +32,27 @@
 
 #ifdef USE_CUDA
    #include "cuda_context.cuh"
+   // Place block data and parameters inside splitvectors utilizing unified memory
+   #include "src/splitvector/splitvec.h"
 #endif
-#include "src/splitvector/splitvec.h"
 
 namespace vmesh {
 
+#ifdef USE_CUDA
+   static const double BLOCK_ALLOCATION_PADDING = 2.5;
+   static const double BLOCK_ALLOCATION_FACTOR = 1.8;
+#else
    static const double BLOCK_ALLOCATION_FACTOR = 1.1;
-   static const double CUDA_BLOCK_SAFECTY_FACTOR = 1.6;
-   static const double CUDA_BLOCK_ALLOCATION_FACTOR = 2.0;
-
+#endif
+   
    template<typename LID>
    class VelocityBlockContainer {
     public:
 
       VelocityBlockContainer();
-#ifdef USE_CUDA
-      ~VelocityBlockContainer();
-#endif
+// #ifdef USE_CUDA
+//       ~VelocityBlockContainer();
+// #endif
       LID capacity() const;
       size_t capacityInBytes() const;
       void clear();
@@ -61,7 +62,7 @@ namespace vmesh {
       const Realf* getData() const;
       Realf* getData(const LID& blockLID);
       const Realf* getData(const LID& blockLID) const;
-      Realf* getNullData();
+      // Realf* getNullData();
       Real* getParameters();
       const Real* getParameters() const;
       Real* getParameters(const LID& blockLID);
@@ -85,17 +86,17 @@ namespace vmesh {
       Real* dev_getParameters(const LID& blockLID);
       const Real* dev_getParameters(const LID& blockLID) const;
 
-      void dev_Deallocate();
+//      void dev_Deallocate();
       void dev_Allocate(LID size);
       void dev_Allocate();
       void dev_syncBlocksToHost();
       void dev_syncBlocksToDevice();
       void dev_syncParametersToHost();
       void dev_syncParametersToDevice();
-      void dev_pinBlocks();
-      void dev_unpinBlocks();
-      void dev_pinParameters();
-      void dev_unpinParameters();
+      // void dev_pinBlocks();
+      // void dev_unpinBlocks();
+      // void dev_pinParameters();
+      // void dev_unpinParameters();
       // Also add CUDA-capable version of vmesh when CUDA openhashmap is available
 
       bool dev_needsUpdatingBlocks;
@@ -112,20 +113,22 @@ namespace vmesh {
       void exitInvalidLocalID(const LID& localID,const std::string& funcName) const;
       void resize();
 
-      //std::vector<Realf,aligned_allocator<Realf,WID3> > block_data;
-      split::SplitVector<Realf> block_data;
 
-      Realf null_block_data[WID3];
+      // Realf null_block_data[WID3];
       LID currentCapacity;
       LID numberOfBlocks;
-      std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS> > parameters;
 
 #ifdef USE_CUDA
-      LID dev_allocatedSize;
-      Realf *dev_block_data;
-      Real *dev_parameters;
-      bool pinnedBlocks;
-      bool pinnedParameters;
+      split::SplitVector<Realf> block_data;
+      split::SplitVector<Real> parameters;
+      // LID dev_allocatedSize;
+      // Realf *dev_block_data;
+      // Real *dev_parameters;
+      // bool pinnedBlocks;
+      // bool pinnedParameters;
+#else
+      std::vector<Realf,aligned_allocator<Realf,WID3> > block_data;
+      std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS> > parameters;
 #endif
 
    };
@@ -133,30 +136,31 @@ namespace vmesh {
    template<typename LID> inline
    VelocityBlockContainer<LID>::VelocityBlockContainer() : currentCapacity {0}, numberOfBlocks {0} {
 #ifdef USE_CUDA
-      dev_allocatedSize = 0;
-      dev_block_data = new Realf();
-      dev_parameters = new Real();
-      pinnedBlocks = false;
-      pinnedParameters = false;
+      // dev_allocatedSize = 0;
+      // dev_block_data = new Realf();
+      // dev_parameters = new Real();
+      // pinnedBlocks = false;
+      // pinnedParameters = false;
       dev_needsUpdatingBlocks = true;
       dev_needsUpdatingParameters = true;
 #endif
    }
 
-#ifdef USE_CUDA
-   template<typename LID> inline
-   VelocityBlockContainer<LID>::~VelocityBlockContainer() {
-      dev_Deallocate();
-      delete[] dev_block_data;
-      delete[] dev_parameters;
-      dev_unpinBlocks();
-      dev_unpinParameters();
+// #ifdef USE_CUDA
+//    template<typename LID> inline
+//    VelocityBlockContainer<LID>::~VelocityBlockContainer() {
+//       // dev_Deallocate();
+//       // delete[] dev_block_data;
+//       // delete[] dev_parameters;
+//       // dev_unpinBlocks();
+//       // dev_unpinParameters();
 
-      //block_data.~vector();
-      block_data.~SplitVector();
-      parameters.~vector();
-   }
-#endif
+//       // block_data.~vector();
+//       // parameters.~vector();
+//       block_data.~SplitVector();
+//       parmeters.~SplitVector();
+//    }
+// #endif
 
    template<typename LID> inline
    LID VelocityBlockContainer<LID>::capacity() const {
@@ -172,17 +176,20 @@ namespace vmesh {
     * reserved for velocity blocks.*/
    template<typename LID> inline
    void VelocityBlockContainer<LID>::clear() {
-      //std::vector<Realf,aligned_allocator<Realf,WID3> > dummy_data;
+#ifdef USE_CUDA
       split::SplitVector<Realf> dummy_data;
+      split::SplitVector<Real> dummy_parameters;
+#else
+      std::vector<Realf,aligned_allocator<Realf,WID3> > dummy_data;
       std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS> > dummy_parameters;
-
+#endif
       block_data.swap(dummy_data);
       parameters.swap(dummy_parameters);
-#ifdef USE_CUDA
-      dev_Deallocate();
-      dev_unpinBlocks();
-      dev_unpinParameters();
-#endif
+// #ifdef USE_CUDA
+//       // dev_Deallocate();
+//       // dev_unpinBlocks();
+//       // dev_unpinParameters();
+// #endif
       currentCapacity = 0;
       numberOfBlocks = 0;
    }
@@ -266,12 +273,14 @@ namespace vmesh {
 #ifdef USE_CUDA
    template<typename LID> inline
    Realf* VelocityBlockContainer<LID>::dev_getData() {
-      return dev_block_data;
+      //return dev_block_data;
+      return block_data.data();
    }
 
    template<typename LID> inline
    const Realf* VelocityBlockContainer<LID>::dev_getData() const {
-      return dev_block_data;
+      //return dev_block_data;
+      return block_data.data();
    }
 
    template<typename LID> inline
@@ -280,7 +289,8 @@ namespace vmesh {
          if (blockLID >= numberOfBlocks) exitInvalidLocalID(blockLID,"getData");
          if (blockLID >= block_data.size()/WID3) exitInvalidLocalID(blockLID,"const getData const");
       #endif
-      return dev_block_data + blockLID*WID3;
+      //return dev_block_data + blockLID*WID3;
+      return block_data.data() + blockLID*WID3;
    }
 
    template<typename LID> inline
@@ -289,17 +299,20 @@ namespace vmesh {
          if (blockLID >= numberOfBlocks) exitInvalidLocalID(blockLID,"const getData const");
          if (blockLID >= block_data.size()/WID3) exitInvalidLocalID(blockLID,"const getData const");
       #endif
-      return dev_block_data + blockLID*WID3;
+      //return dev_block_data + blockLID*WID3;
+      return block_data.data() + blockLID*WID3;
    }
 
    template<typename LID> inline
    Real* VelocityBlockContainer<LID>::dev_getParameters() {
-      return dev_parameters;
+      //return dev_parameters;
+      return parameters.data();
    }
 
    template<typename LID> inline
    const Real* VelocityBlockContainer<LID>::dev_getParameters() const {
-      return dev_parameters;
+      //return dev_parameters;
+      return parameters.data();
    }
 
    template<typename LID> inline
@@ -308,7 +321,8 @@ namespace vmesh {
          if (blockLID >= numberOfBlocks) exitInvalidLocalID(blockLID,"getParameters");
          if (blockLID >= parameters.size()/BlockParams::N_VELOCITY_BLOCK_PARAMS) exitInvalidLocalID(blockLID,"getParameters");
       #endif
-      return dev_parameters + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
+      //return dev_parameters + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
+      return parameters.data() + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
    }
 
    template<typename LID> inline
@@ -317,59 +331,73 @@ namespace vmesh {
          if (blockLID >= numberOfBlocks) exitInvalidLocalID(blockLID,"const getParameters const");
          if (blockLID >= parameters.size()/BlockParams::N_VELOCITY_BLOCK_PARAMS) exitInvalidLocalID(blockLID,"getParameters");
       #endif
-      return dev_parameters + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
+      //return dev_parameters + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
+      return parameters.data() + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
    }
 
-   template<typename LID> inline
-   void VelocityBlockContainer<LID>::dev_Deallocate() {
-      if (dev_allocatedSize > 0) cudaDeallocateBlockData(&dev_block_data, &dev_parameters);
-      dev_allocatedSize = 0;
-      return;
-   }
+   // template<typename LID> inline
+   // void VelocityBlockContainer<LID>::dev_Deallocate() {
+   //    //if (dev_allocatedSize > 0) cudaDeallocateBlockData(&dev_block_data, &dev_parameters);
+   //    //dev_allocatedSize = 0;
+   //    return;
+   // }
 
    template<typename LID> inline
    void VelocityBlockContainer<LID>::dev_Allocate(LID size) {
-      if (dev_allocatedSize > 0) {
-         if ( (dev_allocatedSize > CUDA_BLOCK_SAFECTY_FACTOR * size) &&
-              (dev_allocatedSize > numberOfBlocks) ) {
-            return; // Still have enough buffer
-         }
-         cudaDeallocateBlockData(&dev_block_data, &dev_parameters);
+      // if (dev_allocatedSize > 0) {
+      //    if ( (dev_allocatedSize > CUDA_BLOCK_SAFECTY_FACTOR * size) &&
+      //         (dev_allocatedSize > numberOfBlocks) ) {
+      //       return; // Still have enough buffer
+      //    }
+      //    cudaDeallocateBlockData(&dev_block_data, &dev_parameters);
+      // }
+
+      // if (numberOfBlocks > CUDA_BLOCK_ALLOCATION_FACTOR  *size) {
+      //    std::cerr<<"Error in "<<__FILE__<<" line "<<__LINE__<<": attempting to allocate less than numberOfBlocks"<<std::endl;
+      //    abort();
+      // }
+      // if (numberOfBlocks > CUDA_BLOCK_SAFECTY_FACTOR * CUDA_BLOCK_ALLOCATION_FACTOR * size) {
+      //    std::cerr<<"Warning in "<<__FILE__<<" line "<<__LINE__<<": attempting to allocate less than safety margins"<<std::endl;
+      // }
+      // cudaAllocateBlockData(&dev_block_data, &dev_parameters, CUDA_BLOCK_ALLOCATION_FACTOR*size);
+      // dev_allocatedSize = CUDA_BLOCK_ALLOCATION_FACTOR*size;
+      // return;
+      LID requirement = (size > numberOfBlocks) ? size : numberOfBlocks;
+      if (block_data.capacity() > BLOCK_ALLOCATION_FACTOR * requirement) {
+         return; // Still have enough buffer
       }
 
-      if (numberOfBlocks > CUDA_BLOCK_ALLOCATION_FACTOR  *size) {
+      if (numberOfBlocks > size) {
          std::cerr<<"Error in "<<__FILE__<<" line "<<__LINE__<<": attempting to allocate less than numberOfBlocks"<<std::endl;
          abort();
       }
-      if (numberOfBlocks > CUDA_BLOCK_SAFECTY_FACTOR * CUDA_BLOCK_ALLOCATION_FACTOR * size) {
+      if (numberOfBlocks > BLOCK_ALLOCATION_FACTOR * size) {
          std::cerr<<"Warning in "<<__FILE__<<" line "<<__LINE__<<": attempting to allocate less than safety margins"<<std::endl;
       }
-      cudaAllocateBlockData(&dev_block_data, &dev_parameters, CUDA_BLOCK_ALLOCATION_FACTOR*size);
-      dev_allocatedSize = CUDA_BLOCK_ALLOCATION_FACTOR*size;
+      block_data.reallocate(BLOCK_ALLOCATION_PADDING * size);
+      parameters.reallocate(BLOCK_ALLOCATION_PADDING * size);
       return;
    }
 
    template<typename LID> inline
    void VelocityBlockContainer<LID>::dev_Allocate() {
-      if (dev_allocatedSize > 0) {
-         if ( dev_allocatedSize > CUDA_BLOCK_SAFECTY_FACTOR * numberOfBlocks) {
-            return; // Still have enough buffer
-         }
-         cudaDeallocateBlockData(&dev_block_data, &dev_parameters);
+      if (block_data.capacity() > BLOCK_ALLOCATION_FACTOR * numberOfBlocks) {
+         return; // Still have enough buffer
       }
-      cudaAllocateBlockData(&dev_block_data, &dev_parameters, CUDA_BLOCK_ALLOCATION_FACTOR*numberOfBlocks);
-      dev_allocatedSize = CUDA_BLOCK_ALLOCATION_FACTOR*numberOfBlocks;
+      block_data.reallocate(BLOCK_ALLOCATION_PADDING * numberOfBlocks);
+      parameters.reallocate(BLOCK_ALLOCATION_PADDING * numberOfBlocks);
       return;
    }
 
    template<typename LID> inline
    void VelocityBlockContainer<LID>::dev_syncBlocksToHost() {
       if (numberOfBlocks==0) return;
-      if (dev_allocatedSize == 0) {
-         std::cerr<<"Error in "<<__FILE__<<" line "<<__LINE__<<": attempting to syncToHost without allocated GPU memory"<<std::endl;
-         abort();
-      }
-      cuda_DtoH_BlockData(dev_block_data, block_data.data(), numberOfBlocks);
+      // if (dev_allocatedSize == 0) {
+      //    std::cerr<<"Error in "<<__FILE__<<" line "<<__LINE__<<": attempting to syncToHost without allocated GPU memory"<<std::endl;
+      //    abort();
+      // }
+      //cuda_DtoH_BlockData(dev_block_data, block_data.data(), numberOfBlocks);
+      cuda_optimizeCPU(block_data);
       return;
    }
 
@@ -377,11 +405,12 @@ namespace vmesh {
    void VelocityBlockContainer<LID>::dev_syncBlocksToDevice() {
       if (numberOfBlocks==0) return;
       if (!dev_needsUpdatingBlocks) return;
-      if (dev_allocatedSize == 0) {
-         std::cerr<<"Error in "<<__FILE__<<" line "<<__LINE__<<": attempting to syncToDevice without allocated GPU memory"<<std::endl;
-         abort();
-      }
-      cuda_HtoD_BlockData(dev_block_data, block_data.data(), numberOfBlocks);
+      // if (dev_allocatedSize == 0) {
+      //    std::cerr<<"Error in "<<__FILE__<<" line "<<__LINE__<<": attempting to syncToDevice without allocated GPU memory"<<std::endl;
+      //    abort();
+      // }
+      // cuda_HtoD_BlockData(dev_block_data, block_data.data(), numberOfBlocks);
+      cuda_optimizeGPU(block_data);
       dev_needsUpdatingBlocks = false;
       return;
    }
@@ -389,11 +418,13 @@ namespace vmesh {
    template<typename LID> inline
    void VelocityBlockContainer<LID>::dev_syncParametersToHost() {
       if (numberOfBlocks==0) return;
-      if (dev_allocatedSize == 0) {
-         std::cerr<<"Error in "<<__FILE__<<" line "<<__LINE__<<": attempting to syncToHost without allocated GPU memory"<<std::endl;
-         abort();
-      }
-      cuda_DtoH_BlockParameters(dev_parameters, parameters.data(), numberOfBlocks);
+      // if (dev_allocatedSize == 0) {
+      //    std::cerr<<"Error in "<<__FILE__<<" line "<<__LINE__<<": attempting to syncToHost without allocated GPU memory"<<std::endl;
+      //    abort();
+      // }
+      //cuda_DtoH_BlockParameters(dev_parameters, parameters.data(), numberOfBlocks);
+      //cuda_optimizeCPU(parameters);
+      parameters.optimizeCPU(cuda_getStream());
       return;
    }
 
@@ -401,61 +432,63 @@ namespace vmesh {
    void VelocityBlockContainer<LID>::dev_syncParametersToDevice() {
       if (numberOfBlocks==0) return;
       if (!dev_needsUpdatingParameters) return;
-      if (dev_allocatedSize == 0) {
-         std::cerr<<"Error in "<<__FILE__<<" line "<<__LINE__<<": attempting to syncToDevice without allocated GPU memory"<<std::endl;
-         abort();
-      }
-      cuda_HtoD_BlockParameters(dev_parameters, parameters.data(), numberOfBlocks);
+      // if (dev_allocatedSize == 0) {
+      //    std::cerr<<"Error in "<<__FILE__<<" line "<<__LINE__<<": attempting to syncToDevice without allocated GPU memory"<<std::endl;
+      //    abort();
+      // }
+      // cuda_HtoD_BlockParameters(dev_parameters, parameters.data(), numberOfBlocks);
+      //cuda_optimizeGPU(parameters);
+      parameters.optimizeGPU(cuda_getStream());
       dev_needsUpdatingParameters = false;
       return;
    }
 
-   template<typename LID> inline
-   void VelocityBlockContainer<LID>::dev_pinBlocks() {
-      //cuda_register_BlockData(block_data.data(), numberOfBlocks);
-      if (pinnedBlocks) {
-         cuda_unregister_BlockData(block_data.data());
-      }
-      cuda_register_BlockData(block_data.data(), currentCapacity);
-      pinnedBlocks = true;
-   return;
-   }
+   // template<typename LID> inline
+   // void VelocityBlockContainer<LID>::dev_pinBlocks() {
+   //    //cuda_register_BlockData(block_data.data(), numberOfBlocks);
+   //    if (pinnedBlocks) {
+   //       cuda_unregister_BlockData(block_data.data());
+   //    }
+   //    cuda_register_BlockData(block_data.data(), currentCapacity);
+   //    pinnedBlocks = true;
+   // return;
+   // }
 
-   template<typename LID> inline
-   void VelocityBlockContainer<LID>::dev_unpinBlocks() {
-      if (pinnedBlocks) {
-         cuda_unregister_BlockData(block_data.data());
-      }
-      pinnedBlocks = false;
-      return;
-   }
+   // template<typename LID> inline
+   // void VelocityBlockContainer<LID>::dev_unpinBlocks() {
+   //    if (pinnedBlocks) {
+   //       cuda_unregister_BlockData(block_data.data());
+   //    }
+   //    pinnedBlocks = false;
+   //    return;
+   // }
 
-   template<typename LID> inline
-   void VelocityBlockContainer<LID>::dev_pinParameters() {
-      //cuda_register_BlockParameters(parameters.data(), numberOfBlocks);
-      if (pinnedParameters) {
-         cuda_unregister_BlockParameters(parameters.data());
-      }
-      cuda_register_BlockParameters(parameters.data(), currentCapacity);
-      pinnedParameters = true;
-      return;
-   }
+   // template<typename LID> inline
+   // void VelocityBlockContainer<LID>::dev_pinParameters() {
+   //    //cuda_register_BlockParameters(parameters.data(), numberOfBlocks);
+   //    if (pinnedParameters) {
+   //       cuda_unregister_BlockParameters(parameters.data());
+   //    }
+   //    cuda_register_BlockParameters(parameters.data(), currentCapacity);
+   //    pinnedParameters = true;
+   //    return;
+   // }
 
-   template<typename LID> inline
-   void VelocityBlockContainer<LID>::dev_unpinParameters() {
-      if (pinnedParameters) {
-         cuda_unregister_BlockParameters(parameters.data());
-      }
-      pinnedParameters = false;
-      return;
-   }
+   // template<typename LID> inline
+   // void VelocityBlockContainer<LID>::dev_unpinParameters() {
+   //    if (pinnedParameters) {
+   //       cuda_unregister_BlockParameters(parameters.data());
+   //    }
+   //    pinnedParameters = false;
+   //    return;
+   // }
 
 #endif
 
-   template<typename LID> inline
-   Realf* VelocityBlockContainer<LID>::getNullData() {
-       return null_block_data;
-   }
+   // template<typename LID> inline
+   // Realf* VelocityBlockContainer<LID>::getNullData() {
+   //     return null_block_data;
+   // }
 
    template<typename LID> inline
    Real* VelocityBlockContainer<LID>::getParameters() {
@@ -494,7 +527,13 @@ namespace vmesh {
    template<typename LID> inline
    LID VelocityBlockContainer<LID>::push_back() {
       LID newIndex = numberOfBlocks;
-      if (newIndex >= currentCapacity) resize();
+      if (newIndex >= currentCapacity) {
+#ifdef __CUDA_ARCH__
+         std::cerr<<"Error in "<<__FILE__<<" line "<<__LINE__<<": attempting to resize splitvector from device code!"<<std::endl;
+         abort();
+#endif
+         resize();
+      }
 
       #ifdef DEBUG_VBC
       if (newIndex >= block_data.size()/WID3 || newIndex >= parameters.size()/BlockParams::N_VELOCITY_BLOCK_PARAMS) {
@@ -520,12 +559,21 @@ namespace vmesh {
    LID VelocityBlockContainer<LID>::push_back(const uint32_t& N_blocks) {
       const LID newIndex = numberOfBlocks;
       numberOfBlocks += N_blocks;
-      resize();
+      if (numberOfBlocks > currentCapacity) {
+#ifdef __CUDA_ARCH__
+         std::cerr<<"Error in "<<__FILE__<<" line "<<__LINE__<<": attempting to resize splitvector from device code!"<<std::endl;
+         abort();
+#endif
+         resize();
+      }
 
       // Clear velocity block data to zero values
-      for (size_t i=0; i<WID3*N_blocks; ++i) block_data[newIndex*WID3+i] = 0.0;
-      for (size_t i=0; i<BlockParams::N_VELOCITY_BLOCK_PARAMS*N_blocks; ++i)
-	parameters[newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS+i] = 0.0;
+      for (size_t i=0; i<WID3*N_blocks; ++i) {
+         block_data[newIndex*WID3+i] = 0.0;
+      }
+      for (size_t i=0; i<BlockParams::N_VELOCITY_BLOCK_PARAMS*N_blocks; ++i) {
+         parameters[newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS+i] = 0.0;
+      }
 
       return newIndex;
    }
@@ -533,53 +581,73 @@ namespace vmesh {
    template<typename LID> inline
    bool VelocityBlockContainer<LID>::recapacitate(const LID& newCapacity) {
       if (newCapacity < numberOfBlocks) return false;
-#ifdef USE_CUDA
-      dev_unpinBlocks();
-      dev_unpinParameters();
-#endif
+// #ifdef USE_CUDA
+//       dev_unpinBlocks();
+//       dev_unpinParameters();
+// #endif
       {
-         //std::vector<Realf,aligned_allocator<Realf,WID3> > dummy_data(newCapacity*WID3);
+#ifdef USE_CUDA
          split::SplitVector<Realf> dummy_data(newCapacity*WID3);
+#else
+         std::vector<Realf,aligned_allocator<Realf,WID3> > dummy_data(newCapacity*WID3);
+#endif
          for (size_t i=0; i<numberOfBlocks*WID3; ++i) dummy_data[i] = block_data[i];
          dummy_data.swap(block_data);
       }
       {
+#ifdef USE_CUDA
+         split::SplitVector<Real> dummy_parameters(newCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS);
+#else
          std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS> > dummy_parameters(newCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS);
+#endif
          for (size_t i=0; i<numberOfBlocks*BlockParams::N_VELOCITY_BLOCK_PARAMS; ++i) dummy_parameters[i] = parameters[i];
          dummy_parameters.swap(parameters);
       }
       currentCapacity = newCapacity;
-#ifdef USE_CUDA
-      dev_pinBlocks();
-      dev_pinParameters();
-#endif
+// #ifdef USE_CUDA
+//       dev_pinBlocks();
+//       dev_pinParameters();
+// #endif
    return true;
    }
 
    template<typename LID> inline
    void VelocityBlockContainer<LID>::resize() {
+#ifdef __CUDA_ARCH__
+         std::cerr<<"Error in "<<__FILE__<<" line "<<__LINE__<<": attempting to resize splitvector from device code!"<<std::endl;
+         abort();
+#endif
+#ifdef USE_CUDA
+      if (numberOfBlocks*BLOCK_ALLOCATION_FACTOR >= currentCapacity) {
+         // Resize so that free space is block_allocation_chunk blocks,
+         // and at least two in case of having zero blocks.
+         // The order of velocity blocks is unaltered.
+         currentCapacity = 2 + numberOfBlocks * BLOCK_ALLOCATION_PADDING;
+         block_data.reallocate(currentCapacity*WID3);
+         parameters.reallocate(currentCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS);
+      }
+#else
       if ((numberOfBlocks+1) >= currentCapacity) {
          // Resize so that free space is block_allocation_chunk blocks,
          // and at least two in case of having zero blocks.
          // The order of velocity blocks is unaltered.
-#ifdef USE_CUDA
-         dev_unpinBlocks();
-         dev_unpinParameters();
-#endif
          currentCapacity = 2 + numberOfBlocks * BLOCK_ALLOCATION_FACTOR;
          block_data.resize(currentCapacity*WID3);
          parameters.resize(currentCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS);
-#ifdef USE_CUDA
-         dev_pinBlocks();
-         dev_pinParameters();
-#endif
       }
+#endif
    }
 
    template<typename LID> inline
    bool VelocityBlockContainer<LID>::setSize(const LID& newSize) {
       numberOfBlocks = newSize;
-      if (newSize > currentCapacity) resize();
+      if (newSize > currentCapacity) {
+#ifdef __CUDA_ARCH__
+         std::cerr<<"Error in "<<__FILE__<<" line "<<__LINE__<<": attempting to resize splitvector from device code!"<<std::endl;
+         abort();
+#endif
+         resize();
+      }
       return true;
    }
 
@@ -597,10 +665,10 @@ namespace vmesh {
 
    template<typename LID> inline
    void VelocityBlockContainer<LID>::swap(VelocityBlockContainer& vbc) {
-#ifdef USE_CUDA
-      dev_unpinBlocks();
-      dev_unpinParameters();
-#endif
+// #ifdef USE_CUDA
+//       dev_unpinBlocks();
+//       dev_unpinParameters();
+// #endif
       block_data.swap(vbc.block_data);
       parameters.swap(vbc.parameters);
 
@@ -612,18 +680,18 @@ namespace vmesh {
       numberOfBlocks = vbc.numberOfBlocks;
       vbc.numberOfBlocks = dummy;
 
-#ifdef USE_CUDA
-      uint32_t dummy2 = *dev_block_data;
-      *dev_block_data = *vbc.dev_block_data;
-      *vbc.dev_block_data = dummy2;
+// #ifdef USE_CUDA
+//       // uint32_t dummy2 = *dev_block_data;
+//       // *dev_block_data = *vbc.dev_block_data;
+//       // *vbc.dev_block_data = dummy2;
 
-      dummy2 = *dev_parameters;
-      *dev_parameters = *vbc.dev_parameters;
-      *vbc.dev_parameters = dummy2;
+//       // dummy2 = *dev_parameters;
+//       // *dev_parameters = *vbc.dev_parameters;
+//       // *vbc.dev_parameters = dummy2;
 
-      dev_pinBlocks();
-      dev_pinParameters();
-#endif
+//       // dev_pinBlocks();
+//       // dev_pinParameters();
+// #endif
    }
 
    #ifdef DEBUG_VBC

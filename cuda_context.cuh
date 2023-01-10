@@ -27,6 +27,7 @@
 #include "cuda.h"
 #include "cuda_runtime.h"
 #include "definitions.h"
+#include "src/splitvector/splitvec.h"
 
 #include <stdio.h>
 
@@ -51,6 +52,8 @@ static void HandleError( cudaError_t err, const char *file, int line )
 void cuda_set_device();
 
 void cuda_clear_device();
+
+cudaStream_t cuda_getStream();
 
 void cudaAllocateBlockData(
    Realf** dev_blockData,
@@ -97,6 +100,18 @@ void cuda_register_BlockParameters(
    );
 void cuda_unregister_BlockParameters(
    Real* parameters
+   );
+
+//template <template <typename> class splitvector, typename T>
+template<typename T> 
+void cuda_optimizeCPU(
+   split::SplitVector<T>& vector
+   );
+
+//template <template <typename> class split::SplitVector, typename T>
+template<typename T> 
+void cuda_optimizeGPU(
+   split::SplitVector<T>& vector
    );
 
 #define MAXCPUTHREADS 64
