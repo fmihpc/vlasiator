@@ -476,9 +476,11 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
    const vector<CellID>& cells = getLocalCells();
    auto localSize = technicalGrid.getLocalSize().data();
 
-   /*set all cells to default value, not_sysboundary*/
+   /*set all cells to default value, not_sysboundary and no forcing of the bulkv */
+#pragma omp parallel for
    for (uint i = 0; i < cells.size(); i++) {
       mpiGrid[cells[i]]->sysBoundaryFlag = sysboundarytype::NOT_SYSBOUNDARY;
+      mpiGrid[cells[i]]->parameters[CellParams::FORCING_CELL_NUM] = -1;
    }
 #pragma omp parallel for collapse(3)
    for (int x = 0; x < localSize[0]; ++x) {
@@ -586,6 +588,30 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
    // boundary local communication patterns.
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
    mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
+
+   SysBoundary& sysBoundaryContainer = getObjectWrapper().sysBoundaryContainer;
+   Real ionosphereDownmapRadius = 0;
+   if (sysBoundaryContainer.existSysBoundary("Ionosphere")) {
+      Readparameters::get("ionosphere.downmapRadius", ionosphereDownmapRadius);
+   }
+   if(ionosphereDownmapRadius < 1000) {
+      ionosphereDownmapRadius *= physicalconstants::R_E;
+   }
+   if (ionosphereDownmapRadius > 0) {
+      #pragma omp parallel for
+      for (uint i = 0; i < cells.size(); i++) {
+         creal x = mpiGrid[cells[i]]->parameters[CellParams::XCRD]+ mpiGrid[cells[i]]->parameters[CellParams::DX];
+         creal y = mpiGrid[cells[i]]->parameters[CellParams::YCRD]+ mpiGrid[cells[i]]->parameters[CellParams::DY];
+         creal z = mpiGrid[cells[i]]->parameters[CellParams::ZCRD]+ mpiGrid[cells[i]]->parameters[CellParams::DZ];
+         creal radius2 = x*x + y*y + z*z;
+         if ((mpiGrid[cells[i]]->sysBoundaryLayer == 2 || mpiGrid[cells[i]]->sysBoundaryLayer == 1) &&
+             radius2 < ionosphereDownmapRadius*ionosphereDownmapRadius
+         ) {
+            mpiGrid[cells[i]]->parameters[CellParams::FORCING_CELL_NUM] = 0;
+         }
+      }
+   }
+
 
    // Now the layers need to be set on fsgrid too
    // In dccrg initialization the max number of boundary layers is set to 3.

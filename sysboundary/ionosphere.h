@@ -63,7 +63,8 @@ namespace SBC {
       FixedMoments,      // Predefine temperature, density and V = 0 on the inner boundary.
       AverageMoments,    // Copy averaged density and temperature from nearest cells, V = 0 
       AverageAllMoments, // Same as above, but also copy V
-      CopyAndLosscone
+      CopyAndLosscone,
+      ForceL2EXB
    };
    extern IonosphereBoundaryVDFmode boundaryVDFmode;
    
@@ -169,7 +170,7 @@ namespace SBC {
       MPI_Comm communicator = MPI_COMM_NULL; // The communicator internally used to solve the ionosphere potenital
       int rank = -1;                      // Own rank in the ionosphere communicator
       int writingRank;                    // Rank in the MPI_COMM_WORLD communicator that does ionosphere I/O
-      bool isCouplingInwards = false;     // True for any rank that actually couples fsgrid information into the ionosphere
+      bool isCouplingInwards = true;     // True for any rank that actually couples fsgrid information into the ionosphere
       bool isCouplingOutwards = true;     // True for any rank that actually couples ionosphere potential information out to the vlasov grid
       FieldFunction dipoleField;          // Simulation background field model to trace connections with
       std::array<Real, 3> BGB; /*!< Uniform background field */
@@ -389,6 +390,10 @@ namespace SBC {
          cint j,
          cint k,
          cuint& component
+      );
+      // Compute and store the EXB drift into the cell's BULKV_FORCING_X/Y/Z fields and set counter to 1
+      virtual void mapCellPotentialAndGetEXBDrift(
+         std::array<Real, CellParams::N_SPATIAL_CELL_PARAMS>& cellParams
       );
       virtual void vlasovBoundaryCondition(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,

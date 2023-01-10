@@ -59,17 +59,17 @@ namespace vmesh {
       Real cellSize[3];                         /**< Size of a cell in a block at base grid level.*/
       Real gridSize[3];                         /**< Physical size of the grid bounding box.*/
 
-      // ***** DERIVED PARAMETERS SPECIFIC TO AMR ***** //
+      // ***** DERIVED PARAMETERS SPECIFIC TO VAMR ***** //
       std::vector<vmesh::GlobalID> offsets;     /**< Block global ID offsets for each refinement level.*/
       std::vector<Real> blockSizes;             /**< Velocity block sizes (dvx,dvy,dvz) for each refinement level.
                                                  * This vector is initialized to size 3*(refLevelMaxAllowed+1)
-                                                 * in VelocityMesh::initialize (AMR mesh).*/
+                                                 * in VelocityMesh::initialize (VAMR mesh).*/
       std::vector<Real> cellSizes;              /**< Velocity block phase-space cell sizes (dvx,dvy,dvz) for each 
                                                  * refinement level. This vector is initialized to size 
-                                                 * 3*(refLevelMaxAllowed+1) in VelocityMesh::initialize (AMR mesh).*/
+                                                 * 3*(refLevelMaxAllowed+1) in VelocityMesh::initialize (VAMR mesh).*/
       std::vector<vmesh::LocalID> gridLengths;  /**< Velocity grid lengths for each refinement level.
                                                  * This vector is initialized to size 3*(refLevelMaxAllowed+1) 
-                                                 * in VelocityMesh::initialize (AMR mesh).*/
+                                                 * in VelocityMesh::initialize (VAMR mesh).*/
 
       MeshParameters() {
          initialized = false;
