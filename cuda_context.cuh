@@ -55,65 +55,6 @@ void cuda_clear_device();
 
 cudaStream_t cuda_getStream();
 
-void cudaAllocateBlockData(
-   Realf** dev_blockData,
-   Real** dev_parameters,
-   vmesh::LocalID blockCount
-   );
-
-void cudaDeallocateBlockData(
-   Realf** dev_blockData,
-   Real** dev_parameters
-   );
-
-void cuda_HtoD_BlockData(
-   Realf* dev_blockData,
-   Realf* blockData,
-   vmesh::LocalID blockCount
-   );
-void cuda_DtoH_BlockData(
-   Realf* dev_blockData,
-   Realf* blockData,
-   vmesh::LocalID blockCount
-   );
-void cuda_HtoD_BlockParameters(
-   Real* dev_parameters,
-   Real* parameters,
-   vmesh::LocalID blockCount
-   );
-void cuda_DtoH_BlockParameters(
-   Real* dev_parameters,
-   Real* parameters,
-   vmesh::LocalID blockCount
-   );
-
-void cuda_register_BlockData(
-   Realf* blockData,
-   uint blockCount
-   );
-void cuda_unregister_BlockData(
-   Realf* blockData
-   );
-void cuda_register_BlockParameters(
-   Real* parameters,
-   uint blockCount
-   );
-void cuda_unregister_BlockParameters(
-   Real* parameters
-   );
-
-//template <template <typename> class splitvector, typename T>
-template<typename T> 
-void cuda_optimizeCPU(
-   split::SplitVector<T>& vector
-   );
-
-//template <template <typename> class split::SplitVector, typename T>
-template<typename T> 
-void cuda_optimizeGPU(
-   split::SplitVector<T>& vector
-   );
-
 #define MAXCPUTHREADS 64
 
 //extern CUcontext cuda_acc_context;

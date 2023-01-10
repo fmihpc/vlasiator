@@ -121,7 +121,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = spatial_cell->get_velocity_mesh(popID);
    vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks(popID);
    Realf *blockData = blockContainer.getData();
-   Realf *dev_blockData = blockContainer.dev_getData();
+   //Realf *dev_blockData = blockContainer.dev_getData(); // Now in unified memory, above
    uint blockDataN = blockContainer.size();
    if(vmesh.size() == 0) {
       return true;
@@ -244,7 +244,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
 
    // Launch kernels for transposing and ordering velocity space data into columns
    reorder_blocks_by_dimension_glue(
-      dev_blockData,
+      blockData, // unified memory, incoming
       dev_blockDataOrdered[cuda_async_queue_id],
       dev_cell_indices_to_id[cuda_async_queue_id],
       totalColumns,
@@ -430,8 +430,8 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    size_t bdsw3 = blockDataSize * WID3;
    // Page lock (pin) again host memory for faster async transfers after kernel has run
    //cudaHostRegister(blockData, bdsw3*sizeof(Realf),cudaHostRegisterDefault);
-   // Zero out target data on device
-   HANDLE_ERROR( cudaMemsetAsync(dev_blockData, 0, bdsw3*sizeof(Realf), stream) );
+   // Zero out target data on device (unified)
+   HANDLE_ERROR( cudaMemsetAsync(blockData, 0, bdsw3*sizeof(Realf), stream) );
 
    // Update value of cudaAllocationMultiplier if necessary
    float ratio1 = (blockDataSize / cuda_acc_allocatedSize);
@@ -474,7 +474,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
 
    // CALL CUDA FUNCTION WRAPPER/GLUE
    acceleration_1_glue(
-      dev_blockData,
+      blockData, // unified
       dev_blockDataOrdered[cuda_async_queue_id],
       dev_cell_indices_to_id[cuda_async_queue_id],
       dev_columns[cuda_async_queue_id],

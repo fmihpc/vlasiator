@@ -79,8 +79,8 @@ void cuda_calculateMoments_V(
          host_momentInfos[thread_id][popID].mass = getObjectWrapper().particleSpecies[popID].mass;
          host_momentInfos[thread_id][popID].charge = getObjectWrapper().particleSpecies[popID].charge;
          host_momentInfos[thread_id][popID].blockCount = nBlocks;
-         host_momentInfos[thread_id][popID].parameterPointer = blockContainer.dev_getParameters();
-         host_momentInfos[thread_id][popID].meshDataPointer = blockContainer.dev_getData();
+         host_momentInfos[thread_id][popID].parameterPointer = blockContainer.getParameters();
+         host_momentInfos[thread_id][popID].meshDataPointer = blockContainer.getData();
 
          // For now: Launch cuda transfers as data isn't yet fully resident
          phiprof::start("CUDA-HtoD");
@@ -240,8 +240,8 @@ void cuda_calculateMoments_R(
          host_momentInfos[thread_id][popID].mass = getObjectWrapper().particleSpecies[popID].mass;
          host_momentInfos[thread_id][popID].charge = getObjectWrapper().particleSpecies[popID].charge;
          host_momentInfos[thread_id][popID].blockCount = nBlocks;
-         host_momentInfos[thread_id][popID].parameterPointer = blockContainer.dev_getParameters();
-         host_momentInfos[thread_id][popID].meshDataPointer = blockContainer.dev_getData();
+         host_momentInfos[thread_id][popID].parameterPointer = blockContainer.getParameters();
+         host_momentInfos[thread_id][popID].meshDataPointer = blockContainer.getData();
 
          // For now: Launch cuda transfers as data isn't yet fully resident
          phiprof::start("CUDA-HtoD");
