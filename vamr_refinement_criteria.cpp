@@ -24,13 +24,13 @@
 #include <cmath>
 
 #include "parameters.h"
-#include "amr_refinement_criteria.h"
+#include "vamr_refinement_criteria.h"
 #include "velocity_blocks.h"
 #include "object_wrapper.h"
 
 using namespace std;
 
-namespace amr_ref_criteria {
+namespace vamr_ref_criteria {
    
    Base::Base() { }   
    
@@ -55,7 +55,7 @@ namespace amr_ref_criteria {
          Realf f_cen = array[vblock::padIndex<PAD>(ic+1,jc+1,kc+1)];
          
 #ifdef VAMR
-#warning SpatialCell::getVeloctyBlockMinValue() or dynamic algorithm not available without spatial cell data
+#warning SpatialCell::getVelocityBlockMinValue() or dynamic algorithm not available without spatial cell data
 #endif
          if (fabs(f_cen) < getObjectWrapper().particleSpecies[popID].sparseMinValue) continue;
 
@@ -84,7 +84,7 @@ namespace amr_ref_criteria {
       for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
          Realf f_cen = array[vblock::padIndex<PAD>(ic+1,jc+1,kc+1)];
 #ifdef VAMR
-#warning SpatialCell::getVeloctyBlockMinValue() or dynamic algorithm not available without spatial cell data
+#warning SpatialCell::getVelocityBlockMinValue() or dynamic algorithm not available without spatial cell data
 #endif
          if (fabs(f_cen) < getObjectWrapper().particleSpecies[popID].sparseMinValue) {
             result[vblock::index(ic,jc,kc)] = 0;
@@ -121,7 +121,7 @@ namespace amr_ref_criteria {
    }
 
    void addRefinementCriteria() {
-      getObjectWrapper().amrVelRefCriteria.add("relative_difference",relDiffMaker);
+      getObjectWrapper().vamrVelRefCriteria.add("relative_difference",relDiffMaker);
    }
 }
 

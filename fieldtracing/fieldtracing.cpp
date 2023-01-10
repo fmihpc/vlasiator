@@ -24,6 +24,12 @@
  * \brief Implementation of the field tracing algorithms used in Magnetosphere runs and in magnetosphere-ionosphere coupling.
  */
 
+#include "../fieldsolver/fs_common.h"
+#include "fieldtracing.h"
+#include "bulirschStoer.h"
+#include "dormandPrince.h"
+#include "euler.h"
+#include "eulerAdaptive.h"
 
 #include <Eigen/Dense>
 
@@ -32,13 +38,6 @@
 #define dot_product(av,bv) (av).dot(bv)
 #define vector_length(v) (v).norm()
 #define normalize_vector(v) (v).normalized()
-
-#include "../fieldsolver/fs_common.h"
-#include "fieldtracing.h"
-#include "bulirschStoer.h"
-#include "dormandPrince.h"
-#include "euler.h"
-#include "eulerAdaptive.h"
 
 #include "../logger.h"
 extern Logger logFile;
