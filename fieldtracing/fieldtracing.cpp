@@ -1219,8 +1219,20 @@ namespace FieldTracing {
                cellBWTracingCoordinates[n] = {0,0,0};
                cellFWTracingStepSize[n] = 0;
                cellBWTracingStepSize[n] = 0;
+               cellFWMaxDistance[n] = fieldTracingParameters.fluxrope_max_m_to_trace;
+               cellBWMaxDistance[n] = fieldTracingParameters.fluxrope_max_m_to_trace;
             } else {
                cellCurvatureRadius[n] = 1 / sqrt(mpiGrid[id]->parameters[CellParams::CURVATUREX]*mpiGrid[id]->parameters[CellParams::CURVATUREX] + mpiGrid[id]->parameters[CellParams::CURVATUREY]*mpiGrid[id]->parameters[CellParams::CURVATUREY] + mpiGrid[id]->parameters[CellParams::CURVATUREZ]*mpiGrid[id]->parameters[CellParams::CURVATUREZ]);
+               if(cellCurvatureRadius[n] > fieldTracingParameters.fluxrope_max_valid_curvature_radius) {
+                  cellNeedsContinuedFWTracing[n] = 0;
+                  cellNeedsContinuedBWTracing[n] = 0;
+                  cellFWTracingCoordinates[n] = {0,0,0};
+                  cellBWTracingCoordinates[n] = {0,0,0};
+                  cellFWTracingStepSize[n] = 0;
+                  cellBWTracingStepSize[n] = 0;
+                  cellFWMaxDistance[n] = fieldTracingParameters.fluxrope_max_m_to_trace;
+                  cellBWMaxDistance[n] = fieldTracingParameters.fluxrope_max_m_to_trace;
+               }
             }
          }
       }
