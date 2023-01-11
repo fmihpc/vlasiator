@@ -1071,7 +1071,7 @@ namespace FieldTracing {
                cellBWTracingStepSize[n] = reducedCellBWTracingStepSize[n];
             }
             #pragma omp barrier
-         } while(anyCellNeedsTracing && (cellsToDo >= fieldTracingParameters.max_incomplete_lines_fullbox * 2 * globalDccrgSize));
+         } while(anyCellNeedsTracing && (cellsToDo >= fieldTracingParameters.fullbox_max_incomplete_lines * 2 * globalDccrgSize));
          
          // Last pass to sort cells that would still continue but won't as we exited as TracingLineEndType::LOOP instead of UNPROCESSED.
          #pragma omp for schedule(dynamic)
@@ -1251,8 +1251,9 @@ namespace FieldTracing {
       };
       
       int itCount = 0;
+      int cellsToDo;
       phiprof::start("loop");
-      #pragma omp parallel
+      #pragma omp parallel shared(cellsToDo)
       {
          do { // while(anyCellNeedsTracing)
             #pragma omp single
@@ -1279,7 +1280,7 @@ namespace FieldTracing {
                         break;
                      }
                      
-                     if(cellFWRunningDistance[n] > min(fieldTracingParameters.fte_max_curvature_radii_to_trace*cellCurvatureRadius[n],fieldTracingParameters.fte_max_m_to_trace)) {
+                     if(cellFWRunningDistance[n] > min(fieldTracingParameters.fluxrope_max_curvature_radii_to_trace*cellCurvatureRadius[n],fieldTracingParameters.fluxrope_max_m_to_trace)) {
                         cellNeedsContinuedFWTracing[n] = 0;
                         cellFWTracingCoordinates[n] = {0,0,0};
                         break;
@@ -1307,7 +1308,7 @@ namespace FieldTracing {
                      if(sqrt(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2)) < SBC::Ionosphere::innerRadius) {
                         cellNeedsContinuedFWTracing[n] = 0;
                         cellFWTracingCoordinates[n] = {0,0,0};
-                        cellFWMaxDistance[n] = fieldTracingParameters.fte_max_m_to_trace;
+                        cellFWMaxDistance[n] = fieldTracingParameters.fluxrope_max_m_to_trace;
                         cellFWMaxCoordinates[n] = cellInitialCoordinates[n];
                         break;
                      }
@@ -1323,7 +1324,7 @@ namespace FieldTracing {
                      ) {
                         cellNeedsContinuedFWTracing[n] = 0;
                         cellFWTracingCoordinates[n] = {0,0,0};
-                        cellFWMaxDistance[n] = fieldTracingParameters.fte_max_m_to_trace;
+                        cellFWMaxDistance[n] = fieldTracingParameters.fluxrope_max_m_to_trace;
                         cellFWMaxCoordinates[n] = cellInitialCoordinates[n];
                         break;
                      }
@@ -1352,7 +1353,7 @@ namespace FieldTracing {
                         break;
                      }
                      
-                     if(cellBWRunningDistance[n] > min(fieldTracingParameters.fte_max_curvature_radii_to_trace*cellCurvatureRadius[n], fieldTracingParameters.fte_max_m_to_trace)) {
+                     if(cellBWRunningDistance[n] > min(fieldTracingParameters.fluxrope_max_curvature_radii_to_trace*cellCurvatureRadius[n], fieldTracingParameters.fluxrope_max_m_to_trace)) {
                         cellNeedsContinuedBWTracing[n] = 0;
                         cellBWTracingCoordinates[n] = {0,0,0};
                         break;
@@ -1380,7 +1381,7 @@ namespace FieldTracing {
                      if(sqrt(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2)) < SBC::Ionosphere::innerRadius) {
                         cellNeedsContinuedBWTracing[n] = 0;
                         cellBWTracingCoordinates[n] = {0,0,0};
-                        cellBWMaxDistance[n] = fieldTracingParameters.fte_max_m_to_trace;
+                        cellBWMaxDistance[n] = fieldTracingParameters.fluxrope_max_m_to_trace;
                         cellBWMaxCoordinates[n] = cellInitialCoordinates[n];
                         break;
                      }
@@ -1396,7 +1397,7 @@ namespace FieldTracing {
                      ) {
                         cellNeedsContinuedBWTracing[n] = 0;
                         cellBWTracingCoordinates[n] = {0,0,0};
-                        cellBWMaxDistance[n] = fieldTracingParameters.fte_max_m_to_trace;
+                        cellBWMaxDistance[n] = fieldTracingParameters.fluxrope_max_m_to_trace;
                         cellBWMaxCoordinates[n] = cellInitialCoordinates[n];
                         break;
                      }
@@ -1448,11 +1449,16 @@ namespace FieldTracing {
             }
             #pragma omp barrier
             phiprof::stop("MPI-loop");
-            #pragma omp for schedule(dynamic) reduction(||:anyCellNeedsTracing)
+            #pragma omp single
+            {
+               cellsToDo = 0;
+            }
+            #pragma omp for schedule(dynamic) reduction(||:anyCellNeedsTracing) reduction(+:cellsToDo)
             for(int n=0; n<globalDccrgSize; n++) {
                if(reducedCellNeedsContinuedFWTracing[n] > 0) {
                   anyCellNeedsTracing=true;
                   cellNeedsContinuedFWTracing[n] = 1;
+                  cellsToDo++;
                   
                   // Update that nodes' tracing coordinates
                   cellFWTracingCoordinates[n][0] = sumCellFWTracingCoordinates[n][0] / reducedCellNeedsContinuedFWTracing[n];
@@ -1464,6 +1470,7 @@ namespace FieldTracing {
                if(reducedCellNeedsContinuedBWTracing[n] > 0) {
                   anyCellNeedsTracing=true;
                   cellNeedsContinuedBWTracing[n] = 1;
+                  cellsToDo++;
                   
                   // Update that nodes' tracing coordinates
                   cellBWTracingCoordinates[n][0] = sumCellBWTracingCoordinates[n][0] / reducedCellNeedsContinuedBWTracing[n];
@@ -1480,20 +1487,20 @@ namespace FieldTracing {
                cellBWMaxCoordinates[n] = reducedCellBWMaxCoordinates[n];
             }
             #pragma omp barrier
-         } while(anyCellNeedsTracing);
+         } while(anyCellNeedsTracing && (cellsToDo >= fieldTracingParameters.fluxrope_max_incomplete_lines * 2 * globalDccrgSize));
          
       } // pragma omp parallel
       phiprof::stop("loop");
       
-      logFile << "(fieldtracing) flux rope tracing traced in " << itCount << " iterations of the tracing loop." << endl;
+      logFile << "(fieldtracing) flux rope tracing traced in " << itCount << " iterations of the tracing loop with " << cellsToDo << " remaining incomplete field lines (total spatial cells " << globalDccrgSize <<  ")." << endl;
       
       phiprof::start("final-loop");
       for(int n=0; n<globalDccrgSize; n++) {
          const CellID id = allDccrgCells.at(n);
          if(mpiGrid.is_local(id)) {
             mpiGrid[id]->parameters[CellParams::FLUXROPE] = 0;
-            if(   reducedCellFWMaxDistance[n] < min(fieldTracingParameters.fte_max_curvature_radii_extent*reducedCellCurvatureRadius[n], fieldTracingParameters.fte_max_m_to_trace)
-               && reducedCellBWMaxDistance[n] < min(fieldTracingParameters.fte_max_curvature_radii_extent*reducedCellCurvatureRadius[n], fieldTracingParameters.fte_max_m_to_trace)
+            if(   reducedCellFWMaxDistance[n] < min(fieldTracingParameters.fluxrope_max_curvature_radii_extent*reducedCellCurvatureRadius[n], fieldTracingParameters.fluxrope_max_m_to_trace)
+               && reducedCellBWMaxDistance[n] < min(fieldTracingParameters.fluxrope_max_curvature_radii_extent*reducedCellCurvatureRadius[n], fieldTracingParameters.fluxrope_max_m_to_trace)
             ) {
                mpiGrid[id]->parameters[CellParams::FLUXROPE] = 1;
             }
