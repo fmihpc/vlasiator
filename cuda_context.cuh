@@ -23,6 +23,18 @@
 #ifndef CUDA_CONTEXT_H
 #define CUDA_CONTEXT_H
 
+#ifdef __CUDACC__
+#define CUDA_HOSTDEV __host__ __device__
+#else
+#define CUDA_HOSTDEV
+#endif
+
+#ifdef __CUDACC__
+#define CUDA_DEV __device__
+#else
+#define CUDA_DEV
+#endif
+
 #include "device_launch_parameters.h"
 #include "cuda.h"
 #include "cuda_runtime.h"
@@ -62,7 +74,7 @@ public:
       return ptr;
    }
 
-   void Managed::operator delete[] (void* ptr) {
+   void operator delete[] (void* ptr) {
       cudaDeviceSynchronize();
       cudaFree(ptr);
    }

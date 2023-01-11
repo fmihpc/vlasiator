@@ -67,6 +67,22 @@ using namespace Eigen;
  * @param dt Time step of one subcycle.
 */
 
+__global__ void printVBCsizekernel(
+   // Quick debug kernel to ensure the blockcontainer methods work on GPU
+   vmesh::VelocityBlockContainer<vmesh::LocalID> blockContainer) {
+   uint blockDataN = blockContainer.size();
+   Real* parameters = blockContainer.getParameters();
+   const int cudaBlocks = gridDim.x;
+   const int blocki = blockIdx.x;
+   const int i = threadIdx.x;
+   const int j = threadIdx.y;
+   const int k = threadIdx.z;
+   const uint ti = k*WID2 + j*WID + i;
+   if (ti==0) {
+      printf("blockDataN: %d params-1: %lu\n",blockDataN,parameters);
+   }
+}
+
 void cuda_accelerate_cell(SpatialCell* spatial_cell,
                          const uint popID,     
                          const uint map_order,
@@ -85,6 +101,11 @@ void cuda_accelerate_cell(SpatialCell* spatial_cell,
    // CUDATODO Also prefetch hashmap to device
    phiprof::stop("CUDA-HtoD");
 
+// CUDATEST Launch kernel
+   // dim3 block(WID,WID,WID);
+   // printVBCsizekernel<<<1, block, 0, cuda_getStream()>>> (blockContainer);
+   // HANDLE_ERROR( cudaDeviceSynchronize() );
+   
    // compute transform, forward in time and backward in time
    phiprof::start("compute-transform");
 

@@ -46,8 +46,12 @@ namespace vmesh {
 #endif
 
    template<typename LID>
+#ifdef USE_CUDA
+   class VelocityBlockContainer : public Managed {
+#else
    class VelocityBlockContainer {
-    public:
+#endif
+   public:
 
       VelocityBlockContainer();
       LID capacity() const;
@@ -59,8 +63,8 @@ namespace vmesh {
       const Realf* getData() const;
       Realf* getData(const LID& blockLID);
       const Realf* getData(const LID& blockLID) const;
-      Real* getParameters();
-      const Real* getParameters() const;
+      CUDA_HOSTDEV Real* getParameters();
+      CUDA_HOSTDEV const Real* getParameters() const;
       Real* getParameters(const LID& blockLID);
       const Real* getParameters(const LID& blockLID) const;
       void pop();
@@ -68,7 +72,7 @@ namespace vmesh {
       LID push_back(const uint32_t& N_blocks);
       bool recapacitate(const LID& capacity);
       bool setSize(const LID& newSize);
-      LID size() const;
+      CUDA_HOSTDEV LID size() const;
       size_t sizeInBytes() const;
       void swap(VelocityBlockContainer& vbc);
 
@@ -260,12 +264,12 @@ namespace vmesh {
 #endif
 
    template<typename LID> inline
-   Real* VelocityBlockContainer<LID>::getParameters() {
+   CUDA_HOSTDEV Real* VelocityBlockContainer<LID>::getParameters() {
       return parameters.data();
    }
 
    template<typename LID> inline
-   const Real* VelocityBlockContainer<LID>::getParameters() const {
+   CUDA_HOSTDEV const Real* VelocityBlockContainer<LID>::getParameters() const {
       return parameters.data();
    }
 
@@ -415,7 +419,7 @@ namespace vmesh {
    /** Return the number of existing velocity blocks.
     * @return Number of existing velocity blocks.*/
    template<typename LID> inline
-   LID VelocityBlockContainer<LID>::size() const {
+   CUDA_HOSTDEV LID VelocityBlockContainer<LID>::size() const {
       return numberOfBlocks;
    }
 
