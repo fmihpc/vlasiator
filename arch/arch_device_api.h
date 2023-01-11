@@ -4,11 +4,11 @@
 
 /* Host-device function declarations */
 #ifdef __CUDACC__
-  #define CUDA_HOSTDEV __host__ __device__
-  #define CUDA_DEV __device__
+  #define ARCH_HOSTDEV __host__ __device__
+  #define ARCH_DEV __device__
 #else
-  #define CUDA_HOSTDEV
-  #define CUDA_DEV
+  #define ARCH_HOSTDEV
+  #define ARCH_DEV
 #endif
 
 /* Namespace for the common loop interface functions */

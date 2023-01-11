@@ -36,7 +36,7 @@ t=(v-v_{i-0.5})/dv where v_{i-0.5} is the left face of a cell
 The factor 2.0 is in the polynom to ease integration, then integral is a[0]*t + a[1]*t**2
 */
 
-static CUDA_HOSTDEV inline void compute_plm_coeff(const Vec * const values, uint k, Vec a[2], const Realv threshold)
+static ARCH_HOSTDEV inline void compute_plm_coeff(const Vec * const values, uint k, Vec a[2], const Realv threshold)
 {
   // scale values closer to 1 for more accurate slope limiter calculation
   const Realv scale = 1./threshold;
@@ -53,7 +53,7 @@ static CUDA_HOSTDEV inline void compute_plm_coeff(const Vec * const values, uint
       Define functions for Realf instead of Vec 
 ***/
 
-static CUDA_DEV inline void compute_plm_coeff(const Vec* const values, uint k, Realf a[2], const Realv threshold, const int index)
+static ARCH_DEV inline void compute_plm_coeff(const Vec* const values, uint k, Realf a[2], const Realv threshold, const int index)
 {
   // scale values closer to 1 for more accurate slope limiter calculation
   const Realv scale = 1./threshold;
