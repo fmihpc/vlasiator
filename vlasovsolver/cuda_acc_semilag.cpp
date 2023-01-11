@@ -72,8 +72,8 @@ __global__ void printVBCsizekernel(
    vmesh::VelocityBlockContainer<vmesh::LocalID> blockContainer) {
    uint blockDataN = blockContainer.size();
    Real* parameters = blockContainer.getParameters();
-   const int cudaBlocks = gridDim.x;
-   const int blocki = blockIdx.x;
+   // const int cudaBlocks = gridDim.x;
+   // const int blocki = blockIdx.x;
    const int i = threadIdx.x;
    const int j = threadIdx.y;
    const int k = threadIdx.z;
