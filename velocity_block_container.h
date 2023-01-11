@@ -26,9 +26,9 @@
 #include "common.h"
 #include "unistd.h"
 
-//#ifdef DEBUG_VBC
+#ifdef DEBUG_VBC
 #include <sstream>
-//#endif
+#endif
 
 #ifdef USE_CUDA
    #include "cuda_context.cuh"
@@ -44,7 +44,7 @@ namespace vmesh {
 #else
    static const double BLOCK_ALLOCATION_FACTOR = 1.1;
 #endif
-   
+
    template<typename LID>
    class VelocityBlockContainer {
     public:
@@ -169,11 +169,13 @@ namespace vmesh {
       int rank;
       MPI_Comm_rank(MPI_COMM_WORLD,&rank);
 
+      #ifdef DEBUG_VBC
       std::stringstream ss;
       ss << "Process " << rank << ' ';
       ss << "Invalid localID " << localID << " used in function '" << funcName << "' max allowed value is " << numberOfBlocks << std::endl;
       std::cerr << ss.str();
       sleep(1);
+      #endif
       exit(1);
    }
 
@@ -445,10 +447,12 @@ namespace vmesh {
       if (blockLID >= numberOfBlocks) ok = false;
       if (blockLID*WID3+cell >= block_data.size()) ok = false;
       if (ok == false) {
+         #ifdef DEBUG_VBC
          std::stringstream ss;
          ss << "VBC ERROR: out of bounds in getData, LID=" << blockLID << " cell=" << cell << " #blocks=" << numberOfBlocks << " data.size()=" << block_data.size() << std::endl;
          std::cerr << ss.str();
          sleep(1);
+         #endif
          exit(1);
       }
 
@@ -462,10 +466,12 @@ namespace vmesh {
       if (blockLID >= numberOfBlocks) ok = false;
       if (blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+cell >= parameters.size()) ok = false;
       if (ok == false) {
+         #ifdef DEBUG_VBC
          std::stringstream ss;
          ss << "VBC ERROR: out of bounds in getParameters, LID=" << blockLID << " cell=" << cell << " #blocks=" << numberOfBlocks << " parameters.size()=" << parameters.size() << std::endl;
          std::cerr << ss.str();
          sleep(1);
+         #endif
          exit(1);
       }
 
@@ -479,10 +485,12 @@ namespace vmesh {
       if (blockLID >= numberOfBlocks) ok = false;
       if (blockLID*WID3+cell >= block_data.size()) ok = false;
       if (ok == false) {
+         #ifdef DEBUG_VBC
          std::stringstream ss;
          ss << "VBC ERROR: out of bounds in setData, LID=" << blockLID << " cell=" << cell << " #blocks=" << numberOfBlocks << " data.size()=" << block_data.size() << std::endl;
          std::cerr << ss.str();
          sleep(1);
+         #endif
          exit(1);
       }
 

@@ -30,18 +30,21 @@
 #include <sstream>
 #include <stdint.h>
 #include <vector>
-#include <unordered_map>
-#include <set>
+//#include <unordered_map>
+//#include <set>
 #include <cmath>
 
 #include "open_bucket_hashtable.h"
 #include "velocity_mesh_parameters.h"
 
+#include "src/hashinator/hashinator.h"
+#include "src/splitvector/splitvec.h"
+
 namespace vmesh {
 
    template<typename GID,typename LID>
    class VelocityMesh {
-    public:      
+    public:
       VelocityMesh();
       ~VelocityMesh();
 
@@ -61,7 +64,10 @@ namespace vmesh {
       GID getGlobalID(const Real* coords) const;
       GID getGlobalID(LID indices[3]) const;
       GID getGlobalID(const LID& i,const LID& j,const LID& k) const;
+//#ifndef __CUDA_ARCH__ // No splitvector version of this?
       std::vector<GID>& getGrid();
+//#endif
+      //split::SplitVector<GID>& dev_getGrid();
       const LID* getGridLength(const uint8_t& refLevel=0) const;
       void getIndices(const GID& globalID,const uint8_t& refLevel,LID& i,LID& j,LID& k) const;
       void getIndices(const GID& globalID,LID& i,LID& j,LID& k) const;
@@ -69,7 +75,9 @@ namespace vmesh {
       LID getLocalID(const GID& globalID) const;
       const Real* getMeshMaxLimits() const;
       const Real* getMeshMinLimits() const;
+//#ifndef __CUDA_ARCH__ // No splitvector version of this
       bool initialize(const size_t& meshID,std::vector<vmesh::MeshParameters>& meshParameters);
+//#endif
       bool initialize(const size_t& meshID);
       static LID invalidBlockIndex();
       static GID invalidGlobalID();
@@ -77,9 +85,15 @@ namespace vmesh {
       bool isInitialized() const;
       void pop();
       bool push_back(const GID& globalID);
+//#ifndef __CUDA_ARCH__
       bool push_back(const std::vector<GID>& blocks);
+//#endif
+      bool push_back(const split::SplitVector<GID>& blocks);
       void setGrid();
+//#ifndef __CUDA_ARCH__
       bool setGrid(const std::vector<GID>& globalIDs);
+//#endif
+      bool setGrid(const split::SplitVector<GID>& globalIDs);
       bool setMesh(const size_t& meshID);
       void setNewSize(const LID& newSize);
       size_t size() const;
@@ -90,20 +104,22 @@ namespace vmesh {
       static std::vector<vmesh::MeshParameters> meshParameters;
       size_t meshID;
 
-      std::vector<GID> localToGlobalMap;
-      OpenBucketHashtable<GID,LID> globalToLocalMap;
+      //std::vector<GID> localToGlobalMap;
+      //OpenBucketHashtable<GID,LID> globalToLocalMap;
+      Hashinator<GID,LID> globalToLocalMap = Hashinator<GID,LID>(10); // Start of with a bit larger size for sizePower?
+      split::SplitVector<GID> localToGlobalMap;
    };
 
    // ***** INITIALIZERS FOR STATIC MEMBER VARIABLES ***** //
    template<typename GID,typename LID> std::vector<vmesh::MeshParameters> VelocityMesh<GID,LID>::meshParameters;
-   
+
    // ***** DEFINITIONS OF TEMPLATE MEMBER FUNCTIONS ***** //
 
    template<typename GID,typename LID> inline
-   VelocityMesh<GID,LID>::VelocityMesh() { 
+   VelocityMesh<GID,LID>::VelocityMesh() {
       meshID = std::numeric_limits<size_t>::max();
    }
-   
+
    template<typename GID,typename LID> inline
    VelocityMesh<GID,LID>::~VelocityMesh() { }
 
@@ -120,7 +136,7 @@ namespace vmesh {
       if (localToGlobalMap.size() != globalToLocalMap.size()) {
          std::cerr << "VMO ERROR: sizes differ, " << localToGlobalMap.size() << " vs " << globalToLocalMap.size() << std::endl;
          ok = false;
-         exit(1);	 
+         exit(1);
       }
 
       for (size_t b=0; b<size(); ++b) {
@@ -134,16 +150,16 @@ namespace vmesh {
             exit(1);
          }
       }
-      
+
       return ok;
    }
-   
+
    template<typename GID,typename LID> inline
    void VelocityMesh<GID,LID>::clear() {
-      std::vector<GID>().swap(localToGlobalMap);
+      split::SplitVector<GID>().swap(localToGlobalMap);
       globalToLocalMap.clear();
    }
-   
+
    template<typename GID,typename LID> inline
    bool VelocityMesh<GID,LID>::copy(const LID& sourceLID,const LID& targetLID) {
       const GID sourceGID = localToGlobalMap[sourceLID]; // block at the end of list
@@ -156,22 +172,22 @@ namespace vmesh {
       localToGlobalMap[sourceLID]    = targetGID;
       return true;
    }
-   
+
    template<typename GID,typename LID> inline
    size_t VelocityMesh<GID,LID>::count(const GID& globalID) const {
       return globalToLocalMap.count(globalID);
    }
-   
+
    template<typename GID,typename LID> inline
    GID VelocityMesh<GID,LID>::findBlock(GID cellIndices[3]) const {
       // Calculate i/j/k indices of the block that would own the cell:
       GID i_block = cellIndices[0] / meshParameters[meshID].blockLength[0];
       GID j_block = cellIndices[1] / meshParameters[meshID].blockLength[1];
       GID k_block = cellIndices[2] / meshParameters[meshID].blockLength[2];
-      
+
       // Calculate block global ID:
       GID blockGID = getGlobalID(0,i_block,j_block,k_block);
-      
+
       // If the block exists, return it:
       if (globalToLocalMap.find(blockGID) != globalToLocalMap.end()) {
          return blockGID;
@@ -179,14 +195,14 @@ namespace vmesh {
          return invalidGlobalID();
       }
    }
-    
+
    template<typename GID,typename LID> inline
    bool VelocityMesh<GID,LID>::getBlockCoordinates(const GID& globalID,Real coords[3]) const {
       if (globalID == invalidGlobalID()) {
          for (int i=0; i<3; ++i) coords[i] = std::numeric_limits<Real>::quiet_NaN();
          return false;
       }
-      
+
       LID indices[3];
       getIndices(globalID,indices[0],indices[1],indices[2]);
       if (indices[0] == invalidBlockIndex()) {
@@ -199,7 +215,7 @@ namespace vmesh {
       coords[2] = meshParameters[meshID].meshMinLimits[2] + indices[2]*meshParameters[meshID].blockSize[2];
       return true;
    }
-   
+
    template<typename GID,typename LID> inline
    void VelocityMesh<GID,LID>::getBlockInfo(const GID& globalID,Real* array) const {
       #ifndef NDEBUG
@@ -230,7 +246,7 @@ namespace vmesh {
    const Real* VelocityMesh<GID,LID>::getBlockSize() const {
       return meshParameters[meshID].blockSize;
    }
-   
+
    template<typename GID,typename LID> inline
    bool VelocityMesh<GID,LID>::getBlockSize(const GID& globalID,Real size[3]) const {
       size[0] = meshParameters[meshID].blockSize[0];
@@ -238,7 +254,7 @@ namespace vmesh {
       size[2] = meshParameters[meshID].blockSize[2];
       return true;
    }
-   
+
    template<typename GID,typename LID> inline
    const Real* VelocityMesh<GID,LID>::getCellSize(const uint8_t& refLevel) const {
       return meshParameters[meshID].cellSize;
@@ -251,7 +267,7 @@ namespace vmesh {
       size[2] = meshParameters[meshID].cellSize[2];
       return true;
    }
-   
+
    template<typename GID,typename LID> inline
    GID VelocityMesh<GID,LID>::getGlobalID(const LID& localID) const {
       #ifndef NDEBUG
@@ -259,7 +275,7 @@ namespace vmesh {
          std::cerr << "ERROR invalid local id" << std::endl; exit(1);
       }
       #endif
-      
+
       return localToGlobalMap[localID];
    }
 
@@ -277,38 +293,41 @@ namespace vmesh {
          static_cast<LID>(floor((coords[2] - meshParameters[meshID].meshMinLimits[2]) / meshParameters[meshID].blockSize[2]))
       };
 
-      return indices[2]*meshParameters[meshID].gridLength[1]*meshParameters[meshID].gridLength[0] 
+      return indices[2]*meshParameters[meshID].gridLength[1]*meshParameters[meshID].gridLength[0]
               + indices[1]*meshParameters[meshID].gridLength[0] + indices[0];
    }
-   
+
    template<typename GID,typename LID> inline
    GID VelocityMesh<GID,LID>::getGlobalID(LID indices[3]) const {
       if (indices[0] >= meshParameters[meshID].gridLength[0]) return invalidGlobalID();
       if (indices[1] >= meshParameters[meshID].gridLength[1]) return invalidGlobalID();
       if (indices[2] >= meshParameters[meshID].gridLength[2]) return invalidGlobalID();
-      return indices[2]*meshParameters[meshID].gridLength[1]*meshParameters[meshID].gridLength[0] 
+      return indices[2]*meshParameters[meshID].gridLength[1]*meshParameters[meshID].gridLength[0]
               + indices[1]*meshParameters[meshID].gridLength[0] + indices[0];
    }
-   
+
    template<typename GID,typename LID> inline
    GID VelocityMesh<GID,LID>::getGlobalID(const LID& i,const LID& j,const LID& k) const {
       if (i >= meshParameters[meshID].gridLength[0] || j >= meshParameters[meshID].gridLength[1] || k >= meshParameters[meshID].gridLength[2]) {
          return invalidGlobalID();
       }
-      return i + j*meshParameters[meshID].gridLength[0] 
+      return i + j*meshParameters[meshID].gridLength[0]
               + k*meshParameters[meshID].gridLength[0]*meshParameters[meshID].gridLength[1];
    }
-   
+
+//#ifndef __CUDA_ARCH__
    template<typename GID,typename LID> inline
    std::vector<GID>& VelocityMesh<GID,LID>::getGrid() {
-      return localToGlobalMap;
+      std::vector<GID> returnvector(localToGlobalMap.begin(), localToGlobalMap.end());
+      return returnvector;
    }
+//#endif
 
    template<typename GID,typename LID> inline
    const LID* VelocityMesh<GID,LID>::getGridLength(const uint8_t& refLevel) const {
       return meshParameters[meshID].gridLength;
    }
-   
+
    template<typename GID,typename LID> inline
    void VelocityMesh<GID,LID>::getIndices(const GID& globalID,const uint8_t& refLevel,LID& i,LID& j,LID& k) const {
       getIndices(globalID,i,j,k);
@@ -331,28 +350,29 @@ namespace vmesh {
       if (it != globalToLocalMap.end()) return it->second;
       return invalidLocalID();
    }
-   
+
    template<typename GID,typename LID> inline
    size_t VelocityMesh<GID,LID>::getMesh() const {
       return meshID;
    }
-   
+
    template<typename GID,typename LID> inline
    const Real* VelocityMesh<GID,LID>::getMeshMaxLimits() const {
       return meshParameters[meshID].meshMaxLimits;
    }
-   
+
    template<typename GID,typename LID> inline
    const Real* VelocityMesh<GID,LID>::getMeshMinLimits() const {
       return meshParameters[meshID].meshMinLimits;
    }
-   
+
    template<typename GID,typename LID> inline
    bool VelocityMesh<GID,LID>::initialize(const size_t& meshID) {
       this->meshID = meshID;
       return true;
    }
-   
+
+//#ifndef __CUDA_ARCH__
    template<typename GID,typename LID> inline
    bool VelocityMesh<GID,LID>::initialize(const size_t& meshID,std::vector<vmesh::MeshParameters>& meshParameters) {
       meshParameters[meshID].initialized = false;
@@ -363,21 +383,21 @@ namespace vmesh {
       meshParameters[meshID].meshMaxLimits[0] = meshParameters[meshID].meshLimits[1];
       meshParameters[meshID].meshMaxLimits[1] = meshParameters[meshID].meshLimits[3];
       meshParameters[meshID].meshMaxLimits[2] = meshParameters[meshID].meshLimits[5];
-      
+
       // Calculate derived mesh parameters:
       meshParameters[meshID].gridSize[0] = meshParameters[meshID].meshMaxLimits[0] - meshParameters[meshID].meshMinLimits[0];
       meshParameters[meshID].gridSize[1] = meshParameters[meshID].meshMaxLimits[1] - meshParameters[meshID].meshMinLimits[1];
       meshParameters[meshID].gridSize[2] = meshParameters[meshID].meshMaxLimits[2] - meshParameters[meshID].meshMinLimits[2];
-      
+
       meshParameters[meshID].blockSize[0] = meshParameters[meshID].gridSize[0] / meshParameters[meshID].gridLength[0];
       meshParameters[meshID].blockSize[1] = meshParameters[meshID].gridSize[1] / meshParameters[meshID].gridLength[1];
       meshParameters[meshID].blockSize[2] = meshParameters[meshID].gridSize[2] / meshParameters[meshID].gridLength[2];
-      
+
       meshParameters[meshID].cellSize[0] = meshParameters[meshID].blockSize[0] / meshParameters[meshID].blockLength[0];
       meshParameters[meshID].cellSize[1] = meshParameters[meshID].blockSize[1] / meshParameters[meshID].blockLength[1];
       meshParameters[meshID].cellSize[2] = meshParameters[meshID].blockSize[2] / meshParameters[meshID].blockLength[2];
 
-      meshParameters[meshID].max_velocity_blocks 
+      meshParameters[meshID].max_velocity_blocks
               = meshParameters[meshID].gridLength[0]
               * meshParameters[meshID].gridLength[1]
               * meshParameters[meshID].gridLength[2];
@@ -386,6 +406,7 @@ namespace vmesh {
       vmesh::VelocityMesh<GID,LID>::meshParameters = meshParameters;
       return meshParameters[meshID].initialized;
    }
+//#endif
 
    template<typename GID,typename LID> inline
    LID VelocityMesh<GID,LID>::invalidBlockIndex() {
@@ -396,12 +417,12 @@ namespace vmesh {
    GID VelocityMesh<GID,LID>::invalidGlobalID() {
       return INVALID_GLOBALID;
    }
-   
+
    template<typename GID,typename LID> inline
    LID VelocityMesh<GID,LID>::invalidLocalID() {
       return INVALID_LOCALID;
    }
-   
+
    template<typename GID,typename LID> inline
    bool VelocityMesh<GID,LID>::isInitialized() const {
       return meshParameters[meshID].initialized;
@@ -434,6 +455,7 @@ namespace vmesh {
       return position.second;
    }
 
+//#ifndef __CUDA_ARCH__
    template<typename GID,typename LID> inline
    bool VelocityMesh<GID,LID>::push_back(const std::vector<GID>& blocks) {
       if (size()+blocks.size() > meshParameters[meshID].max_velocity_blocks) {
@@ -442,7 +464,27 @@ namespace vmesh {
          std::cerr << ", max is " << meshParameters[meshID].max_velocity_blocks << std::endl;
          return false;
       }
-         
+
+      for (size_t b=0; b<blocks.size(); ++b) {
+         globalToLocalMap.insert(std::make_pair(blocks[b],localToGlobalMap.size()+b));
+      }
+      //localToGlobalMap.insert(localToGlobalMap.end(),blocks.begin(),blocks.end());
+      for (size_t b=0; b<blocks.size(); ++b) {
+         localToGlobalMap.push_back(blocks[b]);
+      }
+      return true;
+   }
+//#endif
+
+   template<typename GID,typename LID> inline
+   bool VelocityMesh<GID,LID>::push_back(const split::SplitVector<GID>& blocks) {
+      if (size()+blocks.size() > meshParameters[meshID].max_velocity_blocks) {
+         std::cerr << "vmesh: too many blocks, current size is " << size();
+         std::cerr << ", adding " << blocks.size() << " blocks";
+         std::cerr << ", max is " << meshParameters[meshID].max_velocity_blocks << std::endl;
+         return false;
+      }
+
       for (size_t b=0; b<blocks.size(); ++b) {
          globalToLocalMap.insert(std::make_pair(blocks[b],localToGlobalMap.size()+b));
       }
@@ -450,7 +492,7 @@ namespace vmesh {
 
       return true;
    }
-   
+
    template<typename GID,typename LID> inline
    void VelocityMesh<GID,LID>::setGrid() {
       globalToLocalMap.clear();
@@ -459,8 +501,19 @@ namespace vmesh {
       }
    }
 
+//#ifndef __CUDA_ARCH__
    template<typename GID,typename LID> inline
    bool VelocityMesh<GID,LID>::setGrid(const std::vector<GID>& globalIDs) {
+      globalToLocalMap.clear();
+      for (LID i=0; i<globalIDs.size(); ++i) {
+         globalToLocalMap.insert(std::make_pair(globalIDs[i],i));
+      }
+      localToGlobalMap = globalIDs;
+      return true;
+   }
+//#endif
+   template<typename GID,typename LID> inline
+   bool VelocityMesh<GID,LID>::setGrid(const split::SplitVector<GID>& globalIDs) {
       globalToLocalMap.clear();
       for (LID i=0; i<globalIDs.size(); ++i) {
          globalToLocalMap.insert(std::make_pair(globalIDs[i],i));
@@ -475,7 +528,7 @@ namespace vmesh {
       this->meshID = meshID;
       return true;
    }
-   
+
    template<typename GID,typename LID> inline
    void VelocityMesh<GID,LID>::setNewSize(const LID& newSize) {
       localToGlobalMap.resize(newSize);
@@ -485,7 +538,7 @@ namespace vmesh {
    size_t VelocityMesh<GID,LID>::size() const {
       return localToGlobalMap.size();
    }
-   
+
    template<typename GID,typename LID> inline
    size_t VelocityMesh<GID,LID>::sizeInBytes() const {
       return globalToLocalMap.size()*sizeof(GID)
@@ -497,7 +550,7 @@ namespace vmesh {
       globalToLocalMap.swap(vm.globalToLocalMap);
       localToGlobalMap.swap(vm.localToGlobalMap);
    }
-   
+
 } // namespace vmesh
 
 #endif

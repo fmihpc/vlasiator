@@ -78,10 +78,11 @@ void cuda_accelerate_cell(SpatialCell* spatial_cell,
 
    // Launch cuda transfers
    phiprof::start("CUDA-HtoD");
-   // Check that enough memory is alocated
+   const uint thread_id = omp_get_thread_num();
+   // Check that enough memory is allocated
    blockContainer.dev_Allocate(vmesh.size());
    blockContainer.dev_prefetchDevice();
-   const uint thread_id = omp_get_thread_num();
+   // CUDATODO Also prefetch hashmap to device
    phiprof::stop("CUDA-HtoD");
 
    // compute transform, forward in time and backward in time
@@ -170,6 +171,7 @@ void cuda_accelerate_cell(SpatialCell* spatial_cell,
    // Transfer data back
    phiprof::start("CUDA-DtoH");
    blockContainer.dev_prefetchHost();
+   // CUDATODO Also prefetch hashmap to host
    cudaStreamSynchronize(cudaStreamList[thread_id]);
    phiprof::stop("CUDA-DtoH");
 

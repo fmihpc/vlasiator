@@ -41,6 +41,34 @@ static void HandleError( cudaError_t err, const char *file, int line )
     }
 }
 
+class Managed {
+public:
+   void *operator new(size_t len) {
+      void *ptr;
+      cudaMallocManaged(&ptr, len);
+      cudaDeviceSynchronize();
+      return ptr;
+   }
+
+   void operator delete(void *ptr) {
+      cudaDeviceSynchronize();
+      cudaFree(ptr);
+   }
+
+   void* operator new[] (size_t len) {
+      void *ptr;
+      cudaMallocManaged(&ptr, len);
+      cudaDeviceSynchronize();
+      return ptr;
+   }
+
+   void Managed::operator delete[] (void* ptr) {
+      cudaDeviceSynchronize();
+      cudaFree(ptr);
+   }
+
+};
+
 #define DIMS 1
 #ifndef CUDABLOCKS
 #  define CUDABLOCKS (64)

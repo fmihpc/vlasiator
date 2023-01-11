@@ -79,8 +79,8 @@ namespace spatial_cell {
       const uint64_t VEL_BLOCK_LIST_STAGE2    = (1ull<<3);
       const uint64_t VEL_BLOCK_DATA           = (1ull<<4);
       const uint64_t VEL_BLOCK_PARAMETERS     = (1ull<<6);
-      const uint64_t VEL_BLOCK_WITH_CONTENT_STAGE1  = (1ull<<7); 
-      const uint64_t VEL_BLOCK_WITH_CONTENT_STAGE2  = (1ull<<8); 
+      const uint64_t VEL_BLOCK_WITH_CONTENT_STAGE1  = (1ull<<7);
+      const uint64_t VEL_BLOCK_WITH_CONTENT_STAGE2  = (1ull<<8);
       const uint64_t CELL_SYSBOUNDARYFLAG     = (1ull<<9);
       const uint64_t CELL_E                   = (1ull<<10);
       const uint64_t CELL_EDT2                = (1ull<<11);
