@@ -36,6 +36,7 @@
 #include "projects/project.h"
 #include "velocity_mesh_parameters.h"
 #include "sysboundary/sysboundary.h"
+#include "src/splitvector/splitvec.h"
 
 struct ObjectWrapper {
    ObjectWrapper() { }
@@ -45,7 +46,8 @@ struct ObjectWrapper {
 #endif
    std::vector<species::Species> particleSpecies;           /**< Parameters for all particle species.*/
    projects::Project*                    project;           /**< Simulated project.*/
-   std::vector<vmesh::MeshParameters> velocityMeshes;       /**< Parameters for velocity mesh(es).*/
+   //std::vector<vmesh::MeshParameters> velocityMeshes;       /**< Parameters for velocity mesh(es).*/
+   split::SplitVector<vmesh::MeshParameters> velocityMeshes;       /**< Parameters for velocity mesh(es).*/
    SysBoundary sysBoundaryContainer;                        /**< Container for sysboundaries.*/
 
    bool addParameters();                                    /**< Add config file parameters for objects held in this wrapper */

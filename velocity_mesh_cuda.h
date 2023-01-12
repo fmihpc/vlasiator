@@ -76,7 +76,8 @@ namespace vmesh {
       const Real* getMeshMaxLimits() const;
       const Real* getMeshMinLimits() const;
 //#ifndef __CUDA_ARCH__ // No splitvector version of this
-      bool initialize(const size_t& meshID,std::vector<vmesh::MeshParameters>& meshParameters);
+      //bool initialize(const size_t& meshID,std::vector<vmesh::MeshParameters>& meshParamIn);
+      bool initialize(const size_t& meshID,split::SplitVector<vmesh::MeshParameters>& meshParamIn);
 //#endif
       bool initialize(const size_t& meshID);
       static LID invalidBlockIndex();
@@ -101,7 +102,8 @@ namespace vmesh {
       void swap(VelocityMesh& vm);
 
     private:
-      static std::vector<vmesh::MeshParameters> meshParameters;
+      //static std::vector<vmesh::MeshParameters> meshParameters;
+      static split::SplitVector<vmesh::MeshParameters> meshParameters;
       size_t meshID;
 
       //std::vector<GID> localToGlobalMap;
@@ -111,7 +113,8 @@ namespace vmesh {
    };
 
    // ***** INITIALIZERS FOR STATIC MEMBER VARIABLES ***** //
-   template<typename GID,typename LID> std::vector<vmesh::MeshParameters> VelocityMesh<GID,LID>::meshParameters;
+   //template<typename GID,typename LID> std::vector<vmesh::MeshParameters> VelocityMesh<GID,LID>::meshParameters;
+   template<typename GID,typename LID> split::SplitVector<vmesh::MeshParameters> VelocityMesh<GID,LID>::meshParameters;
 
    // ***** DEFINITIONS OF TEMPLATE MEMBER FUNCTIONS ***** //
 
@@ -374,37 +377,38 @@ namespace vmesh {
 
 //#ifndef __CUDA_ARCH__
    template<typename GID,typename LID> inline
-   bool VelocityMesh<GID,LID>::initialize(const size_t& meshID,std::vector<vmesh::MeshParameters>& meshParameters) {
-      meshParameters[meshID].initialized = false;
+   //   bool VelocityMesh<GID,LID>::initialize(const size_t& meshID,std::vector<vmesh::MeshParameters>& meshParamIn) {
+      bool VelocityMesh<GID,LID>::initialize(const size_t& meshID,split::SplitVector<vmesh::MeshParameters>& meshParamIn) {
+      meshParamIn[meshID].initialized = false;
 
-      meshParameters[meshID].meshMinLimits[0] = meshParameters[meshID].meshLimits[0];
-      meshParameters[meshID].meshMinLimits[1] = meshParameters[meshID].meshLimits[2];
-      meshParameters[meshID].meshMinLimits[2] = meshParameters[meshID].meshLimits[4];
-      meshParameters[meshID].meshMaxLimits[0] = meshParameters[meshID].meshLimits[1];
-      meshParameters[meshID].meshMaxLimits[1] = meshParameters[meshID].meshLimits[3];
-      meshParameters[meshID].meshMaxLimits[2] = meshParameters[meshID].meshLimits[5];
+      meshParamIn[meshID].meshMinLimits[0] = meshParamIn[meshID].meshLimits[0];
+      meshParamIn[meshID].meshMinLimits[1] = meshParamIn[meshID].meshLimits[2];
+      meshParamIn[meshID].meshMinLimits[2] = meshParamIn[meshID].meshLimits[4];
+      meshParamIn[meshID].meshMaxLimits[0] = meshParamIn[meshID].meshLimits[1];
+      meshParamIn[meshID].meshMaxLimits[1] = meshParamIn[meshID].meshLimits[3];
+      meshParamIn[meshID].meshMaxLimits[2] = meshParamIn[meshID].meshLimits[5];
 
       // Calculate derived mesh parameters:
-      meshParameters[meshID].gridSize[0] = meshParameters[meshID].meshMaxLimits[0] - meshParameters[meshID].meshMinLimits[0];
-      meshParameters[meshID].gridSize[1] = meshParameters[meshID].meshMaxLimits[1] - meshParameters[meshID].meshMinLimits[1];
-      meshParameters[meshID].gridSize[2] = meshParameters[meshID].meshMaxLimits[2] - meshParameters[meshID].meshMinLimits[2];
+      meshParamIn[meshID].gridSize[0] = meshParamIn[meshID].meshMaxLimits[0] - meshParamIn[meshID].meshMinLimits[0];
+      meshParamIn[meshID].gridSize[1] = meshParamIn[meshID].meshMaxLimits[1] - meshParamIn[meshID].meshMinLimits[1];
+      meshParamIn[meshID].gridSize[2] = meshParamIn[meshID].meshMaxLimits[2] - meshParamIn[meshID].meshMinLimits[2];
 
-      meshParameters[meshID].blockSize[0] = meshParameters[meshID].gridSize[0] / meshParameters[meshID].gridLength[0];
-      meshParameters[meshID].blockSize[1] = meshParameters[meshID].gridSize[1] / meshParameters[meshID].gridLength[1];
-      meshParameters[meshID].blockSize[2] = meshParameters[meshID].gridSize[2] / meshParameters[meshID].gridLength[2];
+      meshParamIn[meshID].blockSize[0] = meshParamIn[meshID].gridSize[0] / meshParamIn[meshID].gridLength[0];
+      meshParamIn[meshID].blockSize[1] = meshParamIn[meshID].gridSize[1] / meshParamIn[meshID].gridLength[1];
+      meshParamIn[meshID].blockSize[2] = meshParamIn[meshID].gridSize[2] / meshParamIn[meshID].gridLength[2];
 
-      meshParameters[meshID].cellSize[0] = meshParameters[meshID].blockSize[0] / meshParameters[meshID].blockLength[0];
-      meshParameters[meshID].cellSize[1] = meshParameters[meshID].blockSize[1] / meshParameters[meshID].blockLength[1];
-      meshParameters[meshID].cellSize[2] = meshParameters[meshID].blockSize[2] / meshParameters[meshID].blockLength[2];
+      meshParamIn[meshID].cellSize[0] = meshParamIn[meshID].blockSize[0] / meshParamIn[meshID].blockLength[0];
+      meshParamIn[meshID].cellSize[1] = meshParamIn[meshID].blockSize[1] / meshParamIn[meshID].blockLength[1];
+      meshParamIn[meshID].cellSize[2] = meshParamIn[meshID].blockSize[2] / meshParamIn[meshID].blockLength[2];
 
-      meshParameters[meshID].max_velocity_blocks
-              = meshParameters[meshID].gridLength[0]
-              * meshParameters[meshID].gridLength[1]
-              * meshParameters[meshID].gridLength[2];
-      meshParameters[meshID].initialized = true;
+      meshParamIn[meshID].max_velocity_blocks
+              = meshParamIn[meshID].gridLength[0]
+              * meshParamIn[meshID].gridLength[1]
+              * meshParamIn[meshID].gridLength[2];
+      meshParamIn[meshID].initialized = true;
 
-      vmesh::VelocityMesh<GID,LID>::meshParameters = meshParameters;
-      return meshParameters[meshID].initialized;
+      vmesh::VelocityMesh<GID,LID>::meshParameters = meshParamIn;
+      return meshParamIn[meshID].initialized;
    }
 //#endif
 
