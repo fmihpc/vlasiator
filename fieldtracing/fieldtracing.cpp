@@ -1330,7 +1330,6 @@ namespace FieldTracing {
                      ) {
                         cellNeedsContinuedFWTracing[n] = 0;
                         cellFWTracingCoordinates[n] = {0,0,0};
-                        cellFWMaxCoordinates[n] = cellInitialCoordinates[n];
                         break;
                      }
                      
