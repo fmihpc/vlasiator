@@ -1181,8 +1181,6 @@ namespace FieldTracing {
       std::vector<Real> cellBWRunningDistance(globalDccrgSize, 0);
       std::vector<Real> cellFWMaxDistance(globalDccrgSize, 0);
       std::vector<Real> cellBWMaxDistance(globalDccrgSize, 0);
-      std::vector<std::array<Real, 3>> cellFWMaxCoordinates(globalDccrgSize);
-      std::vector<std::array<Real, 3>> cellBWMaxCoordinates(globalDccrgSize);
       
       // These guys are needed in the reductions at the bottom of the tracing loop.
       std::vector<int> reducedCellNeedsContinuedFWTracing(globalDccrgSize, 0);
@@ -1195,8 +1193,6 @@ namespace FieldTracing {
       std::vector<Real> reducedCellBWMaxDistance(globalDccrgSize, 0);
       std::vector<Real> reducedCellFWTracingStepSize(globalDccrgSize);
       std::vector<Real> reducedCellBWTracingStepSize(globalDccrgSize);
-      std::vector<std::array<Real, 3>> reducedCellFWMaxCoordinates(globalDccrgSize);
-      std::vector<std::array<Real, 3>> reducedCellBWMaxCoordinates(globalDccrgSize);
       
       phiprof::start("first-loop");
       for(int n=0; n<globalDccrgSize; n++) {
@@ -1310,7 +1306,6 @@ namespace FieldTracing {
                      );
                      if(distance > cellFWMaxDistance[n]) {
                         cellFWMaxDistance[n] = distance;
-                        cellFWMaxCoordinates[n] = x;
                      }
                      
                      // Look up the fsgrid cell belonging to these coordinates
@@ -1321,7 +1316,6 @@ namespace FieldTracing {
                         cellNeedsContinuedFWTracing[n] = 0;
                         cellFWTracingCoordinates[n] = {0,0,0};
                         cellFWMaxDistance[n] = fieldTracingParameters.fluxrope_max_m_to_trace;
-                        cellFWMaxCoordinates[n] = cellInitialCoordinates[n];
                         break;
                      }
                      
@@ -1336,7 +1330,6 @@ namespace FieldTracing {
                      ) {
                         cellNeedsContinuedFWTracing[n] = 0;
                         cellFWTracingCoordinates[n] = {0,0,0};
-                        cellFWMaxDistance[n] = fieldTracingParameters.fluxrope_max_m_to_trace;
                         cellFWMaxCoordinates[n] = cellInitialCoordinates[n];
                         break;
                      }
@@ -1383,7 +1376,6 @@ namespace FieldTracing {
                      );
                      if(distance > cellBWMaxDistance[n]) {
                         cellBWMaxDistance[n] = distance;
-                        cellBWMaxCoordinates[n] = x;
                      }
                      
                      // Look up the fsgrid cell belonging to these coordinates
@@ -1394,7 +1386,6 @@ namespace FieldTracing {
                         cellNeedsContinuedBWTracing[n] = 0;
                         cellBWTracingCoordinates[n] = {0,0,0};
                         cellBWMaxDistance[n] = fieldTracingParameters.fluxrope_max_m_to_trace;
-                        cellBWMaxCoordinates[n] = cellInitialCoordinates[n];
                         break;
                      }
                      
@@ -1410,7 +1401,6 @@ namespace FieldTracing {
                         cellNeedsContinuedBWTracing[n] = 0;
                         cellBWTracingCoordinates[n] = {0,0,0};
                         cellBWMaxDistance[n] = fieldTracingParameters.fluxrope_max_m_to_trace;
-                        cellBWMaxCoordinates[n] = cellInitialCoordinates[n];
                         break;
                      }
                      
@@ -1424,9 +1414,6 @@ namespace FieldTracing {
                } // if BW
             } // for
             
-            //          string stringi = to_string(rank) + " arrived at " + (string)(__FILE__) + ":" + to_string(__LINE__) + "\n";
-            //          cerr << stringi;
-            
             // Globally reduce whether any node still needs to be picked up and traced onwards
             #pragma omp barrier
             phiprof::start("MPI-loop");
@@ -1437,8 +1424,6 @@ namespace FieldTracing {
                if(sizeof(Real) == sizeof(double)) {
                   MPI_Allreduce(cellFWTracingCoordinates.data(), sumCellFWTracingCoordinates.data(), 3*globalDccrgSize, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
                   MPI_Allreduce(cellBWTracingCoordinates.data(), sumCellBWTracingCoordinates.data(), 3*globalDccrgSize, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-                  MPI_Allreduce(cellFWMaxCoordinates.data(), reducedCellFWMaxCoordinates.data(), 3*globalDccrgSize, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-                  MPI_Allreduce(cellBWMaxCoordinates.data(), reducedCellBWMaxCoordinates.data(), 3*globalDccrgSize, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
                   MPI_Allreduce(cellFWTracingStepSize.data(), reducedCellFWTracingStepSize.data(), globalDccrgSize, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
                   MPI_Allreduce(cellBWTracingStepSize.data(), reducedCellBWTracingStepSize.data(), globalDccrgSize, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
                   MPI_Allreduce(cellFWRunningDistance.data(), reducedCellFWRunningDistance.data(), globalDccrgSize, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
@@ -1448,8 +1433,6 @@ namespace FieldTracing {
                } else {
                   MPI_Allreduce(cellFWTracingCoordinates.data(), sumCellFWTracingCoordinates.data(), 3*globalDccrgSize, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
                   MPI_Allreduce(cellBWTracingCoordinates.data(), sumCellBWTracingCoordinates.data(), 3*globalDccrgSize, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
-                  MPI_Allreduce(cellFWMaxCoordinates.data(), reducedCellFWMaxCoordinates.data(), 3*globalDccrgSize, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
-                  MPI_Allreduce(cellBWMaxCoordinates.data(), reducedCellBWMaxCoordinates.data(), 3*globalDccrgSize, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
                   MPI_Allreduce(cellFWTracingStepSize.data(), reducedCellFWTracingStepSize.data(), globalDccrgSize, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
                   MPI_Allreduce(cellBWTracingStepSize.data(), reducedCellBWTracingStepSize.data(), globalDccrgSize, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
                   MPI_Allreduce(cellFWRunningDistance.data(), reducedCellFWRunningDistance.data(), globalDccrgSize, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
@@ -1495,8 +1478,6 @@ namespace FieldTracing {
                cellBWTracingStepSize[n] = reducedCellBWTracingStepSize[n];
                cellFWMaxDistance[n] = reducedCellFWMaxDistance[n];
                cellBWMaxDistance[n] = reducedCellBWMaxDistance[n];
-               cellFWMaxCoordinates[n] = reducedCellFWMaxCoordinates[n];
-               cellBWMaxCoordinates[n] = reducedCellBWMaxCoordinates[n];
             }
             #pragma omp barrier
          } while(anyCellNeedsTracing && (cellsToDo >= fieldTracingParameters.fluxrope_max_incomplete_lines * 2 * globalDccrgSize));
