@@ -69,11 +69,13 @@ using namespace Eigen;
 
 __global__ void printVBCsizekernel(
    // Quick debug kernel to ensure the blockcontainer methods work on GPU
-   vmesh::VelocityBlockContainer<vmesh::LocalID> blockContainer) {
+   vmesh::VelocityBlockContainer<vmesh::LocalID> blockContainer
+   ) {
    uint blockDataN = blockContainer.size();
    Real* parameters = blockContainer.getParameters();
    // const int cudaBlocks = gridDim.x;
    // const int blocki = blockIdx.x;
+   blockContainer.testvalue = 2;
    const int i = threadIdx.x;
    const int j = threadIdx.y;
    const int k = threadIdx.z;
@@ -102,10 +104,12 @@ void cuda_accelerate_cell(SpatialCell* spatial_cell,
    phiprof::stop("CUDA-HtoD");
 
 // CUDATEST Launch kernel
+   // blockContainer.testvalue = 1;
    // dim3 block(WID,WID,WID);
    // printVBCsizekernel<<<1, block, 0, cuda_getStream()>>> (blockContainer);
    // HANDLE_ERROR( cudaDeviceSynchronize() );
-   
+   // std::cerr<<"blockcontainer testvalue "<<blockContainer.testvalue<<std::endl;
+
    // compute transform, forward in time and backward in time
    phiprof::start("compute-transform");
 

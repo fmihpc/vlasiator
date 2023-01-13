@@ -89,7 +89,7 @@ namespace vmesh {
       const Real& getParameters(const LID& blockLID,const unsigned int& i) const;
       void setData(const LID& blockLID,const unsigned int& cell,const Realf& value);
       #endif
-
+      LID testvalue;
     private:
       void exitInvalidLocalID(const LID& localID,const std::string& funcName) const;
       void resize();
