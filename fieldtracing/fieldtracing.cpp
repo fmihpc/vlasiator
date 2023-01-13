@@ -1171,7 +1171,7 @@ namespace FieldTracing {
       std::vector<Real> cellBWTracingStepSize(globalDccrgSize, stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
       std::array<int, 3> gridSize = technicalGrid.getGlobalSize();
       
-      std::vector<Real> cellCurvatureRadius(globalDccrgSize);
+      std::vector<Real> cellCurvatureRadius(globalDccrgSize, 0);
       std::vector<Real> reducedCellCurvatureRadius(globalDccrgSize);
       std::vector<int> cellNeedsContinuedFWTracing(globalDccrgSize, 1);                    /*!< Flag, whether tracing needs to continue on another task */
       std::vector<int> cellNeedsContinuedBWTracing(globalDccrgSize, 1);                    /*!< Flag, whether tracing needs to continue on another task */
@@ -1179,8 +1179,6 @@ namespace FieldTracing {
       std::vector<std::array<Real, 3>> cellBWTracingCoordinates(globalDccrgSize);          /*!< In-flight node upmapping coordinates (for global reduction) */
       std::vector<Real> cellFWRunningDistance(globalDccrgSize, 0);
       std::vector<Real> cellBWRunningDistance(globalDccrgSize, 0);
-      std::vector<Real> cellFWMaxDistance(globalDccrgSize, 0);
-      std::vector<Real> cellBWMaxDistance(globalDccrgSize, 0);
       
       // These guys are needed in the reductions at the bottom of the tracing loop.
       std::vector<int> reducedCellNeedsContinuedFWTracing(globalDccrgSize, 0);
@@ -1189,8 +1187,6 @@ namespace FieldTracing {
       std::vector<std::array<Real, 3>> sumCellBWTracingCoordinates(globalDccrgSize);
       std::vector<Real> reducedCellFWRunningDistance(globalDccrgSize, 0);
       std::vector<Real> reducedCellBWRunningDistance(globalDccrgSize, 0);
-      std::vector<Real> reducedCellFWMaxDistance(globalDccrgSize, 0);
-      std::vector<Real> reducedCellBWMaxDistance(globalDccrgSize, 0);
       std::vector<Real> reducedCellFWTracingStepSize(globalDccrgSize);
       std::vector<Real> reducedCellBWTracingStepSize(globalDccrgSize);
       
@@ -1215,19 +1211,10 @@ namespace FieldTracing {
                cellBWTracingCoordinates[n] = {0,0,0};
                cellFWTracingStepSize[n] = 0;
                cellBWTracingStepSize[n] = 0;
-               cellFWMaxDistance[n] = fieldTracingParameters.fluxrope_max_m_to_trace;
-               cellBWMaxDistance[n] = fieldTracingParameters.fluxrope_max_m_to_trace;
             } else {
                cellCurvatureRadius[n] = 1 / sqrt(mpiGrid[id]->parameters[CellParams::CURVATUREX]*mpiGrid[id]->parameters[CellParams::CURVATUREX] + mpiGrid[id]->parameters[CellParams::CURVATUREY]*mpiGrid[id]->parameters[CellParams::CURVATUREY] + mpiGrid[id]->parameters[CellParams::CURVATUREZ]*mpiGrid[id]->parameters[CellParams::CURVATUREZ]);
                if(cellCurvatureRadius[n] > fieldTracingParameters.fluxrope_max_valid_curvature_radius) {
-                  cellNeedsContinuedFWTracing[n] = 0;
-                  cellNeedsContinuedBWTracing[n] = 0;
-                  cellFWTracingCoordinates[n] = {0,0,0};
-                  cellBWTracingCoordinates[n] = {0,0,0};
-                  cellFWTracingStepSize[n] = 0;
-                  cellBWTracingStepSize[n] = 0;
-                  cellFWMaxDistance[n] = fieldTracingParameters.fluxrope_max_m_to_trace;
-                  cellBWMaxDistance[n] = fieldTracingParameters.fluxrope_max_m_to_trace;
+                  cellCurvatureRadius[n] = 0; // This will discard the field lines in the first iteration below.
                }
             }
          }
@@ -1288,25 +1275,11 @@ namespace FieldTracing {
                         break;
                      }
                      
-                     if(cellFWRunningDistance[n] > min(fieldTracingParameters.fluxrope_max_curvature_radii_to_trace*cellCurvatureRadius[n],fieldTracingParameters.fluxrope_max_m_to_trace)) {
-                        cellNeedsContinuedFWTracing[n] = 0;
-                        cellFWTracingCoordinates[n] = {0,0,0};
-                        break;
-                     }
-                     
                      // Make one step along the fieldline
                      // Forward tracing means true for last argument
                      stepFieldLine(x,v, cellFWTracingStepSize[n],100e3,technicalGrid.DX/2,fieldTracingParameters.tracingMethod,tracingFullField,true);
                      
                      cellFWRunningDistance[n] += cellFWTracingStepSize[n];
-                     creal distance = sqrt(
-                          (x[0]-(cellInitialCoordinates[n])[0])*(x[0]-(cellInitialCoordinates[n])[0])
-                        + (x[1]-(cellInitialCoordinates[n])[1])*(x[1]-(cellInitialCoordinates[n])[1])
-                        + (x[2]-(cellInitialCoordinates[n])[2])*(x[2]-(cellInitialCoordinates[n])[2])
-                     );
-                     if(distance > cellFWMaxDistance[n]) {
-                        cellFWMaxDistance[n] = distance;
-                     }
                      
                      // Look up the fsgrid cell belonging to these coordinates
                      fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
@@ -1315,7 +1288,6 @@ namespace FieldTracing {
                      if(sqrt(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2)) < SBC::Ionosphere::innerRadius) {
                         cellNeedsContinuedFWTracing[n] = 0;
                         cellFWTracingCoordinates[n] = {0,0,0};
-                        cellFWMaxDistance[n] = fieldTracingParameters.fluxrope_max_m_to_trace;
                         break;
                      }
                      
@@ -1330,6 +1302,36 @@ namespace FieldTracing {
                      ) {
                         cellNeedsContinuedFWTracing[n] = 0;
                         cellFWTracingCoordinates[n] = {0,0,0};
+                        break;
+                     }
+                     
+                     // If we traced too far from the seed, discard this field line (and the other direction too for that matter)
+                     creal distance = sqrt(
+                          (x[0]-(cellInitialCoordinates[n])[0])*(x[0]-(cellInitialCoordinates[n])[0])
+                        + (x[1]-(cellInitialCoordinates[n])[1])*(x[1]-(cellInitialCoordinates[n])[1])
+                        + (x[2]-(cellInitialCoordinates[n])[2])*(x[2]-(cellInitialCoordinates[n])[2])
+                     );
+                     if(distance > fieldTracingParameters.fluxrope_max_curvature_radii_extent*cellCurvatureRadius[n]) {
+                        cellNeedsContinuedFWTracing[n] = 0;
+                        cellFWTracingCoordinates[n] = {0,0,0};
+                        cellNeedsContinuedBWTracing[n] = 0;
+                        cellBWTracingCoordinates[n] = {0,0,0};
+                        break;
+                     }
+                     
+                     // If we haven't finished tracing we don't want to record a false positive (and skip the other direction too)
+                     if(cellFWRunningDistance[n] > fieldTracingParameters.fluxrope_max_m_to_trace) {
+                        cellNeedsContinuedFWTracing[n] = 0;
+                        cellFWTracingCoordinates[n] = {0,0,0};
+                        cellNeedsContinuedBWTracing[n] = 0;
+                        cellBWTracingCoordinates[n] = {0,0,0};
+                        break;
+                     }
+                     
+                     // If we are still in the game but traced until this limit we actually have a hit
+                     if(cellFWRunningDistance[n] > fieldTracingParameters.fluxrope_max_curvature_radii_to_trace*cellCurvatureRadius[n]) {
+                        cellNeedsContinuedFWTracing[n] = 0;
+                        cellFWTracingCoordinates[n] = x;
                         break;
                      }
                      
@@ -1357,25 +1359,11 @@ namespace FieldTracing {
                         break;
                      }
                      
-                     if(cellBWRunningDistance[n] > min(fieldTracingParameters.fluxrope_max_curvature_radii_to_trace*cellCurvatureRadius[n], fieldTracingParameters.fluxrope_max_m_to_trace)) {
-                        cellNeedsContinuedBWTracing[n] = 0;
-                        cellBWTracingCoordinates[n] = {0,0,0};
-                        break;
-                     }
-                     
                      // Make one step along the fieldline
                      // Forward tracing means true for last argument
                      stepFieldLine(x,v, cellBWTracingStepSize[n],100e3,technicalGrid.DX/2,fieldTracingParameters.tracingMethod,tracingFullField,false);
                      
                      cellBWRunningDistance[n] += cellBWTracingStepSize[n];
-                     creal distance = sqrt(
-                          (x[0]-cellInitialCoordinates[n][0])*(x[0]-cellInitialCoordinates[n][0])
-                        + (x[1]-cellInitialCoordinates[n][1])*(x[1]-cellInitialCoordinates[n][1])
-                        + (x[2]-cellInitialCoordinates[n][2])*(x[2]-cellInitialCoordinates[n][2])
-                     );
-                     if(distance > cellBWMaxDistance[n]) {
-                        cellBWMaxDistance[n] = distance;
-                     }
                      
                      // Look up the fsgrid cell belonging to these coordinates
                      fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
@@ -1384,7 +1372,6 @@ namespace FieldTracing {
                      if(sqrt(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2)) < SBC::Ionosphere::innerRadius) {
                         cellNeedsContinuedBWTracing[n] = 0;
                         cellBWTracingCoordinates[n] = {0,0,0};
-                        cellBWMaxDistance[n] = fieldTracingParameters.fluxrope_max_m_to_trace;
                         break;
                      }
                      
@@ -1399,7 +1386,36 @@ namespace FieldTracing {
                      ) {
                         cellNeedsContinuedBWTracing[n] = 0;
                         cellBWTracingCoordinates[n] = {0,0,0};
-                        cellBWMaxDistance[n] = fieldTracingParameters.fluxrope_max_m_to_trace;
+                        break;
+                     }
+                     
+                     // If we traced too far from the seed, discard this field line (and the other direction too for that matter)
+                     creal distance = sqrt(
+                          (x[0]-(cellInitialCoordinates[n])[0])*(x[0]-(cellInitialCoordinates[n])[0])
+                        + (x[1]-(cellInitialCoordinates[n])[1])*(x[1]-(cellInitialCoordinates[n])[1])
+                        + (x[2]-(cellInitialCoordinates[n])[2])*(x[2]-(cellInitialCoordinates[n])[2])
+                     );
+                     if(distance > fieldTracingParameters.fluxrope_max_curvature_radii_extent*cellCurvatureRadius[n]) {
+                        cellNeedsContinuedBWTracing[n] = 0;
+                        cellBWTracingCoordinates[n] = {0,0,0};
+                        cellNeedsContinuedFWTracing[n] = 0;
+                        cellFWTracingCoordinates[n] = {0,0,0};
+                        break;
+                     }
+                     
+                     // If we haven't finished tracing we don't want to record a false positive (and skip the other direction too)
+                     if(cellBWRunningDistance[n] > fieldTracingParameters.fluxrope_max_m_to_trace) {
+                        cellNeedsContinuedFWTracing[n] = 0;
+                        cellFWTracingCoordinates[n] = {0,0,0};
+                        cellNeedsContinuedBWTracing[n] = 0;
+                        cellBWTracingCoordinates[n] = {0,0,0};
+                        break;
+                     }
+                     
+                     // If we are still in the game but traced until this limit we actually have a hit
+                     if(cellBWRunningDistance[n] > min(fieldTracingParameters.fluxrope_max_curvature_radii_to_trace*cellCurvatureRadius[n],fieldTracingParameters.fluxrope_max_m_to_trace)) {
+                        cellNeedsContinuedBWTracing[n] = 0;
+                        cellBWTracingCoordinates[n] = x;
                         break;
                      }
                      
@@ -1427,8 +1443,6 @@ namespace FieldTracing {
                   MPI_Allreduce(cellBWTracingStepSize.data(), reducedCellBWTracingStepSize.data(), globalDccrgSize, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
                   MPI_Allreduce(cellFWRunningDistance.data(), reducedCellFWRunningDistance.data(), globalDccrgSize, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
                   MPI_Allreduce(cellBWRunningDistance.data(), reducedCellBWRunningDistance.data(), globalDccrgSize, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-                  MPI_Allreduce(cellFWMaxDistance.data(), reducedCellFWMaxDistance.data(), globalDccrgSize, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-                  MPI_Allreduce(cellBWMaxDistance.data(), reducedCellBWMaxDistance.data(), globalDccrgSize, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
                } else {
                   MPI_Allreduce(cellFWTracingCoordinates.data(), sumCellFWTracingCoordinates.data(), 3*globalDccrgSize, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
                   MPI_Allreduce(cellBWTracingCoordinates.data(), sumCellBWTracingCoordinates.data(), 3*globalDccrgSize, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
@@ -1436,8 +1450,6 @@ namespace FieldTracing {
                   MPI_Allreduce(cellBWTracingStepSize.data(), reducedCellBWTracingStepSize.data(), globalDccrgSize, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
                   MPI_Allreduce(cellFWRunningDistance.data(), reducedCellFWRunningDistance.data(), globalDccrgSize, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
                   MPI_Allreduce(cellBWRunningDistance.data(), reducedCellBWRunningDistance.data(), globalDccrgSize, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
-                  MPI_Allreduce(cellFWMaxDistance.data(), reducedCellFWMaxDistance.data(), globalDccrgSize, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
-                  MPI_Allreduce(cellBWMaxDistance.data(), reducedCellBWMaxDistance.data(), globalDccrgSize, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
                }
                anyCellNeedsTracing = false;
             }
@@ -1475,8 +1487,6 @@ namespace FieldTracing {
                }
                cellFWTracingStepSize[n] = reducedCellFWTracingStepSize[n];
                cellBWTracingStepSize[n] = reducedCellBWTracingStepSize[n];
-               cellFWMaxDistance[n] = reducedCellFWMaxDistance[n];
-               cellBWMaxDistance[n] = reducedCellBWMaxDistance[n];
             }
             #pragma omp barrier
          } while(anyCellNeedsTracing && (cellsToDo >= fieldTracingParameters.fluxrope_max_incomplete_lines * 2 * globalDccrgSize));
@@ -1491,8 +1501,20 @@ namespace FieldTracing {
          const CellID id = allDccrgCells.at(n);
          if(mpiGrid.is_local(id)) {
             mpiGrid[id]->parameters[CellParams::FLUXROPE] = 0;
-            if(   reducedCellFWMaxDistance[n] < min(fieldTracingParameters.fluxrope_max_curvature_radii_extent*reducedCellCurvatureRadius[n], fieldTracingParameters.fluxrope_max_m_to_trace)
-               && reducedCellBWMaxDistance[n] < min(fieldTracingParameters.fluxrope_max_curvature_radii_extent*reducedCellCurvatureRadius[n], fieldTracingParameters.fluxrope_max_m_to_trace)
+            const std::array<Real, 3> x = mpiGrid.get_center(id);
+            if(!( sumCellFWTracingCoordinates[n][0] == 0
+               && sumCellFWTracingCoordinates[n][1] == 0
+               && sumCellFWTracingCoordinates[n][2] == 0
+               && sumCellBWTracingCoordinates[n][0] == 0
+               && sumCellBWTracingCoordinates[n][1] == 0
+               && sumCellBWTracingCoordinates[n][2] == 0 )
+               && mpiGrid[id]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY
+               && x[0] <= P::xmax - 4*P::dx_ini
+               && x[0] >= P::xmin + 4*P::dx_ini
+               && x[1] <= P::ymax - 4*P::dy_ini
+               && x[1] >= P::ymin + 4*P::dy_ini
+               && x[2] <= P::zmax - 4*P::dz_ini
+               && x[2] >= P::zmin + 4*P::dz_ini
             ) {
                mpiGrid[id]->parameters[CellParams::FLUXROPE] = 1;
             }
