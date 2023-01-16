@@ -5,6 +5,9 @@
 #include <iostream>
 #include <type_traits>
 #include <tuple>
+
+#include <fstream>
+
 namespace ionogpu {
 
    /* 
@@ -175,8 +178,6 @@ namespace ionogpu {
          return std::tuple{std::move(A_vec_temp), std::move(A_transposed_vec_temp), std::move(indecies_vec_temp)};
       }();
 
-      auto c = config;
-      c.precondition = Precondition::none;
    
       auto [number_of_iterations, number_of_restarts, min_error, x_vec] = 
          sparseBiCGCUDA(
