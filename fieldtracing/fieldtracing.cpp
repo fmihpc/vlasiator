@@ -1093,7 +1093,7 @@ namespace FieldTracing {
       int rank;
       MPI_Comm_rank(MPI_COMM_WORLD, &rank);
       if(redWarning && rank == MASTER_RANK) {
-         logFile << "(fieldtracing) Warning: reached the maximum number of tracing steps " << maxTracingSteps << " allowed for full-box ionosphere tracing." << endl;
+         logFile << "(fieldtracing) Warning: reached the maximum number of tracing steps " << maxTracingSteps << " allowed for full-box tracing." << endl;
       }
       
       std::vector<int> reducedCellFWConnection(globalDccrgSize);
