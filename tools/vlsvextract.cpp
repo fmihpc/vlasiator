@@ -492,31 +492,44 @@ void getBulkVelocity(Real* V_bulk,vlsvinterface::Reader& vlsvReader,const string
       exit(1);
    }
    
-   // Read number density
-   double numberDensity;
-   double* ptr = &numberDensity;
+   // Read velocity
+   double velocity[3];
+   double* ptr = velocity;
    xmlAttributes.clear();
    xmlAttributes.push_back(make_pair("mesh",meshName));
-   xmlAttributes.push_back(make_pair("name","rho"));
+   xmlAttributes.push_back(make_pair("name","proton/vg_v"));
    if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,ptr,false) == false) {
-      cerr << "Could not read number density in " << __FILE__ << ":" << __LINE__ << endl;
-      exit(1);
-   }
-   
-   // Read number density times velocity
-   double momentum[3];
-   ptr = momentum;
-   xmlAttributes.clear();
-   xmlAttributes.push_back(make_pair("mesh",meshName));
-   xmlAttributes.push_back(make_pair("name","rho_v"));
-   if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,ptr,false) == false) {
-      cerr << "Could not read momentum in " << __FILE__ << ":" << __LINE__ << endl;
-      exit(1);
-   }
+      cerr << "Could not read velocity in " << __FILE__ << ":" << __LINE__ << ", trying to read density + momentum" << endl;
+      // Try old style
+      // Read number density
+      double numberDensity;
+      double* ptr = &numberDensity;
+      xmlAttributes.clear();
+      xmlAttributes.push_back(make_pair("mesh",meshName));
+      xmlAttributes.push_back(make_pair("name","rho"));
+      if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,ptr,false) == false) {
+         cerr << "Could not read number density in " << __FILE__ << ":" << __LINE__ << endl;
+         exit(1);
+      }
+      
+      // Read number density times velocity
+      double momentum[3];
+      ptr = momentum;
+      xmlAttributes.clear();
+      xmlAttributes.push_back(make_pair("mesh",meshName));
+      xmlAttributes.push_back(make_pair("name","rho_v"));
+      if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,ptr,false) == false) {
+         cerr << "Could not read momentum in " << __FILE__ << ":" << __LINE__ << endl;
+         exit(1);
+      }
 
-   V_bulk[0] = momentum[0] / (numberDensity + numeric_limits<double>::min());
-   V_bulk[1] = momentum[1] / (numberDensity + numeric_limits<double>::min());
-   V_bulk[2] = momentum[2] / (numberDensity + numeric_limits<double>::min());
+      V_bulk[0] = momentum[0] / (numberDensity + numeric_limits<double>::min());
+      V_bulk[1] = momentum[1] / (numberDensity + numeric_limits<double>::min());
+      V_bulk[2] = momentum[2] / (numberDensity + numeric_limits<double>::min());
+   }
+   V_bulk[0] = velocity[0];
+   V_bulk[1] = velocity[1];
+   V_bulk[2] = velocity[2];
 }
 
 void getB(Real* B,vlsvinterface::Reader& vlsvReader,const string& meshName,const uint64_t& cellID) {
@@ -570,6 +583,7 @@ void getB(Real* B,vlsvinterface::Reader& vlsvReader,const string& meshName,const
 
    // Magnetic field can exists in the file in few different variables.
    // Here we go with the following priority:
+   // - vg_b_vol
    // - B_vol
    // - BGB_vol + PERB_vol
    // - B
@@ -586,6 +600,32 @@ void getB(Real* B,vlsvinterface::Reader& vlsvReader,const string& meshName,const
 
    bool B_read = true;
    do {
+      // Attempt to read 'vg_b_vol'
+      B_read = true;
+      xmlAttributes.clear();
+      xmlAttributes.push_back(make_pair("mesh",meshName));
+      xmlAttributes.push_back(make_pair("name","vg_b_vol"));
+      if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,B1_ptr,false) == false) B_read = false;
+      if (B_read == true) {
+	 if (runDebug == true) cerr << "Using vg_b_vol" << endl;
+	 break;
+      }
+
+      // Attempt to read 'vg_b_background_vol' + 'vg_b_perturbed_vol'
+      B_read = true;
+      xmlAttributes.clear();
+      xmlAttributes.push_back(make_pair("mesh",meshName));
+      xmlAttributes.push_back(make_pair("name","vg_b_background_vol"));
+      if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,B1_ptr,false) == false) B_read = false;
+      xmlAttributes.clear();
+      xmlAttributes.push_back(make_pair("mesh",meshName));
+      xmlAttributes.push_back(make_pair("name","vg_b_perturbed_vol"));
+      if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,B2_ptr,false) == false) B_read = false;
+      if (B_read == true) {
+	 if (runDebug == true) cerr << "Using vg_b_background_vol + vg_b_perturbed_vol" << endl;
+	 break;
+      }
+
       // Attempt to read 'B_vol'
       B_read = true;
       xmlAttributes.clear();
