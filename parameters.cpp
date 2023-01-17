@@ -442,7 +442,6 @@ bool P::addParameters() {
    RP::add("fieldtracing.fluxrope_max_curvature_radii_to_trace", "Maximum number of seedpoint curvature radii to trace forward and backward from each DCCRG cell to find flux ropes", 10);
    RP::add("fieldtracing.fluxrope_max_curvature_radii_extent", "Maximum extent in seedpoint curvature radii from the seed a field line is allowed to extend to be counted as a flux rope", 2);
    RP::add("fieldtracing.fluxrope_max_m_to_trace", "Maximum distance to trace forward and backward from each DCCRG cell to find flux ropes, safeguard for areas with very large curvature radii (m)", 1e8);
-   RP::add("fieldtracing.fluxrope_max_valid_curvature_radius", "Maximum curvature radius allowed to even begin tracing to find flux ropes, safeguard for areas with very large curvature radii (m)", 1e8);
 
    return true;
 }
@@ -786,7 +785,6 @@ void Parameters::getParameters() {
    RP::get("fieldtracing.fluxrope_max_curvature_radii_to_trace", FieldTracing::fieldTracingParameters.fluxrope_max_curvature_radii_to_trace);
    RP::get("fieldtracing.fluxrope_max_curvature_radii_extent", FieldTracing::fieldTracingParameters.fluxrope_max_curvature_radii_extent);
    RP::get("fieldtracing.fluxrope_max_m_to_trace", FieldTracing::fieldTracingParameters.fluxrope_max_m_to_trace);
-   RP::get("fieldtracing.fluxrope_max_valid_curvature_radius", FieldTracing::fieldTracingParameters.fluxrope_max_valid_curvature_radius);
    
    if(tracerString == "Euler") {
       FieldTracing::fieldTracingParameters.tracingMethod = FieldTracing::Euler;

@@ -1213,7 +1213,7 @@ namespace FieldTracing {
                cellBWTracingStepSize[n] = 0;
             } else {
                cellCurvatureRadius[n] = 1 / sqrt(mpiGrid[id]->parameters[CellParams::CURVATUREX]*mpiGrid[id]->parameters[CellParams::CURVATUREX] + mpiGrid[id]->parameters[CellParams::CURVATUREY]*mpiGrid[id]->parameters[CellParams::CURVATUREY] + mpiGrid[id]->parameters[CellParams::CURVATUREZ]*mpiGrid[id]->parameters[CellParams::CURVATUREZ]);
-               if(cellCurvatureRadius[n] > fieldTracingParameters.fluxrope_max_valid_curvature_radius) {
+               if(fieldTracingParameters.fluxrope_max_curvature_radii_to_trace*cellCurvatureRadius[n] > fieldTracingParameters.fluxrope_max_m_to_trace) {
                   cellCurvatureRadius[n] = 0; // This will discard the field lines in the first iteration below.
                }
             }

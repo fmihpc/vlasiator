@@ -83,7 +83,6 @@ namespace FieldTracing {
       Real fluxrope_max_curvature_radii_to_trace;
       Real fluxrope_max_curvature_radii_extent;
       Real fluxrope_max_m_to_trace;
-      Real fluxrope_max_valid_curvature_radius;
    };
    
    extern FieldTracingParameters fieldTracingParameters;
