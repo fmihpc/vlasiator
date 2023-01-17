@@ -100,5 +100,6 @@ cudaStream_t cuda_getStream();
 //extern CUcontext cuda_acc_context;
 extern cudaStream_t cudaStreamList[];
 extern cudaStream_t cudaBaseStream;
+extern Realf *returnRealf[];
 
 #endif

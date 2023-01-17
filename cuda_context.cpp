@@ -35,6 +35,7 @@
 
 //CUcontext cuda_acc_context;
 cudaStream_t cudaStreamList[MAXCPUTHREADS];
+Realf *returnRealf[MAXCPUTHREADS];
 
 __host__ void cuda_set_device() {
 
@@ -87,9 +88,10 @@ __host__ void cuda_set_device() {
    }
    cudaSetDevice(amps_node_rank);
 
-   // Pre-generate streams
+   // Pre-generate streams, allocate return pointers
    for (uint i=0; i<maxThreads; ++i) {
       cudaStreamCreate(&(cudaStreamList[i]));
+      HANDLE_ERROR( cudaMalloc((void**)&returnRealf[i], sizeof(Realf)) );
    }
 
    // Using just a single context for whole MPI task
@@ -100,6 +102,7 @@ __host__ void cuda_clear_device() {
    const uint maxThreads = omp_get_max_threads();
    for (uint i=0; i<maxThreads; ++i) {
       cudaStreamDestroy(cudaStreamList[i]);
+      HANDLE_ERROR( cudaFree(*returnRealf) );
    }
 }
 

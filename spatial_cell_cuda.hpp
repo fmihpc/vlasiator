@@ -276,10 +276,10 @@ namespace spatial_cell {
       uint sysBoundaryLayer;                                                  /**< Layers counted from closest systemBoundary. If 0 then it has not 
                                                                                * been computed. First sysboundary layer is layer 1.*/
       int sysBoundaryLayerNew;
-      std::vector<vmesh::GlobalID> velocity_block_with_content_list;          /**< List of existing cells with content, only up-to-date after
+      split::SplitVector<vmesh::GlobalID> *velocity_block_with_content_list;          /**< List of existing cells with content, only up-to-date after
                                                                                * call to update_has_content().*/
       vmesh::LocalID velocity_block_with_content_list_size;                   /**< Size of vector. Needed for MPI communication of size before actual list transfer.*/
-      std::vector<vmesh::GlobalID> velocity_block_with_no_content_list;       /**< List of existing cells with no content, only up-to-date after
+      split::SplitVector<vmesh::GlobalID> *velocity_block_with_no_content_list;       /**< List of existing cells with no content, only up-to-date after
                                                                                * call to update_has_content. This is also never transferred
                                                                                * over MPI, so is invalid on remote cells.*/
       static uint64_t mpi_transfer_type;                                      /**< Which data is transferred by the mpi datatype given by spatial cells.*/
@@ -937,8 +937,8 @@ namespace spatial_cell {
       uint64_t size = 0;
       size += 2 * WID3 * sizeof(Realf);
       //size += mpi_velocity_block_list.size() * sizeof(vmesh::GlobalID);
-      size += velocity_block_with_content_list.size() * sizeof(vmesh::GlobalID);
-      size += velocity_block_with_no_content_list.size() * sizeof(vmesh::GlobalID);
+      size += velocity_block_with_content_list->size() * sizeof(vmesh::GlobalID);
+      size += velocity_block_with_no_content_list->size() * sizeof(vmesh::GlobalID);
       size += CellParams::N_SPATIAL_CELL_PARAMS * sizeof(Real);
       size += bvolderivatives::N_BVOL_DERIVATIVES * sizeof(Real);
 
@@ -960,8 +960,8 @@ namespace spatial_cell {
       
       capacity += 2 * WID3 * sizeof(Realf);
       //capacity += mpi_velocity_block_list.capacity()  * sizeof(vmesh::GlobalID);
-      capacity += velocity_block_with_content_list.capacity()  * sizeof(vmesh::GlobalID);
-      capacity += velocity_block_with_no_content_list.capacity()  * sizeof(vmesh::GlobalID);
+      capacity += velocity_block_with_content_list->capacity()  * sizeof(vmesh::GlobalID);
+      capacity += velocity_block_with_no_content_list->capacity()  * sizeof(vmesh::GlobalID);
       capacity += CellParams::N_SPATIAL_CELL_PARAMS * sizeof(Real);
       capacity += bvolderivatives::N_BVOL_DERIVATIVES * sizeof(Real);
       
