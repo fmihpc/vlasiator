@@ -447,7 +447,7 @@ void applyRotation(const Real* B,Real* transform) {
    }
 }
 
-void getBulkVelocity(Real* V_bulk,vlsvinterface::Reader& vlsvReader,const string& meshName,const uint64_t& cellID) {
+void getBulkVelocity(Real* V_bulk,vlsvinterface::Reader& vlsvReader,const string& meshName,const string& popName,const uint64_t& cellID) {
    //Declarations
    vlsv::datatype::type cellIdDataType;
    uint64_t cellIdArraySize, cellIdVectorSize, cellIdDataSize;
@@ -497,7 +497,7 @@ void getBulkVelocity(Real* V_bulk,vlsvinterface::Reader& vlsvReader,const string
    double* ptr = velocity;
    xmlAttributes.clear();
    xmlAttributes.push_back(make_pair("mesh",meshName));
-   xmlAttributes.push_back(make_pair("name","proton/vg_v"));
+   xmlAttributes.push_back(make_pair("name",popName+"/vg_v"));
    if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,ptr,false) == false) {
       cerr << "Could not read velocity in " << __FILE__ << ":" << __LINE__ << ", trying to read density + momentum" << endl;
       // Try old style
@@ -736,7 +736,7 @@ bool convertVelocityBlocks2(
 
    if (plasmaFrame == true) {
       Real V_bulk[3];
-      getBulkVelocity(V_bulk,vlsvReader,meshName,cellID);
+      getBulkVelocity(V_bulk,vlsvReader,meshName,popName,cellID);
       applyTranslation(V_bulk,transform);
    }
 
