@@ -24,31 +24,6 @@ else
 	INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/../vlasiator/vlasovsolver
 endif
 
-#======== PAPI ==========
-#Add PAPI_MEM define to use papi to report memory consumption?
-#CXXFLAGS +=  -DPAPI_MEM
-
-
-#======== Allocator =========
-#Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
-#Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
-#CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
-
-
-#======= Compiler and compilation flags =========
-# NOTES on compiler flags:
-# CXXFLAGS is for compiler flags, they are always used
-# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
-# LDFLAGS flags for linker
-
-#-DNO_WRITE_AT_ALL:  Define to disable write at all to 
-#                    avoid memleak (much slower IO)
-#-DMPICH_IGNORE_CXX_SEEK: Ignores some multiple definition 
-#                         errors that come up when using 
-#                         mpi.h in c++ on Cray
-
-#CXXFLAGS += -DMPICH_IGNORE_CXX_SEEK
-
 #FLAGS = -ggdb
 
 #GNU flags:
@@ -64,6 +39,25 @@ testpackage: MATHFLAGS =  -fno-unsafe-math-optimizations
 LDFLAGS =
 #-g -ggdb
 LIB_MPI = -lgomp -lgfortran -lpapi
+
+
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+#CXXFLAGS += -DPAPI_MEM
+#testpackage: CXXFLAGS += -DPAPI_MEM
+
+#======== Allocator =========
+#Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
+#Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
+#CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+#testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+
+
+#======= Compiler and compilation flags =========
+# NOTES on compiler flags:
+# CXXFLAGS is for compiler flags, they are always used
+# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
+# LDFLAGS flags for linker
 
 # BOOST_VERSION = current trilinos version
 # ZOLTAN_VERSION = current trilinos verson

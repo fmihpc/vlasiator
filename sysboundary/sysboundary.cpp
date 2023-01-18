@@ -322,7 +322,7 @@ bool SysBoundary::initSysBoundaries(
    return success;
 }
 
-bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
+bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry> & mpiGrid) {
    // Verifies that all cells within FULL_NEIGHBORHOOD_ID of L1 boundary cells are on the same refinement
    // level (one group for inner boundary, another for outer boundary)
   
@@ -394,7 +394,7 @@ bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::
 
 
 bool belongsToLayer(const int layer, const int x, const int y, const int z,
-                    FsGrid< fsgrids::technical, 2>& technicalGrid) {
+                    FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
    
    bool belongs = false;
    
@@ -434,7 +434,7 @@ bool belongsToLayer(const int layer, const int x, const int y, const int z,
  * \param mpiGrid Grid
  */
 bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                FsGrid< fsgrids::technical, 2> & technicalGrid) {
+                                FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
    bool success = true;
    vector<CellID> cells = mpiGrid.get_cells();
    auto localSize = technicalGrid.getLocalSize().data();
@@ -671,7 +671,7 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Ca
  */
 bool SysBoundary::applyInitialState(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
+   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
    Project& project
 ) {
    bool success = true;
@@ -764,7 +764,7 @@ void SysBoundary::applySysBoundaryVlasovConditions(
    
       timer=phiprof::initializeTimer("Wait for receives","MPI","Wait");
       phiprof::start(timer);
-      mpiGrid.wait_remote_neighbor_copy_update_receives(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
+      mpiGrid.wait_remote_neighbor_copy_updates(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
       phiprof::stop(timer);
 
       // Compute vlasov boundary on system boundary/process boundary cells
@@ -782,11 +782,6 @@ void SysBoundary::applySysBoundaryVlasovConditions(
       } else {
          calculateMoments_R(mpiGrid, boundaryCells, true);
       }
-      phiprof::stop(timer);
-
-      timer=phiprof::initializeTimer("Wait for sends","MPI","Wait");
-      phiprof::start(timer);
-      mpiGrid.wait_remote_neighbor_copy_update_sends();
       phiprof::stop(timer);
 
       // WARNING Blocks are changed but lists not updated now, if you need to use/communicate them before the next update is done, add an update here.
