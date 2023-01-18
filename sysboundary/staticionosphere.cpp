@@ -73,35 +73,14 @@ namespace SBC {
    void StaticIonosphere::getParameters() {
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-      if(!Readparameters::get("staticionosphere.centerX", this->center[0])) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("staticionosphere.centerY", this->center[1])) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("staticionosphere.centerZ", this->center[2])) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("staticionosphere.radius", this->radius)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("staticionosphere.geometry", this->geometry)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!Readparameters::get("staticionosphere.precedence", this->precedence)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
+      Readparameters::get("staticionosphere.centerX", this->center[0]);
+      Readparameters::get("staticionosphere.centerY", this->center[1]);
+      Readparameters::get("staticionosphere.centerZ", this->center[2]);
+      Readparameters::get("staticionosphere.radius", this->radius);
+      Readparameters::get("staticionosphere.geometry", this->geometry);
+      Readparameters::get("staticionosphere.precedence", this->precedence);
       uint reapply;
-      if(!Readparameters::get("staticionosphere.reapplyUponRestart",reapply)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      };
+      Readparameters::get("staticionosphere.reapplyUponRestart",reapply);
       this->applyUponRestart = false;
       if(reapply == 1) {
          this->applyUponRestart = true;
@@ -111,34 +90,13 @@ namespace SBC {
         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
         StaticIonosphereSpeciesParameters sP;
 
-        if(!Readparameters::get(pop + "_staticionosphere.rho", sP.rho)) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
-        if(!Readparameters::get(pop + "_staticionosphere.VX0", sP.V0[0])) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
-        if(!Readparameters::get(pop + "_staticionosphere.VY0", sP.V0[1])) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
-        if(!Readparameters::get(pop + "_staticionosphere.VZ0", sP.V0[2])) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
-        if(!Readparameters::get(pop + "_Magnetosphere.T", sP.T)) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
-        if(!Readparameters::get(pop + "_Magnetosphere.nSpaceSamples", sP.nSpaceSamples)) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
-        if(!Readparameters::get(pop + "_Magnetosphere.nVelocitySamples", sP.nVelocitySamples)) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
+        Readparameters::get(pop + "_staticionosphere.rho", sP.rho);
+        Readparameters::get(pop + "_staticionosphere.VX0", sP.V0[0]);
+        Readparameters::get(pop + "_staticionosphere.VY0", sP.V0[1]);
+        Readparameters::get(pop + "_staticionosphere.VZ0", sP.V0[2]);
+        Readparameters::get(pop + "_Magnetosphere.T", sP.T);
+        Readparameters::get(pop + "_Magnetosphere.nSpaceSamples", sP.nSpaceSamples);
+        Readparameters::get(pop + "_Magnetosphere.nVelocitySamples", sP.nVelocitySamples);
 
         speciesParams.push_back(sP);
       }
@@ -263,6 +221,19 @@ namespace SBC {
    ) {
          return bGrid.get(i,j,k)->at(fsgrids::bfield::PERBX+component);
       
+   }
+
+   /*! We want here to
+    *  DO NOTHING
+    */
+   void StaticIonosphere::fieldSolverBoundaryCondMagneticFieldProjection(
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      cint i,
+      cint j,
+      cint k
+   ) {
+
    }
 
    void StaticIonosphere::fieldSolverBoundaryCondElectricField(

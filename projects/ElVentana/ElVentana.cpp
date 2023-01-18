@@ -81,78 +81,24 @@ namespace projects {
       Real dummy;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       typedef Readparameters RP;
-      if(!RP::get("ElVentana.constBgBX", this->constBgB[0])) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!RP::get("ElVentana.constBgBY", this->constBgB[1])) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!RP::get("ElVentana.constBgBZ", this->constBgB[2])) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!RP::get("ElVentana.StartFile", this->StartFile)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!RP::get("ElVentana.WindowX_min", this->WindowX[0])) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!RP::get("ElVentana.WindowX_max", this->WindowX[1])) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!RP::get("ElVentana.WindowY_min", this->WindowY[0])) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-            exit(1);
-         }
-         if(!RP::get("ElVentana.WindowY_max", this->WindowY[1])) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-            exit(1);
-         }
-         if(!RP::get("ElVentana.WindowZ_min", this->WindowZ[0])) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-            exit(1);
-         }
-         if(!RP::get("ElVentana.WindowZ_max", this->WindowZ[1])) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-            exit(1);
-         }
-         if(!RP::get("ElVentana.dipoleScalingFactor", this->dipoleScalingFactor)) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-            exit(1);
-         }
-         if(!RP::get("ElVentana.dipoleType", this->dipoleType)) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-            exit(1);       
-         }
-         if(!RP::get("ionosphere.radius", this->ionosphereRadius)) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-            exit(1);
-         }
-         if(!RP::get("ionosphere.centerX", this->center[0])) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-            exit(1);
-         }
-         if(!RP::get("ionosphere.centerY", this->center[1])) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-            exit(1);
-         }
-         if(!RP::get("ionosphere.centerZ", this->center[2])) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-            exit(1);
-         }
-         if(!Readparameters::get("ionosphere.geometry", this->ionosphereGeometry)) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-            exit(1);
-         }
-         if(!RP::get("ElVentana.noDipoleInSW", dummy)) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-            exit(1);
-         }
+      RP::get("ElVentana.constBgBX", this->constBgB[0]);
+      RP::get("ElVentana.constBgBY", this->constBgB[1]);
+      RP::get("ElVentana.constBgBZ", this->constBgB[2]);
+      RP::get("ElVentana.StartFile", this->StartFile);
+      RP::get("ElVentana.WindowX_min", this->WindowX[0]);
+      RP::get("ElVentana.WindowX_max", this->WindowX[1]);
+      RP::get("ElVentana.WindowY_min", this->WindowY[0]);
+      RP::get("ElVentana.WindowY_max", this->WindowY[1]);
+      RP::get("ElVentana.WindowZ_min", this->WindowZ[0]);
+      RP::get("ElVentana.WindowZ_max", this->WindowZ[1]);
+      RP::get("ElVentana.dipoleScalingFactor", this->dipoleScalingFactor);
+      RP::get("ElVentana.dipoleType", this->dipoleType);
+      RP::get("ionosphere.radius", this->ionosphereRadius);
+      RP::get("ionosphere.centerX", this->center[0]);
+      RP::get("ionosphere.centerY", this->center[1]);
+      RP::get("ionosphere.centerZ", this->center[2]);
+      RP::get("ionosphere.geometry", this->ionosphereGeometry);
+      RP::get("ElVentana.noDipoleInSW", dummy);
          this->noDipoleInSW = dummy == 1 ? true:false;
 
 
@@ -161,34 +107,13 @@ namespace projects {
             const std::string& pop = getObjectWrapper().particleSpecies[i].name;
             ElVentanaSpeciesParameters sP;
 
-            if(!RP::get(pop + "_ElVentana.nSpaceSamples", sP.nSpaceSamples)) {
-               if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-               exit(1);
-            }
-            if(!RP::get(pop + "_ElVentana.nVelocitySamples", sP.nVelocitySamples)) {
-               if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-               exit(1);
-            }
-            if(!RP::get(pop + "_ElVentana.Temperatureratio", sP.Temperatureratio)) {
-               if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-               exit(1);
-            }
-            if(!RP::get(pop + "_ionosphere.rho", sP.ionosphereRho)) {
-               if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-               exit(1);
-            }
-            if(!RP::get(pop + "_ionosphere.VX0", sP.ionosphereV0[0])) {
-               if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-               exit(1);
-            }
-            if(!RP::get(pop + "_ionosphere.VY0", sP.ionosphereV0[1])) {
-               if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-               exit(1);
-            }
-            if(!RP::get(pop + "_ionosphere.VZ0", sP.ionosphereV0[2])) {
-               if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-               exit(1);
-            }
+            RP::get(pop + "_ElVentana.nSpaceSamples", sP.nSpaceSamples);
+            RP::get(pop + "_ElVentana.nVelocitySamples", sP.nVelocitySamples);
+            RP::get(pop + "_ElVentana.Temperatureratio", sP.Temperatureratio);
+            RP::get(pop + "_ionosphere.rho", sP.ionosphereRho);
+            RP::get(pop + "_ionosphere.VX0", sP.ionosphereV0[0]);
+            RP::get(pop + "_ionosphere.VY0", sP.ionosphereV0[1]);
+            RP::get(pop + "_ionosphere.VZ0", sP.ionosphereV0[2]);
 
             speciesParams.push_back(sP);
          }

@@ -29,6 +29,7 @@
 #include "../definitions.h"
 #include "../spatial_cell.hpp"
 #include "datareductionoperator.h"
+#include "../sysboundary/ionosphere.h"
 
 /** The purpose of DataReducer is to contain DRO::DataReductionOperators, and apply 
  * them to simulation data when writing output files. Files containing full 
@@ -73,6 +74,8 @@ class DataReducer {
                       const std::string& meshName, const unsigned int operatorID,
                       vlsv::Writer& vlsvWriter,
                       const bool writeAsFloat = false);
+   bool writeIonosphereGridData(SBC::SphericalTriGrid& grid, const std::string& meshName,
+         const unsigned int operatorID, vlsv::Writer& vlsvWriter);
 
  private:
    /** Private copy-constructor to prevent copying the class.

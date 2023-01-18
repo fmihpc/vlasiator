@@ -192,7 +192,7 @@ void calcCellParameters(Real* cellParams,creal& t) {
 
 // TODO use this instead: template <class Grid, class CellData> void calcSimParameters(Grid<CellData>& mpiGrid...
 void calcSimParameters(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, creal& t, Real& /*dt*/) {
-   std::vector<uint64_t> cells = mpiGrid.get_cells();
+   const vector<CellID>& cells = getLocalCells();
    for (uint i = 0; i < cells.size(); ++i) {
       calcCellParameters(mpiGrid[cells[i]]->parameters, t);
    }

@@ -208,6 +208,9 @@ namespace CellParams {
       FSGRID_BOUNDARYTYPE, /*!< Boundary type of this cell, as stored in the fsGrid */
       CELLID, /*! < DCCRG cell index */
       REFINEMENT_LEVEL, /*! < Refinement level */
+      AMR_TRANSLATE_COMM_X, /*! < Flag to include this cell in AMR pre-translate communication  */
+      AMR_TRANSLATE_COMM_Y, /*! < Flag to include this cell in AMR pre-translate communication  */
+      AMR_TRANSLATE_COMM_Z, /*! < Flag to include this cell in AMR pre-translate communication  */
       N_SPATIAL_CELL_PARAMS
    };
 }
@@ -415,6 +418,30 @@ namespace fsgrids {
    
 }
 
+// Ionosphere node parameters
+enum ionosphereParameters {
+  SOURCE,    /*!< Field aligned current source term (Ampere). Note: this is current, *not* density. */
+  SIGMA,   SIGMA12, SIGMA13, 
+  SIGMA21, SIGMA22, SIGMA23, /*!< Overall conductivity tensor */
+  SIGMA31, SIGMA32, SIGMA33,
+
+  SIGMAP,   /*!< Scalar Pedersen conductivity */
+  SIGMAH,   /*!< Scalar Hall conductivity */
+  SIGMAPARALLEL, /*!< Scalar parallel conductivity */
+  PRECIP,   /*!< Precipitation */
+  RHON,     /*!< Downmapped magnetospheric plasma number density */
+  TEMPERATURE, /*!< Downmapped electron temperature */
+  POYNTINGFLUX, /*!< Downwards poynting flux from the magnetosphre into the ionosphere */
+  UPMAPPED_BX,UPMAPPED_BY,UPMAPPED_BZ, /*!< Magnetic field at the upper and of the mapping fieldline */
+  SOLUTION, /*!< Currently considered solution potential */
+  BEST_SOLUTION, /*!< Best solution found so far */
+  RESIDUAL, /*!< Residual of the current solution */
+  RRESIDUAL,
+  ZPARAM, ZZPARAM,
+  PPPARAM, PPARAM,
+  N_IONOSPHERE_PARAMETERS
+};
+
 /*! The namespace sysboundarytype contains the identification index of the boundary condition types applied to a cell,
  * it is stored in SpatialCell::sysBoundaryFlag and used by the BoundaryCondition class' functions to determine what type of BC to apply to a cell.
  * At least for the workings of vlasovmover_leveque.cpp the order of the first two entries should not be changed.
@@ -423,11 +450,12 @@ namespace sysboundarytype {
    enum {
       DO_NOT_COMPUTE,   /*!< E.g. cells within the ionospheric outer radius should not be computed at all. */
       NOT_SYSBOUNDARY,  /*!< Cells within the simulation domain are not boundary cells. */
-      IONOSPHERE,       /*!< Initially a perfectly conducting sphere. */
+      IONOSPHERE,       /*!< Ionospheric current model */
       OUTFLOW,          /*!< No fixed conditions on the fields and distribution function. */
       SET_MAXWELLIAN,   /*!< Set Maxwellian boundary condition, i.e. set fields and distribution function. */
       STATIC,           /*!< Leave fields and distribution functions to values set by project. */
       STATICIONOSPHERE, /*!< Leave fields and distribution functions to values set by project, now for ionosphere!. */
+      CONDUCTINGSPHERE, /*!< A perfectly conducting sphere as the simple inner boundary */
       N_SYSBOUNDARY_CONDITIONS
    };
 }

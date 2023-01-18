@@ -64,10 +64,7 @@ namespace SBC {
    void Static::getParameters() {
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-      if(!Readparameters::get("static.precedence", precedence)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
+      Readparameters::get("static.precedence", precedence);
 
       // Per-species parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
@@ -80,10 +77,7 @@ namespace SBC {
         }
 
         std::vector<std::string> thisSpeciesFaceList;
-        if(!Readparameters::get(pop + "_static.face", thisSpeciesFaceList)) {
-           if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-           exit(1);
-        }
+        Readparameters::get(pop + "_static.face", thisSpeciesFaceList);
 
         for(auto& face : thisSpeciesFaceList) {
           if(face == "x+") { facesToProcess[0] = true; sP.facesToSkipVlasov[0] = false; }
@@ -192,6 +186,19 @@ namespace SBC {
       cuint& component
    ) {
       return bGrid.get(i,j,k)->at(fsgrids::bfield::PERBX+component);
+   }
+
+   /*! We want here to
+    *  DO NOTHING
+    */
+   void Static::fieldSolverBoundaryCondMagneticFieldProjection(
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      cint i,
+      cint j,
+      cint k
+   ) {
+
    }
 
    void Static::fieldSolverBoundaryCondElectricField(

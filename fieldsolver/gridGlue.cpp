@@ -80,7 +80,7 @@ template <typename T, int stencil> void computeCoupling(dccrg::Dccrg<SpatialCell
   }
 
   // Compute where to send data and what to send
-  for(int i=0; i< dccrgCells.size(); i++) {
+  for(uint64_t i=0; i< dccrgCells.size(); i++) {
      //compute to which processes this cell maps
      std::vector<CellID> fsCells = mapDccrgIdToFsGridGlobalID(mpiGrid, dccrgCells[i]);
 
@@ -557,12 +557,12 @@ void getFieldsFromFsGrid(
       auto const &fsgridCells = onFsgridMapCells[dccrgCell];
       for (auto const fsgridCell: fsgridCells){
         //loop over fsgrid cells for which we compute the average that is sent to dccrgCell on rank remoteRank
-        if(technicalGrid.get(fsgridCell)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
-           continue;
-        }
+//        if(technicalGrid.get(fsgridCell)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+//           continue;
+//        }
         std::array<Real, fsgrids::volfields::N_VOL> * volcell = volumeFieldsGrid.get(fsgridCell);
-	std::array<Real, fsgrids::bgbfield::N_BGB> * bgcell = BgBGrid.get(fsgridCell);
-	std::array<Real, fsgrids::egradpe::N_EGRADPE> * egradpecell = EGradPeGrid.get(fsgridCell);	
+        std::array<Real, fsgrids::bgbfield::N_BGB> * bgcell = BgBGrid.get(fsgridCell);
+        std::array<Real, fsgrids::egradpe::N_EGRADPE> * egradpecell = EGradPeGrid.get(fsgridCell);	
         std::array<Real, fsgrids::dmoments::N_DMOMENTS> * dmomentscell = dMomentsGrid.get(fsgridCell);
 
         sendBuffer[ii].sums[0 ] += volcell->at(fsgrids::volfields::PERBXVOL);
@@ -583,9 +583,9 @@ void getFieldsFromFsGrid(
         sendBuffer[ii].sums[15] += egradpecell->at(fsgrids::egradpe::EXGRADPE);
         sendBuffer[ii].sums[16] += egradpecell->at(fsgrids::egradpe::EYGRADPE);
         sendBuffer[ii].sums[17] += egradpecell->at(fsgrids::egradpe::EZGRADPE);
-	sendBuffer[ii].sums[18] += volcell->at(fsgrids::volfields::EXVOL);
-	sendBuffer[ii].sums[19] += volcell->at(fsgrids::volfields::EYVOL);
-	sendBuffer[ii].sums[20] += volcell->at(fsgrids::volfields::EZVOL);
+        sendBuffer[ii].sums[18] += volcell->at(fsgrids::volfields::EXVOL);
+        sendBuffer[ii].sums[19] += volcell->at(fsgrids::volfields::EYVOL);
+        sendBuffer[ii].sums[20] += volcell->at(fsgrids::volfields::EZVOL);
         sendBuffer[ii].cells++;
       }
       ii++;
@@ -703,9 +703,9 @@ std::vector<CellID> mapDccrgIdToFsGridGlobalID(dccrg::Dccrg<SpatialCell,dccrg::C
 
 /* Specialized function only used by ElVentana project */
 void getdBvolFieldsFromFsGrid(
-   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2>& volumeFieldsGrid,
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
-   FsGrid< fsgrids::technical, 2>& technicalGrid,
+   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH>& volumeFieldsGrid,
+   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH>& BgBGrid,
+   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH>& technicalGrid,
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const std::vector<CellID>& cells
 ) {

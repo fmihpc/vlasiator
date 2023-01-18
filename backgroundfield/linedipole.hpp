@@ -29,22 +29,18 @@ Background magnetic field class of Vlasiator.
 
 
 
-class LineDipole: public FieldFunction {
+class LineDipole {
 private:
-   bool initialized;
+   bool initialized = false;
    double q[3];                  // Dipole moment; set to (0,0,moment)
    double center[3]; // Coordinates where the dipole sits; set to (0,0,0)
 public:
   
-  LineDipole(){
-     this->initialized = false;
-  }
+  LineDipole() {}
 
    void initialize(const double moment, const double center_x, const double center_y, const double center_z);
   
-   virtual double call(double x, double y, double z) const;
-  
-   virtual ~LineDipole() {}
+   double operator()(double x, double y, double z, coordinate component, unsigned int derivative=0, coordinate dcomponent=X) const;
 };
 
 #endif

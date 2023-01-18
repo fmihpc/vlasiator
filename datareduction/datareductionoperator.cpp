@@ -179,6 +179,162 @@ namespace DRO {
       return true;
    }
 
+   std::string DataReductionOperatorIonosphereElement::getName() const {return variableName;}
+   bool DataReductionOperatorIonosphereElement::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize = sizeof(double);
+      vectorSize = 1;
+      return true;
+   }
+   bool DataReductionOperatorIonosphereElement::reduceData(const SpatialCell* cell,char* buffer) {
+      // This returns false, since it will handle writing itself in writeIonosphereGridData below.
+      return false;
+   }
+   bool DataReductionOperatorIonosphereElement::reduceDiagnostic(const SpatialCell* cell,Real * result) {
+      return false;
+   }
+   bool DataReductionOperatorIonosphereElement::setSpatialCell(const SpatialCell* cell) {
+      return true;
+   }
+   bool DataReductionOperatorIonosphereElement::writeIonosphereData(SBC::SphericalTriGrid&
+            grid, vlsv::Writer& vlsvWriter) {
+
+      // No point in trying to write anything if there is no ionosphere grid.
+      if(grid.elements.size() == 0) {
+         // Note this indicates success, since not writing an empty mesh is quite ok.
+         return true;
+      }
+
+      std::map<std::string,std::string> attribs;
+      attribs["mesh"]="ionosphere";
+      attribs["name"]=variableName;
+      attribs["unit"]=unit;
+      attribs["unitLaTeX"]=unitLaTeX;
+      attribs["unitConversion"]=unitConversion;
+      attribs["variableLaTeX"]=variableLaTeX;
+
+      // Only task 0 of the ionosphere communicator writes, but all other need to sync vectorSize
+      int rank = -1;
+      int worldRank = 0;
+      if(grid.isCouplingInwards || grid.isCouplingOutwards) {
+        MPI_Comm_rank(grid.communicator,&rank);
+      }
+      MPI_Comm_rank(MPI_COMM_WORLD,&worldRank);
+      int vectorSize = 0;
+      if(rank == 0) {
+        std::vector<Real> varBuffer = lambda(grid);
+
+        std::array<int32_t, 3> gridSize{(int32_t)grid.elements.size(), 1,1};
+        int vectorSize = varBuffer.size() / grid.elements.size();
+
+        // We need to have vectorSize the same on all ranks, otherwise MPI_COMM_WORLD rank 0 writes a bogus value
+        MPI_Bcast(&vectorSize, 1, MPI_INT, grid.writingRank, MPI_COMM_WORLD);
+
+        if(vlsvWriter.writeArray("VARIABLE", attribs, "float", grid.elements.size(), vectorSize, sizeof(Real), reinterpret_cast<const char*>(varBuffer.data())) == false) {
+          string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
+          bailout(true, message, __FILE__, __LINE__);
+        }
+      } else {
+        // We need to have vectorSize the same on all ranks, otherwise MPI_COMM_WORLD rank 0 writes a bogus value
+        MPI_Bcast(&vectorSize, 1, MPI_INT, grid.writingRank, MPI_COMM_WORLD);
+
+        // Dummy write
+        vlsvWriter.writeArray("VARIABLE", attribs, "float", 0, vectorSize, sizeof(Real), nullptr);
+      }
+
+      return true;
+   }
+
+   std::string DataReductionOperatorIonosphereNode::getName() const {return variableName;}
+   bool DataReductionOperatorIonosphereNode::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize = sizeof(double);
+      vectorSize = 1;
+      return true;
+   }
+   bool DataReductionOperatorIonosphereNode::reduceData(const SpatialCell* cell,char* buffer) {
+      // This returns false, since it will handle writing itself in writeIonosphereGridData below.
+      return false;
+   }
+   bool DataReductionOperatorIonosphereNode::reduceDiagnostic(const SpatialCell* cell,Real * result) {
+      return false;
+   }
+   bool DataReductionOperatorIonosphereNode::setSpatialCell(const SpatialCell* cell) {
+      return true;
+   }
+   bool DataReductionOperatorIonosphereNode::writeIonosphereData(SBC::SphericalTriGrid&
+            grid, vlsv::Writer& vlsvWriter) {
+
+      // skip ionosphere for inital-grid as it breaks
+      if(P::systemWriteName[P::systemWriteName.size() - 1] == "initial-grid") {
+         return true;
+      }
+
+      // No point in trying to write anything if there is no ionosphere grid.
+      if(grid.nodes.size() == 0) {
+         // Note this indicates success, since not writing an empty mesh is quite ok.
+         return true;
+      }
+      std::map<std::string,std::string> attribs;
+      attribs["mesh"]="ionosphere";
+      attribs["name"]=variableName;
+      attribs["centering"]= "node"; // <-- this tells visit the variable is node-centered
+      attribs["unit"]=unit;
+      attribs["unitLaTeX"]=unitLaTeX;
+      attribs["unitConversion"]=unitConversion;
+      attribs["variableLaTeX"]=variableLaTeX;
+
+      // Only task 0 of the ionosphere communicator writes, but all others need to sync vectorSize
+      int rank = -1;
+      int worldRank = 0;
+      if(grid.isCouplingInwards || grid.isCouplingOutwards) {
+        MPI_Comm_rank(grid.communicator,&rank);
+      }
+      MPI_Comm_rank(MPI_COMM_WORLD,&worldRank);
+      int vectorSize = 0;
+      if(rank == 0) {
+        std::vector<Real> varBuffer = lambda(grid);
+
+        std::array<int32_t, 3> gridSize{(int32_t)grid.nodes.size(), 1,1};
+        vectorSize = varBuffer.size() / grid.nodes.size();
+
+        // We need to have vectorSize the same on all ranks, otherwise MPI_COMM_WORLD rank 0 writes a bogus value
+        MPI_Bcast(&vectorSize, 1, MPI_INT, grid.writingRank, MPI_COMM_WORLD);
+
+        if(vlsvWriter.writeArray("VARIABLE", attribs, "float", grid.nodes.size(), vectorSize, sizeof(Real), reinterpret_cast<const char*>(varBuffer.data())) == false) {
+          string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
+          bailout(true, message, __FILE__, __LINE__);
+        }
+      } else {
+        // We need to have vectorSize the same on all ranks, otherwise MPI_COMM_WORLD rank 0 writes a bogus value
+        MPI_Bcast(&vectorSize, 1, MPI_INT, grid.writingRank, MPI_COMM_WORLD);
+
+        // Dummy write
+        vlsvWriter.writeArray("VARIABLE", attribs, "float", 0, vectorSize, sizeof(Real), nullptr);
+      }
+
+      return true;
+   }
+
+   std::string DataReductionOperatorMPIGridCell::getName() const {return variableName;}
+   bool DataReductionOperatorMPIGridCell::getDataVectorInfo(std::string& dataType, unsigned int& dataSize, unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize = sizeof(Real);
+      vectorSize = numFloats;
+      return true;
+   }
+   bool DataReductionOperatorMPIGridCell::reduceData(const SpatialCell* cell,char* buffer) {
+      std::vector<Real> varBuffer = lambda(cell);
+
+      assert(varBuffer.size() == numFloats);
+
+      for(int i=0; i<numFloats; i++) {
+         buffer[i] = varBuffer[i];
+      }
+
+      return true;
+   }
+
    DataReductionOperatorBVOLDerivatives::DataReductionOperatorBVOLDerivatives(const std::string& name,const unsigned int parameterIndex,const unsigned int vectorSize):
    DataReductionOperatorCellParams(name,parameterIndex,vectorSize) {
       
