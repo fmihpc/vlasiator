@@ -151,6 +151,7 @@ Realf P::amrRefineLimit = 1.0;
 Realf P::amrCoarsenLimit = 0.5;
 string P::amrVelRefCriterion = string("");
 uint P::amrMaxSpatialRefLevel = 0;
+int P::maxFilteringPasses = 0;
 uint P::amrBoxHalfWidthX = 1;
 uint P::amrBoxHalfWidthY = 1;
 uint P::amrBoxHalfWidthZ = 1;
@@ -158,7 +159,7 @@ Realf P::amrBoxCenterX = 0.0;
 Realf P::amrBoxCenterY = 0.0;
 Realf P::amrBoxCenterZ = 0.0;
 vector<string> P::blurPassString;
-vector<int> P::numPasses;
+std::vector<int> P::numPasses; //numpasses
 
 bool P::addParameters() {
    typedef Readparameters RP;
@@ -592,67 +593,45 @@ void Parameters::getParameters() {
    RP::get("AMR.refine_limit", P::amrRefineLimit);
    RP::get("AMR.coarsen_limit", P::amrCoarsenLimit);
    RP::get("AMR.transShortPencils", P::amrTransShortPencils);
-
-   /*Read Blur Passes per Refinement Level*/
    RP::get("AMR.filterpasses", P::blurPassString);
 
-   // Construct Vector of Passes used in grid.cpp
-   bool isEmpty = blurPassString.size() == 0;
-   vector<int>::iterator maxNumPassesPtr;
-   int maxNumPassesInt;
-
-   if (!isEmpty) {
-
-      for (auto i : blurPassString) {
-         P::numPasses.push_back(stoi(i));
-      }
-
-      // Reverse Sort and Get the maximum number of filter passes
-      sort(numPasses.begin(), numPasses.end(), greater<int>());
-
-      // Sanity Check
-      if (P::numPasses.size() != P::amrMaxSpatialRefLevel + 1) {
-         cerr << "Filter Passes=" << P::numPasses.size() << "\t"
-              << "AMR Levels=" << P::amrMaxSpatialRefLevel + 1 << endl;
-         cerr << "FilterPasses do not match AMR levels \t"
-              << " in " << __FILE__ << ":" << __LINE__ << endl;
-         MPI_Abort(MPI_COMM_WORLD, 1);
-      }
-
-      if (myRank == MASTER_RANK) {
-
-         maxNumPassesPtr = max_element(P::numPasses.begin(), P::numPasses.end());
-         if (maxNumPassesPtr != numPasses.end()) {
-            maxNumPassesInt = *maxNumPassesPtr;
-         } else {
-            cerr << "Trying to dereference null pointer \t"
-                 << " in " << __FILE__ << ":" << __LINE__ << endl;
+   // If we are in an AMR run we need to set up the filtering scheme.
+   if (P::amrMaxSpatialRefLevel>0){
+      bool isEmpty = blurPassString.size() == 0;
+      if (!isEmpty){
+         //sanity check=> user should define a pass for every level
+         if (blurPassString.size() != P::amrMaxSpatialRefLevel + 1) {
+            cerr << "Filter Passes=" << blurPassString.size() << "\t" << "AMR Levels=" << P::amrMaxSpatialRefLevel + 1 << endl;
+            cerr << "FilterPasses do not match AMR levels. \t" << " in " << __FILE__ << ":" << __LINE__ << endl;
             MPI_Abort(MPI_COMM_WORLD, 1);
          }
-
-         printf("Filtering is on with max number of Passes= \t%d\n", maxNumPassesInt);
-         int lev = 0;
-         for (auto& iter : P::numPasses) {
-            printf("Refinement Level %d-->%d Passes\n", lev, iter);
-            lev++;
+         //sort the filtering passes per refLevel
+         numPasses.clear();
+         //Parse to a vector of ints
+         for (auto pass : blurPassString){
+            P::numPasses.push_back(stoi(pass));
          }
-      }
-   } else {
-      numPasses = {0};
-
-      if (myRank == MASTER_RANK) {
-         maxNumPassesPtr = max_element(P::numPasses.begin(), P::numPasses.end());
-         if (maxNumPassesPtr != numPasses.end()) {
-            maxNumPassesInt = *maxNumPassesPtr;
-         } else {
-            cerr << "Trying to dereference null pointer \t"
-                 << " in " << __FILE__ << ":" << __LINE__ << endl;
-            MPI_Abort(MPI_COMM_WORLD, 1);
+         sort(numPasses.begin(),numPasses.end(),greater<int>());
+      }else{
+         //here we will default to manually constructing the number of passes
+         numPasses.clear();
+         auto g_sequence=[](int size){
+            int retval=1;
+            while(size!=0){
+               retval*=2;
+               size-=1;
+            }
+            return retval;
+         };
+         int maxPasses=g_sequence(P::amrMaxSpatialRefLevel-1);
+         for (uint refLevel=0; refLevel<=P::amrMaxSpatialRefLevel; refLevel++){
+            numPasses.push_back(maxPasses);
+            maxPasses/=2; 
          }
-
-         printf("Filtering is off and max number of Passes is = \t %d\n",
-                *max_element(P::numPasses.begin(), P::numPasses.end()));
+         //Overwrite passes for the highest refLevel. We do not want to filter there.
+         numPasses[P::amrMaxSpatialRefLevel] = 0;
       }
+         P::maxFilteringPasses = numPasses[0];
    }
 
    if (geometryString == "XY4D") {

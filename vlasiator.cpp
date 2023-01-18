@@ -655,8 +655,19 @@ int main(int argn,char* args[]) {
    // ***********************************
 
    // Main simulation loop:
-   if (myRank == MASTER_RANK) logFile << "(MAIN): Starting main simulation loop." << endl << writeVerbose;
+   if (myRank == MASTER_RANK){
+      logFile << "(MAIN): Starting main simulation loop." << endl << writeVerbose;
+      //report filtering if we are in an AMR run 
+      if (P::amrMaxSpatialRefLevel>0){
+         logFile<<"Filtering Report: "<<endl;
+         for (uint refLevel=0 ; refLevel<= P::amrMaxSpatialRefLevel; refLevel++){
+            logFile<<"\tRefinement Level " <<refLevel<<"==> Passes "<<P::numPasses.at(refLevel)<<endl;
+         }
+            logFile<<endl;
+      }
+   } 
    
+
    phiprof::start("report-memory-consumption");
    report_process_memory_consumption();
    phiprof::stop("report-memory-consumption");
