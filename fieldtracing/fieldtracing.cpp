@@ -1507,14 +1507,16 @@ namespace FieldTracing {
                && sumCellFWTracingCoordinates[n][2] == 0
                && sumCellBWTracingCoordinates[n][0] == 0
                && sumCellBWTracingCoordinates[n][1] == 0
-               && sumCellBWTracingCoordinates[n][2] == 0 )
+               && sumCellBWTracingCoordinates[n][2] == 0 ) // These are all zero when cells get discarded, cannot happen for normal coordinates
+               && cellNeedsContinuedFWTracing[n] == 0
+               && cellNeedsContinuedBWTracing[n] == 0 // These two discard unfinished cells if a fraction of leftovers is allowed <-> cellsToDo > 0
                && mpiGrid[id]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY
                && x[0] <= P::xmax - 4*P::dx_ini
                && x[0] >= P::xmin + 4*P::dx_ini
                && x[1] <= P::ymax - 4*P::dy_ini
                && x[1] >= P::ymin + 4*P::dy_ini
                && x[2] <= P::zmax - 4*P::dz_ini
-               && x[2] >= P::zmin + 4*P::dz_ini
+               && x[2] >= P::zmin + 4*P::dz_ini // These discard cells we didn't start tracing but which have non-zero coordinates (would require more reduction-fu at the top)
             ) {
                mpiGrid[id]->parameters[CellParams::FLUXROPE] = 1;
             }
