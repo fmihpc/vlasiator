@@ -265,7 +265,7 @@ void initializeGrids(
       //  -Background field on all cells
       //  -Perturbed fields and ion distribution function in non-sysboundary cells
       // Each initialization has to be independent to avoid threading problems 
-
+      cerr << __LINE__ << "setupBeforeSetCell" << endl;
       // Allow the project to set up data structures for it's setCell calls
       project.setupBeforeSetCell(cells, mpiGrid, needCurl);
       if (needCurl) {
@@ -274,16 +274,16 @@ void initializeGrids(
       }
    }
 
-   phiprof::start("setProjectBField");
-   project.setProjectBField(perBGrid, BgBGrid, technicalGrid);
-   // Set E field here as well?
-   perBGrid.updateGhostCells();
-   BgBGrid.updateGhostCells();
-   EGrid.updateGhostCells();
-   phiprof::stop("setProjectBField");
-
    if (!P::isRestart) {
       if (needCurl) {
+         phiprof::start("setProjectBField");
+         project.setProjectBField(perBGrid, BgBGrid, technicalGrid);
+         // Set E field here as well?
+         perBGrid.updateGhostCells();
+         BgBGrid.updateGhostCells();
+         EGrid.updateGhostCells();
+         phiprof::stop("setProjectBField");
+
          // E is needed only because both volumetric fields are calculated in 1 call
          feedEIntoFsGrid(mpiGrid, cells, EGrid);
          EGrid.updateGhostCells();
@@ -366,15 +366,19 @@ void initializeGrids(
    mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
    
    phiprof::stop("Fetch Neighbour data");
-   
-   phiprof::start("setProjectBField");
-   project.setProjectBField(perBGrid, BgBGrid, technicalGrid);
-   perBGrid.updateGhostCells();
-   BgBGrid.updateGhostCells();
-   EGrid.updateGhostCells();
 
-   // This will only have the BGB set up properly at this stage but we need the BGBvol for the Vlasov boundaries below.
-   volGrid.updateGhostCells();
+   if(needCurl == false or P::isRestart){
+      phiprof::start("setProjectBField");
+      project.setProjectBField(perBGrid, BgBGrid, technicalGrid);
+      
+      cerr << __LINE__ << "setProjectBField" << endl;
+      perBGrid.updateGhostCells();
+      BgBGrid.updateGhostCells();
+      EGrid.updateGhostCells();
+
+      // This will only have the BGB set up properly at this stage but we need the BGBvol for the Vlasov boundaries below.
+      volGrid.updateGhostCells();
+   }
    getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, dMomentsGrid, technicalGrid, mpiGrid, cells);
 
    phiprof::stop("setProjectBField");
