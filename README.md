@@ -2,7 +2,7 @@
 ![](https://github.com/fmihpc/vlasiator/blob/master/doc/artwork/logo_black.png?raw=true)
 
 Vlasiator - ten letters you can count on
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3640594.svg)](https://doi.org/10.5281/zenodo.3640594) 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6782211.svg)](https://doi.org/10.5281/zenodo.6782211) 
 
 ## Code description
 Space weather is a term used to describe the variable environmental effects within near-Earth space, caused by the Sun emitting solar wind, a stream of charged particles carrying the solar electromagnetic field. Space weather can be caused by solar high-energy particles or by dynamic variations of the solar wind that can cause extended periods of major disturbances on ground and space, affecting technological systems (e.g., telecommunication and weather spacecraft at geostationary orbit, and ground-based power grids).
