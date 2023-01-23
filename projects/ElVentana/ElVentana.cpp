@@ -619,8 +619,22 @@ namespace projects {
          FsGrid< fsgrids::technical, 2>& technicalGrid
    ) {
 
+      static bool init = false;
+      int myRank = 0;
+      MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
      Dipole bgFieldDipole;
      LineDipole bgFieldLineDipole;
+     if (init)
+      {
+         if (myRank == MASTER_RANK) cout << "Already did setProjectBField, not gonna bother again" << endl;
+         return;
+      }
+      if (init && this->vlsvParaReader.open(this->StartFile,MPI_COMM_WORLD,MASTER_RANK,MPI_INFO_NULL) == false) {
+        if (myRank == MASTER_RANK) 
+           cout << "Could not open file: " << this->StartFile << endl;
+        return;
+      }
+      init = true;
 
      // The hardcoded constants of dipole and line dipole moments are obtained
      // from Daldorff et al (2014), see
@@ -755,7 +769,8 @@ namespace projects {
             }
          } else {
             totalBRead = (varName == "fg_b");
-            std::cerr << "B Read!" << std::endl;
+            if(myRank == MASTER_RANK)
+               std::cerr << "Total B Read!" << std::endl;
          }
 
          if (totalBRead) {
@@ -774,6 +789,7 @@ namespace projects {
             }
          }
       }
+      this->vlsvParaReader.close();
    }
 
    CellID ElVentana::findCellIDXYZ(creal x, creal y, creal z) const {
@@ -783,7 +799,7 @@ namespace projects {
    // Reads physical minima and maxima, amount of cells and their dimensions
    bool ElVentana::readGridSize(std::array<double, 3> &fileMin, std::array<double, 3> &fileMax, std::array<uint64_t, 3> &fileCells, std::array<double, 3> &fileDx) {
       int myRank = 0;
-      //MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+      MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 
       double filexmin, fileymin, filezmin, filexmax, fileymax, filezmax;
       uint filexcells, fileycells, filezcells;
@@ -994,7 +1010,7 @@ namespace projects {
       targetGrid.updateGhostCells();
       phiprof::stop("updateGhostCells");
 
-      this->vlsvParaReader.close();
+      //this->vlsvParaReader.close();
 
       return true;
    }
