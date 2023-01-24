@@ -190,10 +190,12 @@ namespace CellParams {
       AMR_TRANSLATE_COMM_Y, /*! < Flag to include this cell in AMR pre-translate communication  */
       AMR_TRANSLATE_COMM_Z, /*! < Flag to include this cell in AMR pre-translate communication  */
       CONNECTION, /*!< Magnetic connection. See TracingPointConnectionType for assigned values. */
+      CONNECTION_2, /*!< Magnetic connection. See TracingPointConnectionType for assigned values. */
       CURVATUREX, /*!< Magnetic field curvature vector x component */
       CURVATUREY, /*!< Magnetic field curvature vector y component */
       CURVATUREZ, /*!< Magnetic field curvature vector z component */
       FLUXROPE,   /*!< 0 for regular cells, 1 for cells considered to be in a flux rope */
+      FLUXROPE_2,   /*!< 0 for regular cells, 1 for cells considered to be in a flux rope */
       AMR_DRHO,
       AMR_DU,
       AMR_DPSQ,
