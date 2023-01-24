@@ -178,7 +178,7 @@ void initializeGrids(
    
    mpiGrid.set_partitioning_option("IMBALANCE_TOL", P::loadBalanceTolerance);
    mpiGrid.set_partitioning_option("RCB_RECTILINEAR_BLOCKS", "1");
-   mpiGrid.set_partitioning_option("RCB_MAX_ASPECT_RATIO", "2");
+   mpiGrid.set_partitioning_option("RCB_MAX_ASPECT_RATIO", "3");
    phiprof::start("Initial load-balancing");
    if (myRank == MASTER_RANK) logFile << "(INIT): Starting initial load balance." << endl << writeVerbose;
    mpiGrid.balance_load(); // Direct DCCRG call, recalculate cache afterwards
