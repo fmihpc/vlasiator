@@ -1666,10 +1666,6 @@ namespace spatial_cell {
 
       const vmesh::LocalID VBC_LID = populations[popID].blockContainer.push_back();
 
-      // Set block data to zero values:
-      Realf* data = populations[popID].blockContainer.getData(VBC_LID);
-      for (unsigned int i=0; i<WID*WID*WID; ++i) data[i] = 0;
-
       // Set block parameters:
 //      Real* parameters = get_block_parameters(populations[popID].vmesh.getLocalID(block));
       Real* parameters = get_block_parameters(VBC_LID,popID);
