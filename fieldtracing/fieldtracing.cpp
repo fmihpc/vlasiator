@@ -1098,8 +1098,8 @@ namespace FieldTracing {
       
       std::vector<int> reducedCellFWConnection(globalDccrgSize);
       std::vector<int> reducedCellBWConnection(globalDccrgSize);
-      MPI_Allreduce(cellFWConnection.data(), reducedCellFWConnection.data(), globalDccrgSize, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
-      MPI_Allreduce(cellBWConnection.data(), reducedCellBWConnection.data(), globalDccrgSize, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
+      MPI_Allreduce(cellFWConnection.data(), reducedCellFWConnection.data(), globalDccrgSize, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+      MPI_Allreduce(cellBWConnection.data(), reducedCellBWConnection.data(), globalDccrgSize, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
       phiprof::start("final-loop");
       for(int n=0; n<globalDccrgSize; n++) {
          const CellID id = allDccrgCells.at(n);
@@ -1458,35 +1458,33 @@ namespace FieldTracing {
             #pragma omp single
             {
                cellsToDo = 0;
+               cellFWTracingStepSize = reducedCellFWTracingStepSize;
+               cellBWTracingStepSize = reducedCellBWTracingStepSize;
+               cellFWRunningDistance = reducedCellFWRunningDistance;
+               cellBWRunningDistance = reducedCellBWRunningDistance;
+               cellNeedsContinuedFWTracing = reducedCellNeedsContinuedFWTracing;
+               cellNeedsContinuedBWTracing = reducedCellNeedsContinuedBWTracing;
             }
             #pragma omp for schedule(dynamic) reduction(||:anyCellNeedsTracing) reduction(+:cellsToDo)
             for(int n=0; n<globalDccrgSize; n++) {
-               if(reducedCellNeedsContinuedFWTracing[n] > 0) {
+               if(cellNeedsContinuedFWTracing[n] > 0) {
                   anyCellNeedsTracing=true;
-                  cellNeedsContinuedFWTracing[n] = 1;
                   cellsToDo++;
                   
                   // Update that nodes' tracing coordinates
                   cellFWTracingCoordinates[n][0] = sumCellFWTracingCoordinates[n][0] / reducedCellNeedsContinuedFWTracing[n];
                   cellFWTracingCoordinates[n][1] = sumCellFWTracingCoordinates[n][1] / reducedCellNeedsContinuedFWTracing[n];
                   cellFWTracingCoordinates[n][2] = sumCellFWTracingCoordinates[n][2] / reducedCellNeedsContinuedFWTracing[n];
-                  
-                  cellFWRunningDistance[n] = reducedCellFWRunningDistance[n];
                }
-               if(reducedCellNeedsContinuedBWTracing[n] > 0) {
+               if(cellNeedsContinuedBWTracing[n] > 0) {
                   anyCellNeedsTracing=true;
-                  cellNeedsContinuedBWTracing[n] = 1;
                   cellsToDo++;
                   
                   // Update that nodes' tracing coordinates
                   cellBWTracingCoordinates[n][0] = sumCellBWTracingCoordinates[n][0] / reducedCellNeedsContinuedBWTracing[n];
                   cellBWTracingCoordinates[n][1] = sumCellBWTracingCoordinates[n][1] / reducedCellNeedsContinuedBWTracing[n];
                   cellBWTracingCoordinates[n][2] = sumCellBWTracingCoordinates[n][2] / reducedCellNeedsContinuedBWTracing[n];
-                  
-                  cellBWRunningDistance[n] = reducedCellBWRunningDistance[n];
                }
-               cellFWTracingStepSize[n] = reducedCellFWTracingStepSize[n];
-               cellBWTracingStepSize[n] = reducedCellBWTracingStepSize[n];
             }
             #pragma omp barrier
          } while(anyCellNeedsTracing && (cellsToDo >= fieldTracingParameters.fluxrope_max_incomplete_lines * 2 * globalDccrgSize));

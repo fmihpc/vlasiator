@@ -94,10 +94,11 @@ namespace FieldTracing {
    * UNPROCESSED: cells inside the ionosphere or outside the outer limits that weren't even processed in the first place
    */
    enum TracingLineEndType {
+      UNPROCESSED, // Keep first for the reductions to work!
       CLOSED,
       OPEN,
       LOOP,
-      UNPROCESSED // Keep last for the reductions to work!
+      N_TYPES
    };
 
    /*! Type of connection for a point traced forward and backward.
