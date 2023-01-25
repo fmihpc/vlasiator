@@ -1828,24 +1828,72 @@ namespace FieldTracing {
             phiprof::start("MPI-loop");
             #pragma omp master
             {
-               MPI_Allreduce(cellNeedsContinuedFWTracing.data(), reducedCellNeedsContinuedFWTracing.data(), globalDccrgSize, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-               MPI_Allreduce(cellNeedsContinuedBWTracing.data(), reducedCellNeedsContinuedBWTracing.data(), globalDccrgSize, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-               MPI_Allreduce(cellFWConnection.data(), reducedCellFWConnection.data(), globalDccrgSize, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
-               MPI_Allreduce(cellBWConnection.data(), reducedCellBWConnection.data(), globalDccrgSize, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+               std::vector<int> indicesToReduceFW, indicesToReduceBW;
+               std::vector<int> smallCellNeedsContinuedFWTracing, smallCellNeedsContinuedBWTracing;
+               std::vector<std::array<Real, 3>> smallCellFWTracingCoordinates, smallCellBWTracingCoordinates;
+               std::vector<Real> smallCellFWRunningDistance, smallCellBWRunningDistance;
+               std::vector<Real> smallCellFWTracingStepSize, smallCellBWTracingStepSize;
+               std::vector<int> smallCellFWConnection, smallCellBWConnection;
+
+               for(int n=0; n<globalDccrgSize; n++) {
+                  if(reducedCellNeedsContinuedFWTracing[n] > 0) { // the old one has the previous round's data
+                     indicesToReduceFW.push_back(n);
+                     smallCellNeedsContinuedFWTracing.push_back(cellNeedsContinuedFWTracing[n]);
+                     smallCellFWTracingCoordinates.push_back(cellFWTracingCoordinates[n]);
+                     smallCellFWRunningDistance.push_back(cellFWRunningDistance[n]);
+                     smallCellFWTracingStepSize.push_back(cellFWTracingStepSize[n]);
+                     smallCellFWConnection.push_back(cellFWConnection[n]);
+                  }
+                  if(reducedCellNeedsContinuedBWTracing[n] > 0) { // the old one has the previous round's data
+                     indicesToReduceBW.push_back(n);
+                     smallCellNeedsContinuedBWTracing.push_back(cellNeedsContinuedBWTracing[n]);
+                     smallCellBWTracingCoordinates.push_back(cellBWTracingCoordinates[n]);
+                     smallCellBWRunningDistance.push_back(cellBWRunningDistance[n]);
+                     smallCellBWTracingStepSize.push_back(cellBWTracingStepSize[n]);
+                     smallCellBWConnection.push_back(cellBWConnection[n]);
+                  }
+               }
+               int smallSizeFW = indicesToReduceFW.size();
+               int smallSizeBW = indicesToReduceBW.size();
+               
+               std::vector<int> smallReducedCellNeedsContinuedFWTracing(smallSizeFW), smallReducedCellNeedsContinuedBWTracing(smallSizeBW);
+               std::vector<std::array<Real, 3>> smallSumCellFWTracingCoordinates(smallSizeFW), smallSumCellBWTracingCoordinates(smallSizeBW);
+               std::vector<Real> smallReducedCellFWRunningDistance(smallSizeFW), smallReducedCellBWRunningDistance(smallSizeBW);
+               std::vector<Real> smallReducedCellFWTracingStepSize(smallSizeFW), smallReducedCellBWTracingStepSize(smallSizeBW);
+               std::vector<int> smallReducedCellFWConnection(smallSizeFW), smallReducedCellBWConnection(smallSizeBW);
+               
+               MPI_Allreduce(smallCellNeedsContinuedFWTracing.data(), smallReducedCellNeedsContinuedFWTracing.data(), smallSizeFW, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(smallCellNeedsContinuedBWTracing.data(), smallReducedCellNeedsContinuedBWTracing.data(), smallSizeBW, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+               MPI_Allreduce(smallCellFWConnection.data(), smallReducedCellFWConnection.data(), smallSizeFW, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+               MPI_Allreduce(smallCellBWConnection.data(), smallReducedCellBWConnection.data(), smallSizeBW, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
                if(sizeof(Real) == sizeof(double)) {
-                  MPI_Allreduce(cellFWTracingCoordinates.data(), sumCellFWTracingCoordinates.data(), 3*globalDccrgSize, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-                  MPI_Allreduce(cellBWTracingCoordinates.data(), sumCellBWTracingCoordinates.data(), 3*globalDccrgSize, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-                  MPI_Allreduce(cellFWTracingStepSize.data(), reducedCellFWTracingStepSize.data(), globalDccrgSize, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-                  MPI_Allreduce(cellBWTracingStepSize.data(), reducedCellBWTracingStepSize.data(), globalDccrgSize, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-                  MPI_Allreduce(cellFWRunningDistance.data(), reducedCellFWRunningDistance.data(), globalDccrgSize, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-                  MPI_Allreduce(cellBWRunningDistance.data(), reducedCellBWRunningDistance.data(), globalDccrgSize, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+                  MPI_Allreduce(smallCellFWTracingCoordinates.data(), smallSumCellFWTracingCoordinates.data(), 3*smallSizeFW, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                  MPI_Allreduce(smallCellBWTracingCoordinates.data(), smallSumCellBWTracingCoordinates.data(), 3*smallSizeBW, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+                  MPI_Allreduce(smallCellFWTracingStepSize.data(), smallReducedCellFWTracingStepSize.data(), smallSizeFW, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+                  MPI_Allreduce(smallCellBWTracingStepSize.data(), smallReducedCellBWTracingStepSize.data(), smallSizeBW, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+                  MPI_Allreduce(smallCellFWRunningDistance.data(), smallReducedCellFWRunningDistance.data(), smallSizeFW, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+                  MPI_Allreduce(smallCellBWRunningDistance.data(), smallReducedCellBWRunningDistance.data(), smallSizeBW, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
                } else {
-                  MPI_Allreduce(cellFWTracingCoordinates.data(), sumCellFWTracingCoordinates.data(), 3*globalDccrgSize, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
-                  MPI_Allreduce(cellBWTracingCoordinates.data(), sumCellBWTracingCoordinates.data(), 3*globalDccrgSize, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
-                  MPI_Allreduce(cellFWTracingStepSize.data(), reducedCellFWTracingStepSize.data(), globalDccrgSize, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
-                  MPI_Allreduce(cellBWTracingStepSize.data(), reducedCellBWTracingStepSize.data(), globalDccrgSize, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
-                  MPI_Allreduce(cellFWRunningDistance.data(), reducedCellFWRunningDistance.data(), globalDccrgSize, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
-                  MPI_Allreduce(cellBWRunningDistance.data(), reducedCellBWRunningDistance.data(), globalDccrgSize, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
+                  MPI_Allreduce(smallCellFWTracingCoordinates.data(), smallSumCellFWTracingCoordinates.data(), 3*smallSizeFW, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
+                  MPI_Allreduce(smallCellBWTracingCoordinates.data(), smallSumCellBWTracingCoordinates.data(), 3*smallSizeBW, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
+                  MPI_Allreduce(smallCellFWTracingStepSize.data(), smallReducedCellFWTracingStepSize.data(), smallSizeFW, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
+                  MPI_Allreduce(smallCellBWTracingStepSize.data(), smallReducedCellBWTracingStepSize.data(), smallSizeBW, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
+                  MPI_Allreduce(smallCellFWRunningDistance.data(), smallReducedCellFWRunningDistance.data(), smallSizeFW, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
+                  MPI_Allreduce(smallCellBWRunningDistance.data(), smallReducedCellBWRunningDistance.data(), smallSizeBW, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
+               }
+               for(int n=0; n<smallSizeFW; n++) {
+                  reducedCellFWTracingStepSize[indicesToReduceFW[n]] = smallReducedCellFWTracingStepSize[n];
+                  reducedCellFWRunningDistance[indicesToReduceFW[n]] = smallReducedCellFWRunningDistance[n];
+                  reducedCellNeedsContinuedFWTracing[indicesToReduceFW[n]] = smallReducedCellNeedsContinuedFWTracing[n];
+                  reducedCellFWConnection[indicesToReduceFW[n]] = smallReducedCellFWConnection[n];
+                  sumCellFWTracingCoordinates[indicesToReduceFW[n]] = smallSumCellFWTracingCoordinates[n];
+               }
+               for(int n=0; n<smallSizeBW; n++) {
+                  reducedCellBWTracingStepSize[indicesToReduceBW[n]] = smallReducedCellBWTracingStepSize[n];
+                  reducedCellBWRunningDistance[indicesToReduceBW[n]] = smallReducedCellBWRunningDistance[n];
+                  reducedCellNeedsContinuedBWTracing[indicesToReduceBW[n]] = smallReducedCellNeedsContinuedBWTracing[n];
+                  reducedCellBWConnection[indicesToReduceBW[n]] = smallReducedCellBWConnection[n];
+                  sumCellBWTracingCoordinates[indicesToReduceBW[n]] = smallSumCellBWTracingCoordinates[n];
                }
             }
             #pragma omp barrier
