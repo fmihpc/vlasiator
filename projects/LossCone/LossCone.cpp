@@ -146,7 +146,7 @@ namespace projects {
       //if (mu <= -0.5 or mu >= 0.5) {return 0.0;}
       //else {return exp((- mass / (2.0 * kb)) * ( ((vx-sP.V0[0])*(vx-sP.V0[0]))  / sP.TEMPERATUREX + ((vy-sP.V0[1])*(vy-sP.V0[1])) / sP.TEMPERATUREY + ((vz-sP.V0[2])*(vz-sP.V0[2])) / sP.TEMPERATUREZ));}
 
-      return value + exp((- mass / (2.0 * kb)) * ((vx*vx) / sP.TEMPERATUREX + (vy*vy) / sP.TEMPERATUREY + (vz*vz) / sP.TEMPERATUREZ)) * sin(theta)*sin(theta);
+      return value + exp((- mass / (2.0 * kb)) * ((vx*vx) / sP.TEMPERATUREX + (vy*vy) / sP.TEMPERATUREY + (vz*vz) / sP.TEMPERATUREZ)); // * sin(theta)*sin(theta);
    }
 
    Real LossCone::calcPhaseSpaceDensity(
