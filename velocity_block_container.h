@@ -126,26 +126,18 @@ namespace vmesh {
 #else
       block_data = new std::vector<Realf,aligned_allocator<Realf,WID3>>(currentCapacity+1);
       parameters = new std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS>>(currentCapacity+1);
-      // initialization with zero capacity returns null pointers
+      // initialization with zero capacity would return null pointers
 #endif
-      if (block_data->data() == NULL) std::cerr<<"**CREATE_DATA"<<std::endl;
-      if (parameters->data() == NULL) std::cerr<<"**CREATE_PARAMS"<<std::endl;
    }
 
    template<typename LID> inline
    VelocityBlockContainer<LID>::~VelocityBlockContainer() {
-      // block_data->clear();
-      // parameters->clear();
-      // block_data->shrink_to_fit();
-      // parameters->shrink_to_fit();
       delete block_data;
       delete parameters;
    }
 
    template<typename LID> inline
    VelocityBlockContainer<LID>::VelocityBlockContainer(const VelocityBlockContainer& other) {
-      if ((other.block_data)->data() == NULL) std::cerr<<"**COPYCREATESOURCE_DATA"<<std::endl;
-      if ((other.parameters)->data() == NULL) std::cerr<<"**COPYCREATESOURCE_PARAMS"<<std::endl;
 #ifdef USE_CUDA
       block_data= new split::SplitVector<Realf>(*(other.block_data));
       parameters= new split::SplitVector<Real>(*(other.parameters));
@@ -153,16 +145,15 @@ namespace vmesh {
       block_data = new std::vector<Realf,aligned_allocator<Realf,WID3>>(*(other.block_data));
       parameters = new std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS>>(*(other.parameters));
 #endif
-      if (block_data->data() == NULL) std::cerr<<"**COPYCREATE_DATA"<<std::endl;
-      if (parameters->data() == NULL) std::cerr<<"**COPYCREATE_PARAMS"<<std::endl;
       currentCapacity = other.currentCapacity;
       numberOfBlocks = other.numberOfBlocks;
    }
 
    template <typename LID> inline
    const VelocityBlockContainer<LID>& VelocityBlockContainer<LID>::operator=(const VelocityBlockContainer<LID>& other) {
-      if ((other.block_data)->data() == NULL) std::cerr<<"**COPYASSIGNSOURCE_DATA"<<std::endl;
-      if ((other.parameters)->data() == NULL) std::cerr<<"**COPYASSIGNSOURCE_PARAMS"<<std::endl;
+      // Delete old vectors
+      delete block_data;
+      delete parameters;
 #ifdef USE_CUDA
       block_data= new split::SplitVector<Realf>(*(other.block_data));
       parameters= new split::SplitVector<Real>(*(other.parameters));
@@ -170,8 +161,6 @@ namespace vmesh {
       block_data = new std::vector<Realf,aligned_allocator<Realf,WID3>>(*(other.block_data));
       parameters = new std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS>>(*(other.parameters));
 #endif
-      if (block_data->data() == NULL) std::cerr<<"**COPYASSIGN_DATA"<<std::endl;
-      if (parameters->data() == NULL) std::cerr<<"**COPYASSIGN_PARAMS"<<std::endl;
       currentCapacity = other.currentCapacity;
       numberOfBlocks = other.numberOfBlocks;
       return *this;
@@ -202,14 +191,8 @@ namespace vmesh {
       // initialization with zero capacity returns null pointers
       block_data->swap(*dummy_data);
       parameters->swap(*dummy_parameters);
-      // dummy_data->clear();
-      // dummy_data->shrink_to_fit();
-      // dummy_parameters->clear();
-      // dummy_parameters->shrink_to_fit();
       delete dummy_data;
       delete dummy_parameters;
-      if (block_data->data() == NULL) std::cerr<<"**CLEAR_DATA"<<std::endl;
-      if (parameters->data() == NULL) std::cerr<<"**CLEAR_PARAMS"<<std::endl;
 #endif
       currentCapacity = 0;
       numberOfBlocks = 0;
@@ -269,13 +252,11 @@ namespace vmesh {
 
    template<typename LID> inline
    CUDA_HOSTDEV Realf* VelocityBlockContainer<LID>::getData() {
-      if (block_data->data() == NULL) std::cerr<<"CATCH"<<std::endl;
       return block_data->data();
    }
 
    template<typename LID> inline
    CUDA_HOSTDEV const Realf* VelocityBlockContainer<LID>::getData() const {
-      if (block_data->data() == NULL) std::cerr<<"CATCH"<<std::endl;
       return block_data->data();
    }
 
@@ -396,8 +377,6 @@ namespace vmesh {
          exit(1);
       }
       #endif
-      if (parameters->data() == NULL) std::cerr<<"CATCH2PARAMS"<<std::endl;
-      if (block_data->data() == NULL) std::cerr<<"CATCH2"<<std::endl;
 
       // Clear velocity block data to zero values
       for (size_t i=0; i<WID3; ++i) (*block_data)[newIndex*WID3+i] = 0.0;
@@ -439,8 +418,6 @@ namespace vmesh {
 #endif
          for (size_t i=0; i<numberOfBlocks*WID3; ++i) (*dummy_data)[i] = (*block_data)[i];
          dummy_data->swap(*block_data);
-         // dummy_data->clear();
-         // dummy_data->shrink_to_fit();
          delete dummy_data;
       }
       {
@@ -451,8 +428,6 @@ namespace vmesh {
 #endif
          for (size_t i=0; i<numberOfBlocks*BlockParams::N_VELOCITY_BLOCK_PARAMS; ++i) (*dummy_parameters)[i] = (*parameters)[i];
          dummy_parameters->swap(*parameters);
-         // dummy_parameters->clear();
-         // dummy_parameters->shrink_to_fit();
          delete dummy_parameters;
       }
       currentCapacity = newCapacity;
