@@ -3141,7 +3141,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(lowercase == "vg_connection") {
          FieldTracing::fieldTracingParameters.doTraceFullBox = true;
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_connection",CellParams::CONNECTION,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_connection_2",CellParams::CONNECTION_2,1));
          continue;
       }
       if(lowercase == "vg_fluxrope" || lowercase == "vg_curvature") {
@@ -3150,7 +3149,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          if(lowercase == "vg_fluxrope") {
             FieldTracing::fieldTracingParameters.doTraceFluxRopes = true;
             outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_fluxrope",CellParams::FLUXROPE,1));
-            outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_fluxrope_2",CellParams::FLUXROPE_2,1));
          }
          continue;
       }
