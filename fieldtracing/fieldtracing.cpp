@@ -53,12 +53,6 @@ namespace FieldTracing {
       if(fieldTracingParameters.doTraceOpenClosed) {
          traceOpenClosedConnection(technicalGrid, perBGrid, dPerBGrid, nodes);
       }
-      if(fieldTracingParameters.doTraceFullBox) {
-         traceFullBoxConnection(technicalGrid, perBGrid, dPerBGrid, mpiGrid);
-      }
-      if(fieldTracingParameters.doTraceFluxRopes) {
-         traceFluxRopes(technicalGrid, perBGrid, dPerBGrid, mpiGrid);
-      }
       if(fieldTracingParameters.doTraceFullBox || fieldTracingParameters.doTraceFluxRopes) {
          traceFullBoxConnectionAndFluxRopes(technicalGrid, perBGrid, dPerBGrid, mpiGrid);
       }
@@ -766,767 +760,6 @@ namespace FieldTracing {
       
       phiprof::stop("fieldtracing-ionosphere-openclosedTracing");
    }
-
-   /*! Trace magnetic field lines forward and backward from each DCCRG cell to record the connectivity.
-   */
-   void traceFullBoxConnection(
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
-   ) {
-      phiprof::start("fieldtracing-fullTracing");
-      
-      std::vector<CellID> localDccrgCells = getLocalCells();
-      int localDccrgSize = localDccrgCells.size();
-      int globalDccrgSize;
-      MPI_Allreduce(&localDccrgSize, &globalDccrgSize, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-      int commSize;
-      MPI_Comm_size(MPI_COMM_WORLD, &commSize);
-      std::vector<int> amounts(commSize);
-      std::vector<int> displacements(commSize);
-      std::vector<CellID> allDccrgCells(globalDccrgSize);
-      MPI_Allgather(&localDccrgSize, 1, MPI_INT, amounts.data(), 1, MPI_INT, MPI_COMM_WORLD);
-      for(int i=1; i<commSize; i++) {
-         displacements[i] = displacements[i-1] + amounts[i-1];
-      }
-      MPI_Allgatherv(localDccrgCells.data(), localDccrgSize, MPI_UINT64_T, allDccrgCells.data(), amounts.data(), displacements.data(), MPI_UINT64_T, MPI_COMM_WORLD);
-      
-      // Pick an initial stepsize
-      creal stepSize = min(1000e3, technicalGrid.DX / 2.);
-      std::vector<Real> cellFWTracingStepSize(globalDccrgSize, stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
-      std::vector<Real> cellBWTracingStepSize(globalDccrgSize, stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
-      std::array<int, 3> gridSize = technicalGrid.getGlobalSize();
-      uint64_t maxTracingSteps = 4 * (gridSize[0] * technicalGrid.DX + gridSize[1] * technicalGrid.DY + gridSize[2] * technicalGrid.DZ) / stepSize;
-      
-      std::vector<int> cellFWConnection(globalDccrgSize, TracingLineEndType::UNPROCESSED);                                 /*!< For reduction of node coupling */
-      std::vector<int> cellBWConnection(globalDccrgSize, TracingLineEndType::UNPROCESSED);                                 /*!< For reduction of node coupling */
-      std::vector<uint64_t> cellFWStepCounter(globalDccrgSize, 0);                                 /*!< Count number of field line tracing steps */
-      std::vector<uint64_t> cellBWStepCounter(globalDccrgSize, 0);                                 /*!< Count number of field line tracing steps */
-      std::vector<int> cellNeedsContinuedFWTracing(globalDccrgSize, 1);                    /*!< Flag, whether tracing needs to continue on another task */
-      std::vector<int> cellNeedsContinuedBWTracing(globalDccrgSize, 1);                    /*!< Flag, whether tracing needs to continue on another task */
-      std::vector<std::array<Real, 3>> cellFWTracingCoordinates(globalDccrgSize);          /*!< In-flight node upmapping coordinates (for global reduction) */
-      std::vector<std::array<Real, 3>> cellBWTracingCoordinates(globalDccrgSize);          /*!< In-flight node upmapping coordinates (for global reduction) */
-      
-      // These guys are needed in the reductions at the bottom of the tracing loop.
-      std::vector<int> reducedCellNeedsContinuedFWTracing(globalDccrgSize, 0);
-      std::vector<int> reducedCellNeedsContinuedBWTracing(globalDccrgSize, 0);
-      std::vector<std::array<Real, 3>> sumCellFWTracingCoordinates(globalDccrgSize);
-      std::vector<std::array<Real, 3>> sumCellBWTracingCoordinates(globalDccrgSize);
-      std::vector<uint64_t> maxCellFWStepCounter(globalDccrgSize, 0);
-      std::vector<uint64_t> maxCellBWStepCounter(globalDccrgSize, 0);
-      std::vector<Real> reducedCellFWTracingStepSize(globalDccrgSize);
-      std::vector<Real> reducedCellBWTracingStepSize(globalDccrgSize);
-      
-      phiprof::start("first-loop");
-      for(int n=0; n<globalDccrgSize; n++) {
-         const CellID id = allDccrgCells[n];
-         cellFWTracingCoordinates.at(n) = mpiGrid.get_center(id);
-         cellBWTracingCoordinates.at(n) = cellFWTracingCoordinates.at(n);
-         
-         if(mpiGrid.is_local(id)) {
-            if((mpiGrid[id]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)
-               || cellFWTracingCoordinates[n][0] > P::xmax - 4*P::dx_ini
-               || cellFWTracingCoordinates[n][0] < P::xmin + 4*P::dx_ini
-               || cellFWTracingCoordinates[n][1] > P::ymax - 4*P::dy_ini
-               || cellFWTracingCoordinates[n][1] < P::ymin + 4*P::dy_ini
-               || cellFWTracingCoordinates[n][2] > P::zmax - 4*P::dz_ini
-               || cellFWTracingCoordinates[n][2] < P::zmin + 4*P::dz_ini
-            ) {
-               cellNeedsContinuedFWTracing[n] = 0;
-               cellNeedsContinuedBWTracing[n] = 0;
-               cellFWTracingCoordinates[n] = {0,0,0};
-               cellBWTracingCoordinates[n] = {0,0,0};
-               cellFWTracingStepSize[n] = 0;
-               cellBWTracingStepSize[n] = 0;
-            }
-         }
-      }
-      phiprof::stop("first-loop");
-      MPI_Allreduce(cellNeedsContinuedFWTracing.data(), reducedCellNeedsContinuedFWTracing.data(), globalDccrgSize, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
-      MPI_Allreduce(cellNeedsContinuedBWTracing.data(), reducedCellNeedsContinuedBWTracing.data(), globalDccrgSize, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
-      if(sizeof(Real) == sizeof(double)) {
-         MPI_Allreduce(cellFWTracingStepSize.data(), reducedCellFWTracingStepSize.data(), globalDccrgSize, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-         MPI_Allreduce(cellBWTracingStepSize.data(), reducedCellBWTracingStepSize.data(), globalDccrgSize, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-      } else {
-         MPI_Allreduce(cellFWTracingStepSize.data(), reducedCellFWTracingStepSize.data(), globalDccrgSize, MPI_FLOAT, MPI_MIN, MPI_COMM_WORLD);
-         MPI_Allreduce(cellBWTracingStepSize.data(), reducedCellBWTracingStepSize.data(), globalDccrgSize, MPI_FLOAT, MPI_MIN, MPI_COMM_WORLD);
-      }
-      cellNeedsContinuedFWTracing = reducedCellNeedsContinuedFWTracing;
-      cellNeedsContinuedBWTracing = reducedCellNeedsContinuedBWTracing;
-      cellFWTracingStepSize = reducedCellFWTracingStepSize;
-      cellBWTracingStepSize = reducedCellBWTracingStepSize;
-      bool anyCellNeedsTracing;
-      
-      TracingFieldFunction tracingFullField = [&perBGrid, &dPerBGrid, &technicalGrid](std::array<Real,3>& r, const bool alongB, std::array<Real,3>& b)->bool{
-         return traceFullFieldFunction(perBGrid, dPerBGrid, technicalGrid, r, alongB, b);
-      };
-      
-      int itCount = 0;
-      bool warnMaxStepsExceeded = false;
-      int cellsToDo;
-      phiprof::start("loop");
-      #pragma omp parallel shared(cellsToDo)
-      {
-         do { // while(anyCellNeedsTracing)
-            #pragma omp single
-            {
-               itCount++;
-            }
-            // Trace node coordinates forward and backwards until a non-sysboundary cell is encountered or the local fsgrid domain has been left.
-            #pragma omp for schedule(dynamic)
-            for(int n=0; n<globalDccrgSize; n++) {
-               
-               if(cellNeedsContinuedFWTracing[n]) {
-                  
-                  std::array<Real, 3> x = cellFWTracingCoordinates[n];
-                  std::array<Real, 3> v({0,0,0});
-                  
-                  while( true ) {
-                     // Check if the current coordinates (pre-step) are in our own domain.
-                     std::array<int, 3> fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
-                     // If it is not in our domain, somebody else takes care of it.
-                     if(fsgridCell[0] == -1) {
-                        cellNeedsContinuedFWTracing[n] = 0;
-                        cellFWTracingCoordinates[n] = {0,0,0};
-                        cellFWTracingStepSize[n]=0;
-                        break;
-                     }
-                     
-                     if(cellFWStepCounter[n] > maxTracingSteps) {
-                        cellNeedsContinuedFWTracing[n] = 0;
-                        cellFWTracingCoordinates[n] = {0,0,0};
-                        cellFWConnection[n] = TracingLineEndType::LOOP;
-                        #pragma omp critical
-                        {
-                           warnMaxStepsExceeded = true;
-                        }
-                        break;
-                     }
-                     
-                     cellFWStepCounter[n]++;
-                     
-                     // Make one step along the fieldline
-                     // Forward tracing means true for last argument
-                     stepFieldLine(x,v, cellFWTracingStepSize[n],100e3,technicalGrid.DX/2,fieldTracingParameters.tracingMethod,tracingFullField,true);
-                     
-                     // Look up the fsgrid cell belonging to these coordinates
-                     fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
-                     
-                     // If we map into the ionosphere, this node is on a closed field line.
-                     if(sqrt(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2)) < SBC::Ionosphere::innerRadius) {
-                        cellNeedsContinuedFWTracing[n] = 0;
-                        cellFWTracingCoordinates[n] = {0,0,0};
-                        cellFWConnection[n] = TracingLineEndType::CLOSED;
-                        break;
-                     }
-                     
-                     // If we map out of the box, this node is on an open field line.
-                     if(
-                        x[0] > P::xmax - 4*P::dx_ini
-                        || x[0] < P::xmin + 4*P::dx_ini
-                        || x[1] > P::ymax - 4*P::dy_ini
-                        || x[1] < P::ymin + 4*P::dy_ini
-                        || x[2] > P::zmax - 4*P::dz_ini
-                        || x[2] < P::zmin + 4*P::dz_ini
-                     ) {
-                        cellNeedsContinuedFWTracing[n] = 0;
-                        cellFWTracingCoordinates[n] = {0,0,0};
-                        cellFWConnection[n] = TracingLineEndType::OPEN;
-                        break;
-                     }
-                     
-                     // Now, after stepping, if it is no longer in our domain, another MPI rank will pick up later.
-                     if(fsgridCell[0] == -1) {
-                        cellNeedsContinuedFWTracing[n] = 1;
-                        cellFWTracingCoordinates[n] = x;
-                        break;
-                     }
-                  }
-               } // if FW
-               if(cellNeedsContinuedBWTracing[n]) {
-                  
-                  std::array<Real, 3> x = cellBWTracingCoordinates[n];
-                  std::array<Real, 3> v({0,0,0});
-                  
-                  while( true ) {
-                     // Check if the current coordinates (pre-step) are in our own domain.
-                     std::array<int, 3> fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
-                     // If it is not in our domain, somebody else takes care of it.
-                     if(fsgridCell[0] == -1) {
-                        cellNeedsContinuedBWTracing[n] = 0;
-                        cellBWTracingCoordinates[n] = {0,0,0};
-                        cellBWTracingStepSize[n]=0;
-                        break;
-                     }
-                     
-                     if(cellBWStepCounter[n] > maxTracingSteps) {
-                        cellNeedsContinuedBWTracing[n] = 0;
-                        cellBWTracingCoordinates[n] = {0,0,0};
-                        cellBWConnection[n] = TracingLineEndType::LOOP;
-                        #pragma omp critical
-                        {
-                           warnMaxStepsExceeded = true;
-                        }
-                        break;
-                     }
-                     
-                     cellBWStepCounter[n]++;
-                     
-                     // Make one step along the fieldline
-                     // Backward tracing means false for last argument
-                     stepFieldLine(x,v, cellBWTracingStepSize[n],fieldTracingParameters.min_tracer_dx,technicalGrid.DX/2,fieldTracingParameters.tracingMethod,tracingFullField,false);
-                     
-                     // Look up the fsgrid cell belonging to these coordinates
-                     fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
-                     
-                     // If we map into the ionosphere, this node is on a closed field line.
-                     if(sqrt(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2)) < SBC::Ionosphere::innerRadius) {
-                        cellNeedsContinuedBWTracing[n] = 0;
-                        cellBWTracingCoordinates[n] = {0,0,0};
-                        cellBWConnection[n] = TracingLineEndType::CLOSED;
-                        break;
-                     }
-                     
-                     // If we map out of the box, this node is on an open field line.
-                     if(
-                        x[0] > P::xmax - 4*P::dx_ini
-                        || x[0] < P::xmin + 4*P::dx_ini
-                        || x[1] > P::ymax - 4*P::dy_ini
-                        || x[1] < P::ymin + 4*P::dy_ini
-                        || x[2] > P::zmax - 4*P::dz_ini
-                        || x[2] < P::zmin + 4*P::dz_ini
-                     ) {
-                        cellNeedsContinuedBWTracing[n] = 0;
-                        cellBWTracingCoordinates[n] = {0,0,0};
-                        cellBWConnection[n] = TracingLineEndType::OPEN;
-                        break;
-                     }
-                     
-                     // Now, after stepping, if it is no longer in our domain, another MPI rank will pick up later.
-                     if(fsgridCell[0] == -1) {
-                        cellNeedsContinuedBWTracing[n] = 1;
-                        cellBWTracingCoordinates[n] = x;
-                        break;
-                     }
-                  }
-               } // if BW
-            } // for
-            
-            //          string stringi = to_string(rank) + " arrived at " + (string)(__FILE__) + ":" + to_string(__LINE__) + "\n";
-            //          cerr << stringi;
-            
-            // Globally reduce whether any node still needs to be picked up and traced onwards
-            #pragma omp barrier
-            phiprof::start("MPI-loop");
-            #pragma omp master
-            {
-               MPI_Allreduce(cellNeedsContinuedFWTracing.data(), reducedCellNeedsContinuedFWTracing.data(), globalDccrgSize, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-               MPI_Allreduce(cellNeedsContinuedBWTracing.data(), reducedCellNeedsContinuedBWTracing.data(), globalDccrgSize, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-               MPI_Allreduce(cellFWStepCounter.data(), maxCellFWStepCounter.data(), globalDccrgSize, MPI_UINT64_T, MPI_MAX, MPI_COMM_WORLD);
-               MPI_Allreduce(cellBWStepCounter.data(), maxCellBWStepCounter.data(), globalDccrgSize, MPI_UINT64_T, MPI_MAX, MPI_COMM_WORLD);
-               if(sizeof(Real) == sizeof(double)) {
-                  MPI_Allreduce(cellFWTracingCoordinates.data(), sumCellFWTracingCoordinates.data(), 3*globalDccrgSize, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-                  MPI_Allreduce(cellBWTracingCoordinates.data(), sumCellBWTracingCoordinates.data(), 3*globalDccrgSize, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-                  MPI_Allreduce(cellFWTracingStepSize.data(), reducedCellFWTracingStepSize.data(), globalDccrgSize, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-                  MPI_Allreduce(cellBWTracingStepSize.data(), reducedCellBWTracingStepSize.data(), globalDccrgSize, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-               } else {
-                  MPI_Allreduce(cellFWTracingCoordinates.data(), sumCellFWTracingCoordinates.data(), 3*globalDccrgSize, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
-                  MPI_Allreduce(cellBWTracingCoordinates.data(), sumCellBWTracingCoordinates.data(), 3*globalDccrgSize, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
-                  MPI_Allreduce(cellFWTracingStepSize.data(), reducedCellFWTracingStepSize.data(), globalDccrgSize, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
-                  MPI_Allreduce(cellBWTracingStepSize.data(), reducedCellBWTracingStepSize.data(), globalDccrgSize, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
-               }
-               anyCellNeedsTracing = false;
-            }
-            #pragma omp barrier
-            phiprof::stop("MPI-loop");
-            #pragma omp single
-            {
-               cellsToDo = 0;
-            }
-            #pragma omp for schedule(dynamic) reduction(||:anyCellNeedsTracing) reduction(+:cellsToDo)
-            for(int n=0; n<globalDccrgSize; n++) {
-               if(reducedCellNeedsContinuedFWTracing[n] > 0) {
-                  anyCellNeedsTracing=true;
-                  cellNeedsContinuedFWTracing[n] = 1;
-                  cellsToDo++;
-                  
-                  // Update that nodes' tracing coordinates
-                  cellFWTracingCoordinates[n][0] = sumCellFWTracingCoordinates[n][0] / reducedCellNeedsContinuedFWTracing[n];
-                  cellFWTracingCoordinates[n][1] = sumCellFWTracingCoordinates[n][1] / reducedCellNeedsContinuedFWTracing[n];
-                  cellFWTracingCoordinates[n][2] = sumCellFWTracingCoordinates[n][2] / reducedCellNeedsContinuedFWTracing[n];
-                  
-                  cellFWStepCounter[n] = maxCellFWStepCounter[n];
-               }
-               if(reducedCellNeedsContinuedBWTracing[n] > 0) {
-                  anyCellNeedsTracing=true;
-                  cellNeedsContinuedBWTracing[n] = 1;
-                  cellsToDo++;
-                  
-                  // Update that nodes' tracing coordinates
-                  cellBWTracingCoordinates[n][0] = sumCellBWTracingCoordinates[n][0] / reducedCellNeedsContinuedBWTracing[n];
-                  cellBWTracingCoordinates[n][1] = sumCellBWTracingCoordinates[n][1] / reducedCellNeedsContinuedBWTracing[n];
-                  cellBWTracingCoordinates[n][2] = sumCellBWTracingCoordinates[n][2] / reducedCellNeedsContinuedBWTracing[n];
-                  
-                  cellBWStepCounter[n] = maxCellBWStepCounter[n];
-               }
-               cellFWTracingStepSize[n] = reducedCellFWTracingStepSize[n];
-               cellBWTracingStepSize[n] = reducedCellBWTracingStepSize[n];
-            }
-            #pragma omp barrier
-         } while(anyCellNeedsTracing && (cellsToDo >= fieldTracingParameters.fullbox_max_incomplete_lines * 2 * globalDccrgSize));
-         
-         // Last pass to sort cells that would still continue but won't as we exited as TracingLineEndType::LOOP instead of UNPROCESSED.
-         #pragma omp for schedule(dynamic)
-         for(int n=0; n<globalDccrgSize; n++) {
-            if(cellNeedsContinuedFWTracing[n] == 1) {
-               cellFWConnection[n] = TracingLineEndType::LOOP;
-            }
-            if(cellNeedsContinuedBWTracing[n] == 1) {
-               cellBWConnection[n] = TracingLineEndType::LOOP;
-            }
-         }
-      } // pragma omp parallel
-      phiprof::stop("loop");
-      
-      logFile << "(fieldtracing) full box tracing traced in " << itCount << " iterations of the tracing loop with " << cellsToDo << " remaining incomplete field lines (total spatial cells " << globalDccrgSize <<  ")." << endl;
-      
-      bool redWarning = false;
-      MPI_Allreduce(&warnMaxStepsExceeded, &redWarning, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
-      int rank;
-      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-      if(redWarning && rank == MASTER_RANK) {
-         logFile << "(fieldtracing) Warning: reached the maximum number of tracing steps " << maxTracingSteps << " allowed for full-box tracing." << endl;
-      }
-      
-      std::vector<int> reducedCellFWConnection(globalDccrgSize);
-      std::vector<int> reducedCellBWConnection(globalDccrgSize);
-      MPI_Allreduce(cellFWConnection.data(), reducedCellFWConnection.data(), globalDccrgSize, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
-      MPI_Allreduce(cellBWConnection.data(), reducedCellBWConnection.data(), globalDccrgSize, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
-      phiprof::start("final-loop");
-      for(int n=0; n<globalDccrgSize; n++) {
-         const CellID id = allDccrgCells.at(n);
-         if(mpiGrid.is_local(id)) {
-            mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::INVALID;
-            if (reducedCellFWConnection[n] == TracingLineEndType::CLOSED && reducedCellBWConnection[n] == TracingLineEndType::CLOSED) {
-               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::CLOSED_CLOSED;
-            }
-            if (reducedCellFWConnection[n] == TracingLineEndType::CLOSED && reducedCellBWConnection[n] == TracingLineEndType::OPEN) {
-               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::CLOSED_OPEN;
-            }
-            if (reducedCellFWConnection[n] == TracingLineEndType::OPEN && reducedCellBWConnection[n] == TracingLineEndType::CLOSED) {
-               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::OPEN_CLOSED;
-            }
-            if (reducedCellFWConnection[n] == TracingLineEndType::OPEN && reducedCellBWConnection[n] == TracingLineEndType::OPEN) {
-               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::OPEN_OPEN;
-            }
-            if (reducedCellFWConnection[n] == TracingLineEndType::CLOSED && reducedCellBWConnection[n] == TracingLineEndType::LOOP) {
-               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::CLOSED_LOOP;
-            }
-            if (reducedCellFWConnection[n] == TracingLineEndType::LOOP && reducedCellBWConnection[n] == TracingLineEndType::CLOSED) {
-               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::LOOP_CLOSED;
-            }
-            if (reducedCellFWConnection[n] == TracingLineEndType::OPEN && reducedCellBWConnection[n] == TracingLineEndType::LOOP) {
-               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::OPEN_LOOP;
-            }
-            if (reducedCellFWConnection[n] == TracingLineEndType::LOOP && reducedCellBWConnection[n] == TracingLineEndType::OPEN) {
-               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::LOOP_OPEN;
-            }
-            if (reducedCellFWConnection[n] == TracingLineEndType::LOOP && reducedCellBWConnection[n] == TracingLineEndType::LOOP) {
-               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::LOOP_LOOP;
-            }
-         }
-      }
-      phiprof::stop("final-loop");
-      
-      phiprof::stop("fieldtracing-fullTracing");
-   }
-   
-   
-   /*! Trace magnetic field lines forward and backward from each DCCRG cell to record the connectivity.
-    */
-   void traceFluxRopes(
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-      dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
-   ) {
-      phiprof::start("fieldtracing-fluxropeTracing");
-      
-      std::vector<CellID> localDccrgCells = getLocalCells();
-      int localDccrgSize = localDccrgCells.size();
-      int globalDccrgSize;
-      MPI_Allreduce(&localDccrgSize, &globalDccrgSize, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-      int commSize;
-      MPI_Comm_size(MPI_COMM_WORLD, &commSize);
-      std::vector<int> amounts(commSize);
-      std::vector<int> displacements(commSize);
-      std::vector<CellID> allDccrgCells(globalDccrgSize);
-      MPI_Allgather(&localDccrgSize, 1, MPI_INT, amounts.data(), 1, MPI_INT, MPI_COMM_WORLD);
-      for(int i=1; i<commSize; i++) {
-         displacements[i] = displacements[i-1] + amounts[i-1];
-      }
-      MPI_Allgatherv(localDccrgCells.data(), localDccrgSize, MPI_UINT64_T, allDccrgCells.data(), amounts.data(), displacements.data(), MPI_UINT64_T, MPI_COMM_WORLD);
-      
-      // Pick an initial stepsize
-      creal stepSize = min(1000e3, technicalGrid.DX / 2.);
-      std::vector<Real> cellFWTracingStepSize(globalDccrgSize, stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
-      std::vector<Real> cellBWTracingStepSize(globalDccrgSize, stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
-      std::array<int, 3> gridSize = technicalGrid.getGlobalSize();
-      
-      std::vector<Real> cellCurvatureRadius(globalDccrgSize, 0);
-      std::vector<Real> reducedCellCurvatureRadius(globalDccrgSize);
-      std::vector<int> cellNeedsContinuedFWTracing(globalDccrgSize, 1);                    /*!< Flag, whether tracing needs to continue on another task */
-      std::vector<int> cellNeedsContinuedBWTracing(globalDccrgSize, 1);                    /*!< Flag, whether tracing needs to continue on another task */
-      std::vector<std::array<Real, 3>> cellFWTracingCoordinates(globalDccrgSize);          /*!< In-flight node upmapping coordinates (for global reduction) */
-      std::vector<std::array<Real, 3>> cellBWTracingCoordinates(globalDccrgSize);          /*!< In-flight node upmapping coordinates (for global reduction) */
-      std::vector<Real> cellFWRunningDistance(globalDccrgSize, 0);
-      std::vector<Real> cellBWRunningDistance(globalDccrgSize, 0);
-      
-      // These guys are needed in the reductions at the bottom of the tracing loop.
-      std::vector<int> reducedCellNeedsContinuedFWTracing(globalDccrgSize, 0);
-      std::vector<int> reducedCellNeedsContinuedBWTracing(globalDccrgSize, 0);
-      std::vector<std::array<Real, 3>> sumCellFWTracingCoordinates(globalDccrgSize);
-      std::vector<std::array<Real, 3>> sumCellBWTracingCoordinates(globalDccrgSize);
-      std::vector<Real> reducedCellFWRunningDistance(globalDccrgSize, 0);
-      std::vector<Real> reducedCellBWRunningDistance(globalDccrgSize, 0);
-      std::vector<Real> reducedCellFWTracingStepSize(globalDccrgSize);
-      std::vector<Real> reducedCellBWTracingStepSize(globalDccrgSize);
-      
-      phiprof::start("first-loop");
-      for(int n=0; n<globalDccrgSize; n++) {
-         const CellID id = allDccrgCells[n];
-         cellFWTracingCoordinates.at(n) = mpiGrid.get_center(id);
-         cellBWTracingCoordinates.at(n) = cellFWTracingCoordinates.at(n);
-         
-         if(mpiGrid.is_local(id)) {
-            if((mpiGrid[id]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)
-               || cellFWTracingCoordinates[n][0] > P::xmax - 4*P::dx_ini
-               || cellFWTracingCoordinates[n][0] < P::xmin + 4*P::dx_ini
-               || cellFWTracingCoordinates[n][1] > P::ymax - 4*P::dy_ini
-               || cellFWTracingCoordinates[n][1] < P::ymin + 4*P::dy_ini
-               || cellFWTracingCoordinates[n][2] > P::zmax - 4*P::dz_ini
-               || cellFWTracingCoordinates[n][2] < P::zmin + 4*P::dz_ini
-            ) {
-               cellNeedsContinuedFWTracing[n] = 0;
-               cellNeedsContinuedBWTracing[n] = 0;
-               cellFWTracingCoordinates[n] = {0,0,0};
-               cellBWTracingCoordinates[n] = {0,0,0};
-               cellFWTracingStepSize[n] = 0;
-               cellBWTracingStepSize[n] = 0;
-            } else {
-               cellCurvatureRadius[n] = 1 / sqrt(mpiGrid[id]->parameters[CellParams::CURVATUREX]*mpiGrid[id]->parameters[CellParams::CURVATUREX] + mpiGrid[id]->parameters[CellParams::CURVATUREY]*mpiGrid[id]->parameters[CellParams::CURVATUREY] + mpiGrid[id]->parameters[CellParams::CURVATUREZ]*mpiGrid[id]->parameters[CellParams::CURVATUREZ]);
-               if(fieldTracingParameters.fluxrope_max_curvature_radii_to_trace*cellCurvatureRadius[n] > fieldTracingParameters.fluxrope_max_m_to_trace) {
-                  cellCurvatureRadius[n] = 0; // This will discard the field lines in the first iteration below.
-               }
-            }
-         }
-      }
-      phiprof::stop("first-loop");
-      
-      std::vector<std::array<Real,3>> cellInitialCoordinates = cellFWTracingCoordinates;
-      
-      MPI_Allreduce(cellNeedsContinuedFWTracing.data(), reducedCellNeedsContinuedFWTracing.data(), globalDccrgSize, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
-      MPI_Allreduce(cellNeedsContinuedBWTracing.data(), reducedCellNeedsContinuedBWTracing.data(), globalDccrgSize, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
-      if(sizeof(Real) == sizeof(double)) {
-         MPI_Allreduce(cellCurvatureRadius.data(), reducedCellCurvatureRadius.data(), globalDccrgSize, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-         MPI_Allreduce(cellFWTracingStepSize.data(), reducedCellFWTracingStepSize.data(), globalDccrgSize, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-         MPI_Allreduce(cellBWTracingStepSize.data(), reducedCellBWTracingStepSize.data(), globalDccrgSize, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-      } else {
-         MPI_Allreduce(cellCurvatureRadius.data(), reducedCellCurvatureRadius.data(), globalDccrgSize, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
-         MPI_Allreduce(cellFWTracingStepSize.data(), reducedCellFWTracingStepSize.data(), globalDccrgSize, MPI_FLOAT, MPI_MIN, MPI_COMM_WORLD);
-         MPI_Allreduce(cellBWTracingStepSize.data(), reducedCellBWTracingStepSize.data(), globalDccrgSize, MPI_FLOAT, MPI_MIN, MPI_COMM_WORLD);
-      }
-      cellCurvatureRadius = reducedCellCurvatureRadius;
-      cellNeedsContinuedFWTracing = reducedCellNeedsContinuedFWTracing;
-      cellNeedsContinuedBWTracing = reducedCellNeedsContinuedBWTracing;
-      cellFWTracingStepSize = reducedCellFWTracingStepSize;
-      cellBWTracingStepSize = reducedCellBWTracingStepSize;
-      bool anyCellNeedsTracing;
-      
-      TracingFieldFunction tracingFullField = [&perBGrid, &dPerBGrid, &technicalGrid](std::array<Real,3>& r, const bool alongB, std::array<Real,3>& b)->bool{
-         return traceFullFieldFunction(perBGrid, dPerBGrid, technicalGrid, r, alongB, b);
-      };
-      
-      int itCount = 0;
-      int cellsToDo;
-      phiprof::start("loop");
-      #pragma omp parallel shared(cellsToDo)
-      {
-         do { // while(anyCellNeedsTracing)
-            #pragma omp single
-            {
-               itCount++;
-            }
-            // Trace node coordinates forward and backwards until a non-sysboundary cell is encountered or the local fsgrid domain has been left.
-            #pragma omp for schedule(dynamic)
-            for(int n=0; n<globalDccrgSize; n++) {
-               
-               if(cellNeedsContinuedFWTracing[n]) {
-                  
-                  std::array<Real, 3> x = cellFWTracingCoordinates[n];
-                  std::array<Real, 3> v({0,0,0});
-                  
-                  while( true ) {
-                     // Check if the current coordinates (pre-step) are in our own domain.
-                     std::array<int, 3> fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
-                     // If it is not in our domain, somebody else takes care of it.
-                     if(fsgridCell[0] == -1) {
-                        cellNeedsContinuedFWTracing[n] = 0;
-                        cellFWTracingCoordinates[n] = {0,0,0};
-                        cellFWTracingStepSize[n]=0;
-                        break;
-                     }
-                     
-                     // Make one step along the fieldline
-                     // Forward tracing means true for last argument
-                     stepFieldLine(x,v, cellFWTracingStepSize[n],100e3,technicalGrid.DX/2,fieldTracingParameters.tracingMethod,tracingFullField,true);
-                     
-                     cellFWRunningDistance[n] += cellFWTracingStepSize[n];
-                     
-                     // Look up the fsgrid cell belonging to these coordinates
-                     fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
-                     
-                     // If we map into the ionosphere, discard this field line.
-                     if(sqrt(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2)) < SBC::Ionosphere::innerRadius) {
-                        cellNeedsContinuedFWTracing[n] = 0;
-                        cellFWTracingCoordinates[n] = {0,0,0};
-                        break;
-                     }
-                     
-                     // If we map out of the box, discard this field line.
-                     if(
-                        x[0] > P::xmax - 4*P::dx_ini
-                        || x[0] < P::xmin + 4*P::dx_ini
-                        || x[1] > P::ymax - 4*P::dy_ini
-                        || x[1] < P::ymin + 4*P::dy_ini
-                        || x[2] > P::zmax - 4*P::dz_ini
-                        || x[2] < P::zmin + 4*P::dz_ini
-                     ) {
-                        cellNeedsContinuedFWTracing[n] = 0;
-                        cellFWTracingCoordinates[n] = {0,0,0};
-                        break;
-                     }
-                     
-                     // If we traced too far from the seed, discard this field line (and the other direction too for that matter)
-                     creal distance = sqrt(
-                          (x[0]-(cellInitialCoordinates[n])[0])*(x[0]-(cellInitialCoordinates[n])[0])
-                        + (x[1]-(cellInitialCoordinates[n])[1])*(x[1]-(cellInitialCoordinates[n])[1])
-                        + (x[2]-(cellInitialCoordinates[n])[2])*(x[2]-(cellInitialCoordinates[n])[2])
-                     );
-                     if(distance > fieldTracingParameters.fluxrope_max_curvature_radii_extent*cellCurvatureRadius[n]) {
-                        cellNeedsContinuedFWTracing[n] = 0;
-                        cellFWTracingCoordinates[n] = {0,0,0};
-                        cellNeedsContinuedBWTracing[n] = 0;
-                        cellBWTracingCoordinates[n] = {0,0,0};
-                        break;
-                     }
-                     
-                     // If we haven't finished tracing we don't want to record a false positive (and skip the other direction too)
-                     if(cellFWRunningDistance[n] > fieldTracingParameters.fluxrope_max_m_to_trace) {
-                        cellNeedsContinuedFWTracing[n] = 0;
-                        cellFWTracingCoordinates[n] = {0,0,0};
-                        cellNeedsContinuedBWTracing[n] = 0;
-                        cellBWTracingCoordinates[n] = {0,0,0};
-                        break;
-                     }
-                     
-                     // If we are still in the game but traced until this limit we actually have a hit
-                     if(cellFWRunningDistance[n] > fieldTracingParameters.fluxrope_max_curvature_radii_to_trace*cellCurvatureRadius[n]) {
-                        cellNeedsContinuedFWTracing[n] = 0;
-                        cellFWTracingCoordinates[n] = x;
-                        break;
-                     }
-                     
-                     // Now, after stepping, if it is no longer in our domain, another MPI rank will pick up later.
-                     if(fsgridCell[0] == -1) {
-                        cellNeedsContinuedFWTracing[n] = 1;
-                        cellFWTracingCoordinates[n] = x;
-                        break;
-                     }
-                  }
-               } // if FW
-               if(cellNeedsContinuedBWTracing[n]) {
-                  
-                  std::array<Real, 3> x = cellBWTracingCoordinates[n];
-                  std::array<Real, 3> v({0,0,0});
-                  
-                  while( true ) {
-                     // Check if the current coordinates (pre-step) are in our own domain.
-                     std::array<int, 3> fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
-                     // If it is not in our domain, somebody else takes care of it.
-                     if(fsgridCell[0] == -1) {
-                        cellNeedsContinuedBWTracing[n] = 0;
-                        cellBWTracingCoordinates[n] = {0,0,0};
-                        cellBWTracingStepSize[n]=0;
-                        break;
-                     }
-                     
-                     // Make one step along the fieldline
-                     // Forward tracing means true for last argument
-                     stepFieldLine(x,v, cellBWTracingStepSize[n],100e3,technicalGrid.DX/2,fieldTracingParameters.tracingMethod,tracingFullField,false);
-                     
-                     cellBWRunningDistance[n] += cellBWTracingStepSize[n];
-                     
-                     // Look up the fsgrid cell belonging to these coordinates
-                     fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
-                     
-                     // If we map into the ionosphere, discard this field line.
-                     if(sqrt(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2)) < SBC::Ionosphere::innerRadius) {
-                        cellNeedsContinuedBWTracing[n] = 0;
-                        cellBWTracingCoordinates[n] = {0,0,0};
-                        break;
-                     }
-                     
-                     // If we map out of the box, discard this field line.
-                     if(
-                        x[0] > P::xmax - 4*P::dx_ini
-                        || x[0] < P::xmin + 4*P::dx_ini
-                        || x[1] > P::ymax - 4*P::dy_ini
-                        || x[1] < P::ymin + 4*P::dy_ini
-                        || x[2] > P::zmax - 4*P::dz_ini
-                        || x[2] < P::zmin + 4*P::dz_ini
-                     ) {
-                        cellNeedsContinuedBWTracing[n] = 0;
-                        cellBWTracingCoordinates[n] = {0,0,0};
-                        break;
-                     }
-                     
-                     // If we traced too far from the seed, discard this field line (and the other direction too for that matter)
-                     creal distance = sqrt(
-                          (x[0]-(cellInitialCoordinates[n])[0])*(x[0]-(cellInitialCoordinates[n])[0])
-                        + (x[1]-(cellInitialCoordinates[n])[1])*(x[1]-(cellInitialCoordinates[n])[1])
-                        + (x[2]-(cellInitialCoordinates[n])[2])*(x[2]-(cellInitialCoordinates[n])[2])
-                     );
-                     if(distance > fieldTracingParameters.fluxrope_max_curvature_radii_extent*cellCurvatureRadius[n]) {
-                        cellNeedsContinuedBWTracing[n] = 0;
-                        cellBWTracingCoordinates[n] = {0,0,0};
-                        cellNeedsContinuedFWTracing[n] = 0;
-                        cellFWTracingCoordinates[n] = {0,0,0};
-                        break;
-                     }
-                     
-                     // If we haven't finished tracing we don't want to record a false positive (and skip the other direction too)
-                     if(cellBWRunningDistance[n] > fieldTracingParameters.fluxrope_max_m_to_trace) {
-                        cellNeedsContinuedFWTracing[n] = 0;
-                        cellFWTracingCoordinates[n] = {0,0,0};
-                        cellNeedsContinuedBWTracing[n] = 0;
-                        cellBWTracingCoordinates[n] = {0,0,0};
-                        break;
-                     }
-                     
-                     // If we are still in the game but traced until this limit we actually have a hit
-                     if(cellBWRunningDistance[n] > min(fieldTracingParameters.fluxrope_max_curvature_radii_to_trace*cellCurvatureRadius[n],fieldTracingParameters.fluxrope_max_m_to_trace)) {
-                        cellNeedsContinuedBWTracing[n] = 0;
-                        cellBWTracingCoordinates[n] = x;
-                        break;
-                     }
-                     
-                     // Now, after stepping, if it is no longer in our domain, another MPI rank will pick up later.
-                     if(fsgridCell[0] == -1) {
-                        cellNeedsContinuedBWTracing[n] = 1;
-                        cellBWTracingCoordinates[n] = x;
-                        break;
-                     }
-                  }
-               } // if BW
-            } // for
-            
-            // Globally reduce whether any node still needs to be picked up and traced onwards
-            #pragma omp barrier
-            phiprof::start("MPI-loop");
-            #pragma omp master
-            {
-               MPI_Allreduce(cellNeedsContinuedFWTracing.data(), reducedCellNeedsContinuedFWTracing.data(), globalDccrgSize, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-               MPI_Allreduce(cellNeedsContinuedBWTracing.data(), reducedCellNeedsContinuedBWTracing.data(), globalDccrgSize, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-               if(sizeof(Real) == sizeof(double)) {
-                  MPI_Allreduce(cellFWTracingCoordinates.data(), sumCellFWTracingCoordinates.data(), 3*globalDccrgSize, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-                  MPI_Allreduce(cellBWTracingCoordinates.data(), sumCellBWTracingCoordinates.data(), 3*globalDccrgSize, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-                  MPI_Allreduce(cellFWTracingStepSize.data(), reducedCellFWTracingStepSize.data(), globalDccrgSize, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-                  MPI_Allreduce(cellBWTracingStepSize.data(), reducedCellBWTracingStepSize.data(), globalDccrgSize, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-                  MPI_Allreduce(cellFWRunningDistance.data(), reducedCellFWRunningDistance.data(), globalDccrgSize, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-                  MPI_Allreduce(cellBWRunningDistance.data(), reducedCellBWRunningDistance.data(), globalDccrgSize, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-               } else {
-                  MPI_Allreduce(cellFWTracingCoordinates.data(), sumCellFWTracingCoordinates.data(), 3*globalDccrgSize, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
-                  MPI_Allreduce(cellBWTracingCoordinates.data(), sumCellBWTracingCoordinates.data(), 3*globalDccrgSize, MPI_FLOAT, MPI_SUM, MPI_COMM_WORLD);
-                  MPI_Allreduce(cellFWTracingStepSize.data(), reducedCellFWTracingStepSize.data(), globalDccrgSize, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
-                  MPI_Allreduce(cellBWTracingStepSize.data(), reducedCellBWTracingStepSize.data(), globalDccrgSize, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
-                  MPI_Allreduce(cellFWRunningDistance.data(), reducedCellFWRunningDistance.data(), globalDccrgSize, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
-                  MPI_Allreduce(cellBWRunningDistance.data(), reducedCellBWRunningDistance.data(), globalDccrgSize, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
-               }
-               anyCellNeedsTracing = false;
-            }
-            #pragma omp barrier
-            phiprof::stop("MPI-loop");
-            #pragma omp single
-            {
-               cellsToDo = 0;
-               cellFWTracingStepSize = reducedCellFWTracingStepSize;
-               cellBWTracingStepSize = reducedCellBWTracingStepSize;
-               cellFWRunningDistance = reducedCellFWRunningDistance;
-               cellBWRunningDistance = reducedCellBWRunningDistance;
-               cellNeedsContinuedFWTracing = reducedCellNeedsContinuedFWTracing;
-               cellNeedsContinuedBWTracing = reducedCellNeedsContinuedBWTracing;
-            }
-            #pragma omp for schedule(dynamic) reduction(||:anyCellNeedsTracing) reduction(+:cellsToDo)
-            for(int n=0; n<globalDccrgSize; n++) {
-               if(cellNeedsContinuedFWTracing[n] > 0) {
-                  anyCellNeedsTracing=true;
-                  cellsToDo++;
-                  
-                  // Update that nodes' tracing coordinates
-                  cellFWTracingCoordinates[n][0] = sumCellFWTracingCoordinates[n][0] / reducedCellNeedsContinuedFWTracing[n];
-                  cellFWTracingCoordinates[n][1] = sumCellFWTracingCoordinates[n][1] / reducedCellNeedsContinuedFWTracing[n];
-                  cellFWTracingCoordinates[n][2] = sumCellFWTracingCoordinates[n][2] / reducedCellNeedsContinuedFWTracing[n];
-               }
-               if(cellNeedsContinuedBWTracing[n] > 0) {
-                  anyCellNeedsTracing=true;
-                  cellsToDo++;
-                  
-                  // Update that nodes' tracing coordinates
-                  cellBWTracingCoordinates[n][0] = sumCellBWTracingCoordinates[n][0] / reducedCellNeedsContinuedBWTracing[n];
-                  cellBWTracingCoordinates[n][1] = sumCellBWTracingCoordinates[n][1] / reducedCellNeedsContinuedBWTracing[n];
-                  cellBWTracingCoordinates[n][2] = sumCellBWTracingCoordinates[n][2] / reducedCellNeedsContinuedBWTracing[n];
-               }
-            }
-            #pragma omp barrier
-         } while(anyCellNeedsTracing && (cellsToDo >= fieldTracingParameters.fluxrope_max_incomplete_lines * 2 * globalDccrgSize));
-         
-      } // pragma omp parallel
-      phiprof::stop("loop");
-      
-      logFile << "(fieldtracing) flux rope tracing traced in " << itCount << " iterations of the tracing loop with " << cellsToDo << " remaining incomplete field lines (total spatial cells " << globalDccrgSize <<  ")." << endl;
-      
-      phiprof::start("final-loop");
-      for(int n=0; n<globalDccrgSize; n++) {
-         const CellID id = allDccrgCells.at(n);
-         if(mpiGrid.is_local(id)) {
-            mpiGrid[id]->parameters[CellParams::FLUXROPE] = 0;
-            const std::array<Real, 3> x = mpiGrid.get_center(id);
-            if(!( sumCellFWTracingCoordinates[n][0] == 0
-               && sumCellFWTracingCoordinates[n][1] == 0
-               && sumCellFWTracingCoordinates[n][2] == 0
-               && sumCellBWTracingCoordinates[n][0] == 0
-               && sumCellBWTracingCoordinates[n][1] == 0
-               && sumCellBWTracingCoordinates[n][2] == 0 ) // These are all zero when cells get discarded, cannot happen for normal coordinates
-               && cellNeedsContinuedFWTracing[n] == 0
-               && cellNeedsContinuedBWTracing[n] == 0 // These two discard unfinished cells if a fraction of leftovers is allowed <-> cellsToDo > 0
-               && mpiGrid[id]->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY
-               && x[0] <= P::xmax - 4*P::dx_ini
-               && x[0] >= P::xmin + 4*P::dx_ini
-               && x[1] <= P::ymax - 4*P::dy_ini
-               && x[1] >= P::ymin + 4*P::dy_ini
-               && x[2] <= P::zmax - 4*P::dz_ini
-               && x[2] >= P::zmin + 4*P::dz_ini // These discard cells we didn't start tracing but which have non-zero coordinates (would require more reduction-fu at the top)
-            ) {
-               mpiGrid[id]->parameters[CellParams::FLUXROPE] = 1;
-            }
-         }
-      }
-      phiprof::stop("final-loop");
-      
-      phiprof::stop("fieldtracing-fluxropeTracing");
-   }
    
    /*! Trace magnetic field lines forward and backward from each DCCRG cell to record the connectivity and detect flux ropes.
    */
@@ -1717,12 +950,11 @@ namespace FieldTracing {
                            + (x[1]-(cellInitialCoordinates[n])[1])*(x[1]-(cellInitialCoordinates[n])[1])
                            + (x[2]-(cellInitialCoordinates[n])[2])*(x[2]-(cellInitialCoordinates[n])[2])
                         );
-                        // ...and if we traced too far from the seed, this is not a flux rope candidate (neither the other direction for that matter) and we do a single +=
+                        // ...and if we traced too far from the seed, this is not a flux rope candidate and we do a single +=
                         if(distance > fieldTracingParameters.fluxrope_max_curvature_radii_extent*cellCurvatureRadius[n]
                            || cellFWRunningDistance[n] > fieldTracingParameters.fluxrope_max_m_to_trace
                         ) {
                            cellFWConnection[n] += TracingLineEndType::N_TYPES;
-                           cellBWConnection[n] += TracingLineEndType::N_TYPES;
                         } else if(cellFWRunningDistance[n] > fieldTracingParameters.fluxrope_max_curvature_radii_to_trace*cellCurvatureRadius[n]) {
                            // If we're still in the game and reach this limit we have a hit and we do a double +=
                            cellFWConnection[n] += 2*TracingLineEndType::N_TYPES;
@@ -1801,11 +1033,10 @@ namespace FieldTracing {
                            + (x[1]-(cellInitialCoordinates[n])[1])*(x[1]-(cellInitialCoordinates[n])[1])
                            + (x[2]-(cellInitialCoordinates[n])[2])*(x[2]-(cellInitialCoordinates[n])[2])
                         );
-                        // ...and if we traced too far from the seed, this is not a flux rope candidate (neither the other direction for that matter) and we do a single +=
+                        // ...and if we traced too far from the seed, this is not a flux rope candidate and we do a single +=
                         if(distance > fieldTracingParameters.fluxrope_max_curvature_radii_extent*cellCurvatureRadius[n]
                            || cellBWRunningDistance[n] > fieldTracingParameters.fluxrope_max_m_to_trace
                         ) {
-                           cellFWConnection[n] += TracingLineEndType::N_TYPES;
                            cellBWConnection[n] += TracingLineEndType::N_TYPES;
                         } else if(cellBWRunningDistance[n] > fieldTracingParameters.fluxrope_max_curvature_radii_to_trace*cellCurvatureRadius[n]) {
                            // If we're still in the game and reach this limit we have a hit and we do a double +=
@@ -1935,14 +1166,6 @@ namespace FieldTracing {
                }
             }
             #pragma omp barrier
-#pragma omp master
-{
-   int rank;
-   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-   if(rank == MASTER_RANK) {
-      cerr << __FILE__ << ":" << __LINE__ << ": cellsToDoFullBox " << cellsToDoFullBox << " cellsToDoFluxRopes " << cellsToDoFluxRopes << endl;
-   }
-}
          } while(!(
             cellsToDoFullBox <= fieldTracingParameters.fullbox_max_incomplete_lines * 2 * globalDccrgSize
             && cellsToDoFluxRopes <= fieldTracingParameters.fluxrope_max_incomplete_lines * 2 * globalDccrgSize
@@ -1952,17 +1175,17 @@ namespace FieldTracing {
          #pragma omp for schedule(dynamic)
          for(int n=0; n<globalDccrgSize; n++) {
             if(cellNeedsContinuedFWTracing[n] == 1) {
-               cellFWConnection[n] += TracingLineEndType::LOOP;
+               reducedCellFWConnection[n] += TracingLineEndType::LOOP;
             }
             if(cellNeedsContinuedBWTracing[n] == 1) {
-               cellBWConnection[n] += TracingLineEndType::LOOP;
+               reducedCellBWConnection[n] += TracingLineEndType::LOOP;
             }
          }
       } // pragma omp parallel
       phiprof::stop("loop");
       
       logFile << "(fieldtracing) combined flux rope + full box tracing traced in " << itCount
-         << " iterations of the tracing loop with flux rope:" << cellsToDoFluxRopes
+         << " iterations of the tracing loop with flux rope " << cellsToDoFluxRopes
          << ", full box " << cellsToDoFullBox
          << " remaining incomplete field lines (total spatial cells " << globalDccrgSize
          << ")." << endl;
@@ -1980,13 +1203,13 @@ namespace FieldTracing {
          const CellID id = allDccrgCells.at(n);
          if(mpiGrid.is_local(id)) {
             // Handle flux ropes
-            mpiGrid[id]->parameters[CellParams::FLUXROPE_2] = 0;
+            mpiGrid[id]->parameters[CellParams::FLUXROPE] = 0;
             const std::array<Real, 3> x = mpiGrid.get_center(id);
             // flux rope if did a double += by TracingLineEndType::N_TYPES
             if(   reducedCellFWConnection[n] >= 2*TracingLineEndType::N_TYPES
                && reducedCellBWConnection[n] >= 2*TracingLineEndType::N_TYPES
             ) {
-               mpiGrid[id]->parameters[CellParams::FLUXROPE_2] = 1;
+               mpiGrid[id]->parameters[CellParams::FLUXROPE] = 1;
             }
             
             // remove the flux rope mark
@@ -1994,33 +1217,33 @@ namespace FieldTracing {
             reducedCellBWConnection[n] %= TracingLineEndType::N_TYPES;
             
             // Handle full box connection
-            mpiGrid[id]->parameters[CellParams::CONNECTION_2] = TracingPointConnectionType::INVALID;
+            mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::INVALID;
             if (reducedCellFWConnection[n] == TracingLineEndType::CLOSED && reducedCellBWConnection[n] == TracingLineEndType::CLOSED) {
-               mpiGrid[id]->parameters[CellParams::CONNECTION_2] = TracingPointConnectionType::CLOSED_CLOSED;
+               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::CLOSED_CLOSED;
             }
             if (reducedCellFWConnection[n] == TracingLineEndType::CLOSED && reducedCellBWConnection[n] == TracingLineEndType::OPEN) {
-               mpiGrid[id]->parameters[CellParams::CONNECTION_2] = TracingPointConnectionType::CLOSED_OPEN;
+               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::CLOSED_OPEN;
             }
             if (reducedCellFWConnection[n] == TracingLineEndType::OPEN && reducedCellBWConnection[n] == TracingLineEndType::CLOSED) {
-               mpiGrid[id]->parameters[CellParams::CONNECTION_2] = TracingPointConnectionType::OPEN_CLOSED;
+               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::OPEN_CLOSED;
             }
             if (reducedCellFWConnection[n] == TracingLineEndType::OPEN && reducedCellBWConnection[n] == TracingLineEndType::OPEN) {
-               mpiGrid[id]->parameters[CellParams::CONNECTION_2] = TracingPointConnectionType::OPEN_OPEN;
+               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::OPEN_OPEN;
             }
             if (reducedCellFWConnection[n] == TracingLineEndType::CLOSED && reducedCellBWConnection[n] == TracingLineEndType::LOOP) {
-               mpiGrid[id]->parameters[CellParams::CONNECTION_2] = TracingPointConnectionType::CLOSED_LOOP;
+               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::CLOSED_LOOP;
             }
             if (reducedCellFWConnection[n] == TracingLineEndType::LOOP && reducedCellBWConnection[n] == TracingLineEndType::CLOSED) {
-               mpiGrid[id]->parameters[CellParams::CONNECTION_2] = TracingPointConnectionType::LOOP_CLOSED;
+               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::LOOP_CLOSED;
             }
             if (reducedCellFWConnection[n] == TracingLineEndType::OPEN && reducedCellBWConnection[n] == TracingLineEndType::LOOP) {
-               mpiGrid[id]->parameters[CellParams::CONNECTION_2] = TracingPointConnectionType::OPEN_LOOP;
+               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::OPEN_LOOP;
             }
             if (reducedCellFWConnection[n] == TracingLineEndType::LOOP && reducedCellBWConnection[n] == TracingLineEndType::OPEN) {
-               mpiGrid[id]->parameters[CellParams::CONNECTION_2] = TracingPointConnectionType::LOOP_OPEN;
+               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::LOOP_OPEN;
             }
             if (reducedCellFWConnection[n] == TracingLineEndType::LOOP && reducedCellBWConnection[n] == TracingLineEndType::LOOP) {
-               mpiGrid[id]->parameters[CellParams::CONNECTION_2] = TracingPointConnectionType::LOOP_LOOP;
+               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::LOOP_LOOP;
             }
          }
       }
