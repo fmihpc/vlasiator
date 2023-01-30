@@ -79,6 +79,7 @@ uint P::tstep_max = 0;
 uint P::diagnosticInterval = numeric_limits<uint>::max();
 bool P::writeInitialState = true;
 
+
 bool P::meshRepartitioned = true;
 bool P::prepareForRebalance = false;
 vector<CellID> P::localCells;
@@ -92,6 +93,7 @@ vector<int> P::systemWriteDistributionWriteYlineStride;
 vector<int> P::systemWriteDistributionWriteZlineStride;
 vector<Real> P::systemWriteDistributionWriteShellRadius;
 vector<int> P::systemWriteDistributionWriteShellStride;
+vector<bool> P::systemWriteFsGrid;
 vector<int> P::systemWrites;
 vector<pair<string, string>> P::systemWriteHints;
 vector<pair<string, string>> P::restartWriteHints;
@@ -204,6 +206,7 @@ bool P::addParameters() {
                     "space. 0 is none.");
    RP::addComposing("io.system_write_distribution_shell_stride",
                     "Every this many cells for those on selected shells write out their velocity space. 0 is none.");
+   RP::addComposing("io.system_write_fsgrid_variables", "If 0 don't write fsgrid DROs, if 1 do write them.");
    RP::addComposing(
        "io.system_write_mpiio_hint_key",
        "MPI-IO hint key passed to the non-restart IO. Has to be matched by io.system_write_mpiio_hint_value.");
@@ -460,6 +463,7 @@ void Parameters::getParameters() {
    RP::get("io.system_write_distribution_zline_stride", P::systemWriteDistributionWriteZlineStride);
    RP::get("io.system_write_distribution_shell_radius", P::systemWriteDistributionWriteShellRadius);
    RP::get("io.system_write_distribution_shell_stride", P::systemWriteDistributionWriteShellStride);
+   RP::get("io.system_write_fsgrid_variables", P::systemWriteFsGrid);
    RP::get("io.write_initial_state", P::writeInitialState);
    RP::get("io.restart_walltime_interval", P::saveRestartWalltimeInterval);
    RP::get("io.number_of_restarts", P::exitAfterRestarts);
@@ -534,6 +538,12 @@ void Parameters::getParameters() {
       if (myRank == MASTER_RANK) {
          cerr << "ERROR You should set the same number of io.system_write_distribution_shell_stride "
               << "and io.system_write_distribution_shell_radius." << endl;
+         MPI_Abort(MPI_COMM_WORLD, 1);
+      }
+   }
+   if (P::systemWriteFsGrid.size() != maxSize) {
+      if (myRank == MASTER_RANK) {
+         cerr << "ERROR io.system_write_fsgrid_variables should be defined for all file types." << endl;
          MPI_Abort(MPI_COMM_WORLD, 1);
       }
    }
