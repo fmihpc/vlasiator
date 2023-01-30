@@ -1992,6 +1992,7 @@ void update_remote_mapping_contribution_amr(
                      // Only allocate siblings that are remote face neighbors to ncell
                      if(mpiGrid.get_process(sibling) != mpiGrid.get_process(nbr)
                         && myIndices.at(dimension) == sibIndices.at(dimension)
+                        && ncell->neighbor_number_of_blocks.at(i_sib) != scell->get_number_of_velocity_blocks(popID)
                         && scell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
                   
                         
