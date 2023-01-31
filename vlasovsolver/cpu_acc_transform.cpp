@@ -201,7 +201,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       Eigen::Matrix<Real,3,1> Je(0.,0.,0.);
       Eigen::Matrix<Real,3,1> k11, k12, k21, k22;
       Eigen::Matrix<Real,3,1> k31, k32, k41, k42;
-      Eigen::Matrix<Real,3,1> deltaV; 
+      Eigen::Matrix<Real,3,1> deltaV(0., 0., 0.); 
 
       // rotation origin is the point through which we place our rotation axis (direction of which is unitB).
       // first add bulk velocity (using the total transform computed this far.
