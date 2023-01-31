@@ -542,9 +542,15 @@ void Parameters::getParameters() {
       }
    }
    if (P::systemWriteFsGrid.size() != maxSize) {
-      if (myRank == MASTER_RANK) {
-         cerr << "ERROR io.system_write_fsgrid_variables should be defined for all file types." << endl;
-         MPI_Abort(MPI_COMM_WORLD, 1);
+      if (P::systemWriteFsGrid.size() == 0) {
+         for (uint i = 0; i < maxSize; i++) {
+            P::systemWriteFsGrid.push_back(true);
+         }
+      } else {
+         if (myRank == MASTER_RANK) {
+            cerr << "ERROR io.system_write_fsgrid_variables should be defined for all file types." << endl;
+            MPI_Abort(MPI_COMM_WORLD, 1);
+         }
       }
    }
    if (P::systemWritePath.size() == 0) {
