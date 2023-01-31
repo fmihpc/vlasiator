@@ -265,7 +265,7 @@ void initializeGrids(
       //  -Background field on all cells
       //  -Perturbed fields and ion distribution function in non-sysboundary cells
       // Each initialization has to be independent to avoid threading problems 
-      cerr << __LINE__ << "setupBeforeSetCell" << endl;
+
       // Allow the project to set up data structures for it's setCell calls
       project.setupBeforeSetCell(cells, mpiGrid, needCurl);
       if (needCurl) {
