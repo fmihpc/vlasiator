@@ -1170,17 +1170,6 @@ namespace FieldTracing {
             cellsToDoFullBox <= fieldTracingParameters.fullbox_max_incomplete_lines * 2 * globalDccrgSize
             && cellsToDoFluxRopes <= fieldTracingParameters.fluxrope_max_incomplete_lines * 2 * globalDccrgSize
          ));
-         
-         // Last pass to sort cells that would still continue but won't as we exited as TracingLineEndType::LOOP instead of UNPROCESSED.
-         #pragma omp for schedule(dynamic)
-         for(int n=0; n<globalDccrgSize; n++) {
-            if(cellNeedsContinuedFWTracing[n] == 1) {
-               reducedCellFWConnection[n] += TracingLineEndType::LOOP;
-            }
-            if(cellNeedsContinuedBWTracing[n] == 1) {
-               reducedCellBWConnection[n] += TracingLineEndType::LOOP;
-            }
-         }
       } // pragma omp parallel
       phiprof::stop("loop");
       
