@@ -124,16 +124,23 @@ namespace vmesh {
       block_data= new split::SplitVector<Realf>;
       parameters= new split::SplitVector<Real>;
 #else
-      block_data = new std::vector<Realf,aligned_allocator<Realf,WID3>>(currentCapacity+1);
-      parameters = new std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS>>(currentCapacity+1);
-      // initialization with zero capacity would return null pointers
+      if (currentCapacity==0) {
+         // initialization with zero capacity would return null pointers
+         block_data = new std::vector<Realf,aligned_allocator<Realf,WID3>>(1);
+         parameters = new std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS>>(1);
+         block_data->clear();
+         parameters->clear();
+      } else {
+         block_data = new std::vector<Realf,aligned_allocator<Realf,WID3>>(currentCapacity);
+         parameters = new std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS>>(currentCapacity);
+      }
 #endif
    }
 
    template<typename LID> inline
    VelocityBlockContainer<LID>::~VelocityBlockContainer() {
-      delete block_data;
-      delete parameters;
+      if (block_data->size()>0) delete block_data;
+      if (parameters->size()>0) delete parameters;
    }
 
    template<typename LID> inline
@@ -152,8 +159,8 @@ namespace vmesh {
    template <typename LID> inline
    const VelocityBlockContainer<LID>& VelocityBlockContainer<LID>::operator=(const VelocityBlockContainer<LID>& other) {
       // Delete old vectors
-      delete block_data;
-      delete parameters;
+      if (block_data->size()>0) delete block_data;
+      if (parameters->size()>0) delete parameters;
 #ifdef USE_CUDA
       block_data= new split::SplitVector<Realf>(*(other.block_data));
       parameters= new split::SplitVector<Real>(*(other.parameters));
@@ -191,6 +198,8 @@ namespace vmesh {
       // initialization with zero capacity returns null pointers
       block_data->swap(*dummy_data);
       parameters->swap(*dummy_parameters);
+      block_data->clear();
+      parameters->clear();
       delete dummy_data;
       delete dummy_parameters;
 #endif

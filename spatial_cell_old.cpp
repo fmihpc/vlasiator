@@ -78,6 +78,8 @@ namespace spatial_cell {
       // new pointers for vectors
       velocity_block_with_content_list = new std::vector<vmesh::GlobalID>(1);
       velocity_block_with_no_content_list = new std::vector<vmesh::GlobalID>(1);
+      velocity_block_with_content_list->clear();
+      velocity_block_with_no_content_list->clear();
    }
 
    SpatialCell::~SpatialCell() {
@@ -112,16 +114,17 @@ namespace spatial_cell {
          neighbor_number_of_blocks[i] = other.neighbor_number_of_blocks[i];
       }
 
-      face_neighbor_ranks = std::map<int,std::set<int>>(other.face_neighbor_ranks);
-      populations = std::vector<spatial_cell::Population>(other.populations);
-
+      if (other.face_neighbor_ranks.size()>0) {
+         face_neighbor_ranks = std::map<int,std::set<int>>(other.face_neighbor_ranks);
+      }
+      if (other.populations.size()>0) {
+         populations = std::vector<spatial_cell::Population>(other.populations);
+      }
    }
    const SpatialCell& SpatialCell::operator=(const SpatialCell& other) {
       // Delete old vectors
       delete velocity_block_with_content_list;
       delete velocity_block_with_no_content_list;
-      populations.~vector();
-      face_neighbor_ranks.~map();
 
       // These should be empty when created, but let's play safe.
       velocity_block_with_content_list = new std::vector<vmesh::GlobalID>(*(other.velocity_block_with_content_list));
