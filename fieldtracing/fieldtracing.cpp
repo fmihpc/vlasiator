@@ -53,7 +53,7 @@ namespace FieldTracing {
       if(fieldTracingParameters.doTraceOpenClosed) {
          traceOpenClosedConnection(technicalGrid, perBGrid, dPerBGrid, nodes);
       }
-      if(fieldTracingParameters.doTraceFullBox || fieldTracingParameters.doTraceFluxRopes) {
+      if(fieldTracingParameters.doTraceFullBox) {
          traceFullBoxConnectionAndFluxRopes(technicalGrid, perBGrid, dPerBGrid, mpiGrid);
       }
    }

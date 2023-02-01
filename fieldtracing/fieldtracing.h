@@ -71,7 +71,6 @@ namespace FieldTracing {
    struct FieldTracingParameters {
       bool doTraceOpenClosed=false;
       bool doTraceFullBox=false;
-      bool doTraceFluxRopes = false;
       bool useCache=false;
       TracingMethod tracingMethod;
       Real max_allowed_error; /*!< Maximum alowed error for the adaptive field line tracing methods */

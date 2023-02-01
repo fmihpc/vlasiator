@@ -397,7 +397,7 @@ bool propagateFields(
    
    calculateVolumeAveragedFields(perBGrid,EGrid,dPerBGrid,volGrid,technicalGrid);
    calculateBVOLDerivativesSimple(volGrid, technicalGrid, sysBoundaries);
-   if(FieldTracing::fieldTracingParameters.doTraceFluxRopes || Parameters::computeCurvature) {
+   if(FieldTracing::fieldTracingParameters.doTraceFullBox || Parameters::computeCurvature) {
       volGrid.updateGhostCells();
       calculateCurvatureSimple(volGrid, BgBGrid, technicalGrid, sysBoundaries);
    }

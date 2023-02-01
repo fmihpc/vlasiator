@@ -3147,7 +3147,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          Parameters::computeCurvature = true;
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_curvature",CellParams::CURVATUREX,3));
          if(lowercase == "vg_fluxrope") {
-            FieldTracing::fieldTracingParameters.doTraceFluxRopes = true;
+            FieldTracing::fieldTracingParameters.doTraceFullBox = true;
             outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_fluxrope",CellParams::FLUXROPE,1));
          }
          continue;
