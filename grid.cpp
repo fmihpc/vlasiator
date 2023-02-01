@@ -153,6 +153,7 @@ void initializeGrids(
       .initialize(comm)
       .set_geometry(geom_params);
 
+   mpiGrid.set_partitioning_option("RCB_RECTILINEAR_BLOCKS", "1");
 
    phiprof::start("Refine spatial cells");
    recalculateLocalCellsCache();
