@@ -783,7 +783,7 @@ void calculateScaledDeltas(
    cell->parameters[CellParams::AMR_DBSQ] = dBsq;
    cell->parameters[CellParams::AMR_DB] = dB;
    cell->parameters[CellParams::AMR_ALPHA] = alpha;
-   cell->parameters[CellParams::AMR_JPERB] = J / Bperp;
+   cell->parameters[CellParams::AMR_JPERB] = J / (Bperp + EPS);   // Epsilon in denominator so we don't get infinities
 }
 
 /*! \brief High-level scaled gradient calculation wrapper function.
