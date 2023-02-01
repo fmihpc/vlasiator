@@ -686,7 +686,7 @@ static std::array<Real, 3> getMomentumDensity(SpatialCell* cell)
    return std::array<Real, 3> { {rho * cell->parameters[CellParams::VX], rho * cell->parameters[CellParams::VY], rho * cell->parameters[CellParams::VZ]} };
 }
 
-/*! \brief Calculates energy density for spatial cell with only perturbated magnetic field
+/*! \brief Calculates energy density for spatial cell with only perturbed magnetic field
  *
  */
 static Real calculateU1(SpatialCell* cell)
@@ -730,27 +730,22 @@ void calculateScaledDeltas(
       }
       if (Real maxU = std::max(myU, otherU)) {
          dU = std::max(fabs(myU - otherU) / maxU, dU);
-         dPsq = std::max((pow(myP[0] - otherP[0], 2) + pow(myP[1] - otherP[1], 2) + pow(myP[2] - otherP[2], 2)) / (2 * myRho * maxU), dPsq) / 4.0;
-         dBsq = std::max(deltaBsq / (2 * physicalconstants::MU_0 * maxU), dBsq) / 4.0;
+         dPsq = std::max((pow(myP[0] - otherP[0], 2) + pow(myP[1] - otherP[1], 2) + pow(myP[2] - otherP[2], 2)) / (2 * myRho * maxU), dPsq);
+         dBsq = std::max(deltaBsq / (2 * physicalconstants::MU_0 * maxU), dBsq);
       }
       if(Real maxB = sqrt(std::max(pow(myB[0], 2) + pow(myB[1], 2) + pow(myB[2], 2), pow(otherB[0], 2) + pow(otherB[1], 2) + pow(otherB[2], 2)))) {
-         dB = std::max(sqrt(deltaBsq) / maxB, dB) / 2.0;
+         dB = std::max(sqrt(deltaBsq) / maxB, dB);
       }
    }
    
-   Real alpha = dRho;
-   if (dU > alpha) {
-      alpha = dU;
-   }
-   if (dPsq > alpha) {
-      alpha = dPsq;
-   }
-   if (dBsq > alpha) {
-      alpha = dBsq;
-   }
-   if (dB > alpha) {
-      alpha = dB;
-   }
+   Real alpha {0.0};
+   alpha = std::max(alpha, dRho);
+   alpha = std::max(alpha, dU);
+   alpha = std::max(alpha, dPsq);
+   alpha = std::max(alpha, dBsq);
+   alpha = std::max(alpha, dB);
+   // Clip to 1.0 since that's the maximum of the first two constituents
+   alpha = std::min(alpha, 1.0);
 
    Real dBXdy {cell->derivativesBVOL[bvolderivatives::dPERBXVOLdy]};
    Real dBXdz {cell->derivativesBVOL[bvolderivatives::dPERBXVOLdz]};
