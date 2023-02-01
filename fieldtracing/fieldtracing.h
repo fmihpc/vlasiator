@@ -59,7 +59,12 @@ template<class T> std::array<Real, 3> getFractionalFsGridCellForCoord(T& grid, c
 }
 
 namespace FieldTracing {
-      
+   
+   enum Direction {
+      FORWARD,
+      BACKWARD
+   };
+   
    /*! Field line integrator for Magnetosphere<->Ionosphere coupling */
    enum TracingMethod { 
       Euler,        // Euler stepping (constant stepsize)

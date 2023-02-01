@@ -761,8 +761,112 @@ namespace FieldTracing {
       phiprof::stop("fieldtracing-ionosphere-openclosedTracing");
    }
    
-   /*! Trace magnetic field lines forward and backward from each DCCRG cell to record the connectivity and detect flux ropes.
-   */
+   /*!< Inside the tracing loop for full box + flux rope tracing,
+    * trace all field lines across this task's domain.
+    * Beware this is inside a threaded region.
+    * \sa traceFullBoxConnectionAndFluxRopes
+    */
+   void stepCellAcrossTaskDomain(
+      cint n,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      TracingFieldFunction & tracingFullField,
+      const std::vector<std::array<Real,3>> & cellInitialCoordinates,
+      const std::vector<Real> & cellCurvatureRadius,
+      std::vector<signed char> & cellNeedsContinuedTracing,
+      std::vector<std::array<Real, 3>> & cellTracingCoordinates,
+      std::vector<Real> & cellTracingStepSize,
+      std::vector<Real> & cellRunningDistance,
+      std::vector<signed char> & cellConnection,
+      bool & warnMaxDistanceExceeded,
+      creal maxTracingDistance,
+      cuint DIRECTION
+   ) {
+      std::array<Real, 3> x = cellTracingCoordinates[n];
+      std::array<Real, 3> v({0,0,0});
+      while( true ) {
+         // Check if the current coordinates (pre-step) are in our own domain.
+         std::array<int, 3> fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
+         // If it is not in our domain, somebody else takes care of it.
+         if(fsgridCell[0] == -1) {
+            cellNeedsContinuedTracing[n] = 0;
+            cellTracingCoordinates[n] = {0,0,0};
+            cellTracingStepSize[n]=0;
+            break;
+         }
+         
+         // Make one step along the fieldline
+         // Forward tracing means true for last argument
+         stepFieldLine(x,v, cellTracingStepSize[n],100e3,technicalGrid.DX/2,fieldTracingParameters.tracingMethod,tracingFullField,(DIRECTION == Direction::FORWARD));
+         cellRunningDistance[n] += cellTracingStepSize[n];
+         
+         // Look up the fsgrid cell belonging to these coordinates
+         fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
+         
+         // If we map into the ionosphere, discard this field line.
+         if(sqrt(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2)) < SBC::Ionosphere::innerRadius) {
+            cellNeedsContinuedTracing[n] = 0;
+            cellTracingCoordinates[n] = {0,0,0};
+            cellConnection[n] += TracingLineEndType::CLOSED;
+            break;
+         }
+         
+         // If we map out of the box, discard this field line.
+         if(
+               x[0] > P::xmax - 4*P::dx_ini
+            || x[0] < P::xmin + 4*P::dx_ini
+            || x[1] > P::ymax - 4*P::dy_ini
+            || x[1] < P::ymin + 4*P::dy_ini
+            || x[2] > P::zmax - 4*P::dz_ini
+            || x[2] < P::zmin + 4*P::dz_ini
+         ) {
+            cellNeedsContinuedTracing[n] = 0;
+            cellTracingCoordinates[n] = {0,0,0};
+            cellConnection[n] += TracingLineEndType::OPEN;
+            break;
+         }
+         
+         // If we exceed the max tracing distance we're probably looping
+         if(cellRunningDistance[n] > maxTracingDistance) {
+            cellNeedsContinuedTracing[n] = 0;
+            cellTracingCoordinates[n] = {0,0,0};
+            cellConnection[n] += TracingLineEndType::LOOP;
+            #pragma omp critical
+            {
+               warnMaxDistanceExceeded = true;
+            }
+            break;
+         }
+         
+         // If we are still in the race for flux rope...
+         if(cellConnection[n] < TracingLineEndType::N_TYPES) {
+            creal distance = sqrt(
+                 (x[0]-(cellInitialCoordinates[n])[0])*(x[0]-(cellInitialCoordinates[n])[0])
+               + (x[1]-(cellInitialCoordinates[n])[1])*(x[1]-(cellInitialCoordinates[n])[1])
+               + (x[2]-(cellInitialCoordinates[n])[2])*(x[2]-(cellInitialCoordinates[n])[2])
+            );
+            // ...and if we traced too far from the seed, this is not a flux rope candidate and we do a single +=
+            if(distance > fieldTracingParameters.fluxrope_max_curvature_radii_extent*cellCurvatureRadius[n]
+               || cellRunningDistance[n] > fieldTracingParameters.fluxrope_max_m_to_trace
+            ) {
+               cellConnection[n] += TracingLineEndType::N_TYPES;
+            } else if(cellRunningDistance[n] > fieldTracingParameters.fluxrope_max_curvature_radii_to_trace*cellCurvatureRadius[n]) {
+               // If we're still in the game and reach this limit we have a hit and we do a double +=
+               cellConnection[n] += 2*TracingLineEndType::N_TYPES;
+            }
+         }
+         
+         // Now, after stepping, if it is no longer in our domain, another MPI rank will pick up later.
+         if(fsgridCell[0] == -1) {
+            cellNeedsContinuedTracing[n] = 1;
+            cellTracingCoordinates[n] = x;
+            break;
+         }
+      } // while true
+   }
+   
+   /*!< Trace magnetic field lines forward and backward from each DCCRG cell to record the connectivity and detect flux ropes.
+    * \sa stepCellAcrossTaskDomain
+    */
    void traceFullBoxConnectionAndFluxRopes(
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -792,6 +896,7 @@ namespace FieldTracing {
       std::vector<Real> cellBWTracingStepSize(globalDccrgSize, stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
       
       std::array<int, 3> gridSize = technicalGrid.getGlobalSize();
+      // This is a heuristic considering how far an IMF+dipole combo can sensibly stretch in the box before we're safe to assume it's rolled up more or less pathologically.
       creal maxTracingDistance = 4 * (gridSize[0] * technicalGrid.DX + gridSize[1] * technicalGrid.DY + gridSize[2] * technicalGrid.DZ);
       
       std::vector<Real> cellCurvatureRadius(globalDccrgSize, 0);
@@ -849,7 +954,7 @@ namespace FieldTracing {
       }
       phiprof::stop("first-loop");
       
-      std::vector<std::array<Real,3>> cellInitialCoordinates = cellFWTracingCoordinates;
+      const std::vector<std::array<Real,3>> cellInitialCoordinates = cellFWTracingCoordinates;
       
       MPI_Allreduce(cellNeedsContinuedFWTracing.data(), reducedCellNeedsContinuedFWTracing.data(), globalDccrgSize, MPI_SIGNED_CHAR, MPI_MIN, MPI_COMM_WORLD);
       MPI_Allreduce(cellNeedsContinuedBWTracing.data(), reducedCellNeedsContinuedBWTracing.data(), globalDccrgSize, MPI_SIGNED_CHAR, MPI_MIN, MPI_COMM_WORLD);
@@ -887,171 +992,39 @@ namespace FieldTracing {
             #pragma omp for schedule(dynamic)
             for(int n=0; n<globalDccrgSize; n++) {
                if(cellNeedsContinuedFWTracing[n] > 0) {
-                  std::array<Real, 3> x = cellFWTracingCoordinates[n];
-                  std::array<Real, 3> v({0,0,0});
-                  while( true ) {
-                     // Check if the current coordinates (pre-step) are in our own domain.
-                     std::array<int, 3> fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
-                     // If it is not in our domain, somebody else takes care of it.
-                     if(fsgridCell[0] == -1) {
-                        cellNeedsContinuedFWTracing[n] = 0;
-                        cellFWTracingCoordinates[n] = {0,0,0};
-                        cellFWTracingStepSize[n]=0;
-                        break;
-                     }
-                     
-                     // Make one step along the fieldline
-                     // Forward tracing means true for last argument
-                     stepFieldLine(x,v, cellFWTracingStepSize[n],100e3,technicalGrid.DX/2,fieldTracingParameters.tracingMethod,tracingFullField,true);
-                     cellFWRunningDistance[n] += cellFWTracingStepSize[n];
-                     
-                     // Look up the fsgrid cell belonging to these coordinates
-                     fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
-                     
-                     // If we map into the ionosphere, discard this field line.
-                     if(sqrt(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2)) < SBC::Ionosphere::innerRadius) {
-                        cellNeedsContinuedFWTracing[n] = 0;
-                        cellFWTracingCoordinates[n] = {0,0,0};
-                        cellFWConnection[n] += TracingLineEndType::CLOSED;
-                        break;
-                     }
-                     
-                     // If we map out of the box, discard this field line.
-                     if(
-                           x[0] > P::xmax - 4*P::dx_ini
-                        || x[0] < P::xmin + 4*P::dx_ini
-                        || x[1] > P::ymax - 4*P::dy_ini
-                        || x[1] < P::ymin + 4*P::dy_ini
-                        || x[2] > P::zmax - 4*P::dz_ini
-                        || x[2] < P::zmin + 4*P::dz_ini
-                     ) {
-                        cellNeedsContinuedFWTracing[n] = 0;
-                        cellFWTracingCoordinates[n] = {0,0,0};
-                        cellFWConnection[n] += TracingLineEndType::OPEN;
-                        break;
-                     }
-                     
-                     // If we exceed the max tracing distance we're probably looping
-                     if(cellFWRunningDistance[n] > maxTracingDistance) {
-                        cellNeedsContinuedFWTracing[n] = 0;
-                        cellFWTracingCoordinates[n] = {0,0,0};
-                        cellFWConnection[n] += TracingLineEndType::LOOP;
-                        #pragma omp critical
-                        {
-                           warnMaxDistanceExceeded = true;
-                        }
-                        break;
-                     }
-                     
-                     // If we are still in the race for flux rope...
-                     if(cellFWConnection[n] < TracingLineEndType::N_TYPES) {
-                        creal distance = sqrt(
-                             (x[0]-(cellInitialCoordinates[n])[0])*(x[0]-(cellInitialCoordinates[n])[0])
-                           + (x[1]-(cellInitialCoordinates[n])[1])*(x[1]-(cellInitialCoordinates[n])[1])
-                           + (x[2]-(cellInitialCoordinates[n])[2])*(x[2]-(cellInitialCoordinates[n])[2])
-                        );
-                        // ...and if we traced too far from the seed, this is not a flux rope candidate and we do a single +=
-                        if(distance > fieldTracingParameters.fluxrope_max_curvature_radii_extent*cellCurvatureRadius[n]
-                           || cellFWRunningDistance[n] > fieldTracingParameters.fluxrope_max_m_to_trace
-                        ) {
-                           cellFWConnection[n] += TracingLineEndType::N_TYPES;
-                        } else if(cellFWRunningDistance[n] > fieldTracingParameters.fluxrope_max_curvature_radii_to_trace*cellCurvatureRadius[n]) {
-                           // If we're still in the game and reach this limit we have a hit and we do a double +=
-                           cellFWConnection[n] += 2*TracingLineEndType::N_TYPES;
-                        }
-                     }
-                     
-                     // Now, after stepping, if it is no longer in our domain, another MPI rank will pick up later.
-                     if(fsgridCell[0] == -1) {
-                        cellNeedsContinuedFWTracing[n] = 1;
-                        cellFWTracingCoordinates[n] = x;
-                        break;
-                     }
-                  } // while true
-               } // if FW
+                  stepCellAcrossTaskDomain(
+                     n,
+                     technicalGrid,
+                     tracingFullField,
+                     cellInitialCoordinates,
+                     cellCurvatureRadius,
+                     cellNeedsContinuedFWTracing,
+                     cellFWTracingCoordinates,
+                     cellFWTracingStepSize,
+                     cellFWRunningDistance,
+                     cellFWConnection,
+                     warnMaxDistanceExceeded,
+                     maxTracingDistance,
+                     Direction::FORWARD
+                  );
+               }
                if(cellNeedsContinuedBWTracing[n] > 0) {
-                  std::array<Real, 3> x = cellBWTracingCoordinates[n];
-                  std::array<Real, 3> v({0,0,0});
-                  while( true ) {
-                     // Check if the current coordinates (pre-step) are in our own domain.
-                     std::array<int, 3> fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
-                     // If it is not in our domain, somebody else takes care of it.
-                     if(fsgridCell[0] == -1) {
-                        cellNeedsContinuedBWTracing[n] = 0;
-                        cellBWTracingCoordinates[n] = {0,0,0};
-                        cellBWTracingStepSize[n]=0;
-                        break;
-                     }
-                     
-                     // Make one step along the fieldline
-                     // Backward tracing means false for last argument
-                     stepFieldLine(x,v, cellBWTracingStepSize[n],100e3,technicalGrid.DX/2,fieldTracingParameters.tracingMethod,tracingFullField,false);
-                     cellBWRunningDistance[n] += cellBWTracingStepSize[n];
-                     
-                     // Look up the fsgrid cell belonging to these coordinates
-                     fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
-                     
-                     // If we map into the ionosphere, discard this field line.
-                     if(sqrt(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2)) < SBC::Ionosphere::innerRadius) {
-                        cellNeedsContinuedBWTracing[n] = 0;
-                        cellBWTracingCoordinates[n] = {0,0,0};
-                        cellBWConnection[n] += TracingLineEndType::CLOSED;
-                        break;
-                     }
-                     
-                     // If we map out of the box, discard this field line.
-                     if(
-                           x[0] > P::xmax - 4*P::dx_ini
-                        || x[0] < P::xmin + 4*P::dx_ini
-                        || x[1] > P::ymax - 4*P::dy_ini
-                        || x[1] < P::ymin + 4*P::dy_ini
-                        || x[2] > P::zmax - 4*P::dz_ini
-                        || x[2] < P::zmin + 4*P::dz_ini
-                     ) {
-                        cellNeedsContinuedBWTracing[n] = 0;
-                        cellBWTracingCoordinates[n] = {0,0,0};
-                        cellBWConnection[n] += TracingLineEndType::OPEN;
-                        break;
-                     }
-                     
-                     // If we exceed the max tracing distance we're probably looping
-                     if(cellBWRunningDistance[n] > maxTracingDistance) {
-                        cellNeedsContinuedBWTracing[n] = 0;
-                        cellBWTracingCoordinates[n] = {0,0,0};
-                        cellBWConnection[n] += TracingLineEndType::LOOP;
-                        #pragma omp critical
-                        {
-                           warnMaxDistanceExceeded = true;
-                        }
-                        break;
-                     }
-                     
-                     // If we are still in the race for flux rope...
-                     if(cellBWConnection[n] < TracingLineEndType::N_TYPES) {
-                        creal distance = sqrt(
-                             (x[0]-(cellInitialCoordinates[n])[0])*(x[0]-(cellInitialCoordinates[n])[0])
-                           + (x[1]-(cellInitialCoordinates[n])[1])*(x[1]-(cellInitialCoordinates[n])[1])
-                           + (x[2]-(cellInitialCoordinates[n])[2])*(x[2]-(cellInitialCoordinates[n])[2])
-                        );
-                        // ...and if we traced too far from the seed, this is not a flux rope candidate and we do a single +=
-                        if(distance > fieldTracingParameters.fluxrope_max_curvature_radii_extent*cellCurvatureRadius[n]
-                           || cellBWRunningDistance[n] > fieldTracingParameters.fluxrope_max_m_to_trace
-                        ) {
-                           cellBWConnection[n] += TracingLineEndType::N_TYPES;
-                        } else if(cellBWRunningDistance[n] > fieldTracingParameters.fluxrope_max_curvature_radii_to_trace*cellCurvatureRadius[n]) {
-                           // If we're still in the game and reach this limit we have a hit and we do a double +=
-                           cellBWConnection[n] += 2*TracingLineEndType::N_TYPES;
-                        }
-                     }
-                     
-                     // Now, after stepping, if it is no longer in our domain, another MPI rank will pick up later.
-                     if(fsgridCell[0] == -1) {
-                        cellNeedsContinuedBWTracing[n] = 1;
-                        cellBWTracingCoordinates[n] = x;
-                        break;
-                     }
-                  } // while true
-               } // if BW
+                  stepCellAcrossTaskDomain(
+                     n,
+                     technicalGrid,
+                     tracingFullField,
+                     cellInitialCoordinates,
+                     cellCurvatureRadius,
+                     cellNeedsContinuedBWTracing,
+                     cellBWTracingCoordinates,
+                     cellBWTracingStepSize,
+                     cellBWRunningDistance,
+                     cellBWConnection,
+                     warnMaxDistanceExceeded,
+                     maxTracingDistance,
+                     Direction::BACKWARD
+                  );
+               }
             } // for
             
             // Globally reduce whether any node still needs to be picked up and traced onwards
