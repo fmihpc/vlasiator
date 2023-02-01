@@ -34,7 +34,7 @@ testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0 -
 #CXXFLAGS += -g -O3 -qopenmp -std=c++11 -W -Wall -Wno-unused -march=core-avx2 -qopt-zmm-usage=high
 #testpackage: CXXFLAGS = -g -traceback -O2 -qopenmp -std=c++14  -W -Wall -Wno-unused -march=core-avx2
 
-MATHFLAGS = -ffast-math
+MATHFLAGS = -freciprocal-math -fcx-limited-range -fno-math-errno -fassociative-math -fno-signed-zeros #-ffast-math
 LDFLAGS = -lrt
 #LDFLAGS = -qopenmp -lifcore -liomp5 -pthread -lboost_program_options -lzoltan -lvlsv -lphiprof -ljemalloc 
 LIB_MPI = -lgomp 
