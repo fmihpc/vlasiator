@@ -235,7 +235,7 @@ namespace projects {
                cell->add_velocity_block(blockGID,popID);
                blocksToInitialize.push_back(blockGID);
       }
-
+      delete vblocks_ini;
       return blocksToInitialize;
    }
    
@@ -340,12 +340,7 @@ namespace projects {
          }
       }
 
-#ifndef VAMR
-      if (rescalesDensity(popID) == true) {
-         rescaleDensity(cell,popID);
-      }
-      return;
-#else
+#ifdef VAMR
       // Get VAMR refinement criterion and use it to test which blocks should be refined
       vamr_ref_criteria::Base* refCriterion = getObjectWrapper().vamrVelRefCriteria.create(Parameters::vamrVelRefCriterion);
       if (refCriterion == NULL) {
@@ -416,7 +411,10 @@ namespace projects {
       delete refCriterion;
 #endif
 
-      if (rescalesDensity(popID) == true) rescaleDensity(cell,popID);
+      if (rescalesDensity(popID) == true) {
+         rescaleDensity(cell,popID);
+      }
+      return;
    }
 
    /** Check if the project wants to rescale densities.
