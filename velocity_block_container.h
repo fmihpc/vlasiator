@@ -121,8 +121,15 @@ namespace vmesh {
    template<typename LID> inline
    VelocityBlockContainer<LID>::VelocityBlockContainer() : currentCapacity {0}, numberOfBlocks {0} {
 #ifdef USE_CUDA
-      block_data= new split::SplitVector<Realf>;
-      parameters= new split::SplitVector<Real>;
+      if (currentCapacity==0) {
+         block_data= new split::SplitVector<Realf>(1);
+         parameters= new split::SplitVector<Real>(1);
+         block_data->clear();
+         parameters->clear();
+      } else {
+         block_data= new split::SplitVector<Realf>(currentCapacity);
+         parameters= new split::SplitVector<Real>(currentCapacity);
+      }
 #else
       if (currentCapacity==0) {
          // initialization with zero capacity would return null pointers

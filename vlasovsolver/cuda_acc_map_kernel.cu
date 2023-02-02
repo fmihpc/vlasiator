@@ -159,7 +159,7 @@ __global__ void reorder_blocks_by_dimension_kernel(
    // Takes the contents of blockData, sorts it into blockDataOrdered,
    // performing transposes as necessary
    // Works column-per-column and adds the necessary one empty block at each end
-   const int nThreads = blockDim.x; // should be equal to VECL
+   //const int nThreads = blockDim.x; // should be equal to VECL
    const int ti = threadIdx.x;
    const int start = blockIdx.x;
    const int cudaBlocks = gridDim.x;

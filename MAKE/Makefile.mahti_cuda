@@ -61,23 +61,13 @@ CUDABLOCKS=108
 CMP = mpic++
 LNK = mpic++
 
-ifeq ($(USE_CUDA),1)
-   CMPGPUFLAGS = -g -O2 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 -Xcompiler -fopenmp --generate-line-info -line-info -Xcompiler="-fpermissive"
-   CXXFLAGS = -g -O2 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 -Xcompiler -fopenmp --generate-line-info -line-info -Xcompiler="-fpermissive"
-   testpackage: CMPGPUFLAGS = -g -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 -Xcompiler -fopenmp --prec-sqrt=true --prec-div=true --ftz=false --fmad=false --generate-line-info -line-info -Xcompiler="-fpermissive"
-   testpackage: CXXFLAGS = -g -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 -Xcompiler -fopenmp --prec-sqrt=true --prec-div=true --ftz=false --fmad=false --generate-line-info -line-info -Xcompiler="-fpermissive"
-else
-   CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -fopenmp -std=c++17 -rdynamic
-   testpackage: CXXFLAGS = -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -fopenmp -std=c++17
-endif
+CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -fopenmp -std=c++17 -rdynamic -fpermissive
+testpackage: CXXFLAGS = -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -fopenmp -std=c++17 -fpermissive
 
-ifeq ($(USE_CUDA),1)
-   CMPGPU = OMPI_CXX='nvcc' OMPI_CXXFLAGS='' mpic++
-   CMP = OMPI_CXX='nvcc' OMPI_CXXFLAGS='' mpic++
-else
-   CMPGPUFLAGS = ${CXXFLAGS}
-   CMPGPU = ${CMP}
-endif
+CMPGPUFLAGS = -g -O2 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 -Xcompiler -fopenmp --generate-line-info -line-info -Xcompiler="-fpermissive"
+testpackage: CMPGPUFLAGS = -g -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 -Xcompiler -fopenmp --prec-sqrt=true --prec-div=true --ftz=false --fmad=false --generate-line-info -line-info -Xcompiler="-fpermissive"
+
+CMPGPU = OMPI_CXX='nvcc' OMPI_CXXFLAGS='' mpic++
 
 MATHFLAGS =
 LDFLAGS = -O2 -g -L/appl/spack/v016/install-tree/gcc-4.8.5/nvhpc-21.2-l6xyb4/Linux_x86_64/21.2/cuda/11.2/lib64 -lnvToolsExt

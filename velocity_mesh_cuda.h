@@ -40,6 +40,10 @@
 #include "src/hashinator/hashinator.h"
 #include "src/splitvector/splitvec.h"
 
+#include "device_launch_parameters.h"
+#include "cuda.h"
+#include "cuda_runtime.h"
+
 namespace vmesh {
 
    template<typename GID,typename LID>
@@ -64,10 +68,7 @@ namespace vmesh {
       GID getGlobalID(const Real* coords) const;
       GID getGlobalID(LID indices[3]) const;
       GID getGlobalID(const LID& i,const LID& j,const LID& k) const;
-//#ifndef __CUDA_ARCH__ // No splitvector version of this?
-      std::vector<GID>& getGrid();
-//#endif
-      //split::SplitVector<GID>& dev_getGrid();
+      split::SplitVector<GID>& getGrid();
       const LID* getGridLength(const uint8_t& refLevel=0) const;
       void getIndices(const GID& globalID,const uint8_t& refLevel,LID& i,LID& j,LID& k) const;
       void getIndices(const GID& globalID,LID& i,LID& j,LID& k) const;
@@ -99,7 +100,7 @@ namespace vmesh {
       void setNewSize(const LID& newSize);
       size_t size() const;
       size_t sizeInBytes() const;
-      void swap(VelocityMesh& vm);
+       void swap(VelocityMesh& vm);
 
     private:
       //static std::vector<vmesh::MeshParameters> meshParameters;
@@ -318,13 +319,10 @@ namespace vmesh {
               + k*meshParameters[meshID].gridLength[0]*meshParameters[meshID].gridLength[1];
    }
 
-//#ifndef __CUDA_ARCH__
    template<typename GID,typename LID> inline
-   std::vector<GID>& VelocityMesh<GID,LID>::getGrid() {
-      std::vector<GID> returnvector(localToGlobalMap.begin(), localToGlobalMap.end());
-      return returnvector;
+   split::SplitVector<GID>& VelocityMesh<GID,LID>::getGrid() {
+      return localToGlobalMap;
    }
-//#endif
 
    template<typename GID,typename LID> inline
    const LID* VelocityMesh<GID,LID>::getGridLength(const uint8_t& refLevel) const {
@@ -377,8 +375,8 @@ namespace vmesh {
 
 //#ifndef __CUDA_ARCH__
    template<typename GID,typename LID> inline
-   //   bool VelocityMesh<GID,LID>::initialize(const size_t& meshID,std::vector<vmesh::MeshParameters>& meshParamIn) {
-      bool VelocityMesh<GID,LID>::initialize(const size_t& meshID,split::SplitVector<vmesh::MeshParameters>& meshParamIn) {
+   //bool VelocityMesh<GID,LID>::initialize(const size_t& meshID,std::vector<vmesh::MeshParameters>& meshParamIn) {
+   bool VelocityMesh<GID,LID>::initialize(const size_t& meshID,split::SplitVector<vmesh::MeshParameters>& meshParamIn) {
       meshParamIn[meshID].initialized = false;
 
       meshParamIn[meshID].meshMinLimits[0] = meshParamIn[meshID].meshLimits[0];

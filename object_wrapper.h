@@ -50,6 +50,7 @@ struct ObjectWrapper {
    projects::Project*                    project;           /**< Simulated project.*/
 #ifdef USE_CUDA
    split::SplitVector<vmesh::MeshParameters> velocityMeshes;       /**< Parameters for velocity mesh(es).*/
+   //std::vector<vmesh::MeshParameters> velocityMeshes;       /**< Parameters for velocity mesh(es).*/
 #else
    std::vector<vmesh::MeshParameters> velocityMeshes;       /**< Parameters for velocity mesh(es).*/
 #endif

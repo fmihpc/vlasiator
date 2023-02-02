@@ -658,7 +658,6 @@ namespace spatial_cell {
 
       std::vector<MPI_Aint> displacements;
       std::vector<int> block_lengths;
-      vmesh::LocalID block_index = 0;
 
       // create datatype for actual data if we are in the first two
       // layers around a boundary, or if we send for the whole system
@@ -968,7 +967,7 @@ namespace spatial_cell {
       }
 
       // Iterate over all octants, each octant corresponds to a different child:
-      bool removeBlock = false;
+      //bool removeBlock = false;
       for (int k_oct=0; k_oct<2; ++k_oct) for (int j_oct=0; j_oct<2; ++j_oct) for (int i_oct=0; i_oct<2; ++i_oct) {
          // Copy data belonging to the octant to a temporary array:
          Realf array[WID3];

@@ -50,8 +50,8 @@ __host__ void cuda_set_device() {
    int amps_rank;
    int amps_node_rank;
    int amps_node_size;
-   int amps_write_rank;
-   int amps_write_size;
+   // int amps_write_rank;
+   // int amps_write_size;
    MPI_Comm amps_CommWorld = MPI_COMM_NULL;
    MPI_Comm amps_CommNode = MPI_COMM_NULL;
 

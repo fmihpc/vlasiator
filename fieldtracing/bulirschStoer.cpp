@@ -42,7 +42,7 @@ namespace FieldTracing {
       std::array<Real,3> bunit,crd,z0,zmid,z1;
       //Divide by number of sub steps      
       Real h= stepsize/(Real)n;
-      Real norm;
+      //Real norm;
       
       //First step 
       BFieldFunction(r,outwards,bunit);
@@ -88,7 +88,7 @@ namespace FieldTracing {
       const int ndim = kMax*kMax*3;
       std::array<int,3>  dims={kMax,kMax,3};
       std::vector<Real>table(ndim);
-      std::array<Real,3> rold,rnew,r1;
+      std::array<Real,3> rnew,r1;
       Real error;
       
       //Get B field unit vector in case we don't converge yet
@@ -96,8 +96,6 @@ namespace FieldTracing {
       
       //Let's start things up with 2 substeps
       int n =2;
-      //Save old state
-      rold = r;
       //Take a first Step
       modifiedMidpointMethod(r,r1,n,stepSize,BFieldFunction,outwards);
       

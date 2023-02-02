@@ -269,7 +269,6 @@ namespace SBC {
          }
 
          // Make it delaunay
-         int numAdjacentVertices = 0;
          std::vector<int> adjacentVertices;
          for(int i=0; i<(int)nearestSamples.size(); i++) {
             int k = nearestSamples[i];
@@ -1130,7 +1129,6 @@ namespace SBC {
          for(uint n=0; n<nodes.size(); n++) {
 
             Real nodeAreaGeometric = 0;
-            std::array<int,3> fsc;
 
             // Map down FAC based on magnetosphere rotB
             if(nodes[n].xMapped[0] == 0. && nodes[n].xMapped[1] == 0. && nodes[n].xMapped[2] == 0.) {
@@ -1796,7 +1794,6 @@ namespace SBC {
 
       // thread variables, initialised here
       iSolverReal err = 0;
-      iSolverReal olderr = err;
       iSolverReal thread_minerr = std::numeric_limits<iSolverReal>::max();
       int thread_iteration = iteration;
       int thread_nRestarts = nRestarts;
@@ -2117,7 +2114,6 @@ namespace SBC {
          }
 
          // See if this solved the potential better than before
-         olderr = err;
          err = sqrt(residualnorm)/sourcenorm;
 
 

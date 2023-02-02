@@ -707,7 +707,6 @@ namespace projects {
          int refLevel {mpiGrid.get_refinement_level(id)};
          Real r2 {pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2)};
 
-         bool refine = false;
          const Real logDx {std::log2(P::dx_ini)};
          if (!canRefine(mpiGrid[id])) {
             // Skip refining, touching boundaries during runtime breaks everything
