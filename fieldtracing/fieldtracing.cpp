@@ -1120,9 +1120,9 @@ namespace FieldTracing {
                if(cellNeedsContinuedFWTracing[n]) {
                   cellsToDoFullBox++;
                   // Update that nodes' tracing coordinates
-                  cellFWTracingCoordinates[n][0] = sumCellFWTracingCoordinates[n][0] / reducedCellNeedsContinuedFWTracing[n];
-                  cellFWTracingCoordinates[n][1] = sumCellFWTracingCoordinates[n][1] / reducedCellNeedsContinuedFWTracing[n];
-                  cellFWTracingCoordinates[n][2] = sumCellFWTracingCoordinates[n][2] / reducedCellNeedsContinuedFWTracing[n];
+                  cellFWTracingCoordinates[n][0] = sumCellFWTracingCoordinates[n][0];
+                  cellFWTracingCoordinates[n][1] = sumCellFWTracingCoordinates[n][1];
+                  cellFWTracingCoordinates[n][2] = sumCellFWTracingCoordinates[n][2];
                   if(cellFWConnection[n] == TracingLineEndType::UNPROCESSED) {
                      cellsToDoFluxRopes++;
                   }
@@ -1130,9 +1130,9 @@ namespace FieldTracing {
                if(cellNeedsContinuedBWTracing[n]) {
                   cellsToDoFullBox++;
                   // Update that nodes' tracing coordinates
-                  cellBWTracingCoordinates[n][0] = sumCellBWTracingCoordinates[n][0] / reducedCellNeedsContinuedBWTracing[n];
-                  cellBWTracingCoordinates[n][1] = sumCellBWTracingCoordinates[n][1] / reducedCellNeedsContinuedBWTracing[n];
-                  cellBWTracingCoordinates[n][2] = sumCellBWTracingCoordinates[n][2] / reducedCellNeedsContinuedBWTracing[n];
+                  cellBWTracingCoordinates[n][0] = sumCellBWTracingCoordinates[n][0];
+                  cellBWTracingCoordinates[n][1] = sumCellBWTracingCoordinates[n][1];
+                  cellBWTracingCoordinates[n][2] = sumCellBWTracingCoordinates[n][2];
                   if(cellBWConnection[n] == TracingLineEndType::UNPROCESSED) {
                      cellsToDoFluxRopes++;
                   }
