@@ -1356,10 +1356,10 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    }
 
    phiprof::start("sum refines");
-   int refines = mpiGrid.get_local_cells_to_refine.size() + mpiGrid.get_localCells_to_unrefine.size();
+   int refines = mpiGrid.get_local_cells_to_refine().size() + mpiGrid.get_local_cells_to_unrefine().size();
    int cells = getLocalCells().size();
-   MPI_Allreduce(&refines, &bailout, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-   MPI_Allreduce(&cells, &bailout, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+   MPI_Allreduce(&refines, &refines, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+   MPI_Allreduce(&cells, &cells, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
    logFile << "(AMR) Refining and unrefining " << refines << " cells, " << 100.0 * (double) refines / (double) cells << "% of grid" << std::endl;
    phiprof::stop("sum refines");
 
