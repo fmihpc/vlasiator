@@ -674,13 +674,15 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
          }
       }
    }
-   if (cudaMaxBlockCount==0) {
-      cerr << "Error in load balance: zero blocks" << std::endl;
-      abort();
-   }
+   // if (cudaMaxBlockCount==0) {
+   //    cerr << "Error in load balance: zero blocks" << std::endl;
+   //    abort();
+   // }
    // Call CUDA routines for per-thread memory allocation for ACC
    // deallocates first if necessary
-   cuda_acc_allocate(cudaMaxBlockCount);
+   if (cudaMaxBlockCount>0) {
+      cuda_acc_allocate(cudaMaxBlockCount);
+   }
    phiprof::stop("CUDA_malloc");
 #endif
    

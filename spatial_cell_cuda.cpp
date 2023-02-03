@@ -369,7 +369,6 @@ namespace spatial_cell {
 
       std::vector<MPI_Aint> displacements;
       std::vector<int> block_lengths;
-      //vmesh::LocalID block_index = 0;
 
       // create datatype for actual data if we are in the first two
       // layers around a boundary, or if we send for the whole system

@@ -162,9 +162,6 @@ namespace spatial_cell {
       SpatialCell(const SpatialCell& other);
       const SpatialCell& operator=(const SpatialCell& other);
 
-      // SpatialCell(const SpatialCell& other);
-      // const SpatialCell& operator=(const SpatialCell& other);
-
       vmesh::GlobalID find_velocity_block(vmesh::GlobalID cellIndices[3],const uint popID);
       Realf* get_data(const uint popID);
       const Realf* get_data(const uint popID) const;
@@ -283,7 +280,7 @@ namespace spatial_cell {
       split::SplitVector<vmesh::GlobalID> *velocity_block_with_content_list;          /**< List of existing cells with content, only up-to-date after
                                                                                * call to update_has_content().*/
       vmesh::LocalID velocity_block_with_content_list_size;                   /**< Size of vector. Needed for MPI communication of size before actual list transfer.*/
-      split::SplitVector<vmesh::GlobalID> *velocity_block_with_no_content_list;       /**< List of existing cells with no content, only up-to-date after
+      split::SplitVector<vmesh::GlobalID> *velocity_block_with_no_content_list;  /**< List of existing cells with no content, only up-to-date after
                                                                                * call to update_has_content. This is also never transferred
                                                                                * over MPI, so is invalid on remote cells.*/
       static uint64_t mpi_transfer_type;                                      /**< Which data is transferred by the mpi datatype given by spatial cells.*/
@@ -996,6 +993,7 @@ namespace spatial_cell {
       // there are too many blocks in the spatial cell
       bool success = true;
       if (populations[popID].vmesh.push_back(block) == false) {
+         std::cerr<<"vmehs.push_back(block) "<<block<<std::endl;
          return false;
       }
 
@@ -1008,6 +1006,7 @@ namespace spatial_cell {
       parameters[BlockParams::VYCRD] = get_velocity_block_vy_min(popID,block);
       parameters[BlockParams::VZCRD] = get_velocity_block_vz_min(popID,block);
       populations[popID].vmesh.getCellSize(block,&(parameters[BlockParams::DVX]));
+      std::cerr<<"success "<<block<<" LID "<<VBC_LID<<" "<<VBC_LID<<" "<<parameters[BlockParams::VXCRD]<<" "<<parameters[BlockParams::VYCRD]<<" "<<parameters[BlockParams::VZCRD]<<" "<<parameters[BlockParams::DVX]<<" "<<parameters[BlockParams::DVY]<<" "<<parameters[BlockParams::DVZ]<<" params "<<parameters<<std::endl;
 
       // The following call 'should' be the fastest, but is actually
       // much slower that the parameter setting above

@@ -56,7 +56,11 @@ namespace projects {
       const size_t vzblocks_ini = cell->get_velocity_grid_length(popID,refLevel)[2];
 
       const vector<std::array<Real, 3>> V0 = this->getV0(x+0.5*dx, y+0.5*dy, z+0.5*dz, popID);
+      uint peak = 0;
+      std::cerr<<"grid "<<x<<" "<<y<<" "<<z<<" "<<dx<<" "<<dy<<" "<<dz<<" "<<dvxCell<<" "<<dvyCell<<" "<<dvzCell<<" "<<dvxBlock<<" "<<dvyBlock<<" "<<dvzBlock<<" "<<vxblocks_ini<<" "<<vyblocks_ini<<" "<<vzblocks_ini<<" "<<cell->get_velocity_grid_length(popID,refLevel)[0]<<" "<<cell->get_velocity_grid_length(popID,refLevel)[1]<<" "<<cell->get_velocity_grid_length(popID,refLevel)[2]<<std::endl;
       for (vector<std::array<Real, 3>>::const_iterator it = V0.begin(); it != V0.end(); it++) {
+         std::cerr<<"peak "<<peak<<" ";
+         peak++;
          // VX search
          search = true;
          counter = 0;
@@ -125,8 +129,8 @@ namespace projects {
          vRadiusSquared = max(vRadiusSquared, (Real)counter*(Real)counter*dvzBlock*dvzBlock);
 
          // Block listing
-         for (uint kv=0; kv<vzblocks_ini; ++kv) 
-            for (uint jv=0; jv<vyblocks_ini; ++jv)
+         for (uint kv=0; kv<vzblocks_ini; ++kv) {
+            for (uint jv=0; jv<vyblocks_ini; ++jv) {
                for (uint iv=0; iv<vxblocks_ini; ++iv) {
                   vmesh::GlobalID blockIndices[3];
                   blockIndices[0] = iv;
@@ -149,14 +153,18 @@ namespace projects {
                      cell->add_velocity_block(blockGID,popID);
                      blocksToInitialize.insert(blockGID);
                   }
-               }
+               } // vxblocks_ini
+            } // vyblocks_ini
+         } // vzblocks_ini
+         std::cerr<<std::endl<<"   BlocksToInitLength "<<blocksToInitialize.size()<<std::endl;
       }
+      std::cerr<<"grid "<<x<<" "<<y<<" "<<z<<" "<<dx<<" "<<dy<<" "<<dz<<" "<<dvxCell<<" "<<dvyCell<<" "<<dvzCell<<" "<<dvxBlock<<" "<<dvyBlock<<" "<<dvzBlock<<" "<<vxblocks_ini<<" "<<vyblocks_ini<<" "<<vzblocks_ini<<" "<<cell->get_velocity_grid_length(popID,refLevel)[0]<<" "<<cell->get_velocity_grid_length(popID,refLevel)[1]<<" "<<cell->get_velocity_grid_length(popID,refLevel)[2]<<std::endl;
 
       vector<vmesh::GlobalID> returnVector;
       for (set<vmesh::GlobalID>::const_iterator it=blocksToInitialize.begin(); it!=blocksToInitialize.end(); ++it) {
          returnVector.push_back(*it);
       }
-
+      std::cerr<<"blocksToInitLength "<<returnVector.size()<<" "<<blocksToInitialize.size()<<std::endl;
       return returnVector;
    }
    

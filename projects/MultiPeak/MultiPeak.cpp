@@ -117,6 +117,9 @@ namespace projects {
          }
 
          speciesParams.push_back(sP);
+         for (uint i=0; i<sP.numberOfPeaks; ++i) {
+            std::cerr<<"params "<<sP.rho[i]<<" "<<sP.rhoPertAbsAmp[i]<<" "<<sP.Vx[i]<<" "<<sP.Vy[i]<<" "<<sP.Vz[i]<<" "<<sP.Tx[i]<<" "<<sP.Ty[i]<<" "<<sP.Tz[i]<<std::endl;
+         }
       }
       
       string densModelString;

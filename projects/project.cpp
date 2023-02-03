@@ -232,7 +232,9 @@ namespace projects {
                blockIndices[2] = kv;
                const vmesh::GlobalID blockGID = cell->get_velocity_block(popID,blockIndices,refLevel);
 
-               cell->add_velocity_block(blockGID,popID);
+               if (!cell->add_velocity_block(blockGID,popID)) {
+                  std::cerr<<"error adding block "<<blockGID<<std::endl;
+               }
                blocksToInitialize.push_back(blockGID);
       }
       delete vblocks_ini;
@@ -300,24 +302,28 @@ namespace projects {
       creal dvxCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
       creal dvyCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
       creal dvzCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-      
+      std::cerr<<"setVelBlock "<<blockLID<<" "<<x<<" "<<y<<" "<<z<<" "<<dx<<" "<<" "<<dy<<" "<<" "<<dz<<" "<<vxBlock<<" "<<vyBlock<<" "<<vzBlock<<" "<<dvxCell<<" "<<dvyCell<<" "<<dvzCell<<" params "<<parameters<<" data "<<data<<std::endl;
       // Calculate volume average of distribution function for each phase-space cell in the block.
       Real maxValue = 0.0;
-      for (uint kc=0; kc<WID_VZ; ++kc) for (uint jc=0; jc<WID_VY; ++jc) for (uint ic=0; ic<WID_VX; ++ic) {
-         creal vxCell = vxBlock + ic*dvxCell;
-         creal vyCell = vyBlock + jc*dvyCell;
-         creal vzCell = vzBlock + kc*dvzCell;
-         creal average =
-            calcPhaseSpaceDensity(
-               x, y, z, dx, dy, dz,
-               vxCell,vyCell,vzCell,
-               dvxCell,dvyCell,dvzCell,popID);
-         if (average != 0.0) {
-            data[blockLID*SIZE_VELBLOCK+cellIndex(ic,jc,kc)] = average;
-            maxValue = max(maxValue,average);
+      for (uint kc=0; kc<WID_VZ; ++kc) {
+         for (uint jc=0; jc<WID_VY; ++jc) {
+            for (uint ic=0; ic<WID_VX; ++ic) {
+               creal vxCell = vxBlock + ic*dvxCell;
+               creal vyCell = vyBlock + jc*dvyCell;
+               creal vzCell = vzBlock + kc*dvzCell;
+               creal average =
+                  calcPhaseSpaceDensity(
+                     x, y, z, dx, dy, dz,
+                     vxCell,vyCell,vzCell,
+                     dvxCell,dvyCell,dvzCell,popID);
+               if (average != 0.0) {
+                  data[blockLID*SIZE_VELBLOCK+cellIndex(ic,jc,kc)] = average;
+                  maxValue = max(maxValue,average);
+               }
+            }
          }
       }
-      
+      std::cerr<<"maxValue "<<maxValue<<std::endl;;
       return maxValue;
    }
    
@@ -339,6 +345,7 @@ namespace projects {
             removeList.push_back(blockGID);
          }
       }
+      std::cerr<<"removelist "<<removeList.size()<<" init "<<blocksToInitialize.size()<<std::endl;
 
 #ifdef VAMR
       // Get VAMR refinement criterion and use it to test which blocks should be refined

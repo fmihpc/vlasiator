@@ -395,10 +395,12 @@ namespace vmesh {
       #endif
 
       // Clear velocity block data to zero values
-      for (size_t i=0; i<WID3; ++i) (*block_data)[newIndex*WID3+i] = 0.0;
-      for (size_t i=0; i<BlockParams::N_VELOCITY_BLOCK_PARAMS; ++i)
+      for (size_t i=0; i<WID3; ++i) {
+         (*block_data)[newIndex*WID3+i] = 0.0;
+      }
+      for (size_t i=0; i<BlockParams::N_VELOCITY_BLOCK_PARAMS; ++i) {
          (*parameters)[newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS+i] = 0.0;
-
+      }
       ++numberOfBlocks;
       return newIndex;
    }
