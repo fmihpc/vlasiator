@@ -538,7 +538,7 @@ namespace projects {
             }
 
             buffer = readVar(varname, fileOffset, vecsize);
-
+            mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
             // Parse zeroth and first moments data
             if (vecsize == 5) {
                // Reading the new format (multipop) restart file (rhom, massVx, massVy, massVz, rhoq)
@@ -594,15 +594,25 @@ namespace projects {
             }
 
             buffer = readVar(varname, fileOffset, this->vecsizepressure);
+            Real Pdiag = 0.0;
             for (uint j=0; j < this->vecsizepressure; j++) {
                mpiGrid[cells[i]]->parameters[CellParams::P_11+j] = buffer[j];
+               Pdiag += buffer[j];
             }
             delete[] buffer;
+
+            mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] += pow(Pdiag/mpiGrid[cells[i]]->parameters[CellParams::RHOM],1.5);
+            // for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p){
+            //    setDummyVelocitySpace(p,mpiGrid[cells[i]]);
+            // }
+            
+            mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]);
          }
 
          newmpiGrid = &mpiGrid;
          this->vlsvSerialReader.close();
 
+         
          // Let initializeGrid know that this project needs the Curl of B
          needCurl = true;
       }
@@ -1125,7 +1135,7 @@ namespace projects {
          //bool done = false;
          //done = mpiGrid.stop_refining().empty();
          cells = mpiGrid.stop_refining(true);
-         std::cerr << "Refined " << cells.size() << " cells out of " << oldCells << std::endl;
+         //std::cerr << "Refined " << cells.size() << " cells out of " << oldCells << std::endl;
          //mpiGrid.balance_load();
          //recalculateLocalCellsCache();
          //initSpatialCellCoordinates(mpiGrid);
@@ -1137,6 +1147,33 @@ namespace projects {
       //this->vlsvParaReader.close();
       return true;
    }
+
+   // void ElVentana::setDummyVelocitySpace(const uint popID,SpatialCell* cell) const {
+   //    vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = cell->get_velocity_mesh(popID);
+
+   //    vector<vmesh::GlobalID> blocksToInitialize;
+   //    vmesh::LocalID blockIndices[3] = {0,0,0};
+   //    const vmesh::GlobalID blockGID = cell->get_velocity_block(popID,blockIndices,0u);
+   //    cell->add_velocity_block(blockGID,popID);
+
+   //    blocksToInitialize.push_back(blockGID);
+
+   //    vector<vmesh::GlobalID> removeList;
+   //    for (uint i=0; i<blocksToInitialize.size(); ++i) {
+   //       const vmesh::GlobalID blockGID = blocksToInitialize[i];
+   //       const vmesh::LocalID blockLID = vmesh.getLocalID(blockGID);
+   //       if (blockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
+   //          cerr << "ERROR, invalid local ID in " << __FILE__ << ":" << __LINE__ << endl;
+   //          exit(1);
+   //       }
+
+   //       const Real maxValue = setVelocityBlock(cell,blockLID,popID);
+   //    }
+
+
+   //    if (rescalesDensity(popID) == true) rescaleDensity(cell,popID);
+   //    return;
+   // }
 
 } // namespace projects
 

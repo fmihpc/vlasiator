@@ -108,6 +108,8 @@ namespace projects {
       CellID getOldCellID(CellID newID, dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, std::array<CellID, 3> fileCells, std::array<double, 3> &fileMin, std::array<double, 3> fileD);
       bool refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
 
+      //void setDummyVelocitySpace(const uint popID, SpatialCell* cell) const;
+
       //bool includeIonosphere;
       Real ionosphereRadius;
       uint ionosphereGeometry;

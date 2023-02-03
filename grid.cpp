@@ -270,6 +270,42 @@ void initializeGrids(
       // Allow the project to set up data structures for it's setCell calls
       project.setupBeforeSetCell(cells, mpiGrid, needCurl);
       if (needCurl) {
+   phiprof::start("Initial load-balancing");
+   if (myRank == MASTER_RANK) logFile << "(INIT): Starting initial load balance, again for ElVentana." << endl << writeVerbose;
+   SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
+
+   mpiGrid.balance_load(); // Direct DCCRG call, recalculate cache afterwards
+   recalculateLocalCellsCache();
+
+   if(P::amrMaxSpatialRefLevel > 0) {
+      setFaceNeighborRanks( mpiGrid );
+   }
+   phiprof::stop("Initial load-balancing");
+   //    if (myRank == MASTER_RANK) logFile << "(INIT): Set initial state." << endl << writeVerbose;
+   // phiprof::start("Set initial state");
+
+   // phiprof::start("Set spatial cell coordinates");
+   // initSpatialCellCoordinates(mpiGrid);
+   // phiprof::stop("Set spatial cell coordinates");
+
+   // SpatialCell::set_mpi_transfer_type(Transfer::CELL_DIMENSIONS);
+   // mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
+   
+   // phiprof::start("Initialize system boundary conditions");
+   // if(sysBoundaries.initSysBoundaries(project, P::t_min) == false) {
+   //    if (myRank == MASTER_RANK) cerr << "Error in initialising the system boundaries." << endl;
+   //    exit(1);
+   // }
+   // phiprof::stop("Initialize system boundary conditions");
+   
+   // // Initialise system boundary conditions (they need the initialised positions!!)
+   // phiprof::start("Classify cells (sys boundary conditions)");
+   // if(sysBoundaries.classifyCells(mpiGrid,technicalGrid) == false) {
+   //    cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
+   //    exit(1);
+   // }
+   // phiprof::stop("Classify cells (sys boundary conditions)");
+
          feedPerBIntoFsGrid(mpiGrid, cells, perBGrid);
          perBGrid.updateGhostCells();
       }
@@ -297,6 +333,8 @@ void initializeGrids(
          // Gather values back to mpiGrid
          getdBvolFieldsFromFsGrid(volGrid, BgBGrid, technicalGrid, mpiGrid, cells);	 
       }
+      
+   if (myRank == MASTER_RANK) logFile << "(INIT): Starting initial load balance, again for ElVentana." << endl << writeVerbose;
 
       phiprof::start("setCell");
       #pragma omp parallel for schedule(dynamic)
