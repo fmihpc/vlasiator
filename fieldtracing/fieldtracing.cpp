@@ -1130,9 +1130,6 @@ namespace FieldTracing {
                   cellFWTracingCoordinates[n][0] = sumCellFWTracingCoordinates[n][0];
                   cellFWTracingCoordinates[n][1] = sumCellFWTracingCoordinates[n][1];
                   cellFWTracingCoordinates[n][2] = sumCellFWTracingCoordinates[n][2];
-if(cellNeedsContinuedFWTracing[n] > 1) {
-   cerr << "Huh?\n";
-}
                   if(cellFWConnection[n] == TracingLineEndType::UNPROCESSED) {
                      cellsToDoFluxRopes++;
                   }
@@ -1143,9 +1140,6 @@ if(cellNeedsContinuedFWTracing[n] > 1) {
                   cellBWTracingCoordinates[n][0] = sumCellBWTracingCoordinates[n][0];
                   cellBWTracingCoordinates[n][1] = sumCellBWTracingCoordinates[n][1];
                   cellBWTracingCoordinates[n][2] = sumCellBWTracingCoordinates[n][2];
-if(cellNeedsContinuedFWTracing[n] > 1) {
-   cerr << "Huh?\n";
-}
                   if(cellBWConnection[n] == TracingLineEndType::UNPROCESSED) {
                      cellsToDoFluxRopes++;
                   }
