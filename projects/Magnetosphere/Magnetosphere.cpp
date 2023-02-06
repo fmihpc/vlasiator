@@ -698,7 +698,7 @@ namespace projects {
       return true;
    }
 
-   bool Magnetosphere::adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+   int Magnetosphere::adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
       phiprof::start("Set refines");
       int myRank;       
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
@@ -710,6 +710,7 @@ namespace projects {
       std::vector<CellID> cells {getLocalCells()};
       Real r_max2 {pow(P::refineRadius, 2)};
 
+      int refines {0};
       //#pragma omp parallel for
       for (CellID id : cells) {
          std::array<double,3> xyz {mpiGrid.get_center(id)};
@@ -748,10 +749,10 @@ namespace projects {
 
             if (shouldRefine || refined_neighbors > 12) {
                // Refine a cell if a majority of its neighbors are refined or about to be
-               mpiGrid.refine_completely(id);
-            } else if (shouldUnrefine && coarser_neighbors > 0) {
+               refines += mpiGrid.refine_completely(id) && refLevel < P::amrMaxSpatialRefLevel;
+            } else if (refLevel > 0 && shouldUnrefine && coarser_neighbors > 0) {
                // Unrefine a cell only if any of its neighbors is unrefined or about to be
-               mpiGrid.unrefine_completely(id);
+               refines += mpiGrid.unrefine_completely(id) && refLevel > 0;
             } else {
                // Ensure no cells above both unrefine thresholds are unrefined
                mpiGrid.dont_unrefine(id);
@@ -760,7 +761,7 @@ namespace projects {
       }
 
       phiprof::stop("Set refines");
-      return true;
+      return refines;
    }
 
    bool Magnetosphere::forceRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {

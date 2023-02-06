@@ -88,7 +88,7 @@ namespace projects {
       /*!\brief Adapts refinement by one level according to the project. Returns true if any cells were refined, false if not.
        * \param mpiGrid grid to refine
        */
-      virtual bool adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
+      virtual int adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
 
       /*!\brief Refine/unrefine spatial cells one level closer to the static criteria in the config
        * \param mpiGrid grid to refine

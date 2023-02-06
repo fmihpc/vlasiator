@@ -1349,19 +1349,27 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    phiprof::start("Re-refine spatial cells");
    calculateScaledDeltasSimple(mpiGrid);
 
+   int refines {0};
    if (useStatic) {
       project.forceRefinement(mpiGrid);
    } else {
-      project.adaptRefinement(mpiGrid);
+      refines = project.adaptRefinement(mpiGrid);
    }
 
    phiprof::start("sum refines");
-   int refines = mpiGrid.get_local_cells_to_refine().size() + mpiGrid.get_local_cells_to_unrefine().size();
    int cells = getLocalCells().size();
-   MPI_Allreduce(&refines, &refines, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-   MPI_Allreduce(&cells, &cells, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-   logFile << "(AMR) Refining and unrefining " << refines << " cells, " << 100.0 * (double) refines / (double) cells << "% of grid" << std::endl;
+   MPI_Allreduce(MPI_IN_PLACE, &refines, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+   MPI_Allreduce(MPI_IN_PLACE, &cells, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+   double ratio = static_cast<double>(refines) / static_cast<double>(cells);
+   logFile << "(AMR) Refining and unrefining " << refines << " cells, " << 100.0 * ratio << "% of grid" << std::endl;
    phiprof::stop("sum refines");
+
+   // Placeholder
+   if (ratio < P::leastCellsToRefine) {
+      mpiGrid.cancel_refining();
+      phiprof::stop("Re-refine spatial cells");
+      return true;   // return false only when bailing out
+   }
 
    phiprof::start("dccrg refinement");
 
