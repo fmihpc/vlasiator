@@ -600,8 +600,9 @@ namespace projects {
                Pdiag += buffer[j];
             }
             delete[] buffer;
-
-            mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] += pow(Pdiag/mpiGrid[cells[i]]->parameters[CellParams::RHOM],1.5);
+            Real n = mpiGrid[cells[i]]->parameters[CellParams::RHOM];
+            if(n > 0)
+               mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] += pow(Pdiag/n,1.5);
             // for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p){
             //    setDummyVelocitySpace(p,mpiGrid[cells[i]]);
             // }
