@@ -25,8 +25,22 @@
 #include <cstdlib>
 #include <cstddef>
 #include <stdexcept>
+#include <string.h>
+
 #ifdef USE_JEMALLOC
 #include "jemalloc/jemalloc.h"
+#endif
+
+#ifndef NDEBUG
+#ifndef INITIALIZE_ALIGNED_MALLOC_WITH_NAN
+#define INITIALIZE_ALIGNED_MALLOC_WITH_NAN
+#endif
+#endif
+
+#ifdef DEBUG_SPATIAL_CELL
+#ifndef INITIALIZE_ALIGNED_MALLOC_WITH_NAN
+#define INITIALIZE_ALIGNED_MALLOC_WITH_NAN
+#endif
 #endif
 
 /*! Return the amount of free memory on the node in bytes*/  
@@ -52,6 +66,9 @@ inline void * aligned_malloc(size_t size,std::size_t align) {
    void *p = je_malloc(size + align - 1 + sizeof(void*));
 #else
    void *p = malloc(size + align - 1 + sizeof(void*));
+#endif
+#ifdef INITIALIZE_ALIGNED_MALLOC_WITH_NAN 
+   memset(p, ~0u, size + align - 1 + sizeof(void*));
 #endif
    
    if (p != NULL) {
