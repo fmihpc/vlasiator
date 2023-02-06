@@ -548,7 +548,7 @@ void Parameters::getParameters() {
          }
       } else {
          if (myRank == MASTER_RANK) {
-            cerr << "ERROR io.system_write_fsgrid_variables should be defined for all file types." << endl;
+            cerr << "ERROR io.system_write_fsgrid_variables should be defined for all file types (or none at all)." << endl;
             MPI_Abort(MPI_COMM_WORLD, 1);
          }
       }
