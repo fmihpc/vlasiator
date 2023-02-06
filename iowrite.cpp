@@ -1304,7 +1304,7 @@ bool writeGrid(
    const std::string& versionInfo,
    const std::string& configInfo,
    DataReducer* dataReducer,
-   const uint& index,
+   const uint& outputFileTypeIndex,
    const int& stripe,
    const bool writeGhosts
 ) {
@@ -1321,10 +1321,10 @@ bool writeGrid(
    phiprof::start("writeGrid-reduced");
    // Create a name for the output file and open it with VLSVWriter:
    stringstream fname;
-   fname << P::systemWritePath.at(index) << "/" << P::systemWriteName.at(index) << ".";
+   fname << P::systemWritePath.at(outputFileTypeIndex) << "/" << P::systemWriteName.at(outputFileTypeIndex) << ".";
    fname.width(7);
    fname.fill('0');
-   fname << P::systemWrites.at(index) << ".vlsv";
+   fname << P::systemWrites.at(outputFileTypeIndex) << ".vlsv";
 
 
    //Open the file with vlsvWriter:
@@ -1400,7 +1400,7 @@ bool writeGrid(
    if( writeBoundingBoxNodeCoordinates( vlsvWriter, meshName, masterProcessId, MPI_COMM_WORLD ) == false ) return false;
 
    //Write basic grid variables: NOTE: master process only
-   if( writeCommonGridData(vlsvWriter, mpiGrid, local_cells, P::systemWrites[index], MPI_COMM_WORLD) == false ) return false;
+   if( writeCommonGridData(vlsvWriter, mpiGrid, local_cells, P::systemWrites[outputFileTypeIndex], MPI_COMM_WORLD) == false ) return false;
 
    //Write zone global id numbers:
    if( writeZoneGlobalIdNumbers( mpiGrid, vlsvWriter, meshName, local_cells, ghost_cells ) == false ) return false;
@@ -1431,7 +1431,7 @@ bool writeGrid(
 
    phiprof::stop("metadataIO");
    phiprof::start("velocityspaceIO");
-   if( writeVelocitySpace( mpiGrid, vlsvWriter, index, local_cells ) == false ) return false;
+   if( writeVelocitySpace( mpiGrid, vlsvWriter, outputFileTypeIndex, local_cells ) == false ) return false;
    phiprof::stop("velocityspaceIO");
 
    phiprof::start("reduceddataIO");
