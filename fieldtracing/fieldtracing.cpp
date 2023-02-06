@@ -1113,14 +1113,15 @@ namespace FieldTracing {
             {
                cellsToDoFullBox = 0;
                cellsToDoFluxRopes = 0;
-               cellFWTracingStepSize = reducedCellFWTracingStepSize;
-               cellBWTracingStepSize = reducedCellBWTracingStepSize;
-               cellFWRunningDistance = reducedCellFWRunningDistance;
-               cellBWRunningDistance = reducedCellBWRunningDistance;
+               cellFWTracingStepSize.swap(reducedCellFWTracingStepSize);
+               cellBWTracingStepSize.swap(reducedCellBWTracingStepSize);
+               cellFWRunningDistance.swap(reducedCellFWRunningDistance);
+               cellBWRunningDistance.swap(reducedCellBWRunningDistance);
+               cellFWConnection.swap(reducedCellFWConnection);
+               cellBWConnection.swap(reducedCellBWConnection);
+               // No swap for these as the old ones are used for the small arrays ~70 lines up.
                cellNeedsContinuedFWTracing = reducedCellNeedsContinuedFWTracing;
                cellNeedsContinuedBWTracing = reducedCellNeedsContinuedBWTracing;
-               cellFWConnection = reducedCellFWConnection;
-               cellBWConnection = reducedCellBWConnection;
             }
             #pragma omp for schedule(dynamic) reduction(+:cellsToDoFullBox) reduction(+:cellsToDoFluxRopes)
             for(int n=0; n<globalDccrgSize; n++) {
