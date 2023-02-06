@@ -756,7 +756,7 @@ void Parameters::getParameters() {
    std::vector<std::string> loadBalanceKeys;
    std::vector<std::string> loadBalanceValues;
    RP::get("loadBalance.optionKey", loadBalanceKeys);
-   RP::get("loadBalance.optionValues", loadBalanceValues);
+   RP::get("loadBalance.optionValue", loadBalanceValues);
    if (loadBalanceKeys.size() != loadBalanceValues.size()) {
       if (myRank == MASTER_RANK) {
          cerr << "WARNING the number of load balance keys and values do not match. Disregarding these options." << endl;

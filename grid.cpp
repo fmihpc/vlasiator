@@ -177,7 +177,6 @@ void initializeGrids(
    initializeStencils(mpiGrid);
    
    for (const auto& [key, value] : P::loadBalanceOptions) {
-      std::clog << key < ": " << value << std::endl;
       mpiGrid.set_partitioning_option(key, value);
    }
    phiprof::start("Initial load-balancing");
