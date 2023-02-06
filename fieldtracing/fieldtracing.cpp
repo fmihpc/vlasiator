@@ -776,6 +776,7 @@ namespace FieldTracing {
       std::vector<std::array<Real, 3>> & cellTracingCoordinates,
       std::vector<Real> & cellTracingStepSize,
       std::vector<Real> & cellRunningDistance,
+      std::vector<Real> & cellMaxExtension,
       std::vector<signed char> & cellConnection,
       bool & warnMaxDistanceExceeded,
       creal maxTracingDistance,
@@ -839,13 +840,14 @@ namespace FieldTracing {
          
          // If we are still in the race for flux rope...
          if(cellConnection[n] < TracingLineEndType::N_TYPES) {
-            creal distance = sqrt(
+            creal extension = sqrt(
                  (x[0]-(cellInitialCoordinates[n])[0])*(x[0]-(cellInitialCoordinates[n])[0])
                + (x[1]-(cellInitialCoordinates[n])[1])*(x[1]-(cellInitialCoordinates[n])[1])
                + (x[2]-(cellInitialCoordinates[n])[2])*(x[2]-(cellInitialCoordinates[n])[2])
             );
+            cellMaxExtension[n] = max(cellMaxExtension[n], extension);
             // ...and if we traced too far from the seed, this is not a flux rope candidate and we do a single +=
-            if(distance > fieldTracingParameters.fluxrope_max_curvature_radii_extent*cellCurvatureRadius[n]
+            if(extension > fieldTracingParameters.fluxrope_max_curvature_radii_extent*cellCurvatureRadius[n]
                || cellRunningDistance[n] > fieldTracingParameters.fluxrope_max_m_to_trace
             ) {
                cellConnection[n] += TracingLineEndType::N_TYPES;
@@ -911,6 +913,9 @@ namespace FieldTracing {
       std::vector<std::array<Real, 3>> cellBWTracingCoordinates(globalDccrgSize); /*!< In-flight node upmapping coordinates (for global reduction) */
       std::vector<Real> cellFWRunningDistance(globalDccrgSize, 0);
       std::vector<Real> cellBWRunningDistance(globalDccrgSize, 0);
+      
+      // This we need only once as we'll only record the max
+      std::vector<Real> cellMaxExtension(globalDccrgSize, 0);
       
       // These guys are needed in the reductions at the bottom of the tracing loop.
       std::vector<signed char> reducedCellNeedsContinuedFWTracing(globalDccrgSize, 0);
@@ -1002,6 +1007,7 @@ namespace FieldTracing {
                      cellFWTracingCoordinates,
                      cellFWTracingStepSize,
                      cellFWRunningDistance,
+                     cellMaxExtension,
                      cellFWConnection,
                      warnMaxDistanceExceeded,
                      maxTracingDistance,
@@ -1019,6 +1025,7 @@ namespace FieldTracing {
                      cellBWTracingCoordinates,
                      cellBWTracingStepSize,
                      cellBWRunningDistance,
+                     cellMaxExtension,
                      cellBWConnection,
                      warnMaxDistanceExceeded,
                      maxTracingDistance,
@@ -1123,6 +1130,9 @@ namespace FieldTracing {
                   cellFWTracingCoordinates[n][0] = sumCellFWTracingCoordinates[n][0];
                   cellFWTracingCoordinates[n][1] = sumCellFWTracingCoordinates[n][1];
                   cellFWTracingCoordinates[n][2] = sumCellFWTracingCoordinates[n][2];
+if(cellNeedsContinuedFWTracing[n] > 1) {
+   cerr << "Huh?\n";
+}
                   if(cellFWConnection[n] == TracingLineEndType::UNPROCESSED) {
                      cellsToDoFluxRopes++;
                   }
@@ -1133,6 +1143,9 @@ namespace FieldTracing {
                   cellBWTracingCoordinates[n][0] = sumCellBWTracingCoordinates[n][0];
                   cellBWTracingCoordinates[n][1] = sumCellBWTracingCoordinates[n][1];
                   cellBWTracingCoordinates[n][2] = sumCellBWTracingCoordinates[n][2];
+if(cellNeedsContinuedFWTracing[n] > 1) {
+   cerr << "Huh?\n";
+}
                   if(cellBWConnection[n] == TracingLineEndType::UNPROCESSED) {
                      cellsToDoFluxRopes++;
                   }
@@ -1160,6 +1173,14 @@ namespace FieldTracing {
          logFile << "(fieldtracing) Warning: reached the maximum tracing distance " << maxTracingDistance << " m allowed for combined flux rope + full box tracing." << endl;
       }
       
+      // Now we're all done we want to reduce the max extension so we can store it
+      std::vector<Real> reducedCellMaxExtension(globalDccrgSize);
+      if(sizeof(Real) == sizeof(double)) {
+         MPI_Allreduce(cellMaxExtension.data(), reducedCellMaxExtension.data(), globalDccrgSize, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+      } else {
+         MPI_Allreduce(cellMaxExtension.data(), reducedCellMaxExtension.data(), globalDccrgSize, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
+      }
+      
       phiprof::start("final-loop");
       for(int n=0; n<globalDccrgSize; n++) {
          const CellID id = allDccrgCells.at(n);
@@ -1171,7 +1192,7 @@ namespace FieldTracing {
             if(   reducedCellFWConnection[n] >= 2*TracingLineEndType::N_TYPES
                && reducedCellBWConnection[n] >= 2*TracingLineEndType::N_TYPES
             ) {
-               mpiGrid[id]->parameters[CellParams::FLUXROPE] = 1;
+               mpiGrid[id]->parameters[CellParams::FLUXROPE] = reducedCellMaxExtension[n] / cellCurvatureRadius[n];
             }
             
             // remove the flux rope mark
