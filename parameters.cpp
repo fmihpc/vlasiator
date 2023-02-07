@@ -761,9 +761,10 @@ void Parameters::getParameters() {
       if (myRank == MASTER_RANK) {
          cerr << "WARNING the number of load balance keys and values do not match. Disregarding these options." << endl;
       }
-   }
-   for (int i = 0; i < loadBalanceKeys.size(); ++i) {
-      loadBalanceOptions[loadBalanceKeys[i]] = loadBalanceValues[i];
+   } else {
+      for (int i = 0; i < loadBalanceKeys.size(); ++i) {
+         loadBalanceOptions[loadBalanceKeys[i]] = loadBalanceValues[i];
+      }
    }
 
    // Get output variable parameters
