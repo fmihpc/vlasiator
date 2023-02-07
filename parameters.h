@@ -92,6 +92,7 @@ struct Parameters {
    static std::vector<int>
        systemWriteDistributionWriteShellStride; /*!< Every this many cells for those on selected shells write out their
                                                    velocity space in each class. */
+   static std::vector<bool> systemWriteFsGrid; /*!< Write fg_ variables in this file class or not.*/
    static std::vector<int> systemWrites;        /*!< How many files have been written of each class*/
    static std::vector<std::pair<std::string, std::string>>
        systemWriteHints; /*!< Collection of MPI-IO hints passed for non-restart IO. Pairs of key-value strings. */
