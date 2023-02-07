@@ -20,13 +20,13 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef AMR_REFINEMENT_CRITERIA_H
-#define AMR_REFINEMENT_CRITERIA_H
+#ifndef VAMR_REFINEMENT_CRITERIA_H
+#define VAMR_REFINEMENT_CRITERIA_H
 
 #include <iostream>
 #include "definitions.h"
 
-namespace amr_ref_criteria {
+namespace vamr_ref_criteria {
    
    class Base {
     public:
@@ -58,7 +58,7 @@ namespace amr_ref_criteria {
       Realf evaluate(const Realf& f_lef,const Realf& f_cen,const Realf& f_rgt);
    };
 
-} // namespace amr_ref_criteria
+} // namespace vamr_ref_criteria
 
 #endif
 

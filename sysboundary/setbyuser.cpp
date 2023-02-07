@@ -288,12 +288,11 @@ namespace SBC {
          std::array<bool, 6> isThisCellOnAFace;
          determineFace(isThisCellOnAFace, mpiGrid, id);
 
-         int max = 6;
-         for (uint i=0; i < max; i++) {
+         for (uint i=0; i < 6; i++) {
             if (facesToProcess[i] && isThisCellOnAFace[i]) {
                copyCellData(&templateCells[i], cell ,false,popID,true); // copy also vdf, _V
                copyCellData(&templateCells[i], cell ,true,popID,false); // don't copy vdf again but copy _R now
-               max = i; // This effectively sets the precedence of faces through the order of faces.
+               break; // This effectively sets the precedence of faces through the order of faces.
             }
          }
       }

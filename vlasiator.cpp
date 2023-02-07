@@ -43,6 +43,7 @@
 #include "spatial_cell.hpp"
 #include "datareduction/datareducer.h"
 #include "sysboundary/sysboundary.h"
+#include "fieldtracing/fieldtracing.h"
 
 #include "fieldsolver/fs_common.h"
 #include "projects/project.h"
@@ -78,6 +79,7 @@ using namespace phiprof;
 int globalflags::bailingOut = 0;
 bool globalflags::writeRestart = 0;
 bool globalflags::balanceLoad = 0;
+bool globalflags::ionosphereJustSolved = false;
 
 ObjectWrapper objectWrapper;
 
@@ -275,10 +277,9 @@ int main(int argn,char* args[]) {
    phiprof::initialize();
    
    double initialWtime =  MPI_Wtime();
-   
+   SysBoundary& sysBoundaryContainer = getObjectWrapper().sysBoundaryContainer;
    MPI_Comm comm = MPI_COMM_WORLD;
    MPI_Comm_rank(comm,&myRank);
-   SysBoundary sysBoundaries;
    bool isSysBoundaryCondDynamic;
    
    #ifdef CATCH_FPE
@@ -306,7 +307,7 @@ int main(int argn,char* args[]) {
    P::getParameters();
 
    getObjectWrapper().addPopulationParameters();
-   sysBoundaries.addParameters();
+   sysBoundaryContainer.addParameters();
    projects::Project::addParameters();
 
    Project* project = projects::createProject();
@@ -314,8 +315,8 @@ int main(int argn,char* args[]) {
    readparameters.parse(true, false); // 2nd parsing for specific population parameters
    readparameters.helpMessage(); // Call after last parse, exits after printing help if help requested
    getObjectWrapper().getParameters();
+   sysBoundaryContainer.getParameters();
    project->getParameters();
-   sysBoundaries.getParameters();
    phiprof::stop("Read parameters");
 
 
@@ -373,8 +374,8 @@ int main(int argn,char* args[]) {
    }
    phiprof::stop("Init project");
 
-   // Add AMR refinement criterias:
-   amr_ref_criteria::addRefinementCriteria();
+   // Add VAMR refinement criterias:
+   vamr_ref_criteria::addRefinementCriteria();
 
    // Initialize simplified Fieldsolver grids.
    // Needs to be done here already ad the background field will be set right away, before going to initializeGrid even
@@ -384,9 +385,9 @@ int main(int argn,char* args[]) {
 							    convert<int>(P::ycells_ini * pow(2,P::amrMaxSpatialRefLevel)),
 							    convert<int>(P::zcells_ini * pow(2,P::amrMaxSpatialRefLevel))};
 
-   std::array<bool,3> periodicity{sysBoundaries.isBoundaryPeriodic(0),
-                                  sysBoundaries.isBoundaryPeriodic(1),
-                                  sysBoundaries.isBoundaryPeriodic(2)};
+   std::array<bool,3> periodicity{sysBoundaryContainer.isBoundaryPeriodic(0),
+                                  sysBoundaryContainer.isBoundaryPeriodic(1),
+                                  sysBoundaryContainer.isBoundaryPeriodic(2)};
 
    FsGridCouplingInformation gridCoupling;
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBGrid(fsGridDimensions, comm, periodicity,gridCoupling);
@@ -453,10 +454,10 @@ int main(int argn,char* args[]) {
       EGradPeGrid,
       volGrid,
       technicalGrid,
-      sysBoundaries,
+      sysBoundaryContainer,
       *project
    );
-   isSysBoundaryCondDynamic = sysBoundaries.isDynamic();
+   isSysBoundaryCondDynamic = sysBoundaryContainer.isDynamic();
    
    const std::vector<CellID>& cells = getLocalCells();
    
@@ -474,22 +475,25 @@ int main(int argn,char* args[]) {
 
    // Run the field solver once with zero dt. This will initialize
    // Fieldsolver dt limits, and also calculate volumetric B-fields.
-   propagateFields(
-		   perBGrid,
-		   perBDt2Grid,
-		   EGrid,
-		   EDt2Grid,
-		   EHallGrid,
-		   EGradPeGrid,
-		   momentsGrid,
-		   momentsDt2Grid,
-		   dPerBGrid,
-		   dMomentsGrid,
-		   BgBGrid,
-		   volGrid,
-		   technicalGrid,
-		   sysBoundaries, 0.0, 1.0
-		   );
+   // At restart, all we need at this stage has been read from the restart, the rest will be recomputed in due time.
+   if(P::isRestart == false) {
+      propagateFields(
+         perBGrid,
+         perBDt2Grid,
+         EGrid,
+         EDt2Grid,
+         EHallGrid,
+         EGradPeGrid,
+         momentsGrid,
+         momentsDt2Grid,
+         dPerBGrid,
+         dMomentsGrid,
+         BgBGrid,
+         volGrid,
+         technicalGrid,
+         sysBoundaryContainer, 0.0, 1.0
+      );
+   }
 
    phiprof::start("getFieldsFromFsGrid");
    volGrid.updateGhostCells();
@@ -498,7 +502,7 @@ int main(int argn,char* args[]) {
 
    // Build communicator for ionosphere solving
    SBC::ionosphereGrid.updateIonosphereCommunicator(mpiGrid, technicalGrid);
-   SBC::ionosphereGrid.calculateFsgridCoupling(technicalGrid, perBGrid, dPerBGrid, SBC::Ionosphere::radius);
+   FieldTracing::calculateIonosphereFsgridCoupling(technicalGrid, perBGrid, dPerBGrid, SBC::ionosphereGrid.nodes, SBC::Ionosphere::radius);
    SBC::ionosphereGrid.initSolver(!P::isRestart); // If it is a restart we do not want to zero out everything
    if(SBC::Ionosphere::couplingInterval > 0 && P::isRestart) {
       SBC::Ionosphere::solveCount = floor(P::t / SBC::Ionosphere::couplingInterval)+1;
@@ -517,6 +521,8 @@ int main(int argn,char* args[]) {
 
    // Save restart data
    if (P::writeInitialState) {
+      FieldTracing::reduceData(technicalGrid, perBGrid, dPerBGrid, mpiGrid, SBC::ionosphereGrid.nodes); /*!< Call the reductions (e.g. field tracing) */
+      
       phiprof::start("write-initial-state");
       
       if (myRank == MASTER_RANK)
@@ -546,7 +552,12 @@ int main(int argn,char* args[]) {
             technicalGrid,
             version,
             config,
-            &outputReducer,P::systemWriteName.size()-1, P::restartStripeFactor, writeGhosts) == false ) {
+            &outputReducer,
+            P::systemWriteName.size()-1,
+            P::restartStripeFactor,
+            writeGhosts
+         ) == false
+      ) {
          cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
       }
 
@@ -584,7 +595,7 @@ int main(int argn,char* args[]) {
       // Apply boundary conditions
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
          phiprof::start("Update system boundaries (Vlasov post-acceleration)");
-         sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, 0.5*P::dt, true);
+         sysBoundaryContainer.applySysBoundaryVlasovConditions(mpiGrid, 0.5*P::dt, true);
          phiprof::stop("Update system boundaries (Vlasov post-acceleration)");
          addTimedBarrier("barrier-boundary-conditions");
       }
@@ -616,7 +627,7 @@ int main(int argn,char* args[]) {
       //report filtering if we are in an AMR run 
       if (P::amrMaxSpatialRefLevel>0){
          logFile<<"Filtering Report: "<<endl;
-         for (int refLevel=0 ; refLevel<= P::amrMaxSpatialRefLevel; refLevel++){
+         for (uint refLevel=0 ; refLevel<= P::amrMaxSpatialRefLevel; refLevel++){
             logFile<<"\tRefinement Level " <<refLevel<<"==> Passes "<<P::numPasses.at(refLevel)<<endl;
          }
             logFile<<endl;
@@ -735,23 +746,30 @@ int main(int argn,char* args[]) {
             // Calculate these so refinement parameters can be tuned based on the vlsv
             calculateScaledDeltasSimple(mpiGrid);
             
+            FieldTracing::reduceData(technicalGrid, perBGrid, dPerBGrid, mpiGrid, SBC::ionosphereGrid.nodes); /*!< Call the reductions (e.g. field tracing) */
+            
             phiprof::start("write-system");
             logFile << "(IO): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
             const bool writeGhosts = true;
-            if( writeGrid(mpiGrid,
-                     perBGrid, // TODO: Merge all the fsgrids passed here into one meta-object
-                     EGrid,
-                     EHallGrid,
-                     EGradPeGrid,
-                     momentsGrid,
-                     dPerBGrid,
-                     dMomentsGrid,
-                     BgBGrid,
-                     volGrid,
-                     technicalGrid,
-                     version,
-                     config,
-                     &outputReducer, i, P::systemStripeFactor, writeGhosts) == false ) {
+            if(writeGrid(mpiGrid,
+               perBGrid, // TODO: Merge all the fsgrids passed here into one meta-object
+               EGrid,
+               EHallGrid,
+               EGradPeGrid,
+               momentsGrid,
+               dPerBGrid,
+               dMomentsGrid,
+               BgBGrid,
+               volGrid,
+               technicalGrid,
+               version,
+               config,
+               &outputReducer,
+               i,
+               P::systemStripeFactor,
+               writeGhosts
+               ) == false
+            ) {
                cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
             }
             P::systemWrites[i]++;
@@ -851,7 +869,7 @@ int main(int argn,char* args[]) {
          // Refinement includes LB
          if (!dtIsChanged && P::adaptRefinement && P::tstep % (P::rebalanceInterval * P::refineMultiplier) == 0 && P::t > P::refineAfter) { 
             logFile << "(AMR): Adapting refinement!"  << endl << writeVerbose;
-            if (!adaptRefinement(mpiGrid, technicalGrid, sysBoundaries, *project))
+            if (!adaptRefinement(mpiGrid, technicalGrid, sysBoundaryContainer, *project))
                continue;   // Refinement failed and we're bailing out
 
             // Calculate new dt limits since we might break CFL when refining
@@ -860,7 +878,7 @@ int main(int argn,char* args[]) {
             calculateAcceleration(mpiGrid,0.0);      
             phiprof::stop("compute-dt");
          }
-         balanceLoad(mpiGrid, sysBoundaries);
+         balanceLoad(mpiGrid, sysBoundaryContainer);
          addTimedBarrier("barrier-end-load-balance");
          phiprof::start("Shrink_to_fit");
          // * shrink to fit after LB * //
@@ -941,7 +959,7 @@ int main(int argn,char* args[]) {
       // Apply boundary conditions
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
          phiprof::start("Update system boundaries (Vlasov post-translation)");
-         sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt, false);
+         sysBoundaryContainer.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt, false);
          phiprof::stop("Update system boundaries (Vlasov post-translation)");
          addTimedBarrier("barrier-boundary-conditions");
       }
@@ -986,7 +1004,7 @@ int main(int argn,char* args[]) {
             BgBGrid,
             volGrid,
             technicalGrid,
-            sysBoundaries,
+            sysBoundaryContainer,
             P::dt,
             P::fieldSolverSubcycles
          );
@@ -1000,11 +1018,15 @@ int main(int argn,char* args[]) {
          phiprof::stop("Propagate Fields",cells.size(),"SpatialCells");
          addTimedBarrier("barrier-after-field-solver");
       }
+      
+      if(FieldTracing::fieldTracingParameters.useCache) {
+         FieldTracing::resetReconstructionCoefficientsCache();
+      }
 
       // Map current data down into the ionosphere
       // TODO check: have we set perBGrid correctly here, or is it possibly perBDt2Grid in some cases??
       if(SBC::ionosphereGrid.nodes.size() > 0 && ((P::t > SBC::Ionosphere::solveCount * SBC::Ionosphere::couplingInterval && SBC::Ionosphere::couplingInterval > 0) || SBC::Ionosphere::couplingInterval == 0)) {
-         SBC::ionosphereGrid.calculateFsgridCoupling(technicalGrid, perBGrid, dPerBGrid, SBC::Ionosphere::radius);
+         FieldTracing::calculateIonosphereFsgridCoupling(technicalGrid, perBGrid, dPerBGrid, SBC::ionosphereGrid.nodes, SBC::Ionosphere::radius);
          SBC::ionosphereGrid.mapDownBoundaryData(perBGrid, dPerBGrid, momentsGrid, volGrid, technicalGrid);
          SBC::ionosphereGrid.calculateConductivityTensor(SBC::Ionosphere::F10_7, SBC::Ionosphere::recombAlpha, SBC::Ionosphere::backgroundIonisation);
 
@@ -1025,6 +1047,14 @@ int main(int argn,char* args[]) {
          << " difference " << maxPotentialS - minPotentialS
          << endl;
          SBC::Ionosphere::solveCount++;
+         globalflags::ionosphereJustSolved = true;
+         // Reset flag in all cells
+         #pragma omp parallel for
+         for(size_t i=0; i<cells.size(); i++) {
+            if(mpiGrid[cells[i]]->parameters[CellParams::FORCING_CELL_NUM] == 1) {
+               mpiGrid[cells[i]]->parameters[CellParams::FORCING_CELL_NUM] = 0;
+            }
+         }
       }
       
       phiprof::start("Velocity-space");
@@ -1040,7 +1070,7 @@ int main(int argn,char* args[]) {
       
       if (P::propagateVlasovTranslation || P::propagateVlasovAcceleration ) {
          phiprof::start("Update system boundaries (Vlasov post-acceleration)");
-         sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt, true);
+         sysBoundaryContainer.applySysBoundaryVlasovConditions(mpiGrid, P::t+0.5*P::dt, true);
          phiprof::stop("Update system boundaries (Vlasov post-acceleration)");
          addTimedBarrier("barrier-boundary-conditions");
       }
@@ -1075,6 +1105,7 @@ int main(int argn,char* args[]) {
       }
       //Move forward in time
       P::meshRepartitioned = false;
+      globalflags::ionosphereJustSolved = false;
       ++P::tstep;
       P::t += P::dt;
 

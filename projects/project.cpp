@@ -217,7 +217,7 @@ namespace projects {
 
       // Passing true for the doNotSkip argument as we want to calculate 
       // the moment no matter what when this function is called.
-      calculateCellMoments(cell,true,true);
+      calculateCellMoments(cell,true,false,true);
    }
 
    std::vector<vmesh::GlobalID> Project::findBlocksToInitialize(spatial_cell::SpatialCell* cell,const uint popID) const {
@@ -338,11 +338,13 @@ namespace projects {
          }
 
          const Real maxValue = setVelocityBlock(cell,blockLID,popID);
-         if (maxValue < getObjectWrapper().particleSpecies[popID].sparseMinValue) removeList.push_back(blockGID);
+         if (maxValue < cell->getVelocityBlockMinValue(popID)) {
+            removeList.push_back(blockGID);
+         }
       }
 
-      // Get AMR refinement criterion and use it to test which blocks should be refined
-      amr_ref_criteria::Base* refCriterion = getObjectWrapper().amrVelRefCriteria.create(Parameters::amrVelRefCriterion);
+      // Get VAMR refinement criterion and use it to test which blocks should be refined
+      vamr_ref_criteria::Base* refCriterion = getObjectWrapper().vamrVelRefCriteria.create(Parameters::vamrVelRefCriterion);
       if (refCriterion == NULL) {
          if (rescalesDensity(popID) == true) rescaleDensity(cell,popID);
          return;
@@ -356,7 +358,7 @@ namespace projects {
       // refinement level, or until there are no more blocks left to refine
       bool refine = true;
       uint currentLevel = 0;
-      if (currentLevel == Parameters::amrMaxVelocityRefLevel) refine = false;
+      if (currentLevel == Parameters::vamrMaxVelocityRefLevel) refine = false;
       while (refine == true) {
          removeList.clear();
          
@@ -374,7 +376,7 @@ namespace projects {
             cell->fetch_data<1>(blockGID,vmesh,cell->get_data(0,popID),array);
 
             // If block should be refined, add it to refine list
-            if (refCriterion->evaluate(array,popID) > Parameters::amrRefineLimit) {
+            if (refCriterion->evaluate(array,popID) > Parameters::vamrRefineLimit) {
                refineList.push_back(blockGID);
             }
          }
@@ -393,8 +395,9 @@ namespace projects {
             const vmesh::GlobalID blockGID = it->first;
             const vmesh::LocalID blockLID = it->second;
             const Real maxValue = setVelocityBlock(cell,blockLID,popID);
-            if (maxValue <= getObjectWrapper().particleSpecies[popID].sparseMinValue) 
-              removeList.push_back(it->first);
+            if (maxValue <= cell->getVelocityBlockMinValue(popID)) {
+               removeList.push_back(it->first);
+            }
          }
 
          // Remove blocks with f below sparse min value
@@ -402,7 +405,7 @@ namespace projects {
 
          if (refineList.size() == 0) refine = false;
          ++currentLevel;
-         if (currentLevel == Parameters::amrMaxVelocityRefLevel) refine = false;
+         if (currentLevel == Parameters::vamrMaxVelocityRefLevel) refine = false;
       }
 
       delete refCriterion;
@@ -652,7 +655,7 @@ namespace projects {
             SBC::averageCellData(mpiGrid, refinedNeighbours, &cellPair.second, popID, fluffiness);
          }
 
-         calculateCellMoments(&cellPair.second, true);
+         calculateCellMoments(&cellPair.second, true, false);
       }
 
       for (auto cellPair : cellsMap) {

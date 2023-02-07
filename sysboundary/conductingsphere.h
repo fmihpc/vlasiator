@@ -169,6 +169,7 @@ namespace SBC {
       uint nVelocitySamples;
       
       spatial_cell::SpatialCell templateCell;
+
    };
 }
 

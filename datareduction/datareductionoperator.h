@@ -26,8 +26,6 @@
 #include <vector>
 
 #include <vlsv_writer.h>
-#include <dccrg.hpp>
-#include <dccrg_cartesian_geometry.hpp>
 
 #include "fsgrid.hpp"
 #include "../definitions.h"
@@ -84,14 +82,6 @@ namespace DRO {
       std::string variableLaTeX;
       std::string unitConversion;
       
-   };
-
-   class DataReductionOperatorHandlesWriting: public DataReductionOperator {
-   public:
-      DataReductionOperatorHandlesWriting() : DataReductionOperator() {};
-      virtual bool writeData(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                             const std::vector<CellID>& cells,const std::string& meshName,
-                             vlsv::Writer& vlsvWriter) = 0;
    };
 
    class DataReductionOperatorHasParameters: public DataReductionOperator {
@@ -174,6 +164,24 @@ namespace DRO {
          virtual bool reduceData(const SpatialCell* cell,char* buffer);
          virtual bool reduceDiagnostic(const SpatialCell* cell,Real * result);
          virtual bool writeIonosphereData(SBC::SphericalTriGrid& grid, vlsv::Writer& vlsvWriter);
+   };
+   
+   // Generic (lambda-based) datareducer for ionosphere grid node-centered int data
+   class DataReductionOperatorIonosphereNodeInt : public DataReductionOperator {
+   public:
+      typedef std::function<std::vector<int>(SBC::SphericalTriGrid& grid)> ReductionLambda;
+   private:
+      ReductionLambda lambda;
+      std::string variableName;
+      
+   public:
+      DataReductionOperatorIonosphereNodeInt(const std::string& name, ReductionLambda l): DataReductionOperator(), lambda(l),variableName(name) {};
+      virtual std::string getName() const;
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual bool setSpatialCell(const SpatialCell* cell);
+      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool reduceDiagnostic(const SpatialCell* cell,int * result);
+      virtual bool writeIonosphereData(SBC::SphericalTriGrid& grid, vlsv::Writer& vlsvWriter);
    };
 
    // Generic (lambda-based) datareducer for vlasov grid data
@@ -409,24 +417,6 @@ namespace DRO {
       std::string popName;
    };
 
-   /** This class writes all scalar and two- or three-component vector data 
-    * that is stored to MeshDataContainer to output file.*/
-   class VariableMeshData: public DataReductionOperatorHandlesWriting {
-   public:
-      VariableMeshData();
-      virtual ~VariableMeshData();
-      
-      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
-      virtual std::string getName() const;
-      virtual bool setSpatialCell(const SpatialCell* cell);
-      virtual bool writeData(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                             const std::vector<CellID>& cells,const std::string& meshName,
-                             vlsv::Writer& vlsvWriter);
-      
-   private:
-      
-   };
-   
    class VariableRhoThermal: public DataReductionOperator {
    public:
       VariableRhoThermal(cuint popID);
@@ -603,7 +593,7 @@ namespace DRO {
       Real E2limit;
    };
    
-   // Precipitation directional differential number flux
+   // Precipitation directional differential number flux (within loss cone)
    class VariablePrecipitationDiffFlux: public DataReductionOperatorHasParameters {
    public:
       VariablePrecipitationDiffFlux(cuint popID);
@@ -622,6 +612,26 @@ namespace DRO {
       Real emin, emax;
       Real lossConeAngle;
       std::vector<Real> channels, dataDiffFlux;
+   };
+
+   // Precipitation directional differential number flux (along line)
+   class VariablePrecipitationLineDiffFlux: public DataReductionOperatorHasParameters {
+   public:
+      VariablePrecipitationLineDiffFlux(cuint popID);
+      virtual ~VariablePrecipitationLineDiffFlux();
+      
+      virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
+      virtual std::string getName() const;
+      virtual bool reduceData(const SpatialCell* cell,char* buffer);
+      virtual bool setSpatialCell(const SpatialCell* cell);
+      virtual bool writeParameters(vlsv::Writer& vlsvWriter);
+      
+   protected:
+      uint popID;
+      std::string popName;
+      int nChannels;
+      Real emin, emax;
+      std::vector<Real> channels, dataLineDiffFlux;
    };
 
    class JPerBModifier: public DataReductionOperatorHasParameters {

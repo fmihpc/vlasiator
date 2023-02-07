@@ -343,6 +343,25 @@ bool SysBoundary::initSysBoundaries(Project& project, creal& t) {
    return success;
 }
 
+/*!\brief Boolean check if queried sysboundarycondition exists
+ * Note: this queries against the parsed list of names, not against the actual existing boundaries. 
+ * This is so that the project configuration (which is handled before grid and boundary initialization)
+ * can use this call.
+ *
+ * \param string name
+ * \retval success if queried boundary exists
+ * \sa addSysBoundary
+ */
+bool SysBoundary::existSysBoundary(std::string name) {
+   vector<string>::const_iterator it;
+   for (it = sysBoundaryCondList.begin(); it != sysBoundaryCondList.end(); it++) {
+      if ((*it) == name) {
+         return true;
+      }
+   }
+   return false;
+}
+
 bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid) {
    // Verifies that all cells within FULL_NEIGHBORHOOD_ID of L1 boundary cells are on the same refinement
    // level (one group for inner boundary, another for outer boundary)
@@ -364,7 +383,7 @@ bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg:
             innerBoundaryRefLvl = mpiGrid.get_refinement_level(cellId);
             if (cell->sysBoundaryLayer == 1) {
                // Add all stencil neighbors of layer 1 cells
-               auto* nbrPairVector = mpiGrid.get_neighbors_of(cellId, SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
+               auto* nbrPairVector = mpiGrid.get_neighbors_of(cellId, SYSBOUNDARIES_NEIGHBORHOOD_ID);
                for (auto nbrPair : *nbrPairVector) {
                   if (nbrPair.first != INVALID_CELLID) {
                      innerBoundaryCells.insert(nbrPair.first);
@@ -376,7 +395,7 @@ bool SysBoundary::checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg:
             outerBoundaryCells.insert(cellId);
             outerBoundaryRefLvl = mpiGrid.get_refinement_level(cellId);
             // Add all stencil neighbors of outer boundary cells
-            auto* nbrPairVector = mpiGrid.get_neighbors_of(cellId, SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
+            auto* nbrPairVector = mpiGrid.get_neighbors_of(cellId, SYSBOUNDARIES_NEIGHBORHOOD_ID);
             for (auto nbrPair : *nbrPairVector) {
                if (nbrPair.first != INVALID_CELLID) {
                   outerBoundaryCells.insert(nbrPair.first);
@@ -457,9 +476,11 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
    const vector<CellID>& cells = getLocalCells();
    auto localSize = technicalGrid.getLocalSize().data();
 
-   /*set all cells to default value, not_sysboundary*/
+   /*set all cells to default value, not_sysboundary and no forcing of the bulkv */
+#pragma omp parallel for
    for (uint i = 0; i < cells.size(); i++) {
       mpiGrid[cells[i]]->sysBoundaryFlag = sysboundarytype::NOT_SYSBOUNDARY;
+      mpiGrid[cells[i]]->parameters[CellParams::FORCING_CELL_NUM] = -1;
    }
 #pragma omp parallel for collapse(3)
    for (int x = 0; x < localSize[0]; ++x) {
@@ -567,6 +588,30 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
    // boundary local communication patterns.
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_SYSBOUNDARYFLAG);
    mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
+
+   SysBoundary& sysBoundaryContainer = getObjectWrapper().sysBoundaryContainer;
+   Real ionosphereDownmapRadius = 0;
+   if (sysBoundaryContainer.existSysBoundary("Ionosphere")) {
+      Readparameters::get("ionosphere.downmapRadius", ionosphereDownmapRadius);
+   }
+   if(ionosphereDownmapRadius < 1000) {
+      ionosphereDownmapRadius *= physicalconstants::R_E;
+   }
+   if (ionosphereDownmapRadius > 0) {
+      #pragma omp parallel for
+      for (uint i = 0; i < cells.size(); i++) {
+         creal x = mpiGrid[cells[i]]->parameters[CellParams::XCRD]+ mpiGrid[cells[i]]->parameters[CellParams::DX];
+         creal y = mpiGrid[cells[i]]->parameters[CellParams::YCRD]+ mpiGrid[cells[i]]->parameters[CellParams::DY];
+         creal z = mpiGrid[cells[i]]->parameters[CellParams::ZCRD]+ mpiGrid[cells[i]]->parameters[CellParams::DZ];
+         creal radius2 = x*x + y*y + z*z;
+         if ((mpiGrid[cells[i]]->sysBoundaryLayer == 2 || mpiGrid[cells[i]]->sysBoundaryLayer == 1) &&
+             radius2 < ionosphereDownmapRadius*ionosphereDownmapRadius
+         ) {
+            mpiGrid[cells[i]]->parameters[CellParams::FORCING_CELL_NUM] = 0;
+         }
+      }
+   }
+
 
    // Now the layers need to be set on fsgrid too
    // In dccrg initialization the max number of boundary layers is set to 3.
