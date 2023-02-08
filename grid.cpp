@@ -1364,7 +1364,6 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    logFile << "(AMR) Refining and unrefining " << refines << " cells, " << 100.0 * ratio << "% of grid" << std::endl;
    phiprof::stop("sum refines");
 
-   // Placeholder
    if (ratio < P::leastCellsToRefine) {
       mpiGrid.cancel_refining();
       phiprof::stop("Re-refine spatial cells");
@@ -1377,6 +1376,13 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    mpiGrid.initialize_refines();
    double newBytes{0};
    phiprof::stop("initialize refines");
+
+   phiprof::start("sum refines again");
+   refines = mpiGrid.get_local_cells_to_refine().size() + mpiGrid.get_local_cells_to_unrefine().size();
+   MPI_Allreduce(MPI_IN_PLACE, &refines, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+   ratio = static_cast<double>(refines) / static_cast<double>(cells);
+   logFile << "(AMR) Refining and unrefining " << refines << " cells after induces, " << 100.0 * ratio << "% of grid" << std::endl;
+   phiprof::stop("sum refines again");
 
    phiprof::start("Estimate memory usage");
    for (auto id : mpiGrid.get_local_cells_to_refine()) {
