@@ -838,6 +838,21 @@ namespace FieldTracing {
             break;
          }
          
+         // The idea here:
+         // We trace along the field up to fieldTracingParameters.fluxrope_max_curvature_radii_to_trace*cellCurvatureRadius[n]
+         // and if within that tracing distance we have't extended further than fieldTracingParameters.fluxrope_max_curvature_radii_extent*cellCurvatureRadius[n]
+         // we are rolled up tightly enough to consider being close to a flux rope.
+         // We'll store the max extension reached if it didn't exceed fieldTracingParameters.fluxrope_max_curvature_radii_extent*cellCurvatureRadius[n]
+         // for more fine-grained analysis post-hoc.
+         // The arithmetic idea to avoid using yet more arrays:
+         // We use the cellConnection (that can only be UNPROCESSED, CLOSED, OPEN or LOOP, see enum, ending with N_TYPES).
+         // As long as neither threshold was reached we are at UNPROCESSED.
+         // If we exceed fieldTracingParameters.fluxrope_max_curvature_radii_to_trace*cellCurvatureRadius[n] OR fieldTracingParameters.fluxrope_max_m_to_trace
+         //     we definitely are not near a flux rope and we mark this by adding N_TYPES to cellConnection[n].
+         // If we reach fieldTracingParameters.fluxrope_max_curvature_radii_to_trace*cellCurvatureRadius[n] without hitting the other thresholds or the inner/outer domain limits
+         //     we are near/at a flux rope and we mark this by adding 2*N_TYPES to cellConnection[n].
+         // Later in the tracing we can still add CLOSED, OPEN or LOOP to cellConnection[n] and we will use % to recover those at the very end.
+         
          // If we are still in the race for flux rope...
          if(cellConnection[n] < TracingLineEndType::N_TYPES) {
             creal extension = sqrt(
@@ -1183,14 +1198,16 @@ namespace FieldTracing {
             // Handle flux ropes
             mpiGrid[id]->parameters[CellParams::FLUXROPE] = 0;
             const std::array<Real, 3> x = mpiGrid.get_center(id);
-            // flux rope if did a double += by TracingLineEndType::N_TYPES
+            // Earlier, if we marked nothing (e.g. hit a wall or ionosphere before making a call) reducedCellXWConnection[n] is less than N_TYPES.
+            // If we went beyond the thresholds we did += N_TYPES, which is also not a positive hit.
+            // If we identified a flux rope we did a double += by N_TYPES and we pick them out with this.
             if(   reducedCellFWConnection[n] >= 2*TracingLineEndType::N_TYPES
                && reducedCellBWConnection[n] >= 2*TracingLineEndType::N_TYPES
             ) {
                mpiGrid[id]->parameters[CellParams::FLUXROPE] = reducedCellMaxExtension[n] / cellCurvatureRadius[n];
             }
             
-            // remove the flux rope mark
+            // Now remove the flux rope mark so we're left with UNPROCESSED, OPEN, CLOSED, LOOP.
             reducedCellFWConnection[n] %= TracingLineEndType::N_TYPES;
             reducedCellBWConnection[n] %= TracingLineEndType::N_TYPES;
             
