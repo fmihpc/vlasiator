@@ -830,7 +830,7 @@ namespace FieldTracing {
          if(cellRunningDistance[n] > maxTracingDistance) {
             cellNeedsContinuedTracing[n] = 0;
             cellTracingCoordinates[n] = {0,0,0};
-            cellConnection[n] += TracingLineEndType::LOOP;
+            cellConnection[n] += TracingLineEndType::DANGLING;
             #pragma omp critical
             {
                warnMaxDistanceExceeded = true;
@@ -838,21 +838,7 @@ namespace FieldTracing {
             break;
          }
          
-         // The idea here:
-         // We trace along the field up to fieldTracingParameters.fluxrope_max_curvature_radii_to_trace*cellCurvatureRadius[n]
-         // and if within that tracing distance we have't extended further than fieldTracingParameters.fluxrope_max_curvature_radii_extent*cellCurvatureRadius[n]
-         // we are rolled up tightly enough to consider being close to a flux rope.
-         // We'll store the max extension reached if it didn't exceed fieldTracingParameters.fluxrope_max_curvature_radii_extent*cellCurvatureRadius[n]
-         // for more fine-grained analysis post-hoc.
-         // The arithmetic idea to avoid using yet more arrays:
-         // We use the cellConnection (that can only be UNPROCESSED, CLOSED, OPEN or LOOP, see enum, ending with N_TYPES).
-         // As long as neither threshold was reached we are at UNPROCESSED.
-         // If we exceed fieldTracingParameters.fluxrope_max_curvature_radii_to_trace*cellCurvatureRadius[n] OR fieldTracingParameters.fluxrope_max_m_to_trace
-         //     we definitely are not near a flux rope and we mark this by adding N_TYPES to cellConnection[n].
-         // If we reach fieldTracingParameters.fluxrope_max_curvature_radii_to_trace*cellCurvatureRadius[n] without hitting the other thresholds or the inner/outer domain limits
-         //     we are near/at a flux rope and we mark this by adding 2*N_TYPES to cellConnection[n].
-         // Later in the tracing we can still add CLOSED, OPEN or LOOP to cellConnection[n] and we will use % to recover those at the very end.
-         
+         // See the longer comment for the function traceFullBoxConnectionAndFluxRopes for details.
          // If we are still in the race for flux rope...
          if(cellConnection[n] < TracingLineEndType::N_TYPES) {
             creal extension = sqrt(
@@ -881,7 +867,75 @@ namespace FieldTracing {
       } // while true
    }
    
-   /*!< Trace magnetic field lines forward and backward from each DCCRG cell to record the connectivity and detect flux ropes.
+   /*!< \brief Trace magnetic field lines forward and backward from each DCCRG cell to record the connectivity and detect flux ropes.
+    *
+    * Full box connection and flux rope tracing
+    *
+    * We are doing two things in one function here as we save a *lot* especially in MPI reductions by combining those. And they are
+    * doing very similar things anyway.
+    *
+    * Firstly we are interested in knowing the ultimate magnetic connection forward and backward from any given location. The
+    * locations are the DCCRG cell centers, there's too many fsgrid cells for practical purposes.
+    * Therefore we step along the magnetic field until we hit an outer box wall (OPEN) or the inner boundary
+    * radius (CLOSED). In rare cases the line might not have reached either of these two termination conditions by the time the
+    * field line has reached a length of maxTracingDistance. In that case we call it DANGLING, it likely ended up in a loop
+    * somewhere (we don't call it "loop" to avoid confusion with the flux rop tracing). As long as we have not hit any of the above
+    * termination conditions, the type is called UNPROCESSED. We allow fieldTracingParameters.fullbox_max_incomplete_lines to remain
+    * UNPROCESSED when we exit the loop, that is a fraction of the total field lines we are tracing (number of cells x2 due to
+    * forward and backward tracing), as this allows substantial shortening of the total time spent due to the MPI_Allreduce calls
+    * occurring when we cross MPI domain boundaries. (NOTE: an algorithm doing direct task-to-task communication will likely be more
+    * efficient!) The connection type of the field line is a member of the enum TracingLineEndType and stored in cellFWConnection,
+    * cellBWConnection, cellConnection and the reduction arrays.
+    * enum TracingLineEndType {
+    *    UNPROCESSED,
+    *    CLOSED,
+    *    OPEN,
+    *    DANGLING,
+    *    N_TYPES
+    * };
+    * Once we have obtained a connection type for both directions, we parse the combinations and assign a value in the enum
+    * TracingPointConnectionType below to CellParams::CONNECTION that will be written out by the vg_connection DRO.
+    * enum TracingPointConnectionType {
+    *    CLOSED_CLOSED,
+    *    CLOSED_OPEN,
+    *    OPEN_CLOSED,
+    *    OPEN_OPEN,
+    *    CLOSED_DANGLING,
+    *    DANGLING_CLOSED,
+    *    OPEN_DANGLING,
+    *    DANGLING_OPEN,
+    *    DANGLING_DANGLING,
+    *    INVALID
+    * };
+    *
+    * Secondly, we are interested in finding out whether the seed point/DCCRG cell centre coordinate (again, too many fsgrid cells
+    * for sanity) are near/in a flux rope. As this relies also on tracing forward and backward along the field, we piggyback on the
+    * full box connection algorithm explained above.
+    * We trace along the field up to fieldTracingParameters.fluxrope_max_curvature_radii_to_trace*cellCurvatureRadius[n] and if
+    * within that tracing distance we have't extended further than
+    * fieldTracingParameters.fluxrope_max_curvature_radii_extent*cellCurvatureRadius[n] we are rolled up tightly enough to consider
+    * being close to a flux rope. We'll store the max extension reached into cellMaxExtension[n] for later fine-grained analysis.
+    * The arithmetic idea to avoid using yet more arrays:
+    * We use the cellFWConnection[n]/cellBWConnection[n]/cellConnection[n] (that can only be UNPROCESSED, CLOSED, OPEN or DANGLING,
+    * see TracingLineEndType enum above, ending with N_TYPES). As long as no full box tracing termination condition was reached
+    * we are at UNPROCESSED. If we exceed fieldTracingParameters.fluxrope_max_curvature_radii_to_trace*cellCurvatureRadius[n] OR
+    * fieldTracingParameters.fluxrope_max_m_to_trace we definitely are not near a flux rope and we mark this by adding N_TYPES to
+    * cellConnection[n].
+    * If we reach fieldTracingParameters.fluxrope_max_curvature_radii_to_trace*cellCurvatureRadius[n] without hitting the other
+    * thresholds or the inner/outer domain limits we are near/at a flux rope and we mark this by adding 2*N_TYPES to
+    * cellConnection[n].
+    * Later in the tracing when we reach a full box tracing termination condition we add CLOSED, OPEN or DANGLING to
+    * cellConnection[n]. If we reached such termination condition before the flux rope method reached a conclusion it's fine too,
+    * nothing has been added to cellConnection[n].
+    * At the very end, we check whether both cellFWConnection[n] and cellBWConnection[n] >= 2*TracingLineEndType::N_TYPES. If yes,
+    * this cell is near a fluxrope. This means we store the value of cellMaxExtension[n] into CellParams::FLUXROPE. Otherwise we
+    * store zero.
+    * After that we apply % TracingLineEndType::N_TYPES to recover values UNPROCESSED, CLOSED, OPEN, DANGLING in
+    * cellFWConnection[n] and cellBWConnection[n] so that we can assign the connection types for the full box connection described
+    * above.
+    *
+    * As a freebie since we computed the curvature anyway for flux rope tracing we store that into CellParams::CURVATUREX/Y/Z.
+    *
     * \sa stepCellAcrossTaskDomain
     */
    void traceFullBoxConnectionAndFluxRopes(
@@ -929,7 +983,7 @@ namespace FieldTracing {
       std::vector<Real> cellFWRunningDistance(globalDccrgSize, 0);
       std::vector<Real> cellBWRunningDistance(globalDccrgSize, 0);
       
-      // This we need only once as we'll only record the max
+      // This we need only once and not forward and backward separately as we'll only record the max
       std::vector<Real> cellMaxExtension(globalDccrgSize, 0);
       
       // These guys are needed in the reductions at the bottom of the tracing loop.
@@ -1207,7 +1261,7 @@ namespace FieldTracing {
                mpiGrid[id]->parameters[CellParams::FLUXROPE] = reducedCellMaxExtension[n] / cellCurvatureRadius[n];
             }
             
-            // Now remove the flux rope mark so we're left with UNPROCESSED, OPEN, CLOSED, LOOP.
+            // Now remove the flux rope mark so we're left with UNPROCESSED, OPEN, CLOSED, DANGLING.
             reducedCellFWConnection[n] %= TracingLineEndType::N_TYPES;
             reducedCellBWConnection[n] %= TracingLineEndType::N_TYPES;
             
@@ -1225,20 +1279,20 @@ namespace FieldTracing {
             if (reducedCellFWConnection[n] == TracingLineEndType::OPEN && reducedCellBWConnection[n] == TracingLineEndType::OPEN) {
                mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::OPEN_OPEN;
             }
-            if (reducedCellFWConnection[n] == TracingLineEndType::CLOSED && reducedCellBWConnection[n] == TracingLineEndType::LOOP) {
-               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::CLOSED_LOOP;
+            if (reducedCellFWConnection[n] == TracingLineEndType::CLOSED && reducedCellBWConnection[n] == TracingLineEndType::DANGLING) {
+               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::CLOSED_DANGLING;
             }
-            if (reducedCellFWConnection[n] == TracingLineEndType::LOOP && reducedCellBWConnection[n] == TracingLineEndType::CLOSED) {
-               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::LOOP_CLOSED;
+            if (reducedCellFWConnection[n] == TracingLineEndType::DANGLING && reducedCellBWConnection[n] == TracingLineEndType::CLOSED) {
+               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::DANGLING_CLOSED;
             }
-            if (reducedCellFWConnection[n] == TracingLineEndType::OPEN && reducedCellBWConnection[n] == TracingLineEndType::LOOP) {
-               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::OPEN_LOOP;
+            if (reducedCellFWConnection[n] == TracingLineEndType::OPEN && reducedCellBWConnection[n] == TracingLineEndType::DANGLING) {
+               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::OPEN_DANGLING;
             }
-            if (reducedCellFWConnection[n] == TracingLineEndType::LOOP && reducedCellBWConnection[n] == TracingLineEndType::OPEN) {
-               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::LOOP_OPEN;
+            if (reducedCellFWConnection[n] == TracingLineEndType::DANGLING && reducedCellBWConnection[n] == TracingLineEndType::OPEN) {
+               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::DANGLING_OPEN;
             }
-            if (reducedCellFWConnection[n] == TracingLineEndType::LOOP && reducedCellBWConnection[n] == TracingLineEndType::LOOP) {
-               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::LOOP_LOOP;
+            if (reducedCellFWConnection[n] == TracingLineEndType::DANGLING && reducedCellBWConnection[n] == TracingLineEndType::DANGLING) {
+               mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::DANGLING_DANGLING;
             }
          }
       }

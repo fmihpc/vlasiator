@@ -94,14 +94,14 @@ namespace FieldTracing {
    /*! Type of field line ending, used to classify the ionospheric nodes and the forward and backward field lines in full.box tracing.
    * CLOSED: ends in the ionosphere
    * OPEN: exits the simulation domain
-   * LOOP: has not exited, might keep looping or would exit given enough time/steps
+   * DANGLING: has not exited, might keep looping or would exit given enough time/steps. Not called LOOP to avoid confusion with fluxrope tracing.
    * UNPROCESSED: cells inside the ionosphere or outside the outer limits that weren't even processed in the first place
    */
    enum TracingLineEndType {
       UNPROCESSED, // Keep first for the reductions to work!
       CLOSED,
       OPEN,
-      LOOP,
+      DANGLING,
       N_TYPES
    };
 
@@ -117,11 +117,11 @@ namespace FieldTracing {
       CLOSED_OPEN,
       OPEN_CLOSED,
       OPEN_OPEN,
-      CLOSED_LOOP,
-      LOOP_CLOSED,
-      OPEN_LOOP,
-      LOOP_OPEN,
-      LOOP_LOOP,
+      CLOSED_DANGLING,
+      DANGLING_CLOSED,
+      OPEN_DANGLING,
+      DANGLING_OPEN,
+      DANGLING_DANGLING,
       INVALID // Keep last for the reductions to work!
    };
 
