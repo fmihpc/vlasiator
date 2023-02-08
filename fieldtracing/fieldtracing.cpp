@@ -986,7 +986,7 @@ namespace FieldTracing {
       // This we need only once and not forward and backward separately as we'll only record the max
       std::vector<Real> cellMaxExtension(globalDccrgSize, 0);
       
-      // These guys are needed in the reductions at the bottom of the tracing loop.
+      // These guys are needed in the reductions
       std::vector<signed char> reducedCellNeedsContinuedFWTracing(globalDccrgSize, 0);
       std::vector<signed char> reducedCellNeedsContinuedBWTracing(globalDccrgSize, 0);
       std::vector<std::array<Real, 3>> sumCellFWTracingCoordinates(globalDccrgSize);
@@ -1041,11 +1041,12 @@ namespace FieldTracing {
          MPI_Allreduce(cellBWTracingStepSize.data(), reducedCellBWTracingStepSize.data(), globalDccrgSize, MPI_FLOAT, MPI_MIN, MPI_COMM_WORLD);
          MPI_Allreduce(cellCurvatureRadius.data(), reducedCellCurvatureRadius.data(), globalDccrgSize, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
       }
+      // Don't swap the first two as the reduced* guys are used below
       cellNeedsContinuedFWTracing = reducedCellNeedsContinuedFWTracing;
       cellNeedsContinuedBWTracing = reducedCellNeedsContinuedBWTracing;
-      cellFWTracingStepSize = reducedCellFWTracingStepSize;
-      cellBWTracingStepSize = reducedCellBWTracingStepSize;
-      cellCurvatureRadius = reducedCellCurvatureRadius;
+      cellFWTracingStepSize.swap(reducedCellFWTracingStepSize);
+      cellBWTracingStepSize.swap(reducedCellBWTracingStepSize);
+      cellCurvatureRadius.swap(reducedCellCurvatureRadius);
       
       TracingFieldFunction tracingFullField = [&perBGrid, &dPerBGrid, &technicalGrid](std::array<Real,3>& r, const bool alongB, std::array<Real,3>& b)->bool{
          return traceFullFieldFunction(perBGrid, dPerBGrid, technicalGrid, r, alongB, b);
@@ -1162,18 +1163,18 @@ namespace FieldTracing {
                   MPI_Allreduce(smallCellBWRunningDistance.data(), smallReducedCellBWRunningDistance.data(), smallSizeBW, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
                }
                for(int n=0; n<smallSizeFW; n++) {
-                  reducedCellFWTracingStepSize[indicesToReduceFW[n]] = smallReducedCellFWTracingStepSize[n];
-                  reducedCellFWRunningDistance[indicesToReduceFW[n]] = smallReducedCellFWRunningDistance[n];
-                  reducedCellNeedsContinuedFWTracing[indicesToReduceFW[n]] = smallReducedCellNeedsContinuedFWTracing[n];
-                  reducedCellFWConnection[indicesToReduceFW[n]] = smallReducedCellFWConnection[n];
-                  sumCellFWTracingCoordinates[indicesToReduceFW[n]] = smallSumCellFWTracingCoordinates[n];
+                  cellFWTracingStepSize[indicesToReduceFW[n]] = smallReducedCellFWTracingStepSize[n];
+                  cellFWRunningDistance[indicesToReduceFW[n]] = smallReducedCellFWRunningDistance[n];
+                  cellNeedsContinuedFWTracing[indicesToReduceFW[n]] = smallReducedCellNeedsContinuedFWTracing[n];
+                  cellFWConnection[indicesToReduceFW[n]] = smallReducedCellFWConnection[n];
+                  cellFWTracingCoordinates[indicesToReduceFW[n]] = smallSumCellFWTracingCoordinates[n];
                }
                for(int n=0; n<smallSizeBW; n++) {
-                  reducedCellBWTracingStepSize[indicesToReduceBW[n]] = smallReducedCellBWTracingStepSize[n];
-                  reducedCellBWRunningDistance[indicesToReduceBW[n]] = smallReducedCellBWRunningDistance[n];
-                  reducedCellNeedsContinuedBWTracing[indicesToReduceBW[n]] = smallReducedCellNeedsContinuedBWTracing[n];
-                  reducedCellBWConnection[indicesToReduceBW[n]] = smallReducedCellBWConnection[n];
-                  sumCellBWTracingCoordinates[indicesToReduceBW[n]] = smallSumCellBWTracingCoordinates[n];
+                  cellBWTracingStepSize[indicesToReduceBW[n]] = smallReducedCellBWTracingStepSize[n];
+                  cellBWRunningDistance[indicesToReduceBW[n]] = smallReducedCellBWRunningDistance[n];
+                  cellNeedsContinuedBWTracing[indicesToReduceBW[n]] = smallReducedCellNeedsContinuedBWTracing[n];
+                  cellBWConnection[indicesToReduceBW[n]] = smallReducedCellBWConnection[n];
+                  cellBWTracingCoordinates[indicesToReduceBW[n]] = smallSumCellBWTracingCoordinates[n];
                }
             }
             #pragma omp barrier
@@ -1182,24 +1183,18 @@ namespace FieldTracing {
             {
                cellsToDoFullBox = 0;
                cellsToDoFluxRopes = 0;
-               cellFWTracingStepSize.swap(reducedCellFWTracingStepSize);
-               cellBWTracingStepSize.swap(reducedCellBWTracingStepSize);
-               cellFWRunningDistance.swap(reducedCellFWRunningDistance);
-               cellBWRunningDistance.swap(reducedCellBWRunningDistance);
-               cellFWConnection.swap(reducedCellFWConnection);
-               cellBWConnection.swap(reducedCellBWConnection);
-               // No swap for these as the old ones are used for the small arrays ~70 lines up.
-               cellNeedsContinuedFWTracing = reducedCellNeedsContinuedFWTracing;
-               cellNeedsContinuedBWTracing = reducedCellNeedsContinuedBWTracing;
+               // These are used for the small arrays ~70 lines up.
+               reducedCellNeedsContinuedFWTracing = cellNeedsContinuedFWTracing;
+               reducedCellNeedsContinuedBWTracing = cellNeedsContinuedBWTracing;
             }
             #pragma omp for schedule(dynamic) reduction(+:cellsToDoFullBox) reduction(+:cellsToDoFluxRopes)
             for(int n=0; n<globalDccrgSize; n++) {
                if(cellNeedsContinuedFWTracing[n]) {
                   cellsToDoFullBox++;
                   // Update that nodes' tracing coordinates
-                  cellFWTracingCoordinates[n][0] = sumCellFWTracingCoordinates[n][0];
-                  cellFWTracingCoordinates[n][1] = sumCellFWTracingCoordinates[n][1];
-                  cellFWTracingCoordinates[n][2] = sumCellFWTracingCoordinates[n][2];
+                  cellFWTracingCoordinates[n][0] = cellFWTracingCoordinates[n][0];
+                  cellFWTracingCoordinates[n][1] = cellFWTracingCoordinates[n][1];
+                  cellFWTracingCoordinates[n][2] = cellFWTracingCoordinates[n][2];
                   if(cellFWConnection[n] == TracingLineEndType::UNPROCESSED) {
                      cellsToDoFluxRopes++;
                   }
@@ -1207,9 +1202,9 @@ namespace FieldTracing {
                if(cellNeedsContinuedBWTracing[n]) {
                   cellsToDoFullBox++;
                   // Update that nodes' tracing coordinates
-                  cellBWTracingCoordinates[n][0] = sumCellBWTracingCoordinates[n][0];
-                  cellBWTracingCoordinates[n][1] = sumCellBWTracingCoordinates[n][1];
-                  cellBWTracingCoordinates[n][2] = sumCellBWTracingCoordinates[n][2];
+                  cellBWTracingCoordinates[n][0] = cellBWTracingCoordinates[n][0];
+                  cellBWTracingCoordinates[n][1] = cellBWTracingCoordinates[n][1];
+                  cellBWTracingCoordinates[n][2] = cellBWTracingCoordinates[n][2];
                   if(cellBWConnection[n] == TracingLineEndType::UNPROCESSED) {
                      cellsToDoFluxRopes++;
                   }
@@ -1252,46 +1247,47 @@ namespace FieldTracing {
             // Handle flux ropes
             mpiGrid[id]->parameters[CellParams::FLUXROPE] = 0;
             const std::array<Real, 3> x = mpiGrid.get_center(id);
-            // Earlier, if we marked nothing (e.g. hit a wall or ionosphere before making a call) reducedCellXWConnection[n] is less than N_TYPES.
+            // We use cellXWConnection as we swapped with reducedCellXWConnection.
+            // Earlier, if we marked nothing (e.g. hit a wall or ionosphere before making a call) cellXWConnection[n] is less than N_TYPES.
             // If we went beyond the thresholds we did += N_TYPES, which is also not a positive hit.
             // If we identified a flux rope we did a double += by N_TYPES and we pick them out with this.
-            if(   reducedCellFWConnection[n] >= 2*TracingLineEndType::N_TYPES
-               && reducedCellBWConnection[n] >= 2*TracingLineEndType::N_TYPES
+            if(   cellFWConnection[n] >= 2*TracingLineEndType::N_TYPES
+               && cellBWConnection[n] >= 2*TracingLineEndType::N_TYPES
             ) {
                mpiGrid[id]->parameters[CellParams::FLUXROPE] = reducedCellMaxExtension[n] / cellCurvatureRadius[n];
             }
             
             // Now remove the flux rope mark so we're left with UNPROCESSED, OPEN, CLOSED, DANGLING.
-            reducedCellFWConnection[n] %= TracingLineEndType::N_TYPES;
-            reducedCellBWConnection[n] %= TracingLineEndType::N_TYPES;
+            cellFWConnection[n] %= TracingLineEndType::N_TYPES;
+            cellBWConnection[n] %= TracingLineEndType::N_TYPES;
             
             // Handle full box connection
             mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::INVALID;
-            if (reducedCellFWConnection[n] == TracingLineEndType::CLOSED && reducedCellBWConnection[n] == TracingLineEndType::CLOSED) {
+            if (cellFWConnection[n] == TracingLineEndType::CLOSED && cellBWConnection[n] == TracingLineEndType::CLOSED) {
                mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::CLOSED_CLOSED;
             }
-            if (reducedCellFWConnection[n] == TracingLineEndType::CLOSED && reducedCellBWConnection[n] == TracingLineEndType::OPEN) {
+            if (cellFWConnection[n] == TracingLineEndType::CLOSED && cellBWConnection[n] == TracingLineEndType::OPEN) {
                mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::CLOSED_OPEN;
             }
-            if (reducedCellFWConnection[n] == TracingLineEndType::OPEN && reducedCellBWConnection[n] == TracingLineEndType::CLOSED) {
+            if (cellFWConnection[n] == TracingLineEndType::OPEN && cellBWConnection[n] == TracingLineEndType::CLOSED) {
                mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::OPEN_CLOSED;
             }
-            if (reducedCellFWConnection[n] == TracingLineEndType::OPEN && reducedCellBWConnection[n] == TracingLineEndType::OPEN) {
+            if (cellFWConnection[n] == TracingLineEndType::OPEN && cellBWConnection[n] == TracingLineEndType::OPEN) {
                mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::OPEN_OPEN;
             }
-            if (reducedCellFWConnection[n] == TracingLineEndType::CLOSED && reducedCellBWConnection[n] == TracingLineEndType::DANGLING) {
+            if (cellFWConnection[n] == TracingLineEndType::CLOSED && cellBWConnection[n] == TracingLineEndType::DANGLING) {
                mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::CLOSED_DANGLING;
             }
-            if (reducedCellFWConnection[n] == TracingLineEndType::DANGLING && reducedCellBWConnection[n] == TracingLineEndType::CLOSED) {
+            if (cellFWConnection[n] == TracingLineEndType::DANGLING && cellBWConnection[n] == TracingLineEndType::CLOSED) {
                mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::DANGLING_CLOSED;
             }
-            if (reducedCellFWConnection[n] == TracingLineEndType::OPEN && reducedCellBWConnection[n] == TracingLineEndType::DANGLING) {
+            if (cellFWConnection[n] == TracingLineEndType::OPEN && cellBWConnection[n] == TracingLineEndType::DANGLING) {
                mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::OPEN_DANGLING;
             }
-            if (reducedCellFWConnection[n] == TracingLineEndType::DANGLING && reducedCellBWConnection[n] == TracingLineEndType::OPEN) {
+            if (cellFWConnection[n] == TracingLineEndType::DANGLING && cellBWConnection[n] == TracingLineEndType::OPEN) {
                mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::DANGLING_OPEN;
             }
-            if (reducedCellFWConnection[n] == TracingLineEndType::DANGLING && reducedCellBWConnection[n] == TracingLineEndType::DANGLING) {
+            if (cellFWConnection[n] == TracingLineEndType::DANGLING && cellBWConnection[n] == TracingLineEndType::DANGLING) {
                mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::DANGLING_DANGLING;
             }
          }
