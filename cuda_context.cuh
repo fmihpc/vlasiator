@@ -39,7 +39,7 @@
 #include "cuda.h"
 #include "cuda_runtime.h"
 #include "definitions.h"
-#include "src/splitvector/splitvec.h"
+#include "include/splitvector/splitvec.h"
 
 #include <stdio.h>
 

@@ -34,11 +34,11 @@
 //#include <set>
 #include <cmath>
 
-#include "open_bucket_hashtable.h"
 #include "velocity_mesh_parameters.h"
 
-#include "src/hashinator/hashinator.h"
-#include "src/splitvector/splitvec.h"
+//#include "open_bucket_hashtable.h"
+#include "include/hashinator/hashinator.h"
+//#include "include/splitvector/splitvec.h"
 
 #include "device_launch_parameters.h"
 #include "cuda.h"
@@ -76,8 +76,8 @@ namespace vmesh {
       LID getLocalID(const GID& globalID) const;
       const Real* getMeshMaxLimits() const;
       const Real* getMeshMinLimits() const;
-      //bool initialize(const size_t& meshID,std::vector<vmesh::MeshParameters>& meshParamIn);
-      bool initialize(const size_t& meshID,split::SplitVector<vmesh::MeshParameters>& meshParamIn);
+      bool initialize(const size_t& meshID,std::vector<vmesh::MeshParameters>& meshParamIn);
+      //bool initialize(const size_t& meshID,split::SplitVector<vmesh::MeshParameters>& meshParamIn);
       bool initialize(const size_t& meshID);
       static LID invalidBlockIndex();
       static GID invalidGlobalID();
@@ -94,22 +94,22 @@ namespace vmesh {
       void setNewSize(const LID& newSize);
       size_t size() const;
       size_t sizeInBytes() const;
-       void swap(VelocityMesh& vm);
+      void swap(VelocityMesh& vm);
 
-    private:
-      //static std::vector<vmesh::MeshParameters> meshParameters;
-      static split::SplitVector<vmesh::MeshParameters> meshParameters;
+   private:
+      static std::vector<vmesh::MeshParameters> meshParameters;
+      //static split::SplitVector<vmesh::MeshParameters> meshParameters;
       size_t meshID;
 
       //std::vector<GID> localToGlobalMap;
       //OpenBucketHashtable<GID,LID> globalToLocalMap;
-      Hashinator<GID,LID> globalToLocalMap = Hashinator<GID,LID>(10); // Start of with a bit larger size for sizePower?
+      Hashinator::Hashmap<GID,LID> globalToLocalMap = Hashinator::Hashmap<GID,LID>(10); // Start of with a bit larger size for sizePower?
       split::SplitVector<GID> localToGlobalMap;
    };
 
    // ***** INITIALIZERS FOR STATIC MEMBER VARIABLES ***** //
-   //template<typename GID,typename LID> std::vector<vmesh::MeshParameters> VelocityMesh<GID,LID>::meshParameters;
-   template<typename GID,typename LID> split::SplitVector<vmesh::MeshParameters> VelocityMesh<GID,LID>::meshParameters;
+   template<typename GID,typename LID> std::vector<vmesh::MeshParameters> VelocityMesh<GID,LID>::meshParameters;
+   //template<typename GID,typename LID> split::SplitVector<vmesh::MeshParameters> VelocityMesh<GID,LID>::meshParameters;
 
    // ***** DEFINITIONS OF TEMPLATE MEMBER FUNCTIONS ***** //
 
@@ -368,8 +368,8 @@ namespace vmesh {
    }
 
    template<typename GID,typename LID> inline
-   //bool VelocityMesh<GID,LID>::initialize(const size_t& meshID,std::vector<vmesh::MeshParameters>& meshParamIn) {
-   bool VelocityMesh<GID,LID>::initialize(const size_t& meshID,split::SplitVector<vmesh::MeshParameters>& meshParamIn) {
+   bool VelocityMesh<GID,LID>::initialize(const size_t& meshID,std::vector<vmesh::MeshParameters>& meshParamIn) {
+      //bool VelocityMesh<GID,LID>::initialize(const size_t& meshID,split::SplitVector<vmesh::MeshParameters>& meshParamIn) {
       meshParamIn[meshID].initialized = false;
 
       meshParamIn[meshID].meshMinLimits[0] = meshParamIn[meshID].meshLimits[0];
@@ -440,7 +440,7 @@ namespace vmesh {
       if (globalID == invalidGlobalID()) return false;
 
       auto position
-        = globalToLocalMap.insert(std::make_pair(globalID,localToGlobalMap.size()));
+         = globalToLocalMap.insert(cuda::std::make_pair(globalID,localToGlobalMap.size()));
 
       if (position.second == true) {
          localToGlobalMap.push_back(globalID);
@@ -461,7 +461,7 @@ namespace vmesh {
       }
 
       for (size_t b=0; b<blocks.size(); ++b) {
-         globalToLocalMap.insert(std::make_pair(blocks[b],localToGlobalMap.size()+b));
+         globalToLocalMap.insert(cuda::std::make_pair(blocks[b],localToGlobalMap.size()+b));
       }
       //localToGlobalMap.insert(localToGlobalMap.end(),blocks.begin(),blocks.end());
       for (size_t b=0; b<blocks.size(); ++b) {
@@ -480,7 +480,7 @@ namespace vmesh {
       }
 
       for (size_t b=0; b<blocks.size(); ++b) {
-         globalToLocalMap.insert(std::make_pair(blocks[b],localToGlobalMap.size()+b));
+         globalToLocalMap.insert(cuda::std::make_pair(blocks[b],localToGlobalMap.size()+b));
       }
       localToGlobalMap.insert(localToGlobalMap.end(),blocks.begin(),blocks.end());
 
@@ -491,7 +491,7 @@ namespace vmesh {
    void VelocityMesh<GID,LID>::setGrid() {
       globalToLocalMap.clear();
       for (size_t i=0; i<localToGlobalMap.size(); ++i) {
-         globalToLocalMap.insert(std::make_pair(localToGlobalMap[i],i));
+         globalToLocalMap.insert(cuda::std::make_pair(localToGlobalMap[i],i));
       }
    }
 
@@ -499,7 +499,7 @@ namespace vmesh {
    bool VelocityMesh<GID,LID>::setGrid(const std::vector<GID>& globalIDs) {
       globalToLocalMap.clear();
       for (LID i=0; i<globalIDs.size(); ++i) {
-         globalToLocalMap.insert(std::make_pair(globalIDs[i],i));
+         globalToLocalMap.insert(cuda::std::make_pair(globalIDs[i],i));
       }
       localToGlobalMap = globalIDs;
       return true;
@@ -508,7 +508,7 @@ namespace vmesh {
    bool VelocityMesh<GID,LID>::setGrid(const split::SplitVector<GID>& globalIDs) {
       globalToLocalMap.clear();
       for (LID i=0; i<globalIDs.size(); ++i) {
-         globalToLocalMap.insert(std::make_pair(globalIDs[i],i));
+         globalToLocalMap.insert(cuda::std::make_pair(globalIDs[i],i));
       }
       localToGlobalMap = globalIDs;
       return true;

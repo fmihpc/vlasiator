@@ -37,7 +37,7 @@
 #include "velocity_mesh_parameters.h"
 #include "sysboundary/sysboundary.h"
 #ifdef USE_CUDA
-#include "src/splitvector/splitvec.h"
+#include "include/splitvector/splitvec.h"
 #endif
 
 struct ObjectWrapper {
@@ -49,8 +49,8 @@ struct ObjectWrapper {
    std::vector<species::Species> particleSpecies;           /**< Parameters for all particle species.*/
    projects::Project*                    project;           /**< Simulated project.*/
 #ifdef USE_CUDA
-   split::SplitVector<vmesh::MeshParameters> velocityMeshes;       /**< Parameters for velocity mesh(es).*/
-   //std::vector<vmesh::MeshParameters> velocityMeshes;       /**< Parameters for velocity mesh(es).*/
+   //split::SplitVector<vmesh::MeshParameters> velocityMeshes;       /**< Parameters for velocity mesh(es).*/
+   std::vector<vmesh::MeshParameters> velocityMeshes;       /**< Parameters for velocity mesh(es).*/
 #else
    std::vector<vmesh::MeshParameters> velocityMeshes;       /**< Parameters for velocity mesh(es).*/
 #endif

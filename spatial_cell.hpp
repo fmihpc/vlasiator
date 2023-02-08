@@ -23,9 +23,13 @@
   Spatial cell wrapper, maps to newer CUDA version or older CPU version which also has some
   stale VAMR mesh support.
 */
+#ifndef SPATIAL_CELL_WRAPPER
+#define SPATIAL_CELL_WRAPPER
 
 #ifdef USE_CUDA
 #include "spatial_cell_cuda.hpp"
 #else
 #include "spatial_cell_old.hpp"
+#endif
+
 #endif

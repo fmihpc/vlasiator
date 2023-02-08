@@ -36,7 +36,7 @@
 #ifdef USE_CUDA
    #include "cuda_context.cuh"
    // Place block data and parameters inside splitvectors utilizing unified memory
-   #include "src/splitvector/splitvec.h"
+   #include "include/splitvector/splitvec.h"
 #else
    #define CUDA_HOSTDEV
 #endif

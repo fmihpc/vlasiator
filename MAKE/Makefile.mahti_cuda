@@ -64,16 +64,23 @@ LNK = mpic++
 CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -fopenmp -std=c++17 -rdynamic -fpermissive
 testpackage: CXXFLAGS = -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -fopenmp -std=c++17 -fpermissive
 
+#CXXFLAGS = -g -O2 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 -Xcompiler -fopenmp --generate-line-info -line-info -Xcompiler="-fpermissive"
+#testpackage: CXXFLAGS = -g -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 -Xcompiler -fopenmp --prec-sqrt=true --prec-div=true --ftz=false --fmad=false --generate-line-info -line-info -Xcompiler="-fpermissive"
+
 CMPGPUFLAGS = -g -O2 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 -Xcompiler -fopenmp --generate-line-info -line-info -Xcompiler="-fpermissive"
 testpackage: CMPGPUFLAGS = -g -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 -Xcompiler -fopenmp --prec-sqrt=true --prec-div=true --ftz=false --fmad=false --generate-line-info -line-info -Xcompiler="-fpermissive"
 
 CMPGPU = OMPI_CXX='nvcc' OMPI_CXXFLAGS='' mpic++
 
+#CMP = OMPI_CXX='nvcc' OMPI_CXXFLAGS='' mpic++
+#LNK= OMPI_LD='nvcc' echo ${OMPI_LIBS}; OMPI_LD='nvcc' echo ${OMPI_LD}; OMPI_LD='nvcc' mpic++
+
 MATHFLAGS =
 LDFLAGS = -O2 -g -L/appl/spack/v016/install-tree/gcc-4.8.5/nvhpc-21.2-l6xyb4/Linux_x86_64/21.2/cuda/11.2/lib64 -lnvToolsExt
 LIB_MPI = -lgomp
-#LIB_CUDA = -L/usr/local/cuda/lib64 -lcuda -lcudart
 
+LIB_CUDA = -L/usr/local/cuda/lib64
+INC_CUDA = -isystem /usr/local/cuda/include
 
 #======== PAPI ==========
 #Add PAPI_MEM define to use papi to report memory consumption?
@@ -97,20 +104,23 @@ LIBRARY_PREFIX2 = /projappl/project_2000203/libraries_rhel8_gcccuda
 INC_BOOST = -isystem /$(LIBRARY_PREFIX2)/boost/include
 LIB_BOOST = -L/$(LIBRARY_PREFIX2)/boost/lib -lboost_program_options
 
-LIB_PAPI = -isystem /$(LIBRARY_PREFIX2)/papi/include -lpapi
-INC_PAPI = -L/$(LIBRARY_PREFIX2)/papi/lib
+INC_PAPI = -isystem /$(LIBRARY_PREFIX2)/papi/include
+LIB_PAPI = -L/$(LIBRARY_PREFIX2)/papi/lib -lpapi
 
 INC_ZOLTAN = -isystem /$(LIBRARY_PREFIX2)/zoltan/include
 LIB_ZOLTAN = -L/$(LIBRARY_PREFIX2)/zoltan/lib -lzoltan
 
 INC_JEMALLOC = -isystem /$(LIBRARY_PREFIX2)/jemalloc/include
+#LIB_JEMALLOC = -L/$(LIBRARY_PREFIX2)/jemalloc/lib -ljemalloc -Xlinker=-rpath=$(LIBRARY_PREFIX2)/jemalloc/lib
 LIB_JEMALLOC = -L/$(LIBRARY_PREFIX2)/jemalloc/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX2)/jemalloc/lib
 
 INC_VLSV = -I$(LIBRARY_PREFIX2)/vlsv
+#LIB_VLSV = -L$(LIBRARY_PREFIX2)/vlsv -lvlsv -Xlinker=-rpath=$(LIBRARY_PREFIX2)/vlsv/lib
 LIB_VLSV = -L$(LIBRARY_PREFIX2)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX2)/vlsv/lib
 
-LIB_PROFILE = -L$(LIBRARY_PREFIX2)/phiprof/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX2)/phiprof/lib
 INC_PROFILE = -I$(LIBRARY_PREFIX2)/phiprof/include
+#LIB_PROFILE = -L$(LIBRARY_PREFIX2)/phiprof/lib -lphiprof -Xlinker=-rpath=$(LIBRARY_PREFIX2)/phiprof/lib
+LIB_PROFILE = -L$(LIBRARY_PREFIX2)/phiprof/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX2)/phiprof/lib
 
 #======== Header-only Libraries ===========
 

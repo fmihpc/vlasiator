@@ -88,7 +88,7 @@ ifeq ($(USE_CUDA),1)
 	COMPFLAGS += -DUSE_CUDA
 	CUDALIB += -lcudart
 # Use CUDA-compatible hashmap
-	COMPFLAGS += ${INC_HASHINATOR}
+	COMPFLAGS += ${INC_HASHINATOR} ${INC_CUDA}
 endif
 
 #Vectorclass settings
