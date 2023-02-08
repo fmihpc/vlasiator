@@ -460,8 +460,10 @@ namespace vmesh {
          // and at least two in case of having zero blocks.
          // The order of velocity blocks is unaltered.
          currentCapacity = 2 + numberOfBlocks * BLOCK_ALLOCATION_PADDING;
-         block_data->reallocate(currentCapacity*WID3);
-         parameters->reallocate(currentCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS);
+         // block_data->reallocate(currentCapacity*WID3);
+         // parameters->reallocate(currentCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS);
+         block_data->resize(currentCapacity*WID3);
+         parameters->resize(currentCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS);
       }
 #else
       if ((numberOfBlocks+1) >= currentCapacity) {
