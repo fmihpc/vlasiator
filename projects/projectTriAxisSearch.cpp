@@ -56,11 +56,7 @@ namespace projects {
       const size_t vzblocks_ini = cell->get_velocity_grid_length(popID,refLevel)[2];
 
       const vector<std::array<Real, 3>> V0 = this->getV0(x+0.5*dx, y+0.5*dy, z+0.5*dz, popID);
-      uint peak = 0;
-      std::cerr<<"grid "<<x<<" "<<y<<" "<<z<<" "<<dx<<" "<<dy<<" "<<dz<<" "<<dvxCell<<" "<<dvyCell<<" "<<dvzCell<<" "<<dvxBlock<<" "<<dvyBlock<<" "<<dvzBlock<<" "<<vxblocks_ini<<" "<<vyblocks_ini<<" "<<vzblocks_ini<<" "<<cell->get_velocity_grid_length(popID,refLevel)[0]<<" "<<cell->get_velocity_grid_length(popID,refLevel)[1]<<" "<<cell->get_velocity_grid_length(popID,refLevel)[2]<<std::endl;
       for (vector<std::array<Real, 3>>::const_iterator it = V0.begin(); it != V0.end(); it++) {
-         std::cerr<<"peak "<<peak<<" ";
-         peak++;
          // VX search
          search = true;
          counter = 0;
@@ -156,15 +152,12 @@ namespace projects {
                } // vxblocks_ini
             } // vyblocks_ini
          } // vzblocks_ini
-         std::cerr<<std::endl<<"   BlocksToInitLength "<<blocksToInitialize.size()<<std::endl;
       }
-      std::cerr<<"grid "<<x<<" "<<y<<" "<<z<<" "<<dx<<" "<<dy<<" "<<dz<<" "<<dvxCell<<" "<<dvyCell<<" "<<dvzCell<<" "<<dvxBlock<<" "<<dvyBlock<<" "<<dvzBlock<<" "<<vxblocks_ini<<" "<<vyblocks_ini<<" "<<vzblocks_ini<<" "<<cell->get_velocity_grid_length(popID,refLevel)[0]<<" "<<cell->get_velocity_grid_length(popID,refLevel)[1]<<" "<<cell->get_velocity_grid_length(popID,refLevel)[2]<<std::endl;
 
       vector<vmesh::GlobalID> returnVector;
       for (set<vmesh::GlobalID>::const_iterator it=blocksToInitialize.begin(); it!=blocksToInitialize.end(); ++it) {
          returnVector.push_back(*it);
       }
-      std::cerr<<"blocksToInitLength "<<returnVector.size()<<" "<<blocksToInitialize.size()<<std::endl;
       return returnVector;
    }
    

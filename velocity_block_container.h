@@ -460,10 +460,10 @@ namespace vmesh {
          // and at least two in case of having zero blocks.
          // The order of velocity blocks is unaltered.
          currentCapacity = 2 + numberOfBlocks * BLOCK_ALLOCATION_PADDING;
-         // block_data->reallocate(currentCapacity*WID3);
-         // parameters->reallocate(currentCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS);
-         block_data->resize(currentCapacity*WID3);
-         parameters->resize(currentCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS);
+         // reallocate() doesn't change vector size, leads to data loss when further reallocating due to lack of data copy
+         // Passing eco flag = true to resize tells splitvector we manage padding manually.
+         block_data->resize(currentCapacity*WID3, true);
+         parameters->resize(currentCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS, true);
       }
 #else
       if ((numberOfBlocks+1) >= currentCapacity) {

@@ -993,7 +993,6 @@ namespace spatial_cell {
       // there are too many blocks in the spatial cell
       bool success = true;
       if (populations[popID].vmesh.push_back(block) == false) {
-         std::cerr<<"vmehs.push_back(block) "<<block<<std::endl;
          return false;
       }
 
@@ -1006,7 +1005,6 @@ namespace spatial_cell {
       parameters[BlockParams::VYCRD] = get_velocity_block_vy_min(popID,block);
       parameters[BlockParams::VZCRD] = get_velocity_block_vz_min(popID,block);
       populations[popID].vmesh.getCellSize(block,&(parameters[BlockParams::DVX]));
-      std::cerr<<"success "<<block<<" LID "<<VBC_LID<<" "<<VBC_LID<<" "<<parameters[BlockParams::VXCRD]<<" "<<parameters[BlockParams::VYCRD]<<" "<<parameters[BlockParams::VZCRD]<<" "<<parameters[BlockParams::DVX]<<" "<<parameters[BlockParams::DVY]<<" "<<parameters[BlockParams::DVZ]<<" params "<<parameters<<std::endl;
 
       // The following call 'should' be the fastest, but is actually
       // much slower that the parameter setting above

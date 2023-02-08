@@ -444,10 +444,7 @@ namespace vmesh {
 
       if (position.second == true) {
          localToGlobalMap.push_back(globalID);
-      } else {
-         std::cerr<<"failed on hashmap insert "<<globalID<<" "<<(localToGlobalMap.size())<<std::endl;
       }
-
       return position.second;
    }
 

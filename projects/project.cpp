@@ -232,9 +232,7 @@ namespace projects {
                blockIndices[2] = kv;
                const vmesh::GlobalID blockGID = cell->get_velocity_block(popID,blockIndices,refLevel);
 
-               if (!cell->add_velocity_block(blockGID,popID)) {
-                  std::cerr<<"error adding block "<<blockGID<<std::endl;
-               }
+               cell->add_velocity_block(blockGID,popID);
                blocksToInitialize.push_back(blockGID);
       }
       delete vblocks_ini;
@@ -302,7 +300,6 @@ namespace projects {
       creal dvxCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
       creal dvyCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
       creal dvzCell = parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-      std::cerr<<"setVelBlock "<<blockLID<<" "<<x<<" "<<y<<" "<<z<<" "<<dx<<" "<<" "<<dy<<" "<<" "<<dz<<" "<<vxBlock<<" "<<vyBlock<<" "<<vzBlock<<" "<<dvxCell<<" "<<dvyCell<<" "<<dvzCell<<" params "<<parameters<<" data "<<data<<std::endl;
       // Calculate volume average of distribution function for each phase-space cell in the block.
       Real maxValue = 0.0;
       for (uint kc=0; kc<WID_VZ; ++kc) {
@@ -323,7 +320,6 @@ namespace projects {
             }
          }
       }
-      std::cerr<<"maxValue "<<maxValue<<std::endl;;
       return maxValue;
    }
    
@@ -345,7 +341,6 @@ namespace projects {
             removeList.push_back(blockGID);
          }
       }
-      std::cerr<<"removelist "<<removeList.size()<<" init "<<blocksToInitialize.size()<<std::endl;
 
 #ifdef VAMR
       // Get VAMR refinement criterion and use it to test which blocks should be refined
