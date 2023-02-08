@@ -601,11 +601,9 @@ namespace projects {
             }
             delete[] buffer;
             Real n = mpiGrid[cells[i]]->parameters[CellParams::RHOM];
-            if(n > 0)
+            if(n > 0) {
                mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] += pow(Pdiag/n,1.5);
-            // for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p){
-            //    setDummyVelocitySpace(p,mpiGrid[cells[i]]);
-            // }
+            }
             
             mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]);
          }
@@ -1148,33 +1146,6 @@ namespace projects {
       //this->vlsvParaReader.close();
       return true;
    }
-
-   // void ElVentana::setDummyVelocitySpace(const uint popID,SpatialCell* cell) const {
-   //    vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = cell->get_velocity_mesh(popID);
-
-   //    vector<vmesh::GlobalID> blocksToInitialize;
-   //    vmesh::LocalID blockIndices[3] = {0,0,0};
-   //    const vmesh::GlobalID blockGID = cell->get_velocity_block(popID,blockIndices,0u);
-   //    cell->add_velocity_block(blockGID,popID);
-
-   //    blocksToInitialize.push_back(blockGID);
-
-   //    vector<vmesh::GlobalID> removeList;
-   //    for (uint i=0; i<blocksToInitialize.size(); ++i) {
-   //       const vmesh::GlobalID blockGID = blocksToInitialize[i];
-   //       const vmesh::LocalID blockLID = vmesh.getLocalID(blockGID);
-   //       if (blockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
-   //          cerr << "ERROR, invalid local ID in " << __FILE__ << ":" << __LINE__ << endl;
-   //          exit(1);
-   //       }
-
-   //       const Real maxValue = setVelocityBlock(cell,blockLID,popID);
-   //    }
-
-
-   //    if (rescalesDensity(popID) == true) rescaleDensity(cell,popID);
-   //    return;
-   // }
 
 } // namespace projects
 

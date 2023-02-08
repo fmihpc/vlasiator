@@ -410,7 +410,6 @@ void initializeGrids(
       phiprof::start("setProjectBField");
       project.setProjectBField(perBGrid, BgBGrid, technicalGrid);
       
-      cerr << __LINE__ << "setProjectBField" << endl;
       perBGrid.updateGhostCells();
       BgBGrid.updateGhostCells();
       EGrid.updateGhostCells();
