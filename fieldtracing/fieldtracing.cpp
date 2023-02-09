@@ -24,19 +24,20 @@
  * \brief Implementation of the field tracing algorithms used in Magnetosphere runs and in magnetosphere-ionosphere coupling.
  */
 
-#include "vectorclass.h"
-#include "vector3d.h"
-
-#if VECTORCLASS_H >= 200
-#define Vec3d Vec3Dd
-#endif
-
 #include "../fieldsolver/fs_common.h"
 #include "fieldtracing.h"
 #include "bulirschStoer.h"
 #include "dormandPrince.h"
 #include "euler.h"
 #include "eulerAdaptive.h"
+
+#include <Eigen/Dense>
+
+#define Vec3d Eigen::Vector3d
+#define cross_product(av,bv) (av).cross(bv)
+#define dot_product(av,bv) (av).dot(bv)
+#define vector_length(v) (v).norm()
+#define normalize_vector(v) (v).normalized()
 
 namespace FieldTracing {
    FieldTracingParameters fieldTracingParameters;
@@ -494,7 +495,6 @@ namespace FieldTracing {
       for (uint toto=0; toto<15; toto++) {
          const SBC::SphericalTriGrid::Element& el = SBC::ionosphereGrid.elements[elementIndex];
          oldElementIndex = elementIndex;
-         Vec3d r1,r2,r3;
          
          if(elementHistory.find(elementIndex) == elementHistory.end()) {
             elementHistory.insert(elementIndex);
@@ -506,9 +506,9 @@ namespace FieldTracing {
          }
          
          // Calculate barycentric coordinates for x in this element.
-         r1.load(nodes[el.corners[0]].x.data());
-         r2.load(nodes[el.corners[1]].x.data());
-         r3.load(nodes[el.corners[2]].x.data());
+         Vec3d r1(nodes[el.corners[0]].x.data());
+         Vec3d r2(nodes[el.corners[1]].x.data());
+         Vec3d r3(nodes[el.corners[2]].x.data());
          
          Vec3d rx(x[0],x[1],x[2]);
          

@@ -79,6 +79,7 @@ uint P::tstep_max = 0;
 uint P::diagnosticInterval = numeric_limits<uint>::max();
 bool P::writeInitialState = true;
 
+
 bool P::meshRepartitioned = true;
 bool P::prepareForRebalance = false;
 vector<CellID> P::localCells;
@@ -92,6 +93,7 @@ vector<int> P::systemWriteDistributionWriteYlineStride;
 vector<int> P::systemWriteDistributionWriteZlineStride;
 vector<Real> P::systemWriteDistributionWriteShellRadius;
 vector<int> P::systemWriteDistributionWriteShellStride;
+vector<bool> P::systemWriteFsGrid;
 vector<int> P::systemWrites;
 vector<pair<string, string>> P::systemWriteHints;
 vector<pair<string, string>> P::restartWriteHints;
@@ -146,10 +148,11 @@ Real P::bailout_min_dt = NAN;
 Real P::bailout_max_memory = 1073741824.;
 uint P::bailout_velocity_space_wall_margin = 0;
 
-uint P::amrMaxVelocityRefLevel = 0;
-Realf P::amrRefineLimit = 1.0;
-Realf P::amrCoarsenLimit = 0.5;
-string P::amrVelRefCriterion = string("");
+uint P::vamrMaxVelocityRefLevel = 0;
+Realf P::vamrRefineLimit = 1.0;
+Realf P::vamrCoarsenLimit = 0.5;
+string P::vamrVelRefCriterion = string("");
+
 uint P::amrMaxSpatialRefLevel = 0;
 bool P::adaptRefinement = false;
 bool P::refineOnRestart = false;
@@ -203,6 +206,7 @@ bool P::addParameters() {
                     "space. 0 is none.");
    RP::addComposing("io.system_write_distribution_shell_stride",
                     "Every this many cells for those on selected shells write out their velocity space. 0 is none.");
+   RP::addComposing("io.system_write_fsgrid_variables", "If 0 don't write fsgrid DROs, if 1 do write them.");
    RP::addComposing(
        "io.system_write_mpiio_hint_key",
        "MPI-IO hint key passed to the non-restart IO. Has to be matched by io.system_write_mpiio_hint_value.");
@@ -350,7 +354,7 @@ bool P::addParameters() {
                         "ig_precipitation ig_deltaphi "+
                         "ig_inplanecurrent ig_b ig_e vg_drift vg_ionospherecoupling vg_connection vg_fluxrope fg_curvature "+
                         "vg_amr_drho vg_amr_du vg_amr_dpsq vg_amr_dbsq vg_amr_db vg_amr_alpha vg_amr_reflevel vg_amr_jperb "+
-                        "vg_amr_translate_comm vg_gridcoordinates fg_gridcoordinates meshdata");
+                        "vg_amr_translate_comm vg_gridcoordinates fg_gridcoordinates ");
 
    RP::addComposing(
        "variables_deprecated.output",
@@ -402,14 +406,15 @@ bool P::addParameters() {
            1073741824.);
    RP::add("bailout.velocity_space_wall_block_margin", "Distance from the velocity space limits in blocks, if the distribution function reaches that distance from the wall we bail out to avoid hitting the wall.", 1);
 
-   // Refinement parameters
-   RP::add("AMR.vel_refinement_criterion", "Name of the velocity refinement criterion", string(""));
-   RP::add("AMR.max_velocity_level", "Maximum velocity mesh refinement level", (uint)0);
-   RP::add("AMR.refine_limit",
+   // Velocity Refinement parameters
+   RP::add("VAMR.vel_refinement_criterion", "Name of the velocity refinement criterion", string(""));
+   RP::add("VAMR.max_velocity_level", "Maximum velocity mesh refinement level", (uint)0);
+   RP::add("VAMR.refine_limit",
            "If the refinement criterion function returns a larger value than this, block is refined", (Realf)1.0);
-   RP::add("AMR.coarsen_limit",
+   RP::add("VAMR.coarsen_limit",
            "If the refinement criterion function returns a smaller value than this, block can be coarsened",
            (Realf)0.5);
+   // Spatial Refinement parameters
    RP::add("AMR.max_spatial_level", "Maximum spatial mesh refinement level", (uint)0);
    RP::add("AMR.should_refine","If false, do not refine Vlasov grid regardless of max spatial level",true);
    RP::add("AMR.adapt_refinement","If true, re-refine vlasov grid every refine_multiplier load balance", false);
@@ -459,6 +464,7 @@ void Parameters::getParameters() {
    RP::get("io.system_write_distribution_zline_stride", P::systemWriteDistributionWriteZlineStride);
    RP::get("io.system_write_distribution_shell_radius", P::systemWriteDistributionWriteShellRadius);
    RP::get("io.system_write_distribution_shell_stride", P::systemWriteDistributionWriteShellStride);
+   RP::get("io.system_write_fsgrid_variables", P::systemWriteFsGrid);
    RP::get("io.write_initial_state", P::writeInitialState);
    RP::get("io.restart_walltime_interval", P::saveRestartWalltimeInterval);
    RP::get("io.number_of_restarts", P::exitAfterRestarts);
@@ -534,6 +540,18 @@ void Parameters::getParameters() {
          cerr << "ERROR You should set the same number of io.system_write_distribution_shell_stride "
               << "and io.system_write_distribution_shell_radius." << endl;
          MPI_Abort(MPI_COMM_WORLD, 1);
+      }
+   }
+   if (P::systemWriteFsGrid.size() != maxSize) {
+      if (P::systemWriteFsGrid.size() == 0) {
+         for (uint i = 0; i < maxSize; i++) {
+            P::systemWriteFsGrid.push_back(true);
+         }
+      } else {
+         if (myRank == MASTER_RANK) {
+            cerr << "ERROR io.system_write_fsgrid_variables should be defined for all file types (or none at all)." << endl;
+            MPI_Abort(MPI_COMM_WORLD, 1);
+         }
       }
    }
    if (P::systemWritePath.size() == 0) {
@@ -616,7 +634,11 @@ void Parameters::getParameters() {
    RP::get("gridbuilder.y_length", P::ycells_ini);
    RP::get("gridbuilder.z_length", P::zcells_ini);
 
-   RP::get("AMR.max_velocity_level", P::amrMaxVelocityRefLevel);
+   RP::get("VAMR.max_velocity_level", P::vamrMaxVelocityRefLevel);
+   RP::get("VAMR.vel_refinement_criterion", P::vamrVelRefCriterion);
+   RP::get("VAMR.refine_limit", P::vamrRefineLimit);
+   RP::get("VAMR.coarsen_limit", P::vamrCoarsenLimit);
+
    RP::get("AMR.max_spatial_level", P::amrMaxSpatialRefLevel);
    RP::get("AMR.adapt_refinement",P::adaptRefinement);
    RP::get("AMR.refine_on_restart",P::refineOnRestart);
@@ -635,9 +657,6 @@ void Parameters::getParameters() {
    RP::get("AMR.box_center_x", P::amrBoxCenterX);
    RP::get("AMR.box_center_y", P::amrBoxCenterY);
    RP::get("AMR.box_center_z", P::amrBoxCenterZ);
-   RP::get("AMR.vel_refinement_criterion", P::amrVelRefCriterion);
-   RP::get("AMR.refine_limit", P::amrRefineLimit);
-   RP::get("AMR.coarsen_limit", P::amrCoarsenLimit);
    RP::get("AMR.transShortPencils", P::amrTransShortPencils);
    RP::get("AMR.filterpasses", P::blurPassString);
 
@@ -695,8 +714,8 @@ void Parameters::getParameters() {
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
 
-   if (P::amrCoarsenLimit >= P::amrRefineLimit) {
-      cerr << "amrRefineLimit must be smaller than amrCoarsenLimit!" << endl;
+   if (P::vamrCoarsenLimit >= P::vamrRefineLimit) {
+      cerr << "vamrRefineLimit must be smaller than vamrCoarsenLimit!" << endl;
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
    if (P::xmax < P::xmin || (P::ymax < P::ymin || P::zmax < P::zmin)) {

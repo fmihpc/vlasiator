@@ -319,24 +319,24 @@ bool writeDataReducer(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
                       const bool writeAsFloat,
+                      const bool writeFsGrid,
                       DataReducer& dataReducer,
-                      int dataReducerIndex,
+                      cint dataReducerIndex,
                       Writer& vlsvWriter){
    map<string,string> attribs;
    string variableName,dataType,unitString,unitStringLaTeX, variableStringLaTeX, unitConversionFactor;
    bool success=true;
-
+   
+   if(!writeFsGrid) { // if we shouldn't write fsgrid DROs
+      variableName = dataReducer.getName(dataReducerIndex);
+      if(variableName.find("fg_", 0) == 0) { // and if the DRO's name includes the string "fg_"
+         return success; // we're good to go
+      }
+   }
+   
    const string meshName = "SpatialGrid";
    variableName = dataReducer.getName(dataReducerIndex);
    phiprof::start("DRO_"+variableName);
-
-   // If the DataReducer can write its data directly to the output file, do it here.
-   // Otherwise the output data is buffered and written below.
-   if (dataReducer.handlesWriting(dataReducerIndex) == true) {
-      success = dataReducer.writeData(dataReducerIndex,mpiGrid,cells,meshName,vlsvWriter);
-      phiprof::stop("DRO_"+variableName);
-      return success;
-   }
 
    //Get basic data on a variable:
    uint dataSize,vectorSize;
@@ -1056,13 +1056,13 @@ bool writeIonosphereGridMetadata(vlsv::Writer& vlsvWriter) {
   //   uint32_t num_nodes = 3; // It has three corners.
   //   std::array<uint32_t, 3> nodes; // The corner data
   //};
-  std::vector<uint32_t> meshData;
+  std::vector<uint32_t> ionosphereGridElementsAndCorners;
   for(uint i=0; i<SBC::ionosphereGrid.elements.size(); i++) {
-     meshData.push_back(vlsv::celltype::TRIANGLE);
-     meshData.push_back(3);
-     meshData.push_back(SBC::ionosphereGrid.elements[i].corners[0]);
-     meshData.push_back(SBC::ionosphereGrid.elements[i].corners[1]);
-     meshData.push_back(SBC::ionosphereGrid.elements[i].corners[2]);
+     ionosphereGridElementsAndCorners.push_back(vlsv::celltype::TRIANGLE);
+     ionosphereGridElementsAndCorners.push_back(3);
+     ionosphereGridElementsAndCorners.push_back(SBC::ionosphereGrid.elements[i].corners[0]);
+     ionosphereGridElementsAndCorners.push_back(SBC::ionosphereGrid.elements[i].corners[1]);
+     ionosphereGridElementsAndCorners.push_back(SBC::ionosphereGrid.elements[i].corners[2]);
   }
 
   // Finally, write mesh object itself.
@@ -1075,9 +1075,9 @@ bool writeIonosphereGridMetadata(vlsv::Writer& vlsvWriter) {
 
   if(rank == 0) {
     // Write this data only on rank 0 
-    vlsvWriter.writeArray("MESH", xmlAttributes, meshData.size(), 1, meshData.data());
+    vlsvWriter.writeArray("MESH", xmlAttributes, ionosphereGridElementsAndCorners.size(), 1, ionosphereGridElementsAndCorners.data());
   } else {
-    vlsvWriter.writeArray("MESH", xmlAttributes, 0, 1, meshData.data());
+    vlsvWriter.writeArray("MESH", xmlAttributes, 0, 1, ionosphereGridElementsAndCorners.data());
   }
 
   return true;
@@ -1310,10 +1310,10 @@ bool writeGrid(
    const std::string& versionInfo,
    const std::string& configInfo,
    DataReducer* dataReducer,
-   const uint& index,
+   const uint& outputFileTypeIndex,
    const int& stripe,
-   const bool writeGhosts) 
-{
+   const bool writeGhosts
+) {
    double allStart = MPI_Wtime();
    bool success = true;
    int myRank;
@@ -1327,10 +1327,10 @@ bool writeGrid(
    phiprof::start("writeGrid-reduced");
    // Create a name for the output file and open it with VLSVWriter:
    stringstream fname;
-   fname << P::systemWritePath.at(index) << "/" << P::systemWriteName.at(index) << ".";
+   fname << P::systemWritePath.at(outputFileTypeIndex) << "/" << P::systemWriteName.at(outputFileTypeIndex) << ".";
    fname.width(7);
    fname.fill('0');
-   fname << P::systemWrites.at(index) << ".vlsv";
+   fname << P::systemWrites.at(outputFileTypeIndex) << ".vlsv";
 
 
    //Open the file with vlsvWriter:
@@ -1406,7 +1406,7 @@ bool writeGrid(
    if( writeBoundingBoxNodeCoordinates( vlsvWriter, meshName, masterProcessId, MPI_COMM_WORLD ) == false ) return false;
 
    //Write basic grid variables: NOTE: master process only
-   if( writeCommonGridData(vlsvWriter, mpiGrid, local_cells, P::systemWrites[index], MPI_COMM_WORLD) == false ) return false;
+   if( writeCommonGridData(vlsvWriter, mpiGrid, local_cells, P::systemWrites[outputFileTypeIndex], MPI_COMM_WORLD) == false ) return false;
 
    //Write zone global id numbers:
    if( writeZoneGlobalIdNumbers( mpiGrid, vlsvWriter, meshName, local_cells, ghost_cells ) == false ) return false;
@@ -1420,8 +1420,10 @@ bool writeGrid(
    //Write ghost zone domain and local id numbers ( VisIt plugin needs this for MPI )
    if( writeGhostZoneDomainAndLocalIdNumbers( mpiGrid, vlsvWriter, meshName, ghost_cells ) == false ) return false;
 
-   //Write FSGrid metadata
-   if( writeFsGridMetadata( technicalGrid, vlsvWriter ) == false ) return false;
+   if(P::systemWriteFsGrid[index]) {
+      //Write FSGrid metadata
+      if( writeFsGridMetadata( technicalGrid, vlsvWriter ) == false ) return false;
+   }
 
    //Write Ionosphere Grid
    if( writeIonosphereGridMetadata( vlsvWriter ) == false ) return false;
@@ -1435,7 +1437,7 @@ bool writeGrid(
 
    phiprof::stop("metadataIO");
    phiprof::start("velocityspaceIO");
-   if( writeVelocitySpace( mpiGrid, vlsvWriter, index, local_cells ) == false ) return false;
+   if( writeVelocitySpace( mpiGrid, vlsvWriter, outputFileTypeIndex, local_cells ) == false ) return false;
    phiprof::stop("velocityspaceIO");
 
    phiprof::start("reduceddataIO");
@@ -1444,9 +1446,12 @@ bool writeGrid(
    phiprof::start("writeDataReducer");
    if (dataReducer != NULL) for( uint i = 0; i < dataReducer->size(); ++i ) {
       if( writeDataReducer( mpiGrid, local_cells,
-               perBGrid, EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid,
-               BgBGrid, volGrid, technicalGrid,
-               (P::writeAsFloat==1), *dataReducer, i, vlsvWriter ) == false ) return false;
+            perBGrid, EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid,
+            BgBGrid, volGrid, technicalGrid,
+            (P::writeAsFloat==1), P::systemWriteFsGrid[index], *dataReducer, i, vlsvWriter ) == false
+      ) {
+         return false;
+      }
    }
    phiprof::stop("writeDataReducer");
    
@@ -1798,7 +1803,7 @@ bool writeRestart(
       writeDataReducer(mpiGrid, local_cells,
             perBGrid, EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid,
             BgBGrid, volGrid, technicalGrid,
-            writeAsFloat, restartReducer, i, vlsvWriter);
+            writeAsFloat, true, restartReducer, i, vlsvWriter);
    }
    phiprof::stop("reduceddataIO");   
    //write the velocity distribution data -- note: it's expecting a vector of pointers:

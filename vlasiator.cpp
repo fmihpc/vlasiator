@@ -374,8 +374,8 @@ int main(int argn,char* args[]) {
    }
    phiprof::stop("Init project");
 
-   // Add AMR refinement criterias:
-   amr_ref_criteria::addRefinementCriteria();
+   // Add VAMR refinement criterias:
+   vamr_ref_criteria::addRefinementCriteria();
 
    // Initialize simplified Fieldsolver grids.
    // Needs to be done here already ad the background field will be set right away, before going to initializeGrid even
@@ -552,7 +552,12 @@ int main(int argn,char* args[]) {
             technicalGrid,
             version,
             config,
-            &outputReducer,P::systemWriteName.size()-1, P::restartStripeFactor, writeGhosts) == false ) {
+            &outputReducer,
+            P::systemWriteName.size()-1,
+            P::restartStripeFactor,
+            writeGhosts
+         ) == false
+      ) {
          cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
       }
 
@@ -746,20 +751,25 @@ int main(int argn,char* args[]) {
             phiprof::start("write-system");
             logFile << "(IO): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
             const bool writeGhosts = true;
-            if( writeGrid(mpiGrid,
-                     perBGrid, // TODO: Merge all the fsgrids passed here into one meta-object
-                     EGrid,
-                     EHallGrid,
-                     EGradPeGrid,
-                     momentsGrid,
-                     dPerBGrid,
-                     dMomentsGrid,
-                     BgBGrid,
-                     volGrid,
-                     technicalGrid,
-                     version,
-                     config,
-                     &outputReducer, i, P::systemStripeFactor, writeGhosts) == false ) {
+            if(writeGrid(mpiGrid,
+               perBGrid, // TODO: Merge all the fsgrids passed here into one meta-object
+               EGrid,
+               EHallGrid,
+               EGradPeGrid,
+               momentsGrid,
+               dPerBGrid,
+               dMomentsGrid,
+               BgBGrid,
+               volGrid,
+               technicalGrid,
+               version,
+               config,
+               &outputReducer,
+               i,
+               P::systemStripeFactor,
+               writeGhosts
+               ) == false
+            ) {
                cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
             }
             P::systemWrites[i]++;
