@@ -176,7 +176,9 @@ void initializeGrids(
    initVelocityGridGeometry(mpiGrid);
    initializeStencils(mpiGrid);
    
-   mpiGrid.set_partitioning_option("IMBALANCE_TOL", P::loadBalanceTolerance);
+   for (const auto& [key, value] : P::loadBalanceOptions) {
+      mpiGrid.set_partitioning_option(key, value);
+   }
    phiprof::start("Initial load-balancing");
    if (myRank == MASTER_RANK) logFile << "(INIT): Starting initial load balance." << endl << writeVerbose;
    mpiGrid.balance_load(); // Direct DCCRG call, recalculate cache afterwards

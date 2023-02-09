@@ -130,7 +130,7 @@ bool P::isRestart = false;
 int P::writeAsFloat = false;
 int P::writeRestartAsFloat = false;
 string P::loadBalanceAlgorithm = string("");
-string P::loadBalanceTolerance = string("");
+std::map<std::string, std::string> P::loadBalanceOptions;
 uint P::rebalanceInterval = numeric_limits<uint>::max();
 
 vector<string> P::outputVariableList;
@@ -327,6 +327,9 @@ bool P::addParameters() {
    RP::add("loadBalance.algorithm", "Load balancing algorithm to be used", string("RCB"));
    RP::add("loadBalance.tolerance", "Load imbalance tolerance", string("1.05"));
    RP::add("loadBalance.rebalanceInterval", "Load rebalance interval (steps)", 10);
+
+   RP::addComposing("loadBalance.optionKey", "Zoltan option key. Has to be matched by loadBalance.optionValue.");
+   RP::addComposing("loadBalance.optionValue", "Zoltan option value. Has to be matched by loadBalance.optionKey.");
 
    // Output variable parameters
    // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
@@ -762,8 +765,23 @@ void Parameters::getParameters() {
 
    // Get load balance parameters
    RP::get("loadBalance.algorithm", P::loadBalanceAlgorithm);
-   RP::get("loadBalance.tolerance", P::loadBalanceTolerance);
+   loadBalanceOptions["IMBALANCE_TOL"] = "";
+   RP::get("loadBalance.tolerance", loadBalanceOptions["IMBALANCE_TOL"]);
    RP::get("loadBalance.rebalanceInterval", P::rebalanceInterval);
+
+   std::vector<std::string> loadBalanceKeys;
+   std::vector<std::string> loadBalanceValues;
+   RP::get("loadBalance.optionKey", loadBalanceKeys);
+   RP::get("loadBalance.optionValue", loadBalanceValues);
+   if (loadBalanceKeys.size() != loadBalanceValues.size()) {
+      if (myRank == MASTER_RANK) {
+         cerr << "WARNING the number of load balance keys and values do not match. Disregarding these options." << endl;
+      }
+   } else {
+      for (int i = 0; i < loadBalanceKeys.size(); ++i) {
+         loadBalanceOptions[loadBalanceKeys[i]] = loadBalanceValues[i];
+      }
+   }
 
    // Get output variable parameters
    RP::get("variables.output", P::outputVariableList);
