@@ -34,8 +34,10 @@
 #include "../fieldsolver/fs_common.h"
 #include "../fieldsolver/fs_limiters.h"
 #include "../fieldsolver/ldz_magnetic_field.hpp"
+#include "../fieldtracing/fieldtracing.h"
 #include "../common.h"
 #include "../object_wrapper.h"
+
 
 #ifndef NDEBUG
    #define DEBUG_CONDUCTINGSPHERE
@@ -78,6 +80,7 @@ namespace SBC {
       Readparameters::get("conductingsphere.centerY", this->center[1]);
       Readparameters::get("conductingsphere.centerZ", this->center[2]);
       Readparameters::get("conductingsphere.radius", this->radius);
+      FieldTracing::fieldTracingParameters.innerBoundaryRadius = this->radius;
       Readparameters::get("conductingsphere.geometry", this->geometry);
       Readparameters::get("conductingsphere.precedence", this->precedence);
       uint reapply;

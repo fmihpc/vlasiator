@@ -804,7 +804,7 @@ namespace FieldTracing {
          fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
          
          // If we map into the ionosphere, discard this field line.
-         if(sqrt(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2)) < SBC::Ionosphere::innerRadius) {
+         if(sqrt(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2)) < fieldTracingParameters.innerBoundaryRadius) {
             cellNeedsContinuedTracing[n] = 0;
             cellTracingCoordinates[n] = {0,0,0};
             cellConnection[n] += TracingLineEndType::CLOSED;
@@ -879,7 +879,7 @@ namespace FieldTracing {
     * Therefore we step along the magnetic field until we hit an outer box wall (OPEN) or the inner boundary
     * radius (CLOSED). In rare cases the line might not have reached either of these two termination conditions by the time the
     * field line has reached a length of maxTracingDistance. In that case we call it DANGLING, it likely ended up in a loop
-    * somewhere (we don't call it "loop" to avoid confusion with the flux rop tracing). As long as we have not hit any of the above
+    * somewhere (we don't call it "loop" to avoid confusion with the flux rope tracing). As long as we have not hit any of the above
     * termination conditions, the type is called UNPROCESSED. We allow fieldTracingParameters.fullbox_max_incomplete_lines to remain
     * UNPROCESSED when we exit the loop, that is a fraction of the total field lines we are tracing (number of cells x2 due to
     * forward and backward tracing), as this allows substantial shortening of the total time spent due to the MPI_Allreduce calls

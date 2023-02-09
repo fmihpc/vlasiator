@@ -87,6 +87,7 @@ namespace FieldTracing {
       Real fluxrope_max_curvature_radii_to_trace;
       Real fluxrope_max_curvature_radii_extent;
       Real fluxrope_max_m_to_trace;
+      Real innerBoundaryRadius=0; /*!< If non-zero this will be used to determine CLOSED field lines. */
    };
    
    extern FieldTracingParameters fieldTracingParameters;

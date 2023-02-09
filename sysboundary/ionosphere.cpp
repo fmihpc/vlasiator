@@ -36,12 +36,11 @@
 #include "../vlasovmover.h"
 #include "../fieldsolver/fs_common.h"
 #include "../fieldsolver/ldz_magnetic_field.hpp"
+#include "../fieldtracing/fieldtracing.h"
 #include "../common.h"
 #include "../object_wrapper.h"
 #include "vectorclass.h"
 #include "vector3d.h"
-
-#include "../fieldtracing/fieldtracing.h"
 
 #if VECTORCLASS_H >= 200
 #define Vec3d Vec3Dd
@@ -2253,6 +2252,8 @@ namespace SBC {
          // If radii are < 1000, assume they are given in R_E.
          radius *= physicalconstants::R_E;
       }
+      FieldTracing::fieldTracingParameters.innerBoundaryRadius = this->radius;
+
       Readparameters::get("ionosphere.geometry", this->geometry);
       Readparameters::get("ionosphere.precedence", this->precedence);
 
