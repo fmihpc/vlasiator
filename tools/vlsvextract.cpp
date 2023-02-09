@@ -557,6 +557,7 @@ void getBulkVelocity(Real* V_bulk,vlsvinterface::Reader& vlsvReader,const string
       exit(1);
       break;
    } while (true);
+
 }
 
 void getB(Real* B,vlsvinterface::Reader& vlsvReader,const string& meshName,const uint64_t& cellID) {

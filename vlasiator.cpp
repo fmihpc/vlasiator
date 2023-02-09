@@ -533,6 +533,7 @@ int main(int argn,char* args[]) {
       P::systemWriteDistributionWriteYlineStride.push_back(0);
       P::systemWriteDistributionWriteZlineStride.push_back(0);
       P::systemWritePath.push_back("./");
+      P::systemWriteFsGrid.push_back(true);
 
       for(uint si=0; si<P::systemWriteName.size(); si++) {
          P::systemWrites.push_back(0);
@@ -567,6 +568,7 @@ int main(int argn,char* args[]) {
       P::systemWriteDistributionWriteYlineStride.pop_back();
       P::systemWriteDistributionWriteZlineStride.pop_back();
       P::systemWritePath.pop_back();
+      P::systemWriteFsGrid.pop_back();
 
       phiprof::stop("write-initial-state");
    }
