@@ -752,7 +752,8 @@ namespace projects {
                refines += mpiGrid.refine_completely(id) && refLevel < P::amrMaxSpatialRefLevel;
             } else if (refLevel > 0 && shouldUnrefine && coarser_neighbors > 0) {
                // Unrefine a cell only if any of its neighbors is unrefined or about to be
-               refines += mpiGrid.unrefine_completely(id) && refLevel > 0;
+               // refLevel check prevents dont_refine() being set
+               mpiGrid.unrefine_completely(id);
             } else {
                // Ensure no cells above both unrefine thresholds are unrefined
                mpiGrid.dont_unrefine(id);
