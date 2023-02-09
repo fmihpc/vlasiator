@@ -447,7 +447,7 @@ void applyRotation(const Real* B,Real* transform) {
    }
 }
 
-void getBulkVelocity(Real* V_bulk,vlsvinterface::Reader& vlsvReader,const string& meshName,const uint64_t& cellID) {
+void getBulkVelocity(Real* V_bulk,vlsvinterface::Reader& vlsvReader,const string& meshName,const string& popName,const uint64_t& cellID) {
    //Declarations
    vlsv::datatype::type cellIdDataType;
    uint64_t cellIdArraySize, cellIdVectorSize, cellIdDataSize;
@@ -492,44 +492,72 @@ void getBulkVelocity(Real* V_bulk,vlsvinterface::Reader& vlsvReader,const string
       exit(1);
    }
    
-   // Read velocity
-   double velocity[3];
-   double* ptr = velocity;
-   xmlAttributes.clear();
-   xmlAttributes.push_back(make_pair("mesh",meshName));
-   xmlAttributes.push_back(make_pair("name","proton/vg_v"));
-   if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,ptr,false) == false) {
-      cerr << "Could not read velocity in " << __FILE__ << ":" << __LINE__ << ", trying to read density + momentum" << endl;
+   do {
+      // Read combined vg_v
+      double velocity[3];
+      double* ptr = velocity;
+      xmlAttributes.clear();
+      xmlAttributes.push_back(make_pair("mesh",meshName));
+      xmlAttributes.push_back(make_pair("name","vg_v"));
+      if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,ptr,false) == true) {
+         cerr << "NOTE: Using combined vg_v (all populations!) for plasma frame shifting." << endl;
+         V_bulk[0] = velocity[0];
+         V_bulk[0] = velocity[0];
+         V_bulk[0] = velocity[0];
+         break;
+      }
+      // Read <pop>/vg_v
+      xmlAttributes.clear();
+      xmlAttributes.push_back(make_pair("mesh",meshName));
+      xmlAttributes.push_back(make_pair("name",popName+"/vg_v"));
+      if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,ptr,false) == true) {
+         cerr << "NOTE: Using <pop>/vg_v for plasma frame shifting." << endl;
+         V_bulk[0] = velocity[0];
+         V_bulk[0] = velocity[0];
+         V_bulk[0] = velocity[0];
+         break;
+      }
       // Try old style
       // Read number density
       double numberDensity;
-      double* ptr = &numberDensity;
+      ptr = &numberDensity;
       xmlAttributes.clear();
       xmlAttributes.push_back(make_pair("mesh",meshName));
       xmlAttributes.push_back(make_pair("name","rho"));
-      if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,ptr,false) == false) {
-         cerr << "Could not read number density in " << __FILE__ << ":" << __LINE__ << endl;
-         exit(1);
+      if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,ptr,false) == true) {
+         // Read number density times velocity
+         double momentum[3];
+         ptr = momentum;
+         xmlAttributes.clear();
+         xmlAttributes.push_back(make_pair("mesh",meshName));
+         xmlAttributes.push_back(make_pair("name","rho_v"));
+         if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,ptr,false) == true) {
+            cerr << "NOTE: Using rho_v / rho for plasma frame shifting." << endl;
+            V_bulk[0] = momentum[0] / (numberDensity + numeric_limits<double>::min());
+            V_bulk[1] = momentum[1] / (numberDensity + numeric_limits<double>::min());
+            V_bulk[2] = momentum[2] / (numberDensity + numeric_limits<double>::min());
+            break;
+         }
       }
-      
-      // Read number density times velocity
-      double momentum[3];
-      ptr = momentum;
+      // Read combined vg_v in restart file style
+      double moments[5];
+      ptr = moments;
       xmlAttributes.clear();
       xmlAttributes.push_back(make_pair("mesh",meshName));
-      xmlAttributes.push_back(make_pair("name","rho_v"));
-      if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,ptr,false) == false) {
-         cerr << "Could not read momentum in " << __FILE__ << ":" << __LINE__ << endl;
-         exit(1);
+      xmlAttributes.push_back(make_pair("name","moments"));
+      if (vlsvReader.read("VARIABLE",xmlAttributes,cellIndex,1,ptr,false) == true) {
+         cerr << "NOTE: Using combined vg_v (all populations!) from restart for plasma frame shifting." << endl;
+         V_bulk[0] = moments[1];
+         V_bulk[0] = moments[2];
+         V_bulk[0] = moments[3];
+         break;
       }
+      // We should have broken out before or we're doomed
+      cerr << "ERROR: Could not find a usable velocity for plasma frame shift!" << endl;
+      exit(1);
+      break;
+   } while (true);
 
-      V_bulk[0] = momentum[0] / (numberDensity + numeric_limits<double>::min());
-      V_bulk[1] = momentum[1] / (numberDensity + numeric_limits<double>::min());
-      V_bulk[2] = momentum[2] / (numberDensity + numeric_limits<double>::min());
-   }
-   V_bulk[0] = velocity[0];
-   V_bulk[1] = velocity[1];
-   V_bulk[2] = velocity[2];
 }
 
 void getB(Real* B,vlsvinterface::Reader& vlsvReader,const string& meshName,const uint64_t& cellID) {
@@ -736,7 +764,7 @@ bool convertVelocityBlocks2(
 
    if (plasmaFrame == true) {
       Real V_bulk[3];
-      getBulkVelocity(V_bulk,vlsvReader,meshName,cellID);
+      getBulkVelocity(V_bulk,vlsvReader,meshName,popName,cellID);
       applyTranslation(V_bulk,transform);
    }
 
