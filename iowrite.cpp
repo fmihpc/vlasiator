@@ -1420,7 +1420,7 @@ bool writeGrid(
    //Write ghost zone domain and local id numbers ( VisIt plugin needs this for MPI )
    if( writeGhostZoneDomainAndLocalIdNumbers( mpiGrid, vlsvWriter, meshName, ghost_cells ) == false ) return false;
 
-   if(P::systemWriteFsGrid[index]) {
+   if(P::systemWriteFsGrid.at(outputFileTypeIndex)) {
       //Write FSGrid metadata
       if( writeFsGridMetadata( technicalGrid, vlsvWriter ) == false ) return false;
    }
@@ -1448,7 +1448,7 @@ bool writeGrid(
       if( writeDataReducer( mpiGrid, local_cells,
             perBGrid, EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid,
             BgBGrid, volGrid, technicalGrid,
-            (P::writeAsFloat==1), P::systemWriteFsGrid[index], *dataReducer, i, vlsvWriter ) == false
+            (P::writeAsFloat==1), P::systemWriteFsGrid.at(outputFileTypeIndex), *dataReducer, i, vlsvWriter ) == false
       ) {
          return false;
       }
