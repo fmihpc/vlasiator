@@ -994,8 +994,8 @@ namespace FieldTracing {
       std::vector<Real> cellMaxExtension(globalDccrgSize, 0);
       
       // These guys are needed in the reductions
-      std::vector<signed char> reducedCellNeedsContinuedFWTracing(globalDccrgSize, 0);
-      std::vector<signed char> reducedCellNeedsContinuedBWTracing(globalDccrgSize, 0);
+      std::vector<signed char> storedCellNeedsContinuedFWTracing(globalDccrgSize, 0);
+      std::vector<signed char> storedCellNeedsContinuedBWTracing(globalDccrgSize, 0);
       std::vector<std::array<Real, 3>> sumCellFWTracingCoordinates(globalDccrgSize);
       std::vector<std::array<Real, 3>> sumCellBWTracingCoordinates(globalDccrgSize);
       std::vector<Real> reducedCellFWRunningDistance(globalDccrgSize, 0);
@@ -1037,8 +1037,8 @@ namespace FieldTracing {
       
       const std::vector<std::array<Real,3>> cellInitialCoordinates = cellFWTracingCoordinates;
       
-      MPI_Allreduce(cellNeedsContinuedFWTracing.data(), reducedCellNeedsContinuedFWTracing.data(), globalDccrgSize, MPI_SIGNED_CHAR, MPI_MIN, MPI_COMM_WORLD);
-      MPI_Allreduce(cellNeedsContinuedBWTracing.data(), reducedCellNeedsContinuedBWTracing.data(), globalDccrgSize, MPI_SIGNED_CHAR, MPI_MIN, MPI_COMM_WORLD);
+      MPI_Allreduce(cellNeedsContinuedFWTracing.data(), storedCellNeedsContinuedFWTracing.data(), globalDccrgSize, MPI_SIGNED_CHAR, MPI_MIN, MPI_COMM_WORLD);
+      MPI_Allreduce(cellNeedsContinuedBWTracing.data(), storedCellNeedsContinuedBWTracing.data(), globalDccrgSize, MPI_SIGNED_CHAR, MPI_MIN, MPI_COMM_WORLD);
       if(sizeof(Real) == sizeof(double)) {
          MPI_Allreduce(cellFWTracingStepSize.data(), reducedCellFWTracingStepSize.data(), globalDccrgSize, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
          MPI_Allreduce(cellBWTracingStepSize.data(), reducedCellBWTracingStepSize.data(), globalDccrgSize, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
@@ -1048,9 +1048,9 @@ namespace FieldTracing {
          MPI_Allreduce(cellBWTracingStepSize.data(), reducedCellBWTracingStepSize.data(), globalDccrgSize, MPI_FLOAT, MPI_MIN, MPI_COMM_WORLD);
          MPI_Allreduce(cellCurvatureRadius.data(), reducedCellCurvatureRadius.data(), globalDccrgSize, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
       }
-      // Don't swap the first two as the reduced* guys are used below
-      cellNeedsContinuedFWTracing = reducedCellNeedsContinuedFWTracing;
-      cellNeedsContinuedBWTracing = reducedCellNeedsContinuedBWTracing;
+      // Don't swap the first two as the stored guys are used below
+      cellNeedsContinuedFWTracing = storedCellNeedsContinuedFWTracing;
+      cellNeedsContinuedBWTracing = storedCellNeedsContinuedBWTracing;
       cellFWTracingStepSize.swap(reducedCellFWTracingStepSize);
       cellBWTracingStepSize.swap(reducedCellBWTracingStepSize);
       cellCurvatureRadius.swap(reducedCellCurvatureRadius);
@@ -1124,7 +1124,7 @@ namespace FieldTracing {
                std::vector<signed char> smallCellFWConnection, smallCellBWConnection;
 
                for(int n=0; n<globalDccrgSize; n++) {
-                  if(reducedCellNeedsContinuedFWTracing[n]) { // the old one has the previous round's data
+                  if(storedCellNeedsContinuedFWTracing[n]) { // the old one has the previous round's data
                      indicesToReduceFW.push_back(n);
                      smallCellNeedsContinuedFWTracing.push_back(cellNeedsContinuedFWTracing[n]);
                      smallCellFWTracingCoordinates.push_back(cellFWTracingCoordinates[n]);
@@ -1132,7 +1132,7 @@ namespace FieldTracing {
                      smallCellFWTracingStepSize.push_back(cellFWTracingStepSize[n]);
                      smallCellFWConnection.push_back(cellFWConnection[n]);
                   }
-                  if(reducedCellNeedsContinuedBWTracing[n]) { // the old one has the previous round's data
+                  if(storedCellNeedsContinuedBWTracing[n]) { // the old one has the previous round's data
                      indicesToReduceBW.push_back(n);
                      smallCellNeedsContinuedBWTracing.push_back(cellNeedsContinuedBWTracing[n]);
                      smallCellBWTracingCoordinates.push_back(cellBWTracingCoordinates[n]);
@@ -1191,27 +1191,19 @@ namespace FieldTracing {
                cellsToDoFullBox = 0;
                cellsToDoFluxRopes = 0;
                // These are used for the small arrays ~70 lines up.
-               reducedCellNeedsContinuedFWTracing = cellNeedsContinuedFWTracing;
-               reducedCellNeedsContinuedBWTracing = cellNeedsContinuedBWTracing;
+               storedCellNeedsContinuedFWTracing = cellNeedsContinuedFWTracing;
+               storedCellNeedsContinuedBWTracing = cellNeedsContinuedBWTracing;
             }
             #pragma omp for schedule(dynamic) reduction(+:cellsToDoFullBox) reduction(+:cellsToDoFluxRopes)
             for(int n=0; n<globalDccrgSize; n++) {
                if(cellNeedsContinuedFWTracing[n]) {
                   cellsToDoFullBox++;
-                  // Update that nodes' tracing coordinates
-                  cellFWTracingCoordinates[n][0] = cellFWTracingCoordinates[n][0];
-                  cellFWTracingCoordinates[n][1] = cellFWTracingCoordinates[n][1];
-                  cellFWTracingCoordinates[n][2] = cellFWTracingCoordinates[n][2];
                   if(cellFWConnection[n] == TracingLineEndType::UNPROCESSED) {
                      cellsToDoFluxRopes++;
                   }
                }
                if(cellNeedsContinuedBWTracing[n]) {
                   cellsToDoFullBox++;
-                  // Update that nodes' tracing coordinates
-                  cellBWTracingCoordinates[n][0] = cellBWTracingCoordinates[n][0];
-                  cellBWTracingCoordinates[n][1] = cellBWTracingCoordinates[n][1];
-                  cellBWTracingCoordinates[n][2] = cellBWTracingCoordinates[n][2];
                   if(cellBWConnection[n] == TracingLineEndType::UNPROCESSED) {
                      cellsToDoFluxRopes++;
                   }
