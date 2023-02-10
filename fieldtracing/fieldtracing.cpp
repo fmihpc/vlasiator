@@ -969,6 +969,13 @@ namespace FieldTracing {
       std::array<int, 3> gridSize = technicalGrid.getGlobalSize();
       // This is a heuristic considering how far an IMF+dipole combo can sensibly stretch in the box before we're safe to assume it's rolled up more or less pathologically.
       creal maxTracingDistance = 4 * (gridSize[0] * technicalGrid.DX + gridSize[1] * technicalGrid.DY + gridSize[2] * technicalGrid.DZ);
+      if(maxTracingDistance < fieldTracingParameters.fluxrope_max_m_to_trace) {
+         int myRank;
+         MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+         if(myRank == MASTER_RANK) {
+            cerr << "WARNING: Field tracing maxTracingDistance is smaller than cfg fieldtracing.fluxrope_max_m_to_trace, consider changing the latter.\n";
+         }
+      }
       
       std::vector<Real> cellCurvatureRadius(globalDccrgSize, 0);
       std::vector<Real> reducedCellCurvatureRadius(globalDccrgSize);
