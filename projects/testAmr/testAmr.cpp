@@ -219,9 +219,9 @@ namespace projects {
    }
 
    void testAmr::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, 2> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, 2>& BgBGrid,
-      FsGrid< fsgrids::technical, 2>& technicalGrid
+      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
    ) {
       ConstantField bgField;
       bgField.initialize(this->Bx,
@@ -283,9 +283,9 @@ namespace projects {
       
       std::vector<bool> refineSuccess;
 
-      for (int i = 0; i < 2 * P::amrBoxHalfWidthX; ++i) {
-         for (int j = 0; j < 2 * P::amrBoxHalfWidthY; ++j) {
-            for (int k = 0; k < 2 * P::amrBoxHalfWidthZ; ++k) {
+      for (uint i = 0; i < 2 * P::amrBoxHalfWidthX; ++i) {
+         for (uint j = 0; j < 2 * P::amrBoxHalfWidthY; ++j) {
+            for (uint k = 0; k < 2 * P::amrBoxHalfWidthZ; ++k) {
      
                std::array<double,3> xyz;
                xyz[0] = P::amrBoxCenterX + (0.5 + i - P::amrBoxHalfWidthX) * P::dx_ini;
@@ -317,9 +317,9 @@ namespace projects {
 
       if(mpiGrid.get_maximum_refinement_level() > 1) {
 
-         for (int i = 0; i < 2 * P::amrBoxHalfWidthX; ++i) {
-            for (int j = 0; j < 2 * P::amrBoxHalfWidthY; ++j) {
-               for (int k = 0; k < 2 * P::amrBoxHalfWidthZ; ++k) {
+         for (uint i = 0; i < 2 * P::amrBoxHalfWidthX; ++i) {
+            for (uint j = 0; j < 2 * P::amrBoxHalfWidthY; ++j) {
+               for (uint k = 0; k < 2 * P::amrBoxHalfWidthZ; ++k) {
                   
                   std::array<double,3> xyz;
                   xyz[0] = P::amrBoxCenterX + 0.5 * (0.5 + i - P::amrBoxHalfWidthX) * P::dx_ini;

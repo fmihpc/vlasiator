@@ -157,9 +157,10 @@ void report_process_memory_consumption(){
          logFile << "(MEM) Resident per node (avg, min, max): " << sum_mem_papi[1]/nNodes/GiB << " " << min_mem_papi[1]/GiB << " "  << max_mem_papi[1]/GiB << endl;
          logFile << "(MEM) High water mark per node (GiB) avg: " << sum_mem_papi[0]/nNodes/GiB << " min: " << min_mem_papi[0]/GiB << " max: "  << max_mem_papi[0]/GiB <<
             " sum (TiB): " << sum_mem_papi[0]/TiB << " on "<< nNodes << " nodes" << endl;
-         
+      }
+      if(rank == MASTER_RANK) {
          bailout(max_mem_papi[0]/GiB > Parameters::bailout_max_memory, "Memory high water mark per node exceeds bailout threshold", __FILE__, __LINE__);
-      }   
+      }
    }
    
 #endif

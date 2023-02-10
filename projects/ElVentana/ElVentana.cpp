@@ -81,78 +81,24 @@ namespace projects {
       Real dummy;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       typedef Readparameters RP;
-      if(!RP::get("ElVentana.constBgBX", this->constBgB[0])) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!RP::get("ElVentana.constBgBY", this->constBgB[1])) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!RP::get("ElVentana.constBgBZ", this->constBgB[2])) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!RP::get("ElVentana.StartFile", this->StartFile)) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!RP::get("ElVentana.WindowX_min", this->WindowX[0])) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!RP::get("ElVentana.WindowX_max", this->WindowX[1])) {
-         if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-         exit(1);
-      }
-      if(!RP::get("ElVentana.WindowY_min", this->WindowY[0])) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-            exit(1);
-         }
-         if(!RP::get("ElVentana.WindowY_max", this->WindowY[1])) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-            exit(1);
-         }
-         if(!RP::get("ElVentana.WindowZ_min", this->WindowZ[0])) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-            exit(1);
-         }
-         if(!RP::get("ElVentana.WindowZ_max", this->WindowZ[1])) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-            exit(1);
-         }
-         if(!RP::get("ElVentana.dipoleScalingFactor", this->dipoleScalingFactor)) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-            exit(1);
-         }
-         if(!RP::get("ElVentana.dipoleType", this->dipoleType)) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-            exit(1);       
-         }
-         if(!RP::get("ionosphere.radius", this->ionosphereRadius)) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-            exit(1);
-         }
-         if(!RP::get("ionosphere.centerX", this->center[0])) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-            exit(1);
-         }
-         if(!RP::get("ionosphere.centerY", this->center[1])) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-            exit(1);
-         }
-         if(!RP::get("ionosphere.centerZ", this->center[2])) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-            exit(1);
-         }
-         if(!Readparameters::get("ionosphere.geometry", this->ionosphereGeometry)) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-            exit(1);
-         }
-         if(!RP::get("ElVentana.noDipoleInSW", dummy)) {
-            if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added!" << endl;
-            exit(1);
-         }
+      RP::get("ElVentana.constBgBX", this->constBgB[0]);
+      RP::get("ElVentana.constBgBY", this->constBgB[1]);
+      RP::get("ElVentana.constBgBZ", this->constBgB[2]);
+      RP::get("ElVentana.StartFile", this->StartFile);
+      RP::get("ElVentana.WindowX_min", this->WindowX[0]);
+      RP::get("ElVentana.WindowX_max", this->WindowX[1]);
+      RP::get("ElVentana.WindowY_min", this->WindowY[0]);
+      RP::get("ElVentana.WindowY_max", this->WindowY[1]);
+      RP::get("ElVentana.WindowZ_min", this->WindowZ[0]);
+      RP::get("ElVentana.WindowZ_max", this->WindowZ[1]);
+      RP::get("ElVentana.dipoleScalingFactor", this->dipoleScalingFactor);
+      RP::get("ElVentana.dipoleType", this->dipoleType);
+      RP::get("ionosphere.radius", this->ionosphereRadius);
+      RP::get("ionosphere.centerX", this->center[0]);
+      RP::get("ionosphere.centerY", this->center[1]);
+      RP::get("ionosphere.centerZ", this->center[2]);
+      RP::get("ionosphere.geometry", this->ionosphereGeometry);
+      RP::get("ElVentana.noDipoleInSW", dummy);
          this->noDipoleInSW = dummy == 1 ? true:false;
 
 
@@ -161,34 +107,13 @@ namespace projects {
             const std::string& pop = getObjectWrapper().particleSpecies[i].name;
             ElVentanaSpeciesParameters sP;
 
-            if(!RP::get(pop + "_ElVentana.nSpaceSamples", sP.nSpaceSamples)) {
-               if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-               exit(1);
-            }
-            if(!RP::get(pop + "_ElVentana.nVelocitySamples", sP.nVelocitySamples)) {
-               if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-               exit(1);
-            }
-            if(!RP::get(pop + "_ElVentana.Temperatureratio", sP.Temperatureratio)) {
-               if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-               exit(1);
-            }
-            if(!RP::get(pop + "_ionosphere.rho", sP.ionosphereRho)) {
-               if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-               exit(1);
-            }
-            if(!RP::get(pop + "_ionosphere.VX0", sP.ionosphereV0[0])) {
-               if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-               exit(1);
-            }
-            if(!RP::get(pop + "_ionosphere.VY0", sP.ionosphereV0[1])) {
-               if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-               exit(1);
-            }
-            if(!RP::get(pop + "_ionosphere.VZ0", sP.ionosphereV0[2])) {
-               if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: This option has not been added for population " << pop << "!" << endl;
-               exit(1);
-            }
+            RP::get(pop + "_ElVentana.nSpaceSamples", sP.nSpaceSamples);
+            RP::get(pop + "_ElVentana.nVelocitySamples", sP.nVelocitySamples);
+            RP::get(pop + "_ElVentana.Temperatureratio", sP.Temperatureratio);
+            RP::get(pop + "_ionosphere.rho", sP.ionosphereRho);
+            RP::get(pop + "_ionosphere.VX0", sP.ionosphereV0[0]);
+            RP::get(pop + "_ionosphere.VY0", sP.ionosphereV0[1]);
+            RP::get(pop + "_ionosphere.VZ0", sP.ionosphereV0[2]);
 
             speciesParams.push_back(sP);
          }
@@ -613,7 +538,7 @@ namespace projects {
             }
 
             buffer = readVar(varname, fileOffset, vecsize);
-
+            mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
             // Parse zeroth and first moments data
             if (vecsize == 5) {
                // Reading the new format (multipop) restart file (rhom, massVx, massVy, massVz, rhoq)
@@ -669,15 +594,24 @@ namespace projects {
             }
 
             buffer = readVar(varname, fileOffset, this->vecsizepressure);
+            Real Pdiag = 0.0;
             for (uint j=0; j < this->vecsizepressure; j++) {
                mpiGrid[cells[i]]->parameters[CellParams::P_11+j] = buffer[j];
+               Pdiag += buffer[j];
             }
             delete[] buffer;
+            Real n = mpiGrid[cells[i]]->parameters[CellParams::RHOM];
+            if(n > 0) {
+               mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] += pow(Pdiag/n,1.5);
+            }
+            
+            mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]);
          }
 
          newmpiGrid = &mpiGrid;
          this->vlsvSerialReader.close();
 
+         
          // Let initializeGrid know that this project needs the Curl of B
          needCurl = true;
       }
@@ -694,8 +628,22 @@ namespace projects {
          FsGrid< fsgrids::technical, 2>& technicalGrid
    ) {
 
+      static bool init = false;
+      int myRank = 0;
+      MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
      Dipole bgFieldDipole;
      LineDipole bgFieldLineDipole;
+     if (init)
+      {
+         if (myRank == MASTER_RANK) cout << "Already did setProjectBField, not gonna bother again" << endl;
+         return;
+      }
+      if (init && this->vlsvParaReader.open(this->StartFile,MPI_COMM_WORLD,MASTER_RANK,MPI_INFO_NULL) == false) {
+        if (myRank == MASTER_RANK) 
+           cout << "Could not open file: " << this->StartFile << endl;
+        return;
+      }
+      init = true;
 
      // The hardcoded constants of dipole and line dipole moments are obtained
      // from Daldorff et al (2014), see
@@ -830,7 +778,8 @@ namespace projects {
             }
          } else {
             totalBRead = (varName == "fg_b");
-            std::cerr << "B Read!" << std::endl;
+            if(myRank == MASTER_RANK)
+               std::cerr << "Total B Read!" << std::endl;
          }
 
          if (totalBRead) {
@@ -849,6 +798,7 @@ namespace projects {
             }
          }
       }
+      this->vlsvParaReader.close();
    }
 
    CellID ElVentana::findCellIDXYZ(creal x, creal y, creal z) const {
@@ -858,7 +808,7 @@ namespace projects {
    // Reads physical minima and maxima, amount of cells and their dimensions
    bool ElVentana::readGridSize(std::array<double, 3> &fileMin, std::array<double, 3> &fileMax, std::array<uint64_t, 3> &fileCells, std::array<double, 3> &fileDx) {
       int myRank = 0;
-      //MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+      MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 
       double filexmin, fileymin, filezmin, filexmax, fileymax, filezmax;
       uint filexcells, fileycells, filezcells;
@@ -1039,9 +989,10 @@ namespace projects {
          // Read into buffer
          std::vector<Real> buffer(thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*N);
 
+         int overlapExists = overlapSize[0]*overlapSize[1]*overlapSize[2] > 0 ? 1 : 0;
          phiprof::start("readArray");
          // TODO: Should these be multireads instead? And/or can this be parallelized?
-         if(this->vlsvParaReader.readArray("VARIABLE",attribs, fileOffset, thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2], buffer.data()) == false) {
+         if(this->vlsvParaReader.readArray("VARIABLE",attribs, fileOffset, thatTasksSize[0]*thatTasksSize[1]*thatTasksSize[2]*overlapExists, buffer.data()) == false) {
             logFile << "(START)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
             return false;
          }
@@ -1068,7 +1019,7 @@ namespace projects {
       targetGrid.updateGhostCells();
       phiprof::stop("updateGhostCells");
 
-      this->vlsvParaReader.close();
+      //this->vlsvParaReader.close();
 
       return true;
    }
@@ -1183,7 +1134,7 @@ namespace projects {
          //bool done = false;
          //done = mpiGrid.stop_refining().empty();
          cells = mpiGrid.stop_refining(true);
-         std::cerr << "Refined " << cells.size() << " cells out of " << oldCells << std::endl;
+         //std::cerr << "Refined " << cells.size() << " cells out of " << oldCells << std::endl;
          //mpiGrid.balance_load();
          //recalculateLocalCellsCache();
          //initSpatialCellCoordinates(mpiGrid);

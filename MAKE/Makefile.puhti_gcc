@@ -16,16 +16,6 @@ else
 	VECTORCLASS = VEC8D_AGNER
 endif
 
-
-#======= Compiler and compilation flags =========
-# NOTES on compiler flags:
-# CXXFLAGS is for compiler flags, they are always used
-# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
-# LDFLAGS flags for linker
-
-#-DNO_WRITE_AT_ALL:  Define to disable write at all to 
-#                    avoid memleak (much slower IO)
-
 FLAGS = 
 
 #GNU flags:
@@ -38,6 +28,28 @@ MATHFLAGS = -ffast-math
 LDFLAGS = -lrt
 LIB_MPI = -lgomp 
 
+
+#======= Compiler and compilation flags =========
+# NOTES on compiler flags:
+# CXXFLAGS is for compiler flags, they are always used
+# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
+# LDFLAGS flags for linker
+#
+#-DNO_WRITE_AT_ALL:  Define to disable write at all to 
+#                    avoid memleak (much slower IO)
+
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+#CXXFLAGS +=  -DPAPI_MEM
+#testpackage: CXXFLAGS +=  -DPAPI_MEM
+
+#======== Allocator =========
+#Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
+#Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
+CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+
+
 # BOOST_VERSION = current trilinos version
 # ZOLTAN_VERSION = current trilinos verson
 #
@@ -46,17 +58,6 @@ LIB_MPI = -lgomp
 MPT_VERSION = 2.4.0
 JEMALLOC_VERSION = 5.2.1
 LIBRARY_PREFIX = /projappl/project_2000203/libraries
-
-
-#======== PAPI ==========
-#Add PAPI_MEM define to use papi to report memory consumption?
-#CXXFLAGS +=  -DPAPI_MEM
-
-
-#======== Allocator =========
-#Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
-#Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
-CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 
 #compiled libraries

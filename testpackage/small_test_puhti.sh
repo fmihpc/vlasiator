@@ -51,6 +51,9 @@ cd  $base_dir
 # if 0 then we check the v1
 create_verification_files=0
 
+bin="../vlasiator"
+diffbin="/projappl/project_2000203/vlsvdiff_DP"
+
 
 #folder for all reference data 
 reference_dir="/scratch/project_2000203/testpackage_data"

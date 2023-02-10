@@ -41,11 +41,11 @@ void Dipole::initialize(const double moment,const double center_x, const double 
 
 
 
-double Dipole::call( double x, double y, double z) const
-{
+double Dipole::operator()( double x, double y, double z, coordinate component, unsigned int derivative, coordinate dcomponent) const {
    const double minimumR=1e-3*physicalconstants::R_E; //The dipole field is defined to be outside of Earth, and units are in meters     
-   if(this->initialized==false)
+   if(this->initialized==false) {
       return 0.0;
+   }
    double r[3];
    
    r[0]= x-center[0];
@@ -54,32 +54,34 @@ double Dipole::call( double x, double y, double z) const
    
    double r2 = r[0]*r[0]+r[1]*r[1]+r[2]*r[2];
    
-   if(r2<minimumR*minimumR)
+   if(r2<minimumR*minimumR) {
       //  r2=minimumR*minimumR;
       return 0.0; //set zero field inside dipole
+   }
    
    const double r5 = (r2*r2*sqrt(r2));
    const double rdotq=q[0]*r[0] + q[1]*r[1] +q[2]*r[2];
    
-   const double B=( 3*r[_fComponent]*rdotq-q[_fComponent]*r2)/r5;
+   const double B=( 3*r[component]*rdotq-q[component]*r2)/r5;
    
-   if(_derivative == 0) {
+   if(derivative == 0) {
       //Value of B
       return B;
-   }
-   else if(_derivative == 1) {
+   } else if(derivative == 1) {
       //first derivatives       
       unsigned int sameComponent;
-      if(_dComponent==_fComponent)
+      if(dcomponent==component) {
          sameComponent=1;
-      else
+      } else {
          sameComponent=0;
+      }
       
-      return -5*B*r[_dComponent]/r2+
-         (3*q[_dComponent]*r[_fComponent] -
-          2*q[_fComponent]*r[_dComponent] +
+      return -5*B*r[dcomponent]/r2+
+         (3*q[dcomponent]*r[component] -
+          2*q[component]*r[dcomponent] +
           3*rdotq*sameComponent)/r5;
    }
+
    return 0; // dummy, but prevents gcc from yelling
 }
 
