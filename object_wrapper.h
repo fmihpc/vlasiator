@@ -23,22 +23,27 @@
 #ifndef OBJECT_WRAPPER_H
 #define OBJECT_WRAPPER_H
 
+// Forward declarations (only possible for classes for which we don't need to know the size)
+namespace spatial_cell{
+   class SpatialCell;
+}
+namespace projects {
+   class Project;
+}
+
 #include <vector>
 
 #include "definitions.h"
 //#include "item_storage.h"
 #ifndef USE_CUDA
+#include "vamr_refinement_criteria.h"
 #include "object_factory.h"
 #endif
 
-#include "vamr_refinement_criteria.h"
 #include "particle_species.h"
 #include "projects/project.h"
-#include "velocity_mesh_parameters.h"
 #include "sysboundary/sysboundary.h"
-#ifdef USE_CUDA
-#include "include/splitvector/splitvec.h"
-#endif
+#include "velocity_mesh_parameters.h"
 
 struct ObjectWrapper {
    ObjectWrapper() { }
@@ -48,17 +53,13 @@ struct ObjectWrapper {
 #endif
    std::vector<species::Species> particleSpecies;           /**< Parameters for all particle species.*/
    projects::Project*                    project;           /**< Simulated project.*/
-#ifdef USE_CUDA
-   //split::SplitVector<vmesh::MeshParameters> velocityMeshes;       /**< Parameters for velocity mesh(es).*/
    std::vector<vmesh::MeshParameters> velocityMeshes;       /**< Parameters for velocity mesh(es).*/
-#else
-   std::vector<vmesh::MeshParameters> velocityMeshes;       /**< Parameters for velocity mesh(es).*/
-#endif
    SysBoundary sysBoundaryContainer;                        /**< Container for sysboundaries.*/
 
    bool addParameters();                                    /**< Add config file parameters for objects held in this wrapper */
    bool addPopulationParameters();                          /**< After parsing the names of populations, create parameters for each of them */
-   bool getParameters();                                    /**< Use parsed config file parameters for objects held in this wrapper */
+   bool getPopulationParameters();                          /**< Use parsed config file parameters for objects held in this wrapper */
+   void initVelocityMeshes();                               /**< Pre-calculate more helper parameters for velocity meshes. */
 
  private:
    ObjectWrapper(const ObjectWrapper& ow);

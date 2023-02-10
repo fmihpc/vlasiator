@@ -467,7 +467,7 @@ vlasovmover.o: ${DEPS_VLSVMOVER_VAMR}
 else
 
 cpu_acc_intersections.o: ${DEPS_CPU_ACC_INTERSECTS}
-	${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_intersections.cpp ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_intersections.cpp ${INC_EIGEN} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_FSGRID}
 
 ifeq ($(USE_CUDA),1)
 cuda_acc_map_kernel.o: ${DEPS_CUDA_ACC_MAP_KERNEL}
@@ -481,7 +481,7 @@ cuda_acc_semilag.o: ${DEPS_CUDA_ACC_SEMILAG}
 	${CMPGPU} ${CMPGPUFLAGS} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cuda_acc_semilag.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE} ${INC_VECTORCLASS}
 
 cuda_acc_sort_blocks.o: ${DEPS_CUDA_ACC_SORT_BLOCKS}
-	${CMPGPU} ${CMPGPUFLAGS} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cuda_acc_sort_blocks.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE}
+	${CMPGPU} ${CMPGPUFLAGS} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cuda_acc_sort_blocks.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN} ${INC_FSGRID}
 
 cuda_context.o: ${DEPS_CUDA_CONTEXT}
 	${CMPGPU} ${CMPGPUFLAGS} ${MATHFLAGS} ${FLAGS} -c cuda_context.cpp
@@ -499,13 +499,13 @@ cpu_acc_map.o: ${DEPS_CPU_ACC_MAP}
 	${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_map.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_FSGRID} ${INC_PROFILE} ${INC_VECTORCLASS}
 
 cpu_acc_semilag.o: ${DEPS_CPU_ACC_SEMILAG}
-	${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_semilag.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE} ${INC_VECTORCLASS}
+	${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_semilag.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE} ${INC_VECTORCLASS} ${INC_ZOLTAN} ${INC_FSGRID}
 
 cpu_acc_sort_blocks.o: ${DEPS_CPU_ACC_SORT_BLOCKS}
-	${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_sort_blocks.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE}
+	${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_sort_blocks.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN} ${INC_FSGRID}
 
 cpu_acc_load_blocks.o: ${DEPS_CPU_ACC_LOAD_BLOCKS}
-	${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_load_blocks.cpp  ${INC_VECTORCLASS}
+	${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_load_blocks.cpp  ${INC_VECTORCLASS} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_FSGRID}
 
 cpu_acc_transform.o: ${DEPS_CPU_ACC_TRANSFORM}
 	${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_transform.cpp ${INC_EIGEN} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN} ${INC_BOOST} ${INC_FSGRID}

@@ -179,8 +179,6 @@ void initializeGrids(
    }
    phiprof::stop("Refine spatial cells");
    
-   // Init velocity mesh on all cells
-   initVelocityGridGeometry(mpiGrid);
    initializeStencils(mpiGrid);
    
    mpiGrid.set_partitioning_option("IMBALANCE_TOL", P::loadBalanceTolerance);
@@ -405,14 +403,6 @@ void initializeGrids(
    }
    
    phiprof::stop("Set initial state");
-}
-
-// initialize velocity grid of spatial cells before creating cells in dccrg.initialize
-void initVelocityGridGeometry(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid){
-   // Velocity mesh(es) are created in parameters.cpp, here we just 
-   // trigger the initialization of static variables in vmesh::VelocityMesh class.
-   SpatialCell dummy;
-   dummy.initialize_mesh();
 }
 
 void initSpatialCellCoordinates(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {

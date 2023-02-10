@@ -209,7 +209,6 @@ namespace spatial_cell {
       unsigned int get_velocity_cell(const uint popID,const vmesh::GlobalID velocity_block,const Real vx,const Real vy,const Real vz) const;
       const Real* get_velocity_grid_min_limits(const uint popID);
       const Real* get_velocity_grid_max_limits(const uint popID);
-      bool initialize_mesh();
 
       static unsigned int invalid_block_index();
       static vmesh::GlobalID invalid_global_id();

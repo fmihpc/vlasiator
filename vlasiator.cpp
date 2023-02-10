@@ -298,10 +298,9 @@ int main(int argn,char* args[]) {
 
    P::addParameters();
 
+   // Add parameters for number of populations
    getObjectWrapper().addParameters();
-
    readparameters.parse();
-
    P::getParameters();
 
    getObjectWrapper().addPopulationParameters();
@@ -312,9 +311,12 @@ int main(int argn,char* args[]) {
    getObjectWrapper().project = project;
    readparameters.parse(true, false); // 2nd parsing for specific population parameters
    readparameters.helpMessage(); // Call after last parse, exits after printing help if help requested
-   getObjectWrapper().getParameters();
+   getObjectWrapper().getPopulationParameters();
    sysBoundaryContainer.getParameters();
    project->getParameters();
+
+   // Init velocity meshes
+   getObjectWrapper().initVelocityMeshes();
    phiprof::stop("Read parameters");
 
    // Check for correct application of vectorclass values:

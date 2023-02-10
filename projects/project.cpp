@@ -60,39 +60,6 @@ using namespace std;
 
 extern Logger logFile;
 
-/** Struct for creating a new velocity mesh.
- * The values are read from the configuration file and 
- * copied to ObjectWrapper::velocityMeshes.*/
-struct VelocityMeshParams {
-   vector<string> name;
-   vector<double> vx_min;
-   vector<double> vy_min;
-   vector<double> vz_min;
-   vector<double> vx_max;
-   vector<double> vy_max;
-   vector<double> vz_max;
-   vector<vmesh::LocalID> vx_length;
-   vector<vmesh::LocalID> vy_length;
-   vector<vmesh::LocalID> vz_length;
-   vector<unsigned int> maxRefLevels;
-   
-   void resize(const size_t& size) {
-      name.resize(1);
-      vx_min.resize(1);
-      vy_min.resize(1);
-      vz_min.resize(1);
-      vx_max.resize(1);
-      vy_max.resize(1);
-      vz_max.resize(1);
-      vx_length.resize(1);
-      vy_length.resize(1);
-      vz_length.resize(1);
-      maxRefLevels.resize(1);
-   }
-};
-
-//static VelocityMeshParams* velMeshParams = NULL;
-
 namespace projects {
    Project::Project() { 
       baseClassInitialized = false;
@@ -133,28 +100,6 @@ namespace projects {
    void Project::getParameters() {
       typedef Readparameters RP;
       RP::get("Project_common.seed", this->seed);
-
-
-      // Note that configuration files need to be re-parsed after this.
-
-      //RP::get("ParticlePopulation.charge",popCharges);
-      //RP::get("ParticlePopulation.mass_units",popMassUnits);
-      //RP::get("ParticlePopulation.mass",popMasses);
-      //RP::get("ParticlePopulation.sparse_min_value",popSparseMinValue);
-      //RP::get("ParticlePopulation.mesh",popMeshNames);
-
-      //if (velMeshParams == NULL) velMeshParams = new VelocityMeshParams();
-      //RP::get("velocitymesh.name",velMeshParams->name);
-      //RP::get("velocitymesh.vx_min",velMeshParams->vx_min);
-      //RP::get("velocitymesh.vy_min",velMeshParams->vy_min);
-      //RP::get("velocitymesh.vz_min",velMeshParams->vz_min);
-      //RP::get("velocitymesh.vx_max",velMeshParams->vx_max);
-      //RP::get("velocitymesh.vy_max",velMeshParams->vy_max);
-      //RP::get("velocitymesh.vz_max",velMeshParams->vz_max);
-      //RP::get("velocitymesh.vx_length",velMeshParams->vx_length);
-      //RP::get("velocitymesh.vy_length",velMeshParams->vy_length);
-      //RP::get("velocitymesh.vz_length",velMeshParams->vz_length);
-      //RP::get("velocitymesh.max_refinement_level",velMeshParams->maxRefLevels);
    }
 
    /** Initialize the Project. Velocity mesh and particle population 

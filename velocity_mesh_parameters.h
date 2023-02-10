@@ -33,16 +33,12 @@
 
 namespace vmesh {
    
-   /** Wrapper for mesh parameters. The Project class (projects/project.cpp) reads 
-    * one or more velocity meshes from the configuration file and stores them to 
-    * vector ObjectWrapper::velocityMeshes. The velocity meshes stored in each spatial 
-    * cell (one mesh per particle population) store a mesh ID, which is an index 
+   /** Wrapper for mesh parameters. The object wrapper reads one or more velocity meshes
+    * from the configuration file and stores them to the mesh vector 
+    * ObjectWrapper::velocityMeshes. The particle species store a mesh ID, which is an index 
     * to ObjectWrapper::velocityMeshes. Many "get" functions in VelocityMesh are 
-    * wrapper functions, which return the values stored in MeshParameters. This allows 
-    * different particle populations to use the same velocity mesh (parameters) if needed.
-    * 
-    * While the variables have been named 
-    * for velocity mesh, this struct can be used for spatial meshes as well.*/
+    * wrapper functions, which return the values stored in MeshParameters.
+    */
    struct MeshParameters {
       std::string name;                         /**< Name of the mesh (unique).*/
       vmesh::LocalID max_velocity_blocks;       /**< Maximum valid block local ID.*/

@@ -88,7 +88,7 @@ bool ObjectWrapper::addPopulationParameters() {
 }
 
 
-bool ObjectWrapper::getParameters() {
+bool ObjectWrapper::getPopulationParameters() {
    typedef Readparameters RP;
    
    // Particle population parameters
@@ -191,4 +191,38 @@ bool ObjectWrapper::getParameters() {
    }
 
    return true;
+}
+
+void ObjectWrapper::initVelocityMeshes() {
+   for (uint i=0; i<getObjectWrapper().particleSpecies.size(); ++i) {
+      //species::Species& species=getObjectWrapper().particleSpecies[i];
+      vmesh::MeshParameters& vMesh=getObjectWrapper().velocityMeshes[i];
+      // Duplicate definition of limits
+      vMesh.meshMinLimits[0] = vMesh.meshLimits[0];
+      vMesh.meshMinLimits[1] = vMesh.meshLimits[2];
+      vMesh.meshMinLimits[2] = vMesh.meshLimits[4];
+      vMesh.meshMaxLimits[0] = vMesh.meshLimits[1];
+      vMesh.meshMaxLimits[1] = vMesh.meshLimits[3];
+      vMesh.meshMaxLimits[2] = vMesh.meshLimits[5];
+
+      // Calculate derived mesh parameters:
+      vMesh.gridSize[0] = vMesh.meshMaxLimits[0] - vMesh.meshMinLimits[0];
+      vMesh.gridSize[1] = vMesh.meshMaxLimits[1] - vMesh.meshMinLimits[1];
+      vMesh.gridSize[2] = vMesh.meshMaxLimits[2] - vMesh.meshMinLimits[2];
+
+      vMesh.blockSize[0] = vMesh.gridSize[0] / vMesh.gridLength[0];
+      vMesh.blockSize[1] = vMesh.gridSize[1] / vMesh.gridLength[1];
+      vMesh.blockSize[2] = vMesh.gridSize[2] / vMesh.gridLength[2];
+
+      vMesh.cellSize[0] = vMesh.blockSize[0] / vMesh.blockLength[0];
+      vMesh.cellSize[1] = vMesh.blockSize[1] / vMesh.blockLength[1];
+      vMesh.cellSize[2] = vMesh.blockSize[2] / vMesh.blockLength[2];
+
+      vMesh.max_velocity_blocks
+         = vMesh.gridLength[0]
+         * vMesh.gridLength[1]
+         * vMesh.gridLength[2];
+      vMesh.initialized = true;
+   }
+   return;
 }

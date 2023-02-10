@@ -1503,25 +1503,6 @@ namespace spatial_cell {
       cerr << "\t temp sizes are " << vmeshTemp.size() << ' ' << blockContainerTemp.size() << endl;
    }
 
-   /** Initialize the velocity mesh of the chosen particle population.
-    * @param popID Population ID.
-    * @param v_limits Velocity mesh min/max limits.
-    * @param meshSize Number of blocks in each coordinate direction at base grid level.
-    * @param blockSize Number of velocity cells in a block per coordinate direction.
-    * @param f_min Sparse mesh threshold value.
-    * @param maxRefLevel Maximum allowed mesh refinement level.*/
-   bool SpatialCell::initialize_mesh() {
-      bool success = true;
-      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         const species::Species& spec = getObjectWrapper().particleSpecies[popID];
-         if (populations[popID].vmesh.initialize(spec.velocityMesh,getObjectWrapper().velocityMeshes) == false) {
-            success = false;
-         }
-      }
-
-      return success;
-   }
-
    /** Updates minValue based on algorithm value from parameters (see parameters.cpp).
     * @param popID ID of the particle species.*/
    void SpatialCell::updateSparseMinValue(const uint popID) {

@@ -34,6 +34,7 @@
 #include <set>
 #include <cmath>
 
+#include "object_wrapper.h"
 #include "open_bucket_hashtable.h"
 #include "velocity_mesh_parameters.h"
 
@@ -87,7 +88,6 @@ namespace vmesh {
       void getSiblings(const GID& globalID,std::vector<GID>& siblings) const;
       bool hasChildren(const GID& globalID) const;
       GID hasGrandParent(const GID& globalID) const;
-      bool initialize(const size_t& meshID,std::vector<vmesh::MeshParameters>& meshParameters);
       bool initialize(const size_t& meshID);
       static LID invalidBlockIndex();
       static GID invalidGlobalID();
@@ -106,7 +106,6 @@ namespace vmesh {
       void swap(VelocityMesh& vm);
 
     private:
-      static std::vector<vmesh::MeshParameters> meshParameters;
       size_t meshID;
 
       std::vector<GID> localToGlobalMap;
@@ -114,9 +113,6 @@ namespace vmesh {
       //std::unordered_map<GID,LID> globalToLocalMap;
    };
 
-   // ***** INITIALIZERS FOR STATIC MEMBER VARIABLES ***** //
-   template<typename GID,typename LID> std::vector<vmesh::MeshParameters> VelocityMesh<GID,LID>::meshParameters;
-   
    // ***** DEFINITIONS OF TEMPLATE MEMBER FUNCTIONS ***** //
 
    template<typename GID,typename LID> inline
@@ -190,9 +186,9 @@ namespace vmesh {
    template<typename GID,typename LID> inline
    GID VelocityMesh<GID,LID>::findBlockDown(uint8_t& refLevel,GID cellIndices[3]) const {
       // Calculate i/j/k indices of the block that would own the cell:
-      GID i_block = cellIndices[0] / meshParameters[meshID].blockLength[0];
-      GID j_block = cellIndices[1] / meshParameters[meshID].blockLength[1];
-      GID k_block = cellIndices[2] / meshParameters[meshID].blockLength[2];
+      GID i_block = cellIndices[0] / getObjectWrapper().velocityMeshes[meshID].blockLength[0];
+      GID j_block = cellIndices[1] / getObjectWrapper().velocityMeshes[meshID].blockLength[1];
+      GID k_block = cellIndices[2] / getObjectWrapper().velocityMeshes[meshID].blockLength[2];
       
       // Calculate block global ID:
       GID blockGID = getGlobalID(0,i_block,j_block,k_block);
@@ -241,9 +237,9 @@ namespace vmesh {
          return false;
       }
 
-      coords[0] = meshParameters[meshID].meshMinLimits[0] + indices[0]*meshParameters[meshID].blockSize[0];
-      coords[1] = meshParameters[meshID].meshMinLimits[1] + indices[1]*meshParameters[meshID].blockSize[1];
-      coords[2] = meshParameters[meshID].meshMinLimits[2] + indices[2]*meshParameters[meshID].blockSize[2];
+      coords[0] = getObjectWrapper().velocityMeshes[meshID].meshMinLimits[0] + indices[0]*getObjectWrapper().velocityMeshes[meshID].blockSize[0];
+      coords[1] = getObjectWrapper().velocityMeshes[meshID].meshMinLimits[1] + indices[1]*getObjectWrapper().velocityMeshes[meshID].blockSize[1];
+      coords[2] = getObjectWrapper().velocityMeshes[meshID].meshMinLimits[2] + indices[2]*getObjectWrapper().velocityMeshes[meshID].blockSize[2];
       return true;
    }
    
@@ -256,46 +252,46 @@ namespace vmesh {
       #endif
 
       LID indices[3];
-      indices[0] = globalID % meshParameters[meshID].gridLength[0];
-      indices[1] = (globalID / meshParameters[meshID].gridLength[0]) % meshParameters[meshID].gridLength[1];
-      indices[2] = globalID / (meshParameters[meshID].gridLength[0] * meshParameters[meshID].gridLength[1]);
+      indices[0] = globalID % getObjectWrapper().velocityMeshes[meshID].gridLength[0];
+      indices[1] = (globalID / getObjectWrapper().velocityMeshes[meshID].gridLength[0]) % getObjectWrapper().velocityMeshes[meshID].gridLength[1];
+      indices[2] = globalID / (getObjectWrapper().velocityMeshes[meshID].gridLength[0] * getObjectWrapper().velocityMeshes[meshID].gridLength[1]);
 
       // Indices 0-2 contain coordinates of the lower left corner.
       // The values are the same as if getBlockCoordinates(globalID,&(array[0])) was called
-      array[0] = meshParameters[meshID].meshMinLimits[0] + indices[0]*meshParameters[meshID].blockSize[0];
-      array[1] = meshParameters[meshID].meshMinLimits[1] + indices[1]*meshParameters[meshID].blockSize[1];
-      array[2] = meshParameters[meshID].meshMinLimits[2] + indices[2]*meshParameters[meshID].blockSize[2];
+      array[0] = getObjectWrapper().velocityMeshes[meshID].meshMinLimits[0] + indices[0]*getObjectWrapper().velocityMeshes[meshID].blockSize[0];
+      array[1] = getObjectWrapper().velocityMeshes[meshID].meshMinLimits[1] + indices[1]*getObjectWrapper().velocityMeshes[meshID].blockSize[1];
+      array[2] = getObjectWrapper().velocityMeshes[meshID].meshMinLimits[2] + indices[2]*getObjectWrapper().velocityMeshes[meshID].blockSize[2];
 
       // Indices 3-5 contain the cell size.
       // The values are the same as if getCellSize(globalID,&(array[3])) was called
-      array[3] = meshParameters[meshID].cellSize[0];
-      array[4] = meshParameters[meshID].cellSize[1];
-      array[5] = meshParameters[meshID].cellSize[2];
+      array[3] = getObjectWrapper().velocityMeshes[meshID].cellSize[0];
+      array[4] = getObjectWrapper().velocityMeshes[meshID].cellSize[1];
+      array[5] = getObjectWrapper().velocityMeshes[meshID].cellSize[2];
    }
 
    template<typename GID,typename LID> inline
    const Real* VelocityMesh<GID,LID>::getBlockSize(const uint8_t& refLevel) const {
-      return meshParameters[meshID].blockSize;
+      return getObjectWrapper().velocityMeshes[meshID].blockSize;
    }
    
    template<typename GID,typename LID> inline
    bool VelocityMesh<GID,LID>::getBlockSize(const GID& globalID,Real size[3]) const {
-      size[0] = meshParameters[meshID].blockSize[0];
-      size[1] = meshParameters[meshID].blockSize[1];
-      size[2] = meshParameters[meshID].blockSize[2];
+      size[0] = getObjectWrapper().velocityMeshes[meshID].blockSize[0];
+      size[1] = getObjectWrapper().velocityMeshes[meshID].blockSize[1];
+      size[2] = getObjectWrapper().velocityMeshes[meshID].blockSize[2];
       return true;
    }
    
    template<typename GID,typename LID> inline
    const Real* VelocityMesh<GID,LID>::getCellSize(const uint8_t& refLevel) const {
-      return meshParameters[meshID].cellSize;
+      return getObjectWrapper().velocityMeshes[meshID].cellSize;
    }
 
    template<typename GID,typename LID> inline
    bool VelocityMesh<GID,LID>::getCellSize(const GID& globalID,Real size[3]) const {
-      size[0] = meshParameters[meshID].cellSize[0];
-      size[1] = meshParameters[meshID].cellSize[1];
-      size[2] = meshParameters[meshID].cellSize[2];
+      size[0] = getObjectWrapper().velocityMeshes[meshID].cellSize[0];
+      size[1] = getObjectWrapper().velocityMeshes[meshID].cellSize[1];
+      size[2] = getObjectWrapper().velocityMeshes[meshID].cellSize[2];
       return true;
    }
    
@@ -318,38 +314,38 @@ namespace vmesh {
 
    template<typename GID,typename LID> inline
    GID VelocityMesh<GID,LID>::getGlobalID(const uint8_t& refLevel,const Real* coords) const {
-      if (coords[0] < meshParameters[meshID].meshMinLimits[0] || coords[0] >= meshParameters[meshID].meshMaxLimits[0] ||
-         (coords[1] < meshParameters[meshID].meshMinLimits[1] || coords[1] >= meshParameters[meshID].meshMaxLimits[1] ||
-          coords[2] < meshParameters[meshID].meshMinLimits[2] || coords[2] >= meshParameters[meshID].meshMaxLimits[2])) {
+      if (coords[0] < getObjectWrapper().velocityMeshes[meshID].meshMinLimits[0] || coords[0] >= getObjectWrapper().velocityMeshes[meshID].meshMaxLimits[0] ||
+         (coords[1] < getObjectWrapper().velocityMeshes[meshID].meshMinLimits[1] || coords[1] >= getObjectWrapper().velocityMeshes[meshID].meshMaxLimits[1] ||
+          coords[2] < getObjectWrapper().velocityMeshes[meshID].meshMinLimits[2] || coords[2] >= getObjectWrapper().velocityMeshes[meshID].meshMaxLimits[2])) {
          return invalidGlobalID();
       }
 
       const LID indices[3] = {
-         static_cast<LID>(floor((coords[0] - meshParameters[meshID].meshMinLimits[0]) / meshParameters[meshID].blockSize[0])),
-         static_cast<LID>(floor((coords[1] - meshParameters[meshID].meshMinLimits[1]) / meshParameters[meshID].blockSize[1])),
-         static_cast<LID>(floor((coords[2] - meshParameters[meshID].meshMinLimits[2]) / meshParameters[meshID].blockSize[2]))
+         static_cast<LID>(floor((coords[0] - getObjectWrapper().velocityMeshes[meshID].meshMinLimits[0]) / getObjectWrapper().velocityMeshes[meshID].blockSize[0])),
+         static_cast<LID>(floor((coords[1] - getObjectWrapper().velocityMeshes[meshID].meshMinLimits[1]) / getObjectWrapper().velocityMeshes[meshID].blockSize[1])),
+         static_cast<LID>(floor((coords[2] - getObjectWrapper().velocityMeshes[meshID].meshMinLimits[2]) / getObjectWrapper().velocityMeshes[meshID].blockSize[2]))
       };
 
-      return indices[2]*meshParameters[meshID].gridLength[1]*meshParameters[meshID].gridLength[0] 
-              + indices[1]*meshParameters[meshID].gridLength[0] + indices[0];
+      return indices[2]*getObjectWrapper().velocityMeshes[meshID].gridLength[1]*getObjectWrapper().velocityMeshes[meshID].gridLength[0] 
+              + indices[1]*getObjectWrapper().velocityMeshes[meshID].gridLength[0] + indices[0];
    }
    
    template<typename GID,typename LID> inline
    GID VelocityMesh<GID,LID>::getGlobalID(const uint8_t& refLevel,LID indices[3]) const {
-      if (indices[0] >= meshParameters[meshID].gridLength[0]) return invalidGlobalID();
-      if (indices[1] >= meshParameters[meshID].gridLength[1]) return invalidGlobalID();
-      if (indices[2] >= meshParameters[meshID].gridLength[2]) return invalidGlobalID();
-      return indices[2]*meshParameters[meshID].gridLength[1]*meshParameters[meshID].gridLength[0] 
-              + indices[1]*meshParameters[meshID].gridLength[0] + indices[0];
+      if (indices[0] >= getObjectWrapper().velocityMeshes[meshID].gridLength[0]) return invalidGlobalID();
+      if (indices[1] >= getObjectWrapper().velocityMeshes[meshID].gridLength[1]) return invalidGlobalID();
+      if (indices[2] >= getObjectWrapper().velocityMeshes[meshID].gridLength[2]) return invalidGlobalID();
+      return indices[2]*getObjectWrapper().velocityMeshes[meshID].gridLength[1]*getObjectWrapper().velocityMeshes[meshID].gridLength[0] 
+              + indices[1]*getObjectWrapper().velocityMeshes[meshID].gridLength[0] + indices[0];
    }
    
    template<typename GID,typename LID> inline
    GID VelocityMesh<GID,LID>::getGlobalID(const uint32_t& refLevel,const LID& i,const LID& j,const LID& k) const {
-      if (i >= meshParameters[meshID].gridLength[0] || j >= meshParameters[meshID].gridLength[1] || k >= meshParameters[meshID].gridLength[2]) {
+      if (i >= getObjectWrapper().velocityMeshes[meshID].gridLength[0] || j >= getObjectWrapper().velocityMeshes[meshID].gridLength[1] || k >= getObjectWrapper().velocityMeshes[meshID].gridLength[2]) {
          return invalidGlobalID();
       }
-      return i + j*meshParameters[meshID].gridLength[0] 
-              + k*meshParameters[meshID].gridLength[0]*meshParameters[meshID].gridLength[1];
+      return i + j*getObjectWrapper().velocityMeshes[meshID].gridLength[0] 
+              + k*getObjectWrapper().velocityMeshes[meshID].gridLength[0]*getObjectWrapper().velocityMeshes[meshID].gridLength[1];
    }
    
    template<typename GID,typename LID> inline
@@ -364,7 +360,7 @@ namespace vmesh {
 
    template<typename GID,typename LID> inline
    const LID* VelocityMesh<GID,LID>::getGridLength(const uint8_t& refLevel) const {
-      return meshParameters[meshID].gridLength;
+      return getObjectWrapper().velocityMeshes[meshID].gridLength;
    }
    
    template<typename GID,typename LID> inline
@@ -373,9 +369,9 @@ namespace vmesh {
       if (globalID >= invalidGlobalID()) {
          i = j = k = invalidBlockIndex();
       } else {
-         i = globalID % meshParameters[meshID].gridLength[0];
-         j = (globalID / meshParameters[meshID].gridLength[0]) % meshParameters[meshID].gridLength[1];
-         k = globalID / (meshParameters[meshID].gridLength[0] * meshParameters[meshID].gridLength[1]);
+         i = globalID % getObjectWrapper().velocityMeshes[meshID].gridLength[0];
+         j = (globalID / getObjectWrapper().velocityMeshes[meshID].gridLength[0]) % getObjectWrapper().velocityMeshes[meshID].gridLength[1];
+         k = globalID / (getObjectWrapper().velocityMeshes[meshID].gridLength[0] * getObjectWrapper().velocityMeshes[meshID].gridLength[1]);
       }
    }
 
@@ -393,7 +389,7 @@ namespace vmesh {
 
    template<typename GID,typename LID> inline
    GID VelocityMesh<GID,LID>::getMaxVelocityBlocks() const {
-      return meshParameters[meshID].max_velocity_blocks;
+      return getObjectWrapper().velocityMeshes[meshID].max_velocity_blocks;
    }
    
    template<typename GID,typename LID> inline
@@ -403,12 +399,12 @@ namespace vmesh {
    
    template<typename GID,typename LID> inline
    const Real* VelocityMesh<GID,LID>::getMeshMaxLimits() const {
-      return meshParameters[meshID].meshMaxLimits;
+      return getObjectWrapper().velocityMeshes[meshID].meshMaxLimits;
    }
    
    template<typename GID,typename LID> inline
    const Real* VelocityMesh<GID,LID>::getMeshMinLimits() const {
-      return meshParameters[meshID].meshMinLimits;
+      return getObjectWrapper().velocityMeshes[meshID].meshMinLimits;
    }
    
    template<typename GID,typename LID> inline
@@ -421,9 +417,9 @@ namespace vmesh {
       getIndices(globalID,refLevel,i,j,k);
       
       // Calculate global IDs of all 27 blocks:
-      const LID Nx_max = meshParameters[meshID].gridLength[0];
-      const LID Ny_max = meshParameters[meshID].gridLength[1];
-      const LID Nz_max = meshParameters[meshID].gridLength[2];
+      const LID Nx_max = getObjectWrapper().velocityMeshes[meshID].gridLength[0];
+      const LID Ny_max = getObjectWrapper().velocityMeshes[meshID].gridLength[1];
+      const LID Nz_max = getObjectWrapper().velocityMeshes[meshID].gridLength[2];
       
       int nbr = 0;
       for (int k_off=-1; k_off<2; ++k_off) for (int j_off=-1; j_off<2; ++j_off) for (int i_off=-1; i_off<2; ++i_off) {
@@ -524,40 +520,6 @@ namespace vmesh {
       this->meshID = meshID;
       return true;
    }
-   
-   template<typename GID,typename LID> inline
-   bool VelocityMesh<GID,LID>::initialize(const size_t& meshID,std::vector<vmesh::MeshParameters>& meshParameters) {
-      meshParameters[meshID].initialized = false;
-
-      meshParameters[meshID].meshMinLimits[0] = meshParameters[meshID].meshLimits[0];
-      meshParameters[meshID].meshMinLimits[1] = meshParameters[meshID].meshLimits[2];
-      meshParameters[meshID].meshMinLimits[2] = meshParameters[meshID].meshLimits[4];
-      meshParameters[meshID].meshMaxLimits[0] = meshParameters[meshID].meshLimits[1];
-      meshParameters[meshID].meshMaxLimits[1] = meshParameters[meshID].meshLimits[3];
-      meshParameters[meshID].meshMaxLimits[2] = meshParameters[meshID].meshLimits[5];
-      
-      // Calculate derived mesh parameters:
-      meshParameters[meshID].gridSize[0] = meshParameters[meshID].meshMaxLimits[0] - meshParameters[meshID].meshMinLimits[0];
-      meshParameters[meshID].gridSize[1] = meshParameters[meshID].meshMaxLimits[1] - meshParameters[meshID].meshMinLimits[1];
-      meshParameters[meshID].gridSize[2] = meshParameters[meshID].meshMaxLimits[2] - meshParameters[meshID].meshMinLimits[2];
-      
-      meshParameters[meshID].blockSize[0] = meshParameters[meshID].gridSize[0] / meshParameters[meshID].gridLength[0];
-      meshParameters[meshID].blockSize[1] = meshParameters[meshID].gridSize[1] / meshParameters[meshID].gridLength[1];
-      meshParameters[meshID].blockSize[2] = meshParameters[meshID].gridSize[2] / meshParameters[meshID].gridLength[2];
-      
-      meshParameters[meshID].cellSize[0] = meshParameters[meshID].blockSize[0] / meshParameters[meshID].blockLength[0];
-      meshParameters[meshID].cellSize[1] = meshParameters[meshID].blockSize[1] / meshParameters[meshID].blockLength[1];
-      meshParameters[meshID].cellSize[2] = meshParameters[meshID].blockSize[2] / meshParameters[meshID].blockLength[2];
-
-      meshParameters[meshID].max_velocity_blocks 
-              = meshParameters[meshID].gridLength[0]
-              * meshParameters[meshID].gridLength[1]
-              * meshParameters[meshID].gridLength[2];
-      meshParameters[meshID].initialized = true;
-
-      vmesh::VelocityMesh<GID,LID>::meshParameters = meshParameters;
-      return meshParameters[meshID].initialized;
-   }
 
    template<typename GID,typename LID> inline
    LID VelocityMesh<GID,LID>::invalidBlockIndex() {
@@ -576,7 +538,7 @@ namespace vmesh {
    
    template<typename GID,typename LID> inline
    bool VelocityMesh<GID,LID>::isInitialized() const {
-      return meshParameters[meshID].initialized;
+      return getObjectWrapper().velocityMeshes[meshID].initialized;
    }
 
    template<typename GID,typename LID> inline
@@ -593,7 +555,7 @@ namespace vmesh {
 
    template<typename GID,typename LID> inline
    bool VelocityMesh<GID,LID>::push_back(const GID& globalID) {
-      if (size() >= meshParameters[meshID].max_velocity_blocks) return false;
+      if (size() >= getObjectWrapper().velocityMeshes[meshID].max_velocity_blocks) return false;
       if (globalID == invalidGlobalID()) return false;
 
       auto position
@@ -608,10 +570,10 @@ namespace vmesh {
 
    template<typename GID,typename LID> inline
    bool VelocityMesh<GID,LID>::push_back(const std::vector<GID>& blocks) {
-      if (size()+blocks.size() > meshParameters[meshID].max_velocity_blocks) {
+      if (size()+blocks.size() > getObjectWrapper().velocityMeshes[meshID].max_velocity_blocks) {
          std::cerr << "vmesh: too many blocks, current size is " << size();
          std::cerr << ", adding " << blocks.size() << " blocks";
-         std::cerr << ", max is " << meshParameters[meshID].max_velocity_blocks << std::endl;
+         std::cerr << ", max is " << getObjectWrapper().velocityMeshes[meshID].max_velocity_blocks << std::endl;
          return false;
       }
          
@@ -648,7 +610,7 @@ namespace vmesh {
 
    template<typename GID,typename LID> inline
    bool VelocityMesh<GID,LID>::setMesh(const size_t& meshID) {
-      if (meshID >= meshParameters.size()) return false;
+      if (meshID >= getObjectWrapper().velocityMeshes.size()) return false;
       this->meshID = meshID;
       return true;
    }
