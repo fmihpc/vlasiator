@@ -621,9 +621,9 @@ void calculateCurvature(
       rght_z_by /= rght_z_bnorm;
       rght_z_bz /= rght_z_bnorm;
       
-      vol->at(fsgrids::volfields::CURVATUREX) = bx * limiter(left_x_bx,bx,rght_x_bx) / technicalGrid.DX + by * limiter(left_y_bx,bx,rght_y_bx) / technicalGrid.DY + bz * limiter(left_z_bx,bx,rght_z_bx) / technicalGrid.DZ;
-      vol->at(fsgrids::volfields::CURVATUREY) = bx * limiter(left_x_by,by,rght_x_by) / technicalGrid.DX + by * limiter(left_y_by,by,rght_y_by) / technicalGrid.DY + bz * limiter(left_z_by,by,rght_z_by) / technicalGrid.DZ;
-      vol->at(fsgrids::volfields::CURVATUREZ) = bx * limiter(left_x_bz,bz,rght_x_bz) / technicalGrid.DX + by * limiter(left_y_bz,bz,rght_y_bz) / technicalGrid.DY + bz * limiter(left_z_bz,bz,rght_z_bz) / technicalGrid.DZ;
+      vol->at(fsgrids::volfields::CURVATUREX) = bx * 0.5*(left_x_bx-rght_x_bx) / technicalGrid.DX + by * 0.5*(left_y_bx-rght_y_bx) / technicalGrid.DY + bz * 0.5*(left_z_bx-rght_z_bx) / technicalGrid.DZ;
+      vol->at(fsgrids::volfields::CURVATUREY) = bx * 0.5*(left_x_by-rght_x_by) / technicalGrid.DX + by * 0.5*(left_y_by-rght_y_by) / technicalGrid.DY + bz * 0.5*(left_z_by-rght_z_by) / technicalGrid.DZ;
+      vol->at(fsgrids::volfields::CURVATUREZ) = bx * 0.5*(left_x_bz-rght_x_bz) / technicalGrid.DX + by * 0.5*(left_y_bz-rght_y_bz) / technicalGrid.DY + bz * 0.5*(left_z_bz-rght_z_bz) / technicalGrid.DZ;
    }
 }
 
