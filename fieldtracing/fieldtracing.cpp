@@ -147,7 +147,7 @@ namespace FieldTracing {
                   }
                   
                   // If we somehow still map into the ionosphere, we missed the 88 degree criterion but shouldn't couple there.
-                  if(sqrt(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2)) < SBC::Ionosphere::innerRadius) {
+                  if(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2) < SBC::Ionosphere::innerRadius*SBC::Ionosphere::innerRadius) {
                      // TODO drop this warning if it never occurs? To be followed.
                      cerr << (string)("(fieldtracing) Warning: Triggered mapping back into Earth from node " + to_string(n) + " at z " + to_string(no.x[2]) + "\n");
                      nodeNeedsContinuedTracing.at(n) = 0;
@@ -337,7 +337,7 @@ namespace FieldTracing {
          return true;
       };
       
-      while(sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]) > SBC::Ionosphere::innerRadius) {
+      while(x[0]*x[0]+x[1]*x[1]+x[2]*x[2] > SBC::Ionosphere::innerRadius*SBC::Ionosphere::innerRadius) {
          
          // Make one step along the fieldline
          stepFieldLine(x,v, stepSize,50e3,100e3,fieldTracingParameters.tracingMethod,dipoleFieldOnly,false);
@@ -345,7 +345,7 @@ namespace FieldTracing {
          // If the field lines is moving even further outwards, abort.
          // (this shouldn't happen under normal magnetospheric conditions, but who
          // knows what crazy driving this will be run with)
-         if(sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]) > 1.5*couplingRadius) {
+         if(x[0]*x[0]+x[1]*x[1]+x[2]*x[2] > 1.5*1.5*couplingRadius*couplingRadius) {
             cerr << "(fieldtracing) Warning: coupling of Vlasov grid cell failed due to weird magnetic field topology." << endl;
             
             // Return a coupling that has 0 value and results in zero potential
@@ -551,7 +551,7 @@ namespace FieldTracing {
                   fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,{(TReal)x[0], (TReal)x[1], (TReal)x[2]});
                   
                   // If we map into the ionosphere, this node is on a closed field line.
-                  if(sqrt(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2)) < SBC::Ionosphere::innerRadius) {
+                  if(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2) < SBC::Ionosphere::innerRadius*SBC::Ionosphere::innerRadius) {
                      nodeNeedsContinuedTracing[n] = 0;
                      nodeTracingCoordinates[n] = {0,0,0};
                      nodeMapping[n] = TracingLineEndType::CLOSED;
@@ -676,7 +676,7 @@ namespace FieldTracing {
          fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,{(Real)x[0], (Real)x[1], (Real)x[2]});
          
          // If we map into the ionosphere, discard this field line.
-         if(sqrt(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2)) < fieldTracingParameters.innerBoundaryRadius) {
+         if(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2) < fieldTracingParameters.innerBoundaryRadius*fieldTracingParameters.innerBoundaryRadius) {
             cellNeedsContinuedTracing[n] = 0;
             cellTracingCoordinates[n] = {0,0,0};
             cellConnection[n] += TracingLineEndType::CLOSED;
