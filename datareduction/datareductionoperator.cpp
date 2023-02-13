@@ -747,7 +747,7 @@ namespace DRO {
             rho += thread_n_sum;
          }
       }
-      printf("RHO nonthermal CALC!!!!");
+      printf("rhoNonthermal! rho: %e\n",rho);
       return;
    }
 
@@ -819,7 +819,7 @@ namespace DRO {
       V[0]/=n_sum;
       V[1]/=n_sum;
       V[2]/=n_sum;
-      printf("V nonTHERMAL CALC!!!!");
+      printf("VNonThermal! V[0]: %e, V[1]: %e, V[2]: %e\n",V[0],V[1],V[2]);
 
       return;
    }
@@ -882,7 +882,7 @@ namespace DRO {
             PTensor[2] += thread_nvzvz_sum;
          }
       }
-      printf("PTENSOR Diag NONTHERMAL CALC!!!!");
+      printf("DiagNonThermal! PTensor[0]: %e, PTensor[1]: %e, PTensor[2]: %e\n",PTensor[0],PTensor[1],PTensor[2]);
 
       return;
    }
@@ -944,7 +944,7 @@ namespace DRO {
             PTensor[2] += thread_nvxvy_sum;
          }
       }
-      printf("PTENSOR OffDiag NONTHERMAL CALC!!!!");
+      printf("OffDiagNonThermal! PTensor[0]: %e, PTensor[1]: %e, PTensor[2]: %e\n",PTensor[0],PTensor[1],PTensor[2]);
 
    }
 
