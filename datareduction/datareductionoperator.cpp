@@ -378,6 +378,8 @@ namespace DRO {
    }
    
    bool VariablePTensorDiagonal::reduceData(const SpatialCell* cell,char* buffer) {
+
+      clock_t tStart = clock();
       
       // Make parameters and block data available on device using a buffer
       arch::buf<Realf> block_data((Realf*)cell->get_data(popID), (uint)(cell->get_number_of_velocity_blocks(popID)*WID3*sizeof(Realf))); 
@@ -427,6 +429,11 @@ namespace DRO {
             PTensor[2] += sum[2];
          }
       }
+      clock_t tStop = clock();
+      double time_s = (double) (tStop - tStart) / CLOCKS_PER_SEC;
+
+      printf("DRO Diag time: %e s\n", time_s);
+
       printf("Diag! PTensor[0]: %e, PTensor[1]: %e, PTensor[2]: %e\n",PTensor[0],PTensor[1],PTensor[2]);
       const char* ptr = reinterpret_cast<const char*>(&PTensor);
       for (uint i = 0; i < 3*sizeof(Real); ++i) buffer[i] = ptr[i];
@@ -631,55 +638,6 @@ namespace DRO {
 	  block separately, it's preferable to have them fast even at the cost of code repetition.
   ********/
 
-   //Helper function for getting the velocity cell ids that are a part of the nonthermal population:
-   static void getNonthermalVelocityCells(
-      const Real* block_parameters,
-      vector<uint64_t> & vCellIds,
-      cuint popID
-   ) {
-      creal HALF = 0.5;
-      const std::array<Real, 3> thermalV = getObjectWrapper().particleSpecies[popID].thermalV;
-      creal thermalRadius = getObjectWrapper().particleSpecies[popID].thermalRadius;
-      // Go through every velocity cell (i, j, k are indices)
-      for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
-         // Get the vx, vy, vz coordinates of the velocity cell
-         const Real VX = block_parameters[BlockParams::VXCRD] + (i + HALF) * block_parameters[BlockParams::DVX];
-         const Real VY = block_parameters[BlockParams::VYCRD] + (j + HALF) * block_parameters[BlockParams::DVY];
-         const Real VZ = block_parameters[BlockParams::VZCRD] + (k + HALF) * block_parameters[BlockParams::DVZ];
-         // Compare the distance of the velocity cell from the center of the maxwellian distribution to the radius of the maxwellian distribution
-         if( ( (thermalV[0] - VX) * (thermalV[0] - VX)
-             + (thermalV[1] - VY) * (thermalV[1] - VY)
-             + (thermalV[2] - VZ) * (thermalV[2] - VZ) )
-             >
-             thermalRadius*thermalRadius ) {
-             //The velocity cell is a part of the nonthermal population:
-             vCellIds.push_back(cellIndex(i,j,k));
-          }
-      }
-   }
-   //Helper function for getting the velocity cell ids that are a part of the nonthermal population:
-   static void getThermalVelocityCells(
-      const Real* block_parameters,
-      vector<uint64_t> & vCellIds,
-      cuint popID
-   ) {
-      creal HALF = 0.5;
-      const std::array<Real, 3> thermalV = getObjectWrapper().particleSpecies[popID].thermalV;
-      creal thermalRadius = getObjectWrapper().particleSpecies[popID].thermalRadius;
-      for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
-         const Real VX = block_parameters[BlockParams::VXCRD] + (i + HALF) * block_parameters[BlockParams::DVX];
-         const Real VY = block_parameters[BlockParams::VYCRD] + (j + HALF) * block_parameters[BlockParams::DVY];
-         const Real VZ = block_parameters[BlockParams::VZCRD] + (k + HALF) * block_parameters[BlockParams::DVZ];
-         if( ( (thermalV[0] - VX) * (thermalV[0] - VX)
-             + (thermalV[1] - VY) * (thermalV[1] - VY)
-             + (thermalV[2] - VZ) * (thermalV[2] - VZ) )
-             <=
-             thermalRadius*thermalRadius ) {
-             //The velocity cell is not a part of the nonthermal population:
-             vCellIds.push_back(cellIndex(i,j,k));
-          }
-      }
-   }
    //Helper function for getting the velocity cell indices that are a part of the nonthermal population:
    static void getNonthermalVelocityCellIndices(
       const Real* block_parameters,
@@ -746,25 +704,38 @@ namespace DRO {
       {
          Real thread_n_sum = 0.0;
          
+         creal HALF = 0.5;
+         creal thermalRadius = getObjectWrapper().particleSpecies[popID].thermalRadius;
+         const std::array<Real, 3> thermalV = getObjectWrapper().particleSpecies[popID].thermalV;
+         
          const Real* parameters = cell->get_block_parameters(popID);
          const Realf* block_data = cell->get_data(popID);
-         
+
          # pragma omp for
          for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); ++n) {
-            const Real DV3
-            = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
-            * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY]
-            * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-            vector< uint64_t > vCells; //Velocity cell ids
-            vCells.clear();
-            if ( calculateNonthermal == true ) {
-               getNonthermalVelocityCells(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCells, popID);
-            } else {
-               getThermalVelocityCells(&parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS], vCells, popID);
-            }
-            for( vector< uint64_t >::const_iterator it = vCells.begin(); it != vCells.end(); ++it ) {
-               //velocity cell id = *it
-               thread_n_sum += block_data[n * SIZE_VELBLOCK + (*it)] * DV3;
+            const Real* block_parameters = &parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS];
+            const Real DV3 = block_parameters[BlockParams::DVX] * block_parameters[BlockParams::DVY] * block_parameters[BlockParams::DVZ];
+            // Go through every velocity cell (i, j, k are indices)
+            for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
+               // Get the vx, vy, vz coordinates of the velocity cell
+               const Real VX = block_parameters[BlockParams::VXCRD] + (i + HALF) * block_parameters[BlockParams::DVX];
+               const Real VY = block_parameters[BlockParams::VYCRD] + (j + HALF) * block_parameters[BlockParams::DVY];
+               const Real VZ = block_parameters[BlockParams::VZCRD] + (k + HALF) * block_parameters[BlockParams::DVZ];
+               // Compare the distance of the velocity cell from the center of the maxwellian distribution to the radius of the maxwellian distribution
+               if(calculateNonthermal == true && 
+                  ( (thermalV[0] - VX) * (thermalV[0] - VX)
+                  + (thermalV[1] - VY) * (thermalV[1] - VY)
+                  + (thermalV[2] - VZ) * (thermalV[2] - VZ) )
+                  > thermalRadius*thermalRadius 
+                  ||
+                  calculateNonthermal == false && 
+                  ( (thermalV[0] - VX) * (thermalV[0] - VX)
+                  + (thermalV[1] - VY) * (thermalV[1] - VY)
+                  + (thermalV[2] - VZ) * (thermalV[2] - VZ) )
+                  <= thermalRadius*thermalRadius ) {
+                    //The velocity cell is a part of the nonthermal/thermal population:
+                    thread_n_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * DV3;
+               }
             }
          }
          // Accumulate contributions coming from this velocity block
@@ -776,6 +747,7 @@ namespace DRO {
             rho += thread_n_sum;
          }
       }
+      printf("RHO nonthermal CALC!!!!");
       return;
    }
 
@@ -847,6 +819,8 @@ namespace DRO {
       V[0]/=n_sum;
       V[1]/=n_sum;
       V[2]/=n_sum;
+      printf("V nonTHERMAL CALC!!!!");
+
       return;
    }
 
@@ -908,6 +882,8 @@ namespace DRO {
             PTensor[2] += thread_nvzvz_sum;
          }
       }
+      printf("PTENSOR Diag NONTHERMAL CALC!!!!");
+
       return;
    }
 
@@ -968,6 +944,8 @@ namespace DRO {
             PTensor[2] += thread_nvxvy_sum;
          }
       }
+      printf("PTENSOR OffDiag NONTHERMAL CALC!!!!");
+
    }
 
   /********* 
