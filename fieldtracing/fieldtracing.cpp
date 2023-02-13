@@ -192,7 +192,7 @@ namespace FieldTracing {
          } // pragma omp parallel
          
          // Globally reduce whether any node still needs to be picked up and traced onwards
-         std::vector<int> sumNodeNeedsContinuedTracing(nodes.size(), 0);
+         std::vector<int> sumNodeNeedsContinuedTracing(nodes.size());
          std::vector<std::array<Real, 3>> sumNodeTracingCoordinates(nodes.size());
          MPI_Allreduce(nodeNeedsContinuedTracing.data(), sumNodeNeedsContinuedTracing.data(), nodes.size(), MPI_INT, MPI_SUM, MPI_COMM_WORLD);
          if(sizeof(Real) == sizeof(double)) {
@@ -480,7 +480,7 @@ namespace FieldTracing {
       uint64_t maxTracingSteps = 8 * (gridSize[0] * technicalGrid.DX + gridSize[1] * technicalGrid.DY + gridSize[2] * technicalGrid.DZ) / stepSize;
       
       std::vector<int> nodeMapping(nodes.size(), TracingLineEndType::UNPROCESSED);                                 /*!< For reduction of node coupling */
-      std::vector<uint64_t> nodeStepCounter(nodes.size(), 0);                                 /*!< Count number of field line tracing steps */
+      std::vector<uint64_t> nodeStepCounter(nodes.size());                                 /*!< Count number of field line tracing steps */
       std::vector<int> nodeNeedsContinuedTracing(nodes.size(), 1);                    /*!< Flag, whether tracing needs to continue on another task */
       std::vector<std::array<TReal, 3>> nodeTracingCoordinates(nodes.size());          /*!< In-flight node upmapping coordinates (for global reduction) */
       
@@ -583,9 +583,9 @@ namespace FieldTracing {
          }
          
          // Globally reduce whether any node still needs to be picked up and traced onwards
-         std::vector<int> sumNodeNeedsContinuedTracing(nodes.size(), 0);
+         std::vector<int> sumNodeNeedsContinuedTracing(nodes.size());
          std::vector<std::array<TReal, 3>> sumNodeTracingCoordinates(nodes.size());
-         std::vector<uint64_t> maxNodeStepCounter(nodes.size(), 0);
+         std::vector<uint64_t> maxNodeStepCounter(nodes.size());
          MPI_Allreduce(nodeNeedsContinuedTracing.data(), sumNodeNeedsContinuedTracing.data(), nodes.size(), MPI_INT, MPI_SUM, MPI_COMM_WORLD);
          MPI_Allreduce(nodeStepCounter.data(), maxNodeStepCounter.data(), nodes.size(), MPI_UINT64_T, MPI_MAX, MPI_COMM_WORLD);
          if(sizeof(TReal) == sizeof(double)) {
@@ -849,7 +849,7 @@ namespace FieldTracing {
          }
       }
       
-      std::vector<TReal> cellCurvatureRadius(globalDccrgSize, 0);
+      std::vector<TReal> cellCurvatureRadius(globalDccrgSize);
       std::vector<TReal> reducedCellCurvatureRadius(globalDccrgSize);
       
       std::vector<signed char> cellFWConnection(globalDccrgSize, TracingLineEndType::UNPROCESSED); /*!< For reduction of node coupling */
@@ -859,25 +859,25 @@ namespace FieldTracing {
       std::vector<signed char> cellNeedsContinuedBWTracing(globalDccrgSize, 1); /*!< Flag, whether tracing needs to continue on another task */
       std::vector<std::array<TReal, 3>> cellFWTracingCoordinates(globalDccrgSize); /*!< In-flight node upmapping coordinates (for global reduction) */
       std::vector<std::array<TReal, 3>> cellBWTracingCoordinates(globalDccrgSize); /*!< In-flight node upmapping coordinates (for global reduction) */
-      std::vector<TReal> cellFWRunningDistance(globalDccrgSize, 0);
-      std::vector<TReal> cellBWRunningDistance(globalDccrgSize, 0);
+      std::vector<TReal> cellFWRunningDistance(globalDccrgSize);
+      std::vector<TReal> cellBWRunningDistance(globalDccrgSize);
       
       // This we need only once and not forward and backward separately as we'll only record the max
-      std::vector<TReal> cellMaxExtension(globalDccrgSize, 0);
+      std::vector<TReal> cellMaxExtension(globalDccrgSize);
       
       // These guys are needed in the reductions
-      std::vector<signed char> storedCellNeedsContinuedFWTracing(globalDccrgSize, 0);
-      std::vector<signed char> storedCellNeedsContinuedBWTracing(globalDccrgSize, 0);
+      std::vector<signed char> storedCellNeedsContinuedFWTracing(globalDccrgSize);
+      std::vector<signed char> storedCellNeedsContinuedBWTracing(globalDccrgSize);
       std::vector<std::array<TReal, 3>> sumCellFWTracingCoordinates(globalDccrgSize);
       std::vector<std::array<TReal, 3>> sumCellBWTracingCoordinates(globalDccrgSize);
-      std::vector<TReal> reducedCellFWRunningDistance(globalDccrgSize, 0);
-      std::vector<TReal> reducedCellBWRunningDistance(globalDccrgSize, 0);
+      std::vector<TReal> reducedCellFWRunningDistance(globalDccrgSize);
+      std::vector<TReal> reducedCellBWRunningDistance(globalDccrgSize);
       std::vector<TReal> reducedCellFWTracingStepSize(globalDccrgSize);
       std::vector<TReal> reducedCellBWTracingStepSize(globalDccrgSize);
       std::vector<signed char> reducedCellFWConnection(globalDccrgSize);
       std::vector<signed char> reducedCellBWConnection(globalDccrgSize);
       
-      phiprof::start("first-loop");
+      phiprof::start("initialization-loop");
       for(int n=0; n<globalDccrgSize; n++) {
          const CellID id = allDccrgCells[n];
          const std::array<Real, 3> ctr = mpiGrid.get_center(id);
@@ -901,13 +901,14 @@ namespace FieldTracing {
             } else {
                cellCurvatureRadius[n] = 1 / sqrt(mpiGrid[id]->parameters[CellParams::CURVATUREX]*mpiGrid[id]->parameters[CellParams::CURVATUREX] + mpiGrid[id]->parameters[CellParams::CURVATUREY]*mpiGrid[id]->parameters[CellParams::CURVATUREY] + mpiGrid[id]->parameters[CellParams::CURVATUREZ]*mpiGrid[id]->parameters[CellParams::CURVATUREZ]);
                if(fieldTracingParameters.fluxrope_max_curvature_radii_to_trace*cellCurvatureRadius[n] > fieldTracingParameters.fluxrope_max_m_to_trace) {
-                  cellCurvatureRadius[n] = 0; // This will discard the field lines in the first iteration below.
+                  cellCurvatureRadius[n] = 0; // This will stop fluxrope tracing for these field lines in the first iteration below.
                }
             }
          }
       }
-      phiprof::stop("first-loop");
+      phiprof::stop("initialization-loop");
       
+      // The FW, BW and this copy of coordinates were created using mpiGrid.get_center() which is for all cells, not just local ones, so no need to reduce them now.
       const std::vector<std::array<TReal,3>> cellInitialCoordinates = cellFWTracingCoordinates;
       
       MPI_Allreduce(cellNeedsContinuedFWTracing.data(), storedCellNeedsContinuedFWTracing.data(), globalDccrgSize, MPI_SIGNED_CHAR, MPI_MIN, MPI_COMM_WORLD);
