@@ -747,12 +747,11 @@ namespace FieldTracing {
     * radius (CLOSED). In rare cases the line might not have reached either of these two termination conditions by the time the
     * field line has reached a length of maxTracingDistance. In that case we call it DANGLING, it likely ended up in a loop
     * somewhere (we don't call it "loop" to avoid confusion with the flux rope tracing). As long as we have not hit any of the above
-    * termination conditions, the type is called UNPROCESSED. We allow fieldTracingParameters.fullbox_max_incomplete_lines to remain
-    * UNPROCESSED when we exit the loop, that is a fraction of the total field lines we are tracing (number of cells x2 due to
-    * forward and backward tracing), as this allows substantial shortening of the total time spent due to the MPI_Allreduce calls
-    * occurring when we cross MPI domain boundaries. (NOTE: an algorithm doing direct task-to-task communication will likely be more
-    * efficient!) The connection type of the field line is a member of the enum TracingLineEndType and stored in cellFWConnection,
-    * cellBWConnection, cellConnection and the reduction arrays.
+    * termination conditions, the type is called UNPROCESSED. We allow fieldTracingParameters.fullbox_max_incomplete_cells to remain
+    * UNPROCESSED when we exit the loop, that is a fraction of the total cells left over, as this allows substantial shortening of
+    * the total time spent due to the MPI_Allreduce calls occurring when we cross MPI domain boundaries. (NOTE: an algorithm doing
+    * direct task-to-task communication will likely be more efficient!) The connection type of the field line is a member of the
+    * enum TracingLineEndType and stored in cellFWConnection, cellBWConnection, cellConnection and the reduction arrays.
     * enum TracingLineEndType {
     *    UNPROCESSED,
     *    CLOSED,
@@ -953,7 +952,7 @@ namespace FieldTracing {
             // Trace node coordinates forward and backwards until a non-sysboundary cell is encountered or the local fsgrid domain has been left.
             #pragma omp for schedule(dynamic)
             for(int n=0; n<globalDccrgSize; n++) {
-               if(cellFWConnection[n] % TracingLineEndType::N_TYPES == 0) {
+               if(cellFWConnection[n] % TracingLineEndType::N_TYPES == TracingLineEndType::UNPROCESSED) {
                   stepCellAcrossTaskDomain(
                      n,
                      technicalGrid,
@@ -970,7 +969,7 @@ namespace FieldTracing {
                      Direction::FORWARD
                   );
                }
-               if(cellBWConnection[n] % TracingLineEndType::N_TYPES == 0) {
+               if(cellBWConnection[n] % TracingLineEndType::N_TYPES == TracingLineEndType::UNPROCESSED) {
                   stepCellAcrossTaskDomain(
                      n,
                      technicalGrid,
@@ -1005,14 +1004,14 @@ namespace FieldTracing {
                smallCellFWConnection.clear();
                smallCellBWConnection.clear();
                for(int n=0; n<globalDccrgSize; n++) {
-                  if(storedCellFWConnection[n] % TracingLineEndType::N_TYPES == 0) { // This still has the allreduce MPI_SUM results from the previous round, so that all globally continuing cells are accounted for.
+                  if(storedCellFWConnection[n] % TracingLineEndType::N_TYPES == TracingLineEndType::UNPROCESSED) { // This still has the allreduce MPI_SUM results from the previous round, so that all globally continuing cells are accounted for.
                      indicesToReduceFW.push_back(n);
                      smallCellFWTracingCoordinates.push_back(cellFWTracingCoordinates[n]);
                      smallCellFWRunningDistance.push_back(cellFWRunningDistance[n]);
                      smallCellFWTracingStepSize.push_back(cellFWTracingStepSize[n]);
                      smallCellFWConnection.push_back(cellFWConnection[n]);
                   }
-                  if(storedCellBWConnection[n] % TracingLineEndType::N_TYPES == 0) { // This still has the allreduce MPI_SUM results from the previous round, so that all globally continuing cells are accounted for.
+                  if(storedCellBWConnection[n] % TracingLineEndType::N_TYPES == TracingLineEndType::UNPROCESSED) { // This still has the allreduce MPI_SUM results from the previous round, so that all globally continuing cells are accounted for.
                      indicesToReduceBW.push_back(n);
                      smallCellBWTracingCoordinates.push_back(cellBWTracingCoordinates[n]);
                      smallCellBWRunningDistance.push_back(cellBWRunningDistance[n]);
@@ -1076,23 +1075,17 @@ namespace FieldTracing {
             }
             #pragma omp for schedule(dynamic) reduction(+:cellsToDoFullBox) reduction(+:cellsToDoFluxRopes)
             for(int n=0; n<globalDccrgSize; n++) {
-               if(cellFWConnection[n] % TracingLineEndType::N_TYPES == 0) {
+               if(cellFWConnection[n] % TracingLineEndType::N_TYPES == TracingLineEndType::UNPROCESSED || cellBWConnection[n] % TracingLineEndType::N_TYPES == TracingLineEndType::UNPROCESSED) {
                   cellsToDoFullBox++;
-                  if(cellFWConnection[n] == TracingLineEndType::UNPROCESSED) {
-                     cellsToDoFluxRopes++;
-                  }
-               }
-               if(cellBWConnection[n] % TracingLineEndType::N_TYPES == 0) {
-                  cellsToDoFullBox++;
-                  if(cellBWConnection[n] == TracingLineEndType::UNPROCESSED) {
+                  if(cellFWConnection[n] == TracingLineEndType::UNPROCESSED || cellBWConnection[n] == TracingLineEndType::UNPROCESSED) {
                      cellsToDoFluxRopes++;
                   }
                }
             }
             #pragma omp barrier
          } while(!(
-            cellsToDoFullBox <= fieldTracingParameters.fullbox_max_incomplete_lines * 2 * globalDccrgSize
-            && cellsToDoFluxRopes <= fieldTracingParameters.fluxrope_max_incomplete_lines * 2 * globalDccrgSize
+            cellsToDoFullBox <= fieldTracingParameters.fullbox_max_incomplete_cells * globalDccrgSize
+            && cellsToDoFluxRopes <= fieldTracingParameters.fluxrope_max_incomplete_cells * globalDccrgSize
          ));
       } // pragma omp parallel
       phiprof::stop("loop");
