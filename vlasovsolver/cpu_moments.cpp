@@ -47,14 +47,17 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
 
     // Clear old moments to zero value
     if (skipMoments == false) {
-        cell->parameters[CellParams::RHOM  ] = 0.0;
-        cell->parameters[CellParams::VX] = 0.0;
-        cell->parameters[CellParams::VY] = 0.0;
-        cell->parameters[CellParams::VZ] = 0.0;
-        cell->parameters[CellParams::RHOQ  ] = 0.0;
+        cell->parameters[CellParams::RHOM] = 0.0;
+        cell->parameters[CellParams::VX]   = 0.0;
+        cell->parameters[CellParams::VY]   = 0.0;
+        cell->parameters[CellParams::VZ]   = 0.0;
+        cell->parameters[CellParams::RHOQ] = 0.0;
         cell->parameters[CellParams::P_11] = 0.0;
         cell->parameters[CellParams::P_22] = 0.0;
         cell->parameters[CellParams::P_33] = 0.0;
+        cell->parameters[CellParams::P_12] = 0.0;
+        cell->parameters[CellParams::P_13] = 0.0;
+        cell->parameters[CellParams::P_23] = 0.0;
     }
 
     // Loop over all particle species
@@ -111,8 +114,10 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
        const Real mass = getObjectWrapper().particleSpecies[popID].mass;
        
        // Temporary array for storing moments
-       Real array[3];
-       for (int i=0; i<3; ++i) array[i] = 0.0;
+       Real array[6];
+       for (int i=0; i<6; ++i) array[i] = 0.0;
+
+       bool doOffDiagonal = true;
 
        // Calculate species' contribution to second velocity moments
        Population & pop = cell->get_population(popID);
@@ -122,17 +127,18 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
                                      cell->parameters[CellParams::VX],
                                      cell->parameters[CellParams::VY],
                                      cell->parameters[CellParams::VZ],
-                                     array);
+                                     array,doOffDiagonal);
        }
        
        // Store species' contribution to bulk velocity moments
-       pop.P[0] = mass*array[0];
-       pop.P[1] = mass*array[1];
-       pop.P[2] = mass*array[2];
-       
+       for (int i=0; i<6; ++i) pop.P[i] = mass*array[i];
+
        cell->parameters[CellParams::P_11] += pop.P[0];
        cell->parameters[CellParams::P_22] += pop.P[1];
        cell->parameters[CellParams::P_33] += pop.P[2];
+       cell->parameters[CellParams::P_12] += pop.P[3];
+       cell->parameters[CellParams::P_13] += pop.P[4];
+       cell->parameters[CellParams::P_23] += pop.P[5];
     } // for-loop over particle species
 }
 
@@ -259,6 +265,8 @@ void calculateMoments_R(
          Real array[3];
          for (int i=0; i<3; ++i) array[i] = 0.0;
 
+         bool doOffDiagonal = false;
+
          // Calculate species' contribution to second velocity moments
          Population & pop = cell->get_population(popID);
          for (vmesh::LocalID blockLID=0; blockLID<blockContainer.size(); ++blockLID) {
@@ -267,7 +275,7 @@ void calculateMoments_R(
                                        cell->parameters[CellParams::VX_R],
                                        cell->parameters[CellParams::VY_R],
                                        cell->parameters[CellParams::VZ_R],
-                                       array);
+                                       array,doOffDiagonal);
          } // for-loop over velocity blocks
 
          // Store species' contribution to 2nd bulk velocity moments
@@ -390,6 +398,8 @@ void calculateMoments_V(
          Real array[3];
          for (int i=0; i<3; ++i) array[i] = 0.0;
 
+         bool doOffDiagonal = false;
+
          // Calculate species' contribution to second velocity moments
          Population & pop = cell->get_population(popID);
          for (vmesh::LocalID blockLID=0; blockLID<blockContainer.size(); ++blockLID) {
@@ -399,7 +409,7 @@ void calculateMoments_V(
                                        cell->parameters[CellParams::VX_V],
                                        cell->parameters[CellParams::VY_V],
                                        cell->parameters[CellParams::VZ_V],
-                                       array);
+                                       array,doOffDiagonal);
          } // for-loop over velocity blocks
          
          // Store species' contribution to 2nd bulk velocity moments

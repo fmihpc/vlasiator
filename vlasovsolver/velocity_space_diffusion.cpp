@@ -54,14 +54,55 @@ void velocitySpaceDiffusion(
  
     Realf dmubins = 2.0/nbins_mu;
 
-    Realf epsilon = 0.0;
-    Realf nu0     = 0.3;
-
     int fcount   [nbins_v][nbins_mu]; // Array to count number of f stored
     Realf fmu    [nbins_v][nbins_mu]; // Array to store f(v,mu)
     Realf dfdmu  [nbins_v][nbins_mu]; // Array to store dfdmu
     Realf dfdmu2 [nbins_v][nbins_mu]; // Array to store dfdmumu
     Realf dfdt_mu[nbins_v][nbins_mu]; // Array to store dfdt_mu
+
+    std::string PATHfile = "/wrk-vakka/users/dubart/data/";
+
+    // Read from nu0Box.txt to get nu0 data depending on betaPara and Taniso
+    std::ifstream FILEDmumu;
+    FILEDmumu.open(PATHfile+"nu0Box.txt");
+
+        // Get betaPara
+    std::string lineBeta;
+    for (int i = 0; i < 2; i++) { std::getline(FILEDmumu,lineBeta); }
+         
+    std::istringstream issBeta(lineBeta);
+    std::vector<Realf> betaParaArray;
+
+    float numBeta;
+    while ((issBeta >> numBeta)) { betaParaArray.push_back(numBeta); }
+
+        // Get Taniso
+    std::string lineTaniso;
+    for (int i = 0; i < 2; i++) { std::getline(FILEDmumu,lineTaniso); }
+         
+    std::istringstream issTaniso(lineTaniso);
+    std::vector<Realf> TanisoArray;
+
+    float numTaniso;
+    while ((issTaniso >> numTaniso)) { TanisoArray.push_back(numTaniso); }
+    
+        // Discard one line 
+    std::string lineDUMP;
+    for (int i = 0; i < 1; i++) { std::getline(FILEDmumu,lineDUMP); }
+
+        // Get nu0
+    std::string linenu0;
+    std::vector<std::vector<float>> nu0Array;
+ 
+    for (int i = 0; i < betaParaArray.size(); i++) {
+        std::getline(FILEDmumu,linenu0);
+        std::istringstream issnu0(linenu0);
+        std::vector<float> tempLINE;
+        float numTEMP;
+        while((issnu0 >> numTEMP)) { tempLINE.push_back(numTEMP); }
+        std::cout << linenu0 << std::endl;
+        nu0Array.push_back(tempLINE);
+    }
 
     const auto LocalCells=getLocalCells();
     #pragma omp parallel for private(fcount,fmu,dfdmu,dfdmu2,dfdt_mu)
@@ -93,7 +134,73 @@ void velocitySpaceDiffusion(
 
         Realf Bnorm           = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
         std::array<Realf,3> b = {B[0]/Bnorm, B[1]/Bnorm, B[2]/Bnorm};
+  
+
+        // There is probably a simpler way to do all of the following but I was too lazy to try to understand how to do it in C++ so I wrote everything myself.       
+        // Build Pressure tensor for calculation of anisotropy and beta
+        Realf Ptensor[3][3] = {{cell.parameters[CellParams::P_11],cell.parameters[CellParams::P_12],cell.parameters[CellParams::P_13]},
+                               {cell.parameters[CellParams::P_12],cell.parameters[CellParams::P_22],cell.parameters[CellParams::P_23]},
+                               {cell.parameters[CellParams::P_13],cell.parameters[CellParams::P_23],cell.parameters[CellParams::P_33]}};
+
+        // Build Rotation Matrix
+        std::array<Realf,3> eZ       = {0.0,0.0,1.0}; // Rotation around z-axis
+        std::array<Realf,3> BeZCross = { B[1]*eZ[2] - B[2]*eZ[1], B[2]*eZ[0] - B[0]*eZ[2], B[0]*eZ[1] - B[1]*eZ[0] };
+        Realf vecNorm                = sqrt(BeZCross[0]*BeZCross[0] + BeZCross[1]*BeZCross[1] + BeZCross[2]*BeZCross[2]);
+        std::array<Realf,3> uR       = {BeZCross[0]/vecNorm, BeZCross[1]/vecNorm, BeZCross[2]/vecNorm};
+        Realf beZDot                 = b[0]*eZ[0] + b[1]*eZ[1] + b[2]*eZ[2];
+        Realf angle                  = acos(beZDot);
         
+        Realf RMatrix[3][3] = { {cos(angle)+uR[0]*uR[0]*(1.0-cos(angle))      , uR[0]*uR[1]*(1.0-cos(angle))-uR[2]*sin(angle), uR[0]*uR[2]*(1.0-cos(angle))+uR[1]*sin(angle)},
+                                {uR[1]*uR[0]*(1.0-cos(angle))+uR[2]*sin(angle), cos(angle)+uR[1]*uR[1]*(1.0-cos(angle))      , uR[1]*uR[2]*(1.0-cos(angle))-uR[0]*sin(angle)},
+                                {uR[2]*uR[0]*(1.0-cos(angle))-uR[1]*sin(angle), uR[2]*uR[1]*(1.0-cos(angle))+uR[0]*sin(angle), cos(angle)+uR[2]*uR[2]*(1.0-cos(angle))      } };
+
+        // Rotate Tensor (T' = RTR^{-1})
+        Realf RT[3][3] = { {RMatrix[0][0]*Ptensor[0][0] + RMatrix[0][1]*Ptensor[1][0] + RMatrix[0][2]*Ptensor[2][0], RMatrix[0][0]*Ptensor[0][1] + RMatrix[0][1]*Ptensor[1][1] + RMatrix[0][2]*Ptensor[2][1], RMatrix[0][0]*Ptensor[0][2] + RMatrix[0][1]*Ptensor[1][2] + RMatrix[0][2]*Ptensor[2][2]},
+                           {RMatrix[1][0]*Ptensor[0][0] + RMatrix[1][1]*Ptensor[1][0] + RMatrix[1][2]*Ptensor[2][0], RMatrix[1][0]*Ptensor[0][1] + RMatrix[1][1]*Ptensor[1][1] + RMatrix[1][2]*Ptensor[2][1], RMatrix[1][0]*Ptensor[0][2] + RMatrix[1][1]*Ptensor[1][2] + RMatrix[1][2]*Ptensor[2][2]},
+                           {RMatrix[2][0]*Ptensor[0][0] + RMatrix[2][1]*Ptensor[1][0] + RMatrix[2][2]*Ptensor[2][0], RMatrix[2][0]*Ptensor[0][1] + RMatrix[2][1]*Ptensor[1][1] + RMatrix[2][2]*Ptensor[2][1], RMatrix[2][0]*Ptensor[0][2] + RMatrix[2][1]*Ptensor[1][2] + RMatrix[2][2]*Ptensor[2][2]} };
+
+        Realf Rtranspose[3][3] ={ {cos(angle)+uR[0]*uR[0]*(1.0-cos(angle))      , uR[0]*uR[1]*(1.0-cos(angle))+uR[2]*sin(angle), uR[0]*uR[2]*(1.0-cos(angle))-uR[1]*sin(angle)},
+                                  {uR[1]*uR[0]*(1.0-cos(angle))-uR[2]*sin(angle), cos(angle)+uR[1]*uR[1]*(1.0-cos(angle))      , uR[1]*uR[2]*(1.0-cos(angle))+uR[0]*sin(angle)},
+                                  {uR[2]*uR[0]*(1.0-cos(angle))+uR[1]*sin(angle), uR[2]*uR[1]*(1.0-cos(angle))-uR[0]*sin(angle), cos(angle)+uR[2]*uR[2]*(1.0-cos(angle))      } };
+
+        Realf PtensorRotated[3][3] = {{RT[0][0]*Rtranspose[0][0] + RT[0][1]*Rtranspose[1][0] + RT[0][2]*Rtranspose[2][0], RT[0][0]*Rtranspose[0][1] + RT[0][1]*Rtranspose[1][1] + RT[0][2]*Rtranspose[2][1], RT[0][0]*Rtranspose[0][2] + RT[0][1]*Rtranspose[1][2] + RT[0][2]*Rtranspose[2][2]},
+                                     {RT[1][0]*Rtranspose[0][0] + RT[1][1]*Rtranspose[1][0] + RT[1][2]*Rtranspose[2][0], RT[1][0]*Rtranspose[0][1] + RT[1][1]*Rtranspose[1][1] + RT[1][2]*Rtranspose[2][1], RT[1][0]*Rtranspose[0][2] + RT[1][1]*Rtranspose[1][2] + RT[1][2]*Rtranspose[2][2]},
+                                     {RT[2][0]*Rtranspose[0][0] + RT[2][1]*Rtranspose[1][0] + RT[2][2]*Rtranspose[2][0], RT[2][0]*Rtranspose[0][1] + RT[2][1]*Rtranspose[1][1] + RT[2][2]*Rtranspose[2][1], RT[2][0]*Rtranspose[0][2] + RT[2][1]*Rtranspose[1][2] + RT[2][2]*Rtranspose[2][2]} };
+
+        // Anisotropy
+        Realf Taniso = 0.5 * (PtensorRotated[0][0] + PtensorRotated[1][1]) / PtensorRotated[2][2];
+        // Beta Parallel
+        Realf mu0 = 1.25663706144e-6;
+        Realf betaParallel = 2.0 * mu0 * PtensorRotated[2][2] / (Bnorm*Bnorm);
+
+        // Find indx for first larger value
+        int betaIndx   = -1;
+        int TanisoIndx = -1;
+        for (int i = 0; i < betaParaArray.size(); i++) { if (betaParallel >= betaParaArray[i]) { betaIndx   = i;} }
+        for (int i = 0; i < TanisoArray.size()  ; i++) { if (Taniso       >= TanisoArray[i]  ) { TanisoIndx = i;} }
+
+        Realf nu0     = 0.0;
+        Realf epsilon = 0.0;
+        if ( (betaIndx == -1) || (betaIndx == betaParaArray.size()-1) || (TanisoIndx == -1) || (TanisoIndx == TanisoArray.size()-1) ) {std::cout << "Parallel Plasma Beta or Temperature Anisotropy outside of bounds of the table" << std::endl;}
+        else { 
+            // bi-linear interpolation with weighted mean to find nu0(betaParallel,Taniso)
+            Realf beta1   = betaParaArray[betaIndx];
+            Realf beta2   = betaParaArray[betaIndx+1];
+            Realf Taniso1 = TanisoArray[TanisoIndx];
+            Realf Taniso2 = TanisoArray[TanisoIndx+1];
+            Realf nu011   = nu0Array[betaIndx][TanisoIndx];
+            Realf nu012   = nu0Array[betaIndx][TanisoIndx+1];
+            Realf nu021   = nu0Array[betaIndx+1][TanisoIndx];
+            Realf nu022   = nu0Array[betaIndx+1][TanisoIndx+1];
+                // Weights
+            Realf w11 = (beta2 - betaParallel)*(Taniso2 - Taniso)  / ( (beta2 - beta1)*(Taniso2-Taniso1) ); 
+            Realf w12 = (beta2 - betaParallel)*(Taniso  - Taniso1) / ( (beta2 - beta1)*(Taniso2-Taniso1) ); 
+            Realf w21 = (betaParallel - beta1)*(Taniso2 - Taniso)  / ( (beta2 - beta1)*(Taniso2-Taniso1) ); 
+            Realf w22 = (betaParallel - beta1)*(Taniso  - Taniso1) / ( (beta2 - beta1)*(Taniso2-Taniso1) ); 
+                   
+            nu0     = w11*nu011 + w12*nu012 + w21*nu021 + w22*nu022;
+         }
+
         phiprof::start("Subloop");
         while (dtTotalDiff < Parameters::dt) { // Substep loop
 

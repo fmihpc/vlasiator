@@ -163,6 +163,9 @@ namespace CellParams {
       P_11,     /*!< Pressure P_xx component, computed by Vlasov propagator. */
       P_22,     /*!< Pressure P_yy component, computed by Vlasov propagator. */
       P_33,     /*!< Pressure P_zz component, computed by Vlasov propagator. */
+      P_13,     /*!< Pressure P_xz component, computed by Vlasov propagator. */
+      P_12,     /*!< Pressure P_xy component, computed by Vlasov propagator. */
+      P_23,     /*!< Pressure P_yz component, computed by Vlasov propagator. */
       P_11_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_11_R and P_11_V. */
       P_22_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_22_R and P_22_V. */
       P_33_DT2, /*!< Intermediate step value for RK2 time stepping in field solver. Computed from P_33_R and P_33_V. */
@@ -276,6 +279,9 @@ namespace fsgrids {
       P_11, /*!< Pressure P_xx component, computed by Vlasov propagator. */
       P_22, /*!< Pressure P_yy component, computed by Vlasov propagator. */
       P_33, /*!< Pressure P_zz component, computed by Vlasov propagator. */
+      P_12, /*!< Pressure P_xy component, computed by Vlasov propagator. */
+      P_13, /*!< Pressure P_xz component, computed by Vlasov propagator. */
+      P_23, /*!< Pressure P_yz component, computed by Vlasov propagator. */
       N_MOMENTS
    };
    
