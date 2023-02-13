@@ -456,9 +456,16 @@ projectTriAxisSearch.o: ${DEPS_COMMON} $(DEPS_PROJECTS) projects/projectTriAxisS
 ifeq ($(USE_CUDA),1)
 spatial_cell.o: ${DEPS_CELL} spatial_cell_cuda.cpp
 	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c spatial_cell_cuda.cpp -o spatial_cell.o $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID}
+
+velocity_mesh_parameters.o: ${DEPS_COMMON} velocity_mesh_parameters.h velocity_mesh_parameters.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c velocity_mesh_parameters.cpp
+
 else
 spatial_cell.o: ${DEPS_CELL} spatial_cell_old.cpp
 	$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c spatial_cell_old.cpp -o spatial_cell.o $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID}
+
+velocity_mesh_parameters.o: ${DEPS_COMMON} velocity_mesh_parameters.h velocity_mesh_parameters.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c velocity_mesh_parameters.cpp ${LIB_CUDA}
 endif
 
 ifeq ($(MESH),VAMR)
@@ -553,9 +560,6 @@ ldz_volume.o: ${DEPS_FSOLVER} fieldsolver/ldz_volume.hpp fieldsolver/ldz_volume.
 
 gridGlue.o: ${DEPS_FSOLVER} fieldsolver/gridGlue.hpp fieldsolver/gridGlue.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/gridGlue.cpp ${INC_BOOST} ${INC_FSGRID} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN}
-
-velocity_mesh_parameters.o: ${DEPS_COMMON} velocity_mesh_parameters.h velocity_mesh_parameters.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c velocity_mesh_parameters.cpp
 
 # ifeq ($(USE_CUDA),1)
 # vlasiator.o: ${DEPS_COMMON} readparameters.h parameters.h ${DEPS_PROJECTS} grid.h vlasovmover.h ${DEPS_CELL} vlasiator.cpp iowrite.h fieldsolver/gridGlue.hpp

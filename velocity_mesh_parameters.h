@@ -69,20 +69,24 @@ namespace vmesh {
                                                  * This vector is initialized to size 3*(refLevelMaxAllowed+1) 
                                                  * in VelocityMesh::initialize (VAMR mesh).*/
 #endif
+
       MeshParameters() {
          initialized = false;
       }
    };
 
    struct MeshWrapper {
-      MeshWrapper() { }
+      MeshWrapper() {
+         velocityMeshes = new std::vector<vmesh::MeshParameters>(1);
+         velocityMeshes->clear();
+      }
 
-      std::vector<vmesh::MeshParameters> velocityMeshes;       /**< Parameters for velocity mesh(es).*/
-      void initVelocityMeshes(const uint nmeshes);                               /**< Pre-calculate more helper parameters for velocity meshes. */
+      std::vector<vmesh::MeshParameters> *velocityMeshes; /**< Parameters for velocity mesh(es).*/
+      void initVelocityMeshes(const uint nMeshes);       /**< Pre-calculate more helper parameters for velocity meshes. */
 
-   private:
-      MeshWrapper(const MeshWrapper& ow);
-      MeshWrapper& operator=(const MeshWrapper& ow);
+      //private:
+      // MeshWrapper(const MeshWrapper& ow);
+      // MeshWrapper& operator=(const MeshWrapper& ow);
    };
 
    MeshWrapper& getMeshWrapper();
