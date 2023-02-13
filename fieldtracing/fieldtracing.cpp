@@ -715,9 +715,7 @@ namespace FieldTracing {
             );
             cellMaxExtension[n] = max(cellMaxExtension[n], extension);
             // ...and if we traced too far from the seed, this is not a flux rope candidate and we do a single +=
-            if(extension > fieldTracingParameters.fluxrope_max_curvature_radii_extent*cellCurvatureRadius[n]
-               || cellRunningDistance[n] > fieldTracingParameters.fluxrope_max_m_to_trace
-            ) {
+            if(extension > fieldTracingParameters.fluxrope_max_curvature_radii_extent*cellCurvatureRadius[n]) {
                cellConnection[n] += TracingLineEndType::N_TYPES;
             } else if(cellRunningDistance[n] > fieldTracingParameters.fluxrope_max_curvature_radii_to_trace*cellCurvatureRadius[n]) {
                // If we're still in the game and reach this limit we have a hit and we do a double +=
@@ -785,9 +783,8 @@ namespace FieldTracing {
     * The arithmetic idea to avoid using yet more arrays:
     * We use the cellFWConnection[n]/cellBWConnection[n]/cellConnection[n] (that can only be UNPROCESSED, CLOSED, OPEN or DANGLING,
     * see TracingLineEndType enum above, ending with N_TYPES). As long as no full box tracing termination condition was reached
-    * we are at UNPROCESSED. If we exceed fieldTracingParameters.fluxrope_max_curvature_radii_to_trace*cellCurvatureRadius[n] OR
-    * fieldTracingParameters.fluxrope_max_m_to_trace we definitely are not near a flux rope and we mark this by adding N_TYPES to
-    * cellConnection[n].
+    * we are at UNPROCESSED. If we exceed fieldTracingParameters.fluxrope_max_curvature_radii_to_trace*cellCurvatureRadius[n], we
+    * definitely are not near a flux rope and we mark this by adding N_TYPES to cellConnection[n].
     * If we reach fieldTracingParameters.fluxrope_max_curvature_radii_to_trace*cellCurvatureRadius[n] without hitting the other
     * thresholds or the inner/outer domain limits we are near/at a flux rope and we mark this by adding 2*N_TYPES to
     * cellConnection[n].
@@ -836,13 +833,6 @@ namespace FieldTracing {
       std::array<int, 3> gridSize = technicalGrid.getGlobalSize();
       // This is a heuristic considering how far an IMF+dipole combo can sensibly stretch in the box before we're safe to assume it's rolled up more or less pathologically.
       const TReal maxTracingDistance = 4 * (gridSize[0] * technicalGrid.DX + gridSize[1] * technicalGrid.DY + gridSize[2] * technicalGrid.DZ);
-      if(maxTracingDistance < fieldTracingParameters.fluxrope_max_m_to_trace) {
-         int myRank;
-         MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-         if(myRank == MASTER_RANK) {
-            cerr << "WARNING: Field tracing maxTracingDistance is smaller than cfg fieldtracing.fluxrope_max_m_to_trace, consider changing the latter.\n";
-         }
-      }
       
       std::vector<TReal> cellCurvatureRadius(globalDccrgSize);
       std::vector<TReal> reducedCellCurvatureRadius(globalDccrgSize);
@@ -891,7 +881,7 @@ namespace FieldTracing {
                cellBWTracingStepSize[n] = 0;
             } else {
                cellCurvatureRadius[n] = 1 / sqrt(mpiGrid[id]->parameters[CellParams::CURVATUREX]*mpiGrid[id]->parameters[CellParams::CURVATUREX] + mpiGrid[id]->parameters[CellParams::CURVATUREY]*mpiGrid[id]->parameters[CellParams::CURVATUREY] + mpiGrid[id]->parameters[CellParams::CURVATUREZ]*mpiGrid[id]->parameters[CellParams::CURVATUREZ]);
-               if(fieldTracingParameters.fluxrope_max_curvature_radii_to_trace*cellCurvatureRadius[n] > fieldTracingParameters.fluxrope_max_m_to_trace) {
+               if(fieldTracingParameters.fluxrope_max_curvature_radii_to_trace*cellCurvatureRadius[n] > maxTracingDistance) {
                   cellCurvatureRadius[n] = 0; // This will stop fluxrope tracing for these field lines in the first iteration below.
                }
             }

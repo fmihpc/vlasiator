@@ -89,7 +89,6 @@ namespace FieldTracing {
       std::map< std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > reconstructionCoefficientsCache; /*!< cache for Balsara reconstruction coefficients */
       Real fluxrope_max_curvature_radii_to_trace;
       Real fluxrope_max_curvature_radii_extent;
-      Real fluxrope_max_m_to_trace;
       Real innerBoundaryRadius=0; /*!< If non-zero this will be used to determine CLOSED field lines. */
    };
    
