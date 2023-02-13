@@ -67,7 +67,7 @@ inline static void parallel_reduce_driver(const uint (&limits)[1], Lambda loop_b
 
   uint idx[1];
          
-  #pragma omp for
+  //#pragma omp for
   for (idx[0] = 0; idx[0] < limits[0]; ++idx[0])
     loop_body(idx[0], sum);
 
@@ -80,7 +80,7 @@ inline static void parallel_reduce_driver(const uint (&limits)[2], Lambda loop_b
 
   uint idx[2];
          
-  #pragma omp for collapse(2)
+  //#pragma omp for collapse(2)
   for (idx[1] = 0; idx[1] < limits[1]; ++idx[1]) 
     for (idx[0] = 0; idx[0] < limits[0]; ++idx[0])
       loop_body(idx[0], idx[1], sum);
@@ -94,7 +94,7 @@ inline static void parallel_reduce_driver(const uint (&limits)[2], Lambda loop_b
 
   uint idx[2];
          
-  #pragma omp for collapse(2)
+  //#pragma omp for collapse(2)
   for (idx[1] = 0; idx[1] < limits[1]; ++idx[1]) {
     auto inner_loop = loop_body(idx[0], idx[1], sum);
     for (idx[0] = 0; idx[0] < limits[0]; ++idx[0])
@@ -109,7 +109,7 @@ inline static void parallel_reduce_driver(const uint (&limits)[3], Lambda loop_b
 
   uint idx[3];
          
-  #pragma omp for collapse(3)
+  //#pragma omp for collapse(3)
   for (idx[2] = 0; idx[2] < limits[2]; ++idx[2]) 
     for (idx[1] = 0; idx[1] < limits[1]; ++idx[1]) 
       for (idx[0] = 0; idx[0] < limits[0]; ++idx[0])
@@ -124,7 +124,7 @@ inline static void parallel_reduce_driver(const uint (&limits)[3], Lambda loop_b
 
   uint idx[3];
          
-  #pragma omp for collapse(3)
+  //#pragma omp for collapse(3)
   for (idx[2] = 0; idx[2] < limits[2]; ++idx[2]) {
     auto inner_loop = loop_body(idx[0], idx[1], idx[2], sum);
     for (idx[1] = 0; idx[1] < limits[1]; ++idx[1]) 
@@ -140,7 +140,7 @@ inline static void parallel_reduce_driver(const uint (&limits)[4], Lambda loop_b
 
   uint idx[4];
          
-  #pragma omp for collapse(4)
+  //#pragma omp for collapse(4)
   for (idx[3] = 0; idx[3] < limits[3]; ++idx[3]) 
     for (idx[2] = 0; idx[2] < limits[2]; ++idx[2]) 
       for (idx[1] = 0; idx[1] < limits[1]; ++idx[1]) 
@@ -156,7 +156,7 @@ inline static void parallel_reduce_driver(const uint (&limits)[4], Lambda loop_b
 
   uint idx[4];
          
-  #pragma omp for collapse(4)
+  //#pragma omp for collapse(4)
   for (idx[3] = 0; idx[3] < limits[3]; ++idx[3]) { 
     auto inner_loop = loop_body(idx[0], idx[1], idx[2], idx[3], sum);
     for (idx[2] = 0; idx[2] < limits[2]; ++idx[2]) 
