@@ -935,7 +935,22 @@ namespace FieldTracing {
       int itCount = 0;
       bool warnMaxDistanceExceeded = false;
       int cellsToDoFullBox, cellsToDoFluxRopes;
+      int smallSizeFW, smallSizeBW;
       
+      std::vector<int> indicesToReduceFW, indicesToReduceBW;
+      std::vector<signed char> smallCellNeedsContinuedFWTracing, smallCellNeedsContinuedBWTracing;
+      std::vector<std::array<TReal, 3>> smallCellFWTracingCoordinates, smallCellBWTracingCoordinates;
+      std::vector<TReal> smallCellFWRunningDistance, smallCellBWRunningDistance;
+      std::vector<TReal> smallCellFWTracingStepSize, smallCellBWTracingStepSize;
+      std::vector<signed char> smallCellFWConnection, smallCellBWConnection;
+
+      std::vector<signed char> smallReducedCellNeedsContinuedFWTracing, smallReducedCellNeedsContinuedBWTracing;
+      std::vector<std::array<TReal, 3>> smallSumCellFWTracingCoordinates, smallSumCellBWTracingCoordinates;
+      std::vector<TReal> smallReducedCellFWRunningDistance, smallReducedCellBWRunningDistance;
+      std::vector<TReal> smallReducedCellFWTracingStepSize, smallReducedCellBWTracingStepSize;
+      std::vector<signed char> smallReducedCellFWConnection, smallReducedCellBWConnection;
+
+
       phiprof::start("loop");
       #pragma omp parallel shared(cellsToDoFullBox,cellsToDoFluxRopes)
       {
@@ -990,13 +1005,18 @@ namespace FieldTracing {
             phiprof::start("MPI-loop");
             #pragma omp master
             {
-               std::vector<int> indicesToReduceFW, indicesToReduceBW;
-               std::vector<signed char> smallCellNeedsContinuedFWTracing, smallCellNeedsContinuedBWTracing;
-               std::vector<std::array<TReal, 3>> smallCellFWTracingCoordinates, smallCellBWTracingCoordinates;
-               std::vector<TReal> smallCellFWRunningDistance, smallCellBWRunningDistance;
-               std::vector<TReal> smallCellFWTracingStepSize, smallCellBWTracingStepSize;
-               std::vector<signed char> smallCellFWConnection, smallCellBWConnection;
-
+               indicesToReduceFW.clear();
+               indicesToReduceBW.clear();
+               smallCellNeedsContinuedFWTracing.clear();
+               smallCellNeedsContinuedBWTracing.clear();
+               smallCellFWTracingCoordinates.clear();
+               smallCellBWTracingCoordinates.clear();
+               smallCellFWRunningDistance.clear();
+               smallCellBWRunningDistance.clear();
+               smallCellFWTracingStepSize.clear();
+               smallCellBWTracingStepSize.clear();
+               smallCellFWConnection.clear();
+               smallCellBWConnection.clear();
                for(int n=0; n<globalDccrgSize; n++) {
                   if(storedCellNeedsContinuedFWTracing[n]) { // the old one has the previous round's data
                      indicesToReduceFW.push_back(n);
@@ -1015,14 +1035,19 @@ namespace FieldTracing {
                      smallCellBWConnection.push_back(cellBWConnection[n]);
                   }
                }
-               int smallSizeFW = indicesToReduceFW.size();
-               int smallSizeBW = indicesToReduceBW.size();
+               smallSizeFW = indicesToReduceFW.size();
+               smallSizeBW = indicesToReduceBW.size();
                
-               std::vector<signed char> smallReducedCellNeedsContinuedFWTracing(smallSizeFW), smallReducedCellNeedsContinuedBWTracing(smallSizeBW);
-               std::vector<std::array<TReal, 3>> smallSumCellFWTracingCoordinates(smallSizeFW), smallSumCellBWTracingCoordinates(smallSizeBW);
-               std::vector<TReal> smallReducedCellFWRunningDistance(smallSizeFW), smallReducedCellBWRunningDistance(smallSizeBW);
-               std::vector<TReal> smallReducedCellFWTracingStepSize(smallSizeFW), smallReducedCellBWTracingStepSize(smallSizeBW);
-               std::vector<signed char> smallReducedCellFWConnection(smallSizeFW), smallReducedCellBWConnection(smallSizeBW);
+               smallReducedCellNeedsContinuedFWTracing.resize(smallSizeFW);
+               smallReducedCellNeedsContinuedBWTracing.resize(smallSizeBW);
+               smallSumCellFWTracingCoordinates.resize(smallSizeFW);
+               smallSumCellBWTracingCoordinates.resize(smallSizeBW);
+               smallReducedCellFWRunningDistance.resize(smallSizeFW);
+               smallReducedCellBWRunningDistance.resize(smallSizeBW);
+               smallReducedCellFWTracingStepSize.resize(smallSizeFW);
+               smallReducedCellBWTracingStepSize.resize(smallSizeBW);
+               smallReducedCellFWConnection.resize(smallSizeFW);
+               smallReducedCellBWConnection.resize(smallSizeBW);
                
                MPI_Allreduce(smallCellNeedsContinuedFWTracing.data(), smallReducedCellNeedsContinuedFWTracing.data(), smallSizeFW, MPI_SIGNED_CHAR, MPI_SUM, MPI_COMM_WORLD);
                MPI_Allreduce(smallCellNeedsContinuedBWTracing.data(), smallReducedCellNeedsContinuedBWTracing.data(), smallSizeBW, MPI_SIGNED_CHAR, MPI_SUM, MPI_COMM_WORLD);
@@ -1043,22 +1068,24 @@ namespace FieldTracing {
                   MPI_Allreduce(smallCellFWRunningDistance.data(), smallReducedCellFWRunningDistance.data(), smallSizeFW, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
                   MPI_Allreduce(smallCellBWRunningDistance.data(), smallReducedCellBWRunningDistance.data(), smallSizeBW, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
                }
-               for(int n=0; n<smallSizeFW; n++) {
-                  cellFWTracingStepSize[indicesToReduceFW[n]] = smallReducedCellFWTracingStepSize[n];
-                  cellFWRunningDistance[indicesToReduceFW[n]] = smallReducedCellFWRunningDistance[n];
-                  cellNeedsContinuedFWTracing[indicesToReduceFW[n]] = smallReducedCellNeedsContinuedFWTracing[n];
-                  cellFWConnection[indicesToReduceFW[n]] = smallReducedCellFWConnection[n];
-                  cellFWTracingCoordinates[indicesToReduceFW[n]] = smallSumCellFWTracingCoordinates[n];
-               }
-               for(int n=0; n<smallSizeBW; n++) {
-                  cellBWTracingStepSize[indicesToReduceBW[n]] = smallReducedCellBWTracingStepSize[n];
-                  cellBWRunningDistance[indicesToReduceBW[n]] = smallReducedCellBWRunningDistance[n];
-                  cellNeedsContinuedBWTracing[indicesToReduceBW[n]] = smallReducedCellNeedsContinuedBWTracing[n];
-                  cellBWConnection[indicesToReduceBW[n]] = smallReducedCellBWConnection[n];
-                  cellBWTracingCoordinates[indicesToReduceBW[n]] = smallSumCellBWTracingCoordinates[n];
-               }
             }
             #pragma omp barrier
+            #pragma omp for schedule(dynamic)
+            for(int n=0; n<smallSizeFW; n++) {
+               cellFWTracingStepSize[indicesToReduceFW[n]] = smallReducedCellFWTracingStepSize[n];
+               cellFWRunningDistance[indicesToReduceFW[n]] = smallReducedCellFWRunningDistance[n];
+               cellNeedsContinuedFWTracing[indicesToReduceFW[n]] = smallReducedCellNeedsContinuedFWTracing[n];
+               cellFWConnection[indicesToReduceFW[n]] = smallReducedCellFWConnection[n];
+               cellFWTracingCoordinates[indicesToReduceFW[n]] = smallSumCellFWTracingCoordinates[n];
+            }
+            #pragma omp for schedule(dynamic)
+            for(int n=0; n<smallSizeBW; n++) {
+               cellBWTracingStepSize[indicesToReduceBW[n]] = smallReducedCellBWTracingStepSize[n];
+               cellBWRunningDistance[indicesToReduceBW[n]] = smallReducedCellBWRunningDistance[n];
+               cellNeedsContinuedBWTracing[indicesToReduceBW[n]] = smallReducedCellNeedsContinuedBWTracing[n];
+               cellBWConnection[indicesToReduceBW[n]] = smallReducedCellBWConnection[n];
+               cellBWTracingCoordinates[indicesToReduceBW[n]] = smallSumCellBWTracingCoordinates[n];
+            }
             phiprof::stop("MPI-loop");
             #pragma omp single
             {
