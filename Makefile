@@ -246,7 +246,7 @@ OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipo
 	VelocityBox.o Riemann1.o Shock.o Template.o test_fp.o testAmr.o testHall.o test_trans.o\
 	IPShock.o object_wrapper.o\
 	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o vlasiator.o logger.o\
-	common.o parameters.o readparameters.o spatial_cell.o\
+	common.o parameters.o readparameters.o spatial_cell.o velocity_mesh_parameters.o\
 	vlasovmover.o $(FIELDSOLVER).o fs_common.o fs_limiters.o gridGlue.o
 
 # Add Vlasov solver objects (depend on mesh: VAMR or non-VAMR)
@@ -553,6 +553,9 @@ ldz_volume.o: ${DEPS_FSOLVER} fieldsolver/ldz_volume.hpp fieldsolver/ldz_volume.
 
 gridGlue.o: ${DEPS_FSOLVER} fieldsolver/gridGlue.hpp fieldsolver/gridGlue.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/gridGlue.cpp ${INC_BOOST} ${INC_FSGRID} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN}
+
+velocity_mesh_parameters.o: ${DEPS_COMMON} velocity_mesh_parameters.h velocity_mesh_parameters.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c velocity_mesh_parameters.cpp
 
 # ifeq ($(USE_CUDA),1)
 # vlasiator.o: ${DEPS_COMMON} readparameters.h parameters.h ${DEPS_PROJECTS} grid.h vlasovmover.h ${DEPS_CELL} vlasiator.cpp iowrite.h fieldsolver/gridGlue.hpp

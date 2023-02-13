@@ -1,4 +1,5 @@
 #include "object_wrapper.h"
+#include "velocity_mesh_parameters.h"
 #include "readparameters.h"
 #include <iostream>
 
@@ -34,10 +35,10 @@ bool ObjectWrapper::addPopulationParameters() {
      // Originally, there was support for species and velocity meshes to be separate.
      // This was abandoned, since there wasn't really any use for it.
      newSpecies.name = newVMesh.name = pop;
-     newSpecies.velocityMesh = getObjectWrapper().velocityMeshes.size();
+     newSpecies.velocityMesh = vmesh::getMeshWrapper().velocityMeshes.size();
 
      getObjectWrapper().particleSpecies.push_back(newSpecies);
-     getObjectWrapper().velocityMeshes.push_back(newVMesh);
+     vmesh::getMeshWrapper().velocityMeshes.push_back(newVMesh);
 
      RP::add(pop + "_properties.charge", "Particle charge, in units of elementary charges (int)", 1);
      RP::add(pop + "_properties.mass_units", "Units in which particle mass is given, either 'PROTON' or 'ELECTRON' (string)", std::string("PROTON"));
@@ -96,7 +97,7 @@ bool ObjectWrapper::getPopulationParameters() {
    for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
 
       species::Species& species=getObjectWrapper().particleSpecies[i];
-      vmesh::MeshParameters& vMesh=getObjectWrapper().velocityMeshes[i];
+      vmesh::MeshParameters& vMesh=vmesh::getMeshWrapper().velocityMeshes[i];
 
       const std::string& pop = species.name;
 
@@ -193,36 +194,36 @@ bool ObjectWrapper::getPopulationParameters() {
    return true;
 }
 
-void ObjectWrapper::initVelocityMeshes() {
-   for (uint i=0; i<getObjectWrapper().particleSpecies.size(); ++i) {
-      //species::Species& species=getObjectWrapper().particleSpecies[i];
-      vmesh::MeshParameters& vMesh=getObjectWrapper().velocityMeshes[i];
-      // Duplicate definition of limits
-      vMesh.meshMinLimits[0] = vMesh.meshLimits[0];
-      vMesh.meshMinLimits[1] = vMesh.meshLimits[2];
-      vMesh.meshMinLimits[2] = vMesh.meshLimits[4];
-      vMesh.meshMaxLimits[0] = vMesh.meshLimits[1];
-      vMesh.meshMaxLimits[1] = vMesh.meshLimits[3];
-      vMesh.meshMaxLimits[2] = vMesh.meshLimits[5];
+// void ObjectWrapper::initVelocityMeshes() {
+//    for (uint i=0; i<getObjectWrapper().particleSpecies.size(); ++i) {
+//       //species::Species& species=getObjectWrapper().particleSpecies[i];
+//       vmesh::MeshParameters& vMesh=getObjectWrapper().velocityMeshes[i];
+//       // Duplicate definition of limits
+//       vMesh.meshMinLimits[0] = vMesh.meshLimits[0];
+//       vMesh.meshMinLimits[1] = vMesh.meshLimits[2];
+//       vMesh.meshMinLimits[2] = vMesh.meshLimits[4];
+//       vMesh.meshMaxLimits[0] = vMesh.meshLimits[1];
+//       vMesh.meshMaxLimits[1] = vMesh.meshLimits[3];
+//       vMesh.meshMaxLimits[2] = vMesh.meshLimits[5];
 
-      // Calculate derived mesh parameters:
-      vMesh.gridSize[0] = vMesh.meshMaxLimits[0] - vMesh.meshMinLimits[0];
-      vMesh.gridSize[1] = vMesh.meshMaxLimits[1] - vMesh.meshMinLimits[1];
-      vMesh.gridSize[2] = vMesh.meshMaxLimits[2] - vMesh.meshMinLimits[2];
+//       // Calculate derived mesh parameters:
+//       vMesh.gridSize[0] = vMesh.meshMaxLimits[0] - vMesh.meshMinLimits[0];
+//       vMesh.gridSize[1] = vMesh.meshMaxLimits[1] - vMesh.meshMinLimits[1];
+//       vMesh.gridSize[2] = vMesh.meshMaxLimits[2] - vMesh.meshMinLimits[2];
 
-      vMesh.blockSize[0] = vMesh.gridSize[0] / vMesh.gridLength[0];
-      vMesh.blockSize[1] = vMesh.gridSize[1] / vMesh.gridLength[1];
-      vMesh.blockSize[2] = vMesh.gridSize[2] / vMesh.gridLength[2];
+//       vMesh.blockSize[0] = vMesh.gridSize[0] / vMesh.gridLength[0];
+//       vMesh.blockSize[1] = vMesh.gridSize[1] / vMesh.gridLength[1];
+//       vMesh.blockSize[2] = vMesh.gridSize[2] / vMesh.gridLength[2];
 
-      vMesh.cellSize[0] = vMesh.blockSize[0] / vMesh.blockLength[0];
-      vMesh.cellSize[1] = vMesh.blockSize[1] / vMesh.blockLength[1];
-      vMesh.cellSize[2] = vMesh.blockSize[2] / vMesh.blockLength[2];
+//       vMesh.cellSize[0] = vMesh.blockSize[0] / vMesh.blockLength[0];
+//       vMesh.cellSize[1] = vMesh.blockSize[1] / vMesh.blockLength[1];
+//       vMesh.cellSize[2] = vMesh.blockSize[2] / vMesh.blockLength[2];
 
-      vMesh.max_velocity_blocks
-         = vMesh.gridLength[0]
-         * vMesh.gridLength[1]
-         * vMesh.gridLength[2];
-      vMesh.initialized = true;
-   }
-   return;
-}
+//       vMesh.max_velocity_blocks
+//          = vMesh.gridLength[0]
+//          * vMesh.gridLength[1]
+//          * vMesh.gridLength[2];
+//       vMesh.initialized = true;
+//    }
+//    return;
+// }

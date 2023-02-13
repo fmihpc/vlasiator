@@ -25,6 +25,7 @@
 #include "spatial_cell_cuda.hpp"
 //#include "velocity_blocks.h" // not needed in semilag
 #include "object_wrapper.h"
+#include "velocity_mesh_parameters.h"
 
 #ifndef NDEBUG
    #define DEBUG_SPATIAL_CELL
@@ -715,25 +716,6 @@ namespace spatial_cell {
       for (size_t p=0; p<populations.size(); ++p) {
          cerr << "\t pop " << p << " " << populations[p].vmesh.size() << ' ' << populations[p].blockContainer.size() << endl;
       }
-   }
-
-   /** Initialize the velocity mesh of the chosen particle population.
-    * @param popID Population ID.
-    * @param v_limits Velocity mesh min/max limits.
-    * @param meshSize Number of blocks in each coordinate direction at base grid level.
-    * @param blockSize Number of velocity cells in a block per coordinate direction.
-    * @param f_min Sparse mesh threshold value.
-    * @param maxRefLevel Maximum allowed mesh refinement level.*/
-   bool SpatialCell::initialize_mesh() {
-      bool success = true;
-      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         const species::Species& spec = getObjectWrapper().particleSpecies[popID];
-         if (populations[popID].vmesh.initialize(spec.velocityMesh,getObjectWrapper().velocityMeshes) == false) {
-            success = false;
-         }
-      }
-
-      return success;
    }
 
    /** Updates minValue based on algorithm value from parameters (see parameters.cpp).

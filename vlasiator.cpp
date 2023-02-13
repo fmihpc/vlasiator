@@ -52,6 +52,7 @@
 #include "ioread.h"
 
 #include "object_wrapper.h"
+#include "velocity_mesh_parameters.h"
 #include "fieldsolver/gridGlue.hpp"
 #include "fieldsolver/derivatives.hpp"
 
@@ -316,7 +317,7 @@ int main(int argn,char* args[]) {
    project->getParameters();
 
    // Init velocity meshes
-   getObjectWrapper().initVelocityMeshes();
+   vmesh::getMeshWrapper().initVelocityMeshes(getObjectWrapper().particleSpecies.size());
    phiprof::stop("Read parameters");
 
    // Check for correct application of vectorclass values:

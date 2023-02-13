@@ -28,6 +28,7 @@
 #include "../vlasovmover.h"
 #include "../logger.h"
 #include "../object_wrapper.h"
+#include "../velocity_mesh_parameters.h"
 
 #include "Alfven/Alfven.h"
 #include "Diffusion/Diffusion.h"
@@ -195,7 +196,7 @@ namespace projects {
          logFile << "\t charge           : '" << spec.charge << "'" << endl;
          logFile << "\t mass             : '" << spec.mass << "'" << endl;
          logFile << "\t sparse threshold : '" << spec.sparseMinValue << "'" << endl;
-         logFile << "\t velocity mesh    : '" << getObjectWrapper().velocityMeshes[spec.velocityMesh].name << "'" << endl;
+         logFile << "\t velocity mesh    : '" << vmesh::getMeshWrapper().velocityMeshes[spec.velocityMesh].name << "'" << endl;
          logFile << endl;
       }
       logFile << write;

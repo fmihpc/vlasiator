@@ -30,6 +30,7 @@
 
 #include <vector>
 #include "definitions.h"
+#include <iostream>
 
 namespace vmesh {
    
@@ -73,6 +74,18 @@ namespace vmesh {
       }
    };
 
+   struct MeshWrapper {
+      MeshWrapper() { }
+
+      std::vector<vmesh::MeshParameters> velocityMeshes;       /**< Parameters for velocity mesh(es).*/
+      void initVelocityMeshes(const uint nmeshes);                               /**< Pre-calculate more helper parameters for velocity meshes. */
+
+   private:
+      MeshWrapper(const MeshWrapper& ow);
+      MeshWrapper& operator=(const MeshWrapper& ow);
+   };
+
+   MeshWrapper& getMeshWrapper();
 } // namespace vmesh
 
 #endif	/* VELOCITY_MESH_PARAMETERS_H */

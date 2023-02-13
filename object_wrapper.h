@@ -43,7 +43,7 @@ namespace projects {
 #include "particle_species.h"
 #include "projects/project.h"
 #include "sysboundary/sysboundary.h"
-#include "velocity_mesh_parameters.h"
+//#include "velocity_mesh_parameters.h"
 
 struct ObjectWrapper {
    ObjectWrapper() { }
@@ -53,13 +53,13 @@ struct ObjectWrapper {
 #endif
    std::vector<species::Species> particleSpecies;           /**< Parameters for all particle species.*/
    projects::Project*                    project;           /**< Simulated project.*/
-   std::vector<vmesh::MeshParameters> velocityMeshes;       /**< Parameters for velocity mesh(es).*/
+//   std::vector<vmesh::MeshParameters> velocityMeshes;       /**< Parameters for velocity mesh(es).*/
    SysBoundary sysBoundaryContainer;                        /**< Container for sysboundaries.*/
 
    bool addParameters();                                    /**< Add config file parameters for objects held in this wrapper */
    bool addPopulationParameters();                          /**< After parsing the names of populations, create parameters for each of them */
    bool getPopulationParameters();                          /**< Use parsed config file parameters for objects held in this wrapper */
-   void initVelocityMeshes();                               /**< Pre-calculate more helper parameters for velocity meshes. */
+//   void initVelocityMeshes();                               /**< Pre-calculate more helper parameters for velocity meshes. */
 
  private:
    ObjectWrapper(const ObjectWrapper& ow);
