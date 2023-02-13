@@ -59,131 +59,6 @@ namespace FieldTracing {
       }
    }
    
-   /*! Take a step along the field line*/
-   void stepFieldLine(
-      std::array<Real, 3>& x,
-      std::array<Real, 3>& v,
-      Real& stepsize,
-      creal minStepSize,
-      creal maxStepSize,
-      TracingMethod method,
-      TracingFieldFunction& BFieldFunction,
-      const bool outwards
-   ) {
-      bool reTrace;
-      uint32_t attempts=0;
-      switch(method) {
-         case Euler:
-            eulerStep(x, v,stepsize, BFieldFunction, outwards);
-            break;
-         case ADPT_Euler:
-            do {
-               reTrace=!adaptiveEulerStep(x, v, stepsize, minStepSize, maxStepSize, BFieldFunction, outwards);
-               attempts++;
-            } while (reTrace && attempts<= fieldTracingParameters.max_field_tracer_attempts);
-            if (reTrace) {
-               logFile << "(fieldtracing) Warning: Adaptive Euler field line tracer exhausted all available attempts and still did not converge." << std::endl;
-            }
-            break;
-         case BS:
-            do{
-               reTrace=!bulirschStoerStep(x, v, stepsize, minStepSize, maxStepSize, BFieldFunction, outwards);
-               attempts++;
-            } while (reTrace && attempts<= fieldTracingParameters.max_field_tracer_attempts);
-            break;
-         case DPrince:
-            do {
-               reTrace=!dormandPrinceStep(x, v, stepsize, minStepSize, maxStepSize, BFieldFunction, outwards);
-               attempts++;
-            } while (reTrace && attempts<= fieldTracingParameters.max_field_tracer_attempts);
-            if (reTrace) {
-               logFile << "(fieldtracing) Warning: Dormand Prince field line tracer exhausted all available attempts and still did not converge..." << std::endl;
-            }
-            break;
-         default:
-            std::cerr << "(fieldtracing) Error: No field line tracing method defined."<<std::endl;
-            abort();
-            break;
-      }
-   }//stepFieldLine
-   
-   bool traceFullFieldFunction(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      std::array<Real,3>& r,
-      const bool alongB,
-      std::array<Real,3>& b
-   ) {
-      if(   r[0] > P::xmax - 2*P::dx_ini
-         || r[0] < P::xmin + 2*P::dx_ini
-         || r[1] > P::ymax - 2*P::dy_ini
-         || r[1] < P::ymin + 2*P::dy_ini
-         || r[2] > P::zmax - 2*P::dz_ini
-         || r[2] < P::zmin + 2*P::dz_ini
-      ) {
-         cerr << (string)("(fieldtracing) Error: fsgrid coupling trying to step outside of the global domain?\n");
-         return false;
-      }
-      
-      // Get field direction
-      b[0] = SBC::ionosphereGrid.dipoleField(r[0],r[1],r[2],X,0,X) + SBC::ionosphereGrid.BGB[0];
-      b[1] = SBC::ionosphereGrid.dipoleField(r[0],r[1],r[2],Y,0,Y) + SBC::ionosphereGrid.BGB[1];
-      b[2] = SBC::ionosphereGrid.dipoleField(r[0],r[1],r[2],Z,0,Z) + SBC::ionosphereGrid.BGB[2];
-      
-      std::array<int32_t, 3> fsgridCell = getGlobalFsGridCellIndexForCoord(technicalGrid,r);
-      const std::array<int32_t, 3> localStart = technicalGrid.getLocalStart();
-      const std::array<int32_t, 3> localSize = technicalGrid.getLocalSize();
-      // Make the global index a local one, bypass the fsgrid function that yields (-1,-1,-1) also for ghost cells.
-      fsgridCell[0] -= localStart[0];
-      fsgridCell[1] -= localStart[1];
-      fsgridCell[2] -= localStart[2];
-      
-      if(fsgridCell[0] > localSize[0] || fsgridCell[1] > localSize[1] || fsgridCell[2] > localSize[2]
-         || fsgridCell[0] < -1 || fsgridCell[1] < -1 || fsgridCell[2] < -1) {
-         cerr << (string)("(fieldtracing) Error: fsgrid coupling trying to access local ID " + to_string(fsgridCell[0]) + " " + to_string(fsgridCell[1]) + " " + to_string(fsgridCell[2])
-         + " for local domain size " + to_string(localSize[0]) + " " + to_string(localSize[1]) + " " + to_string(localSize[2])
-         + " at position " + to_string(r[0]) + " " + to_string(r[1]) + " " + to_string(r[2]) + " radius " + to_string(sqrt(r[0]*r[0]+r[1]*r[1]+r[2]*r[2]))
-         + "\n");
-         return false;
-      } else {
-         if(technicalGrid.get(fsgridCell[0],fsgridCell[1],fsgridCell[2])->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-            const std::array<Real, 3> perB = interpolatePerturbedB(
-               perBGrid,
-               dPerBGrid,
-               technicalGrid,
-               fieldTracingParameters.reconstructionCoefficientsCache,
-               fsgridCell[0],fsgridCell[1],fsgridCell[2],
-               r
-            );
-            b[0] += perB[0];
-            b[1] += perB[1];
-            b[2] += perB[2];
-         }
-      }
-      
-      // Normalize
-      Real  norm = 1. / sqrt(b[0]*b[0] + b[1]*b[1] + b[2]*b[2]);
-      for(int c=0; c<3; c++) {
-         b[c] = b[c] * norm;
-      }
-      
-      // Make sure motion is outwards. Flip b if dot(r,b) < 0
-      if(std::isnan(b[0]) || std::isnan(b[1]) || std::isnan(b[2])) {
-         cerr << "(fieldtracing) Error: magnetic field is nan in getRadialBfieldDirection at location "
-         << r[0] << ", " << r[1] << ", " << r[2] << ", with B = " << b[0] << ", " << b[1] << ", " << b[2] << endl;
-         b[0] = 0;
-         b[1] = 0;
-         b[2] = 0;
-      }
-      if(!alongB) { // In this function, outwards indicates whether we trace along (true) or against (false) the field direction
-         b[0] *= -1;
-         b[1] *= -1;
-         b[2] *= -1;
-      }
-      return true;
-   }
-   
    /*! Calculate mapping between ionospheric nodes and fsGrid cells.
    * To do so, the magnetic field lines are traced from all mesh nodes
    * outwards until a non-boundary cell is encountered. Their proportional
@@ -221,7 +96,7 @@ namespace FieldTracing {
       }
       bool anyNodeNeedsTracing;
       
-      TracingFieldFunction tracingFullField = [&perBGrid, &dPerBGrid, &technicalGrid](std::array<Real,3>& r, const bool alongB, std::array<Real,3>& b)->bool{
+      TracingFieldFunction<Real> tracingFullField = [&perBGrid, &dPerBGrid, &technicalGrid](std::array<Real,3>& r, const bool alongB, std::array<Real,3>& b)->bool{
          return traceFullFieldFunction(perBGrid, dPerBGrid, technicalGrid, r, alongB, b);
       };
       
@@ -263,7 +138,6 @@ namespace FieldTracing {
                   
                   // Look up the fsgrid cell belonging to these coordinates
                   fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
-                  std::array<Real, 3> interpolationFactor=getFractionalFsGridCellForCoord(technicalGrid,x);
                   
                   creal distance = sqrt((x[0]-no.x[0])*(x[0]-no.x[0])+(x[1]-no.x[1])*(x[1]-no.x[1])+(x[2]-no.x[2])*(x[2]-no.x[2]));
                   
@@ -437,7 +311,7 @@ namespace FieldTracing {
       phiprof::start("fieldtracing-ionosphere-VlasovGridCoupling");
       
       // For tracing towards the vlasov boundary, we only require the dipole field.
-      TracingFieldFunction dipoleFieldOnly = [](std::array<Real,3>& r, const bool outwards, std::array<Real,3>& b)->bool {
+      TracingFieldFunction<Real> dipoleFieldOnly = [](std::array<Real,3>& r, const bool outwards, std::array<Real,3>& b)->bool {
          
          // Get field direction
          b[0] = SBC::ionosphereGrid.dipoleField(r[0],r[1],r[2],X,0,X) + SBC::ionosphereGrid.BGB[0];
@@ -603,25 +477,28 @@ namespace FieldTracing {
       
       phiprof::start("fieldtracing-ionosphere-openclosedTracing");
       // Pick an initial stepsize
-      creal stepSize = min(1000e3, technicalGrid.DX / 2.);
-      std::vector<Real> nodeTracingStepSize(nodes.size(), stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
-      std::vector<Real> reducedNodeTracingStepSize(nodes.size());
+      const TReal stepSize = min(1000e3, technicalGrid.DX / 2.);
+      std::vector<TReal> nodeTracingStepSize(nodes.size(), stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
+      std::vector<TReal> reducedNodeTracingStepSize(nodes.size());
       std::array<int, 3> gridSize = technicalGrid.getGlobalSize();
       uint64_t maxTracingSteps = 8 * (gridSize[0] * technicalGrid.DX + gridSize[1] * technicalGrid.DY + gridSize[2] * technicalGrid.DZ) / stepSize;
       
       std::vector<int> nodeMapping(nodes.size(), TracingLineEndType::UNPROCESSED);                                 /*!< For reduction of node coupling */
       std::vector<uint64_t> nodeStepCounter(nodes.size(), 0);                                 /*!< Count number of field line tracing steps */
       std::vector<int> nodeNeedsContinuedTracing(nodes.size(), 1);                    /*!< Flag, whether tracing needs to continue on another task */
-      std::vector<std::array<Real, 3>> nodeTracingCoordinates(nodes.size());          /*!< In-flight node upmapping coordinates (for global reduction) */
+      std::vector<std::array<TReal, 3>> nodeTracingCoordinates(nodes.size());          /*!< In-flight node upmapping coordinates (for global reduction) */
       
       std::vector<int> nodeTracingStepCount(nodes.size());
       
       for(uint n=0; n<nodes.size(); n++) {
-         nodeTracingCoordinates.at(n) = nodes.at(n).x;
+         // Real -> TReal hence 3 lines...
+         nodeTracingCoordinates.at(n)[0] = nodes.at(n).x[0];
+         nodeTracingCoordinates.at(n)[1] = nodes.at(n).x[1];
+         nodeTracingCoordinates.at(n)[2] = nodes.at(n).x[2];
       }
       bool anyNodeNeedsTracing;
       
-      TracingFieldFunction tracingFullField = [&perBGrid, &dPerBGrid, &technicalGrid](std::array<Real,3>& r, const bool alongB, std::array<Real,3>& b)->bool{
+      TracingFieldFunction<TReal> tracingFullField = [&perBGrid, &dPerBGrid, &technicalGrid](std::array<TReal,3>& r, const bool alongB, std::array<TReal,3>& b)->bool{
          return traceFullFieldFunction(perBGrid, dPerBGrid, technicalGrid, r, alongB, b);
       };
       
@@ -643,14 +520,14 @@ namespace FieldTracing {
                }
                SBC::SphericalTriGrid::Node& no = nodes[n];
                
-               std::array<Real, 3> x = nodeTracingCoordinates[n];
-               std::array<Real, 3> v({0,0,0});
+               std::array<TReal, 3> x = nodeTracingCoordinates[n];
+               std::array<TReal, 3> v({0,0,0});
                
                while( true ) {
                   nodeStepCounter[n]++;
                   
                   // Check if the current coordinates (pre-step) are in our own domain.
-                  std::array<int, 3> fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
+                  std::array<int, 3> fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,{(TReal)x[0], (TReal)x[1], (TReal)x[2]});
                   // If it is not in our domain, somebody else takes care of it.
                   if(fsgridCell[0] == -1) {
                      nodeNeedsContinuedTracing[n] = 0;
@@ -671,12 +548,11 @@ namespace FieldTracing {
                   
                   // Make one step along the fieldline
                   // If the node is in the North, trace along -B (false for last argument), in the South, trace along B
-                  stepFieldLine(x,v, nodeTracingStepSize[n],fieldTracingParameters.min_tracer_dx,technicalGrid.DX/2,fieldTracingParameters.tracingMethod,tracingFullField,(no.x[2] < 0));
+                  stepFieldLine(x,v, nodeTracingStepSize[n],(TReal)fieldTracingParameters.min_tracer_dx,(TReal)technicalGrid.DX/2,fieldTracingParameters.tracingMethod,tracingFullField,(no.x[2] < 0));
                   nodeTracingStepCount[n]++;
                   
                   // Look up the fsgrid cell belonging to these coordinates
-                  fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
-                  std::array<Real, 3> interpolationFactor=getFractionalFsGridCellForCoord(technicalGrid,x);
+                  fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,{(TReal)x[0], (TReal)x[1], (TReal)x[2]});
                   
                   // If we map into the ionosphere, this node is on a closed field line.
                   if(sqrt(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2)) < SBC::Ionosphere::innerRadius) {
@@ -712,11 +588,11 @@ namespace FieldTracing {
          
          // Globally reduce whether any node still needs to be picked up and traced onwards
          std::vector<int> sumNodeNeedsContinuedTracing(nodes.size(), 0);
-         std::vector<std::array<Real, 3>> sumNodeTracingCoordinates(nodes.size());
+         std::vector<std::array<TReal, 3>> sumNodeTracingCoordinates(nodes.size());
          std::vector<uint64_t> maxNodeStepCounter(nodes.size(), 0);
          MPI_Allreduce(nodeNeedsContinuedTracing.data(), sumNodeNeedsContinuedTracing.data(), nodes.size(), MPI_INT, MPI_SUM, MPI_COMM_WORLD);
          MPI_Allreduce(nodeStepCounter.data(), maxNodeStepCounter.data(), nodes.size(), MPI_UINT64_T, MPI_MAX, MPI_COMM_WORLD);
-         if(sizeof(Real) == sizeof(double)) {
+         if(sizeof(TReal) == sizeof(double)) {
             MPI_Allreduce(nodeTracingCoordinates.data(), sumNodeTracingCoordinates.data(), 3*nodes.size(), MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
             MPI_Allreduce(nodeTracingStepSize.data(), reducedNodeTracingStepSize.data(), nodes.size(), MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
          } else {
@@ -769,24 +645,24 @@ namespace FieldTracing {
    void stepCellAcrossTaskDomain(
       cint n,
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      TracingFieldFunction & tracingFullField,
-      const std::vector<std::array<Real,3>> & cellInitialCoordinates,
-      const std::vector<Real> & cellCurvatureRadius,
+      TracingFieldFunction<TReal> & tracingFullField,
+      const std::vector<std::array<TReal,3>> & cellInitialCoordinates,
+      const std::vector<TReal> & cellCurvatureRadius,
       std::vector<signed char> & cellNeedsContinuedTracing,
-      std::vector<std::array<Real, 3>> & cellTracingCoordinates,
-      std::vector<Real> & cellTracingStepSize,
-      std::vector<Real> & cellRunningDistance,
-      std::vector<Real> & cellMaxExtension,
+      std::vector<std::array<TReal, 3>> & cellTracingCoordinates,
+      std::vector<TReal> & cellTracingStepSize,
+      std::vector<TReal> & cellRunningDistance,
+      std::vector<TReal> & cellMaxExtension,
       std::vector<signed char> & cellConnection,
       bool & warnMaxDistanceExceeded,
-      creal maxTracingDistance,
+      const TReal maxTracingDistance,
       cuint DIRECTION
    ) {
-      std::array<Real, 3> x = cellTracingCoordinates[n];
-      std::array<Real, 3> v({0,0,0});
+      std::array<TReal, 3> x = cellTracingCoordinates[n];
+      std::array<TReal, 3> v({0,0,0});
       while( true ) {
          // Check if the current coordinates (pre-step) are in our own domain.
-         std::array<int, 3> fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
+         std::array<int, 3> fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,{(Real)x[0], (Real)x[1], (Real)x[2]});
          // If it is not in our domain, somebody else takes care of it.
          if(fsgridCell[0] == -1) {
             cellNeedsContinuedTracing[n] = 0;
@@ -797,11 +673,11 @@ namespace FieldTracing {
          
          // Make one step along the fieldline
          // Forward tracing means true for last argument
-         stepFieldLine(x,v, cellTracingStepSize[n],100e3,technicalGrid.DX/2,fieldTracingParameters.tracingMethod,tracingFullField,(DIRECTION == Direction::FORWARD));
+         stepFieldLine(x,v, cellTracingStepSize[n],(TReal)100e3,(TReal)technicalGrid.DX/2,fieldTracingParameters.tracingMethod,tracingFullField,(DIRECTION == Direction::FORWARD));
          cellRunningDistance[n] += cellTracingStepSize[n];
          
          // Look up the fsgrid cell belonging to these coordinates
-         fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,x);
+         fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,{(Real)x[0], (Real)x[1], (Real)x[2]});
          
          // If we map into the ionosphere, discard this field line.
          if(sqrt(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2)) < fieldTracingParameters.innerBoundaryRadius) {
@@ -841,7 +717,7 @@ namespace FieldTracing {
          // See the longer comment for the function traceFullBoxConnectionAndFluxRopes for details.
          // If we are still in the race for flux rope...
          if(cellConnection[n] < TracingLineEndType::N_TYPES) {
-            creal extension = sqrt(
+            const TReal extension = sqrt(
                  (x[0]-(cellInitialCoordinates[n])[0])*(x[0]-(cellInitialCoordinates[n])[0])
                + (x[1]-(cellInitialCoordinates[n])[1])*(x[1]-(cellInitialCoordinates[n])[1])
                + (x[2]-(cellInitialCoordinates[n])[2])*(x[2]-(cellInitialCoordinates[n])[2])
@@ -962,13 +838,13 @@ namespace FieldTracing {
       MPI_Allgatherv(localDccrgCells.data(), localDccrgSize, MPI_UINT64_T, allDccrgCells.data(), amounts.data(), displacements.data(), MPI_UINT64_T, MPI_COMM_WORLD);
       
       // Pick an initial stepsize
-      creal stepSize = min(1000e3, technicalGrid.DX / 2.);
-      std::vector<Real> cellFWTracingStepSize(globalDccrgSize, stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
-      std::vector<Real> cellBWTracingStepSize(globalDccrgSize, stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
+      const TReal stepSize = min(1000e3, technicalGrid.DX / 2.);
+      std::vector<TReal> cellFWTracingStepSize(globalDccrgSize, stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
+      std::vector<TReal> cellBWTracingStepSize(globalDccrgSize, stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
       
       std::array<int, 3> gridSize = technicalGrid.getGlobalSize();
       // This is a heuristic considering how far an IMF+dipole combo can sensibly stretch in the box before we're safe to assume it's rolled up more or less pathologically.
-      creal maxTracingDistance = 4 * (gridSize[0] * technicalGrid.DX + gridSize[1] * technicalGrid.DY + gridSize[2] * technicalGrid.DZ);
+      const TReal maxTracingDistance = 4 * (gridSize[0] * technicalGrid.DX + gridSize[1] * technicalGrid.DY + gridSize[2] * technicalGrid.DZ);
       if(maxTracingDistance < fieldTracingParameters.fluxrope_max_m_to_trace) {
          int myRank;
          MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
@@ -977,38 +853,39 @@ namespace FieldTracing {
          }
       }
       
-      std::vector<Real> cellCurvatureRadius(globalDccrgSize, 0);
-      std::vector<Real> reducedCellCurvatureRadius(globalDccrgSize);
+      std::vector<TReal> cellCurvatureRadius(globalDccrgSize, 0);
+      std::vector<TReal> reducedCellCurvatureRadius(globalDccrgSize);
       
       std::vector<signed char> cellFWConnection(globalDccrgSize, TracingLineEndType::UNPROCESSED); /*!< For reduction of node coupling */
       std::vector<signed char> cellBWConnection(globalDccrgSize, TracingLineEndType::UNPROCESSED); /*!< For reduction of node coupling */
       
       std::vector<signed char> cellNeedsContinuedFWTracing(globalDccrgSize, 1); /*!< Flag, whether tracing needs to continue on another task */
       std::vector<signed char> cellNeedsContinuedBWTracing(globalDccrgSize, 1); /*!< Flag, whether tracing needs to continue on another task */
-      std::vector<std::array<Real, 3>> cellFWTracingCoordinates(globalDccrgSize); /*!< In-flight node upmapping coordinates (for global reduction) */
-      std::vector<std::array<Real, 3>> cellBWTracingCoordinates(globalDccrgSize); /*!< In-flight node upmapping coordinates (for global reduction) */
-      std::vector<Real> cellFWRunningDistance(globalDccrgSize, 0);
-      std::vector<Real> cellBWRunningDistance(globalDccrgSize, 0);
+      std::vector<std::array<TReal, 3>> cellFWTracingCoordinates(globalDccrgSize); /*!< In-flight node upmapping coordinates (for global reduction) */
+      std::vector<std::array<TReal, 3>> cellBWTracingCoordinates(globalDccrgSize); /*!< In-flight node upmapping coordinates (for global reduction) */
+      std::vector<TReal> cellFWRunningDistance(globalDccrgSize, 0);
+      std::vector<TReal> cellBWRunningDistance(globalDccrgSize, 0);
       
       // This we need only once and not forward and backward separately as we'll only record the max
-      std::vector<Real> cellMaxExtension(globalDccrgSize, 0);
+      std::vector<TReal> cellMaxExtension(globalDccrgSize, 0);
       
       // These guys are needed in the reductions
       std::vector<signed char> storedCellNeedsContinuedFWTracing(globalDccrgSize, 0);
       std::vector<signed char> storedCellNeedsContinuedBWTracing(globalDccrgSize, 0);
-      std::vector<std::array<Real, 3>> sumCellFWTracingCoordinates(globalDccrgSize);
-      std::vector<std::array<Real, 3>> sumCellBWTracingCoordinates(globalDccrgSize);
-      std::vector<Real> reducedCellFWRunningDistance(globalDccrgSize, 0);
-      std::vector<Real> reducedCellBWRunningDistance(globalDccrgSize, 0);
-      std::vector<Real> reducedCellFWTracingStepSize(globalDccrgSize);
-      std::vector<Real> reducedCellBWTracingStepSize(globalDccrgSize);
+      std::vector<std::array<TReal, 3>> sumCellFWTracingCoordinates(globalDccrgSize);
+      std::vector<std::array<TReal, 3>> sumCellBWTracingCoordinates(globalDccrgSize);
+      std::vector<TReal> reducedCellFWRunningDistance(globalDccrgSize, 0);
+      std::vector<TReal> reducedCellBWRunningDistance(globalDccrgSize, 0);
+      std::vector<TReal> reducedCellFWTracingStepSize(globalDccrgSize);
+      std::vector<TReal> reducedCellBWTracingStepSize(globalDccrgSize);
       std::vector<signed char> reducedCellFWConnection(globalDccrgSize);
       std::vector<signed char> reducedCellBWConnection(globalDccrgSize);
       
       phiprof::start("first-loop");
       for(int n=0; n<globalDccrgSize; n++) {
          const CellID id = allDccrgCells[n];
-         cellFWTracingCoordinates.at(n) = mpiGrid.get_center(id);
+         const std::array<Real, 3> ctr = mpiGrid.get_center(id);
+         cellFWTracingCoordinates.at(n) = {(Real)ctr[0], (Real)ctr[1], (Real)ctr[2]};
          cellBWTracingCoordinates.at(n) = cellFWTracingCoordinates.at(n);
          if(mpiGrid.is_local(id)) {
             if((mpiGrid[id]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)
@@ -1035,11 +912,11 @@ namespace FieldTracing {
       }
       phiprof::stop("first-loop");
       
-      const std::vector<std::array<Real,3>> cellInitialCoordinates = cellFWTracingCoordinates;
+      const std::vector<std::array<TReal,3>> cellInitialCoordinates = cellFWTracingCoordinates;
       
       MPI_Allreduce(cellNeedsContinuedFWTracing.data(), storedCellNeedsContinuedFWTracing.data(), globalDccrgSize, MPI_SIGNED_CHAR, MPI_MIN, MPI_COMM_WORLD);
       MPI_Allreduce(cellNeedsContinuedBWTracing.data(), storedCellNeedsContinuedBWTracing.data(), globalDccrgSize, MPI_SIGNED_CHAR, MPI_MIN, MPI_COMM_WORLD);
-      if(sizeof(Real) == sizeof(double)) {
+      if(sizeof(TReal) == sizeof(double)) {
          MPI_Allreduce(cellFWTracingStepSize.data(), reducedCellFWTracingStepSize.data(), globalDccrgSize, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
          MPI_Allreduce(cellBWTracingStepSize.data(), reducedCellBWTracingStepSize.data(), globalDccrgSize, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
          MPI_Allreduce(cellCurvatureRadius.data(), reducedCellCurvatureRadius.data(), globalDccrgSize, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
@@ -1055,7 +932,7 @@ namespace FieldTracing {
       cellBWTracingStepSize.swap(reducedCellBWTracingStepSize);
       cellCurvatureRadius.swap(reducedCellCurvatureRadius);
       
-      TracingFieldFunction tracingFullField = [&perBGrid, &dPerBGrid, &technicalGrid](std::array<Real,3>& r, const bool alongB, std::array<Real,3>& b)->bool{
+      TracingFieldFunction<TReal> tracingFullField = [&perBGrid, &dPerBGrid, &technicalGrid](std::array<TReal,3>& r, const bool alongB, std::array<TReal,3>& b)->bool{
          return traceFullFieldFunction(perBGrid, dPerBGrid, technicalGrid, r, alongB, b);
       };
       int itCount = 0;
@@ -1118,9 +995,9 @@ namespace FieldTracing {
             {
                std::vector<int> indicesToReduceFW, indicesToReduceBW;
                std::vector<signed char> smallCellNeedsContinuedFWTracing, smallCellNeedsContinuedBWTracing;
-               std::vector<std::array<Real, 3>> smallCellFWTracingCoordinates, smallCellBWTracingCoordinates;
-               std::vector<Real> smallCellFWRunningDistance, smallCellBWRunningDistance;
-               std::vector<Real> smallCellFWTracingStepSize, smallCellBWTracingStepSize;
+               std::vector<std::array<TReal, 3>> smallCellFWTracingCoordinates, smallCellBWTracingCoordinates;
+               std::vector<TReal> smallCellFWRunningDistance, smallCellBWRunningDistance;
+               std::vector<TReal> smallCellFWTracingStepSize, smallCellBWTracingStepSize;
                std::vector<signed char> smallCellFWConnection, smallCellBWConnection;
 
                for(int n=0; n<globalDccrgSize; n++) {
@@ -1145,16 +1022,16 @@ namespace FieldTracing {
                int smallSizeBW = indicesToReduceBW.size();
                
                std::vector<signed char> smallReducedCellNeedsContinuedFWTracing(smallSizeFW), smallReducedCellNeedsContinuedBWTracing(smallSizeBW);
-               std::vector<std::array<Real, 3>> smallSumCellFWTracingCoordinates(smallSizeFW), smallSumCellBWTracingCoordinates(smallSizeBW);
-               std::vector<Real> smallReducedCellFWRunningDistance(smallSizeFW), smallReducedCellBWRunningDistance(smallSizeBW);
-               std::vector<Real> smallReducedCellFWTracingStepSize(smallSizeFW), smallReducedCellBWTracingStepSize(smallSizeBW);
+               std::vector<std::array<TReal, 3>> smallSumCellFWTracingCoordinates(smallSizeFW), smallSumCellBWTracingCoordinates(smallSizeBW);
+               std::vector<TReal> smallReducedCellFWRunningDistance(smallSizeFW), smallReducedCellBWRunningDistance(smallSizeBW);
+               std::vector<TReal> smallReducedCellFWTracingStepSize(smallSizeFW), smallReducedCellBWTracingStepSize(smallSizeBW);
                std::vector<signed char> smallReducedCellFWConnection(smallSizeFW), smallReducedCellBWConnection(smallSizeBW);
                
                MPI_Allreduce(smallCellNeedsContinuedFWTracing.data(), smallReducedCellNeedsContinuedFWTracing.data(), smallSizeFW, MPI_SIGNED_CHAR, MPI_SUM, MPI_COMM_WORLD);
                MPI_Allreduce(smallCellNeedsContinuedBWTracing.data(), smallReducedCellNeedsContinuedBWTracing.data(), smallSizeBW, MPI_SIGNED_CHAR, MPI_SUM, MPI_COMM_WORLD);
                MPI_Allreduce(smallCellFWConnection.data(), smallReducedCellFWConnection.data(), smallSizeFW, MPI_SIGNED_CHAR, MPI_MAX, MPI_COMM_WORLD);
                MPI_Allreduce(smallCellBWConnection.data(), smallReducedCellBWConnection.data(), smallSizeBW, MPI_SIGNED_CHAR, MPI_MAX, MPI_COMM_WORLD);
-               if(sizeof(Real) == sizeof(double)) {
+               if(sizeof(TReal) == sizeof(double)) {
                   MPI_Allreduce(smallCellFWTracingCoordinates.data(), smallSumCellFWTracingCoordinates.data(), 3*smallSizeFW, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
                   MPI_Allreduce(smallCellBWTracingCoordinates.data(), smallSumCellBWTracingCoordinates.data(), 3*smallSizeBW, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
                   MPI_Allreduce(smallCellFWTracingStepSize.data(), smallReducedCellFWTracingStepSize.data(), smallSizeFW, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
@@ -1232,8 +1109,8 @@ namespace FieldTracing {
       }
       
       // Now we're all done we want to reduce the max extension so we can store it
-      std::vector<Real> reducedCellMaxExtension(globalDccrgSize);
-      if(sizeof(Real) == sizeof(double)) {
+      std::vector<TReal> reducedCellMaxExtension(globalDccrgSize);
+      if(sizeof(TReal) == sizeof(double)) {
          MPI_Allreduce(cellMaxExtension.data(), reducedCellMaxExtension.data(), globalDccrgSize, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
       } else {
          MPI_Allreduce(cellMaxExtension.data(), reducedCellMaxExtension.data(), globalDccrgSize, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
@@ -1245,7 +1122,6 @@ namespace FieldTracing {
          if(mpiGrid.is_local(id)) {
             // Handle flux ropes
             mpiGrid[id]->parameters[CellParams::FLUXROPE] = 0;
-            const std::array<Real, 3> x = mpiGrid.get_center(id);
             // We use cellXWConnection as we swapped with reducedCellXWConnection.
             // Earlier, if we marked nothing (e.g. hit a wall or ionosphere before making a call) cellXWConnection[n] is less than N_TYPES.
             // If we went beyond the thresholds we did += N_TYPES, which is also not a positive hit.
