@@ -106,6 +106,7 @@ namespace FieldTracing {
       CLOSED,
       OPEN,
       DANGLING,
+      OUTSIDE,
       N_TYPES
    };
 
