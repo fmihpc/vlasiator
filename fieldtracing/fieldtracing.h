@@ -30,10 +30,6 @@
 #include "../fieldsolver/fs_common.h"
 #include "../fieldsolver/derivatives.hpp"
 #include "../sysboundary/ionosphere.h"
-#include "bulirschStoer.h"
-#include "dormandPrince.h"
-#include "eulerAdaptive.h"
-#include "euler.h"
 
 // Used in full box + flux rope tracing, the others used in coupling should use Real as double probably.
 typedef float TReal;

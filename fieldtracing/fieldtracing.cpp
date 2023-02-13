@@ -26,10 +26,6 @@
 
 #include "../fieldsolver/fs_common.h"
 #include "fieldtracing.h"
-#include "bulirschStoer.h"
-#include "dormandPrince.h"
-#include "euler.h"
-#include "eulerAdaptive.h"
 
 #include <Eigen/Dense>
 
