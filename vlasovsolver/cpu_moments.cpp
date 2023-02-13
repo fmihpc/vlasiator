@@ -73,7 +73,7 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
           
           // Temporary array for storing moments
           Real array[4];
-          for (int i=0; i<4; ++i) array[i] = 0.0;
+          for (int i=0; i<4; ++i) {array[i] = 0.0;}
 
           // Calculate species' contribution to first velocity moments
           for (vmesh::LocalID blockLID=0; blockLID<blockContainer.size(); ++blockLID) {
@@ -115,7 +115,7 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
        
        // Temporary array for storing moments
        Real array[6];
-       for (int i=0; i<6; ++i) array[i] = 0.0;
+       for (int i=0; i<6; ++i) {array[i] = 0.0;}
 
        bool doOffDiagonal = true;
 
@@ -131,7 +131,7 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
        }
        
        // Store species' contribution to bulk velocity moments
-       for (int i=0; i<6; ++i) pop.P[i] = mass*array[i];
+       for (int i=0; i<6; ++i) {pop.P[i] = mass*array[i];}
 
        cell->parameters[CellParams::P_11] += pop.P[0];
        cell->parameters[CellParams::P_22] += pop.P[1];
@@ -205,7 +205,7 @@ void calculateMoments_R(
 
           // Temporary array where the moments for this species are accumulated
           Real array[4];
-          for (int i=0; i<4; ++i) array[i] = 0.0;
+          for (int i=0; i<4; ++i) {array[i] = 0.0;}
 
           // Calculate species' contribution to first velocity moments
           for (vmesh::LocalID blockLID=0; blockLID<blockContainer.size(); ++blockLID) {
@@ -263,7 +263,7 @@ void calculateMoments_R(
 
          // Temporary array where species' contribution to 2nd moments is accumulated
          Real array[3];
-         for (int i=0; i<3; ++i) array[i] = 0.0;
+         for (int i=0; i<3; ++i) {array[i] = 0.0;}
 
          bool doOffDiagonal = false;
 
@@ -338,7 +338,7 @@ void calculateMoments_V(
 
          // Temporary array for storing moments
          Real array[4];
-         for (int i=0; i<4; ++i) array[i] = 0.0;
+         for (int i=0; i<4; ++i) {array[i] = 0.0;}
 
          // Calculate species' contribution to first velocity moments
          for (vmesh::LocalID blockLID=0; blockLID<blockContainer.size(); ++blockLID) {
@@ -396,7 +396,7 @@ void calculateMoments_V(
 
          // Temporary array where moments are stored
          Real array[3];
-         for (int i=0; i<3; ++i) array[i] = 0.0;
+         for (int i=0; i<3; ++i) {array[i] = 0.0;}
 
          bool doOffDiagonal = false;
 

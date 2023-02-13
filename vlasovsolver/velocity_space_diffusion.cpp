@@ -60,11 +60,11 @@ void velocitySpaceDiffusion(
     Realf dfdmu2 [nbins_v][nbins_mu]; // Array to store dfdmumu
     Realf dfdt_mu[nbins_v][nbins_mu]; // Array to store dfdt_mu
 
-    std::string PATHfile = "/wrk-vakka/users/dubart/data/";
+    std::string PATHfile = Parameters::PADnu0;
 
     // Read from nu0Box.txt to get nu0 data depending on betaPara and Taniso
     std::ifstream FILEDmumu;
-    FILEDmumu.open(PATHfile+"nu0Box.txt");
+    FILEDmumu.open(PATHfile);
 
         // Get betaPara
     std::string lineBeta;
@@ -170,8 +170,7 @@ void velocitySpaceDiffusion(
         // Anisotropy
         Realf Taniso = 0.5 * (PtensorRotated[0][0] + PtensorRotated[1][1]) / PtensorRotated[2][2];
         // Beta Parallel
-        Realf mu0 = 1.25663706144e-6;
-        Realf betaParallel = 2.0 * mu0 * PtensorRotated[2][2] / (Bnorm*Bnorm);
+        Realf betaParallel = 2.0 * physicalconstants::MU_0 * PtensorRotated[2][2] / (Bnorm*Bnorm);
 
         // Find indx for first larger value
         int betaIndx   = -1;
@@ -181,7 +180,7 @@ void velocitySpaceDiffusion(
 
         Realf nu0     = 0.0;
         Realf epsilon = 0.0;
-        if ( (betaIndx == -1) || (betaIndx == betaParaArray.size()-1) || (TanisoIndx == -1) || (TanisoIndx == TanisoArray.size()-1) ) {std::cout << "Parallel Plasma Beta or Temperature Anisotropy outside of bounds of the table" << std::endl;}
+        if ( (betaIndx < 0) || (betaIndx >= betaParaArray.size()-1) || (TanisoIndx < 0) || (TanisoIndx >= TanisoArray.size()-1) ) {std::cout << "Parallel Plasma Beta or Temperature Anisotropy outside of bounds of the table" << std::endl;}
         else { 
             // bi-linear interpolation with weighted mean to find nu0(betaParallel,Taniso)
             Realf beta1   = betaParaArray[betaIndx];

@@ -162,6 +162,7 @@ Realf P::PADcoefficient;
 Realf P::PADCFL;
 int P::PADvbins;
 int P::PADmubins;
+string P::PADnu0 = string("");
 
 bool P::addParameters() {
    typedef Readparameters RP;
@@ -411,6 +412,7 @@ bool P::addParameters() {
    RP::add("PAD.CFL","Set CFL condition",0);
    RP::add("PAD.vbins","number of bins for velocity",0);
    RP::add("PAD.mubins","number of bins for mu",0);
+   RP::add("PAD.file","Path of txt file for nu0", string(""));
    return true;
 }
 
@@ -758,6 +760,7 @@ void Parameters::getParameters() {
    RP::get("PAD.CFL",P::PADCFL);
    RP::get("PAD.vbins",P::PADvbins);
    RP::get("PAD.mubins",P::PADmubins);
+   RP::get("PAD.file",P::PADnu0);
 }
 
 

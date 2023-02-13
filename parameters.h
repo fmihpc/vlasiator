@@ -192,6 +192,7 @@ struct Parameters {
    static Realf PADCFL; // Artificial pitch-angle diffusion CFL
    static int PADvbins; // Number of bins in velocity for pitch-angle diffusion
    static int PADmubins; // Number of bins in mu for pitch-angle diffusion
+   static std::string PADnu0; // Path to txt file for nu0
 
    /*! \brief Add the global parameters.
     *
