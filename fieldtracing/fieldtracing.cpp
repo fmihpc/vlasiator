@@ -1018,7 +1018,7 @@ namespace FieldTracing {
                smallCellFWConnection.clear();
                smallCellBWConnection.clear();
                for(int n=0; n<globalDccrgSize; n++) {
-                  if(storedCellNeedsContinuedFWTracing[n]) { // the old one has the previous round's data
+                  if(storedCellNeedsContinuedFWTracing[n]) { // This still has the allreduce MPI_SUM results from the previous round, so that all globally continuing cells are accounted for.
                      indicesToReduceFW.push_back(n);
                      smallCellNeedsContinuedFWTracing.push_back(cellNeedsContinuedFWTracing[n]);
                      smallCellFWTracingCoordinates.push_back(cellFWTracingCoordinates[n]);
@@ -1026,7 +1026,7 @@ namespace FieldTracing {
                      smallCellFWTracingStepSize.push_back(cellFWTracingStepSize[n]);
                      smallCellFWConnection.push_back(cellFWConnection[n]);
                   }
-                  if(storedCellNeedsContinuedBWTracing[n]) { // the old one has the previous round's data
+                  if(storedCellNeedsContinuedBWTracing[n]) { // This still has the allreduce MPI_SUM results from the previous round, so that all globally continuing cells are accounted for.
                      indicesToReduceBW.push_back(n);
                      smallCellNeedsContinuedBWTracing.push_back(cellNeedsContinuedBWTracing[n]);
                      smallCellBWTracingCoordinates.push_back(cellBWTracingCoordinates[n]);
