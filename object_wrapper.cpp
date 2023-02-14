@@ -35,10 +35,12 @@ bool ObjectWrapper::addPopulationParameters() {
      // Originally, there was support for species and velocity meshes to be separate.
      // This was abandoned, since there wasn't really any use for it.
      newSpecies.name = newVMesh.name = pop;
-     newSpecies.velocityMesh = vmesh::getMeshWrapper().velocityMeshes->size();
+     newSpecies.velocityMesh = vmesh::getMeshWrapper()->velocityMeshes->size();
+     std::cerr<<"Added vmeshid "<<newSpecies.velocityMesh<<std::endl;
 
      getObjectWrapper().particleSpecies.push_back(newSpecies);
-     vmesh::getMeshWrapper().velocityMeshes->push_back(newVMesh);
+     vmesh::getMeshWrapper()->velocityMeshes->push_back(newVMesh);
+     std::cerr<<"Size now  "<<vmesh::getMeshWrapper()->velocityMeshes->size()<<" for wrapper "<<vmesh::getMeshWrapper()<<std::endl;
 
      RP::add(pop + "_properties.charge", "Particle charge, in units of elementary charges (int)", 1);
      RP::add(pop + "_properties.mass_units", "Units in which particle mass is given, either 'PROTON' or 'ELECTRON' (string)", std::string("PROTON"));
@@ -97,8 +99,11 @@ bool ObjectWrapper::getPopulationParameters() {
    for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
 
       species::Species& species=getObjectWrapper().particleSpecies[i];
-      vmesh::MeshParameters& vMesh=vmesh::getMeshWrapper().velocityMeshes->at(i);
+      vmesh::MeshParameters& vMesh=vmesh::getMeshWrapper()->velocityMeshes->at(i);
 
+      std::cerr<<"Reading in particle population "<<i<<" at "<<&vMesh<<" for wrapper "<<vmesh::getMeshWrapper()<<std::endl;
+      //printf("Reading in particle population %d \n to address %d for wrapper %d",i,&vMesh,vmesh::getMeshWrapper());
+      
       const std::string& pop = species.name;
 
       // Sanity check name

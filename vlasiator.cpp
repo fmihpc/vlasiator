@@ -294,6 +294,8 @@ int main(int argn,char* args[]) {
    phiprof::start("main");
    phiprof::start("Initialization");
    phiprof::start("Read parameters");
+   // Allocate velocity mesh wrapper
+   vmesh::allocMeshWrapper();
    //init parameter file reader
    Readparameters readparameters(argn,args);
 
@@ -316,9 +318,10 @@ int main(int argn,char* args[]) {
    sysBoundaryContainer.getParameters();
    project->getParameters();
 
-   // Init velocity meshes
-   vmesh::getMeshWrapper().initVelocityMeshes(getObjectWrapper().particleSpecies.size());
+   vmesh::getMeshWrapper()->initVelocityMeshes(getObjectWrapper().particleSpecies.size());
    phiprof::stop("Read parameters");
+
+   vmesh::getMeshWrapper()->printVelocityMesh(0);
 
    // Check for correct application of vectorclass values:
    if ( (VECL<WID) ||

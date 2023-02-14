@@ -446,7 +446,7 @@ bool readBlockData(
       }
 
       const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
-      const vmesh::MeshParameters& ourMeshParams = vmesh::getMeshWrapper().velocityMeshes->at(meshID);
+      const vmesh::MeshParameters& ourMeshParams = vmesh::getMeshWrapper()->velocityMeshes->at(meshID);
       if(fileMeshBBox[0] != ourMeshParams.gridLength[0] ||
             fileMeshBBox[1] != ourMeshParams.gridLength[1] ||
             fileMeshBBox[2] != ourMeshParams.gridLength[2]) {
@@ -484,34 +484,34 @@ bool readBlockData(
             success = false;
          }
 
-         const Real dVx = vmesh::getMeshWrapper().velocityMeshes->at(meshID).cellSize[0];
+         const Real dVx = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).cellSize[0];
          for(const auto& c : fileVelCoordsX) {
-            Real cellindex = (c - vmesh::getMeshWrapper().velocityMeshes->at(meshID).meshMinLimits[0]) / dVx;
+            Real cellindex = (c - vmesh::getMeshWrapper()->velocityMeshes->at(meshID).meshMinLimits[0]) / dVx;
             if(fabs(nearbyint(cellindex) - cellindex) > 1./10000.) {
                logFile << "(RESTART) ERROR: Can't resize velocity space as cell coordinates don't match." << endl
-                  << "          (X coordinate " << c << " = " << cellindex <<" * " << dVx << " + " << vmesh::getMeshWrapper().velocityMeshes->at(meshID).meshMinLimits[0] << endl
+                  << "          (X coordinate " << c << " = " << cellindex <<" * " << dVx << " + " << vmesh::getMeshWrapper()->velocityMeshes->at(meshID).meshMinLimits[0] << endl
                   << "           coordinate  = cellindex *   dV  +  meshMinLimits)" << endl << write;
                abort();
             }
          }
 
-         const Real dVy = vmesh::getMeshWrapper().velocityMeshes->at(meshID).cellSize[1];
+         const Real dVy = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).cellSize[1];
          for(const auto& c : fileVelCoordsY) {
-            Real cellindex = (c - vmesh::getMeshWrapper().velocityMeshes->at(meshID).meshMinLimits[1]) / dVy;
+            Real cellindex = (c - vmesh::getMeshWrapper()->velocityMeshes->at(meshID).meshMinLimits[1]) / dVy;
             if(fabs(nearbyint(cellindex) - cellindex) > 1./10000.) {
                logFile << "(RESTART) ERROR: Can't resize velocity space as cell coordinates don't match." << endl
-                  << "           (Y coordinate " << c << " = " << cellindex <<" * " << dVy << " + " << vmesh::getMeshWrapper().velocityMeshes->at(meshID).meshMinLimits[1] << endl
+                  << "           (Y coordinate " << c << " = " << cellindex <<" * " << dVy << " + " << vmesh::getMeshWrapper()->velocityMeshes->at(meshID).meshMinLimits[1] << endl
                   << "           coordinate  = cellindex *   dV  +  meshMinLimits)" << endl << write;
                abort();
             }
          }
 
-         const Real dVz = vmesh::getMeshWrapper().velocityMeshes->at(meshID).cellSize[2];
+         const Real dVz = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).cellSize[2];
          for(const auto& c : fileVelCoordsY) {
-            Real cellindex = (c - vmesh::getMeshWrapper().velocityMeshes->at(meshID).meshMinLimits[2]) / dVz;
+            Real cellindex = (c - vmesh::getMeshWrapper()->velocityMeshes->at(meshID).meshMinLimits[2]) / dVz;
             if(fabs(nearbyint(cellindex) - cellindex) > 1./10000.) {
                logFile << "(RESTART) ERROR: Can't resize velocity space as cell coordinates don't match." << endl
-                  << "           (Z coordinate " << c << " = " << cellindex <<" * " << dVz << " + " << vmesh::getMeshWrapper().velocityMeshes->at(meshID).meshMinLimits[2] << endl
+                  << "           (Z coordinate " << c << " = " << cellindex <<" * " << dVz << " + " << vmesh::getMeshWrapper()->velocityMeshes->at(meshID).meshMinLimits[2] << endl
                   << "           coordinate  = cellindex *   dV  +  meshMinLimits)" << endl << write;
                abort();
             }
@@ -520,9 +520,9 @@ bool readBlockData(
          // If we haven't aborted above, we can apparently renumber our
          // cellIDs. Build an approprita blockIDremapper lambda for this purpose.
          std::array<int, 3> velGridOffset;
-         velGridOffset[0] = (fileVelCoordsX[0] - vmesh::getMeshWrapper().velocityMeshes->at(meshID).meshMinLimits[0]) / dVx;
-         velGridOffset[1] = (fileVelCoordsY[0] - vmesh::getMeshWrapper().velocityMeshes->at(meshID).meshMinLimits[1]) / dVy;
-         velGridOffset[2] = (fileVelCoordsZ[0] - vmesh::getMeshWrapper().velocityMeshes->at(meshID).meshMinLimits[2]) / dVz;
+         velGridOffset[0] = (fileVelCoordsX[0] - vmesh::getMeshWrapper()->velocityMeshes->at(meshID).meshMinLimits[0]) / dVx;
+         velGridOffset[1] = (fileVelCoordsY[0] - vmesh::getMeshWrapper()->velocityMeshes->at(meshID).meshMinLimits[1]) / dVy;
+         velGridOffset[2] = (fileVelCoordsZ[0] - vmesh::getMeshWrapper()->velocityMeshes->at(meshID).meshMinLimits[2]) / dVz;
 
          if((velGridOffset[0] % ourMeshParams.blockLength[0] != 0) ||
                (velGridOffset[1] % ourMeshParams.blockLength[1] != 0) ||

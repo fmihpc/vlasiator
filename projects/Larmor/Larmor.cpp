@@ -96,7 +96,7 @@ namespace projects {
     Real Larmor::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, 
             creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
        const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
-       vmesh::MeshParameters& meshParams = vmesh::getMeshWrapper().velocityMeshes->at(meshID);
+       vmesh::MeshParameters& meshParams = vmesh::getMeshWrapper()->velocityMeshes->at(meshID);
        if (vx < meshParams.meshMinLimits[0] + 0.5*dvx ||
            vy < meshParams.meshMinLimits[1] + 0.5*dvy ||
            vz < meshParams.meshMinLimits[2] + 0.5*dvz ||

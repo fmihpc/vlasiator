@@ -32,12 +32,22 @@
 #include "definitions.h"
 #include <iostream>
 
+#ifdef __CUDACC__
+#define CUDA_HOSTDEV __host__ __device__
+#else
+#define CUDA_HOSTDEV
+#endif
+
+#ifdef USE_CUDA
+   #include "include/splitvector/splitvec.h"
+#endif
+
 namespace vmesh {
    
    /** Wrapper for mesh parameters. The object wrapper reads one or more velocity meshes
     * from the configuration file and stores them to the mesh vector 
-    * ObjectWrapper::velocityMeshes. The particle species store a mesh ID, which is an index 
-    * to ObjectWrapper::velocityMeshes. Many "get" functions in VelocityMesh are 
+    * MeshWrapper::velocityMeshes. The particle species store a mesh ID, which is an index 
+    * to MeshWrapper::velocityMeshes. Many "get" functions in VelocityMesh are 
     * wrapper functions, which return the values stored in MeshParameters.
     */
    struct MeshParameters {
@@ -48,7 +58,7 @@ namespace vmesh {
       vmesh::LocalID blockLength[3];            /**< Number of phase-space cells per coordinate in block.*/
       uint8_t refLevelMaxAllowed;               /**< Maximum refinement level allowed, 0=no refinement.*/
       
-      // ***** DERIVED PARAMETERS, CALCULATED BY VELOCITY MESH ***** //
+      // ***** DERIVED PARAMETERS, CALCULATED BY INITVELOCITYMESHES ***** //
       bool initialized;                         /**< If true, variables in this struct contain sensible values.*/
       Real meshMinLimits[3];                    /**< Minimum coordinate values of the grid bounding box.*/
       Real meshMaxLimits[3];                    /**< Maximum coordinate values of the grid bounding box.*/
@@ -69,7 +79,6 @@ namespace vmesh {
                                                  * This vector is initialized to size 3*(refLevelMaxAllowed+1) 
                                                  * in VelocityMesh::initialize (VAMR mesh).*/
 #endif
-
       MeshParameters() {
          initialized = false;
       }
@@ -77,20 +86,36 @@ namespace vmesh {
 
    struct MeshWrapper {
       MeshWrapper() {
+#ifdef USE_CUDA
+         velocityMeshes = new split::SplitVector<vmesh::MeshParameters>(1);
+#else
          velocityMeshes = new std::vector<vmesh::MeshParameters>(1);
+#endif
          velocityMeshes->clear();
       }
+      //Needs also desctructor and copy constructor
+      //    MeshWrapper(const MeshWrapper& ow);
+      //    MeshWrapper& operator=(const MeshWrapper& ow);
 
-      std::vector<vmesh::MeshParameters> *velocityMeshes; /**< Parameters for velocity mesh(es).*/
-      void initVelocityMeshes(const uint nMeshes);       /**< Pre-calculate more helper parameters for velocity meshes. */
-
-      //private:
-      // MeshWrapper(const MeshWrapper& ow);
-      // MeshWrapper& operator=(const MeshWrapper& ow);
+   public:
+        /**< Parameters for velocity mesh(es) as a vector*/
+#ifdef USE_CUDA
+      split::SplitVector<vmesh::MeshParameters> *velocityMeshes;
+#else
+      std::vector<vmesh::MeshParameters> *velocityMeshes;
+#endif
+      
+      void initVelocityMeshes(const uint nMeshes);  /**< Pre-calculate more helper parameters for velocity meshes. */
+      void printVelocityMesh(const uint meshIndex); /**< debug purposes, print contents of mesh. */
+      void uploadMeshWrapper();                     /**< Send a copy of the MeshWrapper into GPU memory */
    };
 
-   MeshWrapper& getMeshWrapper();
+   void allocMeshWrapper();
+   MeshWrapper* getMeshWrapper();
+   CUDA_HOSTDEV MeshWrapper* dev_getMeshWrapper();
+   
 } // namespace vmesh
+
 
 #endif	/* VELOCITY_MESH_PARAMETERS_H */
 

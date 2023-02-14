@@ -174,12 +174,12 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
    // space, but a purely numerical bounding box.
    uint64_t bbox[6];
    const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
-   bbox[0] = vmesh::getMeshWrapper().velocityMeshes->at(meshID).gridLength[0];
-   bbox[1] = vmesh::getMeshWrapper().velocityMeshes->at(meshID).gridLength[1];
-   bbox[2] = vmesh::getMeshWrapper().velocityMeshes->at(meshID).gridLength[2];
-   bbox[3] = vmesh::getMeshWrapper().velocityMeshes->at(meshID).blockLength[0];
-   bbox[4] = vmesh::getMeshWrapper().velocityMeshes->at(meshID).blockLength[1];
-   bbox[5] = vmesh::getMeshWrapper().velocityMeshes->at(meshID).blockLength[2];
+   bbox[0] = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).gridLength[0];
+   bbox[1] = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).gridLength[1];
+   bbox[2] = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).gridLength[2];
+   bbox[3] = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).blockLength[0];
+   bbox[4] = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).blockLength[1];
+   bbox[5] = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).blockLength[2];
 
    attribs.clear();
    attribs["mesh"] = getObjectWrapper().particleSpecies[popID].name;
@@ -187,7 +187,7 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
 
    // stringstream is necessary here to correctly convert refLevelMaxAllowed into a string 
    stringstream ss;
-   ss << static_cast<unsigned int>(vmesh::getMeshWrapper().velocityMeshes->at(meshID).refLevelMaxAllowed);
+   ss << static_cast<unsigned int>(vmesh::getMeshWrapper()->velocityMeshes->at(meshID).refLevelMaxAllowed);
    attribs["max_velocity_ref_level"] = ss.str();
    
    if (mpiGrid.get_rank() == MASTER_RANK) {
@@ -196,10 +196,10 @@ bool writeVelocityDistributionData(const uint popID,Writer& vlsvWriter,
       for (int crd=0; crd<3; ++crd) {
          const size_t N_nodes = bbox[crd]*bbox[crd+3]+1;
          Real* crds = new Real[N_nodes];
-         const Real dV = vmesh::getMeshWrapper().velocityMeshes->at(meshID).cellSize[crd];
+         const Real dV = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).cellSize[crd];
 
          for (size_t i=0; i<N_nodes; ++i) {
-            crds[i] = vmesh::getMeshWrapper().velocityMeshes->at(meshID).meshMinLimits[crd] + i*dV;
+            crds[i] = vmesh::getMeshWrapper()->velocityMeshes->at(meshID).meshMinLimits[crd] + i*dV;
          }
 
          if (crd == 0) {
