@@ -686,13 +686,13 @@ static std::array<Real, 3> getMomentumDensity(SpatialCell* cell)
    return std::array<Real, 3> { {rho * cell->parameters[CellParams::VX], rho * cell->parameters[CellParams::VY], rho * cell->parameters[CellParams::VZ]} };
 }
 
-/*! \brief Calculates energy density for spatial cell with only perturbed magnetic field
+/*! \brief Calculates energy density for spatial cell
  *
  */
-static Real calculateU1(SpatialCell* cell)
+static Real calculateU(SpatialCell* cell)
 {
    std::array<Real, 3> p = getMomentumDensity(cell);
-   std::array<Real, 3> B = getPerB(cell);
+   std::array<Real, 3> B = getB(cell);
    return (pow(p[0], 2) + pow(p[1], 2) + pow(p[2], 2)) / (2.0 * cell->parameters[CellParams::RHOM]) + (pow(B[0], 2) + pow(B[1], 2) + pow(B[2], 2)) / (2.0 * physicalconstants::MU_0);
 }
 
@@ -714,14 +714,14 @@ void calculateScaledDeltas(
    Real dB {0};
 
    Real myRho {cell->parameters[CellParams::RHOM]};
-   Real myU {calculateU1(cell)};
+   Real myU {calculateU(cell)};
    std::array<Real, 3> myP = getMomentumDensity(cell);
-   std::array<Real, 3> myB = getPerB(cell);
+   std::array<Real, 3> myB = getB(cell);
    for (SpatialCell* neighbor : neighbors) {
       Real otherRho = neighbor->parameters[CellParams::RHOM];
-      Real otherU = calculateU1(neighbor);
+      Real otherU = calculateU(neighbor);
       std::array<Real, 3> otherP = getMomentumDensity(neighbor);
-      std::array<Real, 3> otherB = getPerB(neighbor);
+      std::array<Real, 3> otherB = getB(neighbor);
       Real deltaBsq = pow(myB[0] - otherB[0], 2) + pow(myB[1] - otherB[1], 2) + pow(myB[2] - otherB[2], 2);
 
       // Assignment intentional
@@ -755,6 +755,7 @@ void calculateScaledDeltas(
    Real dBZdy {cell->derivativesBVOL[bvolderivatives::dPERBZVOLdy]};
 
    // Note missing factor of mu_0, since we want B and J in same units later
+   myB = getPerB(cell);
    std::array<Real, 3> myJ = {dBZdy - dBYdz, dBXdz - dBZdx, dBYdx - dBXdy};
    Real BdotJ {0.0};
    Real Bsq {0.0};
