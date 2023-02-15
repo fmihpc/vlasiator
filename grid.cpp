@@ -504,6 +504,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
       //use the number of blocks.
 //      if (P::propagateVlasovAcceleration) 
       mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER]);
+      mpiGrid.set_communication_weight(cells[i], mpiGrid[cells[i]]->get_number_of_all_velocity_blocks());
 //      else
 //         mpiGrid.set_cell_weight(cells[i], mpiGrid[cells[i]]->get_number_of_all_velocity_blocks());
       //reset counter
@@ -1052,10 +1053,12 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
         neighborhood.push_back({{0, 0, d}});
      }
    }
+
    if( !mpiGrid.add_neighborhood(VLASOV_SOLVER_NEIGHBORHOOD_ID, neighborhood)){
       std::cerr << "Failed to add neighborhood VLASOV_SOLVER_NEIGHBORHOOD_ID \n";
       abort();
    }
+   mpiGrid.set_partitioning_neighborhood_id(VLASOV_SOLVER_NEIGHBORHOOD_ID);
 
    // add remaining nearest neighbors for DIST_FUNC neighborhood
    for (int z = -1; z <= 1; z++) {
