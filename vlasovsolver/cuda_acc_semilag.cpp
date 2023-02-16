@@ -83,23 +83,8 @@ __global__ void printVBCsizekernel(
    const uint ti = k*WID2 + j*WID + i;
    if (ti==0) {
       //printf("device meshwrapper pointer 0x%llx to 0x%llx\n",vmesh::dev_getMeshWrapper(),*vmesh::dev_getMeshWrapper());
-      printf("device meshwrapper pointer 0x%llx to 0x%llx\n",vmesh::getMeshWrapper(),*vmesh::getMeshWrapper());
-
-      printf("device Mesh limits \n");
-      printf(" device blocklength %f %f %f %f \n",(*vmesh::getMeshWrapper()->velocityMeshes)[0].meshMinLimits[0],(*vmesh::getMeshWrapper()->velocityMeshes)[0].meshLimits[0],(*vmesh::getMeshWrapper()->velocityMeshes)[0].meshMaxLimits[0],(*vmesh::getMeshWrapper()->velocityMeshes)[0].meshLimits[1]);
-//      printf(" device blocklength %f %f %f %f \n",(*vmesh::dev_getMeshWrapper()->velocityMeshes)[0].meshMinLimits[0],(*vmesh::dev_getMeshWrapper()->velocityMeshes)[0].meshLimits[0],(*vmesh::dev_getMeshWrapper()->velocityMeshes)[0].meshMaxLimits[0],(*vmesh::dev_getMeshWrapper()->velocityMeshes)[0].meshLimits[1]);
-      // vmesh::MeshParameters* vMesh = &(vmesh::dev_getMeshWrapper()->velocityMeshes->at(0));
-      // //(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].blockLength[0];
-      // //printf("Printout of velocity mesh 0x%.8X\n",vMesh);
-      // printf("device Mesh limits \n");
-      // printf(" device %f %f %f %f \n",vMesh->meshMinLimits[0],vMesh->meshLimits[0],vMesh->meshMaxLimits[0],vMesh->meshLimits[1]);
-      // printf(" device %f %f %f %f \n",vMesh->meshMinLimits[1],vMesh->meshLimits[2],vMesh->meshMaxLimits[1],vMesh->meshLimits[3]);
-      // printf(" device %f %f %f %f \n",vMesh->meshMinLimits[2],vMesh->meshLimits[4],vMesh->meshMaxLimits[2],vMesh->meshLimits[5]);
-      // printf("device Derived mesh paramters \n");
-      // printf(" device gridSize %f %f %f \n",vMesh->gridSize[0],vMesh->gridSize[1],vMesh->gridSize[2]);
-      // printf(" device blockSize %f %f %f \n",vMesh->blockSize[0],vMesh->blockSize[1],vMesh->blockSize[2]);
-      // printf(" device cellSize %f %f %f \n",vMesh->cellSize[0],vMesh->cellSize[1],vMesh->cellSize[2]);
-      // printf(" device max velocity blocks %d \n",vMesh->max_velocity_blocks);
+      // printf("device meshwrapper pointer 0x%llx to 0x%llx\n",vmesh::getMeshWrapper(),*vmesh::getMeshWrapper());
+      // printf(" device blocklength %f %f %f %f \n",(*vmesh::getMeshWrapper()->velocityMeshes)[0].meshMinLimits[0],(*vmesh::getMeshWrapper()->velocityMeshes)[0].meshLimits[0],(*vmesh::getMeshWrapper()->velocityMeshes)[0].meshMaxLimits[0],(*vmesh::getMeshWrapper()->velocityMeshes)[0].meshLimits[1]);
    }
 }
 

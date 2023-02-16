@@ -18,7 +18,7 @@
  * You should have received a copy of the GNU General Public License along
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
+ *
  * File:   velocity_mesh_parameters.h
  * Author: sandroos, mbattarbee
  *
@@ -45,11 +45,11 @@
 #endif
 
 namespace vmesh {
-   
+
    /** Wrapper for mesh parameters. The object wrapper reads one or more velocity meshes
-    * from the configuration file and stores them to the mesh vector 
-    * MeshWrapper::velocityMeshes. The particle species store a mesh ID, which is an index 
-    * to MeshWrapper::velocityMeshes. Many "get" functions in VelocityMesh are 
+    * from the configuration file and stores them to the mesh vector
+    * MeshWrapper::velocityMeshes. The particle species store a mesh ID, which is an index
+    * to MeshWrapper::velocityMeshes. Many "get" functions in VelocityMesh are
     * wrapper functions, which return the values stored in MeshParameters.
     */
    struct MeshParameters {
@@ -59,7 +59,7 @@ namespace vmesh {
       vmesh::LocalID gridLength[3];             /**< Number of blocks in mesh per coordinate at base grid level.*/
       vmesh::LocalID blockLength[3];            /**< Number of phase-space cells per coordinate in block.*/
       uint8_t refLevelMaxAllowed;               /**< Maximum refinement level allowed, 0=no refinement.*/
-      
+
       // ***** DERIVED PARAMETERS, CALCULATED BY INITVELOCITYMESHES ***** //
       bool initialized;                         /**< If true, variables in this struct contain sensible values.*/
       Real meshMinLimits[3];                    /**< Minimum coordinate values of the grid bounding box.*/
@@ -74,11 +74,11 @@ namespace vmesh {
       std::vector<Real> blockSizes;             /**< Velocity block sizes (dvx,dvy,dvz) for each refinement level.
                                                  * This vector is initialized to size 3*(refLevelMaxAllowed+1)
                                                  * in VelocityMesh::initialize (VAMR mesh).*/
-      std::vector<Real> cellSizes;              /**< Velocity block phase-space cell sizes (dvx,dvy,dvz) for each 
-                                                 * refinement level. This vector is initialized to size 
+      std::vector<Real> cellSizes;              /**< Velocity block phase-space cell sizes (dvx,dvy,dvz) for each
+                                                 * refinement level. This vector is initialized to size
                                                  * 3*(refLevelMaxAllowed+1) in VelocityMesh::initialize (VAMR mesh).*/
       std::vector<vmesh::LocalID> gridLengths;  /**< Velocity grid lengths for each refinement level.
-                                                 * This vector is initialized to size 3*(refLevelMaxAllowed+1) 
+                                                 * This vector is initialized to size 3*(refLevelMaxAllowed+1)
                                                  * in VelocityMesh::initialize (VAMR mesh).*/
 #endif
       MeshParameters() {
@@ -106,7 +106,7 @@ namespace vmesh {
 #else
       std::vector<vmesh::MeshParameters> *velocityMeshes;
 #endif
-      
+
       void initVelocityMeshes(const uint nMeshes);  /**< Pre-calculate more helper parameters for velocity meshes. */
       void printVelocityMesh(const uint meshIndex); /**< debug purposes, print contents of mesh. */
       void uploadMeshWrapper();                     /**< Send a copy of the MeshWrapper into GPU memory */
@@ -128,4 +128,3 @@ namespace vmesh {
 } // namespace vmesh
 
 #endif	/* VELOCITY_MESH_PARAMETERS_H */
-

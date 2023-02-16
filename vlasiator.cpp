@@ -321,8 +321,6 @@ int main(int argn,char* args[]) {
    vmesh::getMeshWrapper()->initVelocityMeshes(getObjectWrapper().particleSpecies.size());
    phiprof::stop("Read parameters");
 
-   vmesh::getMeshWrapper()->printVelocityMesh(0);
-
    // Check for correct application of vectorclass values:
    if ( (VECL<WID) ||
         (VECL*VEC_PER_PLANE != WID2) ||
