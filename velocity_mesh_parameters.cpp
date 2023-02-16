@@ -5,52 +5,57 @@
 
 #ifdef __CUDACC__
 #define CUDA_HOSTDEV __host__ __device__
+#define CUDA_DEV __device__
 #else
 #define CUDA_HOSTDEV
+#define CUDA_DEV
 #endif
 
 #ifdef USE_CUDA
    #include "include/splitvector/splitvec.h"
    #include "cuda_runtime.h"
    #include "cuda_context.cuh"
-   static bool meshWrapperIsOnDevice;
 #endif
 
 static vmesh::MeshWrapper *meshWrapper;
-static vmesh::MeshWrapper *meshWrapperDev;
+#ifdef USE_CUDA
+__device__ vmesh::MeshWrapper *meshWrapperDev;
+#endif
 
 void vmesh::allocMeshWrapper() {
    meshWrapper = new vmesh::MeshWrapper();
    std::cerr<<"Allocated wrapper "<<meshWrapper<<std::endl;
-   //return (meshWrapper!=NULL);
 }
 
 vmesh::MeshWrapper* vmesh::getMeshWrapper() {
    return meshWrapper;
 }
 
-CUDA_HOSTDEV vmesh::MeshWrapper* vmesh::dev_getMeshWrapper() {
-   // Will this even work?
+CUDA_DEV vmesh::MeshWrapper* vmesh::dev_getMeshWrapper() {
    return meshWrapperDev;
 }
 
 #ifdef USE_CUDA
 void vmesh::MeshWrapper::uploadMeshWrapper() {
-   // Create splitvector of meshes and upload it
+   // Create (copy) splitvector of meshes
    split::SplitVector<vmesh::MeshParameters> *velocityMeshesDev =
       new split::SplitVector<vmesh::MeshParameters>(*(meshWrapper->velocityMeshes));
-   split::SplitVector<vmesh::MeshParameters> *velocityMeshesDevUp;
-   velocityMeshesDevUp = velocityMeshesDev->upload();
-   // Copy of meshWrapper which points to splitvector in device memory
-   vmesh::MeshWrapper *meshWrapperTemp = new vmesh::MeshWrapper(*meshWrapper);
-   //meshWrapperTemp = meshWrapper;
-   meshWrapperTemp->velocityMeshes = velocityMeshesDevUp;
-   //  Upload device-side wrapper
+   // Upload it to GPU
+   split::SplitVector<vmesh::MeshParameters> *velocityMeshesDevUp = velocityMeshesDev->upload();
+   // Create copy of meshWrapper
+   vmesh::MeshWrapper meshWrapperTemp(*meshWrapper);
+   // Make it point to splitvector in device memory
+   printf("changing splitvector to point from 0x%llx ",meshWrapperTemp.velocityMeshes);
+   meshWrapperTemp.velocityMeshes = velocityMeshesDevUp;
+   printf("to 0x%llx \n",meshWrapperTemp.velocityMeshes);
+   // Allocate device-side room for meshWrapper
+   vmesh::MeshWrapper *meshWrapperDevUpload;
+   HANDLE_ERROR( cudaMalloc((void **)&meshWrapperDevUpload, sizeof(vmesh::MeshWrapper)) );
+   // Copy meshWrapper to device
+   HANDLE_ERROR( cudaMemcpy(meshWrapperDevUpload, &meshWrapperTemp, sizeof(vmesh::MeshWrapper),cudaMemcpyHostToDevice) );
+   //printf("Uploaded velocity mesh from 0x%llx to 0x%llx\n",&meshWrapperTemp,*meshWrapperDevUpload);
 
-   HANDLE_ERROR( cudaMalloc((void **)&meshWrapperDev, sizeof(vmesh::MeshWrapper)) );
-   HANDLE_ERROR( cudaMemcpyAsync(meshWrapperDev, &meshWrapperTemp, sizeof(vmesh::MeshWrapper),cudaMemcpyHostToDevice,cuda_getStream()) );
-   // store flag indicating that required information exists on device
-   meshWrapperIsOnDevice = true;
+   HANDLE_ERROR( cudaMemcpyToSymbol(meshWrapperDev, meshWrapperDevUpload, sizeof(meshWrapperDev)) );
    // Don't bother freeing this small amount of device memory on exit.
 }
 #endif
@@ -99,7 +104,6 @@ void vmesh::MeshWrapper::initVelocityMeshes(const uint nMeshes) {
       
    }
 #ifdef USE_CUDA
-   meshWrapperIsOnDevice = false;
    vmesh::MeshWrapper::uploadMeshWrapper();
 #endif
    return;
@@ -119,6 +123,4 @@ void vmesh::MeshWrapper::printVelocityMesh(const uint meshIndex) {
    printf(" blockSize %f %f %f \n",vMesh->blockSize[0],vMesh->blockSize[1],vMesh->blockSize[2]);
    printf(" cellSize %f %f %f \n",vMesh->cellSize[0],vMesh->cellSize[1],vMesh->cellSize[2]);
    printf(" max velocity blocks %d \n",vMesh->max_velocity_blocks);
-
-   //printf(" BLOCK LENGTH %d \n",(meshWrapper->velocityMeshes)[meshIndex].blockLength[0]);
 }
