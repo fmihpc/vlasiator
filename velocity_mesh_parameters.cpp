@@ -23,11 +23,11 @@ vmesh::MeshWrapper* vmesh::host_getMeshWrapper() {
 }
 
 // This needs to be CUDA_HOSTDEV for compilation although it's called only from device side
+#ifdef USE_CUDA
 CUDA_HOSTDEV vmesh::MeshWrapper* vmesh::dev_getMeshWrapper() {
    return meshWrapperDev;
 }
 
-#ifdef USE_CUDA
 void vmesh::MeshWrapper::uploadMeshWrapper() {
    // Create (copy) splitvector of meshparams in unified memory
    split::SplitVector<vmesh::MeshParameters> *velocityMeshesDev =
