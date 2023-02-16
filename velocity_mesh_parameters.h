@@ -1,6 +1,6 @@
 /*
  * This file is part of Vlasiator.
- * Copyright 2010-2016 Finnish Meteorological Institute
+ * Copyright 2010-2023 Finnish Meteorological Institute & University of Helsinki
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
  * at http://www.physics.helsinki.fi/vlasiator/
@@ -20,7 +20,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  * 
  * File:   velocity_mesh_parameters.h
- * Author: sandroos
+ * Author: sandroos, mbattarbee
  *
  * Created on April 10, 2015, 12:44 PM
  */
@@ -34,8 +34,10 @@
 
 #ifdef __CUDACC__
 #define CUDA_HOSTDEV __host__ __device__
+#define CUDA_DEV __device__
 #else
 #define CUDA_HOSTDEV
+#define CUDA_DEV
 #endif
 
 #ifdef USE_CUDA
@@ -93,12 +95,12 @@ namespace vmesh {
 #endif
          velocityMeshes->clear();
       }
-      //Needs also desctructor and copy constructor
+      //Don't bother with copy constructor or destructors
       //    MeshWrapper(const MeshWrapper& ow);
       //    MeshWrapper& operator=(const MeshWrapper& ow);
 
    public:
-        /**< Parameters for velocity mesh(es) as a vector*/
+      /**< Parameters for velocity mesh(es) as a vector*/
 #ifdef USE_CUDA
       split::SplitVector<vmesh::MeshParameters> *velocityMeshes;
 #else
@@ -111,11 +113,19 @@ namespace vmesh {
    };
 
    void allocMeshWrapper();
-   MeshWrapper* getMeshWrapper();
+   MeshWrapper* host_getMeshWrapper();
    CUDA_HOSTDEV MeshWrapper* dev_getMeshWrapper();
-   
-} // namespace vmesh
 
+   // Caller, inlined into other compilation units, will call either host or device getter
+   CUDA_HOSTDEV inline MeshWrapper* getMeshWrapper() {
+      #ifndef __CUDA_ARCH__
+      return host_getMeshWrapper();
+      #else
+      return dev_getMeshWrapper();
+      #endif
+   }
+
+} // namespace vmesh
 
 #endif	/* VELOCITY_MESH_PARAMETERS_H */
 
