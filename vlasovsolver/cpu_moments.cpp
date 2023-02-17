@@ -61,7 +61,7 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
     // Loop over all particle species
    if (skipMoments == false) {
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
+         vmesh::VelocityBlockContainer& blockContainer = cell->get_velocity_blocks(popID);
          if (blockContainer.size() == 0) continue;
          
          const Realf* data       = blockContainer.getData();
@@ -108,7 +108,7 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
     
    // Loop over all particle species
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-      vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
+      vmesh::VelocityBlockContainer& blockContainer = cell->get_velocity_blocks(popID);
       if (blockContainer.size() == 0) continue;
       
       const Realf* data       = blockContainer.getData();
@@ -182,7 +182,7 @@ void calculateMoments_R(
           const Real dy = cell->parameters[CellParams::DY];
           const Real dz = cell->parameters[CellParams::DZ];
 
-          vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
+          vmesh::VelocityBlockContainer& blockContainer = cell->get_velocity_blocks(popID);
           if (blockContainer.size() == 0) continue;
           const Realf* data       = blockContainer.getData();
           const Real* blockParams = blockContainer.getParameters();
@@ -255,7 +255,7 @@ void calculateMoments_R(
             continue;
          }
          
-         vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
+         vmesh::VelocityBlockContainer& blockContainer = cell->get_velocity_blocks(popID);
          if (blockContainer.size() == 0) continue;
          const Realf* data       = blockContainer.getData();
          const Real* blockParams = blockContainer.getParameters();
@@ -327,7 +327,7 @@ void calculateMoments_V(
              cell->parameters[CellParams::P_33_V] = 0.0;
          }
 
-         vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
+         vmesh::VelocityBlockContainer& blockContainer = cell->get_velocity_blocks(popID);
          if (blockContainer.size() == 0) continue;
          const Realf* data       = blockContainer.getData();
          const Real* blockParams = blockContainer.getParameters();
@@ -386,7 +386,7 @@ void calculateMoments_V(
             continue;
          }
 
-         vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
+         vmesh::VelocityBlockContainer& blockContainer = cell->get_velocity_blocks(popID);
          if (blockContainer.size() == 0) continue;
          const Realf* data       = blockContainer.getData();
          const Real* blockParams = blockContainer.getParameters();

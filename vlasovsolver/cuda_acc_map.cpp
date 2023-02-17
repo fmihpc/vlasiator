@@ -51,7 +51,7 @@ using namespace spatial_cell;
  * local ID of the null velocity block is returned instead.*/
 __host__ vmesh::LocalID addVelocityBlock2(const vmesh::GlobalID& blockGID,
         vmesh::VelocityMesh& vmesh,
-        vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer) {
+        vmesh::VelocityBlockContainer& blockContainer) {
     // Block insert will fail if the block already exists, or if
     // there are too many blocks in the velocity mesh.
     if (vmesh.push_back(blockGID) == false)
@@ -119,7 +119,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
 
    //nothing to do if no blocks
    vmesh::VelocityMesh& vmesh    = spatial_cell->get_velocity_mesh(popID);
-   vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks(popID);
+   vmesh::VelocityBlockContainer& blockContainer = spatial_cell->get_velocity_blocks(popID);
    Realf *blockData = blockContainer.getData();
    //Realf *dev_blockData = blockContainer.dev_getData(); // Now in unified memory, above
    uint blockDataN = blockContainer.size();

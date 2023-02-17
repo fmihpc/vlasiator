@@ -27,7 +27,7 @@
 
 void loadColumnBlockData(
    const vmesh::VelocityMesh& vmesh,
-   vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer,
+   vmesh::VelocityBlockContainer& blockContainer,
    vmesh::GlobalID* blocks,
    vmesh::LocalID n_blocks,
    const int dimension,

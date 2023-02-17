@@ -152,7 +152,7 @@ namespace spatial_cell {
       vmesh::VelocityMesh vmesh;     /**< Velocity mesh. Contains all velocity blocks that exist
                                       * in this spatial cell. Cells are identified by their unique
                                       * global IDs.*/
-      vmesh::VelocityBlockContainer<vmesh::LocalID> blockContainer;  /**< Velocity block data.*/
+      vmesh::VelocityBlockContainer blockContainer;  /**< Velocity block data.*/
    };
 
    class SpatialCell {
@@ -236,9 +236,9 @@ namespace spatial_cell {
       size_t size(const uint popID) const;
       void remove_velocity_block(const vmesh::GlobalID& block,const uint popID);
       void swap(vmesh::VelocityMesh& vmesh,
-                vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer,const uint popID);
+                vmesh::VelocityBlockContainer& blockContainer,const uint popID);
       vmesh::VelocityMesh& get_velocity_mesh(const size_t& popID);
-      vmesh::VelocityBlockContainer<vmesh::LocalID>& get_velocity_blocks(const size_t& popID);
+      vmesh::VelocityBlockContainer& get_velocity_blocks(const size_t& popID);
 
       Realf get_value(const Real vx,const Real vy,const Real vz,const uint popID) const;
       Realf get_value(const vmesh::GlobalID& blockGID, const unsigned int cell, const uint popID) const;
@@ -842,7 +842,7 @@ namespace spatial_cell {
       return populations[popID].vmesh;
    }
 
-   inline vmesh::VelocityBlockContainer<vmesh::LocalID>& SpatialCell::get_velocity_blocks(const size_t& popID) {
+   inline vmesh::VelocityBlockContainer& SpatialCell::get_velocity_blocks(const size_t& popID) {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -1082,7 +1082,7 @@ namespace spatial_cell {
    }
 
    inline void SpatialCell::swap(vmesh::VelocityMesh& vmesh,
-                                 vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer,
+                                 vmesh::VelocityBlockContainer& blockContainer,
                                  const uint popID) {
       #ifdef DEBUG_SPATIAL_CELL
       if (populations[popID].vmesh.size() != populations[popID].blockContainer.size()) {

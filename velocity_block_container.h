@@ -52,7 +52,6 @@ namespace vmesh {
    static const double BLOCK_ALLOCATION_FACTOR = 1.1;
 #endif
 
-   template<typename LID>
 #ifdef USE_CUDA
    class VelocityBlockContainer : public Managed {
 #else
@@ -65,30 +64,30 @@ namespace vmesh {
       VelocityBlockContainer(const VelocityBlockContainer& other);
       const VelocityBlockContainer& operator=(const VelocityBlockContainer& other);
 
-      CUDA_HOSTDEV LID capacity() const;
+      CUDA_HOSTDEV vmesh::LocalID capacity() const;
       CUDA_HOSTDEV size_t capacityInBytes() const;
       void clear();
-      CUDA_HOSTDEV void copy(const LID& source,const LID& target);
+      CUDA_HOSTDEV void copy(const vmesh::LocalID& source,const vmesh::LocalID& target);
       CUDA_HOSTDEV static double getBlockAllocationFactor();
       CUDA_HOSTDEV Realf* getData();
       CUDA_HOSTDEV const Realf* getData() const;
-      CUDA_HOSTDEV Realf* getData(const LID& blockLID);
-      CUDA_HOSTDEV const Realf* getData(const LID& blockLID) const;
+      CUDA_HOSTDEV Realf* getData(const vmesh::LocalID& blockLID);
+      CUDA_HOSTDEV const Realf* getData(const vmesh::LocalID& blockLID) const;
       CUDA_HOSTDEV Real* getParameters();
       CUDA_HOSTDEV const Real* getParameters() const;
-      CUDA_HOSTDEV Real* getParameters(const LID& blockLID);
-      CUDA_HOSTDEV const Real* getParameters(const LID& blockLID) const;
+      CUDA_HOSTDEV Real* getParameters(const vmesh::LocalID& blockLID);
+      CUDA_HOSTDEV const Real* getParameters(const vmesh::LocalID& blockLID) const;
       CUDA_HOSTDEV void pop();
-      CUDA_HOSTDEV LID push_back();
-      CUDA_HOSTDEV LID push_back(const uint32_t& N_blocks);
-      bool recapacitate(const LID& capacity);
-      CUDA_HOSTDEV bool setSize(const LID& newSize);
-      CUDA_HOSTDEV LID size() const;
+      CUDA_HOSTDEV vmesh::LocalID push_back();
+      CUDA_HOSTDEV vmesh::LocalID push_back(const uint32_t& N_blocks);
+      bool recapacitate(const vmesh::LocalID& capacity);
+      CUDA_HOSTDEV bool setSize(const vmesh::LocalID& newSize);
+      CUDA_HOSTDEV vmesh::LocalID size() const;
       CUDA_HOSTDEV size_t sizeInBytes() const;
       CUDA_HOSTDEV void swap(VelocityBlockContainer& vbc);
 
 #ifdef USE_CUDA // for CUDA version
-      void dev_Allocate(LID size);
+      void dev_Allocate(vmesh::LocalID size);
       void dev_Allocate();
       void dev_prefetchHost();
       void dev_prefetchDevice();
@@ -96,16 +95,16 @@ namespace vmesh {
 #endif
 
       #ifdef DEBUG_VBC
-      const Realf& getData(const LID& blockLID,const unsigned int& cell) const;
-      const Real& getParameters(const LID& blockLID,const unsigned int& i) const;
-      void setData(const LID& blockLID,const unsigned int& cell,const Realf& value);
+      const Realf& getData(const vmesh::LocalID& blockLID,const unsigned int& cell) const;
+      const Real& getParameters(const vmesh::LocalID& blockLID,const unsigned int& i) const;
+      void setData(const vmesh::LocalID& blockLID,const unsigned int& cell,const Realf& value);
       #endif
     private:
-      void exitInvalidLocalID(const LID& localID,const std::string& funcName) const;
+      void exitInvalidLocalID(const vmesh::LocalID& localID,const std::string& funcName) const;
       void resize();
 
-      LID currentCapacity;
-      LID numberOfBlocks;
+      vmesh::LocalID currentCapacity;
+      vmesh::LocalID numberOfBlocks;
 
 #ifdef USE_CUDA
       split::SplitVector<Realf> *block_data;
@@ -117,8 +116,7 @@ namespace vmesh {
 
    };
 
-   template<typename LID> inline
-   VelocityBlockContainer<LID>::VelocityBlockContainer() : currentCapacity {0}, numberOfBlocks {0} {
+   inline VelocityBlockContainer::VelocityBlockContainer() : currentCapacity {0}, numberOfBlocks {0} {
 #ifdef USE_CUDA
       if (currentCapacity==0) {
          block_data= new split::SplitVector<Realf>(1);
@@ -143,14 +141,12 @@ namespace vmesh {
 #endif
    }
 
-   template<typename LID> inline
-   VelocityBlockContainer<LID>::~VelocityBlockContainer() {
+   inline VelocityBlockContainer::~VelocityBlockContainer() {
       if (block_data->size()>0) delete block_data;
       if (parameters->size()>0) delete parameters;
    }
 
-   template<typename LID> inline
-   VelocityBlockContainer<LID>::VelocityBlockContainer(const VelocityBlockContainer& other) {
+   inline VelocityBlockContainer::VelocityBlockContainer(const VelocityBlockContainer& other) {
 #ifdef USE_CUDA
       block_data= new split::SplitVector<Realf>(*(other.block_data));
       parameters= new split::SplitVector<Real>(*(other.parameters));
@@ -162,8 +158,7 @@ namespace vmesh {
       numberOfBlocks = other.numberOfBlocks;
    }
 
-   template <typename LID> inline
-   const VelocityBlockContainer<LID>& VelocityBlockContainer<LID>::operator=(const VelocityBlockContainer<LID>& other) {
+   inline const VelocityBlockContainer& VelocityBlockContainer::operator=(const VelocityBlockContainer& other) {
       // Delete old vectors
       if (block_data->size()>0) delete block_data;
       if (parameters->size()>0) delete parameters;
@@ -179,20 +174,17 @@ namespace vmesh {
       return *this;
    }
 
-   template<typename LID> inline
-   CUDA_HOSTDEV LID VelocityBlockContainer<LID>::capacity() const {
+   inline CUDA_HOSTDEV vmesh::LocalID VelocityBlockContainer::capacity() const {
       return currentCapacity;
    }
 
-   template<typename LID> inline
-   CUDA_HOSTDEV size_t VelocityBlockContainer<LID>::capacityInBytes() const {
+   inline CUDA_HOSTDEV size_t VelocityBlockContainer::capacityInBytes() const {
       return (block_data->capacity())*sizeof(Realf) + parameters->capacity()*sizeof(Real);
    }
 
    /** Clears VelocityBlockContainer data and deallocates all memory
     * reserved for velocity blocks.*/
-   template<typename LID> inline
-   void VelocityBlockContainer<LID>::clear() {
+   inline void VelocityBlockContainer::clear() {
 #ifdef USE_CUDA
       block_data->clear();
       block_data->shrink_to_fit();
@@ -213,8 +205,7 @@ namespace vmesh {
       numberOfBlocks = 0;
    }
 
-   template<typename LID> inline
-   CUDA_HOSTDEV void VelocityBlockContainer<LID>::copy(const LID& source,const LID& target) {
+   inline CUDA_HOSTDEV void VelocityBlockContainer::copy(const vmesh::LocalID& source,const vmesh::LocalID& target) {
       #ifdef DEBUG_VBC
          bool ok = true;
          if (source >= numberOfBlocks) ok = false;
@@ -245,8 +236,7 @@ namespace vmesh {
       }
    }
 
-   template<typename LID> inline
-   void VelocityBlockContainer<LID>::exitInvalidLocalID(const LID& localID,const std::string& funcName) const {
+   inline void VelocityBlockContainer::exitInvalidLocalID(const vmesh::LocalID& localID,const std::string& funcName) const {
       int rank;
       MPI_Comm_rank(MPI_COMM_WORLD,&rank);
 
@@ -260,23 +250,19 @@ namespace vmesh {
       exit(1);
    }
 
-   template<typename LID> inline
-   CUDA_HOSTDEV double VelocityBlockContainer<LID>::getBlockAllocationFactor() {
+   inline CUDA_HOSTDEV double VelocityBlockContainer::getBlockAllocationFactor() {
       return BLOCK_ALLOCATION_FACTOR;
    }
 
-   template<typename LID> inline
-   CUDA_HOSTDEV Realf* VelocityBlockContainer<LID>::getData() {
+   inline CUDA_HOSTDEV Realf* VelocityBlockContainer::getData() {
       return block_data->data();
    }
 
-   template<typename LID> inline
-   CUDA_HOSTDEV const Realf* VelocityBlockContainer<LID>::getData() const {
+   inline CUDA_HOSTDEV const Realf* VelocityBlockContainer::getData() const {
       return block_data->data();
    }
 
-   template<typename LID> inline
-   CUDA_HOSTDEV Realf* VelocityBlockContainer<LID>::getData(const LID& blockLID) {
+   inline CUDA_HOSTDEV Realf* VelocityBlockContainer::getData(const vmesh::LocalID& blockLID) {
       #ifdef DEBUG_VBC
          if (blockLID >= numberOfBlocks) exitInvalidLocalID(blockLID,"getData");
          if (blockLID >= block_data->size()/WID3) exitInvalidLocalID(blockLID,"const getData const");
@@ -284,8 +270,7 @@ namespace vmesh {
       return block_data->data() + blockLID*WID3;
    }
 
-   template<typename LID> inline
-   CUDA_HOSTDEV const Realf* VelocityBlockContainer<LID>::getData(const LID& blockLID) const {
+   inline CUDA_HOSTDEV const Realf* VelocityBlockContainer::getData(const vmesh::LocalID& blockLID) const {
       #ifdef DEBUG_VBC
          if (blockLID >= numberOfBlocks) exitInvalidLocalID(blockLID,"const getData const");
          if (blockLID >= block_data->size()/WID3) exitInvalidLocalID(blockLID,"const getData const");
@@ -294,9 +279,8 @@ namespace vmesh {
    }
 
 #ifdef USE_CUDA
-   template<typename LID> inline
-   void VelocityBlockContainer<LID>::dev_Allocate(LID size) {
-      LID requirement = (size > numberOfBlocks) ? size : numberOfBlocks;
+   inline void VelocityBlockContainer::dev_Allocate(vmesh::LocalID size) {
+      vmesh::LocalID requirement = (size > numberOfBlocks) ? size : numberOfBlocks;
       if (block_data->capacity() > BLOCK_ALLOCATION_FACTOR * requirement) {
          return; // Still have enough buffer
       }
@@ -313,8 +297,7 @@ namespace vmesh {
       return;
    }
 
-   template<typename LID> inline
-   void VelocityBlockContainer<LID>::dev_Allocate() {
+   inline void VelocityBlockContainer::dev_Allocate() {
       if (block_data->capacity() > BLOCK_ALLOCATION_FACTOR * numberOfBlocks) {
          return; // Still have enough buffer
       }
@@ -323,16 +306,14 @@ namespace vmesh {
       return;
    }
 
-   template<typename LID> inline
-   void VelocityBlockContainer<LID>::dev_prefetchHost() {
+   inline void VelocityBlockContainer::dev_prefetchHost() {
       if (numberOfBlocks==0) return;
       block_data->optimizeCPU(cuda_getStream());
       parameters->optimizeCPU(cuda_getStream());
       return;
    }
 
-   template<typename LID> inline
-   void VelocityBlockContainer<LID>::dev_prefetchDevice() {
+   inline void VelocityBlockContainer::dev_prefetchDevice() {
       if (numberOfBlocks==0) return;
       block_data->optimizeGPU(cuda_getStream());
       parameters->optimizeGPU(cuda_getStream());
@@ -340,18 +321,15 @@ namespace vmesh {
    }
 #endif
 
-   template<typename LID> inline
-   CUDA_HOSTDEV Real* VelocityBlockContainer<LID>::getParameters() {
+   inline CUDA_HOSTDEV Real* VelocityBlockContainer::getParameters() {
       return parameters->data();
    }
 
-   template<typename LID> inline
-   CUDA_HOSTDEV const Real* VelocityBlockContainer<LID>::getParameters() const {
+   inline CUDA_HOSTDEV const Real* VelocityBlockContainer::getParameters() const {
       return parameters->data();
    }
 
-   template<typename LID> inline
-   CUDA_HOSTDEV Real* VelocityBlockContainer<LID>::getParameters(const LID& blockLID) {
+   inline CUDA_HOSTDEV Real* VelocityBlockContainer::getParameters(const vmesh::LocalID& blockLID) {
       #ifdef DEBUG_VBC
          if (blockLID >= numberOfBlocks) exitInvalidLocalID(blockLID,"getParameters");
          if (blockLID >= parameters->size()/BlockParams::N_VELOCITY_BLOCK_PARAMS) exitInvalidLocalID(blockLID,"getParameters");
@@ -359,8 +337,7 @@ namespace vmesh {
       return parameters->data() + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
    }
 
-   template<typename LID> inline
-   CUDA_HOSTDEV const Real* VelocityBlockContainer<LID>::getParameters(const LID& blockLID) const {
+   inline CUDA_HOSTDEV const Real* VelocityBlockContainer::getParameters(const vmesh::LocalID& blockLID) const {
       #ifdef DEBUG_VBC
          if (blockLID >= numberOfBlocks) exitInvalidLocalID(blockLID,"const getParameters const");
          if (blockLID >= parameters->size()/BlockParams::N_VELOCITY_BLOCK_PARAMS) exitInvalidLocalID(blockLID,"getParameters");
@@ -368,15 +345,13 @@ namespace vmesh {
       return parameters->data() + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
    }
 
-   template<typename LID> inline
-   CUDA_HOSTDEV void VelocityBlockContainer<LID>::pop() {
+   inline CUDA_HOSTDEV void VelocityBlockContainer::pop() {
       if (numberOfBlocks == 0) return;
       --numberOfBlocks;
    }
 
-   template<typename LID> inline
-   CUDA_HOSTDEV LID VelocityBlockContainer<LID>::push_back() {
-      LID newIndex = numberOfBlocks;
+   inline CUDA_HOSTDEV vmesh::LocalID VelocityBlockContainer::push_back() {
+      vmesh::LocalID newIndex = numberOfBlocks;
       if (newIndex >= currentCapacity) {
 #pragma nv_diag_suppress 20011,20014
          resize();
@@ -404,9 +379,8 @@ namespace vmesh {
       return newIndex;
    }
 
-   template<typename LID> inline
-   CUDA_HOSTDEV LID VelocityBlockContainer<LID>::push_back(const uint32_t& N_blocks) {
-      const LID newIndex = numberOfBlocks;
+   inline CUDA_HOSTDEV vmesh::LocalID VelocityBlockContainer::push_back(const uint32_t& N_blocks) {
+      const vmesh::LocalID newIndex = numberOfBlocks;
       numberOfBlocks += N_blocks;
       if (numberOfBlocks > currentCapacity) {
 #pragma nv_diag_suppress 20014
@@ -424,8 +398,7 @@ namespace vmesh {
       return newIndex;
    }
 
-   template<typename LID> inline
-   bool VelocityBlockContainer<LID>::recapacitate(const LID& newCapacity) {
+   inline bool VelocityBlockContainer::recapacitate(const vmesh::LocalID& newCapacity) {
       if (newCapacity < numberOfBlocks) return false;
       {
 #ifdef USE_CUDA
@@ -451,8 +424,7 @@ namespace vmesh {
    return true;
    }
 
-   template<typename LID> inline
-   void VelocityBlockContainer<LID>::resize() {
+   inline void VelocityBlockContainer::resize() {
 #ifdef USE_CUDA
       if (numberOfBlocks*BLOCK_ALLOCATION_FACTOR >= currentCapacity) {
          // Resize so that free space is block_allocation_chunk blocks,
@@ -476,8 +448,7 @@ namespace vmesh {
 #endif
    }
 
-   template<typename LID> inline
-   CUDA_HOSTDEV bool VelocityBlockContainer<LID>::setSize(const LID& newSize) {
+   inline CUDA_HOSTDEV bool VelocityBlockContainer::setSize(const vmesh::LocalID& newSize) {
       numberOfBlocks = newSize;
       if (newSize > currentCapacity) {
 #pragma nv_diag_suppress 20014
@@ -488,22 +459,19 @@ namespace vmesh {
 
    /** Return the number of existing velocity blocks.
     * @return Number of existing velocity blocks.*/
-   template<typename LID> inline
-   CUDA_HOSTDEV LID VelocityBlockContainer<LID>::size() const {
+   inline CUDA_HOSTDEV vmesh::LocalID VelocityBlockContainer::size() const {
       return numberOfBlocks;
    }
 
-   template<typename LID> inline
-   CUDA_HOSTDEV size_t VelocityBlockContainer<LID>::sizeInBytes() const {
+   inline CUDA_HOSTDEV size_t VelocityBlockContainer::sizeInBytes() const {
       return block_data->size()*sizeof(Realf) + parameters->size()*sizeof(Real);
    }
 
-   template<typename LID> inline
-   CUDA_HOSTDEV void VelocityBlockContainer<LID>::swap(VelocityBlockContainer& vbc) {
+   inline CUDA_HOSTDEV void VelocityBlockContainer::swap(VelocityBlockContainer& vbc) {
       block_data->swap(*(vbc.block_data));
       parameters->swap(*(vbc.parameters));
 
-      LID dummy = currentCapacity;
+      vmesh::LocalID dummy = currentCapacity;
       currentCapacity = vbc.currentCapacity;
       vbc.currentCapacity = dummy;
 
@@ -514,8 +482,7 @@ namespace vmesh {
 
    #ifdef DEBUG_VBC
 
-   template<typename LID> inline
-   const Realf& VelocityBlockContainer<LID>::getData(const LID& blockLID,const unsigned int& cell) const {
+   inline const Realf& VelocityBlockContainer::getData(const vmesh::LocalID& blockLID,const unsigned int& cell) const {
       bool ok = true;
       if (cell >= WID3) ok = false;
       if (blockLID >= numberOfBlocks) ok = false;
@@ -533,8 +500,7 @@ namespace vmesh {
       return (*block_data)[blockLID*WID3+cell];
    }
 
-   template<typename LID> inline
-   const Real& VelocityBlockContainer<LID>::getParameters(const LID& blockLID,const unsigned int& cell) const {
+   inline const Real& VelocityBlockContainer::getParameters(const vmesh::LocalID& blockLID,const unsigned int& cell) const {
       bool ok = true;
       if (cell >= BlockParams::N_VELOCITY_BLOCK_PARAMS) ok = false;
       if (blockLID >= numberOfBlocks) ok = false;
@@ -552,8 +518,7 @@ namespace vmesh {
       return (*parameters)[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+cell];
    }
 
-   template<typename LID> inline
-   void VelocityBlockContainer<LID>::setData(const LID& blockLID,const unsigned int& cell,const Realf& value) {
+   inline void VelocityBlockContainer::setData(const vmesh::LocalID& blockLID,const unsigned int& cell,const Realf& value) {
       bool ok = true;
       if (cell >= WID3) ok = false;
       if (blockLID >= numberOfBlocks) ok = false;

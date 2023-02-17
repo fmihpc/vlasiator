@@ -88,7 +88,7 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell,
    double t1 = MPI_Wtime();
 
    vmesh::VelocityMesh& vmesh    = spatial_cell->get_velocity_mesh(popID);
-   vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks(popID);
+   vmesh::VelocityBlockContainer& blockContainer = spatial_cell->get_velocity_blocks(popID);
 
    // compute transform, forward in time and backward in time
    phiprof::start("compute-transform");
