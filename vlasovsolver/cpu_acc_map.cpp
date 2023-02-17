@@ -45,12 +45,12 @@ using namespace spatial_cell;
  * @return Local ID of the added block. If the block was not added, the 
  * local ID of the null velocity block is returned instead.*/
 vmesh::LocalID addVelocityBlock(const vmesh::GlobalID& blockGID,
-        vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
+        vmesh::VelocityMesh& vmesh,
         vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer) {
     // Block insert will fail if the block already exists, or if 
     // there are too many blocks in the velocity mesh.
     if (vmesh.push_back(blockGID) == false) 
-        return vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID();
+        return vmesh::VelocityMesh::invalidLocalID();
 
     // Insert velocity block data, this will set values to 0.
     const vmesh::LocalID newBlockLID = blockContainer.push_back();
@@ -126,7 +126,7 @@ bool map_1d(SpatialCell* spatial_cell,
    uint block_indices_to_id[3] = {0, 0, 0}; /*< used when computing id of target block, 0 for compiler */
    uint cell_indices_to_id[3] = {0, 0, 0}; /*< used when computing id of target cell in block, 0 for compiler */
 
-   vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = spatial_cell->get_velocity_mesh(popID);
+   vmesh::VelocityMesh& vmesh    = spatial_cell->get_velocity_mesh(popID);
    vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks(popID);
 
    //nothing to do if no blocks

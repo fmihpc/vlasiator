@@ -44,7 +44,7 @@ inline bool paircomparator( const std::pair<uint, uint> & l, const std::pair<uin
 */
 #warning "unfinished documentation"
 void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
-                               const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
+                               const vmesh::VelocityMesh& vmesh,
                                const uint dimension,
                                uint* blocks,
                                std::vector<uint> & columnBlockOffsets,

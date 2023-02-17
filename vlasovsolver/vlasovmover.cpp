@@ -477,7 +477,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
        vector<CellID> propagatedCells;
        for (size_t c=0; c<cells.size(); ++c) {
           SpatialCell* SC = mpiGrid[cells[c]];
-          const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = SC->get_velocity_mesh(popID);
+          const vmesh::VelocityMesh& vmesh = SC->get_velocity_mesh(popID);
           // disregard boundary cells, in preparation for acceleration
           if (  (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ||
                 // Include inflow-Maxwellian

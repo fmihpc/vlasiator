@@ -379,7 +379,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
 
    for(uint celli = 0; celli < allCellsPointer.size(); celli++) {
-      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = allCellsPointer[celli]->get_velocity_mesh(popID);
+      vmesh::VelocityMesh& vmesh = allCellsPointer[celli]->get_velocity_mesh(popID);
       for (vmesh::LocalID block_i=0; block_i< vmesh.size(); ++block_i) {
          unionOfBlocksSet.insert(vmesh.getGlobalID(block_i));
       }
@@ -395,7 +395,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
 
    const uint8_t REFLEVEL=0;
-   const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = allCellsPointer[0]->get_velocity_mesh(popID);
+   const vmesh::VelocityMesh& vmesh = allCellsPointer[0]->get_velocity_mesh(popID);
    // set cell size in dimension direction
    dvz = vmesh.getCellSize(REFLEVEL)[dimension];
    vz_min = vmesh.getMeshMinLimits()[dimension];
@@ -478,7 +478,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             //that are valid
             targetsValid[celli] = false;
 
-            if (blockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID() ||
+            if (blockLID == vmesh::VelocityMesh::invalidLocalID() ||
                 get_spatial_neighbor(mpiGrid, cellID, true, 0, 0, 0) == INVALID_CELLID) {
                //do nothing if it is not a normal cell, or a cell that is in the
                //first boundary layer, or the block does not exist in this
@@ -595,7 +595,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             SpatialCell* spatial_cell = allCellsPointer[celli];
             if(spatial_cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
                const vmesh::LocalID blockLID = allCellsBlockLocalID[celli];
-               if (blockLID != vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
+               if (blockLID != vmesh::VelocityMesh::invalidLocalID()) {
                   Realf* blockData = spatial_cell->get_data(blockLID, popID);
                   for(int i = 0; i < WID3; i++) {
                      blockData[i] = 0.0;
@@ -615,7 +615,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
                   }
 
                   const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blockGID, popID);
-                  if (blockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
+                  if (blockLID == vmesh::VelocityMesh::invalidLocalID()) {
                      // block does not exist. If so, we do not create it and add stuff to it here.
                      // We have already created blocks around blocks with content in
                      // spatial sense, so we have no need to create even more blocks here

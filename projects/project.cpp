@@ -270,14 +270,14 @@ namespace projects {
    }
    
    void Project::setVelocitySpace(const uint popID,SpatialCell* cell) const {
-      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = cell->get_velocity_mesh(popID);
+      vmesh::VelocityMesh& vmesh = cell->get_velocity_mesh(popID);
 
       vector<vmesh::GlobalID> blocksToInitialize = this->findBlocksToInitialize(cell,popID);
       vector<vmesh::GlobalID> removeList;
       for (uint i=0; i<blocksToInitialize.size(); ++i) {
          const vmesh::GlobalID blockGID = blocksToInitialize[i];
          const vmesh::LocalID blockLID = vmesh.getLocalID(blockGID);
-         if (blockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
+         if (blockLID == vmesh::VelocityMesh::invalidLocalID()) {
             cerr << "ERROR, invalid local ID in " << __FILE__ << ":" << __LINE__ << endl;
             exit(1);
          }

@@ -71,7 +71,7 @@ void cuda_calculateMoments_V(
             cell->parameters[CellParams::P_33_V] = 0.0;
          }
 
-         vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = cell->get_velocity_mesh(popID);
+         vmesh::VelocityMesh& vmesh    = cell->get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
          const uint nBlocks = vmesh.size();
          if (nBlocks == 0) continue;
@@ -230,7 +230,7 @@ void cuda_calculateMoments_R(
             cell->parameters[CellParams::P_33_R] = 0.0;
          }
 
-         vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = cell->get_velocity_mesh(popID);
+         vmesh::VelocityMesh& vmesh    = cell->get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
          const uint nBlocks = vmesh.size();
          if (nBlocks == 0) continue;

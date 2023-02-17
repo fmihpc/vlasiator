@@ -94,7 +94,7 @@ void cuda_accelerate_cell(SpatialCell* spatial_cell,
                          const Real& dt) {
    double t1 = MPI_Wtime();
 
-   vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = spatial_cell->get_velocity_mesh(popID);
+   vmesh::VelocityMesh& vmesh    = spatial_cell->get_velocity_mesh(popID);
    vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks(popID);
 
    // Launch cuda transfers

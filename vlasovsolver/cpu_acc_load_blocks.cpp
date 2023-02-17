@@ -26,7 +26,7 @@
 #include "cpu_acc_load_blocks.hpp"
 
 void loadColumnBlockData(
-   const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
+   const vmesh::VelocityMesh& vmesh,
    vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer,
    vmesh::GlobalID* blocks,
    vmesh::LocalID n_blocks,

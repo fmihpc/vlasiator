@@ -719,7 +719,7 @@ void propagatePencil(
    const uint dimension,
    const uint blockGID,
    const Realv dt,
-   const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> &vmesh,
+   const vmesh::VelocityMesh &vmesh,
    const uint lengthOfPencil,
    const Realv threshold
 ) {
@@ -1486,7 +1486,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    }
    
    // Get a pointer to the velocity mesh of the first spatial cell
-   const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = allCellsPointer[0]->get_velocity_mesh(popID);
+   const vmesh::VelocityMesh& vmesh = allCellsPointer[0]->get_velocity_mesh(popID);
    
    phiprof::start("buildBlockList");
    // Get a unique sorted list of blockids that are in any of the
@@ -1504,7 +1504,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 #pragma omp for
       for(unsigned int i=0; i<allCellsPointer.size(); i++) {
          auto cell = &allCellsPointer[i];
-         vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& cvmesh = (*cell)->get_velocity_mesh(popID);
+         vmesh::VelocityMesh& cvmesh = (*cell)->get_velocity_mesh(popID);
          for (vmesh::LocalID block_i=0; block_i< cvmesh.size(); ++block_i) {
             thread_unionOfBlocksSet.insert(cvmesh.getGlobalID(block_i));
          }
@@ -1650,7 +1650,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                   const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blockGID, popID);
                   
                   // Check for invalid block id
-                  if (blockLID != vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
+                  if (blockLID != vmesh::VelocityMesh::invalidLocalID()) {
                      
                      // Get a pointer to the block data
                      Realf* blockData = spatial_cell->get_data(blockLID, popID);
@@ -1682,7 +1682,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                      const vmesh::LocalID blockLID = targetCell->get_velocity_block_local_id(blockGID, popID);
 
                      // Check for invalid block id
-                     if( blockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID() ) {
+                     if( blockLID == vmesh::VelocityMesh::invalidLocalID() ) {
                         continue;
                      }
                      

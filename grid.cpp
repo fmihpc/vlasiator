@@ -654,7 +654,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    for (uint i=0; i<cells.size(); ++i) {
       SpatialCell* SC = mpiGrid[cells[i]];
       for (size_t popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = SC->get_velocity_mesh(popID);
+         const vmesh::VelocityMesh& vmesh = SC->get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = SC->get_velocity_blocks(popID);
          cudaBlockCount = vmesh.size();
          // dev_Allocate checks if increased allocation is necessary, also performs deallocation first if necessary

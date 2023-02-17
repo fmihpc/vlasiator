@@ -44,7 +44,7 @@ inline bool tripletcomparator( const std::pair<std::pair<uint, uint>, uint> & l,
 */
 #warning "unfinished documentation"
 void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
-                               const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
+                               const vmesh::VelocityMesh& vmesh,
                                const uint dimension,
                                vmesh::GlobalID* blocksGID,
                                vmesh::LocalID* blocksLID,
