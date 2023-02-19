@@ -60,3 +60,64 @@ double ionogpu::dotProduct<double>(const std::vector<double>& v, const std::vect
 // scalar * v + w
 template
 std::vector<double> ionogpu::multiplyVectorWithScalarAndAddItToAnotherVector<double>(const double scalar, const std::vector<double>& v, const std::vector<double>& w);
+
+
+template
+std::vector<float> ionogpu::matrixVectorProduct<float>(const std::vector<float>& M, const std::vector<float>& v);
+
+template
+std::vector<float> ionogpu::preSparseMatrixVectorProduct<float>(
+    const size_t n, const size_t m,    
+    const std::vector<float>& A,
+    const std::vector<size_t>& indecies,
+    const std::vector<float>& b);
+
+template
+std::vector<float> ionogpu::sparseMatrixVectorProduct<float>(
+    const size_t n, const size_t m,    
+    const std::vector<float>& A,
+    const std::vector<size_t>& indecies,
+    const std::vector<float>& b);
+
+template 
+ionogpu::ReturnOfSparseBiCGCUDA<float> ionogpu::sparseBiCGCUDA<float>(
+        const size_t n, const size_t m,    
+        const std::vector<float>& sparse_A,
+        const std::vector<float>& sparse_A_trasposed,
+        const std::vector<size_t>& indecies,
+        const std::vector<float>& b,
+        const ionogpu::ConfigurationForIonosphereGPUSolver<float>& config);
+
+template 
+ionogpu::ReturnOfSparseBiCGCUDA<float> ionogpu::sparseBiCGSTABCUDA<float>(
+        const size_t n, const size_t m,    
+        const std::vector<float>& sparse_A,
+        const std::vector<size_t>& indecies,
+        const std::vector<float>& b,
+        const ionogpu::ConfigurationForIonosphereGPUSolver<float>& config);
+
+        
+ 
+
+template
+std::vector<float> ionogpu::vectorAddition<float>(const std::vector<float>& a, const std::vector<float>& b);
+
+template
+std::vector<float> ionogpu::vectorSubtraction<float>(const std::vector<float>& a, const std::vector<float>& b);
+
+template
+float ionogpu::vectorNormSquared<float>(const std::vector<float>& v);
+
+template
+std::vector<float> ionogpu::vectorElementwiseMultiplication<float>(const std::vector<float>& a, const std::vector<float>& b);
+
+template
+std::vector<float> ionogpu::vectorElementwiseDivision<float>(const std::vector<float>& a, const std::vector<float>& b);
+
+
+template
+float ionogpu::dotProduct<float>(const std::vector<float>& v, const std::vector<float>& w);
+
+// scalar * v + w
+template
+std::vector<float> ionogpu::multiplyVectorWithScalarAndAddItToAnotherVector<float>(const float scalar, const std::vector<float>& v, const std::vector<float>& w);
