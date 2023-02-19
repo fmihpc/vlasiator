@@ -3,6 +3,8 @@
 # Tests
 ####################################################################################################
 
+run_command('./create_tests_from_prototypes.sh', check: true)
+
 # Structure is that each element is: name_of_test : [source_files_for_tests]
 test_prototypes = [
     'vector_norm_squared_1',

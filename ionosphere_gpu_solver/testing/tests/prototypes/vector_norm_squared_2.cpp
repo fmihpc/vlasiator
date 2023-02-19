@@ -224,7 +224,7 @@ auto main() -> int {
 
     std::cout << norm << " " << norm_correct << " \n";
     std::cout << absolute_error <<  " " << relative_error << "\n";
-    // Absolute error on floats might actually be quite large so we eill just test relative error
+    // Absolute error on floats might actually be quite large so we eill just test relative errorcd .
     //assert(absolute_error < test_type{ 0.0 });
     assert(relative_error < test_type{ 0.01 });
 
