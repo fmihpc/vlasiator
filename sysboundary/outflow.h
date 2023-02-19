@@ -153,7 +153,6 @@ namespace SBC {
          LIMIT,
          N_SCHEMES
       };
-      
    }; // class Outflow
 } // namespace SBC
 

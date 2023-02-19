@@ -122,7 +122,7 @@ bool map_1d(SpatialCell* spatial_cell,
 
    Realv dv,v_min;
    Realv is_temp;
-   uint max_v_length;
+   int max_v_length;
    uint block_indices_to_id[3] = {0, 0, 0}; /*< used when computing id of target block, 0 for compiler */
    uint cell_indices_to_id[3] = {0, 0, 0}; /*< used when computing id of target cell in block, 0 for compiler */
 
@@ -312,21 +312,21 @@ bool map_1d(SpatialCell* spatial_cell,
          const int firstBlock_gk = (int)((firstBlockMinV - max_intersectionMin)/intersection_dk);
          const int lastBlock_gk = (int)((lastBlockMaxV - min_intersectionMin)/intersection_dk);
 
-         uint firstBlockIndexK = firstBlock_gk/WID;         
-         uint lastBlockIndexK = lastBlock_gk/WID;
-         
+         int firstBlockIndexK = firstBlock_gk/WID;
+         int lastBlockIndexK = lastBlock_gk/WID;
+         int wallmargin = Parameters::bailout_velocity_space_wall_margin;
          //now enforce mesh limits for target column blocks
          firstBlockIndexK = (firstBlockIndexK >= 0)            ? firstBlockIndexK : 0;
          firstBlockIndexK = (firstBlockIndexK < max_v_length ) ? firstBlockIndexK : max_v_length - 1;
          lastBlockIndexK  = (lastBlockIndexK  >= 0)            ? lastBlockIndexK  : 0;
          lastBlockIndexK  = (lastBlockIndexK  < max_v_length ) ? lastBlockIndexK  : max_v_length - 1;
-         if(firstBlockIndexK < Parameters::bailout_velocity_space_wall_margin
-            || firstBlockIndexK >= max_v_length - Parameters::bailout_velocity_space_wall_margin
-            || lastBlockIndexK < Parameters::bailout_velocity_space_wall_margin
-            || lastBlockIndexK >= max_v_length - Parameters::bailout_velocity_space_wall_margin
+         if(firstBlockIndexK < wallmargin
+            || firstBlockIndexK >= max_v_length - wallmargin
+            || lastBlockIndexK < wallmargin
+            || lastBlockIndexK >= max_v_length - wallmargin
          ) {
             string message = "Some target blocks in acceleration are going to be less than ";
-            message += std::to_string(Parameters::bailout_velocity_space_wall_margin);
+            message += std::to_string(wallmargin);
             message += " blocks away from the current velocity space walls for population ";
             message += getObjectWrapper().particleSpecies[popID].name;
             message += " at CellID ";
@@ -341,7 +341,7 @@ bool map_1d(SpatialCell* spatial_cell,
          }
          
          //store target blocks
-         for (uint blockK = firstBlockIndexK; blockK <= lastBlockIndexK; blockK++){
+         for (uint blockK = firstBlockIndexK; (int)blockK <= lastBlockIndexK; blockK++){
             isTargetBlock[blockK]=true;
          }
 
@@ -409,7 +409,7 @@ bool map_1d(SpatialCell* spatial_cell,
           
              Note that the i dimension is vectorized, and thus there are no loops over i
          */
-         for (uint j = 0; j < WID; j += VECL/WID){ 
+         for (int j = 0; j < WID; j += VECL/WID){
             // create vectors with the i and j indices in the vector position on the plane.
             #if VECL == 4       
             const Veci i_indices = Veci(0, 1, 2, 3);

@@ -52,6 +52,7 @@
 #include "derivatives.hpp"
 #include "fs_limiters.h"
 #include "mpiconversion.h"
+#include "../fieldtracing/fieldtracing.h"
 
 /*! Re-initialize field propagator after rebalance. E, BGB, RHO, RHO_V,
  cell_dimensions, sysboundaryflag need to be up to date for the
@@ -396,5 +397,9 @@ bool propagateFields(
    
    calculateVolumeAveragedFields(perBGrid,EGrid,dPerBGrid,volGrid,technicalGrid);
    calculateBVOLDerivativesSimple(volGrid, technicalGrid, sysBoundaries);
+   if(FieldTracing::fieldTracingParameters.doTraceFullBox || Parameters::computeCurvature) {
+      volGrid.updateGhostCells();
+      calculateCurvatureSimple(volGrid, BgBGrid, technicalGrid, sysBoundaries);
+   }
    return true;
 }
