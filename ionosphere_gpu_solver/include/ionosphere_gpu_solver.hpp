@@ -126,9 +126,8 @@ namespace ionogpu {
 
    /** 
     *  This function will be called in ionosphere.cpp
-    *  We use SparseMatrix as interface object to ionogpu library
-    *  This might change later.
-    *
+    *  We use SparseMatrix (templated as SM) as interface object to ionogpu library
+    *    
     *  We assume that
     *     I &nIterations, This is not actually used for anything other than setting to zero in original solver
     *     I &nRestarts, 
@@ -146,6 +145,7 @@ namespace ionogpu {
    template <
       typename SM,
       typename I,
+      // we allow only floats and double
       typename = std::enable_if_t<std::is_same_v<typename SM::float_t, float> || std::is_same_v<typename SM::float_t, double>>
    >
    std::vector<typename SM::float_t> solveIonospherePotentialGPU(
@@ -161,26 +161,29 @@ namespace ionogpu {
       assert(n > 0);
       const auto m = A.rows.front()->size();
 
+      using data_type = typename SM::float_t;
+
       const auto [A_vec, A_trasposed_vec, indecies_vec] = [&] {
-         std::vector<double> A_vec_temp(n * m, 0);
-         std::vector<double> A_transposed_vec_temp(n * m);
+         std::vector<data_type> A_vec_temp(n * m, 0);
+         std::vector<data_type> A_transposed_vec_temp(n * m);
          std::vector<size_t> indecies_vec_temp(n * m, 0);
          #if defined(_OPENMP)
              #pragma omp for
          #endif
          for (size_t i = 0; i < n; ++i) {
             for (size_t j = 0; j < A.elements_on_each_row[i]; ++j) {
-               A_vec_temp[i * m + j] = static_cast<double>((*A.rows[i])[j]);
-               A_transposed_vec_temp[i * m + j] = static_cast<double>((*A.rows_after_transposition[i])[j]);
+               A_vec_temp[i * m + j] = (*A.rows[i])[j];
+               A_transposed_vec_temp[i * m + j] = (*A.rows_after_transposition[i])[j];
                indecies_vec_temp[i * m + j] = (*(A.indecies[i]))[j];
             }
          }
-         return std::tuple{std::move(A_vec_temp), std::move(A_transposed_vec_temp), std::move(indecies_vec_temp)};
+         return std::tuple<std::vector<data_type>, std::vector<data_type>, std::vector<size_t>>
+            {std::move(A_vec_temp), std::move(A_transposed_vec_temp), std::move(indecies_vec_temp)};
       }();
 
    
       auto [number_of_iterations, number_of_restarts, min_error, x_vec] = 
-         sparseBiCGCUDA(
+         sparseBiCGCUDA<data_type>(
             n, m,
             A_vec,
             A_trasposed_vec,
