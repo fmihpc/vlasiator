@@ -56,6 +56,33 @@ void assignConductivityTensor(std::vector<SphericalTriGrid::Node>& nodes, Real s
    }
 }
 
+void assignConductivityTensorFromLoadedData(std::vector<SphericalTriGrid::Node>& nodes) {
+   constexpr char epsilon[3][3][3] = {
+      {{0,0,0},{0,0,1},{0,-1,0}},
+      {{0,0,-1},{0,0,0},{1,0,0}},
+      {{0,1,0},{-1,0,0},{0,0,0}}
+   };
+
+   for(uint n=0; n<nodes.size(); n++) {
+      Real sigmaH = nodes[n].parameters[ionosphereParameters::SIGMAH];
+      Real sigmaP = nodes[n].parameters[ionosphereParameters::SIGMAP];
+      std::array<Real, 3> b = {nodes[n].x[0] / Ionosphere::innerRadius, nodes[n].x[1] / Ionosphere::innerRadius, nodes[n].x[2] / Ionosphere::innerRadius};
+      if(nodes[n].x[2] >= 0) {
+         b[0] *= -1;
+         b[1] *= -1;
+         b[2] *= -1;
+      }
+      for(int i=0; i<3; i++) {
+         for(int j=0; j<3; j++) {
+            nodes[n].parameters[ionosphereParameters::SIGMA + i*3 + j] = sigmaP * (((i==j)? 1. : 0.) - b[i]*b[j]);
+            for(int k=0; k<3; k++) {
+               nodes[n].parameters[ionosphereParameters::SIGMA + i*3 + j] -= sigmaH * epsilon[i][j][k]*b[k];
+            }
+         }
+      }
+   }
+}
+
 int main(int argc, char** argv) {
 
    // Init MPI
@@ -237,7 +264,19 @@ int main(int argc, char** argv) {
    } else if(sigmaString == "file") {
       vlsv::ParallelReader inVlsv;
       inVlsv.open(inputFile,MPI_COMM_WORLD,masterProcessID);
-      readIonosphereNodeVariable(inVlsv, "ig_sigma", ionosphereGrid, ionosphereParameters::SIGMA);
+
+      // Try to read the sigma tensor directly
+      if(!readIonosphereNodeVariable(inVlsv, "ig_sigma", ionosphereGrid, ionosphereParameters::SIGMA)) {
+
+         // If that doesn't exist, reconstruct it from the sigmaH and sigmaP components
+         // (This assumes that the input file was run with the "GUMICS" conductivity model. Which is reasonable,
+         // because the others don't work very well)
+         cerr << "Reading conductivity tensor from ig_sigmah, ig_sigmap." << endl;
+         readIonosphereNodeVariable(inVlsv, "ig_sigmah", ionosphereGrid, ionosphereParameters::SIGMAH);
+         readIonosphereNodeVariable(inVlsv, "ig_sigmap", ionosphereGrid, ionosphereParameters::SIGMAP);
+         //readIonosphereNodeVariable(inVlsv, "ig_sigmaparallel", ionosphereGrid, ionosphereParameters::SIGMAPARALLEL);
+         assignConductivityTensorFromLoadedData(nodes);
+      }
    } else if(sigmaString == "ponly") {
          Real sigmaP=3.;
          Real sigmaH=0.;
