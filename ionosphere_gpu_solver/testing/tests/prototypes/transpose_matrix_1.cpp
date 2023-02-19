@@ -4,7 +4,7 @@
 #include <iterator>
 #include <iostream>
 #include <ranges>
-using test_type = int;
+using test_type = TEST_TYPE_PROTOTYPE;
 
 constexpr auto n = 10;
 static const auto M = std::vector<test_type> {

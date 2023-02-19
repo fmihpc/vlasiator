@@ -3,7 +3,7 @@
 #include <cassert>
 #include <vector>
 
-using test_type = double;
+using test_type = TEST_TYPE_PROTOTYPE;
 
 constexpr size_t n = 100;
 static const auto M = std::vector<test_type> {
@@ -129,8 +129,8 @@ auto main() -> int {
     }();
 
     [[maybe_unused]] const auto [absolute_error_2, relative_error_2] = ionogpu::testing::calculate_absolute_and_relative_error_of_range(Mx_correct_2, Mx_correct);
-    assert(absolute_error_2 < 0.001);
-    assert(relative_error_2 < 0.001);
+    assert(absolute_error_2 < test_type{ 0.001 });
+    assert(relative_error_2 < test_type{ 0.001 });
  
     const auto max_number_of_nonzero_elements_on_each_row = 32;
     const auto [indecies, sparse_M] = ionogpu::testing::create_sparse_matrix_from_dense_matrix(M, n, max_number_of_nonzero_elements_on_each_row);
@@ -139,8 +139,8 @@ auto main() -> int {
 
     [[maybe_unused]] const auto [absolute_error, relative_error] = ionogpu::testing::calculate_absolute_and_relative_error_of_range(Mx, Mx_correct);
     
-    assert(absolute_error < 0.0001);
-    assert(relative_error < 0.0001);
+    assert(absolute_error < test_type{ 0.0001 });
+    assert(relative_error < test_type{ 0.0001 });
 
     return 0;
 }

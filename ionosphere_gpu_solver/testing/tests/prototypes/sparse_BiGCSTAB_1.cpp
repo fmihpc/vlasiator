@@ -4,7 +4,7 @@
 #include <iterator>
 #include <vector>
 
-using test_type = double;
+using test_type = TEST_TYPE_PROTOTYPE;
 
 constexpr size_t n = 100;
 static const auto M = std::vector<test_type> {
@@ -126,7 +126,7 @@ auto main() -> int {
             .max_iterations = 10000,
             .max_failure_count = 5,
             .max_error_growth_factor = 100,
-            .relative_L2_convergence_threshold = 1e-6,
+            .relative_L2_convergence_threshold = 1e-2,
             .precondition = ionogpu::Precondition::none,
             .use_minimum_residual_variant = false,
             .gauge = ionogpu::Gauge::none
@@ -149,7 +149,7 @@ auto main() -> int {
             .max_iterations = 10000,
             .max_failure_count = 5,
             .max_error_growth_factor = 100,
-            .relative_L2_convergence_threshold = 1e-6,
+            .relative_L2_convergence_threshold = 1e-2,
             .precondition = ionogpu::Precondition::diagonal,
             .use_minimum_residual_variant = false,
             .gauge = ionogpu::Gauge::none

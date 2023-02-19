@@ -4,7 +4,7 @@
 #include <vector>
 #include <ranges>
 
-using test_type = double;
+using test_type = TEST_TYPE_PROTOTYPE;
 
 
 static const auto a = std::vector<test_type>{
@@ -30,8 +30,8 @@ auto main() -> int {
     [[maybe_unused]] const auto [absolute_error, relative_error] = 
         ionogpu::testing::calculate_absolute_and_relative_error_of_range(scalar_times_a_plus_b, scalar_times_a_plus_b_correct);
 
-    assert(absolute_error < 0.00001);
-    assert(relative_error < 0.00001);
+    assert(absolute_error < test_type{ 0.00001 } );
+    assert(relative_error < test_type{ 0.00001 } );
     
     return 0;
 }

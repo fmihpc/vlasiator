@@ -4,7 +4,7 @@
 #include <iterator>
 #include <vector>
 
-using test_type = double;
+using test_type = TEST_TYPE_PROTOTYPE;
 
 constexpr size_t n = 5;
 static const auto M = std::vector<test_type> {

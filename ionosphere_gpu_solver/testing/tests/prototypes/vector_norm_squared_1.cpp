@@ -6,7 +6,7 @@
 #include <vector>
 #include <array>
 
-using test_type = double;
+using test_type = TEST_TYPE_PROTOTYPE;
 
 auto main() -> int {
     
@@ -19,7 +19,7 @@ auto main() -> int {
     1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
     }; 
 
-    const auto norm_correct = std::accumulate(v.begin(), v.end(), 0.0, [](const auto s, const auto x) { return s + x * x; });
+    const auto norm_correct = std::accumulate(v.begin(), v.end(), test_type{ 0 }, [](const auto s, const auto x) { return s + x * x; });
 
     const auto norm = ionogpu::vectorNormSquared<test_type>(v);
     
@@ -28,8 +28,8 @@ auto main() -> int {
         std::array<test_type, 1>{ norm }, std::array<test_type, 1> { norm_correct }
     );
     
-    assert(absolute_error < 0.0001);
-    assert(relative_error < 0.0001);
+    assert(absolute_error < test_type{ 0.0001 });
+    assert(relative_error < test_type{ 0.0001 });
 
     return 0;
 }

@@ -1,9 +1,10 @@
 #include "ionosphere_gpu_solver.hpp"
 #include "tools.hpp"
 #include <cassert>
+#include <iterator>
 #include <vector>
 
-using test_type = double;
+using test_type = TEST_TYPE_PROTOTYPE;
 
 constexpr size_t n = 100;
 static const auto M = std::vector<test_type> {
@@ -118,29 +119,25 @@ static const auto Mx_correct = std::vector<test_type>{
             };
 auto main() -> int {
 
-    const auto Mx_correct_2 = [&] {
-        auto m = decltype(Mx_correct)(n, 0);
-        for (size_t i = 0; i < n; ++i) {
-            for (size_t j = 0; j < n; ++j) {
-                    m[i] += M[i * n + j] * x[j];
-            }
-        }
-        return m;
-    }();
-
-    [[maybe_unused]] const auto [absolute_error_2, relative_error_2] = ionogpu::testing::calculate_absolute_and_relative_error_of_range(Mx_correct_2, Mx_correct);
-    assert(absolute_error_2 < 0.001);
-    assert(relative_error_2 < 0.001);
- 
     const auto max_number_of_nonzero_elements_on_each_row = 32;
     const auto [indecies, sparse_M] = ionogpu::testing::create_sparse_matrix_from_dense_matrix(M, n, max_number_of_nonzero_elements_on_each_row);
     
-    const auto Mx = ionogpu::sparseMatrixVectorProduct<test_type>(n, max_number_of_nonzero_elements_on_each_row, sparse_M, indecies, x);
+    const auto Mx = [&]() {
+        auto temp = std::vector<test_type>(n, 0);
+        for (size_t i = 0; i < n; ++i) {
+            for (size_t j = 0; j < max_number_of_nonzero_elements_on_each_row; ++j) {
+                const auto k = i * max_number_of_nonzero_elements_on_each_row + j;
+                temp[i] += sparse_M[k] * x[indecies[k]];
+            }
+        }
+        return temp;
+    }();
 
     [[maybe_unused]] const auto [absolute_error, relative_error] = ionogpu::testing::calculate_absolute_and_relative_error_of_range(Mx, Mx_correct);
-    
-    assert(absolute_error < 0.0001);
-    assert(relative_error < 0.0001);
+
+    assert(absolute_error < test_type{ 0.0001 });
+    assert(relative_error < test_type{ 0.0001 });
 
     return 0;
+
 }

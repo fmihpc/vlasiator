@@ -3,7 +3,7 @@
 #include <cassert>
 #include <vector>
 
-using test_type = double;
+using test_type = TEST_TYPE_PROTOTYPE;
 
 auto main() -> int {
     
