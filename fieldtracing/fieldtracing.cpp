@@ -674,8 +674,9 @@ namespace FieldTracing {
          fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,{(Real)x[0], (Real)x[1], (Real)x[2]});
          
          // If we map into the ionosphere, discard this field line.
-         if(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2) < fieldTracingParameters.innerBoundaryRadius*fieldTracingParameters.innerBoundaryRadius) {
-            cellTracingCoordinates[n] = {0,0,0};
+         if(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2) < //fieldTracingParameters.innerBoundaryRadius*fieldTracingParameters.innerBoundaryRadius) {
+            SBC::Ionosphere::innerRadius*SBC::Ionosphere::innerRadius ) { 
+            cellTracingCoordinates[n] = x;
             cellConnection[n] += TracingLineEndType::CLOSED;
             break;
          }
@@ -689,14 +690,14 @@ namespace FieldTracing {
             || x[2] > P::zmax - 4*P::dz_ini
             || x[2] < P::zmin + 4*P::dz_ini
          ) {
-            cellTracingCoordinates[n] = {0,0,0};
+            cellTracingCoordinates[n] = x;
             cellConnection[n] += TracingLineEndType::OPEN;
             break;
          }
          
          // If we exceed the max tracing distance we're probably looping
          if(cellRunningDistance[n] > maxTracingDistance) {
-            cellTracingCoordinates[n] = {0,0,0};
+            cellTracingCoordinates[n] = x;
             cellConnection[n] += TracingLineEndType::DANGLING;
             #pragma omp critical
             {
@@ -1150,6 +1151,12 @@ namespace FieldTracing {
             if (cellFWConnection[n] == TracingLineEndType::DANGLING && cellBWConnection[n] == TracingLineEndType::DANGLING) {
                mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::DANGLING_DANGLING;
             }
+            mpiGrid[id]->parameters[CellParams::CONNECTION_POS_X] = cellFWTracingCoordinates[n][0];
+            mpiGrid[id]->parameters[CellParams::CONNECTION_POS_Y] = cellFWTracingCoordinates[n][1];
+            mpiGrid[id]->parameters[CellParams::CONNECTION_POS_Z] = cellFWTracingCoordinates[n][2];
+            mpiGrid[id]->parameters[CellParams::CONNECTION_NEG_X] = cellBWTracingCoordinates[n][0];
+            mpiGrid[id]->parameters[CellParams::CONNECTION_NEG_Y] = cellBWTracingCoordinates[n][1];
+            mpiGrid[id]->parameters[CellParams::CONNECTION_NEG_Z] = cellBWTracingCoordinates[n][2];
          }
       }
       phiprof::stop("final-loop");
