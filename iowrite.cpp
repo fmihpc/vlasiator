@@ -1420,10 +1420,8 @@ bool writeGrid(
    //Write ghost zone domain and local id numbers ( VisIt plugin needs this for MPI )
    if( writeGhostZoneDomainAndLocalIdNumbers( mpiGrid, vlsvWriter, meshName, ghost_cells ) == false ) return false;
 
-   if(P::systemWriteFsGrid.at(outputFileTypeIndex)) {
-      //Write FSGrid metadata
-      if( writeFsGridMetadata( technicalGrid, vlsvWriter ) == false ) return false;
-   }
+   //Write FSGrid metadata
+   if( writeFsGridMetadata( technicalGrid, vlsvWriter ) == false ) return false;
 
    //Write Ionosphere Grid
    if( writeIonosphereGridMetadata( vlsvWriter ) == false ) return false;
