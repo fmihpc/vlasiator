@@ -3136,10 +3136,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(lowercase == "vg_connection") {
          FieldTracing::fieldTracingParameters.doTraceFullBox = true;
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_connection",CellParams::CONNECTION,1));
-         continue;
-      }
-      if(lowercase == "vg_connection_coordinates") {
-         FieldTracing::fieldTracingParameters.doTraceFullBox = true;
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_connection_coordinates_pos",CellParams::CONNECTION_POS_X,3));
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_connection_coordinates_neg",CellParams::CONNECTION_NEG_X,3));
          continue;
