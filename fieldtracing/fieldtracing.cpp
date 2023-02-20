@@ -674,8 +674,7 @@ namespace FieldTracing {
          fsgridCell = getLocalFsGridCellIndexForCoord(technicalGrid,{(Real)x[0], (Real)x[1], (Real)x[2]});
          
          // If we map into the ionosphere, discard this field line.
-         if(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2) < //fieldTracingParameters.innerBoundaryRadius*fieldTracingParameters.innerBoundaryRadius) {
-            SBC::Ionosphere::innerRadius*SBC::Ionosphere::innerRadius ) { 
+         if(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2) < fieldTracingParameters.innerBoundaryRadius*fieldTracingParameters.innerBoundaryRadius) {
             cellTracingCoordinates[n] = x;
             cellConnection[n] += TracingLineEndType::CLOSED;
 
@@ -683,7 +682,7 @@ namespace FieldTracing {
             stepFieldLine(x,v, cellTracingStepSize[n],(TReal)100e3,(TReal)technicalGrid.DX/2,fieldTracingParameters.tracingMethod,tracingFullField,!(DIRECTION == Direction::FORWARD));
             TReal r_in = sqrt(cellTracingCoordinates[n][0]*cellTracingCoordinates[n][0] + cellTracingCoordinates[n][1]*cellTracingCoordinates[n][1] + cellTracingCoordinates[n][2]*cellTracingCoordinates[n][2]);
             TReal r_out = sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]);
-            TReal alpha = (SBC::Ionosphere::innerRadius-r_in)/(r_out - r_in);
+            TReal alpha = (fieldTracingParameters.innerBoundaryRadius-r_in)/(r_out - r_in);
             TReal xi = x[0]-cellTracingCoordinates[n][0];
             TReal yi = x[1]-cellTracingCoordinates[n][1];
             TReal zi = x[2]-cellTracingCoordinates[n][2];
