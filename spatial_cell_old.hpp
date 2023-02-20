@@ -170,6 +170,14 @@ namespace spatial_cell {
       Population() {
          vmesh = new vmesh::VelocityMesh();
          blockContainer = new vmesh::VelocityBlockContainer();
+         // Set values to zero in case of zero-block populations
+         RHO = RHO_R = RHO_V = RHOLOSSADJUST = velocityBlockMinValue = ACCSUBCYCLES = N_blocks = 0;
+         for (uint i=0; i<2; ++i) {
+            max_dt[i] = 0;
+         }
+         for (uint i=0; i<3; ++i) {
+            V[i] = V_R[i] = V_V[i] = P[i] = P_R[i] = P_V[i] = 0;
+         }
       }
       ~Population() {
          delete vmesh;
