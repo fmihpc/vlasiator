@@ -64,7 +64,7 @@ vmesh::LocalID *host_LIDlist[MAXCPUTHREADS];
 
 // Memory allocation flags and values.
 // The allocation multiplier can be adjusted upwards if necessary.
-Real cudaAllocationMultiplier = 2.0;
+//Real cudaAllocationMultiplier = 2.0;
 uint cuda_acc_allocatedSize = 0;
 uint cuda_acc_allocatedColumns = 0;
 
@@ -74,7 +74,7 @@ __host__ void cuda_acc_allocate (
    // Always prepare for at least 500 blocks
    const uint maxBlocksPerCell = maxBlockCount > 500 ? maxBlockCount : 500;
    // Check if we already have allocated enough memory?
-   if (cuda_acc_allocatedSize > maxBlocksPerCell * cudaAllocationMultiplier * CUDA_ACC_SAFECTY_FACTOR) {
+   if (cuda_acc_allocatedSize > maxBlocksPerCell * BLOCK_ALLOCATION_FACTOR) {
       return;
    }
    // Deallocate before allocating new memory
@@ -95,8 +95,8 @@ __host__ void cuda_acc_allocate_memory (
    // The worst case scenario is with every block having content but no neighbours, creating up
    // to maxBlockCount columns with each needing three blocks (one value plus two for padding).
    // Here we make an educated guess of  up to two symmetric smooth populations
-   const uint blockAllocationCount = maxBlockCount * cudaAllocationMultiplier;
-   const uint maxColumnsPerCell = 2 * std::pow(maxBlockCount, 0.667) * cudaAllocationMultiplier;
+   const uint blockAllocationCount = maxBlockCount * BLOCK_ALLOCATION_PADDING;
+   const uint maxColumnsPerCell = 2 * std::pow(maxBlockCount, 0.667) * BLOCK_ALLOCATION_PADDING;
    cuda_acc_allocatedSize = blockAllocationCount;
    cuda_acc_allocatedColumns = maxColumnsPerCell;
 

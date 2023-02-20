@@ -43,6 +43,9 @@
 
 #include <stdio.h>
 
+static const double BLOCK_ALLOCATION_PADDING = 2.5;
+static const double BLOCK_ALLOCATION_FACTOR = 1.8;
+
 #define HANDLE_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ));
 static void HandleError( cudaError_t err, const char *file, int line )
 {

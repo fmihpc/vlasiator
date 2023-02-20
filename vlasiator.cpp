@@ -126,10 +126,10 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
       for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
          cell->set_max_r_dt(popID, numeric_limits<Real>::max());
-         vmesh::VelocityBlockContainer& blockContainer = cell->get_velocity_blocks(popID);
-         const Real* blockParams = blockContainer.getParameters();
+         vmesh::VelocityBlockContainer* blockContainer = cell->get_velocity_blocks(popID);
+         const Real* blockParams = blockContainer->getParameters();
          const Real EPS = numeric_limits<Real>::min() * 1000;
-         for (vmesh::LocalID blockLID = 0; blockLID < blockContainer.size(); ++blockLID) {
+         for (vmesh::LocalID blockLID = 0; blockLID < blockContainer->size(); ++blockLID) {
             for (unsigned int i = 0; i < WID; i += WID - 1) {
                const Real Vx =
                    blockParams[blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] +

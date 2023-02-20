@@ -719,16 +719,16 @@ void propagatePencil(
    const uint dimension,
    const uint blockGID,
    const Realv dt,
-   const vmesh::VelocityMesh &vmesh,
+   const vmesh::VelocityMesh *vmesh,
    const uint lengthOfPencil,
    const Realv threshold
 ) {
    // Get velocity data from vmesh that we need later to calculate the translation
    velocity_block_indices_t block_indices;
    uint8_t refLevel;
-   vmesh.getIndices(blockGID,refLevel, block_indices[0], block_indices[1], block_indices[2]);
-   Realv dvz = vmesh.getCellSize(refLevel)[dimension];
-   Realv vz_min = vmesh.getMeshMinLimits()[dimension];
+   vmesh->getIndices(blockGID,refLevel, block_indices[0], block_indices[1], block_indices[2]);
+   Realv dvz = vmesh->getCellSize(refLevel)[dimension];
+   Realv vz_min = vmesh->getMeshMinLimits()[dimension];
    
    // Assuming 1 neighbor in the target array because of the CFL condition
    // In fact propagating to > 1 neighbor will give an error
@@ -1486,7 +1486,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    }
    
    // Get a pointer to the velocity mesh of the first spatial cell
-   const vmesh::VelocityMesh& vmesh = allCellsPointer[0]->get_velocity_mesh(popID);
+   const vmesh::VelocityMesh* vmesh = allCellsPointer[0]->get_velocity_mesh(popID);
    
    phiprof::start("buildBlockList");
    // Get a unique sorted list of blockids that are in any of the
@@ -1504,9 +1504,9 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 #pragma omp for
       for(unsigned int i=0; i<allCellsPointer.size(); i++) {
          auto cell = &allCellsPointer[i];
-         vmesh::VelocityMesh& cvmesh = (*cell)->get_velocity_mesh(popID);
-         for (vmesh::LocalID block_i=0; block_i< cvmesh.size(); ++block_i) {
-            thread_unionOfBlocksSet.insert(cvmesh.getGlobalID(block_i));
+         vmesh::VelocityMesh* cvmesh = (*cell)->get_velocity_mesh(popID);
+         for (vmesh::LocalID block_i=0; block_i< cvmesh->size(); ++block_i) {
+            thread_unionOfBlocksSet.insert(cvmesh->getGlobalID(block_i));
          }
       }
 

@@ -45,33 +45,33 @@ using namespace spatial_cell;
  * @return Local ID of the added block. If the block was not added, the 
  * local ID of the null velocity block is returned instead.*/
 vmesh::LocalID addVelocityBlock(const vmesh::GlobalID& blockGID,
-        vmesh::VelocityMesh& vmesh,
-        vmesh::VelocityBlockContainer& blockContainer) {
+        vmesh::VelocityMesh* vmesh,
+        vmesh::VelocityBlockContainer* blockContainer) {
     // Block insert will fail if the block already exists, or if 
     // there are too many blocks in the velocity mesh.
-    if (vmesh.push_back(blockGID) == false) 
+    if (vmesh->push_back(blockGID) == false) 
         return vmesh::VelocityMesh::invalidLocalID();
 
     // Insert velocity block data, this will set values to 0.
-    const vmesh::LocalID newBlockLID = blockContainer.push_back();
+    const vmesh::LocalID newBlockLID = blockContainer->push_back();
 
     #ifdef DEBUG_ACC
         bool ok = true;
-        if (vmesh.size() != blockContainer.size()) ok = false;
-        if (vmesh.getLocalID(blockGID) != newBlockLID) ok = false;
+        if (vmesh->size() != blockContainer->size()) ok = false;
+        if (vmesh->getLocalID(blockGID) != newBlockLID) ok = false;
         if (ok == false) {
             stringstream ss;
-            ss << "ERROR in acc: sizes " << vmesh.size() << ' ' << blockContainer.size() << endl;
-            ss << "\t local IDs " << vmesh.getLocalID(blockGID) << " vs " << newBlockLID << endl;
+            ss << "ERROR in acc: sizes " << vmesh->size() << ' ' << blockContainer->size() << endl;
+            ss << "\t local IDs " << vmesh->getLocalID(blockGID) << " vs " << newBlockLID << endl;
             cerr << ss.str();
             exit(1);
         }
     #endif
     
     // Set block parameters:
-    Real* parameters = blockContainer.getParameters(newBlockLID);
-    vmesh.getBlockCoordinates(blockGID,parameters+BlockParams::VXCRD);
-    vmesh.getCellSize(blockGID,parameters+BlockParams::DVX);
+    Real* parameters = blockContainer->getParameters(newBlockLID);
+    vmesh->getBlockCoordinates(blockGID,parameters+BlockParams::VXCRD);
+    vmesh->getCellSize(blockGID,parameters+BlockParams::DVX);
     return newBlockLID;
 }
 
@@ -126,11 +126,11 @@ bool map_1d(SpatialCell* spatial_cell,
    uint block_indices_to_id[3] = {0, 0, 0}; /*< used when computing id of target block, 0 for compiler */
    uint cell_indices_to_id[3] = {0, 0, 0}; /*< used when computing id of target cell in block, 0 for compiler */
 
-   vmesh::VelocityMesh& vmesh    = spatial_cell->get_velocity_mesh(popID);
-   vmesh::VelocityBlockContainer& blockContainer = spatial_cell->get_velocity_blocks(popID);
+   vmesh::VelocityMesh* vmesh    = spatial_cell->get_velocity_mesh(popID);
+   vmesh::VelocityBlockContainer* blockContainer = spatial_cell->get_velocity_blocks(popID);
 
    //nothing to do if no blocks
-   if(vmesh.size() == 0)
+   if(vmesh->size() == 0)
       return true;
 
 
@@ -138,9 +138,9 @@ bool map_1d(SpatialCell* spatial_cell,
    // needed in some vmesh::VelocityMesh function calls.
    const uint8_t REFLEVEL = 0;
 
-   dv            = vmesh.getCellSize(REFLEVEL)[dimension];
-   v_min         = vmesh.getMeshMinLimits()[dimension];
-   max_v_length  = vmesh.getGridLength(REFLEVEL)[dimension];
+   dv            = vmesh->getCellSize(REFLEVEL)[dimension];
+   v_min         = vmesh->getMeshMinLimits()[dimension];
+   max_v_length  = vmesh->getGridLength(REFLEVEL)[dimension];
 
    switch (dimension) {
     case 0:
@@ -152,8 +152,8 @@ bool map_1d(SpatialCell* spatial_cell,
       intersection_dk=is_temp;
 
       /*set values in array that is used to convert block indices to id using a dot product*/
-      block_indices_to_id[0] = vmesh.getGridLength(REFLEVEL)[0]*vmesh.getGridLength(REFLEVEL)[1];
-      block_indices_to_id[1] = vmesh.getGridLength(REFLEVEL)[0];
+      block_indices_to_id[0] = vmesh->getGridLength(REFLEVEL)[0]*vmesh->getGridLength(REFLEVEL)[1];
+      block_indices_to_id[1] = vmesh->getGridLength(REFLEVEL)[0];
       block_indices_to_id[2] = 1;
 
       /*set values in array that is used to convert block indices to id using a dot product*/
@@ -171,8 +171,8 @@ bool map_1d(SpatialCell* spatial_cell,
       
       /*set values in array that is used to convert block indices to id using a dot product*/
       block_indices_to_id[0]=1;
-      block_indices_to_id[1] = vmesh.getGridLength(REFLEVEL)[0]*vmesh.getGridLength(REFLEVEL)[1];
-      block_indices_to_id[2] = vmesh.getGridLength(REFLEVEL)[0];
+      block_indices_to_id[1] = vmesh->getGridLength(REFLEVEL)[0]*vmesh->getGridLength(REFLEVEL)[1];
+      block_indices_to_id[2] = vmesh->getGridLength(REFLEVEL)[0];
       
       /*set values in array that is used to convert block indices to id using a dot product*/
       cell_indices_to_id[0]=1;
@@ -182,8 +182,8 @@ bool map_1d(SpatialCell* spatial_cell,
     case 2:
       /*set values in array that is used to convert block indices to id using a dot product*/
       block_indices_to_id[0]=1;
-      block_indices_to_id[1] = vmesh.getGridLength(REFLEVEL)[0];
-      block_indices_to_id[2] = vmesh.getGridLength(REFLEVEL)[0]*vmesh.getGridLength(REFLEVEL)[1];
+      block_indices_to_id[1] = vmesh->getGridLength(REFLEVEL)[0];
+      block_indices_to_id[2] = vmesh->getGridLength(REFLEVEL)[0]*vmesh->getGridLength(REFLEVEL)[1];
       
       // set values in array that is used to convert block indices to id using a dot product.
       cell_indices_to_id[0]=1;
@@ -195,7 +195,7 @@ bool map_1d(SpatialCell* spatial_cell,
    const Realv i_dv=1.0/dv;
 
    // sort blocks according to dimension, and divide them into columns
-   vmesh::LocalID* blocks = new vmesh::LocalID[vmesh.size()];
+   vmesh::LocalID* blocks = new vmesh::LocalID[vmesh->size()];
    std::vector<uint> columnBlockOffsets;
    std::vector<uint> columnNumBlocks;
    std::vector<uint> setColumnOffsets;
@@ -243,7 +243,7 @@ bool map_1d(SpatialCell* spatial_cell,
       /*need x,y coordinate of this column set of blocks, take it from first
         block in first column*/
       velocity_block_indices_t setFirstBlockIndices;
-      vmesh.getIndices(blocks[columnBlockOffsets[setColumnOffsets[setIndex]]],
+      vmesh->getIndices(blocks[columnBlockOffsets[setColumnOffsets[setIndex]]],
                        refLevel, 
                        setFirstBlockIndices[0], setFirstBlockIndices[1], setFirstBlockIndices[2]);
       swapBlockIndices(setFirstBlockIndices, dimension);
@@ -289,10 +289,10 @@ bool map_1d(SpatialCell* spatial_cell,
          vmesh::GlobalID* cblocks = blocks + columnBlockOffsets[columnIndex]; //column blocks
          velocity_block_indices_t firstBlockIndices;
          velocity_block_indices_t lastBlockIndices;
-         vmesh.getIndices(cblocks[0],
+         vmesh->getIndices(cblocks[0],
                           refLevel, 
                           firstBlockIndices[0], firstBlockIndices[1], firstBlockIndices[2]);
-         vmesh.getIndices(cblocks[n_cblocks -1],
+         vmesh->getIndices(cblocks[n_cblocks -1],
                           refLevel, 
                           lastBlockIndices[0], lastBlockIndices[1], lastBlockIndices[2]);
          swapBlockIndices(firstBlockIndices, dimension);
@@ -380,9 +380,9 @@ bool map_1d(SpatialCell* spatial_cell,
                setFirstBlockIndices[0] * block_indices_to_id[0] +
                setFirstBlockIndices[1] * block_indices_to_id[1] +
                blockK                  * block_indices_to_id[2];
-            const vmesh::LocalID tblockLID = vmesh.getLocalID(targetBlock);
+            const vmesh::LocalID tblockLID = vmesh->getLocalID(targetBlock);
             // Get pointer to target block data.
-            blockIndexToBlockData[blockK] = blockContainer.getData(tblockLID);
+            blockIndexToBlockData[blockK] = blockContainer->getData(tblockLID);
          }
       }
       
@@ -398,7 +398,7 @@ bool map_1d(SpatialCell* spatial_cell,
          //First block in column
          velocity_block_indices_t block_indices_begin;
          uint8_t refLevel;
-         vmesh.getIndices(cblocks[0],refLevel,block_indices_begin[0],block_indices_begin[1],block_indices_begin[2]);
+         vmesh->getIndices(cblocks[0],refLevel,block_indices_begin[0],block_indices_begin[1],block_indices_begin[2]);
          
          // Switch block indices according to dimensions, the algorithm has
          // been written for integrating along z.

@@ -39,18 +39,13 @@
    #include "include/splitvector/splitvec.h"
 #else
    #define CUDA_HOSTDEV
+   // cuda values stored in cuda_context.cuh
+   static const double BLOCK_ALLOCATION_FACTOR = 1.1;
 #endif
 
 using namespace std;
 
 namespace vmesh {
-
-#ifdef USE_CUDA
-   static const double BLOCK_ALLOCATION_PADDING = 2.5;
-   static const double BLOCK_ALLOCATION_FACTOR = 1.8;
-#else
-   static const double BLOCK_ALLOCATION_FACTOR = 1.1;
-#endif
 
 #ifdef USE_CUDA
    class VelocityBlockContainer : public Managed {

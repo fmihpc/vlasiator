@@ -477,12 +477,12 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
        vector<CellID> propagatedCells;
        for (size_t c=0; c<cells.size(); ++c) {
           SpatialCell* SC = mpiGrid[cells[c]];
-          const vmesh::VelocityMesh& vmesh = SC->get_velocity_mesh(popID);
+          const vmesh::VelocityMesh* vmesh = SC->get_velocity_mesh(popID);
           // disregard boundary cells, in preparation for acceleration
           if (  (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ||
                 // Include inflow-Maxwellian
                 (P::vlasovAccelerateMaxwellianBoundaries && (SC->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN)) ) {
-             if (vmesh.size() != 0){
+             if (vmesh->size() != 0){
                 //do not propagate spatial cells with no blocks
                 propagatedCells.push_back(cells[c]);
              }
@@ -495,7 +495,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
              spatial_cell::Population& pop = SC->get_population(popID);
              pop.ACCSUBCYCLES = getAccelerationSubcycles(SC, dt, popID);
 #ifdef USE_CUDA
-             uint cudaBlockCount = vmesh.size();
+             uint cudaBlockCount = vmesh->size();
              if (cudaBlockCount > cudaMaxBlockCount) {
                 cudaMaxBlockCount = cudaBlockCount;
              }

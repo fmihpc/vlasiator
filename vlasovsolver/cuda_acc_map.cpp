@@ -50,33 +50,33 @@ using namespace spatial_cell;
  * @return Local ID of the added block. If the block was not added, the
  * local ID of the null velocity block is returned instead.*/
 __host__ vmesh::LocalID addVelocityBlock2(const vmesh::GlobalID& blockGID,
-        vmesh::VelocityMesh& vmesh,
-        vmesh::VelocityBlockContainer& blockContainer) {
+        vmesh::VelocityMesh* vmesh,
+        vmesh::VelocityBlockContainer* blockContainer) {
     // Block insert will fail if the block already exists, or if
     // there are too many blocks in the velocity mesh.
-    if (vmesh.push_back(blockGID) == false)
+    if (vmesh->push_back(blockGID) == false)
         return vmesh::VelocityMesh::invalidLocalID();
 
     // Insert velocity block data, this will set values to 0.
-    const vmesh::LocalID newBlockLID = blockContainer.push_back();
+    const vmesh::LocalID newBlockLID = blockContainer->push_back();
 
     #ifdef DEBUG_ACC
         bool ok = true;
-        if (vmesh.size() != blockContainer.size()) ok = false;
-        if (vmesh.getLocalID(blockGID) != newBlockLID) ok = false;
+        if (vmesh->size() != blockContainer->size()) ok = false;
+        if (vmesh->getLocalID(blockGID) != newBlockLID) ok = false;
         if (ok == false) {
             stringstream ss;
-            ss << "ERROR in acc: sizes " << vmesh.size() << ' ' << blockContainer.size() << endl;
-            ss << "\t local IDs " << vmesh.getLocalID(blockGID) << " vs " << newBlockLID << endl;
+            ss << "ERROR in acc: sizes " << vmesh->size() << ' ' << blockContainer->size() << endl;
+            ss << "\t local IDs " << vmesh->getLocalID(blockGID) << " vs " << newBlockLID << endl;
             cerr << ss.str();
             exit(1);
         }
     #endif
 
     // Set block parameters:
-    Real* parameters = blockContainer.getParameters(newBlockLID);
-    vmesh.getBlockCoordinates(blockGID,parameters+BlockParams::VXCRD);
-    vmesh.getCellSize(blockGID,parameters+BlockParams::DVX);
+    Real* parameters = blockContainer->getParameters(newBlockLID);
+    vmesh->getBlockCoordinates(blockGID,parameters+BlockParams::VXCRD);
+    vmesh->getCellSize(blockGID,parameters+BlockParams::DVX);
     return newBlockLID;
 }
 
@@ -118,12 +118,12 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    ) {
 
    //nothing to do if no blocks
-   vmesh::VelocityMesh& vmesh    = spatial_cell->get_velocity_mesh(popID);
-   vmesh::VelocityBlockContainer& blockContainer = spatial_cell->get_velocity_blocks(popID);
-   Realf *blockData = blockContainer.getData();
-   //Realf *dev_blockData = blockContainer.dev_getData(); // Now in unified memory, above
-   uint blockDataN = blockContainer.size();
-   if(vmesh.size() == 0) {
+   vmesh::VelocityMesh* vmesh    = spatial_cell->get_velocity_mesh(popID);
+   vmesh::VelocityBlockContainer* blockContainer = spatial_cell->get_velocity_blocks(popID);
+   Realf *blockData = blockContainer->getData();
+   //Realf *dev_blockData = blockContainer->dev_getData(); // Now in unified memory, above
+   uint blockDataN = blockContainer->size();
+   if(vmesh->size() == 0) {
       return true;
    }
 
@@ -143,9 +143,9 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    // Velocity grid refinement level, has no effect but is
    // needed in some vmesh::VelocityMesh function calls.
    const uint8_t REFLEVEL = 0;
-   dv            = vmesh.getCellSize(REFLEVEL)[dimension];
-   v_min         = vmesh.getMeshMinLimits()[dimension];
-   max_v_length  = vmesh.getGridLength(REFLEVEL)[dimension];
+   dv            = vmesh->getCellSize(REFLEVEL)[dimension];
+   v_min         = vmesh->getMeshMinLimits()[dimension];
+   max_v_length  = vmesh->getGridLength(REFLEVEL)[dimension];
    auto minValue = spatial_cell->getVelocityBlockMinValue(popID);
 
    switch (dimension) {
@@ -158,8 +158,8 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       intersection_dk=is_temp;
 
       /*set values in array that is used to convert block indices to id using a dot product*/
-      block_indices_to_id[0] = vmesh.getGridLength(REFLEVEL)[0]*vmesh.getGridLength(REFLEVEL)[1];
-      block_indices_to_id[1] = vmesh.getGridLength(REFLEVEL)[0];
+      block_indices_to_id[0] = vmesh->getGridLength(REFLEVEL)[0]*vmesh->getGridLength(REFLEVEL)[1];
+      block_indices_to_id[1] = vmesh->getGridLength(REFLEVEL)[0];
       block_indices_to_id[2] = 1;
 
       /*set values in array that is used to convert block indices to id using a dot product*/
@@ -177,8 +177,8 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
 
       /*set values in array that is used to convert block indices to id using a dot product*/
       block_indices_to_id[0]=1;
-      block_indices_to_id[1] = vmesh.getGridLength(REFLEVEL)[0]*vmesh.getGridLength(REFLEVEL)[1];
-      block_indices_to_id[2] = vmesh.getGridLength(REFLEVEL)[0];
+      block_indices_to_id[1] = vmesh->getGridLength(REFLEVEL)[0]*vmesh->getGridLength(REFLEVEL)[1];
+      block_indices_to_id[2] = vmesh->getGridLength(REFLEVEL)[0];
 
       /*set values in array that is used to convert block indices to id using a dot product*/
       cell_indices_to_id[0]=1;
@@ -188,8 +188,8 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
     case 2:
       /*set values in array that is used to convert block indices to id using a dot product*/
       block_indices_to_id[0]=1;
-      block_indices_to_id[1] = vmesh.getGridLength(REFLEVEL)[0];
-      block_indices_to_id[2] = vmesh.getGridLength(REFLEVEL)[0]*vmesh.getGridLength(REFLEVEL)[1];
+      block_indices_to_id[1] = vmesh->getGridLength(REFLEVEL)[0];
+      block_indices_to_id[2] = vmesh->getGridLength(REFLEVEL)[0]*vmesh->getGridLength(REFLEVEL)[1];
 
       // set values in array that is used to convert block indices to id using a dot product.
       cell_indices_to_id[0]=1;
@@ -286,7 +286,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       //spatial_cell::velocity_block_indices_t setFirstBlockIndices;
       std::array<uint32_t,3> setFirstBlockIndices;
       uint8_t refLevel=0;
-      vmesh.getIndices(GIDlist[columnBlockOffsets[setColumnOffsets[setIndex]]],
+      vmesh->getIndices(GIDlist[columnBlockOffsets[setColumnOffsets[setIndex]]],
                        refLevel,
                        setFirstBlockIndices[0], setFirstBlockIndices[1], setFirstBlockIndices[2]);
       swapBlockIndices(setFirstBlockIndices, dimension);
@@ -334,10 +334,10 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
          //spatial_cell::velocity_block_indices_t lastBlockIndices;
          std::array<uint32_t,3>  firstBlockIndices;
          std::array<uint32_t,3>  lastBlockIndices;
-         vmesh.getIndices(cblocks[0],
+         vmesh->getIndices(cblocks[0],
                           refLevel,
                           firstBlockIndices[0], firstBlockIndices[1], firstBlockIndices[2]);
-         vmesh.getIndices(cblocks[n_cblocks -1],
+         vmesh->getIndices(cblocks[n_cblocks -1],
                           refLevel,
                           lastBlockIndices[0], lastBlockIndices[1], lastBlockIndices[2]);
          swapBlockIndices(firstBlockIndices, dimension);
@@ -426,23 +426,12 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    // Velocity space has all extra blocks added and/or removed for the transform target
    // and will not change shape anymore.
    // Create empty velocity space on the GPU and fill it with zeros
-   size_t blockDataSize = blockContainer.size();
+   size_t blockDataSize = blockContainer->size();
    size_t bdsw3 = blockDataSize * WID3;
    // Page lock (pin) again host memory for faster async transfers after kernel has run
    //cudaHostRegister(blockData, bdsw3*sizeof(Realf),cudaHostRegisterDefault);
    // Zero out target data on device (unified)
    HANDLE_ERROR( cudaMemsetAsync(blockData, 0, bdsw3*sizeof(Realf), stream) );
-
-   // Update value of cudaAllocationMultiplier if necessary
-   float ratio1 = (blockDataSize / cuda_acc_allocatedSize);
-   float ratio2 = (totalColumns / cuda_acc_allocatedColumns);
-   if ( (ratio1 > CUDA_ACC_SAFECTY_FACTOR)
-        || (ratio2 > CUDA_ACC_SAFECTY_FACTOR) ) {
-      // Need to increase ratio
-      cudaAllocationMultiplier /= CUDA_ACC_SAFECTY_FACTOR;
-      std::cerr<<"Increasing cudaAllocationMultiplier to "<<cudaAllocationMultiplier<<" with ratios "<<ratio1<<" "<<ratio2<<std::endl;
-   }
-   // Decreasing the allocation multiplier is not safe unless we know the maximum value for bdsw3 over all local cells.
 
    // Now we iterate through target columns again, identifying their block offsets
    for( uint column=0; column < totalColumns; column++) {
@@ -453,9 +442,9 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
             columns[column].j * block_indices_to_id[1] +
             blockK            * block_indices_to_id[2];
          // The below call accesses the hashmap (CPU only for now)
-         const vmesh::LocalID tblockLID = vmesh.getLocalID(targetBlock);
+         const vmesh::LocalID tblockLID = vmesh->getLocalID(targetBlock);
          // Get pointer to target block data.
-         if(tblockLID >= blockContainer.size()) {
+         if(tblockLID >= blockContainer->size()) {
             cerr << "Error: block for index [ " << columns[column].i << ", " << columns[column].j << ", " << blockK << "] has invalid blockID " << tblockLID << std::endl;
          }
          columns[column].targetBlockOffsets[blockK] = tblockLID*WID3;

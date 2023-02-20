@@ -270,13 +270,13 @@ namespace projects {
    }
    
    void Project::setVelocitySpace(const uint popID,SpatialCell* cell) const {
-      vmesh::VelocityMesh& vmesh = cell->get_velocity_mesh(popID);
+      vmesh::VelocityMesh* vmesh = cell->get_velocity_mesh(popID);
 
       vector<vmesh::GlobalID> blocksToInitialize = this->findBlocksToInitialize(cell,popID);
       vector<vmesh::GlobalID> removeList;
       for (uint i=0; i<blocksToInitialize.size(); ++i) {
          const vmesh::GlobalID blockGID = blocksToInitialize[i];
-         const vmesh::LocalID blockLID = vmesh.getLocalID(blockGID);
+         const vmesh::LocalID blockLID = vmesh->getLocalID(blockGID);
          if (blockLID == vmesh::VelocityMesh::invalidLocalID()) {
             cerr << "ERROR, invalid local ID in " << __FILE__ << ":" << __LINE__ << endl;
             exit(1);
@@ -317,7 +317,7 @@ namespace projects {
          for (vmesh::LocalID blockLID=startIndex; blockLID<endIndex; ++blockLID) {
             vector<vmesh::GlobalID> nbrs;
             //int32_t refLevelDifference;
-            const vmesh::GlobalID blockGID = vmesh.getGlobalID(blockLID);
+            const vmesh::GlobalID blockGID = vmesh->getGlobalID(blockLID);
 
             // Fetch block data and nearest neighbors
             Realf array[(WID+2)*(WID+2)*(WID+2)];

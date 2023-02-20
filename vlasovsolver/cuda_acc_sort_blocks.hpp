@@ -30,7 +30,7 @@
 #include "../spatial_cell.hpp"
 
 void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell, 
-                               const vmesh::VelocityMesh& vmesh,
+                               const vmesh::VelocityMesh* vmesh,
                                const uint dimension,
                                uint* blocksGID,
                                uint* blocksLID,

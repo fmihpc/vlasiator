@@ -71,21 +71,21 @@ void cuda_calculateMoments_V(
             cell->parameters[CellParams::P_33_V] = 0.0;
          }
 
-         vmesh::VelocityMesh& vmesh    = cell->get_velocity_mesh(popID);
-         vmesh::VelocityBlockContainer& blockContainer = cell->get_velocity_blocks(popID);
-         const uint nBlocks = vmesh.size();
+         vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
+         vmesh::VelocityBlockContainer* blockContainer = cell->get_velocity_blocks(popID);
+         const uint nBlocks = vmesh->size();
          if (nBlocks == 0) continue;
 
          host_momentInfos[thread_id][popID].mass = getObjectWrapper().particleSpecies[popID].mass;
          host_momentInfos[thread_id][popID].charge = getObjectWrapper().particleSpecies[popID].charge;
          host_momentInfos[thread_id][popID].blockCount = nBlocks;
-         host_momentInfos[thread_id][popID].parameterPointer = blockContainer.getParameters();
-         host_momentInfos[thread_id][popID].meshDataPointer = blockContainer.getData();
+         host_momentInfos[thread_id][popID].parameterPointer = blockContainer->getParameters();
+         host_momentInfos[thread_id][popID].meshDataPointer = blockContainer->getData();
 
          // For now: Launch cuda transfers as data isn't yet fully resident
          phiprof::start("CUDA-HtoD");
-         blockContainer.dev_Allocate(vmesh.size());
-         blockContainer.dev_prefetchDevice();
+         blockContainer->dev_Allocate(vmesh->size());
+         blockContainer->dev_prefetchDevice();
          phiprof::stop("CUDA-HtoD");
       }
 
@@ -230,21 +230,21 @@ void cuda_calculateMoments_R(
             cell->parameters[CellParams::P_33_R] = 0.0;
          }
 
-         vmesh::VelocityMesh& vmesh    = cell->get_velocity_mesh(popID);
-         vmesh::VelocityBlockContainer& blockContainer = cell->get_velocity_blocks(popID);
-         const uint nBlocks = vmesh.size();
+         vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
+         vmesh::VelocityBlockContainer* blockContainer = cell->get_velocity_blocks(popID);
+         const uint nBlocks = vmesh->size();
          if (nBlocks == 0) continue;
 
          host_momentInfos[thread_id][popID].mass = getObjectWrapper().particleSpecies[popID].mass;
          host_momentInfos[thread_id][popID].charge = getObjectWrapper().particleSpecies[popID].charge;
          host_momentInfos[thread_id][popID].blockCount = nBlocks;
-         host_momentInfos[thread_id][popID].parameterPointer = blockContainer.getParameters();
-         host_momentInfos[thread_id][popID].meshDataPointer = blockContainer.getData();
+         host_momentInfos[thread_id][popID].parameterPointer = blockContainer->getParameters();
+         host_momentInfos[thread_id][popID].meshDataPointer = blockContainer->getData();
 
          // For now: Launch cuda transfers as data isn't yet fully resident
          phiprof::start("CUDA-HtoD");
-         blockContainer.dev_Allocate(vmesh.size());
-         blockContainer.dev_prefetchDevice();
+         blockContainer->dev_Allocate(vmesh->size());
+         blockContainer->dev_prefetchDevice();
          phiprof::stop("CUDA-HtoD");
       }
 

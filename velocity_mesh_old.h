@@ -44,6 +44,8 @@ namespace vmesh {
     public:      
       VelocityMesh();
       ~VelocityMesh();
+      VelocityMesh(const VelocityMesh& other);
+      const VelocityMesh& operator=(const VelocityMesh& other);
 
       size_t capacityInBytes() const;
       bool check() const;
@@ -108,7 +110,7 @@ namespace vmesh {
       size_t meshID;
 
       std::vector<vmesh::GlobalID> localToGlobalMap;
-      OpenBucketHashtable<vmesh::GlobalID,vmesh::LocalID> globalToLocalMap; //
+      OpenBucketHashtable<vmesh::GlobalID,vmesh::LocalID> globalToLocalMap;
       //std::unordered_map<vmesh::GlobalID,vmesh::LocalID> globalToLocalMap;
    };
 
@@ -120,6 +122,19 @@ namespace vmesh {
    
    inline VelocityMesh::~VelocityMesh() { }
 
+   inline VelocityMesh::VelocityMesh(const VelocityMesh& other) {
+      meshID = other.meshID;
+      localToGlobalMap = std::vector<vmesh::GlobalID>(other.localToGlobalMap);
+      globalToLocalMap = OpenBucketHashtable<vmesh::GlobalID,vmesh::LocalID>(other.globalToLocalMap);
+   }
+
+   inline const VelocityMesh& VelocityMesh::operator=(const VelocityMesh& other) {
+      meshID = other.meshID;
+      localToGlobalMap = std::vector<vmesh::GlobalID>(other.localToGlobalMap);
+      globalToLocalMap = OpenBucketHashtable<vmesh::GlobalID,vmesh::LocalID>(other.globalToLocalMap);
+      return *this;
+   }
+   
    inline size_t VelocityMesh::capacityInBytes() const {
       return localToGlobalMap.capacity()*sizeof(vmesh::GlobalID)
            + globalToLocalMap.bucket_count()*(sizeof(vmesh::GlobalID)+sizeof(vmesh::LocalID));

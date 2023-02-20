@@ -51,6 +51,8 @@ namespace vmesh {
     public:
       VelocityMesh();
       ~VelocityMesh();
+      VelocityMesh(const VelocityMesh& other);
+      const VelocityMesh& operator=(const VelocityMesh& other);
 
       size_t capacityInBytes() const;
       bool check() const;
@@ -105,11 +107,25 @@ namespace vmesh {
 
    // ***** DEFINITIONS OF MEMBER FUNCTIONS ***** //
 
+   
    inline VelocityMesh::VelocityMesh() {
       meshID = std::numeric_limits<size_t>::max();
    }
 
    inline VelocityMesh::~VelocityMesh() { }
+
+   inline VelocityMesh::VelocityMesh(const VelocityMesh& other) {
+      meshID = other.meshID;
+      localToGlobalMap = split::SplitVector<vmesh::GlobalID>(other.localToGlobalMap);
+      globalToLocalMap = Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(other.globalToLocalMap);
+   }
+
+   inline const VelocityMesh& VelocityMesh::operator=(const VelocityMesh& other) {
+      meshID = other.meshID;
+      localToGlobalMap = split::SplitVector<vmesh::GlobalID>(other.localToGlobalMap);
+      globalToLocalMap = Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(other.globalToLocalMap);
+      return *this;
+   }
 
    inline size_t VelocityMesh::capacityInBytes() const {
       return localToGlobalMap.capacity()*sizeof(vmesh::GlobalID)
@@ -383,10 +399,7 @@ namespace vmesh {
       for (size_t b=0; b<blocks.size(); ++b) {
          globalToLocalMap.insert(cuda::std::make_pair(blocks[b],localToGlobalMap.size()+b));
       }
-      //localToGlobalMap.insert(localToGlobalMap.end(),blocks.begin(),blocks.end());
-      for (size_t b=0; b<blocks.size(); ++b) {
-         localToGlobalMap.push_back(blocks.at(b));
-      }
+      localToGlobalMap.insert(localToGlobalMap.end(),blocks.begin(),blocks.end());
       return true;
    }
 
@@ -401,11 +414,7 @@ namespace vmesh {
       for (size_t b=0; b<blocks.size(); ++b) {
          globalToLocalMap.insert(cuda::std::make_pair(blocks[b],localToGlobalMap.size()+b));
       }
-      //localToGlobalMap.insert(localToGlobalMap.end(),blocks.begin(),blocks.end());
-      for (size_t b=0; b<blocks.size(); ++b) {
-         localToGlobalMap.push_back(blocks[b]);
-      }
-
+      localToGlobalMap.insert(localToGlobalMap.end(),blocks.begin(),blocks.end());
       return true;
    }
 

@@ -72,10 +72,8 @@ extern Column *host_columns[];
 extern uint *host_GIDlist[];
 extern uint *host_LIDlist[];
 
-static const double CUDA_ACC_SAFECTY_FACTOR = 0.75;
-
 extern uint cuda_acc_allocatedSize;
 extern uint cuda_acc_allocatedColumns;
-extern Real cudaAllocationMultiplier;
+//extern Real cudaAllocationMultiplier;
 
 

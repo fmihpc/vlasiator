@@ -379,9 +379,9 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
 
    for(uint celli = 0; celli < allCellsPointer.size(); celli++) {
-      vmesh::VelocityMesh& vmesh = allCellsPointer[celli]->get_velocity_mesh(popID);
-      for (vmesh::LocalID block_i=0; block_i< vmesh.size(); ++block_i) {
-         unionOfBlocksSet.insert(vmesh.getGlobalID(block_i));
+      vmesh::VelocityMesh* vmesh = allCellsPointer[celli]->get_velocity_mesh(popID);
+      for (vmesh::LocalID block_i=0; block_i< vmesh->size(); ++block_i) {
+         unionOfBlocksSet.insert(vmesh->getGlobalID(block_i));
       }
    }
 
@@ -395,10 +395,10 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
 
    const uint8_t REFLEVEL=0;
-   const vmesh::VelocityMesh& vmesh = allCellsPointer[0]->get_velocity_mesh(popID);
+   const vmesh::VelocityMesh* vmesh = allCellsPointer[0]->get_velocity_mesh(popID);
    // set cell size in dimension direction
-   dvz = vmesh.getCellSize(REFLEVEL)[dimension];
-   vz_min = vmesh.getMeshMinLimits()[dimension];
+   dvz = vmesh->getCellSize(REFLEVEL)[dimension];
+   vz_min = vmesh->getMeshMinLimits()[dimension];
    switch (dimension) {
    case 0:
       dz = P::dx_ini;
@@ -499,7 +499,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             copy_trans_block_data(sourceNeighbors.data() + celli * nSourceNeighborsPerCell, blockGID, values, cellid_transpose, popID);
             velocity_block_indices_t block_indices;
             uint8_t refLevel;
-            vmesh.getIndices(blockGID,refLevel, block_indices[0], block_indices[1], block_indices[2]);
+            vmesh->getIndices(blockGID,refLevel, block_indices[0], block_indices[1], block_indices[2]);
 
             //i,j,k are now relative to the order in which we copied data to the values array.
             //After this point in the k,j,i loops there should be no branches based on dimensions

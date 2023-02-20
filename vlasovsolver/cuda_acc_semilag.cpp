@@ -94,15 +94,15 @@ void cuda_accelerate_cell(SpatialCell* spatial_cell,
                          const Real& dt) {
    double t1 = MPI_Wtime();
 
-   vmesh::VelocityMesh& vmesh    = spatial_cell->get_velocity_mesh(popID);
-   vmesh::VelocityBlockContainer& blockContainer = spatial_cell->get_velocity_blocks(popID);
+   vmesh::VelocityMesh* vmesh    = spatial_cell->get_velocity_mesh(popID);
+   vmesh::VelocityBlockContainer* blockContainer = spatial_cell->get_velocity_blocks(popID);
 
    // Launch cuda transfers
    phiprof::start("CUDA-HtoD");
    const uint thread_id = omp_get_thread_num();
    // Check that enough memory is allocated
-   blockContainer.dev_Allocate(vmesh.size());
-   blockContainer.dev_prefetchDevice();
+   blockContainer->dev_Allocate(vmesh->size());
+   blockContainer->dev_prefetchDevice();
    // CUDATODO Also prefetch hashmap to device
    phiprof::stop("CUDA-HtoD");
 
@@ -196,7 +196,7 @@ void cuda_accelerate_cell(SpatialCell* spatial_cell,
 
    // Transfer data back
    phiprof::start("CUDA-DtoH");
-   blockContainer.dev_prefetchHost();
+   blockContainer->dev_prefetchHost();
    // CUDATODO Also prefetch hashmap to host
    cudaStreamSynchronize(cudaStreamList[thread_id]);
    phiprof::stop("CUDA-DtoH");
