@@ -678,6 +678,19 @@ namespace FieldTracing {
             SBC::Ionosphere::innerRadius*SBC::Ionosphere::innerRadius ) { 
             cellTracingCoordinates[n] = x;
             cellConnection[n] += TracingLineEndType::CLOSED;
+
+            // Take a step back and find the innerRadius crossing point
+            stepFieldLine(x,v, cellTracingStepSize[n],(TReal)100e3,(TReal)technicalGrid.DX/2,fieldTracingParameters.tracingMethod,tracingFullField,!(DIRECTION == Direction::FORWARD));
+            TReal r_in = sqrt(cellTracingCoordinates[n][0]*cellTracingCoordinates[n][0] + cellTracingCoordinates[n][1]*cellTracingCoordinates[n][1] + cellTracingCoordinates[n][2]*cellTracingCoordinates[n][2]);
+            TReal r_out = sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]);
+            TReal alpha = (SBC::Ionosphere::innerRadius-r_in)/(r_out - r_in);
+            TReal xi = x[0]-cellTracingCoordinates[n][0];
+            TReal yi = x[1]-cellTracingCoordinates[n][1];
+            TReal zi = x[2]-cellTracingCoordinates[n][2];
+            cellTracingCoordinates[n][0] += xi*alpha;
+            cellTracingCoordinates[n][1] += yi*alpha;
+            cellTracingCoordinates[n][2] += zi*alpha;
+            cellRunningDistance[n] -= cellTracingStepSize[n]*alpha;
             break;
          }
          
