@@ -44,10 +44,11 @@
 #include "device_launch_parameters.h"
 #include "cuda.h"
 #include "cuda_runtime.h"
+#include "cuda_context.cuh" // managed class
 
 namespace vmesh {
 
-   class VelocityMesh {
+   class VelocityMesh : public Managed {
     public:
       VelocityMesh();
       ~VelocityMesh();
@@ -101,8 +102,8 @@ namespace vmesh {
 
       //std::vector<vmesh::GlobalID> localToGlobalMap;
       //OpenBucketHashtable<vmesh::GlobalID,vmesh::LocalID> globalToLocalMap;
-      Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> globalToLocalMap = Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(10); // Start of with a bit larger size for sizePower?
-      split::SplitVector<vmesh::GlobalID> localToGlobalMap;
+      Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *globalToLocalMap;
+      split::SplitVector<vmesh::GlobalID> *localToGlobalMap;
    };
 
    // ***** DEFINITIONS OF MEMBER FUNCTIONS ***** //
@@ -110,40 +111,59 @@ namespace vmesh {
    
    inline VelocityMesh::VelocityMesh() {
       meshID = std::numeric_limits<size_t>::max();
+      // Set sizepower to 10 (1024 blocks) straight away so there's enough room to grow 
+      globalToLocalMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(10);
+      localToGlobalMap = new split::SplitVector<vmesh::GlobalID>(1);
+      localToGlobalMap->clear();
    }
 
-   inline VelocityMesh::~VelocityMesh() { }
+   inline VelocityMesh::~VelocityMesh() {
+      delete globalToLocalMap;
+      delete localToGlobalMap;
+   }
 
    inline VelocityMesh::VelocityMesh(const VelocityMesh& other) {
       meshID = other.meshID;
-      localToGlobalMap = split::SplitVector<vmesh::GlobalID>(other.localToGlobalMap);
-      globalToLocalMap = Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(other.globalToLocalMap);
+      globalToLocalMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(*(other.globalToLocalMap));
+      if (other.localToGlobalMap->size() > 0) {
+         localToGlobalMap = new split::SplitVector<vmesh::GlobalID>(*(other.localToGlobalMap));
+      } else {
+         localToGlobalMap = new split::SplitVector<vmesh::GlobalID>(1);
+         localToGlobalMap->clear();
+      }
    }
 
    inline const VelocityMesh& VelocityMesh::operator=(const VelocityMesh& other) {
+      delete globalToLocalMap;
+      delete localToGlobalMap;
       meshID = other.meshID;
-      localToGlobalMap = split::SplitVector<vmesh::GlobalID>(other.localToGlobalMap);
-      globalToLocalMap = Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(other.globalToLocalMap);
+      globalToLocalMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(*(other.globalToLocalMap));
+      if (other.localToGlobalMap->size() > 0) {
+         localToGlobalMap = new split::SplitVector<vmesh::GlobalID>(*(other.localToGlobalMap));
+      } else {
+         localToGlobalMap = new split::SplitVector<vmesh::GlobalID>(1);
+         localToGlobalMap->clear();
+      }
       return *this;
    }
 
    inline size_t VelocityMesh::capacityInBytes() const {
-      return localToGlobalMap.capacity()*sizeof(vmesh::GlobalID)
-           + globalToLocalMap.bucket_count()*(sizeof(vmesh::GlobalID)+sizeof(vmesh::LocalID));
+      return localToGlobalMap->capacity()*sizeof(vmesh::GlobalID)
+           + globalToLocalMap->bucket_count()*(sizeof(vmesh::GlobalID)+sizeof(vmesh::LocalID));
    }
 
    inline bool VelocityMesh::check() const {
       bool ok = true;
 
-      if (localToGlobalMap.size() != globalToLocalMap.size()) {
-         std::cerr << "VMO ERROR: sizes differ, " << localToGlobalMap.size() << " vs " << globalToLocalMap.size() << std::endl;
+      if (localToGlobalMap->size() != globalToLocalMap->size()) {
+         std::cerr << "VMO ERROR: sizes differ, " << localToGlobalMap->size() << " vs " << globalToLocalMap->size() << std::endl;
          ok = false;
          exit(1);
       }
 
       for (size_t b=0; b<size(); ++b) {
-         const vmesh::LocalID globalID = localToGlobalMap[b];
-         auto it = globalToLocalMap.find(globalID);
+         const vmesh::LocalID globalID = localToGlobalMap->at(b);
+         auto it = globalToLocalMap->find(globalID);
          const vmesh::GlobalID localID = it->second;
          if (localID != b) {
             ok = false;
@@ -157,24 +177,24 @@ namespace vmesh {
    }
 
    inline void VelocityMesh::clear() {
-      split::SplitVector<vmesh::GlobalID>().swap(localToGlobalMap);
-      globalToLocalMap.clear();
+      split::SplitVector<vmesh::GlobalID>().swap(*localToGlobalMap);
+      globalToLocalMap->clear();
    }
 
    inline bool VelocityMesh::copy(const vmesh::LocalID& sourceLID,const vmesh::LocalID& targetLID) {
-      const vmesh::GlobalID sourceGID = localToGlobalMap[sourceLID]; // block at the end of list
-      const vmesh::GlobalID targetGID = localToGlobalMap[targetLID]; // removed block
+      const vmesh::GlobalID sourceGID = localToGlobalMap->at(sourceLID); // block at the end of list
+      const vmesh::GlobalID targetGID = localToGlobalMap->at(targetLID); // removed block
 
       // at-function will throw out_of_range exception for non-existing global ID:
-      globalToLocalMap.at(sourceGID) = targetLID;
-      localToGlobalMap[targetLID]    = sourceGID;
-      globalToLocalMap.at(targetGID) = sourceLID; // These are needed to make pop() work
-      localToGlobalMap[sourceLID]    = targetGID;
+      globalToLocalMap->at(sourceGID) = targetLID;
+      localToGlobalMap->at(targetLID) = sourceGID;
+      globalToLocalMap->at(targetGID) = sourceLID; // These are needed to make pop() work
+      localToGlobalMap->at(sourceLID) = targetGID;
       return true;
    }
 
    inline size_t VelocityMesh::count(const vmesh::GlobalID& globalID) const {
-      return globalToLocalMap.count(globalID);
+      return globalToLocalMap->count(globalID);
    }
 
    inline vmesh::GlobalID VelocityMesh::findBlock(vmesh::GlobalID cellIndices[3]) const {
@@ -187,7 +207,7 @@ namespace vmesh {
       vmesh::GlobalID blockGID = getGlobalID(i_block,j_block,k_block);
 
       // If the block exists, return it:
-      if (globalToLocalMap.find(blockGID) != globalToLocalMap.end()) {
+      if (globalToLocalMap->find(blockGID) != globalToLocalMap->end()) {
          return blockGID;
       } else {
          return invalidGlobalID();
@@ -262,12 +282,12 @@ namespace vmesh {
 
    inline vmesh::GlobalID VelocityMesh::getGlobalID(const vmesh::LocalID& localID) const {
       #ifndef NDEBUG
-      if (localID >= localToGlobalMap.size()) {
+      if (localID >= localToGlobalMap->size()) {
          std::cerr << "ERROR invalid local id" << std::endl; exit(1);
       }
       #endif
 
-      return localToGlobalMap[localID];
+      return localToGlobalMap->at(localID);
    }
 
    inline vmesh::GlobalID VelocityMesh::getGlobalID(const Real* coords) const {
@@ -304,7 +324,7 @@ namespace vmesh {
    }
 
    inline split::SplitVector<vmesh::GlobalID>& VelocityMesh::getGrid() {
-      return localToGlobalMap;
+      return *localToGlobalMap;
    }
 
    inline const vmesh::LocalID* VelocityMesh::getGridLength(const uint8_t& refLevel) const {
@@ -326,8 +346,8 @@ namespace vmesh {
    }
 
    inline vmesh::LocalID VelocityMesh::getLocalID(const vmesh::GlobalID& globalID) const {
-      auto it = globalToLocalMap.find(globalID);
-      if (it != globalToLocalMap.end()) return it->second;
+      auto it = globalToLocalMap->find(globalID);
+      if (it != globalToLocalMap->end()) return it->second;
       return invalidLocalID();
    }
 
@@ -368,11 +388,11 @@ namespace vmesh {
       if (size() == 0) return;
 
       const vmesh::LocalID lastLID = size()-1;
-      const vmesh::GlobalID lastGID = localToGlobalMap[lastLID];
-      auto last = globalToLocalMap.find(lastGID);
+      const vmesh::GlobalID lastGID = localToGlobalMap->at(lastLID);
+      auto last = globalToLocalMap->find(lastGID);
 
-      globalToLocalMap.erase(last);
-      localToGlobalMap.pop_back();
+      globalToLocalMap->erase(last);
+      localToGlobalMap->pop_back();
    }
 
    inline bool VelocityMesh::push_back(const vmesh::GlobalID& globalID) {
@@ -380,10 +400,10 @@ namespace vmesh {
       if (globalID == invalidGlobalID()) return false;
 
       auto position
-         = globalToLocalMap.insert(cuda::std::make_pair(globalID,localToGlobalMap.size()));
+         = globalToLocalMap->insert(cuda::std::make_pair(globalID,localToGlobalMap->size()));
 
       if (position.second == true) {
-         localToGlobalMap.push_back(globalID);
+         localToGlobalMap->push_back(globalID);
       }
       return position.second;
    }
@@ -397,9 +417,9 @@ namespace vmesh {
       }
 
       for (size_t b=0; b<blocks.size(); ++b) {
-         globalToLocalMap.insert(cuda::std::make_pair(blocks[b],localToGlobalMap.size()+b));
+         globalToLocalMap->insert(cuda::std::make_pair(blocks[b],localToGlobalMap->size()+b));
       }
-      localToGlobalMap.insert(localToGlobalMap.end(),blocks.begin(),blocks.end());
+      localToGlobalMap->insert(localToGlobalMap->end(),blocks.begin(),blocks.end());
       return true;
    }
 
@@ -412,33 +432,35 @@ namespace vmesh {
       }
 
       for (size_t b=0; b<blocks.size(); ++b) {
-         globalToLocalMap.insert(cuda::std::make_pair(blocks[b],localToGlobalMap.size()+b));
+         globalToLocalMap->insert(cuda::std::make_pair(blocks[b],localToGlobalMap->size()+b));
       }
-      localToGlobalMap.insert(localToGlobalMap.end(),blocks.begin(),blocks.end());
+      localToGlobalMap->insert(localToGlobalMap->end(),blocks.begin(),blocks.end());
       return true;
    }
 
    inline void VelocityMesh::setGrid() {
-      globalToLocalMap.clear();
-      for (size_t i=0; i<localToGlobalMap.size(); ++i) {
-         globalToLocalMap.insert(cuda::std::make_pair(localToGlobalMap[i],i));
+      globalToLocalMap->clear();
+      for (size_t i=0; i<localToGlobalMap->size(); ++i) {
+         globalToLocalMap->insert(cuda::std::make_pair(localToGlobalMap->at(i),i));
       }
    }
 
    inline bool VelocityMesh::setGrid(const std::vector<vmesh::GlobalID>& globalIDs) {
-      globalToLocalMap.clear();
+      globalToLocalMap->clear();
       for (vmesh::LocalID i=0; i<globalIDs.size(); ++i) {
-         globalToLocalMap.insert(cuda::std::make_pair(globalIDs[i],i));
+         globalToLocalMap->insert(cuda::std::make_pair(globalIDs[i],i));
       }
-      localToGlobalMap = split::SplitVector<vmesh::GlobalID>(globalIDs);
+      localToGlobalMap->clear();
+      localToGlobalMap->insert(localToGlobalMap->end(),globalIDs.begin(),globalIDs.end());
       return true;
    }
    inline bool VelocityMesh::setGrid(const split::SplitVector<vmesh::GlobalID>& globalIDs) {
-      globalToLocalMap.clear();
+      globalToLocalMap->clear();
       for (vmesh::LocalID i=0; i<globalIDs.size(); ++i) {
-         globalToLocalMap.insert(cuda::std::make_pair(globalIDs[i],i));
+         globalToLocalMap->insert(cuda::std::make_pair(globalIDs[i],i));
       }
-      localToGlobalMap = globalIDs;
+      localToGlobalMap->clear();
+      localToGlobalMap->insert(localToGlobalMap->end(),globalIDs.begin(),globalIDs.end());
       return true;
    }
 
@@ -449,21 +471,21 @@ namespace vmesh {
    }
 
    inline void VelocityMesh::setNewSize(const vmesh::LocalID& newSize) {
-      localToGlobalMap.resize(newSize);
+      localToGlobalMap->resize(newSize);
    }
 
    inline size_t VelocityMesh::size() const {
-      return localToGlobalMap.size();
+      return localToGlobalMap->size();
    }
 
    inline size_t VelocityMesh::sizeInBytes() const {
-      return globalToLocalMap.size()*sizeof(vmesh::GlobalID)
-           + localToGlobalMap.size()*(sizeof(vmesh::GlobalID)+sizeof(vmesh::LocalID));
+      return globalToLocalMap->size()*sizeof(vmesh::GlobalID)
+           + localToGlobalMap->size()*(sizeof(vmesh::GlobalID)+sizeof(vmesh::LocalID));
    }
 
    inline void VelocityMesh::swap(VelocityMesh& vm) {
-      globalToLocalMap.swap(vm.globalToLocalMap);
-      localToGlobalMap.swap(vm.localToGlobalMap);
+      globalToLocalMap->swap(*(vm.globalToLocalMap));
+      localToGlobalMap->swap(*(vm.localToGlobalMap));
    }
 
 } // namespace vmesh
