@@ -623,7 +623,7 @@ namespace FieldTracing {
       
       std::vector<int> reducedNodeMapping(nodes.size());
       std::vector<int> reducedNodeTracingStepCount(nodes.size());
-      MPI_Allreduce(nodeMapping.data(), reducedNodeMapping.data(), nodes.size(), MPI_INT, MPI_MIN, MPI_COMM_WORLD);
+      MPI_Allreduce(nodeMapping.data(), reducedNodeMapping.data(), nodes.size(), MPI_INT, MPI_MAX, MPI_COMM_WORLD);
       MPI_Allreduce(nodeTracingStepCount.data(), reducedNodeTracingStepCount.data(), nodes.size(), MPI_INT, MPI_SUM, MPI_COMM_WORLD);
       
       for(uint n=0; n<nodes.size(); n++) {
