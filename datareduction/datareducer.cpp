@@ -3136,8 +3136,8 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(lowercase == "vg_connection") {
          FieldTracing::fieldTracingParameters.doTraceFullBox = true;
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_connection",CellParams::CONNECTION,1));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_connection_coordinates_pos",CellParams::CONNECTION_POS_X,3));
-         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_connection_coordinates_neg",CellParams::CONNECTION_NEG_X,3));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_connection_coordinates_fw",CellParams::CONNECTION_FW_X,3));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_connection_coordinates_bw",CellParams::CONNECTION_BW_X,3));
          continue;
       }
       if(lowercase == "vg_fluxrope" || lowercase == "vg_curvature") {

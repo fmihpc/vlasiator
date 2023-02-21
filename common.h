@@ -190,12 +190,12 @@ namespace CellParams {
       AMR_TRANSLATE_COMM_Y, /*! < Flag to include this cell in AMR pre-translate communication  */
       AMR_TRANSLATE_COMM_Z, /*! < Flag to include this cell in AMR pre-translate communication  */
       CONNECTION, /*!< Magnetic connection. See TracingPointConnectionType for assigned values. */
-      CONNECTION_POS_X, /*!< Endpoint x (positive) for the magnetic connection tracer*/
-      CONNECTION_POS_Y, /*!< Endpoint y (positive) for the magnetic connection tracer*/
-      CONNECTION_POS_Z, /*!< Endpoint z (positive) for the magnetic connection tracer*/
-      CONNECTION_NEG_X, /*!< Endpoint x (negative) for the magnetic connection tracer*/
-      CONNECTION_NEG_Y, /*!< Endpoint y (negative) for the magnetic connection tracer*/
-      CONNECTION_NEG_Z, /*!< Endpoint z (negative) for the magnetic connection tracer*/
+      CONNECTION_FW_X, /*!< Endpoint x (forward-propagated) for the magnetic connection tracer*/
+      CONNECTION_FW_Y, /*!< Endpoint y (forward-propagated) for the magnetic connection tracer*/
+      CONNECTION_FW_Z, /*!< Endpoint z (forward-propagated) for the magnetic connection tracer*/
+      CONNECTION_BW_X, /*!< Endpoint x (backward-propagated) for the magnetic connection tracer*/
+      CONNECTION_BW_Y, /*!< Endpoint y (backward-propagated) for the magnetic connection tracer*/
+      CONNECTION_BW_Z, /*!< Endpoint z (backward-propagated) for the magnetic connection tracer*/
       CURVATUREX, /*!< Magnetic field curvature vector x component */
       CURVATUREY, /*!< Magnetic field curvature vector y component */
       CURVATUREZ, /*!< Magnetic field curvature vector z component */

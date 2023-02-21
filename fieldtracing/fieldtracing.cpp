@@ -1163,12 +1163,12 @@ namespace FieldTracing {
             if (cellFWConnection[n] == TracingLineEndType::DANGLING && cellBWConnection[n] == TracingLineEndType::DANGLING) {
                mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::DANGLING_DANGLING;
             }
-            mpiGrid[id]->parameters[CellParams::CONNECTION_POS_X] = cellFWTracingCoordinates[n][0];
-            mpiGrid[id]->parameters[CellParams::CONNECTION_POS_Y] = cellFWTracingCoordinates[n][1];
-            mpiGrid[id]->parameters[CellParams::CONNECTION_POS_Z] = cellFWTracingCoordinates[n][2];
-            mpiGrid[id]->parameters[CellParams::CONNECTION_NEG_X] = cellBWTracingCoordinates[n][0];
-            mpiGrid[id]->parameters[CellParams::CONNECTION_NEG_Y] = cellBWTracingCoordinates[n][1];
-            mpiGrid[id]->parameters[CellParams::CONNECTION_NEG_Z] = cellBWTracingCoordinates[n][2];
+            mpiGrid[id]->parameters[CellParams::CONNECTION_FW_X] = cellFWTracingCoordinates[n][0];
+            mpiGrid[id]->parameters[CellParams::CONNECTION_FW_Y] = cellFWTracingCoordinates[n][1];
+            mpiGrid[id]->parameters[CellParams::CONNECTION_FW_Z] = cellFWTracingCoordinates[n][2];
+            mpiGrid[id]->parameters[CellParams::CONNECTION_BW_X] = cellBWTracingCoordinates[n][0];
+            mpiGrid[id]->parameters[CellParams::CONNECTION_BW_Y] = cellBWTracingCoordinates[n][1];
+            mpiGrid[id]->parameters[CellParams::CONNECTION_BW_Z] = cellBWTracingCoordinates[n][2];
          }
       }
       phiprof::stop("final-loop");
