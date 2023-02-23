@@ -518,7 +518,8 @@ namespace vmesh {
    inline void VelocityMesh::dev_prefetchHost() {
       if (localToGlobalMap->size() == 0) return;
       // In fact we only need to prefetch the buckets inside the hashmap to GPU, but use this call.
-      Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *uploaded = globalToLocalMap->upload(cuda_getStream());
+      //Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *uploaded = globalToLocalMap->upload(cuda_getStream());
+      globalToLocalMap->optimizeCPU(cuda_getStream());
       localToGlobalMap->optimizeCPU(cuda_getStream());
       return;
    }
@@ -526,7 +527,8 @@ namespace vmesh {
    inline void VelocityMesh::dev_prefetchDevice() {
       if (localToGlobalMap->size() == 0) return;
       // In fact we only need to prefetch the buckets inside the hashmap to GPU, but use this call.
-      Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *uploaded = globalToLocalMap->upload(cuda_getStream());
+      //Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *uploaded = globalToLocalMap->upload(cuda_getStream());
+      globalToLocalMap->optimizeGPU(cuda_getStream());
       localToGlobalMap->optimizeGPU(cuda_getStream());
       return;
    }
