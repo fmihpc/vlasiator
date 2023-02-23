@@ -39,7 +39,7 @@
    #include "include/splitvector/splitvec.h"
 #else
    #define CUDA_HOSTDEV
-   // cuda values stored in cuda_context.cuh
+   // CUDA allocation factors are stored in cuda_context.cuh
    static const double BLOCK_ALLOCATION_FACTOR = 1.1;
 #endif
 

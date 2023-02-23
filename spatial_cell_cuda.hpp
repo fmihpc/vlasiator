@@ -132,7 +132,7 @@ namespace spatial_cell {
     * All Real fields should be consecutive, as they are communicated as a block.
     *
     */
-   struct Population {
+   struct Population : public Managed {
       Real RHO;
       Real V[3];
       Real RHO_R;
