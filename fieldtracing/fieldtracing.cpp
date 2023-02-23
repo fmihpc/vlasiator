@@ -675,8 +675,21 @@ namespace FieldTracing {
          
          // If we map into the ionosphere, discard this field line.
          if(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2) < fieldTracingParameters.innerBoundaryRadius*fieldTracingParameters.innerBoundaryRadius) {
-            cellTracingCoordinates[n] = {0,0,0};
+            cellTracingCoordinates[n] = x;
             cellConnection[n] += TracingLineEndType::CLOSED;
+
+            // Take a step back and find the innerRadius crossing point
+            stepFieldLine(x,v, cellTracingStepSize[n],(TReal)100e3,(TReal)technicalGrid.DX/2,fieldTracingParameters.tracingMethod,tracingFullField,!(DIRECTION == Direction::FORWARD));
+            TReal r_in = sqrt(cellTracingCoordinates[n][0]*cellTracingCoordinates[n][0] + cellTracingCoordinates[n][1]*cellTracingCoordinates[n][1] + cellTracingCoordinates[n][2]*cellTracingCoordinates[n][2]);
+            TReal r_out = sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]);
+            TReal alpha = (fieldTracingParameters.innerBoundaryRadius-r_in)/(r_out - r_in);
+            TReal xi = x[0]-cellTracingCoordinates[n][0];
+            TReal yi = x[1]-cellTracingCoordinates[n][1];
+            TReal zi = x[2]-cellTracingCoordinates[n][2];
+            cellTracingCoordinates[n][0] += xi*alpha;
+            cellTracingCoordinates[n][1] += yi*alpha;
+            cellTracingCoordinates[n][2] += zi*alpha;
+            cellRunningDistance[n] -= cellTracingStepSize[n]*alpha;
             break;
          }
          
@@ -689,14 +702,14 @@ namespace FieldTracing {
             || x[2] > P::zmax - 4*P::dz_ini
             || x[2] < P::zmin + 4*P::dz_ini
          ) {
-            cellTracingCoordinates[n] = {0,0,0};
+            cellTracingCoordinates[n] = x;
             cellConnection[n] += TracingLineEndType::OPEN;
             break;
          }
          
          // If we exceed the max tracing distance we're probably looping
          if(cellRunningDistance[n] > maxTracingDistance) {
-            cellTracingCoordinates[n] = {0,0,0};
+            cellTracingCoordinates[n] = x;
             cellConnection[n] += TracingLineEndType::DANGLING;
             #pragma omp critical
             {
@@ -1150,6 +1163,12 @@ namespace FieldTracing {
             if (cellFWConnection[n] == TracingLineEndType::DANGLING && cellBWConnection[n] == TracingLineEndType::DANGLING) {
                mpiGrid[id]->parameters[CellParams::CONNECTION] = TracingPointConnectionType::DANGLING_DANGLING;
             }
+            mpiGrid[id]->parameters[CellParams::CONNECTION_FW_X] = cellFWTracingCoordinates[n][0];
+            mpiGrid[id]->parameters[CellParams::CONNECTION_FW_Y] = cellFWTracingCoordinates[n][1];
+            mpiGrid[id]->parameters[CellParams::CONNECTION_FW_Z] = cellFWTracingCoordinates[n][2];
+            mpiGrid[id]->parameters[CellParams::CONNECTION_BW_X] = cellBWTracingCoordinates[n][0];
+            mpiGrid[id]->parameters[CellParams::CONNECTION_BW_Y] = cellBWTracingCoordinates[n][1];
+            mpiGrid[id]->parameters[CellParams::CONNECTION_BW_Z] = cellBWTracingCoordinates[n][2];
          }
       }
       phiprof::stop("final-loop");
