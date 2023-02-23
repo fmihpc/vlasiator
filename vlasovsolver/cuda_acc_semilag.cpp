@@ -103,7 +103,7 @@ void cuda_accelerate_cell(SpatialCell* spatial_cell,
    // Check that enough memory is allocated
    blockContainer->dev_Allocate(vmesh->size());
    blockContainer->dev_prefetchDevice();
-   // CUDATODO Also prefetch hashmap to device
+   vmesh->dev_prefetchDevice();
    phiprof::stop("CUDA-HtoD");
 
    // CUDATEST Launch debug kernel?
@@ -197,7 +197,7 @@ void cuda_accelerate_cell(SpatialCell* spatial_cell,
    // Transfer data back
    phiprof::start("CUDA-DtoH");
    blockContainer->dev_prefetchHost();
-   // CUDATODO Also prefetch hashmap to host
+   vmesh->dev_prefetchHost();
    cudaStreamSynchronize(cudaStreamList[thread_id]);
    phiprof::stop("CUDA-DtoH");
 

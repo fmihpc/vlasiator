@@ -91,9 +91,9 @@ namespace vmesh {
       CUDA_HOSTDEV bool push_back(const split::SplitVector<vmesh::GlobalID>& blocks);
       CUDA_HOSTDEV void setGrid();
       bool setGrid(const std::vector<vmesh::GlobalID>& globalIDs);
-      CUDA_HOSTDEV bool setGrid(const split::SplitVector<vmesh::GlobalID>& globalIDs);
-      CUDA_HOSTDEV bool setMesh(const size_t& meshID);
-      CUDA_HOSTDEV void setNewSize(const vmesh::LocalID& newSize);
+      bool setGrid(const split::SplitVector<vmesh::GlobalID>& globalIDs);
+      bool setMesh(const size_t& meshID);
+      void setNewSize(const vmesh::LocalID& newSize);
       CUDA_HOSTDEV size_t size() const;
       CUDA_HOSTDEV size_t sizeInBytes() const;
       CUDA_HOSTDEV void swap(VelocityMesh& vm);
@@ -413,7 +413,7 @@ namespace vmesh {
       auto position
          = globalToLocalMap->device_insert(cuda::std::make_pair(globalID,localToGlobalMap->size()));
       if (position.second == true) {
-         localToGlobalMap->dev_push_back(globalID);
+         localToGlobalMap->device_push_back(globalID);
       }
       #else
       auto position
@@ -425,31 +425,7 @@ namespace vmesh {
       return position.second;
    }
 
-   CUDA_HOSTDEV inline bool VelocityMesh::push_back(const std::vector<vmesh::GlobalID>& blocks) {
-      if (size()+blocks.size() > (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].max_velocity_blocks) {
-         printf("vmesh: too many blocks, current size is %lu",size());
-         printf(", adding %lu blocks", blocks.size());
-         printf(", max is %lu\n",(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].max_velocity_blocks);
-         return false;
-      }
-
-      #ifdef __CUDA_ARCH__
-      for (size_t b=0; b<blocks.size(); ++b) {
-         globalToLocalMap->device_insert(cuda::std::make_pair(blocks[b],localToGlobalMap->size()));
-         localToGlobalMap->dev_push_back(blocks[b]);
-      }
-      //globalToLocalMap->device_insert(cuda::std::make_pair(blocks[b],localToGlobalMap->size()+b));
-      //localToGlobalMap->dev_insert(localToGlobalMap->end(),blocks.begin(),blocks.end());
-      #else
-      for (size_t b=0; b<blocks.size(); ++b) {
-         globalToLocalMap->insert(cuda::std::make_pair(blocks[b],localToGlobalMap->size()+b));
-      }
-      localToGlobalMap->insert(localToGlobalMap->end(),blocks.begin(),blocks.end());
-      #endif
-      return true;
-   }
-
-   CUDA_HOSTDEV inline bool VelocityMesh::push_back(const split::SplitVector<vmesh::GlobalID>& blocks) {
+   inline bool VelocityMesh::push_back(const std::vector<vmesh::GlobalID>& blocks) {
       if (size()+blocks.size() > (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].max_velocity_blocks) {
          printf("vmesh: too many blocks, current size is %lu",size());
          printf(", adding %lu blocks", blocks.size());
@@ -464,10 +440,36 @@ namespace vmesh {
       return true;
    }
 
+   CUDA_HOSTDEV inline bool VelocityMesh::push_back(const split::SplitVector<vmesh::GlobalID>& blocks) {
+      if (size()+blocks.size() > (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].max_velocity_blocks) {
+         printf("vmesh: too many blocks, current size is %lu",size());
+         printf(", adding %lu blocks", blocks.size());
+         printf(", max is %u\n",(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].max_velocity_blocks);
+         return false;
+      }
+
+      #ifdef __CUDA_ARCH__
+      for (size_t b=0; b<blocks.size(); ++b) {
+         globalToLocalMap->device_insert(cuda::std::make_pair(blocks[b],localToGlobalMap->size()+b));
+      }
+      localToGlobalMap->device_insert(localToGlobalMap->end(),blocks.begin(),blocks.end());
+      #else
+      for (size_t b=0; b<blocks.size(); ++b) {
+         globalToLocalMap->insert(cuda::std::make_pair(blocks[b],localToGlobalMap->size()+b));
+      }
+      localToGlobalMap->insert(localToGlobalMap->end(),blocks.begin(),blocks.end());
+      #endif
+      return true;
+   }
+
    CUDA_HOSTDEV inline void VelocityMesh::setGrid() {
       globalToLocalMap->clear();
       for (size_t i=0; i<localToGlobalMap->size(); ++i) {
+         #ifdef __CUDA_ARCH__
+         globalToLocalMap->device_insert(cuda::std::make_pair(localToGlobalMap->at(i),i));
+         #else
          globalToLocalMap->insert(cuda::std::make_pair(localToGlobalMap->at(i),i));
+         #endif
       }
    }
 
@@ -480,7 +482,7 @@ namespace vmesh {
       localToGlobalMap->insert(localToGlobalMap->end(),globalIDs.begin(),globalIDs.end());
       return true;
    }
-   CUDA_HOSTDEV inline bool VelocityMesh::setGrid(const split::SplitVector<vmesh::GlobalID>& globalIDs) {
+   inline bool VelocityMesh::setGrid(const split::SplitVector<vmesh::GlobalID>& globalIDs) {
       globalToLocalMap->clear();
       for (vmesh::LocalID i=0; i<globalIDs.size(); ++i) {
          globalToLocalMap->insert(cuda::std::make_pair(globalIDs[i],i));
@@ -490,13 +492,13 @@ namespace vmesh {
       return true;
    }
 
-   CUDA_HOSTDEV inline bool VelocityMesh::setMesh(const size_t& meshID) {
+   inline bool VelocityMesh::setMesh(const size_t& meshID) {
       if (meshID >= vmesh::getMeshWrapper()->velocityMeshes->size()) return false;
       this->meshID = meshID;
       return true;
    }
 
-   CUDA_HOSTDEV inline void VelocityMesh::setNewSize(const vmesh::LocalID& newSize) {
+   inline void VelocityMesh::setNewSize(const vmesh::LocalID& newSize) {
       // CUDATODO: What's the point of this function? Garbage LIDs added?
       localToGlobalMap->resize(newSize);
    }

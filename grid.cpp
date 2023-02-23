@@ -753,8 +753,11 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
          }
       }
 #ifdef USE_CUDA
+      vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
       vmesh::VelocityBlockContainer* blockContainer = cell->get_velocity_blocks(popID);
+      blockContainer->dev_Allocate(vmesh->size());
       blockContainer->dev_prefetchDevice();
+      vmesh->dev_prefetchDevice();
 #endif
    }
    phiprof::stop("Adjusting blocks");
