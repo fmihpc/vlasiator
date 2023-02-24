@@ -25,8 +25,7 @@ bin="$GITHUB_WORKSPACE/vlasiator"
 diffbin="$GITHUB_WORKSPACE/vlsvdiff_DP"
 
 #compare agains which revision
-#reference_revision="c36241b84ce8179f7491ebf2a94c377d7279e8c9__DACC_SEMILAG_PQM__DTRANS_SEMILAG_PPM__DDP__DDPF__DVEC4D_AGNER"
-reference_revision="current"
+reference_revision="CI_reference"
 
 # threads per job (equal to -c )
 t=4
