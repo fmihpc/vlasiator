@@ -190,16 +190,17 @@ jobs:
         sbatch -W -o testpackage_run_output.txt ./small_test_carrington_github_ci.sh
         cat testpackage_run_output.txt
         cat $GITHUB_STEP_SUMMARY > $GITHUB_WORKSPACE/testpackage_check_description.txt
-    - name: Generate PR check report
-      uses: LouisBrunner/checks-action@v1.6.0
-      if: always()
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        name: Testpackage result
-        conclusion: ${{ steps.run.outputs.conclusion }}
-        output: |
-          {"title": "Testpackage result", "summary":"${{ steps.run.outputs.summary }}"}
-        output_text_description_file: testpackage_check_description.txt
+    ## Not running because github actions are weird with external PRs
+    #- name: Generate PR check report
+    #  uses: LouisBrunner/checks-action@v1.6.0
+    #  if: always()
+    #  with:
+    #    token: ${{ secrets.GITHUB_TOKEN }}
+    #    name: Testpackage result
+    #    conclusion: ${{ steps.run.outputs.conclusion }}
+    #    output: |
+    #      {"title": "Testpackage result", "summary":"${{ steps.run.outputs.summary }}"}
+    #    output_text_description_file: testpackage_check_description.txt
     - name: Build test report
       uses: mikepenz/action-junit-report@v3
       with:
