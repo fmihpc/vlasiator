@@ -109,7 +109,9 @@ jobs:
       run: tar --zstd -xvf libraries.tar.zstd
     - uses: ammaraskar/gcc-problem-matcher@master
     - name: Compile vlasiator (Release build)
-      run: VLASIATOR_ARCH=github_actions make -j 3
+      run: |
+        VLASIATOR_ARCH=github_actions make clean
+        VLASIATOR_ARCH=github_actions make -j 3
       
   
   build_testpackage:
@@ -146,6 +148,8 @@ jobs:
     - name: Checkout source
       uses: actions/checkout@v3 
     - uses: ammaraskar/gcc-problem-matcher@master
+    - name: Make clean
+      run: make clean
     - name: Compile tools
       run: |
         export VLASIATOR_ARCH=carrington_gcc_openmpi
