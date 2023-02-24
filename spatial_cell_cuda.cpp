@@ -341,6 +341,10 @@ namespace spatial_cell {
       // These should be empty when created, but let's play safe.
       velocity_block_with_content_list = new split::SplitVector<vmesh::GlobalID>(*(other.velocity_block_with_content_list));
       velocity_block_with_no_content_list = new split::SplitVector<vmesh::GlobalID>(*(other.velocity_block_with_no_content_list));
+      BlocksToAdd = new split::SplitVector<vmesh::GlobalID>(1);
+      BlocksToRemove = new split::SplitVector<vmesh::GlobalID>(1);
+      BlocksToAdd->clear();
+      BlocksToRemove->clear();
 
       // Member variables
       ioLocalCellId = other.ioLocalCellId;
