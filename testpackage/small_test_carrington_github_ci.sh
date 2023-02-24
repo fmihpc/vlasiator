@@ -190,7 +190,7 @@ for run in ${run_tests[*]}; do
            echo "test_carrington{test=\"${test_name[$run]}\",var=\"${variables[$i]}\",index=\"${indices[$i]}\",diff=\"relative\"} $relativeValue" >> $GITHUB_WORKSPACE/metrics.txt
 
             # Check if we have a new maximum error
-            if (( $( echo "$absoluteValue > $MAXERR" | bc -l) )); then
+            if (( $( echo "$absoluteValue $MAXERR" | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
                MAXERR=$absoluteValue
                MAXREL=$relativeValue
                MAXVAR=${variables[$i]}
@@ -208,7 +208,7 @@ for run in ${run_tests[*]}; do
            echo "test_carrington{test=\"${test_name[$run]}\",var=\"${variables[$i]}\",index=\"${indices[$i]}\",diff=\"relative\"} $relativeValue" >> $GITHUB_WORKSPACE/metrics.txt
 
             # Check if we have a new maximum error
-            if (( $( echo "$absoluteValue > $MAXERR" | bc -l) )); then
+            if (( $( echo "$absoluteValue $MAXERR" | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
                MAXERR=$absoluteValue
                MAXREL=$relativeValue
                MAXVAR=${variables[$i]}
@@ -226,7 +226,7 @@ for run in ${run_tests[*]}; do
            echo "test_carrington{test=\"${test_name[$run]}\",var=\"${variables[$i]}\",index=\"${indices[$i]}\",diff=\"relative\"} $relativeValue" >> $GITHUB_WORKSPACE/metrics.txt
 
             # Check if we have a new maximum error
-            if (( $( echo "$absoluteValue > $MAXERR" | bc -l) )); then
+            if (( $( echo "$absoluteValue $MAXERR" | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
                MAXERR=$absoluteValue
                MAXREL=$relativeValue
                MAXVAR=${variables[$i]}
@@ -255,7 +255,7 @@ for run in ${run_tests[*]}; do
    speedup=`cat $RUNNER_TEMP/speedup.txt`
 
    # Output CI step annotation
-   if (( $( echo "$MAXERR > 0." | bc -l ) )); then
+   if (( $( echo "$MAXERR 0." | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
       echo -e "<details><summary>:large_orange_diamond: ${test_name[$run]}: Nonzero diffs: : \`$MAXVAR\` has absolute error $MAXERR, relative error $MAXREL. Speedup: $speedup</summary>\n" >> $GITHUB_STEP_SUMMARY
       NONZEROTESTS=$((NONZEROTESTS+1))
    else 
