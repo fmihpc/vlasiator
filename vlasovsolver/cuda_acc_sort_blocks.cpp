@@ -42,7 +42,6 @@ inline bool tripletcomparator( const std::pair<std::pair<uint, uint>, uint> & l,
    The sorted list is sorted according to the location, along the given dimension.
    This version uses triplets internally and also returns the LIDs of the sorted blocks.
 */
-#warning "unfinished documentation"
 void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                const vmesh::VelocityMesh* vmesh,
                                const uint dimension,

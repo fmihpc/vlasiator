@@ -42,7 +42,7 @@ inline bool paircomparator( const std::pair<uint, uint> & l, const std::pair<uin
    The sorted list is sorted according to the location, along the given dimension.
    
 */
-#warning "unfinished documentation"
+//#warning "unfinished documentation"
 void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                const vmesh::VelocityMesh* vmesh,
                                const uint dimension,

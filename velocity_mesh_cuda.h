@@ -58,7 +58,7 @@ namespace vmesh {
 
       CUDA_HOSTDEV size_t capacityInBytes() const;
       CUDA_HOSTDEV bool check() const;
-      CUDA_HOSTDEV void clear();
+      void clear();
       CUDA_HOSTDEV bool copy(const vmesh::LocalID& sourceLocalID,const vmesh::LocalID& targetLocalID);
       CUDA_HOSTDEV size_t count(const vmesh::GlobalID& globalID) const;
       CUDA_HOSTDEV vmesh::GlobalID findBlock(vmesh::GlobalID cellIndices[3]) const;
@@ -89,7 +89,8 @@ namespace vmesh {
       CUDA_HOSTDEV bool push_back(const vmesh::GlobalID& globalID);
       bool push_back(const std::vector<vmesh::GlobalID>& blocks);
       CUDA_HOSTDEV bool push_back(const split::SplitVector<vmesh::GlobalID>& blocks);
-      CUDA_HOSTDEV void setGrid();
+      CUDA_DEV bool replaceBlock(const vmesh::GlobalID& globalID,const vmesh::GlobalID& localID);
+      void setGrid();
       bool setGrid(const std::vector<vmesh::GlobalID>& globalIDs);
       bool setGrid(const split::SplitVector<vmesh::GlobalID>& globalIDs);
       bool setMesh(const size_t& meshID);
@@ -112,10 +113,10 @@ namespace vmesh {
 
    // ***** DEFINITIONS OF MEMBER FUNCTIONS ***** //
 
-   
+
    inline VelocityMesh::VelocityMesh() {
       meshID = std::numeric_limits<size_t>::max();
-      // Set sizepower to 10 (1024 blocks) straight away so there's enough room to grow 
+      // Set sizepower to 10 (1024 blocks) straight away so there's enough room to grow
       globalToLocalMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(10);
       localToGlobalMap = new split::SplitVector<vmesh::GlobalID>(1);
       localToGlobalMap->clear();
@@ -180,7 +181,7 @@ namespace vmesh {
       return ok;
    }
 
-   CUDA_HOSTDEV inline void VelocityMesh::clear() {
+   inline void VelocityMesh::clear() {
       split::SplitVector<vmesh::GlobalID>().swap(*localToGlobalMap);
       globalToLocalMap->clear();
    }
@@ -190,15 +191,24 @@ namespace vmesh {
       const vmesh::GlobalID targetGID = localToGlobalMap->at(targetLID); // removed block
 
       // at-function will throw out_of_range exception for non-existing global ID:
+      #ifdef __CUDA_ARCH__
+      globalToLocalMap->set_element(sourceGID,targetLID);
+      globalToLocalMap->set_element(targetGID,sourceLID);
+      #else
       globalToLocalMap->at(sourceGID) = targetLID;
-      localToGlobalMap->at(targetLID) = sourceGID;
       globalToLocalMap->at(targetGID) = sourceLID;
+      #endif
+      localToGlobalMap->at(targetLID) = sourceGID;
       localToGlobalMap->at(sourceLID) = targetGID;
       return true;
    }
 
    CUDA_HOSTDEV inline size_t VelocityMesh::count(const vmesh::GlobalID& globalID) const {
+      #ifdef __CUDA_ARCH__
+      return globalToLocalMap->device_count(globalID);
+      #else
       return globalToLocalMap->count(globalID);
+      #endif
    }
 
    CUDA_HOSTDEV inline vmesh::GlobalID VelocityMesh::findBlock(vmesh::GlobalID cellIndices[3]) const {
@@ -399,9 +409,13 @@ namespace vmesh {
 
       const vmesh::LocalID lastLID = size()-1;
       const vmesh::GlobalID lastGID = localToGlobalMap->at(lastLID);
+      #ifdef __CUDA_ARCH__
+      auto last = globalToLocalMap->device_find(lastGID);
+      globalToLocalMap->device_erase(last);
+      #else
       auto last = globalToLocalMap->find(lastGID);
-
       globalToLocalMap->erase(last);
+      #endif
       localToGlobalMap->pop_back();
    }
 
@@ -462,14 +476,17 @@ namespace vmesh {
       return true;
    }
 
-   CUDA_HOSTDEV inline void VelocityMesh::setGrid() {
+   CUDA_DEV inline bool VelocityMesh::replaceBlock(const vmesh::GlobalID& removeGID,const vmesh::GlobalID& addGID) {
+      vmesh::LocalID removeLID = globalToLocalMap->read_element(removeGID);
+      globalToLocalMap->device_erase(removeGID);
+      globalToLocalMap->set_element(addGID,removeLID);
+      localToGlobalMap->at(removeLID) = addGID;
+   }
+
+   inline void VelocityMesh::setGrid() {
       globalToLocalMap->clear();
       for (size_t i=0; i<localToGlobalMap->size(); ++i) {
-         #ifdef __CUDA_ARCH__
-         globalToLocalMap->device_insert(cuda::std::make_pair(localToGlobalMap->at(i),i));
-         #else
          globalToLocalMap->insert(cuda::std::make_pair(localToGlobalMap->at(i),i));
-         #endif
       }
    }
 
