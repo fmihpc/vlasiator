@@ -21,16 +21,19 @@ jobs:
           run_id: ${{ github.event.workflow_run.id }}
       - name: unpack and process pr output
         id: unpack
+        run: |
+          tar -xzvf testpackage-output.tar.gz
           cat testpackage_output_variables.txt >> $GITHUB_OUTPUT
       - name: Generate PR check report
         uses: LouisBrunner/checks-action@v1.6.0
         if: always()
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          sha: ${{github.event.workflow_run.head_sha}}
           name: Testpackage result
-          conclusion: ${{ steps.run.outputs.conclusion }}
+          conclusion: ${{ steps.unpack.outputs.conclusion }}
           output: |
-            {"title": "Testpackage result", "summary":"${{ steps.run.outputs.summary }}"}
+            {"title": "Testpackage result", "summary":"${{ steps.unpack.outputs.summary }}"}
           output_text_description_file: testpackage_check_description.txt
 
      ## No need to bother with JUnit reports if the check runs work

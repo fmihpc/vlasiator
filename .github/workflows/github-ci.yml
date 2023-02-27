@@ -183,14 +183,14 @@ jobs:
         sbatch -W -o testpackage_run_output.txt ./small_test_carrington_github_ci.sh
         cat testpackage_run_output.txt
         cat $GITHUB_STEP_SUMMARY > $GITHUB_WORKSPACE/testpackage_check_description.txt
+        cd $GITHUB_WORKSPACE
+        tar -czvf testpackage-output.tar.gz testpackage_check_description.txt testpackage_output_variables.txt
     - name: Upload testpackage output
       uses: actions/upload-artifact@v3
       if: always()
       with:
         name: testpackage-output
-        path: |
-          testpackage_check_description.txt
-          testpackage_output_variables.txt
+        path: testpackage-output.tar.gz
       # Note: Testpackage output is further processed in the pr_report.yml workflow
       # (to produce Checks against pull requests)
 

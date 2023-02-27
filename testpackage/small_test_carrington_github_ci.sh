@@ -313,12 +313,12 @@ done
 
 
 # -- Write summary for github PR annotation --
-echo "summary=$ZEROTESTS tests with zero diffs, $NONZEROTESTS tests with diffs, $FAILEDTESTS tests failed." >> testpackage_output_variables.txt
+echo "summary=$ZEROTESTS tests with zero diffs, $NONZEROTESTS tests with diffs, $FAILEDTESTS tests failed." >> $GITHUB_WORKSPACE/testpackage_output_variables.txt
 if [[ $FAILEDTESTS > 0 ]]; then
-   echo "conclusion=failure" >> testpackage_output_variables.txt
+   echo "conclusion=failure" >> $GITHUB_WORKSPACE/testpackage_output_variables.txt
 elif [[ $NONZEROTESTS > 0 ]]; then
-   echo "conclusion=neutral" >> testpackage_output_variables.txt
+   echo "conclusion=neutral" >> $GITHUB_WORKSPACE/testpackage_output_variables.txt
 else
-   echo "conclusion=success" >> testpackage_output_variables.txt
+   echo "conclusion=success" >> $GITHUB_WORKSPACE/testpackage_output_variables.txt
 fi
 
