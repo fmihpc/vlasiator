@@ -17,12 +17,6 @@ jobs:
     container: ursg/vlasiator_ci:20230220_1
     
     steps:
-      - name: Determine paths
-        run: |
-          echo "Pwd is " `pwd`
-          echo GITHUB_ACTION_PATH is $GITHUB_ACTION_PATH
-          echo GITHUB_ENV is $GITHUB_ENV
-          echo $GITHUB_WORKSPACE is $GITHUB_WORKSPACE
       - name: Setup libraries dir
         run: |
           mkdir -p libraries/include
@@ -40,7 +34,6 @@ jobs:
         run: |
           git clone https://github.com/fmihpc/fsgrid.git 
           cp fsgrid/fsgrid.hpp $GITHUB_WORKSPACE/libraries/include
-          echo -e "\e[0Ksection_end:`date +%s`:fsgrid\r\e[0K"
       - name: Build phiprof
         run: |
           git clone https://github.com/fmihpc/phiprof/ 
@@ -190,23 +183,16 @@ jobs:
         sbatch -W -o testpackage_run_output.txt ./small_test_carrington_github_ci.sh
         cat testpackage_run_output.txt
         cat $GITHUB_STEP_SUMMARY > $GITHUB_WORKSPACE/testpackage_check_description.txt
-    ## Not running because github actions are weird with external PRs
-    #- name: Generate PR check report
-    #  uses: LouisBrunner/checks-action@v1.6.0
-    #  if: always()
-    #  with:
-    #    token: ${{ secrets.GITHUB_TOKEN }}
-    #    name: Testpackage result
-    #    conclusion: ${{ steps.run.outputs.conclusion }}
-    #    output: |
-    #      {"title": "Testpackage result", "summary":"${{ steps.run.outputs.summary }}"}
-    #    output_text_description_file: testpackage_check_description.txt
-    - name: Build test report
-      uses: mikepenz/action-junit-report@v3
+    - name: Upload testpackage output
+      uses: actions/upload-artifact@v3
+      if: always()
       with:
-        report_paths: 'testpackage_output_junit*.xml'
-        detailed_summary: true
-        include_passed: true
+        name: testpackage-output
+        path: |
+          testpackage_check_description.txt
+          testpackage_output_variables.txt
+      # Note: Testpackage output is further processed in the pr_report.yml workflow
+      # (to produce Checks against pull requests)
 
   #build_ionosphereTests:
   #  # Build IonosphereSolverTests miniApp (currently broken)
