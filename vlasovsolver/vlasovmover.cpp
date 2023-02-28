@@ -309,25 +309,33 @@ void calculateSpatialTranslation(
          time
       );
    }
-   
+
    if (Parameters::prepareForRebalance == true) {
+      // Blocks need to be scaled to time since acceleration uses time
+      const double deltat {MPI_Wtime() - t1};
+      double totalBlocks {0.0};
+
       if(P::amrMaxSpatialRefLevel == 0) {
-//          const double deltat = (MPI_Wtime() - t1) / local_propagated_cells.size();
          for (size_t c=0; c<localCells.size(); ++c) {
-//            mpiGrid[localCells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += time / localCells.size();
             for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-               mpiGrid[localCells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += mpiGrid[localCells[c]]->get_number_of_velocity_blocks(popID);
+               totalBlocks += mpiGrid[localCells[c]]->get_number_of_velocity_blocks(popID);
+            }
+         }
+         for (size_t c=0; c<localCells.size(); ++c) {
+            for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+               mpiGrid[localCells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += deltat * mpiGrid[localCells[c]]->get_number_of_velocity_blocks(popID) / totalBlocks;
             }
          }
       } else {
-//          const double deltat = MPI_Wtime() - t1;
          for (size_t c=0; c<local_propagated_cells.size(); ++c) {
-            Real counter = 0;
             for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-               counter += mpiGrid[local_propagated_cells[c]]->get_number_of_velocity_blocks(popID);
+               totalBlocks += nPencils[c] * mpiGrid[local_propagated_cells[c]]->get_number_of_velocity_blocks(popID);
             }
-            mpiGrid[local_propagated_cells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += nPencils[c] * counter;
-//            mpiGrid[localCells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += time / localCells.size();
+         }
+         for (size_t c=0; c<local_propagated_cells.size(); ++c) {
+            for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+               mpiGrid[local_propagated_cells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += deltat * nPencils[c] * mpiGrid[local_propagated_cells[c]]->get_number_of_velocity_blocks(popID) / totalBlocks;
+            }
          }
       }
    }
