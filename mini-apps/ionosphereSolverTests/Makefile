@@ -30,6 +30,9 @@ readparameters.o: ../../readparameters.h ../../readparameters.cpp ../../version.
 version.o: ../../version.cpp
 	 ${CMP} ${CXXFLAGS} ${FLAGS} -c ../../version.cpp
 
+../../version.cpp:
+	make -C../.. version.cpp
+
 object_wrapper.o:  ../../object_wrapper.h ../../object_wrapper.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c ../../object_wrapper.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_FSGRID} ${INC_PROFILE} ${INC_JEMALLOC}
 
