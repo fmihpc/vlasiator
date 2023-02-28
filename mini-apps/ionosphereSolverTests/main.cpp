@@ -28,6 +28,9 @@ void deallocateRemoteCellBlocks(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
 void updateRemoteVelocityBlockLists(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry, std::tuple<>, std::tuple<> >&, unsigned int, unsigned int) {
 };
 void recalculateLocalCellsCache() {}
+SysBoundary::SysBoundary() {}
+SysBoundary::~SysBoundary() {}
+
 
 void assignConductivityTensor(std::vector<SphericalTriGrid::Node>& nodes, Real sigmaP, Real sigmaH) {
    static const char epsilon[3][3][3] = {
