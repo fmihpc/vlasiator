@@ -286,10 +286,12 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
 
    // Calculate target column extents
    phiprof::start("columnExtents");
+   std::cerr<<"prefetch "<<std::endl;
    spatial_cell->BlocksToAdd->clear();
    spatial_cell->BlocksToRemove->clear();
    spatial_cell->BlocksToMove->clear();
    vmesh->dev_prefetchHost();
+   std::cerr<<"start columnextents "<<std::endl;
 
    for( uint setIndex=0; setIndex< setColumnOffsets.size(); ++setIndex) {
 
@@ -423,7 +425,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
                setFirstBlockIndices[0] * block_indices_to_id[0] +
                setFirstBlockIndices[1] * block_indices_to_id[1] +
                blockK                  * block_indices_to_id[2];
-            spatial_cell->BlocksToAdd->push_back(targetBlock);
+            //spatial_cell->BlocksToAdd->push_back(targetBlock);
 
          }
          if(!isTargetBlock[blockK] && isSourceBlock[blockK] )  {
@@ -431,10 +433,13 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
                setFirstBlockIndices[0] * block_indices_to_id[0] +
                setFirstBlockIndices[1] * block_indices_to_id[1] +
                blockK                  * block_indices_to_id[2];
-            spatial_cell->BlocksToRemove->push_back(targetBlock);
+            //spatial_cell->BlocksToRemove->push_back(targetBlock);
          }
       }
    }
+   std::cerr<<"stop columnextents, start block adjust "<<std::endl;
+   cudaStreamSynchronize(stream);
+   
    phiprof::stop("columnExtents");
    phiprof::start("CUDA add and delete blocks");
    std::cerr<<"vmesh 2 size "<<vmesh->size()<<std::endl;

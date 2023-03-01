@@ -155,11 +155,16 @@ __global__ void update_velocity_blocks_kernel(
          // Bookkeeping only by one thread
          size_t old= atomicAdd(dev_rhoLossAdjust, massloss[0]);
       }
+      __syncthreads();
       
       // Figure out which GID to put here instead
       if (m<nToAdd) {
          // New GID
          const vmesh::GlobalID addGID = BlocksToAdd->at(m);
+         if (addGID == vmesh->invalidGlobalID()) {
+            if (ti==0) printf("Add invalid GID!\n");
+            continue;
+         }
          rm_avgs[ti] = 0;
          if (ti==0) {
             // Write in block parameters
@@ -168,6 +173,21 @@ __global__ void update_velocity_blocks_kernel(
             vmesh->replaceBlock2(rmGID,rmLID,addGID);
             //printf("=======R== now GID %d is at position %d\n",vmesh->getGlobalID(rmLID),rmLID); 
          }
+         if (vmesh->getGlobalID(rmLID) != addGID) {
+            if (ti==0) printf("Add GID failed!\n");
+         }
+         if (vmesh->getLocalID(addGID) != rmLID) {
+            if (ti==0) printf("Add LID failed!\n");
+         }
+         if (vmesh->getGlobalID(rmLID) == vmesh->invalidGlobalID()) {
+            if (ti==0) printf("Add invalid GID!\n");
+            continue;
+         }
+         if (vmesh->getLocalID(addGID) == vmesh->invalidLocalID()) {
+            if (ti==0) printf("Add invalid LID!\n");
+            continue;
+         }
+
       } else if ((m-nToAdd) < nToMove) {
          // Move from latter part of vmesh
          //if ((ti==0)&& ((m-nToAdd) >= BlocksToMove->size())) printf(" BlocksToMove access error! m=%d \n",m);
@@ -183,11 +203,27 @@ __global__ void update_velocity_blocks_kernel(
             // Remove hashmap entry for removed block, add instead created block
             vmesh->replaceBlock2(rmGID,rmLID,replaceGID);
             //printf("=======R== now GID %d is at position %d\n",vmesh->getGlobalID(rmLID),rmLID); 
-         }         
+         }
+         if (vmesh->getGlobalID(rmLID) != replaceGID) {
+            if (ti==0) printf("Replace  GID failed!\n");
+         }
+         if (vmesh->getLocalID(replaceGID) != rmLID) {
+            if (ti==0) printf("Replace LID failed!\n");
+         }
+         if (vmesh->getGlobalID(rmLID) == vmesh->invalidGlobalID()) {
+            if (ti==0) printf("Replace invalid GID!\n");
+            continue;
+         }
+         if (vmesh->getLocalID(replaceGID) == vmesh->invalidLocalID()) {
+            if (ti==0) printf("Replace invalid LID!\n");
+            continue;
+         }
+
       } else {
          // Delete without replacing
          vmesh->deleteBlock(rmGID,rmLID);
       }
+      __syncthreads();
    }
    // Now, if we need to expand the size of the vmesh, let's add blocks.
    // For thread-safety,this assumes that the localToGlobalMap is already of sufficient size, as should be
@@ -209,6 +245,20 @@ __global__ void update_velocity_blocks_kernel(
          vmesh->getBlockCoordinates(addGID,&(add_block_parameters[BlockParams::VXCRD]));
          vmesh->placeBlock(addGID,addLID);
       }      
+      if (vmesh->getGlobalID(addLID) != addGID) {
+         if (ti==0) printf("Create GID! failed\n");
+      }
+      if (vmesh->getLocalID(addGID) != addLID) {
+         if (ti==0) printf("Create LID failed!\n");
+      }
+      if (vmesh->getGlobalID(addLID) == vmesh->invalidGlobalID()) {
+         if (ti==0) printf("Create invalid GID!\n");
+         continue;
+      }
+      if (vmesh->getLocalID(addGID) == vmesh->invalidLocalID()) {
+         if (ti==0) printf("Create invalid LID!\n");
+         continue;
+      }
    }
 }
 
