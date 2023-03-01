@@ -89,8 +89,7 @@ namespace vmesh {
       CUDA_HOSTDEV bool push_back(const vmesh::GlobalID& globalID);
       bool push_back(const std::vector<vmesh::GlobalID>& blocks);
       CUDA_HOSTDEV bool push_back(const split::SplitVector<vmesh::GlobalID>& blocks);
-      CUDA_DEV bool replaceBlock(const vmesh::GlobalID& GIDold,const vmesh::GlobalID& GIDnew);
-      CUDA_DEV bool replaceBlock2(const vmesh::GlobalID& GIDold,const vmesh::LocalID& LID,const vmesh::GlobalID& GIDnew);
+      CUDA_DEV bool replaceBlock(const vmesh::GlobalID& GIDold,const vmesh::LocalID& LID,const vmesh::GlobalID& GIDnew);
       CUDA_DEV bool placeBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID);
       CUDA_DEV bool deleteBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID);
       void setGrid();
@@ -478,23 +477,10 @@ namespace vmesh {
       #endif
       return true;
    }
+   
 #ifdef __CUDA_ARCH__
-   CUDA_DEV inline bool VelocityMesh::replaceBlock(const vmesh::GlobalID& GIDold,const vmesh::GlobalID& GIDnew) {
-      printf("=======Replace== in: GIDold %d GIDnew %d\n",GIDold,GIDnew);
-      const vmesh::LocalID LID = globalToLocalMap->read_element(GIDold);
-      printf("              == LID %d\n",LID);
+   CUDA_DEV inline bool VelocityMesh::replaceBlock(const vmesh::GlobalID& GIDold,const vmesh::LocalID& LID,const vmesh::GlobalID& GIDnew) {
       globalToLocalMap->device_erase(GIDold);
-      globalToLocalMap->set_element(GIDnew,LID);
-      localToGlobalMap->at(LID) = GIDnew;
-      printf("              == now: GID %d\n",localToGlobalMap->at(LID));
-      printf("              == now: LID %d\n",globalToLocalMap->read_element(GIDnew));
-      auto it = globalToLocalMap->device_find(GIDnew);
-      int32_t moi=-1;
-      if (it != globalToLocalMap->device_end()) moi = it->second;
-      printf("              == find GID: %d\n",moi);
-   }
-   CUDA_DEV inline bool VelocityMesh::replaceBlock2(const vmesh::GlobalID& GIDold,const vmesh::LocalID& LID,const vmesh::GlobalID& GIDnew) {
-      //globalToLocalMap->device_erase(GIDold);
       globalToLocalMap->set_element(GIDnew,LID);
       localToGlobalMap->at(LID) = GIDnew;
    }
