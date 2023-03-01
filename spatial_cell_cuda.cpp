@@ -96,6 +96,8 @@ __global__ void update_velocity_blocks_kernel(
    split::SplitVector<vmesh::GlobalID>* BlocksToMove,
    vmesh::LocalID nBlocksBeforeAdjust,
    vmesh::LocalID nBlocksAfterAdjust,
+   vmesh::LocalID *AddVectorIndex,
+   vmesh::LocalID *MoveVectorIndex,
    Realf* dev_rhoLossAdjust
    ) {
    const int cudaBlocks = gridDim.x;
@@ -112,7 +114,7 @@ __global__ void update_velocity_blocks_kernel(
       
    // For tracking mass-loss
    __shared__ Realf massloss[WID3];
-   //if (ti==0) printf("nToMove %d with nToAdd %d nToRemove %d nToCreate %d nBefore %d nAfter %d\n",nToMove,nToAdd,nToRemove,nToCreate,nBlocksBeforeAdjust,nBlocksAfterAdjust);
+   if ((ti==0) && (blocki==0)) printf("nToMove %d with nToAdd %d nToRemove %d nToCreate %d nBefore %d nAfter %d\n",nToMove,nToAdd,nToRemove,nToCreate,nBlocksBeforeAdjust,nBlocksAfterAdjust);
 
    for (vmesh::LocalID m=blocki; m<nToRemove; m += cudaBlocks) {
       // Go through all blocks which are to be removed.
@@ -122,7 +124,7 @@ __global__ void update_velocity_blocks_kernel(
       const vmesh::LocalID rmLID = vmesh->getLocalID(rmGID);
       
       //if (ti==0) printf("=R= m %d GID %d LID %d \n",m,rmGID,rmLID);
-      //#ifdef DEBUG_SPATIAL_CELL
+      #ifdef DEBUG_SPATIAL_CELL
       if (rmGID == vmesh->invalidGlobalID()) {
          if (ti==0) printf("Remove invalid GID!\n");
          continue;
@@ -131,7 +133,7 @@ __global__ void update_velocity_blocks_kernel(
          if (ti==0) printf("Remove invalid LID!\n");
          continue;
       }
-      //#endif
+      #endif
 
       // Track mass loss:
       Realf* rm_avgs = blockContainer->getData(rmLID);
@@ -158,41 +160,30 @@ __global__ void update_velocity_blocks_kernel(
       __syncthreads();
       
       // Figure out which GID to put here instead
-      if (m<nToAdd) {
-         // New GID
-         const vmesh::GlobalID addGID = BlocksToAdd->at(m);
-         if (addGID == vmesh->invalidGlobalID()) {
-            if (ti==0) printf("Add invalid GID!\n");
-            continue;
-         }
-         rm_avgs[ti] = 0;
+      if (rmLID >= nBlocksAfterAdjust) {
+         // Delete without replacing
          if (ti==0) {
-            // Write in block parameters
-            vmesh->getCellSize(addGID,&(rm_block_parameters[BlockParams::DVX]));
-            vmesh->getBlockCoordinates(addGID,&(rm_block_parameters[BlockParams::VXCRD]));
-            vmesh->replaceBlock2(rmGID,rmLID,addGID);
-            //printf("=======R== now GID %d is at position %d\n",vmesh->getGlobalID(rmLID),rmLID); 
+            vmesh->deleteBlock(rmGID,rmLID);
+            #ifdef DEBUG_SPATIAL_CELL
+            printf("=D= m %d GID %d LID %d\n",m,rmGID,rmLID);
+            #endif
          }
-         if (vmesh->getGlobalID(rmLID) != addGID) {
-            if (ti==0) printf("Add GID failed!\n");
-         }
-         if (vmesh->getLocalID(addGID) != rmLID) {
-            if (ti==0) printf("Add LID failed!\n");
-         }
-         if (vmesh->getGlobalID(rmLID) == vmesh->invalidGlobalID()) {
-            if (ti==0) printf("Add invalid GID!\n");
-            continue;
-         }
-         if (vmesh->getLocalID(addGID) == vmesh->invalidLocalID()) {
-            if (ti==0) printf("Add invalid LID!\n");
-            continue;
-         }
-
-      } else if ((m-nToAdd) < nToMove) {
+         continue;
+      }
+      vmesh::LocalID moveIndex;
+      if (ti==0) moveIndex = atomicAdd(MoveVectorIndex,1);
+      #ifdef DEBUG_SPATIAL_CELL
+      if (ti==0) printf("moveIndex %d m %d\n",moveIndex,m);
+      #endif
+      __syncthreads();
+      if (moveIndex<nToMove) {
          // Move from latter part of vmesh
          //if ((ti==0)&& ((m-nToAdd) >= BlocksToMove->size())) printf(" BlocksToMove access error! m=%d \n",m);
-         const vmesh::GlobalID replaceGID = BlocksToMove->at(m-nToAdd);
+         const vmesh::GlobalID replaceGID = BlocksToMove->at(moveIndex);
          const vmesh::LocalID replaceLID = vmesh->getLocalID(replaceGID);
+         // if (ti==0) {
+         //    printf("=S= m %d GID %d LID %d replaceGID %d replaceLID %d (vector index %d)\n",m,rmGID,rmLID, replaceGID,replaceLID,moveIndex);
+         // }
          Realf* repl_avgs = blockContainer->getData(replaceLID);
          Real*  repl_block_parameters = blockContainer->getParameters(replaceLID);
          rm_avgs[ti] = repl_avgs[ti];
@@ -203,7 +194,11 @@ __global__ void update_velocity_blocks_kernel(
             // Remove hashmap entry for removed block, add instead created block
             vmesh->replaceBlock2(rmGID,rmLID,replaceGID);
             //printf("=======R== now GID %d is at position %d\n",vmesh->getGlobalID(rmLID),rmLID); 
+            #ifdef DEBUG_SPATIAL_CELL
+            printf("=S= m %d GID %d LID %d = %d addGID %d = %d (from position %d, vector index %d)\n",m,rmGID,rmLID, vmesh->getLocalID(replaceGID),replaceGID,vmesh->getGlobalID(rmLID),replaceLID,moveIndex);
+            #endif
          }
+         #ifdef DEBUG_SPATIAL_CELL
          if (vmesh->getGlobalID(rmLID) != replaceGID) {
             if (ti==0) printf("Replace  GID failed!\n");
          }
@@ -218,12 +213,56 @@ __global__ void update_velocity_blocks_kernel(
             if (ti==0) printf("Replace invalid LID!\n");
             continue;
          }
-
-      } else {
-         // Delete without replacing
-         vmesh->deleteBlock(rmGID,rmLID);
+         #endif
+         continue;         
       }
+      vmesh::LocalID addIndex;
+      if (ti==0) addIndex = atomicAdd(AddVectorIndex,1);
+      #ifdef DEBUG_SPATIAL_CELL
+      if (ti==0) printf("addIndex %d m %d\n",addIndex,m);
+      #endif
       __syncthreads();
+      if (addIndex<nToAdd) {
+         // New GID
+         const vmesh::GlobalID addGID = BlocksToAdd->at(addIndex);
+         #ifdef DEBUG_SPATIAL_CELL
+         if (addGID == vmesh->invalidGlobalID()) {
+            if (ti==0) printf("Add invalid GID!\n");
+            continue;
+         }
+         #endif
+         rm_avgs[ti] = 0;
+         if (ti==0) {
+            // Write in block parameters
+            vmesh->getCellSize(addGID,&(rm_block_parameters[BlockParams::DVX]));
+            vmesh->getBlockCoordinates(addGID,&(rm_block_parameters[BlockParams::VXCRD]));
+            vmesh->replaceBlock2(rmGID,rmLID,addGID);
+            //printf("=======R== now GID %d is at position %d\n",vmesh->getGlobalID(rmLID),rmLID); 
+            #ifdef DEBUG_SPATIAL_CELL
+            printf("=A= m %d GID %d LID %d = %d addGID %d = %d (from vector index %d)\n",m,rmGID,rmLID, vmesh->getLocalID(addGID),addGID,vmesh->getGlobalID(rmLID),addIndex);
+            #endif
+         }
+         #ifdef DEBUG_SPATIAL_CELL
+         if (vmesh->getGlobalID(rmLID) != addGID) {
+            if (ti==0) printf("Add GID failed!\n");
+         }
+         if (vmesh->getLocalID(addGID) != rmLID) {
+            if (ti==0) printf("Add LID failed!\n");
+         }
+         if (vmesh->getGlobalID(rmLID) == vmesh->invalidGlobalID()) {
+            if (ti==0) printf("Add invalid GID!\n");
+            continue;
+         }
+         if (vmesh->getLocalID(addGID) == vmesh->invalidLocalID()) {
+            if (ti==0) printf("Add invalid LID!\n");
+            continue;
+         }
+         #endif
+         continue;
+      }
+      if (ti==0) {
+         printf("Error! Fall through in update_velocity_blocks_kernel! \n");      
+      }
    }
    // Now, if we need to expand the size of the vmesh, let's add blocks.
    // For thread-safety,this assumes that the localToGlobalMap is already of sufficient size, as should be
@@ -244,7 +283,11 @@ __global__ void update_velocity_blocks_kernel(
          vmesh->getCellSize(addGID,&(add_block_parameters[BlockParams::DVX]));
          vmesh->getBlockCoordinates(addGID,&(add_block_parameters[BlockParams::VXCRD]));
          vmesh->placeBlock(addGID,addLID);
+         #ifdef DEBUG_SPATIAL_CELL
+         printf("=A= m %d addLID %d = %d addGID %d = %d (from addition vector index %d)\n",m,addLID, vmesh->getLocalID(addGID),addGID,vmesh->getGlobalID(addLID),nToRemove+m);
+         #endif
       }      
+      #ifdef DEBUG_SPATIAL_CELL
       if (vmesh->getGlobalID(addLID) != addGID) {
          if (ti==0) printf("Create GID! failed\n");
       }
@@ -259,7 +302,21 @@ __global__ void update_velocity_blocks_kernel(
          if (ti==0) printf("Create invalid LID!\n");
          continue;
       }
+      #endif
    }
+   
+   #ifdef DEBUG_SPATIAL_CELL
+   // DEBUG output from inside kernel
+   if (blocki==0) {
+      for (vmesh::LocalID m=0; m<nBlocksAfterAdjust; ++m) {
+         if (ti==0) {
+            vmesh::GlobalID GIDs = vmesh->getGlobalID(m);
+            vmesh::GlobalID LIDs = vmesh->getLocalID(GIDs);
+            printf("LID %d GID-solved %d LID-solved %d\n",m,GIDs,LIDs);
+         }
+      }
+   }
+   #endif
 }
 
 /** CUDA kernel for swapping deleted velocity blocks with newly created ones */
@@ -794,7 +851,15 @@ namespace spatial_cell {
       cudaStream_t stream = cuda_getStream();
 
       Realf host_rhoLossAdjust = 0;
+      vmesh::LocalID *dev_AddVectorIndex;
+      vmesh::LocalID *dev_MoveVectorIndex;
+      vmesh::LocalID host_AddVectorIndex = 0;
+      vmesh::LocalID host_MoveVectorIndex = 0;
+      HANDLE_ERROR( cudaMalloc((void**)&dev_AddVectorIndex, sizeof(vmesh::LocalID)) );
+      HANDLE_ERROR( cudaMalloc((void**)&dev_MoveVectorIndex, sizeof(vmesh::LocalID)) );
       HANDLE_ERROR( cudaMemcpyAsync(returnRealf[thread_id], &host_rhoLossAdjust, sizeof(Realf), cudaMemcpyHostToDevice, stream) );
+      HANDLE_ERROR( cudaMemcpyAsync(dev_AddVectorIndex, &host_AddVectorIndex, sizeof(vmesh::LocalID), cudaMemcpyHostToDevice, stream) );
+      HANDLE_ERROR( cudaMemcpyAsync(dev_MoveVectorIndex, &host_MoveVectorIndex, sizeof(vmesh::LocalID), cudaMemcpyHostToDevice, stream) );
 
       phiprof::start("CUDA add and remove blocks kernel");
 
@@ -809,22 +874,24 @@ namespace spatial_cell {
       const vmesh::LocalID nToMove = BlocksToMove->size();
       const vmesh::LocalID nToCreate = nToAdd > nToRemove ? (nToAdd-nToRemove) : 0;
       printf("PRE-KERNEL nToMove %d with nToAdd %d nToRemove %d nToCreate %d nBefore %d nAfter %d\n",nToMove,nToAdd,nToRemove,nToCreate,nBlocksBeforeAdjust,nBlocksAfterAdjust);
-      printf("PRE-KERNEL nCudaBlocks %d nBlocks %d\n",nCudaBlocks,nBlocks);
-      
-      
-      HANDLE_ERROR( cudaStreamSynchronize(stream) );
-      update_velocity_blocks_kernel<<<nCudaBlocks, block, WID3*sizeof(Realf), stream>>> (
-         populations[popID].vmesh,
-         populations[popID].blockContainer,
-         BlocksToAdd,
-         BlocksToRemove,
-         BlocksToMove,
-         nBlocksBeforeAdjust,
-         nBlocksAfterAdjust,
-         returnRealf[thread_id]
-         );
-//      printf("-----Launched adjustment kernel\n");
+      printf("PRE-KERNEL nCudaBlocks %d nBlocks %d\n",nCudaBlocks,nBlocks);      
 
+      if (nCudaBlocks>0) {
+         HANDLE_ERROR( cudaStreamSynchronize(stream) );
+         update_velocity_blocks_kernel<<<nCudaBlocks, block, WID3*sizeof(Realf), stream>>> (
+            populations[popID].vmesh,
+            populations[popID].blockContainer,
+            BlocksToAdd,
+            BlocksToRemove,
+            BlocksToMove,
+            nBlocksBeforeAdjust,
+            nBlocksAfterAdjust,
+            dev_AddVectorIndex,
+            dev_MoveVectorIndex,         
+            returnRealf[thread_id]
+            );
+         printf("-----Launched adjustment kernel\n");
+      }
       HANDLE_ERROR( cudaStreamSynchronize(stream) );
       phiprof::stop("CUDA add and remove blocks kernel");
 
@@ -838,6 +905,17 @@ namespace spatial_cell {
          populations[popID].blockContainer->setSize(nBlocksAfterAdjust);
       }
 
+      // DEBUG output after kernel
+      get_velocity_mesh(popID)->dev_prefetchHost();
+      const vmesh::LocalID nAll = get_velocity_mesh(popID)->size();
+      printf("after kernel, size is %d should be %d\n",nAll,nBlocksAfterAdjust);
+      #ifdef DEBUG_SPATIAL_CELL
+      for (vmesh::LocalID m=0; m<nAll; ++m) {
+         const vmesh::GlobalID GIDs = get_velocity_mesh(popID)->getGlobalID(m);
+         const vmesh::LocalID LIDs = get_velocity_mesh(popID)->getLocalID(GIDs);
+         printf("LID %d GID-solved %d LID-solved %d\n",m,GIDs,LIDs);
+      }
+      #endif
    phiprof::stop("CUDA add and remove blocks");
    }
 

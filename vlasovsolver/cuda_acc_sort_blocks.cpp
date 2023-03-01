@@ -57,16 +57,18 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
    // Velocity mesh refinement level, has no effect here
    // but is needed in some vmesh::VelocityMesh function calls.
    const uint8_t REFLEVEL = 0;
-   
+   std::cerr<<"start sortblocklist with "<<nBlocks<<" entries to process and vmesh size "<<vmesh->size()<<std::endl;
    // Copy block data to vector
    std::vector<std::pair<std::pair<vmesh::GlobalID,vmesh::GlobalID>,vmesh::LocalID> > block_triplets;
    block_triplets.resize( nBlocks );
    for (vmesh::LocalID i = 0; i < nBlocks; ++i ) {
       //const vmesh::GlobalID block = spatial_cell->get_velocity_block_global_id(i);
       const vmesh::GlobalID block = vmesh->getGlobalID(i);
+      if (block==vmesh->invalidGlobalID()) std::cerr<<"error with GID "<<block<<" at LID "<<i<<std::endl;
       switch( dimension ) {
        case 0: {
           const vmesh::GlobalID blockId_mapped = block; // Mapping the block id to different coordinate system if dimension is not zero:
+          if (blockId_mapped==vmesh->invalidGlobalID()) std::cerr<<"error with GIDm "<<blockId_mapped<<std::endl;
           block_triplets[i] = std::make_pair( std::make_pair( blockId_mapped, block ), i);
        }
          break;
@@ -89,6 +91,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                   = block - (x_index + y_index*vmesh->getGridLength(REFLEVEL)[0])
                   + y_index 
                   + x_index * vmesh->getGridLength(REFLEVEL)[1];
+          if (blockId_mapped==vmesh->invalidGlobalID()) std::cerr<<"error with GIDm "<<blockId_mapped<<std::endl;
           block_triplets[i] = std::make_pair( std::make_pair( blockId_mapped, block ), i);
        }
          break;
@@ -112,6 +115,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
             = z_index 
             + y_index*vmesh->getGridLength(REFLEVEL)[2]
             + x_index*vmesh->getGridLength(REFLEVEL)[1]*vmesh->getGridLength(REFLEVEL)[2];
+          if (blockId_mapped==vmesh->invalidGlobalID()) std::cerr<<"error with GIDm "<<blockId_mapped<<std::endl;
           block_triplets[i] = std::make_pair(std::make_pair( blockId_mapped, block ), i);
        }
          break;
@@ -135,6 +139,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
        //sorted lists
        blocksGID[i] = block_triplets[i].first.second;
        blocksLID[i] = vmesh->getLocalID(block_triplets[i].first.second);
+       if (blocksLID[i]==vmesh->invalidLocalID()) std::cerr<<"error with LID "<<blocksLID[i]<<std::endl;
        
        if ( i > 0 &&  ( column_id != prev_column_id || dimension_id != (prev_dimension_id + 1) )){
          //encountered new column! For i=0, we already entered the correct offset (0).
