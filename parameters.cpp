@@ -130,7 +130,7 @@ bool P::isRestart = false;
 int P::writeAsFloat = false;
 int P::writeRestartAsFloat = false;
 string P::loadBalanceAlgorithm = string("");
-string P::loadBalanceTolerance = string("");
+std::map<std::string, std::string> P::loadBalanceOptions;
 uint P::rebalanceInterval = numeric_limits<uint>::max();
 
 vector<string> P::outputVariableList;
@@ -328,6 +328,9 @@ bool P::addParameters() {
    RP::add("loadBalance.tolerance", "Load imbalance tolerance", string("1.05"));
    RP::add("loadBalance.rebalanceInterval", "Load rebalance interval (steps)", 10);
 
+   RP::addComposing("loadBalance.optionKey", "Zoltan option key. Has to be matched by loadBalance.optionValue.");
+   RP::addComposing("loadBalance.optionValue", "Zoltan option value. Has to be matched by loadBalance.optionKey.");
+
    // Output variable parameters
    // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
 
@@ -441,11 +444,11 @@ bool P::addParameters() {
    RP::add("fieldtracing.tracer_max_allowed_error", "Maximum allowed error for the adaptive field line tracers ", 1000);
    RP::add("fieldtracing.tracer_max_attempts", "Maximum allowed attempts for the adaptive field line tracers", 100);
    RP::add("fieldtracing.tracer_min_dx", "Minimum allowed field line tracer step length for the adaptive field line tracers (m)", 100e3);
-   RP::add("fieldtracing.tracer_max_incomplete_fieldlines_fullbox", "Maximum fraction of field lines left incomplete when stopping tracing loop. Defaults to zero to process all, can be slow at scale!", 0);
+   RP::add("fieldtracing.fullbox_max_incomplete_cells", "Maximum fraction of cells left incomplete when stopping tracing loop for full box tracing. Defaults to zero to process all, will be slow at scale! Both fluxrope_max_incomplete_cells and fullbox_max_incomplete_cells will be achieved.", 0);
+   RP::add("fieldtracing.fluxrope_max_incomplete_cells", "Maximum fraction of cells left incomplete when stopping loop for flux rope tracing. Defaults to zero to process all, will be slow at scale! Both fluxrope_max_incomplete_cells and fullbox_max_incomplete_cells will be achieved.", 0);
    RP::add("fieldtracing.use_reconstruction_cache", "Use the cache to store reconstruction coefficients. (0: don't, 1: use)", 0);
    RP::add("fieldtracing.fluxrope_max_curvature_radii_to_trace", "Maximum number of seedpoint curvature radii to trace forward and backward from each DCCRG cell to find flux ropes", 10);
    RP::add("fieldtracing.fluxrope_max_curvature_radii_extent", "Maximum extent in seedpoint curvature radii from the seed a field line is allowed to extend to be counted as a flux rope", 2);
-   RP::add("fieldtracing.fluxrope_max_m_to_trace", "Maximum distance to trace forward and backward from each DCCRG cell to find flux ropes, safeguard for areas with very large curvature radii (m)", 1e8);
 
    return true;
 }
@@ -762,8 +765,23 @@ void Parameters::getParameters() {
 
    // Get load balance parameters
    RP::get("loadBalance.algorithm", P::loadBalanceAlgorithm);
-   RP::get("loadBalance.tolerance", P::loadBalanceTolerance);
+   loadBalanceOptions["IMBALANCE_TOL"] = "";
+   RP::get("loadBalance.tolerance", loadBalanceOptions["IMBALANCE_TOL"]);
    RP::get("loadBalance.rebalanceInterval", P::rebalanceInterval);
+
+   std::vector<std::string> loadBalanceKeys;
+   std::vector<std::string> loadBalanceValues;
+   RP::get("loadBalance.optionKey", loadBalanceKeys);
+   RP::get("loadBalance.optionValue", loadBalanceValues);
+   if (loadBalanceKeys.size() != loadBalanceValues.size()) {
+      if (myRank == MASTER_RANK) {
+         cerr << "WARNING the number of load balance keys and values do not match. Disregarding these options." << endl;
+      }
+   } else {
+      for (int i = 0; i < loadBalanceKeys.size(); ++i) {
+         loadBalanceOptions[loadBalanceKeys[i]] = loadBalanceValues[i];
+      }
+   }
 
    // Get output variable parameters
    RP::get("variables.output", P::outputVariableList);
@@ -797,11 +815,11 @@ void Parameters::getParameters() {
    RP::get("fieldtracing.tracer_max_allowed_error", FieldTracing::fieldTracingParameters.max_allowed_error);
    RP::get("fieldtracing.tracer_max_attempts", FieldTracing::fieldTracingParameters.max_field_tracer_attempts);
    RP::get("fieldtracing.tracer_min_dx", FieldTracing::fieldTracingParameters.min_tracer_dx);
-   RP::get("fieldtracing.tracer_max_incomplete_fieldlines_fullbox", FieldTracing::fieldTracingParameters.max_incomplete_lines_fullbox);
+   RP::get("fieldtracing.fullbox_max_incomplete_cells", FieldTracing::fieldTracingParameters.fullbox_max_incomplete_cells);
+   RP::get("fieldtracing.fluxrope_max_incomplete_cells", FieldTracing::fieldTracingParameters.fluxrope_max_incomplete_cells);
    RP::get("fieldtracing.use_reconstruction_cache", FieldTracing::fieldTracingParameters.useCache);
-   RP::get("fieldtracing.fluxrope_max_curvature_radii_to_trace", FieldTracing::fieldTracingParameters.fte_max_curvature_radii_to_trace);
-   RP::get("fieldtracing.fluxrope_max_curvature_radii_extent", FieldTracing::fieldTracingParameters.fte_max_curvature_radii_extent);
-   RP::get("fieldtracing.fluxrope_max_m_to_trace", FieldTracing::fieldTracingParameters.fte_max_m_to_trace);
+   RP::get("fieldtracing.fluxrope_max_curvature_radii_to_trace", FieldTracing::fieldTracingParameters.fluxrope_max_curvature_radii_to_trace);
+   RP::get("fieldtracing.fluxrope_max_curvature_radii_extent", FieldTracing::fieldTracingParameters.fluxrope_max_curvature_radii_extent);
    
    if(tracerString == "Euler") {
       FieldTracing::fieldTracingParameters.tracingMethod = FieldTracing::Euler;

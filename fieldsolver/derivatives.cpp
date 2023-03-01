@@ -550,74 +550,80 @@ void calculateCurvature(
    SysBoundary& sysBoundaries
 ) {
    if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY && technicalGrid.get(i,j,k)->sysBoundaryLayer != 1 && technicalGrid.get(i,j,k)->sysBoundaryLayer != 2) {
-      std::array<Real, fsgrids::volfields::N_VOL> * array = volGrid.get(i,j,k);
+      std::array<Real, fsgrids::volfields::N_VOL> * vol = volGrid.get(i,j,k);
+      std::array<Real, fsgrids::bgbfield::N_BGB> * bg = bgbGrid.get(i,j,k);
       
-      std::array<Real, fsgrids::volfields::N_VOL> * left_x = volGrid.get(i-1,j,k);
-      std::array<Real, fsgrids::volfields::N_VOL> * rght_x = volGrid.get(i+1,j,k);
-      std::array<Real, fsgrids::volfields::N_VOL> * left_y = volGrid.get(i,j-1,k);
-      std::array<Real, fsgrids::volfields::N_VOL> * rght_y = volGrid.get(i,j+1,k);
-      std::array<Real, fsgrids::volfields::N_VOL> * left_z = volGrid.get(i,j,k-1);
-      std::array<Real, fsgrids::volfields::N_VOL> * rght_z = volGrid.get(i,j,k+1);
+      std::array<Real, fsgrids::volfields::N_VOL> * vol_left_x = volGrid.get(i-1,j,k);
+      std::array<Real, fsgrids::volfields::N_VOL> * vol_rght_x = volGrid.get(i+1,j,k);
+      std::array<Real, fsgrids::volfields::N_VOL> * vol_left_y = volGrid.get(i,j-1,k);
+      std::array<Real, fsgrids::volfields::N_VOL> * vol_rght_y = volGrid.get(i,j+1,k);
+      std::array<Real, fsgrids::volfields::N_VOL> * vol_left_z = volGrid.get(i,j,k-1);
+      std::array<Real, fsgrids::volfields::N_VOL> * vol_rght_z = volGrid.get(i,j,k+1);
+      std::array<Real, fsgrids::bgbfield::N_BGB> * bg_left_x = bgbGrid.get(i-1,j,k);
+      std::array<Real, fsgrids::bgbfield::N_BGB> * bg_rght_x = bgbGrid.get(i+1,j,k);
+      std::array<Real, fsgrids::bgbfield::N_BGB> * bg_left_y = bgbGrid.get(i,j-1,k);
+      std::array<Real, fsgrids::bgbfield::N_BGB> * bg_rght_y = bgbGrid.get(i,j+1,k);
+      std::array<Real, fsgrids::bgbfield::N_BGB> * bg_left_z = bgbGrid.get(i,j,k-1);
+      std::array<Real, fsgrids::bgbfield::N_BGB> * bg_rght_z = bgbGrid.get(i,j,k+1);
       
-      Real bx = array->at(fsgrids::bgbfield::BGBXVOL) + array->at(fsgrids::volfields::PERBXVOL);
-      Real by = array->at(fsgrids::bgbfield::BGBYVOL) + array->at(fsgrids::volfields::PERBYVOL);
-      Real bz = array->at(fsgrids::bgbfield::BGBZVOL) + array->at(fsgrids::volfields::PERBZVOL);
+      Real bx = bg->at(fsgrids::bgbfield::BGBXVOL) + vol->at(fsgrids::volfields::PERBXVOL);
+      Real by = bg->at(fsgrids::bgbfield::BGBYVOL) + vol->at(fsgrids::volfields::PERBYVOL);
+      Real bz = bg->at(fsgrids::bgbfield::BGBZVOL) + vol->at(fsgrids::volfields::PERBZVOL);
       creal bnorm = sqrt(bx*bx + by*by + bz*bz);
       bx /= bnorm;
       by /= bnorm;
       bz /= bnorm;
-      
-      Real left_x_bx = left_x->at(fsgrids::bgbfield::BGBXVOL) + left_x->at(fsgrids::volfields::PERBXVOL);
-      Real left_x_by = left_x->at(fsgrids::bgbfield::BGBYVOL) + left_x->at(fsgrids::volfields::PERBYVOL);
-      Real left_x_bz = left_x->at(fsgrids::bgbfield::BGBZVOL) + left_x->at(fsgrids::volfields::PERBZVOL);
+      Real left_x_bx = bg_left_x->at(fsgrids::bgbfield::BGBXVOL) + vol_left_x->at(fsgrids::volfields::PERBXVOL);
+      Real left_x_by = bg_left_x->at(fsgrids::bgbfield::BGBYVOL) + vol_left_x->at(fsgrids::volfields::PERBYVOL);
+      Real left_x_bz = bg_left_x->at(fsgrids::bgbfield::BGBZVOL) + vol_left_x->at(fsgrids::volfields::PERBZVOL);
       creal left_x_bnorm = sqrt(left_x_bx*left_x_bx + left_x_by*left_x_by + left_x_bz*left_x_bz);
       left_x_bx /= left_x_bnorm;
       left_x_by /= left_x_bnorm;
       left_x_bz /= left_x_bnorm;
       
-      Real rght_x_bx = rght_x->at(fsgrids::bgbfield::BGBXVOL) + rght_x->at(fsgrids::volfields::PERBXVOL);
-      Real rght_x_by = rght_x->at(fsgrids::bgbfield::BGBYVOL) + rght_x->at(fsgrids::volfields::PERBYVOL);
-      Real rght_x_bz = rght_x->at(fsgrids::bgbfield::BGBZVOL) + rght_x->at(fsgrids::volfields::PERBZVOL);
+      Real rght_x_bx = bg_rght_x->at(fsgrids::bgbfield::BGBXVOL) + vol_rght_x->at(fsgrids::volfields::PERBXVOL);
+      Real rght_x_by = bg_rght_x->at(fsgrids::bgbfield::BGBYVOL) + vol_rght_x->at(fsgrids::volfields::PERBYVOL);
+      Real rght_x_bz = bg_rght_x->at(fsgrids::bgbfield::BGBZVOL) + vol_rght_x->at(fsgrids::volfields::PERBZVOL);
       creal rght_x_bnorm = sqrt(rght_x_bx*rght_x_bx + rght_x_by*rght_x_by + rght_x_bz*rght_x_bz);
       rght_x_bx /= rght_x_bnorm;
       rght_x_by /= rght_x_bnorm;
       rght_x_bz /= rght_x_bnorm;
       
-      Real left_y_bx = left_y->at(fsgrids::bgbfield::BGBXVOL) + left_y->at(fsgrids::volfields::PERBXVOL);
-      Real left_y_by = left_y->at(fsgrids::bgbfield::BGBYVOL) + left_y->at(fsgrids::volfields::PERBYVOL);
-      Real left_y_bz = left_y->at(fsgrids::bgbfield::BGBZVOL) + left_y->at(fsgrids::volfields::PERBZVOL);
+      Real left_y_bx = bg_left_y->at(fsgrids::bgbfield::BGBXVOL) + vol_left_y->at(fsgrids::volfields::PERBXVOL);
+      Real left_y_by = bg_left_y->at(fsgrids::bgbfield::BGBYVOL) + vol_left_y->at(fsgrids::volfields::PERBYVOL);
+      Real left_y_bz = bg_left_y->at(fsgrids::bgbfield::BGBZVOL) + vol_left_y->at(fsgrids::volfields::PERBZVOL);
       creal left_y_bnorm = sqrt(left_y_bx*left_y_bx + left_y_by*left_y_by + left_y_bz*left_y_bz);
       left_y_bx /= left_y_bnorm;
       left_y_by /= left_y_bnorm;
       left_y_bz /= left_y_bnorm;
       
-      Real rght_y_bx = rght_y->at(fsgrids::bgbfield::BGBXVOL) + rght_y->at(fsgrids::volfields::PERBXVOL);
-      Real rght_y_by = rght_y->at(fsgrids::bgbfield::BGBYVOL) + rght_y->at(fsgrids::volfields::PERBYVOL);
-      Real rght_y_bz = rght_y->at(fsgrids::bgbfield::BGBZVOL) + rght_y->at(fsgrids::volfields::PERBZVOL);
+      Real rght_y_bx = bg_rght_y->at(fsgrids::bgbfield::BGBXVOL) + vol_rght_y->at(fsgrids::volfields::PERBXVOL);
+      Real rght_y_by = bg_rght_y->at(fsgrids::bgbfield::BGBYVOL) + vol_rght_y->at(fsgrids::volfields::PERBYVOL);
+      Real rght_y_bz = bg_rght_y->at(fsgrids::bgbfield::BGBZVOL) + vol_rght_y->at(fsgrids::volfields::PERBZVOL);
       creal rght_y_bnorm = sqrt(rght_y_bx*rght_y_bx + rght_y_by*rght_y_by + rght_y_bz*rght_y_bz);
       rght_y_bx /= rght_y_bnorm;
       rght_y_by /= rght_y_bnorm;
       rght_y_bz /= rght_y_bnorm;
       
-      Real left_z_bx = left_z->at(fsgrids::bgbfield::BGBXVOL) + left_z->at(fsgrids::volfields::PERBXVOL);
-      Real left_z_by = left_z->at(fsgrids::bgbfield::BGBYVOL) + left_z->at(fsgrids::volfields::PERBYVOL);
-      Real left_z_bz = left_z->at(fsgrids::bgbfield::BGBZVOL) + left_z->at(fsgrids::volfields::PERBZVOL);
+      Real left_z_bx = bg_left_z->at(fsgrids::bgbfield::BGBXVOL) + vol_left_z->at(fsgrids::volfields::PERBXVOL);
+      Real left_z_by = bg_left_z->at(fsgrids::bgbfield::BGBYVOL) + vol_left_z->at(fsgrids::volfields::PERBYVOL);
+      Real left_z_bz = bg_left_z->at(fsgrids::bgbfield::BGBZVOL) + vol_left_z->at(fsgrids::volfields::PERBZVOL);
       creal left_z_bnorm = sqrt(left_z_bx*left_z_bx + left_z_by*left_z_by + left_z_bz*left_z_bz);
       left_z_bx /= left_z_bnorm;
       left_z_by /= left_z_bnorm;
       left_z_bz /= left_z_bnorm;
       
-      Real rght_z_bx = rght_z->at(fsgrids::bgbfield::BGBXVOL) + rght_z->at(fsgrids::volfields::PERBXVOL);
-      Real rght_z_by = rght_z->at(fsgrids::bgbfield::BGBYVOL) + rght_z->at(fsgrids::volfields::PERBYVOL);
-      Real rght_z_bz = rght_z->at(fsgrids::bgbfield::BGBZVOL) + rght_z->at(fsgrids::volfields::PERBZVOL);
+      Real rght_z_bx = bg_rght_z->at(fsgrids::bgbfield::BGBXVOL) + vol_rght_z->at(fsgrids::volfields::PERBXVOL);
+      Real rght_z_by = bg_rght_z->at(fsgrids::bgbfield::BGBYVOL) + vol_rght_z->at(fsgrids::volfields::PERBYVOL);
+      Real rght_z_bz = bg_rght_z->at(fsgrids::bgbfield::BGBZVOL) + vol_rght_z->at(fsgrids::volfields::PERBZVOL);
       creal rght_z_bnorm = sqrt(rght_z_bx*rght_z_bx + rght_z_by*rght_z_by + rght_z_bz*rght_z_bz);
       rght_z_bx /= rght_z_bnorm;
       rght_z_by /= rght_z_bnorm;
       rght_z_bz /= rght_z_bnorm;
       
-      array->at(fsgrids::volfields::CURVATUREX) = bx * limiter(left_x_bx,bx,rght_x_bx) / technicalGrid.DX + by * limiter(left_y_bx,bx,rght_y_bx) / technicalGrid.DY + bz * limiter(left_z_bx,bx,rght_z_bx) / technicalGrid.DZ;
-      array->at(fsgrids::volfields::CURVATUREY) = bx * limiter(left_x_by,by,rght_x_by) / technicalGrid.DX + by * limiter(left_y_by,by,rght_y_by) / technicalGrid.DY + bz * limiter(left_z_by,by,rght_z_by) / technicalGrid.DZ;
-      array->at(fsgrids::volfields::CURVATUREZ) = bx * limiter(left_x_bz,bz,rght_x_bz) / technicalGrid.DX + by * limiter(left_y_bz,bz,rght_y_bz) / technicalGrid.DY + bz * limiter(left_z_bz,bz,rght_z_bz) / technicalGrid.DZ;
+      vol->at(fsgrids::volfields::CURVATUREX) = bx * 0.5*(left_x_bx-rght_x_bx) / technicalGrid.DX + by * 0.5*(left_y_bx-rght_y_bx) / technicalGrid.DY + bz * 0.5*(left_z_bx-rght_z_bx) / technicalGrid.DZ;
+      vol->at(fsgrids::volfields::CURVATUREY) = bx * 0.5*(left_x_by-rght_x_by) / technicalGrid.DX + by * 0.5*(left_y_by-rght_y_by) / technicalGrid.DY + bz * 0.5*(left_z_by-rght_z_by) / technicalGrid.DZ;
+      vol->at(fsgrids::volfields::CURVATUREZ) = bx * 0.5*(left_x_bz-rght_x_bz) / technicalGrid.DX + by * 0.5*(left_y_bz-rght_y_bz) / technicalGrid.DY + bz * 0.5*(left_z_bz-rght_z_bz) / technicalGrid.DZ;
    }
 }
 

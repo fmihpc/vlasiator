@@ -45,6 +45,7 @@
 #include "vlasovmover.h"
 #include "object_wrapper.h"
 #include "sysboundary/ionosphere.h"
+#include "fieldtracing/fieldtracing.h"
 
 using namespace std;
 using namespace phiprof;
@@ -502,11 +503,16 @@ bool writeCommonGridData(
    if( vlsvWriter.writeParameter("xcells_ini", &P::xcells_ini) == false ) { return false; }
    if( vlsvWriter.writeParameter("ycells_ini", &P::ycells_ini) == false ) { return false; }
    if( vlsvWriter.writeParameter("zcells_ini", &P::zcells_ini) == false ) { return false; }
+   if( FieldTracing::fieldTracingParameters.doTraceFullBox ) {
+      if( vlsvWriter.writeParameter("fieldTracingFluxRopeMaxDistance", &FieldTracing::fieldTracingParameters.fluxrope_max_curvature_radii_to_trace ) == false ) {
+         return false;
+      }
+   }
 
    //Mark the new version:
    float version = 3.00;
    if( vlsvWriter.writeParameter( "version", &version ) == false ) { return false; }
-   return true; 
+   return true;
 }
 
 /*! Writes ghost cell ids into the file
@@ -1414,10 +1420,8 @@ bool writeGrid(
    //Write ghost zone domain and local id numbers ( VisIt plugin needs this for MPI )
    if( writeGhostZoneDomainAndLocalIdNumbers( mpiGrid, vlsvWriter, meshName, ghost_cells ) == false ) return false;
 
-   if(P::systemWriteFsGrid[index]) {
-      //Write FSGrid metadata
-      if( writeFsGridMetadata( technicalGrid, vlsvWriter ) == false ) return false;
-   }
+   //Write FSGrid metadata
+   if( writeFsGridMetadata( technicalGrid, vlsvWriter ) == false ) return false;
 
    //Write Ionosphere Grid
    if( writeIonosphereGridMetadata( vlsvWriter ) == false ) return false;
@@ -1442,7 +1446,7 @@ bool writeGrid(
       if( writeDataReducer( mpiGrid, local_cells,
             perBGrid, EGrid, EHallGrid, EGradPeGrid, momentsGrid, dPerBGrid, dMomentsGrid,
             BgBGrid, volGrid, technicalGrid,
-            (P::writeAsFloat==1), P::systemWriteFsGrid[index], *dataReducer, i, vlsvWriter ) == false
+            (P::writeAsFloat==1), P::systemWriteFsGrid.at(outputFileTypeIndex), *dataReducer, i, vlsvWriter ) == false
       ) {
          return false;
       }
