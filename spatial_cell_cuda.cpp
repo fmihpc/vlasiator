@@ -52,13 +52,21 @@ __global__ void update_velocity_block_content_lists_kernel (
    const uint ti = k*WID2 + j*WID + i;
    __shared__ bool has_content[WID3];
    const uint nBlocks = vmesh->size();
+   //if (ti==0) printf("Searching for content in %d blocks against minvalue of %.2e\n",nBlocks,velocity_block_min_value);
    for (uint blockLID=blocki; blockLID<nBlocks; blockLID += cudaBlocks) {
       vmesh::GlobalID blockGID = vmesh->getGlobalID(blockLID);
-      #ifdef DEBUG_SPATIAL_CELL
+      //#ifdef DEBUG_SPATIAL_CELL
       // Implement sanity checks?
-      if (blockGID == vmesh->invalid_global_id()) continue;
-      if (blockLID == vmesh->invalid_local_id()) continue;
-      #endif
+      if (ti==0) printf("=U= LID %d GID %d\n",blockLID,blockGID);
+      if (blockGID == vmesh->invalidGlobalID()) {
+         if (ti==0) printf("update invalid GID!\n");
+         continue;
+      }
+      if (blockLID == vmesh->invalidLocalID()) {
+         if (ti==0) printf("update invalid LID!\n");
+         continue;
+      }
+      //#endif
       Realf* avgs = blockContainer->getData(blockLID);
       has_content[ti] = avgs[ti] >= velocity_block_min_value ? true : false;
       __syncthreads();
@@ -78,6 +86,8 @@ __global__ void update_velocity_block_content_lists_kernel (
       }
    }
 }
+
+/** CUDA kernel for updating blocks based on generated lists */
 
 /** CUDA kernel for swapping deleted velocity blocks with newly created ones */
 __global__ void swap_velocity_blocks_kernel(
@@ -115,14 +125,23 @@ __global__ void swap_velocity_blocks_kernel(
       const vmesh::GlobalID rmGID = BlocksToRemove->at(nRemove+m);
       const vmesh::GlobalID addGID = BlocksToAdd->at(nAdd+m);
       const vmesh::LocalID rmLID = vmesh->getLocalID(rmGID);
+      if (ti==0) printf("=S= m %d GID %d LID %d addGID %d \n",m,rmGID,rmLID, addGID);
       #ifdef DEBUG_SPATIAL_CELL
       // Implement sanity checks?
-      if (addGID == vmesh->invalid_global_id()) continue;
-      if (rmGID == vmesh->invalid_global_id()) continue;
-      if (rmLID == vmesh->invalid_local_id()) continue;
+      if (addGID == vmesh->invalidGlobalID()) {
+         if (ti==0) printf("Swap invalid aGID!\n");
+         continue;
+      }
+      if (rmGID == vmesh->invalidGlobalID())  {
+         if (ti==0) printf("Swap invalid rGID!\n");
+         continue;
+      }
+      if (rmLID == vmesh->invalidLocalID())  {
+         if (ti==0) printf("Swap invalid rLID!\n");
+         continue;
+      }
       #endif
 
-      //if (ti==0) printf("=R= GID %d LID %d addGID %d \n",rmGID,rmLID, addGID);
       // Track mass loss:
       Realf* rm_avgs = blockContainer->getData(rmLID);
       Real* rm_block_parameters = blockContainer->getParameters(rmLID);
@@ -147,7 +166,7 @@ __global__ void swap_velocity_blocks_kernel(
          // Bookkeeping only by one thread
          size_t old= atomicAdd(dev_rhoLossAdjust, massloss[0]);
 
-         // Remove hashmap entry for removed block, add instead created block
+         // Replace old GID entry with new one
          vmesh->replaceBlock(rmGID,addGID);
          // Replace block parameter information with that matching newly added block
          vmesh->getCellSize(addGID,&(rm_block_parameters[BlockParams::DVX]));
@@ -193,11 +212,19 @@ __global__ void add_or_remove_velocity_blocks_kernel(
       // entries at the start of it (largest LIDs)
       const vmesh::GlobalID rmGID = BlocksToRemove->at(m);
       const vmesh::LocalID rmLID = vmesh->getLocalID(rmGID);
-      #ifdef DEBUG_SPATIAL_CELL
+      if (ti==0) printf("=R= m %d GID %d LID %d \n",m,rmGID,rmLID);
+      //if (ti==0) printf("=== rmGID %d  === rmLID %d\n",rmGID,rmLID);
+      //    #ifdef DEBUG_SPATIAL_CELL
       // Implement sanity checks?
-      if (rmGID == vmesh->invalid_global_id()) continue;
-      if (rmLID == vmesh->invalid_local_id()) continue;
-      #endif
+      if (rmGID == vmesh->invalidGlobalID()) {
+         if (ti==0) printf("Remove invalid GID!\n");
+         continue;
+      }
+      if (rmLID == vmesh->invalidLocalID()) {
+         if (ti==0) printf("Remove invalid LID!\n");
+         continue;
+      }
+//      #endif
 
       // Track mass loss:
       Realf* rm_avgs = blockContainer->getData(rmLID);
@@ -222,24 +249,27 @@ __global__ void add_or_remove_velocity_blocks_kernel(
          size_t old= atomicAdd(dev_rhoLossAdjust, massloss[0]);
       }
       // Check if deleted entry was last LID or not
-      vmesh::LocalID lastEntry = vmesh->size()-1;
-      if (rmLID == lastEntry) {
-         // Last entry: Zero out old block data
-         rm_avgs[ti]=0;
+      vmesh::LocalID lastLID = vmesh->size()-1;
+      if (rmLID == lastLID) {
          if (ti==0) {
             // Delete last entry from vmesh
             vmesh->pop();
+            blockContainer->pop();
          }
       } else {
-         Realf* replace_avgs = blockContainer->getData(lastEntry);
-         Real* replace_block_parameters = blockContainer->getParameters(lastEntry);
-         rm_avgs[ti] = replace_avgs[ti];
+         Realf* last_avgs = blockContainer->getData(lastLID);
+         Real* last_block_parameters = blockContainer->getParameters(lastLID);
+         rm_avgs[ti] = last_avgs[ti];
          if (ti < BlockParams::N_VELOCITY_BLOCK_PARAMS) {
-            rm_block_parameters[ti] = replace_block_parameters[ti];
+            rm_block_parameters[ti] = last_block_parameters[ti];
          }
          if (ti==0) {
             // Remove hashmap entry for removed block, add instead created block
-            vmesh->replaceBlock(rmGID,vmesh->getGlobalID(lastEntry));
+            vmesh->replaceBlock(rmGID,vmesh->getGlobalID(lastLID));
+            vmesh->pop();
+            blockContainer->pop();
+            lastLID = vmesh->size()-1;
+            printf("=======R== now GID %d is at position %d\n",vmesh->getGlobalID(lastLID),lastLID); 
          }
       }
       __syncthreads();
@@ -249,17 +279,22 @@ __global__ void add_or_remove_velocity_blocks_kernel(
    // Second loop: adds
    for (uint m=blocki; m<nAdd; m += cudaBlocks) {
       const vmesh::GlobalID addGID = BlocksToAdd->at(m);
-      #ifdef DEBUG_SPATIAL_CELL
-      if (addGID == vmesh->invalid_global_id()) continue;
-      #endif
+//      #ifdef DEBUG_SPATIAL_CELL
+      if (addGID == vmesh->invalidGlobalID()) {
+         if (ti==0) printf("Add invalid GID!\n");
+         continue;
+      }
+      //    #endif
       if (ti==0) {
          if (vmesh->push_back(addGID) == false) {
             printf("Error adding GID %d to velocity mesh!\n",addGID);
          }
+         blockContainer->dev_push_back();
       }
       const vmesh::LocalID addLID = vmesh->getLocalID(addGID);
+      if (ti==0) printf("=A= m %d GID %d LID %d \n",m,addGID,addLID);
       #ifdef DEBUG_SPATIAL_CELL
-      if (addLID == vmesh->invalid_local_id()) continue;
+      if (addLID == vmesh->invalidLocalID()) continue;
       #endif
       // Addresses to data:
       Realf* add_avgs = blockContainer->getData(addLID);
@@ -324,10 +359,12 @@ namespace spatial_cell {
       velocity_block_with_no_content_list = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToAdd = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToRemove = new split::SplitVector<vmesh::GlobalID>(1);
+      BlocksToKeep = new split::SplitVector<vmesh::GlobalID>(1);
       velocity_block_with_content_list->clear();
       velocity_block_with_no_content_list->clear();
       BlocksToAdd->clear();
       BlocksToRemove->clear();
+      BlocksToKeep->clear();
    }
 
    SpatialCell::~SpatialCell() {
@@ -335,6 +372,7 @@ namespace spatial_cell {
       delete velocity_block_with_no_content_list;
       delete BlocksToAdd;
       delete BlocksToRemove;
+      delete BlocksToKeep;
    }
 
    SpatialCell::SpatialCell(const SpatialCell& other) {
@@ -343,8 +381,10 @@ namespace spatial_cell {
       velocity_block_with_no_content_list = new split::SplitVector<vmesh::GlobalID>(*(other.velocity_block_with_no_content_list));
       BlocksToAdd = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToRemove = new split::SplitVector<vmesh::GlobalID>(1);
+      BlocksToKeep = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToAdd->clear();
       BlocksToRemove->clear();
+      BlocksToKeep->clear();
 
       // Member variables
       ioLocalCellId = other.ioLocalCellId;
@@ -381,15 +421,18 @@ namespace spatial_cell {
       delete velocity_block_with_no_content_list;
       delete BlocksToAdd;
       delete BlocksToRemove;
-
+      delete BlocksToKeep;
+      
       // These should be empty when created, but let's play safe.
       velocity_block_with_content_list = new split::SplitVector<vmesh::GlobalID>(*(other.velocity_block_with_content_list));
       velocity_block_with_no_content_list = new split::SplitVector<vmesh::GlobalID>(*(other.velocity_block_with_no_content_list));
       // These start empty
       BlocksToAdd = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToRemove = new split::SplitVector<vmesh::GlobalID>(1);
+      BlocksToKeep = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToAdd->clear();
       BlocksToRemove->clear();
+      BlocksToKeep->clear();
       // Member variables
       ioLocalCellId = other.ioLocalCellId;
       sysBoundaryFlag = other.sysBoundaryFlag;
@@ -462,7 +505,7 @@ namespace spatial_cell {
       //with content and raise the neighbors_have_content for
       //itself, and for all its neighbors
       for (vmesh::LocalID block_index=0; block_index<velocity_block_with_content_list->size(); ++block_index) {
-         vmesh::GlobalID block = (*velocity_block_with_content_list)[block_index];
+         vmesh::GlobalID block = velocity_block_with_content_list->at(block_index);
 
          const velocity_block_indices_t indices = SpatialCell::get_velocity_block_indices(popID,block);
          neighbors_have_content.insert(block); //also add the cell itself
@@ -490,24 +533,29 @@ namespace spatial_cell {
          }
       }
 
-      BlocksToRemove->clear();
+      BlocksToAdd->optimizeCPU();
+      BlocksToRemove->optimizeCPU();
+      BlocksToKeep->optimizeCPU();
       BlocksToAdd->clear();
-      BlocksToAdd->reserve(populations[popID].vmesh->size());
-      BlocksToAdd->reserve(populations[popID].vmesh->size());
+      BlocksToRemove->clear();
+      BlocksToKeep->clear();
+      BlocksToAdd->reserve(populations[popID].vmesh->size()*BLOCK_ALLOCATION_PADDING);
+      BlocksToRemove->reserve(populations[popID].vmesh->size());
+      BlocksToKeep->reserve(populations[popID].vmesh->size());
 
       // REMOVE all blocks in this cell without content + without neighbors with content
       // better to do it in the reverse order, as then blocks at the
       // end are removed first, and we may avoid copying extra data.
       if (doDeleteEmptyBlocks) {
          for (int block_index= this->velocity_block_with_no_content_list->size()-1; block_index>=0; --block_index) {
-            const vmesh::GlobalID blockGID = (*velocity_block_with_no_content_list)[block_index];
+            const vmesh::GlobalID blockGID = velocity_block_with_no_content_list->at(block_index);
             #ifdef DEBUG_SPATIAL_CELL
-            if (blockGID == invalid_global_id()) {
+            if (blockGID == invalidGlobalID()) {
                cerr << "Got invalid block at " << __FILE__ << ' ' << __LINE__ << endl;
                exit(1);
             }
             const vmesh::LocalID blockLID = get_velocity_block_local_id(blockGID,popID);
-            if (blockLID == invalid_local_id()) {
+            if (blockLID == invalidLocalID()) {
                cerr << "Could not find block in " << __FILE__ << ' ' << __LINE__ << endl;
                exit(1);
             }
@@ -530,10 +578,35 @@ namespace spatial_cell {
          }
       }
 
+      // Figure out which blocks must be kept, but need to be moved around inside blockContainer
+      vmesh::LocalID nBlocksAfterAdjust = get_velocity_mesh(popID)->size() + BlocksToAdd->size() - BlocksToRemove->size();
+      for (vmesh::LocalID block_index = nBlocksAfterAdjust; block_index < get_velocity_mesh(popID)->size(); ++block_index) {
+         auto it = BlocksToRemove.find(block_index);
+         if (it == BlocksToRemove.end()) {
+            BlocksToKeep->push_back(get_velocity_mesh(popID)->getGlobalID(block_index));
+         }
+      }
+      
+      // On-device adjustment calling happens in separate function as it is also called from within acceleration
+      std::cerr<<"pre-adjust vmesh size "<<get_velocity_mesh(popID)->size()<<std::endl;
+      adjust_velocity_blocks_caller(popID);
+      std::cerr<<"post-adjust vmesh size "<<get_velocity_mesh(popID)->size()<<std::endl;
+   }
+   
+   void SpatialCell::adjust_velocity_blocks_caller(const uint popID) {
       /**
           Call CUDA kernel with all necessary information for creation and deletion of blocks
       **/
       phiprof::start("CUDA add and remove blocks");
+      const int nToAdd = BlocksToAdd->size();
+      const int nToRemove = BlocksToRemove->size();
+      const int nSwap = nToAdd > nToRemove ? nToRemove : nToAdd;
+      const uint nBlocks = populations[popID].vmesh->size();
+      const int nCudaBlocks = nBlocks > CUDABLOCKS ? CUDABLOCKS : nBlocks;
+
+      BlocksToAdd->optimizeGPU();
+      BlocksToRemove->optimizeGPU();
+      BlocksToKeep->optimizeGPU();
       get_velocity_mesh(popID)->dev_prefetchDevice();
       const uint thread_id = omp_get_thread_num();
       cudaStream_t stream = cuda_getStream();
@@ -543,15 +616,11 @@ namespace spatial_cell {
 
       phiprof::start("CUDA add and remove blocks kernel");
 
-      const int nToAdd = BlocksToAdd->size();
-      const int nToRemove = BlocksToRemove->size();
-      const int nSwap = nToAdd > nToRemove ? nToRemove : nToAdd;
-      const uint nBlocks = populations[popID].vmesh->size();
-      const int nCudaBlocks = nBlocks > CUDABLOCKS ? CUDABLOCKS : nBlocks;
       dim3 block(WID,WID,WID);
       // Third argument specifies the number of bytes in *shared memory* that is
       // dynamically allocated per block for this call in addition to the statically allocated memory.
 
+      HANDLE_ERROR( cudaStreamSynchronize(stream) );
       printf("ntoadd %d ntoremove %d nswap %d cudablocks %d \n",nToAdd,nToRemove, nSwap, nCudaBlocks);
       if (nSwap>0) {
          swap_velocity_blocks_kernel<<<nCudaBlocks, block, WID3*sizeof(Realf), stream>>> (
@@ -566,8 +635,9 @@ namespace spatial_cell {
          printf("-----Skipped swap kernel\n");
       }
 
-      // Only launch on one kernel for deletions or subtractions (so that changes
+      // Only launch on one kernel for deletions or additions (so that changes
       // to vmesh remain threadsafe)
+      HANDLE_ERROR( cudaStreamSynchronize(stream) );
       add_or_remove_velocity_blocks_kernel<<<1, block, WID3*sizeof(Realf), stream>>> (
             populations[popID].vmesh,
             populations[popID].blockContainer,
@@ -585,7 +655,7 @@ namespace spatial_cell {
       phiprof::stop("CUDA add and remove blocks");
    }
 
-   void SpatialCell::adjustSingleCellVelocityBlocks(const uint popID) {
+   void SpatialCell::adjustSingleCellVelocityBlocks(const uint popID, bool doDeleteEmpty) {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -599,7 +669,7 @@ namespace spatial_cell {
       //space. TODO: should this delete blocks or not? Now not
       std::vector<SpatialCell*> neighbor_ptrs;
       update_velocity_block_content_lists(popID);
-      adjust_velocity_blocks(neighbor_ptrs,popID,false);
+      adjust_velocity_blocks(neighbor_ptrs,popID,doDeleteEmpty);
    }
 
    /*!
@@ -608,31 +678,31 @@ namespace spatial_cell {
     sense in given block.
     Also returns false if given block doesn't exist or is an error block.
     */
-   bool SpatialCell::compute_block_has_content(const vmesh::GlobalID& blockGID,const uint popID) const {
-      #ifdef DEBUG_SPATIAL_CELL
-      if (popID >= populations.size()) {
-         std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
-         std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
-         exit(1);
-      }
-      #endif
+   // bool SpatialCell::compute_block_has_content(const vmesh::GlobalID& blockGID,const uint popID) const {
+   //    #ifdef DEBUG_SPATIAL_CELL
+   //    if (popID >= populations.size()) {
+   //       std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
+   //       std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
+   //       exit(1);
+   //    }
+   //    #endif
 
-      if (blockGID == invalid_global_id()) return false;
-      const vmesh::LocalID blockLID = get_velocity_block_local_id(blockGID,popID);
-      if (blockLID == invalid_local_id()) return false;
+   //    if (blockGID == invalid_global_id()) return false;
+   //    const vmesh::LocalID blockLID = get_velocity_block_local_id(blockGID,popID);
+   //    if (blockLID == invalid_local_id()) return false;
 
-      bool has_content = false;
-      const Real velocity_block_min_value = getVelocityBlockMinValue(popID);
-      const Realf* block_data = populations[popID].blockContainer->getData(blockLID);
-      for (unsigned int i=0; i<WID3; ++i) {
-         if (block_data[i] >= velocity_block_min_value) {
-            has_content = true;
-            break;
-         }
-      }
+   //    bool has_content = false;
+   //    const Real velocity_block_min_value = getVelocityBlockMinValue(popID);
+   //    const Realf* block_data = populations[popID].blockContainer->getData(blockLID);
+   //    for (unsigned int i=0; i<WID3; ++i) {
+   //       if (block_data[i] >= velocity_block_min_value) {
+   //          has_content = true;
+   //          break;
+   //       }
+   //    }
 
-      return has_content;
-   }
+   //    return has_content;
+   // }
 
    /** Get maximum translation timestep for the given species.
     * @param popID ID of the particle species.
@@ -1018,6 +1088,7 @@ namespace spatial_cell {
       velocity_block_with_no_content_list->optimizeGPU(stream);
 
       const Real velocity_block_min_value = getVelocityBlockMinValue(popID);
+      std::cerr<<"minValue "<<velocity_block_min_value<<std::endl;
       phiprof::start("CUDA update spatial cell block lists");
 
       dim3 block(WID,WID,WID);
@@ -1035,7 +1106,7 @@ namespace spatial_cell {
       velocity_block_with_content_list->optimizeCPU(stream);
       velocity_block_with_no_content_list->optimizeCPU(stream);
       phiprof::stop("CUDA update spatial cell block lists");
-
+      printf("Found %d blocks with content and %d blocks without content.\n",velocity_block_with_content_list->size(),velocity_block_with_no_content_list->size());
       // for (vmesh::LocalID block_index=0; block_index<populations[popID].vmesh->size(); ++block_index) {
       //    const vmesh::GlobalID globalID = populations[popID].vmesh->getGlobalID(block_index);
       //    if (compute_block_has_content(globalID,popID)){

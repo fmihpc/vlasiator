@@ -138,9 +138,11 @@ void cuda_accelerate_cell(SpatialCell* spatial_cell,
           cuda_acc_map_1d(spatial_cell, popID, 
                           intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,
                           0, cudaStreamList[thread_id]); // map along x
+          //spatial_cell->adjustSingleCellVelocityBlocks(popID,true);
           cuda_acc_map_1d(spatial_cell, popID, 
                           intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,
                           1, cudaStreamList[thread_id]); // map along y
+          //spatial_cell->adjustSingleCellVelocityBlocks(popID,true);
           cuda_acc_map_1d(spatial_cell, popID, 
                           intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,
                           2, cudaStreamList[thread_id]); // map along z
@@ -161,9 +163,11 @@ void cuda_accelerate_cell(SpatialCell* spatial_cell,
           cuda_acc_map_1d(spatial_cell, popID, 
                           intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,
                           1, cudaStreamList[thread_id]); // map along y
+          //spatial_cell->adjustSingleCellVelocityBlocks(popID,true);
           cuda_acc_map_1d(spatial_cell, popID, 
                           intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,
                           2, cudaStreamList[thread_id]); // map along z
+          //spatial_cell->adjustSingleCellVelocityBlocks(popID,true);
           cuda_acc_map_1d(spatial_cell, popID, 
                           intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,
                           0, cudaStreamList[thread_id]); // map along x
@@ -184,9 +188,11 @@ void cuda_accelerate_cell(SpatialCell* spatial_cell,
           cuda_acc_map_1d(spatial_cell, popID, 
                           intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,
                           2, cudaStreamList[thread_id]); // map along z
+          //spatial_cell->adjustSingleCellVelocityBlocks(popID,true);
           cuda_acc_map_1d(spatial_cell, popID, 
                           intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,
                           0, cudaStreamList[thread_id]); // map along x
+          //spatial_cell->adjustSingleCellVelocityBlocks(popID,true);
           cuda_acc_map_1d(spatial_cell, popID, 
                           intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,
                           1, cudaStreamList[thread_id]); // map along y

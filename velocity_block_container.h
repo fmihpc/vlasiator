@@ -82,6 +82,8 @@ namespace vmesh {
       CUDA_HOSTDEV void swap(VelocityBlockContainer& vbc);
 
 #ifdef USE_CUDA // for CUDA version
+      CUDA_HOSTDEV vmesh::LocalID dev_push_back();
+      CUDA_HOSTDEV vmesh::LocalID dev_push_back(const uint32_t& N_blocks);
       void dev_Allocate(vmesh::LocalID size);
       void dev_Allocate();
       void dev_prefetchHost();
@@ -392,6 +394,29 @@ namespace vmesh {
 
       return newIndex;
    }
+
+/** PUSH BACK METHODS FOR GPU CODE - bookkeeping only
+    Zeroing out block data and parameters must be done from caller kernel **/
+#ifdef USE_CUDA
+   inline CUDA_HOSTDEV vmesh::LocalID VelocityBlockContainer::dev_push_back() {
+      vmesh::LocalID newIndex = numberOfBlocks;
+      if (newIndex >= currentCapacity) {
+         printf("Error: pushing back to VBC from device without enough capacity!\n");
+         return 0;
+      }
+      ++numberOfBlocks;
+      return newIndex;
+   }
+   inline CUDA_HOSTDEV vmesh::LocalID VelocityBlockContainer::dev_push_back(const uint32_t& N_blocks) {
+      const vmesh::LocalID newIndex = numberOfBlocks;
+      numberOfBlocks += N_blocks;
+      if (numberOfBlocks > currentCapacity) {
+         printf("Error: pushing back to VBC from device without enough capacity!\n");
+         return 0;
+      }
+      return newIndex;
+   }
+#endif
 
    inline bool VelocityBlockContainer::recapacitate(const vmesh::LocalID& newCapacity) {
       if (newCapacity < numberOfBlocks) return false;

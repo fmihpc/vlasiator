@@ -141,6 +141,14 @@ void initializeGrids(
    }
    globalflags::AMRstencilWidth = neighborhood_size;
 
+#ifdef USE_CUDA
+   // Activate device, create streams
+   cuda_set_device();
+   const uint nPopulations = getObjectWrapper().particleSpecies.size();
+   const uint maxThreads = omp_get_max_threads();
+   cuda_allocateMomentCalculations(nPopulations,maxThreads);
+#endif
+
    const std::array<uint64_t, 3> grid_length = {{P::xcells_ini, P::ycells_ini, P::zcells_ini}};
    dccrg::Cartesian_Geometry::Parameters geom_params;
    geom_params.start[0] = P::xmin;
@@ -330,14 +338,6 @@ void initializeGrids(
       */
 
    }
-
-#ifdef USE_CUDA
-   // Activate device, create streams
-   cuda_set_device();
-   const uint nPopulations = getObjectWrapper().particleSpecies.size();
-   const uint maxThreads = omp_get_max_threads();
-   cuda_allocateMomentCalculations(nPopulations,maxThreads);
-#endif
 
    // Balance load before we transfer all data below
    balanceLoad(mpiGrid, sysBoundaries);

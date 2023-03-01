@@ -289,10 +289,12 @@ namespace spatial_cell {
       // Following functions adjust velocity blocks stored on the cell //
       bool add_velocity_block(const vmesh::GlobalID& block,const uint popID);
       void add_velocity_blocks(const std::vector<vmesh::GlobalID>& blocks,const uint popID);
-      void adjustSingleCellVelocityBlocks(const uint popID);
+      void adjustSingleCellVelocityBlocks(const uint popID, bool doDeleteEmpty=false);
       void adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors,
                                   const uint popID,
                                   bool doDeleteEmptyBlocks=true);
+      void adjust_velocity_blocks_caller(const uint popID);
+
       void update_velocity_block_content_lists(const uint popID);
       bool checkMesh(const uint popID);
       void clear(const uint popID);
@@ -349,7 +351,7 @@ namespace spatial_cell {
       /**< List of existing cells with no content, only up-to-date after call to update_has_content. This is also never transferred over MPI, so is invalid on remote cells.*/
 
       Realf* dev_rhoLossAdjust;
-      split::SplitVector<vmesh::GlobalID> *BlocksToRemove, *BlocksToAdd;                         /**< Lists of blocks to change on GPU device */
+      split::SplitVector<vmesh::GlobalID> *BlocksToRemove, *BlocksToAdd, *BlocksToMove; /**< Lists of blocks to change on GPU device */
 
 
       static uint64_t mpi_transfer_type;                                      /**< Which data is transferred by the mpi datatype given by spatial cells.*/
@@ -359,7 +361,7 @@ namespace spatial_cell {
 
     private:
 
-      bool compute_block_has_content(const vmesh::GlobalID& block,const uint popID) const;
+      //bool compute_block_has_content(const vmesh::GlobalID& block,const uint popID) const;
 
       static int activePopID;
       bool initialized;

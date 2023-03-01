@@ -475,14 +475,23 @@ namespace vmesh {
       #endif
       return true;
    }
-
-   CUDA_DEV inline bool VelocityMesh::replaceBlock(const vmesh::GlobalID& removeGID,const vmesh::GlobalID& addGID) {
-      vmesh::LocalID removeLID = globalToLocalMap->read_element(removeGID);
-      globalToLocalMap->device_erase(removeGID);
-      globalToLocalMap->set_element(addGID,removeLID);
-      localToGlobalMap->at(removeLID) = addGID;
+#ifdef __CUDA_ARCH__
+   CUDA_DEV inline bool VelocityMesh::replaceBlock(const vmesh::GlobalID& GIDold,const vmesh::GlobalID& GIDnew) {
+      printf("=======Replace== in: GIDold %d GIDnew %d\n",GIDold,GIDnew);
+      const vmesh::LocalID LID = globalToLocalMap->read_element(GIDold);
+      printf("              == LID %d\n",LID);
+      globalToLocalMap->device_erase(GIDold);
+      globalToLocalMap->set_element(GIDnew,LID);
+      localToGlobalMap->at(LID) = GIDnew;
+      printf("              == now: GID %d\n",localToGlobalMap->at(LID));
+      printf("              == now: LID %d\n",globalToLocalMap->read_element(GIDnew));
+      auto it = globalToLocalMap->device_find(GIDnew);
+      int32_t moi=-1;
+      if (it != globalToLocalMap->device_end()) moi = it->second;
+      printf("              == find GID: %d\n",moi);
    }
-
+#endif
+   
    inline void VelocityMesh::setGrid() {
       globalToLocalMap->clear();
       for (size_t i=0; i<localToGlobalMap->size(); ++i) {

@@ -75,8 +75,10 @@ __host__ void cuda_acc_allocate (
    const uint maxBlocksPerCell = maxBlockCount > 500 ? maxBlockCount : 500;
    // Check if we already have allocated enough memory?
    if (cuda_acc_allocatedSize > maxBlocksPerCell * BLOCK_ALLOCATION_FACTOR) {
+      std::cerr<<"allocation: "<<cuda_acc_allocatedSize<<" enough for "<<maxBlocksPerCell<<std::endl;
       return;
    }
+   std::cerr<<"allocating "<<maxBlocksPerCell<<" over "<<cuda_acc_allocatedSize<<std::endl;
    // Deallocate before allocating new memory
    for (uint i=0; i<omp_get_max_threads(); ++i) {
       if (cuda_acc_allocatedSize > 0) {
@@ -99,6 +101,7 @@ __host__ void cuda_acc_allocate_memory (
    const uint maxColumnsPerCell = 2 * std::pow(maxBlockCount, 0.667) * BLOCK_ALLOCATION_PADDING;
    cuda_acc_allocatedSize = blockAllocationCount;
    cuda_acc_allocatedColumns = maxColumnsPerCell;
+   std::cerr<<"Actual allocation: size "<<cuda_acc_allocatedSize<<" and columns "<<cuda_acc_allocatedColumns<<std::endl;
 
    HANDLE_ERROR( cudaMalloc((void**)&dev_cell_indices_to_id[cpuThreadID], 3*sizeof(uint)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_columns[cpuThreadID], maxColumnsPerCell*sizeof(Column)) );
@@ -159,20 +162,21 @@ __global__ void reorder_blocks_by_dimension_kernel(
    // Takes the contents of blockData, sorts it into blockDataOrdered,
    // performing transposes as necessary
    // Works column-per-column and adds the necessary one empty block at each end
-   //const int nThreads = blockDim.x; // should be equal to VECL
+   const int nThreads = blockDim.x; // should be equal to VECL
    const int ti = threadIdx.x;
    const int start = blockIdx.x;
    const int cudaBlocks = gridDim.x;
-   // if (nThreads != VECL) {
-   //    printf("Warning! VECL not matching thread count for CUDA code!\n");
-   // }
-
+   if (nThreads != VECL) {
+      if (ti==0) printf("Warning! VECL not matching thread count for CUDA kernel!\n");
+   }
+   if (ti==0) printf("totalColumns %d cudaBlocks %d \n",totalColumns,cudaBlocks);
    // Loop over columns in steps of cudaBlocks. Each cudaBlock deals with one column.
    for (uint iColumn = start; iColumn < totalColumns; iColumn += cudaBlocks) {
       if (iColumn >= totalColumns) break;
       uint inputOffset = dev_columnBlockOffsets[iColumn];
       uint outputOffset = (inputOffset + 2 * iColumn) * (WID3/VECL);
       uint columnLength = dev_columnNumBlocks[iColumn];
+      if (ti==0) printf("iColumn %d inputOffset %d outputOffset %d columnLength %d \n",iColumn,inputOffset,outputOffset,columnLength);
 
       // Loop over column blocks
       for (uint b = 0; b < columnLength; b++) {
