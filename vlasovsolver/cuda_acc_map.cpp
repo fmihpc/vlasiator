@@ -119,17 +119,21 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
                               const uint dimension,
                               cudaStream_t stream
    ) {
-
+   
    //nothing to do if no blocks
    vmesh::VelocityMesh* vmesh    = spatial_cell->get_velocity_mesh(popID);
    vmesh::VelocityBlockContainer* blockContainer = spatial_cell->get_velocity_blocks(popID);
+
+   vmesh->dev_prefetchHost();
    Realf *blockData = blockContainer->getData();
+   blockContainer->dev_prefetchDevice();
+
    //Realf *dev_blockData = blockContainer->dev_getData(); // Now in unified memory, above
    uint blockDataN = vmesh->size();
    if(vmesh->size() == 0) {
       return true;
    }
-   std::cerr<<"vmesh size "<<vmesh->size()<<" blockdata size "<<blockContainer->size()<<std::endl;
+   std::cerr<<"vmesh size "<<vmesh->size()<<std::endl;
    // Thread id used for persistent device memory pointers
    const uint cuda_async_queue_id = omp_get_thread_num();
    int cudathreads = VECL; // equal to CUDATHREADS; NVIDIA: 32 AMD: 64. Or just 64?
@@ -202,6 +206,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    }
    // Copy indexing information to device (async)
    HANDLE_ERROR( cudaMemcpyAsync(dev_cell_indices_to_id[cuda_async_queue_id], cell_indices_to_id, 3*sizeof(uint), cudaMemcpyHostToDevice, stream) );
+   vmesh->dev_prefetchDevice();
 
    const Realv i_dv=1.0/dv;
 
@@ -239,6 +244,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    }
    uint cudablocks = totalColumns;
 
+   std::cerr<<"upload column data for "<<totalColumns<<" columns and "<<blockDataN<<" blocks "<<std::endl;
    // memcopy LIDlist to device (GIDlist isn't needed here)
    //cudaMemcpyAsync(dev_GIDlist[cuda_async_queue_id], GIDlist, blockDataN*sizeof(vmesh::GlobalID), cudaMemcpyHostToDevice, stream);
    HANDLE_ERROR( cudaMemcpyAsync(dev_LIDlist[cuda_async_queue_id], LIDlist, blockDataN*sizeof(vmesh::LocalID), cudaMemcpyHostToDevice, stream) );
@@ -282,6 +288,8 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    phiprof::start("columnExtents");
    spatial_cell->BlocksToAdd->clear();
    spatial_cell->BlocksToRemove->clear();
+   spatial_cell->BlocksToMove->clear();
+   vmesh->dev_prefetchHost();
 
    for( uint setIndex=0; setIndex< setColumnOffsets.size(); ++setIndex) {
 
@@ -429,9 +437,9 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    }
    phiprof::stop("columnExtents");
    phiprof::start("CUDA add and delete blocks");
-   std::cerr<<"vmesh 2 size "<<vmesh->size()<<" blockdata size "<<blockContainer->size()<<std::endl;
+   std::cerr<<"vmesh 2 size "<<vmesh->size()<<std::endl;
    spatial_cell->adjust_velocity_blocks_caller(popID);
-   std::cerr<<"vmesh 3 size "<<vmesh->size()<<" blockdata size "<<blockContainer->size()<<std::endl;
+   std::cerr<<"vmesh 3 size "<<vmesh->size()<<std::endl;
    phiprof::stop("CUDA add and delete blocks");
 
    

@@ -33,6 +33,8 @@
 #include "cuda.h"
 #include "cuda_runtime.h"
 
+#include "../velocity_mesh_parameters.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -98,10 +100,14 @@ __host__ void cuda_acc_allocate_memory (
    // to maxBlockCount columns with each needing three blocks (one value plus two for padding).
    // Here we make an educated guess of  up to two symmetric smooth populations
    const uint blockAllocationCount = maxBlockCount * BLOCK_ALLOCATION_PADDING;
-   const uint maxColumnsPerCell = 2 * std::pow(maxBlockCount, 0.667) * BLOCK_ALLOCATION_PADDING;
+   
+   //const uint maxColumnsPerCell = 2 * std::pow(maxBlockCount, 0.667) * BLOCK_ALLOCATION_PADDING;
+   const uint maxColumnsPerCell = (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[0]
+      * (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[1]
+      * (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[2]; 
    cuda_acc_allocatedSize = blockAllocationCount;
    cuda_acc_allocatedColumns = maxColumnsPerCell;
-   std::cerr<<"Actual allocation: size "<<cuda_acc_allocatedSize<<" and columns "<<cuda_acc_allocatedColumns<<std::endl;
+   //std::cerr<<"Actual allocation: size "<<cuda_acc_allocatedSize<<" and columns "<<cuda_acc_allocatedColumns<<std::endl;
 
    HANDLE_ERROR( cudaMalloc((void**)&dev_cell_indices_to_id[cpuThreadID], 3*sizeof(uint)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_columns[cpuThreadID], maxColumnsPerCell*sizeof(Column)) );
@@ -169,14 +175,14 @@ __global__ void reorder_blocks_by_dimension_kernel(
    if (nThreads != VECL) {
       if (ti==0) printf("Warning! VECL not matching thread count for CUDA kernel!\n");
    }
-   if (ti==0) printf("totalColumns %d cudaBlocks %d \n",totalColumns,cudaBlocks);
+   //if (ti==0) printf("totalColumns %d cudaBlocks %d \n",totalColumns,cudaBlocks);
    // Loop over columns in steps of cudaBlocks. Each cudaBlock deals with one column.
    for (uint iColumn = start; iColumn < totalColumns; iColumn += cudaBlocks) {
       if (iColumn >= totalColumns) break;
       uint inputOffset = dev_columnBlockOffsets[iColumn];
       uint outputOffset = (inputOffset + 2 * iColumn) * (WID3/VECL);
       uint columnLength = dev_columnNumBlocks[iColumn];
-      if (ti==0) printf("iColumn %d inputOffset %d outputOffset %d columnLength %d \n",iColumn,inputOffset,outputOffset,columnLength);
+      //if (ti==0) printf("iColumn %d inputOffset %d outputOffset %d columnLength %d \n",iColumn,inputOffset,outputOffset,columnLength);
 
       // Loop over column blocks
       for (uint b = 0; b < columnLength; b++) {

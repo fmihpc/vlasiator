@@ -294,6 +294,7 @@ namespace spatial_cell {
                                   const uint popID,
                                   bool doDeleteEmptyBlocks=true);
       void adjust_velocity_blocks_caller(const uint popID);
+      void adjust_velocity_blocks_caller_old(const uint popID);
 
       void update_velocity_block_content_lists(const uint popID);
       bool checkMesh(const uint popID);
