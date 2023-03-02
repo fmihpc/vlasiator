@@ -43,6 +43,7 @@
 #include "spatial_cell.hpp"
 #include "datareduction/datareducer.h"
 #include "sysboundary/sysboundary.h"
+#include "fieldtracing/fieldtracing.h"
 
 #include "fieldsolver/fs_common.h"
 #include "projects/project.h"
@@ -78,6 +79,7 @@ using namespace phiprof;
 int globalflags::bailingOut = 0;
 bool globalflags::writeRestart = 0;
 bool globalflags::balanceLoad = 0;
+bool globalflags::ionosphereJustSolved = false;
 
 ObjectWrapper objectWrapper;
 
@@ -372,8 +374,8 @@ int main(int argn,char* args[]) {
    }
    phiprof::stop("Init project");
 
-   // Add AMR refinement criterias:
-   amr_ref_criteria::addRefinementCriteria();
+   // Add VAMR refinement criterias:
+   vamr_ref_criteria::addRefinementCriteria();
 
    // Initialize simplified Fieldsolver grids.
    // Needs to be done here already ad the background field will be set right away, before going to initializeGrid even
@@ -473,22 +475,25 @@ int main(int argn,char* args[]) {
 
    // Run the field solver once with zero dt. This will initialize
    // Fieldsolver dt limits, and also calculate volumetric B-fields.
-   propagateFields(
-		   perBGrid,
-		   perBDt2Grid,
-		   EGrid,
-		   EDt2Grid,
-		   EHallGrid,
-		   EGradPeGrid,
-		   momentsGrid,
-		   momentsDt2Grid,
-		   dPerBGrid,
-		   dMomentsGrid,
-		   BgBGrid,
-		   volGrid,
-		   technicalGrid,
-		   sysBoundaryContainer, 0.0, 1.0
-		   );
+   // At restart, all we need at this stage has been read from the restart, the rest will be recomputed in due time.
+   if(P::isRestart == false) {
+      propagateFields(
+         perBGrid,
+         perBDt2Grid,
+         EGrid,
+         EDt2Grid,
+         EHallGrid,
+         EGradPeGrid,
+         momentsGrid,
+         momentsDt2Grid,
+         dPerBGrid,
+         dMomentsGrid,
+         BgBGrid,
+         volGrid,
+         technicalGrid,
+         sysBoundaryContainer, 0.0, 1.0
+      );
+   }
 
    phiprof::start("getFieldsFromFsGrid");
    volGrid.updateGhostCells();
@@ -497,7 +502,7 @@ int main(int argn,char* args[]) {
 
    // Build communicator for ionosphere solving
    SBC::ionosphereGrid.updateIonosphereCommunicator(mpiGrid, technicalGrid);
-   SBC::ionosphereGrid.calculateFsgridCoupling(technicalGrid, perBGrid, dPerBGrid, SBC::Ionosphere::radius);
+   FieldTracing::calculateIonosphereFsgridCoupling(technicalGrid, perBGrid, dPerBGrid, SBC::ionosphereGrid.nodes, SBC::Ionosphere::radius);
    SBC::ionosphereGrid.initSolver(!P::isRestart); // If it is a restart we do not want to zero out everything
    if(SBC::Ionosphere::couplingInterval > 0 && P::isRestart) {
       SBC::Ionosphere::solveCount = floor(P::t / SBC::Ionosphere::couplingInterval)+1;
@@ -516,6 +521,8 @@ int main(int argn,char* args[]) {
 
    // Save restart data
    if (P::writeInitialState) {
+      FieldTracing::reduceData(technicalGrid, perBGrid, dPerBGrid, mpiGrid, SBC::ionosphereGrid.nodes); /*!< Call the reductions (e.g. field tracing) */
+      
       phiprof::start("write-initial-state");
       
       if (myRank == MASTER_RANK)
@@ -526,6 +533,7 @@ int main(int argn,char* args[]) {
       P::systemWriteDistributionWriteYlineStride.push_back(0);
       P::systemWriteDistributionWriteZlineStride.push_back(0);
       P::systemWritePath.push_back("./");
+      P::systemWriteFsGrid.push_back(true);
 
       for(uint si=0; si<P::systemWriteName.size(); si++) {
          P::systemWrites.push_back(0);
@@ -545,7 +553,12 @@ int main(int argn,char* args[]) {
             technicalGrid,
             version,
             config,
-            &outputReducer,P::systemWriteName.size()-1, P::restartStripeFactor, writeGhosts) == false ) {
+            &outputReducer,
+            P::systemWriteName.size()-1,
+            P::restartStripeFactor,
+            writeGhosts
+         ) == false
+      ) {
          cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
       }
 
@@ -555,6 +568,7 @@ int main(int argn,char* args[]) {
       P::systemWriteDistributionWriteYlineStride.pop_back();
       P::systemWriteDistributionWriteZlineStride.pop_back();
       P::systemWritePath.pop_back();
+      P::systemWriteFsGrid.pop_back();
 
       phiprof::stop("write-initial-state");
    }
@@ -734,23 +748,30 @@ int main(int argn,char* args[]) {
             // Calculate these so refinement parameters can be tuned based on the vlsv
             calculateScaledDeltasSimple(mpiGrid);
             
+            FieldTracing::reduceData(technicalGrid, perBGrid, dPerBGrid, mpiGrid, SBC::ionosphereGrid.nodes); /*!< Call the reductions (e.g. field tracing) */
+            
             phiprof::start("write-system");
             logFile << "(IO): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
             const bool writeGhosts = true;
-            if( writeGrid(mpiGrid,
-                     perBGrid, // TODO: Merge all the fsgrids passed here into one meta-object
-                     EGrid,
-                     EHallGrid,
-                     EGradPeGrid,
-                     momentsGrid,
-                     dPerBGrid,
-                     dMomentsGrid,
-                     BgBGrid,
-                     volGrid,
-                     technicalGrid,
-                     version,
-                     config,
-                     &outputReducer, i, P::systemStripeFactor, writeGhosts) == false ) {
+            if(writeGrid(mpiGrid,
+               perBGrid, // TODO: Merge all the fsgrids passed here into one meta-object
+               EGrid,
+               EHallGrid,
+               EGradPeGrid,
+               momentsGrid,
+               dPerBGrid,
+               dMomentsGrid,
+               BgBGrid,
+               volGrid,
+               technicalGrid,
+               version,
+               config,
+               &outputReducer,
+               i,
+               P::systemStripeFactor,
+               writeGhosts
+               ) == false
+            ) {
                cerr << "FAILED TO WRITE GRID AT" << __FILE__ << " " << __LINE__ << endl;
             }
             P::systemWrites[i]++;
@@ -999,11 +1020,15 @@ int main(int argn,char* args[]) {
          phiprof::stop("Propagate Fields",cells.size(),"SpatialCells");
          addTimedBarrier("barrier-after-field-solver");
       }
+      
+      if(FieldTracing::fieldTracingParameters.useCache) {
+         FieldTracing::resetReconstructionCoefficientsCache();
+      }
 
       // Map current data down into the ionosphere
       // TODO check: have we set perBGrid correctly here, or is it possibly perBDt2Grid in some cases??
       if(SBC::ionosphereGrid.nodes.size() > 0 && ((P::t > SBC::Ionosphere::solveCount * SBC::Ionosphere::couplingInterval && SBC::Ionosphere::couplingInterval > 0) || SBC::Ionosphere::couplingInterval == 0)) {
-         SBC::ionosphereGrid.calculateFsgridCoupling(technicalGrid, perBGrid, dPerBGrid, SBC::Ionosphere::radius);
+         FieldTracing::calculateIonosphereFsgridCoupling(technicalGrid, perBGrid, dPerBGrid, SBC::ionosphereGrid.nodes, SBC::Ionosphere::radius);
          SBC::ionosphereGrid.mapDownBoundaryData(perBGrid, dPerBGrid, momentsGrid, volGrid, technicalGrid);
          SBC::ionosphereGrid.calculateConductivityTensor(SBC::Ionosphere::F10_7, SBC::Ionosphere::recombAlpha, SBC::Ionosphere::backgroundIonisation);
 
@@ -1024,6 +1049,14 @@ int main(int argn,char* args[]) {
          << " difference " << maxPotentialS - minPotentialS
          << endl;
          SBC::Ionosphere::solveCount++;
+         globalflags::ionosphereJustSolved = true;
+         // Reset flag in all cells
+         #pragma omp parallel for
+         for(size_t i=0; i<cells.size(); i++) {
+            if(mpiGrid[cells[i]]->parameters[CellParams::FORCING_CELL_NUM] == 1) {
+               mpiGrid[cells[i]]->parameters[CellParams::FORCING_CELL_NUM] = 0;
+            }
+         }
       }
       
       phiprof::start("Velocity-space");
@@ -1074,6 +1107,7 @@ int main(int argn,char* args[]) {
       }
       //Move forward in time
       P::meshRepartitioned = false;
+      globalflags::ionosphereJustSolved = false;
       ++P::tstep;
       P::t += P::dt;
 

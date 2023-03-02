@@ -303,7 +303,7 @@ namespace SBC {
       B[1] = By;
       B[2] = Bz;
       
-      calculateCellMoments(&templateCell,true,true);
+      calculateCellMoments(&templateCell,true,false,true);
       
       if(!this->isThisDynamic) {
          // WARNING Time-independence assumed here.

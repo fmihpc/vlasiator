@@ -46,13 +46,13 @@ Spatial cell class for Vlasiator that supports a variable number of velocity blo
 #include "parameters.h"
 #include "definitions.h"
 
-#ifndef AMR
+#ifndef VAMR
    #include "velocity_mesh_old.h"
 #else
    #include "velocity_mesh_amr.h"
 #endif
 
-#include "amr_refinement_criteria.h"
+#include "vamr_refinement_criteria.h"
 #include "velocity_blocks.h"
 #include "velocity_block_container.h"
 
@@ -272,7 +272,7 @@ namespace spatial_cell {
       bool checkMesh(const uint popID);
       void clear(const uint popID);
       void coarsen_block(const vmesh::GlobalID& parent,const std::vector<vmesh::GlobalID>& children,const uint popID);
-      void coarsen_blocks(amr_ref_criteria::Base* evaluator,const uint popID);
+      void coarsen_blocks(vamr_ref_criteria::Base* evaluator,const uint popID);
       uint64_t get_cell_memory_capacity();
       uint64_t get_cell_memory_size();
       void merge_values(const uint popID);

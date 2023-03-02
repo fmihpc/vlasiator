@@ -94,9 +94,9 @@ namespace spatial_cell {
     * neighbouring cells, but these are not written to here. We only
     * modify local cell.
     * 
-    * NOTE: The AMR mesh must be valid, otherwise this function will
+    * NOTE: The VAMR mesh must be valid, otherwise this function will
     * remove some blocks that should not be removed.*/
-   #ifndef AMR
+   #ifndef VAMR
    void SpatialCell::adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors,
                                             const uint popID,bool doDeleteEmptyBlocks) {
       #ifdef DEBUG_SPATIAL_CELL
@@ -194,7 +194,7 @@ namespace spatial_cell {
       }
    }
 
-   #else       // AMR version
+   #else       // VAMR version
 
    void SpatialCell::adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors,
                                             const uint popID,bool doDeleteEmptyBlocks) {
@@ -419,7 +419,7 @@ namespace spatial_cell {
       }
    }
 
-   void SpatialCell::coarsen_blocks(amr_ref_criteria::Base* refCriterion,const uint popID) {
+   void SpatialCell::coarsen_blocks(vamr_ref_criteria::Base* refCriterion,const uint popID) {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -452,7 +452,7 @@ namespace spatial_cell {
          for (size_t b=0; b<blocks[r].size(); ++b) {
             const vmesh::GlobalID blockGID = blocks[r][b];
             fetch_data<1>(blockGID,populations[popID].vmesh,get_data(popID),array);
-            if (refCriterion->evaluate(array,popID) < Parameters::amrCoarsenLimit) coarsenList.insert(blockGID);
+            if (refCriterion->evaluate(array,popID) < Parameters::vamrCoarsenLimit) coarsenList.insert(blockGID);
          }
 
          // List of blocks created and removed during the coarsening. The first element (=key) 
@@ -825,8 +825,9 @@ namespace spatial_cell {
       vector<vmesh::GlobalID> childrenGIDs;
       populations[popID].vmesh.getChildren(blockGID,childrenGIDs);
 
-      #warning FIXME activePopID is not correct here (AMR, hence TBD)
-      
+#ifdef VAMR
+#warning FIXME activePopID is not correct here (VAMR, hence TBD)
+#endif
       // Check if any of block's children exist:
       bool hasChildren = false;
       for (size_t c=0; c<childrenGIDs.size(); ++c) {

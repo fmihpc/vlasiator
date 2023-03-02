@@ -27,6 +27,8 @@
 #include "../common.h"
 #include "dro_populations.h"
 #include "../sysboundary/ionosphere.h"
+#include "../fieldtracing/fieldtracing.h"
+
 using namespace std;
 
 void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosticReducer)
@@ -183,9 +185,14 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1,"kg/m^3","$\\mathrm{kg}\\,\\mathrm{m}^{-3}$","$\\rho_\\mathrm{m}$","1.0");
          continue;
       }
+      if(lowercase == "vg_drift") { // Nudge velocity drift near ionosphere
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_drift",CellParams::BULKV_FORCING_X,3));
+         outputReducer->addMetadata(outputReducer->size()-1,"m/s","$\\mathrm{m}\\,\\mathrm{s}^{-1}$","$V$","1.0");
+         continue;
+      }
       if(lowercase == "vg_amr_translate_comm") { // Flag for AMR translation communication
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_translate_comm",CellParams::AMR_TRANSLATE_COMM_X,3));
-	 //outputReducer->addMetadata(outputReducer->size()-1,"","AMR-translate","1.0");
+	 outputReducer->addMetadata(outputReducer->size()-1,"","","AMRtranslate","1.0");
          continue;
       }
       if(lowercase == "fg_rhom") { // Overall mass density (summed over all populations)
@@ -814,18 +821,24 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       }
       if(lowercase == "bvolderivs" || lowercase == "b_vol_derivs" || lowercase == "b_vol_derivatives" || lowercase == "vg_b_vol_derivatives" || lowercase == "derivs") {
          // Volume-averaged derivatives
+         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_dperbxvoldx",bvolderivatives::dPERBXVOLdx,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_dperbxvoldy",bvolderivatives::dPERBXVOLdy,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_dperbxvoldz",bvolderivatives::dPERBXVOLdz,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_dperbyvoldx",bvolderivatives::dPERBYVOLdx,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_dperbyvoldy",bvolderivatives::dPERBYVOLdy,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_dperbyvoldz",bvolderivatives::dPERBYVOLdz,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_dperbzvoldx",bvolderivatives::dPERBZVOLdx,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_dperbzvoldy",bvolderivatives::dPERBZVOLdy,1));
-	 outputReducer->addMetadata(outputReducer->size()-6,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{X,\\mathrm{per,vol,vg}} (\\Delta Y)^{-1}$","1.0");
-	 outputReducer->addMetadata(outputReducer->size()-5,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{X,\\mathrm{per,vol,vg}} (\\Delta Z)^{-1}$","1.0");
-	 outputReducer->addMetadata(outputReducer->size()-4,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{Y,\\mathrm{per,vol,vg}} (\\Delta X)^{-1}$","1.0");
-	 outputReducer->addMetadata(outputReducer->size()-3,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{Y,\\mathrm{per,vol,vg}} (\\Delta Z)^{-1}$","1.0");
-	 outputReducer->addMetadata(outputReducer->size()-2,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{Z,\\mathrm{per,vol,vg}} (\\Delta X)^{-1}$","1.0");
-	 outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{Z,\\mathrm{per,vol,vg}} (\\Delta Y)^{-1}$","1.0");
+         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_dperbzvoldz",bvolderivatives::dPERBZVOLdz,1));
+	 outputReducer->addMetadata(outputReducer->size()-9,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{X,\\mathrm{per,vol,vg}} (\\Delta X)^{-1}$","1.0");
+	 outputReducer->addMetadata(outputReducer->size()-8,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{X,\\mathrm{per,vol,vg}} (\\Delta Y)^{-1}$","1.0");
+	 outputReducer->addMetadata(outputReducer->size()-7,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{X,\\mathrm{per,vol,vg}} (\\Delta Z)^{-1}$","1.0");
+	 outputReducer->addMetadata(outputReducer->size()-6,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{Y,\\mathrm{per,vol,vg}} (\\Delta X)^{-1}$","1.0");
+	 outputReducer->addMetadata(outputReducer->size()-5,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{Y,\\mathrm{per,vol,vg}} (\\Delta Y)^{-1}$","1.0");
+	 outputReducer->addMetadata(outputReducer->size()-4,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{Y,\\mathrm{per,vol,vg}} (\\Delta Z)^{-1}$","1.0");
+	 outputReducer->addMetadata(outputReducer->size()-3,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{Z,\\mathrm{per,vol,vg}} (\\Delta X)^{-1}$","1.0");
+	 outputReducer->addMetadata(outputReducer->size()-2,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{Z,\\mathrm{per,vol,vg}} (\\Delta Y)^{-1}$","1.0");
+	 outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{Z,\\mathrm{per,vol,vg}} (\\Delta Z)^{-1}$","1.0");
          continue;
       }
 
@@ -2553,12 +2566,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                return retval;
          }
          ));
-	 outputReducer->addMetadata(outputReducer->size()-1,"m","$\\mathrm{m}$","$\\delta Z_\\mathrm{fg}$","1.0");
-         continue;
-      }
-      if(lowercase == "meshdata") {
-         outputReducer->addOperator(new DRO::VariableMeshData);
-	 outputReducer->addMetadata(outputReducer->size()-1,"","","\\mathrm{Mesh data}$","");
+         outputReducer->addMetadata(outputReducer->size()-1,"m","$\\mathrm{m}$","$\\delta Z_\\mathrm{fg}$","1.0");
          continue;
       }
       if(lowercase == "vg_amr_drho") {
@@ -3057,6 +3065,21 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1, "T", "T", "$B_\\mathrm{mapped}$", "1.0");
          continue;
       }
+      if(lowercase == "ig_openclosed") {
+         FieldTracing::fieldTracingParameters.doTraceOpenClosed = true;
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_openclosed", [](
+            SBC::SphericalTriGrid& grid)->std::vector<Real> {
+               
+               std::vector<Real> retval(grid.nodes.size());
+               
+               for(uint i=0; i<grid.nodes.size(); i++) {
+                  retval[i] = (Real)grid.nodes[i].openFieldLine;
+               }
+               
+               return retval;
+            }));
+         continue;
+      }
       if(lowercase == "ig_fac") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_fac", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
@@ -3096,7 +3119,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                   x[1] = cell->parameters[CellParams::YCRD] + cell->parameters[CellParams::DY];
                   x[2] = cell->parameters[CellParams::ZCRD] + cell->parameters[CellParams::DZ];
 
-                  std::array<std::pair<int, Real>, 3> coupling = SBC::ionosphereGrid.calculateVlasovGridCoupling(x, SBC::Ionosphere::radius);
+                  std::array<std::pair<int, Real>, 3> coupling = FieldTracing::calculateIonosphereVlasovGridCoupling(x, SBC::ionosphereGrid.nodes, SBC::Ionosphere::radius);
                   for(int i=0; i<3; i++) {
                      uint coupledNode = coupling[i].first;
                      Real a = coupling[i].second;
@@ -3108,6 +3131,53 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                   return retval;
 			}));
          outputReducer->addMetadata(outputReducer->size()-1, "m", "m", "$x_\\mathrm{coupled}$", "1.0");
+         continue;
+      }
+      if(lowercase == "vg_connection") {
+         FieldTracing::fieldTracingParameters.doTraceFullBox = true;
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_connection",CellParams::CONNECTION,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_connection_coordinates_fw",CellParams::CONNECTION_FW_X,3));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_connection_coordinates_bw",CellParams::CONNECTION_BW_X,3));
+         continue;
+      }
+      if(lowercase == "vg_fluxrope" || lowercase == "vg_curvature") {
+         Parameters::computeCurvature = true;
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_curvature",CellParams::CURVATUREX,3));
+         if(lowercase == "vg_fluxrope") {
+            FieldTracing::fieldTracingParameters.doTraceFullBox = true;
+            outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_fluxrope",CellParams::FLUXROPE,1));
+         }
+         continue;
+      }
+      if(lowercase == "fg_curvature") {
+         Parameters::computeCurvature = true;
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_curvature",[](
+            FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+            FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+            FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+            FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+            FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+            FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+            FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+            FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+            FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+            FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+               
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
+               
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x)] =     (*volGrid.get(x,y,z))[fsgrids::volfields::CURVATUREX];
+                        retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x) + 1] = (*volGrid.get(x,y,z))[fsgrids::volfields::CURVATUREY];
+                        retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x) + 2] = (*volGrid.get(x,y,z))[fsgrids::volfields::CURVATUREZ];
+                     }
+                  }
+               }
+               return retval;
+            }
+         ));
          continue;
       }
       // After all the continue; statements one should never land here.
@@ -3285,15 +3355,6 @@ bool DataReducer::getMetadata(const unsigned int& operatorID,std::string& unit,s
    return operators[operatorID]->getUnitMetadata(unit, unitLaTeX, variableLaTeX, unitConversion);
 }
 
-/** Ask a DataReductionOperator if it wants to take care of writing the data 
- * to output file instead of letting be handled in iowrite.cpp. 
- * @param operatorID ID number of the DataReductionOperator.
- * @return If true, then VLSVWriter should be passed to the DataReductionOperator.*/
-bool DataReducer::handlesWriting(const unsigned int& operatorID) const {
-   if (operatorID >= operators.size()) return false;
-   return dynamic_cast<DRO::DataReductionOperatorHandlesWriting*>(operators[operatorID]) != nullptr;
-}
-
 /** Ask a DataReductionOperator if it wants to write parameters to the vlsv file header
  * @param operatorID ID number of the DataReductionOperator.
  * @return If true, then VLSVWriter should be passed to the DataReductionOperator.*/
@@ -3336,25 +3397,6 @@ bool DataReducer::reduceDiagnostic(const SpatialCell* cell,const unsigned int& o
  * @return Number of DataReductionOperators stored in DataReducer.
  */
 unsigned int DataReducer::size() const {return operators.size();}
-
-/** Write all data from given DataReductionOperator to the output file.
- * @param operatorID ID number of the selected DataReductionOperator.
- * @param mpiGrid Parallel grid library.
- * @param cells Vector containing spatial cell IDs.
- * @param meshName Name of the spatial mesh in the output file.
- * @param vlsvWriter VLSV file writer that has output file open.
- * @return If true, DataReductionOperator wrote its data successfully.*/
-bool DataReducer::writeData(const unsigned int& operatorID,
-                  const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                  const std::vector<CellID>& cells,const std::string& meshName,
-                  vlsv::Writer& vlsvWriter) {
-   if (operatorID >= operators.size()) return false;
-   DRO::DataReductionOperatorHandlesWriting* writingOperator = dynamic_cast<DRO::DataReductionOperatorHandlesWriting*>(operators[operatorID]);
-   if(writingOperator == nullptr) {
-      return false;
-   }
-   return writingOperator->writeData(mpiGrid,cells,meshName,vlsvWriter);
-}
 
 /** Write parameters related to given DataReductionOperator to the output file.
  * @param operatorID ID number of the selected DataReductionOperator.

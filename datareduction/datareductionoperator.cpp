@@ -242,9 +242,16 @@ namespace DRO {
    }
 
    std::string DataReductionOperatorIonosphereNode::getName() const {return variableName;}
+   std::string DataReductionOperatorIonosphereNodeInt::getName() const {return variableName;}
    bool DataReductionOperatorIonosphereNode::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize = sizeof(double);
+      vectorSize = 1;
+      return true;
+   }
+   bool DataReductionOperatorIonosphereNodeInt::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "int";
+      dataSize = sizeof(int);
       vectorSize = 1;
       return true;
    }
@@ -252,10 +259,20 @@ namespace DRO {
       // This returns false, since it will handle writing itself in writeIonosphereGridData below.
       return false;
    }
+   bool DataReductionOperatorIonosphereNodeInt::reduceData(const SpatialCell* cell,char* buffer) {
+      // This returns false, since it will handle writing itself in writeIonosphereGridData below.
+      return false;
+   }
    bool DataReductionOperatorIonosphereNode::reduceDiagnostic(const SpatialCell* cell,Real * result) {
       return false;
    }
+   bool DataReductionOperatorIonosphereNodeInt::reduceDiagnostic(const SpatialCell* cell,int * result) {
+      return false;
+   }
    bool DataReductionOperatorIonosphereNode::setSpatialCell(const SpatialCell* cell) {
+      return true;
+   }
+   bool DataReductionOperatorIonosphereNodeInt::setSpatialCell(const SpatialCell* cell) {
       return true;
    }
    bool DataReductionOperatorIonosphereNode::writeIonosphereData(SBC::SphericalTriGrid&
@@ -309,6 +326,59 @@ namespace DRO {
         vlsvWriter.writeArray("VARIABLE", attribs, "float", 0, vectorSize, sizeof(Real), nullptr);
       }
 
+      return true;
+   }
+   
+   bool DataReductionOperatorIonosphereNodeInt::writeIonosphereData(SBC::SphericalTriGrid& grid, vlsv::Writer& vlsvWriter) {
+      
+      // skip ionosphere for inital-grid as it breaks
+      if(P::systemWriteName[P::systemWriteName.size() - 1] == "initial-grid") {
+         return true;
+      }
+      
+      // No point in trying to write anything if there is no ionosphere grid.
+      if(grid.nodes.size() == 0) {
+         // Note this indicates success, since not writing an empty mesh is quite ok.
+         return true;
+      }
+      std::map<std::string,std::string> attribs;
+      attribs["mesh"]="ionosphere";
+      attribs["name"]=variableName;
+      attribs["centering"]= "node"; // <-- this tells visit the variable is node-centered
+      attribs["unit"]=unit;
+      attribs["unitLaTeX"]=unitLaTeX;
+      attribs["unitConversion"]=unitConversion;
+      attribs["variableLaTeX"]=variableLaTeX;
+      
+      // Only task 0 of the ionosphere communicator writes, but all others need to sync vectorSize
+      int rank = -1;
+      int worldRank = 0;
+      if(grid.isCouplingInwards || grid.isCouplingOutwards) {
+         MPI_Comm_rank(grid.communicator,&rank);
+      }
+      MPI_Comm_rank(MPI_COMM_WORLD,&worldRank);
+      int vectorSize = 0;
+      if(rank == 0) {
+         std::vector<int> varBuffer = lambda(grid);
+         
+         std::array<int32_t, 3> gridSize{(int32_t)grid.nodes.size(), 1,1};
+         vectorSize = varBuffer.size() / grid.nodes.size();
+         
+         // We need to have vectorSize the same on all ranks, otherwise MPI_COMM_WORLD rank 0 writes a bogus value
+         MPI_Bcast(&vectorSize, 1, MPI_INT, grid.writingRank, MPI_COMM_WORLD);
+         
+         if(vlsvWriter.writeArray("VARIABLE", attribs, "int", grid.nodes.size(), vectorSize, sizeof(int), reinterpret_cast<const char*>(varBuffer.data())) == false) {
+            string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
+            bailout(true, message, __FILE__, __LINE__);
+         }
+      } else {
+         // We need to have vectorSize the same on all ranks, otherwise MPI_COMM_WORLD rank 0 writes a bogus value
+         MPI_Bcast(&vectorSize, 1, MPI_INT, grid.writingRank, MPI_COMM_WORLD);
+         
+         // Dummy write
+         vlsvWriter.writeArray("VARIABLE", attribs, "int", 0, vectorSize, sizeof(int), nullptr);
+      }
+      
       return true;
    }
 
@@ -1119,48 +1189,6 @@ namespace DRO {
 	     End velocity moment / thermal/non-thermal helper functions
   *********/
 
-
-   VariableMeshData::VariableMeshData(): DataReductionOperatorHandlesWriting() { }
-   VariableMeshData::~VariableMeshData() { }
-   
-   std::string VariableMeshData::getName() const {return "vg_meshdata";}
-   
-   bool VariableMeshData::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      return true;
-   }
-   
-   bool VariableMeshData::setSpatialCell(const SpatialCell* cell) {return true;}
-   
-   bool VariableMeshData::writeData(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                    const std::vector<CellID>& cells,const std::string& meshName,
-                                    vlsv::Writer& vlsvWriter) {
-      bool success = true;
-      for (size_t i = 0; i < getObjectWrapper().meshData.size(); ++i) {
-         const string dataName = getObjectWrapper().meshData.getName(i);
-         
-         // If dataName equals "" then something is wrong, skip array
-         if (dataName.size() == 0) continue;
-         
-         size_t dataSize = getObjectWrapper().meshData.getDataSize(i);
-         const std::string& dataType = getObjectWrapper().meshData.getDataType(i);
-         size_t vectorSize = getObjectWrapper().meshData.getVectorSize(i);
-         size_t arraySize = getObjectWrapper().meshData.getMeshSize();
-         char* pointer = getObjectWrapper().meshData.getData<char>(i);
-
-         if (vectorSize == 0 || vectorSize > 3) continue;
-         
-         map<string,string> attribs;
-         attribs["mesh"] = meshName;
-         attribs["name"] = dataName;
-         
-         if (vlsvWriter.writeArray("VARIABLE",attribs,dataType,arraySize,vectorSize,dataSize,pointer) == false) {
-            cerr << "write failed!" << endl;
-            success = false;
-         }
-      }
-      return success;
-   }
-   
    // Rho nonthermal:
    VariableRhoNonthermal::VariableRhoNonthermal(cuint _popID): DataReductionOperator(),popID(_popID) {
       popName = getObjectWrapper().particleSpecies[popID].name;
