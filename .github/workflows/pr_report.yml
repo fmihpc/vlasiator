@@ -14,7 +14,7 @@ jobs:
       - name: download testpackage output
         # Note we are downloading an artifact from a
         # *different* workflow here.
-        uses: dawidd6/action-download-artifact@v2
+        uses: ursg/action-download-artifact@v2
         with:
           name: testpackage-output
           workflow: ${{ github.event.workflow.id }}
@@ -25,7 +25,7 @@ jobs:
           tar -xzvf testpackage-output.tar.gz
           cat testpackage_output_variables.txt >> $GITHUB_OUTPUT
       - name: Generate PR check report
-        uses: LouisBrunner/checks-action@v1.6.0
+        uses: ursg/checks-action@v1.6.0
         if: always()
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
