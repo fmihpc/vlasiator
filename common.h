@@ -190,6 +190,12 @@ namespace CellParams {
       AMR_TRANSLATE_COMM_Y, /*! < Flag to include this cell in AMR pre-translate communication  */
       AMR_TRANSLATE_COMM_Z, /*! < Flag to include this cell in AMR pre-translate communication  */
       CONNECTION, /*!< Magnetic connection. See TracingPointConnectionType for assigned values. */
+      CONNECTION_FW_X, /*!< Endpoint x (forward-propagated) for the magnetic connection tracer*/
+      CONNECTION_FW_Y, /*!< Endpoint y (forward-propagated) for the magnetic connection tracer*/
+      CONNECTION_FW_Z, /*!< Endpoint z (forward-propagated) for the magnetic connection tracer*/
+      CONNECTION_BW_X, /*!< Endpoint x (backward-propagated) for the magnetic connection tracer*/
+      CONNECTION_BW_Y, /*!< Endpoint y (backward-propagated) for the magnetic connection tracer*/
+      CONNECTION_BW_Z, /*!< Endpoint z (backward-propagated) for the magnetic connection tracer*/
       CURVATUREX, /*!< Magnetic field curvature vector x component */
       CURVATUREY, /*!< Magnetic field curvature vector y component */
       CURVATUREZ, /*!< Magnetic field curvature vector z component */
@@ -202,6 +208,10 @@ namespace CellParams {
       AMR_ALPHA,
       RECENTLY_REFINED,
       AMR_JPERB,
+      BULKV_FORCING_X, /*! Externally forced drift velocity (ex. from the ionosphere) */
+      BULKV_FORCING_Y, /*! Externally forced drift velocity (ex. from the ionosphere) */
+      BULKV_FORCING_Z, /*! Externally forced drift velocity (ex. from the ionosphere) */
+      FORCING_CELL_NUM, /*! Number of boundary cells that have forced a bulkv here */
       N_SPATIAL_CELL_PARAMS
    };
 }
@@ -483,6 +493,7 @@ struct globalflags {
    static bool writeRestart; /*!< Global flag raised to true if a restart writing is needed (without bailout). NOTE: used only by MASTER_RANK in vlasiator.cpp. */
    static bool balanceLoad; /*!< Global flag raised to true if a load balancing is needed. NOTE: used only by MASTER_RANK in vlasiator.cpp. */
    static int AMRstencilWidth; /*!< Global variable used for the extended AMR stencil width */
+   static bool ionosphereJustSolved; /*!< Flag used to notify that the ionosphere has been freshly solved, used to check whether the Vlasov boundary/bulk forcing need updating. */
 };
 
 /*!

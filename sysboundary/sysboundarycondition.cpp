@@ -985,4 +985,9 @@ namespace SBC {
       return true;
    }
 
+   void SysBoundaryCondition::mapCellPotentialAndGetEXBDrift(
+      std::array<Real, CellParams::N_SPATIAL_CELL_PARAMS>& cellParams
+   ) {
+      std::cerr << "Error: SysBoundaryCondition::mapCellPotentialAndGetEXBDrift called!\n";
+   }
 } // namespace SBC

@@ -50,8 +50,8 @@
 #endif 
 
 #ifndef NDEBUG
-   #ifdef AMR
-      #define DEBUG_AMR_VALIDATE
+   #ifdef VAMR
+      #define DEBUG_VAMR_VALIDATE
    #endif
 #endif
 
@@ -176,7 +176,9 @@ void initializeGrids(
    initVelocityGridGeometry(mpiGrid);
    initializeStencils(mpiGrid);
    
-   mpiGrid.set_partitioning_option("IMBALANCE_TOL", P::loadBalanceTolerance);
+   for (const auto& [key, value] : P::loadBalanceOptions) {
+      mpiGrid.set_partitioning_option(key, value);
+   }
    phiprof::start("Initial load-balancing");
    if (myRank == MASTER_RANK) logFile << "(INIT): Starting initial load balance." << endl << writeVerbose;
    mpiGrid.balance_load(); // Direct DCCRG call, recalculate cache afterwards
@@ -205,12 +207,6 @@ void initializeGrids(
    }
    phiprof::stop("Initialize system boundary conditions");
    
-   // Init mesh data container
-   if (getObjectWrapper().meshData.initialize("SpatialGrid") == false) {
-      cerr << "(Grid) Failed to initialize mesh data container in " << __FILE__ << ":" << __LINE__ << endl;
-      exit(1);
-   }
-
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_DIMENSIONS);
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
 
@@ -247,7 +243,6 @@ void initializeGrids(
          phiprof::stop("Restart refinement");
       }
    }
-
 
    // Check refined cells do not touch boundary cells
    phiprof::start("Check boundary refinement");
@@ -307,7 +302,7 @@ void initializeGrids(
 
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          adjustVelocityBlocks(mpiGrid,cells,true,popID);
-         #ifdef DEBUG_AMR_VALIDATE
+         #ifdef DEBUG_VAMR_VALIDATE
             writeVelMesh(mpiGrid);
             validateMesh(mpiGrid,popID);
          #endif
@@ -333,13 +328,6 @@ void initializeGrids(
 
    }
 
-
-   // Init mesh data container
-   if (getObjectWrapper().meshData.initialize("SpatialGrid") == false) {
-      cerr << "(Grid) Failed to initialize mesh data container in " << __FILE__ << ":" << __LINE__ << endl;
-      exit(1);
-   }
-   
    // Balance load before we transfer all data below
    balanceLoad(mpiGrid, sysBoundaries);
    // Function includes re-calculation of local cells cache
@@ -375,7 +363,7 @@ void initializeGrids(
    } else {
       phiprof::start("Init moments");
       for (size_t i=0; i<cells.size(); ++i) {
-         calculateCellMoments(mpiGrid[cells[i]], true);
+         calculateCellMoments(mpiGrid[cells[i]], true, true);
       }
       phiprof::stop("Init moments");
    }
@@ -603,7 +591,6 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
 
    //Make sure transfers are enabled for all cells
    recalculateLocalCellsCache();
-   getObjectWrapper().meshData.reallocate();
    #pragma omp parallel for
    for (uint i=0; i<cells.size(); ++i) {
       mpiGrid[cells[i]]->set_mpi_transfer_enabled(true);
@@ -1134,9 +1121,9 @@ void initializeStencils(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
 bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID) {
    bool rvalue = true;
-   #ifndef AMR
+   #ifndef VAMR
       return rvalue;
-   #endif
+   #else
 
    phiprof::start("mesh validation (init)");
          
@@ -1153,7 +1140,7 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
    int iter=0;
        
    do {
-      #ifdef DEBUG_AMR_VALIDATE
+      #ifdef DEBUG_VAMR_VALIDATE
       if (iter == 0) {
          writeVelMesh(mpiGrid);
       }
@@ -1179,7 +1166,7 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
          // Get all spatial neighbors
          //const vector<CellID>* neighbors = mpiGrid.get_neighbors_of(cells[c],NEAREST_NEIGHBORHOOD_ID);
          const auto* neighbors = mpiGrid.get_neighbors_of(cells[c], NEAREST_NEIGHBORHOOD_ID);
-	 //#warning TODO should vAMR grandparents be checked only for face neighbors instead of NEAREST_NEIGHBORHOOD_ID?
+	 //#warning TODO should VAMR grandparents be checked only for face neighbors instead of NEAREST_NEIGHBORHOOD_ID?
 
          // Iterate over all spatial neighbors
          // for (size_t n=0; n<neighbors->size(); ++n) {
@@ -1286,7 +1273,7 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
       }
       phiprof::stop("recalculate distrib. functions");
        
-      #ifdef DEBUG_AMR_VALIDATE
+      #ifdef DEBUG_VAMR_VALIDATE
          writeVelMesh(mpiGrid);
       #endif
       ++iter;
@@ -1301,6 +1288,7 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
    
    phiprof::stop("mesh validation (init)");
    return rvalue;
+   #endif
 }
 
 void mapRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
@@ -1434,7 +1422,7 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
          }
 
          // Averaging moments
-         calculateCellMoments(mpiGrid[parent], true);
+         calculateCellMoments(mpiGrid[parent], true, false);
 
          processed.insert(parent);
       }

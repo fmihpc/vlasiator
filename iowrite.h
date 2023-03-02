@@ -58,7 +58,8 @@ bool writeGrid(
    DataReducer* dataReducer,
    const uint& index,
    const int& stripe,
-   const bool writeGhosts = true);
+   const bool writeGhosts
+);
 
 /*!
 
