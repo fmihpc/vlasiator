@@ -77,10 +77,8 @@ __host__ void cuda_acc_allocate (
    const uint maxBlocksPerCell = maxBlockCount > 500 ? maxBlockCount : 500;
    // Check if we already have allocated enough memory?
    if (cuda_acc_allocatedSize > maxBlocksPerCell * BLOCK_ALLOCATION_FACTOR) {
-      std::cerr<<"allocation: "<<cuda_acc_allocatedSize<<" enough for "<<maxBlocksPerCell<<std::endl;
       return;
    }
-   std::cerr<<"allocating "<<maxBlocksPerCell<<" over "<<cuda_acc_allocatedSize<<std::endl;
    // Deallocate before allocating new memory
    for (uint i=0; i<omp_get_max_threads(); ++i) {
       if (cuda_acc_allocatedSize > 0) {
@@ -98,16 +96,13 @@ __host__ void cuda_acc_allocate_memory (
 
    // The worst case scenario is with every block having content but no neighbours, creating up
    // to maxBlockCount columns with each needing three blocks (one value plus two for padding).
-   // Here we make an educated guess of  up to two symmetric smooth populations
    const uint blockAllocationCount = maxBlockCount * BLOCK_ALLOCATION_PADDING;
-   
-   //const uint maxColumnsPerCell = 2 * std::pow(maxBlockCount, 0.667) * BLOCK_ALLOCATION_PADDING;
-   const uint maxColumnsPerCell = (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[0]
+   const uint maxColumnsPerCell = 3 * std::pow(
+      (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[0]
       * (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[1]
-      * (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[2]; 
+      * (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[2], 0.667); 
    cuda_acc_allocatedSize = blockAllocationCount;
    cuda_acc_allocatedColumns = maxColumnsPerCell;
-   //std::cerr<<"Actual allocation: size "<<cuda_acc_allocatedSize<<" and columns "<<cuda_acc_allocatedColumns<<std::endl;
 
    HANDLE_ERROR( cudaMalloc((void**)&dev_cell_indices_to_id[cpuThreadID], 3*sizeof(uint)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_columns[cpuThreadID], maxColumnsPerCell*sizeof(Column)) );
@@ -116,33 +111,18 @@ __host__ void cuda_acc_allocate_memory (
    HANDLE_ERROR( cudaMalloc((void**)&dev_blockDataOrdered[cpuThreadID], blockAllocationCount * (WID3 / VECL) * sizeof(Vec)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_LIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID)) );
 
-   // Old version without checked max block count (uses too much memory to be feasible)
-   // const uint maxColumnsPerCell = ( MAX_BLOCKS_PER_DIM / 2 + 1) * MAX_BLOCKS_PER_DIM * MAX_BLOCKS_PER_DIM;
-   // const uint maxTargetBlocksPerColumn = 3 * ( MAX_BLOCKS_PER_DIM / 2 + 1);
-   // const uint maxTargetBlocksPerCell = maxTargetBlocksPerColumn * MAX_BLOCKS_PER_DIM * MAX_BLOCKS_PER_DIM;
-   // const uint maxSourceBlocksPerCell = MAX_BLOCKS_PER_DIM * MAX_BLOCKS_PER_DIM * MAX_BLOCKS_PER_DIM;
-   //HANDLE_ERROR( cudaMalloc((void**)&dev_blockData[cpuThreadID], blockAllocationCount * WID3 * sizeof(Realf) ) );
-   //HANDLE_ERROR( cudaMalloc((void**)&dev_GIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::GlobalID)) );
-
    // Also allocate and pin memory on host for faster transfers
    HANDLE_ERROR( cudaHostAlloc((void**)&host_columns[cpuThreadID], maxColumnsPerCell*sizeof(Column), cudaHostAllocPortable) );
    HANDLE_ERROR( cudaHostAlloc((void**)&host_GIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID), cudaHostAllocPortable) );
    HANDLE_ERROR( cudaHostAlloc((void**)&host_LIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID), cudaHostAllocPortable) );
-   // Blockdata is pinned inside cuda_acc_map_1d() in cuda_acc_map.cu
-   // printf("AA addrD %d -- %lu %lu %lu %lu\n",cpuThreadID,dev_cell_indices_to_id[cpuThreadID],dev_columns[cpuThreadID],dev_blockData[cpuThreadID],dev_blockDataOrdered[cpuThreadID]);
-   // printf("AA addrH %d -- %lu %lu %lu %lu\n",cpuThreadID,&dev_cell_indices_to_id[cpuThreadID],&dev_columns[cpuThreadID],&dev_blockData[cpuThreadID],&dev_blockDataOrdered[cpuThreadID]);
  }
 
 __host__ void cuda_acc_deallocate_memory (
    uint cpuThreadID
    ) {
-   // printf("DD addrD %d -- %lu %lu %lu %lu\n",cpuThreadID,dev_cell_indices_to_id[cpuThreadID],dev_columns[cpuThreadID],dev_blockData[cpuThreadID],dev_blockDataOrdered[cpuThreadID]);
-   // printf("DD addrH %d -- %lu %lu %lu %lu\n",cpuThreadID,&dev_cell_indices_to_id[cpuThreadID],&dev_columns[cpuThreadID],&dev_blockData[cpuThreadID],&dev_blockDataOrdered[cpuThreadID]);
    HANDLE_ERROR( cudaFree(dev_cell_indices_to_id[cpuThreadID]) );
    HANDLE_ERROR( cudaFree(dev_columns[cpuThreadID]) );
-   // HANDLE_ERROR( cudaFree(dev_blockData[cpuThreadID]) );
    HANDLE_ERROR( cudaFree(dev_blockDataOrdered[cpuThreadID]) );
-   //HANDLE_ERROR( cudaFree(dev_GIDlist[cpuThreadID]) );
    HANDLE_ERROR( cudaFree(dev_LIDlist[cpuThreadID]) );
    HANDLE_ERROR( cudaFree(dev_columnNumBlocks[cpuThreadID]) );
    HANDLE_ERROR( cudaFree(dev_columnBlockOffsets[cpuThreadID]) );

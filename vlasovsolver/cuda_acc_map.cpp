@@ -42,47 +42,6 @@
 using namespace std;
 using namespace spatial_cell;
 
-/** Attempt to add the given velocity block to the given velocity mesh.
- * If the block was added to the mesh, its data is set to zero values and
- * velocity block parameters are calculated.
- * @param blockGID Global ID of the added velocity block.
- * @param vmesh Velocity mesh where the block is added.
- * @param blockContainer Velocity block data container.
- * @return Local ID of the added block. If the block was not added, the
- * local ID of the null velocity block is returned instead.*/
-// __host__ vmesh::LocalID addVelocityBlock2(const vmesh::GlobalID& blockGID,
-//         vmesh::VelocityMesh* vmesh,
-//         vmesh::VelocityBlockContainer* blockContainer) {
-//     // Block insert will fail if the block already exists, or if
-//     // there are too many blocks in the velocity mesh.
-//     if (vmesh->push_back(blockGID) == false)
-//         return vmesh::VelocityMesh::invalidLocalID();
-
-//     // Insert velocity block data, this will set values to 0.
-//     const vmesh::LocalID newBlockLID = blockContainer->push_back();
-
-//     #ifdef DEBUG_ACC
-//         bool ok = true;
-//         if (vmesh->size() != blockContainer->size()) ok = false;
-//         if (vmesh->getLocalID(blockGID) != newBlockLID) ok = false;
-//         if (ok == false) {
-//             stringstream ss;
-//             ss << "ERROR in acc: sizes " << vmesh->size() << ' ' << blockContainer->size() << endl;
-//             ss << "\t local IDs " << vmesh->getLocalID(blockGID) << " vs " << newBlockLID << endl;
-//             cerr << ss.str();
-//             exit(1);
-//         }
-//     #endif
-
-//     // Set block parameters:
-//     Real* block_parameters = blockContainer->getParameters(newBlockLID);
-//     vmesh->getCellSize(blockGID,&(block_parameters[BlockParams::DVX]));
-//     vmesh->getBlockCoordinates(blockGID,&(block_parameters[BlockParams::VXCRD]));
-//     //vmesh->getBlockCoordinates(blockGID,parameters+BlockParams::VXCRD);
-//     //vmesh->getCellSize(blockGID,parameters+BlockParams::DVX);
-//     return newBlockLID;
-// }
-
 __host__ void inline swapBlockIndices(std::array<uint32_t,3> &blockIndices, const uint dimension){
    uint temp;
    // Switch block indices according to dimensions, the algorithm has
@@ -133,7 +92,6 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    if(vmesh->size() == 0) {
       return true;
    }
-   std::cerr<<"vmesh size "<<vmesh->size()<<std::endl;
    // Thread id used for persistent device memory pointers
    const uint cuda_async_queue_id = omp_get_thread_num();
    int cudathreads = VECL; // equal to CUDATHREADS; NVIDIA: 32 AMD: 64. Or just 64?
@@ -206,7 +164,9 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    }
    // Copy indexing information to device (async)
    HANDLE_ERROR( cudaMemcpyAsync(dev_cell_indices_to_id[cuda_async_queue_id], cell_indices_to_id, 3*sizeof(uint), cudaMemcpyHostToDevice, stream) );
+   phiprof::start("Vmesh prefetch to device");
    vmesh->dev_prefetchDevice();
+   phiprof::stop("Vmesh prefetch to device");
 
    const Realv i_dv=1.0/dv;
 
@@ -244,13 +204,13 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    }
    uint cudablocks = totalColumns;
 
-   std::cerr<<"upload column data for "<<totalColumns<<" columns and "<<blockDataN<<" blocks "<<std::endl;
    // memcopy LIDlist to device (GIDlist isn't needed here)
    //cudaMemcpyAsync(dev_GIDlist[cuda_async_queue_id], GIDlist, blockDataN*sizeof(vmesh::GlobalID), cudaMemcpyHostToDevice, stream);
    HANDLE_ERROR( cudaMemcpyAsync(dev_LIDlist[cuda_async_queue_id], LIDlist, blockDataN*sizeof(vmesh::LocalID), cudaMemcpyHostToDevice, stream) );
    HANDLE_ERROR( cudaMemcpyAsync(dev_columnNumBlocks[cuda_async_queue_id], columnNumBlocks.data(), totalColumns*sizeof(uint), cudaMemcpyHostToDevice, stream) );
    HANDLE_ERROR( cudaMemcpyAsync(dev_columnBlockOffsets[cuda_async_queue_id], columnBlockOffsets.data(), totalColumns*sizeof(uint), cudaMemcpyHostToDevice, stream) );
 
+   phiprof::start("Reorder blocks by dimension");
    // Launch kernels for transposing and ordering velocity space data into columns
    reorder_blocks_by_dimension_glue(
       blockData, // unified memory, incoming
@@ -286,12 +246,13 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
 
    // Calculate target column extents
    phiprof::start("columnExtents");
-   std::cerr<<"prefetch "<<std::endl;
+   phiprof::start("Prefetch block lists to CPU");
+   spatial_cell->BlocksToAdd->optimizeCPU();
+   spatial_cell->BlocksToRemove->optimizeCPU();
    spatial_cell->BlocksToAdd->clear();
    spatial_cell->BlocksToRemove->clear();
-   spatial_cell->BlocksToMove->clear();
    vmesh->dev_prefetchHost();
-   std::cerr<<"start columnextents "<<setColumnOffsets.size()<<std::endl;
+   phiprof::stop("Prefetch block lists to CPU");
 
    for( uint setIndex=0; setIndex< setColumnOffsets.size(); ++setIndex) {
    
@@ -437,14 +398,12 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
          }
       }
    }
-   std::cerr<<"stop columnextents, start block adjust "<<std::endl;
    cudaStreamSynchronize(stream);
+   phiprof::stop("Reorder blocks by dimension");
    
    phiprof::stop("columnExtents");
    phiprof::start("CUDA add and delete blocks");
-   std::cerr<<"vmesh 2 size "<<vmesh->size()<<std::endl;
    spatial_cell->adjust_velocity_blocks_caller(popID);
-   std::cerr<<"vmesh 3 size "<<vmesh->size()<<std::endl;
    phiprof::stop("CUDA add and delete blocks");
 
    
@@ -460,7 +419,6 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
 
    // Now we iterate through target columns again, identifying their block offsets
    for( uint column=0; column < totalColumns; column++) {
-      //cout << "Velocity column no. " << column << ": [";
       for (int blockK = columns[column].minBlockK; blockK <= columns[column].maxBlockK; blockK++) {
          const int targetBlock =
             columns[column].i * block_indices_to_id[0] +
@@ -473,20 +431,14 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
             cerr << "Error: block for index [ " << columns[column].i << ", " << columns[column].j << ", " << blockK << "] has invalid blockID " << tblockLID << " "<<vmesh->invalidGlobalID()<<std::endl;
          }
          columns[column].targetBlockOffsets[blockK] = tblockLID*WID3;
-         //cout << tblockLID*WID3 << " (" << columns[column].i << "," << columns[column].j << ", " << blockK << "), ";
       }
-      //cout << "]" << std::endl;
    }
-
-   // cudaEvent_t start, stop;
-   // cudaEventCreate(&start);
-   // cudaEventCreate(&stop);
-   // cudaEventRecord(start, 0);
 
    // Copy column information to device (async)
    HANDLE_ERROR( cudaMemcpyAsync(dev_columns[cuda_async_queue_id], columns, totalColumns*sizeof(Column), cudaMemcpyHostToDevice, stream) );
 
    // CALL CUDA FUNCTION WRAPPER/GLUE
+   phiprof::start("Call acceleration kernel");
    acceleration_1_glue(
       blockData, // unified
       dev_blockDataOrdered[cuda_async_queue_id],
@@ -507,21 +459,8 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       stream
       );
 
-   // Now done in subroutine called from cuda_acc_semilag.cpp
-   // Copy data back to host
-   //cudaMemcpyAsync(blockData, dev_blockData[cuda_async_queue_id], bdsw3*sizeof(Realf), cudaMemcpyDeviceToHost, stream);
-
-   // Now done in cuda_acc_semilag.cpp
-   //cudaStreamSynchronize(stream);
-   // cudaEventRecord(stop, stream);
-   // cudaEventSynchronize(stop);
-   // float elapsedTime;
-   // cudaEventElapsedTime(&elapsedTime, start, stop);
-   //printf("%.3f ms\n", elapsedTime);
-   //cudaStreamDestroy(stream);
-
-   // Free page locks on host memory
-   //cudaHostUnregister(blockData);
+   cudaStreamSynchronize(stream);
+   phiprof::stop("Call acceleration kernel");
 
    delete[] GIDlist;
    delete[] LIDlist;

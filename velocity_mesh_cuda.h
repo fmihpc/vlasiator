@@ -103,6 +103,7 @@ namespace vmesh {
 
       void dev_prefetchHost();
       void dev_prefetchDevice();
+      void dev_cleanHashMap();
 
    private:
       size_t meshID;
@@ -560,6 +561,11 @@ namespace vmesh {
       //Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *uploaded = globalToLocalMap->upload(cuda_getStream());
       globalToLocalMap->optimizeGPU(cuda_getStream());
       localToGlobalMap->optimizeGPU(cuda_getStream());
+      return;
+   }
+
+   inline void VelocityMesh::dev_cleanHashMap() {
+      globalToLocalMap->performCleanupTasks(cuda_getStream());
       return;
    }
 

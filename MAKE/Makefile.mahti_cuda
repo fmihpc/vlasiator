@@ -64,10 +64,10 @@ LNK = mpic++
 #CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -fopenmp -std=c++17 -rdynamic -fpermissive
 #testpackage: CXXFLAGS = -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -fopenmp -std=c++17 -fpermissive
 
-CXXFLAGS = -g -O2 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 -Xcompiler -fopenmp --generate-line-info -line-info -Xcompiler="-fpermissive"
+CXXFLAGS = -g -O2 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 -Xcompiler -fopenmp --generate-line-info -line-info -Xcompiler="-fpermissive" -dc
 testpackage: CXXFLAGS = -g -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 -Xcompiler -fopenmp --prec-sqrt=true --prec-div=true --ftz=false --fmad=false --generate-line-info -line-info -Xcompiler="-fpermissive" -dc
 
-CMPGPUFLAGS = -g -O2 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 -Xcompiler -fopenmp --generate-line-info -line-info -Xcompiler="-fpermissive"
+CMPGPUFLAGS = -g -O2 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 -Xcompiler -fopenmp --generate-line-info -line-info -Xcompiler="-fpermissive" -dc
 testpackage: CMPGPUFLAGS = -g -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 -Xcompiler -fopenmp --prec-sqrt=true --prec-div=true --ftz=false --fmad=false --generate-line-info -line-info -Xcompiler="-fpermissive" -dc
 
 CMPGPU = OMPI_CXX='nvcc' OMPI_CXXFLAGS='' mpic++
