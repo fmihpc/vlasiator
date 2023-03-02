@@ -32,6 +32,17 @@
 
 //using namespace spatial_cell;
 
+struct Column
+{
+   int valuesOffset;                              // Source data values
+   size_t targetBlockOffsets[MAX_BLOCKS_PER_DIM]; // Target data array offsets
+   int nblocks;                                   // Number of blocks in this column
+   int minBlockK,maxBlockK;                       // Column parallel coordinate limits
+   int kBegin;                                    // Actual un-sheared starting block index
+   int i,j;                                       // Blocks' perpendicular coordinates
+};
+
+
 bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
                      const uint popID,
                      Realv intersection,
@@ -41,5 +52,32 @@ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
                      const uint dimension,
                      cudaStream_t stream
    );
+
+extern void cuda_acc_allocate (
+   uint maxBlockCount
+   );
+extern void cuda_acc_allocate_memory (
+   uint cpuThreadID,
+   uint maxBlockCount
+   );
+extern void cuda_acc_deallocate_memory (
+   uint cpuThreadID
+   );
+
+// Device data variables, to be allocated in good time. Made into an array so that each thread has their own pointer.
+extern Vec *dev_blockDataOrdered[];
+extern Column *dev_columns[];
+extern uint *dev_cell_indices_to_id[];
+extern uint *dev_LIDlist[];
+extern uint *dev_columnNumBlocks[];
+extern uint *dev_columnBlockOffsets[];
+
+// Host data variables, to be allocated and pinned in good time. Made into a long array so that each thread has their own pointer.
+extern Column *host_columns[];
+extern uint *host_GIDlist[];
+extern uint *host_LIDlist[];
+
+extern uint cuda_acc_allocatedSize;
+extern uint cuda_acc_allocatedColumns;
 
 #endif

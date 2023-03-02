@@ -26,9 +26,200 @@
 #include "../object_wrapper.h"
 
 #include "../cuda_context.cuh"
-#include "cuda_moments_kernel.cuh"
 
 using namespace std;
+
+MomentInfo *dev_momentInfos[MAXCPUTHREADS];
+MomentInfo *host_momentInfos[MAXCPUTHREADS];
+
+Real *dev_momentArrays1[MAXCPUTHREADS];
+Real *host_momentArrays1[MAXCPUTHREADS];
+Real *dev_momentArrays2[MAXCPUTHREADS];
+Real *host_momentArrays2[MAXCPUTHREADS];
+
+bool isCudaMomentsAllocated = false;
+
+__host__ void cuda_allocateMomentCalculations(
+   const uint nPopulations,
+   const uint maxThreads
+   ) {
+   if (isCudaMomentsAllocated) return;
+   for (uint cpuThreadID=0; cpuThreadID<maxThreads; ++cpuThreadID) {
+
+      //cudaMalloc
+      HANDLE_ERROR( cudaMalloc((void**)&dev_momentInfos[cpuThreadID], nPopulations*sizeof(MomentInfo)) );
+      HANDLE_ERROR( cudaMalloc((void**)&dev_momentArrays1[cpuThreadID], CUDABLOCKS*nMoments1*(nPopulations+1)*sizeof(Real)) );
+      HANDLE_ERROR( cudaMalloc((void**)&dev_momentArrays2[cpuThreadID], CUDABLOCKS*nMoments2*(nPopulations+1)*sizeof(Real)) );
+
+      // Also allocate and pin memory on host for faster transfers
+      HANDLE_ERROR( cudaHostAlloc((void**)&host_momentInfos[cpuThreadID], nPopulations*sizeof(MomentInfo), cudaHostAllocPortable) );
+      HANDLE_ERROR( cudaHostAlloc((void**)&host_momentArrays1[cpuThreadID], CUDABLOCKS*nMoments1*(nPopulations+1)*sizeof(Real), cudaHostAllocPortable) );
+      HANDLE_ERROR( cudaHostAlloc((void**)&host_momentArrays2[cpuThreadID], CUDABLOCKS*nMoments2*(nPopulations+1)*sizeof(Real), cudaHostAllocPortable) );
+   }
+   isCudaMomentsAllocated = true;
+   return;
+}
+
+
+// Define kernel for calculating zeroth and first velocity moments
+__global__ void moments_first_kernel(
+   MomentInfo *dev_momentInfos,
+   Real* dev_momentArrays1,
+   const int nPopulations
+   ){
+
+   const int cudaBlocks = gridDim.x;
+   const int blocki = blockIdx.x;
+   const int i = threadIdx.x;
+   const int j = threadIdx.y;
+   const int k = threadIdx.z;
+   const uint ti = k*WID2 + j*WID + i;
+
+   const Real HALF = 0.5;
+   __shared__ Real n_sum[WID3];
+   __shared__ Real nvx_sum[WID3];
+   __shared__ Real nvy_sum[WID3];
+   __shared__ Real nvz_sum[WID3];
+
+   const uint offset = blocki*nMoments1*(nPopulations+1);
+   if (ti==0) {
+      dev_momentArrays1[offset + nPopulations*nMoments1 + 0] = 0;
+      dev_momentArrays1[offset + nPopulations*nMoments1 + 1] = 0;
+      dev_momentArrays1[offset + nPopulations*nMoments1 + 2] = 0;
+      dev_momentArrays1[offset + nPopulations*nMoments1 + 3] = 0;
+      dev_momentArrays1[offset + nPopulations*nMoments1 + 4] = 0;
+   }
+   
+   for (uint popID=0; popID<nPopulations; ++popID) {
+      n_sum[ti] = 0.0;
+      nvx_sum[ti] = 0.0;
+      nvy_sum[ti] = 0.0;
+      nvz_sum[ti] = 0.0;
+
+      const uint nBlocks = dev_momentInfos[popID].blockCount;
+      const Real mass = dev_momentInfos[popID].mass;
+      const Real charge = dev_momentInfos[popID].charge;
+      Real* blockParams = dev_momentInfos[popID].parameterPointer;
+      const Real DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
+
+      for (uint blockLID=blocki; blockLID<nBlocks; blockLID += cudaBlocks) {
+         if (blockLID >= nBlocks) break;
+         Real* blockParams = dev_momentInfos[popID].parameterPointer + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
+         Realf* avgs = dev_momentInfos[popID].meshDataPointer +blockLID*WID3;
+         const Real VX = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
+         const Real VY = blockParams[BlockParams::VYCRD] + (j+HALF)*blockParams[BlockParams::DVY];
+         const Real VZ = blockParams[BlockParams::VZCRD] + (k+HALF)*blockParams[BlockParams::DVZ];
+
+         n_sum[ti]   += avgs[ti];
+         nvx_sum[ti] += avgs[ti]*VX;
+         nvy_sum[ti] += avgs[ti]*VY;
+         nvz_sum[ti] += avgs[ti]*VZ;
+      }
+      __syncthreads();
+      // Implemented just a simple non-optimized thread sum
+      for (unsigned int s=WID3/2; s>0; s>>=1) {
+         if (ti < s) {
+            n_sum[ti] += n_sum[ti + s];
+            nvx_sum[ti] += nvx_sum[ti + s];
+            nvy_sum[ti] += nvy_sum[ti + s];
+            nvz_sum[ti] += nvz_sum[ti + s];
+         }
+         __syncthreads();
+      }
+      if (ti==0) {
+         dev_momentArrays1[offset + popID*nMoments1 + 0] = n_sum[0]   * DV3;
+         dev_momentArrays1[offset + popID*nMoments1 + 1] = nvx_sum[0] * DV3;
+         dev_momentArrays1[offset + popID*nMoments1 + 2] = nvy_sum[0] * DV3;
+         dev_momentArrays1[offset + popID*nMoments1 + 3] = nvz_sum[0] * DV3;
+
+         // Sum over all populations
+         dev_momentArrays1[offset + nPopulations*nMoments1 + 0] += n_sum[0]   * DV3 * mass;
+         dev_momentArrays1[offset + nPopulations*nMoments1 + 1] += nvx_sum[0] * DV3 * mass;
+         dev_momentArrays1[offset + nPopulations*nMoments1 + 2] += nvy_sum[0] * DV3 * mass;
+         dev_momentArrays1[offset + nPopulations*nMoments1 + 3] += nvz_sum[0] * DV3 * mass;
+         dev_momentArrays1[offset + nPopulations*nMoments1 + 4] += n_sum[0]   * DV3 * charge;
+      }
+   }
+   return;
+}
+
+// Define kernel for calculating second velocity moments
+__global__ void moments_second_kernel(
+   MomentInfo *dev_momentInfos,
+   Real* dev_momentArrays2,
+   const int nPopulations,
+   const Real bulkVX,
+   const Real bulkVY,
+   const Real bulkVZ
+   ){
+
+   const int cudaBlocks = gridDim.x;
+   const int blocki = blockIdx.x;
+   const int i = threadIdx.x;
+   const int j = threadIdx.y;
+   const int k = threadIdx.z;
+   const uint ti = k*WID2 + j*WID + i;
+
+   const Real HALF = 0.5;
+   __shared__ Real nvx2_sum[WID3];
+   __shared__ Real nvy2_sum[WID3];
+   __shared__ Real nvz2_sum[WID3];
+
+   const uint offset = blocki*nMoments2*(nPopulations+1);
+   if (ti==0) {
+      dev_momentArrays2[offset + nPopulations*nMoments2 + 0] = 0;
+      dev_momentArrays2[offset + nPopulations*nMoments2 + 1] = 0;
+      dev_momentArrays2[offset + nPopulations*nMoments2 + 2] = 0;
+   }
+
+   for (uint popID=0; popID<nPopulations; ++popID) {
+      nvx2_sum[ti] = 0.0;
+      nvy2_sum[ti] = 0.0;
+      nvz2_sum[ti] = 0.0;
+
+      const uint nBlocks = dev_momentInfos[popID].blockCount;
+      const Real mass = dev_momentInfos[popID].mass;
+      //const Real charge = dev_momentInfos[popID].charge;
+      Real* blockParams = dev_momentInfos[popID].parameterPointer;
+      const Real DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
+
+      for (uint blockLID=blocki; blockLID<nBlocks; blockLID += cudaBlocks) {
+         if (blockLID >= nBlocks) break;
+         Real* blockParams = dev_momentInfos[popID].parameterPointer + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
+         Realf* avgs = dev_momentInfos[popID].meshDataPointer +blockLID*WID3;
+         const Real VX = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
+         const Real VY = blockParams[BlockParams::VYCRD] + (j+HALF)*blockParams[BlockParams::DVY];
+         const Real VZ = blockParams[BlockParams::VZCRD] + (k+HALF)*blockParams[BlockParams::DVZ];
+
+         nvx2_sum[ti] += avgs[ti] * (VX - bulkVX) * (VX - bulkVX);
+         nvy2_sum[ti] += avgs[ti] * (VY - bulkVY) * (VY - bulkVY);
+         nvz2_sum[ti] += avgs[ti] * (VZ - bulkVZ) * (VZ - bulkVZ);
+      }
+
+      __syncthreads();
+      // Implemented just a simple non-optimized thread sum
+      for (unsigned int s=WID3/2; s>0; s>>=1) {
+         if (ti < s) {
+            nvx2_sum[ti] += nvx2_sum[ti + s];
+            nvy2_sum[ti] += nvy2_sum[ti + s];
+            nvz2_sum[ti] += nvz2_sum[ti + s];
+         }
+         __syncthreads();
+      }
+      if (ti==0) {
+         dev_momentArrays2[offset + popID*nMoments2 + 0] = nvx2_sum[0] * DV3 * mass;
+         dev_momentArrays2[offset + popID*nMoments2 + 1] = nvy2_sum[0] * DV3 * mass;
+         dev_momentArrays2[offset + popID*nMoments2 + 2] = nvz2_sum[0] * DV3 * mass;
+
+         // Sum over all populations
+         dev_momentArrays2[offset + nPopulations*nMoments2 + 0] += nvx2_sum[0] * DV3 * mass;
+         dev_momentArrays2[offset + nPopulations*nMoments2 + 1] += nvy2_sum[0] * DV3 * mass;
+         dev_momentArrays2[offset + nPopulations*nMoments2 + 2] += nvz2_sum[0] * DV3 * mass;
+      }
+   }
+   return;
+}
+
 
 /** Calls a CUDA kernel for calculating zeroth, first, and (possibly) second
  * bulk velocity moments for the  given spatial cells.
@@ -95,12 +286,11 @@ void cuda_calculateMoments_V(
 
       // Now launch kernel for this spatial cell, all populations, zeroth and first moments
       phiprof::start("CUDA-firstMoments");
-      calculate_firstMoments_glue(
+      dim3 block(WID,WID,WID);
+      moments_first_kernel<<<CUDABLOCKS, block, 4*WID3*sizeof(Real), cudaStreamList[thread_id]>>> (
          dev_momentInfos[thread_id],
          dev_momentArrays1[thread_id],
-         nPopulations,
-         cudaStreamList[thread_id]
-         );
+         nPopulations);
       HANDLE_ERROR( cudaStreamSynchronize(cudaStreamList[thread_id]) );
       phiprof::stop("CUDA-firstMoments");
 
@@ -147,15 +337,13 @@ void cuda_calculateMoments_V(
 
       phiprof::start("CUDA-secondMoments");
       // Now launch kernel for this spatial cell, all populations, second moments
-      calculate_secondMoments_glue(
+      moments_second_kernel<<<CUDABLOCKS, block, 3*WID3*sizeof(Real), cudaStreamList[thread_id]>>> (
          dev_momentInfos[thread_id],
          dev_momentArrays2[thread_id],
          nPopulations,
          cell->parameters[CellParams::VX],
          cell->parameters[CellParams::VY],
-         cell->parameters[CellParams::VZ],
-         cudaStreamList[thread_id]
-         );
+         cell->parameters[CellParams::VZ]);
       HANDLE_ERROR( cudaStreamSynchronize(cudaStreamList[thread_id]) );
       phiprof::stop("CUDA-secondMoments");
 
@@ -253,12 +441,11 @@ void cuda_calculateMoments_R(
 
       // Now launch kernel for this spatial cell, all populations, zeroth and first moments
       phiprof::start("CUDA-firstMoments");
-      calculate_firstMoments_glue(
+      dim3 block(WID,WID,WID);
+      moments_first_kernel<<<CUDABLOCKS, block, 4*WID3*sizeof(Real), cudaStreamList[thread_id]>>> (
          dev_momentInfos[thread_id],
          dev_momentArrays1[thread_id],
-         nPopulations,
-         cudaStreamList[thread_id]
-         );
+         nPopulations);
       HANDLE_ERROR( cudaStreamSynchronize(cudaStreamList[thread_id]) );
       phiprof::stop("CUDA-firstMoments");
 
@@ -305,15 +492,13 @@ void cuda_calculateMoments_R(
 
       phiprof::start("CUDA-secondMoments");
       // Now launch kernel for this spatial cell, all populations, second moments
-      calculate_secondMoments_glue(
+      moments_second_kernel<<<CUDABLOCKS, block, 3*WID3*sizeof(Real), cudaStreamList[thread_id]>>> (
          dev_momentInfos[thread_id],
          dev_momentArrays2[thread_id],
          nPopulations,
          cell->parameters[CellParams::VX],
          cell->parameters[CellParams::VY],
-         cell->parameters[CellParams::VZ],
-         cudaStreamList[thread_id]
-         );
+         cell->parameters[CellParams::VZ]);
       HANDLE_ERROR( cudaStreamSynchronize(cudaStreamList[thread_id]) );
       phiprof::stop("CUDA-secondMoments");
 

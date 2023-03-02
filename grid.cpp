@@ -50,9 +50,8 @@
 #endif 
 
 #ifdef USE_CUDA
-#include "vlasovsolver/cuda_acc_map_kernel.cuh"
-#include "vlasovsolver/cuda_moments_kernel.cuh"
-//#include "vlasovsolver/cuda_moments.h"
+#include "vlasovsolver/cuda_acc_map.hpp"
+#include "vlasovsolver/cuda_moments.h"
 #include "cuda_context.cuh"
 #endif
 

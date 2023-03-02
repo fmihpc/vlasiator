@@ -189,9 +189,7 @@ DEPS_PROJECTS =	projects/project.h projects/project.cpp \
 		projects/verificationLarmor/verificationLarmor.h projects/verificationLarmor/verificationLarmor.cpp \
 		projects/Shocktest/Shocktest.h projects/Shocktest/Shocktest.cpp ${DEPS_CELL}
 
-DEPS_CUDA_ACC_MAP_KERNEL = vlasovsolver/vec.h vlasovsolver/cuda_header.h vlasovsolver/cuda_acc_map_kernel.cuh vlasovsolver/cuda_acc_map_kernel.cu vlasovsolver/vectorclass_fallback.h
-
-DEPS_CUDA_ACC_MAP = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/vec.h vlasovsolver/cuda_acc_map.hpp vlasovsolver/cuda_acc_map.cpp
+DEPS_CUDA_ACC_MAP = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/vec.h vlasovsolver/vectorclass_fallback.h vlasovsolver/cuda_header.h vlasovsolver/cuda_acc_map.hpp vlasovsolver/cuda_acc_map.cpp
 
 DEPS_CUDA_CONTEXT = cuda_context.cpp cuda_context.cuh
 
@@ -200,10 +198,7 @@ DEPS_CUDA_ACC_SEMILAG = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/cpu_acc_interse
 
 DEPS_CUDA_ACC_SORT_BLOCKS = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/cuda_acc_sort_blocks.hpp vlasovsolver/cuda_acc_sort_blocks.cpp
 
-DEPS_CUDA_MOMENTS = ${DEPS_COMMON} ${DEPS_CELL} vlasovmover.h vlasovsolver/cuda_moments.h vlasovsolver/cuda_moments.cpp
-
-DEPS_CUDA_MOMENTS_KERNEL = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/cuda_header.h vlasovsolver/cuda_moments_kernel.cuh vlasovsolver/cuda_moments_kernel.cu
-
+DEPS_CUDA_MOMENTS = ${DEPS_COMMON} ${DEPS_CELL} vlasovmover.h vlasovsolver/cuda_header.h vlasovsolver/cuda_moments.h vlasovsolver/cuda_moments.cpp
 
 DEPS_CPU_ACC_INTERSECTS = ${DEPS_COMMON} ${DEPS_CELL} vlasovsolver/cpu_acc_intersections.hpp vlasovsolver/cpu_acc_intersections.cpp
 
@@ -259,11 +254,11 @@ endif
 
 # If we are building a CUDA version, we require its object files
 ifeq ($(USE_CUDA),1)
-	OBJS += cuda_acc_map_kernel.o cuda_acc_map.o cuda_acc_semilag.o cuda_acc_sort_blocks.o \
-		cuda_context.o cuda_moments.o cuda_moments_kernel.o
+	OBJS += cuda_acc_map.o cuda_acc_semilag.o cuda_acc_sort_blocks.o \
+		cuda_context.o cuda_moments.o
 	DEPS_VLSVMOVER += vlasovsolver/cuda_acc_map.hpp vlasovsolver/cuda_acc_semilag.hpp cuda_context.cuh \
 		vlasovsolver/cuda_moments.h
-	DEPS_GRID += vlasovsolver/cuda_moments_kernel.cuh
+	#	DEPS_GRID += vlasovsolver/cuda_moments.cuh
 	DEPS_CELL += spatial_cell_cuda.hpp velocity_mesh_cuda.h
 else
 	OBJS += vamr_refinement_criteria.o
@@ -477,11 +472,7 @@ cpu_acc_intersections.o: ${DEPS_CPU_ACC_INTERSECTS}
 	${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_intersections.cpp ${INC_EIGEN} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_FSGRID}
 
 ifeq ($(USE_CUDA),1)
-cuda_acc_map_kernel.o: ${DEPS_CUDA_ACC_MAP_KERNEL}
-#	${CMPGPU} ${CMPGPUFLAGS} -D${VECTORCLASS} -dc vlasovsolver/cuda_acc_map_kernel.cu
-	${CMPGPU} ${CMPGPUFLAGS} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cuda_acc_map_kernel.cu ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_FSGRID} ${INC_PROFILE} ${INC_VECTORCLASS} ${LIB_CUDA}
-
-cuda_acc_map.o: ${DEPS_CUDA_ACC_MAP} ${DEPS_CUDA_ACC_MAP_KERNEL}
+cuda_acc_map.o: ${DEPS_CUDA_ACC_MAP}
 	${CMPGPU} ${CMPGPUFLAGS} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cuda_acc_map.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_FSGRID} ${INC_PROFILE} ${INC_VECTORCLASS} ${LIB_CUDA}
 
 cuda_acc_semilag.o: ${DEPS_CUDA_ACC_SEMILAG}
@@ -493,11 +484,7 @@ cuda_acc_sort_blocks.o: ${DEPS_CUDA_ACC_SORT_BLOCKS}
 cuda_context.o: ${DEPS_CUDA_CONTEXT}
 	${CMPGPU} ${CMPGPUFLAGS} ${MATHFLAGS} ${FLAGS} -c cuda_context.cpp
 
-cuda_moments_kernel.o: ${DEPS_CUDA_MOMENTS_KERNEL}
-	${CMPGPU} ${CMPGPUFLAGS} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cuda_moments_kernel.cu ${INC_PROFILE}  ${LIB_CUDA}
-#	${CMPGPU} ${CMPGPUFLAGS} -D${VECTORCLASS} -dc vlasovsolver/cuda_moments_kernel.cu ${INC_FSGRID}
-
-cuda_moments.o: ${DEPS_CUDA_MOMENTS} ${DEPS_CUDA_MOMENTS_KERNEL}
+cuda_moments.o: ${DEPS_CUDA_MOMENTS}
 	${CMPGPU} ${CMPGPUFLAGS} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cuda_moments.cpp ${INC_DCCRG} ${INC_BOOST} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_FSGRID} ${LIB_CUDA}
 
 endif
