@@ -53,6 +53,7 @@
 #include <typeinfo>
 #include <algorithm>
 #include <cstring>
+#include <unordered_set>
 
 #include "definitions.h"
 #include <vlsv_reader.h>
@@ -69,12 +70,12 @@ using namespace vlsv;
 static map<string,string> attributes;
 
 //Global enum and variable
-static int gridName; 
-enum gridType{
+static enum GridType{
    SpatialGrid,
    fsgrid,
-   ionosphere
-};
+   ionosphere,
+   velgrid
+} gridType;
 
 
 static uint64_t convUInt(const char* ptr, const vlsv::datatype::type& dataType, const uint64_t& dataSize) {
@@ -295,7 +296,13 @@ bool cloneMesh(const string& inputFileName,vlsv::Writer& output,const string& me
    if (copyArray(input,output,"MESH_GHOST_DOMAINS",inputAttribs) == false) success = false;
    
    //Only do this if we diff SpatialGrid data
-   if (gridName==gridType::SpatialGrid){
+   if (gridType==GridType::SpatialGrid){
+      if (copyArray(input,output,"MESH_DOMAIN_SIZES",inputAttribs) == false) success = false;
+
+      inputAttribs.clear();
+      inputAttribs.push_back(make_pair("name",meshName));
+      if (copyArray(input,output,"MESH",inputAttribs) == false) success = false;
+   } else if (gridType == GridType::velgrid) {
       if (copyArray(input,output,"MESH_DOMAIN_SIZES",inputAttribs) == false) success = false;
 
       inputAttribs.clear();
@@ -428,7 +435,7 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
       int *variablePtrInt = reinterpret_cast<int *>(variableBuffer);
 
 
-   if (gridName==gridType::SpatialGrid){
+   if (gridType==GridType::SpatialGrid || gridType == GridType::velgrid){
   
       // Read the mesh array one node (of a spatial cell) at a time
       // and create a map which contains each cell's CellID and variable to be extracted
@@ -490,8 +497,7 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
          }
        }
   
-   }else if (gridName==gridType::fsgrid){
- 
+   } else if (gridType==GridType::fsgrid){
  
       int numtasks;
       int xcells,ycells,zcells; 
@@ -705,8 +711,8 @@ bool shiftAverage(const map<uint, Real>* const orderedData1,
 bool pDistance(const map<uint, Real>& orderedData1,
                const map<uint, Real>& orderedData2,
                creal p,
-               Real * absolute,
-               Real * relative,
+               Real& absolute,
+               Real& relative,
                const bool doShiftAverage,
                const unordered_map<size_t,size_t>& cellOrder,
                vlsv::Writer& outputFile,
@@ -722,11 +728,10 @@ bool pDistance(const map<uint, Real>& orderedData1,
    }
 
    // Reset old values
-   *absolute = 0.0;
-   *relative = 0.0;
+   absolute = 0.0;
+   relative = 0.0;
 
-   vector<Real> array(orderedData1.size());
-   for (size_t i=0; i<array.size(); ++i) array[i] = -1.0;
+   vector<Real> array(orderedData1.size(),-1.);
 
    Real length = 0.0;
    if (p == 0) {
@@ -735,16 +740,14 @@ bool pDistance(const map<uint, Real>& orderedData1,
          Real value = 0.0;
          if (it2 != data2->end()) {
             value = abs(it1->second - it2->second);
-            *absolute = max(*absolute, value);
-            length    = max(length, abs(it1->second));
-         
-            }
-         if (gridName==gridType::SpatialGrid){  
+            absolute = max(absolute, value);
+            length   = max(length, abs(it1->second));
+         }
+         if (gridType == GridType::SpatialGrid || gridType == GridType::velgrid) {
             array[cellOrder.at(it1->first)] = value;
-         }else if (gridName==gridType::fsgrid) {   
-
-            array.at(it1->first)=value;
-            }  
+         } else if (gridType == GridType::fsgrid) {
+            array.at(it1->first) = value;
+         }
       }
    } else if (p == 1) {
       for (map<uint,Real>::const_iterator it1=orderedData1.begin(); it1!=orderedData1.end(); ++it1) {
@@ -752,15 +755,14 @@ bool pDistance(const map<uint, Real>& orderedData1,
          Real value = 0.0;
          if (it2 != data2->end()) {
             value = abs(it1->second - it2->second);
-            *absolute += value;
-            length    += abs(it1->second);
-         
-            }
-         if (gridName==gridType::SpatialGrid){  
+            absolute += value;
+            length   += abs(it1->second);
+         }
+         if (gridType == GridType::SpatialGrid || gridType == GridType::velgrid) {
             array[cellOrder.at(it1->first)] = value;
-         }else if (gridName==gridType::fsgrid){   
+         } else if (gridType==GridType::fsgrid) {
             array[it1->first]=value;
-            }  
+         }  
       }
    } else {
       for (map<uint,Real>::const_iterator it1=orderedData1.begin(); it1!=orderedData1.end(); ++it1) {
@@ -768,24 +770,24 @@ bool pDistance(const map<uint, Real>& orderedData1,
          Real value = 0.0;
          if (it2 != data2->end()) {
             value = pow(abs(it1->second - it2->second), p);
-            *absolute += value;
-            length    += pow(abs(it1->second), p);
-         
-            }
-         if (gridName==gridType::SpatialGrid){  
+            absolute += value;
+            length   += pow(abs(it1->second), p);
+         }
+         if (gridType == GridType::SpatialGrid || gridType == GridType::velgrid) {
             array[cellOrder.at(it1->first)] = pow(value,1.0/p);
-         }else if (gridName==gridType::fsgrid){   
+         } else if (gridType==GridType::fsgrid) {
             array[it1->first]=pow(value,1.0/p);
-            }  
+         }  
       }
-      *absolute = pow(*absolute, 1.0 / p);
+      absolute = pow(absolute, 1.0 / p);
       length = pow(length, 1.0 / p);
    }
 
-   if (length != 0.0) *relative = *absolute / length;
-   else {
+   if (length != 0.0) {
+      relative = absolute / length;
+   } else {
       cout << "WARNING (pDistance) : length of reference is 0.0, cannot divide to give relative distance." << endl;
-      *relative = -1;
+      relative = -1;
    }
 
    // Write out the difference (if requested):
@@ -814,8 +816,8 @@ bool pDistance(const map<uint, Real>& orderedData1,
  * \sa shiftAverage pDistance
  */
 bool outputDistance(const Real p,
-                    const Real * absolute,
-                    const Real * relative,
+                    const Real& absolute,
+                    const Real& relative,
                     const bool shiftedAverage,
                     const bool verboseOutput,
                     const bool lastCall
@@ -823,11 +825,11 @@ bool outputDistance(const Real p,
 {
    if(verboseOutput == true) {
       if(shiftedAverage == false) {
-         cout << "The absolute " << p << "-distance between both datasets is " << *absolute  << endl;
-         cout << "The relative " << p << "-distance between both datasets is " << *relative  << endl;
+         cout << "The absolute " << p << "-distance between both datasets is " << absolute  << endl;
+         cout << "The relative " << p << "-distance between both datasets is " << relative  << endl;
       } else {
-         cout << "The average-shifted absolute " << p << "-distance between both datasets is " << *absolute  << endl;
-         cout << "The average-shifted relative " << p << "-distance between both datasets is " << *relative  << endl;
+         cout << "The average-shifted absolute " << p << "-distance between both datasets is " << absolute  << endl;
+         cout << "The average-shifted relative " << p << "-distance between both datasets is " << relative  << endl;
       }
    } else {
       static vector<Real> fileOutputData;
@@ -842,8 +844,8 @@ bool outputDistance(const Real p,
          return 0;
       }
       
-      fileOutputData.push_back(*absolute);
-      fileOutputData.push_back(*relative);
+      fileOutputData.push_back(absolute);
+      fileOutputData.push_back(relative);
    }
    return 0;
 }
@@ -986,7 +988,7 @@ bool printNonVerboseData()
    // Data
    // last argument (lastCall) is true to get the output of the whole stored dataset
    outputStats(NULL, NULL, NULL, NULL, NULL, false, true);
-   outputDistance(0, NULL, NULL, false, false, true);
+   outputDistance(0, 0., 0., false, false, true);
    
    return 0;
 }
@@ -1493,7 +1495,8 @@ bool process2Files(const string fileName1,
    Real absolute, relative, mini, maxi, size, avg, stdev;
 
    // If the user wants to check avgs, call the avgs check function and return it. Otherwise move on to compare variables:
-   if( strcmp(varToExtract, "proton") == 0 && attributes.find("--no-distrib") == attributes.end()) {
+   // Note: if a user explicitly wants to diff two velgrids, that case is separately handled below.
+   if( strcmp(varToExtract, "proton") == 0 && attributes.find("--no-distrib") == attributes.end() && gridType != GridType::velgrid) {
       vector<uint64_t> cellIds1;
       vector<uint64_t> cellIds2;
       cellIds1.reserve(1);
@@ -1522,8 +1525,36 @@ bool process2Files(const string fileName1,
 
       // Basic consistency check
       if(orderedData1.size() != orderedData2.size()) {
-         cerr << "ERROR Datasets have different size." << endl;
-         return 1;
+         if(gridType != GridType::velgrid) {
+            cerr << "ERROR Datasets have different size." << endl;
+            return 1;
+         } else {
+            // Velgrids *can* mismatch and are filled with -1 in that case
+            
+            // Assemble union of both datasets' CellIDs
+            std::unordered_set<size_t> unionofCellIDs;
+            for(const auto& keyVal : orderedData1) {
+               unionofCellIDs.emplace(keyVal.first);
+            }
+            for(const auto& keyVal : orderedData2) {
+               unionofCellIDs.emplace(keyVal.first);
+            }
+
+            // Fill the correspondingly missing ones with -1
+            for(const auto& id : unionofCellIDs) {
+               if(orderedData1.count(id) == 0) {
+                  orderedData1.emplace(std::make_pair(id,0.));
+               }
+               if(orderedData2.count(id) == 0) {
+                  orderedData2.emplace(std::make_pair(id,0.));
+               }
+
+               // Also make sure that the cellOrder array has a place for them
+               if(cellOrder.count(id) == 0) {
+                  cellOrder.emplace(std::make_pair(id,cellOrder.size()));
+               }
+            }
+         }
       }
 
       // Open VLSV file where the diffence in the chosen variable is written
@@ -1560,20 +1591,20 @@ bool process2Files(const string fileName1,
       singleStatistics(&orderedData2, &size, &mini, &maxi, &avg, &stdev);
       outputStats(&size, &mini, &maxi, &avg, &stdev, verboseOutput, false);
 
-      pDistance(orderedData1, orderedData2, 0, &absolute, &relative, false, cellOrder,outputFile,attributes["--meshname"],"d0_"+varName);
-      outputDistance(0, &absolute, &relative, false, verboseOutput, false);
-      pDistance(orderedData1, orderedData2, 0, &absolute, &relative, true, cellOrder,outputFile,attributes["--meshname"],"d0_sft_"+varName);
-      outputDistance(0, &absolute, &relative, true, verboseOutput, false);
+      pDistance(orderedData1, orderedData2, 0, absolute, relative, false, cellOrder,outputFile,attributes["--meshname"],"d0_"+varName);
+      outputDistance(0, absolute, relative, false, verboseOutput, false);
+      pDistance(orderedData1, orderedData2, 0, absolute, relative, true, cellOrder,outputFile,attributes["--meshname"],"d0_sft_"+varName);
+      outputDistance(0, absolute, relative, true, verboseOutput, false);
 
-      pDistance(orderedData1, orderedData2, 1, &absolute, &relative, false, cellOrder,outputFile,attributes["--meshname"],"d1_"+varName);
-      outputDistance(1, &absolute, &relative, false, verboseOutput, false);
-      pDistance(orderedData1, orderedData2, 1, &absolute, &relative, true, cellOrder,outputFile,attributes["--meshname"],"d1_sft_"+varName);
-      outputDistance(1, &absolute, &relative, true, verboseOutput, false);
+      pDistance(orderedData1, orderedData2, 1, absolute, relative, false, cellOrder,outputFile,attributes["--meshname"],"d1_"+varName);
+      outputDistance(1, absolute, relative, false, verboseOutput, false);
+      pDistance(orderedData1, orderedData2, 1, absolute, relative, true, cellOrder,outputFile,attributes["--meshname"],"d1_sft_"+varName);
+      outputDistance(1, absolute, relative, true, verboseOutput, false);
 
-      pDistance(orderedData1, orderedData2, 2, &absolute, &relative, false, cellOrder,outputFile,attributes["--meshname"],"d2_"+varName);
-      outputDistance(2, &absolute, &relative, false, verboseOutput, false);
-      pDistance(orderedData1, orderedData2, 2, &absolute, &relative, true, cellOrder,outputFile,attributes["--meshname"],"d2_sft_"+varName);
-      outputDistance(2, &absolute, &relative, true, verboseOutput, false);
+      pDistance(orderedData1, orderedData2, 2, absolute, relative, false, cellOrder,outputFile,attributes["--meshname"],"d2_"+varName);
+      outputDistance(2, absolute, relative, false, verboseOutput, false);
+      pDistance(orderedData1, orderedData2, 2, absolute, relative, true, cellOrder,outputFile,attributes["--meshname"],"d2_sft_"+varName);
+      outputDistance(2, absolute, relative, true, verboseOutput, false);
 
       outputFile.close();
    }
@@ -1669,7 +1700,7 @@ void printHelp(const map<string,string>& defAttribs,const map<string,string>& de
             i += text[s].size()+1;
          } else {
             cout << endl;
-            for (int j=0; j<optionWidth; ++j) cout << ' ';
+            for (unsigned int j=0; j<optionWidth; ++j) cout << ' ';
             i = optionWidth;
             
             cout << text[s] << ' ';
@@ -1788,12 +1819,14 @@ int main(int argn,char* args[]) {
    
 
    //Figure out Meshname
-   if (attributes["--meshname"] == "SpatialGrid") { 
-      gridName=gridType::SpatialGrid ;
+   if (attributes["--meshname"] == "SpatialGrid") {
+      gridType=GridType::SpatialGrid;
    }else if (attributes["--meshname"]=="fsgrid"){
-      gridName=gridType::fsgrid ;
+      gridType=GridType::fsgrid;
    }else if (attributes["--meshname"]=="ionosphere"){
-      gridName=gridType::ionosphere ;
+      gridType=GridType::ionosphere;
+   }else if (attributes["--meshname"].compare(0, 8, "VelGrid_") == 0) {
+      gridType=GridType::velgrid;
    }else{
       std::cout<<attributes["--meshname"]<<std::endl;
       std::cerr<<"Wrong grid type"<<std::endl;
@@ -1808,16 +1841,15 @@ int main(int argn,char* args[]) {
 
    if (dir1 == NULL && dir2 == NULL) {
       cout << "INFO Reading in two files." << endl;
-      
+
       // Process two files with verbose output (last argument true)
       process2Files(fileName1, fileName2, varToExtract, compToExtract, true, compToExtract2);
       //CONTINUE
-      
-      closedir(dir1);
-      closedir(dir2);
-   }
-   else if (dir1 == NULL || dir2 == NULL)
-   {
+
+      // Don't closedir them *if they are NULL*
+      //closedir(dir1);
+      //closedir(dir2);
+   } else if (dir1 == NULL || dir2 == NULL) {
       // Mixed file and directory
       cout << "#INFO Reading in one file and one directory." << endl;
       set<string> fileList;
