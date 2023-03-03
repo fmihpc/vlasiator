@@ -50,12 +50,11 @@ using namespace spatial_cell;
 Vec *dev_blockDataOrdered[MAXCPUTHREADS];
 Column *dev_columns[MAXCPUTHREADS];
 uint *dev_cell_indices_to_id[MAXCPUTHREADS];
-vmesh::LocalID *dev_LIDlist[MAXCPUTHREADS];
 uint *dev_columnNumBlocks[MAXCPUTHREADS];
 uint *dev_columnBlockOffsets[MAXCPUTHREADS];
 Column *host_columns[MAXCPUTHREADS];
-vmesh::GlobalID *host_GIDlist[MAXCPUTHREADS];
-vmesh::LocalID *host_LIDlist[MAXCPUTHREADS];
+vmesh::LocalID *unif_GIDlist[MAXCPUTHREADS];
+vmesh::LocalID *unif_LIDlist[MAXCPUTHREADS];
 
 // Memory allocation flags and values.
 uint cuda_acc_allocatedSize = 0;
@@ -91,7 +90,7 @@ __host__ void cuda_acc_allocate_memory (
    const uint maxColumnsPerCell = 3 * std::pow(
       (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[0]
       * (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[1]
-      * (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[2], 0.667); 
+      * (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[2], 0.667);
    cuda_acc_allocatedSize = blockAllocationCount;
    cuda_acc_allocatedColumns = maxColumnsPerCell;
 
@@ -100,13 +99,14 @@ __host__ void cuda_acc_allocate_memory (
    HANDLE_ERROR( cudaMalloc((void**)&dev_columnNumBlocks[cpuThreadID], maxColumnsPerCell*sizeof(uint)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_columnBlockOffsets[cpuThreadID], maxColumnsPerCell*sizeof(uint)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_blockDataOrdered[cpuThreadID], blockAllocationCount * (WID3 / VECL) * sizeof(Vec)) );
-   HANDLE_ERROR( cudaMalloc((void**)&dev_LIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID)) );
 
    // Also allocate and pin memory on host for faster transfers
    HANDLE_ERROR( cudaHostAlloc((void**)&host_columns[cpuThreadID], maxColumnsPerCell*sizeof(Column), cudaHostAllocPortable) );
-   HANDLE_ERROR( cudaHostAlloc((void**)&host_GIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID), cudaHostAllocPortable) );
-   HANDLE_ERROR( cudaHostAlloc((void**)&host_LIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID), cudaHostAllocPortable) );
- }
+
+   // Unified memory, block lists and column offset struct
+   HANDLE_ERROR( cudaMallocManaged((void**)&unif_LIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID)) );
+   HANDLE_ERROR( cudaMallocManaged((void**)&unif_GIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID)) );
+}
 
 __host__ void cuda_acc_deallocate_memory (
    uint cpuThreadID
@@ -114,14 +114,16 @@ __host__ void cuda_acc_deallocate_memory (
    HANDLE_ERROR( cudaFree(dev_cell_indices_to_id[cpuThreadID]) );
    HANDLE_ERROR( cudaFree(dev_columns[cpuThreadID]) );
    HANDLE_ERROR( cudaFree(dev_blockDataOrdered[cpuThreadID]) );
-   HANDLE_ERROR( cudaFree(dev_LIDlist[cpuThreadID]) );
    HANDLE_ERROR( cudaFree(dev_columnNumBlocks[cpuThreadID]) );
    HANDLE_ERROR( cudaFree(dev_columnBlockOffsets[cpuThreadID]) );
 
    // Also de-allocate and unpin memory on host
    HANDLE_ERROR( cudaFreeHost(host_columns[cpuThreadID]) );
-   HANDLE_ERROR( cudaFreeHost(host_GIDlist[cpuThreadID]) );
-   HANDLE_ERROR( cudaFreeHost(host_LIDlist[cpuThreadID]) );
+
+   // Delete unified memory constructs
+   HANDLE_ERROR( cudaFree(unif_LIDlist[cpuThreadID]) );
+   HANDLE_ERROR( cudaFree(unif_GIDlist[cpuThreadID]) );
+
    cuda_acc_allocatedSize = 0;
    cuda_acc_allocatedColumns = 0;
 }
@@ -356,7 +358,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
                               const uint dimension,
                               cudaStream_t stream
    ) {
-   
+
    //nothing to do if no blocks
    vmesh::VelocityMesh* vmesh    = spatial_cell->get_velocity_mesh(popID);
    vmesh::VelocityBlockContainer* blockContainer = spatial_cell->get_velocity_blocks(popID);
@@ -448,11 +450,9 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
 
    const Realv i_dv=1.0/dv;
 
-   // Declare these in pre-pinned (Page lock) host memory for faster async transfers
-   vmesh::GlobalID *GIDlist = host_GIDlist[cuda_async_queue_id];
-   vmesh::LocalID *LIDlist = host_LIDlist[cuda_async_queue_id];
-   GIDlist = new vmesh::GlobalID[blockDataN]; // GIDs in dimension-order (length nBlocks)
-   LIDlist = new vmesh::LocalID[blockDataN]; // LIDs in dimension-order (length nBlocks)
+   // lists in unified memory
+   vmesh::GlobalID *GIDlist = unif_GIDlist[cuda_async_queue_id];
+   vmesh::LocalID *LIDlist = unif_LIDlist[cuda_async_queue_id];
 
    // sort blocks according to dimension, and divide them into columns
    std::vector<uint> columnBlockOffsets; // indexes where columns start (in blocks, length totalColumns)
@@ -470,6 +470,8 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
                             columnBlockOffsets, columnNumBlocks,
                             setColumnOffsets, setNumColumns);
    phiprof::stop("sortBlockList");
+   //std::cerr<<"Blocklists sorted, entry sizes "<<columnBlockOffsets.size()<<" "<<columnNumBlocks.size()<<" "<<setColumnOffsets.size()<<" "<<setNumColumns.size()<<std::endl;
+   //printf(" threadID %d has columndata 0x%llx\n",cuda_async_queue_id,unif_columndata[cuda_async_queue_id]);
 
    // Calculate total sum of columns and total values size
    uint totalColumns = 0;
@@ -482,9 +484,6 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    }
    uint cudablocks = totalColumns;
 
-   // memcopy LIDlist to device (GIDlist isn't needed here)
-   //cudaMemcpyAsync(dev_GIDlist[cuda_async_queue_id], GIDlist, blockDataN*sizeof(vmesh::GlobalID), cudaMemcpyHostToDevice, stream);
-   HANDLE_ERROR( cudaMemcpyAsync(dev_LIDlist[cuda_async_queue_id], LIDlist, blockDataN*sizeof(vmesh::LocalID), cudaMemcpyHostToDevice, stream) );
    HANDLE_ERROR( cudaMemcpyAsync(dev_columnNumBlocks[cuda_async_queue_id], columnNumBlocks.data(), totalColumns*sizeof(uint), cudaMemcpyHostToDevice, stream) );
    HANDLE_ERROR( cudaMemcpyAsync(dev_columnBlockOffsets[cuda_async_queue_id], columnBlockOffsets.data(), totalColumns*sizeof(uint), cudaMemcpyHostToDevice, stream) );
 
@@ -495,11 +494,11 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       dev_blockDataOrdered[cuda_async_queue_id],
       dev_cell_indices_to_id[cuda_async_queue_id],
       totalColumns,
-      dev_LIDlist[cuda_async_queue_id],
+      LIDlist, //unified memory
       dev_columnNumBlocks[cuda_async_queue_id],
       dev_columnBlockOffsets[cuda_async_queue_id]
       );
-   
+
    // pointer to columns in memory
    Column *columns = host_columns[cuda_async_queue_id];
    columns = new Column[totalColumns];
@@ -528,7 +527,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    phiprof::stop("Prefetch block lists to CPU");
 
    for( uint setIndex=0; setIndex< setColumnOffsets.size(); ++setIndex) {
-   
+
       bool isTargetBlock[MAX_BLOCKS_PER_DIM]= {false};
       bool isSourceBlock[MAX_BLOCKS_PER_DIM]= {false};
 
@@ -673,13 +672,13 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    }
    cudaStreamSynchronize(stream);
    phiprof::stop("Reorder blocks by dimension");
-   
+
    phiprof::stop("columnExtents");
    phiprof::start("CUDA add and delete blocks");
    spatial_cell->adjust_velocity_blocks_caller(popID);
    phiprof::stop("CUDA add and delete blocks");
 
-   
+
    // Velocity space has all extra blocks added and/or removed for the transform target
    // and will not change shape anymore.
    // Create empty velocity space on the GPU and fill it with zeros
@@ -732,8 +731,6 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    cudaStreamSynchronize(stream);
    phiprof::stop("Call acceleration kernel");
 
-   delete[] GIDlist;
-   delete[] LIDlist;
    delete[] columns;
 
    return true;
