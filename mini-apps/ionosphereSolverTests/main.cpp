@@ -15,6 +15,7 @@ Logger logFile,diagnostic;
 int globalflags::bailingOut=0;
 bool globalflags::writeRestart=0;
 bool globalflags::balanceLoad=0;
+bool globalflags::ionosphereJustSolved = false;
 ObjectWrapper objectWrapper;
 ObjectWrapper& getObjectWrapper() {
    return objectWrapper;
@@ -27,6 +28,8 @@ void deallocateRemoteCellBlocks(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
 void updateRemoteVelocityBlockLists(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::Cartesian_Geometry, std::tuple<>, std::tuple<> >&, unsigned int, unsigned int) {
 };
 void recalculateLocalCellsCache() {}
+SysBoundary::SysBoundary() {}
+SysBoundary::~SysBoundary() {}
 
 void assignConductivityTensor(std::vector<SphericalTriGrid::Node>& nodes, Real sigmaP, Real sigmaH) {
    static const char epsilon[3][3][3] = {
@@ -36,6 +39,33 @@ void assignConductivityTensor(std::vector<SphericalTriGrid::Node>& nodes, Real s
    };
 
    for(uint n=0; n<nodes.size(); n++) {
+      std::array<Real, 3> b = {nodes[n].x[0] / Ionosphere::innerRadius, nodes[n].x[1] / Ionosphere::innerRadius, nodes[n].x[2] / Ionosphere::innerRadius};
+      if(nodes[n].x[2] >= 0) {
+         b[0] *= -1;
+         b[1] *= -1;
+         b[2] *= -1;
+      }
+      for(int i=0; i<3; i++) {
+         for(int j=0; j<3; j++) {
+            nodes[n].parameters[ionosphereParameters::SIGMA + i*3 + j] = sigmaP * (((i==j)? 1. : 0.) - b[i]*b[j]);
+            for(int k=0; k<3; k++) {
+               nodes[n].parameters[ionosphereParameters::SIGMA + i*3 + j] -= sigmaH * epsilon[i][j][k]*b[k];
+            }
+         }
+      }
+   }
+}
+
+void assignConductivityTensorFromLoadedData(std::vector<SphericalTriGrid::Node>& nodes) {
+   static const char epsilon[3][3][3] = {
+      {{0,0,0},{0,0,1},{0,-1,0}},
+      {{0,0,-1},{0,0,0},{1,0,0}},
+      {{0,1,0},{-1,0,0},{0,0,0}}
+   };
+
+   for(uint n=0; n<nodes.size(); n++) {
+      Real sigmaH = nodes[n].parameters[ionosphereParameters::SIGMAH];
+      Real sigmaP = nodes[n].parameters[ionosphereParameters::SIGMAP];
       std::array<Real, 3> b = {nodes[n].x[0] / Ionosphere::innerRadius, nodes[n].x[1] / Ionosphere::innerRadius, nodes[n].x[2] / Ionosphere::innerRadius};
       if(nodes[n].x[2] >= 0) {
          b[0] *= -1;
@@ -118,7 +148,7 @@ int main(int argc, char** argv) {
       }
       cerr << "Unknown command line option \"" << argv[i] << "\"" << endl;
       cerr << endl;
-      cerr << "main [-N num] [-r <lat0> <lat1>] [-sigma (identity|random|35|53|file)] [-fac (constant|dipole|quadrupole|octopole|hexadecapole||file)] [-facfile <filename>] [-gaugeFix equator|pole|integral|none] [-np]" << endl;
+      cerr << "main [-N num] [-r <lat0> <lat1>] [-sigma (identity|random|35|53|file)] [-fac (constant|dipole|quadrupole|octopole|hexadecapole||file)] [-facfile <filename>] [-gaugeFix equator|equator40|equator60|pole|integral|none] [-np]" << endl;
       cerr << "Paramters:" << endl;
       cerr << " -N:        Number of ionosphere mesh nodes (default: 64)" << endl;
       cerr << " -r:        Refine grid between the given latitudes (can be specified multiple times)" << endl;
@@ -140,6 +170,11 @@ int main(int argc, char** argv) {
       cerr << "            file       - read FAC distribution from vlsv input file" << endl;
       cerr << " -infile:   Read FACs from this input file" << endl;
       cerr << " -gaugeFix: Solver gauge fixing method (default: pole)" << endl;
+      cerr << "            options are:" << endl;
+      cerr << "            pole      - Fix potential in a single node at the north pole" << endl;
+      cerr << "            equator   - Fix potential on all nodes +- 10 degrees of the equator" << endl;
+      cerr << "            equator40 - Fix potential on all nodes +- 40 degrees of the equator" << endl;
+      cerr << "            equator60 - Fix potential on all nodes +- 60 degrees of the equator" << endl;
       cerr << " -np:       DON'T use the matrix preconditioner (default: do)" << endl;
       cerr << " -maxIter:  Maximum number of solver iterations" << endl;
       
@@ -211,7 +246,18 @@ int main(int argc, char** argv) {
    } else if(sigmaString == "file") {
       vlsv::ParallelReader inVlsv;
       inVlsv.open(inputFile,MPI_COMM_WORLD,masterProcessID);
-      readIonosphereNodeVariable(inVlsv, "ig_sigma", ionosphereGrid, ionosphereParameters::SIGMA);
+      // Try to read the sigma tensor directly
+      if(!readIonosphereNodeVariable(inVlsv, "ig_sigma", ionosphereGrid, ionosphereParameters::SIGMA)) {
+
+         // If that doesn't exist, reconstruct it from the sigmaH and sigmaP components
+         // (This assumes that the input file was run with the "GUMICS" conductivity model. Which is reasonable,
+         // because the others don't work very well)
+         cerr << "Reading conductivity tensor from ig_sigmah, ig_sigmap." << endl;
+         readIonosphereNodeVariable(inVlsv, "ig_sigmah", ionosphereGrid, ionosphereParameters::SIGMAH);
+         readIonosphereNodeVariable(inVlsv, "ig_sigmap", ionosphereGrid, ionosphereParameters::SIGMAP);
+         //readIonosphereNodeVariable(inVlsv, "ig_sigmaparallel", ionosphereGrid, ionosphereParameters::SIGMAPARALLEL);
+         assignConductivityTensorFromLoadedData(nodes);
+      } 
    } else if(sigmaString == "ponly") {
          Real sigmaP=3.;
          Real sigmaH=0.;

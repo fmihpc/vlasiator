@@ -194,31 +194,31 @@ jobs:
       # Note: Testpackage output is further processed in the pr_report.yml workflow
       # (to produce Checks against pull requests)
 
-  #build_ionosphereTests:
-  #  # Build IonosphereSolverTests miniApp (currently broken)
-  #  runs-on: ubuntu-latest
-  #  container: ursg/vlasiator_ci:20230220_1
-  #  needs: build_libraries
-  #  steps:
-  #  - name: Checkout source
-  #    uses: actions/checkout@v3 
-  #  - name: Download libraries
-  #    uses: actions/download-artifact@v3
-  #    with:
-  #      name: libraries
-  #  - name: Unpack libraries
-  #    run: tar --zstd -xvf libraries.tar.zstd
-  #  - uses: ursg/gcc-problem-matcher@master
-  #  - name: Compile ionosphereSolverTests
-  #    run: |
-  #      cd mini-apps/ionosphereSolverTests/
-  #      VLASIATOR_ARCH=github_actions make -j 3 main differentialFlux sigmaProfiles
-  #  - name: Upload ionosphereTest binaries
-  #    uses: actions/upload-artifact@v3
-  #    with:
-  #      name: vlasiator-tools
-  #      path: |
-  #        mini-apps/ionosphereSolverTests/main
-  #        mini-apps/ionosphereSolverTests/differentialFlux
-  #        mini-apps/ionosphereSolverTests/sigmaProfiles
+  build_ionosphereTests:
+    # Build IonosphereSolverTests miniApp (currently broken)
+    runs-on: ubuntu-latest
+    container: ursg/vlasiator_ci:20230220_1
+    needs: build_libraries
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v3 
+    - name: Download libraries
+      uses: actions/download-artifact@v3
+      with:
+        name: libraries
+    - name: Unpack libraries
+      run: tar --zstd -xvf libraries.tar.zstd
+    - uses: ursg/gcc-problem-matcher@master
+    - name: Compile ionosphereSolverTests
+      run: |
+        cd mini-apps/ionosphereSolverTests/
+        VLASIATOR_ARCH=github_actions make -j 3 main differentialFlux sigmaProfiles
+    - name: Upload ionosphereTest binaries
+      uses: actions/upload-artifact@v3
+      with:
+        name: vlasiator-tools
+        path: |
+          mini-apps/ionosphereSolverTests/main
+          mini-apps/ionosphereSolverTests/differentialFlux
+          mini-apps/ionosphereSolverTests/sigmaProfiles
 
