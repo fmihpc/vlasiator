@@ -47,13 +47,19 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                const uint dimension,
                                vmesh::GlobalID* blocksGID,
                                vmesh::LocalID* blocksLID,
-                               std::vector<uint> & columnBlockOffsets,
-                               std::vector<uint> & columnNumBlocks,
-                               std::vector<uint> & setColumnOffsets,
-                               std::vector<uint> & setNumColumns) {
+                               ColumnOffsets* columnData
+                               // std::vector<uint> & columnBlockOffsets,
+                               // std::vector<uint> & columnNumBlocks,
+                               // std::vector<uint> & setColumnOffsets,
+                               // std::vector<uint> & setNumColumns
+   ) {
    //const uint nBlocks = spatial_cell->get_number_of_velocity_blocks(); // Number of blocks
    const vmesh::LocalID nBlocks = vmesh->size();
-
+   columnData->columnBlockOffsets.clear();
+   columnData->columnNumBlocks.clear();
+   columnData->setColumnOffsets.clear();
+   columnData->setNumColumns.clear();
+   
    // Velocity mesh refinement level, has no effect here
    // but is needed in some vmesh::VelocityMesh function calls.
    const uint8_t REFLEVEL = 0;
@@ -120,8 +126,8 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
    std::sort( block_triplets.begin(), block_triplets.end(), tripletcomparator );
 
    // Put in the sorted blocks, and also compute column offsets and lengths:
-   columnBlockOffsets.push_back(0); //first offset
-   setColumnOffsets.push_back(0); //first offset   
+   columnData->columnBlockOffsets.push_back(0); //first offset
+   columnData->setColumnOffsets.push_back(0); //first offset   
    uint prev_column_id, prev_dimension_id;
 
    for (vmesh::LocalID i=0; i<nBlocks; ++i) {
@@ -139,21 +145,21 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
          //encountered new column! For i=0, we already entered the correct offset (0).
          //We also identify it as a new column if there is a break in the column (e.g., gap between two populations)
          /*add offset where the next column will begin*/
-         columnBlockOffsets.push_back(i); 
+         columnData->columnBlockOffsets.push_back(i); 
          /*add length of the current column that now ended*/
-         columnNumBlocks.push_back(columnBlockOffsets[columnBlockOffsets.size()-1] - columnBlockOffsets[columnBlockOffsets.size()-2]);
+         columnData->columnNumBlocks.push_back(columnData->columnBlockOffsets[columnData->columnBlockOffsets.size()-1] - columnData->columnBlockOffsets[columnData->columnBlockOffsets.size()-2]);
 
          if (column_id != prev_column_id ){
             //encountered new set of columns, add offset to new set starting at present column
-            setColumnOffsets.push_back(columnBlockOffsets.size() - 1);
+            columnData->setColumnOffsets.push_back(columnData->columnBlockOffsets.size() - 1);
             /*add length of the previous column set that ended*/
-            setNumColumns.push_back(setColumnOffsets[setColumnOffsets.size()-1] - setColumnOffsets[setColumnOffsets.size()-2]);
+            columnData->setNumColumns.push_back(columnData->setColumnOffsets[columnData->setColumnOffsets.size()-1] - columnData->setColumnOffsets[columnData->setColumnOffsets.size()-2]);
          }
       }      
       prev_column_id = column_id;
       prev_dimension_id = dimension_id;                        
    }
    
-   columnNumBlocks.push_back(nBlocks - columnBlockOffsets[columnBlockOffsets.size()-1]);
-   setNumColumns.push_back(columnNumBlocks.size() - setColumnOffsets[setColumnOffsets.size()-1]);
+   columnData->columnNumBlocks.push_back(nBlocks - columnData->columnBlockOffsets[columnData->columnBlockOffsets.size()-1]);
+   columnData->setNumColumns.push_back(columnData->columnNumBlocks.size() - columnData->setColumnOffsets[columnData->setColumnOffsets.size()-1]);
 }

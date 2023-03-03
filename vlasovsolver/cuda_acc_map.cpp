@@ -52,6 +52,7 @@ uint *dev_cell_indices_to_id[MAXCPUTHREADS];
 uint *dev_columnNumBlocks[MAXCPUTHREADS];
 uint *dev_columnBlockOffsets[MAXCPUTHREADS];
 Column *unif_columns[MAXCPUTHREADS];
+ColumnOffsets *unif_columndata[MAXCPUTHREADS];
 vmesh::LocalID *unif_GIDlist[MAXCPUTHREADS];
 vmesh::LocalID *unif_LIDlist[MAXCPUTHREADS];
 
@@ -102,6 +103,7 @@ __host__ void cuda_acc_allocate_memory (
    HANDLE_ERROR( cudaMallocManaged((void**)&unif_columns[cpuThreadID], maxColumnsPerCell*sizeof(Column)) );
    HANDLE_ERROR( cudaMallocManaged((void**)&unif_LIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID)) );
    HANDLE_ERROR( cudaMallocManaged((void**)&unif_GIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID)) );
+   unif_columndata[cpuThreadID] = new ColumnOffsets(maxColumnsPerCell); // inherits managed
 }
 
 __host__ void cuda_acc_deallocate_memory (
@@ -117,6 +119,8 @@ __host__ void cuda_acc_deallocate_memory (
    HANDLE_ERROR( cudaFree(unif_LIDlist[cpuThreadID]) );
    HANDLE_ERROR( cudaFree(unif_GIDlist[cpuThreadID]) );
 
+   delete unif_columndata[cpuThreadID];
+
    cuda_acc_allocatedSize = 0;
    cuda_acc_allocatedColumns = 0;
 }
@@ -127,8 +131,9 @@ __global__ void reorder_blocks_by_dimension_kernel(
    uint *dev_cell_indices_to_id,
    uint totalColumns,
    vmesh::LocalID *dev_LIDlist,
-   uint *dev_columnNumBlocks,
-   uint *dev_columnBlockOffsets
+   ColumnOffsets* columnData
+   // uint *dev_columnNumBlocks,
+   // uint *dev_columnBlockOffsets
 ) {
    // Takes the contents of blockData, sorts it into blockDataOrdered,
    // performing transposes as necessary
@@ -143,9 +148,9 @@ __global__ void reorder_blocks_by_dimension_kernel(
    // Loop over columns in steps of cudaBlocks. Each cudaBlock deals with one column.
    for (uint iColumn = start; iColumn < totalColumns; iColumn += cudaBlocks) {
       if (iColumn >= totalColumns) break;
-      uint inputOffset = dev_columnBlockOffsets[iColumn];
+      uint inputOffset = columnData->columnBlockOffsets[iColumn];
       uint outputOffset = (inputOffset + 2 * iColumn) * (WID3/VECL);
-      uint columnLength = dev_columnNumBlocks[iColumn];
+      uint columnLength = columnData->columnNumBlocks[iColumn];
 
       // Loop over column blocks
       for (uint b = 0; b < columnLength; b++) {
@@ -448,10 +453,11 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    vmesh::LocalID *LIDlist = unif_LIDlist[cuda_async_queue_id];
 
    // sort blocks according to dimension, and divide them into columns
-   std::vector<uint> columnBlockOffsets; // indexes where columns start (in blocks, length totalColumns)
-   std::vector<uint> columnNumBlocks; // length of column (in blocks, length totalColumns)
-   std::vector<uint> setColumnOffsets; // index from columnBlockOffsets where new set of columns starts (length nColumnSets)
-   std::vector<uint> setNumColumns; // how many columns in set of columns (length nColumnSets)
+   // std::vector<uint> columnBlockOffsets; // indexes where columns start (in blocks, length totalColumns)
+   // std::vector<uint> columnNumBlocks; // length of column (in blocks, length totalColumns)
+   // std::vector<uint> setColumnOffsets; // index from columnBlockOffsets where new set of columns starts (length nColumnSets)
+   // std::vector<uint> setNumColumns; // how many columns in set of columns (length nColumnSets)
+   ColumnOffsets *columnData = unif_columndata[cuda_async_queue_id];
 
    // CPU call for now (but dedicated CUDA version which also returns LIDlist)
    // This version actually could be run on the GPU as well as
@@ -460,25 +466,29 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    // Probably won't parallelize very well, though?
    phiprof::start("sortBlockList");
    sortBlocklistByDimension(vmesh, dimension, GIDlist, LIDlist,
-                            columnBlockOffsets, columnNumBlocks,
-                            setColumnOffsets, setNumColumns);
+                            columnData
+                            // columnBlockOffsets, columnNumBlocks,
+                            // setColumnOffsets, setNumColumns
+      );
    phiprof::stop("sortBlockList");
+   std::cerr<<"Blocklists sorted, entry sizes "<<columnData->columnBlockOffsets.size()<<" "<<columnData->columnNumBlocks.size()<<" "<<columnData->setColumnOffsets.size()<<" "<<columnData->setNumColumns.size()<<std::endl;
+   
    //std::cerr<<"Blocklists sorted, entry sizes "<<columnBlockOffsets.size()<<" "<<columnNumBlocks.size()<<" "<<setColumnOffsets.size()<<" "<<setNumColumns.size()<<std::endl;
    //printf(" threadID %d has columndata 0x%llx\n",cuda_async_queue_id,unif_columndata[cuda_async_queue_id]);
 
    // Calculate total sum of columns and total values size
    uint totalColumns = 0;
    uint valuesSizeRequired = 0;
-   for(uint setIndex=0; setIndex< setColumnOffsets.size(); ++setIndex) {
-      totalColumns += setNumColumns[setIndex];
-      for(uint columnIndex = setColumnOffsets[setIndex]; columnIndex < setColumnOffsets[setIndex] + setNumColumns[setIndex] ; columnIndex ++){
-         valuesSizeRequired += (columnNumBlocks[columnIndex] + 2) * WID3 / VECL;
+   for(uint setIndex=0; setIndex< columnData->setColumnOffsets.size(); ++setIndex) {
+      totalColumns += columnData->setNumColumns[setIndex];
+      for(uint columnIndex = columnData->setColumnOffsets[setIndex]; columnIndex < columnData->setColumnOffsets[setIndex] + columnData->setNumColumns[setIndex] ; columnIndex ++){
+         valuesSizeRequired += (columnData->columnNumBlocks[columnIndex] + 2) * WID3 / VECL;
       }
    }
    uint cudablocks = totalColumns;
 
-   HANDLE_ERROR( cudaMemcpyAsync(dev_columnNumBlocks[cuda_async_queue_id], columnNumBlocks.data(), totalColumns*sizeof(uint), cudaMemcpyHostToDevice, stream) );
-   HANDLE_ERROR( cudaMemcpyAsync(dev_columnBlockOffsets[cuda_async_queue_id], columnBlockOffsets.data(), totalColumns*sizeof(uint), cudaMemcpyHostToDevice, stream) );
+   // HANDLE_ERROR( cudaMemcpyAsync(dev_columnNumBlocks[cuda_async_queue_id], columnNumBlocks.data(), totalColumns*sizeof(uint), cudaMemcpyHostToDevice, stream) );
+   // HANDLE_ERROR( cudaMemcpyAsync(dev_columnBlockOffsets[cuda_async_queue_id], columnBlockOffsets.data(), totalColumns*sizeof(uint), cudaMemcpyHostToDevice, stream) );
 
    phiprof::start("Reorder blocks by dimension");
    // Launch kernels for transposing and ordering velocity space data into columns
@@ -488,8 +498,9 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       dev_cell_indices_to_id[cuda_async_queue_id],
       totalColumns,
       LIDlist, //unified memory
-      dev_columnNumBlocks[cuda_async_queue_id],
-      dev_columnBlockOffsets[cuda_async_queue_id]
+      columnData
+      // dev_columnNumBlocks[cuda_async_queue_id],
+      // dev_columnBlockOffsets[cuda_async_queue_id]
       );
 
    // pointer to columns in memory
@@ -497,14 +508,14 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
 
    // Store offsets into columns
    uint valuesColumnOffset = 0;
-   for( uint setIndex=0; setIndex< setColumnOffsets.size(); ++setIndex) {
-      for(uint columnIndex = setColumnOffsets[setIndex]; columnIndex < setColumnOffsets[setIndex] + setNumColumns[setIndex] ; columnIndex ++){
-         columns[columnIndex].nblocks = columnNumBlocks[columnIndex];
+   for( uint setIndex=0; setIndex< columnData->setColumnOffsets.size(); ++setIndex) {
+      for(uint columnIndex = columnData->setColumnOffsets[setIndex]; columnIndex < columnData->setColumnOffsets[setIndex] + columnData->setNumColumns[setIndex] ; columnIndex ++){
+         columns[columnIndex].nblocks = columnData->columnNumBlocks[columnIndex];
          columns[columnIndex].valuesOffset = valuesColumnOffset;
          if(valuesColumnOffset >= valuesSizeRequired) {
             cerr << "ERROR: Overflowing the values array (" << valuesColumnOffset << "> " << valuesSizeRequired << ") with column " << columnIndex << std::endl;
          }
-         valuesColumnOffset += (columnNumBlocks[columnIndex] + 2) * (WID3/VECL); // there are WID3/VECL elements of type Vec per block
+         valuesColumnOffset += (columnData->columnNumBlocks[columnIndex] + 2) * (WID3/VECL); // there are WID3/VECL elements of type Vec per block
       }
    }
 
@@ -518,7 +529,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    vmesh->dev_prefetchHost();
    phiprof::stop("Prefetch block lists to CPU");
 
-   for( uint setIndex=0; setIndex< setColumnOffsets.size(); ++setIndex) {
+   for( uint setIndex=0; setIndex< columnData->setColumnOffsets.size(); ++setIndex) {
 
       bool isTargetBlock[MAX_BLOCKS_PER_DIM]= {false};
       bool isSourceBlock[MAX_BLOCKS_PER_DIM]= {false};
@@ -528,7 +539,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       //spatial_cell::velocity_block_indices_t setFirstBlockIndices;
       std::array<uint32_t,3> setFirstBlockIndices;
       uint8_t refLevel=0;
-      vmesh->getIndices(GIDlist[columnBlockOffsets[setColumnOffsets[setIndex]]],
+      vmesh->getIndices(GIDlist[columnData->columnBlockOffsets[columnData->setColumnOffsets[setIndex]]],
                        refLevel,
                        setFirstBlockIndices[0], setFirstBlockIndices[1], setFirstBlockIndices[2]);
       swapBlockIndices(setFirstBlockIndices, dimension);
@@ -569,9 +580,9 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
                                       (setFirstBlockIndices[1] * WID + WID - 1) * intersection_dj);
 
       //now, record which blocks are target blocks
-      for(uint columnIndex = setColumnOffsets[setIndex]; columnIndex < setColumnOffsets[setIndex] + setNumColumns[setIndex] ; columnIndex ++){
-         const vmesh::LocalID n_cblocks = columnNumBlocks[columnIndex];
-         vmesh::GlobalID* cblocks = GIDlist + columnBlockOffsets[columnIndex]; //column blocks
+      for(uint columnIndex = columnData->setColumnOffsets[setIndex]; columnIndex < columnData->setColumnOffsets[setIndex] + columnData->setNumColumns[setIndex] ; columnIndex ++){
+         const vmesh::LocalID n_cblocks = columnData->columnNumBlocks[columnIndex];
+         vmesh::GlobalID* cblocks = GIDlist + columnData->columnBlockOffsets[columnIndex]; //column blocks
          //spatial_cell::velocity_block_indices_t firstBlockIndices;
          //spatial_cell::velocity_block_indices_t lastBlockIndices;
          std::array<uint32_t,3>  firstBlockIndices;

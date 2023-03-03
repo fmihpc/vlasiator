@@ -29,14 +29,37 @@
 #include "../common.h"
 #include "../spatial_cell.hpp"
 
+#include "include/splitvector/splitvec.h"
+
+struct ColumnOffsets : public Managed {
+   split::SplitVector<uint> columnBlockOffsets; // indexes where columns start (in blocks, length totalColumns)
+   split::SplitVector<uint> columnNumBlocks; // length of column (in blocks, length totalColumns)
+   split::SplitVector<uint> setColumnOffsets; // index from columnBlockOffsets where new set of columns starts (length nColumnSets)
+   split::SplitVector<uint> setNumColumns; // how many columns in set of columns (length nColumnSets)
+   
+   ColumnOffsets(uint nColumns) {
+      columnBlockOffsets.resize(nColumns);
+      columnNumBlocks.resize(nColumns);
+      setColumnOffsets.resize(nColumns);
+      setNumColumns.resize(nColumns);
+      std::cerr<<"Initializing columnOffsets with capacity "<<nColumns<<" = "<<setNumColumns.size()<<std::endl;
+      columnBlockOffsets.clear();
+      columnNumBlocks.clear();
+      setColumnOffsets.clear();
+      setNumColumns.clear();
+   }
+};
+
 void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell, 
                                const vmesh::VelocityMesh* vmesh,
                                const uint dimension,
                                uint* blocksGID,
                                uint* blocksLID,
-                               std::vector<uint> & columnBlockOffsets,
-                               std::vector<uint> & columnNumBlocks,
-                               std::vector<uint> & setColumnOffsets,
-                               std::vector<uint> & setNumColumns);
+                               ColumnOffsets* columnData
+                               // std::vector<uint> & columnBlockOffsets,
+                               // std::vector<uint> & columnNumBlocks,
+                               // std::vector<uint> & setColumnOffsets,
+                               // std::vector<uint> & setNumColumns
+   );
 
 #endif

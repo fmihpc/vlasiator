@@ -537,6 +537,7 @@ namespace spatial_cell {
 
       // Perform hashmap cleanup here (instead of at acceleration mid-steps)
       phiprof::start("Hashinator cleanup");
+      populations[popID].vmesh->dev_prefetchDevice();
       populations[popID].vmesh->dev_cleanHashMap();
       phiprof::stop("Hashinator cleanup");
 

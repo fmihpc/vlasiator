@@ -29,11 +29,12 @@
 #include "device_launch_parameters.h"
 #include "cuda.h"
 #include "cuda_runtime.h"
+#include "cuda_acc_sort_blocks.hpp"
+#include "../cuda_context.cuh"
 
 //using namespace spatial_cell;
 
-struct Column
-{
+struct Column {
    int valuesOffset;                              // Source data values
    size_t targetBlockOffsets[MAX_BLOCKS_PER_DIM]; // Target data array offsets
    int nblocks;                                   // Number of blocks in this column
@@ -75,6 +76,7 @@ extern uint *dev_columnBlockOffsets[];
 extern Column *unif_columns[];
 extern uint *unif_GIDlist[];
 extern uint *unif_LIDlist[];
+extern ColumnOffsets *unif_columndata[];
 
 extern uint cuda_acc_allocatedSize;
 extern uint cuda_acc_allocatedColumns;
