@@ -66,14 +66,13 @@ extern void cuda_acc_deallocate_memory (
 
 // Device data variables, to be allocated in good time. Made into an array so that each thread has their own pointer.
 extern Vec *dev_blockDataOrdered[];
-extern Column *dev_columns[];
+//extern Column *dev_columns[];
 extern uint *dev_cell_indices_to_id[];
 extern uint *dev_columnNumBlocks[];
 extern uint *dev_columnBlockOffsets[];
 
-// Host data variables, to be allocated and pinned in good time. Made into a long array so that each thread has their own pointer.
-extern Column *host_columns[];
-
+// Unified (managed) memory variables
+extern Column *unif_columns[];
 extern uint *unif_GIDlist[];
 extern uint *unif_LIDlist[];
 
