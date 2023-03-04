@@ -12,9 +12,9 @@
 #
 # module load gnu9/9.4.0
 # module load openmpi4/4.1.1
-# module load pmix/3.1.4
+# module load pmix/4.2.1
 # Oneliner for command line:
-# module purge ; module load gnu9/9.4.0 ; module load openmpi4/4.1.1 ; module load pmix/3.1.4
+# module purge ; module load gnu9/9.4.0 ; module load openmpi4/4.1.1 ; module load pmix/4.2.1;
 #
 #################################################################################																				
 # Important:																	#			
