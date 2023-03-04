@@ -215,6 +215,11 @@ endif
 # Add field solver objects
 OBJS_FSOLVER = 	ldz_magnetic_field.o ldz_volume.o derivatives.o ldz_electric_field.o ldz_hall.o ldz_gradpe.o
 
+ifeq ($(IONO_GPU), 1)
+LIBS += -lcudart -L./ionosphere_gpu_solver -lionosphere_gpu_solver 
+CXXFLAGS += -DIONOSPHERE_GPU_ON
+endif
+
 help:
 	@echo ''
 	@echo 'make c(lean)             delete all generated files'
