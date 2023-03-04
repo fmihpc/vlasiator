@@ -28,7 +28,7 @@ BUILD_DIR   := .build
 OBJS        := $(SRCS:$(SRC_DIR)/%.$(SRC_SUFFIX)=$(BUILD_DIR)/%.o)
 DEPS        := $(OBJS:.o=.d)
 
-CC          := nvcc
+CC          := nvcc -std=c++17
 CFLAGS      := -Werror all-warnings -O3
 
 ifeq ($(IONOGPU_STATIC_MEMORY_ALLOCATION), 1)
