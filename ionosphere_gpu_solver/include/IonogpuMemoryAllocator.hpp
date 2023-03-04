@@ -1,4 +1,5 @@
 #pragma once
+#include "ionosphere_gpu_solver.hpp"
 #include "timer.hpp"
 #include <algorithm>
 #include <array>
