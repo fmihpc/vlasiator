@@ -85,7 +85,7 @@ namespace timer_internal {
     };
 }
 
-// First time this is kalled with spesific key it will start timer for that key
+// First time this is called with spesific key it will start timer for that key
 // Second time this is called with spesific key it will stop the timer for that key and then adds to total time for that key
 // When program terminates the destructor of TimePrinter will print all of the total times for all of the keys
 inline void time(const std::string& key) {
