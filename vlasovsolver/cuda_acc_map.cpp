@@ -132,8 +132,6 @@ __global__ void reorder_blocks_by_dimension_kernel(
    uint totalColumns,
    vmesh::LocalID *dev_LIDlist,
    ColumnOffsets* columnData
-   // uint *dev_columnNumBlocks,
-   // uint *dev_columnBlockOffsets
 ) {
    // Takes the contents of blockData, sorts it into blockDataOrdered,
    // performing transposes as necessary
@@ -365,7 +363,6 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    Realf *blockData = blockContainer->getData();
    blockContainer->dev_prefetchDevice();
 
-   //Realf *dev_blockData = blockContainer->dev_getData(); // Now in unified memory, above
    uint blockDataN = vmesh->size();
    if(vmesh->size() == 0) {
       return true;
@@ -453,10 +450,6 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    vmesh::LocalID *LIDlist = unif_LIDlist[cuda_async_queue_id];
 
    // sort blocks according to dimension, and divide them into columns
-   // std::vector<uint> columnBlockOffsets; // indexes where columns start (in blocks, length totalColumns)
-   // std::vector<uint> columnNumBlocks; // length of column (in blocks, length totalColumns)
-   // std::vector<uint> setColumnOffsets; // index from columnBlockOffsets where new set of columns starts (length nColumnSets)
-   // std::vector<uint> setNumColumns; // how many columns in set of columns (length nColumnSets)
    ColumnOffsets *columnData = unif_columndata[cuda_async_queue_id];
 
    // CPU call for now (but dedicated CUDA version which also returns LIDlist)
@@ -467,14 +460,9 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    phiprof::start("sortBlockList");
    sortBlocklistByDimension(vmesh, dimension, GIDlist, LIDlist,
                             columnData
-                            // columnBlockOffsets, columnNumBlocks,
-                            // setColumnOffsets, setNumColumns
       );
    phiprof::stop("sortBlockList");
    std::cerr<<"Blocklists sorted, entry sizes "<<columnData->columnBlockOffsets.size()<<" "<<columnData->columnNumBlocks.size()<<" "<<columnData->setColumnOffsets.size()<<" "<<columnData->setNumColumns.size()<<std::endl;
-   
-   //std::cerr<<"Blocklists sorted, entry sizes "<<columnBlockOffsets.size()<<" "<<columnNumBlocks.size()<<" "<<setColumnOffsets.size()<<" "<<setNumColumns.size()<<std::endl;
-   //printf(" threadID %d has columndata 0x%llx\n",cuda_async_queue_id,unif_columndata[cuda_async_queue_id]);
 
    // Calculate total sum of columns and total values size
    uint totalColumns = 0;
@@ -487,9 +475,6 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    }
    uint cudablocks = totalColumns;
 
-   // HANDLE_ERROR( cudaMemcpyAsync(dev_columnNumBlocks[cuda_async_queue_id], columnNumBlocks.data(), totalColumns*sizeof(uint), cudaMemcpyHostToDevice, stream) );
-   // HANDLE_ERROR( cudaMemcpyAsync(dev_columnBlockOffsets[cuda_async_queue_id], columnBlockOffsets.data(), totalColumns*sizeof(uint), cudaMemcpyHostToDevice, stream) );
-
    phiprof::start("Reorder blocks by dimension");
    // Launch kernels for transposing and ordering velocity space data into columns
    reorder_blocks_by_dimension_kernel<<<cudablocks, cudathreads, 0, stream>>> (
@@ -499,8 +484,6 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       totalColumns,
       LIDlist, //unified memory
       columnData
-      // dev_columnNumBlocks[cuda_async_queue_id],
-      // dev_columnBlockOffsets[cuda_async_queue_id]
       );
 
    // pointer to columns in memory
@@ -522,8 +505,10 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    // Calculate target column extents
    phiprof::start("columnExtents");
    phiprof::start("Prefetch block lists to CPU");
+   spatial_cell->BlocksRequired->optimizeCPU();
    spatial_cell->BlocksToAdd->optimizeCPU();
    spatial_cell->BlocksToRemove->optimizeCPU();
+   spatial_cell->BlocksRequired->clear();
    spatial_cell->BlocksToAdd->clear();
    spatial_cell->BlocksToRemove->clear();
    vmesh->dev_prefetchHost();
@@ -656,6 +641,13 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       //now add target blocks that do not yet exist and remove source blocks
       //that are not target blocks
       for (uint blockK = 0; blockK < MAX_BLOCKS_PER_DIM; blockK++){
+         if(isTargetBlock[blockK])  {
+            const int targetBlock =
+               setFirstBlockIndices[0] * block_indices_to_id[0] +
+               setFirstBlockIndices[1] * block_indices_to_id[1] +
+               blockK                  * block_indices_to_id[2];
+            spatial_cell->BlocksRequired->push_back(targetBlock);
+         }
          if(isTargetBlock[blockK] && !isSourceBlock[blockK] )  {
             const int targetBlock =
                setFirstBlockIndices[0] * block_indices_to_id[0] +
@@ -687,8 +679,6 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    // Create empty velocity space on the GPU and fill it with zeros
    size_t blockDataSize = blockContainer->size();
    size_t bdsw3 = blockDataSize * WID3;
-   // Page lock (pin) again host memory for faster async transfers after kernel has run
-   //cudaHostRegister(blockData, bdsw3*sizeof(Realf),cudaHostRegisterDefault);
    // Zero out target data on device (unified)
    HANDLE_ERROR( cudaMemsetAsync(blockData, 0, bdsw3*sizeof(Realf), stream) );
 
@@ -709,7 +699,6 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       }
    }
 
-   // CALL CUDA FUNCTION WRAPPER/GLUE
    phiprof::start("Call acceleration kernel");
    acceleration_kernel<<<cudablocks, cudathreads, 0, stream>>> (
       blockData, // unified
