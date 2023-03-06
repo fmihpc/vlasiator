@@ -20,6 +20,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <vectorclass.h>
 #include <cstdlib>
 #include <mpi.h>
 #include <iostream>
@@ -27,6 +28,7 @@
 #include <array>
 #include "datareductionoperator.h"
 #include "../object_wrapper.h"
+
 
 using namespace std;
 
@@ -1502,6 +1504,7 @@ namespace DRO {
     * is calculated within the loss cone of fixed angular opening (default: 10 deg).
     * The differential flux is converted in part. / cm^2 / s / sr / eV (unit used by observers).
     * Parameters that can be set in cfg file under [{species}_precipitation]: nChannels, emin [eV], emax [eV], lossConeAngle [deg]
+	    outputReducer->addMetadata(outputReducer->size()-1,"1/(cm^2 sr s eV)","$\\mathrm{cm}^{-2}\\,\\mathrm{sr}^{-1}\\,\\mathrm{s}^{-1}\\,\\mathrm{eV}^{-1}$","$\\mathcal{F}_\\mathrm{"+pop+"}$",conversion.str());
     * The energy channels are saved in bulk files as PrecipitationCentreEnergy{channel_number}.
     */
    VariablePrecipitationDiffFlux::VariablePrecipitationDiffFlux(cuint _popID): DataReductionOperatorHasParameters(),popID(_popID) {
@@ -1628,6 +1631,105 @@ namespace DRO {
          if( vlsvWriter.writeParameter(popName+"_PrecipitationCentreEnergy"+std::to_string(i), &channelev) == false ) { return false; }
       }
       if( vlsvWriter.writeParameter(popName+"_LossConeAngle", &lossConeAngle) == false ) { return false; }
+      return true;
+   }
+
+   /*! \brief V-space flatten into 1D mu distribution
+    */
+   VariableMuSpace::VariableMuSpace(cuint _popID): DataReductionOperatorHasParameters(),popID(_popID) {popName = getObjectWrapper().particleSpecies[popID].name;}
+   VariableMuSpace::~VariableMuSpace() { }
+   
+   std::string VariableMuSpace::getName() const {return popName + "/vg_1dmuspace";}
+   
+   bool VariableMuSpace::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = Parameters::PADmubins; //Number of bins to build muSpace
+      return true;
+   }
+   
+   bool VariableMuSpace::reduceData(const SpatialCell* cell,char* buffer) {
+
+  
+       const Real* parameters = cell->get_block_parameters(popID);
+       std::vector<Realf> fmu   (Parameters::PADmubins);
+       std::vector<int>   fcount(Parameters::PADmubins);
+
+       std::array<Realf,3> bulkV = {parameters[CellParams::VX], parameters[CellParams::VY], parameters[CellParams::VZ]};
+
+        std::array<Realf,3> B = {parameters[CellParams::PERBXVOL] +  parameters[CellParams::BGBXVOL],
+                                 parameters[CellParams::PERBYVOL] +  parameters[CellParams::BGBYVOL],
+	                         parameters[CellParams::PERBZVOL] +  parameters[CellParams::BGBZVOL]};
+
+        Realf Bnorm           = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
+        std::array<Realf,3> b = {B[0]/Bnorm, B[1]/Bnorm, B[2]/Bnorm};
+
+       // Build 2d array of f(v,mu)
+       for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); n++) { // Iterate through velocity blocks
+	   for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) { // Iterate through coordinates (z,y)
+
+	       //Get velocity space coordinates                    
+	       const Vec4d VX(parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+		       + (0 + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX],
+		       parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+		       + (1 + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX],
+		       parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+		       + (2 + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX],
+		       parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+		       + (3 + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]);
+
+	       const Vec4d VY(parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
+		       + (j + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY]);
+
+	       const Vec4d VZ(parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD]
+		       + (k + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ]);
+
+	       std::array<Vec4d,3> V = {VX,VY,VZ}; // Velocity in the cell, in the simulation frame
+
+	       std::array<Vec4d,3> Vplasma; // Velocity in the cell, in the plasma frame
+
+	       for (int indx = 0; indx < 3; indx++) { Vplasma[indx] = (V[indx] - Vec4d(bulkV[indx])); }
+
+	       Vec4d normV = sqrt(Vplasma[0]*Vplasma[0] + Vplasma[1]*Vplasma[1] + Vplasma[2]*Vplasma[2]);
+
+	       Vec4d Vpara = Vplasma[0]*b[0] + Vplasma[1]*b[1] + Vplasma[2]*b[2];
+
+	       Vec4d mu = Vpara/(normV+std::numeric_limits<Realf>::min()); // + min value to avoid division by 0
+
+	       Vec4i muindex;
+               Realf dmubins = 2.0 / Parameters::PADmubins; 
+	       muindex = round_to_int(floor((mu+1.0) / dmubins)); 
+
+	       const Realf* CellValue = &cell->get_data(n,popID)[WID*j+WID*WID*k];
+
+               const Realf DVX = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+               const Realf DVY = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+               const Realf DVZ = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+
+	       for (uint i = 0; i<WID; i++) {
+		   fmu   [muindex[i]] += CellValue[i] * DVX*DVY*DVZ / dmubins;
+		   //fcount[muindex[i]] += 1;
+	       }
+
+	   } // End coordinates
+       } // End blocks
+
+       // Divide f by count (independent of v but needs to be computed for all mu before derivatives)
+       //for(int indmu = 0; indmu < Parameters::PADmubins; indmu++) { 
+       //    if (fcount[indmu] == 0 || fmu[indmu] <= 0.0) { fmu[indmu] = std::numeric_limits<Realf>::min();}
+       //    else {fmu[indmu] = fmu[indmu] / fcount[indmu];} 
+       //}
+
+      const char* ptr = reinterpret_cast<const char*>(fmu.data());
+      for (uint i = 0; i < Parameters::PADmubins*sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
+   bool VariableMuSpace::setSpatialCell(const SpatialCell* cell) {
+      return true;
+   }
+
+   bool VariableMuSpace::writeParameters(vlsv::Writer& vlsvWriter) {
       return true;
    }
 
