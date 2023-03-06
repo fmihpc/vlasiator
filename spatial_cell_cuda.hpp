@@ -48,7 +48,6 @@ Spatial cell class for Vlasiator that supports a variable number of velocity blo
 
 #include "velocity_mesh_cuda.h"
 
-//#include "velocity_blocks.h" // not needed in semilag
 #include "velocity_block_container.h"
 
 #ifndef NDEBUG
@@ -353,15 +352,12 @@ namespace spatial_cell {
       Realf* dev_rhoLossAdjust;
       split::SplitVector<vmesh::GlobalID> *BlocksToRemove, *BlocksRequired, *BlocksToAdd, *BlocksToMove; /**< Lists of blocks to change on GPU device */
 
-
       static uint64_t mpi_transfer_type;                                      /**< Which data is transferred by the mpi datatype given by spatial cells.*/
       static bool mpiTransferAtSysBoundaries;                                 /**< Do we only transfer data at boundaries (true), or in the whole system (false).*/
       static bool mpiTransferInAMRTranslation;                                /**< Do we only transfer cells which are required by AMR translation. */
       static int mpiTransferXYZTranslation;                                   /**< Dimension in which AMR translation is happening */
 
     private:
-
-      //bool compute_block_has_content(const vmesh::GlobalID& block,const uint popID) const;
 
       static int activePopID;
       bool initialized;

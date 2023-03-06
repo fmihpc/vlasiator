@@ -36,7 +36,7 @@ struct ColumnOffsets : public Managed {
    split::SplitVector<uint> columnNumBlocks; // length of column (in blocks, length totalColumns)
    split::SplitVector<uint> setColumnOffsets; // index from columnBlockOffsets where new set of columns starts (length nColumnSets)
    split::SplitVector<uint> setNumColumns; // how many columns in set of columns (length nColumnSets)
-   
+
    ColumnOffsets(uint nColumns) {
       columnBlockOffsets.resize(nColumns);
       columnNumBlocks.resize(nColumns);
@@ -50,16 +50,17 @@ struct ColumnOffsets : public Managed {
    }
 };
 
-void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell, 
+void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                const vmesh::VelocityMesh* vmesh,
                                const uint dimension,
                                uint* blocksGID,
                                uint* blocksLID,
-                               ColumnOffsets* columnData
+                               ColumnOffsets* columnData,
                                // std::vector<uint> & columnBlockOffsets,
                                // std::vector<uint> & columnNumBlocks,
                                // std::vector<uint> & setColumnOffsets,
                                // std::vector<uint> & setNumColumns
+                               cudaStream_t stream
    );
 
 #endif

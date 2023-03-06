@@ -36,6 +36,26 @@ inline bool tripletcomparator( const std::pair<std::pair<uint, uint>, uint> & l,
    return l.first.first < r.first.first;
 }
 
+// Kernel
+__global__ void sort_blocks_by_dimension_kernel(
+   const vmesh::VelocityMesh* vmesh,
+   const uint dimension,
+   uint* blocksGID,
+   uint* blocksLID,
+   ColumnOffsets* columnData
+   // contains
+   // split::SplitVector<uint> columnBlockOffsets; // indexes where columns start (in blocks, length totalColumns)
+   // split::SplitVector<uint> columnNumBlocks; // length of column (in blocks, length totalColumns)
+   // split::SplitVector<uint> setColumnOffsets; // index from columnBlockOffsets where new set of columns starts (length nColumnSets)
+   // split::SplitVector<uint> setNumColumns; // how many columns in set of columns (length nColumnSets)
+   ) {
+   const int index = threadIdx.x;
+   const int trial1 = blockIdx.x;
+   const int trial2 = blockIdx.y;
+
+
+}
+
 /*
    This function returns a sorted list of blocks in a cell.
 
@@ -47,19 +67,55 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                const uint dimension,
                                vmesh::GlobalID* blocksGID,
                                vmesh::LocalID* blocksLID,
-                               ColumnOffsets* columnData
-                               // std::vector<uint> & columnBlockOffsets,
-                               // std::vector<uint> & columnNumBlocks,
-                               // std::vector<uint> & setColumnOffsets,
-                               // std::vector<uint> & setNumColumns
+                               ColumnOffsets* columnData,
+   // split::SplitVector<uint> columnBlockOffsets; // indexes where columns start (in blocks, length totalColumns)
+   // split::SplitVector<uint> columnNumBlocks; // length of column (in blocks, length totalColumns)
+   // split::SplitVector<uint> setColumnOffsets; // index from columnBlockOffsets where new set of columns starts (length nColumnSets)
+   // split::SplitVector<uint> setNumColumns; // how many columns in set of columns (length nColumnSets)
+                               cudaStream_t stream
    ) {
-   //const uint nBlocks = spatial_cell->get_number_of_velocity_blocks(); // Number of blocks
-   const vmesh::LocalID nBlocks = vmesh->size();
+
    columnData->columnBlockOffsets.clear();
    columnData->columnNumBlocks.clear();
    columnData->setColumnOffsets.clear();
    columnData->setNumColumns.clear();
-   
+
+#ifdef UNDEFINED
+      // Call kernel instead of CPU code
+      phiprof::start("Sort blocks by dimension kernel");
+      const uint refL=0; // vAMR
+      switch (dimension) {
+         case 0:
+            dim3 grid(vmesh->getGridLength(refL)[1],vmesh->getGridLength(refL)[2],1);
+            break;
+         case 1:
+            dim3 grid(vmesh->getGridLength(refL)[0],vmesh->getGridLength(refL)[2],1);
+            break;
+         case 2:
+            dim3 grid(vmesh->getGridLength(refL)[0],vmesh->getGridLength(refL)[1],1);
+            break:
+         default:
+            printf("Invalid dimension in cuda sortBlockListByDimension!\n");
+            abort();
+      }
+      //dim3 block(WID,WID,WID);
+      dim3 block1(1,1,1);
+      //const int nCudaBlocks = nBlocks > CUDABLOCKS ? CUDABLOCKS : nBlocks;
+      sort_blocks_by_dimension_kernel<<<grid, block1, 0, stream>>> (
+         vmesh,
+         dimension,
+         blocksGID,
+         blocksLID,
+         columnData
+         );
+      cudaStreamSynchronize(stream);
+      phiprof::stop("Sort blocks by dimension kernel");
+      return;
+#else
+
+   //const uint nBlocks = spatial_cell->get_number_of_velocity_blocks(); // Number of blocks
+   const vmesh::LocalID nBlocks = vmesh->size();
+
    // Velocity mesh refinement level, has no effect here
    // but is needed in some vmesh::VelocityMesh function calls.
    const uint8_t REFLEVEL = 0;
@@ -76,8 +132,8 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
        }
          break;
        case 1: {
-          // Do operation: 
-          //   block = x + y*x_max + z*y_max*x_max 
+          // Do operation:
+          //   block = x + y*x_max + z*y_max*x_max
           //=> block' = block - (x + y*x_max) + y + x*y_max = x + y*x_max + z*y_max*x_max - (x + y*x_max) + y + x*y_max
           //          = y + x*y_max + z*y_max*x_max
           //const uint x_indice = block%SpatialCell::get_velocity_grid_length()[0];
@@ -86,20 +142,20 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
           const vmesh::LocalID y_index = (block / vmesh->getGridLength(REFLEVEL)[0]) % vmesh->getGridLength(REFLEVEL)[1];
 
           // Mapping the block id to different coordinate system if dimension is not zero:
-          //const uint blockId_mapped 
-          //        = block - (x_indice + y_indice*SpatialCell::get_velocity_grid_length()[0]) 
-          //        + y_indice 
+          //const uint blockId_mapped
+          //        = block - (x_indice + y_indice*SpatialCell::get_velocity_grid_length()[0])
+          //        + y_indice
           //        + x_indice * SpatialCell::SpatialCell::get_velocity_grid_length()[1];
-          const vmesh::GlobalID blockId_mapped 
+          const vmesh::GlobalID blockId_mapped
                   = block - (x_index + y_index*vmesh->getGridLength(REFLEVEL)[0])
-                  + y_index 
+                  + y_index
                   + x_index * vmesh->getGridLength(REFLEVEL)[1];
           block_triplets[i] = std::make_pair( std::make_pair( blockId_mapped, block ), i);
        }
          break;
        case 2: {
-          // Do operation: 
-          //   block = x + y*x_max + z*y_max*x_max 
+          // Do operation:
+          //   block = x + y*x_max + z*y_max*x_max
           //=> block' = z + y*z_max + x*z_max*y_max
           //const uint x_indice = block%SpatialCell::get_velocity_grid_length()[0];
           //const uint y_indice = (block/SpatialCell::get_velocity_grid_length()[0])%SpatialCell::SpatialCell::get_velocity_grid_length()[1];
@@ -109,12 +165,12 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
           const vmesh::LocalID z_index = (block / (vmesh->getGridLength(REFLEVEL)[0]*vmesh->getGridLength(REFLEVEL)[1]));
 
           // Mapping the block id to different coordinate system if dimension is not zero:
-          //const uint blockId_mapped 
-          //  = z_indice 
-          //  + y_indice * SpatialCell::SpatialCell::get_velocity_grid_length()[2] 
+          //const uint blockId_mapped
+          //  = z_indice
+          //  + y_indice * SpatialCell::SpatialCell::get_velocity_grid_length()[2]
           //  + x_indice*SpatialCell::SpatialCell::get_velocity_grid_length()[1]*SpatialCell::SpatialCell::get_velocity_grid_length()[2];
-          const vmesh::GlobalID blockId_mapped 
-            = z_index 
+          const vmesh::GlobalID blockId_mapped
+            = z_index
             + y_index*vmesh->getGridLength(REFLEVEL)[2]
             + x_index*vmesh->getGridLength(REFLEVEL)[1]*vmesh->getGridLength(REFLEVEL)[2];
           block_triplets[i] = std::make_pair(std::make_pair( blockId_mapped, block ), i);
@@ -127,25 +183,25 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
 
    // Put in the sorted blocks, and also compute column offsets and lengths:
    columnData->columnBlockOffsets.push_back(0); //first offset
-   columnData->setColumnOffsets.push_back(0); //first offset   
+   columnData->setColumnOffsets.push_back(0); //first offset
    uint prev_column_id, prev_dimension_id;
 
    for (vmesh::LocalID i=0; i<nBlocks; ++i) {
        // identifies a particular column
-      vmesh::LocalID column_id = block_triplets[i].first.first / vmesh->getGridLength(REFLEVEL)[dimension];     
-       
+      vmesh::LocalID column_id = block_triplets[i].first.first / vmesh->getGridLength(REFLEVEL)[dimension];
+
        // identifies a particular block in a column (along the dimension)
        vmesh::LocalID dimension_id = block_triplets[i].first.first % vmesh->getGridLength(REFLEVEL)[dimension];
-      
+
        //sorted lists
        blocksGID[i] = block_triplets[i].first.second;
        blocksLID[i] = vmesh->getLocalID(block_triplets[i].first.second);
-       
+
        if ( i > 0 &&  ( column_id != prev_column_id || dimension_id != (prev_dimension_id + 1) )){
          //encountered new column! For i=0, we already entered the correct offset (0).
          //We also identify it as a new column if there is a break in the column (e.g., gap between two populations)
          /*add offset where the next column will begin*/
-         columnData->columnBlockOffsets.push_back(i); 
+         columnData->columnBlockOffsets.push_back(i);
          /*add length of the current column that now ended*/
          columnData->columnNumBlocks.push_back(columnData->columnBlockOffsets[columnData->columnBlockOffsets.size()-1] - columnData->columnBlockOffsets[columnData->columnBlockOffsets.size()-2]);
 
@@ -155,11 +211,13 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
             /*add length of the previous column set that ended*/
             columnData->setNumColumns.push_back(columnData->setColumnOffsets[columnData->setColumnOffsets.size()-1] - columnData->setColumnOffsets[columnData->setColumnOffsets.size()-2]);
          }
-      }      
+      }
       prev_column_id = column_id;
-      prev_dimension_id = dimension_id;                        
+      prev_dimension_id = dimension_id;
    }
-   
+
    columnData->columnNumBlocks.push_back(nBlocks - columnData->columnBlockOffsets[columnData->columnBlockOffsets.size()-1]);
    columnData->setNumColumns.push_back(columnData->columnNumBlocks.size() - columnData->setColumnOffsets[columnData->setColumnOffsets.size()-1]);
+
+#endif
 }

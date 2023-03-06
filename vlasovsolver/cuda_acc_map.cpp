@@ -359,7 +359,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    vmesh::VelocityMesh* vmesh    = spatial_cell->get_velocity_mesh(popID);
    vmesh::VelocityBlockContainer* blockContainer = spatial_cell->get_velocity_blocks(popID);
 
-   vmesh->dev_prefetchHost();
+   //vmesh->dev_prefetchHost();
    Realf *blockData = blockContainer->getData();
    blockContainer->dev_prefetchDevice();
 
@@ -439,9 +439,9 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    }
    // Copy indexing information to device (async)
    HANDLE_ERROR( cudaMemcpyAsync(dev_cell_indices_to_id[cuda_async_queue_id], cell_indices_to_id, 3*sizeof(uint), cudaMemcpyHostToDevice, stream) );
-   phiprof::start("Vmesh prefetch to device");
-   vmesh->dev_prefetchDevice();
-   phiprof::stop("Vmesh prefetch to device");
+   //phiprof::start("Vmesh prefetch to device");
+   //vmesh->dev_prefetchDevice();
+   //phiprof::stop("Vmesh prefetch to device");
 
    const Realv i_dv=1.0/dv;
 
@@ -459,10 +459,9 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    // Probably won't parallelize very well, though?
    phiprof::start("sortBlockList");
    sortBlocklistByDimension(vmesh, dimension, GIDlist, LIDlist,
-                            columnData
+                            columnData, stream
       );
    phiprof::stop("sortBlockList");
-   std::cerr<<"Blocklists sorted, entry sizes "<<columnData->columnBlockOffsets.size()<<" "<<columnData->columnNumBlocks.size()<<" "<<columnData->setColumnOffsets.size()<<" "<<columnData->setNumColumns.size()<<std::endl;
 
    // Calculate total sum of columns and total values size
    uint totalColumns = 0;
@@ -485,6 +484,9 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       LIDlist, //unified memory
       columnData
       );
+   // CUDATODO: We actually don't need to sync streams here, this is just for debugging / profiling
+   cudaStreamSynchronize(stream);
+   phiprof::stop("Reorder blocks by dimension");
 
    // pointer to columns in memory
    Column *columns = new (unif_columns[cuda_async_queue_id]) Column[totalColumns]; // placement new to use unified memory
@@ -505,13 +507,13 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    // Calculate target column extents
    phiprof::start("columnExtents");
    phiprof::start("Prefetch block lists to CPU");
-   spatial_cell->BlocksRequired->optimizeCPU();
-   spatial_cell->BlocksToAdd->optimizeCPU();
-   spatial_cell->BlocksToRemove->optimizeCPU();
    spatial_cell->BlocksRequired->clear();
    spatial_cell->BlocksToAdd->clear();
    spatial_cell->BlocksToRemove->clear();
-   vmesh->dev_prefetchHost();
+   // spatial_cell->BlocksRequired->optimizeCPU();
+   // spatial_cell->BlocksToAdd->optimizeCPU();
+   // spatial_cell->BlocksToRemove->optimizeCPU();
+   // vmesh->dev_prefetchHost();
    phiprof::stop("Prefetch block lists to CPU");
 
    for( uint setIndex=0; setIndex< columnData->setColumnOffsets.size(); ++setIndex) {
@@ -665,11 +667,10 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
          }
       }
    }
-   cudaStreamSynchronize(stream);
-   phiprof::stop("Reorder blocks by dimension");
 
    phiprof::stop("columnExtents");
    phiprof::start("CUDA add and delete blocks");
+   // Note: in this call, BlocksToMove is empty as we only grow the vspace size.
    spatial_cell->adjust_velocity_blocks_caller(popID);
    phiprof::stop("CUDA add and delete blocks");
 

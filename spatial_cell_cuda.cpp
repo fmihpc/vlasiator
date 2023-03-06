@@ -25,7 +25,6 @@
 #include "spatial_cell_cuda.hpp"
 #include "cuda_context.cuh"
 
-//#include "velocity_blocks.h" // not needed in semilag
 #include "object_wrapper.h"
 #include "velocity_mesh_parameters.h"
 
@@ -91,45 +90,26 @@ __global__ void update_blocks_to_add_kernel (
    vmesh::VelocityMesh *vmesh,
    split::SplitVector<vmesh::GlobalID>* BlocksRequired,
    split::SplitVector<vmesh::GlobalID>* BlocksToAdd,
+   split::SplitVector<vmesh::GlobalID>* BlocksToMove,
    const uint nBlocksRequired
    ) {
    const int cudaBlocks = gridDim.x;
    const int blocki = blockIdx.x;
+   const int warpSize = blockDim.x*blockDim.y*blockDim.z;
    const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
-   for (uint index=blocki; index<nBlocksRequired; index += cudaBlocks) {
-      if (ti==0) {
-         const vmesh::GlobalID IDreq = BlocksRequired->at(index);
-         if ( vmesh->getLocalID(IDreq) == vmesh->invalidLocalID() ) {
-            BlocksToAdd->device_push_back(IDreq);
+   for (uint index=blocki*warpSize; index<nBlocksRequired; index += cudaBlocks*warpSize) {
+      if (index+ti < nBlocksRequired) {
+         const vmesh::GlobalID GIDreq = BlocksRequired->at(index+ti);
+         const vmesh::LocalID LIDreq = vmesh->getLocalID(GIDreq);
+         if ( LIDreq == vmesh->invalidLocalID() ) {
+            BlocksToAdd->device_push_back(GIDreq);
+         } else if (LIDreq >= nBlocksRequired) {
+            BlocksToMove->device_push_back(GIDreq);
          }
       }
    }
 }
 
-/** CUDA kernel for identifying which blocks should be moved from the end of the data to mid-positions */
-__global__ void update_blocks_to_move_kernel (
-   vmesh::VelocityMesh *vmesh,
-   split::SplitVector<vmesh::GlobalID>* BlocksRequired,
-   split::SplitVector<vmesh::GlobalID>* BlocksToMove,
-   const uint nBlocksBeforeAdjust,
-   const uint nBlocksAfterAdjust
-   ) {
-   const int cudaBlocks = gridDim.x;
-   // const int warpSize = blockDim.x*blockDim.y*blockDim.z;
-   const int blocki = blockIdx.x;
-   const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
-   if (ti==0) {
-      for (uint index=nBlocksAfterAdjust+blocki; index<nBlocksBeforeAdjust; index += cudaBlocks) {
-         const vmesh::GlobalID moveCandidate = vmesh->getGlobalID(index);
-         for (auto it = BlocksRequired->begin(); it != BlocksRequired->end(); ++it) {
-            if (*it==moveCandidate) {
-               BlocksToMove->device_push_back(moveCandidate);
-               break;
-            }
-         }
-      }
-   }
-}
 
 /** CUDA kernel for updating blocks based on generated lists */
 __global__ void update_velocity_blocks_kernel(
@@ -375,9 +355,9 @@ namespace spatial_cell {
    }
 
    SpatialCell::SpatialCell(const SpatialCell& other) {
-      // These should be empty when created, but let's play safe.
-      velocity_block_with_content_list = new split::SplitVector<vmesh::GlobalID>(*(other.velocity_block_with_content_list));
-      velocity_block_with_no_content_list = new split::SplitVector<vmesh::GlobalID>(*(other.velocity_block_with_no_content_list));
+      // These should be empty when created
+      velocity_block_with_content_list = new split::SplitVector<vmesh::GlobalID>(1);
+      velocity_block_with_no_content_list = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksRequired = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToAdd = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToRemove = new split::SplitVector<vmesh::GlobalID>(1);
@@ -386,6 +366,16 @@ namespace spatial_cell {
       BlocksToAdd->clear();
       BlocksToRemove->clear();
       BlocksToMove->clear();
+      velocity_block_with_content_list->clear();
+      velocity_block_with_no_content_list->clear();
+
+      // Make space reservation guesses based on popID 0
+      BlocksRequired->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_PADDING);
+      BlocksToAdd->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_PADDING);
+      BlocksToRemove->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_PADDING);
+      BlocksToMove->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_PADDING);
+      velocity_block_with_content_list->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_PADDING);
+      velocity_block_with_no_content_list->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_PADDING);
 
       // Member variables
       ioLocalCellId = other.ioLocalCellId;
@@ -425,10 +415,9 @@ namespace spatial_cell {
       delete BlocksToRemove;
       delete BlocksToMove;
 
-      // These should be empty when created, but let's play safe.
-      velocity_block_with_content_list = new split::SplitVector<vmesh::GlobalID>(*(other.velocity_block_with_content_list));
-      velocity_block_with_no_content_list = new split::SplitVector<vmesh::GlobalID>(*(other.velocity_block_with_no_content_list));
-      // These start empty
+      // These should be empty when created
+      velocity_block_with_content_list = new split::SplitVector<vmesh::GlobalID>(1);
+      velocity_block_with_no_content_list = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksRequired = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToAdd = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToRemove = new split::SplitVector<vmesh::GlobalID>(1);
@@ -437,7 +426,18 @@ namespace spatial_cell {
       BlocksToAdd->clear();
       BlocksToRemove->clear();
       BlocksToMove->clear();
-      // Member variables
+      velocity_block_with_content_list->clear();
+      velocity_block_with_no_content_list->clear();
+
+      // Make space reservation guesses based on popID 0
+      BlocksRequired->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_PADDING);
+      BlocksToAdd->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_PADDING);
+      BlocksToRemove->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_PADDING);
+      BlocksToMove->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_PADDING);
+      velocity_block_with_content_list->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_PADDING);
+      velocity_block_with_no_content_list->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_PADDING);
+
+// Member variables
       ioLocalCellId = other.ioLocalCellId;
       sysBoundaryFlag = other.sysBoundaryFlag;
       sysBoundaryLayer = other.sysBoundaryLayer;
@@ -504,10 +504,12 @@ namespace spatial_cell {
       //  do not need to be created and also will not be removed as
       //  we only check for removal for blocks with no content
       std::unordered_set<vmesh::GlobalID> neighbors_have_content;
+      vmesh::LocalID currSize = populations[popID].vmesh->size();
 
       //add neighbor content info for velocity space neighbors to map. We loop over blocks
       //with content and raise the neighbors_have_content for
       //itself, and for all its neighbors
+      phiprof::start("Local content lists");
       for (vmesh::LocalID block_index=0; block_index<velocity_block_with_content_list->size(); ++block_index) {
          vmesh::GlobalID block = velocity_block_with_content_list->at(block_index);
 
@@ -525,10 +527,12 @@ namespace spatial_cell {
             }
          }
       }
+      phiprof::stop("Local content lists");
 
       //add neighbor content info for spatial space neighbors to map. We loop over
       //neighbor cell lists with existing blocks, and raise the
       //flag for the local block with same block id
+      phiprof::start("Neighbor content lists");
       for (std::vector<SpatialCell*>::const_iterator neighbor=spatial_neighbors.begin();
            neighbor != spatial_neighbors.end(); ++neighbor) {
          for (vmesh::LocalID block_index=0; block_index<(*neighbor)->velocity_block_with_content_list->size(); ++block_index) {
@@ -536,22 +540,31 @@ namespace spatial_cell {
             neighbors_have_content.insert(block);
          }
       }
+      phiprof::stop("Neighbor content lists");
 
+      phiprof::start("Prefetch / clear / reserve");
       BlocksRequired->optimizeCPU();
-      //BlocksToAdd->optimizeCPU();
       BlocksToRemove->optimizeCPU();
-      //BlocksToMove->optimizeCPU();
+
       BlocksRequired->clear();
-      BlocksToAdd->clear();
       BlocksToRemove->clear();
-      //BlocksToMove->clear();
-      BlocksRequired->reserve(populations[popID].vmesh->size()*BLOCK_ALLOCATION_PADDING);
-      BlocksToAdd->reserve(populations[popID].vmesh->size()*BLOCK_ALLOCATION_PADDING);
-      BlocksToRemove->reserve(populations[popID].vmesh->size());
+      BlocksToAdd->clear();
+      BlocksToMove->clear();
+      // Same capacity for all
+      if (BlocksRequired->capacity() < currSize * BLOCK_ALLOCATION_FACTOR) {
+         BlocksRequired->reserve(populations[popID].vmesh->size()*BLOCK_ALLOCATION_PADDING);
+         BlocksToAdd->reserve(populations[popID].vmesh->size()*BLOCK_ALLOCATION_PADDING);
+         BlocksToRemove->reserve(populations[popID].vmesh->size()*BLOCK_ALLOCATION_PADDING);
+         BlocksToMove->reserve(populations[popID].vmesh->size()*BLOCK_ALLOCATION_PADDING);
+      }
+      BlocksToMove->optimizeGPU();
+      BlocksToAdd->optimizeGPU();
+      phiprof::stop("Prefetch / clear / reserve");
 
       // REMOVE all blocks in this cell without content + without neighbors with content
       // better to do it in the reverse order, as then blocks at the
       // end are removed first, and we may avoid copying extra data.
+      phiprof::start("Gather blocks to remove");
       if (doDeleteEmptyBlocks) {
          for (int block_index= this->velocity_block_with_no_content_list->size()-1; block_index>=0; --block_index) {
             const vmesh::GlobalID blockGID = velocity_block_with_no_content_list->at(block_index);
@@ -573,28 +586,42 @@ namespace spatial_cell {
             }
          }
       }
+      phiprof::stop("Gather blocks to remove");
+      phiprof::start("Prefetch");
       BlocksToRemove->optimizeGPU();
+      phiprof::stop("Prefetch");
 
       // Require all blocks with neighbors in spatial or velocity space
+      phiprof::start("Gather blocks required");
       for (std::unordered_set<vmesh::GlobalID>::iterator it=neighbors_have_content.begin(); it != neighbors_have_content.end(); ++it) {
          BlocksRequired->push_back(*it);
       }
-      // Only add blocks which don't yet exist to optimize cuda parallel memory management. Find these with a kernel.
+      phiprof::stop("Gather blocks required");
+      // Only add blocks which don't yet exist to optimize cuda parallel memory management.
+      // Find these with a kernel.
+      // This kernel also figures out which blocks need to be rescued from the end-space of the block data
       const uint nBlocksRequired = BlocksRequired->size();
+      phiprof::start("Prefetch");
       BlocksRequired->optimizeGPU();
+      phiprof::stop("Prefetch");
+
+      phiprof::start("blocks_to_add_kernel");
       const uint thread_id = omp_get_thread_num();
       cudaStream_t stream = cuda_getStream();
       const int nCudaBlocks = nBlocksRequired > CUDABLOCKS ? CUDABLOCKS : nBlocksRequired;
       if (nBlocksRequired>0) {
-         dim3 block1(1,1,1);
+         //dim3 block1(1,1,1);
+         dim3 block1(CUDATHREADS,1,1); // now try with more parallelism
          update_blocks_to_add_kernel<<<nCudaBlocks, block1, 0, stream>>> (
             populations[popID].vmesh,
             BlocksRequired,
             BlocksToAdd,
+            BlocksToMove,
             nBlocksRequired
             );
          HANDLE_ERROR( cudaStreamSynchronize(stream) );
       }
+      phiprof::stop("blocks_to_add_kernel");
 
       // On-device adjustment calling happens in separate function as it is also called from within acceleration
       adjust_velocity_blocks_caller(popID);
@@ -620,29 +647,15 @@ namespace spatial_cell {
       cudaStream_t stream = cuda_getStream();
       int nCudaBlocks;
 
+      //const int nRequired = BlocksRequired->size();
+      const int nToAdd = BlocksToAdd->size();
+      const int nToRemove = BlocksToRemove->size();
+      const int nBlocks = nToAdd > nToRemove ? nToAdd : nToRemove;
+
       // Figure out which blocks must be kept, but need to be moved around inside blockContainer
       phiprof::start("Vmesh prefetch");
       populations[popID].vmesh->dev_prefetchDevice();
-      //BlocksToMove->optimizeCPU();
-      BlocksToMove->clear();
       phiprof::stop("Vmesh prefetch");
-
-      if (nBlocksAfterAdjust < nBlocksBeforeAdjust) {
-         phiprof::start("Gather moved blocks");
-         dim3 block1(1,1,1);
-         const int nMoveCandidates = nBlocksBeforeAdjust - nBlocksAfterAdjust;
-         BlocksToMove->reserve(nMoveCandidates);
-         nCudaBlocks = nMoveCandidates > CUDABLOCKS ? CUDABLOCKS : nMoveCandidates;
-         update_blocks_to_move_kernel<<<nCudaBlocks, block1, 0, stream>>> (
-            populations[popID].vmesh,
-            BlocksRequired,
-            BlocksToMove,
-            nBlocksBeforeAdjust,
-            nBlocksAfterAdjust
-            );
-         HANDLE_ERROR( cudaStreamSynchronize(stream) );
-         phiprof::stop("Gather moved blocks");
-      }
 
       // Grow the vectors, if necessary
       if (nBlocksAfterAdjust > nBlocksBeforeAdjust) {
@@ -656,9 +669,6 @@ namespace spatial_cell {
          phiprof::stop("Vmesh and VBC lists prefetch");
       }
 
-      const int nToAdd = BlocksToAdd->size();
-      const int nToRemove = BlocksToRemove->size();
-      const int nBlocks = nToAdd > nToRemove ? nToAdd : nToRemove;
       nCudaBlocks = nBlocks > CUDABLOCKS ? CUDABLOCKS : nBlocks;
 
       // phiprof::start("Block lists prefetch");
@@ -709,6 +719,10 @@ namespace spatial_cell {
       HANDLE_ERROR( cudaMemcpyAsync(&host_rhoLossAdjust, returnRealf[thread_id], sizeof(Realf), cudaMemcpyDeviceToHost, stream) );
       HANDLE_ERROR( cudaStreamSynchronize(stream) );
       this->populations[popID].RHOLOSSADJUST += host_rhoLossAdjust;
+      BlocksToMove->clear();
+      BlocksToAdd->clear();
+      BlocksToRemove->clear();
+      BlocksRequired->clear();
 
       // Shrink the vectors, if necessary
       if (nBlocksAfterAdjust < nBlocksBeforeAdjust) {
@@ -970,13 +984,6 @@ namespace spatial_cell {
                block_lengths.push_back(offsetof(spatial_cell::Population, N_blocks));
             }
          }
-         // Copy random number generator state variables
-         //if ((SpatialCell::mpi_transfer_type & Transfer::RANDOMGEN) != 0) {
-         //   displacements.push_back((uint8_t*)get_rng_state_buffer() - (uint8_t*)this);
-         //   block_lengths.push_back(256/8);
-         //   displacements.push_back((uint8_t*)get_rng_data_buffer() - (uint8_t*)this);
-         //   block_lengths.push_back(sizeof(random_data));
-         //}
       }
 
       void* address = this;
@@ -1158,7 +1165,6 @@ namespace spatial_cell {
          velocity_block_with_no_content_list,
          velocity_block_min_value
          );
-
       HANDLE_ERROR( cudaStreamSynchronize(stream) );
       phiprof::stop("CUDA update spatial cell block lists kernel");
       phiprof::start("VB content list prefetches");
