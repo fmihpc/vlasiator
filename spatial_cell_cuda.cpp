@@ -94,21 +94,21 @@ __global__ void update_neighbours_have_content_kernel (
    const int warpSize = blockDim.x*blockDim.y*blockDim.z;
    const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
 
-   const uint localContentBlocks = velocity_block_with_content_list->size();
+   const uint32_t localContentBlocks = velocity_block_with_content_list->size();
    if ((ti==0) && (blocki==0)) printf("velocity_block_with_content_list size %ld\n",localContentBlocks);
 
    for (uint index=blocki*warpSize; index<localContentBlocks; index += cudaBlocks*warpSize) {
       if (index+ti < localContentBlocks) {
-         vmesh::GlobalID block = velocity_block_with_content_list->at(index);
+         vmesh::GlobalID block = velocity_block_with_content_list->at(index+ti);
          // Insert self
          // auto it = neighbors_have_content_2->device_find(block);
          // if (it != neighbors_have_content_2->device_end()) {
          //neighbors_have_content_2->set_element(block,0);
          //printf("Adding element from index %d as %d\n",index+ti,block);
-         auto it = neighbors_have_content_2->device_find(block);
-         if (it == neighbors_have_content_2->device_end()) {
-            neighbors_have_content_2->set_element(block,block);
-         }
+         // auto it = neighbors_have_content_2->device_find(block);
+         // if (it == neighbors_have_content_2->device_end()) {
+         neighbors_have_content_2->set_element(block,block);
+         // }
 
          velocity_block_indices_t indices;
          //velocity_block_indices_t neighbourindices;
@@ -122,13 +122,16 @@ __global__ void update_neighbours_have_content_kernel (
                   neighbourindices[1] = indices[1] + offset_vy;
                   neighbourindices[2] = indices[2] + offset_vz;
                   const vmesh::GlobalID neighbor_block
-                     = vmesh->findBlock(neighbourindices);
+                     = vmesh->getGlobalID(neighbourindices);
                   if (neighbor_block != vmesh->invalidGlobalID()) {
-                     auto it = neighbors_have_content_2->device_find(neighbor_block);
-                     if (it == neighbors_have_content_2->device_end()) {
-                        neighbors_have_content_2->set_element(neighbor_block,neighbor_block);
-                     }
+                     // auto it = neighbors_have_content_2->device_find(neighbor_block);
+                     // if (it == neighbors_have_content_2->device_end()) {
+                     neighbors_have_content_2->set_element(neighbor_block,neighbor_block);
+                        //}
                   } // if
+                  else {
+                     printf("invalid block neighbour GID! for neighbourindices %lu %lu %lu     and block %lu indices %lu %lu %lu     offset %lu %lu %lu\n",(unsigned long)neighbourindices[0],(unsigned long)neighbourindices[1],(unsigned long)neighbourindices[2],(unsigned long)block,(unsigned long)indices[0],(unsigned long)indices[1],(unsigned long)indices[2],(unsigned long)offset_vx,(unsigned long)offset_vy,(unsigned long)offset_vz);
+                  }
                } // for vz
             } // for vy
          } // for vx

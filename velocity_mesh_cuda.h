@@ -333,16 +333,18 @@ namespace vmesh {
       if (indices[0] >= (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[0]) return invalidGlobalID();
       if (indices[1] >= (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[1]) return invalidGlobalID();
       if (indices[2] >= (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[2]) return invalidGlobalID();
-      return indices[2]*(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[1]*(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[0]
-              + indices[1]*(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[0] + indices[0];
+      return indices[0] + indices[1] * (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[0]
+         + indices[2] * (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[1]
+         * (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[0];
    }
 
    CUDA_HOSTDEV inline vmesh::GlobalID VelocityMesh::getGlobalID(const vmesh::LocalID& i,const vmesh::LocalID& j,const vmesh::LocalID& k) const {
-      if (i >= (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[0] || j >= (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[1] || k >= (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[2]) {
-         return invalidGlobalID();
-      }
-      return i + j*(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[0]
-              + k*(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[0]*(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[1];
+      if (i >= (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[0]) return invalidGlobalID();
+      if (j >= (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[1]) return invalidGlobalID();
+      if (k >= (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[2]) return invalidGlobalID();
+      return i + j * (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[0]
+         + k * (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[1]
+         * (*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[0];
    }
 
    CUDA_HOSTDEV inline split::SplitVector<vmesh::GlobalID>& VelocityMesh::getGrid() {
