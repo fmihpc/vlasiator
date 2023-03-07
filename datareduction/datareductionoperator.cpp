@@ -1655,11 +1655,11 @@ namespace DRO {
        std::vector<Realf> fmu   (Parameters::PADmubins);
        std::vector<int>   fcount(Parameters::PADmubins);
 
-       std::array<Realf,3> bulkV = {parameters[CellParams::VX], parameters[CellParams::VY], parameters[CellParams::VZ]};
+       std::array<Realf,3> bulkV = {cell->parameters[CellParams::VX], cell->parameters[CellParams::VY], cell->parameters[CellParams::VZ]};
 
-        std::array<Realf,3> B = {parameters[CellParams::PERBXVOL] +  parameters[CellParams::BGBXVOL],
-                                 parameters[CellParams::PERBYVOL] +  parameters[CellParams::BGBYVOL],
-	                         parameters[CellParams::PERBZVOL] +  parameters[CellParams::BGBZVOL]};
+        std::array<Realf,3> B = {cell->parameters[CellParams::PERBXVOL] +  cell->parameters[CellParams::BGBXVOL],
+                                 cell->parameters[CellParams::PERBYVOL] +  cell->parameters[CellParams::BGBYVOL],
+	                         cell->parameters[CellParams::PERBZVOL] +  cell->parameters[CellParams::BGBZVOL]};
 
         Realf Bnorm           = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
         std::array<Realf,3> b = {B[0]/Bnorm, B[1]/Bnorm, B[2]/Bnorm};
