@@ -733,24 +733,24 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
          neighbor_ptrs.push_back(mpiGrid[neighbor_id]);
       }
       // TODO: Vectorize / GPUify
-      if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
-         for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
-            density_pre_adjust += cell->get_data(popID)[i];
-         }
-      }
+      // if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
+      //    for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
+      //       density_pre_adjust += cell->get_data(popID)[i];
+      //    }
+      // }
       cell->adjust_velocity_blocks(neighbor_ptrs,popID);
 
       // TODO: Vectorize / GPUify
-      if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
-         for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
-            density_post_adjust += cell->get_data(popID)[i];
-         }
-         if (density_post_adjust != 0.0) {
-            for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
-               cell->get_data(popID)[i] *= density_pre_adjust/density_post_adjust;
-            }
-         }
-      }
+      // if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
+      //    for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
+      //       density_post_adjust += cell->get_data(popID)[i];
+      //    }
+      //    if (density_post_adjust != 0.0) {
+      //       for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
+      //          cell->get_data(popID)[i] *= density_pre_adjust/density_post_adjust;
+      //       }
+      //    }
+      // }
    }
    phiprof::stop("Adjusting blocks");
 
