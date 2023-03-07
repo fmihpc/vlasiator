@@ -78,7 +78,7 @@ uint P::tstep_min = 0;
 uint P::tstep_max = 0;
 uint P::diagnosticInterval = numeric_limits<uint>::max();
 bool P::writeInitialState = true;
-
+bool P::writeFullBGB = false;
 
 bool P::meshRepartitioned = true;
 bool P::prepareForRebalance = false;
@@ -222,6 +222,8 @@ bool P::addParameters() {
 
    RP::add("io.write_initial_state",
            "Write initial state, not even the 0.5 dt propagation is done. Do not use for restarting. ", false);
+
+   RP::add("io.write_full_bgb_data", "Write a dedicated file containing all BGB components and first derivatives.", false);
 
    RP::add("io.restart_walltime_interval",
            "Save the complete simulation in given walltime intervals. Negative values disable writes.", -1.0);
@@ -468,6 +470,7 @@ void Parameters::getParameters() {
    RP::get("io.system_write_distribution_shell_stride", P::systemWriteDistributionWriteShellStride);
    RP::get("io.system_write_fsgrid_variables", P::systemWriteFsGrid);
    RP::get("io.write_initial_state", P::writeInitialState);
+   RP::get("io.write_full_bgb_data", P::writeFullBGB);
    RP::get("io.restart_walltime_interval", P::saveRestartWalltimeInterval);
    RP::get("io.number_of_restarts", P::exitAfterRestarts);
    RP::get("io.vlsv_buffer_size", P::vlsvBufferSize);

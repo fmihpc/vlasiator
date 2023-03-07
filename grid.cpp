@@ -265,7 +265,9 @@ void initializeGrids(
    // Update technicalGrid
    technicalGrid.updateGhostCells(); // This needs to be done at some point
 
-   if (!P::isRestart) {
+   if (!P::isRestart && !P::writeFullBGB) {
+      // If we're only after writing out the full BGB we don't need all this shebang
+
       //Initial state based on project, background field in all cells
       //and other initial values in non-sysboundary cells
       phiprof::start("Apply initial state");
@@ -351,6 +353,12 @@ void initializeGrids(
    getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
 
    phiprof::stop("setProjectBField");
+
+   // If we only want the full BGB for writeout, we have it now and we can return early.
+   if(P::writeFullBGB == true) {
+      phiprof::stop("Set initial state");
+      return;
+   }
 
    if (P::isRestart == false) {
       // Apply boundary conditions so that we get correct initial moments

@@ -362,18 +362,24 @@ namespace fsgrids {
       BGBXVOL,   /*!< background magnetic field x-component averaged over spatial cell.*/
       BGBYVOL,   /*!< background magnetic field y-component averaged over spatial cell.*/
       BGBZVOL,   /*!< background magnetic field z-component averaged over spatial cell.*/
+      dBGBxdx,     /*!< Derivative of background face-averaged Bx in x-direction. */
       dBGBxdy,     /*!< Derivative of background face-averaged Bx in y-direction. */
       dBGBxdz,     /*!< Derivative of background face-averaged Bx in z-direction. */
       dBGBydx,     /*!< Derivative of background face-averaged By in x-direction. */
+      dBGBydy,     /*!< Derivative of background face-averaged By in y-direction. */
       dBGBydz,     /*!< Derivative of background face-averaged By in z-direction. */
       dBGBzdx,     /*!< Derivative of background face-averaged Bz in x-direction. */
       dBGBzdy,     /*!< Derivative of background face-averaged Bz in y-direction. */
+      dBGBzdz,     /*!< Derivative of background face-averaged Bz in z-direction. */
+      dBGBXVOLdx,  /*!< Derivative of background volume-averaged Bx in x-direction. */
       dBGBXVOLdy,  /*!< Derivative of background volume-averaged Bx in y-direction. */
       dBGBXVOLdz,  /*!< Derivative of background volume-averaged Bx in z-direction. */
       dBGBYVOLdx,  /*!< Derivative of background volume-averaged By in x-direction. */
+      dBGBYVOLdy,  /*!< Derivative of background volume-averaged By in y-direction. */
       dBGBYVOLdz,  /*!< Derivative of background volume-averaged By in z-direction. */
       dBGBZVOLdx,  /*!< Derivative of background volume-averaged Bz in x-direction. */
       dBGBZVOLdy,  /*!< Derivative of background volume-averaged Bz in y-direction. */
+      dBGBZVOLdz,  /*!< Derivative of background volume-averaged Bz in z-direction. */
       N_BGB
    };
    

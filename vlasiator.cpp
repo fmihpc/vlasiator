@@ -473,6 +473,71 @@ int main(int argn,char* args[]) {
    // Free up memory:
    readparameters.~Readparameters();
 
+   if(P::writeFullBGB) {
+      logFile << "Writing out full BGB components and derivatives." << endl << writeVerbose;
+
+      P::systemWriteDistributionWriteStride.push_back(0);
+      P::systemWriteName.push_back("bgb");
+      P::systemWriteDistributionWriteXlineStride.push_back(0);
+      P::systemWriteDistributionWriteYlineStride.push_back(0);
+      P::systemWriteDistributionWriteZlineStride.push_back(0);
+      P::systemWritePath.push_back("./");
+      P::systemWriteFsGrid.push_back(true);
+
+      for(uint si=0; si<P::systemWriteName.size(); si++) {
+         P::systemWrites.push_back(0);
+      }
+
+      const bool writeGhosts = true;
+      if( writeGrid(mpiGrid,
+            perBGrid,
+            EGrid,
+            EHallGrid,
+            EGradPeGrid,
+            momentsGrid,
+            dPerBGrid,  
+            dMomentsGrid,
+            BgBGrid,
+            volGrid,
+            technicalGrid,
+            version,
+            config,
+            &outputReducer,
+            P::systemWriteName.size()-1,
+            P::restartStripeFactor,
+            writeGhosts
+         ) == false
+      ) {
+         cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
+      }
+
+      phiprof::stop("Initialization");
+      phiprof::stop("main");
+      
+      phiprof::print(MPI_COMM_WORLD,"phiprof");
+      
+      if (myRank == MASTER_RANK) logFile << "(MAIN): Exiting." << endl << writeVerbose;
+      logFile.close();
+      if (P::diagnosticInterval != 0) diagnostic.close();
+      
+      perBGrid.finalize();
+      perBDt2Grid.finalize();
+      EGrid.finalize();
+      EDt2Grid.finalize();
+      EHallGrid.finalize();
+      EGradPeGrid.finalize();
+      momentsGrid.finalize();
+      momentsDt2Grid.finalize();
+      dPerBGrid.finalize();
+      dMomentsGrid.finalize();
+      BgBGrid.finalize();
+      volGrid.finalize();
+      technicalGrid.finalize();
+
+      MPI_Finalize();
+      return 0;
+   }
+
    // Run the field solver once with zero dt. This will initialize
    // Fieldsolver dt limits, and also calculate volumetric B-fields.
    // At restart, all we need at this stage has been read from the restart, the rest will be recomputed in due time.
