@@ -1,0 +1,85 @@
+CMP = mpic++
+LNK = mpic++
+#CMP = tau_cxx.sh
+#LNK = tau_cxx.sh
+
+#======== Vectorization ==========
+#Set vector backend type for vlasov solvers, sets precision and length. 
+#NOTE this has to have the same precision as the distribution function define (DISTRIBUTION_FP_PRECISION)
+#Options: 
+# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VEC4D_FALLBACK, VEC4F_FALLBACK, VEC8F_FALLBACK
+
+ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
+#Single-precision        
+	#VECTORCLASS = VEC_FALLBACK_GENERIC
+	VECTORCLASS = VEC8F_AGNER
+	#VECTORCLASS = VEC8F_FALLBACK
+else
+#Double-precision
+	VECTORCLASS = VEC4D_AGNER
+	#VECTORCLASS = VEC_FALLBACK_GENERIC
+	#VECTORCLASS = VEC8D_FALLBACK
+endif
+
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+CXXFLAGS +=  -DPAPI_MEM
+
+
+#======== Allocator =========
+#Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
+#Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
+CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+
+
+#======= Compiler and compilation flags =========
+# NOTES on compiler flags:
+# CXXFLAGS is for compiler flags, they are always used
+# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
+# LDFLAGS flags for linker
+
+#-DNO_WRITE_AT_ALL:  Define to disable write at all to 
+#                    avoid memleak (much slower IO)
+#-DMPICH_IGNORE_CXX_SEEK: Ignores some multiple definition 
+#                         errors that come up when using 
+#                         mpi.h in c++ on Cray
+
+FLAGS =
+CXXFLAGS += -I ${GITHUB_WORKSPACE}/libraries/include -I/usr/include/eigen3 -L ${GITHUB_WORKSPACE}/libraries/lib -march=native -O3 -std=c++17 -fopenmp -Wall -Wno-unused -fabi-version=0 -mavx -g -Wno-cast-function-type
+MATHFLAGS = #-ffast-math
+LDFLAGS = -L ${GITHUB_WORKSPACE}/libraries/lib -Wl,-rpath=${GITHUB_WORKSPACE}/libraries/lib -g
+LIB_MPI = -lgomp 
+
+
+#======== Libraries ===========
+
+LIBRARY_PREFIX = ${GITHUB_WORKSPACE}/libraries
+
+INC_BOOST =
+LIB_BOOST = -lboost_program_options
+
+INC_JEMALLOC = -I $(LIBRARY_PREFIX)/include
+LIB_JEMALLOC = $(LIBRARY_PREFIX)/lib/libjemalloc.a
+
+INC_ZOLTAN =
+LIB_ZOLTAN = -lzoltan
+
+INC_VLSV = -I $(LIBRARY_PREFIX)/include
+LIB_VLSV = -L $(LIBRARY_PREFIX)/lib -lvlsv
+
+INC_SILO =
+LIB_SILO = -lsiloh5
+
+INC_PAPI =
+LIB_PAPI = -lpapi
+
+INC_DCCRG =
+
+INC_FSGRID = -I $(LIBRARY_PREFIX)/include
+
+LIB_PROFILE = -I $(LIBRARY_PREFIX)/include ${GITHUB_WORKSPACE}/libraries/lib/libphiprof.a
+INC_PROFILE =
+INC_TOPO =
+

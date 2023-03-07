@@ -54,6 +54,7 @@
 #include "../backgroundfield/backgroundfield.h"
 #include "../backgroundfield/constantfield.hpp"
 #include "Shocktest/Shocktest.h"
+#include "../sysboundary/sysboundarycondition.h"
 
 using namespace std;
 
@@ -216,7 +217,7 @@ namespace projects {
 
       // Passing true for the doNotSkip argument as we want to calculate 
       // the moment no matter what when this function is called.
-      calculateCellMoments(cell,true,true);
+      calculateCellMoments(cell,true,false,true);
    }
 
    std::vector<vmesh::GlobalID> Project::findBlocksToInitialize(spatial_cell::SpatialCell* cell,const uint popID) const {
@@ -337,11 +338,13 @@ namespace projects {
          }
 
          const Real maxValue = setVelocityBlock(cell,blockLID,popID);
-         if (maxValue < getObjectWrapper().particleSpecies[popID].sparseMinValue) removeList.push_back(blockGID);
+         if (maxValue < cell->getVelocityBlockMinValue(popID)) {
+            removeList.push_back(blockGID);
+         }
       }
 
-      // Get AMR refinement criterion and use it to test which blocks should be refined
-      amr_ref_criteria::Base* refCriterion = getObjectWrapper().amrVelRefCriteria.create(Parameters::amrVelRefCriterion);
+      // Get VAMR refinement criterion and use it to test which blocks should be refined
+      vamr_ref_criteria::Base* refCriterion = getObjectWrapper().vamrVelRefCriteria.create(Parameters::vamrVelRefCriterion);
       if (refCriterion == NULL) {
          if (rescalesDensity(popID) == true) rescaleDensity(cell,popID);
          return;
@@ -355,7 +358,7 @@ namespace projects {
       // refinement level, or until there are no more blocks left to refine
       bool refine = true;
       uint currentLevel = 0;
-      if (currentLevel == Parameters::amrMaxVelocityRefLevel) refine = false;
+      if (currentLevel == Parameters::vamrMaxVelocityRefLevel) refine = false;
       while (refine == true) {
          removeList.clear();
          
@@ -373,7 +376,7 @@ namespace projects {
             cell->fetch_data<1>(blockGID,vmesh,cell->get_data(0,popID),array);
 
             // If block should be refined, add it to refine list
-            if (refCriterion->evaluate(array,popID) > Parameters::amrRefineLimit) {
+            if (refCriterion->evaluate(array,popID) > Parameters::vamrRefineLimit) {
                refineList.push_back(blockGID);
             }
          }
@@ -392,8 +395,9 @@ namespace projects {
             const vmesh::GlobalID blockGID = it->first;
             const vmesh::LocalID blockLID = it->second;
             const Real maxValue = setVelocityBlock(cell,blockLID,popID);
-            if (maxValue <= getObjectWrapper().particleSpecies[popID].sparseMinValue) 
-              removeList.push_back(it->first);
+            if (maxValue <= cell->getVelocityBlockMinValue(popID)) {
+               removeList.push_back(it->first);
+            }
          }
 
          // Remove blocks with f below sparse min value
@@ -401,7 +405,7 @@ namespace projects {
 
          if (refineList.size() == 0) refine = false;
          ++currentLevel;
-         if (currentLevel == Parameters::amrMaxVelocityRefLevel) refine = false;
+         if (currentLevel == Parameters::vamrMaxVelocityRefLevel) refine = false;
       }
 
       delete refCriterion;
@@ -512,7 +516,7 @@ namespace projects {
    }
 
    /*
-     Refine cells of mpiGrid. Each project that wants refinement shoudl implement this function. 
+     Refine cells of mpiGrid. Each project that wants refinement should implement this function. 
      Base class function prints a warning and does nothing.
     */
    bool Project::refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
@@ -525,7 +529,7 @@ namespace projects {
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       
       if(myRank == MASTER_RANK) std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
-      
+
       std::vector<bool> refineSuccess;
       
       for (uint i = 0; i < 2 * P::amrBoxHalfWidthX; ++i) {
@@ -596,6 +600,74 @@ namespace projects {
       }
          
          return true;
+   }
+
+   bool Project::adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+      int myRank;
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+      if (myRank == MASTER_RANK) {
+         cerr << "(Project.cpp) Base class 'adaptRefinement' in " << __FILE__ << ":" << __LINE__ << " called. Function is not implemented for project." << endl;
+      }
+
+      return false;
+   }
+
+   bool Project::forceRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+      int myRank;
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+      if (myRank == MASTER_RANK) {
+         cerr << "(Project.cpp) Base class 'forceRefinement' in " << __FILE__ << ":" << __LINE__ << " called. Function is not implemented for project." << endl;
+      }
+
+      return false;
+   }
+
+   bool Project::filterRefined( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+      int myRank;       
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+
+      auto cells = getLocalCells();
+      std::map<CellID, SpatialCell> cellsMap;
+      for (CellID id : cells) {
+         if (mpiGrid[id]->parameters[CellParams::RECENTLY_REFINED]) {
+            cellsMap.insert({id, *mpiGrid[id]});
+         }
+      }
+
+      for (auto cellPair : cellsMap) {
+         CellID id = cellPair.first;
+         // To preserve the mean, we must only consider refined cells
+         int refLevel = mpiGrid.get_refinement_level(id);
+         std::vector<CellID> refinedNeighbours;
+         for (auto& neighbour : *mpiGrid.get_neighbors_of(id, NEAREST_NEIGHBORHOOD_ID)) {
+            if (mpiGrid[neighbour.first]->parameters[CellParams::RECENTLY_REFINED] && mpiGrid.get_refinement_level(neighbour.first) == refLevel) {
+               refinedNeighbours.push_back(neighbour.first);
+            }
+         }
+
+         if (refinedNeighbours.size() == 7) {
+            continue;   // Simple heuristic, in these cases all neighbours are from the same parent cell, ergo are identical
+         }
+
+         // In boxcar filter, we take the average of each of the neighbours and the cell itself. For each missing neighbour, add the cell one more time
+         Real fluffiness = (Real) refinedNeighbours.size() / 27.0;
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+            SBC::averageCellData(mpiGrid, refinedNeighbours, &cellPair.second, popID, fluffiness);
+         }
+
+         calculateCellMoments(&cellPair.second, true, false);
+      }
+
+      for (auto cellPair : cellsMap) {
+         *mpiGrid[cellPair.first] = cellPair.second;
+         mpiGrid[cellPair.first]->parameters[CellParams::RECENTLY_REFINED] = 0;
+      }
+
+      if (myRank == MASTER_RANK) {
+         std::cout << "Filtered refined cells!" << std::endl;
+      }
+
+      return true;
    }
    
 Project* createProject() {

@@ -1,9 +1,13 @@
 *.dat
+logfile.txt
+phiprof*.txt
+diagnostic.txt
 *.vlsv
 *.silo
 *.o
 vscode/
 .vscode/
+cppcheck/
 version.cpp
 \#*\#
 *~
@@ -11,3 +15,5 @@ nbproject
 vlasiator
 vlasiator+pat
 nbproject
+vlsvdiff_DP
+vlsvextract_DP

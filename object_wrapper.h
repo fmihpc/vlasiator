@@ -28,20 +28,20 @@
 #include "definitions.h"
 #include "item_storage.h"
 #include "object_factory.h"
-#include "amr_refinement_criteria.h"
-#include "mesh_data_container.h"
+#include "vamr_refinement_criteria.h"
 #include "particle_species.h"
 #include "projects/project.h"
 #include "velocity_mesh_parameters.h"
+#include "sysboundary/sysboundary.h"
 
 struct ObjectWrapper {
    ObjectWrapper() { }
 
-   ObjectFactory<amr_ref_criteria::Base> amrVelRefCriteria; /**< Factory for all known AMR refinement criteria.*/
-   mesh::MeshDataContainer meshData;                        /**< Container for user-defined mesh data.*/
+   ObjectFactory<vamr_ref_criteria::Base> vamrVelRefCriteria; /**< Factory for all known VAMR refinement criteria.*/
    std::vector<species::Species> particleSpecies;           /**< Parameters for all particle species.*/
    projects::Project*                    project;           /**< Simulated project.*/
    std::vector<vmesh::MeshParameters> velocityMeshes;       /**< Parameters for velocity mesh(es).*/
+   SysBoundary sysBoundaryContainer;                        /**< Container for sysboundaries.*/
 
    bool addParameters();                                    /**< Add config file parameters for objects held in this wrapper */
    bool addPopulationParameters();                          /**< After parsing the names of populations, create parameters for each of them */

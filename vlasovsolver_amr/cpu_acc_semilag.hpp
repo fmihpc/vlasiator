@@ -63,7 +63,7 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell, uint map_order, const Real d
    /*compute transform, forward in time and backward in time*/
    phiprof::start("compute-transform");
 
-   //compute the transform performed in this acceleration (ok for AMR)
+   //compute the transform performed in this acceleration
    Transform<Real,3,Affine> fwd_transform= compute_acceleration_transformation(spatial_cell,dt);
    Transform<Real,3,Affine> bwd_transform= fwd_transform.inverse();
    phiprof::stop("compute-transform");
@@ -123,7 +123,7 @@ void cpu_accelerate_cell(SpatialCell* spatial_cell, uint map_order, const Real d
    // BEGIN TEST
    if (counter % 2 != 0) {
       phiprof::start("mesh coarsening");
-      amr_ref_criteria::Base* refCriterion = getObjectWrapper().amrVelRefCriteria.create(Parameters::amrVelRefCriterion);
+      vamr_ref_criteria::Base* refCriterion = getObjectWrapper().amrVelRefCriteria.create(Parameters::vamrVelRefCriterion);
       if (refCriterion != NULL) {
          refCriterion->initialize("");
          spatial_cell->coarsen_blocks(refCriterion);

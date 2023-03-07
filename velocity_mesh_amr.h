@@ -33,7 +33,7 @@
 #include <algorithm>
 
 #ifndef NDEBUG
-   #define DEBUG_AMR_MESH
+   #define DEBUG_VAMR_MESH
 #endif
 
 #include "velocity_mesh_parameters.h"
@@ -255,7 +255,7 @@ namespace vmesh {
    
    template<typename GID,typename LID> inline
    bool VelocityMesh<GID,LID>::copy(const LID& sourceLID,const LID& targetLID) {
-      #ifdef DEBUG_AMR_MESH
+      #ifdef DEBUG_VAMR_MESH
       bool ok=true;
       if (sourceLID >= localToGlobalMap.size()) ok=false;
       if (targetLID >= localToGlobalMap.size()) ok=false;
@@ -269,7 +269,7 @@ namespace vmesh {
       const GID sourceGID = localToGlobalMap[sourceLID]; // block at the end of list
       const GID targetGID = localToGlobalMap[targetLID]; // removed block
 
-      #ifdef DEBUG_AMR_MESH
+      #ifdef DEBUG_VAMR_MESH
       if (globalToLocalMap.find(sourceGID) == globalToLocalMap.end()) ok=false;
       if (globalToLocalMap.find(targetGID) == globalToLocalMap.end()) ok=false;
       if (ok == false) {
@@ -377,7 +377,7 @@ namespace vmesh {
 
    template<typename GID,typename LID> inline
    void VelocityMesh<GID,LID>::getBlockInfo(const GID& globalID,Real* array) const {
-      #ifdef DEBUG_AMR_MESH
+      #ifdef DEBUG_VAMR_MESH
       if (globalID == invalidGlobalID()) {
          for (int i=0; i<6; ++i) array[i] = std::numeric_limits<Real>::infinity();
       }
@@ -451,7 +451,7 @@ namespace vmesh {
    GID VelocityMesh<GID,LID>::getGlobalID(const LID& localID) const {
       if (localID >= localToGlobalMap.size()) return invalidGlobalID();
       
-      #ifdef DEBUG_AMR_MESH
+      #ifdef DEBUG_VAMR_MESH
       bool ok=true;
       const GID globalID = localToGlobalMap[localID];
       if (globalToLocalMap.find(globalID) == globalToLocalMap.end()) ok=false;
@@ -624,7 +624,7 @@ namespace vmesh {
    
    template<typename GID,typename LID> inline
    void VelocityMesh<GID,LID>::getNeighborsExistingAtOffset(const GID& globalID,const int& i_off,const int& j_off,const int& k_off,std::vector<LID>& neighborLocalIDs,int32_t& refLevelDifference) const {
-      #ifdef DEBUG_AMR_MESH
+      #ifdef DEBUG_VAMR_MESH
       if (abs(i_off) > 1 || (abs(j_off) > 1 || abs(k_off) > 1)) { 
          std::stringstream ss;
          ss << "VelocityMesh ERROR: invalid offsets in getNeighborsExistingAtOffset " << i_off << ' ' << j_off << ' ' << k_off << std::endl;
@@ -935,7 +935,7 @@ namespace vmesh {
       const LID lastLID = size()-1;
       const GID lastGID = localToGlobalMap[lastLID];
 	  
-      #ifdef DEBUG_AMR_MESH
+      #ifdef DEBUG_VAMR_MESH
          bool ok = true;
          if (globalToLocalMap.find(lastGID) == globalToLocalMap.end()) ok = false;
          if (ok == false) {
