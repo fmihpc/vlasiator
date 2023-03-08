@@ -14,6 +14,24 @@ static vmesh::MeshWrapper *meshWrapper;
 __device__ vmesh::MeshWrapper *meshWrapperDev;
 #endif
 
+__global__ void debug_kernel(
+   const uint popID
+   ) {
+   printf("device popID %d\n",popID);
+   //vmesh::printVelocityMesh(0);
+
+      printf("Mesh size\n");
+      printf(" %d %d %d \n",(*vmesh::getMeshWrapper()->velocityMeshes)[popID].gridLength[0],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].gridLength[1],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].gridLength[2]);
+      printf("Block size (max reflevel %d)\n",(*vmesh::getMeshWrapper()->velocityMeshes)[popID].refLevelMaxAllowed);
+      printf(" %d %d %d \n",(*vmesh::getMeshWrapper()->velocityMeshes)[popID].blockLength[0],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].blockLength[1],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].blockLength[2]);
+      printf("Mesh limits \n");
+      printf(" %f %f %f %f \n",(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshMinLimits[0],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshLimits[0],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshMaxLimits[0],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshLimits[1]);
+      printf(" %f %f %f %f \n",(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshMinLimits[1],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshLimits[2],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshMaxLimits[1],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshLimits[3]);
+      printf(" %f %f %f %f \n",(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshMinLimits[2],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshLimits[4],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshMaxLimits[2],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshLimits[5]);
+
+}
+
+
 void vmesh::allocMeshWrapper() {
    meshWrapper = new vmesh::MeshWrapper();
 }
@@ -30,14 +48,12 @@ CUDA_HOSTDEV vmesh::MeshWrapper* vmesh::dev_getMeshWrapper() {
    return meshWrapperDev;
 }
 void vmesh::MeshWrapper::uploadMeshWrapper() {
-   // Create (copy) splitvector of meshparams in unified memory
-   split::SplitVector<vmesh::MeshParameters> *velocityMeshesDev =
-      new split::SplitVector<vmesh::MeshParameters>(*(meshWrapper->velocityMeshes));
-   // Upload it to GPU
-   split::SplitVector<vmesh::MeshParameters> *velocityMeshesDevUp = velocityMeshesDev->upload();
+   // Upload splitvector of meshparams to GPU
+   split::SplitVector<vmesh::MeshParameters> *velocityMeshesDevUp = meshWrapper->velocityMeshes->upload();
    // Create temporary copy of meshWrapper
    vmesh::MeshWrapper meshWrapperTemp(*meshWrapper);
    // Make it point to splitvector in unified (device) memory
+   // If further splitvectors are added to the MeshWrapper, this needs to be done to every one of them.
    meshWrapperTemp.velocityMeshes = velocityMeshesDevUp;
    // Allocate device-side room for meshWrapper
    vmesh::MeshWrapper *meshWrapperDevUpload;
@@ -46,7 +62,7 @@ void vmesh::MeshWrapper::uploadMeshWrapper() {
    HANDLE_ERROR( cudaMemcpy(meshWrapperDevUpload, &meshWrapperTemp, sizeof(vmesh::MeshWrapper),cudaMemcpyHostToDevice) );
    // Make __device__ pointer (symbol) point to this MeshWrapper
    HANDLE_ERROR( cudaMemcpyToSymbol(meshWrapperDev, meshWrapperDevUpload, sizeof(meshWrapperDev)) );
-   // Don't bother freeing this small amount of device memory
+   // Don't bother freeing this small amount of device memory (could only be done on complete program exit)
 }
 #endif
 
@@ -81,29 +97,15 @@ void vmesh::MeshWrapper::initVelocityMeshes(const uint nMeshes) {
       vMesh->initialized = true;
    }
 #ifdef USE_CUDA
-   // Now all velocity meshes have been initialized on host 
+   // Now all velocity meshes have been initialized on host
    vmesh::MeshWrapper::uploadMeshWrapper();
 #endif
+
+   vmesh::printVelocityMesh(0);
+   HANDLE_ERROR( cudaDeviceSynchronize() );
+   dim3 block(1,1,1);
+   debug_kernel<<<1, block, 0, 0>>> (0);
+   HANDLE_ERROR( cudaDeviceSynchronize() );
+
    return;
-}
-
-CUDA_HOSTDEV void vmesh::MeshWrapper::printVelocityMesh(const uint meshIndex) {
-   //vmesh::MeshParameters *vMesh = &(meshWrapper->velocityMeshes->at(meshIndex));
-   //std::cerr<<"printing mesh "<<meshIndex<<" at "<<vMesh<<" for wrapper "<<meshWrapper<<std::endl;
-   vmesh::MeshParameters *vMesh = &(getMeshWrapper()->velocityMeshes->at(meshIndex));
-
-   printf("\nPrintout of velocity mesh %d \n",meshIndex);
-   printf("Mesh size\n");
-   printf(" %d %d %d \n",vMesh->gridLength[0],vMesh->gridLength[1],vMesh->gridLength[2]);
-   printf("Block size (max reflevel %d)\n",vMesh->refLevelMaxAllowed);
-   printf(" %d %d %d \n",vMesh->blockLength[0],vMesh->blockLength[1],vMesh->blockLength[2]);
-   printf("Mesh limits \n");
-   printf(" %f %f %f %f \n",vMesh->meshMinLimits[0],vMesh->meshLimits[0],vMesh->meshMaxLimits[0],vMesh->meshLimits[1]);
-   printf(" %f %f %f %f \n",vMesh->meshMinLimits[1],vMesh->meshLimits[2],vMesh->meshMaxLimits[1],vMesh->meshLimits[3]);
-   printf(" %f %f %f %f \n",vMesh->meshMinLimits[2],vMesh->meshLimits[4],vMesh->meshMaxLimits[2],vMesh->meshLimits[5]);
-   printf("Derived mesh paramters \n");
-   printf(" gridSize %f %f %f \n",vMesh->gridSize[0],vMesh->gridSize[1],vMesh->gridSize[2]);
-   printf(" blockSize %f %f %f \n",vMesh->blockSize[0],vMesh->blockSize[1],vMesh->blockSize[2]);
-   printf(" cellSize %f %f %f \n",vMesh->cellSize[0],vMesh->cellSize[1],vMesh->cellSize[2]);
-   printf(" max velocity blocks %d \n\n",vMesh->max_velocity_blocks);
 }
