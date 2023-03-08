@@ -20,7 +20,10 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#ifdef _OPENMP
 #include <omp.h>
+#endif
+
 #include <stdio.h>
 #include <iostream>
 
@@ -39,7 +42,11 @@ Realf *returnRealf[MAXCPUTHREADS];
 
 __host__ void cuda_set_device() {
 
+#ifdef _OPENMP
    const uint maxThreads = omp_get_max_threads();
+#else
+   const uint maxThreads = 1
+#endif
 
    int deviceCount;
    cudaGetDeviceCount(&deviceCount);
@@ -99,7 +106,11 @@ __host__ void cuda_set_device() {
 
 __host__ void cuda_clear_device() {
    // Destroy streams
+#ifdef _OPENMP
    const uint maxThreads = omp_get_max_threads();
+#else
+   const uint maxThreads = 1
+#endif
    for (uint i=0; i<maxThreads; ++i) {
       cudaStreamDestroy(cudaStreamList[i]);
       HANDLE_ERROR( cudaFree(*returnRealf) );
@@ -107,6 +118,10 @@ __host__ void cuda_clear_device() {
 }
 
 __host__ cudaStream_t cuda_getStream() {
+#ifdef _OPENMP
    const uint thread_id = omp_get_thread_num();
+#else
+   const uint thread_id = 0;
+#endif
    return cudaStreamList[thread_id];
 }

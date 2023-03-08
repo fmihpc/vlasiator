@@ -23,7 +23,10 @@
 #include <algorithm>
 #include <cmath>
 #include <utility>
+
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 
 #include <Eigen/Geometry>
 #include <Eigen/Core>
@@ -104,14 +107,20 @@ __global__ void printVBCsizekernel(
 
       printf("\nPrintout of velocity mesh %d \n",popID);
       printf("Mesh size\n");
-      printf(" %d %d %d \n",(*vmesh::getMeshWrapper()->velocityMeshes)[popID].gridLength[0],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].gridLength[1],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].gridLength[2]);
-      printf("Block size (max reflevel %d)\n",(*vmesh::getMeshWrapper()->velocityMeshes)[popID].refLevelMaxAllowed);
-      printf(" %d %d %d \n",(*vmesh::getMeshWrapper()->velocityMeshes)[popID].blockLength[0],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].blockLength[1],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].blockLength[2]);
+      printf(" %d %d %d \n",(*vmesh::getMeshWrapper()->velocityMeshes).at(popID).gridLength[0],(*vmesh::getMeshWrapper()->velocityMeshes).at(popID).gridLength[1],(*vmesh::getMeshWrapper()->velocityMeshes).at(popID).gridLength[2]);
+      printf("Block size (max reflevel %d)\n",(*vmesh::getMeshWrapper()->velocityMeshes).at(popID).refLevelMaxAllowed);
+      printf(" %d %d %d \n",(*vmesh::getMeshWrapper()->velocityMeshes).at(popID).blockLength[0],(*vmesh::getMeshWrapper()->velocityMeshes).at(popID).blockLength[1],(*vmesh::getMeshWrapper()->velocityMeshes).at(popID).blockLength[2]);
       printf("Mesh limits \n");
-      printf(" %f %f %f %f \n",(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshMinLimits[0],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshLimits[0],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshMaxLimits[0],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshLimits[1]);
-      printf(" %f %f %f %f \n",(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshMinLimits[1],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshLimits[2],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshMaxLimits[1],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshLimits[3]);
-      printf(" %f %f %f %f \n",(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshMinLimits[2],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshLimits[4],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshMaxLimits[2],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshLimits[5]);
-      // printf("Derived mesh paramters \n");
+      printf(" %f %f %f %f \n",(*vmesh::getMeshWrapper()->velocityMeshes).at(popID).meshMinLimits[0],(*vmesh::getMeshWrapper()->velocityMeshes).at(popID).meshLimits[0],(*vmesh::getMeshWrapper()->velocityMeshes).at(popID).meshMaxLimits[0],(*vmesh::getMeshWrapper()->velocityMeshes).at(popID).meshLimits[1]);
+      printf(" %f %f %f %f \n",(*vmesh::getMeshWrapper()->velocityMeshes).at(popID).meshMinLimits[1],(*vmesh::getMeshWrapper()->velocityMeshes).at(popID).meshLimits[2],(*vmesh::getMeshWrapper()->velocityMeshes).at(popID).meshMaxLimits[1],(*vmesh::getMeshWrapper()->velocityMeshes).at(popID).meshLimits[3]);
+      printf(" %f %f %f %f \n",(*vmesh::getMeshWrapper()->velocityMeshes).at(popID).meshMinLimits[2],(*vmesh::getMeshWrapper()->velocityMeshes).at(popID).meshLimits[4],(*vmesh::getMeshWrapper()->velocityMeshes).at(popID).meshMaxLimits[2],(*vmesh::getMeshWrapper()->velocityMeshes).at(popID).meshLimits[5]);
+
+      // printf("Mesh limits 2\n");
+      // printf(" %f %f %f %f \n",vmesh::getMeshWrapper()->velocityMeshes->at(popID).meshMinLimits[0],vmesh::getMeshWrapper()->velocityMeshes->at(popID).meshLimits[0],vmesh::getMeshWrapper()->velocityMeshes->at(popID).meshMaxLimits[0],vmesh::getMeshWrapper()->velocityMeshes->at(popID).meshLimits[1]);
+      // printf(" %f %f %f %f \n",vmesh::getMeshWrapper()->velocityMeshes->at(popID).meshMinLimits[1],vmesh::getMeshWrapper()->velocityMeshes->at(popID).meshLimits[2],vmesh::getMeshWrapper()->velocityMeshes->at(popID).meshMaxLimits[1],vmesh::getMeshWrapper()->velocityMeshes->at(popID).meshLimits[3]);
+      // printf(" %f %f %f %f \n",vmesh::getMeshWrapper()->velocityMeshes->at(popID).meshMinLimits[2],vmesh::getMeshWrapper()->velocityMeshes->at(popID).meshLimits[4],vmesh::getMeshWrapper()->velocityMeshes->at(popID).meshMaxLimits[2],vmesh::getMeshWrapper()->velocityMeshes->at(popID).meshLimits[5]);
+
+// printf("Derived mesh paramters \n");
       // printf(" gridSize %f %f %f \n",(*vmesh::getMeshWrapper()->velocityMeshes)[popID].gridSize[0],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].gridSize[1],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].gridSize[2]);
       // printf(" blockSize %f %f %f \n",(*vmesh::getMeshWrapper()->velocityMeshes)[popID].blockSize[0],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].blockSize[1],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].blockSize[2]);
       // printf(" cellSize %f %f %f \n",(*vmesh::getMeshWrapper()->velocityMeshes)[popID].cellSize[0],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].cellSize[1],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].cellSize[2]);
@@ -134,8 +143,12 @@ void cuda_accelerate_cell(SpatialCell* spatial_cell,
    vmesh::VelocityBlockContainer* blockContainer = spatial_cell->get_velocity_blocks(popID);
 
    // // Launch cuda transfers
+#ifdef _OPENMP
    const uint thread_id = omp_get_thread_num();
-   // phiprof::start("CUDA-HtoD");
+#else
+   const uint thread_id = 0;
+#endif
+// phiprof::start("CUDA-HtoD");
    // // Check that enough memory is allocated
    // blockContainer->dev_Allocate(vmesh->size());
    // blockContainer->dev_prefetchDevice();
