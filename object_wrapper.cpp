@@ -2,12 +2,13 @@
 #include "velocity_mesh_parameters.h"
 #include "readparameters.h"
 #include <iostream>
+#include <cstring>
 
 bool ObjectWrapper::addParameters() {
    typedef Readparameters RP;
 
    // Parameters needed to create particle populations
-   
+
    if (RP::helpRequested) { // dummy name for the help message
       RP::add("ParticlePopulations","Name of the simulated particle populations (string)","<population>");
    } else {
@@ -35,6 +36,11 @@ bool ObjectWrapper::addPopulationParameters() {
      // Originally, there was support for species and velocity meshes to be separate.
      // This was abandoned, since there wasn't really any use for it.
      newSpecies.name = newVMesh.name = pop;
+     //newSpecies.name = pop;
+     //strcpy(newVMesh.name, pop.c_str());
+     //pop.copy(newVMesh.name, 19);
+     //sprintf(newVMesh.name, "%.19s", pop.c_str());
+     //newVMesh.name
      newSpecies.velocityMesh = vmesh::getMeshWrapper()->velocityMeshes->size();
 
      getObjectWrapper().particleSpecies.push_back(newSpecies);
@@ -65,7 +71,7 @@ bool ObjectWrapper::addPopulationParameters() {
      RP::add(pop + "_vspace.vy_length","Initial number of velocity blocks in vy-direction.",1);
      RP::add(pop + "_vspace.vz_length","Initial number of velocity blocks in vz-direction.",1);
      RP::add(pop + "_vspace.max_refinement_level","Maximum allowed mesh refinement level.", 1);
-     
+
      // Thermal / suprathermal parameters
      Readparameters::add(pop + "_thermal.vx", "Center coordinate for the maxwellian distribution. Used for calculating the suprathermal moments.", -500000.0);
      Readparameters::add(pop + "_thermal.vy", "Center coordinate for the maxwellian distribution. Used for calculating the suprathermal moments.", 0.0);
@@ -91,7 +97,7 @@ bool ObjectWrapper::addPopulationParameters() {
 
 bool ObjectWrapper::getPopulationParameters() {
    typedef Readparameters RP;
-   
+
    // Particle population parameters
 
    for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
@@ -102,10 +108,10 @@ bool ObjectWrapper::getPopulationParameters() {
       const std::string& pop = species.name;
 
       // Sanity check name
-      if(species.name != vMesh.name) {
-         std::cerr << "ParticlePopulation parse error: Name " << species.name << " != " << vMesh.name << std::endl;
-         return false;
-      }
+      // if(species.name != vMesh.name) {
+      //    std::cerr << "ParticlePopulation parse error: Name " << species.name << " != " << vMesh.name << std::endl;
+      //    return false;
+      // }
 
       // Elementary particle parameters
       RP::get(pop + "_properties.charge", species.charge);
@@ -160,7 +166,7 @@ bool ObjectWrapper::getPopulationParameters() {
       RP::get(pop + "_vspace.max_refinement_level",maxRefLevel);
       vMesh.refLevelMaxAllowed = maxRefLevel;
 
-      
+
       //Get thermal / suprathermal moments parameters
       Readparameters::get(pop + "_thermal.radius", species.thermalRadius);
       Readparameters::get(pop + "_thermal.vx", species.thermalV[0]);
@@ -172,7 +178,7 @@ bool ObjectWrapper::getPopulationParameters() {
       Readparameters::get(pop + "_energydensity.limit2", species.EnergyDensityLimit2);
       Readparameters::get(pop + "_energydensity.solarwindenergy", species.SolarWindEnergy);
       Readparameters::get(pop + "_energydensity.solarwindspeed", species.SolarWindSpeed);
-      
+
       const Real EPSILON = 1.e-25;
       if (species.SolarWindEnergy < EPSILON) {
 	 // Energy stored internally in SI units
@@ -190,6 +196,9 @@ bool ObjectWrapper::getPopulationParameters() {
       species.precipitationEmin = species.precipitationEmin*physicalconstants::CHARGE;
       species.precipitationEmax = species.precipitationEmax*physicalconstants::CHARGE;
    }
+
+   vmesh::MeshParameters dummyvmesh;
+   vmesh::getMeshWrapper()->velocityMeshes->push_back(dummyvmesh);
 
    return true;
 }

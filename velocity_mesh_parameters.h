@@ -54,6 +54,7 @@ namespace vmesh {
     */
    struct MeshParameters {
       std::string name;                         /**< Name of the mesh (unique).*/
+      //char name[20];                         /**< Name of the mesh (unique).*/
       vmesh::LocalID max_velocity_blocks;       /**< Maximum valid block local ID.*/
       Real meshLimits[6];                       /**< Velocity mesh bounding box limits vx_min,vx_max,...,vz_max.*/
       vmesh::LocalID gridLength[3];             /**< Number of blocks in mesh per coordinate at base grid level.*/
@@ -81,6 +82,7 @@ namespace vmesh {
                                                  * This vector is initialized to size 3*(refLevelMaxAllowed+1)
                                                  * in VelocityMesh::initialize (VAMR mesh).*/
 #endif
+
       MeshParameters() {
          initialized = false;
       }
@@ -108,7 +110,7 @@ namespace vmesh {
 #endif
 
       void initVelocityMeshes(const uint nMeshes);  /**< Pre-calculate more helper parameters for velocity meshes. */
-      void printVelocityMesh(const uint meshIndex); /**< debug purposes, print contents of mesh. */
+      CUDA_HOSTDEV void printVelocityMesh(const uint meshIndex); /**< debug purposes, print contents of mesh. */
       void uploadMeshWrapper();                     /**< Send a copy of the MeshWrapper into GPU memory */
    };
 

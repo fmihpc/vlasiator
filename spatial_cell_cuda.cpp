@@ -92,14 +92,39 @@ __global__ void update_neighbours_have_content_kernel (
    const int cudaBlocks = gridDim.x;
    const int blocki = blockIdx.x;
    const int warpSize = blockDim.x*blockDim.y*blockDim.z;
-   const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
+   const vmesh::LocalID ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
 
-   const uint32_t localContentBlocks = velocity_block_with_content_list->size();
-   if ((ti==0) && (blocki==0)) printf("velocity_block_with_content_list size %ld\n",localContentBlocks);
+   const unsigned long localContentBlocks = velocity_block_with_content_list->size();
+//   uint meshID = 0;
+   if ((ti==0) && (blocki==0)) {
+      //printf("velocity_block_with_content_list size %lu warpSize %d\n",localContentBlocks,warpSize);
+      //printf(" grid lengths %d %d %d\n",(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[0],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[1],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[2]);
+      // printf("in-device:\n");
 
-   for (uint index=blocki*warpSize; index<localContentBlocks; index += cudaBlocks*warpSize) {
+      // printf("Mesh size\n");
+      //printf(" %d %d %d \n",(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[0],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[1],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[2]);
+      // printf("Block size (max reflevel %d)\n",(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].refLevelMaxAllowed);
+      // printf(" %d %d %d \n",(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].blockLength[0],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].blockLength[1],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].blockLength[2]);
+      // printf("Mesh limits \n");
+      // printf(" %f = %f, %f = %f \n",(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].meshMinLimits[0],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].meshLimits[0],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].meshMaxLimits[0],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].meshLimits[1]);
+      // printf(" %f = %f, %f = %f \n",(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].meshMinLimits[1],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].meshLimits[2],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].meshMaxLimits[1],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].meshLimits[3]);
+      // printf(" %f = %f, %f = %f \n",(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].meshMinLimits[2],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].meshLimits[4],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].meshMaxLimits[2],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].meshLimits[5]);
+      // printf("Derived mesh paramters \n");
+      // printf(" gridSize %f %f %f \n",(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridSize[0],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridSize[1],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridSize[2]);
+      // printf(" blockSize %f %f %f \n",(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].blockSize[0],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].blockSize[1],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].blockSize[2]);
+      // printf(" cellSize %f %f %f \n",(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].cellSize[0],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].cellSize[1],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].cellSize[2]);
+      // printf(" max velocity blocks %d \n\n",(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].max_velocity_blocks);
+
+      ///vmesh::getMeshWrapper()->printVelocityMesh(0);
+   }
+   // __shared__ vmesh::LocalID indices[4*CUDATHREADS];
+   // __shared__ vmesh::LocalID neighbourindices[4*CUDATHREADS];
+   vmesh::LocalID ind0,ind1,ind2,nind0,nind1,nind2;
+   
+   for (vmesh::LocalID index=blocki*warpSize; index<localContentBlocks; index += cudaBlocks*warpSize) {
       if (index+ti < localContentBlocks) {
-         vmesh::GlobalID block = velocity_block_with_content_list->at(index+ti);
+         vmesh::GlobalID GID = velocity_block_with_content_list->at(index+ti);
+         if (GID==vmesh->invalidGlobalID()) printf("self block GID error!\n");
          // Insert self
          // auto it = neighbors_have_content_2->device_find(block);
          // if (it != neighbors_have_content_2->device_end()) {
@@ -107,30 +132,28 @@ __global__ void update_neighbours_have_content_kernel (
          //printf("Adding element from index %d as %d\n",index+ti,block);
          // auto it = neighbors_have_content_2->device_find(block);
          // if (it == neighbors_have_content_2->device_end()) {
-         neighbors_have_content_2->set_element(block,block);
+         neighbors_have_content_2->set_element(GID,GID);
          // }
 
-         velocity_block_indices_t indices;
-         //velocity_block_indices_t neighbourindices;
-         vmesh::GlobalID neighbourindices[3];
-         vmesh->getIndices(block,indices[0],indices[1],indices[2]);
+         vmesh->getIndices(GID,0,ind0,ind1,ind2);
 
-         for (int offset_vx=-addWidthV;offset_vx<=addWidthV;offset_vx++) {
-            for (int offset_vy=-addWidthV;offset_vy<=addWidthV;offset_vy++) {
-               for (int offset_vz=-addWidthV;offset_vz<=addWidthV;offset_vz++) {
-                  neighbourindices[0] = indices[0] + offset_vx;
-                  neighbourindices[1] = indices[1] + offset_vy;
-                  neighbourindices[2] = indices[2] + offset_vz;
-                  const vmesh::GlobalID neighbor_block
-                     = vmesh->getGlobalID(neighbourindices);
-                  if (neighbor_block != vmesh->invalidGlobalID()) {
+         for (int offset_vx=-addWidthV; offset_vx<=addWidthV; offset_vx++) {
+            for (int offset_vy=-addWidthV; offset_vy<=addWidthV; offset_vy++) {
+               for (int offset_vz=-addWidthV; offset_vz<=addWidthV; offset_vz++) {
+                  nind0 = ind0 + offset_vx;
+                  nind1 = ind1 + offset_vx;
+                  nind2 = ind2 + offset_vx;
+                  const vmesh::GlobalID nGID
+                     = vmesh->getGlobalID(nind0,nind1,nind2);
+                  if (nGID != vmesh->invalidGlobalID()) {
                      // auto it = neighbors_have_content_2->device_find(neighbor_block);
                      // if (it == neighbors_have_content_2->device_end()) {
-                     neighbors_have_content_2->set_element(neighbor_block,neighbor_block);
+                     neighbors_have_content_2->set_element(nGID,nGID);
                         //}
                   } // if
                   else {
-                     printf("invalid block neighbour GID! for neighbourindices %lu %lu %lu     and block %lu indices %lu %lu %lu     offset %lu %lu %lu\n",(unsigned long)neighbourindices[0],(unsigned long)neighbourindices[1],(unsigned long)neighbourindices[2],(unsigned long)block,(unsigned long)indices[0],(unsigned long)indices[1],(unsigned long)indices[2],(unsigned long)offset_vx,(unsigned long)offset_vy,(unsigned long)offset_vz);
+                     //printf("invalid block neighbour GID! for neighbourindices %lu %lu %lu     and block %lu indices %lu %lu %lu     offset %d %d %d\n",(unsigned long)neighbourindices[4*ti+0],(unsigned long)neighbourindices[4*ti+1],(unsigned long)neighbourindices[4*ti+2],(unsigned long)block,(unsigned long)indices[4*ti+0],(unsigned long)indices[4*ti+1],(unsigned long)indices[4*ti+2],offset_vx,offset_vy,offset_vz);
+                     //printf("%lu invalid block neighbour GID! for neighbourindices %lu %lu %lu     and block %lu indices %lu %lu %lu     offset %d %d %d\n",(unsigned long)index+ti,(unsigned long)nind0,(unsigned long)nind1,(unsigned long)nind2,(unsigned long)GID,(unsigned long)ind0,(unsigned long)ind1,(unsigned long)ind2,offset_vx,offset_vy,offset_vz);
                   }
                } // for vz
             } // for vy
@@ -578,7 +601,7 @@ namespace spatial_cell {
       phiprof::start("Local content lists");
       int addWidthV = getObjectWrapper().particleSpecies[popID].sparseBlockAddWidthV;
       const uint localContentBlocks = velocity_block_with_content_list->size();
-      printf("velocity_block_with_content_list size %ld\n",localContentBlocks);
+      printf("popID %d velocity_block_with_content_list size %ld\n",popID,localContentBlocks);
 
       velocity_block_with_content_list->optimizeGPU();
       neighbors_have_content_2->resize(30);
@@ -586,10 +609,11 @@ namespace spatial_cell {
       const uint thread_id = omp_get_thread_num();
       cudaStream_t stream = cuda_getStream();
       const int nCudaBlocks = localContentBlocks > CUDABLOCKS ? CUDABLOCKS : localContentBlocks;
+      //vmesh::getMeshWrapper()->printVelocityMesh(popID);
 
       if (nCudaBlocks>0) {
-         //dim3 block1(1,1,1);
-         dim3 block1(CUDATHREADS,1,1); // now try with more parallelism
+         dim3 block1(1,1,1);
+         //dim3 block1(CUDATHREADS,1,1); // now try with more parallelism
          update_neighbours_have_content_kernel<<<nCudaBlocks, block1, 0, stream>>> (
             populations[popID].vmesh,
             neighbors_have_content_2,

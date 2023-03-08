@@ -88,17 +88,22 @@ void vmesh::MeshWrapper::initVelocityMeshes(const uint nMeshes) {
 }
 
 void vmesh::MeshWrapper::printVelocityMesh(const uint meshIndex) {
-   vmesh::MeshParameters *vMesh = &(meshWrapper->velocityMeshes->at(meshIndex));
-   std::cerr<<"printing mesh "<<meshIndex<<" at "<<vMesh<<" for wrapper "<<meshWrapper<<std::endl;
+   //vmesh::MeshParameters *vMesh = &(meshWrapper->velocityMeshes->at(meshIndex));
+   vmesh::MeshParameters *vMesh = &(getMeshWrapper()->velocityMeshes->at(meshIndex));
+   //std::cerr<<"printing mesh "<<meshIndex<<" at "<<vMesh<<" for wrapper "<<meshWrapper<<std::endl;
 
-   printf("Printout of velocity mesh %d \n",meshIndex);
+   printf("Printout of velocity mesh %d\n",meshIndex);
+   printf("Mesh size\n");
+   printf(" %d %d %d \n",vMesh->gridLength[0],vMesh->gridLength[1],vMesh->gridLength[2]);
+   printf("Block size (max reflevel %d)\n",vMesh->refLevelMaxAllowed);
+   printf(" %d %d %d \n",vMesh->blockLength[0],vMesh->blockLength[1],vMesh->blockLength[2]);
    printf("Mesh limits \n");
-   printf(" %f %f %f %f \n",vMesh->meshMinLimits[0],vMesh->meshLimits[0],vMesh->meshMaxLimits[0],vMesh->meshLimits[1]);
-   printf(" %f %f %f %f \n",vMesh->meshMinLimits[1],vMesh->meshLimits[2],vMesh->meshMaxLimits[1],vMesh->meshLimits[3]);
-   printf(" %f %f %f %f \n",vMesh->meshMinLimits[2],vMesh->meshLimits[4],vMesh->meshMaxLimits[2],vMesh->meshLimits[5]);
+   printf(" %f = %f, %f = %f \n",vMesh->meshMinLimits[0],vMesh->meshLimits[0],vMesh->meshMaxLimits[0],vMesh->meshLimits[1]);
+   printf(" %f = %f, %f = %f \n",vMesh->meshMinLimits[1],vMesh->meshLimits[2],vMesh->meshMaxLimits[1],vMesh->meshLimits[3]);
+   printf(" %f = %f, %f = %f \n",vMesh->meshMinLimits[2],vMesh->meshLimits[4],vMesh->meshMaxLimits[2],vMesh->meshLimits[5]);
    printf("Derived mesh paramters \n");
    printf(" gridSize %f %f %f \n",vMesh->gridSize[0],vMesh->gridSize[1],vMesh->gridSize[2]);
    printf(" blockSize %f %f %f \n",vMesh->blockSize[0],vMesh->blockSize[1],vMesh->blockSize[2]);
    printf(" cellSize %f %f %f \n",vMesh->cellSize[0],vMesh->cellSize[1],vMesh->cellSize[2]);
-   printf(" max velocity blocks %d \n",vMesh->max_velocity_blocks);
+   printf(" max velocity blocks %d \n\n",vMesh->max_velocity_blocks);
 }
