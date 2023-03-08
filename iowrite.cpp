@@ -48,7 +48,6 @@
 #include "fieldtracing/fieldtracing.h"
 
 using namespace std;
-using namespace phiprof;
 using namespace vlsv;
 
 extern Logger logFile, diagnostic;
