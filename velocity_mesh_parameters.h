@@ -42,6 +42,7 @@
 
 #ifdef USE_CUDA
    #include "include/splitvector/splitvec.h"
+   #include "cuda_context.cuh"
 #endif
 
 namespace vmesh {
@@ -86,11 +87,13 @@ namespace vmesh {
       }
    };
 
-   struct MeshWrapper {
-      MeshWrapper() {
 #ifdef USE_CUDA
+   struct MeshWrapper : public Managed {
+      MeshWrapper() {
          velocityMeshes = new split::SplitVector<vmesh::MeshParameters>(1);
 #else
+   struct MeshWrapper {
+      MeshWrapper() {
          velocityMeshes = new std::vector<vmesh::MeshParameters>(1);
 #endif
          velocityMeshes->clear();
@@ -108,7 +111,7 @@ namespace vmesh {
 #endif
 
       void initVelocityMeshes(const uint nMeshes);  /**< Pre-calculate more helper parameters for velocity meshes. */
-      void printVelocityMesh(const uint meshIndex); /**< debug purposes, print contents of mesh. */
+      CUDA_HOSTDEV void printVelocityMesh(const uint meshIndex); /**< debug purposes, print contents of mesh. */
       void uploadMeshWrapper();                     /**< Send a copy of the MeshWrapper into GPU memory */
    };
 

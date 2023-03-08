@@ -224,7 +224,11 @@ namespace vmesh {
       vmesh::GlobalID blockGID = getGlobalID(i_block,j_block,k_block);
 
       // If the block exists, return it:
+#ifdef __CUDA_ARCH__
+      if (globalToLocalMap->device_find(blockGID) != globalToLocalMap->device_end()) {
+#else
       if (globalToLocalMap->find(blockGID) != globalToLocalMap->end()) {
+#endif
          return blockGID;
       } else {
          return invalidGlobalID();
