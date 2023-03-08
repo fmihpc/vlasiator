@@ -27,7 +27,9 @@
 #include <vector>
 #include <sstream>
 #include <ctime>
-#include <omp.h>
+#ifdef _OPENMP
+  #include <omp.h>
+#endif
 #include "grid.h"
 #include "vlasovmover.h"
 #include "definitions.h"
@@ -1222,6 +1224,7 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
       phiprof::start("recalculate distrib. functions");
       vector<vector<vmesh::GlobalID> > removedBlocks(cells.size());
 
+#ifdef _OPENMP
       #warning Chance for false sharing, counters may be on same cache line
       int counter[omp_get_max_threads()];
       vector<vector<vmesh::GlobalID> > threadRemBlocks(omp_get_max_threads());
@@ -1233,7 +1236,7 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
             SpatialCell* cell = mpiGrid[cells[c]];
             counter[tid] = 0;
             
-            // Recalculate distribution function and if f is below the sparse 
+            // Recalculate distribution function and if f is below the sparse
             // min value, add the block to remove list
             #pragma omp for
             for (size_t b=0; b<newBlocks[c].size(); ++b) {
@@ -1261,6 +1264,22 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
             }
          }
       }
+#else // No openmp version
+      int counter[1];
+      std::vector<vmesh::GlobalID> remBlocks;
+      for (size_t c=0; c<newBlocks.size(); ++c) {
+         SpatialCell* cell = mpiGrid[cells[c]];
+
+         // Recalculate distribution function and if f is below the sparse
+         // min value, add the block to remove list
+         for (size_t b=0; b<newBlocks[c].size(); ++b) {
+            if (getObjectWrapper().project->setVelocityBlock(cell,newBlocks[c][b].second,popID) <= cell->getVelocityBlockMinValue(popID)) {
+               removedBlocks[c].push_back(newBlocks[c][b].first);
+            }
+         }
+      }
+#endif
+
 
       // Remove blocks with f below sparse min value
       #pragma omp parallel for

@@ -26,7 +26,6 @@
 #include <vector>
 #include <sstream>
 #include <ctime>
-#include <omp.h>
 
 #ifdef _OPENMP
    #include <omp.h>
