@@ -18,17 +18,7 @@ __global__ void debug_kernel(
    const uint popID
    ) {
    printf("device popID %d\n",popID);
-   //vmesh::printVelocityMesh(0);
-
-      printf("Mesh size\n");
-      printf(" %d %d %d \n",(*vmesh::getMeshWrapper()->velocityMeshes)[popID].gridLength[0],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].gridLength[1],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].gridLength[2]);
-      printf("Block size (max reflevel %d)\n",(*vmesh::getMeshWrapper()->velocityMeshes)[popID].refLevelMaxAllowed);
-      printf(" %d %d %d \n",(*vmesh::getMeshWrapper()->velocityMeshes)[popID].blockLength[0],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].blockLength[1],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].blockLength[2]);
-      printf("Mesh limits \n");
-      printf(" %f %f %f %f \n",(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshMinLimits[0],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshLimits[0],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshMaxLimits[0],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshLimits[1]);
-      printf(" %f %f %f %f \n",(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshMinLimits[1],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshLimits[2],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshMaxLimits[1],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshLimits[3]);
-      printf(" %f %f %f %f \n",(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshMinLimits[2],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshLimits[4],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshMaxLimits[2],(*vmesh::getMeshWrapper()->velocityMeshes)[popID].meshLimits[5]);
-
+   vmesh::printVelocityMesh(0);
 }
 
 

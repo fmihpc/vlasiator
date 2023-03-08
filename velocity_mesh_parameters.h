@@ -128,7 +128,8 @@ namespace vmesh {
    }
 
    CUDA_HOSTDEV inline void printVelocityMesh(const uint meshIndex) {
-      vmesh::MeshParameters *vMesh = &(getMeshWrapper()->velocityMeshes->at(meshIndex));
+      //vmesh::MeshParameters *vMesh = &(getMeshWrapper()->velocityMeshes->at(meshIndex)); // works on host but not on device
+      vmesh::MeshParameters *vMesh = &( (*vmesh::getMeshWrapper()->velocityMeshes)[meshIndex] );
       printf("\nPrintout of velocity mesh %d \n",meshIndex);
       printf("Mesh size\n");
       printf(" %d %d %d \n",vMesh->gridLength[0],vMesh->gridLength[1],vMesh->gridLength[2]);
