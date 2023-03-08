@@ -666,8 +666,6 @@ void calculateCurvatureSimple(
       }
    }
    
-   phiprof::stop(timer,N_cells,"Spatial Cells");
-   
    phiprof::stop("Calculate curvature",N_cells,"Spatial Cells");
 }
 
