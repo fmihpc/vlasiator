@@ -17,12 +17,11 @@ __device__ vmesh::MeshWrapper *meshWrapperDev;
 __global__ void debug_kernel(
    const uint popID
    ) {
-   printf("device popID %d\n",popID);
    vmesh::printVelocityMesh(0);
 }
 
-
 void vmesh::allocMeshWrapper() {
+   // This is now allocated in unified memory
    meshWrapper = new vmesh::MeshWrapper();
 }
 
@@ -38,21 +37,15 @@ CUDA_HOSTDEV vmesh::MeshWrapper* vmesh::dev_getMeshWrapper() {
    return meshWrapperDev;
 }
 void vmesh::MeshWrapper::uploadMeshWrapper() {
-   // Upload splitvector of meshparams to GPU
-   split::SplitVector<vmesh::MeshParameters> *velocityMeshesDevUp = meshWrapper->velocityMeshes->upload();
-   // Create temporary copy of meshWrapper
-   vmesh::MeshWrapper meshWrapperTemp(*meshWrapper);
-   // Make it point to splitvector in unified (device) memory
-   // If further splitvectors are added to the MeshWrapper, this needs to be done to every one of them.
-   meshWrapperTemp.velocityMeshes = velocityMeshesDevUp;
-   // Allocate device-side room for meshWrapper
-   vmesh::MeshWrapper *meshWrapperDevUpload;
-   HANDLE_ERROR( cudaMalloc((void **)&meshWrapperDevUpload, sizeof(vmesh::MeshWrapper)) );
-   // Copy meshWrapper to device
-   HANDLE_ERROR( cudaMemcpy(meshWrapperDevUpload, &meshWrapperTemp, sizeof(vmesh::MeshWrapper),cudaMemcpyHostToDevice) );
-   // Make __device__ pointer (symbol) point to this MeshWrapper
-   HANDLE_ERROR( cudaMemcpyToSymbol(meshWrapperDev, meshWrapperDevUpload, sizeof(meshWrapperDev)) );
-   // Don't bother freeing this small amount of device memory (could only be done on complete program exit)
+   // Make global symbols of meshWrapper which resides in unified memory
+   //  HANDLE_ERROR( cudaMemcpyToSymbol(meshWrapperDev, &meshWrapper, sizeof(vmesh::MeshWrapper*)) );
+
+   // Makes a copy of the meshWrapper, which can then reside in device memory without causing page
+   // faults between host and device
+
+   vmesh::MeshWrapper* MWdev = new vmesh::MeshWrapper(*meshWrapper);   
+   HANDLE_ERROR( cudaMemcpyToSymbol(meshWrapperDev, &MWdev, sizeof(vmesh::MeshWrapper*)) );
+   HANDLE_ERROR( cudaDeviceSynchronize() );
 }
 #endif
 
@@ -91,11 +84,9 @@ void vmesh::MeshWrapper::initVelocityMeshes(const uint nMeshes) {
    vmesh::MeshWrapper::uploadMeshWrapper();
 #endif
 
-   vmesh::printVelocityMesh(0);
-   HANDLE_ERROR( cudaDeviceSynchronize() );
-   dim3 block(1,1,1);
-   debug_kernel<<<1, block, 0, 0>>> (0);
-   HANDLE_ERROR( cudaDeviceSynchronize() );
-
+   // vmesh::printVelocityMesh(0);
+   // dim3 block(1,1,1);
+   // debug_kernel<<<1, block, 0, 0>>> (0);
+   // HANDLE_ERROR( cudaDeviceSynchronize() );
    return;
 }
