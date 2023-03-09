@@ -58,7 +58,6 @@
 #endif
 
 using namespace std;
-using namespace phiprof;
 
 int globalflags::AMRstencilWidth = VLASOV_STENCIL_WIDTH;
 
