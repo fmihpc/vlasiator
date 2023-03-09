@@ -575,10 +575,10 @@ namespace spatial_cell {
       //printf("popID %d velocity_block_with_content_list size %ld cudathreads %d\n",popID,localContentBlocks,CUDATHREADS);
 
       //velocity_block_with_content_list->optimizeGPU();
-      // phiprof::start("hashmap clear");
-      // neighbors_have_content_2->clear();
-      // phiprof::stop("hashmap clear");
-      phiprof::stop("hashmap resize");
+      phiprof::start("hashmap clear");
+      neighbors_have_content_2->clear();
+      phiprof::stop("hashmap clear");
+      phiprof::start("hashmap resize");
       printf(" bucket count %lu localcontentblocks %lu x27 %lu \n",neighbors_have_content_2->bucket_count(),localContentBlocks,27*localContentBlocks);
       //if (neighbors_have_content_2->bucket_count() < (27*localContentBlocks)) {
       const vmesh::LocalID hashmapsize = ceil(log2(localContentBlocks));
