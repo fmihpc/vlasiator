@@ -42,6 +42,7 @@
 
 #ifdef USE_CUDA
    #include "include/splitvector/splitvec.h"
+   #include "cuda_context.cuh"
 #endif
 
 namespace vmesh {
@@ -88,20 +89,43 @@ namespace vmesh {
       }
    };
 
-   struct MeshWrapper {
-      MeshWrapper() {
 #ifdef USE_CUDA
+   struct MeshWrapper : public Managed {
+      MeshWrapper() {
          velocityMeshes = new split::SplitVector<vmesh::MeshParameters>(1);
-#else
-         velocityMeshes = new std::vector<vmesh::MeshParameters>(1);
-#endif
          velocityMeshes->clear();
       }
-      //Don't bother with copy constructor or destructors
-      //    MeshWrapper(const MeshWrapper& ow);
-      //    MeshWrapper& operator=(const MeshWrapper& ow);
+      ~MeshWrapper() {
+         delete velocityMeshes;
+      }
+      MeshWrapper(const MeshWrapper& other) {
+         velocityMeshes = new split::SplitVector<vmesh::MeshParameters>(*(other.velocityMeshes));
+      }
+      MeshWrapper& operator=(const MeshWrapper& other) {
+         delete velocityMeshes;
+         velocityMeshes = new split::SplitVector<vmesh::MeshParameters>(*(other.velocityMeshes));
+      }
+      void prefetchDevice() {
+         velocityMeshes->optimizeGPU();
+      }
+#else
+   struct MeshWrapper {
+      MeshWrapper() {
+         velocityMeshes = new std::vector<vmesh::MeshParameters>(1);
+         velocityMeshes->clear();
+      }
+      ~MeshWrapper() {
+         delete velocityMeshes;
+      }
+      MeshWrapper(const MeshWrapper& other) {
+         velocityMeshes = new std::vector<vmesh::MeshParameters>(*(other.velocityMeshes));
+      }
+      MeshWrapper& operator=(const MeshWrapper& other) {
+         delete velocityMeshes;
+         velocityMeshes = new std::vector<vmesh::MeshParameters>(*(other.velocityMeshes));
+      }
+#endif
 
-   public:
       /**< Parameters for velocity mesh(es) as a vector*/
 #ifdef USE_CUDA
       split::SplitVector<vmesh::MeshParameters> *velocityMeshes;
@@ -110,7 +134,6 @@ namespace vmesh {
 #endif
 
       void initVelocityMeshes(const uint nMeshes);  /**< Pre-calculate more helper parameters for velocity meshes. */
-      CUDA_HOSTDEV void printVelocityMesh(const uint meshIndex); /**< debug purposes, print contents of mesh. */
       void uploadMeshWrapper();                     /**< Send a copy of the MeshWrapper into GPU memory */
    };
 
@@ -125,6 +148,24 @@ namespace vmesh {
       #else
       return dev_getMeshWrapper();
       #endif
+   }
+
+   CUDA_HOSTDEV inline void printVelocityMesh(const uint meshIndex) {
+      vmesh::MeshParameters *vMesh = &(getMeshWrapper()->velocityMeshes->at(meshIndex));
+      printf("\nPrintout of velocity mesh %d \n",meshIndex);
+      printf("Mesh size\n");
+      printf(" %d %d %d \n",vMesh->gridLength[0],vMesh->gridLength[1],vMesh->gridLength[2]);
+      printf("Block size (max reflevel %d)\n",vMesh->refLevelMaxAllowed);
+      printf(" %d %d %d \n",vMesh->blockLength[0],vMesh->blockLength[1],vMesh->blockLength[2]);
+      printf("Mesh limits \n");
+      printf(" %f %f %f %f \n",vMesh->meshMinLimits[0],vMesh->meshLimits[0],vMesh->meshMaxLimits[0],vMesh->meshLimits[1]);
+      printf(" %f %f %f %f \n",vMesh->meshMinLimits[1],vMesh->meshLimits[2],vMesh->meshMaxLimits[1],vMesh->meshLimits[3]);
+      printf(" %f %f %f %f \n",vMesh->meshMinLimits[2],vMesh->meshLimits[4],vMesh->meshMaxLimits[2],vMesh->meshLimits[5]);
+      printf("Derived mesh parameters \n");
+      printf(" gridSize %f %f %f \n",vMesh->gridSize[0],vMesh->gridSize[1],vMesh->gridSize[2]);
+      printf(" blockSize %f %f %f \n",vMesh->blockSize[0],vMesh->blockSize[1],vMesh->blockSize[2]);
+      printf(" cellSize %f %f %f \n",vMesh->cellSize[0],vMesh->cellSize[1],vMesh->cellSize[2]);
+      printf(" max velocity blocks %d \n\n",vMesh->max_velocity_blocks);
    }
 
 } // namespace vmesh

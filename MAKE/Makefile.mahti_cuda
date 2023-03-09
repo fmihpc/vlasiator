@@ -64,11 +64,13 @@ LNK = mpic++
 #CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -fopenmp -std=c++17 -rdynamic -fpermissive
 #testpackage: CXXFLAGS = -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -fopenmp -std=c++17 -fpermissive
 
-CXXFLAGS = -g -O2 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 -Xcompiler -fopenmp --generate-line-info -line-info -Xcompiler="-fpermissive" -dc
-testpackage: CXXFLAGS = -g -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 -Xcompiler -fopenmp --prec-sqrt=true --prec-div=true --ftz=false --fmad=false --generate-line-info -line-info -Xcompiler="-fpermissive" -dc
+#-G (device debug) overrides --generate-line-info -line-info
 
-CMPGPUFLAGS = -g -O2 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 -Xcompiler -fopenmp --generate-line-info -line-info -Xcompiler="-fpermissive" -dc
-testpackage: CMPGPUFLAGS = -g -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 -Xcompiler -fopenmp --prec-sqrt=true --prec-div=true --ftz=false --fmad=false --generate-line-info -line-info -Xcompiler="-fpermissive" -dc
+CXXFLAGS = -g -G -O2 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 -Xcompiler -fopenmp -Xcompiler="-fpermissive" -dc
+testpackage: CXXFLAGS = -g -G -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 -Xcompiler -fopenmp --prec-sqrt=true --prec-div=true --ftz=false --fmad=false -Xcompiler="-fpermissive" -dc
+
+CMPGPUFLAGS = -g -G -O2 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 -Xcompiler -fopenmp -Xcompiler="-fpermissive" -dc
+testpackage: CMPGPUFLAGS = -g -G -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 -Xcompiler -fopenmp --prec-sqrt=true --prec-div=true --ftz=false --fmad=false -Xcompiler="-fpermissive" -dc
 
 CMPGPU = OMPI_CXX='nvcc' OMPI_CXXFLAGS='' mpic++
 
@@ -77,7 +79,7 @@ CMP = OMPI_CXX='nvcc' OMPI_CXXFLAGS='' mpic++
 LNK = OMPI_CXX='nvcc' OMPI_CXXFLAGS='-arch=sm_80' OMPI_LIBS='-L/appl/spack/v017/install-tree/gcc-9.4.0/openmpi-4.1.2-cgr4nz/lib -L/appl/spack/syslibs/lib' OMPI_LDFLAGS=' -Xlinker=-rpath=/appl/spack/v017/install-tree/gcc-8.5.0/gcc-9.4.0-nfm4wc/lib/gcc/x86_64-pc-linux-gnu/9.4.0 -Xlinker=-rpath=/appl/spack/v017/install-tree/gcc-8.5.0/gcc-9.4.0-nfm4wc/lib64 -Xlinker=-rpath=/appl/spack/v017/install-tree/gcc-9.4.0/openmpi-4.1.2-cgr4nz -Xlinker=-rpath=/lib/appl/spack/syslibs/lib -lmpi ' mpic++
 
 MATHFLAGS =
-LDFLAGS = -O2 -g -L/appl/spack/v016/install-tree/gcc-4.8.5/nvhpc-21.2-l6xyb4/Linux_x86_64/21.2/cuda/11.2/lib64 -lnvToolsExt
+LDFLAGS = -O2 -g -G -L/appl/spack/v016/install-tree/gcc-4.8.5/nvhpc-21.2-l6xyb4/Linux_x86_64/21.2/cuda/11.2/lib64 -lnvToolsExt
 LIB_MPI = -lgomp
 
 LIB_CUDA = -L/usr/local/cuda/lib64

@@ -14,7 +14,14 @@ static vmesh::MeshWrapper *meshWrapper;
 __device__ vmesh::MeshWrapper *meshWrapperDev;
 #endif
 
+__global__ void debug_kernel(
+   const uint popID
+   ) {
+   vmesh::printVelocityMesh(0);
+}
+
 void vmesh::allocMeshWrapper() {
+   // This is now allocated in unified memory
    meshWrapper = new vmesh::MeshWrapper();
 }
 
@@ -30,23 +37,15 @@ CUDA_HOSTDEV vmesh::MeshWrapper* vmesh::dev_getMeshWrapper() {
    return meshWrapperDev;
 }
 void vmesh::MeshWrapper::uploadMeshWrapper() {
-   // Create (copy) splitvector of meshparams in unified memory
-   split::SplitVector<vmesh::MeshParameters> *velocityMeshesDev =
-      new split::SplitVector<vmesh::MeshParameters>(*(meshWrapper->velocityMeshes));
-   // Upload it to GPU
-   split::SplitVector<vmesh::MeshParameters> *velocityMeshesDevUp = velocityMeshesDev->upload();
-   // Create temporary copy of meshWrapper
-   vmesh::MeshWrapper meshWrapperTemp(*meshWrapper);
-   // Make it point to splitvector in unified (device) memory
-   meshWrapperTemp.velocityMeshes = velocityMeshesDevUp;
-   // Allocate device-side room for meshWrapper
-   vmesh::MeshWrapper *meshWrapperDevUpload;
-   HANDLE_ERROR( cudaMalloc((void **)&meshWrapperDevUpload, sizeof(vmesh::MeshWrapper)) );
-   // Copy meshWrapper to device
-   HANDLE_ERROR( cudaMemcpy(meshWrapperDevUpload, &meshWrapperTemp, sizeof(vmesh::MeshWrapper),cudaMemcpyHostToDevice) );
-   // Make __device__ pointer (symbol) point to this MeshWrapper
-   HANDLE_ERROR( cudaMemcpyToSymbol(meshWrapperDev, meshWrapperDevUpload, sizeof(meshWrapperDev)) );
-   // Don't bother freeing this small amount of device memory
+   // Make global symbols of meshWrapper which resides in unified memory
+   //  HANDLE_ERROR( cudaMemcpyToSymbol(meshWrapperDev, &meshWrapper, sizeof(vmesh::MeshWrapper*)) );
+
+   // Makes a copy of the meshWrapper, which can then reside in device memory without causing page
+   // faults between host and device
+
+   vmesh::MeshWrapper* MWdev = new vmesh::MeshWrapper(*meshWrapper);   
+   HANDLE_ERROR( cudaMemcpyToSymbol(meshWrapperDev, &MWdev, sizeof(vmesh::MeshWrapper*)) );
+   HANDLE_ERROR( cudaDeviceSynchronize() );
 }
 #endif
 
@@ -81,29 +80,13 @@ void vmesh::MeshWrapper::initVelocityMeshes(const uint nMeshes) {
       vMesh->initialized = true;
    }
 #ifdef USE_CUDA
-   // Now all velocity meshes have been initialized on host 
+   // Now all velocity meshes have been initialized on host
    vmesh::MeshWrapper::uploadMeshWrapper();
 #endif
+
+   // vmesh::printVelocityMesh(0);
+   // dim3 block(1,1,1);
+   // debug_kernel<<<1, block, 0, 0>>> (0);
+   // HANDLE_ERROR( cudaDeviceSynchronize() );
    return;
-}
-
-void vmesh::MeshWrapper::printVelocityMesh(const uint meshIndex) {
-   //vmesh::MeshParameters *vMesh = &(meshWrapper->velocityMeshes->at(meshIndex));
-   vmesh::MeshParameters *vMesh = &(getMeshWrapper()->velocityMeshes->at(meshIndex));
-   //std::cerr<<"printing mesh "<<meshIndex<<" at "<<vMesh<<" for wrapper "<<meshWrapper<<std::endl;
-
-   printf("Printout of velocity mesh %d\n",meshIndex);
-   printf("Mesh size\n");
-   printf(" %d %d %d \n",vMesh->gridLength[0],vMesh->gridLength[1],vMesh->gridLength[2]);
-   printf("Block size (max reflevel %d)\n",vMesh->refLevelMaxAllowed);
-   printf(" %d %d %d \n",vMesh->blockLength[0],vMesh->blockLength[1],vMesh->blockLength[2]);
-   printf("Mesh limits \n");
-   printf(" %f = %f, %f = %f \n",vMesh->meshMinLimits[0],vMesh->meshLimits[0],vMesh->meshMaxLimits[0],vMesh->meshLimits[1]);
-   printf(" %f = %f, %f = %f \n",vMesh->meshMinLimits[1],vMesh->meshLimits[2],vMesh->meshMaxLimits[1],vMesh->meshLimits[3]);
-   printf(" %f = %f, %f = %f \n",vMesh->meshMinLimits[2],vMesh->meshLimits[4],vMesh->meshMaxLimits[2],vMesh->meshLimits[5]);
-   printf("Derived mesh paramters \n");
-   printf(" gridSize %f %f %f \n",vMesh->gridSize[0],vMesh->gridSize[1],vMesh->gridSize[2]);
-   printf(" blockSize %f %f %f \n",vMesh->blockSize[0],vMesh->blockSize[1],vMesh->blockSize[2]);
-   printf(" cellSize %f %f %f \n",vMesh->cellSize[0],vMesh->cellSize[1],vMesh->cellSize[2]);
-   printf(" max velocity blocks %d \n\n",vMesh->max_velocity_blocks);
 }
