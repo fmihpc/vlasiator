@@ -351,7 +351,7 @@ namespace spatial_cell {
 
       Realf* dev_rhoLossAdjust;
       split::SplitVector<vmesh::GlobalID> *BlocksToRemove, *BlocksRequired, *BlocksToAdd, *BlocksToMove; /**< Lists of blocks to change on GPU device */
-      //Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *neighbors_have_content_2;
+      Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *neighbors_have_content_2;
 
 
       static uint64_t mpi_transfer_type;                                      /**< Which data is transferred by the mpi datatype given by spatial cells.*/
