@@ -55,7 +55,6 @@ namespace vmesh {
     */
    struct MeshParameters {
       std::string name;                         /**< Name of the mesh (unique).*/
-      //char name[20];                         /**< Name of the mesh (unique).*/
       vmesh::LocalID max_velocity_blocks;       /**< Maximum valid block local ID.*/
       Real meshLimits[6];                       /**< Velocity mesh bounding box limits vx_min,vx_max,...,vz_max.*/
       vmesh::LocalID gridLength[3];             /**< Number of blocks in mesh per coordinate at base grid level.*/

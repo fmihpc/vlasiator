@@ -2,7 +2,6 @@
 #include "velocity_mesh_parameters.h"
 #include "readparameters.h"
 #include <iostream>
-#include <cstring>
 
 bool ObjectWrapper::addParameters() {
    typedef Readparameters RP;
@@ -36,11 +35,6 @@ bool ObjectWrapper::addPopulationParameters() {
      // Originally, there was support for species and velocity meshes to be separate.
      // This was abandoned, since there wasn't really any use for it.
      newSpecies.name = newVMesh.name = pop;
-     //newSpecies.name = pop;
-     //strcpy(newVMesh.name, pop.c_str());
-     //pop.copy(newVMesh.name, 19);
-     //sprintf(newVMesh.name, "%.19s", pop.c_str());
-     //newVMesh.name
      newSpecies.velocityMesh = vmesh::getMeshWrapper()->velocityMeshes->size();
 
      getObjectWrapper().particleSpecies.push_back(newSpecies);
@@ -108,10 +102,10 @@ bool ObjectWrapper::getPopulationParameters() {
       const std::string& pop = species.name;
 
       // Sanity check name
-      // if(species.name != vMesh.name) {
-      //    std::cerr << "ParticlePopulation parse error: Name " << species.name << " != " << vMesh.name << std::endl;
-      //    return false;
-      // }
+      if(species.name != vMesh.name) {
+         std::cerr << "ParticlePopulation parse error: Name " << species.name << " != " << vMesh.name << std::endl;
+         return false;
+      }
 
       // Elementary particle parameters
       RP::get(pop + "_properties.charge", species.charge);
@@ -196,9 +190,6 @@ bool ObjectWrapper::getPopulationParameters() {
       species.precipitationEmin = species.precipitationEmin*physicalconstants::CHARGE;
       species.precipitationEmax = species.precipitationEmax*physicalconstants::CHARGE;
    }
-
-   vmesh::MeshParameters dummyvmesh;
-   vmesh::getMeshWrapper()->velocityMeshes->push_back(dummyvmesh);
 
    return true;
 }

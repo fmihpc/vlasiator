@@ -37,14 +37,12 @@ CUDA_HOSTDEV vmesh::MeshWrapper* vmesh::dev_getMeshWrapper() {
    return meshWrapperDev;
 }
 void vmesh::MeshWrapper::uploadMeshWrapper() {
-   // Make global symbols of meshWrapper which resides in unified memory
-   //  HANDLE_ERROR( cudaMemcpyToSymbol(meshWrapperDev, &meshWrapper, sizeof(vmesh::MeshWrapper*)) );
-
-   // Makes a copy of the meshWrapper, which can then reside in device memory without causing page
-   // faults between host and device
-
-   vmesh::MeshWrapper* MWdev = new vmesh::MeshWrapper(*meshWrapper);   
+   // Makes a copy of the meshWrapper (both the original and the new one now reside in unified memory).
+   // The copy can then reside in device memory without causing page faults between host and device
+   vmesh::MeshWrapper* MWdev = new vmesh::MeshWrapper(*meshWrapper);
+   // Set the global symbol of meshWrapper (points to the copy)
    HANDLE_ERROR( cudaMemcpyToSymbol(meshWrapperDev, &MWdev, sizeof(vmesh::MeshWrapper*)) );
+   MWdev->prefetchDevice();
    HANDLE_ERROR( cudaDeviceSynchronize() );
 }
 #endif

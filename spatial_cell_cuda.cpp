@@ -95,46 +95,20 @@ __global__ void update_neighbours_have_content_kernel (
    const vmesh::LocalID ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
 
    const unsigned long localContentBlocks = velocity_block_with_content_list->size();
-//   uint meshID = 0;
-   if ((ti==0) && (blocki==0)) {
-      //printf("velocity_block_with_content_list size %lu warpSize %d\n",localContentBlocks,warpSize);
-      //printf(" grid lengths %d %d %d\n",(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[0],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[1],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[2]);
-      // printf("in-device:\n");
-
-      // printf("Mesh size\n");
-      //printf(" %d %d %d \n",(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[0],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[1],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridLength[2]);
-      // printf("Block size (max reflevel %d)\n",(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].refLevelMaxAllowed);
-      // printf(" %d %d %d \n",(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].blockLength[0],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].blockLength[1],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].blockLength[2]);
-      // printf("Mesh limits \n");
-      // printf(" %f = %f, %f = %f \n",(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].meshMinLimits[0],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].meshLimits[0],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].meshMaxLimits[0],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].meshLimits[1]);
-      // printf(" %f = %f, %f = %f \n",(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].meshMinLimits[1],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].meshLimits[2],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].meshMaxLimits[1],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].meshLimits[3]);
-      // printf(" %f = %f, %f = %f \n",(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].meshMinLimits[2],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].meshLimits[4],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].meshMaxLimits[2],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].meshLimits[5]);
-      // printf("Derived mesh paramters \n");
-      // printf(" gridSize %f %f %f \n",(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridSize[0],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridSize[1],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].gridSize[2]);
-      // printf(" blockSize %f %f %f \n",(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].blockSize[0],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].blockSize[1],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].blockSize[2]);
-      // printf(" cellSize %f %f %f \n",(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].cellSize[0],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].cellSize[1],(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].cellSize[2]);
-      // printf(" max velocity blocks %d \n\n",(*vmesh::getMeshWrapper()->velocityMeshes)[meshID].max_velocity_blocks);
-
-      ///vmesh::getMeshWrapper()->printVelocityMesh(0);
-   }
-   // __shared__ vmesh::LocalID indices[4*CUDATHREADS];
-   // __shared__ vmesh::LocalID neighbourindices[4*CUDATHREADS];
+   // if ((ti==0) && (blocki==0)) {
+   //    vmesh::printVelocityMesh(0);
+   // }
    vmesh::LocalID ind0,ind1,ind2,nind0,nind1,nind2;
-   
+
    for (vmesh::LocalID index=blocki*warpSize; index<localContentBlocks; index += cudaBlocks*warpSize) {
       if (index+ti < localContentBlocks) {
          vmesh::GlobalID GID = velocity_block_with_content_list->at(index+ti);
          if (GID==vmesh->invalidGlobalID()) printf("self block GID error!\n");
          // Insert self
-         // auto it = neighbors_have_content_2->device_find(block);
-         // if (it != neighbors_have_content_2->device_end()) {
-         //neighbors_have_content_2->set_element(block,0);
-         //printf("Adding element from index %d as %d\n",index+ti,block);
-         // auto it = neighbors_have_content_2->device_find(block);
-         // if (it == neighbors_have_content_2->device_end()) {
-         neighbors_have_content_2->set_element(GID,GID);
-         // }
-
+         auto it = neighbors_have_content_2->device_find(GID);
+         if (it != neighbors_have_content_2->device_end()) {
+            neighbors_have_content_2->set_element(GID,GID);
+         }
          vmesh->getIndices(GID,0,ind0,ind1,ind2);
 
          for (int offset_vx=-addWidthV; offset_vx<=addWidthV; offset_vx++) {
@@ -146,21 +120,19 @@ __global__ void update_neighbours_have_content_kernel (
                   const vmesh::GlobalID nGID
                      = vmesh->getGlobalID(nind0,nind1,nind2);
                   if (nGID != vmesh->invalidGlobalID()) {
-                     // auto it = neighbors_have_content_2->device_find(neighbor_block);
-                     // if (it == neighbors_have_content_2->device_end()) {
-                     neighbors_have_content_2->set_element(nGID,nGID);
-                        //}
-                  } // if
-                  else {
-                     //printf("invalid block neighbour GID! for neighbourindices %lu %lu %lu     and block %lu indices %lu %lu %lu     offset %d %d %d\n",(unsigned long)neighbourindices[4*ti+0],(unsigned long)neighbourindices[4*ti+1],(unsigned long)neighbourindices[4*ti+2],(unsigned long)block,(unsigned long)indices[4*ti+0],(unsigned long)indices[4*ti+1],(unsigned long)indices[4*ti+2],offset_vx,offset_vy,offset_vz);
-                     //printf("%lu invalid block neighbour GID! for neighbourindices %lu %lu %lu     and block %lu indices %lu %lu %lu     offset %d %d %d\n",(unsigned long)index+ti,(unsigned long)nind0,(unsigned long)nind1,(unsigned long)nind2,(unsigned long)GID,(unsigned long)ind0,(unsigned long)ind1,(unsigned long)ind2,offset_vx,offset_vy,offset_vz);
+                     auto it = neighbors_have_content_2->device_find(nGID);
+                     if (it == neighbors_have_content_2->device_end()) {
+                        neighbors_have_content_2->set_element(nGID,nGID);
+                     }
+                  } else {
+                     printf("invalid nGID %d with GID %d,    ind %d %d %d     nind %d %d %d\n",nGID,GID,ind0,ind1,ind2,nind0,nind1,nind2);
                   }
                } // for vz
             } // for vy
          } // for vx
       } // if index
    } // for blocks
-   if ((ti==0)&&(blocki==0)) printf("Size %ld\n",neighbors_have_content_2->size());
+   //if ((ti==0)&&(blocki==0)) printf("Size %ld\n",neighbors_have_content_2->size());
 }
 
 /** CUDA kernel for selecting only non-existing blocks for addition
@@ -425,7 +397,7 @@ namespace spatial_cell {
       BlocksToRemove->clear();
       BlocksToMove->clear();
 
-      neighbors_have_content_2 = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(30);
+      //neighbors_have_content_2 = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(10);
    }
 
    SpatialCell::~SpatialCell() {
@@ -435,7 +407,7 @@ namespace spatial_cell {
       delete BlocksToAdd;
       delete BlocksToRemove;
       delete BlocksToMove;
-      delete neighbors_have_content_2;
+      //delete neighbors_have_content_2;
    }
 
    SpatialCell::SpatialCell(const SpatialCell& other) {
@@ -453,15 +425,15 @@ namespace spatial_cell {
       velocity_block_with_content_list->clear();
       velocity_block_with_no_content_list->clear();
 
-      neighbors_have_content_2 = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(30);
+      //neighbors_have_content_2 = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(10);
 
       // Make space reservation guesses based on popID 0
-      BlocksRequired->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_PADDING);
-      BlocksToAdd->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_PADDING);
-      BlocksToRemove->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_PADDING);
-      BlocksToMove->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_PADDING);
-      velocity_block_with_content_list->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_PADDING);
-      velocity_block_with_no_content_list->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_PADDING);
+      BlocksRequired->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_FACTOR);
+      BlocksToAdd->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_FACTOR);
+      BlocksToRemove->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_FACTOR);
+      BlocksToMove->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_FACTOR);
+      velocity_block_with_content_list->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_FACTOR);
+      velocity_block_with_no_content_list->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_FACTOR);
 
       // Member variables
       ioLocalCellId = other.ioLocalCellId;
@@ -500,7 +472,7 @@ namespace spatial_cell {
       delete BlocksToAdd;
       delete BlocksToRemove;
       delete BlocksToMove;
-      delete neighbors_have_content_2;
+      //delete neighbors_have_content_2;
 
       // These should be empty when created
       velocity_block_with_content_list = new split::SplitVector<vmesh::GlobalID>(1);
@@ -516,15 +488,15 @@ namespace spatial_cell {
       velocity_block_with_content_list->clear();
       velocity_block_with_no_content_list->clear();
 
-      neighbors_have_content_2 = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(30);
+      //neighbors_have_content_2 = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(10);
 
       // Make space reservation guesses based on popID 0
-      BlocksRequired->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_PADDING);
-      BlocksToAdd->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_PADDING);
-      BlocksToRemove->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_PADDING);
-      BlocksToMove->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_PADDING);
-      velocity_block_with_content_list->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_PADDING);
-      velocity_block_with_no_content_list->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_PADDING);
+      BlocksRequired->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_FACTOR);
+      BlocksToAdd->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_FACTOR);
+      BlocksToRemove->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_FACTOR);
+      BlocksToMove->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_FACTOR);
+      velocity_block_with_content_list->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_FACTOR);
+      velocity_block_with_no_content_list->reserve(other.populations[0].vmesh->size()*BLOCK_ALLOCATION_FACTOR);
 
 // Member variables
       ioLocalCellId = other.ioLocalCellId;
@@ -601,28 +573,29 @@ namespace spatial_cell {
       phiprof::start("Local content lists");
       int addWidthV = getObjectWrapper().particleSpecies[popID].sparseBlockAddWidthV;
       const uint localContentBlocks = velocity_block_with_content_list->size();
-      printf("popID %d velocity_block_with_content_list size %ld\n",popID,localContentBlocks);
+      printf("popID %d velocity_block_with_content_list size %ld cudathreads %d\n",popID,localContentBlocks,CUDATHREADS);
 
-      velocity_block_with_content_list->optimizeGPU();
-      neighbors_have_content_2->resize(30);
-      neighbors_have_content_2->optimizeGPU();
+      //velocity_block_with_content_list->optimizeGPU();
+      // neighbors_have_content_2->resize(20);
+      // neighbors_have_content_2->optimizeGPU();
       const uint thread_id = omp_get_thread_num();
       cudaStream_t stream = cuda_getStream();
-      const int nCudaBlocks = localContentBlocks > CUDABLOCKS ? CUDABLOCKS : localContentBlocks;
-      //vmesh::getMeshWrapper()->printVelocityMesh(popID);
+      //const int nCudaBlocks = (localContentBlocks/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : (localContentBlocks/CUDATHREADS);
+      const int nCudaBlocks = (localContentBlocks) > CUDABLOCKS ? CUDABLOCKS : (localContentBlocks);
+      //vmesh::printVelocityMesh(popID);
 
-      if (nCudaBlocks>0) {
-         dim3 block1(1,1,1);
-         //dim3 block1(CUDATHREADS,1,1); // now try with more parallelism
-         update_neighbours_have_content_kernel<<<nCudaBlocks, block1, 0, stream>>> (
-            populations[popID].vmesh,
-            neighbors_have_content_2,
-            velocity_block_with_content_list,
-            addWidthV
-            );
-         HANDLE_ERROR( cudaStreamSynchronize(stream) );
-      }
-      neighbors_have_content_2->optimizeCPU();
+      // if (nCudaBlocks>0) {
+      //    dim3 block1(1,1,1);
+      //    //dim3 block1(CUDATHREADS,1,1); // now try with more parallelism
+      //    update_neighbours_have_content_kernel<<<nCudaBlocks, block1, 0, stream>>> (
+      //       populations[popID].vmesh,
+      //       neighbors_have_content_2,
+      //       velocity_block_with_content_list,
+      //       addWidthV
+      //       );
+      //    HANDLE_ERROR( cudaStreamSynchronize(stream) );
+      // }
+      // neighbors_have_content_2->optimizeCPU();
 
       for (vmesh::LocalID block_index=0; block_index<velocity_block_with_content_list->size(); ++block_index) {
          vmesh::GlobalID block = velocity_block_with_content_list->at(block_index);
@@ -641,7 +614,7 @@ namespace spatial_cell {
          }
       }
       phiprof::stop("Local content lists");
-      printf("Local content lists: old method %d entries, new method %d entries.\n",neighbors_have_content.size(),neighbors_have_content_2->size());
+      printf("Local content lists: old method %d entries, new method %d entries.\n",neighbors_have_content.size(),0); //neighbors_have_content_2->size()
 
       //add neighbor content info for spatial space neighbors to map. We loop over
       //neighbor cell lists with existing blocks, and raise the
@@ -666,10 +639,10 @@ namespace spatial_cell {
       BlocksToMove->clear();
       // Same capacity for all
       if (BlocksRequired->capacity() < currSize * BLOCK_ALLOCATION_FACTOR) {
-         BlocksRequired->reserve(populations[popID].vmesh->size()*BLOCK_ALLOCATION_PADDING);
-         BlocksToAdd->reserve(populations[popID].vmesh->size()*BLOCK_ALLOCATION_PADDING);
-         BlocksToRemove->reserve(populations[popID].vmesh->size()*BLOCK_ALLOCATION_PADDING);
-         BlocksToMove->reserve(populations[popID].vmesh->size()*BLOCK_ALLOCATION_PADDING);
+         BlocksRequired->reserve(currSize*BLOCK_ALLOCATION_PADDING);
+         BlocksToAdd->reserve(currSize*BLOCK_ALLOCATION_PADDING);
+         BlocksToRemove->reserve(currSize*BLOCK_ALLOCATION_PADDING);
+         BlocksToMove->reserve(currSize*BLOCK_ALLOCATION_PADDING);
       }
       BlocksToMove->optimizeGPU();
       BlocksToAdd->optimizeGPU();
@@ -694,13 +667,13 @@ namespace spatial_cell {
             }
             #endif
 
-            // std::unordered_set<vmesh::GlobalID>::iterator it = neighbors_have_content.find(blockGID);
-            // if (it == neighbors_have_content.end()) {
-            //    BlocksToRemove->push_back(blockGID);
-            // }
-            if (neighbors_have_content_2->count(blockGID) == 0) {
+            std::unordered_set<vmesh::GlobalID>::iterator it = neighbors_have_content.find(blockGID);
+            if (it == neighbors_have_content.end()) {
                BlocksToRemove->push_back(blockGID);
             }
+            // if (neighbors_have_content_2->count(blockGID) == 0) {
+            //    BlocksToRemove->push_back(blockGID);
+            // }
          }
       }
       phiprof::stop("Gather blocks to remove");
@@ -710,12 +683,12 @@ namespace spatial_cell {
 
       // Require all blocks with neighbors in spatial or velocity space
       phiprof::start("Gather blocks required");
-      // for (std::unordered_set<vmesh::GlobalID>::iterator it=neighbors_have_content.begin(); it != neighbors_have_content.end(); ++it) {
-      //    BlocksRequired->push_back(*it);
-      // }
-      for (auto it=neighbors_have_content_2->begin(); it != neighbors_have_content_2->end(); ++it) {
-         BlocksRequired->push_back((*it).first);
+      for (std::unordered_set<vmesh::GlobalID>::iterator it=neighbors_have_content.begin(); it != neighbors_have_content.end(); ++it) {
+         BlocksRequired->push_back(*it);
       }
+      // for (auto it=neighbors_have_content_2->begin(); it != neighbors_have_content_2->end(); ++it) {
+      //    BlocksRequired->push_back((*it).first);
+      // }
       phiprof::stop("Gather blocks required");
       // Only add blocks which don't yet exist to optimize cuda parallel memory management.
       // Find these with a kernel.
@@ -726,12 +699,11 @@ namespace spatial_cell {
       phiprof::stop("Prefetch");
 
       phiprof::start("blocks_to_add_kernel");
-      // const uint thread_id = omp_get_thread_num();
-      // cudaStream_t stream = cuda_getStream();
-      const int nCudaBlocks2 = nBlocksRequired > CUDABLOCKS ? CUDABLOCKS : nBlocksRequired;
+      //const int nCudaBlocks2 = (nBlocksRequired/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : (nBlocksRequired/CUDATHREADS);
+      const int nCudaBlocks2 = (nBlocksRequired) > CUDABLOCKS ? CUDABLOCKS : (nBlocksRequired);
       if (nBlocksRequired>0) {
-         //dim3 block1(1,1,1);
-         dim3 block1(CUDATHREADS,1,1); // now try with more parallelism
+         dim3 block1(1,1,1);
+         //dim3 block1(CUDATHREADS,1,1); // now try with more parallelism
          update_blocks_to_add_kernel<<<nCudaBlocks2, block1, 0, stream>>> (
             populations[popID].vmesh,
             BlocksRequired,
