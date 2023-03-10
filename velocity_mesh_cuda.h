@@ -571,6 +571,7 @@ namespace vmesh {
    }
 
    inline void VelocityMesh::dev_cleanHashMap() {
+      globalToLocalMap->optimizeGPU(cuda_getStream());
       globalToLocalMap->performCleanupTasks(cuda_getStream());
       return;
    }
