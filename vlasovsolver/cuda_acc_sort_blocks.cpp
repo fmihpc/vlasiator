@@ -26,6 +26,7 @@
 #include <utility>
 #include <vector>
 
+#include "../definitions.h"
 #include "cuda_acc_sort_blocks.hpp"
 
 using namespace std;
@@ -36,24 +37,206 @@ inline bool tripletcomparator( const std::pair<std::pair<uint, uint>, uint> & l,
    return l.first.first < r.first.first;
 }
 
-// Kernel
+// // Kernel for vector reset
+// __global__ void reset_column_search_vectors_kernel(
+//    const vmesh::VelocityMesh* vmesh,
+//    split::SplitVector<vmesh::LocalID> *columnNBlocks,
+//    split::SplitVector<vmesh::LocalID> *columnMinBlock,
+//    split::SplitVector<vmesh::LocalID> *columnMaxBlock
+//    ) {
+//    const int cudaBlocks = gridDim.x; //assumes 1D grid
+//    const int blocki = blockIdx.x;
+//    const uint warpSize = blockDim.x * blockDim.y * blockDim.z;
+//    const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
+
+//    const vmesh::LocalID vl1 = columnNBlocks->size();
+//    for (vmesh::LocalID vi=blocki*warpSize; vi<vl1; vi += cudaBlocks*warpSize) {
+//       if (vi+ti<vl1) {
+//          columnNBlocks->at(vi)=0;
+//       }
+//    }
+//    const vmesh::LocalID vl2 = columnMinBlock->size();
+//    for (vmesh::LocalID vi=blocki*warpSize; vi<vl2; vi += cudaBlocks*warpSize) {
+//       if (vi+ti<vl2) {
+//          columnMinBlock->at(vi)=vmesh->invalidLocalID();
+//       }
+//    }
+//    const vmesh::LocalID vl3 = columnMaxBlock->size();
+//    for (vmesh::LocalID vi=blocki*warpSize; vi<vl3; vi += cudaBlocks*warpSize) {
+//       if (vi+ti<vl3) {
+//          columnMaxBlock->at(vi)=0;
+//       }
+//    }
+// }
+
+// Kernel for scanning colums
+__global__ void scan_blocks_for_columns_kernel(
+   const vmesh::VelocityMesh* vmesh,
+   const uint dimension,
+   vmesh::LocalID *columnNBlocks,
+   vmesh::LocalID *columnMinBlock,
+   vmesh::LocalID *columnMaxBlock,
+   const vmesh::LocalID D0,
+   const vmesh::LocalID D1,
+   const vmesh::LocalID D2
+   ) {
+   const int cudaBlocks = gridDim.x; //assumes 1D grid
+   const int blocki = blockIdx.x;
+   const uint warpSize = blockDim.x * blockDim.y * blockDim.z;
+   const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
+
+   const uint nBlocks = vmesh->size();
+   for (vmesh::LocalID LID=blocki*warpSize; LID<nBlocks; LID += cudaBlocks*warpSize) {
+      if (LID+ti < nBlocks) {
+         vmesh::GlobalID GID = vmesh->getGlobalID(LID+ti);
+         // Solve column for GID
+         vmesh::LocalID ind0,ind1,ind2;
+         vmesh->getIndices(GID,ind0,ind1,ind2);
+         uint columnid;
+         switch (dimension) {
+            case 0:
+               columnid = ind1 + D1*ind2;
+               break;
+            case 1:
+               columnid = ind0 + D1*ind2;
+               break;
+            case 2:
+               columnid = ind0 + D1*ind1;
+               break;
+            default:
+               printf(" Invalid dimension inside kernel!\n");
+               return;
+         }
+         // Increment number of blocks in column
+         unsigned long int old = atomicAdd(&columnNBlocks[columnid],1);
+         // Evaluate smallest GID in column
+         old = atomicMin(&columnMinBlock[columnid],GID);
+         // Evaluate largest GID in colum
+         old = atomicMax(&columnMaxBlock[columnid],GID);
+      }
+   }
+}
+
+// Kernel for sorting blocks
 __global__ void sort_blocks_by_dimension_kernel(
    const vmesh::VelocityMesh* vmesh,
    const uint dimension,
+   vmesh::LocalID *columnNBlocks,
+   vmesh::LocalID *columnMinBlock,
+   vmesh::LocalID *columnMaxBlock,
+   const vmesh::LocalID D0,
+   const vmesh::LocalID D1,
+   const vmesh::LocalID D2,
    uint* blocksGID,
    uint* blocksLID,
-   ColumnOffsets* columnData
-   // contains
+   ColumnOffsets* columnData,
+   vmesh::LocalID *dev_ColumnIndex,
+   vmesh::LocalID *dev_ColumnSetIndex,
+   vmesh::LocalID *dev_ColumnBlockIndex
+   // columnData contains
    // split::SplitVector<uint> columnBlockOffsets; // indexes where columns start (in blocks, length totalColumns)
    // split::SplitVector<uint> columnNumBlocks; // length of column (in blocks, length totalColumns)
    // split::SplitVector<uint> setColumnOffsets; // index from columnBlockOffsets where new set of columns starts (length nColumnSets)
    // split::SplitVector<uint> setNumColumns; // how many columns in set of columns (length nColumnSets)
    ) {
-   const int index = threadIdx.x;
-   const int trial1 = blockIdx.x;
-   const int trial2 = blockIdx.y;
 
+   const int cudaBlocks = gridDim.x; //assumes 1D grid
+   const int blocki = blockIdx.x;
+   const uint warpSize = blockDim.x * blockDim.y * blockDim.z;
+   const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
+   if ((warpSize!=1) || (ti!=0)) {
+      printf("Error, kernel at __FILE__ __LINE__ called with unsupported launch size!\n");
+   }
+   // Only supports 1 thread for now
+   uint stride;
+   switch (dimension) {
+      case 0: // X-direction, stride 1
+         stride=1;
+         break;
+      case 1: // Y-direction, stride is gridsize[0]==D2
+         stride=D2;
+         break;
+      case 2: // Z-direction, stride is gridsize[0]*gridsize[1] = D1*D2
+         stride=D1*D2;
+         break;
+      default:
+         printf(" Invalid dimension inside kernel!\n");
+         return;
+   }
 
+   // Find own column from blocki, D1..2 and cudaBlocks
+   const vmesh::LocalID Ctot = D1*D2;
+   for (vmesh::LocalID Cind=blocki; Cind<Ctot; Cind += cudaBlocks) {
+      if (columnNBlocks[Cind]==0) {
+         // no active blocks along this column
+         continue;
+      }
+      if (columnMinBlock[Cind] + stride*(columnNBlocks[Cind]-1) == columnMaxBlock[Cind]) {
+         // Simple case: set contains only one column
+         const uint ColumnSetIndex = atomicAdd(dev_ColumnSetIndex,1);
+         const uint ColumnIndex = atomicAdd(dev_ColumnIndex,1);
+         const uint BlockIndex = atomicAdd(dev_ColumnBlockIndex,columnNBlocks[Cind]);
+         columnData->setNumColumns[ColumnSetIndex] = 1; // how many columns in set of columns (length nColumnSets)
+         columnData->columnNumBlocks[ColumnIndex] = columnNBlocks[Cind]; // length of column (in blocks, length totalColumns)
+         columnData->columnBlockOffsets[ColumnIndex] = BlockIndex; // indexes where columns start (in blocks, length totalColumns)
+         columnData->setColumnOffsets[ColumnSetIndex]= BlockIndex; // index from columnBlockOffsets where new set of columns starts (length nColumnSets)
+         // Now we proceed to place the GID,LID pairs into the allocated space
+         for (uint bi = 0; bi < columnNBlocks[Cind]; bi++) {
+            const vmesh::GlobalID GID = columnMinBlock[Cind] + bi * stride;
+            blocksGID[BlockIndex+bi] = GID;
+            blocksLID[BlockIndex+bi] = vmesh->getLocalID(GID);
+         }
+      } else {
+         // Several columns in set; We need to gather all data before incrementing indices.
+         // We do this by looping twice:
+         vmesh::GlobalID nColumnsInSet = 1;
+         bool inColumn = true;
+         for (vmesh::GlobalID GID = columnMinBlock[Cind]; GID <= columnMaxBlock[Cind]; GID+=stride) {
+            vmesh::LocalID LID = vmesh->getLocalID(GID);
+            if ( inColumn && (LID == vmesh->invalidLocalID())) {
+               // end of column
+               inColumn = false;
+            } else if (!inColumn && (LID != vmesh->invalidLocalID())) {
+               // start of new column
+               nColumnsInSet++;
+               inColumn = true;
+            }
+         }
+         const uint ColumnSetIndex = atomicAdd(dev_ColumnSetIndex,1);
+         uint ColumnIndex = atomicAdd(dev_ColumnIndex,nColumnsInSet);
+         uint BlockIndex = atomicAdd(dev_ColumnIndex,columnNBlocks[Cind]);
+         columnData->setNumColumns[ColumnSetIndex] = nColumnsInSet; // how many columns in set of columns (length nColumnSets)
+         columnData->setColumnOffsets[ColumnSetIndex]= BlockIndex; // index from columnBlockOffsets where new set of columns starts (length nColumnSets)
+         // Now we know how many columns exist so we can store the data.
+         vmesh::GlobalID blocksInThisColumn=0;
+         vmesh::GlobalID blocksOffsetForThisColumn=BlockIndex;
+         vmesh::GlobalID columnIndexInSet=0;
+         inColumn = true;
+         for (vmesh::GlobalID GID = columnMinBlock[Cind]; GID <= columnMaxBlock[Cind]; GID+=stride) {
+            vmesh::LocalID LID = vmesh->getLocalID(GID);
+            if (LID != vmesh->invalidLocalID()) {
+               blocksGID[BlockIndex] = GID;
+               blocksLID[BlockIndex] = LID;
+               BlockIndex++;
+               blocksInThisColumn++;
+            }
+            if ( inColumn && (LID == vmesh->invalidLocalID())) {
+               // end of column
+               columnData->columnNumBlocks[ColumnIndex+columnIndexInSet] = blocksInThisColumn; // length of column (in blocks, length totalColumns)
+               columnData->columnBlockOffsets[ColumnIndex+columnIndexInSet] = blocksOffsetForThisColumn; // indexes where columns start (in blocks, length totalColumns)
+               blocksOffsetForThisColumn += blocksInThisColumn;
+               blocksInThisColumn=0;
+               inColumn = false;
+            } else if (!inColumn && (LID != vmesh->invalidLocalID())) {
+               // start of new column
+               inColumn = true;
+            }
+         }
+         // Also write data for final column in this set
+         columnData->columnNumBlocks[ColumnIndex+columnIndexInSet] = blocksInThisColumn; // length of column (in blocks, length totalColumns)
+         columnData->columnBlockOffsets[ColumnIndex+columnIndexInSet] = blocksOffsetForThisColumn; // indexes where columns start (in blocks, length totalColumns)
+      }
+   }
 }
 
 /*
@@ -72,6 +255,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
    // split::SplitVector<uint> columnNumBlocks; // length of column (in blocks, length totalColumns)
    // split::SplitVector<uint> setColumnOffsets; // index from columnBlockOffsets where new set of columns starts (length nColumnSets)
    // split::SplitVector<uint> setNumColumns; // how many columns in set of columns (length nColumnSets)
+                               const uint cuda_async_queue_id,
                                cudaStream_t stream
    ) {
 
@@ -81,34 +265,83 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
    columnData->setNumColumns.clear();
 
 #ifdef UNDEFINED
-      // Call kernel instead of CPU code
-      phiprof::start("Sort blocks by dimension kernel");
-      const uint refL=0; // vAMR
-      switch (dimension) {
-         case 0:
-            dim3 grid(vmesh->getGridLength(refL)[1],vmesh->getGridLength(refL)[2],1);
-            break;
-         case 1:
-            dim3 grid(vmesh->getGridLength(refL)[0],vmesh->getGridLength(refL)[2],1);
-            break;
-         case 2:
-            dim3 grid(vmesh->getGridLength(refL)[0],vmesh->getGridLength(refL)[1],1);
-            break:
-         default:
-            printf("Invalid dimension in cuda sortBlockListByDimension!\n");
-            abort();
-      }
-      //dim3 block(WID,WID,WID);
-      dim3 block1(1,1,1);
-      //const int nCudaBlocks = nBlocks > CUDABLOCKS ? CUDABLOCKS : nBlocks;
-      sort_blocks_by_dimension_kernel<<<grid, block1, 0, stream>>> (
+   // Call kernel instead of CPU code
+
+   // Reset search vectors
+      phiprof::start("Reset column search vectors");
+      cudaMemsetAsync(columnNBlocks[cuda_async_queue_id], 0, sizeof(vmesh::LocalID)*cuda_acc_columnContainerSize, stream);
+      cudaMemsetAsync(columnMinBlock[cuda_async_queue_id], 0xFF, sizeof(vmesh::LocalID)*cuda_acc_columnContainerSize, stream);
+      cudaMemsetAsync(columnMaxBlock[cuda_async_queue_id], 0, sizeof(vmesh::LocalID)*cuda_acc_columnContainerSize, stream);
+      cudaStreamSynchronize(stream);
+      phiprof::stop("Reset column search vectors");
+
+      phiprof::start("Scan blocks for required columns kernel");
+      // Can't probably realistically launch 200*200 blocks...
+      const uint refL=0; //vAMR
+      const vmesh::LocalID D0 = vmesh->getGridLength(refL)[dimension];
+      const vmesh::LocalID D1 = vmesh->getGridLength(refL)[(dimension+1)%3];
+      const vmesh::LocalID D2 = vmesh->getGridLength(refL)[(dimension+2)%3];
+
+      // First pass: go over all existing blocks. Accumulate how many blocks are in each column and store the
+      // Smallest and largest GIDs in each column.
+      uint nCudaBlocks  = (D1*D2/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : (D1*D2/CUDATHREADS);
+      dim3 grid1(nCudaBlocks,1,1);
+      dim3 block1(CUDATHREADS,1,1);
+      scan_blocks_for_columns_kernel<<<grid1, block1, 0, stream>>> (
          vmesh,
          dimension,
-         blocksGID,
-         blocksLID,
-         columnData
+         columnNBlocks[cuda_async_queue_id],
+         columnMinBlock[cuda_async_queue_id],
+         columnMaxBlock[cuda_async_queue_id],
+         D0,D1,D2
          );
       cudaStreamSynchronize(stream);
+      phiprof::stop("Scan blocks for required columns kernel");
+
+      phiprof::start("Sort blocks by dimension kernel");
+      // Set up counters for gathering columns
+      vmesh::LocalID *dev_ColumnIndex;
+      vmesh::LocalID *dev_ColumnSetIndex;
+      vmesh::LocalID *dev_ColumnBlockIndex;
+      vmesh::LocalID host_ColumnIndex = 0;
+      vmesh::LocalID host_ColumnSetIndex = 0;
+      vmesh::LocalID host_ColumnBlockIndex = 0;
+      HANDLE_ERROR( cudaMallocAsync((void**)&dev_ColumnIndex, sizeof(vmesh::LocalID), stream) );
+      HANDLE_ERROR( cudaMallocAsync((void**)&dev_ColumnSetIndex, sizeof(vmesh::LocalID), stream) );
+      HANDLE_ERROR( cudaMallocAsync((void**)&dev_ColumnBlockIndex, sizeof(vmesh::LocalID), stream) );
+      HANDLE_ERROR( cudaMemcpyAsync(dev_ColumnIndex, &host_ColumnIndex, sizeof(vmesh::LocalID), cudaMemcpyHostToDevice, stream) );
+      HANDLE_ERROR( cudaMemcpyAsync(dev_ColumnSetIndex, &host_ColumnSetIndex, sizeof(vmesh::LocalID), cudaMemcpyHostToDevice, stream) );
+      HANDLE_ERROR( cudaMemcpyAsync(dev_ColumnBlockIndex, &host_ColumnBlockIndex, sizeof(vmesh::LocalID), cudaMemcpyHostToDevice, stream) );
+
+      /** Now we launch a kernel which goes over every potential column. It skips columns which do not have any blocks.
+          Within non-empty columns, it starts from the smallest GID and finishes at the largest GID with a
+          dimension-specific stride. It then searches if those blocks exist, and places them at the suitable offset
+          within the blocksGID and blocksLID lists.
+
+          Do we actually need "sets" of columns or could we just have columns?
+      **/
+      nCudaBlocks = (vmesh->getGridLength(refL)[0]) > CUDABLOCKS ? CUDABLOCKS : (vmesh->getGridLength(refL)[0]);
+      dim3 grid2(nCudaBlocks,1,1);
+      //dim3 block1(CUDATHREADS,1,1);
+      dim3 block2(1,1,1); // Currently only supports 1 thread
+      sort_blocks_by_dimension_kernel<<<grid2, block2, 0, stream>>> (
+         vmesh,
+         dimension,
+         columnNBlocks[cuda_async_queue_id],
+         columnMinBlock[cuda_async_queue_id],
+         columnMaxBlock[cuda_async_queue_id],
+         D0,D1,D2,
+         blocksGID,
+         blocksLID,
+         columnData,
+         dev_ColumnIndex, // make into one 3-element pointer
+         dev_ColumnSetIndex,
+         dev_ColumnBlockIndex
+         );
+      cudaStreamSynchronize(stream);
+      HANDLE_ERROR( cudaFree(dev_ColumnIndex) );
+      HANDLE_ERROR( cudaFree(dev_ColumnSetIndex) );
+      HANDLE_ERROR( cudaFree(dev_ColumnBlockIndex) );
       phiprof::stop("Sort blocks by dimension kernel");
       return;
 #else

@@ -60,7 +60,13 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                // std::vector<uint> & columnNumBlocks,
                                // std::vector<uint> & setColumnOffsets,
                                // std::vector<uint> & setNumColumns
+                               const uint cuda_async_queue_id,
                                cudaStream_t stream
    );
+
+extern vmesh::LocalID *columnNBlocks[];
+extern vmesh::LocalID *columnMinBlock[];
+extern vmesh::LocalID *columnMaxBlock[];
+extern uint cuda_acc_columnContainerSize;
 
 #endif
