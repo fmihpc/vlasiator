@@ -135,6 +135,8 @@ for run in ${run_tests[*]}; do
       cat $GITHUB_WORKSPACE/stderr.txt >> $GITHUB_STEP_SUMMARY
       echo -e "\`'`'`\n</details>" >> $GITHUB_STEP_SUMMARY
       FAILEDTESTS=$((FAILEDTESTS+1))
+
+      touch $GITHUB_WORKSPACE/testpackage_failed
       continue
    fi
 
