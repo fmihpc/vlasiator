@@ -155,7 +155,7 @@ namespace spatial_cell {
       Real V_R[3];
       Real RHO_V;
       Real V_V[3];
-      Real P[3];
+      Real P[6];
       Real P_R[3];
       Real P_V[3];
       Real RHOLOSSADJUST = 0.0;      /*!< Counter for particle number loss from the destroying blocks in blockadjustment*/

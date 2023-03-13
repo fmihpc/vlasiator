@@ -144,9 +144,11 @@ void blockVelocitySecondMoments(
    array[0] += nvx2_sum * DV3;
    array[1] += nvy2_sum * DV3;
    array[2] += nvz2_sum * DV3;
-   array[3] += nvyvz_sum * DV3;
-   array[4] += nvzvx_sum * DV3;
-   array[5] += nvxvy_sum * DV3;
+   if (doOffDiagonal==true) {
+       array[3] += nvxvy_sum * DV3;
+       array[4] += nvzvx_sum * DV3;
+       array[5] += nvyvz_sum * DV3;
+   }
 }
 
 #endif
