@@ -53,8 +53,9 @@ struct ColumnOffsets : public Managed {
 void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                const vmesh::VelocityMesh* vmesh,
                                const uint dimension,
-                               uint* blocksGID,
-                               uint* blocksLID,
+                               vmesh::GlobalID *blocksGID,
+                               vmesh::GlobalID *blocksID_mapped,
+                               vmesh::LocalID *blocksLID,
                                ColumnOffsets* columnData,
                                // std::vector<uint> & columnBlockOffsets,
                                // std::vector<uint> & columnNumBlocks,
@@ -64,9 +65,11 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                cudaStream_t stream
    );
 
-extern vmesh::LocalID *columnNBlocks[];
-extern vmesh::LocalID *columnMinBlock[];
-extern vmesh::LocalID *columnMaxBlock[];
-extern uint cuda_acc_columnContainerSize;
+// extern vmesh::LocalID *columnNBlocks[];
+// extern vmesh::LocalID *columnMinBlock[];
+// extern vmesh::LocalID *columnMaxBlock[];
+// extern vmesh::LocalID *columnOffset[];
+// extern vmesh::LocalID *columnSetOffset[];
+// extern uint cuda_acc_columnContainerSize;
 
 #endif

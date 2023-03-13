@@ -631,18 +631,23 @@ namespace spatial_cell {
 
       // CUDATODO: Clear + resize in one
 
-      phiprof::start("hashmap clear");
-      BlocksRequiredMap->optimizeGPU(stream);
-      BlocksRequiredMap->clear(Hashinator::targets::device,stream);
-      phiprof::stop("hashmap clear");
-      phiprof::start("hashmap resize");
+      phiprof::start("hashmap resize / clear");
       //printf(" bucket count %lu localcontentblocks %lu x27 %lu \n",BlocksRequiredMap->bucket_count(),localContentBlocks,27*localContentBlocks);
-      const vmesh::LocalID hashmapsize = ceil(log2(localContentBlocks));
+      const vmesh::LocalID HashmapReqSize = ceil(log2(localContentBlocks)) +5;
+      if (BlocksRequiredMap->getSizePower() >= HashmapReqSize) {
+         // Map is already large enough
+         BlocksRequiredMap->optimizeGPU(stream);
+         BlocksRequiredMap->clear(Hashinator::targets::device,stream);
+      } else {
+         // Need larger empty map
+         delete BlocksRequiredMap;
+         BlocksRequiredMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(HashmapReqSize);
+      }
       //printf("local content blocks %lu hashmapsize %lu -> %lu\n",localContentBlocks,hashmapsize,hashmapsize+5);
-      BlocksRequiredMap->resize(hashmapsize+5);
-      phiprof::stop("hashmap resize");
+      //BlocksRequiredMap->resize(hashmapsize+5,Hashinator::targets::device,stream);
+      //BlocksRequiredMap->resize(hashmapsize+5,Hashinator::targets::host,stream);
+      phiprof::stop("hashmap resize / clear");
 
-      
       // add neighbor content info for velocity space neighbors to map. We loop over blocks
       // with content and raise the neighbors_have_content for
       // itself, and for all its v-space neighbors (halo)

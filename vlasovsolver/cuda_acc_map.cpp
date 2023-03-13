@@ -55,15 +55,18 @@ Column *unif_columns[MAXCPUTHREADS];
 ColumnOffsets *unif_columndata[MAXCPUTHREADS];
 vmesh::LocalID *unif_GIDlist[MAXCPUTHREADS];
 vmesh::LocalID *unif_LIDlist[MAXCPUTHREADS];
+vmesh::LocalID *dev_BlocksID_mapped[MAXCPUTHREADS];
 
-vmesh::LocalID *columnNBlocks[MAXCPUTHREADS];
-vmesh::LocalID *columnMinBlock[MAXCPUTHREADS];
-vmesh::LocalID *columnMaxBlock[MAXCPUTHREADS];
+// vmesh::LocalID *columnNBlocks[MAXCPUTHREADS];
+// vmesh::LocalID *columnMinBlock[MAXCPUTHREADS];
+// vmesh::LocalID *columnMaxBlock[MAXCPUTHREADS];
+// vmesh::LocalID *columnOffset[MAXCPUTHREADS];
+// vmesh::LocalID *columnSetOffset[MAXCPUTHREADS];
 
 // Memory allocation flags and values.
 uint cuda_acc_allocatedSize = 0;
 uint cuda_acc_allocatedColumns = 0;
-uint cuda_acc_columnContainerSize = 0;
+//uint cuda_acc_columnContainerSize = 0;
 
 __host__ void cuda_acc_allocate (
    uint maxBlockCount
@@ -103,6 +106,7 @@ __host__ void cuda_acc_allocate_memory (
    HANDLE_ERROR( cudaMalloc((void**)&dev_columnNumBlocks[cpuThreadID], maxColumnsPerCell*sizeof(uint)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_columnBlockOffsets[cpuThreadID], maxColumnsPerCell*sizeof(uint)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_blockDataOrdered[cpuThreadID], blockAllocationCount * (WID3 / VECL) * sizeof(Vec)) );
+   HANDLE_ERROR( cudaMalloc((void**)&dev_BlocksID_mapped[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID)) );
 
    // Unified memory, block lists and column offset struct
    HANDLE_ERROR( cudaMallocManaged((void**)&unif_columns[cpuThreadID], maxColumnsPerCell*sizeof(Column)) );
@@ -110,20 +114,20 @@ __host__ void cuda_acc_allocate_memory (
    HANDLE_ERROR( cudaMallocManaged((void**)&unif_GIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID)) );
    unif_columndata[cpuThreadID] = new ColumnOffsets(maxColumnsPerCell); // inherits managed
 
-   // Column interim data containers
-   const uint c0 = (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[0];
-   const uint c1 = (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[1];
-   const uint c2 = (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[2];
-   if ((c0 <= c1) && (c0 <= c2)) {
-      cuda_acc_columnContainerSize = c1*c2;
-   } else if ((c1 <= c0) && (c1 <= c2)) {
-      cuda_acc_columnContainerSize = c0*c2;
-   } else {
-      cuda_acc_columnContainerSize = c0*c1;
-   }
-   HANDLE_ERROR( cudaMalloc((void**)&columnNBlocks[cpuThreadID], cuda_acc_columnContainerSize*sizeof(vmesh::LocalID)) );
-   HANDLE_ERROR( cudaMalloc((void**)&columnMinBlock[cpuThreadID], cuda_acc_columnContainerSize*sizeof(vmesh::LocalID)) );
-   HANDLE_ERROR( cudaMalloc((void**)&columnMaxBlock[cpuThreadID], cuda_acc_columnContainerSize*sizeof(vmesh::LocalID)) );
+   // // Column interim data containers
+   // const uint c0 = (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[0];
+   // const uint c1 = (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[1];
+   // const uint c2 = (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[2];
+   // std::array<int, 3> s = {c0,c1,c2};
+   // std::sort(s.begin(), s.end());
+   // // We need one for each potential columnset
+   // cuda_acc_columnContainerSize = c2*c1;
+   // printf("ColumnContainerSize %d\n",cuda_acc_columnContainerSize);
+   // HANDLE_ERROR( cudaMalloc((void**)&columnNBlocks[cpuThreadID], cuda_acc_columnContainerSize*sizeof(vmesh::LocalID)) );
+   // HANDLE_ERROR( cudaMalloc((void**)&columnMinBlock[cpuThreadID], cuda_acc_columnContainerSize*sizeof(vmesh::LocalID)) );
+   // HANDLE_ERROR( cudaMalloc((void**)&columnMaxBlock[cpuThreadID], cuda_acc_columnContainerSize*sizeof(vmesh::LocalID)) );
+   // HANDLE_ERROR( cudaMalloc((void**)&columnOffset[cpuThreadID], cuda_acc_columnContainerSize*sizeof(vmesh::LocalID)) );
+   // HANDLE_ERROR( cudaMalloc((void**)&columnSetOffset[cpuThreadID], cuda_acc_columnContainerSize*sizeof(vmesh::LocalID)) );
 }
 
 __host__ void cuda_acc_deallocate_memory (
@@ -133,6 +137,7 @@ __host__ void cuda_acc_deallocate_memory (
    HANDLE_ERROR( cudaFree(dev_blockDataOrdered[cpuThreadID]) );
    HANDLE_ERROR( cudaFree(dev_columnNumBlocks[cpuThreadID]) );
    HANDLE_ERROR( cudaFree(dev_columnBlockOffsets[cpuThreadID]) );
+   HANDLE_ERROR( cudaFree(dev_BlocksID_mapped[cpuThreadID]) );
 
    // Delete unified memory constructs
    HANDLE_ERROR( cudaFree(unif_columns[cpuThreadID]) );
@@ -141,13 +146,15 @@ __host__ void cuda_acc_deallocate_memory (
 
    delete unif_columndata[cpuThreadID];
 
-   HANDLE_ERROR( cudaFree(columnNBlocks[cpuThreadID]) );
-   HANDLE_ERROR( cudaFree(columnMinBlock[cpuThreadID]) );
-   HANDLE_ERROR( cudaFree(columnMaxBlock[cpuThreadID]) );
+   // HANDLE_ERROR( cudaFree(columnNBlocks[cpuThreadID]) );
+   // HANDLE_ERROR( cudaFree(columnMinBlock[cpuThreadID]) );
+   // HANDLE_ERROR( cudaFree(columnMaxBlock[cpuThreadID]) );
+   // HANDLE_ERROR( cudaFree(columnOffset[cpuThreadID]) );
+   // HANDLE_ERROR( cudaFree(columnSetOffset[cpuThreadID]) );
 
    cuda_acc_allocatedSize = 0;
    cuda_acc_allocatedColumns = 0;
-   cuda_acc_columnContainerSize = 0;
+   //cuda_acc_columnContainerSize = 0;
 }
 
 __global__ void reorder_blocks_by_dimension_kernel(
@@ -473,7 +480,9 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    // lists in unified memory
    vmesh::GlobalID *GIDlist = unif_GIDlist[cuda_async_queue_id];
    vmesh::LocalID *LIDlist = unif_LIDlist[cuda_async_queue_id];
-
+   // or device memory
+   vmesh::GlobalID *BlocksID_mapped = dev_BlocksID_mapped[cuda_async_queue_id];
+   
    // sort blocks according to dimension, and divide them into columns
    ColumnOffsets *columnData = unif_columndata[cuda_async_queue_id];
 
@@ -483,7 +492,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    // indices, sorting them, and going through the list.
    // Probably won't parallelize very well, though?
    phiprof::start("sortBlockList");
-   sortBlocklistByDimension(vmesh, dimension, GIDlist, LIDlist,
+   sortBlocklistByDimension(vmesh, dimension, GIDlist, BlocksID_mapped, LIDlist,
                             columnData, cuda_async_queue_id, stream
       );
    phiprof::stop("sortBlockList");
