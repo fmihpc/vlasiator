@@ -71,7 +71,9 @@ extern Vec *dev_blockDataOrdered[];
 extern uint *dev_cell_indices_to_id[];
 extern uint *dev_columnNumBlocks[];
 extern uint *dev_columnBlockOffsets[];
-extern vmesh::LocalID *dev_BlocksID_mapped[];
+extern vmesh::GlobalID *dev_BlocksID_mapped[];
+extern vmesh::GlobalID *dev_BlocksID_mapped_sorted[];
+extern vmesh::GlobalID *dev_LIDlist_unsorted[];
 
 // Unified (managed) memory variables
 extern Column *unif_columns[];

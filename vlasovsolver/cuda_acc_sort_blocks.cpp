@@ -29,14 +29,9 @@
 #include "../definitions.h"
 #include "cuda_acc_sort_blocks.hpp"
 
-#include <thrust/sort.h>
-#include <thrust/execution_policy.h>
-#include <thrust/device_ptr.h>
-
 // Ensure printing of CUDA runtime errors to console
-// #define CUB_STDERR
-// #include <cub/util_allocator.cuh>
-// #include <cub/device/device_radix_sort.cuh>
+#define CUB_STDERR
+#include <cub/device/device_radix_sort.cuh>
 
 using namespace std;
 using namespace spatial_cell;
@@ -45,10 +40,10 @@ using namespace spatial_cell;
 __global__ void blocksID_mapped_dim0_kernel(
    const vmesh::VelocityMesh* vmesh,
    vmesh::GlobalID *blocksID_mapped,
-   vmesh::LocalID *blocksLID,
+   vmesh::LocalID *blocksLID_unsorted,
    const uint nBlocks
    ) {
-   const int cudaBlocks = gridDim.x * gridDim.y * gridDim.z; 
+   const int cudaBlocks = gridDim.x * gridDim.y * gridDim.z;
    const uint warpSize = blockDim.x * blockDim.y * blockDim.z;
    const int blocki = blockIdx.z*gridDim.x*gridDim.y + blockIdx.y*gridDim.x + blockIdx.x;
    const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
@@ -56,7 +51,7 @@ __global__ void blocksID_mapped_dim0_kernel(
       const vmesh::LocalID LID = (index+ti);
       if (LID < nBlocks) {
          blocksID_mapped[LID] = vmesh->getGlobalID(LID);
-         blocksLID[LID]=LID;
+         blocksLID_unsorted[LID]=LID;
       }
    }
 }
@@ -64,12 +59,12 @@ __global__ void blocksID_mapped_dim0_kernel(
 __global__ void blocksID_mapped_dim1_kernel(
    const vmesh::VelocityMesh* vmesh,
    vmesh::GlobalID *blocksID_mapped,
-   vmesh::LocalID *blocksLID,
+   vmesh::LocalID *blocksLID_unsorted,
    vmesh::LocalID D0,
    vmesh::LocalID D1,
    const uint nBlocks
    ) {
-   const int cudaBlocks = gridDim.x * gridDim.y * gridDim.z; 
+   const int cudaBlocks = gridDim.x * gridDim.y * gridDim.z;
    const uint warpSize = blockDim.x * blockDim.y * blockDim.z;
    const int blocki = blockIdx.z*gridDim.x*gridDim.y + blockIdx.y*gridDim.x + blockIdx.x;
    const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
@@ -80,7 +75,7 @@ __global__ void blocksID_mapped_dim1_kernel(
          const vmesh::LocalID x_index = GID % D0;
          const vmesh::LocalID y_index = (GID / D0) % D1;
          blocksID_mapped[LID] = GID - (x_index + y_index*D0) + y_index + x_index * D1;
-         blocksLID[LID]=LID;
+         blocksLID_unsorted[LID]=LID;
       }
    }
 }
@@ -88,13 +83,13 @@ __global__ void blocksID_mapped_dim1_kernel(
 __global__ void blocksID_mapped_dim2_kernel(
    const vmesh::VelocityMesh* vmesh,
    vmesh::GlobalID *blocksID_mapped,
-   vmesh::LocalID *blocksLID,
+   vmesh::LocalID *blocksLID_unsorted,
    vmesh::LocalID D0,
    vmesh::LocalID D1,
    vmesh::LocalID D2,
    const uint nBlocks
    ) {
-   const int cudaBlocks = gridDim.x * gridDim.y * gridDim.z; 
+   const int cudaBlocks = gridDim.x * gridDim.y * gridDim.z;
    const uint warpSize = blockDim.x * blockDim.y * blockDim.z;
    const int blocki = blockIdx.z*gridDim.x*gridDim.y + blockIdx.y*gridDim.x + blockIdx.x;
    const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
@@ -106,7 +101,7 @@ __global__ void blocksID_mapped_dim2_kernel(
          const vmesh::LocalID y_index = (GID / D0) % D1;
          const vmesh::LocalID z_index = (GID / (D0*D1));
          blocksID_mapped[LID] = z_index + y_index*D2 + x_index*D1*D2;
-         blocksLID[LID]=LID;
+         blocksLID_unsorted[LID]=LID;
       }
    }
 }
@@ -119,7 +114,7 @@ __global__ void order_GIDs_kernel(
    vmesh::GlobalID *blocksGID,
    const uint nBlocks
    ) {
-   const int cudaBlocks = gridDim.x * gridDim.y * gridDim.z; 
+   const int cudaBlocks = gridDim.x * gridDim.y * gridDim.z;
    const uint warpSize = blockDim.x * blockDim.y * blockDim.z;
    const int blocki = blockIdx.z*gridDim.x*gridDim.y + blockIdx.y*gridDim.x + blockIdx.x;
    const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
@@ -133,12 +128,12 @@ __global__ void order_GIDs_kernel(
 
 __global__ void construct_columns_kernel(
    const vmesh::VelocityMesh* vmesh,
-   vmesh::GlobalID *blocksID_mapped,
+   vmesh::GlobalID *blocksID_mapped_sorted,
    ColumnOffsets* columnData,
    vmesh::LocalID DX,
    const uint nBlocks
    ) {
-   const int cudaBlocks = gridDim.x * gridDim.y * gridDim.z; 
+   const int cudaBlocks = gridDim.x * gridDim.y * gridDim.z;
    const uint warpSize = blockDim.x * blockDim.y * blockDim.z;
    // const int blocki = blockIdx.z*gridDim.x*gridDim.y + blockIdx.y*gridDim.x + blockIdx.x;
    // const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
@@ -151,12 +146,12 @@ __global__ void construct_columns_kernel(
    columnData->columnBlockOffsets.device_push_back(0); //first offset
    columnData->setColumnOffsets.device_push_back(0); //first offset
    vmesh::LocalID prev_column_id, prev_dimension_id;
-   
+
    for (vmesh::LocalID i=0; i<nBlocks; ++i) {
       // identifies a particular column
-      vmesh::LocalID column_id = blocksID_mapped[i] / DX;
+      vmesh::LocalID column_id = blocksID_mapped_sorted[i] / DX;
       // identifies a particular block in a column (along the dimension)
-      vmesh::LocalID dimension_id = blocksID_mapped[i] % DX;
+      vmesh::LocalID dimension_id = blocksID_mapped_sorted[i] % DX;
 
       if ( i > 0 &&  ( (column_id != prev_column_id) || (dimension_id != (prev_dimension_id + 1) ))) {
          //encountered new column! For i=0, we already entered the correct offset (0).
@@ -188,10 +183,12 @@ __global__ void construct_columns_kernel(
    This version uses triplets internally and also returns the LIDs of the sorted blocks.
 */
 void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
-                               const vmesh::VelocityMesh* vmesh,
+                               vmesh::VelocityMesh* vmesh,
                                const uint dimension,
-                               vmesh::GlobalID *blocksGID,
                                vmesh::GlobalID *blocksID_mapped,
+                               vmesh::GlobalID *blocksID_mapped_sorted,
+                               vmesh::GlobalID *blocksGID,
+                               vmesh::LocalID *blocksLID_unsorted,
                                vmesh::LocalID *blocksLID,
                                ColumnOffsets* columnData,
    // split::SplitVector<uint> columnBlockOffsets; // indexes where columns start (in blocks, length totalColumns)
@@ -207,127 +204,105 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
    columnData->setColumnOffsets.clear();
    columnData->setNumColumns.clear();
 
-   //thrust::sort(thrust::device, data, data + size);
-   // thrust::sort_by_key(keys, keys + N, values);
-   // auto dptr = thrust::device_ptr<uint64_t>(data);
-   // thrust::sort(dptr , dptr + size);
-   // Could use CUB instead?
-
    const vmesh::LocalID nBlocks = vmesh->size();
    const uint refL=0; //vAMR
    const vmesh::LocalID D0 = vmesh->getGridLength(refL)[0];
    const vmesh::LocalID D1 = vmesh->getGridLength(refL)[1];
    const vmesh::LocalID D2 = vmesh->getGridLength(refL)[2];
    vmesh::LocalID DX[3] = {D0,D1,D2};
-   
+
    uint nCudaBlocks  = (nBlocks/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : (nBlocks/CUDATHREADS);
    dim3 grid(nCudaBlocks,1,1);
    dim3 block(CUDATHREADS,1,1);
-   // thrust stream set already here
-   // thrust::cuda::par.on(stream)
-   
+
+   phiprof::start("calc new dimension id");
    // Map blocks to new dimensionality
    switch( dimension ) {
       case 0: {
          blocksID_mapped_dim0_kernel<<<grid, block, 0, stream>>> (
             vmesh,
             blocksID_mapped,
-            blocksLID,
+            blocksLID_unsorted,
             nBlocks
             );
-         cudaStreamSynchronize(stream);
-         thrust::device_ptr<vmesh::GlobalID> dptrMapped(blocksID_mapped);
-         thrust::device_ptr<vmesh::LocalID> dptrLID(blocksLID);
-         thrust::sort_by_key(thrust::cuda::par(stream), dptrMapped, dptrMapped + nBlocks, dptrLID);
-         //thrust::sort_by_key(dptrMapped, dptrMapped + nBlocks, dptrLID);
-         //cudaStreamSynchronize(stream);
-         cudaDeviceSynchronize();
          break;
       }
       case 1: {
          blocksID_mapped_dim1_kernel<<<grid, block, 0, stream>>> (
             vmesh,
             blocksID_mapped,
-            blocksLID,
+            blocksLID_unsorted,
             D0,D1,
             nBlocks
             );
-         cudaStreamSynchronize(stream);
-         // Sort (with thrust)
-         // vmesh::GlobalID *dptrMapped = thrust::device_ptr<vmesh::GlobalID>(blocksID_mapped);
-         // vmesh::LocalID *dptrLID = thrust::device_ptr<vmesh::LocalID>(blocksLID);
-                  thrust::device_ptr<vmesh::GlobalID> dptrMapped(blocksID_mapped);
-         thrust::device_ptr<vmesh::LocalID> dptrLID(blocksLID);
-         //thrust::sort_by_key(dptrMapped, dptrMapped + nBlocks, dptrLID);
-         thrust::sort_by_key(thrust::cuda::par(stream), dptrMapped, dptrMapped + nBlocks, dptrLID);
-         //cudaStreamSynchronize(stream);
-         cudaDeviceSynchronize();
-         // static CUB_RUNTIME_FUNCTION cudaError_t cub::DeviceRadixSort::SortPairs
-         //    ( void *  d_temp_storage,
-         //      size_t &  temp_storage_bytes,
-         //      const KeyT *  d_keys_in,
-         //      KeyT *  d_keys_out,
-         //      const ValueT *  d_values_in,
-         //      ValueT *  d_values_out,
-         //      NumItemsT  num_items,
-         //      int  begin_bit = 0,
-         //      int  end_bit = sizeof(KeyT) * 8,
-         //      cudaStream_t  stream = 0,
-         //      bool  debug_synchronous = false
-         //       )            
          break;
       }
       case 2: {
          blocksID_mapped_dim2_kernel<<<grid, block, 0, stream>>> (
             vmesh,
             blocksID_mapped,
-            blocksLID,
+            blocksLID_unsorted,
             D0,D1,D2,
             nBlocks
             );
-         cudaStreamSynchronize(stream);
-         // Sort (with thrust)
-         // vmesh::GlobalID *dptrMapped = thrust::device_ptr<vmesh::GlobalID>(blocksID_mapped);
-         // vmesh::LocalID *dptrLID = thrust::device_ptr<vmesh::LocalID>(blocksLID);
-         thrust::device_ptr<vmesh::GlobalID> dptrMapped(blocksID_mapped);
-         thrust::device_ptr<vmesh::LocalID> dptrLID(blocksLID);
-         //thrust::sort_by_key(dptrMapped, dptrMapped + nBlocks, dptrLID);
-         thrust::sort_by_key(thrust::cuda::par(stream), dptrMapped, dptrMapped + nBlocks, dptrLID);
-         //cudaStreamSynchronize(stream);
-         cudaDeviceSynchronize();
          break;
       }
       default:
          printf("Incorrect dimension in cuda_acc_sort_blocks.cpp\n");
    }
-   // We can now do two things in parallel.
-   // Need to create a new stream for this.
-   cudaStream_t GIDorderstream;
-   cudaStreamCreate(&GIDorderstream);
+   cudaStreamSynchronize(stream);
+   phiprof::stop("calc new dimension id");
 
-// Gather GIDs in order
-   order_GIDs_kernel<<<grid, block, 0, GIDorderstream>>> (
+   phiprof::start("CUB sort");
+   // Sort (with CUB)
+
+   // Determine temporary device storage requirements
+   void     *dev_temp_storage = NULL;
+   size_t   temp_storage_bytes = 0;
+   cub::DeviceRadixSort::SortPairs(dev_temp_storage, temp_storage_bytes,
+                                   blocksID_mapped, blocksID_mapped_sorted,
+                                   blocksLID_unsorted, blocksLID, nBlocks,
+                                   0, sizeof(vmesh::GlobalID)*8, stream);
+   phiprof::start("cudamallocasync");
+   cudaMallocAsync((void**)&dev_temp_storage, temp_storage_bytes, stream);
+   cudaStreamSynchronize(stream);
+   phiprof::stop("cudamallocasync");
+   printf("allocated %d bytes of temporary memory for CUB SortPairs\n",temp_storage_bytes);
+
+   // Now sort
+   cub::DeviceRadixSort::SortPairs(dev_temp_storage, temp_storage_bytes,
+                                   blocksID_mapped, blocksID_mapped_sorted,
+                                   blocksLID_unsorted, blocksLID, nBlocks,
+                                   0, sizeof(vmesh::GlobalID)*8, stream);
+   cudaStreamSynchronize(stream);
+   phiprof::stop("CUB sort");
+
+   // Gather GIDs in order
+   phiprof::start("reorder GIDs");
+   order_GIDs_kernel<<<grid, block, 0, stream>>> (
       vmesh,
       blocksLID,
       blocksGID,
       nBlocks
       );
-   // Parallel with this, we can also construct columns. To ensure order,
+   cudaStreamSynchronize(stream);
+   phiprof::stop("reorder GIDs");
+
+   phiprof::start("construct columns");
+   // Construct columns. To ensure order,
    // these are done serially, but still form within a kernel.
    dim3 grid1(1,1,1);
    dim3 block1(1,1,1);
    printf("Start construct columns kernel\n");
    construct_columns_kernel<<<grid1, block1, 0, stream>>> (
       vmesh,
-      blocksID_mapped,
+      blocksID_mapped_sorted,
       columnData,
       DX[dimension],
       nBlocks
       );
 
-   cudaStreamSynchronize(GIDorderstream);
-   cudaStreamDestroy(GIDorderstream);
-   // And then we synchronize columns as well
    cudaStreamSynchronize(stream);
+   phiprof::stop("construct columns");
 
 }
