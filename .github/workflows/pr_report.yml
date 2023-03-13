@@ -24,6 +24,8 @@ jobs:
         run: |
           tar -xzvf testpackage-output.tar.gz
           cat testpackage_output_variables.txt >> $GITHUB_OUTPUT
+          # Limit Report filesize, as github only allows 64k PR reports
+          truncate --size='<60K' testpackage_check_description.txt
       - name: Generate PR check report
         uses: ursg/checks-action@v1.6.0
         if: always()

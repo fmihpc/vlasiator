@@ -119,22 +119,24 @@ for run in ${run_tests[*]}; do
 
    # Run the actual simulation
    if [[ ${single_cell[$run]} ]]; then
-      { $small_run_command $bin --run_config=${test_name[$run]}.cfg 2>&1 1>&3 3>&- | tee $GITHUB_WORKSPACE/stderr.txt; } 3>&1 1>&2 | tee $GITHUB_WORKSPACE/stdout.txt
+      { $small_run_command $bin --run_config=${test_name[$run]}.cfg 2>&1 1>&3 3>&- | tee $GITHUB_WORKSPACE/stderr.txt; exit ${PIPESTATUS[0]}; } 3>&1 1>&2 | tee $GITHUB_WORKSPACE/stdout.txt
    else
-      { $run_command $bin --run_config=${test_name[$run]}.cfg 2>&1 1>&3 3>&- | tee $GITHUB_WORKSPACE/stderr.txt; } 3>&1 1>&2 | tee $GITHUB_WORKSPACE/stdout.txt
+      { $run_command $bin --run_config=${test_name[$run]}.cfg 2>&1 1>&3 3>&- | tee $GITHUB_WORKSPACE/stderr.txt; exit ${PIPESTATUS[0]}; } 3>&1 1>&2 | tee $GITHUB_WORKSPACE/stdout.txt
    fi
 
    # Store error return value
-   RUN_ERROR=$?
+   RUN_ERROR=${PIPESTATUS[0]}
 
    if [[ $RUN_ERROR != 0 ]]; then
       echo -e "<details><summary>:red_circle: ${test_name[$run]}: Failed to run or died with an error.</summary>\n"  >> $GITHUB_STEP_SUMMARY
       echo -e "Stdout:\n \`\`\`\n" >> $GITHUB_STEP_SUMMARY
       cat $GITHUB_WORKSPACE/stdout.txt >> $GITHUB_STEP_SUMMARY
-      echo -e "\`'`'`\nStderr:\n \`\`\`\n" >> $GITHUB_STEP_SUMMARY
+      echo -e "\`\`\`\nStderr:\n \`\`\`\n" >> $GITHUB_STEP_SUMMARY
       cat $GITHUB_WORKSPACE/stderr.txt >> $GITHUB_STEP_SUMMARY
-      echo -e "\`'`'`\n</details>" >> $GITHUB_STEP_SUMMARY
+      echo -e "\`\`\`\n</details>" >> $GITHUB_STEP_SUMMARY
       FAILEDTESTS=$((FAILEDTESTS+1))
+
+      touch $GITHUB_WORKSPACE/testpackage_failed
       continue
    fi
 
