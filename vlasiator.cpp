@@ -623,7 +623,10 @@ int main(int argn,char* args[]) {
          CellParams::RHOQ,
          CellParams::P_11,
          CellParams::P_22,
-         CellParams::P_33
+         CellParams::P_33,
+         CellParams::P_12,
+         CellParams::P_13,
+         CellParams::P_23
          );
       phiprof::stop("Compute interp moments");
    }
@@ -954,7 +957,10 @@ int main(int argn,char* args[]) {
          CellParams::RHOQ_DT2,
          CellParams::P_11_DT2,
          CellParams::P_22_DT2,
-         CellParams::P_33_DT2
+         CellParams::P_33_DT2,
+         CellParams::P_12_DT2,
+         CellParams::P_13_DT2,
+         CellParams::P_23_DT2
       );
       phiprof::stop("Compute interp moments");
       
@@ -1063,7 +1069,10 @@ int main(int argn,char* args[]) {
          CellParams::RHOQ,
          CellParams::P_11,
          CellParams::P_22,
-         CellParams::P_33
+         CellParams::P_33,
+         CellParams::P_12,
+         CellParams::P_13,
+         CellParams::P_23
       );
       phiprof::stop("Compute interp moments");
 
