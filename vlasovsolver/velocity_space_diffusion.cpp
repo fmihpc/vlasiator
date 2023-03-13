@@ -49,6 +49,8 @@ static bool checkExistingNeighbour(SpatialCell* cell, Realf VX, Realf VY, Realf 
 void velocitySpaceDiffusion(
         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID){
 
+    std::cout << "I am running when I shouldnt be" << std::endl;
+
     int nbins_v  = Parameters::PADvbins;
     int nbins_mu = Parameters::PADmubins;
  

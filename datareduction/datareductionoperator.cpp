@@ -1504,7 +1504,6 @@ namespace DRO {
     * is calculated within the loss cone of fixed angular opening (default: 10 deg).
     * The differential flux is converted in part. / cm^2 / s / sr / eV (unit used by observers).
     * Parameters that can be set in cfg file under [{species}_precipitation]: nChannels, emin [eV], emax [eV], lossConeAngle [deg]
-	    outputReducer->addMetadata(outputReducer->size()-1,"1/(cm^2 sr s eV)","$\\mathrm{cm}^{-2}\\,\\mathrm{sr}^{-1}\\,\\mathrm{s}^{-1}\\,\\mathrm{eV}^{-1}$","$\\mathcal{F}_\\mathrm{"+pop+"}$",conversion.str());
     * The energy channels are saved in bulk files as PrecipitationCentreEnergy{channel_number}.
     */
    VariablePrecipitationDiffFlux::VariablePrecipitationDiffFlux(cuint _popID): DataReductionOperatorHasParameters(),popID(_popID) {
