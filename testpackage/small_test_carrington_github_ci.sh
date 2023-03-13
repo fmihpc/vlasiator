@@ -131,9 +131,9 @@ for run in ${run_tests[*]}; do
       echo -e "<details><summary>:red_circle: ${test_name[$run]}: Failed to run or died with an error.</summary>\n"  >> $GITHUB_STEP_SUMMARY
       echo -e "Stdout:\n \`\`\`\n" >> $GITHUB_STEP_SUMMARY
       cat $GITHUB_WORKSPACE/stdout.txt >> $GITHUB_STEP_SUMMARY
-      echo -e "\`'`'`\nStderr:\n \`\`\`\n" >> $GITHUB_STEP_SUMMARY
+      echo -e "\`\`\`\nStderr:\n \`\`\`\n" >> $GITHUB_STEP_SUMMARY
       cat $GITHUB_WORKSPACE/stderr.txt >> $GITHUB_STEP_SUMMARY
-      echo -e "\`'`'`\n</details>" >> $GITHUB_STEP_SUMMARY
+      echo -e "\`\`\`\n</details>" >> $GITHUB_STEP_SUMMARY
       FAILEDTESTS=$((FAILEDTESTS+1))
 
       touch $GITHUB_WORKSPACE/testpackage_failed
