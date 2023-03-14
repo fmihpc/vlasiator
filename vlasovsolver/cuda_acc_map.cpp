@@ -250,7 +250,51 @@ __global__ void identify_block_offsets_kernel(
    }
 }
 
+// Serial kernel only to avoid page faults or prefetches
+__global__ void count_columns_kernel (
+   ColumnOffsets* dev_columnData,
+   uint* dev_totalColumns,
+   uint* dev_valuesSizeRequired
+   ) {
+   // const int cudaBlocks = gridDim.x * gridDim.y * gridDim.z;
+   // const int warpSize = blockDim.x * blockDim.y * blockDim.z;
+   const int blocki = blockIdx.z*gridDim.x*gridDim.y + blockIdx.y*gridDim.x + blockIdx.x;
+   const int ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
+   if ((blocki==0)&&(ti==0)) {
+      for(uint setIndex=0; setIndex< dev_columnData->setColumnOffsets.size(); ++setIndex) {
+         *dev_totalColumns += dev_columnData->setNumColumns[setIndex];
+         for(uint columnIndex = dev_columnData->setColumnOffsets[setIndex]; columnIndex < dev_columnData->setColumnOffsets[setIndex] + dev_columnData->setNumColumns[setIndex] ; columnIndex ++){
+            *dev_valuesSizeRequired += (dev_columnData->columnNumBlocks[columnIndex] + 2) * WID3 / VECL;
+         }
+      }
+   }
+}
 
+// Serial kernel only to avoid page faults or prefetches
+__global__ void offsets_into_columns_kernel(
+   ColumnOffsets* dev_columnData,
+   Column *dev_columns,
+   const int totalColumns,
+   const int valuesSizeRequired
+   ) {
+   // const int cudaBlocks = gridDim.x * gridDim.y * gridDim.z;
+   // const int warpSize = blockDim.x * blockDim.y * blockDim.z;
+   const int blocki = blockIdx.z*gridDim.x*gridDim.y + blockIdx.y*gridDim.x + blockIdx.x;
+   const int ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
+   if ((blocki==0)&&(ti==0)) {
+      uint valuesColumnOffset = 0;
+      for( uint setIndex=0; setIndex< dev_columnData->setColumnOffsets.size(); ++setIndex) {
+         for (uint columnIndex = dev_columnData->setColumnOffsets[setIndex]; columnIndex < dev_columnData->setColumnOffsets[setIndex] + dev_columnData->setNumColumns[setIndex] ; columnIndex ++){
+            dev_columns[columnIndex].nblocks = dev_columnData->columnNumBlocks[columnIndex];
+            dev_columns[columnIndex].valuesOffset = valuesColumnOffset;
+            if (valuesColumnOffset >= valuesSizeRequired) {
+               printf("(ERROR: Overflowing the values array (%d > %d) with column %d\n",valuesColumnOffset,valuesSizeRequired,columnIndex);
+            }
+            valuesColumnOffset += (dev_columnData->columnNumBlocks[columnIndex] + 2) * (WID3/VECL); // there are WID3/VECL elements of type Vec per block
+         }
+      }
+   }
+}
 
 __global__ void acceleration_kernel(
   Realf *dev_blockData,
@@ -536,15 +580,34 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
 
    // Calculate total sum of columns and total values size
    phiprof::start("count columns");
-   uint totalColumns = 0;
-   uint valuesSizeRequired = 0;
-   for(uint setIndex=0; setIndex< columnData->setColumnOffsets.size(); ++setIndex) {
-      totalColumns += columnData->setNumColumns[setIndex];
-      for(uint columnIndex = columnData->setColumnOffsets[setIndex]; columnIndex < columnData->setColumnOffsets[setIndex] + columnData->setNumColumns[setIndex] ; columnIndex ++){
-         valuesSizeRequired += (columnData->columnNumBlocks[columnIndex] + 2) * WID3 / VECL;
-      }
-   }
+   uint totalColumns;
+   uint valuesSizeRequired;
+   uint* dev_totalColumns;
+   uint* dev_valuesSizeRequired;
+   HANDLE_ERROR( cudaMallocAsync((void**)&dev_totalColumns, sizeof(uint), stream) );
+   HANDLE_ERROR( cudaMallocAsync((void**)&dev_valuesSizeRequired, sizeof(uint), stream) );
+   count_columns_kernel<<<1, 1, 0, stream>>> (
+      columnData,
+      dev_totalColumns,
+      dev_valuesSizeRequired
+      );
+   cudaStreamSynchronize(stream);
+   HANDLE_ERROR( cudaMemcpyAsync(&totalColumns, dev_totalColumns, sizeof(uint), cudaMemcpyDeviceToHost, stream) );
+   HANDLE_ERROR( cudaMemcpyAsync(&valuesSizeRequired, dev_valuesSizeRequired, sizeof(uint), cudaMemcpyDeviceToHost, stream) );
    phiprof::stop("count columns");
+
+   // pointer to columns in memory
+   Column *columns = new (unif_columns[cuda_async_queue_id]) Column[totalColumns]; // placement new to use unified memory
+
+   phiprof::start("Store offsets into columns");
+   offsets_into_columns_kernel<<<1, 1, 0, stream>>> (
+      columnData,
+      columns,
+      totalColumns,
+      valuesSizeRequired
+      );
+   cudaStreamSynchronize(stream);
+   phiprof::stop("Store offsets into columns");
    uint cudablocks = totalColumns;
 
    phiprof::start("Reorder blocks by dimension");
@@ -557,25 +620,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       LIDlist, //unified memory
       columnData
       );
-   // CUDATODO: We actually don't need to sync streams here, this is just for debugging / profiling
-   //cudaStreamSynchronize(stream);
    phiprof::stop("Reorder blocks by dimension");
-
-   // pointer to columns in memory
-   Column *columns = new (unif_columns[cuda_async_queue_id]) Column[totalColumns]; // placement new to use unified memory
-
-   // Store offsets into columns
-   uint valuesColumnOffset = 0;
-   for( uint setIndex=0; setIndex< columnData->setColumnOffsets.size(); ++setIndex) {
-      for(uint columnIndex = columnData->setColumnOffsets[setIndex]; columnIndex < columnData->setColumnOffsets[setIndex] + columnData->setNumColumns[setIndex] ; columnIndex ++){
-         columns[columnIndex].nblocks = columnData->columnNumBlocks[columnIndex];
-         columns[columnIndex].valuesOffset = valuesColumnOffset;
-         if(valuesColumnOffset >= valuesSizeRequired) {
-            cerr << "ERROR: Overflowing the values array (" << valuesColumnOffset << "> " << valuesSizeRequired << ") with column " << columnIndex << std::endl;
-         }
-         valuesColumnOffset += (columnData->columnNumBlocks[columnIndex] + 2) * (WID3/VECL); // there are WID3/VECL elements of type Vec per block
-      }
-   }
 
    // Calculate target column extents
    phiprof::start("columnExtents");
@@ -756,7 +801,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    // Zero out target data on device (unified)
    HANDLE_ERROR( cudaMemsetAsync(blockData, 0, bdsw3*sizeof(Realf), stream) );
 
-   phiprof::start("identify block offsets kernel");
+   phiprof::start("identify new block offsets kernel");
    identify_block_offsets_kernel<<<cudablocks, cudathreads, 0, stream>>> (
       vmesh, //unified
       columns, //unified
@@ -765,7 +810,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       dev_block_indices_to_id[cuda_async_queue_id]
       );
    cudaStreamSynchronize(stream);
-   phiprof::stop("identify block offsets kernel");
+   phiprof::stop("identify new block offsets kernel");
 
    phiprof::start("Call acceleration kernel");
    acceleration_kernel<<<cudablocks, cudathreads, 0, stream>>> (
