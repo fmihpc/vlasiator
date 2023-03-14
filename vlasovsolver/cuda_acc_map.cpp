@@ -368,7 +368,7 @@ __global__ void evaluate_column_extents_kernel(
 
    __shared__ int isTargetBlock[MAX_BLOCKS_PER_DIM];
    __shared__ int isSourceBlock[MAX_BLOCKS_PER_DIM];
-   for( uint setIndexB=blocki; setIndexB < dev_columnData->setColumnOffsets.size(); setIndexB += cudaBlocks) {
+   for( uint setIndexB=0; setIndexB < dev_columnData->setColumnOffsets.size(); setIndexB += cudaBlocks) {
       const uint setIndex = setIndexB + blocki;
       if (setIndex < dev_columnData->setColumnOffsets.size()) {
 
@@ -430,7 +430,7 @@ __global__ void evaluate_column_extents_kernel(
          for (uint columnIndex = dev_columnData->setColumnOffsets[setIndex];
               columnIndex < dev_columnData->setColumnOffsets[setIndex] + dev_columnData->setNumColumns[setIndex] ;
               ++columnIndex) {
-            // Not parallelizing this; not going to be many columns within a set
+            // Not parallelizing this at this level; not going to be many columns within a set
 
             const vmesh::LocalID n_cblocks = dev_columnData->columnNumBlocks[columnIndex];
             vmesh::GlobalID* cblocks = GIDlist + dev_columnData->columnBlockOffsets[columnIndex]; //column blocks
@@ -797,8 +797,8 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    uint* dev_valuesSizeRequired;
    HANDLE_ERROR( cudaMallocAsync((void**)&dev_totalColumns, sizeof(uint), stream) );
    HANDLE_ERROR( cudaMallocAsync((void**)&dev_valuesSizeRequired, sizeof(uint), stream) );
-   // HANDLE_ERROR( cudaMemsetAsync(&dev_totalColumns, 0, sizeof(uint), stream) );
-   // HANDLE_ERROR( cudaMemsetAsync(&dev_valuesSizeRequired, 0, sizeof(uint), stream) );
+   HANDLE_ERROR( cudaMemsetAsync(&dev_totalColumns, 0, sizeof(uint), stream) );
+   HANDLE_ERROR( cudaMemsetAsync(&dev_valuesSizeRequired, 0, sizeof(uint), stream) );
    // this needs to be serial, but is fast.
    cudaStreamSynchronize(stream);
    count_columns_kernel<<<1, 1, 0, stream>>> (
@@ -840,24 +840,18 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    phiprof::stop("Reorder blocks by dimension");
 
    // Calculate target column extents
-   phiprof::start("Prefetch block lists to CPU");
+   phiprof::start("Clear block lists");
    spatial_cell->BlocksRequired->clear();
    spatial_cell->BlocksToAdd->clear();
    spatial_cell->BlocksToRemove->clear();
-   // spatial_cell->BlocksRequired->optimizeCPU();
-   // spatial_cell->BlocksToAdd->optimizeCPU();
-   // spatial_cell->BlocksToRemove->optimizeCPU();
-   // vmesh->dev_prefetchHost();
-   phiprof::stop("Prefetch block lists to CPU");
+   phiprof::stop("Clear block lists");
 
-#ifndef UNDEFINED
    phiprof::start("Evaluate column extents kernel");
    uint host_wallspace_margin_bailout_flag=0;
    uint* dev_wallspace_margin_bailout_flag;
    HANDLE_ERROR( cudaMallocAsync((void**)&dev_wallspace_margin_bailout_flag, sizeof(uint), stream) );
    HANDLE_ERROR( cudaMemcpyAsync(dev_wallspace_margin_bailout_flag, &host_wallspace_margin_bailout_flag,sizeof(uint), cudaMemcpyHostToDevice, stream) );
-   //evaluate_column_extents_kernel<<<cudablocks, CUDATHREADS, 0, stream>>> (
-   evaluate_column_extents_kernel<<<1, CUDATHREADS, 0, stream>>> (
+   evaluate_column_extents_kernel<<<cudablocks, CUDATHREADS, 0, stream>>> (
       dimension,
       vmesh,
       columnData,
@@ -891,164 +885,6 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       bailout(true, message, __FILE__, __LINE__);
    }
    phiprof::stop("Evaluate column extents kernel");
-#else
-   phiprof::start("Evaluate column extents CPU");
-   for( uint setIndex=0; setIndex< columnData->setColumnOffsets.size(); ++setIndex) {
-
-      bool isTargetBlock[MAX_BLOCKS_PER_DIM]= {false};
-      bool isSourceBlock[MAX_BLOCKS_PER_DIM]= {false};
-
-      /*need x,y coordinate of this column set of blocks, take it from first
-        block in first column*/
-      //spatial_cell::velocity_block_indices_t setFirstBlockIndices;
-      std::array<uint32_t,3> setFirstBlockIndices;
-      uint8_t refLevel=0;
-      vmesh->getIndices(GIDlist[columnData->columnBlockOffsets[columnData->setColumnOffsets[setIndex]]],
-                       refLevel,
-                       setFirstBlockIndices[0], setFirstBlockIndices[1], setFirstBlockIndices[2]);
-      swapBlockIndices(setFirstBlockIndices, dimension);
-      /*compute the maximum starting point of the lagrangian (target) grid
-        (base level) within the 4 corner cells in this
-        block. Needed for computig maximum extent of target column*/
-
-      Realv max_intersectionMin = intersection +
-                                      (setFirstBlockIndices[0] * WID + 0) * intersection_di +
-                                      (setFirstBlockIndices[1] * WID + 0) * intersection_dj;
-      max_intersectionMin =  std::max(max_intersectionMin,
-                                      intersection +
-                                      (setFirstBlockIndices[0] * WID + 0) * intersection_di +
-                                      (setFirstBlockIndices[1] * WID + WID - 1) * intersection_dj);
-      max_intersectionMin =  std::max(max_intersectionMin,
-                                      intersection +
-                                      (setFirstBlockIndices[0] * WID + WID - 1) * intersection_di +
-                                      (setFirstBlockIndices[1] * WID + 0) * intersection_dj);
-      max_intersectionMin =  std::max(max_intersectionMin,
-                                      intersection +
-                                      (setFirstBlockIndices[0] * WID + WID - 1) * intersection_di +
-                                      (setFirstBlockIndices[1] * WID + WID - 1) * intersection_dj);
-
-      Realv min_intersectionMin = intersection +
-                                      (setFirstBlockIndices[0] * WID + 0) * intersection_di +
-                                      (setFirstBlockIndices[1] * WID + 0) * intersection_dj;
-      min_intersectionMin =  std::min(min_intersectionMin,
-                                      intersection +
-                                      (setFirstBlockIndices[0] * WID + 0) * intersection_di +
-                                      (setFirstBlockIndices[1] * WID + WID - 1) * intersection_dj);
-      min_intersectionMin =  std::min(min_intersectionMin,
-                                      intersection +
-                                      (setFirstBlockIndices[0] * WID + WID - 1) * intersection_di +
-                                      (setFirstBlockIndices[1] * WID + 0) * intersection_dj);
-      min_intersectionMin =  std::min(min_intersectionMin,
-                                      intersection +
-                                      (setFirstBlockIndices[0] * WID + WID - 1) * intersection_di +
-                                      (setFirstBlockIndices[1] * WID + WID - 1) * intersection_dj);
-
-      //now, record which blocks are target blocks
-      for(uint columnIndex = columnData->setColumnOffsets[setIndex]; columnIndex < columnData->setColumnOffsets[setIndex] + columnData->setNumColumns[setIndex] ; columnIndex ++){
-         const vmesh::LocalID n_cblocks = columnData->columnNumBlocks[columnIndex];
-         vmesh::GlobalID* cblocks = GIDlist + columnData->columnBlockOffsets[columnIndex]; //column blocks
-         //spatial_cell::velocity_block_indices_t firstBlockIndices;
-         //spatial_cell::velocity_block_indices_t lastBlockIndices;
-         std::array<uint32_t,3>  firstBlockIndices;
-         std::array<uint32_t,3>  lastBlockIndices;
-         vmesh->getIndices(cblocks[0],
-                          refLevel,
-                          firstBlockIndices[0], firstBlockIndices[1], firstBlockIndices[2]);
-         vmesh->getIndices(cblocks[n_cblocks -1],
-                          refLevel,
-                          lastBlockIndices[0], lastBlockIndices[1], lastBlockIndices[2]);
-         swapBlockIndices(firstBlockIndices, dimension);
-         swapBlockIndices(lastBlockIndices, dimension);
-
-         /*firstBlockV is in z the minimum velocity value of the lower
-          * edge in source grid.
-           *lastBlockV is in z the maximum velocity value of the upper
-          * edge in source grid. */
-         Realv firstBlockMinV = (WID * firstBlockIndices[2]) * dv + v_min;
-         Realv lastBlockMaxV = (WID * (lastBlockIndices[2] + 1)) * dv + v_min;
-
-         /*gk is now the k value in terms of cells in target
-         grid. This distance between max_intersectionMin (so lagrangian
-         plan, well max value here) and V of source grid, divided by
-         intersection_dk to find out how many grid cells that is*/
-         const int firstBlock_gk = (int)((firstBlockMinV - max_intersectionMin)/intersection_dk);
-         const int lastBlock_gk = (int)((lastBlockMaxV - min_intersectionMin)/intersection_dk);
-
-         int firstBlockIndexK = firstBlock_gk/WID;
-         int lastBlockIndexK = lastBlock_gk/WID;
-
-         //now enforce mesh limits for target column blocks
-         firstBlockIndexK = (firstBlockIndexK >= 0)            ? firstBlockIndexK : 0;
-         firstBlockIndexK = (firstBlockIndexK < max_v_length ) ? firstBlockIndexK : max_v_length - 1;
-         lastBlockIndexK  = (lastBlockIndexK  >= 0)            ? lastBlockIndexK  : 0;
-         lastBlockIndexK  = (lastBlockIndexK  < max_v_length ) ? lastBlockIndexK  : max_v_length - 1;
-         if(firstBlockIndexK < Parameters::bailout_velocity_space_wall_margin
-            || firstBlockIndexK >= max_v_length - Parameters::bailout_velocity_space_wall_margin
-            || lastBlockIndexK < Parameters::bailout_velocity_space_wall_margin
-            || lastBlockIndexK >= max_v_length - Parameters::bailout_velocity_space_wall_margin
-         ) {
-            string message = "Some target blocks in acceleration are going to be less than ";
-            message += std::to_string(Parameters::bailout_velocity_space_wall_margin);
-            message += " blocks away from the current velocity space walls for population ";
-            message += getObjectWrapper().particleSpecies[popID].name;
-            message += " at CellID ";
-            message += std::to_string(spatial_cell->parameters[CellParams::CELLID]);
-            message += ". Consider expanding velocity space for that population.";
-            bailout(true, message, __FILE__, __LINE__);
-         }
-
-         //store source blocks
-         for (uint blockK = firstBlockIndices[2]; blockK <= lastBlockIndices[2]; blockK++){
-            isSourceBlock[blockK] = true;
-         }
-
-         //store target blocks
-         for (uint blockK = (uint)firstBlockIndexK; blockK <= (uint)lastBlockIndexK; blockK++){
-            isTargetBlock[blockK]=true;
-         }
-
-         // Set columns' transverse coordinates
-         columns[columnIndex].i = setFirstBlockIndices[0];
-         columns[columnIndex].j = setFirstBlockIndices[1];
-         columns[columnIndex].kBegin = firstBlockIndices[2];
-
-         //store also for each column firstBlockIndexK, and lastBlockIndexK
-         columns[columnIndex].minBlockK = firstBlockIndexK;
-         columns[columnIndex].maxBlockK = lastBlockIndexK;
-      }
-
-      //now add target blocks that do not yet exist and remove source blocks
-      //that are not target blocks
-      for (uint blockK = 0; blockK < MAX_BLOCKS_PER_DIM; blockK++){
-         if(isTargetBlock[blockK])  {
-            const vmesh::GlobalID targetBlock =
-               setFirstBlockIndices[0] * block_indices_to_id[0] +
-               setFirstBlockIndices[1] * block_indices_to_id[1] +
-               blockK                  * block_indices_to_id[2];
-            //spatial_cell->BlocksRequired->push_back(cuda::std::pair<vmesh::GlobalID,vmesh::LocalID>(targetBlock,targetBlock));
-            spatial_cell->BlocksRequired->push_back(targetBlock);
-         }
-         if(isTargetBlock[blockK] && !isSourceBlock[blockK] )  {
-            const vmesh::GlobalID targetBlock =
-               setFirstBlockIndices[0] * block_indices_to_id[0] +
-               setFirstBlockIndices[1] * block_indices_to_id[1] +
-               blockK                  * block_indices_to_id[2];
-            spatial_cell->BlocksToAdd->push_back(targetBlock);
-
-         }
-         if(!isTargetBlock[blockK] && isSourceBlock[blockK] )  {
-            const vmesh::GlobalID targetBlock =
-               setFirstBlockIndices[0] * block_indices_to_id[0] +
-               setFirstBlockIndices[1] * block_indices_to_id[1] +
-               blockK                  * block_indices_to_id[2];
-            spatial_cell->BlocksToRemove->push_back(targetBlock);
-         }
-      }
-   }
-   phiprof::stop("Evaluate column extents CPU");
-#endif
-
-   printf(" vector sizes: Required %d toAdd %d toRemove %d\n",spatial_cell->BlocksRequired->size(),spatial_cell->BlocksToAdd->size(),spatial_cell->BlocksToRemove->size());
 
    phiprof::start("Add and delete blocks");
    // Note: in this call, BlocksToMove is empty as we only grow the vspace size.
