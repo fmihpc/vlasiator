@@ -36,8 +36,9 @@ jobs:
           cp fsgrid/fsgrid.hpp $GITHUB_WORKSPACE/libraries/include
       - name: Build phiprof
         run: |
-          git clone https://github.com/fmihpc/phiprof/ 
+          git clone https://github.com/lkotipal/phiprof/ 
           cd phiprof/src
+          git checkout timer-object
           make -j 4 CCC=mpic++
           cp ../include/* $GITHUB_WORKSPACE/libraries/include
           cp ../lib/* $GITHUB_WORKSPACE/libraries/lib
