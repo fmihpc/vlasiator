@@ -34,6 +34,20 @@
 
 using namespace std;
 
+// Predicate rule for hashinator for extracting all valid elements
+template <typename T, typename U>
+struct Rule{
+   Rule(){}
+   __host__ __device__
+   inline bool operator()( cuda::std::pair<T,U>& element)const{
+      if (element.first!=std::numeric_limits<vmesh::GlobalID>::max() && element.first!=std::numeric_limits<vmesh::GlobalID>::max()-1  ){return true;}
+      //KEY_TYPE EMPTYBUCKET = std::numeric_limits<KEY_TYPE>::max(),
+      //   KEY_TYPE TOMBSTONE = EMPTYBUCKET - 1,
+      //if (element.first< 1000 ){return true;}
+      return false;
+   }
+};
+
 /** CUDA kernel for identifying which blocks have relevant content */
 __global__ void update_velocity_block_content_lists_kernel (
    vmesh::VelocityMesh *vmesh,
@@ -140,37 +154,13 @@ __global__ void update_neighbours_have_content_kernel (
    }
 }
 
-/** CUDA kernel for Gathering required blocks from hashmap to vector.
-    This kernel is inefficient, but use of it gets rid
-    of the need of vmesh prefetching back and forth.
-    EDIT: does not work. iterators on kernel. bleh.
-//  */
-// __global__ void update_blocks_required_kernel (
-//    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>* BlocksRequiredMap,
-//    split::SplitVector<vmesh::GlobalID>* BlocksRequired
-//    ) {
-//    const int cudaBlocks = gridDim.x;
-//    const int blocki = blockIdx.x;
-//    const int warpSize = blockDim.x*blockDim.y*blockDim.z;
-//    const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
-//    if (blocki!=0) {
-//       // unsafe, can only use single serial iterator over hashmap
-//       return;
-//    }
-//    // single thread only
-//    if (ti==0) {
-//       for (auto it=BlocksRequiredMap->begin(); it != BlocksRequiredMap->end(); ++it) {
-//          BlocksRequired->device_push_back((*it).first);
-//       }
-//    }
-// }
-
 /** CUDA kernel for selecting only non-existing blocks for addition
     This kernel may be non-optimized in itself, but use of it gets rid
     of the need of vmesh prefetching back and forth.
  */
 __global__ void update_blocks_to_add_kernel (
    vmesh::VelocityMesh *vmesh,
+   //split::SplitVector<cuda::std::pair<vmesh::GlobalID,vmesh::LocalID>>* BlocksRequired,
    split::SplitVector<vmesh::GlobalID>* BlocksRequired,
    split::SplitVector<vmesh::GlobalID>* BlocksToAdd,
    split::SplitVector<vmesh::GlobalID>* BlocksToMove,
@@ -183,6 +173,7 @@ __global__ void update_blocks_to_add_kernel (
    for (uint index=blocki*warpSize; index<nBlocksRequired; index += cudaBlocks*warpSize) {
       if (index+ti < nBlocksRequired) {
          const vmesh::GlobalID GIDreq = BlocksRequired->at(index+ti);
+         //const vmesh::GlobalID GIDreq = (BlocksRequired->at(index+ti)).first;
          const vmesh::LocalID LIDreq = vmesh->getLocalID(GIDreq);
          if ( LIDreq == vmesh->invalidLocalID() ) {
             BlocksToAdd->device_push_back(GIDreq);
@@ -441,6 +432,7 @@ namespace spatial_cell {
       velocity_block_with_content_list = new split::SplitVector<vmesh::GlobalID>(1);
       velocity_block_with_no_content_list = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksRequired = new split::SplitVector<vmesh::GlobalID>(1);
+      //BlocksRequired = new split::SplitVector<cuda::std::pair<vmesh::GlobalID,vmesh::LocalID>>(1);
       BlocksToAdd = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToRemove = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToMove = new split::SplitVector<vmesh::GlobalID>(1);
@@ -469,6 +461,7 @@ namespace spatial_cell {
       velocity_block_with_content_list = new split::SplitVector<vmesh::GlobalID>(1);
       velocity_block_with_no_content_list = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksRequired = new split::SplitVector<vmesh::GlobalID>(1);
+      //BlocksRequired = new split::SplitVector<cuda::std::pair<vmesh::GlobalID,vmesh::LocalID>>(1);
       BlocksToAdd = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToRemove = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToMove = new split::SplitVector<vmesh::GlobalID>(1);
@@ -532,6 +525,7 @@ namespace spatial_cell {
       velocity_block_with_content_list = new split::SplitVector<vmesh::GlobalID>(1);
       velocity_block_with_no_content_list = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksRequired = new split::SplitVector<vmesh::GlobalID>(1);
+      //BlocksRequired = new split::SplitVector<cuda::std::pair<vmesh::GlobalID,vmesh::LocalID>>(1);
       BlocksToAdd = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToRemove = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToMove = new split::SplitVector<vmesh::GlobalID>(1);
@@ -629,10 +623,7 @@ namespace spatial_cell {
 
       phiprof::start("Local content lists");
 
-      // CUDATODO: Clear + resize in one
-
       phiprof::start("hashmap resize / clear");
-      //printf(" bucket count %lu localcontentblocks %lu x27 %lu \n",BlocksRequiredMap->bucket_count(),localContentBlocks,27*localContentBlocks);
       const vmesh::LocalID HashmapReqSize = ceil(log2(localContentBlocks)) +5;
       if (BlocksRequiredMap->getSizePower() >= HashmapReqSize) {
          // Map is already large enough
@@ -642,10 +633,8 @@ namespace spatial_cell {
          // Need larger empty map
          delete BlocksRequiredMap;
          BlocksRequiredMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(HashmapReqSize);
+         BlocksRequiredMap->optimizeGPU(stream);
       }
-      //printf("local content blocks %lu hashmapsize %lu -> %lu\n",localContentBlocks,hashmapsize,hashmapsize+5);
-      //BlocksRequiredMap->resize(hashmapsize+5,Hashinator::targets::device,stream);
-      //BlocksRequiredMap->resize(hashmapsize+5,Hashinator::targets::host,stream);
       phiprof::stop("hashmap resize / clear");
 
       // add neighbor content info for velocity space neighbors to map. We loop over blocks
@@ -688,7 +677,7 @@ namespace spatial_cell {
       phiprof::stop("Neighbor content lists");
 
       phiprof::start("Prefetch / clear / reserve");
-      BlocksRequired->optimizeCPU();
+      // BlocksRequired->optimizeCPU();
       // BlocksToRemove->optimizeCPU();
       BlocksRequired->clear();
       BlocksToRemove->clear();
@@ -701,7 +690,7 @@ namespace spatial_cell {
          BlocksToRemove->reserve(currSize*BLOCK_ALLOCATION_PADDING);
          BlocksToMove->reserve(currSize*BLOCK_ALLOCATION_PADDING);
       }
-      //BlocksRequired->optimizeGPU(stream);
+      BlocksRequired->optimizeGPU(stream);
       BlocksToRemove->optimizeGPU(stream);
       BlocksToAdd->optimizeGPU(stream);
       BlocksToMove->optimizeGPU(stream);
@@ -731,10 +720,14 @@ namespace spatial_cell {
       phiprof::stop("Prefetch map cpu");
       for (auto it=BlocksRequiredMap->begin(); it != BlocksRequiredMap->end(); ++it) {
          BlocksRequired->push_back((*it).first);
+         //BlocksRequired->push_back((*it));
       }
       phiprof::start("Prefetch vec gpu");
       BlocksRequired->optimizeGPU();
       phiprof::stop("Prefetch vec gpu");
+      // BlocksRequired->optimizeGPU();
+      // BlocksRequiredMap->extractPattern(*BlocksRequired,Rule<vmesh::GlobalID,vmesh::LocalID>(),stream);
+      // HANDLE_ERROR( cudaStreamSynchronize(stream) );
       phiprof::stop("Gather blocks required");
 
       phiprof::start("blocks_to_add_kernel");
@@ -743,6 +736,7 @@ namespace spatial_cell {
       // This kernel also figures out which blocks need to be rescued from the end-space of the block data
       const uint nBlocksRequired = BlocksRequired->size();
       nCudaBlocks = (nBlocksRequired/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : (nBlocksRequired/CUDATHREADS);
+      BlocksRequired->optimizeGPU();
       if (nBlocksRequired>0) {
          //dim3 block1(1,1,1);
          dim3 block1(CUDATHREADS,1,1);

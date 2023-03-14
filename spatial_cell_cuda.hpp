@@ -350,7 +350,9 @@ namespace spatial_cell {
       /**< List of existing cells with no content, only up-to-date after call to update_has_content. This is also never transferred over MPI, so is invalid on remote cells.*/
 
       Realf* dev_rhoLossAdjust;
-      split::SplitVector<vmesh::GlobalID> *BlocksToRemove, *BlocksRequired, *BlocksToAdd, *BlocksToMove; /**< Lists of blocks to change on GPU device */
+      split::SplitVector<vmesh::GlobalID> *BlocksToRemove, *BlocksToAdd, *BlocksToMove; /**< Lists of blocks to change on GPU device */
+      split::SplitVector<vmesh::GlobalID> *BlocksRequired;
+      //split::SplitVector<cuda::std::pair<vmesh::GlobalID,vmesh::LocalID>> *BlocksRequired;
       Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *BlocksRequiredMap;
 
 
