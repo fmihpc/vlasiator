@@ -886,6 +886,7 @@ namespace spatial_cell {
       populations[popID].vmesh->dev_prefetchDevice();
       phiprof::start("Vmesh and VBC debug output");
       #endif
+      HANDLE_ERROR( cudaStreamSynchronize(stream) );
       phiprof::stop("CUDA add and remove blocks");
    }
 

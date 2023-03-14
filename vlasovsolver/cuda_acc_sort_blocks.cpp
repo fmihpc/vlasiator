@@ -215,7 +215,7 @@ __global__ void construct_columns_kernel(
  Still probably room for memory optimization.
 **/
 
-__global__ void construct_columns_kernel_2(
+__global__ void construct_columns_kernel(
    const vmesh::VelocityMesh* vmesh,
    vmesh::GlobalID *blocksID_mapped_sorted,
    vmesh::LocalID *dev_columnNBlocks,
@@ -250,8 +250,7 @@ __global__ void construct_columns_kernel_2(
       const vmesh::LocalID dimension_id = blocksID_mapped_sorted[i] % DX;
       // How many blocks in this (new) column(set)?
       if ((ti==0) && (blocks_in_columnset==0)) {
-            blocks_in_columnset = dev_columnNBlocks[column_id];
-         }
+         blocks_in_columnset = dev_columnNBlocks[column_id];
       }
       // Trial: new column?
       if ( (ti==0) && (i > 0) &&  ( (column_id != prev_column_id) || (dimension_id != (prev_dimension_id + 1) ))) {

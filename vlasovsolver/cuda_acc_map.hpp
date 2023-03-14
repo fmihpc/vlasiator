@@ -69,6 +69,7 @@ extern void cuda_acc_deallocate_memory (
 extern Vec *dev_blockDataOrdered[];
 //extern Column *dev_columns[];
 extern uint *dev_cell_indices_to_id[];
+extern uint *dev_block_indices_to_id[];
 extern uint *dev_columnNumBlocks[];
 extern uint *dev_columnBlockOffsets[];
 extern vmesh::GlobalID *dev_BlocksID_mapped[];
