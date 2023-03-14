@@ -36,6 +36,33 @@
 using namespace std;
 using namespace spatial_cell;
 
+// Kernel for scanning columnsets for block counts
+__global__ void scan_blocks_for_columns_kernel(
+   const vmesh::VelocityMesh* vmesh,
+   vmesh::GlobalID *blocksID_mapped_sorted,
+   vmesh::LocalID *dev_columnNBlocks,
+   vmesh::LocalID DX,
+   const uint nBlocks
+   ) {
+   const int cudaBlocks = gridDim.x * gridDim.y * gridDim.z;
+   const uint warpSize = blockDim.x * blockDim.y * blockDim.z;
+   const int blocki = blockIdx.z*gridDim.x*gridDim.y + blockIdx.y*gridDim.x + blockIdx.x;
+   const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
+
+   for (vmesh::LocalID LID=blocki*warpSize; LID<nBlocks; LID += cudaBlocks*warpSize) {
+      if (LID+ti < nBlocks) {
+         vmesh::LocalID column_id = blocksID_mapped_sorted[LID+ti] / DX;
+         // Increment number of blocks in column
+         const vmesh::LocalID old  = atomicAdd(&dev_columnNBlocks[column_id],1);
+         // // Evaluate smallest GID in column
+         // old = atomicMin(&columnMinBlock[columnid],GID);
+         // // Evaluate largest GID in colum
+         // old = atomicMax(&columnMaxBlock[columnid],GID);
+      }
+   }
+}
+
+
 // Kernels for converting GIDs to dimension-sorted indices
 __global__ void blocksID_mapped_dim0_kernel(
    const vmesh::VelocityMesh* vmesh,
@@ -126,6 +153,8 @@ __global__ void order_GIDs_kernel(
    }
 }
 
+/**
+ old serial kernel
 __global__ void construct_columns_kernel(
    const vmesh::VelocityMesh* vmesh,
    vmesh::GlobalID *blocksID_mapped_sorted,
@@ -156,15 +185,15 @@ __global__ void construct_columns_kernel(
       if ( i > 0 &&  ( (column_id != prev_column_id) || (dimension_id != (prev_dimension_id + 1) ))) {
          //encountered new column! For i=0, we already entered the correct offset (0).
          //We also identify it as a new column if there is a break in the column (e.g., gap between two populations)
-         /*add offset where the next column will begin*/
+         //add offset where the next column will begin
          columnData->columnBlockOffsets.device_push_back(i);
-         /*add length of the current column that now ended*/
+         /(add length of the current column that now ended
          columnData->columnNumBlocks.device_push_back(columnData->columnBlockOffsets[columnData->columnBlockOffsets.size()-1] - columnData->columnBlockOffsets[columnData->columnBlockOffsets.size()-2]);
 
          if (column_id != prev_column_id ){
             //encountered new set of columns, add offset to new set starting at present column
             columnData->setColumnOffsets.device_push_back(columnData->columnBlockOffsets.size() - 1);
-            /*add length of the previous column set that ended*/
+            //add length of the previous column set that ended
             columnData->setNumColumns.device_push_back(columnData->setColumnOffsets[columnData->setColumnOffsets.size()-1] - columnData->setColumnOffsets[columnData->setColumnOffsets.size()-2]);
          }
       }
@@ -174,6 +203,122 @@ __global__ void construct_columns_kernel(
 
    columnData->columnNumBlocks.device_push_back(nBlocks - columnData->columnBlockOffsets[columnData->columnBlockOffsets.size()-1]);
    columnData->setNumColumns.device_push_back(columnData->columnNumBlocks.size() - columnData->setColumnOffsets[columnData->setColumnOffsets.size()-1]);
+}
+*/
+
+/*** Kernel for constructing columns
+ Checks if all blocks in a columnset belong to a single kernel, and
+ can quickly jump through the whole column.
+ For columnsets containing several columns, it trials blocks by scanning
+ warpSize GIDs at a time.
+
+ Still probably room for memory optimization.
+**/
+
+__global__ void construct_columns_kernel_2(
+   const vmesh::VelocityMesh* vmesh,
+   vmesh::GlobalID *blocksID_mapped_sorted,
+   vmesh::LocalID *dev_columnNBlocks,
+   ColumnOffsets* columnData,
+   vmesh::LocalID DX,
+   const uint nBlocks
+   ) {
+   const int cudaBlocks = gridDim.x * gridDim.y * gridDim.z;
+   const uint warpSize = blockDim.x * blockDim.y * blockDim.z;
+   //const int blocki = blockIdx.z*gridDim.x*gridDim.y + blockIdx.y*gridDim.x + blockIdx.x;
+   const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
+   if (cudaBlocks!=1) {
+      printf("Error in construct_columns_kernel; unsafe gridDim\n");
+      return;
+   }
+   vmesh::LocalID prev_column_id, prev_dimension_id;
+
+   __shared__ vmesh::LocalID i;
+   __shared__ vmesh::LocalID blocks_in_columnset;
+   if (ti==0) {
+      i = 0;
+      blocks_in_columnset = 0;
+      // Put in the sorted blocks, and also compute column offsets and lengths:
+      columnData->columnBlockOffsets.device_push_back(0); //first offset
+      columnData->setColumnOffsets.device_push_back(0); //first offset
+   }
+   __syncthreads();
+   while (i < nBlocks) {
+      // identifies a particular column
+      const vmesh::LocalID column_id = blocksID_mapped_sorted[i] / DX;
+      // identifies a particular block in a column (along the dimension)
+      const vmesh::LocalID dimension_id = blocksID_mapped_sorted[i] % DX;
+      // How many blocks in this (new) column(set)?
+      if ((ti==0) && (blocks_in_columnset==0)) {
+            blocks_in_columnset = dev_columnNBlocks[column_id];
+         }
+      }
+      // Trial: new column?
+      if ( (ti==0) && (i > 0) &&  ( (column_id != prev_column_id) || (dimension_id != (prev_dimension_id + 1) ))) {
+         //encountered new column! For i=0, we already entered the correct offset (0).
+         //We also identify it as a new column if there is a break in the column (e.g., gap between two populations)
+         //add offset where the next column will begin
+         columnData->columnBlockOffsets.device_push_back(i);
+         //add length of the current column that now ended
+         columnData->columnNumBlocks.device_push_back(columnData->columnBlockOffsets[columnData->columnBlockOffsets.size()-1] - columnData->columnBlockOffsets[columnData->columnBlockOffsets.size()-2]);
+
+         if (column_id != prev_column_id ){
+            //encountered new set of columns, add offset to new set starting at present column
+            columnData->setColumnOffsets.device_push_back(columnData->columnBlockOffsets.size() - 1);
+            //add length of the previous column set that ended
+            columnData->setNumColumns.device_push_back(columnData->setColumnOffsets[columnData->setColumnOffsets.size()-1] - columnData->setColumnOffsets[columnData->setColumnOffsets.size()-2]);
+         }
+      }
+      __syncthreads();
+      // Trial if only one column in columnset?
+      if ( ( (blocksID_mapped_sorted[i+blocks_in_columnset-1] % DX) == (dimension_id + blocks_in_columnset - 1) ) &&
+           ( (blocksID_mapped_sorted[i+blocks_in_columnset-1] / DX) == column_id ) ) {
+         // skip to end of column
+         if (ti==0) {
+            i += blocks_in_columnset;
+            blocks_in_columnset = 0;
+         }
+         // push_back to vectors happens at next loop
+         __syncthreads();
+      } else {
+         // More than one column in columnset
+         vmesh::LocalID this_col_length = 0;
+         // Now trial by warpSize to see where column ends
+         for (vmesh::LocalID ci=0; ci<blocks_in_columnset; ci += warpSize) {
+            vmesh::LocalID threadval = warpSize;
+            if (ci+ti < blocks_in_columnset) {
+               // This evaluates if the block at the target point is no longer within the same column
+               if ( (blocksID_mapped_sorted[i+ci+ti] % DX) != (dimension_id + ci+ti) ||
+                    ( (blocksID_mapped_sorted[i+ci+ti] / DX) != column_id ) ) {
+                  threadval = ti;
+               }
+            }
+            // Warp vote to find first index (potentially) outside old column
+            vmesh::LocalID minstep = __reduce_min_sync(0xFFFFFFFF, threadval);
+            this_col_length += minstep;
+            // Exit this for loop if we reached the end of a column within a set
+            if (minstep!=warpSize) {
+               if (ti==0) {
+                  // skip to end of column
+                  i += this_col_length;
+                  // Decrease number of free blocks in column(set)
+                  blocks_in_columnset -= this_col_length;
+               }
+               __syncthreads();
+               // push_back to vectors happens at next loop
+               break;
+            }
+         }
+      }
+      prev_column_id = column_id;
+      prev_dimension_id = dimension_id;
+      __syncthreads();
+   }
+   // Add offsets for final column
+   if (ti==0) {
+      columnData->columnNumBlocks.device_push_back(nBlocks - columnData->columnBlockOffsets[columnData->columnBlockOffsets.size()-1]);
+      columnData->setNumColumns.device_push_back(columnData->columnNumBlocks.size() - columnData->setColumnOffsets[columnData->setColumnOffsets.size()-1]);
+   }
 }
 
 /*
@@ -190,6 +335,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                vmesh::GlobalID *blocksGID,
                                vmesh::LocalID *blocksLID_unsorted,
                                vmesh::LocalID *blocksLID,
+                               vmesh::LocalID *dev_columnNBlocks,
                                ColumnOffsets* columnData,
    // split::SplitVector<uint> columnBlockOffsets; // indexes where columns start (in blocks, length totalColumns)
    // split::SplitVector<uint> columnNumBlocks; // length of column (in blocks, length totalColumns)
@@ -267,7 +413,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
    cudaMallocAsync((void**)&dev_temp_storage, temp_storage_bytes, stream);
    cudaStreamSynchronize(stream);
    phiprof::stop("cudamallocasync");
-   printf("allocated %d bytes of temporary memory for CUB SortPairs\n",temp_storage_bytes);
+   //printf("allocated %d bytes of temporary memory for CUB SortPairs\n",temp_storage_bytes);
 
    // Now sort
    cub::DeviceRadixSort::SortPairs(dev_temp_storage, temp_storage_bytes,
@@ -288,15 +434,25 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
    cudaStreamSynchronize(stream);
    phiprof::stop("reorder GIDs");
 
+   phiprof::start("Scan for column block counts");
+   scan_blocks_for_columns_kernel<<<grid, block, 0, stream>>> (
+      vmesh,
+      blocksID_mapped,
+      dev_columnNBlocks,
+      DX[dimension],
+      nBlocks
+      );
+   phiprof::stop("Scan for column block counts");
+
+
    phiprof::start("construct columns");
    // Construct columns. To ensure order,
    // these are done serially, but still form within a kernel.
    dim3 grid1(1,1,1);
-   dim3 block1(1,1,1);
-   printf("Start construct columns kernel\n");
-   construct_columns_kernel<<<grid1, block1, 0, stream>>> (
+   construct_columns_kernel<<<grid1, block, 0, stream>>> (
       vmesh,
       blocksID_mapped_sorted,
+      dev_columnNBlocks,
       columnData,
       DX[dimension],
       nBlocks
@@ -304,5 +460,15 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
 
    cudaStreamSynchronize(stream);
    phiprof::stop("construct columns");
+   // printf("\n Output for dimension %d ",dimension);
+   // printf("\nColumnBlockOffsets %d\n", columnData->columnBlockOffsets.size());
+   // //for (auto i : columnData->columnBlockOffsets) printf("%d ",i);
+   // printf("\ncolumnNumBlocks %d\n", columnData->columnNumBlocks.size());
+   // //for (auto i : columnData->columnNumBlocks) printf("%d ",i);
+   // printf("\nsetColumnOffsets %d\n", columnData->setColumnOffsets.size());
+   // //for (auto i : columnData->setColumnOffsets) printf("%d ",i);
+   // printf("\nsetNumColumns %d\n", columnData->setNumColumns.size());
+   // //for (auto i : columnData->setNumColumns) printf("%d ",i);
+   // printf("\n \n",dimension);
 
 }

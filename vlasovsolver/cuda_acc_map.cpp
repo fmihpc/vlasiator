@@ -59,10 +59,12 @@ vmesh::LocalID *unif_LIDlist[MAXCPUTHREADS];
 vmesh::GlobalID *dev_BlocksID_mapped[MAXCPUTHREADS];
 vmesh::GlobalID *dev_BlocksID_mapped_sorted[MAXCPUTHREADS];
 vmesh::GlobalID *dev_LIDlist_unsorted[MAXCPUTHREADS];
+vmesh::LocalID *dev_columnNBlocks[MAXCPUTHREADS];
 
 // Memory allocation flags and values.
 uint cuda_acc_allocatedSize = 0;
 uint cuda_acc_allocatedColumns = 0;
+uint cuda_acc_columnContainerSize = 0;
 
 __host__ void cuda_acc_allocate (
    uint maxBlockCount
@@ -111,6 +113,16 @@ __host__ void cuda_acc_allocate_memory (
    HANDLE_ERROR( cudaMallocManaged((void**)&unif_LIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID)) );
    HANDLE_ERROR( cudaMallocManaged((void**)&unif_GIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID)) );
    unif_columndata[cpuThreadID] = new ColumnOffsets(maxColumnsPerCell); // inherits managed
+
+   // Column interim data container
+   const uint c0 = (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[0];
+   const uint c1 = (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[1];
+   const uint c2 = (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[2];
+   std::array<uint, 3> s = {c0,c1,c2};
+   std::sort(s.begin(), s.end());
+   // We need one for each potential columnset
+   cuda_acc_columnContainerSize = c2*c1;
+   HANDLE_ERROR( cudaMalloc((void**)&dev_columnNBlocks[cpuThreadID], cuda_acc_columnContainerSize*sizeof(vmesh::LocalID)) );
 }
 
 __host__ void cuda_acc_deallocate_memory (
@@ -123,6 +135,7 @@ __host__ void cuda_acc_deallocate_memory (
    HANDLE_ERROR( cudaFree(dev_BlocksID_mapped[cpuThreadID]) );
    HANDLE_ERROR( cudaFree(dev_BlocksID_mapped_sorted[cpuThreadID]) );
    HANDLE_ERROR( cudaFree(dev_LIDlist_unsorted[cpuThreadID]) );
+   HANDLE_ERROR( cudaFree(dev_columnNBlocks[cpuThreadID]) );
 
    // Delete unified memory constructs
    HANDLE_ERROR( cudaFree(unif_columns[cpuThreadID]) );
@@ -131,15 +144,9 @@ __host__ void cuda_acc_deallocate_memory (
 
    delete unif_columndata[cpuThreadID];
 
-   // HANDLE_ERROR( cudaFree(columnNBlocks[cpuThreadID]) );
-   // HANDLE_ERROR( cudaFree(columnMinBlock[cpuThreadID]) );
-   // HANDLE_ERROR( cudaFree(columnMaxBlock[cpuThreadID]) );
-   // HANDLE_ERROR( cudaFree(columnOffset[cpuThreadID]) );
-   // HANDLE_ERROR( cudaFree(columnSetOffset[cpuThreadID]) );
-
    cuda_acc_allocatedSize = 0;
    cuda_acc_allocatedColumns = 0;
-   //cuda_acc_columnContainerSize = 0;
+   cuda_acc_columnContainerSize = 0;
 }
 
 __global__ void reorder_blocks_by_dimension_kernel(
@@ -469,7 +476,8 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    vmesh::GlobalID *BlocksID_mapped = dev_BlocksID_mapped[cuda_async_queue_id];
    vmesh::GlobalID *BlocksID_mapped_sorted = dev_BlocksID_mapped[cuda_async_queue_id];
    vmesh::LocalID *LIDlist_unsorted = dev_LIDlist_unsorted[cuda_async_queue_id];
-   
+   vmesh::LocalID *columnNBlocks = dev_columnNBlocks[cuda_async_queue_id];
+
    // sort blocks according to dimension, and divide them into columns
    ColumnOffsets *columnData = unif_columndata[cuda_async_queue_id];
 
@@ -479,7 +487,11 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    // indices, sorting them, and going through the list.
    // Probably won't parallelize very well, though?
    phiprof::start("sortBlockList");
-   sortBlocklistByDimension(vmesh, dimension, BlocksID_mapped, BlocksID_mapped_sorted, GIDlist, LIDlist_unsorted, LIDlist,
+   HANDLE_ERROR( cudaMemsetAsync(columnNBlocks, 0, cuda_acc_columnContainerSize*sizeof(vmesh::LocalID), stream) );
+
+
+   sortBlocklistByDimension(vmesh, dimension, BlocksID_mapped, BlocksID_mapped_sorted, GIDlist,
+                            LIDlist_unsorted, LIDlist, columnNBlocks,
                             columnData, cuda_async_queue_id, stream
       );
    phiprof::stop("sortBlockList");

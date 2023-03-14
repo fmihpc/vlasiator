@@ -74,6 +74,7 @@ extern uint *dev_columnBlockOffsets[];
 extern vmesh::GlobalID *dev_BlocksID_mapped[];
 extern vmesh::GlobalID *dev_BlocksID_mapped_sorted[];
 extern vmesh::GlobalID *dev_LIDlist_unsorted[];
+extern vmesh::LocalID *dev_columnNBlocks[];
 
 // Unified (managed) memory variables
 extern Column *unif_columns[];
@@ -83,5 +84,6 @@ extern ColumnOffsets *unif_columndata[];
 
 extern uint cuda_acc_allocatedSize;
 extern uint cuda_acc_allocatedColumns;
+extern uint cuda_acc_columnContainerSize;
 
 #endif
