@@ -155,7 +155,7 @@ void initializeGrids(
       .set_geometry(geom_params);
 
 
-   phiprof::start("Refine spatial cells");
+   phiprof::Timer refine {"Refine spatial cells"};
    // We need this first as well
    recalculateLocalCellsCache();
    if (!P::isRestart) {
@@ -171,7 +171,7 @@ void initializeGrids(
          mapRefinement(mpiGrid, technicalGrid);
       }
    }
-   phiprof::stop("Refine spatial cells");
+   refine.stop();
    
    // Init velocity mesh on all cells
    initVelocityGridGeometry(mpiGrid);
@@ -180,7 +180,7 @@ void initializeGrids(
    for (const auto& [key, value] : P::loadBalanceOptions) {
       mpiGrid.set_partitioning_option(key, value);
    }
-   phiprof::start("Initial load-balancing");
+   phiprof::Timer initialLB {"Initial load-balancing"};
    if (myRank == MASTER_RANK) logFile << "(INIT): Starting initial load balance." << endl << writeVerbose;
    mpiGrid.balance_load(); // Direct DCCRG call, recalculate cache afterwards
    recalculateLocalCellsCache();
@@ -192,75 +192,75 @@ void initializeGrids(
       setFaceNeighborRanks( mpiGrid );
    }
    const vector<CellID>& cells = getLocalCells();
-   phiprof::stop("Initial load-balancing");
+   initialLB.stop();
    
-   if (myRank == MASTER_RANK) logFile << "(INIT): Set initial state." << endl << writeVerbose;
-   phiprof::start("Set initial state");
+   if (myRank == MASTER_RANK) {
+      logFile << "(INIT): Set initial state." << endl << writeVerbose;
+   }
 
-   phiprof::start("Set spatial cell coordinates");
+   phiprof::Timer initialState {"Set initial state"};
+
+   phiprof::Timer setCoords {"Set spatial cell coordinates"};
    initSpatialCellCoordinates(mpiGrid);
-   phiprof::stop("Set spatial cell coordinates");
+   setCoords.stop();
    
-   phiprof::start("Initialize system boundary conditions");
+   phiprof::Timer initBoundary {"Initialize system boundary conditions"};
    if(sysBoundaries.initSysBoundaries(project, P::t_min) == false) {
       if (myRank == MASTER_RANK) cerr << "Error in initialising the system boundaries." << endl;
       exit(1);
    }
-   phiprof::stop("Initialize system boundary conditions");
+   initBoundary.stop();
    
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_DIMENSIONS);
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
 
    // We want this before restart refinement
-   phiprof::start("Classify cells (sys boundary conditions)");
+   phiprof::Timer classify {"Classify cells (sys boundary conditions)"};
    if(sysBoundaries.classifyCells(mpiGrid,technicalGrid) == false) {
       cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
       exit(1);
    }
-   phiprof::stop("Classify cells (sys boundary conditions)");
+   classify.stop();
    
    if (P::isRestart) {
       logFile << "Restart from "<< P::restartFileName << std::endl << writeVerbose;
-      phiprof::start("Read restart");
+      phiprof::Timer restartRead {"Read restart"};
       if (readGrid(mpiGrid,perBGrid,EGrid,technicalGrid,P::restartFileName) == false) {
          logFile << "(MAIN) ERROR: restarting failed" << endl;
          exit(1);
       }
-      phiprof::stop("Read restart");
+      restartRead.stop();
 
       if (P::forceRefinement) {
-         phiprof::start("Restart refinement");
+         phiprof::Timer timer {"Restart refinement"};
          for (uint i = 0; i < P::amrMaxSpatialRefLevel; ++i) {
             adaptRefinement(mpiGrid, technicalGrid, sysBoundaries, project, true);
             balanceLoad(mpiGrid, sysBoundaries);
          }
-         phiprof::stop("Restart refinement");
       } else if (P::refineOnRestart) {
-         phiprof::start("Restart refinement");
+         phiprof::Timer timer {"Restart refinement"};
          for (uint i = 0; i < P::amrMaxSpatialRefLevel; ++i) {
             adaptRefinement(mpiGrid, technicalGrid, sysBoundaries, project);
             balanceLoad(mpiGrid, sysBoundaries);
          }
-         phiprof::stop("Restart refinement");
       }
    }
 
    // Check refined cells do not touch boundary cells
-   phiprof::start("Check boundary refinement");
+   phiprof::Timer boundaryCheck {"Check boundary refinement"};
    if(!sysBoundaries.checkRefinement(mpiGrid)) {
       cerr << "(MAIN) WARNING: Boundary cells don't have identical refinement level " << endl;
       //exit(1);
    }
-   phiprof::stop("Check boundary refinement");
+   boundaryCheck.stop();
 
    if (P::isRestart) {
       //initial state for sys-boundary cells, will skip those not set to be reapplied at restart
-      phiprof::start("Apply system boundary conditions state");
+      phiprof::Timer timer {"Apply system boundary conditions state"};
       if (sysBoundaries.applyInitialState(mpiGrid, technicalGrid, perBGrid, project) == false) {
          cerr << " (MAIN) ERROR: System boundary conditions initial state was not applied correctly." << endl;
          exit(1);
       }
-      phiprof::stop("Apply system boundary conditions state");
    }
 
    // Update technicalGrid
@@ -269,7 +269,7 @@ void initializeGrids(
    if (!P::isRestart) {
       //Initial state based on project, background field in all cells
       //and other initial values in non-sysboundary cells
-      phiprof::start("Apply initial state");
+      phiprof::Timer applyInitial {"Apply initial state"};
       // Go through every cell on this node and initialize the 
       //  -Background field on all cells
       //  -Perturbed fields and ion distribution function in non-sysboundary cells
@@ -278,7 +278,7 @@ void initializeGrids(
       // Allow the project to set up data structures for it's setCell calls
       project.setupBeforeSetCell(cells);
       
-      phiprof::start("setCell");
+      phiprof::Timer setCell {"setCell"};
       #pragma omp parallel for schedule(dynamic)
       for (size_t i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
@@ -286,16 +286,16 @@ void initializeGrids(
             project.setCell(cell);
          }
       }
-      phiprof::stop("setCell");
+      setCell.stop();
       
       // Initial state for sys-boundary cells
-      phiprof::stop("Apply initial state");
-      phiprof::start("Apply system boundary conditions state");
+      applyInitial.stop();
+      phiprof::Timer applyBC {"Apply system boundary conditions state"};
       if (sysBoundaries.applyInitialState(mpiGrid, technicalGrid, perBGrid, project) == false) {
          cerr << " (MAIN) ERROR: System boundary conditions initial state was not applied correctly." << endl;
          exit(1);
       }
-      phiprof::stop("Apply system boundary conditions state");
+      applyBC.stop();
       
       for (size_t i=0; i<cells.size(); ++i) {
          mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
@@ -322,9 +322,9 @@ void initializeGrids(
       sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid,Parameters::t);
       
       //compute moments, and set them  in RHO* and RHO_*_DT2. If restart, they are already read in
-      phiprof::start("Init moments");
+      phiprof::Timer initMoments {"Init moments"};
       calculateInitialVelocityMoments(mpiGrid);
-      phiprof::stop("Init moments");
+      initMoments.stop();
       */
 
    }
@@ -333,15 +333,13 @@ void initializeGrids(
    balanceLoad(mpiGrid, sysBoundaries);
    // Function includes re-calculation of local cells cache
 
-   phiprof::initializeTimer("Fetch Neighbour data","MPI");
-   phiprof::start("Fetch Neighbour data");
+   phiprof::Timer fetchNeighbour {"Fetch Neighbour data", {"MPI"}};
    // update complete cell spatial data for full stencil (
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_SPATIAL_DATA);
    mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
+   fetchNeighbour.stop();
    
-   phiprof::stop("Fetch Neighbour data");
-   
-   phiprof::start("setProjectBField");
+   phiprof::Timer setB {"setProjectBField"};
    project.setProjectBField(perBGrid, BgBGrid, technicalGrid);
    perBGrid.updateGhostCells();
    BgBGrid.updateGhostCells();
@@ -351,25 +349,23 @@ void initializeGrids(
    volGrid.updateGhostCells();
    getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
 
-   phiprof::stop("setProjectBField");
+   setB.stop();
 
    if (P::isRestart == false) {
       // Apply boundary conditions so that we get correct initial moments
       sysBoundaries.applySysBoundaryVlasovConditions(mpiGrid,Parameters::t, true); // It doesn't matter here whether we put _R or _V moments
       
       //compute moments, and set them  in RHO* and RHO_*_DT2. If restart, they are already read in
-      phiprof::start("Init moments");
+      phiprof::Timer timer {"Init moments"};
       calculateInitialVelocityMoments(mpiGrid);
-      phiprof::stop("Init moments");
    } else {
-      phiprof::start("Init moments");
+      phiprof::Timer timer {"Init moments"};
       for (size_t i=0; i<cells.size(); ++i) {
          calculateCellMoments(mpiGrid[cells[i]], true, true);
       }
-      phiprof::stop("Init moments");
    }
    
-   phiprof::start("Finish fsgrid setup");
+   phiprof::Timer finishFSGrid {"Finish fsgrid setup"};
    feedMomentsIntoFsGrid(mpiGrid, cells, momentsGrid,technicalGrid, false);
    if(!P::isRestart) {
       // WARNING this means moments and dt2 moments are the same here at t=0, which is a feature so far.
@@ -379,7 +375,7 @@ void initializeGrids(
    }
    momentsGrid.updateGhostCells();
    momentsDt2Grid.updateGhostCells();
-   phiprof::stop("Finish fsgrid setup");
+   finishFSGrid.stop();
 
    // Set this so CFL doesn't break
    if(P::refineOnRestart) {
@@ -392,7 +388,7 @@ void initializeGrids(
       P::dt = P::bailout_min_dt;
    }
    
-   phiprof::stop("Set initial state");
+   initialState.stop();
 }
 
 // initialize velocity grid of spatial cells before creating cells in dccrg.initialize
@@ -479,14 +475,13 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    Parameters::meshRepartitioned = true;
 
    // tell other processes which velocity blocks exist in remote spatial cells
-   phiprof::initializeTimer("Balancing load", "Load balance");
-   phiprof::start("Balancing load");
+   phiprof::Timer balanceLoad {"Balancing load", {"Load balance"}};
 
-   phiprof::start("deallocate boundary data");
+   phiprof::Timer dealloc {"deallocate boundary data"};
    //deallocate blocks in remote cells to decrease memory load
    deallocateRemoteCellBlocks(mpiGrid);
 
-   phiprof::stop("deallocate boundary data");
+   dealloc.stop();
    //set weights based on each cells LB weight counter
    const vector<CellID>& cells = getLocalCells();
    for (size_t i=0; i<cells.size(); ++i){
@@ -500,9 +495,9 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
       //reset counter
       //mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0.0;
    }
-   phiprof::start("dccrg.initialize_balance_load");
+   phiprof::Timer initLB {"dccrg.initialize_balance_load"};
    mpiGrid.initialize_balance_load(true);
-   phiprof::stop("dccrg.initialize_balance_load");
+   initLB.stop();
 
    const std::unordered_set<CellID>& incoming_cells = mpiGrid.get_cells_added_by_balance_load();
    std::vector<CellID> incoming_cells_list (incoming_cells.begin(),incoming_cells.end()); 
@@ -511,7 +506,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    std::vector<CellID> outgoing_cells_list (outgoing_cells.begin(),outgoing_cells.end()); 
    
    /*transfer cells in parts to preserve memory*/
-   phiprof::start("Data transfers");
+   phiprof::Timer transfers {"Data transfers"};
    const uint64_t num_part_transfers=5;
    for (uint64_t transfer_part=0; transfer_part<num_part_transfers; transfer_part++) {
       //Set transfers on/off for the incoming cells in this transfer set and prepare for receive
@@ -546,30 +541,31 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
          SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE2);
          mpiGrid.continue_balance_load();
 
+         int prepareReceives {phiprof::initializeTimer("Preparing receives")};
          int receives = 0;
          for (unsigned int i=0; i<incoming_cells_list.size(); i++) {
             CellID cell_id=incoming_cells_list[i];
             SpatialCell* cell = mpiGrid[cell_id];
             if (cell_id % num_part_transfers == transfer_part) {
                receives++;
-               phiprof::start("Preparing receives");
                // reserve space for velocity block data in arriving remote cells
+               phiprof::Timer t {prepareReceives};
                cell->prepare_to_receive_blocks(p);
-               phiprof::stop("Preparing receives", 1, "Spatial cells");
+               t.stop(1, "Spatial cells");
             }
          }
          if(receives == 0) {
             //empty phiprof timer, to avoid unneccessary divergence in unique
             //profiles (keep order same)
-            phiprof::start("Preparing receives");
-            phiprof::stop("Preparing receives", 0, "Spatial cells");
+            phiprof::Timer t {prepareReceives};
+            t.stop(0, "Spatial cells");
          }
 
          //do the actual transfer of data for the set of cells to be transferred
-         phiprof::start("transfer_all_data");
+         phiprof::Timer transfer {"transfer_all_data"};
          SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
          mpiGrid.continue_balance_load();
-         phiprof::stop("transfer_all_data");
+         transfer.stop();
 
          // Free memory for cells that have been sent (the block data)
          for (unsigned int i=0;i<outgoing_cells_list.size();i++){
@@ -583,12 +579,12 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
          }
       } // for-loop over populations
    } // for-loop over transfer parts
-   phiprof::stop("Data transfers");
+   transfers.stop();
 
    //finish up load balancing
-   phiprof::start("dccrg.finish_balance_load");
+   phiprof::Timer finishLB {"dccrg.finish_balance_load"};
    mpiGrid.finish_balance_load();
-   phiprof::stop("dccrg.finish_balance_load");
+   finishLB.stop();
 
    //Make sure transfers are enabled for all cells
    recalculateLocalCellsCache();
@@ -598,26 +594,27 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    }
 
    // flag transfers if AMR
-   phiprof::start("compute_amr_transfer_flags");
+   phiprof::Timer computeTransfer {"compute_amr_transfer_flags"};
    flagSpatialCellsForAmrCommunication(mpiGrid,cells);
-   phiprof::stop("compute_amr_transfer_flags");
+   computeTransfer.stop();
 
    // Communicate all spatial data for FULL neighborhood, which
    // includes all data with the exception of dist function data
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_SPATIAL_DATA);
    mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
 
-   phiprof::start("update block lists");
+   phiprof::Timer updateBlocks {"update block lists"};
    //new partition, re/initialize blocklists of remote cells.
-   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       updateRemoteVelocityBlockLists(mpiGrid,popID);
-   phiprof::stop("update block lists");
+   }
+   updateBlocks.stop();
 
-   phiprof::start("update sysboundaries");
+   phiprof::Timer updateBoundaries {"update sysboundaries"};
    sysBoundaries.updateSysBoundariesAfterLoadBalance( mpiGrid );
-   phiprof::stop("update sysboundaries");
+   updateBoundaries.stop();
 
-   phiprof::start("Init solvers");
+   phiprof::Timer initSolvers {"Init solvers"};
    // Initialize field propagator (only if in use):
    if (Parameters::propagateField == true) {
       if (initializeFieldPropagatorAfterRebalance() == false) {
@@ -625,26 +622,21 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
          exit(1);
       }
    }
-   
-   phiprof::stop("Init solvers");
+   initSolvers.stop();
    
    // Record ranks of face neighbors
    if(P::amrMaxSpatialRefLevel > 0) {
-      phiprof::start("set face neighbor ranks");
+      phiprof::Timer timer {"set face neighbor ranks"};
       setFaceNeighborRanks( mpiGrid );
-      phiprof::stop("set face neighbor ranks");
    }
 
    // Prepare cellIDs and pencils for AMR translation
    if(P::amrMaxSpatialRefLevel > 0) {
-      phiprof::start("GetSeedIdsAndBuildPencils");
+      phiprof::Timer timer {"GetSeedIdsAndBuildPencils"};
       for (int dimension=0; dimension<3; dimension++) {
          prepareSeedIdsAndPencils(mpiGrid,dimension);
       }
-      phiprof::stop("GetSeedIdsAndBuildPencils");
    }
-   
-   phiprof::stop("Balancing load");
 }
 
 /*
@@ -656,30 +648,28 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
                           const vector<CellID>& cellsToAdjust,
                           bool doPrepareToReceiveBlocks,
                           const uint popID) {
-   phiprof::initializeTimer("re-adjust blocks","Block adjustment");
-   phiprof::start("re-adjust blocks");
+   phiprof::Timer readjustBlocks {"re-adjust blocks", {"Block adjustment"}};
    SpatialCell::setCommunicatedSpecies(popID);
    const vector<CellID>& cells = getLocalCells();
 
-   phiprof::start("Compute with_content_list");
+   phiprof::Timer compute {"Compute with_content_list"};
    #pragma omp parallel for
    for (uint i=0; i<cells.size(); ++i) {
       mpiGrid[cells[i]]->updateSparseMinValue(popID);
       mpiGrid[cells[i]]->update_velocity_block_content_lists(popID);
    }
-   phiprof::stop("Compute with_content_list");
+   compute.stop();
    
-   phiprof::initializeTimer("Transfer with_content_list","MPI");
-   phiprof::start("Transfer with_content_list");
+   phiprof::Timer transfer {"Transfer with_content_list", {"MPI"}};
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_WITH_CONTENT_STAGE1 );
    mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_WITH_CONTENT_STAGE2 );
    mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
-   phiprof::stop("Transfer with_content_list");
+   transfer.stop();
    
    //Adjusts velocity blocks in local spatial cells, doesn't adjust velocity blocks in remote cells.
 
-   phiprof::start("Adjusting blocks");
+   phiprof::Timer adjust {"Adjusting blocks"};
    #pragma omp parallel for schedule(dynamic)
    for (size_t i=0; i<cellsToAdjust.size(); ++i) {
       Real density_pre_adjust=0.0;
@@ -718,14 +708,13 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
          }
       }
    }
-   phiprof::stop("Adjusting blocks");
+   adjust.stop();
 
    //Updated newly adjusted velocity block lists on remote cells, and
    //prepare to receive block data
    if (doPrepareToReceiveBlocks) {
       updateRemoteVelocityBlockLists(mpiGrid,popID);
    }
-   phiprof::stop("re-adjust blocks");
    return true;
 }
 
@@ -834,20 +823,18 @@ void updateRemoteVelocityBlockLists(
    // update velocity block lists For small velocity spaces it is
    // faster to do it in one operation, and not by first sending size,
    // then list. For large we do it in two steps
-   phiprof::initializeTimer("Velocity block list update","MPI");
-   phiprof::start("Velocity block list update");
+   phiprof::Timer update {"Velocity block list update", {"MPI"}};
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE1);
    mpiGrid.update_copies_of_remote_neighbors(neighborhood);
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE2);
    mpiGrid.update_copies_of_remote_neighbors(neighborhood);
-   phiprof::stop("Velocity block list update");
+   update.stop();
 
    // Prepare spatial cells for receiving velocity block data
-   phiprof::start("Preparing receives");
-   const std::vector<uint64_t> incoming_cells
-      = mpiGrid.get_remote_cells_on_process_boundary(neighborhood);
-   #pragma omp parallel for
+   phiprof::Timer receives {"Preparing receives"};
+   const std::vector<uint64_t> incoming_cells = mpiGrid.get_remote_cells_on_process_boundary(neighborhood);
 
+   #pragma omp parallel for
    for (unsigned int i=0; i<incoming_cells.size(); ++i) {
      uint64_t cell_id = incoming_cells[i];
      SpatialCell* cell = mpiGrid[cell_id];
@@ -870,7 +857,7 @@ void updateRemoteVelocityBlockLists(
      cell->prepare_to_receive_blocks(popID);
    } 
 
-   phiprof::stop("Preparing receives", incoming_cells.size(), "SpatialCells");
+   receives.stop(incoming_cells.size(), "SpatialCells");
 }
 
 /*
@@ -1126,7 +1113,7 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
       return rvalue;
    #else
 
-   phiprof::start("mesh validation (init)");
+   phiprof::Timer meshValidation {"mesh validation (init)"};
          
    bool internallyValid = false;
       
@@ -1148,16 +1135,16 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
       #endif
 
       // Update velocity mesh in remote cells
-      phiprof::start("MPI");
+      phiprof::Timer mpi {"MPI"};
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE1);
       mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE2);
       mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
-      phiprof::stop("MPI");
+      mpi.stop();
             
       // Iterate over all local spatial cells and calculate 
       // the necessary velocity block refinements
-      phiprof::start("calc refinements");
+      phiprof::Timer calc {"calc refinements"};
       vector<set<vmesh::GlobalID> > refinements(cells.size());
             
       #pragma omp parallel for
@@ -1192,10 +1179,10 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
             }
          }
       }
-      phiprof::stop("calc refinements");
+      calc.stop();
             
       // Apply refinements
-      phiprof::start("refine mesh");
+      phiprof::Timer refine {"refine mesh"};
       bool needAnotherPass=false;
       vector<vector<pair<vmesh::GlobalID,vmesh::LocalID> > > newBlocks(cells.size());
             
@@ -1217,10 +1204,10 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
             }
          }
       }
-      phiprof::stop("refine mesh");
+      refine.stop();
 
       // Recalculate distribution function values on all blocks that were refined
-      phiprof::start("recalculate distrib. functions");
+      phiprof::Timer recalc {"recalculate distrib. functions"};
       vector<vector<vmesh::GlobalID> > removedBlocks(cells.size());
 
 #ifdef _OPENMP
@@ -1289,7 +1276,7 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
             cell->remove_velocity_block(removedBlocks[c][b],popID);
          }
       }
-      phiprof::stop("recalculate distrib. functions");
+      recalc.stop()
        
       #ifdef DEBUG_VAMR_VALIDATE
          writeVelMesh(mpiGrid);
@@ -1304,13 +1291,12 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
       if (globalSuccess == 0) break;
    } while (true);
    
-   phiprof::stop("mesh validation (init)");
    return rvalue;
    #endif
 }
 
 void mapRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
-   phiprof::start("Map Refinement Level to FsGrid");
+   phiprof::Timer timer {"Map Refinement Level to FsGrid"};
    const int *localDims = &technicalGrid.getLocalSize()[0];
 
    // #pragma omp parallel for collapse(3)
@@ -1326,11 +1312,10 @@ void mapRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          }
       }
    }
-   phiprof::stop("Map Refinement Level to FsGrid");
 }
 
 bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, SysBoundary& sysBoundaries, Project& project, bool useStatic) {
-   phiprof::start("Re-refine spatial cells");
+   phiprof::Timer amr {"Re-refine spatial cells"};
    calculateScaledDeltasSimple(mpiGrid);
 
    if (useStatic) {
@@ -1339,14 +1324,14 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
       project.adaptRefinement(mpiGrid);
    }
 
-   phiprof::start("dccrg refinement");
+   phiprof::Timer dccrg {"dccrg refinement"};
 
-   phiprof::start("initialize refines");
+   phiprof::Timer init {"initialize refines"};
    mpiGrid.initialize_refines();
    double newBytes{0};
-   phiprof::stop("initialize refines");
+   init.stop();
 
-   phiprof::start("Estimate memory usage");
+   phiprof::Timer estimateMemory {"Estimate memory usage"};
    for (auto id : mpiGrid.get_local_cells_to_refine()) {
       newBytes += 8 * mpiGrid[id]->get_cell_memory_capacity();
    }
@@ -1357,23 +1342,23 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    }
    
    report_process_memory_consumption(newBytes);
-   phiprof::stop("Estimate memory usage");
+   estimateMemory.stop();
 
    // Bailout from estimate
    // clunky...
    int bailout {0};
-   phiprof::start("Bailout-allreduce");
+   phiprof::Timer bailoutAllreduce {"Bailout-allreduce"};
    MPI_Allreduce(&(globalflags::bailingOut), &bailout, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-   phiprof::stop("Bailout-allreduce");
+   bailoutAllreduce.stop();
 
    if (bailout) {
       return false;
    }
 
    // New cells created by refinement
-   phiprof::start("execute refines");
+   phiprof::Timer execute {"execute refines"};
    auto newChildren = mpiGrid.execute_refines();
-   phiprof::stop("execute refines");
+   execute.stop();
 
    std::vector<CellID> receives;
    for (auto const& [key, val] : mpiGrid.get_cells_to_receive()) {
@@ -1382,7 +1367,7 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
       }
    }
 
-   phiprof::start("transfers");
+   phiprof::Timer transfers {"transfers"};
    for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
       // Set active population
       SpatialCell::setCommunicatedSpecies(p);
@@ -1393,29 +1378,30 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_LIST_STAGE2);
       mpiGrid.continue_refining();
    
+      int prepareReceives {phiprof::initializeTimer("Preparing receives")};
       for (CellID id : receives) {
-         phiprof::start("Preparing receives");
          // reserve space for velocity block data in arriving remote cells
+         phiprof::Timer t {prepareReceives};
          mpiGrid[id]->prepare_to_receive_blocks(p);
-         phiprof::stop("Preparing receives", 1, "Spatial cells");
+         t.stop(1, "Spatial cells");
       }
 
       if(receives.empty()) {
          //empty phiprof timer, to avoid unneccessary divergence in unique
          //profiles (keep order same)
-         phiprof::start("Preparing receives");
-         phiprof::stop("Preparing receives", 0, "Spatial cells");
+         phiprof::Timer t {prepareReceives};
+         t.stop(0, "Spatial cells");
       }
       
       //do the actual transfer of data for the set of cells to be transferred
-      phiprof::start("transfer_all_data");
+      phiprof::Timer transfer {"transfer_all_data"};
       SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);
       mpiGrid.continue_refining();
-      phiprof::stop("transfer_all_data");
+      transfer.stop();
    }
-   phiprof::stop("transfers");
+   transfers.stop();
 
-   phiprof::start("copy to children");
+   phiprof::Timer copyChildren {"copy to children"};
    for (CellID id : newChildren) {
       *mpiGrid[id] = *mpiGrid[mpiGrid.get_parent(id)];
       // Irrelevant?
@@ -1423,10 +1409,10 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
       mpiGrid[id]->parameters[CellParams::AMR_ALPHA] /= 2.0;
       mpiGrid[id]->parameters[CellParams::RECENTLY_REFINED] = 1;
    }
-   phiprof::stop("copy to children");
+   copyChildren.stop(newChildren.size(), "Spatial cells");
 
    // Old cells removed by refinement
-   phiprof::start("copy to parents");
+   phiprof::Timer copyParents {"copy to parents"};
    std::set<CellID> processed;
    for (CellID id : mpiGrid.get_removed_cells()) {
       CellID parent = mpiGrid.get_existing_cell(mpiGrid.get_center(id));
@@ -1445,12 +1431,12 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
          processed.insert(parent);
       }
    }
-   phiprof::stop("copy to parents");
+   copyParents.stop(processed.size(), "Spatial cells");
 
-   phiprof::start("finish refining");
+   phiprof::Timer finish {"finish refining"};
    mpiGrid.finish_refining();
-   phiprof::stop("finish refining");
-   phiprof::stop("dccrg refinement");
+   finish.stop();
+   dccrg.stop();
 
    recalculateLocalCellsCache();
    initSpatialCellCoordinates(mpiGrid);
@@ -1480,7 +1466,5 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
    if (P::shouldFilter) {
       project.filterRefined(mpiGrid);
    }
-
-   phiprof::stop("Re-refine spatial cells");
    return true;
 }

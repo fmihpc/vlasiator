@@ -939,9 +939,9 @@ template<unsigned long int N> bool readFsGridVariable(
          fileOffset += thatTasksSize[0] * thatTasksSize[1] * thatTasksSize[2];
       }
    }
-   phiprof::start("updateGhostCells");
+   phiprof::Timer updateGhosts {"updateGhostCells"};
    targetGrid.updateGhostCells();
-   phiprof::stop("updateGhostCells");
+   updateGhosts.stop();
    return true;
 }
 
@@ -1065,9 +1065,9 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    MPI_Comm_size(MPI_COMM_WORLD,&processes);
 
-   phiprof::start("readGrid");
+   phiprof::Timer readGrid {"readGrid"};
 
-   phiprof::start("readScalars");
+   phiprof::Timer readScalars {"readScalars"};
 
    vlsv::ParallelReader file;
    MPI_Info mpiInfo = MPI_INFO_NULL;
@@ -1113,9 +1113,9 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    checkScalarParameter(file,"ycells_ini",P::ycells_ini,MASTER_RANK,MPI_COMM_WORLD);
    checkScalarParameter(file,"zcells_ini",P::zcells_ini,MASTER_RANK,MPI_COMM_WORLD);
 
-   phiprof::stop("readScalars");
+   readScalars.stop();
 
-   phiprof::start("readDatalayout");
+   phiprof::Timer readLayout {"readDatalayout"};
    if (success) {
 		success = readCellIds(file,fileCells,MASTER_RANK,MPI_COMM_WORLD);
 	}
@@ -1222,10 +1222,10 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    //for(uint64_t i=localCellStartOffset; i<localCellStartOffset+localCells; ++i) {
    //  localBlocks += nBlocks[i];
    //}
-   phiprof::stop("readDatalayout");
+   readLayout.stop();
 
    //todo, check file datatype, and do not just use double
-   phiprof::start("readCellParameters");
+   phiprof::Timer readParameters {"readCellParameters"};
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments",CellParams::RHOM,5,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments_dt2",CellParams::RHOM_DT2,5,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"moments_r",CellParams::RHOM_R,5,mpiGrid); }
@@ -1242,19 +1242,19 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"vg_bulk_forcing_flag",CellParams::FORCING_CELL_NUM,1,mpiGrid); }
 
    // Backround B has to be set, there are also the derivatives that should be written/read if we wanted to only read in background field
-   phiprof::stop("readCellParameters");
+   readParameters.stop();
 
-   phiprof::start("readBlockData");
+   phiprof::Timer readBlocks {"readBlockData"};
    if (success == true) {
       success = readBlockData(file,meshName,fileCells,localCellStartOffset,localCells,mpiGrid); 
    }
-   phiprof::stop("readBlockData");
+   readBlocks.stop();
 
-   phiprof::start("updateMpiGridNeighbors");
+   phiprof::Timer updateNeighbors {"updateMpiGridNeighbors"};
    mpiGrid.update_copies_of_remote_neighbors(FULL_NEIGHBORHOOD_ID);
-   phiprof::stop("updateMpiGridNeighbors");
+   updateNeighbors.stop();
    
-   phiprof::start("readFsGrid");
+   phiprof::Timer readfs {"readFsGrid"};
    // Read fsgrid data back in
    int fsgridInputRanks=0;
    if(readScalarParameter(file,"numWritingRanks",fsgridInputRanks, MASTER_RANK, MPI_COMM_WORLD) == false) {
@@ -1264,9 +1264,9 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    if (success) { success = readFsGridVariable(file, "fg_PERB", fsgridInputRanks, perBGrid); }
    if (success) { success = readFsGridVariable(file, "fg_E", fsgridInputRanks, EGrid); }
    exitOnError(success,"(RESTART) Failure reading fsgrid restart variables",MPI_COMM_WORLD);
-   phiprof::stop("readFsGrid");
+   readfs.stop();
    
-   phiprof::start("readIonosphere");
+   phiprof::Timer readIonosphere {"readIonosphere"};
    bool ionosphereSuccess=true;
    ionosphereSuccess = readIonosphereNodeVariable(file, "ig_fac", SBC::ionosphereGrid, ionosphereParameters::SOURCE);
    // Reconstruct source term by multiplying the fac density with the element area
@@ -1297,10 +1297,9 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    if(ionosphereSuccess && !ionosphereOptionalSuccess) {
       logFile << "(RESTART) Restart file contains no ionosphere conductivity data. Ionosphere will run fine, but first output bulk file might have bogus conductivities." << std::endl;
    }
-   phiprof::stop("readIonosphere");
+   readIonosphere.stop();
 
    success = file.close();
-   phiprof::stop("readGrid");
 
    exitOnError(success,"(RESTART) Other failure",MPI_COMM_WORLD);
    return success;

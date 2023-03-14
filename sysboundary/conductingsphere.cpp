@@ -206,7 +206,7 @@ namespace SBC {
       cint j,
       cint k
    ) {
-      phiprof::start("Conductingsphere::fieldSolverGetNormalDirection");
+      phiprof::Timer timer {"Conductingsphere::fieldSolverGetNormalDirection"};
       std::array<Real, 3> normalDirection{{ 0.0, 0.0, 0.0 }};
       
       static creal DIAG2 = 1.0 / sqrt(2.0);
@@ -468,8 +468,6 @@ namespace SBC {
          }
          // end of 3D
       }
-      
-      phiprof::stop("Conductingsphere::fieldSolverGetNormalDirection");
       return normalDirection;
    }
    
@@ -770,7 +768,7 @@ namespace SBC {
       const uint popID,
       const bool calculate_V_moments
    ) {
-      phiprof::start("vlasovBoundaryCondition (Conductingsphere)");
+      phiprof::Timer timer {"vlasovBoundaryCondition (Conductingsphere)"};
       this->vlasovBoundaryFluffyCopyFromAllCloseNbrs(mpiGrid, cellID, popID, calculate_V_moments, this->speciesParams[popID].fluffiness);
       phiprof::stop("vlasovBoundaryCondition (Conductingsphere)");
    }

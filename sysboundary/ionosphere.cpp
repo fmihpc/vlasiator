@@ -223,7 +223,7 @@ namespace SBC {
    // after Keinert et al 2015
    void SphericalTriGrid::initializeSphericalFibonacci(int n) {
 
-      phiprof::start("ionosphere-sphericalFibonacci");
+      phiprof::Timer timer {"ionosphere-sphericalFibonacci"};
       // Golden ratio
       const Real Phi = (sqrt(5) +1.)/2.;
 
@@ -319,7 +319,6 @@ namespace SBC {
       }
 
       updateConnectivity();
-      phiprof::stop("ionosphere-sphericalFibonacci");
    }
 
    // Find the neighbouring element of the one with index e, that is sharing the
@@ -429,7 +428,7 @@ namespace SBC {
    // The new center element (3) replaces the old parent element in place.
    void SphericalTriGrid::subdivideElement(uint32_t e) {
 
-      phiprof::start("ionosphere-subdivideElement");
+      phiprof::Timer timer {"ionosphere-subdivideElement"};
       Element& parentElement = elements[e];
 
       // 4 new elements
@@ -550,7 +549,6 @@ namespace SBC {
       for(int i=0; i<3; i++) {
          elements.push_back(newElements[i]);
       }
-      phiprof::stop("ionosphere-subdivideElement");
    }
 
 
@@ -616,7 +614,7 @@ namespace SBC {
     */
    void SphericalTriGrid::readAtmosphericModelFile(const char* filename) {
 
-      phiprof::start("ionosphere-readAtmosphericModelFile");
+      phiprof::Timer timer {"ionosphere-readAtmosphericModelFile"};
       // These are the only height values (in km) we are actually interested in
       static const float alt[numAtmosphereLevels] = {
          66, 68, 71, 74, 78, 82, 87, 92, 98, 104, 111,
@@ -789,7 +787,6 @@ namespace SBC {
             }
          }
       }
-      phiprof::stop("ionosphere-readAtmosphericModelFile");
    }
 
    /*!< Store the value of the magnetic field at the node.*/
@@ -873,7 +870,7 @@ namespace SBC {
     */
    void SphericalTriGrid::calculateConductivityTensor(const Real F10_7, const Real recombAlpha, const Real backgroundIonisation) {
 
-      phiprof::start("ionosphere-calculateConductivityTensor");
+      phiprof::Timer timer {"ionosphere-calculateConductivityTensor"};
 
       // Ranks that don't participate in ionosphere solving skip this function outright
       if(!isCouplingInwards && !isCouplingOutwards) {
@@ -1021,7 +1018,6 @@ namespace SBC {
             cerr << "(ionosphere) Error: Undefined conductivity model " << Ionosphere::conductivityModel << "! Ionospheric Sigma Tensor will be zero." << endl;
          }
       }
-      phiprof::stop("ionosphere-calculateConductivityTensor");
    }
    
 
@@ -1036,7 +1032,7 @@ namespace SBC {
    // This needs to be rerun after Vlasov grid load balancing to ensure that
    // ionosphere info is still communicated to the right ranks.
    void SphericalTriGrid::updateIonosphereCommunicator(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
-      phiprof::start("ionosphere-updateIonosphereCommunicator");
+      phiprof::Timer timer {"ionosphere-updateIonosphereCommunicator"};
 
       // Check if the current rank contains ionosphere boundary cells.
       isCouplingOutwards = true;
@@ -1071,7 +1067,6 @@ namespace SBC {
 
       // Make sure all tasks know which task on MPI_COMM_WORLD does the writing
       MPI_Allreduce(&writingRankInput, &writingRank, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-      phiprof::stop("ionosphere-updateIonosphereCommunicator");
    }
 
 
@@ -1120,7 +1115,7 @@ namespace SBC {
          return;
       }
 
-      phiprof::start("ionosphere-mapDownMagnetosphere");
+      phiprof::Timer timer {"ionosphere-mapDownMagnetosphere"};
 
       // Create zeroed-out input arrays
       std::vector<double> FACinput(nodes.size());
@@ -1297,7 +1292,6 @@ namespace SBC {
 
       // Make sure FACs are balanced, so that the potential doesn't start to drift
       offset_FAC();
-      phiprof::stop("ionosphere-mapDownMagnetosphere");
 
    }
 
@@ -1633,7 +1627,7 @@ namespace SBC {
    // Initialize the CG sover by assigning matrix dependency weights
    void SphericalTriGrid::initSolver(bool zeroOut) {
 
-     phiprof::start("ionosphere-initSolver");
+     phiprof::Timer timer {"ionosphere-initSolver"};
      // Zero out parameters
      if(zeroOut) {
         for(uint n=0; n<nodes.size(); n++) {
@@ -1684,7 +1678,6 @@ namespace SBC {
      //   cerr << endl;
      //}
 
-     phiprof::stop("ionosphere-initSolver");
    }
 
    // Evaluate a nodes' neighbour parameter, averaged through the coupling
@@ -1751,7 +1744,7 @@ namespace SBC {
          return;
       }
 
-      phiprof::start("ionosphere-solve");
+      phiprof::Timer timer {"ionosphere-solve"};
       
       initSolver(false);
       
@@ -1764,8 +1757,6 @@ namespace SBC {
             Ionosphere::solverUseMinimumResidualVariant = !Ionosphere::solverUseMinimumResidualVariant;
          }
       } while (residual > Ionosphere::solverRelativeL2ConvergenceThreshold && nIterations < Ionosphere::solverMaxIterations);
-      
-      phiprof::stop("ionosphere-solve");
    }
 
    void SphericalTriGrid::solveInternal(
@@ -2527,7 +2518,7 @@ namespace SBC {
       cint j,
       cint k
    ) {
-      phiprof::start("Ionosphere::fieldSolverGetNormalDirection");
+      phiprof::Timer timer {"Ionosphere::fieldSolverGetNormalDirection"};
       std::array<Real, 3> normalDirection{{ 0.0, 0.0, 0.0 }};
 
       static creal DIAG2 = 1.0 / sqrt(2.0);
@@ -2790,7 +2781,6 @@ namespace SBC {
          // end of 3D
       }
 
-      phiprof::stop("Ionosphere::fieldSolverGetNormalDirection");
       return normalDirection;
    }
 
@@ -3148,7 +3138,7 @@ namespace SBC {
       const uint popID,
       const bool calculate_V_moments
    ) {
-      phiprof::start("vlasovBoundaryCondition (Ionosphere)");
+      phiprof::Timer timer {"vlasovBoundaryCondition (Ionosphere)"};
 
       // TODO Make this a more elegant solution
       // Now it's hacky as the counter is incremented in vlasiator.cpp
@@ -3361,7 +3351,6 @@ namespace SBC {
          calculateCellMoments(mpiGrid[cellID], true, false, true);
       } // End of if for coupling interval, we skip this altogether
 
-      phiprof::stop("vlasovBoundaryCondition (Ionosphere)");
    }
 
    /**
