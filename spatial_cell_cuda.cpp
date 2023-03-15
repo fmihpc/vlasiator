@@ -1270,7 +1270,6 @@ namespace spatial_cell {
       #endif
 
       phiprof::start("CUDA update spatial cell block lists");
-
       cudaStream_t stream = cuda_getStream();
       phiprof::start("VB content list prefetches and allocations");
       velocity_block_with_content_list->clear();
@@ -1296,10 +1295,6 @@ namespace spatial_cell {
          );
       HANDLE_ERROR( cudaStreamSynchronize(stream) );
       phiprof::stop("CUDA update spatial cell block lists kernel");
-      // phiprof::start("VB content list prefetches");
-      // velocity_block_with_content_list->optimizeCPU(stream);
-      // velocity_block_with_no_content_list->optimizeCPU(stream);
-      // phiprof::stop("VB content list prefetches");
       phiprof::stop("CUDA update spatial cell block lists");
    }
 

@@ -367,6 +367,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                    blocksLID_unsorted, blocksLID, nBlocks,
                                    0, sizeof(vmesh::GlobalID)*8, stream);
    cudaStreamSynchronize(stream);
+   cudaFreeAsync(dev_temp_storage, stream);
    phiprof::stop("CUB sort");
 
    // Gather GIDs in order

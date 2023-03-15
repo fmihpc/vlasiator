@@ -66,6 +66,7 @@ vmesh::LocalID *dev_columnNBlocks[MAXCPUTHREADS];
 uint cuda_acc_allocatedSize = 0;
 uint cuda_acc_allocatedColumns = 0;
 uint cuda_acc_columnContainerSize = 0;
+uint cuda_acc_foundColumnsCount = 0;
 
 __host__ void cuda_acc_allocate (
    uint maxBlockCount
@@ -73,7 +74,8 @@ __host__ void cuda_acc_allocate (
    // Always prepare for at least 500 blocks
    const uint maxBlocksPerCell = maxBlockCount > 500 ? maxBlockCount : 500;
    // Check if we already have allocated enough memory?
-   if (cuda_acc_allocatedSize > maxBlocksPerCell * BLOCK_ALLOCATION_FACTOR) {
+   if ( (cuda_acc_allocatedSize > maxBlocksPerCell * BLOCK_ALLOCATION_FACTOR) &&
+        (cuda_acc_allocatedColumns > cuda_acc_foundColumnsCount * BLOCK_ALLOCATION_FACTOR) ) {
       return;
    }
    // Deallocate before allocating new memory
@@ -90,14 +92,17 @@ __host__ void cuda_acc_allocate_memory (
    uint maxBlockCount
    ) {
    // Mallocs should be in increments of 256 bytes. WID3 is at least 64, and len(Realf) is at least 4, so this is true.
-
-   // The worst case scenario is with every block having content but no neighbours, creating up
-   // to maxBlockCount columns with each needing three blocks (one value plus two for padding).
    const uint blockAllocationCount = maxBlockCount * BLOCK_ALLOCATION_PADDING;
-   const uint maxColumnsPerCell = 3 * std::pow(
+   // The worst case scenario for columns is with every block having content but no neighbours, creating up
+   // to maxBlockCount columns with each needing three blocks (one value plus two for padding).
+   // This value here is a reasonable estimate for most cases, though. Also checks against a counter.
+   uint maxColumnsPerCell = 3 * std::pow(
       (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[0]
       * (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[1]
       * (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[2], 0.667);
+   if (cuda_acc_foundColumnsCount * BLOCK_ALLOCATION_FACTOR > maxColumnsPerCell) {
+      maxColumnsPerCell = cuda_acc_foundColumnsCount * BLOCK_ALLOCATION_PADDING;
+   }
    cuda_acc_allocatedSize = blockAllocationCount;
    cuda_acc_allocatedColumns = maxColumnsPerCell;
 
@@ -797,8 +802,8 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    uint* dev_valuesSizeRequired;
    HANDLE_ERROR( cudaMallocAsync((void**)&dev_totalColumns, sizeof(uint), stream) );
    HANDLE_ERROR( cudaMallocAsync((void**)&dev_valuesSizeRequired, sizeof(uint), stream) );
-   HANDLE_ERROR( cudaMemsetAsync(&dev_totalColumns, 0, sizeof(uint), stream) );
-   HANDLE_ERROR( cudaMemsetAsync(&dev_valuesSizeRequired, 0, sizeof(uint), stream) );
+   HANDLE_ERROR( cudaMemsetAsync(dev_totalColumns, 0, sizeof(uint), stream) );
+   HANDLE_ERROR( cudaMemsetAsync(dev_valuesSizeRequired, 0, sizeof(uint), stream) );
    // this needs to be serial, but is fast.
    cudaStreamSynchronize(stream);
    count_columns_kernel<<<1, 1, 0, stream>>> (
@@ -810,6 +815,12 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    HANDLE_ERROR( cudaMemcpyAsync(&host_totalColumns, dev_totalColumns, sizeof(uint), cudaMemcpyDeviceToHost, stream) );
    HANDLE_ERROR( cudaMemcpyAsync(&host_valuesSizeRequired, dev_valuesSizeRequired, sizeof(uint), cudaMemcpyDeviceToHost, stream) );
    cudaStreamSynchronize(stream);
+   HANDLE_ERROR( cudaFreeAsync(dev_totalColumns, stream) );
+   HANDLE_ERROR( cudaFreeAsync(dev_valuesSizeRequired, stream) );
+   // Update tracker of maximum encountered column count
+   if (cuda_acc_foundColumnsCount < host_totalColumns) {
+      cuda_acc_foundColumnsCount = host_totalColumns;
+   }
    phiprof::stop("count columns");
 
    // pointer to columns in memory
@@ -874,6 +885,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    cudaStreamSynchronize(stream);
    // Check if we need to bailout due to hitting v-space edge
    HANDLE_ERROR( cudaMemcpyAsync(&host_wallspace_margin_bailout_flag, dev_wallspace_margin_bailout_flag, sizeof(uint), cudaMemcpyDeviceToHost, stream) );
+   cudaStreamSynchronize(stream);
    if (host_wallspace_margin_bailout_flag != 0) {
       string message = "Some target blocks in acceleration are going to be less than ";
       message += std::to_string(Parameters::bailout_velocity_space_wall_margin);
@@ -884,6 +896,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       message += ". Consider expanding velocity space for that population.";
       bailout(true, message, __FILE__, __LINE__);
    }
+   HANDLE_ERROR( cudaFreeAsync(dev_wallspace_margin_bailout_flag, stream) );
    phiprof::stop("Evaluate column extents kernel");
 
    phiprof::start("Add and delete blocks");
