@@ -39,8 +39,6 @@
 #include "vlasovmover.h"
 #include "object_wrapper.h"
 
-#include "vlsv_common.h"
-
 using namespace std;
 using namespace phiprof;
 
