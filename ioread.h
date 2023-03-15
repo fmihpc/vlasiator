@@ -53,6 +53,13 @@ bool readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 bool readFileCells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const std::string& name);
 
 /*!
+ * \brief Check if the restart file is intact.
+ * \param name Name of the restart file 
+ * \return True if file is good (currently: </VLSV> tag ends the file)
+*/
+bool verifyRestartFile(const std::string& name);
+
+/*!
  * \brief Check in local directory for external commands passed to the simulation. Only executed by MASTER_RANK
  */
 void checkExternalCommands();

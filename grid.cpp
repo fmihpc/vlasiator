@@ -165,6 +165,11 @@ void initializeGrids(
          mapRefinement(mpiGrid, technicalGrid);
       }
    } else {
+      if(!verifyRestartFile(P::restartFileName))
+      {
+         std::cerr << "Verification of the restart file failed." <<std::endl;
+         abort();
+      }
       if (readFileCells(mpiGrid, P::restartFileName)) {
          mpiGrid.balance_load();
          recalculateLocalCellsCache();

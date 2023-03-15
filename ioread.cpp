@@ -1356,3 +1356,34 @@ bool readFileCells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    exitOnError(success,"(READ_FILE_CELLS) Other error",MPI_COMM_WORLD);
    return success;
 }
+
+/*!
+ * \brief Check if the restart file is intact.
+ * \param name Name of the restart file 
+ * \return True if file is good (currently: </VLSV> tag ends the file)
+*/
+bool verifyRestartFile(const std::string& name)
+{
+   ifstream file;
+   std::string buffer;
+   file.open(name);
+   if(file.is_open()){
+      file.seekg(0,file.end);
+      int length = file.tellg();
+      if(length < 10){
+         exitOnError(0, "Suspiciosly small file (<10 bytes!)", MPI_COMM_WORLD);
+         return 0;
+      } else{
+         buffer.resize(10);
+         file.seekg(-10,ios_base::end);
+         file.read(buffer.data(), 10);
+         std::cout << "File ends with " << buffer << std::endl;
+         exitOnError(0, "Test bailout", MPI_COMM_WORLD);
+         return 0;
+      }
+   }
+   else{
+      exitOnError(0, "(verifyRestartFile) Could not open file", MPI_COMM_WORLD);
+      return 0;
+   }
+}
