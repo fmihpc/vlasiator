@@ -167,8 +167,12 @@ void initializeGrids(
    } else {
       if(!verifyRestartFile(P::restartFileName))
       {
-         std::cerr << "Verification of the restart file failed." <<std::endl;
-         abort();
+         if (myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " Verification of the restart file failed." <<std::endl;
+         exit(1);
+      }
+      else{
+         if (myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ <<  "Success! But I'll bail out just because." <<std::endl;
+         exit(1);
       }
       if (readFileCells(mpiGrid, P::restartFileName)) {
          mpiGrid.balance_load();

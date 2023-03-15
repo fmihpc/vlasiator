@@ -39,6 +39,8 @@
 #include "vlasovmover.h"
 #include "object_wrapper.h"
 
+#include "vlsv_common.h"
+
 using namespace std;
 using namespace phiprof;
 
@@ -1357,6 +1359,19 @@ bool readFileCells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    return success;
 }
 
+uint64_t convUInt64(const char* const ptr,const bool& swapEndian) {
+      if (swapEndian == false) return *(reinterpret_cast<const uint64_t*>(ptr));
+      int index = 0;
+      uint64_t tmp = 0;
+      char* const ptrtmp = reinterpret_cast<char*>(&tmp);
+      for (int i=sizeof(uint64_t)-1; i>=0; --i) {
+	 ptrtmp[index] = ptr[i];
+	 ++index;
+      }
+      return tmp;
+   }
+   
+
 /*!
  * \brief Check if the restart file is intact.
  * \param name Name of the restart file 
@@ -1364,26 +1379,34 @@ bool readFileCells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 */
 bool verifyRestartFile(const std::string& name)
 {
-   ifstream file;
+   std::ifstream file;
    std::string buffer;
-   file.open(name);
+   buffer.resize(16);
+   file.open(name, fstream::in | fstream::binary);
    if(file.is_open()){
-      file.seekg(0,file.end);
-      int length = file.tellg();
-      if(length < 10){
-         exitOnError(0, "Suspiciosly small file (<10 bytes!)", MPI_COMM_WORLD);
+      file.seekg(8);
+      file.read(buffer.data(),8);
+      cout << convUInt64(buffer.data()) <<std::endl;
+      file.seekg(0,ios_base::end);
+      uint length = file.tellg();
+      if(length < 16){
+         std::cerr << "Suspiciously small vlsv file (<16 bytes). Bailing" << std::endl;
          return 0;
       } else{
-         buffer.resize(10);
-         file.seekg(-10,ios_base::end);
-         file.read(buffer.data(), 10);
-         std::cout << "File ends with " << buffer << std::endl;
-         exitOnError(0, "Test bailout", MPI_COMM_WORLD);
-         return 0;
+         file.seekg(-16,ios_base::end);
+         file.read(buffer.data(), 16);
+         if(buffer.find("</VLSV>") != std::string::npos){
+            std::cout << "File has </VLSV> at its end, this is promising and will not bailout." << std::endl;
+            return 1;
+         }
+         else{
+            std::cout << "End of VLSV footer not found at the end of the file. This is suspicious, I will bail. 16 last bytes of the file are: " << buffer << std::endl;
+            return 0;
+         }
+         
       }
    }
    else{
-      exitOnError(0, "(verifyRestartFile) Could not open file", MPI_COMM_WORLD);
       return 0;
    }
 }
