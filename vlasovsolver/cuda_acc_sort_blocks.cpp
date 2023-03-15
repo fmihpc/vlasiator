@@ -153,59 +153,6 @@ __global__ void order_GIDs_kernel(
    }
 }
 
-/**
- old serial kernel
-__global__ void construct_columns_kernel(
-   const vmesh::VelocityMesh* vmesh,
-   vmesh::GlobalID *blocksID_mapped_sorted,
-   ColumnOffsets* columnData,
-   vmesh::LocalID DX,
-   const uint nBlocks
-   ) {
-   const int cudaBlocks = gridDim.x * gridDim.y * gridDim.z;
-   const uint warpSize = blockDim.x * blockDim.y * blockDim.z;
-   // const int blocki = blockIdx.z*gridDim.x*gridDim.y + blockIdx.y*gridDim.x + blockIdx.x;
-   // const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
-   if ((cudaBlocks!=1) || (warpSize!=1)) {
-      printf("Error in construct_columns_kernel; unsafe warpSize or gridDim\n");
-      return;
-   }
-
-   // Put in the sorted blocks, and also compute column offsets and lengths:
-   columnData->columnBlockOffsets.device_push_back(0); //first offset
-   columnData->setColumnOffsets.device_push_back(0); //first offset
-   vmesh::LocalID prev_column_id, prev_dimension_id;
-
-   for (vmesh::LocalID i=0; i<nBlocks; ++i) {
-      // identifies a particular column
-      vmesh::LocalID column_id = blocksID_mapped_sorted[i] / DX;
-      // identifies a particular block in a column (along the dimension)
-      vmesh::LocalID dimension_id = blocksID_mapped_sorted[i] % DX;
-
-      if ( i > 0 &&  ( (column_id != prev_column_id) || (dimension_id != (prev_dimension_id + 1) ))) {
-         //encountered new column! For i=0, we already entered the correct offset (0).
-         //We also identify it as a new column if there is a break in the column (e.g., gap between two populations)
-         //add offset where the next column will begin
-         columnData->columnBlockOffsets.device_push_back(i);
-         /(add length of the current column that now ended
-         columnData->columnNumBlocks.device_push_back(columnData->columnBlockOffsets[columnData->columnBlockOffsets.size()-1] - columnData->columnBlockOffsets[columnData->columnBlockOffsets.size()-2]);
-
-         if (column_id != prev_column_id ){
-            //encountered new set of columns, add offset to new set starting at present column
-            columnData->setColumnOffsets.device_push_back(columnData->columnBlockOffsets.size() - 1);
-            //add length of the previous column set that ended
-            columnData->setNumColumns.device_push_back(columnData->setColumnOffsets[columnData->setColumnOffsets.size()-1] - columnData->setColumnOffsets[columnData->setColumnOffsets.size()-2]);
-         }
-      }
-      prev_column_id = column_id;
-      prev_dimension_id = dimension_id;
-   }
-
-   columnData->columnNumBlocks.device_push_back(nBlocks - columnData->columnBlockOffsets[columnData->columnBlockOffsets.size()-1]);
-   columnData->setNumColumns.device_push_back(columnData->columnNumBlocks.size() - columnData->setColumnOffsets[columnData->setColumnOffsets.size()-1]);
-}
-*/
-
 /*** Kernel for constructing columns
  Checks if all blocks in a columnset belong to a single kernel, and
  can quickly jump through the whole column.
