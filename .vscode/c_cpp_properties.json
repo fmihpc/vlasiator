@@ -9,6 +9,7 @@
                 "/proj/group/spacephysics/libraries/gcc/11.2.0/OpenMPI/4.1.1/carrington/jemalloc/include/",
                 "/proj/group/spacephysics/libraries/gcc/11.2.0/OpenMPI/4.1.1/carrington/boost/include/",
                 "/proj/group/spacephysics/libraries/gcc/11.2.0/OpenMPI/4.1.1/carrington/zoltan/include/",
+                "/appl/easybuild/opt/PAPI/6.0.0.1-GCCcore-11.2.0/include",
                 "/proj/group/spacephysics/libraries/Eigen/",
                 "/proj/group/spacephysics/libraries/fsgrid/",
                 "/proj/group/spacephysics/libraries/dccrg/",
@@ -23,7 +24,7 @@
                 "ACC_SEMILAG_PQM",
                 "TRANS_SEMILAG_PPM",
                 "VECTORCLASS = VEC8F_AGNER",
-                "PAPI-MEM",
+                "PAPI_MEM",
                 "USE_JEMALLOC",
                 "JEMALLOC_NO_DEMANGLE"
             ],
@@ -41,6 +42,7 @@
                 "/proj/group/spacephysics/libraries/gcc/11.2.0/OpenMPI/4.1.1/ukko/jemalloc/include/",
                 "/proj/group/spacephysics/libraries/gcc/11.2.0/OpenMPI/4.1.1/ukko/boost/include/",
                 "/proj/group/spacephysics/libraries/gcc/11.2.0/OpenMPI/4.1.1/ukko/zoltan/include/",
+                "/appl/easybuild/opt/PAPI/6.0.0.1-GCCcore-11.2.0/include",
                 "/proj/group/spacephysics/libraries/Eigen/",
                 "/proj/group/spacephysics/libraries/fsgrid/",
                 "/proj/group/spacephysics/libraries/dccrg/",
@@ -55,7 +57,7 @@
                 "ACC_SEMILAG_PQM",
                 "TRANS_SEMILAG_PPM",
                 "VECTORCLASS = VEC8F_AGNER",
-                "PAPI-MEM",
+                "PAPI_MEM",
                 "USE_JEMALLOC",
                 "JEMALLOC_NO_DEMANGLE"
             ],
@@ -88,7 +90,7 @@
                 "ACC_SEMILAG_PQM",
                 "TRANS_SEMILAG_PPM",
                 "VECTORCLASS = VEC8F_AGNER",
-                "PAPI-MEM",
+                "PAPI_MEM",
                 "USE_JEMALLOC",
                 "JEMALLOC_NO_DEMANGLE"
             ],
