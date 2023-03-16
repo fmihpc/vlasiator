@@ -1325,12 +1325,12 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
       }
    }
 
-   phiprof::Timer getSeeds {"getSeedIds"};
+   phiprof::Timer getSeedsTimer {"getSeedIds"};
    vector<CellID> seedIds;
    getSeedIds(mpiGrid, localPropagatedCells, dimension, seedIds);
-   getSeeds.stop();
+   getSeedsTimer.stop();
 
-   phiprof::Timer buildPencils {"buildPencils"};
+   phiprof::Timer buildPencilsTimer {"buildPencils"};
    // Output vectors for ready pencils
    //setOfPencils pencils;
 
@@ -1369,7 +1369,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
       }
    }
 
-   phiprof::Timer checkGhosts {"check_ghost_cells"};
+   phiprof::Timer checkGhostsTimer {"check_ghost_cells"};
    // Check refinement of two ghost cells on each end of each pencil
    check_ghost_cells(mpiGrid,DimensionPencils[dimension],dimension);
    phiprof::stop("check_ghost_cells");
@@ -1377,7 +1377,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    // ****************************************************************************
 
    if(printPencils) printPencilsFunc(DimensionPencils[dimension],dimension,myRank);
-   buildPencils.stop();
+   buildPencilsTimer.stop();
 }
 
 /* Map velocity blocks in all local cells forward by one time step in one spatial dimension.
@@ -1400,7 +1400,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                       const Realv dt,
                       const uint popID) {
    
-   phiprof::Timer setup {"setup"};
+   phiprof::Timer setupTimer {"setup"};
 
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
    unsigned char  cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
@@ -1488,7 +1488,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    // Get a pointer to the velocity mesh of the first spatial cell
    const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh = allCellsPointer[0]->get_velocity_mesh(popID);
    
-   phiprof::Timer buildBlockList {"buildBlockList"};
+   phiprof::Timer buildBlockListimer {"buildBlockList"};
    // Get a unique sorted list of blockids that are in any of the
    // propagated cells. First use set for this, then add to vector (may not
    // be the most nice way to do this and in any case we could do it along
@@ -1518,7 +1518,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    
    unionOfBlocks.insert(unionOfBlocks.end(), unionOfBlocksSet.begin(), unionOfBlocksSet.end());
    
-   buildBlockList.stop();
+   buildBlockListimer.stop();
    // ****************************************************************************
    
    // Assuming 1 neighbor in the target array because of the CFL condition
@@ -1527,12 +1527,12 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    
    // Compute spatial neighbors for target cells.
    // For targets we need the local cells, plus a padding of 1 cell at both ends
-   phiprof::Timer computeTargets {"computeSpatialTargetCellsForPencils"};
+   phiprof::Timer computeTargetsTimer {"computeSpatialTargetCellsForPencils"};
    std::vector<SpatialCell*> targetCells(DimensionPencils[dimension].sumOfLengths + DimensionPencils[dimension].N * 2 * nTargetNeighborsPerPencil );
    computeSpatialTargetCellsForPencilsWithFaces(mpiGrid, DimensionPencils[dimension], dimension, targetCells.data());
-   computeTargets.stop();
+   computeTargetsTimer.stop();
    
-   setup.stop();
+   setupTimer.stop();
    
    int mappingId {phiprof::initializeTimer("mapping")};
    int storeId {phiprof::initializeTimer("store")};
@@ -1582,7 +1582,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
          // Get global id of the velocity block
          vmesh::GlobalID blockGID = unionOfBlocks[blocki];
 
-            phiprof::Timer mapping {mappingId};
+            phiprof::Timer mappingTimer {mappingId};
             
             // Loop over pencils
             uint totalTargetLength = 0;
@@ -1635,8 +1635,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                
             } // Closes loop over pencils. SourceVecData gets implicitly deallocated here.
 
-            mapping.stop();
-            phiprof::Timer store {storeId};
+            mappingTimer.stop();
+            phiprof::Timer storeTimer {storeId};
             
             // reset blocks in all non-sysboundary neighbor spatial cells for this block id
             // At this point the block data is saved in targetBlockData so we can reset the spatial cells
@@ -1709,7 +1709,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                
             } // closes loop over pencils
 
-            store.stop();
+            storeTimer.stop();
       } // Closes loop over blocks
    } // closes pragma omp parallel
 

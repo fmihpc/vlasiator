@@ -155,7 +155,7 @@ void calculateMoments_R(
         const std::vector<CellID>& cells,
         const bool& computeSecond) {
  
-    phiprof::Timer moments {"compute-moments-n"};
+    phiprof::Timer momentsTimer {"compute-moments-n"};
     creal HALF = 0.5;
 
     for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
@@ -302,7 +302,7 @@ void calculateMoments_V(
         const std::vector<CellID>& cells,
         const bool& computeSecond) {
  
-   phiprof::Timer moments {"Compute _V moments"};
+   phiprof::Timer momentsTimer {"Compute _V moments"};
    
    // Loop over all particle species
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {

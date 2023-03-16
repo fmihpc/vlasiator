@@ -61,12 +61,12 @@ using namespace Eigen;
 void cpu_accelerate_cell(SpatialCell* spatial_cell, uint map_order, const Real dt) {
    double t1=MPI_Wtime();
    /*compute transform, forward in time and backward in time*/
-   phiprof::Timer computeTransform {"compute-transform"};
+   phiprof::Timer computeTransformTimer {"compute-transform"};
 
    //compute the transform performed in this acceleration
    Transform<Real,3,Affine> fwd_transform= compute_acceleration_transformation(spatial_cell,dt);
    Transform<Real,3,Affine> bwd_transform= fwd_transform.inverse();
-   computeTransform.stop();
+   computeTransformTimer.stop();
 
    // NOTE: This is now in a debugging / testing state. The propagator 
    // only does one thing each time step. Currently this does
