@@ -104,9 +104,9 @@ namespace vmesh {
 
       vmesh::LocalID currentCapacity;
       vmesh::LocalID numberOfBlocks;
-      cudaStream_t attachedStream;
 
 #ifdef USE_CUDA
+      cudaStream_t attachedStream;
       split::SplitVector<Realf> *block_data;
       split::SplitVector<Real> *parameters;
 #else
@@ -127,6 +127,7 @@ namespace vmesh {
          block_data= new split::SplitVector<Realf>(currentCapacity);
          parameters= new split::SplitVector<Real>(currentCapacity);
       }
+      attachedStream = 0;
 #else
       if (currentCapacity==0) {
          // initialization with zero capacity would return null pointers
@@ -148,6 +149,7 @@ namespace vmesh {
 
    inline VelocityBlockContainer::VelocityBlockContainer(const VelocityBlockContainer& other) {
 #ifdef USE_CUDA
+      attachedStream = 0;
       block_data= new split::SplitVector<Realf>(*(other.block_data));
       parameters= new split::SplitVector<Real>(*(other.parameters));
 #else
@@ -163,6 +165,7 @@ namespace vmesh {
       if (block_data->size()>0) delete block_data;
       if (parameters->size()>0) delete parameters;
 #ifdef USE_CUDA
+      attachedStream = 0;
       block_data= new split::SplitVector<Realf>(*(other.block_data));
       parameters= new split::SplitVector<Real>(*(other.parameters));
 #else

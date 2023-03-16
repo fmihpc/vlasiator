@@ -126,6 +126,7 @@ namespace vmesh {
       globalToLocalMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(10);
       localToGlobalMap = new split::SplitVector<vmesh::GlobalID>(1);
       localToGlobalMap->clear();
+      attachedStream = 0;
    }
 
    inline VelocityMesh::~VelocityMesh() {
@@ -142,6 +143,7 @@ namespace vmesh {
          localToGlobalMap = new split::SplitVector<vmesh::GlobalID>(1);
          localToGlobalMap->clear();
       }
+      attachedStream = 0;
    }
 
    inline const VelocityMesh& VelocityMesh::operator=(const VelocityMesh& other) {
@@ -155,6 +157,7 @@ namespace vmesh {
          localToGlobalMap = new split::SplitVector<vmesh::GlobalID>(1);
          localToGlobalMap->clear();
       }
+      attachedStream = 0;
       return *this;
    }
 

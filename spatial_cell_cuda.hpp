@@ -229,7 +229,7 @@ namespace spatial_cell {
       const SpatialCell& operator=(const SpatialCell& other);
 
       // Attach unified memory to a stream
-      void dev_attachToStream(cudaStream_t stream);
+      void dev_attachToStream(cudaStream_t stream=0);
       void dev_detachFromStream();
 
       vmesh::GlobalID find_velocity_block(vmesh::GlobalID cellIndices[3],const uint popID);

@@ -36,47 +36,6 @@
 using namespace std;
 using namespace spatial_cell;
 
-// Kernel for scanning columnsets for block counts
-__global__ void scan_blocks_for_columns_kernel(
-   const vmesh::VelocityMesh* vmesh,
-   const uint dimension,
-   vmesh::GlobalID *blocksID_mapped_sorted,
-   vmesh::LocalID *dev_columnNBlocks,
-   const uint nBlocks
-   ) {
-   const int cudaBlocks = gridDim.x * gridDim.y * gridDim.z;
-   const uint warpSize = blockDim.x * blockDim.y * blockDim.z;
-   const int blocki = blockIdx.z*gridDim.x*gridDim.y + blockIdx.y*gridDim.x + blockIdx.x;
-   const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
-   const uint refL=0; //vAMR
-   vmesh::LocalID DX;
-   switch (dimension) {
-      case 0:
-         DX = vmesh->getGridLength(refL)[0];
-         break;
-      case 1:
-         DX = vmesh->getGridLength(refL)[1];
-         break;
-      case 2:
-         DX = vmesh->getGridLength(refL)[2];
-         break;
-      default:
-         printf("Incorrect dimension in __FILE__ __LINE__\n");
-   }
-   for (vmesh::LocalID LID=blocki*warpSize; LID<nBlocks; LID += cudaBlocks*warpSize) {
-      if (LID+ti < nBlocks) {
-         vmesh::LocalID column_id = blocksID_mapped_sorted[LID+ti] / DX;
-         // Increment number of blocks in column
-         const vmesh::LocalID old  = atomicAdd(&dev_columnNBlocks[column_id],1);
-         // // Evaluate smallest GID in column
-         // old = atomicMin(&columnMinBlock[columnid],GID);
-         // // Evaluate largest GID in colum
-         // old = atomicMax(&columnMaxBlock[columnid],GID);
-      }
-   }
-}
-
-
 // Kernels for converting GIDs to dimension-sorted indices
 __global__ void blocksID_mapped_dim0_kernel(
    const vmesh::VelocityMesh* vmesh,
@@ -170,6 +129,46 @@ __global__ void order_GIDs_kernel(
       const vmesh::LocalID i = (index+ti);
       if (i < nBlocks) {
          blocksGID[i]=vmesh->getGlobalID(blocksLID[i]);
+      }
+   }
+}
+
+// Kernel for scanning columnsets for block counts
+__global__ void scan_blocks_for_columns_kernel(
+   const vmesh::VelocityMesh* vmesh,
+   const uint dimension,
+   vmesh::GlobalID *blocksID_mapped_sorted,
+   vmesh::LocalID *dev_columnNBlocks,
+   const uint nBlocks
+   ) {
+   const int cudaBlocks = gridDim.x * gridDim.y * gridDim.z;
+   const uint warpSize = blockDim.x * blockDim.y * blockDim.z;
+   const int blocki = blockIdx.z*gridDim.x*gridDim.y + blockIdx.y*gridDim.x + blockIdx.x;
+   const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
+   const uint refL=0; //vAMR
+   vmesh::LocalID DX;
+   switch (dimension) {
+      case 0:
+         DX = vmesh->getGridLength(refL)[0];
+         break;
+      case 1:
+         DX = vmesh->getGridLength(refL)[1];
+         break;
+      case 2:
+         DX = vmesh->getGridLength(refL)[2];
+         break;
+      default:
+         printf("Incorrect dimension in __FILE__ __LINE__\n");
+   }
+   for (vmesh::LocalID LID=blocki*warpSize; LID<nBlocks; LID += cudaBlocks*warpSize) {
+      if (LID+ti < nBlocks) {
+         vmesh::LocalID column_id = blocksID_mapped_sorted[LID+ti] / DX;
+         // Increment number of blocks in column
+         const vmesh::LocalID old  = atomicAdd(&dev_columnNBlocks[column_id],1);
+         // // Evaluate smallest GID in column
+         // old = atomicMin(&columnMinBlock[columnid],GID);
+         // // Evaluate largest GID in colum
+         // old = atomicMax(&columnMaxBlock[columnid],GID);
       }
    }
 }
@@ -384,7 +383,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                    blocksLID_unsorted, blocksLID, nBlocks,
                                    0, sizeof(vmesh::GlobalID)*8, stream);
    phiprof::start("cudamallocasync");
-   cudaMallocAsync((void**)&dev_temp_storage, temp_storage_bytes, stream);
+   HANDLE_ERROR( cudaMallocAsync((void**)&dev_temp_storage, temp_storage_bytes, stream) );
    HANDLE_ERROR( cudaStreamSynchronize(stream) );
    phiprof::stop("cudamallocasync");
    //printf("allocated %d bytes of temporary memory for CUB SortPairs\n",temp_storage_bytes);
@@ -395,7 +394,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                    blocksLID_unsorted, blocksLID, nBlocks,
                                    0, sizeof(vmesh::GlobalID)*8, stream);
    HANDLE_ERROR( cudaStreamSynchronize(stream) );
-   cudaFreeAsync(dev_temp_storage, stream);
+   HANDLE_ERROR( cudaFreeAsync(dev_temp_storage, stream) );
    phiprof::stop("CUB sort");
 
    // Gather GIDs in order
@@ -421,7 +420,8 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
    phiprof::start("construct columns");
    // Construct columns. To ensure order,
    // these are done serially, but still form within a kernel.
-   construct_columns_kernel<<<1, block, 0, stream>>> (
+   dim3 grid1(1,1,1);
+   construct_columns_kernel<<<grid1, block, 0, stream>>> (
       vmesh,
       dimension,
       blocksID_mapped_sorted,

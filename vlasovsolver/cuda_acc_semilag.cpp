@@ -214,6 +214,7 @@ void cuda_accelerate_cell(SpatialCell* spatial_cell,
           break;
    }
 
+   //spatial_cell->dev_detachFromStream();
    // // Transfer data back
    // phiprof::start("CUDA-DtoH");
    // //blockContainer->dev_prefetchHost();
