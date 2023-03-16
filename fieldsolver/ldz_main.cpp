@@ -324,7 +324,7 @@ bool propagateFields(
             RK_ORDER2_STEP2
          );
          
-         phiprof::Timer subcycling {"FS subcycle stuff"};
+         phiprof::Timer subcyclingTimer {"FS subcycle stuff"};
          subcycleT += subcycleDt; 
          subcycleCount++;
 
@@ -357,9 +357,9 @@ bool propagateFields(
             }
          }
 
-         phiprof::Timer allreduce {"MPI_Allreduce"};
+         phiprof::Timer allreduceTimer {"MPI_Allreduce"};
          technicalGrid.Allreduce(&(dtMaxLocal), &(dtMaxGlobal), 1, MPI_Type<Real>(), MPI_MIN);
-         allreduce.stop();
+         allreduceTimer.stop();
          
          //reduce dt if it is too high
          if( subcycleDt > dtMaxGlobal * P::fieldSolverMaxCFL ) {
@@ -382,7 +382,7 @@ bool propagateFields(
             }
          }
          
-         subcycling.stop();
+         subcyclingTimer.stop();
       }
       
       

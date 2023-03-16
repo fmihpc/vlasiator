@@ -73,7 +73,7 @@ namespace FieldTracing {
          return;
       }
       
-      phiprof::Timer t {"fieldtracing-ionosphere-fsgridCoupling"};
+      phiprof::Timer timer {"fieldtracing-ionosphere-fsgridCoupling"};
       // Pick an initial stepsize
       creal stepSize = min(100e3, technicalGrid.DX / 2.);
       std::vector<Real> nodeTracingStepSize(nodes.size(), stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
@@ -302,7 +302,7 @@ namespace FieldTracing {
       
       Real stepSize = 100e3;
       std::array<Real,3> v;
-      phiprof::Timer t {"fieldtracing-ionosphere-VlasovGridCoupling"};
+      phiprof::Timer timer {"fieldtracing-ionosphere-VlasovGridCoupling"};
       
       // For tracing towards the vlasov boundary, we only require the dipole field.
       TracingFieldFunction<Real> dipoleFieldOnly = [](std::array<Real,3>& r, const bool outwards, std::array<Real,3>& b)->bool {
@@ -465,7 +465,7 @@ namespace FieldTracing {
          return;
       }
 
-      phiprof::Timer tracing {"fieldtracing-ionosphere-openclosedTracing"};
+      phiprof::Timer tracingTimer {"fieldtracing-ionosphere-openclosedTracing"};
       // Pick an initial stepsize
       const TReal stepSize = min(1000e3, technicalGrid.DX / 2.);
       std::vector<TReal> nodeTracingStepSize(nodes.size(), stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
@@ -813,7 +813,7 @@ namespace FieldTracing {
       FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
    ) {
-      phiprof::Timer fluxTracing {"fieldtracing-fullAndFluxTracing"};
+      phiprof::Timer fluxTracingTimer {"fieldtracing-fullAndFluxTracing"};
       
       std::vector<CellID> localDccrgCells = getLocalCells();
       int localDccrgSize = localDccrgCells.size();
@@ -863,7 +863,7 @@ namespace FieldTracing {
       std::vector<signed char> storedCellFWConnection(globalDccrgSize);
       std::vector<signed char> storedCellBWConnection(globalDccrgSize);
       
-      phiprof::Timer initialization {"initialization-loop"};
+      phiprof::Timer initializationTimer {"initialization-loop"};
       for(int n=0; n<globalDccrgSize; n++) {
          const CellID id = allDccrgCells[n];
          const std::array<Real, 3> ctr = mpiGrid.get_center(id);
@@ -892,7 +892,7 @@ namespace FieldTracing {
             }
          }
       }
-      initialization.stop();
+      initializationTimer.stop();
       
       // The FW, BW and this copy of coordinates were created using mpiGrid.get_center() which is for all cells, not just local ones, so no need to reduce them now.
       const std::vector<std::array<TReal,3>> cellInitialCoordinates = cellFWTracingCoordinates;
@@ -937,7 +937,7 @@ namespace FieldTracing {
 
 
       int mpi_timer {phiprof::initializeTimer("MPI-loop")};
-      phiprof::Timer loop {"loop"};
+      phiprof::Timer loopTimer {"loop"};
       #pragma omp parallel shared(cellsToDoFullBox,cellsToDoFluxRopes)
       {
          do { // while(either leftover fraction is not achieved
@@ -985,7 +985,7 @@ namespace FieldTracing {
             } // for
             
             // Globally reduce whether any node still needs to be picked up and traced onwards
-            phiprof::Timer t {mpi_timer};
+            phiprof::Timer timer {mpi_timer};
             #pragma omp master
             {
                indicesToReduceFW.clear();
@@ -1059,7 +1059,7 @@ namespace FieldTracing {
                cellBWConnection[indicesToReduceBW[n]] = smallReducedCellBWConnection[n];
                cellBWTracingCoordinates[indicesToReduceBW[n]] = smallSumCellBWTracingCoordinates[n];
             }
-            t.stop();
+            timer.stop();
             #pragma omp single
             {
                cellsToDoFullBox = 0;
@@ -1083,7 +1083,7 @@ namespace FieldTracing {
             && cellsToDoFluxRopes <= fieldTracingParameters.fluxrope_max_incomplete_cells * globalDccrgSize
          ));
       } // pragma omp parallel
-      loop.stop();
+      loopTimer.stop();
       
       logFile << "(fieldtracing) combined flux rope + full box tracing traced in " << itCount
          << " iterations of the tracing loop with flux rope " << cellsToDoFluxRopes
@@ -1107,7 +1107,7 @@ namespace FieldTracing {
          MPI_Allreduce(cellMaxExtension.data(), reducedCellMaxExtension.data(), globalDccrgSize, MPI_FLOAT, MPI_MAX, MPI_COMM_WORLD);
       }
       
-      phiprof::Timer finalLoop {"final-loop"};
+      phiprof::Timer finalLoopTimer {"final-loop"};
       for(int n=0; n<globalDccrgSize; n++) {
          const CellID id = allDccrgCells.at(n);
          if(mpiGrid.is_local(id)) {
@@ -1163,6 +1163,6 @@ namespace FieldTracing {
             mpiGrid[id]->parameters[CellParams::CONNECTION_BW_Z] = cellBWTracingCoordinates[n][2];
          }
       }
-      finalLoop.stop();
+      finalLoopTimer.stop();
    }
 } // namespace FieldTracing
