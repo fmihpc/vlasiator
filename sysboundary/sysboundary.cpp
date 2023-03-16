@@ -792,12 +792,12 @@ void SysBoundary::applySysBoundaryVlasovConditions(
       updateRemoteVelocityBlockLists(mpiGrid, popID, SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
 
       // Then the block data in the reduced neighbourhood:
-      phiprof::Timer commTimer {"Start comm of cell and block data", {"MPI"}};
+      phiprof::Timer comm {"Start comm of cell and block data", {"MPI"}};
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA, true);
       mpiGrid.start_remote_neighbor_copy_updates(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
-      commTimer.stop();
+      comm.stop();
 
-      phiprof::Timer computeInnerTimer {"Compute process inner cells"};
+      phiprof::Timer computeInner {"Compute process inner cells"};
       // Compute Vlasov boundary condition on system boundary/process inner cells
       vector<CellID> localCells;
       getBoundaryCellList(mpiGrid, mpiGrid.get_local_cells_not_on_process_boundary(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID), localCells);
@@ -812,14 +812,14 @@ void SysBoundary::applySysBoundaryVlasovConditions(
       } else {
          calculateMoments_R(mpiGrid, localCells, true);
       }
-      computeInnerTimer.stop();
+      computeInner.stop();
 
-      phiprof::Timer waitimer {"Wait for receives", {"MPI", "Wait"}};
+      phiprof::Timer wait {"Wait for receives", {"MPI", "Wait"}};
       mpiGrid.wait_remote_neighbor_copy_updates(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID);
-      waitimer.stop();
+      wait.stop();
 
       // Compute vlasov boundary on system boundary/process boundary cells
-      phiprof::Timer computeBoundaryTimer {"Compute process boundary cells"};
+      phiprof::Timer computeBoundary {"Compute process boundary cells"};
       vector<CellID> boundaryCells;
       getBoundaryCellList(mpiGrid, mpiGrid.get_local_cells_on_process_boundary(SYSBOUNDARIES_EXTENDED_NEIGHBORHOOD_ID),
                           boundaryCells);
@@ -833,7 +833,7 @@ void SysBoundary::applySysBoundaryVlasovConditions(
       } else {
          calculateMoments_R(mpiGrid, boundaryCells, true);
       }
-      computeBoundaryTimer.stop();
+      computeBoundary.stop();
 
       // WARNING Blocks are changed but lists not updated now, if you need to use/communicate them before the next
       // update is done, add an update here. reset lists in smaller default neighborhood

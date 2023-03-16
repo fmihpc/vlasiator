@@ -87,14 +87,14 @@ void calculateSpatialTranslation(
     int myRank;
     MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
    
-   phiprof::Timer btzTimer {"barrier-trans-pre-z", {"Barriers","MPI"}};
+   phiprof::Timer btz {"barrier-trans-pre-z", {"Barriers","MPI"}};
    MPI_Barrier(MPI_COMM_WORLD);
-   btzTimer.stop();
+   btz.stop();
  
     // ------------- SLICE - map dist function in Z --------------- //
    if(P::zcells_ini > 1){
 
-      phiprof::Timer transTimer_timer {"transfer-stencil-data-z", {"MPI"}};
+      phiprof::Timer trans_timer {"transfer-stencil-data-z", {"MPI"}};
       //updateRemoteVelocityBlockLists(mpiGrid,popID,VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
       SpatialCell::set_mpi_transfer_direction(2);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false,AMRtranslationActive);
@@ -107,20 +107,20 @@ void calculateSpatialTranslation(
       // phiprof::stop(bt);
 
       t1 = MPI_Wtime();
-      phiprof::Timer computeTimer {"compute-mapping-z"};
+      phiprof::Timer compute {"compute-mapping-z"};
       if(P::amrMaxSpatialRefLevel == 0) {
          trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsz, 2, dt,popID); // map along z//
       } else {
          trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsz, nPencils, 2, dt,popID); // map along z//
       }
-      computeTimer.stop();
+      compute.stop();
       time += MPI_Wtime() - t1;
 
-      phiprof::Timer btimer {"barrier-trans-pre-update_remote-z", {"Barriers","MPI"}};
+      phiprof::Timer bt {"barrier-trans-pre-update_remote-z", {"Barriers","MPI"}};
       MPI_Barrier(MPI_COMM_WORLD);
-      btimer.stop();
+      bt.stop();
 
-      phiprof::Timer updateTimer_remote {"update_remote-z", {"MPI"}};
+      phiprof::Timer update_remote {"update_remote-z", {"MPI"}};
       if(P::amrMaxSpatialRefLevel == 0) {
          update_remote_mapping_contribution(mpiGrid, 2,+1,popID);
          update_remote_mapping_contribution(mpiGrid, 2,-1,popID);
@@ -128,18 +128,18 @@ void calculateSpatialTranslation(
          update_remote_mapping_contribution_amr(mpiGrid, 2,+1,popID);
          update_remote_mapping_contribution_amr(mpiGrid, 2,-1,popID);
       }
-      update_remoteTimer.stop();
+      update_remote.stop();
 
    }
 
-   phiprof::Timer btxTimer {"barrier-trans-pre-x", {"Barriers","MPI"}};
+   phiprof::Timer btx {"barrier-trans-pre-x", {"Barriers","MPI"}};
    MPI_Barrier(MPI_COMM_WORLD);
-   btxTimer.stop();
+   btx.stop();
    
    // ------------- SLICE - map dist function in X --------------- //
    if(P::xcells_ini > 1){
       
-      phiprof::Timer transTimer_timer {"transfer-stencil-data-x", {"MPI"}};
+      phiprof::Timer trans_timer {"transfer-stencil-data-x", {"MPI"}};
       //updateRemoteVelocityBlockLists(mpiGrid,popID,VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
       SpatialCell::set_mpi_transfer_direction(0);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false,AMRtranslationActive);
@@ -152,20 +152,20 @@ void calculateSpatialTranslation(
       // phiprof::stop(bt);
 
       t1 = MPI_Wtime();
-      phiprof::Timer computeTimer {"compute-mapping-x"};
+      phiprof::Timer compute {"compute-mapping-x"};
       if(P::amrMaxSpatialRefLevel == 0) {
          trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsx, 0,dt,popID); // map along x//
       } else {
          trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsx, nPencils, 0,dt,popID); // map along x//
       }
-      computeTimer.stop();
+      compute.stop();
       time += MPI_Wtime() - t1;
 
-      phiprof::Timer btimer {"barrier-trans-pre-update_remote-x", {"Barriers","MPI"}};
+      phiprof::Timer bt {"barrier-trans-pre-update_remote-x", {"Barriers","MPI"}};
       MPI_Barrier(MPI_COMM_WORLD);
-      btimer.stop();
+      bt.stop();
 
-      phiprof::Timer updateTimer_remote {"update_remote-x", {"MPI"}};
+      phiprof::Timer update_remote {"update_remote-x", {"MPI"}};
       if(P::amrMaxSpatialRefLevel == 0) {
          update_remote_mapping_contribution(mpiGrid, 0,+1,popID);
          update_remote_mapping_contribution(mpiGrid, 0,-1,popID);
@@ -173,17 +173,17 @@ void calculateSpatialTranslation(
          update_remote_mapping_contribution_amr(mpiGrid, 0,+1,popID);
          update_remote_mapping_contribution_amr(mpiGrid, 0,-1,popID);
       }
-      update_remoteTimer.stop();
+      update_remote.stop();
    }
 
-   phiprof::Timer btyTimer {"barrier-trans-pre-y", {"Barriers","MPI"}};
+   phiprof::Timer bty {"barrier-trans-pre-y", {"Barriers","MPI"}};
    MPI_Barrier(MPI_COMM_WORLD);
-   btyTimer.stop();
+   bty.stop();
 
    // ------------- SLICE - map dist function in Y --------------- //
    if(P::ycells_ini > 1) {
       
-      phiprof::Timer transTimer_timer {"transfer-stencil-data-y", {"MPI"}};
+      phiprof::Timer trans_timer {"transfer-stencil-data-y", {"MPI"}};
       //updateRemoteVelocityBlockLists(mpiGrid,popID,VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
       SpatialCell::set_mpi_transfer_direction(1);
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false,AMRtranslationActive);
@@ -196,20 +196,20 @@ void calculateSpatialTranslation(
       // phiprof::stop(bt);
 
       t1 = MPI_Wtime();
-      phiprof::Timer computeTimer {"compute-mapping-y"};
+      phiprof::Timer compute {"compute-mapping-y"};
       if(P::amrMaxSpatialRefLevel == 0) {
          trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsy, 1,dt,popID); // map along y//
       } else {
          trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsy, nPencils, 1,dt,popID); // map along y//      
       }
-      computeTimer.stop();
+      compute.stop();
       time += MPI_Wtime() - t1;
       
-      phiprof::Timer btimer {"barrier-trans-pre-update_remote-y", {"Barriers","MPI"}};
+      phiprof::Timer bt {"barrier-trans-pre-update_remote-y", {"Barriers","MPI"}};
       MPI_Barrier(MPI_COMM_WORLD);
-      btimer.stop();
+      bt.stop();
 
-      phiprof::Timer updateRemoteTimer {"update_remote-y", {"MPI"}};
+      phiprof::Timer updateRemote {"update_remote-y", {"MPI"}};
       if(P::amrMaxSpatialRefLevel == 0) {
          update_remote_mapping_contribution(mpiGrid, 1,+1,popID);
          update_remote_mapping_contribution(mpiGrid, 1,-1,popID);
@@ -217,12 +217,12 @@ void calculateSpatialTranslation(
          update_remote_mapping_contribution_amr(mpiGrid, 1,+1,popID);
          update_remote_mapping_contribution_amr(mpiGrid, 1,-1,popID);
       }
-      updateRemoteTimer.stop();
+      updateRemote.stop();
    }
 
-   phiprof::Timer btpostimer {"barrier-trans-post-trans",{"Barriers","MPI"}};
+   phiprof::Timer btpost {"barrier-trans-post-trans",{"Barriers","MPI"}};
    MPI_Barrier(MPI_COMM_WORLD);
-   btpostimer.stop();
+   btpost.stop();
 
    // MPI_Barrier(MPI_COMM_WORLD);
    // bailout(true, "", __FILE__, __LINE__);
@@ -243,7 +243,7 @@ void calculateSpatialTranslation(
         creal dt) {
    typedef Parameters P;
    
-   phiprof::Timer semilgaTimer {"semilag-trans"};
+   phiprof::Timer semilga {"semilag-trans"};
    
    double t1 = MPI_Wtime();
 
@@ -262,7 +262,7 @@ void calculateSpatialTranslation(
       calculateMoments_R(mpiGrid,localCells,true);
    }
    
-   phiprof::Timer computeTimer {"compute_cell_lists"};
+   phiprof::Timer compute {"compute_cell_lists"};
    remoteTargetCellsx = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_X_NEIGHBORHOOD_ID);
    remoteTargetCellsy = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Y_NEIGHBORHOOD_ID);
    remoteTargetCellsz = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_TARGET_Z_NEIGHBORHOOD_ID);
@@ -288,12 +288,12 @@ void calculateSpatialTranslation(
          nPencils.push_back(0);
       }
    }
-   computeTimer.stop();
+   compute.stop();
    
    // Translate all particle species
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
       string profName = "translate "+getObjectWrapper().particleSpecies[popID].name;
-      phiprof::Timer timer {profName};
+      phiprof::Timer t {profName};
       SpatialCell::setCommunicatedSpecies(popID);
       //      std::cout << "I am at line " << __LINE__ << " of " << __FILE__ << std::endl;
       calculateSpatialTranslation(
@@ -402,9 +402,9 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
       #endif
          
       uint map_order=rndInt%3;
-      phiprof::Timer semilagTimer_acc {"cell-semilag-acc"};
+      phiprof::Timer semilag_acc {"cell-semilag-acc"};
       cpu_accelerate_cell(mpiGrid[cellID],popID,map_order,subcycleDt);
-      semilag_accTimer.stop();
+      semilag_acc.stop();
    }
 
    //global adjust after each subcycle to keep number of blocks managable. Even the ones not

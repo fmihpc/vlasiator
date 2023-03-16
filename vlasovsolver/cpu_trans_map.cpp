@@ -451,7 +451,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 #pragma omp for schedule(guided)
       for(uint blocki = 0; blocki < unionOfBlocks.size(); blocki++){
          vmesh::GlobalID blockGID = unionOfBlocks[blocki];
-         phiprof::Timer mappingTimer {mapping_id};
+         phiprof::Timer mapping {mapping_id};
          
          for(uint celli = 0; celli < allCellsPointer.size(); celli++){
             allCellsBlockLocalID[celli] = allCellsPointer[celli]->get_velocity_block_local_id(blockGID, popID);
@@ -576,8 +576,8 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             }
          }
       
-         mappingTimer.stop();
-         phiprof::Timer storeTimer {store_id};
+         mapping.stop();
+         phiprof::Timer store {store_id};
                
          //reset blocks in all non-sysboundary spatial cells for this block id
          for(uint celli = 0; celli < allCellsPointer.size(); celli++){
@@ -619,7 +619,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             }
          
          }
-         storeTimer.stop();
+         store.stop();
 
       
       } //loop over set of blocks on process

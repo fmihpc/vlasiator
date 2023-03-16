@@ -166,18 +166,18 @@ bool map_1d(SpatialCell* spatial_cell,Transform<Real,3,Affine>& fwd_transform,Tr
    // Successive calls (the inner loop below) of generateTargetMesh will then 
    // refine the already existing coarser blocks until every source block has 
    // a target block at the same (or higher) refinement level.
-   phiprof::Timer meshGenTimer {"mesh generation"};
+   phiprof::Timer meshGen {"mesh generation"};
    for (uint8_t r=0; r<blocks.size(); ++r) {
       for (uint8_t rr=r; rr<blocks.size(); ++rr) {
          propagParams.refLevel = rr;
          generateTargetMesh(spatial_cell,blocks[rr],propagParams,r,vmesh);
       }
    }
-   meshGenTimer.stop();
+   meshGen.stop();
 
-   phiprof::Timer mappingTimer {"mapping"};
+   phiprof::Timer mapping {"mapping"};
    map_1d(spatial_cell,propagParams,vmesh,blockContainer);
-   mappingTimer.stop();
+   mapping.stop();
 
    // Merge values from coarse blocks to refined blocks wherever the same domain 
    // is covered by overlapping blocks (at different refinement levels)
@@ -440,7 +440,7 @@ void map_1d(SpatialCell* spatial_cell,PropagParams& params,
             vmesh::GlobalID srcIndex[3];
             if (k_cell_src >= k_cell_src_max) {
                // Find the source block
-               phiprof::Timer searchTimer {"source block search"};
+               phiprof::Timer search {"source block search"};
                srcIndex[params.i_mapped] = targetIndex[0];
                srcIndex[params.j_mapped] = targetIndex[1];
                srcIndex[params.k_mapped] = k_cell_src;
@@ -481,7 +481,7 @@ void map_1d(SpatialCell* spatial_cell,PropagParams& params,
                   srcIndex[params.i_mapped] = targetIndex[0] + i*params.refMul;
                   srcIndex[params.j_mapped] = targetIndex[1] + j*params.refMul;
 
-                  phiprof::Timer computationsTimer {"index computations"};
+                  phiprof::Timer computations {"index computations"};
                   Real v_top = std::min(v_src_tops[j*WID+i],(Real)(k_block_src*(WID*srcRefMul)+(k_cell_bot+1)*srcRefMul));
                   Real v_bot = std::max(v_src_bots[j*WID+i],(Real)(k_block_src*(WID*srcRefMul)+(k_cell_bot  )*srcRefMul));
 
@@ -515,7 +515,7 @@ void map_1d(SpatialCell* spatial_cell,PropagParams& params,
                   trgtCellIndex[params.j_mapped] = j;
                   trgtCellIndex[params.k_mapped] = k;
                   const int trgtCell = vblock::index(trgtCellIndex[0],trgtCellIndex[1],trgtCellIndex[2]);
-                  computationsTimer.stop();
+                  computations.stop();
 
                   // ***** TODO: fancier integrations here ***** //
 

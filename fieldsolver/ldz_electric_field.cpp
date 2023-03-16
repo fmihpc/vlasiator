@@ -1662,9 +1662,9 @@ void calculateUpwindedElectricFieldSimple(
    //const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
    const int* gridDims = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
-   phiprof::Timer upwindedETimer {"Calculate upwinded electric field"};
+   phiprof::Timer upwindedE {"Calculate upwinded electric field"};
    
-   phiprof::Timer mpiTimer {"MPI", {"MPI"}};
+   phiprof::Timer mpi {"MPI", {"MPI"}};
    // Update ghosts if necessary, unless previous terms have already updated them
    if(P::ohmHallTerm > 0) {
       EHallGrid.updateGhostCells();
@@ -1679,10 +1679,10 @@ void calculateUpwindedElectricFieldSimple(
       dMomentsGrid.updateGhostCells();
    }
    
-   mpiTimer.stop();
+   mpi.stop();
    
    // Calculate upwinded electric field on inner cells
-   phiprof::Timer computeTimer {"Compute cells"};
+   phiprof::Timer compute {"Compute cells"};
    #pragma omp parallel for collapse(3)
    for (int k=0; k<gridDims[2]; k++) {
       for (int j=0; j<gridDims[1]; j++) {
@@ -1727,14 +1727,14 @@ void calculateUpwindedElectricFieldSimple(
    }
    compute.stop(N_cells,"Spatial Cells");
    
-   mpiTimer.start();
+   mpi.start();
    // Exchange electric field with neighbouring processes
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       EGrid.updateGhostCells();
    } else { 
       EDt2Grid.updateGhostCells();
    }
-   mpiTimer.stop();
+   mpi.stop();
    
    upwindedE.stop(N_cells,"Spatial Cells");
 }

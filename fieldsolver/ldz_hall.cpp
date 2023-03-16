@@ -811,15 +811,15 @@ void calculateHallTermSimple(
    const int* gridDims = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
 
-   phiprof::Timer hallTimer {"Calculate Hall term"};
-   phiprof::Timer mpiTimer {"MPI", {"MPI"}};
+   phiprof::Timer hall {"Calculate Hall term"};
+   phiprof::Timer mpi {"MPI", {"MPI"}};
    dPerBGrid.updateGhostCells();
    if(P::ohmGradPeTerm == 0) {
       dMomentsGrid.updateGhostCells();
    }
-   mpiTimer.stop();
+   mpi.stop();
 
-   phiprof::Timer computeTimer {"Compute cells"};
+   phiprof::Timer compute {"Compute cells"};
    #pragma omp parallel for collapse(3)
    for (int k=0; k<gridDims[2]; k++) {
       for (int j=0; j<gridDims[1]; j++) {
@@ -832,7 +832,7 @@ void calculateHallTermSimple(
          }
       }
    }
-   computeTimer.stop();
+   compute.stop();
 
    hall.stop(N_cells, "Spatial Cells");
 }

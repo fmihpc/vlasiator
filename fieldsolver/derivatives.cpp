@@ -323,9 +323,9 @@ void calculateDerivativesSimple(
    const int* gridDims = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
    
-   phiprof::Timer derivativesTimer {"Calculate face derivatives"};
+   phiprof::Timer derivatives {"Calculate face derivatives"};
    
-   phiprof::Timer mpiTimer {"MPI", {"MPI"}};
+   phiprof::Timer mpi {"MPI", {"MPI"}};
    
    switch (RKCase) {
     case RK_ORDER1:
@@ -361,9 +361,9 @@ void calculateDerivativesSimple(
       abort();
    }
    
-   mpiTimer.stop();
+   mpi.stop();
 
-   phiprof::Timer computeTimer {"Compute cells"};
+   phiprof::Timer compute {"Compute cells"};
    // Calculate derivatives
    #pragma omp parallel for collapse(3)
    for (int k=0; k<gridDims[2]; k++) {
@@ -493,14 +493,14 @@ void calculateBVOLDerivativesSimple(
    const int* gridDims = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
    
-   phiprof::Timer derivsTimer {"Calculate volume derivatives"};
+   phiprof::Timer derivs {"Calculate volume derivatives"};
    
-   phiprof::Timer commTimer {"Start comm", {"MPI"}};
+   phiprof::Timer comm {"Start comm", {"MPI"}};
    volGrid.updateGhostCells();
    comm.stop(N_cells,"Spatial Cells");
    
    // Calculate derivatives
-   phiprof::Timer computeTimer {"Compute cells"};
+   phiprof::Timer compute {"Compute cells"};
    
    #pragma omp parallel for collapse(3)
    for (int k=0; k<gridDims[2]; k++) {
@@ -640,9 +640,9 @@ void calculateCurvatureSimple(
    const int* gridDims = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
    
-   phiprof::Timer curvatureTimer {"Calculate curvature"};
+   phiprof::Timer curvature {"Calculate curvature"};
    
-   phiprof::Timer commTimer {"Start comm", {"MPI"}};
+   phiprof::Timer comm {"Start comm", {"MPI"}};
    volGrid.updateGhostCells();
    comm.stop(N_cells,"Spatial Cells");
    
@@ -811,9 +811,9 @@ void calculateScaledDeltasSimple(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    const vector<CellID>& cells = getLocalCells();
    int N_cells = cells.size();
    int timer;
-   phiprof::Timer gradientsTimer {"Calculate volume gradients"};
+   phiprof::Timer gradients {"Calculate volume gradients"};
    
-   phiprof::Timer commTimer {"Start comm", {"MPI"}};
+   phiprof::Timer comm {"Start comm", {"MPI"}};
 
    // We only need nearest neighbourhood and spatial data here
    SpatialCell::set_mpi_transfer_type(Transfer::ALL_SPATIAL_DATA);
@@ -822,7 +822,7 @@ void calculateScaledDeltasSimple(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    comm.stop(N_cells,"Spatial Cells");
    
    // Calculate derivatives
-   phiprof::Timer computeTimer {"Compute cells"};
+   phiprof::Timer compute {"Compute cells"};
 
    #pragma omp parallel for
    for (uint i = 0; i < cells.size(); ++i) {
