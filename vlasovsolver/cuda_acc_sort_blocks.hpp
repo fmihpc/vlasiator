@@ -47,11 +47,51 @@ struct ColumnOffsets : public Managed {
       columnNumBlocks.clear();
       setColumnOffsets.clear();
       setNumColumns.clear();
+      // Now also attach to a stream
+      // cudaStream_t stream = cuda_getStream();
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(stream,this, 0,cudaMemAttachSingle) );
+      // The above also includes attaching the bookkeeping for internal splitvectors
+      // columnBlockOffsets.attachStream();
+      // columnNumBlocks.attachStream();
+      // setColumnOffsets.attachStream();
+      // setNumColumns.attachStream();
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(stream,columnBlockOffsets.data(), 0,cudaMemAttachSingle) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(stream,columnNumBlocks.data(), 0,cudaMemAttachSingle) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(stream,setColumnOffsets.data(), 0,cudaMemAttachSingle) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(stream,setNumColumns.data(), 0,cudaMemAttachSingle) );
+
+   }
+   void dev_attachToStream(cudaStream_t stream = 0) {
+      if (stream==0) {
+         stream = cuda_getStream();
+      }
+      HANDLE_ERROR( cudaStreamAttachMemAsync(stream,this, 0,cudaMemAttachSingle) );
+      // columnBlockOffsets.attachStream();
+      // columnNumBlocks.attachStream();
+      // setColumnOffsets.attachStream();
+      // setNumColumns.attachStream();
+      HANDLE_ERROR( cudaStreamAttachMemAsync(stream,columnBlockOffsets.data(), 0,cudaMemAttachSingle) );
+      HANDLE_ERROR( cudaStreamAttachMemAsync(stream,columnNumBlocks.data(), 0,cudaMemAttachSingle) );
+      HANDLE_ERROR( cudaStreamAttachMemAsync(stream,setColumnOffsets.data(), 0,cudaMemAttachSingle) );
+      HANDLE_ERROR( cudaStreamAttachMemAsync(stream,setNumColumns.data(), 0,cudaMemAttachSingle) );
+   }
+   void dev_detachFromStream() {
+      cudaStream_t stream = 0;
+      HANDLE_ERROR( cudaStreamAttachMemAsync(stream,this, 0,cudaMemAttachGlobal) );
+      // columnBlockOffsets.detachStream();
+      // columnNumBlocks.detachStream();
+      // setColumnOffsets.detachStream();
+      // setNumColumns.detachStream();
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(stream,columnBlockOffsets.data(), 0,cudaMemAttachGlobal) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(stream,columnNumBlocks.data(), 0,cudaMemAttachGlobal) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(stream,setColumnOffsets.data(), 0,cudaMemAttachGlobal) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(stream,setNumColumns.data(), 0,cudaMemAttachGlobal) );
    }
 };
 
 void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                vmesh::VelocityMesh* vmesh,
+                               const vmesh::LocalID nBlocks,
                                const uint dimension,
                                vmesh::GlobalID *blocksID_mapped,
                                vmesh::GlobalID *blocksID_mapped_sorted,

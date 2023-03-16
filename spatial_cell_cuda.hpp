@@ -228,6 +228,10 @@ namespace spatial_cell {
       SpatialCell(const SpatialCell& other);
       const SpatialCell& operator=(const SpatialCell& other);
 
+      // Attach unified memory to a stream
+      void dev_attachToStream(cudaStream_t stream);
+      void dev_detachFromStream();
+
       vmesh::GlobalID find_velocity_block(vmesh::GlobalID cellIndices[3],const uint popID);
       Realf* get_data(const uint popID);
       const Realf* get_data(const uint popID) const;
@@ -360,9 +364,9 @@ namespace spatial_cell {
       static bool mpiTransferAtSysBoundaries;                                 /**< Do we only transfer data at boundaries (true), or in the whole system (false).*/
       static bool mpiTransferInAMRTranslation;                                /**< Do we only transfer cells which are required by AMR translation. */
       static int mpiTransferXYZTranslation;                                   /**< Dimension in which AMR translation is happening */
+      cudaStream_t attachedStream;
 
     private:
-
       static int activePopID;
       bool initialized;
       bool mpiTransferEnabled;

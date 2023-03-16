@@ -241,6 +241,7 @@ void cuda_calculateMoments_V(
 #pragma omp parallel for
    for (size_t c=0; c<cells.size(); ++c) {
       const uint thread_id = omp_get_thread_num();
+      cudaStream_t stream = cudaStreamList[thread_id];
       SpatialCell* cell = mpiGrid[cells[c]];
 
       if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
@@ -281,23 +282,23 @@ void cuda_calculateMoments_V(
 
       // Transfer metadata to device
       phiprof::start("CUDA-HtoD");
-      HANDLE_ERROR( cudaMemcpyAsync(dev_momentInfos[thread_id], host_momentInfos[thread_id], nPopulations*sizeof(MomentInfo), cudaMemcpyHostToDevice, cudaStreamList[thread_id]) );
+      HANDLE_ERROR( cudaMemcpyAsync(dev_momentInfos[thread_id], host_momentInfos[thread_id], nPopulations*sizeof(MomentInfo), cudaMemcpyHostToDevice, stream) );
       phiprof::stop("CUDA-HtoD");
 
       // Now launch kernel for this spatial cell, all populations, zeroth and first moments
       phiprof::start("CUDA-firstMoments");
       dim3 block(WID,WID,WID);
-      moments_first_kernel<<<CUDABLOCKS, block, 4*WID3*sizeof(Real), cudaStreamList[thread_id]>>> (
+      moments_first_kernel<<<CUDABLOCKS, block, 4*WID3*sizeof(Real), stream>>> (
          dev_momentInfos[thread_id],
          dev_momentArrays1[thread_id],
          nPopulations);
-      HANDLE_ERROR( cudaStreamSynchronize(cudaStreamList[thread_id]) );
+      HANDLE_ERROR( cudaStreamSynchronize(stream) );
       phiprof::stop("CUDA-firstMoments");
 
       // Transfer momentArrays1 back
       phiprof::start("CUDA-DtoH");
-      HANDLE_ERROR( cudaMemcpyAsync(host_momentArrays1[thread_id], dev_momentArrays1[thread_id], CUDABLOCKS*nMoments1*(nPopulations+1)*sizeof(Real), cudaMemcpyDeviceToHost, cudaStreamList[thread_id]) );
-      HANDLE_ERROR( cudaStreamSynchronize(cudaStreamList[thread_id]) );
+      HANDLE_ERROR( cudaMemcpyAsync(host_momentArrays1[thread_id], dev_momentArrays1[thread_id], CUDABLOCKS*nMoments1*(nPopulations+1)*sizeof(Real), cudaMemcpyDeviceToHost, stream) );
+      HANDLE_ERROR( cudaStreamSynchronize(stream) );
       phiprof::stop("CUDA-DtoH");
 
       for (uint popID=0; popID<nPopulations; ++popID) {
@@ -337,20 +338,20 @@ void cuda_calculateMoments_V(
 
       phiprof::start("CUDA-secondMoments");
       // Now launch kernel for this spatial cell, all populations, second moments
-      moments_second_kernel<<<CUDABLOCKS, block, 3*WID3*sizeof(Real), cudaStreamList[thread_id]>>> (
+      moments_second_kernel<<<CUDABLOCKS, block, 3*WID3*sizeof(Real), stream>>> (
          dev_momentInfos[thread_id],
          dev_momentArrays2[thread_id],
          nPopulations,
          cell->parameters[CellParams::VX],
          cell->parameters[CellParams::VY],
          cell->parameters[CellParams::VZ]);
-      HANDLE_ERROR( cudaStreamSynchronize(cudaStreamList[thread_id]) );
+      HANDLE_ERROR( cudaStreamSynchronize(stream) );
       phiprof::stop("CUDA-secondMoments");
 
 // Transfer momentArrays2 back
       phiprof::start("CUDA-DtoH");
-      HANDLE_ERROR( cudaMemcpyAsync(host_momentArrays2[thread_id], dev_momentArrays2[thread_id], nMoments2*(nPopulations+1)*sizeof(Real), cudaMemcpyDeviceToHost, cudaStreamList[thread_id]) );
-      HANDLE_ERROR( cudaStreamSynchronize(cudaStreamList[thread_id]) );
+      HANDLE_ERROR( cudaMemcpyAsync(host_momentArrays2[thread_id], dev_momentArrays2[thread_id], nMoments2*(nPopulations+1)*sizeof(Real), cudaMemcpyDeviceToHost, stream) );
+      HANDLE_ERROR( cudaStreamSynchronize(stream) );
       phiprof::stop("CUDA-DtoH");
 
       for (uint popID=0; popID<nPopulations; ++popID) {
@@ -396,6 +397,7 @@ void cuda_calculateMoments_R(
 #pragma omp parallel for
    for (size_t c=0; c<cells.size(); ++c) {
       const uint thread_id = omp_get_thread_num();
+      cudaStream_t stream = cudaStreamList[thread_id];
       SpatialCell* cell = mpiGrid[cells[c]];
 
       if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
@@ -436,23 +438,23 @@ void cuda_calculateMoments_R(
 
       // Transfer metadata to device
       phiprof::start("CUDA-HtoD");
-      HANDLE_ERROR( cudaMemcpyAsync(dev_momentInfos[thread_id], host_momentInfos[thread_id], nPopulations*sizeof(MomentInfo), cudaMemcpyHostToDevice, cudaStreamList[thread_id]) );
+      HANDLE_ERROR( cudaMemcpyAsync(dev_momentInfos[thread_id], host_momentInfos[thread_id], nPopulations*sizeof(MomentInfo), cudaMemcpyHostToDevice, stream) );
       phiprof::stop("CUDA-HtoD");
 
       // Now launch kernel for this spatial cell, all populations, zeroth and first moments
       phiprof::start("CUDA-firstMoments");
       dim3 block(WID,WID,WID);
-      moments_first_kernel<<<CUDABLOCKS, block, 4*WID3*sizeof(Real), cudaStreamList[thread_id]>>> (
+      moments_first_kernel<<<CUDABLOCKS, block, 4*WID3*sizeof(Real), stream>>> (
          dev_momentInfos[thread_id],
          dev_momentArrays1[thread_id],
          nPopulations);
-      HANDLE_ERROR( cudaStreamSynchronize(cudaStreamList[thread_id]) );
+      HANDLE_ERROR( cudaStreamSynchronize(stream) );
       phiprof::stop("CUDA-firstMoments");
 
       // Transfer momentArrays1 back
       phiprof::start("CUDA-DtoH");
-      HANDLE_ERROR( cudaMemcpyAsync(host_momentArrays1[thread_id], dev_momentArrays1[thread_id], CUDABLOCKS*nMoments1*(nPopulations+1)*sizeof(Real), cudaMemcpyDeviceToHost, cudaStreamList[thread_id]) );
-      HANDLE_ERROR( cudaStreamSynchronize(cudaStreamList[thread_id]) );
+      HANDLE_ERROR( cudaMemcpyAsync(host_momentArrays1[thread_id], dev_momentArrays1[thread_id], CUDABLOCKS*nMoments1*(nPopulations+1)*sizeof(Real), cudaMemcpyDeviceToHost, stream) );
+      HANDLE_ERROR( cudaStreamSynchronize(stream) );
       phiprof::stop("CUDA-DtoH");
 
       for (uint popID=0; popID<nPopulations; ++popID) {
@@ -492,20 +494,20 @@ void cuda_calculateMoments_R(
 
       phiprof::start("CUDA-secondMoments");
       // Now launch kernel for this spatial cell, all populations, second moments
-      moments_second_kernel<<<CUDABLOCKS, block, 3*WID3*sizeof(Real), cudaStreamList[thread_id]>>> (
+      moments_second_kernel<<<CUDABLOCKS, block, 3*WID3*sizeof(Real), stream>>> (
          dev_momentInfos[thread_id],
          dev_momentArrays2[thread_id],
          nPopulations,
          cell->parameters[CellParams::VX],
          cell->parameters[CellParams::VY],
          cell->parameters[CellParams::VZ]);
-      HANDLE_ERROR( cudaStreamSynchronize(cudaStreamList[thread_id]) );
+      HANDLE_ERROR( cudaStreamSynchronize(stream) );
       phiprof::stop("CUDA-secondMoments");
 
 // Transfer momentArrays2 back
       phiprof::start("CUDA-DtoH");
-      HANDLE_ERROR( cudaMemcpyAsync(host_momentArrays2[thread_id], dev_momentArrays2[thread_id], nMoments2*(nPopulations+1)*sizeof(Real), cudaMemcpyDeviceToHost, cudaStreamList[thread_id]) );
-      HANDLE_ERROR( cudaStreamSynchronize(cudaStreamList[thread_id]) );
+      HANDLE_ERROR( cudaMemcpyAsync(host_momentArrays2[thread_id], dev_momentArrays2[thread_id], nMoments2*(nPopulations+1)*sizeof(Real), cudaMemcpyDeviceToHost, stream) );
+      HANDLE_ERROR( cudaStreamSynchronize(stream) );
       phiprof::stop("CUDA-DtoH");
 
       for (uint popID=0; popID<nPopulations; ++popID) {

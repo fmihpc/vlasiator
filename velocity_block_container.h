@@ -88,7 +88,9 @@ namespace vmesh {
       void dev_Allocate();
       void dev_prefetchHost();
       void dev_prefetchDevice();
-      // Also add CUDA-capable version of vmesh when CUDA openhashmap is available
+      void dev_attachToStream(cudaStream_t stream);
+      void dev_detachFromStream();
+
 #endif
 
       #ifdef DEBUG_VBC
@@ -102,6 +104,7 @@ namespace vmesh {
 
       vmesh::LocalID currentCapacity;
       vmesh::LocalID numberOfBlocks;
+      cudaStream_t attachedStream;
 
 #ifdef USE_CUDA
       split::SplitVector<Realf> *block_data;
@@ -316,6 +319,37 @@ namespace vmesh {
       parameters->optimizeGPU(cuda_getStream());
       return;
    }
+
+   inline void VelocityBlockContainer::dev_attachToStream(cudaStream_t stream) {
+      // Attach unified memory regions to streams
+      if (stream==0) {
+         attachedStream = cuda_getStream();
+      } else {
+         attachedStream = stream;
+      }
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,this, 0,cudaMemAttachSingle) );
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,block_data, 0,cudaMemAttachSingle) );
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,parameters, 0,cudaMemAttachSingle) );
+      //CUDATODO
+      // block_data->attachStream(attachedStream);
+      // parameters->attachStream(attachedStream);
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,block_data->data(), 0,cudaMemAttachSingle) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,parameters->data(), 0,cudaMemAttachSingle) );
+      return;
+   }
+   inline void VelocityBlockContainer::dev_detachFromStream() {
+      attachedStream = 0;
+      // Detach unified memory regions from streams
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,this, 0,cudaMemAttachGlobal) );
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,block_data, 0,cudaMemAttachGlobal) );
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,parameters, 0,cudaMemAttachGlobal) );
+      //CUDATODO
+      // block_data->detachStream(attachedStream);
+      // parameters->detachStream(attachedStream);
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,block_data->data(), 0,cudaMemAttachGlobal) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,parameters->data(), 0,cudaMemAttachGlobal) );
+      return;
+   }
 #endif
 
    inline CUDA_HOSTDEV Real* VelocityBlockContainer::getParameters() {
@@ -455,6 +489,10 @@ namespace vmesh {
          // Passing eco flag = true to resize tells splitvector we manage padding manually.
          block_data->resize(currentCapacity*WID3, true);
          parameters->resize(currentCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS, true);
+         if (attachedStream != 0) {
+            // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,block_data->data(), 0,cudaMemAttachSingle) );
+            // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,parameters->data(), 0,cudaMemAttachSingle) );
+         }
       }
 #else
       if ((numberOfBlocks+1) >= currentCapacity) {

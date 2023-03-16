@@ -442,7 +442,7 @@ namespace spatial_cell {
       BlocksToAdd->clear();
       BlocksToRemove->clear();
       BlocksToMove->clear();
-
+      attachedStream=0;
       BlocksRequiredMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(10);
    }
 
@@ -510,6 +510,7 @@ namespace spatial_cell {
       if (other.populations.size()>0) {
          populations = std::vector<spatial_cell::Population>(other.populations);
       }
+      attachedStream=0;
    }
    const SpatialCell& SpatialCell::operator=(const SpatialCell& other) {
       // Delete old vectors
@@ -571,7 +572,66 @@ namespace spatial_cell {
       face_neighbor_ranks = std::map<int,std::set<int>>(other.face_neighbor_ranks);
       populations = std::vector<spatial_cell::Population>(other.populations);
 
+      attachedStream=0;
       return *this;
+   }
+
+   /** Attaches or deattaches unified memory to a GPU stream
+       When attached, a stream can access this unified memory without
+       issues.
+    */
+   void SpatialCell::dev_attachToStream(cudaStream_t stream) {
+      // Attach unified memory regions to streams
+      if (stream==0) {
+         attachedStream = cuda_getStream();
+      } else {
+         attachedStream = stream;
+      }
+      //HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_content_list, 0,cudaMemAttachSingle) );
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_no_content_list, 0,cudaMemAttachSingle) );
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToRemove, 0,cudaMemAttachSingle) );
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToAdd, 0,cudaMemAttachSingle) );
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToMove, 0,cudaMemAttachSingle) );
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequired, 0,cudaMemAttachSingle) );
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequiredMap, 0,cudaMemAttachSingle) );
+      // Loop over populations
+      for (size_t p=0; p<populations.size(); ++p) {
+         populations[p].blockContainer->dev_attachToStream(attachedStream);
+         populations[p].vmesh->dev_attachToStream(attachedStream);
+      }
+      //CUDATODO
+      // Also call attach functions on all splitvectors and hashmaps
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_content_list->data(), 0,cudaMemAttachSingle) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_no_content_list->data(), 0,cudaMemAttachSingle) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToRemove->data(), 0,cudaMemAttachSingle) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToAdd->data(), 0,cudaMemAttachSingle) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToMove->data(), 0,cudaMemAttachSingle) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequired->data(), 0,cudaMemAttachSingle) );
+      return;
+   }
+   void SpatialCell::dev_detachFromStream() {
+      attachedStream = 0;
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_content_list, 0,cudaMemAttachGlobal) );
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_no_content_list, 0,cudaMemAttachGlobal) );
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToRemove, 0,cudaMemAttachGlobal) );
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToAdd, 0,cudaMemAttachGlobal) );
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToMove, 0,cudaMemAttachGlobal) );
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequired, 0,cudaMemAttachGlobal) );
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequiredMap, 0,cudaMemAttachGlobal) );
+      // Loop over populations
+      for (size_t p=0; p<populations.size(); ++p) {
+         populations[p].blockContainer->dev_detachFromStream();
+         populations[p].vmesh->dev_detachFromStream();
+      }
+      //CUDATODO
+      // Also call detach functions on all splitvectors and hashmaps
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_content_list->data(), 0,cudaMemAttachGlobal) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_no_content_list->data(), 0,cudaMemAttachGlobal) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToRemove->data(), 0,cudaMemAttachGlobal) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToAdd->data(), 0,cudaMemAttachGlobal) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToMove->data(), 0,cudaMemAttachGlobal) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequired->data(), 0,cudaMemAttachGlobal) );
+      return;
    }
 
    /** Adds "important" and removes "unimportant" velocity blocks
@@ -633,7 +693,11 @@ namespace spatial_cell {
          // Need larger empty map
          delete BlocksRequiredMap;
          BlocksRequiredMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(HashmapReqSize);
+         if (attachedStream != 0) {
+            HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequiredMap, 0,cudaMemAttachSingle) );
+         }
          BlocksRequiredMap->optimizeGPU(stream);
+
       }
       phiprof::stop("hashmap resize / clear");
 
@@ -671,9 +735,9 @@ namespace spatial_cell {
                BlocksRequiredMap,
                (*neighbor)->velocity_block_with_content_list
                );
+            HANDLE_ERROR( cudaStreamSynchronize(stream) );
          }
       }
-      HANDLE_ERROR( cudaStreamSynchronize(stream) );
       phiprof::stop("Neighbor content lists");
 
       phiprof::start("Prefetch / clear / reserve");
@@ -709,6 +773,7 @@ namespace spatial_cell {
                BlocksToRemove,
                localNoContentBlocks
                );
+            HANDLE_ERROR( cudaStreamSynchronize(stream) );
          }
       }
       phiprof::stop("Gather blocks to remove");
@@ -838,8 +903,8 @@ namespace spatial_cell {
             dev_MoveVectorIndex,
             returnRealf[thread_id]
             );
+         HANDLE_ERROR( cudaStreamSynchronize(stream) );
       }
-      HANDLE_ERROR( cudaStreamSynchronize(stream) );
       phiprof::stop("CUDA add and remove blocks kernel");
 
       HANDLE_ERROR( cudaFreeAsync(dev_AddVectorIndex, stream) );
@@ -991,6 +1056,9 @@ namespace spatial_cell {
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_WITH_CONTENT_STAGE2) !=0) {
             if (receiving) {
                this->velocity_block_with_content_list->resize(this->velocity_block_with_content_list_size);
+               // if (attachedStream != 0) {
+               //    HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,this->velocity_block_with_content_list->data(), 0,cudaMemAttachSingle) );
+               // }
             }
 
             //velocity_block_with_content_list_size should first be updated, before this can be done (STAGE1)

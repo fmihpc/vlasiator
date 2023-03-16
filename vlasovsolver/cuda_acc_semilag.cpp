@@ -100,18 +100,13 @@ void cuda_accelerate_cell(SpatialCell* spatial_cell,
    vmesh::VelocityMesh* vmesh    = spatial_cell->get_velocity_mesh(popID);
    vmesh::VelocityBlockContainer* blockContainer = spatial_cell->get_velocity_blocks(popID);
 
-   // // Launch cuda transfers
 #ifdef _OPENMP
    const uint thread_id = omp_get_thread_num();
 #else
    const uint thread_id = 0;
 #endif
-   // phiprof::start("CUDA-HtoD");
-   // // Check that enough memory is allocated
-   // blockContainer->dev_Allocate(vmesh->size());
-   // blockContainer->dev_prefetchDevice();
-   // vmesh->dev_prefetchDevice();
-   // phiprof::stop("CUDA-HtoD");
+   // Ensure unified memory constructs are attached to correct kernel
+   //spatial_cell->dev_attachToStream(cudaStreamList[thread_id]);
 
    // // CUDATEST Launch debug kernel?
    //vmesh::getMeshWrapper()->printVelocityMesh(popID);

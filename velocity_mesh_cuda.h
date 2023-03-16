@@ -104,9 +104,12 @@ namespace vmesh {
       void dev_prefetchHost();
       void dev_prefetchDevice();
       void dev_cleanHashMap();
+      void dev_attachToStream(cudaStream_t stream);
+      void dev_detachFromStream();
 
    private:
       size_t meshID;
+      cudaStream_t attachedStream;
 
       //std::vector<vmesh::GlobalID> localToGlobalMap;
       //OpenBucketHashtable<vmesh::GlobalID,vmesh::LocalID> globalToLocalMap;
@@ -484,7 +487,7 @@ namespace vmesh {
       #endif
       return true;
    }
-   
+
 #ifdef __CUDA_ARCH__
    CUDA_DEV inline bool VelocityMesh::replaceBlock(const vmesh::GlobalID& GIDold,const vmesh::LocalID& LID,const vmesh::GlobalID& GIDnew) {
       globalToLocalMap->device_erase(GIDold);
@@ -500,7 +503,7 @@ namespace vmesh {
       localToGlobalMap->at(LID) = invalidGlobalID();
    }
 #endif
-   
+
    inline void VelocityMesh::setGrid() {
       globalToLocalMap->clear();
       for (size_t i=0; i<localToGlobalMap->size(); ++i) {
@@ -536,6 +539,9 @@ namespace vmesh {
    inline void VelocityMesh::setNewSize(const vmesh::LocalID& newSize) {
       // Needed by CUDA block adjustment
       localToGlobalMap->resize(newSize);
+      if (attachedStream != 0) {
+         // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,localToGlobalMap->data(), 0,cudaMemAttachSingle) );
+      }
    }
 
    CUDA_HOSTDEV inline size_t VelocityMesh::size() const {
@@ -573,6 +579,35 @@ namespace vmesh {
    inline void VelocityMesh::dev_cleanHashMap() {
       globalToLocalMap->optimizeGPU(cuda_getStream());
       globalToLocalMap->performCleanupTasks(cuda_getStream());
+      return;
+   }
+
+   inline void VelocityMesh::dev_attachToStream(cudaStream_t stream = 0) {
+      // Attach unified memory regions to streams
+      if (stream==0) {
+         attachedStream = cuda_getStream();
+      } else {
+         attachedStream = stream;
+      }
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,this, 0,cudaMemAttachSingle) );
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,globalToLocalMap, 0,cudaMemAttachSingle) );
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,localToGlobalMap, 0,cudaMemAttachSingle) );
+      //CUDATODO
+      // globalToLocalMap->attachStream(attachedStream);
+      // localToGlobalMap->attachStream(attachedStream);
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,localToGlobalMap->data(), 0,cudaMemAttachSingle) );
+      return;
+   }
+   inline void VelocityMesh::dev_detachFromStream() {
+      // Detach unified memory regions from streams
+      attachedStream = 0;
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,this, 0,cudaMemAttachGlobal) );
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,globalToLocalMap, 0,cudaMemAttachGlobal) );
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,localToGlobalMap, 0,cudaMemAttachGlobal) );
+      //CUDATODO
+      // globalToLocalMap->detachStream(attachedStream);
+      // localToGlobalMap->detachStream(attachedStream);
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,localToGlobalMap->data(), 0,cudaMemAttachGlobal) );
       return;
    }
 
