@@ -1,0 +1,105 @@
+{
+    "configurations": [
+        {
+            "name": "Carrington",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/proj/group/spacephysics/libraries/gcc/11.2.0/OpenMPI/4.1.1/carrington/phiprof/include/",
+                "/proj/group/spacephysics/libraries/gcc/11.2.0/OpenMPI/4.1.1/carrington/vlsv/",
+                "/proj/group/spacephysics/libraries/gcc/11.2.0/OpenMPI/4.1.1/carrington/jemalloc/include/",
+                "/proj/group/spacephysics/libraries/gcc/11.2.0/OpenMPI/4.1.1/carrington/vlsv/",
+                "/proj/group/spacephysics/libraries/gcc/11.2.0/OpenMPI/4.1.1/carrington/boost/include/",
+                "/proj/group/spacephysics/libraries/gcc/11.2.0/OpenMPI/4.1.1/carrington/zoltan/include/",
+                "/proj/group/spacephysics/libraries/Eigen/",
+                "/proj/group/spacephysics/libraries/fsgrid/",
+                "/proj/group/spacephysics/libraries/dccrg/",
+                "/proj/group/spacephysics/libraries/vectorclass/"
+            ],
+            "defines": [
+                "FP_PRECISION=DP",
+                "DISTRIBUTION_FP_PRECISION=SPF",
+                "FIELDSOLVER=londrillo_delzanna",
+                "PROFILE",
+                "NDEBUG",
+                "ACC_SEMILAG_PQM",
+                "TRANS_SEMILAG_PPM",
+                "VECTORCLASS = VEC8F_AGNER",
+                "PAPI-MEM",
+                "USE_JEMALLOC",
+                "JEMALLOC_NO_DEMANGLE"
+            ],
+            "compilerPath": "/appl/easybuild/opt/OpenMPI/4.1.1-GCC-11.2.0/bin/mpic++",
+            "cStandard": "c17",
+            "intelliSenseMode": "linux-gcc-x64",
+            "cppStandard": "c++17"
+        },
+        {
+            "name": "Ukko",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/proj/group/spacephysics/libraries/gcc/11.2.0/OpenMPI/4.1.1/ukko/phiprof/include/",
+                "/proj/group/spacephysics/libraries/gcc/11.2.0/OpenMPI/4.1.1/ukko/vlsv/",
+                "/proj/group/spacephysics/libraries/gcc/11.2.0/OpenMPI/4.1.1/ukko/jemalloc/include/",
+                "/proj/group/spacephysics/libraries/gcc/11.2.0/OpenMPI/4.1.1/ukko/vlsv/",
+                "/proj/group/spacephysics/libraries/gcc/11.2.0/OpenMPI/4.1.1/ukko/boost/include/",
+                "/proj/group/spacephysics/libraries/gcc/11.2.0/OpenMPI/4.1.1/ukko/zoltan/include/",
+                "/proj/group/spacephysics/libraries/Eigen/",
+                "/proj/group/spacephysics/libraries/fsgrid/",
+                "/proj/group/spacephysics/libraries/dccrg/",
+                "/proj/group/spacephysics/libraries/vectorclass/"
+            ],
+            "defines": [
+                "FP_PRECISION=DP",
+                "DISTRIBUTION_FP_PRECISION=SPF",
+                "FIELDSOLVER=londrillo_delzanna",
+                "PROFILE",
+                "NDEBUG",
+                "ACC_SEMILAG_PQM",
+                "TRANS_SEMILAG_PPM",
+                "VECTORCLASS = VEC8F_AGNER",
+                "PAPI-MEM",
+                "USE_JEMALLOC",
+                "JEMALLOC_NO_DEMANGLE"
+            ],
+            "compilerPath": "/appl/easybuild/opt/OpenMPI/4.1.1-GCC-11.2.0/bin/mpic++",
+            "cStandard": "c17",
+            "intelliSenseMode": "linux-gcc-x64",
+            "cppStandard": "c++17"
+        },
+        {
+            "name": "Vorna",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/proj/group/spacephysics/libraries/gcc/10.2.0/OpenMPI/4.0.5/vorna/phiprof/include/",
+                "/proj/group/spacephysics/libraries/gcc/10.2.0/OpenMPI/4.0.5/vorna/vlsv/",
+                "/proj/group/spacephysics/libraries/gcc/10.2.0/OpenMPI/4.0.5/vorna/jemalloc/include/",
+                "/proj/group/spacephysics/libraries/gcc/10.2.0/OpenMPI/4.0.5/vorna/vlsv/",
+                "/proj/group/spacephysics/libraries/gcc/10.2.0/OpenMPI/4.0.5/vorna/boost/include/",
+                "/proj/group/spacephysics/libraries/gcc/10.2.0/OpenMPI/4.0.5/vorna/zoltan/include/",
+                "/proj/group/spacephysics/libraries/gcc/10.2.0/OpenMPI/4.0.5/vorna/papi/include/",
+                "/proj/group/spacephysics/libraries/Eigen/",
+                "/proj/group/spacephysics/libraries/fsgrid/",
+                "/proj/group/spacephysics/libraries/dccrg/",
+                "/proj/group/spacephysics/libraries/vectorclass/"
+            ],
+            "defines": [
+                "FP_PRECISION=DP",
+                "DISTRIBUTION_FP_PRECISION=SPF",
+                "FIELDSOLVER=londrillo_delzanna",
+                "PROFILE",
+                "NDEBUG",
+                "ACC_SEMILAG_PQM",
+                "TRANS_SEMILAG_PPM",
+                "VECTORCLASS = VEC8F_AGNER",
+                "PAPI-MEM",
+                "USE_JEMALLOC",
+                "JEMALLOC_NO_DEMANGLE"
+            ],
+            "compilerPath": "/appl/easybuild/opt/OpenMPI/4.0.5-GCC-10.2.0/bin/mpic++",
+            "cStandard": "c17",
+            "intelliSenseMode": "linux-gcc-x64",
+            "cppStandard": "c++17"
+        }
+    ],
+    "version": 4
+}
