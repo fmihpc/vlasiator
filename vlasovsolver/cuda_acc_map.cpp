@@ -117,6 +117,7 @@ __host__ void cuda_acc_allocate_memory (
    // Unified memory; columndata contains several splitvectors.
    unif_columnOffsetData[cpuThreadID] = new ColumnOffsets(maxColumnsPerCell); // inherits managed
    HANDLE_ERROR( cudaMallocManaged((void**)&unif_columns[cpuThreadID], maxColumnsPerCell*sizeof(Column)) );
+   HANDLE_ERROR( cudaMemPrefetchAsync(unif_columns[cpuThreadID],maxColumnsPerCell*sizeof(Column),cuda_getDevice(),cuda_getStream()) );
 
    // Potential ColumnSet block count container
    const uint c0 = (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[0];
@@ -675,12 +676,16 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
                               const uint dimension,
                               cudaStream_t stream
    ) {
-   HANDLE_ERROR( cudaStreamSynchronize(stream) );
+   //HANDLE_ERROR( cudaStreamSynchronize(stream) );
    vmesh::VelocityMesh* vmesh    = spatial_cell->get_velocity_mesh(popID);
    vmesh::VelocityBlockContainer* blockContainer = spatial_cell->get_velocity_blocks(popID);
    Realf *blockData = blockContainer->getData();
    const uint nBlocks = vmesh->size();
 
+   //nothing to do if no blocks
+   if(nBlocks == 0) {
+      return true;
+   }
    // Velocity grid refinement level, has no effect but is
    // needed in some vmesh::VelocityMesh function calls.
    const uint8_t REFLEVEL = 0;
@@ -694,25 +699,29 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    auto minValue = spatial_cell->getVelocityBlockMinValue(popID);
 
    // Now we have all needed values from unified memory objects, we can ensure they are on-device.
-   blockContainer->dev_attachToStream();
-   vmesh->dev_attachToStream();
+   phiprof::start("stream Attach, prefetch");
+   blockContainer->dev_attachToStream(stream);
+   vmesh->dev_attachToStream(stream);
    blockContainer->dev_prefetchDevice();
    vmesh->dev_prefetchDevice();
+   phiprof::stop("stream Attach, prefetch");
 
-   //nothing to do if no blocks
-   if(nBlocks == 0) {
-      return true;
-   }
    // Thread id used for persistent device memory pointers
    const uint cpuThreadID = omp_get_thread_num();
 
+   phiprof::start("create columnOffsets in unified memory, attach, prefetch");
    // lists in unified memory
    ColumnOffsets *columnData = unif_columnOffsetData[cpuThreadID];
    // Verify unified memory stream attach
    columnData->dev_attachToStream(stream);
    HANDLE_ERROR( cudaStreamAttachMemAsync(stream,unif_columns[cpuThreadID], 0,cudaMemAttachSingle) );
-
-
+   columnData->columnBlockOffsets.optimizeGPU(stream);
+   columnData->columnNumBlocks.optimizeGPU(stream);
+   columnData->setColumnOffsets.optimizeGPU(stream);
+   columnData->setNumColumns.optimizeGPU(stream);
+   HANDLE_ERROR( cudaMemPrefetchAsync(columnData,sizeof(ColumnOffsets),cuda_getDevice(),stream) );
+   HANDLE_ERROR( cudaStreamSynchronize(stream) );
+   phiprof::stop("create columnOffsets in unified memory, attach, prefetch");
    // Some kernels in here require this to be equal to VECL.
    // Future improvements would be to allow setting it directly to WID3.
    // Other kernels (not handling block data) can use CUDATHREADS which

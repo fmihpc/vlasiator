@@ -125,3 +125,9 @@ __host__ cudaStream_t cuda_getStream() {
 #endif
    return cudaStreamList[thread_id];
 }
+
+__host__ int cuda_getDevice() {
+   int device;
+   cudaGetDevice(&device);
+   return device;
+}
