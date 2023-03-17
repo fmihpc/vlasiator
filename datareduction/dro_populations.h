@@ -43,12 +43,12 @@ namespace DRO {
       };
       virtual std::string getName() const {return _name;};
 
-      virtual bool reduceData(const spatial_cell::SpatialCell* cell,std::uintptr_t* buffer) {
+      virtual bool reduceData(const spatial_cell::SpatialCell* cell,char* buffer) {
          // First, get a byte-sized pointer to this populations' struct within this cell.
-         const std::uintptr_t* population_struct = reinterpret_cast<const std::uintptr_t*>(&cell->get_population(_popID));
+         const char* population_struct = reinterpret_cast<const char*>(&cell->get_population(_popID));
 
          // Find the actual data at the specified offset
-         const std::uintptr_t* ptr = population_struct + _byteOffset;
+         const char* ptr = population_struct + _byteOffset;
 
          for (uint i = 0; i < _vectorSize*sizeof(T); ++i){
             buffer[i] = ptr[i];
@@ -63,10 +63,10 @@ namespace DRO {
          }
 
          // First, get a byte-sized pointer to this populations' struct within this cell.
-         const std::uintptr_t* population_struct = reinterpret_cast<const std::uintptr_t*>(&cell->get_population(_popID));
+         const char* population_struct = reinterpret_cast<const char*>(&cell->get_population(_popID));
 
          // Find the actual data at the specified offset
-         const std::uintptr_t* ptr = population_struct + _byteOffset;
+         const char* ptr = population_struct + _byteOffset;
 
          *target = *reinterpret_cast<const Real*>(ptr);
          return true;
@@ -75,7 +75,7 @@ namespace DRO {
       virtual bool setSpatialCell(const spatial_cell::SpatialCell* cell) {
 
          // First, get a byte-sized pointer to this populations' struct within this cell.
-         const std::uintptr_t* population_struct = reinterpret_cast<const std::uintptr_t*>(&cell->get_population(_popID));
+         const char* population_struct = reinterpret_cast<const char*>(&cell->get_population(_popID));
 
          // Find the actual data at the specified offset
          const T* ptr = reinterpret_cast<const T*>(population_struct + _byteOffset);
