@@ -138,20 +138,20 @@ __global__ void update_blocks_required_halo_kernel (
 __global__ void update_neighbours_have_content_kernel (
    vmesh::VelocityMesh *vmesh,
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>* BlocksRequiredMap,
-   split::SplitVector<vmesh::GlobalID> *neighbor_velocity_block_with_content_list
-   //vmesh::GlobalID *neighbor_velocity_block_with_content_list,
-   //const unsigned long neighborContentBlocks
+   //split::SplitVector<vmesh::GlobalID> *neighbor_velocity_block_with_content_list
+   vmesh::GlobalID *neighbor_velocity_block_with_content_list,
+   const unsigned long neighborContentBlocks
    ) {
    const int cudaBlocks = gridDim.x;
    const int blocki = blockIdx.x;
    const int warpSize = blockDim.x*blockDim.y*blockDim.z;
    const vmesh::LocalID ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
 
-   const unsigned long neighborContentBlocks = neighbor_velocity_block_with_content_list->size();
+   //const unsigned long neighborContentBlocks = neighbor_velocity_block_with_content_list->size();
    for (vmesh::LocalID index=blocki*warpSize; index<neighborContentBlocks; index += cudaBlocks*warpSize) {
       if (index+ti < neighborContentBlocks) {
-         vmesh::GlobalID GID = neighbor_velocity_block_with_content_list->at(index+ti);
-         //vmesh::GlobalID GID = neighbor_velocity_block_with_content_list[index+ti];
+         //vmesh::GlobalID GID = neighbor_velocity_block_with_content_list->at(index+ti);
+         vmesh::GlobalID GID = neighbor_velocity_block_with_content_list[index+ti];
          BlocksRequiredMap->set_element(GID,GID);
       }
    }
@@ -652,7 +652,10 @@ namespace spatial_cell {
       velocity_block_with_content_list->optimizeGPU(stream);
       HANDLE_ERROR( cudaMallocAsync((void**)&dev_velocity_block_with_content_list_buffer, velocity_block_with_content_list_size*sizeof(vmesh::LocalID), stream) );
       HANDLE_ERROR( cudaStreamSynchronize(stream) );
-      HANDLE_ERROR( cudaMemcpyAsync(dev_velocity_block_with_content_list_buffer, velocity_block_with_content_list->data(), velocity_block_with_content_list_size*sizeof(vmesh::LocalID), cudaMemcpyDeviceToDevice, stream) );
+      HANDLE_ERROR( cudaMemcpyAsync(dev_velocity_block_with_content_list_buffer, velocity_block_with_content_list->data(), velocity_block_with_content_list_size*sizeof(vmesh::LocalID), cudaMemcpyDefault, stream) );
+      //vmesh::LocalID *buffer = velocity_block_with_content_list->data();
+      //HANDLE_ERROR( cudaMemcpyAsync(dev_velocity_block_with_content_list_buffer, velocity_block_with_content_list->data(), velocity_block_with_content_list_size*sizeof(vmesh::LocalID), cudaMemcpyDeviceToDevice, stream) );
+      //HANDLE_ERROR( cudaMemcpy(dev_velocity_block_with_content_list_buffer, buffer, velocity_block_with_content_list_size*sizeof(vmesh::LocalID), cudaMemcpyDeviceToDevice) );
       HANDLE_ERROR( cudaStreamSynchronize(stream) );
    }
    /** Clears the device buffer for velocity_block_with_content_list
@@ -759,7 +762,8 @@ namespace spatial_cell {
             update_neighbours_have_content_kernel<<<nCudaBlocks, CUDATHREADS, 0, stream>>> (
                populations[popID].vmesh,
                BlocksRequiredMap,
-               (*neighbor)->velocity_block_with_content_list
+               (*neighbor)->dev_velocity_block_with_content_list_buffer,
+               nNeighBlocks
                );
          }
       }
@@ -1387,6 +1391,11 @@ namespace spatial_cell {
          );
       HANDLE_ERROR( cudaStreamSynchronize(stream) );
       phiprof::stop("CUDA update spatial cell block lists kernel");
+
+      phiprof::start("CUDA upload content list to device");
+      dev_uploadContentLists();
+      phiprof::stop("CUDA upload content list to device");
+
       phiprof::stop("CUDA update spatial cell block lists");
    }
 
