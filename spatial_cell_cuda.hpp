@@ -350,7 +350,9 @@ namespace spatial_cell {
       int sysBoundaryLayerNew;
       split::SplitVector<vmesh::GlobalID> *velocity_block_with_content_list;          /**< List of existing cells with content, only up-to-date after call to update_has_content().*/
       vmesh::LocalID velocity_block_with_content_list_size;                   /**< Size of vector. Needed for MPI communication of size before actual list transfer.*/
+      //vmesh::GlobalID *velocity_block_with_content_list_buffer;  /**< Pointer to device-memory buffer of VB with content list */
       split::SplitVector<vmesh::GlobalID> *velocity_block_with_no_content_list;
+
       /**< List of existing cells with no content, only up-to-date after call to update_has_content. This is also never transferred over MPI, so is invalid on remote cells.*/
 
       Realf* dev_rhoLossAdjust;
@@ -1008,6 +1010,7 @@ namespace spatial_cell {
     Return the memory consumption in bytes as reported using the size()
     functions of the containers in spatial cell
     */
+   // CUDATODO Update this for GPU memory as well, same for capacity
    inline uint64_t SpatialCell::get_cell_memory_size() {
       //const uint64_t VEL_BLOCK_SIZE = 2*WID3*sizeof(Realf) + BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real);
       uint64_t size = 0;

@@ -106,7 +106,7 @@ void cuda_accelerate_cell(SpatialCell* spatial_cell,
    const uint thread_id = 0;
 #endif
    // Ensure unified memory constructs are attached to correct kernel
-   //spatial_cell->dev_attachToStream(cudaStreamList[thread_id]);
+   spatial_cell->dev_attachToStream(cudaStreamList[thread_id]);
 
    // // CUDATEST Launch debug kernel?
    //vmesh::getMeshWrapper()->printVelocityMesh(popID);
@@ -214,15 +214,9 @@ void cuda_accelerate_cell(SpatialCell* spatial_cell,
           break;
    }
 
-   //spatial_cell->dev_detachFromStream();
-   // // Transfer data back
-   // phiprof::start("CUDA-DtoH");
-   // //blockContainer->dev_prefetchHost();
-   // //vmesh->dev_prefetchHost();
-   // cudaStreamSynchronize(cudaStreamList[thread_id]);
-   // phiprof::stop("CUDA-DtoH");
+   spatial_cell->dev_detachFromStream();
 
-//   if (Parameters::prepareForRebalance == true) {
-//       spatial_cell->parameters[CellParams::LBWEIGHTCOUNTER] += (MPI_Wtime() - t1);
-//   }
+   //if (Parameters::prepareForRebalance == true) {
+   //    spatial_cell->parameters[CellParams::LBWEIGHTCOUNTER] += (MPI_Wtime() - t1);
+   //}
 }

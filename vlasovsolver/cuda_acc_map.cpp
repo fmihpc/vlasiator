@@ -213,7 +213,6 @@ __global__ void reorder_blocks_by_dimension_kernel(
    }
    // Loop over columns in steps of cudaBlocks. Each cudaBlock deals with one column.
    for (uint iColumn = blocki; iColumn < totalColumns; iColumn += cudaBlocks) {
-      if (iColumn >= totalColumns) break;
       uint inputOffset = columnData->columnBlockOffsets[iColumn];
       uint outputOffset = (inputOffset + 2 * iColumn) * (WID3/VECL);
       uint columnLength = columnData->columnNumBlocks[iColumn];
@@ -363,8 +362,7 @@ __global__ void evaluate_column_extents_kernel(
 
    __shared__ int isTargetBlock[MAX_BLOCKS_PER_DIM];
    __shared__ int isSourceBlock[MAX_BLOCKS_PER_DIM];
-   for( uint setIndexB=0; setIndexB < dev_columnData->setColumnOffsets.size(); setIndexB += cudaBlocks) {
-      const uint setIndex = setIndexB + blocki;
+   for( uint setIndex=blocki; setIndex < dev_columnData->setColumnOffsets.size(); setIndex += cudaBlocks) {
       if (setIndex < dev_columnData->setColumnOffsets.size()) {
 
          // Clear flags used for this columnSet
@@ -696,6 +694,8 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    auto minValue = spatial_cell->getVelocityBlockMinValue(popID);
 
    // Now we have all needed values from unified memory objects, we can ensure they are on-device.
+   blockContainer->dev_attachToStream();
+   vmesh->dev_attachToStream();
    blockContainer->dev_prefetchDevice();
    vmesh->dev_prefetchDevice();
 
@@ -709,7 +709,9 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    // lists in unified memory
    ColumnOffsets *columnData = unif_columnOffsetData[cpuThreadID];
    // Verify unified memory stream attach
-   //columnData->dev_attachToStream(stream);
+   columnData->dev_attachToStream(stream);
+   HANDLE_ERROR( cudaStreamAttachMemAsync(stream,unif_columns[cpuThreadID], 0,cudaMemAttachSingle) );
+
 
    // Some kernels in here require this to be equal to VECL.
    // Future improvements would be to allow setting it directly to WID3.
@@ -828,17 +830,14 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    }
    phiprof::stop("count columns");
 
-   // pointer to columns in unified memory
-   Column *columns = new (unif_columns[cpuThreadID]) Column[host_totalColumns]; // placement new to use unified memory
-
-   // // pointer to columns (to be in device memory)
-   // Column *columns;
-   // // Create array of column objects
-   // Column host_columns[host_totalColumns];
-   // // and copy it into device memory
-   // HANDLE_ERROR( cudaMallocAsync((void**)&columns, host_totalColumns*sizeof(Column), stream) );
-   // HANDLE_ERROR( cudaMemcpyAsync(columns, &host_columns, host_totalColumns*sizeof(Column), cudaMemcpyHostToDevice, stream) );
-   // HANDLE_ERROR( cudaStreamSynchronize(stream) );
+   // pointer to columns (to be in device memory)
+   Column *columns;
+   // Create array of column objects
+   Column host_columns[host_totalColumns];
+   // and copy it into device memory
+   HANDLE_ERROR( cudaMallocAsync((void**)&columns, host_totalColumns*sizeof(Column), stream) );
+   HANDLE_ERROR( cudaMemcpyAsync(columns, &host_columns, host_totalColumns*sizeof(Column), cudaMemcpyHostToDevice, stream) );
+   HANDLE_ERROR( cudaStreamSynchronize(stream) );
 
    phiprof::start("Store offsets into columns");
    // this needs to be serial, but is fast.
@@ -853,8 +852,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    phiprof::start("Reorder blocks by dimension");
    uint cudablocks = host_totalColumns > CUDABLOCKS ? CUDABLOCKS : host_totalColumns;
    // Launch kernels for transposing and ordering velocity space data into columns
-   //reorder_blocks_by_dimension_kernel<<<cudablocks, cudathreadsVECL, 0, stream>>> (
-   reorder_blocks_by_dimension_kernel<<<host_totalColumns, cudathreadsVECL, 0, stream>>> (
+   reorder_blocks_by_dimension_kernel<<<cudablocks, cudathreadsVECL, 0, stream>>> (
       blockData, // unified memory, incoming
       dev_blockDataOrdered[cpuThreadID],
       dev_cell_indices_to_id[cpuThreadID],
@@ -867,9 +865,13 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
 
    // Calculate target column extents
    phiprof::start("Clear block lists");
+   // Do not optimizeCPU! CUDATODO switch to host-to-device clea
    spatial_cell->BlocksRequired->clear();
    spatial_cell->BlocksToAdd->clear();
    spatial_cell->BlocksToRemove->clear();
+   spatial_cell->BlocksRequired->optimizeGPU(stream);
+   spatial_cell->BlocksToAdd->optimizeGPU(stream);
+   spatial_cell->BlocksToRemove->optimizeGPU(stream);
    phiprof::stop("Clear block lists");
 
    phiprof::start("Evaluate column extents kernel");
@@ -921,10 +923,8 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
 
    // Velocity space has all extra blocks added and/or removed for the transform target
    // and will not change shape anymore.
-   //const uint newNBlocks = vmesh->size();
-   //vmesh->dev_prefetchDevice();
-   const uint newNBlocks = blockContainer->size();
-   blockContainer->dev_prefetchDevice();
+   const uint newNBlocks = vmesh->size();
+   vmesh->dev_prefetchDevice();
    const uint bdsw3 = newNBlocks * WID3;
    // Zero out target data on device (unified)
    HANDLE_ERROR( cudaMemsetAsync(blockData, 0, bdsw3*sizeof(Realf), stream) );
@@ -941,7 +941,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    phiprof::stop("identify new block offsets kernel");
 
    phiprof::start("Semi-Lagrangian acceleration kernel");
-   acceleration_kernel<<<cudablocks, cudathreadsVECL, 0, stream>>> (
+   acceleration_kernel<<<host_totalColumns, cudathreadsVECL, 0, stream>>> (
       blockData,
       dev_blockDataOrdered[cpuThreadID],
       dev_cell_indices_to_id[cpuThreadID],
@@ -959,8 +959,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       );
    HANDLE_ERROR( cudaStreamSynchronize(stream) );
 
-   //delete columns; // Free unified memory construct
-//   HANDLE_ERROR( cudaFreeAsync(columns, stream) );
+   HANDLE_ERROR( cudaFreeAsync(columns, stream) );
    phiprof::stop("Semi-Lagrangian acceleration kernel");
 
    return true;

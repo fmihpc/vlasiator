@@ -333,14 +333,12 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
    columnData->setNumColumns.clear();
 
    uint nCudaBlocks  = (nBlocks/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : (nBlocks/CUDATHREADS);
-   dim3 grid(nCudaBlocks,1,1);
-   dim3 block(CUDATHREADS,1,1);
 
    phiprof::start("calc new dimension id");
    // Map blocks to new dimensionality
    switch( dimension ) {
       case 0: {
-         blocksID_mapped_dim0_kernel<<<grid, block, 0, stream>>> (
+         blocksID_mapped_dim0_kernel<<<nCudaBlocks, CUDATHREADS, 0, stream>>> (
             vmesh,
             blocksID_mapped,
             blocksLID_unsorted,
@@ -349,7 +347,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
          break;
       }
       case 1: {
-         blocksID_mapped_dim1_kernel<<<grid, block, 0, stream>>> (
+         blocksID_mapped_dim1_kernel<<<nCudaBlocks, CUDATHREADS, 0, stream>>> (
             vmesh,
             blocksID_mapped,
             blocksLID_unsorted,
@@ -358,7 +356,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
          break;
       }
       case 2: {
-         blocksID_mapped_dim2_kernel<<<grid, block, 0, stream>>> (
+         blocksID_mapped_dim2_kernel<<<nCudaBlocks, CUDATHREADS, 0, stream>>> (
             vmesh,
             blocksID_mapped,
             blocksLID_unsorted,
@@ -399,7 +397,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
 
    // Gather GIDs in order
    phiprof::start("reorder GIDs");
-   order_GIDs_kernel<<<grid, block, 0, stream>>> (
+   order_GIDs_kernel<<<nCudaBlocks, CUDATHREADS, 0, stream>>> (
       vmesh,
       blocksLID,
       blocksGID,
@@ -408,7 +406,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
    phiprof::stop("reorder GIDs");
 
    phiprof::start("Scan for column block counts");
-   scan_blocks_for_columns_kernel<<<grid, block, 0, stream>>> (
+   scan_blocks_for_columns_kernel<<<nCudaBlocks, CUDATHREADS, 0, stream>>> (
       vmesh,
       dimension,
       blocksID_mapped,
@@ -420,8 +418,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
    phiprof::start("construct columns");
    // Construct columns. To ensure order,
    // these are done serially, but still form within a kernel.
-   dim3 grid1(1,1,1);
-   construct_columns_kernel<<<grid1, block, 0, stream>>> (
+   construct_columns_kernel<<<1, CUDATHREADS, 0, stream>>> (
       vmesh,
       dimension,
       blocksID_mapped_sorted,

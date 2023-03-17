@@ -542,8 +542,14 @@ namespace vmesh {
    inline void VelocityMesh::setNewSize(const vmesh::LocalID& newSize) {
       // Needed by CUDA block adjustment
       localToGlobalMap->resize(newSize);
+      // Ensure also that the map is large enough
+      const vmesh::LocalID HashmapReqSize = ceil(log2(newSize)) +3; // Make it really large enough
+      if (globalToLocalMap->getSizePower() < HashmapReqSize) {
+         globalToLocalMap->device_rehash(HashmapReqSize, cuda_getStream());
+      }
       if (attachedStream != 0) {
-         // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,localToGlobalMap->data(), 0,cudaMemAttachSingle) );
+         HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,localToGlobalMap->data(), 0,cudaMemAttachSingle) );
+         HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,globalToLocalMap->buckets.data(), 0,cudaMemAttachSingle) );
       }
    }
 
@@ -598,7 +604,8 @@ namespace vmesh {
       //CUDATODO
       // globalToLocalMap->attachStream(attachedStream);
       // localToGlobalMap->attachStream(attachedStream);
-      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,localToGlobalMap->data(), 0,cudaMemAttachSingle) );
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,localToGlobalMap->data(), 0,cudaMemAttachSingle) );
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,globalToLocalMap->buckets.data(), 0,cudaMemAttachSingle) );
       return;
    }
    inline void VelocityMesh::dev_detachFromStream() {
@@ -610,6 +617,7 @@ namespace vmesh {
       //CUDATODO
       // globalToLocalMap->detachStream(attachedStream);
       // localToGlobalMap->detachStream(attachedStream);
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,globalToLocalMap->buckets.data(), 0,cudaMemAttachGlobal) );
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,localToGlobalMap->data(), 0,cudaMemAttachGlobal) );
       return;
    }

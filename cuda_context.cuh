@@ -86,7 +86,8 @@ public:
 
 #define DIMS 1
 #ifndef CUDABLOCKS
-#  define CUDABLOCKS (64)
+//#  define CUDABLOCKS (64)
+#  define CUDABLOCKS (108)
 #endif
 #ifndef CUDATHREADS
 #  define CUDATHREADS (32) // NVIDIA: 32 AMD: 64

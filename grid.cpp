@@ -696,10 +696,10 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    #pragma omp parallel for
 #ifdef USE_CUDA
    for (uint i=0; i<cells.size(); ++i) {
-      //mpiGrid[cells[i]]->dev_attachToStream();
+      mpiGrid[cells[i]]->dev_attachToStream();
       mpiGrid[cells[i]]->updateSparseMinValue(popID);
       mpiGrid[cells[i]]->update_velocity_block_content_lists(popID);
-      //mpiGrid[cells[i]]->dev_detachFromStream();
+      mpiGrid[cells[i]]->dev_detachFromStream();
    }
 #else
    for (uint i=0; i<cells.size(); ++i) {
@@ -743,7 +743,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
       }
 
       #ifdef USE_CUDA
-      //cell->dev_attachToStream();
+      cell->dev_attachToStream();
       #endif
       // CUDATODO: Vectorize / GPUify
       if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
@@ -765,7 +765,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
          }
       }
       #ifdef USE_CUDA
-      //cell->dev_detachFromStream();
+      cell->dev_detachFromStream();
       #endif
    }
    phiprof::stop("Adjusting blocks");
