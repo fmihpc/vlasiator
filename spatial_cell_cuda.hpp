@@ -231,6 +231,9 @@ namespace spatial_cell {
       // Attach unified memory to a stream
       void dev_attachToStream(cudaStream_t stream=0);
       void dev_detachFromStream();
+      // upload a content list to device memory
+      void dev_uploadContentLists();
+      void dev_clearContentLists();
 
       vmesh::GlobalID find_velocity_block(vmesh::GlobalID cellIndices[3],const uint popID);
       Realf* get_data(const uint popID);
@@ -350,7 +353,7 @@ namespace spatial_cell {
       int sysBoundaryLayerNew;
       split::SplitVector<vmesh::GlobalID> *velocity_block_with_content_list;          /**< List of existing cells with content, only up-to-date after call to update_has_content().*/
       vmesh::LocalID velocity_block_with_content_list_size;                   /**< Size of vector. Needed for MPI communication of size before actual list transfer.*/
-      //vmesh::GlobalID *velocity_block_with_content_list_buffer;  /**< Pointer to device-memory buffer of VB with content list */
+      vmesh::GlobalID *dev_velocity_block_with_content_list_buffer;  /**< Pointer to device-memory buffer of VB with content list */
       split::SplitVector<vmesh::GlobalID> *velocity_block_with_no_content_list;
 
       /**< List of existing cells with no content, only up-to-date after call to update_has_content. This is also never transferred over MPI, so is invalid on remote cells.*/
