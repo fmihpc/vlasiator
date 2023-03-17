@@ -549,6 +549,7 @@ namespace vmesh {
       }
       if (attachedStream != 0) {
          HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,localToGlobalMap->data(), 0,cudaMemAttachSingle) );
+         // Trial, requires making buckets public
          HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,globalToLocalMap->buckets.data(), 0,cudaMemAttachSingle) );
       }
    }
@@ -605,6 +606,7 @@ namespace vmesh {
       // globalToLocalMap->attachStream(attachedStream);
       // localToGlobalMap->attachStream(attachedStream);
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,localToGlobalMap->data(), 0,cudaMemAttachSingle) );
+      // Trial, requires making buckets public
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,globalToLocalMap->buckets.data(), 0,cudaMemAttachSingle) );
       return;
    }
@@ -617,8 +619,9 @@ namespace vmesh {
       //CUDATODO
       // globalToLocalMap->detachStream(attachedStream);
       // localToGlobalMap->detachStream(attachedStream);
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,globalToLocalMap->buckets.data(), 0,cudaMemAttachGlobal) );
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,localToGlobalMap->data(), 0,cudaMemAttachGlobal) );
+      // Trial, requires making buckets public
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,globalToLocalMap->buckets.data(), 0,cudaMemAttachGlobal) );
       return;
    }
 

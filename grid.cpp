@@ -690,9 +690,9 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    phiprof::initializeTimer("re-adjust blocks","Block adjustment");
    phiprof::start("re-adjust blocks");
    SpatialCell::setCommunicatedSpecies(popID);
-   const vector<CellID>& cells = getLocalCells();
 
    phiprof::start("Compute with_content_list");
+   const vector<CellID>& cells = getLocalCells();
    #pragma omp parallel for
 #ifdef USE_CUDA
    for (uint i=0; i<cells.size(); ++i) {

@@ -138,7 +138,6 @@ __global__ void update_blocks_required_halo_kernel (
 __global__ void update_neighbours_have_content_kernel (
    vmesh::VelocityMesh *vmesh,
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>* BlocksRequiredMap,
-   //split::SplitVector<vmesh::GlobalID> *neighbor_velocity_block_with_content_list
    vmesh::GlobalID *neighbor_velocity_block_with_content_list,
    const unsigned long neighborContentBlocks
    ) {
@@ -147,10 +146,8 @@ __global__ void update_neighbours_have_content_kernel (
    const int warpSize = blockDim.x*blockDim.y*blockDim.z;
    const vmesh::LocalID ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
 
-   //const unsigned long neighborContentBlocks = neighbor_velocity_block_with_content_list->size();
    for (vmesh::LocalID index=blocki*warpSize; index<neighborContentBlocks; index += cudaBlocks*warpSize) {
       if (index+ti < neighborContentBlocks) {
-         //vmesh::GlobalID GID = neighbor_velocity_block_with_content_list->at(index+ti);
          vmesh::GlobalID GID = neighbor_velocity_block_with_content_list[index+ti];
          BlocksRequiredMap->set_element(GID,GID);
       }
@@ -590,8 +587,7 @@ namespace spatial_cell {
       } else {
          attachedStream = stream;
       }
-      //HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_content_list, 0,cudaMemAttachSingle) );
-      // velocity_block_with_content_list is skipped because neighbour cell threads also access it
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_content_list, 0,cudaMemAttachSingle) );
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_no_content_list, 0,cudaMemAttachSingle) );
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToRemove, 0,cudaMemAttachSingle) );
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToAdd, 0,cudaMemAttachSingle) );
@@ -605,20 +601,19 @@ namespace spatial_cell {
       }
       //CUDATODO
       // Also call attach functions on all splitvectors and hashmaps
-      //HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_content_list->data(), 0,cudaMemAttachSingle) );
-      // velocity_block_with_content_list is skipped because neighbour cell threads also access it
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_content_list->data(), 0,cudaMemAttachSingle) );
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_no_content_list->data(), 0,cudaMemAttachSingle) );
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToRemove->data(), 0,cudaMemAttachSingle) );
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToAdd->data(), 0,cudaMemAttachSingle) );
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToMove->data(), 0,cudaMemAttachSingle) );
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequired->data(), 0,cudaMemAttachSingle) );
+      // trial, requires changing buckets to public
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequiredMap->buckets.data(), 0,cudaMemAttachSingle) );
       return;
    }
    void SpatialCell::dev_detachFromStream() {
       attachedStream = 0;
-      //HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_content_list, 0,cudaMemAttachGlobal) );
-      // velocity_block_with_content_list is skipped
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_content_list, 0,cudaMemAttachGlobal) );
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_no_content_list, 0,cudaMemAttachGlobal) );
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToRemove, 0,cudaMemAttachGlobal) );
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToAdd, 0,cudaMemAttachGlobal) );
@@ -632,14 +627,13 @@ namespace spatial_cell {
       }
       //CUDATODO
       // Also call detach functions on all splitvectors and hashmaps
-      //HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_content_list->data(), 0,cudaMemAttachGlobal) );
-      // velocity_block_with_content_list is skipped
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_content_list->data(), 0,cudaMemAttachGlobal) );
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_no_content_list->data(), 0,cudaMemAttachGlobal) );
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToRemove->data(), 0,cudaMemAttachGlobal) );
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToAdd->data(), 0,cudaMemAttachGlobal) );
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToMove->data(), 0,cudaMemAttachGlobal) );
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequired->data(), 0,cudaMemAttachGlobal) );
-      // trial
+      // trial, requires changing buckets to public
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequiredMap->buckets.data(), 0,cudaMemAttachGlobal) );
       return;
    }
@@ -1083,12 +1077,11 @@ namespace spatial_cell {
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_WITH_CONTENT_STAGE2) !=0) {
             if (receiving) {
                this->velocity_block_with_content_list->resize(this->velocity_block_with_content_list_size);
-               // velocity_block_with_content_list should not be attached to a stream
-               //HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_content_list->data(), 0,cudaMemAttachSingle) );
+               // Re receive velocity block content lists only for remote cells (?) so no need to
+               // attach to a stream at this point.
              }
 
             //velocity_block_with_content_list_size should first be updated, before this can be done (STAGE1)
-            //displacements.push_back((uint8_t*) &(this->velocity_block_with_content_list->at(0)) - (uint8_t*) this);
             displacements.push_back((uint8_t*) this->velocity_block_with_content_list->data() - (uint8_t*) this);
             block_lengths.push_back(sizeof(vmesh::GlobalID)*this->velocity_block_with_content_list_size);
          }
