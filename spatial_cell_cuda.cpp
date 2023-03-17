@@ -649,13 +649,11 @@ namespace spatial_cell {
     */
    void SpatialCell::dev_uploadContentLists() {
       cudaStream_t stream = cuda_getStream();
+      vmesh::LocalID size = velocity_block_with_content_list->size();
       velocity_block_with_content_list->optimizeGPU(stream);
-      HANDLE_ERROR( cudaMallocAsync((void**)&dev_velocity_block_with_content_list_buffer, velocity_block_with_content_list_size*sizeof(vmesh::LocalID), stream) );
+      HANDLE_ERROR( cudaMallocAsync((void**)&dev_velocity_block_with_content_list_buffer, size*sizeof(vmesh::LocalID), stream) );
       HANDLE_ERROR( cudaStreamSynchronize(stream) );
-      HANDLE_ERROR( cudaMemcpyAsync(dev_velocity_block_with_content_list_buffer, velocity_block_with_content_list->data(), velocity_block_with_content_list_size*sizeof(vmesh::LocalID), cudaMemcpyDefault, stream) );
-      //vmesh::LocalID *buffer = velocity_block_with_content_list->data();
-      //HANDLE_ERROR( cudaMemcpyAsync(dev_velocity_block_with_content_list_buffer, velocity_block_with_content_list->data(), velocity_block_with_content_list_size*sizeof(vmesh::LocalID), cudaMemcpyDeviceToDevice, stream) );
-      //HANDLE_ERROR( cudaMemcpy(dev_velocity_block_with_content_list_buffer, buffer, velocity_block_with_content_list_size*sizeof(vmesh::LocalID), cudaMemcpyDeviceToDevice) );
+      HANDLE_ERROR( cudaMemcpyAsync(dev_velocity_block_with_content_list_buffer, velocity_block_with_content_list->data(), size*sizeof(vmesh::LocalID), cudaMemcpyDeviceToDevice, stream) );
       HANDLE_ERROR( cudaStreamSynchronize(stream) );
    }
    /** Clears the device buffer for velocity_block_with_content_list
