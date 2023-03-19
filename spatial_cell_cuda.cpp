@@ -601,14 +601,21 @@ namespace spatial_cell {
       }
       //CUDATODO
       // Also call attach functions on all splitvectors and hashmaps
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_content_list->data(), 0,cudaMemAttachSingle) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_no_content_list->data(), 0,cudaMemAttachSingle) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToRemove->data(), 0,cudaMemAttachSingle) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToAdd->data(), 0,cudaMemAttachSingle) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToMove->data(), 0,cudaMemAttachSingle) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequired->data(), 0,cudaMemAttachSingle) );
-      // trial, requires changing buckets to public
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequiredMap->buckets.data(), 0,cudaMemAttachSingle) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_content_list->data(), 0,cudaMemAttachSingle) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_no_content_list->data(), 0,cudaMemAttachSingle) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToRemove->data(), 0,cudaMemAttachSingle) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToAdd->data(), 0,cudaMemAttachSingle) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToMove->data(), 0,cudaMemAttachSingle) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequired->data(), 0,cudaMemAttachSingle) );
+      // // trial, requires changing buckets to public
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequiredMap->buckets.data(), 0,cudaMemAttachSingle) );
+      velocity_block_with_content_list->streamAttach(attachedStream);
+      velocity_block_with_no_content_list->streamAttach(attachedStream);
+      BlocksToRemove->streamAttach(attachedStream);
+      BlocksToAdd->streamAttach(attachedStream);
+      BlocksToMove->streamAttach(attachedStream);
+      BlocksRequired->streamAttach(attachedStream);
+      BlocksRequiredMap->streamAttach(attachedStream);
       return;
    }
    void SpatialCell::dev_detachFromStream() {
@@ -627,14 +634,22 @@ namespace spatial_cell {
       }
       //CUDATODO
       // Also call detach functions on all splitvectors and hashmaps
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_content_list->data(), 0,cudaMemAttachGlobal) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_no_content_list->data(), 0,cudaMemAttachGlobal) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToRemove->data(), 0,cudaMemAttachGlobal) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToAdd->data(), 0,cudaMemAttachGlobal) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToMove->data(), 0,cudaMemAttachGlobal) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequired->data(), 0,cudaMemAttachGlobal) );
-      // trial, requires changing buckets to public
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequiredMap->buckets.data(), 0,cudaMemAttachGlobal) );
+      velocity_block_with_content_list->streamAttach(0,cudaMemAttachGlobal);
+      velocity_block_with_no_content_list->streamAttach(0,cudaMemAttachGlobal);
+      BlocksToRemove->streamAttach(0,cudaMemAttachGlobal);
+      BlocksToAdd->streamAttach(0,cudaMemAttachGlobal);
+      BlocksToMove->streamAttach(0,cudaMemAttachGlobal);
+      BlocksRequired->streamAttach(0,cudaMemAttachGlobal);
+      BlocksRequiredMap->streamAttach(0,cudaMemAttachGlobal);
+
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_content_list->data(), 0,cudaMemAttachGlobal) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_no_content_list->data(), 0,cudaMemAttachGlobal) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToRemove->data(), 0,cudaMemAttachGlobal) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToAdd->data(), 0,cudaMemAttachGlobal) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToMove->data(), 0,cudaMemAttachGlobal) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequired->data(), 0,cudaMemAttachGlobal) );
+      // // trial, requires changing buckets to public
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequiredMap->buckets.data(), 0,cudaMemAttachGlobal) );
       return;
    }
 
@@ -720,7 +735,8 @@ namespace spatial_cell {
          BlocksRequiredMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(HashmapReqSize);
          if (attachedStream != 0) {
             HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequiredMap, 0,cudaMemAttachSingle) );
-            HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequiredMap->buckets.data(), 0,cudaMemAttachSingle) );
+            //HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequiredMap->buckets.data(), 0,cudaMemAttachSingle) );
+            BlocksRequiredMap->streamAttach(attachedStream);
          }
          BlocksRequiredMap->optimizeGPU(stream);
       }

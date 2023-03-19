@@ -14,11 +14,13 @@ static vmesh::MeshWrapper *meshWrapper;
 __device__ vmesh::MeshWrapper *meshWrapperDev;
 #endif
 
+#ifdef USE_CUDA
 __global__ void debug_kernel(
    const uint popID
    ) {
    vmesh::printVelocityMesh(0);
 }
+#endif
 
 void vmesh::allocMeshWrapper() {
    // This is now allocated in unified memory

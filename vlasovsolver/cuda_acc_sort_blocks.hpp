@@ -54,26 +54,26 @@ struct ColumnOffsets : public Managed {
          stream = cuda_getStream();
       }
       HANDLE_ERROR( cudaStreamAttachMemAsync(stream,this, 0,cudaMemAttachSingle) );
-      // columnBlockOffsets.attachStream();
-      // columnNumBlocks.attachStream();
-      // setColumnOffsets.attachStream();
-      // setNumColumns.attachStream();
-      HANDLE_ERROR( cudaStreamAttachMemAsync(stream,columnBlockOffsets.data(), 0,cudaMemAttachSingle) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(stream,columnNumBlocks.data(), 0,cudaMemAttachSingle) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(stream,setColumnOffsets.data(), 0,cudaMemAttachSingle) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(stream,setNumColumns.data(), 0,cudaMemAttachSingle) );
+      columnBlockOffsets.streamAttach(stream);
+      columnNumBlocks.streamAttach(stream);
+      setColumnOffsets.streamAttach(stream);
+      setNumColumns.streamAttach(stream);
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(stream,columnBlockOffsets.data(), 0,cudaMemAttachSingle) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(stream,columnNumBlocks.data(), 0,cudaMemAttachSingle) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(stream,setColumnOffsets.data(), 0,cudaMemAttachSingle) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(stream,setNumColumns.data(), 0,cudaMemAttachSingle) );
    }
    void dev_detachFromStream() {
       cudaStream_t stream = 0;
       HANDLE_ERROR( cudaStreamAttachMemAsync(stream,this, 0,cudaMemAttachGlobal) );
-      // columnBlockOffsets.detachStream();
-      // columnNumBlocks.detachStream();
-      // setColumnOffsets.detachStream();
-      // setNumColumns.detachStream();
-      HANDLE_ERROR( cudaStreamAttachMemAsync(stream,columnBlockOffsets.data(), 0,cudaMemAttachGlobal) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(stream,columnNumBlocks.data(), 0,cudaMemAttachGlobal) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(stream,setColumnOffsets.data(), 0,cudaMemAttachGlobal) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(stream,setNumColumns.data(), 0,cudaMemAttachGlobal) );
+      columnBlockOffsets.streamAttach(0,cudaMemAttachGlobal);
+      columnNumBlocks.streamAttach(0,cudaMemAttachGlobal);
+      setColumnOffsets.streamAttach(0,cudaMemAttachGlobal);
+      setNumColumns.streamAttach(0,cudaMemAttachGlobal);
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(stream,columnBlockOffsets.data(), 0,cudaMemAttachGlobal) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(stream,columnNumBlocks.data(), 0,cudaMemAttachGlobal) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(stream,setColumnOffsets.data(), 0,cudaMemAttachGlobal) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(stream,setNumColumns.data(), 0,cudaMemAttachGlobal) );
    }
 };
 

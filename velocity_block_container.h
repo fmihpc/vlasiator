@@ -334,10 +334,12 @@ namespace vmesh {
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,block_data, 0,cudaMemAttachSingle) );
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,parameters, 0,cudaMemAttachSingle) );
       //CUDATODO
+      block_data->streamAttach(attachedStream);
+      parameters->streamAttach(attachedStream);
       // block_data->attachStream(attachedStream);
       // parameters->attachStream(attachedStream);
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,block_data->data(), 0,cudaMemAttachSingle) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,parameters->data(), 0,cudaMemAttachSingle) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,block_data->data(), 0,cudaMemAttachSingle) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,parameters->data(), 0,cudaMemAttachSingle) );
       return;
    }
    inline void VelocityBlockContainer::dev_detachFromStream() {
@@ -349,8 +351,10 @@ namespace vmesh {
       //CUDATODO
       // block_data->detachStream(attachedStream);
       // parameters->detachStream(attachedStream);
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,block_data->data(), 0,cudaMemAttachGlobal) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,parameters->data(), 0,cudaMemAttachGlobal) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,block_data->data(), 0,cudaMemAttachGlobal) );
+      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,parameters->data(), 0,cudaMemAttachGlobal) );
+      block_data->streamAttach(0,cudaMemAttachGlobal);
+      parameters->streamAttach(0,cudaMemAttachGlobal);
       return;
    }
 #endif
@@ -493,8 +497,10 @@ namespace vmesh {
          block_data->resize(currentCapacity*WID3, true);
          parameters->resize(currentCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS, true);
          if (attachedStream != 0) {
-            HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,block_data->data(), 0,cudaMemAttachSingle) );
-            HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,parameters->data(), 0,cudaMemAttachSingle) );
+            // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,block_data->data(), 0,cudaMemAttachSingle) );
+            // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,parameters->data(), 0,cudaMemAttachSingle) );
+            block_data->streamAttach(attachedStream);
+            parameters->streamAttach(attachedStream);
          }
       }
 #else
