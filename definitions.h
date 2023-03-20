@@ -67,6 +67,13 @@ namespace geometry {
    };
 }
 
+enum ExitCodes {
+   SUCCESS = 0,
+   INDETERMINATE_FAILURE = 1,
+   RESTART_READ_FAILURE = 42,
+   ROMBERG_RAINT_FAILURE = 111
+};
+
 namespace vmesh {
    #ifndef VAMR
    typedef uint32_t GlobalID;              /**< Datatype used for velocity block global IDs.*/
