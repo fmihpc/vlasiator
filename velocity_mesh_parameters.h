@@ -45,6 +45,9 @@
    #include "cuda_context.cuh"
 #endif
 
+// One per particle population (no vAMR)
+#define MAX_VMESH_PARAMETERS_COUNT 32
+
 namespace vmesh {
 
    /** Wrapper for mesh parameters. The object wrapper reads one or more velocity meshes
@@ -88,52 +91,32 @@ namespace vmesh {
       }
    };
 
-#ifdef USE_CUDA
-   struct MeshWrapper : public Managed {
-      MeshWrapper() {
-         velocityMeshes = new split::SplitVector<vmesh::MeshParameters>(1);
-         velocityMeshes->clear();
-      }
-      ~MeshWrapper() {
-         delete velocityMeshes;
-      }
-      MeshWrapper(const MeshWrapper& other) {
-         velocityMeshes = new split::SplitVector<vmesh::MeshParameters>(*(other.velocityMeshes));
-      }
-      MeshWrapper& operator=(const MeshWrapper& other) {
-         delete velocityMeshes;
-         velocityMeshes = new split::SplitVector<vmesh::MeshParameters>(*(other.velocityMeshes));
-      }
-      void prefetchDevice() {
-         velocityMeshes->optimizeGPU();
-      }
-#else
    struct MeshWrapper {
       MeshWrapper() {
-         velocityMeshes = new std::vector<vmesh::MeshParameters>(1);
-         velocityMeshes->clear();
+         velocityMeshesCreation = new std::vector<vmesh::MeshParameters>(1);
+         velocityMeshesCreation->clear();
       }
       ~MeshWrapper() {
          delete velocityMeshes;
+         delete velocityMeshesCreation;
       }
       MeshWrapper(const MeshWrapper& other) {
-         velocityMeshes = new std::vector<vmesh::MeshParameters>(*(other.velocityMeshes));
+         velocityMeshesCreation = new std::vector<vmesh::MeshParameters>(*(other.velocityMeshesCreation));
       }
       MeshWrapper& operator=(const MeshWrapper& other) {
          delete velocityMeshes;
-         velocityMeshes = new std::vector<vmesh::MeshParameters>(*(other.velocityMeshes));
+         delete velocityMeshesCreation;
+         velocityMeshesCreation = new std::vector<vmesh::MeshParameters>(*(other.velocityMeshesCreation));
+         return *this;
       }
-#endif
-
-      /**< Parameters for velocity mesh(es) as a vector*/
-#ifdef USE_CUDA
-      split::SplitVector<vmesh::MeshParameters> *velocityMeshes;
-#else
-      std::vector<vmesh::MeshParameters> *velocityMeshes;
-#endif
+      std::vector<vmesh::MeshParameters> *velocityMeshesCreation;
+      // We also need an array so we can copy this data into direct GPU-device memory.
+      // On the CPU side we actually reserve enough room for
+      // MAX_VMESH_PARAMETERS_COUNT MeshParameters.
+      std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT> *velocityMeshes;
 
       void initVelocityMeshes(const uint nMeshes);  /**< Pre-calculate more helper parameters for velocity meshes. */
-      void uploadMeshWrapper();                     /**< Send a copy of the MeshWrapper into GPU memory */
+      void uploadMeshWrapper();   /**< Send a copy of the MeshWrapper into GPU memory */
    };
 
    void allocMeshWrapper();
@@ -152,6 +135,9 @@ namespace vmesh {
    CUDA_HOSTDEV inline void printVelocityMesh(const uint meshIndex) {
       vmesh::MeshParameters *vMesh = &(getMeshWrapper()->velocityMeshes->at(meshIndex));
       printf("\nPrintout of velocity mesh %d \n",meshIndex);
+      // printf("Meshwrapper address 0x%lx\n",getMeshWrapper());
+      // printf("array of meshes address 0x%lx\n",&(getMeshWrapper()->velocityMeshes));
+      // printf("Mesh address 0x%lx\n",vMesh);
       printf("Mesh size\n");
       printf(" %d %d %d \n",vMesh->gridLength[0],vMesh->gridLength[1],vMesh->gridLength[2]);
       printf("Block size (max reflevel %d)\n",vMesh->refLevelMaxAllowed);

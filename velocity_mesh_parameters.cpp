@@ -12,9 +12,7 @@
 static vmesh::MeshWrapper *meshWrapper;
 #ifdef USE_CUDA
 __device__ vmesh::MeshWrapper *meshWrapperDev;
-#endif
 
-#ifdef USE_CUDA
 __global__ void debug_kernel(
    const uint popID
    ) {
@@ -39,20 +37,59 @@ CUDA_HOSTDEV vmesh::MeshWrapper* vmesh::dev_getMeshWrapper() {
    return meshWrapperDev;
 }
 void vmesh::MeshWrapper::uploadMeshWrapper() {
-   // Makes a copy of the meshWrapper (both the original and the new one now reside in unified memory).
-   // The copy can then reside in device memory without causing page faults between host and device
-   vmesh::MeshWrapper* MWdev = new vmesh::MeshWrapper(*meshWrapper);
-   // Set the global symbol of meshWrapper (points to the copy)
+   // Store address to velocityMeshes array
+   std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT> * temp = meshWrapper->velocityMeshes;
+   // CudaMalloc space on device, copy array contents
+   std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT> *velocityMeshes_upload;
+   HANDLE_ERROR( cudaMalloc((void **)&velocityMeshes_upload, sizeof(std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT>)) );
+   HANDLE_ERROR( cudaMemcpy(velocityMeshes_upload, meshWrapper->velocityMeshes, sizeof(std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT>),cudaMemcpyHostToDevice) );
+   // Make wrapper point to device-side array
+   meshWrapper->velocityMeshes = velocityMeshes_upload;
+   // Allocate and copy meshwrapper on device
+   vmesh::MeshWrapper* MWdev;
+   HANDLE_ERROR( cudaMalloc((void **)&MWdev, sizeof(vmesh::MeshWrapper)) );
+   HANDLE_ERROR( cudaMemcpy(MWdev, meshWrapper, sizeof(vmesh::MeshWrapper),cudaMemcpyHostToDevice) );
+   // Set the global symbol of meshWrapper
    HANDLE_ERROR( cudaMemcpyToSymbol(meshWrapperDev, &MWdev, sizeof(vmesh::MeshWrapper*)) );
-   MWdev->prefetchDevice();
+   // Copy host-side address back
+   meshWrapper->velocityMeshes = temp;
+   // And sync
    HANDLE_ERROR( cudaDeviceSynchronize() );
 }
 #endif
 
 void vmesh::MeshWrapper::initVelocityMeshes(const uint nMeshes) {
+   // Verify lengths match?
+   if (meshWrapper->velocityMeshesCreation->size() != nMeshes) {
+      printf("Warning! Initializing only %d velocity meshes out of %d created ones.\n",nMeshes,
+             meshWrapper->velocityMeshesCreation->size());
+   }
+   // Create pointer to array of sufficient length
+   meshWrapper->velocityMeshes = new std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT>;
+
+   // Copy data in, also set auxiliary values
    for (uint i=0; i<nMeshes; ++i) {
       vmesh::MeshParameters* vMesh = &(meshWrapper->velocityMeshes->at(i));
-      // Duplicate definition of limits
+      vmesh::MeshParameters* vMeshIn = &(meshWrapper->velocityMeshesCreation->at(i));
+
+      vMesh->refLevelMaxAllowed = vMeshIn->refLevelMaxAllowed;
+      // Limits
+      vMesh->meshLimits[0] = vMeshIn->meshLimits[0];
+      vMesh->meshLimits[1] = vMeshIn->meshLimits[1];
+      vMesh->meshLimits[2] = vMeshIn->meshLimits[2];
+      vMesh->meshLimits[3] = vMeshIn->meshLimits[3];
+      vMesh->meshLimits[4] = vMeshIn->meshLimits[4];
+      vMesh->meshLimits[5] = vMeshIn->meshLimits[5];
+      // Grid length
+      vMesh->gridLength[0] = vMeshIn->gridLength[0];
+      vMesh->gridLength[1] = vMeshIn->gridLength[1];
+      vMesh->gridLength[2] = vMeshIn->gridLength[2];
+      // Block length
+      vMesh->blockLength[0] = vMeshIn->blockLength[0];
+      vMesh->blockLength[1] = vMeshIn->blockLength[1];
+      vMesh->blockLength[2] = vMeshIn->blockLength[2];
+
+      // Calculate derived mesh parameters:
       vMesh->meshMinLimits[0] = vMesh->meshLimits[0];
       vMesh->meshMinLimits[1] = vMesh->meshLimits[2];
       vMesh->meshMinLimits[2] = vMesh->meshLimits[4];
@@ -60,7 +97,6 @@ void vmesh::MeshWrapper::initVelocityMeshes(const uint nMeshes) {
       vMesh->meshMaxLimits[1] = vMesh->meshLimits[3];
       vMesh->meshMaxLimits[2] = vMesh->meshLimits[5];
 
-      // Calculate derived mesh parameters:
       vMesh->gridSize[0] = vMesh->meshMaxLimits[0] - vMesh->meshMinLimits[0];
       vMesh->gridSize[1] = vMesh->meshMaxLimits[1] - vMesh->meshMinLimits[1];
       vMesh->gridSize[2] = vMesh->meshMaxLimits[2] - vMesh->meshMinLimits[2];
@@ -74,19 +110,21 @@ void vmesh::MeshWrapper::initVelocityMeshes(const uint nMeshes) {
       vMesh->cellSize[2] = vMesh->blockSize[2] / vMesh->blockLength[2];
 
       vMesh->max_velocity_blocks
-         = vMesh->gridLength[0]
-         * vMesh->gridLength[1]
-         * vMesh->gridLength[2];
+         = vMeshIn->gridLength[0]
+         * vMeshIn->gridLength[1]
+         * vMeshIn->gridLength[2];
       vMesh->initialized = true;
    }
 #ifdef USE_CUDA
-   // Now all velocity meshes have been initialized on host
+   // Now all velocity meshes have been initialized on host, into
+   // the array. Now we need to upload a copy onto GPU.
    vmesh::MeshWrapper::uploadMeshWrapper();
+   // printf("Host printout\n");
+   // vmesh::printVelocityMesh(0);
+   // printf("Device printout\n");
+   // debug_kernel<<<1, 1, 0, 0>>> (0);
+   // HANDLE_ERROR( cudaDeviceSynchronize() );
 #endif
 
-   // vmesh::printVelocityMesh(0);
-   // dim3 block(1,1,1);
-   // debug_kernel<<<1, block, 0, 0>>> (0);
-   // HANDLE_ERROR( cudaDeviceSynchronize() );
    return;
 }

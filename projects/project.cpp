@@ -196,7 +196,7 @@ namespace projects {
          logFile << "\t charge           : '" << spec.charge << "'" << endl;
          logFile << "\t mass             : '" << spec.mass << "'" << endl;
          logFile << "\t sparse threshold : '" << spec.sparseMinValue << "'" << endl;
-         logFile << "\t velocity mesh    : '" << vmesh::getMeshWrapper()->velocityMeshes->at(spec.velocityMesh).name << "'" << endl;
+         logFile << "\t velocity mesh    : '" << vmesh::getMeshWrapper()->velocityMeshesCreation->at(spec.velocityMesh).name << "'" << endl;
          logFile << endl;
       }
       logFile << write;
