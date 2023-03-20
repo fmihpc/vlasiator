@@ -571,7 +571,7 @@ namespace vmesh {
    }
 
    inline void VelocityMesh::dev_prefetchHost() {
-      if (localToGlobalMap->size() == 0) return;
+      //if (localToGlobalMap->size() == 0) return; // This size check in itself causes a page fault
       // In fact we only need to prefetch the buckets inside the hashmap to GPU, but use this call.
       //Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *uploaded = globalToLocalMap->upload(cuda_getStream());
       globalToLocalMap->optimizeCPU(cuda_getStream());
@@ -580,7 +580,7 @@ namespace vmesh {
    }
 
    inline void VelocityMesh::dev_prefetchDevice() {
-      if (localToGlobalMap->size() == 0) return;
+      //if (localToGlobalMap->size() == 0) return; // This size check in itself causes a page fault
       // In fact we only need to prefetch the buckets inside the hashmap to GPU, but use this call.
       //Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *uploaded = globalToLocalMap->upload(cuda_getStream());
       globalToLocalMap->optimizeGPU(cuda_getStream());

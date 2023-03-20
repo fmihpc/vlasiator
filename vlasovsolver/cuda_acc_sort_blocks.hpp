@@ -42,7 +42,6 @@ struct ColumnOffsets : public Managed {
       columnNumBlocks.resize(nColumns);
       setColumnOffsets.resize(nColumns);
       setNumColumns.resize(nColumns);
-      std::cerr<<"Initializing columnOffsets with capacity "<<nColumns<<" = "<<setNumColumns.size()<<std::endl;
       columnBlockOffsets.clear();
       columnNumBlocks.clear();
       setColumnOffsets.clear();
