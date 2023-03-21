@@ -29,6 +29,9 @@
 #include "../definitions.h"
 #include "cuda_acc_sort_blocks.hpp"
 
+// Extra profiling stream synchronizations?
+#define SSYNC HANDLE_ERROR( cudaStreamSynchronize(stream) );
+
 // Ensure printing of CUDA runtime errors to console
 #define CUB_STDERR
 #include <cub/device/device_radix_sort.cuh>
@@ -367,7 +370,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
       default:
          printf("Incorrect dimension in cuda_acc_sort_blocks.cpp\n");
    }
-   HANDLE_ERROR( cudaStreamSynchronize(stream) );
+   SSYNC
    phiprof::stop("calc new dimension id");
 
    phiprof::start("CUB sort");
@@ -382,7 +385,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                    0, sizeof(vmesh::GlobalID)*8, stream);
    phiprof::start("cudamallocasync");
    HANDLE_ERROR( cudaMallocAsync((void**)&dev_temp_storage, temp_storage_bytes, stream) );
-   HANDLE_ERROR( cudaStreamSynchronize(stream) );
+   SSYNC
    phiprof::stop("cudamallocasync");
    //printf("allocated %d bytes of temporary memory for CUB SortPairs\n",temp_storage_bytes);
 
@@ -391,7 +394,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                    blocksID_mapped, blocksID_mapped_sorted,
                                    blocksLID_unsorted, blocksLID, nBlocks,
                                    0, sizeof(vmesh::GlobalID)*8, stream);
-   HANDLE_ERROR( cudaStreamSynchronize(stream) );
+   SSYNC
    HANDLE_ERROR( cudaFreeAsync(dev_temp_storage, stream) );
    phiprof::stop("CUB sort");
 
@@ -426,7 +429,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
       columnData,
       nBlocks
       );
-   HANDLE_ERROR( cudaStreamSynchronize(stream) );
+   SSYNC
    phiprof::stop("construct columns");
    // printf("\n Output for dimension %d ",dimension);
    // printf("\nColumnBlockOffsets %d\n", columnData->columnBlockOffsets.size());

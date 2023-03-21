@@ -595,11 +595,17 @@ namespace vmesh {
    }
 
    inline void VelocityMesh::dev_attachToStream(cudaStream_t stream = 0) {
-      // Attach unified memory regions to streams
+      // Attach unified memory regions to streams      
+      cudaStream_t newStream;
       if (stream==0) {
-         attachedStream = cuda_getStream();
+         newStream = cuda_getStream();
       } else {
-         attachedStream = stream;
+         newStream = stream;
+      }
+      if (newStream == attachedStream) {
+         return;
+      } else {
+         attachedStream = newStream;
       }
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,this, 0,cudaMemAttachSingle) );
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,globalToLocalMap, 0,cudaMemAttachSingle) );
@@ -614,6 +620,10 @@ namespace vmesh {
    }
    inline void VelocityMesh::dev_detachFromStream() {
       // Detach unified memory regions from streams
+      if (attachedStream == 0) {
+         // Already detached
+         return;
+      }
       attachedStream = 0;
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,this, 0,cudaMemAttachGlobal) );
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,globalToLocalMap, 0,cudaMemAttachGlobal) );
