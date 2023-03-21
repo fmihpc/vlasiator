@@ -33,7 +33,8 @@
 #endif
 
 // Extra profiling stream synchronizations?
-#define SSYNC HANDLE_ERROR( cudaStreamSynchronize(stream) );
+//#define SSYNC HANDLE_ERROR( cudaStreamSynchronize(stream) );
+#define SSYNC
 
 using namespace std;
 
@@ -837,7 +838,7 @@ namespace spatial_cell {
       phiprof::start("Prefetch map cpu");
       BlocksRequiredMap->optimizeCPU(stream);
       BlocksRequired->optimizeCPU(stream);
-      HANDLE_ERROR( cudaStreamSynchronize(stream) );
+      HANDLE_ERROR( cudaStreamSynchronize(stream) ); // This sync is required.
       phiprof::stop("Prefetch map cpu");
       for (auto it=BlocksRequiredMap->begin(); it != BlocksRequiredMap->end(); ++it) {
          BlocksRequired->push_back((*it).first);
@@ -1427,7 +1428,7 @@ namespace spatial_cell {
          velocity_block_with_no_content_list,
          velocity_block_min_value
          );
-      SSYNC
+      HANDLE_ERROR( cudaStreamSynchronize(stream) ); // This sync is required!
       phiprof::stop("CUDA update spatial cell block lists kernel");
 
       phiprof::start("CUDA upload content list to device");

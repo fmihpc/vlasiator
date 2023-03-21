@@ -39,7 +39,8 @@
 #include "cuda_acc_sort_blocks.hpp"
 
 // Extra profiling stream synchronizations?
-#define SSYNC HANDLE_ERROR( cudaStreamSynchronize(stream) );
+//#define SSYNC HANDLE_ERROR( cudaStreamSynchronize(stream) );
+#define SSYNC
 
 #define i_pcolumnv_cuda(j, k, k_block, num_k_blocks) ( ((j) / ( VECL / WID)) * WID * ( num_k_blocks + 2) + (k) + ( k_block + 1 ) * WID )
 #define i_pcolumnv_cuda_b(planeVectorIndex, k, k_block, num_k_blocks) ( planeVectorIndex * WID * ( num_k_blocks + 2) + (k) + ( k_block + 1 ) * WID )

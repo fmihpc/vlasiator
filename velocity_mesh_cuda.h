@@ -595,7 +595,7 @@ namespace vmesh {
    }
 
    inline void VelocityMesh::dev_attachToStream(cudaStream_t stream = 0) {
-      // Attach unified memory regions to streams      
+      // Attach unified memory regions to streams
       cudaStream_t newStream;
       if (stream==0) {
          newStream = cuda_getStream();

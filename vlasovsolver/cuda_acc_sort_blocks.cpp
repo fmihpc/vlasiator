@@ -30,7 +30,8 @@
 #include "cuda_acc_sort_blocks.hpp"
 
 // Extra profiling stream synchronizations?
-#define SSYNC HANDLE_ERROR( cudaStreamSynchronize(stream) );
+//#define SSYNC HANDLE_ERROR( cudaStreamSynchronize(stream) );
+#define SSYNC
 
 // Ensure printing of CUDA runtime errors to console
 #define CUB_STDERR
