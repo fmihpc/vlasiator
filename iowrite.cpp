@@ -1479,7 +1479,7 @@ bool writeGrid(
    phiprof::stop("metadataIO");
    phiprof::start("velocityspaceIO");
    if( writeVelocitySpace( mpiGrid, vlsvWriter, outputFileTypeIndex, local_cells ) == false ) {
-      phiprof::start("velocityspaceIO");
+      phiprof::stop("velocityspaceIO");
       return false;
    }
    phiprof::stop("velocityspaceIO");
@@ -1494,8 +1494,8 @@ bool writeGrid(
             BgBGrid, volGrid, technicalGrid,
             (P::writeAsFloat==1), P::systemWriteFsGrid.at(outputFileTypeIndex), *dataReducer, i, vlsvWriter ) == false
       ) {
-         phiprof::stop("reduceddataIO");
          phiprof::stop("writeDataReducer");
+         phiprof::stop("reduceddataIO");
          return false;
       }
    }
