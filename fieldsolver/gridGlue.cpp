@@ -161,14 +161,6 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 	sendBuffer.push_back(cellParams[CellParams::P_22_DT2]);
         sendBuffer.push_back(cellParams[CellParams::P_33_DT2]);
       }
-      std::cout << "rho_m = " << sendBuffer[sendBuffer.size()-8] << std::endl; 
-      std::cout << "rho_q = " << sendBuffer[sendBuffer.size()-7] << std::endl; 
-      std::cout << "Vx = "    << sendBuffer[sendBuffer.size()-6] << std::endl; 
-      std::cout << "Vy = "    << sendBuffer[sendBuffer.size()-5] << std::endl; 
-      std::cout << "Vz = "    << sendBuffer[sendBuffer.size()-4] << std::endl; 
-      std::cout << "P11 = "   << sendBuffer[sendBuffer.size()-3] << std::endl; 
-      std::cout << "P22 = "   << sendBuffer[sendBuffer.size()-2] << std::endl; 
-      std::cout << "P33 = "   << sendBuffer[sendBuffer.size()-1] << std::endl; 
     }
     int count = sendBuffer.size(); //note, compared to receive this includes all elements to be sent
     MPI_Isend(sendBuffer.data(), sendBuffer.size() * sizeof(Real),
