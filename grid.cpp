@@ -691,24 +691,26 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    phiprof::start("re-adjust blocks");
    SpatialCell::setCommunicatedSpecies(popID);
 
-   phiprof::start("Compute with_content_list");
    const vector<CellID>& cells = getLocalCells();
-   #pragma omp parallel for
+   #pragma omp parallel
+   {
+      phiprof::start("Compute with_content_list");
+      #pragma omp for schedule(dynamic,1)
 #ifdef USE_CUDA
-   for (uint i=0; i<cells.size(); ++i) {
-      mpiGrid[cells[i]]->dev_attachToStream();
-      mpiGrid[cells[i]]->updateSparseMinValue(popID);
-      mpiGrid[cells[i]]->update_velocity_block_content_lists(popID);
-      mpiGrid[cells[i]]->dev_detachFromStream();
-   }
+      for (uint i=0; i<cells.size(); ++i) {
+         mpiGrid[cells[i]]->dev_attachToStream();
+         mpiGrid[cells[i]]->updateSparseMinValue(popID);
+         mpiGrid[cells[i]]->update_velocity_block_content_lists(popID);
+         mpiGrid[cells[i]]->dev_detachFromStream();
+      }
 #else
-   for (uint i=0; i<cells.size(); ++i) {
-      mpiGrid[cells[i]]->updateSparseMinValue(popID);
-      mpiGrid[cells[i]]->update_velocity_block_content_lists(popID);
-   }
+      for (uint i=0; i<cells.size(); ++i) {
+         mpiGrid[cells[i]]->updateSparseMinValue(popID);
+         mpiGrid[cells[i]]->update_velocity_block_content_lists(popID);
+      }
 #endif
-   phiprof::stop("Compute with_content_list");
-
+      phiprof::stop("Compute with_content_list");
+   }
    // Note: We could try not updating remote lists unless explicitly wanting to keep remote contributions?
    phiprof::initializeTimer("Transfer with_content_list","MPI");
    phiprof::start("Transfer with_content_list");
@@ -718,65 +720,74 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
    phiprof::stop("Transfer with_content_list");
 
-   #ifdef USE_CUDA
+#ifdef USE_CUDA
    // Now loop over ghost cells and upload their velocity block lists into GPU memory
    const std::vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(NEAREST_NEIGHBORHOOD_ID);
-   #pragma omp parallel for
-   for(size_t i=0; i<remote_cells.size(); ++i) {
-      mpiGrid[remote_cells[i]]->dev_uploadContentLists();
+   #pragma omp parallel
+   {
+      phiprof::start("Upload with_content_list to device");
+      #pragma omp for schedule(dynamic,1)
+      for(size_t i=0; i<remote_cells.size(); ++i) {
+         mpiGrid[remote_cells[i]]->dev_uploadContentLists();
+      }
+      phiprof::stop("Upload with_content_list to device");
    }
-   #endif
+#endif
 
    //Adjusts velocity blocks in local spatial cells, doesn't adjust velocity blocks in remote cells.
-   phiprof::start("Adjusting blocks");
-   #pragma omp parallel for schedule(dynamic,8)
-   for (size_t i=0; i<cellsToAdjust.size(); ++i) {
-      Real density_pre_adjust=0.0;
-      Real density_post_adjust=0.0;
-      CellID cell_id=cellsToAdjust[i];
-      SpatialCell* cell = mpiGrid[cell_id];
+#pragma omp parallel
+   {
+      phiprof::start("Adjusting blocks");
+      //#pragma omp parallel for schedule(dynamic,1)
+#pragma omp for schedule(dynamic,1)
+      for (size_t i=0; i<cellsToAdjust.size(); ++i) {
+         Real density_pre_adjust=0.0;
+         Real density_post_adjust=0.0;
+         CellID cell_id=cellsToAdjust[i];
+         SpatialCell* cell = mpiGrid[cell_id];
 
-      // gather spatial neighbor list and create vector with pointers to neighbor spatial cells
-      const auto* neighbors = mpiGrid.get_neighbors_of(cell_id, NEAREST_NEIGHBORHOOD_ID);
-      // Note: at AMR refinement boundaries this can cause blocks to propagate further than absolutely required
-      vector<SpatialCell*> neighbor_ptrs;
-      neighbor_ptrs.reserve(neighbors->size());
+         // gather spatial neighbor list and create vector with pointers to neighbor spatial cells
+         const auto* neighbors = mpiGrid.get_neighbors_of(cell_id, NEAREST_NEIGHBORHOOD_ID);
+         // Note: at AMR refinement boundaries this can cause blocks to propagate further than absolutely required
+         vector<SpatialCell*> neighbor_ptrs;
+         neighbor_ptrs.reserve(neighbors->size());
 
-      for ( const auto& nbrPair : *neighbors) {
-         CellID neighbor_id = nbrPair.first;
-         if (neighbor_id == 0 || neighbor_id == cell_id) {
-            continue;
+         for ( const auto& nbrPair : *neighbors) {
+            CellID neighbor_id = nbrPair.first;
+            if (neighbor_id == 0 || neighbor_id == cell_id) {
+               continue;
+            }
+            neighbor_ptrs.push_back(mpiGrid[neighbor_id]);
          }
-         neighbor_ptrs.push_back(mpiGrid[neighbor_id]);
-      }
 
-      #ifdef USE_CUDA
-      cell->dev_attachToStream();
-      #endif
-      // CUDATODO: Vectorize / GPUify
-      if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
-         for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
-            density_pre_adjust += cell->get_data(popID)[i];
-         }
-      }
-      cell->adjust_velocity_blocks(neighbor_ptrs,popID);
-
-      // CUDATODO: Vectorize / GPUify
-      if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
-         for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
-            density_post_adjust += cell->get_data(popID)[i];
-         }
-         if (density_post_adjust != 0.0) {
+#ifdef USE_CUDA
+         cell->dev_attachToStream();
+#endif
+         // CUDATODO: Vectorize / GPUify
+         if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
             for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
-               cell->get_data(popID)[i] *= density_pre_adjust/density_post_adjust;
+               density_pre_adjust += cell->get_data(popID)[i];
             }
          }
+         cell->adjust_velocity_blocks(neighbor_ptrs,popID);
+
+         // CUDATODO: Vectorize / GPUify
+         if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
+            for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
+               density_post_adjust += cell->get_data(popID)[i];
+            }
+            if (density_post_adjust != 0.0) {
+               for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
+                  cell->get_data(popID)[i] *= density_pre_adjust/density_post_adjust;
+               }
+            }
+         }
+#ifdef USE_CUDA
+         cell->dev_detachFromStream();
+#endif
       }
-      #ifdef USE_CUDA
-      cell->dev_detachFromStream();
-      #endif
+      phiprof::stop("Adjusting blocks");
    }
-   phiprof::stop("Adjusting blocks");
 
    #ifdef USE_CUDA
    // Now loop over ghost cells and free up the temborary buffer memory
