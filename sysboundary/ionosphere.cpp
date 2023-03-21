@@ -1179,7 +1179,7 @@ namespace SBC {
                / ((nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BX]
                   + nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BY]
                   + nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ]*nodes[n].parameters[ionosphereParameters::UPMAPPED_BZ])
-               * physicalconstants::MU_0 * technicalGrid.DX
+               * physicalconstants::MU_0
             );
 
             // By definition, a downwards current into the ionosphere has a positive FAC value,

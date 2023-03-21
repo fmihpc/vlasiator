@@ -460,10 +460,10 @@ void calculateEdgeHallTermXComponents(
       Bz = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBZ)+BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBZ);
       
       hallRhoq =  (momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQ) <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQ) ;
-      EXHall = (Bz*((BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBxdz)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBxdz))/technicalGrid.DZ -
-                     (BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBzdx)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBzdx))/technicalGrid.DX) -
-                  By*((BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBydx)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBydx))/technicalGrid.DX-
-                     ((BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBxdy)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBxdy))/technicalGrid.DY)));
+      EXHall = Bz*(BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBxdz)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBxdz) -
+                  (BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBzdx)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBzdx))) -
+               By*(BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBydx)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBydx) -
+                  (BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBxdy)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBxdy)));
       EXHall /= physicalconstants::MU_0 * hallRhoq;
       
       EHallGrid.get(i,j,k)->at(fsgrids::ehall::EXHALL_000_100) =
@@ -558,10 +558,10 @@ void calculateEdgeHallTermYComponents(
       Bz = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBZ)+BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBZ);
       
       hallRhoq =  (momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQ) <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQ) ;
-      EYHall = (Bx*((BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBydx)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBydx))/technicalGrid.DX -
-                    (BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBxdy)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBxdy))/technicalGrid.DY) -
-                Bz*((BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBzdy)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBzdy))/technicalGrid.DY -
-                    ((BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBydz)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBydz))/technicalGrid.DZ )));
+      EYHall = Bx*(BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBydx)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBydx) -
+                  (BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBxdy)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBxdy))) -
+               Bz*(BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBzdy)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBzdy) -
+                  (BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBydz)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBydz)));
       EYHall /= physicalconstants::MU_0 * hallRhoq;
       
       EHallGrid.get(i,j,k)->at(fsgrids::ehall::EYHALL_000_010) =
@@ -656,10 +656,10 @@ void calculateEdgeHallTermZComponents(
      By = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBY)+BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBY);
      
      hallRhoq =  (momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQ) <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQ) ;
-     EZHall = (By*((BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBzdy)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBzdy))/technicalGrid.DY -
-              (BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBydz)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBydz))/technicalGrid.DZ) -
-           Bx*((BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBxdz)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBxdz))/technicalGrid.DZ -
-              ((BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBzdx)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBzdx))/technicalGrid.DX)));
+     EZHall = By*(BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBzdy)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBzdy) -
+                 (BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBydz)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBydz))) -
+              Bx*(BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBxdz)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBxdz) -
+                 (BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBzdx)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBzdx)));
      EZHall /= physicalconstants::MU_0 * hallRhoq;
 
      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EZHALL_000_001) =
