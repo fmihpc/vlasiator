@@ -266,7 +266,7 @@ void initializeGrids(
    technicalGrid.updateGhostCells(); // This needs to be done at some point
 
    if (!P::isRestart && !P::writeFullBGB) {
-      // If we're only after writing out the full BGB we don't need all this shebang
+      // If we're only after writing out the full BGB we don't need all this shebang EXCEPT the weights!
 
       //Initial state based on project, background field in all cells
       //and other initial values in non-sysboundary cells
@@ -328,7 +328,12 @@ void initializeGrids(
       phiprof::stop("Init moments");
       */
 
+   } else if (P::writeFullBGB) {
+      for (size_t i=0; i<cells.size(); ++i) {
+         mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 1;
+      }
    }
+
 
    // Balance load before we transfer all data below
    balanceLoad(mpiGrid, sysBoundaries);
