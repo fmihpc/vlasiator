@@ -2,7 +2,7 @@ CMP = CC
 LNK = CC
 
 # Modules loaded
-# module --force purge ; module load LUMI/22.08 ; module load cpeGNU ; module load papi
+# module --force purge ; module load LUMI/22.08 ; module load cpeGNU ; module load papi; module load Eigen
 
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length. 
