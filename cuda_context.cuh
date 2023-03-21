@@ -35,6 +35,10 @@
 #define CUDA_DEV
 #endif
 
+#ifdef _OPENMP
+  #include <omp.h>
+#endif
+
 #include "device_launch_parameters.h"
 #include "cuda.h"
 #include "cuda_runtime.h"

@@ -82,7 +82,12 @@ __host__ void cuda_acc_allocate (
       return;
    }
    // Deallocate before allocating new memory
-   for (uint i=0; i<omp_get_max_threads(); ++i) {
+#ifdef _OPENMP
+   const uint maxNThreads = omp_get_max_threads();
+#else
+   const uint maxNThreads = 1;
+#endif
+   for (uint i=0; i<maxNThreads; ++i) {
       if (cuda_acc_allocatedSize > 0) {
          cuda_acc_deallocate_memory(i);
       }
@@ -713,7 +718,11 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    phiprof::stop("stream Attach, prefetch");
 
    // Thread id used for persistent device memory pointers
-   const uint cpuThreadID = omp_get_thread_num();
+#ifdef _OPENMP
+      const uint cpuThreadID = omp_get_thread_num();
+#else
+      const uint cpuThreadID = 0;
+#endif
 
    phiprof::start("create columnOffsets in unified memory, attach, prefetch");
    // lists in unified memory

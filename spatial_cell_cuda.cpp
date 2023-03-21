@@ -24,7 +24,6 @@
 
 #include "spatial_cell_cuda.hpp"
 #include "cuda_context.cuh"
-
 #include "object_wrapper.h"
 #include "velocity_mesh_parameters.h"
 
@@ -722,7 +721,11 @@ namespace spatial_cell {
       const uint localNoContentBlocks = velocity_block_with_no_content_list->size();
 
       // stream etc
+#ifdef _OPENMP
       const uint thread_id = omp_get_thread_num();
+#else
+      const uint thread_id = 0;
+#endif
       cudaStream_t stream = cuda_getStream();
       int nCudaBlocks;
 
@@ -893,7 +896,11 @@ namespace spatial_cell {
       **/
       phiprof::start("CUDA add and remove blocks");
 
+#ifdef _OPENMP
       const uint thread_id = omp_get_thread_num();
+#else
+      const uint thread_id = 0;
+#endif
       cudaStream_t stream = cuda_getStream();
       int nCudaBlocks;
 

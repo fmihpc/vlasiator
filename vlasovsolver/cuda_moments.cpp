@@ -240,7 +240,11 @@ void cuda_calculateMoments_V(
    // Loop over all particle species
 #pragma omp parallel for
    for (size_t c=0; c<cells.size(); ++c) {
+#ifdef _OPENMP
       const uint thread_id = omp_get_thread_num();
+#else
+      const uint thread_id = 0;
+#endif
       cudaStream_t stream = cudaStreamList[thread_id];
       SpatialCell* cell = mpiGrid[cells[c]];
 
@@ -396,7 +400,11 @@ void cuda_calculateMoments_R(
    // Loop over all particle species
 #pragma omp parallel for
    for (size_t c=0; c<cells.size(); ++c) {
+#ifdef _OPENMP
       const uint thread_id = omp_get_thread_num();
+#else
+      const uint thread_id = 0;
+#endif
       cudaStream_t stream = cudaStreamList[thread_id];
       SpatialCell* cell = mpiGrid[cells[c]];
 
