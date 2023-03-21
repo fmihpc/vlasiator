@@ -34,8 +34,10 @@
 #include "../fieldsolver/fs_common.h"
 #include "../fieldsolver/fs_limiters.h"
 #include "../fieldsolver/ldz_magnetic_field.hpp"
+#include "../fieldtracing/fieldtracing.h"
 #include "../common.h"
 #include "../object_wrapper.h"
+
 
 #ifndef NDEBUG
    #define DEBUG_CONDUCTINGSPHERE
@@ -62,7 +64,6 @@ namespace SBC {
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          
-         Readparameters::add(pop + "_conductingsphere.taperRadius", "Width of the zone with a density tapering from the conducting sphere value to the background (m)", 0.0);
          Readparameters::add(pop + "_conductingsphere.rho", "Number density of the conductingsphere (m^-3)", 0.0);
          Readparameters::add(pop + "_conductingsphere.T", "Temperature of the conductingsphere (K)", 0.0);
          Readparameters::add(pop + "_conductingsphere.VX0", "Bulk velocity of conductospheric distribution function in X direction (m/s)", 0.0);
@@ -78,6 +79,7 @@ namespace SBC {
       Readparameters::get("conductingsphere.centerY", this->center[1]);
       Readparameters::get("conductingsphere.centerZ", this->center[2]);
       Readparameters::get("conductingsphere.radius", this->radius);
+      FieldTracing::fieldTracingParameters.innerBoundaryRadius = this->radius;
       Readparameters::get("conductingsphere.geometry", this->geometry);
       Readparameters::get("conductingsphere.precedence", this->precedence);
       uint reapply;

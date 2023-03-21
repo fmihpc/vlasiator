@@ -27,6 +27,7 @@
 #include <stdint.h>
 #include <string>
 #include <vector>
+#include <map>
 
 #include "definitions.h"
 
@@ -92,9 +93,12 @@ struct Parameters {
    static std::vector<int>
        systemWriteDistributionWriteShellStride; /*!< Every this many cells for those on selected shells write out their
                                                    velocity space in each class. */
+   static std::vector<bool> systemWriteFsGrid; /*!< Write fg_ variables in this file class or not.*/
    static std::vector<int> systemWrites;        /*!< How many files have been written of each class*/
    static std::vector<std::pair<std::string, std::string>>
        systemWriteHints; /*!< Collection of MPI-IO hints passed for non-restart IO. Pairs of key-value strings. */
+   static std::vector<std::pair<std::string, std::string>>
+       restartReadHints; /*!< Collection of MPI-IO hints passed for restart IO. Pairs of key-value strings. */
    static std::vector<std::pair<std::string, std::string>>
        restartWriteHints; /*!< Collection of MPI-IO hints passed for restart IO. Pairs of key-value strings. */
 
@@ -146,7 +150,7 @@ struct Parameters {
                                    in the Lorentz force and in the field solver.*/
 
    static std::string loadBalanceAlgorithm; /*!< Algorithm to be used for load balance.*/
-   static std::string loadBalanceTolerance; /*!< Load imbalance tolerance. */
+   static std::map<std::string, std::string> loadBalanceOptions;  // Other Load balancing options
    static uint rebalanceInterval;           /*!< Load rebalance interval (steps). */
    static bool prepareForRebalance; /**< If true, propagators should measure their time consumption in preparation
                                      * for mesh repartitioning.*/

@@ -10,7 +10,7 @@ ifneq (,$(findstring testpackage,$(MAKECMDGOALS)))
 	MATHFLAGS =
 	FP_PRECISION = DP
 	DISTRIBUTION_FP_PRECISION = DPF
-        COMPFLAGS += -DIONOSPHERE_SORTED_SUMS
+	COMPFLAGS += -DIONOSPHERE_SORTED_SUMS -DINITIALIZE_ALIGNED_MALLOC_WITH_NAN
 endif
 
 
@@ -233,7 +233,7 @@ DEPS_VLSVMOVER_VAMR = ${DEPS_CELL} vlasovsolver_amr/vlasovmover.cpp vlasovsolver
 OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipole.o vectordipole.o constantfield.o integratefunction.o \
 	datareducer.o datareductionoperator.o dro_populations.o \
 	donotcompute.o ionosphere.o conductingsphere.o outflow.o setbyuser.o setmaxwellian.o\
-	bulirschStoer.o dormandPrince.o euler.o eulerAdaptive.o fieldtracing.o \
+	fieldtracing.o \
 	sysboundary.o sysboundarycondition.o particle_species.o\
 	project.o projectTriAxisSearch.o read_gaussian_population.o\
 	Alfven.o Diffusion.o Dispersion.o Distributions.o Firehose.o\
@@ -338,18 +338,6 @@ ionosphere.o: ${DEPS_SYSBOUND} sysboundary/ionosphere.h sysboundary/ionosphere.c
 
 conductingsphere.o: ${DEPS_SYSBOUND} sysboundary/conductingsphere.h sysboundary/conductingsphere.cpp backgroundfield/backgroundfield.cpp backgroundfield/backgroundfield.h projects/project.h projects/project.cpp fieldsolver/fs_limiters.h
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c sysboundary/conductingsphere.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
-
-bulirschStoer.o: ${DEPS_TRACING} fieldtracing/bulirschStoer.h fieldtracing/bulirschStoer.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c fieldtracing/bulirschStoer.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_ZOLTAN}
-
-dormandPrince.o: ${DEPS_TRACING} fieldtracing/dormandPrince.h fieldtracing/dormandPrince.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c fieldtracing/dormandPrince.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_ZOLTAN}
-
-euler.o: ${DEPS_TRACING} fieldtracing/euler.h fieldtracing/euler.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c fieldtracing/euler.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_ZOLTAN}
-
-eulerAdaptive.o: ${DEPS_TRACING} fieldtracing/eulerAdaptive.h fieldtracing/eulerAdaptive.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c fieldtracing/eulerAdaptive.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_ZOLTAN}
 
 fieldtracing.o: ${DEPS_TRACING}
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c fieldtracing/fieldtracing.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_ZOLTAN} ${INC_EIGEN}
