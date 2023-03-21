@@ -26,7 +26,6 @@
 #include <vector>
 #include <sstream>
 #include <ctime>
-#include <omp.h>
 
 #ifdef _OPENMP
    #include <omp.h>
@@ -74,7 +73,6 @@ Logger logFile, diagnostic;
 static dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> mpiGrid;
 
 using namespace std;
-using namespace phiprof;
 
 int globalflags::bailingOut = 0;
 bool globalflags::writeRestart = 0;
