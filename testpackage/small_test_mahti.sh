@@ -14,7 +14,7 @@ export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 export OMP_PLACES=cores
 
 module purge
-module load StdEnv gcc openmpi boost papi jemalloc
+module load StdEnv gcc openmpi boost papi jemalloc openjdk
 
 ulimit -c unlimited
 
@@ -42,6 +42,7 @@ echo "Running $exec on $tasks mpi tasks, with $t threads per task on $nodes node
 #command for running stuff
 run_command="srun"
 small_run_command="srun -n 1"
+tau_command="tau_exec -T pthread,mpi,phiprof,papi"
 run_command_tools="srun -n 1"
 
 #get baseddir from PBS_O_WORKDIR if set (batch job), otherwise go to current folder
@@ -51,7 +52,6 @@ cd  $base_dir
 
 #If 1, the reference vlsv files are generated
 # if 0 then we check the v1
-create_verification_files=0
 
 bin="../vlasiator"
 diffbin="/projappl/project_2000203/vlsvdiff_DP"
