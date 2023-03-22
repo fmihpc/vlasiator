@@ -175,8 +175,8 @@ void reconstructionCoefficients(
    
    perturbedResult[Rec::b_xy] = (der_i1j2k1->at(fsgrids::dperb::dPERBydx) - der_i1j1k1->at(fsgrids::dperb::dPERBydx))*DX;
    perturbedResult[Rec::b_yz] = (der_i1j2k1->at(fsgrids::dperb::dPERBydz) - der_i1j1k1->at(fsgrids::dperb::dPERBydz))*DZ;
-   perturbedResult[Rec::b_x ] = HALF*(der_i1j2k1->at(fsgrids::dperb::dPERBydx) + der_i1j1k1->at(fsgrids::dperb::dPERBydx)) - SIXTH*perturbedResult[Rec::b_xyy];
-   perturbedResult[Rec::b_z ] = HALF*(der_i1j2k1->at(fsgrids::dperb::dPERBydz) + der_i1j1k1->at(fsgrids::dperb::dPERBydz)) - SIXTH*perturbedResult[Rec::b_yyz];
+   perturbedResult[Rec::b_x ] = HALF*(der_i1j2k1->at(fsgrids::dperb::dPERBydx) + der_i1j1k1->at(fsgrids::dperb::dPERBydx))*DX - SIXTH*perturbedResult[Rec::b_xyy];
+   perturbedResult[Rec::b_z ] = HALF*(der_i1j2k1->at(fsgrids::dperb::dPERBydz) + der_i1j1k1->at(fsgrids::dperb::dPERBydz))*DZ - SIXTH*perturbedResult[Rec::b_yyz];
    
    perturbedResult[Rec::c_xz] = (der_i1j1k2->at(fsgrids::dperb::dPERBzdx) - der_i1j1k1->at(fsgrids::dperb::dPERBzdx))*DX;
    perturbedResult[Rec::c_yz] = (der_i1j1k2->at(fsgrids::dperb::dPERBzdy) - der_i1j1k1->at(fsgrids::dperb::dPERBzdy))*DY;
