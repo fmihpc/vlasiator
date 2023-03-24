@@ -3,7 +3,6 @@
 #include <cmath>
 #include "../../definitions.h"
 
-typedef double Real;
 constexpr static int productionNumAccEnergies = 60;
 constexpr static int productionNumTemperatures = 60;
 constexpr static int productionNumParticleEnergies = 100;
