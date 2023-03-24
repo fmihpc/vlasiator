@@ -1,6 +1,7 @@
 #include <iostream>
 #include <array>
 #include <cmath>
+#include "../../definitions.h"
 
 typedef double Real;
 constexpr static int productionNumAccEnergies = 60;
