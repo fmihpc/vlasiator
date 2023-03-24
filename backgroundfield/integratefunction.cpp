@@ -108,7 +108,7 @@ double surfaceAverage(
       break;
       default:
          cerr << "*** SurfaceAverage  is bad\n";
-         exit(1);
+         exit(ExitCodes::FAILURE);
       break;
    }
    return value;

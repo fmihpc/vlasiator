@@ -81,7 +81,7 @@ void calculateVolumeAveragedFields(
                if (ok == false) {
                   stringstream ss;
                   ss << "ERROR, got NULL neighbor in " << __FILE__ << ":" << __LINE__ << endl;
-                  cerr << ss.str(); exit(1);
+                  cerr << ss.str(); exit(ExitCodes::FAILURE);
                }
                #endif
 
@@ -110,7 +110,7 @@ void calculateVolumeAveragedFields(
                if (ok == false) {
                   stringstream ss;
                   ss << "ERROR, got NULL neighbor in " << __FILE__ << ":" << __LINE__ << endl;
-                  cerr << ss.str(); exit(1);
+                  cerr << ss.str(); exit(ExitCodes::FAILURE);
                }
                #endif
 
@@ -139,7 +139,7 @@ void calculateVolumeAveragedFields(
                if (ok == false) {
                   stringstream ss;
                   ss << "ERROR, got NULL neighbor in " << __FILE__ << ":" << __LINE__ << endl;
-                  cerr << ss.str(); exit(1);
+                  cerr << ss.str(); exit(ExitCodes::FAILURE);
                }
                #endif
 

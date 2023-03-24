@@ -90,5 +90,6 @@ int main(int argc, char* argv[]) {
       ibeg  = iend;
       std::cout << std::endl;
    }
-
+   
+   return ExitCodes::SUCCESS;
 }

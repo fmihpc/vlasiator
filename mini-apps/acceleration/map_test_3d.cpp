@@ -160,4 +160,5 @@ int main(void) {
       }
     }
   }
+  return ExitCodes::SUCCESS;
 }

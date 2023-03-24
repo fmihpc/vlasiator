@@ -189,7 +189,7 @@ namespace projects {
       if (rank == MASTER_RANK) {
          cerr << "(Project.cpp) WARNING: Base class 'setCellBackgroundField' in " << __FILE__ << ":" << __LINE__ << " called." << endl;
       }
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
    
    void Project::hook(
@@ -333,7 +333,7 @@ namespace projects {
          const vmesh::LocalID blockLID = vmesh.getLocalID(blockGID);
          if (blockLID == vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
             cerr << "ERROR, invalid local ID in " << __FILE__ << ":" << __LINE__ << endl;
-            exit(1);
+            exit(ExitCodes::FAILURE);
          }
 
          const Real maxValue = setVelocityBlock(cell,blockLID,popID);
@@ -450,7 +450,7 @@ namespace projects {
       if (rank == MASTER_RANK) {
          cerr << "(Project.cpp) WARNING: Base class 'calcCellParameters' in " << __FILE__ << ":" << __LINE__ << " called." << endl;
       }
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
    
    /*!
@@ -458,7 +458,7 @@ namespace projects {
    */
    Real Project::getCorrectNumberDensity(spatial_cell::SpatialCell* cell,const uint popID) const {
       cerr << "ERROR: Project::getCorrectNumberDensity called instead of derived class function!" << endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
       return 0.0;
    }
 

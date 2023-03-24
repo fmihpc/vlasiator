@@ -80,7 +80,7 @@ enum gridType{
 static uint64_t convUInt(const char* ptr, const vlsv::datatype::type& dataType, const uint64_t& dataSize) {
    if (dataType != vlsv::datatype::type::UINT) {
       cerr << "Erroneous datatype given to convUInt" << endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
 
    switch (dataSize) {
@@ -712,7 +712,7 @@ bool convertSILO(const string fileName,
    list<string> meshNames;
    if (vlsvReader.getMeshNames(meshNames) == false) {
       cerr << "Failed to read mesh names" << endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
 
    // Clear old data
@@ -1839,7 +1839,7 @@ int main(int argn,char* args[]) {
 
    if (attributes.find("--help") != attributes.end()) {
       printHelp(defAttribs,descriptions);
-      return 0;
+      return ExitCodes::SUCCESS;
    }
 
 
@@ -1856,7 +1856,7 @@ int main(int argn,char* args[]) {
       cout << endl;
       cout << "Type ./vlsvdiff --help for more info" << endl;
       cout << endl;
-      return 1;
+      return ExitCodes::FAILURE;
    }
 
    // 1st arg is file1 name
@@ -1933,7 +1933,7 @@ int main(int argn,char* args[]) {
 
       closedir(dir1);
       closedir(dir2);
-      return 1;
+      return ExitCodes::FAILURE;
    }
    else if (dir1 != NULL && dir2 != NULL)
    {
@@ -1949,7 +1949,7 @@ int main(int argn,char* args[]) {
       if(fileList1.size() != fileList2.size())
       {
          cerr << "ERROR Folders have different number of files." << endl;
-         return 1;
+         return ExitCodes::FAILURE;
       }
       
       set<string>::iterator it1, it2;
@@ -1967,5 +1967,5 @@ int main(int argn,char* args[]) {
    }
 
    MPI_Finalize();
-   return 0;
+   return ExitCodes::SUCCESS;
 }

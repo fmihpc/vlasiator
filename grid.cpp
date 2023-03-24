@@ -108,7 +108,7 @@ void initializeGrids(
    float zoltanVersion;
    if (Zoltan_Initialize(argn,argc,&zoltanVersion) != ZOLTAN_OK) {
       if(myRank == MASTER_RANK) cerr << "\t ERROR: Zoltan initialization failed." << endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    } else {
       logFile << "\t Zoltan " << zoltanVersion << " initialized successfully" << std::endl << writeVerbose;
    }
@@ -168,11 +168,10 @@ void initializeGrids(
       if(!verifyRestartFile(P::restartFileName))
       {
          if (myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ << " Verification of the restart file failed." <<std::endl;
-         exit(1);
+         exit(ExitCodes::RESTART_READ_FAILURE);
       }
       else{
-         if (myRank == MASTER_RANK) std::cerr << __FILE__ << ":" << __LINE__ <<  "Success! But I'll bail out just because." <<std::endl;
-         exit(1);
+         if (myRank == MASTER_RANK) std::cout << __FILE__ << ":" << __LINE__ <<  "Success! But I'll bail out just because." <<std::endl;
       }
       if (readFileCells(mpiGrid, P::restartFileName)) {
          mpiGrid.balance_load();
@@ -213,7 +212,7 @@ void initializeGrids(
    phiprof::start("Initialize system boundary conditions");
    if(sysBoundaries.initSysBoundaries(project, P::t_min) == false) {
       if (myRank == MASTER_RANK) cerr << "Error in initialising the system boundaries." << endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
    phiprof::stop("Initialize system boundary conditions");
    
@@ -224,7 +223,7 @@ void initializeGrids(
    phiprof::start("Classify cells (sys boundary conditions)");
    if(sysBoundaries.classifyCells(mpiGrid,technicalGrid) == false) {
       cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
    phiprof::stop("Classify cells (sys boundary conditions)");
    
@@ -233,7 +232,7 @@ void initializeGrids(
       phiprof::start("Read restart");
       if (readGrid(mpiGrid,perBGrid,EGrid,technicalGrid,P::restartFileName) == false) {
          logFile << "(MAIN) ERROR: restarting failed" << endl;
-         exit(1);
+         exit(ExitCodes::RESTART_READ_FAILURE); // Do these have automatically recoverable failure modes?
       }
       phiprof::stop("Read restart");
 
@@ -258,7 +257,7 @@ void initializeGrids(
    phiprof::start("Check boundary refinement");
    if(!sysBoundaries.checkRefinement(mpiGrid)) {
       cerr << "(MAIN) WARNING: Boundary cells don't have identical refinement level " << endl;
-      //exit(1);
+      //exit(ExitCodes::FAILURE);
    }
    phiprof::stop("Check boundary refinement");
 
@@ -267,7 +266,7 @@ void initializeGrids(
       phiprof::start("Apply system boundary conditions state");
       if (sysBoundaries.applyInitialState(mpiGrid, technicalGrid, perBGrid, project) == false) {
          cerr << " (MAIN) ERROR: System boundary conditions initial state was not applied correctly." << endl;
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
       phiprof::stop("Apply system boundary conditions state");
    }
@@ -302,7 +301,7 @@ void initializeGrids(
       phiprof::start("Apply system boundary conditions state");
       if (sysBoundaries.applyInitialState(mpiGrid, technicalGrid, perBGrid, project) == false) {
          cerr << " (MAIN) ERROR: System boundary conditions initial state was not applied correctly." << endl;
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
       phiprof::stop("Apply system boundary conditions state");
       
@@ -640,7 +639,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    if (Parameters::propagateField == true) {
       if (initializeFieldPropagatorAfterRebalance() == false) {
          logFile << "(MAIN): Field propagator did not initialize correctly!" << endl << writeVerbose;
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
    }
    
@@ -1489,7 +1488,7 @@ bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGri
 	// This needs to be done before LB
    if(sysBoundaries.classifyCells(mpiGrid,technicalGrid) == false) {
       cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
 
    //SpatialCell::set_mpi_transfer_type(Transfer::ALL_DATA);

@@ -371,7 +371,7 @@ int main(int argc, char** argv) {
       cerr << "Syntax: fluxfunction input.vlsv output.bin" << endl;
       cerr << "Output will be two files: output.bin and output.bin.bov." << endl;
       cerr << "Point visit to the BOV file." << endl;
-      return 1;
+      return ExitCodes::FAILURE;
    }
    string inFile(argv[1]);
    string outFile(argv[2]);
@@ -384,7 +384,7 @@ int main(int argc, char** argv) {
    if(B.dimension[0]->cells > 1 && B.dimension[1]->cells > 1 && B.dimension[2]->cells > 1) {
          cerr << "This is a 3D simulation output. Flux function calculation only makes sense for 2D data."
             << endl;
-         exit(1);
+         exit(ExitCodes::FAILURE);
    }
 
    cerr << "File read, calculating flux function..." << endl;
@@ -446,5 +446,5 @@ int main(int argc, char** argv) {
 
    fclose(f);
 
-   return 0;
+   return ExitCodes::SUCCESS;
 }

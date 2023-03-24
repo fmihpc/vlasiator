@@ -314,4 +314,5 @@ int main(void) {
  printf("\nTime per iteration: %12.15g\n", ((double)(clock() - t)/CLOCKS_PER_SEC)/iterations);
 
 // print_values(iterations,values,blocks_per_dim, v_min, dv);
+ return ExitCodes::SUCCESS;
 }

@@ -105,7 +105,7 @@ bool propagateFields(
    
    if(subcycles == 0) {
       cerr << "Field solver subcycles cannot be 0." << endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
    
    const int* gridDims = &technicalGrid.getLocalSize()[0];

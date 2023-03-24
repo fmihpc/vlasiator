@@ -94,7 +94,7 @@ int main(int argc, char** argv) {
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       if(myRank==MASTER_RANK)
          cerr << "(MAIN): MPI_Init_thread failed! Got " << provided << ", need "<<required <<endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
    const int masterProcessID = 0;
    logFile.open(MPI_COMM_WORLD, masterProcessID, "logfile.txt");
@@ -178,7 +178,7 @@ int main(int argc, char** argv) {
       cerr << " -np:       DON'T use the matrix preconditioner (default: do)" << endl;
       cerr << " -maxIter:  Maximum number of solver iterations" << endl;
       
-      return 1;
+      return ExitCodes::FAILURE;
    }
 
    phiprof::initialize();
@@ -203,7 +203,7 @@ int main(int argc, char** argv) {
       ionosphereGrid.gaugeFixing = SphericalTriGrid::None;
    } else {
       cerr << "Unknown gauge fixing method " << gaugeFixString << endl;
-      return 1;
+      return ExitCodes::FAILURE;
    }
    
    // Refine the base shape to acheive desired resolution
@@ -276,7 +276,7 @@ int main(int argc, char** argv) {
          assignConductivityTensor(nodes, sigmaP, sigmaH);
    } else {
       cerr << "Conductivity tensor " << sigmaString << " not implemented!" << endl;
-      return 1;
+      return ExitCodes::FAILURE;
    }
 
 
@@ -351,7 +351,7 @@ int main(int argc, char** argv) {
       }
    } else {
       cerr << "FAC pattern " << sigmaString << " not implemented!" << endl;
-      return 1;
+      return ExitCodes::FAILURE;
    }
 
    ionosphereGrid.initSolver(true);
@@ -454,5 +454,5 @@ int main(int argc, char** argv) {
    cout << "--- OUTPUT WRITTEN TO output.vlsv ---" << endl;
 
    cout << "--- DONE. ---" << endl;
-   return 0;
+   return ExitCodes::SUCCESS;
 }

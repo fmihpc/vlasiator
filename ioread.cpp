@@ -128,7 +128,7 @@ bool exitOnError(bool success, const string& message, MPI_Comm comm) {
    }
    else{
       logFile << message << endl<<write ;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
 }
 
@@ -1357,19 +1357,6 @@ bool readFileCells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    return success;
 }
 
-uint64_t convUInt64(const char* const ptr,const bool& swapEndian) {
-      if (swapEndian == false) return *(reinterpret_cast<const uint64_t*>(ptr));
-      int index = 0;
-      uint64_t tmp = 0;
-      char* const ptrtmp = reinterpret_cast<char*>(&tmp);
-      for (int i=sizeof(uint64_t)-1; i>=0; --i) {
-	 ptrtmp[index] = ptr[i];
-	 ++index;
-      }
-      return tmp;
-   }
-   
-
 /*!
  * \brief Check if the restart file is intact.
  * \param name Name of the restart file 
@@ -1377,34 +1364,44 @@ uint64_t convUInt64(const char* const ptr,const bool& swapEndian) {
 */
 bool verifyRestartFile(const std::string& name)
 {
+   uint checklength = 16; // How many bytes to check
    std::ifstream file;
    std::string buffer;
-   buffer.resize(16);
+   int myRank;
+   MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+
+   buffer.resize(checklength);
    file.open(name, fstream::in | fstream::binary);
    if(file.is_open()){
-      file.seekg(8);
-      file.read(buffer.data(),8);
-      cout << convUInt64(buffer.data()) <<std::endl;
+      // reads in the vlsv footer location, not used
+      // file.seekg(8);
+      // file.read(buffer.data(),8);
+      // cout << convUInt64(buffer.data()) <<std::endl; // see vlsv for convUInt64
       file.seekg(0,ios_base::end);
       uint length = file.tellg();
-      if(length < 16){
+      if(length < checklength){
          std::cerr << "Suspiciously small vlsv file (<16 bytes). Bailing" << std::endl;
-         return 0;
-      } else{
-         file.seekg(-16,ios_base::end);
-         file.read(buffer.data(), 16);
-         if(buffer.find("</VLSV>") != std::string::npos){
-            std::cout << "File has </VLSV> at its end, this is promising and will not bailout." << std::endl;
-            return 1;
+         return false;
+      } else {
+         file.seekg(-checklength,ios_base::end);
+         file.read(buffer.data(), checklength);
+         if(buffer.find("</VLSV>") != std::string::npos) {
+            //std::cout << "File has </VLSV> at its end, this is promising and will not bailout." << std::endl;
+            return true;
          }
-         else{
-            std::cout << "End of VLSV footer not found at the end of the file. This is suspicious, I will bail. 16 last bytes of the file are: " << buffer << std::endl;
-            return 0;
+         else {
+            std:stringstream tempout;
+            tempout << "(" << myRank << ") End of VLSV footer not found at the end of the file. This is suspicious, I will bail. 16 last bytes of the file are: \t" << std::hex;
+            for (int i = 0; i<checklength; ++i){
+               tempout << (int)(buffer.data()[i]) << " ";
+            }
+            tempout << std::endl;
+            std::cerr << tempout.str();
+            return false;
          }
-         
       }
    }
-   else{
-      return 0;
+   else {
+      return false;
    }
 }

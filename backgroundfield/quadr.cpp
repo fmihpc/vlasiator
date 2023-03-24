@@ -140,7 +140,7 @@ static void ratint(const double xa[], const double ya[], int n, double x, double
          dd = t - C[i+1];
          if (dd == 0) {
             cerr << "*** Error in ratint\n";
-            exit(111);
+            exit(ExitCodes::NUMERIC_FAILURE);
          }
          // this error occurs if the interpolating function has a pole at the requested value of x
          dd = w/dd;

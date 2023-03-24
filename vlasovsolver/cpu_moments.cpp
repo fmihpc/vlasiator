@@ -195,7 +195,7 @@ void calculateMoments_R(
              ss << "\t &data = " << data << "\t &blockParams = " << blockParams << endl;
              ss << "\t size = " << blockContainer.size() << endl;
              cerr << ss.str();
-             exit(1);
+             exit(ExitCodes::FAILURE);
           }
           #endif
 

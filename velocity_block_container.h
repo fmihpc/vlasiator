@@ -128,7 +128,7 @@ namespace vmesh {
             ss << "or sizes are wrong, data.size()=" << block_data.size() << " parameters.size()=" << parameters.size() << std::endl;
             std::cerr << ss.str();
             sleep(1);
-            exit(1);
+            exit(ExitCodes::FAILURE);
          }
       #endif
 
@@ -148,7 +148,7 @@ namespace vmesh {
       ss << "Invalid localID " << localID << " used in function '" << funcName << "' max allowed value is " << numberOfBlocks << std::endl;
       std::cerr << ss.str();
       sleep(1);
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
    
    template<typename LID> inline
@@ -235,7 +235,7 @@ namespace vmesh {
          ss << "\t data.size()=" << block_data.size()  << " parameters.size()=" << parameters.size() << std::endl;
          std::cerr << ss.str();
          sleep(1);
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
       #endif
 
@@ -337,7 +337,7 @@ namespace vmesh {
          ss << "VBC ERROR: out of bounds in getData, LID=" << blockLID << " cell=" << cell << " #blocks=" << numberOfBlocks << " data.size()=" << block_data.size() << std::endl;
          std::cerr << ss.str();
          sleep(1);
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
 
       return block_data[blockLID*WID3+cell];
@@ -354,7 +354,7 @@ namespace vmesh {
          ss << "VBC ERROR: out of bounds in getParameters, LID=" << blockLID << " cell=" << cell << " #blocks=" << numberOfBlocks << " parameters.size()=" << parameters.size() << std::endl;
          std::cerr << ss.str();
          sleep(1);
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
       
       return parameters[blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS+cell];
@@ -371,7 +371,7 @@ namespace vmesh {
          ss << "VBC ERROR: out of bounds in setData, LID=" << blockLID << " cell=" << cell << " #blocks=" << numberOfBlocks << " data.size()=" << block_data.size() << std::endl;
          std::cerr << ss.str();
          sleep(1);
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
       
       block_data[blockLID*WID3+cell] = value;

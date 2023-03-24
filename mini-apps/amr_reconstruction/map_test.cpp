@@ -72,7 +72,7 @@ void propagate(Vec dr[], Vec values[], Real z_translation, uint blocks_per_dim )
          if( abs(z_1) > 1.0 || abs(z_2) > 1.0 ) {
             std::cout << "Error, CFL condition violated\n";
             std::cout << "Exiting\n";
-            std::exit(1);
+            std::exit(ExitCodes::FAILURE);
          }
          
          // Compute polynomial coefficients
@@ -229,5 +229,6 @@ int main(void) {
       if ((istep+1) % 10 == 0)
          print_reconstruction(istep+1, dr, values, blocks_per_dim, r_min);
    }
-  
+   
+  return ExitCodes::SUCCESS;
 }

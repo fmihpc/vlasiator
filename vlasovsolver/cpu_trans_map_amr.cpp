@@ -770,7 +770,7 @@ void propagatePencil(
          // if( horizontal_or(abs(z_1) > Vec(1.0)) || horizontal_or(abs(z_2) > Vec(1.0)) ) {
          //    std::cout << "Error, CFL condition violated\n";
          //    std::cout << "Exiting\n";
-         //    std::exit(1);
+         //    std::exit(ExitCodes::FAILURE);
          // }
          
          for (uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++) {   
@@ -1903,14 +1903,14 @@ void update_remote_mapping_contribution_amr(
                      
                      ccell->neighbor_block_data.at(sendIndex) = pcell->get_data(popID);
                      send_cells.insert(nbr);
-                                                               
+
                   } else {
 
                      // The receiving cell can't know which cell is sending the data from this rank.
                      // Therefore, we have to send 0's from other cells in the case where multiple cells
                      // from one rank are sending to the same remote cell so that all sent cells can be
                      // summed for the correct result.
-                     
+
                      ccell->neighbor_block_data.at(sendIndex) =
                         (Realf*) aligned_malloc(ccell->neighbor_number_of_blocks.at(sendIndex) * WID3 * sizeof(Realf), 64);
                      sendBuffers.push_back(ccell->neighbor_block_data.at(sendIndex));

@@ -103,7 +103,7 @@ namespace spatial_cell {
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
          std::cerr << __FILE__ << ":" << __LINE__ << std::endl;             
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
       #endif
       
@@ -156,14 +156,14 @@ namespace spatial_cell {
             #ifdef DEBUG_SPATIAL_CELL
             if (blockGID == invalid_global_id()) {
                cerr << "Got invalid block at " << __FILE__ << ' ' << __LINE__ << endl; 
-               exit(1);
+               exit(ExitCodes::FAILURE);
             }             
             #endif
             const vmesh::LocalID blockLID = get_velocity_block_local_id(blockGID,popID);            
             #ifdef DEBUG_SPATIAL_CELL
             if (blockLID == invalid_local_id()) {
                cerr << "Could not find block in " << __FILE__ << ' ' << __LINE__ << endl; 
-               exit(1);
+               exit(ExitCodes::FAILURE);
             }
             #endif
             
@@ -234,14 +234,14 @@ namespace spatial_cell {
             #ifdef DEBUG_SPATIAL_CELL
                if (blockGID == invalid_global_id()) {
                   cerr << "Got invalid block at " << __FILE__ << ' ' << __LINE__ << endl;
-                  exit(1); 
+                  exit(ExitCodes::FAILURE); 
                }
             #endif
             const vmesh::LocalID blockLID = get_velocity_block_local_id(blockGID,popID);
             #ifdef DEBUG_SPATIAL_CELL
                if (blockLID == invalid_local_id()) {
                   cerr << "Could not find block in " << __FILE__ << ' ' << __LINE__ << endl;
-                  exit(1);
+                  exit(ExitCodes::FAILURE);
                }
             #endif
             
@@ -358,7 +358,7 @@ namespace spatial_cell {
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
          std::cerr << __FILE__ << ":" << __LINE__ << std::endl;             
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
       #endif
       
@@ -375,7 +375,7 @@ namespace spatial_cell {
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
          std::cerr << __FILE__ << ":" << __LINE__ << std::endl;             
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
       #endif
 
@@ -424,7 +424,7 @@ namespace spatial_cell {
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
          std::cerr << __FILE__ << ":" << __LINE__ << std::endl;             
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
       #endif
       
@@ -507,7 +507,7 @@ namespace spatial_cell {
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
          std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
       #endif
                                               
@@ -536,7 +536,7 @@ namespace spatial_cell {
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
          std::cerr << __FILE__ << ":" << __LINE__ << std::endl;             
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
       #endif
       
@@ -551,7 +551,7 @@ namespace spatial_cell {
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
          std::cerr << __FILE__ << ":" << __LINE__ << std::endl;             
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
       #endif
       
@@ -862,7 +862,7 @@ namespace spatial_cell {
          if (blockLID == invalid_local_id()) {
             cerr << "ERROR: Failed to merge values, block does not exist!" << endl;
             cerr << "\t exiting from " << __FILE__ << ':' << __LINE__ << endl;
-            exit(1);
+            exit(ExitCodes::FAILURE);
          }
          #endif
 
@@ -904,7 +904,7 @@ namespace spatial_cell {
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
          std::cerr << __FILE__ << ":" << __LINE__ << std::endl;             
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
       #endif
       
@@ -951,7 +951,7 @@ namespace spatial_cell {
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
          std::cerr << __FILE__ << ":" << __LINE__ << std::endl;             
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
       #endif
       
@@ -1325,7 +1325,7 @@ namespace spatial_cell {
       if (popID >= getObjectWrapper().particleSpecies.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds species.size() " << getObjectWrapper().particleSpecies.size() << " in ";
          std::cerr << __FILE__ << ":" << __LINE__ << std::endl;             
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
       #endif
       
@@ -1342,7 +1342,7 @@ namespace spatial_cell {
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
          std::cerr << __FILE__ << ":" << __LINE__ << std::endl;             
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
       #endif
       
@@ -1358,7 +1358,7 @@ namespace spatial_cell {
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
          std::cerr << __FILE__ << ":" << __LINE__ << std::endl;             
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
       #endif
       
@@ -1393,7 +1393,7 @@ namespace spatial_cell {
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
          std::cerr << __FILE__ << ":" << __LINE__ << std::endl;             
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
       #endif
       

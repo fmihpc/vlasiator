@@ -474,7 +474,7 @@ void calculateEdgeElectricFieldX(
    if (technicalGrid.get(i,j,k-1) == NULL) ok = false;
    if (ok == false) {
       cerr << "NULL pointer in " << __FILE__ << ":" << __LINE__ << std::endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
    #endif
 
@@ -832,7 +832,7 @@ void calculateEdgeElectricFieldY(
    if (technicalGrid.get(i-1,j,k-1) == NULL) ok = false;
    if (ok == false) {
       cerr << "NULL pointer in " << __FILE__ << ":" << __LINE__ << std::endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
    #endif
    
@@ -1189,7 +1189,7 @@ void calculateEdgeElectricFieldZ(
    if (technicalGrid.get(i,j-1,k) == NULL) ok = false;
    if (ok == false) {
       cerr << "NULL pointer in " << __FILE__ << ":" << __LINE__ << std::endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
    }
    #endif
 

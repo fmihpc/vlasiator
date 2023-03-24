@@ -23,7 +23,7 @@ int main(int argc, char** argv) {
 
 	if(argc < 3) {
 		std::cerr << "Syntax: differentialFlux <Density (1/m³)> <Temperature (K)>" << std::endl;
-		return 1;
+		return ExitCodes::FAILURE;
 	}
 	Real rhon = atof(argv[1]);
 	Real T = atof(argv[2]);
@@ -59,5 +59,5 @@ int main(int argc, char** argv) {
 		std::cout << particle_energy[p] << "\t" << rhon*differentialFlux[p] << std::endl;
 	}
 
-	return 0;
+	return ExitCodes::SUCCESS;
 }

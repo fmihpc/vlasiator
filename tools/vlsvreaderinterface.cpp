@@ -29,7 +29,7 @@ namespace vlsvinterface {
    static uint64_t convUInt(const char* ptr, const vlsv::datatype::type & dataType, const uint64_t& dataSize) {
       if (dataType != vlsv::datatype::type::UINT) {
          cerr << "Erroneous datatype given to convUInt" << endl;
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
       switch (dataSize) {
        case 1:
@@ -63,7 +63,7 @@ namespace vlsvinterface {
          return version;
       } else {
          cerr << "Invalid version!" << endl;
-         exit(1);
+         exit(ExitCodes::FAILURE);
          return 0;
       }
    }

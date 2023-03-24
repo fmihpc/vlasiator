@@ -207,21 +207,21 @@ bool ParticleParameters::getParameters() {
    Readparameters::get("particles.boundary_behaviour_x",tempstring);
    if(boundaryLookup.find(tempstring) == boundaryLookup.end()) {
       std::cerr << "Error: invalid boundary condition \"" << tempstring << "\" in x-direction" << std::endl;
-      exit(0);
+      exit(ExitCodes::FAILURE);
    } else {
       P::boundary_behaviour_x = boundaryLookup[tempstring](0);
    }
    Readparameters::get("particles.boundary_behaviour_y",tempstring);
    if(boundaryLookup.find(tempstring) == boundaryLookup.end()) {
       std::cerr << "Error: invalid boundary condition \"" << tempstring << "\" in y-direction" << std::endl;
-      exit(0);
+      exit(ExitCodes::FAILURE);
    } else {
       P::boundary_behaviour_y = boundaryLookup[tempstring](1);
    }
    Readparameters::get("particles.boundary_behaviour_z",tempstring);
    if(boundaryLookup.find(tempstring) == boundaryLookup.end()) {
       std::cerr << "Error: invalid boundary condition \"" << tempstring << "\" in z-direction" << std::endl;
-      exit(0);
+      exit(ExitCodes::FAILURE);
    } else {
       P::boundary_behaviour_z = boundaryLookup[tempstring](2);
    }

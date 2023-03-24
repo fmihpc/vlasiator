@@ -157,7 +157,7 @@ void addUpstreamBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiG
       if (blockParams == NULL) {
          std::cerr << "ERROR, cell " << cellID << " got NULL blockParams in " << __FILE__ << ' ' << __LINE__ << std::endl;
          std::cerr << "\t blockLID=" << blockLID << " nbr=" << cells[0] << std::endl;
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
       #endif
 
@@ -171,7 +171,7 @@ void addUpstreamBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiG
          if (V >= 0) continue; }
          break;
        default:
-         std::cerr << "ERROR, invalid DIR in " << __FILE__ << ' ' << __LINE__ << std::endl; exit(1);
+         std::cerr << "ERROR, invalid DIR in " << __FILE__ << ' ' << __LINE__ << std::endl; exit(ExitCodes::FAILURE);
          break;
       }
 
@@ -223,7 +223,7 @@ void createTargetMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
       break;
     default:
       std::cerr << "create error" << std::endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
       break;
    }
 
@@ -425,7 +425,7 @@ inline void store_trans_block_data(const dccrg::Dccrg<SpatialCell,dccrg::Cartesi
       cell_indices_to_id[1]=1;
       cell_indices_to_id[2]=1;
       cerr << "Dimension argument wrong: " << dimension << " at " << __FILE__ << ":" << __LINE__ << endl;
-      exit(1);
+      exit(ExitCodes::FAILURE);
       break;
    }
    
@@ -529,7 +529,7 @@ void getTargetArrays(const vmesh::GlobalID targetGID,const int& dim,SpatialCell*
       if (nbrBlockLIDs.size() != 8) {
           std::cerr << "ERROR occurred, children.size() " << nbrBlockLIDs.size() << std::endl;
           std::cerr << "targetGID " << targetGID << " ref level " << std::endl;
-          exit(1);
+          exit(ExitCodes::FAILURE);
       }*/
       if (nbrBlockLIDs.size() != 8) {
           //std::cerr << "error failed to find target block for GID " << targetGID;
@@ -571,7 +571,7 @@ void getTargetArrays(const vmesh::GlobalID targetGID,const int& dim,SpatialCell*
          break;
        default:
          std::cerr << "ERROR in translation, incorrect dimension in " << __FILE__ << ' ' << __LINE__ << std::endl;
-         exit(1);
+         exit(ExitCodes::FAILURE);
          break;
       }
    }   
@@ -864,7 +864,7 @@ void update_remote_mapping_contribution(dccrg::Dccrg<SpatialCell,dccrg::Cartesia
          break;
        default:
          cerr << "Dimension wrong at (impossible!) "<< __FILE__ <<":" << __LINE__<<endl;
-         exit(1);
+         exit(ExitCodes::FAILURE);
       }
 
       if (mpiGrid.is_local(p_ngbr) && mpiGrid.is_local(m_ngbr)) continue; //internal cell, not much to do

@@ -67,12 +67,26 @@ namespace geometry {
    };
 }
 
-enum ExitCodes {
-   SUCCESS = 0,
-   INDETERMINATE_FAILURE = 1,
-   RESTART_READ_FAILURE = 42,
-   ROMBERG_RAINT_FAILURE = 111
-};
+/**
+ * @brief Definitions for exit codes. 
+ * https://www.linuxdoc.org/LDP/abs/html/exitcodes.html - in Linux, but these are potentially propagate in shells
+ * "the codes 1, 2, 126 - 165 and 255 have special meanings 
+ * and hence these should be avoided for user-defined exit codes --
+ *  The author of this document proposes restricting user-defined exit codes 
+ * to the range 64 - 113 (in addition to 0, for success),"
+ *
+ */
+
+namespace ExitCodes {
+   enum {
+      SUCCESS = 0,
+      FAILURE = 1,               /**< Catch-all error code. Something unspecified went wrong. */
+      RESTART_READ_FAILURE = 64, /**< To be caught in jobscript to attempt recovery from earlier restart. */
+      BAILOUT_FAILURE = 65,      /**< Simulation bailed out and requires user intervention. */
+      TIMEOUT_FAILURE = 66,      /**< Walltime limit reached. */
+      NUMERIC_FAILURE = 111      /**< Error in a numerical subroutine. Commemorating probable P. Janhunen code. */
+   };
+}
 
 namespace vmesh {
    #ifndef VAMR

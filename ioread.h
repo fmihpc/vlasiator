@@ -51,7 +51,7 @@ bool readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 \param name Name of the restart file e.g. "restart.00052.vlsv"
 */
 bool readFileCells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const std::string& name);
-   uint64_t convUInt64(const char* const ptr,const bool& swapEndian=false);
+
 /*!
  * \brief Check if the restart file is intact.
  * \param name Name of the restart file 

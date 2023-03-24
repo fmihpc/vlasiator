@@ -26,6 +26,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <stdint.h>
+#include "definitions.h"
 
 // Overloaded templates which return the corresponding data type
 // for C++ native data types. For example, if float has been 
@@ -34,7 +35,7 @@
 // still works.
 template<typename T> inline MPI_Datatype MPI_Type() {
    std::cerr << "(mpiconversion.h): NULL datatype returned, byte size of original is " << sizeof(T) << std::endl;
-   exit(1);
+   exit(ExitCodes::FAILURE);
    return 0;
 }
 

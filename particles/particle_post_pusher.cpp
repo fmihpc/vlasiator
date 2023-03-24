@@ -48,7 +48,7 @@ int main(int argc, char** argv) {
    if(!ParticleParameters::getParameters()) {
       std::cerr << "Parsing parameters failed, aborting." << std::endl;
       std::cerr << "Did you add a --run_config=file.cfg parameter?" << std::endl;
-      return 1;
+      return ExitCodes::FAILURE;
    }
 
    /* Read starting fields from specified input file */
@@ -183,5 +183,5 @@ int main(int argc, char** argv) {
    std::cerr << std::endl;
 
    MPI_Finalize();
-   return 0;
+   return ExitCodes::SUCCESS;
 }
