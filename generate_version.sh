@@ -69,7 +69,7 @@ git status | sed 's/\"/\\"/g' | sed 's/\\\"/\\"/g'  |gawk '{printf("%s\"%s\"%s\n
 echo "    cout << endl << \"----------- git diff ---------- \"<<endl;" >>version.cpp
 
 echo "    const char diff_data[] = {" >> version.cpp
-DIFF=$(git diff `git diff --name-only |grep -v generate_version.sh` | xxd -i)
+DIFF=$(git diff `git diff --name-only |grep -v generate_version.sh` | xxd -i | sed "s/0x/\'\\\\x/g;s/,/\',/g")\'
 if [[ -n $DIFF ]]; then
    echo -n $DIFF >> version.cpp
    echo "    ,0 };" >> version.cpp
@@ -123,7 +123,7 @@ git status | sed 's/\"/\\"/g' | sed 's/\\\"/\\"/g'  |gawk '{printf("%s\"%s\"%s\n
 echo "   versionInfo+=\"----------- git diff ---------- \";" >>version.cpp
 
 echo "    const char diff_data[] = {" >> version.cpp
-DIFF=$(git diff `git diff --name-only |grep -v generate_version.sh` | xxd -i)
+DIFF=$(git diff `git diff --name-only |grep -v generate_version.sh` | xxd -i | sed "s/0x/\'\\\\x/g;s/,/\',/g")\'
 if [[ -n $DIFF ]]; then
    echo -n $DIFF >> version.cpp
    echo "    ,0 };" >> version.cpp
