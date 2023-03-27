@@ -253,6 +253,7 @@ void velocitySpaceDiffusion(
 
                    Vec4i muindex;
                    muindex = round_to_int(floor((mu+1.0) / dmubins));                      
+                   if (muindex == nbins_mu) {muindex = nbins_mu - 1;} // Safety check to handle edge case where mu = exactly 1.0
 
                    Vec4d Vmu = dVbins * (to_double(Vindex)+0.5); // Take value at the center of the mu cell
 
