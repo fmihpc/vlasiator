@@ -1278,7 +1278,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                return retval;
          }
          ));
-	 outputReducer->addMetadata(outputReducer->size()-1,"kg/m^4","$\\mathrm{kg}\\mathrm{m}^{-4}$","$\\Delta \rho_{m,\\mathrm{fg}} (\\Delta X)^{-1}$","1.0");
+	 outputReducer->addMetadata(outputReducer->size()-1,"kg/m^4","$\\mathrm{kg}\\mathrm{m}^{-4}$","$\\Delta \\rho_{m,\\mathrm{fg}} (\\Delta X)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_drhomdy",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
@@ -1305,7 +1305,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                return retval;
          }
          ));
-	 outputReducer->addMetadata(outputReducer->size()-1,"kg/m^4","$\\mathrm{kg}\\mathrm{m}^{-4}$","$\\Delta \rho_{m,\\mathrm{fg}} (\\Delta Y)^{-1}$","1.0");
+	 outputReducer->addMetadata(outputReducer->size()-1,"kg/m^4","$\\mathrm{kg}\\mathrm{m}^{-4}$","$\\Delta \\rho_{m,\\mathrm{fg}} (\\Delta Y)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_drhomdz",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
@@ -1332,7 +1332,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                return retval;
          }
          ));
-	 outputReducer->addMetadata(outputReducer->size()-1,"kg/m^4","$\\mathrm{kg}\\mathrm{m}^{-4}$","$\\Delta \rho_{m,\\mathrm{fg}} (\\Delta Z)^{-1}$","1.0");
+	 outputReducer->addMetadata(outputReducer->size()-1,"kg/m^4","$\\mathrm{kg}\\mathrm{m}^{-4}$","$\\Delta \\rho_{m,\\mathrm{fg}} (\\Delta Z)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_drhoqdx",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
@@ -1359,7 +1359,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                return retval;
          }
          ));
-	 outputReducer->addMetadata(outputReducer->size()-1,"C/m^4","$\\mathrm{C}\\mathrm{m}^{-4}$","$\\Delta \rho_{q,\\mathrm{fg}} (\\Delta X)^{-1}$","1.0");
+	 outputReducer->addMetadata(outputReducer->size()-1,"C/m^4","$\\mathrm{C}\\mathrm{m}^{-4}$","$\\Delta \\rho_{q,\\mathrm{fg}} (\\Delta X)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_drhoqdy",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
@@ -1386,7 +1386,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                return retval;
          }
          ));
-	 outputReducer->addMetadata(outputReducer->size()-1,"C/m^4","$\\mathrm{C}\\mathrm{m}^{-4}$","$\\Delta \rho_{q,\\mathrm{fg}} (\\Delta Y)^{-1}$","1.0");
+	 outputReducer->addMetadata(outputReducer->size()-1,"C/m^4","$\\mathrm{C}\\mathrm{m}^{-4}$","$\\Delta \\rho_{q,\\mathrm{fg}} (\\Delta Y)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_drhoqdz",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
@@ -1413,7 +1413,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                return retval;
          }
          ));
-	 outputReducer->addMetadata(outputReducer->size()-1,"C/m^4","$\\mathrm{C}\\mathrm{m}^{-4}$","$\\Delta \rho_{q,\\mathrm{fg}} (\\Delta Z)^{-1}$","1.0");
+	 outputReducer->addMetadata(outputReducer->size()-1,"C/m^4","$\\mathrm{C}\\mathrm{m}^{-4}$","$\\Delta \\rho_{q,\\mathrm{fg}} (\\Delta Z)^{-1}$","1.0");
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dp11dx",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
