@@ -84,6 +84,7 @@ namespace ExitCodes {
       RESTART_READ_FAILURE = 64, /**< To be caught in jobscript to attempt recovery from earlier restart. */
       BAILOUT_FAILURE = 65,      /**< Simulation bailed out and requires user intervention. */
       TIMEOUT_FAILURE = 66,      /**< Walltime limit reached. */
+      RECOVERABLE_FAILURE = 67,  /**< Error code from Bus errors etc that we suspect to be network weather or such; can re-run safely */
       NUMERIC_FAILURE = 111      /**< Error in a numerical subroutine. Commemorating probable P. Janhunen code. */
    };
 }
