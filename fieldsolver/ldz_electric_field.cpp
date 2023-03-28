@@ -176,8 +176,8 @@ void calculateWaveSpeedYZ(
    // and
    // http://iopscience.iop.org/article/10.1088/0253-6102/43/2/026/meta (Alfven waves)
    // for details.
-   const Real vA2 = divideIfNonZero(Bmag2, pc::MU_0*rhom); // Alfven speed
-   const Real vS2 = divideIfNonZero(p11+p22+p33, 2.0*rhom); // sound speed, adiabatic coefficient 3/2, P=1/3*trace in sound speed
+   const Real vA2 = divideIfNonZero(Bmag2, pc::MU_0*rhom, pc::MU_0*pc::MASS_PROTON); // Alfven speed
+   const Real vS2 = divideIfNonZero(p11+p22+p33, 2.0*rhom, 2.0*pc::MASS_PROTON); // sound speed, adiabatic coefficient 3/2, P=1/3*trace in sound speed
 //   const Real vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, perBGrid.DX*pc::CHARGE*sqrt(Bmag2)) : 0.0; // whistler speed
    const Real vW = Parameters::ohmHallTerm > 0 ?
       sqrt(vA2) * (1 + divideIfNonZero(2*M_PI*M_PI*pc::MASS_PROTON*pc::MASS_PROTON, DX*DX*rhom*pc::CHARGE*pc::CHARGE*pc::MU_0)
@@ -303,8 +303,8 @@ void calculateWaveSpeedXZ(
    // and
    // http://iopscience.iop.org/article/10.1088/0253-6102/43/2/026/meta (Alfven waves)
    // for details.
-   const Real vA2 = divideIfNonZero(Bmag2, pc::MU_0*rhom); // Alfven speed
-   const Real vS2 = divideIfNonZero(p11+p22+p33, 2.0*rhom); // sound speed, adiabatic coefficient 3/2, P=1/3*trace in sound speed
+   const Real vA2 = divideIfNonZero(Bmag2, pc::MU_0*rhom, pc::MU_0*pc::MASS_PROTON); // Alfven speed
+   const Real vS2 = divideIfNonZero(p11+p22+p33, 2.0*rhom, 2.0*pc::MASS_PROTON); // sound speed, adiabatic coefficient 3/2, P=1/3*trace in sound speed
 //   const Real vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, perBGrid.DX*pc::CHARGE*sqrt(Bmag2)) : 0.0; // whistler speed
    const Real vW = Parameters::ohmHallTerm > 0 ?
       sqrt(vA2) * (1 + divideIfNonZero(2*M_PI*M_PI*pc::MASS_PROTON*pc::MASS_PROTON, DX*DX*rhom*pc::CHARGE*pc::CHARGE*pc::MU_0)
@@ -430,8 +430,8 @@ void calculateWaveSpeedXY(
    // and
    // http://iopscience.iop.org/article/10.1088/0253-6102/43/2/026/meta (Alfven waves)
    // for details.
-   const Real vA2 = divideIfNonZero(Bmag2, pc::MU_0*rhom); // Alfven speed
-   const Real vS2 = divideIfNonZero(p11+p22+p33, 2.0*rhom); // sound speed, adiabatic coefficient 3/2, P=1/3*trace in sound speed
+   const Real vA2 = divideIfNonZero(Bmag2, pc::MU_0*rhom, pc::MU_0*pc::MASS_PROTON); // Alfven speed
+   const Real vS2 = divideIfNonZero(p11+p22+p33, 2.0*rhom, 2.0*pc::MASS_PROTON); // sound speed, adiabatic coefficient 3/2, P=1/3*trace in sound speed
 //   const Real vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, perBGrid.DX*pc::CHARGE*sqrt(Bmag2)) : 0.0; // whistler speed
    const Real vW = Parameters::ohmHallTerm > 0 ?
       sqrt(vA2) * (1 + divideIfNonZero(2*M_PI*M_PI*pc::MASS_PROTON*pc::MASS_PROTON, DX*DX*rhom*pc::CHARGE*pc::CHARGE*pc::MU_0)

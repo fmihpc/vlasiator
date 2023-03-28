@@ -32,9 +32,10 @@
  */
 Real divideIfNonZero(
    creal numerator,
-   creal denominator
+   creal denominator,
+   Real threshold // default =1e-42
 ) {
-   if(denominator <= 0.0) {
+   if(fabs(denominator) <= threshold) {
       return 0.0;
    } else {
       return numerator / denominator;

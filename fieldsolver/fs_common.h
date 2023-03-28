@@ -102,7 +102,7 @@ bool propagateFields(
    cuint subcycles
 );
 
-Real divideIfNonZero(creal rhoV, creal rho);
+Real divideIfNonZero(creal rhoV, creal rho, Real threshold=1e-42);
 
 /*! Namespace encompassing the enum defining the list of reconstruction coefficients used in field component reconstructions.*/
 namespace Rec {
