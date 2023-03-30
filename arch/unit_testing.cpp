@@ -16,6 +16,8 @@
 #include <tuple> 
 #include <vector>
 
+#define ARCH_MAIN 1
+
 /* Include the tested architecture-specific header */
 #include "arch_device_api.h"
 

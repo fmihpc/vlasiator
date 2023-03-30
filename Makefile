@@ -502,6 +502,9 @@ gridGlue.o: ${DEPS_FSOLVER} fieldsolver/gridGlue.hpp fieldsolver/gridGlue.cpp
 vlasiator.o: ${DEPS_COMMON} readparameters.h parameters.h ${DEPS_PROJECTS} grid.h vlasovmover.h ${DEPS_CELL} vlasiator.cpp iowrite.h fieldsolver/gridGlue.hpp
 	${CMPGPU} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c vlasiator.cpp ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_VECTORCLASS}
 
+unit_testing.o: arch/unit_testing.cpp
+	${CMPGPU} ${FLAG_OPENMP} ${FLAGS} -c arch/unit_testing.cpp
+
 grid.o:  ${DEPS_COMMON} parameters.h ${DEPS_PROJECTS} ${DEPS_CELL} ${DEPS_GRID} grid.cpp grid.h
 	${CMPGPU} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c grid.cpp ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_PAPI} ${INC_VECTORCLASS}
 
@@ -535,6 +538,8 @@ object_wrapper.o:  $(DEPS_COMMON)  object_wrapper.h object_wrapper.cpp
 # Make executable
 vlasiator: $(OBJS) $(OBJS_FSOLVER)
 	$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) $(LIBS) $(OBJS_FSOLVER) $(CUDALIB)
+unit_testing: unit_testing.o
+	$(LNK) ${LDFLAGS} -o unit_testing unit_testing.o $(CUDALIB)
 
 #/// TOOLS section/////
 
