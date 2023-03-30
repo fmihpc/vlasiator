@@ -90,9 +90,10 @@ void setBackgroundField(
                                  dx[faceCoord2[fComponent]]
                                 );
                
-               //Compute derivatives.
+               //Compute derivatives. Note that we scale by dx[] as the arrays are assumed to contain differences, not true derivatives!
                T3DFunction derivFunction1 = std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, (coordinate)fComponent, 1, (coordinate)faceCoord1[fComponent]);
                BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::dBGBxdy+2*fComponent) +=
+                  dx[faceCoord1[fComponent]] * 
                   surfaceAverage(derivFunction1,
                      (coordinate)fComponent,
                                  accuracy,
@@ -103,6 +104,7 @@ void setBackgroundField(
 
                T3DFunction derivFunction2 = std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, (coordinate)fComponent, 1, (coordinate)faceCoord2[fComponent]);
                BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::dBGBxdy+1+2*fComponent) +=
+                  dx[faceCoord2[fComponent]] *
                   surfaceAverage(derivFunction2,
                      (coordinate)fComponent,
                                  accuracy,
@@ -119,9 +121,9 @@ void setBackgroundField(
                
                //Compute derivatives. Note that we scale by dx[] as the arrays are assumed to contain differences, not true derivatives!      
                T3DFunction derivFunction = std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, (coordinate)fComponent, 1, (coordinate)faceCoord1[fComponent]);
-               BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::dBGBXVOLdy+2*fComponent) += volumeAverage(derivFunction,accuracy,start,end);
+               BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::dBGBXVOLdy+2*fComponent) += dx[faceCoord1[fComponent]] * volumeAverage(derivFunction,accuracy,start,end);
                derivFunction = std::bind(bgFunction, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, (coordinate)fComponent, 1, (coordinate)faceCoord2[fComponent]);
-               BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::dBGBXVOLdy+1+2*fComponent) += volumeAverage(derivFunction,accuracy,start,end);
+               BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::dBGBXVOLdy+1+2*fComponent) += dx[faceCoord2[fComponent]] * volumeAverage(derivFunction,accuracy,start,end);
             }
          }
       }
