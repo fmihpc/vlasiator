@@ -444,7 +444,7 @@ namespace FieldTracing {
             cerr << __FILE__ << ":" << __LINE__ << ": invalid elementIndex returned for coordinate "
             << x[0] << " " << x[1] << " " << x[2] << " projected to rx " << rx[0] << " " << rx[1] << " " << rx[2]
             << ". Last valid elementIndex: " << oldElementIndex << "." << endl;
-            phiprof::stop("ionosphere-VlasovGridCoupling");
+            phiprof::stop("fieldtracing-ionosphere-VlasovGridCoupling");
             return coupling;
          }
       }
@@ -875,7 +875,7 @@ namespace FieldTracing {
       for(int n=0; n<globalDccrgSize; n++) {
          const CellID id = allDccrgCells[n];
          const std::array<Real, 3> ctr = mpiGrid.get_center(id);
-         cellFWTracingCoordinates.at(n) = {(Real)ctr[0], (Real)ctr[1], (Real)ctr[2]};
+         cellFWTracingCoordinates.at(n) = {(TReal)ctr[0], (TReal)ctr[1], (TReal)ctr[2]};
          cellBWTracingCoordinates.at(n) = cellFWTracingCoordinates.at(n);
          if(mpiGrid.is_local(id)) {
             if((mpiGrid[id]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)

@@ -1577,7 +1577,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       }
       
       // Loop over velocity space blocks. Thread this loop (over vspace blocks) with OpenMP.
-      #pragma omp for schedule(guided)
+      #pragma omp for schedule(guided,8)
       for(uint blocki = 0; blocki < unionOfBlocks.size(); blocki++) {
 
          // Get global id of the velocity block
