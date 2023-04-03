@@ -24,27 +24,9 @@
 #include "cpu_moments.h"
 #include "../vlasovmover.h"
 #include "../object_wrapper.h"
+#include "../fieldsolver/fs_common.h" // divideIfNonZero()
 
 using namespace std;
-
-/*! \brief Helper function
- * 
- * Divides the first value by the second or returns zero if the denominator is <= zero.
- * 
- * \param numerator Numerator
- * \param denominator Denominator
- */
-Real divideIfNonNegative(
-   creal numerator,
-   creal denominator
-) {
-   if(denominator <= 0) {
-      return 0.0;
-   } else {
-      return numerator / denominator;
-   }
-}
-
 
 /** Calculate zeroth, first, and (possibly) second bulk velocity moments for the 
  * given spatial cell. The calculated moments include contributions from 
@@ -100,9 +82,9 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
          
          Population & pop = cell->get_population(popID);
          pop.RHO = array[0];
-         pop.V[0] = divideIfNonNegative(array[1], array[0]);
-         pop.V[1] = divideIfNonNegative(array[2], array[0]);
-         pop.V[2] = divideIfNonNegative(array[3], array[0]);
+         pop.V[0] = divideIfNonZero(array[1], array[0]);
+         pop.V[1] = divideIfNonZero(array[2], array[0]);
+         pop.V[2] = divideIfNonZero(array[3], array[0]);
          
          if(!computePopulationMomentsOnly) {
             // Store species' contribution to bulk velocity moments
@@ -115,9 +97,9 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
       } // for-loop over particle species
       
       if(!computePopulationMomentsOnly) {
-         cell->parameters[CellParams::VX] = divideIfNonNegative(cell->parameters[CellParams::VX], cell->parameters[CellParams::RHOM]);
-         cell->parameters[CellParams::VY] = divideIfNonNegative(cell->parameters[CellParams::VY], cell->parameters[CellParams::RHOM]);
-         cell->parameters[CellParams::VZ] = divideIfNonNegative(cell->parameters[CellParams::VZ], cell->parameters[CellParams::RHOM]);
+         cell->parameters[CellParams::VX] = divideIfNonZero(cell->parameters[CellParams::VX], cell->parameters[CellParams::RHOM]);
+         cell->parameters[CellParams::VY] = divideIfNonZero(cell->parameters[CellParams::VY], cell->parameters[CellParams::RHOM]);
+         cell->parameters[CellParams::VZ] = divideIfNonZero(cell->parameters[CellParams::VZ], cell->parameters[CellParams::RHOM]);
       }
    }
 
@@ -236,9 +218,9 @@ void calculateMoments_R(
           // Store species' contribution to bulk velocity moments
           Population & pop = cell->get_population(popID);
           pop.RHO_R = array[0];
-          pop.V_R[0] = divideIfNonNegative(array[1], array[0]);
-          pop.V_R[1] = divideIfNonNegative(array[2], array[0]);
-          pop.V_R[2] = divideIfNonNegative(array[3], array[0]);
+          pop.V_R[0] = divideIfNonZero(array[1], array[0]);
+          pop.V_R[1] = divideIfNonZero(array[2], array[0]);
+          pop.V_R[2] = divideIfNonZero(array[3], array[0]);
           
           cell->parameters[CellParams::RHOM_R  ] += array[0]*mass;
           cell->parameters[CellParams::VX_R] += array[1]*mass;
@@ -254,9 +236,9 @@ void calculateMoments_R(
        if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
           continue;
        }
-       cell->parameters[CellParams::VX_R] = divideIfNonNegative(cell->parameters[CellParams::VX_R], cell->parameters[CellParams::RHOM_R]);
-       cell->parameters[CellParams::VY_R] = divideIfNonNegative(cell->parameters[CellParams::VY_R], cell->parameters[CellParams::RHOM_R]);
-       cell->parameters[CellParams::VZ_R] = divideIfNonNegative(cell->parameters[CellParams::VZ_R], cell->parameters[CellParams::RHOM_R]);
+       cell->parameters[CellParams::VX_R] = divideIfNonZero(cell->parameters[CellParams::VX_R], cell->parameters[CellParams::RHOM_R]);
+       cell->parameters[CellParams::VY_R] = divideIfNonZero(cell->parameters[CellParams::VY_R], cell->parameters[CellParams::RHOM_R]);
+       cell->parameters[CellParams::VZ_R] = divideIfNonZero(cell->parameters[CellParams::VZ_R], cell->parameters[CellParams::RHOM_R]);
     }
 
    // Compute second moments only if requested.
@@ -367,9 +349,9 @@ void calculateMoments_V(
          // Store species' contribution to bulk velocity moments
          Population & pop = cell->get_population(popID);
          pop.RHO_V = array[0];
-         pop.V_V[0] = divideIfNonNegative(array[1], array[0]);
-         pop.V_V[1] = divideIfNonNegative(array[2], array[0]);
-         pop.V_V[2] = divideIfNonNegative(array[3], array[0]);
+         pop.V_V[0] = divideIfNonZero(array[1], array[0]);
+         pop.V_V[1] = divideIfNonZero(array[2], array[0]);
+         pop.V_V[2] = divideIfNonZero(array[3], array[0]);
          
          cell->parameters[CellParams::RHOM_V  ] += array[0]*mass;
          cell->parameters[CellParams::VX_V] += array[1]*mass;
@@ -385,9 +367,9 @@ void calculateMoments_V(
       if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
          continue;
       }
-      cell->parameters[CellParams::VX_V] = divideIfNonNegative(cell->parameters[CellParams::VX_V], cell->parameters[CellParams::RHOM_V]);
-      cell->parameters[CellParams::VY_V] = divideIfNonNegative(cell->parameters[CellParams::VY_V], cell->parameters[CellParams::RHOM_V]);
-      cell->parameters[CellParams::VZ_V] = divideIfNonNegative(cell->parameters[CellParams::VZ_V], cell->parameters[CellParams::RHOM_V]);
+      cell->parameters[CellParams::VX_V] = divideIfNonZero(cell->parameters[CellParams::VX_V], cell->parameters[CellParams::RHOM_V]);
+      cell->parameters[CellParams::VY_V] = divideIfNonZero(cell->parameters[CellParams::VY_V], cell->parameters[CellParams::RHOM_V]);
+      cell->parameters[CellParams::VZ_V] = divideIfNonZero(cell->parameters[CellParams::VZ_V], cell->parameters[CellParams::RHOM_V]);
    }
 
    // Compute second moments only if requested
