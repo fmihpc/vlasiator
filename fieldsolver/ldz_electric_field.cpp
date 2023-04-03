@@ -176,8 +176,8 @@ void calculateWaveSpeedYZ(
    const Real vS2 = divideIfNonZero(p11+p22+p33, 2.0*rhom); // sound speed, adiabatic coefficient 3/2, P=1/3*trace in sound speed
 //   const Real vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, perBGrid.DX*pc::CHARGE*sqrt(Bmag2)) : 0.0; // whistler speed
    const Real vW = Parameters::ohmHallTerm > 0 ?
-      sqrt(vA2) * (1 + divideIfNonZero(2*M_PI*M_PI*pc::MASS_PROTON*pc::MASS_PROTON, perBGrid.DX*perBGrid.DX*rhom*pc::CHARGE*pc::CHARGE*pc::MU_0, perBGrid.DX*perBGrid.DX*pc::MASS_PROTON*pc::CHARGE*pc::CHARGE*pc::MU_0)
-            / sqrt(1 + divideIfNonZero(  M_PI*M_PI*pc::MASS_PROTON*pc::MASS_PROTON, perBGrid.DX*perBGrid.DX*rhom*pc::CHARGE*pc::CHARGE*pc::MU_0, perBGrid.DX*perBGrid.DX*pc::MASS_PROTON*pc::CHARGE*pc::CHARGE*pc::MU_0)))
+      sqrt(vA2) * (1 + divideIfNonZero(2*M_PI*M_PI*pc::MASS_PROTON*pc::MASS_PROTON, DX*DX*rhom*pc::CHARGE*pc::CHARGE*pc::MU_0)
+            / sqrt(1 + divideIfNonZero(  M_PI*M_PI*pc::MASS_PROTON*pc::MASS_PROTON, DX*DX*rhom*pc::CHARGE*pc::CHARGE*pc::MU_0)))
       : 0.0; // whistler speed
    
    ret_vA = sqrt(vA2);
@@ -299,8 +299,8 @@ void calculateWaveSpeedXZ(
    const Real vS2 = divideIfNonZero(p11+p22+p33, 2.0*rhom); // sound speed, adiabatic coefficient 3/2, P=1/3*trace in sound speed
 //   const Real vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, perBGrid.DX*pc::CHARGE*sqrt(Bmag2)) : 0.0; // whistler speed
    const Real vW = Parameters::ohmHallTerm > 0 ?
-      sqrt(vA2) * (1 + divideIfNonZero(2*M_PI*M_PI*pc::MASS_PROTON*pc::MASS_PROTON, perBGrid.DX*perBGrid.DX*rhom*pc::CHARGE*pc::CHARGE*pc::MU_0, perBGrid.DX*perBGrid.DX*pc::MASS_PROTON*pc::CHARGE*pc::CHARGE*pc::MU_0)
-            / sqrt(1 + divideIfNonZero(  M_PI*M_PI*pc::MASS_PROTON*pc::MASS_PROTON, perBGrid.DX*perBGrid.DX*rhom*pc::CHARGE*pc::CHARGE*pc::MU_0, perBGrid.DX*perBGrid.DX*pc::MASS_PROTON*pc::CHARGE*pc::CHARGE*pc::MU_0)))
+      sqrt(vA2) * (1 + divideIfNonZero(2*M_PI*M_PI*pc::MASS_PROTON*pc::MASS_PROTON, DX*DX*rhom*pc::CHARGE*pc::CHARGE*pc::MU_0)
+            / sqrt(1 + divideIfNonZero(  M_PI*M_PI*pc::MASS_PROTON*pc::MASS_PROTON, DX*DX*rhom*pc::CHARGE*pc::CHARGE*pc::MU_0)))
       : 0.0; // whistler speed
    
    ret_vA = sqrt(vA2);
@@ -422,8 +422,8 @@ void calculateWaveSpeedXY(
    const Real vS2 = divideIfNonZero(p11+p22+p33, 2.0*rhom); // sound speed, adiabatic coefficient 3/2, P=1/3*trace in sound speed
 //   const Real vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, perBGrid.DX*pc::CHARGE*sqrt(Bmag2)) : 0.0; // whistler speed
    const Real vW = Parameters::ohmHallTerm > 0 ?
-      sqrt(vA2) * (1 + divideIfNonZero(2*M_PI*M_PI*pc::MASS_PROTON*pc::MASS_PROTON, perBGrid.DX*perBGrid.DX*rhom*pc::CHARGE*pc::CHARGE*pc::MU_0, perBGrid.DX*perBGrid.DX*pc::MASS_PROTON*pc::CHARGE*pc::CHARGE*pc::MU_0)
-            / sqrt(1 + divideIfNonZero(  M_PI*M_PI*pc::MASS_PROTON*pc::MASS_PROTON, perBGrid.DX*perBGrid.DX*rhom*pc::CHARGE*pc::CHARGE*pc::MU_0, perBGrid.DX*perBGrid.DX*pc::MASS_PROTON*pc::CHARGE*pc::CHARGE*pc::MU_0)))
+      sqrt(vA2) * (1 + divideIfNonZero(2*M_PI*M_PI*pc::MASS_PROTON*pc::MASS_PROTON, DX*DX*rhom*pc::CHARGE*pc::CHARGE*pc::MU_0)
+            / sqrt(1 + divideIfNonZero(  M_PI*M_PI*pc::MASS_PROTON*pc::MASS_PROTON, DX*DX*rhom*pc::CHARGE*pc::CHARGE*pc::MU_0)))
       : 0.0; // whistler speed
    
    ret_vA = sqrt(vA2);
