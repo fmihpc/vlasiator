@@ -477,7 +477,7 @@ void calculateEdgeElectricFieldX(
       exit(1);
    }
    #endif
-   
+
    // An edge has four neighbouring spatial cells. Calculate
    // electric field in each of the four cells per edge.
    Real ay_pos,ay_neg;              // Max. characteristic velocities to y-direction
@@ -1192,7 +1192,7 @@ void calculateEdgeElectricFieldZ(
       exit(1);
    }
    #endif
-   
+
    // An edge has four neighbouring spatial cells. Calculate 
    // electric field in each of the four cells per edge.
    Real ax_pos,ax_neg;              // Max. characteristic velocities to x-direction

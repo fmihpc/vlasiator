@@ -366,7 +366,6 @@ std::array<Real, 3> interpolateCurlB(
    }
 
    std::array<Real, 3> interpolatedCurlB;
-   // FIXME
    interpolatedCurlB[0] = (
        12*rc[Rec::c_yzz]*xLocal[2]*xLocal[2]
       +24*rc[Rec::c_yyz]*xLocal[1]*xLocal[2]
