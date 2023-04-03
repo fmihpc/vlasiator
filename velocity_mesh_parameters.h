@@ -29,6 +29,7 @@
 #define	VELOCITY_MESH_PARAMETERS_H
 
 #include <vector>
+#include <array>
 #include "definitions.h"
 #include <iostream>
 
@@ -114,7 +115,6 @@ namespace vmesh {
       // On the CPU side we actually reserve enough room for
       // MAX_VMESH_PARAMETERS_COUNT MeshParameters.
       std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT> *velocityMeshes;
-
       void initVelocityMeshes(const uint nMeshes);  /**< Pre-calculate more helper parameters for velocity meshes. */
       void uploadMeshWrapper();   /**< Send a copy of the MeshWrapper into GPU memory */
    };
