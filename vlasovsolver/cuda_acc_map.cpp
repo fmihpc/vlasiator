@@ -126,6 +126,7 @@ __host__ void cuda_acc_allocate_memory (
    // Unified memory; columndata contains several splitvectors.
    unif_columnOffsetData[cpuThreadID] = new ColumnOffsets(maxColumnsPerCell); // inherits managed
    HANDLE_ERROR( cudaMallocManaged((void**)&unif_columns[cpuThreadID], maxColumnsPerCell*sizeof(Column)) );
+   //HANDLE_ERROR( cudaMemAdvise((void**)&unif_columns[cpuThreadID], maxColumnsPerCell*sizeof(Column), cudaMemAdviseSetPreferredLocation, cuda_getDevice()) );
    HANDLE_ERROR( cudaMemPrefetchAsync(unif_columns[cpuThreadID],maxColumnsPerCell*sizeof(Column),cuda_getDevice(),cuda_getStream()) );
 
    // Potential ColumnSet block count container
@@ -728,8 +729,10 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    // lists in unified memory
    ColumnOffsets *columnData = unif_columnOffsetData[cpuThreadID];
    // Verify unified memory stream attach
-   columnData->dev_attachToStream(stream);
-   HANDLE_ERROR( cudaStreamAttachMemAsync(stream,unif_columns[cpuThreadID], 0,cudaMemAttachSingle) );
+   if (needAttachedStreams) {
+      columnData->dev_attachToStream(stream);
+      HANDLE_ERROR( cudaStreamAttachMemAsync(stream,unif_columns[cpuThreadID], 0,cudaMemAttachSingle) );
+   }
    columnData->columnBlockOffsets.optimizeGPU(stream);
    columnData->columnNumBlocks.optimizeGPU(stream);
    columnData->setColumnOffsets.optimizeGPU(stream);

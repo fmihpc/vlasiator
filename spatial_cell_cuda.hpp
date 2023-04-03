@@ -234,6 +234,8 @@ namespace spatial_cell {
       // upload a content list to device memory
       void dev_uploadContentLists();
       void dev_clearContentLists();
+      // Advise on memory location
+      void dev_advise();
 
       vmesh::GlobalID find_velocity_block(vmesh::GlobalID cellIndices[3],const uint popID);
       Realf* get_data(const uint popID);

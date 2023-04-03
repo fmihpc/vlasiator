@@ -100,13 +100,17 @@ public:
 void cuda_set_device();
 void cuda_clear_device();
 cudaStream_t cuda_getStream();
+cudaStream_t cuda_getPriorityStream();
 int cuda_getDevice();
 
 #define MAXCPUTHREADS 64
 
 //extern CUcontext cuda_acc_context;
 extern cudaStream_t cudaStreamList[];
+extern cudaStream_t cudaPriorityStreamList[];
 extern cudaStream_t cudaBaseStream;
 extern Realf *returnRealf[];
 
+// Extern flag for stream attaching
+extern bool needAttachedStreams;
 #endif

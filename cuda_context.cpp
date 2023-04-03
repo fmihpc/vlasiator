@@ -38,7 +38,9 @@
 
 //CUcontext cuda_acc_context;
 cudaStream_t cudaStreamList[MAXCPUTHREADS];
+cudaStream_t cudaPriorityStreamList[MAXCPUTHREADS];
 Realf *returnRealf[MAXCPUTHREADS];
+bool needAttachedStreams = false;
 
 __host__ void cuda_set_device() {
 
@@ -95,9 +97,24 @@ __host__ void cuda_set_device() {
    }
    cudaSetDevice(amps_node_rank);
 
+   // Query device capabilities
+   int supportedMode;
+   cudaDeviceGetAttribute (&supportedMode, cudaDevAttrConcurrentManagedAccess, cuda_getDevice());
+   if (supportedMode==0) {
+      printf("Warning! Current CUDA device does not support concurrent managed memory access from several streams.\n");
+      needAttachedStreams = true;
+   }
+
    // Pre-generate streams, allocate return pointers
+   int *leastPriority = new int; // likely 0
+   int *greatestPriority = new int; // likely -1
+   HANDLE_ERROR( cudaDeviceGetStreamPriorityRange (leastPriority, greatestPriority) );
+   if (*leastPriority==*greatestPriority) {
+      printf("Warning when initializing CUDA streams: minimum and maximum stream priority are identical! %d == %d \n",*leastPriority, *greatestPriority);
+   }
    for (uint i=0; i<maxThreads; ++i) {
-      cudaStreamCreate(&(cudaStreamList[i]));
+      HANDLE_ERROR( cudaStreamCreateWithPriority(&(cudaStreamList[i]), cudaStreamDefault, *leastPriority) );
+      HANDLE_ERROR( cudaStreamCreateWithPriority(&(cudaPriorityStreamList[i]), cudaStreamDefault, *greatestPriority) );
       HANDLE_ERROR( cudaMalloc((void**)&returnRealf[i], sizeof(Realf)) );
    }
 
@@ -113,6 +130,7 @@ __host__ void cuda_clear_device() {
 #endif
    for (uint i=0; i<maxThreads; ++i) {
       cudaStreamDestroy(cudaStreamList[i]);
+      cudaStreamDestroy(cudaPriorityStreamList[i]);
       HANDLE_ERROR( cudaFree(*returnRealf) );
    }
 }
@@ -124,6 +142,15 @@ __host__ cudaStream_t cuda_getStream() {
    const uint thread_id = 0;
 #endif
    return cudaStreamList[thread_id];
+}
+
+__host__ cudaStream_t cuda_getPriorityStream() {
+#ifdef _OPENMP
+   const uint thread_id = omp_get_thread_num();
+#else
+   const uint thread_id = 0;
+#endif
+   return cudaPriorityStreamList[thread_id];
 }
 
 __host__ int cuda_getDevice() {

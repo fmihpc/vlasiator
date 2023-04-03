@@ -547,7 +547,7 @@ namespace vmesh {
       if (globalToLocalMap->getSizePower() < HashmapReqSize) {
          globalToLocalMap->device_rehash(HashmapReqSize, cuda_getStream());
       }
-      if (attachedStream != 0) {
+      if ((attachedStream != 0)&&(needAttachedStreams)) {
          globalToLocalMap->streamAttach(attachedStream);
          localToGlobalMap->streamAttach(attachedStream);
          // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,localToGlobalMap->data(), 0,cudaMemAttachSingle) );
@@ -595,6 +595,10 @@ namespace vmesh {
    }
 
    inline void VelocityMesh::dev_attachToStream(cudaStream_t stream = 0) {
+      // Return if attaching is not needed
+      if (!needAttachedStreams) {
+         return;
+      }
       // Attach unified memory regions to streams
       cudaStream_t newStream;
       if (stream==0) {
@@ -619,6 +623,10 @@ namespace vmesh {
       return;
    }
    inline void VelocityMesh::dev_detachFromStream() {
+      // Return if attaching is not needed
+      if (!needAttachedStreams) {
+         return;
+      }
       // Detach unified memory regions from streams
       if (attachedStream == 0) {
          // Already detached

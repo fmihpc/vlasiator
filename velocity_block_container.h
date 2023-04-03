@@ -324,6 +324,10 @@ namespace vmesh {
    }
 
    inline void VelocityBlockContainer::dev_attachToStream(cudaStream_t stream) {
+      // Return if attaching is not needed
+      if (!needAttachedStreams) {
+         return;
+      }
       // Attach unified memory regions to streams
       cudaStream_t newStream;
       if (stream==0) {
@@ -349,6 +353,10 @@ namespace vmesh {
       return;
    }
    inline void VelocityBlockContainer::dev_detachFromStream() {
+      // Return if attaching is not needed
+      if (!needAttachedStreams) {
+         return;
+      }
       if (attachedStream == 0) {
          // Already detached
          return;

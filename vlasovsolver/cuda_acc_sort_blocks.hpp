@@ -46,7 +46,7 @@ struct ColumnOffsets : public Managed {
       columnNumBlocks.clear();
       setColumnOffsets.clear();
       setNumColumns.clear();
-
+      //HANDLE_ERROR( cudaMemAdvise(this, sizeof(ColumnOffsets), cudaMemAdviseSetPreferredLocation, cuda_getDevice()) );
    }
    void dev_attachToStream(cudaStream_t stream = 0) {
       if (stream==0) {

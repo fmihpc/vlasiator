@@ -107,6 +107,7 @@ void cuda_accelerate_cell(SpatialCell* spatial_cell,
 #endif
    // Ensure unified memory constructs are attached to correct kernel
    spatial_cell->dev_attachToStream(cudaStreamList[thread_id]);
+   //spatial_cell->dev_advise();
 
    // // CUDATEST Launch debug kernel?
    //vmesh::getMeshWrapper()->printVelocityMesh(popID);

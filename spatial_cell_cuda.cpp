@@ -579,11 +579,41 @@ namespace spatial_cell {
       return *this;
    }
 
+   /** Advises unified memory subsystem on preferred location of memory
+       cudaMemAdviseSetPreferredLocation
+       cudaMemAdviseUnsetPreferredLocation
+       cudaMemAdviseSetReadMostly
+       cudaMemAdviceUnsetReadMostly
+       cudaMemAdviseSetAccessedBy
+       cudaMemAdviseUnsetAccessedBy
+    */
+   void SpatialCell::dev_advise() {
+      // HANDLE_ERROR( cudaMemAdvise(ptr, count, advise, deviceID) );
+      // cuda_getDevice()
+      return;
+      HANDLE_ERROR( cudaMemAdvise(velocity_block_with_content_list, sizeof(velocity_block_with_content_list),cudaMemAdviseSetPreferredLocation, cuda_getDevice()) );
+      HANDLE_ERROR( cudaMemAdvise(velocity_block_with_no_content_list, sizeof(velocity_block_with_no_content_list),cudaMemAdviseSetPreferredLocation, cuda_getDevice()) );
+      HANDLE_ERROR( cudaMemAdvise(BlocksToRemove, sizeof(BlocksToRemove),cudaMemAdviseSetPreferredLocation, cuda_getDevice()) );
+      HANDLE_ERROR( cudaMemAdvise(BlocksToAdd, sizeof(BlocksToAdd),cudaMemAdviseSetPreferredLocation, cuda_getDevice()) );
+      HANDLE_ERROR( cudaMemAdvise(BlocksToMove, sizeof(BlocksToMove),cudaMemAdviseSetPreferredLocation, cuda_getDevice()) );
+      HANDLE_ERROR( cudaMemAdvise(BlocksRequired, sizeof(BlocksRequired),cudaMemAdviseSetPreferredLocation, cuda_getDevice()) );
+      HANDLE_ERROR( cudaMemAdvise(BlocksRequiredMap, sizeof(BlocksRequiredMap),cudaMemAdviseSetPreferredLocation, cuda_getDevice()) );
+      // Loop over populations
+      // for (size_t p=0; p<populations.size(); ++p) {
+      //    populations[p].blockContainer->dev_attachToStream(attachedStream);
+      //    populations[p].vmesh->dev_attachToStream(attachedStream);
+      // }
+   }
+
    /** Attaches or deattaches unified memory to a GPU stream
        When attached, a stream can access this unified memory without
        issues.
     */
    void SpatialCell::dev_attachToStream(cudaStream_t stream) {
+      // Return if attaching is not needed
+      if (!needAttachedStreams) {
+         return;
+      }
       // Attach unified memory regions to streams
       cudaStream_t newStream;
       if (stream==0) {
@@ -608,16 +638,7 @@ namespace spatial_cell {
          populations[p].blockContainer->dev_attachToStream(attachedStream);
          populations[p].vmesh->dev_attachToStream(attachedStream);
       }
-      //CUDATODO
       // Also call attach functions on all splitvectors and hashmaps
-      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_content_list->data(), 0,cudaMemAttachSingle) );
-      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_no_content_list->data(), 0,cudaMemAttachSingle) );
-      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToRemove->data(), 0,cudaMemAttachSingle) );
-      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToAdd->data(), 0,cudaMemAttachSingle) );
-      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToMove->data(), 0,cudaMemAttachSingle) );
-      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequired->data(), 0,cudaMemAttachSingle) );
-      // // trial, requires changing buckets to public
-      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequiredMap->buckets.data(), 0,cudaMemAttachSingle) );
       velocity_block_with_content_list->streamAttach(attachedStream);
       velocity_block_with_no_content_list->streamAttach(attachedStream);
       BlocksToRemove->streamAttach(attachedStream);
@@ -628,6 +649,10 @@ namespace spatial_cell {
       return;
    }
    void SpatialCell::dev_detachFromStream() {
+      // Return if attaching is not needed
+      if (!needAttachedStreams) {
+         return;
+      }
       if (attachedStream == 0) {
          // Already detached
          return;
@@ -645,7 +670,6 @@ namespace spatial_cell {
          populations[p].blockContainer->dev_detachFromStream();
          populations[p].vmesh->dev_detachFromStream();
       }
-      //CUDATODO
       // Also call detach functions on all splitvectors and hashmaps
       velocity_block_with_content_list->streamAttach(0,cudaMemAttachGlobal);
       velocity_block_with_no_content_list->streamAttach(0,cudaMemAttachGlobal);
@@ -654,15 +678,6 @@ namespace spatial_cell {
       BlocksToMove->streamAttach(0,cudaMemAttachGlobal);
       BlocksRequired->streamAttach(0,cudaMemAttachGlobal);
       BlocksRequiredMap->streamAttach(0,cudaMemAttachGlobal);
-
-      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_content_list->data(), 0,cudaMemAttachGlobal) );
-      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_no_content_list->data(), 0,cudaMemAttachGlobal) );
-      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToRemove->data(), 0,cudaMemAttachGlobal) );
-      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToAdd->data(), 0,cudaMemAttachGlobal) );
-      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToMove->data(), 0,cudaMemAttachGlobal) );
-      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequired->data(), 0,cudaMemAttachGlobal) );
-      // // trial, requires changing buckets to public
-      // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequiredMap->buckets.data(), 0,cudaMemAttachGlobal) );
       return;
    }
 
@@ -750,7 +765,7 @@ namespace spatial_cell {
          // Need larger empty map
          delete BlocksRequiredMap;
          BlocksRequiredMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(HashmapReqSize);
-         if (attachedStream != 0) {
+         if ((attachedStream != 0)&&(needAttachedStreams)) {
             HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequiredMap, 0,cudaMemAttachSingle) );
             //HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequiredMap->buckets.data(), 0,cudaMemAttachSingle) );
             BlocksRequiredMap->streamAttach(attachedStream);
@@ -880,7 +895,9 @@ namespace spatial_cell {
 
       // Perform hashmap cleanup here (instead of at acceleration mid-steps)
       phiprof::start("Hashinator cleanup");
-      populations[popID].vmesh->dev_attachToStream(stream);
+      if (needAttachedStreams) {
+         populations[popID].vmesh->dev_attachToStream(stream);
+      }
       populations[popID].vmesh->dev_prefetchDevice();
       populations[popID].vmesh->dev_cleanHashMap();
       SSYNC
