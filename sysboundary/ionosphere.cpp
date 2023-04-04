@@ -414,8 +414,8 @@ namespace SBC {
    // Subdivide mesh within element e
    // The element gets replaced by four new ones:
    //
-   //            2                      2
-   //           /  \                   /  \
+   /*            2                      2
+   //           /  \                   /   \
    //          /    \                 / 2  \
    //         /      \               /      \
    //        /        \     ==>     2--------1
@@ -423,7 +423,7 @@ namespace SBC {
    //      /            \         / 0 \   / 1  \
    //     /              \       /     \ /      \
    //    0----------------1     0-------0--------1
-   //
+   */
    // And three new nodes get created at the interfaces,
    // unless they already exist.
    // The new center element (3) replaces the old parent element in place.

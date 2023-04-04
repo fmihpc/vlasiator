@@ -399,7 +399,9 @@ namespace vmesh {
    inline CUDA_HOSTDEV vmesh::LocalID VelocityBlockContainer::push_back() {
       vmesh::LocalID newIndex = numberOfBlocks;
       if (newIndex >= currentCapacity) {
+#ifdef USE_CUDA
 #pragma nv_diag_suppress 20011,20014
+#endif
          resize();
       }
 
@@ -429,7 +431,9 @@ namespace vmesh {
       const vmesh::LocalID newIndex = numberOfBlocks;
       numberOfBlocks += N_blocks;
       if (numberOfBlocks > currentCapacity) {
+#ifdef USE_CUDA
 #pragma nv_diag_suppress 20014
+#endif
          resize();
       }
 
@@ -524,7 +528,9 @@ namespace vmesh {
    inline CUDA_HOSTDEV bool VelocityBlockContainer::setSize(const vmesh::LocalID& newSize) {
       numberOfBlocks = newSize;
       if (newSize > currentCapacity) {
+#ifdef USE_CUDA
 #pragma nv_diag_suppress 20014
+#endif
          resize();
       }
       return true;

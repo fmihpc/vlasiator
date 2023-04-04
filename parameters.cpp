@@ -802,7 +802,7 @@ void Parameters::getParameters() {
          cerr << "WARNING the number of load balance keys and values do not match. Disregarding these options." << endl;
       }
    } else {
-      for (int i = 0; i < loadBalanceKeys.size(); ++i) {
+      for (size_t i = 0; i < loadBalanceKeys.size(); ++i) {
          loadBalanceOptions[loadBalanceKeys[i]] = loadBalanceValues[i];
       }
    }

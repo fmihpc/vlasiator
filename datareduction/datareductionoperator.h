@@ -180,7 +180,9 @@ namespace DRO {
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const;
       virtual bool setSpatialCell(const SpatialCell* cell);
       virtual bool reduceData(const SpatialCell* cell,char* buffer);
+#ifdef USE_CUDA
 #pragma nv_diag_suppress=997
+#endif
       virtual bool reduceDiagnostic(const SpatialCell* cell,int * result);
       virtual bool writeIonosphereData(SBC::SphericalTriGrid& grid, vlsv::Writer& vlsvWriter);
    };

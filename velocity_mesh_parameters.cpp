@@ -62,7 +62,7 @@ void vmesh::MeshWrapper::initVelocityMeshes(const uint nMeshes) {
    // Verify lengths match?
    if (meshWrapper->velocityMeshesCreation->size() != nMeshes) {
       printf("Warning! Initializing only %d velocity meshes out of %d created ones.\n",nMeshes,
-             meshWrapper->velocityMeshesCreation->size());
+             (int)meshWrapper->velocityMeshesCreation->size());
    }
    // Create pointer to array of sufficient length
    meshWrapper->velocityMeshes = new std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT>;
