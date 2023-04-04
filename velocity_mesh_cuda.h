@@ -550,9 +550,6 @@ namespace vmesh {
       if ((attachedStream != 0)&&(needAttachedStreams)) {
          globalToLocalMap->streamAttach(attachedStream);
          localToGlobalMap->streamAttach(attachedStream);
-         // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,localToGlobalMap->data(), 0,cudaMemAttachSingle) );
-         // // Trial, requires making buckets public
-         // HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,globalToLocalMap->buckets.data(), 0,cudaMemAttachSingle) );
       }
    }
 

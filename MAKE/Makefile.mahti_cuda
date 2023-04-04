@@ -122,9 +122,9 @@ INC_VLSV = -I$(LIBRARY_PREFIX2)/vlsv
 LIB_VLSV = -L$(LIBRARY_PREFIX2)/vlsv -lvlsv -Xlinker=-rpath=$(LIBRARY_PREFIX2)/vlsv/lib
 #LIB_VLSV = -L$(LIBRARY_PREFIX2)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX2)/vlsv/lib
 
-INC_PROFILE = -I$(LIBRARY_PREFIX2)/phiprof/include
-LIB_PROFILE = -L$(LIBRARY_PREFIX2)/phiprof/lib -lphiprof -Xlinker=-rpath=$(LIBRARY_PREFIX2)/phiprof/lib
-#LIB_PROFILE = -L$(LIBRARY_PREFIX2)/phiprof/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX2)/phiprof/lib
+INC_PROFILE = -I$(LIBRARY_PREFIX2)/phiprof_nvcc/include
+LIB_PROFILE = -L$(LIBRARY_PREFIX2)/phiprof_nvcc/lib -lphiprof -Xlinker=-rpath=$(LIBRARY_PREFIX2)/phiprof_nvcc/lib
+#LIB_PROFILE = -L$(LIBRARY_PREFIX2)/phiprof_nvcc/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX2)/phiprof_nvcc/lib
 
 #======== Header-only Libraries ===========
 
