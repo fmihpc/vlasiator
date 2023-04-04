@@ -62,7 +62,7 @@ extern void cuda_allocateMomentCalculations(
    const uint maxThreads
    );
 
-inline __host__ __device__ Real divideIfNonZero(
+inline __host__ __device__ Real divideIfNonZeroHD(
    Real numerator,
    Real denominator
 ) {

@@ -327,14 +327,14 @@ void cuda_calculateMoments_V(
                cell->parameters[CellParams::RHOQ] += host_momentArrays1[thread_id][offset + nPopulations*nMoments1 + 4];
             }
          }
-         pop.V_V[0] = divideIfNonZero(pop.V_V[0], pop.RHO_V);
-         pop.V_V[1] = divideIfNonZero(pop.V_V[1], pop.RHO_V);
-         pop.V_V[2] = divideIfNonZero(pop.V_V[2], pop.RHO_V);
+         pop.V_V[0] = divideIfNonZeroHD(pop.V_V[0], pop.RHO_V);
+         pop.V_V[1] = divideIfNonZeroHD(pop.V_V[1], pop.RHO_V);
+         pop.V_V[2] = divideIfNonZeroHD(pop.V_V[2], pop.RHO_V);
       }
 
-      cell->parameters[CellParams::VX] = divideIfNonZero(cell->parameters[CellParams::VX], cell->parameters[CellParams::RHOM]);
-      cell->parameters[CellParams::VY] = divideIfNonZero(cell->parameters[CellParams::VY], cell->parameters[CellParams::RHOM]);
-      cell->parameters[CellParams::VZ] = divideIfNonZero(cell->parameters[CellParams::VZ], cell->parameters[CellParams::RHOM]);
+      cell->parameters[CellParams::VX] = divideIfNonZeroHD(cell->parameters[CellParams::VX], cell->parameters[CellParams::RHOM]);
+      cell->parameters[CellParams::VY] = divideIfNonZeroHD(cell->parameters[CellParams::VY], cell->parameters[CellParams::RHOM]);
+      cell->parameters[CellParams::VZ] = divideIfNonZeroHD(cell->parameters[CellParams::VZ], cell->parameters[CellParams::RHOM]);
 
       if (!computeSecond) {
          continue;
@@ -487,14 +487,14 @@ void cuda_calculateMoments_R(
                cell->parameters[CellParams::RHOQ] += host_momentArrays1[thread_id][offset + nPopulations*nMoments1 + 4];
             }
          }
-         pop.V_R[0] = divideIfNonZero(pop.V_R[0], pop.RHO_R);
-         pop.V_R[1] = divideIfNonZero(pop.V_R[1], pop.RHO_R);
-         pop.V_R[2] = divideIfNonZero(pop.V_R[2], pop.RHO_R);
+         pop.V_R[0] = divideIfNonZeroHD(pop.V_R[0], pop.RHO_R);
+         pop.V_R[1] = divideIfNonZeroHD(pop.V_R[1], pop.RHO_R);
+         pop.V_R[2] = divideIfNonZeroHD(pop.V_R[2], pop.RHO_R);
       }
 
-      cell->parameters[CellParams::VX] = divideIfNonZero(cell->parameters[CellParams::VX], cell->parameters[CellParams::RHOM]);
-      cell->parameters[CellParams::VY] = divideIfNonZero(cell->parameters[CellParams::VY], cell->parameters[CellParams::RHOM]);
-      cell->parameters[CellParams::VZ] = divideIfNonZero(cell->parameters[CellParams::VZ], cell->parameters[CellParams::RHOM]);
+      cell->parameters[CellParams::VX] = divideIfNonZeroHD(cell->parameters[CellParams::VX], cell->parameters[CellParams::RHOM]);
+      cell->parameters[CellParams::VY] = divideIfNonZeroHD(cell->parameters[CellParams::VY], cell->parameters[CellParams::RHOM]);
+      cell->parameters[CellParams::VZ] = divideIfNonZeroHD(cell->parameters[CellParams::VZ], cell->parameters[CellParams::RHOM]);
 
       if (!computeSecond) {
          continue;

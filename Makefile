@@ -92,11 +92,8 @@ endif
 
 # CUDA settings
 ifeq ($(USE_CUDA),1)
-	LIBS += ${LIB_CUDA}
-	COMPFLAGS += -DUSE_CUDA
-	CUDALIB += -lcudart
-        # Use CUDA-compatible hashmap
-	COMPFLAGS += ${INC_HASHINATOR} ${INC_CUDA}
+	LIBS += ${LIB_CUDA} -lcudart
+	COMPFLAGS += -DUSE_CUDA ${INC_HASHINATOR} ${INC_CUDA}
 endif
 
 #Vectorclass settings
@@ -194,8 +191,6 @@ endif
 ifeq ($(USE_CUDA),1)
 	OBJS += cuda_acc_map.o cuda_acc_semilag.o cuda_acc_sort_blocks.o \
 		cuda_context.o cuda_moments.o
-	DEPS_VLSVMOVER += vlasovsolver/cuda_acc_map.hpp vlasovsolver/cuda_acc_semilag.hpp cuda_context.cuh \
-		vlasovsolver/cuda_moments.h
 else
 	OBJS += vamr_refinement_criteria.o
 endif
@@ -243,7 +238,7 @@ ifeq ($(USE_CUDA),1)
 # rule for building cuda-version of spatial_cell
 spatial_cell.o: spatial_cell_cuda.cpp
 	@echo "[CC]" $<
-	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c spatial_cell_cuda.cpp -o spatial_cell.o $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID} ${LIB_CUDA}
+	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c spatial_cell_cuda.cpp -o spatial_cell.o $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID}
 else
 # Turn off cuda-specific files
 %.o: vlasovsolver/cuda_%.cpp
@@ -260,7 +255,7 @@ endif
 # for all files in the main source dir
 %.o: %.cpp
 	@echo "[CC]" $<
-	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c $< $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID} ${INC_PROFILE} ${INC_VLSV} ${INC_PAPI} ${INC_MPI} ${LIB_CUDA}
+	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c $< $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID} ${INC_PROFILE} ${INC_VLSV} ${INC_PAPI} ${INC_MPI}
 
 # for all files in the backgroundfield/ dir
 %.o: backgroundfield/%.cpp  backgroundfield/constantfield.hpp backgroundfield/fieldfunction.hpp backgroundfield/functions.hpp backgroundfield/backgroundfield.h
@@ -304,7 +299,7 @@ else
 # for all files in the vlasovsolver/ dir
 %.o: vlasovsolver/%.cpp vlasovsolver/vec.h
 	@echo [CC] $<
-	$(SILENT)${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c $< -I$(CURDIR) ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VECTORCLASS} ${INC_EIGEN} ${INC_VLSV} ${INC_MPI} ${LIB_CUDA}
+	$(SILENT)${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c $< -I$(CURDIR) ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VECTORCLASS} ${INC_EIGEN} ${INC_VLSV} ${INC_MPI}
 
 endif
 
@@ -317,7 +312,7 @@ endif
 # Make executable
 vlasiator: $(OBJS) $(OBJS_FSOLVER)
 	@echo "[LINK] ${EXE}"
-	$(SILENT)$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) $(LIBS) $(OBJS_FSOLVER) $(CUDALIB)
+	$(SILENT)$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) $(LIBS) $(OBJS_FSOLVER)
 
 
 #/// TOOLS section/////
