@@ -49,6 +49,10 @@ struct ColumnOffsets : public Managed {
       //HANDLE_ERROR( cudaMemAdvise(this, sizeof(ColumnOffsets), cudaMemAdviseSetPreferredLocation, cuda_getDevice()) );
    }
    void dev_attachToStream(cudaStream_t stream = 0) {
+      // Return if attaching is not needed
+      if (!needAttachedStreams) {
+         return;
+      }
       if (stream==0) {
          stream = cuda_getStream();
       }
@@ -57,22 +61,18 @@ struct ColumnOffsets : public Managed {
       columnNumBlocks.streamAttach(stream);
       setColumnOffsets.streamAttach(stream);
       setNumColumns.streamAttach(stream);
-      // HANDLE_ERROR( cudaStreamAttachMemAsync(stream,columnBlockOffsets.data(), 0,cudaMemAttachSingle) );
-      // HANDLE_ERROR( cudaStreamAttachMemAsync(stream,columnNumBlocks.data(), 0,cudaMemAttachSingle) );
-      // HANDLE_ERROR( cudaStreamAttachMemAsync(stream,setColumnOffsets.data(), 0,cudaMemAttachSingle) );
-      // HANDLE_ERROR( cudaStreamAttachMemAsync(stream,setNumColumns.data(), 0,cudaMemAttachSingle) );
    }
    void dev_detachFromStream() {
+      // Return if attaching is not needed
+      if (!needAttachedStreams) {
+         return;
+      }
       cudaStream_t stream = 0;
       HANDLE_ERROR( cudaStreamAttachMemAsync(stream,this, 0,cudaMemAttachGlobal) );
       columnBlockOffsets.streamAttach(0,cudaMemAttachGlobal);
       columnNumBlocks.streamAttach(0,cudaMemAttachGlobal);
       setColumnOffsets.streamAttach(0,cudaMemAttachGlobal);
       setNumColumns.streamAttach(0,cudaMemAttachGlobal);
-      // HANDLE_ERROR( cudaStreamAttachMemAsync(stream,columnBlockOffsets.data(), 0,cudaMemAttachGlobal) );
-      // HANDLE_ERROR( cudaStreamAttachMemAsync(stream,columnNumBlocks.data(), 0,cudaMemAttachGlobal) );
-      // HANDLE_ERROR( cudaStreamAttachMemAsync(stream,setColumnOffsets.data(), 0,cudaMemAttachGlobal) );
-      // HANDLE_ERROR( cudaStreamAttachMemAsync(stream,setNumColumns.data(), 0,cudaMemAttachGlobal) );
    }
 };
 

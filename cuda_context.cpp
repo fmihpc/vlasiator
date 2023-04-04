@@ -104,6 +104,8 @@ __host__ void cuda_set_device() {
       printf("Warning! Current CUDA device does not support concurrent managed memory access from several streams.\n");
       needAttachedStreams = true;
    }
+   // For some reason running without attaching causes errors in some splitvectors.
+   needAttachedStreams = true;
 
    // Pre-generate streams, allocate return pointers
    int *leastPriority = new int; // likely 0

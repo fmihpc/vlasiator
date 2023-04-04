@@ -767,7 +767,6 @@ namespace spatial_cell {
          BlocksRequiredMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(HashmapReqSize);
          if ((attachedStream != 0)&&(needAttachedStreams)) {
             HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequiredMap, 0,cudaMemAttachSingle) );
-            //HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequiredMap->buckets.data(), 0,cudaMemAttachSingle) );
             BlocksRequiredMap->streamAttach(attachedStream);
          }
          BlocksRequiredMap->optimizeGPU(stream);

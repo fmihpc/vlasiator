@@ -712,8 +712,10 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
 
    // Now we have all needed values from unified memory objects, we can ensure they are on-device.
    phiprof::start("stream Attach, prefetch");
-   blockContainer->dev_attachToStream(stream);
-   vmesh->dev_attachToStream(stream);
+   if (needAttachedStreams) {
+      blockContainer->dev_attachToStream(stream);
+      vmesh->dev_attachToStream(stream);
+   }
    blockContainer->dev_prefetchDevice();
    vmesh->dev_prefetchDevice();
    phiprof::stop("stream Attach, prefetch");
@@ -811,7 +813,9 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    // Call function for sorting block list and building columns from it.
    // Can probably be further optimized.
    phiprof::start("sortBlockList");
-   HANDLE_ERROR( cudaMemsetAsync(columnNBlocks, 0, cuda_acc_columnContainerSize*sizeof(vmesh::LocalID), stream) );
+   cudaStream_t priorityStream = cuda_getPriorityStream();
+   HANDLE_ERROR( cudaMemsetAsync(columnNBlocks, 0, cuda_acc_columnContainerSize*sizeof(vmesh::LocalID), priorityStream) );
+   HANDLE_ERROR( cudaStreamSynchronize(stream) );
    sortBlocklistByDimension(vmesh,
                             nBlocks,
                             dimension,
@@ -823,9 +827,9 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
                             columnNBlocks,
                             columnData,
                             cpuThreadID,
-                            stream
+                            priorityStream
       );
-   // The caller function includes a stream synchronization
+   HANDLE_ERROR( cudaStreamSynchronize(priorityStream) );
    phiprof::stop("sortBlockList");
 
    // Calculate total sum of columns and total values size
