@@ -195,6 +195,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                   const Realv dt,
                   const uint popID);
 
+bool do_translate_cell(spatial_cell::SpatialCell* SC);
+
 void update_remote_mapping_contribution_amr(dccrg::Dccrg<spatial_cell::SpatialCell,
                                             dccrg::Cartesian_Geometry>& mpiGrid,
                                             const uint dimension,

@@ -27,6 +27,14 @@ using namespace spatial_cell;
 
 #define i_trans_ps_blockv_pencil(planeVectorIndex, planeIndex, blockIndex, lengthOfPencil) ( (blockIndex) + VLASOV_STENCIL_WIDTH  +  ( (planeVectorIndex) + (planeIndex) * VEC_PER_PLANE ) * ( lengthOfPencil + 2 * VLASOV_STENCIL_WIDTH) )
 
+//Is cell translated? It is not translated if DO_NO_COMPUTE or if it is sysboundary cell and not in first sysboundarylayer
+bool do_translate_cell(SpatialCell* SC){
+   if(SC->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
+      (SC->sysBoundaryLayer != 1 && SC->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY))
+      return false;
+   else
+      return true;
+}
 
 /* Get the one-dimensional neighborhood index for a given direction and neighborhood size.
  * 
@@ -1315,6 +1323,19 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    int myRank;
    if(printPencils) MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
+   switch (dimension) {
+      case 0:
+         if(P::xcells_ini == 1) return;
+         break;
+      case 1:
+         if(P::ycells_ini == 1) return;
+         break;
+      case 2:
+         if(P::zcells_ini == 1) return;
+         break;
+      default:
+         std::cerr<<"Error in dimension: __FILE__:__LINE__"<<std::endl;
+   }
    const vector<CellID>& localCells = getLocalCells();
    vector<CellID> localPropagatedCells;
    // Figure out which spatial cells are translated,

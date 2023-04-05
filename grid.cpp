@@ -188,9 +188,7 @@ void initializeGrids(
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA);
    mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
 
-   if(P::amrMaxSpatialRefLevel > 0) {
-      setFaceNeighborRanks( mpiGrid );
-   }
+   setFaceNeighborRanks( mpiGrid );
    const vector<CellID>& cells = getLocalCells();
    phiprof::stop("Initial load-balancing");
    
@@ -631,20 +629,16 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    phiprof::stop("Init solvers");
    
    // Record ranks of face neighbors
-   if(P::amrMaxSpatialRefLevel > 0) {
-      phiprof::start("set face neighbor ranks");
-      setFaceNeighborRanks( mpiGrid );
-      phiprof::stop("set face neighbor ranks");
-   }
+   phiprof::start("set face neighbor ranks");
+   setFaceNeighborRanks( mpiGrid );
+   phiprof::stop("set face neighbor ranks");
 
    // Prepare cellIDs and pencils for AMR translation
-   if(P::amrMaxSpatialRefLevel > 0) {
-      phiprof::start("GetSeedIdsAndBuildPencils");
-      for (int dimension=0; dimension<3; dimension++) {
-         prepareSeedIdsAndPencils(mpiGrid,dimension);
-      }
-      phiprof::stop("GetSeedIdsAndBuildPencils");
+   phiprof::start("GetSeedIdsAndBuildPencils");
+   for (int dimension=0; dimension<3; dimension++) {
+      prepareSeedIdsAndPencils(mpiGrid,dimension);
    }
+   phiprof::stop("GetSeedIdsAndBuildPencils");
    
    phiprof::stop("Balancing load");
 }
