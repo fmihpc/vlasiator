@@ -36,11 +36,34 @@
 #include "cuda.h"
 #include "cuda_runtime.h"
 
-//CUcontext cuda_acc_context;
+// #define MAXCPUTHREADS 64 now in cuda_context.hpp
+
+// Allocate pointers for per-thread memory regions
 cudaStream_t cudaStreamList[MAXCPUTHREADS];
 cudaStream_t cudaPriorityStreamList[MAXCPUTHREADS];
-Realf *returnRealf[MAXCPUTHREADS];
 bool needAttachedStreams = false;
+
+Realf *returnRealf[MAXCPUTHREADS];
+uint *dev_cell_indices_to_id[MAXCPUTHREADS];
+uint *dev_block_indices_to_id[MAXCPUTHREADS];
+
+ColumnOffsets *unif_columnOffsetData[MAXCPUTHREADS];
+Column *unif_columns[MAXCPUTHREADS];
+
+Vec *dev_blockDataOrdered[MAXCPUTHREADS];
+
+vmesh::LocalID *dev_GIDlist[MAXCPUTHREADS];
+vmesh::LocalID *dev_LIDlist[MAXCPUTHREADS];
+vmesh::GlobalID *dev_BlocksID_mapped[MAXCPUTHREADS];
+vmesh::GlobalID *dev_BlocksID_mapped_sorted[MAXCPUTHREADS];
+vmesh::GlobalID *dev_LIDlist_unsorted[MAXCPUTHREADS];
+vmesh::LocalID *dev_columnNBlocks[MAXCPUTHREADS];
+
+// Memory allocation flags and values.
+uint cuda_vlasov_allocatedSize = 0;
+uint cuda_acc_allocatedColumns = 0;
+uint cuda_acc_columnContainerSize = 0;
+uint cuda_acc_foundColumnsCount = 0;
 
 __host__ void cuda_set_device() {
 
@@ -160,3 +183,122 @@ __host__ int cuda_getDevice() {
    cudaGetDevice(&device);
    return device;
 }
+
+__host__ void cuda_vlasov_allocate (
+   uint maxBlockCount
+   ) {
+   // Always prepare for at least 500 blocks
+   const uint maxBlocksPerCell = maxBlockCount > 500 ? maxBlockCount : 500;
+   // Check if we already have allocated enough memory?
+   if (cuda_vlasov_allocatedSize > maxBlocksPerCell * BLOCK_ALLOCATION_FACTOR) {
+      return;
+   }
+   // Deallocate before allocating new memory
+#ifdef _OPENMP
+   const uint maxNThreads = omp_get_max_threads();
+#else
+   const uint maxNThreads = 1;
+#endif
+   for (uint i=0; i<maxNThreads; ++i) {
+      if (cuda_vlasov_allocatedSize > 0) {
+         cuda_vlasov_deallocate_memory(i);
+      }
+      cuda_vlasov_allocate_memory(i, maxBlocksPerCell);
+   }
+}
+
+__host__ void cuda_vlasov_allocate_memory (
+   uint cpuThreadID,
+   uint maxBlockCount
+   ) {
+   // Mallocs should be in increments of 256 bytes. WID3 is at least 64, and len(Realf) is at least 4, so this is true.
+   const uint blockAllocationCount = maxBlockCount * BLOCK_ALLOCATION_PADDING;
+   cuda_vlasov_allocatedSize = blockAllocationCount;
+
+   HANDLE_ERROR( cudaMalloc((void**)&dev_cell_indices_to_id[cpuThreadID], 3*sizeof(uint)) );
+   HANDLE_ERROR( cudaMalloc((void**)&dev_block_indices_to_id[cpuThreadID], 3*sizeof(uint)) );
+   HANDLE_ERROR( cudaMalloc((void**)&dev_blockDataOrdered[cpuThreadID], blockAllocationCount * (WID3 / VECL) * sizeof(Vec)) );
+   HANDLE_ERROR( cudaMalloc((void**)&dev_BlocksID_mapped[cpuThreadID], blockAllocationCount*sizeof(vmesh::GlobalID)) );
+   HANDLE_ERROR( cudaMalloc((void**)&dev_BlocksID_mapped_sorted[cpuThreadID], blockAllocationCount*sizeof(vmesh::GlobalID)) );
+   HANDLE_ERROR( cudaMalloc((void**)&dev_LIDlist_unsorted[cpuThreadID], blockAllocationCount*sizeof(vmesh::GlobalID)) );
+   HANDLE_ERROR( cudaMalloc((void**)&dev_LIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID)) );
+   HANDLE_ERROR( cudaMalloc((void**)&dev_GIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID)) );
+}
+
+__host__ void cuda_vlasov_deallocate_memory (
+   uint cpuThreadID
+   ) {
+   cuda_vlasov_allocatedSize = 0;
+   HANDLE_ERROR( cudaFree(dev_cell_indices_to_id[cpuThreadID]) );
+   HANDLE_ERROR( cudaFree(dev_block_indices_to_id[cpuThreadID]) );
+   HANDLE_ERROR( cudaFree(dev_blockDataOrdered[cpuThreadID]) );
+   HANDLE_ERROR( cudaFree(dev_BlocksID_mapped[cpuThreadID]) );
+   HANDLE_ERROR( cudaFree(dev_BlocksID_mapped_sorted[cpuThreadID]) );
+   HANDLE_ERROR( cudaFree(dev_LIDlist_unsorted[cpuThreadID]) );
+   HANDLE_ERROR( cudaFree(dev_LIDlist[cpuThreadID]) );
+   HANDLE_ERROR( cudaFree(dev_GIDlist[cpuThreadID]) );
+}
+
+__host__ void cuda_acc_allocate () {
+   // Check if we already have allocated enough memory?
+   if ( (cuda_acc_allocatedColumns > cuda_acc_foundColumnsCount * BLOCK_ALLOCATION_FACTOR) &&
+        (cuda_acc_foundColumnsCount > 500)) {
+      return;
+   }
+   // Deallocate before allocating new memory
+#ifdef _OPENMP
+   const uint maxNThreads = omp_get_max_threads();
+#else
+   const uint maxNThreads = 1;
+#endif
+   if (cuda_acc_allocatedColumns > 0) {
+      for (uint i=0; i<maxNThreads; ++i) {
+         cuda_acc_deallocate_memory(i);
+      }
+   }
+   for (uint i=0; i<maxNThreads; ++i) {
+      cuda_acc_allocate_memory(i);
+   }
+}
+
+__host__ void cuda_acc_allocate_memory (
+   uint cpuThreadID
+   ) {
+   // The worst case scenario for columns is with every block having content but no neighbours, creating up
+   // to maxBlockCount columns with each needing three blocks (one value plus two for padding).
+   // This value here is a reasonable estimate for most cases, though. Also checks against a counter.
+   uint maxColumnsPerCell = 3 * std::pow(
+      (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[0]
+      * (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[1]
+      * (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[2], 0.667);
+   if (cuda_acc_foundColumnsCount * BLOCK_ALLOCATION_FACTOR > maxColumnsPerCell) {
+      maxColumnsPerCell = cuda_acc_foundColumnsCount * BLOCK_ALLOCATION_PADDING;
+   }
+   cuda_acc_allocatedColumns = maxColumnsPerCell;
+
+   // Unified memory; columndata contains several splitvectors.
+   unif_columnOffsetData[cpuThreadID] = new ColumnOffsets(maxColumnsPerCell); // inherits managed
+   HANDLE_ERROR( cudaMallocManaged((void**)&unif_columns[cpuThreadID], maxColumnsPerCell*sizeof(Column)) );
+   //HANDLE_ERROR( cudaMemAdvise((void**)&unif_columns[cpuThreadID], maxColumnsPerCell*sizeof(Column), cudaMemAdviseSetPreferredLocation, cuda_getDevice()) );
+   HANDLE_ERROR( cudaMemPrefetchAsync(unif_columns[cpuThreadID],maxColumnsPerCell*sizeof(Column),cuda_getDevice(),cuda_getStream()) );
+
+   // Potential ColumnSet block count container
+   const uint c0 = (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[0];
+   const uint c1 = (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[1];
+   const uint c2 = (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[2];
+   std::array<uint, 3> s = {c0,c1,c2};
+   std::sort(s.begin(), s.end());
+   cuda_acc_columnContainerSize = c2*c1;
+   HANDLE_ERROR( cudaMalloc((void**)&dev_columnNBlocks[cpuThreadID], cuda_acc_columnContainerSize*sizeof(vmesh::LocalID)) );
+}
+
+__host__ void cuda_acc_deallocate_memory (
+   uint cpuThreadID
+   ) {
+   cuda_acc_allocatedColumns = 0;
+   cuda_acc_columnContainerSize = 0;
+   HANDLE_ERROR( cudaFree(dev_columnNBlocks[cpuThreadID]) );
+   HANDLE_ERROR( cudaFree(unif_columns[cpuThreadID]) );
+   delete unif_columnOffsetData[cpuThreadID];
+}
+

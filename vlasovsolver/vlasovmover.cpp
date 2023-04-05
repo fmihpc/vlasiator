@@ -42,14 +42,14 @@
 
 #include "cpu_moments.h"
 #include "cpu_acc_semilag.hpp"
-#include "cpu_trans_map_amr.hpp"
 
 #ifdef USE_CUDA
 #include "cuda_acc_map.hpp"
 #include "cuda_acc_semilag.hpp"
 #include "cuda_moments.h"
-//#include "cuda_trans_map.h"
-//#include "cuda_trans_map_amr.h"
+#include "cuda_trans_map_amr.hpp"
+#else
+#include "cpu_trans_map_amr.hpp"
 #endif
 
 using namespace std;
@@ -126,9 +126,8 @@ void calculateSpatialTranslation(
       trans_timer=phiprof::initializeTimer("update_remote-z","MPI");
       phiprof::start("update_remote-z");
 #ifdef USE_CUDA
-      // CUDATODO
-      update_remote_mapping_contribution_amr(mpiGrid, 2,+1,popID);
-      update_remote_mapping_contribution_amr(mpiGrid, 2,-1,popID);
+      cuda_update_remote_mapping_contribution_amr(mpiGrid, 2,+1,popID);
+      cuda_update_remote_mapping_contribution_amr(mpiGrid, 2,-1,popID);
 #else
       update_remote_mapping_contribution_amr(mpiGrid, 2,+1,popID);
       update_remote_mapping_contribution_amr(mpiGrid, 2,-1,popID);
@@ -176,9 +175,8 @@ void calculateSpatialTranslation(
       trans_timer=phiprof::initializeTimer("update_remote-x","MPI");
       phiprof::start("update_remote-x");
 #ifdef USE_CUDA
-      // CUDATODO
-      update_remote_mapping_contribution_amr(mpiGrid, 0,+1,popID);
-      update_remote_mapping_contribution_amr(mpiGrid, 0,-1,popID);
+      cuda_update_remote_mapping_contribution_amr(mpiGrid, 0,+1,popID);
+      cuda_update_remote_mapping_contribution_amr(mpiGrid, 0,-1,popID);
 #else
       update_remote_mapping_contribution_amr(mpiGrid, 0,+1,popID);
       update_remote_mapping_contribution_amr(mpiGrid, 0,-1,popID);
@@ -226,9 +224,8 @@ void calculateSpatialTranslation(
       trans_timer=phiprof::initializeTimer("update_remote-y","MPI");
       phiprof::start("update_remote-y");
 #ifdef USE_CUDA
-      // CUDATODO
-      update_remote_mapping_contribution_amr(mpiGrid, 1,+1,popID);
-      update_remote_mapping_contribution_amr(mpiGrid, 1,-1,popID);
+      cuda_update_remote_mapping_contribution_amr(mpiGrid, 1,+1,popID);
+      cuda_update_remote_mapping_contribution_amr(mpiGrid, 1,-1,popID);
 #else
       update_remote_mapping_contribution_amr(mpiGrid, 1,+1,popID);
       update_remote_mapping_contribution_amr(mpiGrid, 1,-1,popID);
@@ -509,7 +506,8 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
 #ifdef USE_CUDA
        // Ensure accelerator has enough temporary memory allocated
-       cuda_acc_allocate(cudaMaxBlockCount);
+       cuda_vlasov_allocate(cudaMaxBlockCount);
+       cuda_acc_allocate();
 #endif
 
        // Compute global maximum for number of subcycles

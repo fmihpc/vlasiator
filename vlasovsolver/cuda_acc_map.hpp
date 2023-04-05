@@ -32,15 +32,6 @@
 #include "cuda_acc_sort_blocks.hpp"
 #include "../cuda_context.cuh"
 
-struct Column {
-   int valuesOffset;                              // Source data values
-   size_t targetBlockOffsets[MAX_BLOCKS_PER_DIM]; // Target data array offsets
-   int nblocks;                                   // Number of blocks in this column
-   int minBlockK,maxBlockK;                       // Column parallel coordinate limits
-   int kBegin;                                    // Actual un-sheared starting block index
-   int i,j;                                       // Blocks' perpendicular coordinates
-};
-
 bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
                      const uint popID,
                      Realv intersection,
@@ -50,38 +41,5 @@ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
                      const uint dimension,
                      cudaStream_t stream
    );
-
-extern void cuda_acc_allocate (
-   uint maxBlockCount
-   );
-extern void cuda_acc_allocate_memory (
-   uint cpuThreadID,
-   uint maxBlockCount
-   );
-extern void cuda_acc_deallocate_memory (
-   uint cpuThreadID
-   );
-
-// Device data variables, to be allocated in good time. Made into an array so that each thread has their own pointer.
-extern Vec *dev_blockDataOrdered[];
-extern uint *dev_cell_indices_to_id[];
-extern uint *dev_block_indices_to_id[];
-
-extern vmesh::LocalID *dev_GIDlist[];
-extern vmesh::LocalID *dev_LIDlist[];
-extern vmesh::GlobalID *dev_BlocksID_mapped[];
-extern vmesh::GlobalID *dev_BlocksID_mapped_sorted[];
-extern vmesh::GlobalID *dev_LIDlist_unsorted[];
-extern vmesh::LocalID *dev_columnNBlocks[];
-
-// Unified (managed) memory variables
-extern ColumnOffsets *unif_columnOffsetData[];
-extern Column *unif_columns[];
-
-extern uint cuda_acc_allocatedSize;
-extern uint cuda_acc_allocatedColumns;
-extern uint cuda_acc_columnContainerSize;
-extern uint cuda_acc_foundColumnsCount;
-
 
 #endif

@@ -41,7 +41,6 @@
 #include "fieldsolver/fs_common.h"
 #include "fieldsolver/gridGlue.hpp"
 #include "fieldsolver/derivatives.hpp"
-#include "vlasovsolver/cpu_trans_map_amr.hpp"
 #include "projects/project.h"
 #include "iowrite.h"
 #include "ioread.h"
@@ -52,9 +51,12 @@
 #endif
 
 #ifdef USE_CUDA
-#include "vlasovsolver/cuda_acc_map.hpp"
+#include "vlasovsolver/cuda_trans_map_amr.hpp"
+//#include "vlasovsolver/cuda_acc_map.hpp"
 #include "vlasovsolver/cuda_moments.h"
 #include "cuda_context.cuh"
+#else
+#include "vlasovsolver/cpu_trans_map_amr.hpp"
 #endif
 
 #ifndef NDEBUG
@@ -661,11 +663,11 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
          }
       }
    }
-   // Call CUDA routines for per-thread memory allocation for ACC
+   // Call CUDA routines for per-thread memory allocation for Vlasov solvers
    // deallocates first if necessary
-   if (cudaMaxBlockCount>0) {
-      cuda_acc_allocate(cudaMaxBlockCount);
-   }
+   //CUDATODO: Also count how many pencils exist
+   cuda_vlasov_allocate(cudaMaxBlockCount);
+   cuda_acc_allocate();
    phiprof::stop("CUDA_malloc");
 #endif
 

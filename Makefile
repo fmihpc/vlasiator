@@ -184,15 +184,15 @@ ifeq ($(MESH),VAMR)
 OBJS += cpu_moments.o
 else
 OBJS += cpu_acc_intersections.o cpu_acc_map.o cpu_acc_sort_blocks.o cpu_acc_load_blocks.o cpu_acc_semilag.o cpu_acc_transform.o \
-	cpu_moments.o cpu_trans_map_amr.o
+	cpu_moments.o
 endif
 
 # If we are building a CUDA version, we require its object files
 ifeq ($(USE_CUDA),1)
 	OBJS += cuda_acc_map.o cuda_acc_semilag.o cuda_acc_sort_blocks.o \
-		cuda_context.o cuda_moments.o
+		cuda_context.o cuda_moments.o cuda_trans_map_amr.o
 else
-	OBJS += vamr_refinement_criteria.o
+	OBJS += vamr_refinement_criteria.o cpu_trans_map_amr.o
 endif
 
 # Add field solver objects

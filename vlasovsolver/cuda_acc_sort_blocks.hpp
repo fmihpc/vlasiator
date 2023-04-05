@@ -24,57 +24,11 @@
 #ifndef CUDA_SORT_BLOCKS_FOR_ACC_H
 #define CUDA_SORT_BLOCKS_FOR_ACC_H
 
-#include <vector>
-
 #include "../common.h"
 #include "../spatial_cell.hpp"
+//inherited include of cuda_context.cuh
 
-#include "include/splitvector/splitvec.h"
-
-struct ColumnOffsets : public Managed {
-   split::SplitVector<uint> columnBlockOffsets; // indexes where columns start (in blocks, length totalColumns)
-   split::SplitVector<uint> columnNumBlocks; // length of column (in blocks, length totalColumns)
-   split::SplitVector<uint> setColumnOffsets; // index from columnBlockOffsets where new set of columns starts (length nColumnSets)
-   split::SplitVector<uint> setNumColumns; // how many columns in set of columns (length nColumnSets)
-
-   ColumnOffsets(uint nColumns) {
-      columnBlockOffsets.resize(nColumns);
-      columnNumBlocks.resize(nColumns);
-      setColumnOffsets.resize(nColumns);
-      setNumColumns.resize(nColumns);
-      columnBlockOffsets.clear();
-      columnNumBlocks.clear();
-      setColumnOffsets.clear();
-      setNumColumns.clear();
-      //HANDLE_ERROR( cudaMemAdvise(this, sizeof(ColumnOffsets), cudaMemAdviseSetPreferredLocation, cuda_getDevice()) );
-   }
-   void dev_attachToStream(cudaStream_t stream = 0) {
-      // Return if attaching is not needed
-      if (!needAttachedStreams) {
-         return;
-      }
-      if (stream==0) {
-         stream = cuda_getStream();
-      }
-      HANDLE_ERROR( cudaStreamAttachMemAsync(stream,this, 0,cudaMemAttachSingle) );
-      columnBlockOffsets.streamAttach(stream);
-      columnNumBlocks.streamAttach(stream);
-      setColumnOffsets.streamAttach(stream);
-      setNumColumns.streamAttach(stream);
-   }
-   void dev_detachFromStream() {
-      // Return if attaching is not needed
-      if (!needAttachedStreams) {
-         return;
-      }
-      cudaStream_t stream = 0;
-      HANDLE_ERROR( cudaStreamAttachMemAsync(stream,this, 0,cudaMemAttachGlobal) );
-      columnBlockOffsets.streamAttach(0,cudaMemAttachGlobal);
-      columnNumBlocks.streamAttach(0,cudaMemAttachGlobal);
-      setColumnOffsets.streamAttach(0,cudaMemAttachGlobal);
-      setNumColumns.streamAttach(0,cudaMemAttachGlobal);
-   }
-};
+//#include "include/splitvector/splitvec.h"
 
 void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                vmesh::VelocityMesh* vmesh,
@@ -87,10 +41,10 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                vmesh::LocalID *blocksLID,
                                vmesh::LocalID *dev_columnNBlocks,
                                ColumnOffsets* columnData,
-                               // std::vector<uint> & columnBlockOffsets,
-                               // std::vector<uint> & columnNumBlocks,
-                               // std::vector<uint> & setColumnOffsets,
-                               // std::vector<uint> & setNumColumns
+                               // split::SplitVector<uint> & columnBlockOffsets,
+                               // split::SplitVector<uint> & columnNumBlocks,
+                               // split::SplitVector<uint> & setColumnOffsets,
+                               // split::SplitVector<uint> & setNumColumns
                                const uint cuda_async_queue_id,
                                cudaStream_t stream
    );

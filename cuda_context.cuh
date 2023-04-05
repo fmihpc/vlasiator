@@ -44,12 +44,15 @@
 #include "cuda_runtime.h"
 #include "definitions.h"
 #include "include/splitvector/splitvec.h"
+#include "vlasovsolver/vec.h"
+#include "velocity_mesh_parameters.h"
 
 #include <stdio.h>
 
 static const double BLOCK_ALLOCATION_PADDING = 2.5;
 static const double BLOCK_ALLOCATION_FACTOR = 1.8;
 
+// CUDA Error checking
 #define HANDLE_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ));
 static void HandleError( cudaError_t err, const char *file, int line )
 {
@@ -60,6 +63,7 @@ static void HandleError( cudaError_t err, const char *file, int line )
     }
 }
 
+// Unified memory class for inheritance
 class Managed {
 public:
    void *operator new(size_t len) {
@@ -97,20 +101,103 @@ public:
 #  define CUDATHREADS (32) // NVIDIA: 32 AMD: 64
 #endif
 
+#define MAXCPUTHREADS 64
+
 void cuda_set_device();
 void cuda_clear_device();
 cudaStream_t cuda_getStream();
 cudaStream_t cuda_getPriorityStream();
 int cuda_getDevice();
-
-#define MAXCPUTHREADS 64
-
-//extern CUcontext cuda_acc_context;
-extern cudaStream_t cudaStreamList[];
-extern cudaStream_t cudaPriorityStreamList[];
-extern cudaStream_t cudaBaseStream;
-extern Realf *returnRealf[];
+void cuda_vlasov_allocate (uint maxBlockCount);
+void cuda_vlasov_allocate_memory (uint cpuThreadID,uint maxBlockCount);
+void cuda_vlasov_deallocate_memory (uint cpuThreadID);
+void cuda_acc_allocate ();
+void cuda_acc_allocate_memory (uint cpuThreadID);
+void cuda_acc_deallocate_memory (uint cpuThreadID);
 
 // Extern flag for stream attaching
+extern cudaStream_t cudaStreamList[];
+extern cudaStream_t cudaPriorityStreamList[];
+//extern cudaStream_t cudaBaseStream;
 extern bool needAttachedStreams;
+
+// Structs used by Vlasov Acceleration semi-Lagrangian solver
+struct Column {
+   int valuesOffset;                              // Source data values
+   size_t targetBlockOffsets[MAX_BLOCKS_PER_DIM]; // Target data array offsets
+   int nblocks;                                   // Number of blocks in this column
+   int minBlockK,maxBlockK;                       // Column parallel coordinate limits
+   int kBegin;                                    // Actual un-sheared starting block index
+   int i,j;                                       // Blocks' perpendicular coordinates
+};
+
+struct ColumnOffsets : public Managed {
+   split::SplitVector<uint> columnBlockOffsets; // indexes where columns start (in blocks, length totalColumns)
+   split::SplitVector<uint> columnNumBlocks; // length of column (in blocks, length totalColumns)
+   split::SplitVector<uint> setColumnOffsets; // index from columnBlockOffsets where new set of columns starts (length nColumnSets)
+   split::SplitVector<uint> setNumColumns; // how many columns in set of columns (length nColumnSets)
+
+   ColumnOffsets(uint nColumns) {
+      columnBlockOffsets.resize(nColumns);
+      columnNumBlocks.resize(nColumns);
+      setColumnOffsets.resize(nColumns);
+      setNumColumns.resize(nColumns);
+      columnBlockOffsets.clear();
+      columnNumBlocks.clear();
+      setColumnOffsets.clear();
+      setNumColumns.clear();
+      //HANDLE_ERROR( cudaMemAdvise(this, sizeof(ColumnOffsets), cudaMemAdviseSetPreferredLocation, cuda_getDevice()) );
+   }
+   void dev_attachToStream(cudaStream_t stream = 0) {
+      // Return if attaching is not needed
+      if (!needAttachedStreams) {
+         return;
+      }
+      if (stream==0) {
+         stream = cuda_getStream();
+      }
+      HANDLE_ERROR( cudaStreamAttachMemAsync(stream,this, 0,cudaMemAttachSingle) );
+      columnBlockOffsets.streamAttach(stream);
+      columnNumBlocks.streamAttach(stream);
+      setColumnOffsets.streamAttach(stream);
+      setNumColumns.streamAttach(stream);
+   }
+   void dev_detachFromStream() {
+      // Return if attaching is not needed
+      if (!needAttachedStreams) {
+         return;
+      }
+      cudaStream_t stream = 0;
+      HANDLE_ERROR( cudaStreamAttachMemAsync(stream,this, 0,cudaMemAttachGlobal) );
+      columnBlockOffsets.streamAttach(0,cudaMemAttachGlobal);
+      columnNumBlocks.streamAttach(0,cudaMemAttachGlobal);
+      setColumnOffsets.streamAttach(0,cudaMemAttachGlobal);
+      setNumColumns.streamAttach(0,cudaMemAttachGlobal);
+   }
+};
+
+// Device data variables, to be allocated in good time. Made into an array so that each thread has their own pointer.
+extern vmesh::LocalID *dev_GIDlist[];
+extern vmesh::LocalID *dev_LIDlist[];
+extern vmesh::GlobalID *dev_BlocksID_mapped[];
+extern vmesh::GlobalID *dev_BlocksID_mapped_sorted[];
+extern vmesh::GlobalID *dev_LIDlist_unsorted[];
+extern vmesh::LocalID *dev_columnNBlocks[];
+
+extern Vec *dev_blockDataOrdered[];
+
+extern Realf *returnRealf[];
+extern uint *dev_cell_indices_to_id[];
+extern uint *dev_block_indices_to_id[];
+
+// Unified (managed) memory variables
+extern ColumnOffsets *unif_columnOffsetData[];
+extern Column *unif_columns[];
+
+// Counters used in allocations
+extern uint cuda_vlasov_allocatedSize;
+extern uint cuda_acc_allocatedColumns;
+extern uint cuda_acc_columnContainerSize;
+extern uint cuda_acc_foundColumnsCount;
+
 #endif
