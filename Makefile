@@ -184,7 +184,7 @@ ifeq ($(MESH),VAMR)
 OBJS += cpu_moments.o
 else
 OBJS += cpu_acc_intersections.o cpu_acc_map.o cpu_acc_sort_blocks.o cpu_acc_load_blocks.o cpu_acc_semilag.o cpu_acc_transform.o \
-	cpu_moments.o cpu_trans_map.o cpu_trans_map_amr.o
+	cpu_moments.o cpu_trans_map_amr.o
 endif
 
 # If we are building a CUDA version, we require its object files
