@@ -267,7 +267,7 @@ void calculateSpatialTranslation(
          local_target_cells.push_back(localCells[c]);
       }
    }
-   if (P::prepareForRebalance == true && P::amrMaxSpatialRefLevel != 0) {
+   if (P::prepareForRebalance == true) {
       // One more element to count the sums
       for (size_t c=0; c<local_propagated_cells.size()+1; c++) {
          nPencils.push_back(0);
