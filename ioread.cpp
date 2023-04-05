@@ -1058,7 +1058,8 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    bool success=true;
    int myRank,processes;
 
-#warning Spatial grid name hard-coded here
+   // Note: Spatial grid name hard-coded here.
+   // But so are the other mesh names below.
    const string meshName = "SpatialGrid";
    
    // Attempt to open VLSV file for reading:
