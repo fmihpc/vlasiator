@@ -287,14 +287,17 @@ typename std::enable_if<I == 7, std::tuple<bool, double, double>>::type test(){
   uint max_arch = std::numeric_limits<uint>::min();
   uint max_host = std::numeric_limits<uint>::min();
 
-  uint *data = (uint*)arch::allocate(size * sizeof(uint));
-  for(uint n = 0; n < size; ++n)
-    data[n] = n;
+  // uint *data = (uint*)arch::allocate(size * sizeof(uint));
+  uint* data = (uint*)malloc(size * sizeof(uint));
+  arch::buf<uint> dataBuffer(data, size * sizeof(uint));
+
+  // for(uint n = 0; n < size; ++n)
+  //   data[n] = n 
 
   clock_t arch_start = clock();
   arch::parallel_reduce<arch::max>({ni}, 
     ARCH_LOOP_LAMBDA(uint i, uint *lmax ){ 
-      *lmax = max(data[i], *lmax);
+      *lmax = max(dataBuffer[i], *lmax);
     }, max_arch);
   double arch_time = (double)((clock() - arch_start) * 1e6 / CLOCKS_PER_SEC);
 
@@ -302,7 +305,7 @@ typename std::enable_if<I == 7, std::tuple<bool, double, double>>::type test(){
   for (uint i = 0; i < ni; ++i)
     max_host = max(data[i], max_host);
   double host_time = (double)((clock() - host_start) * 1e6 / CLOCKS_PER_SEC);
-  arch::free(data);  
+  free(data); 
   
   std::vector<uint> v_arch(&max_arch, &max_arch + 1);
   std::vector<uint> v_host(&max_host, &max_host + 1);
@@ -319,16 +322,19 @@ typename std::enable_if<I == 8, std::tuple<bool, double, double>>::type test(){
   int min_arch = std::numeric_limits<int>::max();
   int min_host = std::numeric_limits<int>::max();
 
-  int *data = (int*)arch::allocate(size * size * sizeof(int));
-  for(uint n = 0; n < size * size; ++n)
-    data[n] = -(int)n;
+  // int *data = (int*)arch::allocate(size * size * sizeof(int));
+  int *data = (int*)malloc(size * size * sizeof(int));
+  arch::buf<int> dataBuffer(data, size * size * sizeof(int)); 
+
+  // for(uint n = 0; n < size * size; ++n)
+  //   data[n] = -(int)n;
 
   clock_t arch_start = clock();
   arch::parallel_reduce<arch::min>({ni, nj}, 
     ARCH_LOOP_LAMBDA(uint i, uint j, int *lmin ){ 
       const uint idx = ni * j;
       ARCH_INNER_BODY(i, j, lmin) { 
-        *lmin = min(data[idx + i], *lmin);
+        *lmin = min(dataBuffer[idx + i], *lmin);
       };
     }, min_arch);
   double arch_time = (double)((clock() - arch_start) * 1e6 / CLOCKS_PER_SEC);
@@ -340,7 +346,7 @@ typename std::enable_if<I == 8, std::tuple<bool, double, double>>::type test(){
       min_host = min(data[idx + i], min_host);
   }
   double host_time = (double)((clock() - host_start) * 1e6 / CLOCKS_PER_SEC); 
-  arch::free(data);
+  free(data);
 
   std::vector<int> v_arch(&min_arch, &min_arch + 1);
   std::vector<int> v_host(&min_host, &min_host + 1);
