@@ -52,7 +52,6 @@
 
 #ifdef USE_CUDA
 #include "vlasovsolver/cuda_trans_map_amr.hpp"
-//#include "vlasovsolver/cuda_acc_map.hpp"
 #include "vlasovsolver/cuda_moments.h"
 #include "cuda_context.cuh"
 #else

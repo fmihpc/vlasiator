@@ -187,11 +187,12 @@ OBJS += cpu_acc_intersections.o cpu_acc_map.o cpu_acc_sort_blocks.o cpu_acc_load
 	cpu_moments.o
 endif
 
-# If we are building a CUDA version, we require its object files
+# Only build CUDA version object files if active
 ifeq ($(USE_CUDA),1)
 	OBJS += cuda_acc_map.o cuda_acc_semilag.o cuda_acc_sort_blocks.o \
 		cuda_context.o cuda_moments.o cuda_trans_map_amr.o
 else
+# if *not* building CUDA version, build regular CPU version
 	OBJS += vamr_refinement_criteria.o cpu_trans_map_amr.o
 endif
 
@@ -235,17 +236,17 @@ spatial_cell_old.o:
 
 #Special handling for CUDA files
 ifeq ($(USE_CUDA),1)
-# rule for building cuda-version of spatial_cell
+# Turn on compilation for of CUDA-version of spatial_cell
 spatial_cell.o: spatial_cell_cuda.cpp
 	@echo "[CC]" $<
 	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c spatial_cell_cuda.cpp -o spatial_cell.o $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID}
 else
-# Turn off cuda-specific files
+# Turn off compilation of CUDA-specific files
 %.o: vlasovsolver/cuda_%.cpp
 	@: #do nothing
 cuda_context.o:
 	@: #do nothing
-# rule for building old cpu-version of spatial_cell
+# Turn on compilation for of old cpu-version of spatial_cell
 spatial_cell.o: spatial_cell_old.cpp
 	@echo "[CC]" $<
 	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c spatial_cell_old.cpp -o spatial_cell.o $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID}

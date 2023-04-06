@@ -52,6 +52,9 @@ Column *unif_columns[MAXCPUTHREADS];
 
 Vec *dev_blockDataOrdered[MAXCPUTHREADS];
 
+Vec *dev_blockDataSource[MAXCPUTHREADS]; // These two are unified for now, will become device memory later.
+Vec *dev_blockDataTarget[MAXCPUTHREADS];
+
 vmesh::LocalID *dev_GIDlist[MAXCPUTHREADS];
 vmesh::LocalID *dev_LIDlist[MAXCPUTHREADS];
 vmesh::GlobalID *dev_BlocksID_mapped[MAXCPUTHREADS];
@@ -223,6 +226,9 @@ __host__ void cuda_vlasov_allocate_memory (
    HANDLE_ERROR( cudaMalloc((void**)&dev_LIDlist_unsorted[cpuThreadID], blockAllocationCount*sizeof(vmesh::GlobalID)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_LIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_GIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID)) );
+
+   HANDLE_ERROR( cudaMallocManaged((void**)&dev_blockDataSource[cpuThreadID], blockAllocationCount * (WID3 / VECL) * sizeof(Vec)) ); 
+   HANDLE_ERROR( cudaMallocManaged((void**)&dev_blockDataTarget[cpuThreadID], blockAllocationCount * (WID3 / VECL) * sizeof(Vec)) );
 }
 
 __host__ void cuda_vlasov_deallocate_memory (
@@ -237,6 +243,9 @@ __host__ void cuda_vlasov_deallocate_memory (
    HANDLE_ERROR( cudaFree(dev_LIDlist_unsorted[cpuThreadID]) );
    HANDLE_ERROR( cudaFree(dev_LIDlist[cpuThreadID]) );
    HANDLE_ERROR( cudaFree(dev_GIDlist[cpuThreadID]) );
+
+   HANDLE_ERROR( cudaFree(dev_blockDataSource[cpuThreadID]) );
+   HANDLE_ERROR( cudaFree(dev_blockDataTarget[cpuThreadID]) );
 }
 
 __host__ void cuda_acc_allocate () {
