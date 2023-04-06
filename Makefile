@@ -262,7 +262,7 @@ data:
 
 c: clean
 clean: data
-	rm -rf *.o *~ */*~ */*/*~ ${EXE} particle_post_pusher check_projects_compil_logs/ check_projects_cfg_logs/ particles/*.o
+	rm -rf *.o *~ */*~ */*/*~ ${EXE} unit_testing particle_post_pusher check_projects_compil_logs/ check_projects_cfg_logs/ particles/*.o
 cleantools:
 	rm -rf vlsv2silo_${FP_PRECISION} vlsvextract_${FP_PRECISION}  vlsvdiff_${FP_PRECISION}
 
@@ -503,7 +503,7 @@ vlasiator.o: ${DEPS_COMMON} readparameters.h parameters.h ${DEPS_PROJECTS} grid.
 	${CMPGPU} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c vlasiator.cpp ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_VECTORCLASS}
 
 unit_testing.o: arch/unit_testing.cpp
-	${CMPGPU} ${FLAG_OPENMP} ${FLAGS} -c arch/unit_testing.cpp
+	${CMPGPU} $(CXXFLAGS) ${FLAG_OPENMP} ${FLAGS} -c arch/unit_testing.cpp
 
 grid.o:  ${DEPS_COMMON} parameters.h ${DEPS_PROJECTS} ${DEPS_CELL} ${DEPS_GRID} grid.cpp grid.h
 	${CMPGPU} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c grid.cpp ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_PAPI} ${INC_VECTORCLASS}
@@ -540,6 +540,7 @@ vlasiator: $(OBJS) $(OBJS_FSOLVER)
 	$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) $(LIBS) $(OBJS_FSOLVER) $(CUDALIB)
 unit_testing: unit_testing.o
 	$(LNK) ${LDFLAGS} -o unit_testing unit_testing.o $(CUDALIB)
+#$(LNK) -o unit_testing unit_testing.o $(CUDALIB)
 
 #/// TOOLS section/////
 
