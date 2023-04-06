@@ -266,7 +266,7 @@ namespace DRO {
    bool DataReductionOperatorIonosphereNode::reduceDiagnostic(const SpatialCell* cell,Real * result) {
       return false;
    }
-   bool DataReductionOperatorIonosphereNodeInt::reduceDiagnostic(const SpatialCell* cell,int * result) {
+   bool DataReductionOperatorIonosphereNodeInt::reduceDiagnostic(const SpatialCell* cell,Real * result) {
       return false;
    }
    bool DataReductionOperatorIonosphereNode::setSpatialCell(const SpatialCell* cell) {
