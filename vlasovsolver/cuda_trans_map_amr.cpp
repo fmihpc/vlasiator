@@ -1675,9 +1675,17 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
 
    int t1 = phiprof::initializeTimer("mapping");
    int t2 = phiprof::initializeTimer("store");
-
-   #pragma omp parallel
+   int t3 = phiprof::initializeTimer("find source cells");
+   int t4 = phiprof::initializeTimer("load source data");
+   int t5 = phiprof::initializeTimer("cudaMemSet");
+   int t6 = phiprof::initializeTimer("propagatePencil");
+   int t7 = phiprof::initializeTimer("transpose target data");
+   int t8 = phiprof::initializeTimer("loopMemSet");
+   int t9 = phiprof::initializeTimer("write target data to spatialcell");
+   int t10 = phiprof::initializeTimer("reset target blocks to zero");
+#pragma omp parallel
    {
+      phiprof::start("prepare empty vectors");
       // declarations for variables needed by the threads
       //std::vector<Realf, aligned_allocator<Realf, WID3>> targetBlockData((DimensionPencils[dimension].sumOfLengths + 2 * nTargetNeighborsPerPencil * DimensionPencils[dimension].N) * WID3);
       //std::vector<std::vector<SpatialCell*>> pencilSourceCells;
@@ -1689,7 +1697,9 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
       // std::vector<std::vector<Vec, aligned_allocator<Vec,WID3>>> pencilSourceVecData;
       // std::vector<std::vector<Vec, aligned_allocator<Vec,WID3>>> pencildz;
       split::SplitVector<split::SplitVector<Vec>> pencildz;
+      phiprof::stop("prepare empty vectors");
 
+      phiprof::start("prepare pencils");
       for(uint pencili = 0; pencili < DimensionPencils[dimension].N; ++pencili) {
 
          cint L = DimensionPencils[dimension].lengthOfPencils[pencili];
@@ -1708,9 +1718,11 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
          // Compute spatial neighbors for the source cells of the pencil. In
          // source cells we have a wider stencil and take into account boundaries.
          //std::vector<SpatialCell*> sourceCells(sourceLength);
+         phiprof::start(t3);
          split::SplitVector<SpatialCell*> sourceCells(sourceLength);
          computeSpatialSourceCellsForPencil(mpiGrid, DimensionPencils[dimension], pencili, dimension, sourceCells.data());
          pencilSourceCells.push_back(sourceCells);
+         phiprof::stop(t3);
 
          // dz is the cell size in the direction of the pencil
          //std::vector<Vec, aligned_allocator<Vec,WID3>> dz(sourceLength);
@@ -1720,6 +1732,7 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
          }
          pencildz.push_back(dz);
       }
+      phiprof::stop("prepare pencils");
 
       // Loop over velocity space blocks. Thread this loop (over vspace blocks) with OpenMP.
       #pragma omp for schedule(guided,8)
@@ -1744,6 +1757,7 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
                int L = DimensionPencils[dimension].lengthOfPencils[pencili];
                uint targetLength = L + 2 * nTargetNeighborsPerPencil;
 
+               phiprof::start(t4);
                // load data(=> sourcedata)
                //pencilSourceVecData[pencili].data()
                bool pencil_has_data = copy_trans_block_data_amr(pencilSourceCells[pencili].data(), blockGID, L, dev_blockDataSource[cpuThreadID],
@@ -1753,22 +1767,25 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
                   totalTargetLength += targetLength;
                   continue;
                }
+               phiprof::stop(t4);
 
-               cudaStream_t stream = cuda_getStream();
-               HANDLE_ERROR( cudaMemsetAsync(dev_blockDataTarget[cpuThreadID], 0, targetLength*WID3*sizeof(Realf), stream) );
-               HANDLE_ERROR( cudaStreamSynchronize(stream) );
-               // for(int i = 0; i < targetLength*WID3/VECL; i++) {
-               //    dev_blockDataTarget[cpuThreadID][i] = Vec(0);
-               // }
+               //phiprof::start(t5);
+               //cudaStream_t stream = cuda_getStream();
+               //HANDLE_ERROR( cudaMemsetAsync(dev_blockDataTarget[cpuThreadID], 0, targetLength*WID3*sizeof(Realf), stream) );
+               //HANDLE_ERROR( cudaStreamSynchronize(stream) );
+               memset(dev_blockDataTarget[cpuThreadID], 0, targetLength*WID3*sizeof(Realf));
+               //phiprof::stop(t5);
 
                // Dz and sourceVecData are both padded by VLASOV_STENCIL_WIDTH
                // Dz has 1 value/cell, sourceVecData has WID3 values/cell
                // vmesh is required just for general indexes and accessors
                /// not using pencilTargetValues[pencili].data() anymore
+               phiprof::start(t6);
                propagatePencil(pencildz[pencili].data(), dev_blockDataSource[cpuThreadID], dev_blockDataTarget[cpuThreadID], dimension, blockGID, dt, vmesh, L, pencilSourceCells[pencili][0]->getVelocityBlockMinValue(popID));
-
+               phiprof::stop(t6);
                // sourceVecData => targetBlockData[this pencil])
 
+               phiprof::start(t7);
                // Loop over cells in pencil
                for (uint icell = 0; icell < targetLength; icell++) {
                   // Loop over 1st vspace dimension
@@ -1793,6 +1810,7 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
                   }
                }
                totalTargetLength += targetLength;
+               phiprof::stop(t7);
 
             } // Closes loop over pencils. SourceVecData gets implicitly deallocated here.
 
@@ -1802,6 +1820,7 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
             // reset blocks in all non-sysboundary neighbor spatial cells for this block id
             // At this point the block data is saved in targetBlockData so we can reset the spatial cells
 
+            phiprof::start(t10);
             for (auto *spatial_cell: *targetCells) {
                // Check for null and system boundary
                if (spatial_cell && spatial_cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
@@ -1814,20 +1833,22 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
                      // Get a pointer to the block data
                      Realf* blockData = spatial_cell->get_data(blockLID, popID);
 
+                     //phiprof::start(t8);
                      // CUDATODO: Replace with memset when data exists on device
                      // cudaStream_t stream = cuda_getStream();
                      // HANDLE_ERROR( cudaMemsetAsync(blockData, 0, WID3*sizeof(Realf), stream) );
                      // HANDLE_ERROR( cudaStreamSynchronize(stream) );
-                     for(int i = 0; i < WID3; i++) {
-                        blockData[i] = 0.0;
-                     }
+                     memset(blockData, 0, WID3*sizeof(Realf));
+                     //phiprof::stop(t8);
                   }
                }
             }
+            phiprof::stop(t10);
 
             // store_data(target_data => targetCells)  :Aggregate data for blockid to original location
             // Loop over pencils again
             totalTargetLength = 0;
+            phiprof::start(t9);
             for(uint pencili = 0; pencili < DimensionPencils[dimension].N; pencili++){
 
                uint targetLength = DimensionPencils[dimension].lengthOfPencils[pencili] + 2 * nTargetNeighborsPerPencil;
@@ -1869,8 +1890,8 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
                }
 
                totalTargetLength += targetLength;
-
             } // closes loop over pencils
+            phiprof::stop(t9);
 
             phiprof::stop(t2);
       } // Closes loop over blocks
