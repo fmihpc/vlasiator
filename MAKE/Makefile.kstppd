@@ -1,13 +1,8 @@
 #Kostis Laptop
 #Compiler & Linker
-
 CMP = mpic++
 LNK = mpic++
-ASAN_FLAGS=-fsanitize=bounds -fsanitize=vptr -fsanitize=enum -fsanitize=signed-integer-overflow -fsanitize=return -fsanitize-address-use-after-scope -fsanitize=null \
-fsanitize=return -fsanitize=integer-divide-by-zero -fsanitize=unreachable -fsanitize=alignment -fsanitize=undefined
 
-CMP = mpic++ -fsanitize=address ${ASAN_FLAGS}  -g
-LNK = mpic++ -fsanitize=address ${ASAN_FLAGS} -static-libasan 
 
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length.
@@ -33,7 +28,7 @@ FLAGS =
 CXXFLAGS = -O3   -funroll-loops -std=c++17 -fopenmp -W -Wall -Wno-unused -Wno-unused-parameter -Wno-missing-braces -fabi-version=0 -mavx
 testpackage: CXXFLAGS = -g -ggdb -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0  -mno-avx -mno-fma -fno-unsafe-math-optimizations
 CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE -DPAPI_MEM
-MATHFLAGS =
+MATHFLAGS = -ffast-math
 testpackage: MATHFLAGS =  -fno-unsafe-math-optimizations
 LDFLAGS = -L $(HOME)/lib
 LIB_MPI = -lgomp -lpapi 
