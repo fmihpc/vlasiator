@@ -1400,78 +1400,78 @@ bool writeGrid(
    //Write mesh boundaries: NOTE: master process only
    //Visit plugin needs to know the boundaries of the mesh so the number of cells in x, y, z direction
    if( writeMeshBoundingBox( vlsvWriter, meshName, masterProcessId, MPI_COMM_WORLD ) == false ) {
-      phiprof::stop("writeGrid-reduced");
       phiprof::stop("metadataIO");
+      phiprof::stop("writeGrid-reduced");
       return false;
    }
 
    //Write the node coordinates: NOTE: master process only
    if( writeBoundingBoxNodeCoordinates( vlsvWriter, meshName, masterProcessId, MPI_COMM_WORLD ) == false ) {
-      phiprof::stop("writeGrid-reduced");
       phiprof::stop("metadataIO");
+      phiprof::stop("writeGrid-reduced");
       return false;
    }
 
    //Write basic grid variables: NOTE: master process only
    if( writeCommonGridData(vlsvWriter, mpiGrid, local_cells, P::systemWrites[outputFileTypeIndex], MPI_COMM_WORLD) == false ) {
-      phiprof::stop("writeGrid-reduced");
       phiprof::stop("metadataIO");
+      phiprof::stop("writeGrid-reduced");
       return false;
    }
 
    //Write zone global id numbers:
    if( writeZoneGlobalIdNumbers( mpiGrid, vlsvWriter, meshName, local_cells, ghost_cells ) == false ) {
-      phiprof::stop("writeGrid-reduced");
       phiprof::stop("metadataIO");
+      phiprof::stop("writeGrid-reduced");
       return false;
    }
 
    //Write domain sizes:
    if( writeDomainSizes( vlsvWriter, meshName, local_cells.size(), ghost_cells.size() ) == false ) {
-      phiprof::stop("writeGrid-reduced");
       phiprof::stop("metadataIO");
+      phiprof::stop("writeGrid-reduced");
       return false;
    }
 
    //Update local ids for cells:
    if( updateLocalIds( mpiGrid, local_cells, MPI_COMM_WORLD ) == false ) {
-      phiprof::stop("writeGrid-reduced");
       phiprof::stop("metadataIO");
+      phiprof::stop("writeGrid-reduced");
       return false;
    }
 
    //Write ghost zone domain and local id numbers ( VisIt plugin needs this for MPI )
    if( writeGhostZoneDomainAndLocalIdNumbers( mpiGrid, vlsvWriter, meshName, ghost_cells ) == false ) {
-      phiprof::stop("writeGrid-reduced");
       phiprof::stop("metadataIO");
+      phiprof::stop("writeGrid-reduced");
       return false;
    }
 
    //Write FSGrid metadata
    if( writeFsGridMetadata( technicalGrid, vlsvWriter ) == false ) {
-      phiprof::stop("writeGrid-reduced");
       phiprof::stop("metadataIO");
+      phiprof::stop("writeGrid-reduced");
       return false;
    }
 
    //Write Ionosphere Grid
    if( writeIonosphereGridMetadata( vlsvWriter ) == false ) {
-      phiprof::stop("writeGrid-reduced");
       phiprof::stop("metadataIO");
+      phiprof::stop("writeGrid-reduced");
       return false;
    }
    
    //Write Version Info 
    if( writeVersionInfo(versionInfo,vlsvWriter,MPI_COMM_WORLD) == false ) {
-      phiprof::stop("writeGrid-reduced");
       phiprof::stop("metadataIO");
+      phiprof::stop("writeGrid-reduced");
       return false;
    }
       
    //Write Config Info 
    if( writeConfigInfo(configInfo,vlsvWriter,MPI_COMM_WORLD) == false ) {
-      phiprof::stop("writeGrid-reduced");
       phiprof::stop("metadataIO");
+      phiprof::stop("writeGrid-reduced");
       return false;
    }
    

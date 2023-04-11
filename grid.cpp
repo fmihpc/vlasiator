@@ -468,6 +468,9 @@ void setFaceNeighborRanks( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
          case +3:
             neighborhood = SHIFT_P_Z_NEIGHBORHOOD_ID;
             break;
+         default:
+            cerr << "Invalid face neighbor dimension: " << nbr.second << " in " << __FILE__ << ":" << __LINE__ << std::endl;
+            abort();
          }
 
          cell->face_neighbor_ranks[neighborhood].insert(mpiGrid.get_process(nbr.first));
