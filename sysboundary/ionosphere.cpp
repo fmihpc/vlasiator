@@ -411,22 +411,23 @@ namespace SBC {
       return node;
    }
 
-   // Subdivide mesh within element e
-   // The element gets replaced by four new ones:
-   //
-   /*            2                      2
-   //           /  \                   /  \
-   //          /    \                 / 2  \
-   //         /      \               /      \
-   //        /        \     ==>     2--------1
-   //       /          \           / \  3  /  \
-   //      /            \         / 0 \   / 1  \
-   //     /              \       /     \ /      \
-   //    0----------------1     0-------0--------1
+   /* Subdivide mesh within element e
+    The element gets replaced by four new ones:
+   
+               2                      2
+              /  \                   /  \
+             /    \                 / 2  \
+            /      \               /      \
+           /        \     ==>     2--------1
+          /          \           / \  3  /  \
+         /            \         / 0 \   / 1  \
+        /              \       /     \ /      \
+       0----------------1     0-------0--------1
+   
+    And three new nodes get created at the interfaces,
+    unless they already exist.
+    The new center element (3) replaces the old parent element in place.
    */
-   // And three new nodes get created at the interfaces,
-   // unless they already exist.
-   // The new center element (3) replaces the old parent element in place.
    void SphericalTriGrid::subdivideElement(uint32_t e) {
 
       phiprof::start("ionosphere-subdivideElement");
