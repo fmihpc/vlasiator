@@ -43,6 +43,7 @@
 #include "cpu_moments.h"
 #include "cpu_acc_semilag.hpp"
 
+#include "cpu_trans_pencils.hpp"
 #ifdef USE_CUDA
 #include "cuda_acc_map.hpp"
 #include "cuda_acc_semilag.hpp"

@@ -50,12 +50,10 @@
 #include "papi.h"
 #endif
 
+#include "vlasovsolver/cpu_trans_pencils.hpp"
 #ifdef USE_CUDA
-#include "vlasovsolver/cuda_trans_map_amr.hpp"
 #include "vlasovsolver/cuda_moments.h"
 #include "cuda_context.cuh"
-#else
-#include "vlasovsolver/cpu_trans_map_amr.hpp"
 #endif
 
 #ifndef NDEBUG
