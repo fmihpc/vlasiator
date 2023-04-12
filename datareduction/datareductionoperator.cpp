@@ -220,7 +220,6 @@ namespace DRO {
       if(rank == 0) {
         std::vector<Real> varBuffer = lambda(grid);
 
-        std::array<int32_t, 3> gridSize{(int32_t)grid.elements.size(), 1,1};
         int vectorSize = varBuffer.size() / grid.elements.size();
 
         // We need to have vectorSize the same on all ranks, otherwise MPI_COMM_WORLD rank 0 writes a bogus value
@@ -308,7 +307,6 @@ namespace DRO {
       if(rank == 0) {
         std::vector<Real> varBuffer = lambda(grid);
 
-        std::array<int32_t, 3> gridSize{(int32_t)grid.nodes.size(), 1,1};
         vectorSize = varBuffer.size() / grid.nodes.size();
 
         // We need to have vectorSize the same on all ranks, otherwise MPI_COMM_WORLD rank 0 writes a bogus value
@@ -361,7 +359,6 @@ namespace DRO {
       if(rank == 0) {
          std::vector<int> varBuffer = lambda(grid);
          
-         std::array<int32_t, 3> gridSize{(int32_t)grid.nodes.size(), 1,1};
          vectorSize = varBuffer.size() / grid.nodes.size();
          
          // We need to have vectorSize the same on all ranks, otherwise MPI_COMM_WORLD rank 0 writes a bogus value
