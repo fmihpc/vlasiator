@@ -90,7 +90,6 @@ public:
 
 #define DIMS 1
 #ifndef CUDABLOCKS
-//#  define CUDABLOCKS (64)
 #  define CUDABLOCKS (108)
 #endif
 #ifndef CUDATHREADS

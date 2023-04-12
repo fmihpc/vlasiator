@@ -14,8 +14,6 @@
 #  Also, add this to your job script!
 #export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/projappl/project_2000203/libraries_rhel8_gcccuda/boost/lib
 
-
-
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length.
 #Options:
@@ -26,26 +24,21 @@
 ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
 #Single-precision
         VECTORCLASS = VEC_FALLBACK_GENERIC
-#        VECTORCLASS = VEC8F_AGNER
 else
 #Double-precision
         VECTORCLASS = VEC_FALLBACK_GENERIC
-#        VECTORCLASS = VEC4D_AGNER
 endif
 #===== Vector Lenghts ====
 # Default for VEC_FALLBACK_GENERIC is WID=4, VECL=8
 WID=8
 VECL=64
-#VECL=32
+
 #WID=4
-#VECL=4
-#VECL=8
 #VECL=16
 
 #======= Compiler and compilation flags =========
 # NOTES on compiler flags:
 # CXXFLAGS is for compiler flags, they are always used
-# NVCCFLAGS is for CUDA compiler flags.
 # MATHFLAGS are for special math etc. flags, these are only applied on solver functions
 # LDFLAGS flags for linker
 # Important note: Do not edit COMPFLAGS in this file!
@@ -61,23 +54,19 @@ CUDABLOCKS=108
 CMP = mpic++
 LNK = mpic++
 
-#CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -fopenmp -std=c++17 -rdynamic -fpermissive
-#testpackage: CXXFLAGS = -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -fopenmp -std=c++17 -fpermissive
-
 #-G (device debug) overrides --generate-line-info -line-info
 # but also requires more device-side resources to run
 
 CXXFLAGS = -g -O2 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 --generate-line-info -line-info -Xcompiler -fopenmp -Xcompiler="-fpermissive" -dc
 testpackage: CXXFLAGS = -g -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 --generate-line-info -line-info -Xcompiler -fopenmp --prec-sqrt=true --prec-div=true --ftz=false --fmad=false -Xcompiler="-fpermissive" -dc
 
-CMPGPUFLAGS = -g -O2 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 --generate-line-info -line-info -Xcompiler -fopenmp -Xcompiler="-fpermissive" -dc
-testpackage: CMPGPUFLAGS = -g -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 --generate-line-info -line-info -Xcompiler -fopenmp --prec-sqrt=true --prec-div=true --ftz=false --fmad=false -Xcompiler="-fpermissive" -dc
-
-CMPGPU = OMPI_CXX='nvcc' OMPI_CXXFLAGS='' mpic++
-
+# Tell mpic++ to use nvcc for all compiling
 CMP = OMPI_CXX='nvcc' OMPI_CXXFLAGS='' mpic++
+
+# Now tell also the linker to use nvcc
 ## The line below indeed uses OMPI_CXX, not OMPI_LD
 LNK = OMPI_CXX='nvcc' OMPI_CXXFLAGS='-arch=sm_80' OMPI_LIBS='-L/appl/spack/v017/install-tree/gcc-9.4.0/openmpi-4.1.2-cgr4nz/lib -L/appl/spack/syslibs/lib' OMPI_LDFLAGS=' -Xlinker=-rpath=/appl/spack/v017/install-tree/gcc-8.5.0/gcc-9.4.0-nfm4wc/lib/gcc/x86_64-pc-linux-gnu/9.4.0 -Xlinker=-rpath=/appl/spack/v017/install-tree/gcc-8.5.0/gcc-9.4.0-nfm4wc/lib64 -Xlinker=-rpath=/appl/spack/v017/install-tree/gcc-9.4.0/openmpi-4.1.2-cgr4nz -Xlinker=-rpath=/lib/appl/spack/syslibs/lib -lmpi ' mpic++
+
 
 MATHFLAGS =
 LDFLAGS = -O2 -g -G -L/appl/spack/v016/install-tree/gcc-4.8.5/nvhpc-21.2-l6xyb4/Linux_x86_64/21.2/cuda/11.2/lib64 -lnvToolsExt
@@ -96,7 +85,6 @@ testpackage: CXXFLAGS += -DPAPI_MEM
 #Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
 #CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 #testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
-
 
 #======== Libraries ===========
 
