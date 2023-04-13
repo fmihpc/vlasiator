@@ -812,7 +812,7 @@ void calculateHallTermSimple(
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
 
    phiprof::start("Calculate Hall term");
-   timer=phiprof::initializeTimer("MPI","MPI");
+   timer=phiprof::initializeTimer("EHall ghost updates MPI","MPI");
    phiprof::start(timer);
    dPerBGrid.updateGhostCells();
    if(P::ohmGradPeTerm == 0) {
@@ -820,20 +820,23 @@ void calculateHallTermSimple(
    }
    phiprof::stop(timer);
 
-   phiprof::start("Compute cells");
-   #pragma omp parallel for collapse(3)
-   for (int k=0; k<gridDims[2]; k++) {
-      for (int j=0; j<gridDims[1]; j++) {
-         for (int i=0; i<gridDims[0]; i++) {
-            if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-               calculateHallTerm(perBGrid, EHallGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid,sysBoundaries, i, j, k);
-            } else {
-               calculateHallTerm(perBDt2Grid, EHallGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid,sysBoundaries, i, j, k);
-            }
-         }
+   #pragma omp parallel
+   {
+      phiprof::start("EHall compute cells");
+      #pragma omp for collapse(3)
+      for (int k=0; k<gridDims[2]; k++) {
+	 for (int j=0; j<gridDims[1]; j++) {
+	    for (int i=0; i<gridDims[0]; i++) {
+	       if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+		  calculateHallTerm(perBGrid, EHallGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid,sysBoundaries, i, j, k);
+	       } else {
+		  calculateHallTerm(perBDt2Grid, EHallGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid,sysBoundaries, i, j, k);
+	       }
+	    }
+	 }
       }
+      phiprof::stop("EHall compute cells");
    }
-   phiprof::stop("Compute cells");
-
+   
    phiprof::stop("Calculate Hall term",N_cells,"Spatial Cells");
 }
