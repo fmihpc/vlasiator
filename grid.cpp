@@ -344,14 +344,20 @@ void initializeGrids(
    phiprof::stop("Fetch Neighbour data");
    
    phiprof::start("setProjectBField");
+   phiprof::start("project.setProjectBField");
    project.setProjectBField(perBGrid, BgBGrid, technicalGrid);
+   phiprof::stop("project.setProjectBField");
+   phiprof::start("fsgrid-ghost-updates");
    perBGrid.updateGhostCells();
    BgBGrid.updateGhostCells();
    EGrid.updateGhostCells();
 
    // This will only have the BGB set up properly at this stage but we need the BGBvol for the Vlasov boundaries below.
    volGrid.updateGhostCells();
+   phiprof::stop("fsgrid-ghost-updates");
+   phiprof::start("getFieldsFromFsGrid");
    getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
+   phiprof::stop("getFieldsFromFsGrid");
 
    phiprof::stop("setProjectBField");
 
