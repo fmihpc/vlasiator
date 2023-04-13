@@ -359,10 +359,10 @@ namespace projects {
          doZeroOut = P::xcells_ini ==1 && this->zeroOutComponents[0]==1;
       
          if(doZeroOut) {
-#pragma omp for collapse(3)
-            for (int x = 0; x < localSize[0]; ++x) {
+#pragma omp for collapse(2)
+            for (int z = 0; z < localSize[2]; ++z) {
                for (int y = 0; y < localSize[1]; ++y) {
-                  for (int z = 0; z < localSize[2]; ++z) {
+                  for (int x = 0; x < localSize[0]; ++x) {
                      std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
                      cell->at(fsgrids::bgbfield::BGBX)=0;
                      cell->at(fsgrids::bgbfield::BGBXVOL)=0.0;
@@ -378,14 +378,14 @@ namespace projects {
                }
             }
          }
-            
+
           doZeroOut = P::ycells_ini ==1 && this->zeroOutComponents[1]==1;
           if(doZeroOut) {
              /*2D simulation in x and z. Set By and derivatives along Y, and derivatives of By to zero*/
- #pragma omp for collapse(3)
-             for (int x = 0; x < localSize[0]; ++x) {
+#pragma omp for collapse(2)
+             for (int z = 0; z < localSize[2]; ++z) {
                 for (int y = 0; y < localSize[1]; ++y) {
-                   for (int z = 0; z < localSize[2]; ++z) {
+                   for (int x = 0; x < localSize[0]; ++x) {
                       std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
                       cell->at(fsgrids::bgbfield::BGBY)=0.0;
                       cell->at(fsgrids::bgbfield::BGBYVOL)=0.0;
@@ -404,10 +404,10 @@ namespace projects {
 
          doZeroOut = P::zcells_ini ==1 && this->zeroOutComponents[2]==1;
          if(doZeroOut) {
-#pragma omp for collapse(3)
-            for (int x = 0; x < localSize[0]; ++x) {
+#pragma omp for collapse(2)
+            for (int z = 0; z < localSize[2]; ++z) {
                for (int y = 0; y < localSize[1]; ++y) {
-                  for (int z = 0; z < localSize[2]; ++z) {
+                  for (int x = 0; x < localSize[0]; ++x) {
                      std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
                      cell->at(fsgrids::bgbfield::BGBX)=0;
                      cell->at(fsgrids::bgbfield::BGBY)=0;
@@ -428,10 +428,10 @@ namespace projects {
          
          // Remove dipole from inflow cells if this is requested
          if(this->noDipoleInSW) {
-#pragma omp for collapse(3)
-            for (int x = 0; x < localSize[0]; ++x) {
+#pragma omp for collapse(2)
+            for (int z = 0; z < localSize[2]; ++z) {
                for (int y = 0; y < localSize[1]; ++y) {
-                  for (int z = 0; z < localSize[2]; ++z) {
+                  for (int x = 0; x < localSize[0]; ++x) {
                      if(technicalGrid.get(x, y, z)->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN ) {
                         for (int i = 0; i < fsgrids::bgbfield::N_BGB; ++i) {
                            BgBGrid.get(x,y,z)->at(i) = 0;

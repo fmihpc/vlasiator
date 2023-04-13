@@ -823,7 +823,7 @@ void calculateHallTermSimple(
    #pragma omp parallel
    {
       phiprof::start("EHall compute cells");
-      #pragma omp for collapse(3)
+      #pragma omp for collapse(2)
       for (int k=0; k<gridDims[2]; k++) {
 	 for (int j=0; j<gridDims[1]; j++) {
 	    for (int i=0; i<gridDims[0]; i++) {

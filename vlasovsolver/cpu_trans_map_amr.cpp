@@ -1458,7 +1458,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
    // prepareSeedIdsAndPencils(mpiGrid,dimension); // moved to grid.cpp
 
    // init cellid_transpose (moved here to take advantage of the omp parallel region)
-#pragma omp parallel for collapse(3)
+#pragma omp parallel for collapse(2)
    for (uint k=0; k<WID; ++k) {
       for (uint j=0; j<WID; ++j) {
          for (uint i=0; i<WID; ++i) {

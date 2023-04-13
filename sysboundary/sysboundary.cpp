@@ -482,7 +482,7 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
       mpiGrid[cells[i]]->sysBoundaryFlag = sysboundarytype::NOT_SYSBOUNDARY;
       mpiGrid[cells[i]]->parameters[CellParams::FORCING_CELL_NUM] = -1;
    }
-#pragma omp parallel for collapse(3)
+#pragma omp parallel for collapse(2)
    for (int x = 0; x < localSize[0]; ++x) {
       for (int y = 0; y < localSize[1]; ++y) {
          for (int z = 0; z < localSize[2]; ++z) {
@@ -623,7 +623,7 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
    for (uint layer = 1; layer <= MAX_NUMBER_OF_BOUNDARY_LAYERS; ++layer) {
 
 // loop through all cells in grid
-#pragma omp parallel for collapse(3)
+#pragma omp parallel for collapse(2)
       for (int x = 0; x < localSize[0]; ++x) {
          for (int y = 0; y < localSize[1]; ++y) {
             for (int z = 0; z < localSize[2]; ++z) {
@@ -651,7 +651,7 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
 // One more pass to make sure, in particular if the ionosphere is wide enough
 // there is remaining cells of IONOSPHERE type inside the max layers gone through previously.
 // This last pass now gets rid of them.
-#pragma omp parallel for collapse(3)
+#pragma omp parallel for collapse(2)
    for (int x = 0; x < localSize[0]; ++x) {
       for (int y = 0; y < localSize[1]; ++y) {
          for (int z = 0; z < localSize[2]; ++z) {
@@ -669,7 +669,7 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
    const array<int,3> fsGridDimensions = technicalGrid.getGlobalSize();
 
    // One pass to setup the bit field to know which components the field solver should propagate.
-#pragma omp parallel for collapse(3)
+#pragma omp parallel for collapse(2)
    for (int x = 0; x < localSize[0]; ++x) {
       for (int y = 0; y < localSize[1]; ++y) {
          for (int z = 0; z < localSize[2]; ++z) {

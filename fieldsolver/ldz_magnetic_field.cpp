@@ -258,7 +258,7 @@ void propagateMagneticFieldSimple(
    {
       //timer=phiprof::initializeTimer("Magnetic field Compute cells");
       phiprof::start("Magnetic field Compute cells");
-      #pragma omp for collapse(3) schedule(dynamic,1)
+      #pragma omp for collapse(2) schedule(dynamic,1)
       for (int k=0; k<gridDims[2]; k++) {
          for (int j=0; j<gridDims[1]; j++) {
             for (int i=0; i<gridDims[0]; i++) {
@@ -293,7 +293,7 @@ void propagateMagneticFieldSimple(
       //timer=phiprof::initializeTimer("Compute system boundary cells");
       phiprof::start("Compute system boundary cells");
       // L1 pass
-      #pragma omp for collapse(3)
+      #pragma omp for collapse(2)
       for (int k=0; k<gridDims[2]; k++) {
          for (int j=0; j<gridDims[1]; j++) {
             for (int i=0; i<gridDims[0]; i++) {
@@ -332,7 +332,7 @@ void propagateMagneticFieldSimple(
       //timer=phiprof::initializeTimer("Compute system boundary cells");
       phiprof::start("Compute system boundary cells");
       // L2 pass
-      #pragma omp for collapse(3)
+      #pragma omp for collapse(2)
       for (int k=0; k<gridDims[2]; k++) {
          for (int j=0; j<gridDims[1]; j++) {
             for (int i=0; i<gridDims[0]; i++) {
@@ -354,7 +354,7 @@ void propagateMagneticFieldSimple(
    {
       //timer=phiprof::initializeTimer("Compute system boundary cells");
       phiprof::start("Compute system boundary cells");
-      #pragma omp for collapse(3)
+      #pragma omp for collapse(2)
       for (int k=0; k<gridDims[2]; k++) {
          for (int j=0; j<gridDims[1]; j++) {
             for (int i=0; i<gridDims[0]; i++) {

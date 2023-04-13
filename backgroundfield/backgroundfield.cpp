@@ -137,7 +137,7 @@ void setBackgroundFieldToZero(
 ) {
    auto localSize = BgBGrid.getLocalSize().data();
    
-   #pragma omp parallel for collapse(3)
+   #pragma omp parallel for collapse(2)
    for (int x = 0; x < localSize[0]; ++x) {
       for (int y = 0; y < localSize[1]; ++y) {
          for (int z = 0; z < localSize[2]; ++z) {
@@ -222,7 +222,7 @@ void setPerturbedFieldToZero(
    FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid) {
    auto localSize = perBGrid.getLocalSize().data();
    
-   #pragma omp parallel for collapse(3)
+   #pragma omp parallel for collapse(2)
    for (int x = 0; x < localSize[0]; ++x) {
       for (int y = 0; y < localSize[1]; ++y) {
          for (int z = 0; z < localSize[2]; ++z) {

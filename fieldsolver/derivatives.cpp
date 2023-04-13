@@ -364,25 +364,29 @@ void calculateDerivativesSimple(
    
    phiprof::stop(timer);
 
-   timer=phiprof::initializeTimer("Compute cells");
-   phiprof::start(timer);
+   //timer=phiprof::initializeTimer("Compute cells");
+   //phiprof::start(timer);
 
    // Calculate derivatives
-   #pragma omp parallel for collapse(3)
-   for (int k=0; k<gridDims[2]; k++) {
-      for (int j=0; j<gridDims[1]; j++) {
-         for (int i=0; i<gridDims[0]; i++) {
-            if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-            if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-               calculateDerivatives(i,j,k, perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RKCase);
-            } else {
-               calculateDerivatives(i,j,k, perBDt2Grid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RKCase);
+   #pragma omp parallel
+   {
+      phiprof::start("FS derivatives compute cells");
+      #pragma omp for collapse(2)
+      for (int k=0; k<gridDims[2]; k++) {
+         for (int j=0; j<gridDims[1]; j++) {
+            for (int i=0; i<gridDims[0]; i++) {
+               if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
+               if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+                  calculateDerivatives(i,j,k, perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RKCase);
+               } else {
+                  calculateDerivatives(i,j,k, perBDt2Grid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RKCase);
+               }
             }
          }
       }
+      phiprof::stop("FS derivatives compute cells");
    }
-
-   phiprof::stop(timer,N_cells,"Spatial Cells");
+   //phiprof::stop(timer,N_cells,"Spatial Cells");
    
    phiprof::stop("Calculate face derivatives",N_cells,"Spatial Cells");   
 }
@@ -506,22 +510,26 @@ void calculateBVOLDerivativesSimple(
    
    
    // Calculate derivatives
-   timer=phiprof::initializeTimer("Compute cells");
-   phiprof::start(timer);
+   //timer=phiprof::initializeTimer("Compute cells");
+   //phiprof::start(timer);
    
-   #pragma omp parallel for collapse(3)
-   for (int k=0; k<gridDims[2]; k++) {
-      for (int j=0; j<gridDims[1]; j++) {
-         for (int i=0; i<gridDims[0]; i++) {
-            if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
-               continue;
+   #pragma omp parallel
+   {
+      phiprof::start("FS derivatives BVOL");
+      #pragma omp for collapse(2)
+      for (int k=0; k<gridDims[2]; k++) {
+         for (int j=0; j<gridDims[1]; j++) {
+            for (int i=0; i<gridDims[0]; i++) {
+               if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+                  continue;
+               }
+               calculateBVOLDerivatives(volGrid,technicalGrid,i,j,k,sysBoundaries);
             }
-            calculateBVOLDerivatives(volGrid,technicalGrid,i,j,k,sysBoundaries);
          }
       }
+      phiprof::stop("FS derivatives BVOL");
    }
-
-   phiprof::stop(timer,N_cells,"Spatial Cells");
+   //phiprof::stop(timer,N_cells,"Spatial Cells");
 
    phiprof::stop("Calculate volume derivatives",N_cells,"Spatial Cells");
 }
@@ -654,18 +662,22 @@ void calculateCurvatureSimple(
    volGrid.updateGhostCells();
    phiprof::stop(timer,N_cells,"Spatial Cells");
    
-   #pragma omp parallel for collapse(3)
-   for (int k=0; k<gridDims[2]; k++) {
-      for (int j=0; j<gridDims[1]; j++) {
-         for (int i=0; i<gridDims[0]; i++) {
-            if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
-               continue;
+   #pragma omp parallel
+   { 
+      phiprof::start("FS derivatives curvature");
+      #pragma omp for collapse(2)
+      for (int k=0; k<gridDims[2]; k++) {
+         for (int j=0; j<gridDims[1]; j++) {
+            for (int i=0; i<gridDims[0]; i++) {
+               if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+                  continue;
+               }
+               calculateCurvature(volGrid,bgbGrid,technicalGrid,i,j,k,sysBoundaries);
             }
-            calculateCurvature(volGrid,bgbGrid,technicalGrid,i,j,k,sysBoundaries);
          }
       }
-   }
-   
+      phiprof::stop("FS derivatives curvature");
+   } 
    phiprof::stop("Calculate curvature",N_cells,"Spatial Cells");
 }
 
@@ -831,22 +843,26 @@ void calculateScaledDeltasSimple(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    phiprof::stop(timer,N_cells,"Spatial Cells");
    
    // Calculate derivatives
-   timer=phiprof::initializeTimer("Compute cells");
-   phiprof::start(timer);
+   // timer=phiprof::initializeTimer("Compute cells");
+   // phiprof::start(timer);
 
-   #pragma omp parallel for
-   for (uint i = 0; i < cells.size(); ++i) {
-   //for (CellID id : cells) {
-      CellID id = cells[i];
-      SpatialCell* cell = mpiGrid[id];
-      std::vector<SpatialCell*> neighbors;
-      for (auto neighPair : mpiGrid.get_face_neighbors_of(id)) {
-         neighbors.push_back(mpiGrid[neighPair.first]);
+   #pragma omp parallel
+   {
+      phiprof::start("FS derivatives scaled deltas");
+      #pragma omp for
+      for (uint i = 0; i < cells.size(); ++i) {
+         //for (CellID id : cells) {
+         CellID id = cells[i];
+         SpatialCell* cell = mpiGrid[id];
+         std::vector<SpatialCell*> neighbors;
+         for (auto neighPair : mpiGrid.get_face_neighbors_of(id)) {
+            neighbors.push_back(mpiGrid[neighPair.first]);
+         }
+         calculateScaledDeltas(cell, neighbors);
       }
-      calculateScaledDeltas(cell, neighbors);
+      phiprof::stop("FS derivatives scaled deltas");
    }
-
-   phiprof::stop(timer,N_cells,"Spatial Cells");
+   //phiprof::stop(timer,N_cells,"Spatial Cells");
 
    phiprof::stop("Calculate volume gradients",N_cells,"Spatial Cells");
 }
