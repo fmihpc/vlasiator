@@ -1685,8 +1685,8 @@ void calculateUpwindedElectricFieldSimple(
    // Calculate upwinded electric field on inner cells
    #pragma omp parallel
    {
-      timer=phiprof::initializeTimer("Electric field compute cells");
-      phiprof::start(timer);
+      //timer=phiprof::initializeTimer();
+      phiprof::start("Electric field compute cells");
       #pragma omp for collapse(3)
       for (int k=0; k<gridDims[2]; k++) {
          for (int j=0; j<gridDims[1]; j++) {
@@ -1729,9 +1729,10 @@ void calculateUpwindedElectricFieldSimple(
             }
          }
       }
-      phiprof::stop(timer,N_cells,"Electric field compute cells");
+      //phiprof::stop(timer,N_cells,"Electric field compute cells");
+      phiprof::stop("Electric field compute cells");
    }
-   timer=phiprof::initializeTimer("Electroc field ghost updates MPI","MPI");
+   timer=phiprof::initializeTimer("Electric field ghost updates MPI","MPI");
    phiprof::start(timer);
    // Exchange electric field with neighbouring processes
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
