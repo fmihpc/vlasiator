@@ -1683,9 +1683,9 @@ void calculateUpwindedElectricFieldSimple(
    phiprof::stop(timer);
    
    // Calculate upwinded electric field on inner cells
-   timer=phiprof::initializeTimer("Electric field compute cells");
    #pragma omp parallel
    {
+      timer=phiprof::initializeTimer("Electric field compute cells");
       phiprof::start(timer);
       #pragma omp for collapse(3)
       for (int k=0; k<gridDims[2]; k++) {

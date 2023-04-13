@@ -171,9 +171,9 @@ void calculateGradPeTermSimple(
    phiprof::stop(timer);
 
    // Calculate GradPe term
-   timer=phiprof::initializeTimer("EgradPe Compute cells");
    #pragma omp parallel
    {
+      timer=phiprof::initializeTimer("EgradPe Compute cells");
       phiprof::start(timer);
       #pragma omp for collapse(3)
       for (int k=0; k<gridDims[2]; k++) {

@@ -254,9 +254,9 @@ void propagateMagneticFieldSimple(
    
    phiprof::start("Propagate magnetic field");
    
-   timer=phiprof::initializeTimer("Magnetic field Compute cells");
    #pragma omp parallel
    {
+      timer=phiprof::initializeTimer("Magnetic field Compute cells");
       phiprof::start(timer);
       #pragma omp for collapse(3) schedule(dynamic,1)
       for (int k=0; k<gridDims[2]; k++) {
@@ -287,9 +287,9 @@ void propagateMagneticFieldSimple(
    phiprof::stop(timer);
    
    // Propagate B on system boundary/process inner cells   
-   timer=phiprof::initializeTimer("Compute system boundary cells");
    #pragma omp parallel
    {
+      timer=phiprof::initializeTimer("Compute system boundary cells");
       phiprof::start(timer);
       // L1 pass
       #pragma omp for collapse(3)
@@ -325,9 +325,9 @@ void propagateMagneticFieldSimple(
    }
    phiprof::stop(timer);
 
-   timer=phiprof::initializeTimer("Compute system boundary cells");
    #pragma omp parallel
    {
+      timer=phiprof::initializeTimer("Compute system boundary cells");
       phiprof::start(timer);
       // L2 pass
       #pragma omp for collapse(3)
@@ -347,9 +347,9 @@ void propagateMagneticFieldSimple(
       phiprof::stop(timer,N_cells,"Spatial Cells");
    }
    // Projection of magnetic field to normal of boundary, if necessary
-   timer=phiprof::initializeTimer("Compute system boundary cells");
    #pragma omp parallel
    {
+      timer=phiprof::initializeTimer("Compute system boundary cells");
       phiprof::start(timer);
       #pragma omp for collapse(3)
       for (int k=0; k<gridDims[2]; k++) {
