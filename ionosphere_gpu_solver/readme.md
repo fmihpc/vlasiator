@@ -3,7 +3,7 @@
 Command to load required modules:
 
 `
-module purge; module load GCC/10.2.0; module load CUDA/11.1.1-GCC-10.2.0
+module purge; module load CUDA
 `
 
 Compiles into **libionosphere_gpu_solver.a** using:
@@ -44,10 +44,10 @@ Linking with **libionosphere_gpu_solver.a** one needs to also link with cuda run
 
 Usually one do not need to interact with testing part. It is used as tool for development.
 
-All the test related code is in **testing** folder. Testing uses Meson build system. One can obtain meson using python module (using venv is recommended)
+All the test related code is in **testing** folder. Testing uses Meson build system. One can obtain meson by loading it as module
 
 `
-pip install meson
+module load Meson
 `
 
 Now one can create a build folder in **testing** folder with (meson is so called out of source build tool so all files that meson generates are inside build folder and it can always be deleted without worrying. It can always be regenerated)
