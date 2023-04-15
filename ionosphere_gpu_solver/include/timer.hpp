@@ -8,6 +8,7 @@
 #include <map>
 #include <optional>
 #include <string>
+#include <sstream>
 
 namespace ionogpu {
 
@@ -69,15 +70,18 @@ struct TimePrinter {
                    [](const auto& a, const auto& b) { return std::get<1>(a).total_time > std::get<1>(b).total_time; });
          return temp;
       }();
-
+      auto ss = std::stringstream{ };
       for (const auto& [name, time_info] : sorted_times_in_vec) {
-         std::cout << "│ " << std::setw(26) << std::left << name << " │ " << std::setw(20) << std::right
+
+         ss << "│ " << std::setw(26) << std::left << name << " │ " << std::setw(20) << std::right
                    << time_info.total_time.count() << " │ " << std::setw(24) << std::right
                    << time_info.number_of_measurements << " │ " << std::setw(16) << std::right
                    << static_cast<double>(time_info.total_time.count()) /
                           static_cast<double>(time_info.number_of_measurements)
                    << " │\n";
       }
+
+      std::cout << ss.str();
    }
 
    TimePrinter(const TimePrinter& other) = delete;
@@ -87,15 +91,9 @@ struct TimePrinter {
 };
 } // namespace timer_internal
 
-<<<<<<< HEAD
 // First time this is called with spesific key it will start timer for that key
 // Second time this is called with spesific key it will stop the timer for that key and then adds to total time for that key
 // When program terminates the destructor of TimePrinter will print all of the total times for all of the keys
-=======
-// First time this is kalled with spesific key it will start timer for that key
-// Second time this is called with spesific key it will stop the timer for that key and then adds to total time for that
-// key When program terminates the destructor of TimePrinter will print all of the total times for all of the keys
->>>>>>> gpu_formatted
 inline void time(const std::string& key) {
    if constexpr (enable_benchmark) {
       static auto time_printer = timer_internal::TimePrinter{};
