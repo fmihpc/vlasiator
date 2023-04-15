@@ -1944,7 +1944,7 @@ namespace SBC {
          // Set gauge-pinned nodes to their fixed potential
          //if(gaugeFixing == Pole && n == 0) {
          //   effectiveSource[n] = 0;
-         //} else if(gaugeFixing == Equator && fabs(N.x[2]) < Ionosphesourcenormre::innerRadius * sin(Ionosphere::shieldingLatitude * M_PI / 180.0)) {
+         //} else if(gaugeFixing == Equator && fabs(N.x[2]) < Ionosphere::innerRadius * sin(Ionosphere::shieldingLatitude * M_PI / 180.0)) {
          //   effectiveSource[n] = 0;
          //}  else {
             iSolverReal source = N.parameters[ionosphereParameters::SOURCE];
