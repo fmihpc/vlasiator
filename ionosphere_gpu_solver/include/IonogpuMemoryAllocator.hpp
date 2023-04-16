@@ -488,8 +488,8 @@ template <typename T> T dotProduct(const std::vector<T>& v, const std::vector<T>
 
 // when this function it is assumed that v_device_p and w_device_p have zero padding after n elements until padded_size
 // Look at dotProduct()
-template <typename T> T vectorNormSquared(T const* const v_device_p, const size_t n, T* partial_sums_device_p) {
-   return dotProduct<T>(v_device_p, v_device_p, n, partial_sums_device_p);
+template <typename T> T vectorNormSquared(T const* const v_device_p, const size_t n, T* partial_sums_device_p, const CudaStream& stream = CudaStream()) {
+   return dotProduct<T>(v_device_p, v_device_p, n, partial_sums_device_p, stream);
 }
 
 template <typename T> T vectorNormSquared(const std::vector<T>& v) {
@@ -895,7 +895,7 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGSTABCUDA(const size_t n, const size_t m, con
          timer::time("sparseBiCGSTABCUDA::1**");
          // 1**
 
-         T rho_i = dotProduct(r_hat_device_p, r_device_p, n, partial_sums_for_dot_product_device_p);
+         T rho_i = dotProduct(r_hat_device_p, r_device_p, n, partial_sums_for_dot_product_device_p, stream);
          timer::time("sparseBiCGSTABCUDA::1**", "sparseBiCGSTABCUDA::2**");
          // 2**
          T beta = (rho_i / alpha) * (rho_im1 / omega);
@@ -928,7 +928,7 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGSTABCUDA(const size_t n, const size_t m, con
 
          timer::time("sparseBiCGSTABCUDA::4**", "sparseBiCGSTABCUDA::5**");
          // 5**
-         alpha = rho_i / dotProduct(r_hat_device_p, y_device_p, n, partial_sums_for_dot_product_device_p);
+         alpha = rho_i / dotProduct(r_hat_device_p, y_device_p, n, partial_sums_for_dot_product_device_p, stream);
 
          timer::time("sparseBiCGSTABCUDA::5**", "sparseBiCGSTABCUDA::6**");
          // 6**
@@ -980,7 +980,7 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGSTABCUDA(const size_t n, const size_t m, con
          timer::time("sparseBiCGSTABCUDA::9**", "sparseBiCGSTABCUDA::10**");
          // 10**
 
-         omega = dotProduct(t_device_p, s_device_p, n, partial_sums_for_dot_product_device_p) /
+         omega = dotProduct(t_device_p, s_device_p, n, partial_sums_for_dot_product_device_p, stream) /
                  vectorNormSquared(t_device_p, n, partial_sums_for_dot_product_device_p);
 
          timer::time("sparseBiCGSTABCUDA::10**", "sparseBiCGSTABCUDA::11**");
