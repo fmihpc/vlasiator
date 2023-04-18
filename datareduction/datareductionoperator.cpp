@@ -1426,7 +1426,9 @@ namespace DRO {
       const uint vectorSize = 3;
       //Input data into buffer
       const char* ptr = reinterpret_cast<const char*>(&PTensor);
-      for (uint i = 0; i < 3*sizeof(Real); ++i) buffer[i] = ptr[i];
+      for (uint i = 0; i < vectorSize*sizeof(Real); ++i) {
+         buffer[i] = ptr[i];
+      }
       return true;
    }
    
@@ -1466,7 +1468,9 @@ namespace DRO {
       const uint vectorSize = 3;
       //Input data into buffer
       const char* ptr = reinterpret_cast<const char*>(&PTensor);
-      for (uint i = 0; i < 3*sizeof(Real); ++i) buffer[i] = ptr[i];
+      for (uint i = 0; i < vectorSize*sizeof(Real); ++i) {
+         buffer[i] = ptr[i];
+      }
       return true;
    }
    

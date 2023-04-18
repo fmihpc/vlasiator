@@ -269,7 +269,6 @@ namespace SBC {
          }
 
          // Make it delaunay
-         int numAdjacentVertices = 0;
          std::vector<int> adjacentVertices;
          for(int i=0; i<(int)nearestSamples.size(); i++) {
             int k = nearestSamples[i];
