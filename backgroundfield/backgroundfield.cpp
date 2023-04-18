@@ -203,7 +203,7 @@ void setPerturbedField(
                   surfaceAverage(valueFunction,
                      (coordinate)fComponent,
                                  accuracy,
-                                 start,
+                                 start.data(),
                                  dx[faceCoord1[fComponent]],
                                  dx[faceCoord2[fComponent]]
                                 );
