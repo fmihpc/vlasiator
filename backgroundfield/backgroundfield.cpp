@@ -167,10 +167,7 @@ void setPerturbedField(
    //these are doubles, as the averaging functions copied from Gumics
    //use internally doubles. In any case, it should provide more
    //accurate results also for float simulations
-   double accuracy = 1e-17;
-   double start[3];
-   double end[3];
-   double dx[3];
+   const double accuracy = 1e-17;
    unsigned int faceCoord1[3];
    unsigned int faceCoord2[3];
    
@@ -189,15 +186,12 @@ void setPerturbedField(
    for (int x = 0; x < localSize[0]; ++x) {
       for (int y = 0; y < localSize[1]; ++y) {
          for (int z = 0; z < localSize[2]; ++z) {
-            std::array<double, 3> start3 = perBGrid.getPhysicalCoords(x, y, z);
-            start[0] = start3[0];
-            start[1] = start3[1];
-            start[2] = start3[2];
-            
+            std::array<double, 3> start = perBGrid.getPhysicalCoords(x, y, z);
+            double dx[3];
             dx[0] = perBGrid.DX;
             dx[1] = perBGrid.DY;
             dx[2] = perBGrid.DZ;
-            
+            double end[3];
             end[0]=start[0]+dx[0];
             end[1]=start[1]+dx[1];
             end[2]=start[2]+dx[2];
