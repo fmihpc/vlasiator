@@ -59,7 +59,7 @@ void setBackgroundField(
       
       auto localSize = BgBGrid.getLocalSize();
       
-      // TODO: These can be threaded now that the dipole field is threadsafe
+      // These are threaded now that the dipole field is threadsafe
       #pragma omp parallel for collapse(3)
       for (int x = 0; x < localSize[0]; ++x) {
          for (int y = 0; y < localSize[1]; ++y) {
@@ -184,7 +184,8 @@ void setPerturbedField(
    
    auto localSize = perBGrid.getLocalSize();
    
-   // Do not thread this blindly, the bfFunction.set* calls below are not thread-safe at the moment.
+   // These are threaded now that the stuff around here is threadsafe
+   #pragma omp parallel for collapse(3)
    for (int x = 0; x < localSize[0]; ++x) {
       for (int y = 0; y < localSize[1]; ++y) {
          for (int z = 0; z < localSize[2]; ++z) {
