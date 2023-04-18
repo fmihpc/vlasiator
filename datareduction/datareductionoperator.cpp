@@ -953,7 +953,6 @@ namespace DRO {
 
    //Calculates rho thermal or rho non-thermal
    static void rhoNonthermalCalculation( const SpatialCell * cell, const bool calculateNonthermal, cuint popID, Real & rho ) {
-      const Real HALF = 0.5;
       # pragma omp parallel
       {
          Real thread_n_sum = 0.0;
