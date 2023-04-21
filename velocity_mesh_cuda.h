@@ -543,7 +543,7 @@ namespace vmesh {
       // Needed by CUDA block adjustment
       localToGlobalMap->resize(newSize);
       // Ensure also that the map is large enough
-      const vmesh::LocalID HashmapReqSize = ceil(log2(newSize)) +3; // Make it really large enough
+      const vmesh::LocalID HashmapReqSize = ceil(log2(newSize)) +2; // Make it really large enough
       if (globalToLocalMap->getSizePower() < HashmapReqSize) {
          globalToLocalMap->device_rehash(HashmapReqSize, cuda_getStream());
       }

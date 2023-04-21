@@ -40,6 +40,7 @@
 cudaStream_t cudaStreamList[MAXCPUTHREADS];
 cudaStream_t cudaPriorityStreamList[MAXCPUTHREADS];
 Realf *returnRealf[MAXCPUTHREADS];
+vmesh::LocalID *returnLID[MAXCPUTHREADS];
 bool needAttachedStreams = false;
 
 __host__ void cuda_set_device() {
@@ -105,7 +106,7 @@ __host__ void cuda_set_device() {
       needAttachedStreams = true;
    }
    // For some reason running without attaching causes errors in some splitvectors.
-   needAttachedStreams = true;
+   //needAttachedStreams = true;
 
    // Pre-generate streams, allocate return pointers
    int *leastPriority = new int; // likely 0
@@ -117,7 +118,8 @@ __host__ void cuda_set_device() {
    for (uint i=0; i<maxThreads; ++i) {
       HANDLE_ERROR( cudaStreamCreateWithPriority(&(cudaStreamList[i]), cudaStreamDefault, *leastPriority) );
       HANDLE_ERROR( cudaStreamCreateWithPriority(&(cudaPriorityStreamList[i]), cudaStreamDefault, *greatestPriority) );
-      HANDLE_ERROR( cudaMalloc((void**)&returnRealf[i], sizeof(Realf)) );
+      HANDLE_ERROR( cudaMalloc((void**)&returnRealf[i], 8*sizeof(Realf)) );
+      HANDLE_ERROR( cudaMalloc((void**)&returnLID[i], 8*sizeof(vmesh::LocalID)) );
    }
 
    // Using just a single context for whole MPI task
@@ -134,6 +136,7 @@ __host__ void cuda_clear_device() {
       cudaStreamDestroy(cudaStreamList[i]);
       cudaStreamDestroy(cudaPriorityStreamList[i]);
       HANDLE_ERROR( cudaFree(*returnRealf) );
+      HANDLE_ERROR( cudaFree(*returnLID) );
    }
 }
 

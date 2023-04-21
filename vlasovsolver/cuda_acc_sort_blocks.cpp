@@ -335,6 +335,10 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
    columnData->columnNumBlocks.clear();
    columnData->setColumnOffsets.clear();
    columnData->setNumColumns.clear();
+   columnData->columnBlockOffsets.optimizeGPU();
+   columnData->columnNumBlocks.optimizeGPU();
+   columnData->setColumnOffsets.optimizeGPU();
+   columnData->setNumColumns.optimizeGPU();
 
    uint nCudaBlocks  = (nBlocks/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : (nBlocks/CUDATHREADS);
 

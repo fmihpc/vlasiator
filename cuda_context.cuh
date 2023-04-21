@@ -109,6 +109,7 @@ extern cudaStream_t cudaStreamList[];
 extern cudaStream_t cudaPriorityStreamList[];
 extern cudaStream_t cudaBaseStream;
 extern Realf *returnRealf[];
+extern vmesh::LocalID *returnLID[];
 
 // Extern flag for stream attaching
 extern bool needAttachedStreams;
