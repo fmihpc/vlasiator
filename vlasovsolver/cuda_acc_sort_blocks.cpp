@@ -40,6 +40,25 @@
 using namespace std;
 using namespace spatial_cell;
 
+
+__host__ void cuda_acc_allocate_radix_sort (
+   const uint temp_storage_bytes,
+   void *dev_temp_storage,
+   const uint cpuThreadID,
+   const cudaStream_t stream
+   ) {
+   if (temp_storage_bytes > cuda_acc_RadixSortTempSize[cpuThreadID] * BLOCK_ALLOCATION_FACTOR) {
+      if (cuda_acc_RadixSortTempSize[cpuThreadID] > 0) {
+         HANDLE_ERROR( cudaFreeAsync(dev_temp_storage, stream) );
+      }
+      cuda_acc_RadixSortTempSize[cpuThreadID] = temp_storage_bytes * BLOCK_ALLOCATION_PADDING;
+      HANDLE_ERROR( cudaMallocAsync((void**)&dev_temp_storage, cuda_acc_RadixSortTempSize[cpuThreadID], stream) );
+      printf("Thread %d: allocated %d bytes of temporary memory for CUB SortPairs\n",cpuThreadID,cuda_acc_RadixSortTempSize[cpuThreadID]);
+   }
+   printf("Thread %d: already have %d bytes of temporary memory for CUB SortPairs (%d requested)\n",cpuThreadID,cuda_acc_RadixSortTempSize[cpuThreadID],temp_storage_bytes);
+}
+// Note: no call for deallcation of this memory, it'll be left uncleaned on exit.
+
 // Kernels for converting GIDs to dimension-sorted indices
 __global__ void blocksID_mapped_dim0_kernel(
    const vmesh::VelocityMesh* vmesh,
@@ -327,7 +346,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
    // split::SplitVector<uint> columnNumBlocks; // length of column (in blocks, length totalColumns)
    // split::SplitVector<uint> setColumnOffsets; // index from columnBlockOffsets where new set of columns starts (length nColumnSets)
    // split::SplitVector<uint> setNumColumns; // how many columns in set of columns (length nColumnSets)
-                               const uint cuda_async_queue_id,
+                               const uint cpuThreadID,
                                cudaStream_t stream
    ) {
 
@@ -383,6 +402,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
 
    // Determine temporary device storage requirements
    void     *dev_temp_storage = NULL;
+   //void     *dev_temp_storage = dev_RadixSortTemp[cpuThreadID];
    size_t   temp_storage_bytes = 0;
    cub::DeviceRadixSort::SortPairs(dev_temp_storage, temp_storage_bytes,
                                    blocksID_mapped, blocksID_mapped_sorted,
@@ -390,6 +410,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                    0, sizeof(vmesh::GlobalID)*8, stream);
    phiprof::start("cudamallocasync");
    HANDLE_ERROR( cudaMallocAsync((void**)&dev_temp_storage, temp_storage_bytes, stream) );
+   //cuda_acc_allocate_radix_sort(temp_storage_bytes,dev_temp_storage,cpuThreadID,stream);
    SSYNC
    phiprof::stop("cudamallocasync");
    //printf("allocated %d bytes of temporary memory for CUB SortPairs\n",temp_storage_bytes);
@@ -400,7 +421,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                    blocksLID_unsorted, blocksLID, nBlocks,
                                    0, sizeof(vmesh::GlobalID)*8, stream);
    SSYNC
-   HANDLE_ERROR( cudaFreeAsync(dev_temp_storage, stream) );
+   //HANDLE_ERROR( cudaFreeAsync(dev_temp_storage, stream) );
    phiprof::stop("CUB sort");
 
    // Gather GIDs in order

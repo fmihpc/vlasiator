@@ -95,4 +95,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                cudaStream_t stream
    );
 
+extern void *dev_RadixSortTemp[]; // Declared in cuda_acc_map.cpp
+extern uint cuda_acc_RadixSortTempSize[];
+
 #endif

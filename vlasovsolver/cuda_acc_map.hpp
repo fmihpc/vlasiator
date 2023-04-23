@@ -73,10 +73,10 @@ extern vmesh::GlobalID *dev_BlocksID_mapped[];
 extern vmesh::GlobalID *dev_BlocksID_mapped_sorted[];
 extern vmesh::GlobalID *dev_LIDlist_unsorted[];
 extern vmesh::LocalID *dev_columnNBlocks[];
+extern Column *dev_columns[];
 
 // Unified (managed) memory variables
 extern ColumnOffsets *unif_columnOffsetData[];
-extern Column *unif_columns[];
 
 extern uint cuda_acc_allocatedSize;
 extern uint cuda_acc_allocatedColumns;

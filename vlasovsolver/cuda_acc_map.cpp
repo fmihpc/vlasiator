@@ -55,7 +55,7 @@ uint *dev_cell_indices_to_id[MAXCPUTHREADS];
 
 uint *dev_block_indices_to_id[MAXCPUTHREADS];
 ColumnOffsets *unif_columnOffsetData[MAXCPUTHREADS];
-Column *unif_columns[MAXCPUTHREADS];
+Column *dev_columns[MAXCPUTHREADS];
 
 vmesh::LocalID *dev_GIDlist[MAXCPUTHREADS];
 vmesh::LocalID *dev_LIDlist[MAXCPUTHREADS];
@@ -63,12 +63,14 @@ vmesh::GlobalID *dev_BlocksID_mapped[MAXCPUTHREADS];
 vmesh::GlobalID *dev_BlocksID_mapped_sorted[MAXCPUTHREADS];
 vmesh::GlobalID *dev_LIDlist_unsorted[MAXCPUTHREADS];
 vmesh::LocalID *dev_columnNBlocks[MAXCPUTHREADS];
+void *dev_RadixSortTemp[MAXCPUTHREADS];
 
 // Memory allocation flags and values.
 uint cuda_acc_allocatedSize = 0;
 uint cuda_acc_allocatedColumns = 0;
 uint cuda_acc_columnContainerSize = 0;
 uint cuda_acc_foundColumnsCount = 0;
+uint cuda_acc_RadixSortTempSize[MAXCPUTHREADS] = {0};
 
 __host__ void cuda_acc_allocate (
    uint maxBlockCount
@@ -122,12 +124,10 @@ __host__ void cuda_acc_allocate_memory (
    HANDLE_ERROR( cudaMalloc((void**)&dev_LIDlist_unsorted[cpuThreadID], blockAllocationCount*sizeof(vmesh::GlobalID)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_LIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_GIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID)) );
+   HANDLE_ERROR( cudaMalloc((void**)&dev_columns[cpuThreadID], maxColumnsPerCell*sizeof(Column)) );
 
    // Unified memory; columndata contains several splitvectors.
    unif_columnOffsetData[cpuThreadID] = new ColumnOffsets(maxColumnsPerCell); // inherits managed
-   HANDLE_ERROR( cudaMallocManaged((void**)&unif_columns[cpuThreadID], maxColumnsPerCell*sizeof(Column)) );
-   //HANDLE_ERROR( cudaMemAdvise((void**)&unif_columns[cpuThreadID], maxColumnsPerCell*sizeof(Column), cudaMemAdviseSetPreferredLocation, cuda_getDevice()) );
-   HANDLE_ERROR( cudaMemPrefetchAsync(unif_columns[cpuThreadID],maxColumnsPerCell*sizeof(Column),cuda_getDevice(),cuda_getStream()) );
 
    // Potential ColumnSet block count container
    const uint c0 = (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[0];
@@ -151,8 +151,8 @@ __host__ void cuda_acc_deallocate_memory (
    HANDLE_ERROR( cudaFree(dev_columnNBlocks[cpuThreadID]) );
    HANDLE_ERROR( cudaFree(dev_LIDlist[cpuThreadID]) );
    HANDLE_ERROR( cudaFree(dev_GIDlist[cpuThreadID]) );
+   HANDLE_ERROR( cudaFree(dev_columns[cpuThreadID]) );
 
-   HANDLE_ERROR( cudaFree(unif_columns[cpuThreadID]) );
    delete unif_columnOffsetData[cpuThreadID];
 
    cuda_acc_allocatedSize = 0;
@@ -302,8 +302,7 @@ __global__ void identify_block_offsets_kernel(
 // Serial kernel only to avoid page faults or prefetches
 __global__ void count_columns_kernel (
    ColumnOffsets* dev_columnData,
-   uint* dev_totalColumns,
-   uint* dev_valuesSizeRequired
+   vmesh::LocalID* returnLID // dev_totalColumns, dev_valuesSizeRequired
    ) {
    // const int cudaBlocks = gridDim.x * gridDim.y * gridDim.z;
    // const int warpSize = blockDim.x * blockDim.y * blockDim.z;
@@ -311,9 +310,9 @@ __global__ void count_columns_kernel (
    const int ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
    if ((blocki==0)&&(ti==0)) {
       for(uint setIndex=0; setIndex< dev_columnData->setColumnOffsets.size(); ++setIndex) {
-         *dev_totalColumns += dev_columnData->setNumColumns[setIndex];
+         returnLID[0] += dev_columnData->setNumColumns[setIndex];
          for(uint columnIndex = dev_columnData->setColumnOffsets[setIndex]; columnIndex < dev_columnData->setColumnOffsets[setIndex] + dev_columnData->setNumColumns[setIndex] ; columnIndex ++){
-            *dev_valuesSizeRequired += (dev_columnData->columnNumBlocks[columnIndex] + 2) * WID3 / VECL;
+            returnLID[1] += (dev_columnData->columnNumBlocks[columnIndex] + 2) * WID3 / VECL;
          }
       }
    }
@@ -733,7 +732,6 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    // Verify unified memory stream attach
    if (needAttachedStreams) {
       columnData->dev_attachToStream(stream);
-      HANDLE_ERROR( cudaStreamAttachMemAsync(stream,unif_columns[cpuThreadID], 0,cudaMemAttachSingle) );
    }
    columnData->columnBlockOffsets.optimizeGPU(stream);
    columnData->columnNumBlocks.optimizeGPU(stream);
@@ -834,39 +832,31 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
 
    // Calculate total sum of columns and total values size
    phiprof::start("count columns");
-   uint host_totalColumns;
-   uint host_valuesSizeRequired;
-   uint* dev_totalColumns;
-   uint* dev_valuesSizeRequired;
-   HANDLE_ERROR( cudaMallocAsync((void**)&dev_totalColumns, sizeof(uint), stream) );
-   HANDLE_ERROR( cudaMallocAsync((void**)&dev_valuesSizeRequired, sizeof(uint), stream) );
-   HANDLE_ERROR( cudaMemsetAsync(dev_totalColumns, 0, sizeof(uint), stream) );
-   HANDLE_ERROR( cudaMemsetAsync(dev_valuesSizeRequired, 0, sizeof(uint), stream) );
+   vmesh::LocalID columns_and_values_required[2];
+   vmesh::LocalID *dev_returnLID = returnLID[cpuThreadID];
+   HANDLE_ERROR( cudaMemsetAsync(dev_returnLID, 0, 2*sizeof(vmesh::LocalID), stream) );
+
    // this needs to be serial, but is fast.
    SSYNC
    count_columns_kernel<<<1, 1, 0, stream>>> (
       columnData,
-      dev_totalColumns,
-      dev_valuesSizeRequired
+      dev_returnLID //dev_totalColumns,dev_valuesSizeRequired
       );
    SSYNC
-   HANDLE_ERROR( cudaMemcpyAsync(&host_totalColumns, dev_totalColumns, sizeof(uint), cudaMemcpyDeviceToHost, stream) );
-   HANDLE_ERROR( cudaMemcpyAsync(&host_valuesSizeRequired, dev_valuesSizeRequired, sizeof(uint), cudaMemcpyDeviceToHost, stream) );
-   SSYNC
-   HANDLE_ERROR( cudaFreeAsync(dev_totalColumns, stream) );
-   HANDLE_ERROR( cudaFreeAsync(dev_valuesSizeRequired, stream) );
+   HANDLE_ERROR( cudaMemcpyAsync(columns_and_values_required, dev_returnLID, 2*sizeof(vmesh::LocalID), cudaMemcpyDeviceToHost, stream) );
+   HANDLE_ERROR( cudaStreamSynchronize(stream) );
+   const vmesh::LocalID host_totalColumns = columns_and_values_required[0];
+   const vmesh::LocalID host_valuesSizeRequired = columns_and_values_required[1];
    // Update tracker of maximum encountered column count
    if (cuda_acc_foundColumnsCount < host_totalColumns) {
       cuda_acc_foundColumnsCount = host_totalColumns;
    }
    phiprof::stop("count columns");
 
-   // pointer to columns (to be in device memory)
-   Column *columns;
    // Create array of column objects
    Column host_columns[host_totalColumns];
    // and copy it into device memory
-   HANDLE_ERROR( cudaMallocAsync((void**)&columns, host_totalColumns*sizeof(Column), stream) );
+   Column *columns = dev_columns[cpuThreadID];
    HANDLE_ERROR( cudaMemcpyAsync(columns, &host_columns, host_totalColumns*sizeof(Column), cudaMemcpyHostToDevice, stream) );
    SSYNC
 
@@ -906,10 +896,8 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    phiprof::stop("Clear block lists");
 
    phiprof::start("Evaluate column extents kernel");
-   uint host_wallspace_margin_bailout_flag=0;
-   uint* dev_wallspace_margin_bailout_flag;
-   HANDLE_ERROR( cudaMallocAsync((void**)&dev_wallspace_margin_bailout_flag, sizeof(uint), stream) );
-   HANDLE_ERROR( cudaMemcpyAsync(dev_wallspace_margin_bailout_flag, &host_wallspace_margin_bailout_flag,sizeof(uint), cudaMemcpyHostToDevice, stream) );
+   vmesh::LocalID host_wallspace_margin_bailout_flag;
+   HANDLE_ERROR( cudaMemsetAsync(dev_returnLID, 0, sizeof(vmesh::LocalID), stream) );
    evaluate_column_extents_kernel<<<cudablocks, CUDATHREADS, 0, stream>>> (
       dimension,
       vmesh,
@@ -928,11 +916,11 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       max_v_length,
       v_min,
       dv,
-      dev_wallspace_margin_bailout_flag
+      dev_returnLID //dev_wallspace_margin_bailout_flag
       );
    SSYNC
    // Check if we need to bailout due to hitting v-space edge
-   HANDLE_ERROR( cudaMemcpyAsync(&host_wallspace_margin_bailout_flag, dev_wallspace_margin_bailout_flag, sizeof(uint), cudaMemcpyDeviceToHost, stream) );
+   HANDLE_ERROR( cudaMemcpyAsync(&host_wallspace_margin_bailout_flag, dev_returnLID, sizeof(vmesh::LocalID), cudaMemcpyDeviceToHost, stream) );
    HANDLE_ERROR( cudaStreamSynchronize(stream) );
    if (host_wallspace_margin_bailout_flag != 0) {
       string message = "Some target blocks in acceleration are going to be less than ";
@@ -944,7 +932,6 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       message += ". Consider expanding velocity space for that population.";
       bailout(true, message, __FILE__, __LINE__);
    }
-   HANDLE_ERROR( cudaFreeAsync(dev_wallspace_margin_bailout_flag, stream) );
    phiprof::stop("Evaluate column extents kernel");
 
    phiprof::start("Add and delete blocks");
@@ -990,7 +977,6 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       );
    SSYNC
 
-   HANDLE_ERROR( cudaFreeAsync(columns, stream) );
    phiprof::stop("Semi-Lagrangian acceleration kernel");
 
    return true;
