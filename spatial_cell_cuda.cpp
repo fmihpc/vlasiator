@@ -758,14 +758,15 @@ namespace spatial_cell {
       const uint localNoContentBlocks = velocity_block_with_no_content_list->size();
 
       // Neighbour and own prefetches
-      populations[popID].vmesh->dev_prefetchDevice(); // Queries active stream internally
-      for (std::vector<SpatialCell*>::const_iterator neighbor=spatial_neighbors.begin();
-           neighbor != spatial_neighbors.end(); ++neighbor) {
-         (*neighbor)->velocity_block_with_content_list->optimizeGPU(stream);
+      if (doPrefetches) {
+         populations[popID].vmesh->dev_prefetchDevice(); // Queries active stream internally
+         for (std::vector<SpatialCell*>::const_iterator neighbor=spatial_neighbors.begin();
+              neighbor != spatial_neighbors.end(); ++neighbor) {
+            (*neighbor)->velocity_block_with_content_list->optimizeGPU(stream);
+         }
+         velocity_block_with_content_list->optimizeGPU(stream);
+         velocity_block_with_no_content_list->optimizeGPU(stream);
       }
-      velocity_block_with_content_list->optimizeGPU(stream);
-      velocity_block_with_no_content_list->optimizeGPU(stream);
-
       phiprof::start("Local content lists");
 
       phiprof::start("BlocksRequired hashmap resize / clear");
@@ -841,9 +842,11 @@ namespace spatial_cell {
       SSYNC
       phiprof::stop("BlocksToXXX reserve");
       phiprof::start("BlocksToXXX prefetch");
-      BlocksToRemove->optimizeGPU(stream);
-      BlocksToAdd->optimizeGPU(stream);
-      BlocksToMove->optimizeGPU(stream);
+      if (doPrefetches) {
+         BlocksToRemove->optimizeGPU(stream);
+         BlocksToAdd->optimizeGPU(stream);
+         BlocksToMove->optimizeGPU(stream);
+      }
       SSYNC
       phiprof::stop("BlocksToXXX prefetch");
 
@@ -910,8 +913,10 @@ namespace spatial_cell {
       if (needAttachedStreams) {
          populations[popID].vmesh->dev_attachToStream(stream);
       }
-      populations[popID].vmesh->dev_prefetchDevice();
-      populations[popID].vmesh->dev_cleanHashMap();
+      if (doPrefetches) {
+         populations[popID].vmesh->dev_prefetchDevice();
+         populations[popID].vmesh->dev_cleanHashMap();
+      }
       SSYNC
       phiprof::stop("Hashinator cleanup");
 

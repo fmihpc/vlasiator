@@ -40,8 +40,10 @@
 cudaStream_t cudaStreamList[MAXCPUTHREADS];
 cudaStream_t cudaPriorityStreamList[MAXCPUTHREADS];
 Realf *returnRealf[MAXCPUTHREADS];
+Real *returnReal[MAXCPUTHREADS];
 vmesh::LocalID *returnLID[MAXCPUTHREADS];
 bool needAttachedStreams = false;
+bool doPrefetches=true;
 
 __host__ void cuda_set_device() {
 
@@ -105,8 +107,6 @@ __host__ void cuda_set_device() {
       printf("Warning! Current CUDA device does not support concurrent managed memory access from several streams.\n");
       needAttachedStreams = true;
    }
-   // For some reason running without attaching causes errors in some splitvectors.
-   //needAttachedStreams = true;
 
    // Pre-generate streams, allocate return pointers
    int *leastPriority = new int; // likely 0
@@ -118,6 +118,7 @@ __host__ void cuda_set_device() {
    for (uint i=0; i<maxThreads; ++i) {
       HANDLE_ERROR( cudaStreamCreateWithPriority(&(cudaStreamList[i]), cudaStreamDefault, *leastPriority) );
       HANDLE_ERROR( cudaStreamCreateWithPriority(&(cudaPriorityStreamList[i]), cudaStreamDefault, *greatestPriority) );
+      HANDLE_ERROR( cudaMalloc((void**)&returnReal[i], 8*sizeof(Real)) );
       HANDLE_ERROR( cudaMalloc((void**)&returnRealf[i], 8*sizeof(Realf)) );
       HANDLE_ERROR( cudaMalloc((void**)&returnLID[i], 8*sizeof(vmesh::LocalID)) );
    }

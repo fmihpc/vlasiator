@@ -108,9 +108,12 @@ int cuda_getDevice();
 extern cudaStream_t cudaStreamList[];
 extern cudaStream_t cudaPriorityStreamList[];
 extern cudaStream_t cudaBaseStream;
+extern Real *returnReal[];
 extern Realf *returnRealf[];
 extern vmesh::LocalID *returnLID[];
 
 // Extern flag for stream attaching
 extern bool needAttachedStreams;
+extern bool doPrefetches;
+
 #endif
