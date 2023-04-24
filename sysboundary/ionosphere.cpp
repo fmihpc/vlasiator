@@ -1133,7 +1133,6 @@ namespace SBC {
          for(uint n=0; n<nodes.size(); n++) {
 
             Real nodeAreaGeometric = 0;
-            std::array<int,3> fsc;
 
             // Map down FAC based on magnetosphere rotB
             if(nodes[n].xMapped[0] == 0. && nodes[n].xMapped[1] == 0. && nodes[n].xMapped[2] == 0.) {

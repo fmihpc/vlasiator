@@ -389,7 +389,7 @@ namespace DRO {
    bool DataReductionOperatorMPIGridCell::reduceData(const SpatialCell* cell,char* buffer) {
       std::vector<Real> varBuffer = lambda(cell);
 
-      assert(varBuffer.size() == numFloats);
+      assert(varBuffer.size() == (unsigned int)numFloats);
 
       for(int i=0; i<numFloats; i++) {
          buffer[i] = varBuffer[i];
