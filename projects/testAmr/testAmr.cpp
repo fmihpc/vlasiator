@@ -156,7 +156,7 @@ namespace projects {
       uint N = nVelocitySamples; // Start by using nVelocitySamples
       int N3_sum = 0;           // Sum of sampling points used so far
 
-      const testAmrSpeciesParameters& sP = speciesParams[popID];
+      //const testAmrSpeciesParameters& sP = speciesParams[popID];
 
       const Real avgLimit = 0.01*getObjectWrapper().particleSpecies[popID].sparseMinValue;
       do {
