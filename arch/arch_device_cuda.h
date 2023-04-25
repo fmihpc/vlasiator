@@ -181,6 +181,20 @@ __forceinline__ static void host_unregister(T* ptr){
 }
 
 /* Specializations for lambda calls depending on the templated dimension */
+template <typename Lambda>
+__device__ __forceinline__ static void lambda_eval_for(const uint (&idx)[1], Lambda loop_body) { loop_body(idx[0]); }
+
+template <typename Lambda>
+__device__ __forceinline__ static void lambda_eval_for(const uint (&idx)[2], Lambda loop_body) { loop_body(idx[0], idx[1]); }
+
+template <typename Lambda>
+__device__ __forceinline__ static void lambda_eval_for(const uint (&idx)[3], Lambda loop_body) { loop_body(idx[0], idx[1], idx[2]); }
+
+template <typename Lambda>
+__device__ __forceinline__ static void lambda_eval_for(const uint (&idx)[4], Lambda loop_body) { loop_body(idx[0], idx[1], idx[2], idx[3]); }
+
+
+/* Specializations for lambda calls depending on the templated dimension */
 template <typename Lambda, typename T>
 __device__ __forceinline__ static void lambda_eval(const uint (&idx)[1], T * __restrict__ thread_data, Lambda loop_body) { loop_body(idx[0], thread_data); }
 
@@ -278,7 +292,49 @@ reduction_kernel(Lambda loop_body, const T * __restrict__ init_val, T * __restri
         printf("ERROR at %s:%d: Invalid reduction identifier \"Op\".", __FILE__, __LINE__);
   }
 }
-  
+
+/* A general device kernel for for loops */
+template <uint NDim, typename Lambda>
+__global__ static void __launch_bounds__(ARCH_BLOCKSIZE_R)
+for_kernel(Lambda loop_body, const uint * __restrict__ lims, const uint n_total)
+{
+  /* Get the global 1D thread index*/
+  const uint idx_glob = blockIdx.x * blockDim.x + threadIdx.x;
+
+  /* Check the loop limits and evaluate the loop body */
+  if (idx_glob < n_total) {
+    uint idx[NDim];
+    switch (NDim)
+    {
+      case 4:
+        idx[3] = (idx_glob / (lims[0] * lims[1] * lims[2])) % lims[3];
+      case 3:
+        idx[2] = (idx_glob / (lims[0] * lims[1])) % lims[2];
+      case 2:
+        idx[1] = (idx_glob / lims[0]) % lims[1];
+      case 1:
+        idx[0] = idx_glob % lims[0];  
+    }
+    lambda_eval_for(idx, loop_body);
+  }
+}
+
+// parallel for driver function for CUDA
+template <uint NDim, typename Lambda>
+__forceinline__ static void parallel_for_driver(const uint (&limits)[NDim], Lambda loop_body) {
+
+  /* Calculate the required size for the 1D kernel */
+  uint n_total = 1;
+  for(uint i = 0; i < NDim; i++)
+    n_total *= limits[i];
+
+  /* Set the kernel dimensions */
+  const uint blocksize = ARCH_BLOCKSIZE_R;
+  const uint gridsize = (n_total - 1 + blocksize) / blocksize;
+
+  /* Launch the kernel */
+  for_kernel<NDim><<<gridsize, blocksize, 0>>>(loop_body, limits, n_total);
+}
 
 
 /* Parallel reduce driver function for the CUDA reductions */

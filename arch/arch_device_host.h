@@ -61,6 +61,46 @@ inline static void host_register(T* ptr, size_t bytes){}
 template <typename T>
 inline static void host_unregister(T* ptr){}
 
+// parallel for driver function - specialization for 3D case
+template <uint NDim, typename Lambda>
+inline static void parallel_for_driver(const uint (&limits)[3], Lambda loop_body) {
+
+  uint idx[3];
+         
+  //#pragma omp for collapse(3)
+  for (idx[2] = 0; idx[2] < limits[2]; ++idx[2]) 
+    for (idx[1] = 0; idx[1] < limits[1]; ++idx[1]) 
+      for (idx[0] = 0; idx[0] < limits[0]; ++idx[0])
+        loop_body(idx[0], idx[1], idx[2]);
+
+}
+
+// parallel for driver function - specialization for 2D case
+template <uint NDim, typename Lambda>
+inline static void parallel_for_driver(const uint (&limits)[2], Lambda loop_body) {
+
+  uint idx[2];
+         
+  //#pragma omp for collapse(2)
+  for (idx[1] = 0; idx[1] < limits[1]; ++idx[1]) 
+    for (idx[0] = 0; idx[0] < limits[0]; ++idx[0])
+      loop_body(idx[0], idx[1]);
+
+}
+
+// parallel for driver function - specialization for 1D case
+template <uint NDim, typename Lambda>
+inline static void parallel_for_driver(const uint (&limits)[1], Lambda loop_body) {
+
+  uint idx[1];
+         
+  //#pragma omp for
+  for (idx[0] = 0; idx[0] < limits[0]; ++idx[0])
+    loop_body(idx[0]);
+
+}
+
+
 /* Parallel reduce driver function - specialization for 1D case */
 template <reduce_op Op, uint NReductions, uint NDim, typename Lambda, typename T>
 inline static void parallel_reduce_driver(const uint (&limits)[1], Lambda loop_body, T *sum, const uint n_redu_dynamic) {

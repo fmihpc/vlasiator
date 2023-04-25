@@ -81,6 +81,9 @@ ifeq ($(USE_CUDA),1)
   unit_testing: CMPGPU = OMPI_CXXFLAGS='' OMPI_CXX='nvcc -g -O3 -x cu -std=c++14 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80' mpic++
   unit_testing: CXXFLAGS += -DUSE_CUDA
   unit_testing: LDFLAGS += -lgomp
+  unit_testing_fields: CMPGPU = OMPI_CXXFLAGS='' OMPI_CXX='nvcc -g -O3 -x cu -std=c++14 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80' mpic++
+  unit_testing_fields: CXXFLAGS += -DUSE_CUDA
+  unit_testing_fields: LDFLAGS += -lgomp
 else
   CMPGPU = ${CMP}
 endif
