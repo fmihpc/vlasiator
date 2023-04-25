@@ -5,11 +5,11 @@
 #SBATCH -M carrington
 # test short medium 20min1d 3d
 #SBATCH -p short
-##SBATCH --exclusive
+#SBATCH --exclusive
 #SBATCH --nodes=1
 #SBATCH -c 4                 # CPU cores per task
 #SBATCH -n 16                  # number of tasks
-#SBATCH --mem-per-cpu=5G
+#SBATCH --mem=0
 ##SBATCH -x carrington-[801-808]
 
 #If 1, the reference vlsv files are generated
@@ -119,22 +119,24 @@ for run in ${run_tests[*]}; do
 
    # Run the actual simulation
    if [[ ${single_cell[$run]} ]]; then
-      { $small_run_command $bin --run_config=${test_name[$run]}.cfg 2>&1 1>&3 3>&- | tee $GITHUB_WORKSPACE/stderr.txt; } 3>&1 1>&2 | tee $GITHUB_WORKSPACE/stdout.txt
+      { $small_run_command $bin --run_config=${test_name[$run]}.cfg 2>&1 1>&3 3>&- | tee $GITHUB_WORKSPACE/stderr.txt; exit ${PIPESTATUS[0]}; } 3>&1 1>&2 | tee $GITHUB_WORKSPACE/stdout.txt
    else
-      { $run_command $bin --run_config=${test_name[$run]}.cfg 2>&1 1>&3 3>&- | tee $GITHUB_WORKSPACE/stderr.txt; } 3>&1 1>&2 | tee $GITHUB_WORKSPACE/stdout.txt
+      { $run_command $bin --run_config=${test_name[$run]}.cfg 2>&1 1>&3 3>&- | tee $GITHUB_WORKSPACE/stderr.txt; exit ${PIPESTATUS[0]}; } 3>&1 1>&2 | tee $GITHUB_WORKSPACE/stdout.txt
    fi
 
    # Store error return value
-   RUN_ERROR=$?
+   RUN_ERROR=${PIPESTATUS[0]}
 
    if [[ $RUN_ERROR != 0 ]]; then
       echo -e "<details><summary>:red_circle: ${test_name[$run]}: Failed to run or died with an error.</summary>\n"  >> $GITHUB_STEP_SUMMARY
       echo -e "Stdout:\n \`\`\`\n" >> $GITHUB_STEP_SUMMARY
       cat $GITHUB_WORKSPACE/stdout.txt >> $GITHUB_STEP_SUMMARY
-      echo -e "\`'`'`\nStderr:\n \`\`\`\n" >> $GITHUB_STEP_SUMMARY
+      echo -e "\`\`\`\nStderr:\n \`\`\`\n" >> $GITHUB_STEP_SUMMARY
       cat $GITHUB_WORKSPACE/stderr.txt >> $GITHUB_STEP_SUMMARY
-      echo -e "\`'`'`\n</details>" >> $GITHUB_STEP_SUMMARY
+      echo -e "\`\`\`\n</details>" >> $GITHUB_STEP_SUMMARY
       FAILEDTESTS=$((FAILEDTESTS+1))
+
+      touch $GITHUB_WORKSPACE/testpackage_failed
       continue
    fi
 
@@ -171,7 +173,8 @@ for run in ${run_tests[*]}; do
    
    MAXERR=0.  # Absolute error
    MAXREL=0.  # Relative error
-   MAXVAR=""  # Variable with said error
+   MAXERRVAR=""  # Variable with max absolute error
+   MAXRELVAR=""  # Variable with max relative error
 
    variables=(${variable_names[$run]// / })
    indices=(${variable_components[$run]// / })
@@ -191,8 +194,12 @@ for run in ${run_tests[*]}; do
             # Check if we have a new maximum error
             if (( $( echo "$absoluteValue $MAXERR" | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
                MAXERR=$absoluteValue
+               MAXERRVAR=${variables[$i]}
+            fi
+            # ... or new max relative error
+            if (( $( echo "$relativeValue $MAXREL" | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
                MAXREL=$relativeValue
-               MAXVAR=${variables[$i]}
+               MAXRELVAR=${variables[$i]}
             fi
    
        elif [[ "${variables[$i]}" == "ig_"* ]]
@@ -209,8 +216,12 @@ for run in ${run_tests[*]}; do
             # Check if we have a new maximum error
             if (( $( echo "$absoluteValue $MAXERR" | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
                MAXERR=$absoluteValue
+               MAXERRVAR=${variables[$i]}
+            fi
+            # ... or new max relative error
+            if (( $( echo "$relativeValue $MAXREL" | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
                MAXREL=$relativeValue
-               MAXVAR=${variables[$i]}
+               MAXRELVAR=${variables[$i]}
             fi
    
        elif [ ! "${variables[$i]}" == "proton" ]
@@ -227,8 +238,12 @@ for run in ${run_tests[*]}; do
             # Check if we have a new maximum error
             if (( $( echo "$absoluteValue $MAXERR" | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
                MAXERR=$absoluteValue
+               MAXERRVAR=${variables[$i]}
+            fi
+            # ... or new max relative error
+            if (( $( echo "$relativeValue $MAXREL" | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
                MAXREL=$relativeValue
-               MAXVAR=${variables[$i]}
+               MAXRELVAR=${variables[$i]}
             fi
    
        elif [ "${variables[$i]}" == "proton" ]
@@ -243,19 +258,21 @@ for run in ${run_tests[*]}; do
        # so we save the variables to temp files
        echo $MAXERR > $RUNNER_TEMP/MAXERR.txt
        echo $MAXREL > $RUNNER_TEMP/MAXREL.txt
-       echo $MAXVAR > $RUNNER_TEMP/MAXVAR.txt
+       echo $MAXERRVAR > $RUNNER_TEMP/MAXERRVAR.txt
+       echo $MAXRELVAR > $RUNNER_TEMP/MAXRELVAR.txt
        echo $speedup > $RUNNER_TEMP/speedup.txt
    done 2>&1 1>&3 3>&- | tee -a $GITHUB_WORKSPACE/stderr.txt; } 3>&1 1>&2 | tee -a $GITHUB_WORKSPACE/stdout.txt
 
    # Recover error variables
    MAXERR=`cat $RUNNER_TEMP/MAXERR.txt`
+   MAXERRVAR=`cat $RUNNER_TEMP/MAXERRVAR.txt`
    MAXREL=`cat $RUNNER_TEMP/MAXREL.txt`
-   MAXVAR=`cat $RUNNER_TEMP/MAXVAR.txt`
+   MAXRELVAR=`cat $RUNNER_TEMP/MAXRELVAR.txt`
    speedup=`cat $RUNNER_TEMP/speedup.txt`
 
    # Output CI step annotation
    if (( $( echo "$MAXERR 0." | awk '{ if($1 > $2) print 1; else print 0 }' ) )); then
-      echo -e "<details><summary>:large_orange_diamond: ${test_name[$run]}: Nonzero diffs: : \`$MAXVAR\` has absolute error $MAXERR, relative error $MAXREL. Speedup: $speedup</summary>\n" >> $GITHUB_STEP_SUMMARY
+      echo -e "<details><summary>:large_orange_diamond: ${test_name[$run]}: Nonzero diffs: : \`$MAXERRVAR\` has absolute error $MAXERR, \`$MAXRELVAR\` has relative error $MAXREL. Speedup: $speedup</summary>\n" >> $GITHUB_STEP_SUMMARY
       NONZEROTESTS=$((NONZEROTESTS+1))
    else 
       echo -e "<details><summary>:heavy_check_mark: ${test_name[$run]}: Ran with zero diffs. Speedup: $speedup</summary>\n" >> $GITHUB_STEP_SUMMARY

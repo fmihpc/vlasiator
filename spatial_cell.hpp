@@ -1603,7 +1603,6 @@ namespace spatial_cell {
     functions of the containers in spatial cell
     */
    inline uint64_t SpatialCell::get_cell_memory_size() {
-      const uint64_t VEL_BLOCK_SIZE = 2*WID3*sizeof(Realf) + BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real);
       uint64_t size = 0;
       size += vmeshTemp.sizeInBytes();
       size += blockContainerTemp.sizeInBytes();
@@ -1627,7 +1626,6 @@ namespace spatial_cell {
     the size() functions of the containers in spatial cell
     */
    inline uint64_t SpatialCell::get_cell_memory_capacity() {
-      const uint64_t VEL_BLOCK_SIZE = 2*WID3*sizeof(Realf) + BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real);
       uint64_t capacity = 0;
       
       capacity += vmeshTemp.capacityInBytes();

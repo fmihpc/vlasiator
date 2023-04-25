@@ -97,6 +97,7 @@ vector<bool> P::systemWriteFsGrid;
 vector<int> P::systemWrites;
 vector<pair<string, string>> P::systemWriteHints;
 vector<pair<string, string>> P::restartWriteHints;
+vector<pair<string, string>> P::restartReadHints;
 
 Real P::saveRestartWalltimeInterval = -1.0;
 uint P::exitAfterRestarts = numeric_limits<uint>::max();
@@ -219,6 +220,12 @@ bool P::addParameters() {
    RP::addComposing(
        "io.restart_write_mpiio_hint_value",
        "MPI-IO hint value passed to the restart IO. Has to be matched by io.restart_write_mpiio_hint_key.");
+   RP::addComposing(
+       "io.restart_read_mpiio_hint_key",
+       "MPI-IO hint key passed to the restart IO. Has to be matched by io.restart_read_mpiio_hint_value.");
+   RP::addComposing(
+       "io.restart_read_mpiio_hint_value",
+       "MPI-IO hint value passed to the restart IO. Has to be matched by io.restart_read_mpiio_hint_key.");
 
    RP::add("io.write_initial_state",
            "Write initial state, not even the 0.5 dt propagation is done. Do not use for restarting. ", false);
@@ -605,6 +612,23 @@ void Parameters::getParameters() {
       }
    }
 
+   mpiioKeys.clear();
+   mpiioValues.clear();
+   RP::get("io.restart_read_mpiio_hint_key", mpiioKeys);
+   RP::get("io.restart_read_mpiio_hint_value", mpiioValues);
+   
+   if (mpiioKeys.size() != mpiioValues.size()) {
+      if (myRank == MASTER_RANK) {
+         cerr << "WARNING the number of io.restart_read_mpiio_hint_key and io.restart_read_mpiio_hint_value do not "
+                 "match. Disregarding these options."
+              << endl;
+      }
+   } else {
+      for (uint i = 0; i < mpiioKeys.size(); i++) {
+         P::restartReadHints.push_back({mpiioKeys[i], mpiioValues[i]});
+      }
+   }
+
    RP::get("propagate_field", P::propagateField);
    RP::get("propagate_vlasov_acceleration", P::propagateVlasovAcceleration);
    RP::get("propagate_vlasov_translation", P::propagateVlasovTranslation);
@@ -778,7 +802,7 @@ void Parameters::getParameters() {
          cerr << "WARNING the number of load balance keys and values do not match. Disregarding these options." << endl;
       }
    } else {
-      for (int i = 0; i < loadBalanceKeys.size(); ++i) {
+      for (size_t i = 0; i < loadBalanceKeys.size(); ++i) {
          loadBalanceOptions[loadBalanceKeys[i]] = loadBalanceValues[i];
       }
    }

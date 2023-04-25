@@ -174,11 +174,18 @@ public:
    }
 
    // Iterator type. Iterates through all non-empty buckets.
-   class iterator : public std::iterator<std::random_access_iterator_tag, std::pair<GID, LID>> {
+   class iterator {
       OpenBucketHashtable<GID, LID>* hashtable;
       size_t index;
 
    public:
+      // Define iterator traits
+      using iterator_category = std::random_access_iterator_tag;
+      using value_type =  std::pair<GID, LID>;
+      using difference_type = std::ptrdiff_t;
+      using pointer = std::pair<GID, LID>*;
+      using reference = std::pair<GID, LID>&;
+
       iterator(OpenBucketHashtable<GID, LID>* hashtable, size_t index) : hashtable(hashtable), index(index) {}
 
       iterator& operator++() {
@@ -212,11 +219,18 @@ public:
    };
 
    // Const iterator.
-   class const_iterator : public std::iterator<std::random_access_iterator_tag, std::pair<GID, LID>> {
+   class const_iterator {
       const OpenBucketHashtable<GID, LID>* hashtable;
       size_t index;
 
    public:
+      // Define iterator traits
+      using iterator_category = std::random_access_iterator_tag;
+      using value_type =  std::pair<GID, LID>;
+      using difference_type = std::ptrdiff_t;
+      using pointer = std::pair<GID, LID>*;
+      using reference = std::pair<GID, LID>&;
+
       explicit const_iterator(const OpenBucketHashtable<GID, LID>* hashtable, size_t index) : hashtable(hashtable), index(index) {}
 
       const_iterator& operator++() {
