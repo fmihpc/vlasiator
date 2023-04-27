@@ -635,11 +635,6 @@ bool writeZoneGlobalIdNumbers( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_G
       }
    }
 
-   //Get the cells in x, y, z direction right off the bat (for the sake of clarity):
-   const unsigned int xCells = P::xcells_ini;
-   const unsigned int yCells = P::ycells_ini;
-   const unsigned int zCells = P::zcells_ini;
-
    vector<uint64_t> globalIds;
    globalIds.reserve( local_cells.size() + ghost_cells.size() );
 
