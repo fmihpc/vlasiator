@@ -158,7 +158,6 @@ namespace projects {
          dByavg += sin(2.0 * M_PI * ksi);
          dBzavg += cos(2.0 * M_PI * ksi);
       }
-      cuint nPts = pow(this->nSpaceSamples, 3.0);
       
    }
    
