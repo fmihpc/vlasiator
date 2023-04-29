@@ -105,7 +105,7 @@ __host__ void cuda_set_device() {
       needAttachedStreams = true;
    }
    // For some reason running without attaching causes errors in some splitvectors.
-   needAttachedStreams = true;
+   //needAttachedStreams = true;
 
    // Pre-generate streams, allocate return pointers
    int *leastPriority = new int; // likely 0

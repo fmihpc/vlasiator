@@ -36,6 +36,7 @@ struct ColumnOffsets : public Managed {
    split::SplitVector<uint> columnNumBlocks; // length of column (in blocks, length totalColumns)
    split::SplitVector<uint> setColumnOffsets; // index from columnBlockOffsets where new set of columns starts (length nColumnSets)
    split::SplitVector<uint> setNumColumns; // how many columns in set of columns (length nColumnSets)
+   cudaStream_t attachedStream;
 
    ColumnOffsets(uint nColumns) {
       columnBlockOffsets.resize(nColumns);
@@ -47,14 +48,24 @@ struct ColumnOffsets : public Managed {
       setColumnOffsets.clear();
       setNumColumns.clear();
       //HANDLE_ERROR( cudaMemAdvise(this, sizeof(ColumnOffsets), cudaMemAdviseSetPreferredLocation, cuda_getDevice()) );
+      attachedStream=0;
    }
    void dev_attachToStream(cudaStream_t stream = 0) {
       // Return if attaching is not needed
       if (!needAttachedStreams) {
          return;
       }
+      // Attach unified memory regions to streams
+      cudaStream_t newStream;
       if (stream==0) {
-         stream = cuda_getStream();
+         newStream = cuda_getStream();
+      } else {
+         newStream = stream;
+      }
+      if (newStream == attachedStream) {
+         return;
+      } else {
+         attachedStream = newStream;
       }
       HANDLE_ERROR( cudaStreamAttachMemAsync(stream,this, 0,cudaMemAttachSingle) );
       columnBlockOffsets.streamAttach(stream);
@@ -67,8 +78,12 @@ struct ColumnOffsets : public Managed {
       if (!needAttachedStreams) {
          return;
       }
-      cudaStream_t stream = 0;
-      HANDLE_ERROR( cudaStreamAttachMemAsync(stream,this, 0,cudaMemAttachGlobal) );
+      if (attachedStream == 0) {
+         // Already detached
+         return;
+      }
+      attachedStream = 0;
+      HANDLE_ERROR( cudaStreamAttachMemAsync(0,this, 0,cudaMemAttachGlobal) );
       columnBlockOffsets.streamAttach(0,cudaMemAttachGlobal);
       columnNumBlocks.streamAttach(0,cudaMemAttachGlobal);
       setColumnOffsets.streamAttach(0,cudaMemAttachGlobal);

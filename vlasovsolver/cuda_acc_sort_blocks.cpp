@@ -395,7 +395,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                    blocksID_mapped, blocksID_mapped_sorted,
                                    blocksLID_unsorted, blocksLID, nBlocks,
                                    0, sizeof(vmesh::GlobalID)*8, stream);
-   SSYNC
+   HANDLE_ERROR( cudaStreamSynchronize(stream) ); // In case SortPairs won't like the free below too soon
    HANDLE_ERROR( cudaFreeAsync(dev_temp_storage, stream) );
    phiprof::stop("CUB sort");
 
