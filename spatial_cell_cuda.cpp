@@ -773,7 +773,6 @@ namespace spatial_cell {
       const vmesh::LocalID HashmapReqSize = ceil(log2(localContentBlocks)) +3;
       if (BlocksRequiredMap->getSizePower() >= HashmapReqSize) {
          // Map is already large enough
-         BlocksRequiredMap->optimizeGPU(stream);
          BlocksRequiredMap->clear(Hashinator::targets::device,stream);
       } else {
          // Need larger empty map
@@ -868,24 +867,7 @@ namespace spatial_cell {
 
       // Require all blocks with neighbors in spatial or velocity space
       phiprof::start("Gather blocks required");
-      phiprof::start("Prefetch map cpu");
-      BlocksRequiredMap->optimizeCPU(stream);
-      BlocksRequired->optimizeCPU(stream);
-      HANDLE_ERROR( cudaStreamSynchronize(stream) ); // This sync is required.
-      phiprof::stop("Prefetch map cpu");
-      for (auto it=BlocksRequiredMap->begin(); it != BlocksRequiredMap->end(); ++it) {
-         BlocksRequired->push_back((*it).first);
-         //BlocksRequired->push_back((*it));
-      }
-      phiprof::start("Prefetch vec gpu");
-      const uint nBlocksRequired = BlocksRequired->size();
-      BlocksRequired->optimizeGPU(stream);
-      SSYNC
-      phiprof::stop("Prefetch vec gpu");
-
-      // BlocksRequired->optimizeGPU(stream);
-      // BlocksRequiredMap->extractPattern(*BlocksRequired,Rule<vmesh::GlobalID,vmesh::LocalID>(),stream);
-      // SSYNC
+      const uint nBlocksRequired = BlocksRequiredMap->extractKeysByPattern(*BlocksRequired,Rule<vmesh::GlobalID,vmesh::LocalID>(),stream);
       phiprof::stop("Gather blocks required");
 
       phiprof::start("blocks_to_add_kernel");
@@ -915,8 +897,8 @@ namespace spatial_cell {
       }
       if (doPrefetches) {
          populations[popID].vmesh->dev_prefetchDevice();
-         populations[popID].vmesh->dev_cleanHashMap();
       }
+      populations[popID].vmesh->dev_cleanHashMap();
       SSYNC
       phiprof::stop("Hashinator cleanup");
 
@@ -1030,9 +1012,11 @@ namespace spatial_cell {
       BlocksToMove->clear();
       BlocksToAdd->clear();
       BlocksToRemove->clear();
-      BlocksToAdd->optimizeGPU(stream);
-      BlocksToRemove->optimizeGPU(stream);
-      BlocksToMove->optimizeGPU(stream);
+      if (doPrefetches) {
+         BlocksToAdd->optimizeGPU(stream);
+         BlocksToRemove->optimizeGPU(stream);
+         BlocksToMove->optimizeGPU(stream);
+      }
       SSYNC
       phiprof::stop("Clear block lists");
 
@@ -1464,8 +1448,10 @@ namespace spatial_cell {
       velocity_block_with_no_content_list->clear();
       velocity_block_with_content_list->reserve(populations[popID].vmesh->size());
       velocity_block_with_no_content_list->reserve(populations[popID].vmesh->size());
-      velocity_block_with_content_list->optimizeGPU(stream);
-      velocity_block_with_no_content_list->optimizeGPU(stream);
+      if (doPrefetches) {
+         velocity_block_with_content_list->optimizeGPU(stream);
+         velocity_block_with_no_content_list->optimizeGPU(stream);
+      }
       phiprof::stop("VB content list prefetches and allocations");
 
       const Real velocity_block_min_value = getVelocityBlockMinValue(popID);
