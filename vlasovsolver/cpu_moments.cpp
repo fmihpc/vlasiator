@@ -178,10 +178,6 @@ void calculateMoments_R(
              cell->parameters[CellParams::P_33_R] = 0.0;
           }
 
-          const Real dx = cell->parameters[CellParams::DX];
-          const Real dy = cell->parameters[CellParams::DY];
-          const Real dz = cell->parameters[CellParams::DZ];
-
           vmesh::VelocityBlockContainer* blockContainer = cell->get_velocity_blocks(popID);
           if (blockContainer->size() == 0) continue;
           const Realf* data       = blockContainer->getData();

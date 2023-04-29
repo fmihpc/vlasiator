@@ -487,7 +487,6 @@ namespace SBC {
       
 
       // Rescale own vspace
-      const Realf* toData = to->get_data(popID);
       for (vmesh::LocalID toBlockLID=0; toBlockLID<to->get_number_of_velocity_blocks(popID); ++toBlockLID) {
          // Pointer to target block data
          Realf* toData = to->get_data(toBlockLID,popID);

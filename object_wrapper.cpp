@@ -93,7 +93,6 @@ bool ObjectWrapper::getPopulationParameters() {
    typedef Readparameters RP;
 
    // Particle population parameters
-
    for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
 
       species::Species& species=getObjectWrapper().particleSpecies[i];

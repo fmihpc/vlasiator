@@ -574,6 +574,7 @@ bool map_1d(SpatialCell* spatial_cell,
                for(int gk = minGk; gk <= maxGk; gk++){ 
                   const int blockK = gk/WID;
                   const int gk_mod_WID = (gk - blockK * WID);
+
                   //the block of the Lagrangian cell to which we map
                   //const int target_block(target_block_index_common + blockK * block_indices_to_id[2]);
                   

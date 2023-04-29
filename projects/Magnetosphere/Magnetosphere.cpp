@@ -694,7 +694,7 @@ namespace projects {
       if (myRank == MASTER_RANK)
          std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
 
-      Real ibr2 {pow(ionosphereRadius + 2*P::dx_ini, 2)};
+      //Real ibr2 {pow(ionosphereRadius + 2*P::dx_ini, 2)};
 
       std::vector<CellID> cells {getLocalCells()};
       Real r_max2 {pow(P::refineRadius, 2)};

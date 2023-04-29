@@ -277,7 +277,6 @@ int main(int argn,char* args[]) {
    SysBoundary& sysBoundaryContainer = getObjectWrapper().sysBoundaryContainer;
    MPI_Comm comm = MPI_COMM_WORLD;
    MPI_Comm_rank(comm,&myRank);
-   //bool isSysBoundaryCondDynamic;
 
    #ifdef CATCH_FPE
    // WARNING FE_INEXACT is too sensitive to be used. See man fenv.
@@ -470,7 +469,6 @@ int main(int argn,char* args[]) {
       sysBoundaryContainer,
       *project
    );
-   //isSysBoundaryCondDynamic = sysBoundaryContainer.isDynamic();
    
    const std::vector<CellID>& cells = getLocalCells();
 

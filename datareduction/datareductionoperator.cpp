@@ -220,7 +220,6 @@ namespace DRO {
       if(rank == 0) {
         std::vector<Real> varBuffer = lambda(grid);
 
-        std::array<int32_t, 3> gridSize{(int32_t)grid.elements.size(), 1,1};
         int vectorSize = varBuffer.size() / grid.elements.size();
 
         // We need to have vectorSize the same on all ranks, otherwise MPI_COMM_WORLD rank 0 writes a bogus value
@@ -266,7 +265,7 @@ namespace DRO {
    bool DataReductionOperatorIonosphereNode::reduceDiagnostic(const SpatialCell* cell,Real * result) {
       return false;
    }
-   bool DataReductionOperatorIonosphereNodeInt::reduceDiagnostic(const SpatialCell* cell,int * result) {
+   bool DataReductionOperatorIonosphereNodeInt::reduceDiagnostic(const SpatialCell* cell,Real * result) {
       return false;
    }
    bool DataReductionOperatorIonosphereNode::setSpatialCell(const SpatialCell* cell) {
@@ -308,7 +307,6 @@ namespace DRO {
       if(rank == 0) {
         std::vector<Real> varBuffer = lambda(grid);
 
-        std::array<int32_t, 3> gridSize{(int32_t)grid.nodes.size(), 1,1};
         vectorSize = varBuffer.size() / grid.nodes.size();
 
         // We need to have vectorSize the same on all ranks, otherwise MPI_COMM_WORLD rank 0 writes a bogus value
@@ -361,7 +359,6 @@ namespace DRO {
       if(rank == 0) {
          std::vector<int> varBuffer = lambda(grid);
          
-         std::array<int32_t, 3> gridSize{(int32_t)grid.nodes.size(), 1,1};
          vectorSize = varBuffer.size() / grid.nodes.size();
          
          // We need to have vectorSize the same on all ranks, otherwise MPI_COMM_WORLD rank 0 writes a bogus value
@@ -392,7 +389,7 @@ namespace DRO {
    bool DataReductionOperatorMPIGridCell::reduceData(const SpatialCell* cell,char* buffer) {
       std::vector<Real> varBuffer = lambda(cell);
 
-      assert(varBuffer.size() == numFloats);
+      assert(varBuffer.size() == (unsigned int)numFloats);
 
       for(int i=0; i<numFloats; i++) {
          buffer[i] = varBuffer[i];
@@ -1429,7 +1426,9 @@ namespace DRO {
       const uint vectorSize = 3;
       //Input data into buffer
       const char* ptr = reinterpret_cast<const char*>(&PTensor);
-      for (uint i = 0; i < vectorSize*sizeof(Real); ++i) buffer[i] = ptr[i];
+      for (uint i = 0; i < vectorSize*sizeof(Real); ++i) {
+         buffer[i] = ptr[i];
+      }
       return true;
    }
    
@@ -1469,7 +1468,9 @@ namespace DRO {
       const uint vectorSize = 3;
       //Input data into buffer
       const char* ptr = reinterpret_cast<const char*>(&PTensor);
-      for (uint i = 0; i < vectorSize*sizeof(Real); ++i) buffer[i] = ptr[i];
+      for (uint i = 0; i < vectorSize*sizeof(Real); ++i) {
+         buffer[i] = ptr[i];
+      }
       return true;
    }
    

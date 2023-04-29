@@ -180,8 +180,6 @@ namespace projects {
    
    void test_fp::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
       
-      typedef Parameters P;
-      
    }
    
    vector<std::array<Real, 3>> test_fp::getV0(
@@ -198,7 +196,8 @@ namespace projects {
       Real VX=0.0,VY=0.0,VZ=0.0;
       if (this->shear == true)
       {
-         Real eta; //ksi
+         //Real ksi;
+         Real eta;
          switch (this->CASE) {
             case BXCASE:
                //ksi = ((y + 0.5 * dy)  * cos(this->ALPHA) + (z + 0.5 * dz) * sin(this->ALPHA)) / (2.0 * sqrt(2.0));
