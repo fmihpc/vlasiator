@@ -191,18 +191,22 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
                                         const uint dimension,
                                         std::vector<uint> path,
                                         std::vector<CellID> &sourceCells,
-                                        std::vector<CellID> &targetCells
+                                        std::vector<Vec> &sourceDZ,
+                                        std::vector<CellID> &targetCells,
+                                        std::vector<Vec> &targetDZ
                                         ){
 
    // L = length of the pencil iPencil
    int L = ids.size();
    sourceCells.resize(L+2*VLASOV_STENCIL_WIDTH);
+   sourceDZ.resize(L+2*VLASOV_STENCIL_WIDTH);
    targetCells.resize(L+2);
+   targetDZ.resize(L+2);
 
    // These neighborhoods now include the AMR addition beyond the regular vlasov stencil
    int neighborhood = getNeighborhood(dimension,VLASOV_STENCIL_WIDTH);
 
-   // Get pointers for each cell id of the pencil
+   // Store each cell id of the pencil
    for (int i = 0; i < L; ++i) {
       sourceCells[i + VLASOV_STENCIL_WIDTH] = ids[i];
       // Check target for null and system boundary
@@ -325,6 +329,17 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
          sourceCells[i] = lastGoodCell;
       else
          lastGoodCell = sourceCells[i];
+   }
+   // Finally, loop over all cells and store widths in translation direction
+   for (int i = 0; i < L+2*VLASOV_STENCIL_WIDTH; ++i) {
+      sourceDZ[i] = Vec(mpiGrid[sourceCells[i]]->parameters[CellParams::DX+dimension]);
+   }
+   for (int i = 0; i < L+2; ++i) {
+      if (targetCells[i]) { // non-writeable target cells are zero
+         if (mpiGrid[targetCells[i]]) {
+            targetDZ[i] = Vec(mpiGrid[targetCells[i]]->parameters[CellParams::DX+dimension]);
+         }
+      }
    }
 }
 
@@ -584,8 +599,10 @@ void buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
    // Now also store information on source and target cells
    vector<CellID> sources;
    vector<CellID> targets;
-   computeSpatialSourceCellsForPencil(grid,ids,dimension,path,sources,targets);
-   pencils.addPencil(ids,x,y,periodic,path,sources,targets);
+   vector<Vec> sourceDZ;
+   vector<Vec> targetDZ;
+   computeSpatialSourceCellsForPencil(grid,ids,dimension,path,sources,sourceDZ,targets,targetDZ);
+   pencils.addPencil(ids,x,y,periodic,path,sources,sourceDZ,targets,targetDZ);
    return;
 }
 
@@ -1047,6 +1064,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
       setOfPencils thread_pencils;
       // iterators used in the accumulation
       std::vector<CellID>::iterator ibeg, iend, sibeg, siend, tibeg, tiend;
+      std::vector<Vec>::iterator szbeg, szend, tzbeg, tzend;
 
 #pragma omp for schedule(guided)
       for (uint i=0; i<seedIds.size(); i++) {
@@ -1066,10 +1084,16 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
             sibeg = thread_pencils.sourceIds.begin() + thread_pencils.sourceIdsStart[i];
             siend = sibeg + thread_pencils.lengthOfPencils[i] + 2*VLASOV_STENCIL_WIDTH;
             std::vector<CellID> pencilSourceIds(sibeg, siend);
+            szbeg = thread_pencils.sourceDZ.begin() + thread_pencils.sourceIdsStart[i];
+            szend = szbeg + thread_pencils.lengthOfPencils[i] + 2*VLASOV_STENCIL_WIDTH;
+            std::vector<Vec> pencilSourceDZ(szbeg, szend);
             tibeg = thread_pencils.targetIds.begin() + thread_pencils.targetIdsStart[i];
             tiend = tibeg + thread_pencils.lengthOfPencils[i] + 2;
             std::vector<CellID> pencilTargetIds(tibeg, tiend);
-            DimensionPencils[dimension].addPencil(pencilIds,thread_pencils.x[i],thread_pencils.y[i],thread_pencils.periodic[i],thread_pencils.path[i],pencilSourceIds,pencilTargetIds);
+            tzbeg = thread_pencils.targetDZ.begin() + thread_pencils.targetIdsStart[i];
+            tzend = tzbeg + thread_pencils.lengthOfPencils[i] + 2;
+            std::vector<Vec> pencilTargetDZ(tzbeg, tzend);
+            DimensionPencils[dimension].addPencil(pencilIds,thread_pencils.x[i],thread_pencils.y[i],thread_pencils.periodic[i],thread_pencils.path[i],pencilSourceIds,pencilSourceDZ,pencilTargetIds,pencilTargetDZ);
          }
       }
    }

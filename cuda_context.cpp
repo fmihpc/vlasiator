@@ -226,7 +226,7 @@ __host__ void cuda_vlasov_allocate_memory (
    HANDLE_ERROR( cudaMalloc((void**)&dev_LIDlist_unsorted[cpuThreadID], blockAllocationCount*sizeof(vmesh::GlobalID)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_LIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_GIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID)) );
-
+   // During porting, these are in unified memory. Target data will be removed later, and replaced with writing directly back to cell block data.
    HANDLE_ERROR( cudaMallocManaged((void**)&dev_blockDataSource[cpuThreadID], blockAllocationCount * (WID3 / VECL) * sizeof(Vec)) ); 
    HANDLE_ERROR( cudaMallocManaged((void**)&dev_blockDataTarget[cpuThreadID], blockAllocationCount * (WID3 / VECL) * sizeof(Vec)) );
 }

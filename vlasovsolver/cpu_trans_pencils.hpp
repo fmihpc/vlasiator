@@ -35,8 +35,10 @@ struct setOfPencils {
    std::vector< CellID > ids; // List of pencil cells
    std::vector< uint > idsStart; // List of where a pencil's CellIDs start in the ids array
    std::vector< CellID > sourceIds; // List of source cells
-   std::vector< uint > sourceIdsStart; // List of where a pencil's CellIDs start in the sourceIds array
+   std::vector< Vec > sourceDZ; // Widths of source cells
+   std::vector< uint > sourceIdsStart; // List of where a pencil's CellIDs and widths start in the sourceIds array
    std::vector< CellID > targetIds; // List of target cells
+   std::vector< Vec > targetDZ; // Widths of target cells
    std::vector< uint > targetIdsStart; // List of where a pencil's CellIDs start in the targetIds array
    std::vector< Real > x,y; // x,y - position
    std::vector< bool > periodic;
@@ -56,8 +58,10 @@ struct setOfPencils {
       ids.clear();
       sourceIdsStart.clear();
       sourceIds.clear();
+      sourceDZ.clear();
       targetIdsStart.clear();
       targetIds.clear();
+      targetDZ.clear();
       x.clear();
       y.clear();
       periodic.clear();
@@ -65,7 +69,7 @@ struct setOfPencils {
    }
 
    void addPencil(std::vector<CellID> idsIn, Real xIn, Real yIn, bool periodicIn, std::vector<uint> pathIn,
-                  std::vector<CellID> sourcesIn,std::vector<CellID> targetsIn) {
+                  std::vector<CellID> sourcesIn, std::vector<Vec> sourceDZin,std::vector<CellID> targetsIn,std::vector<Vec> targetDZin) {
       N++;
       sumOfLengths += idsIn.size();
       lengthOfPencils.push_back(idsIn.size());
@@ -73,8 +77,10 @@ struct setOfPencils {
       ids.insert(ids.end(),idsIn.begin(),idsIn.end());
       sourceIdsStart.push_back(sourceIds.size());
       sourceIds.insert(sourceIds.end(),sourcesIn.begin(),sourcesIn.end());
+      sourceDZ.insert(sourceDZ.end(),sourceDZin.begin(),sourceDZin.end());
       targetIdsStart.push_back(targetIds.size());
       targetIds.insert(targetIds.end(),targetsIn.begin(),targetsIn.end());
+      targetDZ.insert(targetDZ.end(),targetDZin.begin(),targetDZin.end());
       x.push_back(xIn);
       y.push_back(yIn);
       periodic.push_back(periodicIn);
@@ -93,10 +99,12 @@ struct setOfPencils {
 
       ibeg = targetIdsStart[pencilId];
       targetIds.erase(targetIds.begin() + ibeg, targetIds.begin() + ibeg + lengthOfPencils[pencilId] + 2);
+      targetDZ.erase(targetDZ.begin() + ibeg, targetDZ.begin() + ibeg + lengthOfPencils[pencilId] + 2);
       targetIdsStart.erase(targetIdsStart.begin() + pencilId);
 
       ibeg = sourceIdsStart[pencilId];
       sourceIds.erase(sourceIds.begin() + ibeg, sourceIds.begin() + ibeg + lengthOfPencils[pencilId] + 2*VLASOV_STENCIL_WIDTH);
+      sourceDZ.erase(sourceDZ.begin() + ibeg, sourceDZ.begin() + ibeg + lengthOfPencils[pencilId] + 2);
       sourceIdsStart.erase(sourceIdsStart.begin() + pencilId);
 
       N--;
@@ -213,8 +221,10 @@ struct setOfPencils {
          } else {
             auto myPath = copy_of_path;
             myPath.push_back(step);
+            // We can add null vectors here because sources and targets are calculated after all pencils have been identified
             std::vector<CellID> nullsource, nulltarget;
-            addPencil(myIds, myX, myY, periodic.at(myPencilId), myPath, nullsource, nulltarget);
+            std::vector<Vec> nullsourceDZ, nulltargetDZ;
+            addPencil(myIds, myX, myY, periodic.at(myPencilId), myPath, nullsource, nullsourceDZ, nulltarget, nulltargetDZ);
          }
       }
    }
