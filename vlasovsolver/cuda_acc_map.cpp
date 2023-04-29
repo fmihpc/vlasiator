@@ -576,7 +576,8 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
                               const uint dimension,
                               cudaStream_t stream
    ) {
-   //SSYNC
+   // Ensure previous actions have completed
+   HANDLE_ERROR( cudaStreamSynchronize(stream) );
    vmesh::VelocityMesh* vmesh    = spatial_cell->get_velocity_mesh(popID);
    vmesh::VelocityBlockContainer* blockContainer = spatial_cell->get_velocity_blocks(popID);
    Realf *blockData = blockContainer->getData();
@@ -701,9 +702,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    // Call function for sorting block list and building columns from it.
    // Can probably be further optimized.
    phiprof::start("sortBlockList");
-   cudaStream_t priorityStream = cuda_getPriorityStream();
-   HANDLE_ERROR( cudaMemsetAsync(columnNBlocks, 0, cuda_acc_columnContainerSize*sizeof(vmesh::LocalID), priorityStream) );
-   HANDLE_ERROR( cudaStreamSynchronize(stream) );
+   HANDLE_ERROR( cudaMemsetAsync(columnNBlocks, 0, cuda_acc_columnContainerSize*sizeof(vmesh::LocalID), stream) );
    sortBlocklistByDimension(vmesh,
                             nBlocks,
                             dimension,
@@ -715,9 +714,8 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
                             columnNBlocks,
                             columnData,
                             cpuThreadID,
-                            priorityStream
+                            stream
       );
-   HANDLE_ERROR( cudaStreamSynchronize(priorityStream) );
    phiprof::stop("sortBlockList");
 
    // Calculate total sum of columns and total values size
@@ -737,10 +735,10 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       dev_totalColumns,
       dev_valuesSizeRequired
       );
-   SSYNC
+
    HANDLE_ERROR( cudaMemcpyAsync(&host_totalColumns, dev_totalColumns, sizeof(uint), cudaMemcpyDeviceToHost, stream) );
    HANDLE_ERROR( cudaMemcpyAsync(&host_valuesSizeRequired, dev_valuesSizeRequired, sizeof(uint), cudaMemcpyDeviceToHost, stream) );
-   SSYNC
+   HANDLE_ERROR( cudaStreamSynchronize(stream) ); // Just to be safe
    HANDLE_ERROR( cudaFreeAsync(dev_totalColumns, stream) );
    HANDLE_ERROR( cudaFreeAsync(dev_valuesSizeRequired, stream) );
    // Update tracker of maximum encountered column count
@@ -879,6 +877,8 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    SSYNC
 
    HANDLE_ERROR( cudaFreeAsync(columns, stream) );
+   // Wait until everything is complete before returning
+   HANDLE_ERROR( cudaStreamSynchronize(stream) );
    phiprof::stop("Semi-Lagrangian acceleration kernel");
 
    return true;

@@ -508,10 +508,12 @@ namespace vmesh {
          // Passing eco flag = true to resize tells splitvector we manage padding manually.
          block_data->resize(currentCapacity*WID3, true);
          parameters->resize(currentCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS, true);
+#ifndef __CUDA_ARCH__
          if ((attachedStream != 0)&&(needAttachedStreams)) {
             block_data->streamAttach(attachedStream);
             parameters->streamAttach(attachedStream);
          }
+#endif
       }
 #else
       if ((numberOfBlocks+1) >= currentCapacity) {
