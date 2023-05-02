@@ -480,6 +480,10 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
       break;
    }
 
+   // Assuming 1 neighbor in the target array because of the CFL condition
+   // In fact propagating to > 1 neighbor will give an error
+   const uint nTargetNeighborsPerPencil = 1;
+
    // Vector with all cell ids
    vector<CellID> allCells(localPropagatedCells);
    allCells.insert(allCells.end(), remoteTargetCells.begin(), remoteTargetCells.end());
@@ -507,6 +511,10 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    }
 
    // compute pencils => set of pencils (shared datastructure)
+   // Ensure enough temporary memory availanble
+   cuint totalSourceLength = (DimensionPencils[dimension].sumOfLengths + 2 * VLASOV_STENCIL_WIDTH * DimensionPencils[dimension].N);
+   cuint totalTargetLength = (DimensionPencils[dimension].sumOfLengths + 2 * nTargetNeighborsPerPencil * DimensionPencils[dimension].N);
+   cuda_vlasov_allocate(totalSourceLength);
 
    // Warning: checkPencils fails to understand situations where pencils reach across 3 levels of refinement.
    // if(!checkPencils(mpiGrid, localPropagatedCells, pencils)) {
@@ -550,10 +558,6 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    unionOfBlocks.insert(unionOfBlocks.end(), unionOfBlocksSet.begin(), unionOfBlocksSet.end());
    phiprof::stop("buildBlockList");
 
-   // Assuming 1 neighbor in the target array because of the CFL condition
-   // In fact propagating to > 1 neighbor will give an error
-   const uint nTargetNeighborsPerPencil = 1;
-
    // Gather all target cells
    std::unordered_set<SpatialCell*> allTargetCells;
    for(uint pencili = 0; pencili < DimensionPencils[dimension].N; ++pencili) {
@@ -565,9 +569,9 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
          if (t) {
             allTargetCells.insert(mpiGrid[t]);
          }
-      } 
+      }
    }
-   
+
    // Compute spatial neighbors for target cells.
    // For targets we need the local cells, plus a padding of 1 cell at both ends
    // phiprof::start("computeSpatialTargetCellsForPencils");
@@ -598,11 +602,6 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
       #else
       const uint cpuThreadID = 0;
       #endif
-
-      // Ensure enough temporary memory availanble
-      cuint totalSourceLength = (DimensionPencils[dimension].sumOfLengths + 2 * VLASOV_STENCIL_WIDTH * DimensionPencils[dimension].N) * WID3;
-      cuint totalTargetLength = (DimensionPencils[dimension].sumOfLengths + 2 * nTargetNeighborsPerPencil * DimensionPencils[dimension].N) * WID3;
-      cuda_vlasov_allocate(totalSourceLength);
 
       phiprof::start("prepare empty vectors");
       // declarations for variables needed by the threads
@@ -676,9 +675,9 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
 
          // Temporary: use separate translation target buffer
          phiprof::start(t5);
-         memset(dev_blockDataTarget[cpuThreadID], 0,  totalTargetLength*sizeof(Realf));
+         memset(dev_blockDataTarget[cpuThreadID], 0,  totalTargetLength*sizeof(Realf)*WID3);
          //cudaStream_t stream = cuda_getStream();
-         //HANDLE_ERROR( cudaMemsetAsync(dev_blockDataTarget[cpuThreadID], 0, totalTargetLength*sizeof(Realf), stream) );
+         //HANDLE_ERROR( cudaMemsetAsync(dev_blockDataTarget[cpuThreadID], 0, totalTargetLength*sizeof(Realf)*WID3, stream) );
          //HANDLE_ERROR( cudaStreamSynchronize(stream) );
          phiprof::stop(t5);
 

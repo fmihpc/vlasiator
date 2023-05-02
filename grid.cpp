@@ -667,7 +667,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    // deallocates first if necessary
    //CUDATODO: Also count how many pencils exist
    cuda_vlasov_allocate(cudaMaxBlockCount);
-   cuda_acc_allocate();
+   cuda_acc_allocate(cudaMaxBlockCount);
    phiprof::stop("CUDA_malloc");
 #endif
 

@@ -108,11 +108,11 @@ cudaStream_t cuda_getStream();
 cudaStream_t cuda_getPriorityStream();
 int cuda_getDevice();
 void cuda_vlasov_allocate (uint maxBlockCount);
-void cuda_vlasov_allocate_memory (uint cpuThreadID,uint maxBlockCount);
-void cuda_vlasov_deallocate_memory (uint cpuThreadID);
-void cuda_acc_allocate ();
-void cuda_acc_allocate_memory (uint cpuThreadID);
-void cuda_acc_deallocate_memory (uint cpuThreadID);
+void cuda_vlasov_allocate_perthread (uint cpuThreadID, uint blockAllocationCount);
+void cuda_vlasov_deallocate_perthread (uint cpuThreadID);
+void cuda_acc_allocate (uint maxBlockCount);
+void cuda_acc_allocate_perthread (uint cpuThreadID, uint columnAllocationCount);
+void cuda_acc_deallocate_perthread (uint cpuThreadID);
 
 // Extern flag for stream attaching
 extern cudaStream_t cudaStreamList[];

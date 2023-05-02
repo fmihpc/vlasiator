@@ -508,7 +508,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 #ifdef USE_CUDA
        // Ensure accelerator has enough temporary memory allocated
        cuda_vlasov_allocate(cudaMaxBlockCount);
-       cuda_acc_allocate();
+       cuda_acc_allocate(cudaMaxBlockCount);
 #endif
 
        // Compute global maximum for number of subcycles

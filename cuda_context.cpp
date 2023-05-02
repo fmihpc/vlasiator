@@ -187,6 +187,10 @@ __host__ int cuda_getDevice() {
    return device;
 }
 
+/*
+   Top-level GPU memory allocation function.
+   This is called from within non-threaded regions so does not perform async.
+ */
 __host__ void cuda_vlasov_allocate (
    uint maxBlockCount
    ) {
@@ -196,6 +200,8 @@ __host__ void cuda_vlasov_allocate (
    if (cuda_vlasov_allocatedSize > maxBlocksPerCell * BLOCK_ALLOCATION_FACTOR) {
       return;
    }
+   // If not, add extra padding
+   const uint newSize = maxBlockCount * BLOCK_ALLOCATION_PADDING;
    // Deallocate before allocating new memory
 #ifdef _OPENMP
    const uint maxNThreads = omp_get_max_threads();
@@ -204,20 +210,18 @@ __host__ void cuda_vlasov_allocate (
 #endif
    for (uint i=0; i<maxNThreads; ++i) {
       if (cuda_vlasov_allocatedSize > 0) {
-         cuda_vlasov_deallocate_memory(i);
+         cuda_vlasov_deallocate_perthread(i);
       }
-      cuda_vlasov_allocate_memory(i, maxBlocksPerCell);
+      cuda_vlasov_allocate_perthread(i, newSize);
    }
+   cuda_vlasov_allocatedSize = newSize;
 }
 
-__host__ void cuda_vlasov_allocate_memory (
+__host__ void cuda_vlasov_allocate_perthread (
    uint cpuThreadID,
-   uint maxBlockCount
+   uint blockAllocationCount
    ) {
    // Mallocs should be in increments of 256 bytes. WID3 is at least 64, and len(Realf) is at least 4, so this is true.
-   const uint blockAllocationCount = maxBlockCount * BLOCK_ALLOCATION_PADDING;
-   cuda_vlasov_allocatedSize = blockAllocationCount;
-
    HANDLE_ERROR( cudaMalloc((void**)&dev_cell_indices_to_id[cpuThreadID], 3*sizeof(uint)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_block_indices_to_id[cpuThreadID], 3*sizeof(uint)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_blockDataOrdered[cpuThreadID], blockAllocationCount * (WID3 / VECL) * sizeof(Vec)) );
@@ -227,11 +231,11 @@ __host__ void cuda_vlasov_allocate_memory (
    HANDLE_ERROR( cudaMalloc((void**)&dev_LIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_GIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID)) );
    // During porting, these are in unified memory. Target data will be removed later, and replaced with writing directly back to cell block data.
-   HANDLE_ERROR( cudaMallocManaged((void**)&dev_blockDataSource[cpuThreadID], blockAllocationCount * (WID3 / VECL) * sizeof(Vec)) ); 
+   HANDLE_ERROR( cudaMallocManaged((void**)&dev_blockDataSource[cpuThreadID], blockAllocationCount * (WID3 / VECL) * sizeof(Vec)) );
    HANDLE_ERROR( cudaMallocManaged((void**)&dev_blockDataTarget[cpuThreadID], blockAllocationCount * (WID3 / VECL) * sizeof(Vec)) );
 }
 
-__host__ void cuda_vlasov_deallocate_memory (
+__host__ void cuda_vlasov_deallocate_perthread (
    uint cpuThreadID
    ) {
    cuda_vlasov_allocatedSize = 0;
@@ -248,12 +252,40 @@ __host__ void cuda_vlasov_deallocate_memory (
    HANDLE_ERROR( cudaFree(dev_blockDataTarget[cpuThreadID]) );
 }
 
-__host__ void cuda_acc_allocate () {
+/*
+   Top-level GPU memory allocation function for acceleration-specific column data.
+   This is called from within non-threaded regions so does not perform async.
+ */
+__host__ void cuda_acc_allocate (
+   uint maxBlockCount
+   ) {
+   uint requiredColumns;
+   // Has the acceleration solver already figured out how many columns we have?
+   if (cuda_acc_foundColumnsCount > 0) {
+      // Always prepare for at least 500 columns
+      requiredColumns = cuda_acc_foundColumnsCount > 500 ? cuda_acc_foundColumnsCount : 500;
+   } else {
+      // The worst case scenario for columns is with every block having content but no neighbours, creating up
+      // to maxBlockCount columns with each needing three blocks (one value plus two for padding).
+
+      // Use column count estimate from size of v-space? (quite large)
+      // const uint estimatedColumns = 3 * std::pow(
+      //    (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[0]
+      //    * (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[1]
+      //    * (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[2], 0.667);
+
+      // Use column count estimate from blocks count
+      const uint estimatedColumns = 3 * std::pow(maxBlockCount, 0.667);
+      // Always prepare for at least 500 columns
+      requiredColumns = estimatedColumns > 500 ? estimatedColumns : 500;
+   }
    // Check if we already have allocated enough memory?
-   if ( (cuda_acc_allocatedColumns > cuda_acc_foundColumnsCount * BLOCK_ALLOCATION_FACTOR) &&
-        (cuda_acc_foundColumnsCount > 500)) {
+   if (cuda_acc_allocatedColumns > requiredColumns * BLOCK_ALLOCATION_FACTOR) {
       return;
    }
+   // If not, add extra padding
+   const uint newSize = requiredColumns * BLOCK_ALLOCATION_PADDING;
+
    // Deallocate before allocating new memory
 #ifdef _OPENMP
    const uint maxNThreads = omp_get_max_threads();
@@ -262,34 +294,24 @@ __host__ void cuda_acc_allocate () {
 #endif
    if (cuda_acc_allocatedColumns > 0) {
       for (uint i=0; i<maxNThreads; ++i) {
-         cuda_acc_deallocate_memory(i);
+         cuda_acc_deallocate_perthread(i);
       }
    }
    for (uint i=0; i<maxNThreads; ++i) {
-      cuda_acc_allocate_memory(i);
+      cuda_acc_allocate_perthread(i,newSize);
    }
+   cuda_acc_allocatedColumns = newSize;
 }
 
-__host__ void cuda_acc_allocate_memory (
-   uint cpuThreadID
+__host__ void cuda_acc_allocate_perthread (
+   uint cpuThreadID,
+   uint columnAllocationCount
    ) {
-   // The worst case scenario for columns is with every block having content but no neighbours, creating up
-   // to maxBlockCount columns with each needing three blocks (one value plus two for padding).
-   // This value here is a reasonable estimate for most cases, though. Also checks against a counter.
-   uint maxColumnsPerCell = 3 * std::pow(
-      (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[0]
-      * (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[1]
-      * (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[2], 0.667);
-   if (cuda_acc_foundColumnsCount * BLOCK_ALLOCATION_FACTOR > maxColumnsPerCell) {
-      maxColumnsPerCell = cuda_acc_foundColumnsCount * BLOCK_ALLOCATION_PADDING;
-   }
-   cuda_acc_allocatedColumns = maxColumnsPerCell;
-
    // Unified memory; columndata contains several splitvectors.
-   unif_columnOffsetData[cpuThreadID] = new ColumnOffsets(maxColumnsPerCell); // inherits managed
-   HANDLE_ERROR( cudaMallocManaged((void**)&unif_columns[cpuThreadID], maxColumnsPerCell*sizeof(Column)) );
-   //HANDLE_ERROR( cudaMemAdvise((void**)&unif_columns[cpuThreadID], maxColumnsPerCell*sizeof(Column), cudaMemAdviseSetPreferredLocation, cuda_getDevice()) );
-   HANDLE_ERROR( cudaMemPrefetchAsync(unif_columns[cpuThreadID],maxColumnsPerCell*sizeof(Column),cuda_getDevice(),cuda_getStream()) );
+   unif_columnOffsetData[cpuThreadID] = new ColumnOffsets(columnAllocationCount); // inherits managed
+   HANDLE_ERROR( cudaMallocManaged((void**)&unif_columns[cpuThreadID], columnAllocationCount*sizeof(Column)) );
+   //HANDLE_ERROR( cudaMemAdvise((void**)&unif_columns[cpuThreadID], columnAllocationCount*sizeof(Column), cudaMemAdviseSetPreferredLocation, cuda_getDevice()) );
+   HANDLE_ERROR( cudaMemPrefetchAsync(unif_columns[cpuThreadID],columnAllocationCount*sizeof(Column),cuda_getDevice(),cuda_getStream()) );
 
    // Potential ColumnSet block count container
    const uint c0 = (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[0];
@@ -301,7 +323,7 @@ __host__ void cuda_acc_allocate_memory (
    HANDLE_ERROR( cudaMalloc((void**)&dev_columnNBlocks[cpuThreadID], cuda_acc_columnContainerSize*sizeof(vmesh::LocalID)) );
 }
 
-__host__ void cuda_acc_deallocate_memory (
+__host__ void cuda_acc_deallocate_perthread (
    uint cpuThreadID
    ) {
    cuda_acc_allocatedColumns = 0;
@@ -310,4 +332,3 @@ __host__ void cuda_acc_deallocate_memory (
    HANDLE_ERROR( cudaFree(unif_columns[cpuThreadID]) );
    delete unif_columnOffsetData[cpuThreadID];
 }
-
