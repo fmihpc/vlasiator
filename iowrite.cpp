@@ -475,7 +475,6 @@ bool writeCommonGridData(
    // Writes parameters and cell ids into the VLSV file
    int myRank;
    MPI_Comm_rank(comm, &myRank);
-   const int masterProcessId = 0;
    //Write local cells into array as a variable:
    //Note: This needs to be done separately from the array MESH
    const short unsigned int vectorSize = 1;
@@ -1308,7 +1307,6 @@ bool writeGrid(
    const int& stripe,
    const bool writeGhosts
 ) {
-   double allStart = MPI_Wtime();
    bool success = true;
    int myRank;
    phiprof::initializeTimer("Barrier-entering-writegrid","MPI","Barrier");
@@ -1556,7 +1554,6 @@ bool writeRestart(
    const int& stripe) 
 {
    // Writes a restart
-   double allStart = MPI_Wtime();
    bool success = true;
    int myRank;
    
