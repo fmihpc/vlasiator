@@ -145,6 +145,7 @@ void initializeGrids(
    cuda_set_device();
    const uint nPopulations = getObjectWrapper().particleSpecies.size();
    const uint maxThreads = omp_get_max_threads();
+   std::cerr<<"grid moments"<<std::endl;
    cuda_allocateMomentCalculations(nPopulations,maxThreads);
 #endif
 
@@ -666,7 +667,9 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    // Call CUDA routines for per-thread memory allocation for Vlasov solvers
    // deallocates first if necessary
    //CUDATODO: Also count how many pencils exist
+   std::cerr<<"grid vlasov"<<std::endl;
    cuda_vlasov_allocate(cudaMaxBlockCount);
+   std::cerr<<"grid acc"<<std::endl;
    cuda_acc_allocate(cudaMaxBlockCount);
    phiprof::stop("CUDA_malloc");
 #endif

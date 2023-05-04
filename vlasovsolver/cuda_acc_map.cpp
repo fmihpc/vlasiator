@@ -736,6 +736,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       dev_valuesSizeRequired
       );
 
+   HANDLE_ERROR( cudaStreamSynchronize(stream) ); // Just to be safe
    HANDLE_ERROR( cudaMemcpyAsync(&host_totalColumns, dev_totalColumns, sizeof(uint), cudaMemcpyDeviceToHost, stream) );
    HANDLE_ERROR( cudaMemcpyAsync(&host_valuesSizeRequired, dev_valuesSizeRequired, sizeof(uint), cudaMemcpyDeviceToHost, stream) );
    HANDLE_ERROR( cudaStreamSynchronize(stream) ); // Just to be safe

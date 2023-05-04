@@ -197,11 +197,15 @@ __host__ void cuda_vlasov_allocate (
    // Always prepare for at least 500 blocks
    const uint maxBlocksPerCell = maxBlockCount > 500 ? maxBlockCount : 500;
    // Check if we already have allocated enough memory?
+   std::cerr<<"CUDA_VLASOV_ALLOCATE: maxBlockCount "<<maxBlockCount<<" cuda_vlasov_allocatedSize "<<cuda_vlasov_allocatedSize<<std::endl;
    if (cuda_vlasov_allocatedSize > maxBlocksPerCell * BLOCK_ALLOCATION_FACTOR) {
+      std::cerr<<"CUDA_VLASOV_ALLOCATE: return"<<std::endl;
       return;
    }
    // If not, add extra padding
-   const uint newSize = maxBlockCount * BLOCK_ALLOCATION_PADDING;
+   const uint newSize = maxBlocksPerCell * BLOCK_ALLOCATION_PADDING;
+   std::cerr<<"CUDA_VLASOV_ALLOCATE: newSize "<<newSize<<std::endl;
+
    // Deallocate before allocating new memory
 #ifdef _OPENMP
    const uint maxNThreads = omp_get_max_threads();
@@ -279,12 +283,15 @@ __host__ void cuda_acc_allocate (
       // Always prepare for at least 500 columns
       requiredColumns = estimatedColumns > 500 ? estimatedColumns : 500;
    }
+   std::cerr<<"CUDA_ACC_ALLOCATE: maxBlockCount "<<maxBlockCount<<" requiredColumns "<<requiredColumns<<" allocated "<<cuda_acc_allocatedColumns<<std::endl;
    // Check if we already have allocated enough memory?
    if (cuda_acc_allocatedColumns > requiredColumns * BLOCK_ALLOCATION_FACTOR) {
+      std::cerr<<"CUDA_ACC_ALLOCATE: return "<<std::endl;
       return;
    }
    // If not, add extra padding
    const uint newSize = requiredColumns * BLOCK_ALLOCATION_PADDING;
+   std::cerr<<"CUDA_ACC_ALLOCATE: newSize "<<newSize<<std::endl;
 
    // Deallocate before allocating new memory
 #ifdef _OPENMP
