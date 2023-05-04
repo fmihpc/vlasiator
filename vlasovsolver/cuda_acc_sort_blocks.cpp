@@ -336,7 +336,8 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
    columnData->setColumnOffsets.clear();
    columnData->setNumColumns.clear();
 
-   uint nCudaBlocks  = (nBlocks/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : (nBlocks/CUDATHREADS);
+   // Ensure at least one launch block
+   uint nCudaBlocks  = (nBlocks/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : std::ceil((Real)nBlocks/(Real)CUDATHREADS);
 
    phiprof::start("calc new dimension id");
    // Map blocks to new dimensionality
