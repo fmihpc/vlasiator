@@ -38,6 +38,9 @@
 
 #include "cuda_acc_sort_blocks.hpp"
 
+#include <stdio.h>
+#include <iostream>
+
 // Extra profiling stream synchronizations?
 //#define SSYNC HANDLE_ERROR( cudaStreamSynchronize(stream) );
 #define SSYNC
@@ -582,7 +585,6 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    vmesh::VelocityBlockContainer* blockContainer = spatial_cell->get_velocity_blocks(popID);
    Realf *blockData = blockContainer->getData();
    const uint nBlocks = vmesh->size();
-
    //nothing to do if no blocks
    if(nBlocks == 0) {
       return true;
@@ -735,6 +737,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       dev_totalColumns,
       dev_valuesSizeRequired
       );
+   HANDLE_ERROR( cudaPeekAtLastError() );
 
    HANDLE_ERROR( cudaMemcpyAsync(&host_totalColumns, dev_totalColumns, sizeof(uint), cudaMemcpyDeviceToHost, stream) );
    HANDLE_ERROR( cudaMemcpyAsync(&host_valuesSizeRequired, dev_valuesSizeRequired, sizeof(uint), cudaMemcpyDeviceToHost, stream) );
@@ -763,6 +766,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       columns,
       host_valuesSizeRequired
       );
+   HANDLE_ERROR( cudaPeekAtLastError() );
    SSYNC
    phiprof::stop("Store offsets into columns");
 
@@ -777,6 +781,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       LIDlist,
       columnData
       );
+   HANDLE_ERROR( cudaPeekAtLastError() );
    SSYNC
    phiprof::stop("Reorder blocks by dimension");
 
@@ -816,6 +821,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       dv,
       dev_wallspace_margin_bailout_flag
       );
+   HANDLE_ERROR( cudaPeekAtLastError() );
    SSYNC
    // Check if we need to bailout due to hitting v-space edge
    HANDLE_ERROR( cudaMemcpyAsync(&host_wallspace_margin_bailout_flag, dev_wallspace_margin_bailout_flag, sizeof(uint), cudaMemcpyDeviceToHost, stream) );
@@ -843,7 +849,8 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    const uint newNBlocks = vmesh->size();
    vmesh->dev_prefetchDevice();
    const uint bdsw3 = newNBlocks * WID3;
-   // Zero out target data on device (unified)
+   // Zero out target data on device (unified) (note, pointer needs to be re-fetched)
+   blockData = blockContainer->getData();
    HANDLE_ERROR( cudaMemsetAsync(blockData, 0, bdsw3*sizeof(Realf), stream) );
 
    phiprof::start("identify new block offsets kernel");
@@ -854,6 +861,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       newNBlocks,
       dev_block_indices_to_id[cpuThreadID]
       );
+   HANDLE_ERROR( cudaPeekAtLastError() );
    SSYNC
    phiprof::stop("identify new block offsets kernel");
 
@@ -874,6 +882,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       minValue,
       bdsw3
       );
+   HANDLE_ERROR( cudaPeekAtLastError() );
    SSYNC
 
    HANDLE_ERROR( cudaFreeAsync(columns, stream) );

@@ -736,8 +736,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
 #pragma omp parallel
    {
       phiprof::start("Adjusting blocks");
-      //#pragma omp parallel for schedule(dynamic,1)
-#pragma omp for schedule(dynamic,1)
+      #pragma omp for schedule(dynamic,1)
       for (size_t i=0; i<cellsToAdjust.size(); ++i) {
          Real density_pre_adjust=0.0;
          Real density_post_adjust=0.0;
@@ -788,10 +787,14 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    }
 
    #ifdef USE_CUDA
-   // Now loop over ghost cells and free up the temborary buffer memory
+   // Now loop over local and ghost cells and free up the temborary buffer memory
    #pragma omp parallel for
    for(size_t i=0; i<remote_cells.size(); ++i) {
       mpiGrid[remote_cells[i]]->dev_clearContentLists();
+   }
+   #pragma omp parallel for
+   for (size_t i=0; i<cellsToAdjust.size(); ++i) {
+      mpiGrid[cellsToAdjust[i]]->dev_clearContentLists();
    }
    #endif
 
@@ -1258,7 +1261,6 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
                vmesh::GlobalID blockGID = nbr->get_velocity_block_global_id(b,popID);
                vmesh::GlobalID grandParentGID = cell->velocity_block_has_grandparent(blockGID,popID);
                if (grandParentGID != cell->invalid_global_id()) {
-                  //cerr << "spatial nbr block " << blockGID << " has gparent " << grandParentGID << endl;
 
                   refinements[c].insert(cell->get_velocity_block_parent(popID,blockGID));
                }

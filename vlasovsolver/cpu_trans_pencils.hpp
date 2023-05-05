@@ -23,7 +23,7 @@
 #define CPU_TRANS_PENCILS_H
 
 #include <vector>
-//#include "vec.h"
+#include "vec.h"
 #include "../common.h"
 #include "../spatial_cell.hpp"
 

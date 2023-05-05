@@ -372,6 +372,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
       default:
          printf("Incorrect dimension in cuda_acc_sort_blocks.cpp\n");
    }
+   HANDLE_ERROR( cudaPeekAtLastError() );
    SSYNC
    phiprof::stop("calc new dimension id");
 
@@ -385,6 +386,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                    blocksID_mapped, blocksID_mapped_sorted,
                                    blocksLID_unsorted, blocksLID, nBlocks,
                                    0, sizeof(vmesh::GlobalID)*8, stream);
+   HANDLE_ERROR( cudaPeekAtLastError() );
    phiprof::start("cudamallocasync");
    HANDLE_ERROR( cudaMallocAsync((void**)&dev_temp_storage, temp_storage_bytes, stream) );
    SSYNC
@@ -396,6 +398,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                    blocksID_mapped, blocksID_mapped_sorted,
                                    blocksLID_unsorted, blocksLID, nBlocks,
                                    0, sizeof(vmesh::GlobalID)*8, stream);
+   HANDLE_ERROR( cudaPeekAtLastError() );
    HANDLE_ERROR( cudaStreamSynchronize(stream) ); // In case SortPairs won't like the free below too soon
    HANDLE_ERROR( cudaFreeAsync(dev_temp_storage, stream) );
    phiprof::stop("CUB sort");
@@ -408,6 +411,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
       blocksGID,
       nBlocks
       );
+   HANDLE_ERROR( cudaPeekAtLastError() );
    phiprof::stop("reorder GIDs");
 
    phiprof::start("Scan for column block counts");
@@ -418,6 +422,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
       dev_columnNBlocks,
       nBlocks
       );
+   HANDLE_ERROR( cudaPeekAtLastError() );
    phiprof::stop("Scan for column block counts");
 
    phiprof::start("construct columns");
@@ -431,6 +436,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
       columnData,
       nBlocks
       );
+   HANDLE_ERROR( cudaPeekAtLastError() );
    SSYNC
    phiprof::stop("construct columns");
    // printf("\n Output for dimension %d ",dimension);

@@ -45,7 +45,7 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
    }
 
    // Clear old moments to zero value
-   if (skipMoments == false && computePopulationMomentsOnly == false) {
+   if (computePopulationMomentsOnly == false) {
       cell->parameters[CellParams::RHOM  ] = 0.0;
       cell->parameters[CellParams::VX] = 0.0;
       cell->parameters[CellParams::VY] = 0.0;

@@ -460,11 +460,9 @@ namespace spatial_cell {
    }
 
    SpatialCell::SpatialCell(const SpatialCell& other) {
-      // These should be empty when created
-      velocity_block_with_content_list = new split::SplitVector<vmesh::GlobalID>(1);
-      velocity_block_with_no_content_list = new split::SplitVector<vmesh::GlobalID>(1);
+      velocity_block_with_content_list = new split::SplitVector<vmesh::GlobalID>(*(other.velocity_block_with_content_list));
+      velocity_block_with_no_content_list = new split::SplitVector<vmesh::GlobalID>(*(other.velocity_block_with_no_content_list));
       BlocksRequired = new split::SplitVector<vmesh::GlobalID>(1);
-      //BlocksRequired = new split::SplitVector<cuda::std::pair<vmesh::GlobalID,vmesh::LocalID>>(1);
       BlocksToAdd = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToRemove = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToMove = new split::SplitVector<vmesh::GlobalID>(1);
@@ -525,11 +523,9 @@ namespace spatial_cell {
       delete BlocksToMove;
       delete BlocksRequiredMap;
 
-      // These should be empty when created
-      velocity_block_with_content_list = new split::SplitVector<vmesh::GlobalID>(1);
-      velocity_block_with_no_content_list = new split::SplitVector<vmesh::GlobalID>(1);
+      velocity_block_with_content_list = new split::SplitVector<vmesh::GlobalID>(*(other.velocity_block_with_content_list));
+      velocity_block_with_no_content_list = new split::SplitVector<vmesh::GlobalID>(*(other.velocity_block_with_no_content_list));
       BlocksRequired = new split::SplitVector<vmesh::GlobalID>(1);
-      //BlocksRequired = new split::SplitVector<cuda::std::pair<vmesh::GlobalID,vmesh::LocalID>>(1);
       BlocksToAdd = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToRemove = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToMove = new split::SplitVector<vmesh::GlobalID>(1);
@@ -776,7 +772,9 @@ namespace spatial_cell {
       // add neighbor content info for velocity space neighbors to map. We loop over blocks
       // with content and raise the neighbors_have_content for
       // itself, and for all its v-space neighbors (halo)
-      nCudaBlocks = (localContentBlocks/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : (localContentBlocks/CUDATHREADS);
+
+      // Ensure at least one launch block
+      nCudaBlocks = (localContentBlocks/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : std::ceil((Real)localContentBlocks/(Real)CUDATHREADS);
       int addWidthV = getObjectWrapper().particleSpecies[popID].sparseBlockAddWidthV;
       if (nCudaBlocks>0) {
          update_blocks_required_halo_kernel<<<nCudaBlocks, CUDATHREADS, 0, stream>>> (
@@ -785,6 +783,7 @@ namespace spatial_cell {
             velocity_block_with_content_list,
             addWidthV
             );
+         HANDLE_ERROR( cudaPeekAtLastError() );
          SSYNC
       }
       phiprof::stop("Local content lists");
@@ -796,7 +795,8 @@ namespace spatial_cell {
       for (std::vector<SpatialCell*>::const_iterator neighbor=spatial_neighbors.begin();
            neighbor != spatial_neighbors.end(); ++neighbor) {
          const int nNeighBlocks = (*neighbor)->velocity_block_with_content_list_size;
-         nCudaBlocks = (nNeighBlocks/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : (nNeighBlocks/CUDATHREADS);
+         // Ensure at least one launch block
+         nCudaBlocks = (nNeighBlocks/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : std::ceil((Real)nNeighBlocks/(Real)CUDATHREADS);
          if (nCudaBlocks>0) {
             update_neighbours_have_content_kernel<<<nCudaBlocks, CUDATHREADS, 0, stream>>> (
                populations[popID].vmesh,
@@ -804,6 +804,7 @@ namespace spatial_cell {
                (*neighbor)->dev_velocity_block_with_content_list_buffer,
                nNeighBlocks
                );
+            HANDLE_ERROR( cudaPeekAtLastError() );
          }
       }
       SSYNC
@@ -837,7 +838,8 @@ namespace spatial_cell {
       // REMOVE all blocks in this cell without content + without neighbors with content
       phiprof::start("Gather blocks to remove");
       if (doDeleteEmptyBlocks) {
-         nCudaBlocks = (localNoContentBlocks/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : (localNoContentBlocks/CUDATHREADS);
+         // Ensure at least one launch block
+         nCudaBlocks = (localNoContentBlocks/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : std::ceil((Real)localNoContentBlocks/(Real)CUDATHREADS);
          if (nCudaBlocks>0) {
             update_blocks_to_remove_kernel<<<nCudaBlocks, CUDATHREADS, 0, stream>>> (
                velocity_block_with_no_content_list,
@@ -845,6 +847,7 @@ namespace spatial_cell {
                BlocksToRemove,
                localNoContentBlocks
                );
+            HANDLE_ERROR( cudaPeekAtLastError() );
             SSYNC
          }
       }
@@ -876,7 +879,8 @@ namespace spatial_cell {
       // Only add blocks which don't yet exist to optimize cuda parallel memory management.
       // Find these with a kernel.
       // This kernel also figures out which blocks need to be rescued from the end-space of the block data
-      nCudaBlocks = (nBlocksRequired/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : (nBlocksRequired/CUDATHREADS);
+      // Ensure at least one launch block
+      nCudaBlocks = (nBlocksRequired/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : std::ceil((Real)nBlocksRequired/(Real)CUDATHREADS);
       if (nBlocksRequired>0) {
          update_blocks_to_add_kernel<<<nCudaBlocks, CUDATHREADS, 0, stream>>> (
             populations[popID].vmesh,
@@ -885,6 +889,7 @@ namespace spatial_cell {
             BlocksToMove,
             nBlocksRequired
             );
+         HANDLE_ERROR( cudaPeekAtLastError() );
          SSYNC
       }
       phiprof::stop("blocks_to_add_kernel");
@@ -901,7 +906,6 @@ namespace spatial_cell {
       populations[popID].vmesh->dev_cleanHashMap();
       SSYNC
       phiprof::stop("Hashinator cleanup");
-
    }
 
    void SpatialCell::adjust_velocity_blocks_caller(const uint popID) {
@@ -984,6 +988,7 @@ namespace spatial_cell {
             dev_MoveVectorIndex,
             returnRealf[thread_id]
             );
+         HANDLE_ERROR( cudaPeekAtLastError() );
          SSYNC
       }
       phiprof::stop("CUDA add and remove blocks kernel");
@@ -1453,6 +1458,7 @@ namespace spatial_cell {
          velocity_block_with_no_content_list,
          velocity_block_min_value
          );
+      HANDLE_ERROR( cudaPeekAtLastError() );
       HANDLE_ERROR( cudaStreamSynchronize(stream) ); // This sync is required!
       phiprof::stop("CUDA update spatial cell block lists kernel");
 
