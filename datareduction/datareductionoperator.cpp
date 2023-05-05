@@ -33,14 +33,14 @@ using namespace std;
 typedef Parameters P;
 
 namespace DRO {
-   
+
    // ************************************************************
    // ***** DEFINITIONS FOR DATAREDUCTIONOPERATOR BASE CLASS *****
    // ************************************************************
-   
+
    /** DataReductionOperator base class constructor. The constructor is empty.*/
    DataReductionOperator::DataReductionOperator() { }
-   
+
    /** DataReductionOperator base class virtual destructor. The destructor is empty.*/
    DataReductionOperator::~DataReductionOperator() { }
 
@@ -55,7 +55,7 @@ namespace DRO {
       cerr << "       Did you use a diagnostic reducer for writing bulk data?" << endl;
       return false;
    }
-   
+
    /** Reduce the data and write the data vector to the given variable.
     * If the vector length is larger than one, memory gets corrupted.
     * Note that this function is only used for writing into diagnostic files.
@@ -73,7 +73,7 @@ namespace DRO {
    DataReductionOperatorCellParams::DataReductionOperatorCellParams(const std::string& name,const unsigned int parameterIndex,const unsigned int _vectorSize) :
       DataReductionOperator(), _parameterIndex {parameterIndex}, vectorSize {_vectorSize}, variableName {name} {}
    DataReductionOperatorCellParams::~DataReductionOperatorCellParams() { }
-   
+
    bool DataReductionOperatorCellParams::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& _vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
@@ -82,7 +82,7 @@ namespace DRO {
    }
 
    std::string DataReductionOperatorCellParams::getName() const {return variableName;}
-   
+
    bool DataReductionOperatorCellParams::reduceData(const SpatialCell* cell,char* buffer) {
       const char* ptr = reinterpret_cast<const char*>(data);
       for (uint i = 0; i < vectorSize*sizeof(Real); ++i){
@@ -90,7 +90,7 @@ namespace DRO {
       }
       return true;
    }
-   
+
    bool DataReductionOperatorCellParams::reduceDiagnostic(const SpatialCell* cell,Real* buffer){
       //If vectorSize is >1 it still works, we just give the first value and no other ones..
       *buffer=data[0];
@@ -125,7 +125,7 @@ namespace DRO {
    bool DataReductionOperatorFsGrid::setSpatialCell(const SpatialCell* cell) {
       return true;
    }
-   
+
    bool DataReductionOperatorFsGrid::writeFsGridData(
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
@@ -326,14 +326,14 @@ namespace DRO {
 
       return true;
    }
-   
+
    bool DataReductionOperatorIonosphereNodeInt::writeIonosphereData(SBC::SphericalTriGrid& grid, vlsv::Writer& vlsvWriter) {
-      
+
       // skip ionosphere for inital-grid as it breaks
       if(P::systemWriteName[P::systemWriteName.size() - 1] == "initial-grid") {
          return true;
       }
-      
+
       // No point in trying to write anything if there is no ionosphere grid.
       if(grid.nodes.size() == 0) {
          // Note this indicates success, since not writing an empty mesh is quite ok.
@@ -347,7 +347,7 @@ namespace DRO {
       attribs["unitLaTeX"]=unitLaTeX;
       attribs["unitConversion"]=unitConversion;
       attribs["variableLaTeX"]=variableLaTeX;
-      
+
       // Only task 0 of the ionosphere communicator writes, but all others need to sync vectorSize
       int rank = -1;
       int worldRank = 0;
@@ -358,12 +358,12 @@ namespace DRO {
       int vectorSize = 0;
       if(rank == 0) {
          std::vector<int> varBuffer = lambda(grid);
-         
+
          vectorSize = varBuffer.size() / grid.nodes.size();
-         
+
          // We need to have vectorSize the same on all ranks, otherwise MPI_COMM_WORLD rank 0 writes a bogus value
          MPI_Bcast(&vectorSize, 1, MPI_INT, grid.writingRank, MPI_COMM_WORLD);
-         
+
          if(vlsvWriter.writeArray("VARIABLE", attribs, "int", grid.nodes.size(), vectorSize, sizeof(int), reinterpret_cast<const char*>(varBuffer.data())) == false) {
             string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
             bailout(true, message, __FILE__, __LINE__);
@@ -371,11 +371,11 @@ namespace DRO {
       } else {
          // We need to have vectorSize the same on all ranks, otherwise MPI_COMM_WORLD rank 0 writes a bogus value
          MPI_Bcast(&vectorSize, 1, MPI_INT, grid.writingRank, MPI_COMM_WORLD);
-         
+
          // Dummy write
          vlsvWriter.writeArray("VARIABLE", attribs, "int", 0, vectorSize, sizeof(int), nullptr);
       }
-      
+
       return true;
    }
 
@@ -400,35 +400,35 @@ namespace DRO {
 
    DataReductionOperatorBVOLDerivatives::DataReductionOperatorBVOLDerivatives(const std::string& name,const unsigned int parameterIndex,const unsigned int vectorSize):
    DataReductionOperatorCellParams(name,parameterIndex,vectorSize) {
-      
+
    }
    //a version with derivatives, this is the only function that is different
    bool DataReductionOperatorBVOLDerivatives::setSpatialCell(const SpatialCell* cell) {
       data  = &(cell->derivativesBVOL[_parameterIndex]);
       return true;
    }
-   
-   
-   
-   //------------------ total BVOL --------------------------------------- 
+
+
+
+   //------------------ total BVOL ---------------------------------------
    VariableBVol::VariableBVol(): DataReductionOperator() { }
    VariableBVol::~VariableBVol() { }
-   
+
    bool VariableBVol::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
       vectorSize = 3;
       return true;
    }
-   
+
    std::string VariableBVol::getName() const {return "vg_b_vol";}
-   
+
    bool VariableBVol::reduceData(const SpatialCell* cell,char* buffer) {
       const char* ptr = reinterpret_cast<const char*>(B);
       for (uint i = 0; i < 3*sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
    }
-   
+
    bool VariableBVol::setSpatialCell(const SpatialCell* cell) {
       B[0] = cell->parameters[CellParams::PERBXVOL] +  cell->parameters[CellParams::BGBXVOL];
       B[1] = cell->parameters[CellParams::PERBYVOL] +  cell->parameters[CellParams::BGBYVOL];
@@ -446,22 +446,22 @@ namespace DRO {
    //MPI rank
    MPIrank::MPIrank(): DataReductionOperator() { }
    MPIrank::~MPIrank() { }
-   
+
    bool MPIrank::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "int";
       dataSize = sizeof(int);
       vectorSize = 1;
       return true;
    }
-   
+
    std::string MPIrank::getName() const {return "vg_rank";}
-   
+
    bool MPIrank::reduceData(const SpatialCell* cell,char* buffer) {
       const char* ptr = reinterpret_cast<const char*>(&mpiRank);
       for (uint i = 0; i < sizeof(int); ++i) buffer[i] = ptr[i];
       return true;
    }
-   
+
    bool MPIrank::setSpatialCell(const SpatialCell* cell) {
       int intRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&intRank);
@@ -469,26 +469,26 @@ namespace DRO {
       mpiRank = intRank;
       return true;
    }
-   
+
    // BoundaryType
    BoundaryType::BoundaryType(): DataReductionOperator() { }
    BoundaryType::~BoundaryType() { }
-   
+
    bool BoundaryType::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "int";
       dataSize = sizeof(int);
       vectorSize = 1;
       return true;
    }
-   
+
    std::string BoundaryType::getName() const {return "vg_boundarytype";}
-   
+
    bool BoundaryType::reduceData(const SpatialCell* cell,char* buffer) {
       const char* ptr = reinterpret_cast<const char*>(&boundaryType);
       for (uint i = 0; i < sizeof(int); ++i) buffer[i] = ptr[i];
       return true;
    }
-   
+
    bool BoundaryType::setSpatialCell(const SpatialCell* cell) {
       boundaryType = (int)cell->sysBoundaryFlag;
       return true;
@@ -498,85 +498,85 @@ namespace DRO {
       // BoundaryLayer
    BoundaryLayer::BoundaryLayer(): DataReductionOperator() { }
    BoundaryLayer::~BoundaryLayer() { }
-   
+
    bool BoundaryLayer::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "int";
       dataSize = sizeof(int);
       vectorSize = 1;
       return true;
    }
-   
+
    std::string BoundaryLayer::getName() const {return "vg_boundarylayer";}
-   
+
    bool BoundaryLayer::reduceData(const SpatialCell* cell,char* buffer) {
       const char* ptr = reinterpret_cast<const char*>(&boundaryLayer);
       for (uint i = 0; i < sizeof(int); ++i) buffer[i] = ptr[i];
       return true;
    }
-   
+
    bool BoundaryLayer::setSpatialCell(const SpatialCell* cell) {
       boundaryLayer = (int)cell->sysBoundaryLayer;
       return true;
    }
-   
+
    // Blocks
    Blocks::Blocks(cuint _popID): DataReductionOperator(),popID(_popID) {
       popName=getObjectWrapper().particleSpecies[popID].name;
    }
    Blocks::~Blocks() { }
-   
+
    bool Blocks::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "uint";
       dataSize = sizeof(int);
       vectorSize = 1;
       return true;
    }
-   
+
    std::string Blocks::getName() const {return popName + "/vg_blocks";}
-   
+
    bool Blocks::reduceData(const SpatialCell* cell,char* buffer) {
       const char* ptr = reinterpret_cast<const char*>(&nBlocks);
       for (uint i = 0; i < sizeof(int); ++i) buffer[i] = ptr[i];
       return true;
    }
-   
+
    bool Blocks::reduceDiagnostic(const SpatialCell* cell,Real* buffer) {
       *buffer = 1.0 * nBlocks;
       return true;
    }
-  
+
    bool Blocks::setSpatialCell(const SpatialCell* cell) {
       nBlocks = cell->get_number_of_velocity_blocks(popID);
       return true;
    }
-   
+
    // Scalar pressure from the stored values which were calculated to be used by the solvers
    VariablePressureSolver::VariablePressureSolver(): DataReductionOperator() { }
    VariablePressureSolver::~VariablePressureSolver() { }
-   
+
    std::string VariablePressureSolver::getName() const {return "vg_pressure";}
-   
+
    bool VariablePressureSolver::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
       vectorSize = 1;
       return true;
    }
-   
+
    bool VariablePressureSolver::reduceData(const SpatialCell* cell,char* buffer) {
       const char* ptr = reinterpret_cast<const char*>(&Pressure);
       for (uint i = 0; i < sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
    }
-   
+
    bool VariablePressureSolver::setSpatialCell(const SpatialCell* cell) {
       Pressure = 1.0/3.0 * (cell->parameters[CellParams::P_11] + cell->parameters[CellParams::P_22] + cell->parameters[CellParams::P_33]);
       return true;
    }
-   
+
    // YK Adding pressure calculations to Vlasiator.
    // p_ij = m/3 * integral((v - <V>)_i(v - <V>)_j * f(r,v) dV)
-   
+
    // Pressure tensor 6 components (11, 22, 33, 23, 13, 12) added by YK
    // Split into VariablePTensorDiagonal (11, 22, 33)
    // and VariablePTensorOffDiagonal (23, 13, 12)
@@ -584,16 +584,16 @@ namespace DRO {
       popName = getObjectWrapper().particleSpecies[popID].name;
    }
    VariablePTensorDiagonal::~VariablePTensorDiagonal() { }
-   
+
    std::string VariablePTensorDiagonal::getName() const {return popName + "/vg_ptensor_diagonal";}
-   
+
    bool VariablePTensorDiagonal::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
       vectorSize = 3;
       return true;
    }
-   
+
    bool VariablePTensorDiagonal::reduceData(const SpatialCell* cell,char* buffer) {
       const Real HALF = 0.5;
       # pragma omp parallel
@@ -601,27 +601,27 @@ namespace DRO {
          Real thread_nvxvx_sum = 0.0;
          Real thread_nvyvy_sum = 0.0;
          Real thread_nvzvz_sum = 0.0;
-         
+
          const Real* parameters  = cell->get_block_parameters(popID);
          const Realf* block_data = cell->get_data(popID);
-         
+
          # pragma omp for
          for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); n++) {
 	    for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
-	       const Real VX 
-		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+	       const Real VX
+		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD]
 		 + (i + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
-	       const Real VY 
-		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
+	       const Real VY
+		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD]
 		 + (j + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
-	       const Real VZ 
-		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] 
+	       const Real VZ
+		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD]
 		 + (k + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-	       const Real DV3 
+	       const Real DV3
 		 = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
-		 * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] 
+		 * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY]
 		 * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-                     
+
 	       thread_nvxvx_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX) * DV3;
 	       thread_nvyvy_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY) * DV3;
 	       thread_nvzvz_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
@@ -631,8 +631,8 @@ namespace DRO {
          thread_nvyvy_sum *= getObjectWrapper().particleSpecies[popID].mass;
          thread_nvzvz_sum *= getObjectWrapper().particleSpecies[popID].mass;
 
-         // Accumulate contributions coming from this velocity block to the 
-         // spatial cell velocity moments. If multithreading / OpenMP is used, 
+         // Accumulate contributions coming from this velocity block to the
+         // spatial cell velocity moments. If multithreading / OpenMP is used,
          // these updates need to be atomic:
          # pragma omp critical
          {
@@ -645,7 +645,7 @@ namespace DRO {
       for (uint i = 0; i < 3*sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
    }
-   
+
    bool VariablePTensorDiagonal::setSpatialCell(const SpatialCell* cell) {
       averageVX = cell-> parameters[CellParams::VX];
       averageVY = cell-> parameters[CellParams::VY];
@@ -653,21 +653,21 @@ namespace DRO {
       for(int i = 0; i < 3; i++) PTensor[i] = 0.0;
       return true;
    }
-   
+
    VariablePTensorOffDiagonal::VariablePTensorOffDiagonal(cuint _popID): DataReductionOperator(),popID(_popID) {
       popName = getObjectWrapper().particleSpecies[popID].name;
    }
    VariablePTensorOffDiagonal::~VariablePTensorOffDiagonal() { }
-   
+
    std::string VariablePTensorOffDiagonal::getName() const {return popName + "/vg_ptensor_offdiagonal";}
-   
+
    bool VariablePTensorOffDiagonal::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
       vectorSize = 3;
       return true;
    }
-   
+
    bool VariablePTensorOffDiagonal::reduceData(const SpatialCell* cell,char* buffer) {
       const Real HALF = 0.5;
       # pragma omp parallel
@@ -675,27 +675,27 @@ namespace DRO {
          Real thread_nvxvy_sum = 0.0;
          Real thread_nvzvx_sum = 0.0;
          Real thread_nvyvz_sum = 0.0;
-         
+
          const Real* parameters = cell->get_block_parameters(popID);
          const Realf* block_data = cell->get_data(popID);
-         
+
          # pragma omp for
-         for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); n++) {               
+         for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); n++) {
 	    for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
-	       const Real VX 
-		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+	       const Real VX
+		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD]
 		 + (i + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
-	       const Real VY 
-		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
+	       const Real VY
+		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD]
 		 + (j + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
-	       const Real VZ 
-		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] 
+	       const Real VZ
+		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD]
 		 + (k + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-	       const Real DV3 
+	       const Real DV3
 		 = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
-		 * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] 
+		 * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY]
 		 * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-	       
+
 	       thread_nvxvy_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * (VX - averageVX) * (VY - averageVY) * DV3;
 	       thread_nvzvx_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * (VZ - averageVZ) * (VX - averageVX) * DV3;
 	       thread_nvyvz_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * (VY - averageVY) * (VZ - averageVZ) * DV3;
@@ -704,9 +704,9 @@ namespace DRO {
          thread_nvxvy_sum *= getObjectWrapper().particleSpecies[popID].mass;
          thread_nvzvx_sum *= getObjectWrapper().particleSpecies[popID].mass;
          thread_nvyvz_sum *= getObjectWrapper().particleSpecies[popID].mass;
-         
-         // Accumulate contributions coming from this velocity block to the 
-         // spatial cell velocity moments. If multithreading / OpenMP is used, 
+
+         // Accumulate contributions coming from this velocity block to the
+         // spatial cell velocity moments. If multithreading / OpenMP is used,
          // these updates need to be atomic:
          # pragma omp critical
          {
@@ -719,39 +719,39 @@ namespace DRO {
       for (uint i = 0; i < 3*sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
    }
-   
+
    bool VariablePTensorOffDiagonal::setSpatialCell(const SpatialCell* cell) {
       averageVX = cell-> parameters[CellParams::VX];
       averageVY = cell-> parameters[CellParams::VY];
       averageVZ = cell-> parameters[CellParams::VZ];
       for(int i = 0; i < 3; i++) PTensor[i] = 0.0;
       return true;
-   }   
-   
+   }
+
    // YK maximum value of the distribution function (diagnostic)
    MaxDistributionFunction::MaxDistributionFunction(cuint _popID): DataReductionOperator(),popID(_popID) {
      popName=getObjectWrapper().particleSpecies[popID].name;
    }
    MaxDistributionFunction::~MaxDistributionFunction() { }
-   
+
    std::string MaxDistributionFunction::getName() const {return popName + "/vg_maxdistributionfunction";}
-   
+
    bool MaxDistributionFunction::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
       vectorSize = 1;
       return true;
-   }   
-   
+   }
+
    bool MaxDistributionFunction::reduceDiagnostic(const SpatialCell* cell,Real* buffer) {
       maxF = std::numeric_limits<Real>::min();
-      
-      #pragma omp parallel 
+
+      #pragma omp parallel
       {
          Real threadMax = std::numeric_limits<Real>::min();
-         
+
          const Realf* block_data = cell->get_data(popID);
-         
+
          #pragma omp for
          for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); ++n) {
 	    for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
@@ -764,11 +764,11 @@ namespace DRO {
             maxF = max(threadMax, maxF);
          }
       }
-      
+
       *buffer = maxF;
       return true;
    }
-   
+
    bool MaxDistributionFunction::reduceData(const SpatialCell* cell,char* buffer) {
       Real dummy;
       reduceDiagnostic(cell,&dummy);
@@ -776,34 +776,34 @@ namespace DRO {
       for (uint i = 0; i < sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
    }
-   
+
    bool MaxDistributionFunction::setSpatialCell(const SpatialCell* cell) {
       return true;
    }
-   
-   
+
+
    // YK minimum value of the distribution function (diagnostic)
    MinDistributionFunction::MinDistributionFunction(cuint _popID): DataReductionOperator(),popID(_popID) {
      popName=getObjectWrapper().particleSpecies[popID].name;
    }
    MinDistributionFunction::~MinDistributionFunction() { }
-   
+
    std::string MinDistributionFunction::getName() const {return popName + "/vg_mindistributionfunction";}
-   
+
    bool MinDistributionFunction::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
       vectorSize = 1;
       return true;
-   }   
-   
+   }
+
    bool MinDistributionFunction::reduceDiagnostic(const SpatialCell* cell,Real* buffer) {
       minF =  std::numeric_limits<Real>::max();
 
-      #pragma omp parallel 
+      #pragma omp parallel
       {
          Real threadMin = std::numeric_limits<Real>::max();
-         
+
          const Realf* block_data = cell->get_data(popID);
 
          #pragma omp for
@@ -812,17 +812,17 @@ namespace DRO {
 	       threadMin = min((Real)(block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)]), threadMin);
             }
          }
-         
+
          #pragma omp critical
          {
             minF = min(threadMin, minF);
          }
       }
-      
+
       *buffer = minF;
       return true;
    }
-   
+
    bool MinDistributionFunction::reduceData(const SpatialCell* cell,char* buffer) {
       Real dummy;
       reduceDiagnostic(cell,&dummy);
@@ -830,14 +830,14 @@ namespace DRO {
       for (uint i = 0; i < sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
    }
-   
+
    bool MinDistributionFunction::setSpatialCell(const SpatialCell* cell) {
       return true;
    }
 
   /*******
 	  Helper functions for finding the velocity cell indices or IDs within a single velocity block
-	  either belonging to the thermal or the non-thermal population. 
+	  either belonging to the thermal or the non-thermal population.
 	  There is some code duplication here, but as these helper functions are called within threads for
 	  block separately, it's preferable to have them fast even at the cost of code repetition.
   ********/
@@ -956,10 +956,10 @@ namespace DRO {
       # pragma omp parallel
       {
          Real thread_n_sum = 0.0;
-         
+
          const Real* parameters = cell->get_block_parameters(popID);
          const Realf* block_data = cell->get_data(popID);
-         
+
          # pragma omp for
          for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); ++n) {
             const Real DV3
@@ -979,7 +979,7 @@ namespace DRO {
             }
          }
          // Accumulate contributions coming from this velocity block
-         // If multithreading / OpenMP is used, 
+         // If multithreading / OpenMP is used,
          // these updates need to be atomic:
          // todo: use omp reduction
          # pragma omp critical
@@ -1006,7 +1006,7 @@ namespace DRO {
 
          const Real* parameters = cell->get_block_parameters(popID);
          const Realf* block_data = cell->get_data(popID);
-         
+
          # pragma omp for
          for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); ++n) {
             // Get the volume of a velocity cell
@@ -1043,7 +1043,7 @@ namespace DRO {
          } // for-loop over velocity blocks
 
          // Accumulate contributions coming from this velocity block.
-         // If multithreading / OpenMP is used, 
+         // If multithreading / OpenMP is used,
          // these updates need to be atomic:
          # pragma omp critical
          {
@@ -1074,10 +1074,10 @@ namespace DRO {
          Real thread_nvxvx_sum = 0.0;
          Real thread_nvyvy_sum = 0.0;
          Real thread_nvzvz_sum = 0.0;
-         
+
          const Real* parameters = cell->get_block_parameters(popID);
          const Realf* block_data = cell->get_data(popID);
-      
+
          # pragma omp for
          for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); ++n) {
             const Real DV3
@@ -1109,8 +1109,8 @@ namespace DRO {
          thread_nvyvy_sum *= getObjectWrapper().particleSpecies[popID].mass;
          thread_nvzvz_sum *= getObjectWrapper().particleSpecies[popID].mass;
 
-         // Accumulate contributions coming from this velocity block to the 
-         // spatial cell velocity moments. If multithreading / OpenMP is used, 
+         // Accumulate contributions coming from this velocity block to the
+         // spatial cell velocity moments. If multithreading / OpenMP is used,
          // these updates need to be atomic:
          # pragma omp critical
          {
@@ -1135,10 +1135,10 @@ namespace DRO {
          Real thread_nvxvy_sum = 0.0;
          Real thread_nvzvx_sum = 0.0;
          Real thread_nvyvz_sum = 0.0;
-         
+
          const Real* parameters = cell->get_block_parameters(popID);
          const Realf* block_data = cell->get_data(popID);
-      
+
          # pragma omp for
          for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); ++n) {
             const Real DV3
@@ -1168,9 +1168,9 @@ namespace DRO {
          thread_nvxvy_sum *= getObjectWrapper().particleSpecies[popID].mass;
          thread_nvzvx_sum *= getObjectWrapper().particleSpecies[popID].mass;
          thread_nvyvz_sum *= getObjectWrapper().particleSpecies[popID].mass;
-         
-         // Accumulate contributions coming from this velocity block to the 
-         // spatial cell velocity moments. If multithreading / OpenMP is used, 
+
+         // Accumulate contributions coming from this velocity block to the
+         // spatial cell velocity moments. If multithreading / OpenMP is used,
          // these updates need to be atomic:
          # pragma omp critical
          {
@@ -1181,7 +1181,7 @@ namespace DRO {
       }
    }
 
-  /********* 
+  /*********
 	     End velocity moment / thermal/non-thermal helper functions
   *********/
 
@@ -1191,16 +1191,16 @@ namespace DRO {
       doSkip = (getObjectWrapper().particleSpecies[popID].thermalRadius == 0.0) ? true : false;
    }
    VariableRhoNonthermal::~VariableRhoNonthermal() { }
-   
+
    std::string VariableRhoNonthermal::getName() const {return popName + "/vg_rho_nonthermal";}
-   
+
    bool VariableRhoNonthermal::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
       vectorSize = (doSkip == true) ? 0 : 1;
       return true;
    }
-   
+
    bool VariableRhoNonthermal::reduceData(const SpatialCell* cell,char* buffer) {
       const bool calculateNonthermal = true;
       rhoNonthermalCalculation( cell, calculateNonthermal, popID, RhoNonthermal );
@@ -1208,7 +1208,7 @@ namespace DRO {
       for (uint i = 0; i < sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
    }
-   
+
    bool VariableRhoNonthermal::setSpatialCell(const SpatialCell* cell) {
       RhoNonthermal = 0.0;
       return true;
@@ -1220,16 +1220,16 @@ namespace DRO {
       doSkip = (getObjectWrapper().particleSpecies[popID].thermalRadius == 0.0) ? true : false;
    }
    VariableRhoThermal::~VariableRhoThermal() { }
-   
+
    std::string VariableRhoThermal::getName() const {return popName + "/vg_rho_thermal";}
-   
+
    bool VariableRhoThermal::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
       vectorSize = (doSkip == true) ? 0 : 1;
       return true;
    }
-   
+
    bool VariableRhoThermal::reduceData(const SpatialCell* cell,char* buffer) {
       const bool calculateNonthermal = false; //We don't want nonthermal
       rhoNonthermalCalculation( cell, calculateNonthermal, popID, RhoThermal );
@@ -1237,7 +1237,7 @@ namespace DRO {
       for (uint i = 0; i < sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
    }
-   
+
    bool VariableRhoThermal::setSpatialCell(const SpatialCell* cell) {
       RhoThermal = 0.0;
       return true;
@@ -1249,9 +1249,9 @@ namespace DRO {
       doSkip = (getObjectWrapper().particleSpecies[popID].thermalRadius == 0.0) ? true : false;
    }
    VariableVNonthermal::~VariableVNonthermal() { }
-   
+
    std::string VariableVNonthermal::getName() const {return popName + "/vg_v_nonthermal";}
-   
+
    bool VariableVNonthermal::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
@@ -1268,7 +1268,7 @@ namespace DRO {
       for (uint i = 0; i < VNonthermalSize*sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
    }
-   
+
    bool VariableVNonthermal::setSpatialCell(const SpatialCell* cell) {
       // Initialize values
       for( uint i = 0; i < 3; ++i ) {
@@ -1283,9 +1283,9 @@ namespace DRO {
       doSkip = (getObjectWrapper().particleSpecies[popID].thermalRadius == 0.0) ? true : false;
    }
    VariableVThermal::~VariableVThermal() { }
-   
+
    std::string VariableVThermal::getName() const {return popName + "/vg_v_thermal";}
-   
+
    bool VariableVThermal::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
@@ -1302,7 +1302,7 @@ namespace DRO {
       for (uint i = 0; i < vectorSize*sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
    }
-   
+
    bool VariableVThermal::setSpatialCell(const SpatialCell* cell) {
       // Initialize values
       for( uint i = 0; i < 3; ++i ) {
@@ -1313,7 +1313,7 @@ namespace DRO {
 
    // Adding pressure calculations for nonthermal population to Vlasiator.
    // p_ij = m/3 * integral((v - <V>)_i(v - <V>)_j * f(r,v) dV)
-   
+
    // Pressure tensor 6 components (11, 22, 33, 23, 13, 12) added by YK
    // Split into VariablePTensorNonthermalDiagonal (11, 22, 33)
    // and VariablePTensorNonthermalOffDiagonal (23, 13, 12)
@@ -1322,16 +1322,16 @@ namespace DRO {
       doSkip = (getObjectWrapper().particleSpecies[popID].thermalRadius == 0.0) ? true : false;
    }
    VariablePTensorNonthermalDiagonal::~VariablePTensorNonthermalDiagonal() { }
-   
+
    std::string VariablePTensorNonthermalDiagonal::getName() const {return popName + "/vg_ptensor_nonthermal_diagonal";}
-   
+
    bool VariablePTensorNonthermalDiagonal::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
       vectorSize = (doSkip == true) ? 0 : 3;
       return true;
    }
-   
+
    bool VariablePTensorNonthermalDiagonal::reduceData(const SpatialCell* cell,char* buffer) {
       const bool calculateNonthermal = true;
       //Calculate PTensor and save it in PTensorArray:
@@ -1342,7 +1342,7 @@ namespace DRO {
       for (uint i = 0; i < vectorSize*sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
    }
-   
+
    bool VariablePTensorNonthermalDiagonal::setSpatialCell(const SpatialCell* cell) {
       //Get v of the nonthermal:
       Real V[3] = {0};
@@ -1359,7 +1359,7 @@ namespace DRO {
 
    // Adding pressure calculations for thermal population to Vlasiator.
    // p_ij = m/3 * integral((v - <V>)_i(v - <V>)_j * f(r,v) dV)
-   
+
    // Pressure tensor 6 components (11, 22, 33, 23, 13, 12) added by YK
    // Split into VariablePTensorThermalDiagonal (11, 22, 33)
    // and VariablePTensorThermalOffDiagonal (23, 13, 12)
@@ -1368,16 +1368,16 @@ namespace DRO {
       doSkip = (getObjectWrapper().particleSpecies[popID].thermalRadius == 0.0) ? true : false;
    }
    VariablePTensorThermalDiagonal::~VariablePTensorThermalDiagonal() { }
-   
+
    std::string VariablePTensorThermalDiagonal::getName() const {return popName + "/vg_ptensor_thermal_diagonal";}
-   
+
    bool VariablePTensorThermalDiagonal::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
       vectorSize = (doSkip == true) ? 0 : 3;
       return true;
    }
-   
+
    bool VariablePTensorThermalDiagonal::reduceData(const SpatialCell* cell,char* buffer) {
       const bool calculateNonthermal = false;
       //Calculate PTensor and save it in PTensorArray:
@@ -1388,7 +1388,7 @@ namespace DRO {
       for (uint i = 0; i < vectorSize*sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
    }
-   
+
    bool VariablePTensorThermalDiagonal::setSpatialCell(const SpatialCell* cell) {
       //Get v of the thermal:
       Real V[3] = {0};
@@ -1408,16 +1408,16 @@ namespace DRO {
       doSkip = (getObjectWrapper().particleSpecies[popID].thermalRadius == 0.0) ? true : false;
    }
    VariablePTensorNonthermalOffDiagonal::~VariablePTensorNonthermalOffDiagonal() { }
-   
+
    std::string VariablePTensorNonthermalOffDiagonal::getName() const {return popName + "/vg_ptensor_nonthermal_offdiagonal";}
-   
+
    bool VariablePTensorNonthermalOffDiagonal::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
       vectorSize = (doSkip == true) ? 0 : 3;
       return true;
    }
-   
+
    bool VariablePTensorNonthermalOffDiagonal::reduceData(const SpatialCell* cell,char* buffer) {
       //Calculate PTensor for PTensorArray:
       const bool calculateNonthermal = true;
@@ -1431,7 +1431,7 @@ namespace DRO {
       }
       return true;
    }
-   
+
    bool VariablePTensorNonthermalOffDiagonal::setSpatialCell(const SpatialCell* cell) {
       //Get v of the nonthermal:
       Real V[3] = {0};
@@ -1450,16 +1450,16 @@ namespace DRO {
       doSkip = (getObjectWrapper().particleSpecies[popID].thermalRadius == 0.0) ? true : false;
    }
    VariablePTensorThermalOffDiagonal::~VariablePTensorThermalOffDiagonal() { }
-   
+
    std::string VariablePTensorThermalOffDiagonal::getName() const {return popName + "/vg_ptensor_thermal_offdiagonal";}
-   
+
    bool VariablePTensorThermalOffDiagonal::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
       vectorSize = (doSkip == true) ? 0 : 3;
       return true;
    }
-   
+
    bool VariablePTensorThermalOffDiagonal::reduceData(const SpatialCell* cell,char* buffer) {
       //Calculate PTensor for PTensorArray:
       const bool calculateNonthermal = false;
@@ -1473,7 +1473,7 @@ namespace DRO {
       }
       return true;
    }
-   
+
    bool VariablePTensorThermalOffDiagonal::setSpatialCell(const SpatialCell* cell) {
       //Get v of the nonthermal:
       Real V[3] = {0};
@@ -1488,7 +1488,7 @@ namespace DRO {
    }
 
 
-   VariableEffectiveSparsityThreshold::VariableEffectiveSparsityThreshold(cuint _popID): DataReductionOperator(),popID(_popID) { 
+   VariableEffectiveSparsityThreshold::VariableEffectiveSparsityThreshold(cuint _popID): DataReductionOperator(),popID(_popID) {
      popName=getObjectWrapper().particleSpecies[popID].name;
    }
    VariableEffectiveSparsityThreshold::~VariableEffectiveSparsityThreshold() { }
@@ -1501,7 +1501,7 @@ namespace DRO {
    }
 
    std::string VariableEffectiveSparsityThreshold::getName() const {return popName + "/vg_effectivesparsitythreshold";}
-   
+
    bool VariableEffectiveSparsityThreshold::reduceData(const spatial_cell::SpatialCell* cell,char* buffer) {
       Real dummy;
       reduceDiagnostic(cell,&dummy);
@@ -1539,16 +1539,16 @@ namespace DRO {
       }
    }
    VariablePrecipitationDiffFlux::~VariablePrecipitationDiffFlux() { }
-   
+
    std::string VariablePrecipitationDiffFlux::getName() const {return popName + "/vg_precipitationdifferentialflux";}
-   
+
    bool VariablePrecipitationDiffFlux::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
       vectorSize = nChannels; //Number of energy channels
       return true;
    }
-   
+
    bool VariablePrecipitationDiffFlux::reduceData(const SpatialCell* cell,char* buffer) {
 
       dataDiffFlux.assign(nChannels,0.0);
@@ -1579,26 +1579,26 @@ namespace DRO {
       {
          std::vector<Real> thread_lossCone_sum(nChannels,0.0);
          std::vector<Real> thread_count(nChannels,0.0);
-         
+
          const Real* parameters  = cell->get_block_parameters(popID);
          const Realf* block_data = cell->get_data(popID);
-         
+
          # pragma omp for
          for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); n++) {
             for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
-               const Real VX 
-                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+               const Real VX
+                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD]
                   + (i + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
-               const Real VY 
-                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
+               const Real VY
+                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD]
                   + (j + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
-               const Real VZ 
-                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] 
+               const Real VZ
+                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD]
                   + (k + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
 
-               const Real DV3 
+               const Real DV3
                   = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
-                  * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] 
+                  * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY]
                   * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
 
                const Real normV = sqrt(VX*VX + VY*VY + VZ*VZ);
@@ -1617,8 +1617,8 @@ namespace DRO {
             }
          }
 
-         // Accumulate contributions coming from this velocity block to the 
-         // spatial cell velocity moments. If multithreading / OpenMP is used, 
+         // Accumulate contributions coming from this velocity block to the
+         // spatial cell velocity moments. If multithreading / OpenMP is used,
          // these updates need to be atomic:
          # pragma omp critical
          {
@@ -1640,7 +1640,7 @@ namespace DRO {
       for (uint i = 0; i < nChannels*sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
    }
-   
+
    bool VariablePrecipitationDiffFlux::setSpatialCell(const SpatialCell* cell) {
       return true;
    }
@@ -1673,16 +1673,16 @@ namespace DRO {
       }
    }
    VariablePrecipitationLineDiffFlux::~VariablePrecipitationLineDiffFlux() { }
-   
+
    std::string VariablePrecipitationLineDiffFlux::getName() const {return popName + "/vg_precipitationlinedifferentialflux";}
-   
+
    bool VariablePrecipitationLineDiffFlux::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
       vectorSize = nChannels; //Number of energy channels
       return true;
    }
-   
+
    bool VariablePrecipitationLineDiffFlux::reduceData(const SpatialCell* cell,char* buffer) {
 
       dataLineDiffFlux.assign(nChannels,0.0);
@@ -1711,26 +1711,26 @@ namespace DRO {
       {
          std::vector<Real> thread_line_sum(nChannels,0.0);
          std::vector<Real> thread_count(nChannels,0.0);
-         
+
          const Real* parameters  = cell->get_block_parameters(popID);
          const Realf* block_data = cell->get_data(popID);
-         
+
          # pragma omp for
          for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); n++) {
             for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
-               const Real VX 
-                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+               const Real VX
+                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD]
                   + (i + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
-               const Real VY 
-                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
+               const Real VY
+                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD]
                   + (j + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
-               const Real VZ 
-                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] 
+               const Real VZ
+                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD]
                   + (k + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
 
-               const Real DV3 
+               const Real DV3
                   = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
-                  * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] 
+                  * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY]
                   * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
 
                const Real normV = sqrt(VX*VX + VY*VY + VZ*VZ);
@@ -1761,8 +1761,8 @@ namespace DRO {
             }
          }
 
-         // Accumulate contributions coming from this velocity block to the 
-         // spatial cell velocity moments. If multithreading / OpenMP is used, 
+         // Accumulate contributions coming from this velocity block to the
+         // spatial cell velocity moments. If multithreading / OpenMP is used,
          // these updates need to be atomic:
          # pragma omp critical
          {
@@ -1784,7 +1784,7 @@ namespace DRO {
       for (uint i = 0; i < nChannels*sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
    }
-   
+
    bool VariablePrecipitationLineDiffFlux::setSpatialCell(const SpatialCell* cell) {
       return true;
    }
@@ -1800,12 +1800,12 @@ namespace DRO {
    /*! \brief Energy density
     * Calculates the energy density of particles in three bins: total energy density, above E1limit*solar wind energy, and above E2limit*solar wind energy
     * Energy densities are given in eV/cm^3.
-    * Parameters that can be set in cfg file under [{species}_energydensity]: 
-    *    - solarwindspeed [m/s], 
-    *    - solarwindenergy [eV], 
-    *    - limit1 [scalar, default: 5.], 
+    * Parameters that can be set in cfg file under [{species}_energydensity]:
+    *    - solarwindspeed [m/s],
+    *    - solarwindenergy [eV],
+    *    - limit1 [scalar, default: 5.],
     *    - limit2 [scalar, default: 10.].
-    * The energy thresholds are saved in bulk files as parameters: 
+    * The energy thresholds are saved in bulk files as parameters:
     *    - EnergyDensityESW (in eV),
     *    - EnergyDensityELimit1 (as scalar multiplier of EnergyDensityESW),
     *    - EnergyDensityELimit2 (as scalar multiplier of EnergyDensityESW).
@@ -1818,16 +1818,16 @@ namespace DRO {
       E2limit = solarwindenergy * getObjectWrapper().particleSpecies[popID].EnergyDensityLimit2;
    }
    VariableEnergyDensity::~VariableEnergyDensity() { }
-   
+
    std::string VariableEnergyDensity::getName() const {return popName + "/vg_energydensity";}
-   
+
    bool VariableEnergyDensity::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
       dataType = "float";
       dataSize =  sizeof(Real);
       vectorSize = 3; // This is not components, but rather total energy density, density over E1, and density over E2
       return true;
    }
-   
+
    bool VariableEnergyDensity::reduceData(const SpatialCell* cell,char* buffer) {
       const Real HALF = 0.5;
 
@@ -1840,28 +1840,28 @@ namespace DRO {
          Real thread_E0_sum = 0.0;
          Real thread_E1_sum = 0.0;
          Real thread_E2_sum = 0.0;
-         
+
          const Real* parameters  = cell->get_block_parameters(popID);
          const Realf* block_data = cell->get_data(popID);
-        
+
          # pragma omp for
          for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); n++) {
-            const Real DV3 
+            const Real DV3
                = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
-               * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] 
+               * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY]
                * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
 
             for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
-               const Real VX 
-                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+               const Real VX
+                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD]
                   + (i + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
-               const Real VY 
-                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
+               const Real VY
+                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD]
                   + (j + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
-               const Real VZ 
-                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] 
+               const Real VZ
+                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD]
                   + (k + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-                     
+
                const Real ENERGY = (VX*VX + VY*VY + VZ*VZ) * HALF * getObjectWrapper().particleSpecies[popID].mass;
                thread_E0_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * ENERGY * DV3;
                if (ENERGY > E1limit) thread_E1_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * ENERGY * DV3;
@@ -1869,8 +1869,8 @@ namespace DRO {
             }
          }
 
-         // Accumulate contributions coming from this velocity block to the 
-         // spatial cell velocity moments. If multithreading / OpenMP is used, 
+         // Accumulate contributions coming from this velocity block to the
+         // spatial cell velocity moments. If multithreading / OpenMP is used,
          // these updates need to be atomic:
          # pragma omp critical
          {
@@ -1889,7 +1889,7 @@ namespace DRO {
       for (uint i = 0; i < 3*sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
    }
-   
+
    bool VariableEnergyDensity::setSpatialCell(const SpatialCell* cell) {
       return true;
    }
@@ -1913,7 +1913,7 @@ namespace DRO {
       vectorSize = 1; // This is not components, but rather total energy density, density over E1, and density over E2
       return true;
    }
-   
+
    bool JPerBModifier::writeParameters(vlsv::Writer& vlsvWriter) {
       return vlsvWriter.writeParameter("j_per_b_modifier", &P::JPerBModifier);
    }
@@ -1924,7 +1924,7 @@ namespace DRO {
       popName = getObjectWrapper().particleSpecies[popID].name;
    }
    VariableHeatFluxVector::~VariableHeatFluxVector() { }
-   
+
    std::string VariableHeatFluxVector::getName() const {return popName + "/vg_heatflux";}
 
    bool VariableHeatFluxVector::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
@@ -1941,31 +1941,31 @@ namespace DRO {
          Real thread_nvxvx_sum = 0.0;
          Real thread_nvyvy_sum = 0.0;
          Real thread_nvzvz_sum = 0.0;
-         
+
          const Real* parameters  = cell->get_block_parameters(popID);
          const Realf* block_data = cell->get_data(popID);
-         
+
          # pragma omp for
          for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); n++) {
 	    for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
-	       const Real VX 
-		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+	       const Real VX
+		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD]
 		 + (i + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
-	       const Real VY 
-		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
+	       const Real VY
+		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD]
 		 + (j + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
-	       const Real VZ 
-		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] 
+	       const Real VZ
+		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD]
 		 + (k + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-	       const Real DV3 
+	       const Real DV3
 		 = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
-		 * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] 
+		 * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY]
 		 * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
            const Real VSQ
-         = (VX - averageVX) * (VX - averageVX) 
-         + (VY - averageVY) * (VY - averageVY) 
+         = (VX - averageVX) * (VX - averageVX)
+         + (VY - averageVY) * (VY - averageVY)
          + (VZ - averageVZ) * (VZ - averageVZ);
-                     
+
 	       thread_nvxvx_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * VSQ * (VX - averageVX) * DV3;
 	       thread_nvyvy_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * VSQ * (VY - averageVY) * DV3;
 	       thread_nvzvz_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * VSQ * (VZ - averageVZ) * DV3;
@@ -1975,8 +1975,8 @@ namespace DRO {
          thread_nvyvy_sum *= HALF * getObjectWrapper().particleSpecies[popID].mass;
          thread_nvzvz_sum *= HALF * getObjectWrapper().particleSpecies[popID].mass;
 
-         // Accumulate contributions coming from this velocity block to the 
-         // spatial cell velocity moments. If multithreading / OpenMP is used, 
+         // Accumulate contributions coming from this velocity block to the
+         // spatial cell velocity moments. If multithreading / OpenMP is used,
          // these updates need to be atomic:
          # pragma omp critical
          {
@@ -1995,6 +1995,201 @@ namespace DRO {
       averageVY = cell-> parameters[CellParams::VY];
       averageVZ = cell-> parameters[CellParams::VZ];
       for(int i = 0; i < 3; i++) HeatFlux[i] = 0.0;
+      return true;
+   }
+
+   /*! \brief Non-Maxwellianity
+    * Calculates for a population the dimensionless parameter defined by Graham et al. (2021) as
+    *    epsilon_M = integral[abs(f-g)]dv3 / 2n
+    * where
+    *    f: measured VDF for a population
+    *    g: a model bi-Maxwellian with the same number density, bulk speed and temperature as the measured VDF
+    *    n: population number density
+    *
+    * No extra parameters need to be set in cfg file.
+    * Note that the definition is different from the original parameter introduced by Greco et al. (2012).
+    * The following formulation of epsilon_M is used here to calculate the value with only velocity cells where the VDF
+    * is saved:
+    *
+    *    Assuming regions of velocity space A and B, where f>0 in A, and f=0 in B:
+    *    epsilon_M = (integral_A[abs(f-g)]dv3 + integral_B[g]dv3) / 2n
+    *              = (integral_A[abs(f-g)]dv3 + n - integral_A[g]dv3) / 2n
+    *              = integral_A[abs(f-g) - g]dv3 / 2n + 1/2
+    */
+   VariableNonMaxwellianity::VariableNonMaxwellianity(cuint _popID) : DataReductionOperator(), popID(_popID) {
+      popName = getObjectWrapper().particleSpecies[popID].name;
+   }
+   VariableNonMaxwellianity::~VariableNonMaxwellianity() {}
+
+   std::string VariableNonMaxwellianity::getName() const { return popName + "/vg_nonmaxwellianity"; }
+
+   bool VariableNonMaxwellianity::getDataVectorInfo(std::string& dataType, unsigned int& dataSize,
+                                                    unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize = sizeof(Real);
+      vectorSize = 1;
+      return true;
+   }
+
+   bool VariableNonMaxwellianity::reduceData(const SpatialCell* cell, char* buffer) {
+      // calculate something for epsilon here
+      const Real HALF = 0.5;
+
+      // thermal speed in parallel direction
+      const Real V_par_th_sq = 2.0 * physicalconstants::K_B * T_par / getObjectWrapper().particleSpecies[popID].mass;
+
+#pragma omp parallel
+      {
+         Real thread_epsilon_sum = 0.0;
+
+         const Real* parameters = cell->get_block_parameters(popID);
+         const Realf* block_data = cell->get_data(popID);
+
+#pragma omp for
+         for (vmesh::LocalID n = 0; n < cell->get_number_of_velocity_blocks(popID); n++) {
+            for (uint k = 0; k < WID; ++k)
+               for (uint j = 0; j < WID; ++j)
+            for (uint i = 0; i < WID; ++i) {
+          const Real VX = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] +
+                          (i + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+          const Real VY = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] +
+                          (j + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+          const Real VZ = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] +
+                          (k + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+          const Real DV3 = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX] *
+                           parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] *
+                           parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+
+          const Real V_par = (VX - V0[0]) * b_par[0] + (VY - V0[1]) * b_par[1] + (VZ - V0[2]) * b_par[2];
+          const Real V_perp1 = (VX - V0[0]) * b_perp1[0] + (VY - V0[1]) * b_perp1[1] + (VZ - V0[2]) * b_perp1[2];
+          const Real V_perp2 = (VX - V0[0]) * b_perp2[0] + (VY - V0[1]) * b_perp2[1] + (VZ - V0[2]) * b_perp2[2];
+
+          const Real bimaxwellian = rho / sqrt(M_PI * M_PI * M_PI * V_par_th_sq * V_par_th_sq * V_par_th_sq) *
+                                    (T_par / T_perp) *
+                                    exp(-(V_par * V_par) / V_par_th_sq -
+                                        (V_perp1 * V_perp1 + V_perp2 * V_perp2) / (V_par_th_sq * T_perp / T_par));
+
+          thread_epsilon_sum +=
+              (abs(block_data[n * SIZE_VELBLOCK + cellIndex(i, j, k)] - bimaxwellian) - bimaxwellian) * DV3;
+            }
+         }
+
+   // Accumulate contributions coming from this velocity block to the
+   // spatial cell velocity moments. If multithreading / OpenMP is used,
+   // these updates need to be atomic:
+#pragma omp critical
+         { epsilon += thread_epsilon_sum; }
+      }
+
+      epsilon *= HALF / rho;
+      epsilon += HALF;
+
+      const char* ptr = reinterpret_cast<const char*>(&epsilon);
+      for (uint i = 0; i < sizeof(Real); ++i)
+         buffer[i] = ptr[i];
+      return true;
+   }
+
+   bool VariableNonMaxwellianity::setSpatialCell(const SpatialCell* cell) {
+      // calculate here rho, v, T
+      epsilon = 0.0;
+
+      // get rho and bulk speed
+      rho = cell->get_population(popID).RHO;
+      V0[0] = cell->get_population(popID).V[0];
+      V0[1] = cell->get_population(popID).V[1];
+      V0[2] = cell->get_population(popID).V[2];
+
+      // calculate temperature from the pressure tensor
+      Real PTensor[3] = {};
+
+      // parallel unit vector (B)
+      Real BX = cell->parameters[CellParams::PERBXVOL] + cell->parameters[CellParams::BGBXVOL];
+      Real BY = cell->parameters[CellParams::PERBYVOL] + cell->parameters[CellParams::BGBYVOL];
+      Real BZ = cell->parameters[CellParams::PERBZVOL] + cell->parameters[CellParams::BGBZVOL];
+      Real norm_par = sqrt(BX * BX + BY * BY + BZ * BZ);
+      b_par[0] = BX / norm_par;
+      b_par[1] = BY / norm_par;
+      b_par[2] = BZ / norm_par;
+
+      // perpendicular unit vector 1 (bulk velocity perpendicular to b)
+      Real BV0 = sqrt(b_par[0] * V0[0] + b_par[1] * V0[1] + b_par[2] * V0[2]);
+      b_perp1[0] = V0[0] - BV0 * b_par[0];
+      b_perp1[1] = V0[1] - BV0 * b_par[1];
+      b_perp1[2] = V0[2] - BV0 * b_par[2];
+      Real norm_perp1 = sqrt(b_perp1[0] * b_perp1[0] + b_perp1[1] * b_perp1[1] + b_perp1[2] * b_perp1[2]);
+      if (!(norm_perp1 > 0.0)) {
+         // if V0 is aligned with b, take arbitrary perpendicular vector
+         b_perp1[0] = +b_par[1] + b_par[2];
+         b_perp1[1] = +b_par[2] - b_par[0];
+         b_perp1[2] = -b_par[0] - b_par[1];
+         norm_perp1 = sqrt(b_perp1[0] * b_perp1[0] + b_perp1[1] * b_perp1[1] + b_perp1[2] * b_perp1[2]);
+      }
+      b_perp1[0] /= norm_perp1;
+      b_perp1[1] /= norm_perp1;
+      b_perp1[2] /= norm_perp1;
+
+      // perpendicular unit vector 2 (b_par x b_perp1)
+      b_perp2[0] = b_par[1] * b_perp1[2] - b_par[2] * b_perp1[1];
+      b_perp2[1] = b_par[2] * b_perp1[0] - b_par[0] * b_perp1[2];
+      b_perp2[2] = b_par[0] * b_perp1[1] - b_par[1] * b_perp1[0];
+      Real norm_perp2 = sqrt(b_perp2[0] * b_perp2[0] + b_perp2[1] * b_perp2[1] + b_perp2[2] * b_perp2[2]);
+      b_perp2[0] /= norm_perp2;
+      b_perp2[1] /= norm_perp2;
+      b_perp2[2] /= norm_perp2;
+
+      // below calculation is modified from VariablePTensorDiagonal
+      const Real HALF = 0.5;
+#pragma omp parallel
+      {
+         Real thread_nvxvx_sum = 0.0;
+         Real thread_nvyvy_sum = 0.0;
+         Real thread_nvzvz_sum = 0.0;
+
+         const Real* parameters = cell->get_block_parameters(popID);
+         const Realf* block_data = cell->get_data(popID);
+
+#pragma omp for
+         for (vmesh::LocalID n = 0; n < cell->get_number_of_velocity_blocks(popID); n++) {
+            for (uint k = 0; k < WID; ++k)
+               for (uint j = 0; j < WID; ++j)
+            for (uint i = 0; i < WID; ++i) {
+          const Real VX = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] +
+                          (i + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+          const Real VY = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] +
+                          (j + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+          const Real VZ = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] +
+                          (k + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+          const Real DV3 = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX] *
+                           parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] *
+                           parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+
+          const Real V_par = (VX - V0[0]) * b_par[0] + (VY - V0[1]) * b_par[1] + (VZ - V0[2]) * b_par[2];
+          const Real V_perp1 = (VX - V0[0]) * b_perp1[0] + (VY - V0[1]) * b_perp1[1] + (VZ - V0[2]) * b_perp1[2];
+          const Real V_perp2 = (VX - V0[0]) * b_perp2[0] + (VY - V0[1]) * b_perp2[1] + (VZ - V0[2]) * b_perp2[2];
+
+          thread_nvxvx_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i, j, k)] * V_par * V_par * DV3;
+          thread_nvyvy_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i, j, k)] * V_perp1 * V_perp1 * DV3;
+          thread_nvzvz_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i, j, k)] * V_perp2 * V_perp2 * DV3;
+            }
+         }
+         thread_nvxvx_sum *= getObjectWrapper().particleSpecies[popID].mass;
+         thread_nvyvy_sum *= getObjectWrapper().particleSpecies[popID].mass;
+         thread_nvzvz_sum *= getObjectWrapper().particleSpecies[popID].mass;
+
+         // Accumulate contributions coming from this velocity block to the
+         // spatial cell velocity moments. If multithreading / OpenMP is used,
+         // these updates need to be atomic:
+#pragma omp critical
+         {
+            PTensor[0] += thread_nvxvx_sum;
+            PTensor[1] += thread_nvyvy_sum;
+            PTensor[2] += thread_nvzvz_sum;
+         }
+      }
+      T_par = (PTensor[0]) / (rho * physicalconstants::K_B);
+      T_perp = (PTensor[1] + PTensor[2]) / (2.0 * rho * physicalconstants::K_B);
+
       return true;
    }
 
