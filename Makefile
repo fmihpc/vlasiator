@@ -182,7 +182,7 @@ ifeq ($(MESH),VAMR)
 OBJS += cpu_moments.o
 else
 OBJS += cpu_acc_intersections.o cpu_acc_map.o cpu_acc_sort_blocks.o cpu_acc_load_blocks.o cpu_acc_semilag.o cpu_acc_transform.o \
-	cpu_moments.o cpu_trans_pencils.o
+	cpu_trans_pencils.o
 endif
 
 # Only build CUDA version object files if active
@@ -191,7 +191,7 @@ ifeq ($(USE_CUDA),1)
 		cuda_context.o cuda_moments.o cuda_trans_map_amr.o
 else
 # if *not* building CUDA version, build regular CPU version
-	OBJS += vamr_refinement_criteria.o cpu_trans_map_amr.o
+	OBJS += vamr_refinement_criteria.o cpu_trans_map_amr.o cpu_moments.o
 endif
 
 # Add field solver objects
@@ -288,7 +288,7 @@ endif
 	$(SILENT)${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c $< ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_FSGRID}
 
 # old deprecated VAMR
-ifeq ($(MESH),VAMR) 
+ifeq ($(MESH),VAMR)
 
 vlasovmover.o: ${DEPS_VLSVMOVER_VAMR}
 	${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -DMOVER_VLASOV_ORDER=2 -c vlasovsolver_amr/vlasovmover.cpp -I$(CURDIR) ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_PROFILE}  ${INC_VECTORCLASS} ${INC_EIGEN} ${INC_VLSV}

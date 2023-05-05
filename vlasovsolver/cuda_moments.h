@@ -47,12 +47,12 @@ struct MomentInfo
    uint blockCount;
 };
 
-void cuda_calculateMoments_V(
+void calculateMoments_V(
         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
         const std::vector<CellID>& cells,
         const bool& computeSecond);
 
-void cuda_calculateMoments_R(
+void calculateMoments_R(
         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
         const std::vector<CellID>& cells,
         const bool& computeSecond);
