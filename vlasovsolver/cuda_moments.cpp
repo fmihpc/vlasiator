@@ -270,6 +270,7 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
    phiprof::start("CUDA-HtoD");
    HANDLE_ERROR( cudaMemsetAsync(dev_momentArrays1[thread_id], 0, nMoments1*(nPopulations+1)*sizeof(Real), stream) );
    HANDLE_ERROR( cudaMemcpyAsync(dev_momentInfos[thread_id], host_momentInfos[thread_id], nPopulations*sizeof(MomentInfo), cudaMemcpyHostToDevice, stream) );
+   HANDLE_ERROR( cudaStreamSynchronize(stream) );
    phiprof::stop("CUDA-HtoD");
 
    // Now launch kernel for this spatial cell, all populations, zeroth and first moments
@@ -321,6 +322,7 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
    phiprof::start("CUDA-secondMoments");
    // Now launch kernel for this spatial cell, all populations, second moments
    HANDLE_ERROR( cudaMemsetAsync(dev_momentArrays2[thread_id], 0, nMoments2*(nPopulations+1)*sizeof(Real), stream) );
+   HANDLE_ERROR( cudaStreamSynchronize(stream) );
    if (totBlocks != 0) {
       moments_second_kernel<<<CUDABLOCKS, block, 3*WID3*sizeof(Real), stream>>> (
          dev_momentInfos[thread_id],
@@ -423,6 +425,7 @@ void calculateMoments_V(
       phiprof::start("CUDA-HtoD");
       HANDLE_ERROR( cudaMemsetAsync(dev_momentArrays1[thread_id], 0, nMoments1*(nPopulations+1)*sizeof(Real), stream) );
       HANDLE_ERROR( cudaMemcpyAsync(dev_momentInfos[thread_id], host_momentInfos[thread_id], nPopulations*sizeof(MomentInfo), cudaMemcpyHostToDevice, stream) );
+      HANDLE_ERROR( cudaStreamSynchronize(stream) );
       phiprof::stop("CUDA-HtoD");
 
       // Now launch kernel for this spatial cell, all populations, zeroth and first moments
@@ -472,6 +475,8 @@ void calculateMoments_V(
       }
 
       phiprof::start("CUDA-secondMoments");
+      HANDLE_ERROR( cudaMemsetAsync(dev_momentArrays2[thread_id], 0, nMoments2*(nPopulations+1)*sizeof(Real), stream) );
+      HANDLE_ERROR( cudaStreamSynchronize(stream) );
       // Now launch kernel for this spatial cell, all populations, second moments
       if (totBlocks != 0) {
          moments_second_kernel<<<CUDABLOCKS, block, 3*WID3*sizeof(Real), stream>>> (
@@ -577,6 +582,7 @@ void calculateMoments_R(
       phiprof::start("CUDA-HtoD");
       HANDLE_ERROR( cudaMemsetAsync(dev_momentArrays1[thread_id], 0, nMoments1*(nPopulations+1)*sizeof(Real), stream) );
       HANDLE_ERROR( cudaMemcpyAsync(dev_momentInfos[thread_id], host_momentInfos[thread_id], nPopulations*sizeof(MomentInfo), cudaMemcpyHostToDevice, stream) );
+      HANDLE_ERROR( cudaStreamSynchronize(stream) );
       phiprof::stop("CUDA-HtoD");
 
       // Now launch kernel for this spatial cell, all populations, zeroth and first moments
@@ -626,6 +632,8 @@ void calculateMoments_R(
       }
 
       phiprof::start("CUDA-secondMoments");
+      HANDLE_ERROR( cudaMemsetAsync(dev_momentArrays2[thread_id], 0, nMoments2*(nPopulations+1)*sizeof(Real), stream) );
+      HANDLE_ERROR( cudaStreamSynchronize(stream) );
       // Now launch kernel for this spatial cell, all populations, second moments
       if (totBlocks != 0) {
          moments_second_kernel<<<CUDABLOCKS, block, 3*WID3*sizeof(Real), stream>>> (
