@@ -82,6 +82,17 @@ ifeq ($(MESH),VAMR)
 COMPFLAGS += -DVAMR
 endif
 
+ifeq ($(IONO_GPU), 1)
+# Adding -lcudart if not already set with USE_CUDA
+	ifneq ($(USE_CUDA),1)
+       CUDALIB += -lcudart
+	endif
+# There is possibility of adding some logic here to build ionosphere_gpu_solver/ionosphere_gpu_solver.a automatically
+LIBS += -L./ionosphere_gpu_solver -lionosphere_gpu_solver 
+CXXFLAGS += -DIONOSPHERE_GPU_ON
+endif
+
+
 # Set compiler flags
 CXXFLAGS += ${COMPFLAGS}
 #also for testpackage (due to makefile order this needs to be done also separately for targets)
@@ -214,11 +225,6 @@ endif
 
 # Add field solver objects
 OBJS_FSOLVER = 	ldz_magnetic_field.o ldz_volume.o derivatives.o ldz_electric_field.o ldz_hall.o ldz_gradpe.o
-
-ifeq ($(IONO_GPU), 1)
-LIBS += -lcudart -L./ionosphere_gpu_solver -lionosphere_gpu_solver 
-CXXFLAGS += -DIONOSPHERE_GPU_ON
-endif
 
 help:
 	@echo ''
