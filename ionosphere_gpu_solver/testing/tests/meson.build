@@ -24,8 +24,6 @@ test_prototypes = [
     'sparse_matrix_vector_product_cuda_2',
     'sparse_BiGC_1',
     'sparse_BiGC_2',
-    'sparse_BiGCSTAB_1',
-    'sparse_BiGCSTAB_2'
 ]
 
 test_types = ['float', 'double']

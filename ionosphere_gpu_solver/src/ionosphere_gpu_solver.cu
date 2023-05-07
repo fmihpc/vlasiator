@@ -20,10 +20,6 @@ ionogpu::sparseBiCGCUDA<double>(const size_t n, const size_t m, const std::vecto
                                 const std::vector<double>& b,
                                 const ionogpu::ConfigurationForIonosphereGPUSolver<double>& config);
 
-template ionogpu::ReturnOfSparseBiCGCUDA<double>
-ionogpu::sparseBiCGSTABCUDA<double>(const size_t n, const size_t m, const std::vector<double>& sparse_A,
-                                    const std::vector<size_t>& indecies, const std::vector<double>& b,
-                                    const ionogpu::ConfigurationForIonosphereGPUSolver<double>& config);
 
 template std::vector<double> ionogpu::vectorAddition<double>(const std::vector<double>& a,
                                                              const std::vector<double>& b);
@@ -64,11 +60,6 @@ ionogpu::sparseBiCGCUDA<float>(const size_t n, const size_t m, const std::vector
                                const std::vector<float>& sparse_A_trasposed, const std::vector<size_t>& indecies,
                                const std::vector<float>& b,
                                const ionogpu::ConfigurationForIonosphereGPUSolver<float>& config);
-
-template ionogpu::ReturnOfSparseBiCGCUDA<float>
-ionogpu::sparseBiCGSTABCUDA<float>(const size_t n, const size_t m, const std::vector<float>& sparse_A,
-                                   const std::vector<size_t>& indecies, const std::vector<float>& b,
-                                   const ionogpu::ConfigurationForIonosphereGPUSolver<float>& config);
 
 template std::vector<float> ionogpu::vectorAddition<float>(const std::vector<float>& a, const std::vector<float>& b);
 

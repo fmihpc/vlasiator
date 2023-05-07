@@ -45,10 +45,6 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGCUDA(const size_t n, const size_t m, const s
                                          const std::vector<T>& sparse_A_transposed, const std::vector<size_t>& indecies,
                                          const std::vector<T>& b, const ConfigurationForIonosphereGPUSolver<T>& config);
 
-template <typename T>
-ReturnOfSparseBiCGCUDA<T> sparseBiCGSTABCUDA(const size_t n, const size_t m, const std::vector<T>& sparse_A,
-                                             const std::vector<size_t>& indecies, const std::vector<T>& b,
-                                             const ConfigurationForIonosphereGPUSolver<T>& config);
 
 template <typename T>
 std::vector<T> preSparseMatrixVectorProduct(const size_t n, const size_t m, const std::vector<T>& A,
