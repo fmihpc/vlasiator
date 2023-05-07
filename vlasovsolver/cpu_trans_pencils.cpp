@@ -193,7 +193,8 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
                                         std::vector<CellID> &sourceCells,
                                         std::vector<Vec> &sourceDZ,
                                         std::vector<CellID> &targetCells,
-                                        std::vector<Vec> &targetDZ
+                                        std::vector<Vec> &targetDZ,
+                                        std::vector<Realf> &targetRatios
                                         ){
 
    // L = length of the pencil iPencil
@@ -202,6 +203,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
    sourceDZ.resize(L+2*VLASOV_STENCIL_WIDTH);
    targetCells.resize(L+2);
    targetDZ.resize(L+2);
+   targetRatios.resize(L+2);
 
    // These neighborhoods now include the AMR addition beyond the regular vlasov stencil
    int neighborhood = getNeighborhood(dimension,VLASOV_STENCIL_WIDTH);
@@ -336,8 +338,21 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
    }
    for (int i = 0; i < L+2; ++i) {
       if (targetCells[i]) { // non-writeable target cells are zero
-         if (mpiGrid[targetCells[i]]) {
-            targetDZ[i] = Vec(mpiGrid[targetCells[i]]->parameters[CellParams::DX+dimension]);
+         SpatialCell* tc = mpiGrid[targetCells[i]];
+         if (tc) {
+            targetDZ[i] = Vec(tc->parameters[CellParams::DX+dimension]);
+            // areaRatio is the ratio of the cross-section of the spatial cell to the cross-section of the pencil.
+            const int diff = tc->SpatialCell::parameters[CellParams::REFINEMENT_LEVEL] - path.size();
+            if(diff>0) {
+               // Undefined behaviour! Cell is smaller than pencil (higher reflevel than path size)
+               std::cerr<<"Error in path size to cell size: __FILE__:__LINE__"<<std::endl;
+               targetRatios[i] = 0;
+            } else {
+               const int ratio = 1 << -diff;
+               targetRatios[i] = 1.0 / (ratio*ratio);
+            }
+         } else { // Don't write to this cell
+            targetRatios[i] = 0;
          }
       }
    }
@@ -597,12 +612,11 @@ void buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
    y = coordinates[iy];
 
    // Now also store information on source and target cells
-   vector<CellID> sources;
-   vector<CellID> targets;
-   vector<Vec> sourceDZ;
-   vector<Vec> targetDZ;
-   computeSpatialSourceCellsForPencil(grid,ids,dimension,path,sources,sourceDZ,targets,targetDZ);
-   pencils.addPencil(ids,x,y,periodic,path,sources,sourceDZ,targets,targetDZ);
+   vector<CellID> sources, targets;
+   vector<Vec> sourceDZ, targetDZ;
+   vector<Realf> targetRatios;
+   computeSpatialSourceCellsForPencil(grid,ids,dimension,path,sources,sourceDZ,targets,targetDZ,targetRatios);
+   pencils.addPencil(ids,x,y,periodic,path,sources,sourceDZ,targets,targetDZ,targetRatios);
    return;
 }
 
@@ -1065,6 +1079,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
       // iterators used in the accumulation
       std::vector<CellID>::iterator ibeg, iend, sibeg, siend, tibeg, tiend;
       std::vector<Vec>::iterator szbeg, szend, tzbeg, tzend;
+      std::vector<Realf>::iterator trbeg, trend;
 
 #pragma omp for schedule(guided)
       for (uint i=0; i<seedIds.size(); i++) {
@@ -1093,7 +1108,10 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
             tzbeg = thread_pencils.targetDZ.begin() + thread_pencils.targetIdsStart[i];
             tzend = tzbeg + thread_pencils.lengthOfPencils[i] + 2;
             std::vector<Vec> pencilTargetDZ(tzbeg, tzend);
-            DimensionPencils[dimension].addPencil(pencilIds,thread_pencils.x[i],thread_pencils.y[i],thread_pencils.periodic[i],thread_pencils.path[i],pencilSourceIds,pencilSourceDZ,pencilTargetIds,pencilTargetDZ);
+            trbeg = thread_pencils.targetRatios.begin() + thread_pencils.targetIdsStart[i];
+            trend = trbeg + thread_pencils.lengthOfPencils[i] + 2;
+            std::vector<Realf> pencilTargetRatios(trbeg, trend);
+            DimensionPencils[dimension].addPencil(pencilIds,thread_pencils.x[i],thread_pencils.y[i],thread_pencils.periodic[i],thread_pencils.path[i],pencilSourceIds,pencilSourceDZ,pencilTargetIds,pencilTargetDZ,pencilTargetRatios);
          }
       }
    }

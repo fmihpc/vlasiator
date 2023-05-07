@@ -641,28 +641,7 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
          //HANDLE_ERROR( cudaStreamSynchronize(stream) );
          phiprof::stop(t5);
 
-         phiprof::start(t6);
-         for(uint pencili = 0; pencili < DimensionPencils[dimension].N; ++pencili){
-            // sourceVecData => targetBlockData[this pencil])
-            int L = DimensionPencils[dimension].lengthOfPencils[pencili];
-            int sourceStart = DimensionPencils[dimension].sourceIdsStart[pencili];
-            int targetStart = DimensionPencils[dimension].targetIdsStart[pencili];
-            // Dz and sourceVecData are both padded by VLASOV_STENCIL_WIDTH
-            // Dz has 1 value/cell, sourceVecData has WID3 values/cell
-            // vmesh is required just for general indexes and accessors
-            Vec* pencildz = DimensionPencils[dimension].sourceDZ.data() + sourceStart;
-            Vec* blockDataSource = dev_blockDataSource[cpuThreadID]+sourceStart*WID3/VECL;
-            Vec* blockDataTarget = dev_blockDataTarget[cpuThreadID]+targetStart*WID3/VECL;
-            propagatePencil(pencildz, blockDataSource, blockDataTarget, dimension, blockGID, dt, vmesh, L, pencilSourceCells[pencili][0]->getVelocityBlockMinValue(popID));
-         }
-         phiprof::stop(t6);
-
-         phiprof::stop(t1); // mapping
-
-         phiprof::start(t2); // store
-
          // reset blocks in all non-sysboundary neighbor spatial cells for this block id
-         // At this point the block data is saved in targetBlockData so we can reset the spatial cells
          phiprof::start(t10);
          for (auto spatial_cell: allTargetCells) {
             // Check for null and system boundary
@@ -688,37 +667,25 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
          }
          phiprof::stop(t10);
 
-         // phiprof::start(t7);
-         // for(uint pencili = 0; pencili < DimensionPencils[dimension].N; ++pencili){
-         //    int L = DimensionPencils[dimension].lengthOfPencils[pencili];
-         //    int targetLength = L + 2 * nTargetNeighborsPerPencil;
-         //    int targetStart = DimensionPencils[dimension].targetIdsStart[pencili];
-         //    Vec* blockDataTarget = dev_blockDataTarget[cpuThreadID]+targetStart*WID3/VECL;
-         //    // Loop over cells in pencil
-         //    for (uint icell = 0; icell < targetLength; icell++) {
-         //       // Loop over 1st vspace dimension
-         //       for (uint k=0; k<WID; k++) {
-         //          // Loop over 2nd vspace dimension
-         //          for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
+         phiprof::start(t6);
+         for(uint pencili = 0; pencili < DimensionPencils[dimension].N; ++pencili){
+            // sourceVecData => targetBlockData[this pencil])
+            int L = DimensionPencils[dimension].lengthOfPencils[pencili];
+            int sourceStart = DimensionPencils[dimension].sourceIdsStart[pencili];
+            int targetStart = DimensionPencils[dimension].targetIdsStart[pencili];
+            // Dz and sourceVecData are both padded by VLASOV_STENCIL_WIDTH
+            // Dz has 1 value/cell, sourceVecData has WID3 values/cell
+            // vmesh is required just for general indexes and accessors
+            Vec* pencildz = DimensionPencils[dimension].sourceDZ.data() + sourceStart;
+            Vec* blockDataSource = dev_blockDataSource[cpuThreadID]+sourceStart*WID3/VECL;
+            Vec* blockDataTarget = dev_blockDataTarget[cpuThreadID]+targetStart*WID3/VECL;
+            propagatePencil(pencildz, blockDataSource, blockDataTarget, dimension, blockGID, dt, vmesh, L, pencilSourceCells[pencili][0]->getVelocityBlockMinValue(popID));
+         }
+         phiprof::stop(t6);
 
-         //             // Unpack the vector data
-         //             Realf vector[VECL];
-         //             blockDataTarget[i_trans_pt_blockv(planeVector, k, icell - 1)].store(vector);
-         //             //pencilTargetValues[pencili][i_trans_pt_blockv(planeVector, k, icell - 1)].store(vector);
+         phiprof::stop(t1); // mapping
 
-         //             // Loop over 3rd (vectorized) vspace dimension
-         //             for (uint iv = 0; iv < VECL; iv++) {
-
-         //                // Store vector data in target data array.
-         //                targetBlockData[(targetStart + icell) * WID3 +
-         //                                cellid_transpose[iv + planeVector * VECL + k * WID2]]
-         //                   = vector[iv];
-         //             }
-         //          }
-         //       }
-         //    }
-         // }
-         // phiprof::stop(t7);
+         phiprof::start(t2); // store
 
          // store_data(target_data => targetCells)  :Aggregate data for blockid to original location
          // Loop over pencils again
@@ -734,6 +701,7 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
             for ( uint i = 0; i < targetLength; i++ ) {
                cuint targetIndex = targetStart +i;
                cuint targetID = DimensionPencils[dimension].targetIds[targetIndex];
+               Realf areaRatio = DimensionPencils[dimension].targetRatios[targetIndex];
                SpatialCell* targetCell = mpiGrid[targetID];
 
                if(targetCell) { // this check also skips sysboundary cells
@@ -745,18 +713,6 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
                   }
 
                   Realf* blockData = targetCell->get_data(blockLID, popID);
-
-                  // areaRatio is the reatio of the cross-section of the spatial cell to the cross-section of the pencil.
-                  const int diff = targetCell->SpatialCell::parameters[CellParams::REFINEMENT_LEVEL] - DimensionPencils[dimension].path[pencili].size();
-                  int ratio;
-                  Realf areaRatio;
-                  if(diff>=0) {
-                     ratio = 1 << diff;
-                     areaRatio = ratio*ratio;
-                  } else {
-                     ratio = 1 << -diff;
-                     areaRatio = 1.0 / (ratio*ratio);
-                  }
 
                   // Loop over 1st vspace dimension
                   for (uint k=0; k<WID; k++) {
