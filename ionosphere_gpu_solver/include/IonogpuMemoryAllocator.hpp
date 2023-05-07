@@ -616,10 +616,10 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGCUDA(const size_t n, const size_t m, const s
    auto number_of_restarts = int{0};
    auto min_error = std::numeric_limits<T>::max();
    auto iteration = int{0};
-   // This is part of the restart mechanism
-   const auto bnrm = std::sqrt(vectorNormSquared<T>(b_device_p, n, partial_sums_for_dot_product_device_p));
-
    const auto stream = CudaStream();
+   // This is part of the restart mechanism
+   const auto bnrm = std::sqrt(vectorNormSquared<T>(b_device_p, n, partial_sums_for_dot_product_device_p, stream));
+
 
    do {
       copyData<<<height / warp_size, warp_size, 0, stream.stream>>>(best_solution_device_p, x_device_p);
@@ -681,7 +681,7 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGCUDA(const size_t n, const size_t m, const s
          // asolve(n,rr,zz,1);
          Asolve(rr_device_p, zz_device_p, true);
          // for (bknum=0.0,j=1;j<=n;j++) bknum += z[j]*rr[j];
-         const auto bknum = dotProduct<T>(z_device_p, rr_device_p, n, partial_sums_for_dot_product_device_p);
+         const auto bknum = dotProduct<T>(z_device_p, rr_device_p, n, partial_sums_for_dot_product_device_p, stream);
 
          if (first_iteration) {
             first_iteration = false;
@@ -704,7 +704,7 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGCUDA(const size_t n, const size_t m, const s
              m, sparse_A_device_p, indecies_device_p, p_device_p, z_device_p);
 
          // for (akden=0.0,j=1;j<=n;j++) akden += z[j]*pp[j];
-         const auto akden = dotProduct<T>(z_device_p, pp_device_p, n, partial_sums_for_dot_product_device_p);
+         const auto akden = dotProduct<T>(z_device_p, pp_device_p, n, partial_sums_for_dot_product_device_p, stream);
          const auto ak = bknum / akden;
 
          // for (j=1;j<=n;j++) {
@@ -755,7 +755,7 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGCUDA(const size_t n, const size_t m, const s
 
          // I think olderr in vlasiator solver is unused
          const auto error =
-             std::sqrt(vectorNormSquared<T>(r_device_p, n, partial_sums_for_dot_product_device_p)) / bnrm;
+             std::sqrt(vectorNormSquared<T>(r_device_p, n, partial_sums_for_dot_product_device_p, stream)) / bnrm;
 
          if (error < min_error) {
             copyData<<<height / warp_size, warp_size, 0, stream.stream>>>(x_device_p, best_solution_device_p);
@@ -848,14 +848,15 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGSTABCUDA(const size_t n, const size_t m, con
       abort();
    }
 
+   const auto stream = CudaStream();
+
    timer::time("sparseBiCGSTABCUDA::init");
-   const auto b_norm = std::sqrt(vectorNormSquared<T>(b_device_p, n, partial_sums_for_dot_product_device_p));
+   const auto b_norm = std::sqrt(vectorNormSquared<T>(b_device_p, n, partial_sums_for_dot_product_device_p, stream));
 
    auto number_of_restarts = int{0};
    auto min_error = std::numeric_limits<T>::max();
    auto iteration = int{0};
 
-   const auto stream = CudaStream();
 
    // This is part of the restart mechanism
    do {
@@ -941,7 +942,7 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGSTABCUDA(const size_t n, const size_t m, con
          // residue in temp
          vectorSubtraction<T><<<height / warp_size, warp_size, 0, stream.stream>>>(b_device_p, temp_device_p, temp_device_p);
          const auto error_of_h =
-             std::sqrt(vectorNormSquared<T>(temp_device_p, n, partial_sums_for_dot_product_device_p)) / b_norm;
+             std::sqrt(vectorNormSquared<T>(temp_device_p, n, partial_sums_for_dot_product_device_p, stream)) / b_norm;
 
          if (error_of_h < min_error) {
             copyData<<<height / warp_size, warp_size, 0, stream.stream>>>(h_device_p, best_solution_device_p);
@@ -981,7 +982,7 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGSTABCUDA(const size_t n, const size_t m, con
          // 10**
 
          omega = dotProduct(t_device_p, s_device_p, n, partial_sums_for_dot_product_device_p, stream) /
-                 vectorNormSquared(t_device_p, n, partial_sums_for_dot_product_device_p);
+                 vectorNormSquared(t_device_p, n, partial_sums_for_dot_product_device_p, stream);
 
          timer::time("sparseBiCGSTABCUDA::10**", "sparseBiCGSTABCUDA::11**");
          // 11**
@@ -998,7 +999,7 @@ ReturnOfSparseBiCGCUDA<T> sparseBiCGSTABCUDA(const size_t n, const size_t m, con
          vectorSubtraction<T><<<height / warp_size, warp_size, 0, stream.stream>>>(b_device_p, temp_device_p, temp_device_p);
 
          const auto error =
-             std::sqrt(vectorNormSquared<T>(temp_device_p, n, partial_sums_for_dot_product_device_p)) / b_norm;
+             std::sqrt(vectorNormSquared<T>(temp_device_p, n, partial_sums_for_dot_product_device_p, stream)) / b_norm;
 
          if (error < min_error) {
             copyData<<<height / warp_size, warp_size, 0, stream.stream>>>(x_device_p, best_solution_device_p);
