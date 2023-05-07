@@ -1,0 +1,4 @@
+module purge
+module load Python
+module load Ninja
+module load CUDA

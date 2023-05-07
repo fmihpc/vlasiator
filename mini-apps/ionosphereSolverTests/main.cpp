@@ -1,4 +1,5 @@
 #include <iostream>
+#include <chrono>
 #include "vlsv_writer.h"
 #include "vlsv_reader_parallel.h"
 #include "../../sysboundary/ionosphere.h"
@@ -6,6 +7,8 @@
 #include "../../datareduction/datareductionoperator.h"
 #include "../../iowrite.h"
 #include "../../ioread.h"
+
+#include "../../ionosphere_gpu_solver/include/ionosphere_gpu_solver.hpp"
 
 using namespace std;
 using namespace SBC;
@@ -107,7 +110,11 @@ int main(int argc, char** argv) {
    std::string inputFile;
    std::vector<std::pair<double, double>> refineExtents;
    Ionosphere::solverMaxIterations = 1000;
+   Ionosphere::solverRelativeL2ConvergenceThreshold = 1e-6;
+   Ionosphere::solverMaxErrorGrowthFactor = 100;
    bool doPrecondition = true;
+   bool writeDependencyMatrix = false;
+   bool solveTwice = false;
    if(argc ==1) {
       cerr << "Running with default options. Run main --help to see available settings." << endl;
    }
@@ -146,6 +153,22 @@ int main(int argc, char** argv) {
          Ionosphere::solverMaxIterations = atoi(argv[++i]);
          continue;
       }
+      if(!strcmp(argv[i], "-writeDependencyMatrix")) {
+         writeDependencyMatrix = true;
+         continue;
+      }
+      if(!strcmp(argv[i], "-solverRelativeL2ConvergenceThreshold")) {
+         Ionosphere::solverRelativeL2ConvergenceThreshold = atoi(argv[++i]);
+         continue;
+      }
+      if(!strcmp(argv[i], "-solverRelativeL2ConvergenceThreshold")) {
+         Ionosphere::solverMaxErrorGrowthFactor = atoi(argv[++i]);
+         continue;
+      }
+      if(!strcmp(argv[i], "-solveTwice")) {
+         solveTwice = true;
+         continue;
+      }
       cerr << "Unknown command line option \"" << argv[i] << "\"" << endl;
       cerr << endl;
       cerr << "main [-N num] [-r <lat0> <lat1>] [-sigma (identity|random|35|53|file)] [-fac (constant|dipole|quadrupole|octopole|hexadecapole||file)] [-facfile <filename>] [-gaugeFix equator|equator40|equator60|pole|integral|none] [-np]" << endl;
@@ -177,7 +200,10 @@ int main(int argc, char** argv) {
       cerr << "            equator60 - Fix potential on all nodes +- 60 degrees of the equator" << endl;
       cerr << " -np:       DON'T use the matrix preconditioner (default: do)" << endl;
       cerr << " -maxIter:  Maximum number of solver iterations" << endl;
-      
+      cerr << " -writeDependencyMatrix" << endl;
+      cerr << " -L2tresh   Solver relative L2 convergence threshold (default: 1e-6)" << endl;      
+      cerr << " -errGrowth Solver max error growth factor (default: 100)" << endl;    
+      cerr << " -solveTwice" << endl;  
       return 1;
    }
 
@@ -356,35 +382,80 @@ int main(int argc, char** argv) {
 
    ionosphereGrid.initSolver(true);
 
-   // Write solver dependency matrix to stdout.
-   ofstream matrixOut("solverMatrix.txt");
-   for(uint n=0; n<nodes.size(); n++) {
-      for(uint m=0; m<nodes.size(); m++) {
+   if (writeDependencyMatrix) {
+      // Write solver dependency matrix to stdout.
+      ofstream matrixOut("solverMatrix.txt");
+      for(uint n=0; n<nodes.size(); n++) {
+         for(uint m=0; m<nodes.size(); m++) {
 
-         Real val=0;
-         for(unsigned int d=0; d<nodes[n].numDepNodes; d++) {
-            if(nodes[n].dependingNodes[d] == m) {
-               if(doPrecondition) {
-                  val=nodes[n].dependingCoeffs[d] / nodes[n].dependingCoeffs[0];
-               } else {
-                  val=nodes[n].dependingCoeffs[d];
+            Real val=0;
+            for(unsigned int d=0; d<nodes[n].numDepNodes; d++) {
+               if(nodes[n].dependingNodes[d] == m) {
+                  if(doPrecondition) {
+                     val=nodes[n].dependingCoeffs[d] / nodes[n].dependingCoeffs[0];
+                  } else {
+                     val=nodes[n].dependingCoeffs[d];
+                  }
                }
             }
+
+            matrixOut << val << "\t";
          }
-
-         matrixOut << val << "\t";
+         matrixOut << endl;
       }
-      matrixOut << endl;
+      cout << "--- SOLVER DEPENDENCY MATRIX WRITTEN TO solverMatrix.txt ---" << endl;
    }
-   cout << "--- SOLVER DEPENDENCY MATRIX WRITTEN TO solverMatrix.txt ---" << endl;
-
    // Try to solve the system.
    ionosphereGrid.isCouplingInwards=true;
    Ionosphere::solverPreconditioning = doPrecondition;
    ionosphereGrid.rank = 0;
    int iterations, nRestarts;
    Real residual, minPotentialN, minPotentialS, maxPotentialN, maxPotentialS;
+
+   // This is to initialize cuda context
+#ifdef IONOSPHERE_GPU_ON
+   ionogpu::vectorAddition(std::vector<double>{1}, std::vector<double>{1});
+#endif
+
+   const auto time1 = std::chrono::steady_clock::now();
    ionosphereGrid.solve(iterations, nRestarts, residual, minPotentialN, maxPotentialN, minPotentialS, maxPotentialS);
+   const auto time2 = std::chrono::steady_clock::now();
+   std::cout << "Time1: " << std::chrono::duration_cast<std::chrono::milliseconds>(time2 - time1).count() << "\n";
+
+   auto norm = [] (const std::vector<double>& v) {
+      double temp = 0;
+      for (const auto x : v) {
+         temp += x * x;
+      }
+      return std::sqrt(temp);
+   };
+
+   // M * x = b
+   auto calculate_residual = [&] {
+      auto b = std::vector<double>(nodes.size());
+      auto Mx = std::vector<double>(nodes.size(), 0.0);
+      auto bmMx = std::vector<double>(nodes.size(), 0.0);
+      for (size_t i = 0; i < nodes.size(); ++i) {
+         b[i] = nodes[i].parameters[ionosphereParameters::SOURCE];
+         for (size_t j = 0; j < nodes[i].numDepNodes; ++j) {
+            Mx[i] += nodes[i].dependingCoeffs[j] * nodes[nodes[i].dependingNodes[j]].parameters[ionosphereParameters::SOLUTION];
+         }
+         bmMx[i] = nodes[i].parameters[ionosphereParameters::SOURCE] - Mx[i];
+         //std::cout << "Mx: " << nodes[i].parameters[ionosphereParameters::SOLUTION] << "\n";
+      }
+      const auto A = norm(bmMx);
+      const auto B = norm(b);
+      return A / B;
+   };
+
+   std::cout << "Reduntant_residual: " << calculate_residual() << "\n";
+   if (solveTwice) {
+      const auto time3 = std::chrono::steady_clock::now();
+      ionosphereGrid.solve(iterations, nRestarts, residual, minPotentialN, maxPotentialN, minPotentialS, maxPotentialS);
+      const auto time4 = std::chrono::steady_clock::now();
+      std::cout << "Time2: " << std::chrono::duration_cast<std::chrono::milliseconds>(time4 - time3).count() << "\n";
+   }
+
    cout << "Ionosphere solver: iterations " << iterations << " restarts " << nRestarts
       << " residual " << std::scientific << residual << std::defaultfloat
       << " potential min N = " << minPotentialN << " S = " << minPotentialS
@@ -454,5 +525,9 @@ int main(int argc, char** argv) {
    cout << "--- OUTPUT WRITTEN TO output.vlsv ---" << endl;
 
    cout << "--- DONE. ---" << endl;
+
+   phiprof::print(MPI_COMM_WORLD);
+
+   MPI_Finalize();
    return 0;
 }
