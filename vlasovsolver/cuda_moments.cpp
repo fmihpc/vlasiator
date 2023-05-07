@@ -107,7 +107,7 @@ __global__ void moments_first_kernel(
          nvx_sum[ti] += avgs[ti]*VX;
          nvy_sum[ti] += avgs[ti]*VY;
          nvz_sum[ti] += avgs[ti]*VZ;
-      }
+      } // loop over blocks
       __syncthreads();
       // Implemented just a simple non-optimized thread sum
       for (unsigned int s=WID3/2; s>0; s>>=1) {
@@ -118,7 +118,7 @@ __global__ void moments_first_kernel(
             nvz_sum[ti] += nvz_sum[ti + s];
          }
          __syncthreads();
-      }
+      } // thread-gather
       if (ti==0) {
          atomicAdd(&dev_momentArrays1[popID*nMoments1 + 0], n_sum[0]   * DV3);
          atomicAdd(&dev_momentArrays1[popID*nMoments1 + 1], nvx_sum[0] * DV3);
@@ -131,8 +131,8 @@ __global__ void moments_first_kernel(
          atomicAdd(&dev_momentArrays1[nPopulations*nMoments1 + 2], nvy_sum[0] * DV3 * mass);
          atomicAdd(&dev_momentArrays1[nPopulations*nMoments1 + 3], nvz_sum[0] * DV3 * mass);
          atomicAdd(&dev_momentArrays1[nPopulations*nMoments1 + 4], n_sum[0]   * DV3 * charge);
-      }
-   }
+      } // Atomic write
+   } // loop over populations
    return;
 }
 
@@ -180,7 +180,7 @@ __global__ void moments_second_kernel(
          nvx2_sum[ti] += avgs[ti] * (VX - bulkVX) * (VX - bulkVX);
          nvy2_sum[ti] += avgs[ti] * (VY - bulkVY) * (VY - bulkVY);
          nvz2_sum[ti] += avgs[ti] * (VZ - bulkVZ) * (VZ - bulkVZ);
-      }
+      } // loop over blocks
 
       __syncthreads();
       // Implemented just a simple non-optimized thread sum
@@ -191,7 +191,7 @@ __global__ void moments_second_kernel(
             nvz2_sum[ti] += nvz2_sum[ti + s];
          }
          __syncthreads();
-      }
+      } // thread-gather
       if (ti==0) {
          atomicAdd(&dev_momentArrays2[popID*nMoments2 + 0], nvx2_sum[0] * DV3 * mass);
          atomicAdd(&dev_momentArrays2[popID*nMoments2 + 1], nvy2_sum[0] * DV3 * mass);
@@ -201,8 +201,8 @@ __global__ void moments_second_kernel(
          atomicAdd(&dev_momentArrays2[nPopulations*nMoments2 + 0], nvx2_sum[0] * DV3 * mass);
          atomicAdd(&dev_momentArrays2[nPopulations*nMoments2 + 1], nvy2_sum[0] * DV3 * mass);
          atomicAdd(&dev_momentArrays2[nPopulations*nMoments2 + 2], nvz2_sum[0] * DV3 * mass);
-      }
-   }
+      } // Atomic write
+   } // Loop over populations
    return;
 }
 
@@ -455,20 +455,20 @@ void calculateMoments_V(
          pop.V_V[2] = host_momentArrays1[thread_id][popID*nMoments1 + 3];
          // pop.RHOQ_V = host_momentArrays1[thread_id][popID*nMoments1 + 4];
          if (popID==0) {
-            cell->parameters[CellParams::RHOM] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 0];
-            cell->parameters[CellParams::VX  ] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 1];
-            cell->parameters[CellParams::VY  ] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 2];
-            cell->parameters[CellParams::VZ  ] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 3];
-            cell->parameters[CellParams::RHOQ] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 4];
+            cell->parameters[CellParams::RHOM_V] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 0];
+            cell->parameters[CellParams::VX_V  ] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 1];
+            cell->parameters[CellParams::VY_V  ] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 2];
+            cell->parameters[CellParams::VZ_V  ] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 3];
+            cell->parameters[CellParams::RHOQ_V] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 4];
          }
          pop.V_V[0] = divideIfNonZeroHD(pop.V_V[0], pop.RHO_V);
          pop.V_V[1] = divideIfNonZeroHD(pop.V_V[1], pop.RHO_V);
          pop.V_V[2] = divideIfNonZeroHD(pop.V_V[2], pop.RHO_V);
       }
 
-      cell->parameters[CellParams::VX] = divideIfNonZeroHD(cell->parameters[CellParams::VX], cell->parameters[CellParams::RHOM]);
-      cell->parameters[CellParams::VY] = divideIfNonZeroHD(cell->parameters[CellParams::VY], cell->parameters[CellParams::RHOM]);
-      cell->parameters[CellParams::VZ] = divideIfNonZeroHD(cell->parameters[CellParams::VZ], cell->parameters[CellParams::RHOM]);
+      cell->parameters[CellParams::VX_V] = divideIfNonZeroHD(cell->parameters[CellParams::VX_V], cell->parameters[CellParams::RHOM_V]);
+      cell->parameters[CellParams::VY_V] = divideIfNonZeroHD(cell->parameters[CellParams::VY_V], cell->parameters[CellParams::RHOM_V]);
+      cell->parameters[CellParams::VZ_V] = divideIfNonZeroHD(cell->parameters[CellParams::VZ_V], cell->parameters[CellParams::RHOM_V]);
 
       if (!computeSecond) {
          continue;
@@ -483,9 +483,9 @@ void calculateMoments_V(
             dev_momentInfos[thread_id],
             dev_momentArrays2[thread_id],
             nPopulations,
-            cell->parameters[CellParams::VX],
-            cell->parameters[CellParams::VY],
-            cell->parameters[CellParams::VZ]);
+            cell->parameters[CellParams::VX_V],
+            cell->parameters[CellParams::VY_V],
+            cell->parameters[CellParams::VZ_V]);
          HANDLE_ERROR( cudaPeekAtLastError() );
          HANDLE_ERROR( cudaStreamSynchronize(stream) );
       }
@@ -612,20 +612,20 @@ void calculateMoments_R(
          pop.V_R[2] = host_momentArrays1[thread_id][popID*nMoments1 + 3];
          // pop.RHOQ_R += host_momentArrays1[thread_id][popID*nMoments1 + 4];
          if (popID==0) {
-            cell->parameters[CellParams::RHOM] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 0];
-            cell->parameters[CellParams::VX  ] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 1];
-            cell->parameters[CellParams::VY  ] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 2];
-            cell->parameters[CellParams::VZ  ] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 3];
-            cell->parameters[CellParams::RHOQ] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 4];
+            cell->parameters[CellParams::RHOM_R] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 0];
+            cell->parameters[CellParams::VX_R  ] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 1];
+            cell->parameters[CellParams::VY_R  ] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 2];
+            cell->parameters[CellParams::VZ_R  ] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 3];
+            cell->parameters[CellParams::RHOQ_R] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 4];
          }
          pop.V_R[0] = divideIfNonZeroHD(pop.V_R[0], pop.RHO_R);
          pop.V_R[1] = divideIfNonZeroHD(pop.V_R[1], pop.RHO_R);
          pop.V_R[2] = divideIfNonZeroHD(pop.V_R[2], pop.RHO_R);
       }
 
-      cell->parameters[CellParams::VX] = divideIfNonZeroHD(cell->parameters[CellParams::VX], cell->parameters[CellParams::RHOM]);
-      cell->parameters[CellParams::VY] = divideIfNonZeroHD(cell->parameters[CellParams::VY], cell->parameters[CellParams::RHOM]);
-      cell->parameters[CellParams::VZ] = divideIfNonZeroHD(cell->parameters[CellParams::VZ], cell->parameters[CellParams::RHOM]);
+      cell->parameters[CellParams::VX_R] = divideIfNonZeroHD(cell->parameters[CellParams::VX_R], cell->parameters[CellParams::RHOM_R]);
+      cell->parameters[CellParams::VY_R] = divideIfNonZeroHD(cell->parameters[CellParams::VY_R], cell->parameters[CellParams::RHOM_R]);
+      cell->parameters[CellParams::VZ_R] = divideIfNonZeroHD(cell->parameters[CellParams::VZ_R], cell->parameters[CellParams::RHOM_R]);
 
       if (!computeSecond) {
          continue;
@@ -640,9 +640,9 @@ void calculateMoments_R(
             dev_momentInfos[thread_id],
             dev_momentArrays2[thread_id],
             nPopulations,
-            cell->parameters[CellParams::VX],
-            cell->parameters[CellParams::VY],
-            cell->parameters[CellParams::VZ]);
+            cell->parameters[CellParams::VX_R],
+            cell->parameters[CellParams::VY_R],
+            cell->parameters[CellParams::VZ_R]);
          HANDLE_ERROR( cudaPeekAtLastError() );
          HANDLE_ERROR( cudaStreamSynchronize(stream) );
       }
