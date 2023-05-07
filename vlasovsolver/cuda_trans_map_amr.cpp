@@ -590,15 +590,10 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    /***********************/
 
    int t1 = phiprof::initializeTimer("trans-amr-mapping");
-   int t2 = phiprof::initializeTimer("trans-amr-store");
-   int t3 = phiprof::initializeTimer("trans-amr-find source cells");
-   int t4 = phiprof::initializeTimer("trans-amr-load source data");
-   int t5 = phiprof::initializeTimer("trans-amr-MemSet");
-   int t6 = phiprof::initializeTimer("trans-amr-propagatePencil");
-   int t7 = phiprof::initializeTimer("trans-amr-transpose target data");
-   int t8 = phiprof::initializeTimer("trans-amr-loopMemSet");
-   int t9 = phiprof::initializeTimer("trans-amr-write target data to spatialcell");
-   int t10 = phiprof::initializeTimer("trans-amr-reset target blocks to zero");
+   int t2 = phiprof::initializeTimer("trans-amr-load source data");
+   int t3 = phiprof::initializeTimer("trans-amr-MemSet")
+   int t4 = phiprof::initializeTimer("trans-amr-propagatePencil");
+   int t5 = phiprof::initializeTimer("trans-amr-store");
 #pragma omp parallel
    {
       // Thread id used for persistent device memory pointers
@@ -622,7 +617,7 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
          phiprof::start(t1); // mapping
 
          // Load data for pencils
-         phiprof::start(t4);
+         phiprof::start(t2);
          for(uint pencili = 0; pencili < DimensionPencils[dimension].N; ++pencili){
             int L = DimensionPencils[dimension].lengthOfPencils[pencili];
             int start = DimensionPencils[dimension].sourceIdsStart[pencili];
@@ -631,18 +626,16 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
             bool pencil_has_data = copy_trans_block_data_amr(pencilSourceCells[pencili].data(), blockGID, L, blockDataSource,
                                                              cellid_transpose, popID);
          }
-         phiprof::stop(t4);
+         phiprof::stop(t2);
 
          // Temporary: use separate translation target buffer
-         phiprof::start(t5);
+         phiprof::start(t3);
          memset(dev_blockDataTarget[cpuThreadID], 0,  totalTargetLength*sizeof(Realf)*WID3);
          //cudaStream_t stream = cuda_getStream();
          //HANDLE_ERROR( cudaMemsetAsync(dev_blockDataTarget[cpuThreadID], 0, totalTargetLength*sizeof(Realf)*WID3, stream) );
          //HANDLE_ERROR( cudaStreamSynchronize(stream) );
-         phiprof::stop(t5);
 
          // reset blocks in all non-sysboundary neighbor spatial cells for this block id
-         phiprof::start(t10);
          for (auto spatial_cell: allTargetCells) {
             // Check for null and system boundary
             if (spatial_cell && spatial_cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
@@ -665,9 +658,9 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
                }
             }
          }
-         phiprof::stop(t10);
+         phiprof::stop(t3);
 
-         phiprof::start(t6);
+         phiprof::start(t4);
          for(uint pencili = 0; pencili < DimensionPencils[dimension].N; ++pencili){
             // sourceVecData => targetBlockData[this pencil])
             int L = DimensionPencils[dimension].lengthOfPencils[pencili];
@@ -681,15 +674,12 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
             Vec* blockDataTarget = dev_blockDataTarget[cpuThreadID]+targetStart*WID3/VECL;
             propagatePencil(pencildz, blockDataSource, blockDataTarget, dimension, blockGID, dt, vmesh, L, pencilSourceCells[pencili][0]->getVelocityBlockMinValue(popID));
          }
-         phiprof::stop(t6);
+         phiprof::stop(t4);
 
          phiprof::stop(t1); // mapping
 
-         phiprof::start(t2); // store
-
-         // store_data(target_data => targetCells)  :Aggregate data for blockid to original location
-         // Loop over pencils again
-         phiprof::start(t9);
+         phiprof::start(t5); // store
+         // Aggregate data for blockid to original location
          for(uint pencili = 0; pencili < DimensionPencils[dimension].N; pencili++){
             cuint L = DimensionPencils[dimension].lengthOfPencils[pencili];
             cuint targetStart = DimensionPencils[dimension].targetIdsStart[pencili];
@@ -732,9 +722,7 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
                }
             }
          }
-         phiprof::stop(t9);
-
-         phiprof::stop(t2); // store
+         phiprof::stop(t5); // store
       } // Closes loop over blocks
    } // closes pragma omp parallel
 
