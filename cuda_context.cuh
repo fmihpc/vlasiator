@@ -202,7 +202,6 @@ extern vmesh::LocalID *dev_columnNBlocks[];
 
 extern Vec *dev_blockDataOrdered[];
 extern Vec *dev_blockDataSource[];
-extern Vec *dev_blockDataTarget[];
 
 extern Realf *returnRealf[];
 extern uint *dev_cell_indices_to_id[];

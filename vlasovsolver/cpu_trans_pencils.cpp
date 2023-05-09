@@ -193,7 +193,6 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
                                         std::vector<CellID> &sourceCells,
                                         std::vector<Vec> &sourceDZ,
                                         std::vector<CellID> &targetCells,
-                                        std::vector<Vec> &targetDZ,
                                         std::vector<Realf> &targetRatios
                                         ){
 
@@ -202,7 +201,6 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
    sourceCells.resize(L+2*VLASOV_STENCIL_WIDTH);
    sourceDZ.resize(L+2*VLASOV_STENCIL_WIDTH);
    targetCells.resize(L+2);
-   targetDZ.resize(L+2);
    targetRatios.resize(L+2);
 
    // These neighborhoods now include the AMR addition beyond the regular vlasov stencil
@@ -345,7 +343,6 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
       if (targetCells[i]) { // non-writeable target cells are zero
          SpatialCell* tc = mpiGrid[targetCells[i]];
          if (tc) {
-            targetDZ[i] = Vec(tc->parameters[CellParams::DX+dimension]);
             // areaRatio is the ratio of the cross-section of the spatial cell to the cross-section of the pencil.
             const int diff = tc->SpatialCell::parameters[CellParams::REFINEMENT_LEVEL] - path.size();
             if(diff>0) {
@@ -625,10 +622,10 @@ void buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
 
    // Now also store information on source and target cells
    vector<CellID> sources, targets;
-   vector<Vec> sourceDZ, targetDZ;
+   vector<Vec> sourceDZ;
    vector<Realf> targetRatios;
-   computeSpatialSourceCellsForPencil(grid,ids,dimension,path,sources,sourceDZ,targets,targetDZ,targetRatios);
-   pencils.addPencil(ids,x,y,periodic,path,sources,sourceDZ,targets,targetDZ,targetRatios);
+   computeSpatialSourceCellsForPencil(grid,ids,dimension,path,sources,sourceDZ,targets,targetRatios);
+   pencils.addPencil(ids,x,y,periodic,path,sources,sourceDZ,targets,targetRatios);
    return;
 }
 
@@ -1090,7 +1087,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
       setOfPencils thread_pencils;
       // iterators used in the accumulation
       std::vector<CellID>::iterator ibeg, iend, sibeg, siend, tibeg, tiend;
-      std::vector<Vec>::iterator szbeg, szend, tzbeg, tzend;
+      std::vector<Vec>::iterator szbeg, szend;
       std::vector<Realf>::iterator trbeg, trend;
 
 #pragma omp for schedule(guided)
@@ -1117,13 +1114,10 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
             tibeg = thread_pencils.targetIds.begin() + thread_pencils.targetIdsStart[i];
             tiend = tibeg + thread_pencils.lengthOfPencils[i] + 2;
             std::vector<CellID> pencilTargetIds(tibeg, tiend);
-            tzbeg = thread_pencils.targetDZ.begin() + thread_pencils.targetIdsStart[i];
-            tzend = tzbeg + thread_pencils.lengthOfPencils[i] + 2;
-            std::vector<Vec> pencilTargetDZ(tzbeg, tzend);
             trbeg = thread_pencils.targetRatios.begin() + thread_pencils.targetIdsStart[i];
             trend = trbeg + thread_pencils.lengthOfPencils[i] + 2;
             std::vector<Realf> pencilTargetRatios(trbeg, trend);
-            DimensionPencils[dimension].addPencil(pencilIds,thread_pencils.x[i],thread_pencils.y[i],thread_pencils.periodic[i],thread_pencils.path[i],pencilSourceIds,pencilSourceDZ,pencilTargetIds,pencilTargetDZ,pencilTargetRatios);
+            DimensionPencils[dimension].addPencil(pencilIds,thread_pencils.x[i],thread_pencils.y[i],thread_pencils.periodic[i],thread_pencils.path[i],pencilSourceIds,pencilSourceDZ,pencilTargetIds,pencilTargetRatios);
          }
       }
    }
@@ -1143,6 +1137,13 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
          DimensionTargetCells[dimension].insert(tar);
       }
    }
+
+   // Warning: checkPencils fails to understand situations where pencils reach across 3 levels of refinement.
+   // if(!checkPencils(mpiGrid, localPropagatedCells, pencils)) {
+   //    std::cerr<<"abort checkpencils"<<std::endl;
+   //    abort();
+   // }
+
 
    if(printPencils) printPencilsFunc(DimensionPencils[dimension],dimension,myRank);
    phiprof::stop("buildPencils");

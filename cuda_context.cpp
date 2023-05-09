@@ -52,8 +52,8 @@ Column *unif_columns[MAXCPUTHREADS];
 
 Vec *dev_blockDataOrdered[MAXCPUTHREADS];
 
-Vec *dev_blockDataSource[MAXCPUTHREADS]; // These two are unified for now, will become device memory later.
-Vec *dev_blockDataTarget[MAXCPUTHREADS];
+// When translation kernel works on-device, this can be replaced with pure on-device dev_blockDataOrdered
+Vec *dev_blockDataSource[MAXCPUTHREADS];
 
 vmesh::LocalID *dev_GIDlist[MAXCPUTHREADS];
 vmesh::LocalID *dev_LIDlist[MAXCPUTHREADS];
@@ -236,7 +236,6 @@ __host__ void cuda_vlasov_allocate_perthread (
    HANDLE_ERROR( cudaMalloc((void**)&dev_GIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID)) );
    // During porting, these are in unified memory. Target data will be removed later, and replaced with writing directly back to cell block data.
    HANDLE_ERROR( cudaMallocManaged((void**)&dev_blockDataSource[cpuThreadID], blockAllocationCount * (WID3 / VECL) * sizeof(Vec)) );
-   HANDLE_ERROR( cudaMallocManaged((void**)&dev_blockDataTarget[cpuThreadID], blockAllocationCount * (WID3 / VECL) * sizeof(Vec)) );
 }
 
 __host__ void cuda_vlasov_deallocate_perthread (
@@ -253,7 +252,6 @@ __host__ void cuda_vlasov_deallocate_perthread (
    HANDLE_ERROR( cudaFree(dev_GIDlist[cpuThreadID]) );
 
    HANDLE_ERROR( cudaFree(dev_blockDataSource[cpuThreadID]) );
-   HANDLE_ERROR( cudaFree(dev_blockDataTarget[cpuThreadID]) );
 }
 
 /*
