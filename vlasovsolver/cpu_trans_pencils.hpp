@@ -35,7 +35,7 @@ struct setOfPencils {
    std::vector< CellID > ids; // List of pencil cells
    std::vector< uint > idsStart; // List of where a pencil's CellIDs start in the ids array
    std::vector< CellID > sourceIds; // List of source cells
-   std::vector< Vec > sourceDZ; // Widths of source cells
+   std::vector< Realf > sourceDZ; // Widths of source cells
    std::vector< uint > sourceIdsStart; // List of where a pencil's CellIDs and widths start in the sourceIds array
    std::vector< CellID > targetIds; // List of target cells
    std::vector< Realf > targetRatios; // Pencil to target cell area ratios of target cells
@@ -69,7 +69,7 @@ struct setOfPencils {
    }
 
    void addPencil(std::vector<CellID> idsIn, Real xIn, Real yIn, bool periodicIn, std::vector<uint> pathIn,
-                  std::vector<CellID> sourcesIn, std::vector<Vec> sourceDZin,std::vector<CellID> targetsIn, std::vector<Realf> targetRatiosIn) {
+                  std::vector<CellID> sourcesIn, std::vector<Realf> sourceDZin,std::vector<CellID> targetsIn, std::vector<Realf> targetRatiosIn) {
       N++;
       sumOfLengths += idsIn.size();
       lengthOfPencils.push_back(idsIn.size());
@@ -223,7 +223,7 @@ struct setOfPencils {
             myPath.push_back(step);
             // We can add null vectors here because sources and targets are calculated after all pencils have been identified
             std::vector<CellID> nullsource, nulltarget;
-            std::vector<Vec> nullsourceDZ;
+            std::vector<Realf> nullsourceDZ;
             std::vector<Realf> nulltargetRatios;
             addPencil(myIds, myX, myY, periodic.at(myPencilId), myPath, nullsource, nullsourceDZ, nulltarget, nulltargetRatios);
          }

@@ -191,7 +191,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
                                         const uint dimension,
                                         std::vector<uint> path,
                                         std::vector<CellID> &sourceCells,
-                                        std::vector<Vec> &sourceDZ,
+                                        std::vector<Realf> &sourceDZ,
                                         std::vector<CellID> &targetCells,
                                         std::vector<Realf> &targetRatios
                                         ){
@@ -334,7 +334,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
    stringstream ss;
    ss<<" source cells for pencil: ";
    for (int i = 0; i < L+2*VLASOV_STENCIL_WIDTH; ++i) {
-      sourceDZ[i] = Vec(mpiGrid[sourceCells[i]]->parameters[CellParams::DX+dimension]);
+      sourceDZ[i] = mpiGrid[sourceCells[i]]->parameters[CellParams::DX+dimension];
       ss<<sourceCells[i]<<" ";
    }
    ss<<std::endl;
@@ -622,7 +622,7 @@ void buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
 
    // Now also store information on source and target cells
    vector<CellID> sources, targets;
-   vector<Vec> sourceDZ;
+   vector<Realf> sourceDZ;
    vector<Realf> targetRatios;
    computeSpatialSourceCellsForPencil(grid,ids,dimension,path,sources,sourceDZ,targets,targetRatios);
    pencils.addPencil(ids,x,y,periodic,path,sources,sourceDZ,targets,targetRatios);
@@ -1087,7 +1087,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
       setOfPencils thread_pencils;
       // iterators used in the accumulation
       std::vector<CellID>::iterator ibeg, iend, sibeg, siend, tibeg, tiend;
-      std::vector<Vec>::iterator szbeg, szend;
+      std::vector<Realf>::iterator szbeg, szend;
       std::vector<Realf>::iterator trbeg, trend;
 
 #pragma omp for schedule(guided)
@@ -1110,7 +1110,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
             std::vector<CellID> pencilSourceIds(sibeg, siend);
             szbeg = thread_pencils.sourceDZ.begin() + thread_pencils.sourceIdsStart[i];
             szend = szbeg + thread_pencils.lengthOfPencils[i] + 2*VLASOV_STENCIL_WIDTH;
-            std::vector<Vec> pencilSourceDZ(szbeg, szend);
+            std::vector<Realf> pencilSourceDZ(szbeg, szend);
             tibeg = thread_pencils.targetIds.begin() + thread_pencils.targetIdsStart[i];
             tiend = tibeg + thread_pencils.lengthOfPencils[i] + 2;
             std::vector<CellID> pencilTargetIds(tibeg, tiend);

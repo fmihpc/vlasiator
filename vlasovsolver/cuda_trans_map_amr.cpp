@@ -39,7 +39,7 @@ CUDA_HOSTDEV inline bool check_skip_remapping(Vec* values) {
  * @param lengthOfPencil Number of cells in the pencil
  */
 void propagatePencil(
-   Vec* dz,
+   Realf* dz,
    Vec* values, // Vec-ordered block data values for pencils 
    const uint dimension,
    const uint blockGID,
@@ -465,7 +465,7 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
             // Dz and sourceVecData are both padded by VLASOV_STENCIL_WIDTH
             // Dz has 1 value/cell, sourceVecData has WID3 values/cell
             // vmesh is required just for general indexes and accessors
-            Vec* pencildz = DimensionPencils[dimension].sourceDZ.data() + sourceStart;
+            Realf* pencildz = DimensionPencils[dimension].sourceDZ.data() + sourceStart;
             Vec* blockDataSource = dev_blockDataSource[cpuThreadID]+sourceStart*WID3/VECL;
             propagatePencil(pencildz,
                             blockDataSource,
