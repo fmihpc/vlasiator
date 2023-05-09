@@ -332,10 +332,15 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
       else
          lastGoodCell = sourceCells[i];
    }
-   // Finally, loop over all cells and store widths in translation direction
+   // Finally, loop over all cells :and store widths in translation direction
+   stringstream ss;
+   ss<<" source cells for pencil: ";
    for (int i = 0; i < L+2*VLASOV_STENCIL_WIDTH; ++i) {
       sourceDZ[i] = Vec(mpiGrid[sourceCells[i]]->parameters[CellParams::DX+dimension]);
+      ss<<sourceCells[i]<<" ";
    }
+   ss<<std::endl;
+   ss<<" target cells and ratios for pencil: ";
    for (int i = 0; i < L+2; ++i) {
       if (targetCells[i]) { // non-writeable target cells are zero
          SpatialCell* tc = mpiGrid[targetCells[i]];
@@ -346,16 +351,23 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
             if(diff>0) {
                // Undefined behaviour! Cell is smaller than pencil (higher reflevel than path size)
                std::cerr<<"Error in path size to cell size: __FILE__:__LINE__"<<std::endl;
-               targetRatios[i] = 0;
+               targetRatios[i] = 0.0;
             } else {
                const int ratio = 1 << -diff;
                targetRatios[i] = 1.0 / (ratio*ratio);
             }
+            ss<<targetCells[i]<<":"<<targetRatios[i]<<" ";
          } else { // Don't write to this cell
-            targetRatios[i] = 0;
+            ss<<targetCells[i]<<":N1 ";
+            targetRatios[i] = 0.0;
          }
+      } else { // Don't write to this cell
+         ss<<targetCells[i]<<":N2 ";
+         targetRatios[i] = 0.0;
       }
    }
+   ss<<std::endl;
+   //std::cerr<<ss.str();
 }
 
 
