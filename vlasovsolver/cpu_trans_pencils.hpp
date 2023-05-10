@@ -176,6 +176,15 @@ struct setOfPencils {
          } else {
             auto myPath = copy_of_path;
             myPath.push_back(step);
+            // If necessary, add the zero cells to the beginning and end
+            if (myIds.front() != 0) {
+               myIds.insert(myIds.begin(),0);
+               myIds.insert(myIds.begin(),0);
+            }
+            if (myIds.back() != 0) {
+               myIds.push_back(0);
+               myIds.push_back(0);
+            }
             addPencil(myIds, myX, myY, periodic.at(myPencilId), myPath);
          }
       }

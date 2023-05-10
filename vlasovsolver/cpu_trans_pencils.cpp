@@ -203,6 +203,10 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
 
    // These neighborhoods now include the AMR addition beyond the regular vlasov stencil
    int neighborhood = getNeighborhood(dimension,VLASOV_STENCIL_WIDTH);
+   stringstream ss;
+   for (auto j = 0; j < L; ++j) {
+      ss<< ids[j] << " ";
+   }
 
    // Insert pointers for neighbors of ids.front() and ids.back()
    const auto* frontNbrPairs = mpiGrid.get_neighbors_of(ids[VLASOV_STENCIL_WIDTH], neighborhood);
@@ -228,6 +232,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
          if(distanceInRefinedCells == *it) neighbors.push_back(nbrPair.first);
       }
       // Get rid of duplicate neighbor cells at single distance
+      std::sort(neighbors.begin(), neighbors.end());
       neighbors.erase(unique(neighbors.begin(), neighbors.end()), neighbors.end());
 
       // Find source cells (VLASOV_STENCIL_WIDTH at each end)
@@ -239,7 +244,8 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
          if (ids[iSrc+1] == neighbors.at(path[refLvl])) continue; // already found this cell for different distance (should not happen)
          ids[iSrc--] = neighbors.at(path[refLvl]);
       } else {
-         std::cerr<<"error too few neighbors for path! "<<std::endl;
+         ss<<"error too few front neighbors for path! cellid "<<ids[VLASOV_STENCIL_WIDTH]<<" Nsize "<<neighbors.size()<<" L "<<L<<" refLvl "<<refLvl<<" iSrc "<<iSrc<<" pathsize "<<path.size()<<" path "<<path[refLvl]<<std::endl;
+         std::cerr<<ss.str();
       }
    }
 
@@ -264,9 +270,10 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
          if(distanceInRefinedCells == *it) neighbors.push_back(nbrPair.first);
       }
       // Get rid of duplicate neighbor cells at single distance
+      std::sort(neighbors.begin(), neighbors.end());
       neighbors.erase(unique(neighbors.begin(), neighbors.end()), neighbors.end());
 
-      int refLvl = mpiGrid.get_refinement_level(ids[L-VLASOV_STENCIL_WIDTH]);
+      int refLvl = mpiGrid.get_refinement_level(ids[L-VLASOV_STENCIL_WIDTH-1]);
       if (neighbors.size() == 1) {
          if (ids[iSrc-1] == neighbors.at(0)) continue; // already found this cell for different distance
          ids[iSrc++] = neighbors.at(0);
@@ -274,7 +281,8 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
          if (ids[iSrc-1] == neighbors.at(path[refLvl])) continue; // already found this cell for different distance (should not happen)
          ids[iSrc++] = neighbors.at(path[refLvl]);
       } else {
-         std::cerr<<"error too few neighbors for path!"<<std::endl;
+         ss<<"error too few back neighbors for path! cellid "<<ids[L-VLASOV_STENCIL_WIDTH-1]<<" Nsize "<<neighbors.size()<<" L "<<L<<" refLvl "<<refLvl<<" iSrc "<<iSrc<<" pathsize "<<path.size()<<" path "<<path[refLvl]<<std::endl;
+         std::cerr<<ss.str();
       }
    }
 
@@ -324,8 +332,9 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
       if ((i < VLASOV_STENCIL_WIDTH-1) || (i > L-VLASOV_STENCIL_WIDTH)) {
          // Source cell, not a target cell
          targetRatios[i]=0.0;
+         continue;
       }
-      if (ids[i]) { // non-writeable target cells are zero
+      if (ids[i]) {
          SpatialCell* tc = mpiGrid[ids[i]];
          if (tc && tc->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             // areaRatio is the ratio of the cross-section of the spatial cell to the cross-section of the pencil.
@@ -342,6 +351,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
             targetRatios[i] = 0.0;
          }
       } else { // Don't write to this cell
+         std::cerr<<"Error, pencil has stored cellID 0!"<<std::endl;
          targetRatios[i] = 0.0;
       }
    }
@@ -498,9 +508,8 @@ void buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
          }
       }
 
-      // If there are no neighbors, we can stop.
+      // If there are no neighbors, we can stop. This is not an error.
       if (!neighborExists) {
-         std::cerr<<"Error, neighbour doesn't exist: __FILE__:__LINE__"<<std::endl;
          break;
       }
 
@@ -593,8 +602,10 @@ void buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
    //iy = (dimension + 2) % 3;
 
    // Append empty ids at the end to be filled with source search
-   ids.push_back(0);
-   ids.push_back(0);
+   if (ids.back() != 0) {
+      ids.push_back(0);
+      ids.push_back(0);
+   }
 
    x = coordinates[ix];
    y = coordinates[iy];
@@ -953,7 +964,7 @@ bool checkPencils(
  */
 void printPencilsFunc(const setOfPencils& pencils, const uint dimension, const int myRank) {
 
-   // Print out ids of pencils (if needed for debugging)
+// Print out ids of pencils (if needed for debugging)
    uint ibeg = 0;
    uint iend = 0;
    std::cout << "I am rank " << myRank << ", I have " << pencils.N << " pencils along dimension " << dimension << ":\n";
@@ -1010,7 +1021,7 @@ void printPencilsFunc(const setOfPencils& pencils, const uint dimension, const i
 void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                               const uint dimension) {
 
-   const bool printPencils = false;
+   const bool printPencils = true;//false;
    int myRank;
    if(printPencils) MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
