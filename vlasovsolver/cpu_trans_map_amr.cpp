@@ -40,7 +40,7 @@ void propagatePencil(
    const uint dimension,
    const uint blockGID,
    const Realv dt,
-   const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> *vmesh,
+   const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID> &vmesh,
    const uint lengthOfPencil,
    const Realv threshold,
    Realf** blockDataPointer, // Spacing is for sources, but will be written into
@@ -50,9 +50,9 @@ void propagatePencil(
    // Get velocity data from vmesh that we need later to calculate the translation
    velocity_block_indices_t block_indices;
    uint8_t refLevel;
-   vmesh->getIndices(blockGID,refLevel, block_indices[0], block_indices[1], block_indices[2]);
-   Realv dvz = vmesh->getCellSize(refLevel)[dimension];
-   Realv vz_min = vmesh->getMeshMinLimits()[dimension];
+   vmesh.getIndices(blockGID,refLevel, block_indices[0], block_indices[1], block_indices[2]);
+   Realv dvz = vmesh.getCellSize(refLevel)[dimension];
+   Realv vz_min = vmesh.getMeshMinLimits()[dimension];
 
    // Assuming 1 neighbor in the target array because of the CFL condition
    // In fact propagating to > 1 neighbor will give an error
@@ -213,7 +213,7 @@ bool copy_trans_block_data_amr(
  * @param [in] dt Time step
  * @param [in] popId Particle population ID
  */
-bool cuda_trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                       const vector<CellID>& localPropagatedCells,
                       const vector<CellID>& remoteTargetCells,
                       std::vector<uint>& nPencils,
@@ -376,7 +376,7 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::C
             }
             pencilBlocksCount.at(pencili) = nonEmptyBlocks;
             // Transpose and copy block data from cells to source buffer
-            Vec* blockDataSource = blockDataBuffer.data() +start*WID3/VECL;
+            Vec* blockDataSource = blockDataBuffer.data() + start*WID3/VECL;
             Realf** pencilBlockData = cellBlockData.data() + start;
             bool pencil_has_data = copy_trans_block_data_amr(pencilBlockData, L, blockDataSource,
                                                              cellid_transpose, popID);
@@ -423,7 +423,7 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::C
                             dimension,
                             blockGID,
                             dt,
-                            &vmesh,
+                            vmesh,
                             L,
                             scalingthreshold,
                             pencilBlockData,
@@ -487,7 +487,7 @@ int get_sibling_index(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
  * @param direction Direction of communication (+ or -)
  * @param popId Particle population ID
  */
-void cuda_update_remote_mapping_contribution_amr(
+void update_remote_mapping_contribution_amr(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const uint dimension,
    int direction,
