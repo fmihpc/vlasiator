@@ -183,7 +183,6 @@ CUDA_HOSTDEV inline void compute_h4_left_face_value(const Vec * const values, ui
   \param h Array with cell widths. Can be in abritrary units since they always cancel. Maybe 1/refinement ratio?
 */
 CUDA_HOSTDEV inline void compute_h4_left_face_value_nonuniform(const Realf * const h, const Vec * const u, uint k, Vec &fv_l) {
-
    fv_l = (
            1.0 / ( h[k - 2] + h[k - 1] + h[k] + h[k + 1] )
            * ( ( h[k - 2] + h[k - 1] ) * ( h[k] + h[k + 1] ) / ( h[k - 1] + h[k] )
@@ -339,7 +338,7 @@ CUDA_HOSTDEV inline void compute_filtered_face_values(const Vec * const values, 
 
 
 
-CUDA_HOSTDEV inline void compute_filtered_face_values_nonuniform(const Realf * const dv, const Vec * const values,uint k, face_estimate_order order, Vec &fv_l, Vec &fv_r, const Realv threshold){
+CUDA_HOSTDEV inline void compute_filtered_face_values_nonuniform(const Realf * const dv, const Vec * const values, uint k, face_estimate_order order, Vec &fv_l, Vec &fv_r, const Realv threshold){
   switch(order){
   case h4:
      compute_h4_left_face_value_nonuniform(dv, values, k, fv_l);
@@ -537,8 +536,8 @@ CUDA_HOSTDEV inline void compute_filtered_face_values_nonuniform_conserving(cons
 
 
 
-/**** 
-      Define functions for Realf instead of Vec 
+/****
+      Define functions for Realf instead of Vec
 ***/
 
 
@@ -611,7 +610,6 @@ CUDA_DEV inline void compute_h4_left_face_value(const Vec * const values, uint k
 }
 
 CUDA_DEV inline void compute_h4_left_face_value_nonuniform(const Realf * const h, const Vec * const u, uint k, Realf &fv_l, const int index) {
-
    fv_l = (
            1.0 / ( h[k - 2] + h[k - 1] + h[k] + h[k + 1] )
            * ( ( h[k - 2] + h[k - 1] ) * ( h[k] + h[k + 1] ) / ( h[k - 1] + h[k] )

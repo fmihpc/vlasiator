@@ -31,15 +31,11 @@ struct setOfPencils {
 
    uint N; // Number of pencils in the set
    uint sumOfLengths;
-   std::vector< uint > lengthOfPencils; // Lengths of pencils
-   std::vector< CellID > ids; // List of pencil cells
+   std::vector< uint > lengthOfPencils; // Lengths of pencils (including stencil cells)
+   std::vector< CellID > ids; // List of pencil cells (incudingstencil cells)
    std::vector< uint > idsStart; // List of where a pencil's CellIDs start in the ids array
-   std::vector< CellID > sourceIds; // List of source cells
    std::vector< Realf > sourceDZ; // Widths of source cells
-   std::vector< uint > sourceIdsStart; // List of where a pencil's CellIDs and widths start in the sourceIds array
-   std::vector< CellID > targetIds; // List of target cells
    std::vector< Realf > targetRatios; // Pencil to target cell area ratios of target cells
-   std::vector< uint > targetIdsStart; // List of where a pencil's CellIDs start in the targetIds array
    std::vector< Real > x,y; // x,y - position
    std::vector< bool > periodic;
    std::vector< std::vector<uint> > path; // Path taken through refinement levels
@@ -56,11 +52,7 @@ struct setOfPencils {
       lengthOfPencils.clear();
       idsStart.clear();
       ids.clear();
-      sourceIdsStart.clear();
-      sourceIds.clear();
       sourceDZ.clear();
-      targetIdsStart.clear();
-      targetIds.clear();
       targetRatios.clear();
       x.clear();
       y.clear();
@@ -68,19 +60,14 @@ struct setOfPencils {
       path.clear();
    }
 
-   void addPencil(std::vector<CellID> idsIn, Real xIn, Real yIn, bool periodicIn, std::vector<uint> pathIn,
-                  std::vector<CellID> sourcesIn, std::vector<Realf> sourceDZin,std::vector<CellID> targetsIn, std::vector<Realf> targetRatiosIn) {
+   void addPencil(std::vector<CellID> idsIn, Real xIn, Real yIn, bool periodicIn, std::vector<uint> pathIn) {
       N++;
       sumOfLengths += idsIn.size();
       lengthOfPencils.push_back(idsIn.size());
       idsStart.push_back(ids.size());
       ids.insert(ids.end(),idsIn.begin(),idsIn.end());
-      sourceIdsStart.push_back(sourceIds.size());
-      sourceIds.insert(sourceIds.end(),sourcesIn.begin(),sourcesIn.end());
-      sourceDZ.insert(sourceDZ.end(),sourceDZin.begin(),sourceDZin.end());
-      targetIdsStart.push_back(targetIds.size());
-      targetIds.insert(targetIds.end(),targetsIn.begin(),targetsIn.end());
-      targetRatios.insert(targetRatios.end(),targetRatiosIn.begin(),targetRatiosIn.end());
+      sourceDZ.resize(sumOfLengths);
+      targetRatios.resize(sumOfLengths);
       x.push_back(xIn);
       y.push_back(yIn);
       periodic.push_back(periodicIn);
@@ -94,18 +81,10 @@ struct setOfPencils {
       path.erase(path.begin() + pencilId);
 
       uint ibeg = idsStart[pencilId];
-      ids.erase(ids.begin() + ibeg, ids.begin() + ibeg + lengthOfPencils[pencilId]);
+      ids.erase(ids.begin() + ibeg, ids.begin() + ibeg + lengthOfPencils[pencilId] + 2*VLASOV_STENCIL_WIDTH);
+      targetRatios.erase(targetRatios.begin() + ibeg, targetRatios.begin() + ibeg + lengthOfPencils[pencilId] + 2*VLASOV_STENCIL_WIDTH);
+      sourceDZ.erase(sourceDZ.begin() + ibeg, sourceDZ.begin() + ibeg + lengthOfPencils[pencilId] + 2*VLASOV_STENCIL_WIDTH);
       idsStart.erase(idsStart.begin() + pencilId);
-
-      ibeg = targetIdsStart[pencilId];
-      targetIds.erase(targetIds.begin() + ibeg, targetIds.begin() + ibeg + lengthOfPencils[pencilId] + 2);
-      targetRatios.erase(targetRatios.begin() + ibeg, targetRatios.begin() + ibeg + lengthOfPencils[pencilId] + 2);
-      targetIdsStart.erase(targetIdsStart.begin() + pencilId);
-
-      ibeg = sourceIdsStart[pencilId];
-      sourceIds.erase(sourceIds.begin() + ibeg, sourceIds.begin() + ibeg + lengthOfPencils[pencilId] + 2*VLASOV_STENCIL_WIDTH);
-      sourceDZ.erase(sourceDZ.begin() + ibeg, sourceDZ.begin() + ibeg + lengthOfPencils[pencilId] + 2);
-      sourceIdsStart.erase(sourceIdsStart.begin() + pencilId);
 
       N--;
       sumOfLengths -= lengthOfPencils[pencilId];
@@ -117,33 +96,9 @@ struct setOfPencils {
          std::vector<CellID> idsEmpty;
          return idsEmpty;
       }
-      // Use vector range constructor
-      std::vector<CellID>::const_iterator ibeg = ids.begin() + idsStart[pencilId];
-      std::vector<CellID>::const_iterator iend = ibeg + lengthOfPencils[pencilId];
-      std::vector<CellID> idsOut(ibeg, iend);
-      return idsOut;
-   }
-
-   std::vector<CellID> getTargetIds(const uint pencilId) const {
-      if (pencilId >= N) {
-         std::vector<CellID> idsEmpty;
-         return idsEmpty;
-      }
-      // Use vector range constructor
-      std::vector<CellID>::const_iterator ibeg = targetIds.begin() + targetIdsStart[pencilId];
-      std::vector<CellID>::const_iterator iend = ibeg + lengthOfPencils[pencilId] + 2;
-      std::vector<CellID> idsOut(ibeg, iend);
-      return idsOut;
-   }
-
-   std::vector<CellID> getSourceIds(const uint pencilId) const {
-      if (pencilId >= N) {
-         std::vector<CellID> idsEmpty;
-         return idsEmpty;
-      }
-      // Use vector range constructor
-      std::vector<CellID>::const_iterator ibeg = sourceIds.begin() + sourceIdsStart[pencilId];
-      std::vector<CellID>::const_iterator iend = ibeg + lengthOfPencils[pencilId] + 2*VLASOV_STENCIL_WIDTH;
+      // Use vector range constructor. Only return actual pencil ids, not the stencils at the ends
+      std::vector<CellID>::const_iterator ibeg = ids.begin() + idsStart[pencilId] + VLASOV_STENCIL_WIDTH;
+      std::vector<CellID>::const_iterator iend = ibeg + lengthOfPencils[pencilId] - 2*VLASOV_STENCIL_WIDTH;
       std::vector<CellID> idsOut(ibeg, iend);
       return idsOut;
    }
@@ -221,11 +176,7 @@ struct setOfPencils {
          } else {
             auto myPath = copy_of_path;
             myPath.push_back(step);
-            // We can add null vectors here because sources and targets are calculated after all pencils have been identified
-            std::vector<CellID> nullsource, nulltarget;
-            std::vector<Realf> nullsourceDZ;
-            std::vector<Realf> nulltargetRatios;
-            addPencil(myIds, myX, myY, periodic.at(myPencilId), myPath, nullsource, nullsourceDZ, nulltarget, nulltargetRatios);
+            addPencil(myIds, myX, myY, periodic.at(myPencilId), myPath);
          }
       }
    }

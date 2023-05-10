@@ -50,9 +50,6 @@ CUDA_HOSTDEV inline void compute_ppm_coeff_nonuniform(const Vec * const dv, cons
    //Coella et al, check for monotonicity   
    Vec m_face = fv_l;
    Vec p_face = fv_r;
-
-   //std::cout << "value = " << values[k][0] << ", m_face = " << m_face[0] << ", p_face = " << p_face[0] << "\n";
-   //std::cout << values[k][0] - m_face[0] << ", " << values[k][0] - p_face[0] << "\n";
    
   //  m_face = select((p_face - m_face) * (values[k] - 0.5 * (m_face + p_face)) >
   //                  (p_face - m_face)*(p_face - m_face) * one_sixth,
@@ -69,11 +66,6 @@ CUDA_HOSTDEV inline void compute_ppm_coeff_nonuniform(const Vec * const dv, cons
    a[0] = m_face;
    a[1] = 3.0 * values[k] - 2.0 * m_face - p_face;
    a[2] = (m_face + p_face - 2.0 * values[k]);
-
-   //std::cout << "value = " << values[k][0] << ", m_face = " << m_face[0] << ", p_face = " << p_face[0] << "\n";
-   //std::cout << values[k][0] - m_face[0] << ", " << values[k][0] - p_face[0] << "\n";
-
-   //std::cout << values[k][0] << " " << m_face[0] << " " << p_face[0] << "\n";
 }
 
 
@@ -89,9 +81,6 @@ CUDA_DEV inline void compute_ppm_coeff_nonuniform(const Vec * const dv, const Ve
    //Coella et al, check for monotonicity   
    Realf m_face = fv_l;
    Realf p_face = fv_r;
-
-   //std::cout << "value = " << values[k][0] << ", m_face = " << m_face[0] << ", p_face = " << p_face[0] << "\n";
-   //std::cout << values[k][0] - m_face[0] << ", " << values[k][0] - p_face[0] << "\n";
    
   //  m_face = select((p_face - m_face) * (values[k] - 0.5 * (m_face + p_face)) >
   //                  (p_face - m_face)*(p_face - m_face) * one_sixth,
@@ -108,11 +97,6 @@ CUDA_DEV inline void compute_ppm_coeff_nonuniform(const Vec * const dv, const Ve
    a[0] = m_face;
    a[1] = 3.0 * values[k][index] - 2.0 * m_face - p_face;
    a[2] = (m_face + p_face - 2.0 * values[k][index]);
-
-   //std::cout << "value = " << values[k][0] << ", m_face = " << m_face[0] << ", p_face = " << p_face[0] << "\n";
-   //std::cout << values[k][0] - m_face[0] << ", " << values[k][0] - p_face[0] << "\n";
-
-   //std::cout << values[k][0] << " " << m_face[0] << " " << p_face[0] << "\n";
 }
 
 #endif
