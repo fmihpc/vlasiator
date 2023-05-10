@@ -41,7 +41,7 @@
 #include "fieldsolver/fs_common.h"
 #include "fieldsolver/gridGlue.hpp"
 #include "fieldsolver/derivatives.hpp"
-#include "vlasovsolver/cpu_trans_map_amr.hpp"
+#include "vlasovsolver/cpu_trans_pencils.hpp"
 #include "projects/project.h"
 #include "iowrite.h"
 #include "ioread.h"
