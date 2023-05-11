@@ -38,6 +38,9 @@
 
 // #define MAXCPUTHREADS 64 now in cuda_context.hpp
 
+int myDevice;
+int myRank;
+
 // Allocate pointers for per-thread memory regions
 cudaStream_t cudaStreamList[MAXCPUTHREADS];
 cudaStream_t cudaPriorityStreamList[MAXCPUTHREADS];
@@ -68,7 +71,7 @@ uint cuda_acc_allocatedColumns = 0;
 uint cuda_acc_columnContainerSize = 0;
 uint cuda_acc_foundColumnsCount = 0;
 
-__host__ void cuda_set_device() {
+__host__ void cuda_init_device() {
 
 #ifdef _OPENMP
    const uint maxThreads = omp_get_max_threads();
@@ -77,7 +80,8 @@ __host__ void cuda_set_device() {
 #endif
 
    int deviceCount;
-   cudaGetDeviceCount(&deviceCount);
+   HANDLE_ERROR( cudaFree(0));
+   HANDLE_ERROR( cudaGetDeviceCount(&deviceCount) );
    printf("CUDA device count %d with %d threads/streams\n",deviceCount,maxThreads);
 
    /* Create communicator with one rank per compute node to identify which GPU to use */
@@ -111,7 +115,8 @@ __host__ void cuda_set_device() {
 
    MPI_Comm_rank(amps_CommNode, &amps_node_rank);
    MPI_Comm_size(amps_CommNode, &amps_node_size);
-   //cerr << "(Grid) rank " << amps_rank << " is noderank "<< amps_node_rank << " of "<< amps_node_size << endl;
+   std::cerr << "(Grid) rank " << amps_rank << " is noderank "<< amps_node_rank << " of "<< amps_node_size << std::endl;
+   myRank = amps_node_rank;
 
    if (amps_node_rank >= deviceCount) {
       std::cerr<<"Error, attempting to use CUDA device beyond available count!"<<std::endl;
@@ -121,17 +126,17 @@ __host__ void cuda_set_device() {
       std::cerr<<"Error, MPI tasks per node exceeds available CUDA device count!"<<std::endl;
       abort();
    }
-   cudaSetDevice(amps_node_rank);
+   HANDLE_ERROR( cudaSetDevice(amps_node_rank) );
+   HANDLE_ERROR( cudaDeviceSynchronize() );
+   HANDLE_ERROR( cudaGetDevice(&myDevice) );
 
    // Query device capabilities
    int supportedMode;
-   cudaDeviceGetAttribute (&supportedMode, cudaDevAttrConcurrentManagedAccess, cuda_getDevice());
+   HANDLE_ERROR( cudaDeviceGetAttribute (&supportedMode, cudaDevAttrConcurrentManagedAccess, myDevice) );
    if (supportedMode==0) {
       printf("Warning! Current CUDA device does not support concurrent managed memory access from several streams.\n");
       needAttachedStreams = true;
    }
-   // For some reason running without attaching causes errors in some splitvectors.
-   //needAttachedStreams = true;
 
    // Pre-generate streams, allocate return pointers
    int *leastPriority = new int; // likely 0
@@ -149,6 +154,17 @@ __host__ void cuda_set_device() {
    // Using just a single context for whole MPI task
 }
 
+__host__ void cuda_set_device() {
+   // This function needs to be called whenever going into a threaded
+   // region and using a device other than the default device
+#ifdef _OPENMP
+   const uint thread_id = omp_get_thread_num();
+#else
+   const uint thread_id = 0;
+#endif
+   HANDLE_ERROR( cudaSetDevice(myDevice) );
+}
+
 __host__ void cuda_clear_device() {
    // Destroy streams
 #ifdef _OPENMP
@@ -157,8 +173,8 @@ __host__ void cuda_clear_device() {
    const uint maxThreads = 1
 #endif
    for (uint i=0; i<maxThreads; ++i) {
-      cudaStreamDestroy(cudaStreamList[i]);
-      cudaStreamDestroy(cudaPriorityStreamList[i]);
+      HANDLE_ERROR( cudaStreamDestroy(cudaStreamList[i]) );
+      HANDLE_ERROR( cudaStreamDestroy(cudaPriorityStreamList[i]) );
       HANDLE_ERROR( cudaFree(*returnRealf) );
    }
 }
@@ -183,7 +199,7 @@ __host__ cudaStream_t cuda_getPriorityStream() {
 
 __host__ int cuda_getDevice() {
    int device;
-   cudaGetDevice(&device);
+   HANDLE_ERROR( cudaGetDevice(&device) );
    return device;
 }
 
@@ -197,14 +213,11 @@ __host__ void cuda_vlasov_allocate (
    // Always prepare for at least 500 blocks
    const uint maxBlocksPerCell = maxBlockCount > 500 ? maxBlockCount : 500;
    // Check if we already have allocated enough memory?
-   //std::cerr<<"CUDA_VLASOV_ALLOCATE: maxBlockCount "<<maxBlockCount<<" cuda_vlasov_allocatedSize "<<cuda_vlasov_allocatedSize<<std::endl;
    if (cuda_vlasov_allocatedSize > maxBlocksPerCell * BLOCK_ALLOCATION_FACTOR) {
-      //std::cerr<<"CUDA_VLASOV_ALLOCATE: return"<<std::endl;
       return;
    }
    // If not, add extra padding
    const uint newSize = maxBlocksPerCell * BLOCK_ALLOCATION_PADDING;
-   //std::cerr<<"CUDA_VLASOV_ALLOCATE: newSize "<<newSize<<std::endl;
 
    // Deallocate before allocating new memory
 #ifdef _OPENMP

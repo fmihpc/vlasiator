@@ -278,12 +278,16 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    std::vector<SpatialCell*> allCellsPointer(allCells.size());
 
    // Initialize allCellsPointer
-   #pragma omp parallel for
-   for(uint celli = 0; celli < allCells.size(); celli++){
-      allCellsPointer[celli] = mpiGrid[allCells[celli]];
-      // Prefetches
-      allCellsPointer[celli]->get_velocity_mesh(popID)->dev_prefetchHost();
-      allCellsPointer[celli]->get_velocity_blocks(popID)->dev_prefetchHost();
+   #pragma omp parallel
+   {
+      cuda_set_device();
+#pragma omp for
+      for(uint celli = 0; celli < allCells.size(); celli++){
+         allCellsPointer[celli] = mpiGrid[allCells[celli]];
+         // Prefetches
+         allCellsPointer[celli]->get_velocity_mesh(popID)->dev_prefetchHost();
+         allCellsPointer[celli]->get_velocity_blocks(popID)->dev_prefetchHost();
+      }
    }
    // init cellid_transpose (moved here to take advantage of the omp parallel region)
 #pragma omp parallel for collapse(3)
@@ -321,6 +325,7 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    std::unordered_set<vmesh::GlobalID> unionOfBlocksSet;
 #pragma omp parallel
    {
+      cuda_set_device();
       std::unordered_set<vmesh::GlobalID> thread_unionOfBlocksSet;
 #pragma omp for
       for(unsigned int i=0; i<allCellsPointer.size(); i++) {
@@ -347,6 +352,7 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    int t4 = phiprof::initializeTimer("trans-amr-propagatePencil");
 #pragma omp parallel
    {
+      cuda_set_device();
       // Thread id used for persistent device memory pointers
       #ifdef _OPENMP
       const uint cpuThreadID = omp_get_thread_num();
@@ -460,10 +466,14 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    } // closes pragma omp parallel
 
    // Prefetch back to device
-   #pragma omp parallel for
-   for(uint celli = 0; celli < allCells.size(); celli++){
-      allCellsPointer[celli]->get_velocity_mesh(popID)->dev_prefetchDevice();
-      allCellsPointer[celli]->get_velocity_blocks(popID)->dev_prefetchDevice();
+   #pragma omp parallel
+   {
+      cuda_set_device();
+      #pragma omp for
+      for(uint celli = 0; celli < allCells.size(); celli++){
+         allCellsPointer[celli]->get_velocity_mesh(popID)->dev_prefetchDevice();
+         allCellsPointer[celli]->get_velocity_blocks(popID)->dev_prefetchDevice();
+      }
    }
 
    return true;

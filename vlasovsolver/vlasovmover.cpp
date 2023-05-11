@@ -390,6 +390,9 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
    #pragma omp parallel
    {
       // Start parallel acceleration region.
+
+      // Set correct device (required for multi-GPU systems)
+      cuda_set_device();
       #pragma omp for schedule(dynamic,1)
       for (size_t c=0; c<propagatedCells.size(); ++c) {
          const CellID cellID = propagatedCells[c];
@@ -594,22 +597,27 @@ void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_G
    phiprof::start("Calculate moments");
 
    // Iterate through all local cells (incl. system boundary cells):
-   #pragma omp parallel for
-   for (size_t c=0; c<cells.size(); ++c) {
-      const CellID cellID = cells[c];
-      SpatialCell* SC = mpiGrid[cellID];
-      calculateCellMoments(SC,true,false);
-      // WARNING the following is sane as this function is only called by initializeGrid.
-      // We need initialized _DT2 values for the dt=0 field propagation done in the beginning.
-      // Later these will be set properly.
-      SC->parameters[CellParams::RHOM_DT2] = SC->parameters[CellParams::RHOM];
-      SC->parameters[CellParams::VX_DT2] = SC->parameters[CellParams::VX];
-      SC->parameters[CellParams::VY_DT2] = SC->parameters[CellParams::VY];
-      SC->parameters[CellParams::VZ_DT2] = SC->parameters[CellParams::VZ];
-      SC->parameters[CellParams::RHOQ_DT2] = SC->parameters[CellParams::RHOQ];
-      SC->parameters[CellParams::P_11_DT2] = SC->parameters[CellParams::P_11];
-      SC->parameters[CellParams::P_22_DT2] = SC->parameters[CellParams::P_22];
-      SC->parameters[CellParams::P_33_DT2] = SC->parameters[CellParams::P_33];
-   } // for-loop over spatial cells
+   #pragma omp parallel
+   {
+      // Setting the CUDA device inside the moment call itself, because
+      // it's being called from so many different projects etc
+      #pragma omp for
+      for (size_t c=0; c<cells.size(); ++c) {
+         const CellID cellID = cells[c];
+         SpatialCell* SC = mpiGrid[cellID];
+         calculateCellMoments(SC,true,false);
+         // WARNING the following is sane as this function is only called by initializeGrid.
+         // We need initialized _DT2 values for the dt=0 field propagation done in the beginning.
+         // Later these will be set properly.
+         SC->parameters[CellParams::RHOM_DT2] = SC->parameters[CellParams::RHOM];
+         SC->parameters[CellParams::VX_DT2] = SC->parameters[CellParams::VX];
+         SC->parameters[CellParams::VY_DT2] = SC->parameters[CellParams::VY];
+         SC->parameters[CellParams::VZ_DT2] = SC->parameters[CellParams::VZ];
+         SC->parameters[CellParams::RHOQ_DT2] = SC->parameters[CellParams::RHOQ];
+         SC->parameters[CellParams::P_11_DT2] = SC->parameters[CellParams::P_11];
+         SC->parameters[CellParams::P_22_DT2] = SC->parameters[CellParams::P_22];
+         SC->parameters[CellParams::P_33_DT2] = SC->parameters[CellParams::P_33];
+      } // for-loop over spatial cells
+   }
    phiprof::stop("Calculate moments");
 }

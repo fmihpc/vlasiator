@@ -102,6 +102,7 @@ public:
 
 #define MAXCPUTHREADS 64
 
+void cuda_init_device();
 void cuda_set_device();
 void cuda_clear_device();
 cudaStream_t cuda_getStream();

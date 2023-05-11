@@ -233,6 +233,7 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
    const uint thread_id = 0;
 #endif
    cudaStream_t stream = cudaStreamList[thread_id];
+   cuda_set_device();
 
    uint nPopulations = getObjectWrapper().particleSpecies.size();
    // Clear old moments to zero value
@@ -374,142 +375,144 @@ void calculateMoments_V(
 
    phiprof::start("CUDA Compute _V moments");
 
-   // Loop over all particle species
-#pragma omp parallel for
-   for (size_t c=0; c<cells.size(); ++c) {
+#pragma omp parallel
+   {
+      cuda_set_device();
+#pragma omp for
+      for (size_t c=0; c<cells.size(); ++c) {
 #ifdef _OPENMP
-      const uint thread_id = omp_get_thread_num();
+         const uint thread_id = omp_get_thread_num();
 #else
-      const uint thread_id = 0;
+         const uint thread_id = 0;
 #endif
-      cudaStream_t stream = cudaStreamList[thread_id];
-      SpatialCell* cell = mpiGrid[cells[c]];
+         cudaStream_t stream = cudaStreamList[thread_id];
+         SpatialCell* cell = mpiGrid[cells[c]];
 
-      if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
-         continue;
-      }
-
-      uint nPopulations = getObjectWrapper().particleSpecies.size();
-      uint totBlocks = 0;
-      // Gather values and pointers for each population
-      for (uint popID=0; popID<nPopulations; ++popID) {
-         // Clear old moments to zero value
-         if (popID == 0) {
-            cell->parameters[CellParams::RHOM_V  ] = 0.0;
-            cell->parameters[CellParams::VX_V] = 0.0;
-            cell->parameters[CellParams::VY_V] = 0.0;
-            cell->parameters[CellParams::VZ_V] = 0.0;
-            cell->parameters[CellParams::RHOQ_V  ] = 0.0;
-            cell->parameters[CellParams::P_11_V] = 0.0;
-            cell->parameters[CellParams::P_22_V] = 0.0;
-            cell->parameters[CellParams::P_33_V] = 0.0;
+         if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+            continue;
          }
 
-         vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
-         vmesh::VelocityBlockContainer* blockContainer = cell->get_velocity_blocks(popID);
-         const uint nBlocks = vmesh->size();
-         totBlocks += nBlocks;
-         host_momentInfos[thread_id][popID].mass = getObjectWrapper().particleSpecies[popID].mass;
-         host_momentInfos[thread_id][popID].charge = getObjectWrapper().particleSpecies[popID].charge;
-         host_momentInfos[thread_id][popID].blockCount = nBlocks;
-         host_momentInfos[thread_id][popID].parameterPointer = blockContainer->getParameters();
-         host_momentInfos[thread_id][popID].meshDataPointer = blockContainer->getData();
+         uint nPopulations = getObjectWrapper().particleSpecies.size();
+         uint totBlocks = 0;
+         // Gather values and pointers for each population
+         for (uint popID=0; popID<nPopulations; ++popID) {
+            // Clear old moments to zero value
+            if (popID == 0) {
+               cell->parameters[CellParams::RHOM_V  ] = 0.0;
+               cell->parameters[CellParams::VX_V] = 0.0;
+               cell->parameters[CellParams::VY_V] = 0.0;
+               cell->parameters[CellParams::VZ_V] = 0.0;
+               cell->parameters[CellParams::RHOQ_V  ] = 0.0;
+               cell->parameters[CellParams::P_11_V] = 0.0;
+               cell->parameters[CellParams::P_22_V] = 0.0;
+               cell->parameters[CellParams::P_33_V] = 0.0;
+            }
 
-         // For now: Launch cuda transfers as data isn't yet fully resident
+            vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
+            vmesh::VelocityBlockContainer* blockContainer = cell->get_velocity_blocks(popID);
+            const uint nBlocks = vmesh->size();
+            totBlocks += nBlocks;
+            host_momentInfos[thread_id][popID].mass = getObjectWrapper().particleSpecies[popID].mass;
+            host_momentInfos[thread_id][popID].charge = getObjectWrapper().particleSpecies[popID].charge;
+            host_momentInfos[thread_id][popID].blockCount = nBlocks;
+            host_momentInfos[thread_id][popID].parameterPointer = blockContainer->getParameters();
+            host_momentInfos[thread_id][popID].meshDataPointer = blockContainer->getData();
+
+            // For now: Launch cuda transfers as data isn't yet fully resident
+            phiprof::start("CUDA-HtoD");
+            blockContainer->dev_prefetchDevice();
+            phiprof::stop("CUDA-HtoD");
+         }
+
+         // Transfer metadata to device, reset gatherer arrays
          phiprof::start("CUDA-HtoD");
-         blockContainer->dev_prefetchDevice();
+         HANDLE_ERROR( cudaMemsetAsync(dev_momentArrays1[thread_id], 0, nMoments1*(nPopulations+1)*sizeof(Real), stream) );
+         HANDLE_ERROR( cudaMemcpyAsync(dev_momentInfos[thread_id], host_momentInfos[thread_id], nPopulations*sizeof(MomentInfo), cudaMemcpyHostToDevice, stream) );
+         HANDLE_ERROR( cudaStreamSynchronize(stream) );
          phiprof::stop("CUDA-HtoD");
-      }
 
-      // Transfer metadata to device, reset gatherer arrays
-      phiprof::start("CUDA-HtoD");
-      HANDLE_ERROR( cudaMemsetAsync(dev_momentArrays1[thread_id], 0, nMoments1*(nPopulations+1)*sizeof(Real), stream) );
-      HANDLE_ERROR( cudaMemcpyAsync(dev_momentInfos[thread_id], host_momentInfos[thread_id], nPopulations*sizeof(MomentInfo), cudaMemcpyHostToDevice, stream) );
-      HANDLE_ERROR( cudaStreamSynchronize(stream) );
-      phiprof::stop("CUDA-HtoD");
-
-      // Now launch kernel for this spatial cell, all populations, zeroth and first moments
-      phiprof::start("CUDA-firstMoments");
-      dim3 block(WID,WID,WID);
-      if (totBlocks != 0) {
-         moments_first_kernel<<<CUDABLOCKS, block, 4*WID3*sizeof(Real), stream>>> (
-            dev_momentInfos[thread_id],
-            dev_momentArrays1[thread_id],
-            nPopulations);
-         HANDLE_ERROR( cudaPeekAtLastError() );
-         HANDLE_ERROR( cudaStreamSynchronize(stream) );
-      }
-      phiprof::stop("CUDA-firstMoments");
-
-      // Transfer momentArrays1 back
-      phiprof::start("CUDA-DtoH");
-      HANDLE_ERROR( cudaMemcpyAsync(host_momentArrays1[thread_id], dev_momentArrays1[thread_id], nMoments1*(nPopulations+1)*sizeof(Real), cudaMemcpyDeviceToHost, stream) );
-      HANDLE_ERROR( cudaStreamSynchronize(stream) );
-      phiprof::stop("CUDA-DtoH");
-
-      for (uint popID=0; popID<nPopulations; ++popID) {
-         Population & pop = cell->get_population(popID);
-         pop.RHO_V  = host_momentArrays1[thread_id][popID*nMoments1 + 0];
-         pop.V_V[0] = host_momentArrays1[thread_id][popID*nMoments1 + 1];
-         pop.V_V[1] = host_momentArrays1[thread_id][popID*nMoments1 + 2];
-         pop.V_V[2] = host_momentArrays1[thread_id][popID*nMoments1 + 3];
-         // pop.RHOQ_V = host_momentArrays1[thread_id][popID*nMoments1 + 4];
-         if (popID==0) {
-            cell->parameters[CellParams::RHOM_V] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 0];
-            cell->parameters[CellParams::VX_V  ] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 1];
-            cell->parameters[CellParams::VY_V  ] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 2];
-            cell->parameters[CellParams::VZ_V  ] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 3];
-            cell->parameters[CellParams::RHOQ_V] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 4];
+         // Now launch kernel for this spatial cell, all populations, zeroth and first moments
+         phiprof::start("CUDA-firstMoments");
+         dim3 block(WID,WID,WID);
+         if (totBlocks != 0) {
+            moments_first_kernel<<<CUDABLOCKS, block, 4*WID3*sizeof(Real), stream>>> (
+               dev_momentInfos[thread_id],
+               dev_momentArrays1[thread_id],
+               nPopulations);
+            HANDLE_ERROR( cudaPeekAtLastError() );
+            HANDLE_ERROR( cudaStreamSynchronize(stream) );
          }
-         pop.V_V[0] = divideIfNonZeroHD(pop.V_V[0], pop.RHO_V);
-         pop.V_V[1] = divideIfNonZeroHD(pop.V_V[1], pop.RHO_V);
-         pop.V_V[2] = divideIfNonZeroHD(pop.V_V[2], pop.RHO_V);
-      }
+         phiprof::stop("CUDA-firstMoments");
 
-      cell->parameters[CellParams::VX_V] = divideIfNonZeroHD(cell->parameters[CellParams::VX_V], cell->parameters[CellParams::RHOM_V]);
-      cell->parameters[CellParams::VY_V] = divideIfNonZeroHD(cell->parameters[CellParams::VY_V], cell->parameters[CellParams::RHOM_V]);
-      cell->parameters[CellParams::VZ_V] = divideIfNonZeroHD(cell->parameters[CellParams::VZ_V], cell->parameters[CellParams::RHOM_V]);
-
-      if (!computeSecond) {
-         continue;
-      }
-
-      phiprof::start("CUDA-secondMoments");
-      HANDLE_ERROR( cudaMemsetAsync(dev_momentArrays2[thread_id], 0, nMoments2*(nPopulations+1)*sizeof(Real), stream) );
-      HANDLE_ERROR( cudaStreamSynchronize(stream) );
-      // Now launch kernel for this spatial cell, all populations, second moments
-      if (totBlocks != 0) {
-         moments_second_kernel<<<CUDABLOCKS, block, 3*WID3*sizeof(Real), stream>>> (
-            dev_momentInfos[thread_id],
-            dev_momentArrays2[thread_id],
-            nPopulations,
-            cell->parameters[CellParams::VX_V],
-            cell->parameters[CellParams::VY_V],
-            cell->parameters[CellParams::VZ_V]);
-         HANDLE_ERROR( cudaPeekAtLastError() );
+         // Transfer momentArrays1 back
+         phiprof::start("CUDA-DtoH");
+         HANDLE_ERROR( cudaMemcpyAsync(host_momentArrays1[thread_id], dev_momentArrays1[thread_id], nMoments1*(nPopulations+1)*sizeof(Real), cudaMemcpyDeviceToHost, stream) );
          HANDLE_ERROR( cudaStreamSynchronize(stream) );
-      }
-      phiprof::stop("CUDA-secondMoments");
+         phiprof::stop("CUDA-DtoH");
 
-      // Transfer momentArrays2 back
-      phiprof::start("CUDA-DtoH");
-      HANDLE_ERROR( cudaMemcpyAsync(host_momentArrays2[thread_id], dev_momentArrays2[thread_id], nMoments2*(nPopulations+1)*sizeof(Real), cudaMemcpyDeviceToHost, stream) );
-      HANDLE_ERROR( cudaStreamSynchronize(stream) );
-      phiprof::stop("CUDA-DtoH");
-
-      for (uint popID=0; popID<nPopulations; ++popID) {
-         Population & pop = cell->get_population(popID);
-         pop.P_V[0] = host_momentArrays2[thread_id][popID*nMoments2 + 0];
-         pop.P_V[1] = host_momentArrays2[thread_id][popID*nMoments2 + 1];
-         pop.P_V[2] = host_momentArrays2[thread_id][popID*nMoments2 + 2];
-         if (popID==0) {
-            cell->parameters[CellParams::P_11_V] = host_momentArrays2[thread_id][nPopulations*nMoments2 + 0];
-            cell->parameters[CellParams::P_22_V] = host_momentArrays2[thread_id][nPopulations*nMoments2 + 1];
-            cell->parameters[CellParams::P_33_V] = host_momentArrays2[thread_id][nPopulations*nMoments2 + 2];
+         for (uint popID=0; popID<nPopulations; ++popID) {
+            Population & pop = cell->get_population(popID);
+            pop.RHO_V  = host_momentArrays1[thread_id][popID*nMoments1 + 0];
+            pop.V_V[0] = host_momentArrays1[thread_id][popID*nMoments1 + 1];
+            pop.V_V[1] = host_momentArrays1[thread_id][popID*nMoments1 + 2];
+            pop.V_V[2] = host_momentArrays1[thread_id][popID*nMoments1 + 3];
+            // pop.RHOQ_V = host_momentArrays1[thread_id][popID*nMoments1 + 4];
+            if (popID==0) {
+               cell->parameters[CellParams::RHOM_V] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 0];
+               cell->parameters[CellParams::VX_V  ] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 1];
+               cell->parameters[CellParams::VY_V  ] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 2];
+               cell->parameters[CellParams::VZ_V  ] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 3];
+               cell->parameters[CellParams::RHOQ_V] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 4];
+            }
+            pop.V_V[0] = divideIfNonZeroHD(pop.V_V[0], pop.RHO_V);
+            pop.V_V[1] = divideIfNonZeroHD(pop.V_V[1], pop.RHO_V);
+            pop.V_V[2] = divideIfNonZeroHD(pop.V_V[2], pop.RHO_V);
          }
-      }
-   } // for-loop over spatial cells
 
+         cell->parameters[CellParams::VX_V] = divideIfNonZeroHD(cell->parameters[CellParams::VX_V], cell->parameters[CellParams::RHOM_V]);
+         cell->parameters[CellParams::VY_V] = divideIfNonZeroHD(cell->parameters[CellParams::VY_V], cell->parameters[CellParams::RHOM_V]);
+         cell->parameters[CellParams::VZ_V] = divideIfNonZeroHD(cell->parameters[CellParams::VZ_V], cell->parameters[CellParams::RHOM_V]);
+
+         if (!computeSecond) {
+            continue;
+         }
+
+         phiprof::start("CUDA-secondMoments");
+         HANDLE_ERROR( cudaMemsetAsync(dev_momentArrays2[thread_id], 0, nMoments2*(nPopulations+1)*sizeof(Real), stream) );
+         HANDLE_ERROR( cudaStreamSynchronize(stream) );
+         // Now launch kernel for this spatial cell, all populations, second moments
+         if (totBlocks != 0) {
+            moments_second_kernel<<<CUDABLOCKS, block, 3*WID3*sizeof(Real), stream>>> (
+               dev_momentInfos[thread_id],
+               dev_momentArrays2[thread_id],
+               nPopulations,
+               cell->parameters[CellParams::VX_V],
+               cell->parameters[CellParams::VY_V],
+               cell->parameters[CellParams::VZ_V]);
+            HANDLE_ERROR( cudaPeekAtLastError() );
+            HANDLE_ERROR( cudaStreamSynchronize(stream) );
+         }
+         phiprof::stop("CUDA-secondMoments");
+
+         // Transfer momentArrays2 back
+         phiprof::start("CUDA-DtoH");
+         HANDLE_ERROR( cudaMemcpyAsync(host_momentArrays2[thread_id], dev_momentArrays2[thread_id], nMoments2*(nPopulations+1)*sizeof(Real), cudaMemcpyDeviceToHost, stream) );
+         HANDLE_ERROR( cudaStreamSynchronize(stream) );
+         phiprof::stop("CUDA-DtoH");
+
+         for (uint popID=0; popID<nPopulations; ++popID) {
+            Population & pop = cell->get_population(popID);
+            pop.P_V[0] = host_momentArrays2[thread_id][popID*nMoments2 + 0];
+            pop.P_V[1] = host_momentArrays2[thread_id][popID*nMoments2 + 1];
+            pop.P_V[2] = host_momentArrays2[thread_id][popID*nMoments2 + 2];
+            if (popID==0) {
+               cell->parameters[CellParams::P_11_V] = host_momentArrays2[thread_id][nPopulations*nMoments2 + 0];
+               cell->parameters[CellParams::P_22_V] = host_momentArrays2[thread_id][nPopulations*nMoments2 + 1];
+               cell->parameters[CellParams::P_33_V] = host_momentArrays2[thread_id][nPopulations*nMoments2 + 2];
+            }
+         }
+      } // for-loop over spatial cells
+   }
    phiprof::stop("CUDA Compute _V moments");
    return;
 }
@@ -530,143 +533,145 @@ void calculateMoments_R(
 
    phiprof::start("CUDA Compute _R moments");
 
-   // Loop over all particle species
-#pragma omp parallel for
-   for (size_t c=0; c<cells.size(); ++c) {
+#pragma omp parallel
+   {
+      cuda_set_device();
+#pragma omp for
+      for (size_t c=0; c<cells.size(); ++c) {
 #ifdef _OPENMP
-      const uint thread_id = omp_get_thread_num();
+         const uint thread_id = omp_get_thread_num();
 #else
-      const uint thread_id = 0;
+         const uint thread_id = 0;
 #endif
-      cudaStream_t stream = cudaStreamList[thread_id];
-      SpatialCell* cell = mpiGrid[cells[c]];
+         cudaStream_t stream = cudaStreamList[thread_id];
+         SpatialCell* cell = mpiGrid[cells[c]];
 
-      if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
-         continue;
-      }
-
-      uint nPopulations = getObjectWrapper().particleSpecies.size();
-      uint totBlocks = 0;
-      // Gather values and pointers for each population
-      for (uint popID=0; popID<nPopulations; ++popID) {
-         // Clear old moments to zero value
-         if (popID == 0) {
-            cell->parameters[CellParams::RHOM_R  ] = 0.0;
-            cell->parameters[CellParams::VX_R] = 0.0;
-            cell->parameters[CellParams::VY_R] = 0.0;
-            cell->parameters[CellParams::VZ_R] = 0.0;
-            cell->parameters[CellParams::RHOQ_R  ] = 0.0;
-            cell->parameters[CellParams::P_11_R] = 0.0;
-            cell->parameters[CellParams::P_22_R] = 0.0;
-            cell->parameters[CellParams::P_33_R] = 0.0;
+         if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+            continue;
          }
 
-         vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
-         vmesh::VelocityBlockContainer* blockContainer = cell->get_velocity_blocks(popID);
-         const uint nBlocks = vmesh->size();
-         totBlocks += nBlocks;
+         uint nPopulations = getObjectWrapper().particleSpecies.size();
+         uint totBlocks = 0;
+         // Gather values and pointers for each population
+         for (uint popID=0; popID<nPopulations; ++popID) {
+            // Clear old moments to zero value
+            if (popID == 0) {
+               cell->parameters[CellParams::RHOM_R  ] = 0.0;
+               cell->parameters[CellParams::VX_R] = 0.0;
+               cell->parameters[CellParams::VY_R] = 0.0;
+               cell->parameters[CellParams::VZ_R] = 0.0;
+               cell->parameters[CellParams::RHOQ_R  ] = 0.0;
+               cell->parameters[CellParams::P_11_R] = 0.0;
+               cell->parameters[CellParams::P_22_R] = 0.0;
+               cell->parameters[CellParams::P_33_R] = 0.0;
+            }
 
-         host_momentInfos[thread_id][popID].mass = getObjectWrapper().particleSpecies[popID].mass;
-         host_momentInfos[thread_id][popID].charge = getObjectWrapper().particleSpecies[popID].charge;
-         host_momentInfos[thread_id][popID].blockCount = nBlocks;
-         host_momentInfos[thread_id][popID].parameterPointer = blockContainer->getParameters();
-         host_momentInfos[thread_id][popID].meshDataPointer = blockContainer->getData();
+            vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
+            vmesh::VelocityBlockContainer* blockContainer = cell->get_velocity_blocks(popID);
+            const uint nBlocks = vmesh->size();
+            totBlocks += nBlocks;
 
-         // For now: Launch cuda transfers as data isn't yet fully resident
+            host_momentInfos[thread_id][popID].mass = getObjectWrapper().particleSpecies[popID].mass;
+            host_momentInfos[thread_id][popID].charge = getObjectWrapper().particleSpecies[popID].charge;
+            host_momentInfos[thread_id][popID].blockCount = nBlocks;
+            host_momentInfos[thread_id][popID].parameterPointer = blockContainer->getParameters();
+            host_momentInfos[thread_id][popID].meshDataPointer = blockContainer->getData();
+
+            // For now: Launch cuda transfers as data isn't yet fully resident
+            phiprof::start("CUDA-HtoD");
+            blockContainer->dev_prefetchDevice();
+            phiprof::stop("CUDA-HtoD");
+         }
+
+         // Transfer metadata to device, reset gatherer arrays
          phiprof::start("CUDA-HtoD");
-         blockContainer->dev_prefetchDevice();
+         HANDLE_ERROR( cudaMemsetAsync(dev_momentArrays1[thread_id], 0, nMoments1*(nPopulations+1)*sizeof(Real), stream) );
+         HANDLE_ERROR( cudaMemcpyAsync(dev_momentInfos[thread_id], host_momentInfos[thread_id], nPopulations*sizeof(MomentInfo), cudaMemcpyHostToDevice, stream) );
+         HANDLE_ERROR( cudaStreamSynchronize(stream) );
          phiprof::stop("CUDA-HtoD");
-      }
 
-      // Transfer metadata to device, reset gatherer arrays
-      phiprof::start("CUDA-HtoD");
-      HANDLE_ERROR( cudaMemsetAsync(dev_momentArrays1[thread_id], 0, nMoments1*(nPopulations+1)*sizeof(Real), stream) );
-      HANDLE_ERROR( cudaMemcpyAsync(dev_momentInfos[thread_id], host_momentInfos[thread_id], nPopulations*sizeof(MomentInfo), cudaMemcpyHostToDevice, stream) );
-      HANDLE_ERROR( cudaStreamSynchronize(stream) );
-      phiprof::stop("CUDA-HtoD");
-
-      // Now launch kernel for this spatial cell, all populations, zeroth and first moments
-      phiprof::start("CUDA-firstMoments");
-      dim3 block(WID,WID,WID);
-      if (totBlocks != 0) {
-         moments_first_kernel<<<CUDABLOCKS, block, 4*WID3*sizeof(Real), stream>>> (
-            dev_momentInfos[thread_id],
-            dev_momentArrays1[thread_id],
-            nPopulations);
-         HANDLE_ERROR( cudaPeekAtLastError() );
-         HANDLE_ERROR( cudaStreamSynchronize(stream) );
-      }
-      phiprof::stop("CUDA-firstMoments");
-
-      // Transfer momentArrays1 back
-      phiprof::start("CUDA-DtoH");
-      HANDLE_ERROR( cudaMemcpyAsync(host_momentArrays1[thread_id], dev_momentArrays1[thread_id], nMoments1*(nPopulations+1)*sizeof(Real), cudaMemcpyDeviceToHost, stream) );
-      HANDLE_ERROR( cudaStreamSynchronize(stream) );
-      phiprof::stop("CUDA-DtoH");
-
-      for (uint popID=0; popID<nPopulations; ++popID) {
-         Population & pop = cell->get_population(popID);
-         pop.RHO_R  = host_momentArrays1[thread_id][popID*nMoments1 + 0];
-         pop.V_R[0] = host_momentArrays1[thread_id][popID*nMoments1 + 1];
-         pop.V_R[1] = host_momentArrays1[thread_id][popID*nMoments1 + 2];
-         pop.V_R[2] = host_momentArrays1[thread_id][popID*nMoments1 + 3];
-         // pop.RHOQ_R += host_momentArrays1[thread_id][popID*nMoments1 + 4];
-         if (popID==0) {
-            cell->parameters[CellParams::RHOM_R] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 0];
-            cell->parameters[CellParams::VX_R  ] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 1];
-            cell->parameters[CellParams::VY_R  ] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 2];
-            cell->parameters[CellParams::VZ_R  ] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 3];
-            cell->parameters[CellParams::RHOQ_R] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 4];
+         // Now launch kernel for this spatial cell, all populations, zeroth and first moments
+         phiprof::start("CUDA-firstMoments");
+         dim3 block(WID,WID,WID);
+         if (totBlocks != 0) {
+            moments_first_kernel<<<CUDABLOCKS, block, 4*WID3*sizeof(Real), stream>>> (
+               dev_momentInfos[thread_id],
+               dev_momentArrays1[thread_id],
+               nPopulations);
+            HANDLE_ERROR( cudaPeekAtLastError() );
+            HANDLE_ERROR( cudaStreamSynchronize(stream) );
          }
-         pop.V_R[0] = divideIfNonZeroHD(pop.V_R[0], pop.RHO_R);
-         pop.V_R[1] = divideIfNonZeroHD(pop.V_R[1], pop.RHO_R);
-         pop.V_R[2] = divideIfNonZeroHD(pop.V_R[2], pop.RHO_R);
-      }
+         phiprof::stop("CUDA-firstMoments");
 
-      cell->parameters[CellParams::VX_R] = divideIfNonZeroHD(cell->parameters[CellParams::VX_R], cell->parameters[CellParams::RHOM_R]);
-      cell->parameters[CellParams::VY_R] = divideIfNonZeroHD(cell->parameters[CellParams::VY_R], cell->parameters[CellParams::RHOM_R]);
-      cell->parameters[CellParams::VZ_R] = divideIfNonZeroHD(cell->parameters[CellParams::VZ_R], cell->parameters[CellParams::RHOM_R]);
-
-      if (!computeSecond) {
-         continue;
-      }
-
-      phiprof::start("CUDA-secondMoments");
-      HANDLE_ERROR( cudaMemsetAsync(dev_momentArrays2[thread_id], 0, nMoments2*(nPopulations+1)*sizeof(Real), stream) );
-      HANDLE_ERROR( cudaStreamSynchronize(stream) );
-      // Now launch kernel for this spatial cell, all populations, second moments
-      if (totBlocks != 0) {
-         moments_second_kernel<<<CUDABLOCKS, block, 3*WID3*sizeof(Real), stream>>> (
-            dev_momentInfos[thread_id],
-            dev_momentArrays2[thread_id],
-            nPopulations,
-            cell->parameters[CellParams::VX_R],
-            cell->parameters[CellParams::VY_R],
-            cell->parameters[CellParams::VZ_R]);
-         HANDLE_ERROR( cudaPeekAtLastError() );
+         // Transfer momentArrays1 back
+         phiprof::start("CUDA-DtoH");
+         HANDLE_ERROR( cudaMemcpyAsync(host_momentArrays1[thread_id], dev_momentArrays1[thread_id], nMoments1*(nPopulations+1)*sizeof(Real), cudaMemcpyDeviceToHost, stream) );
          HANDLE_ERROR( cudaStreamSynchronize(stream) );
-      }
-      phiprof::stop("CUDA-secondMoments");
+         phiprof::stop("CUDA-DtoH");
 
-      // Transfer momentArrays2 back
-      phiprof::start("CUDA-DtoH");
-      HANDLE_ERROR( cudaMemcpyAsync(host_momentArrays2[thread_id], dev_momentArrays2[thread_id], nMoments2*(nPopulations+1)*sizeof(Real), cudaMemcpyDeviceToHost, stream) );
-      HANDLE_ERROR( cudaStreamSynchronize(stream) );
-      phiprof::stop("CUDA-DtoH");
-
-      for (uint popID=0; popID<nPopulations; ++popID) {
-         Population & pop = cell->get_population(popID);
-         pop.P_R[0] = host_momentArrays2[thread_id][popID*nMoments2 + 0];
-         pop.P_R[1] = host_momentArrays2[thread_id][popID*nMoments2 + 1];
-         pop.P_R[2] = host_momentArrays2[thread_id][popID*nMoments2 + 2];
-         if (popID==0) {
-            cell->parameters[CellParams::P_11_R] = host_momentArrays2[thread_id][nPopulations*nMoments2 + 0];
-            cell->parameters[CellParams::P_22_R] = host_momentArrays2[thread_id][nPopulations*nMoments2 + 1];
-            cell->parameters[CellParams::P_33_R] = host_momentArrays2[thread_id][nPopulations*nMoments2 + 2];
+         for (uint popID=0; popID<nPopulations; ++popID) {
+            Population & pop = cell->get_population(popID);
+            pop.RHO_R  = host_momentArrays1[thread_id][popID*nMoments1 + 0];
+            pop.V_R[0] = host_momentArrays1[thread_id][popID*nMoments1 + 1];
+            pop.V_R[1] = host_momentArrays1[thread_id][popID*nMoments1 + 2];
+            pop.V_R[2] = host_momentArrays1[thread_id][popID*nMoments1 + 3];
+            // pop.RHOQ_R += host_momentArrays1[thread_id][popID*nMoments1 + 4];
+            if (popID==0) {
+               cell->parameters[CellParams::RHOM_R] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 0];
+               cell->parameters[CellParams::VX_R  ] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 1];
+               cell->parameters[CellParams::VY_R  ] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 2];
+               cell->parameters[CellParams::VZ_R  ] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 3];
+               cell->parameters[CellParams::RHOQ_R] = host_momentArrays1[thread_id][nPopulations*nMoments1 + 4];
+            }
+            pop.V_R[0] = divideIfNonZeroHD(pop.V_R[0], pop.RHO_R);
+            pop.V_R[1] = divideIfNonZeroHD(pop.V_R[1], pop.RHO_R);
+            pop.V_R[2] = divideIfNonZeroHD(pop.V_R[2], pop.RHO_R);
          }
-      }
-   } // for-loop over spatial cells
 
+         cell->parameters[CellParams::VX_R] = divideIfNonZeroHD(cell->parameters[CellParams::VX_R], cell->parameters[CellParams::RHOM_R]);
+         cell->parameters[CellParams::VY_R] = divideIfNonZeroHD(cell->parameters[CellParams::VY_R], cell->parameters[CellParams::RHOM_R]);
+         cell->parameters[CellParams::VZ_R] = divideIfNonZeroHD(cell->parameters[CellParams::VZ_R], cell->parameters[CellParams::RHOM_R]);
+
+         if (!computeSecond) {
+            continue;
+         }
+
+         phiprof::start("CUDA-secondMoments");
+         HANDLE_ERROR( cudaMemsetAsync(dev_momentArrays2[thread_id], 0, nMoments2*(nPopulations+1)*sizeof(Real), stream) );
+         HANDLE_ERROR( cudaStreamSynchronize(stream) );
+         // Now launch kernel for this spatial cell, all populations, second moments
+         if (totBlocks != 0) {
+            moments_second_kernel<<<CUDABLOCKS, block, 3*WID3*sizeof(Real), stream>>> (
+               dev_momentInfos[thread_id],
+               dev_momentArrays2[thread_id],
+               nPopulations,
+               cell->parameters[CellParams::VX_R],
+               cell->parameters[CellParams::VY_R],
+               cell->parameters[CellParams::VZ_R]);
+            HANDLE_ERROR( cudaPeekAtLastError() );
+            HANDLE_ERROR( cudaStreamSynchronize(stream) );
+         }
+         phiprof::stop("CUDA-secondMoments");
+
+         // Transfer momentArrays2 back
+         phiprof::start("CUDA-DtoH");
+         HANDLE_ERROR( cudaMemcpyAsync(host_momentArrays2[thread_id], dev_momentArrays2[thread_id], nMoments2*(nPopulations+1)*sizeof(Real), cudaMemcpyDeviceToHost, stream) );
+         HANDLE_ERROR( cudaStreamSynchronize(stream) );
+         phiprof::stop("CUDA-DtoH");
+
+         for (uint popID=0; popID<nPopulations; ++popID) {
+            Population & pop = cell->get_population(popID);
+            pop.P_R[0] = host_momentArrays2[thread_id][popID*nMoments2 + 0];
+            pop.P_R[1] = host_momentArrays2[thread_id][popID*nMoments2 + 1];
+            pop.P_R[2] = host_momentArrays2[thread_id][popID*nMoments2 + 2];
+            if (popID==0) {
+               cell->parameters[CellParams::P_11_R] = host_momentArrays2[thread_id][nPopulations*nMoments2 + 0];
+               cell->parameters[CellParams::P_22_R] = host_momentArrays2[thread_id][nPopulations*nMoments2 + 1];
+               cell->parameters[CellParams::P_33_R] = host_momentArrays2[thread_id][nPopulations*nMoments2 + 2];
+            }
+         }
+      } // for-loop over spatial cells
+   }
    phiprof::stop("CUDA Compute _R moments");
    return;
 }

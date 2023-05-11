@@ -30,6 +30,10 @@
    #include <omp.h>
 #endif
 
+#ifdef USE_CUDA
+#include "cuda_context.cuh"
+#endif
+
 #include <fsgrid.hpp>
 
 #include "vlasovmover.h"
@@ -271,6 +275,11 @@ int main(int argn,char* args[]) {
       exit(1);
    }
 
+   #ifdef USE_CUDA
+   // Activate device, create streams
+   cuda_init_device();
+   #endif
+   
    phiprof::initialize();
 
    double initialWtime =  MPI_Wtime();

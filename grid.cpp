@@ -141,8 +141,6 @@ void initializeGrids(
    globalflags::AMRstencilWidth = neighborhood_size;
 
 #ifdef USE_CUDA
-   // Activate device, create streams
-   cuda_set_device();
    const uint nPopulations = getObjectWrapper().particleSpecies.size();
    const uint maxThreads = omp_get_max_threads();
    cuda_allocateMomentCalculations(nPopulations,maxThreads);
@@ -187,7 +185,7 @@ void initializeGrids(
    phiprof::stop("Refine spatial cells");
 
    initializeStencils(mpiGrid);
-   
+
    for (const auto& [key, value] : P::loadBalanceOptions) {
       mpiGrid.set_partitioning_option(key, value);
    }
@@ -305,7 +303,7 @@ void initializeGrids(
          exit(1);
       }
       phiprof::stop("Apply system boundary conditions state");
-      
+
       #pragma omp parallel for schedule(static)
       for (size_t i=0; i<cells.size(); ++i) {
          mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
@@ -672,7 +670,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
 #endif
 
    phiprof::stop("GetSeedIdsAndBuildPencils");
-   
+
    phiprof::stop("Balancing load");
 }
 
@@ -693,8 +691,9 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    #pragma omp parallel
    {
       phiprof::start("Compute with_content_list");
-      #pragma omp for schedule(dynamic,1)
 #ifdef USE_CUDA
+      cuda_set_device();
+      #pragma omp for schedule(dynamic,1)
       for (uint i=0; i<cells.size(); ++i) {
          mpiGrid[cells[i]]->dev_attachToStream();
          mpiGrid[cells[i]]->updateSparseMinValue(popID);
@@ -702,6 +701,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
          mpiGrid[cells[i]]->dev_detachFromStream();
       }
 #else
+      #pragma omp for schedule(dynamic,1)
       for (uint i=0; i<cells.size(); ++i) {
          mpiGrid[cells[i]]->updateSparseMinValue(popID);
          mpiGrid[cells[i]]->update_velocity_block_content_lists(popID);
@@ -723,6 +723,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    const std::vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(NEAREST_NEIGHBORHOOD_ID);
    #pragma omp parallel
    {
+      cuda_set_device();
       phiprof::start("Upload with_content_list to device");
       #pragma omp for schedule(dynamic,1)
       for(size_t i=0; i<remote_cells.size(); ++i) {
@@ -735,6 +736,9 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    //Adjusts velocity blocks in local spatial cells, doesn't adjust velocity blocks in remote cells.
 #pragma omp parallel
    {
+#ifdef USE_CUDA
+      cuda_set_device();
+#endif
       phiprof::start("Adjusting blocks");
       #pragma omp for schedule(dynamic,1)
       for (size_t i=0; i<cellsToAdjust.size(); ++i) {
@@ -788,13 +792,17 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
 
    #ifdef USE_CUDA
    // Now loop over local and ghost cells and free up the temborary buffer memory
-   #pragma omp parallel for
-   for(size_t i=0; i<remote_cells.size(); ++i) {
-      mpiGrid[remote_cells[i]]->dev_clearContentLists();
-   }
-   #pragma omp parallel for
-   for (size_t i=0; i<cellsToAdjust.size(); ++i) {
-      mpiGrid[cellsToAdjust[i]]->dev_clearContentLists();
+   #pragma omp parallel
+   {
+      cuda_set_device();
+      #pragma omp for
+      for(size_t i=0; i<remote_cells.size(); ++i) {
+         mpiGrid[remote_cells[i]]->dev_clearContentLists();
+      }
+      #pragma omp for
+      for (size_t i=0; i<cellsToAdjust.size(); ++i) {
+         mpiGrid[cellsToAdjust[i]]->dev_clearContentLists();
+      }
    }
    #endif
 

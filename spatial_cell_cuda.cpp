@@ -1056,6 +1056,9 @@ namespace spatial_cell {
          exit(1);
       }
       #endif
+      #ifdef USE_CUDA
+      cuda_set_device();
+      #endif
 
       //neighbor_ptrs is empty as we do not have any consistent
       //data in neighbours yet, adjustments done only based on velocity
