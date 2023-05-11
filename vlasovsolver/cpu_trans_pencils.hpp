@@ -146,6 +146,9 @@ struct setOfPencils {
       const auto copy_of_path = path.at(myPencilId);
       const auto copy_of_x = x.at(myPencilId);
       const auto copy_of_y = y.at(myPencilId);
+      if (std::isnan(copy_of_x) || std::isnan(copy_of_x)) {
+         std::cerr<<"split dx "<<dx<<" dy "<<dy<<" cy "<<copy_of_x<<" cy "<<copy_of_y<<std::endl;
+      }
 
       // Add those pencils whose steps dont already exist in the pencils struct
       for (int step = 0; step < 4; ++step) {
@@ -166,6 +169,9 @@ struct setOfPencils {
 
          auto myX = copy_of_x + signX * 0.25 * dx;
          auto myY = copy_of_y + signY * 0.25 * dy;
+         if (std::isnan(myX) || std::isnan(myY)) {
+            std::cerr<<"split2 dx "<<dx<<" dy "<<dy<<" myX "<<myX<<" myY "<<myY<<std::endl;
+         }
 
          if(firstPencil) {
             //TODO: set x and y correctly. Right now they are not used anywhere.

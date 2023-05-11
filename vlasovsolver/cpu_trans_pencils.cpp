@@ -237,6 +237,9 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
 
       // Find source cells (VLASOV_STENCIL_WIDTH at each end)
       int refLvl = mpiGrid.get_refinement_level(ids[VLASOV_STENCIL_WIDTH]);
+      if (neighbors.size() >4) {
+         std::cerr<<neighbors.size()<<"f";
+      }
       if (neighbors.size() == 1) {
          if (ids[iSrc+1] == neighbors.at(0)) continue; // already found this cell for different distance
          ids[iSrc--] = neighbors.at(0);
@@ -274,6 +277,9 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
       neighbors.erase(unique(neighbors.begin(), neighbors.end()), neighbors.end());
 
       int refLvl = mpiGrid.get_refinement_level(ids[L-VLASOV_STENCIL_WIDTH-1]);
+      if (neighbors.size() >4) {
+         std::cerr<<neighbors.size()<<"b";
+      }
       if (neighbors.size() == 1) {
          if (ids[iSrc-1] == neighbors.at(0)) continue; // already found this cell for different distance
          ids[iSrc++] = neighbors.at(0);
@@ -441,6 +447,9 @@ void buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
    // corner we are in.
 
    std::array<double, 3> coordinates = grid.get_center(seedId);
+   if (std::isnan(coordinates[0]) || std::isnan(coordinates[1]) || std::isnan(coordinates[2])) {
+      std::cerr<<"cellid "<<seedId<<" x "<<coordinates[0]<<" y "<<coordinates[1]<<" z "<<coordinates[0]<<std::endl;
+   }
    int startingPathSize = path.size();
    auto it = path.end();
    if( startingRefLvl > startingPathSize ) {
@@ -530,7 +539,9 @@ void buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
 
             nextNeighbor = selectNeighbor(grid,id,dimension,path[refLvl - 1]);
 	    coordinates = grid.get_center(nextNeighbor);
-
+            if (std::isnan(coordinates[0]) || std::isnan(coordinates[1]) || std::isnan(coordinates[2])) {
+               std::cerr<<"cellid "<<nextNeighbor<<" x "<<coordinates[0]<<" y "<<coordinates[1]<<" z "<<coordinates[0]<<std::endl;
+            }
          } else {
 
             if(debug) {
@@ -551,6 +562,9 @@ void buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
                   // This builder continues with neighbor 3
                   path = myPath;
 		  coordinates = grid.get_center(nextNeighbor);
+                  if (std::isnan(coordinates[0]) || std::isnan(coordinates[1]) || std::isnan(coordinates[2])) {
+                     std::cerr<<"cellid "<<nextNeighbor<<" x "<<coordinates[0]<<" y "<<coordinates[1]<<" z "<<coordinates[0]<<std::endl;
+                  }
                } else {
                   // Spawn new builders for neighbors 0,1,2
                   buildPencilsWithNeighbors(grid,pencils,id,ids,dimension,myPath,endIds);
@@ -1112,7 +1126,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
 
    // ****************************************************************************
 
-   // Now gather unordered_set of target cells (used for resettin block data)
+   // Now gather unordered_set of target cells (used for resetting block data)
    DimensionTargetCells[dimension].clear();
 #pragma omp parallel for
    for (uint i=0; i<DimensionPencils[dimension].ids.size(); ++i) {
