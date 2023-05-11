@@ -228,6 +228,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
          if(distanceInRefinedCells == *it) neighbors.push_back(nbrPair.first);
       }
       // Get rid of duplicate neighbor cells at single distance
+      std::sort(neighbors.begin(), neighbors.end());
       neighbors.erase(unique(neighbors.begin(), neighbors.end()), neighbors.end());
 
       // Find source cells (VLASOV_STENCIL_WIDTH at each end)
@@ -264,6 +265,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
          if(distanceInRefinedCells == *it) neighbors.push_back(nbrPair.first);
       }
       // Get rid of duplicate neighbor cells at single distance
+      std::sort(neighbors.begin(), neighbors.end());
       neighbors.erase(unique(neighbors.begin(), neighbors.end()), neighbors.end());
 
       int refLvl = mpiGrid.get_refinement_level(ids[L-VLASOV_STENCIL_WIDTH]);
@@ -324,8 +326,9 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
       if ((i < VLASOV_STENCIL_WIDTH-1) || (i > L-VLASOV_STENCIL_WIDTH)) {
          // Source cell, not a target cell
          targetRatios[i]=0.0;
+         continue;
       }
-      if (ids[i]) { // non-writeable target cells are zero
+      if (ids[i]) {
          SpatialCell* tc = mpiGrid[ids[i]];
          if (tc && tc->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             // areaRatio is the ratio of the cross-section of the spatial cell to the cross-section of the pencil.
@@ -498,9 +501,8 @@ void buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
          }
       }
 
-      // If there are no neighbors, we can stop.
+      // If there are no neighbors, we can stop. This is not an error.
       if (!neighborExists) {
-         std::cerr<<"Error, neighbour doesn't exist: __FILE__:__LINE__"<<std::endl;
          break;
       }
 
@@ -593,9 +595,10 @@ void buildPencilsWithNeighbors( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_
    //iy = (dimension + 2) % 3;
 
    // Append empty ids at the end to be filled with source search
-   ids.push_back(0);
-   ids.push_back(0);
-
+   if (ids.back() != 0) {
+      ids.push_back(0);
+      ids.push_back(0);
+   }
    x = coordinates[ix];
    y = coordinates[iy];
 
@@ -1101,7 +1104,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
 
    // ****************************************************************************
 
-   // Now gather unordered_set of target cells (used for resettin block data)
+   // Now gather unordered_set of target cells (used for resetting block data)
    DimensionTargetCells[dimension].clear();
 #pragma omp parallel for
    for (uint i=0; i<DimensionPencils[dimension].ids.size(); ++i) {
