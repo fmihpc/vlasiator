@@ -776,7 +776,7 @@ namespace spatial_cell {
       // add neighbor content info for velocity space neighbors to map. We loop over blocks
       // with content and raise the neighbors_have_content for
       // itself, and for all its v-space neighbors (halo)
-      nCudaBlocks = (localContentBlocks/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : (localContentBlocks/CUDATHREADS);
+      nCudaBlocks = (localContentBlocks/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : std::ceil((Real)localContentBlocks/(Real)CUDATHREADS);
       int addWidthV = getObjectWrapper().particleSpecies[popID].sparseBlockAddWidthV;
       if (nCudaBlocks>0) {
          update_blocks_required_halo_kernel<<<nCudaBlocks, CUDATHREADS, 0, stream>>> (
@@ -796,7 +796,7 @@ namespace spatial_cell {
       for (std::vector<SpatialCell*>::const_iterator neighbor=spatial_neighbors.begin();
            neighbor != spatial_neighbors.end(); ++neighbor) {
          const int nNeighBlocks = (*neighbor)->velocity_block_with_content_list_size;
-         nCudaBlocks = (nNeighBlocks/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : (nNeighBlocks/CUDATHREADS);
+         nCudaBlocks = (nNeighBlocks/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : std::ceil((Real)nNeighBlocks/(Real)CUDATHREADS);
          if (nCudaBlocks>0) {
             update_neighbours_have_content_kernel<<<nCudaBlocks, CUDATHREADS, 0, stream>>> (
                populations[popID].vmesh,
@@ -837,7 +837,7 @@ namespace spatial_cell {
       // REMOVE all blocks in this cell without content + without neighbors with content
       phiprof::start("Gather blocks to remove");
       if (doDeleteEmptyBlocks) {
-         nCudaBlocks = (localNoContentBlocks/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : (localNoContentBlocks/CUDATHREADS);
+         nCudaBlocks = (localNoContentBlocks/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : std::ceil((Real)localNoContentBlocks/(Real)CUDATHREADS);
          if (nCudaBlocks>0) {
             update_blocks_to_remove_kernel<<<nCudaBlocks, CUDATHREADS, 0, stream>>> (
                velocity_block_with_no_content_list,
@@ -876,7 +876,7 @@ namespace spatial_cell {
       // Only add blocks which don't yet exist to optimize cuda parallel memory management.
       // Find these with a kernel.
       // This kernel also figures out which blocks need to be rescued from the end-space of the block data
-      nCudaBlocks = (nBlocksRequired/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : (nBlocksRequired/CUDATHREADS);
+      nCudaBlocks = (nBlocksRequired/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : std::ceil((Real)nBlocksRequired/(Real)CUDATHREADS);
       if (nBlocksRequired>0) {
          update_blocks_to_add_kernel<<<nCudaBlocks, CUDATHREADS, 0, stream>>> (
             populations[popID].vmesh,
