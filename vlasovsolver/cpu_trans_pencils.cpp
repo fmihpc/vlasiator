@@ -965,8 +965,8 @@ void printPencilsFunc(const setOfPencils& pencils, const uint dimension, const i
    ss << "I am rank " << myRank << ", I have " << pencils.N << " pencils along dimension " << dimension << ":\n";
    MPI_Barrier(MPI_COMM_WORLD);
    if(myRank == MASTER_RANK) {
-      ss << "t, N, mpirank, dimension (x, y): indices {path} DZs AreaRatios" << std::endl;
       ss << "(D=DO_NOT_COMPUTE, S=Sysboundary L2, L=Sysboundary L1, N=Non-sysboundary L2, G=Ghost cell)" << std::endl;
+      ss << "t, N, mpirank, dimension (x, y): indices {path} DZs AreaRatios" << std::endl;
       ss << "-----------------------------------------------------------------" << std::endl;
    }
    MPI_Barrier(MPI_COMM_WORLD);
@@ -1034,7 +1034,6 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
       MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
    }
-
    switch (dimension) {
       case 0:
          if(P::xcells_ini == 1) return;
