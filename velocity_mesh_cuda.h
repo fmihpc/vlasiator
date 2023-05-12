@@ -30,14 +30,10 @@
 #include <sstream>
 #include <stdint.h>
 #include <vector>
-//#include <unordered_map>
-//#include <set>
 #include <cmath>
 
 #include "velocity_mesh_parameters.h"
 
-//#include "object_wrapper.h"
-//#include "open_bucket_hashtable.h"
 #include "include/hashinator/hashinator.h"
 #include "include/splitvector/splitvec.h"
 
@@ -45,7 +41,6 @@
 #include "cuda.h"
 #include "cuda_runtime.h"
 #include "cuda_context.cuh" // managed class, CUDA_HOSTDEV
-#include <cuda/std/utility> // cuda::std::pair
 
 namespace vmesh {
 
@@ -440,13 +435,13 @@ namespace vmesh {
 
       #ifdef __CUDA_ARCH__
       auto position
-         = globalToLocalMap->device_insert(cuda::std::make_pair(globalID,localToGlobalMap->size()));
+         = globalToLocalMap->device_insert(Hashinator::make_pair(globalID,(vmesh::LocalID)localToGlobalMap->size()));
       if (position.second == true) {
          localToGlobalMap->device_push_back(globalID);
       }
       #else
       auto position
-         = globalToLocalMap->insert(cuda::std::make_pair(globalID,localToGlobalMap->size()));
+         = globalToLocalMap->insert(Hashinator::make_pair(globalID,(vmesh::LocalID)localToGlobalMap->size()));
       if (position.second == true) {
          localToGlobalMap->push_back(globalID);
       }
@@ -463,7 +458,7 @@ namespace vmesh {
       }
 
       for (size_t b=0; b<blocks.size(); ++b) {
-         globalToLocalMap->insert(cuda::std::make_pair(blocks[b],localToGlobalMap->size()+b));
+         globalToLocalMap->insert(Hashinator::make_pair(blocks[b],(vmesh::LocalID)(localToGlobalMap->size()+b)));
       }
       localToGlobalMap->insert(localToGlobalMap->end(),blocks.begin(),blocks.end());
       return true;
@@ -479,12 +474,12 @@ namespace vmesh {
 
       #ifdef __CUDA_ARCH__
       for (size_t b=0; b<blocks.size(); ++b) {
-         globalToLocalMap->device_insert(cuda::std::make_pair(blocks[b],localToGlobalMap->size()+b));
+         globalToLocalMap->device_insert(Hashinator::make_pair(blocks[b],(vmesh::LocalID)(localToGlobalMap->size()+b)));
       }
       localToGlobalMap->device_insert(localToGlobalMap->end(),blocks.begin(),blocks.end());
       #else
       for (size_t b=0; b<blocks.size(); ++b) {
-         globalToLocalMap->insert(cuda::std::make_pair(blocks[b],localToGlobalMap->size()+b));
+         globalToLocalMap->insert(Hashinator::make_pair(blocks[b],(vmesh::LocalID)(localToGlobalMap->size()+b)));
       }
       localToGlobalMap->insert(localToGlobalMap->end(),blocks.begin(),blocks.end());
       #endif
@@ -510,14 +505,14 @@ namespace vmesh {
    inline void VelocityMesh::setGrid() {
       globalToLocalMap->clear();
       for (size_t i=0; i<localToGlobalMap->size(); ++i) {
-         globalToLocalMap->insert(cuda::std::make_pair(localToGlobalMap->at(i),i));
+         globalToLocalMap->insert(Hashinator::make_pair((vmesh::GlobalID)localToGlobalMap->at(i),(vmesh::LocalID)i));
       }
    }
 
    inline bool VelocityMesh::setGrid(const std::vector<vmesh::GlobalID>& globalIDs) {
       globalToLocalMap->clear();
       for (vmesh::LocalID i=0; i<globalIDs.size(); ++i) {
-         globalToLocalMap->insert(cuda::std::make_pair(globalIDs[i],i));
+         globalToLocalMap->insert(Hashinator::make_pair((vmesh::GlobalID)globalIDs[i],(vmesh::LocalID)i));
       }
       localToGlobalMap->clear();
       localToGlobalMap->insert(localToGlobalMap->end(),globalIDs.begin(),globalIDs.end());
@@ -526,7 +521,7 @@ namespace vmesh {
    inline bool VelocityMesh::setGrid(const split::SplitVector<vmesh::GlobalID>& globalIDs) {
       globalToLocalMap->clear();
       for (vmesh::LocalID i=0; i<globalIDs.size(); ++i) {
-         globalToLocalMap->insert(cuda::std::make_pair(globalIDs[i],i));
+         globalToLocalMap->insert(Hashinator::make_pair((vmesh::GlobalID)globalIDs[i],(vmesh::LocalID)i));
       }
       localToGlobalMap->clear();
       localToGlobalMap->insert(localToGlobalMap->end(),globalIDs.begin(),globalIDs.end());
