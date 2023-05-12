@@ -326,7 +326,8 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
       if ((i < VLASOV_STENCIL_WIDTH-1) || (i > L-VLASOV_STENCIL_WIDTH)) {
          // Source cell, not a target cell
          targetRatios[i]=0.0;
-         continue;
+         // TODO: Find out why adding this continue causes major diffs and accumulation of density!
+         //continue;
       }
       if (ids[i]) {
          SpatialCell* tc = mpiGrid[ids[i]];
@@ -345,6 +346,7 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
             targetRatios[i] = 0.0;
          }
       } else { // Don't write to this cell
+         std::cerr<<"Found zero id in pencils!"<<std::endl;
          targetRatios[i] = 0.0;
       }
    }
@@ -669,7 +671,7 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
                addToSeedIds = true;
                break;
             }
-               }
+         }
       } // finish check A
       if ( addToSeedIds ) {
 #pragma omp critical
@@ -954,54 +956,66 @@ bool checkPencils(
  * @param dimension Spatial dimension
  * @param myRank MPI rank
  */
-void printPencilsFunc(const setOfPencils& pencils, const uint dimension, const int myRank) {
+void printPencilsFunc(const setOfPencils& pencils, const uint dimension, const int myRank,const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
 
    // Print out ids of pencils (if needed for debugging)
    uint ibeg = 0;
    uint iend = 0;
-   std::cout << "I am rank " << myRank << ", I have " << pencils.N << " pencils along dimension " << dimension << ":\n";
+   stringstream ss;
+   ss << "I am rank " << myRank << ", I have " << pencils.N << " pencils along dimension " << dimension << ":\n";
    MPI_Barrier(MPI_COMM_WORLD);
    if(myRank == MASTER_RANK) {
-      std::cout << "t, N, mpirank, dimension (x, y): indices {path} DZs AreaRatios" << std::endl;
-      std::cout << "-----------------------------------------------------------------" << std::endl;
+      ss << "t, N, mpirank, dimension (x, y): indices {path} DZs AreaRatios" << std::endl;
+      ss << "(D=DO_NOT_COMPUTE, S=Sysboundary L2, L=Sysboundary L1, N=Non-sysboundary L2, G=Ghost cell)" << std::endl;
+      ss << "-----------------------------------------------------------------" << std::endl;
    }
    MPI_Barrier(MPI_COMM_WORLD);
    for (uint i = 0; i < pencils.N; i++) {
       const uint L = pencils.lengthOfPencils[i];
       iend = ibeg + L;
-      std::cout << P::t << ", ";
-      std::cout << i << ", ";
-      std::cout << myRank << ", ";
-      std::cout << dimension << ", ";
-      std::cout << L << ", ";
-      std::cout << "(" << pencils.x[i] << ", " << pencils.y[i] << "): ";
+      ss << P::t << ", ";
+      ss << i << ", ";
+      ss << myRank << ", ";
+      ss << dimension << ", ";
+      ss << L << ", ";
+      ss << "(" << pencils.x[i] << ", " << pencils.y[i] << "): ";
       for (auto j = pencils.ids.begin() + ibeg; j != pencils.ids.begin() + iend; ++j) {
-         std::cout << *j << " ";
+         ss << *j;
+         if (*j && mpiGrid[*j]) {
+            SpatialCell* c = mpiGrid[*j];
+            if (c->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) ss<<"D";
+            if (c->sysBoundaryLayer != 1 && c->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) ss<<"S";
+            if (c->sysBoundaryLayer == 1 && c->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) ss<<"L";
+            if (c->sysBoundaryLayer == 2 && c->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ss<<"N";
+            if (!mpiGrid.is_local(*j)) ss<<"G";
+         }
+         ss<< " ";
       }
 
-      std::cout << "{";
+      ss << "{";
       for (auto step : pencils.path[i]) {
-         std::cout << step << ", ";
+         ss << step << ", ";
       }
-      std::cout << "}";
+      ss << "}";
 
-      std::cout << "source DZs: ";
+      ss << "source DZs: ";
       for (auto j = pencils.sourceDZ.begin() + ibeg; j != pencils.sourceDZ.begin() + iend; ++j) {
-         std::cout << *j << " ";
+         ss << *j << " ";
       }
 
-      std::cout << "target Ratios: ";
+      ss << "target Ratios: ";
       for (auto j = pencils.targetRatios.begin() + ibeg; j != pencils.targetRatios.begin() + iend; ++j) {
-         std::cout << *j << " ";
+         ss << *j << " ";
       }
 
       ibeg  = iend;
-      std::cout << std::endl;
+      ss << std::endl;
    }
    MPI_Barrier(MPI_COMM_WORLD);
    if(myRank == MASTER_RANK) {
-      std::cout << "-----------------------------------------------------------------" << std::endl;
+      ss << "-----------------------------------------------------------------" << std::endl;
    }
+   std::cout<<ss.str();
 }
 
 /* Wrapper function for calling seed ID selection and pencil generation, per dimension.
@@ -1014,8 +1028,12 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
                               const uint dimension) {
 
    const bool printPencils = false;
-   int myRank;
-   if(printPencils) MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+   const bool printSeeds = false;
+   int myRank, mpi_size;
+   if(printPencils) {
+      MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
+      MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
+   }
 
    switch (dimension) {
       case 0:
@@ -1044,6 +1062,29 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    vector<CellID> seedIds;
    getSeedIds(mpiGrid, localPropagatedCells, dimension, seedIds);
    phiprof::stop("getSeedIds");
+
+   if (printSeeds) {
+      for (int rank=0; rank<mpi_size; ++rank) {
+         MPI_Barrier(MPI_COMM_WORLD);
+         if (rank!=myRank) continue;
+         stringstream ss;
+         ss<<"SEED IDS (D=DO_NOT_COMPUTE, S=Sysboundary L2, L=Sysboundary L1, N=Non-sysboundary L2, G=Ghost cell)"<<std::endl<<std::endl;
+         for (uint i = 0; i < seedIds.size(); i++) {
+            ss << seedIds.at(i);
+            if (seedIds.at(i) && mpiGrid[seedIds.at(i)]) {
+               SpatialCell* c = mpiGrid[seedIds.at(i)];
+               if (c->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) ss<<"D";
+               if (c->sysBoundaryLayer != 1 && c->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) ss<<"S";
+               if (c->sysBoundaryLayer == 1 && c->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) ss<<"L";
+               if (c->sysBoundaryLayer == 2 && c->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ss<<"N";
+               if (!mpiGrid.is_local(seedIds.at(i))) ss<<"G";
+            }
+            ss<<" ";
+         }
+         ss<<std::endl<<std::endl;
+         std::cerr<<ss.str();
+      }
+   }
 
    phiprof::start("buildPencils");
 
@@ -1110,7 +1151,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    for (uint i=0; i<DimensionPencils[dimension].ids.size(); ++i) {
       const CellID targ = DimensionPencils[dimension].ids[i];
       const CellID ratio = DimensionPencils[dimension].targetRatios[i];
-      if ((targ!=0)&&(ratio!=0)) {
+      if ((targ!=0)&&(ratio>0.0)) {
 #pragma omp critical
          {
             DimensionTargetCells[dimension].insert(targ);
@@ -1124,7 +1165,13 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    //    abort();
    // }
 
-   if(printPencils) printPencilsFunc(DimensionPencils[dimension],dimension,myRank);
+   if(printPencils) {
+      for (int rank=0; rank<mpi_size; ++rank) {
+         MPI_Barrier(MPI_COMM_WORLD);
+         if (rank!=myRank) continue;
+         printPencilsFunc(DimensionPencils[dimension],dimension,myRank,mpiGrid);
+      }
+   }
    phiprof::stop("buildPencils");
 
 }
