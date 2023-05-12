@@ -338,7 +338,8 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
       if ((i < VLASOV_STENCIL_WIDTH-1) || (i > L-VLASOV_STENCIL_WIDTH)) {
          // Source cell, not a target cell
          targetRatios[i]=0.0;
-         continue;
+         // TODO: Find out why this continue causes huge diffs and accumulation of f!
+         //continue;
       }
       if (ids[i]) {
          SpatialCell* tc = mpiGrid[ids[i]];
