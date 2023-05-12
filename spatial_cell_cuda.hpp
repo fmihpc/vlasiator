@@ -363,7 +363,6 @@ namespace spatial_cell {
       Realf* dev_rhoLossAdjust;
       split::SplitVector<vmesh::GlobalID> *BlocksToRemove, *BlocksToAdd, *BlocksToMove; /**< Lists of blocks to change on GPU device */
       split::SplitVector<vmesh::GlobalID> *BlocksRequired;
-      //split::SplitVector<cuda::std::pair<vmesh::GlobalID,vmesh::LocalID>> *BlocksRequired;
       Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *BlocksRequiredMap;
 
 

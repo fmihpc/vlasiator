@@ -42,7 +42,7 @@ template <typename T, typename U>
 struct Rule{
    Rule(){}
    __host__ __device__
-   inline bool operator()( cuda::std::pair<T,U>& element)const{
+   inline bool operator()( Hashinator::hash_pair<T,U>& element)const{
       if (element.first!=std::numeric_limits<vmesh::GlobalID>::max() && element.first!=std::numeric_limits<vmesh::GlobalID>::max()-1  ){return true;}
       //KEY_TYPE EMPTYBUCKET = std::numeric_limits<KEY_TYPE>::max(),
       //   KEY_TYPE TOMBSTONE = EMPTYBUCKET - 1,
@@ -163,7 +163,6 @@ __global__ void update_neighbours_have_content_kernel (
  */
 __global__ void update_blocks_to_add_kernel (
    vmesh::VelocityMesh *vmesh,
-   //split::SplitVector<cuda::std::pair<vmesh::GlobalID,vmesh::LocalID>>* BlocksRequired,
    split::SplitVector<vmesh::GlobalID>* BlocksRequired,
    split::SplitVector<vmesh::GlobalID>* BlocksToAdd,
    split::SplitVector<vmesh::GlobalID>* BlocksToMove,
@@ -435,7 +434,6 @@ namespace spatial_cell {
       velocity_block_with_content_list = new split::SplitVector<vmesh::GlobalID>(1);
       velocity_block_with_no_content_list = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksRequired = new split::SplitVector<vmesh::GlobalID>(1);
-      //BlocksRequired = new split::SplitVector<cuda::std::pair<vmesh::GlobalID,vmesh::LocalID>>(1);
       BlocksToAdd = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToRemove = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToMove = new split::SplitVector<vmesh::GlobalID>(1);
@@ -464,7 +462,6 @@ namespace spatial_cell {
       velocity_block_with_content_list = new split::SplitVector<vmesh::GlobalID>(1);
       velocity_block_with_no_content_list = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksRequired = new split::SplitVector<vmesh::GlobalID>(1);
-      //BlocksRequired = new split::SplitVector<cuda::std::pair<vmesh::GlobalID,vmesh::LocalID>>(1);
       BlocksToAdd = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToRemove = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToMove = new split::SplitVector<vmesh::GlobalID>(1);
@@ -529,7 +526,6 @@ namespace spatial_cell {
       velocity_block_with_content_list = new split::SplitVector<vmesh::GlobalID>(1);
       velocity_block_with_no_content_list = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksRequired = new split::SplitVector<vmesh::GlobalID>(1);
-      //BlocksRequired = new split::SplitVector<cuda::std::pair<vmesh::GlobalID,vmesh::LocalID>>(1);
       BlocksToAdd = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToRemove = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToMove = new split::SplitVector<vmesh::GlobalID>(1);
@@ -850,26 +846,26 @@ namespace spatial_cell {
       }
       phiprof::stop("Gather blocks to remove");
 
+
       // Require all blocks with neighbors in spatial or velocity space
       phiprof::start("Gather blocks required");
-      phiprof::start("Prefetch map cpu");
-      BlocksRequiredMap->optimizeCPU(stream);
-      BlocksRequired->optimizeCPU(stream);
       HANDLE_ERROR( cudaStreamSynchronize(stream) ); // This sync is required.
-      phiprof::stop("Prefetch map cpu");
-      for (auto it=BlocksRequiredMap->begin(); it != BlocksRequiredMap->end(); ++it) {
-         BlocksRequired->push_back((*it).first);
-         //BlocksRequired->push_back((*it));
-      }
-      phiprof::start("Prefetch vec gpu");
-      const uint nBlocksRequired = BlocksRequired->size();
       BlocksRequired->optimizeGPU(stream);
-      SSYNC
-      phiprof::stop("Prefetch vec gpu");
+      const uint nBlocksRequired = BlocksRequiredMap->extractKeysByPattern(*BlocksRequired,Rule<vmesh::GlobalID,vmesh::LocalID>(),stream);
+      HANDLE_ERROR( cudaStreamSynchronize(stream) );
 
+      /** Old method of just copying values over manually **/
+      // BlocksRequiredMap->optimizeCPU(stream);
+      // BlocksRequired->optimizeCPU(stream);
+      // HANDLE_ERROR( cudaStreamSynchronize(stream) ); // This sync is required.
+      // phiprof::stop("Prefetch map cpu");
+      // for (auto it=BlocksRequiredMap->begin(); it != BlocksRequiredMap->end(); ++it) {
+      //    BlocksRequired->push_back((*it).first);
+      // }
+      // const uint nBlocksRequired4 = BlocksRequired->size();
       // BlocksRequired->optimizeGPU(stream);
-      // BlocksRequiredMap->extractPattern(*BlocksRequired,Rule<vmesh::GlobalID,vmesh::LocalID>(),stream);
       // SSYNC
+
       phiprof::stop("Gather blocks required");
 
       phiprof::start("blocks_to_add_kernel");

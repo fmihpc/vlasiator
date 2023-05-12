@@ -350,7 +350,6 @@ __global__ void evaluate_column_extents_kernel(
    const vmesh::VelocityMesh* vmesh,
    ColumnOffsets* dev_columnData,
    Column *dev_columns,
-   //split::SplitVector<cuda::std::pair<vmesh::GlobalID,vmesh::LocalID>>* BlocksRequired,
    split::SplitVector<vmesh::GlobalID> *BlocksRequired,
    split::SplitVector<vmesh::GlobalID> *BlocksToAdd,
    split::SplitVector<vmesh::GlobalID> *BlocksToRemove,
@@ -523,7 +522,6 @@ __global__ void evaluate_column_extents_kernel(
                      setFirstBlockIndices1 * dev_block_indices_to_id[1] +
                      blockK                * dev_block_indices_to_id[2];
                   BlocksRequired->device_push_back(targetBlock);
-                  //BlocksRequired->device_push_back(cuda::std::pair<vmesh::GlobalID,vmesh::LocalID>(targetBlock,targetBlock));
                }
                if(isTargetBlock[blockK]!=0 && isSourceBlock[blockK]==0 )  {
                   const int targetBlock =
