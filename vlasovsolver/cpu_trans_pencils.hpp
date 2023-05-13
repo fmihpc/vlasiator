@@ -62,6 +62,15 @@ struct setOfPencils {
 
    void addPencil(std::vector<CellID> idsIn, Real xIn, Real yIn, bool periodicIn, std::vector<uint> pathIn) {
       N++;
+      // If necessary, add the zero cells to the beginning and end
+      if (idsIn.front() != 0) {
+         idsIn.insert(idsIn.begin(),0);
+         idsIn.insert(idsIn.begin(),0);
+      }
+      if (idsIn.back() != 0) {
+         idsIn.push_back(0);
+         idsIn.push_back(0);
+      }
       sumOfLengths += idsIn.size();
       lengthOfPencils.push_back(idsIn.size());
       idsStart.push_back(ids.size());
@@ -140,7 +149,7 @@ struct setOfPencils {
                }
             }
          }
-      }
+      } // end parallel region
 
       bool firstPencil = true;
       const auto copy_of_path = path.at(myPencilId);
@@ -167,7 +176,7 @@ struct setOfPencils {
          auto myX = copy_of_x + signX * 0.25 * dx;
          auto myY = copy_of_y + signY * 0.25 * dy;
 
-         if(firstPencil) {
+         if (firstPencil) {
             //TODO: set x and y correctly. Right now they are not used anywhere.
             path.at(myPencilId).push_back(step);
             x.at(myPencilId) = myX;
@@ -176,16 +185,6 @@ struct setOfPencils {
          } else {
             auto myPath = copy_of_path;
             myPath.push_back(step);
-            // If necessary, add the zero cells to the beginning and end
-            if (myIds.front() != 0) {
-               myIds.insert(myIds.begin(),0);
-               myIds.insert(myIds.begin(),0);
-            }
-            if (myIds.back() != 0) {
-               myIds.push_back(0);
-               myIds.push_back(0);
-            }
-
             addPencil(myIds, myX, myY, periodic.at(myPencilId), myPath);
          }
       }
