@@ -61,16 +61,15 @@ void propagatePencil(
 
    // Go over length of propagated cells
    for (int i = VLASOV_STENCIL_WIDTH; i < lengthOfPencil-VLASOV_STENCIL_WIDTH; i++){
-
       // Get pointers to block data used for output.
       // CUDATODO: use blockGID to get pointers here
       Realf* block_data_m1 = blockDataPointer[i - 1];
-      Realf* block_data =    blockDataPointer[i];
+      Realf* block_data    = blockDataPointer[i];
       Realf* block_data_p1 = blockDataPointer[i + 1];
       // Cells which shouldn't be written to (e.g. sysboundary cells) have a targetRatio of 0
       // Also need to check if pointer is valid, because a cell can be missing an elsewhere propagated block
       Realf areaRatio_m1 = targetRatios[i - 1];
-      Realf areaRatio =    targetRatios[i];
+      Realf areaRatio    = targetRatios[i];
       Realf areaRatio_p1 = targetRatios[i + 1];
 
       Realf vector[VECL];
@@ -351,7 +350,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
 
          phiprof::start(t1); // mapping (top-level)
 
-         // Load data for pencils. This can also be made into a kernel
+         // Load data for pencils.
          phiprof::start(t2);
          for (uint pencili = 0; pencili < DimensionPencils[dimension].N; ++pencili){
             int nonEmptyBlocks = 0;
@@ -385,16 +384,15 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
 
          phiprof::start(t3);
          // reset blocks in all non-sysboundary neighbor spatial cells for this block id
-         for (CellID spatial_cell_id: DimensionTargetCells[dimension]) { //allTargetCells
-            SpatialCell* spatial_cell = mpiGrid[spatial_cell_id];
-            // Check for null and system boundary
-            if (spatial_cell && spatial_cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+         for (CellID target_cell_id: DimensionTargetCells[dimension]) {
+            SpatialCell* target_cell = mpiGrid[target_cell_id];
+            if (target_cell) {
                // Get local velocity block id
-               const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blockGID, popID);
+               const vmesh::LocalID blockLID = target_cell->get_velocity_block_local_id(blockGID, popID);
                // Check for invalid block id
                if (blockLID != vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>::invalidLocalID()) {
                   // Get a pointer to the block data
-                  Realf* blockData = spatial_cell->get_data(blockLID, popID);
+                  Realf* blockData = target_cell->get_data(blockLID, popID);
                   memset(blockData, 0, WID3*sizeof(Realf));
                }
             }
