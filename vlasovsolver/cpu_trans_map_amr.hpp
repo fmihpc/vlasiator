@@ -23,7 +23,6 @@
 #define CPU_TRANS_MAP_AMR_H
 
 #include <vector>
-
 #include "vec.h"
 #include "../common.h"
 #include "../spatial_cell.hpp"
