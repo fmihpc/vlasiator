@@ -65,8 +65,8 @@ testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 MPT_VERSION = 4.0.3
 JEMALLOC_VERSION = 5.2.1
 LIBRARY_PREFIX = /users/kempf/libraries_rhel8_openmpi/
-LIBRARY_PREFIX2 = /projappl/project_2000203/libraries_rhel8_gcccuda/
-#LIBRARY_PREFIX2 = /projappl/project_2000203/libraries_rhel8_gcc/
+#LIBRARY_PREFIX2 = /projappl/project_2000203/libraries_rhel8_gcccuda/
+LIBRARY_PREFIX2 = /projappl/project_2000203/libraries_rhel8_gcc/
 
 
 #compiled libraries

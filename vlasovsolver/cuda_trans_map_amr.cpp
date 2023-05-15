@@ -408,16 +408,16 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
 
          phiprof::start(t3);
          // reset blocks in all non-sysboundary neighbor spatial cells for this block id
-         for (CellID spatial_cell_id: DimensionTargetCells[dimension]) { //allTargetCells
-            SpatialCell* spatial_cell = mpiGrid[spatial_cell_id];
+         for (CellID target_cell_id: DimensionTargetCells[dimension]) {
+            SpatialCell* target_cell = mpiGrid[target_cell_id];
             // Check for null and system boundary
-            if (spatial_cell && spatial_cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+            if (target_cell && target_cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
                // Get local velocity block id
-               const vmesh::LocalID blockLID = spatial_cell->get_velocity_block_local_id(blockGID, popID);
+               const vmesh::LocalID blockLID = target_cell->get_velocity_block_local_id(blockGID, popID);
                // Check for invalid block id
                if (blockLID != vmesh::VelocityMesh::invalidLocalID()) {
                   // Get a pointer to the block data
-                  Realf* blockData = spatial_cell->get_data(blockLID, popID);
+                  Realf* blockData = target_cell->get_data(blockLID, popID);
                   // CUDATODO: Replace with memset when data exists on device
                   // cudaStream_t stream = cuda_getStream();
                   // HANDLE_ERROR( cudaMemsetAsync(blockData, 0, WID3*sizeof(Realf), stream) );

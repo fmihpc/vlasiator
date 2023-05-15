@@ -42,8 +42,8 @@
 #include "device_launch_parameters.h"
 #include "cuda.h"
 #include "cuda_runtime.h"
-#include "definitions.h"
 #include "include/splitvector/splitvec.h"
+#include "definitions.h"
 #include "vlasovsolver/vec.h"
 #include "velocity_mesh_parameters.h"
 
@@ -130,8 +130,6 @@ struct Column {
    int kBegin;                                    // Actual un-sheared starting block index
    int i,j;                                       // Blocks' perpendicular coordinates
 };
-
-#include "include/splitvector/splitvec.h"
 
 struct ColumnOffsets : public Managed {
    split::SplitVector<uint> columnBlockOffsets; // indexes where columns start (in blocks, length totalColumns)

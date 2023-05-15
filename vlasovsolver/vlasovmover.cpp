@@ -87,12 +87,12 @@ void calculateSpatialTranslation(
 
     int myRank;
     MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-   
+
    int bt=phiprof::initializeTimer("barrier-trans-pre-z","Barriers","MPI");
    phiprof::start(bt);
    MPI_Barrier(MPI_COMM_WORLD);
    phiprof::stop(bt);
- 
+
     // ------------- SLICE - map dist function in Z --------------- //
    if(P::zcells_ini > 1){
 
@@ -141,7 +141,7 @@ void calculateSpatialTranslation(
    phiprof::start(bt);
    MPI_Barrier(MPI_COMM_WORLD);
    phiprof::stop(bt);
-   
+
    // ------------- SLICE - map dist function in X --------------- //
    if(P::xcells_ini > 1){
 
@@ -152,7 +152,7 @@ void calculateSpatialTranslation(
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false,AMRtranslationActive);
       mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_X_NEIGHBORHOOD_ID);
       phiprof::stop(trans_timer);
-      
+
       // bt=phiprof::initializeTimer("barrier-trans-pre-trans_map_1d-x","Barriers","MPI");
       // phiprof::start(bt);
       // MPI_Barrier(MPI_COMM_WORLD);
@@ -201,7 +201,7 @@ void calculateSpatialTranslation(
       SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false,AMRtranslationActive);
       mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
       phiprof::stop(trans_timer);
-      
+
       // bt=phiprof::initializeTimer("barrier-trans-pre-trans_map_1d-y","Barriers","MPI");
       // phiprof::start(bt);
       // MPI_Barrier(MPI_COMM_WORLD);
@@ -210,13 +210,13 @@ void calculateSpatialTranslation(
       t1 = MPI_Wtime();
       phiprof::start("compute-mapping-y");
 #ifdef USE_CUDA
-      cuda_trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsy, nPencils, 1,dt,popID); // map along y//      
+      cuda_trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsy, nPencils, 1,dt,popID); // map along y//
 #else
-      trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsy, nPencils, 1,dt,popID); // map along y//      
+      trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsy, nPencils, 1,dt,popID); // map along y//
 #endif
       phiprof::stop("compute-mapping-y");
       time += MPI_Wtime() - t1;
-      
+
       bt=phiprof::initializeTimer("barrier-trans-pre-update_remote-y","Barriers","MPI");
       phiprof::start(bt);
       MPI_Barrier(MPI_COMM_WORLD);
@@ -392,7 +392,9 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
       // Start parallel acceleration region.
 
       // Set correct device (required for multi-GPU systems)
+      #ifdef USE_CUDA
       cuda_set_device();
+      #endif
       #pragma omp for schedule(dynamic,1)
       for (size_t c=0; c<propagatedCells.size(); ++c) {
          const CellID cellID = propagatedCells[c];

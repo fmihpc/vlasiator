@@ -203,6 +203,10 @@ void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Ca
 
    // These neighborhoods now include the AMR addition beyond the regular vlasov stencil
    int neighborhood = getNeighborhood(dimension,VLASOV_STENCIL_WIDTH);
+   stringstream ss;
+   for (auto j = 0; j < L; ++j) {
+      ss<< ids[j] << " ";
+   }
 
    // Insert pointers for neighbors of ids.front() and ids.back()
    const auto* frontNbrPairs = mpiGrid.get_neighbors_of(ids[VLASOV_STENCIL_WIDTH], neighborhood);
@@ -948,7 +952,7 @@ bool checkPencils(
  */
 void printPencilsFunc(const setOfPencils& pencils, const uint dimension, const int myRank,const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
 
-   // Print out ids of pencils (if needed for debugging)
+// Print out ids of pencils (if needed for debugging)
    uint ibeg = 0;
    uint iend = 0;
    stringstream ss;
