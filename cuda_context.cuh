@@ -43,6 +43,7 @@
 #include "cuda.h"
 #include "cuda_runtime.h"
 #include "include/splitvector/splitvec.h"
+#include "include/hashinator/hashinator.h"
 #include "definitions.h"
 #include "vlasovsolver/vec.h"
 #include "velocity_mesh_parameters.h"
@@ -93,6 +94,20 @@ public:
       cudaFree(ptr);
    }
 
+};
+
+// Predicate rule for hashinator for extracting all valid elements
+template <typename T, typename U>
+struct Rule{
+   Rule(){}
+   __host__ __device__
+   inline bool operator()( Hashinator::hash_pair<T,U>& element)const{
+      if (element.first!=std::numeric_limits<vmesh::GlobalID>::max() && element.first!=std::numeric_limits<vmesh::GlobalID>::max()-1  ){return true;}
+      //KEY_TYPE EMPTYBUCKET = std::numeric_limits<KEY_TYPE>::max(),
+      //   KEY_TYPE TOMBSTONE = EMPTYBUCKET - 1,
+      //if (element.first< 1000 ){return true;}
+      return false;
+   }
 };
 
 #define DIMS 1

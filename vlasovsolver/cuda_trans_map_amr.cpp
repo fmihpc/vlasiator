@@ -7,6 +7,7 @@
 
 #include "cuda_trans_map_amr.hpp"
 #include "cpu_trans_pencils.hpp"
+#include "../cuda_context.cuh"
 
 #include "device_launch_parameters.h"
 #include "cuda.h"
@@ -377,8 +378,8 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
          allCellsPointer[celli] = mpiGrid[allCells[celli]];
          (*allVmeshPointer)[celli] = mpiGrid[allCells[celli]]->get_velocity_mesh(popID);
          // Prefetches
-         // allCellsPointer[celli]->get_velocity_mesh(popID)->dev_prefetchHost();
-         // allCellsPointer[celli]->get_velocity_blocks(popID)->dev_prefetchHost();
+         allCellsPointer[celli]->get_velocity_mesh(popID)->dev_prefetchHost();
+         allCellsPointer[celli]->get_velocity_blocks(popID)->dev_prefetchHost();
          // allCellsPointer[celli]->get_velocity_mesh(popID)->dev_prefetchDevice();
          // allCellsPointer[celli]->get_velocity_blocks(popID)->dev_prefetchDevice();
       }
@@ -400,12 +401,11 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    phiprof::start("trans-amr-buildBlockList");
    // Get a unique unsorted list of blockids that are in any of the
    // propagated cells.
-   std::vector<vmesh::GlobalID> unionOfBlocks;
+   split::SplitVector<vmesh::GlobalID> unionOfBlocks;
+   unionOfBlocks.optimizeGPU();
    const vmesh::LocalID HashmapReqSize = ceil(log2(vmesh->size())) +3;
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *unionOfBlocksSet = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(HashmapReqSize);
-
    const uint nCudaBlocks = nAllCells > CUDABLOCKS ? CUDABLOCKS : nAllCells;
-   //HANDLE_ERROR( cudaStreamSynchronize(bgStream) ); // Ensure vmesh pointers have arrived
    gather_vmesh_pointers_kernel<<<nCudaBlocks, CUDATHREADS, 0, bgStream>>> (
       unionOfBlocksSet,
       allVmeshPointer,
@@ -413,26 +413,8 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
       );
    HANDLE_ERROR( cudaPeekAtLastError() );
    HANDLE_ERROR( cudaStreamSynchronize(bgStream) );
-
-// std::unordered_set<vmesh::GlobalID> unionOfBlocksSet;
-// #pragma omp parallel
-//    {
-//       cuda_set_device();
-//       std::unordered_set<vmesh::GlobalID> thread_unionOfBlocksSet;
-// #pragma omp for
-//       for(unsigned int i=0; i<allCellsPointer.size(); i++) {
-//          auto cell = &allCellsPointer[i];
-//          vmesh::VelocityMesh* cvmesh = (*cell)->get_velocity_mesh(popID);
-//          for (vmesh::LocalID block_i=0; block_i< cvmesh->size(); ++block_i) {
-//             thread_unionOfBlocksSet.insert(cvmesh->getGlobalID(block_i));
-//          }
-//       }
-// #pragma omp critical
-//       {
-//          unionOfBlocksSet.insert(thread_unionOfBlocksSet.begin(), thread_unionOfBlocksSet.end());
-//       } // pragma omp critical
-//    } // pragma omp parallel
-//    unionOfBlocks.insert(unionOfBlocks.end(), unionOfBlocksSet.begin(), unionOfBlocksSet.end());
+   const uint nAllBlocks = unionOfBlocksSet->extractKeysByPattern(unionOfBlocks,Rule<vmesh::GlobalID,vmesh::LocalID>(),bgStream);
+   HANDLE_ERROR( cudaStreamSynchronize(bgStream) );
    phiprof::stop("trans-amr-buildBlockList");
 
    /***********************/

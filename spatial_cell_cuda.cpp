@@ -37,20 +37,6 @@
 
 using namespace std;
 
-// Predicate rule for hashinator for extracting all valid elements
-template <typename T, typename U>
-struct Rule{
-   Rule(){}
-   __host__ __device__
-   inline bool operator()( Hashinator::hash_pair<T,U>& element)const{
-      if (element.first!=std::numeric_limits<vmesh::GlobalID>::max() && element.first!=std::numeric_limits<vmesh::GlobalID>::max()-1  ){return true;}
-      //KEY_TYPE EMPTYBUCKET = std::numeric_limits<KEY_TYPE>::max(),
-      //   KEY_TYPE TOMBSTONE = EMPTYBUCKET - 1,
-      //if (element.first< 1000 ){return true;}
-      return false;
-   }
-};
-
 /** CUDA kernel for identifying which blocks have relevant content */
 __global__ void update_velocity_block_content_lists_kernel (
    vmesh::VelocityMesh *vmesh,
