@@ -47,6 +47,9 @@
 
 #include <stdio.h>
 
+// Assumes CUDA Hardware with warpsize 32
+#define FULL_MASK 0xffffffff
+
 static const double BLOCK_ALLOCATION_PADDING = 2.5;
 static const double BLOCK_ALLOCATION_FACTOR = 1.8;
 
