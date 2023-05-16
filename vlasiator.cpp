@@ -275,11 +275,6 @@ int main(int argn,char* args[]) {
       exit(1);
    }
 
-   #ifdef USE_CUDA
-   // Activate device, create streams
-   cuda_init_device();
-   #endif
-   
    phiprof::initialize();
 
    double initialWtime =  MPI_Wtime();
