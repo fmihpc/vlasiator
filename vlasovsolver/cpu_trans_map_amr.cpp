@@ -45,7 +45,7 @@ void propagatePencil(
    const Realv threshold,
    Realf** blockDataPointer, // Spacing is for sources, but will be written into
    Realf* targetRatios, // Vector holding target ratios
-   const unsigned int* const cellid_transpose
+   const unsigned int* const vcell_transpose
 ) {
    // Get velocity data from vmesh that we need later to calculate the translation
    velocity_block_indices_t block_indices;
@@ -122,7 +122,7 @@ void propagatePencil(
                // Loop over 3rd (vectorized) vspace dimension
                #pragma omp simd
                for (uint iv = 0; iv < VECL; iv++) {
-                  block_data[cellid_transpose[iv + planeVector * VECL + k * WID2]] += vector[iv];
+                  block_data[vcell_transpose[iv + planeVector * VECL + k * WID2]] += vector[iv];
                }
             }
             if (areaRatio_p1 && block_data_p1) {
@@ -132,7 +132,7 @@ void propagatePencil(
                // Loop over 3rd (vectorized) vspace dimension
                #pragma omp simd
                for (uint iv = 0; iv < VECL; iv++) {
-                  block_data_p1[cellid_transpose[iv + planeVector * VECL + k * WID2]] += vector[iv];
+                  block_data_p1[vcell_transpose[iv + planeVector * VECL + k * WID2]] += vector[iv];
                }
             }
             if (areaRatio_m1 && block_data_m1) {
@@ -142,7 +142,7 @@ void propagatePencil(
                // Loop over 3rd (vectorized) vspace dimension
                #pragma omp simd
                for (uint iv = 0; iv < VECL; iv++) {
-                  block_data_m1[cellid_transpose[iv + planeVector * VECL + k * WID2]] += vector[iv];
+                  block_data_m1[vcell_transpose[iv + planeVector * VECL + k * WID2]] += vector[iv];
                }
             }
          }
@@ -159,14 +159,14 @@ void propagatePencil(
  * @param start Index from blockDataPointer to start at
  * @param int lengthOfPencil Number of spatial cells in pencil (not inclusive 2*VLASOV_STENCIL_WIDTH
  * @param values Vector into which the data should be loaded
- * @param cellid_transpose
+ * @param vcell_transpose
  * @param popID ID of the particle species.
  */
 bool copy_trans_block_data_amr(
    Realf** pencilBlockData,
    const int lengthOfPencil,
    Vec* values,
-   const unsigned int* const cellid_transpose,
+   const unsigned int* const vcell_transpose,
    const uint popID) {
 
    //  Copy volume averages of this block from all spatial cells:
@@ -177,7 +177,7 @@ bool copy_trans_block_data_amr(
          // Copy data to a temporary array and transpose values so that mapping is along k direction.
          #pragma omp simd
          for (uint i=0; i<WID3; ++i) {
-            blockValues[i] = block_data[cellid_transpose[i]];
+            blockValues[i] = block_data[vcell_transpose[i]];
          }
          // now load values into the actual values table..
          uint offset =0;
@@ -231,7 +231,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
    }
 
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
-   unsigned int cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
+   unsigned int vcell_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
    // Fiddle indices x,y,z in VELOCITY SPACE
    switch (dimension) {
    case 0:
@@ -277,7 +277,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
    for(uint celli = 0; celli < allCells.size(); celli++){
       allCellsPointer[celli] = mpiGrid[allCells[celli]];
    }
-   // init cellid_transpose (moved here to take advantage of the omp parallel region)
+   // init vcell_transpose (moved here to take advantage of the omp parallel region)
 #pragma omp parallel for collapse(3)
    for (uint k=0; k<WID; ++k) {
       for (uint j=0; j<WID; ++j) {
@@ -286,7 +286,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                i * cell_indices_to_id[0] +
                j * cell_indices_to_id[1] +
                k * cell_indices_to_id[2];
-            cellid_transpose[ i + j * WID + k * WID2] = cell;
+            vcell_transpose[ i + j * WID + k * WID2] = cell;
          }
       }
    }
@@ -378,7 +378,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
             Vec* blockDataSource = blockDataBuffer.data() + start*WID3/VECL;
             Realf** pencilBlockData = cellBlockData.data() + start;
             bool pencil_has_data = copy_trans_block_data_amr(pencilBlockData, L, blockDataSource,
-                                                             cellid_transpose, popID);
+                                                             vcell_transpose, popID);
          }
          phiprof::stop(t2);
 
@@ -426,7 +426,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
                             scalingthreshold,
                             pencilBlockData,
                             pencilRatios,
-                            cellid_transpose
+                            vcell_transpose
                );
          }
          phiprof::stop(t4);

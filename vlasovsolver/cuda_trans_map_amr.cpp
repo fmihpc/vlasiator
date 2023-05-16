@@ -18,9 +18,9 @@ using namespace spatial_cell;
 
 // indices in padded source block, which is of type Vec with VECL
 // elements in each vector.
-
 #define i_trans_ps_blockv_pencil(planeVectorIndex, planeIndex, blockIndex, lengthOfPencil) ( (blockIndex)  +  ( (planeVectorIndex) + (planeIndex) * VEC_PER_PLANE ) * ( lengthOfPencil) )
 
+// Skip remapping if whole stencil for all vector elements consists of zeroes
 CUDA_HOSTDEV inline bool check_skip_remapping(Vec* values) {
    for (int index=-VLASOV_STENCIL_WIDTH; index<VLASOV_STENCIL_WIDTH+1; ++index) {
       if (horizontal_or(values[index] > Vec(0))) return false;
@@ -49,7 +49,7 @@ void propagatePencil(
    const Realv threshold,
    Realf** blockDataPointer, // Spacing is for sources, but will be written into
    Realf* targetRatios, // Vector holding target ratios
-   const unsigned int* const cellid_transpose
+   const unsigned int* const vcell_transpose
 ) {
    // Get velocity data from vmesh that we need later to calculate the translation
    velocity_block_indices_t block_indices;
@@ -127,7 +127,7 @@ void propagatePencil(
                // Loop over 3rd (vectorized) vspace dimension
                #pragma omp simd
                for (uint iv = 0; iv < VECL; iv++) {
-                  block_data[cellid_transpose[iv + planeVector * VECL + k * WID2]] += vector[iv];
+                  block_data[vcell_transpose[iv + planeVector * VECL + k * WID2]] += vector[iv];
                }
             }
             if (areaRatio_p1 && block_data_p1) {
@@ -137,7 +137,7 @@ void propagatePencil(
                // Loop over 3rd (vectorized) vspace dimension
                #pragma omp simd
                for (uint iv = 0; iv < VECL; iv++) {
-                  block_data_p1[cellid_transpose[iv + planeVector * VECL + k * WID2]] += vector[iv];
+                  block_data_p1[vcell_transpose[iv + planeVector * VECL + k * WID2]] += vector[iv];
                }
             }
             if (areaRatio_m1 && block_data_m1) {
@@ -147,7 +147,7 @@ void propagatePencil(
                // Loop over 3rd (vectorized) vspace dimension
                #pragma omp simd
                for (uint iv = 0; iv < VECL; iv++) {
-                  block_data_m1[cellid_transpose[iv + planeVector * VECL + k * WID2]] += vector[iv];
+                  block_data_m1[vcell_transpose[iv + planeVector * VECL + k * WID2]] += vector[iv];
                }
             }
          }
@@ -164,14 +164,51 @@ void propagatePencil(
  * @param start Index from blockDataPointer to start at
  * @param int lengthOfPencil Number of spatial cells in pencil (not inclusive 2*VLASOV_STENCIL_WIDTH
  * @param values Vector into which the data should be loaded
- * @param cellid_transpose
+ * @param vcell_transpose
  * @param popID ID of the particle species.
  */
+// __global__ void copy_trans_block_data_amr_kernel(
+//    Realf** pencilBlockData,
+//    const int lengthOfPencil,
+//    Vec* values,
+//    const unsigned int* const vcell_transpose,
+//    const uint popID) {
+
+//    //  Copy volume averages of this block from all spatial cells:
+//    for (int b = 0; b < lengthOfPencil; b++) {
+//       if(pencilBlockData[b] != NULL) {
+//          Realf blockValues[WID3];
+//          Realf* block_data = pencilBlockData[b];
+//          // Copy data to a temporary array and transpose values so that mapping is along k direction.
+//          #pragma omp simd
+//          for (uint i=0; i<WID3; ++i) {
+//             blockValues[i] = block_data[vcell_transpose[i]];
+//          }
+//          // now load values into the actual values table..
+//          uint offset =0;
+//          for (uint k=0; k<WID; k++) {
+//             for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
+//                // store data, when reading data from data we swap dimensions
+//                // using precomputed plane_index_to_id and cell_indices_to_id
+//                values[i_trans_ps_blockv_pencil(planeVector, k, b, lengthOfPencil)].load(blockValues + offset);
+//                offset += VECL;
+//             }
+//          }
+//       } else {
+//          for (uint k=0; k<WID; ++k) {
+//             for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++) {
+//                values[i_trans_ps_blockv_pencil(planeVector, k, b, lengthOfPencil)] = Vec(0);
+//             }
+//          }
+//       }
+//    }
+//    return true;
+// }
 bool copy_trans_block_data_amr(
    Realf** pencilBlockData,
    const int lengthOfPencil,
    Vec* values,
-   const unsigned int* const cellid_transpose,
+   const unsigned int* const vcell_transpose,
    const uint popID) {
 
    //  Copy volume averages of this block from all spatial cells:
@@ -182,7 +219,7 @@ bool copy_trans_block_data_amr(
          // Copy data to a temporary array and transpose values so that mapping is along k direction.
          #pragma omp simd
          for (uint i=0; i<WID3; ++i) {
-            blockValues[i] = block_data[cellid_transpose[i]];
+            blockValues[i] = block_data[vcell_transpose[i]];
          }
          // now load values into the actual values table..
          uint offset =0;
@@ -203,6 +240,29 @@ bool copy_trans_block_data_amr(
       }
    }
    return true;
+}
+
+/* Mini-kernel for looping over all available velocity meshes and gathering
+   the union of all existing blocks.
+*/
+__global__ void gather_vmesh_pointers_kernel(
+      Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *unionOfBlocksSet,
+      split::SplitVector<vmesh::VelocityMesh*> *allVmeshPointer,
+      const uint nAllCells
+   ) {
+   const int cudaBlocks = gridDim.x;
+   const int blocki = blockIdx.x;
+   const int warpSize = blockDim.x*blockDim.y*blockDim.z;
+   const vmesh::LocalID ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
+
+   for (vmesh::LocalID cellIndex=blocki; cellIndex<nAllCells; cellIndex += cudaBlocks) {
+      vmesh::VelocityMesh* thisVmesh = allVmeshPointer->at(cellIndex);
+      vmesh::LocalID nBlocks = thisVmesh->size();
+      for (vmesh::LocalID blockIndex=ti; blockIndex<nBlocks; blockIndex += warpSize) {
+         vmesh::GlobalID GID = thisVmesh->getGlobalID(blockIndex);
+         unionOfBlocksSet->set_element(GID,GID);
+      }
+   }
 }
 
 /* Map velocity blocks in all local cells forward by one time step in one spatial dimension.
@@ -236,7 +296,7 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    }
 
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
-   unsigned int cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
+   unsigned int vcell_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
    // Fiddle indices x,y,z in VELOCITY SPACE
    switch (dimension) {
    case 0:
@@ -266,30 +326,7 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
       break;
    }
 
-   // Assuming 1 neighbor in the target array because of the CFL condition
-   // In fact propagating to > 1 neighbor will give an error
-   // const uint nTargetNeighborsPerPencil = 1;
-
-   // Vector with all cell ids
-   vector<CellID> allCells(localPropagatedCells);
-   allCells.insert(allCells.end(), remoteTargetCells.begin(), remoteTargetCells.end());
-
-   // Vectors of pointers to the cell structs
-   std::vector<SpatialCell*> allCellsPointer(allCells.size());
-
-   // Initialize allCellsPointer
-   #pragma omp parallel
-   {
-      cuda_set_device();
-#pragma omp for
-      for(uint celli = 0; celli < allCells.size(); celli++){
-         allCellsPointer[celli] = mpiGrid[allCells[celli]];
-         // Prefetches
-         allCellsPointer[celli]->get_velocity_mesh(popID)->dev_prefetchHost();
-         allCellsPointer[celli]->get_velocity_blocks(popID)->dev_prefetchHost();
-      }
-   }
-   // init cellid_transpose (moved here to take advantage of the omp parallel region)
+   // init vcell_transpose (moved here to take advantage of the omp parallel region)
 #pragma omp parallel for collapse(3)
    for (uint k=0; k<WID; ++k) {
       for (uint j=0; j<WID; ++j) {
@@ -298,13 +335,56 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
                i * cell_indices_to_id[0] +
                j * cell_indices_to_id[1] +
                k * cell_indices_to_id[2];
-            cellid_transpose[ i + j * WID + k * WID2] = cell;
+            vcell_transpose[ i + j * WID + k * WID2] = cell;
          }
       }
    }
 
    // Ensure enough temporary GPU memory availanble
    cuda_vlasov_allocate(DimensionPencils[dimension].sumOfLengths);
+
+   // Thread id used for persistent device memory pointers
+#ifdef _OPENMP
+      const uint cpuThreadID = omp_get_thread_num();
+#else
+      const uint cpuThreadID = 0;
+#endif
+   cudaStream_t bgStream = cuda_getStream(); // uses stream assigned to thread 0, not the blocking default stream
+
+   // Copy indexing information to device
+   HANDLE_ERROR( cudaMemcpy(dev_cell_indices_to_id[cpuThreadID], cell_indices_to_id, 3*sizeof(uint), cudaMemcpyHostToDevice) );
+   HANDLE_ERROR( cudaMemcpy(dev_vcell_transpose[cpuThreadID], vcell_transpose, WID3*sizeof(uint), cudaMemcpyHostToDevice) );
+
+
+   // Assuming 1 neighbor in the target array because of the CFL condition
+   // In fact propagating to > 1 neighbor will give an error
+   // const uint nTargetNeighborsPerPencil = 1;
+
+   // Vector with all cell ids
+   vector<CellID> allCells(localPropagatedCells);
+   allCells.insert(allCells.end(), remoteTargetCells.begin(), remoteTargetCells.end());
+   const uint nAllCells = allCells.size();
+   // Vectors of pointers to the cell structs
+   std::vector<SpatialCell*> allCellsPointer(nAllCells);
+   split::SplitVector<vmesh::VelocityMesh*> *allVmeshPointer = new split::SplitVector<vmesh::VelocityMesh*>(nAllCells);
+
+   // Initialize allCellsPointer
+   #pragma omp parallel
+   {
+      cuda_set_device();
+#pragma omp for
+      for(uint celli = 0; celli < nAllCells; celli++){
+         allCellsPointer[celli] = mpiGrid[allCells[celli]];
+         (*allVmeshPointer)[celli] = mpiGrid[allCells[celli]]->get_velocity_mesh(popID);
+         // Prefetches
+         // allCellsPointer[celli]->get_velocity_mesh(popID)->dev_prefetchHost();
+         // allCellsPointer[celli]->get_velocity_blocks(popID)->dev_prefetchHost();
+         // allCellsPointer[celli]->get_velocity_mesh(popID)->dev_prefetchDevice();
+         // allCellsPointer[celli]->get_velocity_blocks(popID)->dev_prefetchDevice();
+      }
+   }
+   // Prefetch vmesh pointers to GPU
+   allVmeshPointer->optimizeGPU(bgStream);
 
    if (Parameters::prepareForRebalance == true) {
       for (uint i=0; i<localPropagatedCells.size(); i++) {
@@ -318,29 +398,41 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    const vmesh::VelocityMesh* vmesh = allCellsPointer[0]->get_velocity_mesh(popID);
 
    phiprof::start("trans-amr-buildBlockList");
-   // CUDATODO: Gather into Hashmap-set on-device, one cudablock per spatialcell
-   // Get a unique sorted list of blockids that are in any of the
+   // Get a unique unsorted list of blockids that are in any of the
    // propagated cells.
    std::vector<vmesh::GlobalID> unionOfBlocks;
-   std::unordered_set<vmesh::GlobalID> unionOfBlocksSet;
-#pragma omp parallel
-   {
-      cuda_set_device();
-      std::unordered_set<vmesh::GlobalID> thread_unionOfBlocksSet;
-#pragma omp for
-      for(unsigned int i=0; i<allCellsPointer.size(); i++) {
-         auto cell = &allCellsPointer[i];
-         vmesh::VelocityMesh* cvmesh = (*cell)->get_velocity_mesh(popID);
-         for (vmesh::LocalID block_i=0; block_i< cvmesh->size(); ++block_i) {
-            thread_unionOfBlocksSet.insert(cvmesh->getGlobalID(block_i));
-         }
-      }
-#pragma omp critical
-      {
-         unionOfBlocksSet.insert(thread_unionOfBlocksSet.begin(), thread_unionOfBlocksSet.end());
-      } // pragma omp critical
-   } // pragma omp parallel
-   unionOfBlocks.insert(unionOfBlocks.end(), unionOfBlocksSet.begin(), unionOfBlocksSet.end());
+   const vmesh::LocalID HashmapReqSize = ceil(log2(vmesh->size())) +3;
+   Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *unionOfBlocksSet = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(HashmapReqSize);
+
+   const uint nCudaBlocks = nAllCells > CUDABLOCKS ? CUDABLOCKS : nAllCells;
+   //HANDLE_ERROR( cudaStreamSynchronize(bgStream) ); // Ensure vmesh pointers have arrived
+   gather_vmesh_pointers_kernel<<<nCudaBlocks, CUDATHREADS, 0, bgStream>>> (
+      unionOfBlocksSet,
+      allVmeshPointer,
+      nAllCells
+      );
+   HANDLE_ERROR( cudaPeekAtLastError() );
+   HANDLE_ERROR( cudaStreamSynchronize(bgStream) );
+
+// std::unordered_set<vmesh::GlobalID> unionOfBlocksSet;
+// #pragma omp parallel
+//    {
+//       cuda_set_device();
+//       std::unordered_set<vmesh::GlobalID> thread_unionOfBlocksSet;
+// #pragma omp for
+//       for(unsigned int i=0; i<allCellsPointer.size(); i++) {
+//          auto cell = &allCellsPointer[i];
+//          vmesh::VelocityMesh* cvmesh = (*cell)->get_velocity_mesh(popID);
+//          for (vmesh::LocalID block_i=0; block_i< cvmesh->size(); ++block_i) {
+//             thread_unionOfBlocksSet.insert(cvmesh->getGlobalID(block_i));
+//          }
+//       }
+// #pragma omp critical
+//       {
+//          unionOfBlocksSet.insert(thread_unionOfBlocksSet.begin(), thread_unionOfBlocksSet.end());
+//       } // pragma omp critical
+//    } // pragma omp parallel
+//    unionOfBlocks.insert(unionOfBlocks.end(), unionOfBlocksSet.begin(), unionOfBlocksSet.end());
    phiprof::stop("trans-amr-buildBlockList");
 
    /***********************/
@@ -402,7 +494,7 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
             Vec* blockDataSource = dev_blockDataSource[cpuThreadID]+start*WID3/VECL;
             Realf** pencilBlockData = cellBlockData->data() + start;
             bool pencil_has_data = copy_trans_block_data_amr(pencilBlockData, L, blockDataSource,
-                                                             cellid_transpose, popID);
+                                                             vcell_transpose, popID);
          }
          phiprof::stop(t2);
 
@@ -455,7 +547,7 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
                             scalingthreshold,
                             pencilBlockData,
                             pencilRatios,
-                            cellid_transpose
+                            vcell_transpose
                );
          }
          phiprof::stop(t4);

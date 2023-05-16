@@ -208,6 +208,7 @@ extern Vec *dev_blockDataSource[];
 extern Realf *returnRealf[];
 extern uint *dev_cell_indices_to_id[];
 extern uint *dev_block_indices_to_id[];
+extern uint *dev_vcell_transpose[];
 
 // Unified (managed) memory variables
 extern ColumnOffsets *unif_columnOffsetData[];

@@ -239,14 +239,14 @@ void compute_spatial_target_neighbors(const dccrg::Dccrg<SpatialCell,dccrg::Cart
  * spatial neighbors of this cell in the propagated dimension.
  * @param blockGID Global ID of the velocity block.
  * @param values Vector where loaded data is stored.
- * @param cellid_transpose
+ * @param vcell_transpose
  * @param popID ID of the particle species.
  */
 void copy_trans_block_data(
     SpatialCell** source_neighbors,
     const vmesh::GlobalID blockGID,
     Vec* values,
-    const unsigned int* const cellid_transpose,
+    const unsigned int* const vcell_transpose,
     const uint popID) { 
 
    /*load pointers to blocks and prefetch them to L1*/
@@ -297,7 +297,7 @@ void copy_trans_block_data(
          // is fine. This null_block has a value of zero in data, and that
          // is thus the velocity space boundary
          for (uint i=0; i<WID3; ++i) {
-            blockValues[i] = block_data[cellid_transpose[i]];
+            blockValues[i] = block_data[vcell_transpose[i]];
          }
 
          // now load values into the actual values table..
@@ -339,7 +339,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    // Contains a block, and its spatial neighbours in one dimension.
    Realv dz,dvz,vz_min; // z_min,
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
-   unsigned int  cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
+   unsigned int  vcell_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
 
    if(localPropagatedCells.size() == 0)
       return true;
@@ -441,7 +441,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
                i * cell_indices_to_id[0] +
                j * cell_indices_to_id[1] +
                k * cell_indices_to_id[2];
-            cellid_transpose[ i + j * WID + k * WID2] = cell;
+            vcell_transpose[ i + j * WID + k * WID2] = cell;
          }
       }
    }
@@ -496,7 +496,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
             // buffer where we read in source data. i index vectorized
             Vec values[(1 + 2 * VLASOV_STENCIL_WIDTH) * WID3 / VECL];
-            copy_trans_block_data(sourceNeighbors.data() + celli * nSourceNeighborsPerCell, blockGID, values, cellid_transpose, popID);
+            copy_trans_block_data(sourceNeighbors.data() + celli * nSourceNeighborsPerCell, blockGID, values, vcell_transpose, popID);
             velocity_block_indices_t block_indices;
             uint8_t refLevel;
             vmesh->getIndices(blockGID,refLevel, block_indices[0], block_indices[1], block_indices[2]);
@@ -579,7 +579,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
                         // dimensions
                         // using precomputed plane_index_to_id and
                         // cell_indices_to_id
-                        targetBlockData[(celli * 3 + b + 1) * WID3 +  cellid_transpose[i + planeVector * VECL + k * WID2]] =
+                        targetBlockData[(celli * 3 + b + 1) * WID3 +  vcell_transpose[i + planeVector * VECL + k * WID2]] =
                            vector[i];
                      }
                   }

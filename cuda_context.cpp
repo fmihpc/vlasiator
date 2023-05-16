@@ -49,6 +49,7 @@ bool needAttachedStreams = false;
 Realf *returnRealf[MAXCPUTHREADS];
 uint *dev_cell_indices_to_id[MAXCPUTHREADS];
 uint *dev_block_indices_to_id[MAXCPUTHREADS];
+uint *dev_vcell_transpose[MAXCPUTHREADS];
 
 ColumnOffsets *unif_columnOffsetData[MAXCPUTHREADS];
 Column *unif_columns[MAXCPUTHREADS];
@@ -241,6 +242,7 @@ __host__ void cuda_vlasov_allocate_perthread (
    // Mallocs should be in increments of 256 bytes. WID3 is at least 64, and len(Realf) is at least 4, so this is true.
    HANDLE_ERROR( cudaMalloc((void**)&dev_cell_indices_to_id[cpuThreadID], 3*sizeof(uint)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_block_indices_to_id[cpuThreadID], 3*sizeof(uint)) );
+   HANDLE_ERROR( cudaMalloc((void**)&dev_vcell_transpose[cpuThreadID], WID3*sizeof(uint)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_blockDataOrdered[cpuThreadID], blockAllocationCount * (WID3 / VECL) * sizeof(Vec)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_BlocksID_mapped[cpuThreadID], blockAllocationCount*sizeof(vmesh::GlobalID)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_BlocksID_mapped_sorted[cpuThreadID], blockAllocationCount*sizeof(vmesh::GlobalID)) );
@@ -257,6 +259,7 @@ __host__ void cuda_vlasov_deallocate_perthread (
    cuda_vlasov_allocatedSize = 0;
    HANDLE_ERROR( cudaFree(dev_cell_indices_to_id[cpuThreadID]) );
    HANDLE_ERROR( cudaFree(dev_block_indices_to_id[cpuThreadID]) );
+   HANDLE_ERROR( cudaFree(dev_vcell_transpose[cpuThreadID]) );
    HANDLE_ERROR( cudaFree(dev_blockDataOrdered[cpuThreadID]) );
    HANDLE_ERROR( cudaFree(dev_BlocksID_mapped[cpuThreadID]) );
    HANDLE_ERROR( cudaFree(dev_BlocksID_mapped_sorted[cpuThreadID]) );
