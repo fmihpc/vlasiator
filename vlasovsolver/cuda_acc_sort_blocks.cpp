@@ -270,16 +270,22 @@ __global__ void construct_columns_kernel(
          vmesh::LocalID this_col_length = 0;
          // Now trial by warpSize to see where column ends
          for (vmesh::LocalID ci=0; ci<blocks_in_columnset; ci += warpSize) {
-            vmesh::LocalID threadval = warpSize;
+            int notInColumn = 1;
             if (ci+ti < blocks_in_columnset) {
                // This evaluates if the block at the target point is no longer within the same column
-               if ( (blocksID_mapped_sorted[i+ci+ti] % DX) != (dimension_id + ci+ti) ||
-                    ( (blocksID_mapped_sorted[i+ci+ti] / DX) != column_id ) ) {
-                  threadval = ti;
+               if ( (blocksID_mapped_sorted[i+ci+ti] % DX) == (dimension_id + ci+ti) &&
+                    ( (blocksID_mapped_sorted[i+ci+ti] / DX) == column_id ) ) {
+                  notInColumn = 0;
                }
             }
             // Warp vote to find first index (potentially) outside old column
-            vmesh::LocalID minstep = __reduce_min_sync(0xFFFFFFFF, threadval);
+            unsigned ballot_result = __ballot_sync(FULL_MASK, notInColumn);
+            vmesh::LocalID minstep = __ffs(ballot_result); // Find first significant
+            if (minstep==0) {
+               minstep +=32; // no value found, jump whole warpSize
+            } else {
+               minstep--; // give actual index
+            }
             this_col_length += minstep;
             // Exit this for loop if we reached the end of a column within a set
             if (minstep!=warpSize) {
