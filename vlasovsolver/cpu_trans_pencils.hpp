@@ -32,8 +32,10 @@ struct setOfPencils {
    uint N; // Number of pencils in the set
    uint sumOfLengths;
    std::vector< uint > lengthOfPencils; // Lengths of pencils (including stencil cells)
-   std::vector< CellID > ids; // List of pencil cells (incudingstencil cells)
+   std::vector< CellID > ids; // List of pencil cells (incuding stencil cells)
    std::vector< uint > idsStart; // List of where a pencil's CellIDs start in the ids array
+   std::vector< vmesh::VelocityMesh* > meshes; // Pointers to velocity meshes
+   std::vector< vmesh::VelocityBlockContainer* > containers; // pointers to block data containers
    std::vector< Realf > sourceDZ; // Widths of source cells
    std::vector< Realf > targetRatios; // Pencil to target cell area ratios of target cells
    std::vector< Real > x,y; // x,y - position
@@ -48,10 +50,11 @@ struct setOfPencils {
    void removeAllPencils() {
       N = 0;
       sumOfLengths = 0;
-      sumOfLengths = 0;
       lengthOfPencils.clear();
       idsStart.clear();
       ids.clear();
+      meshes.clear();
+      containers.clear();
       sourceDZ.clear();
       targetRatios.clear();
       x.clear();
@@ -75,6 +78,8 @@ struct setOfPencils {
       lengthOfPencils.push_back(idsIn.size());
       idsStart.push_back(ids.size());
       ids.insert(ids.end(),idsIn.begin(),idsIn.end());
+      meshes.resize(sumOfLengths);
+      containers.resize(sumOfLengths);
       sourceDZ.resize(sumOfLengths);
       targetRatios.resize(sumOfLengths);
       x.push_back(xIn);
@@ -91,6 +96,8 @@ struct setOfPencils {
 
       uint ibeg = idsStart[pencilId];
       ids.erase(ids.begin() + ibeg, ids.begin() + ibeg + lengthOfPencils[pencilId] + 2*VLASOV_STENCIL_WIDTH);
+      meshes.erase(meshes.begin() + ibeg, meshes.begin() + ibeg + lengthOfPencils[pencilId] + 2*VLASOV_STENCIL_WIDTH);
+      containers.erase(containers.begin() + ibeg, containers.begin() + ibeg + lengthOfPencils[pencilId] + 2*VLASOV_STENCIL_WIDTH);
       targetRatios.erase(targetRatios.begin() + ibeg, targetRatios.begin() + ibeg + lengthOfPencils[pencilId] + 2*VLASOV_STENCIL_WIDTH);
       sourceDZ.erase(sourceDZ.begin() + ibeg, sourceDZ.begin() + ibeg + lengthOfPencils[pencilId] + 2*VLASOV_STENCIL_WIDTH);
       idsStart.erase(idsStart.begin() + pencilId);
