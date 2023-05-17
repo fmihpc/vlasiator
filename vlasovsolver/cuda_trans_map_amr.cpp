@@ -329,8 +329,9 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
       }
    }
 
-   // Ensure enough temporary GPU memory availanble
-   cuda_vlasov_allocate(DimensionPencils[dimension].sumOfLengths);
+   // Ensure enough temporary GPU memory available
+   cuint sumOfLengths = DimensionPencils[dimension].sumOfLengths;
+   cuda_vlasov_allocate(sumOfLengths);
    cudaStream_t bgStream = cuda_getStream(); // uses stream assigned to thread 0, not the blocking default stream
 
    // Copy indexing information to device. Only use first thread-array for these.
@@ -348,6 +349,10 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    // Vectors of pointers to the cell structs
    std::vector<SpatialCell*> allCellsPointer(nAllCells);
    split::SplitVector<vmesh::VelocityMesh*> *allVmeshPointer = new split::SplitVector<vmesh::VelocityMesh*>(nAllCells);
+   // pointers for pencil source cells
+   // CUDATODO: pre-allocate, here verify sufficient size
+   split::SplitVector< vmesh::VelocityMesh* > allMeshes(sumOfLengths);
+   split::SplitVector< vmesh::VelocityBlockContainer* > allContainers(sumOfLengths);
 
    // Initialize allCellsPointer. Find maximum mesh size.
    uint largestMeshSize = 0;
@@ -362,8 +367,8 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
          const uint thisMeshSize = (*allVmeshPointer)[celli]->size();
          thread_largestMeshSize = thisMeshSize > thread_largestMeshSize ? thisMeshSize : thread_largestMeshSize;
          // Prefetches
-         allCellsPointer[celli]->get_velocity_mesh(popID)->dev_prefetchHost();
-         allCellsPointer[celli]->get_velocity_blocks(popID)->dev_prefetchHost();
+         // allCellsPointer[celli]->get_velocity_mesh(popID)->dev_prefetchHost();
+         // allCellsPointer[celli]->get_velocity_blocks(popID)->dev_prefetchHost();
          // allCellsPointer[celli]->get_velocity_mesh(popID)->dev_prefetchDevice();
          // allCellsPointer[celli]->get_velocity_blocks(popID)->dev_prefetchDevice();
       }
@@ -392,12 +397,13 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    // Get a unique unsorted list of blockids that are in any of the
    // propagated cells. We launch this kernel, and do host-side pointer
    // gathering in parallel with it.
-   split::SplitVector<vmesh::GlobalID> unionOfBlocks;
-   unionOfBlocks.optimizeGPU();
+   split::SplitVector<vmesh::GlobalID> *unionOfBlocks = new split::SplitVector<vmesh::GlobalID>(1);
+   unionOfBlocks->clear();
+   unionOfBlocks->optimizeGPU();
    const vmesh::LocalID HashmapReqSize = ceil(log2(largestMeshSize)) +3;
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *unionOfBlocksSet = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(HashmapReqSize);
    const uint nCudaBlocks = nAllCells > CUDABLOCKS ? CUDABLOCKS : nAllCells;
-   std::cerr<<"nAllCells "<<nAllCells<<std::endl;
+   std::cerr<<"nAllCells "<<nAllCells<<" largest mesh size "<<largestMeshSize<<" hashmap req size "<<HashmapReqSize<<" nCudaBlocks "<<nCudaBlocks<<" CUDATHREADS "<<CUDATHREADS<<" stream "<<bgStream<<std::endl;
    gather_union_of_blocks_kernel<<<nCudaBlocks, CUDATHREADS, 0, bgStream>>> (
       unionOfBlocksSet,
       allVmeshPointer,
@@ -421,8 +427,8 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
          // Loop over cells in pencil
          for (int i = 0; i < L; i++) {
             const CellID thisCell = DimensionPencils[dimension].ids[start+i];
-            DimensionPencils[dimension].meshes[start+i] = mpiGrid[thisCell]->get_velocity_mesh(popID);
-            DimensionPencils[dimension].containers[start+i] = mpiGrid[thisCell]->get_velocity_blocks(popID);
+            allMeshes[start+i] = mpiGrid[thisCell]->get_velocity_mesh(popID);
+            allContainers[start+i] = mpiGrid[thisCell]->get_velocity_blocks(popID);
          }
       }
    }
@@ -431,7 +437,7 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    phiprof::start("trans-amr-buildBlockList");
    // Now we ensure the union of blocks gathering is complete.
    HANDLE_ERROR( cudaStreamSynchronize(bgStream) );
-   const uint nAllBlocks = unionOfBlocksSet->extractKeysByPattern(unionOfBlocks,Rule<vmesh::GlobalID,vmesh::LocalID>(),bgStream);
+   const uint nAllBlocks = unionOfBlocksSet->extractKeysByPattern(*unionOfBlocks,Rule<vmesh::GlobalID,vmesh::LocalID>(),bgStream);
    HANDLE_ERROR( cudaStreamSynchronize(bgStream) );
    phiprof::stop("trans-amr-buildBlockList");
 
@@ -453,21 +459,22 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
       #endif
       cudaStream_t stream = cuda_getStream();
       uint* dev_nonEmptyBlocks;
+      uint host_nonEmptyBlocks;
       HANDLE_ERROR( cudaMallocAsync((void**)&dev_nonEmptyBlocks, sizeof(uint), stream) );
 
       phiprof::start("prepare vectors");
       // Vector of pointers to cell block data, used for both reading and writing
       // CUDATODO: pre-allocate one per thread, here verify sufficient size
-      split::SplitVector<Realf*> *cellBlockData = new split::SplitVector<Realf*>(DimensionPencils[dimension].sumOfLengths);
+      split::SplitVector<Realf*> *cellBlockData = new split::SplitVector<Realf*>(sumOfLengths);
       split::SplitVector<uint> *pencilBlocksCount = new split::SplitVector<uint>(DimensionPencils[dimension].N);
       phiprof::stop("prepare vectors");
 
       // Loop over velocity space blocks (threaded).
 #pragma omp for schedule(guided,8)
-      for (uint blocki = 0; blocki < unionOfBlocks.size(); blocki++) {
+      for (uint blocki = 0; blocki < unionOfBlocks->size(); blocki++) {
          // Get global id of the velocity block
-         vmesh::GlobalID blockGID = unionOfBlocks[blocki];
-         uint host_nonEmptyBlocks = 0;
+         vmesh::GlobalID blockGID = unionOfBlocks->at(blocki);
+         host_nonEmptyBlocks = 0;
 
          phiprof::start(t1); // mapping (top-level)
 
@@ -477,13 +484,14 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
             int L = DimensionPencils[dimension].lengthOfPencils[pencili];
             int start = DimensionPencils[dimension].idsStart[pencili];
             // Transpose and copy block data from cells to source buffer
-            Vec* blockDataSource = dev_blockDataSource[cpuThreadID]+start*WID3/VECL;
+            vmesh::VelocityMesh** pencilVmeshPointer = allMeshes.data() + start;
+            vmesh::VelocityBlockContainer** pencilBlockContainerPointer = allContainers.data() + start;
             Realf** pencilBlockData = cellBlockData->data() + start;
-            vmesh::VelocityMesh** pencilVmeshPointer = DimensionPencils[dimension].meshes.data() + start;
-            vmesh::VelocityBlockContainer** pencilBlockContainerPointer = DimensionPencils[dimension].containers.data() + start;
+            Vec* blockDataSource = dev_blockDataSource[cpuThreadID]+start*WID3/VECL;
             // const uint nCudaBlocks = L > CUDABLOCKS ? CUDABLOCKS : L;
             // Pass start value instead and have one block do one vector
             int cudathreadsVECL = VECL;
+            std::cerr<<" addresses pencilVmeshPointer "<<pencilVmeshPointer<<" pencilBlockContainerPointer "<<pencilBlockContainerPointer<<" pencilBlockData "<<pencilBlockData<<" blockDataSource "<<blockDataSource<<" dev_vcell_transpose[0] "<<dev_vcell_transpose[0]<<std::endl;
             copy_trans_block_data_amr_kernel<<<1, cudathreadsVECL, WID3*sizeof(Realf), stream>>> (
                pencilVmeshPointer,
                pencilBlockContainerPointer,
@@ -493,6 +501,7 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
                blockDataSource,
                dev_nonEmptyBlocks,
                dev_vcell_transpose[0]);
+            HANDLE_ERROR( cudaStreamSynchronize(stream) );
             HANDLE_ERROR( cudaMemcpyAsync(&host_nonEmptyBlocks, dev_nonEmptyBlocks, sizeof(uint), cudaMemcpyDeviceToHost, stream) );
             HANDLE_ERROR( cudaStreamSynchronize(stream) );
             pencilBlocksCount->at(pencili) = host_nonEmptyBlocks;
