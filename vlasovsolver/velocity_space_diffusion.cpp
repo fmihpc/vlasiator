@@ -49,7 +49,6 @@ static bool checkExistingNeighbour(SpatialCell* cell, Realf VX, Realf VY, Realf 
 void velocitySpaceDiffusion(
         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID){
 
-    std::cout << "I am running when I shouldnt be" << std::endl;
 
     int nbins_v  = Parameters::PADvbins;
     int nbins_mu = Parameters::PADmubins;
@@ -94,17 +93,18 @@ void velocitySpaceDiffusion(
 
         // Get nu0
     std::string linenu0;
-    std::vector<std::vector<float>> nu0Array;
- 
+    Realf nu0Array[betaParaArray.size()][TanisoArray.size()]; 
+    
     for (int i = 0; i < betaParaArray.size(); i++) {
         std::getline(FILEDmumu,linenu0);
         std::istringstream issnu0(linenu0);
-        std::vector<float> tempLINE;
+        std::vector<Realf> tempLINE;
         float numTEMP;
         while((issnu0 >> numTEMP)) { tempLINE.push_back(numTEMP); }
-        std::cout << linenu0 << std::endl;
-        nu0Array.push_back(tempLINE);
+        for (int j = 0; j < tempLINE.size(); j++) {nu0Array[i][j] = tempLINE [j];}
     }
+
+
 
     const auto LocalCells=getLocalCells();
     #pragma omp parallel for private(fcount,fmu,dfdmu,dfdmu2,dfdt_mu)
@@ -182,7 +182,8 @@ void velocitySpaceDiffusion(
 
         Realf nu0     = 0.0;
         Realf epsilon = 0.0;
-        if ( (betaIndx < 0) || (betaIndx >= betaParaArray.size()-1) || (TanisoIndx < 0) || (TanisoIndx >= TanisoArray.size()-1) ) {std::cout << "Parallel Plasma Beta or Temperature Anisotropy outside of bounds of the table" << std::endl;}
+
+        if ( (betaIndx < 0) || (betaIndx >= betaParaArray.size()-1) || (TanisoIndx < 0) || (TanisoIndx >= TanisoArray.size()-1) ) {continue;}
         else { 
             // bi-linear interpolation with weighted mean to find nu0(betaParallel,Taniso)
             Realf beta1   = betaParaArray[betaIndx];
@@ -200,8 +201,9 @@ void velocitySpaceDiffusion(
             Realf w22 = (betaParallel - beta1)*(Taniso  - Taniso1) / ( (beta2 - beta1)*(Taniso2-Taniso1) ); 
                    
             nu0     = w11*nu011 + w12*nu012 + w21*nu021 + w22*nu022;
-         }
-
+            if (nu0 <= 0.0) {continue;}
+        }      
+ 
         phiprof::start("Subloop");
         while (dtTotalDiff < Parameters::dt) { // Substep loop
 
@@ -252,8 +254,8 @@ void velocitySpaceDiffusion(
                    Vindex = round_to_int(floor((normV-Vmin) / dVbins));
 
                    Vec4i muindex;
-                   muindex = round_to_int(floor((mu+1.0) / dmubins));                      
-                   if (muindex == nbins_mu) {muindex = nbins_mu - 1;} // Safety check to handle edge case where mu = exactly 1.0
+                   muindex = round_to_int(floor((mu+1.0) / dmubins));
+                   for (uint i = 0; i<WID; i++) {if (muindex[i] == nbins_mu) {muindex[i] == muindex[i] - 1;}} // Safety check to handle edge case where mu = exactly 1.0
 
                    Vec4d Vmu = dVbins * (to_double(Vindex)+0.5); // Take value at the center of the mu cell
 
