@@ -168,81 +168,6 @@ void propagatePencil(
  * @param vcell_transpose
  * @param popID ID of the particle species.
  */
-void copy_trans_block_data_amr_backport(
-   vmesh::VelocityMesh** thisPencilMeshes, // Pointers to velocity meshes for this pencil
-   //vmesh::VelocityBlockContainer** thisPencilContainers, // pointers to BlockContainers for this pencil
-   Realf** thisPencilContainers, // pointers to Block Data (zero LID) for this pencil
-   Realf** thisPencilBlockData, // pointers into cell block data for this pencil, both written and used
-   const int lengthOfPencil,
-   const vmesh::GlobalID blockGID, // which GID this pencil is now working on
-   Vec* thisPencilOrderedSource,  // Aligned pencil-source Values to be written into
-   uint* thisPencilBlocksCount, // check how many non-empty blocks this pencil has for this GID
-   const unsigned int* const vcell_transpose)
-{
-   //const int cudaBlocks = gridDim.x;
-   //const int blocki = blockIdx.x;
-   //const int warpSize = blockDim.x*blockDim.y*blockDim.z;
-   const int warpSize = VECL;
-   //const vmesh::LocalID ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
-   //__shared__ Realf blockValues[WID3];
-
-   uint nonEmptyBlocks = 0;
-   // Go over pencil length, gather cellblock data into aligned pencil source data
-   for (int celli = 0; celli < lengthOfPencil; celli++) {
-      vmesh::VelocityMesh* vmesh = thisPencilMeshes[celli];
-      const vmesh::LocalID blockLID = vmesh->getLocalID(blockGID);
-      //vmesh::VelocityBlockContainer* container = thisPencilContainers[celli];
-      //Realf* container = thisPencilContainers[celli] + blockLID*WID3;
-      // Store block data pointer for both loading of data and writing back to the cell
-      if (blockLID == vmesh->invalidLocalID()) {
-         thisPencilBlockData[celli] = NULL;
-         //printf("vmesh size %u GID %u invalid\n",(unsigned int)vmesh->size(),blockGID);
-      } else {
-         thisPencilBlockData[celli] = thisPencilContainers[celli] + blockLID*WID3; //container->getData(blockLID);
-         nonEmptyBlocks++;
-            //if (celli==0) printf("celli %u vmesh size %u GID %u LID %u pencilBlockData 0x%lx pencilSourceValues 0x%lx container 0x%lx getData 0x%lx \n",celli,(unsigned int)vmesh->size(),blockGID,blockLID,pencilBlockData[celli],pencilSourceValues,container,container->getData(blockLID));
-      }
-      Realf* thisBlockData = thisPencilContainers[celli] + blockLID*WID3; //thisPencilBlockData[celli];
-      if (((thisPencilContainers[celli] == NULL)||(thisBlockData == NULL)) && (blockLID != vmesh->invalidLocalID())) {
-         printf("ERROR: Valid Block GID %u LID %u mesh size %u cell-in-pencil %u L %u but null container 0x%llx thisPencilContainers 0x%llx thisBlockData 0x%llx\n",(uint)blockGID,(uint)blockLID,(uint)vmesh->size(),(uint)celli,(uint)lengthOfPencil,thisPencilContainers[celli],thisPencilContainers,thisBlockData);
-      }
-      if (blockLID != vmesh->invalidLocalID()) { // Valid block
-         // Transpose block values so that mapping is along k direction.
-         // for (uint bi=ti; bi<WID3; bi += warpSize) {
-         //    blockValues[bi] = block_data[vcell_transpose[bi]];
-         // }
-         // Store values in Vec-order for efficient reading in propagation
-         uint offset =0;
-         for (uint k=0; k<WID; k++) {
-            for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
-               for (uint ti=0; ti<VECL; ti++) {
-                  const uint tindex = offset+ti;
-                  const uint tpindex = vcell_transpose[tindex];
-                  Realf moi = thisBlockData[tpindex];
-                  const uint writeindex = i_trans_ps_blockv_pencil(planeVector, k, celli, lengthOfPencil);
-                  thisPencilOrderedSource[writeindex][ti] = moi;
-                  thisPencilOrderedSource[i_trans_ps_blockv_pencil(planeVector, k, celli, lengthOfPencil)][ti] = thisBlockData[vcell_transpose[offset+ti]];
-                  if (offset==0 && ti==0) {
-                     printf("Block GID %u LID %u mesh size %u cell-in-pencil %u L %u container 0x%llx thisPencilContainers 0x%llx thisBlockData 0x%llx\n",(uint)blockGID,(uint)blockLID,(uint)vmesh->size(),(uint)celli,(uint)lengthOfPencil,thisPencilContainers[celli],thisPencilContainers,thisBlockData);
-                     printf("tindex %u tpindex %u moi %.9g %.9g writeindex %u output %.9g \n",(uint)tindex,(uint)tpindex,moi,thisBlockData[tpindex],(uint)writeindex,thisPencilOrderedSource[writeindex][ti]);
-                  }
-               }
-               offset += warpSize;
-            }
-         }
-      } else { // Non-existing block, push in zeroes
-         for (uint k=0; k<WID; ++k) {
-            for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++) {
-               for (uint ti=0; ti<VECL; ti++) {
-                  thisPencilOrderedSource[i_trans_ps_blockv_pencil(planeVector, k, celli, lengthOfPencil)][ti] = 0.0;
-               }
-            }
-         }
-      }
-   } // End loop over pencil
-   thisPencilBlocksCount[0] = nonEmptyBlocks;
-}
-
 __global__ void copy_trans_block_data_amr_kernel(
    vmesh::VelocityMesh** thisPencilMeshes, // Pointers to velocity meshes for this pencil
    //vmesh::VelocityBlockContainer** thisPencilContainers, // pointers to BlockContainers for this pencil
@@ -258,50 +183,30 @@ __global__ void copy_trans_block_data_amr_kernel(
    //const int blocki = blockIdx.x;
    const int warpSize = blockDim.x*blockDim.y*blockDim.z;
    const vmesh::LocalID ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
-   //__shared__ Realf blockValues[WID3];
 
    uint nonEmptyBlocks = 0;
    // Go over pencil length, gather cellblock data into aligned pencil source data
    for (int celli = 0; celli < lengthOfPencil; celli++) {
       vmesh::VelocityMesh* vmesh = thisPencilMeshes[celli];
       const vmesh::LocalID blockLID = vmesh->getLocalID(blockGID);
-      //vmesh::VelocityBlockContainer* container = thisPencilContainers[celli];
-      //Realf* container = thisPencilContainers[celli] + blockLID*WID3;
       // Store block data pointer for both loading of data and writing back to the cell
       if (ti==0) {
          if (blockLID == vmesh->invalidLocalID()) {
             thisPencilBlockData[celli] = NULL;
-            //printf("vmesh size %u GID %u invalid\n",(unsigned int)vmesh->size(),blockGID);
          } else {
-            thisPencilBlockData[celli] = thisPencilContainers[celli] + blockLID*WID3; //container->getData(blockLID);
+            thisPencilBlockData[celli] = thisPencilContainers[celli] + blockLID*WID3;
+            //thisPencilBlockData[celli] = thisPencilContainers[celli]->getData(blockLID);
             nonEmptyBlocks++;
-            //if (celli==0) printf("celli %u vmesh size %u GID %u LID %u pencilBlockData 0x%lx pencilSourceValues 0x%lx container 0x%lx getData 0x%lx \n",celli,(unsigned int)vmesh->size(),blockGID,blockLID,pencilBlockData[celli],pencilSourceValues,container,container->getData(blockLID));
          }
       }
-      __syncthreads;
-      Realf* thisBlockData = thisPencilContainers[celli] + blockLID*WID3; //thisPencilBlockData[celli];
-      if (((thisPencilContainers[celli] == NULL)||(thisBlockData == NULL)) && (blockLID != vmesh->invalidLocalID())) {
-         printf("ERROR: Valid Block GID %u LID %u mesh size %u cell-in-pencil %u L %u but null container 0x%llx thisPencilContainers 0x%llx thisBlockData 0x%llx\n",(uint)blockGID,(uint)blockLID,(uint)vmesh->size(),(uint)celli,(uint)lengthOfPencil,thisPencilContainers[celli],thisPencilContainers,thisBlockData);
-      }
+      __syncthreads();
       if (blockLID != vmesh->invalidLocalID()) { // Valid block
          // Transpose block values so that mapping is along k direction.
-         // for (uint bi=ti; bi<WID3; bi += warpSize) {
-         //    blockValues[bi] = block_data[vcell_transpose[bi]];
-         // }
          // Store values in Vec-order for efficient reading in propagation
          uint offset =0;
          for (uint k=0; k<WID; k++) {
             for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
-               const uint tindex = offset+ti;
-               const uint tpindex = vcell_transpose[tindex];
-               Realf moi = thisBlockData[tpindex];
-               const uint writeindex = i_trans_ps_blockv_pencil(planeVector, k, celli, lengthOfPencil);
-               thisPencilOrderedSource[writeindex][ti] = moi;
                thisPencilOrderedSource[i_trans_ps_blockv_pencil(planeVector, k, celli, lengthOfPencil)][ti] = thisBlockData[vcell_transpose[offset+ti]];
-               if (offset==0 && ti==0) {
-                  printf("Block GID %u LID %u mesh size %u cell-in-pencil %u L %u container 0x%llx thisPencilContainers 0x%llx thisBlockData 0x%llx\n",(uint)blockGID,(uint)blockLID,(uint)vmesh->size(),(uint)celli,(uint)lengthOfPencil,thisPencilContainers[celli],thisPencilContainers,thisBlockData);
-                  printf("tindex %u tpindex %u moi %.9g %.9g writeindex %u output %.9g \n",(uint)tindex,(uint)tpindex,moi,thisBlockData[tpindex],(uint)writeindex,thisPencilOrderedSource[writeindex][ti]);
-               }
                offset += warpSize;
             }
          }
@@ -314,6 +219,7 @@ __global__ void copy_trans_block_data_amr_kernel(
       }
    } // End loop over pencil
    if (ti==0) {
+      // This version of the kernel gets pointer directly to correct address
       thisPencilBlocksCount[0] = nonEmptyBlocks;
    }
 }
@@ -442,9 +348,9 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    split::SplitVector<vmesh::VelocityMesh*> *allVmeshPointer = new split::SplitVector<vmesh::VelocityMesh*>(nAllCells);
 
    // pointers for pencil source cells
-   // CUDATODO: pre-allocate, here verify sufficient size
+   // CUDATODO: pre-allocate, here just verify sufficient size
    split::SplitVector< vmesh::VelocityMesh* > *allPencilsMeshes = new split::SplitVector< vmesh::VelocityMesh* >(sumOfLengths);
-   //split::SplitVector< vmesh::VelocityBlockContainer* > allPencilsContainers(sumOfLengths);
+   // split::SplitVector< vmesh::VelocityBlockContainer* > *allPencilsContainers = new split::SplitVector< vmesh::VelocityBlockContainer* >(sumOfLengths);
    split::SplitVector< Realf* > *allPencilsContainers = new split::SplitVector< Realf* >(sumOfLengths);
 
    // Initialize allCellsPointer. Find maximum mesh size.
@@ -496,7 +402,6 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    const vmesh::LocalID HashmapReqSize = ceil(log2(largestFoundMeshSize)) +3;
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *unionOfBlocksSet = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(HashmapReqSize);
    const uint nCudaBlocks = nAllCells > CUDABLOCKS ? CUDABLOCKS : nAllCells;
-   std::cerr<<"nAllCells "<<nAllCells<<" largest mesh size "<<largestFoundMeshSize<<" hashmap req size "<<HashmapReqSize<<" nCudaBlocks "<<nCudaBlocks<<" CUDATHREADS "<<CUDATHREADS<<" stream "<<bgStream<<std::endl;
    gather_union_of_blocks_kernel<<<nCudaBlocks, CUDATHREADS, 0, bgStream>>> (
       unionOfBlocksSet,
       allVmeshPointer,
@@ -521,24 +426,10 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
          for (int i = 0; i < L; i++) {
             const CellID thisCell = DimensionPencils[dimension].ids[start+i];
             (*allPencilsMeshes)[start+i] = mpiGrid[thisCell]->get_velocity_mesh(popID);
-            //allPencilsContainers[start+i] = mpiGrid[thisCell]->get_velocity_blocks(popID);
             (*allPencilsContainers)[start+i] = mpiGrid[thisCell]->get_data(popID);
-            if (((*allPencilsMeshes)[start+i] == NULL) || ((*allPencilsContainers)[start+i] == NULL)) {
-               printf("pencili %u celli %u mesh 0x%lx container 0x%lx meshvector 0x%lx containervector 0x%lx \n",pencili,(unsigned int)(start+i),(*allPencilsMeshes)[start+i],(*allPencilsContainers)[start+i],allPencilsMeshes->data(),allPencilsContainers->data() );
-            }
          }
       }
    }
-   // stringstream ss;
-   // ss<<" Pointers to vmeshes:"<<std::endl;
-   // for (int i=0; i<sumOfLengths; i++) {
-   //    ss<<allMeshes[i]<<" "; 
-   // }
-   // ss<<std::endl<<" Pointers to block containers:"<<std::endl;
-   // for (int i=0; i<sumOfLengths; i++) {
-   //    ss<<allContainers[i]<<" "; 
-   // }
-   // std::cerr<<ss.str()<<std::endl;;
    phiprof::stop("trans-amr-gather-meshpointers");
 
    phiprof::start("trans-amr-buildBlockList");
@@ -588,46 +479,22 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
             int start = DimensionPencils[dimension].idsStart[pencili];
             // Transpose and copy block data from cells to source buffer
             vmesh::VelocityMesh** thisPencilMeshes = allPencilsMeshes->data() + start;
-            //vmesh::VelocityBlockContainer** thisPencilContainers = allPencilsContainers.data() + start;
+            //vmesh::VelocityBlockContainer** thisPencilContainers = allPencilsContainers->data() + start;
             Realf** thisPencilContainers = allPencilsContainers->data() + start;
             Realf** thisPencilBlockData = allPencilsBlockData->data() + start;
             Vec* thisPencilOrderedSource = dev_blockDataSource[cpuThreadID] + start * WID3/VECL;
             uint* thisPencilBlocksCount = allPencilsBlocksCount->data() + pencili;
-            //printf("pencili %u start %u cellBlockdata.data 0x%lx cellBlockdata.here 0x%lx \n",(unsigned int)(pencili),(unsigned int)start,cellBlockData->data(),pencilBlockData );
-            //printf("pencili %u mesh 0x%lx container 0x%lx meshvector 0x%lx containervector 0x%lx \n",(unsigned int)(pencili),pencilVmeshPointer,pencilBlockContainerPointer,allMeshes.data(),allContainers.data() );
-            // const uint nCudaBlocks = L > CUDABLOCKS ? CUDABLOCKS : L;
             // Pass start value instead and have one block do one vector
-            int cudathreadsVECL = VECL;
-            stringstream ss;
-            ss<<" cudathreadsVECL "<<cudathreadsVECL;
-            ss<<" thisPencilMeshes "<<thisPencilMeshes<<" "<<thisPencilMeshes[0];
-            ss<<" thisPencilContainers "<<thisPencilContainers<<" "<<thisPencilContainers[0];
-            ss<<" thisPencilBlockData "<<thisPencilBlockData<<" "<<thisPencilBlockData[0];
-            ss<<" L "<<L<<" blockGID "<<blockGID;
-            ss<<" thisPencilOrderedSource "<<thisPencilOrderedSource<<" "<<to_string(thisPencilOrderedSource[0][0]);
-            ss<<" thisPencilBlocksCount "<<thisPencilBlocksCount<<" "<<thisPencilBlocksCount[0];
-            ss<<" dev_vcell_transpose[0] "<<dev_vcell_transpose[0];
-            ss<<" "<<(uint)dev_vcell_transpose[0][0]<<std::endl;
-            std::cerr<<ss.str();
-            // copy_trans_block_data_amr_kernel<<<1, cudathreadsVECL, 0, stream>>> (
-            //    thisPencilMeshes,
-            //    thisPencilContainers,
-            //    thisPencilBlockData, // not yet set
-            //    L,
-            //    blockGID,
-            //    thisPencilOrderedSource,
-            //    thisPencilBlocksCount,
-            //    dev_vcell_transpose[0]);
-            // HANDLE_ERROR( cudaStreamSynchronize(stream) );
-            copy_trans_block_data_amr_backport(
+            copy_trans_block_data_amr_kernel<<<1, cudathreadsVECL, 0, stream>>> (
                thisPencilMeshes,
                thisPencilContainers,
-               thisPencilBlockData, // not yet set
+               thisPencilBlockData, // Both set and used in this kernel
                L,
                blockGID,
                thisPencilOrderedSource,
                thisPencilBlocksCount,
                dev_vcell_transpose[0]);
+            HANDLE_ERROR( cudaStreamSynchronize(stream) );
          }
          phiprof::stop(t2);
 

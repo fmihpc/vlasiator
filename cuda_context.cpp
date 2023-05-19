@@ -242,7 +242,6 @@ __host__ void cuda_vlasov_allocate_perthread (
    // Mallocs should be in increments of 256 bytes. WID3 is at least 64, and len(Realf) is at least 4, so this is true.
    HANDLE_ERROR( cudaMalloc((void**)&dev_cell_indices_to_id[cpuThreadID], 3*sizeof(uint)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_block_indices_to_id[cpuThreadID], 3*sizeof(uint)) );
-   HANDLE_ERROR( cudaMalloc((void**)&dev_vcell_transpose[cpuThreadID], WID3*sizeof(uint)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_blockDataOrdered[cpuThreadID], blockAllocationCount * (WID3 / VECL) * sizeof(Vec)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_BlocksID_mapped[cpuThreadID], blockAllocationCount*sizeof(vmesh::GlobalID)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_BlocksID_mapped_sorted[cpuThreadID], blockAllocationCount*sizeof(vmesh::GlobalID)) );
@@ -250,6 +249,7 @@ __host__ void cuda_vlasov_allocate_perthread (
    HANDLE_ERROR( cudaMalloc((void**)&dev_LIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_GIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID)) );
    // During porting, these are in unified memory. Target data will be removed later, and replaced with writing directly back to cell block data.
+   HANDLE_ERROR( cudaMallocManaged((void**)&dev_vcell_transpose[cpuThreadID], WID3*sizeof(uint)) );
    HANDLE_ERROR( cudaMallocManaged((void**)&dev_blockDataSource[cpuThreadID], blockAllocationCount * (WID3 / VECL) * sizeof(Vec)) );
 }
 
