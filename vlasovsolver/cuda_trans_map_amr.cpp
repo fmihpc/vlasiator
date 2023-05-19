@@ -1,9 +1,9 @@
-//#include "cpu_1d_ppm_nonuniform_conserving.hpp"
 #include "../grid.h"
 #include "../object_wrapper.h"
 #include "../memoryallocation.h"
 #include "vec.h"
 #include "cpu_1d_ppm_nonuniform.hpp"
+//#include "cpu_1d_ppm_nonuniform_conserving.hpp"
 
 #include "cuda_trans_map_amr.hpp"
 #include "cpu_trans_pencils.hpp"
@@ -14,17 +14,14 @@
 #include "cuda_runtime.h"
 #include "../cuda_context.cuh"
 
-using namespace std;
-using namespace spatial_cell;
-
 // indices in padded source block, which is of type Vec with VECL
 // elements in each vector.
 #define i_trans_ps_blockv_pencil(planeVectorIndex, planeIndex, blockIndex, lengthOfPencil) ( (blockIndex)  +  ( (planeVectorIndex) + (planeIndex) * VEC_PER_PLANE ) * ( lengthOfPencil) )
 
 // Skip remapping if whole stencil for all vector elements consists of zeroes
-CUDA_HOSTDEV inline bool check_skip_remapping(Vec* values) {
+CUDA_HOSTDEV inline bool check_skip_remapping(Vec* values, uint ti) {
    for (int index=-VLASOV_STENCIL_WIDTH; index<VLASOV_STENCIL_WIDTH+1; ++index) {
-      if (horizontal_or(values[index] > Vec(0))) return false;
+      if (values[index][ti] > 0) return false;
    }
    return true;
 }
@@ -39,7 +36,7 @@ CUDA_HOSTDEV inline bool check_skip_remapping(Vec* values) {
  * @param vmesh Velocity mesh object
  * @param lengthOfPencil Number of cells in the pencil
  */
-void propagatePencil(
+__global__ void propagatePencil_kernel(
    Realf* dz,
    Vec* values, // Vec-ordered block data values for pencils
    const uint dimension,
@@ -52,6 +49,11 @@ void propagatePencil(
    Realf* targetRatios, // Vector holding target ratios
    const unsigned int* const vcell_transpose
 ) {
+   //const int cudaBlocks = gridDim.x;
+   //const int blocki = blockIdx.x;
+   //const int warpSize = blockDim.x*blockDim.y*blockDim.z;
+   const vmesh::LocalID ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
+
    // Get velocity data from vmesh that we need later to calculate the translation
    velocity_block_indices_t block_indices;
    uint8_t refLevel;
@@ -78,24 +80,23 @@ void propagatePencil(
       Realf areaRatio =    targetRatios[i];
       Realf areaRatio_p1 = targetRatios[i + 1];
 
-      Realf vector[VECL];
       // Loop over planes
       for (uint k = 0; k < WID; ++k) {
-         const Realv cell_vz = (block_indices[dimension] * WID + k + 0.5) * dvz + vz_min; //cell centered velocity
-         const Vec z_translation = cell_vz * dt / dz[i]; // how much it moved in time dt (reduced units)
+         const Realf cell_vz = (block_indices[dimension] * WID + k + 0.5) * dvz + vz_min; //cell centered velocity
+         const Realf z_translation = cell_vz * dt / dz[i]; // how much it moved in time dt (reduced units)
 
          // Determine direction of translation
          // part of density goes here (cell index change along spatial direcion)
-         Vecb positiveTranslationDirection = (z_translation > Vec(0.0));
+         bool positiveTranslationDirection = (z_translation > 0.0);
 
          // Calculate normalized coordinates in current cell.
          // The coordinates (scaled units from 0 to 1) between which we will
          // integrate to put mass in the target  neighboring cell.
          // Normalize the coordinates to the origin cell. Then we scale with the difference
          // in volume between target and origin later when adding the integrated value.
-         Vec z_1,z_2;
-         z_1 = select(positiveTranslationDirection, 1.0 - z_translation, 0.0);
-         z_2 = select(positiveTranslationDirection, 1.0, - z_translation);
+         Realf z_1,z_2;
+         z_1 = positiveTranslationDirection ? 1.0 - z_translation : 0.0;
+         z_2 = positiveTranslationDirection ? 1.0 : - z_translation;
 
          // if( horizontal_or(abs(z_1) > Vec(1.0)) || horizontal_or(abs(z_2) > Vec(1.0)) ) {
          //    std::cout << "Error, CFL condition violated\n";
@@ -106,50 +107,36 @@ void propagatePencil(
          // Loop over Vec's in current plance
          for (uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++) {
             // Check if all values are 0:
-            if (check_skip_remapping(values + i_trans_ps_blockv_pencil(planeVector, k, i, lengthOfPencil))) continue;
-
+            if (check_skip_remapping(values + i_trans_ps_blockv_pencil(planeVector, k, i, lengthOfPencil),ti)) {
+               continue;
+            }
             // Compute polynomial coefficients
-            Vec a[3];
+            Realf a[3];
             // Silly indexing into coefficient calculation necessary due to built-in assumptions of unsigned indexing.
             compute_ppm_coeff_nonuniform(dz + i - VLASOV_STENCIL_WIDTH,
                                          values + i_trans_ps_blockv_pencil(planeVector, k, i, lengthOfPencil) - VLASOV_STENCIL_WIDTH,
-                                         h4, VLASOV_STENCIL_WIDTH, a, threshold);
+                                         h4, VLASOV_STENCIL_WIDTH, a, threshold, ti);
 
             // Compute integral
-            const Vec ngbr_target_density =
+            const Realf ngbr_target_density =
                z_2 * ( a[0] + z_2 * ( a[1] + z_2 * a[2] ) ) -
                z_1 * ( a[0] + z_1 * ( a[1] + z_1 * a[2] ) );
 
             // Store mapped density in two target cells
             // in the current original cells we will put the rest of the original density
             if (areaRatio && block_data) {
-               const Vec selfContribution = (values[i_trans_ps_blockv_pencil(planeVector, k, i, lengthOfPencil)] - ngbr_target_density) * areaRatio;
-               selfContribution.store(vector);
-               // Loop over 3rd (vectorized) vspace dimension
-               #pragma omp simd
-               for (uint iv = 0; iv < VECL; iv++) {
-                  block_data[vcell_transpose[iv + planeVector * VECL + k * WID2]] += vector[iv];
-               }
+               const Realf selfContribution = (values[i_trans_ps_blockv_pencil(planeVector, k, i, lengthOfPencil)][ti] - ngbr_target_density) * areaRatio;
+               block_data[vcell_transpose[ti + planeVector * VECL + k * WID2]] += selfContribution;
             }
             if (areaRatio_p1 && block_data_p1) {
-               const Vec p1Contribution = select(positiveTranslationDirection, ngbr_target_density
-                                                 * dz[i] / dz[i + 1], Vec(0.0)) * areaRatio_p1;
-               p1Contribution.store(vector);
-               // Loop over 3rd (vectorized) vspace dimension
-               #pragma omp simd
-               for (uint iv = 0; iv < VECL; iv++) {
-                  block_data_p1[vcell_transpose[iv + planeVector * VECL + k * WID2]] += vector[iv];
-               }
+               const Realf p1Contribution = (positiveTranslationDirection ? ngbr_target_density
+                                             * dz[i] / dz[i + 1] : 0.0) * areaRatio_p1;
+               block_data_p1[vcell_transpose[ti + planeVector * VECL + k * WID2]] += p1Contribution;
             }
             if (areaRatio_m1 && block_data_m1) {
-               const Vec m1Contribution = select(!positiveTranslationDirection, ngbr_target_density
-                                                 * dz[i] / dz[i - 1], Vec(0.0)) * areaRatio_m1;
-               m1Contribution.store(vector);
-               // Loop over 3rd (vectorized) vspace dimension
-               #pragma omp simd
-               for (uint iv = 0; iv < VECL; iv++) {
-                  block_data_m1[vcell_transpose[iv + planeVector * VECL + k * WID2]] += vector[iv];
-               }
+               const Realf m1Contribution = (!positiveTranslationDirection ? ngbr_target_density
+                                             * dz[i] / dz[i - 1] : 0.0) * areaRatio_m1;
+               block_data_m1[vcell_transpose[ti + planeVector * VECL + k * WID2]] += m1Contribution;
             }
          }
       }
@@ -366,10 +353,8 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
          const uint thisMeshSize = (*allVmeshPointer)[celli]->size();
          thread_largestFoundMeshSize = thisMeshSize > thread_largestFoundMeshSize ? thisMeshSize : thread_largestFoundMeshSize;
          // Prefetches
-         // allCellsPointer[celli]->get_velocity_mesh(popID)->dev_prefetchHost();
-         // allCellsPointer[celli]->get_velocity_blocks(popID)->dev_prefetchHost();
-         allCellsPointer[celli]->get_velocity_mesh(popID)->dev_prefetchDevice();
-         allCellsPointer[celli]->get_velocity_blocks(popID)->dev_prefetchDevice();
+         // allCellsPointer[celli]->get_velocity_mesh(popID)->dev_prefetchDevice();
+         // allCellsPointer[celli]->get_velocity_blocks(popID)->dev_prefetchDevice();
       }
       #pragma omp critical
       {
@@ -512,10 +497,10 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
                   // Get a pointer to the block data
                   Realf* blockData = target_cell->get_data(blockLID, popID);
                   // CUDATODO: Replace with memset when data exists on device
-                  // cudaStream_t stream = cuda_getStream();
-                  // HANDLE_ERROR( cudaMemsetAsync(blockData, 0, WID3*sizeof(Realf), stream) );
-                  // HANDLE_ERROR( cudaStreamSynchronize(stream) );
-                  memset(blockData, 0, WID3*sizeof(Realf));
+                  cudaStream_t stream = cuda_getStream();
+                  HANDLE_ERROR( cudaMemsetAsync(blockData, 0, WID3*sizeof(Realf), stream) );
+                  HANDLE_ERROR( cudaStreamSynchronize(stream) );
+                  //memset(blockData, 0, WID3*sizeof(Realf));
                }
             }
          }
@@ -534,22 +519,24 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
             // Dz has 1 value/cell, sourceVecData has WID3 values/cell
             // vmesh is required just for general indexes and accessors
             Realv scalingthreshold = mpiGrid[DimensionPencils[dimension].ids[start + VLASOV_STENCIL_WIDTH]]->getVelocityBlockMinValue(popID);
-            Realf* pencilDZ = DimensionPencils[dimension].sourceDZ.data() + start;
-            Realf* pencilRatios = DimensionPencils[dimension].targetRatios.data() + start;
+            Realf* thisPencilDZ = DimensionPencils[dimension].sourceDZ.data() + start;
+            Realf* thisPencilRatios = DimensionPencils[dimension].targetRatios.data() + start;
             Realf** thisPencilBlockData = allPencilsBlockData->data() + start;
-            Vec* blockDataSource = dev_blockDataSource[cpuThreadID] + start * WID3/VECL;
-            propagatePencil(pencilDZ,
-                            blockDataSource,
-                            dimension,
-                            blockGID,
-                            dt,
-                            vmesh,
-                            L,
-                            scalingthreshold,
-                            thisPencilBlockData,
-                            pencilRatios,
-                            vcell_transpose
-               );
+            Vec* thisPencilOrderedSource = dev_blockDataSource[cpuThreadID] + start * WID3/VECL;
+            cuint cudathreadsVECL = VECL;
+            propagatePencil_kernel<<<1, cudathreadsVECL, 0, stream>>> (
+               thisPencilDZ,
+               thisPencilOrderedSource,
+               dimension,
+               blockGID,
+               dt,
+               vmesh,
+               L,
+               scalingthreshold,
+               thisPencilBlockData,
+               thisPencilRatios,
+               dev_vcell_transpose[0]);
+            HANDLE_ERROR( cudaStreamSynchronize(stream) );
          }
          phiprof::stop(t4);
 
@@ -557,17 +544,6 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
 
       } // Closes loop over blocks
    } // closes pragma omp parallel
-
-   // Prefetch back to device
-   #pragma omp parallel
-   {
-      cuda_set_device();
-      #pragma omp for
-      for(uint celli = 0; celli < allCells.size(); celli++){
-         allCellsPointer[celli]->get_velocity_mesh(popID)->dev_prefetchDevice();
-         allCellsPointer[celli]->get_velocity_blocks(popID)->dev_prefetchDevice();
-      }
-   }
 
    return true;
 }
