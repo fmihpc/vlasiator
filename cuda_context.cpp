@@ -56,9 +56,6 @@ Column *unif_columns[MAXCPUTHREADS];
 
 Vec *dev_blockDataOrdered[MAXCPUTHREADS];
 
-// When translation kernel works on-device, this can be replaced with pure on-device dev_blockDataOrdered
-Vec *dev_blockDataSource[MAXCPUTHREADS];
-
 vmesh::LocalID *dev_GIDlist[MAXCPUTHREADS];
 vmesh::LocalID *dev_LIDlist[MAXCPUTHREADS];
 vmesh::GlobalID *dev_BlocksID_mapped[MAXCPUTHREADS];
@@ -242,15 +239,13 @@ __host__ void cuda_vlasov_allocate_perthread (
    // Mallocs should be in increments of 256 bytes. WID3 is at least 64, and len(Realf) is at least 4, so this is true.
    HANDLE_ERROR( cudaMalloc((void**)&dev_cell_indices_to_id[cpuThreadID], 3*sizeof(uint)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_block_indices_to_id[cpuThreadID], 3*sizeof(uint)) );
+   HANDLE_ERROR( cudaMalloc((void**)&dev_vcell_transpose[cpuThreadID], WID3*sizeof(uint)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_blockDataOrdered[cpuThreadID], blockAllocationCount * (WID3 / VECL) * sizeof(Vec)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_BlocksID_mapped[cpuThreadID], blockAllocationCount*sizeof(vmesh::GlobalID)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_BlocksID_mapped_sorted[cpuThreadID], blockAllocationCount*sizeof(vmesh::GlobalID)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_LIDlist_unsorted[cpuThreadID], blockAllocationCount*sizeof(vmesh::GlobalID)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_LIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID)) );
    HANDLE_ERROR( cudaMalloc((void**)&dev_GIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID)) );
-   // During porting, these are in unified memory. Target data will be removed later, and replaced with writing directly back to cell block data.
-   HANDLE_ERROR( cudaMallocManaged((void**)&dev_vcell_transpose[cpuThreadID], WID3*sizeof(uint)) );
-   HANDLE_ERROR( cudaMallocManaged((void**)&dev_blockDataSource[cpuThreadID], blockAllocationCount * (WID3 / VECL) * sizeof(Vec)) );
 }
 
 __host__ void cuda_vlasov_deallocate_perthread (
@@ -266,8 +261,6 @@ __host__ void cuda_vlasov_deallocate_perthread (
    HANDLE_ERROR( cudaFree(dev_LIDlist_unsorted[cpuThreadID]) );
    HANDLE_ERROR( cudaFree(dev_LIDlist[cpuThreadID]) );
    HANDLE_ERROR( cudaFree(dev_GIDlist[cpuThreadID]) );
-
-   HANDLE_ERROR( cudaFree(dev_blockDataSource[cpuThreadID]) );
 }
 
 /*
@@ -297,7 +290,6 @@ __host__ void cuda_acc_allocate (
       // Always prepare for at least 500 columns
       requiredColumns = estimatedColumns > 500 ? estimatedColumns : 500;
    }
-   //std::cerr<<"CUDA_ACC_ALLOCATE: maxBlockCount "<<maxBlockCount<<" requiredColumns "<<requiredColumns<<" allocated "<<cuda_acc_allocatedColumns<<std::endl;
    // Check if we already have allocated enough memory?
    if (cuda_acc_allocatedColumns > requiredColumns * BLOCK_ALLOCATION_FACTOR) {
       //std::cerr<<"CUDA_ACC_ALLOCATE: return "<<std::endl;
@@ -305,7 +297,6 @@ __host__ void cuda_acc_allocate (
    }
    // If not, add extra padding
    const uint newSize = requiredColumns * BLOCK_ALLOCATION_PADDING;
-   //std::cerr<<"CUDA_ACC_ALLOCATE: newSize "<<newSize<<std::endl;
 
    // Deallocate before allocating new memory
 #ifdef _OPENMP

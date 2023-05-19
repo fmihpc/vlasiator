@@ -126,17 +126,17 @@ __global__ void propagatePencil_kernel(
             // in the current original cells we will put the rest of the original density
             if (areaRatio && block_data) {
                const Realf selfContribution = (values[i_trans_ps_blockv_pencil(planeVector, k, i, lengthOfPencil)][ti] - ngbr_target_density) * areaRatio;
-               block_data[vcell_transpose[ti + planeVector * VECL + k * WID2]] += selfContribution;
+               const Realf old  = atomicAdd(&block_data[vcell_transpose[ti + planeVector * VECL + k * WID2]],selfContribution);
             }
             if (areaRatio_p1 && block_data_p1) {
                const Realf p1Contribution = (positiveTranslationDirection ? ngbr_target_density
                                              * dz[i] / dz[i + 1] : 0.0) * areaRatio_p1;
-               block_data_p1[vcell_transpose[ti + planeVector * VECL + k * WID2]] += p1Contribution;
+               const Realf old  = atomicAdd(&block_data_p1[vcell_transpose[ti + planeVector * VECL + k * WID2]],p1Contribution);
             }
             if (areaRatio_m1 && block_data_m1) {
                const Realf m1Contribution = (!positiveTranslationDirection ? ngbr_target_density
                                              * dz[i] / dz[i - 1] : 0.0) * areaRatio_m1;
-               block_data_m1[vcell_transpose[ti + planeVector * VECL + k * WID2]] += m1Contribution;
+               const Realf old  = atomicAdd(&block_data_m1[vcell_transpose[ti + planeVector * VECL + k * WID2]],m1Contribution);
             }
          }
       }
@@ -157,8 +157,7 @@ __global__ void propagatePencil_kernel(
  */
 __global__ void copy_trans_block_data_amr_kernel(
    vmesh::VelocityMesh** thisPencilMeshes, // Pointers to velocity meshes for this pencil
-   //vmesh::VelocityBlockContainer** thisPencilContainers, // pointers to BlockContainers for this pencil
-   Realf** thisPencilContainers, // pointers to Block Data (zero LID) for this pencil
+   vmesh::VelocityBlockContainer** thisPencilContainers, // pointers to BlockContainers for this pencil
    Realf** thisPencilBlockData, // pointers into cell block data for this pencil, both written and used
    const int lengthOfPencil,
    const vmesh::GlobalID blockGID, // which GID this pencil is now working on
@@ -181,8 +180,7 @@ __global__ void copy_trans_block_data_amr_kernel(
          if (blockLID == vmesh->invalidLocalID()) {
             thisPencilBlockData[celli] = NULL;
          } else {
-            thisPencilBlockData[celli] = thisPencilContainers[celli] + blockLID*WID3;
-            //thisPencilBlockData[celli] = thisPencilContainers[celli]->getData(blockLID);
+            thisPencilBlockData[celli] = thisPencilContainers[celli]->getData(blockLID);
             nonEmptyBlocks++;
          }
       }
@@ -337,8 +335,7 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    // pointers for pencil source cells
    // CUDATODO: pre-allocate, here just verify sufficient size
    split::SplitVector< vmesh::VelocityMesh* > *allPencilsMeshes = new split::SplitVector< vmesh::VelocityMesh* >(sumOfLengths);
-   // split::SplitVector< vmesh::VelocityBlockContainer* > *allPencilsContainers = new split::SplitVector< vmesh::VelocityBlockContainer* >(sumOfLengths);
-   split::SplitVector< Realf* > *allPencilsContainers = new split::SplitVector< Realf* >(sumOfLengths);
+   split::SplitVector< vmesh::VelocityBlockContainer* > *allPencilsContainers = new split::SplitVector< vmesh::VelocityBlockContainer* >(sumOfLengths);
 
    // Initialize allCellsPointer. Find maximum mesh size.
    uint largestFoundMeshSize = 0;
@@ -411,7 +408,7 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
          for (int i = 0; i < L; i++) {
             const CellID thisCell = DimensionPencils[dimension].ids[start+i];
             (*allPencilsMeshes)[start+i] = mpiGrid[thisCell]->get_velocity_mesh(popID);
-            (*allPencilsContainers)[start+i] = mpiGrid[thisCell]->get_data(popID);
+            (*allPencilsContainers)[start+i] = mpiGrid[thisCell]->get_velocity_blocks(popID);
          }
       }
    }
@@ -464,10 +461,9 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
             int start = DimensionPencils[dimension].idsStart[pencili];
             // Transpose and copy block data from cells to source buffer
             vmesh::VelocityMesh** thisPencilMeshes = allPencilsMeshes->data() + start;
-            //vmesh::VelocityBlockContainer** thisPencilContainers = allPencilsContainers->data() + start;
-            Realf** thisPencilContainers = allPencilsContainers->data() + start;
+            vmesh::VelocityBlockContainer** thisPencilContainers = allPencilsContainers->data() + start;
             Realf** thisPencilBlockData = allPencilsBlockData->data() + start;
-            Vec* thisPencilOrderedSource = dev_blockDataSource[cpuThreadID] + start * WID3/VECL;
+            Vec* thisPencilOrderedSource = dev_blockDataOrdered[cpuThreadID] + start * WID3/VECL;
             uint* thisPencilBlocksCount = allPencilsBlocksCount->data() + pencili;
             // Pass start value instead and have one block do one vector
             cuint cudathreadsVECL = VECL;
@@ -480,8 +476,8 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
                thisPencilOrderedSource,
                thisPencilBlocksCount,
                dev_vcell_transpose[0]);
-            HANDLE_ERROR( cudaStreamSynchronize(stream) );
          }
+         HANDLE_ERROR( cudaStreamSynchronize(stream) );
          phiprof::stop(t2);
 
          phiprof::start(t3);
@@ -496,14 +492,11 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
                if (blockLID != vmesh::VelocityMesh::invalidLocalID()) {
                   // Get a pointer to the block data
                   Realf* blockData = target_cell->get_data(blockLID, popID);
-                  // CUDATODO: Replace with memset when data exists on device
-                  cudaStream_t stream = cuda_getStream();
                   HANDLE_ERROR( cudaMemsetAsync(blockData, 0, WID3*sizeof(Realf), stream) );
-                  HANDLE_ERROR( cudaStreamSynchronize(stream) );
-                  //memset(blockData, 0, WID3*sizeof(Realf));
                }
             }
          }
+         HANDLE_ERROR( cudaStreamSynchronize(stream) );
          phiprof::stop(t3);
 
          phiprof::start(t4);
@@ -522,7 +515,7 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
             Realf* thisPencilDZ = DimensionPencils[dimension].sourceDZ.data() + start;
             Realf* thisPencilRatios = DimensionPencils[dimension].targetRatios.data() + start;
             Realf** thisPencilBlockData = allPencilsBlockData->data() + start;
-            Vec* thisPencilOrderedSource = dev_blockDataSource[cpuThreadID] + start * WID3/VECL;
+            Vec* thisPencilOrderedSource = dev_blockDataOrdered[cpuThreadID] + start * WID3/VECL;
             cuint cudathreadsVECL = VECL;
             propagatePencil_kernel<<<1, cudathreadsVECL, 0, stream>>> (
                thisPencilDZ,
@@ -536,8 +529,8 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
                thisPencilBlockData,
                thisPencilRatios,
                dev_vcell_transpose[0]);
-            HANDLE_ERROR( cudaStreamSynchronize(stream) );
          }
+         HANDLE_ERROR( cudaStreamSynchronize(stream) );
          phiprof::stop(t4);
 
          phiprof::stop(t1); // mapping (top-level)
