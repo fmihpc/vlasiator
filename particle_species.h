@@ -30,6 +30,7 @@
 
 #include "definitions.h"
 #include <array>
+#include <string>
 
 namespace species {
     

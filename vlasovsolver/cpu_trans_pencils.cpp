@@ -992,15 +992,15 @@ void printPencilsFunc(const setOfPencils& pencils, const uint dimension, const i
       }
       ss << "}";
 
-      ss << "source DZs: ";
-      for (auto j = pencils.sourceDZ.begin() + ibeg; j != pencils.sourceDZ.begin() + iend; ++j) {
-         ss << *j << " ";
-      }
+      // ss << "source DZs: ";
+      // for (auto j = pencils.sourceDZ.begin() + ibeg; j != pencils.sourceDZ.begin() + iend; ++j) {
+      //    ss << *j << " ";
+      // }
 
-      ss << "target Ratios: ";
-      for (auto j = pencils.targetRatios.begin() + ibeg; j != pencils.targetRatios.begin() + iend; ++j) {
-         ss << *j << " ";
-      }
+      // ss << "target Ratios: ";
+      // for (auto j = pencils.targetRatios.begin() + ibeg; j != pencils.targetRatios.begin() + iend; ++j) {
+      //    ss << *j << " ";
+      // }
 
       ibeg  = iend;
       ss << std::endl;
@@ -1090,7 +1090,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
       // Empty vectors for internal use of buildPencilsWithNeighbors. Could be default values but
       // default vectors are complicated. Should overload buildPencilsWithNeighbors like suggested here
       // https://stackoverflow.com/questions/3147274/c-default-argument-for-vectorint
-      vector<CellID> ids;
+      std::vector<CellID> ids;
       vector<uint> path;
       // thread-internal pencil set to be accumulated at the end
       setOfPencils thread_pencils;

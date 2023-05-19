@@ -206,7 +206,7 @@ __global__ void copy_trans_block_data_amr_kernel(
          uint offset =0;
          for (uint k=0; k<WID; k++) {
             for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
-               thisPencilOrderedSource[i_trans_ps_blockv_pencil(planeVector, k, celli, lengthOfPencil)][ti] = thisBlockData[vcell_transpose[offset+ti]];
+               thisPencilOrderedSource[i_trans_ps_blockv_pencil(planeVector, k, celli, lengthOfPencil)][ti] = (thisPencilBlockData[celli])[vcell_transpose[offset+ti]];
                offset += warpSize;
             }
          }
@@ -485,6 +485,7 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
             Vec* thisPencilOrderedSource = dev_blockDataSource[cpuThreadID] + start * WID3/VECL;
             uint* thisPencilBlocksCount = allPencilsBlocksCount->data() + pencili;
             // Pass start value instead and have one block do one vector
+            cuint cudathreadsVECL = VECL;
             copy_trans_block_data_amr_kernel<<<1, cudathreadsVECL, 0, stream>>> (
                thisPencilMeshes,
                thisPencilContainers,
