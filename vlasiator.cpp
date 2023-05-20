@@ -298,9 +298,6 @@ int main(int argn,char* args[]) {
    #ifdef USE_CUDA
    // Activate device, create streams
    cuda_init_device();
-   const uint nPopulations = getObjectWrapper().particleSpecies.size();
-   const uint maxThreads = omp_get_max_threads();
-   cuda_allocateMomentCalculations(nPopulations,maxThreads);
    #endif
 
    phiprof::start("Read parameters");
