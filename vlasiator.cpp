@@ -291,14 +291,13 @@ int main(int argn,char* args[]) {
    signal(SIGFPE, fpehandler);
    #endif
 
-
-
    phiprof::start("main");
    phiprof::start("Initialization");
-   // #ifdef USE_CUDA
-   // // Activate device, create streams
-   // cuda_init_device();
-   // #endif
+
+   #ifdef USE_CUDA
+   // Activate device, create streams
+   cuda_init_device();
+   #endif
 
    phiprof::start("Read parameters");
    // Allocate velocity mesh wrapper
@@ -341,7 +340,7 @@ int main(int argn,char* args[]) {
          cerr << "(MAIN) ERROR: Vectorclass definition mismatch!" << endl;
          cerr << "VECL " << VECL <<" VEC_PER_PLANE " << VEC_PER_PLANE <<" WID " << WID <<" VEC_PER_BLOCK " << VEC_PER_BLOCK << " VPREC "<< VPREC<<endl;
       }
-      exit(1);      
+      exit(1);
    }
 
    //Get version and config info here
@@ -479,7 +478,7 @@ int main(int argn,char* args[]) {
       sysBoundaryContainer,
       *project
    );
-   
+
    const std::vector<CellID>& cells = getLocalCells();
 
    phiprof::stop("Init grids");
@@ -543,7 +542,7 @@ int main(int argn,char* args[]) {
    // Save restart data
    if (P::writeInitialState) {
       FieldTracing::reduceData(technicalGrid, perBGrid, dPerBGrid, mpiGrid, SBC::ionosphereGrid.nodes); /*!< Call the reductions (e.g. field tracing) */
-      
+
       phiprof::start("write-initial-state");
 
       if (myRank == MASTER_RANK)
@@ -647,7 +646,7 @@ int main(int argn,char* args[]) {
    // Main simulation loop:
    if (myRank == MASTER_RANK){
       logFile << "(MAIN): Starting main simulation loop." << endl << writeVerbose;
-      //report filtering if we are in an AMR run 
+      //report filtering if we are in an AMR run
       if (P::amrMaxSpatialRefLevel>0){
          logFile<<"Filtering Report: "<<endl;
          for (uint refLevel=0 ; refLevel<= P::amrMaxSpatialRefLevel; refLevel++){
@@ -655,8 +654,8 @@ int main(int argn,char* args[]) {
          }
             logFile<<endl;
       }
-   } 
-   
+   }
+
    phiprof::start("report-memory-consumption");
    report_process_memory_consumption();
    phiprof::stop("report-memory-consumption");
@@ -767,9 +766,9 @@ int main(int argn,char* args[]) {
 
             // Calculate these so refinement parameters can be tuned based on the vlsv
             calculateScaledDeltasSimple(mpiGrid);
-            
+
             FieldTracing::reduceData(technicalGrid, perBGrid, dPerBGrid, mpiGrid, SBC::ionosphereGrid.nodes); /*!< Call the reductions (e.g. field tracing) */
-            
+
             phiprof::start("write-system");
             logFile << "(IO): Writing spatial cell and reduced system data to disk, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
             const bool writeGhosts = true;
@@ -889,7 +888,7 @@ int main(int argn,char* args[]) {
       if(((P::tstep % P::rebalanceInterval == 0 && P::tstep > P::tstep_min) || overrideRebalanceNow)) {
          logFile << "(LB): Start load balance, tstep = " << P::tstep << " t = " << P::t << endl << writeVerbose;
          // Refinement includes LB
-         if (!dtIsChanged && P::adaptRefinement && P::tstep % (P::rebalanceInterval * P::refineMultiplier) == 0 && P::t > P::refineAfter) { 
+         if (!dtIsChanged && P::adaptRefinement && P::tstep % (P::rebalanceInterval * P::refineMultiplier) == 0 && P::t > P::refineAfter) {
             logFile << "(AMR): Adapting refinement!"  << endl << writeVerbose;
             if (!adaptRefinement(mpiGrid, technicalGrid, sysBoundaryContainer, *project))
                continue;   // Refinement failed and we're bailing out
@@ -897,7 +896,7 @@ int main(int argn,char* args[]) {
             // Calculate new dt limits since we might break CFL when refining
             phiprof::start("compute-dt");
             calculateSpatialTranslation(mpiGrid,0.0);
-            calculateAcceleration(mpiGrid,0.0);      
+            calculateAcceleration(mpiGrid,0.0);
             phiprof::stop("compute-dt");
          }
          balanceLoad(mpiGrid, sysBoundaryContainer);
@@ -1040,7 +1039,7 @@ int main(int argn,char* args[]) {
          phiprof::stop("Propagate Fields",cells.size(),"SpatialCells");
          addTimedBarrier("barrier-after-field-solver");
       }
-      
+
       if(FieldTracing::fieldTracingParameters.useCache) {
          FieldTracing::resetReconstructionCoefficientsCache();
       }
@@ -1078,7 +1077,7 @@ int main(int argn,char* args[]) {
             }
          }
       }
-      
+
       phiprof::start("Velocity-space");
       if ( P::propagateVlasovAcceleration ) {
          calculateAcceleration(mpiGrid,P::dt);

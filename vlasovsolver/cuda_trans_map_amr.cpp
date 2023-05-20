@@ -57,7 +57,7 @@ __global__ void propagatePencil_kernel(
    const vmesh::LocalID ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
 
    // Get velocity data from vmesh that we need later to calculate the translation
-   velocity_block_indices_t block_indices;
+   std::array<uint32_t,3> block_indices;
    uint8_t refLevel;
    vmesh->getIndices(blockGID,refLevel, block_indices[0], block_indices[1], block_indices[2]);
    Realv dvz = vmesh->getCellSize(refLevel)[dimension];
