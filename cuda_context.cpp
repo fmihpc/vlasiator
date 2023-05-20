@@ -78,7 +78,7 @@ __host__ void cuda_init_device() {
 #endif
 
    int deviceCount;
-   HANDLE_ERROR( cudaFree(0));
+   //HANDLE_ERROR( cudaFree(0));
    HANDLE_ERROR( cudaGetDeviceCount(&deviceCount) );
    printf("CUDA device count %d with %d threads/streams\n",deviceCount,maxThreads);
 
@@ -155,11 +155,6 @@ __host__ void cuda_init_device() {
 __host__ void cuda_set_device() {
    // This function needs to be called whenever going into a threaded
    // region and using a device other than the default device
-#ifdef _OPENMP
-   const uint thread_id = omp_get_thread_num();
-#else
-   const uint thread_id = 0;
-#endif
    HANDLE_ERROR( cudaSetDevice(myDevice) );
 }
 
