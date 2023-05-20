@@ -32,6 +32,7 @@
 
 #ifdef USE_CUDA
 #include "cuda_context.cuh"
+#include "vlasovsolver/cuda_moments.h"
 #endif
 
 #include <fsgrid.hpp>
@@ -294,6 +295,14 @@ int main(int argn,char* args[]) {
 
    phiprof::start("main");
    phiprof::start("Initialization");
+   #ifdef USE_CUDA
+   // Activate device, create streams
+   cuda_init_device();
+   const uint nPopulations = getObjectWrapper().particleSpecies.size();
+   const uint maxThreads = omp_get_max_threads();
+   cuda_allocateMomentCalculations(nPopulations,maxThreads);
+   #endif
+
    phiprof::start("Read parameters");
    // Allocate velocity mesh wrapper
    vmesh::allocMeshWrapper();
