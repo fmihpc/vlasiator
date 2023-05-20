@@ -102,14 +102,7 @@ static CUDA_HOSTDEV inline void filter_pqm_monotonicity(Vec *values, uint k, Vec
       //todo store and then load data to avoid inserts (is it beneficial...?)
 
 //serialized the handling of inflexion points, these do not happen for smooth regions
-// #pragma GCC diagnostic push
-// #pragma GCC diagnostic ignored "-Wunknown-pragmas"
-// #ifdef USE_CUDA
-// #pragma nv_diag_suppress=20199
-// #endif
-// #pragma ivdep
-// #pragma GCC diagnostic pop
-// #pragma GCC ivdep
+      #pragma omp simd
       for(uint i = 0;i < VECL; i++) {
          if(fixInflexion[i]){
             //need to collapse, at least one inflexion point has wrong
