@@ -620,11 +620,7 @@ bool map_1d(SpatialCell* spatial_cell,
                   else{
                      // total value of integrand
                      const Vec target_density = target_density_r - target_density_l;                  
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunknown-pragmas"
-#pragma ivdep
-#pragma GCC diagnostic pop
-#pragma GCC ivdep                     
+                     #pragma omp simd
                      for (int target_i=0; target_i < VECL; ++target_i) {
                         // do the conversion from Realv to Realf here, faster than doing it in accumulation
                         const Realf tval = target_density[target_i];
