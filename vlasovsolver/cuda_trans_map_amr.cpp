@@ -330,13 +330,8 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    cuda_vlasov_allocate(sumOfLengths);
    cudaStream_t bgStream = cuda_getStream(); // uses stream assigned to thread 0, not the blocking default stream
 
-   // Copy indexing information to device. Only use first thread-array for these.
-   HANDLE_ERROR( cudaMemcpy(dev_cell_indices_to_id[0], cell_indices_to_id, 3*sizeof(uint), cudaMemcpyHostToDevice) );
-   HANDLE_ERROR( cudaMemcpy(dev_vcell_transpose[0], vcell_transpose, WID3*sizeof(uint), cudaMemcpyHostToDevice) );
-
-   // Assuming 1 neighbor in the target array because of the CFL condition
-   // In fact propagating to > 1 neighbor will give an error
-   // const uint nTargetNeighborsPerPencil = 1;
+   // Copy indexing information to device. Only use first thread-array.
+   HANDLE_ERROR( cudaMemcpyAsync(dev_vcell_transpose[0], vcell_transpose, WID3*sizeof(uint), cudaMemcpyHostToDevice,bgStream) );
 
    // Vector with all cell ids
    vector<CellID> allCells(localPropagatedCells);
@@ -372,7 +367,7 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
          largestFoundMeshSize = largestFoundMeshSize > thread_largestFoundMeshSize ? largestFoundMeshSize : thread_largestFoundMeshSize;
       }
    }
-   // Prefetch vmesh pointers to GPU
+   // Prefetch vector of vmesh pointers to GPU
    allVmeshPointer->optimizeGPU(bgStream);
 
    // Gather cell weights for load balancing
@@ -429,7 +424,7 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    phiprof::stop("trans-amr-gather-meshpointers");
 
    phiprof::start("trans-amr-buildBlockList");
-   // Now we ensure the union of blocks gathering is complete.
+   // Now we ensure the union of blocks gathering is complete and extract the union of blocks into a vector
    HANDLE_ERROR( cudaStreamSynchronize(bgStream) );
    const uint nAllBlocks = unionOfBlocksSet->extractKeysByPattern(*unionOfBlocks,Rule<vmesh::GlobalID,vmesh::LocalID>(),bgStream);
    HANDLE_ERROR( cudaStreamSynchronize(bgStream) );
