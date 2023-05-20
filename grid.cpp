@@ -109,6 +109,14 @@ void initializeGrids(
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
+   #ifdef USE_CUDA
+   // Activate device, create streams
+   cuda_init_device();
+   const uint nPopulations = getObjectWrapper().particleSpecies.size();
+   const uint maxThreads = omp_get_max_threads();
+   cuda_allocateMomentCalculations(nPopulations,maxThreads);
+   #endif
+
    // Init Zoltan:
    float zoltanVersion;
    if (Zoltan_Initialize(argn,argc,&zoltanVersion) != ZOLTAN_OK) {
@@ -139,12 +147,6 @@ void initializeGrids(
       }
    }
    globalflags::AMRstencilWidth = neighborhood_size;
-
-   #ifdef USE_CUDA
-   const uint nPopulations = getObjectWrapper().particleSpecies.size();
-   const uint maxThreads = omp_get_max_threads();
-   cuda_allocateMomentCalculations(nPopulations,maxThreads);
-   #endif
 
    const std::array<uint64_t, 3> grid_length = {{P::xcells_ini, P::ycells_ini, P::zcells_ini}};
    dccrg::Cartesian_Geometry::Parameters geom_params;
