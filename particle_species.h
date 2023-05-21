@@ -31,6 +31,7 @@
 #include "definitions.h"
 #include <array>
 #include <string>
+
 namespace species {
     
    // Aliases for the maximum dt values stored in spatial_cell::Population::max_dt array.

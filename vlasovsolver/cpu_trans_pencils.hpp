@@ -27,15 +27,26 @@
 #include "../common.h"
 #include "../spatial_cell.hpp"
 
+// CUDATODO: make these four vectors inside the setofpencils struct pointers to vectors,
+// new construct them in the pencil building function. Do we need a flag for if they are allocated
+// or not? Or init with null pointer.
+// #ifdef USE_CUDA
+// typedef split::SplitVector<uint> pencilVecUint;
+// typedef split::SplitVector<Realf> pencilVecRealf;
+// #else
+typedef std::vector<uint> pencilVecUint;
+typedef std::vector<Realf> pencilVecRealf;
+// #endif
+
 struct setOfPencils {
 
    uint N; // Number of pencils in the set
    uint sumOfLengths;
-   std::vector< uint > lengthOfPencils; // Lengths of pencils (including stencil cells)
-   std::vector< CellID > ids; // List of pencil cells (incudingstencil cells)
-   std::vector< uint > idsStart; // List of where a pencil's CellIDs start in the ids array
-   std::vector< Realf > sourceDZ; // Widths of source cells
-   std::vector< Realf > targetRatios; // Pencil to target cell area ratios of target cells
+   pencilVecUint lengthOfPencils; // Lengths of pencils (including stencil cells)
+   std::vector<CellID> ids; // List of pencil cells (incuding stencil cells)
+   pencilVecUint idsStart; // List of where a pencil's CellIDs start in the ids array
+   pencilVecRealf sourceDZ; // Widths of source cells
+   pencilVecRealf targetRatios; // Pencil to target cell area ratios of target cells
    std::vector< Real > x,y; // x,y - position
    std::vector< bool > periodic;
    std::vector< std::vector<uint> > path; // Path taken through refinement levels
@@ -47,7 +58,6 @@ struct setOfPencils {
 
    void removeAllPencils() {
       N = 0;
-      sumOfLengths = 0;
       sumOfLengths = 0;
       lengthOfPencils.clear();
       idsStart.clear();
@@ -83,22 +93,27 @@ struct setOfPencils {
       path.push_back(pathIn);
    }
 
-   void removePencil(const uint pencilId) {
-      x.erase(x.begin() + pencilId);
-      y.erase(y.begin() + pencilId);
-      periodic.erase(periodic.begin() + pencilId);
-      path.erase(path.begin() + pencilId);
+   // CUDATODO: Re-instate this (and printing of DZ and ratios in printpencils) when splitvector iterators work completely
+   // void removePencil(const uint pencilId) {
+   //    x.erase(x.begin() + pencilId);
+   //    y.erase(y.begin() + pencilId);
+   //    periodic.erase(periodic.begin() + pencilId);
+   //    path.erase(path.begin() + pencilId);
 
-      uint ibeg = idsStart[pencilId];
-      ids.erase(ids.begin() + ibeg, ids.begin() + ibeg + lengthOfPencils[pencilId] + 2*VLASOV_STENCIL_WIDTH);
-      targetRatios.erase(targetRatios.begin() + ibeg, targetRatios.begin() + ibeg + lengthOfPencils[pencilId] + 2*VLASOV_STENCIL_WIDTH);
-      sourceDZ.erase(sourceDZ.begin() + ibeg, sourceDZ.begin() + ibeg + lengthOfPencils[pencilId] + 2*VLASOV_STENCIL_WIDTH);
-      idsStart.erase(idsStart.begin() + pencilId);
+   //    uint ibeg = idsStart[pencilId];
+   //    ids.erase(ids.begin() + ibeg, ids.begin() + ibeg + lengthOfPencils[pencilId] + 2*VLASOV_STENCIL_WIDTH);
+   //    pencilVecRealf::const_iterator ibeg2 = targetRatios.begin() + (auto)ibeg;
+   //    pencilVecRealf::const_iterator iend2 = targetRatios.begin() + (auto)ibeg + lengthOfPencils[pencilId] + 2*VLASOV_STENCIL_WIDTH;
+   //    targetRatios.erase(ibeg2,iend2);
+   //    ibeg2 = sourceDZ.begin() + ibeg;
+   //    iend2 = sourceDZ.begin() + ibeg + lengthOfPencils[pencilId] + 2*VLASOV_STENCIL_WIDTH;
+   //    sourceDZ.erase(ibeg2,iend2);
+   //    idsStart.erase(idsStart.begin() + pencilId);
 
-      N--;
-      sumOfLengths -= lengthOfPencils[pencilId];
-      lengthOfPencils.erase(lengthOfPencils.begin() + pencilId);
-   }
+   //    N--;
+   //    sumOfLengths -= lengthOfPencils[pencilId];
+   //    lengthOfPencils.erase(lengthOfPencils.begin() + pencilId);
+   // }
 
    std::vector<CellID> getIds(const uint pencilId) const {
       if (pencilId >= N) {
