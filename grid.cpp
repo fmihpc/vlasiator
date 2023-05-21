@@ -110,8 +110,7 @@ void initializeGrids(
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
    #ifdef USE_CUDA
-   // Activate device, create streams
-   cuda_init_device();
+   // Allocate GPU helper arrays
    const uint nPopulations = getObjectWrapper().particleSpecies.size();
    const uint maxThreads = omp_get_max_threads();
    cuda_allocateMomentCalculations(nPopulations,maxThreads);
