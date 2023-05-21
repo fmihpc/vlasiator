@@ -32,7 +32,6 @@
 
 #ifdef USE_CUDA
 #include "cuda_context.cuh"
-//#include "vlasovsolver/cuda_moments.h"
 #endif
 
 #include <fsgrid.hpp>

@@ -71,7 +71,7 @@ __global__ void propagatePencil_kernel(
       const uint lengthOfPencil = pencilLengths[pencili];
       const uint start = pencilStarts[pencili];
       Vec* thisPencilOrderedSource = pencilOrderedSource + start * WID3/VECL;
-   
+
       // Go over length of propagated cells
       for (int i = start + VLASOV_STENCIL_WIDTH; i < start + lengthOfPencil-VLASOV_STENCIL_WIDTH; i++){
 
@@ -363,7 +363,7 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
          (*allVmeshPointer)[celli] = mpiGrid[allCells[celli]]->get_velocity_mesh(popID);
          const uint thisMeshSize = (*allVmeshPointer)[celli]->size();
          thread_largestFoundMeshSize = thisMeshSize > thread_largestFoundMeshSize ? thisMeshSize : thread_largestFoundMeshSize;
-         // Prefetches
+         // Prefetches (in fact all data should already reside in device memory)
          // allCellsPointer[celli]->get_velocity_mesh(popID)->dev_prefetchDevice();
          // allCellsPointer[celli]->get_velocity_blocks(popID)->dev_prefetchDevice();
       }
@@ -426,6 +426,14 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
          }
       }
    }
+   split::SplitVector<uint> *pencilLengthsTemp = new split::SplitVector<uint>(DimensionPencils[dimension].lengthOfPencils);
+   split::SplitVector<uint> *pencilStartsTemp = new split::SplitVector<uint>(DimensionPencils[dimension].idsStart);
+   split::SplitVector<Realf> *pencilDZTemp = new split::SplitVector<Realf>(DimensionPencils[dimension].sourceDZ);
+   split::SplitVector<Realf> *pencilRatiosTemp = new split::SplitVector<Realf>(DimensionPencils[dimension].targetRatios);
+   uint* pencilLengths = pencilLengthsTemp->data();
+   uint* pencilStarts = pencilStartsTemp->data();
+   Realf* pencilDZ = pencilDZTemp->data();
+   Realf* pencilRatios = pencilRatiosTemp->data();
    phiprof::stop("trans-amr-gather-meshpointers");
 
    phiprof::start("trans-amr-buildBlockList");
@@ -458,6 +466,20 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
       // CUDATODO: pre-allocate one per thread, here verify sufficient size
       split::SplitVector<Realf*> *allPencilsBlockData = new split::SplitVector<Realf*>(sumOfLengths);
       split::SplitVector<uint> *allPencilsBlocksCount = new split::SplitVector<uint>(DimensionPencils[dimension].N);
+      cuint nPencils = DimensionPencils[dimension].N;
+      vmesh::VelocityMesh** pencilMeshes = allPencilsMeshes->data();
+      vmesh::VelocityBlockContainer** pencilContainers = allPencilsContainers->data();
+      Realf** pencilBlockData = allPencilsBlockData->data();
+      Vec* pencilOrderedSource = dev_blockDataOrdered[cpuThreadID];
+      uint* pencilBlocksCount = allPencilsBlocksCount->data();
+// CUDATODO: make these four vectors inside the setofpencils struct pointers to vectors,
+// new construct them in the pencil building function. Do we need a flag for if they are allocated
+// or not? Or init with null pointer.
+      // uint* pencilLengths = DimensionPencils[dimension].lengthOfPencils.data();
+      // uint* pencilStarts = DimensionPencils[dimension].idsStart.data();
+      // Realf* pencilDZ = DimensionPencils[dimension].sourceDZ.data();
+      // Realf* pencilRatios = DimensionPencils[dimension].targetRatios.data();
+
       phiprof::stop("prepare vectors");
 
       // Loop over velocity space blocks (threaded).
@@ -470,17 +492,6 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
 
          // Load data for pencils. This can also be made into a kernel
          phiprof::start(t2);
-         cuint nPencils = DimensionPencils[dimension].N;
-         vmesh::VelocityMesh** pencilMeshes = allPencilsMeshes->data();
-         vmesh::VelocityBlockContainer** pencilContainers = allPencilsContainers->data();
-         Realf** pencilBlockData = allPencilsBlockData->data();
-         Vec* pencilOrderedSource = dev_blockDataOrdered[cpuThreadID];
-         uint* pencilBlocksCount = allPencilsBlocksCount->data();
-         uint* pencilLengths = DimensionPencils[dimension].lengthOfPencils.data();
-         uint* pencilStarts = DimensionPencils[dimension].idsStart.data();
-         Realf* pencilDZ = DimensionPencils[dimension].sourceDZ.data();
-         Realf* pencilRatios = DimensionPencils[dimension].targetRatios.data();
-
          uint nCudaBlocks  = nPencils > CUDABLOCKS ? CUDABLOCKS : nPencils;
          cuint cudathreadsVECL = VECL;
          copy_trans_block_data_amr_kernel<<<nCudaBlocks, cudathreadsVECL, 0, stream>>> (
@@ -543,6 +554,10 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
       } // Closes loop over blocks
    } // closes pragma omp parallel
 
+   delete pencilLengthsTemp;
+   delete pencilStartsTemp;
+   delete pencilDZTemp;
+   delete pencilRatiosTemp;
    return true;
 }
 
