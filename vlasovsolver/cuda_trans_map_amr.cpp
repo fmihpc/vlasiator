@@ -387,11 +387,12 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    // Get a unique unsorted list of blockids that are in any of the
    // propagated cells. We launch this kernel, and do host-side pointer
    // gathering in parallel with it.
-   split::SplitVector<vmesh::GlobalID> *unionOfBlocks = new split::SplitVector<vmesh::GlobalID>(1);
-   unionOfBlocks->clear();
-   unionOfBlocks->optimizeGPU();
    const vmesh::LocalID HashmapReqSize = ceil(log2(largestFoundMeshSize)) +3;
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *unionOfBlocksSet = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(HashmapReqSize);
+   split::SplitVector<vmesh::GlobalID> *unionOfBlocks = new split::SplitVector<vmesh::GlobalID>(1);
+   unionOfBlocks->reserve(largestFoundMeshSize*10);
+   unionOfBlocks->clear();
+   unionOfBlocksSet->optimizeGPU(bgStream);
    const uint nCudaBlocks = nAllCells > CUDABLOCKS ? CUDABLOCKS : nAllCells;
    gather_union_of_blocks_kernel<<<nCudaBlocks, CUDATHREADS, 0, bgStream>>> (
       unionOfBlocksSet,
@@ -399,6 +400,7 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
       nAllCells
       );
    HANDLE_ERROR( cudaPeekAtLastError() );
+   unionOfBlocks->optimizeGPU(bgStream);
    phiprof::stop("trans-amr-buildBlockList");
 
    phiprof::start("trans-amr-gather-meshpointers");
@@ -421,6 +423,18 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
          }
       }
    }
+   vmesh::VelocityMesh** pencilMeshes = allPencilsMeshes->data();
+   vmesh::VelocityBlockContainer** pencilContainers = allPencilsContainers->data();
+   allPencilsMeshes->optimizeGPU();
+   allPencilsContainers->optimizeGPU();
+
+// CUDATODO: make these four vectors inside the setofpencils struct pointers to vectors,
+// new construct them in the pencil building function. Do we need a flag for if they are allocated
+// or not? Or init with null pointer.
+      // uint* pencilLengths = DimensionPencils[dimension].lengthOfPencils.data();
+      // uint* pencilStarts = DimensionPencils[dimension].idsStart.data();
+      // Realf* pencilDZ = DimensionPencils[dimension].sourceDZ.data();
+      // Realf* pencilRatios = DimensionPencils[dimension].targetRatios.data();
    split::SplitVector<uint> *pencilLengthsTemp = new split::SplitVector<uint>(DimensionPencils[dimension].lengthOfPencils);
    split::SplitVector<uint> *pencilStartsTemp = new split::SplitVector<uint>(DimensionPencils[dimension].idsStart);
    split::SplitVector<Realf> *pencilDZTemp = new split::SplitVector<Realf>(DimensionPencils[dimension].sourceDZ);
@@ -429,6 +443,10 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    uint* pencilStarts = pencilStartsTemp->data();
    Realf* pencilDZ = pencilDZTemp->data();
    Realf* pencilRatios = pencilRatiosTemp->data();
+   pencilLengthsTemp->optimizeGPU();
+   pencilStartsTemp->optimizeGPU();
+   pencilDZTemp->optimizeGPU();
+   pencilRatiosTemp->optimizeGPU();
    phiprof::stop("trans-amr-gather-meshpointers");
 
    phiprof::start("trans-amr-buildBlockList");
@@ -436,7 +454,7 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    HANDLE_ERROR( cudaStreamSynchronize(bgStream) );
    const uint nAllBlocks = unionOfBlocksSet->extractKeysByPattern(*unionOfBlocks,Rule<vmesh::GlobalID,vmesh::LocalID>(),bgStream);
    HANDLE_ERROR( cudaStreamSynchronize(bgStream) );
-   phiprof::stop("trans-amr-buildBlockList");
+   phiprof::stop("trans-amr-buildBlockList-2");
 
    /***********************/
    phiprof::stop("trans-amr-setup");
@@ -447,7 +465,7 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    int t4 = phiprof::initializeTimer("trans-amr-propagatePencil");
 #pragma omp parallel
    {
-      cuda_set_device();
+      //cuda_set_device();
       // Thread id used for persistent device memory pointers
       #ifdef _OPENMP
       const uint cpuThreadID = omp_get_thread_num();
@@ -459,21 +477,16 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
       phiprof::start("prepare vectors");
       // Vector of pointers to cell block data, used for both reading and writing
       // CUDATODO: pre-allocate one per thread, here verify sufficient size
-      split::SplitVector<Realf*> *allPencilsBlockData = new split::SplitVector<Realf*>(sumOfLengths);
-      split::SplitVector<uint> *allPencilsBlocksCount = new split::SplitVector<uint>(DimensionPencils[dimension].N);
       cuint nPencils = DimensionPencils[dimension].N;
-      vmesh::VelocityMesh** pencilMeshes = allPencilsMeshes->data();
-      vmesh::VelocityBlockContainer** pencilContainers = allPencilsContainers->data();
-      Realf** pencilBlockData = allPencilsBlockData->data();
       Vec* pencilOrderedSource = dev_blockDataOrdered[cpuThreadID];
-      uint* pencilBlocksCount = allPencilsBlocksCount->data();
-// CUDATODO: make these four vectors inside the setofpencils struct pointers to vectors,
-// new construct them in the pencil building function. Do we need a flag for if they are allocated
-// or not? Or init with null pointer.
-      // uint* pencilLengths = DimensionPencils[dimension].lengthOfPencils.data();
-      // uint* pencilStarts = DimensionPencils[dimension].idsStart.data();
-      // Realf* pencilDZ = DimensionPencils[dimension].sourceDZ.data();
-      // Realf* pencilRatios = DimensionPencils[dimension].targetRatios.data();
+      // split::SplitVector<Realf*> *allPencilsBlockData = new split::SplitVector<Realf*>(sumOfLengths);
+      // split::SplitVector<uint> *allPencilsBlocksCount = new split::SplitVector<uint>(DimensionPencils[dimension].N);
+      // Realf** pencilBlockData = allPencilsBlockData->data();
+      // uint* pencilBlocksCount = allPencilsBlocksCount->data();
+      Realf** pencilBlockData;
+      uint* pencilBlocksCount;
+      HANDLE_ERROR( cudaMallocAsync((void**)&pencilBlockData, sumOfLengths*sizeof(Realf*), stream) );
+      HANDLE_ERROR( cudaMallocAsync((void**)&pencilBlocksCount, nPencils*sizeof(uint), stream) );
 
       phiprof::stop("prepare vectors");
 
