@@ -223,6 +223,31 @@ __global__ void copy_trans_block_data_amr_kernel(
    }
 }
 
+__global__ void reset_trans_block_data_amr_kernel(
+   vmesh::VelocityMesh** pencilMeshes, // Pointers to velocity meshes
+   Realf** pencilBlockData, // pointers into cell block data to reset
+   Realf* targetRatios, // Vector holding target ratios
+   const vmesh::GlobalID blockGID, // which GID this thread is working on
+   const uint nAllCells
+) {
+   const int cudaBlocks = gridDim.x;
+   const int blocki = blockIdx.x;
+   //const int warpSize = blockDim.x*blockDim.y*blockDim.z; // Assumed to be equal to WID3
+   const vmesh::LocalID ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
+
+   for (uint celli=blocki; celli<nAllCells; celli += cudaBlocks) {
+      if (targetRatios[celli] != 0) {
+         // Is a target cell, needs to be reset
+         vmesh::VelocityMesh* vmesh = pencilMeshes[celli];
+         const vmesh::LocalID blockLID = vmesh->getLocalID(blockGID);
+         if (blockLID != vmesh->invalidLocalID()) {
+            // This block exists for this cell, reset
+            (pencilBlockData[celli])[ti] = 0.0;
+         }
+      }
+   }
+}
+
 /* Mini-kernel for looping over all available velocity meshes and gathering
  * the union of all existing blocks.
  *
@@ -474,23 +499,22 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
       #endif
       cudaStream_t stream = cuda_getStream();
 
-      phiprof::start("prepare vectors");
+      phiprof::start("prepare buffers");
       // Vector of pointers to cell block data, used for both reading and writing
       // CUDATODO: pre-allocate one per thread, here verify sufficient size
       cuint nPencils = DimensionPencils[dimension].N;
-      Vec* pencilOrderedSource = dev_blockDataOrdered[cpuThreadID];
-      // split::SplitVector<Realf*> *allPencilsBlockData = new split::SplitVector<Realf*>(sumOfLengths);
-      // split::SplitVector<uint> *allPencilsBlocksCount = new split::SplitVector<uint>(DimensionPencils[dimension].N);
-      // Realf** pencilBlockData = allPencilsBlockData->data();
-      // uint* pencilBlocksCount = allPencilsBlocksCount->data();
+      Vec* pencilOrderedSource = dev_blockDataOrdered[cpuThreadID]; // temp buffer
+      Realv scalingthreshold = mpiGrid[DimensionPencils[dimension].ids[VLASOV_STENCIL_WIDTH]]->getVelocityBlockMinValue(popID);
       Realf** pencilBlockData;
       uint* pencilBlocksCount;
       HANDLE_ERROR( cudaMallocAsync((void**)&pencilBlockData, sumOfLengths*sizeof(Realf*), stream) );
       HANDLE_ERROR( cudaMallocAsync((void**)&pencilBlocksCount, nPencils*sizeof(uint), stream) );
+      phiprof::stop("prepare buffers");
 
-      phiprof::stop("prepare vectors");
+      // Loop over velocity space blocks (threaded, multi-stream)
 
-      // Loop over velocity space blocks (threaded).
+      // This doesn't even need to be OpenMP parallel. Make NCUDABLOCKS instances of the
+      // temp buffer, and each launched block chooses the Nth velocity block to compute.
 #pragma omp for schedule(guided,8)
       for (uint blocki = 0; blocki < unionOfBlocks->size(); blocki++) {
          // Get global id of the velocity block
@@ -518,20 +542,13 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
 
          phiprof::start(t3);
          // reset blocks in all non-sysboundary neighbor spatial cells for this block id
-         for (CellID target_cell_id: DimensionTargetCells[dimension]) {
-            SpatialCell* target_cell = mpiGrid[target_cell_id];
-            // Check for null and system boundary
-            if (target_cell && target_cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-               // Get local velocity block id
-               const vmesh::LocalID blockLID = target_cell->get_velocity_block_local_id(blockGID, popID);
-               // Check for invalid block id
-               if (blockLID != vmesh::VelocityMesh::invalidLocalID()) {
-                  // Get a pointer to the block data
-                  Realf* blockData = target_cell->get_data(blockLID, popID);
-                  HANDLE_ERROR( cudaMemsetAsync(blockData, 0, WID3*sizeof(Realf), stream) );
-               }
-            }
-         }
+         reset_trans_block_data_amr_kernel<<<CUDABLOCKS, WID3, 0, stream>>> (
+            pencilMeshes, // Pointers to velocity meshes
+            pencilBlockData, // pointers into cell block data to reset
+            pencilRatios, // Vector holding target ratios
+            blockGID, // which GID this thread is working on
+            sumOfLengths
+            );
          HANDLE_ERROR( cudaStreamSynchronize(stream) );
          phiprof::stop(t3);
 
@@ -539,7 +556,6 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
          // Dz and sourceVecData are both padded by VLASOV_STENCIL_WIDTH
          // Dz has 1 value/cell, sourceVecData has WID3 values/cell
          // vmesh is required just for general indexes and accessors
-         Realv scalingthreshold = mpiGrid[DimensionPencils[dimension].ids[VLASOV_STENCIL_WIDTH]]->getVelocityBlockMinValue(popID);
          propagatePencil_kernel<<<nCudaBlocks, cudathreadsVECL, 0, stream>>> (
             pencilDZ,
             pencilOrderedSource,
