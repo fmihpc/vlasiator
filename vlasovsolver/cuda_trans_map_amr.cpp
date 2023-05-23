@@ -85,32 +85,24 @@ __global__ void translation_kernel(
    // Acting on velocity block blockGID, now found from array
    for (uint thisBlockIndex = startingBlockIndex + blocki; thisBlockIndex < nAllBlocks; thisBlockIndex += blockIndexIncrement) {
       const uint blockGID = allBlocks[thisBlockIndex];
-      // if (ti==0 && blocki==0) {
-      //    printf("Kernel with blocki %ul and starting index %ul acting on block GID %ul at index %ul with overall increment %ul \n",blocki,startingBlockIndex,blockGID,thisBlockIndex,blockIndexIncrement);
-      //    printf(" My offsets: pencilBlockDataOffset %ul pencilOrderedSourceOffset %ul pencilBlocksCountOffset %ul\n",pencilBlockDataOffset,pencilOrderedSourceOffset,pencilBlocksCountOffset);
-      // }
       // First read data in
-      //for (uint pencili=blocki; pencili<nPencils; pencili += cudaBlocks) {
       for (uint pencili=0; pencili<nPencils; pencili++) {
          const uint lengthOfPencil = pencilLengths[pencili];
          const uint start = pencilStarts[pencili];
          // Get pointer to temprary buffer of VEC-ordered data for this kernel
          Vec* thisPencilOrderedSource = pencilOrderedSource + pencilOrderedSourceOffset + start * WID3/VECL;
-         // if (ti==0 && blocki==0) {
-         //    printf("pencil %u Vector storage %llu with pencilOrderedSource %llu pencilOrderedSourceOffset %llu start * WID3/VECL %llu \n",(unsigned int)pencili,(unsigned long long int)thisPencilOrderedSource,(unsigned long long int)pencilOrderedSource,(unsigned long long int)pencilOrderedSourceOffset,(unsigned long long int)(start * WID3/VECL));
-         // }
 
          uint nonEmptyBlocks = 0;
          // Go over pencil length, gather cellblock data into aligned pencil source data
-         for (uint celli = start; celli < start + lengthOfPencil; celli++) {
-            vmesh::VelocityMesh* vmesh = pencilMeshes[celli];
+         for (uint celli = 0; celli < lengthOfPencil; celli++) {
+            vmesh::VelocityMesh* vmesh = pencilMeshes[start + celli];
             const vmesh::LocalID blockLID = vmesh->getLocalID(blockGID);
             // Store block data pointer for both loading of data and writing back to the cell
             if (ti==0) {
                if (blockLID == vmesh->invalidLocalID()) {
-                  pencilBlockData[pencilBlockDataOffset + celli] = NULL;
+                  pencilBlockData[pencilBlockDataOffset + start + celli] = NULL;
                } else {
-                  pencilBlockData[pencilBlockDataOffset + celli] = pencilContainers[celli]->getData(blockLID);
+                  pencilBlockData[pencilBlockDataOffset + start + celli] = pencilContainers[start + celli]->getData(blockLID);
                   nonEmptyBlocks++;
                }
             }
@@ -121,12 +113,8 @@ __global__ void translation_kernel(
                uint offset =0;
                for (uint k=0; k<WID; k++) {
                   for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
-                     // if (ti==0 && blocki==0) {
-                     //    printf("i_trans offset %llu pointing to %llu\n",(unsigned long long int)i_trans_ps_blockv_pencil(planeVector, k, celli, lengthOfPencil),(unsigned long long int)&thisPencilOrderedSource[i_trans_ps_blockv_pencil(planeVector, k, celli, lengthOfPencil)]);
-                     // }
-                     thisPencilOrderedSource[i_trans_ps_blockv_pencil(planeVector, k, celli, lengthOfPencil)][ti] = (pencilBlockData[pencilBlockDataOffset + celli])[vcell_transpose[offset+ti]];
-                     //thisPencilOrderedSource[i_trans_ps_blockv_pencil(planeVector, k, celli, lengthOfPencil)][ti] = (pencilContainers[celli]->getData(blockLID))[vcell_transpose[offset+ti]];
-
+                     thisPencilOrderedSource[i_trans_ps_blockv_pencil(planeVector, k, celli, lengthOfPencil)][ti]
+                        = (pencilBlockData[pencilBlockDataOffset + start + celli])[vcell_transpose[offset+ti]];
                      offset += warpSize;
                   }
                }
@@ -145,7 +133,6 @@ __global__ void translation_kernel(
 
       __syncthreads();
       // Now we reset target blocks
-      //for (uint celli=blocki; celli<sumOfLengths; celli += cudaBlocks) {
       for (uint celli=0; celli<sumOfLengths; celli++) {
          if (pencilRatios[celli] != 0) {
             // Is a target cell, needs to be reset
@@ -153,12 +140,10 @@ __global__ void translation_kernel(
             const vmesh::LocalID blockLID = vmesh->getLocalID(blockGID);
             if (blockLID != vmesh->invalidLocalID()) {
                // This block exists for this cell, reset
-               //Realf* thisBlockData = pencilContainers[celli]->getData(blockLID);
                //(pencilBlockData[celli])[ti] = 0.0; // This would work if we had WID3 threads
                for (uint k=0; k<WID; ++k) {
                   for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++) {
                      (pencilBlockData[pencilBlockDataOffset + celli])[k * WID2 + planeVector * VECL + ti] = 0.0;
-                     //thisBlockData[k * WID2 + planeVector * VECL + ti] = 0.0;
                   }
                }
             }
@@ -180,7 +165,6 @@ __global__ void translation_kernel(
       // In fact propagating to > 1 neighbor will give an error
       // Also defined in the calling function for the allocation of targetValues
       // const uint nTargetNeighborsPerPencil = 1;
-      //for (uint pencili=blocki; pencili<nPencils; pencili += cudaBlocks) {
       for (uint pencili=0; pencili<nPencils; pencili++) {
          if (pencilBlocksCount[pencilBlocksCountOffset + pencili] == 0) {
             continue;
@@ -190,36 +174,20 @@ __global__ void translation_kernel(
          Vec* thisPencilOrderedSource = pencilOrderedSource + pencilOrderedSourceOffset + start * WID3/VECL;
 
          // Go over length of propagated cells
-         for (uint i = start + VLASOV_STENCIL_WIDTH; i < start + lengthOfPencil-VLASOV_STENCIL_WIDTH; i++){
+         for (uint i = VLASOV_STENCIL_WIDTH; i < lengthOfPencil-VLASOV_STENCIL_WIDTH; i++){
 
             // Get pointers to block data used for output.
             // CUDATODO: use blockGID to get pointers here
 
-            Realf* block_data_m1 = pencilBlockData[pencilBlockDataOffset + i - 1];
-            Realf* block_data =    pencilBlockData[pencilBlockDataOffset + i];
-            Realf* block_data_p1 = pencilBlockData[pencilBlockDataOffset + i + 1];
-            // Realf* block_data_m1 = NULL;
-            // Realf* block_data = NULL;
-            // Realf* block_data_p1 = NULL;
-
-            // vmesh::LocalID LID_m1 = pencilMeshes[i - 1]->getLocalID(blockGID);
-            // vmesh::LocalID LID    = pencilMeshes[i    ]->getLocalID(blockGID);
-            // vmesh::LocalID LID_p1 = pencilMeshes[i + 1]->getLocalID(blockGID);
-            // if (LID_m1 != pencilMeshes[i - 1]->invalidLocalID()) {
-            //    block_data_m1 =  pencilContainers[i - 1]->getData(LID_m1);
-            // }
-            // if (LID != pencilMeshes[i]->invalidLocalID()) {
-            //    block_data = pencilContainers[i]->getData(LID);
-            // }
-            // if (LID_p1 != pencilMeshes[i + 1]->invalidLocalID()) {
-            //    block_data_p1 =  pencilContainers[i + 1]->getData(LID_p1);
-            // }
+            Realf* block_data_m1 = pencilBlockData[pencilBlockDataOffset + start + i - 1];
+            Realf* block_data =    pencilBlockData[pencilBlockDataOffset + start + i];
+            Realf* block_data_p1 = pencilBlockData[pencilBlockDataOffset + start + i + 1];
 
             // Cells which shouldn't be written to (e.g. sysboundary cells) have a targetRatio of 0
             // Also need to check if pointer is valid, because a cell can be missing an elsewhere propagated block
-            Realf areaRatio_m1 = pencilRatios[i - 1];
-            Realf areaRatio =    pencilRatios[i];
-            Realf areaRatio_p1 = pencilRatios[i + 1];
+            Realf areaRatio_m1 = pencilRatios[start + i - 1];
+            Realf areaRatio =    pencilRatios[start + i];
+            Realf areaRatio_p1 = pencilRatios[start + i + 1];
 
             // Loop over planes
             for (uint k = 0; k < WID; ++k) {
@@ -549,9 +517,8 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
       cuint nPencils = DimensionPencils[dimension].N;
       cuint currentAllocation = cuda_vlasov_getAllocation(); // in blocks, per thread buffer
       Vec* pencilOrderedSource = dev_blockDataOrdered[cpuThreadID]; // pre-allocated temp buffer
-      // How many blocks can each thread manage in parallel with this temp buffer?
-      //cuint nBlocksPerThread = currentAllocation / sumOfLengths;
-      cuint nBlocksPerThread=1;
+      // How many blocks can each thread manage in parallel with this existing temp buffer?
+      cuint nBlocksPerThread = currentAllocation / sumOfLengths;
       uint nCudaBlocks  = nBlocksPerThread > CUDABLOCKS ? CUDABLOCKS : nBlocksPerThread;
       cuint cudathreadsVECL = VECL;
 
@@ -561,32 +528,14 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
       HANDLE_ERROR( cudaMallocAsync((void**)&pencilBlocksCount, nPencils*nCudaBlocks*sizeof(uint), stream) );
       phiprof::stop("prepare buffers");
 
-      stringstream ss0;
-      ss0<<"thread "<<cpuThreadID<<" nPencils "<<nPencils<<" nAllBlocks "<<nAllBlocks<<" currentAllocation "<<currentAllocation<<" nBlocksPerThread "<<nBlocksPerThread;
-      ss0<<" nCudaBlocks "<<nCudaBlocks<<" cudathreadsVECL "<<cudathreadsVECL<<" sumOfLengths "<<sumOfLengths<<std::endl;
-      ss0<<" Vec storage extent: from "<<(unsigned long long int)pencilOrderedSource<<" to "<<(unsigned long long int)(pencilOrderedSource+currentAllocation*WID3/VECL);
-      ss0<<std::endl;
-      std::cerr<<ss0.str();
-
-      // Loop over velocity space blocks (threaded, multi-stream, and multi-block parallel)
-      // for (uint blocki = 0; blocki < unionOfBlocks->size(); blocki++) {
-      //    // Get global id of the velocity block
-      //    vmesh::GlobalID blockGID = unionOfBlocks->at(blocki);
+      // Loop over velocity space blocks (threaded, multi-stream, and multi-block parallel, but not using a for-loop)
       phiprof::start(t1); // mapping (top-level)
-//#pragma omp for schedule(guided,8)
-      //for (uint startingBlockIndex = cpuThreadID*nCudaBlocks; startingBlockIndex < nAllBlocks; startingBlockIndex += maxThreads*nCudaBlocks) {
       {
          const uint startingBlockIndex = cpuThreadID*nCudaBlocks;
          const uint blockIndexIncrement = maxThreads*nCudaBlocks;
-         // How this thread, using its own stream, will launch nCudaBlocks instances of the below kernel, where each instance
+         // This thread, using its own stream, will launch nCudaBlocks instances of the below kernel, where each instance
          // propagates all pencils for the block in question.
-         stringstream ss;
-         ss<<" thread "<<cpuThreadID<<" with nAllBlocks "<<nAllBlocks<<" maxThreads "<<maxThreads;
-         ss<<" nCudaBlocks "<<nCudaBlocks<<" startingBlockIndex "<<startingBlockIndex<<" blockIndexIncrement "<<blockIndexIncrement;
-         ss<<std::endl;
-         std::cerr<<ss.str();
          translation_kernel<<<nCudaBlocks, cudathreadsVECL, 0, stream>>> (
-            //translation_kernel<<<1, cudathreadsVECL, 0, stream>>> (
             dimension,
             dev_vcell_transpose[0],
             dt,
