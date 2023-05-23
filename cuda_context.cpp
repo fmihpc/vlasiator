@@ -227,6 +227,10 @@ __host__ void cuda_vlasov_allocate (
    cuda_vlasov_allocatedSize = newSize;
 }
 
+__host__ uint cuda_vlasov_getAllocation() {
+   return cuda_vlasov_allocatedSize;
+}
+
 __host__ void cuda_vlasov_allocate_perthread (
    uint cpuThreadID,
    uint blockAllocationCount

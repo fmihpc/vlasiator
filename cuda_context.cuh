@@ -127,6 +127,7 @@ cudaStream_t cuda_getStream();
 cudaStream_t cuda_getPriorityStream();
 int cuda_getDevice();
 void cuda_vlasov_allocate (uint maxBlockCount);
+uint cuda_vlasov_getAllocation();
 void cuda_vlasov_allocate_perthread (uint cpuThreadID, uint blockAllocationCount);
 void cuda_vlasov_deallocate_perthread (uint cpuThreadID);
 void cuda_acc_allocate (uint maxBlockCount);

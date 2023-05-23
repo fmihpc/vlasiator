@@ -895,7 +895,7 @@ CUDA_DEV inline void compute_filtered_face_values_nonuniform_conserving(const Re
    }
 
    //check for extrema
-   bool is_extrema = (slope_abs == 0.0);
+   //bool is_extrema = (slope_abs == 0.0);
    bool filter_l = (values[k - 1][index] - fv_l) * (fv_l - values[k][index]) < 0 ;
    bool filter_r = (values[k + 1][index] - fv_r) * (fv_r - values[k][index]) < 0;
    //  if(horizontal_or(is_extrema) || horizontal_or(filter_l) || horizontal_or(filter_r)) {
