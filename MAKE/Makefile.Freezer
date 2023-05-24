@@ -68,8 +68,11 @@ LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/jemalloc/lib -ljemalloc -Wl,-rpath=$(LIBRARY_
 INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
 LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)/vlsv/lib
 
-LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX)/phiprof/lib
-INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
+#LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX)/phiprof/lib
+#INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
+#enable nvx on cpu mode as well
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof_nvcc/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX)/phiprof_nvcc/lib
+INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof_nvcc/include
 
 #header libraries
 
