@@ -290,9 +290,15 @@ void initializeGrids(
       #pragma omp parallel for schedule(dynamic)
       for (size_t i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
+         #ifdef USE_CUDA
+         cell->prefetchHost(); // Currently projects still init on host
+         #endif
          if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             project.setCell(cell);
          }
+         #ifdef USE_CUDA
+         cell->prefetchDevice(); // Currently projects still init on host
+         #endif
       }
       phiprof::stop("setCell");
 

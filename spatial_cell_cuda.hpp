@@ -316,6 +316,9 @@ namespace spatial_cell {
                 vmesh::VelocityBlockContainer* blockContainer,const uint popID);
       vmesh::VelocityMesh* get_velocity_mesh(const size_t& popID);
       vmesh::VelocityBlockContainer* get_velocity_blocks(const size_t& popID);
+      // Prefetches for both blockContainers and vmeshes, all populations
+      void prefetchDevice();
+      void prefetchHost();
 
       Realf get_value(const Real vx,const Real vy,const Real vz,const uint popID) const;
       Realf get_value(const vmesh::GlobalID& blockGID, const unsigned int cell, const uint popID) const;

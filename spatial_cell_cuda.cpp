@@ -1456,6 +1456,19 @@ namespace spatial_cell {
       phiprof::stop("CUDA update spatial cell block lists");
    }
 
+   void SpatialCell::prefetchDevice() {
+      for (size_t p=0; p<populations.size(); ++p) {
+         populations[p].vmesh->dev_prefetchDevice();
+         populations[p].blockContainer->dev_prefetchDevice();
+      }
+   }
+   void SpatialCell::prefetchHost() {
+      for (size_t p=0; p<populations.size(); ++p) {
+         populations[p].vmesh->dev_prefetchHost();
+         populations[p].blockContainer->dev_prefetchHost();
+      }
+   }
+
    void SpatialCell::printMeshSizes() {
       cerr << "SC::printMeshSizes:" << endl;
       for (size_t p=0; p<populations.size(); ++p) {

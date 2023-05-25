@@ -75,7 +75,9 @@ __global__ void translation_kernel(
    //const int cudaBlocks = gridDim.x;
    const int blocki = blockIdx.x;
    const int warpSize = blockDim.x*blockDim.y*blockDim.z;
-   const vmesh::LocalID ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
+   const uint k = threadIdx.y;
+   const vmesh::LocalID ti = threadIdx.x;
+   //const vmesh::LocalID ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
 
    // offsets so this block of the kernel uses the correct part of temp arrays
    const uint pencilBlockDataOffset = blocki * sumOfLengths;
@@ -110,20 +112,23 @@ __global__ void translation_kernel(
             if (blockLID != vmesh->invalidLocalID()) { // Valid block
                // Transpose block values so that mapping is along k direction.
                // Store values in Vec-order for efficient reading in propagation
-               uint offset =0;
-               for (uint k=0; k<WID; k++) {
-                  for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
-                     thisPencilOrderedSource[i_trans_ps_blockv_pencil(planeVector, k, celli, lengthOfPencil)][ti]
-                        = (pencilBlockData[pencilBlockDataOffset + start + celli])[vcell_transpose[offset+ti]];
-                     offset += warpSize;
-                  }
-               }
+               thisPencilOrderedSource[i_trans_ps_blockv_pencil(0, k, celli, lengthOfPencil)][ti]
+                  = (pencilBlockData[pencilBlockDataOffset + start + celli])[vcell_transpose[k*WID2+ti]];
+               // uint offset =0;
+               // for (uint k=0; k<WID; k++) {
+               //    for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
+               // thisPencilOrderedSource[i_trans_ps_blockv_pencil(planeVector, k, celli, lengthOfPencil)][ti]
+               //    = (pencilBlockData[pencilBlockDataOffset + start + celli])[vcell_transpose[offset+ti]];
+               //       offset += warpSize;
+               //    }
+               // }
             } else { // Non-existing block, push in zeroes
-               for (uint k=0; k<WID; ++k) {
-                  for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++) {
-                     thisPencilOrderedSource[i_trans_ps_blockv_pencil(planeVector, k, celli, lengthOfPencil)][ti] = 0.0;
-                  }
-               }
+               thisPencilOrderedSource[i_trans_ps_blockv_pencil(0, k, celli, lengthOfPencil)][ti] = 0.0;
+               // for (uint k=0; k<WID; ++k) {
+               //    for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++) {
+               //       thisPencilOrderedSource[i_trans_ps_blockv_pencil(planeVector, k, celli, lengthOfPencil)][ti] = 0.0;
+               //    }
+               // }
             }
          } // End loop over this pencil
          if (ti==0) {
@@ -139,13 +144,14 @@ __global__ void translation_kernel(
             vmesh::VelocityMesh* vmesh = pencilMeshes[celli];
             const vmesh::LocalID blockLID = vmesh->getLocalID(blockGID);
             if (blockLID != vmesh->invalidLocalID()) {
+               (pencilBlockData[pencilBlockDataOffset + celli])[k * WID2 + ti] = 0.0;
                // This block exists for this cell, reset
                //(pencilBlockData[celli])[ti] = 0.0; // This would work if we had WID3 threads
-               for (uint k=0; k<WID; ++k) {
-                  for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++) {
-                     (pencilBlockData[pencilBlockDataOffset + celli])[k * WID2 + planeVector * VECL + ti] = 0.0;
-                  }
-               }
+               // for (uint k=0; k<WID; ++k) {
+               //    for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++) {
+               //       (pencilBlockData[pencilBlockDataOffset + celli])[k * WID2 + planeVector * VECL + ti] = 0.0;
+               //    }
+               // }
             }
          }
       } // end loop over all cells
@@ -190,7 +196,8 @@ __global__ void translation_kernel(
             Realf areaRatio_p1 = pencilRatios[start + i + 1];
 
             // Loop over planes
-            for (uint k = 0; k < WID; ++k) {
+            // for (uint k = 0; k < WID; ++k) {
+            {
                const Realf cell_vz = (block_indices[dimension] * WID + k + 0.5) * dvz + vz_min; //cell centered velocity
                const Realf z_translation = cell_vz * dt / pencilDZ[i]; // how much it moved in time dt (reduced units)
 
@@ -214,7 +221,9 @@ __global__ void translation_kernel(
                // }
 
                // Loop over Vec's in current plance
-               for (uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++) {
+               // for (uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++) {
+               const uint planeVector = 0;
+               {
                   // Check if all values are 0:
                   if (check_skip_remapping(thisPencilOrderedSource + i_trans_ps_blockv_pencil(planeVector, k, i, lengthOfPencil),ti)) {
                      continue;
@@ -535,7 +544,8 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
          const uint blockIndexIncrement = maxThreads*nCudaBlocks;
          // This thread, using its own stream, will launch nCudaBlocks instances of the below kernel, where each instance
          // propagates all pencils for the block in question.
-         translation_kernel<<<nCudaBlocks, cudathreadsVECL, 0, stream>>> (
+         dim3 block(WID2,WID,1); // assumes VECL==WID2 
+         translation_kernel<<<nCudaBlocks, block, 0, stream>>> (
             dimension,
             dev_vcell_transpose[0],
             dt,

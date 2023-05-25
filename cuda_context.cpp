@@ -203,8 +203,8 @@ __host__ int cuda_getDevice() {
 __host__ void cuda_vlasov_allocate (
    uint maxBlockCount
    ) {
-   // Always prepare for at least 500 blocks
-   const uint maxBlocksPerCell = maxBlockCount > 500 ? maxBlockCount : 500;
+   // Always prepare for at least 2500 blocks
+   const uint maxBlocksPerCell = maxBlockCount > 2500 ? maxBlockCount : 2500;
    // Check if we already have allocated enough memory?
    if (cuda_vlasov_allocatedSize > maxBlocksPerCell * BLOCK_ALLOCATION_FACTOR) {
       return;
