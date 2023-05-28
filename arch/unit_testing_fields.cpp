@@ -87,9 +87,10 @@ typename std::enable_if<I == 0, std::tuple<bool, double, double>>::type test(){
   double host_time = (double)((clock() - host_start) * 1e6 / CLOCKS_PER_SEC); 
 
   bool success = true;
-  if (dataBuffer[10,10,10].maxFsDt != 2)
+  int64_t id = LocalIDForCoords(10,10,10,FS_STENCIL_WIDTH,gridDims,storageSize);
+  if (dataBuffer[id].maxFsDt != 2)
     success = false;
-  else if (dataBuffer[10,10,10].maxFsDt != technicalGrid.get(10,10,10)->maxFsDt)
+  else if (dataBuffer[id].maxFsDt != technicalGrid.get(10,10,10)->maxFsDt)
     success = false;
 
   return std::make_tuple(success, arch_time, host_time);
