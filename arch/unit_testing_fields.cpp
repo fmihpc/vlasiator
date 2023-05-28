@@ -55,7 +55,7 @@ typename std::enable_if<I == 0, std::tuple<bool, double, double>>::type test(){
 
   clock_t arch_start = clock();
   arch::parallel_for({(uint)gridDims[0], (uint)gridDims[1], (uint)gridDims[2] }, ARCH_LOOP_LAMBDA(int i, int j, int k) {
-    dataBuffer[i,j,k].maxFsDt=std::numeric_limits<Real>::max();
+    dataBuffer[i,j,k].maxFsDt=2;
   }); 
   double arch_time = (double)((clock() - arch_start) * 1e6 / CLOCKS_PER_SEC);
 
@@ -63,14 +63,14 @@ typename std::enable_if<I == 0, std::tuple<bool, double, double>>::type test(){
   for (uint k = 0; k < gridDims[2]; ++k){
     for (uint j = 0; j < gridDims[1]; ++j){
       for (uint i = 0; i < gridDims[0]; ++i) {
-        technicalGrid.get(i,j,k)->maxFsDt=std::numeric_limits<Real>::max();
+        technicalGrid.get(i,j,k)->maxFsDt=2;
       }
     } 
   }
   double host_time = (double)((clock() - host_start) * 1e6 / CLOCKS_PER_SEC); 
 
   bool success = true;
-  if (dataBuffer[10,10,10].maxFsDt != std::numeric_limits<Real>::max())
+  if (dataBuffer[10,10,10].maxFsDt != 2)
     success = false;
   else if (dataBuffer[10,10,10].maxFsDt != technicalGrid.get(10,10,10)->maxFsDt)
     success = false;
@@ -121,4 +121,9 @@ int main(int argn,char* args[]) {
     fflush(stdout);
     result_eval(fptr_test[i](), i);
   }
+
+  /* Finalize MPI */
+  MPI_Finalize(); 
+
+  return 0;
 }
