@@ -258,6 +258,9 @@ __device__ __forceinline__ static void lambda_eval_for(const uint (&idx)[1], Lam
 template <typename Lambda>
 __device__ __forceinline__ static void lambda_eval_for(const uint (&idx)[2], Lambda loop_body) { loop_body(idx[0], idx[1]); }
 
+template <typename Lambda, typename T>
+__device__ __forceinline__ static void lambda_eval_for(const uint (&idx)[3], Lambda loop_body, T* buffer) { loop_body(idx[0], idx[1], idx[2], buffer); }
+
 template <typename Lambda>
 __device__ __forceinline__ static void lambda_eval_for(const uint (&idx)[3], Lambda loop_body) { loop_body(idx[0], idx[1], idx[2]); }
 
@@ -385,9 +388,42 @@ for_kernel(Lambda loop_body, const uint * __restrict__ lims, const uint n_total)
         idx[1] = (idx_glob / lims[0]) % lims[1];
       case 1:
         idx[0] = idx_glob % lims[0];  
-    }
+    } 
     lambda_eval_for(idx, loop_body);
   }
+}
+
+/* A general device kernel for for loops with shared memory */
+template <uint NDim, typename Lambda, typename T>
+__global__ static void __launch_bounds__(ARCH_BLOCKSIZE_R)
+for_kernel(Lambda loop_body, const uint * __restrict__ lims, const uint n_total, arch::buf<T> &buffer)
+{
+  /* Get the global 1D thread index*/
+  const uint idx_glob = blockIdx.x * blockDim.x + threadIdx.x;
+
+  // copy buffer to shared memory
+  __shared__ T sharedData[ARCH_BLOCKSIZE_R];
+
+  // Copy data from global memory to shared memory
+  sharedData[threadIdx.x] = buffer[idx_glob];
+
+  /* Check the loop limits and evaluate the loop body */
+  if (idx_glob < n_total) {
+    uint idx[NDim];
+    if (NDim > 3) 
+      idx[3] = (idx_glob / (lims[0] * lims[1] * lims[2])) % lims[3];
+    if (NDim > 2) 
+      idx[2] = (idx_glob / (lims[0] * lims[1])) % lims[2];
+    if (NDim > 1) 
+      idx[1] = (idx_glob / lims[0]) % lims[1];
+    if (NDim > 0) 
+      idx[0] = idx_glob % lims[0];  
+    lambda_eval_for(idx, loop_body, sharedData);
+  }
+
+  // Write data from shared memory back to global memory
+  buffer[idx_glob] = sharedData[threadIdx.x];
+
 }
 
 // parallel for driver function for CUDA
@@ -405,6 +441,23 @@ __forceinline__ static void parallel_for_driver(const uint (&limits)[NDim], Lamb
 
   /* Launch the kernel */
   for_kernel<NDim><<<gridsize, blocksize, 0>>>(loop_body, limits, n_total);
+}
+
+// parallel for driver function for CUDA, with dynamic shared memory for one buffer
+template <uint NDim, typename Lambda, typename T>
+__forceinline__ static void parallel_for_driver(const uint (&limits)[NDim], Lambda loop_body, arch::buf<T> &buf) {
+
+  /* Calculate the required size for the 1D kernel */
+  uint n_total = 1;
+  for(uint i = 0; i < NDim; i++)
+    n_total *= limits[i];
+
+  /* Set the kernel dimensions */
+  const uint blocksize = ARCH_BLOCKSIZE_R;
+  const uint gridsize = (n_total - 1 + blocksize) / blocksize;
+
+  /* Launch the kernel */
+  for_kernel<NDim><<<gridsize, blocksize, 0>>>(loop_body, limits, n_total, buf);
 }
 
 

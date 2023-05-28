@@ -35,6 +35,12 @@ enum reduce_op { max, min, sum, prod };
 /* Namespace for the common loop interface functions */
 namespace arch{
 
+/* Parallel for interface function with shared memory bufffer */
+template <uint NDim, typename Lambda, typename T>
+inline static void parallel_for(const uint (&limits)[NDim], Lambda loop_body, arch::buf<T> &dataBuffer) {
+  arch::parallel_for_driver<NDim>(limits, loop_body, dataBuffer);
+}
+
 /* Parallel for interface function */
 template <uint NDim, typename Lambda>
 inline static void parallel_for(const uint (&limits)[NDim], Lambda loop_body) {

@@ -147,6 +147,62 @@ typename std::enable_if<I == 1, std::tuple<bool, double, double>>::type test(){
   return std::make_tuple(success, arch_time, host_time); 
 }
 
+
+// This test function compares the performance of two different implementations of a loop that sets the value of a field in a 3D grid.
+template<uint I>
+typename std::enable_if<I == 2, std::tuple<bool, double, double>>::type test(){
+
+  // Define the size of the 3D grid
+  const std::array<int,3> gridDims = {100, 100, 100};
+  uint gridDims3 = gridDims[0] * gridDims[1] * gridDims[2];
+
+  // Initialize MPI and grid coupling information
+  MPI_Comm comm = MPI_COMM_WORLD;
+  FsGridCouplingInformation gridCoupling;
+
+  // Set the periodicity of the grid
+  std::array<bool,3> periodicity{true, true, true};
+
+  // Create the 3D grid with a field of type fsgrids::technical
+  FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> technicalGrid(gridDims, comm, periodicity,gridCoupling); 
+
+  // Create a buffer object that provides a convenient interface for accessing the grid data on the device
+  arch::buf<fsgrids::technical> dataBuffer(technicalGrid.get(0,0,0), gridDims3 * sizeof(fsgrids::technical));  
+
+  // Get the storage size of the grid
+  std::array<int,3> storageSize = technicalGrid.getStorageSize();
+
+  // Execute the loop in parallel on the device using CUDA
+  clock_t arch_start = clock();
+  arch::parallel_for({(uint)gridDims[0], (uint)gridDims[1], (uint)gridDims[2] }, ARCH_LOOP_LAMBDA(int i, int j, int k, fsgrids::technical* technicalGrid) {
+    // Set the value of the field at index 10 to 2
+    dataBuffer[10].maxFsDt=2;
+  }, dataBuffer); 
+  double arch_time = (double)((clock() - arch_start) * 1e6 / CLOCKS_PER_SEC);
+
+  // Execute the loop on the host
+  clock_t host_start = clock();
+  for (uint k = 0; k < gridDims[2]; ++k){
+    for (uint j = 0; j < gridDims[1]; ++j){
+      for (uint i = 0; i < gridDims[0]; ++i) {
+        // Set the value of the field at index 10 to 2
+        technicalGrid.get(10)->maxFsDt=2;
+      }
+    } 
+  }
+  double host_time = (double)((clock() - host_start) * 1e6 / CLOCKS_PER_SEC); 
+
+  // Check whether the test was successful
+  bool success = true;
+  if (dataBuffer[10].maxFsDt != 2)
+    success = false;
+  else if (dataBuffer[10].maxFsDt != technicalGrid.get(10)->maxFsDt)
+    success = false;
+
+  // Return a tuple containing the test result and the execution times of the CUDA and host implementations
+  return std::make_tuple(success, arch_time, host_time);
+}
+
 /* Instantiate each test function by recursively calling the
  * driver function in a descending order beginning from `N - 1`
  */
@@ -173,7 +229,7 @@ int main(int argn,char* args[]) {
   MPI_Init_thread(&argn,&args,required,&provided);
     
   /* Specify the number of tests and set function pointers */
-  constexpr uint n_tests = 2;
+  constexpr uint n_tests = 3;
   std::tuple<bool, double, double>(*fptr_test[n_tests])();
   test_instatiator<n_tests, n_tests>::driver(fptr_test);
 
