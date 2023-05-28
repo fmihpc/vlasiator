@@ -104,6 +104,75 @@ class buf {
 }; 
 
 
+/* Buffer class for making grids available on the device */
+template <typename T, int N> 
+class buf<FsGrid<T, N>> {
+  private:  
+  FsGrid<T, N> *ptr; 
+  FsGrid<T, N> *d_ptr;
+  FsGrid<T, N> *h_ptr;
+  T *d_data;
+  int32_t dataSize = 0;
+  uint is_copy = 0;
+  uint thread_id = 0;
+
+  public:   
+
+  void syncDeviceData(void){
+    memcpy(h_ptr, ptr, sizeof(FsGrid<T, N>));
+    h_ptr->setData(d_data);
+    CHK_ERR(cudaMemcpy(d_ptr, ptr, sizeof(FsGrid<T, N>), cudaMemcpyHostToDevice));
+    CHK_ERR(cudaMemcpy(d_data, ptr->getData(), dataSize * sizeof(T), cudaMemcpyHostToDevice));
+  }
+
+  void syncHostData(void){
+    CHK_ERR(cudaMemcpy(ptr->getData(), d_data, dataSize * sizeof(T), cudaMemcpyDeviceToHost));
+    CHK_ERR(cudaMemcpy(h_ptr, d_ptr, sizeof(FsGrid<T, N>), cudaMemcpyDeviceToHost));
+    h_ptr->setData(ptr->getData());
+    memcpy(ptr, h_ptr, sizeof(FsGrid<T, N>));
+  }
+  
+  buf(FsGrid<T, N> * const _ptr) : ptr(_ptr) {
+    thread_id = omp_get_thread_num();
+    dataSize = _ptr->getGlobalSize()[0] * _ptr->getGlobalSize()[1] * _ptr->getGlobalSize()[2];
+    h_ptr = (FsGrid<T, N>*) malloc(sizeof(FsGrid<T, N>));
+    CHK_ERR(cudaMalloc(&d_ptr, sizeof(FsGrid<T, N>)));
+    CHK_ERR(cudaMalloc(&d_data, dataSize * sizeof(T)));
+    syncDeviceData();
+  }
+  
+  __host__ __device__ buf(const buf& u) : 
+    ptr(u.ptr), d_ptr(u.d_ptr), is_copy(1), thread_id(u.thread_id) {}
+
+  __host__ __device__ ~buf(void){
+    if(!is_copy){
+      #ifndef __CUDA_ARCH__
+        cudaFree(d_ptr);
+      #else
+        syncHostData();
+      #endif
+    }
+  }
+
+  __host__ __device__ T* get(uint i, uint j, uint k) const {
+   #ifdef __CUDA_ARCH__
+      // return d_ptr->get(i, j, k);
+      return d_ptr->get(1);
+   #else
+      return ptr->get(i, j, k);
+   #endif
+  }
+
+  __host__ __device__ T* operator [] (uint i) const {
+   #ifdef __CUDA_ARCH__
+      return d_ptr->get(i);
+   #else
+      return ptr->get(i);
+   #endif
+  }
+};
+
+
 /* Device backend initialization */
 __host__ __forceinline__ static void init(int node_rank) {
   const uint max_threads = omp_get_max_threads();
