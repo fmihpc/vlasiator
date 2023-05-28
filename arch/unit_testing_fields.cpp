@@ -33,6 +33,20 @@ void result_eval(std::tuple<bool, double, double> res, const uint test_id){
   printf("Test %d %s - Arch: %9.2f µs, Host: %9.2f µs\n", test_id, success.c_str(), std::get<1>(res), std::get<2>(res));
 }
 
+int64_t LocalIDForCoords(int x, int y, int z, int stencil, std::array<int,3> globalSize, std::array<int,3> storageSize) {
+    int64_t index=0;
+    if(globalSize[2] > 1) {
+      index += storageSize[0]*storageSize[1]*(stencil+z);
+    }
+    if(globalSize[1] > 1) {
+      index += storageSize[0]*(stencil+y);
+    }
+    if(globalSize[0] > 1 ) {
+      index += stencil+x;
+    }
+
+    return index;
+}
 /* The test functions are all named as `test`, and only differentiated 
  * by their ascending template id number `I`. This allows executing tests
  * nicely using an array of function pointers, and not calling 
@@ -53,9 +67,12 @@ typename std::enable_if<I == 0, std::tuple<bool, double, double>>::type test(){
   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> technicalGrid(gridDims, comm, periodicity,gridCoupling); 
   arch::buf<fsgrids::technical> dataBuffer(technicalGrid.get(0,0,0), gridDims3 * sizeof(fsgrids::technical));  
 
+  std::array<int,3> storageSize = technicalGrid.getStorageSize();
+
   clock_t arch_start = clock();
   arch::parallel_for({(uint)gridDims[0], (uint)gridDims[1], (uint)gridDims[2] }, ARCH_LOOP_LAMBDA(int i, int j, int k) {
-    dataBuffer[i,j,k].maxFsDt=2;
+    int64_t id = LocalIDForCoords(i,j,k,FS_STENCIL_WIDTH,gridDims,storageSize);
+    dataBuffer[id].maxFsDt=2;
   }); 
   double arch_time = (double)((clock() - arch_start) * 1e6 / CLOCKS_PER_SEC);
 
