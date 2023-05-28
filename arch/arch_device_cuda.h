@@ -84,12 +84,13 @@ class buf {
   __host__ __device__ buf(const buf& u) : 
     ptr(u.ptr), d_ptr(u.d_ptr), bytes(u.bytes), is_copy(1), thread_id(u.thread_id) {}
 
-  __host__ ~buf(void){
+  __host__ __device__ ~buf(void){
     if(!is_copy){
-      // syncHostData();
-      #ifdef __CUDA_ARCH__
+      #ifndef __CUDA_ARCH__
         cudaFreeAsync(d_ptr, stream[thread_id]);
-      #endif
+      #else
+        syncHostData();
+      #endif 
     }
   }
 
@@ -100,7 +101,8 @@ class buf {
       return ptr[i];
    #endif
   }
-};
+}; 
+
 
 /* Device backend initialization */
 __host__ __forceinline__ static void init(int node_rank) {
