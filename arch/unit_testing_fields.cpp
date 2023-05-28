@@ -54,38 +54,55 @@ int64_t LocalIDForCoords(int x, int y, int z, int stencil, std::array<int,3> glo
  * a new function named `test` with the `std::enable_if<I == value, ...` 
  * construct with the next unused value for `I`. 
  */
+
+
+// Define a test function that compares the performance of two different implementations of a loop that sets the value of a field in a 3D grid.
 template<uint I>
 typename std::enable_if<I == 0, std::tuple<bool, double, double>>::type test(){
 
+  // Define the size of the 3D grid
   const std::array<int,3> gridDims = {100, 100, 100};
   uint gridDims3 = gridDims[0] * gridDims[1] * gridDims[2];
 
+  // Initialize MPI and grid coupling information
   MPI_Comm comm = MPI_COMM_WORLD;
   FsGridCouplingInformation gridCoupling;
+
+  // Set the periodicity of the grid
   std::array<bool,3> periodicity{true, true, true};
 
+  // Create the 3D grid with a field of type fsgrids::technical
   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> technicalGrid(gridDims, comm, periodicity,gridCoupling); 
+
+  // Create a buffer object that provides a convenient interface for accessing the grid data on the device
   arch::buf<fsgrids::technical> dataBuffer(technicalGrid.get(0,0,0), gridDims3 * sizeof(fsgrids::technical));  
 
+  // Get the storage size of the grid
   std::array<int,3> storageSize = technicalGrid.getStorageSize();
 
+  // Execute the loop in parallel on the device using CUDA
   clock_t arch_start = clock();
   arch::parallel_for({(uint)gridDims[0], (uint)gridDims[1], (uint)gridDims[2] }, ARCH_LOOP_LAMBDA(int i, int j, int k) {
+    // Calculate the local ID for the current coordinates
     int64_t id = LocalIDForCoords(i,j,k,FS_STENCIL_WIDTH,gridDims,storageSize);
+    // Set the value of the field for the current grid point
     dataBuffer[id].maxFsDt=2;
   }); 
   double arch_time = (double)((clock() - arch_start) * 1e6 / CLOCKS_PER_SEC);
 
+  // Execute the loop on the host
   clock_t host_start = clock();
   for (uint k = 0; k < gridDims[2]; ++k){
     for (uint j = 0; j < gridDims[1]; ++j){
       for (uint i = 0; i < gridDims[0]; ++i) {
+        // Set the value of the field for the current grid point
         technicalGrid.get(i,j,k)->maxFsDt=2;
       }
     } 
   }
   double host_time = (double)((clock() - host_start) * 1e6 / CLOCKS_PER_SEC); 
 
+  // Check whether the test was successful
   bool success = true;
   int64_t id = LocalIDForCoords(10,10,10,FS_STENCIL_WIDTH,gridDims,storageSize);
   if (dataBuffer[id].maxFsDt != 2)
@@ -93,9 +110,9 @@ typename std::enable_if<I == 0, std::tuple<bool, double, double>>::type test(){
   else if (dataBuffer[id].maxFsDt != technicalGrid.get(10,10,10)->maxFsDt)
     success = false;
 
+  // Return a tuple containing the success status and the execution times for the device and host implementations
   return std::make_tuple(success, arch_time, host_time);
 }
-
 // This test function compares the performance of two 
 // different implementations of a loop that sets the value of a field in a 3D grid.
 template<uint I>
