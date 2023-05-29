@@ -39,27 +39,22 @@ int getNumberOfCellsOnMaxRefLvl(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
 */
 
 template <typename T, int stencil> void computeCoupling(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-							const std::vector<CellID>& cells,
-							FsGrid< T, stencil>& momentsGrid,
-							std::map<int, std::set<CellID> >& onDccrgMapRemoteProcess,
-							std::map<int, std::set<CellID> >& onFsgridMapRemoteProcess,
-							std::map<CellID, std::vector<int64_t> >& onFsgridMapCells
-							) {
-    
+      const std::vector<CellID>& cells,
+      FsGrid< T, stencil>& momentsGrid,
+      FsGridCouplingInformation* coupling) {
+
   //sorted list of dccrg cells. cells is typicall already sorted, but just to make sure....
   std::vector<CellID> dccrgCells = cells;
   std::sort(dccrgCells.begin(), dccrgCells.end());
 
   //make sure the datastructures are clean
-  onDccrgMapRemoteProcess.clear();
-  onFsgridMapRemoteProcess.clear();
-  onFsgridMapCells.clear();
-  
-  
+  coupling->onDccrgMapRemoteProcess.clear();
+  coupling->onFsgridMapRemoteProcess.clear();
+  coupling->onFsgridMapCells.clear();
+
   //size of fsgrid local part
   const std::array<int, 3> gridDims(momentsGrid.getLocalSize());
-  
- 
+
   //Compute what we will receive, and where it should be stored
   for (int k=0; k<gridDims[2]; k++) {
     for (int j=0; j<gridDims[1]; j++) {
@@ -69,12 +64,12 @@ template <typename T, int stencil> void computeCoupling(dccrg::Dccrg<SpatialCell
                         (uint64_t)globalIndices[1],
                         (uint64_t)globalIndices[2]}}; //cast to avoid warnings
         CellID dccrgCell = mpiGrid.get_existing_cell(indices, 0, mpiGrid.mapping.get_maximum_refinement_level());
-        
+
         int process = mpiGrid.get_process(dccrgCell);
         int64_t  fsgridLid = momentsGrid.LocalIDForCoords(i,j,k);
         //int64_t  fsgridGid = momentsGrid.GlobalIDForCoords(i,j,k);
-        onFsgridMapRemoteProcess[process].insert(dccrgCell); //cells are ordered (sorted) in set
-        onFsgridMapCells[dccrgCell].push_back(fsgridLid);
+        coupling->onFsgridMapRemoteProcess[process].insert(dccrgCell); //cells are ordered (sorted) in set
+        coupling->onFsgridMapCells[dccrgCell].push_back(fsgridLid);
       }
     }
   }
@@ -87,8 +82,8 @@ template <typename T, int stencil> void computeCoupling(dccrg::Dccrg<SpatialCell
      //loop over fsgrid cells which this dccrg cell maps to
      for (auto const &fsCellID : fsCells) {
        int process = momentsGrid.getTaskForGlobalID(fsCellID).first; //process on fsgrid
-       onDccrgMapRemoteProcess[process].insert(dccrgCells[i]); //add to map
-     }    
+       coupling->onDccrgMapRemoteProcess[process].insert(dccrgCells[i]); //add to map
+     }
   }
 }
 
@@ -168,7 +163,7 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                // Get pointers to our cells
                std::array<Real, fsgrids::moments::N_MOMENTS> *cell;  
                std::array<Real,fsgrids::moments::N_MOMENTS> *swap;
-            
+
                // Set Cell to zero before passing filter
                swap = swapGrid.get(i,j,k);
                for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
@@ -214,11 +209,6 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
   std::vector<CellID> dccrgCells = cells;
   std::sort(dccrgCells.begin(), dccrgCells.end());
 
-  //Datastructure for coupling
-  std::map<int, std::set<CellID> > onDccrgMapRemoteProcess; 
-  std::map<int, std::set<CellID> > onFsgridMapRemoteProcess; 
-  std::map<CellID, std::vector<int64_t> >  onFsgridMapCells;
-    
   // map receive process => receive buffers 
   std::map<int, std::vector<Real> > receivedData; 
 
@@ -230,12 +220,12 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
   std::vector<MPI_Request> receiveRequests;
  
   //computeCoupling
-  computeCoupling(mpiGrid, cells, momentsGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
+  computeCoupling(mpiGrid, cells, momentsGrid, momentsGrid.coupling);
  
   // Post receives
-  receiveRequests.resize(onFsgridMapRemoteProcess.size());  
+  receiveRequests.resize(momentsGrid.coupling->onFsgridMapRemoteProcess.size());  
   ii=0;
-  for(auto const &receives: onFsgridMapRemoteProcess){
+  for(auto const &receives: momentsGrid.coupling->onFsgridMapRemoteProcess){
     int process = receives.first;
     int count = receives.second.size();
     receivedData[process].resize(count * fsgrids::moments::N_MOMENTS);
@@ -245,8 +235,8 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
   
   // Launch sends
   ii=0;
-  sendRequests.resize(onDccrgMapRemoteProcess.size());
-  for (auto const &snd : onDccrgMapRemoteProcess){
+  sendRequests.resize(momentsGrid.coupling->onDccrgMapRemoteProcess.size());
+  for (auto const &snd : momentsGrid.coupling->onDccrgMapRemoteProcess){
     int targetProc = snd.first; 
     auto& sendBuffer=sendData[targetProc];
     for(CellID sendCell: snd.second){
@@ -254,45 +244,44 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
       auto cellParams = mpiGrid[sendCell]->get_cell_parameters();
       if(!dt2) {
         sendBuffer.push_back(cellParams[CellParams::RHOM]);
-	sendBuffer.push_back(cellParams[CellParams::RHOQ]);
-	sendBuffer.push_back(cellParams[CellParams::VX]);
-	sendBuffer.push_back(cellParams[CellParams::VY]);
+        sendBuffer.push_back(cellParams[CellParams::RHOQ]);
+        sendBuffer.push_back(cellParams[CellParams::VX]);
+        sendBuffer.push_back(cellParams[CellParams::VY]);
         sendBuffer.push_back(cellParams[CellParams::VZ]);
-	sendBuffer.push_back(cellParams[CellParams::P_11]);
-	sendBuffer.push_back(cellParams[CellParams::P_22]);
+        sendBuffer.push_back(cellParams[CellParams::P_11]);
+        sendBuffer.push_back(cellParams[CellParams::P_22]);
         sendBuffer.push_back(cellParams[CellParams::P_33]);
       } else {
         sendBuffer.push_back(cellParams[CellParams::RHOM_DT2]);
-	sendBuffer.push_back(cellParams[CellParams::RHOQ_DT2]);
-	sendBuffer.push_back(cellParams[CellParams::VX_DT2]);
-	sendBuffer.push_back(cellParams[CellParams::VY_DT2]);
+        sendBuffer.push_back(cellParams[CellParams::RHOQ_DT2]);
+        sendBuffer.push_back(cellParams[CellParams::VX_DT2]);
+        sendBuffer.push_back(cellParams[CellParams::VY_DT2]);
         sendBuffer.push_back(cellParams[CellParams::VZ_DT2]);
-	sendBuffer.push_back(cellParams[CellParams::P_11_DT2]);
-	sendBuffer.push_back(cellParams[CellParams::P_22_DT2]);
+        sendBuffer.push_back(cellParams[CellParams::P_11_DT2]);
+        sendBuffer.push_back(cellParams[CellParams::P_22_DT2]);
         sendBuffer.push_back(cellParams[CellParams::P_33_DT2]);
       }
     }
-    int count = sendBuffer.size(); //note, compared to receive this includes all elements to be sent
     MPI_Isend(sendBuffer.data(), sendBuffer.size() * sizeof(Real),
-	      MPI_BYTE, targetProc, 1, MPI_COMM_WORLD,&(sendRequests[ii]));
+          MPI_BYTE, targetProc, 1, MPI_COMM_WORLD,&(sendRequests[ii]));
     ii++;
   }
 
   
   MPI_Waitall(receiveRequests.size(), receiveRequests.data(), MPI_STATUSES_IGNORE);
 
-  for(auto const &receives: onFsgridMapRemoteProcess){
+  for(auto const &receives: momentsGrid.coupling->onFsgridMapRemoteProcess){
     int process = receives.first; //data received from this process
     Real* receiveBuffer = receivedData[process].data(); // data received from process
     for(auto const &cell: receives.second){ //loop over cellids (dccrg) for receive
       // this part heavily relies on both sender and receiver having cellids sorted!
-      for(auto lid: onFsgridMapCells[cell]){
-	std::array<Real, fsgrids::moments::N_MOMENTS> * fsgridData = momentsGrid.get(lid);
-	for(int l = 0; l < fsgrids::moments::N_MOMENTS; l++)   {
-	  fsgridData->at(l) = receiveBuffer[l];
-	}
+      for(auto lid: momentsGrid.coupling->onFsgridMapCells[cell]){
+         std::array<Real, fsgrids::moments::N_MOMENTS> * fsgridData = momentsGrid.get(lid);
+         for(int l = 0; l < fsgrids::moments::N_MOMENTS; l++)   {
+            fsgridData->at(l) = receiveBuffer[l];
+         }
       }
-      
+
       receiveBuffer+=fsgrids::moments::N_MOMENTS;
     }
   }
@@ -341,11 +330,6 @@ void getFieldsFromFsGrid(
    std::vector<CellID> dccrgCells = cells;
    std::sort(dccrgCells.begin(), dccrgCells.end());
    
-   //Datastructure for coupling
-   std::map<int, std::set<CellID> > onDccrgMapRemoteProcess; 
-   std::map<int, std::set<CellID> > onFsgridMapRemoteProcess; 
-   std::map<CellID, std::vector<int64_t> >  onFsgridMapCells;
-   
    // map receive process => receive buffers 
    std::map<int, std::vector<Average> > receivedData; 
    
@@ -361,12 +345,12 @@ void getFieldsFromFsGrid(
    
    
    //computeCoupling
-   computeCoupling(mpiGrid, cells, volumeFieldsGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
+   computeCoupling(mpiGrid, cells, volumeFieldsGrid, BgBGrid.coupling);
    
    //post receives
    ii=0;
-   receiveRequests.resize(onDccrgMapRemoteProcess.size());
-   for (auto const &rcv : onDccrgMapRemoteProcess){
+   receiveRequests.resize(BgBGrid.coupling->onDccrgMapRemoteProcess.size());
+   for (auto const &rcv : BgBGrid.coupling->onDccrgMapRemoteProcess){
       int remoteRank = rcv.first; 
       int count = rcv.second.size();
       auto& receiveBuffer=receivedData[remoteRank];
@@ -377,7 +361,7 @@ void getFieldsFromFsGrid(
    }
 
    //compute average and weight for each field that we want to send to dccrg grid
-   for(auto const &snd: onFsgridMapRemoteProcess){
+   for(auto const &snd: BgBGrid.coupling->onFsgridMapRemoteProcess){
       int remoteRank = snd.first;
       int count = snd.second.size();
       auto& sendBuffer = sendData[remoteRank];
@@ -386,7 +370,7 @@ void getFieldsFromFsGrid(
       ii=0;
       for(auto const dccrgCell: snd.second){
          //loop over dccrg cells to which we shall send data for this remoteRank
-         auto const &fsgridCells = onFsgridMapCells[dccrgCell];
+         auto const &fsgridCells = BgBGrid.coupling->onFsgridMapCells[dccrgCell];
          for (auto const fsgridCell: fsgridCells){
          //loop over fsgrid cells for which we compute the average that is sent to dccrgCell on rank remoteRank
 //        if(technicalGrid.get(fsgridCell)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
@@ -395,7 +379,7 @@ void getFieldsFromFsGrid(
             std::array<Real, fsgrids::volfields::N_VOL> * volcell = volumeFieldsGrid.get(fsgridCell);
             std::array<Real, fsgrids::bgbfield::N_BGB> * bgcell = BgBGrid.get(fsgridCell);
             std::array<Real, fsgrids::egradpe::N_EGRADPE> * egradpecell = EGradPeGrid.get(fsgridCell);	
-            
+
             sendBuffer[ii].sums[FieldsToCommunicate::PERBXVOL] += volcell->at(fsgrids::volfields::PERBXVOL);
             sendBuffer[ii].sums[FieldsToCommunicate::PERBYVOL] += volcell->at(fsgrids::volfields::PERBYVOL);
             sendBuffer[ii].sums[FieldsToCommunicate::PERBZVOL] += volcell->at(fsgrids::volfields::PERBZVOL);
@@ -425,23 +409,23 @@ void getFieldsFromFsGrid(
          ii++;
       }
   }
-  
+
   //post sends
-  sendRequests.resize(onFsgridMapRemoteProcess.size());
+  sendRequests.resize(BgBGrid.coupling->onFsgridMapRemoteProcess.size());
   ii=0;
-  for(auto const &sends: onFsgridMapRemoteProcess){
+  for(auto const &sends: BgBGrid.coupling->onFsgridMapRemoteProcess){
     int remoteRank = sends.first;
     int count = sends.second.size();
     MPI_Isend(sendData[remoteRank].data(), count * sizeof(Average),
 	     MPI_BYTE, remoteRank, 1, MPI_COMM_WORLD,&(sendRequests[ii++]));
   }
-  
+
   MPI_Waitall(receiveRequests.size(), receiveRequests.data(), MPI_STATUSES_IGNORE);
 
 
   //Aggregate receives, compute the weighted average of these
   ii=0;
-  for (auto const &rcv : onDccrgMapRemoteProcess){
+  for (auto const &rcv : BgBGrid.coupling->onDccrgMapRemoteProcess){
     int remoteRank = rcv.first; 
     std::vector<Average>& receiveBuffer=receivedData[remoteRank];
     ii=0;
@@ -549,11 +533,6 @@ void feedBoundaryIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
   std::vector<CellID> dccrgCells = cells;
   std::sort(dccrgCells.begin(), dccrgCells.end());
 
-  //Datastructure for coupling
-  std::map<int, std::set<CellID> > onDccrgMapRemoteProcess; 
-  std::map<int, std::set<CellID> > onFsgridMapRemoteProcess; 
-  std::map<CellID, std::vector<int64_t> >  onFsgridMapCells;
-    
   // map receive process => receive buffers 
   std::map<int, std::vector<int> > receivedData; 
 
@@ -565,12 +544,12 @@ void feedBoundaryIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
   std::vector<MPI_Request> receiveRequests;
   
   //computeCoupling
-  computeCoupling(mpiGrid, cells, technicalGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
+  computeCoupling(mpiGrid, cells, technicalGrid, technicalGrid.coupling);
  
   // Post receives
-  receiveRequests.resize(onFsgridMapRemoteProcess.size());  
+  receiveRequests.resize(technicalGrid.coupling->onFsgridMapRemoteProcess.size());  
   ii=0;
-  for(auto const &receives: onFsgridMapRemoteProcess){
+  for(auto const &receives: technicalGrid.coupling->onFsgridMapRemoteProcess){
     int process = receives.first;
     int count = receives.second.size();
     receivedData[process].resize(count);
@@ -580,15 +559,14 @@ void feedBoundaryIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
   
   // Launch sends
   ii=0;
-  sendRequests.resize(onDccrgMapRemoteProcess.size());
-  for (auto const &snd : onDccrgMapRemoteProcess){
+  sendRequests.resize(technicalGrid.coupling->onDccrgMapRemoteProcess.size());
+  for (auto const &snd : technicalGrid.coupling->onDccrgMapRemoteProcess){
     int targetProc = snd.first; 
     auto& sendBuffer=sendData[targetProc];
     for(CellID sendCell: snd.second){
       //Collect data to send for this dccrg cell
       sendBuffer.push_back(mpiGrid[sendCell]->sysBoundaryFlag);
     }
-    int count = sendBuffer.size(); //note, compared to receive this includes all elements to be sent
     MPI_Isend(sendBuffer.data(), sendBuffer.size() * sizeof(int),
 	      MPI_BYTE, targetProc, 1, MPI_COMM_WORLD,&(sendRequests[ii]));
     ii++;
@@ -596,12 +574,12 @@ void feedBoundaryIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
   
   MPI_Waitall(receiveRequests.size(), receiveRequests.data(), MPI_STATUSES_IGNORE);
 
-  for(auto const &receives: onFsgridMapRemoteProcess){
+  for(auto const &receives: technicalGrid.coupling->onFsgridMapRemoteProcess){
     int process = receives.first; //data received from this process
     int* receiveBuffer = receivedData[process].data(); // data received from process
     for(auto const &cell: receives.second){ //loop over cellids (dccrg) for receive
       // this part heavily relies on both sender and receiver having cellids sorted!
-      for(auto lid: onFsgridMapCells[cell]){
+      for(auto lid: technicalGrid.coupling->onFsgridMapCells[cell]){
         // Now save the values to face-averages
         technicalGrid.get(lid)->sysBoundaryFlag = receiveBuffer[0];
       }
