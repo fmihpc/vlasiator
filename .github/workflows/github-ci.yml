@@ -61,7 +61,7 @@ jobs:
           cp version1/*.h $GITHUB_WORKSPACE/libraries/include
       - name: Build papi
         run: |
-          git clone https://bitbucket.org/icl/papi.git
+          git clone https://github.com/icl-utk-edu/papi
           cd papi/src
           ./configure --prefix=$GITHUB_WORKSPACE/libraries && make -j 4 CC=gcc && make install
           cd ../..
