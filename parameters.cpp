@@ -370,6 +370,7 @@ bool P::addParameters() {
 
    // Load balancing parameters
    RP::add("loadBalance.algorithm", "Load balancing algorithm to be used", string("RCB"));
+   RP::add("loadBalance.hierLevelZero", "Number of tasks for 0th level hierarchical partitioning", 4);
    RP::add("loadBalance.tolerance", "Load imbalance tolerance", string("1.05"));
    RP::add("loadBalance.rebalanceInterval", "Load rebalance interval (steps)", 10);
 
