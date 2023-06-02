@@ -40,8 +40,10 @@
 using namespace std;
 using namespace spatial_cell;
 
+//__launch_bounds__(maxThreadsPerBlock, minBlocksPerMultiprocessor, maxBlocksPerCluster)
+
 // Kernels for converting GIDs to dimension-sorted indices
-__global__ void blocksID_mapped_dim0_kernel(
+__global__ void __launch_bounds__(CUDATHREADS,4) blocksID_mapped_dim0_kernel(
    const vmesh::VelocityMesh* vmesh,
    vmesh::GlobalID *blocksID_mapped,
    vmesh::LocalID *blocksLID_unsorted,
@@ -64,7 +66,7 @@ __global__ void blocksID_mapped_dim0_kernel(
    }
 }
 
-__global__ void blocksID_mapped_dim1_kernel(
+__global__ void __launch_bounds__(CUDATHREADS,4) blocksID_mapped_dim1_kernel(
    const vmesh::VelocityMesh* vmesh,
    vmesh::GlobalID *blocksID_mapped,
    vmesh::LocalID *blocksLID_unsorted,
@@ -90,7 +92,7 @@ __global__ void blocksID_mapped_dim1_kernel(
    }
 }
 
-__global__ void blocksID_mapped_dim2_kernel(
+__global__ void __launch_bounds__(CUDATHREADS,4) blocksID_mapped_dim2_kernel(
    const vmesh::VelocityMesh* vmesh,
    vmesh::GlobalID *blocksID_mapped,
    vmesh::LocalID *blocksLID_unsorted,
@@ -119,7 +121,7 @@ __global__ void blocksID_mapped_dim2_kernel(
 
 // LIDs are already in order.
 // Now also order GIDS. (can be ridiculously parallel, minus memory access patterns)
-__global__ void order_GIDs_kernel(
+__global__ void __launch_bounds__(CUDATHREADS,4) order_GIDs_kernel(
    const vmesh::VelocityMesh* vmesh,
    vmesh::GlobalID *blocksLID,
    vmesh::GlobalID *blocksGID,
@@ -138,7 +140,7 @@ __global__ void order_GIDs_kernel(
 }
 
 // Kernel for scanning columnsets for block counts
-__global__ void scan_blocks_for_columns_kernel(
+__global__ void __launch_bounds__(CUDATHREADS,4) scan_blocks_for_columns_kernel(
    const vmesh::VelocityMesh* vmesh,
    const uint dimension,
    vmesh::GlobalID *blocksID_mapped_sorted,
@@ -186,7 +188,7 @@ __global__ void scan_blocks_for_columns_kernel(
  Still probably room for memory optimization.
 **/
 
-__global__ void construct_columns_kernel(
+__global__ void __launch_bounds__(CUDATHREADS,4) construct_columns_kernel(
    const vmesh::VelocityMesh* vmesh,
    const uint dimension,
    vmesh::GlobalID *blocksID_mapped_sorted,

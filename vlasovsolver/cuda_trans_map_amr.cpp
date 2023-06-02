@@ -16,7 +16,8 @@
 
 // indices in padded source block, which is of type Vec with VECL
 // elements in each vector.
-#define i_trans_ps_blockv_pencil(planeVectorIndex, planeIndex, blockIndex, lengthOfPencil) ( (blockIndex)  +  ( (planeVectorIndex) + (planeIndex) * VEC_PER_PLANE ) * ( lengthOfPencil) )
+//#define i_trans_ps_blockv_pencil(planeVectorIndex, planeIndex, blockIndex, lengthOfPencil) ( (blockIndex)  +  ( (planeVectorIndex) + (planeIndex) * VEC_PER_PLANE ) * ( lengthOfPencil) )
+#define i_trans_ps_blockv_pencil(planeIndex, blockIndex, lengthOfPencil) ( (blockIndex)  +  ( (planeIndex) * VEC_PER_PLANE ) * ( lengthOfPencil) )
 
 // Skip remapping if whole stencil for all vector elements consists of zeroes
 CUDA_HOSTDEV inline bool check_skip_remapping(Vec* values, uint ti) {
@@ -49,7 +50,9 @@ CUDA_HOSTDEV inline bool check_skip_remapping(Vec* values, uint ti) {
  * @param popID ID of the particle species.
  */
 
-__global__ void translation_kernel(
+//__launch_bounds__(maxThreadsPerBlock, minBlocksPerMultiprocessor, maxBlocksPerCluster)
+// assume never more than 8 threads/CPUs per GPU
+__global__ void __launch_bounds__(WID3, 4) translation_kernel(
    const uint dimension,
    const unsigned int* const vcell_transpose,
    const Realv dt,
@@ -73,19 +76,23 @@ __global__ void translation_kernel(
    ) {
 
    //const int cudaBlocks = gridDim.x;
-   const int blocki = blockIdx.x;
-   const int warpSize = blockDim.x*blockDim.y*blockDim.z;
-   const uint k = threadIdx.y;
+   //const int blocki = blockIdx.x;
+   //const int warpSize = blockDim.x*blockDim.y*blockDim.z;
+   //const uint k = threadIdx.y;
    const vmesh::LocalID ti = threadIdx.x;
    //const vmesh::LocalID ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
 
    // offsets so this block of the kernel uses the correct part of temp arrays
-   const uint pencilBlockDataOffset = blocki * sumOfLengths;
-   const uint pencilOrderedSourceOffset = blocki * sumOfLengths * (WID3/VECL);
-   const uint pencilBlocksCountOffset = blocki * nPencils;
+   const uint pencilBlockDataOffset = blockIdx.x * sumOfLengths;
+   const uint pencilOrderedSourceOffset = blockIdx.x * sumOfLengths * (WID3/VECL);
+   const uint pencilBlocksCountOffset = blockIdx.x * nPencils;
+
+   vmesh::VelocityMesh* vmesh = pencilMeshes[0]; // just some vmesh
+   const Realv dvz = vmesh->getCellSize()[dimension];
+   const Realv vz_min = vmesh->getMeshMinLimits()[dimension];
 
    // Acting on velocity block blockGID, now found from array
-   for (uint thisBlockIndex = startingBlockIndex + blocki; thisBlockIndex < nAllBlocks; thisBlockIndex += blockIndexIncrement) {
+   for (uint thisBlockIndex = startingBlockIndex + blockIdx.x; thisBlockIndex < nAllBlocks; thisBlockIndex += blockIndexIncrement) {
       const uint blockGID = allBlocks[thisBlockIndex];
       // First read data in
       for (uint pencili=0; pencili<nPencils; pencili++) {
@@ -112,8 +119,8 @@ __global__ void translation_kernel(
             if (blockLID != vmesh->invalidLocalID()) { // Valid block
                // Transpose block values so that mapping is along k direction.
                // Store values in Vec-order for efficient reading in propagation
-               thisPencilOrderedSource[i_trans_ps_blockv_pencil(0, k, celli, lengthOfPencil)][ti]
-                  = (pencilBlockData[pencilBlockDataOffset + start + celli])[vcell_transpose[k*WID2+ti]];
+               thisPencilOrderedSource[i_trans_ps_blockv_pencil(threadIdx.y, celli, lengthOfPencil)][ti]
+                  = (pencilBlockData[pencilBlockDataOffset + start + celli])[vcell_transpose[threadIdx.y*WID2+ti]];
                // uint offset =0;
                // for (uint k=0; k<WID; k++) {
                //    for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){
@@ -123,7 +130,7 @@ __global__ void translation_kernel(
                //    }
                // }
             } else { // Non-existing block, push in zeroes
-               thisPencilOrderedSource[i_trans_ps_blockv_pencil(0, k, celli, lengthOfPencil)][ti] = 0.0;
+               thisPencilOrderedSource[i_trans_ps_blockv_pencil(threadIdx.y, celli, lengthOfPencil)][ti] = 0.0;
                // for (uint k=0; k<WID; ++k) {
                //    for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++) {
                //       thisPencilOrderedSource[i_trans_ps_blockv_pencil(planeVector, k, celli, lengthOfPencil)][ti] = 0.0;
@@ -144,7 +151,7 @@ __global__ void translation_kernel(
             vmesh::VelocityMesh* vmesh = pencilMeshes[celli];
             const vmesh::LocalID blockLID = vmesh->getLocalID(blockGID);
             if (blockLID != vmesh->invalidLocalID()) {
-               (pencilBlockData[pencilBlockDataOffset + celli])[k * WID2 + ti] = 0.0;
+               (pencilBlockData[pencilBlockDataOffset + celli])[threadIdx.y * WID2 + ti] = 0.0;
                // This block exists for this cell, reset
                //(pencilBlockData[celli])[ti] = 0.0; // This would work if we had WID3 threads
                // for (uint k=0; k<WID; ++k) {
@@ -160,12 +167,14 @@ __global__ void translation_kernel(
       // Get velocity data from vmesh that we need later to calculate the translation
 
       __syncthreads();
-      std::array<uint32_t,3> block_indices;
-      uint8_t refLevel;
-      vmesh::VelocityMesh* vmesh = pencilMeshes[0]; // just some vmesh
-      vmesh->getIndices(blockGID,refLevel, block_indices[0], block_indices[1], block_indices[2]);
-      Realv dvz = vmesh->getCellSize(refLevel)[dimension];
-      Realv vz_min = vmesh->getMeshMinLimits()[dimension];
+      vmesh::LocalID blockIndicesD = 0;
+      if (dimension==0) {
+         vmesh->getIndicesX(blockGID, blockIndicesD);
+      } else if (dimension==1) {
+         vmesh->getIndicesY(blockGID, blockIndicesD);
+      } else if (dimension==2) {
+         vmesh->getIndicesZ(blockGID, blockIndicesD);
+      }
 
       // Assuming 1 neighbor in the target array because of the CFL condition
       // In fact propagating to > 1 neighbor will give an error
@@ -198,7 +207,7 @@ __global__ void translation_kernel(
             // Loop over planes
             // for (uint k = 0; k < WID; ++k) {
             {
-               const Realf cell_vz = (block_indices[dimension] * WID + k + 0.5) * dvz + vz_min; //cell centered velocity
+               const Realf cell_vz = (blockIndicesD * WID + threadIdx.y + 0.5) * dvz + vz_min; //cell centered velocity
                const Realf z_translation = cell_vz * dt / pencilDZ[i]; // how much it moved in time dt (reduced units)
 
                // Determine direction of translation
@@ -222,17 +231,19 @@ __global__ void translation_kernel(
 
                // Loop over Vec's in current plance
                // for (uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++) {
-               const uint planeVector = 0;
+               //const uint planeVector = 0;
                {
                   // Check if all values are 0:
-                  if (check_skip_remapping(thisPencilOrderedSource + i_trans_ps_blockv_pencil(planeVector, k, i, lengthOfPencil),ti)) {
+                  //if (check_skip_remapping(thisPencilOrderedSource + i_trans_ps_blockv_pencil(planeVector, k, i, lengthOfPencil),ti)) {
+                  if (check_skip_remapping(thisPencilOrderedSource + i_trans_ps_blockv_pencil(threadIdx.y, i, lengthOfPencil),ti)) {
                      continue;
                   }
                   // Compute polynomial coefficients
                   Realf a[3];
                   // Silly indexing into coefficient calculation necessary due to built-in assumptions of unsigned indexing.
                   compute_ppm_coeff_nonuniform(pencilDZ + i - VLASOV_STENCIL_WIDTH,
-                                               thisPencilOrderedSource + i_trans_ps_blockv_pencil(planeVector, k, i, lengthOfPencil) - VLASOV_STENCIL_WIDTH,
+                                               //thisPencilOrderedSource + i_trans_ps_blockv_pencil(planeVector, k, i, lengthOfPencil) - VLASOV_STENCIL_WIDTH,
+                                               thisPencilOrderedSource + i_trans_ps_blockv_pencil(threadIdx.y, i, lengthOfPencil) - VLASOV_STENCIL_WIDTH,
                                                h4, VLASOV_STENCIL_WIDTH, a, threshold, ti);
 
                   // Compute integral
@@ -243,18 +254,22 @@ __global__ void translation_kernel(
                   // Store mapped density in two target cells
                   // in the current original cells we will put the rest of the original density
                   if (areaRatio && block_data) {
-                     const Realf selfContribution = (thisPencilOrderedSource[i_trans_ps_blockv_pencil(planeVector, k, i, lengthOfPencil)][ti] - ngbr_target_density) * areaRatio;
-                     const Realf old  = atomicAdd(&block_data[vcell_transpose[ti + planeVector * VECL + k * WID2]],selfContribution);
+                     // const Realf selfContribution = (thisPencilOrderedSource[i_trans_ps_blockv_pencil(planeVector, k, i, lengthOfPencil)][ti] - ngbr_target_density) * areaRatio;
+                     // const Realf old  = atomicAdd(&block_data[vcell_transpose[ti + planeVector * VECL + k * WID2]],selfContribution);
+                     const Realf selfContribution = (thisPencilOrderedSource[i_trans_ps_blockv_pencil(threadIdx.y, i, lengthOfPencil)][ti] - ngbr_target_density) * areaRatio;
+                     atomicAdd(&block_data[vcell_transpose[ti + threadIdx.y * WID2]],selfContribution);
                   }
                   if (areaRatio_p1 && block_data_p1) {
                      const Realf p1Contribution = (positiveTranslationDirection ? ngbr_target_density
                                                    * pencilDZ[i] / pencilDZ[i + 1] : 0.0) * areaRatio_p1;
-                     const Realf old  = atomicAdd(&block_data_p1[vcell_transpose[ti + planeVector * VECL + k * WID2]],p1Contribution);
+                     //const Realf old  = atomicAdd(&block_data_p1[vcell_transpose[ti + planeVector * VECL + k * WID2]],p1Contribution);
+                     atomicAdd(&block_data_p1[vcell_transpose[ti + threadIdx.y * WID2]],p1Contribution);
                   }
                   if (areaRatio_m1 && block_data_m1) {
                      const Realf m1Contribution = (!positiveTranslationDirection ? ngbr_target_density
                                                    * pencilDZ[i] / pencilDZ[i - 1] : 0.0) * areaRatio_m1;
-                     const Realf old  = atomicAdd(&block_data_m1[vcell_transpose[ti + planeVector * VECL + k * WID2]],m1Contribution);
+                     //const Realf old  = atomicAdd(&block_data_m1[vcell_transpose[ti + planeVector * VECL + k * WID2]],m1Contribution);
+                     atomicAdd(&block_data_m1[vcell_transpose[ti + threadIdx.y * WID2]],m1Contribution);
                   }
                }
             }
@@ -271,7 +286,7 @@ __global__ void translation_kernel(
  * @param allVmeshPointer Vector of pointers to velocitymeshes, used for gathering active blocks
  * @param nAllCells count of cells to read from allVmeshPointer
  */
-__global__ void gather_union_of_blocks_kernel(
+__global__ void  __launch_bounds__(CUDATHREADS, 4) gather_union_of_blocks_kernel(
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *unionOfBlocksSet,
    split::SplitVector<vmesh::VelocityMesh*> *allVmeshPointer,
    const uint nAllCells)

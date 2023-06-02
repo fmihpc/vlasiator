@@ -38,7 +38,7 @@
 using namespace std;
 
 /** CUDA kernel for identifying which blocks have relevant content */
-__global__ void update_velocity_block_content_lists_kernel (
+__global__ void __launch_bounds__(WID3,4) update_velocity_block_content_lists_kernel (
    vmesh::VelocityMesh *vmesh,
    vmesh::VelocityBlockContainer *blockContainer,
    split::SplitVector<vmesh::GlobalID>* velocity_block_with_content_list,
@@ -86,7 +86,7 @@ __global__ void update_velocity_block_content_lists_kernel (
 }
 
 /** Cuda Kernel to quickly gather blocks and their v-space halo */
-__global__ void update_blocks_required_halo_kernel (
+__global__ void __launch_bounds__(CUDATHREADS,4) update_blocks_required_halo_kernel (
    vmesh::VelocityMesh *vmesh,
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>* BlocksRequiredMap,
    split::SplitVector<vmesh::GlobalID> *velocity_block_with_content_list,
@@ -124,7 +124,7 @@ __global__ void update_blocks_required_halo_kernel (
 }
 
 /** Cuda Kernel to quickly add blocks which have spatial neighbours */
-__global__ void update_neighbours_have_content_kernel (
+__global__ void __launch_bounds__(CUDATHREADS,4) update_neighbours_have_content_kernel (
    vmesh::VelocityMesh *vmesh,
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>* BlocksRequiredMap,
    vmesh::GlobalID *neighbor_velocity_block_with_content_list,
@@ -147,7 +147,7 @@ __global__ void update_neighbours_have_content_kernel (
     This kernel may be non-optimized in itself, but use of it gets rid
     of the need of vmesh prefetching back and forth.
  */
-__global__ void update_blocks_to_add_kernel (
+__global__ void __launch_bounds__(CUDATHREADS,4) update_blocks_to_add_kernel (
    vmesh::VelocityMesh *vmesh,
    split::SplitVector<vmesh::GlobalID>* BlocksRequired,
    split::SplitVector<vmesh::GlobalID>* BlocksToAdd,
@@ -176,7 +176,7 @@ __global__ void update_blocks_to_add_kernel (
     This kernel may be non-optimized in itself, but use of it gets rid
     of the need of vmesh prefetching back and forth.
  */
-__global__ void update_blocks_to_remove_kernel (
+__global__ void __launch_bounds__(CUDATHREADS,4) update_blocks_to_remove_kernel (
    split::SplitVector<vmesh::GlobalID>* velocity_block_with_no_content_list,
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>* BlocksRequiredMap,
    split::SplitVector<vmesh::GlobalID>* BlocksToRemove,
@@ -198,7 +198,7 @@ __global__ void update_blocks_to_remove_kernel (
 }
 
 /** CUDA kernel for updating blocks based on generated lists */
-__global__ void update_velocity_blocks_kernel(
+__global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
    vmesh::VelocityMesh *vmesh,
    vmesh::VelocityBlockContainer *blockContainer,
    split::SplitVector<vmesh::GlobalID>* BlocksToAdd,

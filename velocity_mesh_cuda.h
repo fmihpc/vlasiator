@@ -71,6 +71,9 @@ namespace vmesh {
       CUDA_HOSTDEV const vmesh::LocalID* getGridLength(const uint8_t& refLevel=0) const;
       CUDA_HOSTDEV void getIndices(const vmesh::GlobalID& globalID,const uint8_t& refLevel,vmesh::LocalID& i,vmesh::LocalID& j,vmesh::LocalID& k) const;
       CUDA_HOSTDEV void getIndices(const vmesh::GlobalID& globalID,vmesh::LocalID& i,vmesh::LocalID& j,vmesh::LocalID& k) const;
+      CUDA_HOSTDEV void getIndicesX(const vmesh::GlobalID& globalID,vmesh::LocalID& i) const;
+      CUDA_HOSTDEV void getIndicesY(const vmesh::GlobalID& globalID,vmesh::LocalID& j) const;
+      CUDA_HOSTDEV void getIndicesZ(const vmesh::GlobalID& globalID,vmesh::LocalID& k) const;
       CUDA_HOSTDEV size_t getMesh() const;
       CUDA_HOSTDEV vmesh::LocalID getLocalID(const vmesh::GlobalID& globalID) const;
       CUDA_HOSTDEV const Real* getMeshMaxLimits() const;
@@ -366,6 +369,28 @@ namespace vmesh {
       } else {
          i = globalID % (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).gridLength[0];
          j = (globalID / (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).gridLength[0]) % (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).gridLength[1];
+         k = globalID / ((vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).gridLength[0] * (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).gridLength[1]);
+      }
+   }
+
+   CUDA_HOSTDEV inline void VelocityMesh::getIndicesX(const vmesh::GlobalID& globalID,vmesh::LocalID& i) const {
+      if (globalID >= invalidGlobalID()) {
+         i = invalidBlockIndex();
+      } else {
+         i = globalID % (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).gridLength[0];
+      }
+   }
+   CUDA_HOSTDEV inline void VelocityMesh::getIndicesY(const vmesh::GlobalID& globalID,vmesh::LocalID& j) const {
+      if (globalID >= invalidGlobalID()) {
+         j = invalidBlockIndex();
+      } else {
+         j = (globalID / (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).gridLength[0]) % (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).gridLength[1];
+      }
+   }
+   CUDA_HOSTDEV inline void VelocityMesh::getIndicesZ(const vmesh::GlobalID& globalID,vmesh::LocalID& k) const {
+      if (globalID >= invalidGlobalID()) {
+         k = invalidBlockIndex();
+      } else {
          k = globalID / ((vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).gridLength[0] * (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).gridLength[1]);
       }
    }

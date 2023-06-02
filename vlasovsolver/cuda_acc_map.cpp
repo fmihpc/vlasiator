@@ -95,7 +95,7 @@ __device__ void inline swapBlockIndices(vmesh::LocalID &blockIndices0,vmesh::Loc
    }
 }
 
-__global__ void reorder_blocks_by_dimension_kernel(
+__global__ void __launch_bounds__(VECL,4) reorder_blocks_by_dimension_kernel(
    Realf *dev_blockData,
    Vec *dev_blockDataOrdered,
    uint *dev_cell_indices_to_id,
@@ -161,7 +161,7 @@ __global__ void reorder_blocks_by_dimension_kernel(
 }
 
 
-__global__ void identify_block_offsets_kernel(
+__global__ void __launch_bounds__(CUDATHREADS,4) identify_block_offsets_kernel(
    const vmesh::VelocityMesh* vmesh,
    Column *columns,
    const int totalColumns,
@@ -191,7 +191,7 @@ __global__ void identify_block_offsets_kernel(
 }
 
 // Serial kernel only to avoid page faults or prefetches
-__global__ void count_columns_kernel (
+__global__ void __launch_bounds__(1,4) count_columns_kernel (
    ColumnOffsets* dev_columnData,
    uint* dev_totalColumns,
    uint* dev_valuesSizeRequired
@@ -211,7 +211,7 @@ __global__ void count_columns_kernel (
 }
 
 // Serial kernel only to avoid page faults or prefetches
-__global__ void offsets_into_columns_kernel(
+__global__ void __launch_bounds__(1,4) offsets_into_columns_kernel(
    ColumnOffsets* dev_columnData,
    Column *dev_columns,
    const int valuesSizeRequired
@@ -236,7 +236,7 @@ __global__ void offsets_into_columns_kernel(
 }
 
 // Using columns, evaluate which blocks are target or source blocks
-__global__ void evaluate_column_extents_kernel(
+__global__ void __launch_bounds__(CUDATHREADS,4) evaluate_column_extents_kernel(
    const uint dimension,
    const vmesh::VelocityMesh* vmesh,
    ColumnOffsets* dev_columnData,
@@ -435,7 +435,7 @@ __global__ void evaluate_column_extents_kernel(
    } // for setIndexB
 }
 
-__global__ void acceleration_kernel(
+__global__ void __launch_bounds__(VECL,4) acceleration_kernel(
   Realf *dev_blockData,
   Vec *dev_blockDataOrdered,
   uint *dev_cell_indices_to_id,
@@ -635,7 +635,6 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    // Future improvements would be to allow setting it directly to WID3.
    // Other kernels (not handling block data) can use CUDATHREADS which
    // is equal to NVIDIA: 32 or AMD: 64.
-   int cudathreadsVECL = VECL;
 
    /*< used when computing id of target block, 0 for compiler */
    uint block_indices_to_id[3] = {0, 0, 0};
@@ -771,7 +770,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    phiprof::start("Reorder blocks by dimension");
    uint cudablocks = host_totalColumns > CUDABLOCKS ? CUDABLOCKS : host_totalColumns;
    // Launch kernels for transposing and ordering velocity space data into columns
-   reorder_blocks_by_dimension_kernel<<<cudablocks, cudathreadsVECL, 0, stream>>> (
+   reorder_blocks_by_dimension_kernel<<<cudablocks, VECL, 0, stream>>> (
       blockData, // unified memory, incoming
       dev_blockDataOrdered[cpuThreadID],
       dev_cell_indices_to_id[cpuThreadID],
@@ -864,7 +863,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    phiprof::stop("identify new block offsets kernel");
 
    phiprof::start("Semi-Lagrangian acceleration kernel");
-   acceleration_kernel<<<cudablocks, cudathreadsVECL, 0, stream>>> (
+   acceleration_kernel<<<cudablocks, VECL, 0, stream>>> (
       blockData,
       dev_blockDataOrdered[cpuThreadID],
       dev_cell_indices_to_id[cpuThreadID],
