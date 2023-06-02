@@ -765,7 +765,7 @@ namespace projects {
       return refines;
    }
 
-   bool Magnetosphere::forceRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
+   bool Magnetosphere::forceRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, int n ) const {
    
       int myRank;       
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
@@ -807,9 +807,9 @@ namespace projects {
          if (!canRefine(mpiGrid[id])) {
             mpiGrid.dont_refine(id);
             mpiGrid.dont_unrefine(id);
-         } else if (refLevel < refineTarget) {
+         } else if (refLevel <= n && refLevel < refineTarget) {
             mpiGrid.refine_completely(id);
-         } else if (refLevel > refineTarget) {
+         } else if (refLevel >= mpiGrid.mapping.get_maximum_refinement_level() - n && refLevel > refineTarget) {
             mpiGrid.unrefine_completely(id);
          } else {
             mpiGrid.dont_unrefine(id);
