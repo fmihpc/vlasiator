@@ -29,6 +29,7 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
+#include <type_traits>
 
 #include "ionosphere.h"
 #include "../projects/project.h"
@@ -40,6 +41,13 @@
 #include "../common.h"
 #include "../object_wrapper.h"
 
+#ifdef IONOSPHERE_GPU_ON 
+#include "../ionosphere_gpu_solver/include/ionosphere_gpu_solver.hpp"
+#endif
+
+#if VECTORCLASS_H >= 200
+#define Vec3d Vec3Dd
+#endif
 #include <Eigen/Dense>
 
 #define Vec3d Eigen::Vector3d
@@ -54,6 +62,7 @@
 #ifdef DEBUG_SYSBOUNDARY
    #define DEBUG_IONOSPHERE
 #endif
+
 
 namespace SBC {
 
@@ -1725,6 +1734,8 @@ namespace SBC {
    }
 
    // Solve the ionosphere potential using a conjugate gradient solver
+   // All of the parameters are assumed to be "out parameters"
+   // ie. it is responsibility of this function to construct them
    void SphericalTriGrid::solve(
       int &nIterations,
       int &nRestarts,
@@ -1755,14 +1766,120 @@ namespace SBC {
       
       nIterations = 0;
       nRestarts = 0;
-      
+#ifdef IONOSPHERE_GPU_ON
+
+      auto gatherDependingMatrix = [&] () {
+         const auto n = nodes.size();
+         auto A = ionogpu::SparseMatrix<decltype(Node::dependingCoeffs)::value_type, decltype(Node::dependingNodes)::value_type, MAX_DEPENDING_NODES>(n);
+         #pragma omp for
+         for (size_t i = 0; i < n; ++i) {
+            A.rows[i] = &nodes[i].dependingCoeffs; 
+            A.rows_after_transposition[i] = &nodes[i].transposedCoeffs;
+            A.indecies[i] = &nodes[i].dependingNodes; 
+            A.elements_on_each_row[i] = nodes[i].numDepNodes;
+
+         }
+         return A;
+      };
+
+      auto gatherSource = [&] () {
+         const auto n = nodes.size();
+         std::vector<Real> temp(n);
+         #pragma omp for
+         for (size_t i = 0; i < n; ++i) {
+            temp[i] = nodes[i].parameters[ionosphereParameters::SOURCE];
+         }
+         return temp;
+      };
+
+      const auto A = gatherDependingMatrix();
+      const auto b = gatherSource();
+
+
+      auto choose_gauge = [&]() noexcept {
+         if (gaugeFixing == None) {
+            return ionogpu::Gauge::none;
+         } else if (gaugeFixing == Pole || gaugeFixing == Equator) {
+            return ionogpu::Gauge::mask;
+         } else {
+            std::cout << "Ionosphere gauge unimplemented on GPU\nAborting...\n";
+            abort();
+         }
+      };
+
+      auto generate_gauge_mask = [&]() -> std::vector<Real> {
+         if (gaugeFixing == Pole) {
+            auto mask = std::vector<Real>(nodes.size(), 1);
+            mask.front() = 0;
+            return mask;
+         } else if (gaugeFixing == Equator) {
+            auto mask = std::vector<Real>(nodes.size(), 1);
+               
+            #pragma omp for
+            for(size_t i = 0; i < nodes.size(); ++i) {
+               Node& N = nodes[i];
+               if(fabs(N.x[2]) < Ionosphere::innerRadius * sin(Ionosphere::shieldingLatitude * M_PI / 180.0)) {
+                  mask[i] = 0;
+               }
+            }
+            return mask;
+         } else {
+            return {};
+         }
+      };
+
+      const auto config_for_gpu_solver = ionogpu::ConfigurationForIonosphereGPUSolver<Real>{
+            Ionosphere::solverMaxIterations,
+            Ionosphere::solverMaxFailureCount,
+            Ionosphere::solverMaxErrorGrowthFactor,
+            Ionosphere::solverRelativeL2ConvergenceThreshold,
+            Ionosphere::solverPreconditioning ? ionogpu::Precondition::diagonal : ionogpu::Precondition::none,
+            true,
+            choose_gauge(),
+            generate_gauge_mask()
+      };
+
+
+      // Here we will pass out the responsibility of constructing the arguments forward
+      const auto x = ionogpu::solveIonospherePotentialGPU(
+         A,
+         b,
+         config_for_gpu_solver,
+         nIterations,
+         nRestarts,
+         residual
+      );
+
+
+      maxPotentialN = std::numeric_limits<std::decay_t<decltype(maxPotentialN)>>::min();
+      maxPotentialS = std::numeric_limits<std::decay_t<decltype(maxPotentialS)>>::min();
+      minPotentialN = std::numeric_limits<std::decay_t<decltype(minPotentialN)>>::max();
+      minPotentialS = std::numeric_limits<std::decay_t<decltype(minPotentialS)>>::max();
+
+
+      #pragma omp for reduction(max:maxPotentialN,maxPotentialS) reduction(min:minPotentialN,minPotentialS)
+      for(uint n=0; n<nodes.size(); n++) {
+         Node& N=nodes.at(n);
+         N.parameters.at(ionosphereParameters::SOLUTION) = x[n];
+         if(N.x.at(2) > 0) {
+            minPotentialN = min(minPotentialN, N.parameters.at(ionosphereParameters::SOLUTION));
+            maxPotentialN = max(maxPotentialN, N.parameters.at(ionosphereParameters::SOLUTION));
+         } else {
+            minPotentialS = min(minPotentialS, N.parameters.at(ionosphereParameters::SOLUTION));
+            maxPotentialS = max(maxPotentialS, N.parameters.at(ionosphereParameters::SOLUTION));
+         }
+      }
+#else     
       do {
+         // Here we will pass out the responsibility of constructing the arguments forward
          solveInternal(nIterations, nRestarts, residual, minPotentialN, maxPotentialN, minPotentialS, maxPotentialS);
+
          if(Ionosphere::solverToggleMinimumResidualVariant) {
             Ionosphere::solverUseMinimumResidualVariant = !Ionosphere::solverUseMinimumResidualVariant;
          }
-      } while (residual > Ionosphere::solverRelativeL2ConvergenceThreshold && nIterations < Ionosphere::solverMaxIterations);
-      
+      } while (residual > Ionosphere::solverRelativeL2ConvergenceThreshold && nIterations < Ionosphere::solverMaxIterations);   
+#endif
+
       phiprof::stop("ionosphere-solve");
    }
 
