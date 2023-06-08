@@ -22,7 +22,7 @@ tests=()
 
 # If no tests are specified, run all tests/ subdirectories.
 if [ "${#tests[@]}" -eq "0" ]; then
-   tests=($(ls -d tests/*))
+   tests=($(/bin/ls -d tests/*))
    echo "No run_tests list specified, using all ${#tests[@]} subdirectories of tests/"
 fi;
 
