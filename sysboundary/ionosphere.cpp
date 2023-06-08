@@ -1798,7 +1798,6 @@ namespace SBC {
 
       // thread variables, initialised here
       iSolverReal err = 0;
-      iSolverReal olderr = err;
       iSolverReal thread_minerr = std::numeric_limits<iSolverReal>::max();
       int thread_iteration = iteration;
       int thread_nRestarts = nRestarts;
@@ -2119,7 +2118,6 @@ namespace SBC {
          }
 
          // See if this solved the potential better than before
-         olderr = err;
          err = sqrt(residualnorm)/sourcenorm;
 
 

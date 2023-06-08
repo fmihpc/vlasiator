@@ -167,7 +167,6 @@ void setPerturbedField(
    //accurate results also for float simulations
    double accuracy = 1e-17;
    double start[3];
-   double end[3];
    double dx[3];
    unsigned int faceCoord1[3];
    unsigned int faceCoord2[3];
@@ -194,10 +193,6 @@ void setPerturbedField(
             dx[0] = perBGrid.DX;
             dx[1] = perBGrid.DY;
             dx[2] = perBGrid.DZ;
-            
-            end[0]=start[0]+dx[0];
-            end[1]=start[1]+dx[1];
-            end[2]=start[2]+dx[2];
             
             //Face averages
             for(uint fComponent=0; fComponent<3; fComponent++){
