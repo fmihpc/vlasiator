@@ -756,7 +756,6 @@ void shrink_to_fit_grid_data(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>
    }
 }
 
-
 /*! Estimates memory consumption and writes it into logfile. Collective operation on MPI_COMM_WORLD
  * \param mpiGrid Spatial grid
  */
