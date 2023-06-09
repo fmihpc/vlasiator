@@ -33,7 +33,7 @@ void result_eval(std::tuple<bool, double, double> res, const uint test_id){
   printf("Test %d %s - Arch: %9.2f µs, Host: %9.2f µs\n", test_id, success.c_str(), std::get<1>(res), std::get<2>(res));
 }
 
-int64_t LocalIDForCoords(int x, int y, int z, int stencil, std::array<int,3> globalSize, std::array<int,3> storageSize) {
+__host__ __device__ int64_t LocalIDForCoords(int x, int y, int z, int stencil, const int32_t globalSize[3], int32_t* storageSize) {
     int64_t index=0;
     if(globalSize[2] > 1) {
       index += storageSize[0]*storageSize[1]*(stencil+z);
@@ -61,7 +61,7 @@ template<uint I>
 typename std::enable_if<I == 0, std::tuple<bool, double, double>>::type test(){
 
   // Define the size of the 3D grid
-  const std::array<int,3> gridDims = {100, 100, 100};
+  int32_t gridDims[3] = {100, 100, 100};
   uint gridDims3 = gridDims[0] * gridDims[1] * gridDims[2];
 
   // Initialize MPI and grid coupling information
@@ -72,18 +72,19 @@ typename std::enable_if<I == 0, std::tuple<bool, double, double>>::type test(){
   std::array<bool,3> periodicity{true, true, true};
 
   // Create the 3D grid with a field of type fsgrids::technical
-  FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> technicalGrid(gridDims, comm, periodicity,gridCoupling); 
+  FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> technicalGrid(gridDims, comm, periodicity,gridCoupling); 
 
   // Create a buffer object that provides a convenient interface for accessing the grid data on the device
   arch::buf<fsgrids::technical> dataBuffer(technicalGrid.get(0,0,0), gridDims3 * sizeof(fsgrids::technical));  
 
   // Get the storage size of the grid
-  std::array<int,3> storageSize = technicalGrid.getStorageSize();
+  int32_t* storageSize = technicalGrid.getStorageSize();
 
   // Execute the loop in parallel on the device using CUDA
   clock_t arch_start = clock();
   arch::parallel_for({(uint)gridDims[0], (uint)gridDims[1], (uint)gridDims[2] }, ARCH_LOOP_LAMBDA(int i, int j, int k) {
     // Calculate the local ID for the current coordinates
+    int64_t id = LocalIDForCoords(i,j,k,FS_STENCIL_WIDTH,gridDims,storageSize);
     int64_t id = LocalIDForCoords(i,j,k,FS_STENCIL_WIDTH,gridDims,storageSize);
     // Set the value of the field for the current grid point
     dataBuffer[id].maxFsDt=2;
@@ -119,8 +120,7 @@ template<uint I>
 typename std::enable_if<I == 1, std::tuple<bool, double, double>>::type test(){
 
   // Define the size of the 3D grid
-  const std::array<int,3> gridDims = {100, 100, 100};
-  uint gridDims3 = gridDims[0] * gridDims[1] * gridDims[2];
+  int32_t gridDims[3] = {100, 100, 100};
 
   // Initialize MPI and grid coupling information
   MPI_Comm comm = MPI_COMM_WORLD;
@@ -130,15 +130,15 @@ typename std::enable_if<I == 1, std::tuple<bool, double, double>>::type test(){
   std::array<bool,3> periodicity{true, true, true};
 
   // Create the 3D grid with a field of type std::array<Real, fsgrids::bfield::N_BFIELD>
-  FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> perBGrid(gridDims, comm, periodicity,gridCoupling); 
+  FsGrid< Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> perBGrid(gridDims, comm, periodicity,gridCoupling); 
 
   // Create a buffer object that provides a convenient interface for accessing the grid data on the device
-  arch::buf<FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH>> perBGridBuf(&perBGrid);
+  arch::buf<FsGrid< Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> perBGridBuf(&perBGrid);
 
   // Execute the loop in parallel on the device using CUDA
   clock_t arch_start = clock();
   arch::parallel_for({(uint)gridDims[0], (uint)gridDims[1], (uint)gridDims[2] }, ARCH_LOOP_LAMBDA(int i, int j, int k) {
-    perBGridBuf.get(i,j,k)->at(fsgrids::bfield::PERBX) = 2;
+    perBGridBuf.get(i,j,k)[fsgrids::bfield::PERBX] = 2;
   }); 
   double arch_time = (double)((clock() - arch_start) * 1e6 / CLOCKS_PER_SEC);
 
@@ -147,7 +147,7 @@ typename std::enable_if<I == 1, std::tuple<bool, double, double>>::type test(){
   for (uint k = 0; k < gridDims[2]; ++k){
     for (uint j = 0; j < gridDims[1]; ++j){
       for (uint i = 0; i < gridDims[0]; ++i) {
-        perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX) = 2;
+        perBGrid.get(i,j,k)[fsgrids::bfield::PERBX] = 2;
       }
     } 
   }
@@ -155,9 +155,9 @@ typename std::enable_if<I == 1, std::tuple<bool, double, double>>::type test(){
 
   // Check whether the test was successful
   bool success = true;
-  if (perBGridBuf.get(10,10,10)->at(fsgrids::bfield::PERBX) != 2)
+  if (perBGridBuf.get(10,10,10)[fsgrids::bfield::PERBX] != 2)
     success = false;
-  else if (perBGridBuf.get(10,10,10)->at(fsgrids::bfield::PERBX) != perBGrid.get(10,10,10)->at(fsgrids::bfield::PERBX))
+  else if (perBGridBuf.get(10,10,10)[fsgrids::bfield::PERBX] != perBGrid.get(10,10,10)[fsgrids::bfield::PERBX])
     success = false;
 
   // Return a tuple containing the test result and the execution times of the CUDA and host implementations
@@ -170,7 +170,7 @@ template<uint I>
 typename std::enable_if<I == 2, std::tuple<bool, double, double>>::type test(){
 
   // Define the size of the 3D grid
-  const std::array<int,3> gridDims = {100, 100, 100};
+  int32_t gridDims[3] = {100, 100, 100};
   uint gridDims3 = gridDims[0] * gridDims[1] * gridDims[2];
 
   // Initialize MPI and grid coupling information
@@ -181,13 +181,13 @@ typename std::enable_if<I == 2, std::tuple<bool, double, double>>::type test(){
   std::array<bool,3> periodicity{true, true, true};
 
   // Create the 3D grid with a field of type fsgrids::technical
-  FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> technicalGrid(gridDims, comm, periodicity,gridCoupling); 
+  FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> technicalGrid(gridDims, comm, periodicity,&gridCoupling); 
 
   // Create a buffer object that provides a convenient interface for accessing the grid data on the device
   arch::buf<fsgrids::technical> dataBuffer(technicalGrid.get(0,0,0), gridDims3 * sizeof(fsgrids::technical));  
 
   // Get the storage size of the grid
-  std::array<int,3> storageSize = technicalGrid.getStorageSize();
+  int32_t* storageSize = technicalGrid.getStorageSize();
 
   // Execute the loop in parallel on the device using CUDA
   clock_t arch_start = clock();

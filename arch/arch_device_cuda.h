@@ -87,9 +87,8 @@ class buf {
   __host__ __device__ ~buf(void){
     if(!is_copy){
       #ifndef __CUDA_ARCH__
-        cudaFreeAsync(d_ptr, stream[thread_id]);
-      #else
         syncHostData();
+        cudaFreeAsync(d_ptr, stream[thread_id]);
       #endif 
     }
   }
@@ -105,12 +104,12 @@ class buf {
 
 
 /* Buffer class for making grids available on the device */
-template <typename T, int N> 
-class buf<FsGrid<T, N>> {
+template <typename T, int TDim, int N> 
+class buf<FsGrid<T, TDim, N>> {
   private:  
-  FsGrid<T, N> *ptr; 
-  FsGrid<T, N> *d_ptr;
-  FsGrid<T, N> *h_ptr;
+  FsGrid<T, TDim, N> *ptr; 
+  FsGrid<T, TDim, N> *d_ptr;
+  FsGrid<T, TDim, N> *h_ptr;
   T *d_data;
   int32_t dataSize = 0;
   uint is_copy = 0;
@@ -119,24 +118,24 @@ class buf<FsGrid<T, N>> {
   public:   
 
   void syncDeviceData(void){
-    memcpy(h_ptr, ptr, sizeof(FsGrid<T, N>));
+    memcpy(h_ptr, ptr, sizeof(FsGrid<T, TDim, N>));
     h_ptr->setData(d_data);
-    CHK_ERR(cudaMemcpy(d_ptr, ptr, sizeof(FsGrid<T, N>), cudaMemcpyHostToDevice));
-    CHK_ERR(cudaMemcpy(d_data, ptr->getData(), dataSize * sizeof(T), cudaMemcpyHostToDevice));
+    CHK_ERR(cudaMemcpy(d_ptr, ptr, sizeof(FsGrid<T, TDim, N>), cudaMemcpyHostToDevice));
+    CHK_ERR(cudaMemcpy(d_data, ptr->getData(), dataSize * TDim * sizeof(T), cudaMemcpyHostToDevice));
   }
 
   void syncHostData(void){
-    CHK_ERR(cudaMemcpy(ptr->getData(), d_data, dataSize * sizeof(T), cudaMemcpyDeviceToHost));
-    CHK_ERR(cudaMemcpy(h_ptr, d_ptr, sizeof(FsGrid<T, N>), cudaMemcpyDeviceToHost));
+    CHK_ERR(cudaMemcpy(ptr->getData(), d_data, dataSize * TDim * sizeof(T), cudaMemcpyDeviceToHost));
+    CHK_ERR(cudaMemcpy(h_ptr, d_ptr, sizeof(FsGrid<T, TDim, N>), cudaMemcpyDeviceToHost));
     h_ptr->setData(ptr->getData());
-    memcpy(ptr, h_ptr, sizeof(FsGrid<T, N>));
+    memcpy(ptr, h_ptr, sizeof(FsGrid<T, TDim, N>));
   }
   
-  buf(FsGrid<T, N> * const _ptr) : ptr(_ptr) {
+  buf(FsGrid<T, TDim, N> * const _ptr) : ptr(_ptr) {
     thread_id = omp_get_thread_num();
     dataSize = _ptr->getGlobalSize()[0] * _ptr->getGlobalSize()[1] * _ptr->getGlobalSize()[2];
-    h_ptr = (FsGrid<T, N>*) malloc(sizeof(FsGrid<T, N>));
-    CHK_ERR(cudaMalloc(&d_ptr, sizeof(FsGrid<T, N>)));
+    h_ptr = (FsGrid<T, TDim, N>*) malloc(sizeof(FsGrid<T, TDim, N>));
+    CHK_ERR(cudaMalloc(&d_ptr, sizeof(FsGrid<T, TDim, N>)));
     CHK_ERR(cudaMalloc(&d_data, dataSize * sizeof(T)));
     syncDeviceData();
   }
@@ -147,17 +146,16 @@ class buf<FsGrid<T, N>> {
   __host__ __device__ ~buf(void){
     if(!is_copy){
       #ifndef __CUDA_ARCH__
-        cudaFree(d_ptr);
-      #else
         syncHostData();
+        cudaFree(d_ptr);
       #endif
     }
   }
 
   __host__ __device__ T* get(uint i, uint j, uint k) const {
    #ifdef __CUDA_ARCH__
-      // return d_ptr->get(i, j, k);
-      return d_ptr->get(1);
+      return d_ptr->get(i, j, k);
+      // return d_ptr->get(1);
    #else
       return ptr->get(i, j, k);
    #endif
