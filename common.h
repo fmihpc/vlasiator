@@ -447,6 +447,7 @@ namespace sysboundarytype {
       OUTFLOW,          /*!< No fixed conditions on the fields and distribution function. */
       SET_MAXWELLIAN,   /*!< Set Maxwellian boundary condition, i.e. set fields and distribution function. */
       CONDUCTINGSPHERE, /*!< A perfectly conducting sphere as the simple inner boundary */
+      BOUNDARY_PADDING, /*!< These cells only occur on FSGrid, where boundaries are not at the highest refinement level */
       N_SYSBOUNDARY_CONDITIONS
    };
 }

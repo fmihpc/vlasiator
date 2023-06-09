@@ -388,10 +388,10 @@ void getFieldsFromFsGrid(
          //loop over dccrg cells to which we shall send data for this remoteRank
          auto const &fsgridCells = onFsgridMapCells[dccrgCell];
          for (auto const fsgridCell: fsgridCells){
-         //loop over fsgrid cells for which we compute the average that is sent to dccrgCell on rank remoteRank
-//        if(technicalGrid.get(fsgridCell)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
-//           continue;
-//        }
+            //loop over fsgrid cells for which we compute the average that is sent to dccrgCell on rank remoteRank
+            if(technicalGrid.get(fsgridCell)->sysBoundaryFlag == sysboundarytype::BOUNDARY_PADDING) {
+               continue;
+            }
             std::array<Real, fsgrids::volfields::N_VOL> * volcell = volumeFieldsGrid.get(fsgridCell);
             std::array<Real, fsgrids::bgbfield::N_BGB> * bgcell = BgBGrid.get(fsgridCell);
             std::array<Real, fsgrids::egradpe::N_EGRADPE> * egradpecell = EGradPeGrid.get(fsgridCell);	
