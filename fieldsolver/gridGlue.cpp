@@ -389,7 +389,7 @@ void getFieldsFromFsGrid(
          auto const &fsgridCells = onFsgridMapCells[dccrgCell];
          for (auto const fsgridCell: fsgridCells){
             //loop over fsgrid cells for which we compute the average that is sent to dccrgCell on rank remoteRank
-            if(technicalGrid.get(fsgridCell)->sysBoundaryFlag == sysboundarytype::BOUNDARY_PADDING) {
+            if(technicalGrid.get(fsgridCell)->sysBoundaryFlag == sysboundarytype::OUTER_BOUNDARY_PADDING) {
                // We skip boundary padding cells on the outer boundaries here,
                // because their fields anyway don't contribute anything
                // meaningful (as there are never properly updated).
