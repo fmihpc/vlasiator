@@ -390,6 +390,13 @@ void getFieldsFromFsGrid(
          for (auto const fsgridCell: fsgridCells){
             //loop over fsgrid cells for which we compute the average that is sent to dccrgCell on rank remoteRank
             if(technicalGrid.get(fsgridCell)->sysBoundaryFlag == sysboundarytype::BOUNDARY_PADDING) {
+               // We skip boundary padding cells on the outer boundaries here,
+               // because their fields anyway don't contribute anything
+               // meaningful (as there are never properly updated).
+               //
+               // Note we do *NOT* skip DO_NOT_COMPUTE cells, because we need
+               // the bg vol fields to contribute to the innermost simulation
+               // cell's DCCRG volume averages.
                continue;
             }
             std::array<Real, fsgrids::volfields::N_VOL> * volcell = volumeFieldsGrid.get(fsgridCell);
