@@ -66,9 +66,9 @@ namespace SBC {
          
          Readparameters::add(pop + "_copysphere.rho", "Number density of the copysphere (m^-3)", 0.0);
          Readparameters::add(pop + "_copysphere.T", "Temperature of the copysphere (K)", 0.0);
-         Readparameters::add(pop + "_copysphere.VX0", "Bulk velocity of conductospheric distribution function in X direction (m/s)", 0.0);
-         Readparameters::add(pop + "_copysphere.VY0", "Bulk velocity of conductospheric distribution function in X direction (m/s)", 0.0);
-         Readparameters::add(pop + "_copysphere.VZ0", "Bulk velocity of conductospheric distribution function in X direction (m/s)", 0.0);
+         Readparameters::add(pop + "_copysphere.VX0", "Bulk velocity of copyspheric distribution function in X direction (m/s)", 0.0);
+         Readparameters::add(pop + "_copysphere.VY0", "Bulk velocity of copyspheric distribution function in X direction (m/s)", 0.0);
+         Readparameters::add(pop + "_copysphere.VZ0", "Bulk velocity of copyspheric distribution function in X direction (m/s)", 0.0);
          Readparameters::add(pop + "_copysphere.fluffiness", "Inertia of boundary smoothing when copying neighbour's moments and velocity distributions (0=completely constant boundaries, 1=neighbours are interpolated immediately).", 0);
       }
    }

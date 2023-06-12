@@ -315,7 +315,7 @@ namespace SBC {
     * 
     * These consist in:
     * - Do nothing for the distribution (keep the initial state constant in time);
-    * - Keep only the normal perturbed B component and null out the other perturbed components (perfect conductor behavior);
+    * - Copy the closest neighbors' perturbed B and average it;
     * - Null out the electric fields.
     */
    class Ionosphere: public SysBoundaryCondition {
