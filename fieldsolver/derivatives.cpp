@@ -373,7 +373,9 @@ void calculateDerivativesSimple(
       for (int j=0; j<gridDims[1]; j++) {
          for (int i=0; i<gridDims[0]; i++) {
             if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-                 technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::BOUNDARY_PADDING) continue;
+                 technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::BOUNDARY_PADDING) {
+               continue;
+            }
             if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
                calculateDerivatives(i,j,k, perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RKCase);
             } else {
