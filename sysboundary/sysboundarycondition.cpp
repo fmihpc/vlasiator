@@ -902,6 +902,7 @@ namespace SBC {
                if( technicalGrid.get(i+ii,j+jj,k+kk) // skip invalid cells returning NULL
                    && (technicalGrid.get(i+ii,j+jj,k+kk)->SOLVE & mask) == mask // Did that guy solve this component?
                    && technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE // Do not copy from there
+                   &&  technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag != sysboundarytype::BOUNDARY_PADDING // Do not copy from there either
                ) {
                   distance = min(distance, ii*ii + jj*jj + kk*kk);
                }
