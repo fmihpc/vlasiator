@@ -2382,7 +2382,7 @@ namespace SBC {
          cerr << "*                                               *" << endl;
          cerr << "* Most likely, your config file needs to be up- *" << endl;
          cerr << "* dated, changing all mentions of \"ionosphere\"  *" << endl;
-         cerr << "* to \"conductingsphere\".                        *" << endl;
+         cerr << "* to \"copysphere\".                        *" << endl;
          cerr << "*                                               *" << endl;
          cerr << "* This simulation will now crash in the friend- *" << endl;
          cerr << "* liest way possible.                           *" << endl;

@@ -20,14 +20,14 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-/*!\file conductingsphere.cpp
- * \brief Implementation of the class SysBoundaryCondition::Conductingsphere to handle cells classified as sysboundarytype::CONDUCTINGSPHERE.
+/*!\file copysphere.cpp
+ * \brief Implementation of the class SysBoundaryCondition::Copysphere to handle cells classified as sysboundarytype::COPYSPHERE.
  */
 
 #include <cstdlib>
 #include <iostream>
 
-#include "conductingsphere.h"
+#include "copysphere.h"
 #include "../projects/project.h"
 #include "../projects/projects_common.h"
 #include "../vlasovmover.h"
@@ -40,50 +40,50 @@
 
 
 #ifndef NDEBUG
-   #define DEBUG_CONDUCTINGSPHERE
+   #define DEBUG_COPYSPHERE
 #endif
 #ifdef DEBUG_SYSBOUNDARY
-   #define DEBUG_CONDUCTINGSPHERE
+   #define DEBUG_COPYSPHERE
 #endif
 
 namespace SBC {
-   Conductingsphere::Conductingsphere(): SysBoundaryCondition() { }
+   Copysphere::Copysphere(): SysBoundaryCondition() { }
    
-   Conductingsphere::~Conductingsphere() { }
+   Copysphere::~Copysphere() { }
    
-   void Conductingsphere::addParameters() {
-      Readparameters::add("conductingsphere.centerX", "X coordinate of conductingsphere center (m)", 0.0);
-      Readparameters::add("conductingsphere.centerY", "Y coordinate of conductingsphere center (m)", 0.0);
-      Readparameters::add("conductingsphere.centerZ", "Z coordinate of conductingsphere center (m)", 0.0);
-      Readparameters::add("conductingsphere.radius", "Radius of conductingsphere (m).", 1.0e7);
-      Readparameters::add("conductingsphere.geometry", "Select the geometry of the conductingsphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: 2-norm cylinder aligned with y-axis, use with polar plane/line dipole.", 2);
-      Readparameters::add("conductingsphere.precedence", "Precedence value of the conductingsphere system boundary condition (integer), the higher the stronger.", 2);
-      Readparameters::add("conductingsphere.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
+   void Copysphere::addParameters() {
+      Readparameters::add("copysphere.centerX", "X coordinate of copysphere center (m)", 0.0);
+      Readparameters::add("copysphere.centerY", "Y coordinate of copysphere center (m)", 0.0);
+      Readparameters::add("copysphere.centerZ", "Z coordinate of copysphere center (m)", 0.0);
+      Readparameters::add("copysphere.radius", "Radius of copysphere (m).", 1.0e7);
+      Readparameters::add("copysphere.geometry", "Select the geometry of the copysphere, 0: inf-norm (diamond), 1: 1-norm (square), 2: 2-norm (circle, DEFAULT), 3: 2-norm cylinder aligned with y-axis, use with polar plane/line dipole.", 2);
+      Readparameters::add("copysphere.precedence", "Precedence value of the copysphere system boundary condition (integer), the higher the stronger.", 2);
+      Readparameters::add("copysphere.reapplyUponRestart", "If 0 (default), keep going with the state existing in the restart file. If 1, calls again applyInitialState. Can be used to change boundary condition behaviour during a run.", 0);
 
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
          
-         Readparameters::add(pop + "_conductingsphere.rho", "Number density of the conductingsphere (m^-3)", 0.0);
-         Readparameters::add(pop + "_conductingsphere.T", "Temperature of the conductingsphere (K)", 0.0);
-         Readparameters::add(pop + "_conductingsphere.VX0", "Bulk velocity of conductospheric distribution function in X direction (m/s)", 0.0);
-         Readparameters::add(pop + "_conductingsphere.VY0", "Bulk velocity of conductospheric distribution function in X direction (m/s)", 0.0);
-         Readparameters::add(pop + "_conductingsphere.VZ0", "Bulk velocity of conductospheric distribution function in X direction (m/s)", 0.0);
-         Readparameters::add(pop + "_conductingsphere.fluffiness", "Inertia of boundary smoothing when copying neighbour's moments and velocity distributions (0=completely constant boundaries, 1=neighbours are interpolated immediately).", 0);
+         Readparameters::add(pop + "_copysphere.rho", "Number density of the copysphere (m^-3)", 0.0);
+         Readparameters::add(pop + "_copysphere.T", "Temperature of the copysphere (K)", 0.0);
+         Readparameters::add(pop + "_copysphere.VX0", "Bulk velocity of conductospheric distribution function in X direction (m/s)", 0.0);
+         Readparameters::add(pop + "_copysphere.VY0", "Bulk velocity of conductospheric distribution function in X direction (m/s)", 0.0);
+         Readparameters::add(pop + "_copysphere.VZ0", "Bulk velocity of conductospheric distribution function in X direction (m/s)", 0.0);
+         Readparameters::add(pop + "_copysphere.fluffiness", "Inertia of boundary smoothing when copying neighbour's moments and velocity distributions (0=completely constant boundaries, 1=neighbours are interpolated immediately).", 0);
       }
    }
    
-   void Conductingsphere::getParameters() {
+   void Copysphere::getParameters() {
 
-      Readparameters::get("conductingsphere.centerX", this->center[0]);
-      Readparameters::get("conductingsphere.centerY", this->center[1]);
-      Readparameters::get("conductingsphere.centerZ", this->center[2]);
-      Readparameters::get("conductingsphere.radius", this->radius);
+      Readparameters::get("copysphere.centerX", this->center[0]);
+      Readparameters::get("copysphere.centerY", this->center[1]);
+      Readparameters::get("copysphere.centerZ", this->center[2]);
+      Readparameters::get("copysphere.radius", this->radius);
       FieldTracing::fieldTracingParameters.innerBoundaryRadius = this->radius;
-      Readparameters::get("conductingsphere.geometry", this->geometry);
-      Readparameters::get("conductingsphere.precedence", this->precedence);
+      Readparameters::get("copysphere.geometry", this->geometry);
+      Readparameters::get("copysphere.precedence", this->precedence);
       uint reapply;
-      Readparameters::get("conductingsphere.reapplyUponRestart",reapply);
+      Readparameters::get("copysphere.reapplyUponRestart",reapply);
       this->applyUponRestart = false;
       if(reapply == 1) {
          this->applyUponRestart = true;
@@ -91,14 +91,14 @@ namespace SBC {
 
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
         const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-        ConductingsphereSpeciesParameters sP;
+        CopysphereSpeciesParameters sP;
 
-        Readparameters::get(pop + "_conductingsphere.rho", sP.rho);
-        Readparameters::get(pop + "_conductingsphere.VX0", sP.V0[0]);
-        Readparameters::get(pop + "_conductingsphere.VY0", sP.V0[1]);
-        Readparameters::get(pop + "_conductingsphere.VZ0", sP.V0[2]);
-        Readparameters::get(pop + "_conductingsphere.fluffiness", sP.fluffiness);
-        Readparameters::get(pop + "_conductingsphere.T", sP.T);
+        Readparameters::get(pop + "_copysphere.rho", sP.rho);
+        Readparameters::get(pop + "_copysphere.VX0", sP.V0[0]);
+        Readparameters::get(pop + "_copysphere.VY0", sP.V0[1]);
+        Readparameters::get(pop + "_copysphere.VZ0", sP.V0[2]);
+        Readparameters::get(pop + "_copysphere.fluffiness", sP.fluffiness);
+        Readparameters::get(pop + "_copysphere.T", sP.T);
         Readparameters::get(pop + "_Magnetosphere.nSpaceSamples", sP.nSpaceSamples);
         Readparameters::get(pop + "_Magnetosphere.nVelocitySamples", sP.nVelocitySamples);
 
@@ -115,7 +115,7 @@ namespace SBC {
       }
    }
    
-   bool Conductingsphere::initSysBoundary(
+   bool Copysphere::initSysBoundary(
       creal& t,
       Project &project
    ) {
@@ -151,14 +151,14 @@ namespace SBC {
          r = sqrt((x-center[0])*(x-center[0]) + (z-center[2])*(z-center[2]));
          break;
       default:
-         std::cerr << __FILE__ << ":" << __LINE__ << ":" << "conductingsphere.geometry has to be 0, 1 or 2." << std::endl;
+         std::cerr << __FILE__ << ":" << __LINE__ << ":" << "copysphere.geometry has to be 0, 1 or 2." << std::endl;
          abort();
       }
 
       return r;
    }
    
-   bool Conductingsphere::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+   bool Copysphere::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
       const vector<CellID>& cells = getLocalCells();
       for(uint i=0; i<cells.size(); i++) {
@@ -182,7 +182,7 @@ namespace SBC {
       return true;
    }
 
-   bool Conductingsphere::applyInitialState(
+   bool Copysphere::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -200,13 +200,13 @@ namespace SBC {
       return true;
    }
 
-   std::array<Real, 3> Conductingsphere::fieldSolverGetNormalDirection(
+   std::array<Real, 3> Copysphere::fieldSolverGetNormalDirection(
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
       cint i,
       cint j,
       cint k
    ) {
-      phiprof::start("Conductingsphere::fieldSolverGetNormalDirection");
+      phiprof::start("Copysphere::fieldSolverGetNormalDirection");
       std::array<Real, 3> normalDirection{{ 0.0, 0.0, 0.0 }};
       
       static creal DIAG2 = 1.0 / sqrt(2.0);
@@ -229,7 +229,7 @@ namespace SBC {
          if (Parameters::ycells_ini == 1) {
             if (Parameters::zcells_ini == 1) {
                // X,Y,Z
-               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "What do you expect to do with a single-cell simulation of conductingsphere boundary type? Stop kidding." << std::endl;
+               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "What do you expect to do with a single-cell simulation of copysphere boundary type? Stop kidding." << std::endl;
                abort();
                // end of X,Y,Z
             } else {
@@ -277,7 +277,7 @@ namespace SBC {
                   normalDirection[2] = z / length;
                   break;
                default:
-                  std::cerr << __FILE__ << ":" << __LINE__ << ":" << "conductingsphere.geometry has to be 0, 1 or 2 with this grid shape." << std::endl;
+                  std::cerr << __FILE__ << ":" << __LINE__ << ":" << "copysphere.geometry has to be 0, 1 or 2 with this grid shape." << std::endl;
                   abort();
             }
             // end of X
@@ -324,7 +324,7 @@ namespace SBC {
                   normalDirection[2] = z / length;
                   break;
                default:
-                  std::cerr << __FILE__ << ":" << __LINE__ << ":" << "conductingsphere.geometry has to be 0, 1, 2 or 3 with this grid shape." << std::endl;
+                  std::cerr << __FILE__ << ":" << __LINE__ << ":" << "copysphere.geometry has to be 0, 1, 2 or 3 with this grid shape." << std::endl;
                   abort();
             }
             // end of Y
@@ -365,7 +365,7 @@ namespace SBC {
                normalDirection[1] = y / length;
                break;
             default:
-               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "conductingsphere.geometry has to be 0, 1 or 2 with this grid shape." << std::endl;
+               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "copysphere.geometry has to be 0, 1 or 2 with this grid shape." << std::endl;
                abort();
          }
          // end of Z
@@ -463,13 +463,13 @@ namespace SBC {
                normalDirection[2] = z / length;
                break;
             default:
-               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "conductingsphere.geometry has to be 0, 1, 2 or 3 with this grid shape." << std::endl;
+               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "copysphere.geometry has to be 0, 1, 2 or 3 with this grid shape." << std::endl;
                abort();
          }
          // end of 3D
       }
       
-      phiprof::stop("Conductingsphere::fieldSolverGetNormalDirection");
+      phiprof::stop("Copysphere::fieldSolverGetNormalDirection");
       return normalDirection;
    }
    
@@ -479,7 +479,7 @@ namespace SBC {
     * 
     * -- Retain only the normal components of perturbed face B
     */
-   Real Conductingsphere::fieldSolverBoundaryCondMagneticField(
+   Real Copysphere::fieldSolverBoundaryCondMagneticField(
       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
       cint i,
@@ -629,7 +629,7 @@ namespace SBC {
                   return retval / nCells;
                }
             default:
-               cerr << "ERROR: conductingsphere boundary tried to copy nonsensical magnetic field component " << component << endl;
+               cerr << "ERROR: copysphere boundary tried to copy nonsensical magnetic field component " << component << endl;
                return 0.0;
          }
       } else { // L2 cells
@@ -653,7 +653,7 @@ namespace SBC {
       }
    }
 
-   void Conductingsphere::fieldSolverBoundaryCondElectricField(
+   void Copysphere::fieldSolverBoundaryCondElectricField(
       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
       cint i,
       cint j,
@@ -663,7 +663,7 @@ namespace SBC {
       EGrid.get(i,j,k)->at(fsgrids::efield::EX+component) = 0.0;
    }
    
-   void Conductingsphere::fieldSolverBoundaryCondHallElectricField(
+   void Copysphere::fieldSolverBoundaryCondHallElectricField(
       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
       cint i,
       cint j,
@@ -695,7 +695,7 @@ namespace SBC {
       }
    }
    
-   void Conductingsphere::fieldSolverBoundaryCondGradPeElectricField(
+   void Copysphere::fieldSolverBoundaryCondGradPeElectricField(
       FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
       cint i,
       cint j,
@@ -705,7 +705,7 @@ namespace SBC {
       EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE+component) = 0.0;
    }
    
-   void Conductingsphere::fieldSolverBoundaryCondDerivatives(
+   void Copysphere::fieldSolverBoundaryCondDerivatives(
       FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
       FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
       cint i,
@@ -718,33 +718,33 @@ namespace SBC {
       return;
    }
    
-   void Conductingsphere::fieldSolverBoundaryCondBVOLDerivatives(
+   void Copysphere::fieldSolverBoundaryCondBVOLDerivatives(
       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
       cint i,
       cint j,
       cint k,
       cuint& component
    ) {
-      // FIXME This should be OK as the BVOL derivatives are only used for Lorentz force JXB, which is not applied on the conducting sphere cells.
+      // FIXME This should be OK as the BVOL derivatives are only used for Lorentz force JXB, which is not applied on the copy sphere cells.
       this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
    }
    
-   void Conductingsphere::vlasovBoundaryCondition(
+   void Copysphere::vlasovBoundaryCondition(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
       const uint popID,
       const bool calculate_V_moments
    ) {
-      phiprof::start("vlasovBoundaryCondition (Conductingsphere)");
+      phiprof::start("vlasovBoundaryCondition (Copysphere)");
       this->vlasovBoundaryFluffyCopyFromAllCloseNbrs(mpiGrid, cellID, popID, calculate_V_moments, this->speciesParams[popID].fluffiness);
-      phiprof::stop("vlasovBoundaryCondition (Conductingsphere)");
+      phiprof::stop("vlasovBoundaryCondition (Copysphere)");
    }
 
    /**
     * NOTE: This function must initialize all particle species!
     * @param project
     */
-   void Conductingsphere::generateTemplateCell(Project &project) {
+   void Copysphere::generateTemplateCell(Project &project) {
       // WARNING not 0.0 here or the dipole() function fails miserably.
       templateCell.sysBoundaryFlag = this->getIndex();
       templateCell.sysBoundaryLayer = 1;
@@ -757,7 +757,7 @@ namespace SBC {
       
       // Loop over particle species
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-         const ConductingsphereSpeciesParameters& sP = this->speciesParams[popID];
+         const CopysphereSpeciesParameters& sP = this->speciesParams[popID];
          const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(templateCell,popID);
          Realf* data = templateCell.get_data(popID);
          
@@ -840,13 +840,13 @@ namespace SBC {
       templateCell.parameters[CellParams::P_33_V] = templateCell.parameters[CellParams::P_33];
    }
    
-   Real Conductingsphere::shiftedMaxwellianDistribution(
+   Real Copysphere::shiftedMaxwellianDistribution(
       const uint popID,
       creal& vx, creal& vy, creal& vz
    ) {
       
       const Real MASS = getObjectWrapper().particleSpecies[popID].mass;
-      const ConductingsphereSpeciesParameters& sP = this->speciesParams[popID];
+      const CopysphereSpeciesParameters& sP = this->speciesParams[popID];
 
       return sP.rho * pow(MASS /
       (2.0 * M_PI * physicalconstants::K_B * sP.T), 1.5) *
@@ -854,7 +854,7 @@ namespace SBC {
       (2.0 * physicalconstants::K_B * sP.T));
    }
 
-   std::vector<vmesh::GlobalID> Conductingsphere::findBlocksToInitialize(spatial_cell::SpatialCell& cell,const uint popID) {
+   std::vector<vmesh::GlobalID> Copysphere::findBlocksToInitialize(spatial_cell::SpatialCell& cell,const uint popID) {
       vector<vmesh::GlobalID> blocksToInitialize;
       bool search = true;
       uint counter = 0;
@@ -905,12 +905,12 @@ namespace SBC {
       return blocksToInitialize;
    }
 
-   void Conductingsphere::setCellFromTemplate(SpatialCell* cell,const uint popID) {
+   void Copysphere::setCellFromTemplate(SpatialCell* cell,const uint popID) {
       copyCellData(&templateCell,cell,false,popID,true); // copy also vdf, _V
       copyCellData(&templateCell,cell,true,popID,false); // don't copy vdf again but copy _R now
    }
 
-   std::string Conductingsphere::getName() const {return "Conductingsphere";}
+   std::string Copysphere::getName() const {return "Copysphere";}
    
-   uint Conductingsphere::getIndex() const {return sysboundarytype::CONDUCTINGSPHERE;}
+   uint Copysphere::getIndex() const {return sysboundarytype::COPYSPHERE;}
 }
