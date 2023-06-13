@@ -122,7 +122,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             return retval;
          }
       ));
-      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{x,\\mathrm{bg,fg}} (\\Delta X)^{-1}$","1.0");
+      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{X,\\mathrm{bg,fg}} (\\Delta X)^{-1}$","1.0");
 
       outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dbgbxdy",[](
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -150,7 +150,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             return retval;
          }
       ));
-      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{x,\\mathrm{bg,fg}} (\\Delta Y)^{-1}$","1.0");
+      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{X,\\mathrm{bg,fg}} (\\Delta Y)^{-1}$","1.0");
 
       outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dbgbxdz",[](
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -178,7 +178,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             return retval;
          }
       ));
-      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{x,\\mathrm{bg,fg}} (\\Delta Z)^{-1}$","1.0");
+      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{X,\\mathrm{bg,fg}} (\\Delta Z)^{-1}$","1.0");
 
       outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dbgbydx",[](
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -206,7 +206,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             return retval;
          }
       ));
-      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{y,\\mathrm{bg,fg}} (\\Delta X)^{-1}$","1.0");
+      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{Y,\\mathrm{bg,fg}} (\\Delta X)^{-1}$","1.0");
 
       outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dbgbydy",[](
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -234,7 +234,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             return retval;
          }
       ));
-      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{y,\\mathrm{bg,fg}} (\\Delta Y)^{-1}$","1.0");
+      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{Y,\\mathrm{bg,fg}} (\\Delta Y)^{-1}$","1.0");
 
       outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dbgbydz",[](
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -262,7 +262,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             return retval;
          }
       ));
-      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{y,\\mathrm{bg,fg}} (\\Delta Z)^{-1}$","1.0");
+      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{Y,\\mathrm{bg,fg}} (\\Delta Z)^{-1}$","1.0");
 
       outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dbgbzdx",[](
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -290,7 +290,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             return retval;
          }
       ));
-      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{z,\\mathrm{bg,fg}} (\\Delta X)^{-1}$","1.0");
+      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{Z,\\mathrm{bg,fg}} (\\Delta X)^{-1}$","1.0");
 
       outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dbgbzdy",[](
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -318,7 +318,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             return retval;
          }
       ));
-      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{z,\\mathrm{bg,fg}} (\\Delta Y)^{-1}$","1.0");
+      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{Z,\\mathrm{bg,fg}} (\\Delta Y)^{-1}$","1.0");
 
       outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dbgbzdz",[](
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -346,7 +346,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             return retval;
          }
       ));
-      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{z,\\mathrm{bg,fg}} (\\Delta Z)^{-1}$","1.0");
+      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{Z,\\mathrm{bg,fg}} (\\Delta Z)^{-1}$","1.0");
 
       outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dbgbxvoldx",[](
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -374,7 +374,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             return retval;
          }
       ));
-      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{x,\\mathrm{bg,vol,fg}} (\\Delta X)^{-1}$","1.0");
+      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{X,\\mathrm{bg,vol,fg}} (\\Delta X)^{-1}$","1.0");
 
       outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dbgbxvoldy",[](
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -402,7 +402,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             return retval;
          }
       ));
-      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{x,\\mathrm{bg,vol,fg}} (\\Delta Y)^{-1}$","1.0");
+      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{X,\\mathrm{bg,vol,fg}} (\\Delta Y)^{-1}$","1.0");
 
       outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dbgbxvoldz",[](
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -430,7 +430,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             return retval;
          }
       ));
-      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{x,\\mathrm{bg,vol,fg}} (\\Delta Z)^{-1}$","1.0");
+      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{X,\\mathrm{bg,vol,fg}} (\\Delta Z)^{-1}$","1.0");
 
       outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dbgbyvoldx",[](
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -458,7 +458,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             return retval;
          }
       ));
-      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{y,\\mathrm{bg,vol,fg}} (\\Delta X)^{-1}$","1.0");
+      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{Y,\\mathrm{bg,vol,fg}} (\\Delta X)^{-1}$","1.0");
 
       outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dbgbyvoldy",[](
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -486,7 +486,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             return retval;
          }
       ));
-      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{y,\\mathrm{bg,vol,fg}} (\\Delta Y)^{-1}$","1.0");
+      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{Y,\\mathrm{bg,vol,fg}} (\\Delta Y)^{-1}$","1.0");
 
       outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dbgbyvoldz",[](
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -514,7 +514,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             return retval;
          }
       ));
-      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{y,\\mathrm{bg,vol,fg}} (\\Delta Z)^{-1}$","1.0");
+      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{Y,\\mathrm{bg,vol,fg}} (\\Delta Z)^{-1}$","1.0");
 
       outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dbgbzvoldx",[](
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -542,7 +542,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             return retval;
          }
       ));
-      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{z,\\mathrm{bg,vol,fg}} (\\Delta X)^{-1}$","1.0");
+      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{Z,\\mathrm{bg,vol,fg}} (\\Delta X)^{-1}$","1.0");
 
       outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dbgbzvoldy",[](
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -570,7 +570,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             return retval;
          }
       ));
-      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{z,\\mathrm{bg,vol,fg}} (\\Delta Y)^{-1}$","1.0");
+      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{Z,\\mathrm{bg,vol,fg}} (\\Delta Y)^{-1}$","1.0");
 
       outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_dbgbzvoldz",[](
          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -598,7 +598,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             return retval;
          }
       ));
-      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{z,\\mathrm{bg,vol,fg}} (\\Delta Z)^{-1}$","1.0");
+      outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$B_{Z,\\mathrm{bg,vol,fg}} (\\Delta Z)^{-1}$","1.0");
 
       // end of the write full BGB set
       return;
