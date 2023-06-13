@@ -90,45 +90,45 @@ void calculateSpatialTranslation(
    btzTimer.stop();
  
     // ------------- SLICE - map dist function in Z --------------- //
-   if(P::zcells_ini > 1){
+   //if(P::zcells_ini > 1){
 
       phiprof::Timer transTimer {"transfer-stencil-data-z", {"MPI"}};
       //updateRemoteVelocityBlockLists(mpiGrid,popID,VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
-      SpatialCell::set_mpi_transfer_direction(2);
-      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false,AMRtranslationActive);
-      mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
+      //SpatialCell::set_mpi_transfer_direction(2);
+      //SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false,AMRtranslationActive);
+      //mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_Z_NEIGHBORHOOD_ID);
       transTimer.stop();
 
-      // bt=phiprof::initializeTimer("barrier-trans-pre-trans_map_1d-z","Barriers","MPI");
-      // phiprof::start(bt);
-      // MPI_Barrier(MPI_COMM_WORLD);
-      // phiprof::stop(bt);
+   //   // bt=phiprof::initializeTimer("barrier-trans-pre-trans_map_1d-z","Barriers","MPI");
+   //   // phiprof::start(bt);
+   //   // MPI_Barrier(MPI_COMM_WORLD);
+   //   // phiprof::stop(bt);
 
       t1 = MPI_Wtime();
       phiprof::Timer computeTimer {"compute-mapping-z"};
-      if(P::amrMaxSpatialRefLevel == 0) {
-         trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsz, 2, dt,popID); // map along z//
-      } else {
-         trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsz, nPencils, 2, dt,popID); // map along z//
-      }
+      //if(P::amrMaxSpatialRefLevel == 0) {
+      //   trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsz, 2, dt,popID); // map along z//
+      //} else {
+      //   trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsz, nPencils, 2, dt,popID); // map along z//
+      //}
       computeTimer.stop();
       time += MPI_Wtime() - t1;
 
       phiprof::Timer btTimer {"barrier-trans-pre-update_remote-z", {"Barriers","MPI"}};
-      MPI_Barrier(MPI_COMM_WORLD);
+      //MPI_Barrier(MPI_COMM_WORLD);
       btTimer.stop();
 
       phiprof::Timer updateRemoteTimer {"update_remote-z", {"MPI"}};
-      if(P::amrMaxSpatialRefLevel == 0) {
-         update_remote_mapping_contribution(mpiGrid, 2,+1,popID);
-         update_remote_mapping_contribution(mpiGrid, 2,-1,popID);
-      } else {
-         update_remote_mapping_contribution_amr(mpiGrid, 2,+1,popID);
-         update_remote_mapping_contribution_amr(mpiGrid, 2,-1,popID);
-      }
+      //if(P::amrMaxSpatialRefLevel == 0) {
+      //   update_remote_mapping_contribution(mpiGrid, 2,+1,popID);
+      //   update_remote_mapping_contribution(mpiGrid, 2,-1,popID);
+      //} else {
+      //   update_remote_mapping_contribution_amr(mpiGrid, 2,+1,popID);
+      //   update_remote_mapping_contribution_amr(mpiGrid, 2,-1,popID);
+      //}
       updateRemoteTimer.stop();
 
-   }
+   //}
 
    phiprof::Timer btxTimer {"barrier-trans-pre-x", {"Barriers","MPI"}};
    MPI_Barrier(MPI_COMM_WORLD);
@@ -183,9 +183,9 @@ void calculateSpatialTranslation(
       
       phiprof::Timer transTimer {"transfer-stencil-data-y", {"MPI"}};
       //updateRemoteVelocityBlockLists(mpiGrid,popID,VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
-      SpatialCell::set_mpi_transfer_direction(1);
-      SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false,AMRtranslationActive);
-      mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
+      //SpatialCell::set_mpi_transfer_direction(1);
+      //SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_DATA,false,AMRtranslationActive);
+      //mpiGrid.update_copies_of_remote_neighbors(VLASOV_SOLVER_Y_NEIGHBORHOOD_ID);
       transTimer.stop();
       
       // bt=phiprof::initializeTimer("barrier-trans-pre-trans_map_1d-y","Barriers","MPI");
@@ -195,26 +195,26 @@ void calculateSpatialTranslation(
 
       t1 = MPI_Wtime();
       phiprof::Timer computeTimer {"compute-mapping-y"};
-      if(P::amrMaxSpatialRefLevel == 0) {
-         trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsy, 1,dt,popID); // map along y//
-      } else {
-         trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsy, nPencils, 1,dt,popID); // map along y//      
-      }
+      //if(P::amrMaxSpatialRefLevel == 0) {
+      //   trans_map_1d(mpiGrid,local_propagated_cells, remoteTargetCellsy, 1,dt,popID); // map along y//
+      //} else {
+      //   trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsy, nPencils, 1,dt,popID); // map along y//      
+      //}
       computeTimer.stop();
       time += MPI_Wtime() - t1;
       
       phiprof::Timer btTimer {"barrier-trans-pre-update_remote-y", {"Barriers","MPI"}};
-      MPI_Barrier(MPI_COMM_WORLD);
+      //MPI_Barrier(MPI_COMM_WORLD);
       btTimer.stop();
 
       phiprof::Timer updateRemoteTimer {"update_remote-y", {"MPI"}};
-      if(P::amrMaxSpatialRefLevel == 0) {
-         update_remote_mapping_contribution(mpiGrid, 1,+1,popID);
-         update_remote_mapping_contribution(mpiGrid, 1,-1,popID);
-      } else {
-         update_remote_mapping_contribution_amr(mpiGrid, 1,+1,popID);
-         update_remote_mapping_contribution_amr(mpiGrid, 1,-1,popID);
-      }
+      //if(P::amrMaxSpatialRefLevel == 0) {
+      //   update_remote_mapping_contribution(mpiGrid, 1,+1,popID);
+      //   update_remote_mapping_contribution(mpiGrid, 1,-1,popID);
+      //} else {
+      //   update_remote_mapping_contribution_amr(mpiGrid, 1,+1,popID);
+      //   update_remote_mapping_contribution_amr(mpiGrid, 1,-1,popID);
+      //}
       updateRemoteTimer.stop();
    }
 

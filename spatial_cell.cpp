@@ -605,8 +605,13 @@ namespace spatial_cell {
             }
 
             // send velocity block list
-            displacements.push_back((uint8_t*) &(populations[activePopID].vmesh.getGrid()[0]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(vmesh::GlobalID) * populations[activePopID].vmesh.size());
+            if(populations[activePopID].vmesh.size() > 0) {
+               displacements.push_back((uint8_t*) &(populations[activePopID].vmesh.getGrid()[0]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(vmesh::GlobalID) * populations[activePopID].vmesh.size());
+            } else {
+               displacements.push_back(0);
+               block_lengths.push_back(0);
+            }
          }
 
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_WITH_CONTENT_STAGE1) !=0) {
@@ -621,8 +626,13 @@ namespace spatial_cell {
             }
 
             //velocity_block_with_content_list_size should first be updated, before this can be done (STAGE1)
-            displacements.push_back((uint8_t*) &(this->velocity_block_with_content_list[0]) - (uint8_t*) this);
-            block_lengths.push_back(sizeof(vmesh::GlobalID)*this->velocity_block_with_content_list_size);
+            if(velocity_block_with_content_list_size > 0) {
+               displacements.push_back((uint8_t*) &(this->velocity_block_with_content_list[0]) - (uint8_t*) this);
+               block_lengths.push_back(sizeof(vmesh::GlobalID)*this->velocity_block_with_content_list_size);
+            } else {
+               displacements.push_back(0);
+               block_lengths.push_back(0);
+            }
          }
 
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_DATA) !=0) {
