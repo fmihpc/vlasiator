@@ -131,7 +131,6 @@ bool P::isRestart = false;
 int P::writeAsFloat = false;
 int P::writeRestartAsFloat = false;
 string P::loadBalanceAlgorithm = string("");
-int P::loadBalanceHierLevelZero = 0;
 std::map<std::string, std::string> P::loadBalanceOptions;
 uint P::rebalanceInterval = numeric_limits<uint>::max();
 
@@ -371,7 +370,6 @@ bool P::addParameters() {
 
    // Load balancing parameters
    RP::add("loadBalance.algorithm", "Load balancing algorithm to be used", string("RCB"));
-   RP::add("loadBalance.hierLevelZero", "Number of tasks for 0th level hierarchical partitioning", 4);
    RP::add("loadBalance.tolerance", "Load imbalance tolerance", string("1.05"));
    RP::add("loadBalance.rebalanceInterval", "Load rebalance interval (steps)", 10);
 
@@ -926,7 +924,6 @@ void Parameters::getParameters() {
 
    // Get load balance parameters
    RP::get("loadBalance.algorithm", P::loadBalanceAlgorithm);
-   RP::get("loadBalance.hierLevelZero", P::loadBalanceHierLevelZero);
    loadBalanceOptions["IMBALANCE_TOL"] = "";
    RP::get("loadBalance.tolerance", loadBalanceOptions["IMBALANCE_TOL"]);
    RP::get("loadBalance.rebalanceInterval", P::rebalanceInterval);
