@@ -334,9 +334,17 @@ int main(int argn,char* args[]) {
    // Init parallel logger:
    phiprof::start("open logFile & diagnostic");
    //if restarting we will append to logfiles
-   if (logFile.open(MPI_COMM_WORLD,MASTER_RANK,"logfile.txt",P::isRestart) == false) {
-      if(myRank == MASTER_RANK) cerr << "(MAIN) ERROR: Logger failed to open logfile!" << endl;
-      exit(1);
+   if(!P::writeFullBGB) {
+      if (logFile.open(MPI_COMM_WORLD,MASTER_RANK,"logfile.txt",P::isRestart) == false) {
+         if(myRank == MASTER_RANK) cerr << "(MAIN) ERROR: Logger failed to open logfile!" << endl;
+         exit(1);
+      }
+   } else {
+      // If we are out to write the full background field and derivatives, we don't want to overwrite the exisitng run's logfile.
+      if (logFile.open(MPI_COMM_WORLD,MASTER_RANK,"logfile_fullbgbio.txt",false) == false) {
+         if(myRank == MASTER_RANK) cerr << "(MAIN) ERROR: Logger failed to open logfile_fullbgbio!" << endl;
+         exit(1);
+      }
    }
    if (P::diagnosticInterval != 0) {
       if (diagnostic.open(MPI_COMM_WORLD,MASTER_RANK,"diagnostic.txt",P::isRestart) == false) {
