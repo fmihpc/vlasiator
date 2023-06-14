@@ -388,7 +388,7 @@ namespace SBC {
          vector<Real> tempData;
          for (uint i=0; i<nParams; i++) {
             Real readParam;
-            int ret;
+            int ret = 0;
             if ( typeid( readParam ) == typeid(double) ) {
                ret = fscanf(fp,"%lf",&readParam);
             } else if( typeid( readParam ) == typeid(float) ) {
@@ -427,7 +427,6 @@ namespace SBC {
    bool SetByUser::generateTemplateCells(creal& t) {
       #pragma omp parallel for
       for(uint i=0; i<6; i++) {
-         int index;
          if(facesToProcess[i]) {
             generateTemplateCell(templateCells[i], templateB[i], i, t);
          }

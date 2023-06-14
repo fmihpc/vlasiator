@@ -199,7 +199,6 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       isChanged = true;
 
       // set new timestep to the lowest one of all interval-midpoints
-      const Real half = 0.5;
       newDt = meanVlasovCFL * dtMaxGlobal[0];
       newDt = min(newDt, meanVlasovCFL * dtMaxGlobal[1] * P::maxSlAccelerationSubcycles);
       newDt = min(newDt, meanFieldsCFL * dtMaxGlobal[2] * P::maxFieldSolverSubcycles);
@@ -254,7 +253,6 @@ void recalculateLocalCellsCache() {
 }
 
 int main(int argn,char* args[]) {
-   bool success = true;
    int myRank, doBailout=0;
    const creal DT_EPSILON=1e-12;
    typedef Parameters P;
@@ -278,7 +276,6 @@ int main(int argn,char* args[]) {
    SysBoundary& sysBoundaryContainer = getObjectWrapper().sysBoundaryContainer;
    MPI_Comm comm = MPI_COMM_WORLD;
    MPI_Comm_rank(comm,&myRank);
-   bool isSysBoundaryCondDynamic;
    
    #ifdef CATCH_FPE
    // WARNING FE_INEXACT is too sensitive to be used. See man fenv.
@@ -455,7 +452,6 @@ int main(int argn,char* args[]) {
       sysBoundaryContainer,
       *project
    );
-   isSysBoundaryCondDynamic = sysBoundaryContainer.isDynamic();
    
    const std::vector<CellID>& cells = getLocalCells();
    
