@@ -25,9 +25,9 @@ jobs:
           cd library-build
       - name: Download DCCRG
         run: |
-          git clone https://github.com/lkotipal/dccrg.git 
+          git clone https://github.com/fmihpc/dccrg.git 
           cd dccrg
-          git checkout cache-face-neighbors
+          git checkout vlasiator-version
           cp *.hpp $GITHUB_WORKSPACE/libraries/include
           cd ..
       - name: Download fsgrid
