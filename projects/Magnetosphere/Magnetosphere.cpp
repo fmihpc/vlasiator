@@ -711,8 +711,7 @@ namespace projects {
       Real r_max2 {pow(P::refineRadius, 2)};
 
       //#pragma omp parallel for
-      for (uint j = 0; j < cells.size(); ++j) {
-         CellID id {cells[j]};
+      for (CellID id : cells) {
          std::array<double,3> xyz {mpiGrid.get_center(id)};
          SpatialCell* cell {mpiGrid[id]};
          int refLevel {mpiGrid.get_refinement_level(id)};
@@ -732,17 +731,16 @@ namespace projects {
             // Finally, check neighbors
             int refined_neighbors {0};
             int coarser_neighbors {0};
-            for (auto i : mpiGrid.get_face_neighbors_of(id)) {
-               const auto neighbor {mpiGrid[i.first]};
-               const int neighborRef = mpiGrid.get_refinement_level(i.first);
-               const Real neighborBeta {P::useJPerB ? std::log2(neighbor->parameters[CellParams::AMR_JPERB]) + logDx + P::JPerBModifier + neighborRef : 0.0};
+            for (const auto& [neighbor, dir] : mpiGrid.get_face_neighbors_of(id)) {
+               const int neighborRef = mpiGrid.get_refinement_level(neighbor);
+               const Real neighborBeta {P::useJPerB ? std::log2(mpiGrid[neighbor]->parameters[CellParams::AMR_JPERB]) + logDx + P::JPerBModifier + neighborRef : 0.0};
                if (neighborRef > refLevel) {
                   ++refined_neighbors;
                } else if (neighborRef < refLevel) {
                   ++coarser_neighbors;
-               } else if (neighbor->parameters[CellParams::AMR_ALPHA] > P::refineThreshold || neighborBeta > 0.5) {
+               } else if (mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA] > P::refineThreshold || neighborBeta > 0.5) {
                   refined_neighbors += 4;
-               } else if (neighbor->parameters[CellParams::AMR_ALPHA] < P::unrefineThreshold || neighborBeta < -0.5) {
+               } else if (mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA] < P::unrefineThreshold || neighborBeta < -0.5) {
                   ++coarser_neighbors;
                }
             }

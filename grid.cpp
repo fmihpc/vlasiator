@@ -447,15 +447,13 @@ void setFaceNeighborRanks( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
       cell->face_neighbor_ranks.clear();
       
-      const auto& faceNeighbors = mpiGrid.get_face_neighbors_of(cellid);
-
-      for (const auto& nbr : faceNeighbors) {
+      for (const auto& [neighbor, dir] : mpiGrid.get_face_neighbors_of(cellid)) {
 
          int neighborhood;
 
          // We store rank numbers into a map that has neighborhood ids as its key values.
          
-         switch (nbr.second) {
+         switch (dir) {
          case -3:
             neighborhood = SHIFT_M_Z_NEIGHBORHOOD_ID;
             break;
@@ -475,11 +473,11 @@ void setFaceNeighborRanks( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
             neighborhood = SHIFT_P_Z_NEIGHBORHOOD_ID;
             break;
          default:
-            cerr << "Invalid face neighbor dimension: " << nbr.second << " in " << __FILE__ << ":" << __LINE__ << std::endl;
+            cerr << "Invalid face neighbor dimension: " << dir << " in " << __FILE__ << ":" << __LINE__ << std::endl;
             abort();
          }
 
-         cell->face_neighbor_ranks[neighborhood].insert(mpiGrid.get_process(nbr.first));
+         cell->face_neighbor_ranks[neighborhood].insert(mpiGrid.get_process(neighbor));
          
       }      
    }
