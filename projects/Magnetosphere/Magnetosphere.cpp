@@ -301,6 +301,7 @@ namespace projects {
       LineDipole bgFieldLineDipole;
       VectorDipole bgVectorDipole;
 
+      phiprof::start("switch-dipoleType");
       // The hardcoded constants of dipole and line dipole moments are obtained
       // from Daldorff et al (2014), see
       // https://github.com/fmihpc/vlasiator/issues/20 for a derivation of the
@@ -349,9 +350,12 @@ namespace projects {
             default:
                setBackgroundFieldToZero(BgBGrid);
       }
-      
+      phiprof::stop("switch-dipoleType");
+
       const auto localSize = BgBGrid.getLocalSize().data();
       
+      phiprof::start("zeroing-out");
+
 #pragma omp parallel
       {
          bool doZeroOut;
@@ -447,6 +451,10 @@ namespace projects {
             }
          }
       } // end of omp parallel region
+
+      phiprof::stop("zeroing-out");
+
+      phiprof::start("add-constant-field");
       // Superimpose constant background field if needed
       if(this->constBgB[0] != 0.0 || this->constBgB[1] != 0.0 || this->constBgB[2] != 0.0) {
          ConstantField bgConstantField;
@@ -454,7 +462,10 @@ namespace projects {
          setBackgroundField(bgConstantField, BgBGrid, true);
          SBC::ionosphereGrid.setConstantBackgroundField(this->constBgB);
       }
+      phiprof::stop("add-constant-field");
+      phiprof::start("ionosphereGrid.storeNodeB");
       SBC::ionosphereGrid.storeNodeB();
+      phiprof::stop("ionosphereGrid.storeNodeB");
    }
    
    
@@ -694,7 +705,7 @@ namespace projects {
       if (myRank == MASTER_RANK)
          std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
 
-      Real ibr2 {pow(ionosphereRadius + 2*P::dx_ini, 2)};
+      //Real ibr2 {pow(ionosphereRadius + 2*P::dx_ini, 2)};
 
       std::vector<CellID> cells {getLocalCells()};
       Real r_max2 {pow(P::refineRadius, 2)};
@@ -707,7 +718,6 @@ namespace projects {
          int refLevel {mpiGrid.get_refinement_level(id)};
          Real r2 {pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2)};
 
-         bool refine = false;
          const Real logDx {std::log2(P::dx_ini)};
          if (!canRefine(mpiGrid[id])) {
             // Skip refining, touching boundaries during runtime breaks everything

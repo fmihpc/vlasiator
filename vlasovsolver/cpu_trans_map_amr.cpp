@@ -1591,7 +1591,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                
                int L = DimensionPencils[dimension].lengthOfPencils[pencili];
                uint targetLength = L + 2 * nTargetNeighborsPerPencil;
-               uint sourceLength = L + 2 * VLASOV_STENCIL_WIDTH;
                               
                // load data(=> sourcedata) / (proper xy reconstruction in future)
                bool pencil_has_data = copy_trans_block_data_amr(pencilSourceCells[pencili].data(), blockGID, L, pencilSourceVecData[pencili].data(),
@@ -1725,7 +1724,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
 int get_sibling_index(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const CellID& cellid) {
 
    const int NO_SIBLINGS = 0;
-   const int ERROR = -1;
    
    if(mpiGrid.get_refinement_level(cellid) == 0) {
       return NO_SIBLINGS;

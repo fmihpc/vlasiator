@@ -72,7 +72,7 @@ template <typename T, int stencil> void computeCoupling(dccrg::Dccrg<SpatialCell
         
         int process = mpiGrid.get_process(dccrgCell);
         int64_t  fsgridLid = momentsGrid.LocalIDForCoords(i,j,k);
-        int64_t  fsgridGid = momentsGrid.GlobalIDForCoords(i,j,k);
+        //int64_t  fsgridGid = momentsGrid.GlobalIDForCoords(i,j,k);
         onFsgridMapRemoteProcess[process].insert(dccrgCell); //cells are ordered (sorted) in set
         onFsgridMapCells[dccrgCell].push_back(fsgridLid);
       }

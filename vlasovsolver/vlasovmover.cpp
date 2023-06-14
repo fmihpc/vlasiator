@@ -77,7 +77,6 @@ void calculateSpatialTranslation(
         Real &time
 ) {
 
-    bool localTargetGridGenerated = false;
     bool AMRtranslationActive = false;
     if (P::amrMaxSpatialRefLevel > 0) AMRtranslationActive = true;
 
@@ -244,7 +243,7 @@ void calculateSpatialTranslation(
    
    phiprof::Timer semilagTimer {"semilag-trans"};
    
-   double t1 = MPI_Wtime();
+   //double t1 = MPI_Wtime();
 
    const vector<CellID>& localCells = getLocalCells();
    vector<CellID> remoteTargetCellsx;

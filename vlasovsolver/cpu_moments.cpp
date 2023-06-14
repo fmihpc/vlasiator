@@ -156,7 +156,6 @@ void calculateMoments_R(
         const bool& computeSecond) {
  
     phiprof::Timer momentsTimer {"compute-moments-n"};
-    creal HALF = 0.5;
 
     for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
        #pragma omp parallel for
@@ -178,10 +177,6 @@ void calculateMoments_R(
              cell->parameters[CellParams::P_22_R] = 0.0;
              cell->parameters[CellParams::P_33_R] = 0.0;
           }
-
-          const Real dx = cell->parameters[CellParams::DX];
-          const Real dy = cell->parameters[CellParams::DY];
-          const Real dz = cell->parameters[CellParams::DZ];
 
           vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = cell->get_velocity_blocks(popID);
           if (blockContainer.size() == 0) continue;

@@ -269,7 +269,6 @@ namespace SBC {
          }
 
          // Make it delaunay
-         int numAdjacentVertices = 0;
          std::vector<int> adjacentVertices;
          for(int i=0; i<(int)nearestSamples.size(); i++) {
             int k = nearestSamples[i];
@@ -413,7 +412,7 @@ namespace SBC {
    // Subdivide mesh within element e
    // The element gets replaced by four new ones:
    //
-   //            2                      2
+   /*            2                      2
    //           /  \                   /  \
    //          /    \                 / 2  \
    //         /      \               /      \
@@ -422,7 +421,7 @@ namespace SBC {
    //      /            \         / 0 \   / 1  \
    //     /              \       /     \ /      \
    //    0----------------1     0-------0--------1
-   //
+   */
    // And three new nodes get created at the interfaces,
    // unless they already exist.
    // The new center element (3) replaces the old parent element in place.
@@ -1129,7 +1128,6 @@ namespace SBC {
          for(uint n=0; n<nodes.size(); n++) {
 
             Real nodeAreaGeometric = 0;
-            std::array<int,3> fsc;
 
             // Map down FAC based on magnetosphere rotB
             if(nodes[n].xMapped[0] == 0. && nodes[n].xMapped[1] == 0. && nodes[n].xMapped[2] == 0.) {
@@ -1791,7 +1789,6 @@ namespace SBC {
 
       // thread variables, initialised here
       iSolverReal err = 0;
-      iSolverReal olderr = err;
       iSolverReal thread_minerr = std::numeric_limits<iSolverReal>::max();
       int thread_iteration = iteration;
       int thread_nRestarts = nRestarts;
@@ -2112,7 +2109,6 @@ namespace SBC {
          }
 
          // See if this solved the potential better than before
-         olderr = err;
          err = sqrt(residualnorm)/sourcenorm;
 
 
@@ -3386,12 +3382,12 @@ namespace SBC {
             creal dvyCell = block_parameters[BlockParams::DVY];
             creal dvzCell = block_parameters[BlockParams::DVZ];
 
-            creal x = templateCell.parameters[CellParams::XCRD];
-            creal y = templateCell.parameters[CellParams::YCRD];
-            creal z = templateCell.parameters[CellParams::ZCRD];
-            creal dx = templateCell.parameters[CellParams::DX];
-            creal dy = templateCell.parameters[CellParams::DY];
-            creal dz = templateCell.parameters[CellParams::DZ];
+            //creal x = templateCell.parameters[CellParams::XCRD];
+            //creal y = templateCell.parameters[CellParams::YCRD];
+            //creal z = templateCell.parameters[CellParams::ZCRD];
+            //creal dx = templateCell.parameters[CellParams::DX];
+            //creal dy = templateCell.parameters[CellParams::DY];
+            //creal dz = templateCell.parameters[CellParams::DZ];
 
             // Calculate volume average of distrib. function for each cell in the block.
             for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
