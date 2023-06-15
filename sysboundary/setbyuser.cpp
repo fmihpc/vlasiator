@@ -111,7 +111,7 @@ namespace SBC {
       creal& dt,
       cuint& component
    ) {
-      // There is projects that have non-uniform and non-zero perturbed B, e.g. Magnetosphere with dipole type 4.
+      // There are projects that have non-uniform and non-zero perturbed B, e.g. Magnetosphere with dipole type 4.
       // We cannot take a value from the templateCell, we need a copy of the value from initialization which has
       // been set in perBGrid as well as perBDt2Grid and isn't touched as we are in boundary cells for components
       // that aren't solved.

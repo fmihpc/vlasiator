@@ -453,7 +453,7 @@ int main(int argn,char* args[]) {
       *project
    );
    
-   // There is projects that have non-uniform and non-zero perturbed B, e.g. Magnetosphere with dipole type 4.
+   // There are projects that have non-uniform and non-zero perturbed B, e.g. Magnetosphere with dipole type 4.
    // For setbyuser inflow cells, we cannot take a value from the templateCell, we need a copy of the value
    // from initialization in both perBGrid and perBDt2Grid and isn't touched as we are in boundary cells for
    // components that aren't solved. We do a straight full copy instead of looping and detecting boundary types here.
