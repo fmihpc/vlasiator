@@ -117,6 +117,13 @@ void velocitySpaceDiffusion(
         const vmesh::LocalID* nBlocks      = cell.get_velocity_grid_length(popID);
         const vmesh::MeshParameters& vMesh = getObjectWrapper().velocityMeshes[0];      
 
+        Realf density_pre_adjust  = 0.0;
+        Realf density_post_adjust = 0.0;
+
+        for (size_t i=0; i<cell.get_number_of_velocity_blocks(popID)*WID3; ++i) {
+            density_pre_adjust += cell.get_data(popID)[i];
+        }
+
         Realf Sparsity    = 0.01 * cell.getVelocityBlockMinValue(popID);
 
         Realf dtTotalDiff = 0.0; // Diffusion time elapsed
@@ -201,6 +208,13 @@ void velocitySpaceDiffusion(
             Realf w22 = (betaParallel - beta1)*(Taniso  - Taniso1) / ( (beta2 - beta1)*(Taniso2-Taniso1) ); 
                    
             nu0     = w11*nu011 + w12*nu012 + w21*nu021 + w22*nu022;
+
+            if (CellIdx == 0) {
+                std::ostringstream tmpText; 
+                tmpText << P::tstep << " " << betaParallel << " " << Taniso << " " << beta1 << " " << beta2 << " " << Taniso1 << " " << Taniso2 << " " << nu011 << " " << nu012 << " " << nu021 << " " << nu022 << " " << nu0 << std::endl;
+                std::string tmpString = tmpText.str();
+                std::cerr << tmpString;
+            }
             if (nu0 <= 0.0) {continue;}
         }      
  
@@ -382,8 +396,10 @@ void velocitySpaceDiffusion(
 
                    Vec4i Vindex;
                    Vindex = round_to_int(floor((normV-Vmin) / dVbins));
+                   
                    Vec4i muindex;
                    muindex = round_to_int(floor((mu+1.0) / dmubins));
+                   for (uint i = 0; i<WID; i++) {if (muindex[i] == nbins_mu) {muindex[i] == muindex[i] - 1;}} // Safety check to handle edge case where mu = exactly 1.0
 
                    Vec4d Vmu = dVbins * (to_double(Vindex)+0.5);
 
@@ -405,6 +421,16 @@ void velocitySpaceDiffusion(
 
         } // End Time loop
         phiprof::stop("Subloop");
+
+        for (size_t i=0; i<cell.get_number_of_velocity_blocks(popID)*WID3; ++i) {
+            density_post_adjust += cell.get_data(popID)[i];
+        }
+
+        if (density_post_adjust != 0.0) {
+            for (size_t i=0; i<cell.get_number_of_velocity_blocks(popID)*WID3; ++i) {
+                cell.get_data(popID)[i] *= density_pre_adjust/density_post_adjust;
+            }
+        }
 
     } // End spatial cell loop
 
