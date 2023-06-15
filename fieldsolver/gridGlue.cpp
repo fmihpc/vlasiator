@@ -104,7 +104,6 @@ void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
 
    // Kernel Characteristics
-   //const int stencilWidth = 5;   // Stencil width of a 3D 5-tap triangle kernel
    const int kernelOffset = 2;   // offset of 5 pointstencil 3D kernel => (floor(stencilWidth/2);)
    const Real kernelSum=729.0;   // the total kernel's sum 
    const static Real kernel[5][5][5] ={
