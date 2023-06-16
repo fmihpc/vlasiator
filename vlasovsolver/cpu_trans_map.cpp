@@ -775,6 +775,9 @@ void update_remote_mapping_contribution(
       // the target grid in the temporary block container
       for (size_t c=0; c < receive_cells.size(); ++c) {
          SpatialCell* spatial_cell = mpiGrid[receive_cells[c]];
+         if(spatial_cell == nullptr) {
+            std::cerr << "Spatial_cell is nullptr in translation recieve!" << std::endl;
+         }
          Realf *blockData = spatial_cell->get_data(popID);
           
 //#pragma omp for 
