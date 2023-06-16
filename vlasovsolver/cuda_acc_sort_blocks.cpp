@@ -48,7 +48,7 @@ __host__ void cuda_acc_allocate_radix_sort (
    ) {
    if (temp_storage_bytes * BLOCK_ALLOCATION_FACTOR > cuda_acc_RadixSortTempSize[cpuThreadID]) {
       if (cuda_acc_RadixSortTempSize[cpuThreadID] > 0) {
-         HANDLE_ERROR( cudaFreeAsync(dev_RadixSortTemp[cpuThreadID], stream) );         
+         HANDLE_ERROR( cudaFreeAsync(dev_RadixSortTemp[cpuThreadID], stream) );
       }
       cuda_acc_RadixSortTempSize[cpuThreadID] = temp_storage_bytes * BLOCK_ALLOCATION_PADDING;
       HANDLE_ERROR( cudaMallocAsync((void**)&dev_RadixSortTemp[cpuThreadID], cuda_acc_RadixSortTempSize[cpuThreadID], stream) );
@@ -139,7 +139,8 @@ __global__ void order_GIDs_kernel(
    const vmesh::VelocityMesh* vmesh,
    vmesh::GlobalID *blocksLID,
    vmesh::GlobalID *blocksGID,
-   const uint nBlocks
+   const uint nBlocks,
+   ColumnOffsets* columnData // passed just for resetting
    ) {
    const int cudaBlocks = gridDim.x * gridDim.y * gridDim.z;
    const uint warpSize = blockDim.x * blockDim.y * blockDim.z;
@@ -150,6 +151,12 @@ __global__ void order_GIDs_kernel(
       if (i < nBlocks) {
          blocksGID[i]=vmesh->getGlobalID(blocksLID[i]);
       }
+   }
+   if (blockIdx.x == blockIdx.y == blockIdx.z == threadIdx.x == threadIdx.y == threadIdx.z == 0) {
+      columnData->columnBlockOffsets.clear();
+      columnData->columnNumBlocks.clear();
+      columnData->setColumnOffsets.clear();
+      columnData->setNumColumns.clear();
    }
 }
 
@@ -347,15 +354,12 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                cudaStream_t stream
    ) {
 
-   columnData->columnBlockOffsets.clear();
-   columnData->columnNumBlocks.clear();
-   columnData->setColumnOffsets.clear();
-   columnData->setNumColumns.clear();
-   columnData->columnBlockOffsets.optimizeGPU();
-   columnData->columnNumBlocks.optimizeGPU();
-   columnData->setColumnOffsets.optimizeGPU();
-   columnData->setNumColumns.optimizeGPU();
-
+   if (doPrefetches) {
+      columnData->columnBlockOffsets.optimizeGPU();
+      columnData->columnNumBlocks.optimizeGPU();
+      columnData->setColumnOffsets.optimizeGPU();
+      columnData->setNumColumns.optimizeGPU();
+   }
    uint nCudaBlocks  = (nBlocks/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : (nBlocks/CUDATHREADS);
 
    phiprof::start("calc new dimension id");
@@ -421,7 +425,8 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
       vmesh,
       blocksLID,
       blocksGID,
-      nBlocks
+      nBlocks,
+      columnData // Pass this just to clear it on device
       );
    phiprof::stop("reorder GIDs");
 

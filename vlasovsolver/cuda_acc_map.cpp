@@ -210,7 +210,12 @@ __global__ void reorder_blocks_by_dimension_kernel(
    uint *dev_cell_indices_to_id,
    uint totalColumns,
    vmesh::LocalID *dev_LIDlist,
-   ColumnOffsets* columnData
+   ColumnOffsets* columnData,
+   // These are just cleared
+   split::SplitVector<vmesh::GlobalID>* BlocksRequired,
+   split::SplitVector<vmesh::GlobalID>* BlocksToRemove,
+   split::SplitVector<vmesh::GlobalID>* BlocksToAdd,
+   split::SplitVector<vmesh::GlobalID>* BlocksToMove
 ) {
    // Takes the contents of blockData, sorts it into blockDataOrdered,
    // performing transposes as necessary
@@ -264,6 +269,13 @@ __global__ void reorder_blocks_by_dimension_kernel(
       }
 
    } // end loop iColumn
+   // Clear vectors
+   if (blockIdx.x == blockIdx.y == blockIdx.z == threadIdx.x == threadIdx.y == threadIdx.z == 0) {
+      BlocksRequired->clear();
+      BlocksToRemove->clear();
+      BlocksToAdd->clear();
+      BlocksToMove->clear();
+   }
 
    // Note: this kernel does not memset dev_blockData to zero.
    // A separate memsetasync call is required for that.
@@ -485,8 +497,8 @@ __global__ void evaluate_column_extents_kernel(
             //store source blocks
             for (uint blockK = firstBlockIndices2; blockK <= lastBlockIndices2; blockK +=warpSize){
                if ((blockK+ti) <= lastBlockIndices2) {
-                  const int old  = atomicAdd(&isSourceBlock[blockK+ti],1);
-                  //isSourceBlock[blockK+ti] = 1; // Does not need to be atomic, as long as it's no longer zero
+                  //const int old  = atomicAdd(&isSourceBlock[blockK+ti],1);
+                  isSourceBlock[blockK+ti] = 1; // Does not need to be atomic, as long as it's no longer zero
                }
             }
             __syncthreads();
@@ -494,8 +506,8 @@ __global__ void evaluate_column_extents_kernel(
             //store target blocks
             for (uint blockK = (uint)firstBlockIndexK; blockK <= (uint)lastBlockIndexK; blockK+=warpSize){
                if ((blockK+ti) <= (uint)lastBlockIndexK) {
-                  //isTargetBlock[blockK] = 1; // Does not need to be atomic, as long as it's no longer zero
-                  const int old  = atomicAdd(&isTargetBlock[blockK+ti],1);
+                  isTargetBlock[blockK+ti] = 1; // Does not need to be atomic, as long as it's no longer zero
+                  //const int old  = atomicAdd(&isTargetBlock[blockK+ti],1);
                }
             }
             __syncthreads();
@@ -905,23 +917,28 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       dev_cell_indices_to_id[cpuThreadID],
       host_totalColumns,
       LIDlist,
-      columnData
+      columnData,
+      // Also clears these vectors
+      spatial_cell->BlocksRequired,
+      spatial_cell->BlocksToAdd,
+      spatial_cell->BlocksToRemove,
+      spatial_cell->BlocksToMove
       );
    SSYNC
    phiprof::stop("Reorder blocks by dimension");
 
    // Calculate target column extents
-   phiprof::start("Clear block lists");
-   // Do not optimizeCPU! CUDATODO switch to host-to-device clea
-   spatial_cell->BlocksRequired->clear();
-   spatial_cell->BlocksToAdd->clear();
-   spatial_cell->BlocksToRemove->clear();
-   if (doPrefetches) {
-      spatial_cell->BlocksRequired->optimizeGPU(stream);
-      spatial_cell->BlocksToAdd->optimizeGPU(stream);
-      spatial_cell->BlocksToRemove->optimizeGPU(stream);
-   }
-   phiprof::stop("Clear block lists");
+   // phiprof::start("Clear block lists");
+   // spatial_cell->BlocksRequired->clear();
+   // spatial_cell->BlocksToAdd->clear();
+   // spatial_cell->BlocksToRemove->clear();
+   // spatial_cell->BlocksToMove->clear();
+   // if (doPrefetches) {
+   //    spatial_cell->BlocksRequired->optimizeGPU(stream);
+   //    spatial_cell->BlocksToAdd->optimizeGPU(stream);
+   //    spatial_cell->BlocksToRemove->optimizeGPU(stream);
+   // }
+   // phiprof::stop("Clear block lists");
 
    phiprof::start("Evaluate column extents kernel");
    HANDLE_ERROR( cudaMemsetAsync(dev_returnLID, 0, sizeof(vmesh::LocalID), stream) );

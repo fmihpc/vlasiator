@@ -39,8 +39,8 @@
 //CUcontext cuda_acc_context;
 cudaStream_t cudaStreamList[MAXCPUTHREADS];
 cudaStream_t cudaPriorityStreamList[MAXCPUTHREADS];
-Realf *returnRealf[MAXCPUTHREADS];
 Real *returnReal[MAXCPUTHREADS];
+Realf *returnRealf[MAXCPUTHREADS];
 vmesh::LocalID *returnLID[MAXCPUTHREADS];
 bool needAttachedStreams = false;
 bool doPrefetches=true;
@@ -136,6 +136,7 @@ __host__ void cuda_clear_device() {
    for (uint i=0; i<maxThreads; ++i) {
       cudaStreamDestroy(cudaStreamList[i]);
       cudaStreamDestroy(cudaPriorityStreamList[i]);
+      HANDLE_ERROR( cudaFree(*returnReal) );
       HANDLE_ERROR( cudaFree(*returnRealf) );
       HANDLE_ERROR( cudaFree(*returnLID) );
    }
