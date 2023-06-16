@@ -56,6 +56,38 @@
 static const double BLOCK_ALLOCATION_PADDING = 2.5;
 static const double BLOCK_ALLOCATION_FACTOR = 1.8;
 
+// Extern flag for stream attaching
+extern bool needAttachedStreams;
+extern bool doPrefetches;
+
+#define DIMS 1
+#ifndef CUDABLOCKS
+#  define CUDABLOCKS (108)
+#endif
+#ifndef CUDATHREADS
+#  define CUDATHREADS (32) // NVIDIA: 32 AMD: 64
+#endif
+
+#define MAXCPUTHREADS 64
+
+void cuda_init_device();
+void cuda_set_device();
+void cuda_clear_device();
+cudaStream_t cuda_getStream();
+cudaStream_t cuda_getPriorityStream();
+int cuda_getDevice();
+void cuda_vlasov_allocate (uint maxBlockCount);
+uint cuda_vlasov_getAllocation();
+void cuda_vlasov_allocate_perthread (uint cpuThreadID, uint blockAllocationCount);
+void cuda_vlasov_deallocate_perthread (uint cpuThreadID);
+void cuda_acc_allocate (uint maxBlockCount);
+void cuda_acc_allocate_perthread (uint cpuThreadID, uint columnAllocationCount);
+void cuda_acc_deallocate_perthread (uint cpuThreadID);
+
+
+extern cudaStream_t cudaStreamList[];
+extern cudaStream_t cudaPriorityStreamList[];
+
 // CUDA Error checking
 #define HANDLE_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ));
 static void HandleError( cudaError_t err, const char *file, int line )
@@ -166,37 +198,6 @@ struct ColumnOffsets : public Managed {
    }
 };
 
-#define DIMS 1
-#ifndef CUDABLOCKS
-#  define CUDABLOCKS (108)
-#endif
-#ifndef CUDATHREADS
-#  define CUDATHREADS (32) // NVIDIA: 32 AMD: 64
-#endif
-
-#define MAXCPUTHREADS 64
-
-void cuda_init_device();
-void cuda_set_device();
-void cuda_clear_device();
-cudaStream_t cuda_getStream();
-cudaStream_t cuda_getPriorityStream();
-int cuda_getDevice();
-void cuda_vlasov_allocate (uint maxBlockCount);
-uint cuda_vlasov_getAllocation();
-void cuda_vlasov_allocate_perthread (uint cpuThreadID, uint blockAllocationCount);
-void cuda_vlasov_deallocate_perthread (uint cpuThreadID);
-void cuda_acc_allocate (uint maxBlockCount);
-void cuda_acc_allocate_perthread (uint cpuThreadID, uint columnAllocationCount);
-void cuda_acc_deallocate_perthread (uint cpuThreadID);
-
-// Extern flag for stream attaching
-extern bool needAttachedStreams;
-extern bool doPrefetches;
-
-extern cudaStream_t cudaStreamList[];
-extern cudaStream_t cudaPriorityStreamList[];
-
 // Device data variables, to be allocated in good time. Made into an array so that each thread has their own pointer.
 extern vmesh::LocalID *dev_GIDlist[];
 extern vmesh::LocalID *dev_LIDlist[];
@@ -209,6 +210,9 @@ extern Vec *dev_blockDataOrdered[];
 extern uint *dev_cell_indices_to_id[];
 extern uint *dev_block_indices_to_id[];
 extern uint *dev_vcell_transpose[];
+
+extern void *dev_RadixSortTemp[];
+extern uint cuda_acc_RadixSortTempSize[];
 
 extern Real *returnReal[];
 extern Realf *returnRealf[];

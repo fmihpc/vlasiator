@@ -57,7 +57,7 @@ uint *dev_block_indices_to_id[MAXCPUTHREADS];
 uint *dev_vcell_transpose[MAXCPUTHREADS];
 
 ColumnOffsets *unif_columnOffsetData[MAXCPUTHREADS];
-Column *unif_columns[MAXCPUTHREADS];
+Column *dev_columns[MAXCPUTHREADS];
 
 Vec *dev_blockDataOrdered[MAXCPUTHREADS];
 
@@ -67,6 +67,8 @@ vmesh::GlobalID *dev_BlocksID_mapped[MAXCPUTHREADS];
 vmesh::GlobalID *dev_BlocksID_mapped_sorted[MAXCPUTHREADS];
 vmesh::GlobalID *dev_LIDlist_unsorted[MAXCPUTHREADS];
 vmesh::LocalID *dev_columnNBlocks[MAXCPUTHREADS];
+void *dev_RadixSortTemp[MAXCPUTHREADS];
+uint cuda_acc_RadixSortTempSize[MAXCPUTHREADS] = {0};
 
 // Memory allocation flags and values.
 uint cuda_vlasov_allocatedSize = 0;
@@ -329,9 +331,7 @@ __host__ void cuda_acc_allocate_perthread (
    ) {
    // Unified memory; columndata contains several splitvectors.
    unif_columnOffsetData[cpuThreadID] = new ColumnOffsets(columnAllocationCount); // inherits managed
-   HANDLE_ERROR( cudaMallocManaged((void**)&unif_columns[cpuThreadID], columnAllocationCount*sizeof(Column)) );
-   //HANDLE_ERROR( cudaMemAdvise((void**)&unif_columns[cpuThreadID], columnAllocationCount*sizeof(Column), cudaMemAdviseSetPreferredLocation, cuda_getDevice()) );
-   HANDLE_ERROR( cudaMemPrefetchAsync(unif_columns[cpuThreadID],columnAllocationCount*sizeof(Column),cuda_getDevice(),cuda_getStream()) );
+   HANDLE_ERROR( cudaMalloc((void**)&dev_columns[cpuThreadID], columnAllocationCount*sizeof(Column)) );
 
    // Potential ColumnSet block count container
    const uint c0 = (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[0];
@@ -349,6 +349,6 @@ __host__ void cuda_acc_deallocate_perthread (
    cuda_acc_allocatedColumns = 0;
    cuda_acc_columnContainerSize = 0;
    HANDLE_ERROR( cudaFree(dev_columnNBlocks[cpuThreadID]) );
-   HANDLE_ERROR( cudaFree(unif_columns[cpuThreadID]) );
+   HANDLE_ERROR( cudaFree(dev_columns[cpuThreadID]) );
    delete unif_columnOffsetData[cpuThreadID];
 }

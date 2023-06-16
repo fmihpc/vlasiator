@@ -508,7 +508,7 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    phiprof::start("trans-amr-buildBlockList");
    // Now we ensure the union of blocks gathering is complete and extract the union of blocks into a vector
    HANDLE_ERROR( cudaStreamSynchronize(bgStream) );
-   const uint nAllBlocks = unionOfBlocksSet->extractKeysByPattern(*unionOfBlocks,Rule<vmesh::GlobalID,vmesh::LocalID>(),bgStream);
+   const uint nAllBlocks = unionOfBlocksSet->extractAllKeys(*unionOfBlocks,bgStream);
    HANDLE_ERROR( cudaStreamSynchronize(bgStream) );
    vmesh::GlobalID *allBlocks = unionOfBlocks->data();
    // This threshold value is used by slope limiters.
@@ -544,7 +544,6 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
       // How many blocks can each thread manage in parallel with this existing temp buffer?
       cuint nBlocksPerThread = currentAllocation / sumOfLengths;
       uint nCudaBlocks  = nBlocksPerThread > CUDABLOCKS ? CUDABLOCKS : nBlocksPerThread;
-      cuint cudathreadsVECL = VECL;
 
       Realf** pencilBlockData; // Array of pointers into actual block data
       uint* pencilBlocksCount; // Array of counters if pencil needs to be propagated for this block or not
