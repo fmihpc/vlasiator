@@ -335,7 +335,7 @@ void velocitySpaceDiffusion(
                     // Compute time derivative
                     Realf mu    = (indmu+0.5)*dmubins - 1.0;
                     Realf Dmumu = nu0/2.0 * ( abs(mu)/(1.0 + abs(mu)) + epsilon ) * (1.0 - mu*mu);
-                    Realf dDmu  = nu0/2.0 * ( (1.0 - mu*mu)/((1.0 + abs(mu))*(1.0 + abs(mu))) - 2.0*mu*( abs(mu)/(1.0 + abs(mu)) + epsilon));
+                    Realf dDmu  = nu0/2.0 * ( (mu/abs(mu)) * ((1.0 - mu*mu)/((1.0 + abs(mu))*(1.0 + abs(mu)))) - 2.0*mu*( abs(mu)/(1.0 + abs(mu)) + epsilon));
                     dfdt_mu[indv][indmu] = dDmu * dfdmu[indv][indmu] + Dmumu * dfdmu2[indv][indmu];
 
                     // Compute CFL
