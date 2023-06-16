@@ -715,11 +715,16 @@ void update_remote_mapping_contribution(
       if (mpiGrid.is_local(p_ngbr) && mpiGrid.is_local(m_ngbr)) continue;
 
       SpatialCell *pcell = NULL;
-      if (p_ngbr != INVALID_CELLID) pcell = mpiGrid[p_ngbr];
+      if (p_ngbr != INVALID_CELLID) {
+         pcell = mpiGrid[p_ngbr];
+      }
       SpatialCell *mcell = NULL;
-      if (m_ngbr != INVALID_CELLID) mcell = mpiGrid[m_ngbr];
+      if (m_ngbr != INVALID_CELLID) {
+         mcell = mpiGrid[m_ngbr];
+      }
       if (p_ngbr != INVALID_CELLID && pcell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) 
          if (!mpiGrid.is_local(p_ngbr) && do_translate_cell(ccell)) {
+            fprintf(stderr, "P-neighbour of cell %li is %li\n", local_cells[c], p_ngbr);;
             //if (p_ngbr != INVALID_CELLID && !mpiGrid.is_local(p_ngbr) && do_translate_cell(ccell)) {
             //Send data in p_ngbr target array that we just
             //mapped to if 1) it is a valid target,
@@ -729,7 +734,7 @@ void update_remote_mapping_contribution(
 
             for(unsigned int cell = 0; cell<VELOCITY_BLOCK_LENGTH * pcell->get_number_of_velocity_blocks(popID); ++cell) {
                if(isnan( pcell->get_data(popID)[cell] ) || isinf(  pcell->get_data(popID)[cell])) {
-                  std::cerr << "NaN sent at cell " << receive_cells[c] << ", vel cell " << cell << std::endl;
+                  fprintf(stderr,"NaN sent at cell %li, vel cell %i",receive_cells[c], cell);
                   abort();
                }
             }
@@ -741,6 +746,7 @@ void update_remote_mapping_contribution(
       if (m_ngbr != INVALID_CELLID &&
           !mpiGrid.is_local(m_ngbr) &&
           ccell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+         fprintf(stderr, "M-neighbour of cell %li is %li\n", local_cells[c], m_ngbr);
          //Receive data that mcell mapped to ccell to this local cell
          //data array, if 1) m is a valid source cell, 2) center cell is to be updated (normal cell) 3) m is remote
          //we will here allocate a receive buffer, since we need to aggregate values
@@ -751,6 +757,8 @@ void update_remote_mapping_contribution(
          receiveBuffers.push_back(mcell->neighbor_block_data[0]);
       }
    }
+
+   //std::cerr << "send_cells.size = " << send_cells.size() << ", recieve_cells.size = " << receive_cells.size() << std::endl;
 
    // Do communication
    SpatialCell::setCommunicatedSpecies(popID);
@@ -773,11 +781,13 @@ void update_remote_mapping_contribution(
    {
       //reduce data: sum received data in the data array to 
       // the target grid in the temporary block container
+      //std::cerr << "Recieve_cells are [ ";
+      //for (size_t c=0; c < receive_cells.size(); ++c) {
+      //   std::cerr << receive_cells[c] << " ";
+      //}
+      //std::cerr << "\n";
       for (size_t c=0; c < receive_cells.size(); ++c) {
          SpatialCell* spatial_cell = mpiGrid[receive_cells[c]];
-         if(spatial_cell == nullptr) {
-            std::cerr << "Spatial_cell is nullptr in translation recieve!" << std::endl;
-         }
          Realf *blockData = spatial_cell->get_data(popID);
           
 //#pragma omp for 
