@@ -96,50 +96,6 @@ public:
 
 };
 
-// Predicate rule for hashinator for extracting all valid elements
-template <typename T, typename U>
-struct Rule{
-   Rule(){}
-   __host__ __device__
-   inline bool operator()( Hashinator::hash_pair<T,U>& element)const{
-      if (element.first!=std::numeric_limits<vmesh::GlobalID>::max() && element.first!=std::numeric_limits<vmesh::GlobalID>::max()-1  ){return true;}
-      //KEY_TYPE EMPTYBUCKET = std::numeric_limits<KEY_TYPE>::max(),
-      //   KEY_TYPE TOMBSTONE = EMPTYBUCKET - 1,
-      //if (element.first< 1000 ){return true;}
-      return false;
-   }
-};
-
-#define DIMS 1
-#ifndef CUDABLOCKS
-#  define CUDABLOCKS (108)
-#endif
-#ifndef CUDATHREADS
-#  define CUDATHREADS (32) // NVIDIA: 32 AMD: 64
-#endif
-
-#define MAXCPUTHREADS 64
-
-void cuda_init_device();
-void cuda_set_device();
-void cuda_clear_device();
-cudaStream_t cuda_getStream();
-cudaStream_t cuda_getPriorityStream();
-int cuda_getDevice();
-void cuda_vlasov_allocate (uint maxBlockCount);
-uint cuda_vlasov_getAllocation();
-void cuda_vlasov_allocate_perthread (uint cpuThreadID, uint blockAllocationCount);
-void cuda_vlasov_deallocate_perthread (uint cpuThreadID);
-void cuda_acc_allocate (uint maxBlockCount);
-void cuda_acc_allocate_perthread (uint cpuThreadID, uint columnAllocationCount);
-void cuda_acc_deallocate_perthread (uint cpuThreadID);
-
-// Extern flag for stream attaching
-extern cudaStream_t cudaStreamList[];
-extern cudaStream_t cudaPriorityStreamList[];
-//extern cudaStream_t cudaBaseStream;
-extern bool needAttachedStreams;
-
 // Structs used by Vlasov Acceleration semi-Lagrangian solver
 struct Column {
    int valuesOffset;                              // Source data values
@@ -210,6 +166,37 @@ struct ColumnOffsets : public Managed {
    }
 };
 
+#define DIMS 1
+#ifndef CUDABLOCKS
+#  define CUDABLOCKS (108)
+#endif
+#ifndef CUDATHREADS
+#  define CUDATHREADS (32) // NVIDIA: 32 AMD: 64
+#endif
+
+#define MAXCPUTHREADS 64
+
+void cuda_init_device();
+void cuda_set_device();
+void cuda_clear_device();
+cudaStream_t cuda_getStream();
+cudaStream_t cuda_getPriorityStream();
+int cuda_getDevice();
+void cuda_vlasov_allocate (uint maxBlockCount);
+uint cuda_vlasov_getAllocation();
+void cuda_vlasov_allocate_perthread (uint cpuThreadID, uint blockAllocationCount);
+void cuda_vlasov_deallocate_perthread (uint cpuThreadID);
+void cuda_acc_allocate (uint maxBlockCount);
+void cuda_acc_allocate_perthread (uint cpuThreadID, uint columnAllocationCount);
+void cuda_acc_deallocate_perthread (uint cpuThreadID);
+
+// Extern flag for stream attaching
+extern bool needAttachedStreams;
+extern bool doPrefetches;
+
+extern cudaStream_t cudaStreamList[];
+extern cudaStream_t cudaPriorityStreamList[];
+
 // Device data variables, to be allocated in good time. Made into an array so that each thread has their own pointer.
 extern vmesh::LocalID *dev_GIDlist[];
 extern vmesh::LocalID *dev_LIDlist[];
@@ -219,15 +206,18 @@ extern vmesh::GlobalID *dev_LIDlist_unsorted[];
 extern vmesh::LocalID *dev_columnNBlocks[];
 
 extern Vec *dev_blockDataOrdered[];
-
-extern Realf *returnRealf[];
 extern uint *dev_cell_indices_to_id[];
 extern uint *dev_block_indices_to_id[];
 extern uint *dev_vcell_transpose[];
 
+extern Real *returnReal[];
+extern Realf *returnRealf[];
+extern vmesh::LocalID *returnLID[];
+
+extern Column *dev_columns[];
+
 // Unified (managed) memory variables
 extern ColumnOffsets *unif_columnOffsetData[];
-extern Column *unif_columns[];
 
 // Counters used in allocations
 extern uint cuda_vlasov_allocatedSize;

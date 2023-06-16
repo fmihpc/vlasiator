@@ -113,6 +113,7 @@ namespace vmesh {
       //OpenBucketHashtable<vmesh::GlobalID,vmesh::LocalID> globalToLocalMap;
       Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *globalToLocalMap;
       split::SplitVector<vmesh::GlobalID> *localToGlobalMap;
+      split::SplitInfo *info_ltgm;
    };
 
    // ***** DEFINITIONS OF MEMBER FUNCTIONS ***** //
@@ -125,11 +126,13 @@ namespace vmesh {
       localToGlobalMap = new split::SplitVector<vmesh::GlobalID>(1);
       localToGlobalMap->clear();
       attachedStream = 0;
+      cudaMallocHost((void **) &info_ltgm, sizeof(split::SplitInfo));
    }
 
    inline VelocityMesh::~VelocityMesh() {
       delete globalToLocalMap;
       delete localToGlobalMap;
+      cudaFree(info_ltgm);
    }
 
    inline VelocityMesh::VelocityMesh(const VelocityMesh& other) {
@@ -142,6 +145,7 @@ namespace vmesh {
          localToGlobalMap->clear();
       }
       attachedStream = 0;
+      cudaMallocHost((void **) &info_ltgm, sizeof(split::SplitInfo));
    }
 
    inline const VelocityMesh& VelocityMesh::operator=(const VelocityMesh& other) {
@@ -530,14 +534,14 @@ namespace vmesh {
    inline void VelocityMesh::setGrid() {
       globalToLocalMap->clear();
       for (size_t i=0; i<localToGlobalMap->size(); ++i) {
-         globalToLocalMap->insert(Hashinator::make_pair((vmesh::GlobalID)localToGlobalMap->at(i),(vmesh::LocalID)i));
+         globalToLocalMap->insert(Hashinator::make_pair(localToGlobalMap->at(i),(vmesh::LocalID)i));
       }
    }
 
    inline bool VelocityMesh::setGrid(const std::vector<vmesh::GlobalID>& globalIDs) {
       globalToLocalMap->clear();
       for (vmesh::LocalID i=0; i<globalIDs.size(); ++i) {
-         globalToLocalMap->insert(Hashinator::make_pair((vmesh::GlobalID)globalIDs[i],(vmesh::LocalID)i));
+         globalToLocalMap->insert(Hashinator::make_pair(globalIDs[i],(vmesh::LocalID)i));
       }
       localToGlobalMap->clear();
       localToGlobalMap->insert(localToGlobalMap->end(),globalIDs.begin(),globalIDs.end());
@@ -546,7 +550,7 @@ namespace vmesh {
    inline bool VelocityMesh::setGrid(const split::SplitVector<vmesh::GlobalID>& globalIDs) {
       globalToLocalMap->clear();
       for (vmesh::LocalID i=0; i<globalIDs.size(); ++i) {
-         globalToLocalMap->insert(Hashinator::make_pair((vmesh::GlobalID)globalIDs[i],(vmesh::LocalID)i));
+         globalToLocalMap->insert(Hashinator::make_pair(globalIDs[i],(vmesh::LocalID)i));
       }
       localToGlobalMap->clear();
       localToGlobalMap->insert(localToGlobalMap->end(),globalIDs.begin(),globalIDs.end());
@@ -563,7 +567,7 @@ namespace vmesh {
       // Needed by CUDA block adjustment
       localToGlobalMap->resize(newSize);
       // Ensure also that the map is large enough
-      const vmesh::LocalID HashmapReqSize = ceil(log2(newSize)) +3; // Make it really large enough
+      const vmesh::LocalID HashmapReqSize = ceil(log2(newSize)) +2; // Make it really large enough
       if (globalToLocalMap->getSizePower() < HashmapReqSize) {
          globalToLocalMap->device_rehash(HashmapReqSize, cuda_getStream());
       }
@@ -575,7 +579,15 @@ namespace vmesh {
    }
 
    CUDA_HOSTDEV inline size_t VelocityMesh::size() const {
+#ifdef __CUDA_ARCH__
       return localToGlobalMap->size();
+#else
+      // Host-side non-pagefaulting approach
+      cudaStream_t stream = cuda_getStream();
+      localToGlobalMap->copyMetadata(info_ltgm,stream);
+      HANDLE_ERROR( cudaStreamSynchronize(stream) );
+      return info_ltgm->size;
+#endif
    }
 
    CUDA_HOSTDEV inline size_t VelocityMesh::sizeInBytes() const {

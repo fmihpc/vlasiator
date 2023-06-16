@@ -44,9 +44,14 @@ int myRank;
 // Allocate pointers for per-thread memory regions
 cudaStream_t cudaStreamList[MAXCPUTHREADS];
 cudaStream_t cudaPriorityStreamList[MAXCPUTHREADS];
-bool needAttachedStreams = false;
 
+Real *returnReal[MAXCPUTHREADS];
 Realf *returnRealf[MAXCPUTHREADS];
+vmesh::LocalID *returnLID[MAXCPUTHREADS];
+
+bool needAttachedStreams = false;
+bool doPrefetches=true;
+
 uint *dev_cell_indices_to_id[MAXCPUTHREADS];
 uint *dev_block_indices_to_id[MAXCPUTHREADS];
 uint *dev_vcell_transpose[MAXCPUTHREADS];
@@ -146,7 +151,9 @@ __host__ void cuda_init_device() {
    for (uint i=0; i<maxThreads; ++i) {
       HANDLE_ERROR( cudaStreamCreateWithPriority(&(cudaStreamList[i]), cudaStreamDefault, *leastPriority) );
       HANDLE_ERROR( cudaStreamCreateWithPriority(&(cudaPriorityStreamList[i]), cudaStreamDefault, *greatestPriority) );
-      HANDLE_ERROR( cudaMalloc((void**)&returnRealf[i], sizeof(Realf)) );
+      HANDLE_ERROR( cudaMalloc((void**)&returnReal[i], 8*sizeof(Real)) );
+      HANDLE_ERROR( cudaMalloc((void**)&returnRealf[i], 8*sizeof(Realf)) );
+      HANDLE_ERROR( cudaMalloc((void**)&returnLID[i], 8*sizeof(vmesh::LocalID)) );
    }
 
    // Using just a single context for whole MPI task
@@ -168,7 +175,9 @@ __host__ void cuda_clear_device() {
    for (uint i=0; i<maxThreads; ++i) {
       HANDLE_ERROR( cudaStreamDestroy(cudaStreamList[i]) );
       HANDLE_ERROR( cudaStreamDestroy(cudaPriorityStreamList[i]) );
+      HANDLE_ERROR( cudaFree(*returnReal) );
       HANDLE_ERROR( cudaFree(*returnRealf) );
+      HANDLE_ERROR( cudaFree(*returnLID) );
    }
 }
 

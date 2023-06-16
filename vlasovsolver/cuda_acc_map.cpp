@@ -101,7 +101,12 @@ __global__ void __launch_bounds__(VECL,4) reorder_blocks_by_dimension_kernel(
    uint *dev_cell_indices_to_id,
    uint totalColumns,
    vmesh::LocalID *dev_LIDlist,
-   ColumnOffsets* columnData
+   ColumnOffsets* columnData,
+   // These are just cleared
+   split::SplitVector<vmesh::GlobalID>* BlocksRequired,
+   split::SplitVector<vmesh::GlobalID>* BlocksToRemove,
+   split::SplitVector<vmesh::GlobalID>* BlocksToAdd,
+   split::SplitVector<vmesh::GlobalID>* BlocksToMove
 ) {
    // Takes the contents of blockData, sorts it into blockDataOrdered,
    // performing transposes as necessary
@@ -155,6 +160,13 @@ __global__ void __launch_bounds__(VECL,4) reorder_blocks_by_dimension_kernel(
       }
 
    } // end loop iColumn
+   // Clear vectors
+   if (blockIdx.x == blockIdx.y == blockIdx.z == threadIdx.x == threadIdx.y == threadIdx.z == 0) {
+      BlocksRequired->clear();
+      BlocksToRemove->clear();
+      BlocksToAdd->clear();
+      BlocksToMove->clear();
+   }
 
    // Note: this kernel does not memset dev_blockData to zero.
    // A separate memsetasync call is required for that.
@@ -193,8 +205,7 @@ __global__ void __launch_bounds__(CUDATHREADS,4) identify_block_offsets_kernel(
 // Serial kernel only to avoid page faults or prefetches
 __global__ void __launch_bounds__(1,4) count_columns_kernel (
    ColumnOffsets* dev_columnData,
-   uint* dev_totalColumns,
-   uint* dev_valuesSizeRequired
+   vmesh::LocalID* returnLID // dev_totalColumns, dev_valuesSizeRequired
    ) {
    // const int cudaBlocks = gridDim.x * gridDim.y * gridDim.z;
    // const int warpSize = blockDim.x * blockDim.y * blockDim.z;
@@ -202,9 +213,9 @@ __global__ void __launch_bounds__(1,4) count_columns_kernel (
    const int ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
    if ((blocki==0)&&(ti==0)) {
       for(uint setIndex=0; setIndex< dev_columnData->setColumnOffsets.size(); ++setIndex) {
-         *dev_totalColumns += dev_columnData->setNumColumns[setIndex];
+         returnLID[0] += dev_columnData->setNumColumns[setIndex];
          for(uint columnIndex = dev_columnData->setColumnOffsets[setIndex]; columnIndex < dev_columnData->setColumnOffsets[setIndex] + dev_columnData->setNumColumns[setIndex] ; columnIndex ++){
-            *dev_valuesSizeRequired += (dev_columnData->columnNumBlocks[columnIndex] + 2) * WID3 / VECL;
+            returnLID[1] += (dev_columnData->columnNumBlocks[columnIndex] + 2) * WID3 / VECL;
          }
       }
    }
@@ -376,8 +387,8 @@ __global__ void __launch_bounds__(CUDATHREADS,4) evaluate_column_extents_kernel(
             //store source blocks
             for (uint blockK = firstBlockIndices2; blockK <= lastBlockIndices2; blockK +=warpSize){
                if ((blockK+ti) <= lastBlockIndices2) {
-                  const int old  = atomicAdd(&isSourceBlock[blockK+ti],1);
-                  //isSourceBlock[blockK+ti] = 1; // Does not need to be atomic, as long as it's no longer zero
+                  //const int old  = atomicAdd(&isSourceBlock[blockK+ti],1);
+                  isSourceBlock[blockK+ti] = 1; // Does not need to be atomic, as long as it's no longer zero
                }
             }
             __syncthreads();
@@ -385,8 +396,8 @@ __global__ void __launch_bounds__(CUDATHREADS,4) evaluate_column_extents_kernel(
             //store target blocks
             for (uint blockK = (uint)firstBlockIndexK; blockK <= (uint)lastBlockIndexK; blockK+=warpSize){
                if ((blockK+ti) <= (uint)lastBlockIndexK) {
-                  //isTargetBlock[blockK] = 1; // Does not need to be atomic, as long as it's no longer zero
-                  const int old  = atomicAdd(&isTargetBlock[blockK+ti],1);
+                  isTargetBlock[blockK+ti] = 1; // Does not need to be atomic, as long as it's no longer zero
+                  //const int old  = atomicAdd(&isTargetBlock[blockK+ti],1);
                }
             }
             __syncthreads();
@@ -563,6 +574,23 @@ __global__ void __launch_bounds__(VECL,4) acceleration_kernel(
    } // End loop over columns
 } // end semilag acc kernel
 
+/** Minimal Device kernel for extracting acc parameters */
+__global__ void read_acc_parameters_kernel (
+   const uint dimension,
+   vmesh::VelocityMesh *vmesh,
+   vmesh::LocalID* returnLID,
+   Real* returnReal
+   ) {
+   const uint8_t REFLEVEL = 0;
+   returnLID[0] = vmesh->size(); // const uint nBlocks
+   returnLID[1] = vmesh->getGridLength(REFLEVEL)[0]; //const vmesh::LocalID D0
+   returnLID[2] = vmesh->getGridLength(REFLEVEL)[1]; //const vmesh::LocalID D1
+   returnLID[3] = vmesh->getGridLength(REFLEVEL)[2]; //const vmesh::LocalID D2
+   returnReal[0] = vmesh->getCellSize(REFLEVEL)[dimension]; //const Realv dv
+   returnReal[1] = vmesh->getMeshMinLimits()[dimension]; //const Realv v_min
+   returnReal[2] = vmesh->getGridLength(REFLEVEL)[dimension]; //const Realv max_v_length
+}
+
 /*
    Here we map from the current time step grid, to a target grid which
    is the lagrangian departure grid (so th grid at timestep +dt,
@@ -582,32 +610,6 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    vmesh::VelocityMesh* vmesh    = spatial_cell->get_velocity_mesh(popID);
    vmesh::VelocityBlockContainer* blockContainer = spatial_cell->get_velocity_blocks(popID);
    Realf *blockData = blockContainer->getData();
-   const uint nBlocks = vmesh->size();
-   //nothing to do if no blocks
-   if(nBlocks == 0) {
-      return true;
-   }
-   // Velocity grid refinement level, has no effect but is
-   // needed in some vmesh::VelocityMesh function calls.
-   const uint8_t REFLEVEL = 0;
-   const vmesh::LocalID D0 = vmesh->getGridLength(REFLEVEL)[0];
-   const vmesh::LocalID D1 = vmesh->getGridLength(REFLEVEL)[1];
-   const vmesh::LocalID D2 = vmesh->getGridLength(REFLEVEL)[2];
-   const Realv dv    = vmesh->getCellSize(REFLEVEL)[dimension];
-   const Realv i_dv = 1.0/dv;
-   const Realv v_min = vmesh->getMeshMinLimits()[dimension];
-   const Realv max_v_length  = vmesh->getGridLength(REFLEVEL)[dimension];
-   auto minValue = spatial_cell->getVelocityBlockMinValue(popID);
-
-   // Now we have all needed values from unified memory objects, we can ensure they are on-device.
-   phiprof::start("stream Attach, prefetch");
-   if (needAttachedStreams) {
-      blockContainer->dev_attachToStream(stream);
-      vmesh->dev_attachToStream(stream);
-   }
-   blockContainer->dev_prefetchDevice();
-   vmesh->dev_prefetchDevice();
-   phiprof::stop("stream Attach, prefetch");
 
    // Thread id used for persistent device memory pointers
 #ifdef _OPENMP
@@ -616,19 +618,56 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       const uint cpuThreadID = 0;
 #endif
 
+   // Now launch minimal kernel to get these paramterers to reduce page faults
+   Real host_returnReal[8];
+   Real *dev_returnReal = returnReal[cpuThreadID];
+   vmesh::LocalID host_returnLID[8];
+   vmesh::LocalID *dev_returnLID = returnLID[cpuThreadID];
+   // Read parameters within minimal kernel
+   read_acc_parameters_kernel<<<1,1,0,stream>>> (dimension,vmesh,dev_returnLID,dev_returnReal);
+   HANDLE_ERROR( cudaMemcpyAsync(host_returnLID, dev_returnLID, 4*sizeof(vmesh::LocalID), cudaMemcpyDeviceToHost, stream) );
+   HANDLE_ERROR( cudaMemcpyAsync(host_returnReal, dev_returnReal, 3*sizeof(Real), cudaMemcpyDeviceToHost, stream) );
+   HANDLE_ERROR( cudaStreamSynchronize(stream) );
+   const uint nBlocks = host_returnLID[0];
+   const vmesh::LocalID D0 = host_returnLID[1];
+   const vmesh::LocalID D1 = host_returnLID[2];
+   //const vmesh::LocalID D2 = host_returnLID[3];
+   const Realv dv    = host_returnReal[0];
+   const Realv v_min = host_returnReal[1];
+   const Realv max_v_length  = host_returnReal[2];
+   auto minValue = spatial_cell->getVelocityBlockMinValue(popID);
+   const Realv i_dv = 1.0/dv;
+
+   //nothing to do if no blocks
+   if(nBlocks == 0) {
+      return true;
+   }
+
+   phiprof::start("stream Attach, prefetch");
+   if (needAttachedStreams) {
+      blockContainer->dev_attachToStream(stream);
+      vmesh->dev_attachToStream(stream);
+   }
+   if (doPrefetches) {
+      blockContainer->dev_prefetchDevice();
+      vmesh->dev_prefetchDevice();
+   }
+   phiprof::stop("stream Attach, prefetch");
+
    phiprof::start("create columnOffsets in unified memory, attach, prefetch");
    // lists in unified memory
    ColumnOffsets *columnData = unif_columnOffsetData[cpuThreadID];
    // Verify unified memory stream attach
    if (needAttachedStreams) {
       columnData->dev_attachToStream(stream);
-      HANDLE_ERROR( cudaStreamAttachMemAsync(stream,unif_columns[cpuThreadID], 0,cudaMemAttachSingle) );
    }
-   columnData->columnBlockOffsets.optimizeGPU(stream);
-   columnData->columnNumBlocks.optimizeGPU(stream);
-   columnData->setColumnOffsets.optimizeGPU(stream);
-   columnData->setNumColumns.optimizeGPU(stream);
-   HANDLE_ERROR( cudaMemPrefetchAsync(columnData,sizeof(ColumnOffsets),cuda_getDevice(),stream) );
+   if (doPrefetches) {
+      columnData->columnBlockOffsets.optimizeGPU(stream);
+      columnData->columnNumBlocks.optimizeGPU(stream);
+      columnData->setColumnOffsets.optimizeGPU(stream);
+      columnData->setNumColumns.optimizeGPU(stream);
+      HANDLE_ERROR( cudaMemPrefetchAsync(columnData,sizeof(ColumnOffsets),cuda_getDevice(),stream) );
+   }
    SSYNC
    phiprof::stop("create columnOffsets in unified memory, attach, prefetch");
    // Some kernels in here require this to be equal to VECL.
@@ -701,7 +740,9 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    // Call function for sorting block list and building columns from it.
    // Can probably be further optimized.
    phiprof::start("sortBlockList");
-   HANDLE_ERROR( cudaMemsetAsync(columnNBlocks, 0, cuda_acc_columnContainerSize*sizeof(vmesh::LocalID), stream) );
+   cudaStream_t priorityStream = cuda_getPriorityStream();
+   HANDLE_ERROR( cudaMemsetAsync(columnNBlocks, 0, cuda_acc_columnContainerSize*sizeof(vmesh::LocalID), priorityStream) );
+   HANDLE_ERROR( cudaStreamSynchronize(stream) ); // Yes needed because we use priority stream for block list sorting
    sortBlocklistByDimension(vmesh,
                             nBlocks,
                             dimension,
@@ -715,44 +756,34 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
                             cpuThreadID,
                             stream
       );
+   HANDLE_ERROR( cudaStreamSynchronize(priorityStream) ); // Yes needed to get column data back to regular stream
    phiprof::stop("sortBlockList");
 
    // Calculate total sum of columns and total values size
    phiprof::start("count columns");
-   uint host_totalColumns;
-   uint host_valuesSizeRequired;
-   uint* dev_totalColumns;
-   uint* dev_valuesSizeRequired;
-   HANDLE_ERROR( cudaMallocAsync((void**)&dev_totalColumns, sizeof(uint), stream) );
-   HANDLE_ERROR( cudaMallocAsync((void**)&dev_valuesSizeRequired, sizeof(uint), stream) );
-   HANDLE_ERROR( cudaMemsetAsync(dev_totalColumns, 0, sizeof(uint), stream) );
-   HANDLE_ERROR( cudaMemsetAsync(dev_valuesSizeRequired, 0, sizeof(uint), stream) );
+   HANDLE_ERROR( cudaMemsetAsync(dev_returnLID, 0, 2*sizeof(vmesh::LocalID), stream) );
+
    // this needs to be serial, but is fast.
    SSYNC
    count_columns_kernel<<<1, 1, 0, stream>>> (
       columnData,
-      dev_totalColumns,
-      dev_valuesSizeRequired
+      dev_returnLID //dev_totalColumns,dev_valuesSizeRequired
       );
    HANDLE_ERROR( cudaPeekAtLastError() );
-
-   HANDLE_ERROR( cudaMemcpyAsync(&host_totalColumns, dev_totalColumns, sizeof(uint), cudaMemcpyDeviceToHost, stream) );
-   HANDLE_ERROR( cudaMemcpyAsync(&host_valuesSizeRequired, dev_valuesSizeRequired, sizeof(uint), cudaMemcpyDeviceToHost, stream) );
-   HANDLE_ERROR( cudaStreamSynchronize(stream) ); // Just to be safe
-   HANDLE_ERROR( cudaFreeAsync(dev_totalColumns, stream) );
-   HANDLE_ERROR( cudaFreeAsync(dev_valuesSizeRequired, stream) );
+   HANDLE_ERROR( cudaMemcpyAsync(host_returnLID, dev_returnLID, 2*sizeof(vmesh::LocalID), cudaMemcpyDeviceToHost, stream) );
+   HANDLE_ERROR( cudaStreamSynchronize(stream) );
+   const vmesh::LocalID host_totalColumns = host_returnLID[0];
+   const vmesh::LocalID host_valuesSizeRequired = host_returnLID[1];
    // Update tracker of maximum encountered column count
    if (cuda_acc_foundColumnsCount < host_totalColumns) {
       cuda_acc_foundColumnsCount = host_totalColumns;
    }
    phiprof::stop("count columns");
 
-   // pointer to columns (to be in device memory)
-   Column *columns;
    // Create array of column objects
    Column host_columns[host_totalColumns];
    // and copy it into device memory
-   HANDLE_ERROR( cudaMallocAsync((void**)&columns, host_totalColumns*sizeof(Column), stream) );
+   Column *columns = dev_columns[cpuThreadID];
    HANDLE_ERROR( cudaMemcpyAsync(columns, &host_columns, host_totalColumns*sizeof(Column), cudaMemcpyHostToDevice, stream) );
    SSYNC
 
@@ -776,28 +807,32 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       dev_cell_indices_to_id[cpuThreadID],
       host_totalColumns,
       LIDlist,
-      columnData
+      columnData,
+      // Also clears these vectors
+      spatial_cell->BlocksRequired,
+      spatial_cell->BlocksToAdd,
+      spatial_cell->BlocksToRemove,
+      spatial_cell->BlocksToMove
       );
    HANDLE_ERROR( cudaPeekAtLastError() );
    SSYNC
    phiprof::stop("Reorder blocks by dimension");
 
    // Calculate target column extents
-   phiprof::start("Clear block lists");
-   // Do not optimizeCPU! CUDATODO switch to host-to-device clea
-   spatial_cell->BlocksRequired->clear();
-   spatial_cell->BlocksToAdd->clear();
-   spatial_cell->BlocksToRemove->clear();
-   spatial_cell->BlocksRequired->optimizeGPU(stream);
-   spatial_cell->BlocksToAdd->optimizeGPU(stream);
-   spatial_cell->BlocksToRemove->optimizeGPU(stream);
-   phiprof::stop("Clear block lists");
+   // phiprof::start("Clear block lists");
+   // spatial_cell->BlocksRequired->clear();
+   // spatial_cell->BlocksToAdd->clear();
+   // spatial_cell->BlocksToRemove->clear();
+   // spatial_cell->BlocksToMove->clear();
+   // if (doPrefetches) {
+   //    spatial_cell->BlocksRequired->optimizeGPU(stream);
+   //    spatial_cell->BlocksToAdd->optimizeGPU(stream);
+   //    spatial_cell->BlocksToRemove->optimizeGPU(stream);
+   // }
+   // phiprof::stop("Clear block lists");
 
    phiprof::start("Evaluate column extents kernel");
-   uint host_wallspace_margin_bailout_flag=0;
-   uint* dev_wallspace_margin_bailout_flag;
-   HANDLE_ERROR( cudaMallocAsync((void**)&dev_wallspace_margin_bailout_flag, sizeof(uint), stream) );
-   HANDLE_ERROR( cudaMemcpyAsync(dev_wallspace_margin_bailout_flag, &host_wallspace_margin_bailout_flag,sizeof(uint), cudaMemcpyHostToDevice, stream) );
+   HANDLE_ERROR( cudaMemsetAsync(dev_returnLID, 0, sizeof(vmesh::LocalID), stream) );
    evaluate_column_extents_kernel<<<cudablocks, CUDATHREADS, 0, stream>>> (
       dimension,
       vmesh,
@@ -816,14 +851,14 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       max_v_length,
       v_min,
       dv,
-      dev_wallspace_margin_bailout_flag
+      dev_returnLID //dev_wallspace_margin_bailout_flag
       );
    HANDLE_ERROR( cudaPeekAtLastError() );
    SSYNC
    // Check if we need to bailout due to hitting v-space edge
-   HANDLE_ERROR( cudaMemcpyAsync(&host_wallspace_margin_bailout_flag, dev_wallspace_margin_bailout_flag, sizeof(uint), cudaMemcpyDeviceToHost, stream) );
+   HANDLE_ERROR( cudaMemcpyAsync(host_returnLID, dev_returnLID, sizeof(vmesh::LocalID), cudaMemcpyDeviceToHost, stream) );
    HANDLE_ERROR( cudaStreamSynchronize(stream) );
-   if (host_wallspace_margin_bailout_flag != 0) {
+   if (host_returnLID[0] != 0) { //host_wallspace_margin_bailout_flag
       string message = "Some target blocks in acceleration are going to be less than ";
       message += std::to_string(Parameters::bailout_velocity_space_wall_margin);
       message += " blocks away from the current velocity space walls for population ";
@@ -833,7 +868,6 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       message += ". Consider expanding velocity space for that population.";
       bailout(true, message, __FILE__, __LINE__);
    }
-   HANDLE_ERROR( cudaFreeAsync(dev_wallspace_margin_bailout_flag, stream) );
    phiprof::stop("Evaluate column extents kernel");
 
    phiprof::start("Add and delete blocks");
@@ -843,12 +877,15 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
 
    // Velocity space has all extra blocks added and/or removed for the transform target
    // and will not change shape anymore.
-   const uint newNBlocks = vmesh->size();
-   vmesh->dev_prefetchDevice();
+   read_acc_parameters_kernel<<<1,1,0,stream>>> (dimension,vmesh,dev_returnLID,dev_returnReal);
+   HANDLE_ERROR( cudaMemcpyAsync(host_returnLID, dev_returnLID, sizeof(vmesh::LocalID), cudaMemcpyDeviceToHost, stream) );
+   HANDLE_ERROR( cudaStreamSynchronize(stream) );
+   const uint newNBlocks = host_returnLID[0];
    const uint bdsw3 = newNBlocks * WID3;
    // Zero out target data on device (unified) (note, pointer needs to be re-fetched)
    blockData = blockContainer->getData();
-   HANDLE_ERROR( cudaMemsetAsync(blockData, 0, bdsw3*sizeof(Realf), stream) );
+   // Put into second (high-priority) stream for concurrency
+   HANDLE_ERROR( cudaMemsetAsync(blockData, 0, bdsw3*sizeof(Realf), priorityStream) );
 
    phiprof::start("identify new block offsets kernel");
    identify_block_offsets_kernel<<<cudablocks, CUDATHREADS, 0, stream>>> (
@@ -862,6 +899,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    SSYNC
    phiprof::stop("identify new block offsets kernel");
 
+   HANDLE_ERROR( cudaStreamSynchronize(priorityStream) ); // Yes needed to ensure block data was zeroed
    phiprof::start("Semi-Lagrangian acceleration kernel");
    acceleration_kernel<<<cudablocks, VECL, 0, stream>>> (
       blockData,
@@ -882,7 +920,6 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    HANDLE_ERROR( cudaPeekAtLastError() );
    SSYNC
 
-   HANDLE_ERROR( cudaFreeAsync(columns, stream) );
    // Wait until everything is complete before returning
    HANDLE_ERROR( cudaStreamSynchronize(stream) );
    phiprof::stop("Semi-Lagrangian acceleration kernel");

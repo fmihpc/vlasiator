@@ -40,6 +40,21 @@
 using namespace std;
 using namespace spatial_cell;
 
+__host__ void cuda_acc_allocate_radix_sort (
+   const uint temp_storage_bytes,
+   const uint cpuThreadID,
+   const cudaStream_t stream
+   ) {
+   if (temp_storage_bytes * BLOCK_ALLOCATION_FACTOR > cuda_acc_RadixSortTempSize[cpuThreadID]) {
+      if (cuda_acc_RadixSortTempSize[cpuThreadID] > 0) {
+         HANDLE_ERROR( cudaFreeAsync(dev_RadixSortTemp[cpuThreadID], stream) );
+      }
+      cuda_acc_RadixSortTempSize[cpuThreadID] = temp_storage_bytes * BLOCK_ALLOCATION_PADDING;
+      HANDLE_ERROR( cudaMallocAsync((void**)&dev_RadixSortTemp[cpuThreadID], cuda_acc_RadixSortTempSize[cpuThreadID], stream) );
+   }
+}
+// Note: no call for deallcation of this memory, it'll be left uncleaned on exit.
+
 //__launch_bounds__(maxThreadsPerBlock, minBlocksPerMultiprocessor, maxBlocksPerCluster)
 
 // Kernels for converting GIDs to dimension-sorted indices
@@ -125,7 +140,8 @@ __global__ void __launch_bounds__(CUDATHREADS,4) order_GIDs_kernel(
    const vmesh::VelocityMesh* vmesh,
    vmesh::GlobalID *blocksLID,
    vmesh::GlobalID *blocksGID,
-   const uint nBlocks
+   const uint nBlocks,
+   ColumnOffsets* columnData // passed just for resetting
    ) {
    const int cudaBlocks = gridDim.x * gridDim.y * gridDim.z;
    const uint warpSize = blockDim.x * blockDim.y * blockDim.z;
@@ -136,6 +152,12 @@ __global__ void __launch_bounds__(CUDATHREADS,4) order_GIDs_kernel(
       if (i < nBlocks) {
          blocksGID[i]=vmesh->getGlobalID(blocksLID[i]);
       }
+   }
+   if (blockIdx.x == blockIdx.y == blockIdx.z == threadIdx.x == threadIdx.y == threadIdx.z == 0) {
+      columnData->columnBlockOffsets.clear();
+      columnData->columnNumBlocks.clear();
+      columnData->setColumnOffsets.clear();
+      columnData->setNumColumns.clear();
    }
 }
 
@@ -335,15 +357,16 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
    // split::SplitVector<uint> columnNumBlocks; // length of column (in blocks, length totalColumns)
    // split::SplitVector<uint> setColumnOffsets; // index from columnBlockOffsets where new set of columns starts (length nColumnSets)
    // split::SplitVector<uint> setNumColumns; // how many columns in set of columns (length nColumnSets)
-                               const uint cuda_async_queue_id,
+                               const uint cpuThreadID,
                                cudaStream_t stream
    ) {
 
-   columnData->columnBlockOffsets.clear();
-   columnData->columnNumBlocks.clear();
-   columnData->setColumnOffsets.clear();
-   columnData->setNumColumns.clear();
-
+   if (doPrefetches) {
+      columnData->columnBlockOffsets.optimizeGPU();
+      columnData->columnNumBlocks.optimizeGPU();
+      columnData->setColumnOffsets.optimizeGPU();
+      columnData->setNumColumns.optimizeGPU();
+   }
    // Ensure at least one launch block
    uint nCudaBlocks  = (nBlocks/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : std::ceil((Real)nBlocks/(Real)CUDATHREADS);
 
@@ -385,30 +408,25 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
    phiprof::stop("calc new dimension id");
 
    phiprof::start("CUB sort");
-   // Sort (with CUB)
-
    // Determine temporary device storage requirements
-   void     *dev_temp_storage = NULL;
+   void     *temp_storage_null = NULL;
    size_t   temp_storage_bytes = 0;
-   cub::DeviceRadixSort::SortPairs(dev_temp_storage, temp_storage_bytes,
+   cub::DeviceRadixSort::SortPairs(temp_storage_null, temp_storage_bytes,
                                    blocksID_mapped, blocksID_mapped_sorted,
                                    blocksLID_unsorted, blocksLID, nBlocks,
                                    0, sizeof(vmesh::GlobalID)*8, stream);
    HANDLE_ERROR( cudaPeekAtLastError() );
    phiprof::start("cudamallocasync");
-   HANDLE_ERROR( cudaMallocAsync((void**)&dev_temp_storage, temp_storage_bytes, stream) );
+   cuda_acc_allocate_radix_sort(temp_storage_bytes,cpuThreadID,stream);
    SSYNC
    phiprof::stop("cudamallocasync");
-   //printf("allocated %d bytes of temporary memory for CUB SortPairs\n",temp_storage_bytes);
 
    // Now sort
-   cub::DeviceRadixSort::SortPairs(dev_temp_storage, temp_storage_bytes,
+   cub::DeviceRadixSort::SortPairs(dev_RadixSortTemp[cpuThreadID], temp_storage_bytes,
                                    blocksID_mapped, blocksID_mapped_sorted,
                                    blocksLID_unsorted, blocksLID, nBlocks,
                                    0, sizeof(vmesh::GlobalID)*8, stream);
    HANDLE_ERROR( cudaPeekAtLastError() );
-   HANDLE_ERROR( cudaStreamSynchronize(stream) ); // In case SortPairs won't like the free below too soon
-   HANDLE_ERROR( cudaFreeAsync(dev_temp_storage, stream) );
    phiprof::stop("CUB sort");
 
    // Gather GIDs in order
@@ -417,7 +435,8 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
       vmesh,
       blocksLID,
       blocksGID,
-      nBlocks
+      nBlocks,
+      columnData // Pass this just to clear it on device
       );
    HANDLE_ERROR( cudaPeekAtLastError() );
    phiprof::stop("reorder GIDs");
