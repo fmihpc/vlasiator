@@ -30,8 +30,8 @@
 #include "cuda_acc_sort_blocks.hpp"
 
 // Extra profiling stream synchronizations?
-//#define SSYNC HANDLE_ERROR( cudaStreamSynchronize(stream) );
-#define SSYNC
+#define SSYNC HANDLE_ERROR( cudaStreamSynchronize(stream) )
+//#define SSYNC
 
 // Ensure printing of CUDA runtime errors to console
 #define CUB_STDERR
@@ -354,6 +354,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                cudaStream_t stream
    ) {
 
+   phiprof::start("Sorting prefetches");
    if (doPrefetches) {
       columnData->columnBlockOffsets.optimizeGPU();
       columnData->columnNumBlocks.optimizeGPU();
@@ -361,6 +362,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
       columnData->setNumColumns.optimizeGPU();
    }
    uint nCudaBlocks  = (nBlocks/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : (nBlocks/CUDATHREADS);
+   phiprof::stop("Sorting prefetches");
 
    phiprof::start("calc new dimension id");
    // Map blocks to new dimensionality
@@ -395,7 +397,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
       default:
          printf("Incorrect dimension in cuda_acc_sort_blocks.cpp\n");
    }
-   SSYNC
+   SSYNC;
    phiprof::stop("calc new dimension id");
 
    phiprof::start("CUB sort");
@@ -406,17 +408,17 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                    blocksID_mapped, blocksID_mapped_sorted,
                                    blocksLID_unsorted, blocksLID, nBlocks,
                                    0, sizeof(vmesh::GlobalID)*8, stream);
-   phiprof::start("cudamallocasync");
+   phiprof::start("cub alloc");
    cuda_acc_allocate_radix_sort(temp_storage_bytes,cpuThreadID,stream);
-   SSYNC
-   phiprof::stop("cudamallocasync");
+   SSYNC;
+   phiprof::stop("cub alloc");
 
    // Now sort
    cub::DeviceRadixSort::SortPairs(dev_RadixSortTemp[cpuThreadID], temp_storage_bytes,
                                    blocksID_mapped, blocksID_mapped_sorted,
                                    blocksLID_unsorted, blocksLID, nBlocks,
                                    0, sizeof(vmesh::GlobalID)*8, stream);
-   SSYNC
+   SSYNC;
    phiprof::stop("CUB sort");
 
    // Gather GIDs in order
@@ -451,7 +453,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
       columnData,
       nBlocks
       );
-   SSYNC
+   SSYNC;
    phiprof::stop("construct columns");
    // printf("\n Output for dimension %d ",dimension);
    // printf("\nColumnBlockOffsets %d\n", columnData->columnBlockOffsets.size());
