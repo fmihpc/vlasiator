@@ -978,6 +978,7 @@ namespace spatial_cell {
 
       phiprof::start("Add/Move vector index mallocs");
       HANDLE_ERROR( cudaMemsetAsync(returnRealf[thread_id], 0, sizeof(Realf), stream) );
+      HANDLE_ERROR( cudaMemsetAsync(returnLID[thread_id], 0, 2*sizeof(vmesh::LocalID), stream) );
       SSYNC
       phiprof::stop("Add/Move vector index mallocs");
 
