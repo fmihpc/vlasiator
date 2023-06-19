@@ -476,7 +476,6 @@ bool writeCommonGridData(
    // Writes parameters and cell ids into the VLSV file
    int myRank;
    MPI_Comm_rank(comm, &myRank);
-   const int masterProcessId = 0;
    //Write local cells into array as a variable:
    //Note: This needs to be done separately from the array MESH
    const short unsigned int vectorSize = 1;
@@ -635,11 +634,6 @@ bool writeZoneGlobalIdNumbers( const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_G
          return false;
       }
    }
-
-   //Get the cells in x, y, z direction right off the bat (for the sake of clarity):
-   const unsigned int xCells = P::xcells_ini;
-   const unsigned int yCells = P::ycells_ini;
-   const unsigned int zCells = P::zcells_ini;
 
    vector<uint64_t> globalIds;
    globalIds.reserve( local_cells.size() + ghost_cells.size() );
@@ -1314,7 +1308,6 @@ bool writeGrid(
    const int& stripe,
    const bool writeGhosts
 ) {
-   double allStart = MPI_Wtime();
    bool success = true;
    int myRank;
    phiprof::initializeTimer("Barrier-entering-writegrid","MPI","Barrier");
@@ -1399,57 +1392,57 @@ bool writeGrid(
    //Write mesh boundaries: NOTE: master process only
    //Visit plugin needs to know the boundaries of the mesh so the number of cells in x, y, z direction
    if( writeMeshBoundingBox( vlsvWriter, meshName, masterProcessId, MPI_COMM_WORLD ) == false ) {
-      phiprof::stop("writeGrid-reduced");
       phiprof::stop("metadataIO");
+      phiprof::stop("writeGrid-reduced");
       return false;
    }
 
    //Write the node coordinates: NOTE: master process only
    if( writeBoundingBoxNodeCoordinates( vlsvWriter, meshName, masterProcessId, MPI_COMM_WORLD ) == false ) {
-      phiprof::stop("writeGrid-reduced");
       phiprof::stop("metadataIO");
+      phiprof::stop("writeGrid-reduced");
       return false;
    }
 
    //Write basic grid variables: NOTE: master process only
    if( writeCommonGridData(vlsvWriter, mpiGrid, local_cells, P::systemWrites[outputFileTypeIndex], MPI_COMM_WORLD) == false ) {
-      phiprof::stop("writeGrid-reduced");
       phiprof::stop("metadataIO");
+      phiprof::stop("writeGrid-reduced");
       return false;
    }
 
    //Write zone global id numbers:
    if( writeZoneGlobalIdNumbers( mpiGrid, vlsvWriter, meshName, local_cells, ghost_cells ) == false ) {
-      phiprof::stop("writeGrid-reduced");
       phiprof::stop("metadataIO");
+      phiprof::stop("writeGrid-reduced");
       return false;
    }
 
    //Write domain sizes:
    if( writeDomainSizes( vlsvWriter, meshName, local_cells.size(), ghost_cells.size() ) == false ) {
-      phiprof::stop("writeGrid-reduced");
       phiprof::stop("metadataIO");
+      phiprof::stop("writeGrid-reduced");
       return false;
    }
 
    //Update local ids for cells:
    if( updateLocalIds( mpiGrid, local_cells, MPI_COMM_WORLD ) == false ) {
-      phiprof::stop("writeGrid-reduced");
       phiprof::stop("metadataIO");
+      phiprof::stop("writeGrid-reduced");
       return false;
    }
 
    //Write ghost zone domain and local id numbers ( VisIt plugin needs this for MPI )
    if( writeGhostZoneDomainAndLocalIdNumbers( mpiGrid, vlsvWriter, meshName, ghost_cells ) == false ) {
-      phiprof::stop("writeGrid-reduced");
       phiprof::stop("metadataIO");
+      phiprof::stop("writeGrid-reduced");
       return false;
    }
 
    //Write FSGrid metadata
    if( writeFsGridMetadata( technicalGrid, vlsvWriter ) == false ) {
-      phiprof::stop("writeGrid-reduced");
       phiprof::stop("metadataIO");
+      phiprof::stop("writeGrid-reduced");
       return false;
    }
    
@@ -1464,15 +1457,15 @@ bool writeGrid(
    
    //Write Version Info 
    if( writeVersionInfo(versionInfo,vlsvWriter,MPI_COMM_WORLD) == false ) {
-      phiprof::stop("writeGrid-reduced");
       phiprof::stop("metadataIO");
+      phiprof::stop("writeGrid-reduced");
       return false;
    }
       
    //Write Config Info 
    if( writeConfigInfo(configInfo,vlsvWriter,MPI_COMM_WORLD) == false ) {
-      phiprof::stop("writeGrid-reduced");
       phiprof::stop("metadataIO");
+      phiprof::stop("writeGrid-reduced");
       return false;
    }
 
@@ -1561,7 +1554,6 @@ bool writeRestart(
    const int& stripe) 
 {
    // Writes a restart
-   double allStart = MPI_Wtime();
    bool success = true;
    int myRank;
    
