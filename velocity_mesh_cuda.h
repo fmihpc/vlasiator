@@ -30,14 +30,10 @@
 #include <sstream>
 #include <stdint.h>
 #include <vector>
-//#include <unordered_map>
-//#include <set>
 #include <cmath>
 
 #include "velocity_mesh_parameters.h"
 
-//#include "object_wrapper.h"
-//#include "open_bucket_hashtable.h"
 #include "include/hashinator/hashinator.h"
 #include "include/splitvector/splitvec.h"
 
@@ -45,7 +41,6 @@
 #include "cuda.h"
 #include "cuda_runtime.h"
 #include "cuda_context.cuh" // managed class, CUDA_HOSTDEV
-//#include <cuda/std/utility> // cuda::std::pair
 
 namespace vmesh {
 
