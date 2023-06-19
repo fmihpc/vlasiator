@@ -90,10 +90,9 @@ __global__ void blocksID_mapped_dim1_kernel(
    const uint warpSize = blockDim.x * blockDim.y * blockDim.z;
    const int blocki = blockIdx.z*gridDim.x*gridDim.y + blockIdx.y*gridDim.x + blockIdx.x;
    const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
-   const uint refL=0; //vAMR
-   const vmesh::LocalID D0 = vmesh->getGridLength(refL)[0];
-   const vmesh::LocalID D1 = vmesh->getGridLength(refL)[1];
-   // const vmesh::LocalID D2 = vmesh->getGridLength(refL)[2];
+   const vmesh::LocalID D0 = vmesh->getGridLength()[0];
+   const vmesh::LocalID D1 = vmesh->getGridLength()[1];
+   // const vmesh::LocalID D2 = vmesh->getGridLength()[2];
    for (vmesh::LocalID index=blocki*warpSize; index<nBlocks; index += cudaBlocks*warpSize) {
       const vmesh::LocalID LID = (index+ti);
       if (LID < nBlocks) {

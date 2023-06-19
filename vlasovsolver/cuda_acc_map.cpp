@@ -685,23 +685,6 @@ __global__ void acceleration_kernel(
    } // End loop over columns
 } // end semilag acc kernel
 
-/** Minimal Device kernel for extracting acc parameters */
-__global__ void read_acc_parameters_kernel (
-   const uint dimension,
-   vmesh::VelocityMesh *vmesh,
-   vmesh::LocalID* returnLID,
-   Real* returnReal
-   ) {
-   const uint8_t REFLEVEL = 0;
-   returnLID[0] = vmesh->size(); // const uint nBlocks
-   returnLID[1] = vmesh->getGridLength(REFLEVEL)[0]; //const vmesh::LocalID D0
-   returnLID[2] = vmesh->getGridLength(REFLEVEL)[1]; //const vmesh::LocalID D1
-   returnLID[3] = vmesh->getGridLength(REFLEVEL)[2]; //const vmesh::LocalID D2
-   returnReal[0] = vmesh->getCellSize(REFLEVEL)[dimension]; //const Realv dv
-   returnReal[1] = vmesh->getMeshMinLimits()[dimension]; //const Realv v_min
-   returnReal[2] = vmesh->getGridLength(REFLEVEL)[dimension]; //const Realv max_v_length
-}
-
 /*
    Here we map from the current time step grid, to a target grid which
    is the lagrangian departure grid (so th grid at timestep +dt,
@@ -717,10 +700,6 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
                               cudaStream_t stream
    ) {
    SSYNC;
-   vmesh::VelocityMesh* vmesh    = spatial_cell->get_velocity_mesh(popID);
-   vmesh::VelocityBlockContainer* blockContainer = spatial_cell->get_velocity_blocks(popID);
-   Realf *blockData = blockContainer->getData();
-
    // Thread id used for persistent device memory pointers
 #ifdef _OPENMP
       const uint cpuThreadID = omp_get_thread_num();
@@ -729,25 +708,26 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
 #endif
 
    phiprof::start("Get acc parameters");
-   // Now launch minimal kernel to get these paramterers to reduce page faults
+   vmesh::VelocityMesh* vmesh = spatial_cell->get_velocity_mesh(popID);
+   vmesh->dev_prefetchDevice();
+   vmesh::VelocityBlockContainer* blockContainer = spatial_cell->get_velocity_blocks(popID);
+   Realf *blockData = blockContainer->getData();
+
+   const uint nBlocks = vmesh->size();
+   const vmesh::LocalID D0 = vmesh->getGridLength()[0];
+   const vmesh::LocalID D1 = vmesh->getGridLength()[1];
+   //const vmesh::LocalID D2 = vmesh->getGridLength()[2];
+   const Realv dv    = vmesh->getCellSize()[dimension];
+   const Realv v_min = vmesh->getMeshMinLimits()[dimension];
+   const Realv max_v_length  = vmesh->getGridLength()[dimension];
+   auto minValue = spatial_cell->getVelocityBlockMinValue(popID);
+   const Realv i_dv = 1.0/dv;
+
+   // For use later
    Real host_returnReal[8];
    Real *dev_returnReal = returnReal[cpuThreadID];
    vmesh::LocalID host_returnLID[8];
    vmesh::LocalID *dev_returnLID = returnLID[cpuThreadID];
-   // Read parameters within minimal kernel
-   read_acc_parameters_kernel<<<1,1,0,stream>>> (dimension,vmesh,dev_returnLID,dev_returnReal);
-   HANDLE_ERROR( cudaMemcpyAsync(host_returnLID, dev_returnLID, 4*sizeof(vmesh::LocalID), cudaMemcpyDeviceToHost, stream) );
-   HANDLE_ERROR( cudaMemcpyAsync(host_returnReal, dev_returnReal, 3*sizeof(Real), cudaMemcpyDeviceToHost, stream) );
-   HANDLE_ERROR( cudaStreamSynchronize(stream) );
-   const uint nBlocks = host_returnLID[0];
-   const vmesh::LocalID D0 = host_returnLID[1];
-   const vmesh::LocalID D1 = host_returnLID[2];
-   //const vmesh::LocalID D2 = host_returnLID[3];
-   const Realv dv    = host_returnReal[0];
-   const Realv v_min = host_returnReal[1];
-   const Realv max_v_length  = host_returnReal[2];
-   auto minValue = spatial_cell->getVelocityBlockMinValue(popID);
-   const Realv i_dv = 1.0/dv;
    phiprof::stop("Get acc parameters");
 
    //nothing to do if no blocks
@@ -987,22 +967,18 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    phiprof::start("Add and delete blocks");
    // Note: in this call, BlocksToMove is empty as we only grow the vspace size.
    spatial_cell->adjust_velocity_blocks_caller(popID);
-   phiprof::stop("Add and delete blocks");
-
    // Velocity space has all extra blocks added and/or removed for the transform target
    // and will not change shape anymore.
-   phiprof::start("Read acceleration parameters again");
-   read_acc_parameters_kernel<<<1,1,0,stream>>> (dimension,vmesh,dev_returnLID,dev_returnReal);
-   HANDLE_ERROR( cudaMemcpyAsync(host_returnLID, dev_returnLID, sizeof(vmesh::LocalID), cudaMemcpyDeviceToHost, stream) );
-   HANDLE_ERROR( cudaStreamSynchronize(stream) );
-   const uint newNBlocks = host_returnLID[0];
+   const uint newNBlocks = vmesh->size();
    const uint bdsw3 = newNBlocks * WID3;
+   phiprof::stop("Add and delete blocks");
 
    // Zero out target data on device (unified)
    // Put into second (high-priority) stream for concurrency
+   phiprof::start("Memset ACC blocks to zero");
    HANDLE_ERROR( cudaMemsetAsync(blockData, 0, bdsw3*sizeof(Realf), priorityStream) );
    SSYNC;
-   phiprof::stop("Read acceleration parameters again");
+   phiprof::stop("Memset ACC blocks to zero");
 
    phiprof::start("identify new block offsets kernel");
    identify_block_offsets_kernel<<<cudablocks, CUDATHREADS, 0, stream>>> (
