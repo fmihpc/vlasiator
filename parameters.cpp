@@ -230,7 +230,7 @@ bool P::addParameters() {
    RP::add("io.write_initial_state",
            "Write initial state, not even the 0.5 dt propagation is done. Do not use for restarting. ", false);
 
-   RP::add("io.write_full_bgb_data", "Write a dedicated file containing all BGB components and first derivatives.", false);
+   RP::add("io.write_full_bgb_data", "Write a dedicated file containing all BGB components and first derivatives, then exit.", false);
 
    RP::add("io.restart_walltime_interval",
            "Save the complete simulation in given walltime intervals. Negative values disable writes.", -1.0);

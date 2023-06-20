@@ -267,6 +267,7 @@ void initializeGrids(
    technicalGrid.updateGhostCells(); // This needs to be done at some point
 
    if (!P::isRestart && !P::writeFullBGB) {
+      // If we are starting a new regular simulation, we need to prepare all cells with their initial state.
       // If we're only after writing out the full BGB we don't need all this shebang EXCEPT the weights!
 
       //Initial state based on project, background field in all cells
@@ -332,6 +333,7 @@ void initializeGrids(
       */
 
    } else if (P::writeFullBGB) {
+      // If, instead of starting a regular simulation, we are only writing out the background field, it is enough to set a dummy load balance value of 1 here.
       for (size_t i=0; i<cells.size(); ++i) {
          mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 1;
       }

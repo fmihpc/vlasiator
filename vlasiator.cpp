@@ -337,7 +337,7 @@ int main(int argn,char* args[]) {
          exit(1);
       }
    } else {
-      // If we are out to write the full background field and derivatives, we don't want to overwrite the exisitng run's logfile.
+      // If we are out to write the full background field and derivatives, we don't want to overwrite the existing run's logfile.
       if (logFile.open(MPI_COMM_WORLD,MASTER_RANK,"logfile_fullbgbio.txt",false) == false) {
          if(myRank == MASTER_RANK) cerr << "(MAIN) ERROR: Logger failed to open logfile_fullbgbio!" << endl;
          exit(1);
@@ -478,7 +478,7 @@ int main(int argn,char* args[]) {
    readparameters.~Readparameters();
 
    if(P::writeFullBGB) {
-      logFile << "Writing out full BGB components and derivatives." << endl << writeVerbose;
+      logFile << "Writing out full BGB components and derivatives and exiting." << endl << writeVerbose;
 
       P::systemWriteDistributionWriteStride.push_back(0);
       P::systemWriteName.push_back("bgb");
