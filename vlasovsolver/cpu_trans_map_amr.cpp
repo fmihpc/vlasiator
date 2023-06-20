@@ -1400,8 +1400,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                       const Realv dt,
                       const uint popID) {
    
-   phiprof::start("setup");
-
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
    unsigned char  cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
    // return if there's no cells to propagate
@@ -1409,6 +1407,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       cout << "Returning because of no cells" << endl;
       return false;
    }
+
+   phiprof::start("setup");
 
    // Vector with all cell ids
    vector<CellID> allCells(localPropagatedCells);
