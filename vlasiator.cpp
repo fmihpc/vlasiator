@@ -454,6 +454,7 @@ int main(int argn,char* args[]) {
    );
    
    const std::vector<CellID>& cells = getLocalCells();
+   computeCoupling(mpiGrid, cells, momentsGrid, &gridCoupling);
    
    phiprof::stop("Init grids");
    
