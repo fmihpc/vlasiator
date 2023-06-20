@@ -79,8 +79,8 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                   }
                }
                return retval;
-	           }
-	        ));
+            }
+         ));
          outputReducer->addMetadata(outputReducer->size()-1,"T","$\\mathrm{T}$","$B_\\mathrm{bg,fg}$","1.0");
          continue;	 
       }
