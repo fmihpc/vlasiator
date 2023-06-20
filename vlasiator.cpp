@@ -480,6 +480,9 @@ int main(int argn,char* args[]) {
    if(P::writeFullBGB) {
       logFile << "Writing out full BGB components and derivatives and exiting." << endl << writeVerbose;
 
+      // initialize the communicators so we can write out ionosphere grid metadata.
+      SBC::ionosphereGrid.updateIonosphereCommunicator(mpiGrid, technicalGrid);
+
       P::systemWriteDistributionWriteStride.push_back(0);
       P::systemWriteName.push_back("bgb");
       P::systemWriteDistributionWriteXlineStride.push_back(0);

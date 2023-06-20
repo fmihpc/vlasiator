@@ -1446,13 +1446,11 @@ bool writeGrid(
       return false;
    }
    
-   if( !P::writeFullBGB ) {
-      //Write Ionosphere Grid
-      if( writeIonosphereGridMetadata( vlsvWriter ) == false ) {
-         phiprof::stop("writeGrid-reduced");
-         phiprof::stop("metadataIO");
-         return false;
-      }
+   //Write Ionosphere Grid
+   if( writeIonosphereGridMetadata( vlsvWriter ) == false ) {
+      phiprof::stop("writeGrid-reduced");
+      phiprof::stop("metadataIO");
+      return false;
    }
    
    //Write Version Info 
