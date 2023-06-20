@@ -471,6 +471,13 @@ int main(int argn,char* args[]) {
    // user-defined operators:
    phiprof::start("Init DROs");
    DataReducer outputReducer, diagnosticReducer;
+
+   if(P::writeFullBGB) {
+      // We need the following variables for this, let's just erase and replace the entries in the list
+      P::outputVariableList.clear();
+      P::outputVariableList= {"fg_b_background", "fg_b_background_vol", "fg_derivs_b_background"};
+   }
+
    initializeDataReducers(&outputReducer, &diagnosticReducer);
    phiprof::stop("Init DROs");  
    
