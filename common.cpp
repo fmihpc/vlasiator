@@ -35,7 +35,7 @@
  */
 void bailout(
    const bool condition,
-   const std::string message,
+   const std::string& message,
    const char * const file,
    const int line
 ) {
@@ -81,7 +81,7 @@ void bailout(
  */
 void bailout(
    const bool condition,
-   const std::string message
+   const std::string& message
 ) {
    bailout(condition, message, "", 0);
 }

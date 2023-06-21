@@ -27,6 +27,8 @@
 #include "../common.h"
 #include "dro_populations.h"
 #include "../sysboundary/ionosphere.h"
+#include "../fieldtracing/fieldtracing.h"
+
 using namespace std;
 
 void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosticReducer)
@@ -46,7 +48,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       // Sidestep mixed case errors
       std::string lowercase = *it;
       for(auto& c : lowercase) c = tolower(c);
-      
+
       if(lowercase == "fg_b" || lowercase == "b") { // Bulk magnetic field at Yee-Lattice locations
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_b",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -80,7 +82,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 	 }
 	 ));
          outputReducer->addMetadata(outputReducer->size()-1,"T","$\\mathrm{T}$","$B$","1.0");
-         continue;	 
+         continue;
       }
       if(lowercase == "fg_backgroundb" || lowercase == "backgroundb" || lowercase == "fg_b_background") { // Static (typically dipole) magnetic field part
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_b_background",[](
@@ -180,12 +182,17 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       }
       if(lowercase == "vg_rhom" || lowercase == "rhom") { // Overall mass density (summed over all populations)
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_rhom",CellParams::RHOM,1));
-	 outputReducer->addMetadata(outputReducer->size()-1,"kg/m^3","$\\mathrm{kg}\\,\\mathrm{m}^{-3}$","$\\rho_\\mathrm{m}$","1.0");
+         outputReducer->addMetadata(outputReducer->size()-1,"kg/m^3","$\\mathrm{kg}\\,\\mathrm{m}^{-3}$","$\\rho_\\mathrm{m}$","1.0");
+         continue;
+      }
+      if(lowercase == "vg_drift") { // Nudge velocity drift near ionosphere
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_drift",CellParams::BULKV_FORCING_X,3));
+         outputReducer->addMetadata(outputReducer->size()-1,"m/s","$\\mathrm{m}\\,\\mathrm{s}^{-1}$","$V$","1.0");
          continue;
       }
       if(lowercase == "vg_amr_translate_comm") { // Flag for AMR translation communication
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_translate_comm",CellParams::AMR_TRANSLATE_COMM_X,3));
-	 //outputReducer->addMetadata(outputReducer->size()-1,"","AMR-translate","1.0");
+	 outputReducer->addMetadata(outputReducer->size()-1,"","","AMRtranslate","1.0");
          continue;
       }
       if(lowercase == "fg_rhom") { // Overall mass density (summed over all populations)
@@ -262,7 +269,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          continue;
       }
-      
+
       if(lowercase == "v" || lowercase == "vg_v") { // Overall effective bulk density defining the center-of-mass frame from all populations
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_v",CellParams::VX,3));
 	 outputReducer->addMetadata(outputReducer->size()-1,"m/s","$\\mathrm{m}\\,\\mathrm{s}^{-1}$","$V$","1.0");
@@ -410,7 +417,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          continue;
       }
       if(lowercase == "populations_precipitationflux" || lowercase == "populations_vg_precipitationdifferentialflux" || lowercase == "populations_precipitationdifferentialflux") {
-         // Per-population precipitation differential flux
+         // Per-population precipitation differential flux (within loss cone)
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
@@ -421,12 +428,46 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          continue;
       }
+      
       if(lowercase == "populations_1dmuspace" || lowercase == "populations_vg_1dmuspace") {
          // Per-population 1d muspace
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
             species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::VariableMuSpace(i));
+         }
+         continue;
+      }
+      if(lowercase == "populations_precipitationlineflux" || lowercase == "populations_vg_precipitationlinedifferentialflux" || lowercase == "populations_precipitationlinedifferentialflux") {
+         // Per-population precipitation differential flux (along line)
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            species::Species& species=getObjectWrapper().particleSpecies[i];
+            const std::string& pop = species.name;
+            outputReducer->addOperator(new DRO::VariablePrecipitationLineDiffFlux(i));
+            std::stringstream conversion;
+            conversion << (1.0e-4)*physicalconstants::CHARGE;
+            outputReducer->addMetadata(outputReducer->size()-1,"1/(cm^2 sr s eV)","$\\mathrm{cm}^{-2}\\,\\mathrm{sr}^{-1}\\,\\mathrm{s}^{-1}\\,\\mathrm{eV}^{-1}$","$\\mathcal{F}_\\mathrm{"+pop+"}$",conversion.str());
+         }
+         continue;
+      }
+      if(lowercase == "populations_heatflux" || lowercase == "populations_vg_heatflux") {
+         // Per-population heat flux vector
+         for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            species::Species& species=getObjectWrapper().particleSpecies[i];
+            const std::string& pop = species.name;
+            outputReducer->addOperator(new DRO::VariableHeatFluxVector(i));
+            outputReducer->addMetadata(outputReducer->size()-1,"W/m^2","$\\mathrm{W}\\,\\mathrm{m}^{-2}$","$q_\\mathrm{"+pop+"}$","1.0");
+         }
+         continue;
+      }
+      if (lowercase == "populations_nonmaxwellianity" || lowercase == "populations_vg_nonmaxwellianity") {
+         // Per-population dimensionless non-maxwellianity parameter
+         for (unsigned int i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            species::Species& species = getObjectWrapper().particleSpecies[i];
+            const std::string& pop = species.name;
+            outputReducer->addOperator(new DRO::VariableNonMaxwellianity(i));
+            outputReducer->addMetadata(outputReducer->size() - 1, "", "",
+                                       "$\\tilde{\\epsilon}_\\mathrm{M," + pop + "}$", "1.0");
          }
          continue;
       }
@@ -598,7 +639,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(lowercase == "populations_blocks" || lowercase == "populations_vg_blocks") {
          // Per-population velocity space block counts
          for(unsigned int i =0; i < getObjectWrapper().particleSpecies.size(); i++) {
-            species::Species& species=getObjectWrapper().particleSpecies[i];
+		    species::Species& species=getObjectWrapper().particleSpecies[i];
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::Blocks(i));
 	    outputReducer->addMetadata(outputReducer->size()-1,"","","$\\mathrm{"+pop+" blocks}$","");
@@ -801,18 +842,24 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       }
       if(lowercase == "bvolderivs" || lowercase == "b_vol_derivs" || lowercase == "b_vol_derivatives" || lowercase == "vg_b_vol_derivatives" || lowercase == "derivs") {
          // Volume-averaged derivatives
+         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_dperbxvoldx",bvolderivatives::dPERBXVOLdx,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_dperbxvoldy",bvolderivatives::dPERBXVOLdy,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_dperbxvoldz",bvolderivatives::dPERBXVOLdz,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_dperbyvoldx",bvolderivatives::dPERBYVOLdx,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_dperbyvoldy",bvolderivatives::dPERBYVOLdy,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_dperbyvoldz",bvolderivatives::dPERBYVOLdz,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_dperbzvoldx",bvolderivatives::dPERBZVOLdx,1));
          outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_dperbzvoldy",bvolderivatives::dPERBZVOLdy,1));
-	 outputReducer->addMetadata(outputReducer->size()-6,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{X,\\mathrm{per,vol,vg}} (\\Delta Y)^{-1}$","1.0");
-	 outputReducer->addMetadata(outputReducer->size()-5,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{X,\\mathrm{per,vol,vg}} (\\Delta Z)^{-1}$","1.0");
-	 outputReducer->addMetadata(outputReducer->size()-4,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{Y,\\mathrm{per,vol,vg}} (\\Delta X)^{-1}$","1.0");
-	 outputReducer->addMetadata(outputReducer->size()-3,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{Y,\\mathrm{per,vol,vg}} (\\Delta Z)^{-1}$","1.0");
-	 outputReducer->addMetadata(outputReducer->size()-2,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{Z,\\mathrm{per,vol,vg}} (\\Delta X)^{-1}$","1.0");
-	 outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{Z,\\mathrm{per,vol,vg}} (\\Delta Y)^{-1}$","1.0");
+         outputReducer->addOperator(new DRO::DataReductionOperatorBVOLDerivatives("vg_dperbzvoldz",bvolderivatives::dPERBZVOLdz,1));
+	 outputReducer->addMetadata(outputReducer->size()-9,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{X,\\mathrm{per,vol,vg}} (\\Delta X)^{-1}$","1.0");
+	 outputReducer->addMetadata(outputReducer->size()-8,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{X,\\mathrm{per,vol,vg}} (\\Delta Y)^{-1}$","1.0");
+	 outputReducer->addMetadata(outputReducer->size()-7,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{X,\\mathrm{per,vol,vg}} (\\Delta Z)^{-1}$","1.0");
+	 outputReducer->addMetadata(outputReducer->size()-6,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{Y,\\mathrm{per,vol,vg}} (\\Delta X)^{-1}$","1.0");
+	 outputReducer->addMetadata(outputReducer->size()-5,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{Y,\\mathrm{per,vol,vg}} (\\Delta Y)^{-1}$","1.0");
+	 outputReducer->addMetadata(outputReducer->size()-4,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{Y,\\mathrm{per,vol,vg}} (\\Delta Z)^{-1}$","1.0");
+	 outputReducer->addMetadata(outputReducer->size()-3,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{Z,\\mathrm{per,vol,vg}} (\\Delta X)^{-1}$","1.0");
+	 outputReducer->addMetadata(outputReducer->size()-2,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{Z,\\mathrm{per,vol,vg}} (\\Delta Y)^{-1}$","1.0");
+	 outputReducer->addMetadata(outputReducer->size()-1,"T/m","$\\mathrm{T}\\,\\mathrm{m}^{-1}$","$\\Delta B_{Z,\\mathrm{per,vol,vg}} (\\Delta Z)^{-1}$","1.0");
          continue;
       }
 
@@ -2405,7 +2452,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 	 outputReducer->addMetadata(outputReducer->size()-1,"m","$\\mathrm{m}$","$\\delta Z_\\mathrm{vg}$","1.0");
          continue;
       }
-      if(lowercase == "fg_gridcoordinates") { 
+      if(lowercase == "fg_gridcoordinates") {
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_x",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
@@ -2540,18 +2587,54 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                return retval;
          }
          ));
-	 outputReducer->addMetadata(outputReducer->size()-1,"m","$\\mathrm{m}$","$\\delta Z_\\mathrm{fg}$","1.0");
+         outputReducer->addMetadata(outputReducer->size()-1,"m","$\\mathrm{m}$","$\\delta Z_\\mathrm{fg}$","1.0");
          continue;
       }
-      if(lowercase == "meshdata") {
-         outputReducer->addOperator(new DRO::VariableMeshData);
-	 outputReducer->addMetadata(outputReducer->size()-1,"","","\\mathrm{Mesh data}$","");
+      if(lowercase == "vg_amr_drho") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_drho",CellParams::AMR_DRHO,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"","","$\\frac{\\Delta \\rho}{\\hat{rho}}$","");
+         continue;
+      }
+      if(lowercase == "vg_amr_du") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_du",CellParams::AMR_DU,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"","","$\\frac{\\Delta U_1}{\\hat{U}_1}$","");
+         continue;
+      }
+      if(lowercase == "vg_amr_dpsq") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_dpsq",CellParams::AMR_DPSQ,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"","","$\\frac{(\\Delta P)^2}{2 \\rho \\hat{U}_1}$","");
+         continue;
+      }
+      if(lowercase == "vg_amr_dbsq") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_dbsq",CellParams::AMR_DBSQ,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"","","$\\frac{(\\Delta B_1)^2}{2 \\mu_0 \\hat{U}_1}$","");
+         continue;
+      }
+      if(lowercase == "vg_amr_db") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_db",CellParams::AMR_DB,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"","","$\\frac{|\\Delta B_1|}{\\hat{B}_1}$","");
+         continue;
+      }
+      if(lowercase == "vg_amr_alpha") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_alpha",CellParams::AMR_ALPHA,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"","","$\\alpha$","");
+         continue;
+      }
+      if(lowercase == "vg_amr_reflevel") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_reflevel",CellParams::REFINEMENT_LEVEL,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"","","ref","");
+         continue;
+      }
+      if(lowercase == "vg_amr_jperb") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_amr_jperb",CellParams::AMR_JPERB,1));
+         outputReducer->addMetadata(outputReducer->size()-1,"1/m","m^{-1}","J/B_{\\perp}","");
+         outputReducer->addOperator(new DRO::JPerBModifier());
          continue;
       }
       if(lowercase == "ig_latitude") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_latitude", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.nodes.size());
 
                      for(uint i=0; i<grid.nodes.size(); i++) {
@@ -2590,7 +2673,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(lowercase == "ig_cellarea") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereElement("ig_cellarea", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.elements.size());
 
                      for(uint i=0; i<grid.elements.size(); i++) {
@@ -2602,10 +2685,28 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1, "m^2", "$\\mathrm{m}^2$", "$A_m$", "1.0");
          continue;
       }
+      if(lowercase == "ig_b") {
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_b", [](
+                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
+
+                     std::vector<Real> retval(grid.nodes.size()*3);
+
+                     for(uint i=0; i<grid.nodes.size(); i++) {
+                        retval[3*i] = grid.nodes[i].parameters[ionosphereParameters::NODE_BX];
+                        retval[3*i+1] = grid.nodes[i].parameters[ionosphereParameters::NODE_BY];
+                        retval[3*i+2] = grid.nodes[i].parameters[ionosphereParameters::NODE_BZ];
+                     }
+
+                     return retval;
+                     }));
+         outputReducer->addMetadata(outputReducer->size()-1, "T", "$\\mathrm{T}$", "$B$", "1.0");
+         continue;
+      }
+
       if(lowercase == "ig_e") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereElement("ig_e", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.elements.size()*3);
 
                      for(uint i=0; i<grid.elements.size(); i++) {
@@ -2636,7 +2737,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(lowercase == "ig_inplanecurrent") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereElement("ig_inplanecurrent", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.elements.size()*3);
 
                      for(uint i=0; i<grid.elements.size(); i++) {
@@ -2678,14 +2779,14 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(lowercase == "ig_upmappedarea") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereElement("ig_upmappedarea", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.elements.size()*3);
 
                      for(uint i=0; i<grid.elements.size(); i++) {
                         std::array<Real, 3> area = grid.mappedElementArea(i);
-                        retval[3*i] = area[0]; 
-                        retval[3*i+1] = area[1]; 
-                        retval[3*i+2] = area[2]; 
+                        retval[3*i] = area[0];
+                        retval[3*i+1] = area[1];
+                        retval[3*i+2] = area[2];
                      }
 
                      return retval;
@@ -2768,21 +2869,6 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1, "K", "$\\mathrm{K}$", "$T_e$", "1.0");
          continue;
       }
-      if(lowercase == "ig_poyntingflux") {
-         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_poyntingflux", [](
-                     SBC::SphericalTriGrid& grid)->std::vector<Real> {
-
-                     std::vector<Real> retval(grid.nodes.size());
-
-                     for(uint i=0; i<grid.nodes.size(); i++) {
-                        retval[i] = grid.nodes[i].parameters[ionosphereParameters::POYNTINGFLUX];
-                     }
-
-                     return retval;
-                     }));
-         outputReducer->addMetadata(outputReducer->size()-1, "W/m^2", "$\\mathrm{W/m^2}$", "$S$", "1.0");
-         continue;
-      }
       if(lowercase == "ig_deltaphi") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_deltaphi", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
@@ -2816,21 +2902,21 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(lowercase == "ig_precipnumflux") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_precipnumflux", [](SBC::SphericalTriGrid& grid)->std::vector<Real> {
 
-                     std::array< Real, grid.productionNumParticleEnergies+1 > particle_energy;
+                     std::array< Real, SBC::productionNumParticleEnergies+1 > particle_energy;
                      // Precalculate effective energy bins
                      // Make sure this stays in sync with sysboundary/ionosphere.cpp
-                     for(int e=0; e<grid.productionNumParticleEnergies; e++) {
-                     particle_energy[e] = pow(10.0, -1.+e*(2.3+1.)/(grid.productionNumParticleEnergies-1));
+                     for(int e=0; e<SBC::productionNumParticleEnergies; e++) {
+                     particle_energy[e] = pow(10.0, -1.+e*(2.3+1.)/(SBC::productionNumParticleEnergies-1));
                      }
-                     particle_energy[grid.productionNumParticleEnergies] = 2*particle_energy[grid.productionNumParticleEnergies-1] - particle_energy[grid.productionNumParticleEnergies-2];
+                     particle_energy[SBC::productionNumParticleEnergies] = 2*particle_energy[SBC::productionNumParticleEnergies-1] - particle_energy[SBC::productionNumParticleEnergies-2];
 
-                     Real accenergy = grid.productionMinAccEnergy;
+                     Real accenergy = SBC::productionMinAccEnergy;
 
                      std::vector<Real> retval(grid.nodes.size());
                      for(uint i=0; i<grid.nodes.size(); i++) {
                         Real temp_keV = physicalconstants::K_B * grid.nodes[i].electronTemperature() / physicalconstants::CHARGE / 1000;
 
-                        for(int p=0; p<grid.productionNumParticleEnergies; p++) {
+                        for(int p=0; p<SBC::productionNumParticleEnergies; p++) {
                            Real energyparam = (particle_energy[p]-accenergy)/temp_keV; // = E_p / (kB T)
                            Real deltaE = (particle_energy[p+1] - particle_energy[p])* 1e3*physicalconstants::CHARGE;  // dE in J
                            retval[i] += grid.nodes[i].parameters[ionosphereParameters::RHON] * sqrt(1. / (2. * M_PI * physicalconstants::MASS_ELECTRON))
@@ -2840,21 +2926,21 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      }
                      return retval;
                      }));
-         outputReducer->addMetadata(outputReducer->size()-1, "1/m^2/s", "$m^{-2} s^{-1}$", "$\bar{F}_\mathrm{precip}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size()-1, "1/m^2/s", "$m^{-2} s^{-1}$", "$\\bar{F}_\\mathrm{precip}$", "1.0");
          continue;
       }
       if(lowercase == "ig_precipavgenergy") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_precipavgenergy", [](SBC::SphericalTriGrid& grid)->std::vector<Real> {
 
-                     std::array< Real, grid.productionNumParticleEnergies+1 > particle_energy;
+                     std::array< Real, SBC::productionNumParticleEnergies+1 > particle_energy;
                      // Precalculate effective energy bins
                      // Make sure this stays in sync with sysboundary/ionosphere.cpp
-                     for(int e=0; e<grid.productionNumParticleEnergies; e++) {
-                     particle_energy[e] = pow(10.0, -1.+e*(2.3+1.)/(grid.productionNumParticleEnergies-1));
+                     for(int e=0; e<SBC::productionNumParticleEnergies; e++) {
+                     particle_energy[e] = pow(10.0, -1.+e*(2.3+1.)/(SBC::productionNumParticleEnergies-1));
                      }
-                     particle_energy[grid.productionNumParticleEnergies] = 2*particle_energy[grid.productionNumParticleEnergies-1] - particle_energy[grid.productionNumParticleEnergies-2];
+                     particle_energy[SBC::productionNumParticleEnergies] = 2*particle_energy[SBC::productionNumParticleEnergies-1] - particle_energy[SBC::productionNumParticleEnergies-2];
 
-                     Real accenergy = grid.productionMinAccEnergy;
+                     Real accenergy = SBC::productionMinAccEnergy;
 
                      std::vector<Real> retval(grid.nodes.size());
                      for(uint i=0; i<grid.nodes.size(); i++) {
@@ -2865,7 +2951,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                         // ig_precipnumflux reducer above. Share code?)
                         Real temp_keV = physicalconstants::K_B * grid.nodes[i].electronTemperature() / physicalconstants::CHARGE / 1000;
 
-                        for(int p=0; p<grid.productionNumParticleEnergies; p++) {
+                        for(int p=0; p<SBC::productionNumParticleEnergies; p++) {
                            Real energyparam = (particle_energy[p]-accenergy)/temp_keV; // = E_p / (kB T)
                            Real deltaE = (particle_energy[p+1] - particle_energy[p])* 1e3*physicalconstants::CHARGE;  // dE in J
                            numberFlux += grid.nodes[i].parameters[ionosphereParameters::RHON] * sqrt(1. / (2. * M_PI * physicalconstants::MASS_ELECTRON))
@@ -2878,13 +2964,13 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      }
                      return retval;
                      }));
-         outputReducer->addMetadata(outputReducer->size()-1, "eV", "eV", "$\\bar{E}_\mathrm{precip}$", "1.0");
+         outputReducer->addMetadata(outputReducer->size()-1, "eV", "eV", "$\\bar{E}_\\mathrm{precip}$", "1.0");
          continue;
       }
       if(lowercase == "ig_potential") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_potential", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.nodes.size());
 
                      for(uint i=0; i<grid.nodes.size(); i++) {
@@ -2921,7 +3007,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      }));
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_p", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.nodes.size());
 
                      for(uint i=0; i<grid.nodes.size(); i++) {
@@ -2932,7 +3018,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      }));
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_pp", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.nodes.size());
 
                      for(uint i=0; i<grid.nodes.size(); i++) {
@@ -2943,7 +3029,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      }));
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_z", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.nodes.size());
 
                      for(uint i=0; i<grid.nodes.size(); i++) {
@@ -2954,7 +3040,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      }));
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_zz", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.nodes.size());
 
                      for(uint i=0; i<grid.nodes.size(); i++) {
@@ -2969,7 +3055,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(lowercase == "ig_upmappednodecoords") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_upmappednodecoords", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.nodes.size()*3);
 
                      for(uint i=0; i<grid.nodes.size(); i++) {
@@ -2986,7 +3072,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(lowercase == "ig_upmappedb") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_upmappedb", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.nodes.size()*3);
 
                      for(uint i=0; i<grid.nodes.size(); i++) {
@@ -3000,10 +3086,25 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          outputReducer->addMetadata(outputReducer->size()-1, "T", "T", "$B_\\mathrm{mapped}$", "1.0");
          continue;
       }
+      if(lowercase == "ig_openclosed") {
+         FieldTracing::fieldTracingParameters.doTraceOpenClosed = true;
+         outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_openclosed", [](
+            SBC::SphericalTriGrid& grid)->std::vector<Real> {
+
+               std::vector<Real> retval(grid.nodes.size());
+
+               for(uint i=0; i<grid.nodes.size(); i++) {
+                  retval[i] = (Real)grid.nodes[i].openFieldLine;
+               }
+
+               return retval;
+            }));
+         continue;
+      }
       if(lowercase == "ig_fac") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_fac", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.nodes.size());
 
                      for(uint i=0; i<grid.nodes.size(); i++) {
@@ -3039,7 +3140,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                   x[1] = cell->parameters[CellParams::YCRD] + cell->parameters[CellParams::DY];
                   x[2] = cell->parameters[CellParams::ZCRD] + cell->parameters[CellParams::DZ];
 
-                  std::array<std::pair<int, Real>, 3> coupling = SBC::ionosphereGrid.calculateVlasovGridCoupling(x, SBC::Ionosphere::radius);
+                  std::array<std::pair<int, Real>, 3> coupling = FieldTracing::calculateIonosphereVlasovGridCoupling(x, SBC::ionosphereGrid.nodes, SBC::Ionosphere::radius);
                   for(int i=0; i<3; i++) {
                      uint coupledNode = coupling[i].first;
                      Real a = coupling[i].second;
@@ -3051,6 +3152,53 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                   return retval;
 			}));
          outputReducer->addMetadata(outputReducer->size()-1, "m", "m", "$x_\\mathrm{coupled}$", "1.0");
+         continue;
+      }
+      if(lowercase == "vg_connection") {
+         FieldTracing::fieldTracingParameters.doTraceFullBox = true;
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_connection",CellParams::CONNECTION,1));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_connection_coordinates_fw",CellParams::CONNECTION_FW_X,3));
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_connection_coordinates_bw",CellParams::CONNECTION_BW_X,3));
+         continue;
+      }
+      if(lowercase == "vg_fluxrope" || lowercase == "vg_curvature") {
+         Parameters::computeCurvature = true;
+         outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_curvature",CellParams::CURVATUREX,3));
+         if(lowercase == "vg_fluxrope") {
+            FieldTracing::fieldTracingParameters.doTraceFullBox = true;
+            outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_fluxrope",CellParams::FLUXROPE,1));
+         }
+         continue;
+      }
+      if(lowercase == "fg_curvature") {
+         Parameters::computeCurvature = true;
+         outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_curvature",[](
+            FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+            FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+            FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+            FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+            FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+            FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+            FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+            FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+            FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+            FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
+
+               std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+               std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
+
+               for(int z=0; z<gridSize[2]; z++) {
+                  for(int y=0; y<gridSize[1]; y++) {
+                     for(int x=0; x<gridSize[0]; x++) {
+                        retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x)] =     (*volGrid.get(x,y,z))[fsgrids::volfields::CURVATUREX];
+                        retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x) + 1] = (*volGrid.get(x,y,z))[fsgrids::volfields::CURVATUREY];
+                        retval[3*(gridSize[1]*gridSize[0]*z + gridSize[0]*y + x) + 2] = (*volGrid.get(x,y,z))[fsgrids::volfields::CURVATUREZ];
+                     }
+                  }
+               }
+               return retval;
+            }
+         ));
          continue;
       }
       // After all the continue; statements one should never land here.
@@ -3159,7 +3307,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
  */
 DataReducer::DataReducer() { }
 
-/** Destructor for class DataReducer. All stored DataReductionOperators 
+/** Destructor for class DataReducer. All stored DataReductionOperators
  * are deleted.
  */
 DataReducer::~DataReducer() {
@@ -3170,7 +3318,7 @@ DataReducer::~DataReducer() {
    }
 }
 
-/** Add a new DRO::DataReductionOperator which has been created with new operation. 
+/** Add a new DRO::DataReductionOperator which has been created with new operation.
  * DataReducer will take care of deleting it.
  * @return If true, the given DRO::DataReductionOperator was added successfully.
  */
@@ -3203,7 +3351,7 @@ bool DataReducer::getDataVectorInfo(const unsigned int& operatorID,std::string& 
    return operators[operatorID]->getDataVectorInfo(dataType,dataSize,vectorSize);
 }
 
-/** Add a metadata to the specified DRO::DataReductionOperator. 
+/** Add a metadata to the specified DRO::DataReductionOperator.
  * @param operatorID ID number of the DataReductionOperator to add metadata to
  * @param unit string with the physical unit of the DRO result
  * @param unitLaTeX LaTeX-formatted string with the physical unit of the DRO result
@@ -3226,15 +3374,6 @@ bool DataReducer::addMetadata(const unsigned int operatorID, std::string unit,st
 bool DataReducer::getMetadata(const unsigned int& operatorID,std::string& unit,std::string& unitLaTeX,std::string& variableLaTeX,std::string& unitConversion) const {
    if (operatorID >= operators.size()) return false;
    return operators[operatorID]->getUnitMetadata(unit, unitLaTeX, variableLaTeX, unitConversion);
-}
-
-/** Ask a DataReductionOperator if it wants to take care of writing the data 
- * to output file instead of letting be handled in iowrite.cpp. 
- * @param operatorID ID number of the DataReductionOperator.
- * @return If true, then VLSVWriter should be passed to the DataReductionOperator.*/
-bool DataReducer::handlesWriting(const unsigned int& operatorID) const {
-   if (operatorID >= operators.size()) return false;
-   return dynamic_cast<DRO::DataReductionOperatorHandlesWriting*>(operators[operatorID]) != nullptr;
 }
 
 /** Ask a DataReductionOperator if it wants to write parameters to the vlsv file header
@@ -3270,7 +3409,7 @@ bool DataReducer::reduceDiagnostic(const SpatialCell* cell,const unsigned int& o
    // Tell the chosen operator which spatial cell we are counting:
    if (operatorID >= operators.size()) return false;
    if (operators[operatorID]->setSpatialCell(cell) == false) return false;
-   
+
    if (operators[operatorID]->reduceDiagnostic(cell,result) == false) return false;
    return true;
 }
@@ -3279,25 +3418,6 @@ bool DataReducer::reduceDiagnostic(const SpatialCell* cell,const unsigned int& o
  * @return Number of DataReductionOperators stored in DataReducer.
  */
 unsigned int DataReducer::size() const {return operators.size();}
-
-/** Write all data from given DataReductionOperator to the output file.
- * @param operatorID ID number of the selected DataReductionOperator.
- * @param mpiGrid Parallel grid library.
- * @param cells Vector containing spatial cell IDs.
- * @param meshName Name of the spatial mesh in the output file.
- * @param vlsvWriter VLSV file writer that has output file open.
- * @return If true, DataReductionOperator wrote its data successfully.*/
-bool DataReducer::writeData(const unsigned int& operatorID,
-                  const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                  const std::vector<CellID>& cells,const std::string& meshName,
-                  vlsv::Writer& vlsvWriter) {
-   if (operatorID >= operators.size()) return false;
-   DRO::DataReductionOperatorHandlesWriting* writingOperator = dynamic_cast<DRO::DataReductionOperatorHandlesWriting*>(operators[operatorID]);
-   if(writingOperator == nullptr) {
-      return false;
-   }
-   return writingOperator->writeData(mpiGrid,cells,meshName,vlsvWriter);
-}
 
 /** Write parameters related to given DataReductionOperator to the output file.
  * @param operatorID ID number of the selected DataReductionOperator.
@@ -3327,7 +3447,7 @@ bool DataReducer::writeFsGridData(
                       const std::string& meshName, const unsigned int operatorID,
                       vlsv::Writer& vlsvWriter,
                       const bool writeAsFloat) {
-   
+
    if (operatorID >= operators.size()) return false;
    DRO::DataReductionOperatorFsGrid* DROf = dynamic_cast<DRO::DataReductionOperatorFsGrid*>(operators[operatorID]);
    if(!DROf) {
@@ -3351,5 +3471,5 @@ bool DataReducer::writeIonosphereGridData(
    } else {
       return false;
    }
-   
+
 }

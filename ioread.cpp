@@ -113,7 +113,7 @@ void checkExternalCommands() {
   \param comm MPI comm
   \return Returns true if the operation was successful
 */
-bool exitOnError(bool success,string message,MPI_Comm comm) {
+bool exitOnError(bool success, const string& message, MPI_Comm comm) {
    int successInt;
    int globalSuccessInt;
    if(success)
@@ -140,8 +140,8 @@ bool exitOnError(bool success,string message,MPI_Comm comm) {
  \param masterRank The simulation's master rank id (Vlasiator uses 0, which should be the default)
  \param comm MPI comm (MPI_COMM_WORLD should be the default)
 */
-bool readCellIds(vlsv::ParallelReader & file,
-                 vector<CellID>& fileCells, const int masterRank,MPI_Comm comm){
+bool readCellIds(vlsv::ParallelReader & file, vector<CellID>& fileCells, const int masterRank,MPI_Comm comm)
+{
    // Get info on array containing cell Ids:
    uint64_t arraySize = 0;
    uint64_t vectorSize;
@@ -228,8 +228,6 @@ bool readNBlocks(vlsv::ParallelReader& file,const std::string& meshName,
    // Read mesh bounding box to all processes, the info in bbox contains 
    // the number of spatial cells in the mesh.
    // (This is *not* the physical coordinate bounding box.)
-   uint64_t bbox[6];
-   uint64_t* bbox_ptr = bbox;
    list<pair<string,string> > attribsIn;
    map<string,string> attribsOut;
    attribsIn.push_back(make_pair("mesh",meshName));
@@ -320,7 +318,6 @@ bool _readBlockData(
 ) {   
    uint64_t arraySize;
    uint64_t avgVectorSize;
-   uint64_t cellParamsVectorSize;
    vlsv::datatype::type dataType;
    uint64_t byteSize;
    list<pair<string,string> > avgAttribs;
@@ -679,7 +676,7 @@ static bool _readCellParamsVariable(
    }
    
    buffer=new fileReal[vectorSize*localCells];
-   if(file.readArray("VARIABLE",attribs,localCellStartOffset,localCells,(char *)buffer) == false ) {
+   if(file.readArray("VARIABLE", attribs, localCellStartOffset, localCells, (char*) buffer) == false ) {
       logFile << "(RESTART)  ERROR: Failed to read " << variableName << endl << write;
       return false;
    }
@@ -825,24 +822,9 @@ template<unsigned long int N> bool readFsGridVariable(
       // Read into buffer
       std::vector<Real> buffer(storageSize*N);
 
-      if(!convertFloatType) {
-         if(file.readArray("VARIABLE",attribs, localStartOffset, storageSize, (char*)buffer.data()) == false) {
-            logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
-            return false;
-         }
-      } else {
-
-         // Read to temporary float buffer
-         std::vector<float> readBuffer(storageSize*N);
-
-         if(file.readArray("VARIABLE",attribs, localStartOffset, storageSize, (char*)readBuffer.data()) == false) {
-            logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
-            return false;
-         }
-
-         for(uint64_t i=0; i<storageSize*N; i++) {
-            buffer[i] = readBuffer[i];
-         }
+      if(file.readArray("VARIABLE",attribs, localStartOffset, storageSize, buffer.data()) == false) {
+         logFile << "(RESTART)  ERROR: Failed to read fsgrid variable " << variableName << endl << write;
+         return false;
       }
       
       // Assign buffer into fsgrid
@@ -975,7 +957,6 @@ bool readIonosphereNodeVariable(
    vlsv::datatype::type dataType;
    uint64_t byteSize;
    list<pair<string,string> > attribs;
-   bool convertFloatType = false;
    
    attribs.push_back(make_pair("name",variableName));
    attribs.push_back(make_pair("mesh","ionosphere"));
@@ -990,11 +971,6 @@ bool readIonosphereNodeVariable(
       return false;
    }
 
-   if(! (dataType == vlsv::datatype::type::FLOAT && byteSize == sizeof(Real))) {
-      logFile << "(RESTART) Converting floating point format of ionosphere variable " << variableName << " from " << byteSize * 8 << " bits to " << sizeof(Real) * 8 << " bits." << endl << write;
-      convertFloatType = true;
-   }
-
    // Verify that this is a scalar variable
    if(vectorSize != 1) {
       logFile << "(RESTART) ERROR: Trying to read vector valued (" << vectorSize << " components) ionosphere parameter from restart file. Only scalars are supported." << endl << write;
@@ -1007,24 +983,13 @@ bool readIonosphereNodeVariable(
       return false;
    }
 
-   if(!convertFloatType) {
-      std::vector<Real> buffer(arraySize);
-      if(file.readArray("VARIABLE", attribs, 0, arraySize, (char*)buffer.data()) == false) {
-         logFile << "(RESTART) ERROR: Failed to read ionosphere variable " << variableName << endl << write;
-      }
+   std::vector<Real> buffer(arraySize);
+   if(file.readArray("VARIABLE", attribs, 0, arraySize, buffer.data()) == false) {
+      logFile << "(RESTART) ERROR: Failed to read ionosphere variable " << variableName << endl << write;
+   }
 
-      for(uint i=0; i<grid.nodes.size(); i++) {
-         grid.nodes[i].parameters[index] = buffer[i];
-      }
-   } else {
-      std::vector<float> buffer(arraySize);
-      if(file.readArray("VARIABLE", attribs, 0, arraySize, (char*)buffer.data()) == false) {
-         logFile << "(RESTART) ERROR: Failed to read ionosphere variable " << variableName << endl << write;
-      }
-
-      for(uint i=0; i<grid.nodes.size(); i++) {
-         grid.nodes[i].parameters[index] = buffer[i];
-      }
+   for(uint i=0; i<grid.nodes.size(); i++) {
+      grid.nodes[i].parameters[index] = buffer[i];
    }
 
    return true;
@@ -1090,7 +1055,8 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    bool success=true;
    int myRank,processes;
 
-#warning Spatial grid name hard-coded here
+   // Note: Spatial grid name hard-coded here.
+   // But so are the other mesh names below.
    const string meshName = "SpatialGrid";
    
    // Attempt to open VLSV file for reading:
@@ -1102,9 +1068,22 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    phiprof::start("readScalars");
 
    vlsv::ParallelReader file;
-   MPI_Info mpiInfo = MPI_INFO_NULL;
 
-   if (file.open(name,MPI_COMM_WORLD,MASTER_RANK,mpiInfo) == false) {
+   MPI_Info MPIinfo;
+   if (P::restartReadHints.size() == 0) {
+      MPIinfo = MPI_INFO_NULL;
+   } else {
+      MPI_Info_create(&MPIinfo);
+      
+      for (std::vector<std::pair<std::string,std::string>>::const_iterator it = P::restartReadHints.begin();
+           it != P::restartReadHints.end();
+           it++)
+      {
+         MPI_Info_set(MPIinfo, it->first.c_str(), it->second.c_str());
+      }
+   }
+
+   if (file.open(name,MPI_COMM_WORLD,MASTER_RANK,MPIinfo) == false) {
       success=false;
    }
    exitOnError(success,"(RESTART) Could not open file",MPI_COMM_WORLD);
@@ -1130,7 +1109,7 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       P::fieldSolverSubcycles = 1.0;
       cout << " No P::fieldSolverSubcycles found in restart, setting 1." << endl;
    }
-   MPI_Bcast(&(P::fieldSolverSubcycles),1,MPI_Type<Real>(),MASTER_RANK,MPI_COMM_WORLD);
+   MPI_Bcast(&(P::fieldSolverSubcycles),1,MPI_Type<uint>(),MASTER_RANK,MPI_COMM_WORLD);
    
 
 
@@ -1153,9 +1132,10 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 	}
 
    // Check that the cellID lists are identical in file and grid
-   if (myRank==0){
-      vector<CellID> allGridCells=mpiGrid.get_all_cells();
-      if (fileCells.size() != allGridCells.size()){
+   if (myRank==0) {
+      vector<CellID> allGridCells = mpiGrid.get_all_cells();
+      if (fileCells.size() != allGridCells.size()) {
+         std::cout << "File has " << fileCells.size() << " cells, got " << allGridCells.size() << " cells!" << std::endl;
          success=false;
       }
    }
@@ -1269,6 +1249,9 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_v_dt",CellParams::MAXVDT,1,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_r_dt",CellParams::MAXRDT,1,mpiGrid); }
    if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"max_fields_dt",CellParams::MAXFDT,1,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"vg_drift",CellParams::BULKV_FORCING_X,3,mpiGrid); }
+   if(success) { success=readCellParamsVariable(file,fileCells,localCellStartOffset,localCells,"vg_bulk_forcing_flag",CellParams::FORCING_CELL_NUM,1,mpiGrid); }
+
    // Backround B has to be set, there are also the derivatives that should be written/read if we wanted to only read in background field
    phiprof::stop("readCellParameters");
 
@@ -1289,8 +1272,8 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       exitOnError(false, "(RESTART) FSGrid writing rank number not found in restart file", MPI_COMM_WORLD);
    }
    
-   if(success) { success = readFsGridVariable(file, "fg_PERB", fsgridInputRanks, perBGrid); }
-   if(success) { success = readFsGridVariable(file, "fg_E", fsgridInputRanks, EGrid); }
+   if (success) { success = readFsGridVariable(file, "fg_PERB", fsgridInputRanks, perBGrid); }
+   if (success) { success = readFsGridVariable(file, "fg_E", fsgridInputRanks, EGrid); }
    exitOnError(success,"(RESTART) Failure reading fsgrid restart variables",MPI_COMM_WORLD);
    phiprof::stop("readFsGrid");
    
@@ -1347,4 +1330,29 @@ bool readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
               const std::string& name){
    //Check the vlsv version from the file:
    return exec_readGrid(mpiGrid,perBGrid,EGrid,technicalGrid,name);
+}
+
+/*!
+\brief Refine the grid to be identical to the file's
+\param mpiGrid Vlasiator's grid
+\param name Name of the restart file e.g. "restart.00052.vlsv"
+*/
+bool readFileCells(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const std::string& name)
+{
+   vector<CellID> fileCells; /*< CellIds for all cells in file*/
+   bool success = true;
+   vlsv::ParallelReader file;
+   MPI_Info mpiInfo = MPI_INFO_NULL;
+
+   // Not sure if this success business is useful at all...
+   success = file.open(name,MPI_COMM_WORLD,MASTER_RANK,mpiInfo);
+   exitOnError(success,"(READ_FILE_CELLS) Could not open file",MPI_COMM_WORLD);
+
+   readCellIds(file,fileCells,MASTER_RANK,MPI_COMM_WORLD);
+   success = mpiGrid.load_cells(fileCells);
+   exitOnError(success,"(READ_FILE_CELLS) Failed to refine grid",MPI_COMM_WORLD);
+
+   success = file.close();
+   exitOnError(success,"(READ_FILE_CELLS) Other error",MPI_COMM_WORLD);
+   return success;
 }

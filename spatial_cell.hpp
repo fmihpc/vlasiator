@@ -46,13 +46,13 @@ Spatial cell class for Vlasiator that supports a variable number of velocity blo
 #include "parameters.h"
 #include "definitions.h"
 
-#ifndef AMR
+#ifndef VAMR
    #include "velocity_mesh_old.h"
 #else
    #include "velocity_mesh_amr.h"
 #endif
 
-#include "amr_refinement_criteria.h"
+#include "vamr_refinement_criteria.h"
 #include "velocity_blocks.h"
 #include "velocity_block_container.h"
 
@@ -174,7 +174,8 @@ namespace spatial_cell {
    class SpatialCell {
    public:
       SpatialCell();
-      SpatialCell(const SpatialCell& other);
+      // SpatialCell(const SpatialCell& other);
+      // const SpatialCell& operator=(const SpatialCell& other);
 
       // Following functions return velocity grid metadata //
       template<int PAD> void fetch_data(const vmesh::GlobalID& blockGID,const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
@@ -271,7 +272,7 @@ namespace spatial_cell {
       bool checkMesh(const uint popID);
       void clear(const uint popID);
       void coarsen_block(const vmesh::GlobalID& parent,const std::vector<vmesh::GlobalID>& children,const uint popID);
-      void coarsen_blocks(amr_ref_criteria::Base* evaluator,const uint popID);
+      void coarsen_blocks(vamr_ref_criteria::Base* evaluator,const uint popID);
       uint64_t get_cell_memory_capacity();
       uint64_t get_cell_memory_size();
       void merge_values(const uint popID);
@@ -986,7 +987,7 @@ namespace spatial_cell {
                                                                 const int& i_cell,const int& j_cell,const int& k_cell) {
       uint8_t ref = refLevel;
 
-      vmesh::LocalID i_child,j_child,k_child;
+      vmesh::LocalID i_child=0,j_child=0,k_child=0;
       i_child = 2*i_child + i_cell/2;
       j_child = 2*j_child + j_cell/2;
       k_child = 2*k_child + k_cell/2;
@@ -1602,7 +1603,6 @@ namespace spatial_cell {
     functions of the containers in spatial cell
     */
    inline uint64_t SpatialCell::get_cell_memory_size() {
-      const uint64_t VEL_BLOCK_SIZE = 2*WID3*sizeof(Realf) + BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real);
       uint64_t size = 0;
       size += vmeshTemp.sizeInBytes();
       size += blockContainerTemp.sizeInBytes();
@@ -1626,7 +1626,6 @@ namespace spatial_cell {
     the size() functions of the containers in spatial cell
     */
    inline uint64_t SpatialCell::get_cell_memory_capacity() {
-      const uint64_t VEL_BLOCK_SIZE = 2*WID3*sizeof(Realf) + BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real);
       uint64_t capacity = 0;
       
       capacity += vmeshTemp.capacityInBytes();
@@ -1899,29 +1898,6 @@ namespace spatial_cell {
       return populations[popID].vmesh.hasGrandParent(blockGID);
    }
 
-   // inline SpatialCell& SpatialCell::operator=(const SpatialCell& other) {
-   //    this->sysBoundaryFlag = other.sysBoundaryFlag;
-   //    this->sysBoundaryLayer = other.sysBoundaryLayer;
-   //    this->sysBoundaryLayerNew = other.sysBoundaryLayerNew;
-   //    this->velocity_block_with_content_list = other.velocity_block_with_content_list;
-   //    this->velocity_block_with_no_content_list = other.velocity_block_with_no_content_list;
-   //    this->initialized = other.initialized;
-   //    this->mpiTransferEnabled = other.mpiTransferEnabled;      
-   //    this->parameters = other.parameters;
-   //    this->derivatives = other.derivatives;
-   //    this->derivativesBVOL = other.derivativesBVOL;      
-   //    this->null_block_data = other.null_block_data;
-   //    this->populations = other.populations;
-   //    this->face_neighbor_ranks = other.face_neighbor_ranks;
-   
-   //    return *this;
-   // }
-   
-   // inline SpatialCell& SpatialCell::operator=(const SpatialCell&) { 
-   //    return *this;
-   // }
-
-   
 } // namespaces
 
 #endif

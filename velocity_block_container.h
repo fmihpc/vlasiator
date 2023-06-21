@@ -28,9 +28,9 @@
 #include "common.h"
 #include "unistd.h"
 
-#ifdef DEBUG_VBC
-   #include <sstream>
-#endif
+//#ifdef DEBUG_VBC
+#include <sstream>
+//#endif
 
 namespace vmesh {
 
@@ -82,10 +82,7 @@ namespace vmesh {
    };
    
    template<typename LID> inline
-   VelocityBlockContainer<LID>::VelocityBlockContainer() {
-      currentCapacity = 0;
-      numberOfBlocks = 0;
-   }
+   VelocityBlockContainer<LID>::VelocityBlockContainer() : currentCapacity {0}, numberOfBlocks {0} {}
    
    template<typename LID> inline
    LID VelocityBlockContainer<LID>::capacity() const {

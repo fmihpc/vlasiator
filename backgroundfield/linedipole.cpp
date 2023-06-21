@@ -66,24 +66,28 @@ double LineDipole::operator()( double x, double y, double z, coordinate componen
    //const double B;
    //const double der;
    
-   switch(derivative) {
+   switch (derivative) {
       case 0:
-         if(component == 0)
-            return D*2*r[0]*r[2]/(r2*r2);
-         if(component == 2)
-            return D*(r[2]*r[2]-r[0]*r[0])/(r2*r2); 
-         if(component == 1)
-            return 0;
+         switch (component) {
+            case 0:
+               return D*2*r[0]*r[2]/(r2*r2);
+            case 2:
+               return D*(r[2]*r[2]-r[0]*r[0])/(r2*r2); 
+            default:
+               return 0;
+         }
       case 1:
          //first derivatives
-         if(dcomponent== 1 || component==1) {
+         if(dcomponent == 1 || component == 1) {
             return 0;
-         } else if(dcomponent==component) {
-            if(component == 0) {
-               return DerivativeSameComponent;
-            }
-            else if(component == 2) {
-               return -DerivativeSameComponent;
+         } else if(dcomponent == component) {
+            switch (component) {
+               case 0:
+                  return DerivativeSameComponent;
+               case 2:
+                  return -DerivativeSameComponent;
+               default:
+                  return 0; // Redundant for warning
             }
          } else { 
             return DerivativeDiffComponent;

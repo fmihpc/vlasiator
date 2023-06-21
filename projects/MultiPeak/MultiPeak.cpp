@@ -155,9 +155,7 @@ namespace projects {
       uint N = nVelocitySamples; // Start by using nVelocitySamples
       int N3_sum = 0;           // Sum of sampling points used so far
 
-      const MultiPeakSpeciesParameters& sP = speciesParams[popID];
-                                            
-      #warning TODO: Replace getObjectWrapper().particleSpecies[popID].sparseMinValue with SpatialCell::getVelocityBlockMinValue(popID)
+      #warning SpatialCell::getVelocityBlockMinValue() or dynamic algorithm not available without spatial cell data
       const Real avgLimit = 0.01*getObjectWrapper().particleSpecies[popID].sparseMinValue;
       do {
          Real avg = 0.0;        // Volume average obtained during this sampling
