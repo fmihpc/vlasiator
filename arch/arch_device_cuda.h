@@ -165,7 +165,7 @@ class buf<FsGrid<T, TDim, N>> {
   buf(FsGrid<T, TDim, N> * const _ptr) : ptr(_ptr) {
     int32_t *storageSize = _ptr->getStorageSize();
     dataSize = storageSize[0] * storageSize[1] * storageSize[2] * TDim * sizeof(T);
-    h_data = _ptr->get(0);
+    h_data = &_ptr->get(0);
     h_ptr = (FsGrid<T, TDim, N>*) malloc(sizeof(FsGrid<T, TDim, N>));
     CHK_ERR(cudaMalloc(&d_ptr, sizeof(FsGrid<T, TDim, N>)));
     CHK_ERR(cudaMalloc(&d_data, dataSize));
@@ -206,9 +206,9 @@ class buf<FsGrid<T, TDim, N>> {
 
   __host__ __device__ T& get(int x, int y, int z, int j) const {
    #ifdef __CUDA_ARCH__
-      return *d_ptr->get(x, y, z, j);
+      return d_ptr->get(x, y, z, j);
    #else
-      return *ptr->get(x, y, z, j);
+      return ptr->get(x, y, z, j);
    #endif
   }
 };
