@@ -102,70 +102,113 @@ class buf {
   }
 }; 
 
-
-/* Buffer class for making grids available on the device */
 template <typename T, int TDim, int N> 
 class buf<FsGrid<T, TDim, N>> {
   private:  
-  FsGrid<T, TDim, N> *ptr; 
-  FsGrid<T, TDim, N> *d_ptr;
-  FsGrid<T, TDim, N> *h_ptr;
+  T *h_data; 
   T *d_data;
-  int32_t dataSize = 0;
+  FsGrid<T, TDim, N> *ptr; 
+  FsGrid<T, TDim, N> *h_ptr; 
+  FsGrid<T, TDim, N> *d_ptr;
+  uint dataSize;
   uint is_copy = 0;
   uint thread_id = 0;
 
   public:   
 
+    class Proxy3 {
+    public:
+      __host__ __device__ Proxy3(int x, int y, int z, const buf<FsGrid<T, TDim, N>> &obj) : obj(obj), x(x), y(y), z(z)  {}
+
+      __host__ __device__ T& operator[](int j) {
+        return obj.get(x, y, z, j);
+      }
+      __host__ __device__ T& at(int j) {
+        return obj.get(x, y, z, j);
+      } 
+
+    private:
+      int x, y, z;
+      arch::buf<FsGrid<T, TDim, N>> obj;
+    }; 
+
+    class Proxy1 {
+    public:
+      __host__ __device__ Proxy1(int i, const buf<FsGrid<T, TDim, N>> &obj) : i(i), obj(obj) {}
+
+      __host__ __device__ T& operator[](int j) {
+        return obj.get(i, j);
+      }
+      __host__ __device__ T& at(int j) {
+        return obj.get(i, j);
+      } 
+
+    private:
+      int i;
+      arch::buf<FsGrid<T, TDim, N>> obj;
+    }; 
+
   void syncDeviceData(void){
     memcpy(h_ptr, ptr, sizeof(FsGrid<T, TDim, N>));
     h_ptr->setData(d_data);
-    CHK_ERR(cudaMemcpy(d_ptr, ptr, sizeof(FsGrid<T, TDim, N>), cudaMemcpyHostToDevice));
-    CHK_ERR(cudaMemcpy(d_data, ptr->getData(), dataSize * TDim * sizeof(T), cudaMemcpyHostToDevice));
+    CHK_ERR(cudaMemcpy(d_ptr, h_ptr, sizeof(FsGrid<T, TDim, N>), cudaMemcpyHostToDevice));
+    CHK_ERR(cudaMemcpy(d_data, h_data, dataSize, cudaMemcpyHostToDevice));
   }
 
   void syncHostData(void){
-    CHK_ERR(cudaMemcpy(ptr->getData(), d_data, dataSize * TDim * sizeof(T), cudaMemcpyDeviceToHost));
+    CHK_ERR(cudaMemcpy(h_data, d_data, dataSize, cudaMemcpyDeviceToHost));
     CHK_ERR(cudaMemcpy(h_ptr, d_ptr, sizeof(FsGrid<T, TDim, N>), cudaMemcpyDeviceToHost));
-    h_ptr->setData(ptr->getData());
+    h_ptr->setData(h_data);
     memcpy(ptr, h_ptr, sizeof(FsGrid<T, TDim, N>));
   }
   
   buf(FsGrid<T, TDim, N> * const _ptr) : ptr(_ptr) {
-    thread_id = omp_get_thread_num();
-    dataSize = _ptr->getGlobalSize()[0] * _ptr->getGlobalSize()[1] * _ptr->getGlobalSize()[2];
+    int32_t *storageSize = _ptr->getStorageSize();
+    dataSize = storageSize[0] * storageSize[1] * storageSize[2] * TDim * sizeof(T);
+    h_data = _ptr->get(0);
     h_ptr = (FsGrid<T, TDim, N>*) malloc(sizeof(FsGrid<T, TDim, N>));
     CHK_ERR(cudaMalloc(&d_ptr, sizeof(FsGrid<T, TDim, N>)));
-    CHK_ERR(cudaMalloc(&d_data, dataSize * sizeof(T)));
+    CHK_ERR(cudaMalloc(&d_data, dataSize));
     syncDeviceData();
   }
   
   __host__ __device__ buf(const buf& u) : 
-    ptr(u.ptr), d_ptr(u.d_ptr), is_copy(1), thread_id(u.thread_id) {}
+    ptr(u.ptr), h_ptr(u.h_ptr), d_ptr(u.d_ptr), h_data(u.h_data), d_data(u.d_data), dataSize(u.dataSize), is_copy(1), thread_id(u.thread_id) {}
 
   __host__ __device__ ~buf(void){
     if(!is_copy){
       #ifndef __CUDA_ARCH__
         syncHostData();
-        cudaFree(d_ptr);
+        CHK_ERR(cudaFree(d_data));
       #endif
     }
   }
 
-  __host__ __device__ T* get(uint i, uint j, uint k) const {
+  __host__ __device__ Proxy1 get(int i) const {
+      return Proxy1(i, *this);
+  }
+
+  __host__ __device__ Proxy1 operator[](int i) const {
+      return Proxy1(i, *this);
+  }
+
+  __host__ __device__ Proxy3 get(int x, int y, int z) const {
+    return Proxy3(x, y, z, *this);
+  } 
+
+  __host__ __device__ T& get(int i, int j) const {
    #ifdef __CUDA_ARCH__
-      return d_ptr->get(i, j, k);
-      // return d_ptr->get(1);
+      return *d_ptr->get(i, j);
    #else
-      return ptr->get(i, j, k);
+      return *ptr->get(i, j);
    #endif
   }
 
-  __host__ __device__ T* operator [] (uint i) const {
+  __host__ __device__ T& get(int x, int y, int z, int j) const {
    #ifdef __CUDA_ARCH__
-      return d_ptr->get(i);
+      return *d_ptr->get(x, y, z, j);
    #else
-      return ptr->get(i);
+      return *ptr->get(x, y, z, j);
    #endif
   }
 };
