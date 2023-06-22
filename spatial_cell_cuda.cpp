@@ -31,10 +31,6 @@
    #define DEBUG_SPATIAL_CELL
 #endif
 
-// Extra profiling stream synchronizations?
-//#define SSYNC HANDLE_ERROR( cudaStreamSynchronize(stream) );
-#define SSYNC
-
 using namespace std;
 
 /** CUDA kernel for identifying which blocks have relevant content */
@@ -276,7 +272,6 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
       if (ti==0) {
          // Bookkeeping only by one thread
          local_rhoLoss += massloss[0];
-         //size_t old= atomicAdd(dev_rhoLossAdjust, massloss[0]);
       }
       __syncthreads();
 
@@ -289,7 +284,7 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
          __syncthreads();
          continue;
       }
-      if (ti==0) moveIndex = atomicAdd(addVectorIndex+1,1);
+      if (ti==0) moveIndex = atomicAdd(moveVectorIndex,1);
       __syncthreads();
       if (moveIndex<nToMove) {
          // Move from latter part of vmesh
@@ -317,7 +312,7 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
          #endif
          continue;
       }
-      if (ti==0) addIndex = atomicAdd(moveVectorIndex,1);
+      if (ti==0) addIndex = atomicAdd(addVectorIndex,1);
       __syncthreads();
       if (addIndex<nToAdd) {
          // New GID
@@ -384,7 +379,7 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
    }
    // Atomically update accumulated mass loss
    if (ti==0) {
-      Realf old= atomicAdd(dev_rhoLossAdjust, local_rhoLoss);
+      Realf old = atomicAdd(dev_rhoLossAdjust, local_rhoLoss);
    }
 }
 
@@ -453,6 +448,7 @@ namespace spatial_cell {
       cudaMallocHost((void **) &info_toAdd, sizeof(split::SplitInfo));
       cudaMallocHost((void **) &info_toMove, sizeof(split::SplitInfo));
       cudaMallocHost((void **) &info_Required, sizeof(split::SplitInfo));
+      cudaMallocHost((void **) &info_brm, sizeof(Hashinator::MapInfo));
    }
 
    SpatialCell::~SpatialCell() {
@@ -469,6 +465,7 @@ namespace spatial_cell {
       cudaFree(info_toAdd);
       cudaFree(info_toMove);
       cudaFree(info_Required);
+      cudaFree(info_brm);
    }
 
    SpatialCell::SpatialCell(const SpatialCell& other) {
@@ -531,6 +528,7 @@ namespace spatial_cell {
       cudaMallocHost((void **) &info_toAdd, sizeof(split::SplitInfo));
       cudaMallocHost((void **) &info_toMove, sizeof(split::SplitInfo));
       cudaMallocHost((void **) &info_Required, sizeof(split::SplitInfo));
+      cudaMallocHost((void **) &info_brm, sizeof(Hashinator::MapInfo));
    }
    const SpatialCell& SpatialCell::operator=(const SpatialCell& other) {
       // Delete old vectors
@@ -701,20 +699,21 @@ namespace spatial_cell {
        from several streams at once.
     */
    void SpatialCell::dev_uploadContentLists() {
+      phiprof::start("Upload local content lists");
       cudaStream_t stream = cuda_getStream();
-      velocity_block_with_content_list_size = velocity_block_with_content_list->size();
-      velocity_block_with_content_list->optimizeGPU(stream);
+      velocity_block_with_content_list->copyMetadata(info_vbwcl,stream);
+      HANDLE_ERROR( cudaStreamSynchronize(stream) );
+      velocity_block_with_content_list_size = info_vbwcl->size;
       HANDLE_ERROR( cudaMallocAsync((void**)&dev_velocity_block_with_content_list_buffer, velocity_block_with_content_list_size*sizeof(vmesh::LocalID), stream) );
-      SSYNC
       HANDLE_ERROR( cudaMemcpyAsync(dev_velocity_block_with_content_list_buffer, velocity_block_with_content_list->data(), velocity_block_with_content_list_size*sizeof(vmesh::LocalID), cudaMemcpyDeviceToDevice, stream) );
-      SSYNC
+      SSYNC;
+      phiprof::stop("Upload local content lists");
    }
    /** Clears the device buffer for velocity_block_with_content_list
     */
    void SpatialCell::dev_clearContentLists() {
       cudaStream_t stream = cuda_getStream();
       HANDLE_ERROR( cudaFreeAsync(dev_velocity_block_with_content_list_buffer, stream) );
-      // Note, no synchronization here as we just free memory
    }
 
    /** Adds "important" and removes "unimportant" velocity blocks
@@ -756,32 +755,30 @@ namespace spatial_cell {
       cudaStream_t stream = cuda_getStream();
       int nCudaBlocks;
 
+      phiprof::start("Adjust velocity blocks");
+
       vmesh::LocalID currSize = populations[popID].vmesh->size();
-      // const uint localContentBlocks = velocity_block_with_content_list->size();
-      // const uint localNoContentBlocks = velocity_block_with_no_content_list->size();
       velocity_block_with_content_list->copyMetadata(info_vbwcl,stream);
       velocity_block_with_no_content_list->copyMetadata(info_vbwncl,stream);
       BlocksRequired->copyMetadata(info_Required,stream);
+      BlocksRequiredMap->copyMetadata(info_brm, stream);
       HANDLE_ERROR( cudaStreamSynchronize(stream) );
       const uint localContentBlocks = info_vbwncl->size;
       const uint localNoContentBlocks = info_vbwncl->size;
-      uint BlocksRequiredCapacity = info_Required->capacity;
+      const uint BlocksRequiredCapacity = info_Required->capacity;
 
       // Neighbour and own prefetches
       if (doPrefetches) {
+         phiprof::start("Prefetch");
          populations[popID].vmesh->dev_prefetchDevice(); // Queries active stream internally
-         for (std::vector<SpatialCell*>::const_iterator neighbor=spatial_neighbors.begin();
-              neighbor != spatial_neighbors.end(); ++neighbor) {
-            (*neighbor)->velocity_block_with_content_list->optimizeGPU(stream);
-         }
          velocity_block_with_content_list->optimizeGPU(stream);
          velocity_block_with_no_content_list->optimizeGPU(stream);
+         phiprof::stop("Prefetch");
       }
-      phiprof::start("Local content lists");
 
       phiprof::start("BlocksRequired hashmap resize / clear");
       const vmesh::LocalID HashmapReqSize = ceil(log2(localContentBlocks)) +3;
-      if (BlocksRequiredMap->getSizePower() >= HashmapReqSize) {
+      if (info_brm->sizePower >= HashmapReqSize) {
          // Map is already large enough
          BlocksRequiredMap->clear(Hashinator::targets::device,stream);
       } else {
@@ -800,6 +797,7 @@ namespace spatial_cell {
       // with content and raise the neighbors_have_content for
       // itself, and for all its v-space neighbors (halo)
 
+      phiprof::start("Halo kernel");
       // Ensure at least one launch block
       nCudaBlocks = (localContentBlocks/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : std::ceil((Real)localContentBlocks/(Real)CUDATHREADS);
       int addWidthV = getObjectWrapper().particleSpecies[popID].sparseBlockAddWidthV;
@@ -816,19 +814,20 @@ namespace spatial_cell {
             BlocksToMove
             );
          HANDLE_ERROR( cudaPeekAtLastError() );
-         SSYNC
+         SSYNC;
       }
-      phiprof::stop("Local content lists");
+      phiprof::stop("Halo kernel");
 
       // add neighbor content info for spatial space neighbors to map. We loop over
       // neighbor cell lists with existing blocks, and raise the
       // flag for the local block with same block id
       phiprof::start("Neighbor content lists");
+      const uint neighbors_count = spatial_neighbors.size();
       for (std::vector<SpatialCell*>::const_iterator neighbor=spatial_neighbors.begin();
            neighbor != spatial_neighbors.end(); ++neighbor) {
          const int nNeighBlocks = (*neighbor)->velocity_block_with_content_list_size;
-         // Ensure at least one launch block
-         nCudaBlocks = (nNeighBlocks/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : std::ceil((Real)nNeighBlocks/(Real)CUDATHREADS);
+         // Ensure at least one launch block, try to do many neighbors at once
+         nCudaBlocks = (nNeighBlocks/CUDATHREADS/neighbors_count) > CUDABLOCKS ? CUDABLOCKS : std::ceil((Real)(nNeighBlocks/CUDATHREADS/neighbors_count));
          if (nCudaBlocks>0) {
             update_neighbours_have_content_kernel<<<nCudaBlocks, CUDATHREADS, 0, stream>>> (
                populations[popID].vmesh,
@@ -839,26 +838,18 @@ namespace spatial_cell {
             HANDLE_ERROR( cudaPeekAtLastError() );
          }
       }
-      SSYNC
+      SSYNC;
       phiprof::stop("Neighbor content lists");
 
-      // phiprof::start("BlocksToXXX clear");
-      // Clearing now done as part of halo kernel
-      // BlocksRequired->clear();
-      // BlocksToRemove->clear();
-      // BlocksToAdd->clear();
-      // BlocksToMove->clear();
-      // SSYNC
-      // phiprof::stop("BlocksToXXX clear");
       // Same capacity for all
       phiprof::start("BlocksToXXX reserve");
       if (BlocksRequiredCapacity < currSize * BLOCK_ALLOCATION_FACTOR) {
-         BlocksRequired->reserve(currSize*BLOCK_ALLOCATION_PADDING);
-         BlocksToAdd->reserve(currSize*BLOCK_ALLOCATION_PADDING);
-         BlocksToRemove->reserve(currSize*BLOCK_ALLOCATION_PADDING);
-         BlocksToMove->reserve(currSize*BLOCK_ALLOCATION_PADDING);
+         BlocksRequired->reserve(currSize * BLOCK_ALLOCATION_PADDING);
+         BlocksToAdd->reserve(currSize * BLOCK_ALLOCATION_PADDING);
+         BlocksToRemove->reserve(currSize * BLOCK_ALLOCATION_PADDING);
+         BlocksToMove->reserve(currSize * BLOCK_ALLOCATION_PADDING);
       }
-      SSYNC
+      SSYNC;
       phiprof::stop("BlocksToXXX reserve");
       phiprof::start("BlocksToXXX prefetch");
       if (doPrefetches) {
@@ -867,14 +858,14 @@ namespace spatial_cell {
          BlocksToAdd->optimizeGPU(stream);
          BlocksToMove->optimizeGPU(stream);
       }
-      SSYNC
+      SSYNC;
       phiprof::stop("BlocksToXXX prefetch");
 
       // REMOVE all blocks in this cell without content + without neighbors with content
       phiprof::start("Gather blocks to remove");
       if (doDeleteEmptyBlocks) {
          // Ensure at least one launch block
-         nCudaBlocks = (localNoContentBlocks/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : std::ceil((Real)localNoContentBlocks/(Real)CUDATHREADS);
+         nCudaBlocks = (localNoContentBlocks/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : std::ceil((Real)(localNoContentBlocks/CUDATHREADS));
          if (nCudaBlocks>0) {
             update_blocks_to_remove_kernel<<<nCudaBlocks, CUDATHREADS, 0, stream>>> (
                velocity_block_with_no_content_list,
@@ -883,7 +874,7 @@ namespace spatial_cell {
                localNoContentBlocks
                );
             HANDLE_ERROR( cudaPeekAtLastError() );
-            SSYNC
+            SSYNC;
          }
       }
       phiprof::stop("Gather blocks to remove");
@@ -909,7 +900,7 @@ namespace spatial_cell {
             nBlocksRequired
             );
          HANDLE_ERROR( cudaPeekAtLastError() );
-         SSYNC
+         SSYNC;
       }
       phiprof::stop("blocks_to_add_kernel");
 
@@ -925,8 +916,10 @@ namespace spatial_cell {
          populations[popID].vmesh->dev_prefetchDevice();
       }
       populations[popID].vmesh->dev_cleanHashMap();
-      SSYNC
+      SSYNC;
       phiprof::stop("Hashinator cleanup");
+
+      phiprof::stop("Adjust velocity blocks");
    }
 
    void SpatialCell::adjust_velocity_blocks_caller(const uint popID) {
@@ -947,19 +940,15 @@ namespace spatial_cell {
 
       HANDLE_ERROR( cudaStreamSynchronize(stream) ); // To ensure all previous kernels have finished
 
-      phiprof::start("Block lists prefetch");
-      const vmesh::LocalID nBlocksBeforeAdjust = populations[popID].vmesh->size();
+      phiprof::start("Block lists sizes");
       // Use copymetadata for these
       BlocksToAdd->copyMetadata(info_toAdd,stream);
       BlocksToRemove->copyMetadata(info_toRemove,stream);
       BlocksToMove->copyMetadata(info_toMove,stream);
-      HANDLE_ERROR( cudaStreamSynchronize(stream) );
+      const vmesh::LocalID nBlocksBeforeAdjust = populations[popID].vmesh->size(); // includes a stream sync for the above
       const vmesh::LocalID nToAdd = info_toAdd->size;
       const vmesh::LocalID nToRemove = info_toRemove->size;
-      const vmesh::LocalID nToMove = info_toMove->size;
-      // const vmesh::LocalID nToAdd = BlocksToAdd->size();
-      // const vmesh::LocalID nToRemove = BlocksToRemove->size();
-      // const vmesh::LocalID nToMove = BlocksToMove->size();
+      //const vmesh::LocalID nToMove = info_toMove->size; // not used
 
       const vmesh::LocalID nBlocksAfterAdjust = nBlocksBeforeAdjust + nToAdd - nToRemove;
       const int nBlocksToChange = nToAdd > nToRemove ? nToAdd : nToRemove;
@@ -972,19 +961,19 @@ namespace spatial_cell {
          phiprof::start("CUDA modify vmesh and VBC size (pre)");
          populations[popID].vmesh->setNewSize(nBlocksAfterAdjust);
          populations[popID].blockContainer->setSize(nBlocksAfterAdjust);
-         SSYNC
+         SSYNC;
          phiprof::stop("CUDA modify vmesh and VBC size (pre)");
          phiprof::start("Vmesh and VBC lists prefetch dev");
          populations[popID].vmesh->dev_prefetchDevice();
          populations[popID].blockContainer->dev_prefetchDevice();
-         SSYNC
+         SSYNC;
          phiprof::stop("Vmesh and VBC lists prefetch dev");
       }
 
       phiprof::start("Add/Move vector index mallocs");
       HANDLE_ERROR( cudaMemsetAsync(returnRealf[thread_id], 0, sizeof(Realf), stream) );
       HANDLE_ERROR( cudaMemsetAsync(returnLID[thread_id], 0, 2*sizeof(vmesh::LocalID), stream) );
-      SSYNC
+      SSYNC;
       phiprof::stop("Add/Move vector index mallocs");
 
       phiprof::start("CUDA add and remove blocks kernel");
@@ -1004,7 +993,7 @@ namespace spatial_cell {
             returnRealf[thread_id]
             );
          HANDLE_ERROR( cudaPeekAtLastError() );
-         SSYNC
+         SSYNC;
       }
       phiprof::stop("CUDA add and remove blocks kernel");
 
@@ -1015,33 +1004,20 @@ namespace spatial_cell {
       this->populations[popID].RHOLOSSADJUST += host_rhoLossAdjust;
       phiprof::stop("CUDAfree vector indexes");
 
-      // phiprof::start("Clear block lists");
-      // Leave resetting to the beginning of whoever does something
-      // BlocksToMove->clear();
-      // BlocksToAdd->clear();
-      // BlocksToRemove->clear();
-      // if (doPrefetches) {
-      //    BlocksToAdd->optimizeGPU(stream);
-      //    BlocksToRemove->optimizeGPU(stream);
-      //    BlocksToMove->optimizeGPU(stream);
-      // }
-      // SSYNC
-      // phiprof::stop("Clear block lists");
-
       // Shrink the vectors, if necessary
       if (nBlocksAfterAdjust < nBlocksBeforeAdjust) {
          // Do not call dev_optimizeHost()!
          phiprof::start("CUDA modify vmesh and VBC size (post)");
          populations[popID].vmesh->setNewSize(nBlocksAfterAdjust);
          populations[popID].blockContainer->setSize(nBlocksAfterAdjust);
-         populations[popID].blockContainer->dev_Allocate(nBlocksAfterAdjust);
-         SSYNC
+         // populations[popID].blockContainer->dev_Allocate(nBlocksAfterAdjust);
+         SSYNC;
          phiprof::stop("CUDA modify vmesh and VBC size (post)");
          if (doPrefetches) {
             phiprof::start("Vmesh and VBC lists prefetch dev");
             populations[popID].vmesh->dev_prefetchDevice();
             populations[popID].blockContainer->dev_prefetchDevice();
-            SSYNC
+            SSYNC;
             phiprof::stop("Vmesh and VBC lists prefetch dev");
          }
       }
@@ -1062,7 +1038,9 @@ namespace spatial_cell {
       phiprof::start("Vmesh and VBC debug output");
       #endif
 
-      HANDLE_ERROR( cudaStreamSynchronize(stream) ); // Don't return until everything is done
+      // Don't return until everything is done?
+      SSYNC;
+      //HANDLE_ERROR( cudaStreamSynchronize(stream) );
       phiprof::stop("CUDA add and remove blocks");
    }
 
@@ -1458,6 +1436,7 @@ namespace spatial_cell {
       phiprof::start("CUDA update spatial cell block lists");
       cudaStream_t stream = cuda_getStream();
       phiprof::start("VB content list prefetches and allocations");
+      // No obvious non-pagefaulting method for clearing?
       velocity_block_with_content_list->clear();
       velocity_block_with_no_content_list->clear();
       velocity_block_with_content_list->reserve(populations[popID].vmesh->size());

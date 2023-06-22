@@ -29,10 +29,6 @@
 #include "../definitions.h"
 #include "cuda_acc_sort_blocks.hpp"
 
-// Extra profiling stream synchronizations?
-//#define SSYNC HANDLE_ERROR( cudaStreamSynchronize(stream) );
-#define SSYNC
-
 // Ensure printing of CUDA runtime errors to console
 #define CUB_STDERR
 #include <cub/device/device_radix_sort.cuh>
@@ -91,10 +87,9 @@ __global__ void __launch_bounds__(CUDATHREADS,4) blocksID_mapped_dim1_kernel(
    const uint warpSize = blockDim.x * blockDim.y * blockDim.z;
    const int blocki = blockIdx.z*gridDim.x*gridDim.y + blockIdx.y*gridDim.x + blockIdx.x;
    const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
-   const uint refL=0; //vAMR
-   const vmesh::LocalID D0 = vmesh->getGridLength(refL)[0];
-   const vmesh::LocalID D1 = vmesh->getGridLength(refL)[1];
-   // const vmesh::LocalID D2 = vmesh->getGridLength(refL)[2];
+   const vmesh::LocalID D0 = vmesh->getGridLength()[0];
+   const vmesh::LocalID D1 = vmesh->getGridLength()[1];
+   // const vmesh::LocalID D2 = vmesh->getGridLength()[2];
    for (vmesh::LocalID index=blocki*warpSize; index<nBlocks; index += cudaBlocks*warpSize) {
       const vmesh::LocalID LID = (index+ti);
       if (LID < nBlocks) {
@@ -361,6 +356,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                cudaStream_t stream
    ) {
 
+   phiprof::start("Sorting prefetches");
    if (doPrefetches) {
       columnData->columnBlockOffsets.optimizeGPU();
       columnData->columnNumBlocks.optimizeGPU();
@@ -369,6 +365,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
    }
    // Ensure at least one launch block
    uint nCudaBlocks  = (nBlocks/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : std::ceil((Real)nBlocks/(Real)CUDATHREADS);
+   phiprof::stop("Sorting prefetches");
 
    phiprof::start("calc new dimension id");
    // Map blocks to new dimensionality
@@ -404,7 +401,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
          printf("Incorrect dimension in cuda_acc_sort_blocks.cpp\n");
    }
    HANDLE_ERROR( cudaPeekAtLastError() );
-   SSYNC
+   SSYNC;
    phiprof::stop("calc new dimension id");
 
    phiprof::start("CUB sort");
@@ -416,10 +413,11 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                    blocksLID_unsorted, blocksLID, nBlocks,
                                    0, sizeof(vmesh::GlobalID)*8, stream);
    HANDLE_ERROR( cudaPeekAtLastError() );
-   phiprof::start("cudamallocasync");
+
+   phiprof::start("cub alloc");
    cuda_acc_allocate_radix_sort(temp_storage_bytes,cpuThreadID,stream);
-   SSYNC
-   phiprof::stop("cudamallocasync");
+   SSYNC;
+   phiprof::stop("cub alloc");
 
    // Now sort
    cub::DeviceRadixSort::SortPairs(dev_RadixSortTemp[cpuThreadID], temp_storage_bytes,
@@ -427,6 +425,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                    blocksLID_unsorted, blocksLID, nBlocks,
                                    0, sizeof(vmesh::GlobalID)*8, stream);
    HANDLE_ERROR( cudaPeekAtLastError() );
+   SSYNC;
    phiprof::stop("CUB sort");
 
    // Gather GIDs in order
@@ -464,7 +463,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
       nBlocks
       );
    HANDLE_ERROR( cudaPeekAtLastError() );
-   SSYNC
+   SSYNC;
    phiprof::stop("construct columns");
    // printf("\n Output for dimension %d ",dimension);
    // printf("\nColumnBlockOffsets %d\n", columnData->columnBlockOffsets.size());

@@ -38,13 +38,6 @@
 
 #include "cuda_acc_sort_blocks.hpp"
 
-#include <stdio.h>
-#include <iostream>
-
-// Extra profiling stream synchronizations?
-//#define SSYNC HANDLE_ERROR( cudaStreamSynchronize(stream) );
-#define SSYNC
-
 #define i_pcolumnv_cuda(j, k, k_block, num_k_blocks) ( ((j) / ( VECL / WID)) * WID * ( num_k_blocks + 2) + (k) + ( k_block + 1 ) * WID )
 #define i_pcolumnv_cuda_b(planeVectorIndex, k, k_block, num_k_blocks) ( planeVectorIndex * WID * ( num_k_blocks + 2) + (k) + ( k_block + 1 ) * WID )
 
@@ -574,23 +567,6 @@ __global__ void __launch_bounds__(VECL,4) acceleration_kernel(
    } // End loop over columns
 } // end semilag acc kernel
 
-/** Minimal Device kernel for extracting acc parameters */
-__global__ void read_acc_parameters_kernel (
-   const uint dimension,
-   vmesh::VelocityMesh *vmesh,
-   vmesh::LocalID* returnLID,
-   Real* returnReal
-   ) {
-   const uint8_t REFLEVEL = 0;
-   returnLID[0] = vmesh->size(); // const uint nBlocks
-   returnLID[1] = vmesh->getGridLength(REFLEVEL)[0]; //const vmesh::LocalID D0
-   returnLID[2] = vmesh->getGridLength(REFLEVEL)[1]; //const vmesh::LocalID D1
-   returnLID[3] = vmesh->getGridLength(REFLEVEL)[2]; //const vmesh::LocalID D2
-   returnReal[0] = vmesh->getCellSize(REFLEVEL)[dimension]; //const Realv dv
-   returnReal[1] = vmesh->getMeshMinLimits()[dimension]; //const Realv v_min
-   returnReal[2] = vmesh->getGridLength(REFLEVEL)[dimension]; //const Realv max_v_length
-}
-
 /*
    Here we map from the current time step grid, to a target grid which
    is the lagrangian departure grid (so th grid at timestep +dt,
@@ -605,8 +581,10 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
                               const uint dimension,
                               cudaStream_t stream
    ) {
-   // Ensure previous actions have completed
-   HANDLE_ERROR( cudaStreamSynchronize(stream) );
+   // Ensure previous actions have completed?
+   SSYNC;
+   //HANDLE_ERROR( cudaStreamSynchronize(stream) );
+   phiprof::start("Get acc parameters");
    vmesh::VelocityMesh* vmesh    = spatial_cell->get_velocity_mesh(popID);
    vmesh::VelocityBlockContainer* blockContainer = spatial_cell->get_velocity_blocks(popID);
    Realf *blockData = blockContainer->getData();
@@ -618,25 +596,21 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       const uint cpuThreadID = 0;
 #endif
 
-   // Now launch minimal kernel to get these paramterers to reduce page faults
-   Real host_returnReal[8];
-   Real *dev_returnReal = returnReal[cpuThreadID];
-   vmesh::LocalID host_returnLID[8];
-   vmesh::LocalID *dev_returnLID = returnLID[cpuThreadID];
-   // Read parameters within minimal kernel
-   read_acc_parameters_kernel<<<1,1,0,stream>>> (dimension,vmesh,dev_returnLID,dev_returnReal);
-   HANDLE_ERROR( cudaMemcpyAsync(host_returnLID, dev_returnLID, 4*sizeof(vmesh::LocalID), cudaMemcpyDeviceToHost, stream) );
-   HANDLE_ERROR( cudaMemcpyAsync(host_returnReal, dev_returnReal, 3*sizeof(Real), cudaMemcpyDeviceToHost, stream) );
-   HANDLE_ERROR( cudaStreamSynchronize(stream) );
-   const uint nBlocks = host_returnLID[0];
-   const vmesh::LocalID D0 = host_returnLID[1];
-   const vmesh::LocalID D1 = host_returnLID[2];
-   //const vmesh::LocalID D2 = host_returnLID[3];
-   const Realv dv    = host_returnReal[0];
-   const Realv v_min = host_returnReal[1];
-   const Realv max_v_length  = host_returnReal[2];
    auto minValue = spatial_cell->getVelocityBlockMinValue(popID);
+   // These query velocity mesh parameters which are duplicated for both host and device
+   const uint nBlocks = vmesh->size();
+   const vmesh::LocalID D0 = vmesh->getGridLength()[0];
+   const vmesh::LocalID D1 = vmesh->getGridLength()[1];
+   //const vmesh::LocalID D2 = vmesh->getGridLength()[2];
+   const Realv dv    = vmesh->getCellSize()[dimension];
+   const Realv v_min = vmesh->getMeshMinLimits()[dimension];
+   const Realv max_v_length  = vmesh->getGridLength()[dimension];
    const Realv i_dv = 1.0/dv;
+
+   // For use later
+   //Real host_returnReal[8];
+   vmesh::LocalID host_returnLID[8];
+   phiprof::stop("Get acc parameters");
 
    //nothing to do if no blocks
    if(nBlocks == 0) {
@@ -668,12 +642,13 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       columnData->setNumColumns.optimizeGPU(stream);
       HANDLE_ERROR( cudaMemPrefetchAsync(columnData,sizeof(ColumnOffsets),cuda_getDevice(),stream) );
    }
-   SSYNC
+   SSYNC;
    phiprof::stop("create columnOffsets in unified memory, attach, prefetch");
-   // Some kernels in here require this to be equal to VECL.
+   // Some kernels in here require the number of threads to be equal to VECL.
    // Future improvements would be to allow setting it directly to WID3.
    // Other kernels (not handling block data) can use CUDATHREADS which
    // is equal to NVIDIA: 32 or AMD: 64.
+   phiprof::start("Bookkeeping");
 
    /*< used when computing id of target block, 0 for compiler */
    uint block_indices_to_id[3] = {0, 0, 0};
@@ -681,49 +656,49 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
 
    Realv is_temp;
    switch (dimension) {
-    case 0: /* i and k coordinates have been swapped*/
-      /*swap intersection i and k coordinates*/
-      is_temp=intersection_di;
-      intersection_di=intersection_dk;
-      intersection_dk=is_temp;
+      case 0: /* i and k coordinates have been swapped*/
+         /*swap intersection i and k coordinates*/
+         is_temp=intersection_di;
+         intersection_di=intersection_dk;
+         intersection_dk=is_temp;
 
-      /*set values in array that is used to convert block indices to id using a dot product*/
-      block_indices_to_id[0] = D0*D1;
-      block_indices_to_id[1] = D0;
-      block_indices_to_id[2] = 1;
+         /*set values in array that is used to convert block indices to id using a dot product*/
+         block_indices_to_id[0] = D0*D1;
+         block_indices_to_id[1] = D0;
+         block_indices_to_id[2] = 1;
 
-      /*set values in array that is used to convert block indices to id using a dot product*/
-      cell_indices_to_id[0]=WID2;
-      cell_indices_to_id[1]=WID;
-      cell_indices_to_id[2]=1;
-      break;
-    case 1: /* j and k coordinates have been swapped*/
-      /*swap intersection j and k coordinates*/
-      is_temp=intersection_dj;
-      intersection_dj=intersection_dk;
-      intersection_dk=is_temp;
+         /*set values in array that is used to convert block indices to id using a dot product*/
+         cell_indices_to_id[0]=WID2;
+         cell_indices_to_id[1]=WID;
+         cell_indices_to_id[2]=1;
+         break;
+      case 1: /* j and k coordinates have been swapped*/
+         /*swap intersection j and k coordinates*/
+         is_temp=intersection_dj;
+         intersection_dj=intersection_dk;
+         intersection_dk=is_temp;
 
-      /*set values in array that is used to convert block indices to id using a dot product*/
-      block_indices_to_id[0]=1;
-      block_indices_to_id[1] = D0*D1;
-      block_indices_to_id[2] = D0;
+         /*set values in array that is used to convert block indices to id using a dot product*/
+         block_indices_to_id[0]=1;
+         block_indices_to_id[1] = D0*D1;
+         block_indices_to_id[2] = D0;
 
-      /*set values in array that is used to convert block indices to id using a dot product*/
-      cell_indices_to_id[0]=1;
-      cell_indices_to_id[1]=WID2;
-      cell_indices_to_id[2]=WID;
-      break;
-    case 2:
-      /*set values in array that is used to convert block indices to id using a dot product*/
-      block_indices_to_id[0]=1;
-      block_indices_to_id[1] = D0;
-      block_indices_to_id[2] = D0*D1;
+         /*set values in array that is used to convert block indices to id using a dot product*/
+         cell_indices_to_id[0]=1;
+         cell_indices_to_id[1]=WID2;
+         cell_indices_to_id[2]=WID;
+         break;
+      case 2:
+         /*set values in array that is used to convert block indices to id using a dot product*/
+         block_indices_to_id[0]=1;
+         block_indices_to_id[1] = D0;
+         block_indices_to_id[2] = D0*D1;
 
-      // set values in array that is used to convert block indices to id using a dot product.
-      cell_indices_to_id[0]=1;
-      cell_indices_to_id[1]=WID;
-      cell_indices_to_id[2]=WID2;
-      break;
+         // set values in array that is used to convert block indices to id using a dot product.
+         cell_indices_to_id[0]=1;
+         cell_indices_to_id[1]=WID;
+         cell_indices_to_id[2]=WID2;
+         break;
    }
    // Copy indexing information to device (async)
    HANDLE_ERROR( cudaMemcpyAsync(dev_cell_indices_to_id[cpuThreadID], cell_indices_to_id, 3*sizeof(uint), cudaMemcpyHostToDevice, stream) );
@@ -739,6 +714,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
 
    // Call function for sorting block list and building columns from it.
    // Can probably be further optimized.
+   phiprof::stop("Bookkeeping");
    phiprof::start("sortBlockList");
    cudaStream_t priorityStream = cuda_getPriorityStream();
    HANDLE_ERROR( cudaMemsetAsync(columnNBlocks, 0, cuda_acc_columnContainerSize*sizeof(vmesh::LocalID), priorityStream) );
@@ -761,16 +737,14 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
 
    // Calculate total sum of columns and total values size
    phiprof::start("count columns");
-   HANDLE_ERROR( cudaMemsetAsync(dev_returnLID, 0, 2*sizeof(vmesh::LocalID), stream) );
-
+   HANDLE_ERROR( cudaMemsetAsync(returnLID[cpuThreadID], 0, 2*sizeof(vmesh::LocalID), stream) );
    // this needs to be serial, but is fast.
-   SSYNC
    count_columns_kernel<<<1, 1, 0, stream>>> (
       columnData,
-      dev_returnLID //dev_totalColumns,dev_valuesSizeRequired
+      returnLID[cpuThreadID] //dev_totalColumns,dev_valuesSizeRequired
       );
    HANDLE_ERROR( cudaPeekAtLastError() );
-   HANDLE_ERROR( cudaMemcpyAsync(host_returnLID, dev_returnLID, 2*sizeof(vmesh::LocalID), cudaMemcpyDeviceToHost, stream) );
+   HANDLE_ERROR( cudaMemcpyAsync(host_returnLID, returnLID[cpuThreadID], 2*sizeof(vmesh::LocalID), cudaMemcpyDeviceToHost, stream) );
    HANDLE_ERROR( cudaStreamSynchronize(stream) );
    const vmesh::LocalID host_totalColumns = host_returnLID[0];
    const vmesh::LocalID host_valuesSizeRequired = host_returnLID[1];
@@ -780,12 +754,14 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    }
    phiprof::stop("count columns");
 
+   phiprof::start("Host columns");
    // Create array of column objects
    Column host_columns[host_totalColumns];
    // and copy it into device memory
    Column *columns = dev_columns[cpuThreadID];
    HANDLE_ERROR( cudaMemcpyAsync(columns, &host_columns, host_totalColumns*sizeof(Column), cudaMemcpyHostToDevice, stream) );
-   SSYNC
+   SSYNC;
+   phiprof::stop("Host columns");
 
    phiprof::start("Store offsets into columns");
    // this needs to be serial, but is fast.
@@ -795,7 +771,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       host_valuesSizeRequired
       );
    HANDLE_ERROR( cudaPeekAtLastError() );
-   SSYNC
+   SSYNC;
    phiprof::stop("Store offsets into columns");
 
    phiprof::start("Reorder blocks by dimension");
@@ -815,24 +791,12 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       spatial_cell->BlocksToMove
       );
    HANDLE_ERROR( cudaPeekAtLastError() );
-   SSYNC
+   SSYNC;
    phiprof::stop("Reorder blocks by dimension");
 
    // Calculate target column extents
-   // phiprof::start("Clear block lists");
-   // spatial_cell->BlocksRequired->clear();
-   // spatial_cell->BlocksToAdd->clear();
-   // spatial_cell->BlocksToRemove->clear();
-   // spatial_cell->BlocksToMove->clear();
-   // if (doPrefetches) {
-   //    spatial_cell->BlocksRequired->optimizeGPU(stream);
-   //    spatial_cell->BlocksToAdd->optimizeGPU(stream);
-   //    spatial_cell->BlocksToRemove->optimizeGPU(stream);
-   // }
-   // phiprof::stop("Clear block lists");
-
    phiprof::start("Evaluate column extents kernel");
-   HANDLE_ERROR( cudaMemsetAsync(dev_returnLID, 0, sizeof(vmesh::LocalID), stream) );
+   HANDLE_ERROR( cudaMemsetAsync(returnLID[cpuThreadID], 0, sizeof(vmesh::LocalID), stream) );
    evaluate_column_extents_kernel<<<cudablocks, CUDATHREADS, 0, stream>>> (
       dimension,
       vmesh,
@@ -851,12 +815,12 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       max_v_length,
       v_min,
       dv,
-      dev_returnLID //dev_wallspace_margin_bailout_flag
+      returnLID[cpuThreadID] //dev_wallspace_margin_bailout_flag
       );
    HANDLE_ERROR( cudaPeekAtLastError() );
-   SSYNC
+   SSYNC;
    // Check if we need to bailout due to hitting v-space edge
-   HANDLE_ERROR( cudaMemcpyAsync(host_returnLID, dev_returnLID, sizeof(vmesh::LocalID), cudaMemcpyDeviceToHost, stream) );
+   HANDLE_ERROR( cudaMemcpyAsync(host_returnLID, returnLID[cpuThreadID], sizeof(vmesh::LocalID), cudaMemcpyDeviceToHost, stream) );
    HANDLE_ERROR( cudaStreamSynchronize(stream) );
    if (host_returnLID[0] != 0) { //host_wallspace_margin_bailout_flag
       string message = "Some target blocks in acceleration are going to be less than ";
@@ -873,19 +837,19 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    phiprof::start("Add and delete blocks");
    // Note: in this call, BlocksToMove is empty as we only grow the vspace size.
    spatial_cell->adjust_velocity_blocks_caller(popID);
-   phiprof::stop("Add and delete blocks");
-
    // Velocity space has all extra blocks added and/or removed for the transform target
    // and will not change shape anymore.
-   read_acc_parameters_kernel<<<1,1,0,stream>>> (dimension,vmesh,dev_returnLID,dev_returnReal);
-   HANDLE_ERROR( cudaMemcpyAsync(host_returnLID, dev_returnLID, sizeof(vmesh::LocalID), cudaMemcpyDeviceToHost, stream) );
-   HANDLE_ERROR( cudaStreamSynchronize(stream) );
-   const uint newNBlocks = host_returnLID[0];
+   const uint newNBlocks = vmesh->size();
    const uint bdsw3 = newNBlocks * WID3;
-   // Zero out target data on device (unified) (note, pointer needs to be re-fetched)
-   blockData = blockContainer->getData();
+   phiprof::stop("Add and delete blocks");
+
    // Put into second (high-priority) stream for concurrency
+   // Zero out target data on device (unified) (note, pointer needs to be re-fetched)
+   phiprof::start("Memset ACC blocks to zero");
+   blockData = blockContainer->getData();
    HANDLE_ERROR( cudaMemsetAsync(blockData, 0, bdsw3*sizeof(Realf), priorityStream) );
+   SSYNC;
+   phiprof::stop("Memset ACC blocks to zero");
 
    phiprof::start("identify new block offsets kernel");
    identify_block_offsets_kernel<<<cudablocks, CUDATHREADS, 0, stream>>> (
@@ -896,7 +860,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       dev_block_indices_to_id[cpuThreadID]
       );
    HANDLE_ERROR( cudaPeekAtLastError() );
-   SSYNC
+   SSYNC;
    phiprof::stop("identify new block offsets kernel");
 
    HANDLE_ERROR( cudaStreamSynchronize(priorityStream) ); // Yes needed to ensure block data was zeroed
@@ -918,7 +882,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       bdsw3
       );
    HANDLE_ERROR( cudaPeekAtLastError() );
-   SSYNC
+   SSYNC;
 
    // Wait until everything is complete before returning
    HANDLE_ERROR( cudaStreamSynchronize(stream) );

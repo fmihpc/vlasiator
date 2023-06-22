@@ -39,6 +39,10 @@
   #include <omp.h>
 #endif
 
+// Extra profiling stream synchronizations?
+//#define SSYNC HANDLE_ERROR( cudaStreamSynchronize(stream) )
+#define SSYNC
+
 #include "device_launch_parameters.h"
 #include "cuda.h"
 #include "cuda_runtime.h"

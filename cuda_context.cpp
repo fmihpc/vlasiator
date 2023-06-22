@@ -50,7 +50,7 @@ Realf *returnRealf[MAXCPUTHREADS];
 vmesh::LocalID *returnLID[MAXCPUTHREADS];
 
 bool needAttachedStreams = false;
-bool doPrefetches=true;
+bool doPrefetches=false; // only non-crucial prefetches are behind this check
 
 uint *dev_cell_indices_to_id[MAXCPUTHREADS];
 uint *dev_block_indices_to_id[MAXCPUTHREADS];
