@@ -38,10 +38,6 @@
 
 #include "cuda_acc_sort_blocks.hpp"
 
-// Extra profiling stream synchronizations?
-#define SSYNC HANDLE_ERROR( cudaStreamSynchronize(stream) )
-//#define SSYNC
-
 #define i_pcolumnv_cuda(j, k, k_block, num_k_blocks) ( ((j) / ( VECL / WID)) * WID * ( num_k_blocks + 2) + (k) + ( k_block + 1 ) * WID )
 #define i_pcolumnv_cuda_b(planeVectorIndex, k, k_block, num_k_blocks) ( planeVectorIndex * WID * ( num_k_blocks + 2) + (k) + ( k_block + 1 ) * WID )
 
@@ -713,6 +709,8 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    vmesh::VelocityBlockContainer* blockContainer = spatial_cell->get_velocity_blocks(popID);
    Realf *blockData = blockContainer->getData();
 
+   auto minValue = spatial_cell->getVelocityBlockMinValue(popID);
+   // These query velocity mesh parameters which are duplicated for both host and device
    const uint nBlocks = vmesh->size();
    const vmesh::LocalID D0 = vmesh->getGridLength()[0];
    const vmesh::LocalID D1 = vmesh->getGridLength()[1];
@@ -720,7 +718,6 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    const Realv dv    = vmesh->getCellSize()[dimension];
    const Realv v_min = vmesh->getMeshMinLimits()[dimension];
    const Realv max_v_length  = vmesh->getGridLength()[dimension];
-   auto minValue = spatial_cell->getVelocityBlockMinValue(popID);
    const Realv i_dv = 1.0/dv;
 
    // For use later
@@ -773,49 +770,49 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
 
    Realv is_temp;
    switch (dimension) {
-    case 0: /* i and k coordinates have been swapped*/
-      /*swap intersection i and k coordinates*/
-      is_temp=intersection_di;
-      intersection_di=intersection_dk;
-      intersection_dk=is_temp;
+      case 0: /* i and k coordinates have been swapped*/
+         /*swap intersection i and k coordinates*/
+         is_temp=intersection_di;
+         intersection_di=intersection_dk;
+         intersection_dk=is_temp;
 
-      /*set values in array that is used to convert block indices to id using a dot product*/
-      block_indices_to_id[0] = D0*D1;
-      block_indices_to_id[1] = D0;
-      block_indices_to_id[2] = 1;
+         /*set values in array that is used to convert block indices to id using a dot product*/
+         block_indices_to_id[0] = D0*D1;
+         block_indices_to_id[1] = D0;
+         block_indices_to_id[2] = 1;
 
-      /*set values in array that is used to convert block indices to id using a dot product*/
-      cell_indices_to_id[0]=WID2;
-      cell_indices_to_id[1]=WID;
-      cell_indices_to_id[2]=1;
-      break;
-    case 1: /* j and k coordinates have been swapped*/
-      /*swap intersection j and k coordinates*/
-      is_temp=intersection_dj;
-      intersection_dj=intersection_dk;
-      intersection_dk=is_temp;
+         /*set values in array that is used to convert block indices to id using a dot product*/
+         cell_indices_to_id[0]=WID2;
+         cell_indices_to_id[1]=WID;
+         cell_indices_to_id[2]=1;
+         break;
+      case 1: /* j and k coordinates have been swapped*/
+         /*swap intersection j and k coordinates*/
+         is_temp=intersection_dj;
+         intersection_dj=intersection_dk;
+         intersection_dk=is_temp;
 
-      /*set values in array that is used to convert block indices to id using a dot product*/
-      block_indices_to_id[0]=1;
-      block_indices_to_id[1] = D0*D1;
-      block_indices_to_id[2] = D0;
+         /*set values in array that is used to convert block indices to id using a dot product*/
+         block_indices_to_id[0]=1;
+         block_indices_to_id[1] = D0*D1;
+         block_indices_to_id[2] = D0;
 
-      /*set values in array that is used to convert block indices to id using a dot product*/
-      cell_indices_to_id[0]=1;
-      cell_indices_to_id[1]=WID2;
-      cell_indices_to_id[2]=WID;
-      break;
-    case 2:
-      /*set values in array that is used to convert block indices to id using a dot product*/
-      block_indices_to_id[0]=1;
-      block_indices_to_id[1] = D0;
-      block_indices_to_id[2] = D0*D1;
+         /*set values in array that is used to convert block indices to id using a dot product*/
+         cell_indices_to_id[0]=1;
+         cell_indices_to_id[1]=WID2;
+         cell_indices_to_id[2]=WID;
+         break;
+      case 2:
+         /*set values in array that is used to convert block indices to id using a dot product*/
+         block_indices_to_id[0]=1;
+         block_indices_to_id[1] = D0;
+         block_indices_to_id[2] = D0*D1;
 
-      // set values in array that is used to convert block indices to id using a dot product.
-      cell_indices_to_id[0]=1;
-      cell_indices_to_id[1]=WID;
-      cell_indices_to_id[2]=WID2;
-      break;
+         // set values in array that is used to convert block indices to id using a dot product.
+         cell_indices_to_id[0]=1;
+         cell_indices_to_id[1]=WID;
+         cell_indices_to_id[2]=WID2;
+         break;
    }
    // Copy indexing information to device (async)
    HANDLE_ERROR( cudaMemcpyAsync(dev_cell_indices_to_id[cpuThreadID], cell_indices_to_id, 3*sizeof(uint), cudaMemcpyHostToDevice, stream) );

@@ -43,7 +43,7 @@ Real *returnReal[MAXCPUTHREADS];
 Realf *returnRealf[MAXCPUTHREADS];
 vmesh::LocalID *returnLID[MAXCPUTHREADS];
 bool needAttachedStreams = false;
-bool doPrefetches=true;
+bool doPrefetches=false; // only non-crucial prefetches are behind this check
 
 __host__ void cuda_set_device() {
 

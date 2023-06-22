@@ -31,10 +31,6 @@
    #define DEBUG_SPATIAL_CELL
 #endif
 
-// Extra profiling stream synchronizations?
-#define SSYNC HANDLE_ERROR( cudaStreamSynchronize(stream) )
-//#define SSYNC
-
 using namespace std;
 
 /** CUDA kernel for identifying which blocks have relevant content */
@@ -714,7 +710,6 @@ namespace spatial_cell {
       velocity_block_with_content_list->copyMetadata(info_vbwcl,stream);
       HANDLE_ERROR( cudaStreamSynchronize(stream) );
       velocity_block_with_content_list_size = info_vbwcl->size;
-      velocity_block_with_content_list->optimizeGPU(stream);
       HANDLE_ERROR( cudaMallocAsync((void**)&dev_velocity_block_with_content_list_buffer, velocity_block_with_content_list_size*sizeof(vmesh::LocalID), stream) );
       HANDLE_ERROR( cudaMemcpyAsync(dev_velocity_block_with_content_list_buffer, velocity_block_with_content_list->data(), velocity_block_with_content_list_size*sizeof(vmesh::LocalID), cudaMemcpyDeviceToDevice, stream) );
       SSYNC;
@@ -775,16 +770,12 @@ namespace spatial_cell {
       HANDLE_ERROR( cudaStreamSynchronize(stream) );
       const uint localContentBlocks = info_vbwncl->size;
       const uint localNoContentBlocks = info_vbwncl->size;
-      uint BlocksRequiredCapacity = info_Required->capacity;
+      const uint BlocksRequiredCapacity = info_Required->capacity;
 
       // Neighbour and own prefetches
       if (doPrefetches) {
          phiprof::start("Prefetch");
          populations[popID].vmesh->dev_prefetchDevice(); // Queries active stream internally
-         for (std::vector<SpatialCell*>::const_iterator neighbor=spatial_neighbors.begin();
-              neighbor != spatial_neighbors.end(); ++neighbor) {
-            (*neighbor)->velocity_block_with_content_list->optimizeGPU(stream);
-         }
          velocity_block_with_content_list->optimizeGPU(stream);
          velocity_block_with_no_content_list->optimizeGPU(stream);
          phiprof::stop("Prefetch");
@@ -833,10 +824,11 @@ namespace spatial_cell {
       // neighbor cell lists with existing blocks, and raise the
       // flag for the local block with same block id
       phiprof::start("Neighbor content lists");
+      const uint neighbors_count = spatial_neighbors.size();
       for (std::vector<SpatialCell*>::const_iterator neighbor=spatial_neighbors.begin();
            neighbor != spatial_neighbors.end(); ++neighbor) {
-         const int nNeighBlocks = (*neighbor)->velocity_block_with_content_list->size();
-         nCudaBlocks = (nNeighBlocks/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : (nNeighBlocks/CUDATHREADS);
+         const int nNeighBlocks = (*neighbor)->velocity_block_with_content_list_size;
+         nCudaBlocks = (nNeighBlocks/CUDATHREADS/neighbors_count) > CUDABLOCKS ? CUDABLOCKS : std::ceil((Real)(nNeighBlocks/CUDATHREADS/neighbors_count));
          if (nCudaBlocks>0) {
             update_neighbours_have_content_kernel<<<nCudaBlocks, CUDATHREADS, 0, stream>>> (
                populations[popID].vmesh,
@@ -852,10 +844,10 @@ namespace spatial_cell {
       // Same capacity for all
       phiprof::start("BlocksToXXX reserve");
       if (BlocksRequiredCapacity < currSize * BLOCK_ALLOCATION_FACTOR) {
-         BlocksRequired->reserve(currSize*BLOCK_ALLOCATION_PADDING);
-         BlocksToAdd->reserve(currSize*BLOCK_ALLOCATION_PADDING);
-         BlocksToRemove->reserve(currSize*BLOCK_ALLOCATION_PADDING);
-         BlocksToMove->reserve(currSize*BLOCK_ALLOCATION_PADDING);
+         BlocksRequired->reserve(currSize * BLOCK_ALLOCATION_PADDING);
+         BlocksToAdd->reserve(currSize * BLOCK_ALLOCATION_PADDING);
+         BlocksToRemove->reserve(currSize * BLOCK_ALLOCATION_PADDING);
+         BlocksToMove->reserve(currSize * BLOCK_ALLOCATION_PADDING);
       }
       SSYNC;
       phiprof::stop("BlocksToXXX reserve");
@@ -872,7 +864,7 @@ namespace spatial_cell {
       // REMOVE all blocks in this cell without content + without neighbors with content
       phiprof::start("Gather blocks to remove");
       if (doDeleteEmptyBlocks) {
-         nCudaBlocks = (localNoContentBlocks/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : (localNoContentBlocks/CUDATHREADS);
+         nCudaBlocks = (localNoContentBlocks/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : std::ceil((Real)(localNoContentBlocks/CUDATHREADS));
          if (nCudaBlocks>0) {
             update_blocks_to_remove_kernel<<<nCudaBlocks, CUDATHREADS, 0, stream>>> (
                velocity_block_with_no_content_list,
@@ -946,10 +938,10 @@ namespace spatial_cell {
       BlocksToAdd->copyMetadata(info_toAdd,stream);
       BlocksToRemove->copyMetadata(info_toRemove,stream);
       BlocksToMove->copyMetadata(info_toMove,stream);
-      const vmesh::LocalID nBlocksBeforeAdjust = populations[popID].vmesh->size(); // includes a stream sync
+      const vmesh::LocalID nBlocksBeforeAdjust = populations[popID].vmesh->size(); // includes a stream sync for the above
       const vmesh::LocalID nToAdd = info_toAdd->size;
       const vmesh::LocalID nToRemove = info_toRemove->size;
-      //const vmesh::LocalID nToMove = info_toMove->size;
+      //const vmesh::LocalID nToMove = info_toMove->size; // not used
 
       const vmesh::LocalID nBlocksAfterAdjust = nBlocksBeforeAdjust + nToAdd - nToRemove;
       const int nBlocksToChange = nToAdd > nToRemove ? nToAdd : nToRemove;
@@ -1010,7 +1002,7 @@ namespace spatial_cell {
          phiprof::start("CUDA modify vmesh and VBC size (post)");
          populations[popID].vmesh->setNewSize(nBlocksAfterAdjust);
          populations[popID].blockContainer->setSize(nBlocksAfterAdjust);
-         populations[popID].blockContainer->dev_Allocate(nBlocksAfterAdjust);
+         // populations[popID].blockContainer->dev_Allocate(nBlocksAfterAdjust);
          SSYNC;
          phiprof::stop("CUDA modify vmesh and VBC size (post)");
          if (doPrefetches) {
