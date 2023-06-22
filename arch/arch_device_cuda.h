@@ -437,8 +437,12 @@ __forceinline__ static void parallel_for_driver(const uint (&limits)[NDim], Lamb
   const uint blocksize = ARCH_BLOCKSIZE_R;
   const uint gridsize = (n_total - 1 + blocksize) / blocksize;
 
+  uint* d_limits;
+  CHK_ERR(cudaMalloc(&d_limits, NDim*sizeof(uint)));
+  CHK_ERR(cudaMemcpy(d_limits, limits, NDim*sizeof(uint), cudaMemcpyHostToDevice));
+
   /* Launch the kernel */
-  for_kernel<NDim><<<gridsize, blocksize, 0>>>(loop_body, limits, n_total);
+  for_kernel<NDim><<<gridsize, blocksize>>>(loop_body, d_limits, n_total);
 }
 
 // parallel for driver function for CUDA, with dynamic shared memory for one buffer
