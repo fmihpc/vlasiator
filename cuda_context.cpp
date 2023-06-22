@@ -177,9 +177,9 @@ __host__ void cuda_clear_device() {
    for (uint i=0; i<maxThreads; ++i) {
       HANDLE_ERROR( cudaStreamDestroy(cudaStreamList[i]) );
       HANDLE_ERROR( cudaStreamDestroy(cudaPriorityStreamList[i]) );
-      HANDLE_ERROR( cudaFree(*returnReal) );
-      HANDLE_ERROR( cudaFree(*returnRealf) );
-      HANDLE_ERROR( cudaFree(*returnLID) );
+      HANDLE_ERROR( cudaFree(returnReal[i]) );
+      HANDLE_ERROR( cudaFree(returnRealf[i]) );
+      HANDLE_ERROR( cudaFree(returnLID[i]) );
    }
 }
 

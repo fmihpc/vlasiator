@@ -63,7 +63,7 @@ COMPFLAGS += -DACC_SEMILAG_PQM -DTRANS_SEMILAG_PPM
 #May cause problems
 #COMPFLAGS += -DCATCH_FPE
 
-#Define MESH=VAMR if you want to use adaptive mesh refinement in velocity space
+#Define MESH=VAMR if you want to use adaptive mesh refinement in velocity space (deprecated)
 #MESH = VAMR
 
 #//////////////////////////////////////////////////////

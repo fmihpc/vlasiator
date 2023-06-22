@@ -610,6 +610,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    // For use later
    //Real host_returnReal[8];
    vmesh::LocalID host_returnLID[8];
+   vmesh::LocalID *dev_returnLID = returnLID[cpuThreadID];
    phiprof::stop("Get acc parameters");
 
    //nothing to do if no blocks
@@ -737,14 +738,14 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
 
    // Calculate total sum of columns and total values size
    phiprof::start("count columns");
-   HANDLE_ERROR( cudaMemsetAsync(returnLID[cpuThreadID], 0, 2*sizeof(vmesh::LocalID), stream) );
+   HANDLE_ERROR( cudaMemsetAsync(dev_returnLID, 0, 2*sizeof(vmesh::LocalID), stream) );
    // this needs to be serial, but is fast.
    count_columns_kernel<<<1, 1, 0, stream>>> (
       columnData,
-      returnLID[cpuThreadID] //dev_totalColumns,dev_valuesSizeRequired
+      dev_returnLID //dev_totalColumns,dev_valuesSizeRequired
       );
    HANDLE_ERROR( cudaPeekAtLastError() );
-   HANDLE_ERROR( cudaMemcpyAsync(host_returnLID, returnLID[cpuThreadID], 2*sizeof(vmesh::LocalID), cudaMemcpyDeviceToHost, stream) );
+   HANDLE_ERROR( cudaMemcpyAsync(host_returnLID, dev_returnLID, 2*sizeof(vmesh::LocalID), cudaMemcpyDeviceToHost, stream) );
    HANDLE_ERROR( cudaStreamSynchronize(stream) );
    const vmesh::LocalID host_totalColumns = host_returnLID[0];
    const vmesh::LocalID host_valuesSizeRequired = host_returnLID[1];
@@ -796,7 +797,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
 
    // Calculate target column extents
    phiprof::start("Evaluate column extents kernel");
-   HANDLE_ERROR( cudaMemsetAsync(returnLID[cpuThreadID], 0, sizeof(vmesh::LocalID), stream) );
+   HANDLE_ERROR( cudaMemsetAsync(dev_returnLID, 0, sizeof(vmesh::LocalID), stream) );
    evaluate_column_extents_kernel<<<cudablocks, CUDATHREADS, 0, stream>>> (
       dimension,
       vmesh,
@@ -815,12 +816,12 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       max_v_length,
       v_min,
       dv,
-      returnLID[cpuThreadID] //dev_wallspace_margin_bailout_flag
+      dev_returnLID //dev_wallspace_margin_bailout_flag
       );
    HANDLE_ERROR( cudaPeekAtLastError() );
    SSYNC;
    // Check if we need to bailout due to hitting v-space edge
-   HANDLE_ERROR( cudaMemcpyAsync(host_returnLID, returnLID[cpuThreadID], sizeof(vmesh::LocalID), cudaMemcpyDeviceToHost, stream) );
+   HANDLE_ERROR( cudaMemcpyAsync(host_returnLID, dev_returnLID, sizeof(vmesh::LocalID), cudaMemcpyDeviceToHost, stream) );
    HANDLE_ERROR( cudaStreamSynchronize(stream) );
    if (host_returnLID[0] != 0) { //host_wallspace_margin_bailout_flag
       string message = "Some target blocks in acceleration are going to be less than ";
