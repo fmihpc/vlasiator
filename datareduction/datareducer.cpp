@@ -48,7 +48,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       // Sidestep mixed case errors
       std::string lowercase = *it;
       for(auto& c : lowercase) c = tolower(c);
-      
+
       if(lowercase == "fg_b" || lowercase == "b") { // Bulk magnetic field at Yee-Lattice locations
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_b",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -82,7 +82,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 	 }
 	 ));
          outputReducer->addMetadata(outputReducer->size()-1,"T","$\\mathrm{T}$","$B$","1.0");
-         continue;	 
+         continue;
       }
       if(lowercase == "fg_backgroundb" || lowercase == "backgroundb" || lowercase == "fg_b_background") { // Static (typically dipole) magnetic field part
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_b_background",[](
@@ -269,7 +269,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          }
          continue;
       }
-      
+
       if(lowercase == "v" || lowercase == "vg_v") { // Overall effective bulk density defining the center-of-mass frame from all populations
          outputReducer->addOperator(new DRO::DataReductionOperatorCellParams("vg_v",CellParams::VX,3));
 	 outputReducer->addMetadata(outputReducer->size()-1,"m/s","$\\mathrm{m}\\,\\mathrm{s}^{-1}$","$V$","1.0");
@@ -447,6 +447,17 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             const std::string& pop = species.name;
             outputReducer->addOperator(new DRO::VariableHeatFluxVector(i));
             outputReducer->addMetadata(outputReducer->size()-1,"W/m^2","$\\mathrm{W}\\,\\mathrm{m}^{-2}$","$q_\\mathrm{"+pop+"}$","1.0");
+         }
+         continue;
+      }
+      if (lowercase == "populations_nonmaxwellianity" || lowercase == "populations_vg_nonmaxwellianity") {
+         // Per-population dimensionless non-maxwellianity parameter
+         for (unsigned int i = 0; i < getObjectWrapper().particleSpecies.size(); i++) {
+            species::Species& species = getObjectWrapper().particleSpecies[i];
+            const std::string& pop = species.name;
+            outputReducer->addOperator(new DRO::VariableNonMaxwellianity(i));
+            outputReducer->addMetadata(outputReducer->size() - 1, "", "",
+                                       "$\\tilde{\\epsilon}_\\mathrm{M," + pop + "}$", "1.0");
          }
          continue;
       }
@@ -2431,7 +2442,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
 	 outputReducer->addMetadata(outputReducer->size()-1,"m","$\\mathrm{m}$","$\\delta Z_\\mathrm{vg}$","1.0");
          continue;
       }
-      if(lowercase == "fg_gridcoordinates") { 
+      if(lowercase == "fg_gridcoordinates") {
          outputReducer->addOperator(new DRO::DataReductionOperatorFsGrid("fg_x",[](
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
                       FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
@@ -2613,7 +2624,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(lowercase == "ig_latitude") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_latitude", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.nodes.size());
 
                      for(uint i=0; i<grid.nodes.size(); i++) {
@@ -2652,7 +2663,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(lowercase == "ig_cellarea") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereElement("ig_cellarea", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.elements.size());
 
                      for(uint i=0; i<grid.elements.size(); i++) {
@@ -2667,7 +2678,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(lowercase == "ig_b") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_b", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.nodes.size()*3);
 
                      for(uint i=0; i<grid.nodes.size(); i++) {
@@ -2685,7 +2696,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(lowercase == "ig_e") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereElement("ig_e", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.elements.size()*3);
 
                      for(uint i=0; i<grid.elements.size(); i++) {
@@ -2716,7 +2727,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(lowercase == "ig_inplanecurrent") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereElement("ig_inplanecurrent", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.elements.size()*3);
 
                      for(uint i=0; i<grid.elements.size(); i++) {
@@ -2758,14 +2769,14 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(lowercase == "ig_upmappedarea") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereElement("ig_upmappedarea", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.elements.size()*3);
 
                      for(uint i=0; i<grid.elements.size(); i++) {
                         std::array<Real, 3> area = grid.mappedElementArea(i);
-                        retval[3*i] = area[0]; 
-                        retval[3*i+1] = area[1]; 
-                        retval[3*i+2] = area[2]; 
+                        retval[3*i] = area[0];
+                        retval[3*i+1] = area[1];
+                        retval[3*i+2] = area[2];
                      }
 
                      return retval;
@@ -2949,7 +2960,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(lowercase == "ig_potential") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_potential", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.nodes.size());
 
                      for(uint i=0; i<grid.nodes.size(); i++) {
@@ -2986,7 +2997,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      }));
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_p", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.nodes.size());
 
                      for(uint i=0; i<grid.nodes.size(); i++) {
@@ -2997,7 +3008,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      }));
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_pp", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.nodes.size());
 
                      for(uint i=0; i<grid.nodes.size(); i++) {
@@ -3008,7 +3019,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      }));
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_z", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.nodes.size());
 
                      for(uint i=0; i<grid.nodes.size(); i++) {
@@ -3019,7 +3030,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
                      }));
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_zz", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.nodes.size());
 
                      for(uint i=0; i<grid.nodes.size(); i++) {
@@ -3034,7 +3045,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(lowercase == "ig_upmappednodecoords") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_upmappednodecoords", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.nodes.size()*3);
 
                      for(uint i=0; i<grid.nodes.size(); i++) {
@@ -3051,7 +3062,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(lowercase == "ig_upmappedb") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_upmappedb", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.nodes.size()*3);
 
                      for(uint i=0; i<grid.nodes.size(); i++) {
@@ -3069,13 +3080,13 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
          FieldTracing::fieldTracingParameters.doTraceOpenClosed = true;
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_openclosed", [](
             SBC::SphericalTriGrid& grid)->std::vector<Real> {
-               
+
                std::vector<Real> retval(grid.nodes.size());
-               
+
                for(uint i=0; i<grid.nodes.size(); i++) {
                   retval[i] = (Real)grid.nodes[i].openFieldLine;
                }
-               
+
                return retval;
             }));
          continue;
@@ -3083,7 +3094,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
       if(lowercase == "ig_fac") {
          outputReducer->addOperator(new DRO::DataReductionOperatorIonosphereNode("ig_fac", [](
                      SBC::SphericalTriGrid& grid)->std::vector<Real> {
-                  
+
                      std::vector<Real> retval(grid.nodes.size());
 
                      for(uint i=0; i<grid.nodes.size(); i++) {
@@ -3162,10 +3173,10 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
             FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
             FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
             FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid)->std::vector<double> {
-               
+
                std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
                std::vector<double> retval(gridSize[0]*gridSize[1]*gridSize[2]*3);
-               
+
                for(int z=0; z<gridSize[2]; z++) {
                   for(int y=0; y<gridSize[1]; y++) {
                      for(int x=0; x<gridSize[0]; x++) {
@@ -3286,7 +3297,7 @@ void initializeDataReducers(DataReducer * outputReducer, DataReducer * diagnosti
  */
 DataReducer::DataReducer() { }
 
-/** Destructor for class DataReducer. All stored DataReductionOperators 
+/** Destructor for class DataReducer. All stored DataReductionOperators
  * are deleted.
  */
 DataReducer::~DataReducer() {
@@ -3297,7 +3308,7 @@ DataReducer::~DataReducer() {
    }
 }
 
-/** Add a new DRO::DataReductionOperator which has been created with new operation. 
+/** Add a new DRO::DataReductionOperator which has been created with new operation.
  * DataReducer will take care of deleting it.
  * @return If true, the given DRO::DataReductionOperator was added successfully.
  */
@@ -3330,7 +3341,7 @@ bool DataReducer::getDataVectorInfo(const unsigned int& operatorID,std::string& 
    return operators[operatorID]->getDataVectorInfo(dataType,dataSize,vectorSize);
 }
 
-/** Add a metadata to the specified DRO::DataReductionOperator. 
+/** Add a metadata to the specified DRO::DataReductionOperator.
  * @param operatorID ID number of the DataReductionOperator to add metadata to
  * @param unit string with the physical unit of the DRO result
  * @param unitLaTeX LaTeX-formatted string with the physical unit of the DRO result
@@ -3388,7 +3399,7 @@ bool DataReducer::reduceDiagnostic(const SpatialCell* cell,const unsigned int& o
    // Tell the chosen operator which spatial cell we are counting:
    if (operatorID >= operators.size()) return false;
    if (operators[operatorID]->setSpatialCell(cell) == false) return false;
-   
+
    if (operators[operatorID]->reduceDiagnostic(cell,result) == false) return false;
    return true;
 }
@@ -3426,7 +3437,7 @@ bool DataReducer::writeFsGridData(
                       const std::string& meshName, const unsigned int operatorID,
                       vlsv::Writer& vlsvWriter,
                       const bool writeAsFloat) {
-   
+
    if (operatorID >= operators.size()) return false;
    DRO::DataReductionOperatorFsGrid* DROf = dynamic_cast<DRO::DataReductionOperatorFsGrid*>(operators[operatorID]);
    if(!DROf) {
@@ -3450,5 +3461,5 @@ bool DataReducer::writeIonosphereGridData(
    } else {
       return false;
    }
-   
+
 }

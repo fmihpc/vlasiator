@@ -987,7 +987,7 @@ namespace spatial_cell {
                                                                 const int& i_cell,const int& j_cell,const int& k_cell) {
       uint8_t ref = refLevel;
 
-      vmesh::LocalID i_child,j_child,k_child;
+      vmesh::LocalID i_child=0,j_child=0,k_child=0;
       i_child = 2*i_child + i_cell/2;
       j_child = 2*j_child + j_cell/2;
       k_child = 2*k_child + k_cell/2;

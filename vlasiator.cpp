@@ -199,7 +199,6 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       isChanged = true;
 
       // set new timestep to the lowest one of all interval-midpoints
-      const Real half = 0.5;
       newDt = meanVlasovCFL * dtMaxGlobal[0];
       newDt = min(newDt, meanVlasovCFL * dtMaxGlobal[1] * P::maxSlAccelerationSubcycles);
       newDt = min(newDt, meanFieldsCFL * dtMaxGlobal[2] * P::maxFieldSolverSubcycles);
@@ -254,7 +253,6 @@ void recalculateLocalCellsCache() {
 }
 
 int main(int argn,char* args[]) {
-   bool success = true;
    int myRank, doBailout=0;
    const creal DT_EPSILON=1e-12;
    typedef Parameters P;
@@ -278,7 +276,6 @@ int main(int argn,char* args[]) {
    SysBoundary& sysBoundaryContainer = getObjectWrapper().sysBoundaryContainer;
    MPI_Comm comm = MPI_COMM_WORLD;
    MPI_Comm_rank(comm,&myRank);
-   bool isSysBoundaryCondDynamic;
    
    #ifdef CATCH_FPE
    // WARNING FE_INEXACT is too sensitive to be used. See man fenv.
@@ -422,14 +419,16 @@ int main(int argn,char* args[]) {
       = {P::xmin, P::ymin, P::zmin};
 
    // Checking that spatial cells are cubic, otherwise field solver is incorrect (cf. derivatives in E, Hall term)
-   if ((abs((technicalGrid.DX - technicalGrid.DY) / technicalGrid.DX) > 0.001) ||
-       (abs((technicalGrid.DX - technicalGrid.DZ) / technicalGrid.DX) > 0.001) ||
-       (abs((technicalGrid.DY - technicalGrid.DZ) / technicalGrid.DY) > 0.001)) {
+   if ((abs((technicalGrid.DX - technicalGrid.DY) / technicalGrid.DX) >1e-3) ||
+       (abs((technicalGrid.DX - technicalGrid.DZ) / technicalGrid.DX) >1e-3) ||
+       (abs((technicalGrid.DY - technicalGrid.DZ) / technicalGrid.DY) >1e-3)) {
       if (myRank == MASTER_RANK) {
          std::cerr << "WARNING: Your spatial cells seem not to be cubic. However the field solver is assuming them to "
                       "be. Use at your own risk and responsibility!"
                    << std::endl;
       }
+      //Let's bailout if FsGrid cells are not cubic;
+      bailout(true,"Non-cubic FsGrid Cells. Check your cfg file!",__FILE__,__LINE__);
    }
    phiprof::stop("Init fieldsolver grids");
 
@@ -455,7 +454,6 @@ int main(int argn,char* args[]) {
       sysBoundaryContainer,
       *project
    );
-   isSysBoundaryCondDynamic = sysBoundaryContainer.isDynamic();
    
    const std::vector<CellID>& cells = getLocalCells();
    
