@@ -87,7 +87,7 @@ __global__ void __launch_bounds__(CUDATHREADS,4) update_blocks_required_halo_ker
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>* BlocksRequiredMap,
    split::SplitVector<vmesh::GlobalID> *velocity_block_with_content_list,
    const int addWidthV,
-   // The following 4 kernels are passed just to be able to clear them on-device
+   // The following 4 vectors are passed just to be able to clear them on-device
    split::SplitVector<vmesh::GlobalID>* BlocksRequired,
    split::SplitVector<vmesh::GlobalID>* BlocksToRemove,
    split::SplitVector<vmesh::GlobalID>* BlocksToAdd,
@@ -766,6 +766,7 @@ namespace spatial_cell {
       const uint localContentBlocks = info_vbwncl->size;
       const uint localNoContentBlocks = info_vbwncl->size;
       const uint BlocksRequiredCapacity = info_Required->capacity;
+      const uint BlocksRequiredMapSizePower = info_brm->sizePower;
 
       // Neighbour and own prefetches
       if (doPrefetches) {
@@ -778,7 +779,7 @@ namespace spatial_cell {
 
       phiprof::start("BlocksRequired hashmap resize / clear");
       const vmesh::LocalID HashmapReqSize = ceil(log2(localContentBlocks)) +3;
-      if (info_brm->sizePower >= HashmapReqSize) {
+      if (BlocksRequiredMapSizePower >= HashmapReqSize) {
          // Map is already large enough
          BlocksRequiredMap->clear(Hashinator::targets::device,stream);
       } else {
@@ -807,7 +808,7 @@ namespace spatial_cell {
             BlocksRequiredMap,
             velocity_block_with_content_list,
             addWidthV,
-            // The following 4 kernels are passed just to be able to clear them on-device
+            // The following 4 vectors are passed just to be able to clear them on-device
             BlocksRequired,
             BlocksToRemove,
             BlocksToAdd,
@@ -852,7 +853,7 @@ namespace spatial_cell {
       SSYNC;
       phiprof::stop("BlocksToXXX reserve");
       phiprof::start("BlocksToXXX prefetch");
-      if (doPrefetches) {
+      if (doPrefetches || (BlocksRequiredCapacity < currSize * BLOCK_ALLOCATION_FACTOR)) {
          BlocksRequired->optimizeGPU(stream);
          BlocksToRemove->optimizeGPU(stream);
          BlocksToAdd->optimizeGPU(stream);
@@ -1465,6 +1466,7 @@ namespace spatial_cell {
       phiprof::stop("CUDA update spatial cell block lists kernel");
 
       phiprof::start("CUDA upload content list to device");
+      // This function also updates velocity_block_with_content_list_size
       dev_uploadContentLists();
       phiprof::stop("CUDA upload content list to device");
 
