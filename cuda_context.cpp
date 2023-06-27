@@ -51,6 +51,7 @@ vmesh::LocalID *returnLID[MAXCPUTHREADS];
 
 bool needAttachedStreams = false;
 bool doPrefetches=true; // only non-crucial prefetches are behind this check
+// Note: disabling prefetches brings in strange memory errors and crashes (June 2023)
 
 uint *dev_cell_indices_to_id[MAXCPUTHREADS];
 uint *dev_block_indices_to_id[MAXCPUTHREADS];
