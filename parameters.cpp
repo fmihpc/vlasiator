@@ -347,7 +347,7 @@ bool P::addParameters() {
                     string() +
                         "List of data reduction operators (DROs) to add to the grid file output.  Each variable to be "
                         "added has to be on a new line output = XXX. Names are case insensitive.  " +
-                        "Available (20221221): " + "fg_b fg_b_background fg_b_perturbed fg_e " +
+                        "Available (20230628): " + "fg_b fg_b_background fg_b_perturbed fg_b_background_vol fg_derivs_b_background fg_e " +
                         "vg_rhom vg_rhoq populations_vg_rho " + "fg_rhom fg_rhoq " + "vg_v fg_v populations_vg_v " +
                         "populations_vg_moments_thermal populations_vg_moments_nonthermal " +
                         "populations_vg_effectivesparsitythreshold populations_vg_rho_loss_adjust " +
