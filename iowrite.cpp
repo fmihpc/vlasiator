@@ -1448,8 +1448,8 @@ bool writeGrid(
    
    //Write Ionosphere Grid
    if( writeIonosphereGridMetadata( vlsvWriter ) == false ) {
-      phiprof::stop("writeGrid-reduced");
       phiprof::stop("metadataIO");
+      phiprof::stop("writeGrid-reduced");
       return false;
    }
    
