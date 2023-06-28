@@ -31,7 +31,7 @@
 //FieldFunction should be initialized
 void setBackgroundField(
    FieldFunction& bgFunction,
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+   FsGrid< Real, fsgrids::bgbfield::N_BGB, FS_STENCIL_WIDTH> & BgBGrid,
    bool append) {
    
    /*if we do not add a new background to the existing one we first put everything to zero*/
@@ -80,7 +80,7 @@ void setBackgroundField(
             for(uint fComponent=0; fComponent<3; fComponent++){
                bgFunction.setDerivative(0);
                bgFunction.setComponent((coordinate)fComponent);
-               BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::BGBX+fComponent) += 
+               BgBGrid.get(x,y,z)[fsgrids::bgbfield::BGBX+fComponent] += 
                   surfaceAverage(bgFunction,
                      (coordinate)fComponent,
                                  accuracy,
@@ -92,7 +92,7 @@ void setBackgroundField(
                //Compute derivatives. Note that we scale by dx[] as the arrays are assumed to contain differences, not true derivatives!
                bgFunction.setDerivative(1);
                bgFunction.setDerivComponent((coordinate)faceCoord1[fComponent]);
-               BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::dBGBxdy+2*fComponent) +=
+               BgBGrid.get(x,y,z)[fsgrids::bgbfield::dBGBxdy+2*fComponent] +=
                   dx[faceCoord1[fComponent]] * 
                   surfaceAverage(bgFunction, 
                      (coordinate)fComponent,
@@ -102,7 +102,7 @@ void setBackgroundField(
                                  dx[faceCoord2[fComponent]]
                                 );
                bgFunction.setDerivComponent((coordinate)faceCoord2[fComponent]);
-               BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::dBGBxdy+1+2*fComponent) +=
+               BgBGrid.get(x,y,z)[fsgrids::bgbfield::dBGBxdy+1+2*fComponent] +=
                   dx[faceCoord2[fComponent]] *
                   surfaceAverage(bgFunction,
                      (coordinate)fComponent,
@@ -117,14 +117,14 @@ void setBackgroundField(
             for(unsigned int fComponent=0;fComponent<3;fComponent++){
                bgFunction.setDerivative(0);
                bgFunction.setComponent((coordinate)fComponent);
-               BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::BGBXVOL+fComponent) += volumeAverage(bgFunction,accuracy,start,end);
+               BgBGrid.get(x,y,z)[fsgrids::bgbfield::BGBXVOL+fComponent] += volumeAverage(bgFunction,accuracy,start,end);
                
                //Compute derivatives. Note that we scale by dx[] as the arrays are assumed to contain differences, not true derivatives!      
                bgFunction.setDerivative(1);
                bgFunction.setDerivComponent((coordinate)faceCoord1[fComponent]);
-               BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::dBGBXVOLdy+2*fComponent) += dx[faceCoord1[fComponent]] * volumeAverage(bgFunction,accuracy,start,end);
+               BgBGrid.get(x,y,z)[fsgrids::bgbfield::dBGBXVOLdy+2*fComponent] += dx[faceCoord1[fComponent]] * volumeAverage(bgFunction,accuracy,start,end);
                bgFunction.setDerivComponent((coordinate)faceCoord2[fComponent]);
-               BgBGrid.get(x,y,z)->at(fsgrids::bgbfield::dBGBXVOLdy+1+2*fComponent) += dx[faceCoord2[fComponent]] * volumeAverage(bgFunction,accuracy,start,end);
+               BgBGrid.get(x,y,z)[fsgrids::bgbfield::dBGBXVOLdy+1+2*fComponent] += dx[faceCoord2[fComponent]] * volumeAverage(bgFunction,accuracy,start,end);
             }
          }
       }
@@ -134,16 +134,16 @@ void setBackgroundField(
 }
 
 void setBackgroundFieldToZero(
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid
+   FsGrid< Real, fsgrids::bgbfield::N_BGB, FS_STENCIL_WIDTH> & BgBGrid
 ) {
-   auto localSize = BgBGrid.getLocalSize().data();
+   auto localSize = BgBGrid.getLocalSize();
    
    #pragma omp parallel for collapse(3)
    for (int x = 0; x < localSize[0]; ++x) {
       for (int y = 0; y < localSize[1]; ++y) {
          for (int z = 0; z < localSize[2]; ++z) {
             for (int i = 0; i < fsgrids::bgbfield::N_BGB; ++i) {
-               BgBGrid.get(x,y,z)->at(i) = 0;
+               BgBGrid.get(x,y,z)[i] = 0;
             }
          }
       }
@@ -153,7 +153,7 @@ void setBackgroundFieldToZero(
 
 void setPerturbedField(
    FieldFunction& bfFunction,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+   FsGrid< Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
    bool append) {
    
    /*if we do not add a new background to the existing one we first put everything to zero*/
@@ -202,7 +202,7 @@ void setPerturbedField(
             for(uint fComponent=0; fComponent<3; fComponent++){
                bfFunction.setDerivative(0);
                bfFunction.setComponent((coordinate)fComponent);
-               perBGrid.get(x,y,z)->at(fsgrids::bfield::PERBX+fComponent) += 
+               perBGrid.get(x,y,z)[fsgrids::bfield::PERBX+fComponent] += 
                   surfaceAverage(bfFunction,
                      (coordinate)fComponent,
                                  accuracy,
@@ -219,15 +219,15 @@ void setPerturbedField(
 }
 
 void setPerturbedFieldToZero(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid) {
-   auto localSize = perBGrid.getLocalSize().data();
+   FsGrid< Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid) {
+   auto localSize = perBGrid.getLocalSize();
    
    #pragma omp parallel for collapse(3)
    for (int x = 0; x < localSize[0]; ++x) {
       for (int y = 0; y < localSize[1]; ++y) {
          for (int z = 0; z < localSize[2]; ++z) {
             for (int i = 0; i < fsgrids::bfield::N_BFIELD; ++i) {
-               perBGrid.get(x,y,z)->at(i) = 0;
+               perBGrid.get(x,y,z)[i] = 0;
             }
          }
       }

@@ -52,22 +52,22 @@ Real divideIfNonZero(
  * \param reconstructionOrder Reconstruction order of the fields after Balsara 2009, 2 used for BVOL, 3 used for 2nd-order Hall term calculations.
  */
 void reconstructionCoefficients(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+   FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
+   FsGrid<Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH> & dPerBGrid,
    Real* perturbedResult,
    cint i,
    cint j,
    cint k,
    creal& reconstructionOrder
 ) {
-   std::array<Real, fsgrids::bfield::N_BFIELD> * cep_i1j1k1 = NULL;
-   std::array<Real, fsgrids::dperb::N_DPERB> * der_i1j1k1 = dPerBGrid.get(i,j,k);
-   std::array<Real, fsgrids::bfield::N_BFIELD> * dummyCellParams = NULL;
-   std::array<Real, fsgrids::bfield::N_BFIELD> * cep_i2j1k1 = NULL;
-   std::array<Real, fsgrids::bfield::N_BFIELD> * cep_i1j2k1 = NULL;
-   std::array<Real, fsgrids::bfield::N_BFIELD> * cep_i1j1k2 = NULL;
+   Real* cep_i1j1k1 = NULL;
+   auto der_i1j1k1 = dPerBGrid.get(i,j,k);
+   Real* dummyCellParams = NULL;
+   Real* cep_i2j1k1 = NULL;
+   Real* cep_i1j2k1 = NULL;
+   Real* cep_i1j1k2 = NULL;
    
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> * params = & perBGrid;
+   FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> * params = & perBGrid;
    
    cep_i1j1k1 = params->get(i,j,k);
    dummyCellParams = cep_i1j1k1;
@@ -81,16 +81,16 @@ void reconstructionCoefficients(
    #ifndef FS_1ST_ORDER_SPACE
 
    // Create a dummy array for containing zero values for derivatives on non-existing cells:
-   std::array<Real, fsgrids::dperb::N_DPERB> dummyDerivatives;
+   Real dummyDerivatives[fsgrids::dperb::N_DPERB];
    for (int ii=0; ii<fsgrids::dperb::N_DPERB; ii++) {
-      dummyDerivatives.at(ii) = 0.0;
+      dummyDerivatives[ii] = 0.0;
    }
    
    // Fetch neighbour cell derivatives, or in case the neighbour does not 
    // exist, use dummyDerivatives array:
-   std::array<Real, fsgrids::dperb::N_DPERB> * der_i2j1k1 = &dummyDerivatives;
-   std::array<Real, fsgrids::dperb::N_DPERB> * der_i1j2k1 = &dummyDerivatives;
-   std::array<Real, fsgrids::dperb::N_DPERB> * der_i1j1k2 = &dummyDerivatives;
+   Real* der_i2j1k1 = dummyDerivatives;
+   Real* der_i1j2k1 = dummyDerivatives;
+   Real* der_i1j1k2 = dummyDerivatives;
    if (dPerBGrid.get(i+1,j,k) != NULL) der_i2j1k1 = dPerBGrid.get(i+1,j,k);
    if (dPerBGrid.get(i,j+1,k) != NULL) der_i1j2k1 = dPerBGrid.get(i,j+1,k);
    if (dPerBGrid.get(i,j,k+1) != NULL) der_i1j1k2 = dPerBGrid.get(i,j,k+1);
@@ -125,26 +125,26 @@ void reconstructionCoefficients(
       perturbedResult[Rec::c_yzz] = 0.0;
       perturbedResult[Rec::c_zzz] = 0.0;
    } else if (reconstructionOrder == 3) {
-      perturbedResult[Rec::a_yy] = HALF * (der_i2j1k1->at(fsgrids::dperb::dPERBxdyy) + der_i1j1k1->at(fsgrids::dperb::dPERBxdyy));
-      perturbedResult[Rec::a_zz] = HALF * (der_i2j1k1->at(fsgrids::dperb::dPERBxdzz) + der_i1j1k1->at(fsgrids::dperb::dPERBxdzz));
-      perturbedResult[Rec::a_yz] = HALF * (der_i2j1k1->at(fsgrids::dperb::dPERBxdyz) + der_i1j1k1->at(fsgrids::dperb::dPERBxdyz));
-      perturbedResult[Rec::a_xyy] = (der_i2j1k1->at(fsgrids::dperb::dPERBxdyy) - der_i1j1k1->at(fsgrids::dperb::dPERBxdyy));
-      perturbedResult[Rec::a_xyz] = (der_i2j1k1->at(fsgrids::dperb::dPERBxdyz) - der_i1j1k1->at(fsgrids::dperb::dPERBxdyz));
-      perturbedResult[Rec::a_xzz] = (der_i2j1k1->at(fsgrids::dperb::dPERBxdzz) - der_i1j1k1->at(fsgrids::dperb::dPERBxdzz));
+      perturbedResult[Rec::a_yy] = HALF * (der_i2j1k1[fsgrids::dperb::dPERBxdyy] + der_i1j1k1[fsgrids::dperb::dPERBxdyy]);
+      perturbedResult[Rec::a_zz] = HALF * (der_i2j1k1[fsgrids::dperb::dPERBxdzz] + der_i1j1k1[fsgrids::dperb::dPERBxdzz]);
+      perturbedResult[Rec::a_yz] = HALF * (der_i2j1k1[fsgrids::dperb::dPERBxdyz] + der_i1j1k1[fsgrids::dperb::dPERBxdyz]);
+      perturbedResult[Rec::a_xyy] = (der_i2j1k1[fsgrids::dperb::dPERBxdyy] - der_i1j1k1[fsgrids::dperb::dPERBxdyy]);
+      perturbedResult[Rec::a_xyz] = (der_i2j1k1[fsgrids::dperb::dPERBxdyz] - der_i1j1k1[fsgrids::dperb::dPERBxdyz]);
+      perturbedResult[Rec::a_xzz] = (der_i2j1k1[fsgrids::dperb::dPERBxdzz] - der_i1j1k1[fsgrids::dperb::dPERBxdzz]);
       
-      perturbedResult[Rec::b_xx] = HALF * (der_i1j2k1->at(fsgrids::dperb::dPERBydxx) + der_i1j1k1->at(fsgrids::dperb::dPERBydxx));
-      perturbedResult[Rec::b_xz] = HALF * (der_i1j2k1->at(fsgrids::dperb::dPERBydxz) + der_i1j1k1->at(fsgrids::dperb::dPERBydxz));
-      perturbedResult[Rec::b_zz] = HALF * (der_i1j2k1->at(fsgrids::dperb::dPERBydzz) + der_i1j1k1->at(fsgrids::dperb::dPERBydzz));
-      perturbedResult[Rec::b_xxy] = (der_i1j2k1->at(fsgrids::dperb::dPERBydxx) - der_i1j1k1->at(fsgrids::dperb::dPERBydxx));
-      perturbedResult[Rec::b_xyz] = (der_i1j2k1->at(fsgrids::dperb::dPERBydxz) - der_i1j1k1->at(fsgrids::dperb::dPERBydxz));
-      perturbedResult[Rec::b_yzz] = (der_i1j2k1->at(fsgrids::dperb::dPERBydzz) - der_i1j1k1->at(fsgrids::dperb::dPERBydzz));
+      perturbedResult[Rec::b_xx] = HALF * (der_i1j2k1[fsgrids::dperb::dPERBydxx] + der_i1j1k1[fsgrids::dperb::dPERBydxx]);
+      perturbedResult[Rec::b_xz] = HALF * (der_i1j2k1[fsgrids::dperb::dPERBydxz] + der_i1j1k1[fsgrids::dperb::dPERBydxz]);
+      perturbedResult[Rec::b_zz] = HALF * (der_i1j2k1[fsgrids::dperb::dPERBydzz] + der_i1j1k1[fsgrids::dperb::dPERBydzz]);
+      perturbedResult[Rec::b_xxy] = (der_i1j2k1[fsgrids::dperb::dPERBydxx] - der_i1j1k1[fsgrids::dperb::dPERBydxx]);
+      perturbedResult[Rec::b_xyz] = (der_i1j2k1[fsgrids::dperb::dPERBydxz] - der_i1j1k1[fsgrids::dperb::dPERBydxz]);
+      perturbedResult[Rec::b_yzz] = (der_i1j2k1[fsgrids::dperb::dPERBydzz] - der_i1j1k1[fsgrids::dperb::dPERBydzz]);
       
-      perturbedResult[Rec::c_xx] = HALF * (der_i1j1k2->at(fsgrids::dperb::dPERBzdxx) + der_i1j1k1->at(fsgrids::dperb::dPERBzdxx));
-      perturbedResult[Rec::c_xy] = HALF * (der_i1j1k2->at(fsgrids::dperb::dPERBzdxy) + der_i1j1k1->at(fsgrids::dperb::dPERBzdxy));
-      perturbedResult[Rec::c_yy] = HALF * (der_i1j1k2->at(fsgrids::dperb::dPERBzdyy) + der_i1j1k1->at(fsgrids::dperb::dPERBzdyy));
-      perturbedResult[Rec::c_xxz] = (der_i1j1k2->at(fsgrids::dperb::dPERBzdxx) - der_i1j1k1->at(fsgrids::dperb::dPERBzdxx));
-      perturbedResult[Rec::c_xyz] = (der_i1j1k2->at(fsgrids::dperb::dPERBzdxy) - der_i1j1k1->at(fsgrids::dperb::dPERBzdxy));
-      perturbedResult[Rec::c_yyz] = (der_i1j1k2->at(fsgrids::dperb::dPERBzdyy) - der_i1j1k1->at(fsgrids::dperb::dPERBzdyy));
+      perturbedResult[Rec::c_xx] = HALF * (der_i1j1k2[fsgrids::dperb::dPERBzdxx] + der_i1j1k1[fsgrids::dperb::dPERBzdxx]);
+      perturbedResult[Rec::c_xy] = HALF * (der_i1j1k2[fsgrids::dperb::dPERBzdxy] + der_i1j1k1[fsgrids::dperb::dPERBzdxy]);
+      perturbedResult[Rec::c_yy] = HALF * (der_i1j1k2[fsgrids::dperb::dPERBzdyy] + der_i1j1k1[fsgrids::dperb::dPERBzdyy]);
+      perturbedResult[Rec::c_xxz] = (der_i1j1k2[fsgrids::dperb::dPERBzdxx] - der_i1j1k1[fsgrids::dperb::dPERBzdxx]);
+      perturbedResult[Rec::c_xyz] = (der_i1j1k2[fsgrids::dperb::dPERBzdxy] - der_i1j1k1[fsgrids::dperb::dPERBzdxy]);
+      perturbedResult[Rec::c_yyz] = (der_i1j1k2[fsgrids::dperb::dPERBzdyy] - der_i1j1k1[fsgrids::dperb::dPERBzdyy]);
       
       perturbedResult[Rec::a_xxx] = -THIRD*(perturbedResult[Rec::b_xxy] + perturbedResult[Rec::c_xxz]);
       perturbedResult[Rec::a_xxy] = -FOURTH*perturbedResult[Rec::c_xyz];
@@ -163,28 +163,28 @@ void reconstructionCoefficients(
    }
    
    // Calculate 2nd order reconstruction coefficients:
-   perturbedResult[Rec::a_xy] = der_i2j1k1->at(fsgrids::dperb::dPERBxdy) - der_i1j1k1->at(fsgrids::dperb::dPERBxdy);
-   perturbedResult[Rec::a_xz] = der_i2j1k1->at(fsgrids::dperb::dPERBxdz) - der_i1j1k1->at(fsgrids::dperb::dPERBxdz);
-   perturbedResult[Rec::a_y ] = HALF*(der_i2j1k1->at(fsgrids::dperb::dPERBxdy) + der_i1j1k1->at(fsgrids::dperb::dPERBxdy)) - SIXTH*perturbedResult[Rec::a_xxy];
-   perturbedResult[Rec::a_z ] = HALF*(der_i2j1k1->at(fsgrids::dperb::dPERBxdz) + der_i1j1k1->at(fsgrids::dperb::dPERBxdz)) - SIXTH*perturbedResult[Rec::a_xxz];
+   perturbedResult[Rec::a_xy] = der_i2j1k1[fsgrids::dperb::dPERBxdy] - der_i1j1k1[fsgrids::dperb::dPERBxdy];
+   perturbedResult[Rec::a_xz] = der_i2j1k1[fsgrids::dperb::dPERBxdz] - der_i1j1k1[fsgrids::dperb::dPERBxdz];
+   perturbedResult[Rec::a_y ] = HALF*(der_i2j1k1[fsgrids::dperb::dPERBxdy] + der_i1j1k1[fsgrids::dperb::dPERBxdy]) - SIXTH*perturbedResult[Rec::a_xxy];
+   perturbedResult[Rec::a_z ] = HALF*(der_i2j1k1[fsgrids::dperb::dPERBxdz] + der_i1j1k1[fsgrids::dperb::dPERBxdz]) - SIXTH*perturbedResult[Rec::a_xxz];
    
-   perturbedResult[Rec::b_xy] = der_i1j2k1->at(fsgrids::dperb::dPERBydx) - der_i1j1k1->at(fsgrids::dperb::dPERBydx);
-   perturbedResult[Rec::b_yz] = der_i1j2k1->at(fsgrids::dperb::dPERBydz) - der_i1j1k1->at(fsgrids::dperb::dPERBydz);
-   perturbedResult[Rec::b_x ] = HALF*(der_i1j2k1->at(fsgrids::dperb::dPERBydx) + der_i1j1k1->at(fsgrids::dperb::dPERBydx)) - SIXTH*perturbedResult[Rec::b_xyy];
-   perturbedResult[Rec::b_z ] = HALF*(der_i1j2k1->at(fsgrids::dperb::dPERBydz) + der_i1j1k1->at(fsgrids::dperb::dPERBydz)) - SIXTH*perturbedResult[Rec::b_yyz];
+   perturbedResult[Rec::b_xy] = der_i1j2k1[fsgrids::dperb::dPERBydx] - der_i1j1k1[fsgrids::dperb::dPERBydx];
+   perturbedResult[Rec::b_yz] = der_i1j2k1[fsgrids::dperb::dPERBydz] - der_i1j1k1[fsgrids::dperb::dPERBydz];
+   perturbedResult[Rec::b_x ] = HALF*(der_i1j2k1[fsgrids::dperb::dPERBydx] + der_i1j1k1[fsgrids::dperb::dPERBydx]) - SIXTH*perturbedResult[Rec::b_xyy];
+   perturbedResult[Rec::b_z ] = HALF*(der_i1j2k1[fsgrids::dperb::dPERBydz] + der_i1j1k1[fsgrids::dperb::dPERBydz]) - SIXTH*perturbedResult[Rec::b_yyz];
    
-   perturbedResult[Rec::c_xz] = der_i1j1k2->at(fsgrids::dperb::dPERBzdx) - der_i1j1k1->at(fsgrids::dperb::dPERBzdx);
-   perturbedResult[Rec::c_yz] = der_i1j1k2->at(fsgrids::dperb::dPERBzdy) - der_i1j1k1->at(fsgrids::dperb::dPERBzdy);
-   perturbedResult[Rec::c_x ] = HALF*(der_i1j1k2->at(fsgrids::dperb::dPERBzdx) + der_i1j1k1->at(fsgrids::dperb::dPERBzdx)) - SIXTH*perturbedResult[Rec::c_xzz];
-   perturbedResult[Rec::c_y ] = HALF*(der_i1j1k2->at(fsgrids::dperb::dPERBzdy) + der_i1j1k1->at(fsgrids::dperb::dPERBzdy)) - SIXTH*perturbedResult[Rec::c_yzz];
+   perturbedResult[Rec::c_xz] = der_i1j1k2[fsgrids::dperb::dPERBzdx] - der_i1j1k1[fsgrids::dperb::dPERBzdx];
+   perturbedResult[Rec::c_yz] = der_i1j1k2[fsgrids::dperb::dPERBzdy] - der_i1j1k1[fsgrids::dperb::dPERBzdy];
+   perturbedResult[Rec::c_x ] = HALF*(der_i1j1k2[fsgrids::dperb::dPERBzdx] + der_i1j1k1[fsgrids::dperb::dPERBzdx]) - SIXTH*perturbedResult[Rec::c_xzz];
+   perturbedResult[Rec::c_y ] = HALF*(der_i1j1k2[fsgrids::dperb::dPERBzdy] + der_i1j1k1[fsgrids::dperb::dPERBzdy]) - SIXTH*perturbedResult[Rec::c_yzz];
    
    perturbedResult[Rec::a_xx] = -HALF*(perturbedResult[Rec::b_xy] + perturbedResult[Rec::c_xz]);
    perturbedResult[Rec::b_yy] = -HALF*(perturbedResult[Rec::a_xy] + perturbedResult[Rec::c_yz]);
    perturbedResult[Rec::c_zz] = -HALF*(perturbedResult[Rec::a_xz] + perturbedResult[Rec::b_yz]);
          
-   perturbedResult[Rec::a_x ] = cep_i2j1k1->at(fsgrids::bfield::PERBX) - cep_i1j1k1->at(fsgrids::bfield::PERBX) - TENTH*perturbedResult[Rec::a_xxx];
-   perturbedResult[Rec::b_y ] = cep_i1j2k1->at(fsgrids::bfield::PERBY) - cep_i1j1k1->at(fsgrids::bfield::PERBY) - TENTH*perturbedResult[Rec::b_yyy];
-   perturbedResult[Rec::c_z ] = cep_i1j1k2->at(fsgrids::bfield::PERBZ) - cep_i1j1k1->at(fsgrids::bfield::PERBZ) - TENTH*perturbedResult[Rec::c_zzz];
+   perturbedResult[Rec::a_x ] = cep_i2j1k1[fsgrids::bfield::PERBX] - cep_i1j1k1[fsgrids::bfield::PERBX] - TENTH*perturbedResult[Rec::a_xxx];
+   perturbedResult[Rec::b_y ] = cep_i1j2k1[fsgrids::bfield::PERBY] - cep_i1j1k1[fsgrids::bfield::PERBY] - TENTH*perturbedResult[Rec::b_yyy];
+   perturbedResult[Rec::c_z ] = cep_i1j1k2[fsgrids::bfield::PERBZ] - cep_i1j1k1[fsgrids::bfield::PERBZ] - TENTH*perturbedResult[Rec::c_zzz];
 
    #else
    for (int i=0; i<Rec::N_REC_COEFFICIENTS; ++i) {
@@ -193,8 +193,8 @@ void reconstructionCoefficients(
    #endif
 
    // Calculate 1st order reconstruction coefficients:
-   perturbedResult[Rec::a_0 ] = HALF*(cep_i2j1k1->at(fsgrids::bfield::PERBX) + cep_i1j1k1->at(fsgrids::bfield::PERBX)) - SIXTH*perturbedResult[Rec::a_xx];
-   perturbedResult[Rec::b_0 ] = HALF*(cep_i1j2k1->at(fsgrids::bfield::PERBY) + cep_i1j1k1->at(fsgrids::bfield::PERBY)) - SIXTH*perturbedResult[Rec::b_yy];
-   perturbedResult[Rec::c_0 ] = HALF*(cep_i1j1k2->at(fsgrids::bfield::PERBZ) + cep_i1j1k1->at(fsgrids::bfield::PERBZ)) - SIXTH*perturbedResult[Rec::c_zz];
+   perturbedResult[Rec::a_0 ] = HALF*(cep_i2j1k1[fsgrids::bfield::PERBX] + cep_i1j1k1[fsgrids::bfield::PERBX]) - SIXTH*perturbedResult[Rec::a_xx];
+   perturbedResult[Rec::b_0 ] = HALF*(cep_i1j2k1[fsgrids::bfield::PERBY] + cep_i1j1k1[fsgrids::bfield::PERBY]) - SIXTH*perturbedResult[Rec::b_yy];
+   perturbedResult[Rec::c_0 ] = HALF*(cep_i1j1k2[fsgrids::bfield::PERBZ] + cep_i1j1k1[fsgrids::bfield::PERBZ]) - SIXTH*perturbedResult[Rec::c_zz];
 }
 

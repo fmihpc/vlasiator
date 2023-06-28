@@ -255,9 +255,9 @@ namespace projects {
 
    /* set 0-centered dipole */
    void Magnetosphere::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+      FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid<Real, fsgrids::bgbfield::N_BGB, FS_STENCIL_WIDTH> & BgBGrid,
+      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid
    ) {
       Dipole bgFieldDipole;
       LineDipole bgFieldLineDipole;
@@ -307,7 +307,7 @@ namespace projects {
                setBackgroundFieldToZero(BgBGrid);
       }
       
-      const auto localSize = BgBGrid.getLocalSize().data();
+      const auto localSize = BgBGrid.getLocalSize();
       
 #pragma omp parallel
       {
@@ -320,17 +320,17 @@ namespace projects {
             for (int x = 0; x < localSize[0]; ++x) {
                for (int y = 0; y < localSize[1]; ++y) {
                   for (int z = 0; z < localSize[2]; ++z) {
-                     std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
-                     cell->at(fsgrids::bgbfield::BGBX)=0;
-                     cell->at(fsgrids::bgbfield::BGBXVOL)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBydx)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBzdx)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBxdy)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBxdz)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBYVOLdx)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBZVOLdx)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBXVOLdy)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBXVOLdz)=0.0;
+                     auto cell = BgBGrid.get(x, y, z);
+                     cell[fsgrids::bgbfield::BGBX]=0;
+                     cell[fsgrids::bgbfield::BGBXVOL]=0.0;
+                     cell[fsgrids::bgbfield::dBGBydx]=0.0;
+                     cell[fsgrids::bgbfield::dBGBzdx]=0.0;
+                     cell[fsgrids::bgbfield::dBGBxdy]=0.0;
+                     cell[fsgrids::bgbfield::dBGBxdz]=0.0;
+                     cell[fsgrids::bgbfield::dBGBYVOLdx]=0.0;
+                     cell[fsgrids::bgbfield::dBGBZVOLdx]=0.0;
+                     cell[fsgrids::bgbfield::dBGBXVOLdy]=0.0;
+                     cell[fsgrids::bgbfield::dBGBXVOLdz]=0.0;
                   }
                }
             }
@@ -343,17 +343,17 @@ namespace projects {
              for (int x = 0; x < localSize[0]; ++x) {
                 for (int y = 0; y < localSize[1]; ++y) {
                    for (int z = 0; z < localSize[2]; ++z) {
-                      std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
-                      cell->at(fsgrids::bgbfield::BGBY)=0.0;
-                      cell->at(fsgrids::bgbfield::BGBYVOL)=0.0;
-                      cell->at(fsgrids::bgbfield::dBGBxdy)=0.0;
-                      cell->at(fsgrids::bgbfield::dBGBzdy)=0.0;
-                      cell->at(fsgrids::bgbfield::dBGBydx)=0.0;
-                      cell->at(fsgrids::bgbfield::dBGBydz)=0.0;
-                      cell->at(fsgrids::bgbfield::dBGBXVOLdy)=0.0;
-                      cell->at(fsgrids::bgbfield::dBGBZVOLdy)=0.0;
-                      cell->at(fsgrids::bgbfield::dBGBYVOLdx)=0.0;
-                      cell->at(fsgrids::bgbfield::dBGBYVOLdz)=0.0;
+                      auto cell = BgBGrid.get(x, y, z);
+                      cell[fsgrids::bgbfield::BGBY]=0.0;
+                      cell[fsgrids::bgbfield::BGBYVOL]=0.0;
+                      cell[fsgrids::bgbfield::dBGBxdy]=0.0;
+                      cell[fsgrids::bgbfield::dBGBzdy]=0.0;
+                      cell[fsgrids::bgbfield::dBGBydx]=0.0;
+                      cell[fsgrids::bgbfield::dBGBydz]=0.0;
+                      cell[fsgrids::bgbfield::dBGBXVOLdy]=0.0;
+                      cell[fsgrids::bgbfield::dBGBZVOLdy]=0.0;
+                      cell[fsgrids::bgbfield::dBGBYVOLdx]=0.0;
+                      cell[fsgrids::bgbfield::dBGBYVOLdz]=0.0;
                    }
                 }
              }
@@ -365,19 +365,19 @@ namespace projects {
             for (int x = 0; x < localSize[0]; ++x) {
                for (int y = 0; y < localSize[1]; ++y) {
                   for (int z = 0; z < localSize[2]; ++z) {
-                     std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
-                     cell->at(fsgrids::bgbfield::BGBX)=0;
-                     cell->at(fsgrids::bgbfield::BGBY)=0;
-                     cell->at(fsgrids::bgbfield::BGBYVOL)=0.0;
-                     cell->at(fsgrids::bgbfield::BGBXVOL)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBxdy)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBxdz)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBydx)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBydz)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBXVOLdy)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBXVOLdz)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBYVOLdx)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBYVOLdz)=0.0;
+                     auto cell = BgBGrid.get(x, y, z);
+                     cell[fsgrids::bgbfield::BGBX]=0;
+                     cell[fsgrids::bgbfield::BGBY]=0;
+                     cell[fsgrids::bgbfield::BGBYVOL]=0.0;
+                     cell[fsgrids::bgbfield::BGBXVOL]=0.0;
+                     cell[fsgrids::bgbfield::dBGBxdy]=0.0;
+                     cell[fsgrids::bgbfield::dBGBxdz]=0.0;
+                     cell[fsgrids::bgbfield::dBGBydx]=0.0;
+                     cell[fsgrids::bgbfield::dBGBydz]=0.0;
+                     cell[fsgrids::bgbfield::dBGBXVOLdy]=0.0;
+                     cell[fsgrids::bgbfield::dBGBXVOLdz]=0.0;
+                     cell[fsgrids::bgbfield::dBGBYVOLdx]=0.0;
+                     cell[fsgrids::bgbfield::dBGBYVOLdz]=0.0;
                   }
                }
             }
@@ -389,13 +389,13 @@ namespace projects {
             for (int x = 0; x < localSize[0]; ++x) {
                for (int y = 0; y < localSize[1]; ++y) {
                   for (int z = 0; z < localSize[2]; ++z) {
-                     if(technicalGrid.get(x, y, z)->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN ) {
+                     if(technicalGrid.get(x, y, z,0).sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN ) {
                         for (int i = 0; i < fsgrids::bgbfield::N_BGB; ++i) {
-                           BgBGrid.get(x,y,z)->at(i) = 0;
+                           BgBGrid.get(x,y,z)[i] = 0;
                         }
 			if ( (this->dipoleType==4) && (P::isRestart == false) ) {
 			   for (int i = 0; i < fsgrids::bfield::N_BFIELD; ++i) {
-			      perBGrid.get(x,y,z)->at(i) = 0;
+			      perBGrid.get(x,y,z)[i] = 0;
 			   }
                         }
                      }

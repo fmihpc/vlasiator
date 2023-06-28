@@ -158,9 +158,9 @@ namespace projects {
    }
 
    void Distributions::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+      FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid<Real, fsgrids::bgbfield::N_BGB, FS_STENCIL_WIDTH> & BgBGrid,
+      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid
    ) {
       ConstantField bgField;
       bgField.initialize(this->Bx,
@@ -170,28 +170,28 @@ namespace projects {
       setBackgroundField(bgField, BgBGrid);
       
       if(!P::isRestart) {
-         const auto localSize = BgBGrid.getLocalSize().data();
+         const auto localSize = BgBGrid.getLocalSize();
          
 #pragma omp parallel for collapse(3)
          for (int x = 0; x < localSize[0]; ++x) {
             for (int y = 0; y < localSize[1]; ++y) {
                for (int z = 0; z < localSize[2]; ++z) {
-                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
+                  auto cell = perBGrid.get(x, y, z);
                   const int64_t cellid = perBGrid.GlobalIDForCoords(x, y, z);
-                  const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
+                  auto xyz = perBGrid.getPhysicalCoords(x, y, z);
                   
                   std::default_random_engine rndState;
                   setRandomSeed(cellid,rndState);
                   
                   if (this->lambda != 0.0) {
-                     cell->at(fsgrids::bfield::PERBX) = this->dBx*cos(2.0 * M_PI * xyz[0] / this->lambda);
-                     cell->at(fsgrids::bfield::PERBY) = this->dBy*sin(2.0 * M_PI * xyz[0] / this->lambda);
-                     cell->at(fsgrids::bfield::PERBZ) = this->dBz*cos(2.0 * M_PI * xyz[0] / this->lambda);
+                     cell[fsgrids::bfield::PERBX] = this->dBx*cos(2.0 * M_PI * xyz[0] / this->lambda);
+                     cell[fsgrids::bfield::PERBY] = this->dBy*sin(2.0 * M_PI * xyz[0] / this->lambda);
+                     cell[fsgrids::bfield::PERBZ] = this->dBz*cos(2.0 * M_PI * xyz[0] / this->lambda);
                   }
 
-                  cell->at(fsgrids::bfield::PERBX) += this->magXPertAbsAmp * (0.5 - getRandomNumber(rndState));
-                  cell->at(fsgrids::bfield::PERBY) += this->magYPertAbsAmp * (0.5 - getRandomNumber(rndState));
-                  cell->at(fsgrids::bfield::PERBZ) += this->magZPertAbsAmp * (0.5 - getRandomNumber(rndState));
+                  cell[fsgrids::bfield::PERBX] += this->magXPertAbsAmp * (0.5 - getRandomNumber(rndState));
+                  cell[fsgrids::bfield::PERBY] += this->magYPertAbsAmp * (0.5 - getRandomNumber(rndState));
+                  cell[fsgrids::bfield::PERBZ] += this->magZPertAbsAmp * (0.5 - getRandomNumber(rndState));
                }
             }
          }

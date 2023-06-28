@@ -62,8 +62,8 @@ typename std::enable_if<I == 0, std::tuple<bool, double, double>>::type test(){
   FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> technicalGrid2(gridDims, comm, periodicity,gridCoupling); 
 
   // Create a buffer object that provides a convenient interface for accessing the grid data on the device
-  arch::buf<fsgrids::technical> dataBuffer(&technicalGrid.get(0, 0), gridDims3 * sizeof(fsgrids::technical));  
-  arch::buf<fsgrids::technical> dataBuffer2(&technicalGrid2.get(0, 0), gridDims3 * sizeof(fsgrids::technical));  
+  arch::buf<fsgrids::technical> dataBuffer(&technicalGrid.getData(), gridDims3 * sizeof(fsgrids::technical));  
+  arch::buf<fsgrids::technical> dataBuffer2(&technicalGrid2.getData(), gridDims3 * sizeof(fsgrids::technical));  
 
   // Execute the loop in parallel on the device using CUDA
   clock_t arch_start = clock();
@@ -88,11 +88,11 @@ typename std::enable_if<I == 0, std::tuple<bool, double, double>>::type test(){
     cout << "dataBuffer2 value is not 2!" << endl; 
     success = false;
   }
-  if (technicalGrid2.get(10, 0).fsGridRank != 2) { // TODO: check pointers!!!
+  if (technicalGrid2.getData(10).fsGridRank != 2) { // TODO: check pointers!!!
     cout << "technicalgrid2 value is not 2!" << endl; 
     success = false;
   }
-  if (technicalGrid.get(10, 0).fsGridRank != 2) { // TODO: check pointers!!!
+  if (technicalGrid.getData(10).fsGridRank != 2) { // TODO: check pointers!!!
     cout << "technicalgrid value is not 2!" << endl; 
     success = false;
   }
@@ -128,7 +128,7 @@ typename std::enable_if<I == 1, std::tuple<bool, double, double>>::type test(){
   // Execute the loop in parallel on the device using CUDA
   clock_t arch_start = clock();
   arch::parallel_for({(uint)gridDims[0], (uint)gridDims[1], (uint)gridDims[2]}, ARCH_LOOP_LAMBDA(int i, int j, int k) {
-    perBGridBuf.get(i, j, k).at(fsgrids::bfield::PERBX) = 2;
+    perBGridBuf.get(i, j, k)[fsgrids::bfield::PERBX] = 2;
   });  
   double arch_time = (double)((clock() - arch_start) * 1e6 / CLOCKS_PER_SEC);
   perBGridBuf.syncHostData();
@@ -138,7 +138,7 @@ typename std::enable_if<I == 1, std::tuple<bool, double, double>>::type test(){
   for (uint k = 0; k < gridDims[2]; ++k){
     for (uint j = 0; j < gridDims[1]; ++j){
       for (uint i = 0; i < gridDims[0]; ++i) {
-        perBGridBuf2.get(i, j, k).at(fsgrids::bfield::PERBX) = 2;
+        perBGridBuf2.get(i, j, k)[fsgrids::bfield::PERBX] = 2;
       }
     } 
   }

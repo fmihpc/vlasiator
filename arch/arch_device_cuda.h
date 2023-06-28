@@ -7,6 +7,7 @@
 #include "cuda_runtime.h"
 #include "cub/cub.cuh"
 #include <omp.h>
+#include <fsgrid.hpp>
 
 /* Define architecture-specific macros */
 #define ARCH_LOOP_LAMBDA [=] __host__ __device__
@@ -116,38 +117,6 @@ class buf<FsGrid<T, TDim, N>> {
 
   public:   
 
-    class Proxy3 {
-    public:
-      __host__ __device__ Proxy3(int x, int y, int z, const buf<FsGrid<T, TDim, N>> &obj) : obj(obj), x(x), y(y), z(z)  {}
-
-      __host__ __device__ T& operator[](int j) {
-        return obj.get(x, y, z, j);
-      }
-      __host__ __device__ T& at(int j) {
-        return obj.get(x, y, z, j);
-      } 
-
-    private:
-      int x, y, z;
-      arch::buf<FsGrid<T, TDim, N>> obj;
-    }; 
-
-    class Proxy1 {
-    public:
-      __host__ __device__ Proxy1(int i, const buf<FsGrid<T, TDim, N>> &obj) : i(i), obj(obj) {}
-
-      __host__ __device__ T& operator[](int j) {
-        return obj.get(i, j);
-      }
-      __host__ __device__ T& at(int j) {
-        return obj.get(i, j);
-      } 
-
-    private:
-      int i;
-      arch::buf<FsGrid<T, TDim, N>> obj;
-    }; 
-
   void syncDeviceData(void){
     memcpy(h_ptr, ptr, sizeof(FsGrid<T, TDim, N>));
     h_ptr->setData(d_data);
@@ -165,7 +134,7 @@ class buf<FsGrid<T, TDim, N>> {
   buf(FsGrid<T, TDim, N> * const _ptr) : ptr(_ptr) {
     int32_t *storageSize = _ptr->getStorageSize();
     dataSize = storageSize[0] * storageSize[1] * storageSize[2] * TDim * sizeof(T);
-    h_data = &_ptr->get(0, 0);
+    h_data = &_ptr->getData();
     h_ptr = (FsGrid<T, TDim, N>*) malloc(sizeof(FsGrid<T, TDim, N>));
     CHK_ERR(cudaMalloc(&d_ptr, sizeof(FsGrid<T, TDim, N>)));
     CHK_ERR(cudaMalloc(&d_data, dataSize));
@@ -184,31 +153,19 @@ class buf<FsGrid<T, TDim, N>> {
     }
   }
 
-  __host__ __device__ Proxy1 get(int i) const {
-      return Proxy1(i, *this);
-  }
-
-  __host__ __device__ Proxy1 operator[](int i) const {
-      return Proxy1(i, *this);
-  }
-
-  __host__ __device__ Proxy3 get(int x, int y, int z) const {
-    return Proxy3(x, y, z, *this);
-  } 
-
-  __host__ __device__ T& get(int i, int j) const {
+  __host__ __device__ auto get(int i) const {
    #ifdef __CUDA_ARCH__
-      return *d_ptr->get(i, j);
+      return *d_ptr->get(i);
    #else
-      return *ptr->get(i, j);
+      return *ptr->get(i);
    #endif
   }
 
-  __host__ __device__ T& get(int x, int y, int z, int j) const {
+  __host__ __device__ auto get(int x, int y, int z) const {
    #ifdef __CUDA_ARCH__
-      return d_ptr->get(x, y, z, j);
+      return d_ptr->get(x, y, z);
    #else
-      return ptr->get(x, y, z, j);
+      return ptr->get(x, y, z);
    #endif
   }
 };

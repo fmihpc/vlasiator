@@ -38,9 +38,9 @@ int getNumberOfCellsOnMaxRefLvl(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
   onFsgridMapCells          maps remote dccrg CellIDs to local fsgrid cells
 */
 
-template <typename T, int stencil> void computeCoupling(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+template <typename T, int TDim, int stencil> void computeCoupling(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 							const std::vector<CellID>& cells,
-							FsGrid< T, stencil>& momentsGrid,
+							FsGrid< T, TDim, stencil>& momentsGrid,
 							std::map<int, std::set<CellID> >& onDccrgMapRemoteProcess,
 							std::map<int, std::set<CellID> >& onFsgridMapRemoteProcess,
 							std::map<CellID, std::vector<int64_t> >& onFsgridMapCells
@@ -57,7 +57,7 @@ template <typename T, int stencil> void computeCoupling(dccrg::Dccrg<SpatialCell
   
   
   //size of fsgrid local part
-  const std::array<int, 3> gridDims(momentsGrid.getLocalSize());
+  int* gridDims = momentsGrid.getLocalSize();
   
  
   //Compute what we will receive, and where it should be stored
@@ -94,8 +94,8 @@ template <typename T, int stencil> void computeCoupling(dccrg::Dccrg<SpatialCell
 
 void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                            const std::vector<CellID>& cells,
-                           FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-                           FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+                           FsGrid<Real, fsgrids::moments::N_MOMENTS, FS_STENCIL_WIDTH> & momentsGrid,
+                           FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
 
                            bool dt2 /*=false*/) {
 
@@ -177,9 +177,9 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
     for(auto const &cell: receives.second){ //loop over cellids (dccrg) for receive
       // this part heavily relies on both sender and receiver having cellids sorted!
       for(auto lid: onFsgridMapCells[cell]){
-	std::array<Real, fsgrids::moments::N_MOMENTS> * fsgridData = momentsGrid.get(lid);
+	auto fsgridData = momentsGrid.get(lid);
 	for(int l = 0; l < fsgrids::moments::N_MOMENTS; l++)   {
-	  fsgridData->at(l) = receiveBuffer[l];
+	  fsgridData[l] = receiveBuffer[l];
 	}
       }
       
@@ -211,7 +211,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
     // Get size of local domain and create swapGrid for filtering
     const int *mntDims= &momentsGrid.getLocalSize()[0];   //get local size for each proc.
-    FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> swapGrid = momentsGrid;  //swap array 
+    FsGrid<Real, fsgrids::moments::N_MOMENTS, FS_STENCIL_WIDTH> swapGrid = momentsGrid;  //swap array 
     const int maxRefLevel = mpiGrid.mapping.get_maximum_refinement_level();
 
     // Filtering Loop
@@ -248,14 +248,14 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
             }
 
             // Define some Pointers
-            std::array<Real, fsgrids::moments::N_MOMENTS> *cell;  
-            std::array<Real,fsgrids::moments::N_MOMENTS> *swap;
+            Real* cell;  
+            Real* swap;
            
             // Set Cell to zero before passing filter
             swap = swapGrid.get(ii,jj,kk);
             for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
 
-              swap->at(e)=0.0;
+              swap[e]=0.0;
 
             }
 
@@ -272,7 +272,7 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
                   swap = swapGrid.get(ii,jj,kk);
 
                   for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
-                    swap->at(e)+=cell->at(e) * kernelWeight;
+                    swap[e]+=cell[e] * kernelWeight;
 
                     } 
                   }
@@ -303,10 +303,10 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
 
 void getFieldsFromFsGrid(
-   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volumeFieldsGrid,
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+   FsGrid<Real, fsgrids::volfields::N_VOL, FS_STENCIL_WIDTH> & volumeFieldsGrid,
+   FsGrid<Real, fsgrids::bgbfield::N_BGB, FS_STENCIL_WIDTH> & BgBGrid,
+   FsGrid<Real, fsgrids::egradpe::N_EGRADPE, FS_STENCIL_WIDTH> & EGradPeGrid,
+   FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const std::vector<CellID>& cells
 ) {
@@ -388,28 +388,28 @@ void getFieldsFromFsGrid(
         if(technicalGrid.get(fsgridCell)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
            continue;
         }
-        std::array<Real, fsgrids::volfields::N_VOL> * volcell = volumeFieldsGrid.get(fsgridCell);
-	std::array<Real, fsgrids::bgbfield::N_BGB> * bgcell = BgBGrid.get(fsgridCell);
-	std::array<Real, fsgrids::egradpe::N_EGRADPE> * egradpecell = EGradPeGrid.get(fsgridCell);	
+        Real* volcell = volumeFieldsGrid.get(fsgridCell);
+	      Real* bgcell = BgBGrid.get(fsgridCell);
+	      Real* egradpecell = EGradPeGrid.get(fsgridCell);	
 	
-        sendBuffer[ii].sums[0 ] += volcell->at(fsgrids::volfields::PERBXVOL);
-        sendBuffer[ii].sums[1 ] += volcell->at(fsgrids::volfields::PERBYVOL);
-        sendBuffer[ii].sums[2 ] += volcell->at(fsgrids::volfields::PERBZVOL);
-        sendBuffer[ii].sums[6 ] += volcell->at(fsgrids::volfields::dPERBXVOLdy) / technicalGrid.DY;
-        sendBuffer[ii].sums[7 ] += volcell->at(fsgrids::volfields::dPERBXVOLdz) / technicalGrid.DZ;
-        sendBuffer[ii].sums[8 ] += volcell->at(fsgrids::volfields::dPERBYVOLdx) / technicalGrid.DX;
-        sendBuffer[ii].sums[9 ] += volcell->at(fsgrids::volfields::dPERBYVOLdz) / technicalGrid.DZ;
-        sendBuffer[ii].sums[10] += volcell->at(fsgrids::volfields::dPERBZVOLdx) / technicalGrid.DX;
-        sendBuffer[ii].sums[11] += volcell->at(fsgrids::volfields::dPERBZVOLdy) / technicalGrid.DY;
-        sendBuffer[ii].sums[12] += bgcell->at(fsgrids::bgbfield::BGBXVOL);
-        sendBuffer[ii].sums[13] += bgcell->at(fsgrids::bgbfield::BGBYVOL);
-        sendBuffer[ii].sums[14] += bgcell->at(fsgrids::bgbfield::BGBZVOL);
-        sendBuffer[ii].sums[15] += egradpecell->at(fsgrids::egradpe::EXGRADPE);
-        sendBuffer[ii].sums[16] += egradpecell->at(fsgrids::egradpe::EYGRADPE);
-        sendBuffer[ii].sums[17] += egradpecell->at(fsgrids::egradpe::EZGRADPE);
-	sendBuffer[ii].sums[18] += volcell->at(fsgrids::volfields::EXVOL);
-	sendBuffer[ii].sums[19] += volcell->at(fsgrids::volfields::EYVOL);
-	sendBuffer[ii].sums[20] += volcell->at(fsgrids::volfields::EZVOL);
+        sendBuffer[ii].sums[0 ] += volcell[fsgrids::volfields::PERBXVOL];
+        sendBuffer[ii].sums[1 ] += volcell[fsgrids::volfields::PERBYVOL];
+        sendBuffer[ii].sums[2 ] += volcell[fsgrids::volfields::PERBZVOL];
+        sendBuffer[ii].sums[6 ] += volcell[fsgrids::volfields::dPERBXVOLdy] / technicalGrid.DY;
+        sendBuffer[ii].sums[7 ] += volcell[fsgrids::volfields::dPERBXVOLdz] / technicalGrid.DZ;
+        sendBuffer[ii].sums[8 ] += volcell[fsgrids::volfields::dPERBYVOLdx] / technicalGrid.DX;
+        sendBuffer[ii].sums[9 ] += volcell[fsgrids::volfields::dPERBYVOLdz] / technicalGrid.DZ;
+        sendBuffer[ii].sums[10] += volcell[fsgrids::volfields::dPERBZVOLdx] / technicalGrid.DX;
+        sendBuffer[ii].sums[11] += volcell[fsgrids::volfields::dPERBZVOLdy] / technicalGrid.DY;
+        sendBuffer[ii].sums[12] += bgcell[fsgrids::bgbfield::BGBXVOL];
+        sendBuffer[ii].sums[13] += bgcell[fsgrids::bgbfield::BGBYVOL];
+        sendBuffer[ii].sums[14] += bgcell[fsgrids::bgbfield::BGBZVOL];
+        sendBuffer[ii].sums[15] += egradpecell[fsgrids::egradpe::EXGRADPE];
+        sendBuffer[ii].sums[16] += egradpecell[fsgrids::egradpe::EYGRADPE];
+        sendBuffer[ii].sums[17] += egradpecell[fsgrids::egradpe::EZGRADPE];
+	sendBuffer[ii].sums[18] += volcell[fsgrids::volfields::EXVOL];
+	sendBuffer[ii].sums[19] += volcell[fsgrids::volfields::EYVOL];
+	sendBuffer[ii].sums[20] += volcell[fsgrids::volfields::EZVOL];
         sendBuffer[ii].cells++;
       }
       ii++;

@@ -388,21 +388,21 @@ namespace projects {
   }
 
   void IPShock::setProjectBField(
-     FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-     FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-     FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+     FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
+     FsGrid<Real, fsgrids::bgbfield::N_BGB, FS_STENCIL_WIDTH> & BgBGrid,
+     FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid
   ) {
       setBackgroundFieldToZero(BgBGrid);
       
       if(!P::isRestart) {
-         auto localSize = perBGrid.getLocalSize().data();
+         auto localSize = perBGrid.getLocalSize();
       
 #pragma omp parallel for collapse(3)
          for (int x = 0; x < localSize[0]; ++x) {
             for (int y = 0; y < localSize[1]; ++y) {
                for (int z = 0; z < localSize[2]; ++z) {
-                  const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
-                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
+                  auto xyz = perBGrid.getPhysicalCoords(x, y, z);
+                  auto cell = perBGrid.get(x, y, z);
                   
                   /* Maintain all values in BPERT for simplicity */
                   //Real KB = physicalconstants::K_B;
@@ -437,9 +437,9 @@ namespace projects {
                   //Real VY = Vtang * this->Vucosphi * this->Vyusign;
                   //Real VZ = Vtang * sqrt(1. - this->Vucosphi * this->Vucosphi) * this->Vzusign;
                   
-                  cell->at(fsgrids::bfield::PERBX) = BX;
-                  cell->at(fsgrids::bfield::PERBY) = BY;
-                  cell->at(fsgrids::bfield::PERBZ) = BZ;
+                  cell[fsgrids::bfield::PERBX] = BX;
+                  cell[fsgrids::bfield::PERBY] = BY;
+                  cell[fsgrids::bfield::PERBZ] = BZ;
                }
             }
          }

@@ -179,7 +179,7 @@ namespace SBC {
    }
    
    bool Outflow::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
+                                   FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid) {
 
       bool doAssign;
       array<bool,6> isThisCellOnAFace;
@@ -208,7 +208,7 @@ namespace SBC {
       }
       
       // Assign boundary flags to local fsgrid cells
-      const array<int, 3> gridDims(technicalGrid.getLocalSize());  
+      int* gridDims = technicalGrid.getLocalSize();
       for (int k=0; k<gridDims[2]; k++) {
          for (int j=0; j<gridDims[1]; j++) {
             for (int i=0; i<gridDims[0]; i++) {
@@ -237,7 +237,7 @@ namespace SBC {
                determineFace(isThisCellOnAFace.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx, dy, dz);
                for(int iface=0; iface<6; iface++) doAssign = doAssign || (facesToProcess[iface] && isThisCellOnAFace[iface]);
                if(doAssign) {
-                  technicalGrid.get(i,j,k)->sysBoundaryFlag = this->getIndex();
+                  technicalGrid.get(i,j,k,0).sysBoundaryFlag = this->getIndex();
                }
             }
          }
@@ -248,7 +248,7 @@ namespace SBC {
    
    bool Outflow::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
       Project &project
    ) {
       const vector<CellID>& cells = getLocalCells();
@@ -299,8 +299,8 @@ namespace SBC {
    }
 
    Real Outflow::fieldSolverBoundaryCondMagneticField(
-      FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & bGrid,
+      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
       cint i,
       cint j,
       cint k,
@@ -320,49 +320,49 @@ namespace SBC {
    }
 
    void Outflow::fieldSolverBoundaryCondMagneticFieldProjection(
-      FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & bGrid,
+      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
       cint i,
       cint j,
       cint k
    ) {
    }
    void Outflow::fieldSolverBoundaryCondElectricField(
-      FsGrid< array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+      FsGrid<Real, fsgrids::efield::N_EFIELD, FS_STENCIL_WIDTH> & EGrid,
       cint i,
       cint j,
       cint k,
       cuint component
    ) {
-      EGrid.get(i,j,k)->at(fsgrids::efield::EX+component) = 0.0;
+      EGrid.get(i,j,k)[fsgrids::efield::EX+component] = 0.0;
    }
    
    void Outflow::fieldSolverBoundaryCondHallElectricField(
-      FsGrid< array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+      FsGrid<Real, fsgrids::ehall::N_EHALL, FS_STENCIL_WIDTH> & EHallGrid,
       cint i,
       cint j,
       cint k,
       cuint component
    ) {
-      array<Real, fsgrids::ehall::N_EHALL> * cp = EHallGrid.get(i,j,k);
+      auto cp = EHallGrid.get(i,j,k);
       switch (component) {
          case 0:
-            cp->at(fsgrids::ehall::EXHALL_000_100) = 0.0;
-            cp->at(fsgrids::ehall::EXHALL_010_110) = 0.0;
-            cp->at(fsgrids::ehall::EXHALL_001_101) = 0.0;
-            cp->at(fsgrids::ehall::EXHALL_011_111) = 0.0;
+            cp[fsgrids::ehall::EXHALL_000_100] = 0.0;
+            cp[fsgrids::ehall::EXHALL_010_110] = 0.0;
+            cp[fsgrids::ehall::EXHALL_001_101] = 0.0;
+            cp[fsgrids::ehall::EXHALL_011_111] = 0.0;
             break;
          case 1:
-            cp->at(fsgrids::ehall::EYHALL_000_010) = 0.0;
-            cp->at(fsgrids::ehall::EYHALL_100_110) = 0.0;
-            cp->at(fsgrids::ehall::EYHALL_001_011) = 0.0;
-            cp->at(fsgrids::ehall::EYHALL_101_111) = 0.0;
+            cp[fsgrids::ehall::EYHALL_000_010] = 0.0;
+            cp[fsgrids::ehall::EYHALL_100_110] = 0.0;
+            cp[fsgrids::ehall::EYHALL_001_011] = 0.0;
+            cp[fsgrids::ehall::EYHALL_101_111] = 0.0;
             break;
          case 2:
-            cp->at(fsgrids::ehall::EZHALL_000_001) = 0.0;
-            cp->at(fsgrids::ehall::EZHALL_100_101) = 0.0;
-            cp->at(fsgrids::ehall::EZHALL_010_011) = 0.0;
-            cp->at(fsgrids::ehall::EZHALL_110_111) = 0.0;
+            cp[fsgrids::ehall::EZHALL_000_001] = 0.0;
+            cp[fsgrids::ehall::EZHALL_100_101] = 0.0;
+            cp[fsgrids::ehall::EZHALL_010_011] = 0.0;
+            cp[fsgrids::ehall::EZHALL_110_111] = 0.0;
             break;
          default:
             cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
@@ -370,18 +370,18 @@ namespace SBC {
    }
    
    void Outflow::fieldSolverBoundaryCondGradPeElectricField(
-      FsGrid< array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+      FsGrid<Real, fsgrids::egradpe::N_EGRADPE, FS_STENCIL_WIDTH> & EGradPeGrid,
       cint i,
       cint j,
       cint k,
       cuint component
    ) {
-      EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE+component) = 0.0;
+      EGradPeGrid.get(i,j,k)[fsgrids::egradpe::EXGRADPE+component] = 0.0;
    }
    
    void Outflow::fieldSolverBoundaryCondDerivatives(
-      FsGrid< array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-      FsGrid< array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+      FsGrid<Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH> & dPerBGrid,
+      FsGrid<Real, fsgrids::dmoments::N_DMOMENTS, FS_STENCIL_WIDTH> & dMomentsGrid,
       cint i,
       cint j,
       cint k,
@@ -392,7 +392,7 @@ namespace SBC {
    }
    
    void Outflow::fieldSolverBoundaryCondBVOLDerivatives(
-      FsGrid< array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+      FsGrid<Real, fsgrids::volfields::N_VOL, FS_STENCIL_WIDTH> & volGrid,
       cint i,
       cint j,
       cint k,
