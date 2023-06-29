@@ -1,6 +1,8 @@
 #ifndef ARCH_DEVICE_HOST_H
 #define ARCH_DEVICE_HOST_H
 
+#include <fsgrid.hpp>
+
 /* Define architecture-specific macros */
 #define ARCH_LOOP_LAMBDA [=]
 #define ARCH_INNER_BODY2(i, j, aggregate) return [=](auto i, auto j, auto *aggregate)
@@ -32,6 +34,31 @@ class buf {
 
   T &operator [] (uint i) const {
     return ptr[i];
+  }
+};
+
+template <typename T, int TDim, int N> 
+class buf<FsGrid<T, TDim, N>> {
+  private:  
+  FsGrid<T, TDim, N> *ptr; 
+  uint is_copy = 0;
+
+  public:   
+
+  void syncDeviceData(void){}
+
+  void syncHostData(void){}
+  
+  buf(FsGrid<T, TDim, N> * const _ptr) : ptr(_ptr) {}
+  
+  buf(const buf& u) : ptr(u.ptr), is_copy(1) {}
+
+  auto get(int i) const {
+    return *ptr->get(i);
+  }
+
+  auto get(int x, int y, int z) const {
+    return ptr->get(x, y, z);
   }
 };
 
