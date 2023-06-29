@@ -813,9 +813,10 @@ namespace SBC {
       for (int kk=-2; kk<3; kk++) {
          for (int jj=-2; jj<3; jj++) {
             for (int ii=-2; ii<3 ; ii++) {
-               if( (technicalGrid.get(i+ii,j+jj,k+kk,0).SOLVE & mask) == mask // Did that guy solve this component?
-                   && technicalGrid.get(i+ii,j+jj,k+kk,0).sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE // Do not copy from there
-               ) {
+               if( technicalGrid.get(i+ii,j+jj,k+kk) // skip invalid cells returning NULL
+                   && (technicalGrid.get(i+ii,j+jj,k+kk)->SOLVE & mask) == mask // Did that guy solve this component?
+                   && technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE // Do not copy from there
+               ) { 
                   distance = min(distance, ii*ii + jj*jj + kk*kk);
                }
             }
@@ -825,9 +826,10 @@ namespace SBC {
       for (int kk=-2; kk<3; kk++) {
          for (int jj=-2; jj<3; jj++) {
             for (int ii=-2; ii<3 ; ii++) {
-               if( (technicalGrid.get(i+ii,j+jj,k+kk,0).SOLVE & mask) == mask // Did that guy solve this component?
-                   && technicalGrid.get(i+ii,j+jj,k+kk,0).sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE // Do not copy from there
-               ) {
+               if( technicalGrid.get(i+ii,j+jj,k+kk) // skip invalid cells returning NULL
+                   && (technicalGrid.get(i+ii,j+jj,k+kk)->SOLVE & mask) == mask // Did that guy solve this component?
+                   && technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE // Do not copy from there
+               ) { 
                   int d = ii*ii + jj*jj + kk*kk;
                   if( d == distance ) {
                      array<int, 3> cell = {i+ii, j+jj, k+kk};
