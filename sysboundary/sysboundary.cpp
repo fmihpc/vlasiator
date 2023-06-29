@@ -410,7 +410,7 @@ bool belongsToLayer(const int layer, const int x, const int y, const int z,
 
             // not strictly necessary but logically we should not consider the cell itself
             // among its neighbors.
-            if ((ix == 0 && iy == 0 && iz == 0) ) {
+            if ((ix == 0 && iy == 0 && iz == 0) || !technicalGrid.get(x + ix, y + iy, z + iz)) {
                continue;
             }
 
