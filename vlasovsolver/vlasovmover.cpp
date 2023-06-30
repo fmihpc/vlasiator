@@ -401,23 +401,12 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
       if (dt<0) subcycleDt = -subcycleDt;
       
       //generate pseudo-random order which is always the same irrespective of parallelization, restarts, etc.
-      char rngStateBuffer[256];
-      random_data rngDataBuffer;
-
+      std::default_random_engine rndState;
       // set seed, initialise generator and get value. The order is the same
       // for all cells, but varies with timestep.
-      memset(&(rngDataBuffer), 0, sizeof(rngDataBuffer));
-      #ifdef _AIX
-         initstate_r(P::tstep, &(rngStateBuffer[0]), 256, NULL, &(rngDataBuffer));
-         int64_t rndInt;
-         random_r(&rndInt, &rngDataBuffer);
-      #else
-         initstate_r(P::tstep, &(rngStateBuffer[0]), 256, &(rngDataBuffer));
-         int32_t rndInt;
-         random_r(&rngDataBuffer, &rndInt);
-      #endif
+      rndState.seed(P::tstep);
          
-      uint map_order=rndInt%3;
+      uint map_order=std::uniform_int_distribution<>(0,2)(rndState);
       phiprof::start("cell-semilag-acc");
       cpu_accelerate_cell(mpiGrid[cellID],popID,map_order,subcycleDt);
       phiprof::stop("cell-semilag-acc");

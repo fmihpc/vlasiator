@@ -1,0 +1,79 @@
+#
+# Makefile for Termux on Android (aarch64).
+#
+# To run this, install Termux:
+# - https://f-droid.org/en/packages/com.termux/
+#   or
+#   https://play.google.com/store/apps/details?id=com.termux
+# - In trmux, run
+#   pkg install build-essential binutils tsu openmpi
+# - Build Vlasiator according to the usual instructions from
+#   https://github.com/fmihpc/vlasiator/wiki/Installing-Vlasiator
+#
+#
+# Note:
+# o Zoltan's configure script requires a "--build=arm-linux-gnu" parameter
+# o Android's default /bin/sh is also too dumb to run Zoltan's configure script,
+#   replace the #! - Line at its start by your `which bash` output.
+# o Eigen headers fail to compile because the termux libstdc++ doesn't provide
+#   std::bind1st and std::bind2nd. Simply uncommenting those definitions fixed it for me.
+# o This requires https://github.com/fmihpc/vlasiator/pull/585 to run, as
+#   Android doesn't seem to have random_r
+# o It might need the phone to be rooted, because openmpi tries to memory-lock pages
+#   for MPI transfers. I worked around it by running as root (using the tsu sudo package).
+#   It might also be possible to configure openmpi variables to not do this.
+#
+# Tested on a rooted Motorola G30 running Android 11.
+#
+
+CMP = mpic++
+LNK = mpic++
+
+#======== Vectorization ==========
+#Set vector backend type for vlasov solvers, sets precision and length. 
+#Options: 
+# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VEC4D_FALLBACK, VEC4F_FALLBACK, VEC8F_FALLBACK
+
+ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
+#Single-precision        
+ 	VECTORCLASS = VEC8F_FALLBACK
+	INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/../vlasiator/vlasovsolver
+else
+#Double-precision
+#	VECTORCLASS = VEC4D_AGNER
+#	INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass
+	VECTORCLASS = VEC4D_FALLBACK
+	INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/../vlasiator/vlasovsolver
+endif
+
+FLAGS =
+# note: std was c++11
+# note: testpackage settings missing
+CXXFLAGS = -I$(HOME)/include -O2 -std=c++17 -W -Wall -pedantic -Wno-unused -Wno-unused-parameter -Wno-missing-braces  -fopenmp
+#CXXFLAGS = -I$(HOME)/include -L$(HOME)/lib -O0 -funroll-loops -std=c++17 -W -Wall -pedantic -Wno-unused -Wno-unused-parameter -Wno-missing-braces -g -fopenmp
+MATHFLAGS = -ffast-math
+LDFLAGS = -fopenmp
+LIB_MPI =
+# LIB_MPI = 
+
+LIBRARY_PREFIX = $(HOME)/vlasiator/libraries
+LIBRARY_PREFIX_B = $(HOME)
+
+INC_BOOST =
+LIB_BOOST = -L${HOME}/lib -lboost_program_options
+
+INC_ZOLTAN = -I${LIBRARY_PREFIX}/Zoltan/include
+LIB_ZOLTAN = -L${LIBRARY_PREFIX}/Zoltan/lib -lzoltan
+
+INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
+LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv
+
+INC_DCCRG = -I${LIBRARY_PREFIX}/dccrg -I${LIBRARY_PREFIX}/fsgrid
+
+LIB_PROFILE = -L${LIBRARY_PREFIX}/phiprof/lib -lphiprof -Wl,-rpath=${LIBRARY_PREFIX}/phiprof/lib 
+INC_PROFILE = -I${LIBRARY_PREFIX}/phiprof/include
+INC_TOPO =
+
+INC_EIGEN = -I${LIBRARY_PREFIX}/eigen

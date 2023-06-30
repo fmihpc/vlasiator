@@ -83,7 +83,6 @@ namespace projects {
       uint seed;
       
       char rngStateBuffer[256];
-      random_data rngDataBuffer;
       
       static Real rndRho, rndVel[3];
       #pragma omp threadprivate(rndRho,rndVel)
