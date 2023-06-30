@@ -46,7 +46,7 @@ static void trapez(const T1DFunction& func, double a, double b, double& S, int& 
 {
    int j;
    if (n == 1) {
-      S = 0.5*(b-a)*(func.call(a) + func.call(b));
+      S = 0.5*(b-a)*(func(a) + func(b));
       it = 1;
       //recflops(4);
    } else {
@@ -54,7 +54,7 @@ static void trapez(const T1DFunction& func, double a, double b, double& S, int& 
       double x = a + 0.5*delta;
       double sum = 0;
       for (j=0; j<it; j++) {
-         sum+= func.call(x);
+         sum+= func(x);
          x+= delta;
       }
       S = 0.5*(S + (b-a)*sum/it);      // replacement of S by its refined value
@@ -214,37 +214,20 @@ double Romberg(const T1DFunction& func, double a, double b, double absacc)
    return result;
 }
 
-
-
-class Tinty_f2D: public T1DFunction {
-private:
-   const T2DFunction& f;
-   double ymin2D, ymax2D, the_absacc2D;
-public:
-   Tinty_f2D(const T2DFunction& f1, double ymin, double ymax, double absacc)
-      : f(f1), ymin2D(ymin), ymax2D(ymax), the_absacc2D(absacc) {}
-   virtual double call(double x) const {return Romberg(T2D_fix1(f,x),ymin2D,ymax2D,the_absacc2D);}
-};
-
-double Romberg(const T2DFunction& func, double a, double b, double c, double d, double absacc)
-{
+// 2D
+double Romberg(const T2DFunction& func, double a, double b, double c, double d, double absacc) {
 //   cout << "2d romberg a=" << a << ", b=" << b << ", c=" << c << ", d=" << d << ", absacc=" << absacc << "\n";
-   return Romberg(Tinty_f2D(func,c,d,absacc/(b-a)),a,b,absacc);
+
+   T1DFunction Tinty = [=](double x)->double {
+      return Romberg( std::bind(func, x, std::placeholders::_1), c, d,absacc/(b-a));
+   };
+   return Romberg(Tinty,a,b,absacc);
 }
 
 // 3D
-
-class Tintxy_f3D : public T1DFunction {
-private:
-   const T3DFunction& f;
-   double xmin3D,xmax3D, ymin3D,ymax3D, the_absacc3D;
-public:
-   Tintxy_f3D(const T3DFunction& f1, double xmin,double xmax, double ymin,double ymax, double absacc)
-      : f(f1), xmin3D(xmin),xmax3D(xmax), ymin3D(ymin),ymax3D(ymax), the_absacc3D(absacc) {}
-   virtual double call(double z) const {return Romberg(T3D_fix3(f,z),xmin3D,xmax3D,ymin3D,ymax3D,the_absacc3D);}
-};
-
-double Romberg(const T3DFunction& func, double a, double b, double c, double d, double e, double f, double absacc)
-{
-   return Romberg(Tintxy_f3D(func,a,b,c,d,absacc/(f-e)),e,f,absacc);
+double Romberg(const T3DFunction& func, double a, double b, double c, double d, double e, double f, double absacc) {
+   T1DFunction Tintxy = [=](double z)->double {
+      return Romberg(std::bind(func, std::placeholders::_1, std::placeholders::_2, z), a,b,c,d,absacc/(f-e));
+   };
+   return Romberg(Tintxy,e,f,absacc);
 }

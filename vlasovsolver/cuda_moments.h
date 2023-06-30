@@ -34,15 +34,70 @@
 
 using namespace spatial_cell;
 
-void cuda_calculateMoments_V(
+#define nMoments1 (5)
+#define nMoments2 (3)
+#define MaxPopulations (10)
+
+struct MomentInfo
+{
+   Realf* meshDataPointer;
+   Real* parameterPointer;
+   Real mass;
+   Real charge;
+   uint blockCount;
+};
+
+void calculateMoments_V(
         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
         const std::vector<CellID>& cells,
         const bool& computeSecond);
 
-void cuda_calculateMoments_R(
+void calculateMoments_R(
         dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
         const std::vector<CellID>& cells,
         const bool& computeSecond);
 
+extern void cuda_allocateMomentCalculations(
+   const uint nPopulations,
+   const uint maxThreads
+   );
+
+inline __host__ __device__ Real divideIfNonZeroHD(
+   Real numerator,
+   Real denominator
+) {
+   if(denominator == 0.0) {
+      return 0.0;
+   } else {
+      return numerator / denominator;
+   }
+}
+
+/* void calculate_firstMoments_glue( */
+/*    MomentInfo *dev_momentInfos, */
+/*    Real* dev_momentArrays1, */
+/*    const int nPopulations, */
+/*    cudaStream_t stream */
+/*    ); */
+
+/* void calculate_secondMoments_glue( */
+/*    MomentInfo *dev_momentInfos, */
+/*    Real* dev_momentArrays2, */
+/*    const int nPopulations, */
+/*    const Real bulkVX, */
+/*    const Real bulkVY, */
+/*    const Real bulkVZ, */
+/*    cudaStream_t stream */
+/*    ); */
+
+extern MomentInfo *dev_momentInfos[];
+extern MomentInfo *host_momentInfos[];
+
+extern Real *dev_momentArrays1[];
+extern Real *host_momentArrays1[];
+extern Real *dev_momentArrays2[];
+extern Real *host_momentArrays2[];
+
+extern bool isCudaMomentsAllocated;
 
 #endif

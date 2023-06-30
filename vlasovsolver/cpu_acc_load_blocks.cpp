@@ -26,8 +26,8 @@
 #include "cpu_acc_load_blocks.hpp"
 
 void loadColumnBlockData(
-   const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
-   vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer,
+   const vmesh::VelocityMesh* vmesh,
+   vmesh::VelocityBlockContainer* blockContainer,
    vmesh::GlobalID* blocks,
    vmesh::LocalID n_blocks,
    const int dimension,
@@ -68,7 +68,7 @@ for wi, WID in enumerate(WIDs):
 
       cog.outl("if(dimension == %s) {" % dimension)
       cog.outl("   for (vmesh::LocalID block_k=0; block_k<n_blocks; ++block_k) {")
-      cog.outl("      Realf* __restrict__ data = blockContainer.getData(vmesh.getLocalID(blocks[block_k]));")    
+      cog.outl("      Realf* __restrict__ data = blockContainer->getData(vmesh->getLocalID(blocks[block_k]));")    
       init = True
       noinitlist = False
       if noinitlist:
@@ -164,7 +164,7 @@ cog.outl("#endif")
    #if WID == 4 
    if(dimension == 0) {
       for (vmesh::LocalID block_k=0; block_k<n_blocks; ++block_k) {
-         Realf* __restrict__ data = blockContainer.getData(vmesh.getLocalID(blocks[block_k]));
+         Realf* __restrict__ data = blockContainer->getData(vmesh->getLocalID(blocks[block_k]));
    #if (defined(VEC4D_AGNER) || defined(VEC4F_AGNER) || defined(VEC_FALLBACK_GENERIC)) && VECL == 4
    // WID 4, vecl 4
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = Vec({data[0], data[16], data[32], data[48]});
@@ -211,7 +211,7 @@ cog.outl("#endif")
    }
    if(dimension == 1) {
       for (vmesh::LocalID block_k=0; block_k<n_blocks; ++block_k) {
-         Realf* __restrict__ data = blockContainer.getData(vmesh.getLocalID(blocks[block_k]));
+         Realf* __restrict__ data = blockContainer->getData(vmesh->getLocalID(blocks[block_k]));
    #if (defined(VEC4D_AGNER) || defined(VEC4F_AGNER) || defined(VEC_FALLBACK_GENERIC)) && VECL == 4
    // WID 4, vecl 4
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = Vec({data[0], data[1], data[2], data[3]});
@@ -259,7 +259,7 @@ cog.outl("#endif")
    #elif WID == 8 
    if(dimension == 0) {
       for (vmesh::LocalID block_k=0; block_k<n_blocks; ++block_k) {
-         Realf* __restrict__ data = blockContainer.getData(vmesh.getLocalID(blocks[block_k]));
+         Realf* __restrict__ data = blockContainer->getData(vmesh->getLocalID(blocks[block_k]));
    #if (defined(VEC8D_AGNER) || defined(VEC8F_AGNER) || defined(VEC_FALLBACK_GENERIC)) && VECL == 8
    // WID 8, vecl 8
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = Vec({data[0], data[64], data[128], data[192], data[256], data[320], data[384], data[448]});
@@ -400,7 +400,7 @@ cog.outl("#endif")
    }
    if(dimension == 1) {
       for (vmesh::LocalID block_k=0; block_k<n_blocks; ++block_k) {
-         Realf* __restrict__ data = blockContainer.getData(vmesh.getLocalID(blocks[block_k]));
+         Realf* __restrict__ data = blockContainer->getData(vmesh->getLocalID(blocks[block_k]));
    #if (defined(VEC8D_AGNER) || defined(VEC8F_AGNER) || defined(VEC_FALLBACK_GENERIC)) && VECL == 8
    // WID 8, vecl 8
          values[i_pcolumnv_b(0, 0, block_k, n_blocks)] = Vec({data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7]});
@@ -549,7 +549,7 @@ cog.outl("#endif")
       // copy block data for all blocks. Dimension 2 is easy, here
       // data is in the right order
       for (vmesh::LocalID block_k=0; block_k<n_blocks; ++block_k) {
-         Realf* __restrict__ data = blockContainer.getData(vmesh.getLocalID(blocks[block_k]));
+         Realf* __restrict__ data = blockContainer->getData(vmesh->getLocalID(blocks[block_k]));
          uint offset = 0;
          for (uint k=0; k<WID; ++k) {
             for(uint planeVector = 0; planeVector < VEC_PER_PLANE; planeVector++){

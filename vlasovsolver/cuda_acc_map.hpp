@@ -29,8 +29,8 @@
 #include "device_launch_parameters.h"
 #include "cuda.h"
 #include "cuda_runtime.h"
-
-//using namespace spatial_cell;
+#include "cuda_acc_sort_blocks.hpp"
+#include "../cuda_context.cuh"
 
 bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
                      const uint popID,

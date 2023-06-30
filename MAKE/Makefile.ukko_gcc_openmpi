@@ -1,0 +1,125 @@
+# Makefile for the ukko Cluster at UH.
+#
+# Recommended setup:
+# * Compile on an interactive node with the below modules;
+#   See the It4Science wiki or the Vorna guide
+#   https://github.com/fmihpc/analysator/wiki/Vorna-guide
+#   for the current best practice.
+# * Use mpirun to run, with the following (rather long) command line:
+#   mpirun -mca pml ucx --mca btl ^vader,tcp,openib -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_TLS=rc,sm -x UCX_IB_ADDR_TYPE=ib_global $executable --run_config $configfile
+#
+# Required modules:
+#
+# module load GCC/11.2.0
+# module load OpenMPI/4.1.1-GCC-11.2.0
+# module load PMIx/4.1.0-GCCcore-11.2.0
+# module load PAPI/6.0.0.1-GCCcore-11.2.0
+# Oneliner for command line:
+# module purge; module load GCC/11.2.0; module load OpenMPI/4.1.1-GCC-11.2.0 ; module load PMIx/4.1.0-GCCcore-11.2.0; module load PAPI/6.0.0.1-GCCcore-11.2.0
+#
+#################################################################################
+# Important:
+#
+# There is a bug in OpenMPI 4 which breaks the VLSV output files.
+#
+# To fix this you have to have environment variable OMPI_MCA_io set to ^ompio
+# before running Vlasiator. Otherwise the VLSV output is broken.
+#
+# For copy paste: 		export OMPI_MCA_io=^ompio
+#
+# There might be some libefa errors but they are benign.
+# (Benign = pleasant and kind; not harmful or severe. dictionary.cambridge.org)
+#################################################################################
+
+CMP = mpicxx
+LNK = mpicxx
+
+#======== Vectorization ==========
+#Set vector backend type for vlasov solvers, sets precision and length.
+#Options:
+# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VEC4D_FALLBACK, VEC4F_FALLBACK, VEC8F_FALLBACK
+
+ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
+#Single-precision
+	VECTORCLASS = VEC8F_AGNER
+else
+#Double-precision
+	VECTORCLASS = VEC4D_AGNER
+endif
+
+#======= Compiler and compilation flags =========
+# NOTES on compiler flags:
+# CXXFLAGS is for compiler flags, they are always used
+# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
+# LDFLAGS flags for linker
+
+#-DNO_WRITE_AT_ALL:  Define to disable write at all to
+#                    avoid memleak (much slower IO)
+#-DMPICH_IGNORE_CXX_SEEK: Ignores some multiple definition
+#                         errors that come up when using
+#                         mpi.h in c++ on Cray
+#
+# CXXFLAGS = -DMPICH_IGNORE_CXX_SEEK
+
+FLAGS =
+
+#GNU flags:
+CC_BRAND = gcc
+CC_BRAND_VERSION = 11.2.0
+CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -mavx -march=znver2 #-flto
+testpackage: CXXFLAGS = -O2 -fopenmp -funroll-loops -std=c++17 -mavx -march=znver2
+
+MATHFLAGS = -ffast-math
+LDFLAGS = -lrt -lgfortran -std=c++17 -lgomp
+LIB_MPI = -lgomp -lmpi
+
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+CXXFLAGS += -DPAPI_MEM
+testpackage: CXXFLAGS += -DPAPI_MEM
+
+#======== Allocator =========
+#Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
+#Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
+CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+
+
+# BOOST_VERSION = current trilinos version
+# ZOLTAN_VERSION = current trilinos verson
+#
+#======== Libraries ===========
+
+MPT_BRAND = OpenMPI
+MPT_VERSION = 4.1.1
+
+JEMALLOC_VERSION = 5.2.1
+LIBRARY_PREFIX = /proj/group/spacephysics/libraries
+
+#compiled libraries mostly in modules
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/ukko/phiprof/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/ukko/phiprof/lib
+INC_PROFILE = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/ukko/phiprof/include
+
+LIB_VLSV = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/ukko/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/ukko/vlsv
+INC_VLSV = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/ukko/vlsv
+
+LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/ukko/jemalloc/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/ukko/jemalloc/lib
+INC_JEMALLOC = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/ukko/jemalloc/include
+
+LIB_BOOST = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/ukko/boost/lib -lboost_program_options -Wl,-rpath=$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/ukko/boost/lib
+INC_BOOST = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/ukko/boost/include
+
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/ukko/zoltan/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/ukko/zoltan/lib
+INC_ZOLTAN = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/ukko/zoltan/include
+
+#LIB_PAPI = -L$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/ukko/papi/lib -lpapi -Wl,-rpath=$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/carrington/papi/lib
+#INC_PAPI = -I$(LIBRARY_PREFIX)/$(CC_BRAND)/$(CC_BRAND_VERSION)/$(MPT_BRAND)/$(MPT_VERSION)/ukko/papi/include
+LIB_PAPI = -lpapi
+
+#header libraries
+INC_EIGEN = -I$(LIBRARY_PREFIX)/ -I$(LIBRARY_PREFIX)/Eigen/
+INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid/
+INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg_dAMR/
+INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass/

@@ -1,0 +1,113 @@
+# Markus' desktop computer, CUDA
+# Can be used as a sample on how to generate local CUDA makefiles
+#
+# Note: CUDA versions before 11.6 will complain when compiling backgroundfields
+#  (error: parameter packs not expanded with ‘...’:)
+# this is fixed by installing at least version 11.6
+
+#======== Vectorization ==========
+#Set vector backend type for vlasov solvers, sets precision and length.
+#Options:
+# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VECTORCLASS = VEC_FALLBACK_GENERIC (Defaults to VECL8)
+
+ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
+#Single-precision        
+        VECTORCLASS = VEC_FALLBACK_GENERIC
+else
+#Double-precision
+        VECTORCLASS = VEC_FALLBACK_GENERIC
+endif
+
+#===== Vector Lenghts ====
+# Default for VEC_FALLBACK_GENERIC is WID=4, VECL=8
+# NOTE: A bug currently results in garbage data already on cell init if VECL is not equal to WID2
+WID=8
+VECL=64
+#WID=4
+#VECL=16
+
+#======= Compiler and compilation flags =========
+# NOTES on compiler flags:
+# CXXFLAGS is for compiler flags, they are always used
+# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
+# LDFLAGS flags for linker
+
+USE_CUDA=1
+CUDABLOCKS=108
+CMP = mpic++
+LNK = mpic++
+
+#-G (device debug) overrides --generate-line-info -line-info
+# but also requires more device-side resources to run
+
+# Geforce GTX 1060 6GB is compute version 61
+# https://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/
+
+CXXFLAGS = -g -O2 -x cu -std=c++17 -Xcompiler -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_60,code=sm_60 -Xcompiler -fopenmp --generate-line-info -line-info -Xcompiler="-fpermissive" -dc -Xptxas -v
+
+testpackage: CXXFLAGS = -g -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_60,code=sm_60 -Xcompiler -fopenmp --prec-sqrt=true --prec-div=true --ftz=false --fmad=false --generate-line-info -line-info -Xcompiler="-fpermissive" -dc
+
+# Tell mpic++ to use nvcc for all compiling
+CMP = OMPI_CXX='nvcc' OMPI_CXXFLAGS='' mpic++
+
+# Now tell also the linker to use nvcc
+# These are found with  mpic++ --showme:link
+# The line below indeed uses OMPI_CXX, not OMPI_LD
+LNK = OMPI_CXX='nvcc' OMPI_CXXFLAGS='-arch=sm_60' OMPI_LIBS='-L/usr/lib/x86_64-linux-gnu/openmpi/lib' OMPI_LDFLAGS='-lmpi_cxx -lmpi' mpic++
+
+MATHFLAGS =
+LDFLAGS = -O2 -g -lnvToolsExt
+LIB_MPI = -lgomp
+
+LIB_CUDA = -L/usr/local/cuda/lib64
+INC_CUDA = -isystem /usr/local/cuda/include
+
+
+# CXXFLAGS += -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -fabi-version=0 -mfma -mavx2 -Wno-unknown-pragmas -Wno-sign-compare
+# testpackage: CXXFLAGS = -g -ggdb -O2 -fopenmp -funroll-loops -std=c++17 -fabi-version=0 -mno-avx -mno-fma -fno-unsafe-math-optimizations
+
+# MATHFLAGS = -ffast-math
+# testpackage: MATHFLAGS = -fno-unsafe-math-optimizations
+
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+#CXXFLAGS += -DPAPI_MEM
+#testpackage: CXXFLAGS += -DPAPI_MEM
+
+#======== Allocator =========
+#Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
+#Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
+#CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+#testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+
+#======== Libraries ===========
+LIBRARY_PREFIX = /home/markusb/git/vlasiator-lib
+
+INC_BOOST = -isystem /usr/include/boost
+LIB_BOOST = -L/usr/include/boost -lboost_program_options
+
+INC_ZOLTAN = -isystem /usr/include/trilinos
+LIB_ZOLTAN = -I/usr/lib/x86_64-linux-gnu -ltrilinos_zoltan
+
+# INC_PAPI = -I$(LIBRARY_PREFIX)/papi/include
+# LIB_PAPI = -I$(LIBRARY_PREFIX)/papi/lib -Wl,-rpath=$(LIBRARY_PREFIX)/papi/lib
+
+# INC_JEMALLOC = -isystem $(LIBRARY_PREFIX)/jemalloc/include
+# LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/jemalloc/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/jemalloc/lib
+
+# Download the NVTX branch from PR #25
+INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
+LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv -Xlinker=-rpath=$(LIBRARY_PREFIX)/vlsv/lib
+
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof_nvcc/lib -lphiprof -Xlinker=-rpath=$(LIBRARY_PREFIX)/phiprof_nvcc/lib
+INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof_nvcc/include
+
+#======== Header-only Libraries ===========
+
+INC_EIGEN = -isystem $(LIBRARY_PREFIX)/eigen
+# DCCRG requires the version from PR #22
+INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg
+INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid
+INC_HASHINATOR = -I$(LIBRARY_PREFIX)/hashinator

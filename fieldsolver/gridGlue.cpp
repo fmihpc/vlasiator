@@ -72,7 +72,7 @@ template <typename T, int stencil> void computeCoupling(dccrg::Dccrg<SpatialCell
         
         int process = mpiGrid.get_process(dccrgCell);
         int64_t  fsgridLid = momentsGrid.LocalIDForCoords(i,j,k);
-        int64_t  fsgridGid = momentsGrid.GlobalIDForCoords(i,j,k);
+        //int64_t  fsgridGid = momentsGrid.GlobalIDForCoords(i,j,k);
         onFsgridMapRemoteProcess[process].insert(dccrgCell); //cells are ordered (sorted) in set
         onFsgridMapCells[dccrgCell].push_back(fsgridLid);
       }
@@ -80,7 +80,7 @@ template <typename T, int stencil> void computeCoupling(dccrg::Dccrg<SpatialCell
   }
 
   // Compute where to send data and what to send
-  for(int i=0; i< dccrgCells.size(); i++) {
+  for(uint64_t i=0; i< dccrgCells.size(); i++) {
      //compute to which processes this cell maps
      std::vector<CellID> fsCells = mapDccrgIdToFsGridGlobalID(mpiGrid, dccrgCells[i]);
 
@@ -90,6 +90,116 @@ template <typename T, int stencil> void computeCoupling(dccrg::Dccrg<SpatialCell
        onDccrgMapRemoteProcess[process].insert(dccrgCells[i]); //add to map
      }    
   }
+}
+
+/*
+Filter moments after feeding them to FsGrid to alleviate the staircase effect caused in AMR runs.
+This is using a 3D, 5-point stencil triangle kernel.
+*/
+void filterMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                           FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
+                           FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) 
+{
+
+
+
+   // Kernel Characteristics
+   //const int stencilWidth = 5;   // Stencil width of a 3D 5-tap triangle kernel
+   const int kernelOffset = 2;   // offset of 5 pointstencil 3D kernel => (floor(stencilWidth/2);)
+   const Real kernelSum=729.0;   // the total kernel's sum 
+   const static Real kernel[5][5][5] ={
+                                 {{ 1,  2,  3,  2,  1},
+                                 { 2,  4,  6,  4,  2},
+                                 { 3,  6,  9,  6,  3},
+                                 { 2,  4,  6,  4,  2},
+                                 { 1,  2,  3,  2,  1}},
+
+                                 {{ 2,  4,  6,  4,  2},
+                                 { 4,  8, 12,  8,  4},
+                                 { 6, 12, 18, 12,  6},
+                                 { 4,  8, 12,  8,  4},
+                                 { 2,  4,  6,  4,  2}},
+
+                                 {{ 3,  6,  9,  6,  3},
+                                 { 6, 12, 18, 12,  6},
+                                 { 9, 18, 27, 18,  9},
+                                 { 6, 12, 18, 12,  6},
+                                 { 3,  6,  9,  6,  3}},
+
+                                 {{ 2,  4,  6,  4,  2},
+                                 { 4,  8, 12,  8,  4},
+                                 { 6, 12, 18, 12,  6},
+                                 { 4,  8, 12,  8,  4},
+                                 { 2,  4,  6,  4,  2}},
+
+                                 {{ 1,  2,  3,  2,  1},
+                                 { 2,  4,  6,  4,  2},
+                                 { 3,  6,  9,  6,  3},
+                                 { 2,  4,  6,  4,  2},
+                                 { 1,  2,  3,  2,  1}}
+                                 };
+
+   // Update momentsGrid Ghost Cells
+   momentsGrid.updateGhostCells(); 
+
+
+   // Get size of local domain and create swapGrid for filtering
+   const int *mntDims= &momentsGrid.getLocalSize()[0];  
+   const int maxRefLevel = mpiGrid.mapping.get_maximum_refinement_level();
+   FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> swapGrid = momentsGrid;  //swap array 
+
+   // Filtering Loop
+   for (int blurPass = 0; blurPass < Parameters::maxFilteringPasses; blurPass++){
+
+      // Blurring Pass
+      #pragma omp parallel for collapse(2)
+      for (int k = 0; k < mntDims[2]; k++){
+         for (int j = 0; j < mntDims[1]; j++){
+            for (int i = 0; i < mntDims[0]; i++){
+
+               //  Get refLevel level
+               int refLevel = technicalGrid.get(i, j, k)->refLevel;
+
+               // Skip pass
+               if (blurPass >= P::numPasses.at(refLevel) || technicalGrid.get(i, j, k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
+                  continue;
+               }
+
+               // Get pointers to our cells
+               std::array<Real, fsgrids::moments::N_MOMENTS> *cell;  
+               std::array<Real,fsgrids::moments::N_MOMENTS> *swap;
+            
+               // Set Cell to zero before passing filter
+               swap = swapGrid.get(i,j,k);
+               for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
+                  swap->at(e)=0.0;
+               }
+
+               // Perform the blur
+               for (int c=-kernelOffset; c<=kernelOffset; c++){
+                  for (int b=-kernelOffset; b<=kernelOffset; b++){
+                     for (int a=-kernelOffset; a<=kernelOffset; a++){
+                        cell = momentsGrid.get(i+a,j+b,k+c);
+                        for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
+                           swap->at(e)+=cell->at(e) *kernel[kernelOffset+a][kernelOffset+b][kernelOffset+c];
+                        } 
+                     }
+                  }
+               }//inner filtering loop
+               //divide by the total kernel sum
+               for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
+                  swap->at(e)/=kernelSum;
+               }
+            }
+         }
+      } //spatial loops
+
+      // Copy swapGrid back to momentsGrid
+      momentsGrid=swapGrid;
+      // Update Ghost Cells
+      momentsGrid.updateGhostCells();
+
+    }
 }
 
 void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
@@ -189,118 +299,13 @@ void feedMomentsIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
   MPI_Waitall(sendRequests.size(), sendRequests.data(), MPI_STATUSES_IGNORE);
 
-
-
-  if (P::amrMaxSpatialRefLevel>0) {
-
-    /*----------------------Filtering------------------------*/
-    phiprof::start("BoxCar Filtering");
-
-    // Kernel Characteristics
-    // int stencilWidth = sizeof( kernel) / sizeof( kernel[0]); //get the stnecil width
-    // int kernelOffset= stencilWidth/3; //this is the kernel offset -int
-    int stencilWidth = 3;   // dimension size of a 3D kernel
-    int kernelOffset = 1;   // offset of 3 point stencil 3D kernel
-    Real kernelWeight= 1.0/27.0;  // 3D boxcar kernel weight
-
-
-    // Update momentsGrid Ghost Cells
-    phiprof::start("GhostUpdate");
-    momentsGrid.updateGhostCells(); //update ghost zones
-    phiprof::stop("GhostUpdate");
-
-    // Get size of local domain and create swapGrid for filtering
-    const int *mntDims= &momentsGrid.getLocalSize()[0];   //get local size for each proc.
-    FsGrid<std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> swapGrid = momentsGrid;  //swap array 
-    const int maxRefLevel = mpiGrid.mapping.get_maximum_refinement_level();
-
-    // Filtering Loop
-   std::vector<int>::iterator  maxNumPassesPtr;
-   int maxNumPasses;
-   maxNumPassesPtr=std::max_element(P::numPasses.begin(), P::numPasses.end());
-   if(maxNumPassesPtr != P::numPasses.end()){ 
-      maxNumPasses = *maxNumPassesPtr;
-   }else{
-      std::cerr << "Trying to dereference null pointer \t" << " in " << __FILE__ << ":" << __LINE__ << std::endl;
-      abort();
-   } 
-
-    for (int blurPass = 0; blurPass < maxNumPasses; blurPass++){
-
-      // Blurring Pass
-      phiprof::start("BlurPass");
-      #pragma omp parallel for collapse(2)
-      for (int kk = 0; kk < mntDims[2]; kk++){
-        for (int jj = 0; jj < mntDims[1]; jj++){
-          for (int ii = 0; ii < mntDims[0]; ii++){
-
-            //  Get refLevel level
-            int refLevel = technicalGrid.get(ii, jj, kk)->refLevel;
-
-            // Skip pass
-            if (blurPass >= P::numPasses.at(refLevel) ||
-                technicalGrid.get(ii, jj, kk)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-                (technicalGrid.get(ii, jj, kk)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY && technicalGrid.get(ii, jj, kk)->sysBoundaryLayer == 2)
-              )
-            {
-              
-              continue;
-            }
-
-            // Define some Pointers
-            std::array<Real, fsgrids::moments::N_MOMENTS> *cell;  
-            std::array<Real,fsgrids::moments::N_MOMENTS> *swap;
-           
-            // Set Cell to zero before passing filter
-            swap = swapGrid.get(ii,jj,kk);
-            for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
-
-              swap->at(e)=0.0;
-
-            }
-
-            // Perform the blur
-            for (int a=0; a<stencilWidth; a++){
-              for (int b=0; b<stencilWidth; b++){
-                for (int c=0; c<stencilWidth; c++){
-
-                  int xn=ii+a-kernelOffset;
-                  int yn=jj+b-kernelOffset;
-                  int zn=kk+c-kernelOffset;
-
-                  cell = momentsGrid.get(xn, yn, zn);
-                  swap = swapGrid.get(ii,jj,kk);
-
-                  for (int e = 0; e < fsgrids::moments::N_MOMENTS; ++e) {
-                    swap->at(e)+=cell->at(e) * kernelWeight;
-
-                    } 
-                  }
-                }
-              }
-            }
-          }
-        }
-
-      phiprof::stop("BlurPass");
-
-
-      // Copy swapGrid back to momentsGrid
-      momentsGrid=swapGrid;
-
-      // Update Ghost Cells
-      phiprof::start("GhostUpdate");
-      momentsGrid.updateGhostCells();
-      phiprof::stop("GhostUpdate");
-
-    }
-    
-
-    phiprof::stop("BoxCar Filtering");  
-
-  }   
+   //Filter Moments if this is a 3D AMR run.
+  if (P::amrMaxSpatialRefLevel>0) { 
+      phiprof::start("AMR Filtering-Triangle-3D");
+      filterMoments(mpiGrid,momentsGrid,technicalGrid);
+      phiprof::stop("AMR Filtering-Triangle-3D");
+   }   
 }
-
 
 void getFieldsFromFsGrid(
    FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volumeFieldsGrid,
@@ -310,110 +315,115 @@ void getFieldsFromFsGrid(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const std::vector<CellID>& cells
 ) {
-  // TODO: solver only needs bgb + PERB, we could combine them
+   // TODO: solver only needs bgb + PERB, we could combine them
   
-  const int fieldsToCommunicate = 21;
-  struct Average {
-    Real sums[fieldsToCommunicate];
-    int cells;
-    Average()  {
-      cells = 0;
-      for(int i = 0; i < fieldsToCommunicate; i++){
-         sums[i] = 0;
+   struct Average {
+      Real sums[N_FIELDSTOCOMMUNICATE];
+      int cells;
+      Average()  {
+         cells = 0;
+         for(int i = 0; i < N_FIELDSTOCOMMUNICATE; i++){
+            sums[i] = 0;
+         }
       }
-    }
-    Average operator+=(const Average& rhs) {
-      this->cells += rhs.cells;
-      for(int i = 0; i < fieldsToCommunicate; i++){
-         this->sums[i] += rhs.sums[i];
+      Average operator+=(const Average& rhs) {
+         this->cells += rhs.cells;
+         for(int i = 0; i < N_FIELDSTOCOMMUNICATE; i++){
+            this->sums[i] += rhs.sums[i];
+         }
+         return *this;
       }
-    return *this;
-    }
-  };
+   };
+   
+   
+   int ii;
+   //sorted list of dccrg cells. cells is typicall already sorted, but just to make sure....
+   std::vector<CellID> dccrgCells = cells;
+   std::sort(dccrgCells.begin(), dccrgCells.end());
+   
+   //Datastructure for coupling
+   std::map<int, std::set<CellID> > onDccrgMapRemoteProcess; 
+   std::map<int, std::set<CellID> > onFsgridMapRemoteProcess; 
+   std::map<CellID, std::vector<int64_t> >  onFsgridMapCells;
+   
+   // map receive process => receive buffers 
+   std::map<int, std::vector<Average> > receivedData; 
+   
+   // send buffers  to each process
+   std::map<int, std::vector<Average> > sendData;
+   
+   // map where we finally aggregate result for each local dccrg cell
+   std::map<CellID, Average> aggregatedResult;
+   
+   //list of requests
+   std::vector<MPI_Request> sendRequests;
+   std::vector<MPI_Request> receiveRequests;
+   
+   
+   //computeCoupling
+   computeCoupling(mpiGrid, cells, volumeFieldsGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
+   
+   //post receives
+   ii=0;
+   receiveRequests.resize(onDccrgMapRemoteProcess.size());
+   for (auto const &rcv : onDccrgMapRemoteProcess){
+      int remoteRank = rcv.first; 
+      int count = rcv.second.size();
+      auto& receiveBuffer=receivedData[remoteRank];
+      
+      receiveBuffer.resize(count);
+      MPI_Irecv(receiveBuffer.data(), count * sizeof(Average),
+      MPI_BYTE, remoteRank, 1, MPI_COMM_WORLD,&(receiveRequests[ii++]));
+   }
 
-    
-  int ii;
-  //sorted list of dccrg cells. cells is typicall already sorted, but just to make sure....
-  std::vector<CellID> dccrgCells = cells;
-  std::sort(dccrgCells.begin(), dccrgCells.end());
-
-  //Datastructure for coupling
-  std::map<int, std::set<CellID> > onDccrgMapRemoteProcess; 
-  std::map<int, std::set<CellID> > onFsgridMapRemoteProcess; 
-  std::map<CellID, std::vector<int64_t> >  onFsgridMapCells;
-    
-  // map receive process => receive buffers 
-  std::map<int, std::vector<Average> > receivedData; 
-
-  // send buffers  to each process
-  std::map<int, std::vector<Average> > sendData;
-
-  // map where we finally aggregate result for each local dccrg cell
-  std::map<CellID, Average> aggregatedResult;
-
-  //list of requests
-  std::vector<MPI_Request> sendRequests;
-  std::vector<MPI_Request> receiveRequests;
-
-  
-  //computeCoupling
-  computeCoupling(mpiGrid, cells, volumeFieldsGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
-
-  //post receives
-  ii=0;
-  receiveRequests.resize(onDccrgMapRemoteProcess.size());
-  for (auto const &rcv : onDccrgMapRemoteProcess){
-    int remoteRank = rcv.first; 
-    int count = rcv.second.size();
-    auto& receiveBuffer=receivedData[remoteRank];
-    
-    receiveBuffer.resize(count);
-    MPI_Irecv(receiveBuffer.data(), count * sizeof(Average),
-		 MPI_BYTE, remoteRank, 1, MPI_COMM_WORLD,&(receiveRequests[ii++]));
-  }
-
-  //compute average and weight for each field that we want to send to dccrg grid
-  for(auto const &snd: onFsgridMapRemoteProcess){
-    int remoteRank = snd.first;
-    int count = snd.second.size();
-    auto& sendBuffer = sendData[remoteRank];
-    sendBuffer.resize(count);
-    
-    ii=0;
-    for(auto const dccrgCell: snd.second){
-      //loop over dccrg cells to which we shall send data for this remoteRank
-      auto const &fsgridCells = onFsgridMapCells[dccrgCell];
-      for (auto const fsgridCell: fsgridCells){
-        //loop over fsgrid cells for which we compute the average that is sent to dccrgCell on rank remoteRank
-        if(technicalGrid.get(fsgridCell)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
-           continue;
-        }
-        std::array<Real, fsgrids::volfields::N_VOL> * volcell = volumeFieldsGrid.get(fsgridCell);
-	std::array<Real, fsgrids::bgbfield::N_BGB> * bgcell = BgBGrid.get(fsgridCell);
-	std::array<Real, fsgrids::egradpe::N_EGRADPE> * egradpecell = EGradPeGrid.get(fsgridCell);	
-	
-        sendBuffer[ii].sums[0 ] += volcell->at(fsgrids::volfields::PERBXVOL);
-        sendBuffer[ii].sums[1 ] += volcell->at(fsgrids::volfields::PERBYVOL);
-        sendBuffer[ii].sums[2 ] += volcell->at(fsgrids::volfields::PERBZVOL);
-        sendBuffer[ii].sums[6 ] += volcell->at(fsgrids::volfields::dPERBXVOLdy) / technicalGrid.DY;
-        sendBuffer[ii].sums[7 ] += volcell->at(fsgrids::volfields::dPERBXVOLdz) / technicalGrid.DZ;
-        sendBuffer[ii].sums[8 ] += volcell->at(fsgrids::volfields::dPERBYVOLdx) / technicalGrid.DX;
-        sendBuffer[ii].sums[9 ] += volcell->at(fsgrids::volfields::dPERBYVOLdz) / technicalGrid.DZ;
-        sendBuffer[ii].sums[10] += volcell->at(fsgrids::volfields::dPERBZVOLdx) / technicalGrid.DX;
-        sendBuffer[ii].sums[11] += volcell->at(fsgrids::volfields::dPERBZVOLdy) / technicalGrid.DY;
-        sendBuffer[ii].sums[12] += bgcell->at(fsgrids::bgbfield::BGBXVOL);
-        sendBuffer[ii].sums[13] += bgcell->at(fsgrids::bgbfield::BGBYVOL);
-        sendBuffer[ii].sums[14] += bgcell->at(fsgrids::bgbfield::BGBZVOL);
-        sendBuffer[ii].sums[15] += egradpecell->at(fsgrids::egradpe::EXGRADPE);
-        sendBuffer[ii].sums[16] += egradpecell->at(fsgrids::egradpe::EYGRADPE);
-        sendBuffer[ii].sums[17] += egradpecell->at(fsgrids::egradpe::EZGRADPE);
-	sendBuffer[ii].sums[18] += volcell->at(fsgrids::volfields::EXVOL);
-	sendBuffer[ii].sums[19] += volcell->at(fsgrids::volfields::EYVOL);
-	sendBuffer[ii].sums[20] += volcell->at(fsgrids::volfields::EZVOL);
-        sendBuffer[ii].cells++;
+   //compute average and weight for each field that we want to send to dccrg grid
+   for(auto const &snd: onFsgridMapRemoteProcess){
+      int remoteRank = snd.first;
+      int count = snd.second.size();
+      auto& sendBuffer = sendData[remoteRank];
+      sendBuffer.resize(count);
+      
+      ii=0;
+      for(auto const dccrgCell: snd.second){
+         //loop over dccrg cells to which we shall send data for this remoteRank
+         auto const &fsgridCells = onFsgridMapCells[dccrgCell];
+         for (auto const fsgridCell: fsgridCells){
+         //loop over fsgrid cells for which we compute the average that is sent to dccrgCell on rank remoteRank
+//        if(technicalGrid.get(fsgridCell)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+//           continue;
+//        }
+            std::array<Real, fsgrids::volfields::N_VOL> * volcell = volumeFieldsGrid.get(fsgridCell);
+            std::array<Real, fsgrids::bgbfield::N_BGB> * bgcell = BgBGrid.get(fsgridCell);
+            std::array<Real, fsgrids::egradpe::N_EGRADPE> * egradpecell = EGradPeGrid.get(fsgridCell);	
+            
+            sendBuffer[ii].sums[FieldsToCommunicate::PERBXVOL] += volcell->at(fsgrids::volfields::PERBXVOL);
+            sendBuffer[ii].sums[FieldsToCommunicate::PERBYVOL] += volcell->at(fsgrids::volfields::PERBYVOL);
+            sendBuffer[ii].sums[FieldsToCommunicate::PERBZVOL] += volcell->at(fsgrids::volfields::PERBZVOL);
+            sendBuffer[ii].sums[FieldsToCommunicate::dPERBXVOLdx] += volcell->at(fsgrids::volfields::dPERBXVOLdx) / technicalGrid.DX;
+            sendBuffer[ii].sums[FieldsToCommunicate::dPERBXVOLdy] += volcell->at(fsgrids::volfields::dPERBXVOLdy) / technicalGrid.DY;
+            sendBuffer[ii].sums[FieldsToCommunicate::dPERBXVOLdz] += volcell->at(fsgrids::volfields::dPERBXVOLdz) / technicalGrid.DZ;
+            sendBuffer[ii].sums[FieldsToCommunicate::dPERBYVOLdx] += volcell->at(fsgrids::volfields::dPERBYVOLdx) / technicalGrid.DX;
+            sendBuffer[ii].sums[FieldsToCommunicate::dPERBYVOLdy] += volcell->at(fsgrids::volfields::dPERBYVOLdy) / technicalGrid.DY;
+            sendBuffer[ii].sums[FieldsToCommunicate::dPERBYVOLdz] += volcell->at(fsgrids::volfields::dPERBYVOLdz) / technicalGrid.DZ;
+            sendBuffer[ii].sums[FieldsToCommunicate::dPERBZVOLdx] += volcell->at(fsgrids::volfields::dPERBZVOLdx) / technicalGrid.DX;
+            sendBuffer[ii].sums[FieldsToCommunicate::dPERBZVOLdy] += volcell->at(fsgrids::volfields::dPERBZVOLdy) / technicalGrid.DY;
+            sendBuffer[ii].sums[FieldsToCommunicate::dPERBZVOLdz] += volcell->at(fsgrids::volfields::dPERBZVOLdz) / technicalGrid.DZ;
+            sendBuffer[ii].sums[FieldsToCommunicate::BGBXVOL] += bgcell->at(fsgrids::bgbfield::BGBXVOL);
+            sendBuffer[ii].sums[FieldsToCommunicate::BGBYVOL] += bgcell->at(fsgrids::bgbfield::BGBYVOL);
+            sendBuffer[ii].sums[FieldsToCommunicate::BGBZVOL] += bgcell->at(fsgrids::bgbfield::BGBZVOL);
+            sendBuffer[ii].sums[FieldsToCommunicate::EXGRADPE] += egradpecell->at(fsgrids::egradpe::EXGRADPE);
+            sendBuffer[ii].sums[FieldsToCommunicate::EYGRADPE] += egradpecell->at(fsgrids::egradpe::EYGRADPE);
+            sendBuffer[ii].sums[FieldsToCommunicate::EZGRADPE] += egradpecell->at(fsgrids::egradpe::EZGRADPE);
+            sendBuffer[ii].sums[FieldsToCommunicate::EXVOL] += volcell->at(fsgrids::volfields::EXVOL);
+            sendBuffer[ii].sums[FieldsToCommunicate::EYVOL] += volcell->at(fsgrids::volfields::EYVOL);
+            sendBuffer[ii].sums[FieldsToCommunicate::EZVOL] += volcell->at(fsgrids::volfields::EZVOL);
+            sendBuffer[ii].sums[FieldsToCommunicate::CURVATUREX] += volcell->at(fsgrids::volfields::CURVATUREX);
+            sendBuffer[ii].sums[FieldsToCommunicate::CURVATUREY] += volcell->at(fsgrids::volfields::CURVATUREY);
+            sendBuffer[ii].sums[FieldsToCommunicate::CURVATUREZ] += volcell->at(fsgrids::volfields::CURVATUREZ);
+            sendBuffer[ii].cells++;
+         }
+         ii++;
       }
-      ii++;
-    }
   }
   
   //post sends
@@ -445,36 +455,45 @@ void getFieldsFromFsGrid(
   for (auto const &cellAggregate : aggregatedResult) {
     auto cellParams = mpiGrid[cellAggregate.first]->get_cell_parameters();
     if ( cellAggregate.second.cells > 0) {
-      cellParams[CellParams::PERBXVOL] = cellAggregate.second.sums[0] / cellAggregate.second.cells;
-      cellParams[CellParams::PERBYVOL] = cellAggregate.second.sums[1] / cellAggregate.second.cells;
-      cellParams[CellParams::PERBZVOL] = cellAggregate.second.sums[2] / cellAggregate.second.cells;
-      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBXVOLdy] = cellAggregate.second.sums[6] / cellAggregate.second.cells;
-      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBXVOLdz] = cellAggregate.second.sums[7] / cellAggregate.second.cells;
-      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBYVOLdx] = cellAggregate.second.sums[8] / cellAggregate.second.cells;
-      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBYVOLdz] = cellAggregate.second.sums[9] / cellAggregate.second.cells;
-      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBZVOLdx] = cellAggregate.second.sums[10] / cellAggregate.second.cells;
-      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBZVOLdy] = cellAggregate.second.sums[11] / cellAggregate.second.cells;
-      cellParams[CellParams::BGBXVOL]  = cellAggregate.second.sums[12] / cellAggregate.second.cells;
-      cellParams[CellParams::BGBYVOL]  = cellAggregate.second.sums[13] / cellAggregate.second.cells;
-      cellParams[CellParams::BGBZVOL]  = cellAggregate.second.sums[14] / cellAggregate.second.cells;
-      cellParams[CellParams::EXGRADPE] = cellAggregate.second.sums[15] / cellAggregate.second.cells;
-      cellParams[CellParams::EYGRADPE] = cellAggregate.second.sums[16] / cellAggregate.second.cells;
-      cellParams[CellParams::EZGRADPE] = cellAggregate.second.sums[17] / cellAggregate.second.cells;
-      cellParams[CellParams::EXVOL] = cellAggregate.second.sums[18] / cellAggregate.second.cells;
-      cellParams[CellParams::EYVOL] = cellAggregate.second.sums[19] / cellAggregate.second.cells;
-      cellParams[CellParams::EZVOL] = cellAggregate.second.sums[20] / cellAggregate.second.cells;
+      cellParams[CellParams::PERBXVOL] = cellAggregate.second.sums[FieldsToCommunicate::PERBXVOL] / cellAggregate.second.cells;
+      cellParams[CellParams::PERBYVOL] = cellAggregate.second.sums[FieldsToCommunicate::PERBYVOL] / cellAggregate.second.cells;
+      cellParams[CellParams::PERBZVOL] = cellAggregate.second.sums[FieldsToCommunicate::PERBZVOL] / cellAggregate.second.cells;
+      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBXVOLdx] = cellAggregate.second.sums[FieldsToCommunicate::dPERBXVOLdx] / cellAggregate.second.cells;
+      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBXVOLdy] = cellAggregate.second.sums[FieldsToCommunicate::dPERBXVOLdy] / cellAggregate.second.cells;
+      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBXVOLdz] = cellAggregate.second.sums[FieldsToCommunicate::dPERBXVOLdz] / cellAggregate.second.cells;
+      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBYVOLdx] = cellAggregate.second.sums[FieldsToCommunicate::dPERBYVOLdx] / cellAggregate.second.cells;
+      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBYVOLdy] = cellAggregate.second.sums[FieldsToCommunicate::dPERBYVOLdy] / cellAggregate.second.cells;
+      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBYVOLdz] = cellAggregate.second.sums[FieldsToCommunicate::dPERBYVOLdz] / cellAggregate.second.cells;
+      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBZVOLdx] = cellAggregate.second.sums[FieldsToCommunicate::dPERBZVOLdx] / cellAggregate.second.cells;
+      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBZVOLdy] = cellAggregate.second.sums[FieldsToCommunicate::dPERBZVOLdy] / cellAggregate.second.cells;
+      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBZVOLdz] = cellAggregate.second.sums[FieldsToCommunicate::dPERBZVOLdz] / cellAggregate.second.cells;
+      cellParams[CellParams::BGBXVOL]  = cellAggregate.second.sums[FieldsToCommunicate::BGBXVOL] / cellAggregate.second.cells;
+      cellParams[CellParams::BGBYVOL]  = cellAggregate.second.sums[FieldsToCommunicate::BGBYVOL] / cellAggregate.second.cells;
+      cellParams[CellParams::BGBZVOL]  = cellAggregate.second.sums[FieldsToCommunicate::BGBZVOL] / cellAggregate.second.cells;
+      cellParams[CellParams::EXGRADPE] = cellAggregate.second.sums[FieldsToCommunicate::EXGRADPE] / cellAggregate.second.cells;
+      cellParams[CellParams::EYGRADPE] = cellAggregate.second.sums[FieldsToCommunicate::EYGRADPE] / cellAggregate.second.cells;
+      cellParams[CellParams::EZGRADPE] = cellAggregate.second.sums[FieldsToCommunicate::EZGRADPE] / cellAggregate.second.cells;
+      cellParams[CellParams::EXVOL] = cellAggregate.second.sums[FieldsToCommunicate::EXVOL] / cellAggregate.second.cells;
+      cellParams[CellParams::EYVOL] = cellAggregate.second.sums[FieldsToCommunicate::EYVOL] / cellAggregate.second.cells;
+      cellParams[CellParams::EZVOL] = cellAggregate.second.sums[FieldsToCommunicate::EZVOL] / cellAggregate.second.cells;
+      cellParams[CellParams::CURVATUREX] = cellAggregate.second.sums[FieldsToCommunicate::CURVATUREX] / cellAggregate.second.cells;
+      cellParams[CellParams::CURVATUREY] = cellAggregate.second.sums[FieldsToCommunicate::CURVATUREY] / cellAggregate.second.cells;
+      cellParams[CellParams::CURVATUREZ] = cellAggregate.second.sums[FieldsToCommunicate::CURVATUREZ] / cellAggregate.second.cells;
     }
     else{
       // This could happpen if all fsgrid cells are do not compute
       cellParams[CellParams::PERBXVOL] = 0;
       cellParams[CellParams::PERBYVOL] = 0;
       cellParams[CellParams::PERBZVOL] = 0;
+      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBXVOLdx] = 0;
       mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBXVOLdy] = 0;
       mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBXVOLdz] = 0;
       mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBYVOLdx] = 0;
+      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBYVOLdy] = 0;
       mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBYVOLdz] = 0;
       mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBZVOLdx] = 0;
       mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBZVOLdy] = 0;
+      mpiGrid[cellAggregate.first]->derivativesBVOL[bvolderivatives::dPERBZVOLdz] = 0;
       cellParams[CellParams::BGBXVOL]  = 0;
       cellParams[CellParams::BGBYVOL]  = 0;
       cellParams[CellParams::BGBZVOL]  = 0;
@@ -484,6 +503,9 @@ void getFieldsFromFsGrid(
       cellParams[CellParams::EXVOL] = 0;
       cellParams[CellParams::EYVOL] = 0;
       cellParams[CellParams::EZVOL] = 0;
+      cellParams[CellParams::CURVATUREX] = 0;
+      cellParams[CellParams::CURVATUREY] = 0;
+      cellParams[CellParams::CURVATUREZ] = 0;
     }
   }
   
@@ -518,3 +540,76 @@ std::vector<CellID> mapDccrgIdToFsGridGlobalID(dccrg::Dccrg<SpatialCell,dccrg::C
    return fsgridIDs;
 }
 
+void feedBoundaryIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+			const std::vector<CellID>& cells,
+			FsGrid< fsgrids::technical, 2> & technicalGrid) {
+
+  int ii;
+  //sorted list of dccrg cells. cells is typicall already sorted, but just to make sure....
+  std::vector<CellID> dccrgCells = cells;
+  std::sort(dccrgCells.begin(), dccrgCells.end());
+
+  //Datastructure for coupling
+  std::map<int, std::set<CellID> > onDccrgMapRemoteProcess; 
+  std::map<int, std::set<CellID> > onFsgridMapRemoteProcess; 
+  std::map<CellID, std::vector<int64_t> >  onFsgridMapCells;
+    
+  // map receive process => receive buffers 
+  std::map<int, std::vector<int> > receivedData; 
+
+  // send buffers  to each process
+  std::map<int, std::vector<int> > sendData;
+
+  //list of requests
+  std::vector<MPI_Request> sendRequests;
+  std::vector<MPI_Request> receiveRequests;
+  
+  //computeCoupling
+  computeCoupling(mpiGrid, cells, technicalGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
+ 
+  // Post receives
+  receiveRequests.resize(onFsgridMapRemoteProcess.size());  
+  ii=0;
+  for(auto const &receives: onFsgridMapRemoteProcess){
+    int process = receives.first;
+    int count = receives.second.size();
+    receivedData[process].resize(count);
+    MPI_Irecv(receivedData[process].data(), count * sizeof(int),
+	      MPI_BYTE, process, 1, MPI_COMM_WORLD,&(receiveRequests[ii++]));
+  }
+  
+  // Launch sends
+  ii=0;
+  sendRequests.resize(onDccrgMapRemoteProcess.size());
+  for (auto const &snd : onDccrgMapRemoteProcess){
+    int targetProc = snd.first; 
+    auto& sendBuffer=sendData[targetProc];
+    for(CellID sendCell: snd.second){
+      //Collect data to send for this dccrg cell
+      sendBuffer.push_back(mpiGrid[sendCell]->sysBoundaryFlag);
+    }
+    int count = sendBuffer.size(); //note, compared to receive this includes all elements to be sent
+    MPI_Isend(sendBuffer.data(), sendBuffer.size() * sizeof(int),
+	      MPI_BYTE, targetProc, 1, MPI_COMM_WORLD,&(sendRequests[ii]));
+    ii++;
+  }
+  
+  MPI_Waitall(receiveRequests.size(), receiveRequests.data(), MPI_STATUSES_IGNORE);
+
+  for(auto const &receives: onFsgridMapRemoteProcess){
+    int process = receives.first; //data received from this process
+    int* receiveBuffer = receivedData[process].data(); // data received from process
+    for(auto const &cell: receives.second){ //loop over cellids (dccrg) for receive
+      // this part heavily relies on both sender and receiver having cellids sorted!
+      for(auto lid: onFsgridMapCells[cell]){
+        // Now save the values to face-averages
+        technicalGrid.get(lid)->sysBoundaryFlag = receiveBuffer[0];
+      }
+      
+      receiveBuffer++;
+    }
+  }
+
+  MPI_Waitall(sendRequests.size(), sendRequests.data(), MPI_STATUSES_IGNORE);
+
+}

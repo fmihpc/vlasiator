@@ -1,0 +1,228 @@
+name: Github-CI
+
+on:
+  # Dispatch this workflow whenever master or dev get a PR or commit
+  push:
+    branches : ["dev","master"]
+  pull_request:
+    branches: ["dev","master"]
+  # ... or when the workflow is started manually
+  workflow_dispatch:
+
+jobs:
+  build_libraries:
+    # Build libraries for the current version of the docker image
+    # (to be used in any subsequent compilation and run jobs on said image)
+    runs-on: ubuntu-latest
+    container: ursg/vlasiator_ci:20230220_1
+    
+    steps:
+      - name: Setup libraries dir
+        run: |
+          mkdir -p libraries/include
+          mkdir -p libraries/lib
+          mkdir library-build
+          cd library-build
+      - name: Download DCCRG
+        run: |
+          git clone https://github.com/fmihpc/dccrg.git 
+          cd dccrg
+          git checkout vlasiator-version
+          cp *.hpp $GITHUB_WORKSPACE/libraries/include
+          cd ..
+      - name: Download fsgrid
+        run: |
+          git clone https://github.com/fmihpc/fsgrid.git 
+          cp fsgrid/fsgrid.hpp $GITHUB_WORKSPACE/libraries/include
+      - name: Build phiprof
+        run: |
+          git clone https://github.com/fmihpc/phiprof/ 
+          cd phiprof/src
+          make -j 4 CCC=mpic++
+          cp ../include/* $GITHUB_WORKSPACE/libraries/include
+          cp ../lib/* $GITHUB_WORKSPACE/libraries/lib
+          cd ../..
+      - name: Build VLSV
+        run: |
+          git clone https://github.com/fmihpc/vlsv.git  
+          cd vlsv
+          make
+          cp libvlsv.a $GITHUB_WORKSPACE/libraries/lib
+          cp *.h $GITHUB_WORKSPACE/libraries/include
+          cd ..
+      - name: Download vectorclass
+        run: | 
+          git clone https://github.com/vectorclass/version1
+          git clone https://github.com/vectorclass/add-on
+          cp add-on/vector3d/vector3d.h version1/
+          cp version1/*.h $GITHUB_WORKSPACE/libraries/include
+      - name: Build papi
+        run: |
+          git clone https://bitbucket.org/icl/papi.git
+          cd papi/src
+          ./configure --prefix=$GITHUB_WORKSPACE/libraries && make -j 4 CC=gcc && make install
+          cd ../..
+      - name: Build jemalloc
+        run: |
+          wget https://github.com/jemalloc/jemalloc/releases/download/4.0.4/jemalloc-4.0.4.tar.bz2
+          tar xf jemalloc-4.0.4.tar.bz2
+          cd jemalloc-4.0.4
+          ./configure --prefix=$GITHUB_WORKSPACE/libraries --with-jemalloc-prefix=je_ && make -j 4 && make install
+          cd ..
+      - name: Build Zoltan
+        run: |
+          git clone https://github.com/sandialabs/Zoltan.git
+          mkdir zoltan-build
+          cd zoltan-build
+          ../Zoltan/configure --prefix=$GITHUB_WORKSPACE/libraries --enable-mpi --with-mpi-compilers --with-gnumake --with-id-type=ullong && make -j 4 && make install
+          cd ..
+      - name: Build libraries tar
+        run: tar --zstd -cvf libraries.tar.zstd libraries/
+      - name: Upload libraries as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: libraries
+          path: libraries.tar.zstd
+          retention-days: 5
+
+  build_production:
+    # Build Vlasiator witth production flags
+    runs-on: ubuntu-latest
+    container: ursg/vlasiator_ci:20230220_1
+    needs: build_libraries
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v3 
+    - name: Download libraries
+      uses: actions/download-artifact@v3
+      with:
+        name: libraries
+    - name: Unpack libraries
+      run: tar --zstd -xvf libraries.tar.zstd
+    - uses: ursg/gcc-problem-matcher@master
+    - name: Compile vlasiator (Release build)
+      run: |
+        VLASIATOR_ARCH=github_actions make clean
+        VLASIATOR_ARCH=github_actions make -j 3
+      
+  
+  build_testpackage:
+    # Build Vlasiator with testpackage flags, on the carrington cluster
+    # (for subsequent running of the integration test package)
+    runs-on: carrington
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v3 
+    - name: Make clean
+      run: make clean
+    - uses: ursg/gcc-problem-matcher@master
+    - name: Compile vlasiator (Testpackage build)
+      run: |
+        export VLASIATOR_ARCH=carrington_gcc_openmpi
+        srun -M carrington --job-name tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/11.2.0; module load OpenMPI/4.1.1-GCC-11.2.0 ; module load PMIx/4.1.0-GCCcore-11.2.0; module load PAPI/6.0.0.1-GCCcore-11.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make -j 16 testpackage'
+    - name: Upload testpackage binary
+      uses: actions/upload-artifact@v3
+      with:
+        name: vlasiator-testpackage
+        path: vlasiator
+    #- name: Upload build log
+    #  uses: actions/upload-artifact@v3
+    #  with:
+    #    name: Testpackage build log
+    #    path: build.log
+
+  build_tools:
+    # Build vlsvdiff and vlsvextract for testepackage use
+    runs-on: carrington
+      
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v3 
+    - uses: ursg/gcc-problem-matcher@master
+    - name: Make clean
+      run: make clean
+    - name: Compile tools
+      run: |
+        export VLASIATOR_ARCH=carrington_gcc_openmpi
+        srun -M carrington --job-name tp_compile --interactive --nodes=1 -n 1 -c 16 --mem=40G -p short -t 0:10:0 bash -c 'module purge; module load GCC/11.2.0; module load OpenMPI/4.1.1-GCC-11.2.0 ; module load PMIx/4.1.0-GCCcore-11.2.0; module load PAPI/6.0.0.1-GCCcore-11.2.0; export VLASIATOR_ARCH=carrington_gcc_openmpi; make -j 16 vlsvextract vlsvdiff'
+    - name: Upload tools binaries
+      uses: actions/upload-artifact@v3
+      with:
+        name: vlasiator-tools
+        path: |
+          vlsvextract_DP
+          vlsvdiff_DP
+
+  run_testpackage:
+    # Run the testpackage on the carrington cluster
+    runs-on: carrington
+    needs: [build_testpackage, build_tools]
+    continue-on-error: true
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v3 
+    - name: Download testpackage binary
+      uses: actions/download-artifact@v3
+      with:
+        name: vlasiator-testpackage
+    - name: Download tools
+      uses: actions/download-artifact@v3
+      with:
+        name: vlasiator-tools
+    - name: Run testpackage
+      id: run
+      run: |
+        chmod +x $GITHUB_WORKSPACE/vlasiator
+        chmod +x $GITHUB_WORKSPACE/vlsv*_DP
+        cd testpackage
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$GITHUB_WORKSPACE/libraries/lib
+        #srun -M carrington -t 01:30:00 --job-name CI_testpackage --interactive --nodes=1 -c 4 -n 16 --mem-per-cpu=5G -p short ./small_test_carrington_github_ci.sh
+        sbatch -W -o testpackage_run_output.txt ./small_test_carrington_github_ci.sh
+        cat testpackage_run_output.txt
+        cat $GITHUB_STEP_SUMMARY > $GITHUB_WORKSPACE/testpackage_check_description.txt
+        cd $GITHUB_WORKSPACE
+        tar -czvf testpackage-output.tar.gz testpackage_check_description.txt testpackage_output_variables.txt
+        if [ -f $GITHUB_WORKSPACE/testpackage_failed ]; then
+          # Fail this step if any test failed.
+          exit 1
+        fi
+    - name: Upload testpackage output
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: testpackage-output
+        path: testpackage-output.tar.gz
+      # Note: Testpackage output is further processed in the pr_report.yml workflow
+      # (to produce Checks against pull requests)
+
+  build_ionosphereTests:
+    # Build IonosphereSolverTests miniApp (currently broken)
+    runs-on: ubuntu-latest
+    container: ursg/vlasiator_ci:20230220_1
+    needs: build_libraries
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v3 
+    - name: Download libraries
+      uses: actions/download-artifact@v3
+      with:
+        name: libraries
+    - name: Unpack libraries
+      run: tar --zstd -xvf libraries.tar.zstd
+    - uses: ursg/gcc-problem-matcher@master
+    - name: Compile ionosphereSolverTests
+      run: |
+        cd mini-apps/ionosphereSolverTests/
+        VLASIATOR_ARCH=github_actions make -j 3 main differentialFlux sigmaProfiles
+    - name: Upload ionosphereTest binaries
+      uses: actions/upload-artifact@v3
+      with:
+        name: vlasiator-tools
+        path: |
+          mini-apps/ionosphereSolverTests/main
+          mini-apps/ionosphereSolverTests/differentialFlux
+          mini-apps/ionosphereSolverTests/sigmaProfiles
+

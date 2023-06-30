@@ -146,7 +146,7 @@ CellID get_spatial_neighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geom
 
 template<int DIR> inline
 void addUpstreamBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,CellID nbrID,
-                       int dim,vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh) {
+                       int dim,vmesh::VelocityMesh* vmesh) {
    if (nbrID == INVALID_CELLID) return;
    
    SpatialCell* cellNbr = mpiGrid[nbrID];
@@ -176,24 +176,24 @@ void addUpstreamBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiG
       }
 
       vmesh::GlobalID nbrGID = cellNbr->get_velocity_block_global_id(blockLID);
-      if (vmesh.getLocalID(nbrGID) != vmesh.invalidLocalID()) {
+      if (vmesh->getLocalID(nbrGID) != vmesh->invalidLocalID()) {
          // The block exists in this cell
          continue;
-      } else if (vmesh.getLocalID(vmesh.getParent(nbrGID)) != vmesh.invalidLocalID()) {
+      } else if (vmesh->getLocalID(vmesh->getParent(nbrGID)) != vmesh->invalidLocalID()) {
          // Parent block exists in this cell, need to refine
          std::set<vmesh::GlobalID> erased;
          std::map<vmesh::GlobalID,vmesh::LocalID> inserted;
-         vmesh.refine(vmesh.getParent(nbrGID),erased,inserted);
-      } else if (vmesh.hasChildren(nbrGID) == true) {
+         vmesh->refine(vmesh->getParent(nbrGID),erased,inserted);
+      } else if (vmesh->hasChildren(nbrGID) == true) {
          // Children block(s) exist in this cell. The whole octant 
          // may not exist, however, so create the missing blocks.
          std::vector<vmesh::GlobalID> children;
-         vmesh.getChildren(nbrGID,children);
-         vmesh.push_back(children);
+         vmesh->getChildren(nbrGID,children);
+         vmesh->push_back(children);
       } else {
          // Block, its parent or none of the children exist in this cell.
          // Need to create the block.
-         vmesh.push_back(nbrGID);
+         vmesh->push_back(nbrGID);
       }
    }
 }
@@ -235,26 +235,26 @@ void createTargetMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
    }
 
    SpatialCell* spatial_cell = mpiGrid[cellID];
-   vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = spatial_cell->get_velocity_mesh_temporary();
-   vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks_temporary();
+   vmesh::VelocityMesh* vmesh    = spatial_cell->get_velocity_mesh_temporary();
+   vmesh::VelocityBlockContainer* blockContainer = spatial_cell->get_velocity_blocks_temporary();
 
    // At minimum the target mesh will be an identical copy of the existing mesh
    if (isRemoteCell == false) vmesh = spatial_cell->get_velocity_mesh(popID);
-   else vmesh.clear();
+   else vmesh->clear();
    
    // Add or refine blocks arriving from the upstream
    addUpstreamBlocks<-1>(mpiGrid,cells[0],dim,vmesh);
    addUpstreamBlocks<+1>(mpiGrid,cells[2],dim,vmesh);
 
    // Target mesh generated, set block parameters
-   blockContainer.setSize(vmesh.size());
-   for (size_t b=0; b<vmesh.size(); ++b) {
-      vmesh::GlobalID blockGID = vmesh.getGlobalID(b);
-      Real* blockParams = blockContainer.getParameters(b);
+   blockContainer->setSize(vmesh->size());
+   for (size_t b=0; b<vmesh->size(); ++b) {
+      vmesh::GlobalID blockGID = vmesh->getGlobalID(b);
+      Real* blockParams = blockContainer->getParameters(b);
       blockParams[BlockParams::VXCRD] = spatial_cell->get_velocity_block_vx_min(blockGID);
       blockParams[BlockParams::VYCRD] = spatial_cell->get_velocity_block_vy_min(blockGID);
       blockParams[BlockParams::VZCRD] = spatial_cell->get_velocity_block_vz_min(blockGID);
-      vmesh.getCellSize(blockGID,&(blockParams[BlockParams::DVX]));
+      vmesh->getCellSize(blockGID,&(blockParams[BlockParams::DVX]));
    }
 }
 
@@ -666,16 +666,16 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    for (int i=0; i<3; ++i) targetCells[i] = mpiGrid[targetCellIDs[i]];
 
    // Get the source mesh (stored in the temporary mesh)
-   vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = targetCells[1]->get_velocity_mesh_temporary();
-   vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = targetCells[1]->get_velocity_blocks_temporary();
+   vmesh::VelocityMesh* vmesh    = targetCells[1]->get_velocity_mesh_temporary();
+   vmesh::VelocityBlockContainer* blockContainer = targetCells[1]->get_velocity_blocks_temporary();
 
    vector<vector<Realf*> > targetBlocks(3);
 
-   for (vmesh::LocalID blockLID=0; blockLID<vmesh.size(); ++blockLID) {
-      const vmesh::GlobalID blockGID = vmesh.getGlobalID(blockLID);
-      const Real* blockParams = blockContainer.getParameters(blockLID);
+   for (vmesh::LocalID blockLID=0; blockLID<vmesh->size(); ++blockLID) {
+      const vmesh::GlobalID blockGID = vmesh->getGlobalID(blockLID);
+      const Real* blockParams = blockContainer->getParameters(blockLID);
       const Real* cellParams  = targetCells[1]->get_cell_parameters();
-      Realf* dataSource       = blockContainer.getData(blockLID);
+      Realf* dataSource       = blockContainer->getData(blockLID);
       const Real DZ = cellParams[CellParams::DX+dimension];
 
       // Note: neighbor may not exist
@@ -690,7 +690,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
       if (reconstruct == true) {
           // Load padded data
-          SpatialCell::fetch_data<PAD>(blockGID,vmesh,blockContainer.getData(),tempSource);
+          SpatialCell::fetch_data<PAD>(blockGID,vmesh,blockContainer->getData(),tempSource);
 
           for (int k=0; k<WID; ++k) for (int j=0; j<WID; ++j) for (int i=0; i<WID; ++i) {
               // Calculate reconstruction coefficients

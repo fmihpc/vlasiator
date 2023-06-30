@@ -70,12 +70,8 @@ namespace DRO {
       return false;
    }
 
-   DataReductionOperatorCellParams::DataReductionOperatorCellParams(const std::string& name,const unsigned int parameterIndex,const unsigned int _vectorSize):
-   DataReductionOperator() {
-      vectorSize=_vectorSize;
-      variableName=name;
-      _parameterIndex=parameterIndex;
-   }
+   DataReductionOperatorCellParams::DataReductionOperatorCellParams(const std::string& name,const unsigned int parameterIndex,const unsigned int _vectorSize) :
+      DataReductionOperator(), _parameterIndex {parameterIndex}, vectorSize {_vectorSize}, variableName {name} {}
    DataReductionOperatorCellParams::~DataReductionOperatorCellParams() { }
    
    bool DataReductionOperatorCellParams::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& _vectorSize) const {
@@ -174,6 +170,229 @@ namespace DRO {
             string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
             bailout(true, message, __FILE__, __LINE__);
          }
+      }
+
+      return true;
+   }
+
+   std::string DataReductionOperatorIonosphereElement::getName() const {return variableName;}
+   bool DataReductionOperatorIonosphereElement::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize = sizeof(double);
+      vectorSize = 1;
+      return true;
+   }
+   bool DataReductionOperatorIonosphereElement::reduceData(const SpatialCell* cell,char* buffer) {
+      // This returns false, since it will handle writing itself in writeIonosphereGridData below.
+      return false;
+   }
+   bool DataReductionOperatorIonosphereElement::reduceDiagnostic(const SpatialCell* cell,Real * result) {
+      return false;
+   }
+   bool DataReductionOperatorIonosphereElement::setSpatialCell(const SpatialCell* cell) {
+      return true;
+   }
+   bool DataReductionOperatorIonosphereElement::writeIonosphereData(SBC::SphericalTriGrid&
+            grid, vlsv::Writer& vlsvWriter) {
+
+      // No point in trying to write anything if there is no ionosphere grid.
+      if(grid.elements.size() == 0) {
+         // Note this indicates success, since not writing an empty mesh is quite ok.
+         return true;
+      }
+
+      std::map<std::string,std::string> attribs;
+      attribs["mesh"]="ionosphere";
+      attribs["name"]=variableName;
+      attribs["unit"]=unit;
+      attribs["unitLaTeX"]=unitLaTeX;
+      attribs["unitConversion"]=unitConversion;
+      attribs["variableLaTeX"]=variableLaTeX;
+
+      // Only task 0 of the ionosphere communicator writes, but all other need to sync vectorSize
+      int rank = -1;
+      int worldRank = 0;
+      if(grid.isCouplingInwards || grid.isCouplingOutwards) {
+        MPI_Comm_rank(grid.communicator,&rank);
+      }
+      MPI_Comm_rank(MPI_COMM_WORLD,&worldRank);
+      int vectorSize = 0;
+      if(rank == 0) {
+        std::vector<Real> varBuffer = lambda(grid);
+
+        int vectorSize = varBuffer.size() / grid.elements.size();
+
+        // We need to have vectorSize the same on all ranks, otherwise MPI_COMM_WORLD rank 0 writes a bogus value
+        MPI_Bcast(&vectorSize, 1, MPI_INT, grid.writingRank, MPI_COMM_WORLD);
+
+        if(vlsvWriter.writeArray("VARIABLE", attribs, "float", grid.elements.size(), vectorSize, sizeof(Real), reinterpret_cast<const char*>(varBuffer.data())) == false) {
+          string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
+          bailout(true, message, __FILE__, __LINE__);
+        }
+      } else {
+        // We need to have vectorSize the same on all ranks, otherwise MPI_COMM_WORLD rank 0 writes a bogus value
+        MPI_Bcast(&vectorSize, 1, MPI_INT, grid.writingRank, MPI_COMM_WORLD);
+
+        // Dummy write
+        vlsvWriter.writeArray("VARIABLE", attribs, "float", 0, vectorSize, sizeof(Real), nullptr);
+      }
+
+      return true;
+   }
+
+   std::string DataReductionOperatorIonosphereNode::getName() const {return variableName;}
+   std::string DataReductionOperatorIonosphereNodeInt::getName() const {return variableName;}
+   bool DataReductionOperatorIonosphereNode::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize = sizeof(double);
+      vectorSize = 1;
+      return true;
+   }
+   bool DataReductionOperatorIonosphereNodeInt::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "int";
+      dataSize = sizeof(int);
+      vectorSize = 1;
+      return true;
+   }
+   bool DataReductionOperatorIonosphereNode::reduceData(const SpatialCell* cell,char* buffer) {
+      // This returns false, since it will handle writing itself in writeIonosphereGridData below.
+      return false;
+   }
+   bool DataReductionOperatorIonosphereNodeInt::reduceData(const SpatialCell* cell,char* buffer) {
+      // This returns false, since it will handle writing itself in writeIonosphereGridData below.
+      return false;
+   }
+   bool DataReductionOperatorIonosphereNode::reduceDiagnostic(const SpatialCell* cell,Real * result) {
+      return false;
+   }
+   bool DataReductionOperatorIonosphereNodeInt::reduceDiagnostic(const SpatialCell* cell,Real * result) {
+      return false;
+   }
+   bool DataReductionOperatorIonosphereNode::setSpatialCell(const SpatialCell* cell) {
+      return true;
+   }
+   bool DataReductionOperatorIonosphereNodeInt::setSpatialCell(const SpatialCell* cell) {
+      return true;
+   }
+   bool DataReductionOperatorIonosphereNode::writeIonosphereData(SBC::SphericalTriGrid&
+            grid, vlsv::Writer& vlsvWriter) {
+
+      // skip ionosphere for inital-grid as it breaks
+      if(P::systemWriteName[P::systemWriteName.size() - 1] == "initial-grid") {
+         return true;
+      }
+
+      // No point in trying to write anything if there is no ionosphere grid.
+      if(grid.nodes.size() == 0) {
+         // Note this indicates success, since not writing an empty mesh is quite ok.
+         return true;
+      }
+      std::map<std::string,std::string> attribs;
+      attribs["mesh"]="ionosphere";
+      attribs["name"]=variableName;
+      attribs["centering"]= "node"; // <-- this tells visit the variable is node-centered
+      attribs["unit"]=unit;
+      attribs["unitLaTeX"]=unitLaTeX;
+      attribs["unitConversion"]=unitConversion;
+      attribs["variableLaTeX"]=variableLaTeX;
+
+      // Only task 0 of the ionosphere communicator writes, but all others need to sync vectorSize
+      int rank = -1;
+      int worldRank = 0;
+      if(grid.isCouplingInwards || grid.isCouplingOutwards) {
+        MPI_Comm_rank(grid.communicator,&rank);
+      }
+      MPI_Comm_rank(MPI_COMM_WORLD,&worldRank);
+      int vectorSize = 0;
+      if(rank == 0) {
+        std::vector<Real> varBuffer = lambda(grid);
+
+        vectorSize = varBuffer.size() / grid.nodes.size();
+
+        // We need to have vectorSize the same on all ranks, otherwise MPI_COMM_WORLD rank 0 writes a bogus value
+        MPI_Bcast(&vectorSize, 1, MPI_INT, grid.writingRank, MPI_COMM_WORLD);
+
+        if(vlsvWriter.writeArray("VARIABLE", attribs, "float", grid.nodes.size(), vectorSize, sizeof(Real), reinterpret_cast<const char*>(varBuffer.data())) == false) {
+          string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
+          bailout(true, message, __FILE__, __LINE__);
+        }
+      } else {
+        // We need to have vectorSize the same on all ranks, otherwise MPI_COMM_WORLD rank 0 writes a bogus value
+        MPI_Bcast(&vectorSize, 1, MPI_INT, grid.writingRank, MPI_COMM_WORLD);
+
+        // Dummy write
+        vlsvWriter.writeArray("VARIABLE", attribs, "float", 0, vectorSize, sizeof(Real), nullptr);
+      }
+
+      return true;
+   }
+   
+   bool DataReductionOperatorIonosphereNodeInt::writeIonosphereData(SBC::SphericalTriGrid& grid, vlsv::Writer& vlsvWriter) {
+      
+      // skip ionosphere for inital-grid as it breaks
+      if(P::systemWriteName[P::systemWriteName.size() - 1] == "initial-grid") {
+         return true;
+      }
+      
+      // No point in trying to write anything if there is no ionosphere grid.
+      if(grid.nodes.size() == 0) {
+         // Note this indicates success, since not writing an empty mesh is quite ok.
+         return true;
+      }
+      std::map<std::string,std::string> attribs;
+      attribs["mesh"]="ionosphere";
+      attribs["name"]=variableName;
+      attribs["centering"]= "node"; // <-- this tells visit the variable is node-centered
+      attribs["unit"]=unit;
+      attribs["unitLaTeX"]=unitLaTeX;
+      attribs["unitConversion"]=unitConversion;
+      attribs["variableLaTeX"]=variableLaTeX;
+      
+      // Only task 0 of the ionosphere communicator writes, but all others need to sync vectorSize
+      int rank = -1;
+      int worldRank = 0;
+      if(grid.isCouplingInwards || grid.isCouplingOutwards) {
+         MPI_Comm_rank(grid.communicator,&rank);
+      }
+      MPI_Comm_rank(MPI_COMM_WORLD,&worldRank);
+      int vectorSize = 0;
+      if(rank == 0) {
+         std::vector<int> varBuffer = lambda(grid);
+         
+         vectorSize = varBuffer.size() / grid.nodes.size();
+         
+         // We need to have vectorSize the same on all ranks, otherwise MPI_COMM_WORLD rank 0 writes a bogus value
+         MPI_Bcast(&vectorSize, 1, MPI_INT, grid.writingRank, MPI_COMM_WORLD);
+         
+         if(vlsvWriter.writeArray("VARIABLE", attribs, "int", grid.nodes.size(), vectorSize, sizeof(int), reinterpret_cast<const char*>(varBuffer.data())) == false) {
+            string message = "The DataReductionOperator " + this->getName() + " failed to write its data.";
+            bailout(true, message, __FILE__, __LINE__);
+         }
+      } else {
+         // We need to have vectorSize the same on all ranks, otherwise MPI_COMM_WORLD rank 0 writes a bogus value
+         MPI_Bcast(&vectorSize, 1, MPI_INT, grid.writingRank, MPI_COMM_WORLD);
+         
+         // Dummy write
+         vlsvWriter.writeArray("VARIABLE", attribs, "int", 0, vectorSize, sizeof(int), nullptr);
+      }
+      
+      return true;
+   }
+
+   std::string DataReductionOperatorMPIGridCell::getName() const {return variableName;}
+   bool DataReductionOperatorMPIGridCell::getDataVectorInfo(std::string& dataType, unsigned int& dataSize, unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize = sizeof(Real);
+      vectorSize = numFloats;
+      return true;
+   }
+   bool DataReductionOperatorMPIGridCell::reduceData(const SpatialCell* cell,char* buffer) {
+      std::vector<Real> varBuffer = lambda(cell);
+
+      assert(varBuffer.size() == (unsigned int)numFloats);
+
+      for(int i=0; i<numFloats; i++) {
+         buffer[i] = varBuffer[i];
       }
 
       return true;
@@ -966,48 +1185,6 @@ namespace DRO {
 	     End velocity moment / thermal/non-thermal helper functions
   *********/
 
-
-   VariableMeshData::VariableMeshData(): DataReductionOperatorHandlesWriting() { }
-   VariableMeshData::~VariableMeshData() { }
-   
-   std::string VariableMeshData::getName() const {return "vg_meshdata";}
-   
-   bool VariableMeshData::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
-      return true;
-   }
-   
-   bool VariableMeshData::setSpatialCell(const SpatialCell* cell) {return true;}
-   
-   bool VariableMeshData::writeData(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                    const std::vector<CellID>& cells,const std::string& meshName,
-                                    vlsv::Writer& vlsvWriter) {
-      bool success = true;
-      for (size_t i = 0; i < getObjectWrapper().meshData.size(); ++i) {
-         const string dataName = getObjectWrapper().meshData.getName(i);
-         
-         // If dataName equals "" then something is wrong, skip array
-         if (dataName.size() == 0) continue;
-         
-         size_t dataSize = getObjectWrapper().meshData.getDataSize(i);
-         const std::string dataType = getObjectWrapper().meshData.getDataType(i);
-         size_t vectorSize = getObjectWrapper().meshData.getVectorSize(i);
-         size_t arraySize = getObjectWrapper().meshData.getMeshSize();
-         char* pointer = getObjectWrapper().meshData.getData<char>(i);
-
-         if (vectorSize == 0 || vectorSize > 3) continue;
-         
-         map<string,string> attribs;
-         attribs["mesh"] = meshName;
-         attribs["name"] = dataName;
-         
-         if (vlsvWriter.writeArray("VARIABLE",attribs,dataType,arraySize,vectorSize,dataSize,pointer) == false) {
-            cerr << "write failed!" << endl;
-            success = false;
-         }
-      }
-      return success;
-   }
-   
    // Rho nonthermal:
    VariableRhoNonthermal::VariableRhoNonthermal(cuint _popID): DataReductionOperator(),popID(_popID) {
       popName = getObjectWrapper().particleSpecies[popID].name;
@@ -1249,7 +1426,9 @@ namespace DRO {
       const uint vectorSize = 3;
       //Input data into buffer
       const char* ptr = reinterpret_cast<const char*>(&PTensor);
-      for (uint i = 0; i < vectorSize*sizeof(Real); ++i) buffer[i] = ptr[i];
+      for (uint i = 0; i < vectorSize*sizeof(Real); ++i) {
+         buffer[i] = ptr[i];
+      }
       return true;
    }
    
@@ -1289,7 +1468,9 @@ namespace DRO {
       const uint vectorSize = 3;
       //Input data into buffer
       const char* ptr = reinterpret_cast<const char*>(&PTensor);
-      for (uint i = 0; i < vectorSize*sizeof(Real); ++i) buffer[i] = ptr[i];
+      for (uint i = 0; i < vectorSize*sizeof(Real); ++i) {
+         buffer[i] = ptr[i];
+      }
       return true;
    }
    
@@ -1338,7 +1519,7 @@ namespace DRO {
       return true;
    }
 
-   /*! \brief Precipitation directional differential number flux
+   /*! \brief Precipitation directional differential number flux (within loss cone)
     * Evaluation of the precipitating differential flux (per population).
     * In a selected number (default: 16) of logarithmically spaced energy bins, the average of
     *      V*V/mass
@@ -1383,7 +1564,6 @@ namespace DRO {
 
       // Unit B-field direction
       creal normB = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
-      //std::array<Real,3> b_unit;
       for (uint i=0; i<3; i++){
          B[i] /= normB;
       }
@@ -1471,6 +1651,149 @@ namespace DRO {
          if( vlsvWriter.writeParameter(popName+"_PrecipitationCentreEnergy"+std::to_string(i), &channelev) == false ) { return false; }
       }
       if( vlsvWriter.writeParameter(popName+"_LossConeAngle", &lossConeAngle) == false ) { return false; }
+      return true;
+   }
+
+   /*! \brief Precipitation directional differential number flux (along line)
+    * Evaluation of the precipitating differential flux (per population) targeted at low energies.
+    * In a selected number (default: 16) of logarithmically spaced energy bins, the average of
+    *      V*V/mass
+    * is calculated along (or antiparallel to) the magnetic field direction.
+    * The differential flux is converted in part. / cm^2 / s / sr / eV (unit used by observers).
+    * Parameters that can be set in cfg file under [{species}_precipitation]: nChannels, emin [eV], emax [eV]
+    * The energy channels are saved in bulk files as PrecipitationCentreEnergyLine{channel_number}.
+    */
+   VariablePrecipitationLineDiffFlux::VariablePrecipitationLineDiffFlux(cuint _popID): DataReductionOperatorHasParameters(),popID(_popID) {
+      popName = getObjectWrapper().particleSpecies[popID].name;
+      emin = getObjectWrapper().particleSpecies[popID].precipitationEmin;    // already converted to SI
+      emax = getObjectWrapper().particleSpecies[popID].precipitationEmax;    // already converted to SI
+      nChannels = getObjectWrapper().particleSpecies[popID].precipitationNChannels; // number of energy channels, logarithmically spaced between emin and emax
+      for (int i=0; i<nChannels; i++){
+         channels.push_back(emin * pow(emax/emin,(Real)i/(nChannels-1)));
+      }
+   }
+   VariablePrecipitationLineDiffFlux::~VariablePrecipitationLineDiffFlux() { }
+   
+   std::string VariablePrecipitationLineDiffFlux::getName() const {return popName + "/vg_precipitationlinedifferentialflux";}
+   
+   bool VariablePrecipitationLineDiffFlux::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = nChannels; //Number of energy channels
+      return true;
+   }
+   
+   bool VariablePrecipitationLineDiffFlux::reduceData(const SpatialCell* cell,char* buffer) {
+
+      dataLineDiffFlux.assign(nChannels,0.0);
+
+      std::vector<Real> sumWeights(nChannels,0.0);
+
+      std::array<Real,3> B;
+      B[0] = cell->parameters[CellParams::PERBXVOL] +  cell->parameters[CellParams::BGBXVOL];
+      B[1] = cell->parameters[CellParams::PERBYVOL] +  cell->parameters[CellParams::BGBYVOL];
+      B[2] = cell->parameters[CellParams::PERBZVOL] +  cell->parameters[CellParams::BGBZVOL];
+
+      // Unit B-field direction
+      creal normB = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
+      for (uint i=0; i<3; i++){
+         B[i] /= normB;
+      }
+
+      // If southern hemisphere, precipitation is along -B
+      if (cell->parameters[CellParams::ZCRD] + 0.5*cell->parameters[CellParams::DZ] < 0.0){
+         for (uint i=0; i<3; i++){
+            B[i] = -B[i];
+         }
+      }
+
+      # pragma omp parallel
+      {
+         std::vector<Real> thread_line_sum(nChannels,0.0);
+         std::vector<Real> thread_count(nChannels,0.0);
+         
+         const Real* parameters  = cell->get_block_parameters(popID);
+         const Realf* block_data = cell->get_data(popID);
+         
+         # pragma omp for
+         for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); n++) {
+            for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
+               const Real VX 
+                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+                  + (i + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+               const Real VY 
+                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
+                  + (j + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+               const Real VZ 
+                  =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] 
+                  + (k + 0.5)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+
+               const Real DV3 
+                  = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
+                  * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] 
+                  * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+
+               const Real normV = sqrt(VX*VX + VY*VY + VZ*VZ);
+               std::array<Real,3> BnormV;
+               BnormV[0] = B[0] * normV;
+               BnormV[1] = B[1] * normV;
+               BnormV[2] = B[2] * normV;
+
+               // We will use a gate function based on criteria that Vi-0.5*DVi <= BnormV[i] <= Vi+0.5*DVi (for i=x,y,z or 0,1,2)
+               bool xGateCrit, yGateCrit, zGateCrit;
+	       const Real _DVX= parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+               const Real _DVY= parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+               const Real _DVZ= parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+               xGateCrit = (BnormV[0] - (VX - 0.5*_DVX)) * (BnormV[0] - (VX + 0.5*_DVX)) <= 0;
+               yGateCrit = (BnormV[1] - (VY - 0.5*_DVY)) * (BnormV[1] - (VY + 0.5*_DVY)) <= 0;
+               zGateCrit = (BnormV[2] - (VZ - 0.5*_DVZ)) * (BnormV[2] - (VZ + 0.5*_DVZ)) <= 0;
+               bool xyzGateCrit = xGateCrit && yGateCrit && zGateCrit;  // gate function: 1 if the line goes through the v-cell, else 0.
+               Real countAndGate = (Real) xyzGateCrit;
+               const Real energy = 0.5 * getObjectWrapper().particleSpecies[popID].mass * normV*normV; // in SI
+
+               // Find the correct energy bin number to update
+               int binNumber = round((log(energy) - log(emin)) / log(emax/emin) * (nChannels-1));
+               binNumber = max(binNumber,0); // anything < emin goes to the lowest channel
+               binNumber = min(binNumber,nChannels-1); // anything > emax goes to the highest channel
+
+               thread_line_sum[binNumber] += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * countAndGate * normV*normV * DV3;
+               thread_count[binNumber] += countAndGate * DV3;
+            }
+         }
+
+         // Accumulate contributions coming from this velocity block to the 
+         // spatial cell velocity moments. If multithreading / OpenMP is used, 
+         // these updates need to be atomic:
+         # pragma omp critical
+         {
+            for (int i=0; i<nChannels; i++) {
+               dataLineDiffFlux[i] += thread_line_sum[i];
+               sumWeights[i] += thread_count[i];
+            }
+         }
+      }
+
+      // Averaging within each bin and conversion to unit of part. cm-2 s-1 sr-1 ev-1
+      for (int i=0; i<nChannels; i++) {
+         if (sumWeights[i] != 0) {
+            dataLineDiffFlux[i] *= 1.0 / (getObjectWrapper().particleSpecies[popID].mass * sumWeights[i]) * physicalconstants::CHARGE * 1.0e-4;
+         }
+      }
+
+      const char* ptr = reinterpret_cast<const char*>(dataLineDiffFlux.data());
+      for (uint i = 0; i < nChannels*sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+   
+   bool VariablePrecipitationLineDiffFlux::setSpatialCell(const SpatialCell* cell) {
+      return true;
+   }
+
+   bool VariablePrecipitationLineDiffFlux::writeParameters(vlsv::Writer& vlsvWriter) {
+      for (int i=0; i<nChannels; i++) {
+         const Real channelev = channels[i]/physicalconstants::CHARGE; // in eV
+         if( vlsvWriter.writeParameter(popName+"_PrecipitationCentreEnergyLine"+std::to_string(i), &channelev) == false ) { return false; }
+      }
       return true;
    }
 
@@ -1570,7 +1893,7 @@ namespace DRO {
    bool VariableEnergyDensity::setSpatialCell(const SpatialCell* cell) {
       return true;
    }
-   
+
    bool VariableEnergyDensity::writeParameters(vlsv::Writer& vlsvWriter) {
       // Output solar wind energy in eV
       Real swe = solarwindenergy/physicalconstants::CHARGE;
@@ -1581,6 +1904,97 @@ namespace DRO {
       if( vlsvWriter.writeParameter(popName+"_EnergyDensityESW", &swe) == false ) { return false; }
       if( vlsvWriter.writeParameter(popName+"_EnergyDensityELimit1", &e1l) == false ) { return false; }
       if( vlsvWriter.writeParameter(popName+"_EnergyDensityELimit2", &e2l) == false ) { return false; }
+      return true;
+   }
+
+   bool JPerBModifier::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = 1; // This is not components, but rather total energy density, density over E1, and density over E2
+      return true;
+   }
+   
+   bool JPerBModifier::writeParameters(vlsv::Writer& vlsvWriter) {
+      return vlsvWriter.writeParameter("j_per_b_modifier", &P::JPerBModifier);
+   }
+
+   // Heat flux density vector
+   // q_i = m/2 * integral((v - <V>)^2 (v - <V>)_i * f(r,v) dV)
+   VariableHeatFluxVector::VariableHeatFluxVector(cuint _popID): DataReductionOperator(),popID(_popID) {
+      popName = getObjectWrapper().particleSpecies[popID].name;
+   }
+   VariableHeatFluxVector::~VariableHeatFluxVector() { }
+   
+   std::string VariableHeatFluxVector::getName() const {return popName + "/vg_heatflux";}
+
+   bool VariableHeatFluxVector::getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize =  sizeof(Real);
+      vectorSize = 3;
+      return true;
+   }
+
+   bool VariableHeatFluxVector::reduceData(const SpatialCell* cell,char* buffer) {
+      const Real HALF = 0.5;
+      # pragma omp parallel
+      {
+         Real thread_nvxvx_sum = 0.0;
+         Real thread_nvyvy_sum = 0.0;
+         Real thread_nvzvz_sum = 0.0;
+         
+         const Real* parameters  = cell->get_block_parameters(popID);
+         const Realf* block_data = cell->get_data(popID);
+         
+         # pragma omp for
+         for (vmesh::LocalID n=0; n<cell->get_number_of_velocity_blocks(popID); n++) {
+	    for (uint k = 0; k < WID; ++k) for (uint j = 0; j < WID; ++j) for (uint i = 0; i < WID; ++i) {
+	       const Real VX 
+		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] 
+		 + (i + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+	       const Real VY 
+		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] 
+		 + (j + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+	       const Real VZ 
+		 =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] 
+		 + (k + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+	       const Real DV3 
+		 = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX]
+		 * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] 
+		 * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+           const Real VSQ
+         = (VX - averageVX) * (VX - averageVX) 
+         + (VY - averageVY) * (VY - averageVY) 
+         + (VZ - averageVZ) * (VZ - averageVZ);
+                     
+	       thread_nvxvx_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * VSQ * (VX - averageVX) * DV3;
+	       thread_nvyvy_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * VSQ * (VY - averageVY) * DV3;
+	       thread_nvzvz_sum += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * VSQ * (VZ - averageVZ) * DV3;
+            }
+         }
+         thread_nvxvx_sum *= HALF * getObjectWrapper().particleSpecies[popID].mass;
+         thread_nvyvy_sum *= HALF * getObjectWrapper().particleSpecies[popID].mass;
+         thread_nvzvz_sum *= HALF * getObjectWrapper().particleSpecies[popID].mass;
+
+         // Accumulate contributions coming from this velocity block to the 
+         // spatial cell velocity moments. If multithreading / OpenMP is used, 
+         // these updates need to be atomic:
+         # pragma omp critical
+         {
+            HeatFlux[0] += thread_nvxvx_sum;
+            HeatFlux[1] += thread_nvyvy_sum;
+            HeatFlux[2] += thread_nvzvz_sum;
+         }
+      }
+      const char* ptr = reinterpret_cast<const char*>(&HeatFlux);
+      for (uint i = 0; i < 3*sizeof(Real); ++i) buffer[i] = ptr[i];
+      return true;
+   }
+
+   bool VariableHeatFluxVector::setSpatialCell(const SpatialCell* cell) {
+      averageVX = cell-> parameters[CellParams::VX];
+      averageVY = cell-> parameters[CellParams::VY];
+      averageVZ = cell-> parameters[CellParams::VZ];
+      for(int i = 0; i < 3; i++) HeatFlux[i] = 0.0;
       return true;
    }
 

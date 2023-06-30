@@ -29,6 +29,7 @@
 #include "../definitions.h"
 #include "../spatial_cell.hpp"
 #include "datareductionoperator.h"
+#include "../sysboundary/ionosphere.h"
 
 /** The purpose of DataReducer is to contain DRO::DataReductionOperators, and apply 
  * them to simulation data when writing output files. Files containing full 
@@ -49,15 +50,10 @@ class DataReducer {
    bool getMetadata(const unsigned int& operatorID,std::string& unit,std::string& unitLaTeX,std::string& variableLaTeX,std::string& unitConversion) const;
 
    std::string getName(const unsigned int& operatorID) const;
-   bool handlesWriting(const unsigned int& operatorID) const;
    bool hasParameters(const unsigned int& operatorID) const;
    bool reduceData(const SpatialCell* cell,const unsigned int& operatorID,char* buffer);
    bool reduceDiagnostic(const SpatialCell* cell,const unsigned int& operatorID,Real * result);
    unsigned int size() const;
-   bool writeData(const unsigned int& operatorID,
-                  const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                  const std::vector<CellID>& cells,const std::string& meshName,
-                  vlsv::Writer& vlsvWriter);
    bool writeParameters(const unsigned int& operatorID, vlsv::Writer& vlsvWriter);
    bool writeFsGridData(
                       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
@@ -73,6 +69,8 @@ class DataReducer {
                       const std::string& meshName, const unsigned int operatorID,
                       vlsv::Writer& vlsvWriter,
                       const bool writeAsFloat = false);
+   bool writeIonosphereGridData(SBC::SphericalTriGrid& grid, const std::string& meshName,
+         const unsigned int operatorID, vlsv::Writer& vlsvWriter);
 
  private:
    /** Private copy-constructor to prevent copying the class.

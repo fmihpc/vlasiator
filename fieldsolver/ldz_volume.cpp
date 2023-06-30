@@ -49,7 +49,7 @@ void calculateVolumeAveragedFields(
          for (int i=0; i<gridDims[0]; i++) {
             if(technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
             
-            Real perturbedCoefficients[Rec::N_REC_COEFFICIENTS];
+            std::array<Real, Rec::N_REC_COEFFICIENTS> perturbedCoefficients;
             std::array<Real, fsgrids::volfields::N_VOL> * volGrid0 = volGrid.get(i,j,k);
             
             // Calculate reconstruction coefficients for this cell:

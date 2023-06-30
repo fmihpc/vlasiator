@@ -24,19 +24,32 @@
 #ifndef CUDA_SORT_BLOCKS_FOR_ACC_H
 #define CUDA_SORT_BLOCKS_FOR_ACC_H
 
-#include <vector>
-
 #include "../common.h"
 #include "../spatial_cell.hpp"
+//inherited include of cuda_context.cuh
 
-void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell, 
-                               const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
+//#include "include/splitvector/splitvec.h"
+
+void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
+                               vmesh::VelocityMesh* vmesh,
+                               const vmesh::LocalID nBlocks,
                                const uint dimension,
-                               uint* blocksGID,
-                               uint* blocksLID,
-                               std::vector<uint> & columnBlockOffsets,
-                               std::vector<uint> & columnNumBlocks,
-                               std::vector<uint> & setColumnOffsets,
-                               std::vector<uint> & setNumColumns);
+                               vmesh::GlobalID *blocksID_mapped,
+                               vmesh::GlobalID *blocksID_mapped_sorted,
+                               vmesh::GlobalID *blocksGID,
+                               vmesh::LocalID *blocksLID_unsorted,
+                               vmesh::LocalID *blocksLID,
+                               vmesh::LocalID *dev_columnNBlocks,
+                               ColumnOffsets* columnData,
+                               // split::SplitVector<uint> & columnBlockOffsets,
+                               // split::SplitVector<uint> & columnNumBlocks,
+                               // split::SplitVector<uint> & setColumnOffsets,
+                               // split::SplitVector<uint> & setNumColumns
+                               const uint cuda_async_queue_id,
+                               cudaStream_t stream
+   );
+
+extern void *dev_RadixSortTemp[]; // Declared in cuda_acc_map.cpp
+extern uint cuda_acc_RadixSortTempSize[];
 
 #endif

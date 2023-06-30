@@ -33,8 +33,7 @@ void calculateHallTermSimple(
    FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
    FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
    SysBoundary& sysBoundaries,
-   cint& RKCase,
-   const bool communicateMomentsDerivatives
+   cint& RKCase
 );
 
 #endif
