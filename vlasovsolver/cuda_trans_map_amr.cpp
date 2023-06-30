@@ -407,7 +407,6 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    #pragma omp parallel
    {
       uint thread_largestFoundMeshSize = 0;
-      cuda_set_device();
       #pragma omp for
       for(uint celli = 0; celli < nAllCells; celli++){
          allCellsPointer[celli] = mpiGrid[allCells[celli]];
@@ -464,19 +463,15 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    // At the same time, we could accumulate a list of unique cells included, but we already
    // get these from vlasovmover. This has to be on the host, as SpatialCells reside in host memory.
    // Host-side hashmaps are not threadsafe, so the allCellsPointer list cannot feasibly be gathered here.
-   #pragma omp parallel
-   {
-      cuda_set_device();
-      #pragma omp for
-      for (uint pencili = 0; pencili < DimensionPencils[dimension].N; ++pencili) {
-         int L = DimensionPencils[dimension].lengthOfPencils[pencili];
-         int start = DimensionPencils[dimension].idsStart[pencili];
-         // Loop over cells in pencil
-         for (int i = 0; i < L; i++) {
-            const CellID thisCell = DimensionPencils[dimension].ids[start+i];
-            (*allPencilsMeshes)[start+i] = mpiGrid[thisCell]->get_velocity_mesh(popID);
-            (*allPencilsContainers)[start+i] = mpiGrid[thisCell]->get_velocity_blocks(popID);
-         }
+   #pragma omp parallel for
+   for (uint pencili = 0; pencili < DimensionPencils[dimension].N; ++pencili) {
+      int L = DimensionPencils[dimension].lengthOfPencils[pencili];
+      int start = DimensionPencils[dimension].idsStart[pencili];
+      // Loop over cells in pencil
+      for (int i = 0; i < L; i++) {
+         const CellID thisCell = DimensionPencils[dimension].ids[start+i];
+         (*allPencilsMeshes)[start+i] = mpiGrid[thisCell]->get_velocity_mesh(popID);
+         (*allPencilsContainers)[start+i] = mpiGrid[thisCell]->get_velocity_blocks(popID);
       }
    }
    vmesh::VelocityMesh** pencilMeshes = allPencilsMeshes->data();
@@ -524,7 +519,6 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    int t4 = phiprof::initializeTimer("trans-amr-propagatePencil");
 #pragma omp parallel
    {
-      //cuda_set_device();
       // Thread id used for persistent device memory pointers
       #ifdef _OPENMP
       const uint cpuThreadID = omp_get_thread_num();

@@ -122,7 +122,7 @@ namespace vmesh {
    inline VelocityMesh::VelocityMesh() {
       meshID = std::numeric_limits<size_t>::max();
       // Set sizepower to 10 (1024 blocks) straight away so there's enough room to grow
-      globalToLocalMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(10);
+      globalToLocalMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(7);
       localToGlobalMap = new split::SplitVector<vmesh::GlobalID>(1);
       localToGlobalMap->clear();
       attachedStream = 0;
@@ -132,7 +132,7 @@ namespace vmesh {
    inline VelocityMesh::~VelocityMesh() {
       delete globalToLocalMap;
       delete localToGlobalMap;
-      cudaFree(info_ltgm);
+      cudaFreeHost(info_ltgm);
    }
 
    inline VelocityMesh::VelocityMesh(const VelocityMesh& other) {
@@ -160,6 +160,7 @@ namespace vmesh {
          localToGlobalMap->clear();
       }
       attachedStream = 0;
+      //cudaMallocHost((void **) &info_ltgm, sizeof(split::SplitInfo)); already exists
       return *this;
    }
 

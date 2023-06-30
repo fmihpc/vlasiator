@@ -162,12 +162,6 @@ __host__ void cuda_init_device() {
    // Using just a single context for whole MPI task
 }
 
-__host__ void cuda_set_device() {
-   // This function needs to be called whenever going into a threaded
-   // region and using a device other than the default device
-   HANDLE_ERROR( cudaSetDevice(myDevice) );
-}
-
 __host__ void cuda_clear_device() {
    // Destroy streams
 #ifdef _OPENMP
@@ -215,7 +209,7 @@ __host__ int cuda_getDevice() {
 __host__ void cuda_vlasov_allocate (
    uint maxBlockCount
    ) {
-   // Always prepare for at least 2500 blocks
+   // Always prepare for at least 2500 blocks (affects also translation parallelism)
    const uint maxBlocksPerCell = maxBlockCount > 2500 ? maxBlockCount : 2500;
    // Check if we already have allocated enough memory?
    if (cuda_vlasov_allocatedSize > maxBlocksPerCell * BLOCK_ALLOCATION_FACTOR) {

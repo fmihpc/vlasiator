@@ -40,8 +40,8 @@
 #endif
 
 // Extra profiling stream synchronizations?
-//#define SSYNC HANDLE_ERROR( cudaStreamSynchronize(stream) )
-#define SSYNC
+#define SSYNC HANDLE_ERROR( cudaStreamSynchronize(stream) )
+//#define SSYNC
 
 #include "device_launch_parameters.h"
 #include "cuda.h"
@@ -75,7 +75,6 @@ extern bool doPrefetches;
 #define MAXCPUTHREADS 64
 
 void cuda_init_device();
-void cuda_set_device();
 void cuda_clear_device();
 cudaStream_t cuda_getStream();
 cudaStream_t cuda_getPriorityStream();

@@ -81,8 +81,9 @@ void calculateSpatialTranslation(
     int trans_timer;
     //bool localTargetGridGenerated = false;
     bool AMRtranslationActive = false;
-    if (P::amrMaxSpatialRefLevel > 0) AMRtranslationActive = true;
-
+    if (P::amrMaxSpatialRefLevel > 0) {
+       AMRtranslationActive = true;
+    }
     double t1;
 
     int myRank;
@@ -387,42 +388,35 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
 
    // Semi-Lagrangian acceleration for those cells which are subcycled,
    // dimension-by-dimension
-   #pragma omp parallel
-   {
-      // Start parallel acceleration region.
+   #pragma omp parallel for schedule(dynamic,1)
+   for (size_t c=0; c<propagatedCells.size(); ++c) {
+      const CellID cellID = propagatedCells[c];
+      const Real maxVdt = mpiGrid[cellID]->get_max_v_dt(popID);
 
-      // Set correct device (required for multi-GPU systems)
-      #ifdef USE_CUDA
-      cuda_set_device();
-      #endif
-      #pragma omp for schedule(dynamic,1)
-      for (size_t c=0; c<propagatedCells.size(); ++c) {
-         const CellID cellID = propagatedCells[c];
-         const Real maxVdt = mpiGrid[cellID]->get_max_v_dt(popID);
-
-         //compute subcycle dt. The length is maxVdt on all steps
-         //except the last one. This is to keep the neighboring
-         //spatial cells in sync, so that two neighboring cells with
-         //different number of subcycles have similar timesteps,
-         //except that one takes an additional short step. This keeps
-         //spatial block neighbors as much in sync as possible for
-         //adjust blocks.
-         Real subcycleDt;
-         if( (step + 1) * maxVdt > fabs(dt)) {
-            subcycleDt = max(fabs(dt) - step * maxVdt, 0.0);
-         } else{
-            subcycleDt = maxVdt;
-         }
-         if (dt<0) subcycleDt = -subcycleDt;
-
-         phiprof::start("cell-semilag-acc");
-#ifdef USE_CUDA
-         cuda_accelerate_cell(mpiGrid[cellID],popID,map_order,subcycleDt);
-#else
-         cpu_accelerate_cell(mpiGrid[cellID],popID,map_order,subcycleDt);
-#endif
-         phiprof::stop("cell-semilag-acc");
+      //compute subcycle dt. The length is maxVdt on all steps
+      //except the last one. This is to keep the neighboring
+      //spatial cells in sync, so that two neighboring cells with
+      //different number of subcycles have similar timesteps,
+      //except that one takes an additional short step. This keeps
+      //spatial block neighbors as much in sync as possible for
+      //adjust blocks.
+      Real subcycleDt;
+      if( (step + 1) * maxVdt > fabs(dt)) {
+         subcycleDt = max(fabs(dt) - step * maxVdt, 0.0);
+      } else{
+         subcycleDt = maxVdt;
       }
+      if (dt<0) {
+         subcycleDt = -subcycleDt;
+      }
+
+      phiprof::start("cell-semilag-acc");
+#ifdef USE_CUDA
+      cuda_accelerate_cell(mpiGrid[cellID],popID,map_order,subcycleDt);
+#else
+      cpu_accelerate_cell(mpiGrid[cellID],popID,map_order,subcycleDt);
+#endif
+      phiprof::stop("cell-semilag-acc");
    }
    //global adjust after each subcycle to keep number of blocks managable. Even the ones not
    //accelerating anyore participate. It is important to keep

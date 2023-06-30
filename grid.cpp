@@ -699,7 +699,6 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    {
       phiprof::start("Compute with_content_list");
 #ifdef USE_CUDA
-      cuda_set_device();
       #pragma omp for schedule(dynamic,1)
       for (uint i=0; i<cells.size(); ++i) {
          mpiGrid[cells[i]]->dev_attachToStream();
@@ -730,8 +729,11 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    const std::vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(NEAREST_NEIGHBORHOOD_ID);
    #pragma omp parallel
    {
-      cuda_set_device();
       phiprof::start("Upload with_content_list to device");
+      #pragma omp for
+      for (size_t i=0; i<cellsToAdjust.size(); ++i) {
+         mpiGrid[cellsToAdjust[i]]->dev_uploadContentLists();
+      }
       #pragma omp for schedule(dynamic,1)
       for(size_t i=0; i<remote_cells.size(); ++i) {
          mpiGrid[remote_cells[i]]->dev_uploadContentLists();
@@ -743,9 +745,6 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    //Adjusts velocity blocks in local spatial cells, doesn't adjust velocity blocks in remote cells.
 #pragma omp parallel
    {
-#ifdef USE_CUDA
-      cuda_set_device();
-#endif
       phiprof::start("Adjusting blocks");
       #pragma omp for schedule(dynamic,1)
       for (size_t i=0; i<cellsToAdjust.size(); ++i) {
@@ -801,14 +800,13 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    // Now loop over local and ghost cells and free up the temborary buffer memory
    #pragma omp parallel
    {
-      cuda_set_device();
-      #pragma omp for
-      for(size_t i=0; i<remote_cells.size(); ++i) {
-         mpiGrid[remote_cells[i]]->dev_clearContentLists();
-      }
       #pragma omp for
       for (size_t i=0; i<cellsToAdjust.size(); ++i) {
          mpiGrid[cellsToAdjust[i]]->dev_clearContentLists();
+      }
+      #pragma omp for
+      for(size_t i=0; i<remote_cells.size(); ++i) {
+         mpiGrid[remote_cells[i]]->dev_clearContentLists();
       }
    }
    #endif

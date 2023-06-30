@@ -718,7 +718,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    phiprof::stop("Bookkeeping");
    phiprof::start("sortBlockList");
    cudaStream_t priorityStream = cuda_getPriorityStream();
-   HANDLE_ERROR( cudaMemsetAsync(columnNBlocks, 0, cuda_acc_columnContainerSize*sizeof(vmesh::LocalID), priorityStream) );
+   HANDLE_ERROR( cudaMemsetAsync(columnNBlocks, 0, cuda_acc_columnContainerSize*sizeof(vmesh::LocalID), stream) );
    HANDLE_ERROR( cudaStreamSynchronize(stream) ); // Yes needed because we use priority stream for block list sorting
    sortBlocklistByDimension(vmesh,
                             nBlocks,
@@ -733,7 +733,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
                             cpuThreadID,
                             stream
       );
-   HANDLE_ERROR( cudaStreamSynchronize(priorityStream) ); // Yes needed to get column data back to regular stream
+   HANDLE_ERROR( cudaStreamSynchronize(stream) ); // Yes needed to get column data back to regular stream
    phiprof::stop("sortBlockList");
 
    // Calculate total sum of columns and total values size
@@ -848,7 +848,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    // Zero out target data on device (unified) (note, pointer needs to be re-fetched)
    phiprof::start("Memset ACC blocks to zero");
    blockData = blockContainer->getData();
-   HANDLE_ERROR( cudaMemsetAsync(blockData, 0, bdsw3*sizeof(Realf), priorityStream) );
+   HANDLE_ERROR( cudaMemsetAsync(blockData, 0, bdsw3*sizeof(Realf), stream) );
    SSYNC;
    phiprof::stop("Memset ACC blocks to zero");
 
@@ -864,7 +864,7 @@ __host__ bool cuda_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    SSYNC;
    phiprof::stop("identify new block offsets kernel");
 
-   HANDLE_ERROR( cudaStreamSynchronize(priorityStream) ); // Yes needed to ensure block data was zeroed
+   HANDLE_ERROR( cudaStreamSynchronize(stream) ); // Yes needed to ensure block data was zeroed
    phiprof::start("Semi-Lagrangian acceleration kernel");
    acceleration_kernel<<<cudablocks, VECL, 0, stream>>> (
       blockData,

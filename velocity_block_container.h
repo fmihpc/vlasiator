@@ -117,34 +117,23 @@ namespace vmesh {
    };
 
    inline VelocityBlockContainer::VelocityBlockContainer() : currentCapacity {0}, numberOfBlocks {0} {
+      // initialization with zero capacity would return null pointers
+      const uint capacity = currentCapacity > 0 ? currentCapacity : 1;
 #ifdef USE_CUDA
-      if (currentCapacity==0) {
-         block_data= new split::SplitVector<Realf>(1);
-         parameters= new split::SplitVector<Real>(1);
-         block_data->clear();
-         parameters->clear();
-      } else {
-         block_data= new split::SplitVector<Realf>(currentCapacity);
-         parameters= new split::SplitVector<Real>(currentCapacity);
-      }
+      block_data= new split::SplitVector<Realf>(capacity);
+      parameters= new split::SplitVector<Real>(capacity);
       attachedStream = 0;
 #else
-      if (currentCapacity==0) {
-         // initialization with zero capacity would return null pointers
-         block_data = new std::vector<Realf,aligned_allocator<Realf,WID3>>(1);
-         parameters = new std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS>>(1);
-         block_data->clear();
-         parameters->clear();
-      } else {
-         block_data = new std::vector<Realf,aligned_allocator<Realf,WID3>>(currentCapacity);
-         parameters = new std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS>>(currentCapacity);
-      }
+      block_data = new std::vector<Realf,aligned_allocator<Realf,WID3>>(capacity);
+      parameters = new std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS>>(capacity);
 #endif
+      block_data->clear();
+      parameters->clear();
    }
 
    inline VelocityBlockContainer::~VelocityBlockContainer() {
-      if (block_data->size()>0) delete block_data;
-      if (parameters->size()>0) delete parameters;
+      delete block_data;
+      delete parameters;
    }
 
    inline VelocityBlockContainer::VelocityBlockContainer(const VelocityBlockContainer& other) {
@@ -162,8 +151,8 @@ namespace vmesh {
 
    inline const VelocityBlockContainer& VelocityBlockContainer::operator=(const VelocityBlockContainer& other) {
       // Delete old vectors
-      if (block_data->size()>0) delete block_data;
-      if (parameters->size()>0) delete parameters;
+      delete block_data;
+      delete parameters;
 #ifdef USE_CUDA
       attachedStream = 0;
       block_data= new split::SplitVector<Realf>(*(other.block_data));
