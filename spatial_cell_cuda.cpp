@@ -86,6 +86,7 @@ __global__ void __launch_bounds__(CUDATHREADS,4) update_blocks_required_halo_ker
    vmesh::VelocityMesh *vmesh,
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>* BlocksRequiredMap,
    split::SplitVector<vmesh::GlobalID> *velocity_block_with_content_list,
+   split::SplitVector<vmesh::GlobalID> *BlocksHalo,
    const int addWidthV,
    // The following 4 vectors are passed just to be able to clear them on-device
    split::SplitVector<vmesh::GlobalID>* BlocksRequired,
@@ -99,12 +100,175 @@ __global__ void __launch_bounds__(CUDATHREADS,4) update_blocks_required_halo_ker
    const vmesh::LocalID ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
 
    const unsigned long localContentBlocks = velocity_block_with_content_list->size();
+
+   //vmesh::GlobalID nGIDs[27] = {0};
+
    for (vmesh::LocalID index=blocki*warpSize; index<localContentBlocks; index += cudaBlocks*warpSize) {
       if (index+ti < localContentBlocks) {
          vmesh::GlobalID GID = velocity_block_with_content_list->at(index+ti);
-         BlocksRequiredMap->set_element(GID,GID);
+         //BlocksRequiredMap->set_element(GID,GID); // Added via Hashinator interface or below
          vmesh::LocalID ind0,ind1,ind2;
          vmesh->getIndices(GID,ind0,ind1,ind2);
+
+         // // New algorithm: attempts to minimize thread divergence and use of atomics.
+         // // Gather existence of all 26 neighbours into 32-bit bitmask
+         // vmesh::LocalID exist = 0;
+         // int localCounter=0;
+         // for (int offset_vx=-addWidthV; offset_vx<=addWidthV; offset_vx++) {
+         //    for (int offset_vy=-addWidthV; offset_vy<=addWidthV; offset_vy++) {
+         //       for (int offset_vz=-addWidthV; offset_vz<=addWidthV; offset_vz++) {
+         //          const int nind0 = ind0 + offset_vx;
+         //          const int nind1 = ind1 + offset_vy;
+         //          const int nind2 = ind2 + offset_vz;
+         //          const vmesh::GlobalID nGID
+         //             = vmesh->getGlobalID(nind0,nind1,nind2);
+         //          if (nGID != vmesh->invalidGlobalID()) {
+         //             nGIDs[localCounter] = nGID;
+         //             if (BlocksRequiredMap->device_count(nGID) != 0) {
+         //                exist = (exist & (1 << localCounter));
+         //             }
+         //          }
+         //          localCounter++;
+         //       } // for vz
+         //    } // for vy
+         // } // for vx
+
+         // /**
+         //    Define order of responsibility. Blocks are added by:
+         //    first their face neighbours in x
+         //    then their face neighbours in y
+         //    then their face neighbours in z
+         //    then their edge neighbours
+         //    then their corner neighbours
+
+         //    Bitmask: (cell 13 is self)
+
+         //    Z
+         //    |    8      17      26
+         //    |  5      14      23
+         //    |2   7  11  16  20  25
+         //    |  4      13      22
+         //    |1   6  10  15  19  24
+         //    |  3      12      21
+         //    |0      9       18
+         //    L__________________ X
+
+         //    TODO: Pythonify/COGify the following bitmask generation
+         // **/
+
+         // // First the 8 corners: add only if corner cell has no other existing neighours (that we know of)
+         // // https://bitwisecmd.com/
+         // // n=0: zeros at 0,1,9,3
+         // // 0 1 9 3   -> 523
+         // if ( (exist & (vmesh::LocalID)523 == 0) && (nGIDs[0])) {
+         //    BlocksHalo->device_push_back(nGIDs[0]);
+         // }
+         // // 2 1 5 11   -> 2086
+         // if ( (exist & (vmesh::LocalID)2086 == 0) && (nGIDs[2])) {
+         //    BlocksHalo->device_push_back(nGIDs[2]);
+         // }
+         // // 8 7 5 17   -> 131488
+         // if ( (exist & (vmesh::LocalID)131488 == 0) && (nGIDs[8])) {
+         //    BlocksHalo->device_push_back(nGIDs[8]);
+         // }
+         // // 6 7 3 15   -> 32968
+         // if ( (exist & (vmesh::LocalID)32968 == 0) && (nGIDs[6])) {
+         //    BlocksHalo->device_push_back(nGIDs[6]);
+         // }
+         // // 18 9 19 21   -> 2884096
+         // if ( (exist & (vmesh::LocalID)2884096 == 0) && (nGIDs[18])) {
+         //    BlocksHalo->device_push_back(nGIDs[18]);
+         // }
+         // // 20 11 19 23   -> 9963520
+         // if ( (exist & (vmesh::LocalID)9963520 == 0) && (nGIDs[20])) {
+         //    BlocksHalo->device_push_back(nGIDs[20]);
+         // }
+         // // 24 15 21 25   -> 52461568
+         // if ( (exist & (vmesh::LocalID)52461568 == 0) && (nGIDs[24])) {
+         //    BlocksHalo->device_push_back(nGIDs[24]);
+         // }
+         // // 26 17 23 25   -> 109182976
+         // if ( (exist & (vmesh::LocalID)52461568 == 0) && (nGIDs[26])) {
+         //    BlocksHalo->device_push_back(nGIDs[26]);
+         // }
+         // // Then the 12 blocks which are between two corners
+         // // Add only if the two face neighbours we know of are not there
+         // // 1 4 10 -> 1042
+         // if ( (exist & (vmesh::LocalID)1042 == 0) && (nGIDs[1])) {
+         //    BlocksHalo->device_push_back(nGIDs[1]);
+         // }
+         // // 5 4 14 -> 16432
+         // if ( (exist & (vmesh::LocalID)16432 == 0) && (nGIDs[5])) {
+         //    BlocksHalo->device_push_back(nGIDs[5]);
+         // }
+         // // 7 4 16 -> 65680
+         // if ( (exist & (vmesh::LocalID)65680 == 0) && (nGIDs[7])) {
+         //    BlocksHalo->device_push_back(nGIDs[7]);
+         // }
+         // // 3 4 12 -> 4120
+         // if ( (exist & (vmesh::LocalID)4120 == 0) && (nGIDs[3])) {
+         //    BlocksHalo->device_push_back(nGIDs[3]);
+         // }
+         // // 11 10 14 -> 19456
+         // if ( (exist & (vmesh::LocalID)19456 == 0) && (nGIDs[11])) {
+         //    BlocksHalo->device_push_back(nGIDs[11]);
+         // }
+         // // 17 16 14 -> 212992
+         // if ( (exist & (vmesh::LocalID)212992 == 0) && (nGIDs[17])) {
+         //    BlocksHalo->device_push_back(nGIDs[17]);
+         // }
+         // // 9 10 12 -> 5632
+         // if ( (exist & (vmesh::LocalID)5632 == 0) && (nGIDs[9])) {
+         //    BlocksHalo->device_push_back(nGIDs[9]);
+         // }
+         // // 15 12 16 -> 102400
+         // if ( (exist & (vmesh::LocalID)102400 == 0) && (nGIDs[15])) {
+         //    BlocksHalo->device_push_back(nGIDs[15]);
+         // }
+         // // 19 22 10 -> 4719616
+         // if ( (exist & (vmesh::LocalID)4719616 == 0) && (nGIDs[19])) {
+         //    BlocksHalo->device_push_back(nGIDs[19]);
+         // }
+         // // 23 22 14 -> 12599296
+         // if ( (exist & (vmesh::LocalID)12599296 == 0) && (nGIDs[23])) {
+         //    BlocksHalo->device_push_back(nGIDs[23]);
+         // }
+         // // 21 22 12 -> 6295552
+         // if ( (exist & (vmesh::LocalID)6295552 == 0) && (nGIDs[21])) {
+         //    BlocksHalo->device_push_back(nGIDs[21]);
+         // }
+         // // 25 22 16 -> 37814272
+         // if ( (exist & (vmesh::LocalID)37814272 == 0) && (nGIDs[25])) {
+         //    BlocksHalo->device_push_back(nGIDs[25]);
+         // }
+         // // Then face neighbours
+         // // Add z-neighbours only if we don't know of any x or y face neighbours
+         // // 14 5 11 17 23 -> 8538144
+         // if ( (exist & (vmesh::LocalID)8538144 == 0) && (nGIDs[14])) {
+         //    BlocksHalo->device_push_back(nGIDs[14]);
+         // }
+         // // 12 3 9 15 21 -> 2134536
+         // if ( (exist & (vmesh::LocalID)2134536 == 0) && (nGIDs[12])) {
+         //    BlocksHalo->device_push_back(nGIDs[12]);
+         // }
+         // // Add y-neighbours only if we don't know of any x face neighbours
+         // // 10 1 19 -> 525314
+         // if ( (exist & (vmesh::LocalID)525314 == 0) && (nGIDs[10])) {
+         //    BlocksHalo->device_push_back(nGIDs[10]);
+         // }
+         // // 16 7 25 -> 33620096
+         // if ( (exist & (vmesh::LocalID)33620096 == 0) && (nGIDs[16])) {
+         //    BlocksHalo->device_push_back(nGIDs[16]);
+         // }
+         // // Add all x-face-neighbours
+         // // 4
+         // if ( (exist & (vmesh::LocalID)16 == 0) && (nGIDs[4])) {
+         //    BlocksHalo->device_push_back(nGIDs[4]);
+         // }
+         // // 22
+         // if ( (exist & (vmesh::LocalID)4194304 == 0) && (nGIDs[22])) {
+         //    BlocksHalo->device_push_back(nGIDs[22]);
+         // }
 
          for (int offset_vx=-addWidthV; offset_vx<=addWidthV; offset_vx++) {
             for (int offset_vy=-addWidthV; offset_vy<=addWidthV; offset_vy++) {
@@ -115,7 +279,10 @@ __global__ void __launch_bounds__(CUDATHREADS,4) update_blocks_required_halo_ker
                   const vmesh::GlobalID nGID
                      = vmesh->getGlobalID(nind0,nind1,nind2);
                   if (nGID != vmesh->invalidGlobalID()) {
-                     BlocksRequiredMap->set_element(nGID,nGID);
+                     if (BlocksRequiredMap->device_count(nGID) == 0) {
+                        //BlocksHalo->device_push_back(nGID);
+                        BlocksRequiredMap->set_element(nGID,nGID);
+                     }
                   }
                } // for vz
             } // for vy
@@ -145,7 +312,9 @@ __global__ void __launch_bounds__(CUDATHREADS,4) update_neighbours_have_content_
    for (vmesh::LocalID index=blocki*warpSize; index<neighborContentBlocks; index += cudaBlocks*warpSize) {
       if (index+ti < neighborContentBlocks) {
          vmesh::GlobalID GID = neighbor_velocity_block_with_content_list[index+ti];
-         BlocksRequiredMap->set_element(GID,GID);
+         if (BlocksRequiredMap->device_count(GID) == 0) {
+            BlocksRequiredMap->set_element(GID,GID);
+         }
       }
    }
 }
@@ -429,12 +598,14 @@ namespace spatial_cell {
       // SplitVectors via pointers for unified memory
       velocity_block_with_content_list = new split::SplitVector<vmesh::GlobalID>(1);
       velocity_block_with_no_content_list = new split::SplitVector<vmesh::GlobalID>(1);
+      BlocksHalo = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksRequired = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToAdd = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToRemove = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToMove = new split::SplitVector<vmesh::GlobalID>(1);
       velocity_block_with_content_list->clear();
       velocity_block_with_no_content_list->clear();
+      BlocksHalo->clear();
       BlocksRequired->clear();
       BlocksToAdd->clear();
       BlocksToRemove->clear();
@@ -454,6 +625,7 @@ namespace spatial_cell {
    SpatialCell::~SpatialCell() {
       delete velocity_block_with_content_list;
       delete velocity_block_with_no_content_list;
+      delete BlocksHalo;
       delete BlocksRequired;
       delete BlocksToAdd;
       delete BlocksToRemove;
@@ -471,10 +643,12 @@ namespace spatial_cell {
    SpatialCell::SpatialCell(const SpatialCell& other) {
       velocity_block_with_content_list = new split::SplitVector<vmesh::GlobalID>(*(other.velocity_block_with_content_list));
       velocity_block_with_no_content_list = new split::SplitVector<vmesh::GlobalID>(*(other.velocity_block_with_no_content_list));
+      BlocksHalo = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksRequired = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToAdd = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToRemove = new split::SplitVector<vmesh::GlobalID>(1);
       BlocksToMove = new split::SplitVector<vmesh::GlobalID>(1);
+      BlocksHalo->clear();
       BlocksRequired->clear();
       BlocksToAdd->clear();
       BlocksToRemove->clear();
@@ -486,6 +660,7 @@ namespace spatial_cell {
 
       // Make space reservation guesses based on popID 0
       const uint reserveSize = other.populations[0].vmesh->size()*BLOCK_ALLOCATION_FACTOR;
+      BlocksHalo->reserve(reserveSize);
       BlocksRequired->reserve(reserveSize);
       BlocksToAdd->reserve(reserveSize);
       BlocksToRemove->reserve(reserveSize);
@@ -532,6 +707,7 @@ namespace spatial_cell {
    }
    const SpatialCell& SpatialCell::operator=(const SpatialCell& other) {
       const uint reserveSize = (other.BlocksRequired)->capacity();
+      BlocksHalo->clear();
       BlocksRequired->clear();
       BlocksToAdd->clear();
       BlocksToRemove->clear();
@@ -540,6 +716,7 @@ namespace spatial_cell {
       velocity_block_with_no_content_list->clear();
       delete BlocksRequiredMap;
 
+      BlocksHalo->reserve(reserveSize);
       BlocksRequired->reserve(reserveSize);
       BlocksToAdd->reserve(reserveSize);
       BlocksToRemove->reserve(reserveSize);
@@ -628,6 +805,7 @@ namespace spatial_cell {
       }
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_content_list, 0,cudaMemAttachSingle) );
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_no_content_list, 0,cudaMemAttachSingle) );
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksHalo, 0,cudaMemAttachSingle) );
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToRemove, 0,cudaMemAttachSingle) );
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToAdd, 0,cudaMemAttachSingle) );
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToMove, 0,cudaMemAttachSingle) );
@@ -641,6 +819,7 @@ namespace spatial_cell {
       // Also call attach functions on all splitvectors and hashmaps
       velocity_block_with_content_list->streamAttach(attachedStream);
       velocity_block_with_no_content_list->streamAttach(attachedStream);
+      BlocksHalo->streamAttach(attachedStream);
       BlocksToRemove->streamAttach(attachedStream);
       BlocksToAdd->streamAttach(attachedStream);
       BlocksToMove->streamAttach(attachedStream);
@@ -660,6 +839,7 @@ namespace spatial_cell {
       attachedStream = 0;
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_content_list, 0,cudaMemAttachGlobal) );
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_no_content_list, 0,cudaMemAttachGlobal) );
+      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksHalo, 0,cudaMemAttachGlobal) );
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToRemove, 0,cudaMemAttachGlobal) );
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToAdd, 0,cudaMemAttachGlobal) );
       HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToMove, 0,cudaMemAttachGlobal) );
@@ -673,6 +853,7 @@ namespace spatial_cell {
       // Also call detach functions on all splitvectors and hashmaps
       velocity_block_with_content_list->streamAttach(0,cudaMemAttachGlobal);
       velocity_block_with_no_content_list->streamAttach(0,cudaMemAttachGlobal);
+      BlocksHalo->streamAttach(0,cudaMemAttachGlobal);
       BlocksToRemove->streamAttach(0,cudaMemAttachGlobal);
       BlocksToAdd->streamAttach(0,cudaMemAttachGlobal);
       BlocksToMove->streamAttach(0,cudaMemAttachGlobal);
@@ -754,10 +935,6 @@ namespace spatial_cell {
       const vmesh::LocalID BlocksRequiredCapacity = info_Required->capacity;
       const vmesh::LocalID BlocksRequiredMapSizePower = info_brm->sizePower;
 
-      if (localContentBlocks+localNoContentBlocks == 0) {
-         phiprof::stop("Adjust velocity blocks");
-         return;
-      }
       // Neighbour and own prefetches
       if (doPrefetches) {
          phiprof::start("Prefetch");
@@ -768,7 +945,11 @@ namespace spatial_cell {
       }
 
       phiprof::start("BlocksRequired hashmap resize / clear");
-      const vmesh::LocalID HashmapReqSize = ceil(log2(localContentBlocks)) +2;
+      // Estimate required size based on existing blocks
+      vmesh::LocalID HashmapReqSize = 2;
+      if (localContentBlocks+localNoContentBlocks > 0) {
+         HashmapReqSize += ceil(log2(localContentBlocks+localNoContentBlocks));
+      }
       if (BlocksRequiredMapSizePower >= HashmapReqSize) {
          // Map is already large enough
          BlocksRequiredMap->clear(Hashinator::targets::device,stream);
@@ -784,30 +965,54 @@ namespace spatial_cell {
       }
       phiprof::stop("BlocksRequired hashmap resize / clear");
 
-      // add neighbor content info for velocity space neighbors to map. We loop over blocks
-      // with content and raise the neighbors_have_content for
-      // itself, and for all its v-space neighbors (halo)
+      if (localContentBlocks > 0) {
+         // std::cerr<<" pre  Blocks required size "<<BlocksRequiredMap->size()<<" blocks halo size "<<BlocksHalo->size()<<std::endl;
+         // // First add all local content blocks with a fast hashinator interface
+         // phiprof::start("Self Blocks");
+         // // 0.5 is target load factor
+         // BlocksRequiredMap->insert(velocity_block_with_content_list->data(),velocity_block_with_content_list->data(),localContentBlocks,0.5,stream);
+         // HANDLE_ERROR( cudaPeekAtLastError() );
+         // HANDLE_ERROR( cudaStreamSynchronize(stream) );
+         // phiprof::stop("Self Blocks");
 
-      phiprof::start("Halo kernel");
-      // Ensure at least one launch block
-      nCudaBlocks = (localContentBlocks/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : std::ceil((Real)localContentBlocks/(Real)CUDATHREADS);
-      int addWidthV = getObjectWrapper().particleSpecies[popID].sparseBlockAddWidthV;
-      if (nCudaBlocks>0) {
-         update_blocks_required_halo_kernel<<<nCudaBlocks, CUDATHREADS, 0, stream>>> (
-            populations[popID].vmesh,
-            BlocksRequiredMap,
-            velocity_block_with_content_list,
-            addWidthV,
-            // The following 4 vectors are passed just to be able to clear them on-device
-            BlocksRequired,
-            BlocksToRemove,
-            BlocksToAdd,
-            BlocksToMove
-            );
-         HANDLE_ERROR( cudaPeekAtLastError() );
-         SSYNC;
+         // add velocity space neighbors to map. We loop over blocks
+         // with content, and insert all its v-space neighbors (halo)
+         phiprof::start("Halo gather");
+         // Ensure at least one launch block
+         nCudaBlocks = (localContentBlocks/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : std::ceil((Real)localContentBlocks/(Real)CUDATHREADS);
+         if (nCudaBlocks>0) {
+            BlocksHalo->clear();
+            BlocksHalo->reserve(2 * (localContentBlocks+localNoContentBlocks));
+            BlocksHalo->optimizeGPU(stream);
+            int addWidthV = getObjectWrapper().particleSpecies[popID].sparseBlockAddWidthV;
+            update_blocks_required_halo_kernel<<<nCudaBlocks, CUDATHREADS, 0, stream>>> (
+               populations[popID].vmesh,
+               BlocksRequiredMap,
+               velocity_block_with_content_list,
+               BlocksHalo,
+               addWidthV,
+               // The following 4 vectors are passed just to be able to clear them on-device
+               BlocksRequired,
+               BlocksToRemove,
+               BlocksToAdd,
+               BlocksToMove
+               );
+            HANDLE_ERROR( cudaPeekAtLastError() );
+            HANDLE_ERROR( cudaStreamSynchronize(stream) );
+         }
+         // std::cerr<<"  mid Blocks required size "<<BlocksRequiredMap->size()<<" blocks halo size "<<BlocksHalo->size()<<std::endl;
+         // phiprof::start("Halo insert");
+         // const uint nHalo = BlocksHalo->size();
+         // if (nHalo > 0) {
+         //    // 0.5 is target load factor
+         //    //BlocksRequiredMap->insert(BlocksHalo->data(),BlocksHalo->data(),nHalo,0.5,stream);
+         //    BlocksRequiredMap->insert(BlocksHalo->data(),BlocksHalo->data(),nHalo);
+         //    HANDLE_ERROR( cudaPeekAtLastError() );
+         //    HANDLE_ERROR( cudaStreamSynchronize(stream) );
+         // }
+         // phiprof::stop("Halo insert");
+         // std::cerr<<" post Blocks required size "<<BlocksRequiredMap->size()<<" blocks halo size "<<BlocksHalo->size()<<std::endl;
       }
-      phiprof::stop("Halo kernel");
 
       // add neighbor content info for spatial space neighbors to map. We loop over
       // neighbor cell lists with existing blocks, and raise the

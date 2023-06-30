@@ -44,28 +44,6 @@
 using namespace std;
 using namespace spatial_cell;
 
-__host__ void inline swapBlockIndices(std::array<uint32_t,3> &blockIndices, const uint dimension){
-   uint temp;
-   // Switch block indices according to dimensions, the algorithm has
-   // been written for integrating along z.
-   switch (dimension){
-   case 0:
-      /*i and k coordinates have been swapped*/
-      temp=blockIndices[2];
-      blockIndices[2]=blockIndices[0];
-      blockIndices[0]=temp;
-      break;
-   case 1:
-      /*in values j and k coordinates have been swapped*/
-      temp=blockIndices[2];
-      blockIndices[2]=blockIndices[1];
-      blockIndices[1]=temp;
-      break;
-   case 2:
-      break;
-   }
-}
-
 __device__ void inline swapBlockIndices(vmesh::LocalID &blockIndices0,vmesh::LocalID &blockIndices1,vmesh::LocalID &blockIndices2, const uint dimension){
    vmesh::LocalID temp;
    // Switch block indices according to dimensions, the algorithm has
