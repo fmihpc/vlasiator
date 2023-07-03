@@ -647,6 +647,7 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
             }
          }
       }
+      // This needs an update every iteration as belongsToLayer() needs up to date data.
       technicalGrid.updateGhostCells();
    }
 
