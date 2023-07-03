@@ -96,6 +96,14 @@ void calculateDerivatives(
       rghtPerB = perBGrid.get(i+1,j,k);
       leftMoments = momentsGrid.get(i-1,j,k);
       rghtMoments = momentsGrid.get(i+1,j,k);
+      if(leftPerB == NULL) {
+         leftPerB = centPerB;
+         leftMoments = centMoments;
+      }
+      if(rghtPerB == NULL) {
+         rghtPerB = centPerB;
+         rghtMoments = centMoments;
+      }
       #ifdef DEBUG_SOLVERS
       if (leftMoments->at(fsgrids::moments::RHOM) <= 0) {
          std::cerr << __FILE__ << ":" << __LINE__
@@ -157,6 +165,14 @@ void calculateDerivatives(
       rghtPerB = perBGrid.get(i,j+1,k);
       leftMoments = momentsGrid.get(i,j-1,k);
       rghtMoments = momentsGrid.get(i,j+1,k);
+      if(leftPerB == NULL) {
+         leftPerB = centPerB;
+         leftMoments = centMoments;
+      }
+      if(rghtPerB == NULL) {
+         rghtPerB = centPerB;
+         rghtMoments = centMoments;
+      }
 
       if(sysBoundaryLayer == 1 || sysBoundaryLayer == 2) {
          dMoments->at(fsgrids::dmoments::drhomdy) = (rghtMoments->at(fsgrids::moments::RHOM)-leftMoments->at(fsgrids::moments::RHOM))/2;
@@ -205,6 +221,15 @@ void calculateDerivatives(
       rghtPerB = perBGrid.get(i,j,k+1);
       leftMoments = momentsGrid.get(i,j,k-1);
       rghtMoments = momentsGrid.get(i,j,k+1);
+      if(leftPerB == NULL) {
+         leftPerB = centPerB;
+         leftMoments = centMoments;
+      }
+      if(rghtPerB == NULL) {
+         rghtPerB = centPerB;
+         rghtMoments = centMoments;
+      }
+
       if(sysBoundaryLayer == 1 || sysBoundaryLayer == 2) {
          dMoments->at(fsgrids::dmoments::drhomdz) = (rghtMoments->at(fsgrids::moments::RHOM)-leftMoments->at(fsgrids::moments::RHOM))/2;
          dMoments->at(fsgrids::dmoments::drhoqdz) = (rghtMoments->at(fsgrids::moments::RHOQ)-leftMoments->at(fsgrids::moments::RHOQ))/2;
@@ -372,10 +397,6 @@ void calculateDerivativesSimple(
    for (int k=0; k<gridDims[2]; k++) {
       for (int j=0; j<gridDims[1]; j++) {
          for (int i=0; i<gridDims[0]; i++) {
-            if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-                 technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::OUTER_BOUNDARY_PADDING) {
-               continue;
-            }
             if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
                calculateDerivatives(i,j,k, perBGrid, momentsGrid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RKCase);
             } else {
