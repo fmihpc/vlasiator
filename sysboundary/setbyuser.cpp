@@ -102,33 +102,11 @@ namespace SBC {
       creal& dt,
       cuint& component
    ) {
-      Real result = 0.0;
-      const array<int, 3> globalIndices = technicalGrid.getGlobalIndices(i,j,k);
-
-      creal x = (convert<Real>(globalIndices[0])+0.5)*technicalGrid.DX + Parameters::xmin;
-      creal y = (convert<Real>(globalIndices[1])+0.5)*technicalGrid.DY + Parameters::ymin;
-      creal z = (convert<Real>(globalIndices[2])+0.5)*technicalGrid.DZ + Parameters::zmin;
-      int refLevel = technicalGrid.get(i, j, k)->refLevel;
-
-      // if refLevel isn't 0, assume neighbour might be on a lower refinement level
-      if (refLevel > 0) {
-         --refLevel;
-      }
-
-      creal dx = Parameters::dx_ini * pow(2, -refLevel);
-      creal dy = Parameters::dy_ini * pow(2, -refLevel);
-      creal dz = Parameters::dz_ini * pow(2, -refLevel);
-      
-      bool isThisCellOnAFace[6];
-      determineFace(isThisCellOnAFace, x, y, z, dx, dy, dz, true);
-
-      for (uint i=0; i<6; i++) {
-         if (isThisCellOnAFace[i]) {
-            result = templateB[i][component];
-            break; // This effectively sets the precedence of faces through the order of faces.
-         }
-      }
-      return result;
+      // There are projects that have non-uniform and non-zero perturbed B, e.g. Magnetosphere with dipole type 4.
+      // We cannot take a value from the templateCell, we need a copy of the value from initialization which has
+      // been set in perBGrid as well as perBDt2Grid and isn't touched as we are in boundary cells for components
+      // that aren't solved.
+      return bGrid.get(i,j,k)->at(fsgrids::bfield::PERBX+component);
    }
 
    void SetByUser::fieldSolverBoundaryCondElectricField(
