@@ -78,7 +78,7 @@ uint P::tstep_min = 0;
 uint P::tstep_max = 0;
 uint P::diagnosticInterval = numeric_limits<uint>::max();
 bool P::writeInitialState = true;
-
+bool P::writeFullBGB = false;
 
 bool P::meshRepartitioned = true;
 bool P::prepareForRebalance = false;
@@ -230,6 +230,8 @@ bool P::addParameters() {
    RP::add("io.write_initial_state",
            "Write initial state, not even the 0.5 dt propagation is done. Do not use for restarting. ", false);
 
+   RP::add("io.write_full_bgb_data", "Write a dedicated file containing all BGB components and first derivatives, then exit.", false);
+
    RP::add("io.restart_walltime_interval",
            "Save the complete simulation in given walltime intervals. Negative values disable writes.", -1.0);
    RP::add("io.number_of_restarts", "Exit the simulation after certain number of walltime-based restarts.",
@@ -345,7 +347,7 @@ bool P::addParameters() {
                     string() +
                         "List of data reduction operators (DROs) to add to the grid file output.  Each variable to be "
                         "added has to be on a new line output = XXX. Names are case insensitive.  " +
-                        "Available (20221221): " + "fg_b fg_b_background fg_b_perturbed fg_e " +
+                        "Available (20230628): " + "fg_b fg_b_background fg_b_perturbed fg_b_background_vol fg_derivs_b_background fg_e " +
                         "vg_rhom vg_rhoq populations_vg_rho " + "fg_rhom fg_rhoq " + "vg_v fg_v populations_vg_v " +
                         "populations_vg_moments_thermal populations_vg_moments_nonthermal " +
                         "populations_vg_effectivesparsitythreshold populations_vg_rho_loss_adjust " +
@@ -476,6 +478,7 @@ void Parameters::getParameters() {
    RP::get("io.system_write_distribution_shell_stride", P::systemWriteDistributionWriteShellStride);
    RP::get("io.system_write_fsgrid_variables", P::systemWriteFsGrid);
    RP::get("io.write_initial_state", P::writeInitialState);
+   RP::get("io.write_full_bgb_data", P::writeFullBGB);
    RP::get("io.restart_walltime_interval", P::saveRestartWalltimeInterval);
    RP::get("io.number_of_restarts", P::exitAfterRestarts);
    RP::get("io.vlsv_buffer_size", P::vlsvBufferSize);

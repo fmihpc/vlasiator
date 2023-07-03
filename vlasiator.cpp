@@ -331,9 +331,17 @@ int main(int argn,char* args[]) {
    // Init parallel logger:
    phiprof::start("open logFile & diagnostic");
    //if restarting we will append to logfiles
-   if (logFile.open(MPI_COMM_WORLD,MASTER_RANK,"logfile.txt",P::isRestart) == false) {
-      if(myRank == MASTER_RANK) cerr << "(MAIN) ERROR: Logger failed to open logfile!" << endl;
-      exit(1);
+   if(!P::writeFullBGB) {
+      if (logFile.open(MPI_COMM_WORLD,MASTER_RANK,"logfile.txt",P::isRestart) == false) {
+         if(myRank == MASTER_RANK) cerr << "(MAIN) ERROR: Logger failed to open logfile!" << endl;
+         exit(1);
+      }
+   } else {
+      // If we are out to write the full background field and derivatives, we don't want to overwrite the existing run's logfile.
+      if (logFile.open(MPI_COMM_WORLD,MASTER_RANK,"logfile_fullbgbio.txt",false) == false) {
+         if(myRank == MASTER_RANK) cerr << "(MAIN) ERROR: Logger failed to open logfile_fullbgbio!" << endl;
+         exit(1);
+      }
    }
    if (P::diagnosticInterval != 0) {
       if (diagnostic.open(MPI_COMM_WORLD,MASTER_RANK,"diagnostic.txt",P::isRestart) == false) {
@@ -463,11 +471,86 @@ int main(int argn,char* args[]) {
    // user-defined operators:
    phiprof::start("Init DROs");
    DataReducer outputReducer, diagnosticReducer;
+
+   if(P::writeFullBGB) {
+      // We need the following variables for this, let's just erase and replace the entries in the list
+      P::outputVariableList.clear();
+      P::outputVariableList= {"fg_b_background", "fg_b_background_vol", "fg_derivs_b_background"};
+   }
+
    initializeDataReducers(&outputReducer, &diagnosticReducer);
    phiprof::stop("Init DROs");  
    
    // Free up memory:
    readparameters.~Readparameters();
+
+   if(P::writeFullBGB) {
+      logFile << "Writing out full BGB components and derivatives and exiting." << endl << writeVerbose;
+
+      // initialize the communicators so we can write out ionosphere grid metadata.
+      SBC::ionosphereGrid.updateIonosphereCommunicator(mpiGrid, technicalGrid);
+
+      P::systemWriteDistributionWriteStride.push_back(0);
+      P::systemWriteName.push_back("bgb");
+      P::systemWriteDistributionWriteXlineStride.push_back(0);
+      P::systemWriteDistributionWriteYlineStride.push_back(0);
+      P::systemWriteDistributionWriteZlineStride.push_back(0);
+      P::systemWritePath.push_back("./");
+      P::systemWriteFsGrid.push_back(true);
+
+      for(uint si=0; si<P::systemWriteName.size(); si++) {
+         P::systemWrites.push_back(0);
+      }
+
+      const bool writeGhosts = true;
+      if( writeGrid(mpiGrid,
+            perBGrid,
+            EGrid,
+            EHallGrid,
+            EGradPeGrid,
+            momentsGrid,
+            dPerBGrid,  
+            dMomentsGrid,
+            BgBGrid,
+            volGrid,
+            technicalGrid,
+            version,
+            config,
+            &outputReducer,
+            P::systemWriteName.size()-1,
+            P::restartStripeFactor,
+            writeGhosts
+         ) == false
+      ) {
+         cerr << "FAILED TO WRITE GRID AT " << __FILE__ << " " << __LINE__ << endl;
+      }
+
+      phiprof::stop("Initialization");
+      phiprof::stop("main");
+      
+      phiprof::print(MPI_COMM_WORLD,"phiprof");
+      
+      if (myRank == MASTER_RANK) logFile << "(MAIN): Exiting." << endl << writeVerbose;
+      logFile.close();
+      if (P::diagnosticInterval != 0) diagnostic.close();
+      
+      perBGrid.finalize();
+      perBDt2Grid.finalize();
+      EGrid.finalize();
+      EDt2Grid.finalize();
+      EHallGrid.finalize();
+      EGradPeGrid.finalize();
+      momentsGrid.finalize();
+      momentsDt2Grid.finalize();
+      dPerBGrid.finalize();
+      dMomentsGrid.finalize();
+      BgBGrid.finalize();
+      volGrid.finalize();
+      technicalGrid.finalize();
+
+      MPI_Finalize();
+      return 0;
+   }
 
    // Run the field solver once with zero dt. This will initialize
    // Fieldsolver dt limits, and also calculate volumetric B-fields.
