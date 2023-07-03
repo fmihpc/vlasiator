@@ -449,6 +449,13 @@ void calculateBVOLDerivatives(
       left = volGrid.get(i-1,j,k);
       rght = volGrid.get(i+1,j,k);
       
+      if(left == NULL) {
+         left = array;
+      }
+      if(rght == NULL) {
+         rght = array;
+      }
+      
       if (sysBoundaryLayer == 1 || sysBoundaryLayer == 2) {
          array->at(fsgrids::volfields::dPERBXVOLdx) = (rght->at(fsgrids::volfields::PERBXVOL)-left->at(fsgrids::volfields::PERBXVOL))/2;
          array->at(fsgrids::volfields::dPERBYVOLdx) = (rght->at(fsgrids::volfields::PERBYVOL)-left->at(fsgrids::volfields::PERBYVOL))/2;
@@ -467,6 +474,13 @@ void calculateBVOLDerivatives(
       left = volGrid.get(i,j-1,k);
       rght = volGrid.get(i,j+1,k);
       
+      if(left == NULL) {
+         left = array;
+      }
+      if(rght == NULL) {
+         rght = array;
+      }
+      
       if (sysBoundaryLayer == 1 || sysBoundaryLayer == 2) {
          array->at(fsgrids::volfields::dPERBXVOLdy) = (rght->at(fsgrids::volfields::PERBXVOL)-left->at(fsgrids::volfields::PERBXVOL))/2;
          array->at(fsgrids::volfields::dPERBYVOLdy) = (rght->at(fsgrids::volfields::PERBYVOL)-left->at(fsgrids::volfields::PERBYVOL))/2;
@@ -484,6 +498,13 @@ void calculateBVOLDerivatives(
    if (sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY || sysBoundaryLayer == 1) {
       left = volGrid.get(i,j,k-1);
       rght = volGrid.get(i,j,k+1);
+      
+      if(left == NULL) {
+         left = array;
+      }
+      if(rght == NULL) {
+         rght = array;
+      }
       
       if (sysBoundaryLayer == 1 || sysBoundaryLayer == 2) {
          array->at(fsgrids::volfields::dPERBXVOLdz) = (rght->at(fsgrids::volfields::PERBXVOL)-left->at(fsgrids::volfields::PERBXVOL))/2;
@@ -537,10 +558,6 @@ void calculateBVOLDerivativesSimple(
    for (int k=0; k<gridDims[2]; k++) {
       for (int j=0; j<gridDims[1]; j++) {
          for (int i=0; i<gridDims[0]; i++) {
-            if (technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE ||
-                 technicalGrid.get(i,j,k)->sysBoundaryFlag == sysboundarytype::OUTER_BOUNDARY_PADDING) {
-               continue;
-            }
             calculateBVOLDerivatives(volGrid,technicalGrid,i,j,k,sysBoundaries);
          }
       }
