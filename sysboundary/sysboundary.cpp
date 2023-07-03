@@ -637,7 +637,7 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
                      technicalGrid.get(x, y, z)->sysBoundaryLayer = layer;
 
                      if (layer > 2 && (technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::IONOSPHERE || 
-                                       technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::CONDUCTINGSPHERE)) {
+                                       technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::COPYSPHERE)) {
                         technicalGrid.get(x, y, z)->sysBoundaryFlag = sysboundarytype::DO_NOT_COMPUTE;
                      } else if (layer > 2 && technicalGrid.get(x, y, z)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) {
                         technicalGrid.get(x, y, z)->sysBoundaryFlag = sysboundarytype::OUTER_BOUNDARY_PADDING;
