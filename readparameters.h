@@ -43,6 +43,26 @@ public:
    Readparameters(int cmdargc, char* cmdargv[]);
    ~Readparameters();
 
+   /**
+    * Sets a vector option with the given name and value.
+    * 
+    * @param name The name of the option.
+    * @param value The vector value to set for the option.
+    */
+   static void setVectorOption(const std::string& name, const std::vector<std::string>& value) {
+      vectorOptions[name] = value;
+   }
+
+   /**
+    * Sets the value of the given option.
+    * 
+    * @param name The name of the option.
+    * @param value The value to set for the option.
+    */
+   static void setOption(const std::string& name, const std::string& value) {
+      options[name] = value;
+   }
+
    /** Add a new input parameter.
     * Note that parse must be called in order for the input file(s) to be re-read.
     * Only called by the root process.
