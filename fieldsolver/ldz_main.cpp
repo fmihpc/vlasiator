@@ -53,18 +53,6 @@
 #include "fs_limiters.h"
 #include "mpiconversion.h"
 
-/*! Re-initialize field propagator after rebalance. E, BGB, RHO, RHO_V,
- cell_dimensions, sysboundaryflag need to be up to date for the
- extended neighborhood
- */
-bool initializeFieldPropagatorAfterRebalance() {
-   // Assume static background field, they are not communicated here
-   // but are assumed to be ok after each load balance as that
-   // communicates all spatial data
-   
-   return true;
-}
-
 bool finalizeFieldPropagator() {
    return true;
 }

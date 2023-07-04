@@ -217,6 +217,18 @@ DEPS_VLSVMOVER_AMR = ${DEPS_CELL} vlasovsolver_amr/vlasovmover.cpp vlasovsolver_
 
 #all objects for vlasiator
 
+OBJS_UNITTESTS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipole.o vectordipole.o constantfield.o integratefunction.o \
+	datareducer.o datareductionoperator.o dro_populations.o amr_refinement_criteria.o\
+	donotcompute.o ionosphere.o outflow.o setbyuser.o setmaxwellian.o\
+	sysboundary.o sysboundarycondition.o particle_species.o\
+	project.o projectTriAxisSearch.o read_gaussian_population.o\
+	Alfven.o Diffusion.o Dispersion.o Distributions.o Firehose.o\
+	Flowthrough.o Fluctuations.o Harris.o KHB.o Larmor.o Magnetosphere.o MultiPeak.o\
+	VelocityBox.o Riemann1.o Shock.o Template.o test_fp.o testAmr.o testHall.o test_trans.o\
+	IPShock.o object_wrapper.o\
+	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o logger.o\
+	common.o parameters.o readparameters.o spatial_cell.o mesh_data_container.o\
+	vlasovmover.o fs_common.o fs_limiters.o gridGlue.o
 OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipole.o vectordipole.o constantfield.o integratefunction.o \
 	datareducer.o datareductionoperator.o dro_populations.o amr_refinement_criteria.o\
 	donotcompute.o ionosphere.o outflow.o setbyuser.o setmaxwellian.o\
@@ -226,15 +238,18 @@ OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipo
 	Flowthrough.o Fluctuations.o Harris.o KHB.o Larmor.o Magnetosphere.o MultiPeak.o\
 	VelocityBox.o Riemann1.o Shock.o Template.o test_fp.o testAmr.o testHall.o test_trans.o\
 	IPShock.o object_wrapper.o\
-	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o vlasiator.o logger.o\
+	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o logger.o\
 	common.o parameters.o readparameters.o spatial_cell.o mesh_data_container.o\
 	vlasovmover.o $(FIELDSOLVER).o fs_common.o fs_limiters.o gridGlue.o
 
 # Add Vlasov solver objects (depend on mesh: AMR or non-AMR)
 ifeq ($(MESH),AMR)
 OBJS += cpu_moments.o
+OBJS_UNITTESTS += cpu_moments.o
 else
 OBJS += cpu_acc_intersections.o cpu_acc_map.o cpu_acc_sort_blocks.o cpu_acc_load_blocks.o cpu_acc_semilag.o cpu_acc_transform.o \
+	cpu_moments.o cpu_trans_map.o cpu_trans_map_amr.o
+OBJS_UNITTESTS += cpu_acc_intersections.o cpu_acc_map.o cpu_acc_sort_blocks.o cpu_acc_load_blocks.o cpu_acc_semilag.o cpu_acc_transform.o \
 	cpu_moments.o cpu_trans_map.o cpu_trans_map_amr.o
 endif
 
@@ -278,19 +293,19 @@ amr_refinement_criteria.o: ${DEPS_COMMON} velocity_blocks.h amr_refinement_crite
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c amr_refinement_criteria.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_FSGRID}
 
 memoryallocation.o: memoryallocation.cpp
-	 ${CMP} ${CXXFLAGS} ${FLAGS} -c memoryallocation.cpp ${INC_PAPI}
+	 ${CMP} ${CXXFLAGS} ${FLAGS} -c memoryallocation.cpp ${INC_PAPI} ${INC_FSGRID}
 
 dipole.o: backgroundfield/dipole.cpp backgroundfield/dipole.hpp backgroundfield/fieldfunction.hpp backgroundfield/functions.hpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/dipole.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/dipole.cpp ${INC_FSGRID}
 
 linedipole.o: backgroundfield/linedipole.cpp backgroundfield/linedipole.hpp backgroundfield/fieldfunction.hpp backgroundfield/functions.hpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/linedipole.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/linedipole.cpp ${INC_FSGRID}
 
 vectordipole.o: backgroundfield/vectordipole.cpp backgroundfield/vectordipole.hpp backgroundfield/fieldfunction.hpp backgroundfield/functions.hpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/vectordipole.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/vectordipole.cpp $(INC_FSGRID)
 
 constantfield.o: backgroundfield/constantfield.cpp backgroundfield/constantfield.hpp backgroundfield/fieldfunction.hpp backgroundfield/functions.hpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/constantfield.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/constantfield.cpp ${INC_FSGRID}
 
 quadr.o: backgroundfield/quadr.cpp backgroundfield/quadr.hpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/quadr.cpp
@@ -299,7 +314,7 @@ backgroundfield.o: ${DEPS_COMMON} backgroundfield/backgroundfield.cpp background
 	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/backgroundfield.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_FSGRID}
 
 integratefunction.o: ${DEPS_COMMON} backgroundfield/integratefunction.cpp backgroundfield/integratefunction.hpp backgroundfield/functions.hpp  backgroundfield/quadr.cpp backgroundfield/quadr.hpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/integratefunction.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} -c backgroundfield/integratefunction.cpp ${INC_FSGRID}
 
 datareducer.o: ${DEPS_COMMON} spatial_cell.hpp datareduction/datareducer.h datareduction/datareductionoperator.h datareduction/datareducer.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c datareduction/datareducer.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_EIGEN} ${INC_VLSV} ${INC_FSGRID}
@@ -337,7 +352,7 @@ sysboundarycondition.o: ${DEPS_COMMON} sysboundary/sysboundarycondition.h sysbou
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c sysboundary/sysboundarycondition.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 read_gaussian_population.o: definitions.h readparameters.h projects/read_gaussian_population.h projects/read_gaussian_population.cpp
-	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/read_gaussian_population.cpp ${INC_BOOST}
+	${CMP} ${CXXFLAGS} ${FLAGS} -c projects/read_gaussian_population.cpp ${INC_BOOST} ${INC_FSGRID}
 
 Alfven.o: ${DEPS_COMMON} projects/Alfven/Alfven.h projects/Alfven/Alfven.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c projects/Alfven/Alfven.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_FSGRID}
@@ -423,7 +438,7 @@ vlasovmover.o: ${DEPS_VLSVMOVER_AMR}
 else
 
 cpu_acc_intersections.o: ${DEPS_CPU_ACC_INTERSECTS}
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_intersections.cpp ${INC_EIGEN}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_intersections.cpp ${INC_EIGEN} ${INC_FSGRID}
 
 ifeq ($(USE_CUDA),1)
 cuda_acc_map_kernel.o: ${DEPS_CUDA_ACC_MAP_KERNEL}
@@ -447,10 +462,10 @@ cpu_acc_semilag.o: ${DEPS_CPU_ACC_SEMILAG}
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_semilag.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE} ${INC_VECTORCLASS} ${INC_FSGRID}
 
 cpu_acc_sort_blocks.o: ${DEPS_CPU_ACC_SORT_BLOCKS}
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_sort_blocks.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_sort_blocks.cpp ${INC_EIGEN} ${INC_BOOST} ${INC_DCCRG} ${INC_PROFILE} ${INC_FSGRID}
 
 cpu_acc_load_blocks.o: ${DEPS_CPU_ACC_LOAD_BLOCKS}
-	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_load_blocks.cpp  ${INC_VECTORCLASS}
+	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_load_blocks.cpp  ${INC_VECTORCLASS} ${INC_FSGRID}
 
 cpu_acc_transform.o: ${DEPS_CPU_ACC_TRANSFORM}
 	${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c vlasovsolver/cpu_acc_transform.cpp ${INC_EIGEN} ${INC_DCCRG} ${INC_PROFILE} ${INC_ZOLTAN} ${INC_BOOST} ${INC_FSGRID}
@@ -477,8 +492,8 @@ fs_common.o: ${DEPS_FSOLVER} fieldsolver/fs_limiters.h fieldsolver/fs_limiters.c
 fs_limiters.o: ${DEPS_FSOLVER} fieldsolver/fs_limiters.h fieldsolver/fs_limiters.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/fs_limiters.cpp -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_FSGRID} ${INC_PROFILE} ${INC_ZOLTAN}
 
-londrillo_delzanna.o:  ${DEPS_FSOLVER} parameters.h common.h fieldsolver/fs_common.h fieldsolver/fs_common.cpp fieldsolver/derivatives.hpp fieldsolver/ldz_electric_field.hpp fieldsolver/ldz_hall.hpp fieldsolver/ldz_magnetic_field.hpp fieldsolver/ldz_main.cpp fieldsolver/ldz_volume.hpp fieldsolver/ldz_volume.hpp
-	 ${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/ldz_main.cpp -o londrillo_delzanna.o -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_FSGRID} ${INC_PROFILE} ${INC_ZOLTAN}
+# londrillo_delzanna.o:  ${DEPS_FSOLVER} parameters.h common.h fieldsolver/fs_common.h fieldsolver/fs_common.cpp fieldsolver/derivatives.hpp fieldsolver/ldz_electric_field.hpp fieldsolver/ldz_hall.hpp fieldsolver/ldz_magnetic_field.hpp fieldsolver/ldz_main.cpp fieldsolver/ldz_volume.hpp fieldsolver/ldz_volume.hpp
+# 	 ${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/ldz_main.cpp -o londrillo_delzanna.o -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_FSGRID} ${INC_PROFILE} ${INC_ZOLTAN}
 
 ldz_electric_field.o: ${DEPS_FSOLVER} fieldsolver/ldz_electric_field.hpp fieldsolver/ldz_electric_field.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c fieldsolver/ldz_electric_field.cpp ${INC_BOOST} ${INC_FSGRID} ${INC_DCCRG}  ${INC_PROFILE} ${INC_ZOLTAN}
@@ -506,7 +521,7 @@ unit_testing.o: arch/unit_testing.cpp
 	${CMPGPU} $(CXXFLAGS) ${FLAG_OPENMP} ${FLAGS} -c arch/unit_testing.cpp
 
 unit_testing_fields.o: arch/unit_testing_fields.cpp
-	${CMPGPU} $(CXXFLAGS) ${FLAG_OPENMP} ${FLAGS} -c arch/unit_testing_fields.cpp ${INC_FSGRID}
+	${CMPGPU} $(CXXFLAGS) ${FLAG_OPENMP} ${FLAGS} -c arch/unit_testing_fields.cpp ${INC_FSGRID} ${INC_DCCRG} ${INC_ZOLTAN}
 
 grid.o:  ${DEPS_COMMON} parameters.h ${DEPS_PROJECTS} ${DEPS_CELL} ${DEPS_GRID} grid.cpp grid.h
 	${CMPGPU} ${CXXFLAGS} ${FLAG_OPENMP} ${FLAGS} -c grid.cpp ${INC_MPI} ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VLSV} ${INC_PAPI} ${INC_VECTORCLASS}
@@ -521,13 +536,13 @@ logger.o: logger.h logger.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c logger.cpp ${INC_MPI}
 
 common.o: common.h common.cpp
-	$(CMP) $(CXXFLAGS) $(FLAGS) -c common.cpp
+	$(CMP) $(CXXFLAGS) $(FLAGS) -c common.cpp ${INC_FSGRID}
 
 parameters.o: parameters.h parameters.cpp readparameters.h
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c parameters.cpp ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_ZOLTAN} ${INC_FSGRID}
 
 readparameters.o: readparameters.h readparameters.cpp version.h version.cpp
-	$(CMP) $(CXXFLAGS) $(FLAGS) -c readparameters.cpp ${INC_BOOST} ${INC_EIGEN}
+	$(CMP) $(CXXFLAGS) $(FLAGS) -c readparameters.cpp ${INC_BOOST} ${INC_EIGEN} ${INC_FSGRID}
 
 particle_species.o: particle_species.h ${DEPS_COMMON}
 	$(CMP) $(CXXFLAGS) $(FLAGS) -c particle_species.cpp
@@ -539,12 +554,12 @@ object_wrapper.o:  $(DEPS_COMMON)  object_wrapper.h object_wrapper.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} -c object_wrapper.cpp ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_FSGRID}
 
 # Make executable
-vlasiator: $(OBJS) $(OBJS_FSOLVER)
-	$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) $(LIBS) $(OBJS_FSOLVER) $(CUDALIB)
+vlasiator: vlasiator.o $(OBJS) $(OBJS_FSOLVER)
+	$(LNK) ${LDFLAGS} -o ${EXE} vlasiator.o $(OBJS) $(LIBS) $(OBJS_FSOLVER) $(CUDALIB)
 unit_testing: unit_testing.o
 	$(LNK) ${LDFLAGS} -o unit_testing unit_testing.o $(CUDALIB)
-unit_testing_fields: unit_testing_fields.o
-	$(LNK) ${LDFLAGS} -o unit_testing_fields unit_testing_fields.o $(CUDALIB)
+unit_testing_fields: unit_testing_fields.o ${OBJS_UNITTESTS}
+	$(LNK) ${LDFLAGS} -o unit_testing_fields unit_testing_fields.o ${OBJS_UNITTESTS} ${CUDALIB} ${LIBS}
 #$(LNK) -o unit_testing unit_testing.o $(CUDALIB)
 
 #/// TOOLS section/////

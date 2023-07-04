@@ -80,8 +80,6 @@ int globalflags::bailingOut = 0;
 bool globalflags::writeRestart = 0;
 bool globalflags::balanceLoad = 0;
 
-ObjectWrapper objectWrapper;
-
 void addTimedBarrier(string name){
 #ifdef NDEBUG
 //let's not do  a barrier
@@ -259,18 +257,6 @@ bool computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
    phiprof::stop("compute-timestep");
    return true;
-}
-
-ObjectWrapper& getObjectWrapper() {
-   return objectWrapper;
-}
-
-/** Get local cell IDs. This function creates a cached copy of the
- * cell ID lists to significantly improve performance. The cell ID
- * cache is recalculated every time the mesh partitioning changes.
- * @return Local cell IDs.*/
-const std::vector<CellID>& getLocalCells() {
-   return Parameters::localCells;
 }
 
 void recalculateLocalCellsCache() {

@@ -37,6 +37,8 @@
 #include "setmaxwellian.h"
 #include "sysboundary.h"
 
+ObjectWrapper objectWrapper;
+
 using namespace std;
 using namespace spatial_cell;
 
@@ -46,6 +48,18 @@ bool precedenceSort(const SBC::SysBoundaryCondition* first, const SBC::SysBounda
    } else {
       return false;
    }
+}
+
+/** Get local cell IDs. This function creates a cached copy of the
+ * cell ID lists to significantly improve performance. The cell ID
+ * cache is recalculated every time the mesh partitioning changes.
+ * @return Local cell IDs.*/
+const std::vector<CellID>& getLocalCells() {
+   return Parameters::localCells;
+}
+
+ObjectWrapper& getObjectWrapper() {
+   return objectWrapper;
 }
 
 // ************************************************************
