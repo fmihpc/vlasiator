@@ -167,8 +167,8 @@ namespace SBC {
    }
 
    Real SetByUser::fieldSolverBoundaryCondMagneticField(
-      FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & bGrid,
-      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
+      const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & bGrid,
+      const arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> & technicalGrid,
       cint i,
       cint j,
       cint k,
@@ -179,10 +179,10 @@ namespace SBC {
       creal dx = Parameters::dx_ini;
       creal dy = Parameters::dy_ini;
       creal dz = Parameters::dz_ini;
-      const array<int, 3> globalIndices = technicalGrid.getGlobalIndices(i,j,k);
-      creal x = (convert<Real>(globalIndices[0])+0.5)*technicalGrid.DX + Parameters::xmin;
-      creal y = (convert<Real>(globalIndices[1])+0.5)*technicalGrid.DY + Parameters::ymin;
-      creal z = (convert<Real>(globalIndices[2])+0.5)*technicalGrid.DZ + Parameters::zmin;
+      const array<int, 3> globalIndices = technicalGrid.grid()->getGlobalIndices(i,j,k);
+      creal x = (convert<Real>(globalIndices[0])+0.5)*technicalGrid.grid()->DX + Parameters::xmin;
+      creal y = (convert<Real>(globalIndices[1])+0.5)*technicalGrid.grid()->DY + Parameters::ymin;
+      creal z = (convert<Real>(globalIndices[2])+0.5)*technicalGrid.grid()->DZ + Parameters::zmin;
       
       bool isThisCellOnAFace[6];
       determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);

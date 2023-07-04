@@ -105,6 +105,19 @@ void SysBoundary::addParameters() {
    SBC::SetMaxwellian::addParameters();
 }
 
+// get sysboundaries
+/*!\brief Get the list of system boundary conditions.
+ *
+ * \return List of system boundary conditions.
+ */
+std::list<SBC::SysBoundaryCondition*>& SysBoundary::getSysBoundaries() {
+   return sysBoundaries;
+}
+
+void SysBoundary::setBoundaryConditionParameters(std::vector<std::string> boundaryConditionParameters) {
+   sysBoundaryCondList = boundaryConditionParameters;
+}
+
 /*!\brief Get this class' parameters.
  *
  * Get the parameters pertaining to this class.

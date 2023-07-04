@@ -59,6 +59,7 @@ class SysBoundary {
    void addParameters();
    void getParameters();
       
+   void setBoundaryConditionParameters(std::vector<std::string> boundaryConditionParameters);
    bool addSysBoundary(
                        SBC::SysBoundaryCondition* sbc,
                        Project& project,
@@ -82,6 +83,7 @@ class SysBoundary {
    bool isDynamic() const;
    bool isBoundaryPeriodic(uint direction) const;
    bool updateSysBoundariesAfterLoadBalance(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+   std::list<SBC::SysBoundaryCondition*>& getSysBoundaries();
 
    private:
       /*! Private copy-constructor to prevent copying the class. */

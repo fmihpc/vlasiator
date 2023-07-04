@@ -57,8 +57,15 @@ class buf<FsGrid<T, TDim, N>> {
     return *ptr->get(i);
   }
 
+  auto get(int x, int y, int z, int i) const {
+    return ptr->get(x, y, z, i);
+  }
   auto get(int x, int y, int z) const {
     return ptr->get(x, y, z);
+  }
+
+  FsGrid<T, TDim, N>* grid(void) const {
+    return ptr;
   }
 };
 

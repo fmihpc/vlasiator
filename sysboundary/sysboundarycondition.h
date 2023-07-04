@@ -74,8 +74,8 @@ namespace SBC {
             Project &project
          )=0;
          virtual Real fieldSolverBoundaryCondMagneticField(
-            FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & bGrid,
-            FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
+            const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & bGrid,
+            const arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> & technicalGrid,
             cint i,
             cint j,
             cint k,
@@ -276,8 +276,8 @@ namespace SBC {
             const CellID& cellID
          );
          Real fieldBoundaryCopyFromSolvingNbrMagneticField(
-            FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & bGrid,
-            FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
+            const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & bGrid,
+            const arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> & technicalGrid,
             cint i,
             cint j,
             cint k,

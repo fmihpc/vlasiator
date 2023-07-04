@@ -486,8 +486,8 @@ namespace SBC {
     * -- Average perturbed face B from the nearest neighbours
     */
    Real Ionosphere::fieldSolverBoundaryCondMagneticField(
-      FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & bGrid,
-      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
+      const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & bGrid,
+      const arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> & technicalGrid,
       cint i,
       cint j,
       cint k,

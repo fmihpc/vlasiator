@@ -23,9 +23,26 @@
 #include "arch_device_api.h"
 #include "../mpiconversion.h"
 #include "../common.h"
+#include "arch_sysboundary.h"
+#include "../sysboundary/sysboundary.h"
 
 /* Host execution of min() and max() require using std namespace */
 using namespace std;
+
+Logger logFile, diagnostic;
+static dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> mpiGrid;
+
+int globalflags::bailingOut = 0;
+bool globalflags::writeRestart = 0;
+bool globalflags::balanceLoad = 0;
+
+void recalculateLocalCellsCache() {
+     {
+        vector<CellID> dummy;
+        dummy.swap(Parameters::localCells);
+     }
+   Parameters::localCells = mpiGrid.get_cells();
+}
 
 /* Auxiliary function for result evaluation and printing */
 void result_eval(std::tuple<bool, double, double> res, const uint test_id){
@@ -153,6 +170,87 @@ typename std::enable_if<I == 1, std::tuple<bool, double, double>>::type test(){
   return std::make_tuple(success, arch_time, host_time); 
 }
 
+// This test function compares the performance of two 
+// different implementations of a loop that sets the value of a field in a 3D grid.
+template<uint I>
+typename std::enable_if<I == 2, std::tuple<bool, double, double>>::type test(){
+
+  // Define the size of the 3D grid
+  // int32_t gridDims[3] = {100, 100, 100};
+  int32_t fsGridDimensions[3] = {100, 100, 100};
+
+  // Initialize MPI and grid coupling information
+  MPI_Comm comm = MPI_COMM_WORLD;
+  FsGridCouplingInformation gridCoupling;
+
+  // Set the periodicity of the grid
+  std::array<bool,3> periodicity{true, true, true};
+
+  // Create the 3D grid with a field of type std::array<Real, fsgrids::bfield::N_BFIELD>
+  FsGrid< Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> perBGrid(fsGridDimensions, comm, periodicity,gridCoupling); 
+  FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> technicalGrid(fsGridDimensions, comm, periodicity,gridCoupling); 
+  int32_t *gridDims = perBGrid.getStorageSize();
+
+  // create system boundaries
+  SysBoundary sysBoundaries;
+  Parameters::projectName =  "Diffusion";
+  Project* project = projects::createProject(); 
+  std::vector<std::string> sysBoundaryNames = {"Maxwellian"};
+
+  std::vector<std::string> faceList;
+  faceList.push_back("x+");
+  Readparameters::setVectorOption("maxwellian.face", faceList);
+  Readparameters::setOption("maxwellian.precedence", "4");
+  Readparameters::setOption("maxwellian.reapplyUponRestart", "0");
+
+  sysBoundaries.setBoundaryConditionParameters(sysBoundaryNames);
+  sysBoundaries.initSysBoundaries(*project, 0);
+
+  // set maxwellian boundary condition in the elements of the technical grid
+  for (uint k = 0; k < gridDims[2]; ++k){
+    for (uint j = 0; j < gridDims[1]; ++j){
+      for (uint i = 0; i < gridDims[0]; ++i) {
+        technicalGrid.get(i,j,k)->sysBoundaryFlag = sysboundarytype::SET_MAXWELLIAN;
+        perBGrid.get(i,j,k)[fsgrids::bfield::PERBX] = 2;
+      }
+    } 
+  } 
+
+  // Create a buffer object that provides a convenient interface for accessing the grid data on the device
+  arch::buf<FsGrid< Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> perBGridBuf(&perBGrid);
+  arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> technicalGridBuf(&technicalGrid);
+  arch::buf<SysBoundary> sysBoundariesBuf(&sysBoundaries); 
+
+  // Execute the loop in parallel on the device using CUDA
+  clock_t arch_start = clock();
+  arch::parallel_for({(uint)gridDims[0], (uint)gridDims[1], (uint)gridDims[2]}, ARCH_LOOP_LAMBDA(int i, int j, int k) {
+    perBGridBuf.get(i,j,k)[fsgrids::bfield::PERBX] = sysBoundariesBuf.getSysBoundary(technicalGridBuf.get(i,j,k)->sysBoundaryFlag).fieldSolverBoundaryCondMagneticField(perBGridBuf, technicalGridBuf, i, j, k, 0.1, 0);
+  });  
+  perBGridBuf.syncHostData();
+  double arch_time = (double)((clock() - arch_start) * 1e6 / CLOCKS_PER_SEC);
+  perBGridBuf.syncHostData();
+
+  bool success = true;
+  if (perBGridBuf.get(10,10,10)[fsgrids::bfield::PERBX] != 0)
+    success = false;
+
+  perBGridBuf.get(10,10,10)[fsgrids::bfield::PERBX] = 2;
+
+  // Execute the loop on the host
+  clock_t host_start = clock();
+  for (uint k = 0; k < gridDims[2]; ++k){
+    for (uint j = 0; j < gridDims[1]; ++j){
+      for (uint i = 0; i < gridDims[0]; ++i) {
+        perBGridBuf.get(i,j,k)[fsgrids::bfield::PERBX] = sysBoundariesBuf.getSysBoundary(technicalGridBuf.get(i,j,k)->sysBoundaryFlag).fieldSolverBoundaryCondMagneticField(perBGridBuf, technicalGridBuf, i, j, k, 0.1, 0);
+      }
+    } 
+  }
+  double host_time = (double)((clock() - host_start) * 1e6 / CLOCKS_PER_SEC); 
+
+  // Check whether the test was successful. TOOO: check with actual values
+  return std::make_tuple(success, arch_time, host_time); 
+}
+
 
 /* Instantiate each test function by recursively calling the
  * driver function in a descending order beginning from `N - 1`
@@ -180,7 +278,7 @@ int main(int argn,char* args[]) {
   MPI_Init_thread(&argn,&args,required,&provided);
     
   /* Specify the number of tests and set function pointers */
-  constexpr uint n_tests = 2;
+  constexpr uint n_tests = 3;
   std::tuple<bool, double, double>(*fptr_test[n_tests])();
   test_instatiator<n_tests, n_tests>::driver(fptr_test);
 
