@@ -376,9 +376,9 @@ void computeSpatialTargetCellsForPencilsWithFaces(const dccrg::Dccrg<SpatialCell
       vector <CellID> backNeighborIds;
       const auto& frontNeighbors = mpiGrid.get_face_neighbors_of(ids.front());
       if (frontNeighbors.size() > 0) {
-         for (const auto& nbr: frontNeighbors) {
-            if(nbr.second == (-((int)dimension + 1))) {
-               frontNeighborIds.push_back(nbr.first);
+         for (const auto& [neighbor, dir] : frontNeighbors) {
+            if(dir == (-((int)dimension + 1))) {
+               frontNeighborIds.push_back(neighbor);
             }
          }
          refLvl = mpiGrid.get_refinement_level(ids.front());
@@ -401,9 +401,9 @@ void computeSpatialTargetCellsForPencilsWithFaces(const dccrg::Dccrg<SpatialCell
 
       const auto& backNeighbors = mpiGrid.get_face_neighbors_of(ids.back());
       if (backNeighbors.size() > 0) {
-         for (const auto& nbr: backNeighbors) {
-            if(nbr.second == ((int)dimension + 1)) {
-               backNeighborIds.push_back(nbr.first);
+         for (const auto& [neighbor, dir] : backNeighbors) {
+            if(dir == ((int)dimension + 1)) {
+               backNeighborIds.push_back(neighbor);
             }
          }
          refLvl = mpiGrid.get_refinement_level(ids.back());
@@ -456,9 +456,9 @@ CellID selectNeighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> 
    
    // Iterate through neighbor ids in the positive direction of the chosen dimension,
    // select the neighbor indicated by path, if it is local to this process.
-   for (const auto& nbr : grid.get_face_neighbors_of(id)) {
-     if (nbr.second == ((int)dimension + 1)) {
-	 myNeighbors.push_back(nbr.first);
+   for (const auto& [neighbor, dir] : grid.get_face_neighbors_of(id)) {
+      if (dir == ((int)dimension + 1)) {
+         myNeighbors.push_back(neighbor);
       }
    }
    
@@ -472,7 +472,7 @@ CellID selectNeighbor(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> 
    }
    
    if (grid.is_local(myNeighbors[neighborIndex])) {
-     neighbor = myNeighbors[neighborIndex];
+      neighbor = myNeighbors[neighborIndex];
    }
    
    return neighbor;
@@ -859,17 +859,17 @@ void getSeedIds(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
 
       // First check negative face neighbors (A)
       // Returns all neighbors as (id, direction-dimension) pair pointers.
-      for (const auto& faceNbrPair : mpiGrid.get_face_neighbors_of(celli) ) {
-         if ( faceNbrPair.second == -((int)dimension + 1) ) {
+      for (const auto& [neighbor, dir] : mpiGrid.get_face_neighbors_of(celli) ) {
+         if ( dir == -((int)dimension + 1) ) {
             // Check that the neighbor is not across a periodic boundary by calculating
             // the distance in indices between this cell and its neighbor.
-            auto nbrIndices = mpiGrid.mapping.get_indices(faceNbrPair.first);
+            auto nbrIndices = mpiGrid.mapping.get_indices(neighbor);
 
             // If a neighbor is non-local, across a periodic boundary, or in non-periodic boundary layer 1
             // then we use this cell as a seed for pencils
             if (abs ( (int64_t)(myIndices[dimension] - nbrIndices[dimension]) ) > pow(2,mpiGrid.get_maximum_refinement_level()) ||
-               !mpiGrid.is_local(faceNbrPair.first) ||
-               !do_translate_cell(mpiGrid[faceNbrPair.first]) ) 
+               !mpiGrid.is_local(neighbor) ||
+               !do_translate_cell(mpiGrid[neighbor]) ) 
             {
                addToSeedIds = true;
                break;
@@ -1400,8 +1400,6 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
                       const Realv dt,
                       const uint popID) {
    
-   phiprof::start("setup");
-
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
    unsigned char  cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
    // return if there's no cells to propagate
@@ -1409,6 +1407,8 @@ bool trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&
       cout << "Returning because of no cells" << endl;
       return false;
    }
+
+   phiprof::start("setup");
 
    // Vector with all cell ids
    vector<CellID> allCells(localPropagatedCells);
@@ -1850,13 +1850,13 @@ void update_remote_mapping_contribution_amr(
       vector<CellID> p_nbrs;
       vector<CellID> n_nbrs;
       
-      for (const auto& nbr : mpiGrid.get_face_neighbors_of(c)) {
-         if(nbr.second == ((int)dimension + 1) * direction) {
-            p_nbrs.push_back(nbr.first);
+      for (const auto& [neighbor, dir] : mpiGrid.get_face_neighbors_of(c)) {
+         if(dir == ((int)dimension + 1) * direction) {
+            p_nbrs.push_back(neighbor);
          }
 
-         if(nbr.second == -1 * ((int)dimension + 1) * direction) {
-            n_nbrs.push_back(nbr.first);
+         if(dir == -1 * ((int)dimension + 1) * direction) {
+            n_nbrs.push_back(neighbor);
          }
       }
       
