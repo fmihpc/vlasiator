@@ -153,6 +153,14 @@ class buf<FsGrid<T, TDim, N>> {
     }
   }
 
+  __host__ __device__ FsGrid<T, TDim, N>* grid(void) const {
+   #ifdef __CUDA_ARCH__
+      return d_ptr;
+   #else
+      return ptr;
+   #endif
+  }
+
   __host__ __device__ auto get(int i) const {
    #ifdef __CUDA_ARCH__
       return *d_ptr->get(i);
