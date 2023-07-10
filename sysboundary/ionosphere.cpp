@@ -924,7 +924,7 @@ namespace SBC {
       }
 
       // Antisymmetric tensor epsilon_ijk
-      static const char epsilon[3][3][3] = {
+      static const int epsilon[3][3][3] = {
          {{0,0,0},{0,0,1},{0,-1,0}},
          {{0,0,-1},{0,0,0},{1,0,0}},
          {{0,1,0},{-1,0,0},{0,0,0}}
