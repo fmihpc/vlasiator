@@ -179,9 +179,9 @@ namespace FieldTracing {
                         fsgridCell[0], fsgridCell[1], fsgridCell[2],
                         x
                      );
-                     no.parameters[ionosphereParameters::UPMAPPED_BX] = SBC::ionosphereGrid.dipoleField(x[0],x[1],x[2],X,0,X) + perB[0];
-                     no.parameters[ionosphereParameters::UPMAPPED_BY] = SBC::ionosphereGrid.dipoleField(x[0],x[1],x[2],Y,0,Y) + perB[1];
-                     no.parameters[ionosphereParameters::UPMAPPED_BZ] = SBC::ionosphereGrid.dipoleField(x[0],x[1],x[2],Z,0,Z) + perB[2];
+                     no.parameters[ionosphereParameters::UPMAPPED_BX] = SBC::ionosphereGrid.dipoleField(x[0],x[1],x[2],X,0,X) + SBC::ionosphereGrid.BGB[0] + perB[0];
+                     no.parameters[ionosphereParameters::UPMAPPED_BY] = SBC::ionosphereGrid.dipoleField(x[0],x[1],x[2],Y,0,Y) + SBC::ionosphereGrid.BGB[1] + perB[1];
+                     no.parameters[ionosphereParameters::UPMAPPED_BZ] = SBC::ionosphereGrid.dipoleField(x[0],x[1],x[2],Z,0,Z) + SBC::ionosphereGrid.BGB[2] + perB[2];
                      
                      nodeNeedsContinuedTracing[n] = 0;
                      nodeTracingCoordinates[n] = {0,0,0};
