@@ -137,19 +137,8 @@ namespace FieldTracing {
                   
                   creal distance = sqrt((x[0]-no.x[0])*(x[0]-no.x[0])+(x[1]-no.x[1])*(x[1]-no.x[1])+(x[2]-no.x[2])*(x[2]-no.x[2]));
                   
-                  // TODO I simplified by just looking when we change hemispheres now.
-                  // This WILL fail as soon as there is a dipole tilt.
-                  // But do we need it beyond debugging? Tracing back for closed/non-mapping lines is perfectly legit (once the tracer is debugged).
-                  if(sign(x[2]) != sign(no.x[2])) {
-                     nodeNeedsContinuedTracing.at(n) = 0;
-                     nodeTracingCoordinates.at(n) = {0,0,0};
-                     break;
-                  }
-                  
-                  // If we somehow still map into the ionosphere, we missed the 88 degree criterion but shouldn't couple there.
+                  // If we map back into the ionosphere, we obviously don't couple out to SBC::Ionosphere::downmapRadius.
                   if(x.at(0)*x.at(0) + x.at(1)*x.at(1) + x.at(2)*x.at(2) < SBC::Ionosphere::innerRadius*SBC::Ionosphere::innerRadius) {
-                     // TODO drop this warning if it never occurs? To be followed.
-                     cerr << (string)("(fieldtracing) Warning: Triggered mapping back into Earth from node " + to_string(n) + " at z " + to_string(no.x[2]) + "\n");
                      nodeNeedsContinuedTracing.at(n) = 0;
                      nodeTracingCoordinates.at(n) = {0,0,0};
                      break;
