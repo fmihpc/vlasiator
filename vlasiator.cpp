@@ -83,8 +83,8 @@ ObjectWrapper objectWrapper;
 
 void addTimedBarrier(string name){
 #ifdef NDEBUG
-//let's not do  a barrier
-   return; 
+//let's not do a barrier
+   return;
 #endif
    int bt=phiprof::initializeTimer(name,"Barriers","MPI");
    phiprof::start(bt);
@@ -587,6 +587,22 @@ int main(int argn,char* args[]) {
 
    // Build communicator for ionosphere solving
    SBC::ionosphereGrid.updateIonosphereCommunicator(mpiGrid, technicalGrid);
+   // If not a restart, perBGrid and dPerBGrid are up to date after propagateFields just above. Otherwise, we should compute them.
+   if(P::isRestart) {
+      calculateDerivativesSimple(
+         perBGrid,
+         perBDt2Grid,
+         momentsGrid,
+         momentsDt2Grid,
+         dPerBGrid,
+         dMomentsGrid,
+         technicalGrid,
+         sysBoundaryContainer,
+         RK_ORDER1, // Update and compute on non-dt2 grids.
+         false // Don't communicate moments, they are not needed here.
+      );
+      dPerBGrid.updateGhostCells();
+   }
    FieldTracing::calculateIonosphereFsgridCoupling(technicalGrid, perBGrid, dPerBGrid, SBC::ionosphereGrid.nodes, SBC::Ionosphere::radius);
    SBC::ionosphereGrid.initSolver(!P::isRestart); // If it is a restart we do not want to zero out everything
    if(SBC::Ionosphere::couplingInterval > 0 && P::isRestart) {
@@ -1111,7 +1127,9 @@ int main(int argn,char* args[]) {
       }
 
       // Map current data down into the ionosphere
-      // TODO check: have we set perBGrid correctly here, or is it possibly perBDt2Grid in some cases??
+      // momentsGrid was ghost-updated in the field solver above, volGrid just after a few lines above.
+      // perBGrid was ghost-updated before derivatives were computed in the field solver.
+      // dPerBGrid was updated before the electric fields.
       if(SBC::ionosphereGrid.nodes.size() > 0 && ((P::t > SBC::Ionosphere::solveCount * SBC::Ionosphere::couplingInterval && SBC::Ionosphere::couplingInterval > 0) || SBC::Ionosphere::couplingInterval == 0)) {
          FieldTracing::calculateIonosphereFsgridCoupling(technicalGrid, perBGrid, dPerBGrid, SBC::ionosphereGrid.nodes, SBC::Ionosphere::radius);
          SBC::ionosphereGrid.mapDownBoundaryData(perBGrid, dPerBGrid, momentsGrid, volGrid, technicalGrid);
