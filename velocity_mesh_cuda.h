@@ -566,11 +566,20 @@ namespace vmesh {
 
    inline void VelocityMesh::setNewSize(const vmesh::LocalID& newSize) {
       // Needed by CUDA block adjustment
-      localToGlobalMap->resize(newSize);
+      // Passing eco flag = true to resize tells splitvector we manage padding manually.
+      vmesh::LocalID currentCapacity = localToGlobalMap->capacity();
+      cudaStream_t stream = cuda_getStream();
+      localToGlobalMap->resize(newSize,true);
+      if (newSize > currentCapacity) {
+         HANDLE_ERROR( cudaStreamSynchronize(stream) );
+         localToGlobalMap->optimizeGPU(stream);
+      }
       // Ensure also that the map is large enough
       const vmesh::LocalID HashmapReqSize = ceil(log2(newSize)) +2; // Make it really large enough
       if (globalToLocalMap->getSizePower() < HashmapReqSize) {
-         globalToLocalMap->device_rehash(HashmapReqSize, cuda_getStream());
+         globalToLocalMap->device_rehash(HashmapReqSize, stream);
+         HANDLE_ERROR( cudaStreamSynchronize(stream) );
+         globalToLocalMap->optimizeGPU(stream);
       }
       // Re-attach stream if required
       if ((attachedStream != 0)&&(needAttachedStreams)) {
@@ -620,7 +629,6 @@ namespace vmesh {
    }
 
    inline void VelocityMesh::dev_cleanHashMap() {
-      globalToLocalMap->optimizeGPU(cuda_getStream());
       globalToLocalMap->performCleanupTasks(cuda_getStream());
       return;
    }

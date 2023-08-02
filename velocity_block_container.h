@@ -488,7 +488,7 @@ namespace vmesh {
 
    inline void VelocityBlockContainer::resize() {
 #ifdef USE_CUDA
-      if (numberOfBlocks*BLOCK_ALLOCATION_FACTOR >= currentCapacity) {
+      if ((numberOfBlocks+1)*BLOCK_ALLOCATION_FACTOR >= currentCapacity) {
          // Resize so that free space is block_allocation_chunk blocks,
          // and at least two in case of having zero blocks.
          // The order of velocity blocks is unaltered.
@@ -503,6 +503,10 @@ namespace vmesh {
             parameters->streamAttach(attachedStream);
          }
 #endif
+         cudaStream_t stream = cuda_getStream();
+         HANDLE_ERROR( cudaStreamSynchronize(stream) );
+         block_data->optimizeGPU(stream);
+         parameters->optimizeGPU(stream);
       }
 #else
       if ((numberOfBlocks+1) >= currentCapacity) {

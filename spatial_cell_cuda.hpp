@@ -368,7 +368,7 @@ namespace spatial_cell {
       split::SplitVector<vmesh::GlobalID> *BlocksRequired, *BlocksHalo;
       Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *BlocksRequiredMap;
 
-      split::SplitInfo *info_vbwcl, *info_vbwncl, *info_toRemove, *info_toAdd, *info_toMove, *info_Required;
+      split::SplitInfo *info_vbwcl, *info_vbwncl, *info_toRemove, *info_toAdd, *info_toMove, *info_Required, *info_Halo;
       Hashinator::MapInfo *info_brm;
 
       static uint64_t mpi_transfer_type;                                      /**< Which data is transferred by the mpi datatype given by spatial cells.*/
