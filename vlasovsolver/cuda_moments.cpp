@@ -260,10 +260,11 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
       host_momentInfos[thread_id][popID].parameterPointer = blockContainer->getParameters();
       host_momentInfos[thread_id][popID].meshDataPointer = blockContainer->getData();
 
-      // For now: Launch cuda transfers as data isn't yet fully resident
-      phiprof::start("CUDA-HtoD");
-      blockContainer->dev_prefetchDevice();
-      phiprof::stop("CUDA-HtoD");
+      if (doPrefetches) {
+         phiprof::start("CUDA-HtoD");
+         blockContainer->dev_prefetchDevice();
+         phiprof::stop("CUDA-HtoD");
+      }
    }
 
    // Transfer metadata to device, reset gatherer arrays
@@ -414,10 +415,11 @@ void calculateMoments_V(
          host_momentInfos[thread_id][popID].parameterPointer = blockContainer->getParameters();
          host_momentInfos[thread_id][popID].meshDataPointer = blockContainer->getData();
 
-         // For now: Launch cuda transfers as data isn't yet fully resident
-         phiprof::start("CUDA-HtoD");
-         blockContainer->dev_prefetchDevice();
-         phiprof::stop("CUDA-HtoD");
+         if (doPrefetches) {
+            phiprof::start("CUDA-HtoD");
+            blockContainer->dev_prefetchDevice();
+            phiprof::stop("CUDA-HtoD");
+         }
       }
 
       // Transfer metadata to device, reset gatherer arrays
@@ -569,10 +571,11 @@ void calculateMoments_R(
          host_momentInfos[thread_id][popID].parameterPointer = blockContainer->getParameters();
          host_momentInfos[thread_id][popID].meshDataPointer = blockContainer->getData();
 
-         // For now: Launch cuda transfers as data isn't yet fully resident
-         phiprof::start("CUDA-HtoD");
-         blockContainer->dev_prefetchDevice();
-         phiprof::stop("CUDA-HtoD");
+         if (doPrefetches) {
+            phiprof::start("CUDA-HtoD");
+            blockContainer->dev_prefetchDevice();
+            phiprof::stop("CUDA-HtoD");
+         }
       }
 
       // Transfer metadata to device, reset gatherer arrays

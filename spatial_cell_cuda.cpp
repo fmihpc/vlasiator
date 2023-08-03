@@ -1038,20 +1038,17 @@ namespace spatial_cell {
       int nCudaBlocks;
 
       phiprof::start("Adjust velocity blocks");
-
-      vmesh::LocalID currSize = populations[popID].vmesh->size();
       velocity_block_with_content_list->copyMetadata(info_vbwcl,stream);
       velocity_block_with_no_content_list->copyMetadata(info_vbwncl,stream);
       BlocksRequired->copyMetadata(info_Required,stream);
       BlocksHalo->copyMetadata(info_Halo,stream);
       BlocksRequiredMap->copyMetadata(info_brm, stream);
-      HANDLE_ERROR( cudaStreamSynchronize(stream) );
+      vmesh::LocalID currSize = populations[popID].vmesh->size(); // Includes stream sync
       const vmesh::LocalID localContentBlocks = info_vbwcl->size;
       const vmesh::LocalID localNoContentBlocks = info_vbwncl->size;
       const vmesh::LocalID BlocksRequiredCapacity = info_Required->capacity;
       const vmesh::LocalID BlocksRequiredMapSizePower = info_brm->sizePower;
       vmesh::LocalID BlocksHaloCapacity = info_Halo->capacity;
-      //vmesh::LocalID BlocksHaloCapacity = BlocksHalo->capacity();
 
       // Neighbour and own prefetches
       if (doPrefetches) {
@@ -1477,7 +1474,7 @@ namespace spatial_cell {
          }
          if ((SpatialCell::mpi_transfer_type & Transfer::VEL_BLOCK_WITH_CONTENT_STAGE2) !=0) {
             if (receiving) {
-               this->velocity_block_with_content_list->resize(this->velocity_block_with_content_list_size);
+               this->velocity_block_with_content_list->resize(this->velocity_block_with_content_list_size,true);
                // Re receive velocity block content lists only for remote cells (?) so no need to
                // attach to a stream at this point.
              }

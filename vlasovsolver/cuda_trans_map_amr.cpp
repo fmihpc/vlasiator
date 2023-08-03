@@ -105,6 +105,7 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
          // Go over pencil length, gather cellblock data into aligned pencil source data
          for (uint celli = 0; celli < lengthOfPencil; celli++) {
             vmesh::VelocityMesh* vmesh = pencilMeshes[start + celli];
+            // CUDATODO: Should we use the accelerated Hashinator interface to prefetch all LID-GID-pairs?
             const vmesh::LocalID blockLID = vmesh->getLocalID(blockGID);
             // Store block data pointer for both loading of data and writing back to the cell
             if (ti==0) {
@@ -330,6 +331,18 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    phiprof::start("trans-amr-setup");
    /***********************/
 
+   // CUDATODO: Re-use pre-allocated splitvectors here
+   /**
+   split::SplitVector<vmesh::VelocityMesh*> *allVmeshPointer = new split::SplitVector<vmesh::VelocityMesh*>(nAllCells);
+   split::SplitVector< vmesh::VelocityMesh* > *allPencilsMeshes = new split::SplitVector< vmesh::VelocityMesh* >(sumOfLengths);
+   split::SplitVector< vmesh::VelocityBlockContainer* > *allPencilsContainers = new split::SplitVector< vmesh::VelocityBlockContainer* >(sumOfLengths);
+   split::SplitVector<vmesh::GlobalID> *unionOfBlocks = new split::SplitVector<vmesh::GlobalID>(1);
+   split::SplitVector<uint> *pencilLengthsTemp = new split::SplitVector<uint>(DimensionPencils[dimension].lengthOfPencils);
+   split::SplitVector<uint> *pencilStartsTemp = new split::SplitVector<uint>(DimensionPencils[dimension].idsStart);
+   split::SplitVector<Realf> *pencilDZTemp = new split::SplitVector<Realf>(DimensionPencils[dimension].sourceDZ);
+   split::SplitVector<Realf> *pencilRatiosTemp = new split::SplitVector<Realf>(DimensionPencils[dimension].targetRatios);
+   **/
+
    // return if there's no cells to propagate
    if(localPropagatedCells.size() == 0) {
       cout << "Returning because of no cells" << endl;
@@ -552,7 +565,7 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
          const uint blockIndexIncrement = maxThreads*nCudaBlocks;
          // This thread, using its own stream, will launch nCudaBlocks instances of the below kernel, where each instance
          // propagates all pencils for the block in question.
-         dim3 block(WID2,WID,1); // assumes VECL==WID2 
+         dim3 block(WID2,WID,1); // assumes VECL==WID2
          translation_kernel<<<nCudaBlocks, block, 0, stream>>> (
             dimension,
             dev_vcell_transpose[0],
@@ -639,6 +652,8 @@ void cuda_update_remote_mapping_contribution_amr(
    const uint dimension,
    int direction,
    const uint popID) {
+
+   //CUDATODO: This is still completely unedited.
 
    const vector<CellID>& local_cells = getLocalCells();
    const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_NEIGHBORHOOD_ID);
