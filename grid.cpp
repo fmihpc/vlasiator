@@ -298,6 +298,7 @@ void initializeGrids(
          }
          #ifdef USE_CUDA
          cell->prefetchDevice(); // Currently projects still init on host
+         cell->dev_advise();
          #endif
       }
       phiprof::stop("setCell");
@@ -657,6 +658,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    // Not parallelized
    for (uint i=0; i<cells.size(); ++i) {
       SpatialCell* SC = mpiGrid[cells[i]];
+      SC->dev_advise();
       for (size_t popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          const vmesh::VelocityMesh* vmesh = SC->get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer* blockContainer = SC->get_velocity_blocks(popID);
@@ -766,7 +768,6 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
             }
             neighbor_ptrs.push_back(mpiGrid[neighbor_id]);
          }
-
 #ifdef USE_CUDA
          cell->dev_attachToStream();
 #endif

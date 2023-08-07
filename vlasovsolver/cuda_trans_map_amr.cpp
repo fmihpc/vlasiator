@@ -331,11 +331,12 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    phiprof::start("trans-amr-setup");
    /***********************/
 
-   // CUDATODO: Re-use pre-allocated splitvectors here
+   // CUDATODO: Re-use pre-allocated splitvectors and hashmaps here
    /**
    split::SplitVector<vmesh::VelocityMesh*> *allVmeshPointer = new split::SplitVector<vmesh::VelocityMesh*>(nAllCells);
    split::SplitVector< vmesh::VelocityMesh* > *allPencilsMeshes = new split::SplitVector< vmesh::VelocityMesh* >(sumOfLengths);
    split::SplitVector< vmesh::VelocityBlockContainer* > *allPencilsContainers = new split::SplitVector< vmesh::VelocityBlockContainer* >(sumOfLengths);
+   Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *unionOfBlocksSet = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(HashmapReqSize);
    split::SplitVector<vmesh::GlobalID> *unionOfBlocks = new split::SplitVector<vmesh::GlobalID>(1);
    split::SplitVector<uint> *pencilLengthsTemp = new split::SplitVector<uint>(DimensionPencils[dimension].lengthOfPencils);
    split::SplitVector<uint> *pencilStartsTemp = new split::SplitVector<uint>(DimensionPencils[dimension].idsStart);
@@ -398,7 +399,8 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    cuint sumOfLengths = DimensionPencils[dimension].sumOfLengths;
    cuda_vlasov_allocate(sumOfLengths);
    cudaStream_t bgStream = cuda_getStream(); // uses stream assigned to thread 0, not the blocking default stream
-
+   int device = cuda_getDevice();
+   
    // Copy indexing information to device. Only use first thread-array.
    HANDLE_ERROR( cudaMemcpyAsync(dev_vcell_transpose[0], vcell_transpose, WID3*sizeof(uint), cudaMemcpyHostToDevice,bgStream) );
 
@@ -414,7 +416,7 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    // CUDATODO: pre-allocate, here just verify sufficient size
    split::SplitVector< vmesh::VelocityMesh* > *allPencilsMeshes = new split::SplitVector< vmesh::VelocityMesh* >(sumOfLengths);
    split::SplitVector< vmesh::VelocityBlockContainer* > *allPencilsContainers = new split::SplitVector< vmesh::VelocityBlockContainer* >(sumOfLengths);
-
+   
    // Initialize allCellsPointer. Find maximum mesh size.
    uint largestFoundMeshSize = 0;
    #pragma omp parallel
@@ -436,6 +438,8 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
       }
    }
    // Prefetch vector of vmesh pointers to GPU
+   allVmeshPointer->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+   allVmeshPointer->memAdvise(cudaMemAdviseSetAccessedBy,device);
    allVmeshPointer->optimizeGPU(bgStream);
 
    // Gather cell weights for load balancing
@@ -460,6 +464,8 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    split::SplitVector<vmesh::GlobalID> *unionOfBlocks = new split::SplitVector<vmesh::GlobalID>(1);
    unionOfBlocks->reserve(largestFoundMeshSize*10);
    unionOfBlocks->clear();
+   unionOfBlocksSet->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+   unionOfBlocksSet->memAdvise(cudaMemAdviseSetAccessedBy,device);
    unionOfBlocksSet->optimizeGPU(bgStream);
    const uint nCudaBlocks = nAllCells > CUDABLOCKS ? CUDABLOCKS : nAllCells;
    gather_union_of_blocks_kernel<<<nCudaBlocks, CUDATHREADS, 0, bgStream>>> (
@@ -468,6 +474,8 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
       nAllCells
       );
    HANDLE_ERROR( cudaPeekAtLastError() );
+   unionOfBlocks->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+   unionOfBlocks->memAdvise(cudaMemAdviseSetAccessedBy,device);
    unionOfBlocks->optimizeGPU(bgStream);
    phiprof::stop("trans-amr-buildBlockList");
 
@@ -489,7 +497,11 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    }
    vmesh::VelocityMesh** pencilMeshes = allPencilsMeshes->data();
    vmesh::VelocityBlockContainer** pencilContainers = allPencilsContainers->data();
+   allPencilsMeshes->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+   allPencilsMeshes->memAdvise(cudaMemAdviseSetAccessedBy,device);
    allPencilsMeshes->optimizeGPU();
+   allPencilsContainers->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+   allPencilsContainers->memAdvise(cudaMemAdviseSetAccessedBy,device);
    allPencilsContainers->optimizeGPU();
 
 // CUDATODO: make these four vectors inside the setofpencils struct pointers to vectors,
@@ -507,6 +519,14 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    uint* pencilStarts = pencilStartsTemp->data();
    Realf* pencilDZ = pencilDZTemp->data();
    Realf* pencilRatios = pencilRatiosTemp->data();
+   pencilLengthsTemp->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+   pencilLengthsTemp->memAdvise(cudaMemAdviseSetAccessedBy,device);
+   pencilStartsTemp->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+   pencilStartsTemp->memAdvise(cudaMemAdviseSetAccessedBy,device);
+   pencilDZTemp->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+   pencilDZTemp->memAdvise(cudaMemAdviseSetAccessedBy,device);
+   pencilRatiosTemp->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+   pencilRatiosTemp->memAdvise(cudaMemAdviseSetAccessedBy,device);
    pencilLengthsTemp->optimizeGPU();
    pencilStartsTemp->optimizeGPU();
    pencilDZTemp->optimizeGPU();

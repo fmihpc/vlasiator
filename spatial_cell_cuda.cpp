@@ -880,21 +880,32 @@ namespace spatial_cell {
     */
    void SpatialCell::dev_advise() {
       // HANDLE_ERROR( cudaMemAdvise(ptr, count, advise, deviceID) );
+      // HANDLE_ERROR( cudaMemAdvise(velocity_block_with_content_list, sizeof(velocity_block_with_content_list),cudaMemAdviseSetPreferredLocation, cuda_getDevice()) );
       // cuda_getDevice()
-      return;
-      HANDLE_ERROR( cudaMemAdvise(velocity_block_with_content_list, sizeof(velocity_block_with_content_list),cudaMemAdviseSetPreferredLocation, cuda_getDevice()) );
-      HANDLE_ERROR( cudaMemAdvise(velocity_block_with_no_content_list, sizeof(velocity_block_with_no_content_list),cudaMemAdviseSetPreferredLocation, cuda_getDevice()) );
-      HANDLE_ERROR( cudaMemAdvise(BlocksToRemove, sizeof(BlocksToRemove),cudaMemAdviseSetPreferredLocation, cuda_getDevice()) );
-      HANDLE_ERROR( cudaMemAdvise(BlocksToAdd, sizeof(BlocksToAdd),cudaMemAdviseSetPreferredLocation, cuda_getDevice()) );
-      HANDLE_ERROR( cudaMemAdvise(BlocksToMove, sizeof(BlocksToMove),cudaMemAdviseSetPreferredLocation, cuda_getDevice()) );
-      HANDLE_ERROR( cudaMemAdvise(BlocksRequired, sizeof(BlocksRequired),cudaMemAdviseSetPreferredLocation, cuda_getDevice()) );
-      HANDLE_ERROR( cudaMemAdvise(BlocksHalo, sizeof(BlocksHalo),cudaMemAdviseSetPreferredLocation, cuda_getDevice()) );
-      HANDLE_ERROR( cudaMemAdvise(BlocksRequiredMap, sizeof(BlocksRequiredMap),cudaMemAdviseSetPreferredLocation, cuda_getDevice()) );
+      int device = cuda_getDevice();
+      BlocksHalo->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+      BlocksRequired->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+      BlocksToAdd->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+      BlocksToRemove->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+      BlocksToMove->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+      velocity_block_with_content_list->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+      velocity_block_with_no_content_list->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+      BlocksRequiredMap->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+
+      BlocksHalo->memAdvise(cudaMemAdviseSetAccessedBy,device);
+      BlocksRequired->memAdvise(cudaMemAdviseSetAccessedBy,device);
+      BlocksToAdd->memAdvise(cudaMemAdviseSetAccessedBy,device);
+      BlocksToRemove->memAdvise(cudaMemAdviseSetAccessedBy,device);
+      BlocksToMove->memAdvise(cudaMemAdviseSetAccessedBy,device);
+      velocity_block_with_content_list->memAdvise(cudaMemAdviseSetAccessedBy,device);
+      velocity_block_with_no_content_list->memAdvise(cudaMemAdviseSetAccessedBy,device);
+      BlocksRequiredMap->memAdvise(cudaMemAdviseSetAccessedBy,device);
+
       // Loop over populations
-      // for (size_t p=0; p<populations.size(); ++p) {
-      //    populations[p].blockContainer->dev_attachToStream(attachedStream);
-      //    populations[p].vmesh->dev_attachToStream(attachedStream);
-      // }
+      for (size_t p=0; p<populations.size(); ++p) {
+         populations[p].blockContainer->dev_memAdvise(device);
+         populations[p].vmesh->dev_memAdvise(device);
+      }
    }
 
    /** Attaches or deattaches unified memory to a GPU stream
@@ -1072,6 +1083,8 @@ namespace spatial_cell {
          // Need larger empty map
          delete BlocksRequiredMap;
          BlocksRequiredMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(HashmapReqSize);
+         BlocksRequiredMap->memAdvise(cudaMemAdviseSetPreferredLocation,cuda_getDevice());
+         BlocksRequiredMap->memAdvise(cudaMemAdviseSetAccessedBy,cuda_getDevice());
          if ((attachedStream != 0)&&(needAttachedStreams)) {
             HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequiredMap, 0,cudaMemAttachSingle) );
             BlocksRequiredMap->streamAttach(attachedStream);
@@ -1101,6 +1114,8 @@ namespace spatial_cell {
             vmesh::LocalID haloSizeEstimate = 8 * (localContentBlocks+localNoContentBlocks);
             if (BlocksHaloCapacity < haloSizeEstimate * BLOCK_ALLOCATION_FACTOR) {
                BlocksHalo->reserve(haloSizeEstimate * BLOCK_ALLOCATION_PADDING,true);
+               BlocksHalo->memAdvise(cudaMemAdviseSetPreferredLocation,cuda_getDevice());
+               BlocksHalo->memAdvise(cudaMemAdviseSetAccessedBy,cuda_getDevice());
                BlocksHalo->optimizeGPU(stream);
             }
             int addWidthV = getObjectWrapper().particleSpecies[popID].sparseBlockAddWidthV;
@@ -1146,7 +1161,7 @@ namespace spatial_cell {
               neighbor != spatial_neighbors.end(); ++neighbor) {
             const int nNeighBlocks = (*neighbor)->velocity_block_with_content_list_size;
             // Ensure at least one launch block, try to do many neighbors at once
-            nCudaBlocks = (nNeighBlocks/CUDATHREADS/neighbors_count) > CUDABLOCKS ? CUDABLOCKS : std::ceil((Real)(nNeighBlocks/CUDATHREADS/neighbors_count));
+            nCudaBlocks = (nNeighBlocks/CUDATHREADS/neighbors_count) > CUDABLOCKS ? CUDABLOCKS : std::ceil((Real)((Real)nNeighBlocks/(Real)CUDATHREADS/(Real)neighbors_count));
             if (nCudaBlocks>0) {
                update_neighbours_have_content_kernel<<<nCudaBlocks, CUDATHREADS, 0, stream>>> (
                   populations[popID].vmesh,
@@ -1178,6 +1193,15 @@ namespace spatial_cell {
          BlocksToAdd->reserve(currSize * BLOCK_ALLOCATION_PADDING,true);
          BlocksToRemove->reserve(currSize * BLOCK_ALLOCATION_PADDING,true);
          BlocksToMove->reserve(currSize * BLOCK_ALLOCATION_PADDING,true);
+         int device = cuda_getDevice();
+         BlocksRequired->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+         BlocksToAdd->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+         BlocksToRemove->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+         BlocksToMove->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+         BlocksRequired->memAdvise(cudaMemAdviseSetAccessedBy,device);
+         BlocksToAdd->memAdvise(cudaMemAdviseSetAccessedBy,device);
+         BlocksToRemove->memAdvise(cudaMemAdviseSetAccessedBy,device);
+         BlocksToMove->memAdvise(cudaMemAdviseSetAccessedBy,device);
       }
       SSYNC;
       phiprof::stop("BlocksToXXX reserve");
@@ -1765,6 +1789,11 @@ namespace spatial_cell {
       if (currCapacity < currSize * BLOCK_ALLOCATION_FACTOR) {
          velocity_block_with_content_list->reserve(currSize * BLOCK_ALLOCATION_PADDING,true);
          velocity_block_with_no_content_list->reserve(currSize * BLOCK_ALLOCATION_PADDING,true);
+         int device = cuda_getDevice();
+         velocity_block_with_content_list->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+         velocity_block_with_no_content_list->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+         velocity_block_with_content_list->memAdvise(cudaMemAdviseSetAccessedBy,device);
+         velocity_block_with_no_content_list->memAdvise(cudaMemAdviseSetAccessedBy,device);
       }
       if (doPrefetches || (currCapacity < currSize)) {
          velocity_block_with_content_list->optimizeGPU(stream);

@@ -326,6 +326,7 @@ __host__ void cuda_acc_allocate_perthread (
    ) {
    // Unified memory; columndata contains several splitvectors.
    unif_columnOffsetData[cpuThreadID] = new ColumnOffsets(columnAllocationCount); // inherits managed
+   unif_columnOffsetData[cpuThreadID]->dev_advise();
    HANDLE_ERROR( cudaMalloc((void**)&dev_columns[cpuThreadID], columnAllocationCount*sizeof(Column)) );
 
    // Potential ColumnSet block count container
