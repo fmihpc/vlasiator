@@ -36,6 +36,8 @@
 using namespace std;
 using namespace spatial_cell;
 
+extern ARCH_MANAGED GridParameters meshParams;
+
 namespace projects {
     Larmor::Larmor(): Project() { }
     Larmor::~Larmor() { }
@@ -89,7 +91,7 @@ namespace projects {
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       
       return exp(- mass * ((vx-this->VX0)*(vx-this->VX0) + (vy-this->VY0)*(vy-this->VY0)+ (vz-this->VZ0)*(vz-this->VZ0)) / (2.0 * kb * this->TEMPERATURE))*
-      exp(-pow(x-Parameters::xmax/2.5, 2.0)/pow(this->SCA_X, 2.0))*exp(-pow(y-Parameters::ymax/2.0, 2.0)/pow(this->SCA_Y, 2.0));
+      exp(-pow(x-meshParams.xmax/2.5, 2.0)/pow(this->SCA_X, 2.0))*exp(-pow(y-meshParams.ymax/2.0, 2.0)/pow(this->SCA_Y, 2.0));
     }
 
     Real Larmor::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, 

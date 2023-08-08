@@ -6,9 +6,11 @@
 #ifdef __CUDACC__
   #define ARCH_HOSTDEV __host__ __device__
   #define ARCH_DEV __device__
+  #define ARCH_MANAGED __managed__ 
 #else
   #define ARCH_HOSTDEV
   #define ARCH_DEV
+  #define ARCH_MANAGED
 #endif
 
 /* Namespace for the common loop interface functions */

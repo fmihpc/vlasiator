@@ -61,6 +61,8 @@
 using namespace std;
 using namespace phiprof;
 
+extern ARCH_MANAGED GridParameters meshParams;
+
 /*! Re-initialize field propagator after rebalance. E, BGB, RHO, RHO_V,
  cell_dimensions, sysboundaryflag need to be up to date for the
  extended neighborhood
@@ -149,14 +151,14 @@ void initializeGrids(
    }
    globalflags::AMRstencilWidth = neighborhood_size;
 
-   const std::array<uint64_t, 3> grid_length = {{P::xcells_ini, P::ycells_ini, P::zcells_ini}};
+   const std::array<uint64_t, 3> grid_length = {{meshParams.xcells_ini, meshParams.ycells_ini, meshParams.zcells_ini}};
    dccrg::Cartesian_Geometry::Parameters geom_params;
-   geom_params.start[0] = P::xmin;
-   geom_params.start[1] = P::ymin;
-   geom_params.start[2] = P::zmin;
-   geom_params.level_0_cell_length[0] = P::dx_ini;
-   geom_params.level_0_cell_length[1] = P::dy_ini;
-   geom_params.level_0_cell_length[2] = P::dz_ini;
+   geom_params.start[0] = meshParams.xmin;
+   geom_params.start[1] = meshParams.ymin;
+   geom_params.start[2] = meshParams.zmin;
+   geom_params.level_0_cell_length[0] = meshParams.dx_ini;
+   geom_params.level_0_cell_length[1] = meshParams.dy_ini;
+   geom_params.level_0_cell_length[2] = meshParams.dz_ini;
    
    mpiGrid.set_initial_length(grid_length)
       .set_load_balancing_method(&P::loadBalanceAlgorithm[0])
@@ -250,7 +252,8 @@ void initializeGrids(
       for (int j=0; j<localDims[1]; j++) {
         for (int i=0; i<localDims[0]; i++) {
 
-          const std::array<int, 3> mapIndices = momentsGrid.getGlobalIndices(i,j,k);
+          int mapIndices[3];
+          momentsGrid.getGlobalIndices(i,j,k, mapIndices);
           const dccrg::Types<3>::indices_t  indices = {{(uint64_t)mapIndices[0],(uint64_t)mapIndices[1],(uint64_t)mapIndices[2]}}; //cast to avoid warnings
           CellID dccrgCellID2 = mpiGrid.get_existing_cell(indices, 0, mpiGrid.mapping.get_maximum_refinement_level());
           int amrLevel= mpiGrid.get_refinement_level(dccrgCellID2);

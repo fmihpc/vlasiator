@@ -60,11 +60,21 @@ namespace SBC {
          
          static void addParameters();
          virtual void getParameters()=0;
+
+         static void determineFace(
+            bool* isThisCellOnAFace,
+            creal x, creal y, creal z,
+            creal dx, creal dy, creal dz,
+            bool (&isPeriodic)[3],
+            const bool excludeSlicesAndPeriodicDimensions = false
+         ); 
          
          virtual bool initSysBoundary(
             creal& t,
             Project &project
          )=0;
+         virtual bool initFieldBoundary() = 0;
+         
          virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell,
                                         dccrg::Cartesian_Geometry>& mpiGrid,
                                         FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid)=0;
@@ -73,7 +83,7 @@ namespace SBC {
             FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
             Project &project
          )=0;
-         virtual Real fieldSolverBoundaryCondMagneticField(
+         ARCH_HOSTDEV virtual Real fieldSolverBoundaryCondMagneticField(
             const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & bGrid,
             const arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> & technicalGrid,
             cint i,
@@ -170,12 +180,6 @@ namespace SBC {
          bool isFacePeriodic[3]
       );
       protected:
-         void determineFace(
-            bool* isThisCellOnAFace,
-            creal x, creal y, creal z,
-            creal dx, creal dy, creal dz,
-            const bool excludeSlicesAndPeriodicDimensions = false
-         );
          void copyCellData(
             SpatialCell *from,
             SpatialCell *to,

@@ -1,14 +1,11 @@
 #ifndef ARCH_SYSBOUNDARY_H
 #define ARCH_SYSBOUNDARY_H
 
-#include "arch_device_api.h"
 #include "../sysboundary/sysboundary.h"
 #include "../sysboundary/donotcompute.h"
 #include "../sysboundary/ionosphere.h"
 #include "../sysboundary/outflow.h"
 #include "../sysboundary/setmaxwellian.h"
-
-#if !defined(USE_CUDA) || !defined(CUDACC)
 
 namespace arch {
 
@@ -43,7 +40,17 @@ class buf<SysBoundary> {
                     creal& dt,
                     cuint& component
                 ) {
-                    return bufPtr->fieldSolverBoundaryCondMagneticFieldFactory(sysBoundaryFlag, bGrid, technicalGrid, i, j, k, dt, component);
+                    if (sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN) {
+                        return bufPtr->setmaxwellian->fieldSolverBoundaryCondMagneticField(bGrid, technicalGrid, i, j, k, dt,component);
+                    } else if (sysBoundaryFlag == sysboundarytype::IONOSPHERE) {
+                        return bufPtr->ionosphere->fieldSolverBoundaryCondMagneticField(bGrid, technicalGrid, i, j, k, dt,
+                                                                                    component);
+                    } else if (sysBoundaryFlag == sysboundarytype::OUTFLOW) {
+                        return bufPtr->outflow->fieldSolverBoundaryCondMagneticField(bGrid, technicalGrid, i, j, k, dt, component);
+                    } else {
+                        std::cerr << "ERROR: sysboundarytype not found" << std::endl;
+                        exit(1);
+                    }
                 }
             private:
                 int sysBoundaryFlag;
@@ -74,29 +81,8 @@ class buf<SysBoundary> {
         Proxy getSysBoundary(int sysBoundaryFlag) const {
             return Proxy(sysBoundaryFlag, this);
         }
-
-        Real fieldSolverBoundaryCondMagneticFieldFactory (
-            int sysBoundaryFlag, 
-            const buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>>& bGrid,
-            const buf<FsGrid<fsgrids::technical, 1, FS_STENCIL_WIDTH>>& technicalGrid, cint i, cint j, cint k,
-            creal& dt, cuint& component) const {
-
-            if (sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN) {
-                return setmaxwellian->fieldSolverBoundaryCondMagneticField(bGrid, technicalGrid, i, j, k, dt,component);
-            } else if (sysBoundaryFlag == sysboundarytype::IONOSPHERE) {
-                return ionosphere->fieldSolverBoundaryCondMagneticField(bGrid, technicalGrid, i, j, k, dt,
-                                                                             component);
-            } else if (sysBoundaryFlag == sysboundarytype::OUTFLOW) {
-                return outflow->fieldSolverBoundaryCondMagneticField(bGrid, technicalGrid, i, j, k, dt, component);
-            } else {
-                std::cerr << "ERROR: sysboundarytype not found" << std::endl;
-                exit(1);
-            }
-        }
 };
 
 }
-
-#endif
 
 #endif

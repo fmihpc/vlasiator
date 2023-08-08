@@ -35,6 +35,8 @@
 
 using namespace spatial_cell;
 
+extern ARCH_MANAGED GridParameters meshParams;
+
 Real projects::Fluctuations::rndRho, projects::Fluctuations::rndVel[3];
 
 
@@ -158,9 +160,9 @@ namespace projects {
       creal z = cellParams[CellParams::ZCRD];
       creal dz = cellParams[CellParams::DZ];
       
-      CellID cellID = (int) ((x - Parameters::xmin) / dx) +
-         (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
-         (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
+      CellID cellID = (int) ((x - meshParams.xmin) / dx) +
+         (int) ((y - meshParams.ymin) / dy) * meshParams.xcells_ini +
+         (int) ((z - meshParams.zmin) / dz) * meshParams.xcells_ini * meshParams.ycells_ini;
       
       std::default_random_engine rndState;
       setRandomCellSeed(cell,rndState);

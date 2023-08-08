@@ -49,6 +49,7 @@ using namespace std;
 using namespace phiprof;
 using namespace vlsv;
 
+extern ARCH_MANAGED GridParameters meshParams;
 extern Logger logFile, diagnostic;
 
 typedef Parameters P;
@@ -486,15 +487,15 @@ bool writeCommonGridData(
    if( vlsvWriter.writeParameter("timestep", &P::tstep) == false ) { return false; }
    if( vlsvWriter.writeParameter("fieldSolverSubcycles", &P::fieldSolverSubcycles) == false ) { return false; }
    if( vlsvWriter.writeParameter("fileIndex", &fileIndex) == false ) { return false; }
-   if( vlsvWriter.writeParameter("xmin", &P::xmin) == false ) { return false; }
-   if( vlsvWriter.writeParameter("xmax", &P::xmax) == false ) { return false; }
-   if( vlsvWriter.writeParameter("ymin", &P::ymin) == false ) { return false; }
-   if( vlsvWriter.writeParameter("ymax", &P::ymax) == false ) { return false; }
-   if( vlsvWriter.writeParameter("zmin", &P::zmin) == false ) { return false; }
-   if( vlsvWriter.writeParameter("zmax", &P::zmax) == false ) { return false; }
-   if( vlsvWriter.writeParameter("xcells_ini", &P::xcells_ini) == false ) { return false; }
-   if( vlsvWriter.writeParameter("ycells_ini", &P::ycells_ini) == false ) { return false; }
-   if( vlsvWriter.writeParameter("zcells_ini", &P::zcells_ini) == false ) { return false; }
+   if( vlsvWriter.writeParameter("xmin", &meshParams.xmin) == false ) { return false; }
+   if( vlsvWriter.writeParameter("xmax", &meshParams.xmax) == false ) { return false; }
+   if( vlsvWriter.writeParameter("ymin", &meshParams.ymin) == false ) { return false; }
+   if( vlsvWriter.writeParameter("ymax", &meshParams.ymax) == false ) { return false; }
+   if( vlsvWriter.writeParameter("zmin", &meshParams.zmin) == false ) { return false; }
+   if( vlsvWriter.writeParameter("zmax", &meshParams.zmax) == false ) { return false; }
+   if( vlsvWriter.writeParameter("xcells_ini", &meshParams.xcells_ini) == false ) { return false; }
+   if( vlsvWriter.writeParameter("ycells_ini", &meshParams.ycells_ini) == false ) { return false; }
+   if( vlsvWriter.writeParameter("zcells_ini", &meshParams.zcells_ini) == false ) { return false; }
    const int writewid = WID;
    if( vlsvWriter.writeParameter("velocity_block_width", &writewid) == false ) { return false; }
 
@@ -705,19 +706,19 @@ bool writeBoundingBoxNodeCoordinates ( Writer & vlsvWriter,
 
    //Create variables xCells, yCells, zCells which tell the number of zones in the given direction
    //Note: This is for the sake of clarity.
-   const uint64_t & xCells = P::xcells_ini;
-   const uint64_t & yCells = P::ycells_ini;
-   const uint64_t & zCells = P::zcells_ini;
+   const uint64_t & xCells = meshParams.xcells_ini;
+   const uint64_t & yCells = meshParams.ycells_ini;
+   const uint64_t & zCells = meshParams.zcells_ini;
 
    //Create variables xmin, ymin, zmin for calculations
-   const Real & xmin = (Real)P::xmin;
-   const Real & ymin = (Real)P::ymin;
-   const Real & zmin = (Real)P::zmin;
+   const Real & xmin = (Real)meshParams.xmin;
+   const Real & ymin = (Real)meshParams.ymin;
+   const Real & zmin = (Real)meshParams.zmin;
 
    //Create variables for cell lengths in x, y, z directions for calculations
-   const Real & xCellLength = (Real)P::dx_ini;
-   const Real & yCellLength = (Real)P::dy_ini;
-   const Real & zCellLength = (Real)P::dz_ini;
+   const Real & xCellLength = (Real)meshParams.dx_ini;
+   const Real & yCellLength = (Real)meshParams.dy_ini;
+   const Real & zCellLength = (Real)meshParams.dz_ini;
    
 
    //Create node coordinates:
@@ -800,9 +801,9 @@ bool writeMeshBoundingBox( Writer & vlsvWriter,
                                              //Note: If we were, the 3 last values in boundaryBox(below) would tell the
                                              //number of cells in blocks in x, y, z direction
    //Set the boundary box
-   const uint64_t & numberOfXCells = P::xcells_ini;
-   const uint64_t & numberOfYCells = P::ycells_ini;
-   const uint64_t & numberOfZCells = P::zcells_ini;
+   const uint64_t & numberOfXCells = meshParams.xcells_ini;
+   const uint64_t & numberOfYCells = meshParams.ycells_ini;
+   const uint64_t & numberOfZCells = meshParams.zcells_ini;
    uint64_t boundaryBox[box_size] = { numberOfXCells, numberOfYCells, numberOfZCells, 
                                       notBlockBasedMesh, notBlockBasedMesh, notBlockBasedMesh };
 
@@ -894,7 +895,8 @@ bool writeFsGridMetadata(FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & tech
   for(int z=0; z<localSize[2]; z++) {
     for(int y=0; y<localSize[1]; y++) {
       for(int x=0; x<localSize[0]; x++) {
-        std::array<int32_t,3> globalIndex = technicalGrid.getGlobalIndices(x,y,z);
+        int32_t globalIndex[3];
+        technicalGrid.getGlobalIndices(x,y,z,globalIndex);
         globalIds[i++] = globalIndex[2]*globalSize[0]*globalSize[1]+
           globalIndex[1]*globalSize[0] +
           globalIndex[0];
@@ -960,15 +962,15 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 	 uint endindex=1;
 	 for (int AMR = 0; AMR <= P::amrMaxSpatialRefLevel; AMR++) {
 	    uint AMRm = std::floor(std::pow(2,AMR));
-	    uint cellsthislevel = (AMRm*P::xcells_ini)*(AMRm*P::ycells_ini)*(AMRm*P::zcells_ini);
+	    uint cellsthislevel = (AMRm*meshParams.xcells_ini)*(AMRm*meshParams.ycells_ini)*(AMRm*meshParams.zcells_ini);
 	    startindex = endindex;
 	    endindex = endindex + cellsthislevel;
 	  
 	    // If cell belongs to this AMR level, find indices
 	    if ((cells[i]>=startindex)&&(cells[i]<endindex)) {
-	       lineX =  (cells[i]-startindex) % (AMRm*P::xcells_ini);
-	       lineY = ((cells[i]-startindex) / (AMRm*P::xcells_ini)) % (AMRm*P::ycells_ini);
-	       lineZ = ((cells[i]-startindex) /((AMRm*P::xcells_ini) *  (AMRm*P::ycells_ini))) % (AMRm*P::zcells_ini);
+	       lineX =  (cells[i]-startindex) % (AMRm*meshParams.xcells_ini);
+	       lineY = ((cells[i]-startindex) / (AMRm*meshParams.xcells_ini)) % (AMRm*meshParams.ycells_ini);
+	       lineZ = ((cells[i]-startindex) /((AMRm*meshParams.xcells_ini) *  (AMRm*meshParams.ycells_ini))) % (AMRm*meshParams.zcells_ini);
 	       // Check that indices are in correct intersection at least in one plane
 	       if ((P::systemWriteDistributionWriteXlineStride[index] > 0 &&
 		    P::systemWriteDistributionWriteYlineStride[index] > 0 &&
@@ -1029,7 +1031,7 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
                Real T;
                // Clock angle distance for stride steps
                Real clock;
-               if ((P::xcells_ini==1) || (P::ycells_ini==1) || (P::zcells_ini==1)) {
+               if ((meshParams.xcells_ini==1) || (meshParams.ycells_ini==1) || (meshParams.zcells_ini==1)) {
                   // 1D or 2D simulation
                   T = s[1];
                   s[0] = 0;
@@ -1050,15 +1052,15 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
                stridecheck = false;
                // Now check if the stridepoint is exactly in this cell
-               if ((P::xcells_ini==1) || (P::ycells_ini==1) || (P::zcells_ini==1)) {
+               if ((meshParams.xcells_ini==1) || (meshParams.ycells_ini==1) || (meshParams.zcells_ini==1)) {
                   // 1D or 2D
                   if ( (D2 >= D-0.5*DX) && (D2 < D+0.5*DX) && (T2 >= T-0.5*DX) && (T2 < T+0.5*DX) ) stridecheck=true;
                   // Special case for corners:
                   if ( (abs(D-T)<0.5*DX) && (dist2>dist) ) stridecheck=true;
 
                   // Only save 1 cell touching axes
-                  if ( (P::ycells_ini==1) && ( ( (cellX>-1.1*DX)&&(cellX<0) ) || ( (cellZ>-1.1*DZ)&&(cellZ<0) ) )) stridecheck=false;
-                  if ( (P::zcells_ini==1) && ( ( (cellX>-1.1*DX)&&(cellX<0) ) || ( (cellY>-1.1*DY)&&(cellY<0) ) )) stridecheck=false;
+                  if ( (meshParams.ycells_ini==1) && ( ( (cellX>-1.1*DX)&&(cellX<0) ) || ( (cellZ>-1.1*DZ)&&(cellZ<0) ) )) stridecheck=false;
+                  if ( (meshParams.zcells_ini==1) && ( ( (cellX>-1.1*DX)&&(cellX<0) ) || ( (cellY>-1.1*DY)&&(cellY<0) ) )) stridecheck=false;
 
                } else {
                   // 3D simulation, account for clock angle

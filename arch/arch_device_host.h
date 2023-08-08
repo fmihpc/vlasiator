@@ -32,6 +32,10 @@ class buf {
   buf(const buf& u) : 
     ptr(u.ptr), d_ptr(u.d_ptr), bytes(u.bytes), is_copy(1) {}
 
+  T* getPtr() const {
+    return ptr;
+  }
+
   T &operator [] (uint i) const {
     return ptr[i];
   }

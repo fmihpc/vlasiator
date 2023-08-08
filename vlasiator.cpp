@@ -323,6 +323,9 @@ int main(int argn,char* args[]) {
 
    P::addParameters();
 
+   // init parameters
+   initParameters();
+
    getObjectWrapper().addParameters();
 
    readparameters.parse();
@@ -406,9 +409,9 @@ int main(int argn,char* args[]) {
    // Needs to be done here already ad the background field will be set right away, before going to initializeGrid even
    phiprof::start("Init fieldsolver grids");
 
-   int fsGridDimensions[3] = {convert<int>(P::xcells_ini * pow(2,P::amrMaxSpatialRefLevel)),
-							    convert<int>(P::ycells_ini * pow(2,P::amrMaxSpatialRefLevel)),
-							    convert<int>(P::zcells_ini * pow(2,P::amrMaxSpatialRefLevel))};
+   int fsGridDimensions[3] = {convert<int>(meshParams.xcells_ini * pow(2,P::amrMaxSpatialRefLevel)),
+							    convert<int>(meshParams.ycells_ini * pow(2,P::amrMaxSpatialRefLevel)),
+							    convert<int>(meshParams.zcells_ini * pow(2,P::amrMaxSpatialRefLevel))};
 
    std::array<bool,3> periodicity{sysBoundaries.isBoundaryPeriodic(0),
                                   sysBoundaries.isBoundaryPeriodic(1),
@@ -434,19 +437,19 @@ int main(int argn,char* args[]) {
    // constant throughout the simulation.
    perBGrid.DX = perBDt2Grid.DX = EGrid.DX = EDt2Grid.DX = EHallGrid.DX = EGradPeGrid.DX = momentsGrid.DX
       = momentsDt2Grid.DX = dPerBGrid.DX = dMomentsGrid.DX = BgBGrid.DX = volGrid.DX = technicalGrid.DX
-      = P::dx_ini / pow(2, P::amrMaxSpatialRefLevel);
+      = meshParams.dx_ini / pow(2, P::amrMaxSpatialRefLevel);
    perBGrid.DY = perBDt2Grid.DY = EGrid.DY = EDt2Grid.DY = EHallGrid.DY = EGradPeGrid.DY = momentsGrid.DY
       = momentsDt2Grid.DY = dPerBGrid.DY = dMomentsGrid.DY = BgBGrid.DY = volGrid.DY = technicalGrid.DY
-      = P::dy_ini / pow(2, P::amrMaxSpatialRefLevel);
+      = meshParams.dy_ini / pow(2, P::amrMaxSpatialRefLevel);
    perBGrid.DZ = perBDt2Grid.DZ = EGrid.DZ = EDt2Grid.DZ = EHallGrid.DZ = EGradPeGrid.DZ = momentsGrid.DZ
       = momentsDt2Grid.DZ = dPerBGrid.DZ = dMomentsGrid.DZ = BgBGrid.DZ = volGrid.DZ = technicalGrid.DZ
-      = P::dz_ini / pow(2, P::amrMaxSpatialRefLevel);
+      = meshParams.dz_ini / pow(2, P::amrMaxSpatialRefLevel);
    // Set the physical start (lower left corner) X, Y, Z
    perBGrid.physicalGlobalStart = perBDt2Grid.physicalGlobalStart = EGrid.physicalGlobalStart = EDt2Grid.physicalGlobalStart
       = EHallGrid.physicalGlobalStart = EGradPeGrid.physicalGlobalStart = momentsGrid.physicalGlobalStart
       = momentsDt2Grid.physicalGlobalStart = dPerBGrid.physicalGlobalStart = dMomentsGrid.physicalGlobalStart
       = BgBGrid.physicalGlobalStart = volGrid.physicalGlobalStart = technicalGrid.physicalGlobalStart
-      = {P::xmin, P::ymin, P::zmin};
+      = {meshParams.xmin, meshParams.ymin, meshParams.zmin};
 
    // Checking that spatial cells are cubic, otherwise field solver is incorrect (cf. derivatives in E, Hall term)
    if((abs((technicalGrid.DX-technicalGrid.DY)/technicalGrid.DX) > 0.001) ||

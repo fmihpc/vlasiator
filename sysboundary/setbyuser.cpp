@@ -41,6 +41,8 @@
    #define DEBUG_SETBYUSER
 #endif
 
+extern ARCH_MANAGED GridParameters meshParams;
+
 using namespace std;
 
 namespace SBC {
@@ -78,6 +80,11 @@ namespace SBC {
       return success;
    }
    
+   bool SetByUser::initFieldBoundary() {
+      fieldBoundary = new SetByUserFieldBoundary(isPeriodic, templateB);
+   }
+
+
    bool SetByUser::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid) {
       bool doAssign;
@@ -95,7 +102,7 @@ namespace SBC {
          creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
          
          isThisCellOnAFace.fill(false);
-         determineFace(isThisCellOnAFace.data(), x, y, z, dx, dy, dz);
+         SysBoundaryCondition::determineFace(isThisCellOnAFace.data(), x, y, z, dx, dy, dz, isPeriodic);
          // Comparison of the array defining which faces to use and the array telling on which faces this cell is
          doAssign = false;
          for(int j=0; j<6; j++) doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
@@ -124,14 +131,14 @@ namespace SBC {
                   MPI_Abort(MPI_COMM_WORLD, 1);
                }
 
-               creal dx = P::dx_ini / pow(2, refLvl);
-               creal dy = P::dy_ini / pow(2, refLvl);
-               creal dz = P::dz_ini / pow(2, refLvl);
+               creal dx = meshParams.dx_ini / pow(2, refLvl);
+               creal dy = meshParams.dy_ini / pow(2, refLvl);
+               creal dz = meshParams.dz_ini / pow(2, refLvl);
                
                isThisCellOnAFace.fill(false);
                doAssign = false;
 
-               determineFace(isThisCellOnAFace.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx, dy, dz);
+               SysBoundaryCondition::determineFace(isThisCellOnAFace.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx, dy, dz, isPeriodic);
                for(int iface=0; iface<6; iface++) doAssign = doAssign || (facesToProcess[iface] && isThisCellOnAFace[iface]);
                if(doAssign) {
                   technicalGrid.get(i,j,k,0).sysBoundaryFlag = this->getIndex();
@@ -157,119 +164,6 @@ namespace SBC {
       return success;
    }
    
-   void SetByUser::fieldSolverBoundaryCondMagneticFieldProjection(
-      FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & bGrid,
-      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
-      cint i,
-      cint j,
-      cint k
-   ) {
-   }
-
-   Real SetByUser::fieldSolverBoundaryCondMagneticField(
-      const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & bGrid,
-      const arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> & technicalGrid,
-      cint i,
-      cint j,
-      cint k,
-      creal& dt,
-      cuint& component
-   ) {
-      Real result = 0.0;
-      creal dx = Parameters::dx_ini;
-      creal dy = Parameters::dy_ini;
-      creal dz = Parameters::dz_ini;
-      const array<int, 3> globalIndices = technicalGrid.grid()->getGlobalIndices(i,j,k);
-      creal x = (convert<Real>(globalIndices[0])+0.5)*technicalGrid.grid()->DX + Parameters::xmin;
-      creal y = (convert<Real>(globalIndices[1])+0.5)*technicalGrid.grid()->DY + Parameters::ymin;
-      creal z = (convert<Real>(globalIndices[2])+0.5)*technicalGrid.grid()->DZ + Parameters::zmin;
-      
-      bool isThisCellOnAFace[6];
-      determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);
-
-      for (uint i=0; i<6; i++) {
-         if (isThisCellOnAFace[i]) {
-            result = templateB[i][component];
-            break; // This effectively sets the precedence of faces through the order of faces.
-         }
-      }
-      return result;
-   }
-
-   void SetByUser::fieldSolverBoundaryCondElectricField(
-      FsGrid<Real, fsgrids::efield::N_EFIELD, FS_STENCIL_WIDTH> & EGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint component
-   ) {
-      EGrid.get(i,j,k)[fsgrids::efield::EX+component] = 0.0;
-   }
-
-   void SetByUser::fieldSolverBoundaryCondHallElectricField(
-      FsGrid<Real, fsgrids::ehall::N_EHALL, FS_STENCIL_WIDTH> & EHallGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint component
-   ) {
-      auto cp = EHallGrid.get(i,j,k);
-      switch (component) {
-         case 0:
-            cp[fsgrids::ehall::EXHALL_000_100] = 0.0;
-            cp[fsgrids::ehall::EXHALL_010_110] = 0.0;
-            cp[fsgrids::ehall::EXHALL_001_101] = 0.0;
-            cp[fsgrids::ehall::EXHALL_011_111] = 0.0;
-            break;
-         case 1:
-            cp[fsgrids::ehall::EYHALL_000_010] = 0.0;
-            cp[fsgrids::ehall::EYHALL_100_110] = 0.0;
-            cp[fsgrids::ehall::EYHALL_001_011] = 0.0;
-            cp[fsgrids::ehall::EYHALL_101_111] = 0.0;
-            break;
-         case 2:
-            cp[fsgrids::ehall::EZHALL_000_001] = 0.0;
-            cp[fsgrids::ehall::EZHALL_100_101] = 0.0;
-            cp[fsgrids::ehall::EZHALL_010_011] = 0.0;
-            cp[fsgrids::ehall::EZHALL_110_111] = 0.0;
-            break;
-         default:
-            cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
-      }
-   }
-   
-   void SetByUser::fieldSolverBoundaryCondGradPeElectricField(
-      FsGrid<Real, fsgrids::egradpe::N_EGRADPE, FS_STENCIL_WIDTH> & EGradPeGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint component
-   ) {
-         EGradPeGrid.get(i,j,k)[fsgrids::egradpe::EXGRADPE+component] = 0.0;
-   }
-   
-   void SetByUser::fieldSolverBoundaryCondDerivatives(
-      FsGrid<Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH> & dPerBGrid,
-      FsGrid<Real, fsgrids::dmoments::N_DMOMENTS, FS_STENCIL_WIDTH> & dMomentsGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint& RKCase,
-      cuint& component
-   ) {
-      this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
-   }
-
-   void SetByUser::fieldSolverBoundaryCondBVOLDerivatives(
-      FsGrid<Real, fsgrids::volfields::N_VOL, FS_STENCIL_WIDTH> & volGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint& component
-   ) {
-      this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
-   }
-
    void SetByUser::vlasovBoundaryCondition(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
@@ -304,13 +198,13 @@ namespace SBC {
                   return false;
                }
 
-               creal dx = P::dx_ini / pow(2, refLvl);
-               creal dy = P::dy_ini / pow(2, refLvl);
-               creal dz = P::dz_ini / pow(2, refLvl);
+               creal dx = meshParams.dx_ini / pow(2, refLvl);
+               creal dy = meshParams.dy_ini / pow(2, refLvl);
+               creal dz = meshParams.dz_ini / pow(2, refLvl);
                
                isThisCellOnAFace.fill(false);
 
-               determineFace(isThisCellOnAFace.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx, dy, dz);
+               SysBoundaryCondition::determineFace(isThisCellOnAFace.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx, dy, dz, isPeriodic);
 
                for(uint iface=0; iface < 6; iface++) {
                   if(facesToProcess[iface] && isThisCellOnAFace[iface]) {
@@ -342,7 +236,7 @@ namespace SBC {
          creal z = cell->parameters[CellParams::ZCRD] + 0.5*dz;
          
          bool isThisCellOnAFace[6];
-         determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);
+         SysBoundaryCondition::determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, isPeriodic, true);
          
          for(uint i=0; i<6; i++) {
             if(facesToProcess[i] && isThisCellOnAFace[i]) {

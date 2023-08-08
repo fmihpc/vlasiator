@@ -58,8 +58,10 @@ namespace SBC {
       virtual std::string getName() const;
       virtual uint getIndex() const;
 
+      bool initFieldBoundary() {return false;}
+
       // Explicit warning functions to inform the user if a doNotCompute cell gets computed
-      virtual Real fieldSolverBoundaryCondMagneticField(
+      ARCH_HOSTDEV virtual Real fieldSolverBoundaryCondMagneticField(
          const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & perBGrid,
          const arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> & technicalGrid,
          cint i,

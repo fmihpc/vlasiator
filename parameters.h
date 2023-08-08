@@ -27,28 +27,32 @@
 #include <stdint.h>
 #include <string>
 #include <vector>
+#include "arch/arch_device_api.h"
 
 #include "definitions.h"
 
 const uint64_t INVALID_CELLID = 0;
 
+struct GridParameters {
+   Real dx_ini;  /*!< Initial size of spatial cell in x-direction. */
+   Real dy_ini;  /*!< Initial size of spatial cell in y-direction. */
+   Real dz_ini;  /*!< Initial size of spatial cell in z-direction. */
+   Real xmin;    /*!< X-coordinate of the lower left corner of the spatial grid. */
+   Real ymin;    /*!< Y-coordinate of the lower left corner of the spatial grid. */
+   Real zmin;    /*!< Z-coordinate of the lower left corner of the spatial grid. */
+   Real xmax;    /*!< X-coordinate of the upper right corner of the spatial grid. */
+   Real ymax;    /*!< Y-coordinate of the upper right corner of the spatial grid. */
+   Real zmax;    /*!< Z-coordinate of the upper right corner of the spatial grid. */ 
+   uint xcells_ini; /*!< Initial number of spatial cells in x-direction. */
+   uint ycells_ini; /*!< Initial number of spatial cells in y-direction. */
+   uint zcells_ini; /*!< Initial number of spatial cells in z-direction. */ 
+};
+
+void initParameters();
+
 struct Parameters {
    static int geometry; /**< Simulation geometry, one of the values defined in
                          * geometry::Setup. Defaults to geometry::XYZ6D.*/
-   static Real xmin;    /*!< X-coordinate of the lower left corner of the spatial grid. */
-   static Real xmax;    /*!< X-coordinate of the upper right corner of the spatial grid. */
-   static Real ymin;    /*!< Y-coordinate of the lower left corner of the spatial grid. */
-   static Real ymax;    /*!< Y-coordinate of the upper right corner of the spatial grid. */
-   static Real zmin;    /*!< Z-coordinate of the lower left corner of the spatial grid. */
-   static Real zmax;    /*!< Z-coordinate of the upper right corner of the spatial grid. */
-   static Real dx_ini;  /*!< Initial size of spatial cell in x-direction. */
-   static Real dy_ini;  /*!< Initial size of spatial cell in y-direction. */
-   static Real dz_ini;  /*!< Initial size of spatial cell in z-direction. */
-
-   static uint xcells_ini; /*!< Initial number of spatial cells in x-direction. */
-   static uint ycells_ini; /*!< Initial number of spatial cells in y-direction. */
-   static uint zcells_ini; /*!< Initial number of spatial cells in z-direction. */
-
    static Real t;     /*!< Current simulation time. */
    static Real t_min; /*!< Initial simulation time. */
    static Real t_max; /*!< Maximum simulation time. */

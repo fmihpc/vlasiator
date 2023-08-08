@@ -94,6 +94,14 @@ class buf {
     }
   }
 
+  __host__ __device__ T* getPtr(void) const {
+    #ifdef __CUDA_ARCH__
+      return d_ptr;
+    #else
+      // return ptr;
+    #endif
+  }
+
   __host__ __device__ T &operator [] (uint i) const {
    #ifdef __CUDA_ARCH__
       return d_ptr[i];

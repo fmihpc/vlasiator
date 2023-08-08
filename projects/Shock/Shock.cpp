@@ -32,6 +32,8 @@
 
 #include "Shock.h"
 
+extern ARCH_MANAGED GridParameters meshParams;
+
 namespace projects {
    Shock::Shock(): Project() { }
    Shock::~Shock() { }
@@ -163,7 +165,7 @@ namespace projects {
                   
                   cell[fsgrids::bfield::PERBX] = 0.0;
                   cell[fsgrids::bfield::PERBY] = 0.0;
-                  cell[fsgrids::bfield::PERBZ] = this->BZ0*(3.0 + 2.0*tanh((xyz[1] - Parameters::ymax/2.0)/(this->Sharp_Y*Parameters::ymax)));
+                  cell[fsgrids::bfield::PERBZ] = this->BZ0*(3.0 + 2.0*tanh((xyz[1] - meshParams.ymax/2.0)/(this->Sharp_Y*meshParams.ymax)));
                }
             }
          }

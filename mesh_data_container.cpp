@@ -30,30 +30,32 @@
 
 using namespace std;
 
+extern ARCH_MANAGED GridParameters meshParams;
+
 namespace mesh {
 
    MeshDataContainer::MeshDataContainer(): initialized(false) { }
    
    bool MeshDataContainer::initialize(const std::string& name) {
-      vmesh::MeshParameters meshParams;
-      meshParams.name = name;
-      meshParams.max_velocity_blocks = numeric_limits<vmesh::LocalID>::max();
-      meshParams.meshLimits[0] = Parameters::xmin;
-      meshParams.meshLimits[1] = Parameters::xmax;
-      meshParams.meshLimits[2] = Parameters::zmin;
-      meshParams.meshLimits[3] = Parameters::zmax;
-      meshParams.meshLimits[4] = Parameters::zmin;
-      meshParams.meshLimits[5] = Parameters::zmax;
-      meshParams.gridLength[0] = Parameters::xcells_ini;
-      meshParams.gridLength[1] = Parameters::ycells_ini;
-      meshParams.gridLength[2] = Parameters::zcells_ini;
-      meshParams.blockLength[0] = 1;
-      meshParams.blockLength[1] = 1;
-      meshParams.blockLength[2] = 1;
-      meshParams.refLevelMaxAllowed = 0;
+      vmesh::MeshParameters vmeshParams;
+      vmeshParams.name = name;
+      vmeshParams.max_velocity_blocks = numeric_limits<vmesh::LocalID>::max();
+      vmeshParams.meshLimits[0] = meshParams.xmin;
+      vmeshParams.meshLimits[1] = meshParams.xmax;
+      vmeshParams.meshLimits[2] = meshParams.zmin;
+      vmeshParams.meshLimits[3] = meshParams.zmax;
+      vmeshParams.meshLimits[4] = meshParams.zmin;
+      vmeshParams.meshLimits[5] = meshParams.zmax;
+      vmeshParams.gridLength[0] = meshParams.xcells_ini;
+      vmeshParams.gridLength[1] = meshParams.ycells_ini;
+      vmeshParams.gridLength[2] = meshParams.zcells_ini;
+      vmeshParams.blockLength[0] = 1;
+      vmeshParams.blockLength[1] = 1;
+      vmeshParams.blockLength[2] = 1;
+      vmeshParams.refLevelMaxAllowed = 0;
       
       meshID = getObjectWrapper().velocityMeshes.size();
-      getObjectWrapper().velocityMeshes.push_back(meshParams);
+      getObjectWrapper().velocityMeshes.push_back(vmeshParams);
       mesh.initialize(meshID,getObjectWrapper().velocityMeshes);
       initialized = true;
       return initialized;

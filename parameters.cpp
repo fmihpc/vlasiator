@@ -39,25 +39,14 @@ using namespace std;
 
 typedef Parameters P;
 
+ARCH_MANAGED GridParameters meshParams;
+
 // Using numeric_limits<Real>::max() leads to FP exceptions inside boost programoptions, use a slightly smaller value to
 // avoid...
 
 const Real LARGE_REAL = 1e20;
 // Define static members:
 int P::geometry = geometry::XYZ6D;
-Real P::xmin = NAN;
-Real P::xmax = NAN;
-Real P::ymin = NAN;
-Real P::ymax = NAN;
-Real P::zmin = NAN;
-Real P::zmax = NAN;
-Real P::dx_ini = NAN;
-Real P::dy_ini = NAN;
-Real P::dz_ini = NAN;
-
-uint P::xcells_ini = numeric_limits<uint>::max();
-uint P::ycells_ini = numeric_limits<uint>::max();
-uint P::zcells_ini = numeric_limits<uint>::max();
 
 Real P::t = 0;
 Real P::t_min = 0;
@@ -155,6 +144,22 @@ Realf P::amrBoxCenterY = 0.0;
 Realf P::amrBoxCenterZ = 0.0;
 vector<string> P::blurPassString;
 vector<int> P::numPasses;
+
+void initParameters() {
+   meshParams.xmin = NAN;
+   meshParams.xmax = NAN;
+   meshParams.ymin = NAN;
+   meshParams.ymax = NAN;
+   meshParams.zmin = NAN;
+   meshParams.zmax = NAN;
+   meshParams.dx_ini = NAN;
+   meshParams.dy_ini = NAN;
+   meshParams.dz_ini = NAN;
+
+   meshParams.xcells_ini = numeric_limits<uint>::max();
+   meshParams.ycells_ini = numeric_limits<uint>::max();
+   meshParams.zcells_ini = numeric_limits<uint>::max();
+}
 
 bool P::addParameters() {
    typedef Readparameters RP;
@@ -530,15 +535,15 @@ void Parameters::getParameters() {
    string geometryString;
 
    RP::get("gridbuilder.geometry", geometryString);
-   RP::get("gridbuilder.x_min", P::xmin);
-   RP::get("gridbuilder.x_max", P::xmax);
-   RP::get("gridbuilder.y_min", P::ymin);
-   RP::get("gridbuilder.y_max", P::ymax);
-   RP::get("gridbuilder.z_min", P::zmin);
-   RP::get("gridbuilder.z_max", P::zmax);
-   RP::get("gridbuilder.x_length", P::xcells_ini);
-   RP::get("gridbuilder.y_length", P::ycells_ini);
-   RP::get("gridbuilder.z_length", P::zcells_ini);
+   RP::get("gridbuilder.x_min", meshParams.xmin);
+   RP::get("gridbuilder.x_max", meshParams.xmax);
+   RP::get("gridbuilder.y_min", meshParams.ymin);
+   RP::get("gridbuilder.y_max", meshParams.ymax);
+   RP::get("gridbuilder.z_min", meshParams.zmin);
+   RP::get("gridbuilder.z_max", meshParams.zmax);
+   RP::get("gridbuilder.x_length", meshParams.xcells_ini);
+   RP::get("gridbuilder.y_length", meshParams.ycells_ini);
+   RP::get("gridbuilder.z_length", meshParams.zcells_ini);
 
    RP::get("AMR.max_velocity_level", P::amrMaxVelocityRefLevel);
    RP::get("AMR.max_spatial_level", P::amrMaxSpatialRefLevel);
@@ -634,15 +639,15 @@ void Parameters::getParameters() {
       cerr << "amrRefineLimit must be smaller than amrCoarsenLimit!" << endl;
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
-   if (P::xmax < P::xmin || (P::ymax < P::ymin || P::zmax < P::zmin)) {
+   if (meshParams.xmax < meshParams.xmin || (meshParams.ymax < meshParams.ymin || meshParams.zmax < meshParams.zmin)) {
       cerr << "Box domain error!" << endl;
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
 
    // Set some parameter values.
-   P::dx_ini = (P::xmax - P::xmin) / P::xcells_ini;
-   P::dy_ini = (P::ymax - P::ymin) / P::ycells_ini;
-   P::dz_ini = (P::zmax - P::zmin) / P::zcells_ini;
+   meshParams.dx_ini = (meshParams.xmax - meshParams.xmin) / meshParams.xcells_ini;
+   meshParams.dy_ini = (meshParams.ymax - meshParams.ymin) / meshParams.ycells_ini;
+   meshParams.dz_ini = (meshParams.zmax - meshParams.zmin) / meshParams.zcells_ini;
 
    RP::get("gridbuilder.dt", P::dt);
 

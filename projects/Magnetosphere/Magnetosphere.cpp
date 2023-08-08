@@ -39,6 +39,8 @@
 using namespace std;
 using namespace spatial_cell;
 
+extern ARCH_MANAGED GridParameters meshParams;
+
 namespace projects {
    Magnetosphere::Magnetosphere(): TriAxisSearch() { }
    Magnetosphere::~Magnetosphere() { }
@@ -313,7 +315,7 @@ namespace projects {
       {
          bool doZeroOut;
          //Force field to zero in the perpendicular direction for 2D (1D) simulations. Otherwise we have unphysical components.
-         doZeroOut = P::xcells_ini ==1 && this->zeroOutComponents[0]==1;
+         doZeroOut = meshParams.xcells_ini ==1 && this->zeroOutComponents[0]==1;
       
          if(doZeroOut) {
 #pragma omp for collapse(3)
@@ -336,7 +338,7 @@ namespace projects {
             }
          }
             
-          doZeroOut = P::ycells_ini ==1 && this->zeroOutComponents[1]==1;
+          doZeroOut = meshParams.ycells_ini ==1 && this->zeroOutComponents[1]==1;
           if(doZeroOut) {
              /*2D simulation in x and z. Set By and derivatives along Y, and derivatives of By to zero*/
  #pragma omp for collapse(3)
@@ -359,7 +361,7 @@ namespace projects {
              }
           }
 
-         doZeroOut = P::zcells_ini ==1 && this->zeroOutComponents[2]==1;
+         doZeroOut = meshParams.zcells_ini ==1 && this->zeroOutComponents[2]==1;
          if(doZeroOut) {
 #pragma omp for collapse(3)
             for (int x = 0; x < localSize[0]; ++x) {
@@ -539,14 +541,14 @@ namespace projects {
 
 	// L1 refinement.
 //#pragma omp parallel for collapse(3)
-	for (uint i = bw; i < P::xcells_ini-bw; ++i) {
-	   for (uint j = bw; j < P::ycells_ini-bw; ++j) {
-	      for (uint k = bw; k < P::zcells_ini-bw; ++k) {
+	for (uint i = bw; i < meshParams.xcells_ini-bw; ++i) {
+	   for (uint j = bw; j < meshParams.ycells_ini-bw; ++j) {
+	      for (uint k = bw; k < meshParams.zcells_ini-bw; ++k) {
 		 
 		 std::array<double,3> xyz;
-		 xyz[0] = P::xmin + (i+0.5)*P::dx_ini;
-		 xyz[1] = P::ymin + (j+0.5)*P::dy_ini;
-		 xyz[2] = P::zmin + (k+0.5)*P::dz_ini;
+		 xyz[0] = meshParams.xmin + (i+0.5)*meshParams.dx_ini;
+		 xyz[1] = meshParams.ymin + (j+0.5)*meshParams.dy_ini;
+		 xyz[2] = meshParams.zmin + (k+0.5)*meshParams.dz_ini;
                  
 		 Real radius2 = (xyz[0]*xyz[0]+xyz[1]*xyz[1]+xyz[2]*xyz[2]);
 		 // Check if cell is within L1 sphere, or within L1 tail slice
@@ -574,14 +576,14 @@ namespace projects {
 	
 	// L2 refinement.
 //#pragma omp parallel for collapse(3)
-	for (uint i = bw2; i < 2*P::xcells_ini-bw2; ++i) {
-	   for (uint j = bw2; j < 2*P::ycells_ini-bw2; ++j) {
-	      for (uint k = bw2; k < 2*P::zcells_ini-bw2; ++k) {
+	for (uint i = bw2; i < 2*meshParams.xcells_ini-bw2; ++i) {
+	   for (uint j = bw2; j < 2*meshParams.ycells_ini-bw2; ++j) {
+	      for (uint k = bw2; k < 2*meshParams.zcells_ini-bw2; ++k) {
 		 
 		 std::array<double,3> xyz;
-		 xyz[0] = P::xmin + (i+0.5)*0.5*P::dx_ini;
-		 xyz[1] = P::ymin + (j+0.5)*0.5*P::dy_ini;
-		 xyz[2] = P::zmin + (k+0.5)*0.5*P::dz_ini;
+		 xyz[0] = meshParams.xmin + (i+0.5)*0.5*meshParams.dx_ini;
+		 xyz[1] = meshParams.ymin + (j+0.5)*0.5*meshParams.dy_ini;
+		 xyz[2] = meshParams.zmin + (k+0.5)*0.5*meshParams.dz_ini;
                  
 		 Real radius2 = (xyz[0]*xyz[0]+xyz[1]*xyz[1]+xyz[2]*xyz[2]);
 		 // Check if cell is within L1 sphere, or within L1 tail slice
@@ -610,14 +612,14 @@ namespace projects {
      if (P::amrMaxSpatialRefLevel > 2) {
 	// L3 refinement.
 //#pragma omp parallel for collapse(3)
-	   for (uint i = bw3; i < 4*P::xcells_ini-bw3; ++i) {
-	      for (uint j = bw3; j < 4*P::ycells_ini-bw3; ++j) {
-		 for (uint k = bw3; k < 4*P::zcells_ini-bw3; ++k) {
+	   for (uint i = bw3; i < 4*meshParams.xcells_ini-bw3; ++i) {
+	      for (uint j = bw3; j < 4*meshParams.ycells_ini-bw3; ++j) {
+		 for (uint k = bw3; k < 4*meshParams.zcells_ini-bw3; ++k) {
 		    
 		    std::array<double,3> xyz;
-		    xyz[0] = P::xmin + (i+0.5)*0.25*P::dx_ini;
-		    xyz[1] = P::ymin + (j+0.5)*0.25*P::dy_ini;
-		    xyz[2] = P::zmin + (k+0.5)*0.25*P::dz_ini;
+		    xyz[0] = meshParams.xmin + (i+0.5)*0.25*meshParams.dx_ini;
+		    xyz[1] = meshParams.ymin + (j+0.5)*0.25*meshParams.dy_ini;
+		    xyz[2] = meshParams.zmin + (k+0.5)*0.25*meshParams.dz_ini;
                     
  		    Real radius2 = (xyz[0]*xyz[0]+xyz[1]*xyz[1]+xyz[2]*xyz[2]);
 // 		    // Check if cell is within L1 sphere, or within L1 tail slice
@@ -662,14 +664,14 @@ namespace projects {
      if (P::amrMaxSpatialRefLevel > 3) {
 	// L4 refinement.
 //#pragma omp parallel for collapse(3)
-	   for (uint i = bw4; i < 8*P::xcells_ini-bw4; ++i) {
-	      for (uint j = bw4; j < 8*P::ycells_ini-bw4; ++j) {
-		 for (uint k = bw4; k < 8*P::zcells_ini-bw4; ++k) {
+	   for (uint i = bw4; i < 8*meshParams.xcells_ini-bw4; ++i) {
+	      for (uint j = bw4; j < 8*meshParams.ycells_ini-bw4; ++j) {
+		 for (uint k = bw4; k < 8*meshParams.zcells_ini-bw4; ++k) {
 		    
 		    std::array<double,3> xyz;
-		    xyz[0] = P::xmin + (i+0.5)*0.125*P::dx_ini;
-		    xyz[1] = P::ymin + (j+0.5)*0.125*P::dy_ini;
-		    xyz[2] = P::zmin + (k+0.5)*0.125*P::dz_ini;
+		    xyz[0] = meshParams.xmin + (i+0.5)*0.125*meshParams.dx_ini;
+		    xyz[1] = meshParams.ymin + (j+0.5)*0.125*meshParams.dy_ini;
+		    xyz[2] = meshParams.zmin + (k+0.5)*0.125*meshParams.dz_ini;
                     
  		    Real radius2 = (xyz[0]*xyz[0]+xyz[1]*xyz[1]+xyz[2]*xyz[2]);
 

@@ -8,7 +8,7 @@
 
 
 
-
+extern ARCH_MANAGED GridParameters meshParams;
 
 
 
@@ -64,7 +64,8 @@ template <typename T, int TDim, int stencil> void computeCoupling(dccrg::Dccrg<S
   for (int k=0; k<gridDims[2]; k++) {
     for (int j=0; j<gridDims[1]; j++) {
       for (int i=0; i<gridDims[0]; i++) {
-        const std::array<int, 3> globalIndices = momentsGrid.getGlobalIndices(i,j,k);
+        int globalIndices[3]; 
+        momentsGrid.getGlobalIndices(i,j,k, globalIndices);
         const dccrg::Types<3>::indices_t  indices = {{(uint64_t)globalIndices[0],
                         (uint64_t)globalIndices[1],
                         (uint64_t)globalIndices[2]}}; //cast to avoid warnings
@@ -502,9 +503,9 @@ std::vector<CellID> mapDccrgIdToFsGridGlobalID(dccrg::Dccrg<SpatialCell,dccrg::C
    const auto topLeftIndices = mpiGrid.mapping.get_indices(dccrgID);
    std::array<int,3> fsgridDims;
    
-   fsgridDims[0] = P::xcells_ini * pow(2,mpiGrid.get_maximum_refinement_level());
-   fsgridDims[1] = P::ycells_ini * pow(2,mpiGrid.get_maximum_refinement_level());
-   fsgridDims[2] = P::zcells_ini * pow(2,mpiGrid.get_maximum_refinement_level());
+   fsgridDims[0] = meshParams.xcells_ini * pow(2,mpiGrid.get_maximum_refinement_level());
+   fsgridDims[1] = meshParams.ycells_ini * pow(2,mpiGrid.get_maximum_refinement_level());
+   fsgridDims[2] = meshParams.zcells_ini * pow(2,mpiGrid.get_maximum_refinement_level());
 
    std::vector<CellID> fsgridIDs(cellLength * cellLength * cellLength);
    for (uint k = 0; k < cellLength; ++k) {

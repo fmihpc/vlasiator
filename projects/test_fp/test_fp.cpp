@@ -35,6 +35,8 @@ enum cases {BXCASE,BYCASE,BZCASE,BALLCASE};
 
 using namespace std;
 
+extern ARCH_MANAGED GridParameters meshParams;
+
 namespace projects {
    test_fp::test_fp(): TriAxisSearch() { }
    test_fp::~test_fp() { }
@@ -286,9 +288,9 @@ namespace projects {
      if(myRank == MASTER_RANK) std::cout << "Maximum refinement level is " << mpiGrid.mapping.get_maximum_refinement_level() << std::endl;
 
 
-      for (double x = P::amrBoxCenterX - P::amrBoxHalfWidthX * P::dx_ini; x <= P::amrBoxCenterX + P::amrBoxHalfWidthX * P::dx_ini; x += 0.99 * P::dx_ini) {
-         for (double y = P::amrBoxCenterY - P::amrBoxHalfWidthY * P::dy_ini; y <= P::amrBoxCenterY + P::amrBoxHalfWidthY * P::dy_ini; y += 0.99 * P::dy_ini) {
-            for (double z = P::amrBoxCenterZ - P::amrBoxHalfWidthZ * P::dz_ini; z <= P::amrBoxCenterZ + P::amrBoxHalfWidthZ * P::dz_ini; z += 0.99 * P::dz_ini) {
+      for (double x = P::amrBoxCenterX - P::amrBoxHalfWidthX * meshParams.dx_ini; x <= P::amrBoxCenterX + P::amrBoxHalfWidthX * meshParams.dx_ini; x += 0.99 * meshParams.dx_ini) {
+         for (double y = P::amrBoxCenterY - P::amrBoxHalfWidthY * meshParams.dy_ini; y <= P::amrBoxCenterY + P::amrBoxHalfWidthY * meshParams.dy_ini; y += 0.99 * meshParams.dy_ini) {
+            for (double z = P::amrBoxCenterZ - P::amrBoxHalfWidthZ * meshParams.dz_ini; z <= P::amrBoxCenterZ + P::amrBoxHalfWidthZ * meshParams.dz_ini; z += 0.99 * meshParams.dz_ini) {
      
                std::array<double,3> xyz;
                xyz[0] = x;

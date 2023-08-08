@@ -41,6 +41,8 @@
    #define DEBUG_OUTFLOW
 #endif
 
+extern ARCH_MANAGED GridParameters meshParams;
+
 using namespace std;
 
 namespace SBC {
@@ -197,7 +199,7 @@ namespace SBC {
          creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
          
          isThisCellOnAFace.fill(false);
-         determineFace(isThisCellOnAFace.data(), x, y, z, dx, dy, dz);
+         // determineFace(isThisCellOnAFace.data(), x, y, z, dx, dy, dz);
          
          // Comparison of the array defining which faces to use and the array telling on which faces this cell is
          doAssign = false;
@@ -227,14 +229,14 @@ namespace SBC {
                   MPI_Abort(MPI_COMM_WORLD, 1);
                }
 
-               creal dx = P::dx_ini / pow(2, refLvl);
-               creal dy = P::dy_ini / pow(2, refLvl);
-               creal dz = P::dz_ini / pow(2, refLvl);
+               creal dx = meshParams.dx_ini / pow(2, refLvl);
+               creal dy = meshParams.dy_ini / pow(2, refLvl);
+               creal dz = meshParams.dz_ini / pow(2, refLvl);
 
                isThisCellOnAFace.fill(false);
                doAssign = false;
 
-               determineFace(isThisCellOnAFace.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx, dy, dz);
+               // determineFace(isThisCellOnAFace.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx, dy, dz);
                for(int iface=0; iface<6; iface++) doAssign = doAssign || (facesToProcess[iface] && isThisCellOnAFace[iface]);
                if(doAssign) {
                   technicalGrid.get(i,j,k,0).sysBoundaryFlag = this->getIndex();
@@ -269,7 +271,7 @@ namespace SBC {
             creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
             
             bool isThisCellOnAFace[6];
-            determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);
+            // determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);
             
             doApply=false;
             // Comparison of the array defining which faces to use and the array telling on which faces this cell is
@@ -298,7 +300,7 @@ namespace SBC {
       return true;
    }
 
-   Real Outflow::fieldSolverBoundaryCondMagneticField(
+   ARCH_HOSTDEV Real Outflow::fieldSolverBoundaryCondMagneticField(
       const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & bGrid,
       const arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> & technicalGrid,
       cint i,
@@ -425,7 +427,7 @@ namespace SBC {
       creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
       
       bool isThisCellOnAFace[6];
-      determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);
+      // determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);
       
       for(uint i=0; i<6; i++) {
          if(isThisCellOnAFace[i] && facesToProcess[i] && !sP.facesToSkipVlasov[i]) {

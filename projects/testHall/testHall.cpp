@@ -34,6 +34,8 @@
 
 using namespace std;
 
+extern ARCH_MANAGED GridParameters meshParams;
+
 namespace projects {
    TestHall::TestHall(): Project() { }
    TestHall::~TestHall() { }
@@ -147,9 +149,9 @@ namespace projects {
                   auto xyz = perBGrid.getPhysicalCoords(x, y, z);
                   auto cell = perBGrid.get(x, y, z);
                   
-                  cell[fsgrids::bfield::PERBX] = this->BX0 * cos(2.0*M_PI * 1.0 * xyz[0] / (P::xmax - P::xmin)) * cos(2.0*M_PI * 1.0 * xyz[1] / (P::ymax - P::ymin)) * cos(2.0*M_PI * 1.0 * xyz[2] / (P::zmax - P::zmin));
-                  cell[fsgrids::bfield::PERBY] = this->BY0 * cos(2.0*M_PI * 1.0 * xyz[0] / (P::xmax - P::xmin)) * cos(2.0*M_PI * 1.0 * xyz[1] / (P::ymax - P::ymin)) * cos(2.0*M_PI * 1.0 * xyz[2] / (P::zmax - P::zmin));
-                  cell[fsgrids::bfield::PERBZ] = this->BZ0 * cos(2.0*M_PI * 1.0 * xyz[0] / (P::xmax - P::xmin)) * cos(2.0*M_PI * 1.0 * xyz[1] / (P::ymax - P::ymin)) * cos(2.0*M_PI * 1.0 * xyz[2] / (P::zmax - P::zmin));
+                  cell[fsgrids::bfield::PERBX] = this->BX0 * cos(2.0*M_PI * 1.0 * xyz[0] / (meshParams.xmax - meshParams.xmin)) * cos(2.0*M_PI * 1.0 * xyz[1] / (meshParams.ymax - meshParams.ymin)) * cos(2.0*M_PI * 1.0 * xyz[2] / (meshParams.zmax - meshParams.zmin));
+                  cell[fsgrids::bfield::PERBY] = this->BY0 * cos(2.0*M_PI * 1.0 * xyz[0] / (meshParams.xmax - meshParams.xmin)) * cos(2.0*M_PI * 1.0 * xyz[1] / (meshParams.ymax - meshParams.ymin)) * cos(2.0*M_PI * 1.0 * xyz[2] / (meshParams.zmax - meshParams.zmin));
+                  cell[fsgrids::bfield::PERBZ] = this->BZ0 * cos(2.0*M_PI * 1.0 * xyz[0] / (meshParams.xmax - meshParams.xmin)) * cos(2.0*M_PI * 1.0 * xyz[1] / (meshParams.ymax - meshParams.ymin)) * cos(2.0*M_PI * 1.0 * xyz[2] / (meshParams.zmax - meshParams.zmin));
                }
             }
          }

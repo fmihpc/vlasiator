@@ -36,6 +36,8 @@
 using namespace std;
 using namespace spatial_cell;
 
+extern ARCH_MANAGED GridParameters meshParams;
+
 namespace projects {
    Distributions::Distributions(): TriAxisSearch() { }
    Distributions::~Distributions() { }
@@ -129,9 +131,9 @@ namespace projects {
       const uint popID
    ) const {
       Real value = 0.0;
-      creal relx = x/(Parameters::xmax - Parameters::xmin);
-      creal rely = y/(Parameters::ymax - Parameters::ymin);
-      creal relz = z/(Parameters::zmax - Parameters::zmin);
+      creal relx = x/(meshParams.xmax - meshParams.xmin);
+      creal rely = y/(meshParams.ymax - meshParams.ymin);
+      creal relz = z/(meshParams.zmax - meshParams.zmin);
       creal scaledVx1 = this->Vx[1] * relx;
       creal scaledVy1 = this->Vy[1] * rely;
       creal scaledVz1 = this->Vz[1] * relz;
@@ -205,9 +207,9 @@ namespace projects {
       const uint popID
    ) const {
       vector<std::array<Real, 3>> centerPoints;
-      creal relx = x/(Parameters::xmax - Parameters::xmin);
-      creal rely = y/(Parameters::ymax - Parameters::ymin);
-      creal relz = z/(Parameters::zmax - Parameters::zmin);
+      creal relx = x/(meshParams.xmax - meshParams.xmin);
+      creal rely = y/(meshParams.ymax - meshParams.ymin);
+      creal relz = z/(meshParams.zmax - meshParams.zmin);
       creal scaledVx1 = this->Vx[1] * relx;
       creal scaledVy1 = this->Vy[1] * rely;
       creal scaledVz1 = this->Vz[1] * relz;

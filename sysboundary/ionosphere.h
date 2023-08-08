@@ -64,6 +64,7 @@ namespace SBC {
          creal& t,
          Project &project
       );
+      bool initFieldBoundary() {return false;} 
       virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid);
       virtual bool applyInitialState(
@@ -71,7 +72,7 @@ namespace SBC {
          FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
          Project &project
       );
-      virtual Real fieldSolverBoundaryCondMagneticField(
+      ARCH_HOSTDEV virtual Real fieldSolverBoundaryCondMagneticField(
          const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & bGrid,
          const arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> & technicalGrid,
          cint i,

@@ -33,6 +33,8 @@
 
 #include "Dispersion.h"
 
+extern ARCH_MANAGED GridParameters meshParams;
+
 Real projects::Dispersion::rndRho, projects::Dispersion::rndVel[3];
 
 using namespace std;
@@ -108,24 +110,24 @@ namespace projects {
          int myRank;
          MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
-         vector<Real> localRhom(P::xcells_ini, 0.0), outputRhom(P::xcells_ini, 0.0);
+         vector<Real> localRhom(meshParams.xcells_ini, 0.0), outputRhom(meshParams.xcells_ini, 0.0);
 
          const vector<CellID>& cells = getLocalCells();
 
          for(uint i=0; i<cells.size(); i++) {
-            if(cells[i] <= P::xcells_ini) {
+            if(cells[i] <= meshParams.xcells_ini) {
                localRhom[cells[i] - 1] = mpiGrid[cells[i]]->parameters[CellParams::RHOM];
             }
          }
          
-         MPI_Reduce(&(localRhom[0]), &(outputRhom[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
+         MPI_Reduce(&(localRhom[0]), &(outputRhom[0]), meshParams.xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
 
-         vector<Real> localPerBx(P::xcells_ini, 0.0);
-         vector<Real> localPerBy(P::xcells_ini, 0.0);
-         vector<Real> localPerBz(P::xcells_ini, 0.0);
-         vector<Real> outputPerBx(P::xcells_ini, 0.0);
-         vector<Real> outputPerBy(P::xcells_ini, 0.0);
-         vector<Real> outputPerBz(P::xcells_ini, 0.0);
+         vector<Real> localPerBx(meshParams.xcells_ini, 0.0);
+         vector<Real> localPerBy(meshParams.xcells_ini, 0.0);
+         vector<Real> localPerBz(meshParams.xcells_ini, 0.0);
+         vector<Real> outputPerBx(meshParams.xcells_ini, 0.0);
+         vector<Real> outputPerBy(meshParams.xcells_ini, 0.0);
+         vector<Real> outputPerBz(meshParams.xcells_ini, 0.0);
          
          auto localSize = perBGrid.getLocalSize();
          auto localStart = perBGrid.getLocalStart();
@@ -135,22 +137,22 @@ namespace projects {
             localPerBz[x + localStart[0]] = perBGrid.get(x, 0, 0)[fsgrids::bfield::PERBZ];
          }
          
-         MPI_Reduce(&(localPerBx[0]), &(outputPerBx[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
-         MPI_Reduce(&(localPerBy[0]), &(outputPerBy[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
-         MPI_Reduce(&(localPerBz[0]), &(outputPerBz[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
+         MPI_Reduce(&(localPerBx[0]), &(outputPerBx[0]), meshParams.xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
+         MPI_Reduce(&(localPerBy[0]), &(outputPerBy[0]), meshParams.xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
+         MPI_Reduce(&(localPerBz[0]), &(outputPerBz[0]), meshParams.xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
          
          if(myRank == MASTER_RANK) {
             FILE* outputFile = fopen("perBxt.bin", "ab");
-            fwrite(&(outputPerBx[0]), sizeof(outputPerBx[0]), P::xcells_ini, outputFile);
+            fwrite(&(outputPerBx[0]), sizeof(outputPerBx[0]), meshParams.xcells_ini, outputFile);
             fclose(outputFile);
             outputFile = fopen("perByt.bin", "ab");
-            fwrite(&(outputPerBy[0]), sizeof(outputPerBy[0]), P::xcells_ini, outputFile);
+            fwrite(&(outputPerBy[0]), sizeof(outputPerBy[0]), meshParams.xcells_ini, outputFile);
             fclose(outputFile);
             outputFile = fopen("perBzt.bin", "ab");
-            fwrite(&(outputPerBz[0]), sizeof(outputPerBz[0]), P::xcells_ini, outputFile);
+            fwrite(&(outputPerBz[0]), sizeof(outputPerBz[0]), meshParams.xcells_ini, outputFile);
             fclose(outputFile);
             outputFile = fopen("rhomt.bin", "ab");
-            fwrite(&(outputRhom[0]), sizeof(outputRhom[0]), P::xcells_ini, outputFile);
+            fwrite(&(outputRhom[0]), sizeof(outputRhom[0]), meshParams.xcells_ini, outputFile);
             fclose(outputFile);
          }
       }

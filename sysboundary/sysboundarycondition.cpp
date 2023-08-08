@@ -35,6 +35,8 @@
 #include "sysboundarycondition.h"
 #include "../projects/projects_common.h"
 
+extern ARCH_MANAGED GridParameters meshParams;
+
 using namespace std;
 
 namespace SBC {
@@ -57,43 +59,44 @@ namespace SBC {
     * \param dz Cell dz size
     * \param excludeSlicesAndPeriodicDimensions If true, do not consider a cell to be part of the face if that face has a depth of 1 only (single-cell thick slices/columns) or if that direciton is periodic..
     */
-   void SysBoundaryCondition::determineFace(
+   ARCH_HOSTDEV void SysBoundaryCondition::determineFace(
       bool* isThisCellOnAFace,
       creal x, creal y, creal z,
       creal dx, creal dy, creal dz,
+      bool (&isPeriodic)[3],
       const bool excludeSlicesAndPeriodicDimensions //=false (default)
    ) {
       for(uint i=0; i<6; i++) {
          isThisCellOnAFace[i] = false;
       }
-      if(x > Parameters::xmax - 2.0*dx) {
+      if(x > meshParams.xmax - 2.0*dx) {
          isThisCellOnAFace[0] = true;
       }
-      if(x < Parameters::xmin + 2.0*dx) {
+      if(x < meshParams.xmin + 2.0*dx) {
          isThisCellOnAFace[1] = true;
       }
-      if(y > Parameters::ymax - 2.0*dy) {
+      if(y > meshParams.ymax - 2.0*dy) {
          isThisCellOnAFace[2] = true;
       }
-      if(y < Parameters::ymin + 2.0*dy) {
+      if(y < meshParams.ymin + 2.0*dy) {
          isThisCellOnAFace[3] = true;
       }
-      if(z > Parameters::zmax - 2.0*dz) {
+      if(z > meshParams.zmax - 2.0*dz) {
          isThisCellOnAFace[4] = true;
       }
-      if(z < Parameters::zmin + 2.0*dz) {
+      if(z < meshParams.zmin + 2.0*dz) {
          isThisCellOnAFace[5] = true;
       }
       if(excludeSlicesAndPeriodicDimensions == true) {
-         if(Parameters::xcells_ini == 1 || this->isPeriodic[0]) {
+         if(meshParams.xcells_ini == 1 || isPeriodic[0]) {
             isThisCellOnAFace[0] = false;
             isThisCellOnAFace[1] = false;
          }
-         if(Parameters::ycells_ini == 1 || this->isPeriodic[1]) {
+         if(meshParams.ycells_ini == 1 || isPeriodic[1]) {
             isThisCellOnAFace[2] = false;
             isThisCellOnAFace[3] = false;
          }
-         if(Parameters::zcells_ini == 1 || this->isPeriodic[2]) {
+         if(meshParams.zcells_ini == 1 || isPeriodic[2]) {
             isThisCellOnAFace[4] = false;
             isThisCellOnAFace[5] = false;
          }

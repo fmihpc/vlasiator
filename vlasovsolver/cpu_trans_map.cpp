@@ -40,6 +40,8 @@
 using namespace std;
 using namespace spatial_cell;
 
+extern ARCH_MANAGED GridParameters meshParams;
+
 // indices in padded source block, which is of type Vec with VECL
 // element sin each vector. b_k is the block index in z direction in
 // ordinary space [- VLASOV_STENCIL_WIDTH to VLASOV_STENCIL_WIDTH],
@@ -401,7 +403,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    vz_min = vmesh.getMeshMinLimits()[dimension];
    switch (dimension) {
    case 0:
-      dz = P::dx_ini;
+      dz = meshParams.dx_ini;
       //z_min = P::xmin;
       // set values in array that is used to convert block indices
       // to global ID using a dot product.
@@ -410,7 +412,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       cell_indices_to_id[2]=1;
       break;
    case 1:
-      dz = P::dy_ini;
+      dz = meshParams.dy_ini;
       //z_min = P::ymin;
       // set values in array that is used to convert block indices
       // to global ID using a dot product
@@ -419,7 +421,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       cell_indices_to_id[2]=WID;
       break;
    case 2:
-      dz = P::dz_ini;
+      dz = meshParams.dz_ini;
       //z_min = P::zmin;
       // set values in array that is used to convert block indices
       // to global id using a dot product.

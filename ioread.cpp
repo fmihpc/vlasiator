@@ -42,6 +42,7 @@
 using namespace std;
 using namespace phiprof;
 
+extern ARCH_MANAGED GridParameters meshParams;
 extern Logger logFile, diagnostic;
 
 typedef Parameters P;
@@ -1067,15 +1068,15 @@ bool exec_readGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 
 
 
-   checkScalarParameter(file,"xmin",P::xmin,MASTER_RANK,MPI_COMM_WORLD);
-   checkScalarParameter(file,"ymin",P::ymin,MASTER_RANK,MPI_COMM_WORLD);
-   checkScalarParameter(file,"zmin",P::zmin,MASTER_RANK,MPI_COMM_WORLD);
-   checkScalarParameter(file,"xmax",P::xmax,MASTER_RANK,MPI_COMM_WORLD);
-   checkScalarParameter(file,"ymax",P::ymax,MASTER_RANK,MPI_COMM_WORLD);
-   checkScalarParameter(file,"zmax",P::zmax,MASTER_RANK,MPI_COMM_WORLD);
-   checkScalarParameter(file,"xcells_ini",P::xcells_ini,MASTER_RANK,MPI_COMM_WORLD);
-   checkScalarParameter(file,"ycells_ini",P::ycells_ini,MASTER_RANK,MPI_COMM_WORLD);
-   checkScalarParameter(file,"zcells_ini",P::zcells_ini,MASTER_RANK,MPI_COMM_WORLD);
+   checkScalarParameter(file,"xmin",meshParams.xmin,MASTER_RANK,MPI_COMM_WORLD);
+   checkScalarParameter(file,"ymin",meshParams.ymin,MASTER_RANK,MPI_COMM_WORLD);
+   checkScalarParameter(file,"zmin",meshParams.zmin,MASTER_RANK,MPI_COMM_WORLD);
+   checkScalarParameter(file,"xmax",meshParams.xmax,MASTER_RANK,MPI_COMM_WORLD);
+   checkScalarParameter(file,"ymax",meshParams.ymax,MASTER_RANK,MPI_COMM_WORLD);
+   checkScalarParameter(file,"zmax",meshParams.zmax,MASTER_RANK,MPI_COMM_WORLD);
+   checkScalarParameter(file,"xcells_ini",meshParams.xcells_ini,MASTER_RANK,MPI_COMM_WORLD);
+   checkScalarParameter(file,"ycells_ini",meshParams.ycells_ini,MASTER_RANK,MPI_COMM_WORLD);
+   checkScalarParameter(file,"zcells_ini",meshParams.zcells_ini,MASTER_RANK,MPI_COMM_WORLD);
 
    phiprof::stop("readScalars");
 
