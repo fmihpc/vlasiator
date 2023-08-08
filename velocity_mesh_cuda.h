@@ -235,9 +235,9 @@ namespace vmesh {
 
       // If the block exists, return it:
       #ifdef __CUDA_ARCH__
-      if (globalToLocalMap->device_find(blockGID) != globalToLocalMap->device_end()) {
+      if (globalToLocalMap->device_count(blockGID) != 0) {
       #else
-      if (globalToLocalMap->find(blockGID) != globalToLocalMap->end()) {
+      if (globalToLocalMap->count(blockGID) != 0) {
       #endif
          return blockGID;
       } else {
