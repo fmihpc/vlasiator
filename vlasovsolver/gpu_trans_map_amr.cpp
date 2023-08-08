@@ -397,7 +397,7 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    int device = gpu_getDevice();
    
    // Copy indexing information to device. Only use first thread-array.
-   HANDLE_ERROR( cudaMemcpyAsync(gpu_vcell_transpose[0], vcell_transpose, WID3*sizeof(uint), cudaMemcpyHostToDevice,bgStream) );
+   CHK_ERR( cudaMemcpyAsync(gpu_vcell_transpose[0], vcell_transpose, WID3*sizeof(uint), cudaMemcpyHostToDevice,bgStream) );
 
    // Vector with all cell ids
    vector<CellID> allCells(localPropagatedCells);
@@ -468,7 +468,7 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       allVmeshPointer,
       nAllCells
       );
-   HANDLE_ERROR( cudaPeekAtLastError() );
+   CHK_ERR( cudaPeekAtLastError() );
    unionOfBlocks->memAdvise(cudaMemAdviseSetPreferredLocation,device,bgStream);
    unionOfBlocks->memAdvise(cudaMemAdviseSetAccessedBy,device,bgStream);
    unionOfBlocks->optimizeGPU(bgStream);
@@ -530,9 +530,9 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
 
    phiprof::start("trans-amr-buildBlockList");
    // Now we ensure the union of blocks gathering is complete and extract the union of blocks into a vector
-   HANDLE_ERROR( cudaStreamSynchronize(bgStream) );
+   CHK_ERR( cudaStreamSynchronize(bgStream) );
    const uint nAllBlocks = unionOfBlocksSet->extractAllKeys(*unionOfBlocks,bgStream);
-   HANDLE_ERROR( cudaStreamSynchronize(bgStream) );
+   CHK_ERR( cudaStreamSynchronize(bgStream) );
    vmesh::GlobalID *allBlocks = unionOfBlocks->data();
    // This threshold value is used by slope limiters.
    Realv threshold = mpiGrid[DimensionPencils[dimension].ids[VLASOV_STENCIL_WIDTH]]->getVelocityBlockMinValue(popID);
@@ -569,8 +569,8 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
 
       Realf** pencilBlockData; // Array of pointers into actual block data
       uint* pencilBlocksCount; // Array of counters if pencil needs to be propagated for this block or not
-      HANDLE_ERROR( cudaMallocAsync((void**)&pencilBlockData, sumOfLengths*nGpuBlocks*sizeof(Realf*), stream) );
-      HANDLE_ERROR( cudaMallocAsync((void**)&pencilBlocksCount, nPencils*nGpuBlocks*sizeof(uint), stream) );
+      CHK_ERR( cudaMallocAsync((void**)&pencilBlockData, sumOfLengths*nGpuBlocks*sizeof(Realf*), stream) );
+      CHK_ERR( cudaMallocAsync((void**)&pencilBlocksCount, nPencils*nGpuBlocks*sizeof(uint), stream) );
       phiprof::stop("prepare buffers");
 
       // Loop over velocity space blocks (threaded, multi-stream, and multi-block parallel, but not using a for-loop)
@@ -604,7 +604,7 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
             pencilBlocksCount // store how many non-empty blocks each pencil has for this GID
             );
       } // Closes loop over blocks
-      HANDLE_ERROR( cudaStreamSynchronize(stream) );
+      CHK_ERR( cudaStreamSynchronize(stream) );
       phiprof::stop(t1); // mapping (top-level)
 
    } // closes pragma omp parallel

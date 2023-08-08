@@ -62,7 +62,6 @@ void propagatePencil(
    // Go over length of propagated cells
    for (int i = VLASOV_STENCIL_WIDTH; i < lengthOfPencil-VLASOV_STENCIL_WIDTH; i++){
       // Get pointers to block data used for output.
-      // CUDATODO: use blockGID to get pointers here
       Realf* block_data_m1 = blockDataPointer[i - 1];
       Realf* block_data    = blockDataPointer[i];
       Realf* block_data_p1 = blockDataPointer[i + 1];

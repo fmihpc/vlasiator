@@ -335,9 +335,9 @@ namespace vmesh {
       } else {
          attachedStream = newStream;
       }
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,this, 0,cudaMemAttachSingle) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,block_data, 0,cudaMemAttachSingle) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,parameters, 0,cudaMemAttachSingle) );
+      CHK_ERR( cudaStreamAttachMemAsync(attachedStream,this, 0,cudaMemAttachSingle) );
+      CHK_ERR( cudaStreamAttachMemAsync(attachedStream,block_data, 0,cudaMemAttachSingle) );
+      CHK_ERR( cudaStreamAttachMemAsync(attachedStream,parameters, 0,cudaMemAttachSingle) );
       block_data->streamAttach(attachedStream);
       parameters->streamAttach(attachedStream);
       return;
@@ -353,9 +353,9 @@ namespace vmesh {
       }
       attachedStream = 0;
       // Detach unified memory regions from streams
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,this, 0,cudaMemAttachGlobal) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,block_data, 0,cudaMemAttachGlobal) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,parameters, 0,cudaMemAttachGlobal) );
+      CHK_ERR( cudaStreamAttachMemAsync(attachedStream,this, 0,cudaMemAttachGlobal) );
+      CHK_ERR( cudaStreamAttachMemAsync(attachedStream,block_data, 0,cudaMemAttachGlobal) );
+      CHK_ERR( cudaStreamAttachMemAsync(attachedStream,parameters, 0,cudaMemAttachGlobal) );
       block_data->streamAttach(0,cudaMemAttachGlobal);
       parameters->streamAttach(0,cudaMemAttachGlobal);
       return;
@@ -518,7 +518,7 @@ namespace vmesh {
          }
 #endif
          cudaStream_t stream = gpu_getStream();
-         HANDLE_ERROR( cudaStreamSynchronize(stream) );
+         CHK_ERR( cudaStreamSynchronize(stream) );
          block_data->optimizeGPU(stream);
          parameters->optimizeGPU(stream);
          int device = gpu_getDevice();

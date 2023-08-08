@@ -43,10 +43,10 @@ __host__ void gpu_acc_allocate_radix_sort (
    ) {
    if (temp_storage_bytes * BLOCK_ALLOCATION_FACTOR > gpu_acc_RadixSortTempSize[cpuThreadID]) {
       if (gpu_acc_RadixSortTempSize[cpuThreadID] > 0) {
-         HANDLE_ERROR( cudaFreeAsync(gpu_RadixSortTemp[cpuThreadID], stream) );
+         CHK_ERR( cudaFreeAsync(gpu_RadixSortTemp[cpuThreadID], stream) );
       }
       gpu_acc_RadixSortTempSize[cpuThreadID] = temp_storage_bytes * BLOCK_ALLOCATION_PADDING;
-      HANDLE_ERROR( cudaMallocAsync((void**)&gpu_RadixSortTemp[cpuThreadID], gpu_acc_RadixSortTempSize[cpuThreadID], stream) );
+      CHK_ERR( cudaMallocAsync((void**)&gpu_RadixSortTemp[cpuThreadID], gpu_acc_RadixSortTempSize[cpuThreadID], stream) );
    }
 }
 // Note: no call for deallcation of this memory, it'll be left uncleaned on exit.
@@ -400,7 +400,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
       default:
          printf("Incorrect dimension in gpu_acc_sort_blocks.cpp\n");
    }
-   HANDLE_ERROR( cudaPeekAtLastError() );
+   CHK_ERR( cudaPeekAtLastError() );
    SSYNC;
    phiprof::stop("calc new dimension id");
 
@@ -412,7 +412,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                    blocksID_mapped, blocksID_mapped_sorted,
                                    blocksLID_unsorted, blocksLID, nBlocks,
                                    0, sizeof(vmesh::GlobalID)*8, stream);
-   HANDLE_ERROR( cudaPeekAtLastError() );
+   CHK_ERR( cudaPeekAtLastError() );
 
    phiprof::start("cub alloc");
    gpu_acc_allocate_radix_sort(temp_storage_bytes,cpuThreadID,stream);
@@ -424,7 +424,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                    blocksID_mapped, blocksID_mapped_sorted,
                                    blocksLID_unsorted, blocksLID, nBlocks,
                                    0, sizeof(vmesh::GlobalID)*8, stream);
-   HANDLE_ERROR( cudaPeekAtLastError() );
+   CHK_ERR( cudaPeekAtLastError() );
    SSYNC;
    phiprof::stop("CUB sort");
 
@@ -437,7 +437,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
       nBlocks,
       columnData // Pass this just to clear it on device
       );
-   HANDLE_ERROR( cudaPeekAtLastError() );
+   CHK_ERR( cudaPeekAtLastError() );
    phiprof::stop("reorder GIDs");
 
    phiprof::start("Scan for column block counts");
@@ -448,7 +448,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
       gpu_columnNBlocks,
       nBlocks
       );
-   HANDLE_ERROR( cudaPeekAtLastError() );
+   CHK_ERR( cudaPeekAtLastError() );
    phiprof::stop("Scan for column block counts");
 
    phiprof::start("construct columns");
@@ -462,7 +462,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
       columnData,
       nBlocks
       );
-   HANDLE_ERROR( cudaPeekAtLastError() );
+   CHK_ERR( cudaPeekAtLastError() );
    SSYNC;
    phiprof::stop("construct columns");
    // printf("\n Output for dimension %d ",dimension);

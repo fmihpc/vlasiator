@@ -110,7 +110,7 @@ void gpu_accelerate_cell(SpatialCell* spatial_cell,
    // vmesh::printVelocityMesh(popID);
    // dim3 block(WID,WID,WID);
    // printVBCsizekernel<<<1, block, 0, gpu_getStream()>>> (popID);
-   // HANDLE_ERROR( cudaDeviceSynchronize() );
+   // CHK_ERR( cudaDeviceSynchronize() );
 
    // compute transform, forward in time and backward in time
    phiprof::start("compute-transform");

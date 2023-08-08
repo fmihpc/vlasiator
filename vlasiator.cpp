@@ -126,7 +126,7 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
       cell->parameters[CellParams::MAXRDT] = numeric_limits<Real>::max();
 
-      // CUDATODO make kernel or use ARCH approach
+      // GPUTODO make kernel or use ARCH approach
       for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
          cell->set_max_r_dt(popID, numeric_limits<Real>::max());
          vmesh::VelocityBlockContainer* blockContainer = cell->get_velocity_blocks(popID);

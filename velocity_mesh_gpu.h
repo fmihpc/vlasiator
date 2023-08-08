@@ -564,7 +564,7 @@ namespace vmesh {
    }
 
    inline void VelocityMesh::setNewSize(const vmesh::LocalID& newSize) {
-      // Needed by CUDA block adjustment
+      // Needed by GPU block adjustment
       // Passing eco flag = true to resize tells splitvector we manage padding manually.
       vmesh::LocalID currentCapacity = localToGlobalMap->capacity();
       cudaStream_t stream = gpu_getStream();
@@ -572,7 +572,7 @@ namespace vmesh {
       int device = gpu_getDevice();
       if (newSize > currentCapacity) {
          // Was allocated new memory
-         HANDLE_ERROR( cudaStreamSynchronize(stream) );
+         CHK_ERR( cudaStreamSynchronize(stream) );
          localToGlobalMap->optimizeGPU(stream);
          localToGlobalMap->memAdvise(cudaMemAdviseSetPreferredLocation,device,stream);
          localToGlobalMap->memAdvise(cudaMemAdviseSetAccessedBy,device,stream);
@@ -581,7 +581,7 @@ namespace vmesh {
       const vmesh::LocalID HashmapReqSize = ceil(log2(newSize)) +2; // Make it really large enough
       if (globalToLocalMap->getSizePower() < HashmapReqSize) {
          globalToLocalMap->device_rehash(HashmapReqSize, stream);
-         HANDLE_ERROR( cudaStreamSynchronize(stream) );
+         CHK_ERR( cudaStreamSynchronize(stream) );
          globalToLocalMap->optimizeGPU(stream);
          globalToLocalMap->memAdvise(cudaMemAdviseSetPreferredLocation,device,stream);
          globalToLocalMap->memAdvise(cudaMemAdviseSetAccessedBy,device,stream);
@@ -600,7 +600,7 @@ namespace vmesh {
       // Host-side non-pagefaulting approach
       cudaStream_t stream = gpu_getStream();
       localToGlobalMap->copyMetadata(info_ltgm,stream);
-      HANDLE_ERROR( cudaStreamSynchronize(stream) );
+      CHK_ERR( cudaStreamSynchronize(stream) );
       return info_ltgm->size;
 #endif
    }
@@ -678,9 +678,9 @@ namespace vmesh {
       } else {
          attachedStream = newStream;
       }
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,this, 0,cudaMemAttachSingle) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,globalToLocalMap, 0,cudaMemAttachSingle) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,localToGlobalMap, 0,cudaMemAttachSingle) );
+      CHK_ERR( cudaStreamAttachMemAsync(attachedStream,this, 0,cudaMemAttachSingle) );
+      CHK_ERR( cudaStreamAttachMemAsync(attachedStream,globalToLocalMap, 0,cudaMemAttachSingle) );
+      CHK_ERR( cudaStreamAttachMemAsync(attachedStream,localToGlobalMap, 0,cudaMemAttachSingle) );
       globalToLocalMap->streamAttach(attachedStream);
       localToGlobalMap->streamAttach(attachedStream);
       return;
@@ -696,9 +696,9 @@ namespace vmesh {
          return;
       }
       attachedStream = 0;
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,this, 0,cudaMemAttachGlobal) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,globalToLocalMap, 0,cudaMemAttachGlobal) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,localToGlobalMap, 0,cudaMemAttachGlobal) );
+      CHK_ERR( cudaStreamAttachMemAsync(attachedStream,this, 0,cudaMemAttachGlobal) );
+      CHK_ERR( cudaStreamAttachMemAsync(attachedStream,globalToLocalMap, 0,cudaMemAttachGlobal) );
+      CHK_ERR( cudaStreamAttachMemAsync(attachedStream,localToGlobalMap, 0,cudaMemAttachGlobal) );
       globalToLocalMap->streamAttach(0,cudaMemAttachGlobal);
       localToGlobalMap->streamAttach(0,cudaMemAttachGlobal);
       return;

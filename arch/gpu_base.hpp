@@ -27,25 +27,22 @@
   #include <omp.h>
 #endif
 
+#include "arch_device_api.h"
 // Extra profiling stream synchronizations?
-#define SSYNC HANDLE_ERROR( cudaStreamSynchronize(stream) )
+#define SSYNC CHK_ERR( cudaStreamSynchronize(stream) )
 //#define SSYNC
 
-//#ifdef USE_CUDA
-//#include "device_launch_parameters.h"
-
+#include <stdio.h>
 #include "include/splitvector/splitvec.h"
 #include "include/hashinator/hashinator.h"
 #include "../definitions.h"
 #include "../vlasovsolver/vec.h"
 #include "../velocity_mesh_parameters.h"
 
-#include <stdio.h>
-
 static const double BLOCK_ALLOCATION_PADDING = 2.5;
 static const double BLOCK_ALLOCATION_FACTOR = 1.8;
 
-// Extern flag for stream attaching
+// Extern flags
 extern bool needAttachedStreams;
 extern bool doPrefetches;
 
@@ -61,7 +58,7 @@ extern bool doPrefetches;
 #endif
 #ifdef USE_HIP
 #  define GPUTHREADS (64)
-#   define FULL_MASK 0xffffffffffffffff
+#  define FULL_MASK 0xffffffffffffffff
 #endif
 #endif
 
@@ -83,17 +80,6 @@ void gpu_acc_deallocate_perthread (uint cpuThreadID);
 
 extern cudaStream_t gpuStreamList[];
 extern cudaStream_t gpuPriorityStreamList[];
-
-// GPU Error checking
-#define HANDLE_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ));
-static void HandleError( cudaError_t err, const char *file, int line )
-{
-    if (err != cudaSuccess)
-    {
-        printf( "%s in %s at line %d\n", cudaGetErrorString( err ), file, line );
-        exit( EXIT_FAILURE );
-    }
-}
 
 // Unified memory class for inheritance
 class Managed {
@@ -169,7 +155,7 @@ struct ColumnOffsets : public Managed {
       } else {
          attachedStream = newStream;
       }
-      HANDLE_ERROR( cudaStreamAttachMemAsync(stream,this, 0,cudaMemAttachSingle) );
+      CHK_ERR( cudaStreamAttachMemAsync(stream,this, 0,cudaMemAttachSingle) );
       columnBlockOffsets.streamAttach(stream);
       columnNumBlocks.streamAttach(stream);
       setColumnOffsets.streamAttach(stream);
@@ -185,7 +171,7 @@ struct ColumnOffsets : public Managed {
          return;
       }
       attachedStream = 0;
-      HANDLE_ERROR( cudaStreamAttachMemAsync(0,this, 0,cudaMemAttachGlobal) );
+      CHK_ERR( cudaStreamAttachMemAsync(0,this, 0,cudaMemAttachGlobal) );
       columnBlockOffsets.streamAttach(0,cudaMemAttachGlobal);
       columnNumBlocks.streamAttach(0,cudaMemAttachGlobal);
       setColumnOffsets.streamAttach(0,cudaMemAttachGlobal);

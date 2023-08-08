@@ -40,20 +40,20 @@ void vmesh::MeshWrapper::uploadMeshWrapper() {
    std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT> * temp = meshWrapper->velocityMeshes;
    // gpu-Malloc space on device, copy array contents
    std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT> *velocityMeshes_upload;
-   HANDLE_ERROR( cudaMalloc((void **)&velocityMeshes_upload, sizeof(std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT>)) );
-   HANDLE_ERROR( cudaMemcpy(velocityMeshes_upload, meshWrapper->velocityMeshes, sizeof(std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT>),cudaMemcpyHostToDevice) );
+   CHK_ERR( cudaMalloc((void **)&velocityMeshes_upload, sizeof(std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT>)) );
+   CHK_ERR( cudaMemcpy(velocityMeshes_upload, meshWrapper->velocityMeshes, sizeof(std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT>),cudaMemcpyHostToDevice) );
    // Make wrapper point to device-side array
    meshWrapper->velocityMeshes = velocityMeshes_upload;
    // Allocate and copy meshwrapper on device
    vmesh::MeshWrapper* MWdev;
-   HANDLE_ERROR( cudaMalloc((void **)&MWdev, sizeof(vmesh::MeshWrapper)) );
-   HANDLE_ERROR( cudaMemcpy(MWdev, meshWrapper, sizeof(vmesh::MeshWrapper),cudaMemcpyHostToDevice) );
+   CHK_ERR( cudaMalloc((void **)&MWdev, sizeof(vmesh::MeshWrapper)) );
+   CHK_ERR( cudaMemcpy(MWdev, meshWrapper, sizeof(vmesh::MeshWrapper),cudaMemcpyHostToDevice) );
    // Set the global symbol of meshWrapper
-   HANDLE_ERROR( cudaMemcpyToSymbol(meshWrapperDev, &MWdev, sizeof(vmesh::MeshWrapper*)) );
+   CHK_ERR( cudaMemcpyToSymbol(meshWrapperDev, &MWdev, sizeof(vmesh::MeshWrapper*)) );
    // Copy host-side address back
    meshWrapper->velocityMeshes = temp;
    // And sync
-   HANDLE_ERROR( cudaDeviceSynchronize() );
+   CHK_ERR( cudaDeviceSynchronize() );
 }
 #endif
 
@@ -122,7 +122,7 @@ void vmesh::MeshWrapper::initVelocityMeshes(const uint nMeshes) {
    // vmesh::printVelocityMesh(0);
    // printf("Device printout\n");
    // debug_kernel<<<1, 1, 0, 0>>> (0);
-   // HANDLE_ERROR( cudaDeviceSynchronize() );
+   // CHK_ERR( cudaDeviceSynchronize() );
 #endif
 
    return;

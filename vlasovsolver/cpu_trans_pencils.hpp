@@ -93,7 +93,7 @@ struct setOfPencils {
       path.push_back(pathIn);
    }
 
-   // CUDATODO: Re-instate this (and printing of DZ and ratios in printpencils) when splitvector iterators work completely
+   // GPUTODO: Re-instate this (and printing of DZ and ratios in printpencils) when splitvector iterators work completely
    // void removePencil(const uint pencilId) {
    //    x.erase(x.begin() + pencilId);
    //    y.erase(y.begin() + pencilId);
