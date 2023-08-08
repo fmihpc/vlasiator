@@ -21,7 +21,7 @@
  */
 
 #include <phiprof.hpp>
-#include "cpu_moments.h"
+#include "cpu_moments.hpp"
 #include "../vlasovmover.h"
 #include "../object_wrapper.h"
 #include "../fieldsolver/fs_common.h" // divideIfNonZero()

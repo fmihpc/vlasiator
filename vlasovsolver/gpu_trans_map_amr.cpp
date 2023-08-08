@@ -5,14 +5,9 @@
 #include "cpu_1d_ppm_nonuniform.hpp"
 //#include "cpu_1d_ppm_nonuniform_conserving.hpp"
 
-#include "cuda_trans_map_amr.hpp"
+#include "gpu_trans_map_amr.hpp"
 #include "cpu_trans_pencils.hpp"
-#include "../cuda_context.cuh"
-
-#include "device_launch_parameters.h"
-#include "cuda.h"
-#include "cuda_runtime.h"
-#include "../cuda_context.cuh"
+#include "../arch/gpu_base.hpp"
 
 // indices in padded source block, which is of type Vec with VECL
 // elements in each vector.
@@ -20,7 +15,7 @@
 #define i_trans_ps_blockv_pencil(planeIndex, blockIndex, lengthOfPencil) ( (blockIndex)  +  ( (planeIndex) * VEC_PER_PLANE ) * ( lengthOfPencil) )
 
 // Skip remapping if whole stencil for all vector elements consists of zeroes
-CUDA_HOSTDEV inline bool check_skip_remapping(Vec* values, uint ti) {
+__host__ __device__ inline bool check_skip_remapping(Vec* values, uint ti) {
    for (int index=-VLASOV_STENCIL_WIDTH; index<VLASOV_STENCIL_WIDTH+1; ++index) {
       if (values[index][ti] > 0) return false;
    }
@@ -75,7 +70,7 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
    uint* pencilBlocksCount // store how many non-empty blocks each pencil has for this GID
    ) {
 
-   //const int cudaBlocks = gridDim.x;
+   //const int gpuBlocks = gridDim.x;
    //const int blocki = blockIdx.x;
    //const int warpSize = blockDim.x*blockDim.y*blockDim.z;
    //const uint k = threadIdx.y;
@@ -105,7 +100,7 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
          // Go over pencil length, gather cellblock data into aligned pencil source data
          for (uint celli = 0; celli < lengthOfPencil; celli++) {
             vmesh::VelocityMesh* vmesh = pencilMeshes[start + celli];
-            // CUDATODO: Should we use the accelerated Hashinator interface to prefetch all LID-GID-pairs?
+            // GPUTODO: Should we use the accelerated Hashinator interface to prefetch all LID-GID-pairs?
             const vmesh::LocalID blockLID = vmesh->getLocalID(blockGID);
             // Store block data pointer for both loading of data and writing back to the cell
             if (ti==0) {
@@ -193,7 +188,7 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
          for (uint i = VLASOV_STENCIL_WIDTH; i < lengthOfPencil-VLASOV_STENCIL_WIDTH; i++){
 
             // Get pointers to block data used for output.
-            // CUDATODO: use blockGID to get pointers here
+            // GPUTODO: use blockGID to get pointers here
 
             Realf* block_data_m1 = pencilBlockData[pencilBlockDataOffset + start + i - 1];
             Realf* block_data =    pencilBlockData[pencilBlockDataOffset + start + i];
@@ -287,17 +282,17 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
  * @param allVmeshPointer Vector of pointers to velocitymeshes, used for gathering active blocks
  * @param nAllCells count of cells to read from allVmeshPointer
  */
-__global__ void  __launch_bounds__(CUDATHREADS, 4) gather_union_of_blocks_kernel(
+__global__ void  __launch_bounds__(GPUTHREADS, 4) gather_union_of_blocks_kernel(
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *unionOfBlocksSet,
    split::SplitVector<vmesh::VelocityMesh*> *allVmeshPointer,
    const uint nAllCells)
 {
-   const int cudaBlocks = gridDim.x;
+   const int gpuBlocks = gridDim.x;
    const int blocki = blockIdx.x;
    const int warpSize = blockDim.x*blockDim.y*blockDim.z;
    const vmesh::LocalID ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
 
-   for (vmesh::LocalID cellIndex=blocki; cellIndex<nAllCells; cellIndex += cudaBlocks) {
+   for (vmesh::LocalID cellIndex=blocki; cellIndex<nAllCells; cellIndex += gpuBlocks) {
       vmesh::VelocityMesh* thisVmesh = allVmeshPointer->at(cellIndex);
       vmesh::LocalID nBlocks = thisVmesh->size();
       for (vmesh::LocalID blockIndex=ti; blockIndex<nBlocks; blockIndex += warpSize) {
@@ -319,7 +314,7 @@ __global__ void  __launch_bounds__(CUDATHREADS, 4) gather_union_of_blocks_kernel
  * @param [in] dt Time step
  * @param [in] popId Particle population ID
  */
-bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                       const vector<CellID>& localPropagatedCells,
                       const vector<CellID>& remoteTargetCells,
                       std::vector<uint>& nPencils,
@@ -331,7 +326,7 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    phiprof::start("trans-amr-setup");
    /***********************/
 
-   // CUDATODO: Re-use pre-allocated splitvectors and hashmaps here
+   // GPUTODO: Re-use pre-allocated splitvectors and hashmaps here
    /**
    split::SplitVector<vmesh::VelocityMesh*> *allVmeshPointer = new split::SplitVector<vmesh::VelocityMesh*>(nAllCells);
    split::SplitVector< vmesh::VelocityMesh* > *allPencilsMeshes = new split::SplitVector< vmesh::VelocityMesh* >(sumOfLengths);
@@ -397,12 +392,12 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
 
    // Ensure enough temporary GPU memory available
    cuint sumOfLengths = DimensionPencils[dimension].sumOfLengths;
-   cuda_vlasov_allocate(sumOfLengths);
-   cudaStream_t bgStream = cuda_getStream(); // uses stream assigned to thread 0, not the blocking default stream
-   int device = cuda_getDevice();
+   gpu_vlasov_allocate(sumOfLengths);
+   cudaStream_t bgStream = gpu_getStream(); // uses stream assigned to thread 0, not the blocking default stream
+   int device = gpu_getDevice();
    
    // Copy indexing information to device. Only use first thread-array.
-   HANDLE_ERROR( cudaMemcpyAsync(dev_vcell_transpose[0], vcell_transpose, WID3*sizeof(uint), cudaMemcpyHostToDevice,bgStream) );
+   HANDLE_ERROR( cudaMemcpyAsync(gpu_vcell_transpose[0], vcell_transpose, WID3*sizeof(uint), cudaMemcpyHostToDevice,bgStream) );
 
    // Vector with all cell ids
    vector<CellID> allCells(localPropagatedCells);
@@ -413,7 +408,7 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    split::SplitVector<vmesh::VelocityMesh*> *allVmeshPointer = new split::SplitVector<vmesh::VelocityMesh*>(nAllCells);
 
    // pointers for pencil source cells
-   // CUDATODO: pre-allocate, here just verify sufficient size
+   // GPUTODO: pre-allocate, here just verify sufficient size
    split::SplitVector< vmesh::VelocityMesh* > *allPencilsMeshes = new split::SplitVector< vmesh::VelocityMesh* >(sumOfLengths);
    split::SplitVector< vmesh::VelocityBlockContainer* > *allPencilsContainers = new split::SplitVector< vmesh::VelocityBlockContainer* >(sumOfLengths);
    
@@ -429,8 +424,8 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
          const uint thisMeshSize = (*allVmeshPointer)[celli]->size();
          thread_largestFoundMeshSize = thisMeshSize > thread_largestFoundMeshSize ? thisMeshSize : thread_largestFoundMeshSize;
          // Prefetches (in fact all data should already reside in device memory)
-         // allCellsPointer[celli]->get_velocity_mesh(popID)->dev_prefetchDevice();
-         // allCellsPointer[celli]->get_velocity_blocks(popID)->dev_prefetchDevice();
+         // allCellsPointer[celli]->get_velocity_mesh(popID)->gpu_prefetchDevice();
+         // allCellsPointer[celli]->get_velocity_blocks(popID)->gpu_prefetchDevice();
       }
       #pragma omp critical
       {
@@ -438,8 +433,8 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
       }
    }
    // Prefetch vector of vmesh pointers to GPU
-   allVmeshPointer->memAdvise(cudaMemAdviseSetPreferredLocation,device);
-   allVmeshPointer->memAdvise(cudaMemAdviseSetAccessedBy,device);
+   allVmeshPointer->memAdvise(cudaMemAdviseSetPreferredLocation,device,bgStream);
+   allVmeshPointer->memAdvise(cudaMemAdviseSetAccessedBy,device,bgStream);
    allVmeshPointer->optimizeGPU(bgStream);
 
    // Gather cell weights for load balancing
@@ -464,18 +459,18 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    split::SplitVector<vmesh::GlobalID> *unionOfBlocks = new split::SplitVector<vmesh::GlobalID>(1);
    unionOfBlocks->reserve(largestFoundMeshSize*10);
    unionOfBlocks->clear();
-   unionOfBlocksSet->memAdvise(cudaMemAdviseSetPreferredLocation,device);
-   unionOfBlocksSet->memAdvise(cudaMemAdviseSetAccessedBy,device);
+   unionOfBlocksSet->memAdvise(cudaMemAdviseSetPreferredLocation,device,bgStream);
+   unionOfBlocksSet->memAdvise(cudaMemAdviseSetAccessedBy,device,bgStream);
    unionOfBlocksSet->optimizeGPU(bgStream);
-   const uint nCudaBlocks = nAllCells > CUDABLOCKS ? CUDABLOCKS : nAllCells;
-   gather_union_of_blocks_kernel<<<nCudaBlocks, CUDATHREADS, 0, bgStream>>> (
+   const uint nGpuBlocks = nAllCells > GPUBLOCKS ? GPUBLOCKS : nAllCells;
+   gather_union_of_blocks_kernel<<<nGpuBlocks, GPUTHREADS, 0, bgStream>>> (
       unionOfBlocksSet,
       allVmeshPointer,
       nAllCells
       );
    HANDLE_ERROR( cudaPeekAtLastError() );
-   unionOfBlocks->memAdvise(cudaMemAdviseSetPreferredLocation,device);
-   unionOfBlocks->memAdvise(cudaMemAdviseSetAccessedBy,device);
+   unionOfBlocks->memAdvise(cudaMemAdviseSetPreferredLocation,device,bgStream);
+   unionOfBlocks->memAdvise(cudaMemAdviseSetAccessedBy,device,bgStream);
    unionOfBlocks->optimizeGPU(bgStream);
    phiprof::stop("trans-amr-buildBlockList");
 
@@ -497,14 +492,14 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    }
    vmesh::VelocityMesh** pencilMeshes = allPencilsMeshes->data();
    vmesh::VelocityBlockContainer** pencilContainers = allPencilsContainers->data();
-   allPencilsMeshes->memAdvise(cudaMemAdviseSetPreferredLocation,device);
-   allPencilsMeshes->memAdvise(cudaMemAdviseSetAccessedBy,device);
+   allPencilsMeshes->memAdvise(cudaMemAdviseSetPreferredLocation,device,bgStream);
+   allPencilsMeshes->memAdvise(cudaMemAdviseSetAccessedBy,device,bgStream);
    allPencilsMeshes->optimizeGPU();
-   allPencilsContainers->memAdvise(cudaMemAdviseSetPreferredLocation,device);
-   allPencilsContainers->memAdvise(cudaMemAdviseSetAccessedBy,device);
+   allPencilsContainers->memAdvise(cudaMemAdviseSetPreferredLocation,device,bgStream);
+   allPencilsContainers->memAdvise(cudaMemAdviseSetAccessedBy,device,bgStream);
    allPencilsContainers->optimizeGPU();
 
-// CUDATODO: make these four vectors inside the setofpencils struct pointers to vectors,
+// GPUTODO: make these four vectors inside the setofpencils struct pointers to vectors,
 // new construct them in the pencil building function. Do we need a flag for if they are allocated
 // or not? Or init with null pointer.
       // uint* pencilLengths = DimensionPencils[dimension].lengthOfPencils.data();
@@ -519,14 +514,14 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    uint* pencilStarts = pencilStartsTemp->data();
    Realf* pencilDZ = pencilDZTemp->data();
    Realf* pencilRatios = pencilRatiosTemp->data();
-   pencilLengthsTemp->memAdvise(cudaMemAdviseSetPreferredLocation,device);
-   pencilLengthsTemp->memAdvise(cudaMemAdviseSetAccessedBy,device);
-   pencilStartsTemp->memAdvise(cudaMemAdviseSetPreferredLocation,device);
-   pencilStartsTemp->memAdvise(cudaMemAdviseSetAccessedBy,device);
-   pencilDZTemp->memAdvise(cudaMemAdviseSetPreferredLocation,device);
-   pencilDZTemp->memAdvise(cudaMemAdviseSetAccessedBy,device);
-   pencilRatiosTemp->memAdvise(cudaMemAdviseSetPreferredLocation,device);
-   pencilRatiosTemp->memAdvise(cudaMemAdviseSetAccessedBy,device);
+   pencilLengthsTemp->memAdvise(cudaMemAdviseSetPreferredLocation,device,bgStream);
+   pencilLengthsTemp->memAdvise(cudaMemAdviseSetAccessedBy,device,bgStream);
+   pencilStartsTemp->memAdvise(cudaMemAdviseSetPreferredLocation,device,bgStream);
+   pencilStartsTemp->memAdvise(cudaMemAdviseSetAccessedBy,device,bgStream);
+   pencilDZTemp->memAdvise(cudaMemAdviseSetPreferredLocation,device,bgStream);
+   pencilDZTemp->memAdvise(cudaMemAdviseSetAccessedBy,device,bgStream);
+   pencilRatiosTemp->memAdvise(cudaMemAdviseSetPreferredLocation,device,bgStream);
+   pencilRatiosTemp->memAdvise(cudaMemAdviseSetAccessedBy,device,bgStream);
    pencilLengthsTemp->optimizeGPU();
    pencilStartsTemp->optimizeGPU();
    pencilDZTemp->optimizeGPU();
@@ -560,35 +555,35 @@ bool cuda_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
       const uint cpuThreadID = 0;
       const uint maxThreads = 1;
       #endif
-      cudaStream_t stream = cuda_getStream();
+      cudaStream_t stream = gpu_getStream();
 
       phiprof::start("prepare buffers");
       // Vector of pointers to cell block data, used for both reading and writing
-      // CUDATODO: pre-allocate one per thread, here verify sufficient size
+      // GPUTODO: pre-allocate one per thread, here verify sufficient size
       cuint nPencils = DimensionPencils[dimension].N;
-      cuint currentAllocation = cuda_vlasov_getAllocation(); // in blocks, per thread buffer
-      Vec* pencilOrderedSource = dev_blockDataOrdered[cpuThreadID]; // pre-allocated temp buffer
+      cuint currentAllocation = gpu_vlasov_getAllocation(); // in blocks, per thread buffer
+      Vec* pencilOrderedSource = gpu_blockDataOrdered[cpuThreadID]; // pre-allocated temp buffer
       // How many blocks can each thread manage in parallel with this existing temp buffer?
       cuint nBlocksPerThread = currentAllocation / sumOfLengths;
-      uint nCudaBlocks  = nBlocksPerThread > CUDABLOCKS ? CUDABLOCKS : nBlocksPerThread;
+      uint nGpuBlocks  = nBlocksPerThread > GPUBLOCKS ? GPUBLOCKS : nBlocksPerThread;
 
       Realf** pencilBlockData; // Array of pointers into actual block data
       uint* pencilBlocksCount; // Array of counters if pencil needs to be propagated for this block or not
-      HANDLE_ERROR( cudaMallocAsync((void**)&pencilBlockData, sumOfLengths*nCudaBlocks*sizeof(Realf*), stream) );
-      HANDLE_ERROR( cudaMallocAsync((void**)&pencilBlocksCount, nPencils*nCudaBlocks*sizeof(uint), stream) );
+      HANDLE_ERROR( cudaMallocAsync((void**)&pencilBlockData, sumOfLengths*nGpuBlocks*sizeof(Realf*), stream) );
+      HANDLE_ERROR( cudaMallocAsync((void**)&pencilBlocksCount, nPencils*nGpuBlocks*sizeof(uint), stream) );
       phiprof::stop("prepare buffers");
 
       // Loop over velocity space blocks (threaded, multi-stream, and multi-block parallel, but not using a for-loop)
       phiprof::start(t1); // mapping (top-level)
       {
-         const uint startingBlockIndex = cpuThreadID*nCudaBlocks;
-         const uint blockIndexIncrement = maxThreads*nCudaBlocks;
-         // This thread, using its own stream, will launch nCudaBlocks instances of the below kernel, where each instance
+         const uint startingBlockIndex = cpuThreadID*nGpuBlocks;
+         const uint blockIndexIncrement = maxThreads*nGpuBlocks;
+         // This thread, using its own stream, will launch nGpuBlocks instances of the below kernel, where each instance
          // propagates all pencils for the block in question.
          dim3 block(WID2,WID,1); // assumes VECL==WID2
-         translation_kernel<<<nCudaBlocks, block, 0, stream>>> (
+         translation_kernel<<<nGpuBlocks, block, 0, stream>>> (
             dimension,
-            dev_vcell_transpose[0],
+            gpu_vcell_transpose[0],
             dt,
             pencilLengths,
             pencilStarts,
@@ -667,13 +662,13 @@ int get_sibling_index(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGr
  * @param direction Direction of communication (+ or -)
  * @param popId Particle population ID
  */
-void cuda_update_remote_mapping_contribution_amr(
+void gpu_update_remote_mapping_contribution_amr(
    dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    const uint dimension,
    int direction,
    const uint popID) {
 
-   //CUDATODO: This is still completely unedited.
+   //GPUTODO: This is still completely unedited.
 
    const vector<CellID>& local_cells = getLocalCells();
    const vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(VLASOV_SOLVER_NEIGHBORHOOD_ID);

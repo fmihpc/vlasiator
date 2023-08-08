@@ -19,18 +19,24 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#ifndef GPU_ACC_MAP_H
+#define GPU_ACC_MAP_H
 
-#ifndef CUDA_ACC_SEMILAG_H
-#define CUDA_ACC_SEMILAG_H
-
-#include "../common.h"
 #include "../spatial_cell.hpp"
+#include "vec.h"
+#include "../common.h"
 
-void cuda_accelerate_cell(
-        spatial_cell::SpatialCell* spatial_cell,
-        const uint popID,
-        const uint map_order,
-        const Real& dt);
+#include "gpu_acc_sort_blocks.hpp"
+#include "../arch/gpu_base.hpp"
+
+bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
+                     const uint popID,
+                     Realv intersection,
+                     Realv intersection_di,
+                     Realv intersection_dj,
+                     Realv intersection_dk,
+                     const uint dimension,
+                     cudaStream_t stream
+   );
 
 #endif
-

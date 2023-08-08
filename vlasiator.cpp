@@ -30,8 +30,8 @@
    #include <omp.h>
 #endif
 
-#ifdef USE_CUDA
-#include "cuda_context.cuh"
+#ifdef USE_GPU
+#include "arch/gpu_base.hpp"
 #endif
 
 #include <fsgrid.hpp>
@@ -294,9 +294,9 @@ int main(int argn,char* args[]) {
    phiprof::start("main");
    phiprof::start("Initialization");
 
-   #ifdef USE_CUDA
+   #ifdef USE_GPU
    // Activate device, create streams
-   cuda_init_device();
+   gpu_init_device();
    #endif
 
    phiprof::start("Read parameters");

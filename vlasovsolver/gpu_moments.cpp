@@ -21,56 +21,56 @@
  */
 
 #include <phiprof.hpp>
-#include "cuda_moments.h"
+#include "gpu_moments.hpp"
 #include "../vlasovmover.h"
 #include "../object_wrapper.h"
 
-#include "../cuda_context.cuh"
+#include "../arch/gpu_base.hpp"
 #include <stdio.h>
 //#include <iostream>
 
 using namespace std;
 
-MomentInfo *dev_momentInfos[MAXCPUTHREADS];
+MomentInfo *gpu_momentInfos[MAXCPUTHREADS];
 MomentInfo *host_momentInfos[MAXCPUTHREADS];
 
-Real *dev_momentArrays1[MAXCPUTHREADS];
+Real *gpu_momentArrays1[MAXCPUTHREADS];
 Real *host_momentArrays1[MAXCPUTHREADS];
-Real *dev_momentArrays2[MAXCPUTHREADS];
+Real *gpu_momentArrays2[MAXCPUTHREADS];
 Real *host_momentArrays2[MAXCPUTHREADS];
 
-bool isCudaMomentsAllocated = false;
+bool isGpuMomentsAllocated = false;
 
-__host__ void cuda_allocateMomentCalculations(
+__host__ void gpu_allocateMomentCalculations(
    const uint nPopulations,
    const uint maxThreads
    ) {
-   if (isCudaMomentsAllocated) return;
+   if (isGpuMomentsAllocated) return;
    for (uint cpuThreadID=0; cpuThreadID<maxThreads; ++cpuThreadID) {
 
-      //cudaMalloc
-      HANDLE_ERROR( cudaMalloc((void**)&dev_momentInfos[cpuThreadID], nPopulations*sizeof(MomentInfo)) );
-      HANDLE_ERROR( cudaMalloc((void**)&dev_momentArrays1[cpuThreadID], nMoments1*(nPopulations+1)*sizeof(Real)) );
-      HANDLE_ERROR( cudaMalloc((void**)&dev_momentArrays2[cpuThreadID], nMoments2*(nPopulations+1)*sizeof(Real)) );
+      //gpu Malloc
+      HANDLE_ERROR( cudaMalloc((void**)&gpu_momentInfos[cpuThreadID], nPopulations*sizeof(MomentInfo)) );
+      HANDLE_ERROR( cudaMalloc((void**)&gpu_momentArrays1[cpuThreadID], nMoments1*(nPopulations+1)*sizeof(Real)) );
+      HANDLE_ERROR( cudaMalloc((void**)&gpu_momentArrays2[cpuThreadID], nMoments2*(nPopulations+1)*sizeof(Real)) );
 
       // Also allocate and pin memory on host for faster transfers
       HANDLE_ERROR( cudaHostAlloc((void**)&host_momentInfos[cpuThreadID], nPopulations*sizeof(MomentInfo), cudaHostAllocPortable) );
       HANDLE_ERROR( cudaHostAlloc((void**)&host_momentArrays1[cpuThreadID], nMoments1*(nPopulations+1)*sizeof(Real), cudaHostAllocPortable) );
       HANDLE_ERROR( cudaHostAlloc((void**)&host_momentArrays2[cpuThreadID], nMoments2*(nPopulations+1)*sizeof(Real), cudaHostAllocPortable) );
    }
-   isCudaMomentsAllocated = true;
+   isGpuMomentsAllocated = true;
    return;
 }
 
 
 // Define kernel for calculating zeroth and first velocity moments
 __global__ void moments_first_kernel(
-   MomentInfo *dev_momentInfos,
-   Real* dev_momentArrays1,
+   MomentInfo *gpu_momentInfos,
+   Real* gpu_momentArrays1,
    const int nPopulations
    ){
 
-   const int cudaBlocks = gridDim.x;
+   const int gpuBlocks = gridDim.x;
    const int blocki = blockIdx.x;
    const int i = threadIdx.x;
    const int j = threadIdx.y;
@@ -89,20 +89,20 @@ __global__ void moments_first_kernel(
       nvy_sum[ti] = 0.0;
       nvz_sum[ti] = 0.0;
 
-      const uint nBlocks = dev_momentInfos[popID].blockCount;
-      const Real mass = dev_momentInfos[popID].mass;
-      const Real charge = dev_momentInfos[popID].charge;
+      const uint nBlocks = gpu_momentInfos[popID].blockCount;
+      const Real mass = gpu_momentInfos[popID].mass;
+      const Real charge = gpu_momentInfos[popID].charge;
 
-      Real* blockParams = (dev_momentInfos[popID].blockContainer)->getParameters();
-      //Real* blockParams = dev_momentInfos[popID].parameterPointer;
+      Real* blockParams = (gpu_momentInfos[popID].blockContainer)->getParameters();
+      //Real* blockParams = gpu_momentInfos[popID].parameterPointer;
       const Real DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
 
-      for (uint blockLID=blocki; blockLID<nBlocks; blockLID += cudaBlocks) {
+      for (uint blockLID=blocki; blockLID<nBlocks; blockLID += gpuBlocks) {
          if (blockLID >= nBlocks) break;
-         Real* blockParams = (dev_momentInfos[popID].blockContainer)->getParameters() + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
-         Realf* avgs = (dev_momentInfos[popID].blockContainer)->getData() +blockLID*WID3;
-         //Real* blockParams = dev_momentInfos[popID].parameterPointer + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
-         //Realf* avgs = dev_momentInfos[popID].meshDataPointer +blockLID*WID3;
+         Real* blockParams = (gpu_momentInfos[popID].blockContainer)->getParameters() + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
+         Realf* avgs = (gpu_momentInfos[popID].blockContainer)->getData() +blockLID*WID3;
+         //Real* blockParams = gpu_momentInfos[popID].parameterPointer + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
+         //Realf* avgs = gpu_momentInfos[popID].meshDataPointer +blockLID*WID3;
          const Real VX = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
          const Real VY = blockParams[BlockParams::VYCRD] + (j+HALF)*blockParams[BlockParams::DVY];
          const Real VZ = blockParams[BlockParams::VZCRD] + (k+HALF)*blockParams[BlockParams::DVZ];
@@ -124,17 +124,17 @@ __global__ void moments_first_kernel(
          __syncthreads();
       } // thread-gather
       if (ti==0) {
-         atomicAdd(&dev_momentArrays1[popID*nMoments1 + 0], n_sum[0]   * DV3);
-         atomicAdd(&dev_momentArrays1[popID*nMoments1 + 1], nvx_sum[0] * DV3);
-         atomicAdd(&dev_momentArrays1[popID*nMoments1 + 2], nvy_sum[0] * DV3);
-         atomicAdd(&dev_momentArrays1[popID*nMoments1 + 3], nvz_sum[0] * DV3);
+         atomicAdd(&gpu_momentArrays1[popID*nMoments1 + 0], n_sum[0]   * DV3);
+         atomicAdd(&gpu_momentArrays1[popID*nMoments1 + 1], nvx_sum[0] * DV3);
+         atomicAdd(&gpu_momentArrays1[popID*nMoments1 + 2], nvy_sum[0] * DV3);
+         atomicAdd(&gpu_momentArrays1[popID*nMoments1 + 3], nvz_sum[0] * DV3);
 
          // Sum over all populations
-         atomicAdd(&dev_momentArrays1[nPopulations*nMoments1 + 0], n_sum[0]   * DV3 * mass);
-         atomicAdd(&dev_momentArrays1[nPopulations*nMoments1 + 1], nvx_sum[0] * DV3 * mass);
-         atomicAdd(&dev_momentArrays1[nPopulations*nMoments1 + 2], nvy_sum[0] * DV3 * mass);
-         atomicAdd(&dev_momentArrays1[nPopulations*nMoments1 + 3], nvz_sum[0] * DV3 * mass);
-         atomicAdd(&dev_momentArrays1[nPopulations*nMoments1 + 4], n_sum[0]   * DV3 * charge);
+         atomicAdd(&gpu_momentArrays1[nPopulations*nMoments1 + 0], n_sum[0]   * DV3 * mass);
+         atomicAdd(&gpu_momentArrays1[nPopulations*nMoments1 + 1], nvx_sum[0] * DV3 * mass);
+         atomicAdd(&gpu_momentArrays1[nPopulations*nMoments1 + 2], nvy_sum[0] * DV3 * mass);
+         atomicAdd(&gpu_momentArrays1[nPopulations*nMoments1 + 3], nvz_sum[0] * DV3 * mass);
+         atomicAdd(&gpu_momentArrays1[nPopulations*nMoments1 + 4], n_sum[0]   * DV3 * charge);
       } // Atomic write
    } // loop over populations
    return;
@@ -142,15 +142,15 @@ __global__ void moments_first_kernel(
 
 // Define kernel for calculating second velocity moments
 __global__ void moments_second_kernel(
-   MomentInfo *dev_momentInfos,
-   Real* dev_momentArrays2,
+   MomentInfo *gpu_momentInfos,
+   Real* gpu_momentArrays2,
    const int nPopulations,
    const Real bulkVX,
    const Real bulkVY,
    const Real bulkVZ
    ){
 
-   const int cudaBlocks = gridDim.x;
+   const int gpuBlocks = gridDim.x;
    const int blocki = blockIdx.x;
    const int i = threadIdx.x;
    const int j = threadIdx.y;
@@ -167,19 +167,19 @@ __global__ void moments_second_kernel(
       nvy2_sum[ti] = 0.0;
       nvz2_sum[ti] = 0.0;
 
-      const uint nBlocks = dev_momentInfos[popID].blockCount;
-      const Real mass = dev_momentInfos[popID].mass;
-      //const Real charge = dev_momentInfos[popID].charge;
-      Real* blockParams = (dev_momentInfos[popID].blockContainer)->getParameters();
-      //Real* blockParams = dev_momentInfos[popID].parameterPointer;
+      const uint nBlocks = gpu_momentInfos[popID].blockCount;
+      const Real mass = gpu_momentInfos[popID].mass;
+      //const Real charge = gpu_momentInfos[popID].charge;
+      Real* blockParams = (gpu_momentInfos[popID].blockContainer)->getParameters();
+      //Real* blockParams = gpu_momentInfos[popID].parameterPointer;
       const Real DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
 
-      for (uint blockLID=blocki; blockLID<nBlocks; blockLID += cudaBlocks) {
+      for (uint blockLID=blocki; blockLID<nBlocks; blockLID += gpuBlocks) {
          if (blockLID >= nBlocks) break;
-         Real* blockParams = (dev_momentInfos[popID].blockContainer)->getParameters() + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
-         Realf* avgs = (dev_momentInfos[popID].blockContainer)->getData() +blockLID*WID3;
-         // Real* blockParams = dev_momentInfos[popID].parameterPointer + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
-         // Realf* avgs = dev_momentInfos[popID].meshDataPointer +blockLID*WID3;
+         Real* blockParams = (gpu_momentInfos[popID].blockContainer)->getParameters() + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
+         Realf* avgs = (gpu_momentInfos[popID].blockContainer)->getData() +blockLID*WID3;
+         // Real* blockParams = gpu_momentInfos[popID].parameterPointer + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
+         // Realf* avgs = gpu_momentInfos[popID].meshDataPointer +blockLID*WID3;
          const Real VX = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
          const Real VY = blockParams[BlockParams::VYCRD] + (j+HALF)*blockParams[BlockParams::DVY];
          const Real VZ = blockParams[BlockParams::VZCRD] + (k+HALF)*blockParams[BlockParams::DVZ];
@@ -200,20 +200,20 @@ __global__ void moments_second_kernel(
          __syncthreads();
       } // thread-gather
       if (ti==0) {
-         atomicAdd(&dev_momentArrays2[popID*nMoments2 + 0], nvx2_sum[0] * DV3 * mass);
-         atomicAdd(&dev_momentArrays2[popID*nMoments2 + 1], nvy2_sum[0] * DV3 * mass);
-         atomicAdd(&dev_momentArrays2[popID*nMoments2 + 2], nvz2_sum[0] * DV3 * mass);
+         atomicAdd(&gpu_momentArrays2[popID*nMoments2 + 0], nvx2_sum[0] * DV3 * mass);
+         atomicAdd(&gpu_momentArrays2[popID*nMoments2 + 1], nvy2_sum[0] * DV3 * mass);
+         atomicAdd(&gpu_momentArrays2[popID*nMoments2 + 2], nvz2_sum[0] * DV3 * mass);
 
          // Sum over all populations
-         atomicAdd(&dev_momentArrays2[nPopulations*nMoments2 + 0], nvx2_sum[0] * DV3 * mass);
-         atomicAdd(&dev_momentArrays2[nPopulations*nMoments2 + 1], nvy2_sum[0] * DV3 * mass);
-         atomicAdd(&dev_momentArrays2[nPopulations*nMoments2 + 2], nvz2_sum[0] * DV3 * mass);
+         atomicAdd(&gpu_momentArrays2[nPopulations*nMoments2 + 0], nvx2_sum[0] * DV3 * mass);
+         atomicAdd(&gpu_momentArrays2[nPopulations*nMoments2 + 1], nvy2_sum[0] * DV3 * mass);
+         atomicAdd(&gpu_momentArrays2[nPopulations*nMoments2 + 2], nvz2_sum[0] * DV3 * mass);
       } // Atomic write
    } // Loop over populations
    return;
 }
 
-/** Calls a CUDA kernel for calculating zeroth, first, and (possibly) second
+/** Calls a GPU kernel for calculating zeroth, first, and (possibly) second
  * bulk velocity moments for the given spatial cell.
  * The calculated moments include contributions from all existing particle
  * populations.
@@ -232,14 +232,14 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
        return;
    }
 
-   phiprof::start("CUDA Compute cell moments");
+   phiprof::start("GPU Compute cell moments");
 
 #ifdef _OPENMP
    const uint thread_id = omp_get_thread_num();
 #else
    const uint thread_id = 0;
 #endif
-   cudaStream_t stream = cudaStreamList[thread_id];
+   cudaStream_t stream = gpuStreamList[thread_id];
 
    uint nPopulations = getObjectWrapper().particleSpecies.size();
    // Clear old moments to zero value
@@ -269,37 +269,37 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
       // host_momentInfos[thread_id][popID].meshDataPointer = blockContainer->getData();
 
       if (doPrefetches) {
-         phiprof::start("CUDA-HtoD");
-         blockContainer->dev_prefetchDevice();
-         phiprof::stop("CUDA-HtoD");
+         phiprof::start("GPU-HtoD");
+         blockContainer->gpu_prefetchDevice();
+         phiprof::stop("GPU-HtoD");
       }
    }
 
    // Transfer metadata to device, reset gatherer arrays
-   phiprof::start("CUDA-HtoD");
-   HANDLE_ERROR( cudaMemsetAsync(dev_momentArrays1[thread_id], 0, nMoments1*(nPopulations+1)*sizeof(Real), stream) );
-   HANDLE_ERROR( cudaMemcpyAsync(dev_momentInfos[thread_id], host_momentInfos[thread_id], nPopulations*sizeof(MomentInfo), cudaMemcpyHostToDevice, stream) );
+   phiprof::start("GPU-HtoD");
+   HANDLE_ERROR( cudaMemsetAsync(gpu_momentArrays1[thread_id], 0, nMoments1*(nPopulations+1)*sizeof(Real), stream) );
+   HANDLE_ERROR( cudaMemcpyAsync(gpu_momentInfos[thread_id], host_momentInfos[thread_id], nPopulations*sizeof(MomentInfo), cudaMemcpyHostToDevice, stream) );
    HANDLE_ERROR( cudaStreamSynchronize(stream) );
-   phiprof::stop("CUDA-HtoD");
+   phiprof::stop("GPU-HtoD");
 
    // Now launch kernel for this spatial cell, all populations, zeroth and first moments
-   phiprof::start("CUDA-firstMoments");
+   phiprof::start("GPU-firstMoments");
    dim3 block(WID,WID,WID);
    if (totBlocks != 0) {
-      moments_first_kernel<<<CUDABLOCKS, block, 4*WID3*sizeof(Real), stream>>> (
-         dev_momentInfos[thread_id],
-         dev_momentArrays1[thread_id],
+      moments_first_kernel<<<GPUBLOCKS, block, 4*WID3*sizeof(Real), stream>>> (
+         gpu_momentInfos[thread_id],
+         gpu_momentArrays1[thread_id],
          nPopulations);
       HANDLE_ERROR( cudaPeekAtLastError() );
       HANDLE_ERROR( cudaStreamSynchronize(stream) );
    }
-   phiprof::stop("CUDA-firstMoments");
+   phiprof::stop("GPU-firstMoments");
 
    // Transfer momentArrays1 back
-   phiprof::start("CUDA-DtoH");
-   HANDLE_ERROR( cudaMemcpyAsync(host_momentArrays1[thread_id], dev_momentArrays1[thread_id], nMoments1*(nPopulations+1)*sizeof(Real), cudaMemcpyDeviceToHost, stream) );
+   phiprof::start("GPU-DtoH");
+   HANDLE_ERROR( cudaMemcpyAsync(host_momentArrays1[thread_id], gpu_momentArrays1[thread_id], nMoments1*(nPopulations+1)*sizeof(Real), cudaMemcpyDeviceToHost, stream) );
    HANDLE_ERROR( cudaStreamSynchronize(stream) );
-   phiprof::stop("CUDA-DtoH");
+   phiprof::stop("GPU-DtoH");
 
    for (uint popID=0; popID<nPopulations; ++popID) {
       Population & pop = cell->get_population(popID);
@@ -328,14 +328,14 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
     // Compute second moments only if requested
    if (computeSecond == false) return;
 
-   phiprof::start("CUDA-secondMoments");
+   phiprof::start("GPU-secondMoments");
    // Now launch kernel for this spatial cell, all populations, second moments
-   HANDLE_ERROR( cudaMemsetAsync(dev_momentArrays2[thread_id], 0, nMoments2*(nPopulations+1)*sizeof(Real), stream) );
+   HANDLE_ERROR( cudaMemsetAsync(gpu_momentArrays2[thread_id], 0, nMoments2*(nPopulations+1)*sizeof(Real), stream) );
    HANDLE_ERROR( cudaStreamSynchronize(stream) );
    if (totBlocks != 0) {
-      moments_second_kernel<<<CUDABLOCKS, block, 3*WID3*sizeof(Real), stream>>> (
-         dev_momentInfos[thread_id],
-         dev_momentArrays2[thread_id],
+      moments_second_kernel<<<GPUBLOCKS, block, 3*WID3*sizeof(Real), stream>>> (
+         gpu_momentInfos[thread_id],
+         gpu_momentArrays2[thread_id],
          nPopulations,
          cell->parameters[CellParams::VX],
          cell->parameters[CellParams::VY],
@@ -343,13 +343,13 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
       HANDLE_ERROR( cudaPeekAtLastError() );
       HANDLE_ERROR( cudaStreamSynchronize(stream) );
    }
-   phiprof::stop("CUDA-secondMoments");
+   phiprof::stop("GPU-secondMoments");
 
    // Transfer momentArrays2 back
-   phiprof::start("CUDA-DtoH");
-   HANDLE_ERROR( cudaMemcpyAsync(host_momentArrays2[thread_id], dev_momentArrays2[thread_id], nMoments2*(nPopulations+1)*sizeof(Real), cudaMemcpyDeviceToHost, stream) );
+   phiprof::start("GPU-DtoH");
+   HANDLE_ERROR( cudaMemcpyAsync(host_momentArrays2[thread_id], gpu_momentArrays2[thread_id], nMoments2*(nPopulations+1)*sizeof(Real), cudaMemcpyDeviceToHost, stream) );
    HANDLE_ERROR( cudaStreamSynchronize(stream) );
-   phiprof::stop("CUDA-DtoH");
+   phiprof::stop("GPU-DtoH");
 
    for (uint popID=0; popID<nPopulations; ++popID) {
       Population & pop = cell->get_population(popID);
@@ -362,12 +362,12 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
          cell->parameters[CellParams::P_33] = host_momentArrays2[thread_id][nPopulations*nMoments2 + 2];
       }
    } // for-loop over particle species
-   phiprof::stop("CUDA Compute cell moments");
+   phiprof::stop("GPU Compute cell moments");
 
    return;
 }
 
-/** Calls a CUDA kernel for calculating zeroth, first, and (possibly) second
+/** Calls a GPU kernel for calculating zeroth, first, and (possibly) second
  * bulk velocity moments for the  given spatial cells.
  * Additionally, for each species, calculate the maximum
  * spatial time step so that CFL(spatial)=1. The calculated moments include
@@ -381,7 +381,7 @@ void calculateMoments_V(
    const std::vector<CellID>& cells,
    const bool& computeSecond) {
 
-   phiprof::start("CUDA Compute _V moments");
+   phiprof::start("GPU Compute _V moments");
 
 #pragma omp parallel for
    for (size_t c=0; c<cells.size(); ++c) {
@@ -390,7 +390,7 @@ void calculateMoments_V(
 #else
       const uint thread_id = 0;
 #endif
-      cudaStream_t stream = cudaStreamList[thread_id];
+      cudaStream_t stream = gpuStreamList[thread_id];
       SpatialCell* cell = mpiGrid[cells[c]];
 
       if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
@@ -415,7 +415,7 @@ void calculateMoments_V(
 
          vmesh::VelocityBlockContainer* blockContainer = cell->get_velocity_blocks(popID);
          vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
-         vmesh->dev_prefetchDevice(stream);
+         vmesh->gpu_prefetchDevice(stream);
          const uint nBlocks = vmesh->size();
          totBlocks += nBlocks;
          host_momentInfos[thread_id][popID].mass = getObjectWrapper().particleSpecies[popID].mass;
@@ -426,37 +426,37 @@ void calculateMoments_V(
          // host_momentInfos[thread_id][popID].meshDataPointer = blockContainer->getData();
 
          if (doPrefetches) {
-            phiprof::start("CUDA-HtoD");
-            blockContainer->dev_prefetchDevice();
-            phiprof::stop("CUDA-HtoD");
+            phiprof::start("GPU-HtoD");
+            blockContainer->gpu_prefetchDevice();
+            phiprof::stop("GPU-HtoD");
          }
       }
 
       // Transfer metadata to device, reset gatherer arrays
-      phiprof::start("CUDA-HtoD");
-      HANDLE_ERROR( cudaMemsetAsync(dev_momentArrays1[thread_id], 0, nMoments1*(nPopulations+1)*sizeof(Real), stream) );
-      HANDLE_ERROR( cudaMemcpyAsync(dev_momentInfos[thread_id], host_momentInfos[thread_id], nPopulations*sizeof(MomentInfo), cudaMemcpyHostToDevice, stream) );
+      phiprof::start("GPU-HtoD");
+      HANDLE_ERROR( cudaMemsetAsync(gpu_momentArrays1[thread_id], 0, nMoments1*(nPopulations+1)*sizeof(Real), stream) );
+      HANDLE_ERROR( cudaMemcpyAsync(gpu_momentInfos[thread_id], host_momentInfos[thread_id], nPopulations*sizeof(MomentInfo), cudaMemcpyHostToDevice, stream) );
       HANDLE_ERROR( cudaStreamSynchronize(stream) );
-      phiprof::stop("CUDA-HtoD");
+      phiprof::stop("GPU-HtoD");
 
       // Now launch kernel for this spatial cell, all populations, zeroth and first moments
-      phiprof::start("CUDA-firstMoments");
+      phiprof::start("GPU-firstMoments");
       dim3 block(WID,WID,WID);
       if (totBlocks != 0) {
-         moments_first_kernel<<<CUDABLOCKS, block, 4*WID3*sizeof(Real), stream>>> (
-            dev_momentInfos[thread_id],
-            dev_momentArrays1[thread_id],
+         moments_first_kernel<<<GPUBLOCKS, block, 4*WID3*sizeof(Real), stream>>> (
+            gpu_momentInfos[thread_id],
+            gpu_momentArrays1[thread_id],
             nPopulations);
          HANDLE_ERROR( cudaPeekAtLastError() );
          HANDLE_ERROR( cudaStreamSynchronize(stream) );
       }
-      phiprof::stop("CUDA-firstMoments");
+      phiprof::stop("GPU-firstMoments");
 
       // Transfer momentArrays1 back
-      phiprof::start("CUDA-DtoH");
-      HANDLE_ERROR( cudaMemcpyAsync(host_momentArrays1[thread_id], dev_momentArrays1[thread_id], nMoments1*(nPopulations+1)*sizeof(Real), cudaMemcpyDeviceToHost, stream) );
+      phiprof::start("GPU-DtoH");
+      HANDLE_ERROR( cudaMemcpyAsync(host_momentArrays1[thread_id], gpu_momentArrays1[thread_id], nMoments1*(nPopulations+1)*sizeof(Real), cudaMemcpyDeviceToHost, stream) );
       HANDLE_ERROR( cudaStreamSynchronize(stream) );
-      phiprof::stop("CUDA-DtoH");
+      phiprof::stop("GPU-DtoH");
 
       for (uint popID=0; popID<nPopulations; ++popID) {
          Population & pop = cell->get_population(popID);
@@ -485,14 +485,14 @@ void calculateMoments_V(
          continue;
       }
 
-      phiprof::start("CUDA-secondMoments");
-      HANDLE_ERROR( cudaMemsetAsync(dev_momentArrays2[thread_id], 0, nMoments2*(nPopulations+1)*sizeof(Real), stream) );
+      phiprof::start("GPU-secondMoments");
+      HANDLE_ERROR( cudaMemsetAsync(gpu_momentArrays2[thread_id], 0, nMoments2*(nPopulations+1)*sizeof(Real), stream) );
       HANDLE_ERROR( cudaStreamSynchronize(stream) );
       // Now launch kernel for this spatial cell, all populations, second moments
       if (totBlocks != 0) {
-         moments_second_kernel<<<CUDABLOCKS, block, 3*WID3*sizeof(Real), stream>>> (
-            dev_momentInfos[thread_id],
-            dev_momentArrays2[thread_id],
+         moments_second_kernel<<<GPUBLOCKS, block, 3*WID3*sizeof(Real), stream>>> (
+            gpu_momentInfos[thread_id],
+            gpu_momentArrays2[thread_id],
             nPopulations,
             cell->parameters[CellParams::VX_V],
             cell->parameters[CellParams::VY_V],
@@ -500,13 +500,13 @@ void calculateMoments_V(
          HANDLE_ERROR( cudaPeekAtLastError() );
          HANDLE_ERROR( cudaStreamSynchronize(stream) );
       }
-      phiprof::stop("CUDA-secondMoments");
+      phiprof::stop("GPU-secondMoments");
 
       // Transfer momentArrays2 back
-      phiprof::start("CUDA-DtoH");
-      HANDLE_ERROR( cudaMemcpyAsync(host_momentArrays2[thread_id], dev_momentArrays2[thread_id], nMoments2*(nPopulations+1)*sizeof(Real), cudaMemcpyDeviceToHost, stream) );
+      phiprof::start("GPU-DtoH");
+      HANDLE_ERROR( cudaMemcpyAsync(host_momentArrays2[thread_id], gpu_momentArrays2[thread_id], nMoments2*(nPopulations+1)*sizeof(Real), cudaMemcpyDeviceToHost, stream) );
       HANDLE_ERROR( cudaStreamSynchronize(stream) );
-      phiprof::stop("CUDA-DtoH");
+      phiprof::stop("GPU-DtoH");
 
       for (uint popID=0; popID<nPopulations; ++popID) {
          Population & pop = cell->get_population(popID);
@@ -520,11 +520,11 @@ void calculateMoments_V(
          }
       }
    } // for-loop over spatial cells
-   phiprof::stop("CUDA Compute _V moments");
+   phiprof::stop("GPU Compute _V moments");
    return;
 }
 
-/** Calls a CUDA kernel for calculating zeroth, first, and (possibly) second
+/** Calls a GPU kernel for calculating zeroth, first, and (possibly) second
  * bulk velocity moments for the  given spatial cells.
  * Additionally, for each species, calculate the maximum
  * spatial time step so that CFL(spatial)=1. The calculated moments include
@@ -538,7 +538,7 @@ void calculateMoments_R(
    const std::vector<CellID>& cells,
    const bool& computeSecond) {
 
-   phiprof::start("CUDA Compute _R moments");
+   phiprof::start("GPU Compute _R moments");
 
 #pragma omp parallel for
    for (size_t c=0; c<cells.size(); ++c) {
@@ -547,7 +547,7 @@ void calculateMoments_R(
 #else
       const uint thread_id = 0;
 #endif
-      cudaStream_t stream = cudaStreamList[thread_id];
+      cudaStream_t stream = gpuStreamList[thread_id];
       SpatialCell* cell = mpiGrid[cells[c]];
 
       if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
@@ -583,37 +583,37 @@ void calculateMoments_R(
          // host_momentInfos[thread_id][popID].meshDataPointer = blockContainer->getData();
 
          if (doPrefetches) {
-            phiprof::start("CUDA-HtoD");
-            blockContainer->dev_prefetchDevice();
-            phiprof::stop("CUDA-HtoD");
+            phiprof::start("GPU-HtoD");
+            blockContainer->gpu_prefetchDevice();
+            phiprof::stop("GPU-HtoD");
          }
       }
 
       // Transfer metadata to device, reset gatherer arrays
-      phiprof::start("CUDA-HtoD");
-      HANDLE_ERROR( cudaMemsetAsync(dev_momentArrays1[thread_id], 0, nMoments1*(nPopulations+1)*sizeof(Real), stream) );
-      HANDLE_ERROR( cudaMemcpyAsync(dev_momentInfos[thread_id], host_momentInfos[thread_id], nPopulations*sizeof(MomentInfo), cudaMemcpyHostToDevice, stream) );
+      phiprof::start("GPU-HtoD");
+      HANDLE_ERROR( cudaMemsetAsync(gpu_momentArrays1[thread_id], 0, nMoments1*(nPopulations+1)*sizeof(Real), stream) );
+      HANDLE_ERROR( cudaMemcpyAsync(gpu_momentInfos[thread_id], host_momentInfos[thread_id], nPopulations*sizeof(MomentInfo), cudaMemcpyHostToDevice, stream) );
       HANDLE_ERROR( cudaStreamSynchronize(stream) );
-      phiprof::stop("CUDA-HtoD");
+      phiprof::stop("GPU-HtoD");
 
       // Now launch kernel for this spatial cell, all populations, zeroth and first moments
-      phiprof::start("CUDA-firstMoments");
+      phiprof::start("GPU-firstMoments");
       dim3 block(WID,WID,WID);
       if (totBlocks != 0) {
-         moments_first_kernel<<<CUDABLOCKS, block, 4*WID3*sizeof(Real), stream>>> (
-            dev_momentInfos[thread_id],
-            dev_momentArrays1[thread_id],
+         moments_first_kernel<<<GPUBLOCKS, block, 4*WID3*sizeof(Real), stream>>> (
+            gpu_momentInfos[thread_id],
+            gpu_momentArrays1[thread_id],
             nPopulations);
          HANDLE_ERROR( cudaPeekAtLastError() );
          HANDLE_ERROR( cudaStreamSynchronize(stream) );
       }
-      phiprof::stop("CUDA-firstMoments");
+      phiprof::stop("GPU-firstMoments");
 
       // Transfer momentArrays1 back
-      phiprof::start("CUDA-DtoH");
-      HANDLE_ERROR( cudaMemcpyAsync(host_momentArrays1[thread_id], dev_momentArrays1[thread_id], nMoments1*(nPopulations+1)*sizeof(Real), cudaMemcpyDeviceToHost, stream) );
+      phiprof::start("GPU-DtoH");
+      HANDLE_ERROR( cudaMemcpyAsync(host_momentArrays1[thread_id], gpu_momentArrays1[thread_id], nMoments1*(nPopulations+1)*sizeof(Real), cudaMemcpyDeviceToHost, stream) );
       HANDLE_ERROR( cudaStreamSynchronize(stream) );
-      phiprof::stop("CUDA-DtoH");
+      phiprof::stop("GPU-DtoH");
 
       for (uint popID=0; popID<nPopulations; ++popID) {
          Population & pop = cell->get_population(popID);
@@ -642,14 +642,14 @@ void calculateMoments_R(
          continue;
       }
 
-      phiprof::start("CUDA-secondMoments");
-      HANDLE_ERROR( cudaMemsetAsync(dev_momentArrays2[thread_id], 0, nMoments2*(nPopulations+1)*sizeof(Real), stream) );
+      phiprof::start("GPU-secondMoments");
+      HANDLE_ERROR( cudaMemsetAsync(gpu_momentArrays2[thread_id], 0, nMoments2*(nPopulations+1)*sizeof(Real), stream) );
       HANDLE_ERROR( cudaStreamSynchronize(stream) );
       // Now launch kernel for this spatial cell, all populations, second moments
       if (totBlocks != 0) {
-         moments_second_kernel<<<CUDABLOCKS, block, 3*WID3*sizeof(Real), stream>>> (
-            dev_momentInfos[thread_id],
-            dev_momentArrays2[thread_id],
+         moments_second_kernel<<<GPUBLOCKS, block, 3*WID3*sizeof(Real), stream>>> (
+            gpu_momentInfos[thread_id],
+            gpu_momentArrays2[thread_id],
             nPopulations,
             cell->parameters[CellParams::VX_R],
             cell->parameters[CellParams::VY_R],
@@ -657,13 +657,13 @@ void calculateMoments_R(
          HANDLE_ERROR( cudaPeekAtLastError() );
          HANDLE_ERROR( cudaStreamSynchronize(stream) );
       }
-      phiprof::stop("CUDA-secondMoments");
+      phiprof::stop("GPU-secondMoments");
 
       // Transfer momentArrays2 back
-      phiprof::start("CUDA-DtoH");
-      HANDLE_ERROR( cudaMemcpyAsync(host_momentArrays2[thread_id], dev_momentArrays2[thread_id], nMoments2*(nPopulations+1)*sizeof(Real), cudaMemcpyDeviceToHost, stream) );
+      phiprof::start("GPU-DtoH");
+      HANDLE_ERROR( cudaMemcpyAsync(host_momentArrays2[thread_id], gpu_momentArrays2[thread_id], nMoments2*(nPopulations+1)*sizeof(Real), cudaMemcpyDeviceToHost, stream) );
       HANDLE_ERROR( cudaStreamSynchronize(stream) );
-      phiprof::stop("CUDA-DtoH");
+      phiprof::stop("GPU-DtoH");
 
       for (uint popID=0; popID<nPopulations; ++popID) {
          Population & pop = cell->get_population(popID);
@@ -677,6 +677,6 @@ void calculateMoments_R(
          }
       }
    } // for-loop over spatial cells
-   phiprof::stop("CUDA Compute _R moments");
+   phiprof::stop("GPU Compute _R moments");
    return;
 }

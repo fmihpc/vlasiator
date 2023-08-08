@@ -26,10 +26,10 @@
 #ifndef SPATIAL_CELL_WRAPPER_H
 #define SPATIAL_CELL_WRAPPER_H
 
-#ifdef USE_CUDA
-#include "spatial_cell_cuda.hpp"
+#ifdef USE_GPU
+#include "spatial_cell_gpu.hpp"
 #else
-#include "spatial_cell_old.hpp"
+#include "spatial_cell_cpu.hpp"
 #endif
 
 #endif

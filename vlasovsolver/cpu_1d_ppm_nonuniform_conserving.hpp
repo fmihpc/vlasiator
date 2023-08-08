@@ -28,12 +28,7 @@
 #include "algorithm"
 #include "cmath"
 
-#include "cuda_header.h"
-#ifdef __CUDACC__
-#include "device_launch_parameters.h"
-#include "cuda.h"
-#include "cuda_runtime.h"
-#endif
+#include "../arch/arch_device_api.h"
 #include "cpu_slope_limiters.hpp"
 #include "cpu_face_estimates.hpp"
 
@@ -42,7 +37,7 @@ using namespace std;
 /*
   Compute parabolic reconstruction with an explicit scheme
 */
-CUDA_HOSTDEV inline void compute_ppm_coeff_nonuniform(const Vec * const dv, const Vec * const values, face_estimate_order order, uint k, Vec a[3], const Realv threshold){
+ARCH_HOSTDEV inline void compute_ppm_coeff_nonuniform(const Vec * const dv, const Vec * const values, face_estimate_order order, uint k, Vec a[3], const Realv threshold){
    Vec fv_l; /*left face value*/
    Vec fv_r; /*right face value*/
    compute_filtered_face_values_nonuniform_conserving(dv, values, k, order, fv_l, fv_r, threshold); 
@@ -73,7 +68,7 @@ CUDA_HOSTDEV inline void compute_ppm_coeff_nonuniform(const Vec * const dv, cons
       Define functions for Realf instead of Vec 
 ***/
 
-CUDA_DEV inline void compute_ppm_coeff_nonuniform(const Vec * const dv, const Vec * const values, face_estimate_order order, uint k, Realf a[3], const Realv threshold, const int index){
+ARCH_DEV inline void compute_ppm_coeff_nonuniform(const Vec * const dv, const Vec * const values, face_estimate_order order, uint k, Realf a[3], const Realv threshold, const int index){
    Realf fv_l; /*left face value*/
    Realf fv_r; /*right face value*/
    compute_filtered_face_values_nonuniform_conserving(dv, values, k, order, fv_l, fv_r, threshold, index); 

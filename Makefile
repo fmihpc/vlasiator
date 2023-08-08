@@ -90,10 +90,17 @@ ifeq ($(MESH),VAMR)
 COMPFLAGS += -DVAMR
 endif
 
-# CUDA settings
+# GPU settings
+USE_GPU=0
 ifeq ($(USE_CUDA),1)
+	USE_GPU=1
 	LIBS += ${LIB_CUDA} -lcudart
-	COMPFLAGS += -DUSE_CUDA ${INC_HASHINATOR} ${INC_CUDA}
+	COMPFLAGS += -DUSE_GPU -DUSE_CUDA ${INC_HASHINATOR} ${INC_CUDA}
+endif
+ifeq ($(USE_HIP),1)
+	USE_GPU=1
+	LIBS += ${LIB_HIP} -lhiprt
+	COMPFLAGS += -DUSE_GPU ${INC_HASHINATOR} ${INC_HIP}
 endif
 
 #Vectorclass settings
@@ -185,12 +192,12 @@ OBJS += cpu_acc_intersections.o cpu_acc_map.o cpu_acc_sort_blocks.o cpu_acc_load
 	cpu_trans_pencils.o
 endif
 
-# Only build CUDA version object files if active
-ifeq ($(USE_CUDA),1)
-	OBJS += cuda_acc_map.o cuda_acc_semilag.o cuda_acc_sort_blocks.o \
-		cuda_context.o cuda_moments.o cuda_trans_map_amr.o
+# Only build GPU version object files if active
+ifeq ($(USE_GPU),1)
+	OBJS += gpu_acc_map.o gpu_acc_semilag.o gpu_acc_sort_blocks.o \
+		gpu_base.o gpu_moments.o gpu_trans_map_amr.o
 else
-# if *not* building CUDA version, build regular CPU version
+# if *not* building GPU version, build regular CPU version
 	OBJS += vamr_refinement_criteria.o cpu_trans_map_amr.o cpu_moments.o
 endif
 
@@ -227,27 +234,27 @@ version.cpp: FORCE
 	$(SILENT)./generate_version.sh "${CMP}" "${CXXFLAGS}" "${FLAGS}" "${INC_MPI}" "${INC_DCCRG}" "${INC_FSGRID}" "${INC_ZOLTAN}" "${INC_BOOST}"
 
 # Do not autobuild sub-versions of spatial_cell
-spatial_cell_cuda.o:
+spatial_cell_gpu.o:
 	@: #do nothing
-spatial_cell_old.o:
+spatial_cell_cpu.o:
 	@: #do nothing
 
-#Special handling for CUDA files
-ifeq ($(USE_CUDA),1)
-# Turn on compilation for of CUDA-version of spatial_cell
-spatial_cell.o: spatial_cell_cuda.cpp
+#Special handling for GPU files
+ifeq ($(USE_GPU),1)
+# Turn on compilation for of GPU-version of spatial_cell
+spatial_cell.o: spatial_cell_gpu.cpp
 	@echo "[CC]" $<
-	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c spatial_cell_cuda.cpp -o spatial_cell.o $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID}
+	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c spatial_cell_gpu.cpp -o spatial_cell.o $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID}
 else
-# Turn off compilation of CUDA-specific files
-%.o: vlasovsolver/cuda_%.cpp
+# CPU-only compulation: Turn off compilation of gpu-specific files
+%.o: vlasovsolver/gpu_%.cpp
 	@: #do nothing
-cuda_context.o:
+arch/gpu_base.o:
 	@: #do nothing
 # Turn on compilation for of old cpu-version of spatial_cell
-spatial_cell.o: spatial_cell_old.cpp
+spatial_cell.o: spatial_cell_cpu.cpp
 	@echo "[CC]" $<
-	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c spatial_cell_old.cpp -o spatial_cell.o $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID}
+	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c spatial_cell_cpu.cpp -o spatial_cell.o $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID}
 endif
 
 # Generic rules:
@@ -255,6 +262,11 @@ endif
 %.o: %.cpp
 	@echo "[CC]" $<
 	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c $< $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID} ${INC_PROFILE} ${INC_VLSV} ${INC_PAPI} ${INC_MPI}
+
+# for all files in the arch/ dir
+%.o: arch/%.cpp
+	@echo [CC] $<
+	$(SILENT)${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c $< -I$(CURDIR) ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VECTORCLASS} ${INC_EIGEN} ${INC_VLSV} ${INC_MPI}
 
 # for all files in the backgroundfield/ dir
 %.o: backgroundfield/%.cpp  backgroundfield/constantfield.hpp backgroundfield/fieldfunction.hpp backgroundfield/functions.hpp backgroundfield/backgroundfield.h

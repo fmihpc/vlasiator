@@ -51,9 +51,9 @@
 #endif
 
 #include "vlasovsolver/cpu_trans_pencils.hpp"
-#ifdef USE_CUDA
-#include "vlasovsolver/cuda_moments.h"
-#include "cuda_context.cuh"
+#ifdef USE_GPU
+#include "vlasovsolver/gpu_moments.hpp"
+#include "arch/gpu_base.hpp"
 #endif
 
 #ifndef NDEBUG
@@ -109,11 +109,11 @@ void initializeGrids(
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
-   #ifdef USE_CUDA
+   #ifdef USE_GPU
    // Allocate GPU helper arrays
    const uint nPopulations = getObjectWrapper().particleSpecies.size();
    const uint maxThreads = omp_get_max_threads();
-   cuda_allocateMomentCalculations(nPopulations,maxThreads);
+   gpu_allocateMomentCalculations(nPopulations,maxThreads);
    #endif
 
    // Init Zoltan:
@@ -290,15 +290,15 @@ void initializeGrids(
       #pragma omp parallel for schedule(dynamic)
       for (size_t i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
-         #ifdef USE_CUDA
+         #ifdef USE_GPU
          cell->prefetchHost(); // Currently projects still init on host
          #endif
          if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             project.setCell(cell);
          }
-         #ifdef USE_CUDA
+         #ifdef USE_GPU
          cell->prefetchDevice(); // Currently projects still init on host
-         cell->dev_advise();
+         cell->gpu_advise();
          #endif
       }
       phiprof::stop("setCell");
@@ -651,31 +651,31 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
       prepareSeedIdsAndPencils(mpiGrid,dimension);
    }
 
-#ifdef USE_CUDA
-   phiprof::start("CUDA_malloc");
-   uint cudaMaxBlockCount = 0;
-   vmesh::LocalID cudaBlockCount = 0;
+#ifdef USE_GPU
+   phiprof::start("GPU_malloc");
+   uint gpuMaxBlockCount = 0;
+   vmesh::LocalID gpuBlockCount = 0;
    // Not parallelized
    for (uint i=0; i<cells.size(); ++i) {
       SpatialCell* SC = mpiGrid[cells[i]];
-      SC->dev_advise();
+      SC->gpu_advise();
       for (size_t popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          const vmesh::VelocityMesh* vmesh = SC->get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer* blockContainer = SC->get_velocity_blocks(popID);
-         cudaBlockCount = vmesh->size();
-         // dev_Allocate checks if increased allocation is necessary, also performs deallocation first if necessary
-         blockContainer->dev_Allocate(cudaBlockCount);
-         if (cudaBlockCount > cudaMaxBlockCount) {
-            cudaMaxBlockCount = cudaBlockCount;
+         gpuBlockCount = vmesh->size();
+         // gpu_Allocate checks if increased allocation is necessary, also performs deallocation first if necessary
+         blockContainer->gpu_Allocate(gpuBlockCount);
+         if (gpuBlockCount > gpuMaxBlockCount) {
+            gpuMaxBlockCount = gpuBlockCount;
          }
       }
    }
-   // Call CUDA routines for per-thread memory allocation for Vlasov solvers
+   // Call GPU routines for per-thread memory allocation for Vlasov solvers
    // deallocates first if necessary
-   //CUDATODO: Also count how many pencils exist
-   cuda_vlasov_allocate(cudaMaxBlockCount);
-   cuda_acc_allocate(cudaMaxBlockCount);
-   phiprof::stop("CUDA_malloc");
+   //GPUTODO: Also count how many pencils exist
+   gpu_vlasov_allocate(gpuMaxBlockCount);
+   gpu_acc_allocate(gpuMaxBlockCount);
+   phiprof::stop("GPU_malloc");
 #endif
 
    phiprof::stop("GetSeedIdsAndBuildPencils");
@@ -700,13 +700,13 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    #pragma omp parallel
    {
       phiprof::start("Compute with_content_list");
-#ifdef USE_CUDA
+#ifdef USE_GPU
       #pragma omp for schedule(dynamic,1)
       for (uint i=0; i<cells.size(); ++i) {
-         mpiGrid[cells[i]]->dev_attachToStream();
+         mpiGrid[cells[i]]->gpu_attachToStream();
          mpiGrid[cells[i]]->updateSparseMinValue(popID);
          mpiGrid[cells[i]]->update_velocity_block_content_lists(popID);
-         mpiGrid[cells[i]]->dev_detachFromStream();
+         mpiGrid[cells[i]]->gpu_detachFromStream();
       }
 #else
       #pragma omp for schedule(dynamic,1)
@@ -726,7 +726,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    mpiGrid.update_copies_of_remote_neighbors(NEAREST_NEIGHBORHOOD_ID);
    phiprof::stop("Transfer with_content_list");
 
-#ifdef USE_CUDA
+#ifdef USE_GPU
    // Now loop over ghost cells and upload their velocity block lists into GPU memory
    const std::vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(NEAREST_NEIGHBORHOOD_ID);
    #pragma omp parallel
@@ -734,11 +734,11 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
       phiprof::start("Upload with_content_list to device");
       #pragma omp for
       for (size_t i=0; i<cellsToAdjust.size(); ++i) {
-         mpiGrid[cellsToAdjust[i]]->dev_uploadContentLists();
+         mpiGrid[cellsToAdjust[i]]->gpu_uploadContentLists();
       }
       #pragma omp for schedule(dynamic,1)
       for(size_t i=0; i<remote_cells.size(); ++i) {
-         mpiGrid[remote_cells[i]]->dev_uploadContentLists();
+         mpiGrid[remote_cells[i]]->gpu_uploadContentLists();
       }
       phiprof::stop("Upload with_content_list to device");
    }
@@ -768,10 +768,10 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
             }
             neighbor_ptrs.push_back(mpiGrid[neighbor_id]);
          }
-#ifdef USE_CUDA
-         cell->dev_attachToStream();
+#ifdef USE_GPU
+         cell->gpu_attachToStream();
 #endif
-         // CUDATODO: Vectorize / GPUify
+         // GPUTODO: Vectorize / GPUify
          if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
             for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
                density_pre_adjust += cell->get_data(popID)[i];
@@ -779,7 +779,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
          }
          cell->adjust_velocity_blocks(neighbor_ptrs,popID);
 
-         // CUDATODO: Vectorize / GPUify
+         // GPUTODO: Vectorize / GPUify
          if (getObjectWrapper().particleSpecies[popID].sparse_conserve_mass) {
             for (size_t i=0; i<cell->get_number_of_velocity_blocks(popID)*WID3; ++i) {
                density_post_adjust += cell->get_data(popID)[i];
@@ -790,24 +790,24 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
                }
             }
          }
-#ifdef USE_CUDA
-         cell->dev_detachFromStream();
+#ifdef USE_GPU
+         cell->gpu_detachFromStream();
 #endif
       }
       phiprof::stop("Adjusting blocks");
    }
 
-   #ifdef USE_CUDA
+   #ifdef USE_GPU
    // Now loop over local and ghost cells and free up the temborary buffer memory
    #pragma omp parallel
    {
       #pragma omp for
       for (size_t i=0; i<cellsToAdjust.size(); ++i) {
-         mpiGrid[cellsToAdjust[i]]->dev_clearContentLists();
+         mpiGrid[cellsToAdjust[i]]->gpu_clearContentLists();
       }
       #pragma omp for
       for(size_t i=0; i<remote_cells.size(); ++i) {
-         mpiGrid[remote_cells[i]]->dev_clearContentLists();
+         mpiGrid[remote_cells[i]]->gpu_clearContentLists();
       }
    }
    #endif

@@ -30,20 +30,15 @@
 #include "common.h"
 #include "mpi.h"
 
-#include "cuda_context.cuh"
-
-#include "device_launch_parameters.h"
-#include "cuda.h"
-#include "cuda_runtime.h"
-
-// #define MAXCPUTHREADS 64 now in cuda_context.hpp
+#include "gpu_base.hpp"
+// #define MAXCPUTHREADS 64 now in gpu_base.hpp
 
 int myDevice;
 int myRank;
 
 // Allocate pointers for per-thread memory regions
-cudaStream_t cudaStreamList[MAXCPUTHREADS];
-cudaStream_t cudaPriorityStreamList[MAXCPUTHREADS];
+cudaStream_t gpuStreamList[MAXCPUTHREADS];
+cudaStream_t gpuPriorityStreamList[MAXCPUTHREADS];
 
 Real *returnReal[MAXCPUTHREADS];
 Realf *returnRealf[MAXCPUTHREADS];
@@ -53,31 +48,31 @@ bool needAttachedStreams = false;
 bool doPrefetches=false; // only non-crucial prefetches are behind this check
 // Note: disabling prefetches brings in strange memory errors and crashes (June 2023)
 
-uint *dev_cell_indices_to_id[MAXCPUTHREADS];
-uint *dev_block_indices_to_id[MAXCPUTHREADS];
-uint *dev_vcell_transpose[MAXCPUTHREADS];
+uint *gpu_cell_indices_to_id[MAXCPUTHREADS];
+uint *gpu_block_indices_to_id[MAXCPUTHREADS];
+uint *gpu_vcell_transpose[MAXCPUTHREADS];
 
 ColumnOffsets *unif_columnOffsetData[MAXCPUTHREADS];
-Column *dev_columns[MAXCPUTHREADS];
+Column *gpu_columns[MAXCPUTHREADS];
 
-Vec *dev_blockDataOrdered[MAXCPUTHREADS];
+Vec *gpu_blockDataOrdered[MAXCPUTHREADS];
 
-vmesh::LocalID *dev_GIDlist[MAXCPUTHREADS];
-vmesh::LocalID *dev_LIDlist[MAXCPUTHREADS];
-vmesh::GlobalID *dev_BlocksID_mapped[MAXCPUTHREADS];
-vmesh::GlobalID *dev_BlocksID_mapped_sorted[MAXCPUTHREADS];
-vmesh::GlobalID *dev_LIDlist_unsorted[MAXCPUTHREADS];
-vmesh::LocalID *dev_columnNBlocks[MAXCPUTHREADS];
-void *dev_RadixSortTemp[MAXCPUTHREADS];
-uint cuda_acc_RadixSortTempSize[MAXCPUTHREADS] = {0};
+vmesh::LocalID *gpu_GIDlist[MAXCPUTHREADS];
+vmesh::LocalID *gpu_LIDlist[MAXCPUTHREADS];
+vmesh::GlobalID *gpu_BlocksID_mapped[MAXCPUTHREADS];
+vmesh::GlobalID *gpu_BlocksID_mapped_sorted[MAXCPUTHREADS];
+vmesh::GlobalID *gpu_LIDlist_unsorted[MAXCPUTHREADS];
+vmesh::LocalID *gpu_columnNBlocks[MAXCPUTHREADS];
+void *gpu_RadixSortTemp[MAXCPUTHREADS];
+uint gpu_acc_RadixSortTempSize[MAXCPUTHREADS] = {0};
 
 // Memory allocation flags and values.
-uint cuda_vlasov_allocatedSize = 0;
-uint cuda_acc_allocatedColumns = 0;
-uint cuda_acc_columnContainerSize = 0;
-uint cuda_acc_foundColumnsCount = 0;
+uint gpu_vlasov_allocatedSize = 0;
+uint gpu_acc_allocatedColumns = 0;
+uint gpu_acc_columnContainerSize = 0;
+uint gpu_acc_foundColumnsCount = 0;
 
-__host__ void cuda_init_device() {
+__host__ void gpu_init_device() {
 
 #ifdef _OPENMP
    const uint maxThreads = omp_get_max_threads();
@@ -88,7 +83,7 @@ __host__ void cuda_init_device() {
    int deviceCount;
    //HANDLE_ERROR( cudaFree(0));
    HANDLE_ERROR( cudaGetDeviceCount(&deviceCount) );
-   printf("CUDA device count %d with %d threads/streams\n",deviceCount,maxThreads);
+   printf("GPU device count %d with %d threads/streams\n",deviceCount,maxThreads);
 
    /* Create communicator with one rank per compute node to identify which GPU to use */
    int amps_size;
@@ -125,11 +120,11 @@ __host__ void cuda_init_device() {
    myRank = amps_node_rank;
 
    if (amps_node_rank >= deviceCount) {
-      std::cerr<<"Error, attempting to use CUDA device beyond available count!"<<std::endl;
+      std::cerr<<"Error, attempting to use GPU device beyond available count!"<<std::endl;
       abort();
    }
    if (amps_node_size > deviceCount) {
-      std::cerr<<"Error, MPI tasks per node exceeds available CUDA device count!"<<std::endl;
+      std::cerr<<"Error, MPI tasks per node exceeds available GPU device count!"<<std::endl;
       abort();
    }
    HANDLE_ERROR( cudaSetDevice(amps_node_rank) );
@@ -140,7 +135,7 @@ __host__ void cuda_init_device() {
    int supportedMode;
    HANDLE_ERROR( cudaDeviceGetAttribute (&supportedMode, cudaDevAttrConcurrentManagedAccess, myDevice) );
    if (supportedMode==0) {
-      printf("Warning! Current CUDA device does not support concurrent managed memory access from several streams.\n");
+      printf("Warning! Current GPU device does not support concurrent managed memory access from several streams.\n");
       needAttachedStreams = true;
    }
 
@@ -149,11 +144,11 @@ __host__ void cuda_init_device() {
    int *greatestPriority = new int; // likely -1
    HANDLE_ERROR( cudaDeviceGetStreamPriorityRange (leastPriority, greatestPriority) );
    if (*leastPriority==*greatestPriority) {
-      printf("Warning when initializing CUDA streams: minimum and maximum stream priority are identical! %d == %d \n",*leastPriority, *greatestPriority);
+      printf("Warning when initializing GPU streams: minimum and maximum stream priority are identical! %d == %d \n",*leastPriority, *greatestPriority);
    }
    for (uint i=0; i<maxThreads; ++i) {
-      HANDLE_ERROR( cudaStreamCreateWithPriority(&(cudaStreamList[i]), cudaStreamDefault, *leastPriority) );
-      HANDLE_ERROR( cudaStreamCreateWithPriority(&(cudaPriorityStreamList[i]), cudaStreamDefault, *greatestPriority) );
+      HANDLE_ERROR( cudaStreamCreateWithPriority(&(gpuStreamList[i]), cudaStreamDefault, *leastPriority) );
+      HANDLE_ERROR( cudaStreamCreateWithPriority(&(gpuPriorityStreamList[i]), cudaStreamDefault, *greatestPriority) );
       HANDLE_ERROR( cudaMalloc((void**)&returnReal[i], 8*sizeof(Real)) );
       HANDLE_ERROR( cudaMalloc((void**)&returnRealf[i], 8*sizeof(Realf)) );
       HANDLE_ERROR( cudaMalloc((void**)&returnLID[i], 8*sizeof(vmesh::LocalID)) );
@@ -162,7 +157,7 @@ __host__ void cuda_init_device() {
    // Using just a single context for whole MPI task
 }
 
-__host__ void cuda_clear_device() {
+__host__ void gpu_clear_device() {
    // Destroy streams
 #ifdef _OPENMP
    const uint maxThreads = omp_get_max_threads();
@@ -170,33 +165,33 @@ __host__ void cuda_clear_device() {
    const uint maxThreads = 1
 #endif
    for (uint i=0; i<maxThreads; ++i) {
-      HANDLE_ERROR( cudaStreamDestroy(cudaStreamList[i]) );
-      HANDLE_ERROR( cudaStreamDestroy(cudaPriorityStreamList[i]) );
+      HANDLE_ERROR( cudaStreamDestroy(gpuStreamList[i]) );
+      HANDLE_ERROR( cudaStreamDestroy(gpuPriorityStreamList[i]) );
       HANDLE_ERROR( cudaFree(returnReal[i]) );
       HANDLE_ERROR( cudaFree(returnRealf[i]) );
       HANDLE_ERROR( cudaFree(returnLID[i]) );
    }
 }
 
-__host__ cudaStream_t cuda_getStream() {
+__host__ cudaStream_t gpu_getStream() {
 #ifdef _OPENMP
    const uint thread_id = omp_get_thread_num();
 #else
    const uint thread_id = 0;
 #endif
-   return cudaStreamList[thread_id];
+   return gpuStreamList[thread_id];
 }
 
-__host__ cudaStream_t cuda_getPriorityStream() {
+__host__ cudaStream_t gpu_getPriorityStream() {
 #ifdef _OPENMP
    const uint thread_id = omp_get_thread_num();
 #else
    const uint thread_id = 0;
 #endif
-   return cudaPriorityStreamList[thread_id];
+   return gpuPriorityStreamList[thread_id];
 }
 
-__host__ int cuda_getDevice() {
+__host__ int gpu_getDevice() {
    int device;
    HANDLE_ERROR( cudaGetDevice(&device) );
    return device;
@@ -206,13 +201,13 @@ __host__ int cuda_getDevice() {
    Top-level GPU memory allocation function.
    This is called from within non-threaded regions so does not perform async.
  */
-__host__ void cuda_vlasov_allocate (
+__host__ void gpu_vlasov_allocate (
    uint maxBlockCount
    ) {
    // Always prepare for at least 2500 blocks (affects also translation parallelism)
    const uint maxBlocksPerCell = maxBlockCount > 2500 ? maxBlockCount : 2500;
    // Check if we already have allocated enough memory?
-   if (cuda_vlasov_allocatedSize > maxBlocksPerCell * BLOCK_ALLOCATION_FACTOR) {
+   if (gpu_vlasov_allocatedSize > maxBlocksPerCell * BLOCK_ALLOCATION_FACTOR) {
       return;
    }
    // If not, add extra padding
@@ -225,61 +220,61 @@ __host__ void cuda_vlasov_allocate (
    const uint maxNThreads = 1;
 #endif
    for (uint i=0; i<maxNThreads; ++i) {
-      if (cuda_vlasov_allocatedSize > 0) {
-         cuda_vlasov_deallocate_perthread(i);
+      if (gpu_vlasov_allocatedSize > 0) {
+         gpu_vlasov_deallocate_perthread(i);
       }
-      cuda_vlasov_allocate_perthread(i, newSize);
+      gpu_vlasov_allocate_perthread(i, newSize);
    }
-   cuda_vlasov_allocatedSize = newSize;
+   gpu_vlasov_allocatedSize = newSize;
 }
 
-__host__ uint cuda_vlasov_getAllocation() {
-   return cuda_vlasov_allocatedSize;
+__host__ uint gpu_vlasov_getAllocation() {
+   return gpu_vlasov_allocatedSize;
 }
 
-__host__ void cuda_vlasov_allocate_perthread (
+__host__ void gpu_vlasov_allocate_perthread (
    uint cpuThreadID,
    uint blockAllocationCount
    ) {
    // Mallocs should be in increments of 256 bytes. WID3 is at least 64, and len(Realf) is at least 4, so this is true.
-   HANDLE_ERROR( cudaMalloc((void**)&dev_cell_indices_to_id[cpuThreadID], 3*sizeof(uint)) );
-   HANDLE_ERROR( cudaMalloc((void**)&dev_block_indices_to_id[cpuThreadID], 3*sizeof(uint)) );
-   HANDLE_ERROR( cudaMalloc((void**)&dev_vcell_transpose[cpuThreadID], WID3*sizeof(uint)) );
-   HANDLE_ERROR( cudaMalloc((void**)&dev_blockDataOrdered[cpuThreadID], blockAllocationCount * (WID3 / VECL) * sizeof(Vec)) );
-   HANDLE_ERROR( cudaMalloc((void**)&dev_BlocksID_mapped[cpuThreadID], blockAllocationCount*sizeof(vmesh::GlobalID)) );
-   HANDLE_ERROR( cudaMalloc((void**)&dev_BlocksID_mapped_sorted[cpuThreadID], blockAllocationCount*sizeof(vmesh::GlobalID)) );
-   HANDLE_ERROR( cudaMalloc((void**)&dev_LIDlist_unsorted[cpuThreadID], blockAllocationCount*sizeof(vmesh::GlobalID)) );
-   HANDLE_ERROR( cudaMalloc((void**)&dev_LIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID)) );
-   HANDLE_ERROR( cudaMalloc((void**)&dev_GIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID)) );
+   HANDLE_ERROR( cudaMalloc((void**)&gpu_cell_indices_to_id[cpuThreadID], 3*sizeof(uint)) );
+   HANDLE_ERROR( cudaMalloc((void**)&gpu_block_indices_to_id[cpuThreadID], 3*sizeof(uint)) );
+   HANDLE_ERROR( cudaMalloc((void**)&gpu_vcell_transpose[cpuThreadID], WID3*sizeof(uint)) );
+   HANDLE_ERROR( cudaMalloc((void**)&gpu_blockDataOrdered[cpuThreadID], blockAllocationCount * (WID3 / VECL) * sizeof(Vec)) );
+   HANDLE_ERROR( cudaMalloc((void**)&gpu_BlocksID_mapped[cpuThreadID], blockAllocationCount*sizeof(vmesh::GlobalID)) );
+   HANDLE_ERROR( cudaMalloc((void**)&gpu_BlocksID_mapped_sorted[cpuThreadID], blockAllocationCount*sizeof(vmesh::GlobalID)) );
+   HANDLE_ERROR( cudaMalloc((void**)&gpu_LIDlist_unsorted[cpuThreadID], blockAllocationCount*sizeof(vmesh::GlobalID)) );
+   HANDLE_ERROR( cudaMalloc((void**)&gpu_LIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID)) );
+   HANDLE_ERROR( cudaMalloc((void**)&gpu_GIDlist[cpuThreadID], blockAllocationCount*sizeof(vmesh::LocalID)) );
 }
 
-__host__ void cuda_vlasov_deallocate_perthread (
+__host__ void gpu_vlasov_deallocate_perthread (
    uint cpuThreadID
    ) {
-   cuda_vlasov_allocatedSize = 0;
-   HANDLE_ERROR( cudaFree(dev_cell_indices_to_id[cpuThreadID]) );
-   HANDLE_ERROR( cudaFree(dev_block_indices_to_id[cpuThreadID]) );
-   HANDLE_ERROR( cudaFree(dev_vcell_transpose[cpuThreadID]) );
-   HANDLE_ERROR( cudaFree(dev_blockDataOrdered[cpuThreadID]) );
-   HANDLE_ERROR( cudaFree(dev_BlocksID_mapped[cpuThreadID]) );
-   HANDLE_ERROR( cudaFree(dev_BlocksID_mapped_sorted[cpuThreadID]) );
-   HANDLE_ERROR( cudaFree(dev_LIDlist_unsorted[cpuThreadID]) );
-   HANDLE_ERROR( cudaFree(dev_LIDlist[cpuThreadID]) );
-   HANDLE_ERROR( cudaFree(dev_GIDlist[cpuThreadID]) );
+   gpu_vlasov_allocatedSize = 0;
+   HANDLE_ERROR( cudaFree(gpu_cell_indices_to_id[cpuThreadID]) );
+   HANDLE_ERROR( cudaFree(gpu_block_indices_to_id[cpuThreadID]) );
+   HANDLE_ERROR( cudaFree(gpu_vcell_transpose[cpuThreadID]) );
+   HANDLE_ERROR( cudaFree(gpu_blockDataOrdered[cpuThreadID]) );
+   HANDLE_ERROR( cudaFree(gpu_BlocksID_mapped[cpuThreadID]) );
+   HANDLE_ERROR( cudaFree(gpu_BlocksID_mapped_sorted[cpuThreadID]) );
+   HANDLE_ERROR( cudaFree(gpu_LIDlist_unsorted[cpuThreadID]) );
+   HANDLE_ERROR( cudaFree(gpu_LIDlist[cpuThreadID]) );
+   HANDLE_ERROR( cudaFree(gpu_GIDlist[cpuThreadID]) );
 }
 
 /*
    Top-level GPU memory allocation function for acceleration-specific column data.
    This is called from within non-threaded regions so does not perform async.
  */
-__host__ void cuda_acc_allocate (
+__host__ void gpu_acc_allocate (
    uint maxBlockCount
    ) {
    uint requiredColumns;
    // Has the acceleration solver already figured out how many columns we have?
-   if (cuda_acc_foundColumnsCount > 0) {
+   if (gpu_acc_foundColumnsCount > 0) {
       // Always prepare for at least 500 columns
-      requiredColumns = cuda_acc_foundColumnsCount > 500 ? cuda_acc_foundColumnsCount : 500;
+      requiredColumns = gpu_acc_foundColumnsCount > 500 ? gpu_acc_foundColumnsCount : 500;
    } else {
       // The worst case scenario for columns is with every block having content but no neighbours, creating up
       // to maxBlockCount columns with each needing three blocks (one value plus two for padding).
@@ -296,8 +291,8 @@ __host__ void cuda_acc_allocate (
       requiredColumns = estimatedColumns > 500 ? estimatedColumns : 500;
    }
    // Check if we already have allocated enough memory?
-   if (cuda_acc_allocatedColumns > requiredColumns * BLOCK_ALLOCATION_FACTOR) {
-      //std::cerr<<"CUDA_ACC_ALLOCATE: return "<<std::endl;
+   if (gpu_acc_allocatedColumns > requiredColumns * BLOCK_ALLOCATION_FACTOR) {
+      //std::cerr<<"GPU_ACC_ALLOCATE: return "<<std::endl;
       return;
    }
    // If not, add extra padding
@@ -309,25 +304,25 @@ __host__ void cuda_acc_allocate (
 #else
    const uint maxNThreads = 1;
 #endif
-   if (cuda_acc_allocatedColumns > 0) {
+   if (gpu_acc_allocatedColumns > 0) {
       for (uint i=0; i<maxNThreads; ++i) {
-         cuda_acc_deallocate_perthread(i);
+         gpu_acc_deallocate_perthread(i);
       }
    }
    for (uint i=0; i<maxNThreads; ++i) {
-      cuda_acc_allocate_perthread(i,newSize);
+      gpu_acc_allocate_perthread(i,newSize);
    }
-   cuda_acc_allocatedColumns = newSize;
+   gpu_acc_allocatedColumns = newSize;
 }
 
-__host__ void cuda_acc_allocate_perthread (
+__host__ void gpu_acc_allocate_perthread (
    uint cpuThreadID,
    uint columnAllocationCount
    ) {
    // Unified memory; columndata contains several splitvectors.
    unif_columnOffsetData[cpuThreadID] = new ColumnOffsets(columnAllocationCount); // inherits managed
-   unif_columnOffsetData[cpuThreadID]->dev_advise();
-   HANDLE_ERROR( cudaMalloc((void**)&dev_columns[cpuThreadID], columnAllocationCount*sizeof(Column)) );
+   unif_columnOffsetData[cpuThreadID]->gpu_advise();
+   HANDLE_ERROR( cudaMalloc((void**)&gpu_columns[cpuThreadID], columnAllocationCount*sizeof(Column)) );
 
    // Potential ColumnSet block count container
    const uint c0 = (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[0];
@@ -335,16 +330,16 @@ __host__ void cuda_acc_allocate_perthread (
    const uint c2 = (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[2];
    std::array<uint, 3> s = {c0,c1,c2};
    std::sort(s.begin(), s.end());
-   cuda_acc_columnContainerSize = c2*c1;
-   HANDLE_ERROR( cudaMalloc((void**)&dev_columnNBlocks[cpuThreadID], cuda_acc_columnContainerSize*sizeof(vmesh::LocalID)) );
+   gpu_acc_columnContainerSize = c2*c1;
+   HANDLE_ERROR( cudaMalloc((void**)&gpu_columnNBlocks[cpuThreadID], gpu_acc_columnContainerSize*sizeof(vmesh::LocalID)) );
 }
 
-__host__ void cuda_acc_deallocate_perthread (
+__host__ void gpu_acc_deallocate_perthread (
    uint cpuThreadID
    ) {
-   cuda_acc_allocatedColumns = 0;
-   cuda_acc_columnContainerSize = 0;
-   HANDLE_ERROR( cudaFree(dev_columnNBlocks[cpuThreadID]) );
-   HANDLE_ERROR( cudaFree(dev_columns[cpuThreadID]) );
+   gpu_acc_allocatedColumns = 0;
+   gpu_acc_columnContainerSize = 0;
+   HANDLE_ERROR( cudaFree(gpu_columnNBlocks[cpuThreadID]) );
+   HANDLE_ERROR( cudaFree(gpu_columns[cpuThreadID]) );
    delete unif_columnOffsetData[cpuThreadID];
 }

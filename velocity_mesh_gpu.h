@@ -22,8 +22,8 @@
 
 // Non-AMR implementation of the velocity space, still in use despite the filename
 
-#ifndef VELOCITY_MESH_CUDA_H
-#define VELOCITY_MESH_CUDA_H
+#ifndef VELOCITY_MESH_GPU_H
+#define VELOCITY_MESH_GPU_H
 
 #include <iostream>
 #include <algorithm>
@@ -37,10 +37,8 @@
 #include "include/hashinator/hashinator.h"
 #include "include/splitvector/splitvec.h"
 
-#include "device_launch_parameters.h"
-#include "cuda.h"
-#include "cuda_runtime.h"
-#include "cuda_context.cuh" // managed class, CUDA_HOSTDEV
+#include "arch/gpu_base.hpp"
+#include "arch/arch_device_api.h"
 
 namespace vmesh {
 
@@ -51,60 +49,60 @@ namespace vmesh {
       VelocityMesh(const VelocityMesh& other);
       const VelocityMesh& operator=(const VelocityMesh& other);
 
-      CUDA_HOSTDEV size_t capacityInBytes() const;
-      CUDA_HOSTDEV bool check() const;
+      ARCH_HOSTDEV size_t capacityInBytes() const;
+      ARCH_HOSTDEV bool check() const;
       void clear();
-      CUDA_HOSTDEV bool copy(const vmesh::LocalID& sourceLocalID,const vmesh::LocalID& targetLocalID);
-      CUDA_HOSTDEV size_t count(const vmesh::GlobalID& globalID) const;
-      CUDA_HOSTDEV vmesh::GlobalID findBlock(vmesh::GlobalID cellIndices[3]) const;
-      CUDA_HOSTDEV bool getBlockCoordinates(const vmesh::GlobalID& globalID,Real coords[3]) const;
-      CUDA_HOSTDEV void getBlockInfo(const vmesh::GlobalID& globalID,Real* array) const;
-      CUDA_HOSTDEV const Real* getBlockSize() const;
-      CUDA_HOSTDEV bool getBlockSize(const vmesh::GlobalID& globalID,Real size[3]) const;
-      CUDA_HOSTDEV const Real* getCellSize(const uint8_t& refLevel=0) const;
-      CUDA_HOSTDEV bool getCellSize(const vmesh::GlobalID& globalID,Real size[3]) const;
-      CUDA_HOSTDEV vmesh::GlobalID getGlobalID(const vmesh::LocalID& localID) const;
-      CUDA_HOSTDEV vmesh::GlobalID getGlobalID(const Real* coords) const;
-      CUDA_HOSTDEV vmesh::GlobalID getGlobalID(vmesh::LocalID indices[3]) const;
-      CUDA_HOSTDEV vmesh::GlobalID getGlobalID(const vmesh::LocalID& i,const vmesh::LocalID& j,const vmesh::LocalID& k) const;
-      CUDA_HOSTDEV split::SplitVector<vmesh::GlobalID>& getGrid();
-      CUDA_HOSTDEV const vmesh::LocalID* getGridLength(const uint8_t& refLevel=0) const;
-      CUDA_HOSTDEV void getIndices(const vmesh::GlobalID& globalID,const uint8_t& refLevel,vmesh::LocalID& i,vmesh::LocalID& j,vmesh::LocalID& k) const;
-      CUDA_HOSTDEV void getIndices(const vmesh::GlobalID& globalID,vmesh::LocalID& i,vmesh::LocalID& j,vmesh::LocalID& k) const;
-      CUDA_HOSTDEV void getIndicesX(const vmesh::GlobalID& globalID,vmesh::LocalID& i) const;
-      CUDA_HOSTDEV void getIndicesY(const vmesh::GlobalID& globalID,vmesh::LocalID& j) const;
-      CUDA_HOSTDEV void getIndicesZ(const vmesh::GlobalID& globalID,vmesh::LocalID& k) const;
-      CUDA_HOSTDEV size_t getMesh() const;
-      CUDA_HOSTDEV vmesh::LocalID getLocalID(const vmesh::GlobalID& globalID) const;
-      CUDA_HOSTDEV const Real* getMeshMaxLimits() const;
-      CUDA_HOSTDEV const Real* getMeshMinLimits() const;
-      CUDA_HOSTDEV bool initialize(const size_t& meshID);
-      CUDA_HOSTDEV static vmesh::LocalID invalidBlockIndex();
-      CUDA_HOSTDEV static vmesh::GlobalID invalidGlobalID();
-      CUDA_HOSTDEV static vmesh::LocalID invalidLocalID();
-      CUDA_HOSTDEV bool isInitialized() const;
-      CUDA_HOSTDEV void pop();
-      CUDA_HOSTDEV bool push_back(const vmesh::GlobalID& globalID);
+      ARCH_HOSTDEV bool copy(const vmesh::LocalID& sourceLocalID,const vmesh::LocalID& targetLocalID);
+      ARCH_HOSTDEV size_t count(const vmesh::GlobalID& globalID) const;
+      ARCH_HOSTDEV vmesh::GlobalID findBlock(vmesh::GlobalID cellIndices[3]) const;
+      ARCH_HOSTDEV bool getBlockCoordinates(const vmesh::GlobalID& globalID,Real coords[3]) const;
+      ARCH_HOSTDEV void getBlockInfo(const vmesh::GlobalID& globalID,Real* array) const;
+      ARCH_HOSTDEV const Real* getBlockSize() const;
+      ARCH_HOSTDEV bool getBlockSize(const vmesh::GlobalID& globalID,Real size[3]) const;
+      ARCH_HOSTDEV const Real* getCellSize(const uint8_t& refLevel=0) const;
+      ARCH_HOSTDEV bool getCellSize(const vmesh::GlobalID& globalID,Real size[3]) const;
+      ARCH_HOSTDEV vmesh::GlobalID getGlobalID(const vmesh::LocalID& localID) const;
+      ARCH_HOSTDEV vmesh::GlobalID getGlobalID(const Real* coords) const;
+      ARCH_HOSTDEV vmesh::GlobalID getGlobalID(vmesh::LocalID indices[3]) const;
+      ARCH_HOSTDEV vmesh::GlobalID getGlobalID(const vmesh::LocalID& i,const vmesh::LocalID& j,const vmesh::LocalID& k) const;
+      ARCH_HOSTDEV split::SplitVector<vmesh::GlobalID>& getGrid();
+      ARCH_HOSTDEV const vmesh::LocalID* getGridLength(const uint8_t& refLevel=0) const;
+      ARCH_HOSTDEV void getIndices(const vmesh::GlobalID& globalID,const uint8_t& refLevel,vmesh::LocalID& i,vmesh::LocalID& j,vmesh::LocalID& k) const;
+      ARCH_HOSTDEV void getIndices(const vmesh::GlobalID& globalID,vmesh::LocalID& i,vmesh::LocalID& j,vmesh::LocalID& k) const;
+      ARCH_HOSTDEV void getIndicesX(const vmesh::GlobalID& globalID,vmesh::LocalID& i) const;
+      ARCH_HOSTDEV void getIndicesY(const vmesh::GlobalID& globalID,vmesh::LocalID& j) const;
+      ARCH_HOSTDEV void getIndicesZ(const vmesh::GlobalID& globalID,vmesh::LocalID& k) const;
+      ARCH_HOSTDEV size_t getMesh() const;
+      ARCH_HOSTDEV vmesh::LocalID getLocalID(const vmesh::GlobalID& globalID) const;
+      ARCH_HOSTDEV const Real* getMeshMaxLimits() const;
+      ARCH_HOSTDEV const Real* getMeshMinLimits() const;
+      ARCH_HOSTDEV bool initialize(const size_t& meshID);
+      ARCH_HOSTDEV static vmesh::LocalID invalidBlockIndex();
+      ARCH_HOSTDEV static vmesh::GlobalID invalidGlobalID();
+      ARCH_HOSTDEV static vmesh::LocalID invalidLocalID();
+      ARCH_HOSTDEV bool isInitialized() const;
+      ARCH_HOSTDEV void pop();
+      ARCH_HOSTDEV bool push_back(const vmesh::GlobalID& globalID);
       bool push_back(const std::vector<vmesh::GlobalID>& blocks);
-      CUDA_HOSTDEV bool push_back(const split::SplitVector<vmesh::GlobalID>& blocks);
-      CUDA_DEV bool replaceBlock(const vmesh::GlobalID& GIDold,const vmesh::LocalID& LID,const vmesh::GlobalID& GIDnew);
-      CUDA_DEV bool placeBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID);
-      CUDA_DEV bool deleteBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID);
+      ARCH_HOSTDEV bool push_back(const split::SplitVector<vmesh::GlobalID>& blocks);
+      ARCH_DEV bool replaceBlock(const vmesh::GlobalID& GIDold,const vmesh::LocalID& LID,const vmesh::GlobalID& GIDnew);
+      ARCH_DEV bool placeBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID);
+      ARCH_DEV bool deleteBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID);
       void setGrid();
       bool setGrid(const std::vector<vmesh::GlobalID>& globalIDs);
       bool setGrid(const split::SplitVector<vmesh::GlobalID>& globalIDs);
       bool setMesh(const size_t& meshID);
       void setNewSize(const vmesh::LocalID& newSize);
-      CUDA_HOSTDEV size_t size() const;
-      CUDA_HOSTDEV size_t sizeInBytes() const;
-      CUDA_HOSTDEV void swap(VelocityMesh& vm);
+      ARCH_HOSTDEV size_t size() const;
+      ARCH_HOSTDEV size_t sizeInBytes() const;
+      ARCH_HOSTDEV void swap(VelocityMesh& vm);
 
-      void dev_prefetchHost(cudaStream_t stream);
-      void dev_prefetchDevice(cudaStream_t stream);
-      void dev_memAdvise(int device);
-      void dev_cleanHashMap(cudaStream_t stream);
-      void dev_attachToStream(cudaStream_t stream);
-      void dev_detachFromStream();
+      void gpu_prefetchHost(cudaStream_t stream);
+      void gpu_prefetchDevice(cudaStream_t stream);
+      void gpu_memAdvise(int device, cudaStream_t stream);
+      void gpu_cleanHashMap(cudaStream_t stream);
+      void gpu_attachToStream(cudaStream_t stream);
+      void gpu_detachFromStream();
 
    private:
       size_t meshID;
@@ -165,12 +163,12 @@ namespace vmesh {
       return *this;
    }
 
-   CUDA_HOSTDEV inline size_t VelocityMesh::capacityInBytes() const {
+   ARCH_HOSTDEV inline size_t VelocityMesh::capacityInBytes() const {
       return localToGlobalMap->capacity()*sizeof(vmesh::GlobalID)
            + globalToLocalMap->bucket_count()*(sizeof(vmesh::GlobalID)+sizeof(vmesh::LocalID));
    }
 
-   CUDA_HOSTDEV inline bool VelocityMesh::check() const {
+   ARCH_HOSTDEV inline bool VelocityMesh::check() const {
       bool ok = true;
 
       if (localToGlobalMap->size() != globalToLocalMap->size()) {
@@ -199,7 +197,7 @@ namespace vmesh {
       globalToLocalMap->clear();
    }
 
-   CUDA_HOSTDEV inline bool VelocityMesh::copy(const vmesh::LocalID& sourceLID,const vmesh::LocalID& targetLID) {
+   ARCH_HOSTDEV inline bool VelocityMesh::copy(const vmesh::LocalID& sourceLID,const vmesh::LocalID& targetLID) {
       const vmesh::GlobalID sourceGID = localToGlobalMap->at(sourceLID); // block at the end of list
       const vmesh::GlobalID targetGID = localToGlobalMap->at(targetLID); // removed block
 
@@ -216,7 +214,7 @@ namespace vmesh {
       return true;
    }
 
-   CUDA_HOSTDEV inline size_t VelocityMesh::count(const vmesh::GlobalID& globalID) const {
+   ARCH_HOSTDEV inline size_t VelocityMesh::count(const vmesh::GlobalID& globalID) const {
       #ifdef __CUDA_ARCH__
       return globalToLocalMap->device_count(globalID);
       #else
@@ -224,7 +222,7 @@ namespace vmesh {
       #endif
    }
 
-   CUDA_HOSTDEV inline vmesh::GlobalID VelocityMesh::findBlock(vmesh::GlobalID cellIndices[3]) const {
+   ARCH_HOSTDEV inline vmesh::GlobalID VelocityMesh::findBlock(vmesh::GlobalID cellIndices[3]) const {
       // Calculate i/j/k indices of the block that would own the cell:
       vmesh::GlobalID i_block = cellIndices[0] / (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).blockLength[0];
       vmesh::GlobalID j_block = cellIndices[1] / (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).blockLength[1];
@@ -245,7 +243,7 @@ namespace vmesh {
       }
    }
 
-   CUDA_HOSTDEV inline bool VelocityMesh::getBlockCoordinates(const vmesh::GlobalID& globalID,Real coords[3]) const {
+   ARCH_HOSTDEV inline bool VelocityMesh::getBlockCoordinates(const vmesh::GlobalID& globalID,Real coords[3]) const {
       if (globalID == invalidGlobalID()) {
          for (int i=0; i<3; ++i) coords[i] = std::numeric_limits<Real>::quiet_NaN();
          return false;
@@ -264,7 +262,7 @@ namespace vmesh {
       return true;
    }
 
-   CUDA_HOSTDEV inline void VelocityMesh::getBlockInfo(const vmesh::GlobalID& globalID,Real* array) const {
+   ARCH_HOSTDEV inline void VelocityMesh::getBlockInfo(const vmesh::GlobalID& globalID,Real* array) const {
       #ifndef NDEBUG
       if (globalID == invalidGlobalID()) {
          for (int i=0; i<6; ++i) array[i] = std::numeric_limits<Real>::infinity();
@@ -289,29 +287,29 @@ namespace vmesh {
       array[5] = (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).cellSize[2];
    }
 
-   CUDA_HOSTDEV inline const Real* VelocityMesh::getBlockSize() const {
+   ARCH_HOSTDEV inline const Real* VelocityMesh::getBlockSize() const {
       return (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).blockSize;
    }
 
-   CUDA_HOSTDEV inline bool VelocityMesh::getBlockSize(const vmesh::GlobalID& globalID,Real size[3]) const {
+   ARCH_HOSTDEV inline bool VelocityMesh::getBlockSize(const vmesh::GlobalID& globalID,Real size[3]) const {
       size[0] = (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).blockSize[0];
       size[1] = (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).blockSize[1];
       size[2] = (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).blockSize[2];
       return true;
    }
 
-   CUDA_HOSTDEV inline const Real* VelocityMesh::getCellSize(const uint8_t& refLevel) const {
+   ARCH_HOSTDEV inline const Real* VelocityMesh::getCellSize(const uint8_t& refLevel) const {
       return (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).cellSize;
    }
 
-   CUDA_HOSTDEV inline bool VelocityMesh::getCellSize(const vmesh::GlobalID& globalID,Real size[3]) const {
+   ARCH_HOSTDEV inline bool VelocityMesh::getCellSize(const vmesh::GlobalID& globalID,Real size[3]) const {
       size[0] = (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).cellSize[0];
       size[1] = (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).cellSize[1];
       size[2] = (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).cellSize[2];
       return true;
    }
 
-   CUDA_HOSTDEV inline vmesh::GlobalID VelocityMesh::getGlobalID(const vmesh::LocalID& localID) const {
+   ARCH_HOSTDEV inline vmesh::GlobalID VelocityMesh::getGlobalID(const vmesh::LocalID& localID) const {
       #ifndef NDEBUG
       if (localID >= localToGlobalMap->size()) {
          printf("ERROR invalid local id %lu\n",localID);
@@ -322,7 +320,7 @@ namespace vmesh {
       return localToGlobalMap->at(localID);
    }
 
-   CUDA_HOSTDEV inline vmesh::GlobalID VelocityMesh::getGlobalID(const Real* coords) const {
+   ARCH_HOSTDEV inline vmesh::GlobalID VelocityMesh::getGlobalID(const Real* coords) const {
       if (coords[0] < (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).meshMinLimits[0] || coords[0] >= (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).meshMaxLimits[0] ||
          (coords[1] < (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).meshMinLimits[1] || coords[1] >= (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).meshMaxLimits[1] ||
           coords[2] < (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).meshMinLimits[2] || coords[2] >= (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).meshMaxLimits[2])) {
@@ -339,7 +337,7 @@ namespace vmesh {
               + indices[1]*(vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).gridLength[0] + indices[0];
    }
 
-   CUDA_HOSTDEV inline vmesh::GlobalID VelocityMesh::getGlobalID(vmesh::LocalID indices[3]) const {
+   ARCH_HOSTDEV inline vmesh::GlobalID VelocityMesh::getGlobalID(vmesh::LocalID indices[3]) const {
       if (indices[0] >= (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).gridLength[0]) return invalidGlobalID();
       if (indices[1] >= (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).gridLength[1]) return invalidGlobalID();
       if (indices[2] >= (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).gridLength[2]) return invalidGlobalID();
@@ -348,7 +346,7 @@ namespace vmesh {
          * (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).gridLength[0];
    }
 
-   CUDA_HOSTDEV inline vmesh::GlobalID VelocityMesh::getGlobalID(const vmesh::LocalID& i,const vmesh::LocalID& j,const vmesh::LocalID& k) const {
+   ARCH_HOSTDEV inline vmesh::GlobalID VelocityMesh::getGlobalID(const vmesh::LocalID& i,const vmesh::LocalID& j,const vmesh::LocalID& k) const {
       if (i >= (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).gridLength[0]) return invalidGlobalID();
       if (j >= (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).gridLength[1]) return invalidGlobalID();
       if (k >= (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).gridLength[2]) return invalidGlobalID();
@@ -357,19 +355,19 @@ namespace vmesh {
          * (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).gridLength[0];
    }
 
-   CUDA_HOSTDEV inline split::SplitVector<vmesh::GlobalID>& VelocityMesh::getGrid() {
+   ARCH_HOSTDEV inline split::SplitVector<vmesh::GlobalID>& VelocityMesh::getGrid() {
       return *localToGlobalMap;
    }
 
-   CUDA_HOSTDEV inline const vmesh::LocalID* VelocityMesh::getGridLength(const uint8_t& refLevel) const {
+   ARCH_HOSTDEV inline const vmesh::LocalID* VelocityMesh::getGridLength(const uint8_t& refLevel) const {
       return (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).gridLength;
    }
 
-   CUDA_HOSTDEV inline void VelocityMesh::getIndices(const vmesh::GlobalID& globalID,const uint8_t& refLevel,vmesh::LocalID& i,vmesh::LocalID& j,vmesh::LocalID& k) const {
+   ARCH_HOSTDEV inline void VelocityMesh::getIndices(const vmesh::GlobalID& globalID,const uint8_t& refLevel,vmesh::LocalID& i,vmesh::LocalID& j,vmesh::LocalID& k) const {
       getIndices(globalID,i,j,k);
    }
 
-   CUDA_HOSTDEV inline void VelocityMesh::getIndices(const vmesh::GlobalID& globalID,vmesh::LocalID& i,vmesh::LocalID& j,vmesh::LocalID& k) const {
+   ARCH_HOSTDEV inline void VelocityMesh::getIndices(const vmesh::GlobalID& globalID,vmesh::LocalID& i,vmesh::LocalID& j,vmesh::LocalID& k) const {
       if (globalID >= invalidGlobalID()) {
          i = j = k = invalidBlockIndex();
       } else {
@@ -379,21 +377,21 @@ namespace vmesh {
       }
    }
 
-   CUDA_HOSTDEV inline void VelocityMesh::getIndicesX(const vmesh::GlobalID& globalID,vmesh::LocalID& i) const {
+   ARCH_HOSTDEV inline void VelocityMesh::getIndicesX(const vmesh::GlobalID& globalID,vmesh::LocalID& i) const {
       if (globalID >= invalidGlobalID()) {
          i = invalidBlockIndex();
       } else {
          i = globalID % (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).gridLength[0];
       }
    }
-   CUDA_HOSTDEV inline void VelocityMesh::getIndicesY(const vmesh::GlobalID& globalID,vmesh::LocalID& j) const {
+   ARCH_HOSTDEV inline void VelocityMesh::getIndicesY(const vmesh::GlobalID& globalID,vmesh::LocalID& j) const {
       if (globalID >= invalidGlobalID()) {
          j = invalidBlockIndex();
       } else {
          j = (globalID / (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).gridLength[0]) % (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).gridLength[1];
       }
    }
-   CUDA_HOSTDEV inline void VelocityMesh::getIndicesZ(const vmesh::GlobalID& globalID,vmesh::LocalID& k) const {
+   ARCH_HOSTDEV inline void VelocityMesh::getIndicesZ(const vmesh::GlobalID& globalID,vmesh::LocalID& k) const {
       if (globalID >= invalidGlobalID()) {
          k = invalidBlockIndex();
       } else {
@@ -401,7 +399,7 @@ namespace vmesh {
       }
    }
 
-   CUDA_HOSTDEV inline vmesh::LocalID VelocityMesh::getLocalID(const vmesh::GlobalID& globalID) const {
+   ARCH_HOSTDEV inline vmesh::LocalID VelocityMesh::getLocalID(const vmesh::GlobalID& globalID) const {
       #ifdef __CUDA_ARCH__
       auto it = globalToLocalMap->device_find(globalID);
       if (it != globalToLocalMap->device_end()) return it->second;
@@ -412,40 +410,40 @@ namespace vmesh {
       return invalidLocalID();
    }
 
-   CUDA_HOSTDEV inline size_t VelocityMesh::getMesh() const {
+   ARCH_HOSTDEV inline size_t VelocityMesh::getMesh() const {
       return meshID;
    }
 
-   CUDA_HOSTDEV inline const Real* VelocityMesh::getMeshMaxLimits() const {
+   ARCH_HOSTDEV inline const Real* VelocityMesh::getMeshMaxLimits() const {
       return (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).meshMaxLimits;
    }
 
-   CUDA_HOSTDEV inline const Real* VelocityMesh::getMeshMinLimits() const {
+   ARCH_HOSTDEV inline const Real* VelocityMesh::getMeshMinLimits() const {
       return (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).meshMinLimits;
    }
 
-   CUDA_HOSTDEV inline bool VelocityMesh::initialize(const size_t& meshID) {
+   ARCH_HOSTDEV inline bool VelocityMesh::initialize(const size_t& meshID) {
       this->meshID = meshID;
       return true;
    }
 
-   CUDA_HOSTDEV inline vmesh::LocalID VelocityMesh::invalidBlockIndex() {
+   ARCH_HOSTDEV inline vmesh::LocalID VelocityMesh::invalidBlockIndex() {
       return INVALID_VEL_BLOCK_INDEX;
    }
 
-   CUDA_HOSTDEV inline vmesh::GlobalID VelocityMesh::invalidGlobalID() {
+   ARCH_HOSTDEV inline vmesh::GlobalID VelocityMesh::invalidGlobalID() {
       return INVALID_GLOBALID;
    }
 
-   CUDA_HOSTDEV inline vmesh::LocalID VelocityMesh::invalidLocalID() {
+   ARCH_HOSTDEV inline vmesh::LocalID VelocityMesh::invalidLocalID() {
       return INVALID_LOCALID;
    }
 
-   CUDA_HOSTDEV inline bool VelocityMesh::isInitialized() const {
+   ARCH_HOSTDEV inline bool VelocityMesh::isInitialized() const {
       return (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).initialized;
    }
 
-   CUDA_HOSTDEV inline void VelocityMesh::pop() {
+   ARCH_HOSTDEV inline void VelocityMesh::pop() {
       if (size() == 0) return;
 
       const vmesh::LocalID lastLID = size()-1;
@@ -460,7 +458,7 @@ namespace vmesh {
       localToGlobalMap->pop_back();
    }
 
-   CUDA_HOSTDEV inline bool VelocityMesh::push_back(const vmesh::GlobalID& globalID) {
+   ARCH_HOSTDEV inline bool VelocityMesh::push_back(const vmesh::GlobalID& globalID) {
       if (size() >= (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).max_velocity_blocks) return false;
       if (globalID == invalidGlobalID()) return false;
 
@@ -495,7 +493,7 @@ namespace vmesh {
       return true;
    }
 
-   CUDA_HOSTDEV inline bool VelocityMesh::push_back(const split::SplitVector<vmesh::GlobalID>& blocks) {
+   ARCH_HOSTDEV inline bool VelocityMesh::push_back(const split::SplitVector<vmesh::GlobalID>& blocks) {
       if (size()+blocks.size() > (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).max_velocity_blocks) {
          printf("vmesh: too many blocks, current size is %lu",size());
          printf(", adding %lu blocks", blocks.size());
@@ -518,16 +516,16 @@ namespace vmesh {
    }
 
 #ifdef __CUDA_ARCH__
-   CUDA_DEV inline bool VelocityMesh::replaceBlock(const vmesh::GlobalID& GIDold,const vmesh::LocalID& LID,const vmesh::GlobalID& GIDnew) {
+   ARCH_DEV inline bool VelocityMesh::replaceBlock(const vmesh::GlobalID& GIDold,const vmesh::LocalID& LID,const vmesh::GlobalID& GIDnew) {
       globalToLocalMap->device_erase(GIDold);
       globalToLocalMap->set_element(GIDnew,LID);
       localToGlobalMap->at(LID) = GIDnew;
    }
-   CUDA_DEV inline bool VelocityMesh::placeBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID) {
+   ARCH_DEV inline bool VelocityMesh::placeBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID) {
       globalToLocalMap->set_element(GID,LID);
       localToGlobalMap->at(LID) = GID;
    }
-   CUDA_DEV inline bool VelocityMesh::deleteBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID) {
+   ARCH_DEV inline bool VelocityMesh::deleteBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID) {
       globalToLocalMap->device_erase(GID);
       localToGlobalMap->at(LID) = invalidGlobalID();
    }
@@ -569,15 +567,15 @@ namespace vmesh {
       // Needed by CUDA block adjustment
       // Passing eco flag = true to resize tells splitvector we manage padding manually.
       vmesh::LocalID currentCapacity = localToGlobalMap->capacity();
-      cudaStream_t stream = cuda_getStream();
+      cudaStream_t stream = gpu_getStream();
       localToGlobalMap->resize(newSize,true);
-      int device = cuda_getDevice();
+      int device = gpu_getDevice();
       if (newSize > currentCapacity) {
          // Was allocated new memory
          HANDLE_ERROR( cudaStreamSynchronize(stream) );
          localToGlobalMap->optimizeGPU(stream);
-         localToGlobalMap->memAdvise(cudaMemAdviseSetPreferredLocation,device);
-         localToGlobalMap->memAdvise(cudaMemAdviseSetAccessedBy,device);
+         localToGlobalMap->memAdvise(cudaMemAdviseSetPreferredLocation,device,stream);
+         localToGlobalMap->memAdvise(cudaMemAdviseSetAccessedBy,device,stream);
       }
       // Ensure also that the map is large enough
       const vmesh::LocalID HashmapReqSize = ceil(log2(newSize)) +2; // Make it really large enough
@@ -585,8 +583,8 @@ namespace vmesh {
          globalToLocalMap->device_rehash(HashmapReqSize, stream);
          HANDLE_ERROR( cudaStreamSynchronize(stream) );
          globalToLocalMap->optimizeGPU(stream);
-         globalToLocalMap->memAdvise(cudaMemAdviseSetPreferredLocation,device);
-         globalToLocalMap->memAdvise(cudaMemAdviseSetAccessedBy,device);
+         globalToLocalMap->memAdvise(cudaMemAdviseSetPreferredLocation,device,stream);
+         globalToLocalMap->memAdvise(cudaMemAdviseSetAccessedBy,device,stream);
       }
       // Re-attach stream if required
       if ((attachedStream != 0)&&(needAttachedStreams)) {
@@ -595,35 +593,35 @@ namespace vmesh {
       }
    }
 
-   CUDA_HOSTDEV inline size_t VelocityMesh::size() const {
+   ARCH_HOSTDEV inline size_t VelocityMesh::size() const {
 #ifdef __CUDA_ARCH__
       return localToGlobalMap->size();
 #else
       // Host-side non-pagefaulting approach
-      cudaStream_t stream = cuda_getStream();
+      cudaStream_t stream = gpu_getStream();
       localToGlobalMap->copyMetadata(info_ltgm,stream);
       HANDLE_ERROR( cudaStreamSynchronize(stream) );
       return info_ltgm->size;
 #endif
    }
 
-   CUDA_HOSTDEV inline size_t VelocityMesh::sizeInBytes() const {
+   ARCH_HOSTDEV inline size_t VelocityMesh::sizeInBytes() const {
       return globalToLocalMap->size()*sizeof(vmesh::GlobalID)
            + localToGlobalMap->size()*(sizeof(vmesh::GlobalID)+sizeof(vmesh::LocalID));
    }
 
-   CUDA_HOSTDEV inline void VelocityMesh::swap(VelocityMesh& vm) {
+   ARCH_HOSTDEV inline void VelocityMesh::swap(VelocityMesh& vm) {
       globalToLocalMap->swap(*(vm.globalToLocalMap));
       localToGlobalMap->swap(*(vm.localToGlobalMap));
    }
 
-   inline void VelocityMesh::dev_prefetchHost(cudaStream_t stream=0) {
+   inline void VelocityMesh::gpu_prefetchHost(cudaStream_t stream=0) {
       //if (localToGlobalMap->size() == 0) return; // This size check in itself causes a page fault
       // In fact we only need to prefetch the buckets inside the hashmap to GPU, but use this call.
-      //Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *uploaded = globalToLocalMap->upload(cuda_getStream());
+      //Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *uploaded = globalToLocalMap->upload(gpu_getStream());
       if (stream==0) {
-         globalToLocalMap->optimizeCPU(cuda_getStream());
-         localToGlobalMap->optimizeCPU(cuda_getStream());
+         globalToLocalMap->optimizeCPU(gpu_getStream());
+         localToGlobalMap->optimizeCPU(gpu_getStream());
       } else {
          globalToLocalMap->optimizeCPU(stream);
          localToGlobalMap->optimizeCPU(stream);
@@ -631,13 +629,13 @@ namespace vmesh {
       return;
    }
 
-   inline void VelocityMesh::dev_prefetchDevice(cudaStream_t stream=0) {
+   inline void VelocityMesh::gpu_prefetchDevice(cudaStream_t stream=0) {
       //if (localToGlobalMap->size() == 0) return; // This size check in itself causes a page fault
       // In fact we only need to prefetch the buckets inside the hashmap to GPU, but use this call.
-      //Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *uploaded = globalToLocalMap->upload(cuda_getStream());
+      //Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *uploaded = globalToLocalMap->upload(gpu_getStream());
       if (stream==0) {
-         globalToLocalMap->optimizeGPU(cuda_getStream());
-         localToGlobalMap->optimizeGPU(cuda_getStream());
+         globalToLocalMap->optimizeGPU(gpu_getStream());
+         localToGlobalMap->optimizeGPU(gpu_getStream());
       } else {
          globalToLocalMap->optimizeGPU(stream);
          localToGlobalMap->optimizeGPU(stream);
@@ -645,25 +643,25 @@ namespace vmesh {
       return;
    }
 
-   inline void VelocityMesh::dev_memAdvise(int device) {
-      // int device = cuda_getDevice();
-      globalToLocalMap->memAdvise(cudaMemAdviseSetPreferredLocation,device);
-      localToGlobalMap->memAdvise(cudaMemAdviseSetPreferredLocation,device);
-      globalToLocalMap->memAdvise(cudaMemAdviseSetAccessedBy,device);
-      localToGlobalMap->memAdvise(cudaMemAdviseSetAccessedBy,device);
+   inline void VelocityMesh::gpu_memAdvise(int device, cudaStream_t stream) {
+      // int device = gpu_getDevice();
+      globalToLocalMap->memAdvise(cudaMemAdviseSetPreferredLocation,device,stream);
+      localToGlobalMap->memAdvise(cudaMemAdviseSetPreferredLocation,device,stream);
+      globalToLocalMap->memAdvise(cudaMemAdviseSetAccessedBy,device,stream);
+      localToGlobalMap->memAdvise(cudaMemAdviseSetAccessedBy,device,stream);
       return;
    }
 
-   inline void VelocityMesh::dev_cleanHashMap(cudaStream_t stream = 0) {
+   inline void VelocityMesh::gpu_cleanHashMap(cudaStream_t stream = 0) {
       if (stream==0) {
-         globalToLocalMap->performCleanupTasks(cuda_getStream());
+         globalToLocalMap->performCleanupTasks(gpu_getStream());
       } else {
          globalToLocalMap->performCleanupTasks(stream);
       }
       return;
    }
 
-   inline void VelocityMesh::dev_attachToStream(cudaStream_t stream = 0) {
+   inline void VelocityMesh::gpu_attachToStream(cudaStream_t stream = 0) {
       // Return if attaching is not needed
       if (!needAttachedStreams) {
          return;
@@ -671,7 +669,7 @@ namespace vmesh {
       // Attach unified memory regions to streams
       cudaStream_t newStream;
       if (stream==0) {
-         newStream = cuda_getStream();
+         newStream = gpu_getStream();
       } else {
          newStream = stream;
       }
@@ -687,7 +685,7 @@ namespace vmesh {
       localToGlobalMap->streamAttach(attachedStream);
       return;
    }
-   inline void VelocityMesh::dev_detachFromStream() {
+   inline void VelocityMesh::gpu_detachFromStream() {
       // Return if attaching is not needed
       if (!needAttachedStreams) {
          return;

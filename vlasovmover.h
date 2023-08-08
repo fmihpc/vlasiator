@@ -43,7 +43,7 @@ void calculateSpatialTranslation(
                                  Real dt);
 
 /** Calculate velocity moments for the given spatial cell.
- * This function is defined in the cpu_moments.cpp or cuda_moments.cpp file.*/
+ * This function is defined in the cpu_moments.cpp or gpu_moments.cpp file.*/
 void calculateCellMoments(
    spatial_cell::SpatialCell* cell,
    const bool& computeSecond,

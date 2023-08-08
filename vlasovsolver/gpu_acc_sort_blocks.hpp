@@ -21,14 +21,11 @@
  */
 
 
-#ifndef CUDA_SORT_BLOCKS_FOR_ACC_H
-#define CUDA_SORT_BLOCKS_FOR_ACC_H
+#ifndef GPU_SORT_BLOCKS_FOR_ACC_H
+#define GPU_SORT_BLOCKS_FOR_ACC_H
 
 #include "../common.h"
 #include "../spatial_cell.hpp"
-//inherited include of cuda_context.cuh
-
-//#include "include/splitvector/splitvec.h"
 
 void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                vmesh::VelocityMesh* vmesh,
@@ -39,17 +36,17 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                vmesh::GlobalID *blocksGID,
                                vmesh::LocalID *blocksLID_unsorted,
                                vmesh::LocalID *blocksLID,
-                               vmesh::LocalID *dev_columnNBlocks,
+                               vmesh::LocalID *gpu_columnNBlocks,
                                ColumnOffsets* columnData,
                                // split::SplitVector<uint> & columnBlockOffsets,
                                // split::SplitVector<uint> & columnNumBlocks,
                                // split::SplitVector<uint> & setColumnOffsets,
                                // split::SplitVector<uint> & setNumColumns
-                               const uint cuda_async_queue_id,
+                               const uint gpu_async_queue_id,
                                cudaStream_t stream
    );
 
-extern void *dev_RadixSortTemp[]; // Declared in cuda_acc_map.cpp
-extern uint cuda_acc_RadixSortTempSize[];
+extern void *gpu_RadixSortTemp[]; // Declared in gpu_acc_map.cpp
+extern uint gpu_acc_RadixSortTempSize[];
 
 #endif

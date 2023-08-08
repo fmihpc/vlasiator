@@ -30,16 +30,13 @@
 #include <sstream>
 #endif
 
-#ifdef __CUDACC__
-#endif
-
-#ifdef USE_CUDA
-   #include "cuda_context.cuh"
+#include "arch/arch_device_api.h"
+#ifdef USE_GPU
+   #include "arch/gpu_base.hpp"
    // Place block data and parameters inside splitvectors utilizing unified memory
    #include "include/splitvector/splitvec.h"
 #else
-   #define CUDA_HOSTDEV
-   // CUDA allocation factors are stored in cuda_context.cuh
+   // GPU allocation factors are stored in arch/gpu_base.hpp
    static const double BLOCK_ALLOCATION_FACTOR = 1.1;
 #endif
 
@@ -47,7 +44,7 @@ using namespace std;
 
 namespace vmesh {
 
-#ifdef USE_CUDA
+#ifdef USE_GPU
    class VelocityBlockContainer : public Managed {
 #else
    class VelocityBlockContainer {
@@ -59,38 +56,38 @@ namespace vmesh {
       VelocityBlockContainer(const VelocityBlockContainer& other);
       const VelocityBlockContainer& operator=(const VelocityBlockContainer& other);
 
-      CUDA_HOSTDEV vmesh::LocalID capacity() const;
-      CUDA_HOSTDEV size_t capacityInBytes() const;
+      ARCH_HOSTDEV vmesh::LocalID capacity() const;
+      ARCH_HOSTDEV size_t capacityInBytes() const;
       void clear();
-      CUDA_HOSTDEV void copy(const vmesh::LocalID& source,const vmesh::LocalID& target);
-      CUDA_HOSTDEV static double getBlockAllocationFactor();
-      CUDA_HOSTDEV Realf* getData();
-      CUDA_HOSTDEV const Realf* getData() const;
-      CUDA_HOSTDEV Realf* getData(const vmesh::LocalID& blockLID);
-      CUDA_HOSTDEV const Realf* getData(const vmesh::LocalID& blockLID) const;
-      CUDA_HOSTDEV Real* getParameters();
-      CUDA_HOSTDEV const Real* getParameters() const;
-      CUDA_HOSTDEV Real* getParameters(const vmesh::LocalID& blockLID);
-      CUDA_HOSTDEV const Real* getParameters(const vmesh::LocalID& blockLID) const;
-      CUDA_HOSTDEV void pop();
-      CUDA_HOSTDEV vmesh::LocalID push_back();
-      CUDA_HOSTDEV vmesh::LocalID push_back(const uint32_t& N_blocks);
+      ARCH_HOSTDEV void copy(const vmesh::LocalID& source,const vmesh::LocalID& target);
+      ARCH_HOSTDEV static double getBlockAllocationFactor();
+      ARCH_HOSTDEV Realf* getData();
+      ARCH_HOSTDEV const Realf* getData() const;
+      ARCH_HOSTDEV Realf* getData(const vmesh::LocalID& blockLID);
+      ARCH_HOSTDEV const Realf* getData(const vmesh::LocalID& blockLID) const;
+      ARCH_HOSTDEV Real* getParameters();
+      ARCH_HOSTDEV const Real* getParameters() const;
+      ARCH_HOSTDEV Real* getParameters(const vmesh::LocalID& blockLID);
+      ARCH_HOSTDEV const Real* getParameters(const vmesh::LocalID& blockLID) const;
+      ARCH_HOSTDEV void pop();
+      ARCH_HOSTDEV vmesh::LocalID push_back();
+      ARCH_HOSTDEV vmesh::LocalID push_back(const uint32_t& N_blocks);
       bool recapacitate(const vmesh::LocalID& capacity);
-      CUDA_HOSTDEV bool setSize(const vmesh::LocalID& newSize);
-      CUDA_HOSTDEV vmesh::LocalID size() const;
-      CUDA_HOSTDEV size_t sizeInBytes() const;
-      CUDA_HOSTDEV void swap(VelocityBlockContainer& vbc);
+      ARCH_HOSTDEV bool setSize(const vmesh::LocalID& newSize);
+      ARCH_HOSTDEV vmesh::LocalID size() const;
+      ARCH_HOSTDEV size_t sizeInBytes() const;
+      ARCH_HOSTDEV void swap(VelocityBlockContainer& vbc);
 
-#ifdef USE_CUDA // for CUDA version
-      CUDA_HOSTDEV vmesh::LocalID dev_push_back();
-      CUDA_HOSTDEV vmesh::LocalID dev_push_back(const uint32_t& N_blocks);
-      void dev_Allocate(vmesh::LocalID size);
-      void dev_Allocate();
-      void dev_prefetchHost();
-      void dev_prefetchDevice();
-      void dev_attachToStream(cudaStream_t stream=0);
-      void dev_detachFromStream();
-      void dev_memAdvise(int device);
+#ifdef USE_GPU // for GPU version
+      ARCH_HOSTDEV vmesh::LocalID gpu_push_back();
+      ARCH_HOSTDEV vmesh::LocalID gpu_push_back(const uint32_t& N_blocks);
+      void gpu_Allocate(vmesh::LocalID size);
+      void gpu_Allocate();
+      void gpu_prefetchHost();
+      void gpu_prefetchDevice();
+      void gpu_attachToStream(cudaStream_t stream=0);
+      void gpu_detachFromStream();
+      void gpu_memAdvise(int device, cudaStream_t stream);
 #endif
 
       #ifdef DEBUG_VBC
@@ -105,7 +102,7 @@ namespace vmesh {
       vmesh::LocalID currentCapacity;
       vmesh::LocalID numberOfBlocks;
 
-#ifdef USE_CUDA
+#ifdef USE_GPU
       cudaStream_t attachedStream;
       split::SplitVector<Realf> *block_data;
       split::SplitVector<Real> *parameters;
@@ -119,7 +116,7 @@ namespace vmesh {
    inline VelocityBlockContainer::VelocityBlockContainer() : currentCapacity {0}, numberOfBlocks {0} {
       // initialization with zero capacity would return null pointers
       const uint capacity = currentCapacity > 0 ? currentCapacity : 1;
-#ifdef USE_CUDA
+#ifdef USE_GPU
       block_data= new split::SplitVector<Realf>(capacity);
       parameters= new split::SplitVector<Real>(capacity);
       attachedStream = 0;
@@ -137,7 +134,7 @@ namespace vmesh {
    }
 
    inline VelocityBlockContainer::VelocityBlockContainer(const VelocityBlockContainer& other) {
-#ifdef USE_CUDA
+#ifdef USE_GPU
       attachedStream = 0;
       block_data= new split::SplitVector<Realf>(*(other.block_data));
       parameters= new split::SplitVector<Real>(*(other.parameters));
@@ -153,7 +150,7 @@ namespace vmesh {
       // Delete old vectors
       delete block_data;
       delete parameters;
-#ifdef USE_CUDA
+#ifdef USE_GPU
       attachedStream = 0;
       block_data= new split::SplitVector<Realf>(*(other.block_data));
       parameters= new split::SplitVector<Real>(*(other.parameters));
@@ -166,23 +163,23 @@ namespace vmesh {
       return *this;
    }
 
-   inline CUDA_HOSTDEV vmesh::LocalID VelocityBlockContainer::capacity() const {
+   inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::capacity() const {
       return currentCapacity;
    }
 
-   inline CUDA_HOSTDEV size_t VelocityBlockContainer::capacityInBytes() const {
+   inline ARCH_HOSTDEV size_t VelocityBlockContainer::capacityInBytes() const {
       return (block_data->capacity())*sizeof(Realf) + parameters->capacity()*sizeof(Real);
    }
 
    /** Clears VelocityBlockContainer data and deallocates all memory
     * reserved for velocity blocks.*/
    inline void VelocityBlockContainer::clear() {
-#ifdef USE_CUDA
+#ifdef USE_GPU
       block_data->clear();
       block_data->shrink_to_fit();
       parameters->clear();
       parameters->shrink_to_fit();
- #else
+#else
       std::vector<Realf,aligned_allocator<Realf,WID3> > *dummy_data = new std::vector<Realf,aligned_allocator<Realf,WID3> >(1);
       std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS> > *dummy_parameters = new std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS> >(1);
       // initialization with zero capacity returns null pointers
@@ -190,11 +187,6 @@ namespace vmesh {
       parameters->swap(*dummy_parameters);
       block_data->clear();
       parameters->clear();
-      int device = cuda_getDevice();
-      block_data->memAdvise(cudaMemAdviseSetPreferredLocation,device);
-      parameters->memAdvise(cudaMemAdviseSetPreferredLocation,device);
-      block_data->memAdvise(cudaMemAdviseSetAccessedBy,device);
-      parameters->memAdvise(cudaMemAdviseSetAccessedBy,device);
       delete dummy_data;
       delete dummy_parameters;
 #endif
@@ -202,7 +194,7 @@ namespace vmesh {
       numberOfBlocks = 0;
    }
 
-   inline CUDA_HOSTDEV void VelocityBlockContainer::copy(const vmesh::LocalID& source,const vmesh::LocalID& target) {
+   inline ARCH_HOSTDEV void VelocityBlockContainer::copy(const vmesh::LocalID& source,const vmesh::LocalID& target) {
       #ifdef DEBUG_VBC
          bool ok = true;
          if (source >= numberOfBlocks) ok = false;
@@ -247,19 +239,19 @@ namespace vmesh {
       exit(1);
    }
 
-   inline CUDA_HOSTDEV double VelocityBlockContainer::getBlockAllocationFactor() {
+   inline ARCH_HOSTDEV double VelocityBlockContainer::getBlockAllocationFactor() {
       return BLOCK_ALLOCATION_FACTOR;
    }
 
-   inline CUDA_HOSTDEV Realf* VelocityBlockContainer::getData() {
+   inline ARCH_HOSTDEV Realf* VelocityBlockContainer::getData() {
       return block_data->data();
    }
 
-   inline CUDA_HOSTDEV const Realf* VelocityBlockContainer::getData() const {
+   inline ARCH_HOSTDEV const Realf* VelocityBlockContainer::getData() const {
       return block_data->data();
    }
 
-   inline CUDA_HOSTDEV Realf* VelocityBlockContainer::getData(const vmesh::LocalID& blockLID) {
+   inline ARCH_HOSTDEV Realf* VelocityBlockContainer::getData(const vmesh::LocalID& blockLID) {
       #ifdef DEBUG_VBC
          if (blockLID >= numberOfBlocks) exitInvalidLocalID(blockLID,"getData");
          if (blockLID >= block_data->size()/WID3) exitInvalidLocalID(blockLID,"const getData const");
@@ -267,7 +259,7 @@ namespace vmesh {
       return block_data->data() + blockLID*WID3;
    }
 
-   inline CUDA_HOSTDEV const Realf* VelocityBlockContainer::getData(const vmesh::LocalID& blockLID) const {
+   inline ARCH_HOSTDEV const Realf* VelocityBlockContainer::getData(const vmesh::LocalID& blockLID) const {
       #ifdef DEBUG_VBC
          if (blockLID >= numberOfBlocks) exitInvalidLocalID(blockLID,"const getData const");
          if (blockLID >= block_data->size()/WID3) exitInvalidLocalID(blockLID,"const getData const");
@@ -275,8 +267,8 @@ namespace vmesh {
       return block_data->data() + blockLID*WID3;
    }
 
-#ifdef USE_CUDA
-   inline void VelocityBlockContainer::dev_Allocate(vmesh::LocalID size) {
+#ifdef USE_GPU
+   inline void VelocityBlockContainer::gpu_Allocate(vmesh::LocalID size) {
       vmesh::LocalID requirement = (size > numberOfBlocks) ? size : numberOfBlocks;
       if (block_data->capacity() > BLOCK_ALLOCATION_FACTOR * requirement) {
          return; // Still have enough buffer
@@ -294,7 +286,7 @@ namespace vmesh {
       return;
    }
 
-   inline void VelocityBlockContainer::dev_Allocate() {
+   inline void VelocityBlockContainer::gpu_Allocate() {
       if (block_data->capacity() > BLOCK_ALLOCATION_FACTOR * numberOfBlocks) {
          return; // Still have enough buffer
       }
@@ -303,30 +295,30 @@ namespace vmesh {
       return;
    }
 
-   inline void VelocityBlockContainer::dev_prefetchHost() {
+   inline void VelocityBlockContainer::gpu_prefetchHost() {
       //if (numberOfBlocks==0) return; // This size check in itself causes a page fault
-      block_data->optimizeCPU(cuda_getStream());
-      parameters->optimizeCPU(cuda_getStream());
+      block_data->optimizeCPU(gpu_getStream());
+      parameters->optimizeCPU(gpu_getStream());
       return;
    }
 
-   inline void VelocityBlockContainer::dev_prefetchDevice() {
+   inline void VelocityBlockContainer::gpu_prefetchDevice() {
       //if (numberOfBlocks==0) return; // This size check in itself causes a page fault
-      block_data->optimizeGPU(cuda_getStream());
-      parameters->optimizeGPU(cuda_getStream());
+      block_data->optimizeGPU(gpu_getStream());
+      parameters->optimizeGPU(gpu_getStream());
       return;
    }
 
-   inline void VelocityBlockContainer::dev_memAdvise(int device) {
-      // int device = cuda_getDevice();
-      block_data->memAdvise(cudaMemAdviseSetPreferredLocation,device);
-      parameters->memAdvise(cudaMemAdviseSetPreferredLocation,device);
-      block_data->memAdvise(cudaMemAdviseSetAccessedBy,device);
-      parameters->memAdvise(cudaMemAdviseSetAccessedBy,device);
+      inline void VelocityBlockContainer::gpu_memAdvise(int device, cudaStream_t stream) {
+      // int device = gpu_getDevice();
+      block_data->memAdvise(cudaMemAdviseSetPreferredLocation,device,stream);
+      parameters->memAdvise(cudaMemAdviseSetPreferredLocation,device,stream);
+      block_data->memAdvise(cudaMemAdviseSetAccessedBy,device,stream);
+      parameters->memAdvise(cudaMemAdviseSetAccessedBy,device,stream);
       return;
    }
 
-   inline void VelocityBlockContainer::dev_attachToStream(cudaStream_t stream) {
+   inline void VelocityBlockContainer::gpu_attachToStream(cudaStream_t stream) {
       // Return if attaching is not needed
       if (!needAttachedStreams) {
          return;
@@ -334,7 +326,7 @@ namespace vmesh {
       // Attach unified memory regions to streams
       cudaStream_t newStream;
       if (stream==0) {
-         newStream = cuda_getStream();
+         newStream = gpu_getStream();
       } else {
          newStream = stream;
       }
@@ -350,7 +342,7 @@ namespace vmesh {
       parameters->streamAttach(attachedStream);
       return;
    }
-   inline void VelocityBlockContainer::dev_detachFromStream() {
+   inline void VelocityBlockContainer::gpu_detachFromStream() {
       // Return if attaching is not needed
       if (!needAttachedStreams) {
          return;
@@ -370,15 +362,15 @@ namespace vmesh {
    }
 #endif
 
-   inline CUDA_HOSTDEV Real* VelocityBlockContainer::getParameters() {
+   inline ARCH_HOSTDEV Real* VelocityBlockContainer::getParameters() {
       return parameters->data();
    }
 
-   inline CUDA_HOSTDEV const Real* VelocityBlockContainer::getParameters() const {
+   inline ARCH_HOSTDEV const Real* VelocityBlockContainer::getParameters() const {
       return parameters->data();
    }
 
-   inline CUDA_HOSTDEV Real* VelocityBlockContainer::getParameters(const vmesh::LocalID& blockLID) {
+   inline ARCH_HOSTDEV Real* VelocityBlockContainer::getParameters(const vmesh::LocalID& blockLID) {
       #ifdef DEBUG_VBC
          if (blockLID >= numberOfBlocks) exitInvalidLocalID(blockLID,"getParameters");
          if (blockLID >= parameters->size()/BlockParams::N_VELOCITY_BLOCK_PARAMS) exitInvalidLocalID(blockLID,"getParameters");
@@ -386,7 +378,7 @@ namespace vmesh {
       return parameters->data() + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
    }
 
-   inline CUDA_HOSTDEV const Real* VelocityBlockContainer::getParameters(const vmesh::LocalID& blockLID) const {
+   inline ARCH_HOSTDEV const Real* VelocityBlockContainer::getParameters(const vmesh::LocalID& blockLID) const {
       #ifdef DEBUG_VBC
          if (blockLID >= numberOfBlocks) exitInvalidLocalID(blockLID,"const getParameters const");
          if (blockLID >= parameters->size()/BlockParams::N_VELOCITY_BLOCK_PARAMS) exitInvalidLocalID(blockLID,"getParameters");
@@ -394,15 +386,15 @@ namespace vmesh {
       return parameters->data() + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
    }
 
-   inline CUDA_HOSTDEV void VelocityBlockContainer::pop() {
+   inline ARCH_HOSTDEV void VelocityBlockContainer::pop() {
       if (numberOfBlocks == 0) return;
       --numberOfBlocks;
    }
 
-   inline CUDA_HOSTDEV vmesh::LocalID VelocityBlockContainer::push_back() {
+   inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::push_back() {
       vmesh::LocalID newIndex = numberOfBlocks;
       if (newIndex >= currentCapacity) {
-#ifdef USE_CUDA
+#ifdef USE_GPU
 #pragma nv_diag_suppress 20011,20014
 #endif
          resize();
@@ -430,11 +422,11 @@ namespace vmesh {
       return newIndex;
    }
 
-   inline CUDA_HOSTDEV vmesh::LocalID VelocityBlockContainer::push_back(const uint32_t& N_blocks) {
+   inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::push_back(const uint32_t& N_blocks) {
       const vmesh::LocalID newIndex = numberOfBlocks;
       numberOfBlocks += N_blocks;
       if (numberOfBlocks > currentCapacity) {
-#ifdef USE_CUDA
+#ifdef USE_GPU
 #pragma nv_diag_suppress 20014
 #endif
          resize();
@@ -453,8 +445,8 @@ namespace vmesh {
 
 /** PUSH BACK METHODS FOR GPU CODE - bookkeeping only
     Zeroing out block data and parameters must be done from caller kernel **/
-#ifdef USE_CUDA
-   inline CUDA_HOSTDEV vmesh::LocalID VelocityBlockContainer::dev_push_back() {
+#ifdef USE_GPU
+   inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::gpu_push_back() {
       vmesh::LocalID newIndex = numberOfBlocks;
       if (newIndex >= currentCapacity) {
          printf("Error: pushing back to VBC from device without enough capacity!\n");
@@ -463,7 +455,7 @@ namespace vmesh {
       ++numberOfBlocks;
       return newIndex;
    }
-   inline CUDA_HOSTDEV vmesh::LocalID VelocityBlockContainer::dev_push_back(const uint32_t& N_blocks) {
+   inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::gpu_push_back(const uint32_t& N_blocks) {
       const vmesh::LocalID newIndex = numberOfBlocks;
       numberOfBlocks += N_blocks;
       if (numberOfBlocks > currentCapacity) {
@@ -477,7 +469,7 @@ namespace vmesh {
    inline bool VelocityBlockContainer::recapacitate(const vmesh::LocalID& newCapacity) {
       if (newCapacity < numberOfBlocks) return false;
       {
-#ifdef USE_CUDA
+#ifdef USE_GPU
          split::SplitVector<Realf> *dummy_data = new split::SplitVector<Realf>(newCapacity*WID3);
 #else
          std::vector<Realf,aligned_allocator<Realf,WID3> > *dummy_data = new std::vector<Realf,aligned_allocator<Realf,WID3> >(newCapacity*WID3);
@@ -487,7 +479,7 @@ namespace vmesh {
          delete dummy_data;
       }
       {
-#ifdef USE_CUDA
+#ifdef USE_GPU
          split::SplitVector<Real> *dummy_parameters = new split::SplitVector<Real>(newCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS);
 #else
          std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS> > *dummy_parameters = new std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS> >(newCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS);
@@ -496,19 +488,20 @@ namespace vmesh {
          dummy_parameters->swap(*parameters);
          delete dummy_parameters;
       }
-      #ifdef USE_CUDA
-      int device = cuda_getDevice();
-      block_data->memAdvise(cudaMemAdviseSetPreferredLocation,device);
-      parameters->memAdvise(cudaMemAdviseSetPreferredLocation,device);
-      block_data->memAdvise(cudaMemAdviseSetAccessedBy,device);
-      parameters->memAdvise(cudaMemAdviseSetAccessedBy,device);
+      #ifdef USE_GPU
+      cudaStream_t stream = gpu_getStream();
+      int device = gpu_getDevice();
+      block_data->memAdvise(cudaMemAdviseSetPreferredLocation,device,stream);
+      parameters->memAdvise(cudaMemAdviseSetPreferredLocation,device,stream);
+      block_data->memAdvise(cudaMemAdviseSetAccessedBy,device,stream);
+      parameters->memAdvise(cudaMemAdviseSetAccessedBy,device,stream);
       #endif
       currentCapacity = newCapacity;
    return true;
    }
 
    inline void VelocityBlockContainer::resize() {
-#ifdef USE_CUDA
+#ifdef USE_GPU
       if ((numberOfBlocks+1)*BLOCK_ALLOCATION_FACTOR >= currentCapacity) {
          // Resize so that free space is block_allocation_chunk blocks,
          // and at least two in case of having zero blocks.
@@ -524,15 +517,15 @@ namespace vmesh {
             parameters->streamAttach(attachedStream);
          }
 #endif
-         cudaStream_t stream = cuda_getStream();
+         cudaStream_t stream = gpu_getStream();
          HANDLE_ERROR( cudaStreamSynchronize(stream) );
          block_data->optimizeGPU(stream);
          parameters->optimizeGPU(stream);
-         int device = cuda_getDevice();
-         block_data->memAdvise(cudaMemAdviseSetPreferredLocation,device);
-         parameters->memAdvise(cudaMemAdviseSetPreferredLocation,device);
-         block_data->memAdvise(cudaMemAdviseSetAccessedBy,device);
-         parameters->memAdvise(cudaMemAdviseSetAccessedBy,device);
+         int device = gpu_getDevice();
+         block_data->memAdvise(cudaMemAdviseSetPreferredLocation,device,stream);
+         parameters->memAdvise(cudaMemAdviseSetPreferredLocation,device,stream);
+         block_data->memAdvise(cudaMemAdviseSetAccessedBy,device,stream);
+         parameters->memAdvise(cudaMemAdviseSetAccessedBy,device,stream);
       }
 #else
       if ((numberOfBlocks+1) >= currentCapacity) {
@@ -546,10 +539,10 @@ namespace vmesh {
 #endif
    }
 
-   inline CUDA_HOSTDEV bool VelocityBlockContainer::setSize(const vmesh::LocalID& newSize) {
+   inline ARCH_HOSTDEV bool VelocityBlockContainer::setSize(const vmesh::LocalID& newSize) {
       numberOfBlocks = newSize;
       if (newSize > currentCapacity) {
-#ifdef USE_CUDA
+#ifdef USE_GPU
 #pragma nv_diag_suppress 20014
 #endif
          resize();
@@ -559,15 +552,15 @@ namespace vmesh {
 
    /** Return the number of existing velocity blocks.
     * @return Number of existing velocity blocks.*/
-   inline CUDA_HOSTDEV vmesh::LocalID VelocityBlockContainer::size() const {
+   inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::size() const {
       return numberOfBlocks;
    }
 
-   inline CUDA_HOSTDEV size_t VelocityBlockContainer::sizeInBytes() const {
+   inline ARCH_HOSTDEV size_t VelocityBlockContainer::sizeInBytes() const {
       return block_data->size()*sizeof(Realf) + parameters->size()*sizeof(Real);
    }
 
-   inline CUDA_HOSTDEV void VelocityBlockContainer::swap(VelocityBlockContainer& vbc) {
+   inline ARCH_HOSTDEV void VelocityBlockContainer::swap(VelocityBlockContainer& vbc) {
       block_data->swap(*(vbc.block_data));
       parameters->swap(*(vbc.parameters));
 

@@ -20,8 +20,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef CUDA_MOMENTS_H
-#define CUDA_MOMENTS_H
+#ifndef GPU_MOMENTS_H
+#define GPU_MOMENTS_H
 
 #include <vector>
 #include <limits>
@@ -56,7 +56,7 @@ void calculateMoments_R(
         const std::vector<CellID>& cells,
         const bool& computeSecond);
 
-extern void cuda_allocateMomentCalculations(
+extern void gpu_allocateMomentCalculations(
    const uint nPopulations,
    const uint maxThreads
    );
@@ -97,6 +97,6 @@ extern Real *host_momentArrays1[];
 extern Real *dev_momentArrays2[];
 extern Real *host_momentArrays2[];
 
-extern bool isCudaMomentsAllocated;
+extern bool isGpuMomentsAllocated;
 
 #endif

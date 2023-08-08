@@ -33,14 +33,10 @@
 
 #include "cpu_acc_transform.hpp"
 #include "cpu_acc_intersections.hpp"
-#include "cuda_acc_semilag.hpp"
-#include "cuda_acc_map.hpp"
+#include "gpu_acc_semilag.hpp"
+#include "gpu_acc_map.hpp"
 
-#include "device_launch_parameters.h"
-#include "cuda.h"
-#include "cuda_runtime.h"
-
-#include "../cuda_context.cuh"
+#include "../arch/gpu_base.hpp"
 
 #include "../velocity_mesh_parameters.h"
 
@@ -79,7 +75,7 @@ __global__ void printVBCsizekernel(
    ) {
    //uint blockDataN = blockContainer.size();
    //Real* parameters = blockContainer.getParameters();
-   // const int cudaBlocks = gridDim.x;
+   // const int gpuBlocks = gridDim.x;
    // const int blocki = blockIdx.x;
    const int i = threadIdx.x;
    const int j = threadIdx.y;
@@ -91,7 +87,7 @@ __global__ void printVBCsizekernel(
    }
 }
 
-void cuda_accelerate_cell(SpatialCell* spatial_cell,
+void gpu_accelerate_cell(SpatialCell* spatial_cell,
                          const uint popID,
                          const uint map_order,
                          const Real& dt) {
@@ -106,14 +102,14 @@ void cuda_accelerate_cell(SpatialCell* spatial_cell,
    const uint thread_id = 0;
 #endif
    // Ensure unified memory constructs are attached to correct kernel
-   spatial_cell->dev_attachToStream(cudaStreamList[thread_id]);
-   //spatial_cell->dev_advise();
+   spatial_cell->gpu_attachToStream(gpuStreamList[thread_id]);
+   //spatial_cell->gpu_advise();
 
-   // // CUDATEST Launch debug kernel?
+   // // GPUTEST Launch debug kernel?
    //vmesh::getMeshWrapper()->printVelocityMesh(popID);
    // vmesh::printVelocityMesh(popID);
    // dim3 block(WID,WID,WID);
-   // printVBCsizekernel<<<1, block, 0, cuda_getStream()>>> (popID);
+   // printVBCsizekernel<<<1, block, 0, gpu_getStream()>>> (popID);
    // HANDLE_ERROR( cudaDeviceSynchronize() );
 
    // compute transform, forward in time and backward in time
@@ -140,19 +136,19 @@ void cuda_accelerate_cell(SpatialCell* spatial_cell,
                                     intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk);
           phiprof::stop("compute-intersections");
           phiprof::start("compute-mapping 1");
-          cuda_acc_map_1d(spatial_cell, popID,
+          gpu_acc_map_1d(spatial_cell, popID,
                           intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,
-                          0, cudaStreamList[thread_id]); // map along x
+                          0, gpuStreamList[thread_id]); // map along x
           phiprof::stop("compute-mapping 1");
           phiprof::start("compute-mapping 2");
-          cuda_acc_map_1d(spatial_cell, popID,
+          gpu_acc_map_1d(spatial_cell, popID,
                           intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,
-                          1, cudaStreamList[thread_id]); // map along y
+                          1, gpuStreamList[thread_id]); // map along y
           phiprof::stop("compute-mapping 2");
           phiprof::start("compute-mapping 3");
-          cuda_acc_map_1d(spatial_cell, popID,
+          gpu_acc_map_1d(spatial_cell, popID,
                           intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,
-                          2, cudaStreamList[thread_id]); // map along z
+                          2, gpuStreamList[thread_id]); // map along z
           phiprof::stop("compute-mapping 3");
           break;
 
@@ -167,19 +163,19 @@ void cuda_accelerate_cell(SpatialCell* spatial_cell,
                                     intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk);
           phiprof::stop("compute-intersections");
           phiprof::start("compute-mapping 1");
-          cuda_acc_map_1d(spatial_cell, popID,
+          gpu_acc_map_1d(spatial_cell, popID,
                           intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,
-                          1, cudaStreamList[thread_id]); // map along y
+                          1, gpuStreamList[thread_id]); // map along y
           phiprof::stop("compute-mapping 1");
           phiprof::start("compute-mapping 2");
-          cuda_acc_map_1d(spatial_cell, popID,
+          gpu_acc_map_1d(spatial_cell, popID,
                           intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,
-                          2, cudaStreamList[thread_id]); // map along z
+                          2, gpuStreamList[thread_id]); // map along z
           phiprof::stop("compute-mapping 2");
           phiprof::start("compute-mapping 3");
-          cuda_acc_map_1d(spatial_cell, popID,
+          gpu_acc_map_1d(spatial_cell, popID,
                           intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,
-                          0, cudaStreamList[thread_id]); // map along x
+                          0, gpuStreamList[thread_id]); // map along x
           phiprof::stop("compute-mapping 3");
           break;
 
@@ -194,24 +190,24 @@ void cuda_accelerate_cell(SpatialCell* spatial_cell,
                                     intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk);
           phiprof::stop("compute-intersections");
           phiprof::start("compute-mapping 1");
-          cuda_acc_map_1d(spatial_cell, popID,
+          gpu_acc_map_1d(spatial_cell, popID,
                           intersection_z,intersection_z_di,intersection_z_dj,intersection_z_dk,
-                          2, cudaStreamList[thread_id]); // map along z
+                          2, gpuStreamList[thread_id]); // map along z
           phiprof::stop("compute-mapping 1");
           phiprof::start("compute-mapping 2");
-          cuda_acc_map_1d(spatial_cell, popID,
+          gpu_acc_map_1d(spatial_cell, popID,
                           intersection_x,intersection_x_di,intersection_x_dj,intersection_x_dk,
-                          0, cudaStreamList[thread_id]); // map along x
+                          0, gpuStreamList[thread_id]); // map along x
           phiprof::stop("compute-mapping 2");
           phiprof::start("compute-mapping 3");
-          cuda_acc_map_1d(spatial_cell, popID,
+          gpu_acc_map_1d(spatial_cell, popID,
                           intersection_y,intersection_y_di,intersection_y_dj,intersection_y_dk,
-                          1, cudaStreamList[thread_id]); // map along y
+                          1, gpuStreamList[thread_id]); // map along y
           phiprof::stop("compute-mapping 3");
           break;
    }
 
-   spatial_cell->dev_detachFromStream();
+   spatial_cell->gpu_detachFromStream();
 
    //if (Parameters::prepareForRebalance == true) {
    //    spatial_cell->parameters[CellParams::LBWEIGHTCOUNTER] += (MPI_Wtime() - t1);
