@@ -102,7 +102,7 @@ namespace vmesh {
       void dev_prefetchHost(cudaStream_t stream);
       void dev_prefetchDevice(cudaStream_t stream);
       void dev_memAdvise(int device);
-      void dev_cleanHashMap();
+      void dev_cleanHashMap(cudaStream_t stream);
       void dev_attachToStream(cudaStream_t stream);
       void dev_detachFromStream();
 
@@ -654,8 +654,12 @@ namespace vmesh {
       return;
    }
 
-   inline void VelocityMesh::dev_cleanHashMap() {
-      globalToLocalMap->performCleanupTasks(cuda_getStream());
+   inline void VelocityMesh::dev_cleanHashMap(cudaStream_t stream = 0) {
+      if (stream==0) {
+         globalToLocalMap->performCleanupTasks(cuda_getStream());
+      } else {
+         globalToLocalMap->performCleanupTasks(stream);
+      }
       return;
    }
 
