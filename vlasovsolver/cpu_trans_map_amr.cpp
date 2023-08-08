@@ -41,7 +41,7 @@ void propagatePencil(
    const uint blockGID,
    const Realv dt,
    const vmesh::VelocityMesh* vmesh,
-   const uint lengthOfPencil,
+   const int lengthOfPencil,
    const Realv threshold,
    Realf** blockDataPointer, // Spacing is for sources, but will be written into
    Realf* targetRatios, // Vector holding target ratios

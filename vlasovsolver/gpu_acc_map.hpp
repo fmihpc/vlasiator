@@ -36,7 +36,7 @@ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
                      Realv intersection_dj,
                      Realv intersection_dk,
                      const uint dimension,
-                     cudaStream_t stream
+                     gpuStream_t stream
    );
 
 #endif

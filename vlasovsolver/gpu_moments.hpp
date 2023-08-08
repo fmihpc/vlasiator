@@ -76,7 +76,7 @@ inline __host__ __device__ Real divideIfNonZeroHD(
 /*    MomentInfo *dev_momentInfos, */
 /*    Real* dev_momentArrays1, */
 /*    const int nPopulations, */
-/*    cudaStream_t stream */
+/*    gpuStream_t stream */
 /*    ); */
 
 /* void calculate_secondMoments_glue( */
@@ -86,7 +86,7 @@ inline __host__ __device__ Real divideIfNonZeroHD(
 /*    const Real bulkVX, */
 /*    const Real bulkVY, */
 /*    const Real bulkVZ, */
-/*    cudaStream_t stream */
+/*    gpuStream_t stream */
 /*    ); */
 
 extern MomentInfo *dev_momentInfos[];

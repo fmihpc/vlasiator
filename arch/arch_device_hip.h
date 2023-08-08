@@ -1,85 +1,85 @@
 
-#ifndef ARCH_DEVICE_CUDA_H
-#define ARCH_DEVICE_CUDA_H
+#ifndef ARCH_DEVICE_HIP_H
+#define ARCH_DEVICE_HIP_H
 
 /* Include required headers */
-#include <cuda.h>
-#include <cuda_runtime.h>
-#include <cub/cub.cuh>
-#include <cub/device/device_radix_sort.cuh>
+#include <hip/hip_runtime.h>
+#include <hipcub/hipcub.hpp>
+#include <hipcub/device/device_radix_sort.hpp>
+
 #ifdef _OPENMP
   #include <omp.h>
 #endif
 
-/* architecture-agnostic definitions for CUDA */
+/* architecture-agnostic definitions for HIP */
 
-#define gpuGetLastError                  cudaGetLastError
-#define gpuGetErrorString                cudaGetErrorString
-#define gpuPeekAtLastError               cudaPeekAtLastError
+#define gpuGetLastError                  hipGetLastError
+#define gpuGetErrorString                hipGetErrorString
+#define gpuPeekAtLastError               hipPeekAtLastError
 
-#define gpuSetDevice                     cudaSetDevice
-#define gpuGetDevice                     cudaGetDevice
-#define gpuGetDeviceCount                cudaGetDeviceCount
-#define gpuGetDeviceProperties           cudaGetDeviceProperties
-#define gpuDeviceSynchronize             cudaDeviceSynchronize
-#define gpuDeviceReset                   cudaDeviceReset
+#define gpuSetDevice                     hipSetDevice
+#define gpuGetDevice                     hipGetDevice
+#define gpuGetDeviceCount                hipGetDeviceCount
+#define gpuGetDeviceProperties           hipGetDeviceProperties
+#define gpuDeviceSynchronize             hipDeviceSynchronize
+#define gpuDeviceReset                   hipDeviceReset
 
-#define gpuFree                          cudaFree
-#define gpuFreeHost                      cudaFreeHost
-#define gpuFreeAsync                     cudaFreeAsync
-#define gpuMalloc                        cudaMalloc
-#define gpuMallocHost                    cudaMallocHost
-#define gpuMallocAsync                   cudaMallocAsync
-#define gpuMallocManaged                 cudaMallocManaged
-#define gpuHostAlloc                     cudaHostAlloc
-#define gpuHostAllocPortable             cudaHostAllocPortable
-#define gpuMemcpy                        cudaMemcpy
-#define gpuMemcpyAsync                   cudaMemcpyAsync
-#define gpuMemset                        cudaMemset
-#define gpuMemsetAsync                   cudaMemsetAsync
+#define gpuFree                          hipFree
+#define gpuFreeHost                      hipFreeHost
+#define gpuFreeAsync                     hipFreeAsync
+#define gpuMalloc                        hipMalloc
+#define gpuMallocHost                    hipMallocHost
+#define gpuMallocAsync                   hipMallocAsync
+#define gpuMallocManaged                 hipMallocManaged
+#define gpuHostAlloc                     hipHostAlloc
+#define gpuHostAllocPortable             hipHostAllocPortable
+#define gpuMemcpy                        hipMemcpy
+#define gpuMemcpyAsync                   hipMemcpyAsync
+#define gpuMemset                        hipMemset
+#define gpuMemsetAsync                   hipMemsetAsync
 
-#define gpuMemAdviseSetAccessedBy        cudaMemAdviseSetAccessedBy
-#define gpuMemAdviseSetPreferredLocation cudaMemAdviseSetPreferredLocation
-#define gpuMemAttachSingle               cudaMemAttachSingle
-#define gpuMemAttachGlobal               cudaMemAttachGlobal
-#define gpuMemPrefetchAsync              cudaMemPrefetchAsync
+#define gpuMemAdviseSetAccessedBy        hipMemAdviseSetAccessedBy
+#define gpuMemAdviseSetPreferredLocation hipMemAdviseSetPreferredLocation
+#define gpuMemAttachSingle               hipMemAttachSingle
+#define gpuMemAttachGlobal               hipMemAttachGlobal
+#define gpuMemPrefetchAsync              hipMemPrefetchAsync
 
-#define gpuStreamCreate                  cudaStreamCreate
-#define gpuStreamDestroy                 cudaStreamDestroy
-#define gpuStreamWaitEvent               cudaStreamWaitEvent
-#define gpuStreamSynchronize             cudaStreamSynchronize
-#define gpuStreamAttachMemAsync          cudaStreamAttachMemAsync
-#define gpuDeviceGetStreamPriorityRange  cudaDeviceGetStreamPriorityRange
-#define gpuStreamCreateWithPriority      cudaStreamCreateWithPriority
-#define gpuStreamDefault                 cudaStreamDefault
+#define gpuStreamCreate                  hipStreamCreate
+#define gpuStreamDestroy                 hipStreamDestroy
+#define gpuStreamWaitEvent               hipStreamWaitEvent
+#define gpuStreamSynchronize             hipStreamSynchronize
+#define gpuStreamAttachMemAsync          hipStreamAttachMemAsync
+#define gpuDeviceGetStreamPriorityRange  hipDeviceGetStreamPriorityRange
+#define gpuStreamCreateWithPriority      hipStreamCreateWithPriority
+#define gpuStreamDefault                 hipStreamDefault
 
-#define gpuEventCreate                   cudaEventCreate
-#define gpuEventCreateWithFlags          cudaEventCreateWithFlags
-#define gpuEventDestroy                  cudaEventDestroy
-#define gpuEventQuery                    cudaEventQuery
-#define gpuEventRecord                   cudaEventRecord
-#define gpuEventSynchronize              cudaEventSynchronize
-#define gpuEventElapsedTime              cudaEventElapsedTime
+#define gpuEventCreate                   hipEventCreate
+#define gpuEventCreateWithFlags          hipEventCreateWithFlags
+#define gpuEventDestroy                  hipEventDestroy
+#define gpuEventQuery                    hipEventQuery
+#define gpuEventRecord                   hipEventRecord
+#define gpuEventSynchronize              hipEventSynchronize
+#define gpuEventElapsedTime              hipEventElapsedTime
 
 /* driver_types */
-#define gpuError_t                       cudaError_t
-#define gpuSuccess                       cudaSuccess
+#define gpuError_t                       hipError_t
+#define gpuSuccess                       hipSuccess
 
-#define gpuStream_t                      cudaStream_t
-#define gpuDeviceProp                    cudaDeviceProp_t
+#define gpuStream_t                      hipStream_t
+#define gpuDeviceProp                    hipDeviceProp_t
 
-#define gpuEvent_t                       cudaEvent_t
-#define gpuEventDefault                  cudaEventDefault
-#define gpuEventBlockingSync             cudaEventBlockingSync
-#define gpuEventDisableTiming            cudaEventDisableTiming
+#define gpuEvent_t                       hipEvent_t
+#define gpuEventDefault                  hipEventDefault
+#define gpuEventBlockingSync             hipEventBlockingSync
+#define gpuEventDisableTiming            hipEventDisableTiming
 
-#define gpuMemcpyKind                    cudaMemcpyKind
-#define gpuMemcpyDeviceToHost            cudaMemcpyDeviceToHost
-#define gpuMemcpyHostToDevice            cudaMemcpyHostToDevice
-#define gpuMemcpyDeviceToDevice          cudaMemcpyDeviceToDevice
-#define gpuMemcpyToSymbol                cudaMemcpyToSymbol
+#define gpuMemcpyKind                    hipMemcpyKind
+#define gpuMemcpyDeviceToHost            hipMemcpyDeviceToHost
+#define gpuMemcpyHostToDevice            hipMemcpyHostToDevice
+#define gpuMemcpyDeviceToDevice          hipMemcpyDeviceToDevice
+#define gpuMemcpyToSymbol                hipMemcpyToSymbol
 
-#define gpuKernelBallot(mask, input) __ballot_sync(mask, input) 
+#define gpuKernelBallot(mask, input)     __ballot(input)
 
 /* Define architecture-specific macros */
 #define ARCH_LOOP_LAMBDA [=] __host__ __device__
@@ -88,9 +88,9 @@
 #define ARCH_INNER_BODY4(i, j, k, l, aggregate)
 
 /* Ensure printing of CUB GPU runtime errors to console */
-#define CUB_STDERR
+#define HIPCUB_STDERR
 
-/* Set CUDA blocksize used for reductions */
+/* Set HIP blocksize used for reductions */
 #define ARCH_BLOCKSIZE_R 512
 
 /* GPU blocksize used by Vlasov solvers */
@@ -100,21 +100,21 @@
 
 /* values used by kernels */
 #ifndef GPUTHREADS
-#define GPUTHREADS (32)
+#define GPUTHREADS (64)
 #endif
-#define FULL_MASK 0xffffffff
+#define FULL_MASK 0xffffffffffffffff
 
 #ifdef ARCH_MAIN
-  cudaStream_t stream[64];
+  hipStream_t stream[64];
 #else
-  extern cudaStream_t stream[];
+  extern hipStream_t stream[];
 #endif
 
-/* Define the CUDA error checking macro */
-#define CHK_ERR(err) (cuda_error(err, __FILE__, __LINE__))
-  inline static void cuda_error(cudaError_t err, const char *file, int line) {
-  	if (err != cudaSuccess) {
-  		printf("\n\n%s in %s at line %d\n", cudaGetErrorString(err), file, line);
+/* Define the HIP error checking macro */
+#define CHK_ERR(err) (hip_error(err, __FILE__, __LINE__))
+  inline static void hip_error(hipError_t err, const char *file, int line) {
+  	if (err != hipSuccess) {
+  		printf("\n\n%s in %s at line %d\n", hipGetErrorString(err), file, line);
   		exit(1);
   	}
 }
@@ -155,16 +155,16 @@ class buf {
   public:   
 
   void syncDeviceData(void){
-    CHK_ERR(cudaMemcpyAsync(d_ptr, ptr, bytes, cudaMemcpyHostToDevice, stream[thread_id]));
+    CHK_ERR(hipMemcpyAsync(d_ptr, ptr, bytes, hipMemcpyHostToDevice, stream[thread_id]));
   }
 
   void syncHostData(void){
-    CHK_ERR(cudaMemcpyAsync(ptr, d_ptr, bytes, cudaMemcpyDeviceToHost, stream[thread_id]));
+    CHK_ERR(hipMemcpyAsync(ptr, d_ptr, bytes, hipMemcpyDeviceToHost, stream[thread_id]));
   }
   
   buf(T * const _ptr, uint _bytes) : ptr(_ptr), bytes(_bytes) {
     thread_id = omp_get_thread_num();
-    CHK_ERR(cudaMallocAsync(&d_ptr, bytes, stream[thread_id]));
+    CHK_ERR(hipMallocAsync(&d_ptr, bytes, stream[thread_id]));
     syncDeviceData();
   }
   
@@ -174,14 +174,14 @@ class buf {
   __host__ ~buf(void){
     if(!is_copy){
       // syncHostData();
-      #ifdef __CUDA_ARCH__
-        cudaFreeAsync(d_ptr, stream[thread_id]);
+      #ifdef __HIP_DEVICE_COMPILE__
+        hipFreeAsync(d_ptr, stream[thread_id]);
       #endif
     }
   }
 
   __host__ __device__ T &operator [] (uint i) const {
-   #ifdef __CUDA_ARCH__
+   #ifdef __HIP_DEVICE_COMPILE__
       return d_ptr[i];
    #else
       return ptr[i];
@@ -192,13 +192,13 @@ class buf {
 /* A function to check and set the device mempool settings */
 __host__ __forceinline__ static void device_mempool_check(uint64_t threshold_new) {
   int device_id;
-  CHK_ERR(cudaGetDevice(&device_id));
-  cudaMemPool_t mempool;
-  CHK_ERR(cudaDeviceGetDefaultMemPool(&mempool, device_id));
+  CHK_ERR(hipGetDevice(&device_id));
+  hipMemPool_t mempool;
+  CHK_ERR(hipDeviceGetDefaultMemPool(&mempool, device_id));
   uint64_t threshold_old;
-  CHK_ERR(cudaMemPoolGetAttribute(mempool, cudaMemPoolAttrReleaseThreshold, &threshold_old));
+  CHK_ERR(hipMemPoolGetAttribute(mempool, hipMemPoolAttrReleaseThreshold, &threshold_old));
   if(threshold_new != threshold_old)
-    CHK_ERR(cudaMemPoolSetAttribute(mempool, cudaMemPoolAttrReleaseThreshold, &threshold_new));
+    CHK_ERR(hipMemPoolSetAttribute(mempool, hipMemPoolAttrReleaseThreshold, &threshold_new));
 }
 
 /* Device function for memory allocation */
@@ -206,14 +206,14 @@ __host__ __forceinline__ static void* allocate(size_t bytes) {
   void* ptr;
   const uint thread_id = omp_get_thread_num();
   device_mempool_check(UINT64_MAX);
-  CHK_ERR(cudaMallocAsync(&ptr, bytes, stream[thread_id]));
+  CHK_ERR(hipMallocAsync(&ptr, bytes, stream[thread_id]));
   return ptr;
 }
 
-__host__ __forceinline__ static void* allocate(size_t bytes, cudaStream_t stream) {
+__host__ __forceinline__ static void* allocate(size_t bytes, hipStream_t stream) {
   void* ptr;
   device_mempool_check(UINT64_MAX);
-  CHK_ERR(cudaMallocAsync(&ptr, bytes, stream));
+  CHK_ERR(hipMallocAsync(&ptr, bytes, stream));
   return ptr;
 }
 
@@ -221,47 +221,47 @@ __host__ __forceinline__ static void* allocate(size_t bytes, cudaStream_t stream
 template <typename T>
 __host__ __forceinline__ static void free(T* ptr) {
   const uint thread_id = omp_get_thread_num();
-  CHK_ERR(cudaFreeAsync(ptr, stream[thread_id]));
+  CHK_ERR(hipFreeAsync(ptr, stream[thread_id]));
 }
 
 template <typename T>
-__host__ __forceinline__ static void free(T* ptr, cudaStream_t stream) {
-  CHK_ERR(cudaFreeAsync(ptr, stream));
+__host__ __forceinline__ static void free(T* ptr, hipStream_t stream) {
+  CHK_ERR(hipFreeAsync(ptr, stream));
 }
 /* Host-to-device memory copy */
 template <typename T>
 __forceinline__ static void memcpy_h2d(T* dst, T* src, size_t bytes){
   const uint thread_id = omp_get_thread_num();
-  CHK_ERR(cudaMemcpyAsync(dst, src, bytes, cudaMemcpyHostToDevice, stream[thread_id]));
+  CHK_ERR(hipMemcpyAsync(dst, src, bytes, hipMemcpyHostToDevice, stream[thread_id]));
 }
 
 template <typename T>
-__forceinline__ static void memcpy_h2d(T* dst, T* src, size_t bytes, cudaStream_t stream){
-  CHK_ERR(cudaMemcpyAsync(dst, src, bytes, cudaMemcpyHostToDevice, stream));
+__forceinline__ static void memcpy_h2d(T* dst, T* src, size_t bytes, hipStream_t stream){
+  CHK_ERR(hipMemcpyAsync(dst, src, bytes, hipMemcpyHostToDevice, stream));
 }
 
 /* Device-to-host memory copy */
 template <typename T>
 __forceinline__ static void memcpy_d2h(T* dst, T* src, size_t bytes){
   const uint thread_id = omp_get_thread_num();
-  CHK_ERR(cudaMemcpyAsync(dst, src, bytes, cudaMemcpyDeviceToHost, stream[thread_id]));
+  CHK_ERR(hipMemcpyAsync(dst, src, bytes, hipMemcpyDeviceToHost, stream[thread_id]));
 }
 
 template <typename T>
-__forceinline__ static void memcpy_d2h(T* dst, T* src, size_t bytes, cudaStream_t stream){
-  CHK_ERR(cudaMemcpyAsync(dst, src, bytes, cudaMemcpyDeviceToHost, stream));
+__forceinline__ static void memcpy_d2h(T* dst, T* src, size_t bytes, hipStream_t stream){
+  CHK_ERR(hipMemcpyAsync(dst, src, bytes, hipMemcpyDeviceToHost, stream));
 }
 
 /* Register, ie, page-lock existing host allocations */
 template <typename T>
 __forceinline__ static void host_register(T* ptr, size_t bytes){
-  CHK_ERR(cudaHostRegister(ptr, bytes, cudaHostRegisterDefault));
+  CHK_ERR(hipHostRegister(ptr, bytes, hipHostRegisterDefault));
 }
 
 /* Unregister page-locked host allocations */
 template <typename T>
 __forceinline__ static void host_unregister(T* ptr){
-  CHK_ERR(cudaHostUnregister(ptr));
+  CHK_ERR(hipHostUnregister(ptr));
 }
 
 /* Specializations for lambda calls depending on the templated dimension */
@@ -301,7 +301,7 @@ __global__ static void __launch_bounds__(ARCH_BLOCKSIZE_R)
 reduction_kernel(Lambda loop_body, const T * __restrict__ init_val, T * __restrict__ rslt, const uint * __restrict__ lims, const uint n_total, const uint n_redu_dynamic, T *thread_data_dynamic)
 {
   /* Specialize BlockReduce for a 1D block of ARCH_BLOCKSIZE_R threads of type `T` */
-  typedef cub::BlockReduce<T, ARCH_BLOCKSIZE_R, cub::BLOCK_REDUCE_RAKING_COMMUTATIVE_ONLY, 1, 1> BlockReduce;
+  typedef hipcub::BlockReduce<T, ARCH_BLOCKSIZE_R, hipcub::BLOCK_REDUCE_RAKING_COMMUTATIVE_ONLY, 1, 1> BlockReduce;
 
   /* Dynamic shared memory declaration */
   extern __shared__ char temp_storage_dynamic[];
@@ -347,12 +347,12 @@ reduction_kernel(Lambda loop_body, const T * __restrict__ init_val, T * __restri
         atomicAdd(&rslt[i], aggregate);
     }
     else if(Op == reduce_op::max){
-      T aggregate = BlockReduce(temp_storage[i]).Reduce(thread_data[i], cub::Max()); 
+      T aggregate = BlockReduce(temp_storage[i]).Reduce(thread_data[i], hipcub::Max()); 
       if(threadIdx.x == 0) 
         atomicMax(&rslt[i], aggregate);
     }
     else if(Op == reduce_op::min){
-      T aggregate = BlockReduce(temp_storage[i]).Reduce(thread_data[i], cub::Min());
+      T aggregate = BlockReduce(temp_storage[i]).Reduce(thread_data[i], hipcub::Min());
       if(threadIdx.x == 0) 
         atomicMin(&rslt[i], aggregate);
     }
@@ -365,7 +365,7 @@ reduction_kernel(Lambda loop_body, const T * __restrict__ init_val, T * __restri
   
 
 
-/* Parallel reduce driver function for the CUDA reductions */
+/* Parallel reduce driver function for the HIP reductions */
 template <reduce_op Op, uint NReduStatic, uint NDim, typename Lambda, typename T>
 __forceinline__ static void parallel_reduce_driver(const uint (&limits)[NDim], Lambda loop_body, T *sum, const uint n_redu_dynamic) {
 
@@ -381,7 +381,7 @@ __forceinline__ static void parallel_reduce_driver(const uint (&limits)[NDim], L
   const uint blocksize = ARCH_BLOCKSIZE_R;
   const uint gridsize = (n_total - 1 + blocksize) / blocksize;
 
-  /* Check the CUDA default mempool settings and correct if wrong */
+  /* Check the HIP default mempool settings and correct if wrong */
   device_mempool_check(UINT64_MAX);
 
   /* Get the CPU thread id */
@@ -389,18 +389,18 @@ __forceinline__ static void parallel_reduce_driver(const uint (&limits)[NDim], L
 
   /* Create a device buffer for the reduction results */
   T* d_buf;
-  CHK_ERR(cudaMallocAsync(&d_buf, n_reductions*sizeof(T), stream[thread_id]));
-  CHK_ERR(cudaMemcpyAsync(d_buf, sum, n_reductions*sizeof(T), cudaMemcpyHostToDevice, stream[thread_id]));
+  CHK_ERR(hipMallocAsync(&d_buf, n_reductions*sizeof(T), stream[thread_id]));
+  CHK_ERR(hipMemcpyAsync(d_buf, sum, n_reductions*sizeof(T), hipMemcpyHostToDevice, stream[thread_id]));
   
   /* Create a device buffer to transfer the initial values to device */
   T* d_const_buf;
-  CHK_ERR(cudaMallocAsync(&d_const_buf, n_reductions*sizeof(T), stream[thread_id]));
-  CHK_ERR(cudaMemcpyAsync(d_const_buf, d_buf, n_reductions*sizeof(T), cudaMemcpyDeviceToDevice, stream[thread_id]));
+  CHK_ERR(hipMallocAsync(&d_const_buf, n_reductions*sizeof(T), stream[thread_id]));
+  CHK_ERR(hipMemcpyAsync(d_const_buf, d_buf, n_reductions*sizeof(T), hipMemcpyDeviceToDevice, stream[thread_id]));
 
   /* Create a device buffer to transfer the loop limits of each dimension to device */
   uint* d_limits;
-  CHK_ERR(cudaMallocAsync(&d_limits, NDim*sizeof(uint), stream[thread_id]));
-  CHK_ERR(cudaMemcpyAsync(d_limits, limits, NDim*sizeof(uint), cudaMemcpyHostToDevice,stream[thread_id]));
+  CHK_ERR(hipMallocAsync(&d_limits, NDim*sizeof(uint), stream[thread_id]));
+  CHK_ERR(hipMemcpyAsync(d_limits, limits, NDim*sizeof(uint), hipMemcpyHostToDevice,stream[thread_id]));
 
   /* Call the reduction kernel with different arguments depending 
    * on if the number of reductions is known at the compile time 
@@ -408,28 +408,28 @@ __forceinline__ static void parallel_reduce_driver(const uint (&limits)[NDim], L
   T* d_thread_data_dynamic;
   if(NReduStatic == 0) {
     /* Get the cub temp storage size for the dynamic shared memory kernel argument */
-    constexpr auto cub_temp_storage_type_size = sizeof(typename cub::BlockReduce<T, ARCH_BLOCKSIZE_R, cub::BLOCK_REDUCE_RAKING_COMMUTATIVE_ONLY, 1, 1>::TempStorage);
+    constexpr auto cub_temp_storage_type_size = sizeof(typename hipcub::BlockReduce<T, ARCH_BLOCKSIZE_R, hipcub::BLOCK_REDUCE_RAKING_COMMUTATIVE_ONLY, 1, 1>::TempStorage);
     /* Allocate memory for the thread data values */
-    CHK_ERR(cudaMallocAsync(&d_thread_data_dynamic, n_reductions * blocksize * gridsize * sizeof(T), stream[thread_id]));
+    CHK_ERR(hipMallocAsync(&d_thread_data_dynamic, n_reductions * blocksize * gridsize * sizeof(T), stream[thread_id]));
     /* Call the kernel (the number of reductions not known at compile time) */
     reduction_kernel<Op, NDim, 0><<<gridsize, blocksize, n_reductions * cub_temp_storage_type_size, stream[thread_id]>>>(loop_body, d_const_buf, d_buf, d_limits, n_total, n_reductions, d_thread_data_dynamic);
     /* Synchronize and free the thread data allocation */
-    CHK_ERR(cudaStreamSynchronize(stream[thread_id]));
-    CHK_ERR(cudaFreeAsync(d_thread_data_dynamic, stream[thread_id]));
+    CHK_ERR(hipStreamSynchronize(stream[thread_id]));
+    CHK_ERR(hipFreeAsync(d_thread_data_dynamic, stream[thread_id]));
   }
   else{
     /* Call the kernel (the number of reductions known at compile time) */
     reduction_kernel<Op, NDim, NReduStatic><<<gridsize, blocksize, 0, stream[thread_id]>>>(loop_body, d_const_buf, d_buf, d_limits, n_total, n_reductions, d_thread_data_dynamic);
     /* Synchronize after kernel call */
-    CHK_ERR(cudaStreamSynchronize(stream[thread_id]));
+    CHK_ERR(hipStreamSynchronize(stream[thread_id]));
   }
   /* Copy the results back to host and free the allocated memory back to pool*/
-  CHK_ERR(cudaMemcpyAsync(sum, d_buf, n_reductions*sizeof(T), cudaMemcpyDeviceToHost, stream[thread_id]));
-  CHK_ERR(cudaFreeAsync(d_buf, stream[thread_id]));
-  CHK_ERR(cudaFreeAsync(d_const_buf, stream[thread_id]));
-  CHK_ERR(cudaFreeAsync(d_limits, stream[thread_id]));
+  CHK_ERR(hipMemcpyAsync(sum, d_buf, n_reductions*sizeof(T), hipMemcpyDeviceToHost, stream[thread_id]));
+  CHK_ERR(hipFreeAsync(d_buf, stream[thread_id]));
+  CHK_ERR(hipFreeAsync(d_const_buf, stream[thread_id]));
+  CHK_ERR(hipFreeAsync(d_limits, stream[thread_id]));
 }
 }
 
 
-#endif // !ARCH_DEVICE_CUDA_H
+#endif // !ARCH_DEVICE_HIP_H

@@ -114,14 +114,14 @@ namespace vmesh {
 
    void allocMeshWrapper();
    MeshWrapper* host_getMeshWrapper();
-   ARCH_HOSTDEV MeshWrapper* dev_getMeshWrapper();
+   ARCH_HOSTDEV MeshWrapper* gpu_getMeshWrapper();
 
    // Caller, inlined into other compilation units, will call either host or device getter
    ARCH_HOSTDEV inline MeshWrapper* getMeshWrapper() {
-      #ifndef __CUDA_ARCH__
-      return host_getMeshWrapper();
+      #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+      return gpu_getMeshWrapper();
       #else
-      return dev_getMeshWrapper();
+      return host_getMeshWrapper();
       #endif
    }
 

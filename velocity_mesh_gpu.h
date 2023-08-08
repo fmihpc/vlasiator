@@ -38,7 +38,7 @@
 #include "include/splitvector/splitvec.h"
 
 #include "arch/gpu_base.hpp"
-#include "arch/arch_device_api.h"
+//#include "arch/arch_device_api.h" // included in above
 
 namespace vmesh {
 
@@ -97,16 +97,16 @@ namespace vmesh {
       ARCH_HOSTDEV size_t sizeInBytes() const;
       ARCH_HOSTDEV void swap(VelocityMesh& vm);
 
-      void gpu_prefetchHost(cudaStream_t stream);
-      void gpu_prefetchDevice(cudaStream_t stream);
-      void gpu_memAdvise(int device, cudaStream_t stream);
-      void gpu_cleanHashMap(cudaStream_t stream);
-      void gpu_attachToStream(cudaStream_t stream);
+      void gpu_prefetchHost(gpuStream_t stream);
+      void gpu_prefetchDevice(gpuStream_t stream);
+      void gpu_memAdvise(int device, gpuStream_t stream);
+      void gpu_cleanHashMap(gpuStream_t stream);
+      void gpu_attachToStream(gpuStream_t stream);
       void gpu_detachFromStream();
 
    private:
       size_t meshID;
-      cudaStream_t attachedStream;
+      gpuStream_t attachedStream;
 
       //std::vector<vmesh::GlobalID> localToGlobalMap;
       //OpenBucketHashtable<vmesh::GlobalID,vmesh::LocalID> globalToLocalMap;
@@ -125,13 +125,13 @@ namespace vmesh {
       localToGlobalMap = new split::SplitVector<vmesh::GlobalID>(1);
       localToGlobalMap->clear();
       attachedStream = 0;
-      cudaMallocHost((void **) &info_ltgm, sizeof(split::SplitInfo));
+      gpuMallocHost((void **) &info_ltgm, sizeof(split::SplitInfo));
    }
 
    inline VelocityMesh::~VelocityMesh() {
       delete globalToLocalMap;
       delete localToGlobalMap;
-      cudaFreeHost(info_ltgm);
+      gpuFreeHost(info_ltgm);
    }
 
    inline VelocityMesh::VelocityMesh(const VelocityMesh& other) {
@@ -144,7 +144,7 @@ namespace vmesh {
          localToGlobalMap->clear();
       }
       attachedStream = 0;
-      cudaMallocHost((void **) &info_ltgm, sizeof(split::SplitInfo));
+      gpuMallocHost((void **) &info_ltgm, sizeof(split::SplitInfo));
    }
 
    inline const VelocityMesh& VelocityMesh::operator=(const VelocityMesh& other) {
@@ -159,7 +159,7 @@ namespace vmesh {
          localToGlobalMap->clear();
       }
       attachedStream = 0;
-      //cudaMallocHost((void **) &info_ltgm, sizeof(split::SplitInfo)); already exists
+      //gpuMallocHost((void **) &info_ltgm, sizeof(split::SplitInfo)); already exists
       return *this;
    }
 
@@ -202,7 +202,7 @@ namespace vmesh {
       const vmesh::GlobalID targetGID = localToGlobalMap->at(targetLID); // removed block
 
       // at-function will throw out_of_range exception for non-existing global ID:
-      #ifdef __CUDA_ARCH__
+      #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
       globalToLocalMap->set_element(sourceGID,targetLID);
       globalToLocalMap->set_element(targetGID,sourceLID);
       #else
@@ -215,7 +215,7 @@ namespace vmesh {
    }
 
    ARCH_HOSTDEV inline size_t VelocityMesh::count(const vmesh::GlobalID& globalID) const {
-      #ifdef __CUDA_ARCH__
+      #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
       return globalToLocalMap->device_count(globalID);
       #else
       return globalToLocalMap->count(globalID);
@@ -232,7 +232,7 @@ namespace vmesh {
       vmesh::GlobalID blockGID = getGlobalID(i_block,j_block,k_block);
 
       // If the block exists, return it:
-      #ifdef __CUDA_ARCH__
+      #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
       if (globalToLocalMap->device_count(blockGID) != 0) {
       #else
       if (globalToLocalMap->count(blockGID) != 0) {
@@ -400,7 +400,7 @@ namespace vmesh {
    }
 
    ARCH_HOSTDEV inline vmesh::LocalID VelocityMesh::getLocalID(const vmesh::GlobalID& globalID) const {
-      #ifdef __CUDA_ARCH__
+      #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
       auto it = globalToLocalMap->device_find(globalID);
       if (it != globalToLocalMap->device_end()) return it->second;
       #else
@@ -448,7 +448,7 @@ namespace vmesh {
 
       const vmesh::LocalID lastLID = size()-1;
       const vmesh::GlobalID lastGID = localToGlobalMap->at(lastLID);
-      #ifdef __CUDA_ARCH__
+      #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
       auto last = globalToLocalMap->device_find(lastGID);
       globalToLocalMap->device_erase(last);
       #else
@@ -462,7 +462,7 @@ namespace vmesh {
       if (size() >= (vmesh::getMeshWrapper()->velocityMeshes->at(meshID)).max_velocity_blocks) return false;
       if (globalID == invalidGlobalID()) return false;
 
-      #ifdef __CUDA_ARCH__
+      #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
       auto position
          = globalToLocalMap->device_insert(Hashinator::make_pair(globalID,(vmesh::LocalID)localToGlobalMap->size()));
       if (position.second == true) {
@@ -501,7 +501,7 @@ namespace vmesh {
          return false;
       }
 
-      #ifdef __CUDA_ARCH__
+      #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
       for (size_t b=0; b<blocks.size(); ++b) {
          globalToLocalMap->device_insert(Hashinator::make_pair(blocks[b],(vmesh::LocalID)(localToGlobalMap->size()+b)));
       }
@@ -515,7 +515,7 @@ namespace vmesh {
       return true;
    }
 
-#ifdef __CUDA_ARCH__
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
    ARCH_DEV inline bool VelocityMesh::replaceBlock(const vmesh::GlobalID& GIDold,const vmesh::LocalID& LID,const vmesh::GlobalID& GIDnew) {
       globalToLocalMap->device_erase(GIDold);
       globalToLocalMap->set_element(GIDnew,LID);
@@ -567,24 +567,24 @@ namespace vmesh {
       // Needed by GPU block adjustment
       // Passing eco flag = true to resize tells splitvector we manage padding manually.
       vmesh::LocalID currentCapacity = localToGlobalMap->capacity();
-      cudaStream_t stream = gpu_getStream();
+      gpuStream_t stream = gpu_getStream();
       localToGlobalMap->resize(newSize,true);
       int device = gpu_getDevice();
       if (newSize > currentCapacity) {
          // Was allocated new memory
-         CHK_ERR( cudaStreamSynchronize(stream) );
+         CHK_ERR( gpuStreamSynchronize(stream) );
          localToGlobalMap->optimizeGPU(stream);
-         localToGlobalMap->memAdvise(cudaMemAdviseSetPreferredLocation,device,stream);
-         localToGlobalMap->memAdvise(cudaMemAdviseSetAccessedBy,device,stream);
+         localToGlobalMap->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+         localToGlobalMap->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       }
       // Ensure also that the map is large enough
       const vmesh::LocalID HashmapReqSize = ceil(log2(newSize)) +2; // Make it really large enough
       if (globalToLocalMap->getSizePower() < HashmapReqSize) {
          globalToLocalMap->device_rehash(HashmapReqSize, stream);
-         CHK_ERR( cudaStreamSynchronize(stream) );
+         CHK_ERR( gpuStreamSynchronize(stream) );
          globalToLocalMap->optimizeGPU(stream);
-         globalToLocalMap->memAdvise(cudaMemAdviseSetPreferredLocation,device,stream);
-         globalToLocalMap->memAdvise(cudaMemAdviseSetAccessedBy,device,stream);
+         globalToLocalMap->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+         globalToLocalMap->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       }
       // Re-attach stream if required
       if ((attachedStream != 0)&&(needAttachedStreams)) {
@@ -594,13 +594,13 @@ namespace vmesh {
    }
 
    ARCH_HOSTDEV inline size_t VelocityMesh::size() const {
-#ifdef __CUDA_ARCH__
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
       return localToGlobalMap->size();
 #else
       // Host-side non-pagefaulting approach
-      cudaStream_t stream = gpu_getStream();
+      gpuStream_t stream = gpu_getStream();
       localToGlobalMap->copyMetadata(info_ltgm,stream);
-      CHK_ERR( cudaStreamSynchronize(stream) );
+      CHK_ERR( gpuStreamSynchronize(stream) );
       return info_ltgm->size;
 #endif
    }
@@ -615,7 +615,7 @@ namespace vmesh {
       localToGlobalMap->swap(*(vm.localToGlobalMap));
    }
 
-   inline void VelocityMesh::gpu_prefetchHost(cudaStream_t stream=0) {
+   inline void VelocityMesh::gpu_prefetchHost(gpuStream_t stream=0) {
       //if (localToGlobalMap->size() == 0) return; // This size check in itself causes a page fault
       // In fact we only need to prefetch the buckets inside the hashmap to GPU, but use this call.
       //Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *uploaded = globalToLocalMap->upload(gpu_getStream());
@@ -629,7 +629,7 @@ namespace vmesh {
       return;
    }
 
-   inline void VelocityMesh::gpu_prefetchDevice(cudaStream_t stream=0) {
+   inline void VelocityMesh::gpu_prefetchDevice(gpuStream_t stream=0) {
       //if (localToGlobalMap->size() == 0) return; // This size check in itself causes a page fault
       // In fact we only need to prefetch the buckets inside the hashmap to GPU, but use this call.
       //Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *uploaded = globalToLocalMap->upload(gpu_getStream());
@@ -643,16 +643,16 @@ namespace vmesh {
       return;
    }
 
-   inline void VelocityMesh::gpu_memAdvise(int device, cudaStream_t stream) {
+   inline void VelocityMesh::gpu_memAdvise(int device, gpuStream_t stream) {
       // int device = gpu_getDevice();
-      globalToLocalMap->memAdvise(cudaMemAdviseSetPreferredLocation,device,stream);
-      localToGlobalMap->memAdvise(cudaMemAdviseSetPreferredLocation,device,stream);
-      globalToLocalMap->memAdvise(cudaMemAdviseSetAccessedBy,device,stream);
-      localToGlobalMap->memAdvise(cudaMemAdviseSetAccessedBy,device,stream);
+      globalToLocalMap->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+      localToGlobalMap->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+      globalToLocalMap->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+      localToGlobalMap->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       return;
    }
 
-   inline void VelocityMesh::gpu_cleanHashMap(cudaStream_t stream = 0) {
+   inline void VelocityMesh::gpu_cleanHashMap(gpuStream_t stream = 0) {
       if (stream==0) {
          globalToLocalMap->performCleanupTasks(gpu_getStream());
       } else {
@@ -661,13 +661,13 @@ namespace vmesh {
       return;
    }
 
-   inline void VelocityMesh::gpu_attachToStream(cudaStream_t stream = 0) {
+   inline void VelocityMesh::gpu_attachToStream(gpuStream_t stream = 0) {
       // Return if attaching is not needed
       if (!needAttachedStreams) {
          return;
       }
       // Attach unified memory regions to streams
-      cudaStream_t newStream;
+      gpuStream_t newStream;
       if (stream==0) {
          newStream = gpu_getStream();
       } else {
@@ -678,9 +678,9 @@ namespace vmesh {
       } else {
          attachedStream = newStream;
       }
-      CHK_ERR( cudaStreamAttachMemAsync(attachedStream,this, 0,cudaMemAttachSingle) );
-      CHK_ERR( cudaStreamAttachMemAsync(attachedStream,globalToLocalMap, 0,cudaMemAttachSingle) );
-      CHK_ERR( cudaStreamAttachMemAsync(attachedStream,localToGlobalMap, 0,cudaMemAttachSingle) );
+      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,this, 0,gpuMemAttachSingle) );
+      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,globalToLocalMap, 0,gpuMemAttachSingle) );
+      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,localToGlobalMap, 0,gpuMemAttachSingle) );
       globalToLocalMap->streamAttach(attachedStream);
       localToGlobalMap->streamAttach(attachedStream);
       return;
@@ -696,11 +696,11 @@ namespace vmesh {
          return;
       }
       attachedStream = 0;
-      CHK_ERR( cudaStreamAttachMemAsync(attachedStream,this, 0,cudaMemAttachGlobal) );
-      CHK_ERR( cudaStreamAttachMemAsync(attachedStream,globalToLocalMap, 0,cudaMemAttachGlobal) );
-      CHK_ERR( cudaStreamAttachMemAsync(attachedStream,localToGlobalMap, 0,cudaMemAttachGlobal) );
-      globalToLocalMap->streamAttach(0,cudaMemAttachGlobal);
-      localToGlobalMap->streamAttach(0,cudaMemAttachGlobal);
+      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,this, 0,gpuMemAttachGlobal) );
+      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,globalToLocalMap, 0,gpuMemAttachGlobal) );
+      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,localToGlobalMap, 0,gpuMemAttachGlobal) );
+      globalToLocalMap->streamAttach(0,gpuMemAttachGlobal);
+      localToGlobalMap->streamAttach(0,gpuMemAttachGlobal);
       return;
    }
 

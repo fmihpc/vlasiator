@@ -43,7 +43,7 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
                                // split::SplitVector<uint> & setColumnOffsets,
                                // split::SplitVector<uint> & setNumColumns
                                const uint gpu_async_queue_id,
-                               cudaStream_t stream
+                               gpuStream_t stream
    );
 
 extern void *gpu_RadixSortTemp[]; // Declared in gpu_acc_map.cpp

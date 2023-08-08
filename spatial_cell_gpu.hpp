@@ -229,7 +229,7 @@ namespace spatial_cell {
       const SpatialCell& operator=(const SpatialCell& other);
 
       // Attach unified memory to a stream
-      void gpu_attachToStream(cudaStream_t stream=0);
+      void gpu_attachToStream(gpuStream_t stream=0);
       void gpu_detachFromStream();
       // upload a content list to device memory
       void gpu_uploadContentLists();
@@ -375,7 +375,7 @@ namespace spatial_cell {
       static bool mpiTransferAtSysBoundaries;                                 /**< Do we only transfer data at boundaries (true), or in the whole system (false).*/
       static bool mpiTransferInAMRTranslation;                                /**< Do we only transfer cells which are required by AMR translation. */
       static int mpiTransferXYZTranslation;                                   /**< Dimension in which AMR translation is happening */
-      cudaStream_t attachedStream;
+      gpuStream_t attachedStream;
 
     private:
       static int activePopID;

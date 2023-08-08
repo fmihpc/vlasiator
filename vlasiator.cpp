@@ -1184,5 +1184,9 @@ int main(int argn,char* args[]) {
    technicalGrid.finalize();
 
    MPI_Finalize();
+
+   #ifdef USE_GPU
+   gpu_clear_device();
+   #endif
    return 0;
 }

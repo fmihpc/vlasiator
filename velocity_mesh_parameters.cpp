@@ -32,7 +32,7 @@ vmesh::MeshWrapper* vmesh::host_getMeshWrapper() {
 #ifdef USE_GPU
 //#pragma hd_warning_disable // only applies to next function
 #pragma nv_diag_suppress=20091
-ARCH_HOSTDEV vmesh::MeshWrapper* vmesh::dev_getMeshWrapper() {
+ARCH_HOSTDEV vmesh::MeshWrapper* vmesh::gpu_getMeshWrapper() {
    return meshWrapperDev;
 }
 void vmesh::MeshWrapper::uploadMeshWrapper() {
@@ -40,20 +40,20 @@ void vmesh::MeshWrapper::uploadMeshWrapper() {
    std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT> * temp = meshWrapper->velocityMeshes;
    // gpu-Malloc space on device, copy array contents
    std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT> *velocityMeshes_upload;
-   CHK_ERR( cudaMalloc((void **)&velocityMeshes_upload, sizeof(std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT>)) );
-   CHK_ERR( cudaMemcpy(velocityMeshes_upload, meshWrapper->velocityMeshes, sizeof(std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT>),cudaMemcpyHostToDevice) );
+   CHK_ERR( gpuMalloc((void **)&velocityMeshes_upload, sizeof(std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT>)) );
+   CHK_ERR( gpuMemcpy(velocityMeshes_upload, meshWrapper->velocityMeshes, sizeof(std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT>),gpuMemcpyHostToDevice) );
    // Make wrapper point to device-side array
    meshWrapper->velocityMeshes = velocityMeshes_upload;
    // Allocate and copy meshwrapper on device
    vmesh::MeshWrapper* MWdev;
-   CHK_ERR( cudaMalloc((void **)&MWdev, sizeof(vmesh::MeshWrapper)) );
-   CHK_ERR( cudaMemcpy(MWdev, meshWrapper, sizeof(vmesh::MeshWrapper),cudaMemcpyHostToDevice) );
+   CHK_ERR( gpuMalloc((void **)&MWdev, sizeof(vmesh::MeshWrapper)) );
+   CHK_ERR( gpuMemcpy(MWdev, meshWrapper, sizeof(vmesh::MeshWrapper),gpuMemcpyHostToDevice) );
    // Set the global symbol of meshWrapper
-   CHK_ERR( cudaMemcpyToSymbol(meshWrapperDev, &MWdev, sizeof(vmesh::MeshWrapper*)) );
+   CHK_ERR( gpuMemcpyToSymbol(meshWrapperDev, &MWdev, sizeof(vmesh::MeshWrapper*)) );
    // Copy host-side address back
    meshWrapper->velocityMeshes = temp;
    // And sync
-   CHK_ERR( cudaDeviceSynchronize() );
+   CHK_ERR( gpuDeviceSynchronize() );
 }
 #endif
 
@@ -122,7 +122,7 @@ void vmesh::MeshWrapper::initVelocityMeshes(const uint nMeshes) {
    // vmesh::printVelocityMesh(0);
    // printf("Device printout\n");
    // debug_kernel<<<1, 1, 0, 0>>> (0);
-   // CHK_ERR( cudaDeviceSynchronize() );
+   // CHK_ERR( gpuDeviceSynchronize() );
 #endif
 
    return;

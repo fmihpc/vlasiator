@@ -85,9 +85,9 @@ namespace vmesh {
       void gpu_Allocate();
       void gpu_prefetchHost();
       void gpu_prefetchDevice();
-      void gpu_attachToStream(cudaStream_t stream=0);
+      void gpu_attachToStream(gpuStream_t stream=0);
       void gpu_detachFromStream();
-      void gpu_memAdvise(int device, cudaStream_t stream);
+      void gpu_memAdvise(int device, gpuStream_t stream);
 #endif
 
       #ifdef DEBUG_VBC
@@ -103,7 +103,7 @@ namespace vmesh {
       vmesh::LocalID numberOfBlocks;
 
 #ifdef USE_GPU
-      cudaStream_t attachedStream;
+      gpuStream_t attachedStream;
       split::SplitVector<Realf> *block_data;
       split::SplitVector<Real> *parameters;
 #else
@@ -309,22 +309,22 @@ namespace vmesh {
       return;
    }
 
-      inline void VelocityBlockContainer::gpu_memAdvise(int device, cudaStream_t stream) {
+      inline void VelocityBlockContainer::gpu_memAdvise(int device, gpuStream_t stream) {
       // int device = gpu_getDevice();
-      block_data->memAdvise(cudaMemAdviseSetPreferredLocation,device,stream);
-      parameters->memAdvise(cudaMemAdviseSetPreferredLocation,device,stream);
-      block_data->memAdvise(cudaMemAdviseSetAccessedBy,device,stream);
-      parameters->memAdvise(cudaMemAdviseSetAccessedBy,device,stream);
+      block_data->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+      parameters->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+      block_data->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+      parameters->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       return;
    }
 
-   inline void VelocityBlockContainer::gpu_attachToStream(cudaStream_t stream) {
+   inline void VelocityBlockContainer::gpu_attachToStream(gpuStream_t stream) {
       // Return if attaching is not needed
       if (!needAttachedStreams) {
          return;
       }
       // Attach unified memory regions to streams
-      cudaStream_t newStream;
+      gpuStream_t newStream;
       if (stream==0) {
          newStream = gpu_getStream();
       } else {
@@ -335,9 +335,9 @@ namespace vmesh {
       } else {
          attachedStream = newStream;
       }
-      CHK_ERR( cudaStreamAttachMemAsync(attachedStream,this, 0,cudaMemAttachSingle) );
-      CHK_ERR( cudaStreamAttachMemAsync(attachedStream,block_data, 0,cudaMemAttachSingle) );
-      CHK_ERR( cudaStreamAttachMemAsync(attachedStream,parameters, 0,cudaMemAttachSingle) );
+      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,this, 0,gpuMemAttachSingle) );
+      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,block_data, 0,gpuMemAttachSingle) );
+      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,parameters, 0,gpuMemAttachSingle) );
       block_data->streamAttach(attachedStream);
       parameters->streamAttach(attachedStream);
       return;
@@ -353,11 +353,11 @@ namespace vmesh {
       }
       attachedStream = 0;
       // Detach unified memory regions from streams
-      CHK_ERR( cudaStreamAttachMemAsync(attachedStream,this, 0,cudaMemAttachGlobal) );
-      CHK_ERR( cudaStreamAttachMemAsync(attachedStream,block_data, 0,cudaMemAttachGlobal) );
-      CHK_ERR( cudaStreamAttachMemAsync(attachedStream,parameters, 0,cudaMemAttachGlobal) );
-      block_data->streamAttach(0,cudaMemAttachGlobal);
-      parameters->streamAttach(0,cudaMemAttachGlobal);
+      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,this, 0,gpuMemAttachGlobal) );
+      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,block_data, 0,gpuMemAttachGlobal) );
+      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,parameters, 0,gpuMemAttachGlobal) );
+      block_data->streamAttach(0,gpuMemAttachGlobal);
+      parameters->streamAttach(0,gpuMemAttachGlobal);
       return;
    }
 #endif
@@ -489,12 +489,12 @@ namespace vmesh {
          delete dummy_parameters;
       }
       #ifdef USE_GPU
-      cudaStream_t stream = gpu_getStream();
+      gpuStream_t stream = gpu_getStream();
       int device = gpu_getDevice();
-      block_data->memAdvise(cudaMemAdviseSetPreferredLocation,device,stream);
-      parameters->memAdvise(cudaMemAdviseSetPreferredLocation,device,stream);
-      block_data->memAdvise(cudaMemAdviseSetAccessedBy,device,stream);
-      parameters->memAdvise(cudaMemAdviseSetAccessedBy,device,stream);
+      block_data->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+      parameters->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+      block_data->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+      parameters->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       #endif
       currentCapacity = newCapacity;
    return true;
@@ -511,21 +511,21 @@ namespace vmesh {
          // Passing eco flag = true to resize tells splitvector we manage padding manually.
          block_data->resize(currentCapacity*WID3, true);
          parameters->resize(currentCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS, true);
-#ifndef __CUDA_ARCH__
+#if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
          if ((attachedStream != 0)&&(needAttachedStreams)) {
             block_data->streamAttach(attachedStream);
             parameters->streamAttach(attachedStream);
          }
 #endif
-         cudaStream_t stream = gpu_getStream();
-         CHK_ERR( cudaStreamSynchronize(stream) );
+         gpuStream_t stream = gpu_getStream();
+         CHK_ERR( gpuStreamSynchronize(stream) );
          block_data->optimizeGPU(stream);
          parameters->optimizeGPU(stream);
          int device = gpu_getDevice();
-         block_data->memAdvise(cudaMemAdviseSetPreferredLocation,device,stream);
-         parameters->memAdvise(cudaMemAdviseSetPreferredLocation,device,stream);
-         block_data->memAdvise(cudaMemAdviseSetAccessedBy,device,stream);
-         parameters->memAdvise(cudaMemAdviseSetAccessedBy,device,stream);
+         block_data->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+         parameters->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+         block_data->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+         parameters->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       }
 #else
       if ((numberOfBlocks+1) >= currentCapacity) {

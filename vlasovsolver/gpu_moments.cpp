@@ -49,14 +49,14 @@ __host__ void gpu_allocateMomentCalculations(
    for (uint cpuThreadID=0; cpuThreadID<maxThreads; ++cpuThreadID) {
 
       //gpu Malloc
-      CHK_ERR( cudaMalloc((void**)&gpu_momentInfos[cpuThreadID], nPopulations*sizeof(MomentInfo)) );
-      CHK_ERR( cudaMalloc((void**)&gpu_momentArrays1[cpuThreadID], nMoments1*(nPopulations+1)*sizeof(Real)) );
-      CHK_ERR( cudaMalloc((void**)&gpu_momentArrays2[cpuThreadID], nMoments2*(nPopulations+1)*sizeof(Real)) );
+      CHK_ERR( gpuMalloc((void**)&gpu_momentInfos[cpuThreadID], nPopulations*sizeof(MomentInfo)) );
+      CHK_ERR( gpuMalloc((void**)&gpu_momentArrays1[cpuThreadID], nMoments1*(nPopulations+1)*sizeof(Real)) );
+      CHK_ERR( gpuMalloc((void**)&gpu_momentArrays2[cpuThreadID], nMoments2*(nPopulations+1)*sizeof(Real)) );
 
       // Also allocate and pin memory on host for faster transfers
-      CHK_ERR( cudaHostAlloc((void**)&host_momentInfos[cpuThreadID], nPopulations*sizeof(MomentInfo), cudaHostAllocPortable) );
-      CHK_ERR( cudaHostAlloc((void**)&host_momentArrays1[cpuThreadID], nMoments1*(nPopulations+1)*sizeof(Real), cudaHostAllocPortable) );
-      CHK_ERR( cudaHostAlloc((void**)&host_momentArrays2[cpuThreadID], nMoments2*(nPopulations+1)*sizeof(Real), cudaHostAllocPortable) );
+      CHK_ERR( gpuHostAlloc((void**)&host_momentInfos[cpuThreadID], nPopulations*sizeof(MomentInfo), gpuHostAllocPortable) );
+      CHK_ERR( gpuHostAlloc((void**)&host_momentArrays1[cpuThreadID], nMoments1*(nPopulations+1)*sizeof(Real), gpuHostAllocPortable) );
+      CHK_ERR( gpuHostAlloc((void**)&host_momentArrays2[cpuThreadID], nMoments2*(nPopulations+1)*sizeof(Real), gpuHostAllocPortable) );
    }
    isGpuMomentsAllocated = true;
    return;
@@ -239,7 +239,7 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
 #else
    const uint thread_id = 0;
 #endif
-   cudaStream_t stream = gpuStreamList[thread_id];
+   gpuStream_t stream = gpuStreamList[thread_id];
 
    uint nPopulations = getObjectWrapper().particleSpecies.size();
    // Clear old moments to zero value
@@ -277,9 +277,9 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
 
    // Transfer metadata to device, reset gatherer arrays
    phiprof::start("GPU-HtoD");
-   CHK_ERR( cudaMemsetAsync(gpu_momentArrays1[thread_id], 0, nMoments1*(nPopulations+1)*sizeof(Real), stream) );
-   CHK_ERR( cudaMemcpyAsync(gpu_momentInfos[thread_id], host_momentInfos[thread_id], nPopulations*sizeof(MomentInfo), cudaMemcpyHostToDevice, stream) );
-   CHK_ERR( cudaStreamSynchronize(stream) );
+   CHK_ERR( gpuMemsetAsync(gpu_momentArrays1[thread_id], 0, nMoments1*(nPopulations+1)*sizeof(Real), stream) );
+   CHK_ERR( gpuMemcpyAsync(gpu_momentInfos[thread_id], host_momentInfos[thread_id], nPopulations*sizeof(MomentInfo), gpuMemcpyHostToDevice, stream) );
+   CHK_ERR( gpuStreamSynchronize(stream) );
    phiprof::stop("GPU-HtoD");
 
    // Now launch kernel for this spatial cell, all populations, zeroth and first moments
@@ -290,15 +290,15 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
          gpu_momentInfos[thread_id],
          gpu_momentArrays1[thread_id],
          nPopulations);
-      CHK_ERR( cudaPeekAtLastError() );
-      CHK_ERR( cudaStreamSynchronize(stream) );
+      CHK_ERR( gpuPeekAtLastError() );
+      CHK_ERR( gpuStreamSynchronize(stream) );
    }
    phiprof::stop("GPU-firstMoments");
 
    // Transfer momentArrays1 back
    phiprof::start("GPU-DtoH");
-   CHK_ERR( cudaMemcpyAsync(host_momentArrays1[thread_id], gpu_momentArrays1[thread_id], nMoments1*(nPopulations+1)*sizeof(Real), cudaMemcpyDeviceToHost, stream) );
-   CHK_ERR( cudaStreamSynchronize(stream) );
+   CHK_ERR( gpuMemcpyAsync(host_momentArrays1[thread_id], gpu_momentArrays1[thread_id], nMoments1*(nPopulations+1)*sizeof(Real), gpuMemcpyDeviceToHost, stream) );
+   CHK_ERR( gpuStreamSynchronize(stream) );
    phiprof::stop("GPU-DtoH");
 
    for (uint popID=0; popID<nPopulations; ++popID) {
@@ -330,8 +330,8 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
 
    phiprof::start("GPU-secondMoments");
    // Now launch kernel for this spatial cell, all populations, second moments
-   CHK_ERR( cudaMemsetAsync(gpu_momentArrays2[thread_id], 0, nMoments2*(nPopulations+1)*sizeof(Real), stream) );
-   CHK_ERR( cudaStreamSynchronize(stream) );
+   CHK_ERR( gpuMemsetAsync(gpu_momentArrays2[thread_id], 0, nMoments2*(nPopulations+1)*sizeof(Real), stream) );
+   CHK_ERR( gpuStreamSynchronize(stream) );
    if (totBlocks != 0) {
       moments_second_kernel<<<GPUBLOCKS, block, 3*WID3*sizeof(Real), stream>>> (
          gpu_momentInfos[thread_id],
@@ -340,15 +340,15 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
          cell->parameters[CellParams::VX],
          cell->parameters[CellParams::VY],
          cell->parameters[CellParams::VZ]);
-      CHK_ERR( cudaPeekAtLastError() );
-      CHK_ERR( cudaStreamSynchronize(stream) );
+      CHK_ERR( gpuPeekAtLastError() );
+      CHK_ERR( gpuStreamSynchronize(stream) );
    }
    phiprof::stop("GPU-secondMoments");
 
    // Transfer momentArrays2 back
    phiprof::start("GPU-DtoH");
-   CHK_ERR( cudaMemcpyAsync(host_momentArrays2[thread_id], gpu_momentArrays2[thread_id], nMoments2*(nPopulations+1)*sizeof(Real), cudaMemcpyDeviceToHost, stream) );
-   CHK_ERR( cudaStreamSynchronize(stream) );
+   CHK_ERR( gpuMemcpyAsync(host_momentArrays2[thread_id], gpu_momentArrays2[thread_id], nMoments2*(nPopulations+1)*sizeof(Real), gpuMemcpyDeviceToHost, stream) );
+   CHK_ERR( gpuStreamSynchronize(stream) );
    phiprof::stop("GPU-DtoH");
 
    for (uint popID=0; popID<nPopulations; ++popID) {
@@ -390,7 +390,7 @@ void calculateMoments_V(
 #else
       const uint thread_id = 0;
 #endif
-      cudaStream_t stream = gpuStreamList[thread_id];
+      gpuStream_t stream = gpuStreamList[thread_id];
       SpatialCell* cell = mpiGrid[cells[c]];
 
       if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
@@ -434,9 +434,9 @@ void calculateMoments_V(
 
       // Transfer metadata to device, reset gatherer arrays
       phiprof::start("GPU-HtoD");
-      CHK_ERR( cudaMemsetAsync(gpu_momentArrays1[thread_id], 0, nMoments1*(nPopulations+1)*sizeof(Real), stream) );
-      CHK_ERR( cudaMemcpyAsync(gpu_momentInfos[thread_id], host_momentInfos[thread_id], nPopulations*sizeof(MomentInfo), cudaMemcpyHostToDevice, stream) );
-      CHK_ERR( cudaStreamSynchronize(stream) );
+      CHK_ERR( gpuMemsetAsync(gpu_momentArrays1[thread_id], 0, nMoments1*(nPopulations+1)*sizeof(Real), stream) );
+      CHK_ERR( gpuMemcpyAsync(gpu_momentInfos[thread_id], host_momentInfos[thread_id], nPopulations*sizeof(MomentInfo), gpuMemcpyHostToDevice, stream) );
+      CHK_ERR( gpuStreamSynchronize(stream) );
       phiprof::stop("GPU-HtoD");
 
       // Now launch kernel for this spatial cell, all populations, zeroth and first moments
@@ -447,15 +447,15 @@ void calculateMoments_V(
             gpu_momentInfos[thread_id],
             gpu_momentArrays1[thread_id],
             nPopulations);
-         CHK_ERR( cudaPeekAtLastError() );
-         CHK_ERR( cudaStreamSynchronize(stream) );
+         CHK_ERR( gpuPeekAtLastError() );
+         CHK_ERR( gpuStreamSynchronize(stream) );
       }
       phiprof::stop("GPU-firstMoments");
 
       // Transfer momentArrays1 back
       phiprof::start("GPU-DtoH");
-      CHK_ERR( cudaMemcpyAsync(host_momentArrays1[thread_id], gpu_momentArrays1[thread_id], nMoments1*(nPopulations+1)*sizeof(Real), cudaMemcpyDeviceToHost, stream) );
-      CHK_ERR( cudaStreamSynchronize(stream) );
+      CHK_ERR( gpuMemcpyAsync(host_momentArrays1[thread_id], gpu_momentArrays1[thread_id], nMoments1*(nPopulations+1)*sizeof(Real), gpuMemcpyDeviceToHost, stream) );
+      CHK_ERR( gpuStreamSynchronize(stream) );
       phiprof::stop("GPU-DtoH");
 
       for (uint popID=0; popID<nPopulations; ++popID) {
@@ -486,8 +486,8 @@ void calculateMoments_V(
       }
 
       phiprof::start("GPU-secondMoments");
-      CHK_ERR( cudaMemsetAsync(gpu_momentArrays2[thread_id], 0, nMoments2*(nPopulations+1)*sizeof(Real), stream) );
-      CHK_ERR( cudaStreamSynchronize(stream) );
+      CHK_ERR( gpuMemsetAsync(gpu_momentArrays2[thread_id], 0, nMoments2*(nPopulations+1)*sizeof(Real), stream) );
+      CHK_ERR( gpuStreamSynchronize(stream) );
       // Now launch kernel for this spatial cell, all populations, second moments
       if (totBlocks != 0) {
          moments_second_kernel<<<GPUBLOCKS, block, 3*WID3*sizeof(Real), stream>>> (
@@ -497,15 +497,15 @@ void calculateMoments_V(
             cell->parameters[CellParams::VX_V],
             cell->parameters[CellParams::VY_V],
             cell->parameters[CellParams::VZ_V]);
-         CHK_ERR( cudaPeekAtLastError() );
-         CHK_ERR( cudaStreamSynchronize(stream) );
+         CHK_ERR( gpuPeekAtLastError() );
+         CHK_ERR( gpuStreamSynchronize(stream) );
       }
       phiprof::stop("GPU-secondMoments");
 
       // Transfer momentArrays2 back
       phiprof::start("GPU-DtoH");
-      CHK_ERR( cudaMemcpyAsync(host_momentArrays2[thread_id], gpu_momentArrays2[thread_id], nMoments2*(nPopulations+1)*sizeof(Real), cudaMemcpyDeviceToHost, stream) );
-      CHK_ERR( cudaStreamSynchronize(stream) );
+      CHK_ERR( gpuMemcpyAsync(host_momentArrays2[thread_id], gpu_momentArrays2[thread_id], nMoments2*(nPopulations+1)*sizeof(Real), gpuMemcpyDeviceToHost, stream) );
+      CHK_ERR( gpuStreamSynchronize(stream) );
       phiprof::stop("GPU-DtoH");
 
       for (uint popID=0; popID<nPopulations; ++popID) {
@@ -547,7 +547,7 @@ void calculateMoments_R(
 #else
       const uint thread_id = 0;
 #endif
-      cudaStream_t stream = gpuStreamList[thread_id];
+      gpuStream_t stream = gpuStreamList[thread_id];
       SpatialCell* cell = mpiGrid[cells[c]];
 
       if (cell->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
@@ -591,9 +591,9 @@ void calculateMoments_R(
 
       // Transfer metadata to device, reset gatherer arrays
       phiprof::start("GPU-HtoD");
-      CHK_ERR( cudaMemsetAsync(gpu_momentArrays1[thread_id], 0, nMoments1*(nPopulations+1)*sizeof(Real), stream) );
-      CHK_ERR( cudaMemcpyAsync(gpu_momentInfos[thread_id], host_momentInfos[thread_id], nPopulations*sizeof(MomentInfo), cudaMemcpyHostToDevice, stream) );
-      CHK_ERR( cudaStreamSynchronize(stream) );
+      CHK_ERR( gpuMemsetAsync(gpu_momentArrays1[thread_id], 0, nMoments1*(nPopulations+1)*sizeof(Real), stream) );
+      CHK_ERR( gpuMemcpyAsync(gpu_momentInfos[thread_id], host_momentInfos[thread_id], nPopulations*sizeof(MomentInfo), gpuMemcpyHostToDevice, stream) );
+      CHK_ERR( gpuStreamSynchronize(stream) );
       phiprof::stop("GPU-HtoD");
 
       // Now launch kernel for this spatial cell, all populations, zeroth and first moments
@@ -604,15 +604,15 @@ void calculateMoments_R(
             gpu_momentInfos[thread_id],
             gpu_momentArrays1[thread_id],
             nPopulations);
-         CHK_ERR( cudaPeekAtLastError() );
-         CHK_ERR( cudaStreamSynchronize(stream) );
+         CHK_ERR( gpuPeekAtLastError() );
+         CHK_ERR( gpuStreamSynchronize(stream) );
       }
       phiprof::stop("GPU-firstMoments");
 
       // Transfer momentArrays1 back
       phiprof::start("GPU-DtoH");
-      CHK_ERR( cudaMemcpyAsync(host_momentArrays1[thread_id], gpu_momentArrays1[thread_id], nMoments1*(nPopulations+1)*sizeof(Real), cudaMemcpyDeviceToHost, stream) );
-      CHK_ERR( cudaStreamSynchronize(stream) );
+      CHK_ERR( gpuMemcpyAsync(host_momentArrays1[thread_id], gpu_momentArrays1[thread_id], nMoments1*(nPopulations+1)*sizeof(Real), gpuMemcpyDeviceToHost, stream) );
+      CHK_ERR( gpuStreamSynchronize(stream) );
       phiprof::stop("GPU-DtoH");
 
       for (uint popID=0; popID<nPopulations; ++popID) {
@@ -643,8 +643,8 @@ void calculateMoments_R(
       }
 
       phiprof::start("GPU-secondMoments");
-      CHK_ERR( cudaMemsetAsync(gpu_momentArrays2[thread_id], 0, nMoments2*(nPopulations+1)*sizeof(Real), stream) );
-      CHK_ERR( cudaStreamSynchronize(stream) );
+      CHK_ERR( gpuMemsetAsync(gpu_momentArrays2[thread_id], 0, nMoments2*(nPopulations+1)*sizeof(Real), stream) );
+      CHK_ERR( gpuStreamSynchronize(stream) );
       // Now launch kernel for this spatial cell, all populations, second moments
       if (totBlocks != 0) {
          moments_second_kernel<<<GPUBLOCKS, block, 3*WID3*sizeof(Real), stream>>> (
@@ -654,15 +654,15 @@ void calculateMoments_R(
             cell->parameters[CellParams::VX_R],
             cell->parameters[CellParams::VY_R],
             cell->parameters[CellParams::VZ_R]);
-         CHK_ERR( cudaPeekAtLastError() );
-         CHK_ERR( cudaStreamSynchronize(stream) );
+         CHK_ERR( gpuPeekAtLastError() );
+         CHK_ERR( gpuStreamSynchronize(stream) );
       }
       phiprof::stop("GPU-secondMoments");
 
       // Transfer momentArrays2 back
       phiprof::start("GPU-DtoH");
-      CHK_ERR( cudaMemcpyAsync(host_momentArrays2[thread_id], gpu_momentArrays2[thread_id], nMoments2*(nPopulations+1)*sizeof(Real), cudaMemcpyDeviceToHost, stream) );
-      CHK_ERR( cudaStreamSynchronize(stream) );
+      CHK_ERR( gpuMemcpyAsync(host_momentArrays2[thread_id], gpu_momentArrays2[thread_id], nMoments2*(nPopulations+1)*sizeof(Real), gpuMemcpyDeviceToHost, stream) );
+      CHK_ERR( gpuStreamSynchronize(stream) );
       phiprof::stop("GPU-DtoH");
 
       for (uint popID=0; popID<nPopulations; ++popID) {
