@@ -40,8 +40,7 @@ using namespace spatial_cell;
 
 struct MomentInfo
 {
-   Realf* meshDataPointer;
-   Real* parameterPointer;
+   vmesh::VelocityBlockContainer *blockContainer;
    Real mass;
    Real charge;
    uint blockCount;

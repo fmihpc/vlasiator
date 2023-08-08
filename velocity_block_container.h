@@ -90,7 +90,7 @@ namespace vmesh {
       void dev_prefetchDevice();
       void dev_attachToStream(cudaStream_t stream=0);
       void dev_detachFromStream();
-
+      void dev_memAdvise(int device);
 #endif
 
       #ifdef DEBUG_VBC
@@ -190,6 +190,11 @@ namespace vmesh {
       parameters->swap(*dummy_parameters);
       block_data->clear();
       parameters->clear();
+      int device = cuda_getDevice();
+      block_data->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+      parameters->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+      block_data->memAdvise(cudaMemAdviseSetAccessedBy,device);
+      parameters->memAdvise(cudaMemAdviseSetAccessedBy,device);
       delete dummy_data;
       delete dummy_parameters;
 #endif
@@ -309,6 +314,15 @@ namespace vmesh {
       //if (numberOfBlocks==0) return; // This size check in itself causes a page fault
       block_data->optimizeGPU(cuda_getStream());
       parameters->optimizeGPU(cuda_getStream());
+      return;
+   }
+
+   inline void VelocityBlockContainer::dev_memAdvise(int device) {
+      // int device = cuda_getDevice();
+      block_data->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+      parameters->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+      block_data->memAdvise(cudaMemAdviseSetAccessedBy,device);
+      parameters->memAdvise(cudaMemAdviseSetAccessedBy,device);
       return;
    }
 
@@ -482,13 +496,20 @@ namespace vmesh {
          dummy_parameters->swap(*parameters);
          delete dummy_parameters;
       }
+      #ifdef USE_CUDA
+      int device = cuda_getDevice();
+      block_data->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+      parameters->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+      block_data->memAdvise(cudaMemAdviseSetAccessedBy,device);
+      parameters->memAdvise(cudaMemAdviseSetAccessedBy,device);
+      #endif
       currentCapacity = newCapacity;
    return true;
    }
 
    inline void VelocityBlockContainer::resize() {
 #ifdef USE_CUDA
-      if (numberOfBlocks*BLOCK_ALLOCATION_FACTOR >= currentCapacity) {
+      if ((numberOfBlocks+1)*BLOCK_ALLOCATION_FACTOR >= currentCapacity) {
          // Resize so that free space is block_allocation_chunk blocks,
          // and at least two in case of having zero blocks.
          // The order of velocity blocks is unaltered.
@@ -503,6 +524,15 @@ namespace vmesh {
             parameters->streamAttach(attachedStream);
          }
 #endif
+         cudaStream_t stream = cuda_getStream();
+         HANDLE_ERROR( cudaStreamSynchronize(stream) );
+         block_data->optimizeGPU(stream);
+         parameters->optimizeGPU(stream);
+         int device = cuda_getDevice();
+         block_data->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+         parameters->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+         block_data->memAdvise(cudaMemAdviseSetAccessedBy,device);
+         parameters->memAdvise(cudaMemAdviseSetAccessedBy,device);
       }
 #else
       if ((numberOfBlocks+1) >= currentCapacity) {

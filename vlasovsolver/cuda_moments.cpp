@@ -92,13 +92,17 @@ __global__ void moments_first_kernel(
       const uint nBlocks = dev_momentInfos[popID].blockCount;
       const Real mass = dev_momentInfos[popID].mass;
       const Real charge = dev_momentInfos[popID].charge;
-      Real* blockParams = dev_momentInfos[popID].parameterPointer;
+
+      Real* blockParams = (dev_momentInfos[popID].blockContainer)->getParameters();
+      //Real* blockParams = dev_momentInfos[popID].parameterPointer;
       const Real DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
 
       for (uint blockLID=blocki; blockLID<nBlocks; blockLID += cudaBlocks) {
          if (blockLID >= nBlocks) break;
-         Real* blockParams = dev_momentInfos[popID].parameterPointer + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
-         Realf* avgs = dev_momentInfos[popID].meshDataPointer +blockLID*WID3;
+         Real* blockParams = (dev_momentInfos[popID].blockContainer)->getParameters() + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
+         Realf* avgs = (dev_momentInfos[popID].blockContainer)->getData() +blockLID*WID3;
+         //Real* blockParams = dev_momentInfos[popID].parameterPointer + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
+         //Realf* avgs = dev_momentInfos[popID].meshDataPointer +blockLID*WID3;
          const Real VX = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
          const Real VY = blockParams[BlockParams::VYCRD] + (j+HALF)*blockParams[BlockParams::DVY];
          const Real VZ = blockParams[BlockParams::VZCRD] + (k+HALF)*blockParams[BlockParams::DVZ];
@@ -166,13 +170,16 @@ __global__ void moments_second_kernel(
       const uint nBlocks = dev_momentInfos[popID].blockCount;
       const Real mass = dev_momentInfos[popID].mass;
       //const Real charge = dev_momentInfos[popID].charge;
-      Real* blockParams = dev_momentInfos[popID].parameterPointer;
+      Real* blockParams = (dev_momentInfos[popID].blockContainer)->getParameters();
+      //Real* blockParams = dev_momentInfos[popID].parameterPointer;
       const Real DV3 = blockParams[BlockParams::DVX]*blockParams[BlockParams::DVY]*blockParams[BlockParams::DVZ];
 
       for (uint blockLID=blocki; blockLID<nBlocks; blockLID += cudaBlocks) {
          if (blockLID >= nBlocks) break;
-         Real* blockParams = dev_momentInfos[popID].parameterPointer + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
-         Realf* avgs = dev_momentInfos[popID].meshDataPointer +blockLID*WID3;
+         Real* blockParams = (dev_momentInfos[popID].blockContainer)->getParameters() + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
+         Realf* avgs = (dev_momentInfos[popID].blockContainer)->getData() +blockLID*WID3;
+         // Real* blockParams = dev_momentInfos[popID].parameterPointer + blockLID*BlockParams::N_VELOCITY_BLOCK_PARAMS;
+         // Realf* avgs = dev_momentInfos[popID].meshDataPointer +blockLID*WID3;
          const Real VX = blockParams[BlockParams::VXCRD] + (i+HALF)*blockParams[BlockParams::DVX];
          const Real VY = blockParams[BlockParams::VYCRD] + (j+HALF)*blockParams[BlockParams::DVY];
          const Real VZ = blockParams[BlockParams::VZCRD] + (k+HALF)*blockParams[BlockParams::DVZ];
@@ -257,13 +264,15 @@ void calculateCellMoments(spatial_cell::SpatialCell* cell,
       host_momentInfos[thread_id][popID].mass = getObjectWrapper().particleSpecies[popID].mass;
       host_momentInfos[thread_id][popID].charge = getObjectWrapper().particleSpecies[popID].charge;
       host_momentInfos[thread_id][popID].blockCount = nBlocks;
-      host_momentInfos[thread_id][popID].parameterPointer = blockContainer->getParameters();
-      host_momentInfos[thread_id][popID].meshDataPointer = blockContainer->getData();
+      host_momentInfos[thread_id][popID].blockContainer = blockContainer;
+      // host_momentInfos[thread_id][popID].parameterPointer = blockContainer->getParameters();
+      // host_momentInfos[thread_id][popID].meshDataPointer = blockContainer->getData();
 
-      // For now: Launch cuda transfers as data isn't yet fully resident
-      phiprof::start("CUDA-HtoD");
-      blockContainer->dev_prefetchDevice();
-      phiprof::stop("CUDA-HtoD");
+      if (doPrefetches) {
+         phiprof::start("CUDA-HtoD");
+         blockContainer->dev_prefetchDevice();
+         phiprof::stop("CUDA-HtoD");
+      }
    }
 
    // Transfer metadata to device, reset gatherer arrays
@@ -404,20 +413,23 @@ void calculateMoments_V(
             cell->parameters[CellParams::P_33_V] = 0.0;
          }
 
-         vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
          vmesh::VelocityBlockContainer* blockContainer = cell->get_velocity_blocks(popID);
+         vmesh::VelocityMesh* vmesh    = cell->get_velocity_mesh(popID);
+         vmesh->dev_prefetchDevice(stream);
          const uint nBlocks = vmesh->size();
          totBlocks += nBlocks;
          host_momentInfos[thread_id][popID].mass = getObjectWrapper().particleSpecies[popID].mass;
          host_momentInfos[thread_id][popID].charge = getObjectWrapper().particleSpecies[popID].charge;
          host_momentInfos[thread_id][popID].blockCount = nBlocks;
-         host_momentInfos[thread_id][popID].parameterPointer = blockContainer->getParameters();
-         host_momentInfos[thread_id][popID].meshDataPointer = blockContainer->getData();
+         host_momentInfos[thread_id][popID].blockContainer = blockContainer;
+         // host_momentInfos[thread_id][popID].parameterPointer = blockContainer->getParameters();
+         // host_momentInfos[thread_id][popID].meshDataPointer = blockContainer->getData();
 
-         // For now: Launch cuda transfers as data isn't yet fully resident
-         phiprof::start("CUDA-HtoD");
-         blockContainer->dev_prefetchDevice();
-         phiprof::stop("CUDA-HtoD");
+         if (doPrefetches) {
+            phiprof::start("CUDA-HtoD");
+            blockContainer->dev_prefetchDevice();
+            phiprof::stop("CUDA-HtoD");
+         }
       }
 
       // Transfer metadata to device, reset gatherer arrays
@@ -566,13 +578,15 @@ void calculateMoments_R(
          host_momentInfos[thread_id][popID].mass = getObjectWrapper().particleSpecies[popID].mass;
          host_momentInfos[thread_id][popID].charge = getObjectWrapper().particleSpecies[popID].charge;
          host_momentInfos[thread_id][popID].blockCount = nBlocks;
-         host_momentInfos[thread_id][popID].parameterPointer = blockContainer->getParameters();
-         host_momentInfos[thread_id][popID].meshDataPointer = blockContainer->getData();
+         host_momentInfos[thread_id][popID].blockContainer = blockContainer;
+         // host_momentInfos[thread_id][popID].parameterPointer = blockContainer->getParameters();
+         // host_momentInfos[thread_id][popID].meshDataPointer = blockContainer->getData();
 
-         // For now: Launch cuda transfers as data isn't yet fully resident
-         phiprof::start("CUDA-HtoD");
-         blockContainer->dev_prefetchDevice();
-         phiprof::stop("CUDA-HtoD");
+         if (doPrefetches) {
+            phiprof::start("CUDA-HtoD");
+            blockContainer->dev_prefetchDevice();
+            phiprof::stop("CUDA-HtoD");
+         }
       }
 
       // Transfer metadata to device, reset gatherer arrays

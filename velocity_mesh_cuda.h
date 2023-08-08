@@ -99,9 +99,10 @@ namespace vmesh {
       CUDA_HOSTDEV size_t sizeInBytes() const;
       CUDA_HOSTDEV void swap(VelocityMesh& vm);
 
-      void dev_prefetchHost();
-      void dev_prefetchDevice();
-      void dev_cleanHashMap();
+      void dev_prefetchHost(cudaStream_t stream);
+      void dev_prefetchDevice(cudaStream_t stream);
+      void dev_memAdvise(int device);
+      void dev_cleanHashMap(cudaStream_t stream);
       void dev_attachToStream(cudaStream_t stream);
       void dev_detachFromStream();
 
@@ -234,9 +235,9 @@ namespace vmesh {
 
       // If the block exists, return it:
       #ifdef __CUDA_ARCH__
-      if (globalToLocalMap->device_find(blockGID) != globalToLocalMap->device_end()) {
+      if (globalToLocalMap->device_count(blockGID) != 0) {
       #else
-      if (globalToLocalMap->find(blockGID) != globalToLocalMap->end()) {
+      if (globalToLocalMap->count(blockGID) != 0) {
       #endif
          return blockGID;
       } else {
@@ -566,11 +567,26 @@ namespace vmesh {
 
    inline void VelocityMesh::setNewSize(const vmesh::LocalID& newSize) {
       // Needed by CUDA block adjustment
-      localToGlobalMap->resize(newSize);
+      // Passing eco flag = true to resize tells splitvector we manage padding manually.
+      vmesh::LocalID currentCapacity = localToGlobalMap->capacity();
+      cudaStream_t stream = cuda_getStream();
+      localToGlobalMap->resize(newSize,true);
+      int device = cuda_getDevice();
+      if (newSize > currentCapacity) {
+         // Was allocated new memory
+         HANDLE_ERROR( cudaStreamSynchronize(stream) );
+         localToGlobalMap->optimizeGPU(stream);
+         localToGlobalMap->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+         localToGlobalMap->memAdvise(cudaMemAdviseSetAccessedBy,device);
+      }
       // Ensure also that the map is large enough
       const vmesh::LocalID HashmapReqSize = ceil(log2(newSize)) +2; // Make it really large enough
       if (globalToLocalMap->getSizePower() < HashmapReqSize) {
-         globalToLocalMap->device_rehash(HashmapReqSize, cuda_getStream());
+         globalToLocalMap->device_rehash(HashmapReqSize, stream);
+         HANDLE_ERROR( cudaStreamSynchronize(stream) );
+         globalToLocalMap->optimizeGPU(stream);
+         globalToLocalMap->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+         globalToLocalMap->memAdvise(cudaMemAdviseSetAccessedBy,device);
       }
       // Re-attach stream if required
       if ((attachedStream != 0)&&(needAttachedStreams)) {
@@ -601,27 +617,49 @@ namespace vmesh {
       localToGlobalMap->swap(*(vm.localToGlobalMap));
    }
 
-   inline void VelocityMesh::dev_prefetchHost() {
+   inline void VelocityMesh::dev_prefetchHost(cudaStream_t stream=0) {
       //if (localToGlobalMap->size() == 0) return; // This size check in itself causes a page fault
       // In fact we only need to prefetch the buckets inside the hashmap to GPU, but use this call.
       //Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *uploaded = globalToLocalMap->upload(cuda_getStream());
-      globalToLocalMap->optimizeCPU(cuda_getStream());
-      localToGlobalMap->optimizeCPU(cuda_getStream());
+      if (stream==0) {
+         globalToLocalMap->optimizeCPU(cuda_getStream());
+         localToGlobalMap->optimizeCPU(cuda_getStream());
+      } else {
+         globalToLocalMap->optimizeCPU(stream);
+         localToGlobalMap->optimizeCPU(stream);
+      }
       return;
    }
 
-   inline void VelocityMesh::dev_prefetchDevice() {
+   inline void VelocityMesh::dev_prefetchDevice(cudaStream_t stream=0) {
       //if (localToGlobalMap->size() == 0) return; // This size check in itself causes a page fault
       // In fact we only need to prefetch the buckets inside the hashmap to GPU, but use this call.
       //Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *uploaded = globalToLocalMap->upload(cuda_getStream());
-      globalToLocalMap->optimizeGPU(cuda_getStream());
-      localToGlobalMap->optimizeGPU(cuda_getStream());
+      if (stream==0) {
+         globalToLocalMap->optimizeGPU(cuda_getStream());
+         localToGlobalMap->optimizeGPU(cuda_getStream());
+      } else {
+         globalToLocalMap->optimizeGPU(stream);
+         localToGlobalMap->optimizeGPU(stream);
+      }
       return;
    }
 
-   inline void VelocityMesh::dev_cleanHashMap() {
-      globalToLocalMap->optimizeGPU(cuda_getStream());
-      globalToLocalMap->performCleanupTasks(cuda_getStream());
+   inline void VelocityMesh::dev_memAdvise(int device) {
+      // int device = cuda_getDevice();
+      globalToLocalMap->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+      localToGlobalMap->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+      globalToLocalMap->memAdvise(cudaMemAdviseSetAccessedBy,device);
+      localToGlobalMap->memAdvise(cudaMemAdviseSetAccessedBy,device);
+      return;
+   }
+
+   inline void VelocityMesh::dev_cleanHashMap(cudaStream_t stream = 0) {
+      if (stream==0) {
+         globalToLocalMap->performCleanupTasks(cuda_getStream());
+      } else {
+         globalToLocalMap->performCleanupTasks(stream);
+      }
       return;
    }
 

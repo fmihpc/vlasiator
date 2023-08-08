@@ -50,7 +50,7 @@ Realf *returnRealf[MAXCPUTHREADS];
 vmesh::LocalID *returnLID[MAXCPUTHREADS];
 
 bool needAttachedStreams = false;
-bool doPrefetches=true; // only non-crucial prefetches are behind this check
+bool doPrefetches=false; // only non-crucial prefetches are behind this check
 // Note: disabling prefetches brings in strange memory errors and crashes (June 2023)
 
 uint *dev_cell_indices_to_id[MAXCPUTHREADS];
@@ -326,6 +326,7 @@ __host__ void cuda_acc_allocate_perthread (
    ) {
    // Unified memory; columndata contains several splitvectors.
    unif_columnOffsetData[cpuThreadID] = new ColumnOffsets(columnAllocationCount); // inherits managed
+   unif_columnOffsetData[cpuThreadID]->dev_advise();
    HANDLE_ERROR( cudaMalloc((void**)&dev_columns[cpuThreadID], columnAllocationCount*sizeof(Column)) );
 
    // Potential ColumnSet block count container

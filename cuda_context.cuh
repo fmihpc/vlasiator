@@ -199,6 +199,17 @@ struct ColumnOffsets : public Managed {
       setColumnOffsets.streamAttach(0,cudaMemAttachGlobal);
       setNumColumns.streamAttach(0,cudaMemAttachGlobal);
    }
+   void dev_advise() {
+      int device = cuda_getDevice();
+      columnBlockOffsets.memAdvise(cudaMemAdviseSetPreferredLocation,device);
+      columnNumBlocks.memAdvise(cudaMemAdviseSetPreferredLocation,device);
+      setColumnOffsets.memAdvise(cudaMemAdviseSetPreferredLocation,device);
+      setNumColumns.memAdvise(cudaMemAdviseSetPreferredLocation,device);
+      columnBlockOffsets.memAdvise(cudaMemAdviseSetAccessedBy,device);
+      columnNumBlocks.memAdvise(cudaMemAdviseSetAccessedBy,device);
+      setColumnOffsets.memAdvise(cudaMemAdviseSetAccessedBy,device);
+      setNumColumns.memAdvise(cudaMemAdviseSetAccessedBy,device);
+   }
 };
 
 // Device data variables, to be allocated in good time. Made into an array so that each thread has their own pointer.

@@ -456,92 +456,101 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
    phiprof::start("semilag-acc");
 
    // Accelerate all particle species
-    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-       uint cudaMaxBlockCount = 0; // would be better to be over all populations
-       int maxSubcycles=0;
-       int globalMaxSubcycles;
+   for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+      uint cudaMaxBlockCount = 0; // would be better to be over all populations
+      int maxSubcycles=0;
+      int globalMaxSubcycles;
 
-       // Set active population
-       SpatialCell::setCommunicatedSpecies(popID);
+      // Set active population
+      SpatialCell::setCommunicatedSpecies(popID);
 
-       // Iterate through all local cells and collect cells to propagate.
-       // Ghost cells (spatial cells at the boundary of the simulation
-       // volume) do not need to be propagated:
-       vector<CellID> propagatedCells;
-       for (size_t c=0; c<cells.size(); ++c) {
-          SpatialCell* SC = mpiGrid[cells[c]];
-          const vmesh::VelocityMesh* vmesh = SC->get_velocity_mesh(popID);
-          // disregard boundary cells, in preparation for acceleration
-          if (  (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ||
-                // Include inflow-Maxwellian
-                (P::vlasovAccelerateMaxwellianBoundaries && (SC->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN)) ) {
-             if (vmesh->size() != 0){
-                //do not propagate spatial cells with no blocks
-                propagatedCells.push_back(cells[c]);
-             }
-             //prepare for acceleration, updates max dt for each cell, it
-             //needs to be set to somthing sensible for _all_ cells, even if
-             //they are not propagated
-             prepareAccelerateCell(SC, popID);
-             //update max subcycles for all cells in this process
-             maxSubcycles = max((int)getAccelerationSubcycles(SC, dt, popID), maxSubcycles);
-             spatial_cell::Population& pop = SC->get_population(popID);
-             pop.ACCSUBCYCLES = getAccelerationSubcycles(SC, dt, popID);
+      // Iterate through all local cells and collect cells to propagate.
+      // Ghost cells (spatial cells at the boundary of the simulation
+      // volume) do not need to be propagated:
+      phiprof::start("Gather subcycles and propagated cells");
+      vector<CellID> propagatedCells;
+      #pragma omp parallel for
+      for (size_t c=0; c<cells.size(); ++c) {
+         SpatialCell* SC = mpiGrid[cells[c]];
+         const vmesh::VelocityMesh* vmesh = SC->get_velocity_mesh(popID);
+         // disregard boundary cells, in preparation for acceleration
+         if (  (SC->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) ||
+               // Include inflow-Maxwellian
+               (P::vlasovAccelerateMaxwellianBoundaries && (SC->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN)) ) {
+            uint blockCount = vmesh->size();
+            if (blockCount != 0){
+               //do not propagate spatial cells with no blocks
+               #pragma omp critical
+               propagatedCells.push_back(cells[c]);
+            }
+            //prepare for acceleration, updates max dt for each cell, it
+            //needs to be set to somthing sensible for _all_ cells, even if
+            //they are not propagated
+            prepareAccelerateCell(SC, popID);
+            //update max subcycles for all cells in this process
+            maxSubcycles = max((int)getAccelerationSubcycles(SC, dt, popID), maxSubcycles);
+            spatial_cell::Population& pop = SC->get_population(popID);
+            pop.ACCSUBCYCLES = getAccelerationSubcycles(SC, dt, popID);
 #ifdef USE_CUDA
-             uint cudaBlockCount = vmesh->size();
-             if (cudaBlockCount > cudaMaxBlockCount) {
-                cudaMaxBlockCount = cudaBlockCount;
-             }
+#pragma omp critical
+            {
+               if (blockCount > cudaMaxBlockCount) {
+                  cudaMaxBlockCount = blockCount;
+               }
+            }
 #endif
-          }
-       }
+         }
+      }
+      phiprof::stop("Gather subcycles and propagated cells");
 
 #ifdef USE_CUDA
-       // Ensure accelerator has enough temporary memory allocated
-       cuda_vlasov_allocate(cudaMaxBlockCount);
-       cuda_acc_allocate(cudaMaxBlockCount);
+      // Ensure accelerator has enough temporary memory allocated
+      phiprof::start("cuda allocation verifications");
+      cuda_vlasov_allocate(cudaMaxBlockCount);
+      cuda_acc_allocate(cudaMaxBlockCount);
+      phiprof::stop("cuda allocation verifications");
 #endif
 
-       // Compute global maximum for number of subcycles
-       MPI_Allreduce(&maxSubcycles, &globalMaxSubcycles, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+      // Compute global maximum for number of subcycles
+      MPI_Allreduce(&maxSubcycles, &globalMaxSubcycles, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
 
-       // TODO: move subcycling to lower level call in order to optimize CUDA memory calls
+      // TODO: move subcycling to lower level call in order to optimize CUDA memory calls
 
-       // substep global max times
-       for(uint step=0; step<(uint)globalMaxSubcycles; ++step) {
-          if(step > 0) {
-             // prune list of cells to propagate to only contained those which are now subcycled
-             vector<CellID> temp;
-             for (const auto& cell: propagatedCells) {
-                if (step < getAccelerationSubcycles(mpiGrid[cell], dt, popID) ) {
-                   temp.push_back(cell);
-                }
-             }
+      // substep global max times
+      for(uint step=0; step<(uint)globalMaxSubcycles; ++step) {
+         if(step > 0) {
+            // prune list of cells to propagate to only contained those which are now subcycled
+            vector<CellID> temp;
+            for (const auto& cell: propagatedCells) {
+               if (step < getAccelerationSubcycles(mpiGrid[cell], dt, popID) ) {
+                  temp.push_back(cell);
+               }
+            }
 
-             propagatedCells.swap(temp);
-          }
-          // Accelerate population over one subcycle step
-          calculateAcceleration(popID,(uint)globalMaxSubcycles,step,mpiGrid,propagatedCells,dt);
-       } // for-loop over acceleration substeps
+            propagatedCells.swap(temp);
+         }
+         // Accelerate population over one subcycle step
+         calculateAcceleration(popID,(uint)globalMaxSubcycles,step,mpiGrid,propagatedCells,dt);
+      } // for-loop over acceleration substeps
 
-       // final adjust for all cells, also fixing remote cells.
-       adjustVelocityBlocks(mpiGrid, cells, true, popID);
-    } // for-loop over particle species
+      // final adjust for all cells, also fixing remote cells.
+      adjustVelocityBlocks(mpiGrid, cells, true, popID);
+   } // for-loop over particle species
 
-    phiprof::stop("semilag-acc");
+   phiprof::stop("semilag-acc");
 
    // Recalculate "_V" velocity moments
-momentCalculation:
+  momentCalculation:
    calculateMoments_V(mpiGrid, cells, true);
 
    // Set CellParams::MAXVDT to be the minimum dt of all per-species values
-   #pragma omp parallel for
+#pragma omp parallel for
    for (size_t c=0; c<cells.size(); ++c) {
       SpatialCell* cell = mpiGrid[cells[c]];
       cell->parameters[CellParams::MAXVDT] = numeric_limits<Real>::max();
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          cell->parameters[CellParams::MAXVDT]
-           = min(cell->get_max_v_dt(popID), cell->parameters[CellParams::MAXVDT]);
+            = min(cell->get_max_v_dt(popID), cell->parameters[CellParams::MAXVDT]);
       }
    }
 }
