@@ -28,6 +28,7 @@
 #endif
 
 #include "arch_device_api.h"
+
 // Extra profiling stream synchronizations?
 #define SSYNC CHK_ERR( gpuStreamSynchronize(stream) )
 //#define SSYNC

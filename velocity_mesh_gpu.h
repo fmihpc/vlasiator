@@ -85,9 +85,9 @@ namespace vmesh {
       ARCH_HOSTDEV bool push_back(const vmesh::GlobalID& globalID);
       bool push_back(const std::vector<vmesh::GlobalID>& blocks);
       ARCH_HOSTDEV bool push_back(const split::SplitVector<vmesh::GlobalID>& blocks);
-      ARCH_DEV bool replaceBlock(const vmesh::GlobalID& GIDold,const vmesh::LocalID& LID,const vmesh::GlobalID& GIDnew);
-      ARCH_DEV bool placeBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID);
-      ARCH_DEV bool deleteBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID);
+      ARCH_DEV void replaceBlock(const vmesh::GlobalID& GIDold,const vmesh::LocalID& LID,const vmesh::GlobalID& GIDnew);
+      ARCH_DEV void placeBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID);
+      ARCH_DEV void deleteBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID);
       void setGrid();
       bool setGrid(const std::vector<vmesh::GlobalID>& globalIDs);
       bool setGrid(const split::SplitVector<vmesh::GlobalID>& globalIDs);
@@ -516,16 +516,16 @@ namespace vmesh {
    }
 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-   ARCH_DEV inline bool VelocityMesh::replaceBlock(const vmesh::GlobalID& GIDold,const vmesh::LocalID& LID,const vmesh::GlobalID& GIDnew) {
+   ARCH_DEV inline void VelocityMesh::replaceBlock(const vmesh::GlobalID& GIDold,const vmesh::LocalID& LID,const vmesh::GlobalID& GIDnew) {
       globalToLocalMap->device_erase(GIDold);
       globalToLocalMap->set_element(GIDnew,LID);
       localToGlobalMap->at(LID) = GIDnew;
    }
-   ARCH_DEV inline bool VelocityMesh::placeBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID) {
+   ARCH_DEV inline void VelocityMesh::placeBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID) {
       globalToLocalMap->set_element(GID,LID);
       localToGlobalMap->at(LID) = GID;
    }
-   ARCH_DEV inline bool VelocityMesh::deleteBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID) {
+   ARCH_DEV inline void VelocityMesh::deleteBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID) {
       globalToLocalMap->device_erase(GID);
       localToGlobalMap->at(LID) = invalidGlobalID();
    }
@@ -578,7 +578,7 @@ namespace vmesh {
          localToGlobalMap->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       }
       // Ensure also that the map is large enough
-      const vmesh::LocalID HashmapReqSize = ceil(log2(newSize)) +2; // Make it really large enough
+      const int HashmapReqSize = ceil(log2(newSize)) +2; // Make it really large enough
       if (globalToLocalMap->getSizePower() < HashmapReqSize) {
          globalToLocalMap->device_rehash(HashmapReqSize, stream);
          CHK_ERR( gpuStreamSynchronize(stream) );

@@ -1,0 +1,113 @@
+CMP = hipcc
+LNK = hipcc
+
+# Modules loaded (after clean shell, no module purging, one-by-one not oneline)
+#module load LUMI/22.08
+#module load partition/G
+#module load cpeAMD
+#module load rocm/5.3.3
+
+#======== Vectorization ==========
+#Set vector backend type for vlasov solvers, sets precision and length. 
+#Options: 
+# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VECTORCLASS = VEC_FALLBACK_GENERIC (Defaults to VECL8)
+
+VECTORCLASS = VEC_FALLBACK_GENERIC
+
+#===== Vector Lenghts ====
+# Default for VEC_FALLBACK_GENERIC is WID=4, VECL=8 
+WID=8
+VECL=64
+#WID=4
+#VECL=16
+
+USE_HIP=1
+
+FLAGS = 
+# -fgpu-rdc # relocatable device code, needed for the velocity mesh
+
+CXXFLAGS += -g -O3 -fopenmp -x hip --amdgpu-target=gfx90a:xnack+ -I. -Ihip -Iomp -DOMP -DHIP -D__HIP_PLATFORM_AMD__ -I${CRAY_MPICH_DIR}/include -funroll-loops -std=c++17 -W -Wall -Wno-unused-parameter -Wno-unused-result -Wno-unused-function -Wno-unused-variable -Wno-unknown-pragmas -fgpu-rdc -Wno-deprecated-register -Wno-unused-but-set-variable
+
+testpackage: CXXFLAGS = -g -O2 -fopenmp -x hip --amdgpu-target=gfx90a:xnack+ -I. -Ihip -Iomp -DOMP -DHIP -D__HIP_PLATFORM_AMD__ -I${CRAY_MPICH_DIR}/include -funroll-loops -std=c++17  -fgpu-sanitize
+
+LDFLAGS = -fopenmp --hip-link -lrt -lgomp -lpthread -fgpu-rdc -D__HIP_PLATFORM_AMD__ -L${CRAY_MPICH_DIR}/lib ${PE_MPICH_GTL_DIR_amd_gfx90a} --amdgpu-target=gfx90a:xnack+
+#-fgpu-sanitize
+LIB_MPI = -lmpi ${PE_MPICH_GTL_LIBS_amd_gfx90a}
+
+
+
+
+# Old garbage notes:
+#MATHFLAGS = -ffast-math
+#LDFLAGS = -fopenmp -lrt -lgomp -lpthread -fgpu-rdc -D__HIP_PLATFORM_AMD__ --offload-arch=gfx90a -I${CRAY_MPICH_DIR}/include  -L${CRAY_MPICH_DIR}/lib ${PE_MPICH_GTL_DIR_amd_gfx90a}
+#LDFLAGS = -fopenmp --hip-link -lrt -lgomp -lpthread -fgpu-rdc  -march=gfx90a
+#LDFLAGS = -fopenmp -lrt -lgomp -lpthread -fgpu-rdc --hip-link -march=gfx90a
+#LDFLAGS = -lrt -fopenmp -lgomp -lpthread -fgpu-rdc --hip-link
+#--hip-link -march=gfx90a -v --amdgpu-target=gfx90a 
+#CXXFLAGS += -g -O3 -fopenmp -x hip --amdgpu-target=gfx90a -funroll-loops -std=c++17 -W -Wall -Wno-unused-parameter -Wno-unused-result -Wno-unused-function -Wno-unused-variable -Wno-unknown-pragmas -fgpu-rdc -Wno-deprecated-register
+#CXXFLAGS += -g -O3 -fopenmp -x hip -D__HIP_PLATFORM_AMD__ --offload-arch=gfx90a -I${CRAY_MPICH_DIR}/include -funroll-loops -std=c++17 -W -Wall -Wno-unused-parameter -Wno-unused-result -Wno-unused-function -Wno-unused-variable -Wno-unknown-pragmas -fgpu-rdc -Wno-deprecated-register
+# --amdgpu-target=gfx90a  -I. -Ihip -Iomp -DOMP -DHIP 
+# -fgpu-sanitize -fsanitize-thread-memory-access -fsanitize-stats -munsafe-fp-atomics
+
+
+
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+#CXXFLAGS +=  -DPAPI_MEM
+#testpackage: CXXFLAGS +=  -DPAPI_MEM
+
+#======== Allocator =========
+#Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
+#Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
+#CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+#testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+
+#======= Compiler and compilation flags =========
+# NOTES on compiler flags:
+# CXXFLAGS is for compiler flags, they are always used
+# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
+# LDFLAGS flags for linker
+# Important note: Do not edit CUDAFLAGS or COMPFLAGS in this file!
+
+#-DNO_WRITE_AT_ALL:  Define to disable write at all to 
+#                    avoid memleak (much slower IO)
+
+# BOOST_VERSION = current trilinos version
+# ZOLTAN_VERSION = current trilinos verson
+#
+#======== Libraries ===========
+
+LIBRARY_PREFIX = /scratch/project_465000287/kempfyan/libraries/LUMI22.08_cpeGNU
+LIBRARY_PREFIX_HEADERS = /scratch/project_465000287/libraries
+LIBRARY_PREFIX2 = /users/battarbe/git/libraries
+
+#compiled libraries
+INC_BOOST = -isystem $(LIBRARY_PREFIX)/boost/include
+LIB_BOOST = -L$(LIBRARY_PREFIX)/boost/lib -lboost_program_options -Wl,-rpath=$(LIBRARY_PREFIX)/boost/lib
+
+INC_ZOLTAN = -isystem $(LIBRARY_PREFIX)/zoltan/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX)/zoltan/lib
+
+#INC_JEMALLOC = -I$(LIBRARY_PREFIX)/jemalloc/include
+#LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/jemalloc/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/jemalloc/lib
+
+#INC_PAPI =
+#LIB_PAPI = -lpapi
+
+INC_VLSV = -isystem $(LIBRARY_PREFIX2)/vlsv
+LIB_VLSV = -L$(LIBRARY_PREFIX2)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX2)/vlsv
+
+LIB_PROFILE = -L$(LIBRARY_PREFIX2)/phiprof/lib -lphiprof -lgfortran -Wl,-rpath=$(LIBRARY_PREFIX2)/phiprof/lib -Wl,-rpath=${ROCM_PATH}/lib -lroctx64 -lroctracer64
+INC_PROFILE = -isystem $(LIBRARY_PREFIX2)/phiprof/include -D_ROCTX -I${ROCM_PATH}/include
+
+#header libraries
+
+#INC_FSGRID = -I$(LIBRARY_PREFIX2)/fsgrid/
+INC_FSGRID = -I$(LIBRARY_PREFIX_HEADERS)/fsgrid/
+INC_EIGEN = -isystem $(LIBRARY_PREFIX_HEADERS)/eigen/
+INC_DCCRG = -I$(LIBRARY_PREFIX2)/dccrg/
+#INC_VECTORCLASS = -I$(LIBRARY_PREFIX_HEADERS)/vectorclass/
+#INC_HASHINATOR = -I$(LIBRARY_PREFIX2)/hashinator/
+INC_HASHINATOR = -isystem $(LIBRARY_PREFIX2)/hashinator/

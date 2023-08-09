@@ -131,7 +131,7 @@ __host__ void gpu_init_device() {
    CHK_ERR( gpuGetDevice(&myDevice) );
 
    // Query device capabilities (only for CUDA, not needed for HIP)
-   #if defined(USE_CUDA) && defined(__CUDACC__) 
+   #if defined(USE_GPU) && defined(__CUDACC__)
    int supportedMode;
    CHK_ERR( cudaDeviceGetAttribute (&supportedMode, cudaDevAttrConcurrentManagedAccess, myDevice) );
    if (supportedMode==0) {

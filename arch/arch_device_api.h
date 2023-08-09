@@ -3,7 +3,7 @@
 #define ARCH_DEVICE_API_H
 
 /* Host-device function declarations */
-#if defined(__CUDACC__) || defined(__HIP_PLATFORM_HCC__)
+#if defined(__CUDACC__) || defined(__HIP_PLATFORM_HCC___)
   #define ARCH_HOSTDEV __host__ __device__
   #define ARCH_DEV __device__
 #else
@@ -22,9 +22,9 @@ enum reduce_op { max, min, sum, prod };
 }
 
 /* Select the compiled architecture */
-#if defined(USE_CUDA) && defined(__CUDACC__) 
+#if defined(USE_GPU) && defined(__CUDACC__)
   #include "arch_device_cuda.h"
-#elif defined(USE_HIP) && defined(__HIP_PLATFORM_HCC__)
+#elif defined(USE_GPU) && defined(__HIP_PLATFORM_HCC___)
   #include "arch_device_hip.h"
 #else
   #include "arch_device_host.h"
@@ -46,7 +46,7 @@ inline static void parallel_reduce(const uint (&limits)[NDim], Lambda loop_body,
 
 /* Parallel reduce interface function - specialization for a reduction variable array */
 template <reduce_op Op, uint NDim, uint NReductions, typename Lambda, typename T>
-inline static void parallel_reduce(const uint (&limits)[NDim], Lambda loop_body, T (&sum)[NReductions]) { 
+inline static void parallel_reduce(const uint (&limits)[NDim], Lambda loop_body, T (&sum)[NReductions]) {
   arch::parallel_reduce_driver<Op, NReductions, NDim>(limits, loop_body, &sum[0], NReductions);
 }
 

@@ -79,7 +79,7 @@
 #define gpuMemcpyDeviceToDevice          cudaMemcpyDeviceToDevice
 #define gpuMemcpyToSymbol                cudaMemcpyToSymbol
 
-#define gpuKernelBallot(mask, input) __ballot_sync(mask, input) 
+#define gpuKernelBallot(mask, input) __ballot_sync(mask, input)
 
 /* Define architecture-specific macros */
 #define ARCH_LOOP_LAMBDA [=] __host__ __device__
@@ -143,16 +143,16 @@ __device__ __forceinline__ static void atomicMin(double *address, double val2) {
 namespace arch{
 
 /* Buffer class for making data available on device */
-template <typename T> 
+template <typename T>
 class buf {
-  private:  
-  T *ptr; 
+  private:
+  T *ptr;
   T *d_ptr;
   uint bytes;
   uint is_copy = 0;
   uint thread_id = 0;
 
-  public:   
+  public:
 
   void syncDeviceData(void){
     CHK_ERR(cudaMemcpyAsync(d_ptr, ptr, bytes, cudaMemcpyHostToDevice, stream[thread_id]));
@@ -161,14 +161,14 @@ class buf {
   void syncHostData(void){
     CHK_ERR(cudaMemcpyAsync(ptr, d_ptr, bytes, cudaMemcpyDeviceToHost, stream[thread_id]));
   }
-  
+
   buf(T * const _ptr, uint _bytes) : ptr(_ptr), bytes(_bytes) {
     thread_id = omp_get_thread_num();
     CHK_ERR(cudaMallocAsync(&d_ptr, bytes, stream[thread_id]));
     syncDeviceData();
   }
-  
-  __host__ __device__ buf(const buf& u) : 
+
+  __host__ __device__ buf(const buf& u) :
     ptr(u.ptr), d_ptr(u.d_ptr), bytes(u.bytes), is_copy(1), thread_id(u.thread_id) {}
 
   __host__ ~buf(void){
@@ -279,7 +279,7 @@ __device__ __forceinline__ static void lambda_eval(const uint (&idx)[4], T * __r
 
 /* Get the index for the underlying dimension, and call the respective lambda wrapper */
 template <uint NDim, typename Lambda, typename T>
-__device__ __forceinline__ static void loop_eval(const uint idx_glob, const uint * __restrict__ lims, T * __restrict__ thread_data, Lambda loop_body) { 
+__device__ __forceinline__ static void loop_eval(const uint idx_glob, const uint * __restrict__ lims, T * __restrict__ thread_data, Lambda loop_body) {
   uint idx[NDim];
   switch (NDim)
   {
@@ -290,7 +290,7 @@ __device__ __forceinline__ static void loop_eval(const uint idx_glob, const uint
     case 2:
       idx[1] = (idx_glob / lims[0]) % lims[1];
     case 1:
-      idx[0] = idx_glob % lims[0];  
+      idx[0] = idx_glob % lims[0];
   }
   lambda_eval(idx, thread_data, loop_body);
 }
@@ -318,13 +318,13 @@ reduction_kernel(Lambda loop_body, const T * __restrict__ init_val, T * __restri
 
   /* Static thread data declaration */
   T thread_data_static[size];
-  
+
   /* Assign a pointer to the thread data (dynamic or static case)*/
   T *thread_data = NReduStatic ? thread_data_static : &thread_data_dynamic[n_redu_dynamic * idx_glob];
 
   /* Get the number of reductions (may be known at compile time or not) */
-  const uint n_reductions = NReduStatic ? NReduStatic : n_redu_dynamic;  
-  
+  const uint n_reductions = NReduStatic ? NReduStatic : n_redu_dynamic;
+
   /* Set initial values */
   for(uint i = 0; i < n_reductions; i++){
     if (Op == reduce_op::sum)
@@ -336,33 +336,33 @@ reduction_kernel(Lambda loop_body, const T * __restrict__ init_val, T * __restri
   /* Check the loop limits and evaluate the loop body */
   if (idx_glob < n_total)
     loop_eval<NDim>(idx_glob, lims, thread_data, loop_body);
-  
+
   /* Perform reductions */
   for(uint i = 0; i < n_reductions; i++){
     /* Compute the block-wide sum for thread 0 which stores it */
     if(Op == reduce_op::sum){
       T aggregate = BlockReduce(temp_storage[i]).Sum(thread_data[i]);
       /* The first thread of each block stores the block-wide aggregate atomically */
-      if(threadIdx.x == 0) 
+      if(threadIdx.x == 0)
         atomicAdd(&rslt[i], aggregate);
     }
     else if(Op == reduce_op::max){
-      T aggregate = BlockReduce(temp_storage[i]).Reduce(thread_data[i], cub::Max()); 
-      if(threadIdx.x == 0) 
+      T aggregate = BlockReduce(temp_storage[i]).Reduce(thread_data[i], cub::Max());
+      if(threadIdx.x == 0)
         atomicMax(&rslt[i], aggregate);
     }
     else if(Op == reduce_op::min){
       T aggregate = BlockReduce(temp_storage[i]).Reduce(thread_data[i], cub::Min());
-      if(threadIdx.x == 0) 
+      if(threadIdx.x == 0)
         atomicMin(&rslt[i], aggregate);
     }
     else
       /* Other reduction operations are not supported - print an error message */
-      if(threadIdx.x == 0) 
+      if(threadIdx.x == 0)
         printf("ERROR at %s:%d: Invalid reduction identifier \"Op\".", __FILE__, __LINE__);
   }
 }
-  
+
 
 
 /* Parallel reduce driver function for the CUDA reductions */
@@ -370,7 +370,7 @@ template <reduce_op Op, uint NReduStatic, uint NDim, typename Lambda, typename T
 __forceinline__ static void parallel_reduce_driver(const uint (&limits)[NDim], Lambda loop_body, T *sum, const uint n_redu_dynamic) {
 
   /* Get the number of reductions (may be known at compile time or not) */
-  const uint n_reductions = NReduStatic ? NReduStatic : n_redu_dynamic;  
+  const uint n_reductions = NReduStatic ? NReduStatic : n_redu_dynamic;
 
   /* Calculate the required size for the 1D kernel */
   uint n_total = 1;
@@ -391,7 +391,7 @@ __forceinline__ static void parallel_reduce_driver(const uint (&limits)[NDim], L
   T* d_buf;
   CHK_ERR(cudaMallocAsync(&d_buf, n_reductions*sizeof(T), stream[thread_id]));
   CHK_ERR(cudaMemcpyAsync(d_buf, sum, n_reductions*sizeof(T), cudaMemcpyHostToDevice, stream[thread_id]));
-  
+
   /* Create a device buffer to transfer the initial values to device */
   T* d_const_buf;
   CHK_ERR(cudaMallocAsync(&d_const_buf, n_reductions*sizeof(T), stream[thread_id]));
@@ -402,8 +402,8 @@ __forceinline__ static void parallel_reduce_driver(const uint (&limits)[NDim], L
   CHK_ERR(cudaMallocAsync(&d_limits, NDim*sizeof(uint), stream[thread_id]));
   CHK_ERR(cudaMemcpyAsync(d_limits, limits, NDim*sizeof(uint), cudaMemcpyHostToDevice,stream[thread_id]));
 
-  /* Call the reduction kernel with different arguments depending 
-   * on if the number of reductions is known at the compile time 
+  /* Call the reduction kernel with different arguments depending
+   * on if the number of reductions is known at the compile time
    */
   T* d_thread_data_dynamic;
   if(NReduStatic == 0) {
