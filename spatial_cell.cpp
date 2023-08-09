@@ -642,6 +642,16 @@ namespace spatial_cell {
             if ( P::amrMaxSpatialRefLevel == 0 || receiving || ranks.find(receiver_rank) != ranks.end()) {
                
                for ( int i = 0; i < MAX_NEIGHBORS_PER_DIM; ++i) {
+                  if(!receiving) {
+                     for(unsigned int j=0; j < this->neighbor_number_of_blocks[i]*VELOCITY_BLOCK_LENGTH; j++) {
+                        if(isnan(this->neighbor_block_data[i][j])) {
+                           std::cerr << "WARNING: Sending NaN data to neighbour (cellID " << cellID << ", neighbourID " << i << ", neigbour block data " << j << std::endl;
+                        }
+                     }
+                  }
+                  if(cellID == 4) {
+                     fprintf(stderr, "When building datatype, cell 4.neighbor_number_of_blocks = %i, sender_rank = %i, receiver_rank = %i\n", this->neighbor_number_of_blocks[0], sender_rank, receiver_rank);
+                  }
                   displacements.push_back((uint8_t*) this->neighbor_block_data[i] - (uint8_t*) this);
                   block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH * this->neighbor_number_of_blocks[i]);
                }

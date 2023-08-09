@@ -316,7 +316,7 @@ void calculateSpatialTranslation(
          for (size_t c=0; c<localCells.size(); ++c) {
 //            mpiGrid[localCells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += time / localCells.size();
             for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-               mpiGrid[localCells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] += mpiGrid[localCells[c]]->get_number_of_velocity_blocks(popID);
+               mpiGrid[localCells[c]]->parameters[CellParams::LBWEIGHTCOUNTER] = 1; // += mpiGrid[localCells[c]]->get_number_of_velocity_blocks(popID);
             }
          }
       } else {

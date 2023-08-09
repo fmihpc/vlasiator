@@ -682,16 +682,39 @@ void update_remote_mapping_contribution(
       CellID p_ngbr = INVALID_CELLID;
       CellID m_ngbr = INVALID_CELLID;
 
+      if(local_cells[c] == 4) {
+         fprintf(stderr, "Cell 4 has neighbours in SHIFT_P_X_NEIGHBORHOOD_ID: [\n");
+         
+         for(auto& nbr : *mpiGrid.get_neighbors_of(local_cells[c], SHIFT_P_X_NEIGHBORHOOD_ID)) {
+               fprintf(stderr, "\t%li (%i %i %i %i)\n", nbr.first, nbr.second[0], nbr.second[1], nbr.second[2], nbr.second[3]);
+         }
+         fprintf(stderr, "]\n");
+         fprintf(stderr, "Cell 4 has neighbours in SHIFT_M_X_NEIGHBORHOOD_ID: [\n");
+         for(auto& nbr : *mpiGrid.get_neighbors_of(local_cells[c], SHIFT_M_X_NEIGHBORHOOD_ID)) {
+               fprintf(stderr, "\t%li (%i %i %i %i)\n", nbr.first, nbr.second[0], nbr.second[1], nbr.second[2], nbr.second[3]);
+         }
+         fprintf(stderr, "]\n");
+
+         //fprintf(stderr, "The funny bunch of face neighbours for cell 28 is: [\n");
+         //fprintf(stderr, "\tCellID dim\n");
+         //for (const auto& nbr : mpiGrid.get_face_neighbors_of(local_cells[c])) {
+         //   fprintf(stderr, "\t%li %i\n",nbr.first, nbr.second);
+         //}
+         //fprintf(stderr, "]\n");
+      }
+
       for (const auto& [neighbor, dir] : mpiGrid.get_face_neighbors_of(local_cells[c])) {
          if(dir == ((int)dimension + 1) * direction) {
             p_ngbr = neighbor;
          }
-
          if(dir == -1 * ((int)dimension + 1) * direction) {
             m_ngbr = neighbor;
          }
+
       }
-      
+
+      //MPI_Barrier(MPI_COMM_WORLD);
+
       //internal cell, not much to do
       if (mpiGrid.is_local(p_ngbr) && mpiGrid.is_local(m_ngbr)) continue;
 
@@ -750,8 +773,13 @@ void update_remote_mapping_contribution(
          SpatialCell* spatial_cell = mpiGrid[receive_cells[c]];
          Realf *blockData = spatial_cell->get_data(popID);
           
-#pragma omp for 
+//#pragma omp for 
          for(unsigned int cell = 0; cell<VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++cell) {
+            if(isnan(receiveBuffers[c][cell]) || isinf(receiveBuffers[c][cell])) {
+               fprintf(stderr, "NaN received at cell %li, vel_cell %i (%i blocks)\n", receive_cells[c], cell, spatial_cell->get_number_of_velocity_blocks(popID));
+               //abort();
+               //break;
+            }
             blockData[cell] += receiveBuffers[c][cell];
          }
       }
