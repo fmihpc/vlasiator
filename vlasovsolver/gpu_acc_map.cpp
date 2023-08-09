@@ -147,7 +147,7 @@ __global__ void __launch_bounds__(VECL,4) reorder_blocks_by_dimension_kernel(
 __global__ void __launch_bounds__(GPUTHREADS,4) identify_block_offsets_kernel(
    const vmesh::VelocityMesh* vmesh,
    Column *columns,
-   const int totalColumns,
+   const uint totalColumns,
    const uint blockDataSize,
    uint *gpu_block_indices_to_id
    ) {
@@ -157,8 +157,8 @@ __global__ void __launch_bounds__(GPUTHREADS,4) identify_block_offsets_kernel(
    const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
 
    for (uint iColumn = blocki; iColumn < totalColumns; iColumn += gpuBlocks) {
-      for (int blockK = columns[iColumn].minBlockK; blockK <= columns[iColumn].maxBlockK; blockK += warpSize) {
-         if (blockK+ti <= columns[iColumn].maxBlockK) {
+      for (uint blockK = (uint)columns[iColumn].minBlockK; blockK <= (uint)columns[iColumn].maxBlockK; blockK += warpSize) {
+         if (blockK+ti <= (uint)columns[iColumn].maxBlockK) {
             const int targetBlock =
                columns[iColumn].i * gpu_block_indices_to_id[0] +
                columns[iColumn].j * gpu_block_indices_to_id[1] +
@@ -196,7 +196,7 @@ __global__ void __launch_bounds__(1,4) count_columns_kernel (
 __global__ void __launch_bounds__(1,4) offsets_into_columns_kernel(
    ColumnOffsets* gpu_columnData,
    Column *gpu_columns,
-   const int valuesSizeRequired
+   const uint valuesSizeRequired
    ) {
    // const int gpuBlocks = gridDim.x * gridDim.y * gridDim.z;
    // const int warpSize = blockDim.x * blockDim.y * blockDim.z;
@@ -232,8 +232,8 @@ __global__ void __launch_bounds__(GPUTHREADS,4) evaluate_column_extents_kernel(
    Realv intersection_di,
    Realv intersection_dj,
    Realv intersection_dk,
-   uint bailout_velocity_space_wall_margin,
-   uint max_v_length,
+   int bailout_velocity_space_wall_margin,
+   const int max_v_length,
    Realv v_min,
    Realv dv,
    uint *wallspace_margin_bailout_flag
@@ -422,7 +422,7 @@ __global__ void __launch_bounds__(VECL,4) acceleration_kernel(
   Vec *gpu_blockDataOrdered,
   uint *gpu_cell_indices_to_id,
   Column *gpu_columns,
-  int totalColumns,
+  uint totalColumns,
   Realv intersection,
   Realv intersection_di,
   Realv intersection_dj,
@@ -582,7 +582,7 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    //const vmesh::LocalID D2 = vmesh->getGridLength()[2];
    const Realv dv    = vmesh->getCellSize()[dimension];
    const Realv v_min = vmesh->getMeshMinLimits()[dimension];
-   const Realv max_v_length  = vmesh->getGridLength()[dimension];
+   const int max_v_length  = (int)vmesh->getGridLength()[dimension];
    const Realv i_dv = 1.0/dv;
 
    // For use later

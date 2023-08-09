@@ -76,7 +76,7 @@ __host__ void gpu_init_device() {
 #ifdef _OPENMP
    const uint maxThreads = omp_get_max_threads();
 #else
-   const uint maxThreads = 1
+   const uint maxThreads = 1;
 #endif
 
    int deviceCount;
@@ -163,7 +163,7 @@ __host__ void gpu_clear_device() {
 #ifdef _OPENMP
    const uint maxThreads = omp_get_max_threads();
 #else
-   const uint maxThreads = 1
+   const uint maxThreads = 1;
 #endif
    for (uint i=0; i<maxThreads; ++i) {
       CHK_ERR( gpuStreamDestroy(gpuStreamList[i]) );

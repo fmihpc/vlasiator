@@ -126,7 +126,7 @@ namespace vmesh {
    }
 
    ARCH_HOSTDEV inline void printVelocityMesh(const uint meshIndex) {
-      vmesh::MeshParameters *vMesh = &(getMeshWrapper()->velocityMeshes->at(meshIndex));
+      vmesh::MeshParameters *vMesh = &((*(getMeshWrapper()->velocityMeshes))[meshIndex]);
       printf("\nPrintout of velocity mesh %d \n",meshIndex);
       // printf("Meshwrapper address 0x%lx\n",getMeshWrapper());
       // printf("array of meshes address 0x%lx\n",&(getMeshWrapper()->velocityMeshes));

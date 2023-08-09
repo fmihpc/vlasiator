@@ -999,6 +999,9 @@ namespace spatial_cell {
       velocity_block_with_content_list->copyMetadata(info_vbwcl,stream);
       CHK_ERR( gpuStreamSynchronize(stream) );
       velocity_block_with_content_list_size = info_vbwcl->size;
+      if (velocity_block_with_content_list_size==0) {
+         return;
+      }
       CHK_ERR( gpuMallocAsync((void**)&gpu_velocity_block_with_content_list_buffer, velocity_block_with_content_list_size*sizeof(vmesh::LocalID), stream) );
       CHK_ERR( gpuMemcpyAsync(gpu_velocity_block_with_content_list_buffer, velocity_block_with_content_list->data(), velocity_block_with_content_list_size*sizeof(vmesh::LocalID), gpuMemcpyDeviceToDevice, stream) );
       SSYNC;
@@ -1008,6 +1011,9 @@ namespace spatial_cell {
     */
    void SpatialCell::gpu_clearContentLists() {
       gpuStream_t stream = gpu_getStream();
+      if (velocity_block_with_content_list_size==0) {
+         return;
+      }
       CHK_ERR( gpuFreeAsync(gpu_velocity_block_with_content_list_buffer, stream) );
    }
 

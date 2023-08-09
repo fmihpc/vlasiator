@@ -397,7 +397,7 @@ bool map_1d(SpatialCell* spatial_cell,
          // compute the common indices for this block column set
          //First block in column
          velocity_block_indices_t block_indices_begin;
-         uint8_t refLevel;
+         uint8_t refLevel=0;
          vmesh->getIndices(cblocks[0],refLevel,block_indices_begin[0],block_indices_begin[1],block_indices_begin[2]);
 
          // Switch block indices according to dimensions, the algorithm has

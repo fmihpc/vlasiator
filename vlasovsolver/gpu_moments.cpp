@@ -54,9 +54,9 @@ __host__ void gpu_allocateMomentCalculations(
       CHK_ERR( gpuMalloc((void**)&gpu_momentArrays2[cpuThreadID], nMoments2*(nPopulations+1)*sizeof(Real)) );
 
       // Also allocate and pin memory on host for faster transfers
-      CHK_ERR( gpuHostAlloc((void**)&host_momentInfos[cpuThreadID], nPopulations*sizeof(MomentInfo), gpuHostAllocPortable) );
-      CHK_ERR( gpuHostAlloc((void**)&host_momentArrays1[cpuThreadID], nMoments1*(nPopulations+1)*sizeof(Real), gpuHostAllocPortable) );
-      CHK_ERR( gpuHostAlloc((void**)&host_momentArrays2[cpuThreadID], nMoments2*(nPopulations+1)*sizeof(Real), gpuHostAllocPortable) );
+      CHK_ERR( gpuHostAlloc((void**)&host_momentInfos[cpuThreadID], nPopulations*sizeof(MomentInfo)) );
+      CHK_ERR( gpuHostAlloc((void**)&host_momentArrays1[cpuThreadID], nMoments1*(nPopulations+1)*sizeof(Real)) );
+      CHK_ERR( gpuHostAlloc((void**)&host_momentArrays2[cpuThreadID], nMoments2*(nPopulations+1)*sizeof(Real)) );
    }
    isGpuMomentsAllocated = true;
    return;
@@ -67,7 +67,7 @@ __host__ void gpu_allocateMomentCalculations(
 __global__ void moments_first_kernel(
    MomentInfo *gpu_momentInfos,
    Real* gpu_momentArrays1,
-   const int nPopulations
+   const uint nPopulations
    ){
 
    const int gpuBlocks = gridDim.x;
@@ -144,7 +144,7 @@ __global__ void moments_first_kernel(
 __global__ void moments_second_kernel(
    MomentInfo *gpu_momentInfos,
    Real* gpu_momentArrays2,
-   const int nPopulations,
+   const uint nPopulations,
    const Real bulkVX,
    const Real bulkVY,
    const Real bulkVZ

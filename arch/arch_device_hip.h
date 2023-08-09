@@ -29,7 +29,7 @@
 #define gpuMallocHost                    hipHostMalloc
 #define gpuMallocAsync                   hipMallocAsync
 #define gpuMallocManaged                 hipMallocManaged
-#define gpuHostAlloc                     hipHostAlloc
+#define gpuHostAlloc                     hipHostMalloc
 #define gpuHostAllocPortable             hipHostAllocPortable
 #define gpuMemcpy                        hipMemcpy
 #define gpuMemcpyAsync                   hipMemcpyAsync

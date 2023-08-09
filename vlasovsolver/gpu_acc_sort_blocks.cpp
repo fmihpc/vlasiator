@@ -406,10 +406,18 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
    void     *temp_storage_null = NULL;
    size_t   temp_storage_bytes = 0;
    //GPUTODO: HIPIFY-option via arch
+   #ifdef __CUDACC__
    cub::DeviceRadixSort::SortPairs(temp_storage_null, temp_storage_bytes,
                                    blocksID_mapped, blocksID_mapped_sorted,
                                    blocksLID_unsorted, blocksLID, nBlocks,
                                    0, sizeof(vmesh::GlobalID)*8, stream);
+   #else
+   // HIPCUB
+   hipcub::DeviceRadixSort::SortPairs(temp_storage_null, temp_storage_bytes,
+                                   blocksID_mapped, blocksID_mapped_sorted,
+                                   blocksLID_unsorted, blocksLID, nBlocks,
+                                   0, sizeof(vmesh::GlobalID)*8, stream);
+   #endif
    CHK_ERR( gpuPeekAtLastError() );
 
    phiprof::start("cub alloc");
@@ -418,10 +426,18 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
    phiprof::stop("cub alloc");
 
    // Now sort
+   #ifdef __CUDACC__
    cub::DeviceRadixSort::SortPairs(gpu_RadixSortTemp[cpuThreadID], temp_storage_bytes,
                                    blocksID_mapped, blocksID_mapped_sorted,
                                    blocksLID_unsorted, blocksLID, nBlocks,
                                    0, sizeof(vmesh::GlobalID)*8, stream);
+   #else
+   // HIPCUB
+   hipcub::DeviceRadixSort::SortPairs(gpu_RadixSortTemp[cpuThreadID], temp_storage_bytes,
+                                   blocksID_mapped, blocksID_mapped_sorted,
+                                   blocksLID_unsorted, blocksLID, nBlocks,
+                                   0, sizeof(vmesh::GlobalID)*8, stream);
+   #endif
    CHK_ERR( gpuPeekAtLastError() );
    SSYNC;
    phiprof::stop("CUB sort");
