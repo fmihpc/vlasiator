@@ -31,7 +31,8 @@
 #define gpuMallocHost                    cudaMallocHost
 #define gpuMallocAsync                   cudaMallocAsync
 #define gpuMallocManaged                 cudaMallocManaged
-#define gpuHostAlloc                     cudaHostAlloc
+// this goes to cudaMallocHost because we don't support flags
+#define gpuHostAlloc                     cudaMallocHost
 #define gpuHostAllocPortable             cudaHostAllocPortable
 #define gpuMemcpy                        cudaMemcpy
 #define gpuMemcpyAsync                   cudaMemcpyAsync
