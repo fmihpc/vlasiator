@@ -3,7 +3,7 @@
 #define ARCH_DEVICE_API_H
 
 /* Host-device function declarations */
-#if defined(__CUDACC__) || defined(__HIPCC__)
+#if defined(__CUDACC__) || defined(__HIP_PLATFORM_HCC__)
   #define ARCH_HOSTDEV __host__ __device__
   #define ARCH_DEV __device__
 #else
@@ -24,7 +24,7 @@ enum reduce_op { max, min, sum, prod };
 /* Select the compiled architecture */
 #if defined(USE_CUDA) && defined(__CUDACC__) 
   #include "arch_device_cuda.h"
-#elif defined(USE_HIP) && defined(__HIPCC__)
+#elif defined(USE_HIP) && defined(__HIP_PLATFORM_HCC__)
   #include "arch_device_hip.h"
 #else
   #include "arch_device_host.h"
