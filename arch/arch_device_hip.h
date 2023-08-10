@@ -117,28 +117,28 @@
   	}
 }
 
-// /* Create auxiliary max atomic function for double types */
-// __device__ __forceinline__ static void atomicMax(double *address, double val2) {
-//   unsigned long long ret = __double_as_longlong(*address);
-//   while(val2 > __longlong_as_double(ret)) {
-//     unsigned long long old = ret;
-//     if((ret = atomicCAS((unsigned long long *)address, old, __double_as_longlong(val2))) == old)
-//     break;
-//   }
-// }
-
-// /* Create auxiliary min atomic function for double types */
-// __device__ __forceinline__ static void atomicMin(double *address, double val2) {
-//   unsigned long long ret = __double_as_longlong(*address);
-//   while(val2 < __longlong_as_double(ret)) {
-//     unsigned long long old = ret;
-//     if((ret = atomicCAS((unsigned long long *)address, old, __double_as_longlong(val2))) == old)
-//     break;
-//   }
-// }
-
 /* Namespace for architecture-specific functions */
 namespace arch{
+
+/* Create auxiliary max atomic function for double types */
+__device__ __forceinline__ static void atomicMax(double *address, double val2) {
+  unsigned long long ret = __double_as_longlong(*address);
+  while(val2 > __longlong_as_double(ret)) {
+    unsigned long long old = ret;
+    if((ret = atomicCAS((unsigned long long *)address, old, __double_as_longlong(val2))) == old)
+    break;
+  }
+}
+
+/* Create auxiliary min atomic function for double types */
+__device__ __forceinline__ static void atomicMin(double *address, double val2) {
+  unsigned long long ret = __double_as_longlong(*address);
+  while(val2 < __longlong_as_double(ret)) {
+    unsigned long long old = ret;
+    if((ret = atomicCAS((unsigned long long *)address, old, __double_as_longlong(val2))) == old)
+    break;
+  }
+}
 
 /* Buffer class for making data available on device */
 template <typename T>
