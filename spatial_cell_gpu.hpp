@@ -23,8 +23,8 @@
 Spatial cell class for Vlasiator that supports a variable number of velocity blocks.
 */
 
-#ifndef VLASIATOR_SPATIAL_CELL_CUDA_HPP
-#define VLASIATOR_SPATIAL_CELL_CUDA_HPP
+#ifndef VLASIATOR_SPATIAL_CELL_GPU_HPP
+#define VLASIATOR_SPATIAL_CELL_GPU_HPP
 
 #include <algorithm>
 #include <cmath>
@@ -46,7 +46,7 @@ Spatial cell class for Vlasiator that supports a variable number of velocity blo
 #include "parameters.h"
 #include "definitions.h"
 
-#include "velocity_mesh_cuda.h"
+#include "velocity_mesh_gpu.h"
 
 #include "velocity_block_container.h"
 
@@ -229,13 +229,13 @@ namespace spatial_cell {
       const SpatialCell& operator=(const SpatialCell& other);
 
       // Attach unified memory to a stream
-      void dev_attachToStream(cudaStream_t stream=0);
-      void dev_detachFromStream();
+      void gpu_attachToStream(gpuStream_t stream=0);
+      void gpu_detachFromStream();
       // upload a content list to device memory
-      void dev_uploadContentLists();
-      void dev_clearContentLists();
+      void gpu_uploadContentLists();
+      void gpu_clearContentLists();
       // Advise on memory location
-      void dev_advise();
+      void gpu_advise();
 
       vmesh::GlobalID find_velocity_block(vmesh::GlobalID cellIndices[3],const uint popID);
       Realf* get_data(const uint popID);
@@ -358,12 +358,12 @@ namespace spatial_cell {
       int sysBoundaryLayerNew;
       split::SplitVector<vmesh::GlobalID> *velocity_block_with_content_list;          /**< List of existing cells with content, only up-to-date after call to update_has_content().*/
       vmesh::LocalID velocity_block_with_content_list_size;                   /**< Size of vector. Needed for MPI communication of size before actual list transfer.*/
-      vmesh::GlobalID *dev_velocity_block_with_content_list_buffer;  /**< Pointer to device-memory buffer of VB with content list */
+      vmesh::GlobalID *gpu_velocity_block_with_content_list_buffer;  /**< Pointer to device-memory buffer of VB with content list */
       split::SplitVector<vmesh::GlobalID> *velocity_block_with_no_content_list;
 
       /**< List of existing cells with no content, only up-to-date after call to update_has_content. This is also never transferred over MPI, so is invalid on remote cells.*/
 
-      Realf* dev_rhoLossAdjust;
+      Realf* gpu_rhoLossAdjust;
       split::SplitVector<vmesh::GlobalID> *BlocksToRemove, *BlocksToAdd, *BlocksToMove; /**< Lists of blocks to change on GPU device */
       split::SplitVector<vmesh::GlobalID> *BlocksRequired, *BlocksHalo;
       Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *BlocksRequiredMap;
@@ -375,7 +375,7 @@ namespace spatial_cell {
       static bool mpiTransferAtSysBoundaries;                                 /**< Do we only transfer data at boundaries (true), or in the whole system (false).*/
       static bool mpiTransferInAMRTranslation;                                /**< Do we only transfer cells which are required by AMR translation. */
       static int mpiTransferXYZTranslation;                                   /**< Dimension in which AMR translation is happening */
-      cudaStream_t attachedStream;
+      gpuStream_t attachedStream;
 
     private:
       static int activePopID;
@@ -1019,7 +1019,7 @@ namespace spatial_cell {
     Return the memory consumption in bytes as reported using the size()
     functions of the containers in spatial cell
     */
-   // CUDATODO Update this for GPU memory as well, same for capacity
+   // GPUTODO Update this for GPU memory as well, same for capacity
    inline uint64_t SpatialCell::get_cell_memory_size() {
       //const uint64_t VEL_BLOCK_SIZE = 2*WID3*sizeof(Realf) + BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real);
       uint64_t size = 0;

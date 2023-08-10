@@ -27,10 +27,10 @@
 #include "../common.h"
 #include "../spatial_cell.hpp"
 
-// CUDATODO: make these four vectors inside the setofpencils struct pointers to vectors,
+// GPUTODO: make these four vectors inside the setofpencils struct pointers to vectors,
 // new construct them in the pencil building function. Do we need a flag for if they are allocated
 // or not? Or init with null pointer.
-// #ifdef USE_CUDA
+// #ifdef USE_GPU
 // typedef split::SplitVector<uint> pencilVecUint;
 // typedef split::SplitVector<Realf> pencilVecRealf;
 // #else
@@ -93,7 +93,7 @@ struct setOfPencils {
       path.push_back(pathIn);
    }
 
-   // CUDATODO: Re-instate this (and printing of DZ and ratios in printpencils) when splitvector iterators work completely
+   // GPUTODO: Re-instate this (and printing of DZ and ratios in printpencils) when splitvector iterators work completely
    // void removePencil(const uint pencilId) {
    //    x.erase(x.begin() + pencilId);
    //    y.erase(y.begin() + pencilId);

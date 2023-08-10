@@ -24,12 +24,7 @@
 #define HOSTDEV_1D_PPM_H
 
 #include "vec.h"
-#include "cuda_header.h"
-#ifdef __CUDACC__
-#include "device_launch_parameters.h"
-#include "cuda.h"
-#include "cuda_runtime.h"
-#endif
+#include "../arch/arch_device_api.h"
 #include "cpu_slope_limiters.hpp"
 #include "cpu_face_estimates.hpp"
 
@@ -38,7 +33,7 @@ using namespace std;
 /*
   Compute parabolic reconstruction with an explicit scheme
 */
-static CUDA_HOSTDEV inline void compute_ppm_coeff(const Vec * const values, face_estimate_order order, uint k, Vec a[3], const Realv threshold)
+static ARCH_HOSTDEV inline void compute_ppm_coeff(const Vec * const values, face_estimate_order order, uint k, Vec a[3], const Realv threshold)
 {
   Vec fv_l; //left face value
   Vec fv_r; //right face value
@@ -65,7 +60,7 @@ static CUDA_HOSTDEV inline void compute_ppm_coeff(const Vec * const values, face
       Define functions for Realf instead of Vec 
 ***/
 
-static CUDA_DEV inline void compute_ppm_coeff(const Vec* const values, face_estimate_order order, uint k, Realf a[3], const Realv threshold, const int index)
+static ARCH_DEV inline void compute_ppm_coeff(const Vec* const values, face_estimate_order order, uint k, Realf a[3], const Realv threshold, const int index)
 {
   Realf fv_l; //left face value
   Realf fv_r; //right face value

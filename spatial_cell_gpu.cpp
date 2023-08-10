@@ -22,8 +22,8 @@
 
 #include <unordered_set>
 
-#include "spatial_cell_cuda.hpp"
-#include "cuda_context.cuh"
+#include "spatial_cell_gpu.hpp"
+#include "arch/gpu_base.hpp"
 #include "object_wrapper.h"
 #include "velocity_mesh_parameters.h"
 
@@ -33,7 +33,7 @@
 
 using namespace std;
 
-/** CUDA kernel for identifying which blocks have relevant content */
+/** GPU kernel for identifying which blocks have relevant content */
 __global__ void __launch_bounds__(WID3,4) update_velocity_block_content_lists_kernel (
    vmesh::VelocityMesh *vmesh,
    vmesh::VelocityBlockContainer *blockContainer,
@@ -42,7 +42,7 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_block_content_lists_ke
    Realf velocity_block_min_value
    ) {
 
-   const int cudaBlocks = gridDim.x;
+   const int gpuBlocks = gridDim.x;
    const int blocki = blockIdx.x;
    const int i = threadIdx.x;
    const int j = threadIdx.y;
@@ -50,7 +50,7 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_block_content_lists_ke
    const uint ti = k*WID2 + j*WID + i;
    __shared__ bool has_content[WID3];
    const uint nBlocks = vmesh->size();
-   for (uint blockLID=blocki; blockLID<nBlocks; blockLID += cudaBlocks) {
+   for (uint blockLID=blocki; blockLID<nBlocks; blockLID += gpuBlocks) {
       vmesh::GlobalID blockGID = vmesh->getGlobalID(blockLID);
       #ifdef DEBUG_SPATIAL_CELL
       if (blockGID == vmesh->invalidGlobalID()) {
@@ -81,8 +81,8 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_block_content_lists_ke
    }
 }
 
-/** Cuda Kernel to quickly gather blocks and their v-space halo */
-__global__ void __launch_bounds__(CUDATHREADS,4) update_blocks_required_halo_kernel (
+/** Gpu Kernel to quickly gather blocks and their v-space halo */
+__global__ void __launch_bounds__(GPUTHREADS,4) update_blocks_required_halo_kernel (
    vmesh::VelocityMesh *vmesh,
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>* BlocksRequiredMap,
    split::SplitVector<vmesh::GlobalID> *velocity_block_with_content_list,
@@ -94,7 +94,7 @@ __global__ void __launch_bounds__(CUDATHREADS,4) update_blocks_required_halo_ker
    split::SplitVector<vmesh::GlobalID>* BlocksToAdd,
    split::SplitVector<vmesh::GlobalID>* BlocksToMove
    ) {
-   const int cudaBlocks = gridDim.x;
+   const int gpuBlocks = gridDim.x;
    const int blocki = blockIdx.x;
    const int warpSize = blockDim.x*blockDim.y*blockDim.z;
    const vmesh::LocalID ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
@@ -103,7 +103,7 @@ __global__ void __launch_bounds__(CUDATHREADS,4) update_blocks_required_halo_ker
 
    vmesh::GlobalID nGIDs[27] = {0};
 
-   for (vmesh::LocalID index=blocki*warpSize; index<localContentBlocks; index += cudaBlocks*warpSize) {
+   for (vmesh::LocalID index=blocki*warpSize; index<localContentBlocks; index += gpuBlocks*warpSize) {
       if (index+ti < localContentBlocks) {
          vmesh::GlobalID GID = velocity_block_with_content_list->at(index+ti);
          //BlocksRequiredMap->set_element(GID,GID); // Already added via Hashinator interface
@@ -409,20 +409,20 @@ def findall():
    }
 }
 
-/** Cuda Kernel to quickly add blocks which have spatial neighbours */
-__global__ void __launch_bounds__(CUDATHREADS,4) update_neighbours_have_content_kernel (
+/** Gpu Kernel to quickly add blocks which have spatial neighbours */
+__global__ void __launch_bounds__(GPUTHREADS,4) update_neighbours_have_content_kernel (
    vmesh::VelocityMesh *vmesh,
    split::SplitVector<vmesh::GlobalID> *BlocksHalo,
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>* BlocksRequiredMap,
    vmesh::GlobalID *neighbor_velocity_block_with_content_list,
    const unsigned long neighborContentBlocks
    ) {
-   const int cudaBlocks = gridDim.x;
+   const int gpuBlocks = gridDim.x;
    const int blocki = blockIdx.x;
    const int warpSize = blockDim.x*blockDim.y*blockDim.z;
    const vmesh::LocalID ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
 
-   for (vmesh::LocalID index=blocki*warpSize; index<neighborContentBlocks; index += cudaBlocks*warpSize) {
+   for (vmesh::LocalID index=blocki*warpSize; index<neighborContentBlocks; index += gpuBlocks*warpSize) {
       if (index+ti < neighborContentBlocks) {
          vmesh::GlobalID GID = neighbor_velocity_block_with_content_list[index+ti];
          if (BlocksRequiredMap->device_count(GID) == 0) {
@@ -433,22 +433,22 @@ __global__ void __launch_bounds__(CUDATHREADS,4) update_neighbours_have_content_
    }
 }
 
-/** CUDA kernel for selecting only non-existing blocks for addition
+/** GPU kernel for selecting only non-existing blocks for addition
     This kernel may be non-optimized in itself, but use of it gets rid
     of the need of vmesh prefetching back and forth.
  */
-__global__ void __launch_bounds__(CUDATHREADS,4) update_blocks_to_add_kernel (
+__global__ void __launch_bounds__(GPUTHREADS,4) update_blocks_to_add_kernel (
    vmesh::VelocityMesh *vmesh,
    split::SplitVector<vmesh::GlobalID>* BlocksRequired,
    split::SplitVector<vmesh::GlobalID>* BlocksToAdd,
    split::SplitVector<vmesh::GlobalID>* BlocksToMove,
    const uint nBlocksRequired
    ) {
-   const int cudaBlocks = gridDim.x;
+   const int gpuBlocks = gridDim.x;
    const int blocki = blockIdx.x;
    const int warpSize = blockDim.x*blockDim.y*blockDim.z;
    const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
-   for (uint index=blocki*warpSize; index<nBlocksRequired; index += cudaBlocks*warpSize) {
+   for (uint index=blocki*warpSize; index<nBlocksRequired; index += gpuBlocks*warpSize) {
       if (index+ti < nBlocksRequired) {
          const vmesh::GlobalID GIDreq = BlocksRequired->at(index+ti);
          const vmesh::LocalID LIDreq = vmesh->getLocalID(GIDreq);
@@ -461,21 +461,21 @@ __global__ void __launch_bounds__(CUDATHREADS,4) update_blocks_to_add_kernel (
    }
 }
 
-/** CUDA kernel for identifying blocks for deletion.
+/** GPU kernel for identifying blocks for deletion.
     This kernel may be non-optimized in itself, but use of it gets rid
     of the need of vmesh prefetching back and forth.
  */
-__global__ void __launch_bounds__(CUDATHREADS,4) update_blocks_to_remove_kernel (
+__global__ void __launch_bounds__(GPUTHREADS,4) update_blocks_to_remove_kernel (
    split::SplitVector<vmesh::GlobalID>* velocity_block_with_no_content_list,
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>* BlocksRequiredMap,
    split::SplitVector<vmesh::GlobalID>* BlocksToRemove,
    const uint localNoContentBlocks
    ) {
-   const int cudaBlocks = gridDim.x;
+   const int gpuBlocks = gridDim.x;
    const int blocki = blockIdx.x;
    const int warpSize = blockDim.x*blockDim.y*blockDim.z;
    const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
-   for (uint index=blocki*warpSize; index<localNoContentBlocks; index += cudaBlocks*warpSize) {
+   for (uint index=blocki*warpSize; index<localNoContentBlocks; index += gpuBlocks*warpSize) {
       if (index+ti < localNoContentBlocks) {
          const vmesh::GlobalID GIDcandidate = velocity_block_with_no_content_list->at(index+ti);
          if (BlocksRequiredMap->device_count(GIDcandidate) == 0) {
@@ -485,7 +485,7 @@ __global__ void __launch_bounds__(CUDATHREADS,4) update_blocks_to_remove_kernel 
    }
 }
 
-/** CUDA kernel for updating blocks based on generated lists */
+/** GPU kernel for updating blocks based on generated lists */
 __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
    vmesh::VelocityMesh *vmesh,
    vmesh::VelocityBlockContainer *blockContainer,
@@ -495,9 +495,9 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
    vmesh::LocalID nBlocksBeforeAdjust,
    vmesh::LocalID nBlocksAfterAdjust,
    vmesh::LocalID *VectorIndex,
-   Realf* dev_rhoLossAdjust
+   Realf* gpu_rhoLossAdjust
    ) {
-   const int cudaBlocks = gridDim.x;
+   const int gpuBlocks = gridDim.x;
    const int blocki = blockIdx.x;
    const int i = threadIdx.x;
    const int j = threadIdx.y;
@@ -516,7 +516,7 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
    __shared__ vmesh::LocalID moveIndex;
    __shared__ vmesh::LocalID addIndex;
 
-   for (vmesh::LocalID m=blocki; m<nToRemove; m += cudaBlocks) {
+   for (vmesh::LocalID m=blocki; m<nToRemove; m += gpuBlocks) {
       // Go through all blocks which are to be removed.
       // If there is a corresponding block to be added, place that in its stead.
       // Otherwise, take the corresponding block from the moved list instead.
@@ -632,7 +632,7 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
    // Now, if we need to expand the size of the vmesh, let's add blocks.
    // For thread-safety,this assumes that the localToGlobalMap is already of sufficient size, as should be
    // the block_data and block_parameters vectors.
-   for (vmesh::LocalID m=blocki; m<nToCreate; m += cudaBlocks) {
+   for (vmesh::LocalID m=blocki; m<nToCreate; m += gpuBlocks) {
       // Debug check: if we are adding elements, then nToMove should be zero
       // We have already used up nToRemove entries from the addition vector.
       const vmesh::GlobalID addGID = BlocksToAdd->at(nToRemove+m);
@@ -660,7 +660,7 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
    }
    // Atomically update accumulated mass loss
    if (ti==0) {
-      Realf old = atomicAdd(dev_rhoLossAdjust, local_rhoLoss);
+      Realf old = atomicAdd(gpu_rhoLossAdjust, local_rhoLoss);
    }
 }
 
@@ -725,14 +725,14 @@ namespace spatial_cell {
       attachedStream=0;
       BlocksRequiredMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(7);
 
-      cudaMallocHost((void **) &info_vbwcl, sizeof(split::SplitInfo));
-      cudaMallocHost((void **) &info_vbwncl, sizeof(split::SplitInfo));
-      cudaMallocHost((void **) &info_toRemove, sizeof(split::SplitInfo));
-      cudaMallocHost((void **) &info_toAdd, sizeof(split::SplitInfo));
-      cudaMallocHost((void **) &info_toMove, sizeof(split::SplitInfo));
-      cudaMallocHost((void **) &info_Required, sizeof(split::SplitInfo));
-      cudaMallocHost((void **) &info_Halo, sizeof(split::SplitInfo));
-      cudaMallocHost((void **) &info_brm, sizeof(Hashinator::MapInfo));
+      gpuMallocHost((void **) &info_vbwcl, sizeof(split::SplitInfo));
+      gpuMallocHost((void **) &info_vbwncl, sizeof(split::SplitInfo));
+      gpuMallocHost((void **) &info_toRemove, sizeof(split::SplitInfo));
+      gpuMallocHost((void **) &info_toAdd, sizeof(split::SplitInfo));
+      gpuMallocHost((void **) &info_toMove, sizeof(split::SplitInfo));
+      gpuMallocHost((void **) &info_Required, sizeof(split::SplitInfo));
+      gpuMallocHost((void **) &info_Halo, sizeof(split::SplitInfo));
+      gpuMallocHost((void **) &info_brm, sizeof(Hashinator::MapInfo));
    }
 
    SpatialCell::~SpatialCell() {
@@ -744,14 +744,14 @@ namespace spatial_cell {
       delete BlocksToRemove;
       delete BlocksToMove;
       delete BlocksRequiredMap;
-      cudaFreeHost(info_vbwcl);
-      cudaFreeHost(info_vbwncl);
-      cudaFreeHost(info_toRemove);
-      cudaFreeHost(info_toAdd);
-      cudaFreeHost(info_toMove);
-      cudaFreeHost(info_Required);
-      cudaFreeHost(info_Halo);
-      cudaFreeHost(info_brm);
+      gpuFreeHost(info_vbwcl);
+      gpuFreeHost(info_vbwncl);
+      gpuFreeHost(info_toRemove);
+      gpuFreeHost(info_toAdd);
+      gpuFreeHost(info_toMove);
+      gpuFreeHost(info_Required);
+      gpuFreeHost(info_Halo);
+      gpuFreeHost(info_brm);
    }
 
    SpatialCell::SpatialCell(const SpatialCell& other) {
@@ -811,14 +811,14 @@ namespace spatial_cell {
          populations = std::vector<spatial_cell::Population>(other.populations);
       }
       attachedStream=0;
-      cudaMallocHost((void **) &info_vbwcl, sizeof(split::SplitInfo));
-      cudaMallocHost((void **) &info_vbwncl, sizeof(split::SplitInfo));
-      cudaMallocHost((void **) &info_toRemove, sizeof(split::SplitInfo));
-      cudaMallocHost((void **) &info_toAdd, sizeof(split::SplitInfo));
-      cudaMallocHost((void **) &info_toMove, sizeof(split::SplitInfo));
-      cudaMallocHost((void **) &info_Required, sizeof(split::SplitInfo));
-      cudaMallocHost((void **) &info_Halo, sizeof(split::SplitInfo));
-      cudaMallocHost((void **) &info_brm, sizeof(Hashinator::MapInfo));
+      gpuMallocHost((void **) &info_vbwcl, sizeof(split::SplitInfo));
+      gpuMallocHost((void **) &info_vbwncl, sizeof(split::SplitInfo));
+      gpuMallocHost((void **) &info_toRemove, sizeof(split::SplitInfo));
+      gpuMallocHost((void **) &info_toAdd, sizeof(split::SplitInfo));
+      gpuMallocHost((void **) &info_toMove, sizeof(split::SplitInfo));
+      gpuMallocHost((void **) &info_Required, sizeof(split::SplitInfo));
+      gpuMallocHost((void **) &info_Halo, sizeof(split::SplitInfo));
+      gpuMallocHost((void **) &info_brm, sizeof(Hashinator::MapInfo));
    }
    const SpatialCell& SpatialCell::operator=(const SpatialCell& other) {
       const uint reserveSize = (other.BlocksRequired)->capacity();
@@ -872,40 +872,41 @@ namespace spatial_cell {
    }
 
    /** Advises unified memory subsystem on preferred location of memory
-       cudaMemAdviseSetPreferredLocation
-       cudaMemAdviseUnsetPreferredLocation
-       cudaMemAdviseSetReadMostly
-       cudaMemAdviceUnsetReadMostly
-       cudaMemAdviseSetAccessedBy
-       cudaMemAdviseUnsetAccessedBy
+       gpuMemAdviseSetPreferredLocation
+       gpuMemAdviseUnsetPreferredLocation
+       gpuMemAdviseSetReadMostly
+       gpuMemAdviceUnsetReadMostly
+       gpuMemAdviseSetAccessedBy
+       gpuMemAdviseUnsetAccessedBy
     */
-   void SpatialCell::dev_advise() {
-      // HANDLE_ERROR( cudaMemAdvise(ptr, count, advise, deviceID) );
-      // HANDLE_ERROR( cudaMemAdvise(velocity_block_with_content_list, sizeof(velocity_block_with_content_list),cudaMemAdviseSetPreferredLocation, cuda_getDevice()) );
-      // cuda_getDevice()
-      int device = cuda_getDevice();
-      BlocksHalo->memAdvise(cudaMemAdviseSetPreferredLocation,device);
-      BlocksRequired->memAdvise(cudaMemAdviseSetPreferredLocation,device);
-      BlocksToAdd->memAdvise(cudaMemAdviseSetPreferredLocation,device);
-      BlocksToRemove->memAdvise(cudaMemAdviseSetPreferredLocation,device);
-      BlocksToMove->memAdvise(cudaMemAdviseSetPreferredLocation,device);
-      velocity_block_with_content_list->memAdvise(cudaMemAdviseSetPreferredLocation,device);
-      velocity_block_with_no_content_list->memAdvise(cudaMemAdviseSetPreferredLocation,device);
-      BlocksRequiredMap->memAdvise(cudaMemAdviseSetPreferredLocation,device);
+   void SpatialCell::gpu_advise() {
+      // CHK_ERR( gpuMemAdvise(ptr, count, advise, deviceID) );
+      // CHK_ERR( gpuMemAdvise(velocity_block_with_content_list, sizeof(velocity_block_with_content_list),gpuMemAdviseSetPreferredLocation, gpu_getDevice()) );
+      // gpu_getDevice()
+      int device = gpu_getDevice();
+      gpuStream_t stream = gpu_getStream();
+      BlocksHalo->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+      BlocksRequired->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+      BlocksToAdd->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+      BlocksToRemove->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+      BlocksToMove->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+      velocity_block_with_content_list->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+      velocity_block_with_no_content_list->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+      BlocksRequiredMap->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
 
-      BlocksHalo->memAdvise(cudaMemAdviseSetAccessedBy,device);
-      BlocksRequired->memAdvise(cudaMemAdviseSetAccessedBy,device);
-      BlocksToAdd->memAdvise(cudaMemAdviseSetAccessedBy,device);
-      BlocksToRemove->memAdvise(cudaMemAdviseSetAccessedBy,device);
-      BlocksToMove->memAdvise(cudaMemAdviseSetAccessedBy,device);
-      velocity_block_with_content_list->memAdvise(cudaMemAdviseSetAccessedBy,device);
-      velocity_block_with_no_content_list->memAdvise(cudaMemAdviseSetAccessedBy,device);
-      BlocksRequiredMap->memAdvise(cudaMemAdviseSetAccessedBy,device);
+      BlocksHalo->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+      BlocksRequired->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+      BlocksToAdd->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+      BlocksToRemove->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+      BlocksToMove->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+      velocity_block_with_content_list->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+      velocity_block_with_no_content_list->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+      BlocksRequiredMap->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
 
       // Loop over populations
       for (size_t p=0; p<populations.size(); ++p) {
-         populations[p].blockContainer->dev_memAdvise(device);
-         populations[p].vmesh->dev_memAdvise(device);
+         populations[p].blockContainer->gpu_memAdvise(device,stream);
+         populations[p].vmesh->gpu_memAdvise(device,stream);
       }
    }
 
@@ -913,15 +914,15 @@ namespace spatial_cell {
        When attached, a stream can access this unified memory without
        issues.
     */
-   void SpatialCell::dev_attachToStream(cudaStream_t stream) {
+   void SpatialCell::gpu_attachToStream(gpuStream_t stream) {
       // Return if attaching is not needed
       if (!needAttachedStreams) {
          return;
       }
       // Attach unified memory regions to streams
-      cudaStream_t newStream;
+      gpuStream_t newStream;
       if (stream==0) {
-         newStream = cuda_getStream();
+         newStream = gpu_getStream();
       } else {
          newStream = stream;
       }
@@ -930,18 +931,18 @@ namespace spatial_cell {
       } else {
          attachedStream = newStream;
       }
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_content_list, 0,cudaMemAttachSingle) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_no_content_list, 0,cudaMemAttachSingle) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksHalo, 0,cudaMemAttachSingle) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToRemove, 0,cudaMemAttachSingle) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToAdd, 0,cudaMemAttachSingle) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToMove, 0,cudaMemAttachSingle) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequired, 0,cudaMemAttachSingle) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequiredMap, 0,cudaMemAttachSingle) );
+      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,velocity_block_with_content_list, 0,gpuMemAttachSingle) );
+      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,velocity_block_with_no_content_list, 0,gpuMemAttachSingle) );
+      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksHalo, 0,gpuMemAttachSingle) );
+      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksToRemove, 0,gpuMemAttachSingle) );
+      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksToAdd, 0,gpuMemAttachSingle) );
+      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksToMove, 0,gpuMemAttachSingle) );
+      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksRequired, 0,gpuMemAttachSingle) );
+      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksRequiredMap, 0,gpuMemAttachSingle) );
       // Loop over populations
       for (size_t p=0; p<populations.size(); ++p) {
-         populations[p].blockContainer->dev_attachToStream(attachedStream);
-         populations[p].vmesh->dev_attachToStream(attachedStream);
+         populations[p].blockContainer->gpu_attachToStream(attachedStream);
+         populations[p].vmesh->gpu_attachToStream(attachedStream);
       }
       // Also call attach functions on all splitvectors and hashmaps
       velocity_block_with_content_list->streamAttach(attachedStream);
@@ -954,7 +955,7 @@ namespace spatial_cell {
       BlocksRequiredMap->streamAttach(attachedStream);
       return;
    }
-   void SpatialCell::dev_detachFromStream() {
+   void SpatialCell::gpu_detachFromStream() {
       // Return if attaching is not needed
       if (!needAttachedStreams) {
          return;
@@ -964,50 +965,56 @@ namespace spatial_cell {
          return;
       }
       attachedStream = 0;
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_content_list, 0,cudaMemAttachGlobal) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,velocity_block_with_no_content_list, 0,cudaMemAttachGlobal) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksHalo, 0,cudaMemAttachGlobal) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToRemove, 0,cudaMemAttachGlobal) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToAdd, 0,cudaMemAttachGlobal) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksToMove, 0,cudaMemAttachGlobal) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequired, 0,cudaMemAttachGlobal) );
-      HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequiredMap, 0,cudaMemAttachGlobal) );
+      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,velocity_block_with_content_list, 0,gpuMemAttachGlobal) );
+      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,velocity_block_with_no_content_list, 0,gpuMemAttachGlobal) );
+      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksHalo, 0,gpuMemAttachGlobal) );
+      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksToRemove, 0,gpuMemAttachGlobal) );
+      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksToAdd, 0,gpuMemAttachGlobal) );
+      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksToMove, 0,gpuMemAttachGlobal) );
+      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksRequired, 0,gpuMemAttachGlobal) );
+      CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksRequiredMap, 0,gpuMemAttachGlobal) );
       // Loop over populations
       for (size_t p=0; p<populations.size(); ++p) {
-         populations[p].blockContainer->dev_detachFromStream();
-         populations[p].vmesh->dev_detachFromStream();
+         populations[p].blockContainer->gpu_detachFromStream();
+         populations[p].vmesh->gpu_detachFromStream();
       }
       // Also call detach functions on all splitvectors and hashmaps
-      velocity_block_with_content_list->streamAttach(0,cudaMemAttachGlobal);
-      velocity_block_with_no_content_list->streamAttach(0,cudaMemAttachGlobal);
-      BlocksHalo->streamAttach(0,cudaMemAttachGlobal);
-      BlocksToRemove->streamAttach(0,cudaMemAttachGlobal);
-      BlocksToAdd->streamAttach(0,cudaMemAttachGlobal);
-      BlocksToMove->streamAttach(0,cudaMemAttachGlobal);
-      BlocksRequired->streamAttach(0,cudaMemAttachGlobal);
-      BlocksRequiredMap->streamAttach(0,cudaMemAttachGlobal);
+      velocity_block_with_content_list->streamAttach(0,gpuMemAttachGlobal);
+      velocity_block_with_no_content_list->streamAttach(0,gpuMemAttachGlobal);
+      BlocksHalo->streamAttach(0,gpuMemAttachGlobal);
+      BlocksToRemove->streamAttach(0,gpuMemAttachGlobal);
+      BlocksToAdd->streamAttach(0,gpuMemAttachGlobal);
+      BlocksToMove->streamAttach(0,gpuMemAttachGlobal);
+      BlocksRequired->streamAttach(0,gpuMemAttachGlobal);
+      BlocksRequiredMap->streamAttach(0,gpuMemAttachGlobal);
       return;
    }
 
    /** Sends the contents of velocity_block_with_content_list into a device buffer so that it can be accessed
        from several streams at once.
     */
-   void SpatialCell::dev_uploadContentLists() {
+   void SpatialCell::gpu_uploadContentLists() {
       phiprof::start("Upload local content lists");
-      cudaStream_t stream = cuda_getStream();
+      gpuStream_t stream = gpu_getStream();
       velocity_block_with_content_list->copyMetadata(info_vbwcl,stream);
-      HANDLE_ERROR( cudaStreamSynchronize(stream) );
+      CHK_ERR( gpuStreamSynchronize(stream) );
       velocity_block_with_content_list_size = info_vbwcl->size;
-      HANDLE_ERROR( cudaMallocAsync((void**)&dev_velocity_block_with_content_list_buffer, velocity_block_with_content_list_size*sizeof(vmesh::LocalID), stream) );
-      HANDLE_ERROR( cudaMemcpyAsync(dev_velocity_block_with_content_list_buffer, velocity_block_with_content_list->data(), velocity_block_with_content_list_size*sizeof(vmesh::LocalID), cudaMemcpyDeviceToDevice, stream) );
+      if (velocity_block_with_content_list_size==0) {
+         return;
+      }
+      CHK_ERR( gpuMallocAsync((void**)&gpu_velocity_block_with_content_list_buffer, velocity_block_with_content_list_size*sizeof(vmesh::LocalID), stream) );
+      CHK_ERR( gpuMemcpyAsync(gpu_velocity_block_with_content_list_buffer, velocity_block_with_content_list->data(), velocity_block_with_content_list_size*sizeof(vmesh::LocalID), gpuMemcpyDeviceToDevice, stream) );
       SSYNC;
       phiprof::stop("Upload local content lists");
    }
    /** Clears the device buffer for velocity_block_with_content_list
     */
-   void SpatialCell::dev_clearContentLists() {
-      cudaStream_t stream = cuda_getStream();
-      HANDLE_ERROR( cudaFreeAsync(dev_velocity_block_with_content_list_buffer, stream) );
+   void SpatialCell::gpu_clearContentLists() {
+      gpuStream_t stream = gpu_getStream();
+      if (velocity_block_with_content_list_size==0) {
+         return;
+      }
+      CHK_ERR( gpuFreeAsync(gpu_velocity_block_with_content_list_buffer, stream) );
    }
 
    /** Adds "important" and removes "unimportant" velocity blocks
@@ -1046,8 +1053,8 @@ namespace spatial_cell {
 #else
       const uint thread_id = 0;
 #endif
-      cudaStream_t stream = cuda_getStream();
-      int nCudaBlocks;
+      gpuStream_t stream = gpu_getStream();
+      int nGpuBlocks;
 
       phiprof::start("Adjust velocity blocks");
       velocity_block_with_content_list->copyMetadata(info_vbwcl,stream);
@@ -1065,7 +1072,7 @@ namespace spatial_cell {
       // Neighbour and own prefetches
       if (doPrefetches) {
          phiprof::start("Prefetch");
-         populations[popID].vmesh->dev_prefetchDevice(); // Queries active stream internally
+         populations[popID].vmesh->gpu_prefetchDevice(); // Queries active stream internally
          velocity_block_with_content_list->optimizeGPU(stream);
          velocity_block_with_no_content_list->optimizeGPU(stream);
          phiprof::stop("Prefetch");
@@ -1084,10 +1091,11 @@ namespace spatial_cell {
          // Need larger empty map
          delete BlocksRequiredMap;
          BlocksRequiredMap = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(HashmapReqSize);
-         BlocksRequiredMap->memAdvise(cudaMemAdviseSetPreferredLocation,cuda_getDevice());
-         BlocksRequiredMap->memAdvise(cudaMemAdviseSetAccessedBy,cuda_getDevice());
+         int device = gpu_getDevice();
+         BlocksRequiredMap->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+         BlocksRequiredMap->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
          if ((attachedStream != 0)&&(needAttachedStreams)) {
-            HANDLE_ERROR( cudaStreamAttachMemAsync(attachedStream,BlocksRequiredMap, 0,cudaMemAttachSingle) );
+            CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksRequiredMap, 0,gpuMemAttachSingle) );
             BlocksRequiredMap->streamAttach(attachedStream);
          }
          BlocksRequiredMap->optimizeGPU(stream);
@@ -1100,27 +1108,27 @@ namespace spatial_cell {
          phiprof::start("Self Blocks with content");
          // 0.5 is target load factor
          BlocksRequiredMap->insert(velocity_block_with_content_list->data(),velocity_block_with_content_list->data(),localContentBlocks,0.5,stream,false);
-         HANDLE_ERROR( cudaPeekAtLastError() );
-         HANDLE_ERROR( cudaStreamSynchronize(stream) );
+         CHK_ERR( gpuPeekAtLastError() );
+         CHK_ERR( gpuStreamSynchronize(stream) );
          phiprof::stop("Self Blocks with content");
 
          // add velocity space neighbors to map. We loop over blocks
          // with content, and insert all its v-space neighbors (halo)
          // Ensure at least one launch block
-         nCudaBlocks = (localContentBlocks/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : std::ceil((Real)localContentBlocks/(Real)CUDATHREADS);
-         if (nCudaBlocks>0) {
+         nGpuBlocks = (localContentBlocks/GPUTHREADS) > GPUBLOCKS ? GPUBLOCKS : std::ceil((Real)localContentBlocks/(Real)GPUTHREADS);
+         if (nGpuBlocks>0) {
             phiprof::start("Halo gather");
             BlocksHalo->clear();
             // Extreme estimate?
             vmesh::LocalID haloSizeEstimate = 8 * (localContentBlocks+localNoContentBlocks);
             if (BlocksHaloCapacity < haloSizeEstimate * BLOCK_ALLOCATION_FACTOR) {
                BlocksHalo->reserve(haloSizeEstimate * BLOCK_ALLOCATION_PADDING,true);
-               BlocksHalo->memAdvise(cudaMemAdviseSetPreferredLocation,cuda_getDevice());
-               BlocksHalo->memAdvise(cudaMemAdviseSetAccessedBy,cuda_getDevice());
+               BlocksHalo->memAdvise(gpuMemAdviseSetPreferredLocation,gpu_getDevice());
+               BlocksHalo->memAdvise(gpuMemAdviseSetAccessedBy,gpu_getDevice());
                BlocksHalo->optimizeGPU(stream);
             }
             int addWidthV = getObjectWrapper().particleSpecies[popID].sparseBlockAddWidthV;
-            update_blocks_required_halo_kernel<<<nCudaBlocks, CUDATHREADS, 0, stream>>> (
+            update_blocks_required_halo_kernel<<<nGpuBlocks, GPUTHREADS, 0, stream>>> (
                populations[popID].vmesh,
                BlocksRequiredMap,
                velocity_block_with_content_list,
@@ -1132,19 +1140,19 @@ namespace spatial_cell {
                BlocksToAdd,
                BlocksToMove
                );
-            HANDLE_ERROR( cudaPeekAtLastError() );
-            HANDLE_ERROR( cudaStreamSynchronize(stream) );
+            CHK_ERR( gpuPeekAtLastError() );
+            CHK_ERR( gpuStreamSynchronize(stream) );
             phiprof::stop("Halo gather");
          }
          phiprof::start("Halo insert");
          BlocksHalo->copyMetadata(info_Halo,stream);
-         HANDLE_ERROR( cudaStreamSynchronize(stream) );
+         CHK_ERR( gpuStreamSynchronize(stream) );
          const uint nHalo = info_Halo->size;
          if (nHalo > 0) {
             // 0.5 is target load factor
             BlocksRequiredMap->insert(BlocksHalo->data(),BlocksHalo->data(),nHalo,0.5,stream,false);
-            HANDLE_ERROR( cudaPeekAtLastError() );
-            HANDLE_ERROR( cudaStreamSynchronize(stream) );
+            CHK_ERR( gpuPeekAtLastError() );
+            CHK_ERR( gpuStreamSynchronize(stream) );
          }
          phiprof::stop("Halo insert");
       }
@@ -1159,32 +1167,32 @@ namespace spatial_cell {
       if (neighbors_count > 0) {
          phiprof::start("Neighbor content lists");
          BlocksHalo->clear();
-         HANDLE_ERROR( cudaStreamSynchronize(stream) );
+         CHK_ERR( gpuStreamSynchronize(stream) );
          for (std::vector<SpatialCell*>::const_iterator neighbor=spatial_neighbors.begin();
               neighbor != spatial_neighbors.end(); ++neighbor) {
             const int nNeighBlocks = (*neighbor)->velocity_block_with_content_list_size;
             // Ensure at least one launch block, try to do many neighbors at once
-            nCudaBlocks = (nNeighBlocks/CUDATHREADS/neighbors_count) > CUDABLOCKS ? CUDABLOCKS : std::ceil((Real)nNeighBlocks/(Real)CUDATHREADS/(Real)neighbors_count);
-            if (nCudaBlocks>0) {
-               update_neighbours_have_content_kernel<<<nCudaBlocks, CUDATHREADS, 0, stream>>> (
+            nGpuBlocks = (nNeighBlocks/GPUTHREADS/neighbors_count) > GPUBLOCKS ? GPUBLOCKS : std::ceil((Real)nNeighBlocks/(Real)GPUTHREADS/(Real)neighbors_count);
+            if (nGpuBlocks>0) {
+               update_neighbours_have_content_kernel<<<nGpuBlocks, GPUTHREADS, 0, stream>>> (
                   populations[popID].vmesh,
                   BlocksHalo,
                   BlocksRequiredMap,
-                  (*neighbor)->dev_velocity_block_with_content_list_buffer,
+                  (*neighbor)->gpu_velocity_block_with_content_list_buffer,
                   nNeighBlocks
                   );
-               HANDLE_ERROR( cudaPeekAtLastError() );
+               CHK_ERR( gpuPeekAtLastError() );
             }
          }
-         HANDLE_ERROR( cudaStreamSynchronize(stream) );
+         CHK_ERR( gpuStreamSynchronize(stream) );
          phiprof::stop("Neighbor content lists");
          phiprof::start("Neighbour Halo insert");
          const uint nHalo = BlocksHalo->size();
          if (nHalo > 0) {
             // 0.5 is target load factor
             BlocksRequiredMap->insert(BlocksHalo->data(),BlocksHalo->data(),nHalo,0.5,stream,false);
-            HANDLE_ERROR( cudaPeekAtLastError() );
-            HANDLE_ERROR( cudaStreamSynchronize(stream) );
+            CHK_ERR( gpuPeekAtLastError() );
+            CHK_ERR( gpuStreamSynchronize(stream) );
          }
          phiprof::stop("Neighbour Halo insert");
       }
@@ -1196,15 +1204,15 @@ namespace spatial_cell {
          BlocksToAdd->reserve(currSize * BLOCK_ALLOCATION_PADDING,true);
          BlocksToRemove->reserve(currSize * BLOCK_ALLOCATION_PADDING,true);
          BlocksToMove->reserve(currSize * BLOCK_ALLOCATION_PADDING,true);
-         int device = cuda_getDevice();
-         BlocksRequired->memAdvise(cudaMemAdviseSetPreferredLocation,device);
-         BlocksToAdd->memAdvise(cudaMemAdviseSetPreferredLocation,device);
-         BlocksToRemove->memAdvise(cudaMemAdviseSetPreferredLocation,device);
-         BlocksToMove->memAdvise(cudaMemAdviseSetPreferredLocation,device);
-         BlocksRequired->memAdvise(cudaMemAdviseSetAccessedBy,device);
-         BlocksToAdd->memAdvise(cudaMemAdviseSetAccessedBy,device);
-         BlocksToRemove->memAdvise(cudaMemAdviseSetAccessedBy,device);
-         BlocksToMove->memAdvise(cudaMemAdviseSetAccessedBy,device);
+         int device = gpu_getDevice();
+         BlocksRequired->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+         BlocksToAdd->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+         BlocksToRemove->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+         BlocksToMove->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+         BlocksRequired->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+         BlocksToAdd->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+         BlocksToRemove->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+         BlocksToMove->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       }
       SSYNC;
       phiprof::stop("BlocksToXXX reserve");
@@ -1227,35 +1235,35 @@ namespace spatial_cell {
       if (doDeleteEmptyBlocks) {
          phiprof::start("Gather blocks to remove");
          // Ensure at least one launch block
-         nCudaBlocks = (localNoContentBlocks/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : std::ceil((Real)localNoContentBlocks/(Real)CUDATHREADS);
-         if (nCudaBlocks>0) {
-            update_blocks_to_remove_kernel<<<nCudaBlocks, CUDATHREADS, 0, stream>>> (
+         nGpuBlocks = (localNoContentBlocks/GPUTHREADS) > GPUBLOCKS ? GPUBLOCKS : std::ceil((Real)localNoContentBlocks/(Real)GPUTHREADS);
+         if (nGpuBlocks>0) {
+            update_blocks_to_remove_kernel<<<nGpuBlocks, GPUTHREADS, 0, stream>>> (
                velocity_block_with_no_content_list,
                BlocksRequiredMap,
                BlocksToRemove,
                localNoContentBlocks
                );
-            HANDLE_ERROR( cudaPeekAtLastError() );
+            CHK_ERR( gpuPeekAtLastError() );
             SSYNC;
          }
          phiprof::stop("Gather blocks to remove");
       }
 
-      // Only add blocks which don't yet exist to optimize cuda parallel memory management.
+      // Only add blocks which don't yet exist to optimize gpu parallel memory management.
       // Find these with a kernel.
       // This kernel also figures out which blocks need to be rescued from the end-space of the block data
       // Ensure at least one launch block
-      nCudaBlocks = (nBlocksRequired/CUDATHREADS) > CUDABLOCKS ? CUDABLOCKS : std::ceil((Real)nBlocksRequired/(Real)CUDATHREADS);
+      nGpuBlocks = (nBlocksRequired/GPUTHREADS) > GPUBLOCKS ? GPUBLOCKS : std::ceil((Real)nBlocksRequired/(Real)GPUTHREADS);
       if (nBlocksRequired>0) {
          phiprof::start("blocks_to_add_kernel");
-         update_blocks_to_add_kernel<<<nCudaBlocks, CUDATHREADS, 0, stream>>> (
+         update_blocks_to_add_kernel<<<nGpuBlocks, GPUTHREADS, 0, stream>>> (
             populations[popID].vmesh,
             BlocksRequired,
             BlocksToAdd,
             BlocksToMove,
             nBlocksRequired
             );
-         HANDLE_ERROR( cudaPeekAtLastError() );
+         CHK_ERR( gpuPeekAtLastError() );
          SSYNC;
          phiprof::stop("blocks_to_add_kernel");
       }
@@ -1266,12 +1274,12 @@ namespace spatial_cell {
       // Perform hashmap cleanup here (instead of at acceleration mid-steps)
       phiprof::start("Hashinator cleanup");
       if (needAttachedStreams) {
-         populations[popID].vmesh->dev_attachToStream(stream);
+         populations[popID].vmesh->gpu_attachToStream(stream);
       }
       if (doPrefetches) {
-         populations[popID].vmesh->dev_prefetchDevice(stream);
+         populations[popID].vmesh->gpu_prefetchDevice(stream);
       }
-      populations[popID].vmesh->dev_cleanHashMap(stream);
+      populations[popID].vmesh->gpu_cleanHashMap(stream);
       SSYNC;
       phiprof::stop("Hashinator cleanup");
 
@@ -1280,21 +1288,21 @@ namespace spatial_cell {
 
    void SpatialCell::adjust_velocity_blocks_caller(const uint popID) {
       /**
-          Call CUDA kernel with all necessary information for creation and deletion of blocks.
+          Call GPU kernel with all necessary information for creation and deletion of blocks.
           Potential optimization: take the vector lengths as input parameters
           instead of having to call the size and then prefetch back to device.
       **/
-      phiprof::start("CUDA add and remove blocks");
+      phiprof::start("GPU add and remove blocks");
 
 #ifdef _OPENMP
       const uint thread_id = omp_get_thread_num();
 #else
       const uint thread_id = 0;
 #endif
-      cudaStream_t stream = cuda_getStream();
-      int nCudaBlocks;
+      gpuStream_t stream = gpu_getStream();
+      int nGpuBlocks;
 
-      HANDLE_ERROR( cudaStreamSynchronize(stream) ); // To ensure all previous kernels have finished
+      CHK_ERR( gpuStreamSynchronize(stream) ); // To ensure all previous kernels have finished
 
       phiprof::start("Block lists sizes");
       // Use copymetadata for these
@@ -1308,27 +1316,27 @@ namespace spatial_cell {
 
       const vmesh::LocalID nBlocksAfterAdjust = nBlocksBeforeAdjust + nToAdd - nToRemove;
       const int nBlocksToChange = nToAdd > nToRemove ? nToAdd : nToRemove;
-      nCudaBlocks = nBlocksToChange > CUDABLOCKS ? CUDABLOCKS : nBlocksToChange;
+      nGpuBlocks = nBlocksToChange > GPUBLOCKS ? GPUBLOCKS : nBlocksToChange;
       phiprof::stop("Block lists sizes");
 
       // Grow the vectors, if necessary
       if (nBlocksAfterAdjust > nBlocksBeforeAdjust) {
-         phiprof::start("CUDA modify vmesh and VBC size (pre)");
+         phiprof::start("GPU modify vmesh and VBC size (pre)");
          // These functions now prefetch back to device if necessary.
          populations[popID].vmesh->setNewSize(nBlocksAfterAdjust);
          populations[popID].blockContainer->setSize(nBlocksAfterAdjust);
          SSYNC;
-         phiprof::stop("CUDA modify vmesh and VBC size (pre)");
+         phiprof::stop("GPU modify vmesh and VBC size (pre)");
       }
 
-      phiprof::start("CUDA add and remove blocks kernel");
-      if (nCudaBlocks>0) {
-         HANDLE_ERROR( cudaMemsetAsync(returnRealf[thread_id], 0, sizeof(Realf), stream) );
-         HANDLE_ERROR( cudaMemsetAsync(returnLID[thread_id], 0, 2*sizeof(vmesh::LocalID), stream) );
+      phiprof::start("GPU add and remove blocks kernel");
+      if (nGpuBlocks>0) {
+         CHK_ERR( gpuMemsetAsync(returnRealf[thread_id], 0, sizeof(Realf), stream) );
+         CHK_ERR( gpuMemsetAsync(returnLID[thread_id], 0, 2*sizeof(vmesh::LocalID), stream) );
          dim3 block(WID,WID,WID);
          // Third argument specifies the number of bytes in *shared memory* that is
          // dynamically allocated per block for this call in addition to the statically allocated memory.
-         update_velocity_blocks_kernel<<<nCudaBlocks, block, 0, stream>>> (
+         update_velocity_blocks_kernel<<<nGpuBlocks, block, 0, stream>>> (
             populations[popID].vmesh,
             populations[popID].blockContainer,
             BlocksToAdd,
@@ -1336,29 +1344,29 @@ namespace spatial_cell {
             BlocksToMove,
             nBlocksBeforeAdjust,
             nBlocksAfterAdjust,
-            returnLID[thread_id],//dev_addVectorIndex and dev_moveVectorIndex use these arrays
+            returnLID[thread_id],//gpu_addVectorIndex and gpu_moveVectorIndex use these arrays
             returnRealf[thread_id]
             );
-         HANDLE_ERROR( cudaPeekAtLastError() );
+         CHK_ERR( gpuPeekAtLastError() );
          Realf host_rhoLossAdjust = 0;
-         HANDLE_ERROR( cudaMemcpyAsync(&host_rhoLossAdjust, returnRealf[thread_id], sizeof(Realf), cudaMemcpyDeviceToHost, stream) );
-         HANDLE_ERROR( cudaStreamSynchronize(stream) );
+         CHK_ERR( gpuMemcpyAsync(&host_rhoLossAdjust, returnRealf[thread_id], sizeof(Realf), gpuMemcpyDeviceToHost, stream) );
+         CHK_ERR( gpuStreamSynchronize(stream) );
          this->populations[popID].RHOLOSSADJUST += host_rhoLossAdjust;
       }
-      phiprof::stop("CUDA add and remove blocks kernel");
+      phiprof::stop("GPU add and remove blocks kernel");
 
       // Shrink the vectors, if necessary
       if (nBlocksAfterAdjust < nBlocksBeforeAdjust) {
-         phiprof::start("CUDA modify vmesh and VBC size (post)");
+         phiprof::start("GPU modify vmesh and VBC size (post)");
          // These functions now prefetch back to device if necessary.
          populations[popID].vmesh->setNewSize(nBlocksAfterAdjust);
          populations[popID].blockContainer->setSize(nBlocksAfterAdjust);
          SSYNC;
-         phiprof::stop("CUDA modify vmesh and VBC size (post)");
+         phiprof::stop("GPU modify vmesh and VBC size (post)");
          if (doPrefetches) {
             phiprof::start("Vmesh and VBC lists prefetch dev");
-            populations[popID].vmesh->dev_prefetchDevice();
-            populations[popID].blockContainer->dev_prefetchDevice();
+            populations[popID].vmesh->gpu_prefetchDevice();
+            populations[popID].blockContainer->gpu_prefetchDevice();
             SSYNC;
             phiprof::stop("Vmesh and VBC lists prefetch dev");
          }
@@ -1367,8 +1375,8 @@ namespace spatial_cell {
       // DEBUG output after kernel
       #ifdef DEBUG_SPATIAL_CELL
       phiprof::start("Vmesh and VBC debug output");
-      populations[popID].vmesh->dev_prefetchHost();
-      HANDLE_ERROR( cudaStreamSynchronize(stream) );
+      populations[popID].vmesh->gpu_prefetchHost();
+      CHK_ERR( gpuStreamSynchronize(stream) );
       const vmesh::LocalID nAll = populations[popID].vmesh->size();
       printf("after kernel, size is %d should be %d\n",nAll,nBlocksAfterAdjust);
       for (vmesh::LocalID m=0; m<nAll; ++m) {
@@ -1376,14 +1384,14 @@ namespace spatial_cell {
          const vmesh::LocalID LIDs = populations[popID].vmesh->getLocalID(GIDs);
          printf("LID %d GID-solved %d LID-solved %d\n",m,GIDs,LIDs);
       }
-      populations[popID].vmesh->dev_prefetchDevice();
+      populations[popID].vmesh->gpu_prefetchDevice();
       phiprof::start("Vmesh and VBC debug output");
       #endif
 
       // Don't return until everything is done?
       SSYNC;
-      //HANDLE_ERROR( cudaStreamSynchronize(stream) );
-      phiprof::stop("CUDA add and remove blocks");
+      //CHK_ERR( gpuStreamSynchronize(stream) );
+      phiprof::stop("GPU add and remove blocks");
    }
 
    void SpatialCell::adjustSingleCellVelocityBlocks(const uint popID, bool doDeleteEmpty) {
@@ -1772,8 +1780,8 @@ namespace spatial_cell {
       }
       #endif
 
-      phiprof::start("CUDA update spatial cell block lists");
-      cudaStream_t stream = cuda_getStream();
+      phiprof::start("GPU update spatial cell block lists");
+      gpuStream_t stream = gpu_getStream();
       phiprof::start("VB content list prefetches and allocations");
       // No obvious non-pagefaulting method for clearing?
       vmesh::LocalID currSize = populations[popID].vmesh->size();
@@ -1783,11 +1791,11 @@ namespace spatial_cell {
       if (currCapacity < currSize * BLOCK_ALLOCATION_FACTOR) {
          velocity_block_with_content_list->reserve(currSize * BLOCK_ALLOCATION_PADDING,true);
          velocity_block_with_no_content_list->reserve(currSize * BLOCK_ALLOCATION_PADDING,true);
-         int device = cuda_getDevice();
-         velocity_block_with_content_list->memAdvise(cudaMemAdviseSetPreferredLocation,device);
-         velocity_block_with_no_content_list->memAdvise(cudaMemAdviseSetPreferredLocation,device);
-         velocity_block_with_content_list->memAdvise(cudaMemAdviseSetAccessedBy,device);
-         velocity_block_with_no_content_list->memAdvise(cudaMemAdviseSetAccessedBy,device);
+         int device = gpu_getDevice();
+         velocity_block_with_content_list->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+         velocity_block_with_no_content_list->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+         velocity_block_with_content_list->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+         velocity_block_with_no_content_list->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
       }
       if (doPrefetches || (currCapacity < currSize)) {
          velocity_block_with_content_list->optimizeGPU(stream);
@@ -1797,36 +1805,36 @@ namespace spatial_cell {
 
       const Real velocity_block_min_value = getVelocityBlockMinValue(popID);
 
-      phiprof::start("CUDA update spatial cell block lists kernel");
+      phiprof::start("GPU update spatial cell block lists kernel");
       dim3 block(WID,WID,WID);
       // Third argument specifies the number of bytes in *shared memory* that is
       // dynamically allocated per block for this call in addition to the statically allocated memory.
-      update_velocity_block_content_lists_kernel<<<CUDABLOCKS, block, WID3*sizeof(bool), stream>>> (
+      update_velocity_block_content_lists_kernel<<<GPUBLOCKS, block, WID3*sizeof(bool), stream>>> (
          populations[popID].vmesh,
          populations[popID].blockContainer,
          velocity_block_with_content_list,
          velocity_block_with_no_content_list,
          velocity_block_min_value
          );
-      HANDLE_ERROR( cudaPeekAtLastError() );
-      HANDLE_ERROR( cudaStreamSynchronize(stream) ); // This sync is required!
-      phiprof::stop("CUDA update spatial cell block lists kernel");
+      CHK_ERR( gpuPeekAtLastError() );
+      CHK_ERR( gpuStreamSynchronize(stream) ); // This sync is required!
+      phiprof::stop("GPU update spatial cell block lists kernel");
 
       // Note: Content list is not uploaded to device-only buffer here, but rather
       // in grid.cpp adjustVelocityBlocks()
-      phiprof::stop("CUDA update spatial cell block lists");
+      phiprof::stop("GPU update spatial cell block lists");
    }
 
    void SpatialCell::prefetchDevice() {
       for (size_t p=0; p<populations.size(); ++p) {
-         populations[p].vmesh->dev_prefetchDevice();
-         populations[p].blockContainer->dev_prefetchDevice();
+         populations[p].vmesh->gpu_prefetchDevice();
+         populations[p].blockContainer->gpu_prefetchDevice();
       }
    }
    void SpatialCell::prefetchHost() {
       for (size_t p=0; p<populations.size(); ++p) {
-         populations[p].vmesh->dev_prefetchHost();
-         populations[p].blockContainer->dev_prefetchHost();
+         populations[p].vmesh->gpu_prefetchHost();
+         populations[p].blockContainer->gpu_prefetchHost();
       }
    }
 

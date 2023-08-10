@@ -33,17 +33,10 @@
 #include "definitions.h"
 #include <iostream>
 
-#ifdef __CUDACC__
-#define CUDA_HOSTDEV __host__ __device__
-#define CUDA_DEV __device__
-#else
-#define CUDA_HOSTDEV
-#define CUDA_DEV
-#endif
-
-#ifdef USE_CUDA
+#include "arch/arch_device_api.h"
+#ifdef USE_GPU
    #include "include/splitvector/splitvec.h"
-   #include "cuda_context.cuh"
+   #include "arch/gpu_base.hpp"
 #endif
 
 // One per particle population (no vAMR)
@@ -121,19 +114,19 @@ namespace vmesh {
 
    void allocMeshWrapper();
    MeshWrapper* host_getMeshWrapper();
-   CUDA_HOSTDEV MeshWrapper* dev_getMeshWrapper();
+   ARCH_HOSTDEV MeshWrapper* gpu_getMeshWrapper();
 
    // Caller, inlined into other compilation units, will call either host or device getter
-   CUDA_HOSTDEV inline MeshWrapper* getMeshWrapper() {
-      #ifndef __CUDA_ARCH__
-      return host_getMeshWrapper();
+   ARCH_HOSTDEV inline MeshWrapper* getMeshWrapper() {
+      #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+      return gpu_getMeshWrapper();
       #else
-      return dev_getMeshWrapper();
+      return host_getMeshWrapper();
       #endif
    }
 
-   CUDA_HOSTDEV inline void printVelocityMesh(const uint meshIndex) {
-      vmesh::MeshParameters *vMesh = &(getMeshWrapper()->velocityMeshes->at(meshIndex));
+   ARCH_HOSTDEV inline void printVelocityMesh(const uint meshIndex) {
+      vmesh::MeshParameters *vMesh = &((*(getMeshWrapper()->velocityMeshes))[meshIndex]);
       printf("\nPrintout of velocity mesh %d \n",meshIndex);
       // printf("Meshwrapper address 0x%lx\n",getMeshWrapper());
       // printf("array of meshes address 0x%lx\n",&(getMeshWrapper()->velocityMeshes));

@@ -22,7 +22,7 @@
 
 #include <unordered_set>
 
-#include "spatial_cell_old.hpp"
+#include "spatial_cell_cpu.hpp"
 #include "velocity_blocks.h"
 #include "object_wrapper.h"
 

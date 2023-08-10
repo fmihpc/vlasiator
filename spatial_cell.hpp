@@ -20,16 +20,16 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 /*!
-  Spatial cell wrapper, maps to newer CUDA version or older CPU version which also has some
+  Spatial cell wrapper, maps to GPU version or older CPU version which also has some
   stale VAMR mesh support.
 */
 #ifndef SPATIAL_CELL_WRAPPER_H
 #define SPATIAL_CELL_WRAPPER_H
 
-#ifdef USE_CUDA
-#include "spatial_cell_cuda.hpp"
+#ifdef USE_GPU
+#include "spatial_cell_gpu.hpp"
 #else
-#include "spatial_cell_old.hpp"
+#include "spatial_cell_cpu.hpp"
 #endif
 
 #endif

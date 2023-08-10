@@ -35,7 +35,7 @@ namespace projects {
 
 #include "definitions.h"
 //#include "item_storage.h"
-#ifndef USE_CUDA
+#ifndef USE_GPU
 #include "vamr_refinement_criteria.h"
 #include "object_factory.h"
 #endif
@@ -48,7 +48,7 @@ namespace projects {
 struct ObjectWrapper {
    ObjectWrapper() { }
 
-#ifndef USE_CUDA
+#ifndef USE_GPU
    ObjectFactory<vamr_ref_criteria::Base> vamrVelRefCriteria; /**< Factory for all known VAMR refinement criteria.*/
 #endif
    std::vector<species::Species> particleSpecies;           /**< Parameters for all particle species.*/

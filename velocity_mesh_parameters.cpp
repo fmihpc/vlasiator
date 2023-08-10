@@ -2,15 +2,14 @@
 #include <iostream>
 #include <cstdlib>
 
-#ifdef USE_CUDA
+#ifdef USE_GPU
    #include "include/splitvector/splitvec.h"
-   #include "cuda_runtime.h"
-   #include "cuda_context.cuh"
+   #include "arch/gpu_base.hpp"
 #endif
 
 // Pointers to MeshWrapper objects
 static vmesh::MeshWrapper *meshWrapper;
-#ifdef USE_CUDA
+#ifdef USE_GPU
 __device__ __constant__ vmesh::MeshWrapper *meshWrapperDev;
 
 __global__ void debug_kernel(
@@ -29,32 +28,32 @@ vmesh::MeshWrapper* vmesh::host_getMeshWrapper() {
    return meshWrapper;
 }
 
-// This needs to be CUDA_HOSTDEV for compilation although it's called only from device side
-#ifdef USE_CUDA
+// This needs to be ARCH_HOSTDEV for compilation although it's called only from device side
+#ifdef USE_GPU
 //#pragma hd_warning_disable // only applies to next function
 #pragma nv_diag_suppress=20091
-CUDA_HOSTDEV vmesh::MeshWrapper* vmesh::dev_getMeshWrapper() {
+ARCH_HOSTDEV vmesh::MeshWrapper* vmesh::gpu_getMeshWrapper() {
    return meshWrapperDev;
 }
 void vmesh::MeshWrapper::uploadMeshWrapper() {
    // Store address to velocityMeshes array
    std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT> * temp = meshWrapper->velocityMeshes;
-   // CudaMalloc space on device, copy array contents
+   // gpu-Malloc space on device, copy array contents
    std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT> *velocityMeshes_upload;
-   HANDLE_ERROR( cudaMalloc((void **)&velocityMeshes_upload, sizeof(std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT>)) );
-   HANDLE_ERROR( cudaMemcpy(velocityMeshes_upload, meshWrapper->velocityMeshes, sizeof(std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT>),cudaMemcpyHostToDevice) );
+   CHK_ERR( gpuMalloc((void **)&velocityMeshes_upload, sizeof(std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT>)) );
+   CHK_ERR( gpuMemcpy(velocityMeshes_upload, meshWrapper->velocityMeshes, sizeof(std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT>),gpuMemcpyHostToDevice) );
    // Make wrapper point to device-side array
    meshWrapper->velocityMeshes = velocityMeshes_upload;
    // Allocate and copy meshwrapper on device
    vmesh::MeshWrapper* MWdev;
-   HANDLE_ERROR( cudaMalloc((void **)&MWdev, sizeof(vmesh::MeshWrapper)) );
-   HANDLE_ERROR( cudaMemcpy(MWdev, meshWrapper, sizeof(vmesh::MeshWrapper),cudaMemcpyHostToDevice) );
+   CHK_ERR( gpuMalloc((void **)&MWdev, sizeof(vmesh::MeshWrapper)) );
+   CHK_ERR( gpuMemcpy(MWdev, meshWrapper, sizeof(vmesh::MeshWrapper),gpuMemcpyHostToDevice) );
    // Set the global symbol of meshWrapper
-   HANDLE_ERROR( cudaMemcpyToSymbol(meshWrapperDev, &MWdev, sizeof(vmesh::MeshWrapper*)) );
+   CHK_ERR( gpuMemcpyToSymbol(meshWrapperDev, &MWdev, sizeof(vmesh::MeshWrapper*)) );
    // Copy host-side address back
    meshWrapper->velocityMeshes = temp;
    // And sync
-   HANDLE_ERROR( cudaDeviceSynchronize() );
+   CHK_ERR( gpuDeviceSynchronize() );
 }
 #endif
 
@@ -115,7 +114,7 @@ void vmesh::MeshWrapper::initVelocityMeshes(const uint nMeshes) {
          * vMeshIn->gridLength[2];
       vMesh->initialized = true;
    }
-#ifdef USE_CUDA
+#ifdef USE_GPU
    // Now all velocity meshes have been initialized on host, into
    // the array. Now we need to upload a copy onto GPU.
    vmesh::MeshWrapper::uploadMeshWrapper();
@@ -123,7 +122,7 @@ void vmesh::MeshWrapper::initVelocityMeshes(const uint nMeshes) {
    // vmesh::printVelocityMesh(0);
    // printf("Device printout\n");
    // debug_kernel<<<1, 1, 0, 0>>> (0);
-   // HANDLE_ERROR( cudaDeviceSynchronize() );
+   // CHK_ERR( gpuDeviceSynchronize() );
 #endif
 
    return;

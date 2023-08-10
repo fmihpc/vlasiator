@@ -40,16 +40,16 @@
 #include "../object_wrapper.h"
 #include "../mpiconversion.h"
 
-#include "cpu_acc_semilag.hpp"
+#include "arch_moments.h"
 
 #include "cpu_trans_pencils.hpp"
-#ifdef USE_CUDA
-#include "cuda_acc_map.hpp"
-#include "cuda_acc_semilag.hpp"
-#include "cuda_moments.h"
-#include "cuda_trans_map_amr.hpp"
+
+#ifdef USE_GPU
+#include "gpu_acc_map.hpp"
+#include "gpu_acc_semilag.hpp"
+#include "gpu_trans_map_amr.hpp"
 #else
-#include "cpu_moments.h"
+#include "cpu_acc_semilag.hpp"
 #include "cpu_trans_map_amr.hpp"
 #endif
 
@@ -112,8 +112,8 @@ void calculateSpatialTranslation(
 
       t1 = MPI_Wtime();
       phiprof::start("compute-mapping-z");
-#ifdef USE_CUDA
-      cuda_trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsz, nPencils, 2, dt,popID); // map along z//
+#ifdef USE_GPU
+      gpu_trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsz, nPencils, 2, dt,popID); // map along z//
 #else
       trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsz, nPencils, 2, dt,popID); // map along z//
 #endif
@@ -127,9 +127,9 @@ void calculateSpatialTranslation(
 
       trans_timer=phiprof::initializeTimer("update_remote-z","MPI");
       phiprof::start("update_remote-z");
-#ifdef USE_CUDA
-      cuda_update_remote_mapping_contribution_amr(mpiGrid, 2,+1,popID);
-      cuda_update_remote_mapping_contribution_amr(mpiGrid, 2,-1,popID);
+#ifdef USE_GPU
+      gpu_update_remote_mapping_contribution_amr(mpiGrid, 2,+1,popID);
+      gpu_update_remote_mapping_contribution_amr(mpiGrid, 2,-1,popID);
 #else
       update_remote_mapping_contribution_amr(mpiGrid, 2,+1,popID);
       update_remote_mapping_contribution_amr(mpiGrid, 2,-1,popID);
@@ -161,8 +161,8 @@ void calculateSpatialTranslation(
 
       t1 = MPI_Wtime();
       phiprof::start("compute-mapping-x");
-#ifdef USE_CUDA
-      cuda_trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsx, nPencils, 0,dt,popID); // map along x//
+#ifdef USE_GPU
+      gpu_trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsx, nPencils, 0,dt,popID); // map along x//
 #else
       trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsx, nPencils, 0,dt,popID); // map along x//
 #endif
@@ -176,9 +176,9 @@ void calculateSpatialTranslation(
 
       trans_timer=phiprof::initializeTimer("update_remote-x","MPI");
       phiprof::start("update_remote-x");
-#ifdef USE_CUDA
-      cuda_update_remote_mapping_contribution_amr(mpiGrid, 0,+1,popID);
-      cuda_update_remote_mapping_contribution_amr(mpiGrid, 0,-1,popID);
+#ifdef USE_GPU
+      gpu_update_remote_mapping_contribution_amr(mpiGrid, 0,+1,popID);
+      gpu_update_remote_mapping_contribution_amr(mpiGrid, 0,-1,popID);
 #else
       update_remote_mapping_contribution_amr(mpiGrid, 0,+1,popID);
       update_remote_mapping_contribution_amr(mpiGrid, 0,-1,popID);
@@ -210,8 +210,8 @@ void calculateSpatialTranslation(
 
       t1 = MPI_Wtime();
       phiprof::start("compute-mapping-y");
-#ifdef USE_CUDA
-      cuda_trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsy, nPencils, 1,dt,popID); // map along y//
+#ifdef USE_GPU
+      gpu_trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsy, nPencils, 1,dt,popID); // map along y//
 #else
       trans_map_1d_amr(mpiGrid,local_propagated_cells, remoteTargetCellsy, nPencils, 1,dt,popID); // map along y//
 #endif
@@ -225,9 +225,9 @@ void calculateSpatialTranslation(
 
       trans_timer=phiprof::initializeTimer("update_remote-y","MPI");
       phiprof::start("update_remote-y");
-#ifdef USE_CUDA
-      cuda_update_remote_mapping_contribution_amr(mpiGrid, 1,+1,popID);
-      cuda_update_remote_mapping_contribution_amr(mpiGrid, 1,-1,popID);
+#ifdef USE_GPU
+      gpu_update_remote_mapping_contribution_amr(mpiGrid, 1,+1,popID);
+      gpu_update_remote_mapping_contribution_amr(mpiGrid, 1,-1,popID);
 #else
       update_remote_mapping_contribution_amr(mpiGrid, 1,+1,popID);
       update_remote_mapping_contribution_amr(mpiGrid, 1,-1,popID);
@@ -411,8 +411,8 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
       }
 
       phiprof::start("cell-semilag-acc");
-#ifdef USE_CUDA
-      cuda_accelerate_cell(mpiGrid[cellID],popID,map_order,subcycleDt);
+#ifdef USE_GPU
+      gpu_accelerate_cell(mpiGrid[cellID],popID,map_order,subcycleDt);
 #else
       cpu_accelerate_cell(mpiGrid[cellID],popID,map_order,subcycleDt);
 #endif
@@ -457,7 +457,7 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
    // Accelerate all particle species
    for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
-      uint cudaMaxBlockCount = 0; // would be better to be over all populations
+      uint gpuMaxBlockCount = 0; // would be better to be over all populations
       int maxSubcycles=0;
       int globalMaxSubcycles;
 
@@ -491,11 +491,11 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
             maxSubcycles = max((int)getAccelerationSubcycles(SC, dt, popID), maxSubcycles);
             spatial_cell::Population& pop = SC->get_population(popID);
             pop.ACCSUBCYCLES = getAccelerationSubcycles(SC, dt, popID);
-#ifdef USE_CUDA
+#ifdef USE_GPU
 #pragma omp critical
             {
-               if (blockCount > cudaMaxBlockCount) {
-                  cudaMaxBlockCount = blockCount;
+               if (blockCount > gpuMaxBlockCount) {
+                  gpuMaxBlockCount = blockCount;
                }
             }
 #endif
@@ -503,18 +503,18 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
       }
       phiprof::stop("Gather subcycles and propagated cells");
 
-#ifdef USE_CUDA
+#ifdef USE_GPU
       // Ensure accelerator has enough temporary memory allocated
-      phiprof::start("cuda allocation verifications");
-      cuda_vlasov_allocate(cudaMaxBlockCount);
-      cuda_acc_allocate(cudaMaxBlockCount);
-      phiprof::stop("cuda allocation verifications");
+      phiprof::start("gpu allocation verifications");
+      gpu_vlasov_allocate(gpuMaxBlockCount);
+      gpu_acc_allocate(gpuMaxBlockCount);
+      phiprof::stop("gpu allocation verifications");
 #endif
 
       // Compute global maximum for number of subcycles
       MPI_Allreduce(&maxSubcycles, &globalMaxSubcycles, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
 
-      // TODO: move subcycling to lower level call in order to optimize CUDA memory calls
+      // TODO: move subcycling to lower level call in order to optimize GPU memory calls
 
       // substep global max times
       for(uint step=0; step<(uint)globalMaxSubcycles; ++step) {
@@ -604,7 +604,7 @@ void calculateInitialVelocityMoments(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_G
    // Iterate through all local cells (incl. system boundary cells):
    #pragma omp parallel
    {
-      // Setting the CUDA device inside the moment call itself, because
+      // Setting the GPU device inside the moment call itself, because
       // it's being called from so many different projects etc
       #pragma omp for
       for (size_t c=0; c<cells.size(); ++c) {

@@ -194,7 +194,7 @@ void flagSpatialCellsForAmrCommunication(const dccrg::Dccrg<SpatialCell,dccrg::C
  */
 void computeSpatialSourceCellsForPencil(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                         CellID *ids,
-                                        const uint L,
+                                        const int L,
                                         const uint dimension,
                                         std::vector<uint> path,
                                         Realf* sourceDZ,
@@ -1129,7 +1129,7 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    // Store source cell widths and target cell contribution ratios.
 #pragma omp parallel for schedule(guided)
    for (uint i=0; i<DimensionPencils[dimension].N; ++i) {
-      const uint L = DimensionPencils[dimension].lengthOfPencils[i];
+      const int L = DimensionPencils[dimension].lengthOfPencils[i];
       CellID *pencilIds = DimensionPencils[dimension].ids.data() + DimensionPencils[dimension].idsStart[i];
       Realf* pencilDZ = DimensionPencils[dimension].sourceDZ.data() + DimensionPencils[dimension].idsStart[i];
       Realf* pencilAreaRatio = DimensionPencils[dimension].targetRatios.data() + DimensionPencils[dimension].idsStart[i];

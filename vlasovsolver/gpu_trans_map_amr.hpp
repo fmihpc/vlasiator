@@ -19,18 +19,25 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#ifndef GPU_TRANS_MAP_AMR_H
+#define GPU_TRANS_MAP_AMR_H
 
-#ifndef CUDA_ACC_SEMILAG_H
-#define CUDA_ACC_SEMILAG_H
-
+#include <vector>
+#include "vec.h"
 #include "../common.h"
 #include "../spatial_cell.hpp"
 
-void cuda_accelerate_cell(
-        spatial_cell::SpatialCell* spatial_cell,
-        const uint popID,
-        const uint map_order,
-        const Real& dt);
+bool gpu_trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+                  const std::vector<CellID>& localPropagatedCells,
+                  const std::vector<CellID>& remoteTargetCells,
+                  std::vector<uint>& nPencils,
+                  const uint dimension,
+                  const Realv dt,
+                  const uint popID);
 
+void gpu_update_remote_mapping_contribution_amr(dccrg::Dccrg<spatial_cell::SpatialCell,
+                                            dccrg::Cartesian_Geometry>& mpiGrid,
+                                            const uint dimension,
+                                            int direction,
+                                            const uint popID);
 #endif
-

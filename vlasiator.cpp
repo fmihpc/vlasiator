@@ -30,8 +30,8 @@
    #include <omp.h>
 #endif
 
-#ifdef USE_CUDA
-#include "cuda_context.cuh"
+#ifdef USE_GPU
+#include "arch/gpu_base.hpp"
 #endif
 
 #include <fsgrid.hpp>
@@ -126,29 +126,37 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
       cell->parameters[CellParams::MAXRDT] = numeric_limits<Real>::max();
 
-      // CUDATODO make kernel or use ARCH approach
       for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
          cell->set_max_r_dt(popID, numeric_limits<Real>::max());
-         vmesh::VelocityBlockContainer* blockContainer = cell->get_velocity_blocks(popID);
-         const Real* blockParams = blockContainer->getParameters();
-         const Real EPS = numeric_limits<Real>::min() * 1000;
-         for (vmesh::LocalID blockLID = 0; blockLID < blockContainer->size(); ++blockLID) {
-            for (unsigned int i = 0; i < WID; i += WID - 1) {
-               const Real Vx =
-                   blockParams[blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] +
-                   (i + HALF) * blockParams[blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX] + EPS;
-               const Real Vy =
-                   blockParams[blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] +
-                   (i + HALF) * blockParams[blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] + EPS;
-               const Real Vz =
-                   blockParams[blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] +
-                   (i + HALF) * blockParams[blockLID * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ] + EPS;
-
-               const Real dt_max_cell = min({dx / fabs(Vx), dy / fabs(Vy), dz / fabs(Vz)});
-               cell->set_max_r_dt(popID, min(dt_max_cell, cell->get_max_r_dt(popID)));
+         const Realf* block_data = cell->get_data(popID);
+         const Real *parameters = cell->get_block_parameters(popID);
+         const Real HALF = 0.5;
+         Real popMin = std::numeric_limits<Real>::max();
+#pragma omp parallel
+         {
+            Real threadMin = std::numeric_limits<Real>::max();
+            arch::parallel_reduce<arch::min>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)},
+                                             ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint n, Real *lthreadMin){
+                                                const Real VX
+                                                   =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD]
+                                                   + (i + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+                                                const Real VY
+                                                   =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD]
+                                                   + (j + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+                                                const Real VZ
+                                                   =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD]
+                                                   + (k + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+                                                lthreadMin[0] = min(dx / fabs(VX), lthreadMin[0]);
+                                                lthreadMin[0] = min(dy / fabs(VY), lthreadMin[0]);
+                                                lthreadMin[0] = min(dz / fabs(VZ), lthreadMin[0]);
+                                             }, threadMin);
+#pragma omp critical
+            {
+               popMin = min(threadMin, popMin);
             }
          }
-         cell->parameters[CellParams::MAXRDT] = min(cell->get_max_r_dt(popID), cell->parameters[CellParams::MAXRDT]);
+         cell->set_max_r_dt(popID, popMin);
+         cell->parameters[CellParams::MAXRDT] = min(popMin, cell->parameters[CellParams::MAXRDT]);
       }
 
       if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
@@ -294,9 +302,9 @@ int main(int argn,char* args[]) {
    phiprof::start("main");
    phiprof::start("Initialization");
 
-   #ifdef USE_CUDA
+   #ifdef USE_GPU
    // Activate device, create streams
-   cuda_init_device();
+   gpu_init_device();
    #endif
 
    phiprof::start("Read parameters");
@@ -1184,5 +1192,9 @@ int main(int argn,char* args[]) {
    technicalGrid.finalize();
 
    MPI_Finalize();
+
+   #ifdef USE_GPU
+   gpu_clear_device();
+   #endif
    return 0;
 }

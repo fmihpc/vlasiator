@@ -20,113 +20,78 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef CUDA_CONTEXT_H
-#define CUDA_CONTEXT_H
-
-#ifdef __CUDACC__
-#define CUDA_HOSTDEV __host__ __device__
-#else
-#define CUDA_HOSTDEV
-#endif
-
-#ifdef __CUDACC__
-#define CUDA_DEV __device__
-#else
-#define CUDA_DEV
-#endif
+#ifndef GPU_BASE_H
+#define GPU_BASE_H
 
 #ifdef _OPENMP
   #include <omp.h>
 #endif
 
+#include "arch_device_api.h"
+
 // Extra profiling stream synchronizations?
-#define SSYNC HANDLE_ERROR( cudaStreamSynchronize(stream) )
+#define SSYNC CHK_ERR( gpuStreamSynchronize(stream) )
 //#define SSYNC
 
-#include "device_launch_parameters.h"
-#include "cuda.h"
-#include "cuda_runtime.h"
+#include <stdio.h>
 #include "include/splitvector/splitvec.h"
 #include "include/hashinator/hashinator.h"
-#include "definitions.h"
-#include "vlasovsolver/vec.h"
-#include "velocity_mesh_parameters.h"
-
-#include <stdio.h>
-
-// Assumes CUDA Hardware with warpsize 32
-#define FULL_MASK 0xffffffff
+#include "../definitions.h"
+#include "../vlasovsolver/vec.h"
+#include "../velocity_mesh_parameters.h"
 
 static const double BLOCK_ALLOCATION_PADDING = 2.5;
 static const double BLOCK_ALLOCATION_FACTOR = 1.8;
 
-// Extern flag for stream attaching
+// Extern flags
 extern bool needAttachedStreams;
 extern bool doPrefetches;
 
 #define DIMS 1
-#ifndef CUDABLOCKS
-#  define CUDABLOCKS (108)
-#endif
-#ifndef CUDATHREADS
-#  define CUDATHREADS (32) // NVIDIA: 32 AMD: 64
-#endif
-
 #define MAXCPUTHREADS 64
 
-void cuda_init_device();
-void cuda_clear_device();
-cudaStream_t cuda_getStream();
-cudaStream_t cuda_getPriorityStream();
-int cuda_getDevice();
-void cuda_vlasov_allocate (uint maxBlockCount);
-uint cuda_vlasov_getAllocation();
-void cuda_vlasov_allocate_perthread (uint cpuThreadID, uint blockAllocationCount);
-void cuda_vlasov_deallocate_perthread (uint cpuThreadID);
-void cuda_acc_allocate (uint maxBlockCount);
-void cuda_acc_allocate_perthread (uint cpuThreadID, uint columnAllocationCount);
-void cuda_acc_deallocate_perthread (uint cpuThreadID);
+void gpu_init_device();
+void gpu_clear_device();
+gpuStream_t gpu_getStream();
+gpuStream_t gpu_getPriorityStream();
+int gpu_getDevice();
+void gpu_vlasov_allocate (uint maxBlockCount);
+uint gpu_vlasov_getAllocation();
+void gpu_vlasov_allocate_perthread (uint cpuThreadID, uint blockAllocationCount);
+void gpu_vlasov_deallocate_perthread (uint cpuThreadID);
+void gpu_acc_allocate (uint maxBlockCount);
+void gpu_acc_allocate_perthread (uint cpuThreadID, uint columnAllocationCount);
+void gpu_acc_deallocate_perthread (uint cpuThreadID);
 
 
-extern cudaStream_t cudaStreamList[];
-extern cudaStream_t cudaPriorityStreamList[];
-
-// CUDA Error checking
-#define HANDLE_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ));
-static void HandleError( cudaError_t err, const char *file, int line )
-{
-    if (err != cudaSuccess)
-    {
-        printf( "%s in %s at line %d\n", cudaGetErrorString( err ), file, line );
-        exit( EXIT_FAILURE );
-    }
-}
+extern gpuStream_t gpuStreamList[];
+extern gpuStream_t gpuPriorityStreamList[];
 
 // Unified memory class for inheritance
 class Managed {
 public:
    void *operator new(size_t len) {
       void *ptr;
-      cudaMallocManaged(&ptr, len);
-      cudaDeviceSynchronize();
+      gpuMallocManaged(&ptr, len);
+      gpuDeviceSynchronize();
       return ptr;
    }
 
    void operator delete(void *ptr) {
-      cudaDeviceSynchronize();
-      cudaFree(ptr);
+      gpuDeviceSynchronize();
+      gpuFree(ptr);
    }
 
    void* operator new[] (size_t len) {
       void *ptr;
-      cudaMallocManaged(&ptr, len);
-      cudaDeviceSynchronize();
+      gpuMallocManaged(&ptr, len);
+      gpuDeviceSynchronize();
       return ptr;
    }
 
    void operator delete[] (void* ptr) {
-      cudaDeviceSynchronize();
-      cudaFree(ptr);
+      gpuDeviceSynchronize();
+      gpuFree(ptr);
    }
 
 };
@@ -146,7 +111,7 @@ struct ColumnOffsets : public Managed {
    split::SplitVector<uint> columnNumBlocks; // length of column (in blocks, length totalColumns)
    split::SplitVector<uint> setColumnOffsets; // index from columnBlockOffsets where new set of columns starts (length nColumnSets)
    split::SplitVector<uint> setNumColumns; // how many columns in set of columns (length nColumnSets)
-   cudaStream_t attachedStream;
+   gpuStream_t attachedStream;
 
    ColumnOffsets(uint nColumns) {
       columnBlockOffsets.resize(nColumns);
@@ -157,18 +122,17 @@ struct ColumnOffsets : public Managed {
       columnNumBlocks.clear();
       setColumnOffsets.clear();
       setNumColumns.clear();
-      //HANDLE_ERROR( cudaMemAdvise(this, sizeof(ColumnOffsets), cudaMemAdviseSetPreferredLocation, cuda_getDevice()) );
       attachedStream=0;
    }
-   void dev_attachToStream(cudaStream_t stream = 0) {
+   void gpu_attachToStream(gpuStream_t stream = 0) {
       // Return if attaching is not needed
       if (!needAttachedStreams) {
          return;
       }
       // Attach unified memory regions to streams
-      cudaStream_t newStream;
+      gpuStream_t newStream;
       if (stream==0) {
-         newStream = cuda_getStream();
+         newStream = gpu_getStream();
       } else {
          newStream = stream;
       }
@@ -177,13 +141,13 @@ struct ColumnOffsets : public Managed {
       } else {
          attachedStream = newStream;
       }
-      HANDLE_ERROR( cudaStreamAttachMemAsync(stream,this, 0,cudaMemAttachSingle) );
+      CHK_ERR( gpuStreamAttachMemAsync(stream,this, 0,gpuMemAttachSingle) );
       columnBlockOffsets.streamAttach(stream);
       columnNumBlocks.streamAttach(stream);
       setColumnOffsets.streamAttach(stream);
       setNumColumns.streamAttach(stream);
    }
-   void dev_detachFromStream() {
+   void gpu_detachFromStream() {
       // Return if attaching is not needed
       if (!needAttachedStreams) {
          return;
@@ -193,54 +157,55 @@ struct ColumnOffsets : public Managed {
          return;
       }
       attachedStream = 0;
-      HANDLE_ERROR( cudaStreamAttachMemAsync(0,this, 0,cudaMemAttachGlobal) );
-      columnBlockOffsets.streamAttach(0,cudaMemAttachGlobal);
-      columnNumBlocks.streamAttach(0,cudaMemAttachGlobal);
-      setColumnOffsets.streamAttach(0,cudaMemAttachGlobal);
-      setNumColumns.streamAttach(0,cudaMemAttachGlobal);
+      CHK_ERR( gpuStreamAttachMemAsync(0,this, 0,gpuMemAttachGlobal) );
+      columnBlockOffsets.streamAttach(0,gpuMemAttachGlobal);
+      columnNumBlocks.streamAttach(0,gpuMemAttachGlobal);
+      setColumnOffsets.streamAttach(0,gpuMemAttachGlobal);
+      setNumColumns.streamAttach(0,gpuMemAttachGlobal);
    }
-   void dev_advise() {
-      int device = cuda_getDevice();
-      columnBlockOffsets.memAdvise(cudaMemAdviseSetPreferredLocation,device);
-      columnNumBlocks.memAdvise(cudaMemAdviseSetPreferredLocation,device);
-      setColumnOffsets.memAdvise(cudaMemAdviseSetPreferredLocation,device);
-      setNumColumns.memAdvise(cudaMemAdviseSetPreferredLocation,device);
-      columnBlockOffsets.memAdvise(cudaMemAdviseSetAccessedBy,device);
-      columnNumBlocks.memAdvise(cudaMemAdviseSetAccessedBy,device);
-      setColumnOffsets.memAdvise(cudaMemAdviseSetAccessedBy,device);
-      setNumColumns.memAdvise(cudaMemAdviseSetAccessedBy,device);
+   void gpu_advise() {
+      int device = gpu_getDevice();
+      gpuStream_t stream = gpu_getStream();
+      columnBlockOffsets.memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+      columnNumBlocks.memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+      setColumnOffsets.memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+      setNumColumns.memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+      columnBlockOffsets.memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+      columnNumBlocks.memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+      setColumnOffsets.memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+      setNumColumns.memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
    }
 };
 
 // Device data variables, to be allocated in good time. Made into an array so that each thread has their own pointer.
-extern vmesh::LocalID *dev_GIDlist[];
-extern vmesh::LocalID *dev_LIDlist[];
-extern vmesh::GlobalID *dev_BlocksID_mapped[];
-extern vmesh::GlobalID *dev_BlocksID_mapped_sorted[];
-extern vmesh::GlobalID *dev_LIDlist_unsorted[];
-extern vmesh::LocalID *dev_columnNBlocks[];
+extern vmesh::LocalID *gpu_GIDlist[];
+extern vmesh::LocalID *gpu_LIDlist[];
+extern vmesh::GlobalID *gpu_BlocksID_mapped[];
+extern vmesh::GlobalID *gpu_BlocksID_mapped_sorted[];
+extern vmesh::GlobalID *gpu_LIDlist_unsorted[];
+extern vmesh::LocalID *gpu_columnNBlocks[];
 
-extern Vec *dev_blockDataOrdered[];
-extern uint *dev_cell_indices_to_id[];
-extern uint *dev_block_indices_to_id[];
-extern uint *dev_vcell_transpose[];
+extern Vec *gpu_blockDataOrdered[];
+extern uint *gpu_cell_indices_to_id[];
+extern uint *gpu_block_indices_to_id[];
+extern uint *gpu_vcell_transpose[];
 
-extern void *dev_RadixSortTemp[];
-extern uint cuda_acc_RadixSortTempSize[];
+extern void *gpu_RadixSortTemp[];
+extern uint gpu_acc_RadixSortTempSize[];
 
 extern Real *returnReal[];
 extern Realf *returnRealf[];
 extern vmesh::LocalID *returnLID[];
 
-extern Column *dev_columns[];
+extern Column *gpu_columns[];
 
 // Unified (managed) memory variables
 extern ColumnOffsets *unif_columnOffsetData[];
 
 // Counters used in allocations
-extern uint cuda_vlasov_allocatedSize;
-extern uint cuda_acc_allocatedColumns;
-extern uint cuda_acc_columnContainerSize;
-extern uint cuda_acc_foundColumnsCount;
+extern uint gpu_vlasov_allocatedSize;
+extern uint gpu_acc_allocatedColumns;
+extern uint gpu_acc_columnContainerSize;
+extern uint gpu_acc_foundColumnsCount;
 
 #endif

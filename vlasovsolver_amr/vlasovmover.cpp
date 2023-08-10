@@ -39,7 +39,7 @@
 #include "../iowrite.h"
 #include "../object_wrapper.h"
 
-#include "../vlasovsolver/cpu_moments.h"
+#include "../vlasovsolver/arch_moments.h"
 //#include "cpu_acc_semilag.hpp"
 //#include "cpu_trans_map.hpp"
 

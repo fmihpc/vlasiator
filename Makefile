@@ -90,10 +90,17 @@ ifeq ($(MESH),VAMR)
 COMPFLAGS += -DVAMR
 endif
 
-# CUDA settings
+# GPU settings
+USE_GPU=0
 ifeq ($(USE_CUDA),1)
+	USE_GPU=1
 	LIBS += ${LIB_CUDA} -lcudart
-	COMPFLAGS += -DUSE_CUDA ${INC_HASHINATOR} ${INC_CUDA}
+	COMPFLAGS += -DUSE_GPU ${INC_HASHINATOR} ${INC_CUDA}
+endif
+ifeq ($(USE_HIP),1)
+	USE_GPU=1
+	LIBS += ${LIB_HIP} -lhiprt
+	COMPFLAGS += -DUSE_GPU ${INC_HASHINATOR} ${INC_HIP} -D__HIP_PLATFORM_HCC___
 endif
 
 #Vectorclass settings
@@ -156,14 +163,14 @@ DEPS_COMMON = common.h common.cpp definitions.h mpiconversion.h logger.h object_
 
 DEPS_VLSVMOVER_VAMR = vlasovsolver_amr/vlasovmover.cpp vlasovsolver_amr/cpu_acc_map_amr.hpp vlasovsolver_amr/cpu_acc_intersections.hpp \
 	vlasovsolver_amr/cpu_acc_intersections.hpp vlasovsolver_amr/cpu_acc_semilag.hpp vlasovsolver_amr/cpu_acc_transform.hpp \
-	vlasovsolver/cpu_moments.h vlasovsolver_amr/cpu_trans_map_amr.hpp vlasovsolver/cpu_trans_map_amr.hpp velocity_blocks.h
+	vlasovsolver/arch_moments.h vlasovsolver_amr/cpu_trans_map_amr.hpp vlasovsolver/cpu_trans_map_amr.hpp velocity_blocks.h
 
 #all objects for vlasiator
 
 OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipole.o vectordipole.o constantfield.o integratefunction.o \
 	datareducer.o datareductionoperator.o dro_populations.o \
 	donotcompute.o ionosphere.o conductingsphere.o outflow.o setbyuser.o setmaxwellian.o\
-	fieldtracing.o \
+	fieldtracing.o arch_moments.o \
 	sysboundary.o sysboundarycondition.o particle_species.o\
 	project.o projectTriAxisSearch.o read_gaussian_population.o\
 	Alfven.o Diffusion.o Dispersion.o Distributions.o Firehose.o\
@@ -178,20 +185,18 @@ OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipo
 -include $(OBJS:%.o=%.d)
 
 # Add Vlasov solver objects (depend on mesh: VAMR or non-VAMR)
-ifeq ($(MESH),VAMR)
-OBJS += cpu_moments.o
-else
+ifneq ($(MESH),VAMR)
 OBJS += cpu_acc_intersections.o cpu_acc_map.o cpu_acc_sort_blocks.o cpu_acc_load_blocks.o cpu_acc_semilag.o cpu_acc_transform.o \
 	cpu_trans_pencils.o
 endif
 
-# Only build CUDA version object files if active
-ifeq ($(USE_CUDA),1)
-	OBJS += cuda_acc_map.o cuda_acc_semilag.o cuda_acc_sort_blocks.o \
-		cuda_context.o cuda_moments.o cuda_trans_map_amr.o
+# Only build GPU version object files if active
+ifeq ($(USE_GPU),1)
+	OBJS += gpu_acc_map.o gpu_acc_semilag.o gpu_acc_sort_blocks.o \
+		gpu_base.o gpu_trans_map_amr.o
 else
-# if *not* building CUDA version, build regular CPU version
-	OBJS += vamr_refinement_criteria.o cpu_trans_map_amr.o cpu_moments.o
+# if *not* building GPU version, build regular CPU version
+	OBJS += vamr_refinement_criteria.o cpu_trans_map_amr.o
 endif
 
 # Add field solver objects
@@ -227,65 +232,70 @@ version.cpp: FORCE
 	$(SILENT)./generate_version.sh "${CMP}" "${CXXFLAGS}" "${FLAGS}" "${INC_MPI}" "${INC_DCCRG}" "${INC_FSGRID}" "${INC_ZOLTAN}" "${INC_BOOST}"
 
 # Do not autobuild sub-versions of spatial_cell
-spatial_cell_cuda.o:
+spatial_cell_gpu.o:
 	@: #do nothing
-spatial_cell_old.o:
+spatial_cell_cpu.o:
 	@: #do nothing
 
-#Special handling for CUDA files
-ifeq ($(USE_CUDA),1)
-# Turn on compilation for of CUDA-version of spatial_cell
-spatial_cell.o: spatial_cell_cuda.cpp
-	@echo "[CC]" $<
-	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c spatial_cell_cuda.cpp -o spatial_cell.o $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID}
+#Special handling for GPU files
+ifeq ($(USE_GPU),1)
+# Turn on compilation for of GPU-version of spatial_cell
+spatial_cell.o: spatial_cell_gpu.cpp
+	@echo [CC] $<
+	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c spatial_cell_gpu.cpp -o spatial_cell.o $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID}
 else
-# Turn off compilation of CUDA-specific files
-%.o: vlasovsolver/cuda_%.cpp
+# CPU-only compulation: Turn off compilation of gpu-specific files
+%.o: vlasovsolver/gpu_%.cpp
 	@: #do nothing
-cuda_context.o:
+arch/gpu_base.o:
 	@: #do nothing
 # Turn on compilation for of old cpu-version of spatial_cell
-spatial_cell.o: spatial_cell_old.cpp
-	@echo "[CC]" $<
-	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c spatial_cell_old.cpp -o spatial_cell.o $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID}
+spatial_cell.o: spatial_cell_cpu.cpp
+	@echo [CC] $<
+	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c spatial_cell_cpu.cpp -o spatial_cell.o $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID}
 endif
 
 # Generic rules:
 # for all files in the main source dir
 %.o: %.cpp
-	@echo "[CC]" $<
+	@echo [CC] $<
 	$(SILENT)$(CMP) $(CXXFLAGS) ${MATHFLAGS} $(FLAGS) -c $< $(INC_BOOST) ${INC_DCCRG} ${INC_EIGEN} ${INC_ZOLTAN} ${INC_VECTORCLASS} ${INC_FSGRID} ${INC_PROFILE} ${INC_VLSV} ${INC_PAPI} ${INC_MPI}
+
+# for all files in the arch/ dir
+%.o: arch/%.cpp
+	@echo [CC] $<
+	$(SILENT)${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c $< -I$(CURDIR) ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VECTORCLASS} ${INC_EIGEN} ${INC_VLSV} ${INC_MPI}
 
 # for all files in the backgroundfield/ dir
 %.o: backgroundfield/%.cpp  backgroundfield/constantfield.hpp backgroundfield/fieldfunction.hpp backgroundfield/functions.hpp backgroundfield/backgroundfield.h
 	@echo [CC] $<
-	$(SILENT)${CMP} ${CXXFLAGS} ${FLAGS} -c $< ${INC_DCCRG} ${INC_ZOLTAN} ${INC_FSGRID}
+	$(SILENT)${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c $< ${INC_DCCRG} ${INC_ZOLTAN} ${INC_FSGRID}
 
 # for all files in the datareduction/ dir
 %.o: datareduction/%.cpp ${DEPS_COMMON} datareduction/datareductionoperator.h fieldtracing/fieldtracing.h sysboundary/ionosphere.h datareduction/dro_populations.h
 	@echo [CC] $<
-	$(SILENT)${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c $< ${INC_DCCRG} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_EIGEN} ${INC_VLSV} ${INC_FSGRID}
+	$(SILENT)${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c $< ${INC_DCCRG} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_EIGEN} ${INC_VLSV} ${INC_FSGRID}
 
 # for all files in the sysboundary/ dir
 %.o: sysboundary/%.cpp ${DEPS_COMMON} sysboundary/%.h backgroundfield/backgroundfield.h projects/project.h fieldsolver/fs_limiters.h
 	@echo [CC] $<
-	$(SILENT)${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c $< ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+	$(SILENT)${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c $< ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 
 # for all files in the fieldtracing/ dir
 %.o: fieldtracing/%.cpp
 	@echo [CC] $<
-	$(SILENT)${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c $< ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_ZOLTAN} ${INC_EIGEN}
+	$(SILENT)${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c $< ${INC_DCCRG} ${INC_FSGRID} ${INC_BOOST} ${INC_ZOLTAN} ${INC_EIGEN}
 
 # for all files in the projects/ dir
 %.o: projects/%.cpp projects/%.h
 	@echo [CC] $<
-	$(SILENT)${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c $< ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_FSGRID} ${INC_VECTORCLASS}
+	$(SILENT)${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c $< ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_FSGRID} ${INC_VECTORCLASS}
 
 # (Second, more complex rules for the subdirectories of projects/)
 .SECONDEXPANSION:
 %.o: projects/$$*/$$*.cpp projects/$$*/$$*.h projects/projectTriAxisSearch.h
 	@echo [CC] $<
-	$(SILENT)${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c $< ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_FSGRID}
+	$(SILENT)${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c $< ${INC_DCCRG} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN} ${INC_FSGRID}
 
 # old deprecated VAMR
 ifeq ($(MESH),VAMR)
@@ -298,7 +308,7 @@ else
 # for all files in the vlasovsolver/ dir
 %.o: vlasovsolver/%.cpp vlasovsolver/vec.h
 	@echo [CC] $<
-	$(SILENT)${CMP} ${CXXFLAGS} ${FLAG_OPENMP} ${MATHFLAGS} ${FLAGS} -c $< -I$(CURDIR) ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VECTORCLASS} ${INC_EIGEN} ${INC_VLSV} ${INC_MPI}
+	$(SILENT)${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c $< -I$(CURDIR) ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_PROFILE} ${INC_VECTORCLASS} ${INC_EIGEN} ${INC_VLSV} ${INC_MPI}
 
 endif
 
@@ -306,7 +316,7 @@ endif
 # for all files in the fieldsolver/ dir
 %.o: fieldsolver/%.cpp ${DEPS_FSOLVER}
 	@echo [CC] $<
-	$(SILENT)${CMP} ${CXXFLAGS} ${FLAGS} -c $< -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_FSGRID} ${INC_PROFILE} ${INC_ZOLTAN}
+	$(SILENT)${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c $< -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_FSGRID} ${INC_PROFILE} ${INC_ZOLTAN}
 
 # Make executable
 vlasiator: $(OBJS) $(OBJS_FSOLVER)
