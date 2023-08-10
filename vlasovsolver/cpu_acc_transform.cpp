@@ -23,7 +23,7 @@
 #include "../object_wrapper.h"
 #include "../sysboundary/ionosphere.h"
 
-#include "cpu_moments.hpp"
+//#include "arch_moments.hpp"
 #include "cpu_acc_transform.hpp"
 
 using namespace std;

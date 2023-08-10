@@ -163,14 +163,14 @@ DEPS_COMMON = common.h common.cpp definitions.h mpiconversion.h logger.h object_
 
 DEPS_VLSVMOVER_VAMR = vlasovsolver_amr/vlasovmover.cpp vlasovsolver_amr/cpu_acc_map_amr.hpp vlasovsolver_amr/cpu_acc_intersections.hpp \
 	vlasovsolver_amr/cpu_acc_intersections.hpp vlasovsolver_amr/cpu_acc_semilag.hpp vlasovsolver_amr/cpu_acc_transform.hpp \
-	vlasovsolver/cpu_moments.h vlasovsolver_amr/cpu_trans_map_amr.hpp vlasovsolver/cpu_trans_map_amr.hpp velocity_blocks.h
+	vlasovsolver/arch_moments.h vlasovsolver_amr/cpu_trans_map_amr.hpp vlasovsolver/cpu_trans_map_amr.hpp velocity_blocks.h
 
 #all objects for vlasiator
 
 OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipole.o vectordipole.o constantfield.o integratefunction.o \
 	datareducer.o datareductionoperator.o dro_populations.o \
 	donotcompute.o ionosphere.o conductingsphere.o outflow.o setbyuser.o setmaxwellian.o\
-	fieldtracing.o \
+	fieldtracing.o arch_moments.o \
 	sysboundary.o sysboundarycondition.o particle_species.o\
 	project.o projectTriAxisSearch.o read_gaussian_population.o\
 	Alfven.o Diffusion.o Dispersion.o Distributions.o Firehose.o\
@@ -185,9 +185,7 @@ OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipo
 -include $(OBJS:%.o=%.d)
 
 # Add Vlasov solver objects (depend on mesh: VAMR or non-VAMR)
-ifeq ($(MESH),VAMR)
-OBJS += cpu_moments.o
-else
+ifneq ($(MESH),VAMR)
 OBJS += cpu_acc_intersections.o cpu_acc_map.o cpu_acc_sort_blocks.o cpu_acc_load_blocks.o cpu_acc_semilag.o cpu_acc_transform.o \
 	cpu_trans_pencils.o
 endif
@@ -195,10 +193,10 @@ endif
 # Only build GPU version object files if active
 ifeq ($(USE_GPU),1)
 	OBJS += gpu_acc_map.o gpu_acc_semilag.o gpu_acc_sort_blocks.o \
-		gpu_base.o gpu_moments.o gpu_trans_map_amr.o
+		gpu_base.o gpu_trans_map_amr.o
 else
 # if *not* building GPU version, build regular CPU version
-	OBJS += vamr_refinement_criteria.o cpu_trans_map_amr.o cpu_moments.o
+	OBJS += vamr_refinement_criteria.o cpu_trans_map_amr.o
 endif
 
 # Add field solver objects

@@ -28,6 +28,9 @@
 #include <vector>
 #include "definitions.h"
 
+// Include architecture specific definitions
+#include "arch/arch_device_api.h"
+
 #ifdef DEBUG_SOLVERS
 #define CHECK_FLOAT(x) \
    if ((x) != (x)) {\
@@ -475,7 +478,7 @@ const int WID3 = WID2*WID; /*!< Number of cells in a velocity block. */
 /*!
 Get the cellindex in the velocity space block
 */
-template<typename INT> inline INT cellIndex(const INT& i,const INT& j,const INT& k) {
+template<typename INT> ARCH_HOSTDEV inline INT cellIndex(const INT& i,const INT& j,const INT& k) {
    return k*WID2 + j*WID + i;
 }
 

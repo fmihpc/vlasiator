@@ -52,7 +52,6 @@
 
 #include "vlasovsolver/cpu_trans_pencils.hpp"
 #ifdef USE_GPU
-#include "vlasovsolver/gpu_moments.hpp"
 #include "arch/gpu_base.hpp"
 #endif
 
@@ -108,13 +107,6 @@ void initializeGrids(
 ) {
    int myRank;
    MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-
-   #ifdef USE_GPU
-   // Allocate GPU helper arrays
-   const uint nPopulations = getObjectWrapper().particleSpecies.size();
-   const uint maxThreads = omp_get_max_threads();
-   gpu_allocateMomentCalculations(nPopulations,maxThreads);
-   #endif
 
    // Init Zoltan:
    float zoltanVersion;

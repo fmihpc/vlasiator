@@ -26,6 +26,9 @@
 #include "../common.h"
 #include "../spatial_cell.hpp"
 
+void prepareAccelerateCell(spatial_cell::SpatialCell* spatial_cell, const uint popID);
+uint getAccelerationSubcycles(spatial_cell::SpatialCell* spatial_cell, Real dt, const uint popID);
+
 void gpu_accelerate_cell(
         spatial_cell::SpatialCell* spatial_cell,
         const uint popID,

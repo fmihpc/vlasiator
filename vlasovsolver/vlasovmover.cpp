@@ -40,16 +40,16 @@
 #include "../object_wrapper.h"
 #include "../mpiconversion.h"
 
-#include "cpu_acc_semilag.hpp"
+#include "arch_moments.h"
 
 #include "cpu_trans_pencils.hpp"
+
 #ifdef USE_GPU
 #include "gpu_acc_map.hpp"
 #include "gpu_acc_semilag.hpp"
-#include "gpu_moments.hpp"
 #include "gpu_trans_map_amr.hpp"
 #else
-#include "cpu_moments.hpp"
+#include "cpu_acc_semilag.hpp"
 #include "cpu_trans_map_amr.hpp"
 #endif
 

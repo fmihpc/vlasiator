@@ -29,7 +29,7 @@
 
 #include "../grid.h"
 #include "../object_wrapper.h"
-#include "../vlasovsolver/cpu_moments.hpp"
+#include "../vlasovsolver/arch_moments.h"
 
 #include "donotcompute.h"
 #include "ionosphere.h"

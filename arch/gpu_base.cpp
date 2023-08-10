@@ -79,7 +79,7 @@ __host__ void gpu_init_device() {
    const uint maxThreads = 1;
 #endif
 
-   int deviceCount;
+   // int deviceCount;
    // CHK_ERR( gpuFree(0));
    // CHK_ERR( gpuGetDeviceCount(&deviceCount) );
    // printf("GPU device count %d with %d threads/streams\n",deviceCount,maxThreads);
