@@ -800,7 +800,7 @@ template<int N> bool readFsGridVariable(
    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 
    int32_t* localSize = targetGrid.getLocalSize();
-   std::array<int32_t,3>& localStart = targetGrid.getLocalStart();
+   int32_t* localStart = targetGrid.getLocalStart();
    int32_t* globalSize = targetGrid.getGlobalSize();
 
    // Determine our tasks storage size

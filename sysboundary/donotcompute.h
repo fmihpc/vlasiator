@@ -69,7 +69,12 @@ namespace SBC {
          cint k,
          creal& dt,
          cuint& component
-      ) { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondMagneticField called!" << std::endl; return 0.;}
+      ) { 
+         #ifndef __CUDA_ARCH__
+         std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondMagneticField called!" << std::endl;
+         #endif 
+         return 0.;
+      }
       virtual void fieldSolverBoundaryCondMagneticFieldProjection(
          FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
          FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,

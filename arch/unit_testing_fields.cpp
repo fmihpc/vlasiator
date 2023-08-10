@@ -177,7 +177,7 @@ typename std::enable_if<I == 2, std::tuple<bool, double, double>>::type test(){
 
   // Define the size of the 3D grid
   // int32_t gridDims[3] = {100, 100, 100};
-  int32_t fsGridDimensions[3] = {100, 100, 100};
+  int32_t fsGridDimensions[3] = {50, 50, 50};
 
   // Initialize MPI and grid coupling information
   MPI_Comm comm = MPI_COMM_WORLD;
@@ -199,13 +199,24 @@ typename std::enable_if<I == 2, std::tuple<bool, double, double>>::type test(){
   Parameters::projectName =  "Diffusion";
   initParameters(); 
   Project* project = projects::createProject(); 
-  std::vector<std::string> sysBoundaryNames = {"Maxwellian"};
+  std::vector<std::string> sysBoundaryNames = {"Maxwellian", "Ionosphere", "Outflow"};
 
   std::vector<std::string> faceList;
   faceList.push_back("x+");
   Readparameters::setVectorOption("maxwellian.face", faceList);
   Readparameters::setOption("maxwellian.precedence", "4");
   Readparameters::setOption("maxwellian.reapplyUponRestart", "0");
+  Readparameters::setOption("ionosphere.centerX", "0.0");
+  Readparameters::setOption("ionosphere.centerY", "0.0");
+  Readparameters::setOption("ionosphere.centerZ", "0.0");
+  Readparameters::setOption("ionosphere.radius", "38.1");
+  Readparameters::setOption("ionosphere.precedence", "2");
+  Readparameters::setOption("ionosphere.geometry", "3");
+  Readparameters::setOption("ionosphere.reapplyUponRestart", "0");
+  std::vector<std::string> faceNoFields; 
+  Readparameters::setVectorOption("outflow.faceNoFields", faceList); 
+  Readparameters::setOption("outflow.precedence", "2");
+  Readparameters::setOption("outflow.reapplyUponRestart", "0");
 
   sysBoundaries.setBoundaryConditionParameters(sysBoundaryNames);
   sysBoundaries.initSysBoundaries(*project, 0);
@@ -214,7 +225,15 @@ typename std::enable_if<I == 2, std::tuple<bool, double, double>>::type test(){
   for (uint k = 0; k < gridDims[2]; ++k){
     for (uint j = 0; j < gridDims[1]; ++j){
       for (uint i = 0; i < gridDims[0]; ++i) {
-        technicalGrid.get(i,j,k)->sysBoundaryFlag = sysboundarytype::SET_MAXWELLIAN;
+        technicalGrid.get(i,j,k)->sysBoundaryLayer = 1;
+        technicalGrid.get(i,j,k)->SOLVE = 1;
+        if (i % 3 == 0) {
+          technicalGrid.get(i,j,k)->sysBoundaryFlag = sysboundarytype::SET_MAXWELLIAN;
+        } else if (i % 3 == 1) {
+          technicalGrid.get(i,j,k)->sysBoundaryFlag = sysboundarytype::IONOSPHERE;
+        } else {
+          technicalGrid.get(i,j,k)->sysBoundaryFlag = sysboundarytype::OUTFLOW;
+        }
         perBGrid.get(i,j,k)[fsgrids::bfield::PERBX] = 2;
       }
     } 

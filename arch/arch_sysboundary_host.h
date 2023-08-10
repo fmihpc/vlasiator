@@ -18,6 +18,7 @@ class buf<SysBoundary> {
         SBC::SetMaxwellian* setmaxwellian;
         SBC::Ionosphere* ionosphere;
         SBC::Outflow* outflow;
+        SBC::DoNotCompute* doNotCompute;
 
         uint is_copy = 0;
 
@@ -69,6 +70,8 @@ class buf<SysBoundary> {
                     ionosphere = dynamic_cast<SBC::Ionosphere*>(sbc);
                 } else if (sbc->getIndex() == sysboundarytype::OUTFLOW) {
                     outflow = dynamic_cast<SBC::Outflow*>(sbc);
+                } else if (sbc->getIndex() == sysboundarytype::DO_NOT_COMPUTE) {
+                    doNotCompute = dynamic_cast<SBC::DoNotCompute*>(sbc);
                 } else {
                     std::cerr << "ERROR: sysboundarytype not found" << std::endl;
                     exit(1);

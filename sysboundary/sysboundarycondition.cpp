@@ -800,57 +800,6 @@ namespace SBC {
       return flowtoCellsBlock;
    }
    
-   Real SysBoundaryCondition::fieldBoundaryCopyFromSolvingNbrMagneticField(
-      const arch::buf<FsGrid< Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & bGrid,
-      const arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> & technicalGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint component,
-      cuint mask
-   ) {
-
-      int distance = numeric_limits<int>::max();
-      vector< array<int,3> > closestCells;
-
-      for (int kk=-2; kk<3; kk++) {
-         for (int jj=-2; jj<3; jj++) {
-            for (int ii=-2; ii<3 ; ii++) {
-               if( technicalGrid.get(i+ii,j+jj,k+kk) // skip invalid cells returning NULL
-                   && (technicalGrid.get(i+ii,j+jj,k+kk)->SOLVE & mask) == mask // Did that guy solve this component?
-                   && technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE // Do not copy from there
-               ) { 
-                  distance = min(distance, ii*ii + jj*jj + kk*kk);
-               }
-            }
-         }
-      }
-
-      for (int kk=-2; kk<3; kk++) {
-         for (int jj=-2; jj<3; jj++) {
-            for (int ii=-2; ii<3 ; ii++) {
-               if( technicalGrid.get(i+ii,j+jj,k+kk) // skip invalid cells returning NULL
-                   && (technicalGrid.get(i+ii,j+jj,k+kk)->SOLVE & mask) == mask // Did that guy solve this component?
-                   && technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE // Do not copy from there
-               ) { 
-                  int d = ii*ii + jj*jj + kk*kk;
-                  if( d == distance ) {
-                     array<int, 3> cell = {i+ii, j+jj, k+kk};
-                     closestCells.push_back(cell);
-                  }
-               }
-            }
-         }
-      }
-
-      if(closestCells.size() == 0) {
-         cerr << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
-         abort();
-      }
-
-      return bGrid.get(closestCells[0][0], closestCells[0][1], closestCells[0][2])[fsgrids::bfield::PERBX+component];
-   }
-   
    /*! Function used in some cases to know which faces the system boundary condition is being applied to.
     * \param faces Pointer to array of 6 bool in which the values are returned whether the corresponding face is of that type. Order: 0 x+; 1 x-; 2 y+; 3 y-; 4 z+; 5 z-
     */

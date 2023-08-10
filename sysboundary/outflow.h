@@ -28,6 +28,7 @@
 #include "../readparameters.h"
 #include "../spatial_cell.hpp"
 #include "sysboundarycondition.h"
+#include "outflowFieldBoundary.h"
 
 namespace SBC {
 
@@ -63,7 +64,8 @@ namespace SBC {
          creal& t,
          Project &project
       );
-      bool initFieldBoundary() {return false;}
+      bool initFieldBoundary();
+      OutflowFieldBoundary* getFieldBoundary() {return fieldBoundary;} 
       virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid);
       virtual bool applyInitialState(
@@ -71,7 +73,7 @@ namespace SBC {
          FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
          Project &project
       );
-      ARCH_HOSTDEV virtual Real fieldSolverBoundaryCondMagneticField(
+      ARCH_HOSTDEV Real fieldSolverBoundaryCondMagneticField(
          const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & bGrid,
          const arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> & technicalGrid,
          cint i,
@@ -79,35 +81,45 @@ namespace SBC {
          cint k,
          creal& dt,
          cuint& component
-      );
+      ) {
+         return fieldBoundary->fieldSolverBoundaryCondMagneticField(bGrid, technicalGrid, i, j, k, dt, component);
+      }
       virtual void fieldSolverBoundaryCondMagneticFieldProjection(
          FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & bGrid,
          FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
          cint i,
          cint j,
          cint k
-      );
+      ) {
+         fieldBoundary->fieldSolverBoundaryCondMagneticFieldProjection(bGrid, technicalGrid, i, j, k);
+      }
       virtual void fieldSolverBoundaryCondElectricField(
          FsGrid<Real, fsgrids::efield::N_EFIELD, FS_STENCIL_WIDTH> & EGrid,
          cint i,
          cint j,
          cint k,
          cuint component
-      );
+      ) {
+         fieldBoundary->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, component);
+      }
       virtual void fieldSolverBoundaryCondHallElectricField(
          FsGrid<Real, fsgrids::ehall::N_EHALL, FS_STENCIL_WIDTH> & EHallGrid,
          cint i,
          cint j,
          cint k,
          cuint component
-      );
+      ) {
+         fieldBoundary->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, component);
+      }
       virtual void fieldSolverBoundaryCondGradPeElectricField(
          FsGrid<Real, fsgrids::egradpe::N_EGRADPE, FS_STENCIL_WIDTH> & EGradPeGrid,
          cint i,
          cint j,
          cint k,
          cuint component
-      );
+      ) {
+         fieldBoundary->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid, i, j, k, component);
+      }
       virtual void fieldSolverBoundaryCondDerivatives(
          FsGrid<Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH> & dPerBGrid,
          FsGrid<Real, fsgrids::dmoments::N_DMOMENTS, FS_STENCIL_WIDTH> & dMomentsGrid,
@@ -116,14 +128,18 @@ namespace SBC {
          cint k,
          cuint& RKCase,
          cuint& component
-      );
+      ) {
+         fieldBoundary->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, component);
+      }
       virtual void fieldSolverBoundaryCondBVOLDerivatives(
          FsGrid<Real, fsgrids::volfields::N_VOL, FS_STENCIL_WIDTH> & volGrid,
          cint i,
          cint j,
          cint k,
          cuint& component
-      );
+      ) {
+         fieldBoundary->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, component);
+      }
       virtual void vlasovBoundaryCondition(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
@@ -157,6 +173,8 @@ namespace SBC {
          LIMIT,
          N_SCHEMES
       };
+
+      OutflowFieldBoundary* fieldBoundary;
       
    }; // class Outflow
 } // namespace SBC

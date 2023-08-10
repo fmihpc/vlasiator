@@ -220,7 +220,7 @@ DEPS_VLSVMOVER_AMR = ${DEPS_CELL} vlasovsolver_amr/vlasovmover.cpp vlasovsolver_
 OBJS_UNITTESTS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipole.o vectordipole.o constantfield.o integratefunction.o \
 	datareducer.o datareductionoperator.o dro_populations.o amr_refinement_criteria.o\
 	donotcompute.o ionosphere.o outflow.o setbyuser.o setmaxwellian.o\
-	setbyuserFieldBoundary.o\
+	setbyuserFieldBoundary.o ionosphereFieldBoundary.o outflowFieldBoundary.o\
 	sysboundary.o sysboundarycondition.o particle_species.o\
 	project.o projectTriAxisSearch.o read_gaussian_population.o\
 	Alfven.o Diffusion.o Dispersion.o Distributions.o Firehose.o\
@@ -348,6 +348,11 @@ setbyuser.o: ${DEPS_SYSBOUND} sysboundary/setbyuser.h sysboundary/setbyuser.cpp 
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c sysboundary/setbyuser.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
 setbyuserFieldBoundary.o: ${DEPS_SYSBOUND} sysboundary/setbyuserFieldBoundary.h sysboundary/setbyuserFieldBoundary.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c sysboundary/setbyuserFieldBoundary.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+outflowFieldBoundary.o: ${DEPS_SYSBOUND} sysboundary/outflowFieldBoundary.h sysboundary/outflowFieldBoundary.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c sysboundary/outflowFieldBoundary.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+ionosphereFieldBoundary.o: ${DEPS_SYSBOUND} sysboundary/ionosphereFieldBoundary.h sysboundary/ionosphereFieldBoundary.cpp
+	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c sysboundary/ionosphereFieldBoundary.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}
+
 
 sysboundary.o: ${DEPS_COMMON} sysboundary/sysboundary.h sysboundary/sysboundary.cpp sysboundary/sysboundarycondition.h sysboundary/sysboundarycondition.cpp sysboundary/donotcompute.h sysboundary/donotcompute.cpp sysboundary/ionosphere.h sysboundary/ionosphere.cpp sysboundary/outflow.h sysboundary/outflow.cpp sysboundary/setmaxwellian.h sysboundary/setmaxwellian.cpp sysboundary/setbyuser.h sysboundary/setbyuser.cpp
 	${CMP} ${CXXFLAGS} ${FLAGS} ${MATHFLAGS} -c sysboundary/sysboundary.cpp ${INC_DCCRG} ${INC_FSGRID} ${INC_ZOLTAN} ${INC_BOOST} ${INC_EIGEN}

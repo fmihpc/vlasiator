@@ -18,13 +18,15 @@ class buf<SysBoundary> {
 
         // list of possible sysboundaries
         SBC::SetByUserFieldBoundary* setbyUser = NULL;
-        SBC::Ionosphere* ionosphere = NULL;
-        SBC::Outflow* outflow = NULL;
+        SBC::IonosphereFieldBoundary* ionosphere = NULL;
+        SBC::OutflowFieldBoundary* outflow = NULL;
+        SBC::DoNotCompute* doNotCompute;
 
         // list of possible sysboundaries on device
         SBC::SetByUserFieldBoundary* setByUser_d;
-        SBC::Ionosphere* ionosphere_d;
-        SBC::Outflow* outflow_d;
+        SBC::IonosphereFieldBoundary* ionosphere_d;
+        SBC::OutflowFieldBoundary* outflow_d;
+        SBC::DoNotCompute* doNotCompute_d;
 
         uint is_copy = 0;
 
@@ -58,13 +60,13 @@ class buf<SysBoundary> {
                         #endif
                     } else if (sysBoundaryFlag == sysboundarytype::OUTFLOW) {
                         #ifdef __CUDA_ARCH__
-                            return bufPtr->outflow->fieldSolverBoundaryCondMagneticField(bGrid, technicalGrid, i, j, k, dt, component);
+                            return bufPtr->outflow_d->fieldSolverBoundaryCondMagneticField(bGrid, technicalGrid, i, j, k, dt, component);
                         #else
                             return bufPtr->outflow->fieldSolverBoundaryCondMagneticField(bGrid, technicalGrid, i, j, k, dt, component);
                         #endif
                     } else {
                         #ifndef __CUDA_ARCH__
-                            std::cerr << "ERROR: sysboundarytype not found" << std::endl;
+                            std::cerr << "ERROR: sysboundarytype not found bound cuda" << std::endl;
                             exit(1);
                         #endif
                     }
@@ -89,7 +91,6 @@ class buf<SysBoundary> {
                 // copy the data from the host to the device
                 CHK_ERR(cudaMemcpy(outflow_d, outflow, sizeof(SBC::Outflow), cudaMemcpyHostToDevice));
             }
-            fflush(stdout);
         }
 
         // sync the data from the device to the host
@@ -117,13 +118,15 @@ class buf<SysBoundary> {
                     setbyUser = dynamic_cast<SBC::SetByUser*>(sbc)->getFieldBoundary();
                     CHK_ERR(cudaMalloc(&setByUser_d, sizeof(SBC::SetByUserFieldBoundary)));
                 } else if (sbc->getIndex() == sysboundarytype::IONOSPHERE) {
-                    ionosphere = dynamic_cast<SBC::Ionosphere*>(sbc);
+                    ionosphere = dynamic_cast<SBC::Ionosphere*>(sbc)->getFieldBoundary();
                     CHK_ERR(cudaMalloc(&ionosphere_d, sizeof(SBC::Ionosphere)));
                 } else if (sbc->getIndex() == sysboundarytype::OUTFLOW) {
-                    outflow = dynamic_cast<SBC::Outflow*>(sbc);
+                    outflow = dynamic_cast<SBC::Outflow*>(sbc)->getFieldBoundary();
                     CHK_ERR(cudaMalloc(&outflow_d, sizeof(SBC::Outflow)));
+                } else if (sbc->getIndex() == sysboundarytype::DO_NOT_COMPUTE) {
+                    doNotCompute = dynamic_cast<SBC::DoNotCompute*>(sbc);
                 } else {
-                    std::cerr << "ERROR: sysboundarytype not found" << std::endl;
+                    std::cerr << "ERROR: sysboundarytype not found buf cuda" << std::endl;
                     exit(1);
                 }
 
@@ -131,7 +134,7 @@ class buf<SysBoundary> {
             }
         }
 
-        ARCH_HOSTDEV buf(const buf& u) : ptr(u.ptr), is_copy(1), setbyUser(u.setbyUser), ionosphere(u.ionosphere), outflow(u.outflow), setByUser_d(u.setByUser_d), ionosphere_d(u.ionosphere_d), outflow_d(u.outflow_d) {}
+        ARCH_HOSTDEV buf(const buf& u) : ptr(u.ptr), is_copy(1), setbyUser(u.setbyUser), ionosphere(u.ionosphere), outflow(u.outflow), setByUser_d(u.setByUser_d), ionosphere_d(u.ionosphere_d), outflow_d(u.outflow_d), doNotCompute(u.doNotCompute), doNotCompute_d(u.doNotCompute_d) {}
 
         ARCH_HOSTDEV Proxy getSysBoundary(int sysBoundaryFlag) const {
             return Proxy(sysBoundaryFlag, this);

@@ -82,6 +82,7 @@ namespace SBC {
    
    bool SetByUser::initFieldBoundary() {
       fieldBoundary = new SetByUserFieldBoundary(isPeriodic, templateB);
+     return true; 
    }
 
 
