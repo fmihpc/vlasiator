@@ -659,9 +659,6 @@ namespace spatial_cell {
                         }
                      }
                   }
-                  if(cellID == 4) {
-                     fprintf(stderr, "When building datatype, cell 4.neighbor_number_of_blocks = %i, sender_rank = %i, receiver_rank = %i\n", this->neighbor_number_of_blocks[0], sender_rank, receiver_rank);
-                  }
                   displacements.push_back((uint8_t*) this->neighbor_block_data[i] - (uint8_t*) this);
                   block_lengths.push_back(sizeof(Realf) * VELOCITY_BLOCK_LENGTH * this->neighbor_number_of_blocks[i]);
                }

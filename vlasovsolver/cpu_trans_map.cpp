@@ -678,26 +678,20 @@ void update_remote_mapping_contribution(
       CellID p_ngbr = INVALID_CELLID;
       CellID m_ngbr = INVALID_CELLID;
 
-      if(local_cells[c] == 4) {
-         fprintf(stderr, "Cell 4 has neighbours in SHIFT_P_X_NEIGHBORHOOD_ID: [\n");
-         
-         for(auto& nbr : *mpiGrid.get_neighbors_of(local_cells[c], SHIFT_P_X_NEIGHBORHOOD_ID)) {
-               fprintf(stderr, "\t%li (%i %i %i %i)\n", nbr.first, nbr.second[0], nbr.second[1], nbr.second[2], nbr.second[3]);
-         }
-         fprintf(stderr, "]\n");
-         fprintf(stderr, "Cell 4 has neighbours in SHIFT_M_X_NEIGHBORHOOD_ID: [\n");
-         for(auto& nbr : *mpiGrid.get_neighbors_of(local_cells[c], SHIFT_M_X_NEIGHBORHOOD_ID)) {
-               fprintf(stderr, "\t%li (%i %i %i %i)\n", nbr.first, nbr.second[0], nbr.second[1], nbr.second[2], nbr.second[3]);
-         }
-         fprintf(stderr, "]\n");
+      //if(local_cells[c] == 4 || local_cells[c] == 5) {
+      //   fprintf(stderr, "Cell %li has neighbours in SHIFT_P_X_NEIGHBORHOOD_ID: [\n", local_cells[c]);
+      //   
+      //   for(auto& nbr : *mpiGrid.get_neighbors_of(local_cells[c], SHIFT_P_X_NEIGHBORHOOD_ID)) {
+      //         fprintf(stderr, "\t%li (%i %i %i %i)\n", nbr.first, nbr.second[0], nbr.second[1], nbr.second[2], nbr.second[3]);
+      //   }
+      //   fprintf(stderr, "]\n");
+      //   fprintf(stderr, "Cell %li has neighbours in SHIFT_M_X_NEIGHBORHOOD_ID: [\n", local_cells[c]);
+      //   for(auto& nbr : *mpiGrid.get_neighbors_of(local_cells[c], SHIFT_M_X_NEIGHBORHOOD_ID)) {
+      //         fprintf(stderr, "\t%li (%i %i %i %i)\n", nbr.first, nbr.second[0], nbr.second[1], nbr.second[2], nbr.second[3]);
+      //   }
+      //   fprintf(stderr, "]\n");
 
-         //fprintf(stderr, "The funny bunch of face neighbours for cell 28 is: [\n");
-         //fprintf(stderr, "\tCellID dim\n");
-         //for (const auto& nbr : mpiGrid.get_face_neighbors_of(local_cells[c])) {
-         //   fprintf(stderr, "\t%li %i\n",nbr.first, nbr.second);
-         //}
-         //fprintf(stderr, "]\n");
-      }
+      //}
 
       for (const auto& [neighbor, dir] : mpiGrid.get_face_neighbors_of(local_cells[c])) {
          if(dir == ((int)dimension + 1) * direction) {
@@ -724,7 +718,6 @@ void update_remote_mapping_contribution(
       }
       if (p_ngbr != INVALID_CELLID && pcell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) 
          if (!mpiGrid.is_local(p_ngbr) && do_translate_cell(ccell)) {
-            fprintf(stderr, "P-neighbour of cell %li is %li\n", local_cells[c], p_ngbr);;
             //if (p_ngbr != INVALID_CELLID && !mpiGrid.is_local(p_ngbr) && do_translate_cell(ccell)) {
             //Send data in p_ngbr target array that we just
             //mapped to if 1) it is a valid target,
@@ -746,7 +739,7 @@ void update_remote_mapping_contribution(
       if (m_ngbr != INVALID_CELLID &&
           !mpiGrid.is_local(m_ngbr) &&
           ccell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
-         fprintf(stderr, "M-neighbour of cell %li is %li\n", local_cells[c], m_ngbr);
+        
          //Receive data that mcell mapped to ccell to this local cell
          //data array, if 1) m is a valid source cell, 2) center cell is to be updated (normal cell) 3) m is remote
          //we will here allocate a receive buffer, since we need to aggregate values
@@ -755,7 +748,7 @@ void update_remote_mapping_contribution(
          
          receive_cells.push_back(local_cells[c]);
          receiveBuffers.push_back(mcell->neighbor_block_data[0]);
-      }
+      }    
    }
 
    //std::cerr << "send_cells.size = " << send_cells.size() << ", recieve_cells.size = " << receive_cells.size() << std::endl;
@@ -790,7 +783,12 @@ void update_remote_mapping_contribution(
          SpatialCell* spatial_cell = mpiGrid[receive_cells[c]];
          Realf *blockData = spatial_cell->get_data(popID);
           
-//#pragma omp for 
+         //fprintf(stderr, "Cell %i's recieveBuffer is at 0x%08lx, recieveBuffers[c][cell] is at 0x%08lx\n",
+         //     receive_cells[c],
+         //     mpiGrid[(( receive_cells[c]+((direction>0)?-1:1) - 1 ) % 8 ) + 1  ]->neighbor_block_data[0],
+         //     receiveBuffers[c]);
+
+#pragma omp for 
          for(unsigned int cell = 0; cell<VELOCITY_BLOCK_LENGTH * spatial_cell->get_number_of_velocity_blocks(popID); ++cell) {
             if(isnan(receiveBuffers[c][cell]) || isinf(receiveBuffers[c][cell])) {
                fprintf(stderr, "NaN received at cell %li, vel_cell %i (%i blocks)\n", receive_cells[c], cell, spatial_cell->get_number_of_velocity_blocks(popID));
