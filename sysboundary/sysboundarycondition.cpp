@@ -120,8 +120,8 @@ namespace SBC {
     * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives, 3: xy-derivatives, 4: xz-derivatives, 5: yz-derivatives.
     */
    void SysBoundaryCondition::setCellDerivativesToZero(
-      FsGrid< Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH> & dPerBGrid,
-      FsGrid< Real, fsgrids::dmoments::N_DMOMENTS, FS_STENCIL_WIDTH> & dMomentsGrid,
+      const arch::buf<FsGrid< Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH>> & dPerBGrid,
+      const arch::buf<FsGrid< Real, fsgrids::dmoments::N_DMOMENTS, FS_STENCIL_WIDTH>> & dMomentsGrid,
       cint i,
       cint j,
       cint k,
@@ -192,7 +192,7 @@ namespace SBC {
     * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives.
     */
    void SysBoundaryCondition::setCellBVOLDerivativesToZero(
-      FsGrid< Real, fsgrids::volfields::N_VOL, FS_STENCIL_WIDTH> & volGrid,
+      const arch::buf<FsGrid< Real, fsgrids::volfields::N_VOL, FS_STENCIL_WIDTH>> & volGrid,
       cint i,
       cint j,
       cint k,

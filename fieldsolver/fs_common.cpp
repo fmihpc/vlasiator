@@ -52,8 +52,8 @@ Real divideIfNonZero(
  * \param reconstructionOrder Reconstruction order of the fields after Balsara 2009, 2 used for BVOL, 3 used for 2nd-order Hall term calculations.
  */
 void reconstructionCoefficients(
-   FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid<Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH> & dPerBGrid,
+   const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & perBGrid,
+   const arch::buf<FsGrid<Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH>> & dPerBGrid,
    Real* perturbedResult,
    cint i,
    cint j,
@@ -67,16 +67,14 @@ void reconstructionCoefficients(
    Real* cep_i1j2k1 = NULL;
    Real* cep_i1j1k2 = NULL;
    
-   FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> * params = & perBGrid;
-   
-   cep_i1j1k1 = params->get(i,j,k);
+   cep_i1j1k1 = perBGrid.get(i,j,k);
    dummyCellParams = cep_i1j1k1;
    cep_i2j1k1 = dummyCellParams;
    cep_i1j2k1 = dummyCellParams;
    cep_i1j1k2 = dummyCellParams;
-   if (params->get(i+1,j,k) != NULL) cep_i2j1k1 = params->get(i+1,j,k);
-   if (params->get(i,j+1,k) != NULL) cep_i1j2k1 = params->get(i,j+1,k);
-   if (params->get(i,j,k+1) != NULL) cep_i1j1k2 = params->get(i,j,k+1);
+   if (perBGrid.get(i+1,j,k) != NULL) cep_i2j1k1 = perBGrid.get(i+1,j,k);
+   if (perBGrid.get(i,j+1,k) != NULL) cep_i1j2k1 = perBGrid.get(i,j+1,k);
+   if (perBGrid.get(i,j,k+1) != NULL) cep_i1j1k2 = perBGrid.get(i,j,k+1);
    
    #ifndef FS_1ST_ORDER_SPACE
 

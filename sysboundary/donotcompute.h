@@ -76,36 +76,40 @@ namespace SBC {
          return 0.;
       }
       virtual void fieldSolverBoundaryCondMagneticFieldProjection(
-         FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
-         FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
+         const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & perBGrid,
+         const arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> & technicalGrid,
          cint i,
          cint j,
          cint k
-      ) { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondMagneticFieldProjection called!" << std::endl;}
+      ) {
+         #ifndef __CUDA_ARCH__
+         std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondMagneticFieldProjection called!" << std::endl;
+         #endif
+      }
       virtual void fieldSolverBoundaryCondElectricField(
-         FsGrid<Real, fsgrids::efield::N_EFIELD, FS_STENCIL_WIDTH> & EGrid,
+         const arch::buf<FsGrid<Real, fsgrids::efield::N_EFIELD, FS_STENCIL_WIDTH>> & EGrid,
          cint i,
          cint j,
          cint k,
          cuint component
       ) { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondElectricField called!" << std::endl;}
       virtual void fieldSolverBoundaryCondHallElectricField(
-         FsGrid<Real, fsgrids::ehall::N_EHALL, FS_STENCIL_WIDTH> & EHallGrid,
+         const arch::buf<FsGrid<Real, fsgrids::ehall::N_EHALL, FS_STENCIL_WIDTH>> & EHallGrid,
          cint i,
          cint j,
          cint k,
          cuint component
       ) { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondHallElectricField called!" << std::endl;}
       virtual void fieldSolverBoundaryCondGradPeElectricField(
-         FsGrid<Real, fsgrids::egradpe::N_EGRADPE, FS_STENCIL_WIDTH> & EGradPeGrid,
+         const arch::buf<FsGrid<Real, fsgrids::egradpe::N_EGRADPE, FS_STENCIL_WIDTH>> & EGradPeGrid,
          cint i,
          cint j,
          cint k,
          cuint component
       ) { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondGradPeElectricField called!" << std::endl;}
       virtual void fieldSolverBoundaryCondDerivatives(
-         FsGrid<Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH> & dPerBGrid,
-         FsGrid<Real, fsgrids::dmoments::N_DMOMENTS, FS_STENCIL_WIDTH> & dMomentsGrid,
+         const arch::buf<FsGrid<Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH>> & dPerBGrid,
+         const arch::buf<FsGrid<Real, fsgrids::dmoments::N_DMOMENTS, FS_STENCIL_WIDTH>> & dMomentsGrid,
          cint i,
          cint j,
          cint k,
@@ -113,7 +117,7 @@ namespace SBC {
          cuint& component
       ) { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondDerivatives called!" << std::endl;}
       virtual void fieldSolverBoundaryCondBVOLDerivatives(
-         FsGrid<Real, fsgrids::volfields::N_VOL, FS_STENCIL_WIDTH> & volGrid,
+         const arch::buf<FsGrid<Real, fsgrids::volfields::N_VOL, FS_STENCIL_WIDTH>> & volGrid,
          cint i,
          cint j,
          cint k,

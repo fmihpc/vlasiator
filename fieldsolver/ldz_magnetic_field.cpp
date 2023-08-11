@@ -47,10 +47,10 @@
  * \param doZ If true, compute the z component (default true).
  */
 void propagateMagneticField(
-   FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBDt2Grid,
-   FsGrid<Real, fsgrids::efield::N_EFIELD, FS_STENCIL_WIDTH> & EGrid,
-   FsGrid<Real, fsgrids::efield::N_EFIELD, FS_STENCIL_WIDTH> & EDt2Grid,
+   const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & perBGrid,
+   const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & perBDt2Grid,
+   const arch::buf<FsGrid<Real, fsgrids::efield::N_EFIELD, FS_STENCIL_WIDTH>> & EGrid,
+   const arch::buf<FsGrid<Real, fsgrids::efield::N_EFIELD, FS_STENCIL_WIDTH>> & EDt2Grid,
    cint i,
    cint j,
    cint k,
@@ -60,9 +60,9 @@ void propagateMagneticField(
    const bool doY, //=true (default)
    const bool doZ  //=true (default)
 ) {
-   creal dx = perBGrid.DX;
-   creal dy = perBGrid.DY;
-   creal dz = perBGrid.DZ;
+   creal dx = perBGrid.grid()->DX;
+   creal dy = perBGrid.grid()->DY;
+   creal dz = perBGrid.grid()->DZ;
    
    Real* perBGrid0 = perBGrid.get(i,j,k);
    Real* EGrid0;
@@ -172,23 +172,23 @@ void propagateMagneticField(
  * \sa propagateMagneticFieldSimple propagateMagneticField
  */
 void propagateSysBoundaryMagneticField(
-   FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBDt2Grid,
-   FsGrid<Real, fsgrids::efield::N_EFIELD, FS_STENCIL_WIDTH> & EGrid,
-   FsGrid<Real, fsgrids::efield::N_EFIELD, FS_STENCIL_WIDTH> & EDt2Grid,
-   FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
+   const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & perBGrid,
+   const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & perBDt2Grid,
+   const arch::buf<FsGrid<Real, fsgrids::efield::N_EFIELD, FS_STENCIL_WIDTH>> & EGrid,
+   const arch::buf<FsGrid<Real, fsgrids::efield::N_EFIELD, FS_STENCIL_WIDTH>> & EDt2Grid,
+   const arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> & technicalGrid,
    cint i,
    cint j,
    cint k,
-   SysBoundary& sysBoundaries,
+   const arch::buf<SysBoundary> & sysBoundaries,
    creal& dt,
    cint& RKCase,
    cuint component
 ) {
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      perBGrid.get(i,j,k)[fsgrids::bfield::PERBX + component] = sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondMagneticField(perBGrid, technicalGrid, i, j, k, dt, component);
+      perBGrid.get(i,j,k)[fsgrids::bfield::PERBX + component] = sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag).fieldSolverBoundaryCondMagneticField(perBGrid, technicalGrid, i, j, k, dt, component);
    } else {
-      perBDt2Grid.get(i,j,k)[fsgrids::bfield::PERBX + component] = sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondMagneticField(perBDt2Grid, technicalGrid, i, j, k, dt, component);
+      perBDt2Grid.get(i,j,k)[fsgrids::bfield::PERBX + component] = sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag).fieldSolverBoundaryCondMagneticField(perBDt2Grid, technicalGrid, i, j, k, dt, component);
    }
 }
 
@@ -206,19 +206,19 @@ void propagateSysBoundaryMagneticField(
  * \sa propagateMagneticFieldSimple propagateMagneticField
  */
 void SysBoundaryMagneticFieldProjection(
-   FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBDt2Grid,
-   FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
+   const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & perBGrid,
+   const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & perBDt2Grid,
+   const arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> & technicalGrid,
    cint i,
    cint j,
    cint k,
-   SysBoundary& sysBoundaries,
+   const arch::buf<SysBoundary>& sysBoundaries,
    cint& RKCase
 ) {
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondMagneticFieldProjection(perBGrid, technicalGrid, i, j, k);
+      sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag).fieldSolverBoundaryCondMagneticFieldProjection(perBGrid, technicalGrid, i, j, k);
    } else {
-      sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondMagneticFieldProjection(perBDt2Grid, technicalGrid, i, j, k);
+      sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag).fieldSolverBoundaryCondMagneticFieldProjection(perBDt2Grid, technicalGrid, i, j, k);
    }
 }
 
@@ -238,18 +238,18 @@ void SysBoundaryMagneticFieldProjection(
  * \sa propagateMagneticField propagateSysBoundaryMagneticField
  */
 void propagateMagneticFieldSimple(
-   FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBDt2Grid,
-   FsGrid<Real, fsgrids::efield::N_EFIELD, FS_STENCIL_WIDTH> & EGrid,
-   FsGrid<Real, fsgrids::efield::N_EFIELD, FS_STENCIL_WIDTH> & EDt2Grid,
-   FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
-   SysBoundary& sysBoundaries,
+   arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & perBGrid,
+   arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & perBDt2Grid,
+   arch::buf<FsGrid<Real, fsgrids::efield::N_EFIELD, FS_STENCIL_WIDTH>> & EGrid,
+   arch::buf<FsGrid<Real, fsgrids::efield::N_EFIELD, FS_STENCIL_WIDTH>> & EDt2Grid,
+   arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> & technicalGrid,
+   arch::buf<SysBoundary> & sysBoundaries, 
    creal& dt,
    cint& RKCase
 ) {
    int timer;
    //const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
-   const int* gridDims = &technicalGrid.getLocalSize()[0];
+   const int* gridDims = &technicalGrid.grid()->getLocalSize()[0];
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
    
    phiprof::start("Propagate magnetic field");
@@ -257,15 +257,10 @@ void propagateMagneticFieldSimple(
    timer=phiprof::initializeTimer("Compute cells");
    phiprof::start(timer);
    
-   #pragma omp parallel for collapse(3) schedule(dynamic,1)
-   for (int k=0; k<gridDims[2]; k++) {
-      for (int j=0; j<gridDims[1]; j++) {
-         for (int i=0; i<gridDims[0]; i++) {
-            cuint bitfield = technicalGrid.get(i,j,k)->SOLVE;
-            propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, ((bitfield & compute::BX) == compute::BX), ((bitfield & compute::BY) == compute::BY), ((bitfield & compute::BZ) == compute::BZ));
-         }
-      }
-   }
+   arch::parallel_for({(uint)gridDims[0], (uint)gridDims[1], (uint)gridDims[2]}, ARCH_LOOP_LAMBDA(int i, int j, int k) { 
+      cuint bitfield = technicalGrid.get(i,j,k)->SOLVE;
+      propagateMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, i, j, k, dt, RKCase, ((bitfield & compute::BX) == compute::BX), ((bitfield & compute::BY) == compute::BY), ((bitfield & compute::BZ) == compute::BZ));
+   });
    
    //phiprof::stop("propagate not sysbound",localCells.size(),"Spatial Cells");
    phiprof::stop(timer,N_cells,"Spatial Cells");
@@ -277,10 +272,14 @@ void propagateMagneticFieldSimple(
    phiprof::start(timer);
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       // Exchange PERBX,PERBY,PERBZ with neighbours
-      perBGrid.updateGhostCells();
+      perBGrid.syncHostData();
+      perBGrid.grid()->updateGhostCells();
+      perBGrid.syncDeviceData();
    } else { // RKCase == RK_ORDER2_STEP1
       // Exchange PERBX_DT2,PERBY_DT2,PERBZ_DT2 with neighbours
-      perBDt2Grid.updateGhostCells();
+      perBDt2Grid.syncHostData();
+      perBDt2Grid.grid()->updateGhostCells();
+      perBDt2Grid.syncDeviceData();
    }
    
    phiprof::stop(timer);
@@ -289,74 +288,60 @@ void propagateMagneticFieldSimple(
    timer=phiprof::initializeTimer("Compute system boundary cells");
    phiprof::start(timer);
    // L1 pass
-   #pragma omp parallel for collapse(3)
-   for (int k=0; k<gridDims[2]; k++) {
-      for (int j=0; j<gridDims[1]; j++) {
-         for (int i=0; i<gridDims[0]; i++) {
-            cuint bitfield = technicalGrid.get(i,j,k)->SOLVE;
-            // L1 pass
-            if (technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) {
-               if ((bitfield & compute::BX) != compute::BX) {
-                  propagateSysBoundaryMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, i, j, k, sysBoundaries, dt, RKCase, 0);
-               }
-               if ((bitfield & compute::BY) != compute::BY) {
-                  propagateSysBoundaryMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, i, j, k, sysBoundaries, dt, RKCase, 1);
-               }
-               if ((bitfield & compute::BZ) != compute::BZ) {
-                  propagateSysBoundaryMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, i, j, k, sysBoundaries, dt, RKCase, 2);
-               }
-            }
+   arch::parallel_for({(uint)gridDims[0], (uint)gridDims[1], (uint)gridDims[2]}, ARCH_LOOP_LAMBDA(int i, int j, int k) { 
+      cuint bitfield = technicalGrid.get(i,j,k)->SOLVE;
+      // // L1 pass
+      if (technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) {
+         if ((bitfield & compute::BX) != compute::BX) {
+            propagateSysBoundaryMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, i, j, k, sysBoundaries, dt, RKCase, 0);
+         }
+         if ((bitfield & compute::BY) != compute::BY) {
+            propagateSysBoundaryMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, i, j, k, sysBoundaries, dt, RKCase, 1);
+         }
+         if ((bitfield & compute::BZ) != compute::BZ) {
+            propagateSysBoundaryMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, i, j, k, sysBoundaries, dt, RKCase, 2);
          }
       }
-   }
+   });
    phiprof::stop(timer);
    
    timer=phiprof::initializeTimer("MPI","MPI");
    phiprof::start(timer);
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       // Exchange PERBX,PERBY,PERBZ with neighbours
-      perBGrid.updateGhostCells();
+      perBGrid.grid()->updateGhostCells();
    } else { // RKCase == RK_ORDER2_STEP1
       // Exchange PERBX_DT2,PERBY_DT2,PERBZ_DT2 with neighbours
-      perBDt2Grid.updateGhostCells();
+      perBDt2Grid.grid()->updateGhostCells();
    }
    phiprof::stop(timer);
 
    timer=phiprof::initializeTimer("Compute system boundary cells");
    phiprof::start(timer);
    // L2 pass
-   #pragma omp parallel for collapse(3)
-   for (int k=0; k<gridDims[2]; k++) {
-      for (int j=0; j<gridDims[1]; j++) {
-         for (int i=0; i<gridDims[0]; i++) {
-            if(technicalGrid.get(i,j,k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
-               technicalGrid.get(i,j,k)->sysBoundaryLayer == 2
-            ) {
-               for (uint component = 0; component < 3; component++) {
-                  propagateSysBoundaryMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, i, j, k, sysBoundaries, dt, RKCase, component);
-               }
-            }
+   arch::parallel_for({(uint)gridDims[0], (uint)gridDims[1], (uint)gridDims[2]}, ARCH_LOOP_LAMBDA(int i, int j, int k) { 
+      if(technicalGrid.get(i,j,k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
+         technicalGrid.get(i,j,k)->sysBoundaryLayer == 2
+      ) {
+         for (uint component = 0; component < 3; component++) {
+            propagateSysBoundaryMagneticField(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, i, j, k, sysBoundaries, dt, RKCase, component);
          }
       }
-   }
+   });
    phiprof::stop(timer,N_cells,"Spatial Cells");
 
    // Projection of magnetic field to normal of boundary, if necessary
    timer=phiprof::initializeTimer("Compute system boundary cells");
    phiprof::start(timer);
-   #pragma omp parallel for collapse(3)
-   for (int k=0; k<gridDims[2]; k++) {
-      for (int j=0; j<gridDims[1]; j++) {
-         for (int i=0; i<gridDims[0]; i++) {
-            if (technicalGrid.get(i,j,k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
-                ((technicalGrid.get(i,j,k)->sysBoundaryLayer == 2) ||
-                 (technicalGrid.get(i,j,k)->sysBoundaryLayer == 1))
-               ) {
-               SysBoundaryMagneticFieldProjection(perBGrid, perBDt2Grid, technicalGrid, i, j, k, sysBoundaries, RKCase);
-            }
-         }
+
+   arch::parallel_for({(uint)gridDims[0], (uint)gridDims[1], (uint)gridDims[2]}, ARCH_LOOP_LAMBDA(int i, int j, int k) { 
+      if (technicalGrid.get(i,j,k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
+            ((technicalGrid.get(i,j,k)->sysBoundaryLayer == 2) ||
+            (technicalGrid.get(i,j,k)->sysBoundaryLayer == 1))
+         ) {
+         SysBoundaryMagneticFieldProjection(perBGrid, perBDt2Grid, technicalGrid, i, j, k, sysBoundaries, RKCase);
       }
-   }
+   });
    phiprof::stop(timer,N_cells,"Spatial Cells");
    
    phiprof::stop("Propagate magnetic field",N_cells,"Spatial Cells");

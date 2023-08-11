@@ -53,6 +53,126 @@ class buf<SysBoundary> {
                         exit(1);
                     }
                 }
+
+                void fieldSolverBoundaryCondMagneticFieldProjection(
+                    const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & bGrid,
+                    const arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> & technicalGrid,
+                    cint i,
+                    cint j,
+                    cint k
+                ) {
+                    if (sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN) {
+                        bufPtr->setmaxwellian->fieldSolverBoundaryCondMagneticFieldProjection(bGrid, technicalGrid, i, j, k);
+                    } else if (sysBoundaryFlag == sysboundarytype::IONOSPHERE) {
+                        bufPtr->ionosphere->fieldSolverBoundaryCondMagneticFieldProjection(bGrid, technicalGrid, i, j, k);
+                    } else if (sysBoundaryFlag == sysboundarytype::OUTFLOW) {
+                        bufPtr->outflow->fieldSolverBoundaryCondMagneticFieldProjection(bGrid, technicalGrid, i, j, k);
+                    } else {
+                        std::cerr << "ERROR: sysboundarytype not found" << std::endl;
+                        exit(1);
+                    }
+                }
+
+                void fieldSolverBoundaryCondDerivatives(
+                    const arch::buf<FsGrid<Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH>> & dPerBGrid,
+                    const arch::buf<FsGrid<Real, fsgrids::dmoments::N_DMOMENTS, FS_STENCIL_WIDTH>> & dMomentsGrid,
+                    cint i,
+                    cint j,
+                    cint k,
+                    cuint& RKCase,
+                    cuint& component
+                ) {
+                    if (sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN) {
+                        bufPtr->setmaxwellian->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, component);
+                    } else if (sysBoundaryFlag == sysboundarytype::IONOSPHERE) {
+                        bufPtr->ionosphere->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, component);
+                    } else if (sysBoundaryFlag == sysboundarytype::OUTFLOW) {
+                        bufPtr->outflow->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, component);
+                    } else {
+                        std::cerr << "ERROR: sysboundarytype not found" << std::endl;
+                        exit(1);
+                    }
+                }
+
+                void fieldSolverBoundaryCondGradPeElectricField(
+                    const arch::buf<FsGrid<Real, fsgrids::egradpe::N_EGRADPE, FS_STENCIL_WIDTH>> & EGradPeGrid,
+                    cint i,
+                    cint j,
+                    cint k,
+                    cuint component
+                ) {
+                    if (sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN) {
+                        bufPtr->setmaxwellian->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid, i, j, k, component);
+                    } else if (sysBoundaryFlag == sysboundarytype::IONOSPHERE) {
+                        bufPtr->ionosphere->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid, i, j, k, component);
+                    } else if (sysBoundaryFlag == sysboundarytype::OUTFLOW) {
+                        bufPtr->outflow->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid, i, j, k, component);
+                    } else {
+                        std::cerr << "ERROR: sysboundarytype not found" << std::endl;
+                        exit(1);
+                    }
+                }
+
+                void fieldSolverBoundaryCondHallElectricField(
+                    const arch::buf<FsGrid<Real, fsgrids::ehall::N_EHALL, FS_STENCIL_WIDTH>> & EHallGrid,
+                    cint i,
+                    cint j,
+                    cint k,
+                    cuint component
+                ) { 
+                    if (sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN) {
+                        bufPtr->setmaxwellian->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, component);
+                    } else if (sysBoundaryFlag == sysboundarytype::IONOSPHERE) {
+                        bufPtr->ionosphere->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, component);
+                    } else if (sysBoundaryFlag == sysboundarytype::OUTFLOW) {
+                        bufPtr->outflow->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, component);
+                    } else {
+                        std::cerr << "ERROR: sysboundarytype not found" << std::endl;
+                        exit(1);
+                    }
+                }
+
+
+                void fieldSolverBoundaryCondElectricField(
+                    const arch::buf<FsGrid<Real, fsgrids::efield::N_EFIELD, FS_STENCIL_WIDTH>> & EGrid,
+                    cint i,
+                    cint j,
+                    cint k,
+                    cuint component
+                ) {
+                    if (sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN) {
+                        bufPtr->setmaxwellian->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, component);
+                    } else if (sysBoundaryFlag == sysboundarytype::IONOSPHERE) {
+                        bufPtr->ionosphere->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, component);
+                    } else if (sysBoundaryFlag == sysboundarytype::OUTFLOW) {
+                        bufPtr->outflow->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, component);
+                    } else {
+                        std::cerr << "ERROR: sysboundarytype not found" << std::endl;
+                        exit(1);
+                    }
+                }
+
+                void fieldSolverBoundaryCondBVOLDerivatives(
+                    const arch::buf<FsGrid<Real, fsgrids::volfields::N_VOL, FS_STENCIL_WIDTH>> & volGrid,
+                    cint i,
+                    cint j,
+                    cint k,
+                    cuint& component
+                ) {
+                    if (sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN) {
+                        bufPtr->setmaxwellian->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, component);
+                    } else if (sysBoundaryFlag == sysboundarytype::IONOSPHERE) {
+                        bufPtr->ionosphere->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, component);
+                    } else if (sysBoundaryFlag == sysboundarytype::OUTFLOW) {
+                        bufPtr->outflow->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, component);
+                    } else {
+                        std::cerr << "ERROR: sysboundarytype not found" << std::endl;
+                        exit(1);
+                    }
+                }
+
+
+
             private:
                 int sysBoundaryFlag;
                 const buf<SysBoundary>* bufPtr;

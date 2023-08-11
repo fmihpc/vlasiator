@@ -84,17 +84,17 @@ namespace SBC {
       ) {
          return fieldBoundary->fieldSolverBoundaryCondMagneticField(bGrid, technicalGrid, i, j, k, dt, component);
       }
-      virtual void fieldSolverBoundaryCondMagneticFieldProjection(
-         FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & bGrid,
-         FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
+      ARCH_HOSTDEV void fieldSolverBoundaryCondMagneticFieldProjection(
+         const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & bGrid,
+         const arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> & technicalGrid,
          cint i,
          cint j,
          cint k
       ) {
          fieldBoundary->fieldSolverBoundaryCondMagneticFieldProjection(bGrid, technicalGrid, i, j, k);
       }
-      virtual void fieldSolverBoundaryCondElectricField(
-         FsGrid<Real, fsgrids::efield::N_EFIELD, FS_STENCIL_WIDTH> & EGrid,
+      ARCH_HOSTDEV void fieldSolverBoundaryCondElectricField(
+         const arch::buf<FsGrid<Real, fsgrids::efield::N_EFIELD, FS_STENCIL_WIDTH>> & EGrid,
          cint i,
          cint j,
          cint k,
@@ -102,8 +102,8 @@ namespace SBC {
       ) {
          fieldBoundary->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, component);
       }
-      virtual void fieldSolverBoundaryCondHallElectricField(
-         FsGrid<Real, fsgrids::ehall::N_EHALL, FS_STENCIL_WIDTH> & EHallGrid,
+      ARCH_HOSTDEV void fieldSolverBoundaryCondHallElectricField(
+         const arch::buf<FsGrid<Real, fsgrids::ehall::N_EHALL, FS_STENCIL_WIDTH>> & EHallGrid,
          cint i,
          cint j,
          cint k,
@@ -111,8 +111,8 @@ namespace SBC {
       ) {
          fieldBoundary->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, component);
       }
-      virtual void fieldSolverBoundaryCondGradPeElectricField(
-         FsGrid<Real, fsgrids::egradpe::N_EGRADPE, FS_STENCIL_WIDTH> & EGradPeGrid,
+      ARCH_HOSTDEV void fieldSolverBoundaryCondGradPeElectricField(
+         const arch::buf<FsGrid<Real, fsgrids::egradpe::N_EGRADPE, FS_STENCIL_WIDTH>> & EGradPeGrid,
          cint i,
          cint j,
          cint k,
@@ -120,9 +120,9 @@ namespace SBC {
       ) {
          fieldBoundary->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid, i, j, k, component);
       }
-      virtual void fieldSolverBoundaryCondDerivatives(
-         FsGrid<Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH> & dPerBGrid,
-         FsGrid<Real, fsgrids::dmoments::N_DMOMENTS, FS_STENCIL_WIDTH> & dMomentsGrid,
+      ARCH_HOSTDEV void fieldSolverBoundaryCondDerivatives(
+         const arch::buf<FsGrid<Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH>> & dPerBGrid,
+         const arch::buf<FsGrid<Real, fsgrids::dmoments::N_DMOMENTS, FS_STENCIL_WIDTH>> & dMomentsGrid,
          cint i,
          cint j,
          cint k,
@@ -131,8 +131,8 @@ namespace SBC {
       ) {
          fieldBoundary->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, component);
       }
-      virtual void fieldSolverBoundaryCondBVOLDerivatives(
-         FsGrid<Real, fsgrids::volfields::N_VOL, FS_STENCIL_WIDTH> & volGrid,
+      ARCH_HOSTDEV void fieldSolverBoundaryCondBVOLDerivatives(
+         const arch::buf<FsGrid<Real, fsgrids::volfields::N_VOL, FS_STENCIL_WIDTH>> & volGrid,
          cint i,
          cint j,
          cint k,
