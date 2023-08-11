@@ -287,6 +287,9 @@ namespace projects {
          }
       }
 
+      // Remove blocks with f below sparse min value
+      for (size_t b=0; b<removeList.size(); ++b) cell->remove_velocity_block(removeList[b],popID);
+
 #ifdef VAMR
       // Get VAMR refinement criterion and use it to test which blocks should be refined
       vamr_ref_criteria::Base* refCriterion = getObjectWrapper().vamrVelRefCriteria.create(Parameters::vamrVelRefCriterion);
@@ -297,9 +300,6 @@ namespace projects {
          return;
       }
       refCriterion->initialize("");
-
-      // Remove blocks with f below sparse min value
-      for (size_t b=0; b<removeList.size(); ++b) cell->remove_velocity_block(removeList[b],popID);
 
       // Loop over blocks in the spatial cell until we reach the maximum
       // refinement level, or until there are no more blocks left to refine
