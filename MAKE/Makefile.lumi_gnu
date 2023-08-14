@@ -28,8 +28,8 @@ CXXFLAGS += -g -O3 -fopenmp -funroll-loops -std=c++17 -W -Wall -Wno-unused -mfma
 testpackage: CXXFLAGS = -g -O2 -fopenmp -funroll-loops -std=c++20 -mno-fma -mno-avx2 -mno-avx
 
 MATHFLAGS = -ffast-math
-LDFLAGS = -lrt -lgomp
-LIB_MPI = -lgomp
+LDFLAGS = -lrt -fopenmp
+LIB_MPI = -fopenmp
 
 #======== PAPI ==========
 #Add PAPI_MEM define to use papi to report memory consumption?
