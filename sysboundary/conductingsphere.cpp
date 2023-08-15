@@ -48,9 +48,9 @@
 
 namespace SBC {
    Conductingsphere::Conductingsphere(): SysBoundaryCondition() { }
-   
+
    Conductingsphere::~Conductingsphere() { }
-   
+
    void Conductingsphere::addParameters() {
       Readparameters::add("conductingsphere.centerX", "X coordinate of conductingsphere center (m)", 0.0);
       Readparameters::add("conductingsphere.centerY", "Y coordinate of conductingsphere center (m)", 0.0);
@@ -63,7 +63,7 @@ namespace SBC {
       // Per-population parameters
       for(uint i=0; i< getObjectWrapper().particleSpecies.size(); i++) {
          const std::string& pop = getObjectWrapper().particleSpecies[i].name;
-         
+
          Readparameters::add(pop + "_conductingsphere.rho", "Number density of the conductingsphere (m^-3)", 0.0);
          Readparameters::add(pop + "_conductingsphere.T", "Temperature of the conductingsphere (K)", 0.0);
          Readparameters::add(pop + "_conductingsphere.VX0", "Bulk velocity of conductospheric distribution function in X direction (m/s)", 0.0);
@@ -72,7 +72,7 @@ namespace SBC {
          Readparameters::add(pop + "_conductingsphere.fluffiness", "Inertia of boundary smoothing when copying neighbour's moments and velocity distributions (0=completely constant boundaries, 1=neighbours are interpolated immediately).", 0);
       }
    }
-   
+
    void Conductingsphere::getParameters() {
 
       Readparameters::get("conductingsphere.centerX", this->center[0]);
@@ -114,7 +114,7 @@ namespace SBC {
          speciesParams.push_back(sP);
       }
    }
-   
+
    bool Conductingsphere::initSysBoundary(
       creal& t,
       Project &project
@@ -122,17 +122,17 @@ namespace SBC {
       getParameters();
       isThisDynamic = false;
 
-      // iniSysBoundary is only called once, generateTemplateCell must 
+      // iniSysBoundary is only called once, generateTemplateCell must
       // init all particle species
       generateTemplateCell(project);
-      
+
       return true;
    }
 
    Real getR(creal x,creal y,creal z, uint geometry, Real center[3]) {
 
       Real r;
-      
+
       switch(geometry) {
       case 0:
          // infinity-norm, result is a diamond/square with diagonals aligned on the axes in 2D
@@ -157,7 +157,7 @@ namespace SBC {
 
       return r;
    }
-   
+
    bool Conductingsphere::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
       const vector<CellID>& cells = getLocalCells();
@@ -165,7 +165,7 @@ namespace SBC {
          if(mpiGrid[cells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
             continue;
          }
-         
+
          creal* const cellParams = &(mpiGrid[cells[i]]->parameters[0]);
          creal dx = cellParams[CellParams::DX];
          creal dy = cellParams[CellParams::DY];
@@ -173,7 +173,7 @@ namespace SBC {
          creal x = cellParams[CellParams::XCRD] + 0.5*dx;
          creal y = cellParams[CellParams::YCRD] + 0.5*dy;
          creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
-         
+
          if(getR(x,y,z,this->geometry,this->center) < this->radius) {
             mpiGrid[cells[i]]->sysBoundaryFlag = this->getIndex();
          }
@@ -193,9 +193,12 @@ namespace SBC {
       for (uint i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
          if (cell->sysBoundaryFlag != this->getIndex()) continue;
-         
-         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+         stringstream ss;
+         ss<<"conductingsphere for cell "<<i<<"/"<<cells.size()<<std::endl;
+         std::cerr<<ss.str();
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
             setCellFromTemplate(cell,popID);
+         }
       }
       return true;
    }
@@ -208,10 +211,10 @@ namespace SBC {
    ) {
       phiprof::start("Conductingsphere::fieldSolverGetNormalDirection");
       std::array<Real, 3> normalDirection{{ 0.0, 0.0, 0.0 }};
-      
+
       static creal DIAG2 = 1.0 / sqrt(2.0);
       static creal DIAG3 = 1.0 / sqrt(3.0);
-      
+
       creal dx = technicalGrid.DX;
       creal dy = technicalGrid.DY;
       creal dz = technicalGrid.DZ;
@@ -222,9 +225,9 @@ namespace SBC {
       creal xsign = divideIfNonZero(x, fabs(x));
       creal ysign = divideIfNonZero(y, fabs(y));
       creal zsign = divideIfNonZero(z, fabs(z));
-      
+
       Real length = 0.0;
-      
+
       if (Parameters::xcells_ini == 1) {
          if (Parameters::ycells_ini == 1) {
             if (Parameters::zcells_ini == 1) {
@@ -468,15 +471,15 @@ namespace SBC {
          }
          // end of 3D
       }
-      
+
       phiprof::stop("Conductingsphere::fieldSolverGetNormalDirection");
       return normalDirection;
    }
-   
+
    /*! We want here to
-    * 
+    *
     * -- Average perturbed face B from the nearest neighbours
-    * 
+    *
     * -- Retain only the normal components of perturbed face B
     */
    Real Conductingsphere::fieldSolverBoundaryCondMagneticField(
@@ -697,7 +700,7 @@ namespace SBC {
    ) {
       EGrid.get(i,j,k)->at(fsgrids::efield::EX+component) = 0.0;
    }
-   
+
    void Conductingsphere::fieldSolverBoundaryCondHallElectricField(
       FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
       cint i,
@@ -729,7 +732,7 @@ namespace SBC {
             cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
       }
    }
-   
+
    void Conductingsphere::fieldSolverBoundaryCondGradPeElectricField(
       FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
       cint i,
@@ -739,7 +742,7 @@ namespace SBC {
    ) {
       EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE+component) = 0.0;
    }
-   
+
    void Conductingsphere::fieldSolverBoundaryCondDerivatives(
       FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
       FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
@@ -752,7 +755,7 @@ namespace SBC {
       this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
       return;
    }
-   
+
    void Conductingsphere::fieldSolverBoundaryCondBVOLDerivatives(
       FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
       cint i,
@@ -763,7 +766,7 @@ namespace SBC {
       // FIXME This should be OK as the BVOL derivatives are only used for Lorentz force JXB, which is not applied on the conducting sphere cells.
       this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
    }
-   
+
    void Conductingsphere::vlasovBoundaryCondition(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
@@ -789,71 +792,79 @@ namespace SBC {
       templateCell.parameters[CellParams::DX] = 1;
       templateCell.parameters[CellParams::DY] = 1;
       templateCell.parameters[CellParams::DZ] = 1;
-      
+      std::cerr<<"generating conductingsphere template cell"<<std::endl;
+
       // Loop over particle species
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          const ConductingsphereSpeciesParameters& sP = this->speciesParams[popID];
          const vector<vmesh::GlobalID> blocksToInitialize = findBlocksToInitialize(templateCell,popID);
-         Realf* data = templateCell.get_data(popID);
-         
+         const uint nRequested = blocksToInitialize.size();
+         // Expand the velocity space to the required size
+         vmesh::VelocityMesh* vmesh = templateCell.get_velocity_mesh(popID);
+         vmesh::VelocityBlockContainer* blockContainer = templateCell.get_velocity_blocks(popID);
+         vmesh->setNewCapacity(nRequested);
+         blockContainer->recapacitate(nRequested);
+         creal minValue = templateCell.getVelocityBlockMinValue(popID);
+         std::cerr<<" Conductingsphere requested blocks "<<nRequested<<" with minValue "<<minValue<<std::endl;
+
+         // Create temporary buffer for initialization
+         vector<Realf> initBuffer(WID3);
+         // Loop over requested blocks. Initialize the contents into the temporary buffer
+         // and return the maximum value.
          for (size_t i = 0; i < blocksToInitialize.size(); i++) {
             const vmesh::GlobalID blockGID = blocksToInitialize.at(i);
+            Real maxValue = 0;
+
             const vmesh::LocalID blockLID = templateCell.get_velocity_block_local_id(blockGID,popID);
-            const Real* block_parameters = templateCell.get_block_parameters(blockLID,popID);
-            creal vxBlock = block_parameters[BlockParams::VXCRD];
-            creal vyBlock = block_parameters[BlockParams::VYCRD];
-            creal vzBlock = block_parameters[BlockParams::VZCRD];
-            creal dvxCell = block_parameters[BlockParams::DVX];
-            creal dvyCell = block_parameters[BlockParams::DVY];
-            creal dvzCell = block_parameters[BlockParams::DVZ];
+            // Calculate parameters for new block
+            Real blockSize[3];
+            Real blockCoords[3];
+            templateCell.get_velocity_block_size(popID,blockGID,&blockSize[0]);
+            templateCell.get_velocity_block_coordinates(popID,blockGID,&blockCoords[0]);
+            creal vxBlock = blockCoords[0];
+            creal vyBlock = blockCoords[1];
+            creal vzBlock = blockCoords[2];
+            creal dvxCell = blockSize[0];
+            creal dvyCell = blockSize[1];
+            creal dvzCell = blockSize[2];
 
-            //creal x = templateCell.parameters[CellParams::XCRD];
-            //creal y = templateCell.parameters[CellParams::YCRD];
-            //creal z = templateCell.parameters[CellParams::ZCRD];
-            //creal dx = templateCell.parameters[CellParams::DX];
-            //creal dy = templateCell.parameters[CellParams::DY];
-            //creal dz = templateCell.parameters[CellParams::DZ];
-         
             // Calculate volume average of distrib. function for each cell in the block.
-            for (uint kc=0; kc<WID; ++kc) for (uint jc=0; jc<WID; ++jc) for (uint ic=0; ic<WID; ++ic) {
-               creal vxCell = vxBlock + ic*dvxCell;
-               creal vyCell = vyBlock + jc*dvyCell;
-               creal vzCell = vzBlock + kc*dvzCell;
-               Real average = 0.0;
-               if(sP.nVelocitySamples > 1) {
-                  creal d_vx = dvxCell / (sP.nVelocitySamples-1);
-                  creal d_vy = dvyCell / (sP.nVelocitySamples-1);
-                  creal d_vz = dvzCell / (sP.nVelocitySamples-1);
-                  for (uint vi=0; vi<sP.nVelocitySamples; ++vi)
-                     for (uint vj=0; vj<sP.nVelocitySamples; ++vj)
-                        for (uint vk=0; vk<sP.nVelocitySamples; ++vk) {
-                           average +=  shiftedMaxwellianDistribution(
-                                                                     popID,
-                                                                     vxCell + vi*d_vx,
-                                                                     vyCell + vj*d_vy,
-                                                                     vzCell + vk*d_vz
-                                                                    );
-                        }
-                  average /= sP.nVelocitySamples * sP.nVelocitySamples * sP.nVelocitySamples;
-               } else {
-                  average = shiftedMaxwellianDistribution(
-                                                          popID,
-                                                          vxCell + 0.5*dvxCell,
-                                                          vyCell + 0.5*dvyCell,
-                                                          vzCell + 0.5*dvzCell
-                                                         );
+            for (uint kc=0; kc<WID; ++kc) {
+               for (uint jc=0; jc<WID; ++jc) {
+                  for (uint ic=0; ic<WID; ++ic) {
+                     creal vxCell = vxBlock + ic*dvxCell;
+                     creal vyCell = vyBlock + jc*dvyCell;
+                     creal vzCell = vzBlock + kc*dvzCell;
+                     Real average = 0.0;
+                     average = shiftedMaxwellianDistribution(
+                        popID,
+                        vxCell + 0.5*dvxCell,
+                        vyCell + 0.5*dvyCell,
+                        vzCell + 0.5*dvzCell
+                        );
+                     initBuffer[cellIndex(ic,jc,kc)] = average;
+                     maxValue = max(average, maxValue);
+                  }
                }
+            }
 
-               if (average !=0.0 ) {
-                  data[blockLID*WID3+cellIndex(ic,jc,kc)] = average;
-               }
-            } // for-loop over cells in velocity block
-         } // for-loop over velocity blocks
+            // Only keep this block if it is at least 10% of the sparsity value
+            if (maxValue > 0.1 * minValue) {
+               templateCell.add_velocity_block(blockGID, popID, initBuffer.data());
+            }
+         } // for-loop over requested velocity blocks
+         std::cerr<<" Conductingsphere completed init with "<<vmesh->size()<<" blocks "<<std::endl;
 
          // let's get rid of blocks not fulfilling the criteria here to save memory.
-         templateCell.adjustSingleCellVelocityBlocks(popID);
+         #ifdef USE_GPU
+         templateCell.prefetchDevice();
+         #endif
+         templateCell.adjustSingleCellVelocityBlocks(popID,true);
+         #ifdef USE_GPU
+         templateCell.prefetchHost();
+         #endif
       } // for-loop over particle species
-      
+
       calculateCellMoments(&templateCell,true,false,true);
 
       // WARNING Time-independence assumed here. Normal moments computed in setProjectCell
@@ -874,12 +885,12 @@ namespace SBC {
       templateCell.parameters[CellParams::P_22_V] = templateCell.parameters[CellParams::P_22];
       templateCell.parameters[CellParams::P_33_V] = templateCell.parameters[CellParams::P_33];
    }
-   
+
    Real Conductingsphere::shiftedMaxwellianDistribution(
       const uint popID,
       creal& vx, creal& vy, creal& vz
    ) {
-      
+
       const Real MASS = getObjectWrapper().particleSpecies[popID].mass;
       const ConductingsphereSpeciesParameters& sP = this->speciesParams[popID];
 
@@ -896,47 +907,51 @@ namespace SBC {
       const uint8_t refLevel = 0;
 
       const vmesh::LocalID* vblocks_ini = cell.get_velocity_grid_length(popID,refLevel);
+      Real V_crds[3];
+      Real dV[3];
+      dV[0] = cell.get_velocity_grid_block_size(popID,refLevel)[0];
+      dV[1] = cell.get_velocity_grid_block_size(popID,refLevel)[1];
+      dV[2] = cell.get_velocity_grid_block_size(popID,refLevel)[2];
+      creal minValue = cell.getVelocityBlockMinValue(popID);
 
+      const Real blockSizeX = cell.get_velocity_grid_block_size(popID,refLevel)[0];
       while (search) {
-         if (0.1 * cell.getVelocityBlockMinValue(popID) > shiftedMaxwellianDistribution(popID,counter*cell.get_velocity_grid_block_size(popID,refLevel)[0], 0.0, 0.0) || counter > vblocks_ini[0]) {
+         if (0.1 * minValue > shiftedMaxwellianDistribution(popID,counter*blockSizeX, 0.0, 0.0) || counter > vblocks_ini[0]) {
             search = false;
          }
-         ++counter;
+         counter++;
       }
       counter+=2;
-      Real vRadiusSquared 
-              = (Real)counter*(Real)counter
-              * cell.get_velocity_grid_block_size(popID,refLevel)[0]
-              * cell.get_velocity_grid_block_size(popID,refLevel)[0];
 
-      for (uint kv=0; kv<vblocks_ini[2]; ++kv) 
-         for (uint jv=0; jv<vblocks_ini[1]; ++jv)
+      Real vRadiusSquared = (Real)counter * (Real)counter * dV[0] * dV[0];
+
+      for (uint kv=0; kv<vblocks_ini[2]; ++kv) {
+         for (uint jv=0; jv<vblocks_ini[1]; ++jv) {
             for (uint iv=0; iv<vblocks_ini[0]; ++iv) {
-               vmesh::LocalID blockIndices[3];
+               vmesh::GlobalID blockIndices[3];
                blockIndices[0] = iv;
                blockIndices[1] = jv;
                blockIndices[2] = kv;
                const vmesh::GlobalID blockGID = cell.get_velocity_block(popID,blockIndices,refLevel);
-               Real blockCoords[3];
-               cell.get_velocity_block_coordinates(popID,blockGID,blockCoords);
-               Real blockSize[3];
-               cell.get_velocity_block_size(popID,blockGID,blockSize);
-               blockCoords[0] += 0.5*blockSize[0];
-               blockCoords[1] += 0.5*blockSize[1];
-               blockCoords[2] += 0.5*blockSize[2];
-               //creal vx = P::vxmin + (iv+0.5) * cell.get_velocity_grid_block_size(popID)[0]; // vx-coordinate of the centre
-               //creal vy = P::vymin + (jv+0.5) * cell.get_velocity_grid_block_size(popID)[1]; // vy-
-               //creal vz = P::vzmin + (kv+0.5) * cell.get_velocity_grid_block_size(popID)[2]; // vz-
-               
-               if (blockCoords[0]*blockCoords[0] + blockCoords[1]*blockCoords[1] + blockCoords[2]*blockCoords[2] < vRadiusSquared) {
-               //if (vx*vx + vy*vy + vz*vz < vRadiusSquared) {
-                  // Adds velocity block to active population's velocity mesh
-                  //const vmesh::GlobalID newBlockGID = cell.get_velocity_block(popID,vx,vy,vz);
-                  cell.add_velocity_block(blockGID,popID);
+
+               cell.get_velocity_block_coordinates(popID,blockGID,V_crds);
+               #ifdef VAMR
+               cell.get_velocity_block_size(popID,blockGID,dV);
+               #endif
+               V_crds[0] += ( 0.5*dV[0] -VX0 );
+               V_crds[1] += ( 0.5*dV[1] -VY0 );
+               V_crds[2] += ( 0.5*dV[2] -VZ0 );
+               Real R2 = ((V_crds[0])*(V_crds[0])
+                          + (V_crds[1])*(V_crds[1])
+                          + (V_crds[2])*(V_crds[2]));
+
+               if (R2 < vRadiusSquared) {
+                  //cell.add_velocity_block(blockGID,popID);
                   blocksToInitialize.push_back(blockGID);
                }
             }
-
+         }
+      }
       return blocksToInitialize;
    }
 
@@ -946,6 +961,6 @@ namespace SBC {
    }
 
    std::string Conductingsphere::getName() const {return "Conductingsphere";}
-   
+
    uint Conductingsphere::getIndex() const {return sysboundarytype::CONDUCTINGSPHERE;}
 }

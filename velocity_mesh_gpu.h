@@ -93,6 +93,7 @@ namespace vmesh {
       bool setGrid(const split::SplitVector<vmesh::GlobalID>& globalIDs);
       bool setMesh(const size_t& meshID);
       void setNewSize(const vmesh::LocalID& newSize);
+      void setNewCapacity(const vmesh::LocalID& newCapacity);
       ARCH_HOSTDEV size_t size() const;
       ARCH_HOSTDEV size_t sizeInBytes() const;
       ARCH_HOSTDEV void swap(VelocityMesh& vm);
@@ -590,6 +591,17 @@ namespace vmesh {
       if ((attachedStream != 0)&&(needAttachedStreams)) {
          globalToLocalMap->streamAttach(attachedStream);
          localToGlobalMap->streamAttach(attachedStream);
+      }
+   }
+
+   // Used in initialization
+   inline void VelocityMesh::setNewCapacity(const vmesh::LocalID& newCapacity) {
+      // Passing eco flag = true to resize tells splitvector we manage padding manually.
+      localToGlobalMap->reserve(newCapacity,true);
+      // Ensure also that the map is large enough
+      const int HashmapReqSize = ceil(log2(newCapacity)) +1;
+      if (globalToLocalMap->getSizePower() < HashmapReqSize) {
+         globalToLocalMap->rehash(HashmapReqSize);
       }
    }
 

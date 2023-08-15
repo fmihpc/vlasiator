@@ -133,6 +133,7 @@ void SysBoundary::getParameters() {
  */
 bool SysBoundary::addSysBoundary(SBC::SysBoundaryCondition* bc, Project& project, creal& t) {
    // Initialize the boundary condition
+   cerr << "Adding new sysboundary " << endl;
    bool success = true;
    if (!bc->initSysBoundary(t, project)) {
       cerr << "Failed to initialize system boundary condition '" << bc->getName() << "'" << endl;
@@ -344,7 +345,7 @@ bool SysBoundary::initSysBoundaries(Project& project, creal& t) {
 }
 
 /*!\brief Boolean check if queried sysboundarycondition exists
- * Note: this queries against the parsed list of names, not against the actual existing boundaries. 
+ * Note: this queries against the parsed list of names, not against the actual existing boundaries.
  * This is so that the project configuration (which is handled before grid and boundary initialization)
  * can use this call.
  *
@@ -655,7 +656,7 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
       for (int y = 0; y < localSize[1]; ++y) {
          for (int z = 0; z < localSize[2]; ++z) {
             if (technicalGrid.get(x,y,z)->sysBoundaryLayer == 0 && (
-                technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::IONOSPHERE || 
+                technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::IONOSPHERE ||
                 technicalGrid.get(x,y,z)->sysBoundaryFlag == sysboundarytype::CONDUCTINGSPHERE)) {
                technicalGrid.get(x, y, z)->sysBoundaryFlag = sysboundarytype::DO_NOT_COMPUTE;
             }
@@ -747,6 +748,7 @@ bool SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_G
       ) {
          continue;
       }
+      cerr << "Applying initial state for " << (*it)->getName() << " system boundary"<<endl;
       if (!(*it)->applyInitialState(mpiGrid, technicalGrid, perBGrid, project)) {
          cerr << "ERROR: " << (*it)->getName() << " system boundary condition initial state not applied correctly." << endl;
          success = false;

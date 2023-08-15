@@ -21,7 +21,7 @@
  */
 
 /*!\file setbyuser.cpp
- * \brief Implementation of the class SysBoundaryCondition::SetByUser. 
+ * \brief Implementation of the class SysBoundaryCondition::SetByUser.
  * This serves as the base class for further classes like SysBoundaryCondition::SetMaxwellian.
  */
 
@@ -46,7 +46,7 @@ using namespace std;
 namespace SBC {
    SetByUser::SetByUser(): OuterBoundaryCondition() { }
    SetByUser::~SetByUser() { }
-   
+
    bool SetByUser::initSysBoundary(
       creal& t,
       Project &project
@@ -57,9 +57,9 @@ namespace SBC {
        */
       bool success = true;
       for(uint i=0; i<6; i++) facesToProcess[i] = false;
-      
+
       this->getParameters();
-      
+
       vector<string>::const_iterator it;
       for (it = faceList.begin(); it != faceList.end(); ++it) {
          if(*it == "x+") facesToProcess[0] = true;
@@ -69,15 +69,15 @@ namespace SBC {
          if(*it == "z+") facesToProcess[4] = true;
          if(*it == "z-") facesToProcess[5] = true;
       }
-      
+
       for(unsigned int i=0; i<speciesParams.size(); i++) {
          success = loadInputData(i);
       }
       success = success & generateTemplateCells(t);
-      
+
       return success;
    }
-   
+
    bool SetByUser::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
@@ -89,10 +89,10 @@ namespace SBC {
          if (!setCellsFromTemplate(mpiGrid, popID)) success = false;
       }
       if (!setBFromTemplate(technicalGrid, perBGrid)) success = false;
-      
+
       return success;
    }
-   
+
    void SetByUser::fieldSolverBoundaryCondMagneticFieldProjection(
       FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
@@ -127,7 +127,7 @@ namespace SBC {
       creal dx = Parameters::dx_ini * pow(2, -refLevel);
       creal dy = Parameters::dy_ini * pow(2, -refLevel);
       creal dz = Parameters::dz_ini * pow(2, -refLevel);
-      
+
       bool isThisCellOnAFace[6];
       determineFace(isThisCellOnAFace, x, y, z, dx, dy, dz, true);
 
@@ -181,7 +181,7 @@ namespace SBC {
             cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
       }
    }
-   
+
    void SetByUser::fieldSolverBoundaryCondGradPeElectricField(
       FsGrid< array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
       cint i,
@@ -191,7 +191,7 @@ namespace SBC {
    ) {
          EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE+component) = 0.0;
    }
-   
+
    void SetByUser::fieldSolverBoundaryCondDerivatives(
       FsGrid< array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
       FsGrid< array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
@@ -220,9 +220,9 @@ namespace SBC {
       const uint popID,
       const bool calculate_V_moments
    ) {
-      // No need to do anything in this function, as the propagators do not touch the distribution function   
+      // No need to do anything in this function, as the propagators do not touch the distribution function
    }
-   
+
    bool SetByUser::setBFromTemplate(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid) {
 
       array<bool,6> isThisCellOnAFace;
@@ -235,7 +235,7 @@ namespace SBC {
                   continue;
 
                const auto coords = technicalGrid.getPhysicalCoords(i,j,k);
-               
+
                // TODO: This code up to determineFace() should be in a separate function, it gets called in a lot of places.
                // Shift to the center of the fsgrid cell
                auto cellCenterCoords = coords;
@@ -257,7 +257,7 @@ namespace SBC {
                creal dx = P::dx_ini / pow(2, refLevel);
                creal dy = P::dy_ini / pow(2, refLevel);
                creal dz = P::dz_ini / pow(2, refLevel);
-               
+
                isThisCellOnAFace.fill(false);
 
                determineFace(isThisCellOnAFace.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx, dy, dz);
@@ -279,13 +279,16 @@ namespace SBC {
 
    bool SetByUser::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID) {
 
-      //#pragma omp parallel for
+      stringstream ss;
+      ss<<"setbyuser loop"<<endl;
+      cerr<<ss.str();
+      #pragma omp parallel for
       for (const auto& id : getLocalCells()) {
          SpatialCell* cell = mpiGrid[id];
-         if(cell->sysBoundaryFlag != this->getIndex()) 
+         if(cell->sysBoundaryFlag != this->getIndex())
             continue;
-         
-         std::array<bool, 6> isThisCellOnAFace;
+
+         array<bool, 6> isThisCellOnAFace;
          determineFace(isThisCellOnAFace, mpiGrid, id);
 
          for (uint i=0; i < 6; i++) {
@@ -299,11 +302,11 @@ namespace SBC {
 
       return true;
    }
-   
+
    void SetByUser::getFaces(bool* faces) {
       for(uint i=0; i<6; i++) faces[i] = facesToProcess[i];
    }
-   
+
    bool SetByUser::loadInputData(const uint popID) {
       UserSpeciesParameters& sP = speciesParams[popID];
 
@@ -322,7 +325,7 @@ namespace SBC {
       }
       return true;
    }
-   
+
 // Suppress fscanf warnings since we check type
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat"
@@ -330,19 +333,19 @@ namespace SBC {
     * The first entry of each line is assumed to be the time.
     * The number of entries per line is given by nParams which is defined as a parameter
     * from the configuration file/command line.
-    * 
+    *
     * Function adapted from GUMICS-5.
-    * 
+    *
     * \param fn Name of the file to be opened.
     * \retval dataset Vector of Real vectors. Each line of length nParams is put into a vector. Each of these is then put into the vector returned here.
     */
    vector<vector<Real> > SetByUser::loadFile(const char *fn, unsigned int nParams) {
       vector<vector<Real> > dataset;
- 
-   
+
+
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
-      
+
       // Count lines with data
       FILE *fp;
       fp = fopen(fn,"r");
@@ -373,16 +376,16 @@ namespace SBC {
          nlines++;
       }
       nlines--;
-      
+
       fclose(fp);
-      
+
       if (nlines < 1) {
          cerr << "Parameter file must have at least one value (t, n, T...)" << endl;
          exit(1);
       }
-      
+
       if (myRank == 0) cout << "Parameter data file (" << fn << ") has " << nlines << " values"<< endl;
-      
+
       fp = fopen(fn,"r");
       for (uint line=0; line<nlines; line++) {
          vector<Real> tempData;
@@ -394,7 +397,7 @@ namespace SBC {
             } else if( typeid( readParam ) == typeid(float) ) {
                ret = fscanf(fp,"%f",&readParam);
             } else {
-               assert( typeid( readParam ) == typeid(float) || typeid( readParam ) == typeid(double) ); 
+               assert( typeid( readParam ) == typeid(float) || typeid( readParam ) == typeid(double) );
             }
             if (ret != 1) {
                cerr << "Couldn't read a number from parameter file " << *fn << " for line value " << line << endl;
@@ -403,7 +406,7 @@ namespace SBC {
          }
          dataset.push_back(tempData);
       }
-      
+
       // check that sw data is in ascending temporal order
       for (uint line = 1; line < nlines; line++) {
          if (dataset[line][0] < dataset[line - 1][0]) {
@@ -411,13 +414,13 @@ namespace SBC {
             exit(1);
          }
       }
-      
+
       fclose(fp);
-      
+
       return dataset;
    }
 #pragma GCC diagnostic pop
-   
+
    /*! Loops through the array of template cells and generates the ones needed. The function
     * generateTemplateCell is defined in the inheriting class such as to have the specific
     * condition needed.
@@ -427,13 +430,16 @@ namespace SBC {
    bool SetByUser::generateTemplateCells(creal& t) {
       #pragma omp parallel for
       for(uint i=0; i<6; i++) {
+         stringstream ss;
+         ss<<"setbyuser generating template cell for face "<<i<<endl;
+         cerr<<ss.str();
          if(facesToProcess[i]) {
             generateTemplateCell(templateCells[i], templateB[i], i, t);
          }
       }
       return true;
    }
-   
+
    /*!Interpolate the input data to the given time.
     * The first entry of each line is assumed to be the time.
     * \param inputDataIndex Index used to get the correct face's input data.
@@ -452,7 +458,7 @@ namespace SBC {
       int i1=0,i2=0;
       bool found = false;
       Real s;      // 0 <= s < 1
-      
+
       // use first value of sw data if interpolating for time before sw data starts
       if (t < sP.inputData[inputDataIndex][0][0]) {
          i1 = i2 = 0;
@@ -480,9 +486,9 @@ namespace SBC {
             s = 0.0;
          }
       }
-      
+
       creal s1 = 1 - s;
-      
+
       for(uint i=0; i<sP.nParams-1; i++) {
          outputData[i] = s1*sP.inputData[inputDataIndex][i1][i+1] +
                            s*sP.inputData[inputDataIndex][i2][i+1];

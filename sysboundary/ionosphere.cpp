@@ -3348,7 +3348,13 @@ namespace SBC {
          }
 
          // Block adjust and recalculate moments
-         mpiGrid[cellID]->adjustSingleCellVelocityBlocks(popID);
+         #ifdef USE_GPU         
+         mpiGrid[cellID]->prefetchDevice();
+         #endif
+         mpiGrid[cellID]->adjustSingleCellVelocityBlocks(popID,true);
+         #ifdef USE_GPU
+         mpiGrid[cellID]->prefetchHost();
+         #endif
          // TODO: The moments can also be analytically calculated from ionosphere parameters.
          // Maybe that's faster?
          calculateCellMoments(mpiGrid[cellID], true, false, true);
@@ -3438,7 +3444,14 @@ namespace SBC {
          } // for-loop over velocity blocks
 
          // let's get rid of blocks not fulfilling the criteria here to save memory.
-         templateCell.adjustSingleCellVelocityBlocks(popID);
+         // Block adjust and recalculate moments
+         #ifdef USE_GPU
+         templateCell.prefetchDevice();
+         #endif
+         templateCell.adjustSingleCellVelocityBlocks(popID,true);
+         #ifdef USE_GPU
+         templateCell.prefetchHost();
+         #endif
       } // for-loop over particle species
 
       calculateCellMoments(&templateCell,true,false,true);

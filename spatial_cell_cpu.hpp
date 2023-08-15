@@ -324,6 +324,7 @@ namespace spatial_cell {
 
       // Following functions adjust velocity blocks stored on the cell //
       bool add_velocity_block(const vmesh::GlobalID& block,const uint popID);
+      bool add_velocity_block(const vmesh::GlobalID& block,const uint popID, Realf* buffer);
       void add_velocity_blocks(const std::vector<vmesh::GlobalID>& blocks,const uint popID);
       bool add_velocity_block_octant(const vmesh::GlobalID& blockGID,const uint popID);
       void adjustSingleCellVelocityBlocks(const uint popID, bool doDeleteEmpty=false);
@@ -1744,6 +1745,48 @@ namespace spatial_cell {
       // The following call 'should' be the fastest, but is actually
       // much slower that the parameter setting above
       //vmesh::VelocityMesh::getBlockInfo(block,get_block_parameters( blockContainer->push_back() ));
+      return success;
+   }
+
+   /*!
+    Adds a velocity block into this spatial cell and fills it with data from the provided buffer.
+    Returns true if given block was added or already exists.
+    Returns false if given block is invalid or would be outside
+    of the velocity grid.
+
+    NOTE: this function is not thread-safe when inserting new blocks.
+    */
+   inline bool SpatialCell::add_velocity_block(const vmesh::GlobalID& block,const uint popID,
+                                               Realf* buffer) {
+      #ifdef DEBUG_SPATIAL_CELL
+      if (popID >= populations.size()) {
+         std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
+         std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
+         exit(1);
+      }
+      #endif
+
+      // Block insert will fail, if the block already exists, or if
+      // there are too many blocks in the spatial cell
+      bool success = true;
+      if (populations[popID].vmesh->push_back(block) == false) {
+         return false;
+      }
+
+      const vmesh::LocalID VBC_LID = populations[popID].blockContainer->push_back();
+
+      // Set block parameters:
+      Real* parameters = get_block_parameters(VBC_LID,popID);
+      parameters[BlockParams::VXCRD] = get_velocity_block_vx_min(popID,block);
+      parameters[BlockParams::VYCRD] = get_velocity_block_vy_min(popID,block);
+      parameters[BlockParams::VZCRD] = get_velocity_block_vz_min(popID,block);
+      populations[popID].vmesh->getCellSize(block,&(parameters[BlockParams::DVX]));
+
+      // Copy the data in (increments in case of multipeak)
+      Real* data = get_data(VBC_LID,popID);
+      for (uint i=0; i<WID3; ++i) {
+         data[i] += buffer[i];
+      }
       return success;
    }
 

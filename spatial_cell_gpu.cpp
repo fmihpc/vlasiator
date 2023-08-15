@@ -1047,6 +1047,10 @@ namespace spatial_cell {
       }
       #endif
 
+      if (this->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
+         return;
+      }
+
       // stream etc
 #ifdef _OPENMP
       const uint thread_id = omp_get_thread_num();
@@ -1068,6 +1072,10 @@ namespace spatial_cell {
       const vmesh::LocalID BlocksRequiredCapacity = info_Required->capacity;
       const vmesh::LocalID BlocksRequiredMapSizePower = info_brm->sizePower;
       vmesh::LocalID BlocksHaloCapacity = info_Halo->capacity;
+
+      stringstream ss;
+      ss<<"cell counters: lcb "<<localContentBlocks<<" lncb "<<localNoContentBlocks<<" BRC "<<BlocksRequiredCapacity<<" BRMSP "<<BlocksRequiredMapSizePower<<" BHC "<<BlocksHaloCapacity<<" current vmesh size "<<(populations[popID].vmesh)->size()<<" capacityIB "<< (populations[popID].vmesh)->capacityInBytes()<<std::endl;
+      std::cerr<<ss.str();
 
       // Neighbour and own prefetches
       if (doPrefetches) {
