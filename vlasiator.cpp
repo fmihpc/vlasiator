@@ -259,24 +259,33 @@ int main(int argn,char* args[]) {
    Real newDt;
    bool dtIsChanged;
    
-   // Before MPI_Init we hardwire some settings
+   // Before MPI_Init we hardwire some settings, if we are in OpenMPI
    int required=MPI_THREAD_FUNNELED;
-   int provided, index, count;
+   int provided, resultlen;
+   char mpiversion[MPI_MAX_LIBRARY_VERSION_STRING], io_value[64];
+   bool overrideMCAompio = false;
    
-   MPI_T_cvar_handle io_handle;
-   char io_value[64];
+   MPI_Get_library_version(mpiversion, &resultlen);
+   string versionstr = (string)mpiversion;
+
+   if(versionstr.find("Open MPI") != std::string::npos) {
+      overrideMCAompio = true;
+      int index, count;
+      
+      MPI_T_cvar_handle io_handle;
+      
+      MPI_T_init_thread(required, &provided);
+      
+      MPI_T_cvar_get_index("io", &index);
+      MPI_T_cvar_handle_alloc(index, NULL, &io_handle, &count);
+      MPI_T_cvar_write(io_handle, "^ompio");
+      
+      MPI_T_cvar_read(io_handle, io_value);
+      
+      MPI_T_cvar_handle_free(&io_handle);
+   }
    
-   MPI_T_init_thread(required, &provided);
-   
-   MPI_T_cvar_get_index("io", &index);
-   MPI_T_cvar_handle_alloc(index, NULL, &io_handle, &count);
-   MPI_T_cvar_write(io_handle, "^ompio");
-   
-   MPI_T_cvar_read(io_handle, io_value);
-   printf("Set value of cvars: MCA_io: %s\n", io_value);
-   
-   MPI_T_cvar_handle_free(&io_handle);
-   
+   // After the MPI_T settings we can init MPI all right.
    MPI_Init_thread(&argn,&args,required,&provided);
    if (required > provided){
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
@@ -292,6 +301,10 @@ int main(int argn,char* args[]) {
    MPI_Comm comm = MPI_COMM_WORLD;
    MPI_Comm_rank(comm,&myRank);
    
+   if (myRank == MASTER_RANK && overrideMCAompio) {
+      printf("We detected OpenMPI so we set the cvars value to disable ompio, MCA io: %s\n", io_value);
+   }
+
    #ifdef CATCH_FPE
    // WARNING FE_INEXACT is too sensitive to be used. See man fenv.
    //feenableexcept(FE_DIVBYZERO|FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW);
@@ -1176,6 +1189,8 @@ int main(int argn,char* args[]) {
    technicalGrid.finalize();
 
    MPI_Finalize();
-   MPI_T_finalize();
+   if(overrideMCAompio) {
+      MPI_T_finalize();
+   }
    return 0;
 }
