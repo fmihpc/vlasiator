@@ -141,7 +141,7 @@ namespace SBC {
       void generateTemplateCell(Project &project);
       void setCellFromTemplate(SpatialCell* cell,const uint popID);
       
-      Real shiftedMaxwellianDistribution(const uint popID,creal& vx, creal& vy, creal& vz);
+      Real maxwellianDistribution(const uint popID,creal& vx, creal& vy, creal& vz);
       
       vector<vmesh::GlobalID> findBlocksToInitialize(
          SpatialCell& cell,const uint popID

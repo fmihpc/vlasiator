@@ -739,7 +739,7 @@ namespace SBC {
                case Rees1963:
                   // Rees et al 1963, eq. 1
                   lambda = ReesIsotropicLambda(atmosphere[h].depth/electronRange);
-                  rate = particle_energy[e] / (electronRange / rho_R) / eps_ion_keV *   lambda   *   atmosphere[h].density / integratedDensity; 
+                  rate = particle_energy[e] / (electronRange / rho_R) / eps_ion_keV *   lambda   *   atmosphere[h].density / integratedDensity;
                   break;
                case Rees1989:
             // Rees 1989, eq. 3.3.7 / 3.3.8
@@ -893,7 +893,7 @@ namespace SBC {
          std::array<Real, numAtmosphereLevels> electronDensity;
 
          // Note this loop counts from 1 (std::vector is zero-initialized, so electronDensity[0] = 0)
-         for(int h=1; h<numAtmosphereLevels; h++) { 
+         for(int h=1; h<numAtmosphereLevels; h++) {
             // Calculate production rate
             Real energy_keV = max(nodes[n].deltaPhi()/1000., productionMinAccEnergy);
 
@@ -1023,13 +1023,13 @@ namespace SBC {
       }
       phiprof::stop("ionosphere-calculateConductivityTensor");
    }
-   
 
 
-   
 
-   
-   
+
+
+
+
 
 
    // (Re-)create the subcommunicator for ionosphere-internal communication
@@ -1079,7 +1079,7 @@ namespace SBC {
    Real SphericalTriGrid::interpolateUpmappedPotential(
       const std::array<Real, 3>& x
    ) {
-      
+
       if(!this->dipoleField) {
          // Timestep zero => apparently the dipole field is not initialized yet.
          return 0.;
@@ -1504,16 +1504,16 @@ namespace SBC {
    // nodes remaining on t-junctions. This is done by splitting the bigger neighbour:
    //
    //      A---------------C         A---------------C
-   //     / \             /         / \  resized .-'/ 
-   //    /   \           /         /   \      .-'  /  
-   //   /     \         /         /     \  .-'    /   
-   //  o-------n       /    ==>  o-------n' new  /.  <- potential other node to update next?  
-   //   \     / \     /           \     / \     /  .   
-   //    \   /   \   /             \   /   \   /    .   
-   //     \ /     \ /               \ /     \ /      . 
-   //      o-------B                 o-------B . . .  .   
+   //     / \             /         / \  resized .-'/
+   //    /   \           /         /   \      .-'  /
+   //   /     \         /         /     \  .-'    /
+   //  o-------n       /    ==>  o-------n' new  /.  <- potential other node to update next?
+   //   \     / \     /           \     / \     /  .
+   //    \   /   \   /             \   /   \   /    .
+   //     \ /     \ /               \ /     \ /      .
+   //      o-------B                 o-------B . . .  .
    void SphericalTriGrid::stitchRefinementInterfaces() {
-      
+
       for(uint n=0; n<nodes.size(); n++) {
 
          for(uint t=0; t<nodes[n].numTouchingElements; t++) {
@@ -1649,7 +1649,7 @@ namespace SBC {
         }
 
         potentialSum /= nodes.size();
-        // One option for gauge fixing: 
+        // One option for gauge fixing:
         // Make sure the potential is symmetric around 0 (to prevent it from drifting)
         //for(uint n=0; n<nodes.size(); n++) {
         //   Node& N=nodes[n];
@@ -1662,7 +1662,7 @@ namespace SBC {
      for(uint n=0; n<nodes.size(); n++) {
        addAllMatrixDependencies(n);
      }
-     
+
      //cerr << "(ionosphere) Solver dependency matrix: " << endl;
      //for(uint n=0; n<nodes.size(); n++) {
      //   for(uint m=0; m<nodes.size(); m++) {
@@ -1713,7 +1713,7 @@ namespace SBC {
         // Find this nodes' selfcoupling coefficient
         if(transpose) {
            return n.parameters[parameter] / n.transposedCoeffs[0];
-        } else { 
+        } else {
            return n.parameters[parameter] / n.dependingCoeffs[0];
         }
      } else {
@@ -1747,19 +1747,19 @@ namespace SBC {
       }
 
       phiprof::start("ionosphere-solve");
-      
+
       initSolver(false);
-      
+
       nIterations = 0;
       nRestarts = 0;
-      
+
       do {
          solveInternal(nIterations, nRestarts, residual, minPotentialN, maxPotentialN, minPotentialS, maxPotentialS);
          if(Ionosphere::solverToggleMinimumResidualVariant) {
             Ionosphere::solverUseMinimumResidualVariant = !Ionosphere::solverUseMinimumResidualVariant;
          }
       } while (residual > Ionosphere::solverRelativeL2ConvergenceThreshold && nIterations < Ionosphere::solverMaxIterations);
-      
+
       phiprof::stop("ionosphere-solve");
    }
 
@@ -2074,7 +2074,7 @@ namespace SBC {
             // iSolverReal newresid = N.parameters[ionosphereParameters::RESIDUAL] - ak * N.parameters[ionosphereParameters::ZPARAM];
             // and
             // N.parameters[ionosphereParameters::RRESIDUAL] -= ak * N.parameters[ionosphereParameters::ZZPARAM];
-            // 
+            //
             // but doing so leads to numerical inaccuracy due to roundoff errors
             // when iteration counts are high (because, for example, mesh node count is high and the matrix condition is bad).
             // See https://en.wikipedia.org/wiki/Conjugate_gradient_method#Explicit_residual_calculation
@@ -2181,7 +2181,7 @@ namespace SBC {
 } // #pragma omp parallel
 
    }
-   
+
    // Actual ionosphere object implementation
 
    Ionosphere::Ionosphere(): SysBoundaryCondition() { }
@@ -2238,7 +2238,7 @@ namespace SBC {
    }
 
    void Ionosphere::getParameters() {
-   
+
       Readparameters::get("ionosphere.centerX", this->center[0]);
       Readparameters::get("ionosphere.centerY", this->center[1]);
       Readparameters::get("ionosphere.centerZ", this->center[2]);
@@ -2508,8 +2508,16 @@ namespace SBC {
          SpatialCell* cell = mpiGrid[cells[i]];
          if (cell->sysBoundaryFlag != this->getIndex()) continue;
 
-         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
             setCellFromTemplate(cell,popID);
+            // // Verify current mesh and blocks
+            // cuint vmeshSize = cell->get_velocity_mesh(popID)->size();
+            // cuint vbcSize = cell->get_velocity_blocks(popID)->size();
+            // if (vmeshSize != vbcSize) {
+            //    printf("ERROR: population vmesh %ul and blockcontainer %ul sizes do not match!\n",vmeshSize,vbcSize);
+            // }
+            // cell->get_velocity_mesh(popID)->check();
+         }
       }
       return true;
    }
@@ -3081,7 +3089,7 @@ namespace SBC {
    void Ionosphere::mapCellPotentialAndGetEXBDrift(
       std::array<Real, CellParams::N_SPATIAL_CELL_PARAMS>& cellParams
    ) {
-      // Get potential upmapped from six points 
+      // Get potential upmapped from six points
       // (Cell's face centres)
       // inside the cell to calculate E
       const Real xmin = cellParams[CellParams::XCRD];
@@ -3182,7 +3190,7 @@ namespace SBC {
                temperature = speciesParams[popID].T;
                break;
             case AverageAllMoments:// Fall through (handled by if further down)
-            case AverageMoments: 
+            case AverageMoments:
                // Maxwellian VDF boundary modes
                {
                   Real pressure = 0, vx = 0, vy = 0, vz = 0;
@@ -3220,7 +3228,7 @@ namespace SBC {
          switch(boundaryVDFmode) {
             case FixedMoments:
             case AverageAllMoments:
-            case AverageMoments: 
+            case AverageMoments:
             case ForceL2EXB:
                {
                   // Fill velocity space with new maxwellian data
@@ -3344,11 +3352,11 @@ namespace SBC {
                   }
                }
                break;
-               
+
          }
 
          // Block adjust and recalculate moments
-         #ifdef USE_GPU         
+         #ifdef USE_GPU
          mpiGrid[cellID]->prefetchDevice();
          #endif
          mpiGrid[cellID]->adjustSingleCellVelocityBlocks(popID,true);
@@ -3508,7 +3516,7 @@ namespace SBC {
       while (search) {
          if (0.1 * cell.getVelocityBlockMinValue(popID) >
             shiftedMaxwellianDistribution(popID,density,temperature,counter*cell.get_velocity_grid_block_size(popID,refLevel)[0] - vDrift[0], 0.0 - vDrift[1], 0.0 - vDrift[2])
-            || counter > vblocks_ini[0]) 
+            || counter > vblocks_ini[0])
          {
             search = false;
          }

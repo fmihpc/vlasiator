@@ -157,9 +157,8 @@ namespace SBC {
       dV[2] = cell.get_velocity_grid_block_size(popID,refLevel)[2];
       creal minValue = cell.getVelocityBlockMinValue(popID);
 
-      const Real blockSizeX = cell.get_velocity_grid_block_size(popID,refLevel)[0];
       while (search) {
-         if (0.1 * minValue > maxwellianDistribution(popID, rho, T, counter*blockSizeX+0.5*dV[0] , 0.5*dV[1], 0.5*dV[2]) || counter > vblocks_ini[0]) {
+         if (0.1 * minValue > maxwellianDistribution(popID, rho, T, (counter+0.5)*dV[0], 0.0, 0.0) || counter > vblocks_ini[0]) {
             search = false;
          }
          counter++;
@@ -181,9 +180,9 @@ namespace SBC {
                #ifdef VAMR
                cell.get_velocity_block_size(popID,blockGID,dV);
                #endif
-               V_crds[0] += ( 0.5*dV[0] -VX0 );
-               V_crds[1] += ( 0.5*dV[1] -VY0 );
-               V_crds[2] += ( 0.5*dV[2] -VZ0 );
+               V_crds[0] += 0.5*dV[0];
+               V_crds[1] += 0.5*dV[1];
+               V_crds[2] += 0.5*dV[2];
                Real R2 = ((V_crds[0])*(V_crds[0])
                           + (V_crds[1])*(V_crds[1])
                           + (V_crds[2])*(V_crds[2]));
@@ -244,46 +243,37 @@ namespace SBC {
          vmesh::VelocityBlockContainer* blockContainer = templateCell.get_velocity_blocks(popID);
          vmesh->setNewCapacity(nRequested);
          blockContainer->recapacitate(nRequested);
-         creal minValue = templateCell.getVelocityBlockMinValue(popID);
+         const Realf minValue = templateCell.getVelocityBlockMinValue(popID);
          std::cerr<<" Maxwellian requested blocks "<<nRequested<<" with minValue "<<minValue<<std::endl;
 
          // Create temporary buffer for initialization
          vector<Realf> initBuffer(WID3);
          // Loop over requested blocks. Initialize the contents into the temporary buffer
          // and return the maximum value.
+
+         uint added =0;
+         cuint refLevel=0;
+         creal dvxCell = templateCell.get_velocity_grid_cell_size(popID,refLevel)[0];
+         creal dvyCell = templateCell.get_velocity_grid_cell_size(popID,refLevel)[1];
+         creal dvzCell = templateCell.get_velocity_grid_cell_size(popID,refLevel)[2];
          for (uint i=0; i<nRequested; ++i) {
             vmesh::GlobalID blockGID = blocksToInitialize.at(i);
-            Real maxValue = 0;
-            
-            const vmesh::LocalID blockLID = templateCell.get_velocity_block_local_id(blockGID,popID);
+            Realf maxValue = 0;
             // Calculate parameters for new block
-            Real blockSize[3];
             Real blockCoords[3];
-            templateCell.get_velocity_block_size(popID,blockGID,&blockSize[0]);
             templateCell.get_velocity_block_coordinates(popID,blockGID,&blockCoords[0]);
             creal vxBlock = blockCoords[0];
             creal vyBlock = blockCoords[1];
             creal vzBlock = blockCoords[2];
-            creal dvxCell = blockSize[0];
-            creal dvyCell = blockSize[1];
-            creal dvzCell = blockSize[2];
 
             // Calculate volume average of distrib. function for each cell in the block.
             for (uint kc=0; kc<WID; ++kc) {
                for (uint jc=0; jc<WID; ++jc) {
                   for (uint ic=0; ic<WID; ++ic) {
-                     creal vxCell = vxBlock + ic*dvxCell;
-                     creal vyCell = vyBlock + jc*dvyCell;
-                     creal vzCell = vzBlock + kc*dvzCell;
-                     Real average = 0.0;
-                     average = maxwellianDistribution(
-                        popID,
-                        rho,
-                        T,
-                        vxCell + 0.5*dvxCell - Vx,
-                        vyCell + 0.5*dvyCell - Vy,
-                        vzCell + 0.5*dvzCell - Vz
-                        );
+                     creal vxCell = vxBlock + (ic+0.5)*dvxCell - Vx;
+                     creal vyCell = vyBlock + (jc+0.5)*dvyCell - Vy;
+                     creal vzCell = vzBlock + (kc+0.5)*dvzCell - Vz;
+                     Realf average = maxwellianDistribution(popID,rho,T,vxCell,vyCell,vzCell);
                      initBuffer[cellIndex(ic,jc,kc)] = average;
                      maxValue = max(average, maxValue);
                   }
@@ -292,10 +282,13 @@ namespace SBC {
             
             // Only keep this block if it is at least 10% of the sparsity value
             if (maxValue > 0.1 * minValue) {
-               templateCell.add_velocity_block(blockGID, popID, initBuffer.data());
+               templateCell.add_velocity_block(blockGID, popID, &initBuffer[0]);
+               added++;
             }
          } // for-loop over requested velocity blocks
-         std::cerr<<" Maxwellian completed init with "<<vmesh->size()<<" blocks "<<std::endl;
+         vmesh = templateCell.get_velocity_mesh(popID);
+         blockContainer = templateCell.get_velocity_blocks(popID);
+         std::cerr<<" Maxwellian completed init with vmesh size "<<vmesh->size()<<" blockContainer size "<<blockContainer->size()<<" adding "<<added<<" blocks"<<std::endl;
          
          //let's get rid of blocks not fulfilling the criteria here to save
          //memory.
@@ -306,6 +299,9 @@ namespace SBC {
          #ifdef USE_GPU
          templateCell.prefetchHost();
          #endif
+         vmesh = templateCell.get_velocity_mesh(popID);
+         blockContainer = templateCell.get_velocity_blocks(popID);
+         std::cerr<<" Maxwellian templateCell after blockAdjust vmesh size "<<vmesh->size()<<" blockContainer size "<<blockContainer->size()<<std::endl;
       } // for-loop over particle species
       
       B[0] = Bx;

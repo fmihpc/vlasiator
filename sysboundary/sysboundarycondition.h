@@ -192,7 +192,7 @@ namespace SBC {
             SpatialCell *to,
             const bool copyMomentsOnly,
             const uint popID,
-            const bool calculate_V_moments
+            const bool copy_V_moments
          );
          std::array<SpatialCell*,27> & getFlowtoCells(
                const CellID& cellID

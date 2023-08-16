@@ -422,7 +422,7 @@ void initializeGrids(
       }
       P::dt = P::bailout_min_dt;
    }
-
+   std::cerr<<"grid init complete"<<std::endl;
    phiprof::stop("Set initial state");
 }
 

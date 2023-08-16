@@ -298,6 +298,13 @@ namespace SBC {
                break; // This effectively sets the precedence of faces through the order of faces.
             }
          }
+         // // Verify current mesh and blocks
+         // cuint vmeshSize = cell->get_velocity_mesh(popID)->size();
+         // cuint vbcSize = cell->get_velocity_blocks(popID)->size();
+         // if (vmeshSize != vbcSize) {
+         //    printf("ERROR: population vmesh %ul and blockcontainer %ul sizes do not match!\n",vmeshSize,vbcSize);
+         // }
+         // cell->get_velocity_mesh(popID)->check();
       }
 
       return true;

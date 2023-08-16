@@ -154,6 +154,13 @@ namespace projects {
       calcCellParameters(cell,0.0);
       for (size_t p=0; p<getObjectWrapper().particleSpecies.size(); ++p) {
          this->setVelocitySpace(p,cell);
+         // Verify current mesh and blocks
+         // cuint vmeshSize = cell->get_velocity_mesh(p)->size();
+         // cuint vbcSize = cell->get_velocity_blocks(p)->size();
+         // if (vmeshSize != vbcSize) {
+         //    printf("ERROR: population vmesh %ul and blockcontainer %ul sizes do not match!\n",vmeshSize,vbcSize);
+         // }
+         // cell->get_velocity_mesh(p)->check();
       }
 
       // Passing true for the doNotSkip argument as we want to calculate
@@ -299,6 +306,15 @@ namespace projects {
       if (rescalesDensity(popID) == true) {
          rescaleDensity(cell,popID);
       }
+
+      // Verify current mesh and blocks
+      // cuint vmeshSize = cell->get_velocity_mesh(popID)->size();
+      // cuint vbcSize = cell->get_velocity_blocks(popID)->size();
+      // if (vmeshSize != vbcSize) {
+      //    printf("ERROR: population vmesh %ul and blockcontainer %ul sizes do not match!\n",vmeshSize,vbcSize);
+      // }
+      // cell->get_velocity_mesh(popID)->check();
+
       return;
    }
 

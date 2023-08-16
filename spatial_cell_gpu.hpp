@@ -199,6 +199,17 @@ namespace spatial_cell {
          vmesh = new vmesh::VelocityMesh(*(other.vmesh));
          blockContainer = new vmesh::VelocityBlockContainer(*(other.blockContainer));
 
+         // // Sanity check
+         // cuint vmeshSize = vmesh->size();
+         // cuint vbcSize = blockContainer->size();
+         // cuint ovmeshSize = other.vmesh->size();
+         // cuint ovbcSize = other.blockContainer->size();
+         // if (vmeshSize!=ovmeshSize || vbcSize!=ovmeshSize || vmeshSize!=vbcSize) {
+         //    printf("other vmesh size %u new vmesh size %u\n",ovmeshSize,vmeshSize);
+         //    printf("other blockcontainer size %u new blockcontainer size %u\n",ovbcSize,vbcSize);
+         // }
+         // vmesh->check();
+
          RHO = other.RHO;
          RHO_R = other.RHO_R;
          RHO_V = other.RHO_V;
@@ -1126,6 +1137,20 @@ namespace spatial_cell {
       }
 
       const vmesh::LocalID VBC_LID = populations[popID].blockContainer->push_back();
+
+      // // Validation
+      // if (populations[popID].vmesh->getLocalID(block) != VBC_LID) {
+      //    stringstream ss;
+      //    ss<<"Error adding block: vmesh->getLID("<<block<<") returns "<<populations[popID].vmesh->getLocalID(block);
+      //    ss<<" whereas VBC provided LID "<<VBC_LID<<"!";
+      //    std::cerr<<ss.str();
+      // }
+      // if (populations[popID].vmesh->getGlobalID(VBC_LID) != block) {
+      //    stringstream ss;
+      //    ss<<"Error adding block: vmesh->getGID("<<VBC_LID<<") returns "<<populations[popID].vmesh->getGlobalID(VBC_LID);
+      //    ss<<" whereas we were trying to add GID "<<block<<"!";
+      //    std::cerr<<ss.str();
+      // }
 
       // Set block parameters:
       Real* parameters = get_block_parameters(VBC_LID,popID);

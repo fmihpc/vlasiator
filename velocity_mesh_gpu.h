@@ -527,6 +527,26 @@ namespace vmesh {
       localToGlobalMap->at(LID) = GID;
    }
    ARCH_DEV inline void VelocityMesh::deleteBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID) {
+#ifndef NDEBUG
+      // Verify that GID and LID match
+      if (GID==invalidGlobalID()) {
+         printf("vmesh deleteBlock error: GID is invalidGlobalID!\n");
+      }
+      if (LID==invalidLocalID()) {
+         printf("vmesh deleteBlock error: LID is invalidLocalID!\n");
+      }
+      auto it = globalToLocalMap->device_find(GID);
+      if (it == globalToLocalMap->device_end()) {
+         printf("vmesh deleteBlock error: GID does not exist!\n");
+      } else {
+         if (it->second != LID) {
+            printf("vmesh deleteBlock error: LID %ul found with GID %ul does not match privided LID %ul!\n",it->second,GID,LID);
+         }
+      }
+      if (localToGlobalMap->at(LID) != GID) {
+         printf("vmesh deleteBlock error: GID %ul found with LID %ul does not match privided GID %ul!\n",localToGlobalMap->at(LID),LID,GID);            
+      }
+#endif
       globalToLocalMap->device_erase(GID);
       localToGlobalMap->at(LID) = invalidGlobalID();
    }
