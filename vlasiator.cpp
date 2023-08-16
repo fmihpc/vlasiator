@@ -259,9 +259,24 @@ int main(int argn,char* args[]) {
    Real newDt;
    bool dtIsChanged;
    
-// Init MPI:
+   // Before MPI_Init we hardwire some settings
    int required=MPI_THREAD_FUNNELED;
-   int provided;
+   int provided, index, count;
+   
+   MPI_T_cvar_handle io_handle;
+   char io_value[64];
+   
+   MPI_T_init_thread(required, &provided);
+   
+   MPI_T_cvar_get_index("io", &index);
+   MPI_T_cvar_handle_alloc(index, NULL, &io_handle, &count);
+   MPI_T_cvar_write(io_handle, "^ompio");
+   
+   MPI_T_cvar_read(io_handle, io_value);
+   printf("Set value of cvars: MCA_io: %s\n", io_value);
+   
+   MPI_T_cvar_handle_free(&io_handle);
+   
    MPI_Init_thread(&argn,&args,required,&provided);
    if (required > provided){
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
@@ -1161,5 +1176,6 @@ int main(int argn,char* args[]) {
    technicalGrid.finalize();
 
    MPI_Finalize();
+   MPI_T_finalize();
    return 0;
 }
