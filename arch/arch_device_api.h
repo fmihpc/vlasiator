@@ -7,10 +7,12 @@
   #define ARCH_HOSTDEV __host__ __device__
   #define ARCH_DEV __device__
   #define ARCH_MANAGED __managed__ 
+  #define ARCH_CONSTANT __constant__ 
 #else
   #define ARCH_HOSTDEV
   #define ARCH_DEV
   #define ARCH_MANAGED
+  #define ARCH_CONSTANT
 #endif
 
 /* Namespace for the common loop interface functions */

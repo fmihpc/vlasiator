@@ -47,8 +47,8 @@
 // CPU and GPU results.
 
 const Real HALF    = 0.5;
-const Real MINUS   = -1.0;
-const Real PLUS    = +1.0;
+ARCH_CONSTANT const Real MINUS   = -1.0;
+ARCH_CONSTANT const Real PLUS    = +1.0;
 const Real THIRD   = 1.0/3.0;
 const Real FOURTH  = 1.0/4.0;
 const Real SIXTH   = 1.0/6.0;
@@ -102,7 +102,17 @@ bool propagateFields(
    cuint subcycles
 );
 
-Real divideIfNonZero(creal rhoV, creal rho);
+// /*! \brief Helper function
+//  * 
+//  * Divides the first value by the second or returns zero if the denominator is zero.
+//  * 
+//  * \param numerator Numerator
+//  * \param denominator Denominator
+//  */
+ARCH_HOSTDEV Real divideIfNonZero(
+   creal numerator,
+   creal denominator
+);
 
 /*! Namespace encompassing the enum defining the list of reconstruction coefficients used in field component reconstructions.*/
 namespace Rec {

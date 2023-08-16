@@ -40,7 +40,6 @@
 using namespace std;
 using namespace spatial_cell;
 
-extern ARCH_MANAGED GridParameters meshParams;
 
 // indices in padded source block, which is of type Vec with VECL
 // element sin each vector. b_k is the block index in z direction in

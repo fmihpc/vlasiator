@@ -39,7 +39,6 @@
 
 ObjectWrapper objectWrapper;
 
-extern ARCH_MANAGED GridParameters meshParams;
 
 using namespace std;
 using namespace spatial_cell;

@@ -32,7 +32,6 @@
 
 #include "Shock.h"
 
-extern ARCH_MANAGED GridParameters meshParams;
 
 namespace projects {
    Shock::Shock(): Project() { }

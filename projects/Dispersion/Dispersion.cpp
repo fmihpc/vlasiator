@@ -33,7 +33,6 @@
 
 #include "Dispersion.h"
 
-extern ARCH_MANAGED GridParameters meshParams;
 
 Real projects::Dispersion::rndRho, projects::Dispersion::rndVel[3];
 

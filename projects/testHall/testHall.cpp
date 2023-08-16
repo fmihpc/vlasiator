@@ -34,7 +34,6 @@
 
 using namespace std;
 
-extern ARCH_MANAGED GridParameters meshParams;
 
 namespace projects {
    TestHall::TestHall(): Project() { }

@@ -61,8 +61,6 @@
 using namespace std;
 using namespace phiprof;
 
-extern ARCH_MANAGED GridParameters meshParams;
-
 /*! Re-initialize field propagator after rebalance. E, BGB, RHO, RHO_V,
  cell_dimensions, sysboundaryflag need to be up to date for the
  extended neighborhood

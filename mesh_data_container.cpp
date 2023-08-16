@@ -30,8 +30,6 @@
 
 using namespace std;
 
-extern ARCH_MANAGED GridParameters meshParams;
-
 namespace mesh {
 
    MeshDataContainer::MeshDataContainer(): initialized(false) { }

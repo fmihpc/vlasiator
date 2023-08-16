@@ -68,8 +68,6 @@ void fpehandler(int sig_num)
 }
 #endif
 
-extern ARCH_MANAGED GridParameters meshParams;
-
 #include "phiprof.hpp"
 
 Logger logFile, diagnostic;

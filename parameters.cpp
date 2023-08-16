@@ -98,13 +98,8 @@ bool P::propagateField = true;
 
 bool P::dynamicTimestep = true;
 
-Real P::maxWaveVelocity = 0.0;
 uint P::maxFieldSolverSubcycles = 0.0;
 int P::maxSlAccelerationSubcycles = 0.0;
-Real P::resistivity = NAN;
-bool P::fieldSolverDiffusiveEterms = true;
-uint P::ohmHallTerm = 0;
-uint P::ohmGradPeTerm = 0;
 Real P::electronTemperature = 0.0;
 Real P::electronDensity = 0.0;
 Real P::electronPTindex = 1.0;
@@ -159,6 +154,11 @@ void initParameters() {
    meshParams.xcells_ini = numeric_limits<uint>::max();
    meshParams.ycells_ini = numeric_limits<uint>::max();
    meshParams.zcells_ini = numeric_limits<uint>::max();
+   meshParams.maxWaveVelocity = 0.0;
+   meshParams.resistivity = NAN;
+   meshParams.fieldSolverDiffusiveEterms = true;
+   meshParams.ohmHallTerm = 0;
+   meshParams.ohmGradPeTerm = 0; 
 }
 
 bool P::addParameters() {
@@ -664,12 +664,12 @@ void Parameters::getParameters() {
    P::tstep = P::tstep_min;
 
    // Get field solver parameters
-   RP::get("fieldsolver.maxWaveVelocity", P::maxWaveVelocity);
+   RP::get("fieldsolver.maxWaveVelocity", meshParams.maxWaveVelocity);
    RP::get("fieldsolver.maxSubcycles", P::maxFieldSolverSubcycles);
-   RP::get("fieldsolver.resistivity", P::resistivity);
-   RP::get("fieldsolver.diffusiveEterms", P::fieldSolverDiffusiveEterms);
-   RP::get("fieldsolver.ohmHallTerm", P::ohmHallTerm);
-   RP::get("fieldsolver.ohmGradPeTerm", P::ohmGradPeTerm);
+   RP::get("fieldsolver.resistivity", meshParams.resistivity);
+   RP::get("fieldsolver.diffusiveEterms", meshParams.fieldSolverDiffusiveEterms);
+   RP::get("fieldsolver.ohmHallTerm", meshParams.ohmHallTerm);
+   RP::get("fieldsolver.ohmGradPeTerm", meshParams.ohmGradPeTerm);
    RP::get("fieldsolver.electronTemperature", P::electronTemperature);
    RP::get("fieldsolver.electronDensity", P::electronDensity);
    RP::get("fieldsolver.electronPTindex", P::electronPTindex);

@@ -39,7 +39,6 @@
 using namespace std;
 using namespace spatial_cell;
 
-extern ARCH_MANAGED GridParameters meshParams;
 
 namespace projects {
    Magnetosphere::Magnetosphere(): TriAxisSearch() { }

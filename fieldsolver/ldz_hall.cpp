@@ -451,9 +451,9 @@ void calculateEdgeHallTermXComponents(
    Real hallRhoq = 0.0;
    Real EXHall = 0.0;
    
-   switch (Parameters::ohmHallTerm) {
+   switch (meshParams.ohmHallTerm) {
     case 0:
-      cerr << __FILE__ << __LINE__ << "You shouldn't be in a Hall term function if Parameters::ohmHallTerm == 0." << endl;
+      cerr << __FILE__ << __LINE__ << "You shouldn't be in a Hall term function if meshParams.ohmHallTerm == 0." << endl;
       break;
       
     case 1:
@@ -549,9 +549,9 @@ void calculateEdgeHallTermYComponents(
    Real hallRhoq = 0.0;
    Real EYHall = 0.0;
    
-   switch (Parameters::ohmHallTerm) {
+   switch (meshParams.ohmHallTerm) {
     case 0:
-      cerr << __FILE__ << __LINE__ << "You shouldn't be in a Hall term function if Parameters::ohmHallTerm == 0." << endl;
+      cerr << __FILE__ << __LINE__ << "You shouldn't be in a Hall term function if meshParams.ohmHallTerm == 0." << endl;
       break;
       
     case 1:
@@ -647,9 +647,9 @@ void calculateEdgeHallTermZComponents(
    Real hallRhoq = 0.0;
    Real EZHall = 0.0;
    
-   switch (Parameters::ohmHallTerm) {
+   switch (meshParams.ohmHallTerm) {
    case 0:
-     cerr << __FILE__ << __LINE__ << "You shouldn't be in a Hall term function if Parameters::ohmHallTerm == 0." << endl;
+     cerr << __FILE__ << __LINE__ << "You shouldn't be in a Hall term function if meshParams.ohmHallTerm == 0." << endl;
      break;
 
    case 1:
@@ -745,11 +745,11 @@ void calculateHallTerm(
    // }
    // #endif
    
-   cuint cellSysBoundaryFlag = technicalGrid.get(i,j,k,0).sysBoundaryFlag;
+   cuint cellSysBoundaryFlag = technicalGrid.get(i,j,k)->sysBoundaryFlag;
    
    if (cellSysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) return;
    
-   cuint cellSysBoundaryLayer = technicalGrid.get(i,j,k,0).sysBoundaryLayer;
+   cuint cellSysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
    
    Real perturbedCoefficients[Rec::N_REC_COEFFICIENTS];
 

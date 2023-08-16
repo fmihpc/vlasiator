@@ -35,7 +35,6 @@
 
 using namespace spatial_cell;
 
-extern ARCH_MANAGED GridParameters meshParams;
 
 Real projects::Fluctuations::rndRho, projects::Fluctuations::rndVel[3];
 

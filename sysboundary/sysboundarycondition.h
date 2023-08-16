@@ -99,28 +99,28 @@ namespace SBC {
             cint j,
             cint k
          )=0;
-         virtual void fieldSolverBoundaryCondElectricField(
+         ARCH_HOSTDEV virtual void fieldSolverBoundaryCondElectricField(
             const arch::buf<FsGrid<Real, fsgrids::efield::N_EFIELD, FS_STENCIL_WIDTH>> & EGrid,
             cint i,
             cint j,
             cint k,
             cuint component
          )=0;
-         virtual void fieldSolverBoundaryCondHallElectricField(
+         ARCH_HOSTDEV virtual void fieldSolverBoundaryCondHallElectricField(
             const arch::buf<FsGrid<Real, fsgrids::ehall::N_EHALL, FS_STENCIL_WIDTH>> & EHallGrid,
             cint i,
             cint j,
             cint k,
             cuint component
          )=0;
-         virtual void fieldSolverBoundaryCondGradPeElectricField(
+         ARCH_HOSTDEV virtual void fieldSolverBoundaryCondGradPeElectricField(
             const arch::buf<FsGrid<Real, fsgrids::egradpe::N_EGRADPE, FS_STENCIL_WIDTH>> & EGradPeGrid,
             cint i,
             cint j,
             cint k,
             cuint component
          )=0;
-         virtual void fieldSolverBoundaryCondDerivatives(
+         ARCH_HOSTDEV virtual void fieldSolverBoundaryCondDerivatives(
             const arch::buf<FsGrid<Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH>> & dPerBGrid,
             const arch::buf<FsGrid<Real, fsgrids::dmoments::N_DMOMENTS, FS_STENCIL_WIDTH>> & dMomentsGrid,
             cint i,
@@ -129,7 +129,7 @@ namespace SBC {
             cuint& RKCase,
             cuint& component
          )=0;
-         virtual void fieldSolverBoundaryCondBVOLDerivatives(
+         ARCH_HOSTDEV virtual void fieldSolverBoundaryCondBVOLDerivatives(
             const arch::buf<FsGrid<Real, fsgrids::volfields::N_VOL, FS_STENCIL_WIDTH>> & volGrid,
             cint i,
             cint j,

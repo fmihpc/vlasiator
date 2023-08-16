@@ -42,7 +42,6 @@ Previous development version name was UtuShock
 using namespace std;
 using namespace spatial_cell;
 
-extern ARCH_MANAGED GridParameters meshParams;
 
 namespace projects {
   IPShock::IPShock(): TriAxisSearch() { }

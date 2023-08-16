@@ -35,7 +35,6 @@ enum cases {BXCASE,BYCASE,BZCASE,BALLCASE};
 
 using namespace std;
 
-extern ARCH_MANAGED GridParameters meshParams;
 
 namespace projects {
    test_fp::test_fp(): TriAxisSearch() { }

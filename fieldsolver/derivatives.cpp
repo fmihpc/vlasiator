@@ -121,7 +121,7 @@ void calculateDerivatives(
       // pres_e = const * np.power(rho_e, index)
       dMoments[fsgrids::dmoments::dPedx] = Peconst * limiter(pow(leftMoments[fsgrids::moments::RHOQ]/physicalconstants::CHARGE,Parameters::electronPTindex),pow(centMoments[fsgrids::moments::RHOQ]/physicalconstants::CHARGE,Parameters::electronPTindex),pow(rghtMoments[fsgrids::moments::RHOQ]/physicalconstants::CHARGE,Parameters::electronPTindex));      
       
-      if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
+      if (meshParams.ohmHallTerm < 2 || sysBoundaryLayer == 1) {
         dPerB[fsgrids::dperb::dPERBydxx] = 0.0;
         dPerB[fsgrids::dperb::dPERBzdxx] = 0.0;
       } else {
@@ -160,7 +160,7 @@ void calculateDerivatives(
       // pres_e = const * np.power(rho_e, index)
       dMoments[fsgrids::dmoments::dPedy] = Peconst * limiter(pow(leftMoments[fsgrids::moments::RHOQ]/physicalconstants::CHARGE,Parameters::electronPTindex),pow(centMoments[fsgrids::moments::RHOQ]/physicalconstants::CHARGE,Parameters::electronPTindex),pow(rghtMoments[fsgrids::moments::RHOQ]/physicalconstants::CHARGE,Parameters::electronPTindex));      
 
-      if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
+      if (meshParams.ohmHallTerm < 2 || sysBoundaryLayer == 1) {
          dPerB[fsgrids::dperb::dPERBxdyy] = 0.0;
          dPerB[fsgrids::dperb::dPERBzdyy] = 0.0;
       } else {
@@ -200,7 +200,7 @@ void calculateDerivatives(
       // pres_e = const * np.power(rho_e, index)
       dMoments[fsgrids::dmoments::dPedz] = Peconst * limiter(pow(leftMoments[fsgrids::moments::RHOQ]/physicalconstants::CHARGE,Parameters::electronPTindex),pow(centMoments[fsgrids::moments::RHOQ]/physicalconstants::CHARGE,Parameters::electronPTindex),pow(rghtMoments[fsgrids::moments::RHOQ]/physicalconstants::CHARGE,Parameters::electronPTindex));      
 
-      if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
+      if (meshParams.ohmHallTerm < 2 || sysBoundaryLayer == 1) {
         dPerB[fsgrids::dperb::dPERBxdzz] = 0.0;
         dPerB[fsgrids::dperb::dPERBydzz] = 0.0;
       } else {
@@ -217,7 +217,7 @@ void calculateDerivatives(
       }
    }
    
-   if (Parameters::ohmHallTerm < 2 || sysBoundaryLayer == 1) {
+   if (meshParams.ohmHallTerm < 2 || sysBoundaryLayer == 1) {
       dPerB[fsgrids::dperb::dPERBxdyz] = 0.0;
       dPerB[fsgrids::dperb::dPERBydxz] = 0.0;
       dPerB[fsgrids::dperb::dPERBzdxy] = 0.0;

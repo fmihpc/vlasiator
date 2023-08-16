@@ -8,7 +8,6 @@
 
 
 
-extern ARCH_MANAGED GridParameters meshParams;
 
 
 

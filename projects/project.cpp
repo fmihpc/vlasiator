@@ -58,7 +58,6 @@
 using namespace std;
 
 extern Logger logFile;
-extern ARCH_MANAGED GridParameters meshParams;
 
 /** Struct for creating a new velocity mesh.
  * The values are read from the configuration file and 

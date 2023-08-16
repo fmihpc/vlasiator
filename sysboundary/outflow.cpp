@@ -41,8 +41,6 @@
    #define DEBUG_OUTFLOW
 #endif
 
-extern ARCH_MANAGED GridParameters meshParams;
-
 using namespace std;
 
 namespace SBC {

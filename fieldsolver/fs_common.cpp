@@ -22,14 +22,14 @@
 
 #include "fs_common.h"
 
-/*! \brief Helper function
- * 
- * Divides the first value by the second or returns zero if the denominator is zero.
- * 
- * \param numerator Numerator
- * \param denominator Denominator
- */
-Real divideIfNonZero(
+// /*! \brief Helper function
+//  * 
+//  * Divides the first value by the second or returns zero if the denominator is zero.
+//  * 
+//  * \param numerator Numerator
+//  * \param denominator Denominator
+//  */
+ARCH_HOSTDEV Real divideIfNonZero(
    creal numerator,
    creal denominator
 ) {

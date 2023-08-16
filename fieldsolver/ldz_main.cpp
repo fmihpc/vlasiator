@@ -124,11 +124,11 @@ bool propagateFields(
       #ifdef FS_1ST_ORDER_TIME
       propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, dt, RK_ORDER1);
       calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1, true);
-      if(P::ohmGradPeTerm > 0){
+      if(meshParams.ohmGradPeTerm > 0){
          calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1);
          hallTermCommunicateDerivatives = false;
       }
-      if(P::ohmHallTerm > 0) {
+      if(meshParams.ohmHallTerm > 0) {
          calculateHallTermSimple(
             perBGrid,
             perBDt2Grid,
@@ -163,11 +163,11 @@ bool propagateFields(
       #else
       propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, dt, RK_ORDER2_STEP1);
       calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1, true);
-      if(P::ohmGradPeTerm > 0) {
+      if(meshParams.ohmGradPeTerm > 0) {
          calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1);
          hallTermCommunicateDerivatives = false;
       }
-      if(P::ohmHallTerm > 0) {
+      if(meshParams.ohmHallTerm > 0) {
          calculateHallTermSimple(
             perBGrid,
             perBDt2Grid,
@@ -202,11 +202,11 @@ bool propagateFields(
       
       propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, dt, RK_ORDER2_STEP2);
       calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2, true);
-      if(P::ohmGradPeTerm > 0) {
+      if(meshParams.ohmGradPeTerm > 0) {
          calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2);
          hallTermCommunicateDerivatives = false;
       }
-      if(P::ohmHallTerm > 0) {
+      if(meshParams.ohmHallTerm > 0) {
          calculateHallTermSimple(
             perBGrid,
             perBDt2Grid,
@@ -255,11 +255,11 @@ bool propagateFields(
          // We need to calculate derivatives of the moments at every substep, but they only
          // need to be communicated in the first one.
          calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1, (subcycleCount==0));
-         if(P::ohmGradPeTerm > 0 && subcycleCount==0) {
+         if(meshParams.ohmGradPeTerm > 0 && subcycleCount==0) {
             calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1);
             hallTermCommunicateDerivatives = false;
          }
-         if(P::ohmHallTerm > 0) {
+         if(meshParams.ohmHallTerm > 0) {
             calculateHallTermSimple(
                perBGrid,
                perBDt2Grid,
@@ -297,11 +297,11 @@ bool propagateFields(
          // We need to calculate derivatives of the moments at every substep, but they only
          // need to be communicated in the first one.
          calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2, (subcycleCount==0));
-         if(P::ohmGradPeTerm > 0 && subcycleCount==0) {
+         if(meshParams.ohmGradPeTerm > 0 && subcycleCount==0) {
             calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2);
             hallTermCommunicateDerivatives = false;
          }
-         if(P::ohmHallTerm > 0) {
+         if(meshParams.ohmHallTerm > 0) {
             calculateHallTermSimple(
                perBGrid,
                perBDt2Grid,
@@ -362,10 +362,10 @@ bool propagateFields(
          for(int z=0; z<localSize[2]; z++) {
             for(int y=0; y<localSize[1]; y++) {
                for(int x=0; x<localSize[0]; x++) {
-                  auto cell = technicalGrid.get(x,y,z,0);
-                  if ( cell.sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
-                        (cell.sysBoundaryLayer == 1 && cell.sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY )) {
-                     dtMaxLocal=min(dtMaxLocal, cell.maxFsDt);
+                  auto cell = technicalGrid.get(x,y,z);
+                  if ( cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
+                        (cell->sysBoundaryLayer == 1 && cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY )) {
+                     dtMaxLocal=min(dtMaxLocal, cell->maxFsDt);
                   }
                }
             }

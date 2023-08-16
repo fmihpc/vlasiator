@@ -51,7 +51,7 @@ using namespace std;
  * \param vS Sound speed
  * \param vW Whistler speed
  */
-Real calculateCflSpeed(
+ARCH_HOSTDEV Real calculateCflSpeed(
    const Real& v0,
    const Real& v1,
    const Real& vA,
@@ -94,7 +94,7 @@ Real calculateCflSpeed(
  * \param ret_vS Sound speed returned
  * \param ret_vW Whistler speed returned
  */
-void calculateWaveSpeedYZ(
+ARCH_HOSTDEV void calculateWaveSpeedYZ(
    const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & perBGrid,
    const arch::buf<FsGrid<Real, fsgrids::moments::N_MOMENTS, FS_STENCIL_WIDTH>> & momentsGrid,
    const arch::buf<FsGrid<Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH>> & dPerBGrid,
@@ -176,8 +176,8 @@ void calculateWaveSpeedYZ(
    // for details.
    const Real vA2 = divideIfNonZero(Bmag2, pc::MU_0*rhom); // Alfven speed
    const Real vS2 = divideIfNonZero(p11+p22+p33, 2.0*rhom); // sound speed, adiabatic coefficient 3/2, P=1/3*trace in sound speed
-//   const Real vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, perBGrid.DX*pc::CHARGE*sqrt(Bmag2)) : 0.0; // whistler speed
-   const Real vW = Parameters::ohmHallTerm > 0 ?
+//   const Real vW = meshParams.ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, perBGrid.DX*pc::CHARGE*sqrt(Bmag2)) : 0.0; // whistler speed
+   const Real vW = meshParams.ohmHallTerm > 0 ?
       sqrt(vA2) * (1 + divideIfNonZero(2*M_PI*M_PI*pc::MASS_PROTON*pc::MASS_PROTON, perBGrid.grid()->DX*perBGrid.grid()->DX*rhom*pc::CHARGE*pc::CHARGE*pc::MU_0)
             / sqrt(1 + divideIfNonZero(  M_PI*M_PI*pc::MASS_PROTON*pc::MASS_PROTON, perBGrid.grid()->DX*perBGrid.grid()->DX*rhom*pc::CHARGE*pc::CHARGE*pc::MU_0)))
       : 0.0; // whistler speed
@@ -217,7 +217,7 @@ void calculateWaveSpeedYZ(
  * \param ret_vS Sound speed returned
  * \param ret_vW Whistler speed returned
  */
-void calculateWaveSpeedXZ(
+ARCH_HOSTDEV void calculateWaveSpeedXZ(
    const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & perBGrid,
    const arch::buf<FsGrid<Real, fsgrids::moments::N_MOMENTS, FS_STENCIL_WIDTH>> & momentsGrid,
    const arch::buf<FsGrid<Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH>> & dPerBGrid,
@@ -299,8 +299,8 @@ void calculateWaveSpeedXZ(
    // for details.
    const Real vA2 = divideIfNonZero(Bmag2, pc::MU_0*rhom); // Alfven speed
    const Real vS2 = divideIfNonZero(p11+p22+p33, 2.0*rhom); // sound speed, adiabatic coefficient 3/2, P=1/3*trace in sound speed
-//   const Real vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, perBGrid.DX*pc::CHARGE*sqrt(Bmag2)) : 0.0; // whistler speed
-   const Real vW = Parameters::ohmHallTerm > 0 ?
+//   const Real vW = meshParams.ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, perBGrid.DX*pc::CHARGE*sqrt(Bmag2)) : 0.0; // whistler speed
+   const Real vW = meshParams.ohmHallTerm > 0 ?
       sqrt(vA2) * (1 + divideIfNonZero(2*M_PI*M_PI*pc::MASS_PROTON*pc::MASS_PROTON, perBGrid.grid()->DX*perBGrid.grid()->DX*rhom*pc::CHARGE*pc::CHARGE*pc::MU_0)
             / sqrt(1 + divideIfNonZero(  M_PI*M_PI*pc::MASS_PROTON*pc::MASS_PROTON, perBGrid.grid()->DX*perBGrid.grid()->DX*rhom*pc::CHARGE*pc::CHARGE*pc::MU_0)))
       : 0.0; // whistler speed
@@ -340,7 +340,7 @@ void calculateWaveSpeedXZ(
  * \param ret_vS Sound speed returned
  * \param ret_vW Whistler speed returned
  */
-void calculateWaveSpeedXY(
+ARCH_HOSTDEV void calculateWaveSpeedXY(
    const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & perBGrid,
    const arch::buf<FsGrid<Real, fsgrids::moments::N_MOMENTS, FS_STENCIL_WIDTH>> & momentsGrid,
    const arch::buf<FsGrid<Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH>> & dPerBGrid,
@@ -422,8 +422,8 @@ void calculateWaveSpeedXY(
    // for details.
    const Real vA2 = divideIfNonZero(Bmag2, pc::MU_0*rhom); // Alfven speed
    const Real vS2 = divideIfNonZero(p11+p22+p33, 2.0*rhom); // sound speed, adiabatic coefficient 3/2, P=1/3*trace in sound speed
-//   const Real vW = Parameters::ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, perBGrid.DX*pc::CHARGE*sqrt(Bmag2)) : 0.0; // whistler speed
-   const Real vW = Parameters::ohmHallTerm > 0 ?
+//   const Real vW = meshParams.ohmHallTerm > 0 ? divideIfNonZero(2.0*M_PI*vA2*pc::MASS_PROTON, perBGrid.DX*pc::CHARGE*sqrt(Bmag2)) : 0.0; // whistler speed
+   const Real vW = meshParams.ohmHallTerm > 0 ?
       sqrt(vA2) * (1 + divideIfNonZero(2*M_PI*M_PI*pc::MASS_PROTON*pc::MASS_PROTON, perBGrid.grid()->DX*perBGrid.grid()->DX*rhom*pc::CHARGE*pc::CHARGE*pc::MU_0)
             / sqrt(1 + divideIfNonZero(  M_PI*M_PI*pc::MASS_PROTON*pc::MASS_PROTON, perBGrid.grid()->DX*perBGrid.grid()->DX*rhom*pc::CHARGE*pc::CHARGE*pc::MU_0)))
       : 0.0; // whistler speed
@@ -453,7 +453,7 @@ void calculateWaveSpeedXY(
  * \param i,j,k fsGrid cell coordinates for the current cell
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
-void calculateEdgeElectricFieldX(
+ARCH_HOSTDEV void calculateEdgeElectricFieldX(
    const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & perBGrid,
    const arch::buf<FsGrid<Real, fsgrids::efield::N_EFIELD, FS_STENCIL_WIDTH>> & EGrid,
    const arch::buf<FsGrid<Real, fsgrids::ehall::N_EHALL, FS_STENCIL_WIDTH>> & EHallGrid,
@@ -562,8 +562,8 @@ void calculateEdgeElectricFieldX(
    Real Ex_SW = By_S*Vz0 - Bz_W*Vy0;
 
    // Resistive term
-   if (Parameters::resistivity > 0) {
-     Ex_SW += Parameters::resistivity *
+   if (meshParams.resistivity > 0) {
+     Ex_SW += meshParams.resistivity *
        sqrt((bgb_SW[fsgrids::bgbfield::BGBX]+perb_SW[fsgrids::bfield::PERBX])*
             (bgb_SW[fsgrids::bgbfield::BGBX]+perb_SW[fsgrids::bfield::PERBX]) +
             (bgb_SW[fsgrids::bgbfield::BGBY]+perb_SW[fsgrids::bfield::PERBY])*
@@ -577,12 +577,12 @@ void calculateEdgeElectricFieldX(
    }
    
    // Hall term
-   if(Parameters::ohmHallTerm > 0) {
+   if(meshParams.ohmHallTerm > 0) {
       Ex_SW += EHallGrid.get(i,j,k)[fsgrids::ehall::EXHALL_000_100];
    }
    
    // Electron pressure gradient term
-   if(Parameters::ohmGradPeTerm > 0) {
+   if(meshParams.ohmGradPeTerm > 0) {
       Ex_SW += EGradPeGrid.get(i,j,k)[fsgrids::egradpe::EXGRADPE];
    }
 
@@ -601,7 +601,7 @@ void calculateEdgeElectricFieldX(
       i+1, j, k,
       By_S, Bz_W, dBydx_S, dBydz_S, dBzdx_W, dBzdy_W, MINUS, MINUS, minRhom, maxRhom, vA, vS, vW
    );
-   c_y = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
+   c_y = min(meshParams.maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
    c_z = c_y;
    ay_neg   = max(ZERO,-Vy0 + c_y);
    ay_pos   = max(ZERO,+Vy0 + c_y);
@@ -617,8 +617,8 @@ void calculateEdgeElectricFieldX(
    Real Ex_SE = By_S*Vz0 - Bz_E*Vy0;
    
    // Resistive term
-   if (Parameters::resistivity > 0) {
-     Ex_SE += Parameters::resistivity *
+   if (meshParams.resistivity > 0) {
+     Ex_SE += meshParams.resistivity *
        sqrt((bgb_SE[fsgrids::bgbfield::BGBX]+perb_SE[fsgrids::bfield::PERBX])*
             (bgb_SE[fsgrids::bgbfield::BGBX]+perb_SE[fsgrids::bfield::PERBX]) +
             (bgb_SE[fsgrids::bgbfield::BGBY]+perb_SE[fsgrids::bfield::PERBY])*
@@ -632,12 +632,12 @@ void calculateEdgeElectricFieldX(
    }
 
    // Hall term
-   if(Parameters::ohmHallTerm > 0) {
+   if(meshParams.ohmHallTerm > 0) {
       Ex_SE += EHallGrid.get(i,j-1,k)[fsgrids::ehall::EXHALL_010_110];
    }
    
    // Electron pressure gradient term
-   if(Parameters::ohmGradPeTerm > 0) {
+   if(meshParams.ohmGradPeTerm > 0) {
       Ex_SE += EGradPeGrid.get(i,j-1,k)[fsgrids::egradpe::EXGRADPE];
    }
    
@@ -657,7 +657,7 @@ void calculateEdgeElectricFieldX(
       i+1, j-1, k,
       By_S, Bz_E, dBydx_S, dBydz_S, dBzdx_E, dBzdy_E, PLUS, MINUS, minRhom, maxRhom, vA, vS, vW
    );
-   c_y = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
+   c_y = min(meshParams.maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
    c_z = c_y;
    ay_neg   = max(ay_neg,-Vy0 + c_y);
    ay_pos   = max(ay_pos,+Vy0 + c_y);
@@ -673,8 +673,8 @@ void calculateEdgeElectricFieldX(
    Real Ex_NW    = By_N*Vz0 - Bz_W*Vy0;
    
    // Resistive term
-   if (Parameters::resistivity > 0) {
-     Ex_NW += Parameters::resistivity *
+   if (meshParams.resistivity > 0) {
+     Ex_NW += meshParams.resistivity *
        sqrt((bgb_NW[fsgrids::bgbfield::BGBX]+perb_NW[fsgrids::bfield::PERBX])*
             (bgb_NW[fsgrids::bgbfield::BGBX]+perb_NW[fsgrids::bfield::PERBX]) +
             (bgb_NW[fsgrids::bgbfield::BGBY]+perb_NW[fsgrids::bfield::PERBY])*
@@ -688,12 +688,12 @@ void calculateEdgeElectricFieldX(
    }
    
    // Hall term
-   if(Parameters::ohmHallTerm > 0) {
+   if(meshParams.ohmHallTerm > 0) {
       Ex_NW += EHallGrid.get(i,j,k-1)[fsgrids::ehall::EXHALL_001_101];
    }
    
    // Electron pressure gradient term
-   if(Parameters::ohmGradPeTerm > 0) {
+   if(meshParams.ohmGradPeTerm > 0) {
       Ex_NW += EGradPeGrid.get(i,j,k-1)[fsgrids::egradpe::EXGRADPE];
    }
    
@@ -713,7 +713,7 @@ void calculateEdgeElectricFieldX(
       i+1, j, k-1,
       By_N, Bz_W, dBydx_N, dBydz_N, dBzdx_W, dBzdy_W, MINUS, PLUS, minRhom, maxRhom, vA, vS, vW
    );
-   c_y = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
+   c_y = min(meshParams.maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
    c_z = c_y;
    ay_neg   = max(ay_neg,-Vy0 + c_y);
    ay_pos   = max(ay_pos,+Vy0 + c_y);
@@ -729,8 +729,8 @@ void calculateEdgeElectricFieldX(
    Real Ex_NE    = By_N*Vz0 - Bz_E*Vy0;
 
    // Resistive term
-   if (Parameters::resistivity > 0) {
-      Ex_NE += Parameters::resistivity *
+   if (meshParams.resistivity > 0) {
+      Ex_NE += meshParams.resistivity *
                sqrt((bgb_NE[fsgrids::bgbfield::BGBX]+perb_NE[fsgrids::bfield::PERBX])*
                     (bgb_NE[fsgrids::bgbfield::BGBX]+perb_NE[fsgrids::bfield::PERBX]) +
                     (bgb_NE[fsgrids::bgbfield::BGBY]+perb_NE[fsgrids::bfield::PERBY])*
@@ -744,12 +744,12 @@ void calculateEdgeElectricFieldX(
    }
 
    // Hall term
-   if(Parameters::ohmHallTerm > 0) {
+   if(meshParams.ohmHallTerm > 0) {
       Ex_NE += EHallGrid.get(i,j-1,k-1)[fsgrids::ehall::EXHALL_011_111];
    }
    
    // Electron pressure gradient term
-   if(Parameters::ohmGradPeTerm > 0) {
+   if(meshParams.ohmGradPeTerm > 0) {
       Ex_NE += EGradPeGrid.get(i,j-1,k-1)[fsgrids::egradpe::EXGRADPE];
    }
    
@@ -769,7 +769,7 @@ void calculateEdgeElectricFieldX(
       i+1,j-1,k-1,
       By_N, Bz_E, dBydx_N, dBydz_N, dBzdx_E, dBzdy_E, PLUS, PLUS, minRhom, maxRhom, vA, vS, vW
    );
-   c_y = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
+   c_y = min(meshParams.maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
    c_z = c_y;
    ay_neg   = max(ay_neg,-Vy0 + c_y);
    ay_pos   = max(ay_pos,+Vy0 + c_y);
@@ -779,7 +779,7 @@ void calculateEdgeElectricFieldX(
    // Calculate properly upwinded edge-averaged Ex:
    efield_SW[fsgrids::efield::EX]  = ay_pos*az_pos*Ex_NE + ay_pos*az_neg*Ex_SE + ay_neg*az_pos*Ex_NW + ay_neg*az_neg*Ex_SW;
    efield_SW[fsgrids::efield::EX] /= ((ay_pos+ay_neg)*(az_pos+az_neg)+EPS);
-   if (Parameters::fieldSolverDiffusiveEterms) {
+   if (meshParams.fieldSolverDiffusiveEterms) {
 #ifdef FS_1ST_ORDER_SPACE
       // 1st order diffusive terms:
       efield_SW[fsgrids::efield::EX] -= az_pos*az_neg/(az_pos+az_neg+EPS)*(perBy_S-perBy_N);
@@ -811,7 +811,7 @@ void calculateEdgeElectricFieldX(
  * 
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
-void calculateEdgeElectricFieldY(
+ARCH_HOSTDEV void calculateEdgeElectricFieldY(
    const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & perBGrid,
    const arch::buf<FsGrid<Real, fsgrids::efield::N_EFIELD, FS_STENCIL_WIDTH>> & EGrid,
    const arch::buf<FsGrid<Real, fsgrids::ehall::N_EHALL, FS_STENCIL_WIDTH>> & EHallGrid,
@@ -919,8 +919,8 @@ void calculateEdgeElectricFieldY(
    Real Ey_SW  = Bz_S*Vx0 - Bx_W*Vz0;
    
    // Resistive term
-   if (Parameters::resistivity > 0) {
-      Ey_SW += Parameters::resistivity *
+   if (meshParams.resistivity > 0) {
+      Ey_SW += meshParams.resistivity *
         sqrt((bgb_SW[fsgrids::bgbfield::BGBX]+perb_SW[fsgrids::bfield::PERBX])*
              (bgb_SW[fsgrids::bgbfield::BGBX]+perb_SW[fsgrids::bfield::PERBX]) +
              (bgb_SW[fsgrids::bgbfield::BGBY]+perb_SW[fsgrids::bfield::PERBY])*
@@ -934,12 +934,12 @@ void calculateEdgeElectricFieldY(
    }
 
    // Hall term
-   if (Parameters::ohmHallTerm > 0) {
+   if (meshParams.ohmHallTerm > 0) {
       Ey_SW += EHallGrid.get(i,j,k)[fsgrids::ehall::EYHALL_000_010];
    }
    
    // Electron pressure gradient term
-   if(Parameters::ohmGradPeTerm > 0) {
+   if(meshParams.ohmGradPeTerm > 0) {
       Ey_SW += EGradPeGrid.get(i,j,k)[fsgrids::egradpe::EYGRADPE];
    }
    
@@ -959,7 +959,7 @@ void calculateEdgeElectricFieldY(
       i, j+1, k,
       Bx_W, Bz_S, dBxdy_W, dBxdz_W, dBzdx_S, dBzdy_S, MINUS, MINUS, minRhom, maxRhom, vA, vS, vW
    );
-   c_z = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
+   c_z = min(meshParams.maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
    c_x = c_z;
    az_neg   = max(ZERO,-Vz0 + c_z);
    az_pos   = max(ZERO,+Vz0 + c_z);
@@ -975,8 +975,8 @@ void calculateEdgeElectricFieldY(
    Real Ey_SE    = Bz_S*Vx0 - Bx_E*Vz0;
 
    // Resistive term
-   if (Parameters::resistivity > 0) {
-      Ey_SE += Parameters::resistivity *
+   if (meshParams.resistivity > 0) {
+      Ey_SE += meshParams.resistivity *
         sqrt((bgb_SE[fsgrids::bgbfield::BGBX]+perb_SE[fsgrids::bfield::PERBX])*
              (bgb_SE[fsgrids::bgbfield::BGBX]+perb_SE[fsgrids::bfield::PERBX]) +
              (bgb_SE[fsgrids::bgbfield::BGBY]+perb_SE[fsgrids::bfield::PERBY])*
@@ -990,12 +990,12 @@ void calculateEdgeElectricFieldY(
    }
 
    // Hall term
-   if (Parameters::ohmHallTerm > 0) {
+   if (meshParams.ohmHallTerm > 0) {
       Ey_SE += EHallGrid.get(i,j,k-1)[fsgrids::ehall::EYHALL_001_011];
    }
    
    // Electron pressure gradient term
-   if(Parameters::ohmGradPeTerm > 0) {
+   if(meshParams.ohmGradPeTerm > 0) {
       Ey_SE += EGradPeGrid.get(i,j,k-1)[fsgrids::egradpe::EYGRADPE];
    }
    
@@ -1015,7 +1015,7 @@ void calculateEdgeElectricFieldY(
       i, j+1, k-1,
       Bx_E, Bz_S, dBxdy_E, dBxdz_E, dBzdx_S, dBzdy_S, MINUS, PLUS, minRhom, maxRhom, vA, vS, vW
    );
-   c_z = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
+   c_z = min(meshParams.maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
    c_x = c_z;
    az_neg   = max(az_neg,-Vz0 + c_z);
    az_pos   = max(az_pos,+Vz0 + c_z);
@@ -1031,8 +1031,8 @@ void calculateEdgeElectricFieldY(
    Real Ey_NW    = Bz_N*Vx0 - Bx_W*Vz0;
 
    // Resistive term
-   if (Parameters::resistivity > 0) {
-      Ey_NW += Parameters::resistivity *
+   if (meshParams.resistivity > 0) {
+      Ey_NW += meshParams.resistivity *
         sqrt((bgb_NW[fsgrids::bgbfield::BGBX]+perb_NW[fsgrids::bfield::PERBX])*
              (bgb_NW[fsgrids::bgbfield::BGBX]+perb_NW[fsgrids::bfield::PERBX]) +
              (bgb_NW[fsgrids::bgbfield::BGBY]+perb_NW[fsgrids::bfield::PERBY])*
@@ -1046,12 +1046,12 @@ void calculateEdgeElectricFieldY(
    }
 
    // Hall term
-   if(Parameters::ohmHallTerm > 0) {
+   if(meshParams.ohmHallTerm > 0) {
       Ey_NW += EHallGrid.get(i-1,j,k)[fsgrids::ehall::EYHALL_100_110];
    }
    
    // Electron pressure gradient term
-   if(Parameters::ohmGradPeTerm > 0) {
+   if(meshParams.ohmGradPeTerm > 0) {
       Ey_NW += EGradPeGrid.get(i-1,j,k)[fsgrids::egradpe::EYGRADPE];
    }
    
@@ -1071,7 +1071,7 @@ void calculateEdgeElectricFieldY(
       i-1,j+1,k,
       Bx_W, Bz_N, dBxdy_W, dBxdz_W, dBzdx_N, dBzdy_N, PLUS, MINUS, minRhom, maxRhom, vA, vS, vW
    );
-   c_z = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
+   c_z = min(meshParams.maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
    c_x = c_z;
    az_neg   = max(az_neg,-Vz0 + c_z);
    az_pos   = max(az_pos,+Vz0 + c_z);
@@ -1087,8 +1087,8 @@ void calculateEdgeElectricFieldY(
    Real Ey_NE    = Bz_N*Vx0 - Bx_E*Vz0;
    
    // Resistive term
-   if (Parameters::resistivity > 0) {
-      Ey_NE += Parameters::resistivity *
+   if (meshParams.resistivity > 0) {
+      Ey_NE += meshParams.resistivity *
         sqrt((bgb_NE[fsgrids::bgbfield::BGBX]+perb_NE[fsgrids::bfield::PERBX])*
              (bgb_NE[fsgrids::bgbfield::BGBX]+perb_NE[fsgrids::bfield::PERBX]) +
              (bgb_NE[fsgrids::bgbfield::BGBY]+perb_NE[fsgrids::bfield::PERBY])*
@@ -1102,12 +1102,12 @@ void calculateEdgeElectricFieldY(
    }
 
    // Hall term
-   if(Parameters::ohmHallTerm > 0) {
+   if(meshParams.ohmHallTerm > 0) {
       Ey_NE += EHallGrid.get(i-1,j,k-1)[fsgrids::ehall::EYHALL_101_111];
    }
    
    // Electron pressure gradient term
-   if(Parameters::ohmGradPeTerm > 0) {
+   if(meshParams.ohmGradPeTerm > 0) {
       Ey_NE += EGradPeGrid.get(i-1,j,k-1)[fsgrids::egradpe::EYGRADPE];
    }
    
@@ -1127,7 +1127,7 @@ void calculateEdgeElectricFieldY(
       i-1,j+1,k-1,
       Bx_E, Bz_N, dBxdy_E, dBxdz_E, dBzdx_N, dBzdy_N, PLUS, PLUS, minRhom, maxRhom, vA, vS, vW
    );
-   c_z = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
+   c_z = min(meshParams.maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
    c_x = c_z;
    az_neg   = max(az_neg,-Vz0 + c_z);
    az_pos   = max(az_pos,+Vz0 + c_z);
@@ -1138,7 +1138,7 @@ void calculateEdgeElectricFieldY(
    efield_SW[fsgrids::efield::EY]  = az_pos*ax_pos*Ey_NE + az_pos*ax_neg*Ey_SE + az_neg*ax_pos*Ey_NW + az_neg*ax_neg*Ey_SW;
    efield_SW[fsgrids::efield::EY] /= ((az_pos+az_neg)*(ax_pos+ax_neg)+EPS);
 
-   if (Parameters::fieldSolverDiffusiveEterms) {
+   if (meshParams.fieldSolverDiffusiveEterms) {
 #ifdef FS_1ST_ORDER_SPACE
       efield_SW[fsgrids::efield::EY] -= ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*(perBz_S-perBz_N);
       efield_SW[fsgrids::efield::EY] += az_pos*az_neg/(az_pos+az_neg+EPS)*(perBx_W-perBx_E);
@@ -1168,7 +1168,7 @@ void calculateEdgeElectricFieldY(
  * 
  * \param RKCase Element in the enum defining the Runge-Kutta method steps
  */
-void calculateEdgeElectricFieldZ(
+ARCH_HOSTDEV void calculateEdgeElectricFieldZ(
    const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & perBGrid,
    const arch::buf<FsGrid<Real, fsgrids::efield::N_EFIELD, FS_STENCIL_WIDTH>> & EGrid,
    const arch::buf<FsGrid<Real, fsgrids::ehall::N_EHALL, FS_STENCIL_WIDTH>> & EHallGrid,
@@ -1278,8 +1278,8 @@ void calculateEdgeElectricFieldZ(
    Real Ez_SW = Bx_S*Vy0 - By_W*Vx0;
    
    // Resistive term
-   if (Parameters::resistivity > 0) {
-     Ez_SW += Parameters::resistivity *
+   if (meshParams.resistivity > 0) {
+     Ez_SW += meshParams.resistivity *
        sqrt((bgb_SW[fsgrids::bgbfield::BGBX]+perb_SW[fsgrids::bfield::PERBX])*
             (bgb_SW[fsgrids::bgbfield::BGBX]+perb_SW[fsgrids::bfield::PERBX]) +
             (bgb_SW[fsgrids::bgbfield::BGBY]+perb_SW[fsgrids::bfield::PERBY])*
@@ -1293,12 +1293,12 @@ void calculateEdgeElectricFieldZ(
    }
    
    // Hall term
-   if (Parameters::ohmHallTerm > 0) {
+   if (meshParams.ohmHallTerm > 0) {
       Ez_SW += EHallGrid.get(i,j,k)[fsgrids::ehall::EZHALL_000_001];
    }
    
    // Electron pressure gradient term
-   if(Parameters::ohmGradPeTerm > 0) {
+   if(meshParams.ohmGradPeTerm > 0) {
       Ez_SW += EGradPeGrid.get(i,j,k)[fsgrids::egradpe::EZGRADPE];
    }
    
@@ -1320,7 +1320,7 @@ void calculateEdgeElectricFieldZ(
       i, j, k+1,
       Bx_S, By_W, dBxdy_S, dBxdz_S, dBydx_W, dBydz_W, MINUS, MINUS, minRhom, maxRhom, vA, vS, vW
    );
-   c_x = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
+   c_x = min(meshParams.maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
    c_y = c_x;
    ax_neg   = max(ZERO,-Vx0 + c_x);
    ax_pos   = max(ZERO,+Vx0 + c_x);
@@ -1336,8 +1336,8 @@ void calculateEdgeElectricFieldZ(
    Real Ez_SE = Bx_S*Vy0 - By_E*Vx0;
 
    // Resistive term
-   if (Parameters::resistivity > 0) {
-      Ez_SE += Parameters::resistivity *
+   if (meshParams.resistivity > 0) {
+      Ez_SE += meshParams.resistivity *
         sqrt((bgb_SE[fsgrids::bgbfield::BGBX]+perb_SE[fsgrids::bfield::PERBX])*
              (bgb_SE[fsgrids::bgbfield::BGBX]+perb_SE[fsgrids::bfield::PERBX]) +
              (bgb_SE[fsgrids::bgbfield::BGBY]+perb_SE[fsgrids::bfield::PERBY])*
@@ -1351,12 +1351,12 @@ void calculateEdgeElectricFieldZ(
    }
    
    // Hall term
-   if (Parameters::ohmHallTerm > 0) {
+   if (meshParams.ohmHallTerm > 0) {
       Ez_SE += EHallGrid.get(i-1,j,k)[fsgrids::ehall::EZHALL_100_101];
    }
    
    // Electron pressure gradient term
-   if(Parameters::ohmGradPeTerm > 0) {
+   if(meshParams.ohmGradPeTerm > 0) {
       Ez_SE += EGradPeGrid.get(i-1,j,k)[fsgrids::egradpe::EZGRADPE];
    }
    
@@ -1376,7 +1376,7 @@ void calculateEdgeElectricFieldZ(
       i-1,j  ,k+1,
       Bx_S, By_E, dBxdy_S, dBxdz_S, dBydx_E, dBydz_E, PLUS, MINUS, minRhom, maxRhom, vA, vS, vW
    );
-   c_x = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
+   c_x = min(meshParams.maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
    c_y = c_x;
    ax_neg = max(ax_neg,-Vx0 + c_x);
    ax_pos = max(ax_pos,+Vx0 + c_x);
@@ -1392,8 +1392,8 @@ void calculateEdgeElectricFieldZ(
    Real Ez_NW = Bx_N*Vy0 - By_W*Vx0;
    
    // Resistive term
-   if (Parameters::resistivity > 0) {
-      Ez_NW += Parameters::resistivity *
+   if (meshParams.resistivity > 0) {
+      Ez_NW += meshParams.resistivity *
         sqrt((bgb_NW[fsgrids::bgbfield::BGBX]+perb_NW[fsgrids::bfield::PERBX])*
              (bgb_NW[fsgrids::bgbfield::BGBX]+perb_NW[fsgrids::bfield::PERBX]) +
              (bgb_NW[fsgrids::bgbfield::BGBY]+perb_NW[fsgrids::bfield::PERBY])*
@@ -1407,12 +1407,12 @@ void calculateEdgeElectricFieldZ(
    }
    
    // Hall term
-   if(Parameters::ohmHallTerm > 0) {
+   if(meshParams.ohmHallTerm > 0) {
       Ez_NW += EHallGrid.get(i,j-1,k)[fsgrids::ehall::EZHALL_010_011];
    }
    
    // Electron pressure gradient term
-   if(Parameters::ohmGradPeTerm > 0) {
+   if(meshParams.ohmGradPeTerm > 0) {
       Ez_NW += EGradPeGrid.get(i,j-1,k)[fsgrids::egradpe::EZGRADPE];
    }
    
@@ -1432,7 +1432,7 @@ void calculateEdgeElectricFieldZ(
       i, j-1, k+1,
       Bx_N, By_W, dBxdy_N, dBxdz_N, dBydx_W, dBydz_W, MINUS, PLUS, minRhom, maxRhom, vA, vS, vW
    );
-   c_x = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
+   c_x = min(meshParams.maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
    c_y = c_x;
    ax_neg = max(ax_neg,-Vx0 + c_x); 
    ax_pos = max(ax_pos,+Vx0 + c_x);
@@ -1448,8 +1448,8 @@ void calculateEdgeElectricFieldZ(
    Real Ez_NE = Bx_N*Vy0 - By_E*Vx0;
    
    // Resistive term
-   if (Parameters::resistivity > 0) {
-      Ez_NE += Parameters::resistivity *
+   if (meshParams.resistivity > 0) {
+      Ez_NE += meshParams.resistivity *
         sqrt((bgb_NE[fsgrids::bgbfield::BGBX]+perb_NE[fsgrids::bfield::PERBX])*
              (bgb_NE[fsgrids::bgbfield::BGBX]+perb_NE[fsgrids::bfield::PERBX]) +
              (bgb_NE[fsgrids::bgbfield::BGBY]+perb_NE[fsgrids::bfield::PERBY])*
@@ -1463,12 +1463,12 @@ void calculateEdgeElectricFieldZ(
    }
    
    // Hall term
-   if(Parameters::ohmHallTerm > 0) {
+   if(meshParams.ohmHallTerm > 0) {
       Ez_NE += EHallGrid.get(i-1,j-1,k)[fsgrids::ehall::EZHALL_110_111];
    }
    
    // Electron pressure gradient term
-   if(Parameters::ohmGradPeTerm > 0) {
+   if(meshParams.ohmGradPeTerm > 0) {
       Ez_NE += EGradPeGrid.get(i-1,j-1,k)[fsgrids::egradpe::EZGRADPE];
    }
    
@@ -1488,7 +1488,7 @@ void calculateEdgeElectricFieldZ(
       i-1,j-1,k+1,
       Bx_N, By_E, dBxdy_N, dBxdz_N, dBydx_E, dBydz_E, PLUS, PLUS, minRhom, maxRhom, vA, vS, vW
    );
-   c_x = min(Parameters::maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
+   c_x = min(meshParams.maxWaveVelocity,sqrt(vA*vA + vS*vS) + vW);
    c_y = c_x;
    ax_neg = max(ax_neg,-Vx0 + c_x);
    ax_pos = max(ax_pos,+Vx0 + c_x);
@@ -1500,7 +1500,7 @@ void calculateEdgeElectricFieldZ(
    efield_SW[fsgrids::efield::EZ] = ax_pos*ay_pos*Ez_NE + ax_pos*ay_neg*Ez_SE + ax_neg*ay_pos*Ez_NW + ax_neg*ay_neg*Ez_SW;
    efield_SW[fsgrids::efield::EZ] /= ((ax_pos+ax_neg)*(ay_pos+ay_neg)+EPS);
 
-   if (Parameters::fieldSolverDiffusiveEterms) {
+   if (meshParams.fieldSolverDiffusiveEterms) {
 #ifdef FS_1ST_ORDER_SPACE
       efield_SW[fsgrids::efield::EZ] -= ay_pos*ay_neg/(ay_pos+ay_neg+EPS)*(perBx_S-perBx_N);
       efield_SW[fsgrids::efield::EZ] += ax_pos*ax_neg/(ax_pos+ax_neg+EPS)*(perBy_W-perBy_E);
@@ -1540,7 +1540,7 @@ void calculateEdgeElectricFieldZ(
  * \sa calculateUpwindedElectricFieldSimple calculateEdgeElectricFieldX calculateEdgeElectricFieldY calculateEdgeElectricFieldZ
  * 
  */
-void calculateElectricField(
+ARCH_HOSTDEV void calculateElectricField(
    const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & perBGrid,
    const arch::buf<FsGrid<Real, fsgrids::efield::N_EFIELD, FS_STENCIL_WIDTH>> & EGrid,
    const arch::buf<FsGrid<Real, fsgrids::ehall::N_EHALL, FS_STENCIL_WIDTH>> & EHallGrid,
@@ -1668,17 +1668,17 @@ void calculateUpwindedElectricFieldSimple(
    
    timer=phiprof::initializeTimer("MPI","MPI");
    phiprof::start(timer);
-   if(P::ohmHallTerm > 0) {
+   if(meshParams.ohmHallTerm > 0) {
       EHallGrid.syncHostData();
       EHallGrid.grid()->updateGhostCells();
       EHallGrid.syncDeviceData();
    }
-   if(P::ohmGradPeTerm > 0) {
+   if(meshParams.ohmGradPeTerm > 0) {
       EGradPeGrid.syncHostData();
       EGradPeGrid.grid()->updateGhostCells();
       EGradPeGrid.syncDeviceData();
    }
-   if(P::ohmHallTerm == 0 && P::ohmGradPeTerm == 0) {
+   if(meshParams.ohmHallTerm == 0 && meshParams.ohmGradPeTerm == 0) {
       dPerBGrid.syncHostData();
       dPerBGrid.grid()->updateGhostCells();
       dPerBGrid.syncDeviceData();

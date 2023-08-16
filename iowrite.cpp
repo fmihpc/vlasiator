@@ -49,7 +49,6 @@ using namespace std;
 using namespace phiprof;
 using namespace vlsv;
 
-extern ARCH_MANAGED GridParameters meshParams;
 extern Logger logFile, diagnostic;
 
 typedef Parameters P;

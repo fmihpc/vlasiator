@@ -44,7 +44,6 @@
    #define DEBUG_IONOSPHERE
 #endif
 
-extern ARCH_MANAGED GridParameters meshParams;
 
 namespace SBC {
    Ionosphere::Ionosphere(): SysBoundaryCondition() { }

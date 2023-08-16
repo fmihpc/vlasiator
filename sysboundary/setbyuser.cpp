@@ -41,7 +41,6 @@
    #define DEBUG_SETBYUSER
 #endif
 
-extern ARCH_MANAGED GridParameters meshParams;
 
 using namespace std;
 

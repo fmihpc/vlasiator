@@ -88,8 +88,8 @@ namespace SBC {
             if(!found) {
                 #ifndef __CUDA_ARCH__ 
                 cerr << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
-                abort();
                 #endif
+                assert(0);
             }
             assert(found);
             return bGrid.get(closestCell[0], closestCell[1], closestCell[2])[fsgrids::bfield::PERBX+component];
@@ -133,7 +133,10 @@ namespace SBC {
                     cp[fsgrids::ehall::EZHALL_110_111] = 0.0;
                     break;
                 default:
+                    #ifndef __CUDA_ARCH__ 
                     cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
+                    #endif
+                    return;
             }
         }
         

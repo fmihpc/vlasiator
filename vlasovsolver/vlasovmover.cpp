@@ -53,7 +53,6 @@
 using namespace std;
 using namespace spatial_cell;
 
-extern ARCH_MANAGED GridParameters meshParams;
 
 /** Propagates the distribution function in spatial space.
 

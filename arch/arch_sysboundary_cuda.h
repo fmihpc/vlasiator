@@ -45,7 +45,6 @@ class buf<SysBoundary> {
                     creal& dt,
                     cuint& component
                 ) {
-                    // return 0;
                     if (sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN) {
                         #ifdef __CUDA_ARCH__
                             return bufPtr->setByUser_d->fieldSolverBoundaryCondMagneticField(bGrid, technicalGrid, i, j, k, dt,component);
@@ -71,6 +70,208 @@ class buf<SysBoundary> {
                         #endif
                     }
                 }
+
+                ARCH_HOSTDEV void fieldSolverBoundaryCondMagneticFieldProjection(
+                    const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & bGrid,
+                    const arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> & technicalGrid,
+                    cint i,
+                    cint j,
+                    cint k
+                ) {
+                    if (sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN) {
+                        #ifdef __CUDA_ARCH__
+                            bufPtr->setByUser_d->fieldSolverBoundaryCondMagneticFieldProjection(bGrid, technicalGrid, i, j, k);
+                        #else
+                            bufPtr->setbyUser->fieldSolverBoundaryCondMagneticFieldProjection(bGrid, technicalGrid, i, j, k);
+                        #endif
+                    } else if (sysBoundaryFlag == sysboundarytype::IONOSPHERE) {
+                        #ifdef __CUDA_ARCH__
+                            bufPtr->ionosphere_d->fieldSolverBoundaryCondMagneticFieldProjection(bGrid, technicalGrid, i, j, k);
+                        #else
+                            bufPtr->ionosphere->fieldSolverBoundaryCondMagneticFieldProjection(bGrid, technicalGrid, i, j, k);
+                        #endif
+                    } else if (sysBoundaryFlag == sysboundarytype::OUTFLOW) {
+                        #ifdef __CUDA_ARCH__
+                            bufPtr->outflow_d->fieldSolverBoundaryCondMagneticFieldProjection(bGrid, technicalGrid, i, j, k);
+                        #else
+                            bufPtr->outflow->fieldSolverBoundaryCondMagneticFieldProjection(bGrid, technicalGrid, i, j, k);
+                        #endif
+                    } else {
+                        #ifndef __CUDA_ARCH__
+                            std::cerr << "ERROR: sysboundarytype not found bound cuda" << std::endl;
+                            exit(1);
+                        #endif
+                    }
+                }
+
+                ARCH_HOSTDEV void fieldSolverBoundaryCondDerivatives(
+                    const arch::buf<FsGrid<Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH>> & dPerBGrid,
+                    const arch::buf<FsGrid<Real, fsgrids::dmoments::N_DMOMENTS, FS_STENCIL_WIDTH>> & dMomentsGrid,
+                    cint i,
+                    cint j,
+                    cint k,
+                    cuint& RKCase,
+                    cuint& component
+                ) {
+                    if (sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN) {
+                        #ifdef __CUDA_ARCH__
+                            bufPtr->setByUser_d->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, component);
+                        #else
+                            bufPtr->setbyUser->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, component);
+                        #endif
+                    } else if (sysBoundaryFlag == sysboundarytype::IONOSPHERE) {
+                        #ifdef __CUDA_ARCH__
+                            bufPtr->ionosphere_d->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, component);
+                        #else
+                            bufPtr->ionosphere->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, component);
+                        #endif
+                    } else if (sysBoundaryFlag == sysboundarytype::OUTFLOW) {
+                        #ifdef __CUDA_ARCH__
+                            bufPtr->outflow_d->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, component);
+                        #else
+                            bufPtr->outflow->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, component);
+                        #endif
+                    } else {
+                        #ifndef __CUDA_ARCH__
+                            std::cerr << "ERROR: sysboundarytype not found bound cuda" << std::endl;
+                            exit(1);
+                        #endif
+                    }
+                }
+
+                ARCH_HOSTDEV void fieldSolverBoundaryCondGradPeElectricField(
+                    const arch::buf<FsGrid<Real, fsgrids::egradpe::N_EGRADPE, FS_STENCIL_WIDTH>> & EGradPeGrid,
+                    cint i,
+                    cint j,
+                    cint k,
+                    cuint component
+                ) {
+                    if (sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN) {
+                        #ifdef __CUDA_ARCH__
+                            bufPtr->setByUser_d->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid, i, j, k, component);
+                        #else
+                            bufPtr->setbyUser->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid, i, j, k, component);
+                        #endif
+                    } else if (sysBoundaryFlag == sysboundarytype::IONOSPHERE) {
+                        #ifdef __CUDA_ARCH__
+                            bufPtr->ionosphere_d->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid, i, j, k, component);
+                        #else
+                            bufPtr->ionosphere->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid, i, j, k, component);
+                        #endif
+                    } else if (sysBoundaryFlag == sysboundarytype::OUTFLOW) {
+                        #ifdef __CUDA_ARCH__
+                            bufPtr->outflow_d->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid, i, j, k, component);
+                        #else
+                            bufPtr->outflow->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid, i, j, k, component);
+                        #endif
+                    } else {
+                        #ifndef __CUDA_ARCH__
+                            std::cerr << "ERROR: sysboundarytype not found bound cuda" << std::endl;
+                            exit(1);
+                        #endif
+                    }
+                }
+
+                ARCH_HOSTDEV void fieldSolverBoundaryCondHallElectricField(
+                    const arch::buf<FsGrid<Real, fsgrids::ehall::N_EHALL, FS_STENCIL_WIDTH>> & EHallGrid,
+                    cint i,
+                    cint j,
+                    cint k,
+                    cuint component
+                ) { 
+                    if (sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN) {
+                        #ifdef __CUDA_ARCH__
+                            bufPtr->setByUser_d->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, component);
+                        #else
+                            bufPtr->setbyUser->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, component);
+                        #endif
+                    } else if (sysBoundaryFlag == sysboundarytype::IONOSPHERE) {
+                        #ifdef __CUDA_ARCH__
+                            bufPtr->ionosphere_d->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, component);
+                        #else
+                            bufPtr->ionosphere->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, component);
+                        #endif
+                    } else if (sysBoundaryFlag == sysboundarytype::OUTFLOW) {
+                        #ifdef __CUDA_ARCH__
+                            bufPtr->outflow_d->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, component);
+                        #else
+                            bufPtr->outflow->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, component);
+                        #endif
+                    } else {
+                        #ifndef __CUDA_ARCH__
+                            std::cerr << "ERROR: sysboundarytype not found bound cuda" << std::endl;
+                            exit(1);
+                        #endif
+                    }
+                }
+
+
+                ARCH_HOSTDEV void fieldSolverBoundaryCondElectricField(
+                    const arch::buf<FsGrid<Real, fsgrids::efield::N_EFIELD, FS_STENCIL_WIDTH>> & EGrid,
+                    cint i,
+                    cint j,
+                    cint k,
+                    cuint component
+                ) {
+                    if (sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN) {
+                        #ifdef __CUDA_ARCH__
+                            bufPtr->setByUser_d->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, component);
+                        #else
+                            bufPtr->setbyUser->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, component);
+                        #endif
+                    } else if (sysBoundaryFlag == sysboundarytype::IONOSPHERE) {
+                        #ifdef __CUDA_ARCH__
+                            bufPtr->ionosphere_d->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, component);
+                        #else
+                            bufPtr->ionosphere->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, component);
+                        #endif
+                    } else if (sysBoundaryFlag == sysboundarytype::OUTFLOW) {
+                        #ifdef __CUDA_ARCH__
+                            bufPtr->outflow_d->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, component);
+                        #else
+                            bufPtr->outflow->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, component);
+                        #endif
+                    } else {
+                        #ifndef __CUDA_ARCH__
+                            std::cerr << "ERROR: sysboundarytype not found bound cuda" << std::endl;
+                            exit(1);
+                        #endif
+                    }
+                }
+
+                ARCH_HOSTDEV void fieldSolverBoundaryCondBVOLDerivatives(
+                    const arch::buf<FsGrid<Real, fsgrids::volfields::N_VOL, FS_STENCIL_WIDTH>> & volGrid,
+                    cint i,
+                    cint j,
+                    cint k,
+                    cuint& component
+                ) {
+                    if (sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN) {
+                        #ifdef __CUDA_ARCH__
+                            bufPtr->setByUser_d->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, component);
+                        #else
+                            bufPtr->setbyUser->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, component);
+                        #endif
+                    } else if (sysBoundaryFlag == sysboundarytype::IONOSPHERE) {
+                        #ifdef __CUDA_ARCH__
+                            bufPtr->ionosphere_d->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, component);
+                        #else
+                            bufPtr->ionosphere->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, component);
+                        #endif
+                    } else if (sysBoundaryFlag == sysboundarytype::OUTFLOW) {
+                        #ifdef __CUDA_ARCH__
+                            bufPtr->outflow_d->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, component);
+                        #else
+                            bufPtr->outflow->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, component);
+                        #endif
+                    } else {
+                        #ifndef __CUDA_ARCH__
+                            std::cerr << "ERROR: sysboundarytype not found bound cuda" << std::endl;
+                            exit(1);
+                        #endif
+                    }
+                } 
+ 
             private:
                 int sysBoundaryFlag;
                 const buf<SysBoundary>* bufPtr;

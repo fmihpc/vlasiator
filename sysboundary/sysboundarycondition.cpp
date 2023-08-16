@@ -35,7 +35,6 @@
 #include "sysboundarycondition.h"
 #include "../projects/projects_common.h"
 
-extern ARCH_MANAGED GridParameters meshParams;
 
 using namespace std;
 

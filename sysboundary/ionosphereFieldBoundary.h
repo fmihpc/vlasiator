@@ -1,10 +1,9 @@
 #include "../common.h"
 #include "../fieldsolver/fs_common.h"
+#include "../parameters.h"
 #include <iostream>
 
 using namespace std;
-
-extern ARCH_MANAGED GridParameters meshParams;
 
 namespace SBC {
     class IonosphereFieldBoundary {
@@ -219,18 +218,18 @@ namespace SBC {
             BdotN += bGrid.get(i,j,k)[fsgrids::bfield::PERBX+component] * normalDirection[component];
         }
         // Apply to any components that were not solved
-        if ((technicalGrid.get(i,j,k,0).sysBoundaryLayer == 2) ||
-            ((technicalGrid.get(i,j,k,0).sysBoundaryLayer == 1) && ((technicalGrid.get(i,j,k,0).SOLVE & compute::BX) != compute::BX))
+        if ((technicalGrid.get(i,j,k)->sysBoundaryLayer == 2) ||
+            ((technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) && ((technicalGrid.get(i,j,k)->SOLVE & compute::BX) != compute::BX))
             ) {
             bGrid.get(i,j,k)[fsgrids::bfield::PERBX] = BdotN*normalDirection[0];
         }
-        if ((technicalGrid.get(i,j,k,0).sysBoundaryLayer == 2) ||
-            ((technicalGrid.get(i,j,k,0).sysBoundaryLayer == 1) && ((technicalGrid.get(i,j,k,0).SOLVE & compute::BY) != compute::BY))
+        if ((technicalGrid.get(i,j,k)->sysBoundaryLayer == 2) ||
+            ((technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) && ((technicalGrid.get(i,j,k)->SOLVE & compute::BY) != compute::BY))
             ) {
             bGrid.get(i,j,k)[fsgrids::bfield::PERBY] = BdotN*normalDirection[1];
         }
-        if ((technicalGrid.get(i,j,k,0).sysBoundaryLayer == 2) ||
-            ((technicalGrid.get(i,j,k,0).sysBoundaryLayer == 1) && ((technicalGrid.get(i,j,k,0).SOLVE & compute::BZ) != compute::BZ))
+        if ((technicalGrid.get(i,j,k)->sysBoundaryLayer == 2) ||
+            ((technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) && ((technicalGrid.get(i,j,k)->SOLVE & compute::BZ) != compute::BZ))
             ) {
             bGrid.get(i,j,k)[fsgrids::bfield::PERBZ] = BdotN*normalDirection[2];
         }
@@ -245,8 +244,8 @@ namespace SBC {
     ) {
         phiprof::start("Ionosphere::fieldSolverGetNormalDirection");
         
-        static creal DIAG2 = 1.0 / sqrt(2.0);
-        static creal DIAG3 = 1.0 / sqrt(3.0);
+        static creal DIAG2 = 0.7071067811865475; // 1.0 / sqrt(2.0);
+        static creal DIAG3 = 0.5773502691896257; // 1.0 / sqrt(3.0);
         
         creal dx = technicalGrid.grid()->DX;
         creal dy = technicalGrid.grid()->DY;
@@ -266,8 +265,10 @@ namespace SBC {
             if (meshParams.ycells_ini == 1) {
                 if (meshParams.zcells_ini == 1) {
                 // X,Y,Z
+                #ifndef __CUDA_ARCH__
                 std::cerr << __FILE__ << ":" << __LINE__ << ":" << "What do you expect to do with a single-cell simulation of ionosphere boundary type? Stop kidding." << std::endl;
-                abort();
+                #endif
+                assert(0);
                 // end of X,Y,Z
                 } else {
                 // X,Y
@@ -314,8 +315,10 @@ namespace SBC {
                     normalDirection[2] = z / length;
                     break;
                 default:
+                    #ifndef __CUDA_ARCH__ 
                     std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2 with this grid shape." << std::endl;
-                    abort();
+                    #endif
+                    assert(0); 
                 }
                 // end of X
             }
@@ -361,8 +364,10 @@ namespace SBC {
                     normalDirection[2] = z / length;
                     break;
                 default:
+                    #ifndef __CUDA_ARCH__ 
                     std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1, 2 or 3 with this grid shape." << std::endl;
-                    abort();
+                    #endif 
+                    assert(0);
                 }
                 // end of Y
             }
@@ -402,8 +407,10 @@ namespace SBC {
                 normalDirection[1] = y / length;
                 break;
                 default:
+                #ifndef __CUDA_ARCH__
                 std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2 with this grid shape." << std::endl;
-                abort();
+                #endif 
+                assert(0); 
             }
             // end of Z
         } else {
@@ -500,8 +507,10 @@ namespace SBC {
                 normalDirection[2] = z / length;
                 break;
                 default:
+                #ifndef __CUDA_ARCH__
                 std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1, 2 or 3 with this grid shape." << std::endl;
-                abort();
+                #endif 
+                assert(0); 
             }
             // end of 3D
         }
@@ -546,7 +555,10 @@ namespace SBC {
             cp[fsgrids::ehall::EZHALL_110_111] = 0.0;
             break;
          default:
+            #ifndef __CUDA_ARCH__
             cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
+            #endif
+            return;
       }
    }
    

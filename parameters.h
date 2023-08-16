@@ -31,6 +31,7 @@
 
 #include "definitions.h"
 
+
 const uint64_t INVALID_CELLID = 0;
 
 struct GridParameters {
@@ -46,7 +47,15 @@ struct GridParameters {
    uint xcells_ini; /*!< Initial number of spatial cells in x-direction. */
    uint ycells_ini; /*!< Initial number of spatial cells in y-direction. */
    uint zcells_ini; /*!< Initial number of spatial cells in z-direction. */ 
+   Real resistivity;             /*!< Resistivity in Ohm's law eta*J term. */
+   uint ohmHallTerm; /*!< Enable/choose spatial order of Hall term in Ohm's law JXB term. 0: off, 1: 1st spatial
+                               order, 2: 2nd spatial order. */
+   uint ohmGradPeTerm; /*!< Enable/choose spatial order of the electron pressure gradient term in Ohm's law. 0:
+                                 off, 1: 1st spatial order. */
+   Real maxWaveVelocity;         /*!< Maximum wave velocity allowed in LDZ. */
+   bool fieldSolverDiffusiveEterms; /*!< Enable resistive terms in the computation of E*/
 };
+extern ARCH_MANAGED GridParameters meshParams;
 
 void initParameters();
 
@@ -123,21 +132,12 @@ struct Parameters {
    static bool propagateVlasovTranslation;  /*!< If true, distribution function is propagated in ordinary space during
                                                the simulation.*/
 
-   static Real maxWaveVelocity;         /*!< Maximum wave velocity allowed in LDZ. */
    static uint maxFieldSolverSubcycles; /*!< Maximum allowed field solver subcycles. */
-   static Real resistivity;             /*!< Resistivity in Ohm's law eta*J term. */
-   static uint ohmHallTerm; /*!< Enable/choose spatial order of Hall term in Ohm's law JXB term. 0: off, 1: 1st spatial
-                               order, 2: 2nd spatial order. */
-   static uint ohmGradPeTerm; /*!< Enable/choose spatial order of the electron pressure gradient term in Ohm's law. 0:
-                                 off, 1: 1st spatial order. */
-   static Real electronTemperature; /*!< Upstream electron temperature to be used for the electron pressure gradient
-                                       term (K). */
+   static Real electronTemperature; /*!< Upstream electron temperature to be used for the electron pressure gradient term (K). */
    static Real
        electronDensity; /*!< Upstream electron density to be used for the electron pressure gradient term (m^-3). */
    static Real electronPTindex; /*!> Polytropic index for electron pressure gradient term. 0 is isobaric, 1 is
                                    isothermal, 1.667 is adiabatic electrons */
-
-   static bool fieldSolverDiffusiveEterms; /*!< Enable resistive terms in the computation of E*/
 
    static Real maxSlAccelerationRotation; /*!< Maximum rotation in acceleration for semilagrangian solver*/
    static int maxSlAccelerationSubcycles; /*!< Maximum number of subcycles in acceleration*/

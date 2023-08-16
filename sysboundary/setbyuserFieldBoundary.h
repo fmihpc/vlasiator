@@ -10,8 +10,6 @@
 
 using namespace std;
 
-extern ARCH_MANAGED GridParameters meshParams;
-
 // define class
 namespace SBC {
     class SetByUserFieldBoundary {
@@ -149,7 +147,10 @@ namespace SBC {
                 cp[fsgrids::ehall::EZHALL_110_111] = 0.0;
                 break;
                 default:
+                #ifndef __CUDA_ARCH__
                 cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
+                #endif
+                return;
             }
         }
 
