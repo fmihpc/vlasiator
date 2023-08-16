@@ -262,27 +262,35 @@ int main(int argn,char* args[]) {
    // Before MPI_Init we hardwire some settings, if we are in OpenMPI
    int required=MPI_THREAD_FUNNELED;
    int provided, resultlen;
-   char mpiversion[MPI_MAX_LIBRARY_VERSION_STRING], io_value[64];
+   char mpiversion[MPI_MAX_LIBRARY_VERSION_STRING];
    bool overrideMCAompio = false;
-   
+
    MPI_Get_library_version(mpiversion, &resultlen);
-   string versionstr = (string)mpiversion;
+   string versionstr = string(mpiversion);
+   stringstream mpiioMessage;
 
    if(versionstr.find("Open MPI") != std::string::npos) {
-      overrideMCAompio = true;
-      int index, count;
-      
-      MPI_T_cvar_handle io_handle;
-      
-      MPI_T_init_thread(required, &provided);
-      
-      MPI_T_cvar_get_index("io", &index);
-      MPI_T_cvar_handle_alloc(index, NULL, &io_handle, &count);
-      MPI_T_cvar_write(io_handle, "^ompio");
-      
-      MPI_T_cvar_read(io_handle, io_value);
-      
-      MPI_T_cvar_handle_free(&io_handle);
+      #ifdef VLASIATOR_ALLOW_MCA_OMPIO
+         mpiioMessage << "We detected OpenMPI but the compilation flag VLASIATOR_ALLOW_MCA_OMPIO was set so we do not override the default MCA io flag." << endl;
+      #else
+         overrideMCAompio = true;
+         int index, count;
+         char io_value[64];
+         
+         MPI_T_cvar_handle io_handle;
+         
+         MPI_T_init_thread(required, &provided);
+         
+         MPI_T_cvar_get_index("io", &index);
+         MPI_T_cvar_handle_alloc(index, NULL, &io_handle, &count);
+         MPI_T_cvar_write(io_handle, "^ompio");
+         
+         MPI_T_cvar_read(io_handle, io_value);
+         
+         MPI_T_cvar_handle_free(&io_handle);
+
+         mpiioMessage << "We detected OpenMPI so we set the cvars value to disable ompio, MCA io: " << io_value << endl;
+      #endif
    }
    
    // After the MPI_T settings we can init MPI all right.
@@ -301,8 +309,8 @@ int main(int argn,char* args[]) {
    MPI_Comm comm = MPI_COMM_WORLD;
    MPI_Comm_rank(comm,&myRank);
    
-   if (myRank == MASTER_RANK && overrideMCAompio) {
-      printf("We detected OpenMPI so we set the cvars value to disable ompio, MCA io: %s\n", io_value);
+   if (myRank == MASTER_RANK) {
+      cout << mpiioMessage.str();
    }
 
    #ifdef CATCH_FPE
