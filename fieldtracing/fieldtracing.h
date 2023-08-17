@@ -86,6 +86,7 @@ namespace FieldTracing {
       Real min_tracer_dx; /*!< Min allowed tracer dx to avoid getting bogged down in the archipelago */
       Real fullbox_max_incomplete_cells; /*!< Max allowed fraction of cells left unfinished before exiting tracing loop, fullbox */
       Real fluxrope_max_incomplete_cells; /*!< Max allowed fraction of cells left unfinished before exiting tracing loop, fluxrope */
+      Real fullbox_and_fluxrope_max_distance; /*!< Max allowed tracing distance before ending tracing, fullbox and fluxrope tracing */
       std::map< std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > reconstructionCoefficientsCache; /*!< cache for Balsara reconstruction coefficients */
       Real fluxrope_max_curvature_radii_to_trace;
       Real fluxrope_max_curvature_radii_extent;
