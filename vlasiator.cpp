@@ -419,16 +419,15 @@ int main(int argn,char* args[]) {
       = {P::xmin, P::ymin, P::zmin};
 
    // Checking that spatial cells are cubic, otherwise field solver is incorrect (cf. derivatives in E, Hall term)
-   if ((abs((technicalGrid.DX - technicalGrid.DY) / technicalGrid.DX) >1e-3) ||
-       (abs((technicalGrid.DX - technicalGrid.DZ) / technicalGrid.DX) >1e-3) ||
-       (abs((technicalGrid.DY - technicalGrid.DZ) / technicalGrid.DY) >1e-3)) {
+   constexpr Real uniformTolerance=1e-3;
+   if ((abs((technicalGrid.DX - technicalGrid.DY) / technicalGrid.DX) >uniformTolerance) ||
+       (abs((technicalGrid.DX - technicalGrid.DZ) / technicalGrid.DX) >uniformTolerance) ||
+       (abs((technicalGrid.DY - technicalGrid.DZ) / technicalGrid.DY) >uniformTolerance)) {
       if (myRank == MASTER_RANK) {
-         std::cerr << "WARNING: Your spatial cells seem not to be cubic. However the field solver is assuming them to "
-                      "be. Use at your own risk and responsibility!"
-                   << std::endl;
+         std::cerr << "WARNING: Your spatial cells seem not to be cubic. The simulation will now abort!" << std::endl;
       }
-      //Let's bailout if FsGrid cells are not cubic;
-      bailout(true,"Non-cubic FsGrid Cells. Check your cfg file!",__FILE__,__LINE__);
+      //just abort sending SIGTERM to all tasks
+      MPI_Abort(MPI_COMM_WORLD, -1);
    }
    phiprof::stop("Init fieldsolver grids");
 
