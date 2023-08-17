@@ -244,16 +244,15 @@ namespace projects {
       creal dz = cell->parameters[CellParams::DZ];
 
       // Calculate parameters for new block
-      Real blockSize[3];
+      cuint refLevel=0;
       Real blockCoords[3];
-      cell->get_velocity_block_size(popID,blockGID,&blockSize[0]);
       cell->get_velocity_block_coordinates(popID,blockGID,&blockCoords[0]);
       creal vxBlock = blockCoords[0];
       creal vyBlock = blockCoords[1];
       creal vzBlock = blockCoords[2];
-      creal dvxCell = blockSize[0];
-      creal dvyCell = blockSize[1];
-      creal dvzCell = blockSize[2];
+      creal dvxCell = cell->get_velocity_grid_cell_size(popID,refLevel)[0];
+      creal dvyCell = cell->get_velocity_grid_cell_size(popID,refLevel)[1];
+      creal dvzCell = cell->get_velocity_grid_cell_size(popID,refLevel)[2];
       // Calculate volume average of distribution function for each phase-space cell in the block.
       Real maxValue = 0.0;
       for (uint kc=0; kc<WID_VZ; ++kc) {
@@ -285,8 +284,8 @@ namespace projects {
       vector<vmesh::GlobalID> blocksToInitialize = this->findBlocksToInitialize(cell,popID);
       const uint nRequested = blocksToInitialize.size();
       // Expand the velocity space to the required size
-      vmesh->setNewCapacity(nRequested);
-      blockContainer->recapacitate(nRequested);
+      vmesh->setNewCapacity(nRequested*BLOCK_ALLOCATION_FACTOR);
+      blockContainer->recapacitate(nRequested*BLOCK_ALLOCATION_FACTOR);
 
       // Create temporary buffer for initialization
       vector<Realf> initBuffer(WID3);

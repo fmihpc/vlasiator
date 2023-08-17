@@ -100,7 +100,7 @@ INC_ZOLTAN = -isystem /$(LIBRARY_PREFIX2)/zoltan/include
 LIB_ZOLTAN = -L/$(LIBRARY_PREFIX2)/zoltan/lib -lzoltan
 
 # module
-LIB_JEMALLOC = -ljemalloc
+#LIB_JEMALLOC = -ljemalloc
 #INC_JEMALLOC = -isystem /$(LIBRARY_PREFIX2)/jemalloc/include
 #LIB_JEMALLOC = -L/$(LIBRARY_PREFIX2)/jemalloc/lib -ljemalloc -Xlinker=-rpath=$(LIBRARY_PREFIX2)/jemalloc/lib
 #LIB_JEMALLOC = -L/$(LIBRARY_PREFIX2)/jemalloc/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX2)/jemalloc/lib
