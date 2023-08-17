@@ -1187,9 +1187,9 @@ int main(int argn,char* args[]) {
    volGrid.finalize();
    technicalGrid.finalize();
 
-   MPI_Finalize();
    if(overrideMCAompio) {
       MPI_T_finalize();
    }
+   MPI_Finalize();
    return 0;
 }
