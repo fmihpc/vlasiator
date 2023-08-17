@@ -246,14 +246,12 @@ namespace SBC {
          templateCell.gpu_setReservation(popID,nRequested);
          #endif
          const Realf minValue = templateCell.getVelocityBlockMinValue(popID);
-         //std::cerr<<" Maxwellian requested blocks "<<nRequested<<" with minValue "<<minValue<<std::endl;
 
          // Create temporary buffer for initialization
          vector<Realf> initBuffer(WID3);
          // Loop over requested blocks. Initialize the contents into the temporary buffer
          // and return the maximum value.
 
-         uint added =0;
          cuint refLevel=0;
          creal dvxCell = templateCell.get_velocity_grid_cell_size(popID,refLevel)[0];
          creal dvyCell = templateCell.get_velocity_grid_cell_size(popID,refLevel)[1];
@@ -284,10 +282,8 @@ namespace SBC {
             // Only keep this block if it is at least 10% of the sparsity value
             if (maxValue > 0.1 * minValue) {
                templateCell.add_velocity_block(blockGID, popID, &initBuffer[0]);
-               added++;
             }
          } // for-loop over requested velocity blocks
-         //std::cerr<<" Maxwellian completed init with vmesh size "<<vmesh->size()<<" blockContainer size "<<blockContainer->size()<<" adding "<<added<<" blocks"<<std::endl;
 
          // let's get rid of blocks not fulfilling the criteria here to save memory.
          #ifdef USE_GPU
@@ -298,7 +294,6 @@ namespace SBC {
          #ifdef USE_GPU
          templateCell.prefetchHost();
          #endif
-         //std::cerr<<" Maxwellian templateCell after blockAdjust vmesh size "<<vmesh->size()<<" blockContainer size "<<blockContainer->size()<<std::endl;
       } // for-loop over particle species
 
       B[0] = Bx;
