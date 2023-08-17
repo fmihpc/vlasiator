@@ -202,7 +202,7 @@ namespace SBC {
          creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
          
          isThisCellOnAFace.fill(false);
-         // determineFace(isThisCellOnAFace.data(), x, y, z, dx, dy, dz);
+         determineFace(isThisCellOnAFace.data(), x, y, z, dx, dy, dz, isPeriodic);
          
          // Comparison of the array defining which faces to use and the array telling on which faces this cell is
          doAssign = false;
@@ -239,7 +239,7 @@ namespace SBC {
                isThisCellOnAFace.fill(false);
                doAssign = false;
 
-               // determineFace(isThisCellOnAFace.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx, dy, dz);
+               SysBoundaryCondition::determineFace(isThisCellOnAFace.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx, dy, dz, isPeriodic);
                for(int iface=0; iface<6; iface++) doAssign = doAssign || (facesToProcess[iface] && isThisCellOnAFace[iface]);
                if(doAssign) {
                   technicalGrid.get(i,j,k,0).sysBoundaryFlag = this->getIndex();
@@ -274,7 +274,7 @@ namespace SBC {
             creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
             
             bool isThisCellOnAFace[6];
-            // determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz);
+            determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, isPeriodic);
             
             doApply=false;
             // Comparison of the array defining which faces to use and the array telling on which faces this cell is
@@ -327,7 +327,7 @@ namespace SBC {
       creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
       
       bool isThisCellOnAFace[6];
-      // determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, true);
+      determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, isPeriodic, true);
       
       for(uint i=0; i<6; i++) {
          if(isThisCellOnAFace[i] && facesToProcess[i] && !sP.facesToSkipVlasov[i]) {
