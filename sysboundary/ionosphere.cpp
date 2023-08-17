@@ -59,24 +59,24 @@ namespace SBC {
 
    IonosphereBoundaryVDFmode boundaryVDFmode = FixedMoments;
 
-   // Ionosphere finite element grid
-   SphericalTriGrid ionosphereGrid;
+   
+   SphericalTriGrid ionosphereGrid; /*!< Ionosphere finite element grid */
 
    std::vector<IonosphereSpeciesParameters> Ionosphere::speciesParams;
 
    // Static ionosphere member variables
    Real Ionosphere::innerRadius;
    Real Ionosphere::radius;
-   Real Ionosphere::recombAlpha; // Recombination parameter, determining atmosphere ionizability (parameter)
-   Real Ionosphere::F10_7; // Solar 10.7 Flux value (parameter)
-   Real Ionosphere::downmapRadius; // Radius from which FACs are downmapped (RE)
-   Real Ionosphere::unmappedNodeRho; // Electron density of ionosphere nodes that don't couple to the magnetosphere
-   Real Ionosphere::unmappedNodeTe; // Electron temperature of ionosphere nodes that don't couple to the magnetosphere
-   Real Ionosphere::ridleyParallelConductivity; // Constant parallel conductivity in the Ridley conductivity model
-   Real Ionosphere::couplingTimescale; // Magnetosphere->Ionosphere coupling timescale (seconds)
-   Real Ionosphere::couplingInterval; // Ionosphere update interval
-   int Ionosphere::solveCount; // Counter of the number of solvings
-   Real Ionosphere::backgroundIonisation; // Background ionisation due to stellar UV and cosmic rays
+   Real Ionosphere::recombAlpha; /*!< Recombination parameter, determining atmosphere ionizability (parameter) */
+   Real Ionosphere::F10_7; /*!< Solar 10.7 Flux value (parameter) */
+   Real Ionosphere::downmapRadius; /*!< Radius from which FACs are downmapped (RE) */
+   Real Ionosphere::unmappedNodeRho; /*!< Electron density of ionosphere nodes that don't couple to the magnetosphere */
+   Real Ionosphere::unmappedNodeTe; /*!< Electron temperature of ionosphere nodes that don't couple to the magnetosphere */
+   Real Ionosphere::ridleyParallelConductivity; /*!< Constant parallel conductivity in the Ridley conductivity model */
+   Real Ionosphere::couplingTimescale; /*!< Magnetosphere->Ionosphere coupling timescale (seconds) */
+   Real Ionosphere::couplingInterval; /*!< Ionosphere update interval */
+   int Ionosphere::solveCount; /*!< Counter of the number of solvings */
+   Real Ionosphere::backgroundIonisation; /*!< Background ionisation due to stellar UV and cosmic rays */
    int  Ionosphere::solverMaxIterations;
    Real Ionosphere::solverRelativeL2ConvergenceThreshold;
    int Ionosphere::solverMaxFailureCount;
