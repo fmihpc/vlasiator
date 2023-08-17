@@ -284,8 +284,11 @@ namespace projects {
       vector<vmesh::GlobalID> blocksToInitialize = this->findBlocksToInitialize(cell,popID);
       const uint nRequested = blocksToInitialize.size();
       // Expand the velocity space to the required size
-      vmesh->setNewCapacity(nRequested*BLOCK_ALLOCATION_FACTOR);
-      blockContainer->recapacitate(nRequested*BLOCK_ALLOCATION_FACTOR);
+      vmesh->setNewCapacity(nRequested);
+      blockContainer->recapacitate(nRequested);
+      #ifdef USE_GPU
+      cell->gpu_setReservation(popID,nRequested);
+      #endif
 
       // Create temporary buffer for initialization
       vector<Realf> initBuffer(WID3);

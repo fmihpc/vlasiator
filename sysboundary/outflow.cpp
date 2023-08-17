@@ -185,8 +185,7 @@ namespace SBC {
       Project &project
    ) {
       const vector<CellID>& cells = getLocalCells();
-      //#pragma omp parallel for schedule(static)
-      #pragma omp parallel for schedule(dynamic)
+      #pragma omp parallel for schedule(static)
       for (uint i=0; i<cells.size(); ++i) {
          CellID id = cells[i];
          SpatialCell* cell = mpiGrid[id];
@@ -208,12 +207,6 @@ namespace SBC {
          }
 
          if (doApply) {
-            if (i%100==0) {
-               stringstream ss;
-               ss<<"outflow for cell "<<i<<"/"<<cells.size()<<""<<endl;
-               cerr<<ss.str();
-            }
-
             project.setCell(cell);
             cell->parameters[CellParams::RHOM_DT2] = cell->parameters[CellParams::RHOM];
             cell->parameters[CellParams::RHOQ_DT2] = cell->parameters[CellParams::RHOQ];

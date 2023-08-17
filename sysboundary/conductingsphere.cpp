@@ -193,18 +193,8 @@ namespace SBC {
       for (uint i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
          if (cell->sysBoundaryFlag != this->getIndex()) continue;
-         // stringstream ss;
-         // ss<<"conductingsphere for cell "<<i<<"/"<<cells.size()<<std::endl;
-         // std::cerr<<ss.str();
          for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
             setCellFromTemplate(cell,popID);
-            // // Verify current mesh and blocks
-            // cuint vmeshSize = cell->get_velocity_mesh(popID)->size();
-            // cuint vbcSize = cell->get_velocity_blocks(popID)->size();
-            // if (vmeshSize != vbcSize) {
-            //    printf("ERROR: population vmesh %ul and blockcontainer %ul sizes do not match!\n",vmeshSize,vbcSize);
-            // }
-            // cell->get_velocity_mesh(popID)->check();
          }
       }
       return true;
@@ -799,7 +789,6 @@ namespace SBC {
       templateCell.parameters[CellParams::DX] = 1;
       templateCell.parameters[CellParams::DY] = 1;
       templateCell.parameters[CellParams::DZ] = 1;
-      std::cerr<<"generating conductingsphere template cell"<<std::endl;
 
       // Loop over particle species
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
@@ -811,9 +800,12 @@ namespace SBC {
          vmesh::VelocityBlockContainer* blockContainer = templateCell.get_velocity_blocks(popID);
          vmesh->setNewCapacity(nRequested);
          blockContainer->recapacitate(nRequested);
+         #ifdef USE_GPU
+         templateCell.gpu_setReservation(popID,nRequested);
+         #endif
          const Realf minValue = templateCell.getVelocityBlockMinValue(popID);
-         std::cerr<<" Conductingsphere requested blocks "<<nRequested<<" with minValue "<<minValue<<std::endl;
-         std::cerr<<"  vmesh size "<<vmesh->size()<<" blockContainer size "<<blockContainer->size()<<std::endl;
+         // std::cerr<<" Conductingsphere requested blocks "<<nRequested<<" with minValue "<<minValue<<std::endl;
+         // std::cerr<<"  vmesh size "<<vmesh->size()<<" blockContainer size "<<blockContainer->size()<<std::endl;
 
          // Create temporary buffer for initialization
          vector<Realf> initBuffer(WID3);
@@ -854,21 +846,18 @@ namespace SBC {
                added++;
             }
          } // for-loop over requested velocity blocks
-         vmesh = templateCell.get_velocity_mesh(popID);
-         blockContainer = templateCell.get_velocity_blocks(popID);
-         std::cerr<<" Conductingsphere completed init with vmesh size "<<vmesh->size()<<" blockContainer size "<<blockContainer->size()<<" adding "<<added<<" blocks"<<std::endl;
+         //std::cerr<<" Conductingsphere completed init with vmesh size "<<vmesh->size()<<" blockContainer size "<<blockContainer->size()<<" adding "<<added<<" blocks"<<std::endl;
 
          // let's get rid of blocks not fulfilling the criteria here to save memory.
          #ifdef USE_GPU
+         // Block adjustment is done on the GPU, but copying over data from templateCells is still done on Host
          templateCell.prefetchDevice();
          #endif
          templateCell.adjustSingleCellVelocityBlocks(popID,true);
          #ifdef USE_GPU
          templateCell.prefetchHost();
          #endif
-         vmesh = templateCell.get_velocity_mesh(popID);
-         blockContainer = templateCell.get_velocity_blocks(popID);
-         std::cerr<<" Conductingsphere after blockAdjust vmesh size "<<vmesh->size()<<" blockContainer size "<<blockContainer->size()<<std::endl;
+         // std::cerr<<" Conductingsphere after blockAdjust vmesh size "<<vmesh->size()<<" blockContainer size "<<blockContainer->size()<<std::endl;
       } // for-loop over particle species
 
       calculateCellMoments(&templateCell,true,false,true);
@@ -961,6 +950,9 @@ namespace SBC {
    void Conductingsphere::setCellFromTemplate(SpatialCell* cell,const uint popID) {
       copyCellData(&templateCell,cell,false,popID,true); // copy also vdf, _V
       copyCellData(&templateCell,cell,true,popID,false); // don't copy vdf again but copy _R now
+      #ifdef USE_GPU
+      cell->gpu_setReservation(popID,templateCell.gpu_getReservation(popID));
+      #endif
    }
 
    std::string Conductingsphere::getName() const {return "Conductingsphere";}

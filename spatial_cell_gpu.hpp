@@ -144,6 +144,7 @@ namespace spatial_cell {
       Real RHOLOSSADJUST = 0.0;      /*!< Counter for particle number loss from the destroying blocks in blockadjustment*/
       Real max_dt[2];                                                /**< Element[0] is max_r_dt, element[1] max_v_dt.*/
       Real velocityBlockMinValue;
+      vmesh::LocalID reservation = 0; /* Guidance on vector size reservation */
 
       uint ACCSUBCYCLES;        /*!< number of subcyles for each cell*/
       vmesh::LocalID N_blocks;                                       /**< Number of velocity blocks, used when receiving velocity
@@ -247,6 +248,8 @@ namespace spatial_cell {
       void gpu_clearContentLists();
       // Advise on memory location
       void gpu_advise();
+      void gpu_setReservation(const uint popID, const vmesh::LocalID reservationsize, bool force=false);
+      vmesh::LocalID gpu_getReservation(const uint popID) const;
 
       vmesh::GlobalID find_velocity_block(vmesh::GlobalID cellIndices[3],const uint popID);
       Realf* get_data(const uint popID);

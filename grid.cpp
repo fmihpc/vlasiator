@@ -202,26 +202,22 @@ void initializeGrids(
    phiprof::stop("Set spatial cell coordinates");
 
    phiprof::start("Initialize system boundary conditions");
-   std::cerr<<"Initialize system boundary conditions"<<std::endl;
    if(sysBoundaries.initSysBoundaries(project, P::t_min) == false) {
       if (myRank == MASTER_RANK) cerr << "Error in initialising the system boundaries." << endl;
       exit(1);
    }
    phiprof::stop("Initialize system boundary conditions");
-   std::cerr<<"Completed: Initialize system boundary conditions"<<std::endl;
 
    SpatialCell::set_mpi_transfer_type(Transfer::CELL_DIMENSIONS);
    mpiGrid.update_copies_of_remote_neighbors(SYSBOUNDARIES_NEIGHBORHOOD_ID);
 
    // We want this before restart refinement
-   std::cerr<<"classify"<<std::endl;
    phiprof::start("Classify cells (sys boundary conditions)");
    if(sysBoundaries.classifyCells(mpiGrid,technicalGrid) == false) {
       cerr << "(MAIN) ERROR: System boundary conditions were not set correctly." << endl;
       exit(1);
    }
    phiprof::stop("Classify cells (sys boundary conditions)");
-   std::cout<<"sysb cells classifed"<<std::endl;
 
    if (P::isRestart) {
       logFile << "Restart from "<< P::restartFileName << std::endl << writeVerbose;
@@ -271,7 +267,6 @@ void initializeGrids(
    technicalGrid.updateGhostCells(); // This needs to be done at some point
 
    if (!P::isRestart) {
-      std::cerr<<"initialstate"<<std::endl;
       //Initial state based on project, background field in all cells
       //and other initial values in non-sysboundary cells
       phiprof::start("Apply initial state");
@@ -287,12 +282,6 @@ void initializeGrids(
 #pragma omp parallel for schedule(dynamic)
       for (size_t i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
-         const int tid = omp_get_thread_num();
-         if (i%100==0) {
-            stringstream ss;
-            ss<<"setCell "<<i<<"/"<<cells.size()<<" on thread "<<tid<<std::endl;
-            std::cerr<<ss.str();
-         }
          // #ifdef USE_GPU
          // cell->prefetchHost(); // Currently projects still init on host
          // #endif
@@ -301,20 +290,16 @@ void initializeGrids(
          }
       }
       phiprof::stop("setCell");
-      std::cout<<"setCell complete"<<std::endl;
 
       // Initial state for sys-boundary cells
       phiprof::stop("Apply initial state");
       phiprof::start("Apply system boundary conditions state");
-      std::cerr<<"sysb-initialstate"<<std::endl;
       if (sysBoundaries.applyInitialState(mpiGrid, technicalGrid, perBGrid, project) == false) {
          cerr << " (MAIN) ERROR: System boundary conditions initial state was not applied correctly." << endl;
          exit(1);
       }
       phiprof::stop("Apply system boundary conditions state");
-      std::cout<<"initial state sysb complete"<<std::endl;
 
-      std::cerr<<"prefetch"<<std::endl;
       #pragma omp parallel for schedule(static)
       for (size_t i=0; i<cells.size(); ++i) {
          mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
@@ -325,8 +310,6 @@ void initializeGrids(
          #endif
       }
 
-      std::cout<<"prefetch to GPU performed"<<std::endl;
-      std::cerr<<"adjustvelocityblocks"<<std::endl;
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          adjustVelocityBlocks(mpiGrid,cells,true,popID);
          #ifdef DEBUG_VAMR_VALIDATE
@@ -341,11 +324,8 @@ void initializeGrids(
             mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] += mpiGrid[cells[i]]->get_number_of_velocity_blocks(popID);
          }
       }
-      std::cout<<"blocks adjusted"<<std::endl;
 
-      std::cerr<<"shrinktofit"<<std::endl;
       shrink_to_fit_grid_data(mpiGrid); //get rid of excess data already here
-      std::cout<<"shrinktofit done"<<std::endl;
 
       /*
       // Apply boundary conditions so that we get correct initial moments
@@ -360,7 +340,6 @@ void initializeGrids(
    }
 
    // Balance load before we transfer all data below
-   std::cerr<<"balanceload"<<std::endl;
    balanceLoad(mpiGrid, sysBoundaries);
    // Function includes re-calculation of local cells cache
 
@@ -422,7 +401,6 @@ void initializeGrids(
       }
       P::dt = P::bailout_min_dt;
    }
-   std::cerr<<"grid init complete"<<std::endl;
    phiprof::stop("Set initial state");
 }
 
@@ -711,7 +689,6 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    SpatialCell::setCommunicatedSpecies(popID);
 
    const vector<CellID>& cells = getLocalCells();
-   std::cerr<<"content lists"<<std::endl;
    #pragma omp parallel
    {
       phiprof::start("Compute with_content_list");
@@ -733,7 +710,6 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
       phiprof::stop("Compute with_content_list");
    }
    // Note: We could try not updating remote lists unless explicitly wanting to keep remote contributions?
-   std::cerr<<"udpate remotes"<<std::endl;
    phiprof::initializeTimer("Transfer with_content_list","MPI");
    phiprof::start("Transfer with_content_list");
    SpatialCell::set_mpi_transfer_type(Transfer::VEL_BLOCK_WITH_CONTENT_STAGE1 );
@@ -745,7 +721,6 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
 #ifdef USE_GPU
    // Now loop over ghost cells and upload their velocity block lists into GPU memory
    const std::vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(NEAREST_NEIGHBORHOOD_ID);
-   std::cerr<<"content lists upload"<<std::endl;
    #pragma omp parallel
    {
       phiprof::start("Upload with_content_list to device");
@@ -761,7 +736,6 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    }
 #endif
 
-   std::cerr<<"adjusting"<<std::endl;
    //Adjusts velocity blocks in local spatial cells, doesn't adjust velocity blocks in remote cells.
 #pragma omp parallel
    {
@@ -772,9 +746,6 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
          Real density_post_adjust=0.0;
          CellID cell_id=cellsToAdjust[i];
          SpatialCell* cell = mpiGrid[cell_id];
-         stringstream ss;
-         ss<<"adjusting cell "<<i<<" "<<cell_id<<std::endl;
-         std::cerr<<ss.str();
          // gather spatial neighbor list and create vector with pointers to neighbor spatial cells
          const auto* neighbors = mpiGrid.get_neighbors_of(cell_id, NEAREST_NEIGHBORHOOD_ID);
          // Note: at AMR refinement boundaries this can cause blocks to propagate further than absolutely required
@@ -787,6 +758,8 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
                continue;
             }
             neighbor_ptrs.push_back(mpiGrid[neighbor_id]);
+            // Ensure cell has sufficient reservation
+            cell->gpu_setReservation(popID,mpiGrid[neighbor_id]->velocity_block_with_content_list_size);
          }
 #ifdef USE_GPU
          cell->gpu_attachToStream();

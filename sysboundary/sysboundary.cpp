@@ -133,7 +133,6 @@ void SysBoundary::getParameters() {
  */
 bool SysBoundary::addSysBoundary(SBC::SysBoundaryCondition* bc, Project& project, creal& t) {
    // Initialize the boundary condition
-   cerr << "Adding new sysboundary " << endl;
    bool success = true;
    if (!bc->initSysBoundary(t, project)) {
       cerr << "Failed to initialize system boundary condition '" << bc->getName() << "'" << endl;
@@ -748,7 +747,7 @@ bool SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_G
       ) {
          continue;
       }
-      cerr << "Applying initial state for " << (*it)->getName() << " system boundary"<<endl;
+      //cerr << "Applying initial state for " << (*it)->getName() << " system boundary"<<endl;
       if (!(*it)->applyInitialState(mpiGrid, technicalGrid, perBGrid, project)) {
          cerr << "ERROR: " << (*it)->getName() << " system boundary condition initial state not applied correctly." << endl;
          success = false;

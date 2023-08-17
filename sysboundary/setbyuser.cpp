@@ -279,9 +279,6 @@ namespace SBC {
 
    bool SetByUser::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID) {
 
-      stringstream ss;
-      ss<<"setbyuser loop"<<endl;
-      cerr<<ss.str();
       #pragma omp parallel for
       for (const auto& id : getLocalCells()) {
          SpatialCell* cell = mpiGrid[id];
@@ -295,6 +292,9 @@ namespace SBC {
             if (facesToProcess[i] && isThisCellOnAFace[i]) {
                copyCellData(&templateCells[i], cell ,false,popID,true); // copy also vdf, _V
                copyCellData(&templateCells[i], cell ,true,popID,false); // don't copy vdf again but copy _R now
+               #ifdef USE_GPU
+               cell->gpu_setReservation(popID,templateCells[i].gpu_getReservation(popID));
+               #endif
                break; // This effectively sets the precedence of faces through the order of faces.
             }
          }
@@ -437,9 +437,6 @@ namespace SBC {
    bool SetByUser::generateTemplateCells(creal& t) {
       #pragma omp parallel for
       for(uint i=0; i<6; i++) {
-         stringstream ss;
-         ss<<"setbyuser generating template cell for face "<<i<<endl;
-         cerr<<ss.str();
          if(facesToProcess[i]) {
             generateTemplateCell(templateCells[i], templateB[i], i, t);
          }
