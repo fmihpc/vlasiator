@@ -869,57 +869,67 @@ namespace SBC {
     * given F10.7 photospheric flux as a solar activity proxy.
     *
     * This assumes the FACs have already been coupled into the grid.
+    * 
+    * If refillTensorAtRestart is true, we don't recompute precipitation and integration, we just refill the tensor from the sigmas as read from restart.
+    * That is necessary so ig_inplanecurrent has non-zero data if an output file is written after restart and before the next ionosphere solution step.
     */
-   void SphericalTriGrid::calculateConductivityTensor(const Real F10_7, const Real recombAlpha, const Real backgroundIonisation) {
-
+   void SphericalTriGrid::calculateConductivityTensor(
+      const Real F10_7,
+      const Real recombAlpha,
+      const Real backgroundIonisation,
+      const bool refillTensorAtRestart/*=false*/
+   ) {
       phiprof::start("ionosphere-calculateConductivityTensor");
+      
+      // At restart we have SIGMAP, SIGMAH and SIGMAPARALLEL read in from the restart file already, no need to update here.
+      if(!refillTensorAtRestart) {
+         // Ranks that don't participate in ionosphere solving skip this function outright
+         if(!isCouplingInwards && !isCouplingOutwards) {
+            phiprof::stop("ionosphere-calculateConductivityTensor");
+            return;
+         }
+         
+         calculatePrecipitation();
+         
+         //Calculate height-integrated conductivities and 3D electron density
+         // TODO: effdt > 0?
+         // (Then, ne += dt*(q - alpha*ne*abs(ne))
+         for(uint n=0; n<nodes.size(); n++) {
+            nodes[n].parameters[ionosphereParameters::SIGMAP] = 0;
+            nodes[n].parameters[ionosphereParameters::SIGMAH] = 0;
+            nodes[n].parameters[ionosphereParameters::SIGMAPARALLEL] = 0;
+            std::array<Real, numAtmosphereLevels> electronDensity;
 
-      // Ranks that don't participate in ionosphere solving skip this function outright
-      if(!isCouplingInwards && !isCouplingOutwards) {
-         phiprof::stop("ionosphere-calculateConductivityTensor");
-         return;
-      }
+            // Note this loop counts from 1 (std::vector is zero-initialized, so electronDensity[0] = 0)
+            for(int h=1; h<numAtmosphereLevels; h++) { 
+               // Calculate production rate
+               Real energy_keV = max(nodes[n].deltaPhi()/1000., productionMinAccEnergy);
 
-      calculatePrecipitation();
+               Real ne = nodes[n].electronDensity();
+               Real electronTemp = nodes[n].electronTemperature();
+               Real temperature_keV = (physicalconstants::K_B / physicalconstants::CHARGE) / 1000. * electronTemp;
+               if(std::isnan(energy_keV) || std::isnan(temperature_keV)) {
+                  cerr << "(ionosphere) NaN encountered in conductivity calculation: " << endl
+                     << "   `-> DeltaPhi     = " << nodes[n].deltaPhi()/1000. << " keV" << endl
+                     << "   `-> energy_keV   = " << energy_keV << endl
+                     << "   `-> ne           = " << ne << " m^-3" << endl
+                     << "   `-> electronTemp = " << electronTemp << " K" << endl;
+               }
+               Real qref = ne * lookupProductionValue(h, energy_keV, temperature_keV);
 
-      //Calculate height-integrated conductivities and 3D electron density
-      // TODO: effdt > 0?
-      // (Then, ne += dt*(q - alpha*ne*abs(ne))
-      for(uint n=0; n<nodes.size(); n++) {
-         nodes[n].parameters[ionosphereParameters::SIGMAP] = 0;
-         nodes[n].parameters[ionosphereParameters::SIGMAH] = 0;
-         nodes[n].parameters[ionosphereParameters::SIGMAPARALLEL] = 0;
-         std::array<Real, numAtmosphereLevels> electronDensity;
+               // Get equilibrium electron density
+               electronDensity[h] = sqrt(qref/recombAlpha);
 
-         // Note this loop counts from 1 (std::vector is zero-initialized, so electronDensity[0] = 0)
-         for(int h=1; h<numAtmosphereLevels; h++) { 
-            // Calculate production rate
-            Real energy_keV = max(nodes[n].deltaPhi()/1000., productionMinAccEnergy);
+               // Calculate conductivities
+               Real halfdx = 1000 * 0.5 * (atmosphere[h].altitude -  atmosphere[h-1].altitude);
+               Real halfCH = halfdx * 0.5 * (atmosphere[h-1].hallcoeff + atmosphere[h].hallcoeff);
+               Real halfCP = halfdx * 0.5 * (atmosphere[h-1].pedersencoeff + atmosphere[h].pedersencoeff);
+               Real halfCpara = halfdx * 0.5 * (atmosphere[h-1].parallelcoeff + atmosphere[h].parallelcoeff);
 
-            Real ne = nodes[n].electronDensity();
-            Real electronTemp = nodes[n].electronTemperature();
-            Real temperature_keV = (physicalconstants::K_B / physicalconstants::CHARGE) / 1000. * electronTemp;
-            if(std::isnan(energy_keV) || std::isnan(temperature_keV)) {
-               cerr << "(ionosphere) NaN encountered in conductivity calculation: " << endl
-                  << "   `-> DeltaPhi     = " << nodes[n].deltaPhi()/1000. << " keV" << endl
-                  << "   `-> energy_keV   = " << energy_keV << endl
-                  << "   `-> ne           = " << ne << " m^-3" << endl
-                  << "   `-> electronTemp = " << electronTemp << " K" << endl;
+               nodes[n].parameters[ionosphereParameters::SIGMAP] += (electronDensity[h]+electronDensity[h-1]) * halfCP;
+               nodes[n].parameters[ionosphereParameters::SIGMAH] += (electronDensity[h]+electronDensity[h-1]) * halfCH;
+               nodes[n].parameters[ionosphereParameters::SIGMAPARALLEL] += (electronDensity[h]+electronDensity[h-1]) * halfCpara;
             }
-            Real qref = ne * lookupProductionValue(h, energy_keV, temperature_keV);
-
-            // Get equilibrium electron density
-            electronDensity[h] = sqrt(qref/recombAlpha);
-
-            // Calculate conductivities
-            Real halfdx = 1000 * 0.5 * (atmosphere[h].altitude -  atmosphere[h-1].altitude);
-            Real halfCH = halfdx * 0.5 * (atmosphere[h-1].hallcoeff + atmosphere[h].hallcoeff);
-            Real halfCP = halfdx * 0.5 * (atmosphere[h-1].pedersencoeff + atmosphere[h].pedersencoeff);
-            Real halfCpara = halfdx * 0.5 * (atmosphere[h-1].parallelcoeff + atmosphere[h].parallelcoeff);
-
-            nodes[n].parameters[ionosphereParameters::SIGMAP] += (electronDensity[h]+electronDensity[h-1]) * halfCP;
-            nodes[n].parameters[ionosphereParameters::SIGMAH] += (electronDensity[h]+electronDensity[h-1]) * halfCH;
-            nodes[n].parameters[ionosphereParameters::SIGMAPARALLEL] += (electronDensity[h]+electronDensity[h-1]) * halfCpara;
          }
       }
 
@@ -938,18 +948,21 @@ namespace SBC {
 
          std::array<Real, 3>& x = nodes[n].x;
          // TODO: Perform coordinate transformation here?
-
-         // Solar incidence parameter for calculating UV ionisation on the dayside
-         Real coschi = x[0] / Ionosphere::innerRadius;
-         if(coschi < 0) {
-            coschi = 0;
+         
+         // At restart we have SIGMAP, SIGMAH and SIGMAPARALLEL read in from the restart file already.
+         if(!refillTensorAtRestart) {
+            // Solar incidence parameter for calculating UV ionisation on the dayside
+            Real coschi = x[0] / Ionosphere::innerRadius;
+            if(coschi < 0) {
+               coschi = 0;
+            }
+            Real sigmaP_dayside = backgroundIonisation + F10_7_p_049 * (0.34 * coschi + 0.93 * sqrt(coschi));
+            Real sigmaH_dayside = backgroundIonisation + F10_7_p_053 * (0.81 * coschi + 0.54 * sqrt(coschi));
+            
+            nodes[n].parameters[ionosphereParameters::SIGMAP] = sqrt( pow(nodes[n].parameters[ionosphereParameters::SIGMAP],2) + pow(sigmaP_dayside,2));
+            nodes[n].parameters[ionosphereParameters::SIGMAH] = sqrt( pow(nodes[n].parameters[ionosphereParameters::SIGMAH],2) + pow(sigmaH_dayside,2));
          }
-         Real sigmaP_dayside = backgroundIonisation + F10_7_p_049 * (0.34 * coschi + 0.93 * sqrt(coschi));
-         Real sigmaH_dayside = backgroundIonisation + F10_7_p_053 * (0.81 * coschi + 0.54 * sqrt(coschi));
-
-         nodes[n].parameters[ionosphereParameters::SIGMAP] = sqrt( pow(nodes[n].parameters[ionosphereParameters::SIGMAP],2) + pow(sigmaP_dayside,2));
-         nodes[n].parameters[ionosphereParameters::SIGMAH] = sqrt( pow(nodes[n].parameters[ionosphereParameters::SIGMAH],2) + pow(sigmaH_dayside,2));
-
+         
          // Build conductivity tensor
          Real sigmaP = nodes[n].parameters[ionosphereParameters::SIGMAP];
          Real sigmaH = nodes[n].parameters[ionosphereParameters::SIGMAH];

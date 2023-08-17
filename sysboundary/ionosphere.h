@@ -194,12 +194,12 @@ namespace SBC {
       void initializeIcosahedron();       // Initialize grid as a base icosahedron
       void initializeSphericalFibonacci(int n); // Initialize grid as a spherical fibonacci lattice
       int32_t findElementNeighbour(uint32_t e, int n1, int n2);
-      uint32_t findNodeAtCoordinates(std::array<Real,3> x); // Find the mesh node closest to the given coordinate
-      void subdivideElement(uint32_t e);  // Subdivide mesh within element e
-      void stitchRefinementInterfaces(); // Make sure there are no t-junctions in the mesh by splitting neighbours
-      void calculatePrecipitation(); // Estimate precipitation flux
-      void calculateConductivityTensor(const Real F10_7, const Real recombAlpha, const Real backgroundIonisation); // Update sigma tensor
-      Real interpolateUpmappedPotential(const std::array<Real, 3>& x); // Calculate upmapped potential at the given point
+      uint32_t findNodeAtCoordinates(std::array<Real,3> x); /*!< Find the mesh node closest to the given coordinate */
+      void subdivideElement(uint32_t e);  /*!< Subdivide mesh within element e */
+      void stitchRefinementInterfaces(); /*!< Make sure there are no t-junctions in the mesh by splitting neighbours */
+      void calculatePrecipitation(); /*!< Estimate precipitation flux */
+      void calculateConductivityTensor(const Real F10_7, const Real recombAlpha, const Real backgroundIonisation, const bool refillTensorAtRestart=false); /*!< Update sigma tensor, if last argument is true, just refill the tensor from SIGMAH, SIGMAP and SIGMAPARALLEL from restart data */
+      Real interpolateUpmappedPotential(const std::array<Real, 3>& x); /*!< Calculate upmapped potential at the given point */
       
       // Conjugate Gradient solver functions
       void addMatrixDependency(uint node1, uint node2, Real coeff, bool transposed=false); // Add matrix value for the solver
