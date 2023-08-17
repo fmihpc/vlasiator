@@ -424,9 +424,7 @@ int main(int argn,char* args[]) {
        (abs((technicalGrid.DX - technicalGrid.DZ) / technicalGrid.DX) >uniformTolerance) ||
        (abs((technicalGrid.DY - technicalGrid.DZ) / technicalGrid.DY) >uniformTolerance)) {
       if (myRank == MASTER_RANK) {
-       std::cerr << "WARNING: Your spatial cells seem not to be cubic. However the field solver is assuming them to "
-                      "be. Use at your own risk and responsibility!"
-                   << std::endl;
+         std::cerr << "WARNING: Your spatial cells seem not to be cubic. The simulation will now abort!" << std::endl;
       }
       //just abort sending SIGTERM to all tasks
       MPI_Abort(MPI_COMM_WORLD, -1);
