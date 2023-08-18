@@ -99,8 +99,6 @@ namespace SBC {
         Readparameters::get(pop + "_conductingsphere.VZ0", sP.V0[2]);
         Readparameters::get(pop + "_conductingsphere.fluffiness", sP.fluffiness);
         Readparameters::get(pop + "_conductingsphere.T", sP.T);
-        Readparameters::get(pop + "_Magnetosphere.nSpaceSamples", sP.nSpaceSamples);
-        Readparameters::get(pop + "_Magnetosphere.nVelocitySamples", sP.nVelocitySamples);
 
         // Failsafe, if density or temperature is zero, read from Magnetosphere
         // (compare the corresponding verbose handling in projects/Magnetosphere/Magnetosphere.cpp)

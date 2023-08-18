@@ -2353,8 +2353,6 @@ namespace SBC {
         if(sP.rho == 0) {
            Readparameters::get(pop + "_Magnetosphere.rho", sP.rho);
         }
-        Readparameters::get(pop + "_Magnetosphere.nSpaceSamples", sP.nSpaceSamples);
-        Readparameters::get(pop + "_Magnetosphere.nVelocitySamples", sP.nVelocitySamples);
 
         speciesParams.push_back(sP);
       }

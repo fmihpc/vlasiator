@@ -55,8 +55,6 @@ namespace SBC {
       Real V0[3];
       Real T;
       Real fluffiness;
-      uint nSpaceSamples;
-      uint nVelocitySamples;
    };
 
    enum IonosphereBoundaryVDFmode { // How are inner boundary VDFs constructed from the ionosphere
@@ -468,9 +466,6 @@ namespace SBC {
       // Boundaries of refinement latitude bands
       std::vector<Real> refineMinLatitudes;
       std::vector<Real> refineMaxLatitudes;
-      
-      uint nSpaceSamples;
-      uint nVelocitySamples;
       
       spatial_cell::SpatialCell templateCell;
    };

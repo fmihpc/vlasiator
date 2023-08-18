@@ -76,8 +76,6 @@ namespace SBC {
                              "Input files for the set Maxwellian inflow parameters on face z-. Data format per line: time "
                              "(s) density (p/m^3) Temperature (K) Vx Vy Vz (m/s) Bx By Bz (T).",
                              "");
-         Readparameters::add(pop + "_maxwellian.nVelocitySamples",
-                             "Number of sampling points per velocity dimension (template cells)", 5);
          Readparameters::add(pop + "_maxwellian.dynamic",
                              "Boolean value, is the set Maxwellian inflow dynamic in time or not.", 0);
       }
@@ -109,7 +107,6 @@ namespace SBC {
          Readparameters::get(pop + "_maxwellian.file_y-", sP.files[3]);
          Readparameters::get(pop + "_maxwellian.file_z+", sP.files[4]);
          Readparameters::get(pop + "_maxwellian.file_z-", sP.files[5]);
-         Readparameters::get(pop + "_maxwellian.nVelocitySamples", sP.nVelocitySamples);
 
          speciesParams.push_back(sP);
       }

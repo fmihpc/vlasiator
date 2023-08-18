@@ -32,7 +32,6 @@ namespace projects {
       Real rho;
       Real T;
       Real A_VEL;
-      uint nVelocitySamples;
    };
 
    class Alfven: public Project {
@@ -72,7 +71,6 @@ namespace projects {
       Real ALPHA;
       Real WAVELENGTH;
       Real A_MAG;
-      uint nSpaceSamples;
       std::vector<AlfvenSpeciesParameters> speciesParams;
    } ; // class Alfven
 } // namespace projects

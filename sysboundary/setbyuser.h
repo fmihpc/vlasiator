@@ -37,10 +37,6 @@ namespace SBC {
       /*! Input files for the user-set boundary conditions. */
       std::string files[6];
 
-      /*! Number of space- and velocityspace samples used when creating phase space densities */
-      uint nSpaceSamples;
-      uint nVelocitySamples;
-
       /*! Number of parameters per input file line. */
       uint nParams;
    };
