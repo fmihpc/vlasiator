@@ -1839,6 +1839,10 @@ namespace spatial_cell {
       vmesh::LocalID currCapacity = velocity_block_with_content_list->capacity();
       velocity_block_with_content_list->clear();
       velocity_block_with_no_content_list->clear();
+      if (currSize == 0) {
+         phiprof::stop("GPU update spatial cell block lists");
+         return;
+      }
       vmesh::LocalID reserveSize = currSize * BLOCK_ALLOCATION_FACTOR;
       reserveSize = reserveSize > populations[popID].reservation ? reserveSize : populations[popID].reservation;
       if (currCapacity < reserveSize) {
