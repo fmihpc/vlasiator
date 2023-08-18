@@ -81,7 +81,7 @@ namespace projects {
       RP::get("Larmor.Scale_y", this->SCA_Y);
     }
 
-    Real Larmor::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, const uint popID) const {
+    inline Real Larmor::getDistribValue(creal& x, creal& y, creal& z, creal& vx, creal& vy, creal& vz, const uint popID) const {
       creal kb = physicalconstants::K_B;
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       

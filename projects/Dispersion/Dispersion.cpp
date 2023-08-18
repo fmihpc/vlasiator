@@ -153,7 +153,7 @@ namespace projects {
       }
    }
    
-   Real Dispersion::getDistribValue(creal& vx,creal& vy, creal& vz, const uint popID) const {
+   inline Real Dispersion::getDistribValue(creal& vx,creal& vy, creal& vz, const uint popID) const {
       const DispersionSpeciesParameters& sP = speciesParams[popID];
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       creal kb = physicalconstants::K_B;

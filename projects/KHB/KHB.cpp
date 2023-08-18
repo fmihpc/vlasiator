@@ -107,7 +107,7 @@ namespace projects {
       }
    }
    
-   Real KHB::getDistribValue(creal& x, creal& z, creal& vx, creal& vy, creal& vz, const uint popID) const {
+   inline Real KHB::getDistribValue(creal& x, creal& z, creal& vx, creal& vy, creal& vz, const uint popID) const {
       creal mass = physicalconstants::MASS_PROTON;
       creal kb = physicalconstants::K_B;
       Real rho = profile(this->rho[this->BOTTOM], this->rho[this->TOP], x, z);

@@ -78,7 +78,7 @@ namespace projects {
       }
    }
 
-   Real Diffusion::getDistribValue(
+   inline Real Diffusion::getDistribValue(
       creal& x,creal& y,creal& z,
       creal& vx,creal& vy,creal& vz,
       const uint popID

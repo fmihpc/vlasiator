@@ -105,7 +105,7 @@ namespace projects {
       return top * (1.0 + this->amp*cos(2.0*M_PI*x/this->lambda));
    }
 
-   Real Firehose::getDistribValue(
+   inline Real Firehose::getDistribValue(
       creal& x, creal& y,
       creal& vx, creal& vy, creal& vz,
       creal& dvx, creal& dvy, creal& dvz,

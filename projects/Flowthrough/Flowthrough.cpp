@@ -117,7 +117,7 @@ namespace projects {
       }
    }
 
-   Real Flowthrough::getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
+   inline Real Flowthrough::getDistribValue(creal& x,creal& y, creal& z, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
 
       Real mass = getObjectWrapper().particleSpecies[popID].mass;
       const FlowthroughSpeciesParameters& sP = speciesParams[popID];
