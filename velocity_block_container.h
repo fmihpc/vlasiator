@@ -425,10 +425,19 @@ namespace vmesh {
    inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::push_back(const uint32_t& N_blocks) {
       const vmesh::LocalID newIndex = numberOfBlocks;
       numberOfBlocks += N_blocks;
-      if (numberOfBlocks > currentCapacity) {
+
 #ifdef USE_GPU
+      if (numberOfBlocks > currentCapacity) {
 #pragma nv_diag_suppress 20014
-#endif
+         resize();
+      }
+      gpuStream_t stream = gpu_getStream();
+      // Clear velocity block data to zero values
+      CHK_ERR( gpuMemsetAsync((*block_data)[newIndex*WID3], 0, WID3*N_blocks*sizeof(Realf), stream) );
+      CHK_ERR( gpuMemsetAsync((*parameters)[newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS], 0, BlockParams::N_VELOCITY_BLOCK_PARAMS*N_blocks*sizeof(Real), stream) );
+      CHK_ERR( gpuStreamSynchronize(stream) );
+#else
+      if (numberOfBlocks > currentCapacity) {
          resize();
       }
 
@@ -439,6 +448,7 @@ namespace vmesh {
       for (size_t i=0; i<BlockParams::N_VELOCITY_BLOCK_PARAMS*N_blocks; ++i) {
          (*parameters)[newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS+i] = 0.0;
       }
+#endif
 
       return newIndex;
    }

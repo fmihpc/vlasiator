@@ -1820,6 +1820,58 @@ namespace spatial_cell {
       return success;
    }
 
+   /** Adds a vector of velocity blocks to the population, sets the parameters, and fills the data
+       with phase-space densities from the provided buffer. 
+       This version calls a kernel to perform operations on-device.
+   */
+   void add_velocity_blocks(const uint popID,const std::vector<vmesh::GlobalID>& blocks,fileReal* avgBuffer) {
+   //inline void SpatialCell::add_velocity_blocks(const std::vector<vmesh::GlobalID>& blocks,const uint popID) {
+      #ifdef DEBUG_SPATIAL_CELL
+      if (popID >= populations.size()) {
+         std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
+         std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
+         exit(1);
+      }
+      #endif
+
+      // Add blocks to mesh
+      const uint8_t adds = populations[popID].vmesh->push_back(blocks);
+      if (adds == 0) {
+         std::cerr << "Failed to add blocks" << std::endl;
+         return;
+      }
+      const uint nBlocks = blocks.size();
+
+      // Add blocks to block container
+
+      // Bookkeeping only
+      vmesh::LocalID startLID = populations[popID].blockContainer->push_back(blocks.size());
+
+      
+      Real* parameters = populations[popID].blockContainer->getParameters(startLID);
+
+      #ifdef DEBUG_SPATIAL_CELL
+         if (populations[popID].vmesh->size() != populations[popID].blockContainer->size()) {
+	    std::cerr << "size mismatch in " << __FILE__ << ' ' << __LINE__ << std::endl; exit(1);
+	 }
+      #endif
+
+      // Set block parameters
+      for (size_t b=0; b<nBlocks; ++b) {
+         parameters[BlockParams::VXCRD] = get_velocity_block_vx_min(popID,blocks[b]);
+         parameters[BlockParams::VYCRD] = get_velocity_block_vy_min(popID,blocks[b]);
+         parameters[BlockParams::VZCRD] = get_velocity_block_vz_min(popID,blocks[b]);
+         populations[popID].vmesh->getCellSize(blocks[b],&(parameters[BlockParams::DVX]));
+         parameters += BlockParams::N_VELOCITY_BLOCK_PARAMS;
+      }
+      //copy avgs data, here a conversion may happen between float and double
+      Realf *cellBlockData=populations[popID].blockContainer->getParameters(startLID);
+      for(uint64_t i = 0; i< WID3 * nBlocks ; i++){
+         cellBlockData[i] = avgBuffer[blockBufferOffset*WID3 + i];
+      }      
+   }
+
+
    /** Update the two lists containing blocks with content, and blocks without content.
     * @see adjustVelocityBlocks */
    void SpatialCell::update_velocity_block_content_lists(const uint popID) {

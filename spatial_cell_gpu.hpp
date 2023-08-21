@@ -311,7 +311,8 @@ namespace spatial_cell {
       // Following functions adjust velocity blocks stored on the cell //
       bool add_velocity_block(const vmesh::GlobalID& block,const uint popID);
       bool add_velocity_block(const vmesh::GlobalID& block,const uint popID, Realf* buffer);
-      void add_velocity_blocks(const std::vector<vmesh::GlobalID>& blocks,const uint popID);
+      //void add_velocity_blocks(const std::vector<vmesh::GlobalID>& blocks,const uint popID);
+      void add_velocity_blocks(const uint popID,const std::vector<vmesh::GlobalID>& blocks,fileReal* avgBuffer);
       void adjustSingleCellVelocityBlocks(const uint popID, bool doDeleteEmpty=false);
       void adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors,
                                   const uint popID,
@@ -1168,42 +1169,6 @@ namespace spatial_cell {
          data[i] += buffer[i];
       }
       return success;
-   }
-
-   inline void SpatialCell::add_velocity_blocks(const std::vector<vmesh::GlobalID>& blocks,const uint popID) {
-      #ifdef DEBUG_SPATIAL_CELL
-      if (popID >= populations.size()) {
-         std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
-         std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
-         exit(1);
-      }
-      #endif
-
-      // Add blocks to mesh
-      const uint8_t adds = populations[popID].vmesh->push_back(blocks);
-      if (adds == 0) {
-         std::cerr << "Failed to add blocks" << std::endl;
-         return;
-      }
-
-      // Add blocks to block container
-      vmesh::LocalID startLID = populations[popID].blockContainer->push_back(blocks.size());
-      Real* parameters = populations[popID].blockContainer->getParameters(startLID);
-
-      #ifdef DEBUG_SPATIAL_CELL
-         if (populations[popID].vmesh->size() != populations[popID].blockContainer->size()) {
-	    std::cerr << "size mismatch in " << __FILE__ << ' ' << __LINE__ << std::endl; exit(1);
-	 }
-      #endif
-
-      // Set block parameters
-      for (size_t b=0; b<blocks.size(); ++b) {
-         parameters[BlockParams::VXCRD] = get_velocity_block_vx_min(popID,blocks[b]);
-         parameters[BlockParams::VYCRD] = get_velocity_block_vy_min(popID,blocks[b]);
-         parameters[BlockParams::VZCRD] = get_velocity_block_vz_min(popID,blocks[b]);
-         populations[popID].vmesh->getCellSize(blocks[b],&(parameters[BlockParams::DVX]));
-         parameters += BlockParams::N_VELOCITY_BLOCK_PARAMS;
-      }
    }
 
    /*!
