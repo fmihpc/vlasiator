@@ -284,9 +284,7 @@ namespace projects {
       // Expand the velocity space to the required size
       vmesh->setNewCapacity(nRequested);
       blockContainer->recapacitate(nRequested);
-      #ifdef USE_GPU
-      cell->gpu_setReservation(popID,nRequested);
-      #endif
+      cell->setReservation(popID,nRequested);
 
       // Create temporary buffer for initialization
       vector<Realf> initBuffer(WID3);

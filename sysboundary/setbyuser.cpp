@@ -292,9 +292,7 @@ namespace SBC {
             if (facesToProcess[i] && isThisCellOnAFace[i]) {
                copyCellData(&templateCells[i], cell ,false,popID,true); // copy also vdf, _V
                copyCellData(&templateCells[i], cell ,true,popID,false); // don't copy vdf again but copy _R now
-               #ifdef USE_GPU
-               cell->gpu_setReservation(popID,templateCells[i].gpu_getReservation(popID));
-               #endif
+               cell->setReservation(popID,templateCells[i].getReservation(popID));
                break; // This effectively sets the precedence of faces through the order of faces.
             }
          }

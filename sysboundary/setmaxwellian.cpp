@@ -239,9 +239,7 @@ namespace SBC {
          vmesh::VelocityBlockContainer* blockContainer = templateCell.get_velocity_blocks(popID);
          vmesh->setNewCapacity(nRequested);
          blockContainer->recapacitate(nRequested);
-         #ifdef USE_GPU
-         templateCell.gpu_setReservation(popID,nRequested);
-         #endif
+         templateCell.setReservation(popID,nRequested);
          const Realf minValue = templateCell.getVelocityBlockMinValue(popID);
 
          // Create temporary buffer for initialization

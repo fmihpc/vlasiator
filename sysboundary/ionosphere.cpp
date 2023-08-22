@@ -3239,9 +3239,7 @@ namespace SBC {
                   vmesh::VelocityBlockContainer* blockContainer = cell.get_velocity_blocks(popID);
                   vmesh->setNewCapacity(nRequested);
                   blockContainer->recapacitate(nRequested);
-                  #ifdef USE_GPU
-                  cell.gpu_setReservation(popID,nRequested);
-                  #endif
+                  cell.setReservation(popID,nRequested);
                   const Realf minValue = cell.getVelocityBlockMinValue(popID);
 
                   // Create temporary buffer for initialization
@@ -3328,9 +3326,7 @@ namespace SBC {
                   vmesh::VelocityBlockContainer* blockContainer = cell.get_velocity_blocks(popID);
                   vmesh->setNewCapacity(nRequested);
                   blockContainer->recapacitate(nRequested);
-                  #ifdef USE_GPU
-                  cell.gpu_setReservation(popID,nRequested);
-                  #endif
+                  cell.setReservation(popID,nRequested);
                   const Realf minValue = cell.getVelocityBlockMinValue(popID);
 
                   // Create temporary buffer for initialization
@@ -3454,9 +3450,7 @@ namespace SBC {
          vmesh::VelocityBlockContainer* blockContainer = templateCell.get_velocity_blocks(popID);
          vmesh->setNewCapacity(nRequested);
          blockContainer->recapacitate(nRequested);
-         #ifdef USE_GPU
-         templateCell.gpu_setReservation(popID,nRequested);
-         #endif
+         templateCell.setReservation(popID,nRequested);
          const Realf minValue = templateCell.getVelocityBlockMinValue(popID);
 
          // Create temporary buffer for initialization
@@ -3608,9 +3602,7 @@ namespace SBC {
    void Ionosphere::setCellFromTemplate(SpatialCell* cell,const uint popID) {
       copyCellData(&templateCell,cell,false,popID,true); // copy also vdf, _V
       copyCellData(&templateCell,cell,true,popID,false); // don't copy vdf again but copy _R now
-      #ifdef USE_GPU
-      cell->gpu_setReservation(popID,templateCell.gpu_getReservation(popID));
-      #endif
+      cell->setReservation(popID,templateCell.getReservation(popID));
    }
 
    std::string Ionosphere::getName() const {return "Ionosphere";}
