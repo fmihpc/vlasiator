@@ -394,9 +394,9 @@ namespace vmesh {
    inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::push_back() {
       vmesh::LocalID newIndex = numberOfBlocks;
       if (newIndex >= currentCapacity) {
-#ifdef USE_GPU
-#pragma nv_diag_suppress 20011,20014
-#endif
+         #ifdef USE_GPU
+         #pragma nv_diag_suppress 20011,20014
+         #endif
          resize();
       }
 
@@ -428,14 +428,24 @@ namespace vmesh {
 
 #ifdef USE_GPU
       if (numberOfBlocks > currentCapacity) {
-#pragma nv_diag_suppress 20014
+         #pragma nv_diag_suppress 20014
          resize();
       }
+      #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
       gpuStream_t stream = gpu_getStream();
       // Clear velocity block data to zero values
-      CHK_ERR( gpuMemsetAsync((*block_data)[newIndex*WID3], 0, WID3*N_blocks*sizeof(Realf), stream) );
-      CHK_ERR( gpuMemsetAsync((*parameters)[newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS], 0, BlockParams::N_VELOCITY_BLOCK_PARAMS*N_blocks*sizeof(Real), stream) );
+      CHK_ERR( gpuMemsetAsync(&(block_data[newIndex*WID3]), 0, WID3*N_blocks*sizeof(Realf), stream) );
+      CHK_ERR( gpuMemsetAsync(&(parameters[newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS]), 0, BlockParams::N_VELOCITY_BLOCK_PARAMS*N_blocks*sizeof(Real), stream) );
       CHK_ERR( gpuStreamSynchronize(stream) );
+      #else
+      // Clear velocity block data to zero values
+      for (size_t i=0; i<WID3*N_blocks; ++i) {
+         (*block_data)[newIndex*WID3+i] = 0.0;
+      }
+      for (size_t i=0; i<BlockParams::N_VELOCITY_BLOCK_PARAMS*N_blocks; ++i) {
+         (*parameters)[newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS+i] = 0.0;
+      }
+      #endif
 #else
       if (numberOfBlocks > currentCapacity) {
          resize();

@@ -759,7 +759,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
             }
             neighbor_ptrs.push_back(mpiGrid[neighbor_id]);
             // Ensure cell has sufficient reservation
-            cell->gpu_setReservation(popID,mpiGrid[neighbor_id]->velocity_block_with_content_list_size);
+            cell->setReservation(popID,mpiGrid[neighbor_id]->velocity_block_with_content_list_size);
          }
 #ifdef USE_GPU
          cell->gpu_attachToStream();

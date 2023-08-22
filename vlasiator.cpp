@@ -491,9 +491,12 @@ int main(int argn,char* args[]) {
       sysBoundaryContainer,
       *project
    );
+
    phiprof::start("report-memory-consumption");
-   cout << "(MAIN): Completed grid initialization." << endl;
-   logFile << "(MAIN): Completed grid initialization." << endl << writeVerbose;
+   if (myRank == MASTER_RANK){
+      cout << "(MAIN): Completed grid initialization." << endl;
+      logFile << "(MAIN): Completed grid initialization." << endl << writeVerbose;
+   }
    report_process_memory_consumption();
    phiprof::stop("report-memory-consumption");
 

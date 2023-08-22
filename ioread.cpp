@@ -367,6 +367,12 @@ bool _readBlockData(
       cerr << "ERROR, failed to read BLOCKVARIABLE in " << __FILE__ << ":" << __LINE__ << endl;
       success = false;
    }
+   #ifdef USE_GPU
+   // Upload avgBuffer to Device (stream zero)
+   fileReal* gpu_avgBuffer;
+   CHK_ERR( gpuMalloc((void**)&gpu_avgBuffer, avgVectorSize * localBlocks * sizeof(fileReal)) );
+   CHK_ERR( gpuMemcpy(gpu_avgBuffer, avgBuffer, avgVectorSize * localBlocks * sizeof(fileReal), gpuMemcpyHostToDevice) );
+   #endif
 
    uint64_t blockBufferOffset=0;
    //Go through all spatial cells
@@ -380,8 +386,14 @@ bool _readBlockData(
       for(auto& id : blockIdsInCell) {
          id = blockIDremapper(id);
       }
-       //allocate space for all blocks and create them and fill them
-      mpiGrid[cell]->add_velocity_blocks(popID,blockIdsInCell,avgBuffer[blockBufferOffset*WID3]);
+      //allocate space for all blocks and create them and fill them
+      #ifdef USE_GPU
+      split::SplitVector<vmesh::GlobalID> *blockIdsInCell2 = new split::SplitVector<vmesh::GlobalID>(blockIdsInCell); //blockIds in a particular cell, temporary usage
+      blockIdsInCell2->optimizeGPU();
+      mpiGrid[cell]->add_velocity_blocks(popID,blockIdsInCell2,&gpu_avgBuffer[blockBufferOffset*WID3]);
+      #else
+      mpiGrid[cell]->add_velocity_blocks(popID,blockIdsInCell,&avgBuffer[blockBufferOffset*WID3]);
+      #endif
       // //copy avgs data, here a conversion may happen between float and double
       // Realf *cellBlockData=mpiGrid[cell]->get_data(popID);
       // for(uint64_t i = 0; i< WID3 * nBlocksInCell ; i++){
@@ -390,6 +402,9 @@ bool _readBlockData(
       blockBufferOffset += nBlocksInCell; //jump to location of next local cell
    }
 
+   #ifdef USE_GPU
+   CHK_ERR( gpuFree(gpu_avgBuffer) );
+   #endif
    delete[] avgBuffer;
    delete[] blockIdBuffer;
    return success;

@@ -1,6 +1,6 @@
 /*
  * This file is part of Vlasiator.
- * Copyright 2010-2016 Finnish Meteorological Institute
+ * Copyright 2010-2016 Finnish Meteorological Institut
  *
  * For details of usage, see the COPYING file and read the "Rules of the Road"
  * at http://www.physics.helsinki.fi/vlasiator/
@@ -233,6 +233,32 @@ namespace spatial_cell {
       }
    };
 
+   /** GPU kernel for populating block data and parameters based on list of
+       globalIDs and avgs.
+   */
+   template <typename fileReal> __global__ void __launch_bounds__(GPUTHREADS,4) add_blocks_from_buffer_kernel (
+      const vmesh::VelocityMesh *vmesh,
+      Real* parameters,
+      Realf* cellBlockData,
+      const split::SplitVector<vmesh::GlobalID>* blocks,
+      const fileReal* avgBuffer,
+      const uint nBlocks
+      ) {
+      const int gpuBlocks = gridDim.x;
+      const int blocki = blockIdx.x;
+      //const int warpSize = blockDim.x*blockDim.y*blockDim.z;
+      const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
+      for (uint index=blocki; index<nBlocks; index += gpuBlocks) {
+         // Copy in cell data, perform conversion float<->double if necessary
+         cellBlockData[index*WID3 + ti] = (Realf)avgBuffer[index*WID3 + ti];
+         // Set block parameters
+         if (ti==0) {
+            vmesh::GlobalID GID = blocks->at(index);
+            vmesh->getBlockInfo(GID, &parameters[index*BlockParams::N_VELOCITY_BLOCK_PARAMS]);
+         }
+      }
+   }
+
    class SpatialCell : public Managed {
    public:
       SpatialCell();
@@ -248,8 +274,8 @@ namespace spatial_cell {
       void gpu_clearContentLists();
       // Advise on memory location
       void gpu_advise();
-      void gpu_setReservation(const uint popID, const vmesh::LocalID reservationsize, bool force=false);
-      vmesh::LocalID gpu_getReservation(const uint popID) const;
+      void setReservation(const uint popID, const vmesh::LocalID reservationsize, bool force=false);
+      vmesh::LocalID getReservation(const uint popID) const;
 
       vmesh::GlobalID find_velocity_block(vmesh::GlobalID cellIndices[3],const uint popID);
       Realf* get_data(const uint popID);
@@ -311,8 +337,7 @@ namespace spatial_cell {
       // Following functions adjust velocity blocks stored on the cell //
       bool add_velocity_block(const vmesh::GlobalID& block,const uint popID);
       bool add_velocity_block(const vmesh::GlobalID& block,const uint popID, Realf* buffer);
-      //void add_velocity_blocks(const std::vector<vmesh::GlobalID>& blocks,const uint popID);
-      void add_velocity_blocks(const uint popID,const std::vector<vmesh::GlobalID>& blocks,fileReal* avgBuffer);
+      template <typename fileReal> void add_velocity_blocks(const uint popID,const split::SplitVector<vmesh::GlobalID> *blocks,fileReal* avgBuffer);
       void adjustSingleCellVelocityBlocks(const uint popID, bool doDeleteEmpty=false);
       void adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors,
                                   const uint popID,
@@ -1102,12 +1127,8 @@ namespace spatial_cell {
       const vmesh::LocalID VBC_LID = populations[popID].blockContainer->push_back();
 
       // Set block parameters:
-//      Real* parameters = get_block_parameters(populations[popID].vmesh->getLocalID(block));
       Real* parameters = get_block_parameters(VBC_LID,popID);
-      parameters[BlockParams::VXCRD] = get_velocity_block_vx_min(popID,block);
-      parameters[BlockParams::VYCRD] = get_velocity_block_vy_min(popID,block);
-      parameters[BlockParams::VZCRD] = get_velocity_block_vz_min(popID,block);
-      populations[popID].vmesh->getCellSize(block,&(parameters[BlockParams::DVX]));
+      populations[popID].vmesh->getBlockInfo(block, parameters);
 
       // The following call 'should' be the fastest, but is actually
       // much slower that the parameter setting above
@@ -1158,10 +1179,7 @@ namespace spatial_cell {
 
       // Set block parameters:
       Real* parameters = get_block_parameters(VBC_LID,popID);
-      parameters[BlockParams::VXCRD] = get_velocity_block_vx_min(popID,block);
-      parameters[BlockParams::VYCRD] = get_velocity_block_vy_min(popID,block);
-      parameters[BlockParams::VZCRD] = get_velocity_block_vz_min(popID,block);
-      populations[popID].vmesh->getCellSize(block,&(parameters[BlockParams::DVX]));
+      populations[popID].vmesh->getBlockInfo(block, parameters);
 
       // Copy the data in (increments in case of multipeak)
       Realf* data = get_data(VBC_LID,popID);
@@ -1169,6 +1187,61 @@ namespace spatial_cell {
          data[i] += buffer[i];
       }
       return success;
+   }
+
+   /** Adds a vector of velocity blocks to the population, sets the parameters, and fills the data
+       with phase-space densities from the provided buffer (which was read from a file).
+       This version calls a kernel to perform operations on-device.
+   */
+   template <typename fileReal> void SpatialCell::add_velocity_blocks(const uint popID,const split::SplitVector<vmesh::GlobalID> *blocks,fileReal* avgBuffer) {
+   //inline void SpatialCell::add_velocity_blocks(const std::vector<vmesh::GlobalID>& blocks,const uint popID) {
+      #ifdef DEBUG_SPATIAL_CELL
+      if (popID >= populations.size()) {
+         std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
+         std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
+         exit(1);
+      }
+      #endif
+
+      phiprof::start("GPU add blocks from buffer");
+      // Add blocks to velocity mesh
+      const uint8_t adds = populations[popID].vmesh->push_back(*blocks);
+      if (adds == 0) {
+         std::cerr << "Failed to add blocks" << std::endl;
+         return;
+      }
+      const uint nBlocks = blocks->size();
+
+      // Bookkeeping only: Calls CPU version in order to ensure resize of container.
+      vmesh::LocalID startLID = populations[popID].blockContainer->push_back(nBlocks);
+      // get pointers
+      Real* parameters = populations[popID].blockContainer->getParameters(startLID);
+      Realf *cellBlockData=populations[popID].blockContainer->getData(startLID);
+
+      const uint nGpuBlocks = nBlocks > GPUBLOCKS ? GPUBLOCKS : nBlocks;
+      if (nGpuBlocks>0) {
+         gpuStream_t stream = gpu_getStream();
+         dim3 block(WID,WID,WID);
+         // Third argument specifies the number of bytes in *shared memory* that is
+         // dynamically allocated per block for this call in addition to the statically allocated memory.
+         spatial_cell::add_blocks_from_buffer_kernel<<<nGpuBlocks, block, 0, stream>>> (
+            populations[popID].vmesh,
+            parameters,
+            cellBlockData,
+            blocks,
+            avgBuffer,
+            nBlocks
+            );
+         CHK_ERR( gpuPeekAtLastError() );
+         CHK_ERR( gpuStreamSynchronize(stream) );
+      }
+
+      phiprof::stop("GPU add blocks from buffer");
+      #ifdef DEBUG_SPATIAL_CELL
+         if (populations[popID].vmesh->size() != populations[popID].blockContainer->size()) {
+	    std::cerr << "size mismatch in " << __FILE__ << ' ' << __LINE__ << std::endl; exit(1);
+	 }
+      #endif
    }
 
    /*!
