@@ -254,7 +254,7 @@ namespace spatial_cell {
          // Set block parameters
          if (ti==0) {
             vmesh::GlobalID GID = blocks->at(index);
-            vmesh->getBlockInfo(GID, &parameters[index*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::VXCRD]);
+            vmesh->getBlockInfo(GID, parameters+index*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::VXCRD);
          }
       }
    }
@@ -1125,11 +1125,11 @@ namespace spatial_cell {
          return false;
       }
 
-      const vmesh::LocalID VBC_LID = populations[popID].blockContainer->push_back();
+      const vmesh::LocalID VBC_LID = populations[popID].blockContainer->push_back_and_zero();
 
       // Set block parameters:
       Real* parameters = get_block_parameters(VBC_LID,popID);
-      populations[popID].vmesh->getBlockInfo(block, &parameters[BlockParams::VXCRD]);
+      populations[popID].vmesh->getBlockInfo(block, parameters+BlockParams::VXCRD);
 
       // The following call 'should' be the fastest, but is actually
       // much slower that the parameter setting above
@@ -1138,7 +1138,7 @@ namespace spatial_cell {
    }
 
    /*!
-    Adds a velocity block into this spatial cell and fills it with data from the provided buffer.
+    Adds a single velocity block into this spatial cell and fills it with data from the provided buffer.
     Returns true if given block was added or already exists.
     Returns false if given block is invalid or would be outside
     of the velocity grid.
@@ -1206,12 +1206,12 @@ namespace spatial_cell {
 
       phiprof::start("GPU add blocks from buffer");
       // Add blocks to velocity mesh
-      const uint8_t adds = populations[popID].vmesh->push_back(*blocks);
-      if (adds == 0) {
-         std::cerr << "Failed to add blocks" << std::endl;
+      const uint nBlocks = blocks->size();
+      const vmesh::LocalID adds = populations[popID].vmesh->push_back(*blocks);
+      if (adds != nBlocks) {
+         std::cerr << "Failed to add blocks" << __FILE__ << ' ' << __LINE__ << std::endl; exit(1);
          return;
       }
-      const uint nBlocks = blocks->size();
 
       // Bookkeeping only: Calls CPU version in order to ensure resize of container.
       vmesh::LocalID startLID = populations[popID].blockContainer->push_back(nBlocks);

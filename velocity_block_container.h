@@ -71,7 +71,9 @@ namespace vmesh {
       ARCH_HOSTDEV const Real* getParameters(const vmesh::LocalID& blockLID) const;
       ARCH_HOSTDEV void pop();
       ARCH_HOSTDEV vmesh::LocalID push_back();
+      ARCH_HOSTDEV vmesh::LocalID push_back_and_zero();
       ARCH_HOSTDEV vmesh::LocalID push_back(const uint32_t& N_blocks);
+      ARCH_HOSTDEV vmesh::LocalID push_back_and_zero(const uint32_t& N_blocks);
       bool recapacitate(const vmesh::LocalID& capacity);
       ARCH_HOSTDEV bool setSize(const vmesh::LocalID& newSize);
       ARCH_HOSTDEV vmesh::LocalID size() const;
@@ -79,8 +81,6 @@ namespace vmesh {
       ARCH_HOSTDEV void swap(VelocityBlockContainer& vbc);
 
 #ifdef USE_GPU // for GPU version
-      ARCH_HOSTDEV vmesh::LocalID gpu_push_back();
-      ARCH_HOSTDEV vmesh::LocalID gpu_push_back(const uint32_t& N_blocks);
       void gpu_Allocate(vmesh::LocalID size);
       void gpu_Allocate();
       void gpu_prefetchHost();
@@ -391,7 +391,31 @@ namespace vmesh {
       --numberOfBlocks;
    }
 
+   /** Grows the size of the VBC, does not touch data */
    inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::push_back() {
+      vmesh::LocalID newIndex = numberOfBlocks;
+      if (newIndex >= currentCapacity) {
+         #ifdef USE_GPU
+         #pragma nv_diag_suppress 20011,20014
+         #endif
+         resize();
+      }
+      #ifdef DEBUG_VBC
+      if (newIndex >= block_data->size()/WID3 || newIndex >= parameters->size()/BlockParams::N_VELOCITY_BLOCK_PARAMS) {
+         std::stringstream ss;
+         ss << "VBC ERROR in push_back, LID=" << newIndex << " for new block is out of bounds" << std::endl;
+         ss << "\t data.size()=" << block_data->size()  << " parameters->size()=" << parameters->size() << std::endl;
+         std::cerr << ss.str();
+         sleep(1);
+         exit(1);
+      }
+      #endif
+      ++numberOfBlocks;
+      return newIndex;
+   }
+
+   /** Grows the size of the VBC, sets data to zero */
+   inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::push_back_and_zero() {
       vmesh::LocalID newIndex = numberOfBlocks;
       if (newIndex >= currentCapacity) {
          #ifdef USE_GPU
@@ -411,18 +435,44 @@ namespace vmesh {
       }
       #endif
 
+      #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
+      gpuStream_t stream = gpu_getStream();
       // Clear velocity block data to zero values
+      CHK_ERR( gpuMemsetAsync(&(block_data[newIndex*WID3]), 0, WID3*sizeof(Realf), stream) );
+      CHK_ERR( gpuMemsetAsync(&(parameters[newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS]), 0, BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real), stream) );
+      CHK_ERR( gpuStreamSynchronize(stream) );
+      #else
       for (size_t i=0; i<WID3; ++i) {
          (*block_data)[newIndex*WID3+i] = 0.0;
       }
       for (size_t i=0; i<BlockParams::N_VELOCITY_BLOCK_PARAMS; ++i) {
          (*parameters)[newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS+i] = 0.0;
       }
+      #endif
       ++numberOfBlocks;
       return newIndex;
    }
 
+   /** Grows the size of the VBC, does not touch data */
    inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::push_back(const uint32_t& N_blocks) {
+      const vmesh::LocalID newIndex = numberOfBlocks;
+      numberOfBlocks += N_blocks;
+
+#ifdef USE_GPU
+      if (numberOfBlocks > currentCapacity) {
+         #pragma nv_diag_suppress 20014
+         resize();
+      }
+#else
+      if (numberOfBlocks > currentCapacity) {
+         resize();
+      }
+#endif
+      return newIndex;
+   }
+
+   /** Grows the size of the VBC, sets data to zero */
+   inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::push_back_and_zero(const uint32_t& N_blocks) {
       const vmesh::LocalID newIndex = numberOfBlocks;
       numberOfBlocks += N_blocks;
 
@@ -462,29 +512,6 @@ namespace vmesh {
 
       return newIndex;
    }
-
-/** PUSH BACK METHODS FOR GPU CODE - bookkeeping only
-    Zeroing out block data and parameters must be done from caller kernel **/
-#ifdef USE_GPU
-   inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::gpu_push_back() {
-      vmesh::LocalID newIndex = numberOfBlocks;
-      if (newIndex >= currentCapacity) {
-         printf("Error: pushing back to VBC from device without enough capacity!\n");
-         return 0;
-      }
-      ++numberOfBlocks;
-      return newIndex;
-   }
-   inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::gpu_push_back(const uint32_t& N_blocks) {
-      const vmesh::LocalID newIndex = numberOfBlocks;
-      numberOfBlocks += N_blocks;
-      if (numberOfBlocks > currentCapacity) {
-         printf("Error: pushing back to VBC from device without enough capacity!\n");
-         return 0;
-      }
-      return newIndex;
-   }
-#endif
 
    inline bool VelocityBlockContainer::recapacitate(const vmesh::LocalID& newCapacity) {
       if (newCapacity < numberOfBlocks) return false;

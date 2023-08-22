@@ -83,8 +83,8 @@ namespace vmesh {
       ARCH_HOSTDEV bool isInitialized() const;
       ARCH_HOSTDEV void pop();
       ARCH_HOSTDEV bool push_back(const vmesh::GlobalID& globalID);
-      bool push_back(const std::vector<vmesh::GlobalID>& blocks);
-      ARCH_HOSTDEV bool push_back(const split::SplitVector<vmesh::GlobalID>& blocks);
+      vmesh::LocalID push_back(const std::vector<vmesh::GlobalID>& blocks);
+      ARCH_HOSTDEV vmesh::LocalID push_back(const split::SplitVector<vmesh::GlobalID>& blocks);
       ARCH_DEV void replaceBlock(const vmesh::GlobalID& GIDold,const vmesh::LocalID& LID,const vmesh::GlobalID& GIDnew);
       ARCH_DEV void placeBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID);
       ARCH_DEV void deleteBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID);
@@ -486,7 +486,7 @@ namespace vmesh {
       return position.second;
    }
 
-   inline bool VelocityMesh::push_back(const std::vector<vmesh::GlobalID>& blocks) {
+   inline vmesh::LocalID VelocityMesh::push_back(const std::vector<vmesh::GlobalID>& blocks) {
       const size_t mySize = size();
       const size_t blocksSize = blocks.size();
       if (mySize+blocksSize > (*(vmesh::getMeshWrapper()->velocityMeshes))[meshID].max_velocity_blocks) {
@@ -500,10 +500,10 @@ namespace vmesh {
          globalToLocalMap->insert(Hashinator::make_pair(blocks[b],(vmesh::LocalID)(mySize+b)));
       }
       localToGlobalMap->insert(localToGlobalMap->end(),blocks.begin(),blocks.end());
-      return true;
+      return blocksSize;
    }
 
-   ARCH_HOSTDEV inline bool VelocityMesh::push_back(const split::SplitVector<vmesh::GlobalID>& blocks) {
+   ARCH_HOSTDEV inline vmesh::LocalID VelocityMesh::push_back(const split::SplitVector<vmesh::GlobalID>& blocks) {
       const size_t mySize = size();
       const size_t blocksSize = blocks.size();
       if (mySize+blocksSize > (*(vmesh::getMeshWrapper()->velocityMeshes))[meshID].max_velocity_blocks) {
@@ -515,16 +515,27 @@ namespace vmesh {
 
       #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
       for (size_t b=0; b<blocksSize; ++b) {
-         globalToLocalMap->set_element(blocks[b],(vmesh::LocalID)(mySize+b));
+         auto position
+            = globalToLocalMap->device_insert(Hashinator::make_pair(blocks[b],(vmesh::LocalID)(mySize+b)));
+         if (position.second == false) {
+            printf("vmesh: failed to push_back new block! %d of %d\n",(uint)b,(uint)blocksSize);
+            return b;
+         }
+         //globalToLocalMap->set_element(blocks[b],(vmesh::LocalID)(mySize+b));
       }
       localToGlobalMap->device_insert(localToGlobalMap->end(),blocks.begin(),blocks.end());
       #else
       for (size_t b=0; b<blocksSize; ++b) {
-         globalToLocalMap->insert(Hashinator::make_pair(blocks[b],(vmesh::LocalID)(mySize+b)));
+         auto position
+            = globalToLocalMap->insert(Hashinator::make_pair(blocks[b],(vmesh::LocalID)(mySize+b)));
+         if (position.second == false) {
+            printf("vmesh: failed to push_back new block! %d of %d\n",(uint)b,(uint)blocksSize);
+            return b;
+         }
       }
       localToGlobalMap->insert(localToGlobalMap->end(),blocks.begin(),blocks.end());
       #endif
-      return true;
+      return blocksSize;
    }
 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
