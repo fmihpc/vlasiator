@@ -29,7 +29,7 @@ Background magnetic field class of Vlasiator.
 
 
 
-class ConstantField: public FieldFunction {
+class ConstantField {
 private:
    bool _initialized;
    double _B[3]; // constant backgroundfield
@@ -38,11 +38,9 @@ public:
    ConstantField(){
       this->_initialized = false;
    }
-   virtual ~ConstantField() {};
 
-   
    void initialize(const double Bx,const double By, const double Bz);
-   virtual double call(double x, double y, double z) const;
+   Real operator()( Real x, Real y, Real z, coordinate component, unsigned int derivative, coordinate dcomponent) const;
 };
 
 #endif

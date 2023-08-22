@@ -52,6 +52,10 @@
 #include "derivatives.hpp"
 #include "fs_limiters.h"
 #include "mpiconversion.h"
+#include "../fieldtracing/fieldtracing.h"
+
+#include "../logger.h"
+extern Logger logFile;
 
 bool finalizeFieldPropagator() {
    return true;
@@ -97,6 +101,7 @@ bool propagateFields(
    
    bool hallTermCommunicateDerivatives = true;
 
+   // initialize host/device buffers
    arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> > technicalGrid(&technicalGridObj);
    arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> > perBGrid(&perBGridObj);
    arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> > perBDt2Grid(&perBDt2GridObj);
@@ -126,7 +131,6 @@ bool propagateFields(
       calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1, true);
       if(meshParams.ohmGradPeTerm > 0){
          calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1);
-         hallTermCommunicateDerivatives = false;
       }
       if(meshParams.ohmHallTerm > 0) {
          calculateHallTermSimple(
@@ -140,8 +144,7 @@ bool propagateFields(
             BgBGrid,
             technicalGrid,
             sysBoundaries,
-            RK_ORDER1,
-            hallTermCommunicateDerivatives
+            RK_ORDER1
          );
       }
       calculateUpwindedElectricFieldSimple(
@@ -165,7 +168,6 @@ bool propagateFields(
       calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1, true);
       if(meshParams.ohmGradPeTerm > 0) {
          calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1);
-         hallTermCommunicateDerivatives = false;
       }
       if(meshParams.ohmHallTerm > 0) {
          calculateHallTermSimple(
@@ -179,8 +181,7 @@ bool propagateFields(
             BgBGrid,
             technicalGrid,
             sysBoundaries,
-            RK_ORDER2_STEP1,
-            hallTermCommunicateDerivatives
+            RK_ORDER2_STEP1
          );
       }
       calculateUpwindedElectricFieldSimple(
@@ -204,7 +205,6 @@ bool propagateFields(
       calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2, true);
       if(meshParams.ohmGradPeTerm > 0) {
          calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2);
-         hallTermCommunicateDerivatives = false;
       }
       if(meshParams.ohmHallTerm > 0) {
          calculateHallTermSimple(
@@ -218,8 +218,7 @@ bool propagateFields(
             BgBGrid,
             technicalGrid,
             sysBoundaries,
-            RK_ORDER2_STEP2,
-            hallTermCommunicateDerivatives
+            RK_ORDER2_STEP2
          );
       }
       calculateUpwindedElectricFieldSimple(
@@ -251,13 +250,12 @@ bool propagateFields(
          // In case of subcycling, we decided to go for a blunt Runge-Kutta subcycling even though e.g. moments are not going along.
          // Result of the Summer of Debugging 2016, the behaviour in wave dispersion was much improved with this.
          propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, subcycleDt, RK_ORDER2_STEP1);
-         
-         // We need to calculate derivatives of the moments at every substep, but they only
+
+         // We need to calculate derivatives of the moments at every substep, but the moments only
          // need to be communicated in the first one.
          calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1, (subcycleCount==0));
          if(meshParams.ohmGradPeTerm > 0 && subcycleCount==0) {
             calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1);
-            hallTermCommunicateDerivatives = false;
          }
          if(meshParams.ohmHallTerm > 0) {
             calculateHallTermSimple(
@@ -271,8 +269,7 @@ bool propagateFields(
                BgBGrid,
                technicalGrid,
                sysBoundaries,
-               RK_ORDER2_STEP1,
-               hallTermCommunicateDerivatives
+               RK_ORDER2_STEP1
             );
          }
          calculateUpwindedElectricFieldSimple(
@@ -294,12 +291,11 @@ bool propagateFields(
          
          propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, subcycleDt, RK_ORDER2_STEP2);
          
-         // We need to calculate derivatives of the moments at every substep, but they only
+         // We need to calculate derivatives of the moments at every substep, but the moments only
          // need to be communicated in the first one.
          calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2, (subcycleCount==0));
          if(meshParams.ohmGradPeTerm > 0 && subcycleCount==0) {
             calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2);
-            hallTermCommunicateDerivatives = false;
          }
          if(meshParams.ohmHallTerm > 0) {
             calculateHallTermSimple(
@@ -313,8 +309,7 @@ bool propagateFields(
                BgBGrid,
                technicalGrid,
                sysBoundaries,
-               RK_ORDER2_STEP2,
-               hallTermCommunicateDerivatives
+               RK_ORDER2_STEP2
             );
          }
          calculateUpwindedElectricFieldSimple(
@@ -407,5 +402,9 @@ bool propagateFields(
    
    calculateVolumeAveragedFields(perBGrid,EGrid,dPerBGrid,volGrid,technicalGrid);
    calculateBVOLDerivativesSimple(volGrid, technicalGrid, sysBoundaries);
+   if(FieldTracing::fieldTracingParameters.doTraceFullBox || Parameters::computeCurvature) {
+      volGrid.updateGhostCells();
+      calculateCurvatureSimple(volGrid, BgBGrid, technicalGrid, sysBoundaries);
+   }
    return true;
 }

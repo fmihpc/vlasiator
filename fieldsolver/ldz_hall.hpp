@@ -33,8 +33,7 @@ void calculateHallTermSimple(
    arch::buf<FsGrid<Real, fsgrids::bgbfield::N_BGB, FS_STENCIL_WIDTH>> & BgBGrid,
    arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> & technicalGrid,
    arch::buf<SysBoundary>& sysBoundaries,
-   cint& RKCase,
-   const bool communicateMomentsDerivatives
+   cint& RKCase
 );
 
 #endif

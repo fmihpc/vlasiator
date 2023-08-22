@@ -175,7 +175,7 @@ namespace projects {
       
       return rhoFactor * getDistribValue(vx+0.5*dvx,vy+0.5*dvy,vz+0.5*dvz,dvx,dvy,dvz,popID);
                                             
-      // #warning TODO: Replace getObjectWrapper().particleSpecies[popID].sparseMinValue with SpatialCell::getVelocityBlockMinValue(popID)
+      // #warning SpatialCell::getVelocityBlockMinValue() or dynamic algorithm not available without spatial cell data
       // const Real avgLimit = 0.01*getObjectWrapper().particleSpecies[popID].sparseMinValue;
       // do {
       //    Real avg = 0.0;        // Volume average obtained during this sampling

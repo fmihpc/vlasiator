@@ -39,13 +39,11 @@ void LineDipole::initialize(const double moment,const double center_x, const dou
    center[2]=center_z;
 }
 
-
-
-double LineDipole::call( double x, double y, double z) const
-{
+double LineDipole::operator()( double x, double y, double z, coordinate component, unsigned int derivative, coordinate dcomponent) const {
    const double minimumR=1e-3*physicalconstants::R_E; //The dipole field is defined to be outside of Earth, and units are in meters     
-   if(this->initialized==false)
+   if(this->initialized==false) {
       return 0.0;
+   }
    double r[3];
    
    r[0]= x-center[0];
@@ -54,12 +52,13 @@ double LineDipole::call( double x, double y, double z) const
    
    double r2 = r[0]*r[0]+r[2]*r[2]; // r[1] not necessary in this case, removed to enable proper cylindrical ionosphere (ionosphere.geometry = 3)
    
-   if(r2<minimumR*minimumR)
+   if(r2<minimumR*minimumR) {
       //  r2=minimumR*minimumR;
       return 0.0; //set zero field inside dipole
+   }
    
    const double r6 = (r2*r2*r2);
-//    const double rdotq=q[0]*r[0] + q[1]*r[1] +q[2]*r[2];
+   // const double rdotq=q[0]*r[0] + q[1]*r[1] +q[2]*r[2];
    const double D = -q[2]; 
    
    const double DerivativeSameComponent=D*( 2*r[2]*(r[2]*r[2]-3*r[0]*r[0]))/r6;
@@ -67,33 +66,35 @@ double LineDipole::call( double x, double y, double z) const
    //const double B;
    //const double der;
    
-   if(_derivative == 0) {
-      if(_fComponent == 0)
-         return D*2*r[0]*r[2]/(r2*r2);
-      if(_fComponent == 2)
-         return D*(r[2]*r[2]-r[0]*r[0])/(r2*r2); 
-      if(_fComponent == 1)
-         return 0;
-   }
-   else if(_derivative == 1) {
-      //first derivatives
-      if(_dComponent== 1 || _fComponent==1) {
-         return 0;
-      }
-      else if(_dComponent==_fComponent) {
-         if(_fComponent == 0) {
-            return DerivativeSameComponent;
+   switch (derivative) {
+      case 0:
+         switch (component) {
+            case 0:
+               return D*2*r[0]*r[2]/(r2*r2);
+            case 2:
+               return D*(r[2]*r[2]-r[0]*r[0])/(r2*r2); 
+            default:
+               return 0;
          }
-         else if(_fComponent == 2) {
-            return -DerivativeSameComponent;
+      case 1:
+         //first derivatives
+         if(dcomponent == 1 || component == 1) {
+            return 0;
+         } else if(dcomponent == component) {
+            switch (component) {
+               case 0:
+                  return DerivativeSameComponent;
+               case 2:
+                  return -DerivativeSameComponent;
+               default:
+                  return 0; // Redundant for warning
+            }
+         } else { 
+            return DerivativeDiffComponent;
          }
-      }
-      else { 
-         return DerivativeDiffComponent;
-      }
- 
+      default:
+         return 0;   // dummy, but prevents gcc from yelling
    }
-   return 0;   // dummy, but prevents gcc from yelling
 }
 
 

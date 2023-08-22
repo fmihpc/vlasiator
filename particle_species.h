@@ -28,9 +28,9 @@
 #ifndef PARTICLE_SPECIES_H
 #define	PARTICLE_SPECIES_H
 
-#include <omp.h>
 #include "definitions.h"
 #include <array>
+#include <string>
 
 namespace species {
     

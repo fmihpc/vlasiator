@@ -46,7 +46,7 @@ using namespace std;
  */
 template<typename REAL> inline
 REAL JXBX_000_100(
-   const REAL* const pC,
+   const std::array<REAL, Rec::N_REC_COEFFICIENTS> pC,
    creal BGBY,
    creal BGBZ,
    creal dx,
@@ -78,7 +78,7 @@ REAL JXBX_000_100(
  */
 template<typename REAL> inline
 REAL JXBX_010_110(
-   const REAL* const pC,
+   const std::array<REAL, Rec::N_REC_COEFFICIENTS> & pC,
    creal BGBY,
    creal BGBZ,
    creal dx,
@@ -110,7 +110,7 @@ REAL JXBX_010_110(
  */
 template<typename REAL> inline
 REAL JXBX_001_101(
-   const REAL* const pC,
+   const std::array<REAL, Rec::N_REC_COEFFICIENTS> & pC,
    creal BGBY,
    creal BGBZ,
    creal dx,
@@ -142,7 +142,7 @@ REAL JXBX_001_101(
  */
 template<typename REAL> inline
 REAL JXBX_011_111(
-   const REAL* const pC,
+   const std::array<REAL, Rec::N_REC_COEFFICIENTS> & pC,
    creal BGBY,
    creal BGBZ,
    creal dx,
@@ -175,7 +175,7 @@ REAL JXBX_011_111(
  */
 template<typename REAL> inline
 REAL JXBY_000_010(
-   const REAL* const pC,
+   const std::array<REAL, Rec::N_REC_COEFFICIENTS> & pC,
    creal BGBX,
    creal BGBZ,
    creal dx,
@@ -207,7 +207,7 @@ REAL JXBY_000_010(
  */
 template<typename REAL> inline
 REAL JXBY_100_110(
-   const REAL* const pC,
+   const std::array<REAL, Rec::N_REC_COEFFICIENTS> & pC,
    creal BGBX,
    creal BGBZ,
    creal dx,
@@ -239,7 +239,7 @@ REAL JXBY_100_110(
  */
 template<typename REAL> inline
 REAL JXBY_001_011(
-   const REAL* const pC,
+   const std::array<REAL, Rec::N_REC_COEFFICIENTS> & pC,
    creal BGBX,
    creal BGBZ,
    creal dx,
@@ -271,7 +271,7 @@ REAL JXBY_001_011(
  */
 template<typename REAL> inline
 REAL JXBY_101_111(
-   const REAL* const pC,
+   const std::array<REAL, Rec::N_REC_COEFFICIENTS> & pC,
    creal BGBX,
    creal BGBZ,
    creal dx,
@@ -304,7 +304,7 @@ REAL JXBY_101_111(
  */
 template<typename REAL> inline
 REAL JXBZ_000_001(
-   const REAL* const pC,
+   const std::array<REAL, Rec::N_REC_COEFFICIENTS> & pC,
    creal BGBX,
    creal BGBY,
    creal dx,
@@ -336,7 +336,7 @@ REAL JXBZ_000_001(
  */
 template<typename REAL> inline
 REAL JXBZ_100_101(
-   const REAL* const pC,
+   const std::array<REAL, Rec::N_REC_COEFFICIENTS> & pC,
    creal BGBX,
    creal BGBY,
    creal dx,
@@ -368,7 +368,7 @@ REAL JXBZ_100_101(
  */
 template<typename REAL> inline
 REAL JXBZ_010_011(
-   const REAL* const pC,
+   const std::array<REAL, Rec::N_REC_COEFFICIENTS> & pC,
    creal BGBX,
    creal BGBY,
    creal dx,
@@ -400,7 +400,7 @@ REAL JXBZ_010_011(
  */
 template<typename REAL> inline
 REAL JXBZ_110_111(
-   const REAL* const pC,
+   const std::array<REAL, Rec::N_REC_COEFFICIENTS> & pC,
    creal BGBX,
    creal BGBY,
    creal dx,
@@ -751,7 +751,7 @@ void calculateHallTerm(
    
    cuint cellSysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
    
-   Real perturbedCoefficients[Rec::N_REC_COEFFICIENTS];
+   std::array<Real, Rec::N_REC_COEFFICIENTS> perturbedCoefficients;
 
    reconstructionCoefficients(
       perBGrid,
@@ -805,27 +805,22 @@ void calculateHallTermSimple(
    arch::buf<FsGrid<Real, fsgrids::bgbfield::N_BGB, FS_STENCIL_WIDTH>> & BgBGrid,
    arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> & technicalGrid,
    arch::buf<SysBoundary>& sysBoundaries,
-   cint& RKCase,
-   const bool communicateMomentsDerivatives
+   cint& RKCase
 ) {
    int timer;
    //const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
    const int* gridDims = &technicalGrid.grid()->getLocalSize()[0];
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
-   
+
    phiprof::start("Calculate Hall term");
    timer=phiprof::initializeTimer("MPI","MPI");
    phiprof::start(timer);
-   dPerBGrid.syncHostData();
-   dPerBGrid.grid()->updateGhostCells();
-   dPerBGrid.syncDeviceData();
-   if(communicateMomentsDerivatives) {
-      dMomentsGrid.syncHostData();
-      dMomentsGrid.grid()->updateGhostCells();
-      dMomentsGrid.syncDeviceData();
+   dPerBGrid.updateGhostCells();
+   if(P::ohmGradPeTerm == 0) {
+      dMomentsGrid.updateGhostCells();
    }
    phiprof::stop(timer);
-   
+
    phiprof::start("Compute cells");
    #pragma omp parallel for collapse(3)
    for (int k=0; k<gridDims[2]; k++) {
@@ -840,6 +835,6 @@ void calculateHallTermSimple(
       }
    }
    phiprof::stop("Compute cells");
-   
+
    phiprof::stop("Calculate Hall term",N_cells,"Spatial Cells");
 }

@@ -104,9 +104,9 @@ public:
 
    /** Get the value of the given parameter added with add().
     * This may be called after having called Parse, and it may be called by any process, in any order.
+    * Aborts if given parameter was not found (a parameter passed to get() wasn't add()ed, defaults are ok).
     * @param name The name of the parameter.
     * @param value A variable where the value of the parameter is written.
-    * @return If true, the given parameter was found and its value was written to value.
     */
    static void get(const std::string& name, std::string& value) {
       if (options.find(name) != options.end()) { // check if it exists
@@ -115,7 +115,7 @@ public:
          int rank;
          MPI_Comm_rank(MPI_COMM_WORLD, &rank);
          if (rank == MASTER_RANK) {
-            std::cerr << __FILE__ << ":" << __LINE__ << name + " not found in the configuration file!" << std::endl;
+            std::cerr << __FILE__ << ":" << __LINE__ << name + " not declared using the add() function!" << std::endl;
             MPI_Abort(MPI_COMM_WORLD, 1);
          }
       }
@@ -128,7 +128,7 @@ public:
          int rank;
          MPI_Comm_rank(MPI_COMM_WORLD, &rank);
          if (rank == MASTER_RANK) {
-            std::cerr << __FILE__ << ":" << __LINE__ << name + " not found in the configuration file!" << std::endl;
+            std::cerr << __FILE__ << ":" << __LINE__ << name + " not declared using the add() function!" << std::endl;
             MPI_Abort(MPI_COMM_WORLD, 1);
          }
       }
@@ -155,6 +155,7 @@ public:
 
    /** Get the value of the given parameter added with addComposing().
     * This may be called after having called Parse, and it may be called by any process, in any order.
+    * Aborts on failed cast.
     * @param name The name of the parameter.
     * @param value A variable where the value of the parameter is written.
     */
@@ -179,11 +180,20 @@ public:
       }
    }
 
+   // Determine whether a given variable has been set.
+   static bool isSet(const std::string& name) {
+      return(options.find(name) != options.end());
+   }
+
    static void addComposing(const std::string& name, const std::string& desc);
 
    static void helpMessage();
 
    static bool versionMessage();
+
+   static std::string versionInfo();
+   
+   static std::string configInfo();
 
    static bool parse(const bool needsRunConfig = true, const bool allowUnknown = true);
 

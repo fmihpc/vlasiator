@@ -45,7 +45,7 @@
 using namespace std;
 
 namespace SBC {
-   SetByUser::SetByUser(): SysBoundaryCondition() { }
+   SetByUser::SetByUser(): OuterBoundaryCondition() { }
    SetByUser::~SetByUser() { }
    
    bool SetByUser::initSysBoundary(
@@ -83,75 +83,10 @@ namespace SBC {
       fieldBoundary = new SetByUserFieldBoundary(isPeriodic, templateB);
      return true; 
    }
-
-
-   bool SetByUser::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                     FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid) {
-      bool doAssign;
-      array<bool,6> isThisCellOnAFace;
-
-      const vector<CellID>& cells = getLocalCells();
-      for(uint i = 0; i < cells.size(); i++) {
-         if(mpiGrid[cells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) continue;
-         creal* const cellParams = &(mpiGrid[cells[i]]->parameters[0]);
-         creal dx = cellParams[CellParams::DX];
-         creal dy = cellParams[CellParams::DY];
-         creal dz = cellParams[CellParams::DZ];
-         creal x = cellParams[CellParams::XCRD] + 0.5*dx;
-         creal y = cellParams[CellParams::YCRD] + 0.5*dy;
-         creal z = cellParams[CellParams::ZCRD] + 0.5*dz;
-         
-         isThisCellOnAFace.fill(false);
-         SysBoundaryCondition::determineFace(isThisCellOnAFace.data(), x, y, z, dx, dy, dz, isPeriodic);
-         // Comparison of the array defining which faces to use and the array telling on which faces this cell is
-         doAssign = false;
-         for(int j=0; j<6; j++) doAssign = doAssign || (facesToProcess[j] && isThisCellOnAFace[j]);
-         if(doAssign) {
-            mpiGrid[cells[i]]->sysBoundaryFlag = this->getIndex();
-         }
-      }
-      
-      // Assign boundary flags to local fsgrid cells
-      int* gridDims = technicalGrid.getLocalSize();
-      for (int k=0; k<gridDims[2]; k++) {
-         for (int j=0; j<gridDims[1]; j++) {
-            for (int i=0; i<gridDims[0]; i++) {
-               const auto coords = technicalGrid.getPhysicalCoords(i,j,k);
-
-               
-               // Shift to the center of the fsgrid cell
-               auto cellCenterCoords = coords;
-               cellCenterCoords[0] += 0.5 * technicalGrid.DX;
-               cellCenterCoords[1] += 0.5 * technicalGrid.DY;
-               cellCenterCoords[2] += 0.5 * technicalGrid.DZ;
-               const auto refLvl = mpiGrid.get_refinement_level(mpiGrid.get_existing_cell(cellCenterCoords));
-
-               if(refLvl == -1) {
-                  cerr << "Error, could not get refinement level of remote DCCRG cell " << __FILE__ << " " << __LINE__ << endl;
-                  MPI_Abort(MPI_COMM_WORLD, 1);
-               }
-
-               creal dx = meshParams.dx_ini / pow(2, refLvl);
-               creal dy = meshParams.dy_ini / pow(2, refLvl);
-               creal dz = meshParams.dz_ini / pow(2, refLvl);
-               
-               isThisCellOnAFace.fill(false);
-               doAssign = false;
-
-               SysBoundaryCondition::determineFace(isThisCellOnAFace.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx, dy, dz, isPeriodic);
-               for(int iface=0; iface<6; iface++) doAssign = doAssign || (facesToProcess[iface] && isThisCellOnAFace[iface]);
-               if(doAssign) {
-                  technicalGrid.get(i,j,k,0).sysBoundaryFlag = this->getIndex();
-               }
-            }
-         }
-      }
-
-      return true;
-   }
-   
+ 
    bool SetByUser::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
       FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
       Project &project
    ) {
@@ -159,7 +94,7 @@ namespace SBC {
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
          if (!setCellsFromTemplate(mpiGrid, popID)) success = false;
       }
-      if (!setBFromTemplate(mpiGrid, perBGrid)) success = false;
+      if (!setBFromTemplate(technicalGrid, perBGrid)) success = false;
       
       return success;
    }
@@ -173,8 +108,7 @@ namespace SBC {
       // No need to do anything in this function, as the propagators do not touch the distribution function   
    }
    
-   bool SetByUser::setBFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                    FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid) {
+   bool SetByUser::setBFromTemplate(FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid, FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid) {
 
       array<bool,6> isThisCellOnAFace;
       int* gridDims = perBGrid.getLocalSize();
@@ -182,7 +116,10 @@ namespace SBC {
       for (int k=0; k<gridDims[2]; k++) {
          for (int j=0; j<gridDims[1]; j++) {
             for (int i=0; i<gridDims[0]; i++) {
-               const auto coords = perBGrid.getPhysicalCoords(i,j,k);
+               if (technicalGrid.get(i, j, k)->sysBoundaryFlag != this->getIndex())
+                  continue;
+
+               const auto coords = technicalGrid.getPhysicalCoords(i,j,k);
                
                // TODO: This code up to determineFace() should be in a separate function, it gets called in a lot of places.
                // Shift to the center of the fsgrid cell
@@ -191,12 +128,16 @@ namespace SBC {
                cellCenterCoords[1] += 0.5 * perBGrid.DY;
                cellCenterCoords[2] += 0.5 * perBGrid.DZ;
 
-               const auto refLvl = mpiGrid.get_refinement_level(mpiGrid.get_existing_cell(cellCenterCoords));
+               int refLevel = technicalGrid.get(i, j, k)->refLevel;
 
-               if(refLvl == -1) {
+               if(refLevel == -1) {
                   cerr << "Error, could not get refinement level of remote DCCRG cell " << __FILE__ << " " << __LINE__ << endl;
                   return false;
                }
+
+               // if refLevel isn't 0, assume neighbour might be on a lower refinement level
+               if (refLevel > 0)
+                  --refLevel;
 
                creal dx = meshParams.dx_ini / pow(2, refLvl);
                creal dy = meshParams.dy_ini / pow(2, refLvl);
@@ -222,30 +163,25 @@ namespace SBC {
 
 
    bool SetByUser::setCellsFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID) {
-      const vector<CellID>& cells = getLocalCells();
-      #pragma omp parallel for
-      for (size_t c=0; c<cells.size(); c++) {
-         SpatialCell* cell = mpiGrid[cells[c]];
-         if(cell->sysBoundaryFlag != this->getIndex()) continue;
-         
-         creal dx = cell->parameters[CellParams::DX];
-         creal dy = cell->parameters[CellParams::DY];
-         creal dz = cell->parameters[CellParams::DZ];
-         creal x = cell->parameters[CellParams::XCRD] + 0.5*dx;
-         creal y = cell->parameters[CellParams::YCRD] + 0.5*dy;
-         creal z = cell->parameters[CellParams::ZCRD] + 0.5*dz;
+
+      //#pragma omp parallel for
+      for (const auto& id : getLocalCells()) {
+         SpatialCell* cell = mpiGrid[id];
+         if(cell->sysBoundaryFlag != this->getIndex()) 
+            continue;
          
          bool isThisCellOnAFace[6];
-         SysBoundaryCondition::determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, isPeriodic, true);
-         
-         for(uint i=0; i<6; i++) {
-            if(facesToProcess[i] && isThisCellOnAFace[i]) {
-               copyCellData(&templateCells[i], cell,false,popID,true); // copy also vdf, _V
-               copyCellData(&templateCells[i], cell,true,popID,false); // don't copy vdf again but copy _R now
+         determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, isPeriodic, true);
+
+         for (uint i=0; i < 6; i++) {
+            if (facesToProcess[i] && isThisCellOnAFace[i]) {
+               copyCellData(&templateCells[i], cell ,false,popID,true); // copy also vdf, _V
+               copyCellData(&templateCells[i], cell ,true,popID,false); // don't copy vdf again but copy _R now
                break; // This effectively sets the precedence of faces through the order of faces.
             }
          }
       }
+
       return true;
    }
    
@@ -272,6 +208,9 @@ namespace SBC {
       return true;
    }
    
+// Suppress fscanf warnings since we check type
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat"
    /*! Load user-set boundary data from given file.
     * The first entry of each line is assumed to be the time.
     * The number of entries per line is given by nParams which is defined as a parameter
@@ -306,12 +245,15 @@ namespace SBC {
          Real readParam;
          ret = 0;
          if ( typeid( readParam ) == typeid(double) ) {
-            for(uint i=0; i<nParams; i++) ret += fscanf(fp, "%lf", &readParam);
+            for(uint i=0; i<nParams; i++) {
+               ret += fscanf(fp, "%lf", &readParam);
+            }
          } else if( typeid( readParam ) == typeid(float) ) {
-            for(uint i=0; i<nParams; i++) ret += fscanf(fp, "%f", &readParam);
+            for(uint i=0; i<nParams; i++) {
+               ret += fscanf(fp, "%f", &readParam);
+            }
          } else {
             assert( typeid( readParam ) == typeid(float) || typeid( readParam ) == typeid(double) );
-            
          }
          nlines++;
       }
@@ -331,7 +273,7 @@ namespace SBC {
          vector<Real> tempData;
          for (uint i=0; i<nParams; i++) {
             Real readParam;
-            int ret;
+            int ret=0;
             if ( typeid( readParam ) == typeid(double) ) {
                ret = fscanf(fp,"%lf",&readParam);
             } else if( typeid( readParam ) == typeid(float) ) {
@@ -359,6 +301,7 @@ namespace SBC {
       
       return dataset;
    }
+#pragma GCC diagnostic pop
    
    /*! Loops through the array of template cells and generates the ones needed. The function
     * generateTemplateCell is defined in the inheriting class such as to have the specific

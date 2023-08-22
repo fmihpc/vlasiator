@@ -28,6 +28,7 @@
 #include "algorithm"
 #include "cmath"
 
+#include "../arch/arch_device_api.h"
 #include "cpu_slope_limiters.hpp"
 #include "cpu_face_estimates.hpp"
 
@@ -36,17 +37,15 @@ using namespace std;
 /*
   Compute parabolic reconstruction with an explicit scheme
 */
-ARCH_HOSTDEV inline void compute_ppm_coeff_nonuniform(const Vec * const dv, const Vec * const values, face_estimate_order order, uint k, Vec a[3], const Realv threshold){
+ARCH_HOSTDEV inline void compute_ppm_coeff_nonuniform(const Realf * const dv, const Vec * const values, face_estimate_order order, uint k, Vec a[3], const Realv threshold){
    Vec fv_l; /*left face value*/
    Vec fv_r; /*right face value*/
-   compute_filtered_face_values_nonuniform(dv, values, k, order, fv_l, fv_r, threshold); 
-   
-   //Coella et al, check for monotonicity   
+   compute_filtered_face_values_nonuniform(dv, values, k, order, fv_l, fv_r, threshold);
+
+   //Coella et al, check for monotonicity
    Vec m_face = fv_l;
    Vec p_face = fv_r;
-
-   //std::cout << "value = " << values[k][0] << ", m_face = " << m_face[0] << ", p_face = " << p_face[0] << "\n";
-   //std::cout << values[k][0] - m_face[0] << ", " << values[k][0] - p_face[0] << "\n";
+   const Vec one_sixth(1.0/6.0);
 
    m_face = select((p_face - m_face) * (values[k] - 0.5 * (m_face + p_face)) >
                    (p_face - m_face)*(p_face - m_face) * one_sixth,
@@ -56,56 +55,43 @@ ARCH_HOSTDEV inline void compute_ppm_coeff_nonuniform(const Vec * const dv, cons
                    (p_face - m_face) * (values[k] - 0.5 * (m_face + p_face)),
                    3 * values[k] - 2 * m_face,
                    p_face);
-   
+
    //Fit a second order polynomial for reconstruction see, e.g., White
    //2008 (PQM article) (note additional integration factors built in,
    //contrary to White (2008) eq. 4
    a[0] = m_face;
    a[1] = 3.0 * values[k] - 2.0 * m_face - p_face;
    a[2] = (m_face + p_face - 2.0 * values[k]);
-
-   //std::cout << "value = " << values[k][0] << ", m_face = " << m_face[0] << ", p_face = " << p_face[0] << "\n";
-   //std::cout << values[k][0] - m_face[0] << ", " << values[k][0] - p_face[0] << "\n";
-
-   //std::cout << values[k][0] << " " << m_face[0] << " " << p_face[0] << "\n";
 }
 
-/**** 
-      Define functions for Realf instead of Vec 
+/****
+      Define functions for Realf instead of Vec
 ***/
 
-ARCH_DEV inline void compute_ppm_coeff_nonuniform(const Vec * const dv, const Vec * const values, face_estimate_order order, uint k, Realf a[3], const Realv threshold, const int index){
+ARCH_DEV inline void compute_ppm_coeff_nonuniform(const Realf * const dv, const Vec * const values, face_estimate_order order, uint k, Realf a[3], const Realv threshold, const int index){
    Realf fv_l; /*left face value*/
    Realf fv_r; /*right face value*/
-   compute_filtered_face_values_nonuniform(dv, values, k, order, fv_l, fv_r, threshold, index); 
-   
-   //Coella et al, check for monotonicity   
+   compute_filtered_face_values_nonuniform(dv, values, k, order, fv_l, fv_r, threshold, index);
+
+   //Coella et al, check for monotonicity
    Realf m_face = fv_l;
    Realf p_face = fv_r;
 
-   //std::cout << "value = " << values[k][0] << ", m_face = " << m_face[0] << ", p_face = " << p_face[0] << "\n";
-   //std::cout << values[k][0] - m_face[0] << ", " << values[k][0] - p_face[0] << "\n";
-   
    m_face = ((p_face - m_face) * (values[k][index] - 0.5 * (m_face + p_face)) >
-             (p_face - m_face)*(p_face - m_face) * (1./6.)) ? 
+             (p_face - m_face)*(p_face - m_face) * (1./6.)) ?
              3 * values[k][index] - 2 * p_face :
                    m_face;
    p_face = (-(p_face - m_face) * (p_face - m_face) * (1./6.)) >
                    (p_face - m_face) * (values[k][index] - 0.5 * (m_face + p_face)) ?
                    3 * values[k][index] - 2 * m_face :
                    p_face;
-   
+
    //Fit a second order polynomial for reconstruction see, e.g., White
    //2008 (PQM article) (note additional integration factors built in,
    //contrary to White (2008) eq. 4
    a[0] = m_face;
    a[1] = 3.0 * values[k][index] - 2.0 * m_face - p_face;
    a[2] = (m_face + p_face - 2.0 * values[k][index]);
-
-   //std::cout << "value = " << values[k][0] << ", m_face = " << m_face[0] << ", p_face = " << p_face[0] << "\n";
-   //std::cout << values[k][0] - m_face[0] << ", " << values[k][0] - p_face[0] << "\n";
-
-   //std::cout << values[k][0] << " " << m_face[0] << " " << p_face[0] << "\n";
 }
 
 #endif

@@ -16,41 +16,28 @@
 #  Also, add this to your job script!
 #export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/projappl/project_2000203/libraries_rhel8_gcccuda/boost/lib
 
-
-
 #======== Vectorization ==========
 #Set vector backend type for vlasov solvers, sets precision and length.
 #Options:
 # AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
 # AVX512:   VEC8D_AGNER, VEC16F_AGNER
 # Fallback: VECTORCLASS = VEC_FALLBACK_GENERIC (Defaults to VECL8)
+VECTORCLASS = VEC_FALLBACK_GENERIC
 
-ifeq ($(DISTRIBUTION_FP_PRECISION),SPF)
-#Single-precision
-        VECTORCLASS = VEC_FALLBACK_GENERIC
-#        VECTORCLASS = VEC8F_AGNER
-else
-#Double-precision
-        VECTORCLASS = VEC_FALLBACK_GENERIC
-#        VECTORCLASS = VEC4D_AGNER
-endif
 #===== Vector Lenghts ====
-# Default for VEC_FALLBACK_GENERIC is WID=4, VECL=8 
-WID=8
-VECL=64
-#VECL=32
-#WID=4
-#VECL=4
-#VECL=8
-#VECL=16
+# Default for VEC_FALLBACK_GENERIC is WID=4, VECL=8
+# NOTE: A bug currently results in garbage data already on cell init if VECL is not equal to WID2
+#WID=8
+#VECL=64
+WID=4
+VECL=16
 
 #======= Compiler and compilation flags =========
 # NOTES on compiler flags:
 # CXXFLAGS is for compiler flags, they are always used
-# NVCCFLAGS is for CUDA compiler flags.
 # MATHFLAGS are for special math etc. flags, these are only applied on solver functions
 # LDFLAGS flags for linker
-# Important note: Do not edit CUDAFLAGS or COMPFLAGS in this file!
+# Important note: Do not edit COMPFLAGS in this file!
 
 #-DNO_WRITE_AT_ALL:  Define to disable write at all to
 #                    avoid memleak (much slower IO)
@@ -62,42 +49,27 @@ VECL=64
 CUDABLOCKS=108
 CMP = mpic++
 LNK = mpic++
-CC = mpicc
-CXX = mpic++
 
-CC_BRAND = nvhpc
-CC_BRAND_VERSION = 21.2
+#-G (device debug) overrides --generate-line-info -line-info
+# but also requires more device-side resources to run
+# use "-Xptxas -v" for verbose output of ptx compilation
 
-#CXXFLAGS += -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -gpu=cc80 -Minfo=accel -acc -fopenmp -std=c++11
-CXXFLAGS += -g -O0 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -std=c++14
-# unit_testing: CXXFLAGS = -O3 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -std=c++14
-unit_testing: CXXFLAGS = -g -O3 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -std=c++14
+CXXFLAGS = -g -O3 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 --generate-line-info -line-info -Xcompiler="-fopenmp" -Xcompiler="-fpermissive" -dc
+testpackage: CXXFLAGS = -g -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 --generate-line-info -line-info -Xcompiler="-fopenmp" --prec-sqrt=true --prec-div=true --ftz=false --fmad=false -Xcompiler="-fpermissive" -dc
 
-LDFLAGS = -O2 -g -L/appl/spack/v016/install-tree/gcc-4.8.5/nvhpc-21.2-l6xyb4/Linux_x86_64/21.2/cuda/11.2/lib64 -lnvToolsExt
-unit_testing: LDFLAGS = -g -O3 -lnvToolsExt
+# Tell mpic++ to use nvcc for all compiling
+CMP = OMPI_CXX='nvcc' OMPI_CXXFLAGS='' mpic++
 
-ifeq ($(USE_CUDA),1)
-  CMPGPU = OMPI_CXXFLAGS='' OMPI_CXX='nvcc -rdc=false -g -O0 -x cu -std=c++14 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80' mpic++
-  unit_testing: CMPGPU = OMPI_CXXFLAGS='' OMPI_CXX='nvcc -g -O3 -x cu -std=c++14 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80' mpic++
-  unit_testing: CXXFLAGS += -DUSE_CUDA
-  unit_testing: LDFLAGS += -lgomp
-  unit_testing_fields: CMPGPU = OMPI_CXXFLAGS='' OMPI_CXX='nvcc -g -O3 -x cu -std=c++14 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80' mpic++
-  unit_testing_fields: CXXFLAGS += -DUSE_CUDA
-  unit_testing_fields: LDFLAGS += -lgomp
-else
-  CMPGPU = ${CMP}
-endif
-
-# CXXFLAGS += -O3 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -std=c++14
-
-#testpackage: CXXFLAGS = -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -gpu=cc80 -Minfo=accel -acc -fopenmp -std=c++11
-testpackage: CXXFLAGS = -g -O2 -D__GCC_ATOMIC_TEST_AND_SET_TRUEVAL=1 -fopenmp -std=c++11
-testpackage: NVCCFLAGS = -g -gencode arch=compute_80,code=sm_80 -std=c++11 --prec-sqrt=true --prec-div=true --ftz=false --fmad=false --generate-line-info
+# Now tell also the linker to use nvcc
+## The line below indeed uses OMPI_CXX, not OMPI_LD
+LNK = OMPI_CXX='nvcc' OMPI_CXXFLAGS='-arch=sm_80' OMPI_LIBS='-L/appl/spack/v017/install-tree/gcc-9.4.0/openmpi-4.1.2-cgr4nz/lib -L/appl/spack/syslibs/lib' OMPI_LDFLAGS=' -Xlinker=-rpath=/appl/spack/v017/install-tree/gcc-8.5.0/gcc-9.4.0-nfm4wc/lib/gcc/x86_64-pc-linux-gnu/9.4.0 -Xlinker=-rpath=/appl/spack/v017/install-tree/gcc-8.5.0/gcc-9.4.0-nfm4wc/lib64 -Xlinker=-rpath=/appl/spack/v017/install-tree/gcc-9.4.0/openmpi-4.1.2-cgr4nz -Xlinker=-rpath=/lib/appl/spack/syslibs/lib -lmpi ' mpic++
 
 MATHFLAGS =
-#LDFLAGS = -ta=tesla:lineinfo,keepbin,keepgpu,keepptx
+LDFLAGS = -O2 -g -G -L/appl/spack/v016/install-tree/gcc-4.8.5/nvhpc-21.2-l6xyb4/Linux_x86_64/21.2/cuda/11.2/lib64 -lnvToolsExt
 LIB_MPI = -lgomp
 
+LIB_CUDA = -L/usr/local/cuda/lib64
+INC_CUDA = -isystem /usr/local/cuda/include
 
 #======== PAPI ==========
 #Add PAPI_MEM define to use papi to report memory consumption?
@@ -107,9 +79,9 @@ testpackage: CXXFLAGS += -DPAPI_MEM
 #======== Allocator =========
 #Use jemalloc instead of system malloc to reduce memory fragmentation https://github.com/jemalloc/jemalloc
 #Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
-CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
-testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
-
+#NOTE: jemalloc not supported with GPUs
+#CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+#testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
 
 #======== Libraries ===========
 
@@ -119,37 +91,31 @@ LIBRARY_PREFIX = /users/filippoz/scratch/zonta/libs
 
 #======== Compiled Libraries ===========
 
-# INC_BOOST = -I/$(LIBRARY_PREFIX2)/boost/include
-# LIB_BOOST = -L/$(LIBRARY_PREFIX2)/boost/lib -lboost_program_options
-# LIB_PAPI = -I/$(LIBRARY_PREFIX2)/papi/include -lpapi
-# INC_PAPI = -L/$(LIBRARY_PREFIX2)/papi/lib
-# INC_ZOLTAN = -I/$(LIBRARY_PREFIX2)/include
-# LIB_ZOLTAN = -L/$(LIBRARY_PREFIX2)/lib -lzoltan
-# INC_JEMALLOC = -I/$(LIBRARY_PREFIX2)/jemalloc/include
-# LIB_JEMALLOC = -L/$(LIBRARY_PREFIX2)/jemalloc/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX2)/jemalloc/lib
-# INC_VLSV = -I$(LIBRARY_PREFIX2)/vlsv
-# LIB_VLSV = -L$(LIBRARY_PREFIX2)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX2)/vlsv/lib
-# LIB_PROFILE = -L$(LIBRARY_PREFIX2)/phiprof/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX2)/phiprof/lib
-# INC_PROFILE = -I$(LIBRARY_PREFIX2)/phiprof/include
+INC_BOOST = -isystem /$(LIBRARY_PREFIX2)/boost/include
+LIB_BOOST = -L/$(LIBRARY_PREFIX2)/boost/lib -lboost_program_options
 
-LIB_BOOST = -L/$(LIBRARY_PREFIX)/boost/lib -lboost_program_options
-INC_BOOST = -I$(LIBRARY_PREFIX)/boost/include
-INC_ZOLTAN = -I$(LIBRARY_PREFIX)/zoltan/include
-LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX)/zoltan/lib
-LIB_JEMALLOC = -ljemalloc
-LIB_PAPI = -lpapi
-INC_VLSV = -I$(LIBRARY_PREFIX)/vlsv
-LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)/vlsv
-LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX)/phiprof/lib
-INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
-INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid/
-INC_EIGEN = -I$(LIBRARY_PREFIX)/eigen/
-INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg/
-INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass/
+INC_PAPI = -isystem /$(LIBRARY_PREFIX2)/papi/include
+LIB_PAPI = -L/$(LIBRARY_PREFIX2)/papi/lib -lpapi
+
+INC_ZOLTAN = -isystem /$(LIBRARY_PREFIX2)/zoltan/include
+LIB_ZOLTAN = -L/$(LIBRARY_PREFIX2)/zoltan/lib -lzoltan
+
+INC_JEMALLOC = -isystem /$(LIBRARY_PREFIX2)/jemalloc/include
+LIB_JEMALLOC = -L/$(LIBRARY_PREFIX2)/jemalloc/lib -ljemalloc -Xlinker=-rpath=$(LIBRARY_PREFIX2)/jemalloc/lib
+#LIB_JEMALLOC = -L/$(LIBRARY_PREFIX2)/jemalloc/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX2)/jemalloc/lib
+
+INC_VLSV = -I$(LIBRARY_PREFIX2)/vlsv
+LIB_VLSV = -L$(LIBRARY_PREFIX2)/vlsv -lvlsv -Xlinker=-rpath=$(LIBRARY_PREFIX2)/vlsv/lib
+#LIB_VLSV = -L$(LIBRARY_PREFIX2)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX2)/vlsv/lib
+
+INC_PROFILE = -I$(LIBRARY_PREFIX2)/phiprof_nvcc/include
+LIB_PROFILE = -L$(LIBRARY_PREFIX2)/phiprof_nvcc/lib -lphiprof -Xlinker=-rpath=$(LIBRARY_PREFIX2)/phiprof_nvcc/lib
+#LIB_PROFILE = -L$(LIBRARY_PREFIX2)/phiprof_nvcc/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX2)/phiprof_nvcc/lib
 
 #======== Header-only Libraries ===========
 
-# INC_EIGEN = -I$(LIBRARY_PREFIX)/eigen
-# INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg
-# INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid
-# #INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass/
+INC_EIGEN = -isystem $(LIBRARY_PREFIX)/eigen
+INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg
+INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid
+#INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass/
+INC_HASHINATOR = -I$(HOME)/git/hashinator/

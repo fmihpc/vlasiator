@@ -60,23 +60,14 @@ namespace projects {
          // VX search
          search = true;
          counter = 0;
-         #warning TODO: add SpatialCell::getVelocityBlockMinValue() in place of sparseMinValue
          while (search) {
-            if (0.1 * getObjectWrapper().particleSpecies[popID].sparseMinValue >
-                calcPhaseSpaceDensity(x,
-                                      y,
-                                      z,
-                                      dx,
-                                      dy,
-                                      dz,
-                                      it->at(0) + counter*dvxBlock, it->at(1), it->at(2),
-                                      dvxCell, dvyCell, dvzCell, popID
-                                     )
-               ) {
+            if (0.1 * cell->getVelocityBlockMinValue(popID) > calcPhaseSpaceDensity(x, y, z, dx, dy, dz, it->at(0) + counter*dvxBlock, it->at(1), it->at(2), dvxCell, dvyCell, dvzCell, popID)) {
                search = false;
             }
             ++counter;
-            if (counter >= cell->get_velocity_grid_length(popID,refLevel)[0]) search = false;
+            if (counter >= cell->get_velocity_grid_length(popID,refLevel)[0]) {
+               search = false;
+            }
          }
          counter+=2;
          Real vRadiusSquared = (Real)counter*(Real)counter*dvxBlock*dvxBlock;
@@ -134,8 +125,8 @@ namespace projects {
          vRadiusSquared = max(vRadiusSquared, (Real)counter*(Real)counter*dvzBlock*dvzBlock);
 
          // Block listing
-         for (uint kv=0; kv<vzblocks_ini; ++kv) 
-            for (uint jv=0; jv<vyblocks_ini; ++jv)
+         for (uint kv=0; kv<vzblocks_ini; ++kv) {
+            for (uint jv=0; jv<vyblocks_ini; ++jv) {
                for (uint iv=0; iv<vxblocks_ini; ++iv) {
                   vmesh::GlobalID blockIndices[3];
                   blockIndices[0] = iv;
@@ -158,14 +149,15 @@ namespace projects {
                      cell->add_velocity_block(blockGID,popID);
                      blocksToInitialize.insert(blockGID);
                   }
-               }
+               } // vxblocks_ini
+            } // vyblocks_ini
+         } // vzblocks_ini
       }
 
       vector<vmesh::GlobalID> returnVector;
       for (set<vmesh::GlobalID>::const_iterator it=blocksToInitialize.begin(); it!=blocksToInitialize.end(); ++it) {
          returnVector.push_back(*it);
       }
-
       return returnVector;
    }
    

@@ -4,6 +4,34 @@
 #include <vector>
 #include <array>
 
+enum FieldsToCommunicate {
+   PERBXVOL,
+   PERBYVOL,
+   PERBZVOL,
+   dPERBXVOLdx,
+   dPERBXVOLdy,
+   dPERBXVOLdz,
+   dPERBYVOLdx,
+   dPERBYVOLdy,
+   dPERBYVOLdz,
+   dPERBZVOLdx,
+   dPERBZVOLdy,
+   dPERBZVOLdz,
+   BGBXVOL,
+   BGBYVOL,
+   BGBZVOL,
+   EXGRADPE,
+   EYGRADPE,
+   EZGRADPE,
+   EXVOL,
+   EYVOL,
+   EZVOL,
+   CURVATUREX,
+   CURVATUREY,
+   CURVATUREZ,
+   N_FIELDSTOCOMMUNICATE
+};
+
 std::vector<CellID> mapDccrgIdToFsGridGlobalID(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 					       CellID dccrgID);
 
@@ -65,6 +93,10 @@ void getDerivativesFromFsGrid(
 
 int getNumberOfCellsOnMaxRefLvl(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
                                 const std::vector<CellID>& cells);
+
+void feedBoundaryIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+			const std::vector<CellID>& cells,
+			FsGrid< fsgrids::technical, 2> & technicalGrid);
 
 
 /*! Transfer field data from an FsGrid back into the appropriate CellParams slot in DCCRG 

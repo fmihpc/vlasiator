@@ -1,0 +1,89 @@
+CMP = hipcc
+LNK = hipcc
+
+# Modules loaded (after clean shell, no module purging, one-by-one not oneline)
+# module load LUMI/22.08
+# module load partition/G
+# module load cpeAMD
+# module load rocm/5.3.3
+
+#======== Vectorization ==========
+#Set vector backend type for vlasov solvers, sets precision and length. 
+#Options: 
+# AVX:	    VEC4D_AGNER, VEC4F_AGNER, VEC8F_AGNER
+# AVX512:   VEC8D_AGNER, VEC16F_AGNER
+# Fallback: VECTORCLASS = VEC_FALLBACK_GENERIC (Defaults to VECL8)
+VECTORCLASS = VEC_FALLBACK_GENERIC
+
+#===== Vector Lenghts ====
+# Default for VEC_FALLBACK_GENERIC is WID=4, VECL=8 
+WID=8
+VECL=64
+# WID=4
+# VECL=16
+
+# Compile with GPU support (USE_HIP or USE_CUDA)
+USE_HIP=1
+
+#======= Compiler and compilation flags =========
+# NOTES on compiler flags:
+# CXXFLAGS is for compiler flags, they are always used
+# MATHFLAGS are for special math etc. flags, these are only applied on solver functions
+# LDFLAGS flags for linker
+# Important note: Do not edit COMPFLAGS in this file!
+
+CXXFLAGS += -g -O3 -x hip --amdgpu-target=gfx90a:xnack+ -std=c++17 -funroll-loops -fopenmp -fgpu-rdc -I. -Ihip -Iomp -D__HIP_PLATFORM_AMD__ -I${CRAY_MPICH_DIR}/include -W -Wall -Wno-unused-parameter -Wno-unused-result -Wno-unused-function -Wno-unused-variable -Wno-unknown-pragmas -Wno-deprecated-register -Wno-unused-but-set-variable
+
+testpackage: CXXFLAGS = -g -O2 -fopenmp -x hip --amdgpu-target=gfx90a:xnack+ -I. -Ihip -Iomp -D__HIP_PLATFORM_AMD__ -I${CRAY_MPICH_DIR}/include -funroll-loops -std=c++17  -fgpu-sanitize
+
+LDFLAGS = -fopenmp --hip-link -lrt -lgomp -lpthread -fgpu-rdc -D__HIP_PLATFORM_AMD__ -L${CRAY_MPICH_DIR}/lib ${PE_MPICH_GTL_DIR_amd_gfx90a} --amdgpu-target=gfx90a:xnack+
+LIB_MPI = -lmpi ${PE_MPICH_GTL_LIBS_amd_gfx90a}
+
+# -fgpu-rdc # relocatable device code, needed for the velocity mesh
+# -fgpu-sanitize
+
+#======== PAPI ==========
+#Add PAPI_MEM define to use papi to report memory consumption?
+CXXFLAGS +=  -DPAPI_MEM
+testpackage: CXXFLAGS +=  -DPAPI_MEM
+
+#======== Allocator =========
+#Use jemalloc instead of system malloc to reduce memory fragmentation? https://github.com/jemalloc/jemalloc
+#Configure jemalloc with  --with-jemalloc-prefix=je_ when installing it
+#Note: jemalloc not supported with GPUs
+#CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+#testpackage: CXXFLAGS += -DUSE_JEMALLOC -DJEMALLOC_NO_DEMANGLE
+
+#-DNO_WRITE_AT_ALL:  Define to disable write at all to 
+#                    avoid memleak (much slower IO)
+
+#======== Libraries ===========
+
+LIBRARY_PREFIX = /projappl/project_462000358/libraries
+
+# Compiled libraries
+INC_BOOST = -isystem $(LIBRARY_PREFIX)/boost/include
+LIB_BOOST = -L$(LIBRARY_PREFIX)/boost/lib -lboost_program_options -Wl,-rpath=$(LIBRARY_PREFIX)/boost/lib
+
+INC_ZOLTAN = -isystem $(LIBRARY_PREFIX)/zoltan/include
+LIB_ZOLTAN = -L$(LIBRARY_PREFIX)/zoltan/lib -lzoltan -Wl,-rpath=$(LIBRARY_PREFIX)/zoltan/lib
+
+#INC_JEMALLOC = -I$(LIBRARY_PREFIX)/jemalloc/include
+#LIB_JEMALLOC = -L$(LIBRARY_PREFIX)/jemalloc/lib -ljemalloc -Wl,-rpath=$(LIBRARY_PREFIX)/jemalloc/lib
+
+INC_PAPI = -isystem $(LIBRARY_PREFIX)/papi/include
+LIB_PAPI = -lpapi -L$(LIBRARY_PREFIX)/papi/lib -Wl,-rpath=$(LIBRARY_PREFIX)/papi/lib
+
+INC_VLSV = -isystem $(LIBRARY_PREFIX)/vlsv
+LIB_VLSV = -L$(LIBRARY_PREFIX)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX)/vlsv
+
+INC_PROFILE = -isystem $(LIBRARY_PREFIX)/phiprof/include -D_ROCTX -I${ROCM_PATH}/include
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -lgfortran -Wl,-rpath=$(LIBRARY_PREFIX)/phiprof/lib -Wl,-rpath=${ROCM_PATH}/lib -lroctx64 -lroctracer64
+
+# Header libraries
+
+INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid/
+INC_EIGEN = -isystem $(LIBRARY_PREFIX)/eigen/
+INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg/
+# INC_VECTORCLASS = -I$(LIBRARY_PREFIX_HEADERS)/vectorclass/ # not used with GPU
+INC_HASHINATOR = -isystem $(LIBRARY_PREFIX)/hashinator/

@@ -33,7 +33,7 @@ Eigen::Matrix<Real,3,1> line_plane_intersection(const Eigen::Matrix<Real,3,1>& l
                                                 const Eigen::Matrix<Real,3,1>& p_normal);
 
 void compute_intersections_1st(
-        const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
+        const vmesh::VelocityMesh* vmesh,
         const Eigen::Transform<Real,3,Eigen::Affine>& bwd_transform,
         const Eigen::Transform<Real,3,Eigen::Affine>& fwd_transform,
         uint dimension,const uint8_t& refLevel,
@@ -41,7 +41,7 @@ void compute_intersections_1st(
         Real& intersection_dj,Real& intersection_dk);
 
 void compute_intersections_2nd(
-        const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
+        const vmesh::VelocityMesh* vmesh,
         const Eigen::Transform<Real,3,Eigen::Affine>& bwd_transform,
         const Eigen::Transform<Real,3,Eigen::Affine>& fwd_transform,
         uint dimension,const uint8_t& refLevel,
@@ -49,7 +49,7 @@ void compute_intersections_2nd(
         Real& intersection_dj,Real& intersection_dk);
 
 void compute_intersections_3rd(
-        const vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh,
+        const vmesh::VelocityMesh* vmesh,
         const Eigen::Transform<Real,3,Eigen::Affine>& bwd_transform,
         const Eigen::Transform<Real,3,Eigen::Affine>& fwd_transform,
         uint dimension,const uint8_t& refLevel,

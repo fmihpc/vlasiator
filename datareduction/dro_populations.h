@@ -27,19 +27,14 @@
 
 #include "datareductionoperator.h"
 #include "../object_wrapper.h"
-#include "../vlasovsolver/cpu_moments.h"
+#include "../vlasovsolver/arch_moments.h"
 
 namespace DRO {
    
    template <typename T> class DataReductionOperatorPopulations: public DataReductionOperator {
    public:
-      DataReductionOperatorPopulations(const std::string& name,const uint popID, const unsigned int byteOffset,const unsigned int vectorSize):
-   DataReductionOperator() {
-      _vectorSize=vectorSize;
-      _name=name;
-      _byteOffset=byteOffset;
-      _popID=popID;
-   };
+      DataReductionOperatorPopulations(const std::string& name,const uint popID, const unsigned int byteOffset,const unsigned int vectorSize) : 
+         DataReductionOperator(), _byteOffset {byteOffset}, _vectorSize {vectorSize}, _popID {popID}, _name {name} {}
       virtual ~DataReductionOperatorPopulations() {};
       
       virtual bool getDataVectorInfo(std::string& dataType,unsigned int& dataSize,unsigned int& vectorSize) const {

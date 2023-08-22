@@ -74,7 +74,6 @@ namespace SBC {
          creal& VY,
          creal& VZ
       );
-      
    };
 }
 

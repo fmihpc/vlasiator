@@ -24,20 +24,21 @@
 #define HOSTDEV_SLOPE_LIMITERS_H
 
 #include "vec.h"
+#include "../arch/arch_device_api.h"
 
 using namespace std;
 
 static ARCH_HOSTDEV inline Vec minmod(const Vec slope1, const Vec slope2)
 {
-  const Vec zero(0.0);
+  const Vec veczero(0.0);
   Vec slope = select(abs(slope1) < abs(slope2), slope1, slope2);
-  return select(slope1 * slope2 <= 0, zero, slope);
+  return select(slope1 * slope2 <= 0, veczero, slope);
 }
 static ARCH_HOSTDEV inline Vec maxmod(const Vec slope1, const Vec slope2)
 {
-  const Vec zero(0.0);
+  const Vec veczero(0.0);
   Vec slope = select(abs(slope1) > abs(slope2), slope1, slope2);
-  return select(slope1 * slope2 <= 0, zero, slope);
+  return select(slope1 * slope2 <= 0, veczero, slope);
 }
 
 /*!
@@ -71,17 +72,17 @@ static ARCH_HOSTDEV inline Vec slope_limiter_minmod(const Vec& l,const Vec& m, c
 
 static ARCH_HOSTDEV inline Vec slope_limiter_mc(const Vec& l,const Vec& m, const Vec& r)
 {
-  const Vec zero(0.0);
-  const Vec two(2.0);
-  const Vec half(0.5);
+  const Vec veczero(0.0);
+  const Vec vectwo(2.0);
+  const Vec vechalf(0.5);
   Vec sign;
   Vec a=r-m;
   Vec b=m-l;
-  Vec minval=min(two*abs(a),two*abs(b));
-  minval=min(minval,half*abs(a+b));
+  Vec minval=min(vectwo*abs(a),vectwo*abs(b));
+  minval=min(minval,vechalf*abs(a+b));
 
   //check for extrema
-  Vec output = select(a*b < 0,zero,minval);
+  Vec output = select(a*b < 0,veczero,minval);
   //set sign
   return select(a + b < 0,-output,output);
 }

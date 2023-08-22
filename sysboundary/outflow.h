@@ -52,7 +52,7 @@ namespace SBC {
     * - Copy the distribution and moments from the nearest NOT_SYSBOUNDARY cell;
     * - Copy the perturbed B components from the nearest NOT_SYSBOUNDARY cell. EXCEPTION: the face components adjacent to the simulation domain at the +x/+y/+z faces are propagated still.
     */
-   class Outflow: public SysBoundaryCondition {
+   class Outflow: public OuterBoundaryCondition {
    public:
       Outflow();
       virtual ~Outflow();
@@ -66,10 +66,9 @@ namespace SBC {
       );
       bool initFieldBoundary();
       OutflowFieldBoundary* getFieldBoundary() {return fieldBoundary;} 
-      virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                     FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid);
       virtual bool applyInitialState(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
+         FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
          FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
          Project &project
       );
@@ -152,8 +151,6 @@ namespace SBC {
       virtual uint getIndex() const;
       
    protected:
-      /*! Array of bool telling which faces are going to be processed by the system boundary condition.*/
-      bool facesToProcess[6];
       /*! Array of bool telling which faces are going to be processed by the fields system boundary condition.*/
       bool facesToSkipFields[6];
       /*! Array of bool telling which faces are going to be reapplied upon restart.*/

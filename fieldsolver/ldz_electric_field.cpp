@@ -1678,14 +1678,17 @@ void calculateUpwindedElectricFieldSimple(
       EGradPeGrid.grid()->updateGhostCells();
       EGradPeGrid.syncDeviceData();
    }
-   if(meshParams.ohmHallTerm == 0 && meshParams.ohmGradPeTerm == 0) {
+   if(P::ohmHallTerm == 0) {
       dPerBGrid.syncHostData();
       dPerBGrid.grid()->updateGhostCells();
       dPerBGrid.syncDeviceData();
+   }
+   if(P::ohmHallTerm == 0 && P::ohmGradPeTerm == 0) {
       dMomentsGrid.syncHostData();
       dMomentsGrid.grid()->updateGhostCells();
       dMomentsGrid.syncDeviceData();
    }
+   
    phiprof::stop(timer);
    
    // Calculate upwinded electric field on inner cells

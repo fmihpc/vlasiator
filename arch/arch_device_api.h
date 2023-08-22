@@ -3,7 +3,7 @@
 #define ARCH_DEVICE_API_H
 
 /* Host-device function declarations */
-#ifdef __CUDACC__
+#if defined(__CUDACC__) || defined(__HIP_PLATFORM_HCC___)
   #define ARCH_HOSTDEV __host__ __device__
   #define ARCH_DEV __device__
   #define ARCH_MANAGED __managed__ 
@@ -26,11 +26,13 @@ enum reduce_op { max, min, sum, prod };
 }
 
 /* Select the compiled architecture */
-#if defined(USE_CUDA) && defined(__CUDACC__) 
+#if defined(USE_GPU) && defined(__CUDACC__)
   #include "arch_device_cuda.h"
+#elif defined(USE_GPU) && defined(__HIP_PLATFORM_HCC___)
+  #include "arch_device_hip.h"
 #else
   #include "arch_device_host.h"
-#endif // !USE_CUDA
+#endif
 
 /* The macro for the inner loop body definition */
 #define ARCH_GET_MACRO(_1,_2,_3,_4,_5,NAME,...) NAME

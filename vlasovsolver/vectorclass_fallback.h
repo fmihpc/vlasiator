@@ -22,9 +22,9 @@
 #ifndef VECTORCLASS_PORTABLE_H
 #define VECTORCLASS_PORTABLE_H
 
+#include "../arch/arch_device_api.h"
+
 #include <stdio.h>
-//#include <stdlib.h>
-//#include <math.h>
 #include <initializer_list>
 // Prefetching does nothing in the fallback vectorclass, if no system implementation
 // is available

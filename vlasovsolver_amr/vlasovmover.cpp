@@ -39,20 +39,12 @@
 #include "../iowrite.h"
 #include "../object_wrapper.h"
 
-#include "../vlasovsolver/cpu_moments.h"
+#include "../vlasovsolver/arch_moments.h"
 //#include "cpu_acc_semilag.hpp"
 //#include "cpu_trans_map.hpp"
 
 using namespace std;
 using namespace spatial_cell;
-
-creal ZERO    = 0.0;
-creal HALF    = 0.5;
-creal FOURTH  = 1.0/4.0;
-creal SIXTH   = 1.0/6.0;
-creal ONE     = 1.0;
-creal TWO     = 2.0;
-creal EPSILON = 1.0e-25;
 
 #warning TESTING can be removed later
 static void writeVelMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
@@ -148,8 +140,8 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
    #warning DEBUG remove me
    for (size_t c=0; c<local_cells.size(); ++c) {
       SpatialCell* spatial_cell = mpiGrid[local_cells[c]];
-      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = spatial_cell->get_velocity_mesh_temporary();
-      vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks_temporary();
+      vmesh::VelocityMesh* vmesh    = spatial_cell->get_velocity_mesh_temporary();
+      vmesh::VelocityBlockContainer* blockContainer = spatial_cell->get_velocity_blocks_temporary();
       spatial_cell->swap(vmesh,blockContainer);
    }
 //   writeVelMesh(mpiGrid);
@@ -166,11 +158,11 @@ void calculateSpatialTranslation(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geome
 
    for (size_t c=0; c<local_cells.size(); ++c) {
       SpatialCell* spatial_cell = mpiGrid[local_cells[c]];
-      vmesh::VelocityMesh<vmesh::GlobalID,vmesh::LocalID>& vmesh    = spatial_cell->get_velocity_mesh_temporary();
-      vmesh::VelocityBlockContainer<vmesh::LocalID>& blockContainer = spatial_cell->get_velocity_blocks_temporary();
+      vmesh::VelocityMesh* vmesh    = spatial_cell->get_velocity_mesh_temporary();
+      vmesh::VelocityBlockContainer* blockContainer = spatial_cell->get_velocity_blocks_temporary();
       //spatial_cell->swap(vmesh,blockContainer);
-      vmesh.clear();
-      blockContainer.clear();
+      vmesh->clear();
+      blockContainer->clear();
    }
    writeVelMesh(mpiGrid);
    

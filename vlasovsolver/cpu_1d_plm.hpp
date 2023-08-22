@@ -24,7 +24,7 @@
 #define HOSTDEV_1D_PLM_H
 
 #include "vec.h"
-
+#include "../arch/arch_device_api.h"
 #include "cpu_slope_limiters.hpp"
 
 using namespace std;
