@@ -387,6 +387,7 @@ bool _readBlockData(
          id = blockIDremapper(id);
       }
       //allocate space for all blocks and create them and fill them
+      // a conversion may happen between float and double
       #ifdef USE_GPU
       split::SplitVector<vmesh::GlobalID> *blockIdsInCell2 = new split::SplitVector<vmesh::GlobalID>(blockIdsInCell); //blockIds in a particular cell, temporary usage
       blockIdsInCell2->optimizeGPU();
@@ -394,15 +395,11 @@ bool _readBlockData(
       #else
       mpiGrid[cell]->add_velocity_blocks(popID,blockIdsInCell,&avgBuffer[blockBufferOffset*WID3]);
       #endif
-      // //copy avgs data, here a conversion may happen between float and double
-      // Realf *cellBlockData=mpiGrid[cell]->get_data(popID);
-      // for(uint64_t i = 0; i< WID3 * nBlocksInCell ; i++){
-      //    cellBlockData[i] =  avgBuffer[blockBufferOffset*WID3 + i];
-      // }
       blockBufferOffset += nBlocksInCell; //jump to location of next local cell
    }
 
    #ifdef USE_GPU
+   CHK_ERR( gpuDeviceSynchronize() );
    CHK_ERR( gpuFree(gpu_avgBuffer) );
    #endif
    delete[] avgBuffer;
