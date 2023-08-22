@@ -1357,10 +1357,7 @@ namespace spatial_cell {
       // Set velocity block parameters:
       for (vmesh::LocalID blockLID=0; blockLID<size(popID); ++blockLID) {
          const vmesh::GlobalID blockGID = get_velocity_block_global_id(blockLID,popID);
-         parameters[BlockParams::VXCRD] = get_velocity_block_vx_min(popID,blockGID);
-         parameters[BlockParams::VYCRD] = get_velocity_block_vy_min(popID,blockGID);
-         parameters[BlockParams::VZCRD] = get_velocity_block_vz_min(popID,blockGID);
-         populations[popID].vmesh->getCellSize(blockGID,&(parameters[BlockParams::DVX]));
+         populations[popID].vmesh->getBlockInfo(blockGID, &(parameters[BlockParams::VXCRD]));
          parameters += BlockParams::N_VELOCITY_BLOCK_PARAMS;
       }
    }

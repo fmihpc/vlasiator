@@ -329,12 +329,14 @@ namespace spatial_cell {
       // Following functions adjust velocity blocks stored on the cell //
       bool add_velocity_block(const vmesh::GlobalID& block,const uint popID);
       bool add_velocity_block(const vmesh::GlobalID& block,const uint popID, Realf* buffer);
-      template <typename fileReal> void add_velocity_blocks(const uint popID,const std::vector<vmesh::GlobalID>& blocks,fileReal* avgBuffer);
       bool add_velocity_block_octant(const vmesh::GlobalID& blockGID,const uint popID);
       void adjustSingleCellVelocityBlocks(const uint popID, bool doDeleteEmpty=false);
       void adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors,
                                   const uint popID,
                                   bool doDeleteEmptyBlocks=true);
+      // Templated function for storing a v-space read from a file
+      template <typename fileReal> void add_velocity_blocks(const uint popID,const std::vector<vmesh::GlobalID>& blocks,fileReal* avgBuffer);
+
       void update_velocity_block_content_lists(const uint popID);
       bool checkMesh(const uint popID);
       void clear(const uint popID);

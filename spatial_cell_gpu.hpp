@@ -254,7 +254,7 @@ namespace spatial_cell {
          // Set block parameters
          if (ti==0) {
             vmesh::GlobalID GID = blocks->at(index);
-            vmesh->getBlockInfo(GID, &parameters[index*BlockParams::N_VELOCITY_BLOCK_PARAMS]);
+            vmesh->getBlockInfo(GID, &parameters[index*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::VXCRD]);
          }
       }
    }
@@ -337,12 +337,13 @@ namespace spatial_cell {
       // Following functions adjust velocity blocks stored on the cell //
       bool add_velocity_block(const vmesh::GlobalID& block,const uint popID);
       bool add_velocity_block(const vmesh::GlobalID& block,const uint popID, Realf* buffer);
-      template <typename fileReal> void add_velocity_blocks(const uint popID,const split::SplitVector<vmesh::GlobalID> *blocks,fileReal* avgBuffer);
       void adjustSingleCellVelocityBlocks(const uint popID, bool doDeleteEmpty=false);
       void adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors,
                                   const uint popID,
                                   bool doDeleteEmptyBlocks=true);
       void adjust_velocity_blocks_caller(const uint popID);
+      // Templated function for storing a v-space read from a file
+      template <typename fileReal> void add_velocity_blocks(const uint popID,const split::SplitVector<vmesh::GlobalID> *blocks,fileReal* avgBuffer);
 
       void update_velocity_block_content_lists(const uint popID);
       bool checkMesh(const uint popID);
@@ -1128,7 +1129,7 @@ namespace spatial_cell {
 
       // Set block parameters:
       Real* parameters = get_block_parameters(VBC_LID,popID);
-      populations[popID].vmesh->getBlockInfo(block, parameters);
+      populations[popID].vmesh->getBlockInfo(block, &parameters[BlockParams::VXCRD]);
 
       // The following call 'should' be the fastest, but is actually
       // much slower that the parameter setting above
