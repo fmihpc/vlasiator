@@ -177,9 +177,9 @@ namespace SBC {
                #ifdef VAMR
                cell.get_velocity_block_size(popID,blockGID,dV);
                #endif
-               V_crds[0] += 0.5*dV[0];
-               V_crds[1] += 0.5*dV[1];
-               V_crds[2] += 0.5*dV[2];
+               V_crds[0] += 0.5*dV[0] - VX0;
+               V_crds[1] += 0.5*dV[1] - VY0;
+               V_crds[2] += 0.5*dV[2] - VZ0;
                Real R2 = ((V_crds[0])*(V_crds[0])
                           + (V_crds[1])*(V_crds[1])
                           + (V_crds[2])*(V_crds[2]));
