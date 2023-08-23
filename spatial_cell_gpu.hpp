@@ -182,6 +182,7 @@ namespace spatial_cell {
          velocityBlockMinValue = other.velocityBlockMinValue;
          ACCSUBCYCLES = other.ACCSUBCYCLES;
          N_blocks = other.N_blocks;
+         reservation = other.reservation;
          for (uint i=0; i<2; ++i) {
             max_dt[i] = other.max_dt[i];
          }
@@ -218,6 +219,7 @@ namespace spatial_cell {
          velocityBlockMinValue = other.velocityBlockMinValue;
          ACCSUBCYCLES = other.ACCSUBCYCLES;
          N_blocks = other.N_blocks;
+         reservation = other.reservation;
          for (uint i=0; i<2; ++i) {
             max_dt[i] = other.max_dt[i];
          }
