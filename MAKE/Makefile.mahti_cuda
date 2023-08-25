@@ -88,6 +88,7 @@ testpackage: CXXFLAGS += -DPAPI_MEM
 # LIBRARY_PREFIX = /users/jarohokk/pdir/vlasiator/libs
 # LIBRARY_PREFIX2 = /users/jarohokk/pdir/vlasiator/libs
 LIBRARY_PREFIX = /users/filippoz/scratch/zonta/libs
+LIBRARY_PREFIX2 = /users/filippoz/scratch/zonta/libs
 
 #======== Compiled Libraries ===========
 
@@ -108,14 +109,17 @@ INC_VLSV = -I$(LIBRARY_PREFIX2)/vlsv
 LIB_VLSV = -L$(LIBRARY_PREFIX2)/vlsv -lvlsv -Xlinker=-rpath=$(LIBRARY_PREFIX2)/vlsv/lib
 #LIB_VLSV = -L$(LIBRARY_PREFIX2)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX2)/vlsv/lib
 
-INC_PROFILE = -I$(LIBRARY_PREFIX2)/phiprof_nvcc/include
-LIB_PROFILE = -L$(LIBRARY_PREFIX2)/phiprof_nvcc/lib -lphiprof -Xlinker=-rpath=$(LIBRARY_PREFIX2)/phiprof_nvcc/lib
+INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
+LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -Xlinker=-rpath=$(LIBRARY_PREFIX)/phiprof_nvcc/lib
+# LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX)/phiprof/lib
+# INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
 #LIB_PROFILE = -L$(LIBRARY_PREFIX2)/phiprof_nvcc/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX2)/phiprof_nvcc/lib
 
 #======== Header-only Libraries ===========
 
 INC_EIGEN = -isystem $(LIBRARY_PREFIX)/eigen
 INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg
-INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid
+INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid-uni
 #INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass/
-INC_HASHINATOR = -I$(HOME)/git/hashinator/
+# INC_HASHINATOR = -I$(HOME)/git/hashinator/
+INC_HASHINATOR = -I$(LIBRARY_PREFIX)/hashinator/

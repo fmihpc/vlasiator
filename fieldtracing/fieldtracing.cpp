@@ -558,12 +558,12 @@ namespace FieldTracing {
                   }
                   
                   // If we map out of the box, this node is on an open field line.
-                  if(   x[0] > meshParams.xmax - 4*meshParams.dx_ini
-                     || x[0] < meshParams.xmin + 4*meshParams.dx_ini
-                     || x[1] > meshParams.ymax - 4*meshParams.dy_ini
-                     || x[1] < meshParams.ymin + 4*meshParams.dy_ini
-                     || x[2] > meshParams.zmax - 4*meshParams.dz_ini
-                     || x[2] < meshParams.zmin + 4*meshParams.dz_ini
+                  if(   x[0] > FSParams.xmax - 4*FSParams.dx_ini
+                     || x[0] < FSParams.xmin + 4*FSParams.dx_ini
+                     || x[1] > FSParams.ymax - 4*FSParams.dy_ini
+                     || x[1] < FSParams.ymin + 4*FSParams.dy_ini
+                     || x[2] > FSParams.zmax - 4*FSParams.dz_ini
+                     || x[2] < FSParams.zmin + 4*FSParams.dz_ini
                   ) {
                      nodeNeedsContinuedTracing[n] = 0;
                      nodeTracingCoordinates[n] = {0,0,0};
@@ -694,12 +694,12 @@ namespace FieldTracing {
          
          // If we map out of the box, discard this field line.
          if(
-               x[0] > meshParams.xmax - 4*meshParams.dx_ini
-            || x[0] < meshParams.xmin + 4*meshParams.dx_ini
-            || x[1] > meshParams.ymax - 4*meshParams.dy_ini
-            || x[1] < meshParams.ymin + 4*meshParams.dy_ini
-            || x[2] > meshParams.zmax - 4*meshParams.dz_ini
-            || x[2] < meshParams.zmin + 4*meshParams.dz_ini
+               x[0] > FSParams.xmax - 4*FSParams.dx_ini
+            || x[0] < FSParams.xmin + 4*FSParams.dx_ini
+            || x[1] > FSParams.ymax - 4*FSParams.dy_ini
+            || x[1] < FSParams.ymin + 4*FSParams.dy_ini
+            || x[2] > FSParams.zmax - 4*FSParams.dz_ini
+            || x[2] < FSParams.zmin + 4*FSParams.dz_ini
          ) {
             cellTracingCoordinates[n] = x;
             cellConnection[n] += TracingLineEndType::OPEN;
@@ -878,12 +878,12 @@ namespace FieldTracing {
          cellBWTracingCoordinates.at(n) = cellFWTracingCoordinates.at(n);
          if(mpiGrid.is_local(id)) {
             if((mpiGrid[id]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)
-               || cellFWTracingCoordinates[n][0] > meshParams.xmax - 4*meshParams.dx_ini
-               || cellFWTracingCoordinates[n][0] < meshParams.xmin + 4*meshParams.dx_ini
-               || cellFWTracingCoordinates[n][1] > meshParams.ymax - 4*meshParams.dy_ini
-               || cellFWTracingCoordinates[n][1] < meshParams.ymin + 4*meshParams.dy_ini
-               || cellFWTracingCoordinates[n][2] > meshParams.zmax - 4*meshParams.dz_ini
-               || cellFWTracingCoordinates[n][2] < meshParams.zmin + 4*meshParams.dz_ini
+               || cellFWTracingCoordinates[n][0] > FSParams.xmax - 4*FSParams.dx_ini
+               || cellFWTracingCoordinates[n][0] < FSParams.xmin + 4*FSParams.dx_ini
+               || cellFWTracingCoordinates[n][1] > FSParams.ymax - 4*FSParams.dy_ini
+               || cellFWTracingCoordinates[n][1] < FSParams.ymin + 4*FSParams.dy_ini
+               || cellFWTracingCoordinates[n][2] > FSParams.zmax - 4*FSParams.dz_ini
+               || cellFWTracingCoordinates[n][2] < FSParams.zmin + 4*FSParams.dz_ini
             ) {
                cellFWConnection[n] = TracingLineEndType::OUTSIDE;
                cellBWConnection[n] = TracingLineEndType::OUTSIDE;

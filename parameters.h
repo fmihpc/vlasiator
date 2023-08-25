@@ -41,16 +41,19 @@ struct FieldsolverParameters {
    Real dz;  /*!< FSgrid size of spatial cell in z-direction. */
    Real dx_ini;  /*!< DCCRG refLvl=0 size of spatial cell in x-direction. */
    Real dy_ini;  /*!< DCCRG refLvl=0  size of spatial cell in y-direction. */
-   Real dz_min;  /*!< DCCRG refLvl=0  size of spatial cell in z-direction. */
+   Real dz_ini;  /*!< DCCRG refLvl=0  size of spatial cell in z-direction. */
    Real xmin;    /*!< X-coordinate of the lower left corner of the spatial grid. */
    Real ymin;    /*!< Y-coordinate of the lower left corner of the spatial grid. */
    Real zmin;    /*!< Z-coordinate of the lower left corner of the spatial grid. */
    Real xmax;    /*!< X-coordinate of the upper right corner of the spatial grid. */
    Real ymax;    /*!< Y-coordinate of the upper right corner of the spatial grid. */
    Real zmax;    /*!< Z-coordinate of the upper right corner of the spatial grid. */ 
-   uint xcells; /*!< Initial number of spatial cells in x-direction. */
-   uint ycells; /*!< Initial number of spatial cells in y-direction. */
-   uint zcells; /*!< Initial number of spatial cells in z-direction. */ 
+   uint xcells; /*!< FSGrid number of spatial cells in x-direction. */
+   uint ycells; /*!< FSGrid number of spatial cells in y-direction. */
+   uint zcells; /*!< FSGrid number of spatial cells in z-direction. */ 
+   uint xcells_ini; /*!< DCCRG refLvl=0 number of spatial cells in x-direction. */
+   uint ycells_ini; /*!< DCCRG refLvl=0 number of spatial cells in y-direction. */
+   uint zcells_ini; /*!< DCCRG refLvl=0 number of spatial cells in z-direction. */ 
    Real resistivity;             /*!< Resistivity in Ohm's law eta*J term. */
    uint ohmHallTerm; /*!< Enable/choose spatial order of Hall term in Ohm's law JXB term. 0: off, 1: 1st spatial
                                order, 2: 2nd spatial order. */
@@ -67,19 +70,19 @@ void calcFieldsolverParameters();
 struct Parameters {
    static int geometry; /**< Simulation geometry, one of the values defined in
                          * geometry::Setup. Defaults to geometry::XYZ6D.*/
-   Real xmin;    /*!< X-coordinate of the lower left corner of the spatial grid. */
-   Real ymin;    /*!< Y-coordinate of the lower left corner of the spatial grid. */
-   Real zmin;    /*!< Z-coordinate of the lower left corner of the spatial grid. */
-   Real xmax;    /*!< X-coordinate of the upper right corner of the spatial grid. */
-   Real ymax;    /*!< Y-coordinate of the upper right corner of the spatial grid. */
-   Real zmax;    /*!< Z-coordinate of the upper right corner of the spatial grid. */ 
-   Real dx_ini;  /*!< Initial size of spatial cell in x-direction. */
-   Real dy_ini;  /*!< Initial size of spatial cell in y-direction. */
-   Real dz_ini;  /*!< Initial size of spatial cell in z-direction. */
+   static Real xmin;    /*!< X-coordinate of the lower left corner of the spatial grid. */
+   static Real ymin;    /*!< Y-coordinate of the lower left corner of the spatial grid. */
+   static Real zmin;    /*!< Z-coordinate of the lower left corner of the spatial grid. */
+   static Real xmax;    /*!< X-coordinate of the upper right corner of the spatial grid. */
+   static Real ymax;    /*!< Y-coordinate of the upper right corner of the spatial grid. */
+   static Real zmax;    /*!< Z-coordinate of the upper right corner of the spatial grid. */ 
+   static Real dx_ini;  /*!< Initial size of spatial cell in x-direction. */
+   static Real dy_ini;  /*!< Initial size of spatial cell in y-direction. */
+   static Real dz_ini;  /*!< Initial size of spatial cell in z-direction. */
 
-   uint xcells_ini; /*!< Initial number of spatial cells in x-direction. */
-   uint ycells_ini; /*!< Initial number of spatial cells in y-direction. */
-   uint zcells_ini; /*!< Initial number of spatial cells in z-direction. */ 
+   static uint xcells_ini; /*!< Initial number of spatial cells in x-direction. */
+   static uint ycells_ini; /*!< Initial number of spatial cells in y-direction. */
+   static uint zcells_ini; /*!< Initial number of spatial cells in z-direction. */ 
 
    static Real t;     /*!< Current simulation time. */
    static Real t_min; /*!< Initial simulation time. */

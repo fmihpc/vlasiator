@@ -120,7 +120,7 @@ namespace projects {
             }
          }
          
-         MPI_Reduce(&(localRhom[0]), &(outputRhom[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
+         MPI_Reduce(&(localRhom[0]), &(outputRhom[0]), FSParams.xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
 
          vector<Real> localPerBx(FSParams.xcells, 0.0);
          vector<Real> localPerBy(FSParams.xcells, 0.0);

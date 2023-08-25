@@ -222,18 +222,18 @@ namespace SBC {
       creal dz = technicalGrid.DZ;
       int globalIndices[3];
       technicalGrid.getGlobalIndices(i,j,k, globalIndices);
-      creal x = meshParams.xmin + (convert<Real>(globalIndices[0])+0.5)*dx;
-      creal y = meshParams.ymin + (convert<Real>(globalIndices[1])+0.5)*dy;
-      creal z = meshParams.zmin + (convert<Real>(globalIndices[2])+0.5)*dz;
+      creal x = FSParams.xmin + (convert<Real>(globalIndices[0])+0.5)*dx;
+      creal y = FSParams.ymin + (convert<Real>(globalIndices[1])+0.5)*dy;
+      creal z = FSParams.zmin + (convert<Real>(globalIndices[2])+0.5)*dz;
       creal xsign = divideIfNonZero(x, fabs(x));
       creal ysign = divideIfNonZero(y, fabs(y));
       creal zsign = divideIfNonZero(z, fabs(z));
       
       Real length = 0.0;
       
-      if (meshParams.xcells_ini == 1) {
-         if (meshParams.xcells_ini == 1) {
-            if (meshParams.xcells_ini == 1) {
+      if (FSParams.xcells_ini == 1) {
+         if (FSParams.xcells_ini == 1) {
+            if (FSParams.xcells_ini == 1) {
                // X,Y,Z
                std::cerr << __FILE__ << ":" << __LINE__ << ":" << "What do you expect to do with a single-cell simulation of conductingsphere boundary type? Stop kidding." << std::endl;
                abort();
@@ -243,7 +243,7 @@ namespace SBC {
                normalDirection[2] = zsign;
                // end of X,Y
             }
-         } else if (meshParams.zcells_ini == 1) {
+         } else if (FSParams.zcells_ini == 1) {
             // X,Z
             normalDirection[1] = ysign;
             // end of X,Z
@@ -288,8 +288,8 @@ namespace SBC {
             }
             // end of X
          }
-      } else if (meshParams.ycells_ini == 1) {
-         if (meshParams.zcells_ini == 1) {
+      } else if (FSParams.ycells_ini == 1) {
+         if (FSParams.zcells_ini == 1) {
             // Y,Z
             normalDirection[0] = xsign;
             // end of Y,Z
@@ -335,7 +335,7 @@ namespace SBC {
             }
             // end of Y
          }
-      } else if (meshParams.zcells_ini == 1) {
+      } else if (FSParams.zcells_ini == 1) {
          // Z
          switch(this->geometry) {
             case 0:

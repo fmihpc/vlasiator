@@ -816,7 +816,7 @@ void calculateHallTermSimple(
    timer=phiprof::initializeTimer("MPI","MPI");
    phiprof::start(timer);
    dPerBGrid.grid()->updateGhostCells();
-   if(meshParams.ohmGradPeTerm == 0) {
+   if(FSParams.ohmGradPeTerm == 0) {
       dMomentsGrid.grid()->updateGhostCells();
    }
    phiprof::stop(timer);

@@ -1121,15 +1121,15 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       uint endindex=1;
       for (uint AMR = 0; AMR <= P::amrMaxSpatialRefLevel; AMR++) {
          int AMRm = 1u << AMR;
-         uint cellsthislevel = (AMRm * meshParams.xcells_ini) * (AMRm*meshParams.ycells_ini) * (AMRm * meshParams.zcells_ini);
+         uint cellsthislevel = (AMRm * P::xcells_ini) * (AMRm*P::ycells_ini) * (AMRm * P::zcells_ini);
          startindex = endindex;
          endindex = endindex + cellsthislevel;
       
          // If cell belongs to this AMR level, find indices
          if ((cells[i]>=startindex)&&(cells[i]<endindex)) {
-            lineX =  (cells[i]-startindex) % (AMRm*meshParams.xcells_ini);
-            lineY = ((cells[i]-startindex) / (AMRm*meshParams.xcells_ini)) % (AMRm*meshParams.ycells_ini);
-            lineZ = ((cells[i]-startindex) /((AMRm*meshParams.xcells_ini) *  (AMRm*meshParams.ycells_ini))) % (AMRm*meshParams.zcells_ini);
+            lineX =  (cells[i]-startindex) % (AMRm*P::xcells_ini);
+            lineY = ((cells[i]-startindex) / (AMRm*P::xcells_ini)) % (AMRm*P::ycells_ini);
+            lineZ = ((cells[i]-startindex) /((AMRm*P::xcells_ini) *  (AMRm*P::ycells_ini))) % (AMRm*P::zcells_ini);
             // Check that indices are in correct intersection at least in one plane
             if ((P::systemWriteDistributionWriteXlineStride[index] > 0 &&
                   P::systemWriteDistributionWriteYlineStride[index] > 0 &&
@@ -1187,7 +1187,7 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
             Real T;
             // Clock angle distance for stride steps
             Real clock;
-            if ((meshParams.xcells_ini==1) || (meshParams.ycells_ini==1) || (meshParams.zcells_ini==1)) {
+            if ((P::xcells_ini==1) || (P::ycells_ini==1) || (P::zcells_ini==1)) {
                // 1D or 2D simulation
                T = s[1];
                s[0] = 0;
@@ -1208,15 +1208,15 @@ bool writeVelocitySpace(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
 
             stridecheck = false;
             // Now check if the stridepoint is exactly in this cell
-            if ((meshParams.xcells_ini==1) || (meshParams.ycells_ini==1) || (meshParams.zcells_ini==1)) {
+            if ((P::xcells_ini==1) || (P::ycells_ini==1) || (P::zcells_ini==1)) {
                // 1D or 2D
                if ( (D2 >= D-0.5*DX) && (D2 < D+0.5*DX) && (T2 >= T-0.5*DX) && (T2 < T+0.5*DX) ) stridecheck=true;
                // Special case for corners:
                if ( (abs(D-T)<0.5*DX) && (dist2>dist) ) stridecheck=true;
 
                // Only save 1 cell touching axes
-               if ( (meshParams.ycells_ini==1) && ( ( (cellX>-1.1*DX)&&(cellX<0) ) || ( (cellZ>-1.1*DZ)&&(cellZ<0) ) )) stridecheck=false;
-               if ( (meshParams.zcells_ini==1) && ( ( (cellX>-1.1*DX)&&(cellX<0) ) || ( (cellY>-1.1*DY)&&(cellY<0) ) )) stridecheck=false;
+               if ( (P::ycells_ini==1) && ( ( (cellX>-1.1*DX)&&(cellX<0) ) || ( (cellZ>-1.1*DZ)&&(cellZ<0) ) )) stridecheck=false;
+               if ( (P::zcells_ini==1) && ( ( (cellX>-1.1*DX)&&(cellX<0) ) || ( (cellY>-1.1*DY)&&(cellY<0) ) )) stridecheck=false;
 
             } else {
                // 3D simulation, account for clock angle

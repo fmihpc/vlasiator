@@ -439,11 +439,7 @@ namespace projects {
     * @param rngDataBuffer struct of type random_data
    */
    void Project::setRandomCellSeed(spatial_cell::SpatialCell* cell, std::default_random_engine& randGen) const {
-      const creal x = cell->parameters[CellParams::XCRD];
-      const creal y = cell->parameters[CellParams::YCRD];
-      const creal z = cell->parameters[CellParams::ZCRD];
-      const std::array<double,3> xyz = {x, y, z};      
-      const CellID myCell = mpiGrid.get_existing_cell(xyz);
+      const CellID myCell = cell->parameters[CellParams::CELLID];
       setRandomSeed(myCell, randGen);
    }
 

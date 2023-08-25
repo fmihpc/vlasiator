@@ -2374,7 +2374,7 @@ namespace SBC {
       isThisDynamic = false;
 
       // Sanity check: the ionosphere only makes sense in 3D simulations
-      if(meshParams.xcells_ini == 1 || meshParams.ycells_ini == 1 || meshParams.zcells_ini == 1) {
+      if(FSParams.xcells_ini == 1 || FSParams.ycells_ini == 1 || FSParams.zcells_ini == 1) {
          cerr << "*************************************************" << endl;
          cerr << "* BIG FAT IONOSPHERE ERROR:                     *" << endl;
          cerr << "*                                               *" << endl;

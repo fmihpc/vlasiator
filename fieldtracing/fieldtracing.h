@@ -153,12 +153,12 @@ namespace FieldTracing {
       const bool alongB,
       std::array<REAL,3>& b
    ) {
-      if(   r[0] > meshParams.xmax - 2*meshParams.dx_ini
-         || r[0] < meshParams.xmin + 2*meshParams.dx_ini
-         || r[1] > meshParams.ymax - 2*meshParams.dy_ini
-         || r[1] < meshParams.ymin + 2*meshParams.dy_ini
-         || r[2] > meshParams.zmax - 2*meshParams.dz_ini
-         || r[2] < meshParams.zmin + 2*meshParams.dz_ini
+      if(   r[0] > FSParams.xmax - 2*FSParams.dx_ini
+         || r[0] < FSParams.xmin + 2*FSParams.dx_ini
+         || r[1] > FSParams.ymax - 2*FSParams.dy_ini
+         || r[1] < FSParams.ymin + 2*FSParams.dy_ini
+         || r[2] > FSParams.zmax - 2*FSParams.dz_ini
+         || r[2] < FSParams.zmin + 2*FSParams.dz_ini
       ) {
          cerr << (string)("(fieldtracing) Error: fsgrid coupling trying to step outside of the global domain?\n");
          return false;

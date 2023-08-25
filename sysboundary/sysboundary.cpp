@@ -237,7 +237,7 @@ bool SysBoundary::initSysBoundaries(Project& project, creal& t) {
                     << endl;
             }
          }
-         if ((faces[0] || faces[1]) && P::xcells_ini < 5) {
+         if ((faces[0] || faces[1]) && FSParams.xcells_ini < 5) {
             if (myRank == MASTER_RANK) {
                cerr << "You load Outflow system boundary conditions on the x+ or x- face but there is not enough cells "
                        "in that direction to make sense."
@@ -245,7 +245,7 @@ bool SysBoundary::initSysBoundaries(Project& project, creal& t) {
             }
             exit(1);
          }
-         if ((faces[2] || faces[3]) && P::ycells_ini < 5) {
+         if ((faces[2] || faces[3]) && FSParams.ycells_ini < 5) {
             if (myRank == MASTER_RANK) {
                cerr << "You load Outflow system boundary conditions on the y+ or y- face but there is not enough cells "
                        "in that direction to make sense."
@@ -253,7 +253,7 @@ bool SysBoundary::initSysBoundaries(Project& project, creal& t) {
             }
             exit(1);
          }
-         if ((faces[4] || faces[5]) && P::zcells_ini < 5) {
+         if ((faces[4] || faces[5]) && FSParams.zcells_ini < 5) {
             if (myRank == MASTER_RANK) {
                cerr << "You load Outflow system boundary conditions on the z+ or z- face but there is not enough cells "
                        "in that direction to make sense."
@@ -316,7 +316,7 @@ bool SysBoundary::initSysBoundaries(Project& project, creal& t) {
                     << endl;
             }
          }
-         if ((faces[0] || faces[1]) && P::xcells_ini < 5) {
+         if ((faces[0] || faces[1]) && FSParams.xcells_ini < 5) {
             if (myRank == MASTER_RANK) {
                cerr << "You load Maxwellian system boundary conditions on the x+ or x- face but there is not enough "
                        "cells in that direction to make sense."
@@ -324,7 +324,7 @@ bool SysBoundary::initSysBoundaries(Project& project, creal& t) {
             }
             exit(1);
          }
-         if ((faces[2] || faces[3]) && P::ycells_ini < 5) {
+         if ((faces[2] || faces[3]) && FSParams.ycells_ini < 5) {
             if (myRank == MASTER_RANK) {
                cerr << "You load Maxwellian system boundary conditions on the y+ or y- face but there is not enough "
                        "cells in that direction to make sense."
@@ -332,7 +332,7 @@ bool SysBoundary::initSysBoundaries(Project& project, creal& t) {
             }
             exit(1);
          }
-         if ((faces[4] || faces[5]) && P::zcells_ini < 5) {
+         if ((faces[4] || faces[5]) && FSParams.zcells_ini < 5) {
             if (myRank == MASTER_RANK) {
                cerr << "You load Maxwellian system boundary conditions on the z+ or z- face but there is not enough "
                        "cells in that direction to make sense."
@@ -533,11 +533,11 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
 
       std::array<double, 3> dx = mpiGrid.geometry.get_length(cell);
       std::array<double, 3> x = mpiGrid.get_center(cell);
-      if (!isPeriodic[0] && (x[0] > meshParams.xmax - dx[0] || x[0] < meshParams.xmin + dx[0])) {
+      if (!isPeriodic[0] && (x[0] > P::xmax - dx[0] || x[0] < P::xmin + dx[0])) {
          continue;
-      } else if (!isPeriodic[1] && (x[1] > meshParams.ymax - dx[1] || x[1] < meshParams.ymin + dx[1])) {
+      } else if (!isPeriodic[1] && (x[1] > P::ymax - dx[1] || x[1] < P::ymin + dx[1])) {
          continue;
-      } else if (!isPeriodic[2] && (x[2] > meshParams.zmax - dx[2] || x[2] < meshParams.zmin + dx[2])) {
+      } else if (!isPeriodic[2] && (x[2] > P::zmax - dx[2] || x[2] < P::zmin + dx[2])) {
          continue;
       }
 

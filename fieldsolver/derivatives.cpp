@@ -552,7 +552,7 @@ void calculateBVOLDerivativesSimple(
 void calculateCurvature(
    const arch::buf<FsGrid< Real, fsgrids::volfields::N_VOL, FS_STENCIL_WIDTH>> & volGrid,
    const arch::buf<FsGrid< Real, fsgrids::bgbfield::N_BGB, FS_STENCIL_WIDTH>> & bgbGrid,
-   FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
+   const arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> & technicalGrid,
    cint i,
    cint j,
    cint k,
@@ -629,9 +629,9 @@ void calculateCurvature(
       rght_z_by /= rght_z_bnorm;
       rght_z_bz /= rght_z_bnorm;
       
-      vol[fsgrids::volfields::CURVATUREX] = bx * 0.5*(left_x_bx-rght_x_bx) / technicalGrid.DX + by * 0.5*(left_y_bx-rght_y_bx) / technicalGrid.DY + bz * 0.5*(left_z_bx-rght_z_bx) / technicalGrid.DZ;
-      vol[fsgrids::volfields::CURVATUREY] = bx * 0.5*(left_x_by-rght_x_by) / technicalGrid.DX + by * 0.5*(left_y_by-rght_y_by) / technicalGrid.DY + bz * 0.5*(left_z_by-rght_z_by) / technicalGrid.DZ;
-      vol[fsgrids::volfields::CURVATUREZ] = bx * 0.5*(left_x_bz-rght_x_bz) / technicalGrid.DX + by * 0.5*(left_y_bz-rght_y_bz) / technicalGrid.DY + bz * 0.5*(left_z_bz-rght_z_bz) / technicalGrid.DZ;
+      vol[fsgrids::volfields::CURVATUREX] = bx * 0.5*(left_x_bx-rght_x_bx) / technicalGrid.grid()->DX + by * 0.5*(left_y_bx-rght_y_bx) / technicalGrid.grid()->DY + bz * 0.5*(left_z_bx-rght_z_bx) / technicalGrid.grid()->DZ;
+      vol[fsgrids::volfields::CURVATUREY] = bx * 0.5*(left_x_by-rght_x_by) / technicalGrid.grid()->DX + by * 0.5*(left_y_by-rght_y_by) / technicalGrid.grid()->DY + bz * 0.5*(left_z_by-rght_z_by) / technicalGrid.grid()->DZ;
+      vol[fsgrids::volfields::CURVATUREZ] = bx * 0.5*(left_x_bz-rght_x_bz) / technicalGrid.grid()->DX + by * 0.5*(left_y_bz-rght_y_bz) / technicalGrid.grid()->DY + bz * 0.5*(left_z_bz-rght_z_bz) / technicalGrid.grid()->DZ;
    }
 }
 
@@ -645,14 +645,14 @@ void calculateCurvature(
  * \sa calculateDerivatives calculateBVOLDerivatives calculateDerivativesSimple
  */
 void calculateCurvatureSimple(
-   const arch::buf<FsGrid< Real, fsgrids::volfields::N_VOL, FS_STENCIL_WIDTH>> & volGrid,
-   const arch::buf<FsGrid< Real, fsgrids::bgbfield::N_BGB, FS_STENCIL_WIDTH>> & bgbGrid,
-   FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
-   const arch::buf<SysBoundary>& sysBoundaries
+   arch::buf<FsGrid< Real, fsgrids::volfields::N_VOL, FS_STENCIL_WIDTH>> & volGrid,
+   arch::buf<FsGrid< Real, fsgrids::bgbfield::N_BGB, FS_STENCIL_WIDTH>> & bgbGrid,
+   arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> & technicalGrid,
+   arch::buf<SysBoundary>& sysBoundaries
 ) {
    int timer;
    //const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
-   const int* gridDims = &technicalGrid.getLocalSize()[0];
+   const int* gridDims = &technicalGrid.grid()->getLocalSize()[0];
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
    
    phiprof::start("Calculate curvature");

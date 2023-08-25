@@ -156,15 +156,15 @@ namespace SBC {
       }
 
       if(excludeSlicesAndPeriodicDimensions == true) {
-         if(meshParams.xcells_ini == 1 || this->isPeriodic[0]) {
+         if(FSParams.xcells_ini == 1 || this->isPeriodic[0]) {
             isThisCellOnAFace[0] = false;
             isThisCellOnAFace[1] = false;
          }
-         if(meshParams.ycells_ini == 1 || this->isPeriodic[1]) {
+         if(FSParams.ycells_ini == 1 || this->isPeriodic[1]) {
             isThisCellOnAFace[2] = false;
             isThisCellOnAFace[3] = false;
          }
-         if(meshParams.zcells_ini == 1 || this->isPeriodic[2]) {
+         if(FSParams.zcells_ini == 1 || this->isPeriodic[2]) {
             isThisCellOnAFace[4] = false;
             isThisCellOnAFace[5] = false;
          }

@@ -1678,12 +1678,12 @@ void calculateUpwindedElectricFieldSimple(
       EGradPeGrid.grid()->updateGhostCells();
       EGradPeGrid.syncDeviceData();
    }
-   if(meshParams.ohmHallTerm == 0) {
+   if(FSParams.ohmHallTerm == 0) {
       dPerBGrid.syncHostData();
       dPerBGrid.grid()->updateGhostCells();
       dPerBGrid.syncDeviceData();
    }
-   if(meshParams.ohmHallTerm == 0 && meshParams.ohmGradPeTerm == 0) {
+   if(FSParams.ohmHallTerm == 0 && FSParams.ohmGradPeTerm == 0) {
       dMomentsGrid.syncHostData();
       dMomentsGrid.grid()->updateGhostCells();
       dMomentsGrid.syncDeviceData();

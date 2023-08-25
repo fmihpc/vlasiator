@@ -243,8 +243,8 @@ namespace projects {
       const int bw = (2 + 1*refLevel) * VLASOV_STENCIL_WIDTH; // Seems to be the limit
 
       return refLevel < (int)P::amrMaxSpatialRefLevel &&
-             xyz[0] > meshParams.xmin + meshParams.dx_ini * bw && 
-             xyz[0] < meshParams.xmax - meshParams.dx_ini * bw;
+             xyz[0] > P::xmin + P::dx_ini * bw && 
+             xyz[0] < P::xmax - P::dx_ini * bw;
    }
 
    bool Flowthrough::adaptRefinement( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const {
