@@ -96,7 +96,7 @@ int getNumberOfCellsOnMaxRefLvl(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
 
 void feedBoundaryIntoFsGrid(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
 			const std::vector<CellID>& cells,
-			FsGrid< fsgrids::technical, 2> & technicalGrid);
+			FsGrid< fsgrids::technical, 1, 2> & technicalGrid);
 
 
 /*! Transfer field data from an FsGrid back into the appropriate CellParams slot in DCCRG 

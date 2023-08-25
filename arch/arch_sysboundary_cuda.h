@@ -20,12 +20,14 @@ class buf<SysBoundary> {
         SBC::SetByUserFieldBoundary* setbyUser = NULL;
         SBC::IonosphereFieldBoundary* ionosphere = NULL;
         SBC::OutflowFieldBoundary* outflow = NULL;
+        SBC::ConductingSphereFieldBoundary* conductingsphere = NULL; 
         SBC::DoNotCompute* doNotCompute;
 
         // list of possible sysboundaries on device
         SBC::SetByUserFieldBoundary* setByUser_d;
         SBC::IonosphereFieldBoundary* ionosphere_d;
         SBC::OutflowFieldBoundary* outflow_d;
+        SBC::ConductingSphereFieldBoundary* conductingsphere_d;
         SBC::DoNotCompute* doNotCompute_d;
 
         uint is_copy = 0;
@@ -56,6 +58,12 @@ class buf<SysBoundary> {
                             return bufPtr->ionosphere_d->fieldSolverBoundaryCondMagneticField(bGrid, technicalGrid, i, j, k, dt, component);
                         #else
                             return bufPtr->ionosphere->fieldSolverBoundaryCondMagneticField(bGrid, technicalGrid, i, j, k, dt, component);
+                        #endif
+                    } else if (sysBoundaryFlag == sysboundarytype::CONDUCTINGSPHERE) {
+                        #ifdef __CUDA_ARCH__
+                            return bufPtr->conductingsphere_d->fieldSolverBoundaryCondMagneticField(bGrid, technicalGrid, i, j, k, dt, component);
+                        #else
+                            return bufPtr->conductingsphere->fieldSolverBoundaryCondMagneticField(bGrid, technicalGrid, i, j, k, dt, component);
                         #endif
                     } else if (sysBoundaryFlag == sysboundarytype::OUTFLOW) {
                         #ifdef __CUDA_ARCH__
@@ -89,6 +97,12 @@ class buf<SysBoundary> {
                             bufPtr->ionosphere_d->fieldSolverBoundaryCondMagneticFieldProjection(bGrid, technicalGrid, i, j, k);
                         #else
                             bufPtr->ionosphere->fieldSolverBoundaryCondMagneticFieldProjection(bGrid, technicalGrid, i, j, k);
+                        #endif
+                    } else if (sysBoundaryFlag == sysboundarytype::CONDUCTINGSPHERE) {
+                        #ifdef __CUDA_ARCH__
+                            bufPtr->conductingsphere_d->fieldSolverBoundaryCondMagneticFieldProjection(bGrid, technicalGrid, i, j, k);
+                        #else
+                            bufPtr->conductingsphere->fieldSolverBoundaryCondMagneticFieldProjection(bGrid, technicalGrid, i, j, k);
                         #endif
                     } else if (sysBoundaryFlag == sysboundarytype::OUTFLOW) {
                         #ifdef __CUDA_ARCH__
@@ -125,6 +139,12 @@ class buf<SysBoundary> {
                         #else
                             bufPtr->ionosphere->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, component);
                         #endif
+                    } else if (sysBoundaryFlag == sysboundarytype::CONDUCTINGSPHERE) {
+                        #ifdef __CUDA_ARCH__
+                            bufPtr->conductingsphere_d->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, component);
+                        #else
+                            bufPtr->conductingsphere->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, component);
+                        #endif
                     } else if (sysBoundaryFlag == sysboundarytype::OUTFLOW) {
                         #ifdef __CUDA_ARCH__
                             bufPtr->outflow_d->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, component);
@@ -158,6 +178,12 @@ class buf<SysBoundary> {
                         #else
                             bufPtr->ionosphere->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid, i, j, k, component);
                         #endif
+                    } else if (sysBoundaryFlag == sysboundarytype::CONDUCTINGSPHERE) {
+                        #ifdef __CUDA_ARCH__
+                            bufPtr->conductingsphere_d->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid, i, j, k, component);
+                        #else
+                            bufPtr->conductingsphere->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid, i, j, k, component);
+                        #endif
                     } else if (sysBoundaryFlag == sysboundarytype::OUTFLOW) {
                         #ifdef __CUDA_ARCH__
                             bufPtr->outflow_d->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid, i, j, k, component);
@@ -190,6 +216,12 @@ class buf<SysBoundary> {
                             bufPtr->ionosphere_d->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, component);
                         #else
                             bufPtr->ionosphere->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, component);
+                        #endif
+                    } else if (sysBoundaryFlag == sysboundarytype::CONDUCTINGSPHERE) {
+                        #ifdef __CUDA_ARCH__
+                            bufPtr->conductingsphere_d->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, component);
+                        #else
+                            bufPtr->conductingsphere->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, component);
                         #endif
                     } else if (sysBoundaryFlag == sysboundarytype::OUTFLOW) {
                         #ifdef __CUDA_ARCH__
@@ -225,6 +257,12 @@ class buf<SysBoundary> {
                         #else
                             bufPtr->ionosphere->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, component);
                         #endif
+                    } else if (sysBoundaryFlag == sysboundarytype::CONDUCTINGSPHERE) {
+                        #ifdef __CUDA_ARCH__
+                            bufPtr->conductingsphere_d->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, component);
+                        #else
+                            bufPtr->conductingsphere->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, component);
+                        #endif
                     } else if (sysBoundaryFlag == sysboundarytype::OUTFLOW) {
                         #ifdef __CUDA_ARCH__
                             bufPtr->outflow_d->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, component);
@@ -257,6 +295,12 @@ class buf<SysBoundary> {
                             bufPtr->ionosphere_d->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, component);
                         #else
                             bufPtr->ionosphere->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, component);
+                        #endif
+                    } else if (sysBoundaryFlag == sysboundarytype::CONDUCTINGSPHERE) {
+                        #ifdef __CUDA_ARCH__
+                            bufPtr->conductingsphere_d->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, component);
+                        #else
+                            bufPtr->conductingsphere->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, component);
                         #endif
                     } else if (sysBoundaryFlag == sysboundarytype::OUTFLOW) {
                         #ifdef __CUDA_ARCH__
@@ -324,6 +368,9 @@ class buf<SysBoundary> {
                 } else if (sbc->getIndex() == sysboundarytype::OUTFLOW) {
                     outflow = dynamic_cast<SBC::Outflow*>(sbc)->getFieldBoundary();
                     CHK_ERR(cudaMalloc(&outflow_d, sizeof(SBC::Outflow)));
+                } else if (sbc->getIndex() == sysboundarytype::CONDUCTINGSPHERE) {
+                    conductingsphere = dynamic_cast<SBC::Conductingsphere*>(sbc)->getFieldBoundary();
+                    CHK_ERR(cudaMalloc(&conductingsphere_d, sizeof(SBC::Conductingsphere)));
                 } else if (sbc->getIndex() == sysboundarytype::DO_NOT_COMPUTE) {
                     doNotCompute = dynamic_cast<SBC::DoNotCompute*>(sbc);
                 } else {

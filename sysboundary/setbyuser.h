@@ -34,6 +34,7 @@ namespace SBC {
 
    struct UserSpeciesParameters {
       /*! Vector containing a vector for each face which has the current boundary condition. Each of these vectors has one line per input data line (time point). The length of the lines is nParams.*/
+
       std::vector<std::vector<Real> > inputData[6];
       /*! Input files for the user-set boundary conditions. */
       std::string files[6];
@@ -164,7 +165,7 @@ namespace SBC {
       bool generateTemplateCells(creal& t);
       virtual void generateTemplateCell(spatial_cell::SpatialCell& templateCell, Real B[3], int inputDataIndex, creal& t) = 0;
       bool setCellsFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID);
-      bool setBFromTemplate(FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid, FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid) {
+      bool setBFromTemplate(FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid, FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid);
       
       /*! Array of template spatial cells replicated over the corresponding simulation volume face. Only the template for an active face is actually being touched at all by the code. */
       spatial_cell::SpatialCell templateCells[6];
@@ -176,6 +177,6 @@ namespace SBC {
 
       SetByUserFieldBoundary* fieldBoundary;
    };
-}
+};
 
 #endif

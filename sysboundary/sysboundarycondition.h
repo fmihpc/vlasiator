@@ -317,7 +317,7 @@ namespace SBC {
 
    class OuterBoundaryCondition: public SysBoundaryCondition {
       public:
-         virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
+         virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_Geometry>& mpiGrid, FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid);
       protected:
          /*! Array of bool telling which faces are going to be processed by the system boundary condition.*/
          bool facesToProcess[6];

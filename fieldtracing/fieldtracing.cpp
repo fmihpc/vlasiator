@@ -41,9 +41,9 @@ namespace FieldTracing {
    /* Call the heavier operations for DROs to be called only if needed, before an IO.
     */
    void reduceData(
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
+      FsGrid< Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH> & dPerBGrid,
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> & mpiGrid,
       std::vector<SBC::SphericalTriGrid::Node> & nodes
    ) {
@@ -61,9 +61,9 @@ namespace FieldTracing {
    * coupling values are recorded in the grid nodes.
    */
    void calculateIonosphereFsgridCoupling(
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
+      FsGrid< Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH> & dPerBGrid,
       std::vector<SBC::SphericalTriGrid::Node> & nodes,
       creal couplingRadius
    ) {
@@ -459,9 +459,9 @@ namespace FieldTracing {
    /*! Trace magnetic field lines out from ionospheric nodes to record whether they are on an open or closed field line.
    */
    void traceOpenClosedConnection(
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
+      FsGrid< Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH> & dPerBGrid,
       std::vector<SBC::SphericalTriGrid::Node> & nodes
    ) {
       
@@ -475,7 +475,7 @@ namespace FieldTracing {
       const TReal stepSize = min(1000e3, technicalGrid.DX / 2.);
       std::vector<TReal> nodeTracingStepSize(nodes.size(), stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
       std::vector<TReal> reducedNodeTracingStepSize(nodes.size());
-      std::array<int, 3> gridSize = technicalGrid.getGlobalSize();
+      int* gridSize = technicalGrid.getGlobalSize();
       uint64_t maxTracingSteps = 8 * (gridSize[0] * technicalGrid.DX + gridSize[1] * technicalGrid.DY + gridSize[2] * technicalGrid.DZ) / stepSize;
       
       std::vector<int> nodeMapping(nodes.size(), TracingLineEndType::UNPROCESSED);                                 /*!< For reduction of node coupling */
@@ -558,12 +558,12 @@ namespace FieldTracing {
                   }
                   
                   // If we map out of the box, this node is on an open field line.
-                  if(   x[0] > P::xmax - 4*P::dx_ini
-                     || x[0] < P::xmin + 4*P::dx_ini
-                     || x[1] > P::ymax - 4*P::dy_ini
-                     || x[1] < P::ymin + 4*P::dy_ini
-                     || x[2] > P::zmax - 4*P::dz_ini
-                     || x[2] < P::zmin + 4*P::dz_ini
+                  if(   x[0] > meshParams.xmax - 4*meshParams.dx_ini
+                     || x[0] < meshParams.xmin + 4*meshParams.dx_ini
+                     || x[1] > meshParams.ymax - 4*meshParams.dy_ini
+                     || x[1] < meshParams.ymin + 4*meshParams.dy_ini
+                     || x[2] > meshParams.zmax - 4*meshParams.dz_ini
+                     || x[2] < meshParams.zmin + 4*meshParams.dz_ini
                   ) {
                      nodeNeedsContinuedTracing[n] = 0;
                      nodeTracingCoordinates[n] = {0,0,0};
@@ -639,7 +639,7 @@ namespace FieldTracing {
     */
    void stepCellAcrossTaskDomain(
       cint n,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
       TracingFieldFunction<TReal> & tracingFullField,
       const std::vector<std::array<TReal,3>> & cellInitialCoordinates,
       const std::vector<TReal> & cellCurvatureRadius,
@@ -694,12 +694,12 @@ namespace FieldTracing {
          
          // If we map out of the box, discard this field line.
          if(
-               x[0] > P::xmax - 4*P::dx_ini
-            || x[0] < P::xmin + 4*P::dx_ini
-            || x[1] > P::ymax - 4*P::dy_ini
-            || x[1] < P::ymin + 4*P::dy_ini
-            || x[2] > P::zmax - 4*P::dz_ini
-            || x[2] < P::zmin + 4*P::dz_ini
+               x[0] > meshParams.xmax - 4*meshParams.dx_ini
+            || x[0] < meshParams.xmin + 4*meshParams.dx_ini
+            || x[1] > meshParams.ymax - 4*meshParams.dy_ini
+            || x[1] < meshParams.ymin + 4*meshParams.dy_ini
+            || x[2] > meshParams.zmax - 4*meshParams.dz_ini
+            || x[2] < meshParams.zmin + 4*meshParams.dz_ini
          ) {
             cellTracingCoordinates[n] = x;
             cellConnection[n] += TracingLineEndType::OPEN;
@@ -815,9 +815,9 @@ namespace FieldTracing {
     * \sa stepCellAcrossTaskDomain
     */
    void traceFullBoxConnectionAndFluxRopes(
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
+      FsGrid< Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH> & dPerBGrid,
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
    ) {
       phiprof::start("fieldtracing-fullAndFluxTracing");
@@ -842,7 +842,7 @@ namespace FieldTracing {
       std::vector<TReal> cellFWTracingStepSize(globalDccrgSize, stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
       std::vector<TReal> cellBWTracingStepSize(globalDccrgSize, stepSize); // In-flight storage of step size, needed when crossing into next MPI domain
       
-      std::array<int, 3> gridSize = technicalGrid.getGlobalSize();
+      int* gridSize = technicalGrid.getGlobalSize();
       // This is a heuristic considering how far an IMF+dipole combo can sensibly stretch in the box before we're safe to assume it's rolled up more or less pathologically.
       const TReal maxTracingDistance = 4 * (gridSize[0] * technicalGrid.DX + gridSize[1] * technicalGrid.DY + gridSize[2] * technicalGrid.DZ);
       
@@ -878,12 +878,12 @@ namespace FieldTracing {
          cellBWTracingCoordinates.at(n) = cellFWTracingCoordinates.at(n);
          if(mpiGrid.is_local(id)) {
             if((mpiGrid[id]->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)
-               || cellFWTracingCoordinates[n][0] > P::xmax - 4*P::dx_ini
-               || cellFWTracingCoordinates[n][0] < P::xmin + 4*P::dx_ini
-               || cellFWTracingCoordinates[n][1] > P::ymax - 4*P::dy_ini
-               || cellFWTracingCoordinates[n][1] < P::ymin + 4*P::dy_ini
-               || cellFWTracingCoordinates[n][2] > P::zmax - 4*P::dz_ini
-               || cellFWTracingCoordinates[n][2] < P::zmin + 4*P::dz_ini
+               || cellFWTracingCoordinates[n][0] > meshParams.xmax - 4*meshParams.dx_ini
+               || cellFWTracingCoordinates[n][0] < meshParams.xmin + 4*meshParams.dx_ini
+               || cellFWTracingCoordinates[n][1] > meshParams.ymax - 4*meshParams.dy_ini
+               || cellFWTracingCoordinates[n][1] < meshParams.ymin + 4*meshParams.dy_ini
+               || cellFWTracingCoordinates[n][2] > meshParams.zmax - 4*meshParams.dz_ini
+               || cellFWTracingCoordinates[n][2] < meshParams.zmin + 4*meshParams.dz_ini
             ) {
                cellFWConnection[n] = TracingLineEndType::OUTSIDE;
                cellBWConnection[n] = TracingLineEndType::OUTSIDE;

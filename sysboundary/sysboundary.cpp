@@ -548,11 +548,11 @@ bool SysBoundary::classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell, dccrg::C
 
       std::array<double, 3> dx = mpiGrid.geometry.get_length(cell);
       std::array<double, 3> x = mpiGrid.get_center(cell);
-      if (!isPeriodic[0] && (x[0] > Parameters::xmax - dx[0] || x[0] < Parameters::xmin + dx[0])) {
+      if (!isPeriodic[0] && (x[0] > meshParams.xmax - dx[0] || x[0] < meshParams.xmin + dx[0])) {
          continue;
-      } else if (!isPeriodic[1] && (x[1] > Parameters::ymax - dx[1] || x[1] < Parameters::ymin + dx[1])) {
+      } else if (!isPeriodic[1] && (x[1] > meshParams.ymax - dx[1] || x[1] < meshParams.ymin + dx[1])) {
          continue;
-      } else if (!isPeriodic[2] && (x[2] > Parameters::zmax - dx[2] || x[2] < Parameters::zmin + dx[2])) {
+      } else if (!isPeriodic[2] && (x[2] > meshParams.zmax - dx[2] || x[2] < meshParams.zmin + dx[2])) {
          continue;
       }
 

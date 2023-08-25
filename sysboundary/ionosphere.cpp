@@ -1036,7 +1036,7 @@ namespace SBC {
    // (Re-)create the subcommunicator for ionosphere-internal communication
    // This needs to be rerun after Vlasov grid load balancing to ensure that
    // ionosphere info is still communicated to the right ranks.
-   void SphericalTriGrid::updateIonosphereCommunicator(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
+   void SphericalTriGrid::updateIonosphereCommunicator(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid) {
       phiprof::start("ionosphere-updateIonosphereCommunicator");
 
       // Check if the current rank contains ionosphere boundary cells.
@@ -1107,11 +1107,11 @@ namespace SBC {
 
    // Transport field-aligned currents down from the simulation cells to the ionosphere
    void SphericalTriGrid::mapDownBoundaryData(
-       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-       FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-       FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-         FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
+       FsGrid< Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
+       FsGrid< Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH> & dPerBGrid,
+       FsGrid< Real, fsgrids::moments::N_MOMENTS, FS_STENCIL_WIDTH> & momentsGrid,
+       FsGrid< Real, fsgrids::volfields::N_VOL, FS_STENCIL_WIDTH> & volGrid,
+       FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid) {
 
       if(!isCouplingInwards && !isCouplingOutwards) {
          return;
@@ -1217,12 +1217,12 @@ namespace SBC {
 
 
                      // Map density, temperature down
-                     Real thisCellRho = momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::RHOQ) / physicalconstants::CHARGE;
+                     Real thisCellRho = momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)[fsgrids::RHOQ] / physicalconstants::CHARGE;
                      rhoInput[n] += coupling * thisCellRho;
                      temperatureInput[n] += coupling * 1./3. * (
-                        momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_11) +
-                        momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_22) +
-                        momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_33)) / (thisCellRho * physicalconstants::K_B * ion_electron_T_ratio);
+                        momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)[fsgrids::P_11] +
+                        momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)[fsgrids::P_22] +
+                        momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)[fsgrids::P_33]) / (thisCellRho * physicalconstants::K_B * ion_electron_T_ratio);
                   }
                }
             }
@@ -2374,7 +2374,7 @@ namespace SBC {
       isThisDynamic = false;
 
       // Sanity check: the ionosphere only makes sense in 3D simulations
-      if(P::xcells_ini == 1 || P::ycells_ini == 1 || P::zcells_ini == 1) {
+      if(meshParams.xcells_ini == 1 || meshParams.ycells_ini == 1 || meshParams.zcells_ini == 1) {
          cerr << "*************************************************" << endl;
          cerr << "* BIG FAT IONOSPHERE ERROR:                     *" << endl;
          cerr << "*                                               *" << endl;
@@ -2514,10 +2514,7 @@ namespace SBC {
          SpatialCell* cell = mpiGrid[cells[i]];
          if (cell->sysBoundaryFlag != this->getIndex()) continue;
 
-         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size                        if ( (this->dipoleType==4) && (P::isRestart == false) ) {
-                           for (int i = 0; i < fsgrids::bfield::N_BFIELD; ++i) {
-                              perBGrid.get(x,y,z)[i] = 0;
-                           }(); ++popID)
+         for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID)
             setCellFromTemplate(cell,popID);
       }
       return true;

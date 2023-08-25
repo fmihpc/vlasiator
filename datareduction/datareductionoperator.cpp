@@ -641,12 +641,6 @@ namespace DRO {
             PTensor[2] += sum[2];
          }
       }
-      clock_t tStop = clock();
-      double time_s = (double) (tStop - tStart) / CLOCKS_PER_SEC;
-
-      printf("DRO Diag time: %e s\n", time_s);
-
-      printf("Diag! PTensor[0]: %e, PTensor[1]: %e, PTensor[2]: %e\n",PTensor[0],PTensor[1],PTensor[2]);
       const char* ptr = reinterpret_cast<const char*>(&PTensor);
       for (uint i = 0; i < 3*sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
@@ -750,9 +744,6 @@ namespace DRO {
    }
 
    bool MaxDistributionFunction::reduceDiagnostic(const SpatialCell* cell,Real* buffer) {
-      // Make block data available on device using a buffer
-      arch::buf<Realf> block_data((Realf*)cell->get_data(popID), (uint)(cell->get_number_of_velocity_blocks(popID)*WID3*sizeof(Realf))); 
-      
       maxF = std::numeric_limits<Real>::min();
       const Realf* block_data = cell->get_data(popID);
 
@@ -804,11 +795,8 @@ namespace DRO {
    }
 
    bool MinDistributionFunction::reduceDiagnostic(const SpatialCell* cell,Real* buffer) {
-      // Make block data available on device using a buffer
-      arch::buf<Realf> block_data((Realf*)cell->get_data(popID), (uint)(cell->get_number_of_velocity_blocks(popID)*WID3*sizeof(Realf))); 
-
       minF =  std::numeric_limits<Real>::max();
-      const Realf* block_data = cell->get_data(popID);
+      const Realf* block_data = cell->get_data(popID); 
 
 #pragma omp parallel
       {

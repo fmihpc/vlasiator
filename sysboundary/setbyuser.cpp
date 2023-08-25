@@ -139,9 +139,9 @@ namespace SBC {
                if (refLevel > 0)
                   --refLevel;
 
-               creal dx = meshParams.dx_ini / pow(2, refLvl);
-               creal dy = meshParams.dy_ini / pow(2, refLvl);
-               creal dz = meshParams.dz_ini / pow(2, refLvl);
+               creal dx = meshParams.dx_ini / pow(2, refLevel);
+               creal dy = meshParams.dy_ini / pow(2, refLevel);
+               creal dz = meshParams.dz_ini / pow(2, refLevel);
                
                isThisCellOnAFace.fill(false);
 
@@ -170,8 +170,8 @@ namespace SBC {
          if(cell->sysBoundaryFlag != this->getIndex()) 
             continue;
          
-         bool isThisCellOnAFace[6];
-         determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, isPeriodic, true);
+         std::array<bool, 6> isThisCellOnAFace;
+         determineFace(isThisCellOnAFace, mpiGrid, id);
 
          for (uint i=0; i < 6; i++) {
             if (facesToProcess[i] && isThisCellOnAFace[i]) {

@@ -46,12 +46,12 @@ using namespace std;
  */
 template<typename REAL> inline
 REAL JXBX_000_100(
-   const std::array<REAL, Rec::N_REC_COEFFICIENTS> pC,
-   creal BGBY,
-   creal BGBZ,
-   creal dx,
-   creal dy,
-   creal dz
+   REAL* pC,
+   Real BGBY,
+   Real BGBZ,
+   double dx,
+   double dy,
+   double dz
 ) {
    using namespace Rec;
    return -(pC[a_zz]*BGBZ)/dz+(pC[a_z]*BGBZ)/dz-(pC[a_yz]*BGBZ)/(2*dz)-(pC[c_xzz]*BGBZ)/(6*dx)+(pC[c_xz]*BGBZ)/(2*dx)-(pC[c_xyz]*BGBZ)/(4*dx)+(pC[c_xy]*BGBZ)/(2*dx)-(pC[c_x]*BGBZ)/dx-(pC[a_yz]*BGBY)/(2*dy)-(pC[a_yy]*BGBY)/dy+(pC[a_y]*BGBY)/dy+(pC[b_xz]*BGBY)/(2*dx)-(pC[b_xyz]*BGBY)/(4*dx)-(pC[b_xyy]*BGBY)/(6*dx)+(pC[b_xy]*BGBY)/(2*dx)-(pC[b_x]*BGBY)/dx-(pC[a_zz]*pC[c_zz])/(6*dz)+(pC[a_z]*pC[c_zz])/(6*dz)-
@@ -78,7 +78,7 @@ REAL JXBX_000_100(
  */
 template<typename REAL> inline
 REAL JXBX_010_110(
-   const std::array<REAL, Rec::N_REC_COEFFICIENTS> & pC,
+   REAL* pC,
    creal BGBY,
    creal BGBZ,
    creal dx,
@@ -110,7 +110,7 @@ REAL JXBX_010_110(
  */
 template<typename REAL> inline
 REAL JXBX_001_101(
-   const std::array<REAL, Rec::N_REC_COEFFICIENTS> & pC,
+   REAL* pC,
    creal BGBY,
    creal BGBZ,
    creal dx,
@@ -142,7 +142,7 @@ REAL JXBX_001_101(
  */
 template<typename REAL> inline
 REAL JXBX_011_111(
-   const std::array<REAL, Rec::N_REC_COEFFICIENTS> & pC,
+   REAL* pC,
    creal BGBY,
    creal BGBZ,
    creal dx,
@@ -175,7 +175,7 @@ REAL JXBX_011_111(
  */
 template<typename REAL> inline
 REAL JXBY_000_010(
-   const std::array<REAL, Rec::N_REC_COEFFICIENTS> & pC,
+   REAL* pC,
    creal BGBX,
    creal BGBZ,
    creal dx,
@@ -207,7 +207,7 @@ REAL JXBY_000_010(
  */
 template<typename REAL> inline
 REAL JXBY_100_110(
-   const std::array<REAL, Rec::N_REC_COEFFICIENTS> & pC,
+   REAL* pC,
    creal BGBX,
    creal BGBZ,
    creal dx,
@@ -239,7 +239,7 @@ REAL JXBY_100_110(
  */
 template<typename REAL> inline
 REAL JXBY_001_011(
-   const std::array<REAL, Rec::N_REC_COEFFICIENTS> & pC,
+   REAL* pC,
    creal BGBX,
    creal BGBZ,
    creal dx,
@@ -271,7 +271,7 @@ REAL JXBY_001_011(
  */
 template<typename REAL> inline
 REAL JXBY_101_111(
-   const std::array<REAL, Rec::N_REC_COEFFICIENTS> & pC,
+   REAL* pC,
    creal BGBX,
    creal BGBZ,
    creal dx,
@@ -304,7 +304,7 @@ REAL JXBY_101_111(
  */
 template<typename REAL> inline
 REAL JXBZ_000_001(
-   const std::array<REAL, Rec::N_REC_COEFFICIENTS> & pC,
+   REAL* pC,
    creal BGBX,
    creal BGBY,
    creal dx,
@@ -336,7 +336,7 @@ REAL JXBZ_000_001(
  */
 template<typename REAL> inline
 REAL JXBZ_100_101(
-   const std::array<REAL, Rec::N_REC_COEFFICIENTS> & pC,
+   REAL* pC,
    creal BGBX,
    creal BGBY,
    creal dx,
@@ -368,7 +368,7 @@ REAL JXBZ_100_101(
  */
 template<typename REAL> inline
 REAL JXBZ_010_011(
-   const std::array<REAL, Rec::N_REC_COEFFICIENTS> & pC,
+   REAL* pC,
    creal BGBX,
    creal BGBY,
    creal dx,
@@ -400,7 +400,7 @@ REAL JXBZ_010_011(
  */
 template<typename REAL> inline
 REAL JXBZ_110_111(
-   const std::array<REAL, Rec::N_REC_COEFFICIENTS> & pC,
+   REAL* pC,
    creal BGBX,
    creal BGBY,
    creal dx,
@@ -441,7 +441,7 @@ void calculateEdgeHallTermXComponents(
    const arch::buf<FsGrid<Real, fsgrids::dmoments::N_DMOMENTS, FS_STENCIL_WIDTH>> & dMomentsGrid,
    const arch::buf<FsGrid<Real, fsgrids::bgbfield::N_BGB, FS_STENCIL_WIDTH>> & BgBGrid,
    const arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> & technicalGrid,
-   const Real* const perturbedCoefficients,
+   const Real* perturbedCoefficients,
    cint i,
    cint j,
    cint k
@@ -751,7 +751,7 @@ void calculateHallTerm(
    
    cuint cellSysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
    
-   std::array<Real, Rec::N_REC_COEFFICIENTS> perturbedCoefficients;
+   Real perturbedCoefficients[Rec::N_REC_COEFFICIENTS];
 
    reconstructionCoefficients(
       perBGrid,
@@ -815,9 +815,9 @@ void calculateHallTermSimple(
    phiprof::start("Calculate Hall term");
    timer=phiprof::initializeTimer("MPI","MPI");
    phiprof::start(timer);
-   dPerBGrid.updateGhostCells();
-   if(P::ohmGradPeTerm == 0) {
-      dMomentsGrid.updateGhostCells();
+   dPerBGrid.grid()->updateGhostCells();
+   if(meshParams.ohmGradPeTerm == 0) {
+      dMomentsGrid.grid()->updateGhostCells();
    }
    phiprof::stop(timer);
 

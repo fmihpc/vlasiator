@@ -128,6 +128,16 @@ namespace Rec {
 void reconstructionCoefficients(
    const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & perBGrid,
    const arch::buf<FsGrid<Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH>> & dPerBGrid,
+   Real* perturbedResult,
+   cint i,
+   cint j,
+   cint k,
+   creal& reconstructionOrder
+);
+
+void reconstructionCoefficients(
+   FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
+   FsGrid<Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH> & dPerBGrid,
    std::array<Real, Rec::N_REC_COEFFICIENTS> & perturbedResult,
    cint i,
    cint j,
@@ -136,9 +146,9 @@ void reconstructionCoefficients(
 );
 
 std::array<Real, 3> interpolatePerturbedB(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+   FsGrid< Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
+   FsGrid< Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH> & dPerBGrid,
+   FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
    std::map< std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > & reconstructionCoefficientsCache,
    cint i,
    cint j,
@@ -147,9 +157,9 @@ std::array<Real, 3> interpolatePerturbedB(
 );
 
 std::array<Real, 3> interpolateCurlB(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+   FsGrid< Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
+   FsGrid< Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH> & dPerBGrid,
+   FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
    std::map< std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > & reconstructionCoefficientsCache,
    cint i,
    cint j,

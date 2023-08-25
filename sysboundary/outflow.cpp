@@ -201,8 +201,8 @@ namespace SBC {
          bool doApply = true;
          
          if(Parameters::isRestart) {
-            bool isThisCellOnAFace[6];
-            determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, isPeriodic);
+            std::array<bool, 6> isThisCellOnAFace;
+            determineFace(isThisCellOnAFace, mpiGrid, id);
             
             doApply=false;
             // Comparison of the array defining which faces to use and the array telling on which faces this cell is
@@ -224,7 +224,7 @@ namespace SBC {
          }
       }
 
-      return true;
+      return true; 
    }
 
    /**
@@ -238,15 +238,15 @@ namespace SBC {
       const uint popID,
       const bool calculate_V_moments
    ) {
-//      phiprof::start("vlasovBoundaryCondition (Outflow)");
+      //      phiprof::start("vlasovBoundaryCondition (Outflow)");
       
       const OutflowSpeciesParameters& sP = this->speciesParams[popID];
       if (mpiGrid[cellID]->sysBoundaryFlag != this->getIndex()) {
          return;
       }
 
-      bool isThisCellOnAFace[6];
-      determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, isPeriodic, true);
+      std::array<bool, 6> isThisCellOnAFace;
+      determineFace(isThisCellOnAFace, mpiGrid, cellID, true);
       
       for(uint i=0; i<6; i++) {
          if(isThisCellOnAFace[i] && facesToProcess[i] && !sP.facesToSkipVlasov[i]) {

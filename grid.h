@@ -118,10 +118,10 @@ void setFaceNeighborRanks( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
 
 /*! Map grid refinement to FsGrid
  */
-void mapRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
+void mapRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid);
 
 /*! Refine spatial cells and update necessary information
  */
-bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, SysBoundary& sysBoundaries, Project& project, bool useStatic = false);
+bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid, SysBoundary& sysBoundaries, Project& project, bool useStatic = false);
 
 #endif

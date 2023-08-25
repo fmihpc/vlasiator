@@ -52,16 +52,17 @@ ARCH_HOSTDEV Real divideIfNonZero(
  * \param i,j,k fsGrid cell coordinates for the current cell
  * \param reconstructionOrder Reconstruction order of the fields after Balsara 2009, 2 used for BVOL, 3 used for 2nd-order Hall term calculations.
  */
-void reconstructionCoefficients(
-   const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & perBGrid,
-   const arch::buf<FsGrid<Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH>> & dPerBGrid,
-   std::array<Real, Rec::N_REC_COEFFICIENTS> & perturbedResult,
+template <typename T1, typename T2, typename T3>
+void reconstructionCoefficientsCommon(
+   T1& perBGrid,
+   T2& dPerBGrid,
+   T3 perturbedResult,
    cint i,
    cint j,
    cint k,
    creal& reconstructionOrder
 ) {
-   Real* cep_i1j1k1 = NULL;
+      Real* cep_i1j1k1 = NULL;
    auto der_i1j1k1 = dPerBGrid.get(i,j,k);
    Real* dummyCellParams = NULL;
    Real* cep_i2j1k1 = NULL;
@@ -197,6 +198,31 @@ void reconstructionCoefficients(
    perturbedResult[Rec::c_0 ] = HALF*(cep_i1j1k2[fsgrids::bfield::PERBZ] + cep_i1j1k1[fsgrids::bfield::PERBZ]) - SIXTH*perturbedResult[Rec::c_zz];
 }
 
+
+void reconstructionCoefficients(
+   const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & perBGrid,
+   const arch::buf<FsGrid<Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH>> & dPerBGrid,
+   Real* perturbedResult,
+   cint i,
+   cint j,
+   cint k,
+   creal& reconstructionOrder
+) {
+   reconstructionCoefficientsCommon(perBGrid, dPerBGrid, perturbedResult, i, j, k, reconstructionOrder);
+}
+
+void reconstructionCoefficients(
+   FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
+   FsGrid<Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH> & dPerBGrid,
+   std::array<Real, Rec::N_REC_COEFFICIENTS> & perturbedResult,
+   cint i,
+   cint j,
+   cint k,
+   creal& reconstructionOrder
+) {
+   reconstructionCoefficientsCommon(perBGrid, dPerBGrid, perturbedResult, i, j, k, reconstructionOrder);
+}
+
 /*! Interpolate perturbed B to arbitrary x,y,z in cell
  *  Uses the reconstruction coefficients and equations from
  *  Divergence-free reconstruction of magnetic fields and WENO schemes for magnetohydrodynamics
@@ -212,9 +238,9 @@ void reconstructionCoefficients(
  * \param x 3D global simulation x,y,z coordinates of point to interpolate to
  */
 std::array<Real, 3> interpolatePerturbedB(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+   FsGrid< Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
+   FsGrid< Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH> & dPerBGrid,
+   FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
    std::map< std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > & reconstructionCoefficientsCache,
    cint i,
    cint j,
@@ -301,9 +327,9 @@ std::array<Real, 3> interpolatePerturbedB(
  * \param x 3D global simulation x,y,z coordinates of point to interpolate to
  */
 std::array<Real, 3> interpolateCurlB(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+   FsGrid< Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
+   FsGrid< Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH> & dPerBGrid,
+   FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
    std::map< std::array<int, 3>, std::array<Real, Rec::N_REC_COEFFICIENTS> > & reconstructionCoefficientsCache,
    cint i,
    cint j,

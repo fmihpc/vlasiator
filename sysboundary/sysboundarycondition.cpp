@@ -156,15 +156,15 @@ namespace SBC {
       }
 
       if(excludeSlicesAndPeriodicDimensions == true) {
-         if(Parameters::xcells_ini == 1 || this->isPeriodic[0]) {
+         if(meshParams.xcells_ini == 1 || this->isPeriodic[0]) {
             isThisCellOnAFace[0] = false;
             isThisCellOnAFace[1] = false;
          }
-         if(Parameters::ycells_ini == 1 || this->isPeriodic[1]) {
+         if(meshParams.ycells_ini == 1 || this->isPeriodic[1]) {
             isThisCellOnAFace[2] = false;
             isThisCellOnAFace[3] = false;
          }
-         if(Parameters::zcells_ini == 1 || this->isPeriodic[2]) {
+         if(meshParams.zcells_ini == 1 || this->isPeriodic[2]) {
             isThisCellOnAFace[4] = false;
             isThisCellOnAFace[5] = false;
          }
@@ -916,7 +916,7 @@ namespace SBC {
    /*! Get a bool telling whether to call again applyInitialState upon restarting the simulation. */
    bool SysBoundaryCondition::doApplyUponRestart() const {return this->applyUponRestart;}
 
-   bool OuterBoundaryCondition::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
+   bool OuterBoundaryCondition::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid) {
       array<bool,6> isThisCellOnAFace;
       
       // Assign boundary flags to local DCCRG cells

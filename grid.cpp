@@ -1406,7 +1406,7 @@ bool validateMesh(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,c
    #endif
 }
 
-void mapRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
+void mapRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid) {
    phiprof::start("Map Refinement Level to FsGrid");
    const int *localDims = &technicalGrid.getLocalSize()[0];
 
@@ -1415,7 +1415,8 @@ void mapRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       for (int j=0; j<localDims[1]; j++) {
          for (int i=0; i<localDims[0]; i++) {
 
-            const std::array<int, 3> mapIndices = technicalGrid.getGlobalIndices(i,j,k);
+            int mapIndices[3];
+            technicalGrid.getGlobalIndices(i,j,k, mapIndices);
             const dccrg::Types<3>::indices_t  indices = {{(uint64_t)mapIndices[0],(uint64_t)mapIndices[1],(uint64_t)mapIndices[2]}}; //cast to avoid warnings
             CellID dccrgCellID2 = mpiGrid.get_existing_cell(indices, 0, mpiGrid.mapping.get_maximum_refinement_level());
             int amrLevel= mpiGrid.get_refinement_level(dccrgCellID2);
@@ -1426,7 +1427,7 @@ void mapRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
    phiprof::stop("Map Refinement Level to FsGrid");
 }
 
-bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, SysBoundary& sysBoundaries, Project& project, bool useStatic) {
+bool adaptRefinement(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid<fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid, SysBoundary& sysBoundaries, Project& project, bool useStatic) {
    phiprof::start("Re-refine spatial cells");
    calculateScaledDeltasSimple(mpiGrid);
 

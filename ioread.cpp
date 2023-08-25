@@ -765,7 +765,7 @@ bool readCellParamsVariable(
  * \param numWritingRanks Number of mpi ranks that were used to write this file (used for reconstruction of the spatial order)
  * \param targetGrid target location where the data will be stored.
  */
-template<unsigned long int N> bool readFsGridVariable(
+template<int N> bool readFsGridVariable(
    vlsv::ParallelReader& file, const string& variableName, int numWritingRanks, FsGrid<Real, N, FS_STENCIL_WIDTH> & targetGrid) {
 
    uint64_t arraySize;

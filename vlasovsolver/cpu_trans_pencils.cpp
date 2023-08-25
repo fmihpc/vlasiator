@@ -1032,13 +1032,13 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
 
    switch (dimension) {
       case 0:
-         if(P::xcells_ini == 1) return;
+         if(meshParams.xcells_ini == 1) return;
          break;
       case 1:
-         if(P::ycells_ini == 1) return;
+         if(meshParams.ycells_ini == 1) return;
          break;
       case 2:
-         if(P::zcells_ini == 1) return;
+         if(meshParams.zcells_ini == 1) return;
          break;
       default:
          std::cerr<<"Error in dimension: __FILE__:__LINE__"<<std::endl;

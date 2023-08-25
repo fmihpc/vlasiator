@@ -48,10 +48,10 @@ void calculateBVOLDerivativesSimple(
 );
 
 void calculateCurvatureSimple(
-   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & bgbGrid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-   SysBoundary& sysBoundaries
+   const arch::buf<FsGrid< Real, fsgrids::volfields::N_VOL, FS_STENCIL_WIDTH>> & volGrid,
+   const arch::buf<FsGrid< Real, fsgrids::bgbfield::N_BGB, FS_STENCIL_WIDTH>> & bgbGrid,
+   const arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> & technicalGrid,
+   const arch::buf<SysBoundary>& sysBoundaries
 );
 
 void calculateScaledDeltasSimple(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);

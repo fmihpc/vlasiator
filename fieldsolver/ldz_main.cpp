@@ -99,8 +99,6 @@ bool propagateFields(
       exit(1);
    }
    
-   bool hallTermCommunicateDerivatives = true;
-
    // initialize host/device buffers
    arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> > technicalGrid(&technicalGridObj);
    arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> > perBGrid(&perBGridObj);
@@ -403,7 +401,7 @@ bool propagateFields(
    calculateVolumeAveragedFields(perBGrid,EGrid,dPerBGrid,volGrid,technicalGrid);
    calculateBVOLDerivativesSimple(volGrid, technicalGrid, sysBoundaries);
    if(FieldTracing::fieldTracingParameters.doTraceFullBox || Parameters::computeCurvature) {
-      volGrid.updateGhostCells();
+      volGrid.grid()->updateGhostCells();
       calculateCurvatureSimple(volGrid, BgBGrid, technicalGrid, sysBoundaries);
    }
    return true;

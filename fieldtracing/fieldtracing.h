@@ -146,19 +146,19 @@ namespace FieldTracing {
    template<typename REAL> using TracingFieldFunction = std::function<bool(std::array<REAL,3>&, const bool, std::array<REAL, 3>&)>;
    
    template<typename REAL> bool traceFullFieldFunction(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      FsGrid< Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH> & dPerBGrid,
+      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
       std::array<REAL,3>& r,
       const bool alongB,
       std::array<REAL,3>& b
    ) {
-      if(   r[0] > P::xmax - 2*P::dx_ini
-         || r[0] < P::xmin + 2*P::dx_ini
-         || r[1] > P::ymax - 2*P::dy_ini
-         || r[1] < P::ymin + 2*P::dy_ini
-         || r[2] > P::zmax - 2*P::dz_ini
-         || r[2] < P::zmin + 2*P::dz_ini
+      if(   r[0] > meshParams.xmax - 2*meshParams.dx_ini
+         || r[0] < meshParams.xmin + 2*meshParams.dx_ini
+         || r[1] > meshParams.ymax - 2*meshParams.dy_ini
+         || r[1] < meshParams.ymin + 2*meshParams.dy_ini
+         || r[2] > meshParams.zmax - 2*meshParams.dz_ini
+         || r[2] < meshParams.zmin + 2*meshParams.dz_ini
       ) {
          cerr << (string)("(fieldtracing) Error: fsgrid coupling trying to step outside of the global domain?\n");
          return false;
@@ -170,8 +170,8 @@ namespace FieldTracing {
       b[2] = SBC::ionosphereGrid.dipoleField(r[0],r[1],r[2],Z,0,Z) + SBC::ionosphereGrid.BGB[2];
       
       std::array<int32_t, 3> fsgridCell = getGlobalFsGridCellIndexForCoord(technicalGrid,{(TReal)r[0], (TReal)r[1], (TReal)r[2]});
-      const std::array<int32_t, 3> localStart = technicalGrid.getLocalStart();
-      const std::array<int32_t, 3> localSize = technicalGrid.getLocalSize();
+      int32_t* localStart = technicalGrid.getLocalStart();
+      int32_t* localSize = technicalGrid.getLocalSize();
       // Make the global index a local one, bypass the fsgrid function that yields (-1,-1,-1) also for ghost cells.
       fsgridCell[0] -= localStart[0];
       fsgridCell[1] -= localStart[1];
@@ -616,9 +616,9 @@ namespace FieldTracing {
    
    /*! Link each ionospheric node to fsgrid cells for coupling */
    void calculateIonosphereFsgridCoupling(
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
+      FsGrid< Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH> & dPerBGrid,
       std::vector<SBC::SphericalTriGrid::Node> & nodes,
       creal radius
    );
@@ -632,24 +632,24 @@ namespace FieldTracing {
 
    /*! Compute whether a node is connected to the ionosphere or the IMF. */
    void traceOpenClosedConnection(
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
+      FsGrid< Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH> & dPerBGrid,
       std::vector<SBC::SphericalTriGrid::Node> & nodes
    );
 
    /*! Trace magnetic field lines forward and backward from each DCCRG cell to record the connectivity and detect flux ropes. */
    void traceFullBoxConnectionAndFluxRopes(
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
+      FsGrid< Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH> & dPerBGrid,
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid
    );
 
    void reduceData(
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
+      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
+      FsGrid< Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH> & dPerBGrid,
       dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> & mpiGrid,
       std::vector<SBC::SphericalTriGrid::Node> & nodes
    );
