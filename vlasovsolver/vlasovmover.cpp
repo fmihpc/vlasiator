@@ -56,7 +56,6 @@
 using namespace std;
 using namespace spatial_cell;
 
-
 /** Propagates the distribution function in spatial space.
 
     Based on SLICE-3D algorithm: Zerroukat, M., and T. Allen. "A
@@ -96,7 +95,7 @@ void calculateSpatialTranslation(
    phiprof::stop(bt);
 
     // ------------- SLICE - map dist function in Z --------------- //
-   if(meshParams.zcells_ini > 1){
+   if(P::zcells_ini > 1){
 
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-z","MPI");
       phiprof::start(trans_timer);
@@ -145,7 +144,7 @@ void calculateSpatialTranslation(
    phiprof::stop(bt);
 
    // ------------- SLICE - map dist function in X --------------- //
-   if(meshParams.xcells_ini > 1){
+   if(P::xcells_ini > 1){
 
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-x","MPI");
       phiprof::start(trans_timer);
@@ -194,7 +193,7 @@ void calculateSpatialTranslation(
    phiprof::stop(bt);
 
    // ------------- SLICE - map dist function in Y --------------- //
-   if(meshParams.ycells_ini > 1) {
+   if(P::ycells_ini > 1) {
 
       trans_timer=phiprof::initializeTimer("transfer-stencil-data-y","MPI");
       phiprof::start(trans_timer);

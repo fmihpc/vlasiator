@@ -357,7 +357,7 @@ namespace projects {
       {
          bool doZeroOut;
          //Force field to zero in the perpendicular direction for 2D (1D) simulations. Otherwise we have unphysical components.
-         doZeroOut = meshParams.xcells_ini ==1 && this->zeroOutComponents[0]==1;
+         doZeroOut = FSParams.xcells ==1 && this->zeroOutComponents[0]==1;
       
          if(doZeroOut) {
 #pragma omp for collapse(3)
@@ -380,7 +380,7 @@ namespace projects {
             }
          }
             
-          doZeroOut = meshParams.ycells_ini ==1 && this->zeroOutComponents[1]==1;
+          doZeroOut = FSParams.ycells ==1 && this->zeroOutComponents[1]==1;
           if(doZeroOut) {
              /*2D simulation in x and z. Set By and derivatives along Y, and derivatives of By to zero*/
  #pragma omp for collapse(3)
@@ -403,7 +403,7 @@ namespace projects {
              }
           }
 
-         doZeroOut = meshParams.zcells_ini ==1 && this->zeroOutComponents[2]==1;
+         doZeroOut = FSParams.zcells ==1 && this->zeroOutComponents[2]==1;
          if(doZeroOut) {
 #pragma omp for collapse(3)
             for (int x = 0; x < localSize[0]; ++x) {

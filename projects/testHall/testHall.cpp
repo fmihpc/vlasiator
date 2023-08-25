@@ -148,9 +148,9 @@ namespace projects {
                   auto xyz = perBGrid.getPhysicalCoords(x, y, z);
                   auto cell = perBGrid.get(x, y, z);
                   
-                  cell[fsgrids::bfield::PERBX] = this->BX0 * cos(2.0*M_PI * 1.0 * xyz[0] / (meshParams.xmax - meshParams.xmin)) * cos(2.0*M_PI * 1.0 * xyz[1] / (meshParams.ymax - meshParams.ymin)) * cos(2.0*M_PI * 1.0 * xyz[2] / (meshParams.zmax - meshParams.zmin));
-                  cell[fsgrids::bfield::PERBY] = this->BY0 * cos(2.0*M_PI * 1.0 * xyz[0] / (meshParams.xmax - meshParams.xmin)) * cos(2.0*M_PI * 1.0 * xyz[1] / (meshParams.ymax - meshParams.ymin)) * cos(2.0*M_PI * 1.0 * xyz[2] / (meshParams.zmax - meshParams.zmin));
-                  cell[fsgrids::bfield::PERBZ] = this->BZ0 * cos(2.0*M_PI * 1.0 * xyz[0] / (meshParams.xmax - meshParams.xmin)) * cos(2.0*M_PI * 1.0 * xyz[1] / (meshParams.ymax - meshParams.ymin)) * cos(2.0*M_PI * 1.0 * xyz[2] / (meshParams.zmax - meshParams.zmin));
+                  cell[fsgrids::bfield::PERBX] = this->BX0 * cos(2.0*M_PI * 1.0 * xyz[0] / (FSParams.xmax - FSParams.xmin)) * cos(2.0*M_PI * 1.0 * xyz[1] / (FSParams.ymax - FSParams.ymin)) * cos(2.0*M_PI * 1.0 * xyz[2] / (FSParams.zmax - FSParams.zmin));
+                  cell[fsgrids::bfield::PERBY] = this->BY0 * cos(2.0*M_PI * 1.0 * xyz[0] / (FSParams.xmax - FSParams.xmin)) * cos(2.0*M_PI * 1.0 * xyz[1] / (FSParams.ymax - FSParams.ymin)) * cos(2.0*M_PI * 1.0 * xyz[2] / (FSParams.zmax - FSParams.zmin));
+                  cell[fsgrids::bfield::PERBZ] = this->BZ0 * cos(2.0*M_PI * 1.0 * xyz[0] / (FSParams.xmax - FSParams.xmin)) * cos(2.0*M_PI * 1.0 * xyz[1] / (FSParams.ymax - FSParams.ymin)) * cos(2.0*M_PI * 1.0 * xyz[2] / (FSParams.zmax - FSParams.zmin));
                }
             }
          }

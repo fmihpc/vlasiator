@@ -110,25 +110,25 @@ namespace projects {
          int myRank;
          MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
 
-         vector<Real> localRhom(meshParams.xcells_ini, 0.0), outputRhom(meshParams.xcells_ini, 0.0);
+         vector<Real> localRhom(P::xcells_ini, 0.0), outputRhom(P::xcells_ini, 0.0);
 
          const vector<CellID>& cells = getLocalCells();
 
          for(uint i=0; i<cells.size(); i++) {
-            if(cells[i] <= meshParams.xcells_ini) {
+            if(cells[i] <= P::xcells_ini) {
                localRhom[cells[i] - 1] = mpiGrid[cells[i]]->parameters[CellParams::RHOM];
             }
          }
          
-         MPI_Reduce(&(localRhom[0]), &(outputRhom[0]), meshParams.xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
+         MPI_Reduce(&(localRhom[0]), &(outputRhom[0]), P::xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
 
-         vector<Real> localPerBx(meshParams.xcells_ini, 0.0);
-         vector<Real> localPerBy(meshParams.xcells_ini, 0.0);
-         vector<Real> localPerBz(meshParams.xcells_ini, 0.0);
-         vector<Real> outputPerBx(meshParams.xcells_ini, 0.0);
-         vector<Real> outputPerBy(meshParams.xcells_ini, 0.0);
-         vector<Real> outputPerBz(meshParams.xcells_ini, 0.0);
-         
+         vector<Real> localPerBx(FSParams.xcells, 0.0);
+         vector<Real> localPerBy(FSParams.xcells, 0.0);
+         vector<Real> localPerBz(FSParams.xcells, 0.0);
+         vector<Real> outputPerBx(FSParams.xcells, 0.0);
+         vector<Real> outputPerBy(FSParams.xcells, 0.0);
+         vector<Real> outputPerBz(FSParams.xcells, 0.0);
+
          auto localSize = perBGrid.getLocalSize();
          auto localStart = perBGrid.getLocalStart();
          for (int x = 0; x < localSize[0]; ++x) {
@@ -137,22 +137,22 @@ namespace projects {
             localPerBz[x + localStart[0]] = perBGrid.get(x, 0, 0)[fsgrids::bfield::PERBZ];
          }
          
-         MPI_Reduce(&(localPerBx[0]), &(outputPerBx[0]), meshParams.xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
-         MPI_Reduce(&(localPerBy[0]), &(outputPerBy[0]), meshParams.xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
-         MPI_Reduce(&(localPerBz[0]), &(outputPerBz[0]), meshParams.xcells_ini, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
+         MPI_Reduce(&(localPerBx[0]), &(outputPerBx[0]), FSParams.xcells, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
+         MPI_Reduce(&(localPerBy[0]), &(outputPerBy[0]), FSParams.xcells, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
+         MPI_Reduce(&(localPerBz[0]), &(outputPerBz[0]), FSParams.xcells, MPI_DOUBLE, MPI_SUM, MASTER_RANK, MPI_COMM_WORLD);
          
          if(myRank == MASTER_RANK) {
             FILE* outputFile = fopen("perBxt.bin", "ab");
-            fwrite(&(outputPerBx[0]), sizeof(outputPerBx[0]), meshParams.xcells_ini, outputFile);
+            fwrite(&(outputPerBx[0]), sizeof(outputPerBx[0]), FSParams.xcells, outputFile);
             fclose(outputFile);
             outputFile = fopen("perByt.bin", "ab");
-            fwrite(&(outputPerBy[0]), sizeof(outputPerBy[0]), meshParams.xcells_ini, outputFile);
+            fwrite(&(outputPerBy[0]), sizeof(outputPerBy[0]), FSParams.xcells, outputFile);
             fclose(outputFile);
             outputFile = fopen("perBzt.bin", "ab");
-            fwrite(&(outputPerBz[0]), sizeof(outputPerBz[0]), meshParams.xcells_ini, outputFile);
+            fwrite(&(outputPerBz[0]), sizeof(outputPerBz[0]), FSParams.xcells, outputFile);
             fclose(outputFile);
             outputFile = fopen("rhomt.bin", "ab");
-            fwrite(&(outputRhom[0]), sizeof(outputRhom[0]), meshParams.xcells_ini, outputFile);
+            fwrite(&(outputRhom[0]), sizeof(outputRhom[0]), FSParams.xcells, outputFile);
             fclose(outputFile);
          }
       }
@@ -167,13 +167,13 @@ namespace projects {
    
    Real Dispersion::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz, const uint popID) const {
       const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
-      const vmesh::MeshParameters& meshParams = vmesh::getMeshWrapper()->velocityMeshes->at(meshID);
-      if (vx < meshParams.meshMinLimits[0] + 0.5*dvx ||
-          vy < meshParams.meshMinLimits[1] + 0.5*dvy ||
-          vz < meshParams.meshMinLimits[2] + 0.5*dvz ||
-          vx > meshParams.meshMaxLimits[0] - 1.5*dvx ||
-          vy > meshParams.meshMaxLimits[1] - 1.5*dvy ||
-          vz > meshParams.meshMaxLimits[2] - 1.5*dvz) {
+      const vmesh::MeshParameters& velocityMeshParams = vmesh::getMeshWrapper()->velocityMeshes->at(meshID);
+      if (vx < velocityMeshParams.meshMinLimits[0] + 0.5*dvx ||
+          vy < velocityMeshParams.meshMinLimits[1] + 0.5*dvy ||
+          vz < velocityMeshParams.meshMinLimits[2] + 0.5*dvz ||
+          vx > velocityMeshParams.meshMaxLimits[0] - 1.5*dvx ||
+          vy > velocityMeshParams.meshMaxLimits[1] - 1.5*dvy ||
+          vz > velocityMeshParams.meshMaxLimits[2] - 1.5*dvz) {
          return 0.0;
       }
 

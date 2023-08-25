@@ -35,19 +35,19 @@
 
 const uint64_t INVALID_CELLID = 0;
 
-struct GridParameters {
-   Real dx_ini;  /*!< Initial size of spatial cell in x-direction. */
-   Real dy_ini;  /*!< Initial size of spatial cell in y-direction. */
-   Real dz_ini;  /*!< Initial size of spatial cell in z-direction. */
+struct FieldsolverParameters {
+   Real dx;  /*!< Initial size of spatial cell in x-direction. */
+   Real dy;  /*!< Initial size of spatial cell in y-direction. */
+   Real dz;  /*!< Initial size of spatial cell in z-direction. */
    Real xmin;    /*!< X-coordinate of the lower left corner of the spatial grid. */
    Real ymin;    /*!< Y-coordinate of the lower left corner of the spatial grid. */
    Real zmin;    /*!< Z-coordinate of the lower left corner of the spatial grid. */
    Real xmax;    /*!< X-coordinate of the upper right corner of the spatial grid. */
    Real ymax;    /*!< Y-coordinate of the upper right corner of the spatial grid. */
    Real zmax;    /*!< Z-coordinate of the upper right corner of the spatial grid. */ 
-   uint xcells_ini; /*!< Initial number of spatial cells in x-direction. */
-   uint ycells_ini; /*!< Initial number of spatial cells in y-direction. */
-   uint zcells_ini; /*!< Initial number of spatial cells in z-direction. */ 
+   uint xcells; /*!< Initial number of spatial cells in x-direction. */
+   uint ycells; /*!< Initial number of spatial cells in y-direction. */
+   uint zcells; /*!< Initial number of spatial cells in z-direction. */ 
    Real resistivity;             /*!< Resistivity in Ohm's law eta*J term. */
    uint ohmHallTerm; /*!< Enable/choose spatial order of Hall term in Ohm's law JXB term. 0: off, 1: 1st spatial
                                order, 2: 2nd spatial order. */
@@ -56,13 +56,28 @@ struct GridParameters {
    Real maxWaveVelocity;         /*!< Maximum wave velocity allowed in LDZ. */
    bool fieldSolverDiffusiveEterms; /*!< Enable resistive terms in the computation of E*/
 };
-extern ARCH_MANAGED GridParameters meshParams;
+extern ARCH_MANAGED FieldsolverParameters FSParams;
 
-void initParameters();
+void initFieldsolverParameters();
+void calcFieldsolverParameters();
 
 struct Parameters {
    static int geometry; /**< Simulation geometry, one of the values defined in
                          * geometry::Setup. Defaults to geometry::XYZ6D.*/
+   Real xmin;    /*!< X-coordinate of the lower left corner of the spatial grid. */
+   Real ymin;    /*!< Y-coordinate of the lower left corner of the spatial grid. */
+   Real zmin;    /*!< Z-coordinate of the lower left corner of the spatial grid. */
+   Real xmax;    /*!< X-coordinate of the upper right corner of the spatial grid. */
+   Real ymax;    /*!< Y-coordinate of the upper right corner of the spatial grid. */
+   Real zmax;    /*!< Z-coordinate of the upper right corner of the spatial grid. */ 
+   Real dx_ini;  /*!< Initial size of spatial cell in x-direction. */
+   Real dy_ini;  /*!< Initial size of spatial cell in y-direction. */
+   Real dz_ini;  /*!< Initial size of spatial cell in z-direction. */
+
+   uint xcells_ini; /*!< Initial number of spatial cells in x-direction. */
+   uint ycells_ini; /*!< Initial number of spatial cells in y-direction. */
+   uint zcells_ini; /*!< Initial number of spatial cells in z-direction. */ 
+
    static Real t;     /*!< Current simulation time. */
    static Real t_min; /*!< Initial simulation time. */
    static Real t_max; /*!< Maximum simulation time. */

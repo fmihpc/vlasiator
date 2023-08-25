@@ -143,7 +143,7 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
       total_transform = Translation<Real,3>(rotation_pivot)*total_transform;
 
       // Electron pressure gradient term
-      if(meshParams.ohmGradPeTerm > 0) {
+      if(FSParams.ohmGradPeTerm > 0) {
          total_transform=Translation<Real,3>( (fabs(getObjectWrapper().particleSpecies[popID].charge)/getObjectWrapper().particleSpecies[popID].mass) * EgradPe * substeps_dt) * total_transform;
       }
    }

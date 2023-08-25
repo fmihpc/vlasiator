@@ -40,9 +40,9 @@ void calculateEdgeGradPeTermXComponents(
 ) {
    Real hallRhoq = 0.0;
    Real rhoq = 0.0;
-   switch (meshParams.ohmGradPeTerm) {
+   switch (FSParams.ohmGradPeTerm) {
       case 0:
-         cerr << __FILE__ << __LINE__ << "You shouldn't be in a electron pressure gradient term function if meshParams.ohmGradPeTerm == 0." << endl;
+         cerr << __FILE__ << __LINE__ << "You shouldn't be in a electron pressure gradient term function if FSParams.ohmGradPeTerm == 0." << endl;
          break;
          
       case 1:
@@ -68,9 +68,9 @@ void calculateEdgeGradPeTermYComponents(
 ) {
    Real hallRhoq = 0.0;
    Real rhoq = 0.0;
-   switch (meshParams.ohmGradPeTerm) {
+   switch (FSParams.ohmGradPeTerm) {
       case 0:
-         cerr << __FILE__ << __LINE__ << "You shouldn't be in a electron pressure gradient term function if meshParams.ohmGradPeTerm == 0." << endl;
+         cerr << __FILE__ << __LINE__ << "You shouldn't be in a electron pressure gradient term function if FSParams.ohmGradPeTerm == 0." << endl;
          break;
          
       case 1:
@@ -96,9 +96,9 @@ void calculateEdgeGradPeTermZComponents(
 ) {
    Real hallRhoq = 0.0;
    Real rhoq = 0.0;
-   switch (meshParams.ohmGradPeTerm) {
+   switch (FSParams.ohmGradPeTerm) {
       case 0:
-         cerr << __FILE__ << __LINE__ << "You shouldn't be in a electron pressure gradient term function if meshParams.ohmGradPeTerm == 0." << endl;
+         cerr << __FILE__ << __LINE__ << "You shouldn't be in a electron pressure gradient term function if FSParams.ohmGradPeTerm == 0." << endl;
          break;
          
       case 1:

@@ -402,7 +402,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    vz_min = vmesh->getMeshMinLimits()[dimension];
    switch (dimension) {
    case 0:
-      dz = meshParams.dx_ini;
+      dz = P::dx_ini;
       //z_min = P::xmin;
       // set values in array that is used to convert block indices
       // to global ID using a dot product.
@@ -411,7 +411,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       cell_indices_to_id[2]=1;
       break;
    case 1:
-      dz = meshParams.dy_ini;
+      dz = P::dy_ini;
       //z_min = P::ymin;
       // set values in array that is used to convert block indices
       // to global ID using a dot product
@@ -420,7 +420,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       cell_indices_to_id[2]=WID;
       break;
    case 2:
-      dz = meshParams.dz_ini;
+      dz = P::dz_ini;
       //z_min = P::zmin;
       // set values in array that is used to convert block indices
       // to global id using a dot product.

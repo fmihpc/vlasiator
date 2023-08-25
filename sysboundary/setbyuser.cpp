@@ -139,9 +139,9 @@ namespace SBC {
                if (refLevel > 0)
                   --refLevel;
 
-               creal dx = meshParams.dx_ini / pow(2, refLvl);
-               creal dy = meshParams.dy_ini / pow(2, refLvl);
-               creal dz = meshParams.dz_ini / pow(2, refLvl);
+               creal dx = FSParams.dx;
+               creal dy = FSParams.dy;
+               creal dz = FSParams.dz;
                
                isThisCellOnAFace.fill(false);
 

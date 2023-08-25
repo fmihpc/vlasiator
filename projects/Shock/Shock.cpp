@@ -100,13 +100,13 @@ namespace projects {
    Real Shock::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz,
            creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
       const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
-      vmesh::MeshParameters& meshParams = vmesh::getMeshWrapper()->velocityMeshes->at(meshID);
-      if (vx < meshParams.meshMinLimits[0] + 0.5*dvx ||
-          vy < meshParams.meshMinLimits[1] + 0.5*dvy ||
-          vz < meshParams.meshMinLimits[2] + 0.5*dvz ||
-          vx > meshParams.meshMaxLimits[0] - 1.5*dvx ||
-          vy > meshParams.meshMaxLimits[1] - 1.5*dvy ||
-          vz > meshParams.meshMaxLimits[2] - 1.5*dvz) {
+      vmesh::MeshParameters& velocityMeshParams = vmesh::getMeshWrapper()->velocityMeshes->at(meshID);
+      if (vx < velocityMeshParams.meshMinLimits[0] + 0.5*dvx ||
+          vy < velocityMeshParams.meshMinLimits[1] + 0.5*dvy ||
+          vz < velocityMeshParams.meshMinLimits[2] + 0.5*dvz ||
+          vx > velocityMeshParams.meshMaxLimits[0] - 1.5*dvx ||
+          vy > velocityMeshParams.meshMaxLimits[1] - 1.5*dvy ||
+          vz > velocityMeshParams.meshMaxLimits[2] - 1.5*dvz) {
          return 0.0;
       }
       
@@ -165,7 +165,7 @@ namespace projects {
                   
                   cell[fsgrids::bfield::PERBX] = 0.0;
                   cell[fsgrids::bfield::PERBY] = 0.0;
-                  cell[fsgrids::bfield::PERBZ] = this->BZ0*(3.0 + 2.0*tanh((xyz[1] - meshParams.ymax/2.0)/(this->Sharp_Y*meshParams.ymax)));
+                  cell[fsgrids::bfield::PERBZ] = this->BZ0*(3.0 + 2.0*tanh((xyz[1] - FSParams.ymax/2.0)/(this->Sharp_Y*FSParams.ymax)));
                }
             }
          }
