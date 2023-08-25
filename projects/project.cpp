@@ -442,14 +442,9 @@ namespace projects {
       const creal x = cell->parameters[CellParams::XCRD];
       const creal y = cell->parameters[CellParams::YCRD];
       const creal z = cell->parameters[CellParams::ZCRD];
-      const creal dx = cell->parameters[CellParams::DX];
-      const creal dy = cell->parameters[CellParams::DY];
-      const creal dz = cell->parameters[CellParams::DZ];
-      
-      const CellID cellID = (int) ((x - meshParams.xmin) / dx) +
-         (int) ((y - meshParams.ymin) / dy) * meshParams.xcells_ini +
-         (int) ((z - meshParams.zmin) / dz) * meshParams.xcells_ini * meshParams.ycells_ini;
-      setRandomSeed(cellID, randGen);
+      const std::array<double,3> xyz = {x, y, z};      
+      const CellID myCell = mpiGrid.get_existing_cell(xyz);
+      setRandomSeed(myCell, randGen);
    }
 
    /*
@@ -474,9 +469,9 @@ namespace projects {
             for (uint k = 0; k < 2 * P::amrBoxHalfWidthZ; ++k) {
                
                std::array<double,3> xyz;
-               xyz[0] = P::amrBoxCenterX + (0.5 + i - P::amrBoxHalfWidthX) * meshParams.dx_ini;
-               xyz[1] = P::amrBoxCenterY + (0.5 + j - P::amrBoxHalfWidthY) * meshParams.dy_ini;
-               xyz[2] = P::amrBoxCenterZ + (0.5 + k - P::amrBoxHalfWidthZ) * meshParams.dz_ini;
+               xyz[0] = P::amrBoxCenterX + (0.5 + i - P::amrBoxHalfWidthX) * P::dx_ini;
+               xyz[1] = P::amrBoxCenterY + (0.5 + j - P::amrBoxHalfWidthY) * P::dy_ini;
+               xyz[2] = P::amrBoxCenterZ + (0.5 + k - P::amrBoxHalfWidthZ) * P::dz_ini;
                
                CellID myCell = mpiGrid.get_existing_cell(xyz);
                if (mpiGrid.refine_completely_at(xyz)) {
@@ -508,9 +503,9 @@ namespace projects {
                for (uint k = 0; k < 2 * P::amrBoxHalfWidthZ; ++k) {
                   
                   std::array<double,3> xyz;
-                  xyz[0] = P::amrBoxCenterX + 0.5 * (0.5 + i - P::amrBoxHalfWidthX) * meshParams.dx_ini;
-                  xyz[1] = P::amrBoxCenterY + 0.5 * (0.5 + j - P::amrBoxHalfWidthY) * meshParams.dy_ini;
-                  xyz[2] = P::amrBoxCenterZ + 0.5 * (0.5 + k - P::amrBoxHalfWidthZ) * meshParams.dz_ini;
+                  xyz[0] = P::amrBoxCenterX + 0.5 * (0.5 + i - P::amrBoxHalfWidthX) * P::dx_ini;
+                  xyz[1] = P::amrBoxCenterY + 0.5 * (0.5 + j - P::amrBoxHalfWidthY) * P::dy_ini;
+                  xyz[2] = P::amrBoxCenterZ + 0.5 * (0.5 + k - P::amrBoxHalfWidthZ) * P::dz_ini;
                   
                   CellID myCell = mpiGrid.get_existing_cell(xyz);
                   if (mpiGrid.refine_completely_at(xyz)) {

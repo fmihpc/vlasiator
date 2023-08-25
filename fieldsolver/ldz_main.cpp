@@ -57,6 +57,18 @@
 #include "../logger.h"
 extern Logger logFile;
 
+/*! Re-initialize field propagator after rebalance. E, BGB, RHO, RHO_V,
+ cell_dimensions, sysboundaryflag need to be up to date for the
+ extended neighborhood
+ */
+bool initializeFieldPropagatorAfterRebalance() {
+   // Assume static background field, they are not communicated here
+   // but are assumed to be ok after each load balance as that
+   // communicates all spatial data
+   
+   return true;
+}
+
 bool finalizeFieldPropagator() {
    return true;
 }
@@ -127,10 +139,10 @@ bool propagateFields(
       #ifdef FS_1ST_ORDER_TIME
       propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, dt, RK_ORDER1);
       calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1, true);
-      if(meshParams.ohmGradPeTerm > 0){
+      if(FSParams.ohmGradPeTerm > 0){
          calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1);
       }
-      if(meshParams.ohmHallTerm > 0) {
+      if(FSParams.ohmHallTerm > 0) {
          calculateHallTermSimple(
             perBGrid,
             perBDt2Grid,
@@ -164,10 +176,10 @@ bool propagateFields(
       #else
       propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, dt, RK_ORDER2_STEP1);
       calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1, true);
-      if(meshParams.ohmGradPeTerm > 0) {
+      if(FSParams.ohmGradPeTerm > 0) {
          calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1);
       }
-      if(meshParams.ohmHallTerm > 0) {
+      if(FSParams.ohmHallTerm > 0) {
          calculateHallTermSimple(
             perBGrid,
             perBDt2Grid,
@@ -201,10 +213,10 @@ bool propagateFields(
       
       propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, dt, RK_ORDER2_STEP2);
       calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2, true);
-      if(meshParams.ohmGradPeTerm > 0) {
+      if(FSParams.ohmGradPeTerm > 0) {
          calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2);
       }
-      if(meshParams.ohmHallTerm > 0) {
+      if(FSParams.ohmHallTerm > 0) {
          calculateHallTermSimple(
             perBGrid,
             perBDt2Grid,
@@ -243,8 +255,8 @@ bool propagateFields(
       uint subcycleCount = 0;
       uint maxSubcycleCount = std::numeric_limits<uint>::max();
       int myRank = perBGrid.grid()->getRank();
-      
-      while (subcycleCount < maxSubcycleCount ) {         
+
+      while (subcycleCount < maxSubcycleCount ) {
          // In case of subcycling, we decided to go for a blunt Runge-Kutta subcycling even though e.g. moments are not going along.
          // Result of the Summer of Debugging 2016, the behaviour in wave dispersion was much improved with this.
          propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, subcycleDt, RK_ORDER2_STEP1);
@@ -252,10 +264,10 @@ bool propagateFields(
          // We need to calculate derivatives of the moments at every substep, but the moments only
          // need to be communicated in the first one.
          calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1, (subcycleCount==0));
-         if(meshParams.ohmGradPeTerm > 0 && subcycleCount==0) {
+         if(FSParams.ohmGradPeTerm > 0 && subcycleCount==0) {
             calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1);
          }
-         if(meshParams.ohmHallTerm > 0) {
+         if(FSParams.ohmHallTerm > 0) {
             calculateHallTermSimple(
                perBGrid,
                perBDt2Grid,
@@ -292,10 +304,10 @@ bool propagateFields(
          // We need to calculate derivatives of the moments at every substep, but the moments only
          // need to be communicated in the first one.
          calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2, (subcycleCount==0));
-         if(meshParams.ohmGradPeTerm > 0 && subcycleCount==0) {
+         if(FSParams.ohmGradPeTerm > 0 && subcycleCount==0) {
             calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2);
          }
-         if(meshParams.ohmHallTerm > 0) {
+         if(FSParams.ohmHallTerm > 0) {
             calculateHallTermSimple(
                perBGrid,
                perBDt2Grid,

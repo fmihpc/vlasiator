@@ -39,9 +39,6 @@
 #include "sysboundary.h"
 #include "../fieldsolver/gridGlue.hpp"
 
-ObjectWrapper objectWrapper;
-
-
 using namespace std;
 using namespace spatial_cell;
 
@@ -51,18 +48,6 @@ bool precedenceSort(const SBC::SysBoundaryCondition* first, const SBC::SysBounda
    } else {
       return false;
    }
-}
-
-/** Get local cell IDs. This function creates a cached copy of the
- * cell ID lists to significantly improve performance. The cell ID
- * cache is recalculated every time the mesh partitioning changes.
- * @return Local cell IDs.*/
-const std::vector<CellID>& getLocalCells() {
-   return Parameters::localCells;
-}
-
-ObjectWrapper& getObjectWrapper() {
-   return objectWrapper;
 }
 
 // ************************************************************
@@ -252,7 +237,7 @@ bool SysBoundary::initSysBoundaries(Project& project, creal& t) {
                     << endl;
             }
          }
-         if ((faces[0] || faces[1]) && meshParams.xcells_ini < 5) {
+         if ((faces[0] || faces[1]) && P::xcells_ini < 5) {
             if (myRank == MASTER_RANK) {
                cerr << "You load Outflow system boundary conditions on the x+ or x- face but there is not enough cells "
                        "in that direction to make sense."
@@ -260,7 +245,7 @@ bool SysBoundary::initSysBoundaries(Project& project, creal& t) {
             }
             exit(1);
          }
-         if ((faces[2] || faces[3]) && meshParams.ycells_ini < 5) {
+         if ((faces[2] || faces[3]) && P::ycells_ini < 5) {
             if (myRank == MASTER_RANK) {
                cerr << "You load Outflow system boundary conditions on the y+ or y- face but there is not enough cells "
                        "in that direction to make sense."
@@ -268,7 +253,7 @@ bool SysBoundary::initSysBoundaries(Project& project, creal& t) {
             }
             exit(1);
          }
-         if ((faces[4] || faces[5]) && meshParams.zcells_ini < 5) {
+         if ((faces[4] || faces[5]) && P::zcells_ini < 5) {
             if (myRank == MASTER_RANK) {
                cerr << "You load Outflow system boundary conditions on the z+ or z- face but there is not enough cells "
                        "in that direction to make sense."
@@ -331,7 +316,7 @@ bool SysBoundary::initSysBoundaries(Project& project, creal& t) {
                     << endl;
             }
          }
-         if ((faces[0] || faces[1]) && meshParams.xcells_ini < 5) {
+         if ((faces[0] || faces[1]) && P::xcells_ini < 5) {
             if (myRank == MASTER_RANK) {
                cerr << "You load Maxwellian system boundary conditions on the x+ or x- face but there is not enough "
                        "cells in that direction to make sense."
@@ -339,7 +324,7 @@ bool SysBoundary::initSysBoundaries(Project& project, creal& t) {
             }
             exit(1);
          }
-         if ((faces[2] || faces[3]) && meshParams.ycells_ini < 5) {
+         if ((faces[2] || faces[3]) && P::ycells_ini < 5) {
             if (myRank == MASTER_RANK) {
                cerr << "You load Maxwellian system boundary conditions on the y+ or y- face but there is not enough "
                        "cells in that direction to make sense."
@@ -347,7 +332,7 @@ bool SysBoundary::initSysBoundaries(Project& project, creal& t) {
             }
             exit(1);
          }
-         if ((faces[4] || faces[5]) && meshParams.zcells_ini < 5) {
+         if ((faces[4] || faces[5]) && P::zcells_ini < 5) {
             if (myRank == MASTER_RANK) {
                cerr << "You load Maxwellian system boundary conditions on the z+ or z- face but there is not enough "
                        "cells in that direction to make sense."

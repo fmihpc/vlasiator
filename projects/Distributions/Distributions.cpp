@@ -130,9 +130,9 @@ namespace projects {
       const uint popID
    ) const {
       Real value = 0.0;
-      creal relx = x/(meshParams.xmax - meshParams.xmin);
-      creal rely = y/(meshParams.ymax - meshParams.ymin);
-      creal relz = z/(meshParams.zmax - meshParams.zmin);
+      creal relx = x/(P::xmax - P::xmin);
+      creal rely = y/(P::ymax - P::ymin);
+      creal relz = z/(P::zmax - P::zmin);
       creal scaledVx1 = this->Vx[1] * relx;
       creal scaledVy1 = this->Vy[1] * rely;
       creal scaledVz1 = this->Vz[1] * relz;
@@ -206,9 +206,9 @@ namespace projects {
       const uint popID
    ) const {
       vector<std::array<Real, 3>> centerPoints;
-      creal relx = x/(meshParams.xmax - meshParams.xmin);
-      creal rely = y/(meshParams.ymax - meshParams.ymin);
-      creal relz = z/(meshParams.zmax - meshParams.zmin);
+      creal relx = x/(P::xmax - P::xmin);
+      creal rely = y/(P::ymax - P::ymin);
+      creal relz = z/(P::zmax - P::zmin);
       creal scaledVx1 = this->Vx[1] * relx;
       creal scaledVy1 = this->Vy[1] * rely;
       creal scaledVz1 = this->Vz[1] * relz;

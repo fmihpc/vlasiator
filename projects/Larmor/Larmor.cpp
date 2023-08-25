@@ -91,19 +91,19 @@ namespace projects {
       creal mass = getObjectWrapper().particleSpecies[popID].mass;
       
       return exp(- mass * ((vx-this->VX0)*(vx-this->VX0) + (vy-this->VY0)*(vy-this->VY0)+ (vz-this->VZ0)*(vz-this->VZ0)) / (2.0 * kb * this->TEMPERATURE))*
-      exp(-pow(x-meshParams.xmax/2.5, 2.0)/pow(this->SCA_X, 2.0))*exp(-pow(y-meshParams.ymax/2.0, 2.0)/pow(this->SCA_Y, 2.0));
+      exp(-pow(x-P::xmax/2.5, 2.0)/pow(this->SCA_X, 2.0))*exp(-pow(y-P::ymax/2.0, 2.0)/pow(this->SCA_Y, 2.0));
     }
 
     Real Larmor::calcPhaseSpaceDensity(creal& x, creal& y, creal& z, creal& dx, creal& dy, creal& dz, 
             creal& vx, creal& vy, creal& vz, creal& dvx, creal& dvy, creal& dvz,const uint popID) const {
        const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
-       vmesh::MeshParameters& meshParams = vmesh::getMeshWrapper()->velocityMeshes->at(meshID);
-       if (vx < meshParams.meshMinLimits[0] + 0.5*dvx ||
-           vy < meshParams.meshMinLimits[1] + 0.5*dvy ||
-           vz < meshParams.meshMinLimits[2] + 0.5*dvz ||
-           vx > meshParams.meshMaxLimits[0] - 1.5*dvx ||
-           vy > meshParams.meshMaxLimits[1] - 1.5*dvy ||
-           vz > meshParams.meshMaxLimits[2] - 1.5*dvz) {
+       vmesh::MeshParameters& velocityMeshParams = vmesh::getMeshWrapper()->velocityMeshes->at(meshID);
+       if (vx < velocityMeshParams.meshMinLimits[0] + 0.5*dvx ||
+           vy < velocityMeshParams.meshMinLimits[1] + 0.5*dvy ||
+           vz < velocityMeshParams.meshMinLimits[2] + 0.5*dvz ||
+           vx > velocityMeshParams.meshMaxLimits[0] - 1.5*dvx ||
+           vy > velocityMeshParams.meshMaxLimits[1] - 1.5*dvy ||
+           vz > velocityMeshParams.meshMaxLimits[2] - 1.5*dvz) {
           return 0.0;
        }
 

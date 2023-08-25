@@ -67,18 +67,6 @@
 
 using namespace std;
 
-/*! Re-initialize field propagator after rebalance. E, BGB, RHO, RHO_V,
- cell_dimensions, sysboundaryflag need to be up to date for the
- extended neighborhood
- */
-bool initializeFieldPropagatorAfterRebalance() {
-   // Assume static background field, they are not communicated here
-   // but are assumed to be ok after each load balance as that
-   // communicates all spatial data
-   
-   return true;
-}
-
 int globalflags::AMRstencilWidth = VLASOV_STENCIL_WIDTH;
 
 extern Logger logFile, diagnostic;
@@ -155,15 +143,15 @@ void initializeGrids(
    }
    globalflags::AMRstencilWidth = neighborhood_size;
 
-   const std::array<uint64_t, 3> grid_length = {{meshParams.xcells_ini, meshParams.ycells_ini, meshParams.zcells_ini}};
+   const std::array<uint64_t, 3> grid_length = {{P::xcells_ini, P::ycells_ini, P::zcells_ini}};
    dccrg::Cartesian_Geometry::Parameters geom_params;
-   geom_params.start[0] = meshParams.xmin;
-   geom_params.start[1] = meshParams.ymin;
-   geom_params.start[2] = meshParams.zmin;
-   geom_params.level_0_cell_length[0] = meshParams.dx_ini;
-   geom_params.level_0_cell_length[1] = meshParams.dy_ini;
-   geom_params.level_0_cell_length[2] = meshParams.dz_ini;
-   
+   geom_params.start[0] = P::xmin;
+   geom_params.start[1] = P::ymin;
+   geom_params.start[2] = P::zmin;
+   geom_params.level_0_cell_length[0] = P::dx_ini;
+   geom_params.level_0_cell_length[1] = P::dy_ini;
+   geom_params.level_0_cell_length[2] = P::dz_ini;
+
    mpiGrid.set_initial_length(grid_length)
       .set_load_balancing_method(&P::loadBalanceAlgorithm[0])
       .set_neighborhood_length(neighborhood_size)

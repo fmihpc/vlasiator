@@ -493,15 +493,15 @@ bool writeCommonGridData(
    if( vlsvWriter.writeParameter("timestep", &P::tstep) == false ) { return false; }
    if( vlsvWriter.writeParameter("fieldSolverSubcycles", &P::fieldSolverSubcycles) == false ) { return false; }
    if( vlsvWriter.writeParameter("fileIndex", &fileIndex) == false ) { return false; }
-   if( vlsvWriter.writeParameter("xmin", &meshParams.xmin) == false ) { return false; }
-   if( vlsvWriter.writeParameter("xmax", &meshParams.xmax) == false ) { return false; }
-   if( vlsvWriter.writeParameter("ymin", &meshParams.ymin) == false ) { return false; }
-   if( vlsvWriter.writeParameter("ymax", &meshParams.ymax) == false ) { return false; }
-   if( vlsvWriter.writeParameter("zmin", &meshParams.zmin) == false ) { return false; }
-   if( vlsvWriter.writeParameter("zmax", &meshParams.zmax) == false ) { return false; }
-   if( vlsvWriter.writeParameter("xcells_ini", &meshParams.xcells_ini) == false ) { return false; }
-   if( vlsvWriter.writeParameter("ycells_ini", &meshParams.ycells_ini) == false ) { return false; }
-   if( vlsvWriter.writeParameter("zcells_ini", &meshParams.zcells_ini) == false ) { return false; }
+   if( vlsvWriter.writeParameter("xmin", &P::xmin) == false ) { return false; }
+   if( vlsvWriter.writeParameter("xmax", &P::xmax) == false ) { return false; }
+   if( vlsvWriter.writeParameter("ymin", &P::ymin) == false ) { return false; }
+   if( vlsvWriter.writeParameter("ymax", &P::ymax) == false ) { return false; }
+   if( vlsvWriter.writeParameter("zmin", &P::zmin) == false ) { return false; }
+   if( vlsvWriter.writeParameter("zmax", &P::zmax) == false ) { return false; }
+   if( vlsvWriter.writeParameter("xcells_ini", &P::xcells_ini) == false ) { return false; }
+   if( vlsvWriter.writeParameter("ycells_ini", &P::ycells_ini) == false ) { return false; }
+   if( vlsvWriter.writeParameter("zcells_ini", &P::zcells_ini) == false ) { return false; }
    const int writewid = WID;
    if( vlsvWriter.writeParameter("velocity_block_width", &writewid) == false ) { return false; }
    if( FieldTracing::fieldTracingParameters.doTraceFullBox ) {
@@ -717,19 +717,19 @@ bool writeBoundingBoxNodeCoordinates ( Writer & vlsvWriter,
 
    //Create variables xCells, yCells, zCells which tell the number of zones in the given direction
    //Note: This is for the sake of clarity.
-   const uint64_t & xCells = meshParams.xcells_ini;
-   const uint64_t & yCells = meshParams.ycells_ini;
-   const uint64_t & zCells = meshParams.zcells_ini;
+   const uint64_t & xCells = P::xcells_ini;
+   const uint64_t & yCells = P::ycells_ini;
+   const uint64_t & zCells = P::zcells_ini;
 
    //Create variables xmin, ymin, zmin for calculations
-   const Real & xmin = (Real)meshParams.xmin;
-   const Real & ymin = (Real)meshParams.ymin;
-   const Real & zmin = (Real)meshParams.zmin;
+   const Real & xmin = (Real)P::xmin;
+   const Real & ymin = (Real)P::ymin;
+   const Real & zmin = (Real)P::zmin;
 
    //Create variables for cell lengths in x, y, z directions for calculations
-   const Real & xCellLength = (Real)meshParams.dx_ini;
-   const Real & yCellLength = (Real)meshParams.dy_ini;
-   const Real & zCellLength = (Real)meshParams.dz_ini;
+   const Real & xCellLength = (Real)P::dx_ini;
+   const Real & yCellLength = (Real)P::dy_ini;
+   const Real & zCellLength = (Real)P::dz_ini;
    
 
    //Create node coordinates:
@@ -812,9 +812,9 @@ bool writeMeshBoundingBox( Writer & vlsvWriter,
                                              //Note: If we were, the 3 last values in boundaryBox(below) would tell the
                                              //number of cells in blocks in x, y, z direction
    //Set the boundary box
-   const uint64_t & numberOfXCells = meshParams.xcells_ini;
-   const uint64_t & numberOfYCells = meshParams.ycells_ini;
-   const uint64_t & numberOfZCells = meshParams.zcells_ini;
+   const uint64_t & numberOfXCells = P::xcells_ini;
+   const uint64_t & numberOfYCells = P::ycells_ini;
+   const uint64_t & numberOfZCells = P::zcells_ini;
    uint64_t boundaryBox[box_size] = { numberOfXCells, numberOfYCells, numberOfZCells, 
                                       notBlockBasedMesh, notBlockBasedMesh, notBlockBasedMesh };
 

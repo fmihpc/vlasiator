@@ -451,9 +451,9 @@ void calculateEdgeHallTermXComponents(
    Real hallRhoq = 0.0;
    Real EXHall = 0.0;
    
-   switch (meshParams.ohmHallTerm) {
+   switch (FSParams.ohmHallTerm) {
     case 0:
-      cerr << __FILE__ << __LINE__ << "You shouldn't be in a Hall term function if meshParams.ohmHallTerm == 0." << endl;
+      cerr << __FILE__ << __LINE__ << "You shouldn't be in a Hall term function if FSParams.ohmHallTerm == 0." << endl;
       break;
       
     case 1:
@@ -549,9 +549,9 @@ void calculateEdgeHallTermYComponents(
    Real hallRhoq = 0.0;
    Real EYHall = 0.0;
    
-   switch (meshParams.ohmHallTerm) {
+   switch (FSParams.ohmHallTerm) {
     case 0:
-      cerr << __FILE__ << __LINE__ << "You shouldn't be in a Hall term function if meshParams.ohmHallTerm == 0." << endl;
+      cerr << __FILE__ << __LINE__ << "You shouldn't be in a Hall term function if FSParams.ohmHallTerm == 0." << endl;
       break;
       
     case 1:
@@ -647,9 +647,9 @@ void calculateEdgeHallTermZComponents(
    Real hallRhoq = 0.0;
    Real EZHall = 0.0;
    
-   switch (meshParams.ohmHallTerm) {
+   switch (FSParams.ohmHallTerm) {
    case 0:
-     cerr << __FILE__ << __LINE__ << "You shouldn't be in a Hall term function if meshParams.ohmHallTerm == 0." << endl;
+     cerr << __FILE__ << __LINE__ << "You shouldn't be in a Hall term function if FSParams.ohmHallTerm == 0." << endl;
      break;
 
    case 1:

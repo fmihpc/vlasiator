@@ -68,34 +68,34 @@ namespace SBC {
       for(uint i=0; i<6; i++) {
          isThisCellOnAFace[i] = false;
       }
-      if(x > meshParams.xmax - 2.0*dx) {
+      if(x > P::xmax - 2.0*dx) {
          isThisCellOnAFace[0] = true;
       }
-      if(x < meshParams.xmin + 2.0*dx) {
+      if(x < P::xmin + 2.0*dx) {
          isThisCellOnAFace[1] = true;
       }
-      if(y > meshParams.ymax - 2.0*dy) {
+      if(y > P::ymax - 2.0*dy) {
          isThisCellOnAFace[2] = true;
       }
-      if(y < meshParams.ymin + 2.0*dy) {
+      if(y < P::ymin + 2.0*dy) {
          isThisCellOnAFace[3] = true;
       }
-      if(z > meshParams.zmax - 2.0*dz) {
+      if(z > P::zmax - 2.0*dz) {
          isThisCellOnAFace[4] = true;
       }
-      if(z < meshParams.zmin + 2.0*dz) {
+      if(z < P::zmin + 2.0*dz) {
          isThisCellOnAFace[5] = true;
       }
       if(excludeSlicesAndPeriodicDimensions == true) {
-         if(meshParams.xcells_ini == 1 || isPeriodic[0]) {
+         if(P::xcells_ini == 1 || isPeriodic[0]) {
             isThisCellOnAFace[0] = false;
             isThisCellOnAFace[1] = false;
          }
-         if(meshParams.ycells_ini == 1 || isPeriodic[1]) {
+         if(P::ycells_ini == 1 || isPeriodic[1]) {
             isThisCellOnAFace[2] = false;
             isThisCellOnAFace[3] = false;
          }
-         if(meshParams.zcells_ini == 1 || isPeriodic[2]) {
+         if(P::zcells_ini == 1 || isPeriodic[2]) {
             isThisCellOnAFace[4] = false;
             isThisCellOnAFace[5] = false;
          }

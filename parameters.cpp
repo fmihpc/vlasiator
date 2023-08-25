@@ -41,7 +41,7 @@ using namespace std;
 
 typedef Parameters P;
 
-ARCH_MANAGED GridParameters meshParams;
+ARCH_MANAGED FieldsolverParameters FSParams;
 
 // Using numeric_limits<Real>::max() leads to FP exceptions inside boost programoptions, use a slightly smaller value to
 // avoid...
@@ -49,6 +49,20 @@ ARCH_MANAGED GridParameters meshParams;
 const Real LARGE_REAL = 1e20;
 // Define static members:
 int P::geometry = geometry::XYZ6D;
+
+Real P::xmin = NAN;
+Real P::xmax = NAN;
+Real P::ymin = NAN;
+Real P::ymax = NAN;
+Real P::zmin = NAN;
+Real P::zmax = NAN;
+Real P::dx_ini = NAN;
+Real P::dy_ini = NAN;
+Real P::dz_ini = NAN;
+
+uint P::xcells_ini = numeric_limits<uint>::max();
+uint P::ycells_ini = numeric_limits<uint>::max();
+uint P::zcells_ini = numeric_limits<uint>::max();
 
 Real P::t = 0;
 Real P::t_min = 0;
@@ -163,25 +177,40 @@ std::vector<int> P::numPasses; //numpasses
 std::string tracerString; /*!< Fieldline tracer to use for coupling ionosphere and magnetosphere */
 bool P::computeCurvature;
 
-void initParameters() {
-   meshParams.xmin = NAN;
-   meshParams.xmax = NAN;
-   meshParams.ymin = NAN;
-   meshParams.ymax = NAN;
-   meshParams.zmin = NAN;
-   meshParams.zmax = NAN;
-   meshParams.dx_ini = NAN;
-   meshParams.dy_ini = NAN;
-   meshParams.dz_ini = NAN;
+void initFieldsolverParameters() {
+   FSParams.xmin = NAN;
+   FSParams.xmax = NAN;
+   FSParams.ymin = NAN;
+   FSParams.ymax = NAN;
+   FSParams.zmin = NAN;
+   FSParams.zmax = NAN;
+   FSParams.dx = NAN;
+   FSParams.dy = NAN;
+   FSParams.dz = NAN;
 
-   meshParams.xcells_ini = numeric_limits<uint>::max();
-   meshParams.ycells_ini = numeric_limits<uint>::max();
-   meshParams.zcells_ini = numeric_limits<uint>::max();
-   meshParams.maxWaveVelocity = 0.0;
-   meshParams.resistivity = NAN;
-   meshParams.fieldSolverDiffusiveEterms = true;
-   meshParams.ohmHallTerm = 0;
-   meshParams.ohmGradPeTerm = 0; 
+   FSParams.xcells = numeric_limits<uint>::max();
+   FSParams.ycells = numeric_limits<uint>::max();
+   FSParams.zcells = numeric_limits<uint>::max();
+   FSParams.maxWaveVelocity = 0.0;
+   FSParams.resistivity = NAN;
+   FSParams.fieldSolverDiffusiveEterms = true;
+   FSParams.ohmHallTerm = 0;
+   FSParams.ohmGradPeTerm = 0; 
+}
+void calcFieldsolverParameters() {
+   // Calculates the fieldsolver FSgrid mesh parameters
+   FSParams.xmin = P::xmin;
+   FSParams.xmax = P::xmax;
+   FSParams.ymin = P::ymin;
+   FSParams.ymax = P::ymax;
+   FSParams.zmin = P::zmin;
+   FSParams.zmax = P::zmax;
+   FSParams.xcells = convert<int>(P::xcells_ini * pow(2,P::amrMaxSpatialRefLevel))
+   FSParams.ycells = convert<int>(P::ycells_ini * pow(2,P::amrMaxSpatialRefLevel))
+   FSParams.zcells = convert<int>(P::zcells_ini * pow(2,P::amrMaxSpatialRefLevel))
+   FSParams.dx = (FSParams.xmax - FSParams.xmin) / FSParams.xcells;
+   FSParams.dy = (FSParams.ymax - FSParams.ymin) / FSParams.ycells;
+   FSParams.dz = (FSParams.zmax - FSParams.zmin) / FSParams.zcells;
 }
 
 bool P::addParameters() {
@@ -655,15 +684,15 @@ void Parameters::getParameters() {
    string geometryString;
 
    RP::get("gridbuilder.geometry", geometryString);
-   RP::get("gridbuilder.x_min", meshParams.xmin);
-   RP::get("gridbuilder.x_max", meshParams.xmax);
-   RP::get("gridbuilder.y_min", meshParams.ymin);
-   RP::get("gridbuilder.y_max", meshParams.ymax);
-   RP::get("gridbuilder.z_min", meshParams.zmin);
-   RP::get("gridbuilder.z_max", meshParams.zmax);
-   RP::get("gridbuilder.x_length", meshParams.xcells_ini);
-   RP::get("gridbuilder.y_length", meshParams.ycells_ini);
-   RP::get("gridbuilder.z_length", meshParams.zcells_ini);
+   RP::get("gridbuilder.x_min", P::xmin);
+   RP::get("gridbuilder.x_max", P::xmax);
+   RP::get("gridbuilder.y_min", P::ymin);
+   RP::get("gridbuilder.y_max", P::ymax);
+   RP::get("gridbuilder.z_min", P::zmin);
+   RP::get("gridbuilder.z_max", P::zmax);
+   RP::get("gridbuilder.x_length", P::xcells_ini);
+   RP::get("gridbuilder.y_length", P::ycells_ini);
+   RP::get("gridbuilder.z_length", P::zcells_ini);
 
    RP::get("VAMR.max_velocity_level", P::vamrMaxVelocityRefLevel);
    RP::get("VAMR.vel_refinement_criterion", P::vamrVelRefCriterion);
@@ -749,15 +778,15 @@ void Parameters::getParameters() {
       cerr << "vamrRefineLimit must be smaller than vamrCoarsenLimit!" << endl;
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
-   if (meshParams.xmax < meshParams.xmin || (meshParams.ymax < meshParams.ymin || meshParams.zmax < meshParams.zmin)) {
+   if (P::xmax < P::xmin || (P::ymax < P::ymin || P::zmax < P::zmin)) {
       cerr << "Box domain error!" << endl;
       MPI_Abort(MPI_COMM_WORLD, 1);
    }
 
    // Set some parameter values.
-   meshParams.dx_ini = (meshParams.xmax - meshParams.xmin) / meshParams.xcells_ini;
-   meshParams.dy_ini = (meshParams.ymax - meshParams.ymin) / meshParams.ycells_ini;
-   meshParams.dz_ini = (meshParams.zmax - meshParams.zmin) / meshParams.zcells_ini;
+   P::dx_ini = (P::xmax - P::xmin) / P::xcells_ini;
+   P::dy_ini = (P::ymax - P::ymin) / P::ycells_ini;
+   P::dz_ini = (P::zmax - P::zmin) / P::zcells_ini;
 
    RP::get("gridbuilder.dt", P::dt);
 
@@ -774,12 +803,12 @@ void Parameters::getParameters() {
    P::tstep = P::tstep_min;
 
    // Get field solver parameters
-   RP::get("fieldsolver.maxWaveVelocity", meshParams.maxWaveVelocity);
+   RP::get("fieldsolver.maxWaveVelocity", FSParams.maxWaveVelocity);
    RP::get("fieldsolver.maxSubcycles", P::maxFieldSolverSubcycles);
-   RP::get("fieldsolver.resistivity", meshParams.resistivity);
-   RP::get("fieldsolver.diffusiveEterms", meshParams.fieldSolverDiffusiveEterms);
-   RP::get("fieldsolver.ohmHallTerm", meshParams.ohmHallTerm);
-   RP::get("fieldsolver.ohmGradPeTerm", meshParams.ohmGradPeTerm);
+   RP::get("fieldsolver.resistivity", FSParams.resistivity);
+   RP::get("fieldsolver.diffusiveEterms", FSParams.fieldSolverDiffusiveEterms);
+   RP::get("fieldsolver.ohmHallTerm", FSParams.ohmHallTerm);
+   RP::get("fieldsolver.ohmGradPeTerm", FSParams.ohmGradPeTerm);
    RP::get("fieldsolver.electronTemperature", P::electronTemperature);
    RP::get("fieldsolver.electronDensity", P::electronDensity);
    RP::get("fieldsolver.electronPTindex", P::electronPTindex);

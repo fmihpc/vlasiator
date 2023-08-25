@@ -463,14 +463,14 @@ namespace projects {
      // Calculate regions for refinement
      if (P::amrMaxSpatialRefLevel > 0) {
 	// L1 refinement.
-	for (uint i = 0; i < meshParams.xcells_ini; ++i) {
-	   for (uint j = 0; j < meshParams.ycells_ini; ++j) {
-	      for (uint k = 0; k < meshParams.zcells_ini; ++k) {
+	for (uint i = 0; i < P::xcells_ini; ++i) {
+	   for (uint j = 0; j < P::ycells_ini; ++j) {
+	      for (uint k = 0; k < P::zcells_ini; ++k) {
 
 		 std::array<double,3> xyz;
-		 xyz[0] = meshParams.xmin + (i+0.5)*meshParams.dx_ini;
-		 xyz[1] = meshParams.ymin + (j+0.5)*meshParams.dy_ini;
-		 xyz[2] = meshParams.zmin + (k+0.5)*meshParams.dz_ini;
+		 xyz[0] = P::xmin + (i+0.5)*P::dx_ini;
+		 xyz[1] = P::ymin + (j+0.5)*P::dy_ini;
+		 xyz[2] = P::zmin + (k+0.5)*P::dz_ini;
 
 		 if (abs(xyz[0]) < AMR_L1width)
 		    {
@@ -487,14 +487,14 @@ namespace projects {
 
      if (P::amrMaxSpatialRefLevel > 1) {
 	// L2 refinement.
-	for (uint i = 0; i < 2*meshParams.xcells_ini; ++i) {
-	   for (uint j = 0; j < 2*meshParams.ycells_ini; ++j) {
-	      for (uint k = 0; k < 2*meshParams.zcells_ini; ++k) {
+	for (uint i = 0; i < 2*P::xcells_ini; ++i) {
+	   for (uint j = 0; j < 2*P::ycells_ini; ++j) {
+	      for (uint k = 0; k < 2*P::zcells_ini; ++k) {
 
 		 std::array<double,3> xyz;
-		 xyz[0] = meshParams.xmin + (i+0.5)*0.5*meshParams.dx_ini;
-		 xyz[1] = meshParams.ymin + (j+0.5)*0.5*meshParams.dy_ini;
-		 xyz[2] = meshParams.zmin + (k+0.5)*0.5*meshParams.dz_ini;
+		 xyz[0] = P::xmin + (i+0.5)*0.5*P::dx_ini;
+		 xyz[1] = P::ymin + (j+0.5)*0.5*P::dy_ini;
+		 xyz[2] = P::zmin + (k+0.5)*0.5*P::dz_ini;
 
 		 if (abs(xyz[0]) < AMR_L2width)
 		    {
@@ -511,14 +511,14 @@ namespace projects {
 
      if (P::amrMaxSpatialRefLevel > 2) {
 	// L3 refinement.
-	for (uint i = 0; i < 4*meshParams.xcells_ini; ++i) {
-	   for (uint j = 0; j < 4*meshParams.ycells_ini; ++j) {
-	      for (uint k = 0; k < 4*meshParams.zcells_ini; ++k) {
+	for (uint i = 0; i < 4*P::xcells_ini; ++i) {
+	   for (uint j = 0; j < 4*P::ycells_ini; ++j) {
+	      for (uint k = 0; k < 4*P::zcells_ini; ++k) {
 
 		 std::array<double,3> xyz;
-		 xyz[0] = meshParams.xmin + (i+0.5)*0.25*meshParams.dx_ini;
-		 xyz[1] = meshParams.ymin + (j+0.5)*0.25*meshParams.dy_ini;
-		 xyz[2] = meshParams.zmin + (k+0.5)*0.25*meshParams.dz_ini;
+		 xyz[0] = P::xmin + (i+0.5)*0.25*P::dx_ini;
+		 xyz[1] = P::ymin + (j+0.5)*0.25*P::dy_ini;
+		 xyz[2] = P::zmin + (k+0.5)*0.25*P::dz_ini;
 
 		 if (abs(xyz[0]) < AMR_L3width)
 		    {
@@ -535,14 +535,14 @@ namespace projects {
 
      if (P::amrMaxSpatialRefLevel > 3) {
 	// L4 refinement.
-	for (uint i = 0; i < 8*meshParams.xcells_ini; ++i) {
-	   for (uint j = 0; j < 8*meshParams.ycells_ini; ++j) {
-	      for (uint k = 0; k < 8*meshParams.zcells_ini; ++k) {
+	for (uint i = 0; i < 8*P::xcells_ini; ++i) {
+	   for (uint j = 0; j < 8*P::ycells_ini; ++j) {
+	      for (uint k = 0; k < 8*P::zcells_ini; ++k) {
 
 		 std::array<double,3> xyz;
-		 xyz[0] = meshParams.xmin + (i+0.5)*0.125*meshParams.dx_ini;
-		 xyz[1] = meshParams.ymin + (j+0.5)*0.125*meshParams.dy_ini;
-		 xyz[2] = meshParams.zmin + (k+0.5)*0.125*meshParams.dz_ini;
+		 xyz[0] = P::xmin + (i+0.5)*0.125*P::dx_ini;
+		 xyz[1] = P::ymin + (j+0.5)*0.125*P::dy_ini;
+		 xyz[2] = P::zmin + (k+0.5)*0.125*P::dz_ini;
 
 		 if (abs(xyz[0]) < AMR_L4width)
 		    {

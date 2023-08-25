@@ -86,6 +86,8 @@ bool globalflags::writeRestart = 0;
 bool globalflags::balanceLoad = 0;
 bool globalflags::ionosphereJustSolved = false;
 
+ObjectWrapper objectWrapper;
+
 void addTimedBarrier(string name){
 #ifdef NDEBUG
 //let's not do  a barrier
@@ -246,6 +248,18 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    phiprof::stop("compute-timestep");
 }
 
+ObjectWrapper& getObjectWrapper() {
+   return objectWrapper;
+}
+
+/** Get local cell IDs. This function creates a cached copy of the
+ * cell ID lists to significantly improve performance. The cell ID
+ * cache is recalculated every time the mesh partitioning changes.
+ * @return Local cell IDs.*/
+const std::vector<CellID>& getLocalCells() {
+   return Parameters::localCells;
+}
+
 void recalculateLocalCellsCache() {
      {
         vector<CellID> dummy;
@@ -303,8 +317,8 @@ int main(int argn,char* args[]) {
 
    P::addParameters();
 
-   // init parameters
-   initParameters();
+   // initialize Fieldsolver parameters
+   initFieldsolverParameters();
 
    getObjectWrapper().addParameters();
    readparameters.parse();
@@ -399,10 +413,9 @@ int main(int argn,char* args[]) {
    // Initialize simplified Fieldsolver grids.
    // Needs to be done here already ad the background field will be set right away, before going to initializeGrid even
    phiprof::start("Init fieldsolver grids");
+   calcFieldsolverParameters();
 
-   int fsGridDimensions[3] = {convert<int>(meshParams.xcells_ini * pow(2,P::amrMaxSpatialRefLevel)),
-							    convert<int>(meshParams.ycells_ini * pow(2,P::amrMaxSpatialRefLevel)),
-							    convert<int>(meshParams.zcells_ini * pow(2,P::amrMaxSpatialRefLevel))};
+   int fsGridDimensions[3] = {FSParams.xcells,FSParams.ycells,FSParams.zcells};
 
    std::array<bool,3> periodicity{sysBoundaryContainer.isBoundaryPeriodic(0),
                                   sysBoundaryContainer.isBoundaryPeriodic(1),
@@ -428,19 +441,19 @@ int main(int argn,char* args[]) {
    // constant throughout the simulation.
    perBGrid.DX = perBDt2Grid.DX = EGrid.DX = EDt2Grid.DX = EHallGrid.DX = EGradPeGrid.DX = momentsGrid.DX
       = momentsDt2Grid.DX = dPerBGrid.DX = dMomentsGrid.DX = BgBGrid.DX = volGrid.DX = technicalGrid.DX
-      = meshParams.dx_ini / pow(2, P::amrMaxSpatialRefLevel);
+      = FSParams.dx;
    perBGrid.DY = perBDt2Grid.DY = EGrid.DY = EDt2Grid.DY = EHallGrid.DY = EGradPeGrid.DY = momentsGrid.DY
       = momentsDt2Grid.DY = dPerBGrid.DY = dMomentsGrid.DY = BgBGrid.DY = volGrid.DY = technicalGrid.DY
-      = meshParams.dy_ini / pow(2, P::amrMaxSpatialRefLevel);
+      = FSParams.dy
    perBGrid.DZ = perBDt2Grid.DZ = EGrid.DZ = EDt2Grid.DZ = EHallGrid.DZ = EGradPeGrid.DZ = momentsGrid.DZ
       = momentsDt2Grid.DZ = dPerBGrid.DZ = dMomentsGrid.DZ = BgBGrid.DZ = volGrid.DZ = technicalGrid.DZ
-      = meshParams.dz_ini / pow(2, P::amrMaxSpatialRefLevel);
+      = FSParams.dz
    // Set the physical start (lower left corner) X, Y, Z
    perBGrid.physicalGlobalStart = perBDt2Grid.physicalGlobalStart = EGrid.physicalGlobalStart = EDt2Grid.physicalGlobalStart
       = EHallGrid.physicalGlobalStart = EGradPeGrid.physicalGlobalStart = momentsGrid.physicalGlobalStart
       = momentsDt2Grid.physicalGlobalStart = dPerBGrid.physicalGlobalStart = dMomentsGrid.physicalGlobalStart
       = BgBGrid.physicalGlobalStart = volGrid.physicalGlobalStart = technicalGrid.physicalGlobalStart
-      = {meshParams.xmin, meshParams.ymin, meshParams.zmin};
+      = {FSParams.xmin, FSParams.ymin, FSParams.zmin};
 
    // Checking that spatial cells are cubic, otherwise field solver is incorrect (cf. derivatives in E, Hall term)
    if ((abs((technicalGrid.DX - technicalGrid.DY) / technicalGrid.DX) > 0.001) ||

@@ -524,9 +524,9 @@ std::vector<CellID> mapDccrgIdToFsGridGlobalID(dccrg::Dccrg<SpatialCell,dccrg::C
    const auto topLeftIndices = mpiGrid.mapping.get_indices(dccrgID);
    std::array<int,3> fsgridDims;
    
-   fsgridDims[0] = meshParams.xcells_ini * pow(2,mpiGrid.get_maximum_refinement_level());
-   fsgridDims[1] = meshParams.ycells_ini * pow(2,mpiGrid.get_maximum_refinement_level());
-   fsgridDims[2] = meshParams.zcells_ini * pow(2,mpiGrid.get_maximum_refinement_level());
+   fsgridDims[0] = FSParams.xcells;
+   fsgridDims[1] = FSParams.ycells;
+   fsgridDims[2] = FSParams.zcells;
 
    std::vector<CellID> fsgridIDs(cellLength * cellLength * cellLength);
    for (uint k = 0; k < cellLength; ++k) {

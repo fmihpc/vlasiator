@@ -111,13 +111,13 @@ namespace projects {
    ) const {
       const FluctuationsSpeciesParameters& sP = speciesParams[popID];
       const size_t meshID = getObjectWrapper().particleSpecies[popID].velocityMesh;
-      vmesh::MeshParameters& meshParams = vmesh::getMeshWrapper()->velocityMeshes->at(meshID);
-      if (vx < meshParams.meshMinLimits[0] + 0.5*dvx ||
-          vy < meshParams.meshMinLimits[1] + 0.5*dvy ||
-          vz < meshParams.meshMinLimits[2] + 0.5*dvz ||
-          vx > meshParams.meshMaxLimits[0] - 1.5*dvx ||
-          vy > meshParams.meshMaxLimits[1] - 1.5*dvy ||
-          vz > meshParams.meshMaxLimits[2] - 1.5*dvz) {
+      vmesh::MeshParameters& velocityMeshParams = vmesh::getMeshWrapper()->velocityMeshes->at(meshID);
+      if (vx < velocityMeshParams.meshMinLimits[0] + 0.5*dvx ||
+          vy < velocityMeshParams.meshMinLimits[1] + 0.5*dvy ||
+          vz < velocityMeshParams.meshMinLimits[2] + 0.5*dvz ||
+          vx > velocityMeshParams.meshMaxLimits[0] - 1.5*dvx ||
+          vy > velocityMeshParams.meshMaxLimits[1] - 1.5*dvy ||
+          vz > velocityMeshParams.meshMaxLimits[2] - 1.5*dvz) {
          return 0.0;
       }
       
@@ -152,18 +152,6 @@ namespace projects {
    }
    
    void Fluctuations::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) {
-      Real* cellParams = cell->get_cell_parameters();
-      creal x = cellParams[CellParams::XCRD];
-      creal dx = cellParams[CellParams::DX];
-      creal y = cellParams[CellParams::YCRD];
-      creal dy = cellParams[CellParams::DY];
-      creal z = cellParams[CellParams::ZCRD];
-      creal dz = cellParams[CellParams::DZ];
-      
-      CellID cellID = (int) ((x - meshParams.xmin) / dx) +
-         (int) ((y - meshParams.ymin) / dy) * meshParams.xcells_ini +
-         (int) ((z - meshParams.zmin) / dz) * meshParams.xcells_ini * meshParams.ycells_ini;
-      
       std::default_random_engine rndState;
       setRandomCellSeed(cell,rndState);
       
