@@ -435,20 +435,21 @@ namespace vmesh {
       }
       #endif
 
-      #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
-      gpuStream_t stream = gpu_getStream();
-      // Clear velocity block data to zero values
-      CHK_ERR( gpuMemsetAsync(&(block_data[newIndex*WID3]), 0, WID3*sizeof(Realf), stream) );
-      CHK_ERR( gpuMemsetAsync(&(parameters[newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS]), 0, BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real), stream) );
-      CHK_ERR( gpuStreamSynchronize(stream) );
-      #else
+      // #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
+      // gpuStream_t stream = gpu_getStream();
+      // CHK_ERR( gpuStreamSynchronize(stream) ); // <- fails without this. does this make this slower than just writing zeroes?
+      // // Clear velocity block data to zero values
+      // CHK_ERR( gpuMemsetAsync(&block_data[newIndex*WID3], 0, WID3*sizeof(Realf), stream) );
+      // CHK_ERR( gpuMemsetAsync(&parameters[newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS], 0, BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real), stream) );
+      // CHK_ERR( gpuStreamSynchronize(stream) );
+      // #else
       for (size_t i=0; i<WID3; ++i) {
          (*block_data)[newIndex*WID3+i] = 0.0;
       }
       for (size_t i=0; i<BlockParams::N_VELOCITY_BLOCK_PARAMS; ++i) {
          (*parameters)[newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS+i] = 0.0;
       }
-      #endif
+      // #endif
       ++numberOfBlocks;
       return newIndex;
    }
@@ -550,20 +551,20 @@ namespace vmesh {
    inline void VelocityBlockContainer::resize() {
 #ifdef USE_GPU
       if ((numberOfBlocks+1)*BLOCK_ALLOCATION_FACTOR >= currentCapacity) {
-         // Resize so that free space is block_allocation_chunk blocks,
+         // Resize so that free space is current * block_allocation_padding blocks,
          // and at least two in case of having zero blocks.
          // The order of velocity blocks is unaltered.
          currentCapacity = 2 + numberOfBlocks * BLOCK_ALLOCATION_PADDING;
-         // reallocate() doesn't change vector size, leads to data loss when further reallocating due to lack of data copy
+         // reallocate() doesn't change vector size, would lead to data loss
+         // when further reallocating due to lack of data copy
          // Passing eco flag = true to resize tells splitvector we manage padding manually.
          block_data->resize(currentCapacity*WID3, true);
          parameters->resize(currentCapacity*BlockParams::N_VELOCITY_BLOCK_PARAMS, true);
-#if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
+         #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
          if ((attachedStream != 0)&&(needAttachedStreams)) {
             block_data->streamAttach(attachedStream);
             parameters->streamAttach(attachedStream);
          }
-#endif
          gpuStream_t stream = gpu_getStream();
          CHK_ERR( gpuStreamSynchronize(stream) );
          block_data->optimizeGPU(stream);
@@ -573,10 +574,11 @@ namespace vmesh {
          parameters->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
          block_data->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
          parameters->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+         #endif
       }
 #else
       if ((numberOfBlocks+1) >= currentCapacity) {
-         // Resize so that free space is block_allocation_chunk blocks,
+         // Resize so that free space is current * block_allocation_factor blocks,
          // and at least two in case of having zero blocks.
          // The order of velocity blocks is unaltered.
          currentCapacity = 2 + numberOfBlocks * BLOCK_ALLOCATION_FACTOR;

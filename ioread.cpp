@@ -389,8 +389,10 @@ bool _readBlockData(
       //allocate space for all blocks and create them and fill them
       // a conversion may happen between float and double
       #ifdef USE_GPU
-      split::SplitVector<vmesh::GlobalID> *blockIdsInCell2 = new split::SplitVector<vmesh::GlobalID>(blockIdsInCell); //blockIds in a particular cell, temporary usage
+      // blockIds in a particular cell, temporary usage
+      split::SplitVector<vmesh::GlobalID> *blockIdsInCell2 = new split::SplitVector<vmesh::GlobalID>(blockIdsInCell);
       blockIdsInCell2->optimizeGPU();
+      CHK_ERR( gpuDeviceSynchronize() );
       mpiGrid[cell]->add_velocity_blocks(popID,blockIdsInCell2,&gpu_avgBuffer[blockBufferOffset*WID3]);
       #else
       mpiGrid[cell]->add_velocity_blocks(popID,blockIdsInCell,&avgBuffer[blockBufferOffset*WID3]);
