@@ -11,8 +11,6 @@
 # one-liner:
 # module purge; module load StdEnv; module load gcc/9.4.0; module load cuda/11.5.0; module load openmpi/4.1.2-cuda; module load jemalloc; module load papi
 
-# module purge; module load StdEnv gcc/11.2.0 cuda/11.5.0 openmpi/4.1.2 jemalloc papi boost
-
 #  Also, add this to your job script!
 #export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/projappl/project_2000203/libraries_rhel8_gcccuda/boost/lib
 
@@ -45,17 +43,16 @@ VECL=16
 #                         errors that come up when using
 #                         mpi.h in c++ on Cray
 
-# USE_CUDA=1
+USE_CUDA=1
 CUDABLOCKS=108
 CMP = mpic++
 LNK = mpic++
 
-#-G (device debug) overrides --generate-line-info -line-info
-# but also requires more device-side resources to run
+#-G (device debug) overrides --generate-line-info -line-info but also requires more device-side resources to run
 # use "-Xptxas -v" for verbose output of ptx compilation
 
 CXXFLAGS = -g -O3 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 --generate-line-info -line-info -Xcompiler="-fopenmp" -Xcompiler="-fpermissive" -dc
-testpackage: CXXFLAGS = -g -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 --generate-line-info -line-info -Xcompiler="-fopenmp" --prec-sqrt=true --prec-div=true --ftz=false --fmad=false -Xcompiler="-fpermissive" -dc
+testpackage: CXXFLAGS = -g -O2 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 --generate-line-info -line-info -Xcompiler="-fopenmp" --prec-sqrt=true --prec-div=true --ftz=false --fmad=false -Xcompiler="-fpermissive" -dc
 
 # Tell mpic++ to use nvcc for all compiling
 CMP = OMPI_CXX='nvcc' OMPI_CXXFLAGS='' mpic++
@@ -85,10 +82,8 @@ testpackage: CXXFLAGS += -DPAPI_MEM
 
 #======== Libraries ===========
 
-# LIBRARY_PREFIX = /users/jarohokk/pdir/vlasiator/libs
-# LIBRARY_PREFIX2 = /users/jarohokk/pdir/vlasiator/libs
-LIBRARY_PREFIX = /users/filippoz/scratch/zonta/libs
-LIBRARY_PREFIX2 = /users/filippoz/scratch/zonta/libs
+LIBRARY_PREFIX = /projappl/project_2002873/libraries/nvhpc/21.2
+LIBRARY_PREFIX2 = /projappl/project_2000203/libraries_rhel8_gcccuda
 
 #======== Compiled Libraries ===========
 
@@ -109,17 +104,14 @@ INC_VLSV = -I$(LIBRARY_PREFIX2)/vlsv
 LIB_VLSV = -L$(LIBRARY_PREFIX2)/vlsv -lvlsv -Xlinker=-rpath=$(LIBRARY_PREFIX2)/vlsv/lib
 #LIB_VLSV = -L$(LIBRARY_PREFIX2)/vlsv -lvlsv -Wl,-rpath=$(LIBRARY_PREFIX2)/vlsv/lib
 
-INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
-LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -Xlinker=-rpath=$(LIBRARY_PREFIX)/phiprof_nvcc/lib
-# LIB_PROFILE = -L$(LIBRARY_PREFIX)/phiprof/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX)/phiprof/lib
-# INC_PROFILE = -I$(LIBRARY_PREFIX)/phiprof/include
+INC_PROFILE = -I$(LIBRARY_PREFIX2)/phiprof_nvcc/include
+LIB_PROFILE = -L$(LIBRARY_PREFIX2)/phiprof_nvcc/lib -lphiprof -Xlinker=-rpath=$(LIBRARY_PREFIX2)/phiprof_nvcc/lib
 #LIB_PROFILE = -L$(LIBRARY_PREFIX2)/phiprof_nvcc/lib -lphiprof -Wl,-rpath=$(LIBRARY_PREFIX2)/phiprof_nvcc/lib
 
 #======== Header-only Libraries ===========
 
 INC_EIGEN = -isystem $(LIBRARY_PREFIX)/eigen
 INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg
-INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid-uni
+INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid_zontafil
 #INC_VECTORCLASS = -I$(LIBRARY_PREFIX)/vectorclass/
-# INC_HASHINATOR = -I$(HOME)/git/hashinator/
-INC_HASHINATOR = -I$(LIBRARY_PREFIX)/hashinator/
+INC_HASHINATOR = -I$(HOME)/git/hashinator/

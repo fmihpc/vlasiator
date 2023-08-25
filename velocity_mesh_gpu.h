@@ -40,6 +40,10 @@
 #include "arch/gpu_base.hpp"
 //#include "arch/arch_device_api.h" // included in above
 
+#ifdef DEBUG_VLASIATOR
+   #define DEBUG_VMESH
+#endif
+
 namespace vmesh {
 
    class VelocityMesh : public Managed {
@@ -263,7 +267,7 @@ namespace vmesh {
    }
 
    ARCH_HOSTDEV inline void VelocityMesh::getBlockInfo(const vmesh::GlobalID& globalID,Real* array) const {
-      #ifndef NDEBUG
+      #ifdef DEBUG_VMESH
       if (globalID == invalidGlobalID()) {
          for (int i=0; i<6; ++i) array[i] = std::numeric_limits<Real>::infinity();
       }
@@ -310,10 +314,10 @@ namespace vmesh {
    }
 
    ARCH_HOSTDEV inline vmesh::GlobalID VelocityMesh::getGlobalID(const vmesh::LocalID& localID) const {
-      #ifndef NDEBUG
+      #ifdef DEBUG_VMESH
       if (localID >= localToGlobalMap->size()) {
-         printf("ERROR invalid local id %lu\n",localID);
-         exit(1);
+         printf("ERROR invalid local id %lu\n",(long unsigned int)localID);
+         return 0;
       }
       #endif
 

@@ -49,7 +49,7 @@
 #define vector_length(v) (v).norm()
 #define normalize_vector(v) (v).normalized()
 
-#ifndef NDEBUG
+#ifdef DEBUG_VLASIATOR
    #define DEBUG_IONOSPHERE
 #endif
 #ifdef DEBUG_SYSBOUNDARY

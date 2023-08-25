@@ -45,7 +45,7 @@ namespace SBC {
             creal z = (globalIndices[2] + 0.5) * technicalGrid.grid()->DZ + FSParams.zmin;
 
             bool isThisCellOnAFace[6];
-            determineFace(&isThisCellOnAFace[0], x, y, z, dx, dy, dz, isPeriodic, true);
+            determineFace(isThisCellOnAFace, x, y, z, dx, dy, dz, isPeriodic, true);
 
             for (uint i=0; i<6; i++) {
                 if (isThisCellOnAFace[i]) {

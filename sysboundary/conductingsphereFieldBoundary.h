@@ -282,7 +282,8 @@ namespace SBC {
             default:
                 #ifndef __CUDA_ARCH__
                 cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
-                #endif 
+                #endif
+                return;
         }
     }
     

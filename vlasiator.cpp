@@ -89,7 +89,7 @@ bool globalflags::ionosphereJustSolved = false;
 ObjectWrapper objectWrapper;
 
 void addTimedBarrier(string name){
-#ifdef NDEBUG
+#ifndef DEBUG_VLASIATOR
 //let's not do  a barrier
    return;
 #endif
@@ -415,7 +415,7 @@ int main(int argn,char* args[]) {
    phiprof::start("Init fieldsolver grids");
    calcFieldsolverParameters();
 
-   int fsGridDimensions[3] = {FSParams.xcells,FSParams.ycells,FSParams.zcells};
+   int fsGridDimensions[3] = {(int)FSParams.xcells,(int)FSParams.ycells,(int)FSParams.zcells};
 
    std::array<bool,3> periodicity{sysBoundaryContainer.isBoundaryPeriodic(0),
                                   sysBoundaryContainer.isBoundaryPeriodic(1),

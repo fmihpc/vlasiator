@@ -25,7 +25,7 @@
 #include "fs_common.h"
 #include "ldz_volume.hpp"
 
-#ifndef NDEBUG
+#ifdef DEBUG_VLASIATOR
    #define DEBUG_FSOLVER
 #endif
 
@@ -76,9 +76,13 @@ void calculateVolumeAveragedFields(
          if (technicalGrid.get(i  ,j  ,k+1) == NULL) ok = false;
          if (technicalGrid.get(i  ,j+1,k+1) == NULL) ok = false;
          if (ok == false) {
+            #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
             stringstream ss;
             ss << "ERROR, got NULL neighbor in " << __FILE__ << ":" << __LINE__ << endl;
             cerr << ss.str(); exit(1);
+            #else
+            printf("ERROR, got NULL neighbor/n");
+            #endif
          }
          #endif
 
@@ -105,9 +109,13 @@ void calculateVolumeAveragedFields(
          if (technicalGrid.get(i  ,j  ,k+1) == NULL) ok = false;
          if (technicalGrid.get(i+1,j  ,k+1) == NULL) ok = false;
          if (ok == false) {
+            #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
             stringstream ss;
             ss << "ERROR, got NULL neighbor in " << __FILE__ << ":" << __LINE__ << endl;
             cerr << ss.str(); exit(1);
+            #else
+            printf("ERROR, got NULL neighbor/n");
+            #endif
          }
          #endif
 
@@ -134,9 +142,13 @@ void calculateVolumeAveragedFields(
          if (technicalGrid.get(i  ,j+1,k  ) == NULL) ok = false;
          if (technicalGrid.get(i+1,j+1,k  ) == NULL) ok = false;
          if (ok == false) {
+            #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
             stringstream ss;
             ss << "ERROR, got NULL neighbor in " << __FILE__ << ":" << __LINE__ << endl;
             cerr << ss.str(); exit(1);
+            #else
+            printf("ERROR, got NULL neighbor/n");
+            #endif
          }
          #endif
 

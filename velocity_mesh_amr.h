@@ -32,7 +32,7 @@
 #include <cmath>
 #include <algorithm>
 
-#ifndef NDEBUG
+#ifdef DEBUG_VLASIATOR
    #define DEBUG_VAMR_MESH
 #endif
 
