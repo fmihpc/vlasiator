@@ -6,14 +6,14 @@
 namespace SBC {
     class FieldBoundary {
         public:
-            ARCH_HOSTDEV void fieldSolverGetNormalDirection(
-                const arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> & technicalGrid,
-                cint i,
-                cint j,
-                cint k,
-                Real (&normalDirection)[3]
-            ) {
-            phiprof::start("FieldBoundary::fieldSolverGetNormalDirection");
+        ARCH_HOSTDEV void fieldSolverGetNormalDirection(
+            const arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> & technicalGrid,
+            cint i,
+            cint j,
+            cint k,
+            Real (&normalDirection)[3]
+        ) {
+            phiprof::start("Ionosphere::fieldSolverGetNormalDirection");
             
             static creal DIAG2 = 0.7071067811865475; // 1.0 / sqrt(2.0);
             static creal DIAG3 = 0.5773502691896257; // 1.0 / sqrt(3.0);
@@ -23,21 +23,21 @@ namespace SBC {
             creal dz = technicalGrid.grid()->DZ;
             int globalIndices[3];
             technicalGrid.grid()->getGlobalIndices(i,j,k, globalIndices);
-            creal x = meshParams.xmin + (convert<Real>(globalIndices[0])+0.5)*dx;
-            creal y = meshParams.ymin + (convert<Real>(globalIndices[1])+0.5)*dy;
-            creal z = meshParams.zmin + (convert<Real>(globalIndices[2])+0.5)*dz;
+            creal x = FSParams.xmin + (convert<Real>(globalIndices[0])+0.5)*dx;
+            creal y = FSParams.ymin + (convert<Real>(globalIndices[1])+0.5)*dy;
+            creal z = FSParams.zmin + (convert<Real>(globalIndices[2])+0.5)*dz;
             creal xsign = divideIfNonZero(x, fabs(x));
             creal ysign = divideIfNonZero(y, fabs(y));
             creal zsign = divideIfNonZero(z, fabs(z));
             
             Real length = 0.0;
             
-            if (meshParams.xcells_ini == 1) {
-                if (meshParams.ycells_ini == 1) {
-                    if (meshParams.zcells_ini == 1) {
+            if (FSParams.xcells == 1) {
+                if (FSParams.ycells == 1) {
+                    if (FSParams.zcells == 1) {
                     // X,Y,Z
                     #ifndef __CUDA_ARCH__
-                    std::cerr << __FILE__ << ":" << __LINE__ << ":" << "What do you expect to do with a single-cell simulation for this boundary type? Stop kidding." << std::endl;
+                    std::cerr << __FILE__ << ":" << __LINE__ << ":" << "What do you expect to do with a single-cell simulation of ionosphere boundary type? Stop kidding." << std::endl;
                     #endif
                     assert(0);
                     // end of X,Y,Z
@@ -46,7 +46,7 @@ namespace SBC {
                     normalDirection[2] = zsign;
                     // end of X,Y
                     }
-                } else if (meshParams.zcells_ini == 1) {
+                } else if (FSParams.zcells == 1) {
                     // X,Z
                     normalDirection[1] = ysign;
                     // end of X,Z
@@ -87,14 +87,14 @@ namespace SBC {
                         break;
                     default:
                         #ifndef __CUDA_ARCH__ 
-                        std::cerr << __FILE__ << ":" << __LINE__ << ":" << "fieldboundary.geometry has to be 0, 1 or 2 with this grid shape." << std::endl;
+                        std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2 with this grid shape." << std::endl;
                         #endif
                         assert(0); 
                     }
                     // end of X
                 }
-            } else if (meshParams.ycells_ini == 1) {
-                if (meshParams.zcells_ini == 1) {
+            } else if (FSParams.ycells == 1) {
+                if (FSParams.zcells == 1) {
                     // Y,Z
                     normalDirection[0] = xsign;
                     // end of Y,Z
@@ -136,13 +136,13 @@ namespace SBC {
                         break;
                     default:
                         #ifndef __CUDA_ARCH__ 
-                        std::cerr << __FILE__ << ":" << __LINE__ << ":" << "fieldboundary.geometry has to be 0, 1, 2 or 3 with this grid shape." << std::endl;
+                        std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1, 2 or 3 with this grid shape." << std::endl;
                         #endif 
                         assert(0);
                     }
                     // end of Y
                 }
-            } else if (meshParams.zcells_ini == 1) {
+            } else if (FSParams.zcells == 1) {
                 // Z
                 switch(this->geometry) {
                     case 0:
@@ -179,7 +179,7 @@ namespace SBC {
                     break;
                     default:
                     #ifndef __CUDA_ARCH__
-                    std::cerr << __FILE__ << ":" << __LINE__ << ":" << "fieldboundary.geometry has to be 0, 1 or 2 with this grid shape." << std::endl;
+                    std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2 with this grid shape." << std::endl;
                     #endif 
                     assert(0); 
                 }
@@ -279,13 +279,13 @@ namespace SBC {
                     break;
                     default:
                     #ifndef __CUDA_ARCH__
-                    std::cerr << __FILE__ << ":" << __LINE__ << ":" << "fieldboundary.geometry has to be 0, 1, 2 or 3 with this grid shape." << std::endl;
+                    std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1, 2 or 3 with this grid shape." << std::endl;
                     #endif 
                     assert(0); 
                 }
                 // end of 3D
             }
-            phiprof::stop("FieldBoundary::fieldSolverGetNormalDirection");
+            phiprof::stop("Ionosphere::fieldSolverGetNormalDirection");
         }
 
         protected:
