@@ -36,9 +36,12 @@
 const uint64_t INVALID_CELLID = 0;
 
 struct FieldsolverParameters {
-   Real dx;  /*!< Initial size of spatial cell in x-direction. */
-   Real dy;  /*!< Initial size of spatial cell in y-direction. */
-   Real dz;  /*!< Initial size of spatial cell in z-direction. */
+   Real dx;  /*!< FSgrid size of spatial cell in x-direction. */
+   Real dy;  /*!< FSgrid size of spatial cell in y-direction. */
+   Real dz;  /*!< FSgrid size of spatial cell in z-direction. */
+   Real dx_ini;  /*!< DCCRG refLvl=0 size of spatial cell in x-direction. */
+   Real dy_ini;  /*!< DCCRG refLvl=0  size of spatial cell in y-direction. */
+   Real dz_min;  /*!< DCCRG refLvl=0  size of spatial cell in z-direction. */
    Real xmin;    /*!< X-coordinate of the lower left corner of the spatial grid. */
    Real ymin;    /*!< Y-coordinate of the lower left corner of the spatial grid. */
    Real zmin;    /*!< Z-coordinate of the lower left corner of the spatial grid. */

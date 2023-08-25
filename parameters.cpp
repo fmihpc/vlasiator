@@ -187,6 +187,9 @@ void initFieldsolverParameters() {
    FSParams.dx = NAN;
    FSParams.dy = NAN;
    FSParams.dz = NAN;
+   FSParams.dx_ini = NAN;
+   FSParams.dy_ini = NAN;
+   FSParams.dz_ini = NAN;
 
    FSParams.xcells = numeric_limits<uint>::max();
    FSParams.ycells = numeric_limits<uint>::max();
@@ -205,6 +208,9 @@ void calcFieldsolverParameters() {
    FSParams.ymax = P::ymax;
    FSParams.zmin = P::zmin;
    FSParams.zmax = P::zmax;
+   FSParams.dx_ini = P::dx_ini;
+   FSParams.dy_ini = P::dy_ini;
+   FSParams.dz_ini = P::dz_ini;
    FSParams.xcells = convert<int>(P::xcells_ini * pow(2,P::amrMaxSpatialRefLevel))
    FSParams.ycells = convert<int>(P::ycells_ini * pow(2,P::amrMaxSpatialRefLevel))
    FSParams.zcells = convert<int>(P::zcells_ini * pow(2,P::amrMaxSpatialRefLevel))
