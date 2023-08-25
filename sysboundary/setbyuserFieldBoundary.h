@@ -34,9 +34,9 @@ namespace SBC {
         ) {
             Real result = 0.0;
 
-            creal dx = P::dx_ini;
-            creal dy = P::dy_ini;
-            creal dz = P::dz_ini;
+            creal dx = FSParams.dx_ini;
+            creal dy = FSParams.dy_ini;
+            creal dz = FSParams.dz_ini;
             int32_t globalIndices[3];
             technicalGrid.grid()->getGlobalIndices(i,j,k, globalIndices);
            
@@ -75,34 +75,34 @@ namespace SBC {
             for(uint i=0; i<6; i++) {
                 isThisCellOnAFace[i] = false;
             }
-            if(x > P::xmax - 2.0*dx) {
+            if(x > FSParams.xmax - 2.0*dx) {
                 isThisCellOnAFace[0] = true;
             }
-            if(x < P::xmin + 2.0*dx) {
+            if(x < FSParams.xmin + 2.0*dx) {
                 isThisCellOnAFace[1] = true;
             }
-            if(y > P::ymax - 2.0*dy) {
+            if(y > FSParams.ymax - 2.0*dy) {
                 isThisCellOnAFace[2] = true;
             }
-            if(y < P::ymin + 2.0*dy) {
+            if(y < FSParams.ymin + 2.0*dy) {
                 isThisCellOnAFace[3] = true;
             }
-            if(z > P::zmax - 2.0*dz) {
+            if(z > FSParams.zmax - 2.0*dz) {
                 isThisCellOnAFace[4] = true;
             }
-            if(z < P::zmin + 2.0*dz) {
+            if(z < FSParams.zmin + 2.0*dz) {
                 isThisCellOnAFace[5] = true;
             }
             if(excludeSlicesAndPeriodicDimensions == true) {
-                if(P::xcells_ini == 1 || isPeriodic[0]) {
+                if(FSParams.xcells_ini == 1 || isPeriodic[0]) {
                     isThisCellOnAFace[0] = false;
                     isThisCellOnAFace[1] = false;
                 }
-                if(P::ycells_ini == 1 || isPeriodic[1]) {
+                if(FSParams.ycells_ini == 1 || isPeriodic[1]) {
                     isThisCellOnAFace[2] = false;
                     isThisCellOnAFace[3] = false;
                 }
-                if(P::zcells_ini == 1 || isPeriodic[2]) {
+                if(FSParams.zcells_ini == 1 || isPeriodic[2]) {
                     isThisCellOnAFace[4] = false;
                     isThisCellOnAFace[5] = false;
                 }
