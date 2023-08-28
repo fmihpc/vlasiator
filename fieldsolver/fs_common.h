@@ -102,13 +102,13 @@ bool propagateFields(
    cuint subcycles
 );
 
-// /*! \brief Helper function
-//  * 
-//  * Divides the first value by the second or returns zero if the denominator is zero.
-//  * 
-//  * \param numerator Numerator
-//  * \param denominator Denominator
-//  */
+/**! \brief Helper function
+ *
+ * Divides the first value by the second or returns zero if the denominator is zero.
+ *
+ * \param numerator Numerator
+ * \param denominator Denominator
+ */
 ARCH_HOSTDEV Real divideIfNonZero(
    creal numerator,
    creal denominator

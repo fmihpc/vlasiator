@@ -330,49 +330,49 @@ void calculateDerivativesSimple(
    phiprof::start(timer);
    
    switch (RKCase) {
-    case RK_ORDER1:
-      // Means initialising the solver as well as RK_ORDER1
-      // standard case Exchange PERB* with neighbours
-      // The update of PERB[XYZ] is needed after the system
-      // boundary update of propagateMagneticFieldSimple.
-      perBGrid.syncHostData(); 
-       perBGrid.grid()->updateGhostCells();
-       perBGrid.syncDeviceData();
-       if(communicateMoments) {
-         momentsGrid.syncHostData();
-         momentsGrid.grid()->updateGhostCells();
-         momentsGrid.syncDeviceData();
-       }
-       break;
-    case RK_ORDER2_STEP1:
-      // Exchange PERB*_DT2,RHO_DT2,V*_DT2 with neighbours The
-      // update of PERB[XYZ]_DT2 is needed after the system
-      // boundary update of propagateMagneticFieldSimple.
-       perBDt2Grid.syncHostData();
-       perBDt2Grid.grid()->updateGhostCells();
-       perBDt2Grid.syncDeviceData();
-       if(communicateMoments) {
-         momentsDt2Grid.syncHostData();
-         momentsDt2Grid.grid()->updateGhostCells();
-         momentsDt2Grid.syncDeviceData();
-       }
-       break;
-    case RK_ORDER2_STEP2:
-      // Exchange PERB*,RHO,V* with neighbours The update of B
-      // is needed after the system boundary update of
-      // propagateMagneticFieldSimple.
-       perBGrid.syncHostData(); 
-       perBGrid.grid()->updateGhostCells();
-       perBGrid.syncDeviceData();
-       if(communicateMoments) {
-         momentsGrid.syncHostData();
-         momentsGrid.grid()->updateGhostCells();
-         momentsGrid.syncDeviceData();
-       }
-      break;
-    default:
-      cerr << __FILE__ << ":" << __LINE__ << " Went through switch, this should not happen." << endl;
-      abort();
+      case RK_ORDER1:
+         // Means initialising the solver as well as RK_ORDER1
+         // standard case Exchange PERB* with neighbours
+         // The update of PERB[XYZ] is needed after the system
+         // boundary update of propagateMagneticFieldSimple.
+         perBGrid.syncHostData();
+         perBGrid.grid()->updateGhostCells();
+         perBGrid.syncDeviceData();
+         if(communicateMoments) {
+            momentsGrid.syncHostData();
+            momentsGrid.grid()->updateGhostCells();
+            momentsGrid.syncDeviceData();
+         }
+         break;
+      case RK_ORDER2_STEP1:
+         // Exchange PERB*_DT2,RHO_DT2,V*_DT2 with neighbours The
+         // update of PERB[XYZ]_DT2 is needed after the system
+         // boundary update of propagateMagneticFieldSimple.
+         perBDt2Grid.syncHostData();
+         perBDt2Grid.grid()->updateGhostCells();
+         perBDt2Grid.syncDeviceData();
+         if(communicateMoments) {
+            momentsDt2Grid.syncHostData();
+            momentsDt2Grid.grid()->updateGhostCells();
+            momentsDt2Grid.syncDeviceData();
+         }
+         break;
+      case RK_ORDER2_STEP2:
+         // Exchange PERB*,RHO,V* with neighbours The update of B
+         // is needed after the system boundary update of
+         // propagateMagneticFieldSimple.
+         perBGrid.syncHostData();
+         perBGrid.grid()->updateGhostCells();
+         perBGrid.syncDeviceData();
+         if(communicateMoments) {
+            momentsGrid.syncHostData();
+            momentsGrid.grid()->updateGhostCells();
+            momentsGrid.syncDeviceData();
+         }
+         break;
+      default:
+         cerr << __FILE__ << ":" << __LINE__ << " Went through switch, this should not happen." << endl;
+         abort();
    }
    
    phiprof::stop(timer);
@@ -509,7 +509,7 @@ void calculateBVOLDerivativesSimple(
    phiprof::start(timer);
    volGrid.syncHostData();
    volGrid.grid()->updateGhostCells();
-   volGrid.syncDeviceData();
+   // volGrid.syncDeviceData();
    
    phiprof::stop(timer,N_cells,"Spatial Cells");
    
@@ -518,6 +518,13 @@ void calculateBVOLDerivativesSimple(
    timer=phiprof::initializeTimer("Compute cells");
    phiprof::start(timer);
    
+   //ARCH_TODO
+   // arch::parallel_for({(uint)gridDims[0], (uint)gridDims[1], (uint)gridDims[2]}, ARCH_LOOP_LAMBDA(int i, int j, int k) {
+   //       if (technicalGrid.get(i,j,k)->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE) {
+   //          calculateBVOLDerivatives(volGrid,technicalGrid,i,j,k,sysBoundaries);
+   //       }
+   //    });
+   technicalGrid.syncHostData();
    #pragma omp parallel for collapse(3)
    for (int k=0; k<gridDims[2]; k++) {
       for (int j=0; j<gridDims[1]; j++) {
@@ -529,6 +536,8 @@ void calculateBVOLDerivativesSimple(
          }
       }
    }
+   volGrid.syncDeviceData();
+   technicalGrid.syncDeviceData();
 
    phiprof::stop(timer,N_cells,"Spatial Cells");
 
@@ -659,9 +668,19 @@ void calculateCurvatureSimple(
    
    timer=phiprof::initializeTimer("Start comm","MPI");
    phiprof::start(timer);
+   volGrid.syncHostData();
    volGrid.grid()->updateGhostCells();
+   // volGrid.syncDeviceData();
    phiprof::stop(timer,N_cells,"Spatial Cells");
-   
+
+   //ARCH_TODO
+   // arch::parallel_for({(uint)gridDims[0], (uint)gridDims[1], (uint)gridDims[2]}, ARCH_LOOP_LAMBDA(int i, int j, int k) {
+   //       if (technicalGrid.get(i,j,k)->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE) {
+   //          calculateCurvature(volGrid,bgbGrid,technicalGrid,i,j,k,sysBoundaries);
+   //       }
+   //    });
+   bgbGrid.syncHostData();
+   technicalGrid.syncHostData();
    #pragma omp parallel for collapse(3)
    for (int k=0; k<gridDims[2]; k++) {
       for (int j=0; j<gridDims[1]; j++) {
@@ -673,7 +692,10 @@ void calculateCurvatureSimple(
          }
       }
    }
-   
+   volGrid.syncDeviceData();
+   bgbGrid.syncDeviceData();
+   technicalGrid.syncDeviceData();
+
    phiprof::stop("Calculate curvature",N_cells,"Spatial Cells");
 }
 

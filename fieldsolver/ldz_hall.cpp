@@ -815,13 +815,35 @@ void calculateHallTermSimple(
    phiprof::start("Calculate Hall term");
    timer=phiprof::initializeTimer("MPI","MPI");
    phiprof::start(timer);
+   dPerBGrid.syncHostData();
    dPerBGrid.grid()->updateGhostCells();
+   dPerBGrid.syncDeviceData();
    if(FSParams.ohmGradPeTerm == 0) {
+      dMomentsGrid.syncHostData();
       dMomentsGrid.grid()->updateGhostCells();
+      dMomentsGrid.syncDeviceData();
    }
    phiprof::stop(timer);
 
    phiprof::start("Compute cells");
+   //ARCH_TODO
+   // arch::parallel_for({(uint)gridDims[0], (uint)gridDims[1], (uint)gridDims[2]}, ARCH_LOOP_LAMBDA(int i, int j, int k) {
+   //       if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+   //          calculateHallTerm(perBGrid, EHallGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid,sysBoundaries, i, j, k);
+   //       } else {
+   //          calculateHallTerm(perBDt2Grid, EHallGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid,sysBoundaries, i, j, k);
+   //       }
+   //    });
+   perBGrid.syncHostData();
+   perBDt2Grid.syncHostData();
+   EHallGrid.syncHostData();
+   momentsGrid.syncHostData();
+   momentsDt2Grid.syncHostData();
+   dPerBGrid.syncHostData();
+   dMomentsGrid.syncHostData();
+   BgBGrid.syncHostData();
+   technicalGrid.syncHostData();
+   sysBoundaries.syncHostData();
    #pragma omp parallel for collapse(3)
    for (int k=0; k<gridDims[2]; k++) {
       for (int j=0; j<gridDims[1]; j++) {
@@ -834,6 +856,16 @@ void calculateHallTermSimple(
          }
       }
    }
+   perBGrid.syncDeviceData();
+   perBDt2Grid.syncDeviceData();
+   EHallGrid.syncDeviceData();
+   momentsGrid.syncDeviceData();
+   momentsDt2Grid.syncDeviceData();
+   dPerBGrid.syncDeviceData();
+   dMomentsGrid.syncDeviceData();
+   BgBGrid.syncDeviceData();
+   technicalGrid.syncDeviceData();
+   sysBoundaries.syncDeviceData();
    phiprof::stop("Compute cells");
 
    phiprof::stop("Calculate Hall term",N_cells,"Spatial Cells");

@@ -359,7 +359,6 @@ void getFieldsFromFsGrid(
    std::vector<MPI_Request> sendRequests;
    std::vector<MPI_Request> receiveRequests;
    
-   
    //computeCoupling
    computeCoupling(mpiGrid, cells, volumeFieldsGrid, onDccrgMapRemoteProcess, onFsgridMapRemoteProcess, onFsgridMapCells);
    
