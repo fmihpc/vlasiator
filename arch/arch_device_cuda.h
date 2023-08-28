@@ -175,10 +175,10 @@ namespace arch{
 
       __host__ ~buf(void){
          if(!is_copy){
-            // syncHostData();
-#ifdef __CUDA_ARCH__
+            #ifndef __CUDA_ARCH__
+            //syncHostData();
             cudaFreeAsync(d_ptr, gpuStreamList[thread_id]);
-#endif
+            #endif
          }
       }
 
@@ -196,8 +196,7 @@ namespace arch{
     private:  
     T *h_data; 
     T *d_data;
-    FsGrid<T, TDim, N> *ptr; 
-    FsGrid<T, TDim, N> *h_ptr; 
+    FsGrid<T, TDim, N> *h_ptr;
     FsGrid<T, TDim, N> *d_ptr;
     uint dataSize;
     uint is_copy = 0;
@@ -205,38 +204,40 @@ namespace arch{
 
     public:   
 
+     // Metadata is never edited on-device, so only actual data is synced.
     void syncDeviceData(void){
-      memcpy(h_ptr, ptr, sizeof(FsGrid<T, TDim, N>));
-      h_ptr->setData(d_data);
-      CHK_ERR(cudaMemcpy(d_ptr, h_ptr, sizeof(FsGrid<T, TDim, N>), cudaMemcpyHostToDevice));
       CHK_ERR(cudaMemcpy(d_data, h_data, dataSize, cudaMemcpyHostToDevice));
     }
 
     void syncHostData(void){
       CHK_ERR(cudaMemcpy(h_data, d_data, dataSize, cudaMemcpyDeviceToHost));
-      CHK_ERR(cudaMemcpy(h_ptr, d_ptr, sizeof(FsGrid<T, TDim, N>), cudaMemcpyDeviceToHost));
-      h_ptr->setData(h_data);
-      memcpy(ptr, h_ptr, sizeof(FsGrid<T, TDim, N>));
     }
     
-    buf(FsGrid<T, TDim, N> * const _ptr) : ptr(_ptr) {
+     buf(FsGrid<T, TDim, N> * const _ptr) : h_ptr(_ptr) {
       int32_t *storageSize = _ptr->getStorageSize();
       dataSize = storageSize[0] * storageSize[1] * storageSize[2] * TDim * sizeof(T);
       h_data = &_ptr->getData();
-      h_ptr = (FsGrid<T, TDim, N>*) malloc(sizeof(FsGrid<T, TDim, N>));
       CHK_ERR(cudaMalloc(&d_ptr, sizeof(FsGrid<T, TDim, N>)));
       CHK_ERR(cudaMalloc(&d_data, dataSize));
+      // Make the device copy of the FSgrid object point to the correct memory
+      FsGrid<T, TDim, N> *tmp_ptr;
+      tmp_ptr = (FsGrid<T, TDim, N>*) malloc(sizeof(FsGrid<T, TDim, N>));
+      memcpy(tmp_ptr, _ptr, sizeof(FsGrid<T, TDim, N>));
+      tmp_ptr->setData(d_data);
+      CHK_ERR(cudaMemcpy(d_ptr, tmp_ptr, sizeof(FsGrid<T, TDim, N>), cudaMemcpyHostToDevice));
       syncDeviceData();
+      free(tmp_ptr);
     }
     
     __host__ __device__ buf(const buf& u) : 
-      ptr(u.ptr), h_ptr(u.h_ptr), d_ptr(u.d_ptr), h_data(u.h_data), d_data(u.d_data), dataSize(u.dataSize), is_copy(1), thread_id(u.thread_id) {}
+       h_ptr(u.h_ptr), d_ptr(u.d_ptr), h_data(u.h_data), d_data(u.d_data), dataSize(u.dataSize), is_copy(1), thread_id(u.thread_id) {}
 
     __host__ __device__ ~buf(void){
       if(!is_copy){
         #ifndef __CUDA_ARCH__
           syncHostData();
           CHK_ERR(cudaFree(d_data));
+          CHK_ERR(cudaFree(d_ptr));
         #endif
       }
     }
@@ -245,7 +246,7 @@ namespace arch{
     #ifdef __CUDA_ARCH__
         return d_ptr;
     #else
-        return ptr;
+        return h_ptr;
     #endif
     }
 
@@ -253,7 +254,7 @@ namespace arch{
     #ifdef __CUDA_ARCH__
         return *d_ptr->get(i);
     #else
-        return *ptr->get(i);
+        return *h_ptr->get(i);
     #endif
     }
 
@@ -261,7 +262,7 @@ namespace arch{
     #ifdef __CUDA_ARCH__
         return d_ptr->get(x, y, z);
     #else
-        return ptr->get(x, y, z);
+        return h_ptr->get(x, y, z);
     #endif
     }
   }; 
@@ -501,9 +502,12 @@ namespace arch{
 
       /* Calculate the required size for the 1D kernel */
       uint n_total = 1;
-      for(uint i = 0; i < NDim; i++)
-        n_total *= limits[i];
-
+      for(uint i = 0; i < NDim; i++) {
+         n_total *= limits[i];
+      }
+      if (n_total==0) {
+         return;
+      }
       /* Set the kernel dimensions */
       const uint blocksize = ARCH_BLOCKSIZE_R;
       const uint gridsize = (n_total - 1 + blocksize) / blocksize;
@@ -526,8 +530,12 @@ namespace arch{
 
       /* Calculate the required size for the 1D kernel */
       uint n_total = 1;
-      for(uint i = 0; i < NDim; i++)
+      for(uint i = 0; i < NDim; i++) {
          n_total *= limits[i];
+      }
+      if (n_total==0) {
+         return;
+      }
 
       /* Set the kernel dimensions */
       const uint blocksize = ARCH_BLOCKSIZE_R;
