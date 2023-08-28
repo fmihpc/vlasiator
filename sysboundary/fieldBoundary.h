@@ -1,7 +1,7 @@
 #ifndef FIELD_BOUNDARY_H
 #define FIELD_BOUNDARY_H
 
-#include "../arch/gpu_base.hpp"
+#include "../arch/arch_device_api.h"
 #include "../fieldsolver/fs_common.h"
 namespace SBC {
     class FieldBoundary {

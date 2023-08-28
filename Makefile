@@ -166,19 +166,6 @@ DEPS_VLSVMOVER_VAMR = vlasovsolver_amr/vlasovmover.cpp vlasovsolver_amr/cpu_acc_
 
 #all objects for vlasiator
 
-OBJS_UNITTESTS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipole.o vectordipole.o constantfield.o integratefunction.o \
-	datareducer.o datareductionoperator.o dro_populations.o amr_refinement_criteria.o\
-	donotcompute.o ionosphere.o outflow.o setbyuser.o setmaxwellian.o\
-	setbyuserFieldBoundary.o ionosphereFieldBoundary.o outflowFieldBoundary.o\
-	sysboundary.o sysboundarycondition.o particle_species.o\
-	project.o projectTriAxisSearch.o read_gaussian_population.o\
-	Alfven.o Diffusion.o Dispersion.o Distributions.o Firehose.o\
-	Flowthrough.o Fluctuations.o Harris.o KHB.o Larmor.o Magnetosphere.o MultiPeak.o\
-	VelocityBox.o Riemann1.o Shock.o Template.o test_fp.o testAmr.o testHall.o test_trans.o\
-	IPShock.o object_wrapper.o\
-	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o logger.o\
-	common.o parameters.o readparameters.o spatial_cell.o mesh_data_container.o\
-	vlasovmover.o fs_common.o fs_limiters.o gridGlue.o
 OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipole.o vectordipole.o constantfield.o integratefunction.o \
 	datareducer.o datareductionoperator.o dro_populations.o \
 	donotcompute.o ionosphere.o conductingsphere.o outflow.o setbyuser.o setmaxwellian.o\
@@ -189,7 +176,7 @@ OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipo
 	Flowthrough.o Fluctuations.o Harris.o KHB.o Larmor.o Magnetosphere.o MultiPeak.o\
 	VelocityBox.o Riemann1.o Shock.o Template.o test_fp.o testAmr.o testHall.o test_trans.o\
 	IPShock.o object_wrapper.o\
-	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o vlasiator.o logger.o\
+	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o logger.o\
 	common.o parameters.o readparameters.o spatial_cell.o velocity_mesh_parameters.o\
 	vlasovmover.o $(FIELDSOLVER).o fs_common.o fs_limiters.o gridGlue.o
 
@@ -286,7 +273,7 @@ endif
 # for all files in the datareduction/ dir
 %.o: datareduction/%.cpp ${DEPS_COMMON} datareduction/datareductionoperator.h fieldtracing/fieldtracing.h sysboundary/ionosphere.h datareduction/dro_populations.h
 	@echo [CC] $<
-	$(SILENT)${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c $< ${INC_DCCRG} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_EIGEN} ${INC_VLSV} ${INC_FSGRID}
+	$(SILENT)${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c $< ${INC_DCCRG} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_EIGEN} ${INC_VLSV} ${INC_FSGRID} ${INC_HASHINATOR}
 
 # for all files in the sysboundary/ dir
 %.o: sysboundary/%.cpp ${DEPS_COMMON} sysboundary/%.h backgroundfield/backgroundfield.h projects/project.h fieldsolver/fs_limiters.h
@@ -333,7 +320,12 @@ endif
 # Make executable
 vlasiator: $(OBJS) $(OBJS_FSOLVER)
 	@echo "[LINK] ${EXE}"
-	$(SILENT)$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) $(LIBS) $(OBJS_FSOLVER)
+	$(SILENT)$(LNK) ${LDFLAGS} -o ${EXE} vlasiator.o $(OBJS) $(LIBS) $(OBJS_FSOLVER)
+
+# Make executable
+unit_testing_fields: $(OBJS) $(OBJS_FSOLVER) unit_tests.o
+	@echo "[LINK] unit_testing_fields"
+	$(SILENT)$(LNK) ${LDFLAGS} -o unit_testing_fields unit_tests.o $(OBJS) $(LIBS) $(OBJS_FSOLVER)
 
 
 #/// TOOLS section/////

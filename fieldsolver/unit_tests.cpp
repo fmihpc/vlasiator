@@ -20,16 +20,27 @@
 #define ARCH_MAIN 1
 
 /* Include the tested architecture-specific header */
-#include "arch_device_api.h"
+#include "../arch/arch_device_api.h"
 #include "../mpiconversion.h"
 #include "../common.h"
 #include "../sysboundary/sysboundary.h"
-#include "arch_sysboundary_api.h"
+#include "../arch/arch_sysboundary_api.h"
+#include "../logger.h"
+#include "../object_wrapper.h"
+
+Logger logFile,diagnostic;
+bool globalflags::ionosphereJustSolved = false;
+ObjectWrapper objectWrapper;
+ObjectWrapper& getObjectWrapper() {
+   return objectWrapper;
+}
+const std::vector<CellID>& getLocalCells() {
+   return Parameters::localCells;
+}
 
 /* Host execution of min() and max() require using std namespace */
 using namespace std;
 
-Logger logFile, diagnostic;
 static dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry> mpiGrid;
 
 int globalflags::bailingOut = 0;
@@ -197,11 +208,13 @@ typename std::enable_if<I == 2, std::tuple<bool, double, double>>::type test(){
   // create system boundaries
   SysBoundary sysBoundaries;
   Parameters::projectName =  "Diffusion";
-  initParameters(); 
+  initFieldsolverParameters();
   Project* project = projects::createProject(); 
   std::vector<std::string> sysBoundaryNames = {"Maxwellian", "Ionosphere", "Outflow"};
 
   std::vector<std::string> faceList;
+  std::vector<std::string> refineMinLatitude;
+  refineMinLatitude.push_back("40");
   faceList.push_back("x+");
   Readparameters::setVectorOption("maxwellian.face", faceList);
   Readparameters::setOption("maxwellian.precedence", "4");
@@ -213,7 +226,36 @@ typename std::enable_if<I == 2, std::tuple<bool, double, double>>::type test(){
   Readparameters::setOption("ionosphere.precedence", "2");
   Readparameters::setOption("ionosphere.geometry", "3");
   Readparameters::setOption("ionosphere.reapplyUponRestart", "0");
-  std::vector<std::string> faceNoFields; 
+  Readparameters::setOption("ionosphere.baseShape", "tetrahedron");
+  Readparameters::setOption("ionosphere.conductivityModel", "0");
+  Readparameters::setOption("ionosphere.innerBoundaryVDFmode", "FixedMoments");
+  Readparameters::setOption("ionosphere.ridleyParallelConductivity", "1000");
+  Readparameters::setOption("ionosphere.fibonacciNodeNum", "256");
+  Readparameters::setOption("ionosphere.solverMaxIterations", "1");
+  Readparameters::setOption("ionosphere.solverRelativeL2ConvergenceThreshold", "1e-6");
+  Readparameters::setOption("ionosphere.solverMaxFailureCount", "5");
+  Readparameters::setOption("ionosphere.solverMaxErrorGrowthFactor", "100");
+  Readparameters::setOption("ionosphere.shieldingLatitude", "70");
+  Readparameters::setOption("ionosphere.solverPreconditioning", "1");
+  Readparameters::setOption("ionosphere.solverUseMinimumResidualVariant", "0");
+  Readparameters::setOption("ionosphere.solverToggleMinimumResidualVariant", "0");
+  Readparameters::setOption("ionosphere.earthAngularVelocity", "7.2921159e-5");
+  Readparameters::setOption("ionosphere.plasmapauseL", "5.");
+  Readparameters::setOption("ionosphere.downmapRadius", "-1.");
+  Readparameters::setOption("ionosphere.unmappedNodeRho", "1e4");
+  Readparameters::setOption("ionosphere.unmappedNodeTe", "1e6");
+  Readparameters::setOption("ionosphere.couplingTimescale", "1.");
+  Readparameters::setOption("ionosphere.couplingInterval", "0");
+  Readparameters::setOption("ionosphere.solverGaugeFixing", std::string("equator"));
+  Readparameters::setOption("ionosphere.innerRadius", "100e3");
+  Readparameters::setVectorOption("ionosphere.refineMinLatitude", refineMinLatitude);
+  Readparameters::setVectorOption("ionosphere.refineMaxLatitude", refineMinLatitude);
+  Readparameters::setOption("ionosphere.atmosphericModelFile", "NRLMSIS.dat");
+  Readparameters::setOption("ionosphere.recombAlpha", "2.4e-13");
+  Readparameters::setOption("ionosphere.ionizationModel", "SergienkoIvanov");
+  Readparameters::setOption("ionosphere.innerBoundaryVDFmode", "FixedMoments");
+  Readparameters::setOption("ionosphere.F10_7", "100");
+  Readparameters::setOption("ionosphere.backgroundIonisation", "0.5"); 
   Readparameters::setVectorOption("outflow.faceNoFields", faceList); 
   Readparameters::setOption("outflow.precedence", "2");
   Readparameters::setOption("outflow.reapplyUponRestart", "0");
@@ -238,6 +280,8 @@ typename std::enable_if<I == 2, std::tuple<bool, double, double>>::type test(){
       }
     } 
   } 
+
+  
  
   // Create a buffer object that provides a convenient interface for accessing the grid data on the device
   arch::buf<FsGrid< Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> perBGridBuf(&perBGrid);
@@ -253,12 +297,10 @@ typename std::enable_if<I == 2, std::tuple<bool, double, double>>::type test(){
   perBGridBuf.syncHostData();
 
   bool success = true;
-  if (perBGridBuf.get(1,1,1)[fsgrids::bfield::PERBX] != 0) {
+  if (perBGridBuf.get(1,1,1)[fsgrids::bfield::PERBX] != 2) {
     success = false;
-    cout << "Error: perBGridBuf(10,10,10): " << perBGridBuf.get(10,10,10)[fsgrids::bfield::PERBX] << " should be 0" << endl;
+    cout << "Error: perBGridBuf(1,1,1): " << perBGridBuf.get(1,1,1)[fsgrids::bfield::PERBX] << " should be 0" << endl;
   }
-
-  perBGridBuf.get(10,10,10)[fsgrids::bfield::PERBX] = 2;
 
   // Execute the loop on the host
   clock_t host_start = clock();
