@@ -39,7 +39,7 @@
 #include "../object_wrapper.h"
 
 
-#ifndef NDEBUG
+#ifdef DEBUG_VLASIATOR
    #define DEBUG_CONDUCTINGSPHERE
 #endif
 #ifdef DEBUG_SYSBOUNDARY

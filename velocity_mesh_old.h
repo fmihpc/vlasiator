@@ -38,6 +38,10 @@
 #include "open_bucket_hashtable.h"
 #include "velocity_mesh_parameters.h"
 
+#ifdef DEBUG_VLASIATOR
+   #define DEBUG_VMESH
+#endif
+
 namespace vmesh {
 
    class VelocityMesh {
@@ -262,7 +266,7 @@ namespace vmesh {
    }
    
    inline void VelocityMesh::getBlockInfo(const vmesh::GlobalID& globalID,Real* array) const {
-      #ifndef NDEBUG
+      #ifdef DEBUG_VMESH
       if (globalID == invalidGlobalID()) {
          for (int i=0; i<6; ++i) array[i] = std::numeric_limits<Real>::infinity();
       }
@@ -314,7 +318,7 @@ namespace vmesh {
    }
 
    inline vmesh::GlobalID VelocityMesh::getGlobalID(const vmesh::LocalID& localID) const {
-      #ifndef NDEBUG
+      #ifdef DEBUG_VMESH
       if (localID >= localToGlobalMap->size()) {
          std::cerr << "ERROR invalid local id" << std::endl; exit(1);
       }
@@ -427,7 +431,7 @@ namespace vmesh {
    }
 
    inline void VelocityMesh::getNeighborsExistingAtOffset(const vmesh::GlobalID& globalID,const int& i_off,const int& j_off,const int& k_off,std::vector<vmesh::LocalID>& neighborLocalIDs,int32_t& refLevelDifference) const {
-      #ifndef NDEBUG
+      #ifdef DEBUG_VMESH
       if (abs(i_off) > 1 || (abs(j_off) > 1 || abs(k_off) > 1)) {
          std::stringstream ss;
          ss << "VelocityMesh ERROR: invalid offsets in getNeighborsExistingAtOffset " << i_off << ' ' << j_off << ' ' << k_off << std::endl;

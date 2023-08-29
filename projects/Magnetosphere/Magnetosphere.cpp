@@ -38,6 +38,10 @@
 #include "Magnetosphere.h"
 #include "../../fieldsolver/derivatives.hpp"
 
+#ifdef DEBUG_VLASIATOR
+   #define DEBUG_MAGNETOSPHERE
+#endif
+
 using namespace std;
 using namespace spatial_cell;
 
@@ -597,11 +601,11 @@ namespace projects {
          if (myRank == MASTER_RANK) {
             std::cout << "Finished first level of refinement" << endl;
          }
-         #ifndef NDEBUG
+         #ifdef DEBUG_MAGNETOSPHERE
          if (cells.size() > 0) {
             std::cout << "Rank " << myRank << " refined " << cells.size() << " cells to level 1" << std::endl;
          }
-         #endif //NDEBUG
+         #endif //DEBUG_MAGNETOSPHERE
       }
       
       // L2 refinement.
@@ -623,11 +627,11 @@ namespace projects {
          if(myRank == MASTER_RANK) {
             std::cout << "Finished second level of refinement" << endl;
          }
-         #ifndef NDEBUG
+         #ifdef DEBUG_MAGNETOSPHERE
          if (cells.size() > 0) {
             std::cout << "Rank " << myRank << " refined " << cells.size() << " cells to level 2" << std::endl;
          }
-         #endif //NDEBUG
+         #endif //DEBUG_MAGNETOSPHERE
 
       }
       
@@ -650,11 +654,11 @@ namespace projects {
          if (myRank == MASTER_RANK) {
             std::cout << "Finished third level of refinement" << endl;
          }
-         #ifndef NDEBUG
+         #ifdef DEBUG_MAGNETOSPHERE
          if (cells.size() > 0) {
             std::cout << "Rank " << myRank << " refined " << cells.size() << " cells to level 3" << std::endl;
          }
-         #endif //NDEBUG
+         #endif //DEBUG_MAGNETOSPHERE
       }
 
       // L4 refinement.
@@ -678,11 +682,11 @@ namespace projects {
          if (myRank == MASTER_RANK) {
             std::cout << "Finished fourth level of refinement" << endl;
          }
-         #ifndef NDEBUG
+         #ifdef DEBUG_MAGNETOSPHERE
          if (cells.size() > 0) {
             std::cout << "Rank " << myRank << " refined " << cells.size() << " cells to level 4" << std::endl;
          }
-         #endif //NDEBUG
+         #endif //DEBUG_MAGNETOSPHERE
       }
 
       return true;

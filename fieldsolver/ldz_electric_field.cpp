@@ -25,7 +25,7 @@
 #include "fs_common.h"
 #include "ldz_electric_field.hpp"
 
-#ifndef NDEBUG
+#ifdef DEBUG_VLASIATOR
    #define DEBUG_FSOLVER
 #endif
 
@@ -475,8 +475,12 @@ ARCH_HOSTDEV void calculateEdgeElectricFieldX(
    if (technicalGrid.get(i,j-1,k-1) == NULL) ok = false;
    if (technicalGrid.get(i,j,k-1) == NULL) ok = false;
    if (ok == false) {
+      #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
       cerr << "NULL pointer in " << __FILE__ << ":" << __LINE__ << std::endl;
-      exit(1);
+      #else
+      printf("ERROR, NULL pointer/n");
+      #endif
+      return;
    }
    #endif
 
@@ -833,8 +837,12 @@ ARCH_HOSTDEV void calculateEdgeElectricFieldY(
    if (technicalGrid.get(i-1,j,k) == NULL) ok = false;
    if (technicalGrid.get(i-1,j,k-1) == NULL) ok = false;
    if (ok == false) {
+      #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
       cerr << "NULL pointer in " << __FILE__ << ":" << __LINE__ << std::endl;
-      exit(1);
+      #else
+      printf("ERROR, NULL pointer/n");
+      #endif
+      return;
    }
    #endif
    
@@ -1190,8 +1198,12 @@ ARCH_HOSTDEV void calculateEdgeElectricFieldZ(
    if (technicalGrid.get(i-1,j-1,k) == NULL) ok = false;
    if (technicalGrid.get(i,j-1,k) == NULL) ok = false;
    if (ok == false) {
+      #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
       cerr << "NULL pointer in " << __FILE__ << ":" << __LINE__ << std::endl;
-      exit(1);
+      #else
+      printf("ERROR, NULL pointer/n");
+      #endif
+      return;
    }
    #endif
 

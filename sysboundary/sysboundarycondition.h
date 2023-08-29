@@ -61,7 +61,7 @@ namespace SBC {
          static void addParameters();
          virtual void getParameters()=0;
 
-         static void determineFace(
+         ARCH_HOSTDEV static void determineFace(
             bool* isThisCellOnAFace,
             creal x, creal y, creal z,
             creal dx, creal dy, creal dz,
@@ -185,12 +185,6 @@ namespace SBC {
             bool isFacePeriodic[3]
          );
       protected:
-         void determineFace(
-            bool* isThisCellOnAFace,
-            creal x, creal y, creal z,
-            creal dx, creal dy, creal dz,
-            const bool excludeSlicesAndPeriodicDimensions = false
-         );
          void determineFace(
             std::array<bool, 6> &isThisCellOnAFace,
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,

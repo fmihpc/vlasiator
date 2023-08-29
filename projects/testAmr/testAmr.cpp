@@ -33,9 +33,12 @@
 
 #include "testAmr.h"
 
+#ifdef DEBUG_VLASIATOR
+   #define DEBUG_TESTAMR
+#endif
+
 using namespace std;
 using namespace spatial_cell;
-
 
 Real projects::testAmr::rhoRnd;
 
@@ -297,7 +300,7 @@ namespace projects {
                
                CellID myCell = mpiGrid.get_existing_cell(xyz);
                if (mpiGrid.refine_completely_at(xyz)) {
-#ifndef NDEBUG
+#ifdef DEBUG_TESTAMR
                   std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
 #endif
                }
@@ -306,7 +309,7 @@ namespace projects {
       }
       std::vector<CellID> refinedCells = mpiGrid.stop_refining(true);      
       if(myRank == MASTER_RANK) std::cout << "Finished first level of refinement" << endl;
-#ifndef NDEBUG
+#ifdef DEBUG_TESTAMR
       if(refinedCells.size() > 0) {
 	std::cout << "Refined cells produced by rank " << myRank << " are: ";
 	for (auto cellid : refinedCells) {
@@ -331,7 +334,7 @@ namespace projects {
                   
                   CellID myCell = mpiGrid.get_existing_cell(xyz);
                   if (mpiGrid.refine_completely_at(xyz)) {
-#ifndef NDEBUG
+#ifdef DEBUG_TESTAMR
                      std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
 #endif
                   }
@@ -341,7 +344,7 @@ namespace projects {
          
          std::vector<CellID> refinedCells = mpiGrid.stop_refining(true);      
          if(myRank == MASTER_RANK) std::cout << "Finished second level of refinement" << endl;
-#ifndef NDEBUG
+#ifdef DEBUG_TESTAMR
          if(refinedCells.size() > 0) {
             std::cout << "Refined cells produced by rank " << myRank << " are: ";
             for (auto cellid : refinedCells) {

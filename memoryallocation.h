@@ -31,7 +31,7 @@
 #include "jemalloc/jemalloc.h"
 #endif
 
-#ifndef NDEBUG
+#ifdef DEBUG_VLASIATOR
 #ifndef INITIALIZE_ALIGNED_MALLOC_WITH_NAN
 #define INITIALIZE_ALIGNED_MALLOC_WITH_NAN
 #endif

@@ -34,7 +34,7 @@
 #include "../fieldsolver/ldz_magnetic_field.hpp"
 #include "../vlasovmover.h"
 
-#ifndef NDEBUG
+#ifdef DEBUG_VLASIATOR
    #define DEBUG_OUTFLOW
 #endif
 #ifdef DEBUG_SYSBOUNDARY

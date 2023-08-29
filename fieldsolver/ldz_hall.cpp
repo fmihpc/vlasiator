@@ -24,7 +24,7 @@
 #include "ldz_hall.hpp"
 #include "../arch/arch_sysboundary_api.h"
 
-#ifndef NDEBUG
+#ifdef DEBUG_VLASIATOR
    #define DEBUG_FSOLVER
 #endif
 
