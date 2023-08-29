@@ -855,17 +855,17 @@ namespace DRO {
                                                 const Real VY = block_parameters[BlockParams::VYCRD] + (j + HALF) * block_parameters[BlockParams::DVY];
                                                 const Real VZ = block_parameters[BlockParams::VZCRD] + (k + HALF) * block_parameters[BlockParams::DVZ];
                                                 // Compare the distance of the velocity cell from the center of the maxwellian distribution to the radius of the maxwellian distribution
-                                                if(calculateNonthermal == true &&
-                                                   ( (thermalV[0] - VX) * (thermalV[0] - VX)
-                                                     + (thermalV[1] - VY) * (thermalV[1] - VY)
-                                                     + (thermalV[2] - VZ) * (thermalV[2] - VZ) )
-                                                   > thermalRadius*thermalRadius
-                                                   ||
-                                                   calculateNonthermal == false &&
-                                                   ( (thermalV[0] - VX) * (thermalV[0] - VX)
-                                                     + (thermalV[1] - VY) * (thermalV[1] - VY)
-                                                     + (thermalV[2] - VZ) * (thermalV[2] - VZ) )
-                                                   <= thermalRadius*thermalRadius ) {
+                                                if (((calculateNonthermal == true) &&
+                                                     (( (thermalV[0] - VX) * (thermalV[0] - VX)
+                                                        + (thermalV[1] - VY) * (thermalV[1] - VY)
+                                                        + (thermalV[2] - VZ) * (thermalV[2] - VZ) )
+                                                      > thermalRadius*thermalRadius))
+                                                     ||
+                                                     ((calculateNonthermal == false) &&
+                                                      (( (thermalV[0] - VX) * (thermalV[0] - VX)
+                                                         + (thermalV[1] - VY) * (thermalV[1] - VY)
+                                                         + (thermalV[2] - VZ) * (thermalV[2] - VZ) )
+                                                       <= thermalRadius*thermalRadius) )) {
                                                    //The velocity cell is a part of the nonthermal/thermal population:
                                                    lsum[0] += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * DV3;
                                                 }
@@ -916,17 +916,17 @@ namespace DRO {
                                                 const Real VY = block_parameters[BlockParams::VYCRD] + (j + HALF) * block_parameters[BlockParams::DVY];
                                                 const Real VZ = block_parameters[BlockParams::VZCRD] + (k + HALF) * block_parameters[BlockParams::DVZ];
                                                 // Calculate the distance of the velocity cell from the center of the maxwellian distribution and compare it to the approximate radius of the maxwellian distribution
-                                                if(calculateNonthermal == true &&
-                                                   ( (thermalV[0] - VX) * (thermalV[0] - VX)
-                                                     + (thermalV[1] - VY) * (thermalV[1] - VY)
-                                                     + (thermalV[2] - VZ) * (thermalV[2] - VZ) )
-                                                   > thermalRadius*thermalRadius
+                                                if (((calculateNonthermal == true) &&
+                                                     (( (thermalV[0] - VX) * (thermalV[0] - VX)
+                                                        + (thermalV[1] - VY) * (thermalV[1] - VY)
+                                                        + (thermalV[2] - VZ) * (thermalV[2] - VZ) )
+                                                      > thermalRadius*thermalRadius))
                                                    ||
-                                                   calculateNonthermal == false &&
-                                                   ( (thermalV[0] - VX) * (thermalV[0] - VX)
-                                                     + (thermalV[1] - VY) * (thermalV[1] - VY)
-                                                     + (thermalV[2] - VZ) * (thermalV[2] - VZ) )
-                                                   <= thermalRadius*thermalRadius ) {
+                                                    ((calculateNonthermal == false) &&
+                                                     (( (thermalV[0] - VX) * (thermalV[0] - VX)
+                                                        + (thermalV[1] - VY) * (thermalV[1] - VY)
+                                                        + (thermalV[2] - VZ) * (thermalV[2] - VZ) )
+                                                      <= thermalRadius*thermalRadius) )) {
                                                    // Add the value of the coordinates and multiply by the AVGS value of the velocity cell and the volume of the velocity cell
                                                    lsum[0] += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)]*VX*DV3;
                                                    lsum[1] += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)]*VY*DV3;
@@ -987,17 +987,17 @@ namespace DRO {
                                                 const Real VY = block_parameters[BlockParams::VYCRD] + (j + HALF) * block_parameters[BlockParams::DVY];
                                                 const Real VZ = block_parameters[BlockParams::VZCRD] + (k + HALF) * block_parameters[BlockParams::DVZ];
                                                 // Calculate the distance of the velocity cell from the center of the maxwellian distribution and compare it to the approximate radius of the maxwellian distribution
-                                                if(calculateNonthermal == true &&
-                                                   ( (thermalV[0] - VX) * (thermalV[0] - VX)
-                                                     + (thermalV[1] - VY) * (thermalV[1] - VY)
-                                                     + (thermalV[2] - VZ) * (thermalV[2] - VZ) )
-                                                   > thermalRadius*thermalRadius
-                                                   ||
-                                                   calculateNonthermal == false &&
-                                                   ( (thermalV[0] - VX) * (thermalV[0] - VX)
-                                                     + (thermalV[1] - VY) * (thermalV[1] - VY)
-                                                     + (thermalV[2] - VZ) * (thermalV[2] - VZ) )
-                                                   <= thermalRadius*thermalRadius ) {
+                                                if (((calculateNonthermal == true) &&
+                                                     (( (thermalV[0] - VX) * (thermalV[0] - VX)
+                                                        + (thermalV[1] - VY) * (thermalV[1] - VY)
+                                                        + (thermalV[2] - VZ) * (thermalV[2] - VZ) )
+                                                      > thermalRadius*thermalRadius))
+                                                    ||
+                                                    ((calculateNonthermal == false) &&
+                                                     (( (thermalV[0] - VX) * (thermalV[0] - VX)
+                                                        + (thermalV[1] - VY) * (thermalV[1] - VY)
+                                                        + (thermalV[2] - VZ) * (thermalV[2] - VZ) )
+                                                      <= thermalRadius*thermalRadius ))) {
                                                    lsum[0] += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX) * DV3;
                                                    lsum[1] += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY) * DV3;
                                                    lsum[2] += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * (VZ - averageVZ) * (VZ - averageVZ) * DV3;
@@ -1053,17 +1053,17 @@ namespace DRO {
                                                 const Real VY = block_parameters[BlockParams::VYCRD] + (j + HALF) * block_parameters[BlockParams::DVY];
                                                 const Real VZ = block_parameters[BlockParams::VZCRD] + (k + HALF) * block_parameters[BlockParams::DVZ];
                                                 // Calculate the distance of the velocity cell from the center of the maxwellian distribution and compare it to the approximate radius of the maxwellian distribution
-                                                if(calculateNonthermal == true &&
-                                                   ( (thermalV[0] - VX) * (thermalV[0] - VX)
-                                                     + (thermalV[1] - VY) * (thermalV[1] - VY)
-                                                     + (thermalV[2] - VZ) * (thermalV[2] - VZ) )
-                                                   > thermalRadius*thermalRadius
-                                                   ||
-                                                   calculateNonthermal == false &&
-                                                   ( (thermalV[0] - VX) * (thermalV[0] - VX)
-                                                     + (thermalV[1] - VY) * (thermalV[1] - VY)
-                                                     + (thermalV[2] - VZ) * (thermalV[2] - VZ) )
-                                                   <= thermalRadius*thermalRadius ) {
+                                                if (((calculateNonthermal == true) &&
+                                                     (( (thermalV[0] - VX) * (thermalV[0] - VX)
+                                                        + (thermalV[1] - VY) * (thermalV[1] - VY)
+                                                        + (thermalV[2] - VZ) * (thermalV[2] - VZ) )
+                                                      > thermalRadius*thermalRadius))
+                                                    ||
+                                                    ((calculateNonthermal == false) &&
+                                                     (( (thermalV[0] - VX) * (thermalV[0] - VX)
+                                                        + (thermalV[1] - VY) * (thermalV[1] - VY)
+                                                        + (thermalV[2] - VZ) * (thermalV[2] - VZ) )
+                                                      <= thermalRadius*thermalRadius ))) {
                                                    lsum[0] += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * (VX - averageVX) * (VY - averageVY) * DV3;
                                                    lsum[1] += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * (VZ - averageVZ) * (VX - averageVX) * DV3;
                                                    lsum[2] += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * (VY - averageVY) * (VZ - averageVZ) * DV3;
