@@ -132,7 +132,7 @@ bool propagateFields(
    arch::parallel_for({(uint)gridDims[0], (uint)gridDims[1], (uint)gridDims[2]}, ARCH_LOOP_LAMBDA(int i, int j, int k) {
       technicalGrid.get(i, j, k)->maxFsDt = std::numeric_limits<Real>::max();
    });  
-   technicalGrid.syncDeviceData(); 
+   //technicalGrid.syncHostData();
    
    
    if (subcycles == 1) {
@@ -363,7 +363,10 @@ bool propagateFields(
          Real dtMaxGlobal;
          dtMaxLocal=std::numeric_limits<Real>::max();
 
+         //ARCH_TODO
+         technicalGrid.syncHostData();
          int32_t* localSize = technicalGrid.grid()->getLocalSize();
+
          for(int z=0; z<localSize[2]; z++) {
             for(int y=0; y<localSize[1]; y++) {
                for(int x=0; x<localSize[0]; x++) {
@@ -413,7 +416,9 @@ bool propagateFields(
    calculateVolumeAveragedFields(perBGrid,EGrid,dPerBGrid,volGrid,technicalGrid);
    calculateBVOLDerivativesSimple(volGrid, technicalGrid, sysBoundaries);
    if(FieldTracing::fieldTracingParameters.doTraceFullBox || Parameters::computeCurvature) {
+      volGrid.syncHostData();
       volGrid.grid()->updateGhostCells();
+      volGrid.syncDeviceData();
       calculateCurvatureSimple(volGrid, BgBGrid, technicalGrid, sysBoundaries);
    }
    return true;

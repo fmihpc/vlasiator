@@ -28,8 +28,6 @@
 
 #include "../definitions.h"
 #include "../spatial_cell.hpp"
-// #include <dccrg.hpp>
-// #include <dccrg_cartesian_geometry.hpp>
 #include "datareductionoperator.h"
 #include "../sysboundary/ionosphere.h"
 

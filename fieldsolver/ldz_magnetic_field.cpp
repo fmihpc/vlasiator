@@ -309,10 +309,14 @@ void propagateMagneticFieldSimple(
    phiprof::start(timer);
    if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
       // Exchange PERBX,PERBY,PERBZ with neighbours
+      perBGrid.syncHostData();
       perBGrid.grid()->updateGhostCells();
+      perBGrid.syncDeviceData();
    } else { // RKCase == RK_ORDER2_STEP1
       // Exchange PERBX_DT2,PERBY_DT2,PERBZ_DT2 with neighbours
+      perBDt2Grid.syncHostData();
       perBDt2Grid.grid()->updateGhostCells();
+      perBDt2Grid.syncDeviceData();
    }
    phiprof::stop(timer);
 
