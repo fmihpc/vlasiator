@@ -326,7 +326,7 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
                   const uint popID) {
    // values used with an stencil in 1 dimension, initialized to 0. 
    // Contains a block, and its spatial neighbours in one dimension.
-   Realv dz,z_min, dvz,vz_min;
+   Realv dz,dvz,vz_min;
    uint cell_indices_to_id[3]; /*< used when computing id of target cell in block*/
    unsigned char  cellid_transpose[WID3]; /*< defines the transpose for the solver internal (transposed) id: i + j*WID + k*WID2 to actual one*/
 
@@ -391,7 +391,6 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
    switch (dimension) {
    case 0:
       dz = P::dx_ini;
-      z_min = P::xmin;
       // set values in array that is used to convert block indices 
       // to global ID using a dot product.
       cell_indices_to_id[0]=WID2;
@@ -400,7 +399,6 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       break;
    case 1:
       dz = P::dy_ini;
-      z_min = P::ymin;
       // set values in array that is used to convert block indices 
       // to global ID using a dot product
       cell_indices_to_id[0]=1;
@@ -409,7 +407,6 @@ bool trans_map_1d(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       break;
    case 2:
       dz = P::dz_ini;
-      z_min = P::zmin;
       // set values in array that is used to convert block indices
       // to global id using a dot product.
       cell_indices_to_id[0]=1;
@@ -690,13 +687,13 @@ void update_remote_mapping_contribution(
       CellID p_ngbr = INVALID_CELLID;
       CellID m_ngbr = INVALID_CELLID;
 
-      for (const auto& nbr : mpiGrid.get_face_neighbors_of(local_cells[c])) {
-         if(nbr.second == ((int)dimension + 1) * direction) {
-            p_ngbr = nbr.first;
+      for (const auto& [neighbor, dir] : mpiGrid.get_face_neighbors_of(local_cells[c])) {
+         if(dir == ((int)dimension + 1) * direction) {
+            p_ngbr = neighbor;
          }
 
-         if(nbr.second == -1 * ((int)dimension + 1) * direction) {
-            m_ngbr = nbr.first;
+         if(dir == -1 * ((int)dimension + 1) * direction) {
+            m_ngbr = neighbor;
          }
       }
       

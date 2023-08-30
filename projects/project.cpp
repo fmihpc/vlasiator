@@ -93,7 +93,7 @@ struct VelocityMeshParams {
    }
 };
 
-static VelocityMeshParams* velMeshParams = NULL;
+//static VelocityMeshParams* velMeshParams = NULL;
 
 namespace projects {
    Project::Project() { 
@@ -165,7 +165,6 @@ namespace projects {
     * NOTE: Each project must call this function!
     * @return If true, particle species and velocity meshes were created successfully.*/
    bool Project::initialize() {
-      typedef Readparameters RP;
       
       // Basic error checking
       bool success = true;
@@ -367,7 +366,6 @@ namespace projects {
          const vmesh::LocalID endIndex   = cell->get_number_of_velocity_blocks(popID);
          for (vmesh::LocalID blockLID=startIndex; blockLID<endIndex; ++blockLID) {
             vector<vmesh::GlobalID> nbrs;
-            int32_t refLevelDifference;
             const vmesh::GlobalID blockGID = vmesh.getGlobalID(blockLID);
 
             // Fetch block data and nearest neighbors
@@ -395,7 +393,7 @@ namespace projects {
             const vmesh::LocalID blockLID = it->second;
             const Real maxValue = setVelocityBlock(cell,blockLID,popID);
             if (maxValue <= cell->getVelocityBlockMinValue(popID)) {
-               removeList.push_back(it->first);
+               removeList.push_back(blockGID);
             }
          }
 
@@ -526,9 +524,9 @@ namespace projects {
                xyz[1] = P::amrBoxCenterY + (0.5 + j - P::amrBoxHalfWidthY) * P::dy_ini;
                xyz[2] = P::amrBoxCenterZ + (0.5 + k - P::amrBoxHalfWidthZ) * P::dz_ini;
                
-               CellID myCell = mpiGrid.get_existing_cell(xyz);
                if (mpiGrid.refine_completely_at(xyz)) {
                   #ifndef NDEBUG
+                  CellID myCell = mpiGrid.get_existing_cell(xyz);
                   std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
                   #endif
                }
@@ -560,9 +558,9 @@ namespace projects {
                   xyz[1] = P::amrBoxCenterY + 0.5 * (0.5 + j - P::amrBoxHalfWidthY) * P::dy_ini;
                   xyz[2] = P::amrBoxCenterZ + 0.5 * (0.5 + k - P::amrBoxHalfWidthZ) * P::dz_ini;
                   
-                  CellID myCell = mpiGrid.get_existing_cell(xyz);
                   if (mpiGrid.refine_completely_at(xyz)) {
                      #ifndef NDEBUG
+                     CellID myCell = mpiGrid.get_existing_cell(xyz);
                      std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
                      #endif
                   }
