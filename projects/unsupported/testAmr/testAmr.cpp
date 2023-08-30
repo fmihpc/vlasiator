@@ -60,7 +60,7 @@ namespace projects {
       RP::add("testAmr.magYPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along y (T)", 1.0e-9);
       RP::add("testAmr.magZPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along z (T)", 1.0e-9);
       RP::add("testAmr.lambda", "B cosine perturbation wavelength (m)", 1.0);
-      RP::add("testAmr.nVelocitySamples", "Number of sampling points per velocity dimension", 2);
+      RP::add("testAmr.nVelocitySamples", "Number of sampling points per velocity dimension", 1);
       RP::add("testAmr.densityModel","Which spatial density model is used?",string("uniform"));
       RP::add("testAmr.maxSpatialRefinementLevel", "Maximum level for spatial refinement", 1.0);
 

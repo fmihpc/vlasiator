@@ -64,8 +64,8 @@ namespace projects {
         RP::add(pop + "_Dispersion.Temperature", "Temperature (K)", 2.0e6);
         RP::add(pop + "_Dispersion.densityPertRelAmp", "Relative amplitude of the density perturbation", 0.1);
         RP::add(pop + "_Dispersion.velocityPertAbsAmp", "Absolute amplitude of the velocity perturbation", 1.0e6);
-        RP::add(pop + "_Dispersion.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
-        RP::add(pop + "_Dispersion.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
+        RP::add(pop + "_Dispersion.nSpaceSamples", "Number of sampling points per spatial dimension", 1);
+        RP::add(pop + "_Dispersion.nVelocitySamples", "Number of sampling points per velocity dimension", 1);
       }
    }
    

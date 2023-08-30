@@ -60,8 +60,8 @@ namespace projects {
          RP::add(pop + "_Fluctuations.Temperature", "Temperature (K)", 2.0e6);
          RP::add(pop + "_Fluctuations.densityPertRelAmp", "Amplitude factor of the density perturbation", 0.1);
          RP::add(pop + "_Fluctuations.velocityPertAbsAmp", "Amplitude of the velocity perturbation", 1.0e6);
-         RP::add(pop + "_Fluctuations.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
-         RP::add(pop + "_Fluctuations.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
+         RP::add(pop + "_Fluctuations.nSpaceSamples", "Number of sampling points per spatial dimension", 1);
+         RP::add(pop + "_Fluctuations.nVelocitySamples", "Number of sampling points per velocity dimension", 1);
          RP::add(pop + "_Fluctuations.maxwCutoff", "Cutoff for the maxwellian distribution", 1e-12);
       }
    }
