@@ -169,13 +169,13 @@ DEPS_VLSVMOVER_VAMR = vlasovsolver_amr/vlasovmover.cpp vlasovsolver_amr/cpu_acc_
 
 OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipole.o vectordipole.o constantfield.o integratefunction.o \
 	datareducer.o datareductionoperator.o dro_populations.o \
-	donotcompute.o ionosphere.o conductingsphere.o outflow.o setbyuser.o setmaxwellian.o\
+	donotcompute.o ionosphere.o copysphere.o outflow.o setbyuser.o setmaxwellian.o\
 	fieldtracing.o arch_moments.o \
 	sysboundary.o sysboundarycondition.o particle_species.o\
 	project.o projectTriAxisSearch.o read_gaussian_population.o\
 	Alfven.o Diffusion.o Dispersion.o Distributions.o Firehose.o\
 	Flowthrough.o Fluctuations.o Harris.o KHB.o Larmor.o Magnetosphere.o MultiPeak.o\
-	VelocityBox.o Riemann1.o Shock.o Template.o test_fp.o testAmr.o testHall.o test_trans.o\
+	VelocityBox.o Riemann1.o Shock.o Template.o test_fp.o testHall.o test_trans.o\
 	IPShock.o object_wrapper.o\
 	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o vlasiator.o logger.o\
 	common.o parameters.o readparameters.o spatial_cell.o velocity_mesh_parameters.o\

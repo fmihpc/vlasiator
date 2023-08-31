@@ -449,7 +449,7 @@ namespace sysboundarytype {
       IONOSPHERE,       /*!< Ionospheric current model */
       OUTFLOW,          /*!< No fixed conditions on the fields and distribution function. */
       SET_MAXWELLIAN,   /*!< Set Maxwellian boundary condition, i.e. set fields and distribution function. */
-      CONDUCTINGSPHERE, /*!< A perfectly conducting sphere as the simple inner boundary */
+      COPYSPHERE,       /*!< A sphere with copy-condition for perturbed B as the simple inner boundary */
       N_SYSBOUNDARY_CONDITIONS
    };
 }

@@ -62,7 +62,7 @@ namespace projects {
       RP::add("MultiPeak.magYPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along y (T)", 1.0e-9);
       RP::add("MultiPeak.magZPertAbsAmp", "Absolute amplitude of the random magnetic perturbation along z (T)", 1.0e-9);
       RP::add("MultiPeak.lambda", "B cosine perturbation wavelength (m)", 1.0);
-      RP::add("MultiPeak.nVelocitySamples", "Number of sampling points per velocity dimension", 2);
+      RP::add("MultiPeak.nVelocitySamples", "Number of sampling points per velocity dimension", 1);
       RP::add("MultiPeak.densityModel","Which spatial density model is used?",string("uniform"));
 
       // Per-population parameters

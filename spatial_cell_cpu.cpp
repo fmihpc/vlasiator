@@ -967,7 +967,6 @@ namespace spatial_cell {
       }
 
       // Iterate over all octants, each octant corresponds to a different child:
-      //bool removeBlock = false;
       for (int k_oct=0; k_oct<2; ++k_oct) for (int j_oct=0; j_oct<2; ++j_oct) for (int i_oct=0; i_oct<2; ++i_oct) {
          // Copy data belonging to the octant to a temporary array:
          Realf array[WID3];

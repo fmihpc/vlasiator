@@ -751,7 +751,7 @@ namespace DRO {
                                              lthreadMax[0] = max((Real)(block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)]), lthreadMax[0]);
                                           }, threadMax);
 
-                  #pragma omp critical
+         #pragma omp critical
          {
             maxF = max(threadMax, maxF);
          }
@@ -802,7 +802,7 @@ namespace DRO {
                                              lthreadMin[0] = min((Real)(block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)]), lthreadMin[0]);
                                           }, threadMin);
 
-#pragma omp critical
+         #pragma omp critical
          {
             minF = min(threadMin, minF);
          }
@@ -1526,7 +1526,7 @@ namespace DRO {
 
          // Accumulate contributions coming from this velocity block
          // If multithreading / OpenMP is used, these updates need to be atomic:
-# pragma omp critical
+         # pragma omp critical
          {
             for (int i=0; i<nChannels; i++) {
                dataDiffFlux[i] += sum[i];
@@ -1901,6 +1901,201 @@ namespace DRO {
       averageVY = cell-> parameters[CellParams::VY];
       averageVZ = cell-> parameters[CellParams::VZ];
       for(int i = 0; i < 3; i++) HeatFlux[i] = 0.0;
+      return true;
+   }
+
+   /*! \brief Non-Maxwellianity
+    * Calculates for a population the dimensionless parameter defined by Graham et al. (2021) as
+    *    epsilon_M = integral[abs(f-g)]dv3 / 2n
+    * where
+    *    f: measured VDF for a population
+    *    g: a model bi-Maxwellian with the same number density, bulk speed and temperature as the measured VDF
+    *    n: population number density
+    *
+    * No extra parameters need to be set in cfg file.
+    * Note that the definition is different from the original parameter introduced by Greco et al. (2012).
+    * The following formulation of epsilon_M is used here to calculate the value with only velocity cells where the VDF
+    * is saved:
+    *
+    *    Assuming regions of velocity space A and B, where f>0 in A, and f=0 in B:
+    *    epsilon_M = (integral_A[abs(f-g)]dv3 + integral_B[g]dv3) / 2n
+    *              = (integral_A[abs(f-g)]dv3 + n - integral_A[g]dv3) / 2n
+    *              = integral_A[abs(f-g) - g]dv3 / 2n + 1/2
+    */
+   VariableNonMaxwellianity::VariableNonMaxwellianity(cuint _popID) : DataReductionOperator(), popID(_popID) {
+      popName = getObjectWrapper().particleSpecies[popID].name;
+   }
+   VariableNonMaxwellianity::~VariableNonMaxwellianity() {}
+
+   std::string VariableNonMaxwellianity::getName() const { return popName + "/vg_nonmaxwellianity"; }
+
+   bool VariableNonMaxwellianity::getDataVectorInfo(std::string& dataType, unsigned int& dataSize,
+                                                    unsigned int& vectorSize) const {
+      dataType = "float";
+      dataSize = sizeof(Real);
+      vectorSize = 1;
+      return true;
+   }
+
+   bool VariableNonMaxwellianity::reduceData(const SpatialCell* cell, char* buffer) {
+      // calculate something for epsilon here
+      const Real HALF = 0.5;
+
+      // thermal speed in parallel direction
+      const Real V_par_th_sq = 2.0 * physicalconstants::K_B * T_par / getObjectWrapper().particleSpecies[popID].mass;
+
+#pragma omp parallel
+      {
+         Real thread_epsilon_sum = 0.0;
+
+         const Real* parameters = cell->get_block_parameters(popID);
+         const Realf* block_data = cell->get_data(popID);
+
+#pragma omp for
+         for (vmesh::LocalID n = 0; n < cell->get_number_of_velocity_blocks(popID); n++) {
+            for (uint k = 0; k < WID; ++k)
+               for (uint j = 0; j < WID; ++j)
+            for (uint i = 0; i < WID; ++i) {
+          const Real VX = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] +
+                          (i + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+          const Real VY = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] +
+                          (j + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+          const Real VZ = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] +
+                          (k + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+          const Real DV3 = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX] *
+                           parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] *
+                           parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+
+          const Real V_par = (VX - V0[0]) * b_par[0] + (VY - V0[1]) * b_par[1] + (VZ - V0[2]) * b_par[2];
+          const Real V_perp1 = (VX - V0[0]) * b_perp1[0] + (VY - V0[1]) * b_perp1[1] + (VZ - V0[2]) * b_perp1[2];
+          const Real V_perp2 = (VX - V0[0]) * b_perp2[0] + (VY - V0[1]) * b_perp2[1] + (VZ - V0[2]) * b_perp2[2];
+
+          const Real bimaxwellian = rho / sqrt(M_PI * M_PI * M_PI * V_par_th_sq * V_par_th_sq * V_par_th_sq) *
+                                    (T_par / T_perp) *
+                                    exp(-(V_par * V_par) / V_par_th_sq -
+                                        (V_perp1 * V_perp1 + V_perp2 * V_perp2) / (V_par_th_sq * T_perp / T_par));
+
+          thread_epsilon_sum +=
+              (abs(block_data[n * SIZE_VELBLOCK + cellIndex(i, j, k)] - bimaxwellian) - bimaxwellian) * DV3;
+            }
+         }
+
+   // Accumulate contributions coming from this velocity block to the
+   // spatial cell velocity moments. If multithreading / OpenMP is used,
+   // these updates need to be atomic:
+#pragma omp critical
+         { epsilon += thread_epsilon_sum; }
+      }
+
+      epsilon *= HALF / rho;
+      epsilon += HALF;
+
+      const char* ptr = reinterpret_cast<const char*>(&epsilon);
+      for (uint i = 0; i < sizeof(Real); ++i)
+         buffer[i] = ptr[i];
+      return true;
+   }
+
+   bool VariableNonMaxwellianity::setSpatialCell(const SpatialCell* cell) {
+      // calculate here rho, v, T
+      epsilon = 0.0;
+
+      // get rho and bulk speed
+      rho = cell->get_population(popID).RHO;
+      V0[0] = cell->get_population(popID).V[0];
+      V0[1] = cell->get_population(popID).V[1];
+      V0[2] = cell->get_population(popID).V[2];
+
+      // calculate temperature from the pressure tensor
+      Real PTensor[3] = {};
+
+      // parallel unit vector (B)
+      Real BX = cell->parameters[CellParams::PERBXVOL] + cell->parameters[CellParams::BGBXVOL];
+      Real BY = cell->parameters[CellParams::PERBYVOL] + cell->parameters[CellParams::BGBYVOL];
+      Real BZ = cell->parameters[CellParams::PERBZVOL] + cell->parameters[CellParams::BGBZVOL];
+      Real norm_par = sqrt(BX * BX + BY * BY + BZ * BZ);
+      b_par[0] = BX / norm_par;
+      b_par[1] = BY / norm_par;
+      b_par[2] = BZ / norm_par;
+
+      // perpendicular unit vector 1 (bulk velocity perpendicular to b)
+      Real BV0 = sqrt(b_par[0] * V0[0] + b_par[1] * V0[1] + b_par[2] * V0[2]);
+      b_perp1[0] = V0[0] - BV0 * b_par[0];
+      b_perp1[1] = V0[1] - BV0 * b_par[1];
+      b_perp1[2] = V0[2] - BV0 * b_par[2];
+      Real norm_perp1 = sqrt(b_perp1[0] * b_perp1[0] + b_perp1[1] * b_perp1[1] + b_perp1[2] * b_perp1[2]);
+      if (!(norm_perp1 > 0.0)) {
+         // if V0 is aligned with b, take arbitrary perpendicular vector
+         b_perp1[0] = +b_par[1] + b_par[2];
+         b_perp1[1] = +b_par[2] - b_par[0];
+         b_perp1[2] = -b_par[0] - b_par[1];
+         norm_perp1 = sqrt(b_perp1[0] * b_perp1[0] + b_perp1[1] * b_perp1[1] + b_perp1[2] * b_perp1[2]);
+      }
+      b_perp1[0] /= norm_perp1;
+      b_perp1[1] /= norm_perp1;
+      b_perp1[2] /= norm_perp1;
+
+      // perpendicular unit vector 2 (b_par x b_perp1)
+      b_perp2[0] = b_par[1] * b_perp1[2] - b_par[2] * b_perp1[1];
+      b_perp2[1] = b_par[2] * b_perp1[0] - b_par[0] * b_perp1[2];
+      b_perp2[2] = b_par[0] * b_perp1[1] - b_par[1] * b_perp1[0];
+      Real norm_perp2 = sqrt(b_perp2[0] * b_perp2[0] + b_perp2[1] * b_perp2[1] + b_perp2[2] * b_perp2[2]);
+      b_perp2[0] /= norm_perp2;
+      b_perp2[1] /= norm_perp2;
+      b_perp2[2] /= norm_perp2;
+
+      // below calculation is modified from VariablePTensorDiagonal
+      const Real HALF = 0.5;
+#pragma omp parallel
+      {
+         Real thread_nvxvx_sum = 0.0;
+         Real thread_nvyvy_sum = 0.0;
+         Real thread_nvzvz_sum = 0.0;
+
+         const Real* parameters = cell->get_block_parameters(popID);
+         const Realf* block_data = cell->get_data(popID);
+
+#pragma omp for
+         for (vmesh::LocalID n = 0; n < cell->get_number_of_velocity_blocks(popID); n++) {
+            for (uint k = 0; k < WID; ++k)
+               for (uint j = 0; j < WID; ++j)
+            for (uint i = 0; i < WID; ++i) {
+          const Real VX = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] +
+                          (i + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+          const Real VY = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] +
+                          (j + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+          const Real VZ = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] +
+                          (k + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+          const Real DV3 = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX] *
+                           parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] *
+                           parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+
+          const Real V_par = (VX - V0[0]) * b_par[0] + (VY - V0[1]) * b_par[1] + (VZ - V0[2]) * b_par[2];
+          const Real V_perp1 = (VX - V0[0]) * b_perp1[0] + (VY - V0[1]) * b_perp1[1] + (VZ - V0[2]) * b_perp1[2];
+          const Real V_perp2 = (VX - V0[0]) * b_perp2[0] + (VY - V0[1]) * b_perp2[1] + (VZ - V0[2]) * b_perp2[2];
+
+          thread_nvxvx_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i, j, k)] * V_par * V_par * DV3;
+          thread_nvyvy_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i, j, k)] * V_perp1 * V_perp1 * DV3;
+          thread_nvzvz_sum += block_data[n * SIZE_VELBLOCK + cellIndex(i, j, k)] * V_perp2 * V_perp2 * DV3;
+            }
+         }
+         thread_nvxvx_sum *= getObjectWrapper().particleSpecies[popID].mass;
+         thread_nvyvy_sum *= getObjectWrapper().particleSpecies[popID].mass;
+         thread_nvzvz_sum *= getObjectWrapper().particleSpecies[popID].mass;
+
+         // Accumulate contributions coming from this velocity block to the
+         // spatial cell velocity moments. If multithreading / OpenMP is used,
+         // these updates need to be atomic:
+#pragma omp critical
+         {
+            PTensor[0] += thread_nvxvx_sum;
+            PTensor[1] += thread_nvyvy_sum;
+            PTensor[2] += thread_nvzvz_sum;
+         }
+      }
+      T_par = (PTensor[0]) / (rho * physicalconstants::K_B);
+      T_perp = (PTensor[1] + PTensor[2]) / (2.0 * rho * physicalconstants::K_B);
+
       return true;
    }
 

@@ -24,7 +24,6 @@
 #define PROJECT_H
 
 #include <random>
-#include "../definitions.h"
 #include "../spatial_cell.hpp"
 #include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
@@ -186,7 +185,8 @@ namespace projects {
       void setRandomCellSeed(spatial_cell::SpatialCell* cell, std::default_random_engine& randGen) const;
       
     private:
-       uint seed;
+      uint seed;
+      static char rngStateBuffer[256];
 
       bool baseClassInitialized;                      /**< If true, base class has been initialized.*/
    };

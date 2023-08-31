@@ -48,7 +48,6 @@
 #include "IPShock/IPShock.h"
 #include "Template/Template.h"
 #include "test_fp/test_fp.h"
-#include "testAmr/testAmr.h"
 #include "testHall/testHall.h"
 #include "test_trans/test_trans.h"
 #include "verificationLarmor/verificationLarmor.h"
@@ -60,6 +59,8 @@
 using namespace std;
 
 extern Logger logFile;
+
+char projects::Project::rngStateBuffer[256];
 
 namespace projects {
    Project::Project() { 
@@ -89,7 +90,6 @@ namespace projects {
       projects::IPShock::addParameters();
       projects::Template::addParameters();
       projects::test_fp::addParameters();
-      projects::testAmr::addParameters();
       projects::TestHall::addParameters();
       projects::test_trans::addParameters();
       projects::verificationLarmor::addParameters();
@@ -478,9 +478,9 @@ namespace projects {
                xyz[1] = P::amrBoxCenterY + (0.5 + j - P::amrBoxHalfWidthY) * P::dy_ini;
                xyz[2] = P::amrBoxCenterZ + (0.5 + k - P::amrBoxHalfWidthZ) * P::dz_ini;
                
-               CellID myCell = mpiGrid.get_existing_cell(xyz);
                if (mpiGrid.refine_completely_at(xyz)) {
                   #ifndef NDEBUG
+                  CellID myCell = mpiGrid.get_existing_cell(xyz);
                   std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
                   #endif
                }
@@ -512,9 +512,9 @@ namespace projects {
                   xyz[1] = P::amrBoxCenterY + 0.5 * (0.5 + j - P::amrBoxHalfWidthY) * P::dy_ini;
                   xyz[2] = P::amrBoxCenterZ + 0.5 * (0.5 + k - P::amrBoxHalfWidthZ) * P::dz_ini;
                   
-                  CellID myCell = mpiGrid.get_existing_cell(xyz);
                   if (mpiGrid.refine_completely_at(xyz)) {
                      #ifndef NDEBUG
+                     CellID myCell = mpiGrid.get_existing_cell(xyz);
                      std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
                      #endif
                   }
@@ -666,9 +666,6 @@ Project* createProject() {
    }
    if(Parameters::projectName == "test_fp") {
       rvalue = new projects::test_fp;
-   }
-   if(Parameters::projectName == "testAmr") {
-      rvalue = new projects::testAmr;
    }
    if(Parameters::projectName == "testHall") {
       rvalue = new projects::TestHall;

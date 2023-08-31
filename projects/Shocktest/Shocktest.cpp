@@ -64,8 +64,8 @@ namespace projects {
       RP::add("Shocktest.By2", "Magnetic field y component, right state (T)", 0.0);
       RP::add("Shocktest.Bz1", "Magnetic field z component, left state (T)", 0.0);
       RP::add("Shocktest.Bz2", "Magnetic field z component, right state (T)", 0.0);
-      RP::add("Shocktest.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
-      RP::add("Shocktest.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
+      RP::add("Shocktest.nSpaceSamples", "Number of sampling points per spatial dimension", 1);
+      RP::add("Shocktest.nVelocitySamples", "Number of sampling points per velocity dimension", 1);
    }
    
    void Shocktest::getParameters(){
@@ -212,7 +212,7 @@ namespace projects {
                   Bxavg = Byavg = Bzavg = 0.0;
                   if(this->nSpaceSamples > 1) {
                      Real d_x = perBGrid.DX / (this->nSpaceSamples - 1);
-                     Real d_z = perBGrid.DZ / (this->nSpaceSamples - 1);
+                     //Real d_z = perBGrid.DZ / (this->nSpaceSamples - 1);
                      for (uint i=0; i<this->nSpaceSamples; ++i) {
                         for (uint k=0; k<this->nSpaceSamples; ++k) {
                            Bxavg += ((xyz[0] + i * d_x) < 0.0) ? this->Bx[this->LEFT] : this->Bx[this->RIGHT];

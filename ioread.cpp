@@ -229,7 +229,6 @@ bool readNBlocks(vlsv::ParallelReader& file,const std::string& meshName,
    // Read mesh bounding box to all processes, the info in bbox contains 
    // the number of spatial cells in the mesh.
    // (This is *not* the physical coordinate bounding box.)
-   //uint64_t bbox[6];
    list<pair<string,string> > attribsIn;
    map<string,string> attribsOut;
    attribsIn.push_back(make_pair("mesh",meshName));

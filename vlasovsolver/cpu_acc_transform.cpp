@@ -163,9 +163,6 @@ Eigen::Transform<Real,3,Eigen::Affine> compute_acceleration_transformation(
 
       Eigen::Matrix<Real,3,1> bulkDeltaV = forced_bulkv - bulk_velocity;
       total_transform=Translation<Real,3>(bulkDeltaV) * total_transform;
-
-      // New bulk velocity is the forced one
-      bulk_velocity = forced_bulkv;
    }
 
    return total_transform;

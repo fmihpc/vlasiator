@@ -447,6 +447,7 @@ bool trans_map_1d_amr(const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartes
 int get_sibling_index(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, const CellID& cellid) {
 
    const int NO_SIBLINGS = 0;
+   
    if(mpiGrid.get_refinement_level(cellid) == 0) {
       return NO_SIBLINGS;
    }
@@ -570,14 +571,14 @@ void update_remote_mapping_contribution_amr(
 
       vector<CellID> p_nbrs;
       vector<CellID> n_nbrs;
-
-      for (const auto& nbr : mpiGrid.get_face_neighbors_of(c)) {
-         if(nbr.second == ((int)dimension + 1) * direction) {
-            p_nbrs.push_back(nbr.first);
+      
+      for (const auto& [neighbor, dir] : mpiGrid.get_face_neighbors_of(c)) {
+         if(dir == ((int)dimension + 1) * direction) {
+            p_nbrs.push_back(neighbor);
          }
 
-         if(nbr.second == -1 * ((int)dimension + 1) * direction) {
-            n_nbrs.push_back(nbr.first);
+         if(dir == -1 * ((int)dimension + 1) * direction) {
+            n_nbrs.push_back(neighbor);
          }
       }
 

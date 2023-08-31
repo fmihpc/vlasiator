@@ -1021,7 +1021,6 @@ namespace spatial_cell {
     */
    // GPUTODO Update this for GPU memory as well, same for capacity
    inline uint64_t SpatialCell::get_cell_memory_size() {
-      //const uint64_t VEL_BLOCK_SIZE = 2*WID3*sizeof(Realf) + BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real);
       uint64_t size = 0;
       size += 2 * WID3 * sizeof(Realf);
       //size += mpi_velocity_block_list.size() * sizeof(vmesh::GlobalID);
@@ -1043,7 +1042,6 @@ namespace spatial_cell {
     the size() functions of the containers in spatial cell
     */
    inline uint64_t SpatialCell::get_cell_memory_capacity() {
-      //const uint64_t VEL_BLOCK_SIZE = 2*WID3*sizeof(Realf) + BlockParams::N_VELOCITY_BLOCK_PARAMS*sizeof(Real);
       uint64_t capacity = 0;
 
       capacity += 2 * WID3 * sizeof(Realf);

@@ -79,7 +79,6 @@ void calculateSpatialTranslation(
 ) {
 
     int trans_timer;
-    //bool localTargetGridGenerated = false;
     bool AMRtranslationActive = false;
     if (P::amrMaxSpatialRefLevel > 0) {
        AMRtranslationActive = true;
@@ -261,8 +260,8 @@ void calculateSpatialTranslation(
    typedef Parameters P;
 
    phiprof::start("semilag-trans");
-
-   double t1 = MPI_Wtime();
+   
+   //double t1 = MPI_Wtime();
 
    const vector<CellID>& localCells = getLocalCells();
    vector<CellID> remoteTargetCellsx;
@@ -382,10 +381,6 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
    // Calculated moments are stored in the "_V" variables.
    calculateMoments_V(mpiGrid, propagatedCells, false);
 
-   //generate pseudo-random order which is always the same irrespective of parallelization, restarts, etc.
-   std::size_t rndInt = std::hash<uint>()(P::tstep);
-   uint map_order=rndInt%3;
-
    // Semi-Lagrangian acceleration for those cells which are subcycled,
    // dimension-by-dimension
    #pragma omp parallel for schedule(dynamic,1)
@@ -409,6 +404,13 @@ void calculateAcceleration(const uint popID,const uint globalMaxSubcycles,const 
       if (dt<0) {
          subcycleDt = -subcycleDt;
       }
+      
+      //generate pseudo-random order which is always the same irrespective of parallelization, restarts, etc.
+      std::default_random_engine rndState;
+      // set seed, initialise generator and get value. The order is the same
+      // for all cells, but varies with timestep.
+      rndState.seed(P::tstep);
+      uint map_order=std::uniform_int_distribution<>(0,2)(rndState);
 
       phiprof::start("cell-semilag-acc");
 #ifdef USE_GPU
