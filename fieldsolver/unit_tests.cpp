@@ -281,6 +281,7 @@ typename std::enable_if<I == 2, std::tuple<bool, double, double>>::type test(){
     } 
   } 
 
+  perBGrid.get(1,1,1)[fsgrids::bfield::PERBX] = 2;
   
  
   // Create a buffer object that provides a convenient interface for accessing the grid data on the device
@@ -288,16 +289,17 @@ typename std::enable_if<I == 2, std::tuple<bool, double, double>>::type test(){
   arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> technicalGridBuf(&technicalGrid);
   arch::buf<SysBoundary> sysBoundariesBuf(&sysBoundaries); 
 
+
   // Execute the loop in parallel on the device using CUDA
   clock_t arch_start = clock();
   arch::parallel_for({(uint)gridDims[0], (uint)gridDims[1], (uint)gridDims[2]}, ARCH_LOOP_LAMBDA(int i, int j, int k) {
-    perBGridBuf.get(i,j,k)[fsgrids::bfield::PERBX] = sysBoundariesBuf.getSysBoundary(technicalGridBuf.get(i,j,k)->sysBoundaryFlag).fieldSolverBoundaryCondMagneticField(perBGridBuf, technicalGridBuf, i, j, k, 0.2, 0.2);
+    perBGridBuf.get(i,j,k)[fsgrids::bfield::PERBX] = sysBoundariesBuf.getSysBoundary(technicalGridBuf.get(i,j,k)->sysBoundaryFlag).fieldSolverBoundaryCondMagneticField(perBGridBuf, technicalGridBuf, i, j, k, 0.7, 0.5);
   });  
   double arch_time = (double)((clock() - arch_start) * 1e6 / CLOCKS_PER_SEC);
   perBGridBuf.syncHostData();
 
   bool success = true;
-  if (perBGridBuf.get(1,1,1)[fsgrids::bfield::PERBX] != 2) {
+  if (perBGridBuf.get(1,1,1)[fsgrids::bfield::PERBX] != 0) {
     success = false;
     cout << "Error: perBGridBuf(1,1,1): " << perBGridBuf.get(1,1,1)[fsgrids::bfield::PERBX] << " should be 0" << endl;
   }
@@ -307,7 +309,7 @@ typename std::enable_if<I == 2, std::tuple<bool, double, double>>::type test(){
   for (uint k = 0; k < gridDims[2]; ++k){
     for (uint j = 0; j < gridDims[1]; ++j){
       for (uint i = 0; i < gridDims[0]; ++i) {
-        perBGridBuf.get(i,j,k)[fsgrids::bfield::PERBX] = sysBoundariesBuf.getSysBoundary(technicalGridBuf.get(i,j,k)->sysBoundaryFlag).fieldSolverBoundaryCondMagneticField(perBGridBuf, technicalGridBuf, i, j, k, 0.2, 0);
+        perBGridBuf.get(i,j,k)[fsgrids::bfield::PERBX] = sysBoundariesBuf.getSysBoundary(technicalGridBuf.get(i,j,k)->sysBoundaryFlag).fieldSolverBoundaryCondMagneticField(perBGridBuf, technicalGridBuf, i, j, k, 0.4, 0);
       }
     } 
   }

@@ -843,7 +843,6 @@ void calculateHallTermSimple(
    dMomentsGrid.syncHostData();
    BgBGrid.syncHostData();
    technicalGrid.syncHostData();
-   sysBoundaries.syncHostData();
    #pragma omp parallel for collapse(3)
    for (int k=0; k<gridDims[2]; k++) {
       for (int j=0; j<gridDims[1]; j++) {
@@ -865,7 +864,6 @@ void calculateHallTermSimple(
    dMomentsGrid.syncDeviceData();
    BgBGrid.syncDeviceData();
    technicalGrid.syncDeviceData();
-   sysBoundaries.syncDeviceData();
    phiprof::stop("Compute cells");
 
    phiprof::stop("Calculate Hall term",N_cells,"Spatial Cells");

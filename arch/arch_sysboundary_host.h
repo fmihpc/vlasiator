@@ -6,6 +6,7 @@
 #include "../sysboundary/ionosphere.h"
 #include "../sysboundary/outflow.h"
 #include "../sysboundary/setmaxwellian.h"
+#include "../sysboundary/conductingsphere.h"
 
 namespace arch {
 
@@ -19,6 +20,7 @@ class buf<SysBoundary> {
         SBC::Ionosphere* ionosphere;
         SBC::Outflow* outflow;
         SBC::DoNotCompute* doNotCompute;
+        SBC::Conductingsphere* conductingsphere;
 
         uint is_copy = 0;
 
@@ -48,6 +50,8 @@ class buf<SysBoundary> {
                                                                                     component);
                     } else if (sysBoundaryFlag == sysboundarytype::OUTFLOW) {
                         return bufPtr->outflow->fieldSolverBoundaryCondMagneticField(bGrid, technicalGrid, i, j, k, dt, component);
+                    } else if (sysBoundaryFlag == sysboundarytype::CONDUCTINGSPHERE) {
+                        return bufPtr->conductingsphere->fieldSolverBoundaryCondMagneticField(bGrid, technicalGrid, i, j, k, dt, component);
                     } else {
                         std::cerr << "ERROR: sysboundarytype not found" << std::endl;
                         exit(1);
@@ -67,6 +71,8 @@ class buf<SysBoundary> {
                         bufPtr->ionosphere->fieldSolverBoundaryCondMagneticFieldProjection(bGrid, technicalGrid, i, j, k);
                     } else if (sysBoundaryFlag == sysboundarytype::OUTFLOW) {
                         bufPtr->outflow->fieldSolverBoundaryCondMagneticFieldProjection(bGrid, technicalGrid, i, j, k);
+                    } else if (sysBoundaryFlag == sysboundarytype::CONDUCTINGSPHERE) {
+                        bufPtr->conductingsphere->fieldSolverBoundaryCondMagneticFieldProjection(bGrid, technicalGrid, i, j, k);
                     } else {
                         std::cerr << "ERROR: sysboundarytype not found" << std::endl;
                         exit(1);
@@ -88,6 +94,8 @@ class buf<SysBoundary> {
                         bufPtr->ionosphere->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, component);
                     } else if (sysBoundaryFlag == sysboundarytype::OUTFLOW) {
                         bufPtr->outflow->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, component);
+                    } else if (sysBoundaryFlag == sysboundarytype::CONDUCTINGSPHERE) {
+                        bufPtr->conductingsphere->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, component);
                     } else {
                         std::cerr << "ERROR: sysboundarytype not found" << std::endl;
                         exit(1);
@@ -107,6 +115,8 @@ class buf<SysBoundary> {
                         bufPtr->ionosphere->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid, i, j, k, component);
                     } else if (sysBoundaryFlag == sysboundarytype::OUTFLOW) {
                         bufPtr->outflow->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid, i, j, k, component);
+                    } else if (sysBoundaryFlag == sysboundarytype::CONDUCTINGSPHERE) {
+                        bufPtr->conductingsphere->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid, i, j, k, component);
                     } else {
                         std::cerr << "ERROR: sysboundarytype not found" << std::endl;
                         exit(1);
@@ -126,6 +136,8 @@ class buf<SysBoundary> {
                         bufPtr->ionosphere->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, component);
                     } else if (sysBoundaryFlag == sysboundarytype::OUTFLOW) {
                         bufPtr->outflow->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, component);
+                    } else if (sysBoundaryFlag == sysboundarytype::CONDUCTINGSPHERE) {
+                        bufPtr->conductingsphere->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, component);
                     } else {
                         std::cerr << "ERROR: sysboundarytype not found" << std::endl;
                         exit(1);
@@ -146,6 +158,8 @@ class buf<SysBoundary> {
                         bufPtr->ionosphere->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, component);
                     } else if (sysBoundaryFlag == sysboundarytype::OUTFLOW) {
                         bufPtr->outflow->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, component);
+                    } else if (sysBoundaryFlag == sysboundarytype::CONDUCTINGSPHERE) {
+                        bufPtr->conductingsphere->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, component);
                     } else {
                         std::cerr << "ERROR: sysboundarytype not found" << std::endl;
                         exit(1);
@@ -165,6 +179,8 @@ class buf<SysBoundary> {
                         bufPtr->ionosphere->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, component);
                     } else if (sysBoundaryFlag == sysboundarytype::OUTFLOW) {
                         bufPtr->outflow->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, component);
+                    } else if (sysBoundaryFlag == sysboundarytype::CONDUCTINGSPHERE) {
+                        bufPtr->conductingsphere->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, component);
                     } else {
                         std::cerr << "ERROR: sysboundarytype not found" << std::endl;
                         exit(1);
@@ -190,6 +206,8 @@ class buf<SysBoundary> {
                     ionosphere = dynamic_cast<SBC::Ionosphere*>(sbc);
                 } else if (sbc->getIndex() == sysboundarytype::OUTFLOW) {
                     outflow = dynamic_cast<SBC::Outflow*>(sbc);
+                } else if (sbc->getIndex() == sysboundarytype::CONDUCTINGSPHERE) {
+                    conductingsphere = dynamic_cast<SBC::Conductingsphere*>(sbc);
                 } else if (sbc->getIndex() == sysboundarytype::DO_NOT_COMPUTE) {
                     doNotCompute = dynamic_cast<SBC::DoNotCompute*>(sbc);
                 } else {
@@ -199,7 +217,7 @@ class buf<SysBoundary> {
             }
         }
 
-        buf(const buf& u) : ptr(u.ptr), is_copy(1), setmaxwellian(u.setmaxwellian), ionosphere(u.ionosphere), outflow(u.outflow) {}
+        buf(const buf& u) : ptr(u.ptr), is_copy(1), setmaxwellian(u.setmaxwellian), ionosphere(u.ionosphere), outflow(u.outflow), conductingsphere(u.conductingsphere) {}
 
         Proxy getSysBoundary(int sysBoundaryFlag) const {
             return Proxy(sysBoundaryFlag, this);

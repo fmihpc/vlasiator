@@ -6,6 +6,7 @@
 #include "../sysboundary/ionosphere.h"
 #include "../sysboundary/outflow.h"
 #include "../sysboundary/setmaxwellian.h"
+#include "../sysboundary/conductingsphere.h"
 
 #include "arch_device_api.h"
 
