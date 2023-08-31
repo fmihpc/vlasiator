@@ -72,6 +72,8 @@ struct Parameters {
    static bool meshRepartitioned;         /*!< If true, mesh was repartitioned on this time step.*/
    static std::vector<CellID> localCells; /*!< Cached copy of spatial cell IDs on this process.*/
 
+   static bool adaptGPUWID;         /*!< If true, GPU runs with WID=8 use halved velocity block counts.*/
+
    static uint diagnosticInterval;
    static std::vector<std::string> systemWriteName;  /*!< Names for the different classes of grid output*/
    static std::vector<std::string> systemWritePath;  /*!< Save this series in this location. Default is ./ */
