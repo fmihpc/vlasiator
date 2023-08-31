@@ -47,7 +47,6 @@
 #include "IPShock/IPShock.h"
 #include "Template/Template.h"
 #include "test_fp/test_fp.h"
-#include "testAmr/testAmr.h"
 #include "testHall/testHall.h"
 #include "test_trans/test_trans.h"
 #include "verificationLarmor/verificationLarmor.h"
@@ -123,7 +122,6 @@ namespace projects {
       projects::IPShock::addParameters();
       projects::Template::addParameters();
       projects::test_fp::addParameters();
-      projects::testAmr::addParameters();
       projects::TestHall::addParameters();
       projects::test_trans::addParameters();
       projects::verificationLarmor::addParameters();
@@ -712,9 +710,6 @@ Project* createProject() {
    }
    if(Parameters::projectName == "test_fp") {
       rvalue = new projects::test_fp;
-   }
-   if(Parameters::projectName == "testAmr") {
-      rvalue = new projects::testAmr;
    }
    if(Parameters::projectName == "testHall") {
       rvalue = new projects::TestHall;

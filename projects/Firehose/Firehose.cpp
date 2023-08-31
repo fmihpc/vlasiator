@@ -66,8 +66,8 @@ namespace projects {
          RP::add(pop + "_Firehose.Vy2", "Bulk velocity y component, second peak (m/s)", 0.0);
          RP::add(pop + "_Firehose.Vz1", "Bulk velocity z component, first peak (m/s)", 0.0);
          RP::add(pop + "_Firehose.Vz2", "Bulk velocity z component, second peak (m/s)", 0.0);
-         RP::add(pop + "_Firehose.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
-         RP::add(pop + "_Firehose.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
+         RP::add(pop + "_Firehose.nSpaceSamples", "Number of sampling points per spatial dimension", 1);
+         RP::add(pop + "_Firehose.nVelocitySamples", "Number of sampling points per velocity dimension", 1);
       }
    }
 
