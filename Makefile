@@ -320,7 +320,7 @@ endif
 	$(SILENT)${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c $< -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_FSGRID} ${INC_PROFILE} ${INC_ZOLTAN}
 
 # Make executable
-vlasiator: $(OBJS) $(OBJS_FSOLVER)
+vlasiator: $(OBJS) $(OBJS_FSOLVER) vlasiator.o
 	@echo "[LINK] ${EXE}"
 	$(SILENT)$(LNK) ${LDFLAGS} -o ${EXE} vlasiator.o $(OBJS) $(LIBS) $(OBJS_FSOLVER)
 
