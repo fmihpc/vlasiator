@@ -34,7 +34,7 @@
 #include "../fieldsolver/ldz_magnetic_field.hpp"
 #include "../vlasovmover.h"
 
-#ifndef NDEBUG
+#ifdef DEBUG_VLASIATOR
    #define DEBUG_OUTFLOW
 #endif
 #ifdef DEBUG_SYSBOUNDARY
@@ -69,6 +69,11 @@ namespace SBC {
         Readparameters::add(pop + "_outflow.quench", "Factor by which to quench the inflowing parts of the velocity distribution function.", 1.0);
       }
    }
+
+   bool Outflow::initFieldBoundary() {
+      fieldBoundary = new OutflowFieldBoundary();
+      return true;
+   } 
    
    void Outflow::getParameters() {
       int myRank;
@@ -180,8 +185,8 @@ namespace SBC {
 
    bool Outflow::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
+      FsGrid< Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
       Project &project
    ) {
       const vector<CellID>& cells = getLocalCells();
@@ -219,112 +224,9 @@ namespace SBC {
          }
       }
 
-      return true;
+      return true; 
    }
 
-   Real Outflow::fieldSolverBoundaryCondMagneticField(
-      FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      cint i,
-      cint j,
-      cint k,
-      creal& dt,
-      cuint& component
-   ) {
-      switch(component) {
-      case 0:
-         return fieldBoundaryCopyFromSolvingNbrMagneticField(bGrid, technicalGrid, i, j, k, component, compute::BX);
-      case 1:
-         return fieldBoundaryCopyFromSolvingNbrMagneticField(bGrid, technicalGrid, i, j, k, component, compute::BY);
-      case 2:
-         return fieldBoundaryCopyFromSolvingNbrMagneticField(bGrid, technicalGrid, i, j, k, component, compute::BZ);
-      default:
-         return 0.0;
-      }
-   }
-
-   void Outflow::fieldSolverBoundaryCondMagneticFieldProjection(
-      FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      cint i,
-      cint j,
-      cint k
-   ) {
-   }
-   void Outflow::fieldSolverBoundaryCondElectricField(
-      FsGrid< array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint component
-   ) {
-      EGrid.get(i,j,k)->at(fsgrids::efield::EX+component) = 0.0;
-   }
-   
-   void Outflow::fieldSolverBoundaryCondHallElectricField(
-      FsGrid< array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint component
-   ) {
-      array<Real, fsgrids::ehall::N_EHALL> * cp = EHallGrid.get(i,j,k);
-      switch (component) {
-         case 0:
-            cp->at(fsgrids::ehall::EXHALL_000_100) = 0.0;
-            cp->at(fsgrids::ehall::EXHALL_010_110) = 0.0;
-            cp->at(fsgrids::ehall::EXHALL_001_101) = 0.0;
-            cp->at(fsgrids::ehall::EXHALL_011_111) = 0.0;
-            break;
-         case 1:
-            cp->at(fsgrids::ehall::EYHALL_000_010) = 0.0;
-            cp->at(fsgrids::ehall::EYHALL_100_110) = 0.0;
-            cp->at(fsgrids::ehall::EYHALL_001_011) = 0.0;
-            cp->at(fsgrids::ehall::EYHALL_101_111) = 0.0;
-            break;
-         case 2:
-            cp->at(fsgrids::ehall::EZHALL_000_001) = 0.0;
-            cp->at(fsgrids::ehall::EZHALL_100_101) = 0.0;
-            cp->at(fsgrids::ehall::EZHALL_010_011) = 0.0;
-            cp->at(fsgrids::ehall::EZHALL_110_111) = 0.0;
-            break;
-         default:
-            cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
-      }
-   }
-   
-   void Outflow::fieldSolverBoundaryCondGradPeElectricField(
-      FsGrid< array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint component
-   ) {
-      EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE+component) = 0.0;
-   }
-   
-   void Outflow::fieldSolverBoundaryCondDerivatives(
-      FsGrid< array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-      FsGrid< array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint& RKCase,
-      cuint& component
-   ) {
-      this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
-   }
-   
-   void Outflow::fieldSolverBoundaryCondBVOLDerivatives(
-      FsGrid< array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint& component
-   ) {
-      this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
-   }
-   
    /**
     * NOTE that this is called once for each particle species!
     * @param mpiGrid
@@ -336,7 +238,7 @@ namespace SBC {
       const uint popID,
       const bool calculate_V_moments
    ) {
-//      phiprof::start("vlasovBoundaryCondition (Outflow)");
+      //      phiprof::start("vlasovBoundaryCondition (Outflow)");
       
       const OutflowSpeciesParameters& sP = this->speciesParams[popID];
       if (mpiGrid[cellID]->sysBoundaryFlag != this->getIndex()) {

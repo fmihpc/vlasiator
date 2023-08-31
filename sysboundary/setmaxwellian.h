@@ -64,7 +64,7 @@ namespace SBC {
       Real maxwellianDistribution(const uint popID,
          creal& rho, creal& T, creal& vx, creal& vy, creal& vz
       );
-      
+
       vector<vmesh::GlobalID> findBlocksToInitialize(
          const uint popID,
          SpatialCell& cell,

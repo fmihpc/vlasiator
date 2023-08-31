@@ -59,6 +59,7 @@ class SysBoundary {
    void addParameters();
    void getParameters();
       
+   void setBoundaryConditionParameters(std::vector<std::string> boundaryConditionParameters);
    bool addSysBoundary(
                        SBC::SysBoundaryCondition* sbc,
                        Project& project,
@@ -71,11 +72,11 @@ class SysBoundary {
    bool existSysBoundary(std::string name);
    bool checkRefinement(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
    bool classifyCells(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
+                      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid);
    bool applyInitialState(
                           dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                          FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-                          FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+                          FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
+                          FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
                           Project& project
                          );
    void applySysBoundaryVlasovConditions(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, creal& t, const bool calculate_V_moments);
@@ -84,6 +85,7 @@ class SysBoundary {
    bool isDynamic() const;
    bool isBoundaryPeriodic(uint direction) const;
    bool updateSysBoundariesAfterLoadBalance(dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid);
+   std::list<SBC::SysBoundaryCondition*>& getSysBoundaries();
 
    private:
       /*! Private copy-constructor to prevent copying the class. */

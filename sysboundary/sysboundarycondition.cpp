@@ -35,6 +35,7 @@
 #include "sysboundarycondition.h"
 #include "../projects/projects_common.h"
 
+
 using namespace std;
 
 namespace SBC {
@@ -57,43 +58,44 @@ namespace SBC {
     * \param dz Cell dz size
     * \param excludeSlicesAndPeriodicDimensions If true, do not consider a cell to be part of the face if that face has a depth of 1 only (single-cell thick slices/columns) or if that direciton is periodic..
     */
-   void SysBoundaryCondition::determineFace(
+   ARCH_HOSTDEV void SysBoundaryCondition::determineFace(
       bool* isThisCellOnAFace,
       creal x, creal y, creal z,
       creal dx, creal dy, creal dz,
+      bool (&isPeriodic)[3],
       const bool excludeSlicesAndPeriodicDimensions //=false (default)
    ) {
       for(uint i=0; i<6; i++) {
          isThisCellOnAFace[i] = false;
       }
-      if(x > Parameters::xmax - dx * 2) {
+      if(x > FSParams.xmax - 2.0*dx) {
          isThisCellOnAFace[0] = true;
       }
-      if(x < Parameters::xmin + dx * 2) {
+      if(x < FSParams.xmin + 2.0*dx) {
          isThisCellOnAFace[1] = true;
       }
-      if(y > Parameters::ymax - dy * 2) {
+      if(y > FSParams.ymax - 2.0*dy) {
          isThisCellOnAFace[2] = true;
       }
-      if(y < Parameters::ymin + dy * 2) {
+      if(y < FSParams.ymin + 2.0*dy) {
          isThisCellOnAFace[3] = true;
       }
-      if(z > Parameters::zmax - dz * 2) {
+      if(z > FSParams.zmax - 2.0*dz) {
          isThisCellOnAFace[4] = true;
       }
-      if(z < Parameters::zmin + dz * 2) {
+      if(z < FSParams.zmin + 2.0*dz) {
          isThisCellOnAFace[5] = true;
       }
       if(excludeSlicesAndPeriodicDimensions == true) {
-         if(Parameters::xcells_ini == 1 || this->isPeriodic[0]) {
+         if(FSParams.xcells_ini == 1 || isPeriodic[0]) {
             isThisCellOnAFace[0] = false;
             isThisCellOnAFace[1] = false;
          }
-         if(Parameters::ycells_ini == 1 || this->isPeriodic[1]) {
+         if(FSParams.ycells_ini == 1 || isPeriodic[1]) {
             isThisCellOnAFace[2] = false;
             isThisCellOnAFace[3] = false;
          }
-         if(Parameters::zcells_ini == 1 || this->isPeriodic[2]) {
+         if(FSParams.zcells_ini == 1 || isPeriodic[2]) {
             isThisCellOnAFace[4] = false;
             isThisCellOnAFace[5] = false;
          }
@@ -154,15 +156,15 @@ namespace SBC {
       }
 
       if(excludeSlicesAndPeriodicDimensions == true) {
-         if(Parameters::xcells_ini == 1 || this->isPeriodic[0]) {
+         if(FSParams.xcells_ini == 1 || this->isPeriodic[0]) {
             isThisCellOnAFace[0] = false;
             isThisCellOnAFace[1] = false;
          }
-         if(Parameters::ycells_ini == 1 || this->isPeriodic[1]) {
+         if(FSParams.ycells_ini == 1 || this->isPeriodic[1]) {
             isThisCellOnAFace[2] = false;
             isThisCellOnAFace[3] = false;
          }
-         if(Parameters::zcells_ini == 1 || this->isPeriodic[2]) {
+         if(FSParams.zcells_ini == 1 || this->isPeriodic[2]) {
             isThisCellOnAFace[4] = false;
             isThisCellOnAFace[5] = false;
          }
@@ -187,66 +189,66 @@ namespace SBC {
     * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives, 3: xy-derivatives, 4: xz-derivatives, 5: yz-derivatives.
     */
    void SysBoundaryCondition::setCellDerivativesToZero(
-      FsGrid< array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-      FsGrid< array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+      const arch::buf<FsGrid< Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH>> & dPerBGrid,
+      const arch::buf<FsGrid< Real, fsgrids::dmoments::N_DMOMENTS, FS_STENCIL_WIDTH>> & dMomentsGrid,
       cint i,
       cint j,
       cint k,
       cuint& component
    ) {
-      array<Real, fsgrids::dperb::N_DPERB> * dPerBGrid0 = dPerBGrid.get(i,j,k);
-      array<Real, fsgrids::dmoments::N_DMOMENTS> * dMomentsGrid0 = dMomentsGrid.get(i,j,k);
+      auto dPerBGrid0 = dPerBGrid.get(i,j,k);
+      auto dMomentsGrid0 = dMomentsGrid.get(i,j,k);
       switch(component) {
          case 0: // x, xx
-            dMomentsGrid0->at(fsgrids::dmoments::drhomdx) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::drhoqdx) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dp11dx) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dp22dx) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dp33dx) = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBydx)  = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBzdx)  = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dVxdx)  = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dVydx)  = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dVzdx)  = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBydxx) = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBzdxx) = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::drhomdx] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::drhoqdx] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dp11dx] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dp22dx] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dp33dx] = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBydx]  = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBzdx]  = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dVxdx]  = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dVydx]  = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dVzdx]  = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBydxx] = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBzdxx] = 0.0;
             break;
          case 1: // y, yy
-            dMomentsGrid0->at(fsgrids::dmoments::drhomdy) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::drhoqdy) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dp11dy) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dp22dy) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dp33dy) = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBxdy)  = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBzdy)  = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dVxdy)  = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dVydy)  = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dVzdy)  = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBxdyy) = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBzdyy) = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::drhomdy] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::drhoqdy] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dp11dy] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dp22dy] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dp33dy] = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBxdy]  = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBzdy]  = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dVxdy]  = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dVydy]  = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dVzdy]  = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBxdyy] = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBzdyy] = 0.0;
             break;
          case 2: // z, zz
-            dMomentsGrid0->at(fsgrids::dmoments::drhomdz) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::drhoqdz) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dp11dz) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dp22dz) = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dp33dz) = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBxdz)  = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBydz)  = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dVxdz)  = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dVydz)  = 0.0;
-            dMomentsGrid0->at(fsgrids::dmoments::dVzdz)  = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBxdzz) = 0.0;
-            dPerBGrid0->at(fsgrids::dperb::dPERBydzz) = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::drhomdz] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::drhoqdz] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dp11dz] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dp22dz] = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dp33dz] = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBxdz]  = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBydz]  = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dVxdz]  = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dVydz]  = 0.0;
+            dMomentsGrid0[fsgrids::dmoments::dVzdz]  = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBxdzz] = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBydzz] = 0.0;
             break;
          case 3: // xy
-            dPerBGrid0->at(fsgrids::dperb::dPERBzdxy) = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBzdxy] = 0.0;
             break;
          case 4: // xz
-            dPerBGrid0->at(fsgrids::dperb::dPERBydxz) = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBydxz] = 0.0;
             break;
          case 5: // yz
-            dPerBGrid0->at(fsgrids::dperb::dPERBxdyz) = 0.0;
+            dPerBGrid0[fsgrids::dperb::dPERBxdyz] = 0.0;
             break;
          default:
             cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
@@ -259,28 +261,28 @@ namespace SBC {
     * \param component 0: x-derivatives, 1: y-derivatives, 2: z-derivatives.
     */
    void SysBoundaryCondition::setCellBVOLDerivativesToZero(
-      FsGrid< array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+      const arch::buf<FsGrid< Real, fsgrids::volfields::N_VOL, FS_STENCIL_WIDTH>> & volGrid,
       cint i,
       cint j,
       cint k,
       cuint& component
    ) {
-      array<Real, fsgrids::volfields::N_VOL> * volGrid0 = volGrid.get(i,j,k);
+      auto volGrid0 = volGrid.get(i,j,k);
       switch(component) {
          case 0:
-            volGrid0->at(fsgrids::volfields::dPERBXVOLdx) = 0.0;
-            volGrid0->at(fsgrids::volfields::dPERBYVOLdx) = 0.0;
-            volGrid0->at(fsgrids::volfields::dPERBZVOLdx) = 0.0;
+            volGrid0[fsgrids::volfields::dPERBXVOLdx] = 0.0;
+            volGrid0[fsgrids::volfields::dPERBYVOLdx] = 0.0;
+            volGrid0[fsgrids::volfields::dPERBZVOLdx] = 0.0;
             break;
          case 1:
-            volGrid0->at(fsgrids::volfields::dPERBXVOLdy) = 0.0;
-            volGrid0->at(fsgrids::volfields::dPERBYVOLdy) = 0.0;
-            volGrid0->at(fsgrids::volfields::dPERBZVOLdy) = 0.0;
+            volGrid0[fsgrids::volfields::dPERBXVOLdy] = 0.0;
+            volGrid0[fsgrids::volfields::dPERBYVOLdy] = 0.0;
+            volGrid0[fsgrids::volfields::dPERBZVOLdy] = 0.0;
             break;
          case 2:
-            volGrid0->at(fsgrids::volfields::dPERBXVOLdz) = 0.0;
-            volGrid0->at(fsgrids::volfields::dPERBYVOLdz) = 0.0;
-            volGrid0->at(fsgrids::volfields::dPERBZVOLdz) = 0.0;
+            volGrid0[fsgrids::volfields::dPERBXVOLdz] = 0.0;
+            volGrid0[fsgrids::volfields::dPERBYVOLdz] = 0.0;
+            volGrid0[fsgrids::volfields::dPERBZVOLdz] = 0.0;
             break;
          default:
             cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
@@ -763,7 +765,7 @@ namespace SBC {
     * \sa getAllClosestNonsysboundaryCells
     */
    array<int, 3> SysBoundaryCondition::getTheClosestNonsysboundaryCell(
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
       cint i,
       cint j,
       cint k
@@ -778,7 +780,7 @@ namespace SBC {
     * \sa getTheClosestNonsysboundaryCell
     */
    vector< array<int, 3> > SysBoundaryCondition::getAllClosestNonsysboundaryCells(
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
       cint i,
       cint j,
       cint k
@@ -789,7 +791,7 @@ namespace SBC {
       for (int kk=-2; kk<3; kk++) {
          for (int jj=-2; jj<3; jj++) {
             for (int ii=-2; ii<3 ; ii++) {
-               if( technicalGrid.get(i+ii,j+jj,k+kk) && technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+               if( technicalGrid.get(i+ii,j+jj,k+kk,0).sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
                   distance = min(distance, ii*ii + jj*jj + kk*kk);
                }
             }
@@ -799,7 +801,7 @@ namespace SBC {
       for (int kk=-2; kk<3; kk++) {
          for (int jj=-2; jj<3; jj++) {
             for (int ii=-2; ii<3 ; ii++) {
-               if( technicalGrid.get(i+ii,j+jj,k+kk) && technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
+               if( technicalGrid.get(i+ii,j+jj,k+kk,0).sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
                   int d = ii*ii + jj*jj + kk*kk;
                   if( d == distance ) {
                      array<int, 3> cell = {i+ii, j+jj, k+kk};
@@ -883,57 +885,6 @@ namespace SBC {
       return flowtoCellsBlock;
    }
    
-   Real SysBoundaryCondition::fieldBoundaryCopyFromSolvingNbrMagneticField(
-      FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint component,
-      cuint mask
-   ) {
-
-      int distance = numeric_limits<int>::max();
-      vector< array<int,3> > closestCells;
-
-      for (int kk=-2; kk<3; kk++) {
-         for (int jj=-2; jj<3; jj++) {
-            for (int ii=-2; ii<3 ; ii++) {
-               if( technicalGrid.get(i+ii,j+jj,k+kk) // skip invalid cells returning NULL
-                   && (technicalGrid.get(i+ii,j+jj,k+kk)->SOLVE & mask) == mask // Did that guy solve this component?
-                   && technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE // Do not copy from there
-               ) {
-                  distance = min(distance, ii*ii + jj*jj + kk*kk);
-               }
-            }
-         }
-      }
-
-      for (int kk=-2; kk<3; kk++) {
-         for (int jj=-2; jj<3; jj++) {
-            for (int ii=-2; ii<3 ; ii++) {
-               if( technicalGrid.get(i+ii,j+jj,k+kk) // skip invalid cells returning NULL
-                   && (technicalGrid.get(i+ii,j+jj,k+kk)->SOLVE & mask) == mask // Did that guy solve this component?
-                   && technicalGrid.get(i+ii,j+jj,k+kk)->sysBoundaryFlag != sysboundarytype::DO_NOT_COMPUTE // Do not copy from there
-               ) {
-                  int d = ii*ii + jj*jj + kk*kk;
-                  if( d == distance ) {
-                     array<int, 3> cell = {i+ii, j+jj, k+kk};
-                     closestCells.push_back(cell);
-                  }
-               }
-            }
-         }
-      }
-
-      if(closestCells.size() == 0) {
-         cerr << __FILE__ << ":" << __LINE__ << ": No closest cell found!" << endl;
-         abort();
-      }
-
-      return bGrid.get(closestCells[0][0], closestCells[0][1], closestCells[0][2])->at(fsgrids::bfield::PERBX+component);
-   }
-   
    /*! Function used in some cases to know which faces the system boundary condition is being applied to.
     * \param faces Pointer to array of 6 bool in which the values are returned whether the corresponding face is of that type. Order: 0 x+; 1 x-; 2 y+; 3 y-; 4 z+; 5 z-
     */
@@ -965,7 +916,7 @@ namespace SBC {
    /*! Get a bool telling whether to call again applyInitialState upon restarting the simulation. */
    bool SysBoundaryCondition::doApplyUponRestart() const {return this->applyUponRestart;}
 
-   bool OuterBoundaryCondition::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
+   bool OuterBoundaryCondition::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid) {
       array<bool,6> isThisCellOnAFace;
       
       // Assign boundary flags to local DCCRG cells

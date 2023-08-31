@@ -38,8 +38,13 @@
 #include "Magnetosphere.h"
 #include "../../fieldsolver/derivatives.hpp"
 
+#ifdef DEBUG_VLASIATOR
+   #define DEBUG_MAGNETOSPHERE
+#endif
+
 using namespace std;
 using namespace spatial_cell;
+
 
 namespace projects {
    Magnetosphere::Magnetosphere(): TriAxisSearch() { }
@@ -293,9 +298,9 @@ namespace projects {
 
    /* set 0-centered dipole */
    void Magnetosphere::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+      FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid<Real, fsgrids::bgbfield::N_BGB, FS_STENCIL_WIDTH> & BgBGrid,
+      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid
    ) {
       Dipole bgFieldDipole;
       LineDipole bgFieldLineDipole;
@@ -350,77 +355,77 @@ namespace projects {
                setBackgroundFieldToZero(BgBGrid);
       }
       
-      const auto localSize = BgBGrid.getLocalSize().data();
+      const auto localSize = BgBGrid.getLocalSize();
       
 #pragma omp parallel
       {
          bool doZeroOut;
          //Force field to zero in the perpendicular direction for 2D (1D) simulations. Otherwise we have unphysical components.
-         doZeroOut = P::xcells_ini ==1 && this->zeroOutComponents[0]==1;
+         doZeroOut = FSParams.xcells ==1 && this->zeroOutComponents[0]==1;
       
          if(doZeroOut) {
 #pragma omp for collapse(3)
             for (int x = 0; x < localSize[0]; ++x) {
                for (int y = 0; y < localSize[1]; ++y) {
                   for (int z = 0; z < localSize[2]; ++z) {
-                     std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
-                     cell->at(fsgrids::bgbfield::BGBX)=0;
-                     cell->at(fsgrids::bgbfield::BGBXVOL)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBydx)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBzdx)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBxdy)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBxdz)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBYVOLdx)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBZVOLdx)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBXVOLdy)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBXVOLdz)=0.0;
+                     auto cell = BgBGrid.get(x, y, z);
+                     cell[fsgrids::bgbfield::BGBX]=0;
+                     cell[fsgrids::bgbfield::BGBXVOL]=0.0;
+                     cell[fsgrids::bgbfield::dBGBydx]=0.0;
+                     cell[fsgrids::bgbfield::dBGBzdx]=0.0;
+                     cell[fsgrids::bgbfield::dBGBxdy]=0.0;
+                     cell[fsgrids::bgbfield::dBGBxdz]=0.0;
+                     cell[fsgrids::bgbfield::dBGBYVOLdx]=0.0;
+                     cell[fsgrids::bgbfield::dBGBZVOLdx]=0.0;
+                     cell[fsgrids::bgbfield::dBGBXVOLdy]=0.0;
+                     cell[fsgrids::bgbfield::dBGBXVOLdz]=0.0;
                   }
                }
             }
          }
             
-          doZeroOut = P::ycells_ini ==1 && this->zeroOutComponents[1]==1;
+          doZeroOut = FSParams.ycells ==1 && this->zeroOutComponents[1]==1;
           if(doZeroOut) {
              /*2D simulation in x and z. Set By and derivatives along Y, and derivatives of By to zero*/
  #pragma omp for collapse(3)
              for (int x = 0; x < localSize[0]; ++x) {
                 for (int y = 0; y < localSize[1]; ++y) {
                    for (int z = 0; z < localSize[2]; ++z) {
-                      std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
-                      cell->at(fsgrids::bgbfield::BGBY)=0.0;
-                      cell->at(fsgrids::bgbfield::BGBYVOL)=0.0;
-                      cell->at(fsgrids::bgbfield::dBGBxdy)=0.0;
-                      cell->at(fsgrids::bgbfield::dBGBzdy)=0.0;
-                      cell->at(fsgrids::bgbfield::dBGBydx)=0.0;
-                      cell->at(fsgrids::bgbfield::dBGBydz)=0.0;
-                      cell->at(fsgrids::bgbfield::dBGBXVOLdy)=0.0;
-                      cell->at(fsgrids::bgbfield::dBGBZVOLdy)=0.0;
-                      cell->at(fsgrids::bgbfield::dBGBYVOLdx)=0.0;
-                      cell->at(fsgrids::bgbfield::dBGBYVOLdz)=0.0;
+                      auto cell = BgBGrid.get(x, y, z);
+                      cell[fsgrids::bgbfield::BGBY]=0.0;
+                      cell[fsgrids::bgbfield::BGBYVOL]=0.0;
+                      cell[fsgrids::bgbfield::dBGBxdy]=0.0;
+                      cell[fsgrids::bgbfield::dBGBzdy]=0.0;
+                      cell[fsgrids::bgbfield::dBGBydx]=0.0;
+                      cell[fsgrids::bgbfield::dBGBydz]=0.0;
+                      cell[fsgrids::bgbfield::dBGBXVOLdy]=0.0;
+                      cell[fsgrids::bgbfield::dBGBZVOLdy]=0.0;
+                      cell[fsgrids::bgbfield::dBGBYVOLdx]=0.0;
+                      cell[fsgrids::bgbfield::dBGBYVOLdz]=0.0;
                    }
                 }
              }
           }
 
-         doZeroOut = P::zcells_ini ==1 && this->zeroOutComponents[2]==1;
+         doZeroOut = FSParams.zcells ==1 && this->zeroOutComponents[2]==1;
          if(doZeroOut) {
 #pragma omp for collapse(3)
             for (int x = 0; x < localSize[0]; ++x) {
                for (int y = 0; y < localSize[1]; ++y) {
                   for (int z = 0; z < localSize[2]; ++z) {
-                     std::array<Real, fsgrids::bgbfield::N_BGB>* cell = BgBGrid.get(x, y, z);
-                     cell->at(fsgrids::bgbfield::BGBX)=0;
-                     cell->at(fsgrids::bgbfield::BGBY)=0;
-                     cell->at(fsgrids::bgbfield::BGBYVOL)=0.0;
-                     cell->at(fsgrids::bgbfield::BGBXVOL)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBxdy)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBxdz)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBydx)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBydz)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBXVOLdy)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBXVOLdz)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBYVOLdx)=0.0;
-                     cell->at(fsgrids::bgbfield::dBGBYVOLdz)=0.0;
+                     auto cell = BgBGrid.get(x, y, z);
+                     cell[fsgrids::bgbfield::BGBX]=0;
+                     cell[fsgrids::bgbfield::BGBY]=0;
+                     cell[fsgrids::bgbfield::BGBYVOL]=0.0;
+                     cell[fsgrids::bgbfield::BGBXVOL]=0.0;
+                     cell[fsgrids::bgbfield::dBGBxdy]=0.0;
+                     cell[fsgrids::bgbfield::dBGBxdz]=0.0;
+                     cell[fsgrids::bgbfield::dBGBydx]=0.0;
+                     cell[fsgrids::bgbfield::dBGBydz]=0.0;
+                     cell[fsgrids::bgbfield::dBGBXVOLdy]=0.0;
+                     cell[fsgrids::bgbfield::dBGBXVOLdz]=0.0;
+                     cell[fsgrids::bgbfield::dBGBYVOLdx]=0.0;
+                     cell[fsgrids::bgbfield::dBGBYVOLdz]=0.0;
                   }
                }
             }
@@ -432,13 +437,13 @@ namespace projects {
             for (int x = 0; x < localSize[0]; ++x) {
                for (int y = 0; y < localSize[1]; ++y) {
                   for (int z = 0; z < localSize[2]; ++z) {
-                     if(technicalGrid.get(x, y, z)->sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN ) {
+                     if(technicalGrid.get(x, y, z,0).sysBoundaryFlag == sysboundarytype::SET_MAXWELLIAN ) {
                         for (int i = 0; i < fsgrids::bgbfield::N_BGB; ++i) {
-                           BgBGrid.get(x,y,z)->at(i) = 0;
+                           BgBGrid.get(x,y,z)[i] = 0;
                         }
                         if ( (this->dipoleType==4) && (P::isRestart == false) ) {
                            for (int i = 0; i < fsgrids::bfield::N_BFIELD; ++i) {
-                              perBGrid.get(x,y,z)->at(i) = 0;
+                              perBGrid.get(x,y,z)[i] = 0;
                            }
                         }
                      }
@@ -596,11 +601,11 @@ namespace projects {
          if (myRank == MASTER_RANK) {
             std::cout << "Finished first level of refinement" << endl;
          }
-         #ifndef NDEBUG
+         #ifdef DEBUG_MAGNETOSPHERE
          if (cells.size() > 0) {
             std::cout << "Rank " << myRank << " refined " << cells.size() << " cells to level 1" << std::endl;
          }
-         #endif //NDEBUG
+         #endif //DEBUG_MAGNETOSPHERE
       }
       
       // L2 refinement.
@@ -622,11 +627,11 @@ namespace projects {
          if(myRank == MASTER_RANK) {
             std::cout << "Finished second level of refinement" << endl;
          }
-         #ifndef NDEBUG
+         #ifdef DEBUG_MAGNETOSPHERE
          if (cells.size() > 0) {
             std::cout << "Rank " << myRank << " refined " << cells.size() << " cells to level 2" << std::endl;
          }
-         #endif //NDEBUG
+         #endif //DEBUG_MAGNETOSPHERE
 
       }
       
@@ -649,11 +654,11 @@ namespace projects {
          if (myRank == MASTER_RANK) {
             std::cout << "Finished third level of refinement" << endl;
          }
-         #ifndef NDEBUG
+         #ifdef DEBUG_MAGNETOSPHERE
          if (cells.size() > 0) {
             std::cout << "Rank " << myRank << " refined " << cells.size() << " cells to level 3" << std::endl;
          }
-         #endif //NDEBUG
+         #endif //DEBUG_MAGNETOSPHERE
       }
 
       // L4 refinement.
@@ -677,11 +682,11 @@ namespace projects {
          if (myRank == MASTER_RANK) {
             std::cout << "Finished fourth level of refinement" << endl;
          }
-         #ifndef NDEBUG
+         #ifdef DEBUG_MAGNETOSPHERE
          if (cells.size() > 0) {
             std::cout << "Rank " << myRank << " refined " << cells.size() << " cells to level 4" << std::endl;
          }
-         #endif //NDEBUG
+         #endif //DEBUG_MAGNETOSPHERE
       }
 
       return true;
@@ -707,7 +712,7 @@ namespace projects {
          int refLevel {mpiGrid.get_refinement_level(id)};
          Real r2 {pow(xyz[0], 2) + pow(xyz[1], 2) + pow(xyz[2], 2)};
 
-         const Real logDx {std::log2(P::dx_ini)};
+         const Real logDx {std::log2(FSParams.dx_ini)};
          if (!canRefine(mpiGrid[id])) {
             // Skip refining, touching boundaries during runtime breaks everything
             mpiGrid.dont_refine(id);

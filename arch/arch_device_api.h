@@ -6,9 +6,13 @@
 #if defined(__CUDACC__) || defined(__HIP_PLATFORM_HCC___)
   #define ARCH_HOSTDEV __host__ __device__
   #define ARCH_DEV __device__
+  #define ARCH_MANAGED __managed__ 
+  #define ARCH_CONSTANT __constant__ 
 #else
   #define ARCH_HOSTDEV
   #define ARCH_DEV
+  #define ARCH_MANAGED
+  #define ARCH_CONSTANT
 #endif
 
 /* Namespace for the common loop interface functions */
@@ -37,6 +41,18 @@ enum reduce_op { max, min, sum, prod };
 /* Namespace for the common loop interface functions */
 namespace arch{
 
+/* Parallel for interface function with shared memory bufffer */
+template <uint NDim, typename Lambda, typename T>
+inline static void parallel_for(const uint (&limits)[NDim], Lambda loop_body, arch::buf<T> &dataBuffer) {
+  arch::parallel_for_driver<NDim>(limits, loop_body, dataBuffer);
+}
+
+/* Parallel for interface function */
+template <uint NDim, typename Lambda>
+inline static void parallel_for(const uint (&limits)[NDim], Lambda loop_body) {
+  arch::parallel_for_driver<NDim>(limits, loop_body);
+}
+
 /* Parallel reduce interface function - specialization for 1 reduction variable */
 template <reduce_op Op, uint NDim, typename Lambda, typename T>
 inline static void parallel_reduce(const uint (&limits)[NDim], Lambda loop_body, T &sum) {
@@ -46,7 +62,7 @@ inline static void parallel_reduce(const uint (&limits)[NDim], Lambda loop_body,
 
 /* Parallel reduce interface function - specialization for a reduction variable array */
 template <reduce_op Op, uint NDim, uint NReductions, typename Lambda, typename T>
-inline static void parallel_reduce(const uint (&limits)[NDim], Lambda loop_body, T (&sum)[NReductions]) {
+inline static void parallel_reduce(const uint (&limits)[NDim], Lambda loop_body, T (&sum)[NReductions]) { 
   arch::parallel_reduce_driver<Op, NReductions, NDim>(limits, loop_body, &sum[0], NReductions);
 }
 

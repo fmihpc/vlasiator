@@ -30,22 +30,22 @@
 
 void setBackgroundField(
    const FieldFunction& bgFunction,
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
+   FsGrid< Real, fsgrids::bgbfield::N_BGB, FS_STENCIL_WIDTH> & BgBGrid,
    bool append=false
 );
 
 void setBackgroundFieldToZero(
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid
+   FsGrid< Real, fsgrids::bgbfield::N_BGB, FS_STENCIL_WIDTH> & BgBGrid
 );
 
 void setPerturbedField(
    const FieldFunction& bgFunction,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+   FsGrid< Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
    bool append=false
 );
 
 void setPerturbedFieldToZero(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid
+   FsGrid< Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid
 );
 
 #endif

@@ -42,12 +42,14 @@ COMPFLAGS += -D OMPI_SKIP_MPICXX
 #is profiling on?
 COMPFLAGS += -DPROFILE
 
-#Add -DNDEBUG to turn debugging off. If debugging is enabled performance will degrade significantly
-COMPFLAGS += -DNDEBUG
+#Optional debugging: performance will degrade significantly
+# COMPFLAGS += -DDEBUG_VLASIATOR
 # COMPFLAGS += -DIONOSPHERE_SORTED_SUMS
 # COMPFLAGS += -DDEBUG_SOLVERS
 # COMPFLAGS += -DDEBUG_IONOSPHERE
 
+#Add -DNDEBUG to turn debugging (including asserts) off on compiler-level
+# COMPFLAGS += -DNDEBUG
 
 #Set order of semilag solver in velocity space acceleration
 #  ACC_SEMILAG_PLM 	2nd order
@@ -58,7 +60,6 @@ COMPFLAGS += -DNDEBUG
 #  TRANS_SEMILAG_PPM	3rd order (for production use, use unless testing)
 #  TRANS_SEMILAG_PQM	5th order (significantly slower due to larger stencil)
 COMPFLAGS += -DACC_SEMILAG_PQM -DTRANS_SEMILAG_PPM
-
 #Add -DCATCH_FPE to catch floating point exceptions and stop execution
 #May cause problems
 #COMPFLAGS += -DCATCH_FPE
@@ -177,7 +178,7 @@ OBJS = 	version.o memoryallocation.o backgroundfield.o quadr.o dipole.o linedipo
 	Flowthrough.o Fluctuations.o Harris.o KHB.o Larmor.o Magnetosphere.o MultiPeak.o\
 	VelocityBox.o Riemann1.o Shock.o Template.o test_fp.o testAmr.o testHall.o test_trans.o\
 	IPShock.o object_wrapper.o\
-	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o vlasiator.o logger.o\
+	verificationLarmor.o Shocktest.o grid.o ioread.o iowrite.o logger.o\
 	common.o parameters.o readparameters.o spatial_cell.o velocity_mesh_parameters.o\
 	vlasovmover.o $(FIELDSOLVER).o fs_common.o fs_limiters.o gridGlue.o
 
@@ -274,7 +275,7 @@ endif
 # for all files in the datareduction/ dir
 %.o: datareduction/%.cpp ${DEPS_COMMON} datareduction/datareductionoperator.h fieldtracing/fieldtracing.h sysboundary/ionosphere.h datareduction/dro_populations.h
 	@echo [CC] $<
-	$(SILENT)${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c $< ${INC_DCCRG} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_EIGEN} ${INC_VLSV} ${INC_FSGRID}
+	$(SILENT)${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c $< ${INC_DCCRG} ${INC_ZOLTAN} ${INC_MPI} ${INC_BOOST} ${INC_EIGEN} ${INC_VLSV} ${INC_FSGRID} ${INC_HASHINATOR}
 
 # for all files in the sysboundary/ dir
 %.o: sysboundary/%.cpp ${DEPS_COMMON} sysboundary/%.h backgroundfield/backgroundfield.h projects/project.h fieldsolver/fs_limiters.h
@@ -319,9 +320,14 @@ endif
 	$(SILENT)${CMP} ${CXXFLAGS} ${MATHFLAGS} ${FLAGS} -c $< -I$(CURDIR)  ${INC_BOOST} ${INC_EIGEN} ${INC_DCCRG} ${INC_FSGRID} ${INC_PROFILE} ${INC_ZOLTAN}
 
 # Make executable
-vlasiator: $(OBJS) $(OBJS_FSOLVER)
+vlasiator: $(OBJS) $(OBJS_FSOLVER) vlasiator.o
 	@echo "[LINK] ${EXE}"
-	$(SILENT)$(LNK) ${LDFLAGS} -o ${EXE} $(OBJS) $(LIBS) $(OBJS_FSOLVER)
+	$(SILENT)$(LNK) ${LDFLAGS} -o ${EXE} vlasiator.o $(OBJS) $(LIBS) $(OBJS_FSOLVER)
+
+# Make executable
+unit_testing_fields: $(OBJS) $(OBJS_FSOLVER) unit_tests.o
+	@echo "[LINK] unit_testing_fields"
+	$(SILENT)$(LNK) ${LDFLAGS} -o unit_testing_fields unit_tests.o $(OBJS) $(LIBS) $(OBJS_FSOLVER)
 
 
 #/// TOOLS section/////

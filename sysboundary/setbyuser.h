@@ -28,11 +28,13 @@
 #include "../readparameters.h"
 #include "../spatial_cell.hpp"
 #include "sysboundarycondition.h"
+#include "setbyuserFieldBoundary.h"
 
 namespace SBC {
 
    struct UserSpeciesParameters {
       /*! Vector containing a vector for each face which has the current boundary condition. Each of these vectors has one line per input data line (time point). The length of the lines is nParams.*/
+
       std::vector<std::vector<Real> > inputData[6];
       /*! Input files for the user-set boundary conditions. */
       std::string files[6];
@@ -68,65 +70,81 @@ namespace SBC {
          creal& t,
          Project &project
       );
+      bool initFieldBoundary();
+      SetByUserFieldBoundary* getFieldBoundary() {return fieldBoundary;}
       virtual bool applyInitialState(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+         FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
+         FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
          Project &project
       );
-      virtual Real fieldSolverBoundaryCondMagneticField(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      ARCH_HOSTDEV Real fieldSolverBoundaryCondMagneticField(
+         const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & bGrid,
+         const arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> & technicalGrid,
          cint i,
          cint j,
          cint k,
          creal& dt,
          cuint& component
-      );
-      virtual void fieldSolverBoundaryCondMagneticFieldProjection(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      ) {
+         return fieldBoundary->fieldSolverBoundaryCondMagneticField(bGrid, technicalGrid, i, j, k, dt, component);
+      }
+      ARCH_HOSTDEV void fieldSolverBoundaryCondMagneticFieldProjection(
+         const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & bGrid,
+         const arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> & technicalGrid,
          cint i,
          cint j,
          cint k
-      );
-      virtual void fieldSolverBoundaryCondElectricField(
-         FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+      ) {
+         fieldBoundary->fieldSolverBoundaryCondMagneticFieldProjection(bGrid, technicalGrid, i, j, k);
+      }
+      ARCH_HOSTDEV void fieldSolverBoundaryCondElectricField(
+         const arch::buf<FsGrid<Real, fsgrids::efield::N_EFIELD, FS_STENCIL_WIDTH>> & EGrid,
          cint i,
          cint j,
          cint k,
          cuint component
-      );
-      virtual void fieldSolverBoundaryCondHallElectricField(
-         FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+      ) {
+         fieldBoundary->fieldSolverBoundaryCondElectricField(EGrid, i, j, k, component);
+      }
+      ARCH_HOSTDEV void fieldSolverBoundaryCondHallElectricField(
+         const arch::buf<FsGrid<Real, fsgrids::ehall::N_EHALL, FS_STENCIL_WIDTH>> & EHallGrid,
          cint i,
          cint j,
          cint k,
          cuint component
-      );
-      virtual void fieldSolverBoundaryCondGradPeElectricField(
-         FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+      ) {
+         fieldBoundary->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, component);
+      }
+      ARCH_HOSTDEV void fieldSolverBoundaryCondGradPeElectricField(
+         const arch::buf<FsGrid<Real, fsgrids::egradpe::N_EGRADPE, FS_STENCIL_WIDTH>> & EGradPeGrid,
          cint i,
          cint j,
          cint k,
          cuint component
-      );
-      virtual void fieldSolverBoundaryCondDerivatives(
-         FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-         FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+      ) {
+         fieldBoundary->fieldSolverBoundaryCondGradPeElectricField(EGradPeGrid, i, j, k, component);
+      }
+      ARCH_HOSTDEV void fieldSolverBoundaryCondDerivatives(
+         const arch::buf<FsGrid<Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH>> & dPerBGrid,
+         const arch::buf<FsGrid<Real, fsgrids::dmoments::N_DMOMENTS, FS_STENCIL_WIDTH>> & dMomentsGrid,
          cint i,
          cint j,
          cint k,
          cuint& RKCase,
          cuint& component
-      );
-      virtual void fieldSolverBoundaryCondBVOLDerivatives(
-         FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+      ) {
+         fieldBoundary->fieldSolverBoundaryCondDerivatives(dPerBGrid, dMomentsGrid, i, j, k, RKCase, component);
+      }
+      ARCH_HOSTDEV void fieldSolverBoundaryCondBVOLDerivatives(
+         const arch::buf<FsGrid<Real, fsgrids::volfields::N_VOL, FS_STENCIL_WIDTH>> & volGrid,
          cint i,
          cint j,
          cint k,
          cuint& component
-      );
+      ) {
+         fieldBoundary->fieldSolverBoundaryCondBVOLDerivatives(volGrid, i, j, k, component);
+      }
       virtual void vlasovBoundaryCondition(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
          const CellID& cellID,
@@ -147,7 +165,7 @@ namespace SBC {
       bool generateTemplateCells(creal& t);
       virtual void generateTemplateCell(spatial_cell::SpatialCell& templateCell, Real B[3], int inputDataIndex, creal& t) = 0;
       bool setCellsFromTemplate(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,const uint popID);
-      bool setBFromTemplate(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid);
+      bool setBFromTemplate(FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid, FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid);
       
       /*! Array of template spatial cells replicated over the corresponding simulation volume face. Only the template for an active face is actually being touched at all by the code. */
       spatial_cell::SpatialCell templateCells[6];
@@ -156,7 +174,9 @@ namespace SBC {
       std::vector<std::string> faceList;
 
       std::vector<UserSpeciesParameters> speciesParams;
+
+      SetByUserFieldBoundary* fieldBoundary;
    };
-}
+};
 
 #endif

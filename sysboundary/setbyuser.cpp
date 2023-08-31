@@ -34,12 +34,13 @@
 #include "../fieldsolver/fs_common.h"
 #include "../object_wrapper.h"
 
-#ifndef NDEBUG
+#ifdef DEBUG_VLASIATOR
    #define DEBUG_SETBYUSER
 #endif
 #ifdef DEBUG_SYSBOUNDARY
    #define DEBUG_SETBYUSER
 #endif
+
 
 using namespace std;
 
@@ -78,10 +79,15 @@ namespace SBC {
       return success;
    }
    
+   bool SetByUser::initFieldBoundary() {
+      fieldBoundary = new SetByUserFieldBoundary(isPeriodic, templateB);
+     return true; 
+   }
+ 
    bool SetByUser::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
+      FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
       Project &project
    ) {
       bool success = true;
@@ -93,127 +99,6 @@ namespace SBC {
       return success;
    }
    
-   void SetByUser::fieldSolverBoundaryCondMagneticFieldProjection(
-      FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      cint i,
-      cint j,
-      cint k
-   ) {
-   }
-
-   Real SetByUser::fieldSolverBoundaryCondMagneticField(
-      FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      cint i,
-      cint j,
-      cint k,
-      creal& dt,
-      cuint& component
-   ) {
-      Real result = 0.0;
-      const array<int, 3> globalIndices = technicalGrid.getGlobalIndices(i,j,k);
-
-      creal x = (convert<Real>(globalIndices[0])+0.5)*technicalGrid.DX + Parameters::xmin;
-      creal y = (convert<Real>(globalIndices[1])+0.5)*technicalGrid.DY + Parameters::ymin;
-      creal z = (convert<Real>(globalIndices[2])+0.5)*technicalGrid.DZ + Parameters::zmin;
-      int refLevel = technicalGrid.get(i, j, k)->refLevel;
-
-      // if refLevel isn't 0, assume neighbour might be on a lower refinement level
-      if (refLevel > 0) {
-         --refLevel;
-      }
-
-      creal dx = Parameters::dx_ini * pow(2, -refLevel);
-      creal dy = Parameters::dy_ini * pow(2, -refLevel);
-      creal dz = Parameters::dz_ini * pow(2, -refLevel);
-      
-      bool isThisCellOnAFace[6];
-      determineFace(isThisCellOnAFace, x, y, z, dx, dy, dz, true);
-
-      for (uint i=0; i<6; i++) {
-         if (isThisCellOnAFace[i]) {
-            result = templateB[i][component];
-            break; // This effectively sets the precedence of faces through the order of faces.
-         }
-      }
-      return result;
-   }
-
-   void SetByUser::fieldSolverBoundaryCondElectricField(
-      FsGrid< array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint component
-   ) {
-      EGrid.get(i,j,k)->at(fsgrids::efield::EX+component) = 0.0;
-   }
-
-   void SetByUser::fieldSolverBoundaryCondHallElectricField(
-      FsGrid< array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint component
-   ) {
-      array<Real, fsgrids::ehall::N_EHALL> * cp = EHallGrid.get(i,j,k);
-      switch (component) {
-         case 0:
-            cp->at(fsgrids::ehall::EXHALL_000_100) = 0.0;
-            cp->at(fsgrids::ehall::EXHALL_010_110) = 0.0;
-            cp->at(fsgrids::ehall::EXHALL_001_101) = 0.0;
-            cp->at(fsgrids::ehall::EXHALL_011_111) = 0.0;
-            break;
-         case 1:
-            cp->at(fsgrids::ehall::EYHALL_000_010) = 0.0;
-            cp->at(fsgrids::ehall::EYHALL_100_110) = 0.0;
-            cp->at(fsgrids::ehall::EYHALL_001_011) = 0.0;
-            cp->at(fsgrids::ehall::EYHALL_101_111) = 0.0;
-            break;
-         case 2:
-            cp->at(fsgrids::ehall::EZHALL_000_001) = 0.0;
-            cp->at(fsgrids::ehall::EZHALL_100_101) = 0.0;
-            cp->at(fsgrids::ehall::EZHALL_010_011) = 0.0;
-            cp->at(fsgrids::ehall::EZHALL_110_111) = 0.0;
-            break;
-         default:
-            cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
-      }
-   }
-   
-   void SetByUser::fieldSolverBoundaryCondGradPeElectricField(
-      FsGrid< array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint component
-   ) {
-         EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE+component) = 0.0;
-   }
-   
-   void SetByUser::fieldSolverBoundaryCondDerivatives(
-      FsGrid< array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-      FsGrid< array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint& RKCase,
-      cuint& component
-   ) {
-      this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
-   }
-
-   void SetByUser::fieldSolverBoundaryCondBVOLDerivatives(
-      FsGrid< array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint& component
-   ) {
-      this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
-   }
-
    void SetByUser::vlasovBoundaryCondition(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
       const CellID& cellID,
@@ -223,10 +108,10 @@ namespace SBC {
       // No need to do anything in this function, as the propagators do not touch the distribution function   
    }
    
-   bool SetByUser::setBFromTemplate(FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid, FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid) {
+   bool SetByUser::setBFromTemplate(FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid, FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid) {
 
       array<bool,6> isThisCellOnAFace;
-      const array<int, 3> gridDims(perBGrid.getLocalSize());
+      int* gridDims = perBGrid.getLocalSize();
 
       for (int k=0; k<gridDims[2]; k++) {
          for (int j=0; j<gridDims[1]; j++) {
@@ -254,19 +139,19 @@ namespace SBC {
                if (refLevel > 0)
                   --refLevel;
 
-               creal dx = P::dx_ini / pow(2, refLevel);
-               creal dy = P::dy_ini / pow(2, refLevel);
-               creal dz = P::dz_ini / pow(2, refLevel);
+               creal dx = FSParams.dx;
+               creal dy = FSParams.dy;
+               creal dz = FSParams.dz;
                
                isThisCellOnAFace.fill(false);
 
-               determineFace(isThisCellOnAFace.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx, dy, dz);
+               SysBoundaryCondition::determineFace(isThisCellOnAFace.data(), cellCenterCoords[0], cellCenterCoords[1], cellCenterCoords[2], dx, dy, dz, isPeriodic);
 
                for(uint iface=0; iface < 6; iface++) {
                   if(facesToProcess[iface] && isThisCellOnAFace[iface]) {
-                     perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX) = templateB[iface][0];
-                     perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBY) = templateB[iface][1];
-                     perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBZ) = templateB[iface][2];
+                     perBGrid.get(i,j,k)[fsgrids::bfield::PERBX] = templateB[iface][0];
+                     perBGrid.get(i,j,k)[fsgrids::bfield::PERBY] = templateB[iface][1];
+                     perBGrid.get(i,j,k)[fsgrids::bfield::PERBZ] = templateB[iface][2];
                      break;
                   }
                }

@@ -41,12 +41,15 @@ using namespace std;
 
 typedef Parameters P;
 
+ARCH_MANAGED FieldsolverParameters FSParams;
+
 // Using numeric_limits<Real>::max() leads to FP exceptions inside boost programoptions, use a slightly smaller value to
 // avoid...
 
 const Real LARGE_REAL = 1e20;
 // Define static members:
 int P::geometry = geometry::XYZ6D;
+
 Real P::xmin = NAN;
 Real P::xmax = NAN;
 Real P::ymin = NAN;
@@ -117,13 +120,8 @@ bool P::propagateField = true;
 
 bool P::dynamicTimestep = true;
 
-Real P::maxWaveVelocity = 0.0;
 uint P::maxFieldSolverSubcycles = 0.0;
 int P::maxSlAccelerationSubcycles = 0.0;
-Real P::resistivity = NAN;
-bool P::fieldSolverDiffusiveEterms = true;
-uint P::ohmHallTerm = 0;
-uint P::ohmGradPeTerm = 0;
 Real P::electronTemperature = 0.0;
 Real P::electronDensity = 0.0;
 Real P::electronPTindex = 1.0;
@@ -180,6 +178,54 @@ std::vector<int> P::numPasses; //numpasses
 
 std::string tracerString; /*!< Fieldline tracer to use for coupling ionosphere and magnetosphere */
 bool P::computeCurvature;
+
+void initFieldsolverParameters() {
+   FSParams.xmin = NAN;
+   FSParams.xmax = NAN;
+   FSParams.ymin = NAN;
+   FSParams.ymax = NAN;
+   FSParams.zmin = NAN;
+   FSParams.zmax = NAN;
+   FSParams.dx = NAN;
+   FSParams.dy = NAN;
+   FSParams.dz = NAN;
+   FSParams.dx_ini = NAN;
+   FSParams.dy_ini = NAN;
+   FSParams.dz_ini = NAN;
+
+   FSParams.xcells_ini = numeric_limits<uint>::max();
+   FSParams.ycells_ini = numeric_limits<uint>::max();
+   FSParams.zcells_ini = numeric_limits<uint>::max();
+   FSParams.xcells = numeric_limits<uint>::max();
+   FSParams.ycells = numeric_limits<uint>::max();
+   FSParams.zcells = numeric_limits<uint>::max();
+   FSParams.maxWaveVelocity = 0.0;
+   FSParams.resistivity = NAN;
+   FSParams.fieldSolverDiffusiveEterms = true;
+   FSParams.ohmHallTerm = 0;
+   FSParams.ohmGradPeTerm = 0; 
+}
+void calcFieldsolverParameters() {
+   // Calculates the fieldsolver FSgrid mesh parameters
+   FSParams.xmin = P::xmin;
+   FSParams.xmax = P::xmax;
+   FSParams.ymin = P::ymin;
+   FSParams.ymax = P::ymax;
+   FSParams.zmin = P::zmin;
+   FSParams.zmax = P::zmax;
+   FSParams.dx_ini = P::dx_ini;
+   FSParams.dy_ini = P::dy_ini;
+   FSParams.dz_ini = P::dz_ini;
+   FSParams.xcells = convert<int>(P::xcells_ini * pow(2,P::amrMaxSpatialRefLevel));
+   FSParams.ycells = convert<int>(P::ycells_ini * pow(2,P::amrMaxSpatialRefLevel));
+   FSParams.zcells = convert<int>(P::zcells_ini * pow(2,P::amrMaxSpatialRefLevel));
+   FSParams.xcells_ini = P::xcells_ini;
+   FSParams.ycells_ini = P::ycells_ini;
+   FSParams.zcells_ini = P::zcells_ini;
+   FSParams.dx = (FSParams.xmax - FSParams.xmin) / FSParams.xcells;
+   FSParams.dy = (FSParams.ymax - FSParams.ymin) / FSParams.ycells;
+   FSParams.dz = (FSParams.zmax - FSParams.zmin) / FSParams.zcells;
+}
 
 bool P::addParameters() {
    typedef Readparameters RP;
@@ -774,12 +820,12 @@ void Parameters::getParameters() {
    P::tstep = P::tstep_min;
 
    // Get field solver parameters
-   RP::get("fieldsolver.maxWaveVelocity", P::maxWaveVelocity);
+   RP::get("fieldsolver.maxWaveVelocity", FSParams.maxWaveVelocity);
    RP::get("fieldsolver.maxSubcycles", P::maxFieldSolverSubcycles);
-   RP::get("fieldsolver.resistivity", P::resistivity);
-   RP::get("fieldsolver.diffusiveEterms", P::fieldSolverDiffusiveEterms);
-   RP::get("fieldsolver.ohmHallTerm", P::ohmHallTerm);
-   RP::get("fieldsolver.ohmGradPeTerm", P::ohmGradPeTerm);
+   RP::get("fieldsolver.resistivity", FSParams.resistivity);
+   RP::get("fieldsolver.diffusiveEterms", FSParams.fieldSolverDiffusiveEterms);
+   RP::get("fieldsolver.ohmHallTerm", FSParams.ohmHallTerm);
+   RP::get("fieldsolver.ohmGradPeTerm", FSParams.ohmGradPeTerm);
    RP::get("fieldsolver.electronTemperature", P::electronTemperature);
    RP::get("fieldsolver.electronDensity", P::electronDensity);
    RP::get("fieldsolver.electronPTindex", P::electronPTindex);

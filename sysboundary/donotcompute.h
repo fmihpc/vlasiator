@@ -49,70 +49,101 @@ namespace SBC {
          Project &project
       );
       virtual bool assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                     FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid);
+                                     FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid);
       virtual bool applyInitialState(
          const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+         FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
+         FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
          Project &project
       );
       virtual std::string getName() const;
       virtual uint getIndex() const;
 
+      bool initFieldBoundary() {return false;}
+
       // Explicit warning functions to inform the user if a doNotCompute cell gets computed
-      virtual Real fieldSolverBoundaryCondMagneticField(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      ARCH_HOSTDEV virtual Real fieldSolverBoundaryCondMagneticField(
+         const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & perBGrid,
+         const arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> & technicalGrid,
          cint i,
          cint j,
          cint k,
          creal& dt,
          cuint& component
-      ) { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondMagneticField called!" << std::endl; return 0.;}
-      virtual void fieldSolverBoundaryCondMagneticFieldProjection(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      ) { 
+         #ifndef __CUDA_ARCH__
+         std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondMagneticField called!" << std::endl;
+         #endif 
+         return 0.;
+      }
+      ARCH_HOSTDEV virtual void fieldSolverBoundaryCondMagneticFieldProjection(
+         const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & perBGrid,
+         const arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> & technicalGrid,
          cint i,
          cint j,
          cint k
-      ) { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondMagneticFieldProjection called!" << std::endl;}
-      virtual void fieldSolverBoundaryCondElectricField(
-         FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
+      ) {
+         #ifndef __CUDA_ARCH__
+         std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondMagneticFieldProjection called!" << std::endl;
+         #endif
+      }
+      ARCH_HOSTDEV virtual void fieldSolverBoundaryCondElectricField(
+         const arch::buf<FsGrid<Real, fsgrids::efield::N_EFIELD, FS_STENCIL_WIDTH>> & EGrid,
          cint i,
          cint j,
          cint k,
          cuint component
-      ) { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondElectricField called!" << std::endl;}
-      virtual void fieldSolverBoundaryCondHallElectricField(
-         FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
+      ) {
+         #ifndef __CUDA_ARCH__
+         std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondElectricField called!" << std::endl;
+         #endif
+      }
+      ARCH_HOSTDEV virtual void fieldSolverBoundaryCondHallElectricField(
+         const arch::buf<FsGrid<Real, fsgrids::ehall::N_EHALL, FS_STENCIL_WIDTH>> & EHallGrid,
          cint i,
          cint j,
          cint k,
          cuint component
-      ) { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondHallElectricField called!" << std::endl;}
-      virtual void fieldSolverBoundaryCondGradPeElectricField(
-         FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
+      ) {
+         #ifndef __CUDA_ARCH__
+         std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondHallElectricField called!" << std::endl;
+         #endif
+      }
+      ARCH_HOSTDEV virtual void fieldSolverBoundaryCondGradPeElectricField(
+         const arch::buf<FsGrid<Real, fsgrids::egradpe::N_EGRADPE, FS_STENCIL_WIDTH>> & EGradPeGrid,
          cint i,
          cint j,
          cint k,
          cuint component
-      ) { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondGradPeElectricField called!" << std::endl;}
-      virtual void fieldSolverBoundaryCondDerivatives(
-         FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-         FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
+      ) {
+         #ifndef __CUDA_ARCH__ 
+         std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondGradPeElectricField called!" << std::endl;
+         #endif
+      }
+      ARCH_HOSTDEV virtual void fieldSolverBoundaryCondDerivatives(
+         const arch::buf<FsGrid<Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH>> & dPerBGrid,
+         const arch::buf<FsGrid<Real, fsgrids::dmoments::N_DMOMENTS, FS_STENCIL_WIDTH>> & dMomentsGrid,
          cint i,
          cint j,
          cint k,
          cuint& RKCase,
          cuint& component
-      ) { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondDerivatives called!" << std::endl;}
-      virtual void fieldSolverBoundaryCondBVOLDerivatives(
-         FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
+      ) {
+         #ifndef __CUDA_ARCH__
+         std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondDerivatives called!" << std::endl;
+         #endif
+      }
+      ARCH_HOSTDEV virtual void fieldSolverBoundaryCondBVOLDerivatives(
+         const arch::buf<FsGrid<Real, fsgrids::volfields::N_VOL, FS_STENCIL_WIDTH>> & volGrid,
          cint i,
          cint j,
          cint k,
          cuint& component
-      ) { std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondBVOLDerivatives called!" << std::endl;}
+      ) {
+         #ifndef __CUDA_ARCH__
+         std::cerr << "ERROR: DoNotCompute::fieldSolverBoundaryCondBVOLDerivatives called!" << std::endl;
+         #endif
+      }
       virtual void vlasovBoundaryCondition(
           const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
           const CellID& cellID,

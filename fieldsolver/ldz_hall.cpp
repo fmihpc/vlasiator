@@ -22,8 +22,9 @@
 
 #include "fs_common.h"
 #include "ldz_hall.hpp"
+#include "../arch/arch_sysboundary_api.h"
 
-#ifndef NDEBUG
+#ifdef DEBUG_VLASIATOR
    #define DEBUG_FSOLVER
 #endif
 
@@ -45,12 +46,12 @@ using namespace std;
  */
 template<typename REAL> inline
 REAL JXBX_000_100(
-   const std::array<REAL, Rec::N_REC_COEFFICIENTS> pC,
-   creal BGBY,
-   creal BGBZ,
-   creal dx,
-   creal dy,
-   creal dz
+   REAL* pC,
+   Real BGBY,
+   Real BGBZ,
+   double dx,
+   double dy,
+   double dz
 ) {
    using namespace Rec;
    return -(pC[a_zz]*BGBZ)/dz+(pC[a_z]*BGBZ)/dz-(pC[a_yz]*BGBZ)/(2*dz)-(pC[c_xzz]*BGBZ)/(6*dx)+(pC[c_xz]*BGBZ)/(2*dx)-(pC[c_xyz]*BGBZ)/(4*dx)+(pC[c_xy]*BGBZ)/(2*dx)-(pC[c_x]*BGBZ)/dx-(pC[a_yz]*BGBY)/(2*dy)-(pC[a_yy]*BGBY)/dy+(pC[a_y]*BGBY)/dy+(pC[b_xz]*BGBY)/(2*dx)-(pC[b_xyz]*BGBY)/(4*dx)-(pC[b_xyy]*BGBY)/(6*dx)+(pC[b_xy]*BGBY)/(2*dx)-(pC[b_x]*BGBY)/dx-(pC[a_zz]*pC[c_zz])/(6*dz)+(pC[a_z]*pC[c_zz])/(6*dz)-
@@ -77,7 +78,7 @@ REAL JXBX_000_100(
  */
 template<typename REAL> inline
 REAL JXBX_010_110(
-   const std::array<REAL, Rec::N_REC_COEFFICIENTS> & pC,
+   REAL* pC,
    creal BGBY,
    creal BGBZ,
    creal dx,
@@ -109,7 +110,7 @@ REAL JXBX_010_110(
  */
 template<typename REAL> inline
 REAL JXBX_001_101(
-   const std::array<REAL, Rec::N_REC_COEFFICIENTS> & pC,
+   REAL* pC,
    creal BGBY,
    creal BGBZ,
    creal dx,
@@ -141,7 +142,7 @@ REAL JXBX_001_101(
  */
 template<typename REAL> inline
 REAL JXBX_011_111(
-   const std::array<REAL, Rec::N_REC_COEFFICIENTS> & pC,
+   REAL* pC,
    creal BGBY,
    creal BGBZ,
    creal dx,
@@ -174,7 +175,7 @@ REAL JXBX_011_111(
  */
 template<typename REAL> inline
 REAL JXBY_000_010(
-   const std::array<REAL, Rec::N_REC_COEFFICIENTS> & pC,
+   REAL* pC,
    creal BGBX,
    creal BGBZ,
    creal dx,
@@ -206,7 +207,7 @@ REAL JXBY_000_010(
  */
 template<typename REAL> inline
 REAL JXBY_100_110(
-   const std::array<REAL, Rec::N_REC_COEFFICIENTS> & pC,
+   REAL* pC,
    creal BGBX,
    creal BGBZ,
    creal dx,
@@ -238,7 +239,7 @@ REAL JXBY_100_110(
  */
 template<typename REAL> inline
 REAL JXBY_001_011(
-   const std::array<REAL, Rec::N_REC_COEFFICIENTS> & pC,
+   REAL* pC,
    creal BGBX,
    creal BGBZ,
    creal dx,
@@ -270,7 +271,7 @@ REAL JXBY_001_011(
  */
 template<typename REAL> inline
 REAL JXBY_101_111(
-   const std::array<REAL, Rec::N_REC_COEFFICIENTS> & pC,
+   REAL* pC,
    creal BGBX,
    creal BGBZ,
    creal dx,
@@ -303,7 +304,7 @@ REAL JXBY_101_111(
  */
 template<typename REAL> inline
 REAL JXBZ_000_001(
-   const std::array<REAL, Rec::N_REC_COEFFICIENTS> & pC,
+   REAL* pC,
    creal BGBX,
    creal BGBY,
    creal dx,
@@ -335,7 +336,7 @@ REAL JXBZ_000_001(
  */
 template<typename REAL> inline
 REAL JXBZ_100_101(
-   const std::array<REAL, Rec::N_REC_COEFFICIENTS> & pC,
+   REAL* pC,
    creal BGBX,
    creal BGBY,
    creal dx,
@@ -367,7 +368,7 @@ REAL JXBZ_100_101(
  */
 template<typename REAL> inline
 REAL JXBZ_010_011(
-   const std::array<REAL, Rec::N_REC_COEFFICIENTS> & pC,
+   REAL* pC,
    creal BGBX,
    creal BGBY,
    creal dx,
@@ -399,7 +400,7 @@ REAL JXBZ_010_011(
  */
 template<typename REAL> inline
 REAL JXBZ_110_111(
-   const std::array<REAL, Rec::N_REC_COEFFICIENTS> & pC,
+   REAL* pC,
    creal BGBX,
    creal BGBY,
    creal dx,
@@ -433,14 +434,14 @@ REAL JXBZ_110_111(
  * 
  */
 void calculateEdgeHallTermXComponents(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-   const std::array<Real, Rec::N_REC_COEFFICIENTS> & perturbedCoefficients,
+   const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & perBGrid,
+   const arch::buf<FsGrid<Real, fsgrids::ehall::N_EHALL, FS_STENCIL_WIDTH>> & EHallGrid,
+   const arch::buf<FsGrid<Real, fsgrids::moments::N_MOMENTS, FS_STENCIL_WIDTH>> & momentsGrid,
+   const arch::buf<FsGrid<Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH>> & dPerBGrid,
+   const arch::buf<FsGrid<Real, fsgrids::dmoments::N_DMOMENTS, FS_STENCIL_WIDTH>> & dMomentsGrid,
+   const arch::buf<FsGrid<Real, fsgrids::bgbfield::N_BGB, FS_STENCIL_WIDTH>> & BgBGrid,
+   const arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> & technicalGrid,
+   const Real* perturbedCoefficients,
    cint i,
    cint j,
    cint k
@@ -450,61 +451,61 @@ void calculateEdgeHallTermXComponents(
    Real hallRhoq = 0.0;
    Real EXHall = 0.0;
    
-   switch (Parameters::ohmHallTerm) {
+   switch (FSParams.ohmHallTerm) {
     case 0:
-      cerr << __FILE__ << __LINE__ << "You shouldn't be in a Hall term function if Parameters::ohmHallTerm == 0." << endl;
+      cerr << __FILE__ << __LINE__ << "You shouldn't be in a Hall term function if FSParams.ohmHallTerm == 0." << endl;
       break;
       
     case 1:
-      By = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBY)+BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBY);
-      Bz = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBZ)+BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBZ);
+      By = perBGrid.get(i,j,k)[fsgrids::bfield::PERBY]+BgBGrid.get(i,j,k)[fsgrids::bgbfield::BGBY];
+      Bz = perBGrid.get(i,j,k)[fsgrids::bfield::PERBZ]+BgBGrid.get(i,j,k)[fsgrids::bgbfield::BGBZ];
       
-      hallRhoq =  (momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQ) <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQ) ;
-      EXHall = (Bz*((BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBxdz)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBxdz))/technicalGrid.DZ -
-                     (BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBzdx)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBzdx))/technicalGrid.DX) -
-                  By*((BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBydx)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBydx))/technicalGrid.DX-
-                     ((BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBxdy)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBxdy))/technicalGrid.DY)));
+      hallRhoq =  (momentsGrid.get(i,j,k)[fsgrids::moments::RHOQ] <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : momentsGrid.get(i,j,k)[fsgrids::moments::RHOQ] ;
+      EXHall = (Bz*((BgBGrid.get(i,j,k)[fsgrids::bgbfield::dBGBxdz]+dPerBGrid.get(i,j,k)[fsgrids::dperb::dPERBxdz])/technicalGrid.grid()->DZ -
+                     (BgBGrid.get(i,j,k)[fsgrids::bgbfield::dBGBzdx]+dPerBGrid.get(i,j,k)[fsgrids::dperb::dPERBzdx])/technicalGrid.grid()->DX) -
+                  By*((BgBGrid.get(i,j,k)[fsgrids::bgbfield::dBGBydx]+dPerBGrid.get(i,j,k)[fsgrids::dperb::dPERBydx])/technicalGrid.grid()->DX-
+                     ((BgBGrid.get(i,j,k)[fsgrids::bgbfield::dBGBxdy]+dPerBGrid.get(i,j,k)[fsgrids::dperb::dPERBxdy])/technicalGrid.grid()->DY)));
       EXHall /= physicalconstants::MU_0 * hallRhoq;
       
-      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EXHALL_000_100) =
-      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EXHALL_010_110) =
-      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EXHALL_001_101) =
-      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EXHALL_011_111) = EXHall;
+      EHallGrid.get(i,j,k)[fsgrids::ehall::EXHALL_000_100] =
+      EHallGrid.get(i,j,k)[fsgrids::ehall::EXHALL_010_110] =
+      EHallGrid.get(i,j,k)[fsgrids::ehall::EXHALL_001_101] =
+      EHallGrid.get(i,j,k)[fsgrids::ehall::EXHALL_011_111] = EXHall;
 
       break;
     case 2:
       hallRhoq = FOURTH * (
-         momentsGrid.get(i  ,j  ,k  )->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i  ,j-1,k  )->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i  ,j  ,k-1)->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i  ,j-1,k-1)->at(fsgrids::moments::RHOQ)
+         momentsGrid.get(i  ,j  ,k  )[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i  ,j-1,k  )[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i  ,j  ,k-1)[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i  ,j-1,k-1)[fsgrids::moments::RHOQ]
       );
       hallRhoq =  (hallRhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : hallRhoq ;
-      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EXHALL_000_100) = JXBX_000_100(perturbedCoefficients, BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBY), BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBZ), technicalGrid.DX, technicalGrid.DY, technicalGrid.DZ) / (physicalconstants::MU_0 * hallRhoq);
+      EHallGrid.get(i,j,k)[fsgrids::ehall::EXHALL_000_100] = JXBX_000_100(perturbedCoefficients, BgBGrid.get(i,j,k)[fsgrids::bgbfield::BGBY], BgBGrid.get(i,j,k)[fsgrids::bgbfield::BGBZ], technicalGrid.grid()->DX, technicalGrid.grid()->DY, technicalGrid.grid()->DZ) / (physicalconstants::MU_0 * hallRhoq);
       hallRhoq = FOURTH * (
-         momentsGrid.get(i  ,j  ,k  )->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i  ,j+1,k  )->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i  ,j  ,k-1)->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i  ,j+1,k-1)->at(fsgrids::moments::RHOQ)
+         momentsGrid.get(i  ,j  ,k  )[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i  ,j+1,k  )[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i  ,j  ,k-1)[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i  ,j+1,k-1)[fsgrids::moments::RHOQ]
       );
       hallRhoq =  (hallRhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : hallRhoq ;
-      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EXHALL_010_110) = JXBX_010_110(perturbedCoefficients, BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBY), BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBZ), technicalGrid.DX, technicalGrid.DY, technicalGrid.DZ) / (physicalconstants::MU_0 * hallRhoq);
+      EHallGrid.get(i,j,k)[fsgrids::ehall::EXHALL_010_110] = JXBX_010_110(perturbedCoefficients, BgBGrid.get(i,j,k)[fsgrids::bgbfield::BGBY], BgBGrid.get(i,j,k)[fsgrids::bgbfield::BGBZ], technicalGrid.grid()->DX, technicalGrid.grid()->DY, technicalGrid.grid()->DZ) / (physicalconstants::MU_0 * hallRhoq);
       hallRhoq = FOURTH * (
-         momentsGrid.get(i  ,j  ,k  )->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i  ,j-1,k  )->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i  ,j  ,k+1)->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i  ,j-1,k+1)->at(fsgrids::moments::RHOQ)
+         momentsGrid.get(i  ,j  ,k  )[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i  ,j-1,k  )[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i  ,j  ,k+1)[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i  ,j-1,k+1)[fsgrids::moments::RHOQ]
       );
       hallRhoq =  (hallRhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : hallRhoq ;
-      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EXHALL_001_101) = JXBX_001_101(perturbedCoefficients, BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBY), BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBZ), technicalGrid.DX, technicalGrid.DY, technicalGrid.DZ) / (physicalconstants::MU_0 * hallRhoq);
+      EHallGrid.get(i,j,k)[fsgrids::ehall::EXHALL_001_101] = JXBX_001_101(perturbedCoefficients, BgBGrid.get(i,j,k)[fsgrids::bgbfield::BGBY], BgBGrid.get(i,j,k)[fsgrids::bgbfield::BGBZ], technicalGrid.grid()->DX, technicalGrid.grid()->DY, technicalGrid.grid()->DZ) / (physicalconstants::MU_0 * hallRhoq);
       hallRhoq = FOURTH * (
-         momentsGrid.get(i  ,j  ,k  )->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i  ,j+1,k  )->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i  ,j  ,k+1)->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i  ,j+1,k+1)->at(fsgrids::moments::RHOQ)
+         momentsGrid.get(i  ,j  ,k  )[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i  ,j+1,k  )[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i  ,j  ,k+1)[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i  ,j+1,k+1)[fsgrids::moments::RHOQ]
       );
       hallRhoq =  (hallRhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : hallRhoq ;
-      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EXHALL_011_111) = JXBX_011_111(perturbedCoefficients, BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBY), BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBZ), technicalGrid.DX, technicalGrid.DY, technicalGrid.DZ) / (physicalconstants::MU_0 * hallRhoq);
+      EHallGrid.get(i,j,k)[fsgrids::ehall::EXHALL_011_111] = JXBX_011_111(perturbedCoefficients, BgBGrid.get(i,j,k)[fsgrids::bgbfield::BGBY], BgBGrid.get(i,j,k)[fsgrids::bgbfield::BGBZ], technicalGrid.grid()->DX, technicalGrid.grid()->DY, technicalGrid.grid()->DZ) / (physicalconstants::MU_0 * hallRhoq);
       break;
       
     default:
@@ -531,14 +532,14 @@ void calculateEdgeHallTermXComponents(
  * 
  */
 void calculateEdgeHallTermYComponents(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-   const std::array<Real, Rec::N_REC_COEFFICIENTS> & perturbedCoefficients,
+   const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & perBGrid,
+   const arch::buf<FsGrid<Real, fsgrids::ehall::N_EHALL, FS_STENCIL_WIDTH>> & EHallGrid,
+   const arch::buf<FsGrid<Real, fsgrids::moments::N_MOMENTS, FS_STENCIL_WIDTH>> & momentsGrid,
+   const arch::buf<FsGrid<Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH>> & dPerBGrid,
+   const arch::buf<FsGrid<Real, fsgrids::dmoments::N_DMOMENTS, FS_STENCIL_WIDTH>> & dMomentsGrid,
+   const arch::buf<FsGrid<Real, fsgrids::bgbfield::N_BGB, FS_STENCIL_WIDTH>> & BgBGrid,
+   const arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> & technicalGrid,
+   const Real* const perturbedCoefficients,
    cint i,
    cint j,
    cint k
@@ -548,61 +549,61 @@ void calculateEdgeHallTermYComponents(
    Real hallRhoq = 0.0;
    Real EYHall = 0.0;
    
-   switch (Parameters::ohmHallTerm) {
+   switch (FSParams.ohmHallTerm) {
     case 0:
-      cerr << __FILE__ << __LINE__ << "You shouldn't be in a Hall term function if Parameters::ohmHallTerm == 0." << endl;
+      cerr << __FILE__ << __LINE__ << "You shouldn't be in a Hall term function if FSParams.ohmHallTerm == 0." << endl;
       break;
       
     case 1:
-      Bx = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX)+BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBX);
-      Bz = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBZ)+BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBZ);
+      Bx = perBGrid.get(i,j,k)[fsgrids::bfield::PERBX]+BgBGrid.get(i,j,k)[fsgrids::bgbfield::BGBX];
+      Bz = perBGrid.get(i,j,k)[fsgrids::bfield::PERBZ]+BgBGrid.get(i,j,k)[fsgrids::bgbfield::BGBZ];
       
-      hallRhoq =  (momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQ) <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQ) ;
-      EYHall = (Bx*((BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBydx)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBydx))/technicalGrid.DX -
-                    (BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBxdy)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBxdy))/technicalGrid.DY) -
-                Bz*((BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBzdy)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBzdy))/technicalGrid.DY -
-                    ((BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBydz)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBydz))/technicalGrid.DZ )));
+      hallRhoq =  (momentsGrid.get(i,j,k)[fsgrids::moments::RHOQ] <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : momentsGrid.get(i,j,k)[fsgrids::moments::RHOQ] ;
+      EYHall = (Bx*((BgBGrid.get(i,j,k)[fsgrids::bgbfield::dBGBydx]+dPerBGrid.get(i,j,k)[fsgrids::dperb::dPERBydx])/technicalGrid.grid()->DX -
+                    (BgBGrid.get(i,j,k)[fsgrids::bgbfield::dBGBxdy]+dPerBGrid.get(i,j,k)[fsgrids::dperb::dPERBxdy])/technicalGrid.grid()->DY) -
+                Bz*((BgBGrid.get(i,j,k)[fsgrids::bgbfield::dBGBzdy]+dPerBGrid.get(i,j,k)[fsgrids::dperb::dPERBzdy])/technicalGrid.grid()->DY -
+                    ((BgBGrid.get(i,j,k)[fsgrids::bgbfield::dBGBydz]+dPerBGrid.get(i,j,k)[fsgrids::dperb::dPERBydz])/technicalGrid.grid()->DZ )));
       EYHall /= physicalconstants::MU_0 * hallRhoq;
       
-      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EYHALL_000_010) =
-      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EYHALL_100_110) =
-      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EYHALL_101_111) =
-      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EYHALL_001_011) = EYHall;
+      EHallGrid.get(i,j,k)[fsgrids::ehall::EYHALL_000_010] =
+      EHallGrid.get(i,j,k)[fsgrids::ehall::EYHALL_100_110] =
+      EHallGrid.get(i,j,k)[fsgrids::ehall::EYHALL_101_111] =
+      EHallGrid.get(i,j,k)[fsgrids::ehall::EYHALL_001_011] = EYHall;
       break;
       
     case 2:
       hallRhoq = FOURTH * (
-         momentsGrid.get(i  ,j  ,k  )->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i-1,j  ,k  )->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i  ,j  ,k-1)->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i-1,j  ,k-1)->at(fsgrids::moments::RHOQ)
+         momentsGrid.get(i  ,j  ,k  )[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i-1,j  ,k  )[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i  ,j  ,k-1)[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i-1,j  ,k-1)[fsgrids::moments::RHOQ]
       );
       hallRhoq =  (hallRhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : hallRhoq ;
-      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EYHALL_000_010) = JXBY_000_010(perturbedCoefficients, BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBX), BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBZ), technicalGrid.DX, technicalGrid.DY, technicalGrid.DZ) / (physicalconstants::MU_0 * hallRhoq);
+      EHallGrid.get(i,j,k)[fsgrids::ehall::EYHALL_000_010] = JXBY_000_010(perturbedCoefficients, BgBGrid.get(i,j,k)[fsgrids::bgbfield::BGBX], BgBGrid.get(i,j,k)[fsgrids::bgbfield::BGBZ], technicalGrid.grid()->DX, technicalGrid.grid()->DY, technicalGrid.grid()->DZ) / (physicalconstants::MU_0 * hallRhoq);
       hallRhoq = FOURTH * (
-         momentsGrid.get(i  ,j  ,k  )->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i+1,j  ,k  )->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i  ,j  ,k-1)->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i+1,j  ,k-1)->at(fsgrids::moments::RHOQ)
+         momentsGrid.get(i  ,j  ,k  )[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i+1,j  ,k  )[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i  ,j  ,k-1)[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i+1,j  ,k-1)[fsgrids::moments::RHOQ]
       );
       hallRhoq =  (hallRhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : hallRhoq ;
-      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EYHALL_100_110) = JXBY_100_110(perturbedCoefficients, BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBX), BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBZ), technicalGrid.DX, technicalGrid.DY, technicalGrid.DZ) / (physicalconstants::MU_0 * hallRhoq);
+      EHallGrid.get(i,j,k)[fsgrids::ehall::EYHALL_100_110] = JXBY_100_110(perturbedCoefficients, BgBGrid.get(i,j,k)[fsgrids::bgbfield::BGBX], BgBGrid.get(i,j,k)[fsgrids::bgbfield::BGBZ], technicalGrid.grid()->DX, technicalGrid.grid()->DY, technicalGrid.grid()->DZ) / (physicalconstants::MU_0 * hallRhoq);
       hallRhoq = FOURTH * (
-         momentsGrid.get(i  ,j  ,k  )->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i-1,j  ,k  )->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i  ,j  ,k+1)->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i-1,j  ,k+1)->at(fsgrids::moments::RHOQ)
+         momentsGrid.get(i  ,j  ,k  )[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i-1,j  ,k  )[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i  ,j  ,k+1)[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i-1,j  ,k+1)[fsgrids::moments::RHOQ]
       );
       hallRhoq =  (hallRhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : hallRhoq ;
-      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EYHALL_001_011) = JXBY_001_011(perturbedCoefficients, BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBX), BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBZ), technicalGrid.DX, technicalGrid.DY, technicalGrid.DZ) / (physicalconstants::MU_0 * hallRhoq);
+      EHallGrid.get(i,j,k)[fsgrids::ehall::EYHALL_001_011] = JXBY_001_011(perturbedCoefficients, BgBGrid.get(i,j,k)[fsgrids::bgbfield::BGBX], BgBGrid.get(i,j,k)[fsgrids::bgbfield::BGBZ], technicalGrid.grid()->DX, technicalGrid.grid()->DY, technicalGrid.grid()->DZ) / (physicalconstants::MU_0 * hallRhoq);
       hallRhoq = FOURTH * (
-         momentsGrid.get(i  ,j  ,k  )->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i+1,j  ,k  )->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i  ,j  ,k+1)->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i+1,j  ,k+1)->at(fsgrids::moments::RHOQ)
+         momentsGrid.get(i  ,j  ,k  )[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i+1,j  ,k  )[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i  ,j  ,k+1)[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i+1,j  ,k+1)[fsgrids::moments::RHOQ]
       );
       hallRhoq =  (hallRhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : hallRhoq ;
-      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EYHALL_101_111) = JXBY_101_111(perturbedCoefficients, BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBX), BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBZ), technicalGrid.DX, technicalGrid.DY, technicalGrid.DZ) / (physicalconstants::MU_0 * hallRhoq);
+      EHallGrid.get(i,j,k)[fsgrids::ehall::EYHALL_101_111] = JXBY_101_111(perturbedCoefficients, BgBGrid.get(i,j,k)[fsgrids::bgbfield::BGBX], BgBGrid.get(i,j,k)[fsgrids::bgbfield::BGBZ], technicalGrid.grid()->DX, technicalGrid.grid()->DY, technicalGrid.grid()->DZ) / (physicalconstants::MU_0 * hallRhoq);
       break;
       
     default:
@@ -629,14 +630,14 @@ void calculateEdgeHallTermYComponents(
  * 
  */
 void calculateEdgeHallTermZComponents(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-   const std::array<Real, Rec::N_REC_COEFFICIENTS> & perturbedCoefficients,
+   const arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & perBGrid,
+   const arch::buf<FsGrid<Real, fsgrids::ehall::N_EHALL, FS_STENCIL_WIDTH>> & EHallGrid,
+   const arch::buf<FsGrid<Real, fsgrids::moments::N_MOMENTS, FS_STENCIL_WIDTH>> & momentsGrid,
+   const arch::buf<FsGrid<Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH>> & dPerBGrid,
+   const arch::buf<FsGrid<Real, fsgrids::dmoments::N_DMOMENTS, FS_STENCIL_WIDTH>> & dMomentsGrid,
+   const arch::buf<FsGrid<Real, fsgrids::bgbfield::N_BGB, FS_STENCIL_WIDTH>> & BgBGrid,
+   const arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> & technicalGrid,
+   const Real* const perturbedCoefficients,
    cint i,
    cint j,
    cint k
@@ -646,61 +647,61 @@ void calculateEdgeHallTermZComponents(
    Real hallRhoq = 0.0;
    Real EZHall = 0.0;
    
-   switch (Parameters::ohmHallTerm) {
+   switch (FSParams.ohmHallTerm) {
    case 0:
-     cerr << __FILE__ << __LINE__ << "You shouldn't be in a Hall term function if Parameters::ohmHallTerm == 0." << endl;
+     cerr << __FILE__ << __LINE__ << "You shouldn't be in a Hall term function if FSParams.ohmHallTerm == 0." << endl;
      break;
 
    case 1:
-     Bx = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBX)+BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBX);
-     By = perBGrid.get(i,j,k)->at(fsgrids::bfield::PERBY)+BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBY);
+     Bx = perBGrid.get(i,j,k)[fsgrids::bfield::PERBX]+BgBGrid.get(i,j,k)[fsgrids::bgbfield::BGBX];
+     By = perBGrid.get(i,j,k)[fsgrids::bfield::PERBY]+BgBGrid.get(i,j,k)[fsgrids::bgbfield::BGBY];
      
-     hallRhoq =  (momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQ) <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : momentsGrid.get(i,j,k)->at(fsgrids::moments::RHOQ) ;
-     EZHall = (By*((BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBzdy)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBzdy))/technicalGrid.DY -
-              (BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBydz)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBydz))/technicalGrid.DZ) -
-           Bx*((BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBxdz)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBxdz))/technicalGrid.DZ -
-              ((BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::dBGBzdx)+dPerBGrid.get(i,j,k)->at(fsgrids::dperb::dPERBzdx))/technicalGrid.DX)));
+     hallRhoq =  (momentsGrid.get(i,j,k)[fsgrids::moments::RHOQ] <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : momentsGrid.get(i,j,k)[fsgrids::moments::RHOQ] ;
+     EZHall = (By*((BgBGrid.get(i,j,k)[fsgrids::bgbfield::dBGBzdy]+dPerBGrid.get(i,j,k)[fsgrids::dperb::dPERBzdy])/technicalGrid.grid()->DY -
+              (BgBGrid.get(i,j,k)[fsgrids::bgbfield::dBGBydz]+dPerBGrid.get(i,j,k)[fsgrids::dperb::dPERBydz])/technicalGrid.grid()->DZ) -
+           Bx*((BgBGrid.get(i,j,k)[fsgrids::bgbfield::dBGBxdz]+dPerBGrid.get(i,j,k)[fsgrids::dperb::dPERBxdz])/technicalGrid.grid()->DZ -
+              ((BgBGrid.get(i,j,k)[fsgrids::bgbfield::dBGBzdx]+dPerBGrid.get(i,j,k)[fsgrids::dperb::dPERBzdx])/technicalGrid.grid()->DX)));
      EZHall /= physicalconstants::MU_0 * hallRhoq;
 
-     EHallGrid.get(i,j,k)->at(fsgrids::ehall::EZHALL_000_001) =
-     EHallGrid.get(i,j,k)->at(fsgrids::ehall::EZHALL_100_101) =
-     EHallGrid.get(i,j,k)->at(fsgrids::ehall::EZHALL_110_111) =
-     EHallGrid.get(i,j,k)->at(fsgrids::ehall::EZHALL_010_011) = EZHall;
+     EHallGrid.get(i,j,k)[fsgrids::ehall::EZHALL_000_001] =
+     EHallGrid.get(i,j,k)[fsgrids::ehall::EZHALL_100_101] =
+     EHallGrid.get(i,j,k)[fsgrids::ehall::EZHALL_110_111] =
+     EHallGrid.get(i,j,k)[fsgrids::ehall::EZHALL_010_011] = EZHall;
      break;
 
    case 2:
       hallRhoq = FOURTH * (
-         momentsGrid.get(i  ,j  ,k  )->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i-1,j  ,k  )->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i  ,j-1,k  )->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i-1,j-1,k  )->at(fsgrids::moments::RHOQ)
+         momentsGrid.get(i  ,j  ,k  )[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i-1,j  ,k  )[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i  ,j-1,k  )[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i-1,j-1,k  )[fsgrids::moments::RHOQ]
       );
       hallRhoq =  (hallRhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : hallRhoq ;
-      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EZHALL_000_001) = JXBZ_000_001(perturbedCoefficients, BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBX), BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBY), technicalGrid.DX, technicalGrid.DY, technicalGrid.DZ) / (physicalconstants::MU_0 * hallRhoq);
+      EHallGrid.get(i,j,k)[fsgrids::ehall::EZHALL_000_001] = JXBZ_000_001(perturbedCoefficients, BgBGrid.get(i,j,k)[fsgrids::bgbfield::BGBX], BgBGrid.get(i,j,k)[fsgrids::bgbfield::BGBY], technicalGrid.grid()->DX, technicalGrid.grid()->DY, technicalGrid.grid()->DZ) / (physicalconstants::MU_0 * hallRhoq);
       hallRhoq = FOURTH * (
-         momentsGrid.get(i  ,j  ,k  )->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i+1,j  ,k  )->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i  ,j-1,k  )->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i+1,j-1,k  )->at(fsgrids::moments::RHOQ)
+         momentsGrid.get(i  ,j  ,k  )[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i+1,j  ,k  )[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i  ,j-1,k  )[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i+1,j-1,k  )[fsgrids::moments::RHOQ]
       );
       hallRhoq =  (hallRhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : hallRhoq ;
-      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EZHALL_100_101) = JXBZ_100_101(perturbedCoefficients, BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBX), BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBY), technicalGrid.DX, technicalGrid.DY, technicalGrid.DZ) / (physicalconstants::MU_0 * hallRhoq);
+      EHallGrid.get(i,j,k)[fsgrids::ehall::EZHALL_100_101] = JXBZ_100_101(perturbedCoefficients, BgBGrid.get(i,j,k)[fsgrids::bgbfield::BGBX], BgBGrid.get(i,j,k)[fsgrids::bgbfield::BGBY], technicalGrid.grid()->DX, technicalGrid.grid()->DY, technicalGrid.grid()->DZ) / (physicalconstants::MU_0 * hallRhoq);
       hallRhoq = FOURTH * (
-         momentsGrid.get(i  ,j  ,k  )->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i-1,j  ,k  )->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i  ,j+1,k  )->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i-1,j+1,k  )->at(fsgrids::moments::RHOQ)
+         momentsGrid.get(i  ,j  ,k  )[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i-1,j  ,k  )[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i  ,j+1,k  )[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i-1,j+1,k  )[fsgrids::moments::RHOQ]
       );
       hallRhoq =  (hallRhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : hallRhoq ;
-      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EZHALL_010_011) = JXBZ_010_011(perturbedCoefficients, BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBX), BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBY), technicalGrid.DX, technicalGrid.DY, technicalGrid.DZ) / (physicalconstants::MU_0 * hallRhoq);
+      EHallGrid.get(i,j,k)[fsgrids::ehall::EZHALL_010_011] = JXBZ_010_011(perturbedCoefficients, BgBGrid.get(i,j,k)[fsgrids::bgbfield::BGBX], BgBGrid.get(i,j,k)[fsgrids::bgbfield::BGBY], technicalGrid.grid()->DX, technicalGrid.grid()->DY, technicalGrid.grid()->DZ) / (physicalconstants::MU_0 * hallRhoq);
       hallRhoq = FOURTH * (
-         momentsGrid.get(i  ,j  ,k  )->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i+1,j  ,k  )->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i  ,j+1,k  )->at(fsgrids::moments::RHOQ) +
-         momentsGrid.get(i+1,j+1,k  )->at(fsgrids::moments::RHOQ)
+         momentsGrid.get(i  ,j  ,k  )[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i+1,j  ,k  )[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i  ,j+1,k  )[fsgrids::moments::RHOQ] +
+         momentsGrid.get(i+1,j+1,k  )[fsgrids::moments::RHOQ]
       );
       hallRhoq =  (hallRhoq <= Parameters::hallMinimumRhoq ) ? Parameters::hallMinimumRhoq : hallRhoq ;
-      EHallGrid.get(i,j,k)->at(fsgrids::ehall::EZHALL_110_111) = JXBZ_110_111(perturbedCoefficients, BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBX), BgBGrid.get(i,j,k)->at(fsgrids::bgbfield::BGBY), technicalGrid.DX, technicalGrid.DY, technicalGrid.DZ) / (physicalconstants::MU_0 * hallRhoq);
+      EHallGrid.get(i,j,k)[fsgrids::ehall::EZHALL_110_111] = JXBZ_110_111(perturbedCoefficients, BgBGrid.get(i,j,k)[fsgrids::bgbfield::BGBX], BgBGrid.get(i,j,k)[fsgrids::bgbfield::BGBY], technicalGrid.grid()->DX, technicalGrid.grid()->DY, technicalGrid.grid()->DZ) / (physicalconstants::MU_0 * hallRhoq);
       break;
       
     default:
@@ -724,25 +725,25 @@ void calculateEdgeHallTermZComponents(
  * \sa calculateHallTermSimple calculateEdgeHallTermXComponents calculateEdgeHallTermYComponents calculateEdgeHallTermZComponents
  */
 void calculateHallTerm(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-   SysBoundary& sysBoundaries,
+   arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & perBGrid,
+   arch::buf<FsGrid<Real, fsgrids::ehall::N_EHALL, FS_STENCIL_WIDTH>> & EHallGrid,
+   arch::buf<FsGrid<Real, fsgrids::moments::N_MOMENTS, FS_STENCIL_WIDTH>> & momentsGrid,
+   arch::buf<FsGrid<Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH>> & dPerBGrid,
+   arch::buf<FsGrid<Real, fsgrids::dmoments::N_DMOMENTS, FS_STENCIL_WIDTH>> & dMomentsGrid,
+   arch::buf<FsGrid<Real, fsgrids::bgbfield::N_BGB, FS_STENCIL_WIDTH>> & BgBGrid,
+   arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> & technicalGrid,
+   arch::buf<SysBoundary>& sysBoundaries,
    cint i,
    cint j,
    cint k
 ) {
 
-   #ifdef DEBUG_FSOLVER
-   if (technicalGrid.get(i,j,k) == NULL) {
-      cerr << "NULL pointer in " << __FILE__ << ":" << __LINE__ << endl;
-      exit(1);
-   }
-   #endif
+   // #ifdef DEBUG_FSOLVER
+   // if (technicalGrid.get(i,j,k) == NULL) {
+   //    cerr << "NULL pointer in " << __FILE__ << ":" << __LINE__ << endl;
+   //    exit(1);
+   // }
+   // #endif
    
    cuint cellSysBoundaryFlag = technicalGrid.get(i,j,k)->sysBoundaryFlag;
    
@@ -750,7 +751,7 @@ void calculateHallTerm(
    
    cuint cellSysBoundaryLayer = technicalGrid.get(i,j,k)->sysBoundaryLayer;
    
-   std::array<Real, Rec::N_REC_COEFFICIENTS> perturbedCoefficients;
+   Real perturbedCoefficients[Rec::N_REC_COEFFICIENTS];
 
    reconstructionCoefficients(
       perBGrid,
@@ -763,9 +764,9 @@ void calculateHallTerm(
    );
 
    if ((cellSysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY) && (cellSysBoundaryLayer != 1)) {
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 0);
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 1);
-      sysBoundaries.getSysBoundary(cellSysBoundaryFlag)->fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 2);
+      sysBoundaries.getSysBoundary(cellSysBoundaryFlag).fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 0);
+      sysBoundaries.getSysBoundary(cellSysBoundaryFlag).fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 1);
+      sysBoundaries.getSysBoundary(cellSysBoundaryFlag).fieldSolverBoundaryCondHallElectricField(EHallGrid, i, j, k, 2);
    } else {
       calculateEdgeHallTermXComponents(perBGrid, EHallGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, perturbedCoefficients, i, j, k);
       calculateEdgeHallTermYComponents(perBGrid, EHallGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid, perturbedCoefficients, i, j, k);
@@ -794,33 +795,54 @@ void calculateHallTerm(
  * \sa calculateHallTerm
  */
 void calculateHallTermSimple(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBDt2Grid,
-   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsDt2Grid,
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-   SysBoundary& sysBoundaries,
+   arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & perBGrid,
+   arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH>> & perBDt2Grid,
+   arch::buf<FsGrid<Real, fsgrids::ehall::N_EHALL, FS_STENCIL_WIDTH>> & EHallGrid,
+   arch::buf<FsGrid<Real, fsgrids::moments::N_MOMENTS, FS_STENCIL_WIDTH>> & momentsGrid,
+   arch::buf<FsGrid<Real, fsgrids::moments::N_MOMENTS, FS_STENCIL_WIDTH>> & momentsDt2Grid,
+   arch::buf<FsGrid<Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH>> & dPerBGrid,
+   arch::buf<FsGrid<Real, fsgrids::dmoments::N_DMOMENTS, FS_STENCIL_WIDTH>> & dMomentsGrid,
+   arch::buf<FsGrid<Real, fsgrids::bgbfield::N_BGB, FS_STENCIL_WIDTH>> & BgBGrid,
+   arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH>> & technicalGrid,
+   arch::buf<SysBoundary>& sysBoundaries,
    cint& RKCase
 ) {
    int timer;
    //const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
-   const int* gridDims = &technicalGrid.getLocalSize()[0];
+   const int* gridDims = &technicalGrid.grid()->getLocalSize()[0];
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
 
    phiprof::start("Calculate Hall term");
    timer=phiprof::initializeTimer("MPI","MPI");
    phiprof::start(timer);
-   dPerBGrid.updateGhostCells();
-   if(P::ohmGradPeTerm == 0) {
-      dMomentsGrid.updateGhostCells();
+   dPerBGrid.syncHostData();
+   dPerBGrid.grid()->updateGhostCells();
+   dPerBGrid.syncDeviceData();
+   if(FSParams.ohmGradPeTerm == 0) {
+      dMomentsGrid.syncHostData();
+      dMomentsGrid.grid()->updateGhostCells();
+      dMomentsGrid.syncDeviceData();
    }
    phiprof::stop(timer);
 
    phiprof::start("Compute cells");
+   //ARCH_TODO
+   // arch::parallel_for({(uint)gridDims[0], (uint)gridDims[1], (uint)gridDims[2]}, ARCH_LOOP_LAMBDA(int i, int j, int k) {
+   //       if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
+   //          calculateHallTerm(perBGrid, EHallGrid, momentsGrid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid,sysBoundaries, i, j, k);
+   //       } else {
+   //          calculateHallTerm(perBDt2Grid, EHallGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, BgBGrid, technicalGrid,sysBoundaries, i, j, k);
+   //       }
+   //    });
+   perBGrid.syncHostData();
+   perBDt2Grid.syncHostData();
+   EHallGrid.syncHostData();
+   momentsGrid.syncHostData();
+   momentsDt2Grid.syncHostData();
+   dPerBGrid.syncHostData();
+   dMomentsGrid.syncHostData();
+   BgBGrid.syncHostData();
+   technicalGrid.syncHostData();
    #pragma omp parallel for collapse(3)
    for (int k=0; k<gridDims[2]; k++) {
       for (int j=0; j<gridDims[1]; j++) {
@@ -833,6 +855,15 @@ void calculateHallTermSimple(
          }
       }
    }
+   perBGrid.syncDeviceData();
+   perBDt2Grid.syncDeviceData();
+   EHallGrid.syncDeviceData();
+   momentsGrid.syncDeviceData();
+   momentsDt2Grid.syncDeviceData();
+   dPerBGrid.syncDeviceData();
+   dMomentsGrid.syncDeviceData();
+   BgBGrid.syncDeviceData();
+   technicalGrid.syncDeviceData();
    phiprof::stop("Compute cells");
 
    phiprof::stop("Calculate Hall term",N_cells,"Spatial Cells");

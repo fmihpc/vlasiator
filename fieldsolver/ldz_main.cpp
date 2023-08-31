@@ -88,20 +88,20 @@ bool finalizeFieldPropagator() {
  * 
  */
 bool propagateFields(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBDt2Grid,
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-   FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EDt2Grid,
-   FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-   FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-   FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsDt2Grid,
-   FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-   FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-   FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-   FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-   SysBoundary& sysBoundaries,
+   FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGridObj,
+   FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBDt2GridObj,
+   FsGrid<Real, fsgrids::efield::N_EFIELD, FS_STENCIL_WIDTH> & EGridObj,
+   FsGrid<Real, fsgrids::efield::N_EFIELD, FS_STENCIL_WIDTH> & EDt2GridObj,
+   FsGrid<Real, fsgrids::ehall::N_EHALL, FS_STENCIL_WIDTH> & EHallGridObj,
+   FsGrid<Real, fsgrids::egradpe::N_EGRADPE, FS_STENCIL_WIDTH> & EGradPeGridObj,
+   FsGrid<Real, fsgrids::moments::N_MOMENTS, FS_STENCIL_WIDTH> & momentsGridObj,
+   FsGrid<Real, fsgrids::moments::N_MOMENTS, FS_STENCIL_WIDTH> & momentsDt2GridObj,
+   FsGrid<Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH> & dPerBGridObj,
+   FsGrid<Real, fsgrids::dmoments::N_DMOMENTS, FS_STENCIL_WIDTH> & dMomentsGridObj,
+   FsGrid<Real, fsgrids::bgbfield::N_BGB, FS_STENCIL_WIDTH> & BgBGridObj,
+   FsGrid<Real, fsgrids::volfields::N_VOL, FS_STENCIL_WIDTH> & volGridObj,
+   FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGridObj,
+   SysBoundary& sysBoundariesObj,
    creal& dt,
    cuint subcycles
 ) {
@@ -111,26 +111,38 @@ bool propagateFields(
       exit(1);
    }
    
-   const int* gridDims = &technicalGrid.getLocalSize()[0];
+   // initialize host/device buffers
+   arch::buf<FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> > technicalGrid(&technicalGridObj);
+   arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> > perBGrid(&perBGridObj);
+   arch::buf<FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> > perBDt2Grid(&perBDt2GridObj);
+   arch::buf<FsGrid<Real, fsgrids::efield::N_EFIELD, FS_STENCIL_WIDTH> > EGrid(&EGridObj);
+   arch::buf<FsGrid<Real, fsgrids::efield::N_EFIELD, FS_STENCIL_WIDTH> > EDt2Grid(&EDt2GridObj);
+   arch::buf<FsGrid<Real, fsgrids::ehall::N_EHALL, FS_STENCIL_WIDTH> > EHallGrid(&EHallGridObj);
+   arch::buf<FsGrid<Real, fsgrids::egradpe::N_EGRADPE, FS_STENCIL_WIDTH> > EGradPeGrid(&EGradPeGridObj);
+   arch::buf<FsGrid<Real, fsgrids::moments::N_MOMENTS, FS_STENCIL_WIDTH> > momentsGrid(&momentsGridObj);
+   arch::buf<FsGrid<Real, fsgrids::moments::N_MOMENTS, FS_STENCIL_WIDTH> > momentsDt2Grid(&momentsDt2GridObj);
+   arch::buf<FsGrid<Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH> > dPerBGrid(&dPerBGridObj);
+   arch::buf<FsGrid<Real, fsgrids::dmoments::N_DMOMENTS, FS_STENCIL_WIDTH> > dMomentsGrid(&dMomentsGridObj);
+   arch::buf<FsGrid<Real, fsgrids::bgbfield::N_BGB, FS_STENCIL_WIDTH> > BgBGrid(&BgBGridObj);
+   arch::buf<FsGrid<Real, fsgrids::volfields::N_VOL, FS_STENCIL_WIDTH> > volGrid(&volGridObj);
+   arch::buf<SysBoundary> sysBoundaries(&sysBoundariesObj);
    
-   #pragma omp parallel for collapse(3)
-   for (int k=0; k<gridDims[2]; k++) {
-      for (int j=0; j<gridDims[1]; j++) {
-         for (int i=0; i<gridDims[0]; i++) {
-            technicalGrid.get(i,j,k)->maxFsDt=std::numeric_limits<Real>::max();
-         }
-      }
-   }
+   const int* gridDims = &technicalGridObj.getLocalSize()[0];
+   
+   arch::parallel_for({(uint)gridDims[0], (uint)gridDims[1], (uint)gridDims[2]}, ARCH_LOOP_LAMBDA(int i, int j, int k) {
+      technicalGrid.get(i, j, k)->maxFsDt = std::numeric_limits<Real>::max();
+   });  
+   //technicalGrid.syncHostData();
    
    
    if (subcycles == 1) {
       #ifdef FS_1ST_ORDER_TIME
       propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, dt, RK_ORDER1);
       calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1, true);
-      if(P::ohmGradPeTerm > 0){
+      if(FSParams.ohmGradPeTerm > 0){
          calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER1);
       }
-      if(P::ohmHallTerm > 0) {
+      if(FSParams.ohmHallTerm > 0) {
          calculateHallTermSimple(
             perBGrid,
             perBDt2Grid,
@@ -164,10 +176,10 @@ bool propagateFields(
       #else
       propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, dt, RK_ORDER2_STEP1);
       calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1, true);
-      if(P::ohmGradPeTerm > 0) {
+      if(FSParams.ohmGradPeTerm > 0) {
          calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1);
       }
-      if(P::ohmHallTerm > 0) {
+      if(FSParams.ohmHallTerm > 0) {
          calculateHallTermSimple(
             perBGrid,
             perBDt2Grid,
@@ -201,10 +213,10 @@ bool propagateFields(
       
       propagateMagneticFieldSimple(perBGrid, perBDt2Grid, EGrid, EDt2Grid, technicalGrid, sysBoundaries, dt, RK_ORDER2_STEP2);
       calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2, true);
-      if(P::ohmGradPeTerm > 0) {
+      if(FSParams.ohmGradPeTerm > 0) {
          calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2);
       }
-      if(P::ohmHallTerm > 0) {
+      if(FSParams.ohmHallTerm > 0) {
          calculateHallTermSimple(
             perBGrid,
             perBDt2Grid,
@@ -242,7 +254,7 @@ bool propagateFields(
       creal targetT = P::t + dt;
       uint subcycleCount = 0;
       uint maxSubcycleCount = std::numeric_limits<uint>::max();
-      int myRank = perBGrid.getRank();
+      int myRank = perBGrid.grid()->getRank();
 
       while (subcycleCount < maxSubcycleCount ) {
          // In case of subcycling, we decided to go for a blunt Runge-Kutta subcycling even though e.g. moments are not going along.
@@ -252,10 +264,10 @@ bool propagateFields(
          // We need to calculate derivatives of the moments at every substep, but the moments only
          // need to be communicated in the first one.
          calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1, (subcycleCount==0));
-         if(P::ohmGradPeTerm > 0 && subcycleCount==0) {
+         if(FSParams.ohmGradPeTerm > 0 && subcycleCount==0) {
             calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP1);
          }
-         if(P::ohmHallTerm > 0) {
+         if(FSParams.ohmHallTerm > 0) {
             calculateHallTermSimple(
                perBGrid,
                perBDt2Grid,
@@ -292,10 +304,10 @@ bool propagateFields(
          // We need to calculate derivatives of the moments at every substep, but the moments only
          // need to be communicated in the first one.
          calculateDerivativesSimple(perBGrid, perBDt2Grid, momentsGrid, momentsDt2Grid, dPerBGrid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2, (subcycleCount==0));
-         if(P::ohmGradPeTerm > 0 && subcycleCount==0) {
+         if(FSParams.ohmGradPeTerm > 0 && subcycleCount==0) {
             calculateGradPeTermSimple(EGradPeGrid, momentsGrid, momentsDt2Grid, dMomentsGrid, technicalGrid, sysBoundaries, RK_ORDER2_STEP2);
          }
-         if(P::ohmHallTerm > 0) {
+         if(FSParams.ohmHallTerm > 0) {
             calculateHallTermSimple(
                perBGrid,
                perBDt2Grid,
@@ -351,11 +363,14 @@ bool propagateFields(
          Real dtMaxGlobal;
          dtMaxLocal=std::numeric_limits<Real>::max();
 
-         std::array<int32_t, 3>& localSize = technicalGrid.getLocalSize();
+         //ARCH_TODO
+         technicalGrid.syncHostData();
+         int32_t* localSize = technicalGrid.grid()->getLocalSize();
+
          for(int z=0; z<localSize[2]; z++) {
             for(int y=0; y<localSize[1]; y++) {
                for(int x=0; x<localSize[0]; x++) {
-                  fsgrids::technical* cell = technicalGrid.get(x,y,z);
+                  auto cell = technicalGrid.get(x,y,z);
                   if ( cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
                         (cell->sysBoundaryLayer == 1 && cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY )) {
                      dtMaxLocal=min(dtMaxLocal, cell->maxFsDt);
@@ -365,7 +380,7 @@ bool propagateFields(
          }
 
          phiprof::start("MPI_Allreduce");
-         technicalGrid.Allreduce(&(dtMaxLocal), &(dtMaxGlobal), 1, MPI_Type<Real>(), MPI_MIN);
+         technicalGrid.grid()->Allreduce(&(dtMaxLocal), &(dtMaxGlobal), 1, MPI_Type<Real>(), MPI_MIN);
          phiprof::stop("MPI_Allreduce");
          
          //reduce dt if it is too high
@@ -401,7 +416,9 @@ bool propagateFields(
    calculateVolumeAveragedFields(perBGrid,EGrid,dPerBGrid,volGrid,technicalGrid);
    calculateBVOLDerivativesSimple(volGrid, technicalGrid, sysBoundaries);
    if(FieldTracing::fieldTracingParameters.doTraceFullBox || Parameters::computeCurvature) {
-      volGrid.updateGhostCells();
+      volGrid.syncHostData();
+      volGrid.grid()->updateGhostCells();
+      volGrid.syncDeviceData();
       calculateCurvatureSimple(volGrid, BgBGrid, technicalGrid, sysBoundaries);
    }
    return true;

@@ -154,21 +154,21 @@ namespace projects {
    void KHB::calcCellParameters(spatial_cell::SpatialCell* cell,creal& t) { }
    
    void KHB::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+      FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid<Real, fsgrids::bgbfield::N_BGB, FS_STENCIL_WIDTH> & BgBGrid,
+      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid
    ) {
       setBackgroundFieldToZero(BgBGrid);
       
       if(!P::isRestart) {
-         auto localSize = perBGrid.getLocalSize().data();
+         auto localSize = perBGrid.getLocalSize();
          
          #pragma omp parallel for collapse(3)
          for (int x = 0; x < localSize[0]; ++x) {
             for (int y = 0; y < localSize[1]; ++y) {
                for (int z = 0; z < localSize[2]; ++z) {
-                  const std::array<Real, 3> xyz = perBGrid.getPhysicalCoords(x, y, z);
-                  std::array<Real, fsgrids::bfield::N_BFIELD>* cell = perBGrid.get(x, y, z);
+                  auto xyz = perBGrid.getPhysicalCoords(x, y, z);
+                  auto cell = perBGrid.get(x, y, z);
                   
                   Real Bxavg, Byavg, Bzavg;
                   Bxavg = Byavg = Bzavg = 0.0;
@@ -183,13 +183,13 @@ namespace projects {
                         }
                      }
                      cuint nPts = pow(this->nSpaceSamples, 2.0);
-                     cell->at(fsgrids::bfield::PERBX) = Bxavg / nPts;
-                     cell->at(fsgrids::bfield::PERBY) = Byavg / nPts;
-                     cell->at(fsgrids::bfield::PERBZ) = Bzavg / nPts;
+                     cell[fsgrids::bfield::PERBX] = Bxavg / nPts;
+                     cell[fsgrids::bfield::PERBY] = Byavg / nPts;
+                     cell[fsgrids::bfield::PERBZ] = Bzavg / nPts;
                   } else {
-                     cell->at(fsgrids::bfield::PERBX) = profile(this->Bx[this->BOTTOM], this->Bx[this->TOP], xyz[0]+0.5*perBGrid.DX, xyz[2]+0.5*perBGrid.DZ);
-                     cell->at(fsgrids::bfield::PERBY) = profile(this->By[this->BOTTOM], this->By[this->TOP], xyz[0]+0.5*perBGrid.DX, xyz[2]+0.5*perBGrid.DZ);
-                     cell->at(fsgrids::bfield::PERBZ) = profile(this->Bz[this->BOTTOM], this->Bz[this->TOP], xyz[0]+0.5*perBGrid.DX, xyz[2]+0.5*perBGrid.DZ);
+                     cell[fsgrids::bfield::PERBX] = profile(this->Bx[this->BOTTOM], this->Bx[this->TOP], xyz[0]+0.5*perBGrid.DX, xyz[2]+0.5*perBGrid.DZ);
+                     cell[fsgrids::bfield::PERBY] = profile(this->By[this->BOTTOM], this->By[this->TOP], xyz[0]+0.5*perBGrid.DX, xyz[2]+0.5*perBGrid.DZ);
+                     cell[fsgrids::bfield::PERBZ] = profile(this->Bz[this->BOTTOM], this->Bz[this->TOP], xyz[0]+0.5*perBGrid.DX, xyz[2]+0.5*perBGrid.DZ);
                   }
                }
             }

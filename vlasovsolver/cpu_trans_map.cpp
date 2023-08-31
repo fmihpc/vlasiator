@@ -40,6 +40,7 @@
 using namespace std;
 using namespace spatial_cell;
 
+
 // indices in padded source block, which is of type Vec with VECL
 // element sin each vector. b_k is the block index in z direction in
 // ordinary space [- VLASOV_STENCIL_WIDTH to VLASOV_STENCIL_WIDTH],

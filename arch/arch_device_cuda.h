@@ -7,6 +7,7 @@
 #include <cuda_runtime.h>
 #include <cub/cub.cuh>
 #include <cub/device/device_radix_sort.cuh>
+#include <fsgrid.hpp>
 #ifdef _OPENMP
   #include <omp.h>
 #endif
@@ -174,10 +175,10 @@ namespace arch{
 
       __host__ ~buf(void){
          if(!is_copy){
-            // syncHostData();
-#ifdef __CUDA_ARCH__
+            #ifndef __CUDA_ARCH__
+            //syncHostData();
             cudaFreeAsync(d_ptr, gpuStreamList[thread_id]);
-#endif
+            #endif
          }
       }
 
@@ -189,6 +190,82 @@ namespace arch{
 #endif
       }
    };
+
+  template <typename T, int TDim, int N> 
+  class buf<FsGrid<T, TDim, N>> {
+    private:  
+    T *h_data; 
+    T *d_data;
+    FsGrid<T, TDim, N> *h_ptr;
+    FsGrid<T, TDim, N> *d_ptr;
+    uint dataSize;
+    uint is_copy = 0;
+    uint thread_id = 0;
+
+    public:   
+
+     // Metadata is never edited on-device, so only actual data is synced.
+    void syncDeviceData(void){
+      CHK_ERR(cudaMemcpy(d_data, h_data, dataSize, cudaMemcpyHostToDevice));
+    }
+
+    void syncHostData(void){
+      CHK_ERR(cudaMemcpy(h_data, d_data, dataSize, cudaMemcpyDeviceToHost));
+    }
+    
+     buf(FsGrid<T, TDim, N> * const _ptr) : h_ptr(_ptr) {
+      int32_t *storageSize = _ptr->getStorageSize();
+      dataSize = storageSize[0] * storageSize[1] * storageSize[2] * TDim * sizeof(T);
+      h_data = &_ptr->getData();
+      CHK_ERR(cudaMalloc(&d_ptr, sizeof(FsGrid<T, TDim, N>)));
+      CHK_ERR(cudaMalloc(&d_data, dataSize));
+      // Make the device copy of the FSgrid object point to the correct memory
+      FsGrid<T, TDim, N> *tmp_ptr;
+      tmp_ptr = (FsGrid<T, TDim, N>*) malloc(sizeof(FsGrid<T, TDim, N>));
+      memcpy(tmp_ptr, _ptr, sizeof(FsGrid<T, TDim, N>));
+      tmp_ptr->setData(d_data);
+      CHK_ERR(cudaMemcpy(d_ptr, tmp_ptr, sizeof(FsGrid<T, TDim, N>), cudaMemcpyHostToDevice));
+      syncDeviceData();
+      free(tmp_ptr);
+    }
+    
+    __host__ __device__ buf(const buf& u) : 
+       h_ptr(u.h_ptr), d_ptr(u.d_ptr), h_data(u.h_data), d_data(u.d_data), dataSize(u.dataSize), is_copy(1), thread_id(u.thread_id) {}
+
+    __host__ __device__ ~buf(void){
+      if(!is_copy){
+        #ifndef __CUDA_ARCH__
+          syncHostData();
+          CHK_ERR(cudaFree(d_data));
+          CHK_ERR(cudaFree(d_ptr));
+        #endif
+      }
+    }
+
+    __host__ __device__ FsGrid<T, TDim, N>* grid(void) const {
+    #ifdef __CUDA_ARCH__
+        return d_ptr;
+    #else
+        return h_ptr;
+    #endif
+    }
+
+    __host__ __device__ auto get(int i) const {
+    #ifdef __CUDA_ARCH__
+        return *d_ptr->get(i);
+    #else
+        return *h_ptr->get(i);
+    #endif
+    }
+
+    __host__ __device__ auto get(int x, int y, int z) const {
+    #ifdef __CUDA_ARCH__
+        return d_ptr->get(x, y, z);
+    #else
+        return h_ptr->get(x, y, z);
+    #endif
+    }
+  }; 
 
 /* A function to check and set the device mempool settings */
    __host__ __forceinline__ static void device_mempool_check(uint64_t threshold_new) {
@@ -280,6 +357,19 @@ namespace arch{
    __forceinline__ static void host_unregister(T* ptr){
       CHK_ERR(cudaHostUnregister(ptr));
    }
+
+   /* Specializations for lambda calls depending on the templated dimension */
+  template <typename Lambda>
+  __device__ __forceinline__ static void lambda_eval_for(const uint (&idx)[1], Lambda loop_body) { loop_body(idx[0]); }
+
+  template <typename Lambda>
+  __device__ __forceinline__ static void lambda_eval_for(const uint (&idx)[2], Lambda loop_body) { loop_body(idx[0], idx[1]); }
+
+  template <typename Lambda>
+  __device__ __forceinline__ static void lambda_eval_for(const uint (&idx)[3], Lambda loop_body) { loop_body(idx[0], idx[1], idx[2]); }
+
+  template <typename Lambda>
+  __device__ __forceinline__ static void lambda_eval_for(const uint (&idx)[4], Lambda loop_body) { loop_body(idx[0], idx[1], idx[2], idx[3]); }
 
 /* Specializations for lambda calls depending on the templated dimension */
    template <typename Lambda, typename T>
@@ -380,6 +470,55 @@ namespace arch{
       }
    }
 
+   /* A general device kernel for for loops */
+    template <uint NDim, typename Lambda>
+    __global__ static void __launch_bounds__(ARCH_BLOCKSIZE_R)
+    for_kernel(Lambda loop_body, const uint * __restrict__ lims, const uint n_total)
+    {
+      /* Get the global 1D thread index*/
+      const uint idx_glob = blockIdx.x * blockDim.x + threadIdx.x;
+
+      /* Check the loop limits and evaluate the loop body */
+      if (idx_glob < n_total) {
+        uint idx[NDim];
+        switch (NDim)
+        {
+          case 4:
+            idx[3] = (idx_glob / (lims[0] * lims[1] * lims[2])) % lims[3];
+          case 3:
+            idx[2] = (idx_glob / (lims[0] * lims[1])) % lims[2];
+          case 2:
+            idx[1] = (idx_glob / lims[0]) % lims[1];
+          case 1:
+            idx[0] = idx_glob % lims[0];  
+        } 
+        lambda_eval_for(idx, loop_body);
+      }
+    }
+
+    // parallel for driver function for CUDA
+    template <uint NDim, typename Lambda>
+    __forceinline__ static void parallel_for_driver(const uint (&limits)[NDim], Lambda loop_body) {
+
+      /* Calculate the required size for the 1D kernel */
+      uint n_total = 1;
+      for(uint i = 0; i < NDim; i++) {
+         n_total *= limits[i];
+      }
+      if (n_total==0) {
+         return;
+      }
+      /* Set the kernel dimensions */
+      const uint blocksize = ARCH_BLOCKSIZE_R;
+      const uint gridsize = (n_total - 1 + blocksize) / blocksize;
+
+      uint* d_limits;
+      CHK_ERR(cudaMalloc(&d_limits, NDim*sizeof(uint)));
+      CHK_ERR(cudaMemcpy(d_limits, limits, NDim*sizeof(uint), cudaMemcpyHostToDevice));
+
+      /* Launch the kernel */
+      for_kernel<NDim><<<gridsize, blocksize>>>(loop_body, d_limits, n_total);
+    }
 
 
 /* Parallel reduce driver function for the CUDA reductions */
@@ -391,8 +530,12 @@ namespace arch{
 
       /* Calculate the required size for the 1D kernel */
       uint n_total = 1;
-      for(uint i = 0; i < NDim; i++)
+      for(uint i = 0; i < NDim; i++) {
          n_total *= limits[i];
+      }
+      if (n_total==0) {
+         return;
+      }
 
       /* Set the kernel dimensions */
       const uint blocksize = ARCH_BLOCKSIZE_R;

@@ -1,4 +1,4 @@
-/*
+ /*
  * This file is part of Vlasiator.
  * Copyright 2010-2016 Finnish Meteorological Institute
  *
@@ -25,6 +25,8 @@
 #include <iostream>
 #include <limits>
 #include <array>
+#include <memory>
+
 #include "datareductionoperator.h"
 #include "../object_wrapper.h"
 
@@ -127,16 +129,16 @@ namespace DRO {
    }
 
    bool DataReductionOperatorFsGrid::writeFsGridData(
-                      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-                      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-                      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-                      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-                      FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-                      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-                      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-                      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-                      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+                      FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
+                      FsGrid<Real, fsgrids::efield::N_EFIELD, FS_STENCIL_WIDTH> & EGrid,
+                      FsGrid<Real, fsgrids::ehall::N_EHALL, FS_STENCIL_WIDTH> & EHallGrid,
+                      FsGrid<Real, fsgrids::egradpe::N_EGRADPE, FS_STENCIL_WIDTH> & EGradPeGrid,
+                      FsGrid<Real, fsgrids::moments::N_MOMENTS, FS_STENCIL_WIDTH> & momentsGrid,
+                      FsGrid<Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH> & dPerBGrid,
+                      FsGrid<Real, fsgrids::dmoments::N_DMOMENTS, FS_STENCIL_WIDTH> & dMomentsGrid,
+                      FsGrid<Real, fsgrids::bgbfield::N_BGB, FS_STENCIL_WIDTH> & BgBGrid,
+                      FsGrid<Real, fsgrids::volfields::N_VOL, FS_STENCIL_WIDTH> & volGrid,
+                      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
                       const std::string& meshName, vlsv::Writer& vlsvWriter,
                       const bool writeAsFloat) {
 
@@ -151,7 +153,7 @@ namespace DRO {
       std::vector<double> varBuffer =
          lambda(perBGrid,EGrid,EHallGrid,EGradPeGrid,momentsGrid,dPerBGrid,dMomentsGrid,BgBGrid,volGrid,technicalGrid);
 
-      std::array<int32_t,3>& gridSize = technicalGrid.getLocalSize();
+      int32_t* gridSize = technicalGrid.getLocalSize();
       int vectorSize = varBuffer.size() / (gridSize[0]*gridSize[1]*gridSize[2]);
 
       if(writeAsFloat) {
@@ -598,6 +600,7 @@ namespace DRO {
       const Realf *block_data = cell->get_data(popID);
       const Real *parameters = cell->get_block_parameters(popID);
       const Real HALF = 0.5;
+      
       # pragma omp parallel
       {
          Real sum[3] = {0.0, 0.0, 0.0};
@@ -669,6 +672,7 @@ namespace DRO {
       const Realf *block_data = cell->get_data(popID);
       const Real *parameters = cell->get_block_parameters(popID);
       const Real HALF = 0.5;
+
       # pragma omp parallel
       {
          Real sum[3] = {0.0, 0.0, 0.0};
@@ -710,6 +714,7 @@ namespace DRO {
             PTensor[2] += sum[0];
          }
       }
+      printf("OffDiag! PTensor[0]: %e, PTensor[1]: %e, PTensor[2]: %e\n",PTensor[0],PTensor[1],PTensor[2]);
       const char* ptr = reinterpret_cast<const char*>(&PTensor);
       for (uint i = 0; i < 3*sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
@@ -791,7 +796,7 @@ namespace DRO {
 
    bool MinDistributionFunction::reduceDiagnostic(const SpatialCell* cell,Real* buffer) {
       minF =  std::numeric_limits<Real>::max();
-      const Realf* block_data = cell->get_data(popID);
+      const Realf* block_data = cell->get_data(popID); 
 
 #pragma omp parallel
       {
@@ -823,7 +828,6 @@ namespace DRO {
    bool MinDistributionFunction::setSpatialCell(const SpatialCell* cell) {
       return true;
    }
-
 
   /********
 	   Next level of helper functions - these include threading and calculate zeroth or first velocity moments or the
@@ -880,6 +884,7 @@ namespace DRO {
             rho += thread_n_sum;
          }
       }
+      printf("rhoNonthermal! rho: %e\n",rho);
       return;
    }
 
@@ -953,6 +958,8 @@ namespace DRO {
       V[0]/=n_sum;
       V[1]/=n_sum;
       V[2]/=n_sum;
+      printf("VNonThermal! V[0]: %e, V[1]: %e, V[2]: %e\n",V[0],V[1],V[2]);
+
       return;
    }
 
@@ -1019,6 +1026,8 @@ namespace DRO {
             PTensor[2] += sum[2];
          }
       }
+      printf("DiagNonThermal! PTensor[0]: %e, PTensor[1]: %e, PTensor[2]: %e\n",PTensor[0],PTensor[1],PTensor[2]);
+
       return;
    }
 

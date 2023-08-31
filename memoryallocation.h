@@ -31,7 +31,7 @@
 #include "jemalloc/jemalloc.h"
 #endif
 
-#ifndef NDEBUG
+#ifdef DEBUG_VLASIATOR
 #ifndef INITIALIZE_ALIGNED_MALLOC_WITH_NAN
 #define INITIALIZE_ALIGNED_MALLOC_WITH_NAN
 #endif
@@ -62,6 +62,7 @@ inline void * aligned_malloc(size_t size,std::size_t align) {
     * malloc(), or je_malloc().
     */
    void *ptr;
+
 #ifdef USE_JEMALLOC
    void *p = je_malloc(size + align - 1 + sizeof(void*));
 #else
@@ -93,11 +94,13 @@ inline void aligned_free(void *p) {
     * of the one below.
     */
    void *ptr = *((void**)((unsigned long)p - sizeof(void*)));
+
 #ifdef USE_JEMALLOC
    je_free(ptr);
 #else
    free(ptr);
 #endif
+
    return;
 }
 

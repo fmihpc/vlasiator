@@ -49,14 +49,14 @@ namespace SBC {
    }
    
    bool DoNotCompute::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>&,
-                                        FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
+                                        FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid) {
       return true;
    }
    
    bool DoNotCompute::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
+      FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
       Project&
    ) {
      const vector<CellID>& cells = getLocalCells();

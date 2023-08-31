@@ -28,6 +28,7 @@
 #include "../spatial_cell.hpp"
 #include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
+
 #include "fsgrid.hpp"
 
 namespace projects {
@@ -51,9 +52,10 @@ namespace projects {
       virtual void hook(
          cuint& stage,
          const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid
+         FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid
       ) const;
-      
+
+
       bool initialized();
       
       /** Set the background and perturbed magnetic fields for this project.
@@ -64,9 +66,9 @@ namespace projects {
        * \sa setBackgroundField, setBackgroundFieldToZero
        */
       virtual void setProjectBField(
-         FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-         FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-         FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+         FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
+         FsGrid<Real, fsgrids::bgbfield::N_BGB, FS_STENCIL_WIDTH> & BgBGrid,
+         FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid
       );
       
       /*! Setup data structures for subsequent setCell calls.
@@ -196,4 +198,3 @@ namespace projects {
 
 
 #endif
-

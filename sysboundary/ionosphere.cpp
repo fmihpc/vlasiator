@@ -49,12 +49,13 @@
 #define vector_length(v) (v).norm()
 #define normalize_vector(v) (v).normalized()
 
-#ifndef NDEBUG
+#ifdef DEBUG_VLASIATOR
    #define DEBUG_IONOSPHERE
 #endif
 #ifdef DEBUG_SYSBOUNDARY
    #define DEBUG_IONOSPHERE
 #endif
+
 
 namespace SBC {
 
@@ -1035,7 +1036,7 @@ namespace SBC {
    // (Re-)create the subcommunicator for ionosphere-internal communication
    // This needs to be rerun after Vlasov grid load balancing to ensure that
    // ionosphere info is still communicated to the right ranks.
-   void SphericalTriGrid::updateIonosphereCommunicator(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
+   void SphericalTriGrid::updateIonosphereCommunicator(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid) {
       phiprof::start("ionosphere-updateIonosphereCommunicator");
 
       // Check if the current rank contains ionosphere boundary cells.
@@ -1106,11 +1107,11 @@ namespace SBC {
 
    // Transport field-aligned currents down from the simulation cells to the ionosphere
    void SphericalTriGrid::mapDownBoundaryData(
-       FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-       FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-       FsGrid< std::array<Real, fsgrids::moments::N_MOMENTS>, FS_STENCIL_WIDTH> & momentsGrid,
-         FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
+       FsGrid< Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
+       FsGrid< Real, fsgrids::dperb::N_DPERB, FS_STENCIL_WIDTH> & dPerBGrid,
+       FsGrid< Real, fsgrids::moments::N_MOMENTS, FS_STENCIL_WIDTH> & momentsGrid,
+       FsGrid< Real, fsgrids::volfields::N_VOL, FS_STENCIL_WIDTH> & volGrid,
+       FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid) {
 
       if(!isCouplingInwards && !isCouplingOutwards) {
          return;
@@ -1216,12 +1217,12 @@ namespace SBC {
 
 
                      // Map density, temperature down
-                     Real thisCellRho = momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::RHOQ) / physicalconstants::CHARGE;
+                     Real thisCellRho = momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)[fsgrids::RHOQ] / physicalconstants::CHARGE;
                      rhoInput[n] += coupling * thisCellRho;
                      temperatureInput[n] += coupling * 1./3. * (
-                        momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_11) +
-                        momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_22) +
-                        momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)->at(fsgrids::P_33)) / (thisCellRho * physicalconstants::K_B * ion_electron_T_ratio);
+                        momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)[fsgrids::P_11] +
+                        momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)[fsgrids::P_22] +
+                        momentsGrid.get(lfsc[0]+xoffset,lfsc[1]+yoffset,lfsc[2]+zoffset)[fsgrids::P_33]) / (thisCellRho * physicalconstants::K_B * ion_electron_T_ratio);
                   }
                }
             }
@@ -2360,6 +2361,11 @@ namespace SBC {
       }
    }
 
+   bool Ionosphere::initFieldBoundary() {
+      fieldBoundary = new IonosphereFieldBoundary(center, radius, geometry);
+      return true;
+   }
+   
    bool Ionosphere::initSysBoundary(
       creal& t,
       Project &project
@@ -2368,7 +2374,7 @@ namespace SBC {
       isThisDynamic = false;
 
       // Sanity check: the ionosphere only makes sense in 3D simulations
-      if(P::xcells_ini == 1 || P::ycells_ini == 1 || P::zcells_ini == 1) {
+      if(FSParams.xcells_ini == 1 || FSParams.ycells_ini == 1 || FSParams.zcells_ini == 1) {
          cerr << "*************************************************" << endl;
          cerr << "* BIG FAT IONOSPHERE ERROR:                     *" << endl;
          cerr << "*                                               *" << endl;
@@ -2473,7 +2479,7 @@ namespace SBC {
    }
 
    bool Ionosphere::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
+                                      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid) {
       const vector<CellID>& cells = getLocalCells();
       for(uint i=0; i<cells.size(); i++) {
          if(mpiGrid[cells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
@@ -2498,8 +2504,8 @@ namespace SBC {
 
    bool Ionosphere::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
+      FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
       Project &project
    ) {
       const vector<CellID>& cells = getLocalCells();
@@ -2512,570 +2518,6 @@ namespace SBC {
             setCellFromTemplate(cell,popID);
       }
       return true;
-   }
-
-   std::array<Real, 3> Ionosphere::fieldSolverGetNormalDirection(
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      cint i,
-      cint j,
-      cint k
-   ) {
-      phiprof::start("Ionosphere::fieldSolverGetNormalDirection");
-      std::array<Real, 3> normalDirection{{ 0.0, 0.0, 0.0 }};
-
-      static creal DIAG2 = 1.0 / sqrt(2.0);
-      static creal DIAG3 = 1.0 / sqrt(3.0);
-
-      creal dx = technicalGrid.DX;
-      creal dy = technicalGrid.DY;
-      creal dz = technicalGrid.DZ;
-      const std::array<int, 3> globalIndices = technicalGrid.getGlobalIndices(i,j,k);
-      creal x = P::xmin + (convert<Real>(globalIndices[0])+0.5)*dx;
-      creal y = P::ymin + (convert<Real>(globalIndices[1])+0.5)*dy;
-      creal z = P::zmin + (convert<Real>(globalIndices[2])+0.5)*dz;
-      creal xsign = divideIfNonZero(x, fabs(x));
-      creal ysign = divideIfNonZero(y, fabs(y));
-      creal zsign = divideIfNonZero(z, fabs(z));
-
-      Real length = 0.0;
-
-      if (Parameters::xcells_ini == 1) {
-         if (Parameters::ycells_ini == 1) {
-            if (Parameters::zcells_ini == 1) {
-               // X,Y,Z
-               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "What do you expect to do with a single-cell simulation of ionosphere boundary type? Stop kidding." << std::endl;
-               abort();
-               // end of X,Y,Z
-            } else {
-               // X,Y
-               normalDirection[2] = zsign;
-               // end of X,Y
-            }
-         } else if (Parameters::zcells_ini == 1) {
-            // X,Z
-            normalDirection[1] = ysign;
-            // end of X,Z
-         } else {
-            // X
-            switch(this->geometry) {
-               case 0:
-                  normalDirection[1] = DIAG2*ysign;
-                  normalDirection[2] = DIAG2*zsign;
-                  break;
-               case 1:
-                  if(fabs(y) == fabs(z)) {
-                     normalDirection[1] = ysign*DIAG2;
-                     normalDirection[2] = zsign*DIAG2;
-                     break;
-                  }
-                  if(fabs(y) > (this->radius - dy)) {
-                     normalDirection[1] = ysign;
-                     break;
-                  }
-                  if(fabs(z) > (this->radius - dz)) {
-                     normalDirection[2] = zsign;
-                     break;
-                  }
-                  if(fabs(y) > (this->radius - 2.0*dy)) {
-                     normalDirection[1] = ysign;
-                     break;
-                  }
-                  if(fabs(z) > (this->radius - 2.0*dz)) {
-                     normalDirection[2] = zsign;
-                     break;
-                  }
-                  break;
-               case 2:
-                  length = sqrt(y*y + z*z);
-                  normalDirection[1] = y / length;
-                  normalDirection[2] = z / length;
-                  break;
-               default:
-                  std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2 with this grid shape." << std::endl;
-                  abort();
-            }
-            // end of X
-         }
-      } else if (Parameters::ycells_ini == 1) {
-         if (Parameters::zcells_ini == 1) {
-            // Y,Z
-            normalDirection[0] = xsign;
-            // end of Y,Z
-         } else {
-            // Y
-            switch(this->geometry) {
-               case 0:
-                  normalDirection[0] = DIAG2*xsign;
-                  normalDirection[2] = DIAG2*zsign;
-                  break;
-               case 1:
-                  if(fabs(x) == fabs(z)) {
-                     normalDirection[0] = xsign*DIAG2;
-                     normalDirection[2] = zsign*DIAG2;
-                     break;
-                  }
-                  if(fabs(x) > (this->radius - dx)) {
-                     normalDirection[0] = xsign;
-                     break;
-                  }
-                  if(fabs(z) > (this->radius - dz)) {
-                     normalDirection[2] = zsign;
-                     break;
-                  }
-                  if(fabs(x) > (this->radius - 2.0*dx)) {
-                     normalDirection[0] = xsign;
-                     break;
-                  }
-                  if(fabs(z) > (this->radius - 2.0*dz)) {
-                     normalDirection[2] = zsign;
-                     break;
-                  }
-                  break;
-               case 2:
-               case 3:
-                  length = sqrt(x*x + z*z);
-                  normalDirection[0] = x / length;
-                  normalDirection[2] = z / length;
-                  break;
-               default:
-                  std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1, 2 or 3 with this grid shape." << std::endl;
-                  abort();
-            }
-            // end of Y
-         }
-      } else if (Parameters::zcells_ini == 1) {
-         // Z
-         switch(this->geometry) {
-            case 0:
-               normalDirection[0] = DIAG2*xsign;
-               normalDirection[1] = DIAG2*ysign;
-               break;
-            case 1:
-               if(fabs(x) == fabs(y)) {
-                  normalDirection[0] = xsign*DIAG2;
-                  normalDirection[1] = ysign*DIAG2;
-                  break;
-               }
-               if(fabs(x) > (this->radius - dx)) {
-                  normalDirection[0] = xsign;
-                  break;
-               }
-               if(fabs(y) > (this->radius - dy)) {
-                  normalDirection[1] = ysign;
-                  break;
-               }
-               if(fabs(x) > (this->radius - 2.0*dx)) {
-                  normalDirection[0] = xsign;
-                  break;
-               }
-               if(fabs(y) > (this->radius - 2.0*dy)) {
-                  normalDirection[1] = ysign;
-                  break;
-               }
-               break;
-            case 2:
-               length = sqrt(x*x + y*y);
-               normalDirection[0] = x / length;
-               normalDirection[1] = y / length;
-               break;
-            default:
-               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1 or 2 with this grid shape." << std::endl;
-               abort();
-         }
-         // end of Z
-      } else {
-         // 3D
-         switch(this->geometry) {
-            case 0:
-               normalDirection[0] = DIAG3*xsign;
-               normalDirection[1] = DIAG3*ysign;
-               normalDirection[2] = DIAG3*zsign;
-               break;
-            case 1:
-               if(fabs(x) == fabs(y) && fabs(x) == fabs(z) && fabs(x) > this->radius - dx) {
-                  normalDirection[0] = xsign*DIAG3;
-                  normalDirection[1] = ysign*DIAG3;
-                  normalDirection[2] = zsign*DIAG3;
-                  break;
-               }
-               if(fabs(x) == fabs(y) && fabs(x) == fabs(z) && fabs(x) > this->radius - 2.0*dx) {
-                  normalDirection[0] = xsign*DIAG3;
-                  normalDirection[1] = ysign*DIAG3;
-                  normalDirection[2] = zsign*DIAG3;
-                  break;
-               }
-               if(fabs(x) == fabs(y) && fabs(x) > this->radius - dx && fabs(z) < this->radius - dz) {
-                  normalDirection[0] = xsign*DIAG2;
-                  normalDirection[1] = ysign*DIAG2;
-                  normalDirection[2] = 0.0;
-                  break;
-               }
-               if(fabs(y) == fabs(z) && fabs(y) > this->radius - dy && fabs(x) < this->radius - dx) {
-                  normalDirection[0] = 0.0;
-                  normalDirection[1] = ysign*DIAG2;
-                  normalDirection[2] = zsign*DIAG2;
-                  break;
-               }
-               if(fabs(x) == fabs(z) && fabs(x) > this->radius - dx && fabs(y) < this->radius - dy) {
-                  normalDirection[0] = xsign*DIAG2;
-                  normalDirection[1] = 0.0;
-                  normalDirection[2] = zsign*DIAG2;
-                  break;
-               }
-               if(fabs(x) == fabs(y) && fabs(x) > this->radius - 2.0*dx && fabs(z) < this->radius - 2.0*dz) {
-                  normalDirection[0] = xsign*DIAG2;
-                  normalDirection[1] = ysign*DIAG2;
-                  normalDirection[2] = 0.0;
-                  break;
-               }
-               if(fabs(y) == fabs(z) && fabs(y) > this->radius - 2.0*dy && fabs(x) < this->radius - 2.0*dx) {
-                  normalDirection[0] = 0.0;
-                  normalDirection[1] = ysign*DIAG2;
-                  normalDirection[2] = zsign*DIAG2;
-                  break;
-               }
-               if(fabs(x) == fabs(z) && fabs(x) > this->radius - 2.0*dx && fabs(y) < this->radius - 2.0*dy) {
-                  normalDirection[0] = xsign*DIAG2;
-                  normalDirection[1] = 0.0;
-                  normalDirection[2] = zsign*DIAG2;
-                  break;
-               }
-               if(fabs(x) > (this->radius - dx)) {
-                  normalDirection[0] = xsign;
-                  break;
-               }
-               if(fabs(y) > (this->radius - dy)) {
-                  normalDirection[1] = ysign;
-                  break;
-               }
-               if(fabs(z) > (this->radius - dz)) {
-                  normalDirection[2] = zsign;
-                  break;
-               }
-               if(fabs(x) > (this->radius - 2.0*dx)) {
-                  normalDirection[0] = xsign;
-                  break;
-               }
-               if(fabs(y) > (this->radius - 2.0*dy)) {
-                  normalDirection[1] = ysign;
-                  break;
-               }
-               if(fabs(z) > (this->radius - 2.0*dz)) {
-                  normalDirection[2] = zsign;
-                  break;
-               }
-               break;
-            case 2:
-               length = sqrt(x*x + y*y + z*z);
-               normalDirection[0] = x / length;
-               normalDirection[1] = y / length;
-               normalDirection[2] = z / length;
-               break;
-            case 3:
-               length = sqrt(x*x + z*z);
-               normalDirection[0] = x / length;
-               normalDirection[2] = z / length;
-               break;
-            default:
-               std::cerr << __FILE__ << ":" << __LINE__ << ":" << "ionosphere.geometry has to be 0, 1, 2 or 3 with this grid shape." << std::endl;
-               abort();
-         }
-         // end of 3D
-      }
-
-      phiprof::stop("Ionosphere::fieldSolverGetNormalDirection");
-      return normalDirection;
-   }
-
-   /*! We want here to
-    *
-    * -- Average perturbed face B from the nearest neighbours
-    *
-    * -- Retain only the normal components of perturbed face B
-    */
-   Real Ionosphere::fieldSolverBoundaryCondMagneticField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      cint i,
-      cint j,
-      cint k,
-      creal& dt,
-      cuint& component
-   ) {
-      if (technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) {
-         switch(component) {
-            case 0:
-               if (  ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BX) == compute::BX)
-                  && ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BX) == compute::BX)
-               ) {
-                  return 0.5 * (bGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBX) + bGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBX));
-               } else if ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BX) == compute::BX) {
-                  return bGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBX);
-               } else if ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BX) == compute::BX) {
-                  return bGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBX);
-               } else {
-                  Real retval = 0.0;
-                  uint nCells = 0;
-                  if ((technicalGrid.get(i,j-1,k)->SOLVE & compute::BX) == compute::BX) {
-                     retval += bGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBX);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i,j+1,k)->SOLVE & compute::BX) == compute::BX) {
-                     retval += bGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBX);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i,j,k-1)->SOLVE & compute::BX) == compute::BX) {
-                     retval += bGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBX);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i,j,k+1)->SOLVE & compute::BX) == compute::BX) {
-                     retval += bGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBX);
-                     nCells++;
-                  }
-                  if (nCells == 0) {
-                     for (int a=i-1; a<i+2; a++) {
-                        for (int b=j-1; b<j+2; b++) {
-                           for (int c=k-1; c<k+2; c++) {
-                              if ((technicalGrid.get(a,b,c)->SOLVE & compute::BX) == compute::BX) {
-                                 retval += bGrid.get(a,b,c)->at(fsgrids::bfield::PERBX);
-                                 nCells++;
-                              }
-                           }
-                        }
-                     }
-                  }
-                  if (nCells == 0) {
-                     cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
-                     return 0.0;
-                  }
-                  return retval / nCells;
-               }
-            case 1:
-               if (  (technicalGrid.get(i,j-1,k)->SOLVE & compute::BY) == compute::BY
-                  && (technicalGrid.get(i,j+1,k)->SOLVE & compute::BY) == compute::BY
-               ) {
-                  return 0.5 * (bGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBY) + bGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBY));
-               } else if ((technicalGrid.get(i,j-1,k)->SOLVE & compute::BY) == compute::BY) {
-                  return bGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBY);
-               } else if ((technicalGrid.get(i,j+1,k)->SOLVE & compute::BY) == compute::BY) {
-                  return bGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBY);
-               } else {
-                  Real retval = 0.0;
-                  uint nCells = 0;
-                  if ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BY) == compute::BY) {
-                     retval += bGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBY);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BY) == compute::BY) {
-                     retval += bGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBY);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i,j,k-1)->SOLVE & compute::BY) == compute::BY) {
-                     retval += bGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBY);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i,j,k+1)->SOLVE & compute::BY) == compute::BY) {
-                     retval += bGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBY);
-                     nCells++;
-                  }
-                  if (nCells == 0) {
-                     for (int a=i-1; a<i+2; a++) {
-                        for (int b=j-1; b<j+2; b++) {
-                           for (int c=k-1; c<k+2; c++) {
-                              if ((technicalGrid.get(a,b,c)->SOLVE & compute::BY) == compute::BY) {
-                                 retval += bGrid.get(a,b,c)->at(fsgrids::bfield::PERBY);
-                                 nCells++;
-                              }
-                           }
-                        }
-                     }
-                  }
-                  if (nCells == 0) {
-                     cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
-                     return 0.0;
-                  }
-                  return retval / nCells;
-               }
-            case 2:
-               if (  (technicalGrid.get(i,j,k-1)->SOLVE & compute::BZ) == compute::BZ
-                  && (technicalGrid.get(i,j,k+1)->SOLVE & compute::BZ) == compute::BZ
-               ) {
-                  return 0.5 * (bGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBZ) + bGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBZ));
-               } else if ((technicalGrid.get(i,j,k-1)->SOLVE & compute::BZ) == compute::BZ) {
-                  return bGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBZ);
-               } else if ((technicalGrid.get(i,j,k+1)->SOLVE & compute::BZ) == compute::BZ) {
-                  return bGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBZ);
-               } else {
-                  Real retval = 0.0;
-                  uint nCells = 0;
-                  if ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BZ) == compute::BZ) {
-                     retval += bGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBZ);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BZ) == compute::BZ) {
-                     retval += bGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBZ);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i,j-1,k)->SOLVE & compute::BZ) == compute::BZ) {
-                     retval += bGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBZ);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i,j+1,k)->SOLVE & compute::BZ) == compute::BZ) {
-                     retval += bGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBZ);
-                     nCells++;
-                  }
-                  if (nCells == 0) {
-                     for (int a=i-1; a<i+2; a++) {
-                        for (int b=j-1; b<j+2; b++) {
-                           for (int c=k-1; c<k+2; c++) {
-                              if ((technicalGrid.get(a,b,c)->SOLVE & compute::BZ) == compute::BZ) {
-                                 retval += bGrid.get(a,b,c)->at(fsgrids::bfield::PERBZ);
-                                 nCells++;
-                              }
-                           }
-                        }
-                     }
-                  }
-                  if (nCells == 0) {
-                     cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
-                     return 0.0;
-                  }
-                  return retval / nCells;
-               }
-            default:
-               cerr << "ERROR: ionosphere boundary tried to copy nonsensical magnetic field component " << component << endl;
-               return 0.0;
-         }
-      } else { // L2 cells
-         Real retval = 0.0;
-         uint nCells = 0;
-         for (int a=i-1; a<i+2; a++) {
-            for (int b=j-1; b<j+2; b++) {
-               for (int c=k-1; c<k+2; c++) {
-                  if (technicalGrid.get(a,b,c)->sysBoundaryLayer == 1) {
-                     retval += bGrid.get(a,b,c)->at(fsgrids::bfield::PERBX + component);
-                     nCells++;
-                  }
-               }
-            }
-         }
-         if (nCells == 0) {
-            cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
-            return 0.0;
-         }
-         return retval / nCells;
-      }
-   }
-
-   /*! We want here to
-    *
-    * -- Retain only the boundary-normal projection of perturbed face B
-    */
-   void Ionosphere::fieldSolverBoundaryCondMagneticFieldProjection(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      cint i,
-      cint j,
-      cint k
-   ) {
-      // Projection of B-field to normal direction
-      Real BdotN = 0;
-      std::array<Real, 3> normalDirection = fieldSolverGetNormalDirection(technicalGrid, i, j, k);
-      for(uint component=0; component<3; component++) {
-         BdotN += bGrid.get(i,j,k)->at(fsgrids::bfield::PERBX+component) * normalDirection[component];
-      }
-      // Apply to any components that were not solved
-      if ((technicalGrid.get(i,j,k)->sysBoundaryLayer == 2) ||
-          ((technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) && ((technicalGrid.get(i,j,k)->SOLVE & compute::BX) != compute::BX))
-         ) {
-         bGrid.get(i,j,k)->at(fsgrids::bfield::PERBX) = BdotN*normalDirection[0];
-      }
-      if ((technicalGrid.get(i,j,k)->sysBoundaryLayer == 2) ||
-          ((technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) && ((technicalGrid.get(i,j,k)->SOLVE & compute::BY) != compute::BY))
-         ) {
-         bGrid.get(i,j,k)->at(fsgrids::bfield::PERBY) = BdotN*normalDirection[1];
-      }
-      if ((technicalGrid.get(i,j,k)->sysBoundaryLayer == 2) ||
-          ((technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) && ((technicalGrid.get(i,j,k)->SOLVE & compute::BZ) != compute::BZ))
-         ) {
-         bGrid.get(i,j,k)->at(fsgrids::bfield::PERBZ) = BdotN*normalDirection[2];
-      }
-   }
-
-   void Ionosphere::fieldSolverBoundaryCondElectricField(
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint component
-   ) {
-      EGrid.get(i,j,k)->at(fsgrids::efield::EX+component) = 0.0;
-   }
-
-   void Ionosphere::fieldSolverBoundaryCondHallElectricField(
-      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint component
-   ) {
-      std::array<Real, fsgrids::ehall::N_EHALL> * cp = EHallGrid.get(i,j,k);
-      switch (component) {
-         case 0:
-            cp->at(fsgrids::ehall::EXHALL_000_100) = 0.0;
-            cp->at(fsgrids::ehall::EXHALL_010_110) = 0.0;
-            cp->at(fsgrids::ehall::EXHALL_001_101) = 0.0;
-            cp->at(fsgrids::ehall::EXHALL_011_111) = 0.0;
-            break;
-         case 1:
-            cp->at(fsgrids::ehall::EYHALL_000_010) = 0.0;
-            cp->at(fsgrids::ehall::EYHALL_100_110) = 0.0;
-            cp->at(fsgrids::ehall::EYHALL_001_011) = 0.0;
-            cp->at(fsgrids::ehall::EYHALL_101_111) = 0.0;
-            break;
-         case 2:
-            cp->at(fsgrids::ehall::EZHALL_000_001) = 0.0;
-            cp->at(fsgrids::ehall::EZHALL_100_101) = 0.0;
-            cp->at(fsgrids::ehall::EZHALL_010_011) = 0.0;
-            cp->at(fsgrids::ehall::EZHALL_110_111) = 0.0;
-            break;
-         default:
-            cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
-      }
-   }
-
-   void Ionosphere::fieldSolverBoundaryCondGradPeElectricField(
-      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint component
-   ) {
-      EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE+component) = 0.0;
-   }
-
-   void Ionosphere::fieldSolverBoundaryCondDerivatives(
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint& RKCase,
-      cuint& component
-   ) {
-      this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
-      return;
-   }
-
-   void Ionosphere::fieldSolverBoundaryCondBVOLDerivatives(
-      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint& component
-   ) {
-      // FIXME This should be OK as the BVOL derivatives are only used for Lorentz force JXB, which is not applied on the ionosphere cells.
-      this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
    }
 
    void Ionosphere::mapCellPotentialAndGetEXBDrift(

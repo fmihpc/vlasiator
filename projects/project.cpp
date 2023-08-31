@@ -57,6 +57,10 @@
 #include "Shocktest/Shocktest.h"
 #include "../sysboundary/sysboundarycondition.h"
 
+#ifdef DEBUG_VLASIATOR
+   #define DEBUG_REFINE
+#endif
+
 using namespace std;
 
 extern Logger logFile;
@@ -123,9 +127,9 @@ namespace projects {
 
    /*! Print a warning message to stderr and abort, one should not use the base class functions. */
    void Project::setProjectBField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-      FsGrid< std::array<Real, fsgrids::bgbfield::N_BGB>, FS_STENCIL_WIDTH> & BgBGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid
+      FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid<Real, fsgrids::bgbfield::N_BGB, FS_STENCIL_WIDTH> & BgBGrid,
+      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid
    ) {
       int rank;
       MPI_Comm_rank(MPI_COMM_WORLD,&rank);
@@ -138,7 +142,7 @@ namespace projects {
    void Project::hook(
       cuint& stage,
       const dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid
+      FsGrid<Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid
    ) const { }
 
    void Project::setupBeforeSetCell(const std::vector<CellID>& cells) {
@@ -439,17 +443,8 @@ namespace projects {
     * @param rngDataBuffer struct of type random_data
    */
    void Project::setRandomCellSeed(spatial_cell::SpatialCell* cell, std::default_random_engine& randGen) const {
-      const creal x = cell->parameters[CellParams::XCRD];
-      const creal y = cell->parameters[CellParams::YCRD];
-      const creal z = cell->parameters[CellParams::ZCRD];
-      const creal dx = cell->parameters[CellParams::DX];
-      const creal dy = cell->parameters[CellParams::DY];
-      const creal dz = cell->parameters[CellParams::DZ];
-      
-      const CellID cellID = (int) ((x - Parameters::xmin) / dx) +
-         (int) ((y - Parameters::ymin) / dy) * Parameters::xcells_ini +
-         (int) ((z - Parameters::zmin) / dz) * Parameters::xcells_ini * Parameters::ycells_ini;
-      setRandomSeed(cellID, randGen);
+      const CellID myCell = cell->parameters[CellParams::CELLID];
+      setRandomSeed(myCell, randGen);
    }
 
    /*
@@ -480,7 +475,7 @@ namespace projects {
                
                CellID myCell = mpiGrid.get_existing_cell(xyz);
                if (mpiGrid.refine_completely_at(xyz)) {
-                  #ifndef NDEBUG
+                  #ifdef DEBUG_REFINE
                   std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
                   #endif
                }
@@ -489,7 +484,7 @@ namespace projects {
       }
       std::vector<CellID> refinedCells = mpiGrid.stop_refining(true);
       if(myRank == MASTER_RANK) std::cout << "Finished first level of refinement" << endl;
-      #ifndef NDEBUG
+      #ifdef DEBUG_REFINE
       if(refinedCells.size() > 0) {
          std::cout << "Refined cells produced by rank " << myRank << " are: ";
          for (auto cellid : refinedCells) {
@@ -514,7 +509,7 @@ namespace projects {
                   
                   CellID myCell = mpiGrid.get_existing_cell(xyz);
                   if (mpiGrid.refine_completely_at(xyz)) {
-                     #ifndef NDEBUG
+                     #ifdef DEBUG_REFINE
                      std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
                      #endif
                   }
@@ -524,7 +519,7 @@ namespace projects {
          
          std::vector<CellID> refinedCells = mpiGrid.stop_refining(true);      
          if(myRank == MASTER_RANK) std::cout << "Finished second level of refinement" << endl;
-         #ifndef NDEBUG
+         #ifdef DEBUG_REFINE
          if(refinedCells.size() > 0) {
             std::cout << "Refined cells produced by rank " << myRank << " are: ";
             for (auto cellid : refinedCells) {

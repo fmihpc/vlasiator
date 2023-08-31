@@ -39,7 +39,7 @@
 #include "../object_wrapper.h"
 
 
-#ifndef NDEBUG
+#ifdef DEBUG_VLASIATOR
    #define DEBUG_CONDUCTINGSPHERE
 #endif
 #ifdef DEBUG_SYSBOUNDARY
@@ -114,6 +114,11 @@ namespace SBC {
          speciesParams.push_back(sP);
       }
    }
+
+   bool Conductingsphere::initFieldBoundary() {
+      fieldBoundary = new ConductingSphereFieldBoundary();
+      return true;
+   }  
    
    bool Conductingsphere::initSysBoundary(
       creal& t,
@@ -159,7 +164,7 @@ namespace SBC {
    }
    
    bool Conductingsphere::assignSysBoundary(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-                                      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid) {
+                                      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid) {
       const vector<CellID>& cells = getLocalCells();
       for(uint i=0; i<cells.size(); i++) {
          if(mpiGrid[cells[i]]->sysBoundaryFlag == sysboundarytype::DO_NOT_COMPUTE) {
@@ -184,8 +189,8 @@ namespace SBC {
 
    bool Conductingsphere::applyInitialState(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
+      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
+      FsGrid< Real, fsgrids::bfield::N_BFIELD, FS_STENCIL_WIDTH> & perBGrid,
       Project &project
    ) {
       const vector<CellID>& cells = getLocalCells();
@@ -201,7 +206,7 @@ namespace SBC {
    }
 
    std::array<Real, 3> Conductingsphere::fieldSolverGetNormalDirection(
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
+      FsGrid< fsgrids::technical, 1, FS_STENCIL_WIDTH> & technicalGrid,
       cint i,
       cint j,
       cint k
@@ -215,19 +220,20 @@ namespace SBC {
       creal dx = technicalGrid.DX;
       creal dy = technicalGrid.DY;
       creal dz = technicalGrid.DZ;
-      const std::array<int, 3> globalIndices = technicalGrid.getGlobalIndices(i,j,k);
-      creal x = P::xmin + (convert<Real>(globalIndices[0])+0.5)*dx;
-      creal y = P::ymin + (convert<Real>(globalIndices[1])+0.5)*dy;
-      creal z = P::zmin + (convert<Real>(globalIndices[2])+0.5)*dz;
+      int globalIndices[3];
+      technicalGrid.getGlobalIndices(i,j,k, globalIndices);
+      creal x = FSParams.xmin + (convert<Real>(globalIndices[0])+0.5)*dx;
+      creal y = FSParams.ymin + (convert<Real>(globalIndices[1])+0.5)*dy;
+      creal z = FSParams.zmin + (convert<Real>(globalIndices[2])+0.5)*dz;
       creal xsign = divideIfNonZero(x, fabs(x));
       creal ysign = divideIfNonZero(y, fabs(y));
       creal zsign = divideIfNonZero(z, fabs(z));
       
       Real length = 0.0;
       
-      if (Parameters::xcells_ini == 1) {
-         if (Parameters::ycells_ini == 1) {
-            if (Parameters::zcells_ini == 1) {
+      if (FSParams.xcells_ini == 1) {
+         if (FSParams.xcells_ini == 1) {
+            if (FSParams.xcells_ini == 1) {
                // X,Y,Z
                std::cerr << __FILE__ << ":" << __LINE__ << ":" << "What do you expect to do with a single-cell simulation of conductingsphere boundary type? Stop kidding." << std::endl;
                abort();
@@ -237,7 +243,7 @@ namespace SBC {
                normalDirection[2] = zsign;
                // end of X,Y
             }
-         } else if (Parameters::zcells_ini == 1) {
+         } else if (FSParams.zcells_ini == 1) {
             // X,Z
             normalDirection[1] = ysign;
             // end of X,Z
@@ -282,8 +288,8 @@ namespace SBC {
             }
             // end of X
          }
-      } else if (Parameters::ycells_ini == 1) {
-         if (Parameters::zcells_ini == 1) {
+      } else if (FSParams.ycells_ini == 1) {
+         if (FSParams.zcells_ini == 1) {
             // Y,Z
             normalDirection[0] = xsign;
             // end of Y,Z
@@ -329,7 +335,7 @@ namespace SBC {
             }
             // end of Y
          }
-      } else if (Parameters::zcells_ini == 1) {
+      } else if (FSParams.zcells_ini == 1) {
          // Z
          switch(this->geometry) {
             case 0:
@@ -471,297 +477,6 @@ namespace SBC {
       
       phiprof::stop("Conductingsphere::fieldSolverGetNormalDirection");
       return normalDirection;
-   }
-   
-   /*! We want here to
-    * 
-    * -- Average perturbed face B from the nearest neighbours
-    * 
-    * -- Retain only the normal components of perturbed face B
-    */
-   Real Conductingsphere::fieldSolverBoundaryCondMagneticField(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      cint i,
-      cint j,
-      cint k,
-      creal& dt,
-      cuint& component
-   ) {
-      if (technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) {
-         switch(component) {
-            case 0:
-               if (  ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BX) == compute::BX)
-                  && ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BX) == compute::BX)
-               ) {
-                  return 0.5 * (bGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBX) + bGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBX));
-               } else if ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BX) == compute::BX) {
-                  return bGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBX);
-               } else if ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BX) == compute::BX) {
-                  return bGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBX);
-               } else {
-                  Real retval = 0.0;
-                  uint nCells = 0;
-                  if ((technicalGrid.get(i,j-1,k)->SOLVE & compute::BX) == compute::BX) {
-                     retval += bGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBX);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i,j+1,k)->SOLVE & compute::BX) == compute::BX) {
-                     retval += bGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBX);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i,j,k-1)->SOLVE & compute::BX) == compute::BX) {
-                     retval += bGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBX);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i,j,k+1)->SOLVE & compute::BX) == compute::BX) {
-                     retval += bGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBX);
-                     nCells++;
-                  }
-                  if (nCells == 0) {
-                     for (int a=i-1; a<i+2; a++) {
-                        for (int b=j-1; b<j+2; b++) {
-                           for (int c=k-1; c<k+2; c++) {
-                              if ((technicalGrid.get(a,b,c)->SOLVE & compute::BX) == compute::BX) {
-                                 retval += bGrid.get(a,b,c)->at(fsgrids::bfield::PERBX);
-                                 nCells++;
-                              }
-                           }
-                        }
-                     }
-                  }
-                  if (nCells == 0) {
-                     cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
-                     return 0.0;
-                  }
-                  return retval / nCells;
-               }
-            case 1:
-               if (  (technicalGrid.get(i,j-1,k)->SOLVE & compute::BY) == compute::BY
-                  && (technicalGrid.get(i,j+1,k)->SOLVE & compute::BY) == compute::BY
-               ) {
-                  return 0.5 * (bGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBY) + bGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBY));
-               } else if ((technicalGrid.get(i,j-1,k)->SOLVE & compute::BY) == compute::BY) {
-                  return bGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBY);
-               } else if ((technicalGrid.get(i,j+1,k)->SOLVE & compute::BY) == compute::BY) {
-                  return bGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBY);
-               } else {
-                  Real retval = 0.0;
-                  uint nCells = 0;
-                  if ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BY) == compute::BY) {
-                     retval += bGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBY);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BY) == compute::BY) {
-                     retval += bGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBY);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i,j,k-1)->SOLVE & compute::BY) == compute::BY) {
-                     retval += bGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBY);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i,j,k+1)->SOLVE & compute::BY) == compute::BY) {
-                     retval += bGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBY);
-                     nCells++;
-                  }
-                  if (nCells == 0) {
-                     for (int a=i-1; a<i+2; a++) {
-                        for (int b=j-1; b<j+2; b++) {
-                           for (int c=k-1; c<k+2; c++) {
-                              if ((technicalGrid.get(a,b,c)->SOLVE & compute::BY) == compute::BY) {
-                                 retval += bGrid.get(a,b,c)->at(fsgrids::bfield::PERBY);
-                                 nCells++;
-                              }
-                           }
-                        }
-                     }
-                  }
-                  if (nCells == 0) {
-                     cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
-                     return 0.0;
-                  }
-                  return retval / nCells;
-               }
-            case 2:
-               if (  (technicalGrid.get(i,j,k-1)->SOLVE & compute::BZ) == compute::BZ
-                  && (technicalGrid.get(i,j,k+1)->SOLVE & compute::BZ) == compute::BZ
-               ) {
-                  return 0.5 * (bGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBZ) + bGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBZ));
-               } else if ((technicalGrid.get(i,j,k-1)->SOLVE & compute::BZ) == compute::BZ) {
-                  return bGrid.get(i,j,k-1)->at(fsgrids::bfield::PERBZ);
-               } else if ((technicalGrid.get(i,j,k+1)->SOLVE & compute::BZ) == compute::BZ) {
-                  return bGrid.get(i,j,k+1)->at(fsgrids::bfield::PERBZ);
-               } else {
-                  Real retval = 0.0;
-                  uint nCells = 0;
-                  if ((technicalGrid.get(i-1,j,k)->SOLVE & compute::BZ) == compute::BZ) {
-                     retval += bGrid.get(i-1,j,k)->at(fsgrids::bfield::PERBZ);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i+1,j,k)->SOLVE & compute::BZ) == compute::BZ) {
-                     retval += bGrid.get(i+1,j,k)->at(fsgrids::bfield::PERBZ);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i,j-1,k)->SOLVE & compute::BZ) == compute::BZ) {
-                     retval += bGrid.get(i,j-1,k)->at(fsgrids::bfield::PERBZ);
-                     nCells++;
-                  }
-                  if ((technicalGrid.get(i,j+1,k)->SOLVE & compute::BZ) == compute::BZ) {
-                     retval += bGrid.get(i,j+1,k)->at(fsgrids::bfield::PERBZ);
-                     nCells++;
-                  }
-                  if (nCells == 0) {
-                     for (int a=i-1; a<i+2; a++) {
-                        for (int b=j-1; b<j+2; b++) {
-                           for (int c=k-1; c<k+2; c++) {
-                              if ((technicalGrid.get(a,b,c)->SOLVE & compute::BZ) == compute::BZ) {
-                                 retval += bGrid.get(a,b,c)->at(fsgrids::bfield::PERBZ);
-                                 nCells++;
-                              }
-                           }
-                        }
-                     }
-                  }
-                  if (nCells == 0) {
-                     cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
-                     return 0.0;
-                  }
-                  return retval / nCells;
-               }
-            default:
-               cerr << "ERROR: conductingsphere boundary tried to copy nonsensical magnetic field component " << component << endl;
-               return 0.0;
-         }
-      } else { // L2 cells
-         Real retval = 0.0;
-         uint nCells = 0;
-         for (int a=i-1; a<i+2; a++) {
-            for (int b=j-1; b<j+2; b++) {
-               for (int c=k-1; c<k+2; c++) {
-                  if (technicalGrid.get(a,b,c)->sysBoundaryLayer == 1) {
-                     retval += bGrid.get(a,b,c)->at(fsgrids::bfield::PERBX + component);
-                     nCells++;
-                  }
-               }
-            }
-         }
-         if (nCells == 0) {
-            cerr << __FILE__ << ":" << __LINE__ << ": ERROR: this should not have fallen through." << endl;
-            return 0.0;
-         }
-         return retval / nCells;
-      }
-   }
-
-   /*! We want here to
-    *
-    * -- Retain only the boundary-normal projection of perturbed face B
-    */
-   void Conductingsphere::fieldSolverBoundaryCondMagneticFieldProjection(
-      FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      cint i,
-      cint j,
-      cint k
-   ) {
-      // Projection of B-field to normal direction
-      Real BdotN = 0;
-      std::array<Real, 3> normalDirection = fieldSolverGetNormalDirection(technicalGrid, i, j, k);
-      for(uint component=0; component<3; component++) {
-         BdotN += bGrid.get(i,j,k)->at(fsgrids::bfield::PERBX+component) * normalDirection[component];
-      }
-      // Apply to any components that were not solved
-      if ((technicalGrid.get(i,j,k)->sysBoundaryLayer == 2) ||
-          ((technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) && ((technicalGrid.get(i,j,k)->SOLVE & compute::BX) != compute::BX))
-         ) {
-         bGrid.get(i,j,k)->at(fsgrids::bfield::PERBX) = BdotN*normalDirection[0];
-      }
-      if ((technicalGrid.get(i,j,k)->sysBoundaryLayer == 2) ||
-          ((technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) && ((technicalGrid.get(i,j,k)->SOLVE & compute::BY) != compute::BY))
-         ) {
-         bGrid.get(i,j,k)->at(fsgrids::bfield::PERBY) = BdotN*normalDirection[1];
-      }
-      if ((technicalGrid.get(i,j,k)->sysBoundaryLayer == 2) ||
-          ((technicalGrid.get(i,j,k)->sysBoundaryLayer == 1) && ((technicalGrid.get(i,j,k)->SOLVE & compute::BZ) != compute::BZ))
-         ) {
-         bGrid.get(i,j,k)->at(fsgrids::bfield::PERBZ) = BdotN*normalDirection[2];
-      }
-   }
-
-   void Conductingsphere::fieldSolverBoundaryCondElectricField(
-      FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint component
-   ) {
-      EGrid.get(i,j,k)->at(fsgrids::efield::EX+component) = 0.0;
-   }
-   
-   void Conductingsphere::fieldSolverBoundaryCondHallElectricField(
-      FsGrid< std::array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint component
-   ) {
-      std::array<Real, fsgrids::ehall::N_EHALL> * cp = EHallGrid.get(i,j,k);
-      switch (component) {
-         case 0:
-            cp->at(fsgrids::ehall::EXHALL_000_100) = 0.0;
-            cp->at(fsgrids::ehall::EXHALL_010_110) = 0.0;
-            cp->at(fsgrids::ehall::EXHALL_001_101) = 0.0;
-            cp->at(fsgrids::ehall::EXHALL_011_111) = 0.0;
-            break;
-         case 1:
-            cp->at(fsgrids::ehall::EYHALL_000_010) = 0.0;
-            cp->at(fsgrids::ehall::EYHALL_100_110) = 0.0;
-            cp->at(fsgrids::ehall::EYHALL_001_011) = 0.0;
-            cp->at(fsgrids::ehall::EYHALL_101_111) = 0.0;
-            break;
-         case 2:
-            cp->at(fsgrids::ehall::EZHALL_000_001) = 0.0;
-            cp->at(fsgrids::ehall::EZHALL_100_101) = 0.0;
-            cp->at(fsgrids::ehall::EZHALL_010_011) = 0.0;
-            cp->at(fsgrids::ehall::EZHALL_110_111) = 0.0;
-            break;
-         default:
-            cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
-      }
-   }
-   
-   void Conductingsphere::fieldSolverBoundaryCondGradPeElectricField(
-      FsGrid< std::array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint component
-   ) {
-      EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE+component) = 0.0;
-   }
-   
-   void Conductingsphere::fieldSolverBoundaryCondDerivatives(
-      FsGrid< std::array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
-      FsGrid< std::array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint& RKCase,
-      cuint& component
-   ) {
-      this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
-      return;
-   }
-   
-   void Conductingsphere::fieldSolverBoundaryCondBVOLDerivatives(
-      FsGrid< std::array<Real, fsgrids::volfields::N_VOL>, 2> & volGrid,
-      cint i,
-      cint j,
-      cint k,
-      cuint& component
-   ) {
-      // FIXME This should be OK as the BVOL derivatives are only used for Lorentz force JXB, which is not applied on the conducting sphere cells.
-      this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
    }
    
    void Conductingsphere::vlasovBoundaryCondition(
