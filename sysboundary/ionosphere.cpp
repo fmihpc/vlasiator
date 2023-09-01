@@ -3238,10 +3238,8 @@ namespace SBC {
                            }
                         }
                      }
-                     // Only keep this block if it is at least 10% of the sparsity value
-                     if (maxValue > 0.1 * minValue) {
-                        cell.add_velocity_block(blockGID, popID, &initBuffer[0]);
-                     }
+                     // Actually add the velocity block
+                     cell.add_velocity_block(blockGID, popID, &initBuffer[0]);
                   } // for-loop over requested velocity blocks
                } // end case several
                break;

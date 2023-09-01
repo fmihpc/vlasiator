@@ -153,9 +153,13 @@ namespace SBC {
       dV[1] = cell.get_velocity_grid_block_size(popID,refLevel)[1];
       dV[2] = cell.get_velocity_grid_block_size(popID,refLevel)[2];
       creal minValue = cell.getVelocityBlockMinValue(popID);
+      // Single cell, not block
+      const Real dvx=cell.get_velocity_grid_cell_size(popID,refLevel)[0];
+      const Real dvy=cell.get_velocity_grid_cell_size(popID,refLevel)[1];
+      const Real dvz=cell.get_velocity_grid_cell_size(popID,refLevel)[2];
 
       while (search) {
-         if (0.1 * minValue > maxwellianDistribution(popID, rho, T, (counter+0.5)*dV[0], 0.0, 0.0) || counter > vblocks_ini[0]) {
+         if (0.1 * minValue > maxwellianDistribution(popID, rho, T, counter*dV[0]+0.5*dvx, 0.5*dvy, 0.5*dvz) || counter > vblocks_ini[0]) {
             search = false;
          }
          counter++;
@@ -274,10 +278,8 @@ namespace SBC {
                   }
                }
             }
-            // Only keep this block if it is at least 10% of the sparsity value
-            if (maxValue > 0.1 * minValue) {
-               templateCell.add_velocity_block(blockGID, popID, &initBuffer[0]);
-            }
+            // Actually add the velocity block
+            templateCell.add_velocity_block(blockGID, popID, &initBuffer[0]);
          } // for-loop over requested velocity blocks
 
          // let's get rid of blocks not fulfilling the criteria here to save memory.

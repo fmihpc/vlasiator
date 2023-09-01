@@ -497,7 +497,6 @@ namespace SBC {
          }
          toData += SIZE_VELBLOCK;
       } // for-loop over velocity blocks
-
       
       for (size_t i=0; i<numberOfCells; i++) {
          const SpatialCell* incomingCell = mpiGrid[cellList[i]];

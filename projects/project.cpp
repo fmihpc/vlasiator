@@ -299,10 +299,8 @@ namespace projects {
       for (uint i=0; i<nRequested; ++i) {
          vmesh::GlobalID blockGID = blocksToInitialize.at(i);
          const Real maxValue = setVelocityBlock(cell,blockGID,popID, initBuffer.data());
-         // Only keep this block if it is at least 10% of the sparsity value
-         if (maxValue > 0.1 * cell->getVelocityBlockMinValue(popID)) {
-            cell->add_velocity_block(blockGID, popID, initBuffer.data());
-         }
+         // Actually add the velocity block
+         cell->add_velocity_block(blockGID, popID, initBuffer.data());
       }
 
       // Change as of summer 2023: vAMR initialization no longer supported.
@@ -310,14 +308,6 @@ namespace projects {
       if (rescalesDensity(popID) == true) {
          rescaleDensity(cell,popID);
       }
-
-      // Verify current mesh and blocks
-      // cuint vmeshSize = cell->get_velocity_mesh(popID)->size();
-      // cuint vbcSize = cell->get_velocity_blocks(popID)->size();
-      // if (vmeshSize != vbcSize) {
-      //    printf("ERROR: population vmesh %ul and blockcontainer %ul sizes do not match!\n",vmeshSize,vbcSize);
-      // }
-      // cell->get_velocity_mesh(popID)->check();
 
       return;
    }

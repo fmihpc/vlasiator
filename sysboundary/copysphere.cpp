@@ -797,11 +797,8 @@ namespace SBC {
                   }
                }
             }
-
-            // Only keep this block if it is at least 10% of the sparsity value
-            if (maxValue > 0.1 * minValue) {
-               templateCell.add_velocity_block(blockGID, popID, &initBuffer[0]);
-            }
+            // Actually add the velocity block
+            templateCell.add_velocity_block(blockGID, popID, &initBuffer[0]);
          } // for-loop over requested velocity blocks
 
          // let's get rid of blocks not fulfilling the criteria here to save memory.
