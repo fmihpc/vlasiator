@@ -836,7 +836,7 @@ namespace SBC {
       templateCell.parameters[CellParams::P_33_V] = templateCell.parameters[CellParams::P_33];
    }
 
-   Real Copysphere::shiftedMaxwellianDistribution(
+   Real Copysphere::maxwellianDistribution(
       const uint popID,
       creal& vx, creal& vy, creal& vz
    ) {
@@ -845,8 +845,8 @@ namespace SBC {
       const CopysphereSpeciesParameters& sP = this->speciesParams[popID];
 
       return sP.rho * pow(MASS / (2.0 * M_PI * physicalconstants::K_B * sP.T), 1.5) *
-      exp(-MASS * (vx*vx + vy*vy + vz*vz) / (2.0 * physicalconstants::K_B * sP.T));
-   }
+         exp(-MASS * (vx*vx + vy*vy + vz*vz) / (2.0 * physicalconstants::K_B * sP.T));
+      }
 
    std::vector<vmesh::GlobalID> Copysphere::findBlocksToInitialize(spatial_cell::SpatialCell& cell,const uint popID) {
       vector<vmesh::GlobalID> blocksToInitialize;
