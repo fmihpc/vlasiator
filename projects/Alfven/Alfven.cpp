@@ -65,8 +65,8 @@ namespace projects {
          RP::add(pop + "_Alfven.rho", "Number density (m^-3)", 1.0e8);
          RP::add(pop + "_Alfven.Temperature", "Temperature (K)", 0.86456498092);
          RP::add(pop + "_Alfven.A_vel", "Amplitude of the velocity perturbation", 0.1);
-         RP::add(pop + "_Alfven.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
-         RP::add(pop + "_Alfven.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
+         RP::add(pop + "_Alfven.nSpaceSamples", "Number of sampling points per spatial dimension", 1);
+         RP::add(pop + "_Alfven.nVelocitySamples", "Number of sampling points per velocity dimension", 1);
 
       }
    }
@@ -158,7 +158,6 @@ namespace projects {
          dByavg += sin(2.0 * M_PI * ksi);
          dBzavg += cos(2.0 * M_PI * ksi);
       }
-      cuint nPts = pow(this->nSpaceSamples, 3.0);
       
    }
    
