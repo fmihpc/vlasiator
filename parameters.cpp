@@ -352,8 +352,9 @@ bool P::addParameters() {
                         "populations_vg_moments_thermal populations_vg_moments_nonthermal " +
                         "populations_vg_effectivesparsitythreshold populations_vg_rho_loss_adjust " +
                         "populations_vg_energydensity populations_vg_precipitationdifferentialflux " +
-                        "populations_vg_heatflux " +  
-                        "vg_maxdt_acceleration vg_maxdt_translation populations_vg_maxdt_acceleration "
+                        "populations_vg_heatflux " +
+                        "populations_vg_nonmaxwellianity " +
+                        "vg_maxdt_acceleration vg_maxdt_translation populations_vg_maxdt_acceleration " +
                         "populations_vg_maxdt_translation " +
                         "fg_maxdt_fieldsolver " + "vg_rank fg_rank fg_amr_level vg_loadbalance_weight " +
                         "vg_boundarytype fg_boundarytype vg_boundarylayer fg_boundarylayer " +
@@ -603,7 +604,7 @@ void Parameters::getParameters() {
    mpiioValues.clear();
    RP::get("io.restart_write_mpiio_hint_key", mpiioKeys);
    RP::get("io.restart_write_mpiio_hint_value", mpiioValues);
-   
+
    if (mpiioKeys.size() != mpiioValues.size()) {
       if (myRank == MASTER_RANK) {
          cerr << "WARNING the number of io.restart_write_mpiio_hint_key and io.restart_write_mpiio_hint_value do not "
@@ -620,7 +621,7 @@ void Parameters::getParameters() {
    mpiioValues.clear();
    RP::get("io.restart_read_mpiio_hint_key", mpiioKeys);
    RP::get("io.restart_read_mpiio_hint_value", mpiioValues);
-   
+
    if (mpiioKeys.size() != mpiioValues.size()) {
       if (myRank == MASTER_RANK) {
          cerr << "WARNING the number of io.restart_read_mpiio_hint_key and io.restart_read_mpiio_hint_value do not "
@@ -722,7 +723,7 @@ void Parameters::getParameters() {
          int maxPasses=g_sequence(P::amrMaxSpatialRefLevel-1);
          for (uint refLevel=0; refLevel<=P::amrMaxSpatialRefLevel; refLevel++){
             numPasses.push_back(maxPasses);
-            maxPasses/=2; 
+            maxPasses/=2;
          }
          //Overwrite passes for the highest refLevel. We do not want to filter there.
          numPasses[P::amrMaxSpatialRefLevel] = 0;
@@ -839,7 +840,7 @@ void Parameters::getParameters() {
    for (size_t s = 0; s < P::systemWriteName.size(); ++s) {
       P::systemWrites.push_back(0);
    }
-   
+
    RP::get("fieldtracing.fieldLineTracer", tracerString);
    RP::get("fieldtracing.tracer_max_allowed_error", FieldTracing::fieldTracingParameters.max_allowed_error);
    RP::get("fieldtracing.tracer_max_attempts", FieldTracing::fieldTracingParameters.max_field_tracer_attempts);
@@ -849,7 +850,7 @@ void Parameters::getParameters() {
    RP::get("fieldtracing.use_reconstruction_cache", FieldTracing::fieldTracingParameters.useCache);
    RP::get("fieldtracing.fluxrope_max_curvature_radii_to_trace", FieldTracing::fieldTracingParameters.fluxrope_max_curvature_radii_to_trace);
    RP::get("fieldtracing.fluxrope_max_curvature_radii_extent", FieldTracing::fieldTracingParameters.fluxrope_max_curvature_radii_extent);
-   
+
    if(tracerString == "Euler") {
       FieldTracing::fieldTracingParameters.tracingMethod = FieldTracing::Euler;
    } else if (tracerString == "ADPT_Euler") {

@@ -297,7 +297,7 @@ namespace SBC {
          const CellID& cellID,
          const bool& copyMomentsOnly,
          const uint popID,
-         const bool calculate_V_moments
+         const bool copy_V_moments
    ) {
       const CellID closestCell = getTheClosestNonsysboundaryCell(cellID);
       
@@ -306,7 +306,7 @@ namespace SBC {
          abort();
       }
       
-      copyCellData(mpiGrid[closestCell],mpiGrid[cellID], copyMomentsOnly, popID, calculate_V_moments);
+      copyCellData(mpiGrid[closestCell],mpiGrid[cellID], copyMomentsOnly, popID, copy_V_moments);
    }
    
    /*! Function used to average and copy the distribution and moments from all the closest sysboundarytype::NOT_SYSBOUNDARY cells.
@@ -315,7 +315,7 @@ namespace SBC {
     */
    void SysBoundaryCondition::vlasovBoundaryCopyFromAllClosestNbrs(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,const uint popID, const bool calculate_V_moments
+      const CellID& cellID,const uint popID, const bool copy_V_moments
    ) {
       const vector<CellID>& closestCells = getAllClosestNonsysboundaryCells(cellID);
       
@@ -332,7 +332,7 @@ namespace SBC {
     */
    void SysBoundaryCondition::vlasovBoundaryFluffyCopyFromAllCloseNbrs(
       const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-      const CellID& cellID,const uint popID,const bool calculate_V_moments, creal fluffiness
+      const CellID& cellID,const uint popID,const bool copy_V_moments, creal fluffiness
    ) {
       const vector<CellID>& closeCells = getAllCloseNonsysboundaryCells(cellID);
       
@@ -425,10 +425,10 @@ namespace SBC {
             SpatialCell* to,
             const bool copyMomentsOnly,
             const uint popID,
-            const bool calculate_V_moments
+            const bool copy_V_moments
    ) {
       if (popID == 0) {
-         if (calculate_V_moments) {
+         if (copy_V_moments) {
             to->parameters[CellParams::RHOM_V] = from->parameters[CellParams::RHOM_V];
             to->parameters[CellParams::VX_V] = from->parameters[CellParams::VX_V];
             to->parameters[CellParams::VY_V] = from->parameters[CellParams::VY_V];
@@ -452,14 +452,14 @@ namespace SBC {
        if(!copyMomentsOnly) { // Do this only if copyMomentsOnly is false.
          to->set_population(from->get_population(popID), popID);
       } else {
-         if (calculate_V_moments) {
+         if (copy_V_moments) {
             to->get_population(popID).RHO_V = from->get_population(popID).RHO_V;
          } else {
             to->get_population(popID).RHO_R = from->get_population(popID).RHO_R;
          }
          
          for (uint i=0; i<3; i++) {
-            if (calculate_V_moments) {
+            if (copy_V_moments) {
                to->get_population(popID).V_V[i] = from->get_population(popID).V_V[i];
                to->get_population(popID).P_V[i] = from->get_population(popID).P_V[i];
             } else {
@@ -497,7 +497,6 @@ namespace SBC {
          }
          toData += SIZE_VELBLOCK;
       } // for-loop over velocity blocks
-
       
       for (size_t i=0; i<numberOfCells; i++) {
          const SpatialCell* incomingCell = mpiGrid[cellList[i]];

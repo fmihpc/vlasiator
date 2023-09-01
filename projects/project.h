@@ -24,7 +24,6 @@
 #define PROJECT_H
 
 #include <random>
-#include "../definitions.h"
 #include "../spatial_cell.hpp"
 #include <dccrg.hpp>
 #include <dccrg_cartesian_geometry.hpp>
@@ -82,7 +81,7 @@ namespace projects {
        */
       void setCell(spatial_cell::SpatialCell* cell);
          
-      Real setVelocityBlock(spatial_cell::SpatialCell* cell,const vmesh::LocalID& blockLID,const uint popID) const;
+      Real setVelocityBlock(spatial_cell::SpatialCell* cell,const vmesh::LocalID& blockLID,const uint popID, Realf* buffer) const;
 
       virtual bool refineSpatialCells( dccrg::Dccrg<spatial_cell::SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid ) const;
 
@@ -186,7 +185,8 @@ namespace projects {
       void setRandomCellSeed(spatial_cell::SpatialCell* cell, std::default_random_engine& randGen) const;
       
     private:
-       uint seed;
+      uint seed;
+      static char rngStateBuffer[256];
 
       bool baseClassInitialized;                      /**< If true, base class has been initialized.*/
    };

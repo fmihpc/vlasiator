@@ -38,8 +38,6 @@ namespace projects {
       Real ionosphereT;
       Real taperInnerRadius;
       Real taperOuterRadius;
-      uint nSpaceSamples;
-      uint nVelocitySamples;
    };
 
    class Magnetosphere: public TriAxisSearch {

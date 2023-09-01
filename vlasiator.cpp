@@ -87,7 +87,7 @@ bool globalflags::ionosphereJustSolved = false;
 ObjectWrapper objectWrapper;
 
 void addTimedBarrier(string name){
-#ifdef NDEBUG
+#ifndef DEBUG_VLASIATOR
 //let's not do  a barrier
    return;
 #endif
@@ -123,41 +123,46 @@ void computeNewTimeStep(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpi
       const Real dx = cell->parameters[CellParams::DX];
       const Real dy = cell->parameters[CellParams::DY];
       const Real dz = cell->parameters[CellParams::DZ];
-
       cell->parameters[CellParams::MAXRDT] = numeric_limits<Real>::max();
 
       for (uint popID = 0; popID < getObjectWrapper().particleSpecies.size(); ++popID) {
-         cell->set_max_r_dt(popID, numeric_limits<Real>::max());
-         const Realf* block_data = cell->get_data(popID);
-         const Real *parameters = cell->get_block_parameters(popID);
+         const uint nBlocks = cell->get_number_of_velocity_blocks(popID);
+         if (nBlocks==0) {
+            continue;
+         }
+         const Real* parameters = cell->get_block_parameters(popID);
          const Real HALF = 0.5;
          Real popMin = std::numeric_limits<Real>::max();
 #pragma omp parallel
          {
             Real threadMin = std::numeric_limits<Real>::max();
-            arch::parallel_reduce<arch::min>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)},
-                                             ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint n, Real *lthreadMin){
-                                                const Real VX
-                                                   =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD]
-                                                   + (i + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
-                                                const Real VY
-                                                   =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD]
-                                                   + (j + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
-                                                const Real VZ
-                                                   =          parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD]
-                                                   + (k + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-                                                lthreadMin[0] = min(dx / fabs(VX), lthreadMin[0]);
-                                                lthreadMin[0] = min(dy / fabs(VY), lthreadMin[0]);
-                                                lthreadMin[0] = min(dz / fabs(VZ), lthreadMin[0]);
-                                             }, threadMin);
+            arch::parallel_reduce<arch::min>(
+               {WID, WID, WID, nBlocks},
+               ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint n, Real *lthreadMin) -> void{
+                  const Real VX
+                     =            parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD]
+                     + (i + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+                  const Real VY
+                     =            parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD]
+                     + (j + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+                  const Real VZ
+                     =            parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD]
+                     + (k + HALF)*parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+                  Real loopMin = dx / fabs(VX);
+                  loopMin = min(dy / fabs(VY), loopMin);
+                  loopMin = min(dz / fabs(VZ), loopMin);
+                  lthreadMin[0] = min(loopMin,lthreadMin[0]);
+               }, threadMin);
 #pragma omp critical
             {
                popMin = min(threadMin, popMin);
             }
-         }
+         } // end parallel region
          cell->set_max_r_dt(popID, popMin);
          cell->parameters[CellParams::MAXRDT] = min(popMin, cell->parameters[CellParams::MAXRDT]);
-      }
+      } // end loop over popID
+
+
 
       if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY ||
           (cell->sysBoundaryLayer == 1 && cell->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY)) {
@@ -453,14 +458,15 @@ int main(int argn,char* args[]) {
       = {P::xmin, P::ymin, P::zmin};
 
    // Checking that spatial cells are cubic, otherwise field solver is incorrect (cf. derivatives in E, Hall term)
-   if ((abs((technicalGrid.DX - technicalGrid.DY) / technicalGrid.DX) > 0.001) ||
-       (abs((technicalGrid.DX - technicalGrid.DZ) / technicalGrid.DX) > 0.001) ||
-       (abs((technicalGrid.DY - technicalGrid.DZ) / technicalGrid.DY) > 0.001)) {
+   constexpr Real uniformTolerance=1e-3;
+   if ((abs((technicalGrid.DX - technicalGrid.DY) / technicalGrid.DX) >uniformTolerance) ||
+       (abs((technicalGrid.DX - technicalGrid.DZ) / technicalGrid.DX) >uniformTolerance) ||
+       (abs((technicalGrid.DY - technicalGrid.DZ) / technicalGrid.DY) >uniformTolerance)) {
       if (myRank == MASTER_RANK) {
-         std::cerr << "WARNING: Your spatial cells seem not to be cubic. However the field solver is assuming them to "
-                      "be. Use at your own risk and responsibility!"
-                   << std::endl;
+         std::cerr << "WARNING: Your spatial cells seem not to be cubic. The simulation will now abort!" << std::endl;
       }
+      //just abort sending SIGTERM to all tasks
+      MPI_Abort(MPI_COMM_WORLD, -1);
    }
    phiprof::stop("Init fieldsolver grids");
 
@@ -486,6 +492,14 @@ int main(int argn,char* args[]) {
       sysBoundaryContainer,
       *project
    );
+
+   phiprof::start("report-memory-consumption");
+   if (myRank == MASTER_RANK){
+      cout << "(MAIN): Completed grid initialization." << endl;
+      logFile << "(MAIN): Completed grid initialization." << endl << writeVerbose;
+   }
+   report_process_memory_consumption();
+   phiprof::stop("report-memory-consumption");
 
    const std::vector<CellID>& cells = getLocalCells();
 
@@ -653,6 +667,7 @@ int main(int argn,char* args[]) {
 
    // Main simulation loop:
    if (myRank == MASTER_RANK){
+      cout << "(MAIN): Starting main simulation loop." << endl;
       logFile << "(MAIN): Starting main simulation loop." << endl << writeVerbose;
       //report filtering if we are in an AMR run
       if (P::amrMaxSpatialRefLevel>0){

@@ -26,7 +26,7 @@
 #include "velocity_blocks.h"
 #include "object_wrapper.h"
 
-#ifndef NDEBUG
+#ifdef DEBUG_VLASIATOR
    #define DEBUG_SPATIAL_CELL
 #endif
 
@@ -157,6 +157,17 @@ namespace spatial_cell {
       return *this;
    }
 
+   /** Sets a guidance counter so that vmesh adjustment vectors have sufficient size
+    */
+   void SpatialCell::setReservation(const uint popID, const vmesh::LocalID reservationsize, bool force) {
+      if (force || (reservationsize > populations[popID].reservation)) {
+         populations[popID].reservation = reservationsize;
+      }
+   }
+   vmesh::LocalID SpatialCell::getReservation(const uint popID) const {
+      return populations[popID].reservation;
+   }
+
    /** Adds "important" and removes "unimportant" velocity blocks
     * to/from this cell.
     *
@@ -196,7 +207,8 @@ namespace spatial_cell {
       //  do not need to be created and also will not be removed as
       //  we only check for removal for blocks with no content
       std::unordered_set<vmesh::GlobalID> neighbors_have_content;
-
+      //neighbors_have_content.reserve(populations[popID].reservation);
+      
       //add neighbor content info for velocity space neighbors to map. We loop over blocks
       //with content and raise the neighbors_have_content for
       //itself, and for all its neighbors
@@ -967,7 +979,6 @@ namespace spatial_cell {
       }
 
       // Iterate over all octants, each octant corresponds to a different child:
-      //bool removeBlock = false;
       for (int k_oct=0; k_oct<2; ++k_oct) for (int j_oct=0; j_oct<2; ++j_oct) for (int i_oct=0; i_oct<2; ++i_oct) {
          // Copy data belonging to the octant to a temporary array:
          Realf array[WID3];
@@ -1345,10 +1356,7 @@ namespace spatial_cell {
       // Set velocity block parameters:
       for (vmesh::LocalID blockLID=0; blockLID<size(popID); ++blockLID) {
          const vmesh::GlobalID blockGID = get_velocity_block_global_id(blockLID,popID);
-         parameters[BlockParams::VXCRD] = get_velocity_block_vx_min(popID,blockGID);
-         parameters[BlockParams::VYCRD] = get_velocity_block_vy_min(popID,blockGID);
-         parameters[BlockParams::VZCRD] = get_velocity_block_vz_min(popID,blockGID);
-         populations[popID].vmesh->getCellSize(blockGID,&(parameters[BlockParams::DVX]));
+         populations[popID].vmesh->getBlockInfo(blockGID, parameters+BlockParams::VXCRD);
          parameters += BlockParams::N_VELOCITY_BLOCK_PARAMS;
       }
    }

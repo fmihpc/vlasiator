@@ -83,13 +83,6 @@ namespace SBC {
             creal& dt,
             cuint& component
          )=0;
-         virtual void fieldSolverBoundaryCondMagneticFieldProjection(
-            FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
-            FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-            cint i,
-            cint j,
-            cint k
-         )=0;
          virtual void fieldSolverBoundaryCondElectricField(
             FsGrid< std::array<Real, fsgrids::efield::N_EFIELD>, FS_STENCIL_WIDTH> & EGrid,
             cint i,
@@ -192,7 +185,7 @@ namespace SBC {
             SpatialCell *to,
             const bool copyMomentsOnly,
             const uint popID,
-            const bool calculate_V_moments
+            const bool copy_V_moments
          );
          std::array<SpatialCell*,27> & getFlowtoCells(
                const CellID& cellID

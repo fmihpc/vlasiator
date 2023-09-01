@@ -22,7 +22,7 @@
 #ifndef CPU_TRANS_MAP_H
 #define CPU_TRANS_MAP_H
 
-#ifndef NDEBUG
+#ifdef DEBUG_VLASIATOR
    #define DEBUG_VLASOV_SOLVER
 #endif
 

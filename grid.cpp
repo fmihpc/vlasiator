@@ -55,7 +55,7 @@
 #include "arch/gpu_base.hpp"
 #endif
 
-#ifndef NDEBUG
+#ifdef DEBUG_VLASIATOR
    #ifdef VAMR
       #define DEBUG_VAMR_VALIDATE
    #endif
@@ -279,19 +279,15 @@ void initializeGrids(
       project.setupBeforeSetCell(cells);
 
       phiprof::start("setCell");
-      #pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(dynamic)
       for (size_t i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
-         #ifdef USE_GPU
-         cell->prefetchHost(); // Currently projects still init on host
-         #endif
+         // #ifdef USE_GPU
+         // cell->prefetchHost(); // Currently projects still init on host
+         // #endif
          if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             project.setCell(cell);
          }
-         #ifdef USE_GPU
-         cell->prefetchDevice(); // Currently projects still init on host
-         cell->gpu_advise();
-         #endif
       }
       phiprof::stop("setCell");
 
@@ -307,6 +303,11 @@ void initializeGrids(
       #pragma omp parallel for schedule(static)
       for (size_t i=0; i<cells.size(); ++i) {
          mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
+         #ifdef USE_GPU
+         SpatialCell* cell = mpiGrid[cells[i]];
+         cell->prefetchDevice(); // Currently projects still init on host
+         cell->gpu_advise();
+         #endif
       }
 
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
@@ -351,14 +352,20 @@ void initializeGrids(
    phiprof::stop("Fetch Neighbour data");
 
    phiprof::start("setProjectBField");
+   phiprof::start("project.setProjectBField");
    project.setProjectBField(perBGrid, BgBGrid, technicalGrid);
+   phiprof::stop("project.setProjectBField");
+   phiprof::start("fsgrid-ghost-updates");
    perBGrid.updateGhostCells();
    BgBGrid.updateGhostCells();
    EGrid.updateGhostCells();
 
    // This will only have the BGB set up properly at this stage but we need the BGBvol for the Vlasov boundaries below.
    volGrid.updateGhostCells();
+   phiprof::stop("fsgrid-ghost-updates");
+   phiprof::start("getFieldsFromFsGrid");
    getFieldsFromFsGrid(volGrid, BgBGrid, EGradPeGrid, technicalGrid, mpiGrid, cells);
+   phiprof::stop("getFieldsFromFsGrid");
 
    phiprof::stop("setProjectBField");
 
@@ -400,7 +407,6 @@ void initializeGrids(
       }
       P::dt = P::bailout_min_dt;
    }
-
    phiprof::stop("Set initial state");
 }
 
@@ -439,16 +445,14 @@ void setFaceNeighborRanks( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
       if (!cell) continue;
 
       cell->face_neighbor_ranks.clear();
-
-      const auto& faceNeighbors = mpiGrid.get_face_neighbors_of(cellid);
-
-      for (const auto& nbr : faceNeighbors) {
+      
+      for (const auto& [neighbor, dir] : mpiGrid.get_face_neighbors_of(cellid)) {
 
          int neighborhood;
 
          // We store rank numbers into a map that has neighborhood ids as its key values.
-
-         switch (nbr.second) {
+         
+         switch (dir) {
          case -3:
             neighborhood = SHIFT_M_Z_NEIGHBORHOOD_ID;
             break;
@@ -468,13 +472,13 @@ void setFaceNeighborRanks( dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
             neighborhood = SHIFT_P_Z_NEIGHBORHOOD_ID;
             break;
          default:
-            cerr << "Invalid face neighbor dimension: " << nbr.second << " in " << __FILE__ << ":" << __LINE__ << std::endl;
+            cerr << "Invalid face neighbor dimension: " << dir << " in " << __FILE__ << ":" << __LINE__ << std::endl;
             abort();
          }
 
-         cell->face_neighbor_ranks[neighborhood].insert(mpiGrid.get_process(nbr.first));
-
-      }
+         cell->face_neighbor_ranks[neighborhood].insert(mpiGrid.get_process(neighbor));
+         
+      }      
    }
 }
 
@@ -746,7 +750,6 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
          Real density_post_adjust=0.0;
          CellID cell_id=cellsToAdjust[i];
          SpatialCell* cell = mpiGrid[cell_id];
-
          // gather spatial neighbor list and create vector with pointers to neighbor spatial cells
          const auto* neighbors = mpiGrid.get_neighbors_of(cell_id, NEAREST_NEIGHBORHOOD_ID);
          // Note: at AMR refinement boundaries this can cause blocks to propagate further than absolutely required
@@ -759,6 +762,8 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
                continue;
             }
             neighbor_ptrs.push_back(mpiGrid[neighbor_id]);
+            // Ensure cell has sufficient reservation
+            cell->setReservation(popID,mpiGrid[neighbor_id]->velocity_block_with_content_list_size);
          }
 #ifdef USE_GPU
          cell->gpu_attachToStream();
@@ -818,13 +823,20 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
  */
 void shrink_to_fit_grid_data(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid) {
    const std::vector<CellID>& cells = getLocalCells();
-   const std::vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(FULL_NEIGHBORHOOD_ID);
+   const std::vector<CellID>& remote_cells = mpiGrid.get_remote_cells_on_process_boundary(FULL_NEIGHBORHOOD_ID);
    #pragma omp parallel for
    for(size_t i=0; i<cells.size() + remote_cells.size(); ++i) {
-      if(i < cells.size())
-         mpiGrid[cells[i]]->shrink_to_fit();
-      else
-         mpiGrid[remote_cells[i - cells.size()]]->shrink_to_fit();
+      if(i < cells.size()){
+         SpatialCell* target= mpiGrid[cells[i]];
+         if (target!=nullptr){
+            target->shrink_to_fit();
+         }
+      }else{
+         SpatialCell* target= mpiGrid[remote_cells[i - cells.size()]];
+         if (target!=nullptr){
+            target->shrink_to_fit();
+         }
+      }
    }
 }
 

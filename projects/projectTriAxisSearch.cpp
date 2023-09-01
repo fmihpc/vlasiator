@@ -34,23 +34,32 @@ namespace projects {
    std::vector<vmesh::GlobalID> TriAxisSearch::findBlocksToInitialize(SpatialCell* cell,const uint popID) const {
       set<vmesh::GlobalID> blocksToInitialize;
       bool search;
-      unsigned int counter;
-      
+      unsigned int counterX, counterY, counterZ;
+      Real maxRelVx,maxRelVy,maxRelVz;
+
+      creal minValue = cell->getVelocityBlockMinValue(popID);
+      // How big steps of vcells should we use for weeping over v-space?
+      const uint increment = 1;
+      // And how big a buffer do we add to the edges?
+      const uint buffer = 2;
+      // How much below the sparsity can a cell be to still be included?
+      creal tolerance = 0.1;
+
       creal x = cell->parameters[CellParams::XCRD];
       creal y = cell->parameters[CellParams::YCRD];
       creal z = cell->parameters[CellParams::ZCRD];
       creal dx = cell->parameters[CellParams::DX];
       creal dy = cell->parameters[CellParams::DY];
       creal dz = cell->parameters[CellParams::DZ];
-      
+
       const uint8_t refLevel = 0;
-      creal dvxCell = cell->get_velocity_grid_cell_size(popID,refLevel)[0];
-      creal dvyCell = cell->get_velocity_grid_cell_size(popID,refLevel)[1];
-      creal dvzCell = cell->get_velocity_grid_cell_size(popID,refLevel)[2];
       creal dvxBlock = cell->get_velocity_grid_block_size(popID,refLevel)[0];
       creal dvyBlock = cell->get_velocity_grid_block_size(popID,refLevel)[1];
       creal dvzBlock = cell->get_velocity_grid_block_size(popID,refLevel)[2];
-      
+      creal dvxCell = cell->get_velocity_grid_cell_size(popID,refLevel)[0];
+      creal dvyCell = cell->get_velocity_grid_cell_size(popID,refLevel)[1];
+      creal dvzCell = cell->get_velocity_grid_cell_size(popID,refLevel)[2];
+
       const size_t vxblocks_ini = cell->get_velocity_grid_length(popID,refLevel)[0];
       const size_t vyblocks_ini = cell->get_velocity_grid_length(popID,refLevel)[1];
       const size_t vzblocks_ini = cell->get_velocity_grid_length(popID,refLevel)[2];
@@ -59,72 +68,57 @@ namespace projects {
       for (vector<std::array<Real, 3>>::const_iterator it = V0.begin(); it != V0.end(); it++) {
          // VX search
          search = true;
-         counter = 0;
+         counterX = 0;
          while (search) {
-            if (0.1 * cell->getVelocityBlockMinValue(popID) > calcPhaseSpaceDensity(x, y, z, dx, dy, dz, it->at(0) + counter*dvxBlock, it->at(1), it->at(2), dvxCell, dvyCell, dvzCell, popID)) {
+            if ( (tolerance * minValue >
+                  calcPhaseSpaceDensity(x, y, z, dx, dy, dz,
+                                        it->at(0) + (counterX+0.5)*dvxBlock, it->at(1), it->at(2),
+                                        dvxCell, dvyCell, dvzCell, popID)
+                  || counterX >= vxblocks_ini ) ) {
                search = false;
             }
-            ++counter;
-            if (counter >= cell->get_velocity_grid_length(popID,refLevel)[0]) {
-               search = false;
-            }
+            counterX+=increment;
          }
-         counter+=2;
-         Real vRadiusSquared = (Real)counter*(Real)counter*dvxBlock*dvxBlock;
+         counterX+=buffer;
+         maxRelVx = counterX*dvxBlock;
+         Real vRadiusSquared = (Real)counterX*(Real)counterX*dvxBlock*dvxBlock;
 
          // VY search
          search = true;
-         counter = 0;
+         counterY = 0;
          while(search) {
-            if (0.1 * getObjectWrapper().particleSpecies[popID].sparseMinValue >
-               calcPhaseSpaceDensity(
-                                     x,
-                                     y,
-                                     z,
-                                     dx,
-                                     dy,
-                                     dz,
-                                     it->at(0), it->at(1) + counter*dvyBlock, it->at(2),
-                                     dvxCell, dvyCell, dvzCell, popID
-                                    )
-               ||
-               counter > vxblocks_ini
-              ) {
+            if ( (tolerance * minValue >
+                  calcPhaseSpaceDensity(x, y, z, dx, dy, dz,
+                                        it->at(0), it->at(1) + (counterY+0.5)*dvyBlock, it->at(2),
+                                        dvxCell, dvyCell, dvzCell, popID)
+                  || counterY > vyblocks_ini ) ) {
                search = false;
             }
-            ++counter;
-            if (counter >= cell->get_velocity_grid_length(popID,refLevel)[1]) search = false;
+            counterY+=increment;
          }
-         counter+=2;
-         vRadiusSquared = max(vRadiusSquared, (Real)counter*(Real)counter*dvyBlock*dvyBlock);
+         counterY+=buffer;
+         maxRelVy = counterY*dvyBlock;
+         vRadiusSquared = max(vRadiusSquared, (Real)counterY*(Real)counterY*dvyBlock*dvyBlock);
 
          // VZ search
          search = true;
-         counter = 0;
+         counterZ = 0;
          while(search) {
-            if (0.1 * getObjectWrapper().particleSpecies[popID].sparseMinValue >
-               calcPhaseSpaceDensity(
-                                     x,
-                                     y,
-                                     z,
-                                     dx,
-                                     dy,
-                                     dz,
-                                     it->at(0), it->at(1), it->at(2) + counter*dvzBlock,
-                                     dvxCell, dvyCell, dvzCell, popID
-                                    )
-               ||
-               counter > vxblocks_ini
-              ) {
+            if ( (tolerance * minValue >
+                  calcPhaseSpaceDensity(x, y, z, dx, dy, dz,
+                                        it->at(0), it->at(1), it->at(2) + (counterZ+0.5)*dvzBlock,
+                                        dvxCell, dvyCell, dvzCell, popID)
+                  || counterZ > vzblocks_ini ) ) {
                search = false;
             }
-            ++counter;
-            if (counter >= cell->get_velocity_grid_length(popID,refLevel)[2]) search = false;
+            counterZ+=increment;
          }
-         counter+=2;
-         vRadiusSquared = max(vRadiusSquared, (Real)counter*(Real)counter*dvzBlock*dvzBlock);
+         counterZ+=buffer;
+         maxRelVz = counterZ*dvzBlock;
+         vRadiusSquared = max(vRadiusSquared, (Real)counterZ*(Real)counterZ*dvzBlock*dvzBlock);
 
          // Block listing
+         Real V_crds[3];
          for (uint kv=0; kv<vzblocks_ini; ++kv) {
             for (uint jv=0; jv<vyblocks_ini; ++jv) {
                for (uint iv=0; iv<vxblocks_ini; ++iv) {
@@ -133,26 +127,30 @@ namespace projects {
                   blockIndices[1] = jv;
                   blockIndices[2] = kv;
                   const vmesh::GlobalID blockGID = cell->get_velocity_block(popID,blockIndices,refLevel);
-                  
-                  Real V_crds[3];
+
                   cell->get_velocity_block_coordinates(popID,blockGID,V_crds);
-                  Real dV[3];
-                  cell->get_velocity_block_size(popID,blockGID,dV);
-                  V_crds[0] += 0.5*dV[0];
-                  V_crds[1] += 0.5*dV[1];
-                  V_crds[2] += 0.5*dV[2];
-                  Real R2 = ((V_crds[0]-it->at(0))*(V_crds[0]-it->at(0))
-                          + (V_crds[1]-it->at(1))*(V_crds[1]-it->at(1))
-                          + (V_crds[2]-it->at(2))*(V_crds[2]-it->at(2)));
-                  
+                  V_crds[0] += (0.5*dvxBlock - it->at(0) );
+                  V_crds[1] += (0.5*dvyBlock - it->at(1) );
+                  V_crds[2] += (0.5*dvzBlock - it->at(2) );
+                  // This check assumes non-maxwellian v-spaces are still constrained by Cartesian directions
+                  // (e.g. bi-maxwellian is aligned with coordinate directions)
+                  if ( abs(V_crds[0]) > maxRelVx ||
+                       abs(V_crds[1]) > maxRelVy ||
+                       abs(V_crds[2]) > maxRelVz ) {
+                     continue;
+                  }
+                  Real R2 = ((V_crds[0])*(V_crds[0])
+                             + (V_crds[1])*(V_crds[1])
+                             + (V_crds[2])*(V_crds[2]));
+
                   if (R2 < vRadiusSquared) {
-                     cell->add_velocity_block(blockGID,popID);
+                     //cell->add_velocity_block(blockGID,popID);
                      blocksToInitialize.insert(blockGID);
                   }
                } // vxblocks_ini
             } // vyblocks_ini
          } // vzblocks_ini
-      }
+      } // iteration over V0's
 
       vector<vmesh::GlobalID> returnVector;
       for (set<vmesh::GlobalID>::const_iterator it=blocksToInitialize.begin(); it!=blocksToInitialize.end(); ++it) {
@@ -160,5 +158,5 @@ namespace projects {
       }
       return returnVector;
    }
-   
+
 } // namespace projects

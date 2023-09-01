@@ -40,6 +40,10 @@
 #include "arch/gpu_base.hpp"
 //#include "arch/arch_device_api.h" // included in above
 
+#ifdef DEBUG_VLASIATOR
+   #define DEBUG_VMESH
+#endif
+
 namespace vmesh {
 
    class VelocityMesh : public Managed {
@@ -83,8 +87,8 @@ namespace vmesh {
       ARCH_HOSTDEV bool isInitialized() const;
       ARCH_HOSTDEV void pop();
       ARCH_HOSTDEV bool push_back(const vmesh::GlobalID& globalID);
-      bool push_back(const std::vector<vmesh::GlobalID>& blocks);
-      ARCH_HOSTDEV bool push_back(const split::SplitVector<vmesh::GlobalID>& blocks);
+      vmesh::LocalID push_back(const std::vector<vmesh::GlobalID>& blocks);
+      ARCH_HOSTDEV vmesh::LocalID push_back(const split::SplitVector<vmesh::GlobalID>& blocks);
       ARCH_DEV void replaceBlock(const vmesh::GlobalID& GIDold,const vmesh::LocalID& LID,const vmesh::GlobalID& GIDnew);
       ARCH_DEV void placeBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID);
       ARCH_DEV void deleteBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID);
@@ -93,6 +97,7 @@ namespace vmesh {
       bool setGrid(const split::SplitVector<vmesh::GlobalID>& globalIDs);
       bool setMesh(const size_t& meshID);
       void setNewSize(const vmesh::LocalID& newSize);
+      void setNewCapacity(const vmesh::LocalID& newCapacity);
       ARCH_HOSTDEV size_t size() const;
       ARCH_HOSTDEV size_t sizeInBytes() const;
       ARCH_HOSTDEV void swap(VelocityMesh& vm);
@@ -263,7 +268,7 @@ namespace vmesh {
    }
 
    ARCH_HOSTDEV inline void VelocityMesh::getBlockInfo(const vmesh::GlobalID& globalID,Real* array) const {
-      #ifndef NDEBUG
+      #ifdef DEBUG_VMESH
       if (globalID == invalidGlobalID()) {
          for (int i=0; i<6; ++i) array[i] = std::numeric_limits<Real>::infinity();
       }
@@ -310,7 +315,7 @@ namespace vmesh {
    }
 
    ARCH_HOSTDEV inline vmesh::GlobalID VelocityMesh::getGlobalID(const vmesh::LocalID& localID) const {
-      #ifndef NDEBUG
+      #ifdef DEBUG_VMESH
       if (localID >= localToGlobalMap->size()) {
          printf("ERROR invalid local id %lu\n",localID);
          exit(1);
@@ -444,9 +449,10 @@ namespace vmesh {
    }
 
    ARCH_HOSTDEV inline void VelocityMesh::pop() {
-      if (size() == 0) return;
+      const size_t mySize = size();
+      if (mySize == 0) return;
 
-      const vmesh::LocalID lastLID = size()-1;
+      const vmesh::LocalID lastLID = mySize-1;
       const vmesh::GlobalID lastGID = localToGlobalMap->at(lastLID);
       #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
       auto last = globalToLocalMap->device_find(lastGID);
@@ -458,19 +464,25 @@ namespace vmesh {
       localToGlobalMap->pop_back();
    }
 
+   /** Returns true if added velocity block was new, false if it couldn't be added or already existed.
+    */
    ARCH_HOSTDEV inline bool VelocityMesh::push_back(const vmesh::GlobalID& globalID) {
-      if (size() >= (*(vmesh::getMeshWrapper()->velocityMeshes))[meshID].max_velocity_blocks) return false;
+      const size_t mySize = size();
+      if (mySize >= (*(vmesh::getMeshWrapper()->velocityMeshes))[meshID].max_velocity_blocks) return false;
       if (globalID == invalidGlobalID()) return false;
 
       #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+      // device_insert is slower, returns true or false for whether inserted key was new
+      // globalToLocalMap->set_element(globalID,(vmesh::LocalID)mySize);
+      // localToGlobalMap->device_push_back(globalID);
       auto position
-         = globalToLocalMap->device_insert(Hashinator::make_pair(globalID,(vmesh::LocalID)localToGlobalMap->size()));
+         = globalToLocalMap->device_insert(Hashinator::make_pair(globalID,(vmesh::LocalID)mySize));
       if (position.second == true) {
          localToGlobalMap->device_push_back(globalID);
       }
       #else
       auto position
-         = globalToLocalMap->insert(Hashinator::make_pair(globalID,(vmesh::LocalID)localToGlobalMap->size()));
+         = globalToLocalMap->insert(Hashinator::make_pair(globalID,(vmesh::LocalID)mySize));
       if (position.second == true) {
          localToGlobalMap->push_back(globalID);
       }
@@ -478,54 +490,95 @@ namespace vmesh {
       return position.second;
    }
 
-   inline bool VelocityMesh::push_back(const std::vector<vmesh::GlobalID>& blocks) {
-      if (size()+blocks.size() > (*(vmesh::getMeshWrapper()->velocityMeshes))[meshID].max_velocity_blocks) {
-         printf("vmesh: too many blocks, current size is %lu",size());
-         printf(", adding %lu blocks", blocks.size());
+   inline vmesh::LocalID VelocityMesh::push_back(const std::vector<vmesh::GlobalID>& blocks) {
+      const size_t mySize = size();
+      const size_t blocksSize = blocks.size();
+      if (mySize+blocksSize > (*(vmesh::getMeshWrapper()->velocityMeshes))[meshID].max_velocity_blocks) {
+         printf("vmesh: too many blocks, current size is %lu",mySize);
+         printf(", adding %lu blocks", blocksSize);
          printf(", max is %u\n",(*(vmesh::getMeshWrapper()->velocityMeshes))[meshID].max_velocity_blocks);
          return false;
       }
 
-      for (size_t b=0; b<blocks.size(); ++b) {
-         globalToLocalMap->insert(Hashinator::make_pair(blocks[b],(vmesh::LocalID)(localToGlobalMap->size()+b)));
+      for (size_t b=0; b<blocksSize; ++b) {
+         globalToLocalMap->insert(Hashinator::make_pair(blocks[b],(vmesh::LocalID)(mySize+b)));
       }
       localToGlobalMap->insert(localToGlobalMap->end(),blocks.begin(),blocks.end());
-      return true;
+      return blocksSize;
    }
 
-   ARCH_HOSTDEV inline bool VelocityMesh::push_back(const split::SplitVector<vmesh::GlobalID>& blocks) {
-      if (size()+blocks.size() > (*(vmesh::getMeshWrapper()->velocityMeshes))[meshID].max_velocity_blocks) {
-         printf("vmesh: too many blocks, current size is %lu",size());
-         printf(", adding %lu blocks", blocks.size());
+   ARCH_HOSTDEV inline vmesh::LocalID VelocityMesh::push_back(const split::SplitVector<vmesh::GlobalID>& blocks) {
+      const size_t mySize = size();
+      const size_t blocksSize = blocks.size();
+      if (mySize+blocksSize > (*(vmesh::getMeshWrapper()->velocityMeshes))[meshID].max_velocity_blocks) {
+         printf("vmesh: too many blocks, current size is %lu",mySize);
+         printf(", adding %lu blocks", blocksSize);
          printf(", max is %u\n",(*(vmesh::getMeshWrapper()->velocityMeshes))[meshID].max_velocity_blocks);
          return false;
       }
 
       #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-      for (size_t b=0; b<blocks.size(); ++b) {
-         globalToLocalMap->device_insert(Hashinator::make_pair(blocks[b],(vmesh::LocalID)(localToGlobalMap->size()+b)));
+      for (size_t b=0; b<blocksSize; ++b) {
+         auto position
+            = globalToLocalMap->device_insert(Hashinator::make_pair(blocks[b],(vmesh::LocalID)(mySize+b)));
+         if (position.second == false) {
+            printf("vmesh: failed to push_back new block! %d of %d\n",(uint)b,(uint)blocksSize);
+            return b;
+         }
+         //globalToLocalMap->set_element(blocks[b],(vmesh::LocalID)(mySize+b));
       }
       localToGlobalMap->device_insert(localToGlobalMap->end(),blocks.begin(),blocks.end());
       #else
-      for (size_t b=0; b<blocks.size(); ++b) {
-         globalToLocalMap->insert(Hashinator::make_pair(blocks[b],(vmesh::LocalID)(localToGlobalMap->size()+b)));
+      for (size_t b=0; b<blocksSize; ++b) {
+         auto position
+            = globalToLocalMap->insert(Hashinator::make_pair(blocks[b],(vmesh::LocalID)(mySize+b)));
+         if (position.second == false) {
+            printf("vmesh: failed to push_back new block! %d of %d\n",(uint)b,(uint)blocksSize);
+            return b;
+         }
       }
       localToGlobalMap->insert(localToGlobalMap->end(),blocks.begin(),blocks.end());
       #endif
-      return true;
+      return blocksSize;
    }
 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
    ARCH_DEV inline void VelocityMesh::replaceBlock(const vmesh::GlobalID& GIDold,const vmesh::LocalID& LID,const vmesh::GlobalID& GIDnew) {
+      #ifdef DEBUG_VMESH
+      if (LID > size()-1) printf("vmesh replaceBlock error: LID is too large!\n");
+      vmesh::LocalID LIDold = invalidLocalID();
+      auto it = globalToLocalMap->device_find(GIDold);
+      if (it != globalToLocalMap->device_end()) LIDold = it->second;
+      if (localToGlobalMap->at(LIDold) != GIDold) printf("vmesh replaceBlock error: oldGID and oldLID don't match!\n");
+      #endif
       globalToLocalMap->device_erase(GIDold);
       globalToLocalMap->set_element(GIDnew,LID);
       localToGlobalMap->at(LID) = GIDnew;
    }
+
+   /** Note: this function does not adjust the vmesh size, as it is used from within a parallel kernel.
+    */
    ARCH_DEV inline void VelocityMesh::placeBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID) {
+      #ifdef DEBUG_VMESH
+      if (LID > size()-1) printf("vmesh placeBlock error: LID is too large!\n");
+      #endif
       globalToLocalMap->set_element(GID,LID);
       localToGlobalMap->at(LID) = GID;
    }
+
    ARCH_DEV inline void VelocityMesh::deleteBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID) {
+#ifdef DEBUG_VMESH
+      // Verify that GID and LID match
+      if (GID==invalidGlobalID()) printf("vmesh deleteBlock error: GID is invalidGlobalID!\n");
+      if (LID==invalidLocalID()) printf("vmesh deleteBlock error: LID is invalidLocalID!\n");
+      auto it = globalToLocalMap->device_find(GID);
+      if (it == globalToLocalMap->device_end()) {
+         printf("vmesh deleteBlock error: GID does not exist!\n");
+      } else {
+         if (it->second != LID) printf("vmesh deleteBlock error: LID %ul found with GID %ul does not match privided LID %ul!\n",it->second,GID,LID);
+      }
+      if (localToGlobalMap->at(LID) != GID) printf("vmesh deleteBlock error: GID %ul found with LID %ul does not match privided GID %ul!\n",localToGlobalMap->at(LID),LID,GID);
+#endif
       globalToLocalMap->device_erase(GID);
       localToGlobalMap->at(LID) = invalidGlobalID();
    }
@@ -590,6 +643,17 @@ namespace vmesh {
       if ((attachedStream != 0)&&(needAttachedStreams)) {
          globalToLocalMap->streamAttach(attachedStream);
          localToGlobalMap->streamAttach(attachedStream);
+      }
+   }
+
+   // Used in initialization
+   inline void VelocityMesh::setNewCapacity(const vmesh::LocalID& newCapacity) {
+      // Passing eco flag = true to resize tells splitvector we manage padding manually.
+      localToGlobalMap->reserve(newCapacity,true);
+      // Ensure also that the map is large enough
+      const int HashmapReqSize = ceil(log2(newCapacity)) +1;
+      if (globalToLocalMap->getSizePower() < HashmapReqSize) {
+         globalToLocalMap->rehash(HashmapReqSize);
       }
    }
 

@@ -92,8 +92,6 @@ namespace projects {
          RP::add(pop + "_Magnetosphere.VX0", "Initial bulk velocity in x-direction", 0.0);
          RP::add(pop + "_Magnetosphere.VY0", "Initial bulk velocity in y-direction", 0.0);
          RP::add(pop + "_Magnetosphere.VZ0", "Initial bulk velocity in z-direction", 0.0);
-         RP::add(pop + "_Magnetosphere.nSpaceSamples", "Number of sampling points per spatial dimension", 2);
-         RP::add(pop + "_Magnetosphere.nVelocitySamples", "Number of sampling points per velocity dimension", 5);
          RP::add(pop + "_Magnetosphere.taperInnerRadius", "Inner radius of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
          RP::add(pop + "_Magnetosphere.taperOuterRadius", "Outer radius of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
       }
@@ -119,13 +117,13 @@ namespace projects {
 
       RP::get("Magnetosphere.dipoleType", this->dipoleType);
 
-      /** Read inner boundary parameters from either ionospheric or conductingsphere sysboundary condition */
-      if (sysBoundaryContainer.existSysBoundary("Conductingsphere")) {
-         RP::get("conductingsphere.radius", this->ionosphereRadius);
-         RP::get("conductingsphere.centerX", this->center[0]);
-         RP::get("conductingsphere.centerY", this->center[1]);
-         RP::get("conductingsphere.centerZ", this->center[2]);
-         RP::get("conductingsphere.geometry", this->ionosphereGeometry);
+      /** Read inner boundary parameters from either ionospheric or copysphere sysboundary condition */
+      if (sysBoundaryContainer.existSysBoundary("Copysphere")) {
+         RP::get("copysphere.radius", this->ionosphereRadius);
+         RP::get("copysphere.centerX", this->center[0]);
+         RP::get("copysphere.centerY", this->center[1]);
+         RP::get("copysphere.centerZ", this->center[2]);
+         RP::get("copysphere.geometry", this->ionosphereGeometry);
       } else if (sysBoundaryContainer.existSysBoundary("Ionosphere")) {
          RP::get("ionosphere.radius", this->ionosphereRadius);
          RP::get("ionosphere.centerX", this->center[0]);
@@ -134,7 +132,7 @@ namespace projects {
          RP::get("ionosphere.geometry", this->ionosphereGeometry);
       } else {
          if(myRank == MASTER_RANK) {
-            std::cerr<<"Warning in initializing Magnetosphere: Could not find inner boundary (ionosphere or conductingsphere)!"<<std::endl;
+            std::cerr<<"Warning in initializing Magnetosphere: Could not find inner boundary (ionosphere or copysphere)!"<<std::endl;
          }
       }
       if(ionosphereRadius < 1000.) {
@@ -180,16 +178,13 @@ namespace projects {
          RP::get(pop + "_Magnetosphere.VY0", sP.V0[1]);
          RP::get(pop + "_Magnetosphere.VZ0", sP.V0[2]);
 
-         RP::get(pop + "_Magnetosphere.nSpaceSamples", sP.nSpaceSamples);
-         RP::get(pop + "_Magnetosphere.nVelocitySamples", sP.nVelocitySamples);
-
-         /** Read inner boundary parameters from either ionospheric or conductingsphere sysboundary condition */
-         if (sysBoundaryContainer.existSysBoundary("Conductingsphere")) {
-            RP::get(pop + "_conductingsphere.rho", sP.ionosphereRho);
-            RP::get(pop + "_conductingsphere.T", sP.ionosphereT);
-            RP::get(pop + "_conductingsphere.VX0", sP.ionosphereV0[0]);
-            RP::get(pop + "_conductingsphere.VY0", sP.ionosphereV0[1]);
-            RP::get(pop + "_conductingsphere.VZ0", sP.ionosphereV0[2]);
+         /** Read inner boundary parameters from either ionospheric or copysphere sysboundary condition */
+         if (sysBoundaryContainer.existSysBoundary("Copysphere")) {
+            RP::get(pop + "_copysphere.rho", sP.ionosphereRho);
+            RP::get(pop + "_copysphere.T", sP.ionosphereT);
+            RP::get(pop + "_copysphere.VX0", sP.ionosphereV0[0]);
+            RP::get(pop + "_copysphere.VY0", sP.ionosphereV0[1]);
+            RP::get(pop + "_copysphere.VZ0", sP.ionosphereV0[2]);
          } else if (sysBoundaryContainer.existSysBoundary("Ionosphere")) {
             RP::get(pop + "_ionosphere.rho", sP.ionosphereRho);
             RP::get(pop + "_ionosphere.T", sP.ionosphereT);
@@ -215,20 +210,20 @@ namespace projects {
          }
          if(sP.taperOuterRadius > 0 && sP.taperOuterRadius <= this->ionosphereRadius) {
             if(myRank == MASTER_RANK) {
-               cerr << "Error: " << pop << "_Magnetosphere.taperOuterRadius is non-zero yet smaller than ionosphere.radius / conductingsphere.radius! Aborting." << endl;
+               cerr << "Error: " << pop << "_Magnetosphere.taperOuterRadius is non-zero yet smaller than ionosphere.radius / copysphere.radius! Aborting." << endl;
             }
             abort();
          }
          if(sP.taperInnerRadius == 0 && sP.taperOuterRadius > 0) {
             if(myRank == MASTER_RANK) {
-               cerr << "Warning: " << pop << "_Magnetosphere.taperInnerRadius is zero (default), now setting this to the same value as ionosphere.radius / conductingsphere.radius, that is " << this->ionosphereRadius << ". Set/change " << pop << "_Magnetosphere.taperInnerRadius if this is not the expected behavior." << endl;
+               cerr << "Warning: " << pop << "_Magnetosphere.taperInnerRadius is zero (default), now setting this to the same value as ionosphere.radius / copysphere.radius, that is " << this->ionosphereRadius << ". Set/change " << pop << "_Magnetosphere.taperInnerRadius if this is not the expected behavior." << endl;
             }
             sP.taperInnerRadius = this->ionosphereRadius;
          }
          if(sP.ionosphereT == 0) {
             if(myRank == MASTER_RANK) {
-               if (sysBoundaryContainer.existSysBoundary("Conductingsphere")) {
-                  cerr << "Warning: " << pop << "_conductingsphere.T is zero (default), now setting to the same value as " << pop << "_Magnetosphere.T, that is " << sP.T << ". Set/change " << pop << "_conductingsphere.T if this is not the expected behavior." << endl;
+               if (sysBoundaryContainer.existSysBoundary("Copysphere")) {
+                  cerr << "Warning: " << pop << "_copysphere.T is zero (default), now setting to the same value as " << pop << "_Magnetosphere.T, that is " << sP.T << ". Set/change " << pop << "_copysphere.T if this is not the expected behavior." << endl;
                } else if (sysBoundaryContainer.existSysBoundary("Ionosphere")) {
                   cerr << "Warning: " << pop << "_ionosphere.T is zero (default), now setting to the same value as " << pop << "_Magnetosphere.T, that is " << sP.T << ". Set/change " << pop << "_ionosphere.T if this is not the expected behavior." << endl;
                }
@@ -237,8 +232,8 @@ namespace projects {
          }
          if(sP.ionosphereRho == 0) {
             if(myRank == MASTER_RANK) {
-               if (sysBoundaryContainer.existSysBoundary("Conductingsphere")) {
-                  cerr << "Warning: " << pop << "_conductingsphere.rho is zero (default), now setting to the same value as " << pop << "_Magnetosphere.rho, that is " << sP.rho << ". Set/change " << pop << "_conductingsphere.rho if this is not the expected behavior." << endl;
+               if (sysBoundaryContainer.existSysBoundary("Copysphere")) {
+                  cerr << "Warning: " << pop << "_copysphere.rho is zero (default), now setting to the same value as " << pop << "_Magnetosphere.rho, that is " << sP.rho << ". Set/change " << pop << "_copysphere.rho if this is not the expected behavior." << endl;
                } else if (sysBoundaryContainer.existSysBoundary("Ionosphere")) {
                   cerr << "Warning: " << pop << "_ionosphere.rho is zero (default), now setting to the same value as " << pop << "_Magnetosphere.rho, that is " << sP.rho << ". Set/change " << pop << "_ionosphere.rho if this is not the expected behavior." << endl;
                }
@@ -259,33 +254,7 @@ namespace projects {
                                              creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,
                                              creal& dvz,const uint popID) const {
 
-      const MagnetosphereSpeciesParameters& sP = this->speciesParams[popID];
-
-      if((sP.nSpaceSamples > 1) && (sP.nVelocitySamples > 1)) {
-         creal d_x = dx / (sP.nSpaceSamples-1);
-         creal d_y = dy / (sP.nSpaceSamples-1);
-         creal d_z = dz / (sP.nSpaceSamples-1);
-         creal d_vx = dvx / (sP.nVelocitySamples-1);
-         creal d_vy = dvy / (sP.nVelocitySamples-1);
-         creal d_vz = dvz / (sP.nVelocitySamples-1);
-         
-         Real avg = 0.0;
-         // #pragma omp parallel for collapse(6) reduction(+:avg)
-         // WARNING No threading here if calling functions are already threaded
-         for (uint i=0; i<sP.nSpaceSamples; ++i)
-            for (uint j=0; j<sP.nSpaceSamples; ++j)
-               for (uint k=0; k<sP.nSpaceSamples; ++k)
-                  for (uint vi=0; vi<sP.nVelocitySamples; ++vi)
-                     for (uint vj=0; vj<sP.nVelocitySamples; ++vj)
-                        for (uint vk=0; vk<sP.nVelocitySamples; ++vk) {
-                           avg += getDistribValue(x+i*d_x,y+j*d_y,z+k*d_z,vx+vi*d_vx,vy+vj*d_vy,vz+vk*d_vz,dvx,dvy,dvz,popID);
-                        }
-         return avg /
-         (sP.nSpaceSamples*sP.nSpaceSamples*sP.nSpaceSamples) /
-         (sP.nVelocitySamples*sP.nVelocitySamples*sP.nVelocitySamples);
-      } else {
-         return getDistribValue(x+0.5*dx,y+0.5*dy,z+0.5*dz,vx+0.5*dvx,vy+0.5*dvy,vz+0.5*dvz,dvx,dvy,dvz,popID);
-      }
+      return getDistribValue(x+0.5*dx,y+0.5*dy,z+0.5*dz,vx+0.5*dvx,vy+0.5*dvy,vz+0.5*dvz,dvx,dvy,dvz,popID);
    }
    
    /*! Magnetosphere does not set any extra perturbed B. */
@@ -301,6 +270,7 @@ namespace projects {
       LineDipole bgFieldLineDipole;
       VectorDipole bgVectorDipole;
 
+      phiprof::start("switch-dipoleType");
       // The hardcoded constants of dipole and line dipole moments are obtained
       // from Daldorff et al (2014), see
       // https://github.com/fmihpc/vlasiator/issues/20 for a derivation of the
@@ -349,9 +319,12 @@ namespace projects {
             default:
                setBackgroundFieldToZero(BgBGrid);
       }
-      
+      phiprof::stop("switch-dipoleType");
+
       const auto localSize = BgBGrid.getLocalSize().data();
       
+      phiprof::start("zeroing-out");
+
 #pragma omp parallel
       {
          bool doZeroOut;
@@ -447,6 +420,10 @@ namespace projects {
             }
          }
       } // end of omp parallel region
+
+      phiprof::stop("zeroing-out");
+
+      phiprof::start("add-constant-field");
       // Superimpose constant background field if needed
       if(this->constBgB[0] != 0.0 || this->constBgB[1] != 0.0 || this->constBgB[2] != 0.0) {
          ConstantField bgConstantField;
@@ -454,11 +431,14 @@ namespace projects {
          setBackgroundField(bgConstantField, BgBGrid, true);
          SBC::ionosphereGrid.setConstantBackgroundField(this->constBgB);
       }
+      phiprof::stop("add-constant-field");
+      phiprof::start("ionosphereGrid.storeNodeB");
       SBC::ionosphereGrid.storeNodeB();
+      phiprof::stop("ionosphereGrid.storeNodeB");
    }
    
    
-   Real Magnetosphere::getDistribValue(
+   inline Real Magnetosphere::getDistribValue(
            creal& x,creal& y,creal& z,
            creal& vx,creal& vy,creal& vz,
            creal& dvx,creal& dvy,creal& dvz,
@@ -596,11 +576,11 @@ namespace projects {
          if (myRank == MASTER_RANK) {
             std::cout << "Finished first level of refinement" << endl;
          }
-         #ifndef NDEBUG
+         #ifdef DEBUG_VLASIATOR
          if (cells.size() > 0) {
             std::cout << "Rank " << myRank << " refined " << cells.size() << " cells to level 1" << std::endl;
          }
-         #endif //NDEBUG
+         #endif //DEBUG_VLASIATOR
       }
       
       // L2 refinement.
@@ -622,11 +602,11 @@ namespace projects {
          if(myRank == MASTER_RANK) {
             std::cout << "Finished second level of refinement" << endl;
          }
-         #ifndef NDEBUG
+         #ifdef DEBUG_VLASIATOR
          if (cells.size() > 0) {
             std::cout << "Rank " << myRank << " refined " << cells.size() << " cells to level 2" << std::endl;
          }
-         #endif //NDEBUG
+         #endif //DEBUG_VLASIATOR
 
       }
       
@@ -649,11 +629,11 @@ namespace projects {
          if (myRank == MASTER_RANK) {
             std::cout << "Finished third level of refinement" << endl;
          }
-         #ifndef NDEBUG
+         #ifdef DEBUG_VLASIATOR
          if (cells.size() > 0) {
             std::cout << "Rank " << myRank << " refined " << cells.size() << " cells to level 3" << std::endl;
          }
-         #endif //NDEBUG
+         #endif //DEBUG_VLASIATOR
       }
 
       // L4 refinement.
@@ -677,11 +657,11 @@ namespace projects {
          if (myRank == MASTER_RANK) {
             std::cout << "Finished fourth level of refinement" << endl;
          }
-         #ifndef NDEBUG
+         #ifdef DEBUG_VLASIATOR
          if (cells.size() > 0) {
             std::cout << "Rank " << myRank << " refined " << cells.size() << " cells to level 4" << std::endl;
          }
-         #endif //NDEBUG
+         #endif //DEBUG_VLASIATOR
       }
 
       return true;
@@ -700,8 +680,7 @@ namespace projects {
       Real r_max2 {pow(P::refineRadius, 2)};
 
       //#pragma omp parallel for
-      for (uint j = 0; j < cells.size(); ++j) {
-         CellID id {cells[j]};
+      for (CellID id : cells) {
          std::array<double,3> xyz {mpiGrid.get_center(id)};
          SpatialCell* cell {mpiGrid[id]};
          int refLevel {mpiGrid.get_refinement_level(id)};
@@ -721,17 +700,16 @@ namespace projects {
             // Finally, check neighbors
             int refined_neighbors {0};
             int coarser_neighbors {0};
-            for (auto i : mpiGrid.get_face_neighbors_of(id)) {
-               const auto neighbor {mpiGrid[i.first]};
-               const int neighborRef = mpiGrid.get_refinement_level(i.first);
-               const Real neighborBeta {P::useJPerB ? std::log2(neighbor->parameters[CellParams::AMR_JPERB]) + logDx + P::JPerBModifier + neighborRef : 0.0};
+            for (const auto& [neighbor, dir] : mpiGrid.get_face_neighbors_of(id)) {
+               const int neighborRef = mpiGrid.get_refinement_level(neighbor);
+               const Real neighborBeta {P::useJPerB ? std::log2(mpiGrid[neighbor]->parameters[CellParams::AMR_JPERB]) + logDx + P::JPerBModifier + neighborRef : 0.0};
                if (neighborRef > refLevel) {
                   ++refined_neighbors;
                } else if (neighborRef < refLevel) {
                   ++coarser_neighbors;
-               } else if (neighbor->parameters[CellParams::AMR_ALPHA] > P::refineThreshold || neighborBeta > 0.5) {
+               } else if (mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA] > P::refineThreshold || neighborBeta > 0.5) {
                   refined_neighbors += 4;
-               } else if (neighbor->parameters[CellParams::AMR_ALPHA] < P::unrefineThreshold || neighborBeta < -0.5) {
+               } else if (mpiGrid[neighbor]->parameters[CellParams::AMR_ALPHA] < P::unrefineThreshold || neighborBeta < -0.5) {
                   ++coarser_neighbors;
                }
             }

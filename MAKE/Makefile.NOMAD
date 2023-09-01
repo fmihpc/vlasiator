@@ -18,10 +18,10 @@ VECTORCLASS = VEC_FALLBACK_GENERIC
 
 #===== Vector Lenghts ====
 # Default for VEC_FALLBACK_GENERIC is WID=4, VECL=8 
-WID=8
-VECL=64
-#WID=4
-#VECL=16
+#WID=8
+#VECL=64
+WID=4
+VECL=16
 
 # Compile with GPU support (USE_HIP or USE_CUDA)
 USE_HIP=1
