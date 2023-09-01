@@ -67,8 +67,6 @@ namespace projects {
       Real DENSITY;
       Real TEMPERATURE;
       Real maxwCutoff; 
-      uint nSpaceSamples;
-      uint nVelocitySamples;
       Real SCA_X;
       Real SCA_Y;
    }; //Class Larmor

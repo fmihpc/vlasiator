@@ -344,7 +344,7 @@ bool SysBoundary::initSysBoundaries(Project& project, creal& t) {
 }
 
 /*!\brief Boolean check if queried sysboundarycondition exists
- * Note: this queries against the parsed list of names, not against the actual existing boundaries. 
+ * Note: this queries against the parsed list of names, not against the actual existing boundaries.
  * This is so that the project configuration (which is handled before grid and boundary initialization)
  * can use this call.
  *
@@ -747,6 +747,7 @@ bool SysBoundary::applyInitialState(dccrg::Dccrg<SpatialCell, dccrg::Cartesian_G
       ) {
          continue;
       }
+      //cerr << "Applying initial state for " << (*it)->getName() << " system boundary"<<endl;
       if (!(*it)->applyInitialState(mpiGrid, technicalGrid, perBGrid, project)) {
          cerr << "ERROR: " << (*it)->getName() << " system boundary condition initial state not applied correctly." << endl;
          success = false;

@@ -164,10 +164,16 @@ __global__ void __launch_bounds__(GPUTHREADS,4) identify_block_offsets_kernel(
                columns[iColumn].j * gpu_block_indices_to_id[1] +
                (blockK+ti)       * gpu_block_indices_to_id[2];
             const vmesh::LocalID tblockLID = vmesh->getLocalID(targetBlock);
-            if (tblockLID >= blockDataSize) {
-               printf("Error: block for index [%d,%d,%d] has invalid blockLID %d %d \n",columns[iColumn].i,columns[iColumn].j,blockK+ti,tblockLID,vmesh->invalidGlobalID());
+            if (tblockLID == vmesh->invalidLocalID()) {
+               // Trying to propagate outside the velocity domain
+               columns[iColumn].targetBlockOffsets[blockK+ti] = vmesh->invalidLocalID();
+               printf("Error: block for index [%d,%d,%d] attempts to propagate outside domain!\n",columns[iColumn].i,columns[iColumn].j,blockK+ti);
+            } else {
+               columns[iColumn].targetBlockOffsets[blockK+ti] = tblockLID*WID3;
+               if (tblockLID >= blockDataSize) {
+                  printf("Error: block for index [%d,%d,%d] has invalid blockLID %d \n",columns[iColumn].i,columns[iColumn].j,blockK+ti,tblockLID);
+               }
             }
-            columns[iColumn].targetBlockOffsets[blockK+ti] = tblockLID*WID3;
          }
       }
    }
@@ -431,7 +437,8 @@ __global__ void __launch_bounds__(VECL,4) acceleration_kernel(
   Realv i_dv,
   Realv dv,
   Realv minValue,
-  const uint bdsw3
+  const uint bdsw3,
+  const size_t invalidLID
 ) {
    const uint gpuBlocks = gridDim.x * gridDim.y * gridDim.z;
    //const uint warpSize = blockDim.x * blockDim.y * blockDim.z;
@@ -536,8 +543,9 @@ __global__ void __launch_bounds__(VECL,4) acceleration_kernel(
 
                //store value
                Realf tval = target_density_r - target_density_l;
-               if (isfinite(tval) && tval>0) {
-                  (&gpu_blockData[gpu_columns[column].targetBlockOffsets[blockK]])[tcell] += tval;
+               const size_t toffset = gpu_columns[column].targetBlockOffsets[blockK];
+               if (isfinite(tval) && tval>0 && toffset!=invalidLID ) {
+                  (&gpu_blockData[toffset])[tcell] += tval;
                }
             } // for loop over target k-indices of current source block
          } // for-loop over source blocks
@@ -858,7 +866,8 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       i_dv,
       dv,
       minValue,
-      bdsw3
+      bdsw3,
+      vmesh->invalidLocalID()
       );
    CHK_ERR( gpuPeekAtLastError() );
    SSYNC;

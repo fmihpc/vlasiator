@@ -156,6 +156,7 @@ namespace spatial_cell {
       Real RHOLOSSADJUST = 0.0;   /*!< Counter for particle number loss from the destroying blocks in blockadjustment*/
       Real max_dt[2];             /**< Element[0] is max_r_dt, element[1] max_v_dt.*/
       Real velocityBlockMinValue;
+      vmesh::LocalID reservation = 0; /* Guidance on vector size reservation */
 
       uint ACCSUBCYCLES;          /*!< number of subcyles for each cell*/
       vmesh::LocalID N_blocks;    /**< Number of velocity blocks, used when receiving velocity
@@ -247,6 +248,9 @@ namespace spatial_cell {
 					    vmesh::VelocityMesh* vmesh,
 					    const Realf* src,Realf* array,Real cellSizeFractions[2]);
 
+      void setReservation(const uint popID, const vmesh::LocalID reservationsize, bool force=false);
+      vmesh::LocalID getReservation(const uint popID) const;
+
       vmesh::GlobalID find_velocity_block(uint8_t& refLevel,vmesh::GlobalID cellIndices[3],const uint popID);
       Realf* get_data(const uint popID);
       const Realf* get_data(const uint popID) const;
@@ -324,12 +328,15 @@ namespace spatial_cell {
 
       // Following functions adjust velocity blocks stored on the cell //
       bool add_velocity_block(const vmesh::GlobalID& block,const uint popID);
-      void add_velocity_blocks(const std::vector<vmesh::GlobalID>& blocks,const uint popID);
+      bool add_velocity_block(const vmesh::GlobalID& block,const uint popID, Realf* buffer);
       bool add_velocity_block_octant(const vmesh::GlobalID& blockGID,const uint popID);
       void adjustSingleCellVelocityBlocks(const uint popID, bool doDeleteEmpty=false);
       void adjust_velocity_blocks(const std::vector<SpatialCell*>& spatial_neighbors,
                                   const uint popID,
                                   bool doDeleteEmptyBlocks=true);
+      // Templated function for storing a v-space read from a file
+      template <typename fileReal> void add_velocity_blocks(const uint popID,const std::vector<vmesh::GlobalID>& blocks,fileReal* avgBuffer);
+
       void update_velocity_block_content_lists(const uint popID);
       bool checkMesh(const uint popID);
       void clear(const uint popID);
@@ -1732,12 +1739,8 @@ namespace spatial_cell {
       const vmesh::LocalID VBC_LID = populations[popID].blockContainer->push_back();
 
       // Set block parameters:
-//      Real* parameters = get_block_parameters(populations[popID].vmesh->getLocalID(block));
       Real* parameters = get_block_parameters(VBC_LID,popID);
-      parameters[BlockParams::VXCRD] = get_velocity_block_vx_min(popID,block);
-      parameters[BlockParams::VYCRD] = get_velocity_block_vy_min(popID,block);
-      parameters[BlockParams::VZCRD] = get_velocity_block_vz_min(popID,block);
-      populations[popID].vmesh->getCellSize(block,&(parameters[BlockParams::DVX]));
+      populations[popID].vmesh->getBlockInfo(block, parameters);
 
       // The following call 'should' be the fastest, but is actually
       // much slower that the parameter setting above
@@ -1745,7 +1748,49 @@ namespace spatial_cell {
       return success;
    }
 
-   inline void SpatialCell::add_velocity_blocks(const std::vector<vmesh::GlobalID>& blocks,const uint popID) {
+   /*!
+    Adds a velocity block into this spatial cell and fills it with data from the provided buffer.
+    Returns true if given block was added or already exists.
+    Returns false if given block is invalid or would be outside
+    of the velocity grid.
+
+    NOTE: this function is not thread-safe when inserting new blocks.
+   */
+   inline bool SpatialCell::add_velocity_block(const vmesh::GlobalID& block,const uint popID,
+                                               Realf* buffer) {
+      #ifdef DEBUG_SPATIAL_CELL
+      if (popID >= populations.size()) {
+         std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
+         std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
+         exit(1);
+      }
+      #endif
+
+      // Block insert will fail, if the block already exists, or if
+      // there are too many blocks in the spatial cell
+      bool success = true;
+      if (populations[popID].vmesh->push_back(block) == false) {
+         return false;
+      }
+
+      const vmesh::LocalID VBC_LID = populations[popID].blockContainer->push_back();
+
+      // Set block parameters:
+      Real* parameters = get_block_parameters(VBC_LID,popID);
+      populations[popID].vmesh->getBlockInfo(block, parameters);
+
+      // Copy the data in (increments in case of multipeak)
+      Realf* data = get_data(VBC_LID,popID);
+      for (uint i=0; i<WID3; ++i) {
+         data[i] += buffer[i];
+      }
+      return success;
+   }
+
+   /** Adds a vector of velocity blocks to the population, sets the parameters, and fills the data
+       with phase-space densities from the provided buffer (which was read from a file).
+   */
+   template <typename fileReal> void SpatialCell::add_velocity_blocks(const uint popID,const std::vector<vmesh::GlobalID>& blocks,fileReal* avgBuffer) {
       #ifdef DEBUG_SPATIAL_CELL
       if (popID >= populations.size()) {
          std::cerr << "ERROR, popID " << popID << " exceeds populations.size() " << populations.size() << " in ";
@@ -1773,11 +1818,16 @@ namespace spatial_cell {
 
       // Set block parameters
       for (size_t b=0; b<blocks.size(); ++b) {
-         parameters[BlockParams::VXCRD] = get_velocity_block_vx_min(popID,blocks[b]);
-         parameters[BlockParams::VYCRD] = get_velocity_block_vy_min(popID,blocks[b]);
-         parameters[BlockParams::VZCRD] = get_velocity_block_vz_min(popID,blocks[b]);
-         populations[popID].vmesh->getCellSize(blocks[b],&(parameters[BlockParams::DVX]));
+         vmesh::GlobalID VBC_GID = blocks.at(b);
+         populations[popID].vmesh->getBlockInfo(VBC_GID, parameters);
          parameters += BlockParams::N_VELOCITY_BLOCK_PARAMS;
+      }
+
+      const uint nBlocks = blocks.size();
+      //copy avgs data, here a conversion may happen between float and double
+      Realf *cellBlockData = populations[popID].blockContainer->getData(startLID);
+      for(uint64_t i = 0; i< WID3 * nBlocks ; i++){
+         cellBlockData[i] = avgBuffer[i];
       }
    }
 

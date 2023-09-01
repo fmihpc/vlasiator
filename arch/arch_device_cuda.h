@@ -434,6 +434,7 @@ namespace arch{
          CHK_ERR(cudaMallocAsync(&d_thread_data_dynamic, n_reductions * blocksize * gridsize * sizeof(T), gpuStreamList[thread_id]));
          /* Call the kernel (the number of reductions not known at compile time) */
          reduction_kernel<Op, NDim, 0><<<gridsize, blocksize, n_reductions * cub_temp_storage_type_size, gpuStreamList[thread_id]>>>(loop_body, d_const_buf, d_buf, d_limits, n_total, n_reductions, d_thread_data_dynamic);
+         CHK_ERR(cudaPeekAtLastError());
          /* Synchronize and free the thread data allocation */
          CHK_ERR(cudaStreamSynchronize(gpuStreamList[thread_id]));
          CHK_ERR(cudaFreeAsync(d_thread_data_dynamic, gpuStreamList[thread_id]));
@@ -441,6 +442,7 @@ namespace arch{
       else{
          /* Call the kernel (the number of reductions known at compile time) */
          reduction_kernel<Op, NDim, NReduStatic><<<gridsize, blocksize, 0, gpuStreamList[thread_id]>>>(loop_body, d_const_buf, d_buf, d_limits, n_total, n_reductions, d_thread_data_dynamic);
+         CHK_ERR(cudaPeekAtLastError());
          /* Synchronize after kernel call */
          CHK_ERR(cudaStreamSynchronize(gpuStreamList[thread_id]));
       }

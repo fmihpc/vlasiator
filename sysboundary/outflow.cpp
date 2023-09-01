@@ -46,7 +46,7 @@ using namespace std;
 namespace SBC {
    Outflow::Outflow(): OuterBoundaryCondition() { }
    Outflow::~Outflow() { }
-   
+
    void Outflow::addParameters() {
       const string defStr = "Copy";
       Readparameters::addComposing("outflow.faceNoFields", "List of faces on which no field outflow boundary conditions are to be applied ([xyz][+-]).");
@@ -69,7 +69,7 @@ namespace SBC {
         Readparameters::add(pop + "_outflow.quench", "Factor by which to quench the inflowing parts of the velocity distribution function.", 1.0);
       }
    }
-   
+
    void Outflow::getParameters() {
       int myRank;
       MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
@@ -131,7 +131,7 @@ namespace SBC {
         speciesParams.push_back(sP);
       }
    }
-   
+
    bool Outflow::initSysBoundary(
       creal& t,
       Project &project
@@ -145,11 +145,11 @@ namespace SBC {
          facesToSkipFields[i] = false;
          facesToReapply[i] = false;
       }
-      
+
       this->getParameters();
-      
+
       isThisDynamic = false;
-      
+
       vector<string>::const_iterator it;
       for (it = faceNoFieldsList.begin();
            it != faceNoFieldsList.end();
@@ -185,20 +185,20 @@ namespace SBC {
       Project &project
    ) {
       const vector<CellID>& cells = getLocalCells();
-      #pragma omp parallel for
+      #pragma omp parallel for schedule(static)
       for (uint i=0; i<cells.size(); ++i) {
          CellID id = cells[i];
          SpatialCell* cell = mpiGrid[id];
          if (cell->sysBoundaryFlag != this->getIndex()) {
             continue;
          }
-         
+
          bool doApply = true;
-         
+
          if(Parameters::isRestart) {
             std::array<bool, 6> isThisCellOnAFace;
             determineFace(isThisCellOnAFace, mpiGrid, id);
-            
+
             doApply=false;
             // Comparison of the array defining which faces to use and the array telling on which faces this cell is
             for (uint j=0; j<6; j++) {
@@ -252,7 +252,7 @@ namespace SBC {
    ) {
       EGrid.get(i,j,k)->at(fsgrids::efield::EX+component) = 0.0;
    }
-   
+
    void Outflow::fieldSolverBoundaryCondHallElectricField(
       FsGrid< array<Real, fsgrids::ehall::N_EHALL>, FS_STENCIL_WIDTH> & EHallGrid,
       cint i,
@@ -284,7 +284,7 @@ namespace SBC {
             cerr << __FILE__ << ":" << __LINE__ << ":" << " Invalid component" << endl;
       }
    }
-   
+
    void Outflow::fieldSolverBoundaryCondGradPeElectricField(
       FsGrid< array<Real, fsgrids::egradpe::N_EGRADPE>, FS_STENCIL_WIDTH> & EGradPeGrid,
       cint i,
@@ -294,7 +294,7 @@ namespace SBC {
    ) {
       EGradPeGrid.get(i,j,k)->at(fsgrids::egradpe::EXGRADPE+component) = 0.0;
    }
-   
+
    void Outflow::fieldSolverBoundaryCondDerivatives(
       FsGrid< array<Real, fsgrids::dperb::N_DPERB>, FS_STENCIL_WIDTH> & dPerBGrid,
       FsGrid< array<Real, fsgrids::dmoments::N_DMOMENTS>, FS_STENCIL_WIDTH> & dMomentsGrid,
@@ -306,7 +306,7 @@ namespace SBC {
    ) {
       this->setCellDerivativesToZero(dPerBGrid, dMomentsGrid, i, j, k, component);
    }
-   
+
    void Outflow::fieldSolverBoundaryCondBVOLDerivatives(
       FsGrid< array<Real, fsgrids::volfields::N_VOL>, FS_STENCIL_WIDTH> & volGrid,
       cint i,
@@ -316,7 +316,7 @@ namespace SBC {
    ) {
       this->setCellBVOLDerivativesToZero(volGrid, i, j, k, component);
    }
-   
+
    /**
     * NOTE that this is called once for each particle species!
     * @param mpiGrid
@@ -329,7 +329,7 @@ namespace SBC {
       const bool calculate_V_moments
    ) {
 //      phiprof::start("vlasovBoundaryCondition (Outflow)");
-      
+
       const OutflowSpeciesParameters& sP = this->speciesParams[popID];
       if (mpiGrid[cellID]->sysBoundaryFlag != this->getIndex()) {
          return;
@@ -337,7 +337,7 @@ namespace SBC {
 
       std::array<bool, 6> isThisCellOnAFace;
       determineFace(isThisCellOnAFace, mpiGrid, cellID, true);
-      
+
       for(uint i=0; i<6; i++) {
          if(isThisCellOnAFace[i] && facesToProcess[i] && !sP.facesToSkipVlasov[i]) {
             switch(sP.faceVlasovScheme[i]) {
@@ -356,15 +356,15 @@ namespace SBC {
             }
          }
       }
-      
+
 //      phiprof::stop("vlasovBoundaryCondition (Outflow)");
    }
-   
+
    void Outflow::getFaces(bool* faces) {
       for(uint i=0; i<6; i++) faces[i] = facesToProcess[i];
    }
-   
+
    string Outflow::getName() const {return "Outflow";}
    uint Outflow::getIndex() const {return sysboundarytype::OUTFLOW;}
-      
+
 }

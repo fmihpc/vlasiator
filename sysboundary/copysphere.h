@@ -39,8 +39,6 @@ namespace SBC {
       Real V0[3];
       Real T;
       Real fluffiness;
-      uint nSpaceSamples;
-      uint nVelocitySamples;
    };
 
    /*!\brief Copysphere is a class applying an ionosphere-ish boundary conditions.
@@ -134,7 +132,7 @@ namespace SBC {
       void generateTemplateCell(Project &project);
       void setCellFromTemplate(SpatialCell* cell,const uint popID);
       
-      Real shiftedMaxwellianDistribution(const uint popID,creal& vx, creal& vy, creal& vz);
+      Real maxwellianDistribution(const uint popID,creal& vx, creal& vy, creal& vz);
       
       vector<vmesh::GlobalID> findBlocksToInitialize(
          SpatialCell& cell,const uint popID
@@ -157,9 +155,6 @@ namespace SBC {
       Real VX0;
       Real VY0;
       Real VZ0;
-      
-      uint nSpaceSamples;
-      uint nVelocitySamples;
       
       spatial_cell::SpatialCell templateCell;
 

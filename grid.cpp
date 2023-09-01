@@ -279,19 +279,15 @@ void initializeGrids(
       project.setupBeforeSetCell(cells);
 
       phiprof::start("setCell");
-      #pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(dynamic)
       for (size_t i=0; i<cells.size(); ++i) {
          SpatialCell* cell = mpiGrid[cells[i]];
-         #ifdef USE_GPU
-         cell->prefetchHost(); // Currently projects still init on host
-         #endif
+         // #ifdef USE_GPU
+         // cell->prefetchHost(); // Currently projects still init on host
+         // #endif
          if (cell->sysBoundaryFlag == sysboundarytype::NOT_SYSBOUNDARY) {
             project.setCell(cell);
          }
-         #ifdef USE_GPU
-         cell->prefetchDevice(); // Currently projects still init on host
-         cell->gpu_advise();
-         #endif
       }
       phiprof::stop("setCell");
 
@@ -307,6 +303,11 @@ void initializeGrids(
       #pragma omp parallel for schedule(static)
       for (size_t i=0; i<cells.size(); ++i) {
          mpiGrid[cells[i]]->parameters[CellParams::LBWEIGHTCOUNTER] = 0;
+         #ifdef USE_GPU
+         SpatialCell* cell = mpiGrid[cells[i]];
+         cell->prefetchDevice(); // Currently projects still init on host
+         cell->gpu_advise();
+         #endif
       }
 
       for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
@@ -406,7 +407,6 @@ void initializeGrids(
       }
       P::dt = P::bailout_min_dt;
    }
-
    phiprof::stop("Set initial state");
 }
 
@@ -750,7 +750,6 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
          Real density_post_adjust=0.0;
          CellID cell_id=cellsToAdjust[i];
          SpatialCell* cell = mpiGrid[cell_id];
-
          // gather spatial neighbor list and create vector with pointers to neighbor spatial cells
          const auto* neighbors = mpiGrid.get_neighbors_of(cell_id, NEAREST_NEIGHBORHOOD_ID);
          // Note: at AMR refinement boundaries this can cause blocks to propagate further than absolutely required
@@ -763,6 +762,8 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
                continue;
             }
             neighbor_ptrs.push_back(mpiGrid[neighbor_id]);
+            // Ensure cell has sufficient reservation
+            cell->setReservation(popID,mpiGrid[neighbor_id]->velocity_block_with_content_list_size);
          }
 #ifdef USE_GPU
          cell->gpu_attachToStream();

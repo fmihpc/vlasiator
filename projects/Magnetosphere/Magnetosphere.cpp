@@ -92,8 +92,6 @@ namespace projects {
          RP::add(pop + "_Magnetosphere.VX0", "Initial bulk velocity in x-direction", 0.0);
          RP::add(pop + "_Magnetosphere.VY0", "Initial bulk velocity in y-direction", 0.0);
          RP::add(pop + "_Magnetosphere.VZ0", "Initial bulk velocity in z-direction", 0.0);
-         RP::add(pop + "_Magnetosphere.nSpaceSamples", "Number of sampling points per spatial dimension", 1);
-         RP::add(pop + "_Magnetosphere.nVelocitySamples", "Number of sampling points per velocity dimension", 1);
          RP::add(pop + "_Magnetosphere.taperInnerRadius", "Inner radius of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
          RP::add(pop + "_Magnetosphere.taperOuterRadius", "Outer radius of the zone with a density tapering from the ionospheric value to the background (m)", 0.0);
       }
@@ -180,9 +178,6 @@ namespace projects {
          RP::get(pop + "_Magnetosphere.VY0", sP.V0[1]);
          RP::get(pop + "_Magnetosphere.VZ0", sP.V0[2]);
 
-         RP::get(pop + "_Magnetosphere.nSpaceSamples", sP.nSpaceSamples);
-         RP::get(pop + "_Magnetosphere.nVelocitySamples", sP.nVelocitySamples);
-
          /** Read inner boundary parameters from either ionospheric or copysphere sysboundary condition */
          if (sysBoundaryContainer.existSysBoundary("Copysphere")) {
             RP::get(pop + "_copysphere.rho", sP.ionosphereRho);
@@ -259,33 +254,7 @@ namespace projects {
                                              creal& vx,creal& vy,creal& vz,creal& dvx,creal& dvy,
                                              creal& dvz,const uint popID) const {
 
-      const MagnetosphereSpeciesParameters& sP = this->speciesParams[popID];
-
-      if((sP.nSpaceSamples > 1) && (sP.nVelocitySamples > 1)) {
-         creal d_x = dx / (sP.nSpaceSamples-1);
-         creal d_y = dy / (sP.nSpaceSamples-1);
-         creal d_z = dz / (sP.nSpaceSamples-1);
-         creal d_vx = dvx / (sP.nVelocitySamples-1);
-         creal d_vy = dvy / (sP.nVelocitySamples-1);
-         creal d_vz = dvz / (sP.nVelocitySamples-1);
-         
-         Real avg = 0.0;
-         // #pragma omp parallel for collapse(6) reduction(+:avg)
-         // WARNING No threading here if calling functions are already threaded
-         for (uint i=0; i<sP.nSpaceSamples; ++i)
-            for (uint j=0; j<sP.nSpaceSamples; ++j)
-               for (uint k=0; k<sP.nSpaceSamples; ++k)
-                  for (uint vi=0; vi<sP.nVelocitySamples; ++vi)
-                     for (uint vj=0; vj<sP.nVelocitySamples; ++vj)
-                        for (uint vk=0; vk<sP.nVelocitySamples; ++vk) {
-                           avg += getDistribValue(x+i*d_x,y+j*d_y,z+k*d_z,vx+vi*d_vx,vy+vj*d_vy,vz+vk*d_vz,dvx,dvy,dvz,popID);
-                        }
-         return avg /
-         (sP.nSpaceSamples*sP.nSpaceSamples*sP.nSpaceSamples) /
-         (sP.nVelocitySamples*sP.nVelocitySamples*sP.nVelocitySamples);
-      } else {
-         return getDistribValue(x+0.5*dx,y+0.5*dy,z+0.5*dz,vx+0.5*dvx,vy+0.5*dvy,vz+0.5*dvz,dvx,dvy,dvz,popID);
-      }
+      return getDistribValue(x+0.5*dx,y+0.5*dy,z+0.5*dz,vx+0.5*dvx,vy+0.5*dvy,vz+0.5*dvz,dvx,dvy,dvz,popID);
    }
    
    /*! Magnetosphere does not set any extra perturbed B. */
@@ -469,7 +438,7 @@ namespace projects {
    }
    
    
-   Real Magnetosphere::getDistribValue(
+   inline Real Magnetosphere::getDistribValue(
            creal& x,creal& y,creal& z,
            creal& vx,creal& vy,creal& vz,
            creal& dvx,creal& dvy,creal& dvz,

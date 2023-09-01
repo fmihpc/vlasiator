@@ -34,7 +34,7 @@ testpackage: CXXFLAGS = -g -ggdb -O2 -fopenmp -funroll-loops -std=c++17 -fabi-ve
 
 
 MATHFLAGS = -ffast-math
-LDFLAGS = -lrt  -lnvToolsExt
+LDFLAGS = -lrt -lnvToolsExt
 LIB_MPI = -lgomp
 
 #======== PAPI ==========

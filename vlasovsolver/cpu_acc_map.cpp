@@ -53,7 +53,7 @@ vmesh::LocalID addVelocityBlock(const vmesh::GlobalID& blockGID,
         return vmesh::VelocityMesh::invalidLocalID();
 
     // Insert velocity block data, this will set values to 0.
-    const vmesh::LocalID newBlockLID = blockContainer->push_back();
+    const vmesh::LocalID newBlockLID = blockContainer->push_back_and_zero();
 
     #ifdef DEBUG_ACC
         bool ok = true;
@@ -70,8 +70,7 @@ vmesh::LocalID addVelocityBlock(const vmesh::GlobalID& blockGID,
 
     // Set block parameters:
     Real* parameters = blockContainer->getParameters(newBlockLID);
-    vmesh->getBlockCoordinates(blockGID,parameters+BlockParams::VXCRD);
-    vmesh->getCellSize(blockGID,parameters+BlockParams::DVX);
+    vmesh->getBlockInfo(blockGID, parameters+BlockParams::VXCRD);
     return newBlockLID;
 }
 

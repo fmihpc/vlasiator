@@ -363,7 +363,6 @@ void sortBlocklistByDimension( //const spatial_cell::SpatialCell* spatial_cell,
    // Ensure at least one launch block
    uint nGpuBlocks  = (nBlocks/GPUTHREADS) > GPUBLOCKS ? GPUBLOCKS : std::ceil((Real)nBlocks/(Real)GPUTHREADS);
    phiprof::stop("Sorting prefetches");
-
    phiprof::start("calc new dimension id");
    // Map blocks to new dimensionality
    switch( dimension ) {

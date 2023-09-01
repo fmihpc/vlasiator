@@ -602,7 +602,7 @@ namespace DRO {
       {
          Real sum[3] = {0.0, 0.0, 0.0};
          Real averageVX = this->averageVX, averageVY = this->averageVY, averageVZ = this->averageVZ;
-
+         if (cell->get_number_of_velocity_blocks(popID) != 0)
          arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)},
                                           ARCH_LOOP_LAMBDA(const uint i, const uint j, const uint k, const uint n, Real *lsum ){
 
@@ -673,7 +673,7 @@ namespace DRO {
       {
          Real sum[3] = {0.0, 0.0, 0.0};
          Real averageVX = this->averageVX, averageVY = this->averageVY, averageVZ = this->averageVZ;
-
+         if (cell->get_number_of_velocity_blocks(popID) != 0)
          arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)},
                                           ARCH_LOOP_LAMBDA(const uint i, const uint j, const uint k, const uint n, Real *lsum ) {
 
@@ -745,7 +745,7 @@ namespace DRO {
 #pragma omp parallel
       {
          Real threadMax = std::numeric_limits<Real>::min();
-
+         if (cell->get_number_of_velocity_blocks(popID) != 0)
          arch::parallel_reduce<arch::max>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)},
                                           ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint n, Real *lthreadMax)-> void {
                                              lthreadMax[0] = max((Real)(block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)]), lthreadMax[0]);
@@ -796,7 +796,7 @@ namespace DRO {
 #pragma omp parallel
       {
          Real threadMin = std::numeric_limits<Real>::max();
-
+         if (cell->get_number_of_velocity_blocks(popID) != 0)
          arch::parallel_reduce<arch::min>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)},
                                           ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint n, Real *lthreadMin) -> void{
                                              lthreadMin[0] = min((Real)(block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)]), lthreadMin[0]);
@@ -842,6 +842,7 @@ namespace DRO {
 # pragma omp parallel
       {
          Real thread_n_sum = 0.0;
+         if (cell->get_number_of_velocity_blocks(popID) != 0)
          arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)},
                                           ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint n, Real *lsum ) {
 
@@ -901,7 +902,7 @@ namespace DRO {
       {
 
          Real sum[4] = {0};
-
+         if (cell->get_number_of_velocity_blocks(popID) != 0)
          arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)},
                                           ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint n, Real *lsum ) {
 
@@ -973,7 +974,7 @@ namespace DRO {
 # pragma omp parallel
       {
          Real sum[3] = {0};
-
+         if (cell->get_number_of_velocity_blocks(popID) != 0)
          arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)},
                                           ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint n, Real *lsum ) {
 
@@ -1039,7 +1040,7 @@ namespace DRO {
 # pragma omp parallel
       {
          Real sum[3] = {0};
-
+         if (cell->get_number_of_velocity_blocks(popID) != 0)
          arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)},
                                           ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint n, Real *lsum ) {
 
@@ -1490,7 +1491,7 @@ namespace DRO {
          std::vector<Real> sum(2 * nChannels,0.0);
 
          const Real mass = getObjectWrapper().particleSpecies[popID].mass;
-
+         if (cell->get_number_of_velocity_blocks(popID) != 0)
          arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)},
                                           ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint n, Real *lsum )-> void {
 
@@ -1748,7 +1749,7 @@ namespace DRO {
          Real sum[3] = {0.0, 0.0, 0.0};
 
          const Real mass = getObjectWrapper().particleSpecies[popID].mass;
-
+         if (cell->get_number_of_velocity_blocks(popID) != 0)
          arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)},
                                           ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint n, Real *lsum ) {
 
