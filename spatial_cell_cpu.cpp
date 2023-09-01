@@ -26,7 +26,7 @@
 #include "velocity_blocks.h"
 #include "object_wrapper.h"
 
-#ifndef NDEBUG
+#ifdef DEBUG_VLASIATOR
    #define DEBUG_SPATIAL_CELL
 #endif
 

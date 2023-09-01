@@ -42,12 +42,14 @@ COMPFLAGS += -D OMPI_SKIP_MPICXX
 #is profiling on?
 COMPFLAGS += -DPROFILE
 
-#Add -DNDEBUG to turn debugging off. If debugging is enabled performance will degrade significantly
-COMPFLAGS += -DNDEBUG
+#Optional debugging: performance will degrade significantly
+# COMPFLAGS += -DDEBUG_VLASIATOR
 # COMPFLAGS += -DIONOSPHERE_SORTED_SUMS
 # COMPFLAGS += -DDEBUG_SOLVERS
 # COMPFLAGS += -DDEBUG_IONOSPHERE
 
+#Add -DNDEBUG to turn debugging (including asserts) off on compiler-level
+# COMPFLAGS += -DNDEBUG
 
 #Set order of semilag solver in velocity space acceleration
 #  ACC_SEMILAG_PLM 	2nd order

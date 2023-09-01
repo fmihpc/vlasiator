@@ -55,7 +55,7 @@
 #include "arch/gpu_base.hpp"
 #endif
 
-#ifndef NDEBUG
+#ifdef DEBUG_VLASIATOR
    #ifdef VAMR
       #define DEBUG_VAMR_VALIDATE
    #endif

@@ -48,8 +48,7 @@ CUDABLOCKS=108
 CMP = mpic++
 LNK = mpic++
 
-#-G (device debug) overrides --generate-line-info -line-info
-# but also requires more device-side resources to run
+#-G (device debug) overrides --generate-line-info -line-info but also requires more device-side resources to run
 # use "-Xptxas -v" for verbose output of ptx compilation
 
 CXXFLAGS = -g -O3 -x cu -std=c++17 --extended-lambda --expt-relaxed-constexpr -gencode arch=compute_80,code=sm_80 --generate-line-info -line-info -Xcompiler="-fopenmp" -Xcompiler="-fpermissive" -dc -maxrregcount 24

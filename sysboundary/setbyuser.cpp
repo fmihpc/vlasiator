@@ -34,7 +34,7 @@
 #include "../fieldsolver/fs_common.h"
 #include "../object_wrapper.h"
 
-#ifndef NDEBUG
+#ifdef DEBUG_VLASIATOR
    #define DEBUG_SETBYUSER
 #endif
 #ifdef DEBUG_SYSBOUNDARY

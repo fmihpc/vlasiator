@@ -40,6 +40,10 @@
 #include "arch/gpu_base.hpp"
 //#include "arch/arch_device_api.h" // included in above
 
+#ifdef DEBUG_VLASIATOR
+   #define DEBUG_VMESH
+#endif
+
 namespace vmesh {
 
    class VelocityMesh : public Managed {
@@ -264,7 +268,7 @@ namespace vmesh {
    }
 
    ARCH_HOSTDEV inline void VelocityMesh::getBlockInfo(const vmesh::GlobalID& globalID,Real* array) const {
-      #ifndef NDEBUG
+      #ifdef DEBUG_VMESH
       if (globalID == invalidGlobalID()) {
          for (int i=0; i<6; ++i) array[i] = std::numeric_limits<Real>::infinity();
       }
@@ -311,7 +315,7 @@ namespace vmesh {
    }
 
    ARCH_HOSTDEV inline vmesh::GlobalID VelocityMesh::getGlobalID(const vmesh::LocalID& localID) const {
-      #ifndef NDEBUG
+      #ifdef DEBUG_VMESH
       if (localID >= localToGlobalMap->size()) {
          printf("ERROR invalid local id %lu\n",localID);
          exit(1);
@@ -540,7 +544,7 @@ namespace vmesh {
 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
    ARCH_DEV inline void VelocityMesh::replaceBlock(const vmesh::GlobalID& GIDold,const vmesh::LocalID& LID,const vmesh::GlobalID& GIDnew) {
-      #ifndef NDEBUG
+      #ifdef DEBUG_VMESH
       if (LID > size()-1) printf("vmesh replaceBlock error: LID is too large!\n");
       vmesh::LocalID LIDold = invalidLocalID();
       auto it = globalToLocalMap->device_find(GIDold);
@@ -555,7 +559,7 @@ namespace vmesh {
    /** Note: this function does not adjust the vmesh size, as it is used from within a parallel kernel.
     */
    ARCH_DEV inline void VelocityMesh::placeBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID) {
-      #ifndef NDEBUG
+      #ifdef DEBUG_VMESH
       if (LID > size()-1) printf("vmesh placeBlock error: LID is too large!\n");
       #endif
       globalToLocalMap->set_element(GID,LID);
@@ -563,7 +567,7 @@ namespace vmesh {
    }
 
    ARCH_DEV inline void VelocityMesh::deleteBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID) {
-#ifndef NDEBUG
+#ifdef DEBUG_VMESH
       // Verify that GID and LID match
       if (GID==invalidGlobalID()) printf("vmesh deleteBlock error: GID is invalidGlobalID!\n");
       if (LID==invalidLocalID()) printf("vmesh deleteBlock error: LID is invalidLocalID!\n");

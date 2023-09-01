@@ -25,7 +25,7 @@
 #include "fs_common.h"
 #include "ldz_volume.hpp"
 
-#ifndef NDEBUG
+#ifdef DEBUG_VLASIATOR
    #define DEBUG_FSOLVER
 #endif
 

@@ -56,6 +56,10 @@
 #include "Shocktest/Shocktest.h"
 #include "../sysboundary/sysboundarycondition.h"
 
+#ifdef DEBUG_VLASIATOR
+   #define DEBUG_REFINE
+#endif
+
 using namespace std;
 
 extern Logger logFile;
@@ -431,7 +435,7 @@ namespace projects {
                xyz[1] = P::amrBoxCenterY + (0.5 + j - P::amrBoxHalfWidthY) * P::dy_ini;
                xyz[2] = P::amrBoxCenterZ + (0.5 + k - P::amrBoxHalfWidthZ) * P::dz_ini;
                if (mpiGrid.refine_completely_at(xyz)) {
-                  #ifndef NDEBUG
+                  #ifdef DEBUG_REFINE
                   CellID myCell = mpiGrid.get_existing_cell(xyz);
                   std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
                   #endif
@@ -441,7 +445,7 @@ namespace projects {
       }
       std::vector<CellID> refinedCells = mpiGrid.stop_refining(true);
       if(myRank == MASTER_RANK) std::cout << "Finished first level of refinement" << endl;
-      #ifndef NDEBUG
+      #ifdef DEBUG_REFINE
       if(refinedCells.size() > 0) {
          std::cout << "Refined cells produced by rank " << myRank << " are: ";
          for (auto cellid : refinedCells) {
@@ -464,7 +468,7 @@ namespace projects {
                   xyz[1] = P::amrBoxCenterY + 0.5 * (0.5 + j - P::amrBoxHalfWidthY) * P::dy_ini;
                   xyz[2] = P::amrBoxCenterZ + 0.5 * (0.5 + k - P::amrBoxHalfWidthZ) * P::dz_ini;
                   if (mpiGrid.refine_completely_at(xyz)) {
-                     #ifndef NDEBUG
+                     #ifdef DEBUG_REFINE
                      CellID myCell = mpiGrid.get_existing_cell(xyz);
                      std::cout << "Rank " << myRank << " is refining cell " << myCell << std::endl;
                      #endif
@@ -475,7 +479,7 @@ namespace projects {
 
          std::vector<CellID> refinedCells = mpiGrid.stop_refining(true);
          if(myRank == MASTER_RANK) std::cout << "Finished second level of refinement" << endl;
-         #ifndef NDEBUG
+         #ifdef DEBUG_REFINE
          if(refinedCells.size() > 0) {
             std::cout << "Refined cells produced by rank " << myRank << " are: ";
             for (auto cellid : refinedCells) {

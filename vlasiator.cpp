@@ -87,7 +87,7 @@ bool globalflags::ionosphereJustSolved = false;
 ObjectWrapper objectWrapper;
 
 void addTimedBarrier(string name){
-#ifdef NDEBUG
+#ifndef DEBUG_VLASIATOR
 //let's not do  a barrier
    return;
 #endif
