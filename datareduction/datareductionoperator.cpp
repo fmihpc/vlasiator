@@ -1944,6 +1944,7 @@ namespace DRO {
       // thermal speed in parallel direction
       const Real V_par_th_sq = 2.0 * physicalconstants::K_B * T_par / getObjectWrapper().particleSpecies[popID].mass;
 
+      //ARCH_TODO
 #pragma omp parallel
       {
          Real thread_epsilon_sum = 0.0;

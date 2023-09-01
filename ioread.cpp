@@ -732,23 +732,28 @@ bool readCellParamsVariable(
       switch (byteSize) {
          case sizeof(double):
             return _readCellParamsVariable<double>( file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid );
+            break;
          case sizeof(float):
             return _readCellParamsVariable<float>( file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid );
+            break;
       }
    } else if( dataType == vlsv::datatype::type::UINT ) {
       switch (byteSize) {
-
          case sizeof(uint32_t):
             return _readCellParamsVariable<uint32_t>( file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid );
+            break;
          case sizeof(uint64_t):
             return _readCellParamsVariable<uint64_t>( file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid );
+            break;
       }
    } else if( dataType == vlsv::datatype::type::INT ) {
       switch (byteSize) {
          case sizeof(int32_t):
             return _readCellParamsVariable<int32_t>( file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid );
+            break;
          case sizeof(int64_t):
             return _readCellParamsVariable<int64_t>( file, fileCells, localCellStartOffset, localCells, variableName, cellParamsIndex, expectedVectorSize, mpiGrid );
+            break;
       }
    } else {
       logFile << "(RESTART)  ERROR: Failed to read data type at readCellParamsVariable" << endl << write;

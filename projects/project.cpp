@@ -423,9 +423,8 @@ namespace projects {
 
    /** Set random seed (thread-safe). Seed is based on the seed read
     *  in from cfg + the seedModifier parameter
-    * @param seedModifier CellID value to use as seed modifier
-    * @param rngStateBuffer buffer where random number values are kept
-    * @param rngDataBuffer struct of type random_data
+    * @param seedModifier value (e.g. CellID) to use as seed modifier
+    # @param randGen std::default_random_engine& to use
    */
    void Project::setRandomSeed(CellID seedModifier, std::default_random_engine& randGen) const {
       randGen.seed(this->seed+seedModifier);
@@ -435,8 +434,7 @@ namespace projects {
     * this particular cellID. Can be used to make reproducible
     * simulations that do not depend on number of processes or threads.
     * @param cell SpatialCell used to infer CellID value to use as seed modifier
-    * @param rngStateBuffer buffer where random number values are kept
-    * @param rngDataBuffer struct of type random_data
+    # @param randGen std::default_random_engine& to use
    */
    void Project::setRandomCellSeed(spatial_cell::SpatialCell* cell, std::default_random_engine& randGen) const {
       const creal x = cell->parameters[CellParams::XCRD];
