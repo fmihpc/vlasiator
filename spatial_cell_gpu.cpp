@@ -433,7 +433,7 @@ __global__ void __launch_bounds__(GPUTHREADS,4) update_blocks_to_add_kernel (
    ) {
    const int gpuBlocks = gridDim.x;
    const int blocki = blockIdx.x;
-   const int warpSize = blockDim.x*blockDim.y*blockDim.z;
+   //const int warpSize = blockDim.x*blockDim.y*blockDim.z;
    const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
    for (uint index=blocki; index<nBlocksRequired; index += gpuBlocks) {
       if (index < nBlocksRequired) {
@@ -464,7 +464,7 @@ __global__ void __launch_bounds__(GPUTHREADS,4) update_blocks_to_remove_kernel (
    ) {
    const int gpuBlocks = gridDim.x;
    const int blocki = blockIdx.x;
-   const int warpSize = blockDim.x*blockDim.y*blockDim.z;
+   //const int warpSize = blockDim.x*blockDim.y*blockDim.z;
    const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
    for (uint index=blocki; index<localNoContentBlocks; index += gpuBlocks) {
       if (index < localNoContentBlocks) {
