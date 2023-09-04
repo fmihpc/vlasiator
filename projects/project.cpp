@@ -288,6 +288,9 @@ namespace projects {
       vector<vmesh::GlobalID> blocksToInitialize = this->findBlocksToInitialize(cell,popID);
       const uint nRequested = blocksToInitialize.size();
       // Expand the velocity space to the required size
+      // stringstream ss;
+      // ss<<"requesting "<<nRequested<<" for popID "<<popID<<std::endl;
+      // std::cerr<<ss.str();
       vmesh->setNewCapacity(nRequested);
       blockContainer->recapacitate(nRequested);
       cell->setReservation(popID,nRequested);

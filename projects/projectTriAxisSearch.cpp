@@ -36,6 +36,7 @@ namespace projects {
       bool search;
       unsigned int counterX, counterY, counterZ;
       Real maxRelVx,maxRelVy,maxRelVz;
+      // stringstream ss;
 
       creal minValue = cell->getVelocityBlockMinValue(popID);
       // How big steps of vcells should we use for weeping over v-space?
@@ -51,7 +52,9 @@ namespace projects {
       creal dx = cell->parameters[CellParams::DX];
       creal dy = cell->parameters[CellParams::DY];
       creal dz = cell->parameters[CellParams::DZ];
-
+      // ss<<" minValue "<<minValue<<" x "<<x<<" y "<<y<<" z "<<z<<" dx "<<dx<<" dy "<<dy<<" dz "<<dz<<std::endl;
+      // std::cerr<<ss.str();
+      // ss.str(std::string());
       const uint8_t refLevel = 0;
       creal dvxBlock = cell->get_velocity_grid_block_size(popID,refLevel)[0];
       creal dvyBlock = cell->get_velocity_grid_block_size(popID,refLevel)[1];
@@ -59,13 +62,22 @@ namespace projects {
       creal dvxCell = cell->get_velocity_grid_cell_size(popID,refLevel)[0];
       creal dvyCell = cell->get_velocity_grid_cell_size(popID,refLevel)[1];
       creal dvzCell = cell->get_velocity_grid_cell_size(popID,refLevel)[2];
+      // ss<<" Blocks  dx "<<dvxBlock<<" dy "<<dvyBlock<<" dz "<<dvxBlock<<"  cells dx "<<dvxCell<<" dy "<<dvyCell<<" dz "<<dvzCell<<std::endl;
+      // std::cerr<<ss.str();
+      // ss.str(std::string());
 
       const size_t vxblocks_ini = cell->get_velocity_grid_length(popID,refLevel)[0];
       const size_t vyblocks_ini = cell->get_velocity_grid_length(popID,refLevel)[1];
       const size_t vzblocks_ini = cell->get_velocity_grid_length(popID,refLevel)[2];
+      // ss<<" dxvxblocks_ini "<<vxblocks_ini<<" y "<<vyblocks_ini<<" z "<<vzblocks_ini<<std::endl;
+      // std::cerr<<ss.str();
+      // ss.str(std::string());
 
       const vector<std::array<Real, 3>> V0 = this->getV0(x+0.5*dx, y+0.5*dy, z+0.5*dz, popID);
       for (vector<std::array<Real, 3>>::const_iterator it = V0.begin(); it != V0.end(); it++) {
+         // ss<<" V0 "<<it->at(0)<<" "<<it->at(1)<<" "<<it->at(2)<<std::endl;
+         // std::cerr<<ss.str();
+         // ss.str(std::string());
          // VX search
          search = true;
          counterX = 0;
@@ -150,12 +162,15 @@ namespace projects {
                } // vxblocks_ini
             } // vyblocks_ini
          } // vzblocks_ini
+         // ss<<"vRadiusSquared "<<vRadiusSquared<<" counters "<<counterX<<" "<<counterY<<" "<<counterZ;
       } // iteration over V0's
 
       vector<vmesh::GlobalID> returnVector;
       for (set<vmesh::GlobalID>::const_iterator it=blocksToInitialize.begin(); it!=blocksToInitialize.end(); ++it) {
          returnVector.push_back(*it);
       }
+      // ss<<": Found "<<returnVector.size()<<" required blocks for initialization "<<std::endl;
+      // std::cerr<<ss.str();
       return returnVector;
    }
 
