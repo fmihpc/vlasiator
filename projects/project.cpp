@@ -191,7 +191,6 @@ namespace projects {
                const vmesh::GlobalID blockGID = cell->get_velocity_block(popID,blockIndices,refLevel);
                blocksToInitialize.push_back(blockGID);
             }
-      delete vblocks_ini;
       return blocksToInitialize;
    }
 
