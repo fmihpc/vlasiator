@@ -475,6 +475,7 @@ __global__ void __launch_bounds__(GPUTHREADS,4) update_blocks_to_remove_kernel (
             // If the block isn't within the required set, it should be deleted.
             BlocksToRemove->device_push_back(GIDcandidate);
          }
+         __syncthreads();
          // if (BlocksRequiredMap->device_count(GIDcandidate) == 0) {
          //    // If the block isn't within the required set, it should be deleted.
          //    BlocksToRemove->device_push_back(GIDcandidate);
@@ -519,7 +520,12 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
       // If there is a corresponding block to be added, place that in its stead.
       // Otherwise, take the corresponding block from the moved list instead.
       const vmesh::GlobalID rmGID = BlocksToRemove->at(m);
+      vmesh::LocalID first = vmesh->getLocalID(rmGID);
       const vmesh::LocalID rmLID = vmesh->getLocalID(rmGID, ti);
+      // if (first!=rmLID) {
+      //    printf("Error in thread %u! GID %u index %u single-thread access %u multi-thread access %u \n",ti,rmGID,m,first,rmLID);
+      // }
+      // __syncthreads();
 
       #ifdef DEBUG_SPATIAL_CELL
       if (rmGID == vmesh->invalidGlobalID()) {
@@ -570,7 +576,6 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
          // if (ti==0) {
          //    vmesh->deleteBlock(rmGID,rmLID);
          // }
-         // __syncthreads();
          vmesh->deleteBlock(rmGID,rmLID,ti);
          continue;
       }
