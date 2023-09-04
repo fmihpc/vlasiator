@@ -57,8 +57,11 @@ namespace vmesh {
       ARCH_HOSTDEV bool check() const;
       void clear();
       ARCH_HOSTDEV bool copy(const vmesh::LocalID& sourceLocalID,const vmesh::LocalID& targetLocalID);
+      ARCH_DEV bool copy(const vmesh::LocalID& sourceLocalID,const vmesh::LocalID& targetLocalID, const size_t w_tid);
       ARCH_HOSTDEV size_t count(const vmesh::GlobalID& globalID) const;
+      ARCH_DEV size_t count(const vmesh::GlobalID& globalID, const size_t w_tid) const;
       ARCH_HOSTDEV vmesh::GlobalID findBlock(vmesh::GlobalID cellIndices[3]) const;
+      ARCH_DEV vmesh::GlobalID findBlock(vmesh::GlobalID cellIndices[3], const size_t w_tid) const;
       ARCH_HOSTDEV bool getBlockCoordinates(const vmesh::GlobalID& globalID,Real coords[3]) const;
       ARCH_HOSTDEV void getBlockInfo(const vmesh::GlobalID& globalID,Real* array) const;
       ARCH_HOSTDEV const Real* getBlockSize() const;
@@ -78,6 +81,7 @@ namespace vmesh {
       ARCH_HOSTDEV void getIndicesZ(const vmesh::GlobalID& globalID,vmesh::LocalID& k) const;
       ARCH_HOSTDEV size_t getMesh() const;
       ARCH_HOSTDEV vmesh::LocalID getLocalID(const vmesh::GlobalID& globalID) const;
+      ARCH_DEV vmesh::LocalID getLocalID(const vmesh::GlobalID& globalID, const size_t w_tid) const;
       ARCH_HOSTDEV const Real* getMeshMaxLimits() const;
       ARCH_HOSTDEV const Real* getMeshMinLimits() const;
       ARCH_HOSTDEV bool initialize(const size_t& meshID);
@@ -86,12 +90,18 @@ namespace vmesh {
       ARCH_HOSTDEV static vmesh::LocalID invalidLocalID();
       ARCH_HOSTDEV bool isInitialized() const;
       ARCH_HOSTDEV void pop();
+      ARCH_DEV void pop(const size_t w_tid);
       ARCH_HOSTDEV bool push_back(const vmesh::GlobalID& globalID);
+      ARCH_DEV bool push_back(const vmesh::GlobalID& globalID, const size_t w_tid);
       vmesh::LocalID push_back(const std::vector<vmesh::GlobalID>& blocks);
       ARCH_HOSTDEV vmesh::LocalID push_back(const split::SplitVector<vmesh::GlobalID>& blocks);
+      ARCH_DEV vmesh::LocalID push_back(const split::SplitVector<vmesh::GlobalID>& blocks, const size_t w_tid);
       ARCH_DEV void replaceBlock(const vmesh::GlobalID& GIDold,const vmesh::LocalID& LID,const vmesh::GlobalID& GIDnew);
+      ARCH_DEV void replaceBlock(const vmesh::GlobalID& GIDold,const vmesh::LocalID& LID,const vmesh::GlobalID& GIDnew, const size_t w_tid);
       ARCH_DEV void placeBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID);
+      ARCH_DEV void placeBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID, const size_t w_tid);
       ARCH_DEV void deleteBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID);
+      ARCH_DEV void deleteBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID, const size_t w_tid);
       void setGrid();
       bool setGrid(const std::vector<vmesh::GlobalID>& globalIDs);
       bool setGrid(const split::SplitVector<vmesh::GlobalID>& globalIDs);
@@ -218,7 +228,6 @@ namespace vmesh {
       localToGlobalMap->at(sourceLID) = targetGID;
       return true;
    }
-
    ARCH_HOSTDEV inline size_t VelocityMesh::count(const vmesh::GlobalID& globalID) const {
       #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
       return globalToLocalMap->device_count(globalID);
@@ -226,7 +235,6 @@ namespace vmesh {
       return globalToLocalMap->count(globalID);
       #endif
    }
-
    ARCH_HOSTDEV inline vmesh::GlobalID VelocityMesh::findBlock(vmesh::GlobalID cellIndices[3]) const {
       // Calculate i/j/k indices of the block that would own the cell:
       vmesh::GlobalID i_block = cellIndices[0] / (*(vmesh::getMeshWrapper()->velocityMeshes))[meshID].blockLength[0];
@@ -247,6 +255,48 @@ namespace vmesh {
          return invalidGlobalID();
       }
    }
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+   ARCH_DEV inline bool VelocityMesh::copy(const vmesh::LocalID& sourceLID,const vmesh::LocalID& targetLID, const size_t w_tid) {
+      const vmesh::GlobalID sourceGID = localToGlobalMap->at(sourceLID); // block at the end of list
+      const vmesh::GlobalID targetGID = localToGlobalMap->at(targetLID); // removed block
+      // at-function will throw out_of_range exception for non-existing global ID:
+      globalToLocalMap->warpInsert(sourceGID,targetLID,w_tid);
+      globalToLocalMap->warpInsert(targetGID,sourceLID,w_tid);
+      if (w_tid==0) {
+         localToGlobalMap->at(targetLID) = sourceGID;
+         localToGlobalMap->at(sourceLID) = targetGID;
+      }
+      return true;
+   }
+   ARCH_DEV inline size_t VelocityMesh::count(const vmesh::GlobalID& globalID, const size_t w_tid) const {
+      vmesh::LocalID retval = invalidLocalID();
+      globalToLocalMap->warpFind(globalID, retval, w_tid);
+      if (retval == invalidLocalID()) {
+         return 0;
+      } else {
+         return 1;
+      }
+   }
+   ARCH_DEV inline vmesh::GlobalID VelocityMesh::findBlock(vmesh::GlobalID cellIndices[3], const size_t w_tid) const {
+      // Calculate i/j/k indices of the block that would own the cell:
+      vmesh::GlobalID i_block = cellIndices[0] / (*(vmesh::getMeshWrapper()->velocityMeshes))[meshID].blockLength[0];
+      vmesh::GlobalID j_block = cellIndices[1] / (*(vmesh::getMeshWrapper()->velocityMeshes))[meshID].blockLength[1];
+      vmesh::GlobalID k_block = cellIndices[2] / (*(vmesh::getMeshWrapper()->velocityMeshes))[meshID].blockLength[2];
+
+      // Calculate block global ID:
+      vmesh::GlobalID blockGID = getGlobalID(i_block,j_block,k_block);
+
+      // If the block exists, return it:
+      vmesh::LocalID retval = invalidLocalID();
+      globalToLocalMap->warpFind(blockGID, retval, w_tid);
+
+      if (retval == invalidLocalID()) {
+         return invalidGlobalID();
+      } else {
+         return blockGID;
+      }
+   }
+#endif
 
    ARCH_HOSTDEV inline bool VelocityMesh::getBlockCoordinates(const vmesh::GlobalID& globalID,Real coords[3]) const {
       if (globalID == invalidGlobalID()) {
@@ -266,7 +316,6 @@ namespace vmesh {
       coords[2] = (*(vmesh::getMeshWrapper()->velocityMeshes))[meshID].meshMinLimits[2] + indices[2]*(*(vmesh::getMeshWrapper()->velocityMeshes))[meshID].blockSize[2];
       return true;
    }
-
    ARCH_HOSTDEV inline void VelocityMesh::getBlockInfo(const vmesh::GlobalID& globalID,Real* array) const {
       #ifdef DEBUG_VMESH
       if (globalID == invalidGlobalID()) {
@@ -414,7 +463,13 @@ namespace vmesh {
       #endif
       return invalidLocalID();
    }
-
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+   ARCH_DEV inline vmesh::LocalID VelocityMesh::getLocalID(const vmesh::GlobalID& globalID, const size_t w_tid) const {
+      vmesh::LocalID retval = invalidLocalID();
+      globalToLocalMap->warpFind(globalID, retval, w_tid);
+      return retval;
+   }
+#endif
    ARCH_HOSTDEV inline size_t VelocityMesh::getMesh() const {
       return meshID;
    }
@@ -463,7 +518,18 @@ namespace vmesh {
       #endif
       localToGlobalMap->pop_back();
    }
-
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+   ARCH_DEV inline void VelocityMesh::pop(const size_t w_tid) {
+      const size_t mySize = size();
+      if (mySize == 0) return;
+      const vmesh::LocalID lastLID = mySize-1;
+      const vmesh::GlobalID lastGID = localToGlobalMap->at(lastLID);
+      globalToLocalMap->warpErase(lastGID, w_tid);
+      if (w_tid==0) {
+         localToGlobalMap->pop_back();
+      }
+   }
+#endif
    /** Returns true if added velocity block was new, false if it couldn't be added or already existed.
     */
    ARCH_HOSTDEV inline bool VelocityMesh::push_back(const vmesh::GlobalID& globalID) {
@@ -489,7 +555,6 @@ namespace vmesh {
       #endif
       return position.second;
    }
-
    inline vmesh::LocalID VelocityMesh::push_back(const std::vector<vmesh::GlobalID>& blocks) {
       const size_t mySize = size();
       const size_t blocksSize = blocks.size();
@@ -543,6 +608,45 @@ namespace vmesh {
    }
 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+   ARCH_DEV inline bool VelocityMesh::push_back(const vmesh::GlobalID& globalID, const size_t w_tid) {
+      const size_t mySize = size();
+      if (mySize >= (*(vmesh::getMeshWrapper()->velocityMeshes))[meshID].max_velocity_blocks) return false;
+      if (globalID == invalidGlobalID()) return false;
+
+      bool inserted = globalToLocalMap->warpInsert_V(globalID,(vmesh::LocalID)mySize, w_tid);
+      if (inserted == true && w_tid==0) {
+         localToGlobalMap->device_push_back(globalID);
+      }
+      return inserted;
+   }
+
+   ARCH_DEV inline vmesh::LocalID VelocityMesh::push_back(const split::SplitVector<vmesh::GlobalID>& blocks, const size_t w_tid) {
+      const size_t mySize = size();
+      const size_t blocksSize = blocks.size();
+      if (mySize+blocksSize > (*(vmesh::getMeshWrapper()->velocityMeshes))[meshID].max_velocity_blocks) {
+         if (w_tid==0) {
+            printf("vmesh: too many blocks, current size is %lu",mySize);
+            printf(", adding %lu blocks", blocksSize);
+            printf(", max is %u\n",(*(vmesh::getMeshWrapper()->velocityMeshes))[meshID].max_velocity_blocks);
+         }
+         return false;
+      }
+
+      for (size_t b=0; b<blocksSize; ++b) {
+         bool inserted = globalToLocalMap->warpInsert_V(blocks[b],(vmesh::LocalID)(mySize+b), w_tid);
+         if (inserted == false) {
+            if (w_tid == 0) {
+               printf("vmesh: failed to push_back new block! %d of %d\n",(uint)b,(uint)blocksSize);
+            }
+            return b;
+         }
+      }
+      if (w_tid==0) {
+         localToGlobalMap->device_insert(localToGlobalMap->end(),blocks.begin(),blocks.end());
+      }
+      return blocksSize;
+   }
+
    ARCH_DEV inline void VelocityMesh::replaceBlock(const vmesh::GlobalID& GIDold,const vmesh::LocalID& LID,const vmesh::GlobalID& GIDnew) {
       #ifdef DEBUG_VMESH
       if (LID > size()-1) printf("vmesh replaceBlock error: LID is too large!\n");
@@ -555,6 +659,19 @@ namespace vmesh {
       globalToLocalMap->set_element(GIDnew,LID);
       localToGlobalMap->at(LID) = GIDnew;
    }
+   ARCH_DEV inline void VelocityMesh::replaceBlock(const vmesh::GlobalID& GIDold,const vmesh::LocalID& LID,const vmesh::GlobalID& GIDnew, const size_t w_tid) {
+      #ifdef DEBUG_VMESH
+      if (LID > size()-1) printf("vmesh replaceBlock error: LID is too large!\n");
+      vmesh::LocalID LIDold = invalidLocalID();
+      globalToLocalMap->warpFind(GIDold, LIDold, w_tid);
+      if (localToGlobalMap->at(LIDold) != GIDold) printf("vmesh replaceBlock error: oldGID and oldLID don't match!\n");
+      #endif
+      globalToLocalMap->warpErase(GIDold, w_tid);
+      globalToLocalMap->warpInsert(GIDnew,LID, w_tid);
+      if (w_tid==0) {
+         localToGlobalMap->at(LID) = GIDnew;
+      }
+   }
 
    /** Note: this function does not adjust the vmesh size, as it is used from within a parallel kernel.
     */
@@ -564,6 +681,15 @@ namespace vmesh {
       #endif
       globalToLocalMap->set_element(GID,LID);
       localToGlobalMap->at(LID) = GID;
+   }
+   ARCH_DEV inline void VelocityMesh::placeBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID, const size_t w_tid) {
+      #ifdef DEBUG_VMESH
+      if (LID > size()-1) printf("vmesh placeBlock error: LID is too large!\n");
+      #endif
+      globalToLocalMap->warpInsert(GID,LID, w_tid);
+      if (w_tid==0) {
+         localToGlobalMap->at(LID) = GID;
+      }
    }
 
    ARCH_DEV inline void VelocityMesh::deleteBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID) {
@@ -581,6 +707,29 @@ namespace vmesh {
 #endif
       globalToLocalMap->device_erase(GID);
       localToGlobalMap->at(LID) = invalidGlobalID();
+   }
+   ARCH_DEV inline void VelocityMesh::deleteBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID, const size_t w_tid) {
+#ifdef DEBUG_VMESH
+      // Verify that GID and LID match
+      if (w_tid==0) {
+         if (GID==invalidGlobalID()) printf("vmesh deleteBlock error: GID is invalidGlobalID!\n");
+         if (LID==invalidLocalID()) printf("vmesh deleteBlock error: LID is invalidLocalID!\n");
+      }
+      vmesh::LocalID retval = invalidLocalID();
+      globalToLocalMap->warpFind(globalID, retval, w_tid);
+      if (w_tid==0) {
+         if (retval == invalidLocalID()) {
+            printf("vmesh deleteBlock error: GID does not exist!\n");
+         } else {
+            if (retval != LID) printf("vmesh deleteBlock error: LID %ul found with GID %ul does not match privided LID %ul!\n",it->second,GID,LID);
+         }
+         if (localToGlobalMap->at(LID) != GID) printf("vmesh deleteBlock error: GID %ul found with LID %ul does not match privided GID %ul!\n",localToGlobalMap->at(LID),LID,GID);
+      }
+#endif
+      globalToLocalMap->warpErase(GID, w_tid);
+      if (w_tid==0) {
+         localToGlobalMap->at(LID) = invalidGlobalID();
+      }
    }
 #endif
 
