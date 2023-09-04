@@ -33,9 +33,9 @@ USE_HIP=1
 # LDFLAGS flags for linker
 # Important note: Do not edit COMPFLAGS in this file!
 
-CXXFLAGS += -g -ggdb -O3 -x hip --amdgpu-target=gfx90a:xnack- -std=c++17 -funroll-loops -fopenmp -fgpu-rdc -I. -Ihip -Iomp -I${CRAY_MPICH_DIR}/include -W -Wall -Wno-unused-parameter -Wno-unused-result -Wno-unused-function -Wno-unused-variable -Wno-unknown-pragmas -Wno-deprecated-register -Wno-unused-but-set-variable
+CXXFLAGS += -g -ggdb -O3 -x hip --amdgpu-target=gfx90a:xnack- -march=znver3 -std=c++17 -funroll-loops -fopenmp -fgpu-rdc -I. -Ihip -Iomp -I${CRAY_MPICH_DIR}/include -W -Wall -Wno-unused-parameter -Wno-unused-result -Wno-unused-function -Wno-unused-variable -Wno-unknown-pragmas -Wno-deprecated-register -Wno-unused-but-set-variable
 
-testpackage: CXXFLAGS = -g -ggdb -O2 -x hip --amdgpu-target=gfx90a:xnack- -std=c++17 -fopenmp -fgpu-rdc -I. -Ihip -Iomp -I${CRAY_MPICH_DIR}/include -fgpu-sanitize  -W -Wall -Wno-unused-parameter -Wno-unused-result -Wno-unused-function -Wno-unused-variable -Wno-unknown-pragmas -Wno-deprecated-register -Wno-unused-but-set-variable
+testpackage: CXXFLAGS = -g -ggdb -O2 -x hip --amdgpu-target=gfx90a:xnack- -march=znver3 -std=c++17 -fopenmp -fgpu-rdc -I. -Ihip -Iomp -I${CRAY_MPICH_DIR}/include -fgpu-sanitize  -W -Wall -Wno-unused-parameter -Wno-unused-result -Wno-unused-function -Wno-unused-variable -Wno-unknown-pragmas -Wno-deprecated-register -Wno-unused-but-set-variable
 
 LDFLAGS = -fopenmp --hip-link -lrt -lpthread -fgpu-rdc -L${CRAY_MPICH_DIR}/lib ${PE_MPICH_GTL_DIR_amd_gfx90a} --amdgpu-target=gfx90a:xnack-
 LIB_MPI = -lmpi ${PE_MPICH_GTL_LIBS_amd_gfx90a}
