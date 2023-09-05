@@ -820,7 +820,7 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       CHK_ERR( gpuPeekAtLastError() );
       SSYNC;
       // Check if we need to bailout due to hitting v-space edge
-      CHK_ERR( gpuMemcpyAsync(host_returnLID, gpu_returnLID, sizeof(vmesh::LocalID), gpuMemcpyDeviceToHost, stream) );
+      CHK_ERR( gpuMemcpyAsync(host_returnLID, gpu_returnLID, 2*sizeof(vmesh::LocalID), gpuMemcpyDeviceToHost, stream) );
       CHK_ERR( gpuStreamSynchronize(stream) );
       if (host_returnLID[0] != 0) { //host_wallspace_margin_bailout_flag
          string message = "Some target blocks in acceleration are going to be less than ";
