@@ -411,7 +411,7 @@ __global__ void __launch_bounds__(GPUTHREADS,4) evaluate_column_extents_kernel(
                      setFirstBlockIndices1 * gpu_block_indices_to_id[1] +
                      blockK                * gpu_block_indices_to_id[2];
                   if(!BlocksToAdd->device_push_back(targetBlock)) {
-                     bailout_flag[1]=1;
+                     bailout_flag[1]=2;
                      return;
                   }
 
@@ -422,7 +422,7 @@ __global__ void __launch_bounds__(GPUTHREADS,4) evaluate_column_extents_kernel(
                      setFirstBlockIndices1 * gpu_block_indices_to_id[1] +
                      blockK                * gpu_block_indices_to_id[2];
                   if(!BlocksToRemove->device_push_back(targetBlock)) {
-                     bailout_flag[1]=1;
+                     bailout_flag[1]=3;
                      return;
                   }
                }
@@ -791,6 +791,17 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    phiprof::stop("Reorder blocks by dimension");
    CHK_ERR( gpuStreamSynchronize(stream) );
 
+   // Make sure the BlocksRequired / -ToAdd and / -ToRemove buffers are large enough
+   if(spatial_cell->BlocksRequired->capacity() < spatial_cell->getReservation(popID) * BLOCK_ALLOCATION_FACTOR) {
+        spatial_cell->BlocksRequired->reserve(spatial_cell->getReservation(popID)*BLOCK_ALLOCATION_FACTOR);
+        spatial_cell->BlocksRequired->optimizeGPU(stream);
+        spatial_cell->BlocksToAdd->reserve(spatial_cell->getReservation(popID)*BLOCK_ALLOCATION_FACTOR);
+        spatial_cell->BlocksToAdd->optimizeGPU(stream);
+
+         // The remove buffer never needs to be larger than our current size.
+        spatial_cell->BlocksToRemove->reserve(spatial_cell->get_population(popID).reservation,true);
+        spatial_cell->BlocksToRemove->optimizeGPU(stream);
+   }
    // Calculate target column extents
    phiprof::start("Evaluate column extents kernel");
    do {
@@ -839,12 +850,8 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
          // We'll take at least our current velspace size (plus safety factor), or, if that wasn't enough,
          // twice what we had before.
          size_t newCapacity = std::max(
-               (size_t)(spatial_cell->get_population(popID).reservation*BLOCK_ALLOCATION_FACTOR),
+               (size_t)(spatial_cell->getReservation(popID)*BLOCK_ALLOCATION_FACTOR),
                2*spatial_cell->BlocksRequired->size());
-
-         fprintf(stderr, "SplitVector running out of capacity in acceleration of cell %.0lf, resizing to %li\n", 
-               spatial_cell->parameters[CellParams::CELLID],
-               newCapacity);
 
          spatial_cell->BlocksRequired->clear();
          spatial_cell->BlocksToAdd->clear();
@@ -854,10 +861,6 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
          spatial_cell->BlocksRequired->optimizeGPU(stream);
          spatial_cell->BlocksToAdd->reserve(newCapacity,true);
          spatial_cell->BlocksToAdd->optimizeGPU(stream);
-
-         // The remove buffer never needs to be larger than our current size.
-         spatial_cell->BlocksToRemove->reserve(spatial_cell->get_population(popID).reservation,true);
-         spatial_cell->BlocksToRemove->optimizeGPU(stream);
       }
    } while(host_returnLID[1] != 0);
 
