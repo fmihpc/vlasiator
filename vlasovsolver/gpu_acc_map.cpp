@@ -242,7 +242,7 @@ __global__ void __launch_bounds__(GPUTHREADS,4) evaluate_column_extents_kernel(
    const int max_v_length,
    Realv v_min,
    Realv dv,
-   uint *wallspace_margin_bailout_flag
+   uint *bailout_flag
    ) {
    const uint gpuBlocks = gridDim.x * gridDim.y * gridDim.z;
    const uint warpSize = blockDim.x * blockDim.y * blockDim.z;
@@ -357,7 +357,7 @@ __global__ void __launch_bounds__(GPUTHREADS,4) evaluate_column_extents_kernel(
                ) {
                // Pass bailout flag back to host
                if (ti==0) {
-                  *wallspace_margin_bailout_flag = 1;
+                  *bailout_flag = 1;
                }
             }
 
@@ -400,14 +400,20 @@ __global__ void __launch_bounds__(GPUTHREADS,4) evaluate_column_extents_kernel(
                      setFirstBlockIndices0 * gpu_block_indices_to_id[0] +
                      setFirstBlockIndices1 * gpu_block_indices_to_id[1] +
                      blockK                * gpu_block_indices_to_id[2];
-                  BlocksRequired->device_push_back(targetBlock);
+                  if(!BlocksRequired->device_push_back(targetBlock)) {
+                     *bailout_flag=2;
+                     return;
+                  }
                }
                if(isTargetBlock[blockK]!=0 && isSourceBlock[blockK]==0 )  {
                   const int targetBlock =
                      setFirstBlockIndices0 * gpu_block_indices_to_id[0] +
                      setFirstBlockIndices1 * gpu_block_indices_to_id[1] +
                      blockK                * gpu_block_indices_to_id[2];
-                  BlocksToAdd->device_push_back(targetBlock);
+                  if(!BlocksToAdd->device_push_back(targetBlock)) {
+                     *bailout_flag=2;
+                     return;
+                  }
 
                }
                if(isTargetBlock[blockK]==0 && isSourceBlock[blockK]!=0 )  {
@@ -415,7 +421,10 @@ __global__ void __launch_bounds__(GPUTHREADS,4) evaluate_column_extents_kernel(
                      setFirstBlockIndices0 * gpu_block_indices_to_id[0] +
                      setFirstBlockIndices1 * gpu_block_indices_to_id[1] +
                      blockK                * gpu_block_indices_to_id[2];
-                  BlocksToRemove->device_push_back(targetBlock);
+                  if(!BlocksToRemove->device_push_back(targetBlock)) {
+                     *bailout_flag=2;
+                     return;
+                  }
                }
             } // block within MAX_BLOCKS_PER_DIM
          } // loop over all potential blocks
@@ -780,45 +789,67 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    CHK_ERR( gpuPeekAtLastError() );
    SSYNC;
    phiprof::stop("Reorder blocks by dimension");
+   CHK_ERR( gpuStreamSynchronize(stream) );
 
    // Calculate target column extents
    phiprof::start("Evaluate column extents kernel");
-   CHK_ERR( gpuMemsetAsync(gpu_returnLID, 0, sizeof(vmesh::LocalID), stream) );
-   evaluate_column_extents_kernel<<<gpublocks, GPUTHREADS, 0, stream>>> (
-      dimension,
-      vmesh,
-      columnData,
-      columns,
-      spatial_cell->BlocksRequired,
-      spatial_cell->BlocksToAdd,
-      spatial_cell->BlocksToRemove,
-      GIDlist,
-      gpu_block_indices_to_id[cpuThreadID],
-      intersection,
-      intersection_di,
-      intersection_dj,
-      intersection_dk,
-      Parameters::bailout_velocity_space_wall_margin,
-      max_v_length,
-      v_min,
-      dv,
-      gpu_returnLID //gpu_wallspace_margin_bailout_flag
-      );
-   CHK_ERR( gpuPeekAtLastError() );
-   SSYNC;
-   // Check if we need to bailout due to hitting v-space edge
-   CHK_ERR( gpuMemcpyAsync(host_returnLID, gpu_returnLID, sizeof(vmesh::LocalID), gpuMemcpyDeviceToHost, stream) );
-   CHK_ERR( gpuStreamSynchronize(stream) );
-   if (host_returnLID[0] != 0) { //host_wallspace_margin_bailout_flag
-      string message = "Some target blocks in acceleration are going to be less than ";
-      message += std::to_string(Parameters::bailout_velocity_space_wall_margin);
-      message += " blocks away from the current velocity space walls for population ";
-      message += getObjectWrapper().particleSpecies[popID].name;
-      message += " at CellID ";
-      message += std::to_string(spatial_cell->parameters[CellParams::CELLID]);
-      message += ". Consider expanding velocity space for that population.";
-      bailout(true, message, __FILE__, __LINE__);
-   }
+   do {
+      CHK_ERR( gpuMemsetAsync(gpu_returnLID, 0, sizeof(vmesh::LocalID), stream) );
+      evaluate_column_extents_kernel<<<gpublocks, GPUTHREADS, 0, stream>>> (
+         dimension,
+         vmesh,
+         columnData,
+         columns,
+         spatial_cell->BlocksRequired,
+         spatial_cell->BlocksToAdd,
+         spatial_cell->BlocksToRemove,
+         GIDlist,
+         gpu_block_indices_to_id[cpuThreadID],
+         intersection,
+         intersection_di,
+         intersection_dj,
+         intersection_dk,
+         Parameters::bailout_velocity_space_wall_margin,
+         max_v_length,
+         v_min,
+         dv,
+         gpu_returnLID //gpu_bailout_flag, (0 = all good, 1 = touching velspace wall, 2 = splitvector capacity error)
+         );
+      CHK_ERR( gpuPeekAtLastError() );
+      SSYNC;
+      // Check if we need to bailout due to hitting v-space edge
+      CHK_ERR( gpuMemcpyAsync(host_returnLID, gpu_returnLID, sizeof(vmesh::LocalID), gpuMemcpyDeviceToHost, stream) );
+      CHK_ERR( gpuStreamSynchronize(stream) );
+      if (host_returnLID[0] == 1) { //host_wallspace_margin_bailout_flag
+         string message = "Some target blocks in acceleration are going to be less than ";
+         message += std::to_string(Parameters::bailout_velocity_space_wall_margin);
+         message += " blocks away from the current velocity space walls for population ";
+         message += getObjectWrapper().particleSpecies[popID].name;
+         message += " at CellID ";
+         message += std::to_string(spatial_cell->parameters[CellParams::CELLID]);
+         message += ". Consider expanding velocity space for that population.";
+         bailout(true, message, __FILE__, __LINE__);
+      }
+
+      // Check whether we exceeded the column data splitVectors on the way
+      if (host_returnLID[0] == 2) {  
+         // If so, recapacitate and try again.
+         // We'll take at least our current velspace size (plus safety factor), or, if that wasn't enough,
+         // twice what we had before.
+         size_t newSize = std::max(
+               (size_t)(spatial_cell->get_population(popID).reservation*BLOCK_ALLOCATION_FACTOR),
+               2*spatial_cell->BlocksRequired->size());
+         spatial_cell->BlocksRequired->resize(newSize);
+         spatial_cell->BlocksToAdd->resize(newSize);
+         fprintf(stderr, "SplitVector running out of capacity in acceleration of cell %.0lf, resizing to %li\n", 
+               spatial_cell->parameters[CellParams::CELLID],
+               newSize);
+
+         // The remove buffer never needs to be larger than our current size.
+         spatial_cell->BlocksToRemove->resize(spatial_cell->get_population(popID).reservation);
+      }
+   } while(host_returnLID[0] == 2);
+
    phiprof::stop("Evaluate column extents kernel");
 
    phiprof::start("Add and delete blocks");
