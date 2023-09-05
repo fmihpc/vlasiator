@@ -664,6 +664,9 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
          if (gpuBlockCount > gpuMaxBlockCount) {
             gpuMaxBlockCount = gpuBlockCount;
          }
+         // Ensure cell has sufficient reservation, then apply it
+         SC->setReservation(popID,gpuBlockCount);
+         SC->applyReservation(popID);
       }
    }
    // Call GPU routines for per-thread memory allocation for Vlasov solvers

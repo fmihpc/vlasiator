@@ -998,6 +998,7 @@ namespace spatial_cell {
       CHK_ERR( gpuStreamSynchronize(stream) );
       velocity_block_with_content_list_size = info_vbwcl->size;
       if (velocity_block_with_content_list_size==0) {
+         phiprof::stop("Upload local content lists");
          return;
       }
       CHK_ERR( gpuMallocAsync((void**)&gpu_velocity_block_with_content_list_buffer, velocity_block_with_content_list_size*sizeof(vmesh::LocalID), stream) );
@@ -1024,6 +1025,33 @@ namespace spatial_cell {
    }
    vmesh::LocalID SpatialCell::getReservation(const uint popID) const {
       return populations[popID].reservation;
+   }
+   /** Recapacitates local temporary vectors based on guidance counter
+    */
+   void SpatialCell::applyReservation(const uint popID) {
+      size_t reserveSize = populations[popID].reservation * BLOCK_ALLOCATION_FACTOR;
+      size_t newReserve = populations[popID].reservation * BLOCK_ALLOCATION_PADDING;
+      if (BlocksHalo->capacity() < reserveSize) {
+         BlocksHalo->reserve(newReserve,true);
+      }
+      if (BlocksRequired->capacity() < reserveSize) {
+         BlocksRequired->reserve(newReserve,true);
+      }
+      if (BlocksToAdd->capacity() < reserveSize) {
+         BlocksToAdd->reserve(newReserve,true);
+      }
+      if (BlocksToRemove->capacity() < reserveSize) {
+         BlocksToRemove->reserve(newReserve,true);
+      }
+      if (BlocksToMove->capacity() < reserveSize) {
+         BlocksToMove->reserve(newReserve,true);
+      }
+      if (velocity_block_with_content_list->capacity() < reserveSize) {
+         velocity_block_with_content_list->reserve(newReserve,true);
+      }
+      if (velocity_block_with_no_content_list->capacity() < reserveSize) {
+         velocity_block_with_no_content_list->reserve(newReserve,true);
+      }
    }
 
    /** Adds "important" and removes "unimportant" velocity blocks

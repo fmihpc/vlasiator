@@ -278,6 +278,7 @@ namespace spatial_cell {
       void gpu_advise();
       void setReservation(const uint popID, const vmesh::LocalID reservationsize, bool force=false);
       vmesh::LocalID getReservation(const uint popID) const;
+      void applyReservation(const uint popID);
 
       vmesh::GlobalID find_velocity_block(vmesh::GlobalID cellIndices[3],const uint popID);
       Realf* get_data(const uint popID);
