@@ -814,8 +814,8 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
          v_min,
          dv,
          gpu_returnLID //gpu_bailout_flag:
-		       // - element[0]: touching velspace wall
-		       // - element[1]: splitvector capacity error
+                       // - element[0]: touching velspace wall
+                       // - element[1]: splitvector capacity error
          );
       CHK_ERR( gpuPeekAtLastError() );
       SSYNC;
@@ -838,24 +838,26 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
          // If so, recapacitate and try again.
          // We'll take at least our current velspace size (plus safety factor), or, if that wasn't enough,
          // twice what we had before.
-         size_t newSize = std::max(
+         size_t newCapacity = std::max(
                (size_t)(spatial_cell->get_population(popID).reservation*BLOCK_ALLOCATION_FACTOR),
                2*spatial_cell->BlocksRequired->size());
 
          fprintf(stderr, "SplitVector running out of capacity in acceleration of cell %.0lf, resizing to %li\n", 
                spatial_cell->parameters[CellParams::CELLID],
-               newSize);
+               newCapacity);
 
-         spatial_cell->BlocksRequired->resize(newSize);
-         spatial_cell->BlocksToAdd->resize(newSize);
+         spatial_cell->BlocksRequired->clear();
+         spatial_cell->BlocksToAdd->clear();
+         spatial_cell->BlocksToRemove->clear();
+
+         spatial_cell->BlocksRequired->reserve(newCapacity,true);
+         spatial_cell->BlocksRequired->optimizeGPU(stream);
+         spatial_cell->BlocksToAdd->reserve(newCapacity,true);
+         spatial_cell->BlocksToAdd->optimizeGPU(stream);
 
          // The remove buffer never needs to be larger than our current size.
-         spatial_cell->BlocksToRemove->resize(spatial_cell->get_population(popID).reservation);
-
-	 // Make sure the buffers contain zeros before running again
-	 memset(spatial_cell->BlocksRequired->data(), 0, newSize*sizeof(vmesh::GlobalID));
-	 memset(spatial_cell->BlocksToAdd->data(), 0, newSize*sizeof(vmesh::GlobalID));
-	 memset(spatial_cell->BlocksToRemove->data(), 0, spatial_cell->get_population(popID).reservation);
+         spatial_cell->BlocksToRemove->reserve(spatial_cell->get_population(popID).reservation,true);
+         spatial_cell->BlocksToRemove->optimizeGPU(stream);
       }
    } while(host_returnLID[1] != 0);
 
