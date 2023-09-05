@@ -401,7 +401,7 @@ __global__ void __launch_bounds__(GPUTHREADS,4) evaluate_column_extents_kernel(
                      setFirstBlockIndices1 * gpu_block_indices_to_id[1] +
                      blockK                * gpu_block_indices_to_id[2];
                   if(!BlocksRequired->device_push_back(targetBlock)) {
-                     *bailout_flag=2;
+                     bailout_flag[1]=1;
                      return;
                   }
                }
@@ -411,7 +411,7 @@ __global__ void __launch_bounds__(GPUTHREADS,4) evaluate_column_extents_kernel(
                      setFirstBlockIndices1 * gpu_block_indices_to_id[1] +
                      blockK                * gpu_block_indices_to_id[2];
                   if(!BlocksToAdd->device_push_back(targetBlock)) {
-                     *bailout_flag=2;
+                     bailout_flag[1]=1;
                      return;
                   }
 
@@ -422,7 +422,7 @@ __global__ void __launch_bounds__(GPUTHREADS,4) evaluate_column_extents_kernel(
                      setFirstBlockIndices1 * gpu_block_indices_to_id[1] +
                      blockK                * gpu_block_indices_to_id[2];
                   if(!BlocksToRemove->device_push_back(targetBlock)) {
-                     *bailout_flag=2;
+                     bailout_flag[1]=1;
                      return;
                   }
                }
@@ -794,7 +794,7 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
    // Calculate target column extents
    phiprof::start("Evaluate column extents kernel");
    do {
-      CHK_ERR( gpuMemsetAsync(gpu_returnLID, 0, sizeof(vmesh::LocalID), stream) );
+      CHK_ERR( gpuMemsetAsync(gpu_returnLID, 0, 2*sizeof(vmesh::LocalID), stream) );
       evaluate_column_extents_kernel<<<gpublocks, GPUTHREADS, 0, stream>>> (
          dimension,
          vmesh,
@@ -813,14 +813,16 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
          max_v_length,
          v_min,
          dv,
-         gpu_returnLID //gpu_bailout_flag, (0 = all good, 1 = touching velspace wall, 2 = splitvector capacity error)
+         gpu_returnLID //gpu_bailout_flag:
+		       // - element[0]: touching velspace wall
+		       // - element[1]: splitvector capacity error
          );
       CHK_ERR( gpuPeekAtLastError() );
       SSYNC;
       // Check if we need to bailout due to hitting v-space edge
       CHK_ERR( gpuMemcpyAsync(host_returnLID, gpu_returnLID, sizeof(vmesh::LocalID), gpuMemcpyDeviceToHost, stream) );
       CHK_ERR( gpuStreamSynchronize(stream) );
-      if (host_returnLID[0] == 1) { //host_wallspace_margin_bailout_flag
+      if (host_returnLID[0] != 0) { //host_wallspace_margin_bailout_flag
          string message = "Some target blocks in acceleration are going to be less than ";
          message += std::to_string(Parameters::bailout_velocity_space_wall_margin);
          message += " blocks away from the current velocity space walls for population ";
@@ -832,23 +834,30 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
       }
 
       // Check whether we exceeded the column data splitVectors on the way
-      if (host_returnLID[0] == 2) {  
+      if (host_returnLID[1] != 0) {  
          // If so, recapacitate and try again.
          // We'll take at least our current velspace size (plus safety factor), or, if that wasn't enough,
          // twice what we had before.
          size_t newSize = std::max(
                (size_t)(spatial_cell->get_population(popID).reservation*BLOCK_ALLOCATION_FACTOR),
                2*spatial_cell->BlocksRequired->size());
-         spatial_cell->BlocksRequired->resize(newSize);
-         spatial_cell->BlocksToAdd->resize(newSize);
+
          fprintf(stderr, "SplitVector running out of capacity in acceleration of cell %.0lf, resizing to %li\n", 
                spatial_cell->parameters[CellParams::CELLID],
                newSize);
 
+         spatial_cell->BlocksRequired->resize(newSize);
+         spatial_cell->BlocksToAdd->resize(newSize);
+
          // The remove buffer never needs to be larger than our current size.
          spatial_cell->BlocksToRemove->resize(spatial_cell->get_population(popID).reservation);
+
+	 // Make sure the buffers contain zeros before running again
+	 memset(spatial_cell->BlocksRequired->data(), 0, newSize*sizeof(vmesh::GlobalID));
+	 memset(spatial_cell->BlocksToAdd->data(), 0, newSize*sizeof(vmesh::GlobalID));
+	 memset(spatial_cell->BlocksToRemove->data(), 0, spatial_cell->get_population(popID).reservation);
       }
-   } while(host_returnLID[0] == 2);
+   } while(host_returnLID[1] != 0);
 
    phiprof::stop("Evaluate column extents kernel");
 
