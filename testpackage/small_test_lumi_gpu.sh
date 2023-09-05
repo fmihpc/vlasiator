@@ -54,7 +54,7 @@ export OMP_PROC_BIND=close
 export MPICH_OFI_NIC_POLICY=GPU
 export MPICH_GPU_SUPPORT_ENABLED=1
 #Turn on managed memory paging
-export HSA_XNACK=1
+export HSA_XNACK=0
 # use extra threads for MPI in background
 export MPICH_ASYNC_PROGRESS=1
 
