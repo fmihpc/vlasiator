@@ -793,11 +793,10 @@ __host__ bool gpu_acc_map_1d(spatial_cell::SpatialCell* spatial_cell,
 
    // Make sure the BlocksRequired / -ToAdd and / -ToRemove buffers are large enough
    if(spatial_cell->BlocksRequired->capacity() < spatial_cell->getReservation(popID) * BLOCK_ALLOCATION_FACTOR) {
-        spatial_cell->BlocksRequired->reserve(spatial_cell->getReservation(popID)*BLOCK_ALLOCATION_FACTOR);
+        spatial_cell->BlocksRequired->reserve(spatial_cell->getReservation(popID)*BLOCK_ALLOCATION_PADDING, true);
         spatial_cell->BlocksRequired->optimizeGPU(stream);
-        spatial_cell->BlocksToAdd->reserve(spatial_cell->getReservation(popID)*BLOCK_ALLOCATION_FACTOR);
+        spatial_cell->BlocksToAdd->reserve(spatial_cell->getReservation(popID)*BLOCK_ALLOCATION_PADDING, true);
         spatial_cell->BlocksToAdd->optimizeGPU(stream);
-
          // The remove buffer never needs to be larger than our current size.
         spatial_cell->BlocksToRemove->reserve(spatial_cell->get_population(popID).reservation,true);
         spatial_cell->BlocksToRemove->optimizeGPU(stream);
