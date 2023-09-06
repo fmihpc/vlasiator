@@ -733,7 +733,6 @@ namespace SBC {
    ) {
       phiprof::Timer timer {"vlasovBoundaryCondition (Conductingsphere)"};
       this->vlasovBoundaryFluffyCopyFromAllCloseNbrs(mpiGrid, cellID, popID, calculate_V_moments, this->speciesParams[popID].fluffiness);
-      phiprof::stop("vlasovBoundaryCondition (Copysphere)");
    }
 
    /**

@@ -521,8 +521,6 @@ void calculateAcceleration(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& 
          // final adjust for all cells, also fixing remote cells.
          adjustVelocityBlocks(mpiGrid, cells, true, popID);
       } // for-loop over particle species
-
-      phiprof::stop("semilag-acc");
    }
 
    // Recalculate "_V" velocity moments

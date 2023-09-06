@@ -41,7 +41,7 @@ void calculateVolumeAveragedFields(
    //const std::array<int, 3> gridDims = technicalGrid.getLocalSize();
    const int* gridDims = &technicalGrid.getLocalSize()[0];
    const size_t N_cells = gridDims[0]*gridDims[1]*gridDims[2];
-   ("Calculate volume averaged fields");
+   phiprof::Timer calculateFields {"Calculate volume averaged fields"};
    
    #pragma omp parallel for collapse(3)
    for (int k=0; k<gridDims[2]; k++) {
@@ -160,5 +160,5 @@ void calculateVolumeAveragedFields(
       }
    }
    
-   phiprof::stop("Calculate volume averaged fields",N_cells,"Spatial Cells");
+   calculateFields.stop(N_cells,"Spatial Cells");
 }
