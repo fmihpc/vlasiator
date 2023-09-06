@@ -397,10 +397,11 @@ namespace vmesh {
    inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::push_back() {
       vmesh::LocalID newIndex = numberOfBlocks;
       if (newIndex >= currentCapacity) {
-         #ifdef USE_GPU
-         #pragma nv_diag_suppress 20011,20014
-         #endif
+         #if defined(USE_GPU) && (defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
+         printf("ERROR! Attempting to grow block container on-device beyond capacity.");
+         #else
          resize();
+         #endif
       }
       #ifdef DEBUG_VBC
       if (newIndex >= block_data->size()/WID3 || newIndex >= parameters->size()/BlockParams::N_VELOCITY_BLOCK_PARAMS) {

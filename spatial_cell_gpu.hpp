@@ -140,14 +140,12 @@ namespace spatial_cell {
       const int j = threadIdx.y;
       const int k = threadIdx.z;
       const uint ti = k*WID2 + j*WID + i;
+      // loop over whole velocity space and scale the values
       for (uint blockLID=blocki; blockLID<nBlocks; blockLID += gpuBlocks) {
-         // Now loop over whole velocity space and scale the values
-         for (vmesh::LocalID blockLID=0; blockLID < vmesh->size(); ++blockLID) {
-            // Pointer to target block data
-            Realf* toData = blockContainer->getData(blockLID);
-            // Scale value
-            toData[ti] = toData[ti] * factor;
-         }
+         // Pointer to target block data
+         Realf* data = blockContainer->getData(blockLID);
+         // Scale value
+         data[ti] = data[ti] * factor;
       }
    }
    /** GPU kernel for adding a particle population to another with a scaling factor */
@@ -176,12 +174,21 @@ namespace spatial_cell {
          vmesh::GlobalID toBlockLID = vmesh->getLocalID(incBlockGID);
          bool success = true;
          if (toBlockLID == vmesh->invalidLocalID()) {
-            success = vmesh->push_back(incBlockGID);
-            toBlockLID = blockContainer->push_back_and_zero();
-            Real* parameters = blockContainer->getParameters(toBlockLID);
-            vmesh->getBlockInfo(incBlockGID, parameters+BlockParams::VXCRD);
+            if (ti==0) {
+               success = vmesh->push_back(incBlockGID);
+               if (!success) {
+                  printf("Error in incrementing blockContainer in population_increment_kernel!\n");
+                  break;
+               }
+               toBlockLID = blockContainer->push_back();
+               Real* parameters = blockContainer->getParameters(toBlockLID);
+               vmesh->getBlockInfo(incBlockGID, parameters+BlockParams::VXCRD);
+            }
+            __syncthreads();
+            // Set new block data to zero
+            Realf* toData = blockContainer->getData(toBlockLID);
+            toData[ti] = 0;
          }
-
          // Pointer to target block data
          Realf* toData = blockContainer->getData(toBlockLID);
          // Add values from source cells
@@ -311,7 +318,8 @@ namespace spatial_cell {
          vmesh::LocalID nBlocks = vmesh->size();
          const uint nGpuBlocks = nBlocks > GPUBLOCKS ? GPUBLOCKS : nBlocks;
          gpuStream_t stream = gpu_getStream();
-         population_scale_kernel<<<nGpuBlocks, GPUTHREADS, 0, stream>>> (
+         dim3 block(WID,WID,WID);
+         population_scale_kernel<<<nGpuBlocks, block, 0, stream>>> (
             nBlocks,
             vmesh,
             blockContainer,
@@ -330,7 +338,8 @@ namespace spatial_cell {
          // Loop over the whole velocity space, and add scaled values.
          const uint nGpuBlocks = nBlocks > GPUBLOCKS ? GPUBLOCKS : nBlocks;
          gpuStream_t stream = gpu_getStream();
-         population_increment_kernel<<<nGpuBlocks, GPUTHREADS, 0, stream>>> (
+         dim3 block(WID,WID,WID);
+         population_increment_kernel<<<nGpuBlocks, block, 0, stream>>> (
             nBlocks,
             vmesh,
             blockContainer,
@@ -692,12 +701,22 @@ namespace spatial_cell {
    }
 
    inline void SpatialCell::set_population(const Population& pop, cuint popID) {
+      (this->populations[popID].vmesh)->gpu_prefetchDevice();
+      (this->populations[popID].blockContainer)->gpu_prefetchDevice();
+      (pop.vmesh)->gpu_prefetchDevice();
+      (pop.blockContainer)->gpu_prefetchDevice();
       this->populations[popID] = pop;
    }
    inline void SpatialCell::scale_population(creal factor, cuint popID) {
+      (this->populations[popID].vmesh)->gpu_prefetchDevice();
+      (this->populations[popID].blockContainer)->gpu_prefetchDevice();
       (this->populations[popID]).Scale(factor);
    }
    inline void SpatialCell::increment_population(const Population& pop, creal factor, cuint popID) {
+      (this->populations[popID].vmesh)->gpu_prefetchDevice();
+      (this->populations[popID].blockContainer)->gpu_prefetchDevice();
+      (pop.vmesh)->gpu_prefetchDevice();
+      (pop.blockContainer)->gpu_prefetchDevice();
       (this->populations[popID]).Increment(pop, factor);
    }
 

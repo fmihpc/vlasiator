@@ -1775,6 +1775,7 @@ namespace spatial_cell {
       const vmesh::LocalID meshSize = populations[popID].vmesh->size();
       gpuStream_t stream = gpu_getStream();
       const uint nGpuBlocks = (meshSize/GPUTHREADS) > GPUBLOCKS ? GPUBLOCKS : std::ceil((Real)meshSize/(Real)GPUTHREADS);
+      CHK_ERR( gpuStreamSynchronize(stream) );
       if (nGpuBlocks>0) {
          update_blockparameters_kernel<<<nGpuBlocks, GPUTHREADS, 0, stream>>> (
             populations[popID].vmesh,
@@ -1783,6 +1784,7 @@ namespace spatial_cell {
             meshSize
             );
          CHK_ERR( gpuPeekAtLastError() );
+         CHK_ERR( gpuStreamSynchronize(stream) );
       }
    }
 

@@ -391,7 +391,7 @@ namespace SBC {
          }
       }
       
-       if(!copyMomentsOnly) { // Do this only if copyMomentsOnly is false.
+      if (!copyMomentsOnly) { // Do this only if copyMomentsOnly is false.
          to->set_population(from->get_population(popID), popID);
       } else {
          if (copy_V_moments) {
