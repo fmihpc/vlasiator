@@ -192,36 +192,6 @@ void propagateSysBoundaryMagneticField(
    }
 }
 
-/*! \brief Low-level magnetic field projection function.
- *
- * Projects the magnetic field according to the system boundary conditions.
- *
- * \param perBGrid fsGrid holding the perturbed B quantities at runge-kutta t=0
- * \param perBDt2Grid fsGrid holding the perturbed B quantities at runge-kutta t=0.5
- * \param technicalGrid fsGrid holding technical information (such as boundary types)
- * \param i,j,k fsGrid cell coordinates for the current cell
- * \param sysBoundaries System boundary conditions existing
- * \param RKCase Element in the enum defining the Runge-Kutta method steps
- *
- * \sa propagateMagneticFieldSimple propagateMagneticField
- */
-void SysBoundaryMagneticFieldProjection(
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBGrid,
-   FsGrid< std::array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & perBDt2Grid,
-   FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-   cint i,
-   cint j,
-   cint k,
-   SysBoundary& sysBoundaries,
-   cint& RKCase
-) {
-   if (RKCase == RK_ORDER1 || RKCase == RK_ORDER2_STEP2) {
-      sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondMagneticFieldProjection(perBGrid, technicalGrid, i, j, k);
-   } else {
-      sysBoundaries.getSysBoundary(technicalGrid.get(i,j,k)->sysBoundaryFlag)->fieldSolverBoundaryCondMagneticFieldProjection(perBDt2Grid, technicalGrid, i, j, k);
-   }
-}
-
 /*! \brief High-level magnetic field propagation function.
  * 
  * Propagates the magnetic field and applies the field boundary conditions defined in project.h where needed.
@@ -334,23 +304,4 @@ void propagateMagneticFieldSimple(
       }
    }
    sysBoundaryTimer.stop(N_cells,"Spatial Cells");
-
-   // Projection of magnetic field to normal of boundary, if necessary
-   sysBoundaryTimer.start();
-   #pragma omp parallel for collapse(3)
-   for (int k=0; k<gridDims[2]; k++) {
-      for (int j=0; j<gridDims[1]; j++) {
-         for (int i=0; i<gridDims[0]; i++) {
-            if (technicalGrid.get(i,j,k)->sysBoundaryFlag != sysboundarytype::NOT_SYSBOUNDARY &&
-                ((technicalGrid.get(i,j,k)->sysBoundaryLayer == 2) ||
-                 (technicalGrid.get(i,j,k)->sysBoundaryLayer == 1))
-               ) {
-               SysBoundaryMagneticFieldProjection(perBGrid, perBDt2Grid, technicalGrid, i, j, k, sysBoundaries, RKCase);
-            }
-         }
-      }
-   }
-   sysBoundaryTimer.stop(N_cells,"Spatial Cells");
-   
-   propagateBTimer.stop(N_cells,"Spatial Cells");
 }
