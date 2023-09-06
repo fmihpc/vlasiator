@@ -1372,11 +1372,13 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    phiprof::Timer checkGhostsTimer {"check_ghost_cells"};
    // Check refinement of two ghost cells on each end of each pencil
    check_ghost_cells(mpiGrid,DimensionPencils[dimension],dimension);
-   phiprof::stop("check_ghost_cells");
+   checkGhostsTimer.stop();
 
    // ****************************************************************************
 
-   if(printPencils) printPencilsFunc(DimensionPencils[dimension],dimension,myRank);
+   if(printPencils) {
+      printPencilsFunc(DimensionPencils[dimension],dimension,myRank);
+   }
    buildPencilsTimer.stop();
 }
 
