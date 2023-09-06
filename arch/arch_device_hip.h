@@ -89,7 +89,7 @@
 #define HIPCUB_STDERR
 
 /* Set HIP blocksize used for reductions */
-#define ARCH_BLOCKSIZE_R 512
+#define ARCH_BLOCKSIZE_R 256
 
 /* GPU blocksize used by Vlasov solvers */
 #ifndef GPUBLOCKS
@@ -407,6 +407,8 @@ __forceinline__ static void parallel_reduce_driver(const uint (&limits)[NDim], L
     CHK_ERR(hipMallocAsync(&d_thread_data_dynamic, n_reductions * blocksize * gridsize * sizeof(T), gpuStreamList[thread_id]));
     /* Call the kernel (the number of reductions not known at compile time) */
     reduction_kernel<Op, NDim, 0><<<gridsize, blocksize, n_reductions * cub_temp_storage_type_size, gpuStreamList[thread_id]>>>(loop_body, d_const_buf, d_buf, d_limits, n_total, n_reductions, d_thread_data_dynamic);
+    /* Check for kernel launch errors */
+    CHK_ERR(hipPeekAtLastError());
     /* Synchronize and free the thread data allocation */
     CHK_ERR(hipStreamSynchronize(gpuStreamList[thread_id]));
     CHK_ERR(hipFreeAsync(d_thread_data_dynamic, gpuStreamList[thread_id]));
@@ -414,6 +416,8 @@ __forceinline__ static void parallel_reduce_driver(const uint (&limits)[NDim], L
   else{
     /* Call the kernel (the number of reductions known at compile time) */
     reduction_kernel<Op, NDim, NReduStatic><<<gridsize, blocksize, 0, gpuStreamList[thread_id]>>>(loop_body, d_const_buf, d_buf, d_limits, n_total, n_reductions, d_thread_data_dynamic);
+    /* Check for kernel launch errors */
+    CHK_ERR(hipPeekAtLastError());
     /* Synchronize after kernel call */
     CHK_ERR(hipStreamSynchronize(gpuStreamList[thread_id]));
   }

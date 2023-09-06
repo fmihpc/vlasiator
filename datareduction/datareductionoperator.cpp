@@ -638,6 +638,7 @@ namespace DRO {
             PTensor[2] += sum[2];
          }
       }
+      printf("VariablePTensorDiagonal: sum0: %e, sum1: %e, sum2: %e\n", PTensor[0], PTensor[1], PTensor[2]);fflush(stdout);
       const char* ptr = reinterpret_cast<const char*>(&PTensor);
       for (uint i = 0; i < 3*sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
@@ -710,6 +711,7 @@ namespace DRO {
             PTensor[2] += sum[0];
          }
       }
+      printf("VariablePTensorOffDiagonal: sum0: %e, sum1: %e, sum2: %e\n", PTensor[0], PTensor[1], PTensor[2]);fflush(stdout);
       const char* ptr = reinterpret_cast<const char*>(&PTensor);
       for (uint i = 0; i < 3*sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
@@ -756,6 +758,7 @@ namespace DRO {
             maxF = max(threadMax, maxF);
          }
       }
+      printf("MaxDistributionFunction: maxF: %e\n", maxF);fflush(stdout);
 
       *buffer = maxF;
       return true;
@@ -807,6 +810,7 @@ namespace DRO {
             minF = min(threadMin, minF);
          }
       }
+      printf("MinDistributionFunction: minF: %e\n", minF);fflush(stdout);
 
       *buffer = minF;
       return true;
@@ -842,6 +846,10 @@ namespace DRO {
 # pragma omp parallel
       {
          Real thread_n_sum = 0.0;
+         Real thermalV0 = thermalV[0];
+         Real thermalV1 = thermalV[1];
+         Real thermalV2 = thermalV[2];
+
          if (cell->get_number_of_velocity_blocks(popID) != 0)
          arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)},
                                           ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint n, Real *lsum ) {
@@ -857,15 +865,15 @@ namespace DRO {
                                                 const Real VZ = block_parameters[BlockParams::VZCRD] + (k + HALF) * block_parameters[BlockParams::DVZ];
                                                 // Compare the distance of the velocity cell from the center of the maxwellian distribution to the radius of the maxwellian distribution
                                                 if (((calculateNonthermal == true) &&
-                                                     (( (thermalV[0] - VX) * (thermalV[0] - VX)
-                                                        + (thermalV[1] - VY) * (thermalV[1] - VY)
-                                                        + (thermalV[2] - VZ) * (thermalV[2] - VZ) )
+                                                     (( (thermalV0 - VX) * (thermalV0 - VX)
+                                                        + (thermalV1 - VY) * (thermalV1 - VY)
+                                                        + (thermalV2 - VZ) * (thermalV2 - VZ) )
                                                       > thermalRadius*thermalRadius))
                                                      ||
                                                      ((calculateNonthermal == false) &&
-                                                      (( (thermalV[0] - VX) * (thermalV[0] - VX)
-                                                         + (thermalV[1] - VY) * (thermalV[1] - VY)
-                                                         + (thermalV[2] - VZ) * (thermalV[2] - VZ) )
+                                                      (( (thermalV0 - VX) * (thermalV0 - VX)
+                                                         + (thermalV1 - VY) * (thermalV1 - VY)
+                                                         + (thermalV2 - VZ) * (thermalV2 - VZ) )
                                                        <= thermalRadius*thermalRadius) )) {
                                                    //The velocity cell is a part of the nonthermal/thermal population:
                                                    lsum[0] += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * DV3;
@@ -881,6 +889,7 @@ namespace DRO {
             rho += thread_n_sum;
          }
       }
+      printf("rhoNonthermalCalculation: rho: %e\n", rho);fflush(stdout);
       return;
    }
 
@@ -902,6 +911,10 @@ namespace DRO {
       {
 
          Real sum[4] = {0};
+         Real thermalV0 = thermalV[0];
+         Real thermalV1 = thermalV[1];
+         Real thermalV2 = thermalV[2];
+
          if (cell->get_number_of_velocity_blocks(popID) != 0)
          arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)},
                                           ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint n, Real *lsum ) {
@@ -918,15 +931,15 @@ namespace DRO {
                                                 const Real VZ = block_parameters[BlockParams::VZCRD] + (k + HALF) * block_parameters[BlockParams::DVZ];
                                                 // Calculate the distance of the velocity cell from the center of the maxwellian distribution and compare it to the approximate radius of the maxwellian distribution
                                                 if (((calculateNonthermal == true) &&
-                                                     (( (thermalV[0] - VX) * (thermalV[0] - VX)
-                                                        + (thermalV[1] - VY) * (thermalV[1] - VY)
-                                                        + (thermalV[2] - VZ) * (thermalV[2] - VZ) )
+                                                     (( (thermalV0 - VX) * (thermalV0 - VX)
+                                                        + (thermalV1 - VY) * (thermalV1 - VY)
+                                                        + (thermalV2 - VZ) * (thermalV2 - VZ) )
                                                       > thermalRadius*thermalRadius))
                                                    ||
                                                     ((calculateNonthermal == false) &&
-                                                     (( (thermalV[0] - VX) * (thermalV[0] - VX)
-                                                        + (thermalV[1] - VY) * (thermalV[1] - VY)
-                                                        + (thermalV[2] - VZ) * (thermalV[2] - VZ) )
+                                                     (( (thermalV0 - VX) * (thermalV0 - VX)
+                                                        + (thermalV1 - VY) * (thermalV1 - VY)
+                                                        + (thermalV2 - VZ) * (thermalV2 - VZ) )
                                                       <= thermalRadius*thermalRadius) )) {
                                                    // Add the value of the coordinates and multiply by the AVGS value of the velocity cell and the volume of the velocity cell
                                                    lsum[0] += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)]*VX*DV3;
@@ -948,12 +961,14 @@ namespace DRO {
             n_sum += sum[3];
          }
       }
+     
 
 
       // Finally, divide n_sum*V by V.
       V[0]/=n_sum;
       V[1]/=n_sum;
       V[2]/=n_sum;
+      printf("VNonthermalCalculation: V0: %e, V1: %e, V2: %e\n", V[0], V[1], V[2]);fflush(stdout);
       return;
    }
 
@@ -974,6 +989,10 @@ namespace DRO {
 # pragma omp parallel
       {
          Real sum[3] = {0};
+         Real thermalV0 = thermalV[0];
+         Real thermalV1 = thermalV[1];
+         Real thermalV2 = thermalV[2];
+
          if (cell->get_number_of_velocity_blocks(popID) != 0)
          arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)},
                                           ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint n, Real *lsum ) {
@@ -989,15 +1008,15 @@ namespace DRO {
                                                 const Real VZ = block_parameters[BlockParams::VZCRD] + (k + HALF) * block_parameters[BlockParams::DVZ];
                                                 // Calculate the distance of the velocity cell from the center of the maxwellian distribution and compare it to the approximate radius of the maxwellian distribution
                                                 if (((calculateNonthermal == true) &&
-                                                     (( (thermalV[0] - VX) * (thermalV[0] - VX)
-                                                        + (thermalV[1] - VY) * (thermalV[1] - VY)
-                                                        + (thermalV[2] - VZ) * (thermalV[2] - VZ) )
+                                                     (( (thermalV0 - VX) * (thermalV0 - VX)
+                                                        + (thermalV1 - VY) * (thermalV1 - VY)
+                                                        + (thermalV2 - VZ) * (thermalV2 - VZ) )
                                                       > thermalRadius*thermalRadius))
                                                     ||
                                                     ((calculateNonthermal == false) &&
-                                                     (( (thermalV[0] - VX) * (thermalV[0] - VX)
-                                                        + (thermalV[1] - VY) * (thermalV[1] - VY)
-                                                        + (thermalV[2] - VZ) * (thermalV[2] - VZ) )
+                                                     (( (thermalV0 - VX) * (thermalV0 - VX)
+                                                        + (thermalV1 - VY) * (thermalV1 - VY)
+                                                        + (thermalV2 - VZ) * (thermalV2 - VZ) )
                                                       <= thermalRadius*thermalRadius ))) {
                                                    lsum[0] += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * (VX - averageVX) * (VX - averageVX) * DV3;
                                                    lsum[1] += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * (VY - averageVY) * (VY - averageVY) * DV3;
@@ -1020,6 +1039,7 @@ namespace DRO {
             PTensor[2] += sum[2];
          }
       }
+      printf("PTensorDiagonalNonthermalCalculations: sum0: %e, sum1: %e, sum2: %e\n", PTensor[0], PTensor[1], PTensor[2]);fflush(stdout);
       return;
    }
 
@@ -1040,6 +1060,10 @@ namespace DRO {
 # pragma omp parallel
       {
          Real sum[3] = {0};
+         Real thermalV0 = thermalV[0];
+         Real thermalV1 = thermalV[1];
+         Real thermalV2 = thermalV[2];
+
          if (cell->get_number_of_velocity_blocks(popID) != 0)
          arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)},
                                           ARCH_LOOP_LAMBDA (const uint i, const uint j, const uint k, const uint n, Real *lsum ) {
@@ -1055,15 +1079,15 @@ namespace DRO {
                                                 const Real VZ = block_parameters[BlockParams::VZCRD] + (k + HALF) * block_parameters[BlockParams::DVZ];
                                                 // Calculate the distance of the velocity cell from the center of the maxwellian distribution and compare it to the approximate radius of the maxwellian distribution
                                                 if (((calculateNonthermal == true) &&
-                                                     (( (thermalV[0] - VX) * (thermalV[0] - VX)
-                                                        + (thermalV[1] - VY) * (thermalV[1] - VY)
-                                                        + (thermalV[2] - VZ) * (thermalV[2] - VZ) )
+                                                     (( (thermalV0 - VX) * (thermalV0 - VX)
+                                                        + (thermalV1 - VY) * (thermalV1 - VY)
+                                                        + (thermalV2 - VZ) * (thermalV2 - VZ) )
                                                       > thermalRadius*thermalRadius))
                                                     ||
                                                     ((calculateNonthermal == false) &&
-                                                     (( (thermalV[0] - VX) * (thermalV[0] - VX)
-                                                        + (thermalV[1] - VY) * (thermalV[1] - VY)
-                                                        + (thermalV[2] - VZ) * (thermalV[2] - VZ) )
+                                                     (( (thermalV0 - VX) * (thermalV0 - VX)
+                                                        + (thermalV1 - VY) * (thermalV1 - VY)
+                                                        + (thermalV2 - VZ) * (thermalV2 - VZ) )
                                                       <= thermalRadius*thermalRadius ))) {
                                                    lsum[0] += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * (VX - averageVX) * (VY - averageVY) * DV3;
                                                    lsum[1] += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * (VZ - averageVZ) * (VX - averageVX) * DV3;
@@ -1086,6 +1110,7 @@ namespace DRO {
             PTensor[2] += sum[0];
          }
       }
+      printf("PTensorOffDiagonalNonthermalCalculations: sum0: %e, sum1: %e, sum2: %e\n", PTensor[0], PTensor[1], PTensor[2]);fflush(stdout);
       return;
    }
 
@@ -1489,6 +1514,12 @@ namespace DRO {
 # pragma omp parallel
       {
          std::vector<Real> sum(2 * nChannels,0.0);
+         int nChannelsLocal = nChannels; 
+         Real B0 = B[0];
+         Real B1 = B[1];
+         Real B2 = B[2];
+         Real emaxLocal = emax;
+         Real eminLocal = emin;
 
          const Real mass = getObjectWrapper().particleSpecies[popID].mass;
          if (cell->get_number_of_velocity_blocks(popID) != 0)
@@ -1511,28 +1542,33 @@ namespace DRO {
                                                 * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
 
                                              const Real normV = sqrt(VX*VX + VY*VY + VZ*VZ);
-                                             const Real VdotB_norm = (B[0]*VX + B[1]*VY + B[2]*VZ)/normV;
+                                             const Real VdotB_norm = (B0*VX + B1*VY + B2*VZ)/normV;
                                              Real countAndGate = floor(VdotB_norm/cosAngle);  // gate function: 0 outside loss cone, 1 inside
                                              countAndGate = max(0.,countAndGate);
                                              const Real energy = 0.5 * mass * normV*normV; // in SI
 
                                              // Find the correct energy bin number to update
-                                             int binNumber = round((log(energy) - log(emin)) / log(emax/emin) * (nChannels-1));
+                                             int binNumber = round((log(energy) - log(eminLocal)) / log(emaxLocal/eminLocal) * (nChannelsLocal-1));
                                              binNumber = max(binNumber,0); // anything < emin goes to the lowest channel
-                                             binNumber = min(binNumber,nChannels-1); // anything > emax goes to the highest channel
+                                             binNumber = min(binNumber,nChannelsLocal-1); // anything > emax goes to the highest channel
 
                                              lsum[binNumber] += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * countAndGate * normV*normV * DV3;
-                                             lsum[nChannels + binNumber] += countAndGate * DV3;
+                                             lsum[nChannelsLocal + binNumber] += countAndGate * DV3;
+
+                                             //printf("i: %d, j: %d, k:%d, n:%d, countAndGate: %e, Dv3: %e\n",i,j,k,n,countAndGate,DV3);
                                           }, sum);
 
          // Accumulate contributions coming from this velocity block
          // If multithreading / OpenMP is used, these updates need to be atomic:
          # pragma omp critical
          {
+            printf("VariablePrecipitationDiffFlux: %d, %d, %d,%d\n",WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID));
             for (int i=0; i<nChannels; i++) {
                dataDiffFlux[i] += sum[i];
                sumWeights[i] += sum[nChannels + i];
+               printf("dataDiffFlux[%d]: %e, sumWeights[%d]: %e\n", i,sum[i],i, sum[nChannels + i]);
             }
+            fflush(stdout);
          }
       }
 
@@ -1747,6 +1783,8 @@ namespace DRO {
 # pragma omp parallel
       {
          Real sum[3] = {0.0, 0.0, 0.0};
+         Real E1limitLocal = E1limit;
+         Real E2limitLocal = E2limit;
 
          const Real mass = getObjectWrapper().particleSpecies[popID].mass;
          if (cell->get_number_of_velocity_blocks(popID) != 0)
@@ -1770,8 +1808,8 @@ namespace DRO {
 
                                                 const Real ENERGY = (VX*VX + VY*VY + VZ*VZ) * HALF * mass;
                                                 lsum[0] += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * ENERGY * DV3;
-                                                if (ENERGY > E1limit) lsum[1] += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * ENERGY * DV3;
-                                                if (ENERGY > E2limit) lsum[2] += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * ENERGY * DV3;
+                                                if (ENERGY > E1limitLocal) lsum[1] += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * ENERGY * DV3;
+                                                if (ENERGY > E2limitLocal) lsum[2] += block_data[n * SIZE_VELBLOCK+cellIndex(i,j,k)] * ENERGY * DV3;
                                              };
                                           }, sum);
 
@@ -1786,6 +1824,8 @@ namespace DRO {
          }
 
       }
+
+      printf("VariableEnergyDensity: sum0: %e, sum1: %e, sum2: %e,\n",EDensity[0],EDensity[1],EDensity[2]);fflush(stdout);
 
       // Output energy density in units eV/cm^3 instead of Joules per m^3
       EDensity[0] *= (1.0e-6)/physicalconstants::CHARGE;
@@ -1945,42 +1985,53 @@ namespace DRO {
       // thermal speed in parallel direction
       const Real V_par_th_sq = 2.0 * physicalconstants::K_B * T_par / getObjectWrapper().particleSpecies[popID].mass;
 
-      //ARCH_TODO
 #pragma omp parallel
       {
          Real thread_epsilon_sum = 0.0;
 
+         Real rho_local = rho;
+         Real V0_0 = V0[0];
+         Real V0_1 = V0[1];
+         Real V0_2 = V0[2]; 
+         Real b_par_0 = b_par[0];
+         Real b_par_1 = b_par[1];
+         Real b_par_2 = b_par[2]; 
+         Real b_perp1_0 = b_perp1[0];
+         Real b_perp1_1 = b_perp1[1];
+         Real b_perp1_2 = b_perp1[2]; 
+         Real b_perp2_0 = b_perp2[0];
+         Real b_perp2_1 = b_perp2[1];
+         Real b_perp2_2 = b_perp2[2]; 
+         Real T_par_local = T_par;
+         Real T_perp_local = T_perp;
+
          const Real* parameters = cell->get_block_parameters(popID);
          const Realf* block_data = cell->get_data(popID);
 
-#pragma omp for
-         for (vmesh::LocalID n = 0; n < cell->get_number_of_velocity_blocks(popID); n++) {
-            for (uint k = 0; k < WID; ++k)
-               for (uint j = 0; j < WID; ++j)
-            for (uint i = 0; i < WID; ++i) {
-          const Real VX = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] +
-                          (i + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
-          const Real VY = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] +
-                          (j + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
-          const Real VZ = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] +
-                          (k + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
-          const Real DV3 = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX] *
-                           parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] *
-                           parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+         arch::parallel_reduce<arch::sum>({WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID)},
+            ARCH_LOOP_LAMBDA(const uint i, const uint j, const uint k, const uint n, Real *lthread_epsilon_sum ){
+               const Real VX = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD] +
+                               (i + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX];
+               const Real VY = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VYCRD] +
+                               (j + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY];
+               const Real VZ = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VZCRD] +
+                               (k + HALF) * parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
+               const Real DV3 = parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVX] *
+                                parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVY] *
+                                parameters[n * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::DVZ];
 
-          const Real V_par = (VX - V0[0]) * b_par[0] + (VY - V0[1]) * b_par[1] + (VZ - V0[2]) * b_par[2];
-          const Real V_perp1 = (VX - V0[0]) * b_perp1[0] + (VY - V0[1]) * b_perp1[1] + (VZ - V0[2]) * b_perp1[2];
-          const Real V_perp2 = (VX - V0[0]) * b_perp2[0] + (VY - V0[1]) * b_perp2[1] + (VZ - V0[2]) * b_perp2[2];
+               const Real V_par = (VX - V0_0) * b_par_0 + (VY - V0_1) * b_par_1 + (VZ - V0_2) * b_par_2;
+               const Real V_perp1 = (VX - V0_0) * b_perp1_0 + (VY - V0_1) * b_perp1_1 + (VZ - V0_2) * b_perp1_2;
+               const Real V_perp2 = (VX - V0_0) * b_perp2_0 + (VY - V0_1) * b_perp2_1 + (VZ - V0_2) * b_perp2_2;
 
-          const Real bimaxwellian = rho / sqrt(M_PI * M_PI * M_PI * V_par_th_sq * V_par_th_sq * V_par_th_sq) *
-                                    (T_par / T_perp) *
-                                    exp(-(V_par * V_par) / V_par_th_sq -
-                                        (V_perp1 * V_perp1 + V_perp2 * V_perp2) / (V_par_th_sq * T_perp / T_par));
+               const Real bimaxwellian = rho_local / sqrt(M_PI * M_PI * M_PI * V_par_th_sq * V_par_th_sq * V_par_th_sq) *
+                                         (T_par_local / T_perp_local) *
+                                         exp(-(V_par * V_par) / V_par_th_sq -
+                                             (V_perp1 * V_perp1 + V_perp2 * V_perp2) / (V_par_th_sq * T_perp_local / T_par_local));
 
-          thread_epsilon_sum +=
-              (abs(block_data[n * SIZE_VELBLOCK + cellIndex(i, j, k)] - bimaxwellian) - bimaxwellian) * DV3;
-            }
-         }
+               lthread_epsilon_sum[0] +=
+                  (abs(block_data[n * SIZE_VELBLOCK + cellIndex(i, j, k)] - bimaxwellian) - bimaxwellian) * DV3;
+         }, thread_epsilon_sum);
 
    // Accumulate contributions coming from this velocity block to the
    // spatial cell velocity moments. If multithreading / OpenMP is used,
@@ -1988,6 +2039,8 @@ namespace DRO {
 #pragma omp critical
          { epsilon += thread_epsilon_sum; }
       }
+
+      printf("VariableNonMaxwellianity: epsilon: %e\n", epsilon);fflush(stdout);
 
       epsilon *= HALF / rho;
       epsilon += HALF;
