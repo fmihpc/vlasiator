@@ -475,6 +475,29 @@ __global__ void __launch_bounds__(GPUTHREADS,4) update_blocks_to_remove_kernel (
    }
 }
 
+/** GPU kernel for quickly filling block parameters.
+ */
+__global__ void __launch_bounds__(GPUTHREADS,4) update_blockparameters_kernel (
+   vmesh::VelocityMesh *vmesh,
+   vmesh::VelocityBlockContainer *blockContainer,
+   Real *blockParameters,
+   vmesh::LocalID nLIDs
+   ) {
+   const int gpuBlocks = gridDim.x;
+   const int blocki = blockIdx.x;
+   const int warpSize = blockDim.x*blockDim.y*blockDim.z;
+   const uint ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
+   for (uint index=blocki*warpSize; index<nLIDs; index += gpuBlocks*warpSize) {
+      const vmesh::LocalID LID = index+ti;
+      if (LID < nLIDs) {
+         // Set velocity block parameters:
+         const vmesh::GlobalID GID = vmesh->getGlobalID(LID);
+         // Write in block parameters
+         vmesh->getBlockInfo(GID, blockParameters + LID * BlockParams::N_VELOCITY_BLOCK_PARAMS + BlockParams::VXCRD);
+      }
+   }
+}
+
 /** GPU kernel for updating blocks based on generated lists */
 __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
    vmesh::VelocityMesh *vmesh,
@@ -1447,7 +1470,7 @@ namespace spatial_cell {
          printf("LID %d GID-solved %d LID-solved %d\n",m,GIDs,LIDs);
       }
       populations[popID].vmesh->gpu_prefetchDevice();
-      phiprof::start("Vmesh and VBC debug output");
+      phiprof::stop("Vmesh and VBC debug output");
       #endif
 
       // Don't return until everything is done?
@@ -1747,14 +1770,19 @@ namespace spatial_cell {
    void SpatialCell::prepare_to_receive_blocks(const uint popID) {
       populations[popID].vmesh->setGrid();
       populations[popID].blockContainer->setSize(populations[popID].vmesh->size());
-
-      Real* parameters = get_block_parameters(popID);
-
       // Set velocity block parameters:
-      for (vmesh::LocalID blockLID=0; blockLID<size(popID); ++blockLID) {
-         const vmesh::GlobalID blockGID = get_velocity_block_global_id(blockLID,popID);
-         populations[popID].vmesh->getBlockInfo(blockGID, parameters+BlockParams::VXCRD);
-         parameters += BlockParams::N_VELOCITY_BLOCK_PARAMS;
+      Real* parameters = get_block_parameters(popID);
+      const vmesh::LocalID meshSize = populations[popID].vmesh->size();
+      gpuStream_t stream = gpu_getStream();
+      const uint nGpuBlocks = (meshSize/GPUTHREADS) > GPUBLOCKS ? GPUBLOCKS : std::ceil((Real)meshSize/(Real)GPUTHREADS);
+      if (nGpuBlocks>0) {
+         update_blockparameters_kernel<<<nGpuBlocks, GPUTHREADS, 0, stream>>> (
+            populations[popID].vmesh,
+            populations[popID].blockContainer,
+            parameters,
+            meshSize
+            );
+         CHK_ERR( gpuPeekAtLastError() );
       }
    }
 

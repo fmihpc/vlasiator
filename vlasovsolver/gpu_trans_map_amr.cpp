@@ -536,15 +536,12 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    vmesh::GlobalID *allBlocks = unionOfBlocks->data();
    // This threshold value is used by slope limiters.
    Realv threshold = mpiGrid[DimensionPencils[dimension].ids[VLASOV_STENCIL_WIDTH]]->getVelocityBlockMinValue(popID);
-   phiprof::stop("trans-amr-buildBlockList-2");
+   phiprof::stop("trans-amr-buildBlockList");
 
    /***********************/
    phiprof::stop("trans-amr-setup");
    /***********************/
    int t1 = phiprof::initializeTimer("trans-amr-mapping");
-   int t2 = phiprof::initializeTimer("trans-amr-load source data");
-   int t3 = phiprof::initializeTimer("trans-amr-MemSet");
-   int t4 = phiprof::initializeTimer("trans-amr-propagatePencil");
 #pragma omp parallel
    {
       // Thread id used for persistent device memory pointers

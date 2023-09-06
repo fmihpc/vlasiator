@@ -126,6 +126,69 @@ namespace spatial_cell {
                                                                                * Note: these are the (i,j,k) indices of the block.
                                                                                * Valid values are ([0,vx_length[,[0,vy_length[,[0,vz_length[).*/
 
+
+   /** GPU kernel for scaling a particle population */
+   __global__ static void __launch_bounds__(WID3,4) population_scale_kernel (
+      vmesh::LocalID nBlocks,
+      vmesh::VelocityMesh *vmesh,
+      vmesh::VelocityBlockContainer *blockContainer,
+      const Real factor
+      ) {
+      const int gpuBlocks = gridDim.x;
+      const int blocki = blockIdx.x;
+      const int i = threadIdx.x;
+      const int j = threadIdx.y;
+      const int k = threadIdx.z;
+      const uint ti = k*WID2 + j*WID + i;
+      for (uint blockLID=blocki; blockLID<nBlocks; blockLID += gpuBlocks) {
+         // Now loop over whole velocity space and scale the values
+         for (vmesh::LocalID blockLID=0; blockLID < vmesh->size(); ++blockLID) {
+            // Pointer to target block data
+            Realf* toData = blockContainer->getData(blockLID);
+            // Scale value
+            toData[ti] = toData[ti] * factor;
+         }
+      }
+   }
+   /** GPU kernel for adding a particle population to another with a scaling factor */
+   __global__ static void __launch_bounds__(WID3,4) population_increment_kernel (
+      vmesh::LocalID nBlocks,
+      vmesh::VelocityMesh *vmesh,
+      vmesh::VelocityBlockContainer *blockContainer,
+      vmesh::VelocityMesh *otherVmesh,
+      vmesh::VelocityBlockContainer *otherBlockContainer,
+      const Real factor
+      ) {
+      const int gpuBlocks = gridDim.x;
+      const int blocki = blockIdx.x;
+      const int i = threadIdx.x;
+      const int j = threadIdx.y;
+      const int k = threadIdx.z;
+      const uint ti = k*WID2 + j*WID + i;
+      for (vmesh::LocalID incBlockLID=0; incBlockLID<nBlocks; ++incBlockLID) {
+         const Realf* fromData = otherBlockContainer->getData(incBlockLID);
+
+         // Global ID of the block containing incoming data
+         vmesh::GlobalID incBlockGID = otherVmesh->getGlobalID(incBlockLID);
+
+         // Get local ID of the target block. If the block doesn't exist, create it.
+         // GPUTODO WARP ACCESSOR
+         vmesh::GlobalID toBlockLID = vmesh->getLocalID(incBlockGID);
+         bool success = true;
+         if (toBlockLID == vmesh->invalidLocalID()) {
+            success = vmesh->push_back(incBlockGID);
+            toBlockLID = blockContainer->push_back_and_zero();
+            Real* parameters = blockContainer->getParameters(toBlockLID);
+            vmesh->getBlockInfo(incBlockGID, parameters+BlockParams::VXCRD);
+         }
+
+         // Pointer to target block data
+         Realf* toData = blockContainer->getData(toBlockLID);
+         // Add values from source cells
+         toData[ti] += fromData[ti] * factor;
+      } // for-loop over velocity blocks
+   }
+
    /** Wrapper for variables needed for each particle species.
     *  Change order if you know what you are doing.
     * All Real fields should be consecutive, as they are communicated as a block.
@@ -196,6 +259,8 @@ namespace spatial_cell {
          }
       }
       const Population& operator=(const Population& other) {
+         // *vmesh = *(other.vmesh);
+         // *blockContainer = *(other.blockContainer);
          delete vmesh;
          delete blockContainer;
          vmesh = new vmesh::VelocityMesh(*(other.vmesh));
@@ -232,6 +297,49 @@ namespace spatial_cell {
             P_V[i] = other.P_V[i];
          }
          return *this;
+      }
+      void Scale(creal factor) {
+         RHO *= factor;
+         RHO_R *= factor;
+         RHO_V *= factor;
+         for (uint i=0; i<3; ++i) {
+            P[i] *= factor;
+            P_R[i] *= factor;
+            P_V[i] *= factor;
+         }
+         // Now loop over whole velocity space and scale the values
+         vmesh::LocalID nBlocks = vmesh->size();
+         const uint nGpuBlocks = nBlocks > GPUBLOCKS ? GPUBLOCKS : nBlocks;
+         gpuStream_t stream = gpu_getStream();
+         population_scale_kernel<<<nGpuBlocks, GPUTHREADS, 0, stream>>> (
+            nBlocks,
+            vmesh,
+            blockContainer,
+            factor
+            );
+         CHK_ERR( gpuPeekAtLastError() );
+         CHK_ERR( gpuStreamSynchronize(stream) );
+      }
+      void Increment(const Population& other, creal factor) {
+         // Note: moments will be invalidated.
+         // Ensure the vmesh and VBC are large enough
+         vmesh::LocalID nBlocks = (other.vmesh)->size();
+         vmesh::LocalID nExistingBlocks = vmesh->size();
+         vmesh->setNewCapacity(nExistingBlocks + nBlocks);
+         blockContainer->gpu_Allocate(nExistingBlocks + nBlocks);
+         // Loop over the whole velocity space, and add scaled values.
+         const uint nGpuBlocks = nBlocks > GPUBLOCKS ? GPUBLOCKS : nBlocks;
+         gpuStream_t stream = gpu_getStream();
+         population_increment_kernel<<<nGpuBlocks, GPUTHREADS, 0, stream>>> (
+            nBlocks,
+            vmesh,
+            blockContainer,
+            other.vmesh,
+            other.blockContainer,
+            factor
+            );
+         CHK_ERR( gpuPeekAtLastError() );
+         CHK_ERR( gpuStreamSynchronize(stream) );
       }
    };
 
@@ -300,6 +408,8 @@ namespace spatial_cell {
       Population & get_population(const uint popID);
       const Population & get_population(const uint popID) const;
       void set_population(const Population& pop, cuint popID);
+      void scale_population(creal factor, cuint popID);
+      void increment_population(const Population& pop, creal factor, cuint popID);
 
       const Real& get_max_r_dt(const uint popID) const;
       const Real& get_max_v_dt(const uint popID) const;
@@ -583,6 +693,12 @@ namespace spatial_cell {
 
    inline void SpatialCell::set_population(const Population& pop, cuint popID) {
       this->populations[popID] = pop;
+   }
+   inline void SpatialCell::scale_population(creal factor, cuint popID) {
+      (this->populations[popID]).Scale(factor);
+   }
+   inline void SpatialCell::increment_population(const Population& pop, creal factor, cuint popID) {
+      (this->populations[popID]).Increment(pop, factor);
    }
 
    inline const vmesh::LocalID* SpatialCell::get_velocity_grid_length(const uint popID,const uint8_t& refLevel) {

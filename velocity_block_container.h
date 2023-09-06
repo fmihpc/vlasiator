@@ -150,6 +150,8 @@ namespace vmesh {
       // Delete old vectors
       delete block_data;
       delete parameters;
+      // +      *block_data = *(other.block_data);
+      // +      *parameters = *(other.parameters);
 #ifdef USE_GPU
       attachedStream = 0;
       block_data= new split::SplitVector<Realf>(*(other.block_data));
@@ -418,10 +420,11 @@ namespace vmesh {
    inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::push_back_and_zero() {
       vmesh::LocalID newIndex = numberOfBlocks;
       if (newIndex >= currentCapacity) {
-         #ifdef USE_GPU
-         #pragma nv_diag_suppress 20011,20014
-         #endif
+         #if defined(USE_GPU) && (defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
+         printf("ERROR! Attempting to grow block container on-device beyond capacity.");
+         #else
          resize();
+         #endif
       }
 
       #ifdef DEBUG_VBC

@@ -88,4 +88,4 @@ INC_FSGRID = -I$(LIBRARY_PREFIX)/fsgrid/
 INC_EIGEN = -isystem $(LIBRARY_PREFIX)/eigen/
 INC_DCCRG = -I$(LIBRARY_PREFIX)/dccrg/
 # INC_VECTORCLASS = -I$(LIBRARY_PREFIX_HEADERS)/vectorclass/ # not used with GPU
-INC_HASHINATOR = -isystem $(LIBRARY_PREFIX)/hashinator_warpaccessors/
+INC_HASHINATOR = -isystem $(LIBRARY_PREFIX)/hashinator/
