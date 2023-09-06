@@ -1848,6 +1848,7 @@ namespace spatial_cell {
       velocity_block_with_content_list->clear();
       velocity_block_with_no_content_list->clear();
       if (currSize == 0) {
+         phiprof::stop("VB content list prefetches and allocations");
          phiprof::stop("GPU update spatial cell block lists");
          return;
       }
