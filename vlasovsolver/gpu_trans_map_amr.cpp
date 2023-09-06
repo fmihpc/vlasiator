@@ -528,7 +528,7 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    pencilRatiosTemp->optimizeGPU();
    phiprof::stop("trans-amr-gather-meshpointers");
 
-   phiprof::start("trans-amr-buildBlockList");
+   phiprof::start("trans-amr-buildBlockList-2");
    // Now we ensure the union of blocks gathering is complete and extract the union of blocks into a vector
    CHK_ERR( gpuStreamSynchronize(bgStream) );
    const uint nAllBlocks = unionOfBlocksSet->extractAllKeys(*unionOfBlocks,bgStream);
