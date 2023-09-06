@@ -1205,7 +1205,7 @@ namespace spatial_cell {
       }
       #endif
 
-      phiprof::start("GPU add blocks from buffer");
+      phiprof::Timer timer {"GPU add blocks from buffer"};
       // Add blocks to velocity mesh
       const uint nBlocks = blocks->size();
       const vmesh::LocalID adds = populations[popID].vmesh->push_back(*blocks);
@@ -1238,11 +1238,10 @@ namespace spatial_cell {
          CHK_ERR( gpuStreamSynchronize(stream) );
       }
 
-      phiprof::stop("GPU add blocks from buffer");
       #ifdef DEBUG_SPATIAL_CELL
-         if (populations[popID].vmesh->size() != populations[popID].blockContainer->size()) {
-	    std::cerr << "size mismatch in " << __FILE__ << ' ' << __LINE__ << std::endl; exit(1);
-	 }
+      if (populations[popID].vmesh->size() != populations[popID].blockContainer->size()) {
+         std::cerr << "size mismatch in " << __FILE__ << ' ' << __LINE__ << std::endl; exit(1);
+      }
       #endif
    }
 

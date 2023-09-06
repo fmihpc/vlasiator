@@ -635,7 +635,7 @@ void balanceLoad(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid, S
    setRanksTimer.stop();
 
    // Prepare cellIDs and pencils for AMR translation
-   phiprof::Timer seedIdsTimer("GetSeedIdsAndBuildPencils")
+   phiprof::Timer seedIdsTimer("GetSeedIdsAndBuildPencils");
    for (int dimension=0; dimension<3; dimension++) {
       prepareSeedIdsAndPencils(mpiGrid,dimension);
    }
@@ -686,7 +686,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
    SpatialCell::setCommunicatedSpecies(popID);
 
    const vector<CellID>& cells = getLocalCells();
-   int computeId {phiprof::initialize("Compute with_content_list")};
+   int computeId {phiprof::initializeTimer("Compute with_content_list")};
    #pragma omp parallel
    {
       phiprof::Timer timer {computeId};
@@ -717,7 +717,7 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
 #ifdef USE_GPU
    // Now loop over ghost cells and upload their velocity block lists into GPU memory
    const std::vector<CellID> remote_cells = mpiGrid.get_remote_cells_on_process_boundary(NEAREST_NEIGHBORHOOD_ID);
-   int uploadId {phiprof::initialize("Upload with_content_list to device")};
+   int uploadId {phiprof::initializeTimer("Upload with_content_list to device")};
    #pragma omp parallel
    {
       phiprof::Timer timer {uploadId};
@@ -733,8 +733,8 @@ bool adjustVelocityBlocks(dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& m
 #endif
 
    //Adjusts velocity blocks in local spatial cells, doesn't adjust velocity blocks in remote cells.
-   int adjustId {phiprof::initialize("Adjusting blocks")};
-#pragma omp parallel
+   int adjustId {phiprof::initializeTimer("Adjusting blocks")};
+   #pragma omp parallel
    {
       phiprof::Timer timer {adjustId};
       #pragma omp for schedule(dynamic,1)

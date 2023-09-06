@@ -490,13 +490,13 @@ int main(int argn,char* args[]) {
       *project
    );
 
-   phiprof::start("report-memory-consumption");
+   phiprof::Timer reportMemoryTimer {"report-memory-consumption"};
    if (myRank == MASTER_RANK){
       cout << "(MAIN): Completed grid initialization." << endl;
       logFile << "(MAIN): Completed grid initialization." << endl << writeVerbose;
    }
    report_process_memory_consumption();
-   phiprof::stop("report-memory-consumption");
+   reportMemoryTimer.stop();
 
    const std::vector<CellID>& cells = getLocalCells();
    

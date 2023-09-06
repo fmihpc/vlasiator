@@ -270,7 +270,7 @@ namespace projects {
       LineDipole bgFieldLineDipole;
       VectorDipole bgVectorDipole;
 
-      phiprof::start("switch-dipoleType");
+      phiprof::Timer switchDipoleTypeTimer {"switch-dipoleType"};
       // The hardcoded constants of dipole and line dipole moments are obtained
       // from Daldorff et al (2014), see
       // https://github.com/fmihpc/vlasiator/issues/20 for a derivation of the
@@ -319,11 +319,11 @@ namespace projects {
             default:
                setBackgroundFieldToZero(BgBGrid);
       }
-      phiprof::stop("switch-dipoleType");
+      switchDipoleTypeTimer.stop();
 
       const auto localSize = BgBGrid.getLocalSize().data();
       
-      phiprof::start("zeroing-out");
+      phiprof::Timer zeroingTimer {"zeroing-out"};
 
 #pragma omp parallel
       {
@@ -421,9 +421,9 @@ namespace projects {
          }
       } // end of omp parallel region
 
-      phiprof::stop("zeroing-out");
+      zeroingTimer.stop();
 
-      phiprof::start("add-constant-field");
+      phiprof::Timer addConstantTimer {"add-constant-field"};
       // Superimpose constant background field if needed
       if(this->constBgB[0] != 0.0 || this->constBgB[1] != 0.0 || this->constBgB[2] != 0.0) {
          ConstantField bgConstantField;
@@ -431,10 +431,10 @@ namespace projects {
          setBackgroundField(bgConstantField, BgBGrid, true);
          SBC::ionosphereGrid.setConstantBackgroundField(this->constBgB);
       }
-      phiprof::stop("add-constant-field");
-      phiprof::start("ionosphereGrid.storeNodeB");
+      addConstantTimer.stop();
+      phiprof::Timer storeNodeTimer {"ionosphereGrid.storeNodeB"};
       SBC::ionosphereGrid.storeNodeB();
-      phiprof::stop("ionosphereGrid.storeNodeB");
+      storeNodeTimer.stop();
    }
    
    

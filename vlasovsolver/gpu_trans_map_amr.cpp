@@ -322,9 +322,7 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
                       const Realv dt,
                       const uint popID) {
 
-   /***********************/
-   phiprof::start("trans-amr-setup");
-   /***********************/
+   phiprof::Timer setupTimer {"trans-amr-setup"};
 
    // GPUTODO: Re-use pre-allocated splitvectors and hashmaps here
    /**
@@ -450,7 +448,7 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    // This is required just for general indexes and accessors in pencil translation.
    const vmesh::VelocityMesh* vmesh = allCellsPointer[0]->get_velocity_mesh(popID);
 
-   phiprof::start("trans-amr-buildBlockList");
+   phiprof::Timer buildTimer {"trans-amr-buildBlockList"};
    // Get a unique unsorted list of blockids that are in any of the
    // propagated cells. We launch this kernel, and do host-side pointer
    // gathering in parallel with it.
@@ -472,9 +470,9 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    unionOfBlocks->memAdvise(gpuMemAdviseSetPreferredLocation,device,bgStream);
    unionOfBlocks->memAdvise(gpuMemAdviseSetAccessedBy,device,bgStream);
    unionOfBlocks->optimizeGPU(bgStream);
-   phiprof::stop("trans-amr-buildBlockList");
+   buildTimer.stop();
 
-   phiprof::start("trans-amr-gather-meshpointers");
+   phiprof::Timer gatherPointerTimer {"trans-amr-gather-meshpointers"};
    // For each cellid listed in the pencils for this dimension, store the pointer to the vmesh.
    // At the same time, we could accumulate a list of unique cells included, but we already
    // get these from vlasovmover. This has to be on the host, as SpatialCells reside in host memory.
@@ -526,9 +524,9 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    pencilStartsTemp->optimizeGPU();
    pencilDZTemp->optimizeGPU();
    pencilRatiosTemp->optimizeGPU();
-   phiprof::stop("trans-amr-gather-meshpointers");
+   gatherPointerTimer.stop();
 
-   phiprof::start("trans-amr-buildBlockList-2");
+   phiprof::Timer buildTimer2 {"trans-amr-buildBlockList-2"};
    // Now we ensure the union of blocks gathering is complete and extract the union of blocks into a vector
    CHK_ERR( gpuStreamSynchronize(bgStream) );
    const uint nAllBlocks = unionOfBlocksSet->extractAllKeys(*unionOfBlocks,bgStream);
@@ -536,16 +534,12 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    vmesh::GlobalID *allBlocks = unionOfBlocks->data();
    // This threshold value is used by slope limiters.
    Realv threshold = mpiGrid[DimensionPencils[dimension].ids[VLASOV_STENCIL_WIDTH]]->getVelocityBlockMinValue(popID);
-   phiprof::stop("trans-amr-buildBlockList-2");
+   buildTimer2.stop();
 
-   /***********************/
-   phiprof::stop("trans-amr-setup");
-   /***********************/
-   int t1 = phiprof::initializeTimer("trans-amr-mapping");
-   int t2 = phiprof::initializeTimer("trans-amr-load source data");
-   int t3 = phiprof::initializeTimer("trans-amr-MemSet");
-   int t4 = phiprof::initializeTimer("trans-amr-propagatePencil");
-#pragma omp parallel
+   setupTimer.stop();
+   int bufferId {phiprof::initializeTimer("prepare buffers")};
+   int mappingId {phiprof::initializeTimer("trans-amr-mapping")};
+   #pragma omp parallel
    {
       // Thread id used for persistent device memory pointers
       #ifdef _OPENMP
@@ -557,7 +551,7 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       #endif
       gpuStream_t stream = gpu_getStream();
 
-      phiprof::start("prepare buffers");
+      phiprof::Timer bufferTimer {bufferId};
       // Vector of pointers to cell block data, used for both reading and writing
       // GPUTODO: pre-allocate one per thread, here verify sufficient size
       cuint nPencils = DimensionPencils[dimension].N;
@@ -571,41 +565,38 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
       uint* pencilBlocksCount; // Array of counters if pencil needs to be propagated for this block or not
       CHK_ERR( gpuMallocAsync((void**)&pencilBlockData, sumOfLengths*nGpuBlocks*sizeof(Realf*), stream) );
       CHK_ERR( gpuMallocAsync((void**)&pencilBlocksCount, nPencils*nGpuBlocks*sizeof(uint), stream) );
-      phiprof::stop("prepare buffers");
+      bufferTimer.stop();
 
-      // Loop over velocity space blocks (threaded, multi-stream, and multi-block parallel, but not using a for-loop)
-      phiprof::start(t1); // mapping (top-level)
-      {
-         const uint startingBlockIndex = cpuThreadID*nGpuBlocks;
-         const uint blockIndexIncrement = maxThreads*nGpuBlocks;
-         // This thread, using its own stream, will launch nGpuBlocks instances of the below kernel, where each instance
-         // propagates all pencils for the block in question.
-         dim3 block(WID2,WID,1); // assumes VECL==WID2
-         translation_kernel<<<nGpuBlocks, block, 0, stream>>> (
-            dimension,
-            gpu_vcell_transpose[0],
-            dt,
-            pencilLengths,
-            pencilStarts,
-            //blockGID, // which GID this thread is working on
-            allBlocks, // List of all blocks
-            nAllBlocks, // size of list of blocks which we won't exceed
-            startingBlockIndex, // First block index for this kernel invocation
-            blockIndexIncrement, // How much each kernel invocation should jump ahead
-            nPencils, // Number of total pencils (constant)
-            sumOfLengths, // sum of all pencil lengths (constant)
-            threshold,
-            pencilMeshes, // Pointers to velocity meshes
-            pencilContainers, // pointers to BlockContainers
-            pencilBlockData, // pointers into cell block data, both written and read
-            pencilOrderedSource, // Vec-ordered block data values for pencils
-            pencilDZ,
-            pencilRatios, // Vector holding target ratios
-            pencilBlocksCount // store how many non-empty blocks each pencil has for this GID
-            );
-      } // Closes loop over blocks
+      phiprof::Timer mappingTimer {mappingId}; // mapping (top-level)
+      const uint startingBlockIndex = cpuThreadID*nGpuBlocks;
+      const uint blockIndexIncrement = maxThreads*nGpuBlocks;
+      // This thread, using its own stream, will launch nGpuBlocks instances of the below kernel, where each instance
+      // propagates all pencils for the block in question.
+      dim3 block(WID2,WID,1); // assumes VECL==WID2
+      translation_kernel<<<nGpuBlocks, block, 0, stream>>> (
+         dimension,
+         gpu_vcell_transpose[0],
+         dt,
+         pencilLengths,
+         pencilStarts,
+         //blockGID, // which GID this thread is working on
+         allBlocks, // List of all blocks
+         nAllBlocks, // size of list of blocks which we won't exceed
+         startingBlockIndex, // First block index for this kernel invocation
+         blockIndexIncrement, // How much each kernel invocation should jump ahead
+         nPencils, // Number of total pencils (constant)
+         sumOfLengths, // sum of all pencil lengths (constant)
+         threshold,
+         pencilMeshes, // Pointers to velocity meshes
+         pencilContainers, // pointers to BlockContainers
+         pencilBlockData, // pointers into cell block data, both written and read
+         pencilOrderedSource, // Vec-ordered block data values for pencils
+         pencilDZ,
+         pencilRatios, // Vector holding target ratios
+         pencilBlocksCount // store how many non-empty blocks each pencil has for this GID
+         );
       CHK_ERR( gpuStreamSynchronize(stream) );
-      phiprof::stop(t1); // mapping (top-level)
+      mappingTimer.stop(); // mapping (top-level)
 
    } // closes pragma omp parallel
 
