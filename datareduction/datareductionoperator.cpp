@@ -638,7 +638,7 @@ namespace DRO {
             PTensor[2] += sum[2];
          }
       }
-      printf("VariablePTensorDiagonal: sum0: %e, sum1: %e, sum2: %e\n", PTensor[0], PTensor[1], PTensor[2]);fflush(stdout);
+
       const char* ptr = reinterpret_cast<const char*>(&PTensor);
       for (uint i = 0; i < 3*sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
@@ -711,7 +711,6 @@ namespace DRO {
             PTensor[2] += sum[0];
          }
       }
-      printf("VariablePTensorOffDiagonal: sum0: %e, sum1: %e, sum2: %e\n", PTensor[0], PTensor[1], PTensor[2]);fflush(stdout);
       const char* ptr = reinterpret_cast<const char*>(&PTensor);
       for (uint i = 0; i < 3*sizeof(Real); ++i) buffer[i] = ptr[i];
       return true;
@@ -758,7 +757,6 @@ namespace DRO {
             maxF = max(threadMax, maxF);
          }
       }
-      printf("MaxDistributionFunction: maxF: %e\n", maxF);fflush(stdout);
 
       *buffer = maxF;
       return true;
@@ -810,7 +808,6 @@ namespace DRO {
             minF = min(threadMin, minF);
          }
       }
-      printf("MinDistributionFunction: minF: %e\n", minF);fflush(stdout);
 
       *buffer = minF;
       return true;
@@ -889,7 +886,6 @@ namespace DRO {
             rho += thread_n_sum;
          }
       }
-      printf("rhoNonthermalCalculation: rho: %e\n", rho);fflush(stdout);
       return;
    }
 
@@ -968,7 +964,7 @@ namespace DRO {
       V[0]/=n_sum;
       V[1]/=n_sum;
       V[2]/=n_sum;
-      printf("VNonthermalCalculation: V0: %e, V1: %e, V2: %e\n", V[0], V[1], V[2]);fflush(stdout);
+
       return;
    }
 
@@ -1039,7 +1035,6 @@ namespace DRO {
             PTensor[2] += sum[2];
          }
       }
-      printf("PTensorDiagonalNonthermalCalculations: sum0: %e, sum1: %e, sum2: %e\n", PTensor[0], PTensor[1], PTensor[2]);fflush(stdout);
       return;
    }
 
@@ -1110,7 +1105,6 @@ namespace DRO {
             PTensor[2] += sum[0];
          }
       }
-      printf("PTensorOffDiagonalNonthermalCalculations: sum0: %e, sum1: %e, sum2: %e\n", PTensor[0], PTensor[1], PTensor[2]);fflush(stdout);
       return;
    }
 
@@ -1554,21 +1548,16 @@ namespace DRO {
 
                                              lsum[binNumber] += block_data[n * SIZE_VELBLOCK + cellIndex(i,j,k)] * countAndGate * normV*normV * DV3;
                                              lsum[nChannelsLocal + binNumber] += countAndGate * DV3;
-
-                                             //printf("i: %d, j: %d, k:%d, n:%d, countAndGate: %e, Dv3: %e\n",i,j,k,n,countAndGate,DV3);
                                           }, sum);
 
          // Accumulate contributions coming from this velocity block
          // If multithreading / OpenMP is used, these updates need to be atomic:
          # pragma omp critical
          {
-            printf("VariablePrecipitationDiffFlux: %d, %d, %d,%d\n",WID, WID, WID, (uint)cell->get_number_of_velocity_blocks(popID));
             for (int i=0; i<nChannels; i++) {
                dataDiffFlux[i] += sum[i];
                sumWeights[i] += sum[nChannels + i];
-               printf("dataDiffFlux[%d]: %e, sumWeights[%d]: %e\n", i,sum[i],i, sum[nChannels + i]);
             }
-            fflush(stdout);
          }
       }
 
@@ -1825,8 +1814,6 @@ namespace DRO {
 
       }
 
-      printf("VariableEnergyDensity: sum0: %e, sum1: %e, sum2: %e,\n",EDensity[0],EDensity[1],EDensity[2]);fflush(stdout);
-
       // Output energy density in units eV/cm^3 instead of Joules per m^3
       EDensity[0] *= (1.0e-6)/physicalconstants::CHARGE;
       EDensity[1] *= (1.0e-6)/physicalconstants::CHARGE;
@@ -2039,8 +2026,6 @@ namespace DRO {
 #pragma omp critical
          { epsilon += thread_epsilon_sum; }
       }
-
-      printf("VariableNonMaxwellianity: epsilon: %e\n", epsilon);fflush(stdout);
 
       epsilon *= HALF / rho;
       epsilon += HALF;
