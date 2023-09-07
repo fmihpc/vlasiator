@@ -67,7 +67,7 @@
 #define gpuSuccess                       cudaSuccess
 
 #define gpuStream_t                      cudaStream_t
-#define gpuDeviceProp                    cudaDeviceProp_t
+#define gpuDeviceProp                    cudaDeviceProp
 
 #define gpuEvent_t                       cudaEvent_t
 #define gpuEventDefault                  cudaEventDefault
@@ -431,7 +431,7 @@ namespace arch{
     /* Query device properties */
     int device_id;
     CHK_ERR(cudaGetDevice(&device_id));
-    cudaDeviceProp_t deviceProp;
+    cudaDeviceProp deviceProp;
     CHK_ERR(cudaGetDeviceProperties(&deviceProp, device_id));
     /* Make sure there is enough shared memory for the used block size */
     uint blocksize;
