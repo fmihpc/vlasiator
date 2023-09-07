@@ -148,7 +148,10 @@ namespace spatial_cell {
          data[ti] = data[ti] * factor;
       }
    }
-   /** GPU kernel for adding a particle population to another with a scaling factor */
+   /** GPU kernel for adding a particle population to another with a scaling factor
+    This kernel increments existing blocks, creates new ones if the block does
+    not exist, and so is not parallel-safe.
+   */
    __global__ static void __launch_bounds__(WID3,4) population_increment_kernel (
       vmesh::LocalID nBlocks,
       vmesh::VelocityMesh *vmesh,
@@ -156,6 +159,8 @@ namespace spatial_cell {
       vmesh::VelocityMesh *otherVmesh,
       vmesh::VelocityBlockContainer *otherBlockContainer,
       const Real factor
+      // GPUTODO: This could gather into a vector GIDs and (invalidGIDs) of only those GIDs which need to be added
+      // and call another kernel to do just that?
       ) {
       const int gpuBlocks = gridDim.x;
       const int blocki = blockIdx.x;
@@ -163,35 +168,48 @@ namespace spatial_cell {
       const int j = threadIdx.y;
       const int k = threadIdx.z;
       const uint ti = k*WID2 + j*WID + i;
-      for (vmesh::LocalID incBlockLID=0; incBlockLID<nBlocks; ++incBlockLID) {
-         const Realf* fromData = otherBlockContainer->getData(incBlockLID);
-
+      // if (gpuBlocks != 1) {
+      //    if (ti==0 && blocki==0) {
+      //       printf("Warning! Calling population_increment_new_kernel from parallel region!\n");
+      //    }
+      // }
+      // for (vmesh::LocalID incLID=blocki; incLID<nBlocks; incLID += gpuBlocks) {
+      for (vmesh::LocalID incLID=0; incLID<nBlocks; incLID ++) {
+         const Realf* fromData = otherBlockContainer->getData(incLID);
          // Global ID of the block containing incoming data
-         vmesh::GlobalID incBlockGID = otherVmesh->getGlobalID(incBlockLID);
-
+         const vmesh::GlobalID GID = otherVmesh->getGlobalID(incLID);
          // Get local ID of the target block. If the block doesn't exist, create it.
          // GPUTODO WARP ACCESSOR
-         vmesh::GlobalID toBlockLID = vmesh->getLocalID(incBlockGID);
-         bool success = true;
-         if (toBlockLID == vmesh->invalidLocalID()) {
-            if (ti==0) {
-               success = vmesh->push_back(incBlockGID);
-               if (!success) {
+         // const vmesh::LocalID toLID = vmesh->warpGetLocalID(GID,ti);
+         __shared__ vmesh::LocalID toLID;
+         __shared__ bool created;
+         if (ti==0) {
+            toLID = vmesh->getLocalID(GID);
+            created = false;
+         }
+         __syncthreads();
+         if (toLID == vmesh->invalidLocalID()) {
+            // Thread zero must create new block
+             if (ti==0) {
+               vmesh::LocalID created = false;
+               created = vmesh->push_back(GID);
+               if (!created) {
                   printf("Error in incrementing blockContainer in population_increment_kernel!\n");
                   break;
                }
-               toBlockLID = blockContainer->push_back();
-               Real* parameters = blockContainer->getParameters(toBlockLID);
-               vmesh->getBlockInfo(incBlockGID, parameters+BlockParams::VXCRD);
+               toLID = blockContainer->push_back();
+               Real* parameters = blockContainer->getParameters(toLID);
+               vmesh->getBlockInfo(GID, parameters+BlockParams::VXCRD);
             }
             __syncthreads();
-            // Set new block data to zero
-            Realf* toData = blockContainer->getData(toBlockLID);
-            toData[ti] = 0;
+            Realf* toData = blockContainer->getData(toLID);
+            if (created) {
+               // Zero out new block
+               toData[ti] = fromData[ti] * factor;
+            }
          }
-         // Pointer to target block data
-         Realf* toData = blockContainer->getData(toBlockLID);
          // Add values from source cells
+         Realf* toData = blockContainer->getData(toLID);
          toData[ti] += fromData[ti] * factor;
       } // for-loop over velocity blocks
    }
@@ -266,13 +284,8 @@ namespace spatial_cell {
          }
       }
       const Population& operator=(const Population& other) {
-         // *vmesh = *(other.vmesh);
-         // *blockContainer = *(other.blockContainer);
-         delete vmesh;
-         delete blockContainer;
-         vmesh = new vmesh::VelocityMesh(*(other.vmesh));
-         blockContainer = new vmesh::VelocityBlockContainer(*(other.blockContainer));
-
+         *vmesh = *(other.vmesh);
+         *blockContainer = *(other.blockContainer);
          // // Sanity check
          // cuint vmeshSize = vmesh->size();
          // cuint vbcSize = blockContainer->size();
@@ -318,37 +331,42 @@ namespace spatial_cell {
          vmesh::LocalID nBlocks = vmesh->size();
          const uint nGpuBlocks = nBlocks > GPUBLOCKS ? GPUBLOCKS : nBlocks;
          gpuStream_t stream = gpu_getStream();
-         dim3 block(WID,WID,WID);
-         population_scale_kernel<<<nGpuBlocks, block, 0, stream>>> (
-            nBlocks,
-            vmesh,
-            blockContainer,
-            factor
-            );
-         CHK_ERR( gpuPeekAtLastError() );
-         CHK_ERR( gpuStreamSynchronize(stream) );
+         if (nGpuBlocks > 0) {
+            dim3 block(WID,WID,WID);
+            population_scale_kernel<<<nGpuBlocks, block, 0, stream>>> (
+               nBlocks,
+               vmesh,
+               blockContainer,
+               factor
+               );
+            CHK_ERR( gpuPeekAtLastError() );
+            CHK_ERR( gpuStreamSynchronize(stream) );
+         }
       }
       void Increment(const Population& other, creal factor) {
          // Note: moments will be invalidated.
          // Ensure the vmesh and VBC are large enough
          vmesh::LocalID nBlocks = (other.vmesh)->size();
          vmesh::LocalID nExistingBlocks = vmesh->size();
-         vmesh->setNewCapacity(nExistingBlocks + nBlocks);
-         blockContainer->gpu_Allocate(nExistingBlocks + nBlocks);
-         // Loop over the whole velocity space, and add scaled values.
+         vmesh->setNewCapacity(nExistingBlocks + nBlocks + 1);
+         blockContainer->gpu_Allocate(nExistingBlocks + nBlocks + 1);
+         // Loop over the whole velocity space, and add scaled values with
+         // a kernel. Addition of new blocks is not block-parallel-safe.
          const uint nGpuBlocks = nBlocks > GPUBLOCKS ? GPUBLOCKS : nBlocks;
          gpuStream_t stream = gpu_getStream();
-         dim3 block(WID,WID,WID);
-         population_increment_kernel<<<nGpuBlocks, block, 0, stream>>> (
-            nBlocks,
-            vmesh,
-            blockContainer,
-            other.vmesh,
-            other.blockContainer,
-            factor
-            );
-         CHK_ERR( gpuPeekAtLastError() );
-         CHK_ERR( gpuStreamSynchronize(stream) );
+         if (nGpuBlocks > 0) {
+            dim3 block(WID,WID,WID);
+            population_increment_kernel<<<1, block, 12, stream>>> (
+               nBlocks,
+               vmesh,
+               blockContainer,
+               other.vmesh,
+               other.blockContainer,
+               factor
+               );
+            CHK_ERR( gpuPeekAtLastError() );
+            CHK_ERR( gpuStreamSynchronize(stream) );
+         }
       }
    };
 

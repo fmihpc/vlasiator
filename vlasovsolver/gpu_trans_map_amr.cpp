@@ -536,7 +536,7 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    vmesh::GlobalID *allBlocks = unionOfBlocks->data();
    // This threshold value is used by slope limiters.
    Realv threshold = mpiGrid[DimensionPencils[dimension].ids[VLASOV_STENCIL_WIDTH]]->getVelocityBlockMinValue(popID);
-   phiprof::stop("trans-amr-buildBlockList");
+   phiprof::stop("trans-amr-buildBlockList-2");
 
    /***********************/
    phiprof::stop("trans-amr-setup");

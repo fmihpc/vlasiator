@@ -951,24 +951,23 @@ void updateRemoteVelocityBlockLists(
    for (unsigned int i=0; i<incoming_cells.size(); ++i) {
      uint64_t cell_id = incoming_cells[i];
      SpatialCell* cell = mpiGrid[cell_id];
-     #ifdef DEBUG_VLASIATOR
      if (cell == NULL) {
-        //for (const auto& cell: mpiGrid.local_cells()) {
+        #ifdef DEBUG_VLASIATOR
         for (const auto& cell: mpiGrid.local_cells) {
-	 if (cell.id == cell_id) {
-	   cerr << __FILE__ << ":" << __LINE__ << std::endl;
-	   abort();
-	 }
-	 for (const auto& neighbor: cell.neighbors_of) {
-	   if (neighbor.id == cell_id) {
-	     cerr << __FILE__ << ":" << __LINE__ << std::endl;
-	     abort();
-	   }
-	 }
-       }
-       continue;
+           if (cell.id == cell_id) {
+              cerr << __FILE__ << ":" << __LINE__ << std::endl;
+              abort();
+           }
+           for (const auto& neighbor: cell.neighbors_of) {
+              if (neighbor.id == cell_id) {
+                 cerr << __FILE__ << ":" << __LINE__ << std::endl;
+                 abort();
+              }
+           }
+        }
+        #endif
+        continue;
      }
-     #endif
      cell->prepare_to_receive_blocks(popID);
    }
 
