@@ -728,7 +728,7 @@ namespace vmesh {
       }
       __syncthreads();
       #endif
-      if (b_tid < GPUTHREADS) { // GPUTODO these in parallel
+      if (b_tid < GPUTHREADS) { // GPUTODO these in parallel?
          globalToLocalMap->warpErase(GIDold, b_tid);
          globalToLocalMap->warpInsert(GIDnew,LID, b_tid);
          if (b_tid==0) {

@@ -637,12 +637,12 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
             rm_block_parameters[ti] = repl_block_parameters[ti];
          }
          __syncthreads();
-         if (ti==0) {
-            // Remove hashmap entry for removed block, add instead created block
-            vmesh->replaceBlock(rmGID,rmLID,replaceGID);
-         }
-         __syncthreads();
-         // vmesh->warpReplaceBlock(rmGID,rmLID,replaceGID,ti);
+         // if (ti==0) {
+         //    // Remove hashmap entry for removed block, add instead created block
+         //    vmesh->replaceBlock(rmGID,rmLID,replaceGID);
+         // }
+         // __syncthreads();
+         vmesh->warpReplaceBlock(rmGID,rmLID,replaceGID,ti);
          #ifdef DEBUG_SPATIAL_CELL
          if (vmesh->getGlobalID(rmLID) == vmesh->invalidGlobalID()) {
             continue;
