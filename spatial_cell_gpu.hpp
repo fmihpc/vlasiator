@@ -162,8 +162,8 @@ namespace spatial_cell {
       // GPUTODO: This could gather into a vector GIDs and (invalidGIDs) of only those GIDs which need to be added
       // and call another kernel to do just that?
       ) {
-      const int gpuBlocks = gridDim.x;
-      const int blocki = blockIdx.x;
+      //const int gpuBlocks = gridDim.x;
+      //const int blocki = blockIdx.x;
       const int i = threadIdx.x;
       const int j = threadIdx.y;
       const int k = threadIdx.z;
@@ -179,20 +179,11 @@ namespace spatial_cell {
          // Global ID of the block containing incoming data
          const vmesh::GlobalID GID = otherVmesh->getGlobalID(incLID);
          // Get local ID of the target block. If the block doesn't exist, create it.
-         // GPUTODO WARP ACCESSOR
-         // const vmesh::LocalID toLID = vmesh->warpGetLocalID(GID,ti);
-         __shared__ vmesh::LocalID toLID;
-         __shared__ bool created;
-         if (ti==0) {
-            toLID = vmesh->getLocalID(GID);
-            created = false;
-         }
-         __syncthreads();
+         vmesh::LocalID toLID = vmesh->warpGetLocalID(GID,ti);
          if (toLID == vmesh->invalidLocalID()) {
+            bool created = vmesh->warpPush_back(GID, ti);
             // Thread zero must create new block
-             if (ti==0) {
-               vmesh::LocalID created = false;
-               created = vmesh->push_back(GID);
+            if (ti==0) {
                if (!created) {
                   printf("Error in incrementing blockContainer in population_increment_kernel!\n");
                   break;
@@ -205,7 +196,7 @@ namespace spatial_cell {
             Realf* toData = blockContainer->getData(toLID);
             if (created) {
                // Zero out new block
-               toData[ti] = fromData[ti] * factor;
+               toData[ti] = 0.0;
             }
          }
          // Add values from source cells
@@ -356,7 +347,7 @@ namespace spatial_cell {
          gpuStream_t stream = gpu_getStream();
          if (nGpuBlocks > 0) {
             dim3 block(WID,WID,WID);
-            population_increment_kernel<<<1, block, 12, stream>>> (
+            population_increment_kernel<<<1, block, 0, stream>>> (
                nBlocks,
                vmesh,
                blockContainer,

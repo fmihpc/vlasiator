@@ -43,7 +43,7 @@
 #ifdef DEBUG_VLASIATOR
    #define DEBUG_VMESH
 #endif
-
+#define DEBUG_VMESH 
 namespace vmesh {
 
    class VelocityMesh : public Managed {
@@ -255,50 +255,6 @@ namespace vmesh {
          return invalidGlobalID();
       }
    }
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-   ARCH_DEV inline bool VelocityMesh::warpCopy(const vmesh::LocalID& sourceLID,const vmesh::LocalID& targetLID, const size_t b_tid) {
-      printf("Calling copy!\n");
-      const vmesh::GlobalID sourceGID = localToGlobalMap->at(sourceLID); // block at the end of list
-      const vmesh::GlobalID targetGID = localToGlobalMap->at(targetLID); // removed block
-      // at-function will throw out_of_range exception for non-existing global ID:
-      globalToLocalMap->warpInsert(sourceGID,targetLID,b_tid);
-      globalToLocalMap->warpInsert(targetGID,sourceLID,b_tid);
-      if (b_tid==0) {
-         localToGlobalMap->at(targetLID) = sourceGID;
-         localToGlobalMap->at(sourceLID) = targetGID;
-      }
-      __syncthreads();
-      return true;
-   }
-   ARCH_DEV inline size_t VelocityMesh::warpCount(const vmesh::GlobalID& globalID, const size_t b_tid) const {
-      vmesh::LocalID retval = invalidLocalID();
-      globalToLocalMap->warpFind(globalID, retval, b_tid % GPUTHREADS);
-      if (retval == invalidLocalID()) {
-         return 0;
-      } else {
-         return 1;
-      }
-   }
-   ARCH_DEV inline vmesh::GlobalID VelocityMesh::warpFindBlock(vmesh::GlobalID cellIndices[3], const size_t b_tid) const {
-      // Calculate i/j/k indices of the block that would own the cell:
-      vmesh::GlobalID i_block = cellIndices[0] / (*(vmesh::getMeshWrapper()->velocityMeshes))[meshID].blockLength[0];
-      vmesh::GlobalID j_block = cellIndices[1] / (*(vmesh::getMeshWrapper()->velocityMeshes))[meshID].blockLength[1];
-      vmesh::GlobalID k_block = cellIndices[2] / (*(vmesh::getMeshWrapper()->velocityMeshes))[meshID].blockLength[2];
-
-      // Calculate block global ID:
-      vmesh::GlobalID blockGID = getGlobalID(i_block,j_block,k_block);
-
-      // If the block exists, return it:
-      vmesh::LocalID retval = invalidLocalID();
-      globalToLocalMap->warpFind(blockGID, retval, b_tid % GPUTHREADS);
-
-      if (retval == invalidLocalID()) {
-         return invalidGlobalID();
-      } else {
-         return blockGID;
-      }
-   }
-#endif
 
    ARCH_HOSTDEV inline bool VelocityMesh::getBlockCoordinates(const vmesh::GlobalID& globalID,Real coords[3]) const {
       if (globalID == invalidGlobalID()) {
@@ -368,8 +324,7 @@ namespace vmesh {
    ARCH_HOSTDEV inline vmesh::GlobalID VelocityMesh::getGlobalID(const vmesh::LocalID& localID) const {
       #ifdef DEBUG_VMESH
       if (localID >= localToGlobalMap->size()) {
-         printf("ERROR invalid local id %lu\n",localID);
-         exit(1);
+         assert (0 && "ERROR invalid local id" && localID);
       }
       #endif
 
@@ -465,13 +420,6 @@ namespace vmesh {
       #endif
       return invalidLocalID();
    }
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-   ARCH_DEV inline vmesh::LocalID VelocityMesh::warpGetLocalID(const vmesh::GlobalID& globalID, const size_t b_tid) const {
-      vmesh::LocalID retval = invalidLocalID();
-      globalToLocalMap->warpFind(globalID, retval, b_tid % GPUTHREADS);
-      return retval;
-   }
-#endif
    ARCH_HOSTDEV inline size_t VelocityMesh::getMesh() const {
       return meshID;
    }
@@ -520,21 +468,6 @@ namespace vmesh {
       #endif
       localToGlobalMap->pop_back();
    }
-#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
-   ARCH_DEV inline void VelocityMesh::warpPop(const size_t b_tid) {
-      const size_t mySize = size();
-      if (mySize == 0) return;
-      const vmesh::LocalID lastLID = mySize-1;
-      const vmesh::GlobalID lastGID = localToGlobalMap->at(lastLID);
-      if (b_tid < GPUTHREADS) {
-         globalToLocalMap->warpErase(lastGID, b_tid);
-      }
-      if (b_tid==0) {
-         localToGlobalMap->pop_back();
-      }
-      __syncthreads();
-   }
-#endif
    /** Returns true if added velocity block was new, false if it couldn't be added or already existed.
     */
    ARCH_HOSTDEV inline bool VelocityMesh::push_back(const vmesh::GlobalID& globalID) {
@@ -613,13 +546,127 @@ namespace vmesh {
    }
 
 #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+   /**** 
+         Device-only accessors to be called from a single GPU thread
+    **/
+   ARCH_DEV inline void VelocityMesh::replaceBlock(const vmesh::GlobalID& GIDold,const vmesh::LocalID& LID,const vmesh::GlobalID& GIDnew) {
+      #ifdef DEBUG_VMESH
+      if (LID > size()-1) printf("vmesh replaceBlock error: LID is too large!\n");
+      vmesh::LocalID LIDold = invalidLocalID();
+      auto it = globalToLocalMap->device_find(GIDold);
+      if (it != globalToLocalMap->device_end()) LIDold = it->second;
+      if (localToGlobalMap->at(LIDold) != GIDold) printf("vmesh replaceBlock error: oldGID and oldLID don't match!\n");
+      #endif
+      globalToLocalMap->device_erase(GIDold);
+      globalToLocalMap->set_element(GIDnew,LID);
+      localToGlobalMap->at(LID) = GIDnew;
+   }
+   // Note: this function does not adjust the vmesh size, as it is used from within a parallel kernel.
+   ARCH_DEV inline void VelocityMesh::placeBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID) {
+      #ifdef DEBUG_VMESH
+      if (LID > size()-1) {
+         assert(0 && "vmesh placeBlock error: LID is too large!" && LID && size());
+      }
+      #endif
+      globalToLocalMap->set_element(GID,LID);
+      localToGlobalMap->at(LID) = GID;
+   }
+   ARCH_DEV inline void VelocityMesh::deleteBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID) {
+      #ifdef DEBUG_VMESH
+      // Verify that GID and LID match
+      if (GID==invalidGlobalID()) printf("vmesh deleteBlock error: GID is invalidGlobalID!\n");
+      if (LID==invalidLocalID()) printf("vmesh deleteBlock error: LID is invalidLocalID!\n");
+      auto it = globalToLocalMap->device_find(GID);
+      if (it == globalToLocalMap->device_end()) {
+         printf("vmesh deleteBlock error: GID does not exist!\n");
+      } else {
+         if (it->second != LID) printf("vmesh deleteBlock error: LID %ul found with GID %ul does not match privided LID %ul!\n",it->second,GID,LID);
+      }
+      if (localToGlobalMap->at(LID) != GID) {
+         printf("vmesh deleteBlock error: GID %ul found with LID %ul does not match privided GID %ul!\n",localToGlobalMap->at(LID),LID,GID);
+      }
+      #endif
+      globalToLocalMap->device_erase(GID);
+      localToGlobalMap->at(LID) = invalidGlobalID();
+   }
+
+/****
+        Warp accessor functions to be called from within GPU kernels over several threads
+   **/
+   ARCH_DEV inline void VelocityMesh::warpPop(const size_t b_tid) {
+      const size_t mySize = size();
+      if (mySize == 0) return;
+      const vmesh::LocalID lastLID = mySize-1;
+      const vmesh::GlobalID lastGID = localToGlobalMap->at(lastLID);
+      if (b_tid < GPUTHREADS) {
+         globalToLocalMap->warpErase(lastGID, b_tid);
+      }
+      if (b_tid==0) {
+         localToGlobalMap->pop_back();
+      }
+      __syncthreads();
+   }
+   ARCH_DEV inline vmesh::LocalID VelocityMesh::warpGetLocalID(const vmesh::GlobalID& globalID, const size_t b_tid) const {
+      vmesh::LocalID retval = invalidLocalID();
+      globalToLocalMap->warpFind(globalID, retval, b_tid % GPUTHREADS);
+      __syncthreads();
+      return retval;
+   }
+   ARCH_DEV inline bool VelocityMesh::warpCopy(const vmesh::LocalID& sourceLID,const vmesh::LocalID& targetLID, const size_t b_tid) {
+      printf("Calling copy!\n");
+      const vmesh::GlobalID sourceGID = localToGlobalMap->at(sourceLID); // block at the end of list
+      const vmesh::GlobalID targetGID = localToGlobalMap->at(targetLID); // removed block
+      // at-function will throw out_of_range exception for non-existing global ID:
+      if (b_tid < GPUTHREADS) {
+         globalToLocalMap->warpInsert(sourceGID,targetLID,b_tid);
+         globalToLocalMap->warpInsert(targetGID,sourceLID,b_tid);
+      }
+      if (b_tid==0) {
+         localToGlobalMap->at(targetLID) = sourceGID;
+         localToGlobalMap->at(sourceLID) = targetGID;
+      }
+      __syncthreads();
+      return true;
+   }
+   ARCH_DEV inline size_t VelocityMesh::warpCount(const vmesh::GlobalID& globalID, const size_t b_tid) const {
+      vmesh::LocalID retval = invalidLocalID();
+      globalToLocalMap->warpFind(globalID, retval, b_tid % GPUTHREADS);
+      __syncthreads();
+      if (retval == invalidLocalID()) {
+         return 0;
+      } else {
+         return 1;
+      }
+   }
+   ARCH_DEV inline vmesh::GlobalID VelocityMesh::warpFindBlock(vmesh::GlobalID cellIndices[3], const size_t b_tid) const {
+      // Calculate i/j/k indices of the block that would own the cell:
+      vmesh::GlobalID i_block = cellIndices[0] / (*(vmesh::getMeshWrapper()->velocityMeshes))[meshID].blockLength[0];
+      vmesh::GlobalID j_block = cellIndices[1] / (*(vmesh::getMeshWrapper()->velocityMeshes))[meshID].blockLength[1];
+      vmesh::GlobalID k_block = cellIndices[2] / (*(vmesh::getMeshWrapper()->velocityMeshes))[meshID].blockLength[2];
+
+      // Calculate block global ID:
+      vmesh::GlobalID blockGID = getGlobalID(i_block,j_block,k_block);
+
+      // If the block exists, return it:
+      vmesh::LocalID retval = invalidLocalID();
+      globalToLocalMap->warpFind(blockGID, retval, b_tid % GPUTHREADS);
+
+      __syncthreads();
+      if (retval == invalidLocalID()) {
+         return invalidGlobalID();
+      } else {
+         return blockGID;
+      }
+   }
    ARCH_DEV inline bool VelocityMesh::warpPush_back(const vmesh::GlobalID& globalID, const size_t b_tid) {
       const size_t mySize = size();
       if (mySize >= (*(vmesh::getMeshWrapper()->velocityMeshes))[meshID].max_velocity_blocks) return false;
       if (globalID == invalidGlobalID()) return false;
 
       __shared__ bool inserted;
-      if (b_tid==0) inserted = false;
+      if (b_tid==0) {
+         inserted = false;
+      }
       __syncthreads();
       if (b_tid < GPUTHREADS) {
          inserted = globalToLocalMap->warpInsert_V(globalID,(vmesh::LocalID)mySize, b_tid);
@@ -630,7 +677,6 @@ namespace vmesh {
       __syncthreads();
       return inserted;
    }
-
    ARCH_DEV inline vmesh::LocalID VelocityMesh::warpPush_back(const split::SplitVector<vmesh::GlobalID>& blocks, const size_t b_tid) {
       const size_t mySize = size();
       const size_t blocksSize = blocks.size();
@@ -642,10 +688,11 @@ namespace vmesh {
          }
          return false;
       }
-
       __shared__ size_t nInserted;
       __shared__ bool inserted;
-      if (b_tid==0) inserted = true;
+      if (b_tid==0) {
+         inserted = true;
+      }
       __syncthreads();
       if (b_tid < GPUTHREADS) {
          for (size_t b=0; b<blocksSize; ++b) { // GPUTODO parallelize
@@ -667,19 +714,6 @@ namespace vmesh {
       }
       __syncthreads();
       return blocksSize;
-   }
-
-   ARCH_DEV inline void VelocityMesh::replaceBlock(const vmesh::GlobalID& GIDold,const vmesh::LocalID& LID,const vmesh::GlobalID& GIDnew) {
-      #ifdef DEBUG_VMESH
-      if (LID > size()-1) printf("vmesh replaceBlock error: LID is too large!\n");
-      vmesh::LocalID LIDold = invalidLocalID();
-      auto it = globalToLocalMap->device_find(GIDold);
-      if (it != globalToLocalMap->device_end()) LIDold = it->second;
-      if (localToGlobalMap->at(LIDold) != GIDold) printf("vmesh replaceBlock error: oldGID and oldLID don't match!\n");
-      #endif
-      globalToLocalMap->device_erase(GIDold);
-      globalToLocalMap->set_element(GIDnew,LID);
-      localToGlobalMap->at(LID) = GIDnew;
    }
    ARCH_DEV inline void VelocityMesh::warpReplaceBlock(const vmesh::GlobalID& GIDold,const vmesh::LocalID& LID,const vmesh::GlobalID& GIDnew, const size_t b_tid) {
       #ifdef DEBUG_VMESH
@@ -703,16 +737,6 @@ namespace vmesh {
       }
       __syncthreads();
    }
-
-   /** Note: this function does not adjust the vmesh size, as it is used from within a parallel kernel.
-    */
-   ARCH_DEV inline void VelocityMesh::placeBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID) {
-      #ifdef DEBUG_VMESH
-      if (LID > size()-1) printf("vmesh placeBlock error: LID is too large!\n");
-      #endif
-      globalToLocalMap->set_element(GID,LID);
-      localToGlobalMap->at(LID) = GID;
-   }
    ARCH_DEV inline void VelocityMesh::warpPlaceBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID, const size_t b_tid) {
       #ifdef DEBUG_VMESH
       if (b_tid==0) {
@@ -728,25 +752,8 @@ namespace vmesh {
       }
       __syncthreads();
    }
-
-   ARCH_DEV inline void VelocityMesh::deleteBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID) {
-#ifdef DEBUG_VMESH
-      // Verify that GID and LID match
-      if (GID==invalidGlobalID()) printf("vmesh deleteBlock error: GID is invalidGlobalID!\n");
-      if (LID==invalidLocalID()) printf("vmesh deleteBlock error: LID is invalidLocalID!\n");
-      auto it = globalToLocalMap->device_find(GID);
-      if (it == globalToLocalMap->device_end()) {
-         printf("vmesh deleteBlock error: GID does not exist!\n");
-      } else {
-         if (it->second != LID) printf("vmesh deleteBlock error: LID %ul found with GID %ul does not match privided LID %ul!\n",it->second,GID,LID);
-      }
-      if (localToGlobalMap->at(LID) != GID) printf("vmesh deleteBlock error: GID %ul found with LID %ul does not match privided GID %ul!\n",localToGlobalMap->at(LID),LID,GID);
-#endif
-      globalToLocalMap->device_erase(GID);
-      localToGlobalMap->at(LID) = invalidGlobalID();
-   }
    ARCH_DEV inline void VelocityMesh::warpDeleteBlock(const vmesh::GlobalID& GID,const vmesh::LocalID& LID, const size_t b_tid) {
-#ifdef DEBUG_VMESH
+      #ifdef DEBUG_VMESH
       // Verify that GID and LID match
       if (b_tid==0) {
          if (GID==invalidGlobalID()) printf("vmesh deleteBlock error: GID is invalidGlobalID!\n");
@@ -754,17 +761,23 @@ namespace vmesh {
       }
       __syncthreads();
       vmesh::LocalID retval = invalidLocalID();
-      globalToLocalMap->warpFind(globalID, retval, b_tid % GPUTHREADS);
+      globalToLocalMap->warpFind(GID, retval, b_tid % GPUTHREADS);
       if (b_tid==0) {
          if (retval == invalidLocalID()) {
             printf("vmesh deleteBlock error: GID does not exist!\n");
          } else {
-            if (retval != LID) printf("vmesh deleteBlock error: LID %ul found with GID %ul does not match privided LID %ul!\n",it->second,GID,LID);
+            if (retval != LID) {
+               printf("vmesh deleteBlock error: LID %ul found with GID %ul does not match provided LID %ul!\n",
+                      retval,GID,LID);
+            }
          }
-         if (localToGlobalMap->at(LID) != GID) printf("vmesh deleteBlock error: GID %ul found with LID %ul does not match privided GID %ul!\n",localToGlobalMap->at(LID),LID,GID);
+         if (localToGlobalMap->at(LID) != GID) {
+            printf("vmesh deleteBlock error: GID %ul found with LID %ul does not match privided GID %ul!\n",
+                   localToGlobalMap->at(LID),LID,GID);
+         }
       }
       __syncthreads();
-#endif
+      #endif
       if (b_tid < GPUTHREADS) {
          globalToLocalMap->warpErase(GID, b_tid);
          if (b_tid==0) {

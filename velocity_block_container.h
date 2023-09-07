@@ -459,16 +459,14 @@ namespace vmesh {
       const vmesh::LocalID newIndex = numberOfBlocks;
       numberOfBlocks += N_blocks;
 
-#ifdef USE_GPU
       if (numberOfBlocks > currentCapacity) {
-         #pragma nv_diag_suppress 20014
+         #if defined(USE_GPU) && (defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
+         printf("ERROR! Attempting to grow block container on-device beyond capacity (::push_back).\n");
+         #else
          resize();
+         #endif
       }
-#else
-      if (numberOfBlocks > currentCapacity) {
-         resize();
-      }
-#endif
+
       return newIndex;
    }
 
@@ -477,12 +475,14 @@ namespace vmesh {
       const vmesh::LocalID newIndex = numberOfBlocks;
       numberOfBlocks += N_blocks;
 
-#ifdef USE_GPU
       if (numberOfBlocks > currentCapacity) {
-         #pragma nv_diag_suppress 20014
+         #if (defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
+         printf("ERROR! Attempting to grow block container on-device beyond capacity (::push_back).\n");
+         #else
          resize();
+         #endif
       }
-      #if !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
+      #if defined(USE_GPU) && !defined(__CUDA_ARCH__) && !defined(__HIP_DEVICE_COMPILE__)
       gpuStream_t stream = gpu_getStream();
       // Clear velocity block data to zero values
       CHK_ERR( gpuMemsetAsync(&(block_data[newIndex*WID3]), 0, WID3*N_blocks*sizeof(Realf), stream) );
@@ -497,20 +497,6 @@ namespace vmesh {
          (*parameters)[newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS+i] = 0.0;
       }
       #endif
-#else
-      if (numberOfBlocks > currentCapacity) {
-         resize();
-      }
-
-      // Clear velocity block data to zero values
-      for (size_t i=0; i<WID3*N_blocks; ++i) {
-         (*block_data)[newIndex*WID3+i] = 0.0;
-      }
-      for (size_t i=0; i<BlockParams::N_VELOCITY_BLOCK_PARAMS*N_blocks; ++i) {
-         (*parameters)[newIndex*BlockParams::N_VELOCITY_BLOCK_PARAMS+i] = 0.0;
-      }
-#endif
-
       return newIndex;
    }
 
@@ -591,10 +577,11 @@ namespace vmesh {
    inline ARCH_HOSTDEV bool VelocityBlockContainer::setSize(const vmesh::LocalID& newSize) {
       numberOfBlocks = newSize;
       if (newSize > currentCapacity) {
-#ifdef USE_GPU
-#pragma nv_diag_suppress 20014
-#endif
+         #if (defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
+         printf("ERROR! Attempting to grow block container on-device beyond capacity (::push_back).\n");
+         #else
          resize();
+         #endif
       }
       return true;
    }
