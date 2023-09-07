@@ -215,11 +215,6 @@ namespace SBC {
             const uint popID,
             const bool calculate_V_moments
          );
-         void vlasovBoundaryCopyFromTheClosestNbrAndLimit(
-               const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-               const CellID& cellID,
-               const uint popID
-         );
          void vlasovBoundaryCopyFromAllClosestNbrs(
             const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
             const CellID& cellID,
@@ -232,23 +227,6 @@ namespace SBC {
             const uint popID,
             const bool calculate_V_moments,
             creal fluffiness
-         );
-         void vlasovBoundaryReflect(
-            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-            const CellID& cellID,
-            creal& nx,
-            creal& ny,
-            creal& nz,
-            const uint popID
-         );
-         void vlasovBoundaryAbsorb(
-            const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geometry>& mpiGrid,
-            const CellID& cellID,
-            creal& nx,
-            creal& ny,
-            creal& nz,
-            creal& quenchingFactor,
-            const uint popID
          );
          std::array<int, 3> getTheClosestNonsysboundaryCell(
             FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,

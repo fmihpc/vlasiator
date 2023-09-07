@@ -528,7 +528,7 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    pencilRatiosTemp->optimizeGPU();
    phiprof::stop("trans-amr-gather-meshpointers");
 
-   phiprof::start("trans-amr-buildBlockList");
+   phiprof::start("trans-amr-buildBlockList-2");
    // Now we ensure the union of blocks gathering is complete and extract the union of blocks into a vector
    CHK_ERR( gpuStreamSynchronize(bgStream) );
    const uint nAllBlocks = unionOfBlocksSet->extractAllKeys(*unionOfBlocks,bgStream);
@@ -542,9 +542,6 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    phiprof::stop("trans-amr-setup");
    /***********************/
    int t1 = phiprof::initializeTimer("trans-amr-mapping");
-   int t2 = phiprof::initializeTimer("trans-amr-load source data");
-   int t3 = phiprof::initializeTimer("trans-amr-MemSet");
-   int t4 = phiprof::initializeTimer("trans-amr-propagatePencil");
 #pragma omp parallel
    {
       // Thread id used for persistent device memory pointers

@@ -59,12 +59,12 @@ namespace SBC {
 
         Readparameters::addComposing(pop + "_outflow.reapplyFaceUponRestart", "List of faces on which outflow boundary conditions are to be reapplied upon restart ([xyz][+-]).");
         Readparameters::addComposing(pop + "_outflow.face", "List of faces on which outflow boundary conditions are to be applied ([xyz][+-]).");
-        Readparameters::add(pop + "_outflow.vlasovScheme_face_x+", "Scheme to use on the face x+ (Copy, Limit, None)", defStr);
-        Readparameters::add(pop + "_outflow.vlasovScheme_face_x-", "Scheme to use on the face x- (Copy, Limit, None)", defStr);
-        Readparameters::add(pop + "_outflow.vlasovScheme_face_y+", "Scheme to use on the face y+ (Copy, Limit, None)", defStr);
-        Readparameters::add(pop + "_outflow.vlasovScheme_face_y-", "Scheme to use on the face y- (Copy, Limit, None)", defStr);
-        Readparameters::add(pop + "_outflow.vlasovScheme_face_z+", "Scheme to use on the face z+ (Copy, Limit, None)", defStr);
-        Readparameters::add(pop + "_outflow.vlasovScheme_face_z-", "Scheme to use on the face z- (Copy, Limit, None)", defStr);
+        Readparameters::add(pop + "_outflow.vlasovScheme_face_x+", "Scheme to use on the face x+ (Copy, None)", defStr);
+        Readparameters::add(pop + "_outflow.vlasovScheme_face_x-", "Scheme to use on the face x- (Copy, None)", defStr);
+        Readparameters::add(pop + "_outflow.vlasovScheme_face_y+", "Scheme to use on the face y+ (Copy, None)", defStr);
+        Readparameters::add(pop + "_outflow.vlasovScheme_face_y-", "Scheme to use on the face y- (Copy, None)", defStr);
+        Readparameters::add(pop + "_outflow.vlasovScheme_face_z+", "Scheme to use on the face z+ (Copy, None)", defStr);
+        Readparameters::add(pop + "_outflow.vlasovScheme_face_z-", "Scheme to use on the face z- (Copy, None)", defStr);
 
         Readparameters::add(pop + "_outflow.quench", "Factor by which to quench the inflowing parts of the velocity distribution function.", 1.0);
       }
@@ -118,8 +118,6 @@ namespace SBC {
               sP.faceVlasovScheme[j] = vlasovscheme::NONE;
            } else if (vlasovSysBoundarySchemeName[j] == "Copy") {
               sP.faceVlasovScheme[j] = vlasovscheme::COPY;
-           } else if(vlasovSysBoundarySchemeName[j] == "Limit") {
-              sP.faceVlasovScheme[j] = vlasovscheme::LIMIT;
            } else {
               if(myRank == MASTER_RANK) cerr << __FILE__ << ":" << __LINE__ << " ERROR: " << vlasovSysBoundarySchemeName[j] << " is an invalid Outflow Vlasov scheme!" << endl;
               exit(1);
@@ -345,9 +343,6 @@ namespace SBC {
                   break;
                case vlasovscheme::COPY:
                   vlasovBoundaryCopyFromTheClosestNbr(mpiGrid,cellID,false,popID,calculate_V_moments);
-                  break;
-               case vlasovscheme::LIMIT:
-                  vlasovBoundaryCopyFromTheClosestNbrAndLimit(mpiGrid,cellID,popID);
                   break;
                default:
                   cerr << __FILE__ << ":" << __LINE__ << "ERROR: invalid Outflow Vlasov scheme!" << endl;

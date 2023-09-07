@@ -147,17 +147,11 @@ namespace vmesh {
    }
 
    inline const VelocityBlockContainer& VelocityBlockContainer::operator=(const VelocityBlockContainer& other) {
-      // Delete old vectors
-      delete block_data;
-      delete parameters;
-#ifdef USE_GPU
+      #ifdef USE_GPU
       attachedStream = 0;
-      block_data= new split::SplitVector<Realf>(*(other.block_data));
-      parameters= new split::SplitVector<Real>(*(other.parameters));
-#else
-      block_data = new std::vector<Realf,aligned_allocator<Realf,WID3>>(*(other.block_data));
-      parameters = new std::vector<Real,aligned_allocator<Real,BlockParams::N_VELOCITY_BLOCK_PARAMS>>(*(other.parameters));
-#endif
+      #endif
+      *block_data = *(other.block_data);
+      *parameters = *(other.parameters);
       currentCapacity = other.currentCapacity;
       numberOfBlocks = other.numberOfBlocks;
       return *this;
@@ -270,7 +264,7 @@ namespace vmesh {
 #ifdef USE_GPU
    inline void VelocityBlockContainer::gpu_Allocate(vmesh::LocalID size) {
       vmesh::LocalID requirement = (size > numberOfBlocks) ? size : numberOfBlocks;
-      if (block_data->capacity() > BLOCK_ALLOCATION_FACTOR * requirement) {
+      if (currentCapacity > BLOCK_ALLOCATION_FACTOR * requirement) {
          return; // Still have enough buffer
       }
 
@@ -281,17 +275,21 @@ namespace vmesh {
       if (numberOfBlocks > BLOCK_ALLOCATION_FACTOR * size) {
          std::cerr<<"Warning in "<<__FILE__<<" line "<<__LINE__<<": attempting to allocate less than safety margins"<<std::endl;
       }
-      block_data->reallocate(BLOCK_ALLOCATION_PADDING * size);
-      parameters->reallocate(BLOCK_ALLOCATION_PADDING * size);
+      // Passing eco flag = true to reserve tells splitvector we manage padding manually.
+      currentCapacity = BLOCK_ALLOCATION_PADDING * size;
+      block_data->resize(currentCapacity * WID3, true);
+      parameters->resize(currentCapacity * BlockParams::N_VELOCITY_BLOCK_PARAMS, true);
       return;
    }
 
    inline void VelocityBlockContainer::gpu_Allocate() {
-      if (block_data->capacity() > BLOCK_ALLOCATION_FACTOR * numberOfBlocks) {
+      if (currentCapacity > BLOCK_ALLOCATION_FACTOR * numberOfBlocks) {
          return; // Still have enough buffer
       }
-      block_data->reallocate(BLOCK_ALLOCATION_PADDING * numberOfBlocks);
-      parameters->reallocate(BLOCK_ALLOCATION_PADDING * numberOfBlocks);
+      // Passing eco flag = true to reserve tells splitvector we manage padding manually.
+      currentCapacity = BLOCK_ALLOCATION_PADDING * numberOfBlocks;
+      block_data->resize(currentCapacity * WID3, true);
+      parameters->resize(currentCapacity * BlockParams::N_VELOCITY_BLOCK_PARAMS, true);
       return;
    }
 
@@ -395,10 +393,11 @@ namespace vmesh {
    inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::push_back() {
       vmesh::LocalID newIndex = numberOfBlocks;
       if (newIndex >= currentCapacity) {
-         #ifdef USE_GPU
-         #pragma nv_diag_suppress 20011,20014
-         #endif
+         #if defined(USE_GPU) && (defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
+         printf("ERROR! Attempting to grow block container on-device beyond capacity (::push_back).\n");
+         #else
          resize();
+         #endif
       }
       #ifdef DEBUG_VBC
       if (newIndex >= block_data->size()/WID3 || newIndex >= parameters->size()/BlockParams::N_VELOCITY_BLOCK_PARAMS) {
@@ -418,10 +417,11 @@ namespace vmesh {
    inline ARCH_HOSTDEV vmesh::LocalID VelocityBlockContainer::push_back_and_zero() {
       vmesh::LocalID newIndex = numberOfBlocks;
       if (newIndex >= currentCapacity) {
-         #ifdef USE_GPU
-         #pragma nv_diag_suppress 20011,20014
-         #endif
+         #if defined(USE_GPU) && (defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
+         printf("ERROR! Attempting to grow block container on-device beyond capacity.");
+         #else
          resize();
+         #endif
       }
 
       #ifdef DEBUG_VBC
@@ -550,7 +550,7 @@ namespace vmesh {
 
    inline void VelocityBlockContainer::resize() {
 #ifdef USE_GPU
-      if ((numberOfBlocks+1)*BLOCK_ALLOCATION_FACTOR >= currentCapacity) {
+      if ((numberOfBlocks+1) * BLOCK_ALLOCATION_FACTOR >= currentCapacity) {
          // Resize so that free space is current * block_allocation_padding blocks,
          // and at least two in case of having zero blocks.
          // The order of velocity blocks is unaltered.

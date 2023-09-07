@@ -777,12 +777,15 @@ namespace vmesh {
 
    inline void VelocityMesh::setGrid() {
       globalToLocalMap->clear();
-      for (size_t i=0; i<localToGlobalMap->size(); ++i) {
-         globalToLocalMap->insert(Hashinator::make_pair(localToGlobalMap->at(i),(vmesh::LocalID)i));
-      }
+      gpuStream_t stream = gpu_getStream();
+      size_t nBlocks = localToGlobalMap->size();
+      globalToLocalMap->insertIndex(localToGlobalMap->data(),nBlocks,0.5,stream,false);
+      CHK_ERR( gpuStreamSynchronize(stream) );
    }
 
+   // GPUTODO: These accessors are still slow, but we don't actually use them at all.
    inline bool VelocityMesh::setGrid(const std::vector<vmesh::GlobalID>& globalIDs) {
+      printf("Warning! Slow version of VelocityMesh::setGrid.\n");
       globalToLocalMap->clear();
       for (vmesh::LocalID i=0; i<globalIDs.size(); ++i) {
          globalToLocalMap->insert(Hashinator::make_pair(globalIDs[i],(vmesh::LocalID)i));
@@ -792,6 +795,7 @@ namespace vmesh {
       return true;
    }
    inline bool VelocityMesh::setGrid(const split::SplitVector<vmesh::GlobalID>& globalIDs) {
+      printf("Warning! Slow version of VelocityMesh::setGrid.\n");
       globalToLocalMap->clear();
       for (vmesh::LocalID i=0; i<globalIDs.size(); ++i) {
          globalToLocalMap->insert(Hashinator::make_pair(globalIDs[i],(vmesh::LocalID)i));

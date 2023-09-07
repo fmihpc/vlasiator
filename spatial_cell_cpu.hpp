@@ -232,6 +232,52 @@ namespace spatial_cell {
          }
          return *this;
       }
+      void Scale(creal factor) {
+         RHO *= factor;
+         RHO_R *= factor;
+         RHO_V *= factor;
+         for (uint i=0; i<3; ++i) {
+            P[i] *= factor;
+            P_R[i] *= factor;
+            P_V[i] *= factor;
+         }
+         // Now loop over whole velocity space and scale the values
+         for (vmesh::LocalID blockLID=0; blockLID < vmesh->size(); ++blockLID) {
+            // Pointer to target block data
+            Realf* toData = blockContainer->getData(blockLID);
+            // Scale data
+            for (uint i=0; i<WID3; ++i) {
+               toData[i] = toData[i] * factor;
+            }
+         }
+      }
+      void Increment(const Population& other, creal factor) {
+         // Note: moments will be invalidated.
+         // Loop over the whole velocity space, and add scaled values.
+         for (vmesh::LocalID incBlockLID=0; incBlockLID<(other.vmesh)->size(); ++incBlockLID) {
+            const Realf* fromData = (other.blockContainer)->getData(incBlockLID);
+
+            // Global ID of the block containing incoming data
+            vmesh::GlobalID incBlockGID = (other.vmesh)->getGlobalID(incBlockLID);
+
+            // Get local ID of the target block. If the block doesn't exist, create it.
+            vmesh::GlobalID toBlockLID = vmesh->getLocalID(incBlockGID);
+            bool success = true;
+            if (toBlockLID == vmesh->invalidLocalID()) {
+               success = vmesh->push_back(incBlockGID);
+               toBlockLID = blockContainer->push_back_and_zero();
+               Real* parameters = blockContainer->getParameters(toBlockLID);
+               vmesh->getBlockInfo(incBlockGID, parameters+BlockParams::VXCRD);
+            }
+
+            // Pointer to target block data
+            Realf* toData = blockContainer->getData(toBlockLID);
+            // Add scaled values from source cells
+            for (uint i=0; i<WID3; ++i) {
+               toData[i] += fromData[i] * factor;
+            }
+         } // for-loop over velocity blocks
+      }
    };
 
    class SpatialCell {
@@ -271,6 +317,8 @@ namespace spatial_cell {
       Population & get_population(const uint popID);
       const Population & get_population(const uint popID) const;
       void set_population(const Population& pop, cuint popID);
+      void scale_population(creal factor, cuint popID);
+      void increment_population(const Population& pop, creal factor, cuint popID);
 
       uint8_t get_maximum_refinement_level(const uint popID);
       const Real& get_max_r_dt(const uint popID) const;
@@ -994,6 +1042,12 @@ namespace spatial_cell {
 
    inline void SpatialCell::set_population(const Population& pop, cuint popID) {
       this->populations[popID] = pop;
+   }
+   inline void SpatialCell::scale_population(creal factor, cuint popID) {
+      (this->populations[popID]).Scale(factor);
+   }
+   inline void SpatialCell::increment_population(const Population& pop, creal factor, cuint popID) {
+      (this->populations[popID]).Increment(pop, factor);
    }
 
    inline const vmesh::LocalID* SpatialCell::get_velocity_grid_length(const uint popID,const uint8_t& refLevel) {
