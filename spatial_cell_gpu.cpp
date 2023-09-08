@@ -30,7 +30,7 @@
 #ifdef DEBUG_VLASIATOR
    #define DEBUG_SPATIAL_CELL
 #endif
-#define DEBUG_SPATIAL_CELL
+
 using namespace std;
 
 /** GPU kernel for identifying which blocks have relevant content */
@@ -1476,6 +1476,7 @@ namespace spatial_cell {
          #ifdef DEBUG_SPATIAL_CELL
          nGpuBlocks=1;
          #endif
+         nGpuBlocks=1;
          update_velocity_blocks_kernel<<<nGpuBlocks, block, 0, stream>>> (
             populations[popID].vmesh,
             populations[popID].blockContainer,

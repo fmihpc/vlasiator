@@ -43,7 +43,7 @@
 #ifdef DEBUG_VLASIATOR
    #define DEBUG_VMESH
 #endif
-#define DEBUG_VMESH
+
 namespace vmesh {
 
    class VelocityMesh : public Managed {
@@ -873,10 +873,11 @@ namespace vmesh {
             printf("Warp error in VelocityMesh::warpReplaceBlock: warp-erased GID %u LID %u but thread %u still finds LID %u associated with it!\n",GIDold,LID,(vmesh::LocalID)b_tid,it2->second);
             assert(0);
          }
-         #endif
          bool newlyadded = false;
          newlyadded = globalToLocalMap->warpInsert_V(GIDnew,LID, b_tid);
-         (void)newlyadded; // to get rid of compiler errors when DEBUG_VMESH is not set
+         #else
+         globalToLocalMap->warpInsert(GIDnew,LID,b_tid);
+         #endif
          if (b_tid==0) {
             localToGlobalMap->at(LID) = GIDnew;
             // if (!newlyadded) {
