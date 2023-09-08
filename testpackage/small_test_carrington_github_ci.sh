@@ -127,6 +127,10 @@ for run in ${run_tests[*]}; do
    # Store error return value
    RUN_ERROR=${PIPESTATUS[0]}
 
+   # Phiprof error means failed test
+   if [[ egrep -q 'PHIPROF-ERROR' $GITHUB_WORKSPACE/stderr.txt ]]; then
+      RUN_ERROR=1
+
    if [[ $RUN_ERROR != 0 ]]; then
       echo -e "<details><summary>:red_circle: ${test_name[$run]}: Failed to run or died with an error.</summary>\n"  >> $GITHUB_STEP_SUMMARY
       echo -e "Stdout:\n \`\`\`\n" >> $GITHUB_STEP_SUMMARY
