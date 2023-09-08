@@ -59,7 +59,7 @@ namespace vmesh {
       ARCH_HOSTDEV vmesh::LocalID capacity() const;
       ARCH_HOSTDEV size_t capacityInBytes() const;
       void clear();
-      ARCH_HOSTDEV void copy(const vmesh::LocalID& source,const vmesh::LocalID& target);
+      ARCH_HOSTDEV void move(const vmesh::LocalID& source,const vmesh::LocalID& target);
       ARCH_HOSTDEV static double getBlockAllocationFactor();
       ARCH_HOSTDEV Realf* getData();
       ARCH_HOSTDEV const Realf* getData() const;
@@ -188,7 +188,7 @@ namespace vmesh {
       numberOfBlocks = 0;
    }
 
-   inline ARCH_HOSTDEV void VelocityBlockContainer::copy(const vmesh::LocalID& source,const vmesh::LocalID& target) {
+   inline ARCH_HOSTDEV void VelocityBlockContainer::move(const vmesh::LocalID& source,const vmesh::LocalID& target) {
       #ifdef DEBUG_VBC
          bool ok = true;
          if (source >= numberOfBlocks) ok = false;
@@ -196,7 +196,7 @@ namespace vmesh {
          if (target >= numberOfBlocks) ok = false;
          if (target >= currentCapacity) ok = false;
          if (numberOfBlocks >= currentCapacity) ok = false;
-         if (source != numberOfBlocks-1) ok = false;
+         if (source != numberOfBlocks-1) ok = false; // only allows moving from last entry
          if (source*WID3+WID3-1 >= block_data->size()) ok = false;
          if (source*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::N_VELOCITY_BLOCK_PARAMS-1 >= parameters->size()) ok = false;
          if (target*BlockParams::N_VELOCITY_BLOCK_PARAMS+BlockParams::N_VELOCITY_BLOCK_PARAMS-1 >= parameters->size()) ok = false;
@@ -217,6 +217,8 @@ namespace vmesh {
       for (int i=0; i<BlockParams::N_VELOCITY_BLOCK_PARAMS; ++i) {
          (*parameters)[target*BlockParams::N_VELOCITY_BLOCK_PARAMS+i] = (*parameters)[source*BlockParams::N_VELOCITY_BLOCK_PARAMS+i];
       }
+      // and remove last entry
+      --numberOfBlocks;
    }
 
    inline void VelocityBlockContainer::exitInvalidLocalID(const vmesh::LocalID& localID,const std::string& funcName) const {

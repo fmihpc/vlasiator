@@ -30,7 +30,7 @@
 #ifdef DEBUG_VLASIATOR
    #define DEBUG_SPATIAL_CELL
 #endif
-
+#define DEBUG_SPATIAL_CELL
 using namespace std;
 
 /** GPU kernel for identifying which blocks have relevant content */
@@ -41,7 +41,6 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_block_content_lists_ke
    split::SplitVector<vmesh::GlobalID>* velocity_block_with_no_content_list,
    Realf velocity_block_min_value
    ) {
-
    const int gpuBlocks = gridDim.x;
    const int blocki = blockIdx.x;
    const int i = threadIdx.x;
@@ -91,16 +90,19 @@ __global__ void __launch_bounds__(GPUTHREADS,4) update_blocks_required_halo_kern
    ) {
    const int gpuBlocks = gridDim.x;
    const int blocki = blockIdx.x;
-   const int warpSize = blockDim.x*blockDim.y*blockDim.z;
+   //const int warpSize = blockDim.x*blockDim.y*blockDim.z;
    const vmesh::LocalID ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
 
    const unsigned long localContentBlocks = velocity_block_with_content_list->size();
 
    vmesh::GlobalID nGIDs[27] = {0};
 
-   for (vmesh::LocalID index=blocki*warpSize; index<localContentBlocks; index += gpuBlocks*warpSize) {
-      if (index+ti < localContentBlocks) {
-         const vmesh::GlobalID GID = velocity_block_with_content_list->at(index+ti);
+   // for (vmesh::LocalID index=blocki*warpSize; index<localContentBlocks; index += gpuBlocks*warpSize) {
+   //    if (index+ti < localContentBlocks) {
+   for (vmesh::LocalID index=blocki; index<localContentBlocks; index += gpuBlocks) {
+      if (index < localContentBlocks) {
+         __syncthreads();
+         const vmesh::GlobalID GID = velocity_block_with_content_list->at(index);
          //BlocksRequiredMap->set_element(GID,GID); // Already added via Hashinator interface
          vmesh::LocalID ind0,ind1,ind2;
          vmesh->getIndices(GID,ind0,ind1,ind2);
@@ -120,9 +122,19 @@ __global__ void __launch_bounds__(GPUTHREADS,4) update_blocks_required_halo_kern
                   if (nGID != vmesh->invalidGlobalID()) {
                      // NEW:
                      nGIDs[localCounter] = nGID;
-                     if (BlocksRequiredMap->device_count(nGID) != 0) {
+                     vmesh::LocalID retval = vmesh->invalidLocalID();
+                     BlocksRequiredMap->warpFind(nGID, retval, ti % GPUTHREADS);
+                     bool found = (retval != vmesh->invalidLocalID());
+                     if (ti==0) {
                         exist = (exist | (1 << localCounter));
                      }
+                     #ifdef DEBUG_SPATIAL_CELL
+                     bool verify = (BlocksRequiredMap->device_count(nGID) != 0);
+                     if (found != verify) {
+                        assert(0 && "single differs from warp count in update_blocks_required_halo_kernel");
+                     }
+                     #endif
+                     __syncthreads();
                      // OLD:
                      // if (BlocksRequiredMap->device_count(nGID) == 0) {
                      //    //BlocksHalo->device_push_back(nGID);
@@ -138,6 +150,11 @@ __global__ void __launch_bounds__(GPUTHREADS,4) update_blocks_required_halo_kern
          if (exist == 134217727) {
             continue;
          }
+         // Following additions are done just from a single thread
+         if (ti!=0) {
+            continue;
+         }
+
          /**
             Define order of responsibility. Blocks are added by:
             first their face neighbours in x
@@ -406,13 +423,17 @@ __global__ void __launch_bounds__(GPUTHREADS,4) update_neighbours_have_content_k
    ) {
    const int gpuBlocks = gridDim.x;
    const int blocki = blockIdx.x;
-   const int warpSize = blockDim.x*blockDim.y*blockDim.z;
+   //const int warpSize = blockDim.x*blockDim.y*blockDim.z;
    const vmesh::LocalID ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
 
-   for (vmesh::LocalID index=blocki*warpSize; index<neighborContentBlocks; index += gpuBlocks*warpSize) {
-      if (index+ti < neighborContentBlocks) {
-         const vmesh::GlobalID GID = neighbor_velocity_block_with_content_list[index+ti];
-         if (BlocksRequiredMap->device_count(GID) == 0) {
+   //for (vmesh::LocalID index=blocki*warpSize; index<neighborContentBlocks; index += gpuBlocks*warpSize) {
+   for (vmesh::LocalID index=blocki; index<neighborContentBlocks; index += gpuBlocks) {
+      if (index < neighborContentBlocks) {
+         const vmesh::GlobalID GID = neighbor_velocity_block_with_content_list[index];
+         vmesh::LocalID retval = vmesh->invalidLocalID();
+         BlocksRequiredMap->warpFind(GID, retval, ti % GPUTHREADS);
+         if (retval == vmesh->invalidLocalID()) {
+         //if (BlocksRequiredMap->device_count(GID) == 0) {
             //BlocksRequiredMap->set_element(GID,GID);
             BlocksHalo->device_push_back(GID);
          }
@@ -439,11 +460,6 @@ __global__ void __launch_bounds__(GPUTHREADS,4) update_blocks_to_add_kernel (
       if (index < nBlocksRequired) {
          const vmesh::GlobalID GIDreq = BlocksRequired->at(index);
          const vmesh::LocalID LIDreq = vmesh->warpGetLocalID(GIDreq,ti);
-
-         //VERIFY
-         const vmesh::LocalID LIDreq0 = vmesh->getLocalID(GIDreq);
-         if (LIDreq!=LIDreq0) printf("Error update_blocks_to_add_kernel %u %u %u\n",LIDreq,LIDreq0,ti);
-
          if (ti==0) {
             if ( LIDreq == vmesh->invalidLocalID() ) {
                // Block doesn't yet exist, need to add
@@ -478,11 +494,18 @@ __global__ void __launch_bounds__(GPUTHREADS,4) update_blocks_to_remove_kernel (
          vmesh::LocalID retval = std::numeric_limits<vmesh::LocalID>::max();
          BlocksRequiredMap->warpFind(GIDcandidate, retval, ti % GPUTHREADS);
 
-         // VERIFY
+         #ifdef DEBUG_SPATIAL_CELL
          auto it = BlocksRequiredMap->device_find(GIDcandidate);
-         vmesh::LocalID retval2 = std::numeric_limits<vmesh::LocalID>::max();
-         if (it != BlocksRequiredMap->device_end()) retval2 = it->second;
-         if (retval2!=retval) printf("Error update_blocks_to_remove_kernel %u %u %u\n",retval,retval2,ti);
+         if (it != BlocksRequiredMap->device_end()) {
+            if (it->second != retval) {
+               printf("Warp error update_blocks_to_remove_kernel: LID %u != %u for GID %u thread %u\n",
+                      it->second,retval,GIDcandidate,ti);
+            }
+         } else if (retval != std::numeric_limits<vmesh::LocalID>::max()) {
+            printf("Warp error update_blocks_to_remove_kernel: warpFind found LID %u, single-thread did not; GID %u for thread %u\n",retval,GIDcandidate,ti);
+         }
+         __syncthreads();
+         #endif
 
          if (retval == std::numeric_limits<vmesh::LocalID>::max() && ti==0) {
             // If the block isn't within the required set, it should be deleted.
@@ -558,20 +581,13 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
       const vmesh::GlobalID rmGID = BlocksToRemove->at(m);
       const vmesh::LocalID rmLID = vmesh->warpGetLocalID(rmGID,ti);
 
-      //VERIFY
-      vmesh::LocalID first = vmesh->getLocalID(rmGID);
-      if (first!=rmLID) {
-         printf("Error in thread %u! GID %u index %u single-thread access %u multi-thread access %u \n",ti,rmGID,m,first,rmLID);
-      }
-      __syncthreads();
-
       #ifdef DEBUG_SPATIAL_CELL
       if (rmGID == vmesh->invalidGlobalID()) {
          if (rmLID != vmesh->invalidLocalID()) {
             // Valid LID but invalid GID: only remove from vmesh localToGlobal?
-            printf("Removing blocks: Valid LID %ul but invalid GID!\n",rmLID);
+            printf("Removing blocks: Valid LID %u but invalid GID!\n",rmLID);
          } else {
-            printf("Removing blocks: InvaLID %ul and GID!\n",rmLID,rmGID);
+            printf("Removing blocks: Invalid LID and GID!\n");
          }
          continue;
       }
@@ -608,27 +624,22 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
       }
       __syncthreads();
 
-      // Figure out which GID to put here instead
+      // Is this LID so large that we just delete without replacing?
       if (rmLID >= nBlocksAfterAdjust) {
-         // Delete without replacing
-         // if (ti==0) {
-         //    vmesh->deleteBlock(rmGID,rmLID);
-         // }
          vmesh->warpDeleteBlock(rmGID,rmLID,ti);
+
          __syncthreads();
          continue;
       }
+
+      // Need to replace this block, let's select the next index:
       if (ti==0) moveIndex = atomicAdd(moveVectorIndex,1);
       __syncthreads();
+
       if (moveIndex<nToMove) {
-         // Move from latter part of vmesh
+         // Move in block from latter part of vmesh
          const vmesh::GlobalID replaceGID = BlocksToMove->at(moveIndex);
          const vmesh::LocalID replaceLID = vmesh->warpGetLocalID(replaceGID,ti);
-
-         //VERIFY
-         const vmesh::LocalID LIDrepl0 = vmesh->getLocalID(replaceGID);
-         if (replaceLID!=LIDrepl0) printf("Error replace block %u %u %u\n",replaceLID,LIDrepl0,ti);
-
 
          Realf* repl_avgs = blockContainer->getData(replaceLID);
          Real*  repl_block_parameters = blockContainer->getParameters(replaceLID);
@@ -637,12 +648,10 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
             rm_block_parameters[ti] = repl_block_parameters[ti];
          }
          __syncthreads();
-         // if (ti==0) {
-         //    // Remove hashmap entry for removed block, add instead created block
-         //    vmesh->replaceBlock(rmGID,rmLID,replaceGID);
-         // }
-         // __syncthreads();
+
+         // Remove hashmap entry for removed block, add instead created block
          vmesh->warpReplaceBlock(rmGID,rmLID,replaceGID,ti);
+
          #ifdef DEBUG_SPATIAL_CELL
          if (vmesh->getGlobalID(rmLID) == vmesh->invalidGlobalID()) {
             continue;
@@ -660,6 +669,7 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
          const vmesh::GlobalID addGID = BlocksToAdd->at(addIndex);
          #ifdef DEBUG_SPATIAL_CELL
          if (addGID == vmesh->invalidGlobalID()) {
+            if (ti==0) printf("Error! Adding invalid Global ID in update_velocity_blocks_kernel! \n");
             __syncthreads();
             continue;
          }
@@ -668,10 +678,9 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
          if (ti==0) {
             // Write in block parameters
             vmesh->getBlockInfo(addGID, rm_block_parameters+BlockParams::VXCRD);
-            vmesh->replaceBlock(rmGID,rmLID,addGID);
          }
          __syncthreads();
-         // vmesh->warpReplaceBlock(rmGID,rmLID,addGID,ti);
+         vmesh->warpReplaceBlock(rmGID,rmLID,addGID,ti);
          #ifdef DEBUG_SPATIAL_CELL
          if (vmesh->getGlobalID(rmLID) == vmesh->invalidGlobalID()) {
             continue;
@@ -705,10 +714,10 @@ __global__ void __launch_bounds__(WID3,4) update_velocity_blocks_kernel(
       if (ti==0) {
          // Write in block parameters
          vmesh->getBlockInfo(addGID, add_block_parameters+BlockParams::VXCRD);
-         vmesh->placeBlock(addGID,addLID);
+         //vmesh->placeBlock(addGID,addLID);
       }
       __syncthreads();
-      // vmesh->warpPlaceBlock(addGID,addLID,ti);
+      vmesh->warpPlaceBlock(addGID,addLID,ti);
       #ifdef DEBUG_SPATIAL_CELL
       if (vmesh->getGlobalID(addLID) == vmesh->invalidGlobalID()) {
          continue;
@@ -1237,7 +1246,9 @@ namespace spatial_cell {
       // with content, and insert all its v-space neighbors (halo)
       if (localContentBlocks > 0) {
          // Ensure at least one launch block
-         nGpuBlocks = (localContentBlocks/GPUTHREADS) > GPUBLOCKS ? GPUBLOCKS : std::ceil((Real)localContentBlocks/(Real)GPUTHREADS);
+         //nGpuBlocks = (localContentBlocks/GPUTHREADS) > GPUBLOCKS ? GPUBLOCKS : std::ceil((Real)localContentBlocks/(Real)GPUTHREADS);
+         // now with warp accessors
+         nGpuBlocks = localContentBlocks > GPUBLOCKS ? GPUBLOCKS : localContentBlocks;
          phiprof::start("Halo gather");
          BlocksHalo->clear();
          int addWidthV = getObjectWrapper().particleSpecies[popID].sparseBlockAddWidthV;
@@ -1278,7 +1289,9 @@ namespace spatial_cell {
               neighbor != spatial_neighbors.end(); ++neighbor) {
             const int nNeighBlocks = (*neighbor)->velocity_block_with_content_list_size;
             // Ensure at least one launch block, try to do many neighbors at once
-            nGpuBlocks = (nNeighBlocks/GPUTHREADS/neighbors_count) > GPUBLOCKS ? GPUBLOCKS : std::ceil((Real)nNeighBlocks/(Real)GPUTHREADS/(Real)neighbors_count);
+            //nGpuBlocks = (nNeighBlocks/GPUTHREADS/neighbors_count) > GPUBLOCKS ? GPUBLOCKS : std::ceil((Real)nNeighBlocks/(Real)GPUTHREADS/(Real)neighbors_count);
+            // now with warp accessors
+            nGpuBlocks = (nNeighBlocks/neighbors_count) > GPUBLOCKS ? GPUBLOCKS : std::ceil((Real)nNeighBlocks/(Real)neighbors_count);
             if (nGpuBlocks==0) {
                continue;
             }
@@ -1398,10 +1411,10 @@ namespace spatial_cell {
       phiprof::stop("Hashinator cleanup");
 
       #ifdef DEBUG_SPATIAL_CELL
-      vmeshSize = (populations[popID].vmesh)->size();
-      vbcSize = (populations[popID].blockContainer)->size();
+      const size_t vmeshSize = (populations[popID].vmesh)->size();
+      const size_t vbcSize = (populations[popID].blockContainer)->size();
       if (vmeshSize != vbcSize) {
-         printf("ERROR: population vmesh %ul and blockcontainer %ul sizes do not match!\n",vmeshSize,vbcSize);
+         printf("ERROR: population vmesh %zu and blockcontainer %zu sizes do not match!\n",vmeshSize,vbcSize);
       }
       populations[popID].vmesh->check();
       #endif
@@ -1460,6 +1473,9 @@ namespace spatial_cell {
          dim3 block(WID,WID,WID);
          // Third argument specifies the number of bytes in *shared memory* that is
          // dynamically allocated per block for this call in addition to the statically allocated memory.
+         #ifdef DEBUG_SPATIAL_CELL
+         nGpuBlocks=1;
+         #endif
          update_velocity_blocks_kernel<<<nGpuBlocks, block, 0, stream>>> (
             populations[popID].vmesh,
             populations[popID].blockContainer,
@@ -1502,11 +1518,13 @@ namespace spatial_cell {
       populations[popID].vmesh->gpu_prefetchHost();
       CHK_ERR( gpuStreamSynchronize(stream) );
       const vmesh::LocalID nAll = populations[popID].vmesh->size();
-      printf("after kernel, size is %d should be %d\n",nAll,nBlocksAfterAdjust);
-      for (vmesh::LocalID m=0; m<nAll; ++m) {
-         const vmesh::GlobalID GIDs = populations[popID].vmesh->getGlobalID(m);
-         const vmesh::LocalID LIDs = populations[popID].vmesh->getLocalID(GIDs);
-         printf("LID %d GID-solved %d LID-solved %d\n",m,GIDs,LIDs);
+      if (nAll!=nBlocksAfterAdjust) {
+         printf("after kernel, size is %d should be %d\n",nAll,nBlocksAfterAdjust);
+         for (vmesh::LocalID m=0; m<nAll; ++m) {
+            const vmesh::GlobalID GIDs = populations[popID].vmesh->getGlobalID(m);
+            const vmesh::LocalID LIDs = populations[popID].vmesh->getLocalID(GIDs);
+            printf("LID %d GID-solved %d LID-solved %d\n",m,GIDs,LIDs);
+         }
       }
       populations[popID].vmesh->gpu_prefetchDevice();
       phiprof::stop("Vmesh and VBC debug output");

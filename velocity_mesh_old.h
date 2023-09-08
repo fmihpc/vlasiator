@@ -55,7 +55,7 @@ namespace vmesh {
       bool check() const;
       void clear();
       bool coarsenAllowed(const vmesh::GlobalID& globalID) const;
-      bool copy(const vmesh::LocalID& sourceLocalID,const vmesh::LocalID& targetLocalID);
+      bool move(const vmesh::LocalID& sourceLocalID,const vmesh::LocalID& targetLocalID);
       size_t count(const vmesh::GlobalID& globalID) const;
       vmesh::GlobalID findBlockDown(uint8_t& refLevel,vmesh::GlobalID cellIndices[3]) const;
       vmesh::GlobalID findBlock(uint8_t& refLevel,vmesh::GlobalID cellIndices[3]) const;
@@ -196,15 +196,19 @@ namespace vmesh {
       return false;
    }
 
-   inline bool VelocityMesh::copy(const vmesh::LocalID& sourceLID,const vmesh::LocalID& targetLID) {
-      const vmesh::GlobalID sourceGID = localToGlobalMap->at(sourceLID); // block at the end of list
-      const vmesh::GlobalID targetGID = localToGlobalMap->at(targetLID); // removed block
-
+   inline bool VelocityMesh::move(const vmesh::LocalID& sourceLID,const vmesh::LocalID& targetLID) {
+      const vmesh::GlobalID moveGID = localToGlobalMap->at(sourceLID); // block to move (at the end of list)
+      const vmesh::GlobalID removeGID = localToGlobalMap->at(targetLID); // removed block
+      #ifdef DEBUG_SPATIAL_CELL
+      if (sourceLID != size()-1) {
+         printf("Warning! Moving velocity mesh entry from position which is not last LID!\n");
+      }
+      #endif
       // at-function will throw out_of_range exception for non-existing global ID:
-      globalToLocalMap->at(sourceGID) = targetLID;
-      localToGlobalMap->at(targetLID) = sourceGID;
-      globalToLocalMap->at(targetGID) = sourceLID; // These are needed to make pop() work
-      localToGlobalMap->at(sourceLID) = targetGID;
+      globalToLocalMap->at(moveGID) = targetLID;
+      globalToLocalMap->erase(removeGID);
+      localToGlobalMap->at(targetLID) = moveGID;
+      localToGlobalMap->erase(sourceLID);
       return true;
    }
 
