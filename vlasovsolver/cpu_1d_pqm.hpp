@@ -94,7 +94,9 @@ static ARCH_HOSTDEV inline void filter_pqm_monotonicity(Vec *values, uint k, Vec
       //todo store and then load data to avoid inserts (is it beneficial...?)
 
 //serialized the handling of inflexion points, these do not happen for smooth regions
+      #ifndef USE_GPU
       #pragma omp simd
+      #endif
       for(uint i = 0;i < VECL; i++) {
          if(fixInflexion[i]){
             //need to collapse, at least one inflexion point has wrong

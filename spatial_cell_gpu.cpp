@@ -805,22 +805,33 @@ namespace spatial_cell {
    }
 
    SpatialCell::~SpatialCell() {
-      delete velocity_block_with_content_list;
-      delete velocity_block_with_no_content_list;
-      delete BlocksHalo;
-      delete BlocksRequired;
-      delete BlocksToAdd;
-      delete BlocksToRemove;
-      delete BlocksToMove;
-      delete BlocksRequiredMap;
-      gpuFreeHost(info_vbwcl);
-      gpuFreeHost(info_vbwncl);
-      gpuFreeHost(info_toRemove);
-      gpuFreeHost(info_toAdd);
-      gpuFreeHost(info_toMove);
-      gpuFreeHost(info_Required);
-      gpuFreeHost(info_Halo);
-      gpuFreeHost(info_brm);
+      gpu_destructor();
+   }
+
+   void SpatialCell::gpu_destructor() {
+      // Using NULL status of info_vbwcl as a generic check for gpu deallocation
+      if (info_vbwcl) {
+         delete velocity_block_with_content_list;
+         delete velocity_block_with_no_content_list;
+         delete BlocksHalo;
+         delete BlocksRequired;
+         delete BlocksToAdd;
+         delete BlocksToRemove;
+         delete BlocksToMove;
+         delete BlocksRequiredMap;
+         gpuFreeHost(info_vbwcl);
+         gpuFreeHost(info_vbwncl);
+         gpuFreeHost(info_toRemove);
+         gpuFreeHost(info_toAdd);
+         gpuFreeHost(info_toMove);
+         gpuFreeHost(info_Required);
+         gpuFreeHost(info_Halo);
+         gpuFreeHost(info_brm);
+      }
+      info_vbwcl = NULL;
+      for (uint popID=0; popID<getObjectWrapper().particleSpecies.size(); ++popID) {
+         populations[popID].gpu_destructor();
+      }
    }
 
    SpatialCell::SpatialCell(const SpatialCell& other) {

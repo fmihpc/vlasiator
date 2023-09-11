@@ -52,6 +52,7 @@ namespace vmesh {
       ~VelocityMesh();
       VelocityMesh(const VelocityMesh& other);
       const VelocityMesh& operator=(const VelocityMesh& other);
+      void gpu_destructor();
 
       ARCH_HOSTDEV size_t capacityInBytes() const;
       ARCH_HOSTDEV bool check() const;
@@ -144,9 +145,15 @@ namespace vmesh {
    }
 
    inline VelocityMesh::~VelocityMesh() {
-      delete globalToLocalMap;
-      delete localToGlobalMap;
-      gpuFreeHost(info_ltgm);
+      gpu_destructor();
+   }
+   inline void VelocityMesh::gpu_destructor() {
+      if (globalToLocalMap) delete globalToLocalMap;
+      if (localToGlobalMap) delete localToGlobalMap;
+      if (info_ltgm) gpuFreeHost(info_ltgm);
+      globalToLocalMap = NULL;
+      localToGlobalMap = NULL;
+      info_ltgm = NULL;
    }
 
    inline VelocityMesh::VelocityMesh(const VelocityMesh& other) {

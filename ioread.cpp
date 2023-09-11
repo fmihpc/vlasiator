@@ -393,6 +393,8 @@ bool _readBlockData(
       blockIdsInCell2->optimizeGPU();
       CHK_ERR( gpuDeviceSynchronize() );
       mpiGrid[cell]->add_velocity_blocks(popID,blockIdsInCell2,&gpu_avgBuffer[blockBufferOffset*WID3]);
+      CHK_ERR( gpuDeviceSynchronize() );
+      delete blockIdsInCell2;
       #else
       mpiGrid[cell]->add_velocity_blocks(popID,blockIdsInCell,&avgBuffer[blockBufferOffset*WID3]);
       #endif

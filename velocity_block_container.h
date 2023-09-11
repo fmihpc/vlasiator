@@ -55,6 +55,7 @@ namespace vmesh {
       ~VelocityBlockContainer();
       VelocityBlockContainer(const VelocityBlockContainer& other);
       const VelocityBlockContainer& operator=(const VelocityBlockContainer& other);
+      void gpu_destructor();
 
       ARCH_HOSTDEV vmesh::LocalID capacity() const;
       ARCH_HOSTDEV size_t capacityInBytes() const;
@@ -129,8 +130,13 @@ namespace vmesh {
    }
 
    inline VelocityBlockContainer::~VelocityBlockContainer() {
-      delete block_data;
-      delete parameters;
+      gpu_destructor();
+   }
+   inline void VelocityBlockContainer::gpu_destructor() {
+      if (block_data) delete block_data;
+      if (parameters) delete parameters;
+      block_data = NULL;
+      parameters = NULL;
    }
 
    inline VelocityBlockContainer::VelocityBlockContainer(const VelocityBlockContainer& other) {

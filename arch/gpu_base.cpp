@@ -162,7 +162,6 @@ __host__ void gpu_clear_device() {
    // Deallocate temporary buffers
    gpu_acc_deallocate();
    gpu_vlasov_deallocate();
-   CHK_ERR( gpuDeviceSynchronize() );
    // Destroy streams
 #ifdef _OPENMP
    const uint maxThreads = omp_get_max_threads();
@@ -176,6 +175,7 @@ __host__ void gpu_clear_device() {
       CHK_ERR( gpuFree(returnRealf[i]) );
       CHK_ERR( gpuFree(returnLID[i]) );
    }
+   CHK_ERR( gpuDeviceSynchronize() );
 }
 
 __host__ gpuStream_t gpu_getStream() {

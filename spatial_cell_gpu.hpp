@@ -250,6 +250,10 @@ namespace spatial_cell {
          delete vmesh;
          delete blockContainer;
       }
+      void gpu_destructor() {
+         vmesh->gpu_destructor();
+         blockContainer->gpu_destructor();
+      }
       Population(const Population& other) {
          vmesh = new vmesh::VelocityMesh(*(other.vmesh));
          blockContainer = new vmesh::VelocityBlockContainer(*(other.blockContainer));
@@ -391,6 +395,7 @@ namespace spatial_cell {
    public:
       SpatialCell();
       ~SpatialCell();
+      void gpu_destructor();
       SpatialCell(const SpatialCell& other);
       const SpatialCell& operator=(const SpatialCell& other);
 

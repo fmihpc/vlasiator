@@ -606,6 +606,11 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
 
    } // closes pragma omp parallel
 
+   delete allVmeshPointer;
+   delete allPencilsMeshes;
+   delete allPencilsContainers;
+   delete unionOfBlocksSet;
+   delete unionOfBlocks;
    delete pencilLengthsTemp;
    delete pencilStartsTemp;
    delete pencilDZTemp;
