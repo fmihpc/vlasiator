@@ -159,6 +159,10 @@ __host__ void gpu_init_device() {
 }
 
 __host__ void gpu_clear_device() {
+   // Deallocate temporary buffers
+   gpu_acc_deallocate();
+   gpu_vlasov_deallocate();
+   CHK_ERR( gpuDeviceSynchronize() );
    // Destroy streams
 #ifdef _OPENMP
    const uint maxThreads = omp_get_max_threads();
@@ -202,7 +206,7 @@ __host__ int gpu_getDevice() {
    Top-level GPU memory allocation function.
    This is called from within non-threaded regions so does not perform async.
  */
-__host__ void gpu_vlasov_allocate (
+__host__ void gpu_vlasov_allocate(
    uint maxBlockCount
    ) {
    // Always prepare for at least 2500 blocks (affects also translation parallelism)
@@ -229,11 +233,24 @@ __host__ void gpu_vlasov_allocate (
    gpu_vlasov_allocatedSize = newSize;
 }
 
+/* Deallocation at end of simulation */
+__host__ void gpu_vlasov_deallocate() {
+   if (gpu_vlasov_allocatedSize == 0) return;
+#ifdef _OPENMP
+   const uint maxNThreads = omp_get_max_threads();
+#else
+   const uint maxNThreads = 1;
+#endif
+   for (uint i=0; i<maxNThreads; ++i) {
+      gpu_vlasov_deallocate_perthread(i);
+   }
+}
+
 __host__ uint gpu_vlasov_getAllocation() {
    return gpu_vlasov_allocatedSize;
 }
 
-__host__ void gpu_vlasov_allocate_perthread (
+__host__ void gpu_vlasov_allocate_perthread(
    uint cpuThreadID,
    uint blockAllocationCount
    ) {
@@ -268,7 +285,7 @@ __host__ void gpu_vlasov_deallocate_perthread (
    Top-level GPU memory allocation function for acceleration-specific column data.
    This is called from within non-threaded regions so does not perform async.
  */
-__host__ void gpu_acc_allocate (
+__host__ void gpu_acc_allocate(
    uint maxBlockCount
    ) {
    uint requiredColumns;
@@ -293,7 +310,6 @@ __host__ void gpu_acc_allocate (
    }
    // Check if we already have allocated enough memory?
    if (gpu_acc_allocatedColumns > requiredColumns * BLOCK_ALLOCATION_FACTOR) {
-      //std::cerr<<"GPU_ACC_ALLOCATE: return "<<std::endl;
       return;
    }
    // If not, add extra padding
@@ -305,10 +321,8 @@ __host__ void gpu_acc_allocate (
 #else
    const uint maxNThreads = 1;
 #endif
-   if (gpu_acc_allocatedColumns > 0) {
-      for (uint i=0; i<maxNThreads; ++i) {
-         gpu_acc_deallocate_perthread(i);
-      }
+   for (uint i=0; i<maxNThreads; ++i) {
+      gpu_acc_deallocate_perthread(i);
    }
    for (uint i=0; i<maxNThreads; ++i) {
       gpu_acc_allocate_perthread(i,newSize);
@@ -316,15 +330,28 @@ __host__ void gpu_acc_allocate (
    gpu_acc_allocatedColumns = newSize;
 }
 
-__host__ void gpu_acc_allocate_perthread (
+/* Deallocation at end of simulation */
+__host__ void gpu_acc_deallocate() {
+#ifdef _OPENMP
+   const uint maxNThreads = omp_get_max_threads();
+#else
+   const uint maxNThreads = 1;
+#endif
+   for (uint i=0; i<maxNThreads; ++i) {
+      gpu_acc_deallocate_perthread(i);
+   }
+}
+
+__host__ void gpu_acc_allocate_perthread(
    uint cpuThreadID,
    uint columnAllocationCount
    ) {
    // Unified memory; columndata contains several splitvectors.
-   unif_columnOffsetData[cpuThreadID] = new ColumnOffsets(columnAllocationCount); // inherits managed
-   unif_columnOffsetData[cpuThreadID]->gpu_advise();
-   CHK_ERR( gpuMalloc((void**)&gpu_columns[cpuThreadID], columnAllocationCount*sizeof(Column)) );
-
+   if (columnAllocationCount > 0) {
+      unif_columnOffsetData[cpuThreadID] = new ColumnOffsets(columnAllocationCount); // inherits managed
+      unif_columnOffsetData[cpuThreadID]->gpu_advise();
+      CHK_ERR( gpuMalloc((void**)&gpu_columns[cpuThreadID], columnAllocationCount*sizeof(Column)) );
+   }
    // Potential ColumnSet block count container
    const uint c0 = (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[0];
    const uint c1 = (*vmesh::getMeshWrapper()->velocityMeshes)[0].gridLength[1];
@@ -335,12 +362,14 @@ __host__ void gpu_acc_allocate_perthread (
    CHK_ERR( gpuMalloc((void**)&gpu_columnNBlocks[cpuThreadID], gpu_acc_columnContainerSize*sizeof(vmesh::LocalID)) );
 }
 
-__host__ void gpu_acc_deallocate_perthread (
+__host__ void gpu_acc_deallocate_perthread(
    uint cpuThreadID
    ) {
    gpu_acc_allocatedColumns = 0;
    gpu_acc_columnContainerSize = 0;
+   if (gpu_acc_allocatedColumns > 0) {
+      CHK_ERR( gpuFree(gpu_columns[cpuThreadID]) );
+      delete unif_columnOffsetData[cpuThreadID];
+   }
    CHK_ERR( gpuFree(gpu_columnNBlocks[cpuThreadID]) );
-   CHK_ERR( gpuFree(gpu_columns[cpuThreadID]) );
-   delete unif_columnOffsetData[cpuThreadID];
 }

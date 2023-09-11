@@ -55,13 +55,15 @@ void gpu_clear_device();
 gpuStream_t gpu_getStream();
 gpuStream_t gpu_getPriorityStream();
 int gpu_getDevice();
-void gpu_vlasov_allocate (uint maxBlockCount);
+void gpu_vlasov_allocate(uint maxBlockCount);
+void gpu_vlasov_deallocate();
 uint gpu_vlasov_getAllocation();
-void gpu_vlasov_allocate_perthread (uint cpuThreadID, uint blockAllocationCount);
-void gpu_vlasov_deallocate_perthread (uint cpuThreadID);
-void gpu_acc_allocate (uint maxBlockCount);
-void gpu_acc_allocate_perthread (uint cpuThreadID, uint columnAllocationCount);
-void gpu_acc_deallocate_perthread (uint cpuThreadID);
+void gpu_vlasov_allocate_perthread(uint cpuThreadID, uint blockAllocationCount);
+void gpu_vlasov_deallocate_perthread(uint cpuThreadID);
+void gpu_acc_allocate(uint maxBlockCount);
+void gpu_acc_deallocate();
+void gpu_acc_allocate_perthread(uint cpuThreadID, uint columnAllocationCount);
+void gpu_acc_deallocate_perthread(uint cpuThreadID);
 
 
 extern gpuStream_t gpuStreamList[];

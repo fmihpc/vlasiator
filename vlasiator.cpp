@@ -1192,6 +1192,7 @@ int main(int argn,char* args[]) {
    logFile.close();
    if (P::diagnosticInterval != 0) diagnostic.close();
 
+   // Finalize GSgrids
    perBGrid.finalize();
    perBDt2Grid.finalize();
    EGrid.finalize();
@@ -1206,10 +1207,16 @@ int main(int argn,char* args[]) {
    volGrid.finalize();
    technicalGrid.finalize();
 
-   MPI_Finalize();
-
+   // Call destructors on all spatial cells
+   vector<CellID> allCells = mpiGrid.get_all_cells();
+   for (const auto& cell: allCells) {
+      mpiGrid[cell]->~SpatialCell();
+   }
    #ifdef USE_GPU
+   // Deallocate buffers, clear device
    gpu_clear_device();
    #endif
+
+   MPI_Finalize();
    return 0;
 }

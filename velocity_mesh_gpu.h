@@ -530,6 +530,7 @@ namespace vmesh {
 
       #if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
       for (size_t b=0; b<blocksSize; ++b) {
+         // device_insert is slower, returns true or false for whether inserted key was new
          auto position
             = globalToLocalMap->device_insert(Hashinator::make_pair(blocks[b],(vmesh::LocalID)(mySize+b)));
          if (position.second == false) {

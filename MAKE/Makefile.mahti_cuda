@@ -48,6 +48,7 @@ CUDABLOCKS=108
 CMP = mpic++
 LNK = mpic++
 
+#-ggdb not available on nvcc
 #-G (device debug) overrides --generate-line-info -line-info but also requires more device-side resources to run
 # use "-Xptxas -v" for verbose output of ptx compilation
 
