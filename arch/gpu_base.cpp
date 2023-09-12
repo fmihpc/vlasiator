@@ -30,6 +30,9 @@
 #include "mpi.h"
 
 #include "gpu_base.hpp"
+#include "../velocity_mesh_gpu.h"
+#include "../velocity_block_container.h"
+
 // #define MAXCPUTHREADS 64 now in gpu_base.hpp
 
 int myDevice;
@@ -64,6 +67,14 @@ vmesh::GlobalID *gpu_LIDlist_unsorted[MAXCPUTHREADS];
 vmesh::LocalID *gpu_columnNBlocks[MAXCPUTHREADS];
 void *gpu_RadixSortTemp[MAXCPUTHREADS];
 uint gpu_acc_RadixSortTempSize[MAXCPUTHREADS] = {0};
+
+// Vectors and set for use in translation
+split::SplitVector<vmesh::VelocityMesh*> allVmeshPointer;
+split::SplitVector<vmesh::VelocityMesh*> allPencilsMeshes;
+split::SplitVector<vmesh::VelocityBlockContainer*> allPencilsContainers;
+split::SplitVector<vmesh::GlobalID> unionOfBlocks;
+// This is a pointer, so it's accessors are available on GPU
+Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *unionOfBlocksSet;
 
 // Memory allocation flags and values.
 uint gpu_vlasov_allocatedSize = 0;
@@ -207,7 +218,7 @@ __host__ int gpu_getDevice() {
    This is called from within non-threaded regions so does not perform async.
  */
 __host__ void gpu_vlasov_allocate(
-   uint maxBlockCount
+   uint maxBlockCount // Largest found vmesh size
    ) {
    // Always prepare for at least 2500 blocks (affects also translation parallelism)
    const uint maxBlocksPerCell = maxBlockCount > 2500 ? maxBlockCount : 2500;
