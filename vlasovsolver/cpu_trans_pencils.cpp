@@ -1052,6 +1052,13 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
          localPropagatedCells.push_back(localCells[c]);
       }
    }
+   #ifdef USE_GPU
+   // Prefetch vectors to CPU
+   DimensionPencils[dimension].lengthOfPencils.optimizeCPU();
+   DimensionPencils[dimension].idsStart.optimizeCPU();
+   DimensionPencils[dimension].sourceDZ.optimizeCPU();
+   DimensionPencils[dimension].targetRatios.optimizeCPU();   
+   #endif
 
    phiprof::start("getSeedIds");
    vector<CellID> seedIds;
@@ -1168,4 +1175,21 @@ void prepareSeedIdsAndPencils(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Ge
    }
    phiprof::stop("buildPencils");
 
+   #ifdef USE_GPU
+   // Prefetch pencil data to GPU
+   gpuStream_t stream = gpu_getStream();
+   int device = gpu_getDevice();
+   DimensionPencils[dimension].lengthOfPencils.optimizeGPU(stream);
+   DimensionPencils[dimension].idsStart.optimizeGPU(stream);
+   DimensionPencils[dimension].sourceDZ.optimizeGPU(stream);
+   DimensionPencils[dimension].targetRatios.optimizeGPU(stream);
+   DimensionPencils[dimension].lengthOfPencils.memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+   DimensionPencils[dimension].lengthOfPencils.memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+   DimensionPencils[dimension].idsStart.memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+   DimensionPencils[dimension].idsStart.memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+   DimensionPencils[dimension].sourceDZ.memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+   DimensionPencils[dimension].sourceDZ.memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+   DimensionPencils[dimension].targetRatios.memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
+   DimensionPencils[dimension].targetRatios.memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
+   #endif
 }

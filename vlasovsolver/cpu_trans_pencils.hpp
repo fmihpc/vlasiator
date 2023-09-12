@@ -27,16 +27,14 @@
 #include "../common.h"
 #include "../spatial_cell.hpp"
 
-// GPUTODO: make these four vectors inside the setofpencils struct pointers to vectors,
-// new construct them in the pencil building function. Do we need a flag for if they are allocated
-// or not? Or init with null pointer.
-// #ifdef USE_GPU
-// typedef split::SplitVector<uint> pencilVecUint;
-// typedef split::SplitVector<Realf> pencilVecRealf;
-// #else
+// These can be splitvectors without being managed, as on-gpu we just need the .data() pointer
+#ifdef USE_GPU
+typedef split::SplitVector<uint> pencilVecUint;
+typedef split::SplitVector<Realf> pencilVecRealf;
+#else
 typedef std::vector<uint> pencilVecUint;
 typedef std::vector<Realf> pencilVecRealf;
-// #endif
+#endif
 
 struct setOfPencils {
 

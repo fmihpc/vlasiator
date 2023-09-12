@@ -341,10 +341,6 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    split::SplitVector< vmesh::VelocityBlockContainer* > *allPencilsContainers = new split::SplitVector< vmesh::VelocityBlockContainer* >(sumOfLengths);
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *unionOfBlocksSet = new Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID>(HashmapReqSize);
    split::SplitVector<vmesh::GlobalID> *unionOfBlocks = new split::SplitVector<vmesh::GlobalID>(1);
-   split::SplitVector<uint> *pencilLengthsTemp = new split::SplitVector<uint>(DimensionPencils[dimension].lengthOfPencils);
-   split::SplitVector<uint> *pencilStartsTemp = new split::SplitVector<uint>(DimensionPencils[dimension].idsStart);
-   split::SplitVector<Realf> *pencilDZTemp = new split::SplitVector<Realf>(DimensionPencils[dimension].sourceDZ);
-   split::SplitVector<Realf> *pencilRatiosTemp = new split::SplitVector<Realf>(DimensionPencils[dimension].targetRatios);
    **/
 
    // return if there's no cells to propagate
@@ -507,33 +503,11 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    allPencilsContainers->memAdvise(gpuMemAdviseSetAccessedBy,device,bgStream);
    allPencilsContainers->optimizeGPU();
 
-// GPUTODO: make these four vectors inside the setofpencils struct pointers to vectors,
-// new construct them in the pencil building function. Do we need a flag for if they are allocated
-// or not? Or init with null pointer.
-      // uint* pencilLengths = DimensionPencils[dimension].lengthOfPencils.data();
-      // uint* pencilStarts = DimensionPencils[dimension].idsStart.data();
-      // Realf* pencilDZ = DimensionPencils[dimension].sourceDZ.data();
-      // Realf* pencilRatios = DimensionPencils[dimension].targetRatios.data();
-   split::SplitVector<uint> *pencilLengthsTemp = new split::SplitVector<uint>(DimensionPencils[dimension].lengthOfPencils);
-   split::SplitVector<uint> *pencilStartsTemp = new split::SplitVector<uint>(DimensionPencils[dimension].idsStart);
-   split::SplitVector<Realf> *pencilDZTemp = new split::SplitVector<Realf>(DimensionPencils[dimension].sourceDZ);
-   split::SplitVector<Realf> *pencilRatiosTemp = new split::SplitVector<Realf>(DimensionPencils[dimension].targetRatios);
-   uint* pencilLengths = pencilLengthsTemp->data();
-   uint* pencilStarts = pencilStartsTemp->data();
-   Realf* pencilDZ = pencilDZTemp->data();
-   Realf* pencilRatios = pencilRatiosTemp->data();
-   pencilLengthsTemp->memAdvise(gpuMemAdviseSetPreferredLocation,device,bgStream);
-   pencilLengthsTemp->memAdvise(gpuMemAdviseSetAccessedBy,device,bgStream);
-   pencilStartsTemp->memAdvise(gpuMemAdviseSetPreferredLocation,device,bgStream);
-   pencilStartsTemp->memAdvise(gpuMemAdviseSetAccessedBy,device,bgStream);
-   pencilDZTemp->memAdvise(gpuMemAdviseSetPreferredLocation,device,bgStream);
-   pencilDZTemp->memAdvise(gpuMemAdviseSetAccessedBy,device,bgStream);
-   pencilRatiosTemp->memAdvise(gpuMemAdviseSetPreferredLocation,device,bgStream);
-   pencilRatiosTemp->memAdvise(gpuMemAdviseSetAccessedBy,device,bgStream);
-   pencilLengthsTemp->optimizeGPU();
-   pencilStartsTemp->optimizeGPU();
-   pencilDZTemp->optimizeGPU();
-   pencilRatiosTemp->optimizeGPU();
+   // Extract pointers to data in managed memory
+   uint* pencilLengths = DimensionPencils[dimension].lengthOfPencils.data();
+   uint* pencilStarts = DimensionPencils[dimension].idsStart.data();
+   Realf* pencilDZ = DimensionPencils[dimension].sourceDZ.data();
+   Realf* pencilRatios = DimensionPencils[dimension].targetRatios.data();
    phiprof::stop("trans-amr-gather-meshpointers");
 
    phiprof::start("trans-amr-buildBlockList-2");
@@ -619,10 +593,6 @@ bool gpu_trans_map_1d_amr(const dccrg::Dccrg<SpatialCell,dccrg::Cartesian_Geomet
    delete allPencilsContainers;
    delete unionOfBlocksSet;
    delete unionOfBlocks;
-   delete pencilLengthsTemp;
-   delete pencilStartsTemp;
-   delete pencilDZTemp;
-   delete pencilRatiosTemp;
    return true;
 }
 
