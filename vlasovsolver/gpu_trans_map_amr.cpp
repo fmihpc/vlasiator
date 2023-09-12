@@ -101,7 +101,9 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
          for (uint celli = 0; celli < lengthOfPencil; celli++) {
             vmesh::VelocityMesh* vmesh = pencilMeshes[start + celli];
             // GPUTODO: Should we use the accelerated Hashinator interface to prefetch all LID-GID-pairs?
-            const vmesh::LocalID blockLID = vmesh->getLocalID(blockGID);
+            //const vmesh::LocalID blockLID = vmesh->getLocalID(blockGID);
+            // Now using warp accessor.
+            const vmesh::LocalID blockLID = vmesh->warpGetLocalID(blockGID,ti);
             // Store block data pointer for both loading of data and writing back to the cell
             if (ti==0) {
                if (blockLID == vmesh->invalidLocalID()) {
@@ -145,7 +147,8 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
          if (pencilRatios[celli] != 0) {
             // Is a target cell, needs to be reset
             vmesh::VelocityMesh* vmesh = pencilMeshes[celli];
-            const vmesh::LocalID blockLID = vmesh->getLocalID(blockGID);
+            //const vmesh::LocalID blockLID = vmesh->getLocalID(blockGID);
+            const vmesh::LocalID blockLID = vmesh->warpGetLocalID(blockGID,ti);
             if (blockLID != vmesh->invalidLocalID()) {
                (pencilBlockData[pencilBlockDataOffset + celli])[threadIdx.y * WID2 + ti] = 0.0;
                // This block exists for this cell, reset
@@ -280,7 +283,7 @@ __global__ void __launch_bounds__(WID3, 4) translation_kernel(
  *
  * @param unionOfBlocksSet Hashmap, where keys are those blocks which are in the union of all blocks
  * @param allVmeshPointer Vector of pointers to velocitymeshes, used for gathering active blocks
- * @param nAllCells count of cells to read from allVmeshPointer
+xs * @param nAllCells count of cells to read from allVmeshPointer
  */
 __global__ void  __launch_bounds__(GPUTHREADS, 4) gather_union_of_blocks_kernel(
    Hashinator::Hashmap<vmesh::GlobalID,vmesh::LocalID> *unionOfBlocksSet,
@@ -289,15 +292,20 @@ __global__ void  __launch_bounds__(GPUTHREADS, 4) gather_union_of_blocks_kernel(
 {
    const int gpuBlocks = gridDim.x;
    const int blocki = blockIdx.x;
-   const int warpSize = blockDim.x*blockDim.y*blockDim.z;
+   //const int warpSize = blockDim.x*blockDim.y*blockDim.z;
    const vmesh::LocalID ti = threadIdx.z*blockDim.x*blockDim.y + threadIdx.y*blockDim.x + threadIdx.x;
 
    for (vmesh::LocalID cellIndex=blocki; cellIndex<nAllCells; cellIndex += gpuBlocks) {
       vmesh::VelocityMesh* thisVmesh = allVmeshPointer->at(cellIndex);
       vmesh::LocalID nBlocks = thisVmesh->size();
-      for (vmesh::LocalID blockIndex=ti; blockIndex<nBlocks; blockIndex += warpSize) {
-         vmesh::GlobalID GID = thisVmesh->getGlobalID(blockIndex);
-         unionOfBlocksSet->set_element(GID,GID);
+      // for (vmesh::LocalID blockIndex=ti; blockIndex<nBlocks; blockIndex += warpSize) {
+      //    const vmesh::GlobalID GID = thisVmesh->getGlobalID(blockIndex);
+      //    unionOfBlocksSet->set_element(GID,GID);
+      // }
+      // Now with warp accessors
+      for (vmesh::LocalID blockIndex=0; blockIndex<nBlocks; blockIndex++) {
+         const vmesh::GlobalID GID = thisVmesh->warpGetLocalID(blockIndex,ti);
+         unionOfBlocksSet->warpInsert<true>(GID, (vmesh::LocalID)GID, ti % GPUTHREADS);
       }
    }
 }
