@@ -430,11 +430,10 @@ __global__ void __launch_bounds__(GPUTHREADS,4) update_neighbours_have_content_k
    for (vmesh::LocalID index=blocki; index<neighborContentBlocks; index += gpuBlocks) {
       if (index < neighborContentBlocks) {
          const vmesh::GlobalID GID = neighbor_velocity_block_with_content_list[index];
+         // BlocksRequiredMap->warpInsert<true>(GID, (vmesh::LocalID)GID, ti % GPUTHREADS);
          vmesh::LocalID retval = vmesh->invalidLocalID();
          BlocksRequiredMap->warpFind(GID, retval, ti % GPUTHREADS);
          if (retval == vmesh->invalidLocalID()) {
-         //if (BlocksRequiredMap->device_count(GID) == 0) {
-            //BlocksRequiredMap->set_element(GID,GID);
             BlocksHalo->device_push_back(GID);
          }
       }
@@ -1220,7 +1219,6 @@ namespace spatial_cell {
          BlocksRequiredMap->memAdvise(gpuMemAdviseSetPreferredLocation,device,stream);
          BlocksRequiredMap->memAdvise(gpuMemAdviseSetAccessedBy,device,stream);
          if ((attachedStream != 0)&&(needAttachedStreams)) {
-            CHK_ERR( gpuStreamAttachMemAsync(attachedStream,BlocksRequiredMap, 0,gpuMemAttachSingle) );
             BlocksRequiredMap->streamAttach(attachedStream);
          }
          BlocksRequiredMap->optimizeGPU(stream);

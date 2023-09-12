@@ -1188,7 +1188,10 @@ int main(int argn,char* args[]) {
 
    phiprof::print(MPI_COMM_WORLD,"phiprof");
 
-   if (myRank == MASTER_RANK) logFile << "(MAIN): Exiting." << endl << writeVerbose;
+   if (myRank == MASTER_RANK) {
+      logFile << "(MAIN): Completed requested simulation. Exiting." << endl << writeVerbose;
+      cout << "(MAIN): Completed requested simulation. Exiting." << endl;
+   }
    logFile.close();
    if (P::diagnosticInterval != 0) diagnostic.close();
 
