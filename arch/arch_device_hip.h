@@ -291,12 +291,12 @@ __device__ __forceinline__ static void loop_eval(const uint idx_glob, const uint
 }
 
 /* A general device kernel for reductions */
-template <reduce_op Op, uint NDim, uint NReduStatic, typename Lambda, typename T>
+   template <uint Blocksize, reduce_op Op, uint NDim, uint NReduStatic, typename Lambda, typename T>
 __global__ static void __launch_bounds__(ARCH_BLOCKSIZE_R)
 reduction_kernel(Lambda loop_body, const T * __restrict__ init_val, T * __restrict__ rslt, const uint * __restrict__ lims, const uint n_total, const uint n_redu_dynamic, T *thread_data_dynamic)
 {
-  /* Specialize BlockReduce for a 1D block of ARCH_BLOCKSIZE_R threads of type `T` */
-  typedef hipcub::BlockReduce<T, ARCH_BLOCKSIZE_R, hipcub::BLOCK_REDUCE_RAKING_COMMUTATIVE_ONLY, 1, 1> BlockReduce;
+  /* Specialize BlockReduce for a 1D block of Blocksize threads of type `T` */
+  typedef hipcub::BlockReduce<T, Blocksize, hipcub::BLOCK_REDUCE_RAKING_COMMUTATIVE_ONLY, 1, 1> BlockReduce;
 
   /* Dynamic shared memory declaration */
   extern __shared__ char temp_storage_dynamic[];
@@ -426,7 +426,18 @@ __forceinline__ static void parallel_reduce_driver(const uint (&limits)[NDim], L
     /* Allocate memory for the thread data values */
     CHK_ERR(hipMallocAsync(&d_thread_data_dynamic, n_reductions * blocksize * gridsize * sizeof(T), gpuStreamList[thread_id]));
     /* Call the kernel (the number of reductions not known at compile time) */
-    reduction_kernel<Op, NDim, 0><<<gridsize, blocksize, shared_mem_bytes_per_block_request, gpuStreamList[thread_id]>>>(loop_body, d_const_buf, d_buf, d_limits, n_total, n_reductions, d_thread_data_dynamic);
+    if(gridsize > 0){
+       if(blocksize == ARCH_BLOCKSIZE_R){
+          reduction_kernel<ARCH_BLOCKSIZE_R, Op, NDim, 0><<<gridsize, blocksize, shared_mem_bytes_per_block_request, gpuStreamList[thread_id]>>>(loop_body, d_const_buf, d_buf, d_limits, n_total, n_reductions, d_thread_data_dynamic);
+       }
+       else if(blocksize == ARCH_BLOCKSIZE_R_SMALL){
+          reduction_kernel<ARCH_BLOCKSIZE_R_SMALL, Op, NDim, 0><<<gridsize, blocksize, shared_mem_bytes_per_block_request, gpuStreamList[thread_id]>>>(loop_body, d_const_buf, d_buf, d_limits, n_total, n_reductions, d_thread_data_dynamic);
+       }
+       else{
+          printf("The blocksize (%u) does not match with any of the predetermined block sizes! The error occurred in %s at line %d\n", blocksize, __FILE__, __LINE__);
+          exit(1);
+       }
+    }   
     /* Check for kernel launch errors */
     CHK_ERR(hipPeekAtLastError());
     /* Synchronize and free the thread data allocation */
@@ -438,7 +449,8 @@ __forceinline__ static void parallel_reduce_driver(const uint (&limits)[NDim], L
     const uint blocksize = ARCH_BLOCKSIZE_R;
     const uint gridsize = (n_total - 1 + blocksize) / blocksize;
     /* Call the kernel (the number of reductions known at compile time) */
-    reduction_kernel<Op, NDim, NReduStatic><<<gridsize, blocksize, 0, gpuStreamList[thread_id]>>>(loop_body, d_const_buf, d_buf, d_limits, n_total, n_reductions, d_thread_data_dynamic);
+    if(gridsize > 0)
+      reduction_kernel<ARCH_BLOCKSIZE_R, Op, NDim, NReduStatic><<<gridsize, blocksize, 0, gpuStreamList[thread_id]>>>(loop_body, d_const_buf, d_buf, d_limits, n_total, n_reductions, d_thread_data_dynamic);
     /* Check for kernel launch errors */
     CHK_ERR(hipPeekAtLastError());
     /* Synchronize after kernel call */
