@@ -5,6 +5,9 @@ diagnostic.txt
 *.vlsv
 *.silo
 *.o
+*.d
+vscode/
+.vscode/
 cppcheck/
 version.cpp
 \#*\#

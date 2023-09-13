@@ -94,9 +94,12 @@ vector<int> P::systemWriteDistributionWriteZlineStride;
 vector<Real> P::systemWriteDistributionWriteShellRadius;
 vector<int> P::systemWriteDistributionWriteShellStride;
 vector<bool> P::systemWriteFsGrid;
+bool P::systemWriteAllDROs;
+bool P::diagnosticWriteAllDROs;
 vector<int> P::systemWrites;
 vector<pair<string, string>> P::systemWriteHints;
 vector<pair<string, string>> P::restartWriteHints;
+vector<pair<string, string>> P::restartReadHints;
 
 Real P::saveRestartWalltimeInterval = -1.0;
 uint P::exitAfterRestarts = numeric_limits<uint>::max();
@@ -219,6 +222,12 @@ bool P::addParameters() {
    RP::addComposing(
        "io.restart_write_mpiio_hint_value",
        "MPI-IO hint value passed to the restart IO. Has to be matched by io.restart_write_mpiio_hint_key.");
+   RP::addComposing(
+       "io.restart_read_mpiio_hint_key",
+       "MPI-IO hint key passed to the restart IO. Has to be matched by io.restart_read_mpiio_hint_value.");
+   RP::addComposing(
+       "io.restart_read_mpiio_hint_value",
+       "MPI-IO hint value passed to the restart IO. Has to be matched by io.restart_read_mpiio_hint_key.");
 
    RP::add("io.write_initial_state",
            "Write initial state, not even the 0.5 dt propagation is done. Do not use for restarting. ", false);
@@ -332,8 +341,8 @@ bool P::addParameters() {
    RP::addComposing("loadBalance.optionValue", "Zoltan option value. Has to be matched by loadBalance.optionKey.");
 
    // Output variable parameters
+   RP::add("io.system_write_all_data_reducers", "If 0 don't write all DROs, if 1 do write them.", false);
    // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
-
    RP::addComposing("variables.output",
                     string() +
                         "List of data reduction operators (DROs) to add to the grid file output.  Each variable to be "
@@ -343,8 +352,9 @@ bool P::addParameters() {
                         "populations_vg_moments_thermal populations_vg_moments_nonthermal " +
                         "populations_vg_effectivesparsitythreshold populations_vg_rho_loss_adjust " +
                         "populations_vg_energydensity populations_vg_precipitationdifferentialflux " +
-                        "populations_vg_heatflux " +  
-                        "vg_maxdt_acceleration vg_maxdt_translation populations_vg_maxdt_acceleration "
+                        "populations_vg_heatflux " +
+                        "populations_vg_nonmaxwellianity " +
+                        "vg_maxdt_acceleration vg_maxdt_translation populations_vg_maxdt_acceleration " +
                         "populations_vg_maxdt_translation " +
                         "fg_maxdt_fieldsolver " + "vg_rank fg_rank fg_amr_level vg_loadbalance_weight " +
                         "vg_boundarytype fg_boundarytype vg_boundarylayer fg_boundarylayer " +
@@ -378,6 +388,7 @@ bool P::addParameters() {
            "BackgroundVolB PerturbedVolB " + "Pressure vg_Pressure fg_Pressure populations_PTensor " +
            "BVOLderivs b_vol_derivs");
 
+   RP::add("io.diagnostic_write_all_data_reducers", "Write all available diagnostic reducers", false);
    // NOTE Do not remove the : before the list of variable names as this is parsed by tools/check_vlasiator_cfg.sh
    RP::addComposing("variables.diagnostic",
                     string() +
@@ -439,7 +450,7 @@ bool P::addParameters() {
    RP::add("AMR.box_center_z", "z coordinate of the center of the box that is refined (for testing)", 0.0);
    RP::add("AMR.transShortPencils", "if true, use one-cell pencils", false);
    RP::addComposing("AMR.filterpasses", string("AMR filter passes for each individual refinement level"));
-   
+
    RP::add("fieldtracing.fieldLineTracer", "Field line tracing method to use for coupling ionosphere and magnetosphere (options are: Euler, BS)", std::string("Euler"));
    RP::add("fieldtracing.tracer_max_allowed_error", "Maximum allowed error for the adaptive field line tracers ", 1000);
    RP::add("fieldtracing.tracer_max_attempts", "Maximum allowed attempts for the adaptive field line tracers", 100);
@@ -457,6 +468,7 @@ void Parameters::getParameters() {
    typedef Readparameters RP;
    // get numerical values of the parameters
    RP::get("io.diagnostic_write_interval", P::diagnosticInterval);
+   RP::get("io.diagnostic_write_all_data_reducers", P::diagnosticWriteAllDROs);
    RP::get("io.system_write_t_interval", P::systemWriteTimeInterval);
    RP::get("io.system_write_file_name", P::systemWriteName);
    RP::get("io.system_write_path", P::systemWritePath);
@@ -467,6 +479,7 @@ void Parameters::getParameters() {
    RP::get("io.system_write_distribution_shell_radius", P::systemWriteDistributionWriteShellRadius);
    RP::get("io.system_write_distribution_shell_stride", P::systemWriteDistributionWriteShellStride);
    RP::get("io.system_write_fsgrid_variables", P::systemWriteFsGrid);
+   RP::get("io.system_write_all_data_reducers", P::systemWriteAllDROs);
    RP::get("io.write_initial_state", P::writeInitialState);
    RP::get("io.restart_walltime_interval", P::saveRestartWalltimeInterval);
    RP::get("io.number_of_restarts", P::exitAfterRestarts);
@@ -592,7 +605,7 @@ void Parameters::getParameters() {
    mpiioValues.clear();
    RP::get("io.restart_write_mpiio_hint_key", mpiioKeys);
    RP::get("io.restart_write_mpiio_hint_value", mpiioValues);
-   
+
    if (mpiioKeys.size() != mpiioValues.size()) {
       if (myRank == MASTER_RANK) {
          cerr << "WARNING the number of io.restart_write_mpiio_hint_key and io.restart_write_mpiio_hint_value do not "
@@ -602,6 +615,23 @@ void Parameters::getParameters() {
    } else {
       for (uint i = 0; i < mpiioKeys.size(); i++) {
          P::restartWriteHints.push_back({mpiioKeys[i], mpiioValues[i]});
+      }
+   }
+
+   mpiioKeys.clear();
+   mpiioValues.clear();
+   RP::get("io.restart_read_mpiio_hint_key", mpiioKeys);
+   RP::get("io.restart_read_mpiio_hint_value", mpiioValues);
+
+   if (mpiioKeys.size() != mpiioValues.size()) {
+      if (myRank == MASTER_RANK) {
+         cerr << "WARNING the number of io.restart_read_mpiio_hint_key and io.restart_read_mpiio_hint_value do not "
+                 "match. Disregarding these options."
+              << endl;
+      }
+   } else {
+      for (uint i = 0; i < mpiioKeys.size(); i++) {
+         P::restartReadHints.push_back({mpiioKeys[i], mpiioValues[i]});
       }
    }
 
@@ -693,7 +723,7 @@ void Parameters::getParameters() {
          int maxPasses=g_sequence(P::amrMaxSpatialRefLevel-1);
          for (uint refLevel=0; refLevel<=P::amrMaxSpatialRefLevel; refLevel++){
             numPasses.push_back(maxPasses);
-            maxPasses/=2; 
+            maxPasses/=2;
          }
          //Overwrite passes for the highest refLevel. We do not want to filter there.
          numPasses[P::amrMaxSpatialRefLevel] = 0;
@@ -778,7 +808,7 @@ void Parameters::getParameters() {
          cerr << "WARNING the number of load balance keys and values do not match. Disregarding these options." << endl;
       }
    } else {
-      for (int i = 0; i < loadBalanceKeys.size(); ++i) {
+      for (size_t i = 0; i < loadBalanceKeys.size(); ++i) {
          loadBalanceOptions[loadBalanceKeys[i]] = loadBalanceValues[i];
       }
    }
@@ -810,7 +840,7 @@ void Parameters::getParameters() {
    for (size_t s = 0; s < P::systemWriteName.size(); ++s) {
       P::systemWrites.push_back(0);
    }
-   
+
    RP::get("fieldtracing.fieldLineTracer", tracerString);
    RP::get("fieldtracing.tracer_max_allowed_error", FieldTracing::fieldTracingParameters.max_allowed_error);
    RP::get("fieldtracing.tracer_max_attempts", FieldTracing::fieldTracingParameters.max_field_tracer_attempts);
@@ -820,7 +850,7 @@ void Parameters::getParameters() {
    RP::get("fieldtracing.use_reconstruction_cache", FieldTracing::fieldTracingParameters.useCache);
    RP::get("fieldtracing.fluxrope_max_curvature_radii_to_trace", FieldTracing::fieldTracingParameters.fluxrope_max_curvature_radii_to_trace);
    RP::get("fieldtracing.fluxrope_max_curvature_radii_extent", FieldTracing::fieldTracingParameters.fluxrope_max_curvature_radii_extent);
-   
+
    if(tracerString == "Euler") {
       FieldTracing::fieldTracingParameters.tracingMethod = FieldTracing::Euler;
    } else if (tracerString == "ADPT_Euler") {

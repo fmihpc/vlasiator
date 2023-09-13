@@ -240,7 +240,6 @@ namespace FieldTracing {
       std::array<REAL,3> bunit,crd,z0,zmid,z1;
       //Divide by number of sub steps      
       REAL h= stepSize/(REAL)n;
-      REAL norm;
       
       //First step 
       BFieldFunction(r,outwards,bunit);

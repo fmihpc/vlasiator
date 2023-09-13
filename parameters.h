@@ -94,9 +94,13 @@ struct Parameters {
        systemWriteDistributionWriteShellStride; /*!< Every this many cells for those on selected shells write out their
                                                    velocity space in each class. */
    static std::vector<bool> systemWriteFsGrid; /*!< Write fg_ variables in this file class or not.*/
+   static bool systemWriteAllDROs; /*!< Write all output DROs or not.*/
+   static bool diagnosticWriteAllDROs; /*!< Write all diagnostic DROs or not.*/
    static std::vector<int> systemWrites;        /*!< How many files have been written of each class*/
    static std::vector<std::pair<std::string, std::string>>
        systemWriteHints; /*!< Collection of MPI-IO hints passed for non-restart IO. Pairs of key-value strings. */
+   static std::vector<std::pair<std::string, std::string>>
+       restartReadHints; /*!< Collection of MPI-IO hints passed for restart IO. Pairs of key-value strings. */
    static std::vector<std::pair<std::string, std::string>>
        restartWriteHints; /*!< Collection of MPI-IO hints passed for restart IO. Pairs of key-value strings. */
 
