@@ -426,7 +426,8 @@ __forceinline__ static void parallel_reduce_driver(const uint (&limits)[NDim], L
     /* Allocate memory for the thread data values */
     CHK_ERR(hipMallocAsync(&d_thread_data_dynamic, n_reductions * blocksize * gridsize * sizeof(T), gpuStreamList[thread_id]));
     /* Call the kernel (the number of reductions not known at compile time) */
-    reduction_kernel<Op, NDim, 0><<<gridsize, blocksize, shared_mem_bytes_per_block_request, gpuStreamList[thread_id]>>>(loop_body, d_const_buf, d_buf, d_limits, n_total, n_reductions, d_thread_data_dynamic);
+    if(gridsize > 0)
+      reduction_kernel<Op, NDim, 0><<<gridsize, blocksize, shared_mem_bytes_per_block_request, gpuStreamList[thread_id]>>>(loop_body, d_const_buf, d_buf, d_limits, n_total, n_reductions, d_thread_data_dynamic);
     /* Check for kernel launch errors */
     CHK_ERR(hipPeekAtLastError());
     /* Synchronize and free the thread data allocation */
@@ -438,7 +439,8 @@ __forceinline__ static void parallel_reduce_driver(const uint (&limits)[NDim], L
     const uint blocksize = ARCH_BLOCKSIZE_R;
     const uint gridsize = (n_total - 1 + blocksize) / blocksize;
     /* Call the kernel (the number of reductions known at compile time) */
-    reduction_kernel<Op, NDim, NReduStatic><<<gridsize, blocksize, 0, gpuStreamList[thread_id]>>>(loop_body, d_const_buf, d_buf, d_limits, n_total, n_reductions, d_thread_data_dynamic);
+    if(gridsize > 0)
+      reduction_kernel<Op, NDim, NReduStatic><<<gridsize, blocksize, 0, gpuStreamList[thread_id]>>>(loop_body, d_const_buf, d_buf, d_limits, n_total, n_reductions, d_thread_data_dynamic);
     /* Check for kernel launch errors */
     CHK_ERR(hipPeekAtLastError());
     /* Synchronize after kernel call */
