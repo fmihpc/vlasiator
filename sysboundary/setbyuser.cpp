@@ -93,15 +93,6 @@ namespace SBC {
       return success;
    }
    
-   void SetByUser::fieldSolverBoundaryCondMagneticFieldProjection(
-      FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
-      FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
-      cint i,
-      cint j,
-      cint k
-   ) {
-   }
-
    Real SetByUser::fieldSolverBoundaryCondMagneticField(
       FsGrid< array<Real, fsgrids::bfield::N_BFIELD>, FS_STENCIL_WIDTH> & bGrid,
       FsGrid< fsgrids::technical, FS_STENCIL_WIDTH> & technicalGrid,
