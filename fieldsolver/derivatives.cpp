@@ -669,34 +669,12 @@ void calculateCurvatureSimple(
    phiprof::stop("Calculate curvature",N_cells,"Spatial Cells");
 }
 
-/*! \brief Returns volumetric E of cell
- *
- */
-static std::array<Real, 3> getE(SpatialCell* cell)
-{
-   return std::array<Real, 3> { {cell->parameters[CellParams::EXVOL], cell->parameters[CellParams::EYVOL], cell->parameters[CellParams::EZVOL]} };
-}
-
 /*! \brief Returns perturbed volumetric B of cell
  *
  */
 static std::array<Real, 3> getPerB(SpatialCell* cell)
 {
    return std::array<Real, 3> { {cell->parameters[CellParams::PERBXVOL], cell->parameters[CellParams::PERBYVOL], cell->parameters[CellParams::PERBZVOL]} };
-}
-
-/*! \brief Returns volumetric B of cell
- *
- */
-static std::array<Real, 3> getB(SpatialCell* cell)
-{
-   return std::array<Real, 3> { 
-      {
-         cell->parameters[CellParams::BGBXVOL] + cell->parameters[CellParams::PERBXVOL], 
-         cell->parameters[CellParams::BGBYVOL] + cell->parameters[CellParams::PERBYVOL], 
-         cell->parameters[CellParams::BGBZVOL] + cell->parameters[CellParams::PERBZVOL]
-      } 
-   };
 }
 
 /*! \brief Calculates momentum density of cell
