@@ -59,6 +59,8 @@
 #include "vlsvreaderinterface.h"
 #include <vlsv_writer.h>
 
+#include <fsgrid.hpp> // computeDomainDecomposition
+
 using namespace std;
 using namespace vlsv;
 
@@ -309,81 +311,6 @@ bool cloneMesh(const string& inputFileName,vlsv::Writer& output,const string& me
    return success;
 }
 
-   //! Helper function: calculate position of the local coordinate space for the given dimension
-   // \param globalCells Number of cells in the global Simulation, in this dimension
-   // \param ntasks Total number of tasks in this dimension
-   // \param my_n This task's position in this dimension
-   // \return Cell number at which this task's domains cells start (actual cells, not counting ghost cells)
-   int32_t calcLocalStart(int32_t globalCells, int ntasks, int my_n) {
-      int n_per_task = globalCells / ntasks;
-      int remainder = globalCells % ntasks;
-
-      if(my_n < remainder) {
-         return my_n * (n_per_task+1);
-      } else {
-         return my_n * n_per_task + remainder;
-      }
-   }
-   //! Helper function: calculate size of the local coordinate space for the given dimension
-   // \param globalCells Number of cells in the global Simulation, in this dimension
-   // \param ntasks Total number of tasks in this dimension
-   // \param my_n This task's position in this dimension
-   // \return Nmuber of cells for this task's local domain (actual cells, not counting ghost cells)
-   int32_t calcLocalSize(int32_t globalCells, int ntasks, int my_n) {
-      int n_per_task = globalCells/ntasks;
-      int remainder = globalCells%ntasks;
-      if(my_n < remainder) {
-         return n_per_task+1;
-      } else {
-         return n_per_task;
-      }
-   }
-
-   //! Helper function to optimize decomposition of this grid over the given number of tasks
-   void computeDomainDecomposition(const std::array<int, 3>& GlobalSize, int nProcs, std::array<int,3>& processDomainDecomposition) {
-      std::array<double, 3> systemDim;
-      std::array<double, 3 > processBox;
-      double optimValue = std::numeric_limits<double>::max();
-      for(int i = 0; i < 3; i++) {
-         systemDim[i] = (double)GlobalSize[i];
-      }
-      processDomainDecomposition = {1, 1, 1};
-      for (int i = 1; i <= std::min(nProcs, GlobalSize[0]); i++) {
-         processBox[0] = std::max(systemDim[0]/i, 1.0);
-         for (int j = 1; j <= std::min(nProcs, GlobalSize[1]) ; j++) {
-            if( i * j  > nProcs )
-               break;
-            processBox[1] = std::max(systemDim[1]/j, 1.0);
-            for (int k = 1; k <= std::min(nProcs, GlobalSize[2]); k++) {
-               if( i * j * k > nProcs )
-                  break;
-               processBox[2] = std::max(systemDim[2]/k, 1.0);
-               double value = 
-                  10 * processBox[0] * processBox[1] * processBox[2] + 
-                  (i > 1 ? processBox[1] * processBox[2]: 0) +
-                  (j > 1 ? processBox[0] * processBox[2]: 0) +
-                  (k > 1 ? processBox[0] * processBox[1]: 0);
-
-               if(value < optimValue ){
-                  optimValue = value;
-                  processDomainDecomposition[0] = i;
-                  processDomainDecomposition[1] = j;
-                  processDomainDecomposition[2] = k;
-               }
-            }
-         }
-      }
-
-      if(optimValue == std::numeric_limits<double>::max() ||
-            processDomainDecomposition[0] * processDomainDecomposition[1] * processDomainDecomposition[2] != nProcs) {
-         std::cerr << "FSGrid domain decomposition failed, are you running on a prime number of tasks?" << std::endl;
-         throw std::runtime_error("FSGrid computeDomainDecomposition failed");
-      }
-   }
-
-
-
-
 /*! Extracts the dataset from the VLSV file opened by convertSILO.
  * \param vlsvReader vlsvinterface::Reader class object used to access the VLSV file
  * \param meshName Address of the string containing the name of the mesh to be extracted
@@ -501,9 +428,8 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
       vlsvReader.readParameter("zcells_ini",zcells);
       std::array<int,3> GlobalBox={xcells,ycells,zcells};
       std::array<int,3> thisDomainDecomp;
-      
       //Compute Domain Decomposition Scheme for this vlsv file
-      computeDomainDecomposition(GlobalBox,numtasks,thisDomainDecomp);
+      FsGridTools::computeDomainDecomposition(GlobalBox, numtasks, thisDomainDecomp);
 
 
       std::array<int32_t,3> taskSize,taskStart;
@@ -521,13 +447,13 @@ bool convertMesh(vlsvinterface::Reader& vlsvReader,
          my_z=task%thisDomainDecomp[2];
 
       
-         taskStart[0] = calcLocalStart(GlobalBox[0], thisDomainDecomp[0] ,my_x);
-         taskStart[1] = calcLocalStart(GlobalBox[1], thisDomainDecomp[1] ,my_y);
-         taskStart[2] = calcLocalStart(GlobalBox[2], thisDomainDecomp[2] ,my_z);
+         taskStart[0] = FsGridTools::calcLocalStart(GlobalBox[0], thisDomainDecomp[0], my_x);
+         taskStart[1] = FsGridTools::calcLocalStart(GlobalBox[1], thisDomainDecomp[1], my_y);
+         taskStart[2] = FsGridTools::calcLocalStart(GlobalBox[2], thisDomainDecomp[2], my_z);
             
-         taskSize[0] = calcLocalSize(GlobalBox[0], thisDomainDecomp[0] ,my_x);
-         taskSize[1] = calcLocalSize(GlobalBox[1], thisDomainDecomp[1] ,my_y);
-         taskSize[2] = calcLocalSize(GlobalBox[2], thisDomainDecomp[2] ,my_z);
+         taskSize[0] = FsGridTools::calcLocalSize(GlobalBox[0], thisDomainDecomp[0], my_x);
+         taskSize[1] = FsGridTools::calcLocalSize(GlobalBox[1], thisDomainDecomp[1], my_y);
+         taskSize[2] = FsGridTools::calcLocalSize(GlobalBox[2], thisDomainDecomp[2], my_z);
           
          taskEnd[0]= taskStart[0]+taskSize[0];
          taskEnd[1]= taskStart[1]+taskSize[1];
