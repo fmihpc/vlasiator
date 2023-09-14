@@ -1213,16 +1213,12 @@ int main(int argn,char* args[]) {
    #ifdef USE_GPU
    // Call gpu allocation destructors on all spatial cells
    for (typename std::unordered_map<uint64_t, SpatialCell>::iterator
-           cell_item = mpiGrid.get_cell_data().begin();
-        cell_item != mpiGrid.get_cell_data().end();
+           cell_item = mpiGrid.get_cell_data_for_editing().begin();
+        cell_item != mpiGrid.get_cell_data_for_editing().end();
         cell_item++
       ) {
       (cell_item->second).gpu_destructor();
    }
-   // vector<CellID> allCells = mpiGrid.get_all_cells();
-   // for (const auto& cell: allCells) {
-   //    mpiGrid[cell]->gpu_destructor();
-   // }
    // Deallocate buffers, clear device
    gpu_clear_device();
    #endif
