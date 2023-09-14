@@ -11,6 +11,8 @@
 static vmesh::MeshWrapper *meshWrapper;
 #ifdef USE_GPU
 __device__ __constant__ vmesh::MeshWrapper *meshWrapperDev;
+vmesh::MeshWrapper* MWdev;
+std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT> *velocityMeshes_upload;
 
 __global__ void debug_kernel(
    const uint popID
@@ -19,7 +21,7 @@ __global__ void debug_kernel(
 }
 #endif
 
-void vmesh::allocMeshWrapper() {
+void vmesh::allocateMeshWrapper() {
    // This is now allocated in unified memory
    meshWrapper = new vmesh::MeshWrapper();
 }
@@ -39,19 +41,24 @@ void vmesh::MeshWrapper::uploadMeshWrapper() {
    // Store address to velocityMeshes array
    std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT> * temp = meshWrapper->velocityMeshes;
    // gpu-Malloc space on device, copy array contents
-   std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT> *velocityMeshes_upload;
    CHK_ERR( gpuMalloc((void **)&velocityMeshes_upload, sizeof(std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT>)) );
    CHK_ERR( gpuMemcpy(velocityMeshes_upload, meshWrapper->velocityMeshes, sizeof(std::array<vmesh::MeshParameters,MAX_VMESH_PARAMETERS_COUNT>),gpuMemcpyHostToDevice) );
    // Make wrapper point to device-side array
    meshWrapper->velocityMeshes = velocityMeshes_upload;
    // Allocate and copy meshwrapper on device
-   vmesh::MeshWrapper* MWdev;
    CHK_ERR( gpuMalloc((void **)&MWdev, sizeof(vmesh::MeshWrapper)) );
    CHK_ERR( gpuMemcpy(MWdev, meshWrapper, sizeof(vmesh::MeshWrapper),gpuMemcpyHostToDevice) );
    // Set the global symbol of meshWrapper
    CHK_ERR( gpuMemcpyToSymbol(meshWrapperDev, &MWdev, sizeof(vmesh::MeshWrapper*)) );
    // Copy host-side address back
    meshWrapper->velocityMeshes = temp;
+   // And sync
+   CHK_ERR( gpuDeviceSynchronize() );
+}
+void vmesh::deallocateMeshWrapper() {
+   CHK_ERR( gpuFree(velocityMeshes_upload) );
+   CHK_ERR( gpuFree(MWdev) );
+   CHK_ERR( gpuFree(meshWrapperDev) );
    // And sync
    CHK_ERR( gpuDeviceSynchronize() );
 }

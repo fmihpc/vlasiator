@@ -112,7 +112,8 @@ namespace vmesh {
       void uploadMeshWrapper();   /**< Send a copy of the MeshWrapper into GPU memory */
    };
 
-   void allocMeshWrapper();
+   void allocateMeshWrapper();
+   void deallocateMeshWrapper(); /**< Deallocate GPU memory */
    MeshWrapper* host_getMeshWrapper();
    ARCH_HOSTDEV MeshWrapper* gpu_getMeshWrapper();
 

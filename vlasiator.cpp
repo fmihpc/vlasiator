@@ -307,15 +307,10 @@ int main(int argn,char* args[]) {
    phiprof::start("main");
    phiprof::start("Initialization");
 
-   #ifdef USE_GPU
-   // Activate device, create streams
-   gpu_init_device();
-   #endif
-
    phiprof::start("Read parameters");
-   // Allocate velocity mesh wrapper
-   vmesh::allocMeshWrapper();
-   //init parameter file reader
+   // Allocate host-side velocity mesh wrapper
+   vmesh::allocateMeshWrapper();
+   // init parameter file reader
    Readparameters readparameters(argn,args);
 
    P::addParameters();
@@ -337,6 +332,12 @@ int main(int argn,char* args[]) {
    sysBoundaryContainer.getParameters();
    project->getParameters();
 
+   #ifdef USE_GPU
+   // Activate device, create streams
+   gpu_init_device();
+   #endif
+
+   // Fill in rest of velocity meshes data, upload GPU version
    vmesh::getMeshWrapper()->initVelocityMeshes(getObjectWrapper().particleSpecies.size());
    phiprof::stop("Read parameters");
 
@@ -1224,6 +1225,7 @@ int main(int argn,char* args[]) {
    //    mpiGrid[cell]->gpu_destructor();
    // }
    // Deallocate buffers, clear device
+   vmesh::deallocateMeshWrapper();
    gpu_clear_device();
    #endif
 
